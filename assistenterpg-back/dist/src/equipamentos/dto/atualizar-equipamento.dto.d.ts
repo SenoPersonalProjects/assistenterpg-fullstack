@@ -1,0 +1,37 @@
+import { TipoEquipamento, CategoriaEquipamento, ComplexidadeMaldicao, ProficienciaArma, EmpunhaduraArma, TipoArma, SubtipoArmaDistancia, AlcanceArma, ProficienciaProtecao, TipoProtecao, TipoAcessorio, TipoExplosivo, TipoUsoEquipamento, TipoAmaldicoado } from '@prisma/client';
+export declare class AtualizarEquipamentoDto {
+    codigo?: string;
+    nome?: string;
+    descricao?: string;
+    tipo?: TipoEquipamento;
+    categoria?: CategoriaEquipamento;
+    espacos?: number;
+    complexidadeMaldicao?: ComplexidadeMaldicao;
+    tipoUso?: TipoUsoEquipamento;
+    tipoAmaldicoado?: TipoAmaldicoado;
+    efeito?: string;
+    efeitoMaldicao?: string;
+    requerFerramentasAmaldicoadas?: boolean;
+    proficienciaArma?: ProficienciaArma;
+    empunhaduras?: EmpunhaduraArma[];
+    tipoArma?: TipoArma;
+    subtipoDistancia?: SubtipoArmaDistancia;
+    agil?: boolean;
+    criticoValor?: number;
+    criticoMultiplicador?: number;
+    alcance?: AlcanceArma;
+    tipoMunicaoCodigo?: string;
+    habilidadeEspecial?: string;
+    proficienciaProtecao?: ProficienciaProtecao;
+    tipoProtecao?: TipoProtecao;
+    bonusDefesa?: number;
+    penalidadeCarga?: number;
+    duracaoCenas?: number;
+    recuperavel?: boolean;
+    tipoAcessorio?: TipoAcessorio;
+    periciaBonificada?: string;
+    bonusPericia?: number;
+    requereEmpunhar?: boolean;
+    maxVestimentas?: number;
+    tipoExplosivo?: TipoExplosivo;
+}

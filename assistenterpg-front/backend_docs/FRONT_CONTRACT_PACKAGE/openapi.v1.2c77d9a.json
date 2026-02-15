@@ -1,0 +1,5 @@
+{
+  "captureStatus": "pending",
+  "reason": "Não foi possível exportar /docs/openapi.json neste ambiente porque o backend saudável não está disponível em localhost:3000.",
+  "requiredSource": "assistenterpg-back@2c77d9a /docs/openapi.json"
+}

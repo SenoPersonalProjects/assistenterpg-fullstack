@@ -1,0 +1,2641 @@
+import { AtributoBase, AtributoPassiva, Prisma } from '@prisma/client';
+
+export type SeedHabilidade = {
+  nome: string;
+  tipo: string;
+
+  // no seu projeto, você está usando origem como string ("GERAL")
+  origem?: string | null;
+
+  descricao?: string | null;
+  hereditaria?: boolean;
+
+  // Json (Prisma)
+  requisitos?: Prisma.InputJsonValue | null;
+  mecanicasEspeciais?: Prisma.InputJsonValue | null;
+};
+
+export const classesSeed = [
+  {
+    nome: 'Combatente',
+    descricao:
+      'Especialista em confronto direto, focado em ataques corpo a corpo e uso agressivo de PE/EA para amplificar golpes.',
+    periciasLivresBase: 2,
+  },
+  {
+    nome: 'Sentinela',
+    descricao:
+      'Controlador de campo e atirador tático, atuando em média e longa distância e manipulando o grau das técnicas.',
+    periciasLivresBase: 3,
+  },
+  {
+    nome: 'Especialista',
+    descricao:
+      'Classe versátil voltada para suporte, perícias e usos criativos de Jujutsu, como curas, barreiras ou truques específicos.',
+    periciasLivresBase: 6,
+  },
+];
+
+export const clasSeed = [
+  {
+    nome: 'Gojo',
+    descricao:
+      'Um dos três grandes clãs, conhecido pela técnica hereditária Infinito e pela possibilidade da idiossincrasia dos Seis Olhos, considerado a linhagem com feiticeiros mais poderosos da era moderna.',
+    grandeCla: true,
+  },
+  {
+    nome: 'Zenin',
+    descricao:
+      'Um dos três grandes clãs, tradicional e conservador, famoso por técnicas de combate corpo a corpo e controle de sombras, rival em poder do Clã Gojo.',
+    grandeCla: true,
+  },
+  {
+    nome: 'Kamo',
+    descricao:
+      'Um dos três grandes clãs, mestres da manipulação de sangue e de maldições ligadas a desastres naturais.',
+    grandeCla: true,
+  },
+  {
+    nome: 'Okkotsu',
+    descricao:
+      'Descendentes de Sugawara no Michizane, com reservas excepcionais de energia amaldiçoada e grande afinidade com técnicas especiais.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Inumaki',
+    descricao:
+      'Família de usuários da Fala Amaldiçoada, técnica hereditária que transforma palavras em comandos carregados de energia amaldiçoada.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Kugisaki',
+    descricao:
+      'Família conhecida pela técnica da Boneca de Palha, que usa pregos, martelos e talismãs para amaldiçoar e perfurar à distância.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Suguru',
+    descricao:
+      'Linhagem associada à manipulação e controle de espíritos amaldiçoados, ligada a usuários que dialogam com maldições em grande escala.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Kasumi',
+    descricao:
+      'Família de espadachins tradicionais que une esgrima precisa e energia amaldiçoada, focando em cortes rápidos e técnicas de duelo.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Fujiwara',
+    descricao:
+      'Antiga família nobre com técnicas voltadas a fenômenos atmosféricos e celestes, como ventos, nuvens e trovões.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Ijichi',
+    descricao:
+      'Família de suporte especializada em táticas auxiliares, coordenação de campo e uso de barreiras e cortinas para logística de combate.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Hasaba',
+    descricao:
+      'Clã menor especializado em camuflagem e ocultação de energia amaldiçoada, ideal para infiltração e suporte discreto.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Kinji',
+    descricao:
+      'Família conectada a técnicas baseadas em probabilidade, sorte e jogos de azar, distorcendo chances e resultados em combate.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Ryomen',
+    descricao:
+      'Linhagem lendária associada ao Rei das Maldições, ligada a técnicas extremas de destruição com fogo, cortes e rituais de sacrifício.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Kento',
+    descricao:
+      'Família de feiticeiros metódicos, focados em análise de pontos fracos, cálculo de dano e combate preciso e eficiente.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Ram',
+    descricao:
+      'Descendentes ligados ao elemento fogo, dominando técnicas pirotécnicas devastadoras que consomem grandes quantidades de energia amaldiçoada.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Haganezuka',
+    descricao:
+      'Mestres ferreiros que canalizam energia amaldiçoada na forja, criando armas amaldiçoadas únicas através de sua técnica hereditária.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Itadori',
+    descricao:
+      'Família com resistência física fora do comum e conexão com técnicas que alteram gravidade e domínio corporal.',
+    grandeCla: false,
+  },
+  {
+    nome: 'Sem Clã',
+    descricao:
+      'Feiticeiros sem linhagem familiar conhecida ou sem vínculo formal a um clã jujutsu, que acessam apenas técnicas não hereditárias.',
+    grandeCla: false,
+  },
+];
+
+export const origensSeed = [
+  {
+    nome: 'Mestre de Maldições',
+    descricao:
+      'Ex-mestre de maldições que cometia terrorismo ou outros crimes contra a sociedade Jujutsu, mas abandonou essa vida.',
+  },
+  {
+    nome: 'Prodígio do Clã',
+    descricao:
+      'Herda talento e status desde o nascimento em um dos três grandes clãs, respeitado dentro e fora da família.',
+    requerGrandeCla: true,
+    requerTecnicaHeriditaria: true,
+    bloqueiaTecnicaHeriditaria: false,
+  },
+  {
+    nome: 'Renegado',
+    descricao:
+      'Membro de grande clã que rejeitou as tradições injustas da própria família e rompeu com o clã.',
+    requerGrandeCla: true,
+    requerTecnicaHeriditaria: false,
+    bloqueiaTecnicaHeriditaria: true,
+  },
+  {
+    nome: 'Acadêmico',
+    descricao:
+      'Pesquisador ou professor universitário cujos estudos tocaram em assuntos misteriosos ligados a maldições.',
+  },
+  {
+    nome: 'Agente de Saúde',
+    descricao:
+      'Profissional da saúde treinado em atendimento e cuidado de pessoas, agora lidando também com maldições.',
+  },
+  {
+    nome: 'Artista',
+    descricao:
+      'Ator, músico, escritor, dançarino ou influenciador cuja arte foi marcada por experiências com maldições.',
+  },
+  {
+    nome: 'Atleta',
+    descricao:
+      'Competidor de esporte individual ou em equipe, com desempenho acima da média.',
+  },
+  {
+    nome: 'Chef',
+    descricao:
+      'Cozinheiro amador ou profissional com talento culinário excepcional, capaz de apoiar aliados através da comida.',
+  },
+  {
+    nome: 'Criminoso',
+    descricao:
+      'Vivendo fora da lei até ser recrutado pela Escola Técnica Jujutsu.',
+  },
+  {
+    nome: 'Cultista Arrependido',
+    descricao:
+      'Ex-membro de culto ligado a maldições que agora luta ao lado da sociedade Jujutsu.',
+  },
+  {
+    nome: 'Desgarrado',
+    descricao:
+      'Pessoa que vivia à margem das normas sociais, endurecida por uma vida sem confortos.',
+  },
+  {
+    nome: 'Engenheiro',
+    descricao:
+      'Engenheiro profissional ou inventor de garagem que aplica conhecimento técnico em situações com maldições.',
+  },
+  {
+    nome: 'Executivo',
+    descricao:
+      'Trabalhador de escritório que descobriu algo amaldiçoado em meio a relatórios e processos.',
+  },
+  {
+    nome: 'Magnata',
+    descricao:
+      'Indivíduo com muito dinheiro ou patrimônio, herdeiro ou sortudo, que financia operações ligadas à Escola Técnica.',
+  },
+  {
+    nome: 'Mercenário',
+    descricao:
+      'Soldado de aluguel acostumado a missões pagas de escolta, ataque e proteção.',
+  },
+  {
+    nome: 'Militar',
+    descricao:
+      'Veterano de força militar formal, perito no uso de armas de fogo.',
+  },
+  {
+    nome: 'Operário',
+    descricao:
+      'Trabalhador braçal que desenvolveu força, resistência e visão pragmática do mundo.',
+  },
+  {
+    nome: 'Policial',
+    descricao:
+      'Membro de força de segurança que se deparou com maldições em serviço.',
+  },
+  {
+    nome: 'Religioso',
+    descricao:
+      'Devoto ou sacerdote dedicado a auxiliar pessoas com problemas espirituais e influências amaldiçoadas.',
+  },
+  {
+    nome: 'Servidor Público',
+    descricao:
+      'Funcionário de órgão governamental que descobriu corrupção envolvendo maldições.',
+  },
+  {
+    nome: 'Teórico da Conspiração',
+    descricao:
+      'Investigador de teorias da conspiração que acabou esbarrando em maldições reais.',
+  },
+  {
+    nome: 'T.I.',
+    descricao:
+      'Profissional de tecnologia, programador ou engenheiro de software especializado em sistemas informatizados.',
+  },
+  {
+    nome: 'Trabalhador Rural',
+    descricao:
+      'Pessoa acostumada ao campo, natureza e animais, vinda de áreas isoladas.',
+  },
+  {
+    nome: 'Trambiqueiro',
+    descricao:
+      'Vivia de golpes, jogatina ilegal e falcatruas antes de entrar em contato com o mundo Jujutsu.',
+  },
+  {
+    nome: 'Universitário',
+    descricao:
+      'Aluno de faculdade que encontrou algo amaldiçoado em pesquisas ou na biblioteca do campus.',
+  },
+  {
+    nome: 'Vítima',
+    descricao:
+      'Sobrevivente de encontro traumático com maldições que decidiu reagir em vez de fugir.',
+  },
+];
+
+export const proficienciasSeed = [
+  // Armas
+  {
+    codigo: 'ARMAS_SIMPLES',
+    nome: 'Armas simples',
+    tipo: 'ARMA',
+    categoria: 'SIMPLES',
+    subtipo: null,
+    descricao:
+      'Armas de fácil manejo, como facas, bastões e revólveres; todos os personagens sabem usar sem penalidade.',
+  },
+  {
+    codigo: 'ARMAS_TATICAS',
+    nome: 'Armas táticas',
+    tipo: 'ARMA',
+    categoria: 'TATICA',
+    subtipo: null,
+    descricao:
+      'Espadas, fuzis e armas mais complexas; apenas Combatentes e Sentinelas começam proficientes.',
+  },
+  {
+    codigo: 'ARMAS_PESADAS',
+    nome: 'Armas pesadas',
+    tipo: 'ARMA',
+    categoria: 'PESADA',
+    subtipo: null,
+    descricao:
+      'Metralhadoras, lança-chamas e outras armas de alto impacto; nenhuma classe inicia proficiente.',
+  },
+
+  // Subproficiencias para poderes (parciais)
+  {
+    codigo: 'ARMAS_TATICAS_CORPO_A_CORPO',
+    nome: 'Armas táticas corpo a corpo',
+    tipo: 'ARMA',
+    categoria: 'TATICA',
+    subtipo: 'CORPO_A_CORPO',
+    descricao:
+      'Versão limitada de armas táticas, válida apenas para armas de combate corpo a corpo.',
+  },
+  {
+    codigo: 'ARMAS_TATICAS_DISPARO',
+    nome: 'Armas táticas de disparo',
+    tipo: 'ARMA',
+    categoria: 'TATICA',
+    subtipo: 'DISPARO',
+    descricao:
+      'Versão limitada de armas táticas, válida apenas para armas de disparo.',
+  },
+  {
+    codigo: 'ARMAS_TATICAS_FOGO',
+    nome: 'Armas táticas de fogo',
+    tipo: 'ARMA',
+    categoria: 'TATICA',
+    subtipo: 'FOGO',
+    descricao:
+      'Subconjunto de armas táticas, válido apenas para armas de fogo táticas (fuzis, submetralhadoras, rifles de precisão, etc).',
+  },
+
+
+  // Proteções
+  {
+    codigo: 'PROTECOES_LEVES',
+    nome: 'Proteções leves',
+    tipo: 'PROTECAO',
+    categoria: 'LEVE',
+    subtipo: null,
+    descricao:
+      'Jaquetas de couro pesadas ou coletes leves de kevlar, usados por seguranças e policiais.',
+  },
+  {
+    codigo: 'PROTECOES_PESADAS',
+    nome: 'Proteções pesadas',
+    tipo: 'PROTECAO',
+    categoria: 'PESADA',
+    subtipo: null,
+    descricao:
+      'Equipamentos completos de forças especiais e exército; incluem capacete, ombreiras, joelheiras e colete reforçado.',
+  },
+  {
+    codigo: 'PROTECOES_PESADAS_ESCUDO',
+    nome: 'Escudos pesados',
+    tipo: 'PROTECAO',
+    categoria: 'PESADA',
+    subtipo: 'ESCUDO',
+    descricao:
+      'Subconjunto de proteções pesadas voltado a escudos modernos ou medievais usados por tropas de choque.',
+  },
+
+  // Ferramentas amaldiçoadas
+  {
+    codigo: 'FERRAMENTAS_AMALDICOADAS',
+    nome: 'Ferramentas amaldiçoadas',
+    tipo: 'FERRAMENTA',
+    categoria: 'AMALDICOADA',
+    subtipo: null,
+    descricao:
+      'Proficiência específica para armas, proteções ou artefatos com maldições complexas.',
+  },
+];
+
+// ✅ CORRIGIDO: Removido TECNICA_NAO_INATA_LIVRE
+export const tiposGrauSeed = [
+  {
+    codigo: 'TECNICA_AMALDICOADA',
+    nome: 'Técnica Amaldiçoada',
+    descricao:
+      'Feitiços básicos e avançados que usam energia amaldiçoada de forma direta.',
+  },
+  {
+    codigo: 'TECNICA_REVERSA',
+    nome: 'Técnica Reversa',
+    descricao:
+      'Uso invertido da energia amaldiçoada para cura e efeitos positivos.',
+  },
+  {
+    codigo: 'TECNICA_BARREIRA',
+    nome: 'Técnica de Barreira',
+    descricao:
+      'Técnicas voltadas a domínios, cortinas e efeitos de controle de área.',
+  },
+  {
+    codigo: 'TECNICA_ANTI_BARREIRA',
+    nome: 'Técnica Anti‑Barreira',
+    descricao:
+      'Efeitos especializados em romper ou enfraquecer barreiras e domínios.',
+  },
+  {
+    codigo: 'TECNICA_SHIKIGAMI',
+    nome: 'Técnica de Shikigami',
+    descricao:
+      'Conjuração e controle de shikigamis e enxames vinculados ao usuário.',
+  },
+  {
+    codigo: 'TECNICA_CADAVERES',
+    nome: 'Técnica de Cadáveres',
+    descricao:
+      'Controle de corpos, bonecos e entidades animadas por energia amaldiçoada.',
+  },
+];
+
+export const resistenciasTipoSeed = [
+  {
+    codigo: 'IMPACTO',
+    nome: 'Impacto',
+    descricao: 'Dano de pancadas, quedas, marretas, explosões sem estilhaços.',
+  },
+  {
+    codigo: 'CORTE',
+    nome: 'Corte',
+    descricao: 'Dano de lâminas e golpes que rasgam ou decepam.',
+  },
+  {
+    codigo: 'PERFURACAO',
+    nome: 'Perfuração',
+    descricao: 'Dano de lanças, projéteis perfurantes, facas e estilhaços.',
+  },
+  {
+    codigo: 'FOGO',
+    nome: 'Fogo',
+    descricao: 'Dano de chamas, calor intenso e técnicas pirotécnicas.',
+  },
+  {
+    codigo: 'ELETRICIDADE',
+    nome: 'Eletricidade',
+    descricao: 'Dano de choques, relâmpagos e técnicas elétricas.',
+  },
+  {
+    codigo: 'FRIO',
+    nome: 'Frio',
+    descricao: 'Dano causado por gelo extremo ou redução brutal de temperatura.',
+  },
+  {
+    codigo: 'ENERGIA_AMALDICOADA',
+    nome: 'Energia Amaldiçoada',
+    descricao: 'Dano direto de Jujutsu e de técnicas que canalizam maldições.',
+  },
+  {
+    codigo: 'ENERGIA_POSITIVA',
+    nome: 'Energia Positiva',
+    descricao:
+      'Dano ou efeito de técnicas de cura e purificação quando usadas ofensivamente.',
+  },
+  {
+    codigo: 'MENTAL',
+    nome: 'Mental',
+    descricao:
+      'Dano à sanidade, pânico, terror psíquico e outras agressões à mente.',
+  },
+];
+
+export const alinhamentosSeed = [
+  {
+    nome: 'Leal e Bom (LB)',
+    descricao:
+      'Pessoas leais e bondosas que valorizam a justiça, respeitam a lei e se sacrificam para ajudar os necessitados, cumprindo promessas e dizendo a verdade.',
+  },
+  {
+    nome: 'Neutro e Bom (NB)',
+    descricao:
+      'Indivíduos de bom coração que sentem prazer com a felicidade dos outros e colocam ajudar o próximo acima de seguir ordens ou leis rígidas.',
+  },
+  {
+    nome: 'Caótico e Bom (CB)',
+    descricao:
+      'Espíritos livres que promovem o bem seguindo seus próprios instintos, dispostos a burlar regras e até trapacear para proteger e alegrar os menos afortunados.',
+  },
+  {
+    nome: 'Leal e Neutro (LN)',
+    descricao:
+      'Pessoas metódicas e disciplinadas que obedecem leis e cumprem promessas a qualquer custo, priorizando ordem e dever acima de considerações pessoais.',
+  },
+  {
+    nome: 'Neutro (N)',
+    descricao:
+      'Indivíduos que buscam equilíbrio ou simplesmente seguem o bom senso, sem fortes inclinações para bem, mal, lei ou caos, preferindo conviver com pessoas justas.',
+  },
+  {
+    nome: 'Caótico e Neutro (CN)',
+    descricao:
+      'Pessoas impulsivas que fazem o que querem quando querem, valorizando a própria liberdade acima de regras ou expectativas alheias, muitas vezes imprevisíveis.',
+  },
+  {
+    nome: 'Leal e Mau (LM)',
+    descricao:
+      'Vilões que acreditam que ordem, tradição e códigos de conduta importam mais que liberdade ou dignidade, seguindo regras rígidas mesmo quando causam sofrimento.',
+  },
+  {
+    nome: 'Neutro e Mau (NM)',
+    descricao:
+      'Egoístas que colocam sempre a si mesmos em primeiro lugar, roubando, enganando ou traindo aliados sempre que isso lhes traz vantagem pessoal.',
+  },
+  {
+    nome: 'Caótico e Mau (CM)',
+    descricao:
+      'Criaturas verdadeiramente cruéis que sentem prazer no sofrimento alheio, inclinadas a violência gratuita e destruição, quase incapazes de viver em sociedade.',
+  },
+];
+
+export const periciasSeed = [
+  {
+    codigo: 'ACROBACIA',
+    nome: 'Acrobacia',
+    atributoBase: AtributoBase.AGI,
+    somenteTreinada: false,
+    penalizaPorCarga: true,
+    precisaKit: false,
+    descricao:
+      'Equilíbrio, saltos, rolamentos e outras manobras corporais usadas para se mover em terrenos difíceis ou evitar quedas.',
+  },
+  {
+    codigo: 'ADESTRAMENTO',
+    nome: 'Adestramento',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Lidar, treinar e acalmar animais, além de conduzir montarias em situações de risco.',
+  },
+  {
+    codigo: 'ARTES',
+    nome: 'Artes',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Expressão artística em música, atuação, dança, escrita ou artes visuais, usada para impressionar ou influenciar plateias.',
+  },
+  {
+    codigo: 'ATLETISMO',
+    nome: 'Atletismo',
+    atributoBase: AtributoBase.FOR,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Corrida, escalada, natação e saltos, representando condicionamento físico bruto.',
+  },
+  {
+    codigo: 'ATUALIDADES',
+    nome: 'Atualidades',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Conhecimento de notícias, política, cultura pop e fatos gerais do mundo moderno.',
+  },
+  {
+    codigo: 'CIENCIAS',
+    nome: 'Ciências',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Conhecimento acadêmico em áreas como física, química, biologia e matemática aplicada.',
+  },
+  {
+    codigo: 'CRIME',
+    nome: 'Crime',
+    atributoBase: AtributoBase.AGI,
+    somenteTreinada: true,
+    penalizaPorCarga: true,
+    precisaKit: true,
+    descricao:
+      'Arrombamento, furto, sabotagem e outras ações ilegais que exigem técnica e discrição.',
+  },
+  {
+    codigo: 'DIPLOMACIA',
+    nome: 'Diplomacia',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Negociação, mediação de conflitos e construção de acordos por meio de conversa educada.',
+  },
+  {
+    codigo: 'ENGANACAO',
+    nome: 'Enganação',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: true,
+    descricao:
+      'Blefar, mentir, falsear documentos e montar disfarces convincentes para enganar outras pessoas.',
+  },
+  {
+    codigo: 'FORTITUDE',
+    nome: 'Fortitude',
+    atributoBase: AtributoBase.VIG,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Resistência física a venenos, doenças, fadiga, esforço prolongado e outros efeitos corporais.',
+  },
+  {
+    codigo: 'FURTIVIDADE',
+    nome: 'Furtividade',
+    atributoBase: AtributoBase.AGI,
+    somenteTreinada: false,
+    penalizaPorCarga: true,
+    precisaKit: false,
+    descricao:
+      'Se esconder, se mover em silêncio e evitar ser notado por sentinelas ou maldições.',
+  },
+  {
+    codigo: 'INICIATIVA',
+    nome: 'Iniciativa',
+    atributoBase: AtributoBase.AGI,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Reação rápida a perigo, definindo quem age primeiro em situações de combate.',
+  },
+  {
+    codigo: 'INTIMIDACAO',
+    nome: 'Intimidação',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Coagir, ameaçar ou pressionar alguém usando presença, postura ou violência implícita.',
+  },
+  {
+    codigo: 'INTUICAO',
+    nome: 'Intuição',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Perceber emoções, detectar mentiras e sentir que algo está errado mesmo sem prova direta.',
+  },
+  {
+    codigo: 'INVESTIGACAO',
+    nome: 'Investigação',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Analisar cenas, documentos e pistas para reconstruir eventos e descobrir informações escondidas.',
+  },
+  {
+    codigo: 'LUTA',
+    nome: 'Luta',
+    atributoBase: AtributoBase.FOR,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Combate corpo a corpo, agarrões, derrubadas e uso de armas de curto alcance.',
+  },
+  {
+    codigo: 'MEDICINA',
+    nome: 'Medicina',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: true,
+    descricao:
+      'Primeiros socorros, tratamento de ferimentos, diagnóstico de doenças e cuidados prolongados.',
+  },
+  {
+    codigo: 'JUJUTSU',
+    nome: 'Jujutsu',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Uso teórico e prático de técnicas amaldiçoadas, leitura de energia e conjuração de feitios.',
+  },
+  {
+    codigo: 'PERCEPCAO',
+    nome: 'Percepção',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Observar detalhes, perceber sons, localizar ameaças escondidas e notar armadilhas.',
+  },
+  {
+    codigo: 'PONTARIA',
+    nome: 'Pontaria',
+    atributoBase: AtributoBase.AGI,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Usar armas de disparo e ataques à distância com precisão, de pistolas a rifles.',
+  },
+  {
+    codigo: 'PROFISSAO',
+    nome: 'Profissão',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Conhecimentos e rotinas de uma área profissional específica, incluindo contatos e práticas do ofício.',
+  },
+  {
+    codigo: 'REFLEXOS',
+    nome: 'Reflexos',
+    atributoBase: AtributoBase.AGI,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Reagir a explosões, armadilhas e ataques súbitos, esquivando ou suportando impactos.',
+  },
+  {
+    codigo: 'RELIGIAO',
+    nome: 'Religião',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Conhecimento de doutrinas, ritos e mitos espirituais, incluindo usos de fé contra maldições.',
+  },
+  {
+    codigo: 'TATICA',
+    nome: 'Tática',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Analisar o campo de batalha, planejar abordagens, emboscadas e posicionamento estratégico.',
+  },
+  {
+    codigo: 'TECNOLOGIA',
+    nome: 'Tecnologia',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: true,
+    penalizaPorCarga: false,
+    precisaKit: true,
+    descricao:
+      'Usar, reparar e invadir sistemas, eletrônicos e dispositivos avançados, inclusive amaldiçoados.',
+  },
+  {
+    codigo: 'SOBREVIVENCIA',
+    nome: 'Sobrevivência',
+    atributoBase: AtributoBase.INT,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Encontrar abrigo, comida, água e trilhas em ambientes hostis, além de rastrear alvos.',
+  },
+  {
+    codigo: 'VONTADE',
+    nome: 'Vontade',
+    atributoBase: AtributoBase.PRE,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Resistência mental a efeitos de medo, controle, tormento psíquico e votos vinculativos.',
+  },
+  {
+    codigo: 'PILOTAGEM',
+    nome: 'Pilotagem',
+    atributoBase: AtributoBase.AGI,
+    somenteTreinada: false,
+    penalizaPorCarga: false,
+    precisaKit: false,
+    descricao:
+      'Conduzir veículos terrestres, aquáticos ou aéreos em condições normais ou perigosas.',
+  },
+];
+
+export const origemPericiasSeed = [
+  {
+    origemNome: 'Mestre de Maldições',
+    pericias: [
+      { codigo: 'JUJUTSU', tipo: 'FIXA' as const },
+      { codigo: 'INTIMIDACAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Prodígio do Clã',
+    pericias: [
+      { codigo: 'JUJUTSU', tipo: 'FIXA' as const },
+      { codigo: 'LUTA', tipo: 'ESCOLHA' as const, grupoEscolha: 1 },
+      { codigo: 'PONTARIA', tipo: 'ESCOLHA' as const, grupoEscolha: 1 },
+    ],
+  },
+  {
+    origemNome: 'Renegado',
+    pericias: [
+      { codigo: 'VONTADE', tipo: 'FIXA' as const },
+      { codigo: 'SOBREVIVENCIA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Acadêmico',
+    pericias: [
+      { codigo: 'CIENCIAS', tipo: 'FIXA' as const },
+      { codigo: 'INVESTIGACAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Agente de Saúde',
+    pericias: [
+      { codigo: 'INTUICAO', tipo: 'FIXA' as const },
+      { codigo: 'MEDICINA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Artista',
+    pericias: [
+      { codigo: 'ARTES', tipo: 'FIXA' as const },
+      { codigo: 'ENGANACAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Atleta',
+    pericias: [
+      { codigo: 'ACROBACIA', tipo: 'FIXA' as const },
+      { codigo: 'ATLETISMO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Chef',
+    pericias: [
+      { codigo: 'FORTITUDE', tipo: 'FIXA' as const },
+      { codigo: 'PROFISSAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Criminoso',
+    pericias: [
+      { codigo: 'CRIME', tipo: 'FIXA' as const },
+      { codigo: 'FURTIVIDADE', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Cultista Arrependido',
+    pericias: [
+      { codigo: 'JUJUTSU', tipo: 'FIXA' as const },
+      { codigo: 'RELIGIAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Desgarrado',
+    pericias: [
+      { codigo: 'FORTITUDE', tipo: 'FIXA' as const },
+      { codigo: 'SOBREVIVENCIA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Engenheiro',
+    pericias: [
+      { codigo: 'PROFISSAO', tipo: 'FIXA' as const },
+      { codigo: 'TECNOLOGIA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Executivo',
+    pericias: [
+      { codigo: 'DIPLOMACIA', tipo: 'FIXA' as const },
+      { codigo: 'PROFISSAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Magnata',
+    pericias: [
+      { codigo: 'DIPLOMACIA', tipo: 'FIXA' as const },
+      { codigo: 'PILOTAGEM', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Mercenário',
+    pericias: [
+      { codigo: 'INICIATIVA', tipo: 'FIXA' as const },
+      { codigo: 'INTIMIDACAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Militar',
+    pericias: [
+      { codigo: 'PONTARIA', tipo: 'FIXA' as const },
+      { codigo: 'TATICA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Operário',
+    pericias: [
+      { codigo: 'FORTITUDE', tipo: 'FIXA' as const },
+      { codigo: 'PROFISSAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Policial',
+    pericias: [
+      { codigo: 'PERCEPCAO', tipo: 'FIXA' as const },
+      { codigo: 'PONTARIA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Religioso',
+    pericias: [
+      { codigo: 'RELIGIAO', tipo: 'FIXA' as const },
+      { codigo: 'VONTADE', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Servidor Público',
+    pericias: [
+      { codigo: 'INTUICAO', tipo: 'FIXA' as const },
+      { codigo: 'VONTADE', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Teórico da Conspiração',
+    pericias: [
+      { codigo: 'INVESTIGACAO', tipo: 'FIXA' as const },
+      { codigo: 'JUJUTSU', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'T.I.',
+    pericias: [
+      { codigo: 'INVESTIGACAO', tipo: 'FIXA' as const },
+      { codigo: 'TECNOLOGIA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Trabalhador Rural',
+    pericias: [
+      { codigo: 'ADESTRAMENTO', tipo: 'FIXA' as const },
+      { codigo: 'SOBREVIVENCIA', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Trambiqueiro',
+    pericias: [
+      { codigo: 'CRIME', tipo: 'FIXA' as const },
+      { codigo: 'ENGANACAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Universitário',
+    pericias: [
+      { codigo: 'ATUALIDADES', tipo: 'FIXA' as const },
+      { codigo: 'INVESTIGACAO', tipo: 'FIXA' as const },
+    ],
+  },
+  {
+    origemNome: 'Vítima',
+    pericias: [
+      { codigo: 'REFLEXOS', tipo: 'FIXA' as const },
+      { codigo: 'VONTADE', tipo: 'FIXA' as const },
+    ],
+  },
+];
+
+export const classesPericiasSeed = [
+  { classeNome: 'Combatente', periciaCodigo: 'LUTA', tipo: 'ESCOLHA', grupoEscolha: 1 },
+  { classeNome: 'Combatente', periciaCodigo: 'PONTARIA', tipo: 'ESCOLHA', grupoEscolha: 1 },
+  { classeNome: 'Combatente', periciaCodigo: 'FORTITUDE', tipo: 'ESCOLHA', grupoEscolha: 2 },
+  { classeNome: 'Combatente', periciaCodigo: 'REFLEXOS', tipo: 'ESCOLHA', grupoEscolha: 2 },
+
+  { classeNome: 'Sentinela', periciaCodigo: 'LUTA', tipo: 'ESCOLHA', grupoEscolha: 1 },
+  { classeNome: 'Sentinela', periciaCodigo: 'PONTARIA', tipo: 'ESCOLHA', grupoEscolha: 1 },
+  { classeNome: 'Sentinela', periciaCodigo: 'TATICA', tipo: 'FIXA' },
+];
+
+export const habilidadesInatasSeed = [
+  // Hereditárias
+  {
+    nome: 'Chamas do Desastre',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Ryomen'],
+  },
+  {
+    nome: 'Copiar',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Okkotsu', 'Gojo'],
+  },
+  {
+    nome: 'Dez Sombras',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Zenin'],
+  },
+  {
+    nome: 'Fabricação Amaldiçoada',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Haganezuka'],
+  },
+  {
+    nome: 'Fala Amaldiçoada',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Inumaki'],
+  },
+  {
+    nome: 'Fúria de Agni',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Ram'],
+  },
+  {
+    nome: 'Gravidade Zero',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Itadori'],
+  },
+  {
+    nome: 'Infinito',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Gojo', 'Okkotsu'],
+  },
+  {
+    nome: 'Manipulação de Sangue',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Kamo'],
+  },
+  {
+    nome: 'Manipulação do Céu',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Fujiwara'],
+  },
+  {
+    nome: 'Oceano Desastroso',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Kamo'],
+  },
+  {
+    nome: 'Plantas do Desastre',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Zenin'],
+  },
+  {
+    nome: 'Santuário',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Ryomen', 'Itadori'],
+  },
+  {
+    nome: 'Técnica da Boneca de Palha',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Kugisaki'],
+  },
+  {
+    nome: 'Técnica de Projeção',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Zenin'],
+  },
+  {
+    nome: 'Transfiguração Ociosa',
+    tipo: 'INATA',
+    hereditaria: true,
+    clasHereditarios: ['Kamo'],
+  },
+
+  // Não hereditárias
+  { nome: 'Armamento Divino', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Carne Explosiva', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Dádiva de Lavoisier', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Descarga de Energia Amaldiçoada', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Encantamento do Inverso', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Energia Amaldiçoada Eletrificada', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Envenenamento', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Formação de Gelo', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Fúria Estelar', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Imortalidade', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Manipulação de Fantoches', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Manipulação de Fotografias', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Manipulação de Maldição', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Manipulação de Terra', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Milagres', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Nulificação (Escada de Jacó)', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Olhar Paralisante', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Orquídea Sárkica', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Punhos de Mísseis', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Sem Técnica Amaldiçoada', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Sete Caminhos Mundanos', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Surto Temporal', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Técnica da Névoa Lilás', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Técnica de Clonagem', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Técnica de Razão (7/3)', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Técnica do Apostador Nato', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Transferência Espacial', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Tribunal de Julgamento', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+  { nome: 'Troca (Boogie Woogie)', tipo: 'INATA', hereditaria: false, clasHereditarios: [] },
+];
+
+export const trilhasSeed = [
+  // Combatente
+  { classeNome: 'Combatente', nome: 'Aniquilador', descricao: 'Combatente focado em armas de curto alcance.' },
+  { classeNome: 'Combatente', nome: 'Guerreiro', descricao: 'Corpo como arma principal.' },
+  { classeNome: 'Combatente', nome: 'Operações Especiais', descricao: 'Mobilidade, ações extras e iniciativa.' },
+  { classeNome: 'Combatente', nome: 'Tropa de Choque', descricao: 'Tanque e protetor da equipe.' },
+  { classeNome: 'Combatente', nome: 'Arma Maldita', descricao: 'Combate integrado a Jujutsu em armas.' },
+
+  // Sentinela
+  { classeNome: 'Sentinela', nome: 'Brigadeiro', descricao: 'Atirador de médio alcance.' },
+  { classeNome: 'Sentinela', nome: 'Atirador de Elite', descricao: 'Sniper e dano à longa distância.' },
+  { classeNome: 'Sentinela', nome: 'Conduíte', descricao: 'Canalizador e manipulador de feitiços.' },
+  { classeNome: 'Sentinela', nome: 'Comandante de Campo', descricao: 'Buffs táticos e coordenação.' },
+  { classeNome: 'Sentinela', nome: 'Especialista em Shikigami', descricao: 'Focado em Shikigamis.' },
+
+  // Especialista
+  { classeNome: 'Especialista', nome: 'Infiltrador', descricao: 'Furtividade e assassinato preciso.' },
+  { classeNome: 'Especialista', nome: 'Médico de Campo', descricao: 'Suporte médico e cura.' },
+  { classeNome: 'Especialista', nome: 'Técnico', descricao: 'Tecnologia e itens.' },
+  { classeNome: 'Especialista', nome: 'Graduado', descricao: 'Feiticeiro focado em feitiços.' },
+  { classeNome: 'Especialista', nome: 'Flagelador', descricao: 'Usa dor e sentimentos negativos.' },
+  { classeNome: 'Especialista', nome: 'Mestre de Barreiras', descricao: 'Barreiras e anti-domínio.' },
+];
+
+export const caminhosSeed = [
+  {
+    trilhaNome: 'Mestre de Barreiras',
+    nome: 'Domínio Perfeito',
+    descricao: 'Caminho focado em fortalecer o próprio domínio.',
+  },
+  {
+    trilhaNome: 'Mestre de Barreiras',
+    nome: 'Anulador de Barreiras',
+    descricao: 'Caminho focado em anti-domínio.',
+  },
+  {
+    trilhaNome: 'Mestre de Barreiras',
+    nome: 'Apoio de Campo',
+    descricao: 'Caminho focado em cortinas e suporte.',
+  },
+];
+
+export const habilidadesTrilhaSeed = [
+  // Combatente - Aniquilador
+  { trilhaNome: 'Aniquilador', caminhoNome: null, habilidadeNome: 'A Favorita (Aniquilador)', nivelConcedido: 2 },
+  { trilhaNome: 'Aniquilador', caminhoNome: null, habilidadeNome: 'Técnica Secreta (Aniquilador)', nivelConcedido: 8 },
+  { trilhaNome: 'Aniquilador', caminhoNome: null, habilidadeNome: 'Técnica Sublime (Aniquilador)', nivelConcedido: 13 },
+  { trilhaNome: 'Aniquilador', caminhoNome: null, habilidadeNome: 'Máquina de Matar (Aniquilador)', nivelConcedido: 20 },
+
+  // Combatente - Guerreiro
+  { trilhaNome: 'Guerreiro', caminhoNome: null, habilidadeNome: 'Técnica Letal', nivelConcedido: 2 },
+  { trilhaNome: 'Guerreiro', caminhoNome: null, habilidadeNome: 'Revidar', nivelConcedido: 8 },
+  { trilhaNome: 'Guerreiro', caminhoNome: null, habilidadeNome: 'Força Opressora', nivelConcedido: 13 },
+  { trilhaNome: 'Guerreiro', caminhoNome: null, habilidadeNome: 'Potência Máxima', nivelConcedido: 20 },
+
+  // Combatente - Operações Especiais
+  { trilhaNome: 'Operações Especiais', caminhoNome: null, habilidadeNome: 'Iniciativa Aprimorada', nivelConcedido: 2 },
+  { trilhaNome: 'Operações Especiais', caminhoNome: null, habilidadeNome: 'Ataque Extra', nivelConcedido: 8 },
+  { trilhaNome: 'Operações Especiais', caminhoNome: null, habilidadeNome: 'Surto de Adrenalina', nivelConcedido: 13 },
+  { trilhaNome: 'Operações Especiais', caminhoNome: null, habilidadeNome: 'Sempre Alerta', nivelConcedido: 20 },
+
+  // Combatente - Tropa de Choque
+  { trilhaNome: 'Tropa de Choque', caminhoNome: null, habilidadeNome: 'Casca Grossa', nivelConcedido: 2 },
+  { trilhaNome: 'Tropa de Choque', caminhoNome: null, habilidadeNome: 'Cai Dentro', nivelConcedido: 8 },
+  { trilhaNome: 'Tropa de Choque', caminhoNome: null, habilidadeNome: 'Duro de Matar', nivelConcedido: 13 },
+  { trilhaNome: 'Tropa de Choque', caminhoNome: null, habilidadeNome: 'Inquebrável', nivelConcedido: 20 },
+
+  // Combatente - Arma Maldita
+  { trilhaNome: 'Arma Maldita', caminhoNome: null, habilidadeNome: 'Arma Amaldiçoada', nivelConcedido: 2 },
+  { trilhaNome: 'Arma Maldita', caminhoNome: null, habilidadeNome: 'Gladiador Amaldiçoado', nivelConcedido: 8 },
+  { trilhaNome: 'Arma Maldita', caminhoNome: null, habilidadeNome: 'Conjuração Marcial', nivelConcedido: 13 },
+  { trilhaNome: 'Arma Maldita', caminhoNome: null, habilidadeNome: 'Maldição Permanente', nivelConcedido: 20 },
+
+  // Sentinela - Brigadeiro
+  { trilhaNome: 'Brigadeiro', caminhoNome: null, habilidadeNome: 'A Favorita (Brigadeiro)', nivelConcedido: 2 },
+  { trilhaNome: 'Brigadeiro', caminhoNome: null, habilidadeNome: 'Técnica Secreta (Brigadeiro)', nivelConcedido: 8 },
+  { trilhaNome: 'Brigadeiro', caminhoNome: null, habilidadeNome: 'Técnica Sublime (Brigadeiro)', nivelConcedido: 13 },
+  { trilhaNome: 'Brigadeiro', caminhoNome: null, habilidadeNome: 'Máquina de Matar (Brigadeiro)', nivelConcedido: 20 },
+
+  // Sentinela - Atirador de Elite
+  { trilhaNome: 'Atirador de Elite', caminhoNome: null, habilidadeNome: 'Mira de Elite', nivelConcedido: 2 },
+  { trilhaNome: 'Atirador de Elite', caminhoNome: null, habilidadeNome: 'Disparo Letal', nivelConcedido: 8 },
+  { trilhaNome: 'Atirador de Elite', caminhoNome: null, habilidadeNome: 'Disparo Impactante', nivelConcedido: 13 },
+  { trilhaNome: 'Atirador de Elite', caminhoNome: null, habilidadeNome: 'Atirar para Matar', nivelConcedido: 20 },
+
+  // Sentinela - Conduíte
+  { trilhaNome: 'Conduíte', caminhoNome: null, habilidadeNome: 'Ampliar Feitiço', nivelConcedido: 2 },
+  { trilhaNome: 'Conduíte', caminhoNome: null, habilidadeNome: 'Acelerar Feitiço', nivelConcedido: 8 },
+  { trilhaNome: 'Conduíte', caminhoNome: null, habilidadeNome: 'Anular Feitiço', nivelConcedido: 13 },
+  { trilhaNome: 'Conduíte', caminhoNome: null, habilidadeNome: 'Canalizar o Jujutsu', nivelConcedido: 20 },
+
+  // Sentinela - Comandante de Campo
+  { trilhaNome: 'Comandante de Campo', caminhoNome: null, habilidadeNome: 'Inspirar Confiança', nivelConcedido: 2 },
+  { trilhaNome: 'Comandante de Campo', caminhoNome: null, habilidadeNome: 'Estrategista', nivelConcedido: 8 },
+  { trilhaNome: 'Comandante de Campo', caminhoNome: null, habilidadeNome: 'Brecha na Guarda', nivelConcedido: 13 },
+  { trilhaNome: 'Comandante de Campo', caminhoNome: null, habilidadeNome: 'Oficial Comandante', nivelConcedido: 20 },
+
+  // Sentinela - Especialista em Shikigami
+  { trilhaNome: 'Especialista em Shikigami', caminhoNome: null, habilidadeNome: 'Chamariz', nivelConcedido: 2 },
+  { trilhaNome: 'Especialista em Shikigami', caminhoNome: null, habilidadeNome: 'O Melhor Amigo do Homem', nivelConcedido: 8 },
+  { trilhaNome: 'Especialista em Shikigami', caminhoNome: null, habilidadeNome: 'Sinergia', nivelConcedido: 13 },
+  { trilhaNome: 'Especialista em Shikigami', caminhoNome: null, habilidadeNome: 'Antes Ele do que Eu', nivelConcedido: 20 },
+
+  // Especialista - Infiltrador
+  { trilhaNome: 'Infiltrador', caminhoNome: null, habilidadeNome: 'Ataque Furtivo', nivelConcedido: 2 },
+  { trilhaNome: 'Infiltrador', caminhoNome: null, habilidadeNome: 'Gatuno', nivelConcedido: 8 },
+  { trilhaNome: 'Infiltrador', caminhoNome: null, habilidadeNome: 'Assassinar', nivelConcedido: 13 },
+  { trilhaNome: 'Infiltrador', caminhoNome: null, habilidadeNome: 'Sombra Fugaz', nivelConcedido: 20 },
+
+  // Especialista - Médico de Campo
+  { trilhaNome: 'Médico de Campo', caminhoNome: null, habilidadeNome: 'Paramédico', nivelConcedido: 2 },
+  { trilhaNome: 'Médico de Campo', caminhoNome: null, habilidadeNome: 'Equipe de Trauma', nivelConcedido: 8 },
+  { trilhaNome: 'Médico de Campo', caminhoNome: null, habilidadeNome: 'Resgate', nivelConcedido: 13 },
+  { trilhaNome: 'Médico de Campo', caminhoNome: null, habilidadeNome: 'Reanimação', nivelConcedido: 20 },
+
+  // Especialista - Técnico
+  { trilhaNome: 'Técnico', caminhoNome: null, habilidadeNome: 'Inventário Otimizado', nivelConcedido: 2 },
+  { trilhaNome: 'Técnico', caminhoNome: null, habilidadeNome: 'Remendão', nivelConcedido: 8 },
+  { trilhaNome: 'Técnico', caminhoNome: null, habilidadeNome: 'Improvisar', nivelConcedido: 13 },
+  { trilhaNome: 'Técnico', caminhoNome: null, habilidadeNome: 'Preparado para Tudo', nivelConcedido: 20 },
+
+  // Especialista - Graduado
+  { trilhaNome: 'Graduado', caminhoNome: null, habilidadeNome: 'Saber Ampliado', nivelConcedido: 2 },
+  { trilhaNome: 'Graduado', caminhoNome: null, habilidadeNome: 'Grimório e Marca-páginas', nivelConcedido: 8 },
+  { trilhaNome: 'Graduado', caminhoNome: null, habilidadeNome: 'Feitiços Eficientes', nivelConcedido: 13 },
+  { trilhaNome: 'Graduado', caminhoNome: null, habilidadeNome: 'Feitiçaria Clássica', nivelConcedido: 20 },
+
+  // Especialista - Flagelador
+  { trilhaNome: 'Flagelador', caminhoNome: null, habilidadeNome: 'Poder do Flagelo', nivelConcedido: 2 },
+  { trilhaNome: 'Flagelador', caminhoNome: null, habilidadeNome: 'Abraçar a Dor', nivelConcedido: 8 },
+  { trilhaNome: 'Flagelador', caminhoNome: null, habilidadeNome: 'Absorver Agonia', nivelConcedido: 13 },
+  { trilhaNome: 'Flagelador', caminhoNome: null, habilidadeNome: 'Sentimento Tangível', nivelConcedido: 20 },
+
+  // Especialista - Mestre de Barreiras (habilidade de nível 2 comum a todos os caminhos)
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: null, habilidadeNome: 'Escolha do Mestre de Barreiras', nivelConcedido: 2 },
+
+  // Caminhos específicos (níveis 8, 13, 18)
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Domínio Perfeito', habilidadeNome: 'Cabo de Guerra', nivelConcedido: 8 },
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Domínio Perfeito', habilidadeNome: 'Isso Acaba Aqui', nivelConcedido: 13 },
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Domínio Perfeito', habilidadeNome: 'Chega de Limitações', nivelConcedido: 20 },
+
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Anulador de Barreiras', habilidadeNome: 'A Tesoura', nivelConcedido: 8 },
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Anulador de Barreiras', habilidadeNome: 'Eu Posso Fazer Isso o Dia Inteiro', nivelConcedido: 13 },
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Anulador de Barreiras', habilidadeNome: 'É Você Quem Está Preso Comigo', nivelConcedido: 20 },
+
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Apoio de Campo', habilidadeNome: 'Ajudinha', nivelConcedido: 8 },
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Apoio de Campo', habilidadeNome: 'Suporte de Campo', nivelConcedido: 13 },
+  { trilhaNome: 'Mestre de Barreiras', caminhoNome: 'Apoio de Campo', habilidadeNome: 'Versátil', nivelConcedido: 20 },
+];
+
+export const classesProficienciasSeed = [
+  {
+    classeNome: 'Combatente',
+    proficienciaCodigo: 'ARMAS_SIMPLES',
+  },
+  {
+    classeNome: 'Combatente',
+    proficienciaCodigo: 'ARMAS_TATICAS',
+  },
+  {
+    classeNome: 'Combatente',
+    proficienciaCodigo: 'PROTECOES_LEVES',
+  },
+
+  {
+    classeNome: 'Sentinela',
+    proficienciaCodigo: 'ARMAS_SIMPLES',
+  },
+  {
+    classeNome: 'Sentinela',
+    proficienciaCodigo: 'ARMAS_TATICAS',
+  },
+
+  {
+    classeNome: 'Especialista',
+    proficienciaCodigo: 'ARMAS_SIMPLES',
+  },
+  {
+    classeNome: 'Especialista',
+    proficienciaCodigo: 'PROTECOES_LEVES',
+  },
+];
+
+// ✅ CORRIGIDO: Removido Saber Ampliado (não concede bônus automático em tipo específico)
+export const habilidadesEfeitosGrauSeed = [
+  {
+    habilidadeNome: 'Chamariz',
+    tipoGrauCodigo: 'TECNICA_SHIKIGAMI',
+    valor: 1,
+    escalonamentoPorNivel: null,
+  },
+  {
+    habilidadeNome: 'Escolha do Mestre de Barreiras',
+    tipoGrauCodigo: 'TECNICA_BARREIRA',
+    valor: 1,
+    escalonamentoPorNivel: null,
+  },
+  {
+    habilidadeNome: 'Escola Técnica',
+    tipoGrauCodigo: 'TECNICA_AMALDICOADA',
+    valor: 1,
+    escalonamentoPorNivel: null,
+  },
+];
+
+// ✅ MANTIDO: Mecânicas especiais de Saber Ampliado (graus livres escolhíveis)
+export const habilidadesMecanicasEspeciaisSeed = [
+  {
+    habilidadeNome: 'Chamariz',
+    mecanicasEspeciais: {
+      acoes: {
+        invocar_shikigami: 'movimento', // Invocar shikigami passa de ação completa para ação de movimento
+      },
+    },
+  },
+  {
+    habilidadeNome: 'Saber Ampliado',
+    mecanicasEspeciais: {
+      graus_livres: {
+        quantidade: 1,
+        escalonamentoPorNivel: { niveis: [2, 6, 9, 12, 15, 18] },
+        escolhas_permitidas: [
+          'TECNICA_AMALDICOADA',
+          'TECNICA_REVERSA',
+          'TECNICA_BARREIRA',
+          'TECNICA_ANTI_BARREIRA',
+          'TECNICA_SHIKIGAMI',
+          'TECNICA_CADAVERES',
+        ],
+      },
+    },
+  },
+  {
+    habilidadeNome: 'Escolha do Mestre de Barreiras',
+    mecanicasEspeciais: {
+      itens: {
+        ancora_barreira_reducao_categoria: -1, // WIP: reduz categoria do item Âncora de Barreira em 1
+      },
+      escolhas: {
+        caminho_obrigatorio: true, // Exige escolha de caminho ao ganhar esta habilidade
+      },
+    },
+  },
+  // ✅ NOVO: Trilha Atirador de Elite
+  {
+    habilidadeNome: 'Mira de Elite',
+    mecanicasEspeciais: {
+      proficiencias: ['ARMAS_TATICAS_FOGO'],
+      modificadores: {
+        danoArmasFogo: { tipo: 'INTELECTO', descricao: 'Soma Intelecto no dano' },
+      },
+    },
+  },
+];
+
+export const trilhasRequisitosSeed = [
+  {
+    trilhaNome: 'Médico de Campo',
+    requisitos: {
+      pericias: [{ codigo: 'MEDICINA', treinada: true }],
+    },
+  },
+  // Adicionar outros requisitos conforme necessário
+];
+
+export const habilidadeEscolaTecnicaSeed = {
+  nome: 'Escola Técnica',
+  tipo: 'GERAL',
+  descricao: 'Estudou em uma escola técnica de Jujutsu, ganhando treinamento formal em técnicas amaldiçoadas.',
+  hereditaria: false,
+} satisfies SeedHabilidade;
+
+export const habilidadeEscolaTecnicaEfeitoGrauSeed = {
+  habilidadeNome: 'Escola Técnica',
+  tipoGrauCodigo: 'TECNICA_AMALDICOADA',
+  valor: 1,
+  escalonamentoPorNivel: null,
+};
+
+// ============================================================================
+// RECURSOS DE CLASSE (Concedidos automaticamente no nível 1)
+// ============================================================================
+export const habilidadesRecursosClasseSeed = [
+  {
+    nome: 'Ataque Especial',
+    tipo: 'RECURSO_CLASSE',
+    hereditaria: false,
+    descricao:
+      'Quando faz um ataque, pode gastar PE para aumentar o resultado do teste de ataque ou do dano. ' +
+      'Nível 1: gasta 2 PE para +5 no teste ou dano. ' +
+      'Nível 5: gasta 3 PE para +10. ' +
+      'Nível 11: gasta 4 PE para +15. ' +
+      'Nível 17: gasta 5 PE para +20.',
+  },
+  {
+    nome: 'Aprimorado',
+    tipo: 'RECURSO_CLASSE',
+    hereditaria: false,
+    descricao:
+      'Pode gastar PE/EA para aumentar temporariamente o grau de aprimoramento de técnicas Jujutsu não-inatas até o fim da cena. ' +
+      'Nível 1: gasta 2 PE para +1 grau. ' +
+      'Nível 5: gasta 3 PE para +2 graus. ' +
+      'Nível 11: gasta 4 PE para +3 graus. ' +
+      'Nível 17: gasta 5 PE para +4 graus. ' +
+      'Limite de +2 graus temporários na mesma técnica.',
+  },
+  {
+    nome: 'Perito',
+    tipo: 'RECURSO_CLASSE',
+    hereditaria: false,
+    descricao:
+      'Escolhe duas perícias treinadas. Ao fazer teste com elas, pode gastar PE para somar um dado extra ao resultado. ' +
+      'Nível 1: gasta 2 PE para +1d6. ' +
+      'Nível 5: gasta 3 PE para +1d8. ' +
+      'Nível 11: gasta 4 PE para +1d10. ' +
+      'Nível 17: gasta 5 PE para +1d12.',
+  },
+] satisfies SeedHabilidade[];
+
+// ============================================================================
+// VÍNCULOS: Recursos de Classe → Classes
+// ============================================================================
+export const habilidadesRecursosClasseVinculosSeed = [
+  {
+    habilidadeNome: 'Ataque Especial',
+    classeNome: 'Combatente',
+    nivelConcedido: 1,
+  },
+  {
+    habilidadeNome: 'Aprimorado',
+    classeNome: 'Sentinela',
+    nivelConcedido: 1,
+  },
+  {
+    habilidadeNome: 'Perito',
+    classeNome: 'Especialista',
+    nivelConcedido: 1,
+  },
+];
+
+// ============================================================================
+// PODERES GENÉRICOS (Selecionáveis nos níveis 3, 6, 9, 12, 15, 18)
+// ============================================================================
+export const habilidadesPoderesGenericosSeed = [
+  // ========== PROFICIÊNCIAS E COMBATE ==========
+  {
+    nome: 'Armamento Amaldiçoado',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Recebe proficiência com ferramentas amaldiçoadas (armas, proteções e artefatos com maldições complexas).',
+    requisitos: {
+      pericias: [
+        { codigo: 'LUTA', grauMinimo: 1 },
+        { codigo: 'PONTARIA', grauMinimo: 1, alternativa: true },
+      ],
+    },
+    // ✅ CORRIGIDO
+    mecanicasEspeciais: {
+      proficiencias: ['FERRAMENTAS_AMALDICOADAS'],
+    },
+  },
+  {
+    nome: 'Armamento Pesado',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao: 'Você recebe proficiência com armas pesadas.',
+    requisitos: {
+      atributos: { forca: 2 },
+    },
+    // ✅ CORRIGIDO
+    mecanicasEspeciais: {
+      proficiencias: ['ARMAS_PESADAS'],
+    },
+  },
+  {
+    nome: 'Balística Avançada',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você recebe proficiência com armas táticas de fogo e +2 em rolagens de dano com armas de fogo.',
+    // ✅ CORRIGIDO - Precisa criar a proficiência ARMAS_TATICAS_FOGO no seed de proficiências
+    mecanicasEspeciais: {
+      proficiencias: ['ARMAS_TATICAS_FOGO'],
+      modificadores: { danoArmasFogo: 2 },
+    },
+  },
+  {
+    nome: 'Ninja Urbano',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você recebe proficiência com armas táticas de ataque corpo a corpo e de disparo (exceto de fogo) e +2 em rolagens de dano com armas de corpo a corpo e de disparo.',
+    // ✅ CORRIGIDO
+    mecanicasEspeciais: {
+      proficiencias: [
+        'ARMAS_TATICAS_CORPO_A_CORPO',
+        'ARMAS_TATICAS_DISPARO',
+      ],
+      modificadores: {
+        danoCorpoACorpo: 2,
+        danoDisparo: 2,
+      },
+    },
+  },
+  {
+    nome: 'Golpe Pesado',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Enquanto estiver empunhando uma arma corpo a corpo, o dano dela aumenta em +1 dado do mesmo tipo.',
+  },
+  {
+    nome: 'Golpe Demolidor',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Quando usa a manobra quebrar ou ataca um objeto, você pode gastar 1 PE para causar +2 dados de dano extra do mesmo tipo de sua arma.',
+    requisitos: {
+      atributos: { forca: 2 },
+      pericias: [{ codigo: 'LUTA', grauMinimo: 1 }],
+    },
+  },
+  {
+    nome: 'Combate Defensivo',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Quando usa a ação Agredir, você pode combater defensivamente; se fizer isso, até seu próximo turno sofre –1d20 em todos os testes de ataque, mas recebe +5 na Defesa.',
+    requisitos: {
+      atributos: { intelecto: 2 },
+    },
+  },
+  {
+    nome: 'Combater com Duas Armas',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Se estiver empunhando duas armas (e pelo menos uma for leve) e fizer a ação Agredir, você pode fazer dois ataques, um com cada arma; se fizer isso, sofre –1d20 em todos os testes de ataque até o seu próximo turno.',
+    requisitos: {
+      atributos: { agilidade: 3 },
+      pericias: [
+        { codigo: 'LUTA', grauMinimo: 1 },
+        { codigo: 'PONTARIA', grauMinimo: 1, alternativa: true },
+      ],
+    },
+  },
+  {
+    nome: 'Ataque de Oportunidade',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Sempre que um ser sair voluntariamente de um espaço adjacente ao seu, você pode gastar uma reação e 1 PE para fazer um ataque corpo a corpo contra ele.',
+  },
+
+  // ========== ARMAS / TIRO ==========
+  {
+    nome: 'Mira Certeira',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Aumenta rolagens de dano de ataques à distância em +1 dado (por exemplo, de 1d8 para 2d8).',
+  },
+  {
+    nome: 'Tiro Certeiro',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Se estiver usando uma arma de disparo/arma de fogo, você soma sua Agilidade nas rolagens de dano e ignora a penalidade de –1d20 por atacar alvo engajado em combate corpo a corpo (mesmo sem usar a ação Mirar).',
+    requisitos: {
+      pericias: [{ codigo: 'PONTARIA', grauMinimo: 1 }],
+    },
+  },
+  {
+    nome: 'Tiro de Cobertura',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você pode gastar uma ação padrão e 1 PE para disparar na direção de um ser no alcance, forçando-o a se proteger; faça um teste de Pontaria contra a Vontade do alvo e, se vencer, até o início do seu próximo turno o alvo não pode sair do lugar onde está e sofre –5 em testes de ataque (efeito de medo).',
+  },
+  {
+    nome: 'Segurar o Gatilho',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Sempre que acerta um ataque com uma arma de fogo, pode fazer outro ataque com a mesma arma contra o mesmo alvo, pagando 2 PE por cada ataque extra já realizado no turno (2 PE no 1º extra, +4 PE no 2º extra, etc.), até errar ou atingir o limite de PE por rodada/turno.',
+    requisitos: {
+      nivelMinimo: 12,
+    },
+  },
+  {
+    nome: 'Saque Rápido',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você pode sacar ou guardar itens como uma ação livre (em vez de ação de movimento). Além disso, se estiver usando contagem de munição, 1 vez por rodada pode recarregar uma arma de fogo como uma ação livre.',
+    requisitos: {
+      pericias: [{ codigo: 'INICIATIVA', grauMinimo: 1 }],
+    },
+  },
+
+  // ========== DEFESA / PROTEÇÕES ==========
+  {
+    nome: 'Proteção Pesada',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao: 'Você recebe proficiência com Proteções Pesadas.',
+    requisitos: {
+      nivelMinimo: 6,
+    },
+    // ✅ CORRIGIDO
+    mecanicasEspeciais: {
+      proficiencias: ['PROTECOES_PESADAS'],
+    },
+  },
+  {
+    nome: 'Tanque de Guerra',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Se estiver usando uma proteção pesada, a Defesa e a RD que ela fornece aumentam em +2.',
+    requisitos: {
+      poderesPreRequisitos: ['Proteção Pesada'],
+    },
+  },
+  {
+    nome: 'Reflexos Defensivos',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao: 'Você recebe +2 em Defesa e +2 em testes de resistência.',
+    requisitos: {
+      atributos: { agilidade: 2 },
+    },
+    mecanicasEspeciais: { defesa: { bonus: 2 } },
+  },
+
+  // ========== RESISTÊNCIAS ==========
+  {
+    nome: 'Aura Resistente',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Recebe +5 em resistência a Jujutsu (testes para resistir a técnicas amaldiçoadas).',
+    requisitos: { atributos: { vigor: 2 } },
+  },
+  {
+    nome: 'Aura Impenetrável',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Recebe +10 em resistência a Jujutsu (testes para resistir a técnicas amaldiçoadas).',
+    requisitos: {
+      atributos: { vigor: 3 },
+      outros: 'Corpo especial (definido pelo mestre).',
+    },
+  },
+  {
+    nome: 'Textura Oleosa',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Quando se reveste de energia amaldiçoada, recebe +5 em Reflexos.',
+    requisitos: {
+      atributos: { agilidade: 3 },
+      pericias: [{ codigo: 'REFLEXOS', grauMinimo: 2 }],
+    },
+  },
+  {
+    nome: 'Jujutsu de Ferro',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Quando se reveste de energia amaldiçoada, recebe +5 em Fortitude.',
+    requisitos: {
+      atributos: { vigor: 3 },
+      pericias: [{ codigo: 'FORTITUDE', grauMinimo: 2 }],
+    },
+  },
+
+  // ========== JUJUTSU / RITUAIS ==========
+  {
+    nome: 'Jujutsu Bruto',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Recebe +1 dado de dano em rolagens que envolvam energia amaldiçoada (feitiços, revestimentos etc.).',
+  },
+  {
+    nome: 'Jujutsu Capacitado',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Em todos os níveis ímpares recebe +1 EA; a cada três níveis recebe +1 no limite de PE/EA por turno.',
+    requisitos: {
+      pericias: [{ codigo: 'JUJUTSU', grauMinimo: 1 }],
+      atributos: { intelecto: 3 },
+    },
+  },
+  {
+    nome: 'Complexidade Inata',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao: 'Aumenta em +3 a DT para resistir a todos os seus feitiços e efeitos.',
+    requisitos: {
+      pericias: [{ codigo: 'JUJUTSU', grauMinimo: 1 }],
+    },
+  },
+  {
+    nome: 'Especialista na Técnica',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao: 'Reduz o custo em EA dos feitiços da sua técnica inata em 1.',
+    requisitos: {
+      poderesPreRequisitos: ['Complexidade Inata'],
+    },
+  },
+  {
+    nome: 'Feiticeiro Intuitivo',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Passa a rolar testes de Jujutsu com Presença no lugar de Intelecto.',
+    requisitos: {
+      pericias: [
+        { codigo: 'JUJUTSU', grauMinimo: 1 },
+        { codigo: 'INTUICAO', grauMinimo: 1 },
+      ],
+    },
+  },
+  {
+    nome: 'Entendido de Jujutsu',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Reduz pela metade o dano de SAN proveniente de votos vinculativos.',
+    requisitos: {
+      atributos: { intelecto: 3 },
+    },
+  },
+  {
+    nome: 'Identificação Paranormal',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você recebe +10 em testes de Jujutsu para identificar espíritos amaldiçoados, objetos amaldiçoados ou feitiços.',
+  },
+  {
+    nome: 'Criar Selo',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você sabe fabricar selos (talismãs) de feitiços que conheça. Fabricar um selo gasta uma ação de interlúdio e um número de PE igual ao custo do feitiço. Você pode ter um número máximo de selos criados ao mesmo tempo igual à sua Presença.',
+  },
+  {
+    nome: 'Improvisar Componentes',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Uma vez por cena, você pode gastar uma ação completa para fazer um teste de Investigação (DT 15). Se passar, encontra objetos que podem servir como componentes ritualísticos para a conjuração, a critério do mestre. Concedendo +1 dado no efeito ou teste dos feitiços até o fim da cena.',
+  },
+  {
+    nome: 'Ritual Potente',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você soma seu Intelecto nas rolagens de dano ou nos efeitos de cura de seus feitiços.',
+    requisitos: {
+      atributos: { intelecto: 2 },
+    },
+  },
+  {
+    nome: 'Ritual Predileto',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Escolha um feitiço que você conhece. Você reduz em –1 o custo do feitiço (PE ou EA, escolhido ao adquirir este poder). Essa redução se acumula com reduções fornecidas por outras fontes.',
+    mecanicasEspeciais: {
+      escolha: { tipo: 'FEITICO_CONHECIDO' },
+      reduzCusto: { valor: 1, modos: ['PE', 'EA'] },
+    },
+  },
+  {
+    nome: 'Tatuagem Ritualística',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Símbolos marcados em sua pele reduzem em –1 o custo de EA de feitiços de alcance pessoal que têm você como alvo.',
+  },
+  {
+    nome: 'Fluxo de Poder',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você pode manter dois efeitos sustentados ativos ao mesmo tempo com apenas uma ação livre, pagando o custo de cada efeito separadamente.',
+    requisitos: {
+      nivelMinimo: 12,
+    },
+  },
+  {
+    nome: 'Camuflar Ocultismo',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você pode gastar uma ação livre para esconder símbolos e sigilos desenhados ou gravados em objetos ou em sua pele, tornando-os invisíveis para outras pessoas além de você. Além disso, quando lança um feitiço, pode gastar +2 PE para lançá-lo sem usar componentes ritualísticos e sem gesticular, usando apenas concentração; outros seres só percebem se passarem em um teste de Jujutsu (DT 25).',
+    mecanicasEspeciais: {
+      ocultarSimbolos: true,
+      conjuracaoSemComponentes: { custoPeExtra: 2, dtPercepcao: 25, teste: 'JUJUTSU' },
+    },
+  },
+  {
+    nome: 'Especialista em Técnica Não-Inata',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Escolha uma categoria de técnica não-inata. A DT para resistir aos seus feitiços dessa categoria aumenta em +2.',
+    mecanicasEspeciais: {
+      escolha: { tipo: 'CATEGORIA_TECNICA_NAO_INATA' },
+      bonusDT: 2,
+    },
+  },
+  {
+    nome: 'Mestre em Técnica Não-Inata',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Escolha uma categoria de técnica não-inata. O custo para lançar feitiços dessa categoria diminui em –1 (PE ou EA, escolhido ao adquirir este poder).',
+    requisitos: {
+      poderesPreRequisitos: ['Especialista em Técnica Não-Inata'],
+      nivelMinimo: 9,
+    },
+    mecanicasEspeciais: {
+      escolha: { tipo: 'CATEGORIA_TECNICA_NAO_INATA' },
+      reduzCusto: { valor: 1, modos: ['PE', 'EA'] },
+    },
+  },
+
+  // ========== KOKUSEN / COMBOS ==========
+  {
+    nome: 'Gênio do Kokusen',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Todos os acertos críticos naturais se tornam Kokusen, drenando automaticamente 3 PE ao acertar.',
+    requisitos: {
+      pericias: [{ codigo: 'JUJUTSU', grauMinimo: 1 }],
+      graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 }],
+    },
+  },
+  {
+    nome: 'Lutador Focado',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Depois que acerta um primeiro Kokusen, todos os acertos críticos (mesmo não naturais) se tornam Kokusen, drenando 4 PE e restaurando 2 EA.',
+    requisitos: {
+      poderesPreRequisitos: ['Gênio do Kokusen'],
+      atributos: { forca: 3, agilidade: 3, alternativa: true },
+    },
+  },
+
+  // ========== EMISSÃO ==========
+  {
+    nome: 'Emissão Anormal',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Pode usar Emissão de Energia Amaldiçoada com ataques à distância como ação livre; a Emissão causa o dobro dos dados de dano e recebe +2 no teste de ataque.',
+    requisitos: {
+      graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 }],
+      pericias: [
+        { codigo: 'JUJUTSU', grauMinimo: 1 },
+        { codigo: 'PONTARIA', grauMinimo: 1 },
+      ],
+      atributos: { presenca: 3 },
+    },
+  },
+
+  // ========== SHIKIGAMI ==========
+  {
+    nome: 'Shikigami Favorito',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Reduz em 1 o custo de EA para invocar um Shikigami específico e melhora o tipo de ação de invocação (completa → padrão → reação → livre).',
+    requisitos: {
+      pericias: [{ codigo: 'JUJUTSU', grauMinimo: 1 }],
+    },
+    mecanicasEspeciais: {
+      escolha: { tipo: 'SHIKIGAMI' },
+      reduzCustoEa: 1,
+      melhoraAcaoInvocacao: true,
+    },
+  },
+
+  // ========== VOTOS ==========
+  {
+    nome: 'Perito em Votos',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Usa Intuição no lugar de Vontade para votos vinculativos e recebe +5 em Intuição.',
+    requisitos: {
+      poderesPreRequisitos: ['Feiticeiro Intuitivo'],
+      atributos: { presenca: 3 },
+    },
+  },
+
+  // ========== INVESTIGAÇÃO / SOCIAL ==========
+  {
+    nome: 'Guiado pelo Maldito',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Uma vez por cena, você pode gastar 2 PE para fazer uma ação de investigação adicional.',
+  },
+  {
+    nome: 'Incansável',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Uma vez por cena, você pode gastar 2 PE para fazer uma ação de investigação adicional, mas deve usar Força ou Agilidade como atributo-base do teste.',
+  },
+  {
+    nome: 'Pensamento Ágil',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Uma vez por rodada, durante uma cena de investigação, você pode gastar 2 PE para fazer uma ação de "procurar pistas" adicional.',
+  },
+  {
+    nome: 'Na Trilha Certa',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Sempre que tiver sucesso em um teste para procurar pistas, você pode gastar 1 PE para receber +1d20 no próximo teste. Os custos e os bônus são cumulativos.',
+  },
+  {
+    nome: 'Conhecimento Aplicado',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Quando faz um teste de perícia (exceto Luta e Pontaria), você pode gastar 2 PE para mudar o atributo-base da perícia para Intelecto.',
+    requisitos: { atributos: { intelecto: 2 } },
+  },
+  {
+    nome: 'Presteza Atlética',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Quando faz um teste para facilitar a investigação, você pode gastar 1 PE para usar Força ou Agilidade no lugar do atributo-base da perícia; se passar no teste, o próximo aliado que usar seu bônus também recebe +1d20 no teste.',
+  },
+  {
+    nome: 'Intuição Paranormal',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Sempre que usa a ação "facilitar investigação", você soma seu Intelecto ou Presença no teste (à sua escolha).',
+  },
+  {
+    nome: 'Nerd',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Uma vez por cena, pode gastar 2 PE para fazer um teste de Atualidades (DT 20). Se passar, recebe uma informação útil para essa cena.',
+    requisitos: {
+      pericias: [{ codigo: 'ATUALIDADES', grauMinimo: 1 }],
+    },
+    mecanicasEspeciais: { dt: 20, custoPe: 2 },
+  },
+  {
+    nome: 'Primeira Impressão',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você recebe +2d20 no primeiro teste de Diplomacia, Enganação, Intimidação ou Intuição que fizer em uma cena.',
+    requisitos: {
+      pericias: [
+        { codigo: 'DIPLOMACIA', grauMinimo: 1 },
+        { codigo: 'ENGANACAO', grauMinimo: 1, alternativa: true },
+        { codigo: 'INTIMIDACAO', grauMinimo: 1, alternativa: true },
+        { codigo: 'INTUICAO', grauMinimo: 1, alternativa: true },
+      ],
+    },
+  },
+  {
+    nome: 'Envolto em Mistério',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você recebe +5 em Enganação e Intimidação contra pessoas não treinadas em Jujutsu.',
+  },
+
+  // ========== UTILIDADE / ITENS ==========
+  {
+    nome: 'Mochila de Utilidades',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Um item à sua escolha (exceto armas) conta como uma categoria abaixo e ocupa 1 espaço a menos.',
+  },
+  {
+    nome: 'Manuseio Amaldiçoado',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Reduz a categoria de um item amaldiçoado em 1 e pode usá-lo sem pagar o custo de PE indicado.',
+  },
+
+  // ========== MOBILIDADE ==========
+  {
+    nome: 'Movimento Tático',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você pode gastar 1 PE para ignorar a penalidade em deslocamento por terreno difícil e por escalar até o final do turno.',
+    requisitos: {
+      pericias: [{ codigo: 'ATLETISMO', grauMinimo: 1 }],
+    },
+  },
+
+  // ========== CRIME / TEC ==========
+  {
+    nome: 'Mãos Rápidas',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Ao fazer um teste de Crime, você pode pagar 1 PE para fazê-lo como uma ação livre.',
+    requisitos: {
+      atributos: { agilidade: 3 },
+      pericias: [{ codigo: 'CRIME', grauMinimo: 1 }],
+    },
+  },
+  {
+    nome: 'Hacker',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você recebe +5 em testes de Tecnologia para invadir sistemas e diminui o tempo necessário para hackear qualquer sistema para uma ação completa.',
+    requisitos: {
+      pericias: [{ codigo: 'TECNOLOGIA', grauMinimo: 1 }],
+    },
+  },
+
+  // ========== EXPLOSIVOS ==========
+  {
+    nome: 'Perito em Explosivos',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você soma seu Intelecto na DT para resistir aos seus explosivos e pode excluir dos efeitos da explosão um número de alvos igual ao seu Intelecto.',
+  },
+
+  // ========== TÁTICA ==========
+  {
+    nome: 'Sentido Tático',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Você pode gastar uma ação de movimento e 2 PE para analisar o ambiente; se fizer isso, recebe bônus em Defesa e em testes de resistência igual ao seu Intelecto até o final da cena.',
+    requisitos: {
+      atributos: { intelecto: 2 },
+      pericias: [
+        { codigo: 'PERCEPCAO', grauMinimo: 1 },
+        { codigo: 'TATICA', grauMinimo: 1 },
+      ],
+    },
+  },
+
+  // ========== ARTES MARCIAIS ==========
+  {
+    nome: 'Artista Marcial',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Seus ataques desarmados causam 1d6, podem causar dano letal e se tornam ágeis; no nível 7 o dano vira 1d8 e no nível 14 vira 1d10.',
+    mecanicasEspeciais: {
+      ataqueDesarmado: {
+        danoPorNivel: [
+          { nivelMinimo: 1, dano: '1d6' },
+          { nivelMinimo: 7, dano: '1d8' },
+          { nivelMinimo: 14, dano: '1d10' },
+        ],
+        agil: true,
+        letal: true,
+      },
+    },
+  },
+
+  // ========== PERÍCIAS / TREINO ==========
+  {
+    nome: 'Treinamento em Perícia',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Escolha 2 perícias para aumentar o grau de treinamento delas. Precisa passar pelas etapas de cada grau de treinamento para ir pro próximo. Esse poder pode ser escolhido várias vezes.',
+    mecanicasEspeciais: {
+      repetivel: true,
+      escolha: { tipo: 'PERICIAS', quantidade: 2 },
+      progressao: [
+        { nivelMinimo: 1, grauNovo: 5 },
+        { nivelMinimo: 3, grauNovo: 10 },
+        { nivelMinimo: 9, grauNovo: 15 },
+        { nivelMinimo: 16, grauNovo: 20 },
+      ],
+    },
+  },
+
+  // ========== GRAU DE APRIMORAMENTO ==========
+  {
+    nome: 'Treinamento Específico',
+    tipo: 'PODER_GENERICO',
+    origem: 'GERAL',
+    hereditaria: false,
+    descricao:
+      'Recebe +1 grau de aprimoramento em uma técnica à escolha, respeitando limites definidos pelo mestre.',
+    mecanicasEspeciais: {
+      repetivel: true,
+      escolha: { tipo: 'TIPO_GRAU' },
+      bonus: 1,
+    },
+  },
+] satisfies SeedHabilidade[];
+
+// ============================================================================
+// HABILIDADES DE ORIGEM (26 habilidades únicas)
+// ============================================================================
+export const habilidadesOrigemSeed = [
+  {
+    nome: 'Vivência (Mestre de Maldições)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Sempre que identificar que está investigando algo relacionado a um mestre de maldição, você tem vantagem de +1d20 nas rolagens de Investigação, Percepção e Intuição.',
+    mecanicasEspeciais: {
+      bonus: {
+        tipo: 'rolagem_extra',
+        valor: '1d20',
+        pericias: ['INVESTIGACAO', 'PERCEPCAO', 'INTUICAO'],
+        contexto: 'investigação relacionada a mestre de maldição',
+      },
+    },
+  },
+  {
+    nome: 'Queridinho (Prodígio do Clã)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao: 'Inicia a jornada com 30 de Prestígio de Clã.',
+    mecanicasEspeciais: { prestigioClaBase: 30 },
+  },
+  {
+    nome: 'Ovelha-negra (Renegado)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Inicia a jornada com -50 de Prestígio de Clã. Porém, recebe +5 em rolagens de ataque e +1 dado de dano contra membros dos três Grandes Clãs.',
+    mecanicasEspeciais: {
+      prestigioClaBase: -50,
+      combate: {
+        bonusAtaque: 5,
+        dadosDanoExtra: 1,
+        contexto: 'membros dos três Grandes Clãs',
+      },
+    },
+  },
+  {
+    nome: 'Saber é Poder (Acadêmico)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Quando faz um teste usando Intelecto, você pode gastar 2 PE para receber +5 nesse teste.',
+    mecanicasEspeciais: {
+      acao: {
+        custo: { pe: 2 },
+        efeito: '+5 em teste baseado em Intelecto',
+        gatilho: 'teste de Intelecto',
+      },
+    },
+  },
+  {
+    nome: 'Técnica Medicinal (Agente de Saúde)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Sempre que cura um personagem, você adiciona seu Intelecto ao total de PV curados.',
+    mecanicasEspeciais: { cura: { somaAtributo: 'INTELECTO' } },
+  },
+  {
+    nome: 'Magnum Opus (Artista)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Uma vez por missão, pode determinar que um personagem o reconheça. Você recebe +5 em testes de Presença contra aquele personagem.',
+    mecanicasEspeciais: {
+      social: {
+        frequencia: '1x por missão',
+        bonus: 5,
+        atributoBase: 'PRESENCA',
+        contexto: 'alvo que reconheceu sua obra',
+      },
+    },
+  },
+  {
+    nome: '110% (Atleta)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Quando faz um teste de perícia usando Força ou Agilidade (exceto Luta e Pontaria), você pode gastar 2 PE para receber +5 nesse teste.',
+    mecanicasEspeciais: {
+      acao: {
+        custo: { pe: 2 },
+        efeito: '+5 no teste',
+        atributosBase: ['FOR', 'AGI'],
+        excetoPericias: ['LUTA', 'PONTARIA'],
+      },
+    },
+  },
+  {
+    nome: 'Ingrediente Secreto (Chef)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Em cenas de interlúdio, você pode cozinhar um prato especial. Você e todos os membros do grupo que se alimentarem recebem o benefício de dois pratos.',
+    mecanicasEspeciais: { interludio: { duplicaBeneficioPratos: true } },
+  },
+  {
+    nome: 'O Crime Compensa (Criminoso)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'No final de uma missão, escolha um item encontrado. Em sua próxima missão, você pode incluí-lo sem que conte em seu limite de itens.',
+    mecanicasEspeciais: { itens: { carregaParaProximaMissao: true, naoContaLimite: true } },
+  },
+  {
+    nome: 'Traços do Outro Lado (Cultista Arrependido)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Você possui um poder paranormal à sua escolha. Porém, começa o jogo com metade da Sanidade normal para sua classe.',
+    mecanicasEspeciais: { paranormal: { escolhePoder: true }, sanidade: { multiplicadorInicial: 0.5 } },
+  },
+  {
+    nome: 'Calejado (Desgarrado)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao: 'Você recebe +1 PV por nível.',
+    mecanicasEspeciais: { pvPorNivel: 1 },
+  },
+  {
+    nome: 'Ferramentas Favoritas (Engenheiro)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Um item à sua escolha (exceto armas) conta como uma categoria abaixo.',
+    mecanicasEspeciais: { itens: { reduzCategoriaEm: 1, excetoTipos: ['ARMA'] } },
+  },
+  {
+    nome: 'Processo Otimizado (Executivo)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Sempre que faz um teste de perícia durante um teste estendido ou para revisar documentos, você pode pagar 2 PE para receber +5.',
+    mecanicasEspeciais: {
+      acao: {
+        custo: { pe: 2 },
+        efeito: '+5 em teste de perícia',
+        contexto: ['teste estendido', 'revisar documentos'],
+      },
+    },
+  },
+  {
+    nome: 'Patrocinador da Escola (Magnata)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Seu limite de crédito é sempre considerado um acima.',
+    mecanicasEspeciais: { economia: { creditoCategoriaBonus: 1 } },
+  },
+  {
+    nome: 'Posição de Combate (Mercenário)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'No primeiro turno de cada cena de ação, você pode gastar 2 PE para receber uma ação de movimento adicional.',
+    mecanicasEspeciais: {
+      combate: { turno: 1, custo: { pe: 2 }, concede: { acaoMovimentoExtra: 1 } },
+    },
+  },
+  {
+    nome: 'Para Bellum (Militar)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Você recebe +2 em rolagens de dano com armas de fogo.',
+    mecanicasEspeciais: { combate: { bonusDano: 2, contexto: 'armas de fogo' } },
+  },
+  {
+    nome: 'Ferramenta de Trabalho (Operário)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Escolha uma arma simples ou tática que poderia ser ferramenta em sua profissão. Você recebe +1 em testes de ataque, dano e margem de ameaça com ela.',
+    mecanicasEspeciais: {
+      escolha: { tipo: 'arma', categoriasPermitidas: ['SIMPLES', 'TATICA'] },
+      combate: { bonusAtaque: 1, bonusDano: 1, bonusMargemAmeaca: 1 },
+    },
+  },
+  {
+    nome: 'Patrulha (Policial)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao: 'Você recebe +2 em Defesa.',
+    mecanicasEspeciais: { defesa: { bonus: 2 } },
+  },
+  {
+    nome: 'Acalentar (Religioso)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Você recebe +5 em testes de Religião para acalmar. Quando acalma uma pessoa, ela recupera 1d6 + sua Presença em Sanidade.',
+    mecanicasEspeciais: {
+      bonus: { pericia: 'RELIGIAO', valor: 5, contexto: 'acalmar' },
+      cura: { tipo: 'SAN', valor: '1d6 + PRESENCA', gatilho: 'ao acalmar' },
+    },
+  },
+  {
+    nome: 'Espírito Cívico (Servidor Público)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Sempre que faz um teste para ajudar, você pode gastar 1 PE para aumentar o bônus concedido em +2.',
+    mecanicasEspeciais: {
+      ajuda: { custo: { pe: 1 }, bonusExtra: 2 },
+    },
+  },
+  {
+    nome: 'Eu Já Sabia (Teórico da Conspiração)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Você não se abala com maldições ou anomalias. Você recebe resistência a dano mental igual ao seu Intelecto.',
+    mecanicasEspeciais: { resistencias: { MENTAL: 'INTELECTO' } },
+  },
+  {
+    nome: 'Motor de Busca (T.I.)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Sempre que tiver acesso à internet, você pode gastar 2 PE para substituir um teste de perícia qualquer por Tecnologia.',
+    mecanicasEspeciais: {
+      substituicao: { custo: { pe: 2 }, paraPericia: 'TECNOLOGIA', condicao: 'acesso à internet' },
+    },
+  },
+  {
+    nome: 'Desbravador (Trabalhador Rural)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Quando faz um teste de Adestramento ou Sobrevivência, você pode gastar 2 PE para receber +5. Você não sofre penalidade por terreno difícil.',
+    mecanicasEspeciais: {
+      acao: { custo: { pe: 2 }, efeito: '+5', pericias: ['ADESTRAMENTO', 'SOBREVIVENCIA'] },
+      movimento: { ignoraTerrenoDificil: true },
+    },
+  },
+  {
+    nome: 'Impostor (Trambiqueiro)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Uma vez por cena, você pode gastar 2 PE para substituir um teste de perícia qualquer por Enganação.',
+    mecanicasEspeciais: {
+      substituicao: { frequencia: '1x por cena', custo: { pe: 2 }, paraPericia: 'ENGANACAO' },
+    },
+  },
+  {
+    nome: 'Dedicação (Universitário)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao:
+      'Você recebe +1 PE, e mais 1 PE adicional a cada nível ímpar (3, 5, 7...). Seu limite de PE por turno aumenta em 1.',
+    mecanicasEspeciais: {
+      recursos: { peBase: 1, pePorNivelImpar: 1, limitePePorTurnoBonus: 1 },
+    },
+  },
+  {
+    nome: 'Cicatrizes Psicológicas (Vítima)',
+    tipo: 'ORIGEM',
+    hereditaria: false,
+    descricao: 'Você recebe +1 de Sanidade por nível.',
+    mecanicasEspeciais: { sanPorNivel: 1 },
+  },
+] satisfies SeedHabilidade[];
+// ✅ NOVO: vínculo Origem -> Habilidade (1 por origem, conforme sua lista)
+export const habilidadesOrigemVinculosSeed = [
+  { origemNome: 'Mestre de Maldições', habilidadeNome: 'Vivência (Mestre de Maldições)' },
+  { origemNome: 'Prodígio do Clã', habilidadeNome: 'Queridinho (Prodígio do Clã)' },
+  { origemNome: 'Renegado', habilidadeNome: 'Ovelha-negra (Renegado)' },
+  { origemNome: 'Acadêmico', habilidadeNome: 'Saber é Poder (Acadêmico)' },
+  { origemNome: 'Agente de Saúde', habilidadeNome: 'Técnica Medicinal (Agente de Saúde)' },
+  { origemNome: 'Artista', habilidadeNome: 'Magnum Opus (Artista)' },
+  { origemNome: 'Atleta', habilidadeNome: '110% (Atleta)' },
+  { origemNome: 'Chef', habilidadeNome: 'Ingrediente Secreto (Chef)' },
+  { origemNome: 'Criminoso', habilidadeNome: 'O Crime Compensa (Criminoso)' },
+  { origemNome: 'Cultista Arrependido', habilidadeNome: 'Traços do Outro Lado (Cultista Arrependido)' },
+  { origemNome: 'Desgarrado', habilidadeNome: 'Calejado (Desgarrado)' },
+  { origemNome: 'Engenheiro', habilidadeNome: 'Ferramentas Favoritas (Engenheiro)' },
+  { origemNome: 'Executivo', habilidadeNome: 'Processo Otimizado (Executivo)' },
+  { origemNome: 'Magnata', habilidadeNome: 'Patrocinador da Escola (Magnata)' },
+  { origemNome: 'Mercenário', habilidadeNome: 'Posição de Combate (Mercenário)' },
+  { origemNome: 'Militar', habilidadeNome: 'Para Bellum (Militar)' },
+  { origemNome: 'Operário', habilidadeNome: 'Ferramenta de Trabalho (Operário)' },
+  { origemNome: 'Policial', habilidadeNome: 'Patrulha (Policial)' },
+  { origemNome: 'Religioso', habilidadeNome: 'Acalentar (Religioso)' },
+  { origemNome: 'Servidor Público', habilidadeNome: 'Espírito Cívico (Servidor Público)' },
+  { origemNome: 'Teórico da Conspiração', habilidadeNome: 'Eu Já Sabia (Teórico da Conspiração)' },
+  { origemNome: 'T.I.', habilidadeNome: 'Motor de Busca (T.I.)' },
+  { origemNome: 'Trabalhador Rural', habilidadeNome: 'Desbravador (Trabalhador Rural)' },
+  { origemNome: 'Trambiqueiro', habilidadeNome: 'Impostor (Trambiqueiro)' },
+  { origemNome: 'Universitário', habilidadeNome: 'Dedicação (Universitário)' },
+  { origemNome: 'Vítima', habilidadeNome: 'Cicatrizes Psicológicas (Vítima)' },
+];
+
+// ============================================================================
+// PASSIVAS DE ATRIBUTOS
+// ============================================================================
+export const passivasAtributosSeed = [
+  // ========== AGILIDADE ==========
+  {
+    codigo: 'AGI_I',
+    nome: 'Agilidade I',
+    atributo: AtributoPassiva.AGILIDADE, // ✅ Usar o enum
+    nivel: 1,
+    requisito: 3,
+    descricao: 'Recebe +6m de deslocamento.',
+    efeitos: { deslocamento: 6 },
+  },
+  {
+    codigo: 'AGI_II',
+    nome: 'Agilidade II',
+    atributo: AtributoPassiva.AGILIDADE, // ✅ Usar o enum
+    nivel: 2,
+    requisito: 6,
+    descricao: 'Recebe +9m de deslocamento e +1 reação por rodada.',
+    efeitos: { deslocamento: 9, reacoes: 1 },
+  },
+
+  // ========== FORÇA ==========
+  {
+    codigo: 'FOR_I',
+    nome: 'Força I',
+    atributo: AtributoPassiva.FORCA, // ✅ Usar o enum
+    nivel: 1,
+    requisito: 3,
+    descricao: 'Aumenta o dano corpo a corpo em 1 passo (ex: 1d6 → 1d8).',
+    efeitos: { passosDanoCorpoACorpo: 1 },
+  },
+  {
+    codigo: 'FOR_II',
+    nome: 'Força II',
+    atributo: AtributoPassiva.FORCA, // ✅ Usar o enum
+    nivel: 2,
+    requisito: 6,
+    descricao: 'Aumenta mais 1 passo no dano corpo a corpo e concede +1 dado de dano em ataques que usam Força.',
+    efeitos: { passosDanoCorpoACorpo: 2, dadosDanoCorpoACorpo: 1 },
+  },
+
+  // ========== INTELECTO ==========
+  {
+    codigo: 'INT_I',
+    nome: 'Intelecto I',
+    atributo: AtributoPassiva.INTELECTO, // ✅ Usar o enum
+    nivel: 1,
+    requisito: 3,
+    descricao: '+1 perícia ou proficiência extra e aumenta o treinamento de uma perícia.',
+    efeitos: {
+      periciasExtras: 1,
+      proficienciasExtras: 1,
+      grauTreinamentoExtra: 1,
+    },
+  },
+  {
+    codigo: 'INT_II',
+    nome: 'Intelecto II',
+    atributo: AtributoPassiva.INTELECTO, // ✅ Usar o enum
+    nivel: 2,
+    requisito: 6,
+    descricao: '+2 perícias/proficiências extras, aumenta o treinamento de uma perícia e recebe +1 grau de aprimoramento.',
+    efeitos: {
+      periciasExtras: 2,
+      proficienciasExtras: 2,
+      grauTreinamentoExtra: 1,
+      grauAprimoramentoExtra: 1,
+    },
+  },
+
+  // ========== PRESENÇA ==========
+  {
+    codigo: 'PRE_I',
+    nome: 'Presença I',
+    atributo: AtributoPassiva.PRESENCA, // ✅ Usar o enum
+    nivel: 1,
+    requisito: 3,
+    descricao: '+1 rodada antes de sucumbir ao entrar Enlouquecendo.',
+    efeitos: { rodadasEnlouquecendo: 1 },
+  },
+  {
+    codigo: 'PRE_II',
+    nome: 'Presença II',
+    atributo: AtributoPassiva.PRESENCA, // ✅ Usar o enum
+    nivel: 2,
+    requisito: 6,
+    descricao: '+1 rodada adicional em Enlouquecendo, +6 PE, +6 EA e +3 no limite de PE/EA.',
+    efeitos: {
+      rodadasEnlouquecendo: 1,
+      peExtra: 6,
+      eaExtra: 6,
+      limitePeEaExtra: 3,
+    },
+  },
+
+  // ========== VIGOR ==========
+  {
+    codigo: 'VIG_I',
+    nome: 'Vigor I',
+    atributo: AtributoPassiva.VIGOR, // ✅ Usar o enum
+    nivel: 1,
+    requisito: 3,
+    descricao: '+1 rodada antes de morrer ao entrar em Morrendo.',
+    efeitos: { rodadasMorrendo: 1 },
+  },
+  {
+    codigo: 'VIG_II',
+    nome: 'Vigor II',
+    atributo: AtributoPassiva.VIGOR, // ✅ Usar o enum
+    nivel: 2,
+    requisito: 6,
+    descricao: '+1 rodada adicional em Morrendo e soma o limite de PE/EA na vida máxima.',
+    efeitos: {
+      rodadasMorrendo: 1,
+      pvExtraLimitePeEa: true,
+    },
+  },
+];

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:15
+    container_name: rpg-jujutsu-db
+    restart: always
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: rpg_admin
+      POSTGRES_PASSWORD: senha_dev
+      POSTGRES_DB: rpg_jujutsu_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # (Opcional) Interface visual do banco
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: rpg-jujutsu-pgadmin
+    restart: always
+    ports:
+      - '5050:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@rpg.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:

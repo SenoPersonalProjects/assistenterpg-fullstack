@@ -1,0 +1,652 @@
+import { PrismaClient, Prisma } from '@prisma/client';
+import {
+  classesSeed,
+  clasSeed,
+  origensSeed,
+  proficienciasSeed,
+  tiposGrauSeed,
+  resistenciasTipoSeed,
+  periciasSeed,
+  origemPericiasSeed,
+  classesPericiasSeed,
+  habilidadesInatasSeed,
+  trilhasSeed,
+  caminhosSeed,
+  habilidadesTrilhaSeed,
+  alinhamentosSeed,
+  classesProficienciasSeed,
+  habilidadesEfeitosGrauSeed,
+  habilidadesMecanicasEspeciaisSeed,
+  trilhasRequisitosSeed,
+  habilidadeEscolaTecnicaSeed,
+  habilidadesPoderesGenericosSeed,
+  habilidadesRecursosClasseSeed,
+  habilidadesRecursosClasseVinculosSeed,
+  passivasAtributosSeed,
+  habilidadesOrigemSeed,
+  habilidadesOrigemVinculosSeed,
+} from './seeds/seed-data.ts.old';
+
+const prisma = new PrismaClient();
+
+// ============================================================================
+// Tipagem mínima para evitar TS2339 no seed
+// ============================================================================
+type SeedHabilidadeLike = {
+  nome: string;
+  tipo: string;
+  origem?: string | null;
+  descricao?: string | null;
+  hereditaria?: boolean;
+  requisitos?: Prisma.InputJsonValue | null;
+  mecanicasEspeciais?: Prisma.InputJsonValue | null;
+};
+
+// ============================================================================
+// Helpers p/ seed (padroniza JsonNull)
+// ============================================================================
+function jsonOrNull(
+  value: Prisma.InputJsonValue | null | undefined,
+): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === undefined || value === null) return Prisma.JsonNull;
+  return value;
+}
+
+async function main() {
+  console.log('Iniciando seed...');
+
+  // Classes
+  console.log('Cadastrando classes...');
+  for (const data of classesSeed) {
+    await prisma.classe.upsert({
+      where: { nome: data.nome },
+      update: {
+        descricao: data.descricao,
+        periciasLivresBase: data.periciasLivresBase,
+      },
+      create: data,
+    });
+  }
+
+  // Clãs
+  console.log('Cadastrando clãs...');
+  for (const data of clasSeed) {
+    await prisma.cla.upsert({
+      where: { nome: data.nome },
+      update: {
+        descricao: data.descricao,
+        grandeCla: data.grandeCla,
+      },
+      create: data,
+    });
+  }
+
+  // Origens
+  console.log('Cadastrando origens...');
+  for (const data of origensSeed) {
+    await prisma.origem.upsert({
+      where: { nome: data.nome },
+      update: {
+        descricao: data.descricao,
+        requerGrandeCla: data.requerGrandeCla ?? false,
+        requerTecnicaHeriditaria: data.requerTecnicaHeriditaria ?? false,
+        bloqueiaTecnicaHeriditaria: data.bloqueiaTecnicaHeriditaria ?? false,
+      },
+      create: {
+        nome: data.nome,
+        descricao: data.descricao,
+        requerGrandeCla: data.requerGrandeCla ?? false,
+        requerTecnicaHeriditaria: data.requerTecnicaHeriditaria ?? false,
+        bloqueiaTecnicaHeriditaria: data.bloqueiaTecnicaHeriditaria ?? false,
+      },
+    });
+  }
+
+  // Habilidades de Origem
+  console.log('Cadastrando habilidades de origem...');
+  for (const data of habilidadesOrigemSeed as SeedHabilidadeLike[]) {
+    await prisma.habilidade.upsert({
+      where: { nome: data.nome },
+      update: {
+        tipo: data.tipo,
+        descricao: data.descricao ?? null,
+        hereditaria: data.hereditaria ?? false,
+        mecanicasEspeciais: jsonOrNull(data.mecanicasEspeciais),
+        requisitos: Prisma.JsonNull,
+      },
+      create: {
+        nome: data.nome,
+        tipo: data.tipo,
+        descricao: data.descricao ?? null,
+        hereditaria: data.hereditaria ?? false,
+        mecanicasEspeciais: jsonOrNull(data.mecanicasEspeciais),
+        requisitos: Prisma.JsonNull,
+      },
+    });
+  }
+
+  // Vínculos Origem -> Habilidade
+  console.log('Vinculando habilidades às origens...');
+  for (const item of habilidadesOrigemVinculosSeed) {
+    const origem = await prisma.origem.findUnique({
+      where: { nome: item.origemNome },
+    });
+    if (!origem) {
+      console.warn(`Origem não encontrada: ${item.origemNome}`);
+      continue;
+    }
+
+    const habilidade = await prisma.habilidade.findUnique({
+      where: { nome: item.habilidadeNome },
+    });
+    if (!habilidade) {
+      console.warn(`Habilidade não encontrada: ${item.habilidadeNome}`);
+      continue;
+    }
+
+    await prisma.habilidadeOrigem.upsert({
+      where: {
+        origemId_habilidadeId: { origemId: origem.id, habilidadeId: habilidade.id },
+      },
+      update: {},
+      create: { origemId: origem.id, habilidadeId: habilidade.id },
+    });
+  }
+
+  // Proficiências
+  console.log('Cadastrando proficiências...');
+  for (const data of proficienciasSeed) {
+    await prisma.proficiencia.upsert({
+      where: { codigo: data.codigo },
+      update: {
+        nome: data.nome,
+        descricao: data.descricao,
+        tipo: data.tipo,
+        categoria: data.categoria,
+        subtipo: data.subtipo,
+      },
+      create: data,
+    });
+  }
+
+  // Tipos de Grau
+  console.log('Cadastrando tipos de grau...');
+  for (const data of tiposGrauSeed) {
+    await prisma.tipoGrau.upsert({
+      where: { codigo: data.codigo },
+      update: {
+        nome: data.nome,
+        descricao: data.descricao,
+      },
+      create: data,
+    });
+  }
+
+  // Resistências
+  console.log('Cadastrando tipos de resistência...');
+  for (const data of resistenciasTipoSeed) {
+    await prisma.resistenciaTipo.upsert({
+      where: { codigo: data.codigo },
+      update: {
+        nome: data.nome,
+        descricao: data.descricao,
+      },
+      create: data,
+    });
+  }
+
+  // Perícias
+  console.log('Cadastrando perícias...');
+  for (const data of periciasSeed) {
+    await prisma.pericia.upsert({
+      where: { codigo: data.codigo },
+      update: {
+        nome: data.nome,
+        atributoBase: data.atributoBase,
+        somenteTreinada: data.somenteTreinada,
+        penalizaPorCarga: data.penalizaPorCarga,
+        precisaKit: data.precisaKit,
+        descricao: data.descricao,
+      },
+      create: data,
+    });
+  }
+
+  // OrigemPericia
+  console.log('Vinculando perícias às origens...');
+  for (const item of origemPericiasSeed) {
+    const origem = await prisma.origem.findUnique({
+      where: { nome: item.origemNome },
+    });
+    if (!origem) continue;
+
+    for (const p of item.pericias) {
+      const pericia = await prisma.pericia.findUnique({
+        where: { codigo: p.codigo },
+      });
+      if (!pericia) continue;
+
+      await prisma.origemPericia.upsert({
+        where: {
+          origemId_periciaId: {
+            origemId: origem.id,
+            periciaId: pericia.id,
+          },
+        },
+        update: {
+          tipo: p.tipo,
+          grupoEscolha: p.grupoEscolha ?? null,
+        },
+        create: {
+          origemId: origem.id,
+          periciaId: pericia.id,
+          tipo: p.tipo,
+          grupoEscolha: p.grupoEscolha ?? null,
+        },
+      });
+    }
+  }
+
+  // ClassePericia
+  console.log('Vinculando perícias às classes...');
+  for (const item of classesPericiasSeed) {
+    const classe = await prisma.classe.findUnique({
+      where: { nome: item.classeNome },
+    });
+    if (!classe) continue;
+
+    const pericia = await prisma.pericia.findUnique({
+      where: { codigo: item.periciaCodigo },
+    });
+    if (!pericia) continue;
+
+    await prisma.classePericia.upsert({
+      where: {
+        classeId_periciaId: {
+          classeId: classe.id,
+          periciaId: pericia.id,
+        },
+      },
+      update: {
+        tipo: item.tipo,
+        grupoEscolha: item.grupoEscolha ?? null,
+      },
+      create: {
+        classeId: classe.id,
+        periciaId: pericia.id,
+        tipo: item.tipo,
+        grupoEscolha: item.grupoEscolha ?? null,
+      },
+    });
+  }
+
+  // ClasseProficiencia
+  console.log('Vinculando proficiências às classes...');
+  for (const item of classesProficienciasSeed) {
+    const classe = await prisma.classe.findUnique({
+      where: { nome: item.classeNome },
+    });
+    if (!classe) continue;
+
+    const prof = await prisma.proficiencia.findUnique({
+      where: { codigo: item.proficienciaCodigo },
+    });
+    if (!prof) continue;
+
+    await prisma.classeProficiencia.upsert({
+      where: {
+        classeId_proficienciaId: {
+          classeId: classe.id,
+          proficienciaId: prof.id,
+        },
+      },
+      update: {},
+      create: {
+        classeId: classe.id,
+        proficienciaId: prof.id,
+      },
+    });
+  }
+
+  // Habilidades inatas
+  console.log('Cadastrando técnicas inatas...');
+  for (const item of habilidadesInatasSeed) {
+    const habilidade = await prisma.habilidade.upsert({
+      where: { nome: item.nome },
+      update: {
+        tipo: item.tipo,
+        hereditaria: item.hereditaria,
+      },
+      create: {
+        nome: item.nome,
+        tipo: item.tipo,
+        hereditaria: item.hereditaria,
+      },
+    });
+
+    if (item.hereditaria) {
+      await prisma.habilidadeClaHereditario.deleteMany({
+        where: { habilidadeId: habilidade.id },
+      });
+
+      for (const claNome of item.clasHereditarios) {
+        const cla = await prisma.cla.findUnique({ where: { nome: claNome } });
+        if (!cla) continue;
+
+        await prisma.habilidadeClaHereditario.upsert({
+          where: {
+            habilidadeId_claId: {
+              habilidadeId: habilidade.id,
+              claId: cla.id,
+            },
+          },
+          update: {},
+          create: {
+            habilidadeId: habilidade.id,
+            claId: cla.id,
+          },
+        });
+      }
+    }
+  }
+
+  // Habilidade Escola Técnica
+  console.log('Cadastrando habilidade Escola Técnica...');
+  await prisma.habilidade.upsert({
+    where: { nome: habilidadeEscolaTecnicaSeed.nome },
+    update: {
+      tipo: habilidadeEscolaTecnicaSeed.tipo,
+      descricao: habilidadeEscolaTecnicaSeed.descricao ?? null,
+      hereditaria: habilidadeEscolaTecnicaSeed.hereditaria ?? false,
+      mecanicasEspeciais: Prisma.JsonNull,
+      requisitos: Prisma.JsonNull,
+    },
+    create: {
+      ...habilidadeEscolaTecnicaSeed,
+      descricao: habilidadeEscolaTecnicaSeed.descricao ?? null,
+      mecanicasEspeciais: Prisma.JsonNull,
+      requisitos: Prisma.JsonNull,
+    },
+  });
+
+  // Recursos de Classe
+  console.log('Cadastrando recursos de classe...');
+  for (const data of habilidadesRecursosClasseSeed as SeedHabilidadeLike[]) {
+    await prisma.habilidade.upsert({
+      where: { nome: data.nome },
+      update: {
+        tipo: data.tipo,
+        descricao: data.descricao ?? null,
+        hereditaria: data.hereditaria ?? false,
+        mecanicasEspeciais: jsonOrNull(data.mecanicasEspeciais),
+        requisitos: jsonOrNull(data.requisitos),
+      },
+      create: {
+        nome: data.nome,
+        tipo: data.tipo,
+        descricao: data.descricao ?? null,
+        hereditaria: data.hereditaria ?? false,
+        mecanicasEspeciais: jsonOrNull(data.mecanicasEspeciais),
+        requisitos: jsonOrNull(data.requisitos),
+      },
+    });
+  }
+
+  // Vincular Recursos de Classe às Classes
+  console.log('Vinculando recursos de classe...');
+  for (const item of habilidadesRecursosClasseVinculosSeed) {
+    const classe = await prisma.classe.findUnique({
+      where: { nome: item.classeNome },
+    });
+    if (!classe) {
+      console.warn(`Classe não encontrada: ${item.classeNome}`);
+      continue;
+    }
+
+    const habilidade = await prisma.habilidade.findUnique({
+      where: { nome: item.habilidadeNome },
+    });
+    if (!habilidade) {
+      console.warn(`Habilidade não encontrada: ${item.habilidadeNome}`);
+      continue;
+    }
+
+    await prisma.habilidadeClasse.upsert({
+      where: {
+        classeId_habilidadeId_nivelConcedido: {
+          classeId: classe.id,
+          habilidadeId: habilidade.id,
+          nivelConcedido: item.nivelConcedido,
+        },
+      },
+      update: {},
+      create: {
+        classeId: classe.id,
+        habilidadeId: habilidade.id,
+        nivelConcedido: item.nivelConcedido,
+      },
+    });
+  }
+
+  // Poderes Genéricos
+  console.log('Cadastrando poderes genéricos...');
+  for (const data of habilidadesPoderesGenericosSeed as SeedHabilidadeLike[]) {
+    const upsertData = {
+      nome: data.nome,
+      tipo: data.tipo,
+      descricao: data.descricao ?? null,
+      hereditaria: data.hereditaria ?? false,
+
+      // por enquanto: tudo "GERAL"
+      origem: 'GERAL',
+
+      requisitos: jsonOrNull(data.requisitos),
+      mecanicasEspeciais: jsonOrNull(data.mecanicasEspeciais),
+    };
+
+    await prisma.habilidade.upsert({
+      where: { nome: data.nome },
+      update: upsertData,
+      create: upsertData,
+    });
+  }
+  console.log(`OK: ${habilidadesPoderesGenericosSeed.length} poderes genéricos cadastrados!`);
+
+  // Trilhas
+  console.log('Cadastrando trilhas...');
+  for (const item of trilhasSeed) {
+    const classe = await prisma.classe.findUnique({
+      where: { nome: item.classeNome },
+    });
+    if (!classe) continue;
+
+    await prisma.trilha.upsert({
+      where: { nome: item.nome },
+      update: {
+        descricao: item.descricao,
+        classeId: classe.id,
+      },
+      create: {
+        nome: item.nome,
+        descricao: item.descricao,
+        classeId: classe.id,
+      },
+    });
+  }
+
+  // Requisitos de trilhas
+  console.log('Configurando requisitos de trilhas...');
+  for (const item of trilhasRequisitosSeed) {
+    const trilha = await prisma.trilha.findUnique({
+      where: { nome: item.trilhaNome },
+    });
+    if (!trilha) continue;
+
+    await prisma.trilha.update({
+      where: { id: trilha.id },
+      data: {
+        requisitos: item.requisitos,
+      },
+    });
+  }
+
+  // Caminhos
+  console.log('Cadastrando caminhos...');
+  for (const item of caminhosSeed) {
+    const trilha = await prisma.trilha.findUnique({
+      where: { nome: item.trilhaNome },
+    });
+    if (!trilha) continue;
+
+    await prisma.caminho.upsert({
+      where: { nome: item.nome },
+      update: {
+        descricao: item.descricao,
+        trilhaId: trilha.id,
+      },
+      create: {
+        nome: item.nome,
+        descricao: item.descricao,
+        trilhaId: trilha.id,
+      },
+    });
+  }
+
+  // Habilidades de trilha
+  console.log('Vinculando habilidades às trilhas...');
+  for (const item of habilidadesTrilhaSeed) {
+    const trilha = await prisma.trilha.findUnique({
+      where: { nome: item.trilhaNome },
+    });
+    if (!trilha) continue;
+
+    const caminho = item.caminhoNome
+      ? await prisma.caminho.findUnique({
+          where: { nome: item.caminhoNome },
+        })
+      : null;
+
+    const habilidade = await prisma.habilidade.upsert({
+      where: { nome: item.habilidadeNome },
+      update: { tipo: 'CLASSE' },
+      create: { nome: item.habilidadeNome, tipo: 'CLASSE' },
+    });
+
+    await prisma.habilidadeTrilha.upsert({
+      where: {
+        trilhaId_habilidadeId_nivelConcedido: {
+          trilhaId: trilha.id,
+          habilidadeId: habilidade.id,
+          nivelConcedido: item.nivelConcedido,
+        },
+      },
+      update: {
+        caminhoId: caminho ? caminho.id : null,
+      },
+      create: {
+        trilhaId: trilha.id,
+        habilidadeId: habilidade.id,
+        nivelConcedido: item.nivelConcedido,
+        caminhoId: caminho ? caminho.id : null,
+      },
+    });
+  }
+
+  // Efeitos de grau concedidos por habilidades
+  console.log('Configurando efeitos de grau...');
+  for (const item of habilidadesEfeitosGrauSeed) {
+    const habilidade = await prisma.habilidade.findUnique({
+      where: { nome: item.habilidadeNome },
+    });
+    if (!habilidade) {
+      console.warn(`Habilidade não encontrada: ${item.habilidadeNome}`);
+      continue;
+    }
+
+    const tipoGrau = await prisma.tipoGrau.findUnique({
+      where: { codigo: item.tipoGrauCodigo },
+    });
+    if (!tipoGrau) {
+      console.warn(`TipoGrau não encontrado: ${item.tipoGrauCodigo}`);
+      continue;
+    }
+
+    await prisma.habilidadeEfeitoGrau.upsert({
+      where: {
+        habilidadeId_tipoGrauCodigo: {
+          habilidadeId: habilidade.id,
+          tipoGrauCodigo: tipoGrau.codigo,
+        },
+      },
+      update: {
+        valor: item.valor,
+        escalonamentoPorNivel: item.escalonamentoPorNivel ?? Prisma.JsonNull,
+      },
+      create: {
+        habilidadeId: habilidade.id,
+        tipoGrauCodigo: tipoGrau.codigo,
+        valor: item.valor,
+        escalonamentoPorNivel: item.escalonamentoPorNivel ?? Prisma.JsonNull,
+      },
+    });
+  }
+
+  // Mecânicas especiais em habilidades
+  console.log('Configurando mecânicas especiais...');
+  for (const item of habilidadesMecanicasEspeciaisSeed) {
+    const habilidade = await prisma.habilidade.findUnique({
+      where: { nome: item.habilidadeNome },
+    });
+    if (!habilidade) {
+      console.warn(`Habilidade não encontrada: ${item.habilidadeNome}`);
+      continue;
+    }
+
+    await prisma.habilidade.update({
+      where: { id: habilidade.id },
+      data: {
+        mecanicasEspeciais: item.mecanicasEspeciais,
+      },
+    });
+  }
+
+  // Alinhamentos
+  console.log('Cadastrando alinhamentos...');
+  for (const data of alinhamentosSeed) {
+    await prisma.alinhamento.upsert({
+      where: { nome: data.nome },
+      update: { descricao: data.descricao },
+      create: data,
+    });
+  }
+
+  // Passivas de Atributos
+  console.log('Cadastrando passivas de atributos...');
+  for (const data of passivasAtributosSeed) {
+    await prisma.passivaAtributo.upsert({
+      where: { codigo: data.codigo },
+      update: {
+        nome: data.nome,
+        atributo: data.atributo,
+        nivel: data.nivel,
+        requisito: data.requisito,
+        descricao: data.descricao,
+        efeitos: data.efeitos,
+      },
+      create: data,
+    });
+  }
+  console.log(`OK: ${passivasAtributosSeed.length} passivas de atributos cadastradas!`);
+
+  console.log('Seed completo!');
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error('Erro no seed:', e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

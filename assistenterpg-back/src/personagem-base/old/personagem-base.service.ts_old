@@ -1,0 +1,2376 @@
+// src/personagem-base/personagem-base.service.ts
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import {
+  CreatePersonagemBaseDto,
+  GrauTreinamentoDto,
+} from './dto/create-personagem-base.dto';
+import { UpdatePersonagemBaseDto } from './dto/update-personagem-base.dto';
+import {
+  aplicarRegrasDeGraus,
+  calcularGrausLivresMax,
+  calcularGrausLivresExtras,
+} from './regras-criacao/regras-graus-aprimoramento';
+import {
+  validarAtributos,
+  resolverPassivasAtributos,
+  aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias,
+  aplicarIntelectoEmGraus,
+  PassivasAtributoConfig,
+} from './regras-criacao/regras-atributos';
+
+import { validarOrigemClaTecnica } from './regras-criacao/regras-origem-cla';
+import { validarTrilhaECaminho } from './regras-criacao/regras-trilha';
+import { montarPericiasPersonagem } from './regras-criacao/regras-pericias';
+import {
+  validarGrausTreinamento,
+  aplicarGrausTreinamento,
+} from './regras-criacao/regras-graus-treinamento';
+import { validarPoderesGenericos } from './regras-criacao/regras-poderes';
+import {
+  aplicarEfeitosPoderesEmPericias,
+  aplicarEfeitosPoderesEmGraus,
+  aplicarEfeitosPoderesEmProficiencias,
+  extrairProficienciasDeHabilidades, // ✅ NOVO
+} from './regras-criacao/regras-poderes-efeitos';
+
+import { calcularAtributosDerivados } from './regras-criacao/regras-derivados';
+import { AtributoBaseEA, Prisma } from '@prisma/client';
+
+type PrismaLike = PrismaService | Prisma.TransactionClient;
+
+type ModDerivados = {
+  pvPorNivelExtra: number;
+  peBaseExtra: number;
+  limitePeEaExtra: number;
+  defesaExtra: number;
+};
+
+@Injectable()
+export class PersonagemBaseService {
+  constructor(private readonly prisma: PrismaService) { }
+
+  // ==================== HELPERS GERAIS ====================
+
+  private limparUndefined<T extends Record<string, any>>(obj: T): T {
+    const out: any = { ...obj };
+    for (const k of Object.keys(out)) {
+      if (out[k] === undefined) delete out[k];
+    }
+    return out;
+  }
+
+  private jsonToStringArray(value: Prisma.JsonValue | null | undefined): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((v) => typeof v === 'string') as string[];
+  }
+
+  private validarAtributoChaveEa(valor: unknown): asserts valor is AtributoBaseEA {
+    const valoresValidos = Object.values(AtributoBaseEA) as string[];
+
+    if (typeof valor !== 'string' || !valoresValidos.includes(valor)) {
+      throw new BadRequestException(
+        `O atributo-chave de Energia Amaldiçoada deve ser um destes valores: ${valoresValidos.join(', ')}.`,
+      );
+    }
+  }
+
+  private getPassivasIdsFromRelacao(passivas: Array<{ passivaId: number }>): number[] {
+    return (passivas ?? []).map((p) => p.passivaId);
+  }
+
+  private getPoderesFromRelacao(
+    poderes: Array<{ habilidadeId: number; config: any }> | undefined,
+  ): Array<{ habilidadeId: number; config?: any }> {
+    return (poderes ?? []).map((p) => ({
+      habilidadeId: p.habilidadeId,
+      config: p.config ?? undefined,
+    }));
+  }
+
+  /** ✅ Busca habilidades do personagem com efeitos de grau e mecânicas especiais Inclui poderes genéricos via instâncias (permitindo repetição).*/
+  private async buscarHabilidadesPersonagem(
+    params: {
+      nivel: number;
+      origemId: number;
+      classeId: number;
+      trilhaId?: number | null;
+      caminhoId?: number | null;
+      tecnicaInataId?: number | null;
+      estudouEscolaTecnica: boolean;
+      poderesGenericos?: Array<{ habilidadeId: number; config?: any }>;
+    },
+    prisma: PrismaLike = this.prisma,
+  ) {
+    const {
+      nivel,
+      origemId,
+      classeId,
+      trilhaId,
+      caminhoId,
+      tecnicaInataId,
+      estudouEscolaTecnica,
+      poderesGenericos,
+    } = params;
+
+    const habilidades: Array<{
+      habilidadeId: number;
+      habilidade: {
+        nome: string;
+        tipo?: string;
+        mecanicasEspeciais?: any;
+        efeitosGrau: Array<{
+          tipoGrauCodigo: string;
+          valor: number;
+          escalonamentoPorNivel: any;
+        }>;
+      };
+    }> = [];
+
+    // Habilidades da origem
+    const habilidadesOrigem = await prisma.habilidadeOrigem.findMany({
+      where: { origemId },
+      include: {
+        habilidade: {
+          include: { efeitosGrau: true },
+        },
+      },
+    });
+
+    habilidades.push(
+      ...habilidadesOrigem.map((ho) => ({
+        habilidadeId: ho.habilidadeId,
+        habilidade: ho.habilidade as any,
+      })),
+    );
+
+    // ✅ Recurso de classe (nível 1)
+    const recursoClasse = await prisma.habilidadeClasse.findFirst({
+      where: {
+        classeId,
+        nivelConcedido: 1,
+        habilidade: { tipo: 'RECURSO_CLASSE' },
+      },
+      include: {
+        habilidade: {
+          include: { efeitosGrau: true },
+        },
+      },
+    });
+
+    if (recursoClasse) {
+      habilidades.push({
+        habilidadeId: recursoClasse.habilidadeId,
+        habilidade: recursoClasse.habilidade as any,
+      });
+    }
+
+    // Habilidades da classe (por nível, excluindo recurso já adicionado)
+    const habilidadesClasse = await prisma.habilidadeClasse.findMany({
+      where: {
+        classeId,
+        nivelConcedido: { lte: nivel },
+        habilidade: { tipo: { not: 'RECURSO_CLASSE' } },
+      },
+      include: {
+        habilidade: {
+          include: { efeitosGrau: true },
+        },
+      },
+    });
+
+    habilidades.push(
+      ...habilidadesClasse.map((hc) => ({
+        habilidadeId: hc.habilidadeId,
+        habilidade: hc.habilidade as any,
+      })),
+    );
+
+    // Habilidades da trilha (por nível, sem caminho específico)
+    if (trilhaId) {
+      const habilidadesTrilha = await prisma.habilidadeTrilha.findMany({
+        where: {
+          trilhaId,
+          caminhoId: null,
+          nivelConcedido: { lte: nivel },
+        },
+        include: {
+          habilidade: {
+            include: { efeitosGrau: true },
+          },
+        },
+      });
+
+      habilidades.push(
+        ...habilidadesTrilha.map((ht) => ({
+          habilidadeId: ht.habilidadeId,
+          habilidade: ht.habilidade as any,
+        })),
+      );
+    }
+
+    // Habilidades do caminho (por nível)
+    if (caminhoId) {
+      const habilidadesCaminho = await prisma.habilidadeTrilha.findMany({
+        where: {
+          caminhoId,
+          nivelConcedido: { lte: nivel },
+        },
+        include: {
+          habilidade: {
+            include: { efeitosGrau: true },
+          },
+        },
+      });
+
+      habilidades.push(
+        ...habilidadesCaminho.map((ht) => ({
+          habilidadeId: ht.habilidadeId,
+          habilidade: ht.habilidade as any,
+        })),
+      );
+    }
+
+    // Técnica inata
+    if (tecnicaInataId) {
+      const tecnicaInata = await prisma.habilidade.findUnique({
+        where: { id: tecnicaInataId },
+        include: { efeitosGrau: true },
+      });
+
+      if (tecnicaInata) {
+        habilidades.push({
+          habilidadeId: tecnicaInata.id,
+          habilidade: tecnicaInata as any,
+        });
+      }
+    }
+
+    // Escola Técnica como habilidade (se estudou)
+    if (estudouEscolaTecnica) {
+      const escolaTecnica = await prisma.habilidade.findUnique({
+        where: { nome: 'Escola Técnica' },
+        include: { efeitosGrau: true },
+      });
+
+      if (escolaTecnica) {
+        habilidades.push({
+          habilidadeId: escolaTecnica.id,
+          habilidade: escolaTecnica as any,
+        });
+      }
+    }
+
+    // ✅ Poderes genéricos selecionados (via instâncias) - permite repetição
+    if (poderesGenericos && poderesGenericos.length > 0) {
+      const idsUnicos = Array.from(new Set(poderesGenericos.map((p) => p.habilidadeId)));
+
+      const poderesDb = await prisma.habilidade.findMany({
+        where: {
+          id: { in: idsUnicos },
+          tipo: 'PODER_GENERICO',
+        },
+        include: { efeitosGrau: true },
+      });
+
+      const mapPoder = new Map(poderesDb.map((p) => [p.id, p]));
+
+      // Repete conforme as instâncias (se for repetível)
+      for (const inst of poderesGenericos) {
+        const poder = mapPoder.get(inst.habilidadeId);
+        if (!poder) continue;
+
+        habilidades.push({
+          habilidadeId: poder.id,
+          habilidade: poder as any,
+        });
+      }
+    }
+
+    return habilidades;
+  }
+
+  private calcularModificadoresDerivadosPorHabilidades(
+    habilidades: Array<{ habilidade: { nome: string; mecanicasEspeciais?: any } }>,
+    nivel: number,
+  ): ModDerivados {
+    const mods: ModDerivados = {
+      pvPorNivelExtra: 0,
+      peBaseExtra: 0,
+      limitePeEaExtra: 0,
+      defesaExtra: 0,
+    };
+
+    for (const h of habilidades) {
+      const m = h.habilidade.mecanicasEspeciais as any;
+
+      // Calejado (Desgarrado) – { pvPorNivel: 1 }
+      if (m?.pvPorNivel && typeof m.pvPorNivel === 'number') {
+        mods.pvPorNivelExtra += m.pvPorNivel;
+      }
+
+      // Dedicação (Universitário) – { recursos: { peBase, pePorNivelImpar, limitePePorTurnoBonus } }
+      if (m?.recursos) {
+        // +1 PE base
+        if (typeof m.recursos.peBase === 'number') {
+          mods.peBaseExtra += m.recursos.peBase;
+        }
+
+        // ✅ +1 PE por nível ímpar alcançado (1, 3, 5, 7...)
+        if (typeof m.recursos.pePorNivelImpar === 'number') {
+          const niveisImpares = Math.ceil(nivel / 2); // níveis 1..20 → 1,3,5...19 = 10 níveis ímpares
+          mods.peBaseExtra += m.recursos.pePorNivelImpar * niveisImpares;
+        }
+
+        // +1 limite PE/EA por turno
+        if (typeof m.recursos.limitePePorTurnoBonus === 'number') {
+          mods.limitePeEaExtra += m.recursos.limitePePorTurnoBonus;
+        }
+      }
+
+      // Patrulha (Policial) – { defesa: { bonus: 2 } }
+      if (m?.defesa?.bonus && typeof m.defesa.bonus === 'number') {
+        mods.defesaExtra += m.defesa.bonus;
+      }
+
+    }
+
+    return mods;
+  }
+
+  async preview(donoId: number, dto: CreatePersonagemBaseDto) {
+    const {
+      proficienciasCodigos,
+      grausAprimoramento,
+      grausTreinamento,
+      periciasClasseEscolhidasCodigos,
+      periciasOrigemEscolhidasCodigos,
+      periciasLivresCodigos,
+
+      // ✅ NOVO
+      poderesGenericos,
+
+      // ❌ legado (não usar mais como fonte da verdade)
+      passivasAtributoIds,
+
+      // ✅ novo (precisa existir no DTO)
+      passivasAtributosAtivos,
+
+      // ✅ NOVO: configs de Intelecto para a tela de atributos
+      passivasAtributosConfig,
+
+      // ✅ NOVO: extras de perícias livres vindos de passivas
+      periciasLivresExtras: periciasLivresExtrasDoPayload = 0,
+
+      ...dadosBasicosRaw
+    } = dto as any;
+
+    const dadosBasicos = this.limparUndefined(dadosBasicosRaw);
+
+    // Validações básicas
+    this.validarAtributoChaveEa(dadosBasicos.atributoChaveEa);
+
+    validarAtributos({
+      nivel: dadosBasicos.nivel,
+      agilidade: dadosBasicos.agilidade,
+      forca: dadosBasicos.forca,
+      intelecto: dadosBasicos.intelecto,
+      presenca: dadosBasicos.presenca,
+      vigor: dadosBasicos.vigor,
+    });
+
+    await validarOrigemClaTecnica(
+      dadosBasicos.claId,
+      dadosBasicos.origemId,
+      dadosBasicos.tecnicaInataId,
+      this.prisma,
+    );
+
+    // 1) Perícias base (origem/classe/livres/escola técnica)
+    const periciasCalculadas = await montarPericiasPersonagem(
+      {
+        ...(dto as any),
+        periciasLivresExtras: periciasLivresExtrasDoPayload,
+      },
+      this.prisma,
+    );
+
+    const todasPericias = await this.prisma.pericia.findMany();
+    const mapaPericiasPorId = new Map(todasPericias.map((p) => [p.id, p]));
+    const mapaPericiasPorCodigo = new Map(
+      todasPericias.map((p) => [p.codigo, p]),
+    );
+
+    const periciasMapCodigo = new Map<
+      string,
+      { grauTreinamento: number; periciaId: number; bonusExtra: number }
+    >();
+
+    for (const p of periciasCalculadas) {
+      const pericia = mapaPericiasPorId.get(p.periciaId);
+      if (pericia) {
+        periciasMapCodigo.set(pericia.codigo, {
+          grauTreinamento: p.grauTreinamento,
+          periciaId: p.periciaId,
+          bonusExtra: p.bonusExtra,
+        });
+      }
+    }
+
+    console.log(
+      '[PREVIEW] TATICA antes de poderes:',
+      periciasMapCodigo.get('TATICA'),
+    );
+
+    // 2) Poderes que alteram treinamento de perícias
+    await aplicarEfeitosPoderesEmPericias(
+      {
+        nivel: dadosBasicos.nivel,
+        poderes: poderesGenericos ?? [],
+        periciasMap: periciasMapCodigo,
+      },
+      this.prisma,
+    );
+
+    console.log(
+      '[PREVIEW] TATICA após poderes:',
+      periciasMapCodigo.get('TATICA'),
+    );
+
+    // 3) Passivas de atributos (preview: strict=false) — AQUI JÁ APLICA INTELECTO EM PERÍCIAS
+    const passivasResolvidas = await resolverPassivasAtributos({
+      atributos: {
+        agilidade: dadosBasicos.agilidade,
+        forca: dadosBasicos.forca,
+        intelecto: dadosBasicos.intelecto,
+        presenca: dadosBasicos.presenca,
+        vigor: dadosBasicos.vigor,
+      },
+      passivasAtributosAtivos,
+      strict: false,
+      prisma: this.prisma,
+    });
+
+    const passivasCodigosAtivos = passivasResolvidas.passivaCodigos ?? [];
+
+    console.log(
+      '[PREVIEW][INT] passivasCodigosAtivos =',
+      passivasCodigosAtivos,
+    );
+    console.log(
+      '[PREVIEW][INT] passivasAtributosConfig.INT_I =',
+      passivasAtributosConfig?.INT_I,
+    );
+    console.log(
+      '[PREVIEW][INT] TATICA antes de Intelecto =',
+      periciasMapCodigo.get('TATICA'),
+    );
+
+    // 3.1) ✅ Intelecto I/II: aplicar em perícias, proficiências E contar perícias livres extras
+    const profsPayloadCodigos = proficienciasCodigos ?? [];
+    const {
+      profsExtrasFinal: profsExtrasDeIntelecto,
+      periciasLivresExtras,
+    } = aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias({
+      passivasAtivasCodigos: passivasCodigosAtivos,
+      passivasConfig: passivasAtributosConfig,
+      periciasMap: periciasMapCodigo,
+      profsExtrasPayload: profsPayloadCodigos,
+    });
+
+    console.log(
+      '[PREVIEW][INT] TATICA após Intelecto =',
+      periciasMapCodigo.get('TATICA'),
+    );
+    console.log('[PREVIEW][INT] profsExtrasDeIntelecto =', profsExtrasDeIntelecto);
+    console.log('[PREVIEW][INT] periciasLivresExtras =', periciasLivresExtras);
+
+    // ✅ NOVO: Calcular total de perícias livres (classe.periciasLivresBase + INT + extras de passivas)
+    const classe = await this.prisma.classe.findUnique({
+      where: { id: dadosBasicos.classeId },
+    });
+
+    const periciasLivresBaseCount =
+      (classe?.periciasLivresBase ?? 0) + dadosBasicos.intelecto;
+
+    const periciasLivresTotalCount =
+      periciasLivresBaseCount + periciasLivresExtras;
+
+    // 4) Graus de treinamento — agora INTIMIDACAO já está treinada se vier de Intelecto II
+    await validarGrausTreinamento(
+      dadosBasicos.nivel,
+      dadosBasicos.intelecto,
+      grausTreinamento,
+      periciasMapCodigo,
+      this.prisma,
+    );
+
+    aplicarGrausTreinamento(grausTreinamento, periciasMapCodigo);
+
+    console.log(
+      '[PREVIEW] TATICA após grausTreinamento:',
+      periciasMapCodigo.get('TATICA'),
+    );
+
+    const periciasComCodigo = Array.from(periciasMapCodigo.entries()).map(
+      ([codigo, pericia]) => ({
+        codigo,
+        grauTreinamento: pericia.grauTreinamento,
+      }),
+    );
+
+    await validarTrilhaECaminho(
+      dadosBasicos.classeId,
+      dadosBasicos.trilhaId,
+      dadosBasicos.caminhoId,
+      periciasComCodigo,
+      this.prisma,
+    );
+
+    // 5) Habilidades do personagem (inclui poderes + trilhas + origem + técnica inata)
+    const habilidades = await this.buscarHabilidadesPersonagem(
+      {
+        nivel: dadosBasicos.nivel,
+        origemId: dadosBasicos.origemId,
+        classeId: dadosBasicos.classeId,
+        trilhaId: dadosBasicos.trilhaId,
+        caminhoId: dadosBasicos.caminhoId,
+        tecnicaInataId: dadosBasicos.tecnicaInataId,
+        estudouEscolaTecnica: dadosBasicos.estudouEscolaTecnica,
+        poderesGenericos: poderesGenericos ?? [],
+      },
+      this.prisma,
+    );
+
+    // ✅ NOVO: Extrair proficiências de TODAS as habilidades (trilhas, poderes, origem, técnica inata)
+    const profsDeHabilidades = await extrairProficienciasDeHabilidades(
+      habilidades,
+      this.prisma,
+    );
+    console.log('[PREVIEW] profsDeHabilidades =', profsDeHabilidades);
+
+    // 6) Graus de aprimoramento (usuario + poderes)
+    const grausUsuario = grausAprimoramento ?? [];
+    const pontosUsuario = grausUsuario.reduce(
+      (acc, g) => acc + (g.valor || 0),
+      0,
+    );
+
+    // base (classe) + extras (habilidades como Graduado + Intelecto II)
+    const baseLivres = calcularGrausLivresMax(dadosBasicos.nivel);
+    const extrasLivres = calcularGrausLivresExtras(
+      habilidades as any,
+      dadosBasicos.nivel,
+      passivasAtributosConfig,
+    );
+    const maxTotalLivres = baseLivres + extrasLivres.totalExtras;
+
+    const grausComPoderes = await aplicarEfeitosPoderesEmGraus(
+      { poderes: poderesGenericos ?? [], grausLivres: grausUsuario },
+      this.prisma,
+    );
+
+    // 6.1) Intelecto II: aplicar +1 grau em um tipo de grau
+    const grausComIntelecto = aplicarIntelectoEmGraus({
+      passivasAtivasCodigos: passivasCodigosAtivos,
+      passivasConfig: passivasAtributosConfig,
+      graus: grausComPoderes ?? [],
+    });
+
+    // 7) Validar poderes genéricos com graus ajustados
+    if (poderesGenericos && poderesGenericos.length > 0) {
+      await validarPoderesGenericos(
+        {
+          nivel: dadosBasicos.nivel,
+          poderes: poderesGenericos,
+          pericias: periciasComCodigo,
+          atributos: {
+            agilidade: dadosBasicos.agilidade,
+            forca: dadosBasicos.forca,
+            intelecto: dadosBasicos.intelecto,
+            presenca: dadosBasicos.presenca,
+            vigor: dadosBasicos.vigor,
+          },
+          graus: grausComIntelecto ?? [],
+        },
+        this.prisma,
+      );
+    }
+
+    const graus = await aplicarRegrasDeGraus(
+      {
+        nivel: dadosBasicos.nivel,
+        habilidades,
+        passivasAtributosConfig,
+      },
+      grausComIntelecto,
+    );
+
+    // 8) ✅ CORRIGIDO: Proficiências finais (classe + habilidades [trilhas/poderes/origem] + Intelecto)
+    const profsClasse = await this.prisma.classeProficiencia.findMany({
+      where: { classeId: dadosBasicos.classeId },
+      include: { proficiencia: true },
+    });
+
+    const profsClasseCodigos = profsClasse.map(
+      (cp) => cp.proficiencia.codigo,
+    );
+
+    // ✅ MERGE: classe + habilidades (trilhas/poderes/origem) + Intelecto
+    const profsFinais = Array.from(
+      new Set([
+        ...profsClasseCodigos,
+        ...profsDeHabilidades, // ✅ inclui Mira de Elite + poderes + origem
+        ...profsExtrasDeIntelecto,
+      ]),
+    );
+
+    console.log('[PREVIEW] profsFinais =', profsFinais);
+
+    // 9) Detalhes de perícias para exibir no preview
+    const periciasDetalhadas = Array.from(periciasMapCodigo.entries()).map(
+      ([codigo, p]) => {
+        const pericia = mapaPericiasPorCodigo.get(codigo);
+        return {
+          codigo,
+          nome: pericia?.nome ?? '',
+          atributoBase: pericia?.atributoBase ?? 'INT',
+          grauTreinamento: p.grauTreinamento,
+          bonusExtra: p.bonusExtra,
+          bonusTotal: p.grauTreinamento * 5 + p.bonusExtra,
+        };
+      },
+    );
+
+    console.log(
+      '[PREVIEW] periciasDetalhadas (TATICA) =',
+      periciasDetalhadas.find((p) => p.codigo === 'TATICA'),
+    );
+
+    const proficienciasDetalhadas =
+      await this.prisma.proficiencia.findMany({
+        where: { codigo: { in: profsFinais } },
+      });
+
+    const tiposGrau = await this.prisma.tipoGrau.findMany({
+      where: { codigo: { in: graus.map((g) => g.tipoGrauCodigo) } },
+    });
+    const mapaTiposGrau = new Map(
+      tiposGrau.map((t) => [t.codigo, t.nome]),
+    );
+
+    const habilidadesNomes = habilidades.map((h) => h.habilidade.nome);
+
+    const bonusHabilidades = habilidades.flatMap((h) =>
+      h.habilidade.efeitosGrau.map((efeito) => ({
+        habilidadeNome: h.habilidade.nome,
+        tipoGrauCodigo: efeito.tipoGrauCodigo,
+        valor: efeito.valor,
+        escalonamentoPorNivel: efeito.escalonamentoPorNivel,
+      })),
+    );
+
+    // Intelecto II: mostrar +1 grau extra no preview
+    if (passivasAtributosConfig?.INT_II?.tipoGrauCodigoAprimoramento) {
+      bonusHabilidades.push({
+        habilidadeNome: 'Intelecto II',
+        tipoGrauCodigo:
+          passivasAtributosConfig.INT_II.tipoGrauCodigoAprimoramento,
+        valor: 1,
+        escalonamentoPorNivel: null,
+      });
+    }
+
+    // 10) Derivados base + modificadores simples
+    const derivadosBase = await calcularAtributosDerivados(
+      {
+        nivel: dadosBasicos.nivel,
+        classeId: dadosBasicos.classeId,
+        agilidade: dadosBasicos.agilidade,
+        forca: dadosBasicos.forca,
+        intelecto: dadosBasicos.intelecto,
+        presenca: dadosBasicos.presenca,
+        vigor: dadosBasicos.vigor,
+        atributoChaveEa: dadosBasicos.atributoChaveEa,
+        passivasAtributoIds: passivasResolvidas.passivaIds,
+      },
+      this.prisma,
+    );
+
+    const mods = this.calcularModificadoresDerivadosPorHabilidades(
+      habilidades,
+      dadosBasicos.nivel,
+    );
+
+    const atributosDerivados = {
+      ...derivadosBase,
+      pvMaximo:
+        derivadosBase.pvMaximo +
+        mods.pvPorNivelExtra * dadosBasicos.nivel,
+      peMaximo: derivadosBase.peMaximo + mods.peBaseExtra,
+      limitePeEaPorTurno:
+        derivadosBase.limitePeEaPorTurno + mods.limitePeEaExtra,
+      defesa: derivadosBase.defesa + mods.defesaExtra,
+    };
+
+    return {
+      ...dadosBasicos,
+
+      // estado das passivas
+      passivasNeedsChoice: passivasResolvidas.needsChoice,
+      passivasElegiveis: passivasResolvidas.elegiveis,
+      passivasAtributosAtivos: passivasResolvidas.ativos,
+      passivasAtributoIds: passivasResolvidas.passivaIds,
+
+      // configs de Intelecto (para a tela manter estado)
+      passivasAtributosConfig: passivasAtributosConfig ?? {},
+
+      // instâncias de poderes para o front manter estado
+      poderesGenericos: poderesGenericos ?? [],
+
+      pericias: periciasDetalhadas.filter((p) => p.grauTreinamento > 0),
+      grausAprimoramento: graus.map((g) => ({
+        tipoGrauCodigo: g.tipoGrauCodigo,
+        tipoGrauNome:
+          mapaTiposGrau.get(g.tipoGrauCodigo) ?? g.tipoGrauCodigo,
+        valor: g.valor,
+      })),
+      proficiencias: proficienciasDetalhadas.map((p) => ({
+        codigo: p.codigo,
+        nome: p.nome,
+        tipo: p.tipo,
+        categoria: p.categoria,
+        subtipo: p.subtipo,
+      })),
+      habilidadesAtivas: habilidadesNomes,
+      bonusHabilidades,
+      atributosDerivados,
+
+      // ✅ NOVO: info de graus livres para o front
+      grausLivresInfo: {
+        base: baseLivres,
+        deHabilidades: extrasLivres.deHabilidades,
+        deIntelecto: extrasLivres.deIntelecto,
+        total: maxTotalLivres,
+        gastos: pontosUsuario,
+      },
+
+      // ✅ NOVO: info de perícias livres (base + INT + passivas)
+      periciasLivresInfo: {
+        base: periciasLivresBaseCount,
+        deIntelecto: periciasLivresExtras,
+        total: periciasLivresTotalCount,
+      },
+    };
+  }
+
+  async criar(donoId: number, dto: CreatePersonagemBaseDto) {
+    console.log('[CRIAR] Início criação personagem-base. Payload bruto:', JSON.stringify(dto));
+
+    try {
+      const {
+        proficienciasCodigos,
+        grausAprimoramento,
+        grausTreinamento,
+        periciasClasseEscolhidasCodigos,
+        periciasOrigemEscolhidasCodigos,
+        periciasLivresCodigos,
+
+        // ✅ NOVO
+        poderesGenericos,
+
+        // ❌ legado (não usar como fonte da verdade)
+        passivasAtributoIds,
+
+        // ✅ novo
+        passivasAtributosAtivos,
+
+        // ✅ NOVO: configs de Intelecto para a tela de atributos
+        passivasAtributosConfig,
+
+        ...dadosBasicosRaw
+      } = dto as any;
+
+      console.log('[CRIAR] Dados básicos (raw):', dadosBasicosRaw);
+      console.log('[CRIAR] Perícias livres (codigos):', periciasLivresCodigos);
+      console.log('[CRIAR] GrausAprimoramento (payload):', grausAprimoramento);
+      console.log('[CRIAR] GrausTreinamento (payload):', grausTreinamento);
+      console.log('[CRIAR] Poderes genéricos (payload):', poderesGenericos);
+      console.log('[CRIAR] Passivas atributos ativos (payload):', passivasAtributosAtivos);
+      console.log('[CRIAR] Passivas atributos config (payload):', passivasAtributosConfig);
+
+      // ✅ NORMALIZAR poderes genéricos logo no início (garantir config nunca null/undefined)
+      const poderesGenericosNormalizados = (poderesGenericos ?? []).map(
+        (inst: any) => ({
+          ...inst,
+          config: inst.config ?? {},
+        }),
+      );
+      console.log('[CRIAR] Poderes genéricos normalizados:', poderesGenericosNormalizados);
+
+      // ✅ LIMPAR undefined do passivasAtributosConfig (JSON não aceita undefined)
+      const passivasAtributosConfigLimpo = passivasAtributosConfig
+        ? JSON.parse(JSON.stringify(passivasAtributosConfig))
+        : undefined;
+
+      const { periciasLivresExtras: _periciasLivresExtrasIgnorar, ...dadosSemExtras } = dadosBasicosRaw;
+      const dadosBasicos = this.limparUndefined(dadosSemExtras);
+      console.log('[CRIAR] Dados básicos após limparUndefined:', dadosBasicos);
+
+      console.log('[CRIAR] Validando atributo chave EA...');
+      this.validarAtributoChaveEa(dadosBasicos.atributoChaveEa);
+
+      console.log('[CRIAR] Validando atributos numéricos...');
+      validarAtributos({
+        nivel: dadosBasicos.nivel,
+        agilidade: dadosBasicos.agilidade,
+        forca: dadosBasicos.forca,
+        intelecto: dadosBasicos.intelecto,
+        presenca: dadosBasicos.presenca,
+        vigor: dadosBasicos.vigor,
+      });
+
+      console.log('[CRIAR] Validando origem/cla/técnica inata...');
+      await validarOrigemClaTecnica(
+        dadosBasicos.claId,
+        dadosBasicos.origemId,
+        dadosBasicos.tecnicaInataId,
+        this.prisma,
+      );
+
+      console.log('[CRIAR] (1) Montando perícias base (sem Intelecto extra)...');
+      const periciasCalculadas = await montarPericiasPersonagem(
+        dto, // ainda sem Intelecto extra de perícias livres
+        this.prisma,
+      );
+      console.log('[CRIAR] Perícias base calculadas (qtd):', periciasCalculadas.length);
+
+      // Mapa id->perícia
+      const todasPericias = await this.prisma.pericia.findMany();
+      const mapaPericias = new Map(todasPericias.map((p) => [p.id, p]));
+
+      const periciasMapCodigo = new Map<
+        string,
+        { grauTreinamento: number; periciaId: number; bonusExtra: number }
+      >();
+
+      for (const p of periciasCalculadas) {
+        const pericia = mapaPericias.get(p.periciaId);
+        if (pericia) {
+          periciasMapCodigo.set(pericia.codigo, {
+            grauTreinamento: p.grauTreinamento,
+            periciaId: p.periciaId,
+            bonusExtra: p.bonusExtra,
+          });
+        }
+      }
+      console.log('[CRIAR] periciasMapCodigo montado. Chaves:', Array.from(periciasMapCodigo.keys()));
+
+      // 2) Aplicar efeitos de poderes em perícias ANTES de Intelecto/grausTreinamento
+      console.log('[CRIAR] (2) Aplicando efeitos de poderes em perícias...');
+      await aplicarEfeitosPoderesEmPericias(
+        {
+          nivel: dadosBasicos.nivel,
+          poderes: poderesGenericosNormalizados,
+          periciasMap: periciasMapCodigo,
+        },
+        this.prisma,
+      );
+
+      // 3) Resolver passivas por ATRIBUTO (create: strict=true)
+      console.log('[CRIAR] (3) Resolvendo passivas por atributo...');
+      const passivasResolvidas = await resolverPassivasAtributos({
+        atributos: {
+          agilidade: dadosBasicos.agilidade,
+          forca: dadosBasicos.forca,
+          intelecto: dadosBasicos.intelecto,
+          presenca: dadosBasicos.presenca,
+          vigor: dadosBasicos.vigor,
+        },
+        passivasAtributosAtivos,
+        strict: true,
+        prisma: this.prisma,
+      });
+      console.log('[CRIAR] Passivas resolvidas. Codigos:', passivasResolvidas.passivaCodigos);
+
+      // 3.1) Intelecto I/II: aplicar em perícias e proficiências extras
+      console.log('[CRIAR] (3.1) Aplicando efeitos de Intelecto em perícias/profs...');
+      const profsPayloadCodigos = proficienciasCodigos ?? [];
+      const {
+        profsExtrasFinal: profsExtrasDeIntelecto,
+        periciasLivresExtras, // extras de perícias livres vindos de Intelecto
+      } = aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias({
+        passivasAtivasCodigos: passivasResolvidas.passivaCodigos,
+        passivasConfig: passivasAtributosConfig,
+        periciasMap: periciasMapCodigo,
+        profsExtrasPayload: profsPayloadCodigos,
+      });
+      console.log('[CRIAR] Intelecto -> profsExtrasDeIntelecto:', profsExtrasDeIntelecto);
+      console.log('[CRIAR] Intelecto -> periciasLivresExtras:', periciasLivresExtras);
+
+      // ✅ Revalidar limite de perícias livres com os extras de Intelecto
+      {
+        const classe = await this.prisma.classe.findUnique({
+          where: { id: dadosBasicos.classeId },
+        });
+
+        const periciasLivres = periciasLivresCodigos ?? [];
+        const maxLivresBase =
+          (classe?.periciasLivresBase ?? 0) + dadosBasicos.intelecto;
+        const maxLivresTotal = maxLivresBase + periciasLivresExtras;
+
+        console.log('[CRIAR] Validação perícias livres:', {
+          periciasLivres,
+          periciasLivresQtd: periciasLivres.length,
+          periciasLivresExtras,
+          maxLivresBase,
+          maxLivresTotal,
+        });
+
+        if (periciasLivres.length > maxLivresTotal) {
+          console.warn(
+            '[CRIAR] Erro de validação: perícias livres excedem o máximo permitido.',
+          );
+          throw new BadRequestException(
+            `Número de perícias livres (${periciasLivres.length}) excede o máximo permitido (${maxLivresTotal}).`,
+          );
+        }
+      }
+
+      // 4) Validar e aplicar graus de treinamento (agora INTIMIDACAO já pode estar treinada)
+      console.log('[CRIAR] (4) Validando graus de treinamento...');
+      await validarGrausTreinamento(
+        dadosBasicos.nivel,
+        dadosBasicos.intelecto,
+        grausTreinamento,
+        periciasMapCodigo,
+        this.prisma,
+      );
+
+      console.log('[CRIAR] Aplicando graus de treinamento nas perícias...');
+      aplicarGrausTreinamento(grausTreinamento, periciasMapCodigo);
+
+      // Perícias com códigos para validação de trilha e poderes
+      const periciasComCodigo = Array.from(periciasMapCodigo.entries()).map(
+        ([codigo, pericia]) => ({
+          codigo,
+          grauTreinamento: pericia.grauTreinamento,
+        }),
+      );
+      console.log('[CRIAR] periciasComCodigo (para trilha/poderes):', periciasComCodigo);
+
+      console.log('[CRIAR] Validando trilha/caminho com perícias...');
+      await validarTrilhaECaminho(
+        dadosBasicos.classeId,
+        dadosBasicos.trilhaId,
+        dadosBasicos.caminhoId,
+        periciasComCodigo,
+        this.prisma,
+      );
+
+      // 5) Buscar habilidades do personagem (inclui poderes + trilhas + origem + técnica inata)
+      console.log('[CRIAR] (5) Buscando habilidades do personagem...');
+      const habilidades = await this.buscarHabilidadesPersonagem(
+        {
+          nivel: dadosBasicos.nivel,
+          origemId: dadosBasicos.origemId,
+          classeId: dadosBasicos.classeId,
+          trilhaId: dadosBasicos.trilhaId,
+          caminhoId: dadosBasicos.caminhoId,
+          tecnicaInataId: dadosBasicos.tecnicaInataId,
+          estudouEscolaTecnica: dadosBasicos.estudouEscolaTecnica,
+          poderesGenericos: poderesGenericosNormalizados,
+        },
+        this.prisma,
+      );
+      console.log('[CRIAR] Habilidades retornadas (qtd):', habilidades.length);
+
+      // ✅ NOVO: Extrair proficiências de TODAS as habilidades (trilhas, poderes, origem, técnica inata)
+      console.log('[CRIAR] (5.1) Extraindo proficiências de todas as habilidades...');
+      const profsDeHabilidades = await extrairProficienciasDeHabilidades(
+        habilidades,
+        this.prisma,
+      );
+      console.log('[CRIAR] Proficiências extras vindas de habilidades:', profsDeHabilidades);
+
+      // 6) Aplicar poderes nos graus (Treinamento Específico etc.)
+      const grausUsuario = grausAprimoramento ?? [];
+      const pontosUsuario = grausUsuario.reduce(
+        (acc, g) => acc + (g.valor || 0),
+        0,
+      );
+      console.log('[CRIAR] Graus de aprimoramento (payload):', grausUsuario);
+      console.log('[CRIAR] Pontos de graus livres usados pelo usuário:', pontosUsuario);
+
+      const baseLivres = calcularGrausLivresMax(dadosBasicos.nivel);
+      const extrasLivres = calcularGrausLivresExtras(
+        habilidades as any,
+        dadosBasicos.nivel,
+        passivasAtributosConfig,
+      );
+      const maxTotalLivres = baseLivres + extrasLivres.totalExtras;
+      console.log('[CRIAR] Limite de graus livres:', {
+        baseLivres,
+        extrasLivres,
+        totalExtras: extrasLivres.totalExtras,
+        maxTotalLivres,
+      });
+
+      if (pontosUsuario > maxTotalLivres) {
+        console.warn('[CRIAR] Erro de validação: graus livres excedem o máximo.');
+        throw new BadRequestException(
+          `Você distribuiu ${pontosUsuario} graus livres, mas o máximo permitido neste nível é ${maxTotalLivres}.`,
+        );
+      }
+
+      console.log('[CRIAR] (6) Aplicando efeitos de poderes em graus...');
+      const grausComPoderes = await aplicarEfeitosPoderesEmGraus(
+        { poderes: poderesGenericosNormalizados, grausLivres: grausUsuario },
+        this.prisma,
+      );
+
+      // 6.1) Intelecto II: aplicar +1 grau de aprimoramento
+      console.log('[CRIAR] (6.1) Aplicando Intelecto II em graus...');
+      const grausComIntelecto = aplicarIntelectoEmGraus({
+        passivasAtivasCodigos: passivasResolvidas.passivaCodigos,
+        passivasConfig: passivasAtributosConfig,
+        graus: grausComPoderes ?? [],
+      });
+      console.log('[CRIAR] Graus após Intelecto II:', grausComIntelecto);
+
+      // 7) Validar poderes genéricos (usa periciasComCodigo e grausComIntelecto)
+      if (poderesGenericosNormalizados.length > 0) {
+        console.log('[CRIAR] (7) Validando poderes genéricos...');
+        await validarPoderesGenericos(
+          {
+            nivel: dadosBasicos.nivel,
+            poderes: poderesGenericosNormalizados,
+            pericias: periciasComCodigo,
+            atributos: {
+              agilidade: dadosBasicos.agilidade,
+              forca: dadosBasicos.forca,
+              intelecto: dadosBasicos.intelecto,
+              presenca: dadosBasicos.presenca,
+              vigor: dadosBasicos.vigor,
+            },
+            graus: grausComIntelecto ?? [],
+          },
+          this.prisma,
+        );
+      }
+
+      // 8) Aplicar regras de graus com habilidades (já com Intelecto)
+      console.log('[CRIAR] (8) Aplicando regras de graus com habilidades...');
+      const graus = await aplicarRegrasDeGraus(
+        {
+          nivel: dadosBasicos.nivel,
+          habilidades,
+          passivasAtributosConfig,
+        },
+        grausComIntelecto,
+      );
+      console.log('[CRIAR] Graus finais a serem persistidos:', graus);
+
+      // 9) ✅ CORRIGIDO: Proficiências finais (classe + habilidades [trilhas/poderes/origem] + Intelecto)
+      console.log('[CRIAR] (9) Montando proficiências finais...');
+      const profsClasse = await this.prisma.classeProficiencia.findMany({
+        where: { classeId: dadosBasicos.classeId },
+        include: { proficiencia: true },
+      });
+
+      const profsClasseCodigos = profsClasse.map(
+        (cp) => cp.proficiencia.codigo,
+      );
+
+      // ✅ MERGE: classe + habilidades (trilhas/poderes/origem) + Intelecto
+      const profsFinais = Array.from(
+        new Set([
+          ...profsClasseCodigos,
+          ...profsDeHabilidades, // ✅ inclui Mira de Elite + poderes + origem
+          ...profsExtrasDeIntelecto,
+        ]),
+      );
+      console.log('[CRIAR] Proficiências base da classe:', profsClasseCodigos);
+      console.log('[CRIAR] Proficiências de habilidades:', profsDeHabilidades);
+      console.log('[CRIAR] Proficiências de Intelecto:', profsExtrasDeIntelecto);
+      console.log('[CRIAR] Proficiências finais (merge completo):', profsFinais);
+
+      // 10) Calcular derivados base (sem poderes)
+      console.log('[CRIAR] (10) Calculando atributos derivados base...');
+      const derivadosBase = await calcularAtributosDerivados(
+        {
+          nivel: dadosBasicos.nivel,
+          classeId: dadosBasicos.classeId,
+          agilidade: dadosBasicos.agilidade,
+          forca: dadosBasicos.forca,
+          intelecto: dadosBasicos.intelecto,
+          presenca: dadosBasicos.presenca,
+          vigor: dadosBasicos.vigor,
+          atributoChaveEa: dadosBasicos.atributoChaveEa,
+          passivasAtributoIds: passivasResolvidas.passivaIds,
+        },
+        this.prisma,
+      );
+      console.log('[CRIAR] Derivados base:', derivadosBase);
+
+      // 10.1) Aplicar modificadores simples de poderes/origens nos derivados
+      console.log('[CRIAR] (10.1) Aplicando modificadores de habilidades nos derivados...');
+      const mods = this.calcularModificadoresDerivadosPorHabilidades(
+        habilidades,
+        dadosBasicos.nivel,
+      );
+      console.log('[CRIAR] Mods de derivados por habilidades:', mods);
+
+      const derivados = {
+        ...derivadosBase,
+        pvMaximo:
+          derivadosBase.pvMaximo + mods.pvPorNivelExtra * dadosBasicos.nivel,
+        peMaximo: derivadosBase.peMaximo + mods.peBaseExtra,
+        limitePeEaPorTurno:
+          derivadosBase.limitePeEaPorTurno + mods.limitePeEaExtra,
+        defesa: derivadosBase.defesa + mods.defesaExtra,
+      };
+      console.log('[CRIAR] Derivados finais:', derivados);
+
+      const dataBase = this.limparUndefined({
+        ...dadosBasicos,
+        donoId,
+        ...derivados,
+      });
+      console.log('[CRIAR] dataBase (PersonagemBase) que será persistido:', dataBase);
+
+      // ✅ não persistir PODER_GENERICO em habilidadesBase
+      const habilidadesParaPersistir = habilidades.filter(
+        (h) => h.habilidade?.tipo !== 'PODER_GENERICO',
+      );
+      console.log(
+        '[CRIAR] Habilidades para persistir (sem PODER_GENERICO). Qtd:',
+        habilidadesParaPersistir.length,
+      );
+
+      console.log('[CRIAR] (11) Criando personagemBase no banco via Prisma...');
+      const personagem = await this.prisma.personagemBase.create({
+        data: {
+          ...dataBase,
+
+          passivasAtributosAtivos: passivasResolvidas.ativos,
+
+          // ✅ USAR a versão limpa (sem undefined)
+          passivasAtributosConfig: passivasAtributosConfigLimpo,
+
+          periciasClasseEscolhidasCodigos:
+            periciasClasseEscolhidasCodigos ?? [],
+          periciasOrigemEscolhidasCodigos:
+            periciasOrigemEscolhidasCodigos ?? [],
+          periciasLivresCodigos: periciasLivresCodigos ?? [],
+
+          proficiencias: {
+            create: profsFinais.map((codigo) => ({
+              proficiencia: { connect: { codigo } },
+            })),
+          },
+
+          grausAprimoramento: {
+            create: graus.map((g) => ({
+              tipoGrau: { connect: { codigo: g.tipoGrauCodigo } },
+              valor: g.valor,
+            })),
+          },
+
+          pericias: {
+            create: Array.from(periciasMapCodigo.values()).map((p) => ({
+              pericia: { connect: { id: p.periciaId } },
+              grauTreinamento: p.grauTreinamento,
+              bonusExtra: p.bonusExtra,
+            })),
+          },
+
+          grausTreinamento: grausTreinamento
+            ? {
+              create: grausTreinamento.flatMap((gt) =>
+                gt.melhorias.map((m) => ({
+                  nivel: gt.nivel,
+                  periciaCodigo: m.periciaCodigo,
+                  grauAnterior: m.grauAnterior,
+                  grauNovo: m.grauNovo,
+                })),
+              ),
+            }
+            : undefined,
+
+          habilidadesBase: {
+            create: habilidadesParaPersistir.map((h) => ({
+              habilidade: { connect: { id: h.habilidadeId } },
+            })),
+          },
+
+          poderesGenericos:
+            poderesGenericosNormalizados.length > 0
+              ? {
+                create: poderesGenericosNormalizados.map((p) => ({
+                  habilidade: { connect: { id: p.habilidadeId } },
+                  config: p.config,
+                })),
+              }
+              : undefined,
+
+          passivas: passivasResolvidas.passivaIds.length
+            ? {
+              create: passivasResolvidas.passivaIds.map((passivaId) => ({
+                passiva: { connect: { id: passivaId } },
+              })),
+            }
+            : undefined,
+        },
+        include: {
+          cla: true,
+          origem: true,
+          classe: true,
+          trilha: true,
+          caminho: true,
+        },
+      });
+      console.log('[CRIAR] Personagem criado com sucesso. ID:', personagem.id);
+
+      console.log('[CRIAR] Retornando resumo do personagem criado.');
+      return {
+        id: personagem.id,
+        nome: personagem.nome,
+        nivel: personagem.nivel,
+        cla: personagem.cla.nome,
+        origem: personagem.origem.nome,
+        classe: personagem.classe.nome,
+        trilha: personagem.trilha?.nome ?? null,
+        caminho: personagem.caminho?.nome ?? null,
+      };
+    } catch (err) {
+      console.error('[CRIAR] ERRO ao criar personagem-base:', err);
+      throw err;
+    }
+  }
+
+
+  async listarDoUsuario(donoId: number) {
+    const lista = await this.prisma.personagemBase.findMany({
+      where: { donoId },
+      include: {
+        cla: true,
+        classe: true,
+      },
+      orderBy: { nome: 'asc' },
+    });
+
+    return lista.map((p) => this.mapResumo(p));
+  }
+
+  private mapResumo(personagem: any) {
+    return {
+      id: personagem.id,
+      nome: personagem.nome,
+      nivel: personagem.nivel,
+      cla: personagem.cla.nome,
+      classe: personagem.classe.nome,
+    };
+  }
+
+  async buscarPorId(donoId: number, id: number) {
+    const personagem = await this.prisma.personagemBase.findFirst({
+      where: { id, donoId },
+      include: {
+        cla: true,
+        origem: true,
+        classe: true,
+        trilha: true,
+        caminho: true,
+        proficiencias: { include: { proficiencia: true } },
+        grausAprimoramento: { include: { tipoGrau: true } },
+        pericias: { include: { pericia: true } },
+        grausTreinamento: true,
+        habilidadesBase: { include: { habilidade: true } },
+        passivas: { include: { passiva: true } },
+
+        // ✅ NOVO
+        poderesGenericos: { include: { habilidade: true } },
+      },
+    });
+
+    if (!personagem) {
+      throw new NotFoundException('Personagem-base não encontrado');
+    }
+
+    return {
+      id: personagem.id,
+      nome: personagem.nome,
+      nivel: personagem.nivel,
+
+      claId: personagem.claId,
+      origemId: personagem.origemId,
+      classeId: personagem.classeId,
+      trilhaId: personagem.trilhaId,
+      caminhoId: personagem.caminhoId,
+
+      agilidade: personagem.agilidade,
+      forca: personagem.forca,
+      intelecto: personagem.intelecto,
+      presenca: personagem.presenca,
+      vigor: personagem.vigor,
+
+      estudouEscolaTecnica: personagem.estudouEscolaTecnica,
+      tecnicaInataId: personagem.tecnicaInataId,
+
+      idade: personagem.idade,
+      prestigioBase: personagem.prestigioBase,
+      prestigioClaBase: personagem.prestigioClaBase,
+      alinhamentoId: personagem.alinhamentoId,
+      background: personagem.background,
+      atributoChaveEa: personagem.atributoChaveEa,
+
+      periciasClasseEscolhidasCodigos: this.jsonToStringArray(
+        personagem.periciasClasseEscolhidasCodigos as any,
+      ),
+      periciasOrigemEscolhidasCodigos: this.jsonToStringArray(
+        personagem.periciasOrigemEscolhidasCodigos as any,
+      ),
+      periciasLivresCodigos: this.jsonToStringArray(
+        personagem.periciasLivresCodigos as any,
+      ),
+
+      cla: personagem.cla,
+      origem: personagem.origem,
+      classe: personagem.classe,
+      trilha: personagem.trilha,
+      caminho: personagem.caminho,
+
+      proficiencias: personagem.proficiencias.map((pp) => ({
+        id: pp.proficiencia.id,
+        codigo: pp.proficiencia.codigo,
+        nome: pp.proficiencia.nome,
+        tipo: pp.proficiencia.tipo,
+        categoria: pp.proficiencia.categoria,
+        subtipo: pp.proficiencia.subtipo,
+      })),
+
+      grausAprimoramento: personagem.grausAprimoramento.map((g) => ({
+        tipoGrauId: g.tipoGrauId,
+        tipoGrauCodigo: g.tipoGrau.codigo,
+        tipoGrauNome: g.tipoGrau.nome,
+        valor: g.valor,
+      })),
+
+      pericias: personagem.pericias.map((p) => ({
+        id: p.pericia.id,
+        codigo: p.pericia.codigo,
+        nome: p.pericia.nome,
+        atributoBase: p.pericia.atributoBase,
+        somenteTreinada: p.pericia.somenteTreinada,
+        penalizaPorCarga: p.pericia.penalizaPorCarga,
+        precisaKit: p.pericia.precisaKit,
+        grauTreinamento: p.grauTreinamento,
+        bonusExtra: p.bonusExtra,
+      })),
+
+      grausTreinamento: personagem.grausTreinamento.reduce((acc, gt) => {
+        const nivelExistente = acc.find((g) => g.nivel === gt.nivel);
+        if (nivelExistente) {
+          nivelExistente.melhorias.push({
+            periciaCodigo: gt.periciaCodigo,
+            grauAnterior: gt.grauAnterior,
+            grauNovo: gt.grauNovo,
+          });
+        } else {
+          acc.push({
+            nivel: gt.nivel,
+            melhorias: [
+              {
+                periciaCodigo: gt.periciaCodigo,
+                grauAnterior: gt.grauAnterior,
+                grauNovo: gt.grauNovo,
+              },
+            ],
+          });
+        }
+        return acc;
+      }, [] as GrauTreinamentoDto[]),
+
+      habilidades: personagem.habilidadesBase.map((hab) => ({
+        id: hab.habilidade.id,
+        nome: hab.habilidade.nome,
+        tipo: hab.habilidade.tipo,
+        descricao: hab.habilidade.descricao,
+      })),
+
+      // ✅ NOVO: instâncias com config normalizado (proteção contra dados antigos)
+      poderesGenericos: personagem.poderesGenericos.map((p) => ({
+        id: p.id,
+        habilidadeId: p.habilidadeId,
+        nome: p.habilidade.nome,
+        config: p.config ?? {}, // ✅ MUDANÇA: garantir que config nunca seja null
+      })),
+
+      // ✅ compat opcional (se o front ainda precisar de ids)
+      poderesGenericosSelecionadosIds: personagem.poderesGenericos.map(
+        (p) => p.habilidadeId,
+      ),
+
+      passivasAtributosAtivos: this.jsonToStringArray(
+        (personagem as any).passivasAtributosAtivos,
+      ),
+
+      // ✅ NOVO: devolver o JSON de configs das passivas (Intelecto I/II etc.)
+      passivasAtributosConfig:
+        (personagem as any).passivasAtributosConfig ?? null,
+
+      // (derivado/legado)
+      passivasAtributoIds: personagem.passivas.map((p) => p.passiva.id),
+      passivas: personagem.passivas.map((p) => ({
+        id: p.passiva.id,
+        codigo: p.passiva.codigo,
+        nome: p.passiva.nome,
+        atributo: p.passiva.atributo,
+        nivel: p.passiva.nivel,
+        descricao: p.passiva.descricao,
+        efeitos: p.passiva.efeitos,
+      })),
+
+      atributosDerivados: {
+        pvMaximo: personagem.pvMaximo,
+        peMaximo: personagem.peMaximo,
+        eaMaximo: personagem.eaMaximo,
+        sanMaximo: personagem.sanMaximo,
+        defesa: personagem.defesa,
+        deslocamento: personagem.deslocamento,
+        limitePeEaPorTurno: personagem.limitePeEaPorTurno,
+        reacoesBasePorTurno: personagem.reacoesBasePorTurno,
+        turnosMorrendo: personagem.turnosMorrendo,
+        turnosEnlouquecendo: personagem.turnosEnlouquecendo,
+      },
+    };
+  }
+
+  async atualizar(donoId: number, id: number, dto: UpdatePersonagemBaseDto) {
+    const existe = await this.prisma.personagemBase.findFirst({
+      where: { id, donoId },
+      include: {
+        proficiencias: { include: { proficiencia: true } },
+        grausAprimoramento: { include: { tipoGrau: true } },
+        grausTreinamento: true,
+        habilidadesBase: { include: { habilidade: true } },
+        passivas: { include: { passiva: true } },
+
+        // ✅ agora precisamos dessas relações para montar estado final
+        pericias: { include: { pericia: true } },
+        poderesGenericos: { include: { habilidade: true } },
+      },
+    });
+
+    if (!existe) {
+      throw new NotFoundException('Personagem-base não encontrado');
+    }
+
+    const {
+      proficienciasCodigos,
+      grausAprimoramento,
+      grausTreinamento,
+      periciasClasseEscolhidasCodigos,
+      periciasOrigemEscolhidasCodigos,
+      periciasLivresCodigos,
+
+      // ✅ NOVO
+      poderesGenericos,
+
+      // ❌ legado
+      passivasAtributoIds,
+
+      // ✅ novo
+      passivasAtributosAtivos,
+
+      // ✅ NOVO: configs de Intelecto (e futuras passivas com escolha)
+      passivasAtributosConfig,
+
+      ...dadosBasicosRaw
+    } = dto as any;
+
+    // ✅ NORMALIZAR poderes do payload (garantir config nunca null/undefined)
+    const poderesGenericosNormalizadosPayload = poderesGenericos
+      ? (poderesGenericos as any[]).map((inst) => ({
+        ...inst,
+        config: inst.config ?? {},
+      }))
+      : undefined;
+
+    const dadosBasicos = this.limparUndefined(dadosBasicosRaw);
+
+    if (dadosBasicos.atributoChaveEa !== undefined) {
+      this.validarAtributoChaveEa(dadosBasicos.atributoChaveEa);
+    }
+
+    const mexeuEmNivelOuAtributo =
+      dadosBasicos.nivel !== undefined ||
+      dadosBasicos.agilidade !== undefined ||
+      dadosBasicos.forca !== undefined ||
+      dadosBasicos.intelecto !== undefined ||
+      dadosBasicos.presenca !== undefined ||
+      dadosBasicos.vigor !== undefined;
+
+    const mudouClasse =
+      dadosBasicos.classeId !== undefined &&
+      dadosBasicos.classeId !== existe.classeId;
+    const mudouOrigem =
+      dadosBasicos.origemId !== undefined &&
+      dadosBasicos.origemId !== existe.origemId;
+    const mudouIntelecto =
+      dadosBasicos.intelecto !== undefined &&
+      dadosBasicos.intelecto !== existe.intelecto;
+    const mudouNivel =
+      dadosBasicos.nivel !== undefined &&
+      dadosBasicos.nivel !== existe.nivel;
+    const mudouTrilha =
+      dadosBasicos.trilhaId !== undefined &&
+      dadosBasicos.trilhaId !== existe.trilhaId;
+    const mudouCaminho =
+      dadosBasicos.caminhoId !== undefined &&
+      dadosBasicos.caminhoId !== existe.caminhoId;
+    const mudouTecnicaInata =
+      dadosBasicos.tecnicaInataId !== undefined &&
+      dadosBasicos.tecnicaInataId !== existe.tecnicaInataId;
+    const mudouEscolaTecnica =
+      dadosBasicos.estudouEscolaTecnica !== undefined &&
+      dadosBasicos.estudouEscolaTecnica !== existe.estudouEscolaTecnica;
+
+    const mudouPoderes = poderesGenericosNormalizadosPayload !== undefined;
+
+    // ✅ mudouPassivas agora significa "mudou a escolha por atributo"
+    const mudouPassivas = passivasAtributosAtivos !== undefined;
+
+    // ✅ NORMALIZAR poderes do banco (caso existam registros antigos com config null)
+    const poderesGenericosNormalizadosBanco = this.getPoderesFromRelacao(
+      existe.poderesGenericos as any,
+    ).map((inst) => ({
+      ...inst,
+      config: inst.config ?? {},
+    }));
+
+    const poderesFinal = mudouPoderes
+      ? poderesGenericosNormalizadosPayload
+      : poderesGenericosNormalizadosBanco;
+
+    // ✅ Atributos finais
+    const nivelFinal = dadosBasicos.nivel ?? existe.nivel;
+    const agiFinal = dadosBasicos.agilidade ?? existe.agilidade;
+    const forFinal = dadosBasicos.forca ?? existe.forca;
+    const intFinal = dadosBasicos.intelecto ?? existe.intelecto;
+    const preFinal = dadosBasicos.presenca ?? existe.presenca;
+    const vigFinal = dadosBasicos.vigor ?? existe.vigor;
+
+    if (mexeuEmNivelOuAtributo) {
+      validarAtributos({
+        nivel: nivelFinal,
+        agilidade: agiFinal,
+        forca: forFinal,
+        intelecto: intFinal,
+        presenca: preFinal,
+        vigor: vigFinal,
+      });
+    }
+
+    const classeIdFinal = dadosBasicos.classeId ?? existe.classeId;
+    const trilhaIdFinal =
+      dadosBasicos.trilhaId !== undefined
+        ? dadosBasicos.trilhaId
+        : existe.trilhaId;
+    const caminhoIdFinal =
+      dadosBasicos.caminhoId !== undefined
+        ? dadosBasicos.caminhoId
+        : existe.caminhoId;
+
+    // valida estrutural (sem perícias) - depois revalida com perícias quando recalcular
+    await validarTrilhaECaminho(
+      classeIdFinal,
+      trilhaIdFinal,
+      caminhoIdFinal,
+      undefined,
+      this.prisma,
+    );
+
+    const claIdFinal = dadosBasicos.claId ?? existe.claId;
+    const origemIdFinal = dadosBasicos.origemId ?? existe.origemId;
+    const tecnicaInataIdFinal =
+      dadosBasicos.tecnicaInataId !== undefined
+        ? dadosBasicos.tecnicaInataId
+        : existe.tecnicaInataId;
+
+    await validarOrigemClaTecnica(
+      claIdFinal,
+      origemIdFinal,
+      tecnicaInataIdFinal,
+      this.prisma,
+    );
+
+    const periciasClasseEscolhidasFinal =
+      periciasClasseEscolhidasCodigos ??
+      this.jsonToStringArray(
+        existe.periciasClasseEscolhidasCodigos as any,
+      );
+
+    const periciasOrigemEscolhidasFinal =
+      periciasOrigemEscolhidasCodigos ??
+      this.jsonToStringArray(
+        existe.periciasOrigemEscolhidasCodigos as any,
+      );
+
+    const periciasLivresFinal =
+      periciasLivresCodigos ??
+      this.jsonToStringArray(existe.periciasLivresCodigos as any);
+
+    const precisaAtualizarPericias =
+      mudouClasse ||
+      mudouOrigem ||
+      mudouIntelecto ||
+      mudouEscolaTecnica ||
+      mudouNivel ||
+      mudouPoderes ||
+      periciasClasseEscolhidasCodigos !== undefined ||
+      periciasOrigemEscolhidasCodigos !== undefined ||
+      periciasLivresCodigos !== undefined ||
+      grausTreinamento !== undefined;
+
+    const precisaAtualizarGraus =
+      mudouNivel ||
+      mudouTrilha ||
+      mudouCaminho ||
+      mudouTecnicaInata ||
+      mudouEscolaTecnica ||
+      grausAprimoramento !== undefined ||
+      mudouPoderes;
+
+    // ✅ CORRIGIDO: incluir mudanças que afetam proficiências de habilidades
+    const precisaAtualizarProfs =
+      mudouClasse ||
+      proficienciasCodigos !== undefined ||
+      mudouIntelecto ||
+      mudouTrilha || // ✅ NOVO
+      mudouPoderes || // ✅ NOVO
+      mudouOrigem || // ✅ NOVO
+      mudouTecnicaInata; // ✅ NOVO
+
+    const precisaAtualizarHabilidades =
+      mudouClasse ||
+      mudouOrigem ||
+      mudouNivel ||
+      mudouTrilha ||
+      mudouCaminho ||
+      mudouTecnicaInata ||
+      mudouEscolaTecnica ||
+      mudouPoderes;
+
+    const precisaAtualizarPassivas =
+      mexeuEmNivelOuAtributo || mudouPassivas;
+
+    const precisaRecalcularDerivados =
+      mexeuEmNivelOuAtributo ||
+      mudouClasse ||
+      precisaAtualizarPassivas ||
+      dadosBasicos.atributoChaveEa !== undefined;
+
+    // ✅ Carrega escolha persistida (Json) quando payload não vier
+    const passivasAtributosAtivosPersistidas = this.jsonToStringArray(
+      (existe as any).passivasAtributosAtivos,
+    );
+
+    // ✅ Resolver passivas finais (update: strict=true -> 422 se faltar escolha)
+    const passivasResolvidasFinal = await resolverPassivasAtributos({
+      atributos: {
+        agilidade: agiFinal,
+        forca: forFinal,
+        intelecto: intFinal,
+        presenca: preFinal,
+        vigor: vigFinal,
+      },
+      passivasAtributosAtivos:
+        passivasAtributosAtivos !== undefined
+          ? passivasAtributosAtivos
+          : passivasAtributosAtivosPersistidas,
+      strict: true,
+      prisma: this.prisma,
+    });
+
+    const atualizado = await this.prisma.$transaction(async (tx) => {
+      const dataUpdate = this.limparUndefined({
+        ...dadosBasicos,
+
+        ...(periciasClasseEscolhidasCodigos !== undefined && {
+          periciasClasseEscolhidasCodigos:
+            periciasClasseEscolhidasFinal,
+        }),
+        ...(periciasOrigemEscolhidasCodigos !== undefined && {
+          periciasOrigemEscolhidasCodigos:
+            periciasOrigemEscolhidasFinal,
+        }),
+        ...(periciasLivresCodigos !== undefined && {
+          periciasLivresCodigos: periciasLivresFinal,
+        }),
+
+        ...(precisaAtualizarPassivas && {
+          passivasAtributosAtivos: passivasResolvidasFinal.ativos,
+        }),
+
+        // ✅ NOVO: se veio config no payload, atualiza; senão mantém o que já está
+        ...(passivasAtributosConfig !== undefined && {
+          passivasAtributosConfig,
+        }),
+      });
+
+      const baseAtualizada = await tx.personagemBase.update({
+        where: { id },
+        data: dataUpdate,
+        include: { cla: true, classe: true, origem: true },
+      });
+
+      let periciasCalculadas:
+        | {
+          periciaId: number;
+          grauTreinamento: number;
+          bonusExtra: number;
+        }[]
+        | undefined;
+
+      let periciasComCodigoFinal:
+        | Array<{ codigo: string; grauTreinamento: number }>
+        | undefined = undefined;
+
+      // ✅ NOVO: variável para armazenar profsExtrasFinal (usada depois)
+      let profsExtrasDeIntelectoOuOutros: string[] = [];
+
+      if (precisaAtualizarPericias) {
+        const dtoCompleto: CreatePersonagemBaseDto = {
+          nome: baseAtualizada.nome,
+          nivel: baseAtualizada.nivel,
+          claId: baseAtualizada.claId,
+          origemId: baseAtualizada.origemId,
+          classeId: baseAtualizada.classeId,
+          trilhaId: baseAtualizada.trilhaId,
+          caminhoId: baseAtualizada.caminhoId,
+
+          agilidade: baseAtualizada.agilidade,
+          forca: baseAtualizada.forca,
+          intelecto: baseAtualizada.intelecto,
+          presenca: baseAtualizada.presenca,
+          vigor: baseAtualizada.vigor,
+
+          estudouEscolaTecnica: baseAtualizada.estudouEscolaTecnica,
+          tecnicaInataId: baseAtualizada.tecnicaInataId,
+
+          idade: baseAtualizada.idade,
+          prestigioBase: baseAtualizada.prestigioBase,
+          prestigioClaBase: baseAtualizada.prestigioClaBase,
+          alinhamentoId: baseAtualizada.alinhamentoId,
+          background: baseAtualizada.background,
+          atributoChaveEa: baseAtualizada.atributoChaveEa,
+
+          proficienciasCodigos: [],
+          grausAprimoramento: [],
+
+          periciasClasseEscolhidasCodigos:
+            periciasClasseEscolhidasFinal,
+          periciasOrigemEscolhidasCodigos:
+            periciasOrigemEscolhidasFinal,
+          periciasLivresCodigos: periciasLivresFinal,
+
+          poderesGenericos: poderesFinal as any,
+        } as any;
+
+        // 1) montar perícias base (sem Intelecto extra)
+        periciasCalculadas = await montarPericiasPersonagem(
+          dtoCompleto,
+          tx,
+        );
+
+        const todasPericias = await tx.pericia.findMany();
+        const mapaPericias = new Map(
+          todasPericias.map((p) => [p.id, p]),
+        );
+
+        const periciasMapCodigo = new Map<
+          string,
+          {
+            grauTreinamento: number;
+            periciaId: number;
+            bonusExtra: number;
+          }
+        >();
+
+        for (const p of periciasCalculadas) {
+          const pericia = mapaPericias.get(p.periciaId);
+          if (pericia) {
+            periciasMapCodigo.set(pericia.codigo, {
+              grauTreinamento: p.grauTreinamento,
+              periciaId: p.periciaId,
+              bonusExtra: p.bonusExtra,
+            });
+          }
+        }
+
+        // ✅ aplicar efeitos de poderes antes de validar/aplicar grausTreinamento
+        await aplicarEfeitosPoderesEmPericias(
+          {
+            nivel: baseAtualizada.nivel,
+            poderes: poderesFinal as any,
+            periciasMap: periciasMapCodigo,
+          },
+          tx,
+        );
+
+        // ✅ Intelecto I/II em perícias/profs (update)
+        const extrasPayload = proficienciasCodigos ?? [];
+        const {
+          profsExtrasFinal,
+          periciasLivresExtras,
+        } = aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias({
+          passivasAtivasCodigos:
+            passivasResolvidasFinal.passivaCodigos,
+          passivasConfig: (baseAtualizada as any)
+            .passivasAtributosConfig,
+          periciasMap: periciasMapCodigo,
+          profsExtrasPayload: extrasPayload,
+        });
+
+        // ✅ armazenar para usar no bloco de proficiências
+        profsExtrasDeIntelectoOuOutros = profsExtrasFinal;
+
+        // ✅ revalidar limite de perícias livres com extras de Intelecto
+        {
+          const classe = await tx.classe.findUnique({
+            where: { id: baseAtualizada.classeId },
+          });
+
+          const livres = periciasLivresFinal ?? [];
+          const maxBase =
+            (classe?.periciasLivresBase ?? 0) +
+            baseAtualizada.intelecto;
+          const maxTotal = maxBase + periciasLivresExtras;
+
+          if (livres.length > maxTotal) {
+            throw new BadRequestException(
+              `Número de perícias livres (${livres.length}) excede o máximo permitido (${maxTotal}).`,
+            );
+          }
+        }
+
+        if (grausTreinamento) {
+          await validarGrausTreinamento(
+            baseAtualizada.nivel,
+            baseAtualizada.intelecto,
+            grausTreinamento,
+            periciasMapCodigo,
+            tx,
+          );
+
+          aplicarGrausTreinamento(
+            grausTreinamento,
+            periciasMapCodigo,
+          );
+        }
+
+        periciasCalculadas = Array.from(periciasMapCodigo.values());
+        periciasComCodigoFinal = Array.from(
+          periciasMapCodigo.entries(),
+        ).map(([codigo, pericia]) => ({
+          codigo,
+          grauTreinamento: pericia.grauTreinamento,
+        }));
+
+        // ✅ revalida trilha/caminho com perícias finais (por causa de poderes/treinos)
+        await validarTrilhaECaminho(
+          baseAtualizada.classeId,
+          baseAtualizada.trilhaId,
+          baseAtualizada.caminhoId,
+          periciasComCodigoFinal,
+          tx,
+        );
+
+        // mantém updates redundantes originais (do seu código)
+        if (
+          mudouClasse ||
+          mudouOrigem ||
+          mudouIntelecto ||
+          mudouEscolaTecnica ||
+          periciasLivresCodigos !== undefined
+        ) {
+          await tx.personagemBase.update({
+            where: { id },
+            data: { periciasLivresCodigos: periciasLivresFinal },
+          });
+        }
+
+        if (
+          mudouClasse ||
+          periciasClasseEscolhidasCodigos !== undefined
+        ) {
+          await tx.personagemBase.update({
+            where: { id },
+            data: {
+              periciasClasseEscolhidasCodigos:
+                periciasClasseEscolhidasFinal,
+            },
+          });
+        }
+
+        if (
+          mudouOrigem ||
+          periciasOrigemEscolhidasCodigos !== undefined
+        ) {
+          await tx.personagemBase.update({
+            where: { id },
+            data: {
+              periciasOrigemEscolhidasCodigos:
+                periciasOrigemEscolhidasFinal,
+            },
+          });
+        }
+      } else {
+        // não recalculou: usa as perícias existentes
+        periciasComCodigoFinal = (existe.pericias ?? []).map(
+          (p) => ({
+            codigo: p.pericia.codigo,
+            grauTreinamento: p.grauTreinamento,
+          }),
+        );
+      }
+
+      // ✅ CORRIGIDO: Calcular proficiências considerando habilidades (trilhas/poderes/origem) + Intelecto
+      let profsFinais: string[] | undefined;
+      if (precisaAtualizarProfs) {
+        // ✅ Buscar habilidades para extrair proficiências
+        const habilidades = await this.buscarHabilidadesPersonagem(
+          {
+            nivel: baseAtualizada.nivel,
+            origemId: baseAtualizada.origemId,
+            classeId: baseAtualizada.classeId,
+            trilhaId: baseAtualizada.trilhaId,
+            caminhoId: baseAtualizada.caminhoId,
+            tecnicaInataId: baseAtualizada.tecnicaInataId,
+            estudouEscolaTecnica: baseAtualizada.estudouEscolaTecnica,
+            poderesGenericos: poderesFinal as any,
+          },
+          tx,
+        );
+
+        // ✅ Extrair proficiências de TODAS as habilidades (trilhas/poderes/origem/técnica inata)
+        const profsDeHabilidades = await extrairProficienciasDeHabilidades(
+          habilidades,
+          tx,
+        );
+
+        // Proficiências da classe
+        const profsBaseClasseNova = await tx.classeProficiencia.findMany({
+          where: { classeId: baseAtualizada.classeId },
+          include: { proficiencia: true },
+        });
+        const profsClasseNovaCodigos = profsBaseClasseNova.map(
+          (cp) => cp.proficiencia.codigo,
+        );
+
+        // ✅ MERGE: classe + habilidades (trilhas/poderes/origem) + Intelecto
+        profsFinais = Array.from(
+          new Set([
+            ...profsClasseNovaCodigos,
+            ...profsDeHabilidades, // ✅ inclui Mira de Elite + poderes
+            ...profsExtrasDeIntelectoOuOutros, // Intelecto I/II
+          ]),
+        );
+      }
+
+      // ✅ montar grausEntrada (payload + persistido) e aplicar poderes
+      let grausEntrada =
+        grausAprimoramento ??
+        existe.grausAprimoramento.map((g) => ({
+          tipoGrauCodigo: g.tipoGrau.codigo,
+          valor: g.valor,
+        }));
+
+      grausEntrada = await aplicarEfeitosPoderesEmGraus(
+        { poderes: poderesFinal as any, grausLivres: grausEntrada },
+        tx,
+      );
+
+      // ✅ Intelecto II: +1 grau de aprimoramento
+      grausEntrada = aplicarIntelectoEmGraus({
+        passivasAtivasCodigos: passivasResolvidasFinal.passivaCodigos,
+        passivasConfig: (baseAtualizada as any)
+          .passivasAtributosConfig,
+        graus: grausEntrada,
+      });
+
+      // ✅ validar poderes quando algo que afeta requisitos/slots muda
+      const precisaValidarPoderes =
+        mudouPoderes ||
+        mudouNivel ||
+        mexeuEmNivelOuAtributo ||
+        precisaAtualizarPericias ||
+        grausAprimoramento !== undefined;
+
+      if (precisaValidarPoderes && (poderesFinal?.length ?? 0) > 0) {
+        await validarPoderesGenericos(
+          {
+            nivel: baseAtualizada.nivel,
+            poderes: poderesFinal as any,
+            pericias: periciasComCodigoFinal ?? [],
+            atributos: {
+              agilidade: baseAtualizada.agilidade,
+              forca: baseAtualizada.forca,
+              intelecto: baseAtualizada.intelecto,
+              presenca: baseAtualizada.presenca,
+              vigor: baseAtualizada.vigor,
+            },
+            graus: grausEntrada ?? [],
+          },
+          tx,
+        );
+      }
+
+      let grausAtualizados:
+        | { tipoGrauCodigo: string; valor: number }[]
+        | undefined;
+      let habilidadesAtualizadas:
+        | Array<{ habilidadeId: number }>
+        | undefined;
+
+      if (precisaAtualizarHabilidades) {
+        const habilidades = await this.buscarHabilidadesPersonagem(
+          {
+            nivel: baseAtualizada.nivel,
+            origemId: baseAtualizada.origemId,
+            classeId: baseAtualizada.classeId,
+            trilhaId: baseAtualizada.trilhaId,
+            caminhoId: baseAtualizada.caminhoId,
+            tecnicaInataId: baseAtualizada.tecnicaInataId,
+            estudouEscolaTecnica: baseAtualizada.estudouEscolaTecnica,
+            poderesGenericos: poderesFinal as any,
+          },
+          tx,
+        );
+
+        // ✅ não persistir PODER_GENERICO em habilidadesBase
+        const habilidadesParaPersistir = habilidades.filter(
+          (h) => h.habilidade?.tipo !== 'PODER_GENERICO',
+        );
+
+        habilidadesAtualizadas = habilidadesParaPersistir.map(
+          (h) => ({
+            habilidadeId: h.habilidadeId,
+          }),
+        );
+      }
+
+      if (precisaAtualizarGraus) {
+        const habilidades = await this.buscarHabilidadesPersonagem(
+          {
+            nivel: baseAtualizada.nivel,
+            origemId: baseAtualizada.origemId,
+            classeId: baseAtualizada.classeId,
+            trilhaId: baseAtualizada.trilhaId,
+            caminhoId: baseAtualizada.caminhoId,
+            tecnicaInataId: baseAtualizada.tecnicaInataId,
+            estudouEscolaTecnica: baseAtualizada.estudouEscolaTecnica,
+            poderesGenericos: poderesFinal as any,
+          },
+          tx,
+        );
+
+        grausAtualizados = await aplicarRegrasDeGraus(
+          {
+            nivel: baseAtualizada.nivel,
+            habilidades,
+            passivasAtributosConfig: (baseAtualizada as any)
+              .passivasAtributosConfig,
+          },
+          grausEntrada,
+        );
+      }
+
+      let derivadosAtualizados: any = {};
+      if (precisaRecalcularDerivados) {
+        const derivadosBase = await calcularAtributosDerivados(
+          {
+            nivel: baseAtualizada.nivel,
+            classeId: baseAtualizada.classeId,
+            agilidade: baseAtualizada.agilidade,
+            forca: baseAtualizada.forca,
+            intelecto: baseAtualizada.intelecto,
+            presenca: baseAtualizada.presenca,
+            vigor: baseAtualizada.vigor,
+            atributoChaveEa: baseAtualizada.atributoChaveEa,
+            passivasAtributoIds: passivasResolvidasFinal.passivaIds,
+          },
+          tx,
+        );
+
+        const habilidades = await this.buscarHabilidadesPersonagem(
+          {
+            nivel: baseAtualizada.nivel,
+            origemId: baseAtualizada.origemId,
+            classeId: baseAtualizada.classeId,
+            trilhaId: baseAtualizada.trilhaId,
+            caminhoId: baseAtualizada.caminhoId,
+            tecnicaInataId: baseAtualizada.tecnicaInataId,
+            estudouEscolaTecnica: baseAtualizada.estudouEscolaTecnica,
+            poderesGenericos: poderesFinal as any,
+          },
+          tx,
+        );
+
+        const mods = this.calcularModificadoresDerivadosPorHabilidades(
+          habilidades,
+          baseAtualizada.nivel,
+        );
+
+        derivadosAtualizados = {
+          ...derivadosBase,
+          pvMaximo:
+            derivadosBase.pvMaximo +
+            mods.pvPorNivelExtra * baseAtualizada.nivel,
+          peMaximo: derivadosBase.peMaximo + mods.peBaseExtra,
+          limitePeEaPorTurno:
+            derivadosBase.limitePeEaPorTurno + mods.limitePeEaExtra,
+          defesa: derivadosBase.defesa + mods.defesaExtra,
+        };
+      }
+
+      const precisaPersistirAlgumaRelacao =
+        precisaAtualizarProfs ||
+        !!grausAtualizados ||
+        !!periciasCalculadas ||
+        grausTreinamento !== undefined ||
+        !!habilidadesAtualizadas ||
+        precisaAtualizarPassivas ||
+        precisaRecalcularDerivados ||
+        mudouPoderes;
+
+      if (precisaPersistirAlgumaRelacao) {
+        await tx.personagemBase.update({
+          where: { id },
+          data: {
+            ...(profsFinais && {
+              proficiencias: {
+                deleteMany: {},
+                create: profsFinais.map((codigo) => ({
+                  proficiencia: { connect: { codigo } },
+                })),
+              },
+            }),
+
+            ...(grausAtualizados && {
+              grausAprimoramento: {
+                deleteMany: {},
+                create: grausAtualizados.map((g) => ({
+                  tipoGrau: {
+                    connect: { codigo: g.tipoGrauCodigo },
+                  },
+                  valor: g.valor,
+                })),
+              },
+            }),
+
+            ...(periciasCalculadas && {
+              pericias: {
+                deleteMany: {},
+                create: periciasCalculadas.map((p) => ({
+                  pericia: { connect: { id: p.periciaId } },
+                  grauTreinamento: p.grauTreinamento,
+                  bonusExtra: p.bonusExtra,
+                })),
+              },
+            }),
+
+            ...(grausTreinamento !== undefined && {
+              grausTreinamento: {
+                deleteMany: {},
+                create: (grausTreinamento ?? []).flatMap(
+                  (gt) =>
+                    gt.melhorias.map((m) => ({
+                      nivel: gt.nivel,
+                      periciaCodigo: m.periciaCodigo,
+                      grauAnterior: m.grauAnterior,
+                      grauNovo: m.grauNovo,
+                    })),
+                ),
+              },
+            }),
+
+            ...(habilidadesAtualizadas && {
+              habilidadesBase: {
+                deleteMany: {},
+                create: habilidadesAtualizadas.map((h) => ({
+                  habilidade: { connect: { id: h.habilidadeId } },
+                })),
+              },
+            }),
+
+            // ✅ NOVO: poderes genéricos (instâncias) - sempre com config
+            ...(mudouPoderes && {
+              poderesGenericos: {
+                deleteMany: {},
+                create: (poderesFinal ?? []).map((p: any) => ({
+                  habilidade: { connect: { id: p.habilidadeId } },
+                  config: p.config, // ✅ sempre existe (pelo menos {})
+                })),
+              },
+            }),
+
+            ...(precisaAtualizarPassivas && {
+              passivas: {
+                deleteMany: {},
+                ...(passivasResolvidasFinal.passivaIds.length
+                  ? {
+                    create:
+                      passivasResolvidasFinal.passivaIds.map(
+                        (passivaId) => ({
+                          passiva: { connect: { id: passivaId } },
+                        }),
+                      ),
+                  }
+                  : {}),
+              },
+            }),
+
+            ...(precisaRecalcularDerivados && derivadosAtualizados),
+          },
+        });
+      }
+
+      return baseAtualizada;
+    });
+
+    return this.mapResumo(atualizado);
+  }
+
+  async remover(donoId: number, id: number) {
+    const existe = await this.prisma.personagemBase.findFirst({
+      where: { id, donoId },
+    });
+
+    if (!existe) {
+      throw new NotFoundException('Personagem-base não encontrado');
+    }
+
+    await this.prisma.personagemCampanha.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.habilidadePersonagemBase.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.poderGenericoPersonagemBase.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.personagemBaseProficiencia.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.personagemBasePericia.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.grauPersonagemBase.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.grauTreinamentoPersonagemBase.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.personagemBasePassiva.deleteMany({
+      where: { personagemBaseId: id },
+    });
+
+    await this.prisma.personagemBase.delete({
+      where: { id },
+    });
+
+    return { sucesso: true };
+  }
+
+  // ==================== ✅ MÉTODOS AUXILIARES PARA GRAUS DE TREINAMENTO ====================
+
+  async consultarInfoGrausTreinamento(
+    nivel: number,
+    intelecto: number,
+  ): Promise<{
+    niveisDisponiveis: Array<{ nivel: number; maxMelhorias: number }>;
+    limitesGrau: { graduado: number; veterano: number; expert: number };
+  }> {
+    const niveisValidos = [3, 7, 11, 16];
+    const niveisDisponiveis = niveisValidos
+      .filter((n) => nivel >= n)
+      .map((n) => ({
+        nivel: n,
+        maxMelhorias: 2 + intelecto,
+      }));
+
+    return {
+      niveisDisponiveis,
+      limitesGrau: {
+        graduado: 3,
+        veterano: 9,
+        expert: 16,
+      },
+    };
+  }
+
+  async consultarPericiasElegiveis(
+    periciasComGrauInicial: string[],
+  ): Promise<
+    Array<{
+      codigo: string;
+      nome: string;
+      atributoBase: string;
+      grauAtual: number;
+    }>
+  > {
+    if (!periciasComGrauInicial || periciasComGrauInicial.length === 0) {
+      return [];
+    }
+
+    const pericias = await this.prisma.pericia.findMany({
+      where: { codigo: { in: periciasComGrauInicial } },
+    });
+
+    return pericias.map((p) => ({
+      codigo: p.codigo,
+      nome: p.nome,
+      atributoBase: p.atributoBase,
+      grauAtual: 5,
+    }));
+  }
+
+  // ==================== ✅ PASSIVAS DE ATRIBUTOS ====================
+
+  async listarPassivasDisponiveis() {
+    const passivas = await this.prisma.passivaAtributo.findMany({
+      orderBy: [{ atributo: 'asc' }, { nivel: 'asc' }],
+    });
+
+    const porAtributo = passivas.reduce((acc, p) => {
+      if (!acc[p.atributo]) acc[p.atributo] = [];
+      acc[p.atributo].push({
+        id: p.id,
+        codigo: p.codigo,
+        nome: p.nome,
+        nivel: p.nivel,
+        requisito: p.requisito,
+        descricao: p.descricao,
+        efeitos: p.efeitos,
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    return porAtributo;
+  }
+}

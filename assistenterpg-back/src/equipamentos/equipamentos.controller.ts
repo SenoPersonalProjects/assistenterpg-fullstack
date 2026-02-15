@@ -1,0 +1,84 @@
+// src/equipamentos/equipamentos.controller.ts
+
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Query,
+  Body,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { EquipamentosService } from './equipamentos.service';
+import { FiltrarEquipamentosDto } from './dto/filtrar-equipamentos.dto';
+import { CriarEquipamentoDto } from './dto/criar-equipamento.dto';
+import { AtualizarEquipamentoDto } from './dto/atualizar-equipamento.dto';
+
+@Controller('equipamentos')
+export class EquipamentosController {
+  constructor(private readonly equipamentosService: EquipamentosService) {}
+
+  /**
+   * GET /equipamentos
+   * Lista equipamentos com filtros
+   * Filtros suportados: tipo, categoria, alcance, proficiencia, complexidade
+   */
+  @Get()
+  async listar(@Query() filtros: FiltrarEquipamentosDto) {
+    return this.equipamentosService.listar(filtros);
+  }
+
+  /**
+   * GET /equipamentos/:id
+   * Busca equipamento por ID com todas as relações carregadas
+   */
+  @Get(':id')
+  async buscarPorId(@Param('id', ParseIntPipe) id: number) {
+    return this.equipamentosService.buscarPorId(id);
+  }
+
+  /**
+   * GET /equipamentos/codigo/:codigo
+   * Busca equipamento por código único
+   */
+  @Get('codigo/:codigo')
+  async buscarPorCodigo(@Param('codigo') codigo: string) {
+    return this.equipamentosService.buscarPorCodigo(codigo);
+  }
+
+  /**
+   * POST /equipamentos
+   * Cria um novo equipamento
+   */
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async criar(@Body() data: CriarEquipamentoDto) {
+    return this.equipamentosService.criar(data);
+  }
+
+  /**
+   * PUT /equipamentos/:id
+   * Atualiza um equipamento existente
+   */
+  @Put(':id')
+  async atualizar(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() data: AtualizarEquipamentoDto,
+  ) {
+    return this.equipamentosService.atualizar(id, data);
+  }
+
+  /**
+   * DELETE /equipamentos/:id
+   * Deleta um equipamento (se não estiver em uso)
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deletar(@Param('id', ParseIntPipe) id: number) {
+    await this.equipamentosService.deletar(id);
+  }
+}

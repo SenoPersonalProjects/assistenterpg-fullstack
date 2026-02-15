@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `modificacao_equipamento` MODIFY `tipo` ENUM('CORPO_A_CORPO_E_DISPARO', 'ARMA_FOGO', 'MUNICAO', 'PROTECAO', 'ACESSORIO') NOT NULL;

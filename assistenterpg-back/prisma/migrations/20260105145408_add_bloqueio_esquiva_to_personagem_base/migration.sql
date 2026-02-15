@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `personagembase` ADD COLUMN `bloqueio` INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN `esquiva` INTEGER NOT NULL DEFAULT 0;

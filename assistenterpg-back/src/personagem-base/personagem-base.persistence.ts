@@ -1,0 +1,453 @@
+// src/personagem-base/personagem-base.persistence.ts
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
+
+type PrismaLike = PrismaService | Prisma.TransactionClient;
+
+type PericiaStatePersist = {
+  periciaId: number;
+  grauTreinamento: number;
+  bonusExtra: number;
+};
+
+@Injectable()
+export class PersonagemBasePersistence {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async criarComEstado(
+    params: {
+      donoId: number;
+      dataBase: any;
+      estado: {
+        profsFinais: string[];
+        grausFinais: Array<{ tipoGrauCodigo: string; valor: number }>;
+        periciasMapCodigo: Map<string, PericiaStatePersist>;
+        grausTreinamento?: Array<{
+          nivel: number;
+          melhorias: Array<{ periciaCodigo: string; grauAnterior: number; grauNovo: number }>;
+        }>;
+        habilidadesParaPersistir: Array<{ habilidadeId: number }>;
+        poderesGenericosNormalizados: Array<{ habilidadeId: number; config: any }>;
+        passivasResolvidas: { passivaIds: number[]; ativos: string[] };
+        passivasAtributosConfigLimpo?: any;
+        dtoNormalizado: any;
+        resistenciasFinais: Map<string, number>;
+      };
+    },
+    prisma: PrismaLike = this.prisma,
+  ) {
+    const { donoId, dataBase, estado } = params;
+
+    // ✅ SANITIZAR dataBase: mapear nomes DTO → model e remover campos inválidos
+    const dataSanitizado: any = { ...dataBase };
+
+    // 1) Mapear proficienciasCodigos (DTO) → proficienciasExtrasCodigos (model)
+    if (dataSanitizado.proficienciasCodigos !== undefined) {
+      dataSanitizado.proficienciasExtrasCodigos = dataSanitizado.proficienciasCodigos;
+    }
+
+    // 2) ✅ REMOVER TODOS OS CAMPOS QUE NÃO EXISTEM NO MODEL
+    delete dataSanitizado.proficienciasCodigos;
+    delete dataSanitizado.periciasLivresExtras;
+    delete dataSanitizado.itensInventario;
+    delete dataSanitizado.defesa;          // ❌ Campo inexistente
+    delete dataSanitizado.defesaTotal;     // ❌ Campo inexistente
+
+    // ✅ NOVO: Buscar códigos de resistências para criar relações
+    const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
+      estado.resistenciasFinais,
+      prisma,
+    );
+
+    // ✅ NOVO: Preparar itens do inventário
+    const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
+      estado.dtoNormalizado?.itensInventario ?? [],
+    );
+
+    return prisma.personagemBase.create({
+      data: {
+        ...dataSanitizado,
+        donoId,
+
+        passivasAtributosAtivos: estado.passivasResolvidas.ativos,
+        passivasAtributosConfig: estado.passivasAtributosConfigLimpo ?? undefined,
+
+        periciasClasseEscolhidasCodigos:
+          estado.dtoNormalizado?.periciasClasseEscolhidasCodigos ?? [],
+        periciasOrigemEscolhidasCodigos:
+          estado.dtoNormalizado?.periciasOrigemEscolhidasCodigos ?? [],
+        periciasLivresCodigos: estado.dtoNormalizado?.periciasLivresCodigos ?? [],
+
+        proficiencias: {
+          create: estado.profsFinais.map((codigo) => ({
+            proficiencia: { connect: { codigo } },
+          })),
+        },
+
+        grausAprimoramento: {
+          create: estado.grausFinais.map((g) => ({
+            tipoGrau: { connect: { codigo: g.tipoGrauCodigo } },
+            valor: g.valor,
+          })),
+        },
+
+        pericias: {
+          create: Array.from(estado.periciasMapCodigo.values()).map((p) => ({
+            pericia: { connect: { id: p.periciaId } },
+            grauTreinamento: p.grauTreinamento,
+            bonusExtra: p.bonusExtra,
+          })),
+        },
+
+        grausTreinamento: estado.grausTreinamento?.length
+          ? {
+              create: estado.grausTreinamento.flatMap((gt) =>
+                gt.melhorias.map((m) => ({
+                  nivel: gt.nivel,
+                  periciaCodigo: m.periciaCodigo,
+                  grauAnterior: m.grauAnterior,
+                  grauNovo: m.grauNovo,
+                })),
+              ),
+            }
+          : undefined,
+
+        habilidadesBase: {
+          create: estado.habilidadesParaPersistir.map((h) => ({
+            habilidade: { connect: { id: h.habilidadeId } },
+          })),
+        },
+
+        poderesGenericos: estado.poderesGenericosNormalizados.length
+          ? {
+              create: estado.poderesGenericosNormalizados.map((p) => ({
+                habilidade: { connect: { id: p.habilidadeId } },
+                config: p.config,
+              })),
+            }
+          : undefined,
+
+        passivas: estado.passivasResolvidas.passivaIds.length
+          ? {
+              create: estado.passivasResolvidas.passivaIds.map((passivaId) => ({
+                passiva: { connect: { id: passivaId } },
+              })),
+            }
+          : undefined,
+
+        // ✅ NOVO: Criar resistências
+        resistencias: resistenciasParaCriar.length
+          ? {
+              create: resistenciasParaCriar,
+            }
+          : undefined,
+
+        // ✅ CORRIGIDO: Criar itens do inventário com nome correto
+        inventarioItens: itensInventarioParaCriar.length
+          ? {
+              create: itensInventarioParaCriar,
+            }
+          : undefined,
+      },
+      include: {
+        cla: true,
+        origem: true,
+        classe: true,
+        trilha: true,
+        caminho: true,
+        resistencias: {
+          include: {
+            resistenciaTipo: true,
+          },
+        },
+        inventarioItens: {
+          include: {
+            equipamento: true,
+            modificacoes: {
+              include: {
+                modificacao: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async atualizarRebuildComEstado(
+    params: {
+      id: number;
+      dataUpdateBase: any;
+      estado: {
+        profsFinais: string[];
+        grausFinais: Array<{ tipoGrauCodigo: string; valor: number }>;
+        periciasMapCodigo: Map<string, PericiaStatePersist>;
+        grausTreinamento?: Array<{
+          nivel: number;
+          melhorias: Array<{ periciaCodigo: string; grauAnterior: number; grauNovo: number }>;
+        }>;
+        habilidadesParaPersistir: Array<{ habilidadeId: number }>;
+        poderesGenericosNormalizados: Array<{ habilidadeId: number; config: any }>;
+        passivasResolvidas: { passivaIds: number[] };
+        resistenciasFinais: Map<string, number>;
+        dtoNormalizado?: any;
+      };
+    },
+    prisma: PrismaLike = this.prisma,
+  ) {
+    const { id, dataUpdateBase, estado } = params;
+
+    // ✅ CORRIGIDO: Usar dataUpdateBase (não dataBase)
+    const dataUpdateSanitizado: any = { ...dataUpdateBase };
+
+    // 1) Mapear proficienciasCodigos (DTO) → proficienciasExtrasCodigos (model)
+    if (dataUpdateSanitizado.proficienciasCodigos !== undefined) {
+      dataUpdateSanitizado.proficienciasExtrasCodigos = dataUpdateSanitizado.proficienciasCodigos;
+    }
+
+    // 2) ✅ REMOVER TODOS OS CAMPOS QUE NÃO EXISTEM NO MODEL
+    delete dataUpdateSanitizado.proficienciasCodigos;
+    delete dataUpdateSanitizado.periciasLivresExtras;
+    delete dataUpdateSanitizado.itensInventario;
+    delete dataUpdateSanitizado.defesa;          // ❌ Campo inexistente
+    delete dataUpdateSanitizado.defesaTotal;     // ❌ Campo inexistente
+
+    // ✅ NOVO: Preparar resistências
+    const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
+      estado.resistenciasFinais,
+      prisma,
+    );
+
+    // ✅ NOVO: Preparar itens do inventário
+    const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
+      estado.dtoNormalizado?.itensInventario ?? [],
+    );
+
+    // 1) update base (inclui proficienciasExtrasCodigos se vier no dataUpdateBase)
+    await prisma.personagemBase.update({
+      where: { id },
+      data: dataUpdateSanitizado,
+    });
+
+    // 2) rebuild relações
+    await prisma.personagemBase.update({
+      where: { id },
+      data: {
+        proficiencias: {
+          deleteMany: {},
+          create: estado.profsFinais.map((codigo) => ({
+            proficiencia: { connect: { codigo } },
+          })),
+        },
+
+        grausAprimoramento: {
+          deleteMany: {},
+          create: estado.grausFinais.map((g) => ({
+            tipoGrau: { connect: { codigo: g.tipoGrauCodigo } },
+            valor: g.valor,
+          })),
+        },
+
+        pericias: {
+          deleteMany: {},
+          create: Array.from(estado.periciasMapCodigo.values()).map((p) => ({
+            pericia: { connect: { id: p.periciaId } },
+            grauTreinamento: p.grauTreinamento,
+            bonusExtra: p.bonusExtra,
+          })),
+        },
+
+        grausTreinamento: {
+          deleteMany: {},
+          create: (estado.grausTreinamento ?? []).flatMap((gt) =>
+            gt.melhorias.map((m) => ({
+              nivel: gt.nivel,
+              periciaCodigo: m.periciaCodigo,
+              grauAnterior: m.grauAnterior,
+              grauNovo: m.grauNovo,
+            })),
+          ),
+        },
+
+        habilidadesBase: {
+          deleteMany: {},
+          create: estado.habilidadesParaPersistir.map((h) => ({
+            habilidade: { connect: { id: h.habilidadeId } },
+          })),
+        },
+
+        poderesGenericos: {
+          deleteMany: {},
+          create: estado.poderesGenericosNormalizados.map((p) => ({
+            habilidade: { connect: { id: p.habilidadeId } },
+            config: p.config,
+          })),
+        },
+
+        passivas: {
+          deleteMany: {},
+          ...(estado.passivasResolvidas.passivaIds.length
+            ? {
+                create: estado.passivasResolvidas.passivaIds.map((passivaId) => ({
+                  passiva: { connect: { id: passivaId } },
+                })),
+              }
+            : {}),
+        },
+
+        // ✅ NOVO: Rebuild resistências
+        resistencias: {
+          deleteMany: {},
+          ...(resistenciasParaCriar.length
+            ? {
+                create: resistenciasParaCriar,
+              }
+            : {}),
+        },
+
+        // ✅ CORRIGIDO: Rebuild inventário
+        inventarioItens: {
+          deleteMany: {},
+          ...(itensInventarioParaCriar.length
+            ? {
+                create: itensInventarioParaCriar,
+              }
+            : {}),
+        },
+      },
+      include: {
+        cla: true,
+        classe: true,
+        resistencias: {
+          include: {
+            resistenciaTipo: true,
+          },
+        },
+        inventarioItens: {
+          include: {
+            equipamento: true,
+            modificacoes: {
+              include: {
+                modificacao: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return prisma.personagemBase.findUnique({
+      where: { id },
+      include: {
+        cla: true,
+        classe: true,
+        resistencias: {
+          include: {
+            resistenciaTipo: true,
+          },
+        },
+        inventarioItens: {
+          include: {
+            equipamento: true,
+            modificacoes: {
+              include: {
+                modificacao: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * ✅ CORRIGIDO: Prepara resistências para criação no banco
+   * Converte Map<codigo, valor> → Array de objetos no formato correto para nested create
+   */
+  private async prepararResistenciasParaCriacao(
+    resistenciasFinais: Map<string, number>,
+    prisma: PrismaLike,
+  ): Promise<
+    Array<{
+      valor: number;
+      resistenciaTipo: { connect: { codigo: string } };
+    }>
+  > {
+    if (!resistenciasFinais || resistenciasFinais.size === 0) {
+      return [];
+    }
+
+    // Filtrar apenas resistências com valor > 0
+    const resistenciasValidas = Array.from(resistenciasFinais.entries()).filter(
+      ([_, valor]) => valor > 0,
+    );
+
+    if (resistenciasValidas.length === 0) {
+      return [];
+    }
+
+    // Validar que todos os códigos existem no banco
+    const codigos = resistenciasValidas.map(([codigo]) => codigo);
+    const resistenciasTipo = await prisma.resistenciaTipo.findMany({
+      where: { codigo: { in: codigos } },
+      select: { codigo: true },
+    });
+
+    const codigosValidos = new Set(resistenciasTipo.map((r) => r.codigo));
+
+    // ✅ FORMATO CORRETO: { valor, resistenciaTipo: { connect: { codigo } } }
+    return resistenciasValidas
+      .filter(([codigo]) => codigosValidos.has(codigo))
+      .map(([codigo, valor]) => ({
+        valor,
+        resistenciaTipo: { connect: { codigo } },
+      }));
+  }
+
+  /**
+   * ✅ NOVA FUNÇÃO: Prepara itens do inventário para criação no Prisma
+   * Converte array de ItemInventarioPayload → formato correto para nested create
+   */
+  private prepararItensInventarioParaCriacao(
+    itensInventario: Array<{
+      equipamentoId: number;
+      quantidade: number;
+      equipado: boolean;
+      modificacoesIds?: number[];
+      nomeCustomizado?: string | null;
+      notas?: string | null;
+    }>,
+  ): Array<{
+    equipamento: { connect: { id: number } };
+    quantidade: number;
+    equipado: boolean;
+    nomeCustomizado?: string | null;
+    notas?: string | null;
+    modificacoes?: {
+      create: Array<{
+        modificacao: { connect: { id: number } };
+      }>;
+    };
+  }> {
+    if (!itensInventario || itensInventario.length === 0) {
+      return [];
+    }
+
+    return itensInventario.map((item) => ({
+      equipamento: { connect: { id: item.equipamentoId } },
+      quantidade: item.quantidade,
+      equipado: item.equipado,
+      nomeCustomizado: item.nomeCustomizado || null,
+      notas: item.notas || null,
+      modificacoes:
+        item.modificacoesIds && item.modificacoesIds.length > 0
+          ? {
+              create: item.modificacoesIds.map((modId) => ({
+                modificacao: { connect: { id: modId } },
+              })),
+            }
+          : undefined,
+    }));
+  }
+}
