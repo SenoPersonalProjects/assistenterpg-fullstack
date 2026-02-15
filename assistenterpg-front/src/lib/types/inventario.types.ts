@@ -174,6 +174,8 @@ export type ModificacaoCatalogo = {
   requerComplexidade?: string | null;
   efeitosMecanicos?: any;
   requisitos?: any;
+  fonte?: string;
+  suplementoId?: number | null;
 };
 
 export type ModificacaoDisponivelDto = {
@@ -294,6 +296,8 @@ export type FiltrarEquipamentosDto = {
   tipoAcessorio?: string;
   categoria?: number;
   apenasAmaldicoados?: boolean;
+  fontes?: string[];
+  suplementoId?: number;
   busca?: string;
   pagina?: number;
   limite?: number;
@@ -303,6 +307,8 @@ export type FiltrarModificacoesDto = {
   tipo?: string;
   apenasAmaldicoadas?: boolean;
   requerComplexidade?: string;
+  fontes?: string[];
+  suplementoId?: number;
   busca?: string;
   pagina?: number;
   limite?: number;
