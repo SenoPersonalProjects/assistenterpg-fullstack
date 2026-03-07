@@ -21,11 +21,9 @@ export class CondicaoNaoEncontradaException extends BaseException {
 
 export class CondicaoNomeDuplicadoException extends BusinessException {
   constructor(nome: string) {
-    super(
-      `Condição com nome "${nome}" já existe`,
-      'CONDICAO_NOME_DUPLICADO',
-      { nome },
-    );
+    super(`Condição com nome "${nome}" já existe`, 'CONDICAO_NOME_DUPLICADO', {
+      nome,
+    });
   }
 }
 

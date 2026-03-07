@@ -331,7 +331,8 @@ let InventarioService = class InventarioService {
             };
             itensCalculados.forEach((item) => {
                 const cat = item.categoriaCalculada;
-                itensPorCategoria[cat] = (itensPorCategoria[cat] || 0) + item.quantidade;
+                itensPorCategoria[cat] =
+                    (itensPorCategoria[cat] || 0) + item.quantidade;
             });
             return {
                 itens: itensCalculados,

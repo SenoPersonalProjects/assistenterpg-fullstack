@@ -1,6 +1,13 @@
 // src/homebrews/dto/equipamentos/criar-homebrew-acessorio.dto.ts
 
-import { IsNotEmpty, IsEnum, IsOptional, IsString, IsInt, IsBoolean } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsInt,
+  IsBoolean,
+} from 'class-validator';
 import { TipoAcessorio } from '@prisma/client';
 import { EquipamentoBaseDto } from '../base/equipamento-base.dto';
 

@@ -33,20 +33,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const initialToken = getToken();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(initialToken);
+  const [loading, setLoading] = useState(Boolean(initialToken));
 
   // Estratégia oficial: autenticação SPA com Bearer em localStorage.
   useEffect(() => {
-    const storedToken = getToken();
-
-    if (!storedToken) {
-      setLoading(false);
+    if (!token) {
       return;
     }
-
-    setToken(storedToken);
 
     apiGetMe()
       .then((u) => setUsuario(u))
@@ -56,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsuario(null);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [token]);
 
   const login = useCallback(
     async (email: string, senha: string) => {

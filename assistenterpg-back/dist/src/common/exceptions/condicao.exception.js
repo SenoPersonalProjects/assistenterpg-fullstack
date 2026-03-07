@@ -12,7 +12,9 @@ class CondicaoNaoEncontradaException extends base_exception_1.BaseException {
 exports.CondicaoNaoEncontradaException = CondicaoNaoEncontradaException;
 class CondicaoNomeDuplicadoException extends business_exception_1.BusinessException {
     constructor(nome) {
-        super(`Condição com nome "${nome}" já existe`, 'CONDICAO_NOME_DUPLICADO', { nome });
+        super(`Condição com nome "${nome}" já existe`, 'CONDICAO_NOME_DUPLICADO', {
+            nome,
+        });
     }
 }
 exports.CondicaoNomeDuplicadoException = CondicaoNomeDuplicadoException;

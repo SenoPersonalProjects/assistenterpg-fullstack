@@ -7,6 +7,7 @@ import { EquipamentoResumoDto } from './dto/equipamento-resumo.dto';
 export declare class EquipamentosService {
     private prisma;
     constructor(prisma: PrismaService);
+    private validarFonteSuplemento;
     listar(filtros: FiltrarEquipamentosDto): Promise<{
         dados: EquipamentoResumoDto[];
         paginacao: {

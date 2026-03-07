@@ -1,5 +1,12 @@
 // src/inventario/dto/adicionar-item.dto.ts
-import { IsInt, IsOptional, IsString, IsBoolean, IsArray, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsArray,
+  Min,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class AdicionarItemDto {

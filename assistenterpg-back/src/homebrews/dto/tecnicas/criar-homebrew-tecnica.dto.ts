@@ -1,6 +1,14 @@
 // src/homebrews/dto/tecnicas/criar-homebrew-tecnica.dto.ts
 
-import { IsNotEmpty, IsEnum, IsBoolean, IsOptional, IsString, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TipoTecnicaAmaldicoada } from '@prisma/client';
 import { HabilidadeTecnicaDto } from './habilidade-tecnica.dto';

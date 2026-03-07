@@ -1,3 +1,4 @@
+import { TipoFonte } from '@prisma/client';
 export declare class HabilidadeTrilhaDto {
     habilidadeId: number;
     nivelConcedido: number;
@@ -8,5 +9,7 @@ export declare class CreateTrilhaDto {
     nome: string;
     descricao?: string;
     requisitos?: any;
+    fonte?: TipoFonte;
+    suplementoId?: number;
     habilidades?: HabilidadeTrilhaDto[];
 }

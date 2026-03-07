@@ -52,7 +52,7 @@ export function HabilidadeForm({
     onChange({ dadosDano: [...dadosDano, novoDado] });
   }
 
-  function updateDadoDano(dadoIndex: number, campo: keyof DadoDanoTecnica, valor: any) {
+  function updateDadoDano(dadoIndex: number, campo: keyof DadoDanoTecnica, valor: unknown) {
     const novosDados = [...dadosDano];
     novosDados[dadoIndex] = { ...novosDados[dadoIndex], [campo]: valor };
     onChange({ dadosDano: novosDados });

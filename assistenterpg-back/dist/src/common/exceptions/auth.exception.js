@@ -32,7 +32,10 @@ class AcessoNegadoException extends base_exception_1.BaseException {
         const mensagem = roleNecessaria
             ? `Acesso negado. Role necessária: ${roleNecessaria}`
             : 'Acesso negado';
-        super(mensagem, common_1.HttpStatus.FORBIDDEN, 'ACESSO_NEGADO', { recurso, roleNecessaria });
+        super(mensagem, common_1.HttpStatus.FORBIDDEN, 'ACESSO_NEGADO', {
+            recurso,
+            roleNecessaria,
+        });
     }
 }
 exports.AcessoNegadoException = AcessoNegadoException;

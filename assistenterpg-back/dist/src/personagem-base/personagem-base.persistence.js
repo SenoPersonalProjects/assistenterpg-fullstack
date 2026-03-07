@@ -21,11 +21,13 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
         const { donoId, dataBase, estado } = params;
         const dataSanitizado = { ...dataBase };
         if (dataSanitizado.proficienciasCodigos !== undefined) {
-            dataSanitizado.proficienciasExtrasCodigos = dataSanitizado.proficienciasCodigos;
+            dataSanitizado.proficienciasExtrasCodigos =
+                dataSanitizado.proficienciasCodigos;
         }
         delete dataSanitizado.proficienciasCodigos;
         delete dataSanitizado.periciasLivresExtras;
         delete dataSanitizado.itensInventario;
+        delete dataSanitizado.passivasAtributoIds;
         delete dataSanitizado.defesa;
         delete dataSanitizado.defesaTotal;
         const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(estado.resistenciasFinais, prisma);
@@ -126,11 +128,13 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
         const { id, dataUpdateBase, estado } = params;
         const dataUpdateSanitizado = { ...dataUpdateBase };
         if (dataUpdateSanitizado.proficienciasCodigos !== undefined) {
-            dataUpdateSanitizado.proficienciasExtrasCodigos = dataUpdateSanitizado.proficienciasCodigos;
+            dataUpdateSanitizado.proficienciasExtrasCodigos =
+                dataUpdateSanitizado.proficienciasCodigos;
         }
         delete dataUpdateSanitizado.proficienciasCodigos;
         delete dataUpdateSanitizado.periciasLivresExtras;
         delete dataUpdateSanitizado.itensInventario;
+        delete dataUpdateSanitizado.passivasAtributoIds;
         delete dataUpdateSanitizado.defesa;
         delete dataUpdateSanitizado.defesaTotal;
         const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(estado.resistenciasFinais, prisma);

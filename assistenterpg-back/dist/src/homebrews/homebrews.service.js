@@ -50,7 +50,10 @@ let HomebrewsService = HomebrewsService_1 = class HomebrewsService {
                 where.status = client_1.StatusPublicacao.PUBLICADO;
             }
             else if (!isAdmin) {
-                where.OR = [{ status: client_1.StatusPublicacao.PUBLICADO }, { usuarioId: usuarioId }];
+                where.OR = [
+                    { status: client_1.StatusPublicacao.PUBLICADO },
+                    { usuarioId: usuarioId },
+                ];
             }
             const [total, homebrews] = await Promise.all([
                 this.prisma.homebrew.count({ where }),
@@ -156,7 +159,9 @@ let HomebrewsService = HomebrewsService_1 = class HomebrewsService {
             await (0, validate_homebrew_dados_1.validateHomebrewDados)(createHomebrewDto.tipo, createHomebrewDto.dados);
             this.validarDadosCustomizados(createHomebrewDto.tipo, createHomebrewDto.dados);
             const codigo = this.gerarCodigo(usuarioId);
-            const tags = Array.isArray(createHomebrewDto.tags) ? createHomebrewDto.tags : [];
+            const tags = Array.isArray(createHomebrewDto.tags)
+                ? createHomebrewDto.tags
+                : [];
             const homebrew = await this.prisma.homebrew.create({
                 data: {
                     codigo,

@@ -17,7 +17,9 @@ class HomebrewNaoEncontradoException extends BusinessException {
 exports.HomebrewNaoEncontradoException = HomebrewNaoEncontradoException;
 class HomebrewJaPublicadoException extends BusinessException {
     constructor(homebrewId) {
-        super('Este homebrew já está publicado', 'HB_ALREADY_PUBLISHED', { homebrewId });
+        super('Este homebrew já está publicado', 'HB_ALREADY_PUBLISHED', {
+            homebrewId,
+        });
     }
 }
 exports.HomebrewJaPublicadoException = HomebrewJaPublicadoException;
@@ -29,7 +31,10 @@ class HomebrewDadosInvalidosException extends BusinessException {
 exports.HomebrewDadosInvalidosException = HomebrewDadosInvalidosException;
 class HomebrewTipoNaoSuportadoException extends BusinessException {
     constructor(tipo, tiposValidos) {
-        super(`Tipo de homebrew "${tipo}" não suportado`, 'HB_UNSUPPORTED_TYPE', { tipo, tiposValidos });
+        super(`Tipo de homebrew "${tipo}" não suportado`, 'HB_UNSUPPORTED_TYPE', {
+            tipo,
+            tiposValidos,
+        });
     }
 }
 exports.HomebrewTipoNaoSuportadoException = HomebrewTipoNaoSuportadoException;
@@ -41,7 +46,11 @@ class PersonagemNaoEncontradoException extends BusinessException {
 exports.PersonagemNaoEncontradoException = PersonagemNaoEncontradoException;
 class PontosInsuficientesException extends BusinessException {
     constructor(tipo, disponivel, necessario) {
-        super(`Pontos de ${tipo} insuficientes`, 'CHAR_INSUFFICIENT_POINTS', { tipo, disponivel, necessario });
+        super(`Pontos de ${tipo} insuficientes`, 'CHAR_INSUFFICIENT_POINTS', {
+            tipo,
+            disponivel,
+            necessario,
+        });
     }
 }
 exports.PontosInsuficientesException = PontosInsuficientesException;
@@ -53,7 +62,10 @@ class EquipamentoNaoEncontradoException extends BusinessException {
 exports.EquipamentoNaoEncontradoException = EquipamentoNaoEncontradoException;
 class EspacoInsuficienteException extends BusinessException {
     constructor(espacoDisponivel, espacoNecessario) {
-        super('Espaço insuficiente no inventário', 'INV_INSUFFICIENT_SPACE', { espacoDisponivel, espacoNecessario });
+        super('Espaço insuficiente no inventário', 'INV_INSUFFICIENT_SPACE', {
+            espacoDisponivel,
+            espacoNecessario,
+        });
     }
 }
 exports.EspacoInsuficienteException = EspacoInsuficienteException;
@@ -65,7 +77,10 @@ class CampanhaNaoEncontradaException extends BusinessException {
 exports.CampanhaNaoEncontradaException = CampanhaNaoEncontradaException;
 class UsuarioJaNaCampanhaException extends BusinessException {
     constructor(usuarioId, campanhaId) {
-        super('Usuário já está nesta campanha', 'CAMP_USER_ALREADY_MEMBER', { usuarioId, campanhaId });
+        super('Usuário já está nesta campanha', 'CAMP_USER_ALREADY_MEMBER', {
+            usuarioId,
+            campanhaId,
+        });
     }
 }
 exports.UsuarioJaNaCampanhaException = UsuarioJaNaCampanhaException;

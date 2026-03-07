@@ -21,6 +21,8 @@ function buildEquipamentosQuery(filtros?: FiltrarEquipamentosDto): string {
   if (filtros?.tipoAcessorio) params.append('tipoAcessorio', filtros.tipoAcessorio);
   if (filtros?.categoria !== undefined) params.append('categoria', filtros.categoria.toString());
   if (filtros?.apenasAmaldicoados) params.append('apenasAmaldicoados', 'true');
+  if (filtros?.fontes?.length) params.append('fontes', filtros.fontes.join(','));
+  if (filtros?.suplementoId !== undefined) params.append('suplementoId', filtros.suplementoId.toString());
   if (filtros?.busca) params.append('busca', filtros.busca);
 
   params.append('pagina', (filtros?.pagina ?? EQUIPAMENTOS_DEFAULT_PAGE).toString());

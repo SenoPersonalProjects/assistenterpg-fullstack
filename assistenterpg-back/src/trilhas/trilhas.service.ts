@@ -1,6 +1,7 @@
 // src/trilhas/trilhas.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { TipoFonte } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrilhaDto } from './dto/create-trilha.dto';
 import { UpdateTrilhaDto } from './dto/update-trilha.dto';
@@ -17,12 +18,40 @@ import {
   CaminhoNomeDuplicadoException,
   CaminhoEmUsoException,
 } from 'src/common/exceptions/trilha.exception';
+import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemento.exception';
 
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
 @Injectable()
 export class TrilhasService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new SuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new BadRequestException(
+          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+        );
+      }
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+    }
+  }
 
   private async ensureTrilha(id: number) {
     const trilha = await this.prisma.trilha.findUnique({ where: { id } });
@@ -65,6 +94,12 @@ export class TrilhasService {
         throw new TrilhaNomeDuplicadoException(createDto.nome);
       }
 
+      const suplementoIdFinal = createDto.suplementoId ?? null;
+      const fonteFinal =
+        createDto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
       // Criar trilha com habilidades (se fornecidas)
       const trilha = await this.prisma.trilha.create({
         data: {
@@ -72,6 +107,8 @@ export class TrilhasService {
           nome: createDto.nome,
           descricao: createDto.descricao,
           requisitos: createDto.requisitos,
+          fonte: fonteFinal,
+          suplementoId: suplementoIdFinal,
 
           // ✅ Criar habilidades da trilha
           ...(createDto.habilidades?.length && {
@@ -147,7 +184,9 @@ export class TrilhasService {
           },
           habilidadesTrilha: {
             include: {
-              habilidade: { select: { id: true, nome: true, descricao: true, tipo: true } },
+              habilidade: {
+                select: { id: true, nome: true, descricao: true, tipo: true },
+              },
               caminho: { select: { id: true, nome: true } },
             },
             orderBy: { nivelConcedido: 'asc' },
@@ -178,7 +217,7 @@ export class TrilhasService {
   async update(id: number, updateDto: UpdateTrilhaDto) {
     try {
       // Verificar se existe
-      await this.ensureTrilha(id);
+      const trilhaAtual = await this.ensureTrilha(id);
 
       // Verificar nome duplicado (se mudou)
       if (updateDto.nome) {
@@ -194,13 +233,30 @@ export class TrilhasService {
         }
       }
 
+      const suplementoIdFinal =
+        updateDto.suplementoId !== undefined
+          ? updateDto.suplementoId
+          : trilhaAtual.suplementoId;
+      const fonteFinal =
+        updateDto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : trilhaAtual.fonte);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
       // Atualizar trilha
       const trilha = await this.prisma.trilha.update({
         where: { id },
         data: {
           ...(updateDto.nome && { nome: updateDto.nome }),
-          ...(updateDto.descricao !== undefined && { descricao: updateDto.descricao }),
-          ...(updateDto.requisitos !== undefined && { requisitos: updateDto.requisitos }),
+          ...(updateDto.descricao !== undefined && {
+            descricao: updateDto.descricao,
+          }),
+          ...(updateDto.requisitos !== undefined && {
+            requisitos: updateDto.requisitos,
+          }),
+          ...(fonteFinal !== trilhaAtual.fonte && { fonte: fonteFinal }),
+          ...(updateDto.suplementoId !== undefined && {
+            suplementoId: updateDto.suplementoId,
+          }),
 
           // ✅ Atualizar habilidades (deletar e recriar)
           ...(updateDto.habilidades && {
@@ -290,12 +346,20 @@ export class TrilhasService {
         throw new CaminhoNomeDuplicadoException(createDto.nome);
       }
 
+      const suplementoIdFinal = createDto.suplementoId ?? null;
+      const fonteFinal =
+        createDto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
       // Criar caminho com habilidades
       const caminho = await this.prisma.caminho.create({
         data: {
           trilhaId: createDto.trilhaId,
           nome: createDto.nome,
           descricao: createDto.descricao,
+          fonte: fonteFinal,
+          suplementoId: suplementoIdFinal,
 
           // ✅ Criar habilidades do caminho
           ...(createDto.habilidades?.length && {
@@ -332,7 +396,7 @@ export class TrilhasService {
   async updateCaminho(id: number, updateDto: UpdateCaminhoDto) {
     try {
       // Verificar se existe
-      await this.ensureCaminho(id);
+      const caminhoAtual = await this.ensureCaminho(id);
 
       // Verificar nome duplicado (se mudou)
       if (updateDto.nome) {
@@ -348,19 +412,41 @@ export class TrilhasService {
         }
       }
 
+      if (updateDto.trilhaId !== undefined) {
+        await this.ensureTrilha(updateDto.trilhaId);
+      }
+
+      const suplementoIdFinal =
+        updateDto.suplementoId !== undefined
+          ? updateDto.suplementoId
+          : caminhoAtual.suplementoId;
+      const fonteFinal =
+        updateDto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : caminhoAtual.fonte);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
       // Atualizar caminho
       const caminho = await this.prisma.caminho.update({
         where: { id },
         data: {
           ...(updateDto.nome && { nome: updateDto.nome }),
-          ...(updateDto.descricao !== undefined && { descricao: updateDto.descricao }),
+          ...(updateDto.descricao !== undefined && {
+            descricao: updateDto.descricao,
+          }),
+          ...(updateDto.trilhaId !== undefined && {
+            trilhaId: updateDto.trilhaId,
+          }),
+          ...(fonteFinal !== caminhoAtual.fonte && { fonte: fonteFinal }),
+          ...(updateDto.suplementoId !== undefined && {
+            suplementoId: updateDto.suplementoId,
+          }),
 
           // ✅ Atualizar habilidades (deletar e recriar)
           ...(updateDto.habilidades && {
             habilidadesTrilha: {
               deleteMany: { caminhoId: id },
               create: updateDto.habilidades.map((hab) => ({
-                trilhaId: updateDto.trilhaId!,
+                trilhaId: updateDto.trilhaId ?? caminhoAtual.trilhaId,
                 habilidadeId: hab.habilidadeId,
                 nivelConcedido: hab.nivelConcedido,
               })),

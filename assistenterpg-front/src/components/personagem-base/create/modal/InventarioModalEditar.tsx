@@ -16,7 +16,6 @@ type Props = {
   modificacoesIds: number[]; // ✅ MUDOU: Array de IDs
   modificacoesCompativeis: ModificacaoCatalogo[];
   equipamentos: EquipamentoCatalogo[];
-  modificacoes: ModificacaoCatalogo[]; // ✅ ADICIONAR: Catálogo completo
   nomeCustomizado: string;
   equipado: boolean;
   onQuantidadeChange: (qtd: number) => void;
@@ -31,7 +30,6 @@ export function InventarioModalEditar({
   modificacoesIds, // ✅ MUDOU
   modificacoesCompativeis,
   equipamentos,
-  modificacoes, // ✅ ADICIONAR
   nomeCustomizado,
   equipado,
   onQuantidadeChange,
@@ -43,6 +41,11 @@ export function InventarioModalEditar({
   const equipamento = useMemo(() => {
     return equipamentos.find((e) => e.id === item.equipamentoId);
   }, [equipamentos, item.equipamentoId]);
+
+  const podeVestir = useMemo(
+    () => (equipamento ? podeSerVestido(equipamento) : false),
+    [equipamento],
+  );
 
   if (!equipamento) {
     return (
@@ -60,9 +63,6 @@ export function InventarioModalEditar({
 
   // ✅ Detectar se tem nome customizado
   const temNomeCustomizado = !!nomeCustomizado.trim();
-
-  // ✅ Verificar se pode vestir (usa tipoUso)
-  const podeVestir = useMemo(() => podeSerVestido(equipamento), [equipamento]);
 
   return (
     <div className="space-y-4">

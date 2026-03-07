@@ -11,13 +11,33 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TrilhasService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const trilha_exception_1 = require("../common/exceptions/trilha.exception");
+const suplemento_exception_1 = require("../common/exceptions/suplemento.exception");
 const database_exception_1 = require("../common/exceptions/database.exception");
 let TrilhasService = class TrilhasService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    async validarFonteSuplemento(fonte, suplementoId) {
+        if (suplementoId) {
+            const suplemento = await this.prisma.suplemento.findUnique({
+                where: { id: suplementoId },
+                select: { id: true },
+            });
+            if (!suplemento) {
+                throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
+            }
+            if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
+                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+            }
+            return;
+        }
+        if (fonte === client_1.TipoFonte.SUPLEMENTO) {
+            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+        }
     }
     async ensureTrilha(id) {
         const trilha = await this.prisma.trilha.findUnique({ where: { id } });
@@ -47,12 +67,18 @@ let TrilhasService = class TrilhasService {
             if (existente) {
                 throw new trilha_exception_1.TrilhaNomeDuplicadoException(createDto.nome);
             }
+            const suplementoIdFinal = createDto.suplementoId ?? null;
+            const fonteFinal = createDto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const trilha = await this.prisma.trilha.create({
                 data: {
                     classeId: createDto.classeId,
                     nome: createDto.nome,
                     descricao: createDto.descricao,
                     requisitos: createDto.requisitos,
+                    fonte: fonteFinal,
+                    suplementoId: suplementoIdFinal,
                     ...(createDto.habilidades?.length && {
                         habilidadesTrilha: {
                             create: createDto.habilidades.map((hab) => ({
@@ -122,7 +148,9 @@ let TrilhasService = class TrilhasService {
                     },
                     habilidadesTrilha: {
                         include: {
-                            habilidade: { select: { id: true, nome: true, descricao: true, tipo: true } },
+                            habilidade: {
+                                select: { id: true, nome: true, descricao: true, tipo: true },
+                            },
                             caminho: { select: { id: true, nome: true } },
                         },
                         orderBy: { nivelConcedido: 'asc' },
@@ -149,7 +177,7 @@ let TrilhasService = class TrilhasService {
     }
     async update(id, updateDto) {
         try {
-            await this.ensureTrilha(id);
+            const trilhaAtual = await this.ensureTrilha(id);
             if (updateDto.nome) {
                 const duplicado = await this.prisma.trilha.findFirst({
                     where: {
@@ -161,12 +189,26 @@ let TrilhasService = class TrilhasService {
                     throw new trilha_exception_1.TrilhaNomeDuplicadoException(updateDto.nome);
                 }
             }
+            const suplementoIdFinal = updateDto.suplementoId !== undefined
+                ? updateDto.suplementoId
+                : trilhaAtual.suplementoId;
+            const fonteFinal = updateDto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : trilhaAtual.fonte);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const trilha = await this.prisma.trilha.update({
                 where: { id },
                 data: {
                     ...(updateDto.nome && { nome: updateDto.nome }),
-                    ...(updateDto.descricao !== undefined && { descricao: updateDto.descricao }),
-                    ...(updateDto.requisitos !== undefined && { requisitos: updateDto.requisitos }),
+                    ...(updateDto.descricao !== undefined && {
+                        descricao: updateDto.descricao,
+                    }),
+                    ...(updateDto.requisitos !== undefined && {
+                        requisitos: updateDto.requisitos,
+                    }),
+                    ...(fonteFinal !== trilhaAtual.fonte && { fonte: fonteFinal }),
+                    ...(updateDto.suplementoId !== undefined && {
+                        suplementoId: updateDto.suplementoId,
+                    }),
                     ...(updateDto.habilidades && {
                         habilidadesTrilha: {
                             deleteMany: {},
@@ -234,11 +276,17 @@ let TrilhasService = class TrilhasService {
             if (existente) {
                 throw new trilha_exception_1.CaminhoNomeDuplicadoException(createDto.nome);
             }
+            const suplementoIdFinal = createDto.suplementoId ?? null;
+            const fonteFinal = createDto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const caminho = await this.prisma.caminho.create({
                 data: {
                     trilhaId: createDto.trilhaId,
                     nome: createDto.nome,
                     descricao: createDto.descricao,
+                    fonte: fonteFinal,
+                    suplementoId: suplementoIdFinal,
                     ...(createDto.habilidades?.length && {
                         habilidadesTrilha: {
                             create: createDto.habilidades.map((hab) => ({
@@ -270,7 +318,7 @@ let TrilhasService = class TrilhasService {
     }
     async updateCaminho(id, updateDto) {
         try {
-            await this.ensureCaminho(id);
+            const caminhoAtual = await this.ensureCaminho(id);
             if (updateDto.nome) {
                 const duplicado = await this.prisma.caminho.findFirst({
                     where: {
@@ -282,16 +330,34 @@ let TrilhasService = class TrilhasService {
                     throw new trilha_exception_1.CaminhoNomeDuplicadoException(updateDto.nome);
                 }
             }
+            if (updateDto.trilhaId !== undefined) {
+                await this.ensureTrilha(updateDto.trilhaId);
+            }
+            const suplementoIdFinal = updateDto.suplementoId !== undefined
+                ? updateDto.suplementoId
+                : caminhoAtual.suplementoId;
+            const fonteFinal = updateDto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : caminhoAtual.fonte);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const caminho = await this.prisma.caminho.update({
                 where: { id },
                 data: {
                     ...(updateDto.nome && { nome: updateDto.nome }),
-                    ...(updateDto.descricao !== undefined && { descricao: updateDto.descricao }),
+                    ...(updateDto.descricao !== undefined && {
+                        descricao: updateDto.descricao,
+                    }),
+                    ...(updateDto.trilhaId !== undefined && {
+                        trilhaId: updateDto.trilhaId,
+                    }),
+                    ...(fonteFinal !== caminhoAtual.fonte && { fonte: fonteFinal }),
+                    ...(updateDto.suplementoId !== undefined && {
+                        suplementoId: updateDto.suplementoId,
+                    }),
                     ...(updateDto.habilidades && {
                         habilidadesTrilha: {
                             deleteMany: { caminhoId: id },
                             create: updateDto.habilidades.map((hab) => ({
-                                trilhaId: updateDto.trilhaId,
+                                trilhaId: updateDto.trilhaId ?? caminhoAtual.trilhaId,
                                 habilidadeId: hab.habilidadeId,
                                 nivelConcedido: hab.nivelConcedido,
                             })),

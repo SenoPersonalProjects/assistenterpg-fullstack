@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { HabilidadeForm } from './HabilidadeForm';
 import type { HabilidadeTecnica } from '@/lib/api/homebrews';
-import { TipoExecucao, TipoDano } from '@/lib/types/homebrew-enums';
+import { TipoExecucao } from '@/lib/types/homebrew-enums';
 
 type Props = {
   habilidades: HabilidadeTecnica[];
@@ -81,7 +81,7 @@ export function HabilidadesList({ habilidades, onChange }: Props) {
           <Icon name="technique" className="w-8 h-8 text-app-muted mx-auto mb-2" />
           <p className="text-sm text-app-muted">Nenhuma habilidade adicionada</p>
           <p className="text-xs text-app-muted mt-1">
-            Clique em "Adicionar habilidade" para começar
+            Clique em &quot;Adicionar habilidade&quot; para começar
           </p>
         </div>
       )}
@@ -101,3 +101,4 @@ export function HabilidadesList({ habilidades, onChange }: Props) {
     </div>
   );
 }
+

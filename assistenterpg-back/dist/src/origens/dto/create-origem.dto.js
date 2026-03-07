@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateOrigemDto = exports.OrigemPericiaDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const client_1 = require("@prisma/client");
 class OrigemPericiaDto {
     periciaId;
     tipo;
@@ -41,6 +42,8 @@ class CreateOrigemDto {
     requerGrandeCla;
     requerTecnicaHeriditaria;
     bloqueiaTecnicaHeriditaria;
+    fonte;
+    suplementoId;
     pericias;
     habilidadesIds;
 }
@@ -48,14 +51,14 @@ exports.CreateOrigemDto = CreateOrigemDto;
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MinLength)(3, { message: 'Nome deve ter no mínimo 3 caracteres' }),
-    (0, class_validator_1.MaxLength)(100, { message: 'Nome deve ter no máximo 100 caracteres' }),
+    (0, class_validator_1.MinLength)(3, { message: 'Nome deve ter no minimo 3 caracteres' }),
+    (0, class_validator_1.MaxLength)(100, { message: 'Nome deve ter no maximo 100 caracteres' }),
     __metadata("design:type", String)
 ], CreateOrigemDto.prototype, "nome", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MaxLength)(2000, { message: 'Descrição deve ter no máximo 2000 caracteres' }),
+    (0, class_validator_1.MaxLength)(2000, { message: 'Descricao deve ter no maximo 2000 caracteres' }),
     __metadata("design:type", String)
 ], CreateOrigemDto.prototype, "descricao", void 0);
 __decorate([
@@ -79,6 +82,17 @@ __decorate([
     (0, class_validator_1.IsBoolean)(),
     __metadata("design:type", Boolean)
 ], CreateOrigemDto.prototype, "bloqueiaTecnicaHeriditaria", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.TipoFonte),
+    __metadata("design:type", String)
+], CreateOrigemDto.prototype, "fonte", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CreateOrigemDto.prototype, "suplementoId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),

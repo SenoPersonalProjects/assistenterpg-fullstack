@@ -9,11 +9,8 @@ import { BaseException } from './base.exception';
 
 export class PericiaNaoEncontradaException extends BaseException {
   constructor(identificador?: string | number) {
-    super(
-      'Perícia não encontrada',
-      HttpStatus.NOT_FOUND,
-      'PERICIA_NOT_FOUND',
-      { identificador },
-    );
+    super('Perícia não encontrada', HttpStatus.NOT_FOUND, 'PERICIA_NOT_FOUND', {
+      identificador,
+    });
   }
 }

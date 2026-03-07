@@ -5,9 +5,9 @@ import { validate } from 'class-validator';
 import { TipoHomebrewConteudo } from '@prisma/client';
 
 // ✅ Exceções customizadas
-import { 
+import {
   HomebrewDadosInvalidosException,
-  HomebrewTipoNaoSuportadoException 
+  HomebrewTipoNaoSuportadoException,
 } from '../../common/exceptions/business.exception';
 import { CampoObrigatorioException } from '../../common/exceptions/validation.exception';
 

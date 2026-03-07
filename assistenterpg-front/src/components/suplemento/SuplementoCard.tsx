@@ -48,6 +48,7 @@ export function SuplementoCard({
       {/* Banner ou placeholder */}
       <div className="relative h-32 -m-4 mb-4 rounded-t overflow-hidden bg-gradient-to-br from-app-primary/10 to-app-secondary/10">
         {suplemento.banner ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={suplemento.banner}
             alt={suplemento.nome}

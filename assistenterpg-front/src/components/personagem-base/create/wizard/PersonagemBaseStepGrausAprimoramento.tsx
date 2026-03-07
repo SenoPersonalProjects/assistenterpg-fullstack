@@ -13,7 +13,6 @@ import { useAuth } from '@/context/AuthContext';
 
 import { Button } from '@/components/ui/Button';
 import { SectionCard } from '@/components/ui/SectionCard';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 
 type Props = {
@@ -282,12 +281,12 @@ export function PersonagemBaseStepGrausAprimoramento(props: Props) {
 
   useEffect(() => {
     if (!token || !payloadPreview) {
-      setPreviewCalculado(null);
+      queueMicrotask(() => setPreviewCalculado(null));
       return;
     }
 
     const requestId = ++requestIdRef.current;
-    setCarregando(true);
+    queueMicrotask(() => setCarregando(true));
 
     const timeout = setTimeout(() => {
       apiPreviewPersonagemBase(payloadPreview)

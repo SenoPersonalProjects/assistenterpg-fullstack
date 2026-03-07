@@ -1,8 +1,8 @@
 // src/homebrews/validators/validate-homebrew-tecnica.ts
 
-import { 
+import {
   ValidationException,
-  ValoresUnicosException 
+  ValoresUnicosException,
 } from '../../common/exceptions/validation.exception';
 
 /**
@@ -23,10 +23,12 @@ export function validateHomebrewTecnicaCustom(dados: any): void {
   // ✅ Validar códigos únicos de habilidades
   const codigos = dados.habilidades.map((h: any) => h.codigo);
   const codigosUnicos = new Set(codigos);
-  
+
   if (codigos.length !== codigosUnicos.size) {
     // Encontrar duplicados
-    const duplicados = codigos.filter((codigo, index) => codigos.indexOf(codigo) !== index);
+    const duplicados = codigos.filter(
+      (codigo, index) => codigos.indexOf(codigo) !== index,
+    );
     throw new ValoresUnicosException('habilidades.codigo', duplicados);
   }
 
@@ -35,12 +37,12 @@ export function validateHomebrewTecnicaCustom(dados: any): void {
     if (hab.variacoes && hab.variacoes.length > 0) {
       const nomesVariacoes = hab.variacoes.map((v: any) => v.nome);
       const nomesUnicos = new Set(nomesVariacoes);
-      
+
       if (nomesVariacoes.length !== nomesUnicos.size) {
         const duplicados = nomesVariacoes.filter(
-          (nome, i) => nomesVariacoes.indexOf(nome) !== i
+          (nome, i) => nomesVariacoes.indexOf(nome) !== i,
         );
-        
+
         throw new ValidationException(
           `Habilidade "${hab.nome || index}": Nomes de variações devem ser únicos`,
           `habilidades[${index}].variacoes`,

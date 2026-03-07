@@ -1,6 +1,7 @@
 import { PersonagemBaseService } from './personagem-base.service';
 import { CreatePersonagemBaseDto } from './dto/create-personagem-base.dto';
 import { UpdatePersonagemBaseDto } from './dto/update-personagem-base.dto';
+import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
 import { ConsultarInfoGrausTreinamentoDto, ConsultarPericiasElegiveisDto } from './dto/consultar-graus-treinamento.dto';
 export declare class PersonagemBaseController {
     private readonly personagemBaseService;
@@ -184,6 +185,69 @@ export declare class PersonagemBaseController {
         cla: any;
         classe: any;
     }[]>;
+    exportar(req: {
+        user: {
+            id: number;
+        };
+    }, id: number): Promise<{
+        schema: string;
+        schemaVersion: number;
+        exportadoEm: string;
+        personagem: CreatePersonagemBaseDto;
+        referencias: {
+            personagemIdOriginal: any;
+            cla: {
+                id: any;
+                nome: any;
+            } | null;
+            origem: {
+                id: any;
+                nome: any;
+            } | null;
+            classe: {
+                id: any;
+                nome: any;
+            } | null;
+            trilha: {
+                id: any;
+                nome: any;
+            } | null;
+            caminho: {
+                id: any;
+                nome: any;
+            } | null;
+            alinhamento: {
+                id: any;
+                nome: any;
+            } | null;
+            tecnicaInata: {
+                id: any;
+                codigo: any;
+                nome: any;
+            } | null;
+            poderesGenericos: any;
+            passivas: any;
+            itensInventario: any;
+        };
+    }>;
+    importar(req: {
+        user: {
+            id: number;
+        };
+    }, dto: ImportarPersonagemBaseDto): Promise<{
+        importado: boolean;
+        schema: string;
+        schemaVersion: number;
+        importadoEm: string;
+        id: number;
+        nome: string;
+        nivel: number;
+        cla: string;
+        origem: string;
+        classe: string;
+        trilha: string | null;
+        caminho: string | null;
+    }>;
     buscarPorId(req: {
         user: {
             id: number;

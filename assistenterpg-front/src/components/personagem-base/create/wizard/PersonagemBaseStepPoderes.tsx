@@ -1,4 +1,4 @@
-// components/personagem-base/create/wizard/PersonagemBaseStepPoderes.tsx
+﻿// components/personagem-base/create/wizard/PersonagemBaseStepPoderes.tsx
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -13,6 +13,7 @@ import {
   type PericiaCatalogo,
   type TipoGrauCatalogo,
   type PassivasAtributoConfigFront,
+  type AtributoBaseCodigo,
 } from '@/lib/api';
 import { validarRequisitosPoder, calcularSlotsPoderes } from '@/lib/utils/poderes';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -27,9 +28,9 @@ type Props = {
   nivel: number;
   poderesGenericos: PoderGenericoInstanciaPayload[];
   onTogglePoderGenerico: (id: number) => void;
-  addPoderGenericoInstancia?: (id: number, config?: any) => void;
+  addPoderGenericoInstancia?: (id: number, config?: Record<string, unknown>) => void;
   removePoderGenericoInstancia?: (index: number) => void;
-  updatePoderGenericoInstancia?: (index: number, partialConfig: any) => void;
+  updatePoderGenericoInstancia?: (index: number, partialConfig: Record<string, unknown>) => void;
 
   nome: string;
   classeId: string;
@@ -60,8 +61,54 @@ type Props = {
   tiposGrau: TipoGrauCatalogo[];
 
   passivasAtributosConfig?: PassivasAtributoConfigFront;
-  passivasAtributosAtivos?: string[];
+  passivasAtributosAtivos?: AtributoBaseCodigo[];
 };
+
+type PoderGenericoConfig = Record<string, unknown> & {
+  periciasCodigos?: string[];
+  proficiencias?: string[];
+  tipoGrauCodigo?: string;
+};
+
+type MecanicasEscolha = {
+  tipo?: string;
+  quantidade?: number;
+};
+
+type MecanicasEspeciais = {
+  repetivel?: boolean;
+  escolha?: MecanicasEscolha;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+}
+
+function parseMecanicasEspeciais(value: unknown): MecanicasEspeciais | undefined {
+  const record = asRecord(value);
+  if (!record) return undefined;
+
+  const escolhaRaw = asRecord(record.escolha);
+  const escolha: MecanicasEscolha | undefined = escolhaRaw
+    ? {
+        tipo: typeof escolhaRaw.tipo === 'string' ? escolhaRaw.tipo : undefined,
+        quantidade: typeof escolhaRaw.quantidade === 'number' ? escolhaRaw.quantidade : undefined,
+      }
+    : undefined;
+
+  return {
+    repetivel: record.repetivel === true,
+    escolha,
+  };
+}
 
 function sanitizarPassivasConfig(
   config: PassivasAtributoConfigFront | undefined,
@@ -71,11 +118,11 @@ function sanitizarPassivasConfig(
   const sanitizado: PassivasAtributoConfigFront = { ...config };
 
   if (sanitizado.INT_I && !sanitizado.INT_I.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_I;
+    delete sanitizado.INT_I;
   }
 
   if (sanitizado.INT_II && !sanitizado.INT_II.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_II;
+    delete sanitizado.INT_II;
   }
 
   const temConfig = Object.keys(sanitizado).some(
@@ -109,24 +156,23 @@ function sanitizarPoderesGenericos(
   const validos = poderes
     .map((inst) => {
       const poderDb = catalogoPoderes?.find((p) => p.id === inst.habilidadeId);
-      const mecanicas = poderDb?.mecanicasEspeciais as any;
+      const mecanicas = parseMecanicasEspeciais(poderDb?.mecanicasEspeciais);
       const exigeEscolha = mecanicas?.escolha !== undefined;
 
       if (!exigeEscolha) {
         return { ...inst, config: inst.config ?? {} };
       }
 
-      if (!inst.config || Object.keys(inst.config).length === 0) return null;
+      const configInicial = asRecord(inst.config);
+      if (!configInicial || Object.keys(configInicial).length === 0) return null;
 
-      const cfg = { ...inst.config } as any;
+      const cfg: PoderGenericoConfig = { ...configInicial };
 
       if ('periciasCodigos' in cfg) {
-        const pericias = Array.isArray(cfg.periciasCodigos)
-          ? cfg.periciasCodigos.filter((p: any) => p && String(p).trim() !== '')
-          : [];
+        const pericias = toStringArray(cfg.periciasCodigos);
 
         let quantidadeEsperada = 2;
-        if (mecanicas?.escolha?.quantidade) {
+        if (typeof mecanicas?.escolha?.quantidade === 'number') {
           quantidadeEsperada = mecanicas.escolha.quantidade;
         }
 
@@ -135,9 +181,7 @@ function sanitizarPoderesGenericos(
       }
 
       if ('proficiencias' in cfg) {
-        const profs = Array.isArray(cfg.proficiencias)
-          ? cfg.proficiencias.filter((p: any) => p && String(p).trim() !== '')
-          : [];
+        const profs = toStringArray(cfg.proficiencias);
 
         if (profs.length === 0) return null;
         cfg.proficiencias = profs;
@@ -158,7 +202,6 @@ function sanitizarPoderesGenericos(
 export function PersonagemBaseStepPoderes({
   nivel,
   poderesGenericos,
-  onTogglePoderGenerico,
   addPoderGenericoInstancia,
   removePoderGenericoInstancia,
   updatePoderGenericoInstancia,
@@ -204,23 +247,23 @@ export function PersonagemBaseStepPoderes({
   const slotsDisponiveis = calcularSlotsPoderes(nivel);
   const slotsUsados = poderesGenericos.length;
 
-  // ✅ CORRIGIDO: Remover token
+  // Carrega o catálogo de poderes.
   useEffect(() => {
     (async () => {
       try {
         setLoadingCatalogo(true);
         setErro(null);
 
-        // ✅ MUDANÇA: Não passa mais o token
+        // Chamada de catálogo sem token explícito no payload.
         const data = await apiGetPoderesGenericos();
         setPoderes(data);
-      } catch (e: any) {
-        setErro(e?.message ?? 'Erro ao carregar poderes genéricos');
+      } catch (e) {
+        setErro(e instanceof Error ? e.message : 'Erro ao carregar poderes genéricos');
       } finally {
         setLoadingCatalogo(false);
       }
     })();
-  }, []); // ✅ Remover 'token' das dependências
+  }, []);
 
   const poderesGenericosNormalizados: PoderGenericoInstanciaPayload[] = useMemo(
     () =>
@@ -231,7 +274,7 @@ export function PersonagemBaseStepPoderes({
     [poderesGenericos],
   );
 
-  // ✅ CORRIGIDO: Remover token
+  // Recalcula preview quando os dados base mudam.
   useEffect(() => {
     if (!classeId || !origemId || !claId) {
       setPreview(null);
@@ -278,24 +321,23 @@ export function PersonagemBaseStepPoderes({
       poderesGenericos: poderesGenericosSanitizados,
       passivasAtributosAtivos:
         passivasAtributosAtivos && passivasAtributosAtivos.length > 0
-          ? (passivasAtributosAtivos as any)
+          ? passivasAtributosAtivos
           : undefined,
       passivasAtributosConfig: configSanitizado,
-    } as any;
+    };
 
     const reqId = ++reqPreviewRef.current;
     setLoadingPreview(true);
 
     const timeout = setTimeout(() => {
-      // ✅ MUDANÇA: Não passa mais o token
+      // Chamada de preview sem token explícito no payload.
       apiPreviewPersonagemBase(payload)
         .then((res) => {
           if (reqId !== reqPreviewRef.current) return;
           setPreview(res);
         })
-        .catch((err) => {
+        .catch(() => {
           if (reqId !== reqPreviewRef.current) return;
-          console.error('[Poderes][preview] erro:', err);
           setPreview(null);
         })
         .finally(() => {
@@ -306,7 +348,7 @@ export function PersonagemBaseStepPoderes({
 
     return () => clearTimeout(timeout);
   }, [
-    // ✅ Remover 'token' das dependências
+    // Sem dependência de token: o interceptor cuida da autenticação.
     classeId,
     origemId,
     claId,
@@ -423,7 +465,7 @@ export function PersonagemBaseStepPoderes({
   }, [poderes, termoBusca]);
 
   if (loadingCatalogo) {
-    return <Loading message="Carregando poderes genéricos..." />;
+    return <Loading message="Carregando poderes genÃ©ricos..." />;
   }
 
   if (erro) {
@@ -433,14 +475,14 @@ export function PersonagemBaseStepPoderes({
   if (slotsDisponiveis === 0) {
     return (
       <SectionCard
-        title="Poderes genéricos"
+        title="Poderes genÃ©ricos"
         right={<Icon name="sparkles" className="h-5 w-5 text-app-muted" />}
       >
         <EmptyState
           variant="card"
           icon="info"
-          title="Ainda indisponível"
-          description="Poderes genéricos são desbloqueados nos níveis 3, 6, 9, 12, 15 e 18."
+          title="Ainda indisponÃ­vel"
+          description="Poderes genÃ©ricos sÃ£o desbloqueados nos nÃ­veis 3, 6, 9, 12, 15 e 18."
         />
       </SectionCard>
     );
@@ -452,7 +494,7 @@ export function PersonagemBaseStepPoderes({
   return (
     <div className="space-y-4">
       <SectionCard
-        title="Poderes genéricos"
+        title="Poderes genÃ©ricos"
         right={
           <div className="flex items-center gap-2">
             {loadingPreview && <Icon name="spinner" className="w-4 h-4 animate-spin text-app-muted" />}
@@ -461,7 +503,7 @@ export function PersonagemBaseStepPoderes({
         }
         contentClassName="space-y-4"
       >
-        {/* ✅ 1. INFO + RESUMO */}
+        {/* âœ… 1. INFO + RESUMO */}
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
@@ -470,11 +512,11 @@ export function PersonagemBaseStepPoderes({
                 <p className="text-sm font-medium text-app-fg">Slots de poderes</p>
               </div>
               <p className="text-xs text-app-muted mt-1">
-                Você pode selecionar até {slotsDisponiveis} poder(es) genérico(s) neste nível.
+                VocÃª pode selecionar atÃ© {slotsDisponiveis} poder(es) genÃ©rico(s) neste nÃ­vel.
               </p>
             </div>
 
-            {/* ✅ Badge resumo */}
+            {/* âœ… Badge resumo */}
             <div
               className={`rounded-full px-3 py-1 text-sm font-semibold whitespace-nowrap ${
                 semSlotsLivres
@@ -488,7 +530,7 @@ export function PersonagemBaseStepPoderes({
             </div>
           </div>
 
-          {/* ✅ Progress bar */}
+          {/* âœ… Progress bar */}
           <div className="space-y-1">
             <div className="h-2 rounded-full bg-app-border overflow-hidden">
               <div
@@ -508,7 +550,7 @@ export function PersonagemBaseStepPoderes({
           </div>
         </div>
 
-        {/* ✅ 2. BUSCA */}
+        {/* âœ… 2. BUSCA */}
         <Input
           type="text"
           placeholder="Buscar poderes..."
@@ -517,7 +559,7 @@ export function PersonagemBaseStepPoderes({
           icon="search"
         />
 
-        {/* ✅ 3. LISTA DE PODERES */}
+        {/* âœ… 3. LISTA DE PODERES */}
         <div className="space-y-2">
           {poderesFiltrados.map((poder) => {
             const mecanicas = poder.mecanicasEspeciais as
@@ -573,11 +615,11 @@ export function PersonagemBaseStepPoderes({
                         <h4 className="font-semibold text-app-fg text-sm">{poder.nome}</h4>
                         {repetivel && (
                           <span className="rounded-full bg-app-primary/10 px-2 py-0.5 text-[10px] font-medium text-app-primary">
-                            Repetível
+                            RepetÃ­vel
                           </span>
                         )}
                         {poder.origem && (
-                          <span className="text-[10px] text-app-muted">📜 {poder.origem}</span>
+                          <span className="text-[10px] text-app-muted">ðŸ“œ {poder.origem}</span>
                         )}
                       </div>
 
@@ -589,16 +631,16 @@ export function PersonagemBaseStepPoderes({
 
                       {!validacao.atende && validacao.motivoNaoAtende && (
                         <p className="text-xs text-app-danger mt-1">
-                          ❌ {validacao.motivoNaoAtende}
+                          âŒ {validacao.motivoNaoAtende}
                         </p>
                       )}
                     </div>
 
-                    {/* ✅ Controles */}
+                    {/* âœ… Controles */}
                     <div className="flex items-center gap-2">
                       {selecionado && (
                         <span className="text-xs text-app-muted font-medium">
-                          {instanciasDestePoder.length}×
+                          {instanciasDestePoder.length}Ã—
                         </span>
                       )}
 
@@ -615,7 +657,7 @@ export function PersonagemBaseStepPoderes({
                         }}
                         className="h-8 w-8 px-0 text-lg font-bold"
                       >
-                        −
+                        âˆ’
                       </Button>
 
                       <Button
@@ -629,10 +671,10 @@ export function PersonagemBaseStepPoderes({
                         className="h-8 w-8 px-0 text-lg font-bold"
                         title={
                           semSlotsLivres
-                            ? 'Sem slots disponíveis'
+                            ? 'Sem slots disponÃ­veis'
                             : !validacao.atende
-                            ? 'Requisitos não atendidos'
-                            : 'Adicionar instância'
+                            ? 'Requisitos nÃ£o atendidos'
+                            : 'Adicionar instÃ¢ncia'
                         }
                       >
                         +
@@ -640,7 +682,7 @@ export function PersonagemBaseStepPoderes({
                     </div>
                   </div>
 
-                  {/* ✅ Config (collapse) */}
+                  {/* âœ… Config (collapse) */}
                   {escolha && instanciasDestePoder.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-app-border/50">
                       <button
@@ -649,7 +691,7 @@ export function PersonagemBaseStepPoderes({
                         className="w-full flex items-center justify-between text-left hover:opacity-70 transition-opacity"
                       >
                         <span className="text-xs font-medium text-app-fg">
-                          Configurar instâncias ({instanciasDestePoder.length})
+                          Configurar instÃ¢ncias ({instanciasDestePoder.length})
                         </span>
                         <Icon
                           name="chevron-down"
@@ -662,13 +704,11 @@ export function PersonagemBaseStepPoderes({
                       {configAb && (
                         <div className="mt-2 space-y-2">
                           {instanciasDestePoder.map(({ inst, indexGlobal }, idx) => {
-                            const cfg = (inst.config ?? {}) as any;
+                            const cfg = asRecord(inst.config) ?? {};
 
                             if (escolha.tipo === 'PERICIAS') {
                               const quantidade = escolha.quantidade ?? 2;
-                              const lista = Array.isArray(cfg.periciasCodigos)
-                                ? (cfg.periciasCodigos as string[])
-                                : [];
+                              const lista = toStringArray(cfg.periciasCodigos);
 
                               const valores = [...lista];
                               while (valores.length < quantidade) {
@@ -681,7 +721,7 @@ export function PersonagemBaseStepPoderes({
                                   className="rounded border border-app-border bg-app-elevated p-2 space-y-1.5"
                                 >
                                   <p className="text-[10px] text-app-muted">
-                                    Instância {idx + 1} – escolha {quantidade} perícia(s)
+                                    InstÃ¢ncia {idx + 1} â€“ escolha {quantidade} perÃ­cia(s)
                                   </p>
 
                                   {valores.map((valorAtual: string, idxPericia: number) => {
@@ -707,7 +747,7 @@ export function PersonagemBaseStepPoderes({
                                           });
                                         }}
                                       >
-                                        <option value="">Perícia {idxPericia + 1}...</option>
+                                        <option value="">PerÃ­cia {idxPericia + 1}...</option>
                                         {opcoes.map((p) => (
                                           <option key={p.codigo} value={p.codigo}>
                                             {p.nome} (grau {p.grauTreinamento})
@@ -721,7 +761,8 @@ export function PersonagemBaseStepPoderes({
                             }
 
                             if (escolha.tipo === 'TIPO_GRAU') {
-                              const tipoGrauCodigo: string = cfg.tipoGrauCodigo ?? '';
+                              const tipoGrauCodigo =
+                                typeof cfg.tipoGrauCodigo === 'string' ? cfg.tipoGrauCodigo : '';
 
                               const opcoesTipoGrau = tiposGrau.filter((tg) => {
                                 const atual = mapaGrausAtualPorTipo.get(tg.codigo) ?? 0;
@@ -734,7 +775,7 @@ export function PersonagemBaseStepPoderes({
                                   className="rounded border border-app-border bg-app-elevated p-2"
                                 >
                                   <p className="text-[10px] text-app-muted mb-1.5">
-                                    Instância {idx + 1} – escolha um tipo de grau
+                                    InstÃ¢ncia {idx + 1} â€“ escolha um tipo de grau
                                   </p>
 
                                   <select
@@ -765,7 +806,7 @@ export function PersonagemBaseStepPoderes({
                                 className="rounded border border-app-border bg-app-elevated p-2"
                               >
                                 <p className="text-[10px] text-app-muted">
-                                  Tipo "{escolha.tipo}" sem UI específica.
+                                  Tipo &quot;{escolha.tipo}&quot; sem UI especÃ­fica.
                                 </p>
                               </div>
                             );
@@ -780,7 +821,7 @@ export function PersonagemBaseStepPoderes({
           })}
         </div>
 
-        {/* ✅ Empty states */}
+        {/* âœ… Empty states */}
         {poderesFiltrados.length === 0 && termoBusca && (
           <EmptyState
             variant="card"
@@ -794,8 +835,8 @@ export function PersonagemBaseStepPoderes({
           <EmptyState
             variant="card"
             icon="info"
-            title="Nenhum poder disponível"
-            description="O catálogo de poderes genéricos está vazio."
+            title="Nenhum poder disponÃ­vel"
+            description="O catÃ¡logo de poderes genÃ©ricos estÃ¡ vazio."
           />
         )}
       </SectionCard>

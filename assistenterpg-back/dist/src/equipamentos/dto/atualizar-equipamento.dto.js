@@ -17,6 +17,8 @@ class AtualizarEquipamentoDto {
     nome;
     descricao;
     tipo;
+    fonte;
+    suplementoId;
     categoria;
     espacos;
     complexidadeMaldicao;
@@ -74,6 +76,17 @@ __decorate([
     (0, class_validator_1.IsEnum)(client_1.TipoEquipamento),
     __metadata("design:type", String)
 ], AtualizarEquipamentoDto.prototype, "tipo", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.TipoFonte),
+    __metadata("design:type", String)
+], AtualizarEquipamentoDto.prototype, "fonte", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], AtualizarEquipamentoDto.prototype, "suplementoId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(client_1.CategoriaEquipamento),

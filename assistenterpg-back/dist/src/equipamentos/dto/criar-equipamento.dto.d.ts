@@ -1,8 +1,10 @@
-import { TipoEquipamento, CategoriaEquipamento, ComplexidadeMaldicao, ProficienciaArma, EmpunhaduraArma, TipoArma, SubtipoArmaDistancia, AlcanceArma, ProficienciaProtecao, TipoProtecao, TipoAcessorio, TipoExplosivo, TipoUsoEquipamento, TipoAmaldicoado } from '@prisma/client';
+import { TipoEquipamento, CategoriaEquipamento, ComplexidadeMaldicao, ProficienciaArma, EmpunhaduraArma, TipoArma, SubtipoArmaDistancia, AlcanceArma, ProficienciaProtecao, TipoProtecao, TipoAcessorio, TipoExplosivo, TipoUsoEquipamento, TipoAmaldicoado, TipoFonte } from '@prisma/client';
 export declare class CriarEquipamentoDto {
     codigo: string;
     nome: string;
     tipo: TipoEquipamento;
+    fonte?: TipoFonte;
+    suplementoId?: number;
     descricao?: string;
     categoria?: CategoriaEquipamento;
     espacos?: number;

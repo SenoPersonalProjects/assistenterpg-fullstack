@@ -4,15 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HabilidadesIniciaisSection } from '@/components/personagem-base/sections/HabilidadesIniciaisSection';
-import type { PersonagemBaseDetalhe } from '@/lib/api';
-
-type HabilidadeCatalogo = {
-  id: number;
-  nome: string;
-  descricao: string | null;
-  tipo: string;
-  [key: string]: any;
-};
+import type { PersonagemBaseDetalhe, HabilidadeCatalogo } from '@/lib/api';
 
 type SecaoOrigemClasseProps = {
   personagem: PersonagemBaseDetalhe;

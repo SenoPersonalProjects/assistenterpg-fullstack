@@ -9,7 +9,6 @@ import type {
   PericiaCatalogo,
   PoderGenericoInstanciaPayload,
   PassivasAtributoConfigFront,
-  AtributoBaseCodigo,
 } from '@/lib/api';
 import { apiPreviewPersonagemBase } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -73,11 +72,11 @@ function sanitizarPassivasConfig(
   const sanitizado: PassivasAtributoConfigFront = { ...config };
 
   if (sanitizado.INT_I && !sanitizado.INT_I.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_I;
+    delete sanitizado.INT_I;
   }
 
   if (sanitizado.INT_II && !sanitizado.INT_II.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_II;
+    delete sanitizado.INT_II;
   }
 
   const temConfig = Object.keys(sanitizado).some(
@@ -142,7 +141,7 @@ export function PersonagemBaseStepGrausTreinamento({
   const reqBaseRef = useRef(0);
   const reqFinalRef = useRef(0);
 
-  const grausTreinamentoAtual = grausTreinamento ?? [];
+  const grausTreinamentoAtual = useMemo(() => grausTreinamento ?? [], [grausTreinamento]);
 
   const niveisDisponiveis = useMemo(() => {
     const niveisValidos = getNiveisGrausTreinamento();
@@ -319,7 +318,7 @@ export function PersonagemBaseStepGrausTreinamento({
 
   useEffect(() => {
     if (!token || !payloadBase) {
-      setPreviewBase(null);
+      queueMicrotask(() => setPreviewBase(null));
       return;
     }
 
@@ -330,8 +329,7 @@ export function PersonagemBaseStepGrausTreinamento({
         if (reqId !== reqBaseRef.current) return;
         setPreviewBase(res);
       })
-      .catch((error) => {
-        console.error('❌ Erro ao buscar preview base:', error);
+      .catch(() => {
         if (reqId !== reqBaseRef.current) return;
         setPreviewBase(null);
       });
@@ -339,13 +337,13 @@ export function PersonagemBaseStepGrausTreinamento({
 
   useEffect(() => {
     if (!token || !payloadFinal) {
-      setPreviewFinal(null);
+      queueMicrotask(() => setPreviewFinal(null));
       return;
     }
 
     const reqId = ++reqFinalRef.current;
 
-    setCarregando(true);
+    queueMicrotask(() => setCarregando(true));
 
     const timeout = setTimeout(() => {
       apiPreviewPersonagemBase(payloadFinal)
@@ -353,8 +351,7 @@ export function PersonagemBaseStepGrausTreinamento({
           if (reqId !== reqFinalRef.current) return;
           setPreviewFinal(res);
         })
-        .catch((error) => {
-          console.error('❌ Erro ao buscar preview final:', error);
+        .catch(() => {
           if (reqId !== reqFinalRef.current) return;
           setPreviewFinal(null);
         })
@@ -451,14 +448,6 @@ export function PersonagemBaseStepGrausTreinamento({
     const validacao = validarMelhoria(degrauAnterior, degrauNovo);
 
     if (!validacao.valido) {
-      console.warn('[GrausTreinamento] melhoria inválida (bloqueada)', {
-        periciaCodigo,
-        degrauAnterior,
-        degrauNovo,
-        nivelSelecionado,
-        index,
-        motivo: validacao.mensagem,
-      });
       return;
     }
 
@@ -523,7 +512,7 @@ export function PersonagemBaseStepGrausTreinamento({
         right={<Icon name="training" className="h-5 w-5 text-app-muted" />}
         contentClassName="space-y-4"
       >
-        {/* ✅ 1. INFO + RESUMO */}
+        {/* 1. INFO + RESUMO */}
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
@@ -543,7 +532,7 @@ export function PersonagemBaseStepGrausTreinamento({
               </p>
             </div>
 
-            {/* ✅ Badge resumo total */}
+            {/* Badge resumo total */}
             <div
               className={`rounded-full px-3 py-1 text-sm font-semibold whitespace-nowrap ${
                 totalMelhorias === 0
@@ -558,7 +547,7 @@ export function PersonagemBaseStepGrausTreinamento({
           </div>
         </div>
 
-        {/* ✅ 2. NÍVEIS (escolhas) */}
+        {/* 2. NÍVEIS (escolhas) */}
         <div className="space-y-3">
           {niveisDisponiveis.map((nivelInfo) => {
             const grauNivel = grausTreinamentoAtual.find((g) => g.nivel === nivelInfo.nivel);
@@ -612,7 +601,7 @@ export function PersonagemBaseStepGrausTreinamento({
                 ) : (
                   <div className="space-y-2">
                     {melhorias.map((melhoria, index) => {
-                      // ✅ CORRIGIDO: Filtrar opções para ESTA melhoria específica
+                      // Filtrar opções para ESTA melhoria específica
                       const opcoesNivel = periciasElegiveis.filter((p) => {
                         if (p.codigo === melhoria.periciaCodigo) return true;
                         return !codigosSelecionadosNoNivel.has(p.codigo);
@@ -669,7 +658,7 @@ export function PersonagemBaseStepGrausTreinamento({
                               })}
                             </select>
 
-                            {/* ✅ CORRIGIDO: Botão maior e mais visível */}
+                            {/* Botão maior e mais visível */}
                             <Button
                               type="button"
                               variant="secondary"
@@ -681,7 +670,7 @@ export function PersonagemBaseStepGrausTreinamento({
                             </Button>
                           </div>
 
-                          {/* ✅ Detalhes abaixo do select */}
+                          {/* Detalhes abaixo do select */}
                           {periciaSelecionada && (
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-app-muted">
@@ -704,7 +693,7 @@ export function PersonagemBaseStepGrausTreinamento({
           })}
         </div>
 
-        {/* ✅ 3. PREVIEW (collapse) */}
+        {/* 3. PREVIEW (collapse) */}
         <div className="rounded border border-app-border bg-app-elevated">
           <button
             type="button"

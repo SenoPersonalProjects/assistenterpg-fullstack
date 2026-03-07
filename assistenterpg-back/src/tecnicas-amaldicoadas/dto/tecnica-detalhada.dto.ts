@@ -1,6 +1,6 @@
 // src/tecnicas-amaldicoadas/dto/tecnica-detalhada.dto.ts
 
-import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client';  // ✅ NOVO
+import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client'; // ✅ NOVO
 
 export class ClaResumoDto {
   id: number;
@@ -73,13 +73,13 @@ export class TecnicaDetalhadaDto {
   tipo: TipoTecnicaAmaldicoada;
   hereditaria: boolean;
   linkExterno?: string;
-  
+
   // ✅ CORRIGIDO: origem → fonte
   fonte: TipoFonte;
-  
+
   // ✅ NOVO: suplementoId
   suplementoId?: number;
-  
+
   requisitos?: any;
   clasHereditarios?: ClaResumoDto[];
   habilidades?: HabilidadeTecnicaDto[];

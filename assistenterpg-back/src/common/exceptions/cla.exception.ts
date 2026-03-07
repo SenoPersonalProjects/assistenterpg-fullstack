@@ -11,22 +11,15 @@ import { ValidationException } from './validation.exception';
 
 export class ClaNaoEncontradoException extends BaseException {
   constructor(identificador: string | number) {
-    super(
-      'Clã não encontrado',
-      HttpStatus.NOT_FOUND,
-      'CLA_NOT_FOUND',
-      { identificador },
-    );
+    super('Clã não encontrado', HttpStatus.NOT_FOUND, 'CLA_NOT_FOUND', {
+      identificador,
+    });
   }
 }
 
 export class ClaNomeDuplicadoException extends BusinessException {
   constructor(nome: string) {
-    super(
-      `Clã com nome "${nome}" já existe`,
-      'CLA_NOME_DUPLICADO',
-      { nome },
-    );
+    super(`Clã com nome "${nome}" já existe`, 'CLA_NOME_DUPLICADO', { nome });
   }
 }
 

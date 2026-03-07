@@ -23,7 +23,9 @@ export class UsuarioService {
 
   async criarUsuario(apelido: string, email: string, senha: string) {
     try {
-      const existente = await this.prisma.usuario.findUnique({ where: { email } });
+      const existente = await this.prisma.usuario.findUnique({
+        where: { email },
+      });
 
       if (existente) {
         throw new UsuarioEmailDuplicadoException(email);
@@ -187,7 +189,10 @@ export class UsuarioService {
     }
   }
 
-  async atualizarPreferencias(usuarioId: number, dto: AtualizarPreferenciasDto) {
+  async atualizarPreferencias(
+    usuarioId: number,
+    dto: AtualizarPreferenciasDto,
+  ) {
     try {
       return this.prisma.preferenciaUsuario.upsert({
         where: { usuarioId },
@@ -212,7 +217,10 @@ export class UsuarioService {
         throw new UsuarioNaoEncontradoException(usuarioId);
       }
 
-      const senhaValida = await bcrypt.compare(dto.senhaAtual, usuario.senhaHash);
+      const senhaValida = await bcrypt.compare(
+        dto.senhaAtual,
+        usuario.senhaHash,
+      );
 
       if (!senhaValida) {
         throw new UsuarioSenhaIncorretaException('alteracao');
@@ -236,44 +244,46 @@ export class UsuarioService {
 
   async exportarDados(usuarioId: number) {
     try {
-      const [usuario, personagens, campanhas, preferencias] = await Promise.all([
-        this.prisma.usuario.findUnique({
-          where: { id: usuarioId },
-          select: {
-            id: true,
-            apelido: true,
-            email: true,
-            role: true, // ✅ NOVO
-            criadoEm: true,
-          },
-        }),
-        this.prisma.personagemBase.findMany({
-          where: { donoId: usuarioId },
-          include: {
-            classe: true,
-            origem: true,
-            cla: true,
-            trilha: true,
-            caminho: true,
-            tecnicaInata: true,
-          },
-        }),
-        this.prisma.campanha.findMany({
-          where: {
-            OR: [{ donoId: usuarioId }, { membros: { some: { usuarioId } } }],
-          },
-          include: {
-            membros: {
-              include: {
-                usuario: { select: { apelido: true } },
+      const [usuario, personagens, campanhas, preferencias] = await Promise.all(
+        [
+          this.prisma.usuario.findUnique({
+            where: { id: usuarioId },
+            select: {
+              id: true,
+              apelido: true,
+              email: true,
+              role: true, // ✅ NOVO
+              criadoEm: true,
+            },
+          }),
+          this.prisma.personagemBase.findMany({
+            where: { donoId: usuarioId },
+            include: {
+              classe: true,
+              origem: true,
+              cla: true,
+              trilha: true,
+              caminho: true,
+              tecnicaInata: true,
+            },
+          }),
+          this.prisma.campanha.findMany({
+            where: {
+              OR: [{ donoId: usuarioId }, { membros: { some: { usuarioId } } }],
+            },
+            include: {
+              membros: {
+                include: {
+                  usuario: { select: { apelido: true } },
+                },
               },
             },
-          },
-        }),
-        this.prisma.preferenciaUsuario.findUnique({
-          where: { usuarioId },
-        }),
-      ]);
+          }),
+          this.prisma.preferenciaUsuario.findUnique({
+            where: { usuarioId },
+          }),
+        ],
+      );
 
       return {
         exportadoEm: new Date().toISOString(),

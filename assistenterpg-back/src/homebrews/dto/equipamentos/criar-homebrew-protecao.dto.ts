@@ -1,8 +1,18 @@
 // src/homebrews/dto/equipamentos/criar-homebrew-protecao.dto.ts
 
-import { IsNotEmpty, IsEnum, IsInt, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsInt,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { ProficienciaProtecao, TipoProtecao, TipoReducaoDano } from '@prisma/client';
+import {
+  ProficienciaProtecao,
+  TipoProtecao,
+  TipoReducaoDano,
+} from '@prisma/client';
 import { EquipamentoBaseDto } from '../base/equipamento-base.dto';
 
 /**

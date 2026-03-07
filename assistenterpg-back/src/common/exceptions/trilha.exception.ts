@@ -10,12 +10,9 @@ import { BusinessException } from './business.exception';
 
 export class TrilhaNaoEncontradaException extends BaseException {
   constructor(identificador?: string | number) {
-    super(
-      'Trilha não encontrada',
-      HttpStatus.NOT_FOUND,
-      'TRILHA_NOT_FOUND',
-      { identificador },
-    );
+    super('Trilha não encontrada', HttpStatus.NOT_FOUND, 'TRILHA_NOT_FOUND', {
+      identificador,
+    });
   }
 }
 
@@ -32,11 +29,9 @@ export class TrilhaClasseNaoEncontradaException extends BaseException {
 
 export class TrilhaNomeDuplicadoException extends BusinessException {
   constructor(nome: string) {
-    super(
-      `Trilha com nome "${nome}" já existe`,
-      'TRILHA_NOME_DUPLICADO',
-      { nome },
-    );
+    super(`Trilha com nome "${nome}" já existe`, 'TRILHA_NOME_DUPLICADO', {
+      nome,
+    });
   }
 }
 
@@ -63,22 +58,17 @@ export class TrilhaEmUsoException extends BusinessException {
 
 export class CaminhoNaoEncontradoException extends BaseException {
   constructor(identificador?: string | number) {
-    super(
-      'Caminho não encontrado',
-      HttpStatus.NOT_FOUND,
-      'CAMINHO_NOT_FOUND',
-      { identificador },
-    );
+    super('Caminho não encontrado', HttpStatus.NOT_FOUND, 'CAMINHO_NOT_FOUND', {
+      identificador,
+    });
   }
 }
 
 export class CaminhoNomeDuplicadoException extends BusinessException {
   constructor(nome: string) {
-    super(
-      `Caminho com nome "${nome}" já existe`,
-      'CAMINHO_NOME_DUPLICADO',
-      { nome },
-    );
+    super(`Caminho com nome "${nome}" já existe`, 'CAMINHO_NOME_DUPLICADO', {
+      nome,
+    });
   }
 }
 

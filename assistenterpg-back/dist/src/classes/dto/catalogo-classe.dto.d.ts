@@ -1,4 +1,4 @@
-import { HabilidadeCatalogoDto } from "src/habilidades/dto/catalogo-habilidade.dto";
+import { HabilidadeCatalogoDto } from 'src/habilidades/dto/catalogo-habilidade.dto';
 export declare class ClassePericiaCatalogoDto {
     id: number;
     tipo: string;
@@ -23,6 +23,8 @@ export declare class ClasseCatalogoDto {
     id: number;
     nome: string;
     descricao: string | null;
+    fonte: string;
+    suplementoId: number | null;
     periciasLivresBase: number;
     pericias: ClassePericiaCatalogoDto[];
     proficiencias: ClasseProficienciaCatalogoDto[];

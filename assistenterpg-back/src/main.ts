@@ -1,13 +1,56 @@
-// src/main.ts
+﻿// src/main.ts
 
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+
+async function listenWithPortFallback(
+  app: Awaited<ReturnType<typeof NestFactory.create>>,
+  logger: Logger,
+  preferredPort: number,
+): Promise<number> {
+  const autoRetryFlag = process.env.PORT_AUTO_RETRY;
+  const isDevLike = process.env.NODE_ENV !== 'production';
+  const autoRetry =
+    autoRetryFlag === 'true' || (isDevLike && autoRetryFlag !== 'false');
+
+  const retryMax = Number(process.env.PORT_AUTO_RETRY_MAX ?? 10);
+  const maxAttempts = autoRetry ? Math.max(1, retryMax) : 1;
+
+  let currentPort = preferredPort;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await app.listen(currentPort);
+      return currentPort;
+    } catch (error: any) {
+      const isPortInUse = error?.code === 'EADDRINUSE';
+      const hasNextAttempt = attempt < maxAttempts;
+
+      if (isPortInUse && hasNextAttempt) {
+        logger.warn(`Porta ${currentPort} em uso. Tentando ${currentPort + 1}...`);
+        currentPort += 1;
+        continue;
+      }
+
+      if (isPortInUse) {
+        logger.error(`Nao foi possivel iniciar a API: porta ${currentPort} em uso.`);
+        logger.error(
+          'Defina PORT para outra porta ou finalize o processo que ocupa essa porta.',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  throw new Error('Falha ao iniciar aplicacao: sem portas disponiveis.');
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -34,11 +77,15 @@ async function bootstrap() {
     }),
   );
 
-  app.useGlobalFilters(new HttpExceptionFilter(), new AllExceptionsFilter());
+  // Register fallback first and specific HTTP handler last.
+  // Nest applies global filters in reverse order of registration.
+  app.useGlobalFilters(new AllExceptionsFilter(), new HttpExceptionFilter());
 
   app.useGlobalInterceptors(new LoggingInterceptor(), new TimeoutInterceptor());
 
-  const port = process.env.PORT ?? 3000;
+  const preferredPortRaw = Number(process.env.PORT ?? 3000);
+  const preferredPort = Number.isFinite(preferredPortRaw) ? preferredPortRaw : 3000;
+
   const enableSwagger = process.env.SWAGGER_ENABLED !== 'false';
   const apiVersion = process.env.API_VERSION || 'v1';
 
@@ -46,7 +93,7 @@ async function bootstrap() {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('AssistenteRPG API')
       .setDescription(
-        'Contrato oficial da API do backend do AssistenteRPG para integração com o front.',
+        'Contrato oficial da API do backend do AssistenteRPG para integracao com o front.',
       )
       .setVersion(apiVersion)
       .addBearerAuth(
@@ -68,16 +115,17 @@ async function bootstrap() {
       jsonDocumentUrl: 'docs/openapi.json',
     });
 
-    logger.log(`📘 Swagger habilitado em: http://localhost:${port}/docs`);
-    logger.log(
-      `📄 OpenAPI JSON em: http://localhost:${port}/docs/openapi.json`,
-    );
+    logger.log('Swagger habilitado em /docs e /docs/openapi.json.');
+    logger.log(`Porta preferencial configurada: ${preferredPort}.`);
   }
 
-  await app.listen(port);
+  const activePort = await listenWithPortFallback(app, logger, preferredPort);
 
-  logger.log(`🚀 Aplicação rodando em: http://localhost:${port}`);
-  logger.log(`📡 CORS habilitado para: ${corsOrigins.join(', ')}`);
-  logger.log('🛡️ Sistema de tratamento de erros ativado');
+  logger.log(`Aplicacao rodando em: http://localhost:${activePort}`);
+  logger.log(`Swagger UI: http://localhost:${activePort}/docs`);
+  logger.log(`OpenAPI JSON: http://localhost:${activePort}/docs/openapi.json`);
+  logger.log(`CORS habilitado para: ${corsOrigins.join(', ')}`);
+  logger.log('Sistema de tratamento de erros ativado.');
 }
+
 void bootstrap();

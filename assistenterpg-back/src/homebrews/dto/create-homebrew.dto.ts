@@ -38,8 +38,7 @@ export class CreateHomebrewDto extends CreateHomebrewBaseDto {
    * Estrutura varia por tipo (validado em runtime)
    */
   @IsNotEmpty()
-  dados:
-    // Equipamentos
+  dados: // Equipamentos
     | HomebrewArmaDto
     | HomebrewProtecaoDto
     | HomebrewAcessorioDto

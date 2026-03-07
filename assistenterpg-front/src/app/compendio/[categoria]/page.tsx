@@ -6,7 +6,6 @@ import { SubcategoriaCard } from '@/components/compendio/SubcategoriaCard';
 import { CompendioLayout } from '@/components/compendio/CompendioLayout';
 import { EmptyState } from '@/components/ui/EmptyState'; // ✅ Genérico
 import { CompendioGrid } from '@/components/compendio/CompendioGrid';
-import type { CompendioCategoria } from '@/lib/utils/compendio';
 
 type Props = {
   params: Promise<{ categoria: string }>;
@@ -34,9 +33,11 @@ export default async function CategoriaPage({ params }: Props) {
     );
   }
 
-  const subcategorias = categoriaData.subcategorias || [];
+  const subcategorias = (categoriaData.subcategorias || []).flatMap((item) =>
+    Array.isArray(item) ? item : [item],
+  );
   const totalSubcategorias = subcategorias.length;
-  const totalArtigos = subcategorias.reduce((acc: number, sub: any) => {
+  const totalArtigos = subcategorias.reduce((acc, sub) => {
     return acc + (sub.artigos?.length || 0);
   }, 0);
 
@@ -72,7 +73,7 @@ export default async function CategoriaPage({ params }: Props) {
           title={`Subcategorias (${totalSubcategorias})`}
           description={`Explore tópicos sobre ${categoriaData.nome.toLowerCase()}`}
         >
-          {subcategorias.map((subcategoria: any) => (
+          {subcategorias.map((subcategoria) => (
             <SubcategoriaCard
               key={subcategoria.id}
               subcategoria={subcategoria}

@@ -16,7 +16,7 @@ import { UpdateClasseDto } from './dto/update-classe.dto';
 @UseGuards(AuthGuard('jwt'))
 @Controller('classes')
 export class ClassesController {
-  constructor(private readonly classesService: ClassesService) { }
+  constructor(private readonly classesService: ClassesService) {}
 
   @Post()
   create(@Body() dto: CreateClasseDto) {

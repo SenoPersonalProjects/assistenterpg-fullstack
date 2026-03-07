@@ -1,43 +1,49 @@
 # Changelog de contrato da API (foco front)
 
-> Registre aqui apenas mudanças que impactam consumo do front.
+> Registre aqui apenas mudancas que impactam consumo do front.
 
 ## [Unreleased]
 
 ### Added
 
-- Pacote único de handoff para front adicionado em `docs/FRONT_CONTRACT_PACKAGE/` (snapshot OpenAPI versionado, matriz de paginação/parâmetros, permissões + usuários de teste e catálogo de erros).
-- Troubleshooting de geração do Prisma Client em CI/proxy: `docs/PRISMA_GENERATE_TROUBLESHOOTING.md`.
-- Checklist obrigatório de PR do front para integração (`docs/FRONT_PR_CHECKLIST_BACKEND_CONTRACT.md`).
-- Plano de execução de estabilização em 3 PRs (`docs/PLANO_EXECUCAO_ESTABILIZACAO.md`).
-- Implementação inicial de Swagger/OpenAPI em runtime (`/docs` e `/docs/openapi.json`).
-- Documento de handoff técnico para front sem monorepo: `docs/BACKEND_HANDOFF_FRONT.md`.
-- Arquivo de pinagem de versão de contrato: `docs/BACKEND_CONTRACT_VERSION.md`.
-- Exemplos adicionais de request/response para inventário, homebrews e suplementos.
-- Guia de revisão front↔back em repositórios separados: `docs/GUIA_REVISAO_FRONT_COM_BACK.md`.
-- Playbook de integração Next.js: `docs/FRONT_NEXT_INTEGRATION_PLAYBOOK.md`.
+- Pacote unico de handoff para front adicionado em `docs/FRONT_CONTRACT_PACKAGE/` (snapshot OpenAPI versionado, matriz de paginacao/parametros, permissoes + usuarios de teste e catalogo de erros).
+- Troubleshooting de geracao do Prisma Client em CI/proxy: `docs/PRISMA_GENERATE_TROUBLESHOOTING.md`.
+- Checklist obrigatorio de PR do front para integracao (`docs/FRONT_PR_CHECKLIST_BACKEND_CONTRACT.md`).
+- Plano de execucao de estabilizacao em 3 PRs (`docs/PLANO_EXECUCAO_ESTABILIZACAO.md`).
+- Implementacao inicial de Swagger/OpenAPI em runtime (`/docs` e `/docs/openapi.json`).
+- Documento de handoff tecnico para front sem monorepo: `docs/BACKEND_HANDOFF_FRONT.md`.
+- Arquivo de pinagem de versao de contrato: `docs/BACKEND_CONTRACT_VERSION.md`.
+- Exemplos adicionais de request/response para inventario, homebrews e suplementos.
+- Guia de revisao front-back em repositorios separados: `docs/GUIA_REVISAO_FRONT_COM_BACK.md`.
+- Playbook de integracao Next.js: `docs/FRONT_NEXT_INTEGRATION_PLAYBOOK.md`.
 - Snapshot de contrato para consumo do front: `docs/API_CONTRACT_SNAPSHOT.md`.
-- Guia de entrada rápida para agente/time do front: `docs/FRONT_AGENT_START_HERE.md`.
+- Guia de entrada rapida para agente/time do front: `docs/FRONT_AGENT_START_HERE.md`.
+- Endpoints de compartilhamento de ficha no wizard de personagem-base:
+  - `GET /personagens-base/:id/exportar` (gera JSON de exportacao da ficha)
+  - `POST /personagens-base/importar` (importa JSON e cria nova ficha para o usuario autenticado)
+- Documento de handoff detalhado para front sobre wizard + import/export: `docs/WIZARD_PERSONAGEM_IMPORT_EXPORT_HANDOFF_2026-03-04.md`.
 
 ### Changed
 
-- Atualizada a pinagem de versão do contrato em `docs/BACKEND_CONTRACT_VERSION.md` para alinhar a documentação ao baseline de código entregue ao front.
-- PR 1 de Build/Test Health iniciado com `prebuild` para validação de Prisma Client e exclusão de `prisma/**` do build principal da aplicação.
-- `prebuild` agora tenta `prisma generate` automaticamente antes de falhar com instruções de troubleshooting.
-- Endpoints de listagem de campanhas/compêndio aceitam paginação opcional (`page`, `limit`) com retorno híbrido (array ou envelope paginado).
-- Correção de bloqueador de execução: `package.json` inválido (chave `prebuild` duplicada/mal formada), restaurando parse do npm e disponibilidade dos scripts.
+- Atualizada a pinagem de versao do contrato em `docs/BACKEND_CONTRACT_VERSION.md` para alinhar a documentacao ao baseline de codigo entregue ao front.
+- PR 1 de Build/Test Health iniciado com `prebuild` para validacao de Prisma Client e exclusao de `prisma/**` do build principal da aplicacao.
+- `prebuild` agora tenta `prisma generate` automaticamente antes de falhar com instrucoes de troubleshooting.
+- Endpoints de listagem de campanhas/compendio aceitam paginacao opcional (`page`, `limit`) com retorno hibrido (array ou envelope paginado).
+- Correcao de bloqueador de execucao: `package.json` invalido (chave `prebuild` duplicada/mal formada), restaurando parse do npm e disponibilidade dos scripts.
+- `POST /personagens-base/preview` agora valida itens de inventario em lote (nao mais apenas item a item), reduzindo falsos positivos no wizard.
+- `POST /personagens-base` ajustado para evitar duplicacao de itens de inventario durante a criacao do personagem.
 
 ### Security
 
-- Fluxo de auth/JWT e recomendações de CORS/JWT documentados para integração do front.
+- Fluxo de auth/JWT e recomendacoes de CORS/JWT documentados para integracao do front.
 
 ---
 
-## Convenção de entradas
+## Convencao de entradas
 
-Para cada mudança:
+Para cada mudanca:
 
-1. módulo/endpoint afetado;
-2. tipo da mudança (`Added/Changed/Deprecated/Removed/Security`);
+1. modulo/endpoint afetado;
+2. tipo da mudanca (`Added/Changed/Deprecated/Removed/Security`);
 3. impacto no front;
-4. ação necessária no front.
+4. acao necessaria no front.

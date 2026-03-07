@@ -64,6 +64,430 @@ let PersonagemBaseService = class PersonagemBaseService {
             return undefined;
         return JSON.parse(JSON.stringify(value));
     }
+    removerItensInventarioDoDto(dto) {
+        const clone = { ...dto };
+        delete clone.itensInventario;
+        return clone;
+    }
+    async resolverIdComReferencia(params) {
+        const idsCandidatos = Array.from(new Set([params.idAtual, params.referencia?.id].filter((id) => typeof id === 'number' && Number.isInteger(id))));
+        const codigo = params.referencia?.codigo?.trim();
+        const nome = params.referencia?.nome?.trim();
+        const houveTentativaResolucao = idsCandidatos.length > 0 || !!codigo || !!nome;
+        for (const id of idsCandidatos) {
+            const encontrado = await params.buscarPorId(id);
+            if (encontrado !== null)
+                return encontrado;
+        }
+        if (codigo && params.buscarPorCodigo) {
+            const encontrado = await params.buscarPorCodigo(codigo);
+            if (encontrado !== null)
+                return encontrado;
+        }
+        if (nome && params.buscarPorNome) {
+            const encontrado = await params.buscarPorNome(nome);
+            if (encontrado !== null)
+                return encontrado;
+        }
+        if (params.obrigatorio || houveTentativaResolucao) {
+            throw new common_1.BadRequestException(`Nao foi possivel resolver a referencia de ${params.label} na importacao.`);
+        }
+        return null;
+    }
+    async resolverPoderesGenericosImportacao(poderes, referencias) {
+        if (!poderes?.length)
+            return poderes;
+        const refsPorIndex = new Map((referencias?.poderesGenericos ?? []).map((ref) => [ref.index, ref]));
+        const resolvidos = [];
+        for (let index = 0; index < poderes.length; index++) {
+            const poder = poderes[index];
+            const ref = refsPorIndex.get(index);
+            const habilidadeId = await this.resolverIdComReferencia({
+                label: `poderGenerico[${index}]`,
+                idAtual: poder.habilidadeId,
+                referencia: {
+                    id: ref?.habilidadeId,
+                    nome: ref?.habilidadeNome,
+                },
+                obrigatorio: true,
+                buscarPorId: async (id) => {
+                    const found = await this.prisma.habilidade.findFirst({
+                        where: { id, tipo: 'PODER_GENERICO' },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+                buscarPorNome: async (nome) => {
+                    const found = await this.prisma.habilidade.findFirst({
+                        where: { nome, tipo: 'PODER_GENERICO' },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+            });
+            resolvidos.push({
+                ...poder,
+                habilidadeId: habilidadeId,
+            });
+        }
+        return resolvidos;
+    }
+    async resolverPassivasImportacao(passivasAtributoIds, referencias) {
+        if (!passivasAtributoIds?.length)
+            return passivasAtributoIds;
+        const refsPorIndex = new Map((referencias?.passivas ?? []).map((ref) => [ref.index, ref]));
+        const resolvidas = [];
+        for (let index = 0; index < passivasAtributoIds.length; index++) {
+            const idAtual = passivasAtributoIds[index];
+            const ref = refsPorIndex.get(index);
+            const passivaId = await this.resolverIdComReferencia({
+                label: `passiva[${index}]`,
+                idAtual,
+                referencia: {
+                    id: ref?.passivaId,
+                    codigo: ref?.codigo,
+                    nome: ref?.nome,
+                },
+                obrigatorio: true,
+                buscarPorId: async (id) => {
+                    const found = await this.prisma.passivaAtributo.findUnique({
+                        where: { id },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+                buscarPorCodigo: async (codigo) => {
+                    const found = await this.prisma.passivaAtributo.findUnique({
+                        where: { codigo },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+                buscarPorNome: async (nome) => {
+                    const found = await this.prisma.passivaAtributo.findFirst({
+                        where: { nome },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+            });
+            resolvidas.push(passivaId);
+        }
+        return resolvidas;
+    }
+    async resolverItensInventarioImportacao(itensInventario, referencias) {
+        if (!itensInventario?.length)
+            return itensInventario;
+        const refsItensPorIndex = new Map((referencias?.itensInventario ?? []).map((ref) => [ref.index, ref]));
+        const itensResolvidos = [];
+        for (let itemIndex = 0; itemIndex < itensInventario.length; itemIndex++) {
+            const item = itensInventario[itemIndex];
+            const refItem = refsItensPorIndex.get(itemIndex);
+            const equipamentoId = await this.resolverIdComReferencia({
+                label: `itensInventario[${itemIndex}].equipamento`,
+                idAtual: item.equipamentoId,
+                referencia: {
+                    id: refItem?.equipamentoId,
+                    codigo: refItem?.equipamentoCodigo,
+                    nome: refItem?.equipamentoNome,
+                },
+                obrigatorio: true,
+                buscarPorId: async (id) => {
+                    const found = await this.prisma.equipamentoCatalogo.findUnique({
+                        where: { id },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+                buscarPorCodigo: async (codigo) => {
+                    const found = await this.prisma.equipamentoCatalogo.findUnique({
+                        where: { codigo },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+                buscarPorNome: async (nome) => {
+                    const found = await this.prisma.equipamentoCatalogo.findFirst({
+                        where: { nome },
+                        select: { id: true },
+                    });
+                    return found?.id ?? null;
+                },
+            });
+            const refsModsPorIndex = new Map((refItem?.modificacoes ?? []).map((refMod) => [refMod.index, refMod]));
+            const modificacoesResolvidas = [];
+            if (item.modificacoesIds?.length) {
+                for (let modIndex = 0; modIndex < item.modificacoesIds.length; modIndex++) {
+                    const modIdAtual = item.modificacoesIds[modIndex];
+                    const refMod = refsModsPorIndex.get(modIndex);
+                    const modId = await this.resolverIdComReferencia({
+                        label: `itensInventario[${itemIndex}].modificacoes[${modIndex}]`,
+                        idAtual: modIdAtual,
+                        referencia: {
+                            id: refMod?.modificacaoId,
+                            codigo: refMod?.codigo,
+                            nome: refMod?.nome,
+                        },
+                        obrigatorio: true,
+                        buscarPorId: async (id) => {
+                            const found = await this.prisma.modificacaoEquipamento.findUnique({
+                                where: { id },
+                                select: { id: true },
+                            });
+                            return found?.id ?? null;
+                        },
+                        buscarPorCodigo: async (codigo) => {
+                            const found = await this.prisma.modificacaoEquipamento.findUnique({
+                                where: { codigo },
+                                select: { id: true },
+                            });
+                            return found?.id ?? null;
+                        },
+                        buscarPorNome: async (nome) => {
+                            const found = await this.prisma.modificacaoEquipamento.findFirst({
+                                where: { nome },
+                                select: { id: true },
+                            });
+                            return found?.id ?? null;
+                        },
+                    });
+                    modificacoesResolvidas.push(modId);
+                }
+            }
+            itensResolvidos.push({
+                ...item,
+                equipamentoId: equipamentoId,
+                modificacoesIds: modificacoesResolvidas.length > 0
+                    ? modificacoesResolvidas
+                    : undefined,
+            });
+        }
+        return itensResolvidos;
+    }
+    async montarDtoParaImportacao(dtoImportacao) {
+        const payload = this.limparUndefinedDeepJson(dtoImportacao.personagem) ??
+            dtoImportacao.personagem;
+        const referencias = dtoImportacao.referencias;
+        const nomeSobrescrito = dtoImportacao.nomeSobrescrito?.trim();
+        const claId = await this.resolverIdComReferencia({
+            label: 'cla',
+            idAtual: payload.claId,
+            referencia: referencias?.cla,
+            obrigatorio: true,
+            buscarPorId: async (id) => {
+                const found = await this.prisma.cla.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorNome: async (nome) => {
+                const found = await this.prisma.cla.findUnique({
+                    where: { nome },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+        });
+        const origemId = await this.resolverIdComReferencia({
+            label: 'origem',
+            idAtual: payload.origemId,
+            referencia: referencias?.origem,
+            obrigatorio: true,
+            buscarPorId: async (id) => {
+                const found = await this.prisma.origem.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorNome: async (nome) => {
+                const found = await this.prisma.origem.findUnique({
+                    where: { nome },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+        });
+        const classeId = await this.resolverIdComReferencia({
+            label: 'classe',
+            idAtual: payload.classeId,
+            referencia: referencias?.classe,
+            obrigatorio: true,
+            buscarPorId: async (id) => {
+                const found = await this.prisma.classe.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorNome: async (nome) => {
+                const found = await this.prisma.classe.findUnique({
+                    where: { nome },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+        });
+        const trilhaId = await this.resolverIdComReferencia({
+            label: 'trilha',
+            idAtual: payload.trilhaId,
+            referencia: referencias?.trilha,
+            obrigatorio: false,
+            buscarPorId: async (id) => {
+                const found = await this.prisma.trilha.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorNome: async (nome) => {
+                const found = await this.prisma.trilha.findUnique({
+                    where: { nome },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+        });
+        const caminhoId = await this.resolverIdComReferencia({
+            label: 'caminho',
+            idAtual: payload.caminhoId,
+            referencia: referencias?.caminho,
+            obrigatorio: false,
+            buscarPorId: async (id) => {
+                const found = await this.prisma.caminho.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorNome: async (nome) => {
+                const found = await this.prisma.caminho.findUnique({
+                    where: { nome },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+        });
+        const alinhamentoId = await this.resolverIdComReferencia({
+            label: 'alinhamento',
+            idAtual: payload.alinhamentoId,
+            referencia: referencias?.alinhamento,
+            obrigatorio: false,
+            buscarPorId: async (id) => {
+                const found = await this.prisma.alinhamento.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorNome: async (nome) => {
+                const found = await this.prisma.alinhamento.findUnique({
+                    where: { nome },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+        });
+        const tecnicaInataId = await this.resolverIdComReferencia({
+            label: 'tecnicaInata',
+            idAtual: payload.tecnicaInataId,
+            referencia: referencias?.tecnicaInata,
+            obrigatorio: false,
+            buscarPorId: async (id) => {
+                const found = await this.prisma.tecnicaAmaldicoada.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorCodigo: async (codigo) => {
+                const found = await this.prisma.tecnicaAmaldicoada.findUnique({
+                    where: { codigo },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+            buscarPorNome: async (nome) => {
+                const found = await this.prisma.tecnicaAmaldicoada.findUnique({
+                    where: { nome },
+                    select: { id: true },
+                });
+                return found?.id ?? null;
+            },
+        });
+        const poderesGenericos = await this.resolverPoderesGenericosImportacao(payload.poderesGenericos, referencias);
+        const passivasAtributoIds = await this.resolverPassivasImportacao(payload.passivasAtributoIds, referencias);
+        const itensInventario = await this.resolverItensInventarioImportacao(payload.itensInventario, referencias);
+        return {
+            ...payload,
+            nome: nomeSobrescrito && nomeSobrescrito.length > 0
+                ? nomeSobrescrito
+                : payload.nome,
+            claId: claId,
+            origemId: origemId,
+            classeId: classeId,
+            trilhaId,
+            caminhoId,
+            alinhamentoId,
+            tecnicaInataId,
+            poderesGenericos,
+            passivasAtributoIds,
+            itensInventario,
+        };
+    }
+    async validarItensInventarioNoPreview(dto) {
+        if (!dto.itensInventario?.length) {
+            return { itensValidados: [], errosItens: [] };
+        }
+        const itensPreview = dto.itensInventario.map((item) => ({
+            equipamentoId: item.equipamentoId,
+            quantidade: item.quantidade,
+            equipado: item.equipado ?? false,
+            modificacoes: item.modificacoesIds ?? [],
+            nomeCustomizado: item.nomeCustomizado,
+        }));
+        try {
+            const previewInventario = await this.inventarioService.previewItensInventario({
+                forca: dto.forca,
+                prestigioBase: dto.prestigioBase ?? 0,
+                itens: itensPreview,
+            });
+            return {
+                itensValidados: previewInventario.itens ?? [],
+                errosItens: [],
+            };
+        }
+        catch {
+            const itensValidados = [];
+            const errosItens = [];
+            for (const item of dto.itensInventario) {
+                try {
+                    const previewItem = await this.inventarioService.previewItensInventario({
+                        forca: dto.forca,
+                        prestigioBase: dto.prestigioBase ?? 0,
+                        itens: [
+                            {
+                                equipamentoId: item.equipamentoId,
+                                quantidade: item.quantidade,
+                                equipado: item.equipado ?? false,
+                                modificacoes: item.modificacoesIds ?? [],
+                                nomeCustomizado: item.nomeCustomizado,
+                            },
+                        ],
+                    });
+                    itensValidados.push(previewItem.itens[0]);
+                }
+                catch (error) {
+                    errosItens.push({
+                        equipamentoId: item.equipamentoId,
+                        erro: error.message,
+                    });
+                }
+            }
+            return { itensValidados, errosItens };
+        }
+    }
     async buscarHabilidadesPersonagem(params, prisma = this.prisma) {
         const { nivel, origemId, classeId, trilhaId, caminhoId, tecnicaInataId, estudouEscolaTecnica, poderesGenericos, } = params;
         const habilidades = [];
@@ -171,7 +595,7 @@ let PersonagemBaseService = class PersonagemBaseService {
         }
         if (estudouEscolaTecnica) {
             const escolaTecnica = await prisma.habilidade.findUnique({
-                where: { nome: 'Escola Técnica' },
+                where: { nome: 'Escola TÃ©cnica' },
                 include: { efeitosGrau: true },
             });
             if (escolaTecnica) {
@@ -231,7 +655,8 @@ let PersonagemBaseService = class PersonagemBaseService {
             if (m?.defesa?.bonus && typeof m.defesa.bonus === 'number') {
                 mods.defesaExtra += m.defesa.bonus;
             }
-            if (m?.inventario?.espacosExtra && typeof m.inventario.espacosExtra === 'number') {
+            if (m?.inventario?.espacosExtra &&
+                typeof m.inventario.espacosExtra === 'number') {
                 mods.espacosInventarioExtra += m.inventario.espacosExtra;
             }
         }
@@ -253,7 +678,8 @@ let PersonagemBaseService = class PersonagemBaseService {
             this.jsonToStringArray(existe.periciasClasseEscolhidasCodigos);
         const periciasOrigemEscolhidasFinal = patch.periciasOrigemEscolhidasCodigos ??
             this.jsonToStringArray(existe.periciasOrigemEscolhidasCodigos);
-        const periciasLivresFinal = patch.periciasLivresCodigos ?? this.jsonToStringArray(existe.periciasLivresCodigos);
+        const periciasLivresFinal = patch.periciasLivresCodigos ??
+            this.jsonToStringArray(existe.periciasLivresCodigos);
         const passivasAtributosAtivosFinal = patch.passivasAtributosAtivos ??
             this.jsonToStringArray(existe.passivasAtributosAtivos);
         const passivasAtributosConfigRaw = patch.passivasAtributosConfig !== undefined
@@ -307,18 +733,25 @@ let PersonagemBaseService = class PersonagemBaseService {
             estudouEscolaTecnica: patch.estudouEscolaTecnica ?? existe.estudouEscolaTecnica,
             idade: patch.idade !== undefined ? patch.idade : existe.idade,
             prestigioBase: patch.prestigioBase ?? existe.prestigioBase,
-            prestigioClaBase: patch.prestigioClaBase !== undefined ? patch.prestigioClaBase : existe.prestigioClaBase,
-            alinhamentoId: patch.alinhamentoId !== undefined ? patch.alinhamentoId : existe.alinhamentoId,
+            prestigioClaBase: patch.prestigioClaBase !== undefined
+                ? patch.prestigioClaBase
+                : existe.prestigioClaBase,
+            alinhamentoId: patch.alinhamentoId !== undefined
+                ? patch.alinhamentoId
+                : existe.alinhamentoId,
             background: patch.background !== undefined ? patch.background : existe.background,
-            atributoChaveEa: (patch.atributoChaveEa ?? existe.atributoChaveEa),
-            tecnicaInataId: patch.tecnicaInataId !== undefined ? patch.tecnicaInataId : existe.tecnicaInataId,
+            atributoChaveEa: patch.atributoChaveEa ?? existe.atributoChaveEa,
+            tecnicaInataId: patch.tecnicaInataId !== undefined
+                ? patch.tecnicaInataId
+                : existe.tecnicaInataId,
             proficienciasCodigos: profsExtrasFinal ?? [],
             grausAprimoramento: grausAprimoramentoFinal ?? [],
             grausTreinamento: grausTreinamentoFinal ?? [],
             poderesGenericos: poderesFinal ?? [],
-            passivasAtributoIds: patch.passivasAtributoIds ?? this.getPassivasIdsFromRelacao(existe.passivas ?? []),
+            passivasAtributoIds: patch.passivasAtributoIds ??
+                this.getPassivasIdsFromRelacao(existe.passivas ?? []),
             passivasAtributosAtivos: passivasAtributosAtivosFinal ?? [],
-            passivasAtributosConfig: (passivasAtributosConfigFinal ?? {}),
+            passivasAtributosConfig: passivasAtributosConfigFinal ?? {},
             periciasClasseEscolhidasCodigos: periciasClasseEscolhidasFinal ?? [],
             periciasOrigemEscolhidasCodigos: periciasOrigemEscolhidasFinal ?? [],
             periciasLivresCodigos: periciasLivresFinal ?? [],
@@ -344,7 +777,8 @@ let PersonagemBaseService = class PersonagemBaseService {
                 where: { personagemBaseId },
                 select: { id: true },
             });
-            const espacosTotal = personagem.espacosInventarioBase + (personagem.espacosInventarioExtra || 0);
+            const espacosTotal = personagem.espacosInventarioBase +
+                (personagem.espacosInventarioExtra || 0);
             const espacosDisponiveis = espacosTotal - (personagem.espacosOcupados || 0);
             return {
                 espacosBase: personagem.espacosInventarioBase,
@@ -357,7 +791,7 @@ let PersonagemBaseService = class PersonagemBaseService {
             };
         }
         catch (error) {
-            console.error('[SERVICE] Erro ao calcular resumo de inventário:', error);
+            console.error('[SERVICE] Erro ao calcular resumo de inventÃ¡rio:', error);
             return null;
         }
     }
@@ -388,7 +822,9 @@ let PersonagemBaseService = class PersonagemBaseService {
             where: { codigo: { in: estado.profsFinais } },
         });
         const tiposGrau = await this.prisma.tipoGrau.findMany({
-            where: { codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) } },
+            where: {
+                codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
+            },
         });
         const mapaTiposGrau = new Map(tiposGrau.map((t) => [t.codigo, t.nome]));
         const habilidadesNomes = estado.habilidades.map((h) => h.habilidade.nome);
@@ -407,34 +843,7 @@ let PersonagemBaseService = class PersonagemBaseService {
                 };
             }))
             : [];
-        let itensValidados = [];
-        let errosItens = [];
-        if (dto.itensInventario && dto.itensInventario.length > 0) {
-            for (const item of dto.itensInventario) {
-                try {
-                    const previewItem = await this.inventarioService.previewItensInventario({
-                        forca: dto.forca,
-                        prestigioBase: dto.prestigioBase ?? 0,
-                        itens: [
-                            {
-                                equipamentoId: item.equipamentoId,
-                                quantidade: item.quantidade,
-                                equipado: item.equipado ?? false,
-                                modificacoes: item.modificacoesIds ?? [],
-                                nomeCustomizado: item.nomeCustomizado,
-                            },
-                        ],
-                    });
-                    itensValidados.push(previewItem.itens[0]);
-                }
-                catch (error) {
-                    errosItens.push({
-                        equipamentoId: item.equipamentoId,
-                        erro: error.message,
-                    });
-                }
-            }
-        }
+        const { itensValidados, errosItens } = await this.validarItensInventarioNoPreview(dto);
         return {
             ...estado.dtoNormalizado,
             proficienciasExtrasCodigos: estado.dtoNormalizado.proficienciasCodigos ?? [],
@@ -469,13 +878,14 @@ let PersonagemBaseService = class PersonagemBaseService {
         };
     }
     async criar(donoId, dto) {
-        const estado = await this.executarEngine(dto, {
+        const dtoSemItensInventario = this.removerItensInventarioDoDto(dto);
+        const estado = await this.executarEngine(dtoSemItensInventario, {
             strictPassivas: true,
             prisma: this.prisma,
         });
         const dataBase = this.limparUndefined({
             ...estado.dtoNormalizado,
-            proficienciasExtrasCodigos: dto.proficienciasCodigos ?? [],
+            proficienciasExtrasCodigos: dtoSemItensInventario.proficienciasCodigos ?? [],
             ...estado.derivadosFinais,
             espacosInventarioBase: estado.espacosInventario.base,
             espacosInventarioExtra: estado.espacosInventario.extra,
@@ -567,6 +977,129 @@ let PersonagemBaseService = class PersonagemBaseService {
             }
         }
         return personagemDetalhado;
+    }
+    async exportar(donoId, id) {
+        const personagem = await this.buscarPorId(donoId, id, true);
+        const personagemParaExportar = {
+            nome: personagem.nome,
+            nivel: personagem.nivel,
+            claId: personagem.claId,
+            origemId: personagem.origemId,
+            classeId: personagem.classeId,
+            trilhaId: personagem.trilhaId ?? null,
+            caminhoId: personagem.caminhoId ?? null,
+            agilidade: personagem.agilidade,
+            forca: personagem.forca,
+            intelecto: personagem.intelecto,
+            presenca: personagem.presenca,
+            vigor: personagem.vigor,
+            estudouEscolaTecnica: personagem.estudouEscolaTecnica,
+            tecnicaInataId: personagem.tecnicaInataId ?? null,
+            idade: personagem.idade ?? null,
+            prestigioBase: personagem.prestigioBase ?? 0,
+            prestigioClaBase: personagem.prestigioClaBase ?? null,
+            alinhamentoId: personagem.alinhamentoId ?? null,
+            background: personagem.background ?? null,
+            atributoChaveEa: personagem.atributoChaveEa,
+            proficienciasCodigos: personagem.proficienciasExtrasCodigos ?? [],
+            grausAprimoramento: (personagem.grausAprimoramento ?? []).map((g) => {
+                const valorLivre = typeof g.valorLivre === 'number'
+                    ? g.valorLivre
+                    : Math.max(0, (g.valorTotal ?? 0) - (g.bonus ?? 0));
+                return {
+                    tipoGrauCodigo: g.tipoGrauCodigo,
+                    valor: valorLivre,
+                };
+            }),
+            grausTreinamento: personagem.grausTreinamento ?? [],
+            poderesGenericos: (personagem.poderesGenericos ?? []).map((p) => ({
+                habilidadeId: p.habilidadeId,
+                config: p.config ?? {},
+            })),
+            passivasAtributoIds: personagem.passivasAtributoIds ?? [],
+            passivasAtributosAtivos: personagem.passivasAtributosAtivos ?? [],
+            passivasAtributosConfig: personagem.passivasAtributosConfig ?? {},
+            periciasClasseEscolhidasCodigos: personagem.periciasClasseEscolhidasCodigos ?? [],
+            periciasOrigemEscolhidasCodigos: personagem.periciasOrigemEscolhidasCodigos ?? [],
+            periciasLivresCodigos: personagem.periciasLivresCodigos ?? [],
+            periciasLivresExtras: 0,
+            itensInventario: (personagem.itensInventario ?? []).map((item) => ({
+                equipamentoId: item.equipamentoId,
+                quantidade: item.quantidade,
+                equipado: item.equipado ?? false,
+                modificacoesIds: (item.modificacoes ?? []).map((mod) => mod.id),
+                nomeCustomizado: item.nomeCustomizado ?? null,
+                notas: item.notas ?? null,
+            })),
+        };
+        return {
+            schema: 'assistenterpg.personagem-base.v1',
+            schemaVersion: 1,
+            exportadoEm: new Date().toISOString(),
+            personagem: personagemParaExportar,
+            referencias: {
+                personagemIdOriginal: personagem.id,
+                cla: personagem.cla
+                    ? { id: personagem.cla.id, nome: personagem.cla.nome }
+                    : null,
+                origem: personagem.origem
+                    ? { id: personagem.origem.id, nome: personagem.origem.nome }
+                    : null,
+                classe: personagem.classe
+                    ? { id: personagem.classe.id, nome: personagem.classe.nome }
+                    : null,
+                trilha: personagem.trilha
+                    ? { id: personagem.trilha.id, nome: personagem.trilha.nome }
+                    : null,
+                caminho: personagem.caminho
+                    ? { id: personagem.caminho.id, nome: personagem.caminho.nome }
+                    : null,
+                alinhamento: personagem.alinhamento
+                    ? { id: personagem.alinhamento.id, nome: personagem.alinhamento.nome }
+                    : null,
+                tecnicaInata: personagem.tecnicaInata
+                    ? {
+                        id: personagem.tecnicaInata.id,
+                        codigo: personagem.tecnicaInata.codigo,
+                        nome: personagem.tecnicaInata.nome,
+                    }
+                    : null,
+                poderesGenericos: (personagem.poderesGenericos ?? []).map((p, index) => ({
+                    index,
+                    habilidadeId: p.habilidadeId,
+                    habilidadeNome: p.nome,
+                })),
+                passivas: (personagem.passivas ?? []).map((p, index) => ({
+                    index,
+                    passivaId: p.id,
+                    codigo: p.codigo,
+                    nome: p.nome,
+                })),
+                itensInventario: (personagem.itensInventario ?? []).map((item, index) => ({
+                    index,
+                    equipamentoId: item.equipamento?.id ?? item.equipamentoId,
+                    equipamentoCodigo: item.equipamento?.codigo,
+                    equipamentoNome: item.equipamento?.nome,
+                    modificacoes: (item.modificacoes ?? []).map((mod, modIndex) => ({
+                        index: modIndex,
+                        modificacaoId: mod.id,
+                        codigo: mod.codigo,
+                        nome: mod.nome,
+                    })),
+                })),
+            },
+        };
+    }
+    async importar(donoId, dtoImportacao) {
+        const dtoResolvido = await this.montarDtoParaImportacao(dtoImportacao);
+        const criado = await this.criar(donoId, dtoResolvido);
+        return {
+            ...criado,
+            importado: true,
+            schema: dtoImportacao.schema ?? 'assistenterpg.personagem-base.v1',
+            schemaVersion: dtoImportacao.schemaVersion ?? 1,
+            importadoEm: new Date().toISOString(),
+        };
     }
     async atualizar(donoId, id, dto) {
         const existe = await this.prisma.personagemBase.findFirst({
@@ -684,17 +1217,33 @@ let PersonagemBaseService = class PersonagemBaseService {
         await this.prisma.inventarioItemBase.deleteMany({
             where: { personagemBaseId: id },
         });
-        await this.prisma.personagemCampanha.deleteMany({ where: { personagemBaseId: id } });
-        await this.prisma.habilidadePersonagemBase.deleteMany({ where: { personagemBaseId: id } });
-        await this.prisma.poderGenericoPersonagemBase.deleteMany({ where: { personagemBaseId: id } });
-        await this.prisma.personagemBaseProficiencia.deleteMany({ where: { personagemBaseId: id } });
-        await this.prisma.personagemBasePericia.deleteMany({ where: { personagemBaseId: id } });
-        await this.prisma.grauPersonagemBase.deleteMany({ where: { personagemBaseId: id } });
+        await this.prisma.personagemCampanha.deleteMany({
+            where: { personagemBaseId: id },
+        });
+        await this.prisma.habilidadePersonagemBase.deleteMany({
+            where: { personagemBaseId: id },
+        });
+        await this.prisma.poderGenericoPersonagemBase.deleteMany({
+            where: { personagemBaseId: id },
+        });
+        await this.prisma.personagemBaseProficiencia.deleteMany({
+            where: { personagemBaseId: id },
+        });
+        await this.prisma.personagemBasePericia.deleteMany({
+            where: { personagemBaseId: id },
+        });
+        await this.prisma.grauPersonagemBase.deleteMany({
+            where: { personagemBaseId: id },
+        });
         await this.prisma.grauTreinamentoPersonagemBase.deleteMany({
             where: { personagemBaseId: id },
         });
-        await this.prisma.personagemBasePassiva.deleteMany({ where: { personagemBaseId: id } });
-        await this.prisma.personagemBaseResistencia.deleteMany({ where: { personagemBaseId: id } });
+        await this.prisma.personagemBasePassiva.deleteMany({
+            where: { personagemBaseId: id },
+        });
+        await this.prisma.personagemBaseResistencia.deleteMany({
+            where: { personagemBaseId: id },
+        });
         await this.prisma.personagemBase.delete({ where: { id } });
         return { sucesso: true };
     }
@@ -763,7 +1312,10 @@ let PersonagemBaseService = class PersonagemBaseService {
             },
             orderBy: { nome: 'asc' },
         });
-        let tecnicasDisponiveis = [...tecnicasHereditarias, ...tecnicasNaoHereditarias];
+        let tecnicasDisponiveis = [
+            ...tecnicasHereditarias,
+            ...tecnicasNaoHereditarias,
+        ];
         if (origem?.bloqueiaTecnicaHeriditaria) {
             tecnicasDisponiveis = tecnicasDisponiveis.filter((t) => !t.hereditaria);
         }

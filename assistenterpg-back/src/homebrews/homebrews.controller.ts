@@ -20,7 +20,6 @@ import { UpdateHomebrewDto } from './dto/update-homebrew.dto';
 import { FiltrarHomebrewsDto } from './dto/filtrar-homebrews.dto';
 import { RoleUsuario } from '@prisma/client'; // Adicionar no topo
 
-
 @UseGuards(AuthGuard('jwt'))
 @Controller('homebrews')
 export class HomebrewsController {
@@ -107,7 +106,12 @@ export class HomebrewsController {
   ) {
     const usuarioId = req.user.id;
     const isAdmin = req.user?.role === RoleUsuario.ADMIN;
-    return this.homebrewsService.atualizar(id, updateHomebrewDto, usuarioId, isAdmin);
+    return this.homebrewsService.atualizar(
+      id,
+      updateHomebrewDto,
+      usuarioId,
+      isAdmin,
+    );
   }
 
   /**

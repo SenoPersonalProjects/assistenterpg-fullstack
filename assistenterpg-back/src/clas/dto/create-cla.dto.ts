@@ -9,7 +9,10 @@ import {
   IsInt,
   MinLength,
   MaxLength,
+  IsEnum,
+  Min,
 } from 'class-validator';
+import { TipoFonte } from '@prisma/client';
 
 export class CreateClaDto {
   @IsString()
@@ -25,6 +28,15 @@ export class CreateClaDto {
 
   @IsBoolean()
   grandeCla: boolean;
+
+  @IsOptional()
+  @IsEnum(TipoFonte)
+  fonte?: TipoFonte;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  suplementoId?: number;
 
   // ✅ CORRIGIDO: Técnicas hereditárias do clã (IDs de TecnicaAmaldicoada)
   @IsOptional()

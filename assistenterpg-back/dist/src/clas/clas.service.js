@@ -11,12 +11,32 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClasService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const cla_exception_1 = require("../common/exceptions/cla.exception");
+const suplemento_exception_1 = require("../common/exceptions/suplemento.exception");
 let ClasService = class ClasService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    async validarFonteSuplemento(fonte, suplementoId) {
+        if (suplementoId) {
+            const suplemento = await this.prisma.suplemento.findUnique({
+                where: { id: suplementoId },
+                select: { id: true },
+            });
+            if (!suplemento) {
+                throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
+            }
+            if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
+                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+            }
+            return;
+        }
+        if (fonte === client_1.TipoFonte.SUPLEMENTO) {
+            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+        }
     }
     async create(dto) {
         const existente = await this.prisma.cla.findUnique({
@@ -39,11 +59,17 @@ let ClasService = class ClasService {
                 throw new cla_exception_1.TecnicasHereditariasInvalidasException(idsInvalidos);
             }
         }
+        const suplementoIdFinal = dto.suplementoId ?? null;
+        const fonteFinal = dto.fonte ??
+            (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+        await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
         const cla = await this.prisma.cla.create({
             data: {
                 nome: dto.nome,
                 descricao: dto.descricao,
                 grandeCla: dto.grandeCla,
+                fonte: fonteFinal,
+                suplementoId: suplementoIdFinal,
                 ...(dto.tecnicasHereditariasIds?.length && {
                     tecnicasHereditarias: {
                         create: dto.tecnicasHereditariasIds.map((tecnicaId) => ({
@@ -128,7 +154,7 @@ let ClasService = class ClasService {
         return cla;
     }
     async update(id, dto) {
-        await this.findOne(id);
+        const claAtual = await this.findOne(id);
         if (dto.nome) {
             const duplicado = await this.prisma.cla.findFirst({
                 where: {
@@ -154,12 +180,19 @@ let ClasService = class ClasService {
                 throw new cla_exception_1.TecnicasHereditariasInvalidasException(idsInvalidos);
             }
         }
+        const suplementoIdFinal = dto.suplementoId !== undefined ? dto.suplementoId : claAtual.suplementoId;
+        const fonteFinal = dto.fonte ?? (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : claAtual.fonte);
+        await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
         const cla = await this.prisma.cla.update({
             where: { id },
             data: {
                 ...(dto.nome && { nome: dto.nome }),
                 ...(dto.descricao !== undefined && { descricao: dto.descricao }),
                 ...(dto.grandeCla !== undefined && { grandeCla: dto.grandeCla }),
+                ...(fonteFinal !== claAtual.fonte && { fonte: fonteFinal }),
+                ...(dto.suplementoId !== undefined && {
+                    suplementoId: dto.suplementoId,
+                }),
                 ...(dto.tecnicasHereditariasIds !== undefined && {
                     tecnicasHereditarias: {
                         deleteMany: {},

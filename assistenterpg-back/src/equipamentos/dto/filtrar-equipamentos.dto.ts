@@ -7,8 +7,9 @@ import {
   Min,
   Max,
   IsBoolean,
+  IsArray,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import {
   TipoEquipamento,
   ComplexidadeMaldicao,
@@ -16,6 +17,7 @@ import {
   ProficienciaProtecao,
   AlcanceArma,
   TipoAcessorio,
+  TipoFonte,
 } from '@prisma/client';
 
 export class FiltrarEquipamentosDto {
@@ -25,6 +27,21 @@ export class FiltrarEquipamentosDto {
   @IsOptional()
   @IsEnum(TipoEquipamento)
   tipo?: TipoEquipamento;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(TipoFonte, { each: true })
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value === 'string') return value.split(',');
+    return value;
+  })
+  fontes?: TipoFonte[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  suplementoId?: number;
 
   /**
    * Complexidade da maldição (NENHUMA, SIMPLES, COMPLEXA)

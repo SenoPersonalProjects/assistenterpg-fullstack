@@ -6,13 +6,17 @@ const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
 class OrigemNaoEncontradaException extends base_exception_1.BaseException {
     constructor(identificador) {
-        super('Origem não encontrada', common_1.HttpStatus.NOT_FOUND, 'ORIGEM_NOT_FOUND', { identificador });
+        super('Origem não encontrada', common_1.HttpStatus.NOT_FOUND, 'ORIGEM_NOT_FOUND', {
+            identificador,
+        });
     }
 }
 exports.OrigemNaoEncontradaException = OrigemNaoEncontradaException;
 class OrigemNomeDuplicadoException extends business_exception_1.BusinessException {
     constructor(nome) {
-        super(`Origem com nome "${nome}" já existe`, 'ORIGEM_NOME_DUPLICADO', { nome });
+        super(`Origem com nome "${nome}" já existe`, 'ORIGEM_NOME_DUPLICADO', {
+            nome,
+        });
     }
 }
 exports.OrigemNomeDuplicadoException = OrigemNomeDuplicadoException;

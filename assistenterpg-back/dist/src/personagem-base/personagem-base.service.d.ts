@@ -1,7 +1,8 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { InventarioService } from '../inventario/inventario.service';
-import { CreatePersonagemBaseDto, GrauTreinamentoDto } from './dto/create-personagem-base.dto';
+import { CreatePersonagemBaseDto } from './dto/create-personagem-base.dto';
 import { UpdatePersonagemBaseDto } from './dto/update-personagem-base.dto';
+import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
 import { PersonagemBaseMapper } from './personagem-base.mapper';
 import { PersonagemBasePersistence } from './personagem-base.persistence';
 export declare class PersonagemBaseService {
@@ -16,6 +17,13 @@ export declare class PersonagemBaseService {
     private getPassivasIdsFromRelacao;
     private getPoderesFromRelacao;
     private limparUndefinedDeepJson;
+    private removerItensInventarioDoDto;
+    private resolverIdComReferencia;
+    private resolverPoderesGenericosImportacao;
+    private resolverPassivasImportacao;
+    private resolverItensInventarioImportacao;
+    private montarDtoParaImportacao;
+    private validarItensInventarioNoPreview;
     private buscarHabilidadesPersonagem;
     private calcularModificadoresDerivadosPorHabilidades;
     private executarEngine;
@@ -121,7 +129,7 @@ export declare class PersonagemBaseService {
         atributoChaveEa: import("./dto/create-personagem-base.dto").AtributoBaseEACodigo;
         tecnicaInataId?: number | null;
         proficienciasCodigos: string[];
-        grausTreinamento?: GrauTreinamentoDto[];
+        grausTreinamento?: import("./dto/create-personagem-base.dto").GrauTreinamentoDto[];
         periciasClasseEscolhidasCodigos: string[];
         periciasOrigemEscolhidasCodigos: string[];
         periciasLivresCodigos: string[];
@@ -145,6 +153,61 @@ export declare class PersonagemBaseService {
         classe: any;
     }[]>;
     buscarPorId(donoId: number, id: number, incluirInventario?: boolean): Promise<any>;
+    exportar(donoId: number, id: number): Promise<{
+        schema: string;
+        schemaVersion: number;
+        exportadoEm: string;
+        personagem: CreatePersonagemBaseDto;
+        referencias: {
+            personagemIdOriginal: any;
+            cla: {
+                id: any;
+                nome: any;
+            } | null;
+            origem: {
+                id: any;
+                nome: any;
+            } | null;
+            classe: {
+                id: any;
+                nome: any;
+            } | null;
+            trilha: {
+                id: any;
+                nome: any;
+            } | null;
+            caminho: {
+                id: any;
+                nome: any;
+            } | null;
+            alinhamento: {
+                id: any;
+                nome: any;
+            } | null;
+            tecnicaInata: {
+                id: any;
+                codigo: any;
+                nome: any;
+            } | null;
+            poderesGenericos: any;
+            passivas: any;
+            itensInventario: any;
+        };
+    }>;
+    importar(donoId: number, dtoImportacao: ImportarPersonagemBaseDto): Promise<{
+        importado: boolean;
+        schema: string;
+        schemaVersion: number;
+        importadoEm: string;
+        id: number;
+        nome: string;
+        nivel: number;
+        cla: string;
+        origem: string;
+        classe: string;
+        trilha: string | null;
+        caminho: string | null;
+    }>;
     atualizar(donoId: number, id: number, dto: UpdatePersonagemBaseDto): Promise<{
         id: any;
         nome: any;

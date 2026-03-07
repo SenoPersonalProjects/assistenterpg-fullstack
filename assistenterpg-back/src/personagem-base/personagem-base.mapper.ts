@@ -9,7 +9,7 @@ export class PersonagemBaseMapper {
     value: Prisma.JsonValue | null | undefined,
   ): string[] {
     if (!Array.isArray(value)) return [];
-    return value.filter((v) => typeof v === 'string') as string[];
+    return value.filter((v) => typeof v === 'string');
   }
 
   mapResumo(personagem: any) {
@@ -52,15 +52,20 @@ export class PersonagemBaseMapper {
       .filter((g) => g !== null);
 
     const espacosInventario = {
-      base: personagem.espacosInventarioBase ?? (personagem.forca * 5),
+      base: personagem.espacosInventarioBase ?? personagem.forca * 5,
       extra: personagem.espacosInventarioExtra ?? 0,
-      total: (personagem.espacosInventarioBase ?? (personagem.forca * 5)) + (personagem.espacosInventarioExtra ?? 0),
+      total:
+        (personagem.espacosInventarioBase ?? personagem.forca * 5) +
+        (personagem.espacosInventarioExtra ?? 0),
     };
 
     // ✅ Mapear inventário completo
-    const itensInventario = await this.mapItensInventario(personagem.id, prisma);
+    const itensInventario = await this.mapItensInventario(
+      personagem.id,
+      prisma,
+    );
     const espacosOcupados = itensInventario.reduce((total, item) => {
-      return total + (item.espacosCalculados * item.quantidade);
+      return total + item.espacosCalculados * item.quantidade;
     }, 0);
     const sobrecarregado = espacosOcupados > espacosInventario.total;
 
@@ -100,17 +105,17 @@ export class PersonagemBaseMapper {
       atributoChaveEa: personagem.atributoChaveEa,
 
       proficienciasExtrasCodigos: this.jsonToStringArray(
-        (personagem as any).proficienciasExtrasCodigos,
+        personagem.proficienciasExtrasCodigos,
       ),
 
       periciasClasseEscolhidasCodigos: this.jsonToStringArray(
-        personagem.periciasClasseEscolhidasCodigos as any,
+        personagem.periciasClasseEscolhidasCodigos,
       ),
       periciasOrigemEscolhidasCodigos: this.jsonToStringArray(
-        personagem.periciasOrigemEscolhidasCodigos as any,
+        personagem.periciasOrigemEscolhidasCodigos,
       ),
       periciasLivresCodigos: this.jsonToStringArray(
-        personagem.periciasLivresCodigos as any,
+        personagem.periciasLivresCodigos,
       ),
 
       cla: personagem.cla,
@@ -119,15 +124,17 @@ export class PersonagemBaseMapper {
       trilha: personagem.trilha,
       caminho: personagem.caminho,
 
-      tecnicaInata: personagem.tecnicaInata ? {
-        id: personagem.tecnicaInata.id,
-        codigo: personagem.tecnicaInata.codigo,
-        nome: personagem.tecnicaInata.nome,
-        descricao: personagem.tecnicaInata.descricao,
-        tipo: personagem.tecnicaInata.tipo,
-        hereditaria: personagem.tecnicaInata.hereditaria,
-        linkExterno: personagem.tecnicaInata.linkExterno,
-      } : null,
+      tecnicaInata: personagem.tecnicaInata
+        ? {
+            id: personagem.tecnicaInata.id,
+            codigo: personagem.tecnicaInata.codigo,
+            nome: personagem.tecnicaInata.nome,
+            descricao: personagem.tecnicaInata.descricao,
+            tipo: personagem.tecnicaInata.tipo,
+            hereditaria: personagem.tecnicaInata.hereditaria,
+            linkExterno: personagem.tecnicaInata.linkExterno,
+          }
+        : null,
 
       proficiencias: (personagem.proficiencias ?? []).map((pp: any) => ({
         id: pp.proficiencia.id,
@@ -191,12 +198,14 @@ export class PersonagemBaseMapper {
       ),
 
       passivasAtributosAtivos: this.jsonToStringArray(
-        (personagem as any).passivasAtributosAtivos,
+        personagem.passivasAtributosAtivos,
       ),
 
-      passivasAtributosConfig: (personagem as any).passivasAtributosConfig ?? null,
+      passivasAtributosConfig: personagem.passivasAtributosConfig ?? null,
 
-      passivasAtributoIds: (personagem.passivas ?? []).map((p: any) => p.passiva.id),
+      passivasAtributoIds: (personagem.passivas ?? []).map(
+        (p: any) => p.passiva.id,
+      ),
 
       passivas: (personagem.passivas ?? []).map((p: any) => ({
         id: p.passiva.id,
@@ -216,7 +225,9 @@ export class PersonagemBaseMapper {
         sanMaximo: personagem.sanMaximo,
         defesaBase: personagem.defesaBase ?? personagem.defesa ?? 10, // Retrocompatibilidade
         defesaEquipamento: personagem.defesaEquipamento ?? 0,
-        defesaTotal: (personagem.defesaBase ?? personagem.defesa ?? 10) + (personagem.defesaEquipamento ?? 0),
+        defesaTotal:
+          (personagem.defesaBase ?? personagem.defesa ?? 10) +
+          (personagem.defesaEquipamento ?? 0),
         deslocamento: personagem.deslocamento,
         limitePeEaPorTurno: personagem.limitePeEaPorTurno,
         reacoesBasePorTurno: personagem.reacoesBasePorTurno,
@@ -259,12 +270,12 @@ export class PersonagemBaseMapper {
 
       return itens.map((item: any) => {
         let espacosPorUnidade = item.equipamento.espacos;
-        
+
         // ✅ CORRIGIDO: modificacoes é um array de relações junction
         const modsAplicadas = (item.modificacoes || []).map((junction: any) => {
           const mod = junction.modificacao; // ✅ Acessar objeto modificacao dentro do junction
           espacosPorUnidade += mod.incrementoEspacos;
-          
+
           return {
             id: mod.id,
             codigo: mod.codigo, // ✅ Agora funciona (objeto completo foi buscado)
@@ -297,7 +308,8 @@ export class PersonagemBaseMapper {
             tipo: item.equipamento.tipo,
             categoria: item.equipamento.categoria,
             espacos: item.equipamento.espacos,
-            complexidadeMaldicao: item.equipamento.complexidadeMaldicao || 'NENHUMA',
+            complexidadeMaldicao:
+              item.equipamento.complexidadeMaldicao || 'NENHUMA',
           },
           modificacoes: modsAplicadas,
         };
@@ -329,16 +341,17 @@ export class PersonagemBaseMapper {
         },
       });
 
-      const poderesGenericos = await prisma.poderGenericoPersonagemBase.findMany({
-        where: { personagemBaseId: personagem.id },
-        include: {
-          habilidade: {
-            include: {
-              efeitosGrau: true,
+      const poderesGenericos =
+        await prisma.poderGenericoPersonagemBase.findMany({
+          where: { personagemBaseId: personagem.id },
+          include: {
+            habilidade: {
+              include: {
+                efeitosGrau: true,
+              },
             },
           },
-        },
-      });
+        });
 
       const todasHabilidades = [
         ...habilidadesBase.map((h) => h.habilidade),
@@ -356,7 +369,7 @@ export class PersonagemBaseMapper {
       }
 
       for (const poder of poderesGenericos) {
-        const mec = poder.habilidade.mecanicasEspeciais as any;
+        const mec = poder.habilidade.mecanicasEspeciais;
 
         if (mec?.escolha?.tipo === 'TIPO_GRAU') {
           const codigo = poder.config?.tipoGrauCodigo;
@@ -369,7 +382,10 @@ export class PersonagemBaseMapper {
       }
 
       if (bonusMap.size > 0) {
-        console.log('[MAPPER] Bônus de graus calculados:', Object.fromEntries(bonusMap));
+        console.log(
+          '[MAPPER] Bônus de graus calculados:',
+          Object.fromEntries(bonusMap),
+        );
       }
     } catch (err) {
       console.error('[MAPPER] Erro ao calcular bônus de graus:', err);

@@ -1,5 +1,5 @@
 // app/personagens-base/page.tsx
-// ✅ UX PADRONIZADA - Igual home + campanhas
+// UX PADRONIZADA - Igual home + campanhas
 
 'use client';
 
@@ -9,14 +9,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useConfirm } from '@/hooks/useConfirm';
 import {
   apiGetMeusPersonagensBase,
-  apiGetClasses,
-  apiGetClas,
-  apiGetOrigens,
-  apiGetProficiencias,
-  apiGetTiposGrau,
-  apiGetTecnicasInatas,
   apiDeletePersonagemBase,
   PersonagemBaseResumo,
+  extrairMensagemErro,
+  traduzirErro,
 } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SectionTitle } from '@/components/ui/SectionTitle';
@@ -26,6 +22,36 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { PersonagemBaseListItem } from '@/components/personagem-base/create/PersonagemBaseListItem';
+import { ImportarPersonagemJsonModal } from '@/components/personagem-base/create/ImportarPersonagemJsonModal';
+
+function mensagemErroListaPersonagens(error: unknown, contexto: 'carregar' | 'excluir'): string {
+  const status = Number(
+    (error as { status?: number })?.status ??
+      (error as { response?: { status?: number } })?.response?.status ??
+      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
+      0,
+  );
+  const code = (error as { body?: { code?: string } })?.body?.code;
+  const base = traduzirErro(code, extrairMensagemErro(error), status);
+
+  if (status === 404) {
+    return contexto === 'carregar'
+      ? 'Nao foi possivel localizar os personagens deste usuario.'
+      : 'Este personagem nao foi encontrado para exclusao.';
+  }
+
+  if (status === 400 || status === 422) {
+    return contexto === 'carregar'
+      ? `Nao foi possivel carregar os personagens. ${base}`
+      : `Nao foi possivel excluir o personagem. ${base}`;
+  }
+
+  if (status === 403) {
+    return 'Voce nao tem permissao para executar esta acao.';
+  }
+
+  return base;
+}
 
 export default function PersonagensBasePage() {
   const router = useRouter();
@@ -33,16 +59,10 @@ export default function PersonagensBasePage() {
   const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
 
   const [personagens, setPersonagens] = useState<PersonagemBaseResumo[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [clas, setClas] = useState<any[]>([]);
-  const [origens, setOrigens] = useState<any[]>([]);
-  const [proficiencias, setProficiencias] = useState<any[]>([]);
-  const [tiposGrau, setTiposGrau] = useState<any[]>([]);
-  const [tecnicasInatas, setTecnicasInatas] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [personagemParaExcluir, setPersonagemParaExcluir] = useState<PersonagemBaseResumo | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -61,42 +81,17 @@ export default function PersonagensBasePage() {
       setErro(null);
       setLoading(true);
 
-      const [
-        personagensRes,
-        classesRes,
-        clasRes,
-        origensRes,
-        profsRes,
-        tiposGrauRes,
-        tecnicasInatasRes,
-      ] = await Promise.all([
-        apiGetMeusPersonagensBase(),
-        apiGetClasses(),
-        apiGetClas(),
-        apiGetOrigens(),
-        apiGetProficiencias(),
-        apiGetTiposGrau(),
-        apiGetTecnicasInatas(),
-      ]);
+      const personagensRes = await apiGetMeusPersonagensBase();
 
       setPersonagens(personagensRes);
-      setClasses(classesRes);
-      setClas(clasRes);
-      setOrigens(origensRes);
-      setProficiencias(profsRes);
-      setTiposGrau(tiposGrauRes);
-      setTecnicasInatas(tecnicasInatasRes);
     } catch (e) {
-      console.error(e);
-      setErro('Erro ao carregar dados de personagem-base');
+      setErro(mensagemErroListaPersonagens(e, 'carregar'));
     } finally {
       setLoading(false);
     }
   }
 
   function handleDeleteClick(personagem: PersonagemBaseResumo) {
-    setPersonagemParaExcluir(personagem);
-    
     confirm({
       title: `Excluir "${personagem.nome}"?`,
       description: 'Esta ação é irreversível!',
@@ -109,10 +104,7 @@ export default function PersonagensBasePage() {
           setPersonagens(prev => prev.filter(p => p.id !== personagem.id));
           setErro(null);
         } catch (error) {
-          setErro('Erro ao excluir personagem. Tente novamente.');
-          console.error('Erro ao excluir:', error);
-        } finally {
-          setPersonagemParaExcluir(null);
+          setErro(mensagemErroListaPersonagens(error, 'excluir'));
         }
       },
     });
@@ -150,6 +142,13 @@ export default function PersonagensBasePage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => setImportModalOpen(true)}
+              >
+                <Icon name="upload" className="w-4 h-4 mr-2" />
+                Importar JSON
+              </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -268,6 +267,12 @@ export default function PersonagensBasePage() {
           </ul>
         </div>
       </ConfirmDialog>
+
+      <ImportarPersonagemJsonModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImported={(personagemId) => router.push(`/personagens-base/${personagemId}`)}
+      />
     </>
   );
 }

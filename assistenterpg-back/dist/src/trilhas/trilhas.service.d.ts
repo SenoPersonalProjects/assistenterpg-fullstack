@@ -6,6 +6,7 @@ import { UpdateCaminhoDto } from './dto/update-caminho.dto';
 export declare class TrilhasService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private validarFonteSuplemento;
     private ensureTrilha;
     private ensureCaminho;
     create(createDto: CreateTrilhaDto): Promise<{

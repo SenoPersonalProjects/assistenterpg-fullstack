@@ -1,6 +1,12 @@
 // src/homebrews/dto/base/create-homebrew-base.dto.ts
 
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsArray } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsArray,
+} from 'class-validator';
 import { StatusPublicacao } from '@prisma/client';
 
 /**

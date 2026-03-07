@@ -6,7 +6,9 @@ const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
 class ClaNaoEncontradoException extends base_exception_1.BaseException {
     constructor(identificador) {
-        super('Clã não encontrado', common_1.HttpStatus.NOT_FOUND, 'CLA_NOT_FOUND', { identificador });
+        super('Clã não encontrado', common_1.HttpStatus.NOT_FOUND, 'CLA_NOT_FOUND', {
+            identificador,
+        });
     }
 }
 exports.ClaNaoEncontradoException = ClaNaoEncontradoException;

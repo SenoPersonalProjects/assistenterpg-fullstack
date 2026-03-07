@@ -46,7 +46,7 @@ export function InventarioCapacidadeCarga({
             <p className={`text-2xl font-bold ${getCorTextoProgresso(espacosPercentual)}`}>
               {espacosPercentual}%
             </p>
-            <p className="text-xs text-app-muted">Base: Força × 5</p>
+            <p className="text-xs text-app-muted">Base: {espacosBase} (Força × 5)</p>
             {espacosExtra > 0 && <p className="text-xs text-app-success">+{espacosExtra} extras</p>}
           </div>
         </div>
@@ -83,3 +83,4 @@ export function InventarioCapacidadeCarga({
     </div>
   );
 }
+

@@ -22,11 +22,9 @@ export class HomebrewNaoEncontradoException extends BaseException {
 
 export class HomebrewJaPublicadoException extends BusinessException {
   constructor(homebrewId: number) {
-    super(
-      'Homebrew já está publicado',
-      'HOMEBREW_JA_PUBLICADO',
-      { homebrewId },
-    );
+    super('Homebrew já está publicado', 'HOMEBREW_JA_PUBLICADO', {
+      homebrewId,
+    });
   }
 }
 
@@ -42,7 +40,11 @@ export class HomebrewDadosInvalidosException extends ValidationException {
 }
 
 export class HomebrewSemPermissaoException extends BaseException {
-  constructor(acao: string, recurso: string = 'este homebrew', homebrewId?: number) {
+  constructor(
+    acao: string,
+    recurso: string = 'este homebrew',
+    homebrewId?: number,
+  ) {
     super(
       `Você não tem permissão para ${acao} ${recurso}`,
       HttpStatus.FORBIDDEN,

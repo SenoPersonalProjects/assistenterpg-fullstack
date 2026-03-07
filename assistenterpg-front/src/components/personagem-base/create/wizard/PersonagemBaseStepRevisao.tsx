@@ -8,6 +8,8 @@ import {
   apiPreviewPersonagemBase,
   apiGetPassivasDisponiveis,
   apiGetPoderesGenericos,
+  extrairMensagemErro,
+  traduzirErro,
 } from '@/lib/api';
 import type {
   CreatePersonagemBasePayload,
@@ -25,6 +27,8 @@ import type {
   PoderGenericoCatalogo,
   PoderGenericoInstanciaPayload,
   PericiaCatalogo,
+  EquipamentoCatalogo,
+  ModificacaoCatalogo,
 } from '@/lib/api';
 
 import { getGrauXamaPorPrestigio, getNivelPrestigioCla } from '@/lib/utils/prestigio';
@@ -51,8 +55,8 @@ type Props = {
   tecnicasInatas: TecnicaInataCatalogo[];
   alinhamentos: AlinhamentoCatalogo[];
   todasPericias: PericiaCatalogo[];
-  equipamentos: any[];
-  modificacoes: any[];
+  equipamentos: EquipamentoCatalogo[];
+  modificacoes: ModificacaoCatalogo[];
 };
 
 const ATRIBUTO_LABEL: Record<AtributoBaseCodigo, string> = {
@@ -85,6 +89,175 @@ type PoderGenericoPreview = PoderGenericoInstanciaPayload & {
   descricao?: string | null;
 };
 
+type InventarioErroExtraido = {
+  mensagens: string[];
+  errosItens: string[];
+  espacos: {
+    ocupados: number;
+    total: number;
+    sobrecarregado?: boolean;
+    restantes?: number;
+  } | null;
+};
+
+function collectStringMessages(value: unknown, acc: string[]) {
+  if (typeof value === 'string') {
+    if (value.trim()) acc.push(value.trim());
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectStringMessages(item, acc);
+    }
+    return;
+  }
+
+  const record = asRecord(value);
+  if (!record) return;
+  for (const item of Object.values(record)) {
+    collectStringMessages(item, acc);
+  }
+}
+
+function extractDetailsFallbackMessages(details: unknown): string[] {
+  const parsed = asRecord(details);
+  if (!parsed) return extractStringArray(details);
+
+  const messages: string[] = [];
+  for (const [key, value] of Object.entries(parsed)) {
+    if (key === 'errosItens') continue;
+    collectStringMessages(value, messages);
+  }
+  return messages;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function extractStringArray(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      const record = asRecord(item);
+      if (!record) return null;
+      return (
+        (typeof record.mensagem === 'string' && record.mensagem) ||
+        (typeof record.message === 'string' && record.message) ||
+        (typeof record.erro === 'string' && record.erro) ||
+        null
+      );
+    })
+    .filter((item): item is string => Boolean(item));
+}
+
+function extractErrosItens(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      const record = asRecord(item);
+      if (!record) return null;
+
+      const index =
+        toFiniteNumber(record.index) ??
+        toFiniteNumber(record.indice) ??
+        toFiniteNumber(record.itemIndex);
+      const equipamentoId = toFiniteNumber(record.equipamentoId);
+      const mensagem =
+        (typeof record.mensagem === 'string' && record.mensagem) ||
+        (typeof record.message === 'string' && record.message) ||
+        (typeof record.erro === 'string' && record.erro) ||
+        null;
+
+      if (!mensagem) return null;
+
+      const prefixos: string[] = [];
+      if (index !== null) prefixos.push(`Item #${index + 1}`);
+      if (equipamentoId !== null) prefixos.push(`Equipamento ${equipamentoId}`);
+
+      if (prefixos.length === 0) return mensagem;
+      return `${prefixos.join(' - ')}: ${mensagem}`;
+    })
+    .filter((item): item is string => Boolean(item));
+}
+
+function extractPrimaryMessage(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (!Array.isArray(value)) return null;
+
+  for (const item of value) {
+    if (typeof item === 'string' && item.trim()) return item.trim();
+
+    const record = asRecord(item);
+    if (!record) continue;
+
+    const nested =
+      (typeof record.mensagem === 'string' && record.mensagem) ||
+      (typeof record.message === 'string' && record.message) ||
+      (typeof record.erro === 'string' && record.erro) ||
+      null;
+
+    if (nested && nested.trim()) return nested.trim();
+  }
+
+  return null;
+}
+
+function extractInventarioErros(details: unknown): InventarioErroExtraido {
+  const parsed = asRecord(details);
+  if (!parsed) {
+    return {
+      mensagens: [],
+      errosItens: [],
+      espacos: null,
+    };
+  }
+
+  const mensagens = [
+    ...extractStringArray(parsed.errosInventario),
+    ...extractStringArray(parsed.inventarioErros),
+    ...extractStringArray(parsed.inventario),
+  ];
+
+  const errosItens = extractErrosItens(parsed.errosItens);
+
+  const espacosRaw =
+    asRecord(parsed.espacosInventario) ??
+    asRecord(parsed.inventarioEspacos) ??
+    asRecord(parsed.espacos);
+  const ocupados = toFiniteNumber(espacosRaw?.ocupados ?? espacosRaw?.espacosOcupados);
+  const total = toFiniteNumber(espacosRaw?.total ?? espacosRaw?.espacosTotal);
+  const restantes = toFiniteNumber(espacosRaw?.restantes ?? espacosRaw?.espacosDisponiveis);
+  const sobrecarregado =
+    typeof espacosRaw?.sobrecarregado === 'boolean' ? espacosRaw.sobrecarregado : undefined;
+
+  return {
+    mensagens,
+    errosItens,
+    espacos:
+      ocupados !== null && total !== null
+        ? {
+            ocupados,
+            total,
+            restantes: restantes ?? undefined,
+            sobrecarregado,
+          }
+        : null,
+  };
+}
+
 export function PersonagemBaseStepRevisao({
   preview,
   classes,
@@ -106,6 +279,14 @@ export function PersonagemBaseStepRevisao({
   const [passivasElegiveisConflito, setPassivasElegiveisConflito] = useState<AtributoBaseCodigo[]>(
     [],
   );
+  const [errosInventarioPreview, setErrosInventarioPreview] = useState<string[]>([]);
+  const [errosInventarioItensPreview, setErrosInventarioItensPreview] = useState<string[]>([]);
+  const [espacosInventarioErro, setEspacosInventarioErro] = useState<{
+    ocupados: number;
+    total: number;
+    sobrecarregado?: boolean;
+    restantes?: number;
+  } | null>(null);
 
   const [poderesGenericosCatalogo, setPoderesGenericosCatalogo] = useState<
     PoderGenericoCatalogo[]
@@ -116,7 +297,7 @@ export function PersonagemBaseStepRevisao({
   const reqPreviewRef = useRef(0);
   const reqPassivasRef = useRef(0);
 
-  // ✅ CORRIGIDO: Remover parâmetro token
+  // Carrega o catálogo de poderes para resolução de nomes no resumo.
   useEffect(() => {
     if (!token) return;
 
@@ -124,13 +305,12 @@ export function PersonagemBaseStepRevisao({
       try {
         const poderes = await apiGetPoderesGenericos();
         setPoderesGenericosCatalogo(poderes);
-      } catch (e) {
-        console.error('Erro ao carregar catálogo de poderes genéricos:', e);
+      } catch {
       }
     })();
   }, [token]);
 
-  // ✅ SANITIZAR previewNormalizado
+  // Normaliza o payload para chamada de preview.
   const previewNormalizado = useMemo<
     CreatePersonagemBasePayload & { grausTreinamento?: GrauTreinamento[] }
   >(() => {
@@ -142,10 +322,10 @@ export function PersonagemBaseStepRevisao({
         }))
         : undefined;
 
-    // ✅ SANITIZAR itensInventario
+    // Normaliza itens de inventário antes de enviar ao preview.
     const itensInventarioSanitizados =
       preview.itensInventario && preview.itensInventario.length > 0
-        ? preview.itensInventario.map((item: any) => ({
+        ? preview.itensInventario.map((item) => ({
           equipamentoId: item.equipamentoId,
           quantidade: item.quantidade,
           equipado: item.equipado,
@@ -164,28 +344,48 @@ export function PersonagemBaseStepRevisao({
       itensInventario: itensInventarioSanitizados,
     };
 
-    console.log('[StepRevisao] Payload sanitizado:', normalizado);
-
     return normalizado;
   }, [preview]);
 
   const previewJson = useMemo(() => JSON.stringify(previewNormalizado), [previewNormalizado]);
 
-  // ✅ CORRIGIDO: Remover parâmetro token
+  // Atualiza o preview da revisão quando os dados mudam.
   useEffect(() => {
     if (!token) return;
 
     const reqId = ++reqPreviewRef.current;
 
-    setCarregando(true);
-    setErro(null);
-    setPassivasElegiveisConflito([]);
+    queueMicrotask(() => {
+      setCarregando(true);
+      setErro(null);
+      setPassivasElegiveisConflito([]);
+      setErrosInventarioPreview([]);
+      setErrosInventarioItensPreview([]);
+      setEspacosInventarioErro(null);
+    });
 
     apiPreviewPersonagemBase(previewNormalizado)
       .then((resultado) => {
         if (reqId !== reqPreviewRef.current) return;
 
         setPreviewCalculado(resultado);
+        setErrosInventarioPreview(resultado.errosInventario ?? []);
+        setErrosInventarioItensPreview(extractErrosItens(resultado.errosItens));
+
+        if (
+          resultado.espacosInventario?.ocupados != null &&
+          resultado.espacosInventario?.total != null
+        ) {
+          setEspacosInventarioErro({
+            ocupados: Number(resultado.espacosInventario.ocupados),
+            total: Number(resultado.espacosInventario.total),
+            restantes:
+              resultado.espacosInventario.restantes != null
+                ? Number(resultado.espacosInventario.restantes)
+                : undefined,
+            sobrecarregado: resultado.espacosInventario.sobrecarregado,
+          });
+        }
 
         if (resultado.passivasNeedsChoice) {
           setPassivasElegiveisConflito(resultado.passivasElegiveis ?? []);
@@ -194,25 +394,34 @@ export function PersonagemBaseStepRevisao({
       .catch((err) => {
         if (reqId !== reqPreviewRef.current) return;
 
-        console.error('❌ ERRO NO PREVIEW:', err);
 
-        if (err instanceof ApiError && err.status === 422) {
-          // ✅ DEPOIS - Opção 1 (usando details)
+        if (err instanceof ApiError) {
+          const inventario = extractInventarioErros(err.body?.details);
+          const detailsFallback = extractDetailsFallbackMessages(err.body?.details);
+          const backendMessage = extractPrimaryMessage(err.body?.message);
+          const codeMessage = traduzirErro(
+            err.body?.code,
+            backendMessage ?? extrairMensagemErro(err),
+          );
+
+          setErrosInventarioPreview(inventario.mensagens);
+          setErrosInventarioItensPreview(inventario.errosItens);
+          setEspacosInventarioErro(inventario.espacos);
+
           const elegiveis = Array.isArray(err.body?.details?.elegiveis)
             ? (err.body.details.elegiveis as AtributoBaseCodigo[])
             : [];
           setPassivasElegiveisConflito(elegiveis);
 
-          const msg =
-            elegiveis.length > 0
-              ? `Escolha 2 atributos para ativar passivas: ${elegiveis
-                .map((a) => ATRIBUTO_LABEL[a] ?? a)
-                .join(', ')}.`
-              : err.message;
+          const mensagemOrdenada =
+            inventario.errosItens[0] ??
+            inventario.mensagens[0] ??
+            detailsFallback[0] ??
+            codeMessage;
 
-          setErro(msg);
+          setErro(mensagemOrdenada || 'Erro ao gerar preview');
         } else {
-          setErro(err?.message ?? 'Erro ao gerar preview');
+          setErro(extrairMensagemErro(err) || 'Erro ao gerar preview');
         }
 
         setPreviewCalculado(null);
@@ -223,14 +432,15 @@ export function PersonagemBaseStepRevisao({
       });
   }, [token, previewJson, previewNormalizado]);
 
-  // ✅ CORRIGIDO: Remover parâmetro token
+  // Carrega passivas selecionadas para exibição no resumo.
+  const passivasAtributoIds = useMemo(
+    () => previewCalculado?.passivasAtributoIds ?? [],
+    [previewCalculado?.passivasAtributoIds],
+  );
+
   useEffect(() => {
-    if (
-      !token ||
-      !previewCalculado?.passivasAtributoIds ||
-      previewCalculado.passivasAtributoIds.length === 0
-    ) {
-      setPassivasSelecionadas([]);
+    if (!token || passivasAtributoIds.length === 0) {
+      queueMicrotask(() => setPassivasSelecionadas([]));
       return;
     }
 
@@ -241,7 +451,7 @@ export function PersonagemBaseStepRevisao({
         const todasPassivas = await apiGetPassivasDisponiveis();
         if (reqId !== reqPassivasRef.current) return;
 
-        const ids = new Set(previewCalculado.passivasAtributoIds ?? []);
+        const ids = new Set(passivasAtributoIds);
         const selecionadas: PassivaAtributoCatalogo[] = [];
 
         for (const lista of Object.values(todasPassivas)) {
@@ -256,13 +466,12 @@ export function PersonagemBaseStepRevisao({
         });
 
         setPassivasSelecionadas(selecionadas);
-      } catch (err) {
-        console.error('Erro ao carregar passivas:', err);
+      } catch {
         if (reqId !== reqPassivasRef.current) return;
         setPassivasSelecionadas([]);
       }
     })();
-  }, [token, previewCalculado?.passivasAtributoIds?.join(',')]);
+  }, [token, passivasAtributoIds]);
 
   const cla = clas.find((c) => c.id === preview.claId);
   const origem = origens.find((o) => o.id === preview.origemId);
@@ -293,27 +502,26 @@ export function PersonagemBaseStepRevisao({
   const passivasAtivosParaMostrar =
     previewCalculado?.passivasAtributosAtivos ?? preview.passivasAtributosAtivos ?? [];
 
-  // ✅ CORRIGIDO: Usar APENAS dados do backend (previewCalculado.itensInventario)
+  // Usa dados calculados pelo backend para o resumo de inventário.
   const inventarioInfo = useMemo(() => {
-    if (!previewCalculado?.itensInventario || previewCalculado.itensInventario.length === 0) {
-      return {
-        itens: [],
-        espacosOcupados: 0,
-        espacosDisponiveis: previewCalculado?.espacosInventario?.total ?? preview.forca * 5,
-      };
-    }
-
-    // ✅ CORRIGIDO: usar espacosTotal (não espacosCalculados)
-    const espacosOcupados = previewCalculado.itensInventario.reduce(
-      (sum, item) => sum + item.espacosTotal,
-      0,
-    );
+    const itens = previewCalculado?.itensInventario ?? [];
+    const espacosTotal = previewCalculado?.espacosInventario?.total ?? preview.forca * 5;
+    const espacosOcupados =
+      previewCalculado?.espacosInventario?.ocupados ??
+      itens.reduce((sum, item) => sum + item.espacosTotal, 0);
+    const espacosRestantes =
+      previewCalculado?.espacosInventario?.restantes ?? espacosTotal - espacosOcupados;
+    const sobrecarregado =
+      previewCalculado?.espacosInventario?.sobrecarregado ?? espacosOcupados > espacosTotal;
 
     return {
-      itens: previewCalculado.itensInventario,
+      itens,
+      espacosTotal,
       espacosOcupados,
-      // ✅ CORRIGIDO: usar espacosInventario.total (não espacosTotal direto)
-      espacosDisponiveis: previewCalculado.espacosInventario?.total ?? preview.forca * 5,
+      espacosRestantes,
+      sobrecarregado,
+      limitesPorCategoria: previewCalculado?.espacosInventario?.limitesPorCategoria ?? null,
+      itensPorCategoria: previewCalculado?.espacosInventario?.itensPorCategoria ?? null,
     };
   }, [previewCalculado?.itensInventario, previewCalculado?.espacosInventario, preview.forca]);
 
@@ -369,6 +577,36 @@ export function PersonagemBaseStepRevisao({
             </div>
           </SectionCard>
         )}
+
+        {(errosInventarioPreview.length > 0 ||
+          errosInventarioItensPreview.length > 0 ||
+          espacosInventarioErro) && (
+          <SectionCard
+            title="Erros de inventário"
+            right={<Icon name="briefcase" className="h-5 w-5 text-app-danger" />}
+            contentClassName="space-y-2 text-xs"
+          >
+            {espacosInventarioErro && (
+              <p className="text-app-muted">
+                Espaços ocupados: {espacosInventarioErro.ocupados}/{espacosInventarioErro.total}
+                {typeof espacosInventarioErro.restantes === 'number'
+                  ? ` (restantes: ${espacosInventarioErro.restantes})`
+                  : ''}
+                {espacosInventarioErro.sobrecarregado ? ' - sobrecarregado' : ''}
+              </p>
+            )}
+            {errosInventarioPreview.map((msg, index) => (
+              <p key={`erro-inv-${index}`} className="text-app-danger">
+                • {msg}
+              </p>
+            ))}
+            {errosInventarioItensPreview.map((msg, index) => (
+              <p key={`erro-item-${index}`} className="text-app-danger/90">
+                • {msg}
+              </p>
+            ))}
+          </SectionCard>
+        )}
       </div>
     );
   }
@@ -391,33 +629,37 @@ export function PersonagemBaseStepRevisao({
       },
     ) ?? [];
 
-  const formatarConfigPoder = (config: any, catalogoPoder?: PoderGenericoCatalogo) => {
-    if (!config || Object.keys(config).length === 0) return null;
+  const formatarConfigPoder = (config: unknown) => {
+    const configRecord = asRecord(config);
+    if (!configRecord || Object.keys(configRecord).length === 0) return null;
 
     const items: string[] = [];
 
-    if (config.periciasCodigos && Array.isArray(config.periciasCodigos)) {
-      const nomes = config.periciasCodigos
-        .map((codigo: string) => {
-          const pericia = todasPericias.find((p) => p.codigo === codigo);
-          return pericia ? `${pericia.nome} (${codigo})` : codigo;
+    if (configRecord.periciasCodigos && Array.isArray(configRecord.periciasCodigos)) {
+      const nomes = configRecord.periciasCodigos
+        .map((codigo) => {
+          const codigoStr = String(codigo);
+          const pericia = todasPericias.find((p) => p.codigo === codigoStr);
+          return pericia ? `${pericia.nome} (${codigoStr})` : codigoStr;
         })
         .join(', ');
       items.push(`Perícias: ${nomes}`);
     }
 
-    if (config.tipoGrauCodigo) {
-      items.push(`Tipo de grau: ${config.tipoGrauCodigo}`);
+    if (typeof configRecord.tipoGrauCodigo === 'string') {
+      items.push(`Tipo de grau: ${configRecord.tipoGrauCodigo}`);
     }
 
-    if (config.proficiencias && Array.isArray(config.proficiencias)) {
-      items.push(`Proficiências: ${config.proficiencias.join(', ')}`);
+    if (configRecord.proficiencias && Array.isArray(configRecord.proficiencias)) {
+      items.push(`Proficiências: ${configRecord.proficiencias.join(', ')}`);
     }
 
     return items.length > 0 ? items : null;
   };
 
-  const temErros = precisaEscolherPassivas;
+  const temErrosInventario =
+    errosInventarioPreview.length > 0 || errosInventarioItensPreview.length > 0;
+  const temErros = precisaEscolherPassivas || temErrosInventario;
   const temAvisos = !preview.background || !preview.idade || !preview.alinhamentoId;
 
   return (
@@ -451,6 +693,36 @@ export function PersonagemBaseStepRevisao({
                 <p className="text-app-muted mt-1">
                   Volte no passo &quot;Atributos &amp; EA&quot; e selecione 2 atributos.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {temErrosInventario && (
+            <div className="flex items-start gap-2">
+              <Icon name="briefcase" className="w-4 h-4 text-app-danger mt-0.5" />
+              <div>
+                <p className="font-medium text-app-danger">
+                  O inventário possui inconsistências para este preview.
+                </p>
+                {espacosInventarioErro && (
+                  <p className="text-app-muted mt-1">
+                    Espaços: {espacosInventarioErro.ocupados}/{espacosInventarioErro.total}
+                    {typeof espacosInventarioErro.restantes === 'number'
+                      ? ` (restantes: ${espacosInventarioErro.restantes})`
+                      : ''}
+                    {espacosInventarioErro.sobrecarregado ? ' - sobrecarregado' : ''}
+                  </p>
+                )}
+                {errosInventarioPreview.map((msg, idx) => (
+                  <p key={`status-inv-${idx}`} className="text-app-muted mt-1">
+                    • {msg}
+                  </p>
+                ))}
+                {errosInventarioItensPreview.map((msg, idx) => (
+                  <p key={`status-item-${idx}`} className="text-app-muted mt-1">
+                    • {msg}
+                  </p>
+                ))}
               </div>
             </div>
           )}
@@ -669,7 +941,7 @@ export function PersonagemBaseStepRevisao({
         />
       </SectionCard>
 
-      {/* ✅ INVENTÁRIO - SEMPRE EXIBIR */}
+      {/* INVENTÁRIO - SEMPRE EXIBIR */}
       <SectionCard
         title="Inventário"
         right={<Icon name="briefcase" className="h-5 w-5 text-app-muted" />}
@@ -678,19 +950,17 @@ export function PersonagemBaseStepRevisao({
         <div className="grid gap-2.5 sm:grid-cols-2">
           <InfoTile
             label="Capacidade de carga"
-            value={`${inventarioInfo.espacosOcupados} / ${inventarioInfo.espacosDisponiveis}`}
+            value={`${inventarioInfo.espacosOcupados} / ${inventarioInfo.espacosTotal}`}
             right={
               <Badge
                 color={
-                  inventarioInfo.espacosOcupados > inventarioInfo.espacosDisponiveis
-                    ? 'red'
-                    : 'green'
+                  inventarioInfo.sobrecarregado ? 'red' : 'green'
                 }
                 size="sm"
               >
-                {inventarioInfo.espacosDisponiveis > 0
+                {inventarioInfo.espacosTotal > 0
                   ? Math.round(
-                    (inventarioInfo.espacosOcupados / inventarioInfo.espacosDisponiveis) * 100,
+                    (inventarioInfo.espacosOcupados / inventarioInfo.espacosTotal) * 100,
                   )
                   : 0}
                 %
@@ -701,7 +971,43 @@ export function PersonagemBaseStepRevisao({
             label="Total de itens"
             value={inventarioInfo.itens.reduce((sum, item) => sum + item.quantidade, 0)}
           />
+          <InfoTile
+            label="Espaços restantes"
+            value={inventarioInfo.espacosRestantes}
+          />
+          <InfoTile
+            label="Estado"
+            value={inventarioInfo.sobrecarregado ? 'Sobrecarregado' : 'Dentro do limite'}
+            right={
+              <Badge color={inventarioInfo.sobrecarregado ? 'red' : 'green'} size="sm">
+                {inventarioInfo.sobrecarregado ? 'Alerta' : 'OK'}
+              </Badge>
+            }
+          />
         </div>
+
+        {inventarioInfo.limitesPorCategoria && inventarioInfo.itensPorCategoria && (
+          <div className="pt-2 border-t border-app-border">
+            <p className="text-xs font-medium text-app-fg mb-2">Limites por categoria</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {Object.entries(inventarioInfo.limitesPorCategoria).map(([categoria, limite]) => {
+                const usado = inventarioInfo.itensPorCategoria?.[categoria] ?? 0;
+                const excedeu = usado > limite;
+                return (
+                  <div
+                    key={categoria}
+                    className="flex items-center justify-between rounded border border-app-border bg-app-elevated px-2 py-1"
+                  >
+                    <span className="text-xs text-app-muted">{categoria}</span>
+                    <span className={`text-xs font-medium ${excedeu ? 'text-app-danger' : 'text-app-fg'}`}>
+                      {usado}/{limite}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {inventarioInfo.itens.length === 0 ? (
           <div className="pt-2 border-t border-app-border">
@@ -805,32 +1111,37 @@ export function PersonagemBaseStepRevisao({
             />
           ) : (
             <div className="grid gap-2.5 sm:grid-cols-2">
-              {passivasSelecionadas.map((passiva) => (
-                <div
-                  key={passiva.id}
-                  className="p-2.5 rounded border border-app-border bg-app-elevated space-y-1.5"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-medium text-app-fg">{passiva.nome}</span>
-                    <Badge color="blue" size="sm">
-                      {passiva.atributo} {passiva.nivel === 2 ? 'II' : 'I'}
-                    </Badge>
-                  </div>
-                  <p className="text-[10px] text-app-muted">{passiva.descricao}</p>
-                  {passiva.efeitos && Object.keys(passiva.efeitos).length > 0 && (
-                    <div className="pt-1.5 border-t border-app-border/50">
-                      <ul className="space-y-0.5 text-[10px] text-app-muted">
-                        {Object.entries(passiva.efeitos).map(([key, value]) => (
-                          <li key={key} className="flex items-center justify-between">
-                            <span>{key}</span>
-                            <span className="font-medium text-app-success">+{String(value)}</span>
-                          </li>
-                        ))}
-                      </ul>
+              {passivasSelecionadas.map((passiva) => {
+                const efeitosPassiva = asRecord(passiva.efeitos);
+                const entradasEfeitos = efeitosPassiva ? Object.entries(efeitosPassiva) : [];
+
+                return (
+                  <div
+                    key={passiva.id}
+                    className="p-2.5 rounded border border-app-border bg-app-elevated space-y-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs font-medium text-app-fg">{passiva.nome}</span>
+                      <Badge color="blue" size="sm">
+                        {passiva.atributo} {passiva.nivel === 2 ? 'II' : 'I'}
+                      </Badge>
                     </div>
-                  )}
-                </div>
-              ))}
+                    <p className="text-[10px] text-app-muted">{passiva.descricao}</p>
+                    {entradasEfeitos.length > 0 && (
+                      <div className="pt-1.5 border-t border-app-border/50">
+                        <ul className="space-y-0.5 text-[10px] text-app-muted">
+                          {entradasEfeitos.map(([key, value]) => (
+                            <li key={key} className="flex items-center justify-between">
+                              <span>{key}</span>
+                              <span className="font-medium text-app-success">+{String(value)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </SectionCard>
@@ -999,10 +1310,7 @@ export function PersonagemBaseStepRevisao({
           contentClassName="space-y-2"
         >
           {poderesPreview.map((instancia: PoderGenericoPreview, idx: number) => {
-            const catalogoPoder = poderesGenericosCatalogo.find(
-              (p) => p.id === instancia.habilidadeId,
-            );
-            const configFormatada = formatarConfigPoder(instancia.config, catalogoPoder);
+            const configFormatada = formatarConfigPoder(instancia.config);
 
             return (
               <div

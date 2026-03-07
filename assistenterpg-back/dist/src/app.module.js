@@ -37,7 +37,30 @@ let AppModule = class AppModule {
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule, usuario_module_1.UsuarioModule, auth_module_1.AuthModule, campanha_module_1.CampanhaModule, personagem_base_module_1.PersonagemBaseModule, clas_module_1.ClasModule, classes_module_1.ClassesModule, origens_module_1.OrigensModule, proficiencias_module_1.ProficienciasModule, tipos_grau_module_1.TiposGrauModule, pericias_module_1.PericiasModule, trilhas_module_1.TrilhasModule, habilidades_module_1.HabilidadesModule, alinhamentos_module_1.AlinhamentosModule, compendio_module_1.CompendioModule, inventario_module_1.InventarioModule, equipamentos_module_1.EquipamentosModule, modificacoes_module_1.ModificacoesModule, condicoes_module_1.CondicoesModule, tecnicas_amaldicoadas_module_1.TecnicasAmaldicoadasModule, suplementos_module_1.SuplementosModule, homebrews_module_1.HomebrewsModule],
+        imports: [
+            prisma_module_1.PrismaModule,
+            usuario_module_1.UsuarioModule,
+            auth_module_1.AuthModule,
+            campanha_module_1.CampanhaModule,
+            personagem_base_module_1.PersonagemBaseModule,
+            clas_module_1.ClasModule,
+            classes_module_1.ClassesModule,
+            origens_module_1.OrigensModule,
+            proficiencias_module_1.ProficienciasModule,
+            tipos_grau_module_1.TiposGrauModule,
+            pericias_module_1.PericiasModule,
+            trilhas_module_1.TrilhasModule,
+            habilidades_module_1.HabilidadesModule,
+            alinhamentos_module_1.AlinhamentosModule,
+            compendio_module_1.CompendioModule,
+            inventario_module_1.InventarioModule,
+            equipamentos_module_1.EquipamentosModule,
+            modificacoes_module_1.ModificacoesModule,
+            condicoes_module_1.CondicoesModule,
+            tecnicas_amaldicoadas_module_1.TecnicasAmaldicoadasModule,
+            suplementos_module_1.SuplementosModule,
+            homebrews_module_1.HomebrewsModule,
+        ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
     })

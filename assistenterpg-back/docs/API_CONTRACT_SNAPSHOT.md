@@ -14,10 +14,12 @@
 ## 1) Auth
 
 ### `POST /auth/register`
+
 - body: `{ apelido, email, senha }`
 - sucesso: usuário criado (sem senha)
 
 ### `POST /auth/login`
+
 - body: `{ email, senha }`
 - sucesso: `{ access_token, usuario: { id, email, apelido, role } }`
 
@@ -49,6 +51,7 @@
 - `POST /campanhas/convites/:codigo/recusar`
 
 ### Observação de resposta
+
 - `GET /campanhas/minhas`:
   - sem paginação: `Campanha[]`
   - com paginação: `{ items, total, page, limit, totalPages }`
@@ -58,6 +61,7 @@
 ## 4) Compêndio
 
 ### Categorias
+
 - `GET /compendio/categorias` (`todas`, `page`, `limit`)
 - `GET /compendio/categorias/codigo/:codigo`
 - `POST /compendio/categorias`
@@ -65,6 +69,7 @@
 - `DELETE /compendio/categorias/:id`
 
 ### Subcategorias
+
 - `GET /compendio/categorias/:categoriaId/subcategorias` (`todas`, `page`, `limit`)
 - `GET /compendio/subcategorias/codigo/:codigo`
 - `POST /compendio/subcategorias`
@@ -72,6 +77,7 @@
 - `DELETE /compendio/subcategorias/:id`
 
 ### Artigos
+
 - `GET /compendio/artigos` (`subcategoriaId`, `todas`, `page`, `limit`)
 - `GET /compendio/artigos/codigo/:codigo`
 - `POST /compendio/artigos`
@@ -79,10 +85,12 @@
 - `DELETE /compendio/artigos/:id`
 
 ### Outros
+
 - `GET /compendio/buscar?q=...`
 - `GET /compendio/destaques`
 
 ### Observação de resposta
+
 - `categorias`, `subcategorias`, `artigos` têm retorno híbrido array/paginado.
 
 ---
@@ -96,9 +104,19 @@
 - `GET /personagens-base/passivas-disponiveis`
 - `GET /personagens-base/tecnicas-disponiveis`
 - `GET /personagens-base/meus`
+- `GET /personagens-base/:id/exportar`
+- `POST /personagens-base/importar`
 - `GET /personagens-base/:id`
 - `PATCH /personagens-base/:id`
 - `DELETE /personagens-base/:id`
+
+### Exportacao/importacao de ficha
+
+- `GET /personagens-base/:id/exportar` retorna JSON com:
+  - `schema`, `schemaVersion`, `exportadoEm`
+  - `personagem` (payload de criacao)
+  - `referencias` (ids/codigos/nomes para fallback na importacao)
+- `POST /personagens-base/importar` recebe o JSON exportado e cria nova ficha para o usuario autenticado.
 
 ---
 
@@ -118,6 +136,7 @@
 ## 7) Equipamentos e Modificações
 
 ### Equipamentos
+
 - `GET /equipamentos`
 - `GET /equipamentos/:id`
 - `GET /equipamentos/codigo/:codigo`
@@ -126,6 +145,7 @@
 - `DELETE /equipamentos/:id`
 
 ### Modificações
+
 - `GET /modificacoes`
 - `GET /modificacoes/:id`
 - `GET /modificacoes/equipamento/:equipamentoId/compativeis`
@@ -146,6 +166,7 @@
 - `DELETE /tecnicas-amaldicoadas/:id`
 
 ### Habilidades técnicas
+
 - `GET /tecnicas-amaldicoadas/:tecnicaId/habilidades`
 - `GET /tecnicas-amaldicoadas/habilidades/:id`
 - `POST /tecnicas-amaldicoadas/habilidades`
@@ -153,6 +174,7 @@
 - `DELETE /tecnicas-amaldicoadas/habilidades/:id`
 
 ### Variações
+
 - `GET /tecnicas-amaldicoadas/habilidades/:habilidadeId/variacoes`
 - `GET /tecnicas-amaldicoadas/variacoes/:id`
 - `POST /tecnicas-amaldicoadas/variacoes`
@@ -164,12 +186,15 @@
 ## 9) Catálogo base / demais domínios
 
 CRUD/listagem em:
+
 - `classes`, `clas`, `origens`, `trilhas`, `habilidades`, `proficiencias`, `tipos-grau`, `condicoes`
 
 Listagem simples em:
+
 - `alinhamentos`, `pericias`
 
 Homebrews e Suplementos:
+
 - possuem endpoints de listagem, detalhe, CRUD e ações específicas (publicar/arquivar, ativar/desativar).
 
 ---
@@ -181,4 +206,3 @@ Implementar uma função utilitária para respostas de lista:
 1. Se `Array.isArray(data)` => transformar para `ListResult` com defaults.
 2. Se `data.items` existe => usar dados paginados.
 3. Caso contrário => lançar erro de contrato inesperado.
-

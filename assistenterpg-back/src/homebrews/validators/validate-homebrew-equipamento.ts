@@ -1,8 +1,8 @@
 // src/homebrews/validators/validate-homebrew-equipamento.ts
 
-import { 
+import {
   ValorForaDoIntervaloException,
-  ValidationException 
+  ValidationException,
 } from '../../common/exceptions/validation.exception';
 
 /**

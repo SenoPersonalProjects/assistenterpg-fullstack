@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
-import type { Categoria } from '@/lib/utils/compendio';
+import type { CompendioCategoria as Categoria } from '@/lib/utils/compendio';
 
 interface CategoriaCardProps {
   categoria: Categoria;

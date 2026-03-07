@@ -1,8 +1,8 @@
 // src/homebrews/validators/validate-homebrew-origem.ts
 
-import { 
+import {
   ValidationException,
-  ValoresUnicosException 
+  ValoresUnicosException,
 } from '../../common/exceptions/validation.exception';
 
 /**
@@ -21,10 +21,11 @@ export function validateHomebrewOrigemCustom(dados: any): void {
 
   // ✅ Validar perícias únicas
   const periciasUnicas = new Set(dados.pericias);
-  
+
   if (dados.pericias.length !== periciasUnicas.size) {
     const duplicadas = dados.pericias.filter(
-      (pericia: any, index: number) => dados.pericias.indexOf(pericia) !== index
+      (pericia: any, index: number) =>
+        dados.pericias.indexOf(pericia) !== index,
     );
     throw new ValoresUnicosException('pericias', duplicadas);
   }

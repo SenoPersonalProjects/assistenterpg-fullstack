@@ -12,11 +12,12 @@ import type {
 import { apiGetEquipamentos, apiGetModificacoes, apiPreviewItensInventario } from '@/lib/api';
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
-  // ❌ REMOVIDO: calcularEspacosExtraDeItens
+  // calcularEspacosExtraDeItens
   filtrarModificacoesCompativeis,
   normalizarCategoria,
   validarPodeVestir,
   type CategoriaEquipamento,
+  type ItemInventarioParaVestir,
 } from '@/lib/utils/inventario';
 import { useInventarioPreview } from '@/hooks/useInventarioPreview';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -44,28 +45,6 @@ type Props = {
 
 type ModalStep = 'categoria' | 'equipamento' | 'modificacoes' | 'review' | 'editar-item';
 
-
-type EquipamentoParaValidacao = {
-  id: number;
-  codigo: string;
-  nome: string;
-  tipo: string;
-  categoria: unknown;
-  espacos: number;
-  descricao?: string | null;
-  complexidadeMaldicao?: string | null;
-  armaAmaldicoada?: unknown;
-  protecaoAmaldicoada?: unknown;
-  artefatoAmaldicoado?: unknown;
-};
-
-type ItemParaValidacaoVestir = {
-  equipamentoId: number;
-  quantidade: number;
-  equipado: boolean;
-  equipamento?: EquipamentoParaValidacao;
-};
-
 export function PersonagemBaseStepInventario(props: Props) {
   const { sincronizarInventario, carregando: carregandoSincronizacao } = useInventarioPreview({
     forca: props.forca,
@@ -77,7 +56,7 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [modificacoes, setModificacoes] = useState<ModificacaoCatalogo[]>([]);
   const [carregando, setCarregando] = useState(true);
 
-  // ✅ NOVO: Estado para armazenar preview do backend (espaços calculados)
+  // Estado para armazenar preview do backend (espaços calculados)
   const [previewInventario, setPreviewInventario] = useState<{
     espacosBase: number;
     espacosExtra: number;
@@ -143,8 +122,7 @@ export function PersonagemBaseStepInventario(props: Props) {
         }
 
         return todosEquipamentos;
-      } catch (err) {
-        console.error('[Inventário] Erro ao carregar equipamentos:', err);
+      } catch {
         return [];
       }
     };
@@ -154,18 +132,17 @@ export function PersonagemBaseStepInventario(props: Props) {
         setEquipamentos(Array.isArray(equips) ? equips : []);
         setModificacoes(mods.items || []);
       })
-      .catch((err) => {
-        console.error('[Inventário] Erro ao carregar catálogos:', err);
+      .catch(() => {
         setEquipamentos([]);
         setModificacoes([]);
       })
       .finally(() => setCarregando(false));
   }, []);
 
-  // ✅ NOVO: Sincronizar com backend sempre que itens mudarem
+  // Sincronizar com backend sempre que itens mudarem
   useEffect(() => {
     if (carregando || props.itensInventario.length === 0) {
-      // ✅ Caso vazio: calcular espaços base manualmente
+      // Caso vazio: calcular espaços base manualmente
       setPreviewInventario({
         espacosBase: props.forca * 5,
         espacosExtra: 0,
@@ -202,8 +179,7 @@ export function PersonagemBaseStepInventario(props: Props) {
             sobrecarregado: data.sobrecarregado,
           });
         }
-      } catch (err) {
-        console.error('[Inventário] Erro ao buscar preview:', err);
+      } catch {
         if (!isCancelled) {
           // Fallback
           setPreviewInventario({
@@ -224,26 +200,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     };
   }, [carregando, props.itensInventario, props.forca, props.prestigioBase]);
 
-  // Helper para calcular espaços de um item do wizard (apenas local, sem modificações de espaço extra)
-  const calcularEspacosItem = useCallback(
-    (equipamentoId: number, modificacoesIds: number[]): number => {
-      const equip = equipamentos.find((e) => e.id === equipamentoId);
-      if (!equip) return 0;
-
-      let espacos = equip.espacos;
-      modificacoesIds.forEach((modId) => {
-        const mod = modificacoes.find((m) => m.id === modId);
-        if (mod) {
-          espacos += mod.incrementoEspacos;
-        }
-      });
-
-      return espacos;
-    },
-    [equipamentos, modificacoes],
-  );
-
-  // ✅ CORRIGIDO: Usar preview do backend
+  // Usar preview do backend
   const espacosBase = previewInventario?.espacosBase ?? props.forca * 5;
   const espacosExtra = previewInventario?.espacosExtra ?? 0;
   const espacosTotal = previewInventario?.espacosTotal ?? espacosBase;
@@ -276,11 +233,11 @@ export function PersonagemBaseStepInventario(props: Props) {
 
   // Itens filtrados (categoria + busca)
   const itensFiltrados = useMemo(() => {
-    let itens = props.itensInventario;
+    let itens = props.itensInventario.map((item, indexOriginal) => ({ item, indexOriginal }));
 
     // Filtro por categoria
     if (filtroCategoria !== 'TODOS') {
-      itens = itens.filter((item) => {
+      itens = itens.filter(({ item }) => {
         const equip = equipamentos.find((e) => e.id === item.equipamentoId);
         if (!equip) return false;
         const cat = normalizarCategoria(equip.categoria);
@@ -291,7 +248,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     // Busca por nome
     if (buscaItem.trim()) {
       const termo = buscaItem.toLowerCase();
-      itens = itens.filter((item) => {
+      itens = itens.filter(({ item }) => {
         const equip = equipamentos.find((e) => e.id === item.equipamentoId);
         if (!equip) return false;
         const nomeExibido = item.nomeCustomizado || equip.nome;
@@ -324,7 +281,7 @@ export function PersonagemBaseStepInventario(props: Props) {
 
     equipamentos.forEach((equip) => {
       const tipo = equip.tipo;
-      const equipDetalhes = equip as EquipamentoCatalogo & EquipamentoParaValidacao;
+      const equipDetalhes = equip as EquipamentoCatalogo;
       const complexidade = equipDetalhes.complexidadeMaldicao;
       const armaAmaldicoada = equipDetalhes.armaAmaldicoada;
       const protecaoAmaldicoada = equipDetalhes.protecaoAmaldicoada;
@@ -426,28 +383,21 @@ export function PersonagemBaseStepInventario(props: Props) {
       if (!equipamentoSelecionado) return;
 
       // Converter itens do wizard para formato esperado
-      const itensConvertidos = props.itensInventario
-        .map((item) => {
+      const itensConvertidos = props.itensInventario.reduce<ItemInventarioParaVestir[]>(
+        (acc, item) => {
           const equip = equipamentos.find((e) => e.id === item.equipamentoId);
-          return {
+          if (!equip) return acc;
+
+          acc.push({
             equipamentoId: item.equipamentoId,
             quantidade: item.quantidade,
             equipado: item.equipado,
-            equipamento: equip
-              ? {
-                  id: equip.id,
-                  codigo: equip.codigo,
-                  nome: equip.nome,
-                  tipo: equip.tipo,
-                  categoria: equip.categoria,
-                  espacos: equip.espacos,
-                  descricao: equip.descricao || null,
-                  complexidadeMaldicao: equip.complexidadeMaldicao || 'NENHUMA',
-                }
-              : undefined,
-          };
-        })
-        .filter((item): item is ItemParaValidacaoVestir => item.equipamento !== undefined);
+            equipamento: equip,
+          });
+          return acc;
+        },
+        [],
+      );
 
       const validacao = validarPodeVestir(
         equipamentoSelecionado,
@@ -457,7 +407,7 @@ export function PersonagemBaseStepInventario(props: Props) {
       );
 
       if (!validacao.podeVestir) {
-        setErroValidacao('❌ Este tipo de equipamento não pode ser vestido.');
+        setErroValidacao('Este tipo de equipamento não pode ser vestido.');
         return;
       }
 
@@ -488,32 +438,23 @@ export function PersonagemBaseStepInventario(props: Props) {
 
       const itensExcetoAtual = props.itensInventario
         .filter((_, idx) => idx !== indiceItemEditando)
-        .map((item) => {
+        .reduce<ItemInventarioParaVestir[]>((acc, item) => {
           const e = equipamentos.find((eq) => eq.id === item.equipamentoId);
-          return {
+          if (!e) return acc;
+
+          acc.push({
             equipamentoId: item.equipamentoId,
             quantidade: item.quantidade,
             equipado: item.equipado,
-            equipamento: e
-              ? {
-                  id: e.id,
-                  codigo: e.codigo,
-                  nome: e.nome,
-                  tipo: e.tipo,
-                  categoria: e.categoria,
-                  espacos: e.espacos,
-                  descricao: e.descricao || null,
-                  complexidadeMaldicao: e.complexidadeMaldicao || 'NENHUMA',
-                }
-              : undefined,
-          };
-        })
-        .filter((item): item is ItemParaValidacaoVestir => item.equipamento !== undefined);
+            equipamento: e,
+          });
+          return acc;
+        }, []);
 
       const validacao = validarPodeVestir(equip, quantidadeEditando, itensExcetoAtual, equipamentos);
 
       if (!validacao.podeVestir) {
-        setErroValidacao('❌ Este tipo de equipamento não pode ser vestido.');
+        setErroValidacao('Este tipo de equipamento não pode ser vestido.');
         return;
       }
 
@@ -556,23 +497,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     setEquipadoEditando(false);
   }, []);
 
-  const avancarStep = useCallback(() => {
-    setErroValidacao(null);
-
-    if (stepAtual === 'categoria') {
-      setStepAtual('equipamento');
-    } else if (stepAtual === 'equipamento') {
-      if (!equipamentoSelecionado) {
-        setErroValidacao('Selecione um equipamento');
-        return;
-      }
-      setStepAtual('modificacoes');
-    } else if (stepAtual === 'modificacoes') {
-      buscarPreviewBackend();
-    }
-  }, [stepAtual, equipamentoSelecionado]);
-
-  // ✅ CORRIGIDO: Preview simplificado (backend calculará tudo ao adicionar)
+  // Preview simplificado (backend calculará tudo ao adicionar)
   const buscarPreviewBackend = useCallback(async () => {
     if (!equipamentoSelecionado) return;
 
@@ -596,7 +521,7 @@ export function PersonagemBaseStepInventario(props: Props) {
         return;
       }
 
-      // ✅ Preview simplificado (backend calculará ao sincronizar)
+      // Preview simplificado (backend calculará ao sincronizar)
       let espacosPorUnidade = equipamentoSelecionado.espacos;
       modificacoesSelecionadas.forEach((mod) => {
         espacosPorUnidade += mod.incrementoEspacos;
@@ -646,6 +571,22 @@ export function PersonagemBaseStepInventario(props: Props) {
     espacosOcupados,
     espacosTotal,
   ]);
+
+  const avancarStep = useCallback(() => {
+    setErroValidacao(null);
+
+    if (stepAtual === 'categoria') {
+      setStepAtual('equipamento');
+    } else if (stepAtual === 'equipamento') {
+      if (!equipamentoSelecionado) {
+        setErroValidacao('Selecione um equipamento');
+        return;
+      }
+      setStepAtual('modificacoes');
+    } else if (stepAtual === 'modificacoes') {
+      buscarPreviewBackend();
+    }
+  }, [stepAtual, equipamentoSelecionado, buscarPreviewBackend]);
 
   const retrocederStep = useCallback(() => {
     if (stepAtual === 'categoria') {
@@ -863,19 +804,19 @@ export function PersonagemBaseStepInventario(props: Props) {
                 />
               ) : (
                 <div className="space-y-2">
-                  {itensFiltrados.map((item, idx) => {
+                  {itensFiltrados.map(({ item, indexOriginal }) => {
                     const equip = equipamentos.find((e) => e.id === item.equipamentoId);
                     if (!equip) return null;
 
                     return (
                       <InventarioItemCard
-                        key={idx}
+                        key={`${item.equipamentoId}-${indexOriginal}`}
                         item={item}
                         equipamento={equip}
                         modificacoes={modificacoes}
-                        onEdit={() => abrirEdicaoItem(item, idx)}
+                        onEdit={() => abrirEdicaoItem(item, indexOriginal)}
                         onDuplicate={() => duplicarItem(item)}
-                        onRemove={() => removerItem(idx)}
+                        onRemove={() => removerItem(indexOriginal)}
                       />
                     );
                   })}
@@ -1014,7 +955,6 @@ export function PersonagemBaseStepInventario(props: Props) {
                   modificacoesIds={modificacoesEditando}
                   modificacoesCompativeis={modificacoesCompativeisEdicao}
                   equipamentos={equipamentos}
-                  modificacoes={modificacoes}
                   nomeCustomizado={nomeCustomizadoEditando}
                   equipado={equipadoEditando}
                   onQuantidadeChange={setQuantidadeEditando}

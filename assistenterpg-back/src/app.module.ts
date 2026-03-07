@@ -25,7 +25,30 @@ import { SuplementosModule } from './suplementos/suplementos.module';
 import { HomebrewsModule } from './homebrews/homebrews.module';
 
 @Module({
-  imports: [PrismaModule, UsuarioModule, AuthModule, CampanhaModule, PersonagemBaseModule, ClasModule, ClassesModule, OrigensModule, ProficienciasModule, TiposGrauModule, PericiasModule, TrilhasModule, HabilidadesModule, AlinhamentosModule, CompendioModule, InventarioModule, EquipamentosModule, ModificacoesModule, CondicoesModule, TecnicasAmaldicoadasModule, SuplementosModule, HomebrewsModule],
+  imports: [
+    PrismaModule,
+    UsuarioModule,
+    AuthModule,
+    CampanhaModule,
+    PersonagemBaseModule,
+    ClasModule,
+    ClassesModule,
+    OrigensModule,
+    ProficienciasModule,
+    TiposGrauModule,
+    PericiasModule,
+    TrilhasModule,
+    HabilidadesModule,
+    AlinhamentosModule,
+    CompendioModule,
+    InventarioModule,
+    EquipamentosModule,
+    ModificacoesModule,
+    CondicoesModule,
+    TecnicasAmaldicoadasModule,
+    SuplementosModule,
+    HomebrewsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

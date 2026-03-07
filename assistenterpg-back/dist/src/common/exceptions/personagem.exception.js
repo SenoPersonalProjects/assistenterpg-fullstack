@@ -80,7 +80,11 @@ class PassivasDuplicadasException extends business_exception_1.BusinessException
 exports.PassivasDuplicadasException = PassivasDuplicadasException;
 class PassivasLimiteAtributoExcedidoException extends business_exception_1.BusinessException {
     constructor(quantidade, atributosComPassivas) {
-        super(`Você pode ter passivas em no máximo 2 atributos diferentes`, 'TOO_MANY_PASSIVE_ATTRIBUTES', { maximo: 2, quantidadeSelecionada: quantidade, atributos: atributosComPassivas });
+        super(`Você pode ter passivas em no máximo 2 atributos diferentes`, 'TOO_MANY_PASSIVE_ATTRIBUTES', {
+            maximo: 2,
+            quantidadeSelecionada: quantidade,
+            atributos: atributosComPassivas,
+        });
     }
 }
 exports.PassivasLimiteAtributoExcedidoException = PassivasLimiteAtributoExcedidoException;
@@ -116,7 +120,9 @@ class PassivaIntelectoGrauExcedeMaximoException extends business_exception_1.Bus
 exports.PassivaIntelectoGrauExcedeMaximoException = PassivaIntelectoGrauExcedeMaximoException;
 class ClasseNaoEncontradaException extends base_exception_1.BaseException {
     constructor(classeId) {
-        super('Classe não encontrada', common_1.HttpStatus.NOT_FOUND, 'CLASS_NOT_FOUND', { classeId });
+        super('Classe não encontrada', common_1.HttpStatus.NOT_FOUND, 'CLASS_NOT_FOUND', {
+            classeId,
+        });
     }
 }
 exports.ClasseNaoEncontradaException = ClasseNaoEncontradaException;
@@ -310,19 +316,29 @@ class PoderGenericoRequerEscolhaException extends business_exception_1.BusinessE
 exports.PoderGenericoRequerEscolhaException = PoderGenericoRequerEscolhaException;
 class PoderGenericoConfigInvalidaException extends business_exception_1.BusinessException {
     constructor(poderNome, campo, mensagem, extraDetails) {
-        super(`"${poderNome}": ${mensagem}`, 'POWER_CONFIG_INVALID', { poder: poderNome, campo, ...extraDetails });
+        super(`"${poderNome}": ${mensagem}`, 'POWER_CONFIG_INVALID', {
+            poder: poderNome,
+            campo,
+            ...extraDetails,
+        });
     }
 }
 exports.PoderGenericoConfigInvalidaException = PoderGenericoConfigInvalidaException;
 class PoderGenericoRequisitoPericiaException extends business_exception_1.BusinessException {
     constructor(poderNome, pericias) {
-        super(`"${poderNome}" requer ${pericias}`, 'POWER_SKILL_REQUIREMENT', { poder: poderNome, requisitoPericias: pericias });
+        super(`"${poderNome}" requer ${pericias}`, 'POWER_SKILL_REQUIREMENT', {
+            poder: poderNome,
+            requisitoPericias: pericias,
+        });
     }
 }
 exports.PoderGenericoRequisitoPericiaException = PoderGenericoRequisitoPericiaException;
 class PoderGenericoRequisitoAtributoException extends business_exception_1.BusinessException {
     constructor(poderNome, atributos) {
-        super(`"${poderNome}" requer ${atributos}`, 'POWER_ATTRIBUTE_REQUIREMENT', { poder: poderNome, requisitoAtributos: atributos });
+        super(`"${poderNome}" requer ${atributos}`, 'POWER_ATTRIBUTE_REQUIREMENT', {
+            poder: poderNome,
+            requisitoAtributos: atributos,
+        });
     }
 }
 exports.PoderGenericoRequisitoAtributoException = PoderGenericoRequisitoAtributoException;
@@ -358,7 +374,9 @@ class ProficienciaNaoEncontradaException extends business_exception_1.BusinessEx
 exports.ProficienciaNaoEncontradaException = ProficienciaNaoEncontradaException;
 class TrilhaNaoEncontradaException extends base_exception_1.BaseException {
     constructor(trilhaId) {
-        super('Trilha não encontrada', common_1.HttpStatus.NOT_FOUND, 'PATH_NOT_FOUND', { trilhaId });
+        super('Trilha não encontrada', common_1.HttpStatus.NOT_FOUND, 'PATH_NOT_FOUND', {
+            trilhaId,
+        });
     }
 }
 exports.TrilhaNaoEncontradaException = TrilhaNaoEncontradaException;
@@ -376,7 +394,9 @@ class TrilhaRequisitoNaoAtendidoException extends business_exception_1.BusinessE
 exports.TrilhaRequisitoNaoAtendidoException = TrilhaRequisitoNaoAtendidoException;
 class CaminhoNaoEncontradoException extends base_exception_1.BaseException {
     constructor(caminhoId) {
-        super('Caminho não encontrado', common_1.HttpStatus.NOT_FOUND, 'WAY_NOT_FOUND', { caminhoId });
+        super('Caminho não encontrado', common_1.HttpStatus.NOT_FOUND, 'WAY_NOT_FOUND', {
+            caminhoId,
+        });
     }
 }
 exports.CaminhoNaoEncontradoException = CaminhoNaoEncontradoException;

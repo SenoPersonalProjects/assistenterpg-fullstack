@@ -4,6 +4,8 @@ export declare class EquipamentoResumoDto {
     nome: string;
     descricao: string | null;
     tipo: string;
+    fonte: string;
+    suplementoId: number | null;
     categoria: number;
     espacos: number;
     complexidadeMaldicao: string;

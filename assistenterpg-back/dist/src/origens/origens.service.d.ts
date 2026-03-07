@@ -5,6 +5,7 @@ import { HabilidadeCatalogoDto } from '../habilidades/dto/catalogo-habilidade.dt
 export declare class OrigensService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private validarFonteSuplemento;
     private addHabilidadesIniciais;
     create(dto: CreateOrigemDto): Promise<{
         pericias: ({

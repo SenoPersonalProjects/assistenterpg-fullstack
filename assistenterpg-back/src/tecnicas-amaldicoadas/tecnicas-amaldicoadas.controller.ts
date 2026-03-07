@@ -87,7 +87,9 @@ export class TecnicasAmaldicoadasController {
   // ==========================================
 
   @Get(':tecnicaId/habilidades')
-  async findAllHabilidades(@Param('tecnicaId', ParseIntPipe) tecnicaId: number) {
+  async findAllHabilidades(
+    @Param('tecnicaId', ParseIntPipe) tecnicaId: number,
+  ) {
     return this.service.findAllHabilidades(tecnicaId);
   }
 
@@ -127,7 +129,9 @@ export class TecnicasAmaldicoadasController {
   // ==========================================
 
   @Get('habilidades/:habilidadeId/variacoes')
-  async findAllVariacoes(@Param('habilidadeId', ParseIntPipe) habilidadeId: number) {
+  async findAllVariacoes(
+    @Param('habilidadeId', ParseIntPipe) habilidadeId: number,
+  ) {
     return this.service.findAllVariacoes(habilidadeId);
   }
 

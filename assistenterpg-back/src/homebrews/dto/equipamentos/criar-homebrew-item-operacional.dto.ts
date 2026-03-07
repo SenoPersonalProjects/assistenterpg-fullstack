@@ -1,7 +1,7 @@
 // src/homebrews/dto/equipamentos/criar-homebrew-item-operacional.dto.ts
 
 import { IsOptional, IsString, IsInt } from 'class-validator';
-import { EquipamentoBaseDto } from '../base/equipamento-base.dto'
+import { EquipamentoBaseDto } from '../base/equipamento-base.dto';
 
 /**
  * DTO para homebrews de ITEM OPERACIONAL

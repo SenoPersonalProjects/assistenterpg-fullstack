@@ -1,7 +1,5 @@
 'use client';
 
-import { Icon } from './Icon';
-
 export function ProgressBar({
   current,
   total,

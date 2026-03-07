@@ -1,10 +1,6 @@
 // src/inventario/inventario.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import {
-  Injectable,
-  Inject,
-  forwardRef,
-} from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { InventarioEngine } from './engine/inventario.engine';
@@ -456,7 +452,9 @@ export class InventarioService {
       throw new InventarioEquipamentoNaoEncontradoException(dto.equipamentoId);
     }
 
-    const itensAtuais = await this.carregarItensInventario(dto.personagemBaseId);
+    const itensAtuais = await this.carregarItensInventario(
+      dto.personagemBaseId,
+    );
     const { espacosBase, espacosExtra, prestigioBase } =
       await this.calcularEspacosPersonagem(dto.personagemBaseId);
     const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioBase);
@@ -507,7 +505,9 @@ export class InventarioService {
       const itensCalculados = itens.map((item) => {
         const equipamento = equipamentosMap.get(item.equipamentoId);
         if (!equipamento) {
-          throw new InventarioEquipamentoNaoEncontradoException(item.equipamentoId);
+          throw new InventarioEquipamentoNaoEncontradoException(
+            item.equipamentoId,
+          );
         }
 
         const modsDoItem = (item.modificacoes || [])
@@ -515,7 +515,7 @@ export class InventarioService {
           .filter((mod): mod is NonNullable<typeof mod> => mod !== undefined);
 
         const categoriaCalculada = this.engine.calcularCategoriaFinal(
-          equipamento.categoria as CategoriaEquipamento,
+          equipamento.categoria,
           modsDoItem.length,
         );
 
@@ -579,7 +579,8 @@ export class InventarioService {
 
       itensCalculados.forEach((item) => {
         const cat = item.categoriaCalculada;
-        itensPorCategoria[cat] = (itensPorCategoria[cat] || 0) + item.quantidade;
+        itensPorCategoria[cat] =
+          (itensPorCategoria[cat] || 0) + item.quantidade;
       });
 
       return {
@@ -650,7 +651,9 @@ export class InventarioService {
       });
 
       if (!equipamento) {
-        throw new InventarioEquipamentoNaoEncontradoException(dto.equipamentoId);
+        throw new InventarioEquipamentoNaoEncontradoException(
+          dto.equipamentoId,
+        );
       }
 
       // 3. Validar modificações (se houver)
@@ -669,12 +672,14 @@ export class InventarioService {
         }
 
         for (const modId of dto.modificacoes) {
-          const compativel = await db.equipamentoModificacaoAplicavel.findFirst({
-            where: {
-              equipamentoId: dto.equipamentoId,
-              modificacaoId: modId,
+          const compativel = await db.equipamentoModificacaoAplicavel.findFirst(
+            {
+              where: {
+                equipamentoId: dto.equipamentoId,
+                modificacaoId: modId,
+              },
             },
-          });
+          );
 
           if (!compativel) {
             throw new InventarioModificacaoIncompativelException(
@@ -779,7 +784,9 @@ export class InventarioService {
         },
       });
 
-      return this.mapper.mapItem(itemComMods as unknown as ItemInventarioComDados);
+      return this.mapper.mapItem(
+        itemComMods as unknown as ItemInventarioComDados,
+      );
     } catch (error) {
       if (error.code?.startsWith('P')) {
         handlePrismaError(error);
@@ -818,16 +825,16 @@ export class InventarioService {
         const itensAtuais = await this.carregarItensInventario(
           itemExiste.personagemBaseId,
         );
-        const { espacosBase, espacosExtra } = await this.calcularEspacosPersonagem(
-          itemExiste.personagemBaseId,
-        );
+        const { espacosBase, espacosExtra } =
+          await this.calcularEspacosPersonagem(itemExiste.personagemBaseId);
 
         // Remover espaços do item atual
         const espacosSemEsteItem = itensAtuais
           .filter((i) => i.id !== itemId)
           .reduce((total, i) => total + this.engine.calcularEspacosItem(i), 0);
 
-        const espacosDisponiveis = espacosBase + espacosExtra - espacosSemEsteItem;
+        const espacosDisponiveis =
+          espacosBase + espacosExtra - espacosSemEsteItem;
 
         // Calcular espaços do item com nova quantidade
         const espacosBaseItem = itemExiste.equipamento.espacos;
@@ -1007,16 +1014,19 @@ export class InventarioService {
       });
 
       if (!modificacao) {
-        throw new InventarioModificacaoNaoEncontradaException(dto.modificacaoId);
+        throw new InventarioModificacaoNaoEncontradaException(
+          dto.modificacaoId,
+        );
       }
 
       // Validar compatibilidade
-      const compativel = await this.prisma.equipamentoModificacaoAplicavel.findFirst({
-        where: {
-          equipamentoId: item.equipamentoId,
-          modificacaoId: dto.modificacaoId,
-        },
-      });
+      const compativel =
+        await this.prisma.equipamentoModificacaoAplicavel.findFirst({
+          where: {
+            equipamentoId: item.equipamentoId,
+            modificacaoId: dto.modificacaoId,
+          },
+        });
 
       if (!compativel) {
         throw new InventarioModificacaoIncompativelException(
@@ -1031,7 +1041,10 @@ export class InventarioService {
       );
 
       if (jaTemModificacao) {
-        throw new InventarioModificacaoDuplicadaException(dto.modificacaoId, itemId);
+        throw new InventarioModificacaoDuplicadaException(
+          dto.modificacaoId,
+          itemId,
+        );
       }
 
       // Aplicar modificação
@@ -1057,7 +1070,10 @@ export class InventarioService {
           0,
         ) + (modificacao.incrementoEspacos || 0);
 
-      const espacosCalculadosNovo = Math.max(0, espacosBaseItem + incrementoModsNovo);
+      const espacosCalculadosNovo = Math.max(
+        0,
+        espacosBaseItem + incrementoModsNovo,
+      );
 
       // Atualizar item
       await this.prisma.inventarioItemBase.update({
@@ -1089,7 +1105,9 @@ export class InventarioService {
         },
       });
 
-      return this.mapper.mapItem(itemAtualizado as unknown as ItemInventarioComDados);
+      return this.mapper.mapItem(
+        itemAtualizado as unknown as ItemInventarioComDados,
+      );
     } catch (error) {
       if (error.code?.startsWith('P')) {
         handlePrismaError(error);
@@ -1166,9 +1184,15 @@ export class InventarioService {
       const espacosBaseItem = item.equipamento.espacos;
       const incrementoModsNovo = item.modificacoes
         .filter((m) => m.modificacao.id !== dto.modificacaoId)
-        .reduce((total, m) => total + (m.modificacao.incrementoEspacos || 0), 0);
+        .reduce(
+          (total, m) => total + (m.modificacao.incrementoEspacos || 0),
+          0,
+        );
 
-      const espacosCalculadosNovo = Math.max(0, espacosBaseItem + incrementoModsNovo);
+      const espacosCalculadosNovo = Math.max(
+        0,
+        espacosBaseItem + incrementoModsNovo,
+      );
 
       // Atualizar item
       await this.prisma.inventarioItemBase.update({
@@ -1200,7 +1224,9 @@ export class InventarioService {
         },
       });
 
-      return this.mapper.mapItem(itemAtualizado as unknown as ItemInventarioComDados);
+      return this.mapper.mapItem(
+        itemAtualizado as unknown as ItemInventarioComDados,
+      );
     } catch (error) {
       if (error.code?.startsWith('P')) {
         handlePrismaError(error);

@@ -7,14 +7,14 @@ import { AttributesDisplay } from '@/components/personagem-base/sections/Attribu
 import { AtributosDerivadosCard } from '@/components/personagem-base/sections/AtributosDerivadosCard';
 import { PassivasAtributosCard } from '@/components/personagem-base/sections/PassivasAtributosCard';
 import { SkillsList } from '@/components/personagem-base/sections/SkillsList';
-import type { PersonagemBaseDetalhe } from '@/lib/api';
+import type { PersonagemBaseDetalhe, PassivaAtributoCatalogo } from '@/lib/api';
 
 type SecaoInfoBasicasProps = {
   personagem: PersonagemBaseDetalhe;
   alinhamento?: { id: number; nome: string; descricao?: string | null };
   tecnicaInata?: { id: number; nome: string; descricao?: string | null };
   classeCatalogo?: { id: number; nome: string; descricao?: string | null };
-  passivasSelecionadas: any[];
+  passivasSelecionadas: PassivaAtributoCatalogo[];
 };
 
 export function SecaoInfoBasicas({

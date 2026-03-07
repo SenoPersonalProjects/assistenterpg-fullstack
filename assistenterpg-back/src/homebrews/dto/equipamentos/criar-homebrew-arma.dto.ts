@@ -1,6 +1,15 @@
 // src/homebrews/dto/equipamentos/criar-homebrew-arma.dto.ts
 
-import { IsNotEmpty, IsEnum, IsBoolean, IsArray, ValidateNested, IsInt, IsString, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+  IsInt,
+  IsString,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import {
   ProficienciaArma,

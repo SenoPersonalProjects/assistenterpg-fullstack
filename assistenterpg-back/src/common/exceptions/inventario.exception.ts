@@ -105,11 +105,10 @@ export class InventarioEspacosInsuficientesException extends BusinessException {
 
 export class InventarioGrauXamaExcedidoException extends BusinessException {
   constructor(grauAtual: string, erros: string[]) {
-    super(
-      'Limites de Grau Xamã excedidos',
-      'INVENTARIO_GRAU_XAMA_EXCEDIDO',
-      { grauAtual, erros },
-    );
+    super('Limites de Grau Xamã excedidos', 'INVENTARIO_GRAU_XAMA_EXCEDIDO', {
+      grauAtual,
+      erros,
+    });
   }
 }
 

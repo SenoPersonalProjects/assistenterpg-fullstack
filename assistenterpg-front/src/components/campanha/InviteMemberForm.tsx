@@ -38,7 +38,7 @@ export function InviteMemberForm({ onInvite }: Props) {
       await onInvite({ email: email.trim(), papel });
       setSucesso('Convite enviado');
       setEmail('');
-    } catch (err) {
+    } catch {
       setErro('Erro ao enviar convite');
     } finally {
       setLoading(false);

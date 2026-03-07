@@ -1,6 +1,13 @@
 // src/suplementos/dto/create-suplemento.dto.ts
 
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsUrl, IsArray } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsUrl,
+  IsArray,
+} from 'class-validator';
 import { StatusPublicacao } from '@prisma/client';
 
 export class CreateSuplementoDto {

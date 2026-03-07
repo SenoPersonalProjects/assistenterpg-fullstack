@@ -1,8 +1,14 @@
 // src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts
 
-import { IsOptional, IsBoolean, IsString, IsEnum, IsInt } from 'class-validator';
+import {
+  IsOptional,
+  IsBoolean,
+  IsString,
+  IsEnum,
+  IsInt,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client';  // ✅ NOVO
+import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client'; // ✅ NOVO
 
 export class FiltrarTecnicasDto {
   @IsOptional()

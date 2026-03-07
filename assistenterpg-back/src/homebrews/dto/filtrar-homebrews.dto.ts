@@ -1,6 +1,12 @@
 // src/homebrews/dto/filtrar-homebrews.dto.ts
 
-import { IsOptional, IsString, IsEnum, IsInt, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsInt,
+  IsBoolean,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TipoHomebrewConteudo, StatusPublicacao } from '@prisma/client';
 

@@ -1,13 +1,13 @@
 // src/equipamentos/equipamentos.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FiltrarEquipamentosDto } from './dto/filtrar-equipamentos.dto';
 import { CriarEquipamentoDto } from './dto/criar-equipamento.dto';
 import { AtualizarEquipamentoDto } from './dto/atualizar-equipamento.dto';
 import { EquipamentoDetalhadoDto } from './dto/equipamento-detalhado.dto';
 import { EquipamentoResumoDto } from './dto/equipamento-resumo.dto';
-import { TipoEquipamento } from '@prisma/client';
+import { TipoEquipamento, TipoFonte } from '@prisma/client';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -15,10 +15,38 @@ import {
   EquipamentoCodigoDuplicadoException,
   EquipamentoEmUsoException,
 } from 'src/common/exceptions/equipamento.exception';
+import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemento.exception';
 
 @Injectable()
 export class EquipamentosService {
   constructor(private prisma: PrismaService) {}
+
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new SuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new BadRequestException(
+          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+        );
+      }
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+    }
+  }
 
   // ========================================
   // ✅ MÉTODOS EXISTENTES (MANTIDOS)
@@ -30,6 +58,8 @@ export class EquipamentosService {
   async listar(filtros: FiltrarEquipamentosDto) {
     const {
       tipo,
+      fontes,
+      suplementoId,
       complexidadeMaldicao,
       proficienciaArma,
       proficienciaProtecao,
@@ -46,6 +76,8 @@ export class EquipamentosService {
 
     // Filtros simples
     if (tipo) where.tipo = tipo;
+    if (fontes?.length) where.fonte = { in: fontes };
+    if (suplementoId) where.suplementoId = suplementoId;
     if (complexidadeMaldicao) where.complexidadeMaldicao = complexidadeMaldicao;
     if (proficienciaArma) where.proficienciaArma = proficienciaArma;
     if (proficienciaProtecao) where.proficienciaProtecao = proficienciaProtecao;
@@ -90,6 +122,8 @@ export class EquipamentosService {
           nome: true,
           descricao: true,
           tipo: true,
+          fonte: true,
+          suplementoId: true,
           categoria: true,
           espacos: true,
           complexidadeMaldicao: true,
@@ -211,12 +245,20 @@ export class EquipamentosService {
       throw new EquipamentoCodigoDuplicadoException(data.codigo);
     }
 
+    const suplementoIdFinal = data.suplementoId ?? null;
+    const fonteFinal =
+      data.fonte ??
+      (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
     // Preparar dados base
     const dadosCriacao: any = {
       codigo: data.codigo,
       nome: data.nome,
       descricao: data.descricao || null,
       tipo: data.tipo,
+      fonte: fonteFinal,
+      suplementoId: suplementoIdFinal,
       categoria: data.categoria || 'CATEGORIA_0',
       espacos: data.espacos || 1,
       complexidadeMaldicao: data.complexidadeMaldicao || 'NENHUMA',
@@ -224,14 +266,17 @@ export class EquipamentosService {
       tipoAmaldicoado: data.tipoAmaldicoado || null,
       efeito: data.efeito || null,
       efeitoMaldicao: data.efeitoMaldicao || null, // ✅ CORRIGIDO
-      requerFerramentasAmaldicoadas: data.requerFerramentasAmaldicoadas || false, // ✅ CORRIGIDO
+      requerFerramentasAmaldicoadas:
+        data.requerFerramentasAmaldicoadas || false, // ✅ CORRIGIDO
     };
 
     // ✅ Campos de arma
     if (data.tipo === 'ARMA') {
       Object.assign(dadosCriacao, {
         proficienciaArma: data.proficienciaArma || null,
-        empunhaduras: data.empunhaduras ? JSON.stringify(data.empunhaduras) : null,
+        empunhaduras: data.empunhaduras
+          ? JSON.stringify(data.empunhaduras)
+          : null,
         tipoArma: data.tipoArma || null,
         subtipoDistancia: data.subtipoDistancia || null,
         agil: data.agil || false,
@@ -325,14 +370,28 @@ export class EquipamentosService {
     }
 
     // Preparar dados de atualização
+    const suplementoIdFinal =
+      data.suplementoId !== undefined
+        ? data.suplementoId
+        : existente.suplementoId;
+    const fonteFinal =
+      data.fonte ??
+      (suplementoIdFinal ? TipoFonte.SUPLEMENTO : existente.fonte);
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
     const dadosAtualizacao: any = {};
 
     // Campos básicos
     if (data.codigo !== undefined) dadosAtualizacao.codigo = data.codigo;
     if (data.nome !== undefined) dadosAtualizacao.nome = data.nome;
-    if (data.descricao !== undefined) dadosAtualizacao.descricao = data.descricao;
+    if (data.descricao !== undefined)
+      dadosAtualizacao.descricao = data.descricao;
     if (data.tipo !== undefined) dadosAtualizacao.tipo = data.tipo;
-    if (data.categoria !== undefined) dadosAtualizacao.categoria = data.categoria;
+    if (fonteFinal !== existente.fonte) dadosAtualizacao.fonte = fonteFinal;
+    if (data.suplementoId !== undefined)
+      dadosAtualizacao.suplementoId = data.suplementoId;
+    if (data.categoria !== undefined)
+      dadosAtualizacao.categoria = data.categoria;
     if (data.espacos !== undefined) dadosAtualizacao.espacos = data.espacos;
     if (data.complexidadeMaldicao !== undefined)
       dadosAtualizacao.complexidadeMaldicao = data.complexidadeMaldicao;
@@ -340,10 +399,13 @@ export class EquipamentosService {
     if (data.tipoAmaldicoado !== undefined)
       dadosAtualizacao.tipoAmaldicoado = data.tipoAmaldicoado;
     if (data.efeito !== undefined) dadosAtualizacao.efeito = data.efeito;
-    if (data.efeitoMaldicao !== undefined) // ✅ CORRIGIDO
+    if (data.efeitoMaldicao !== undefined)
+      // ✅ CORRIGIDO
       dadosAtualizacao.efeitoMaldicao = data.efeitoMaldicao;
-    if (data.requerFerramentasAmaldicoadas !== undefined) // ✅ CORRIGIDO
-      dadosAtualizacao.requerFerramentasAmaldicoadas = data.requerFerramentasAmaldicoadas;
+    if (data.requerFerramentasAmaldicoadas !== undefined)
+      // ✅ CORRIGIDO
+      dadosAtualizacao.requerFerramentasAmaldicoadas =
+        data.requerFerramentasAmaldicoadas;
 
     // Campos de arma
     if (data.proficienciaArma !== undefined)
@@ -354,7 +416,8 @@ export class EquipamentosService {
     if (data.subtipoDistancia !== undefined)
       dadosAtualizacao.subtipoDistancia = data.subtipoDistancia;
     if (data.agil !== undefined) dadosAtualizacao.agil = data.agil;
-    if (data.criticoValor !== undefined) dadosAtualizacao.criticoValor = data.criticoValor;
+    if (data.criticoValor !== undefined)
+      dadosAtualizacao.criticoValor = data.criticoValor;
     if (data.criticoMultiplicador !== undefined)
       dadosAtualizacao.criticoMultiplicador = data.criticoMultiplicador;
     if (data.alcance !== undefined) dadosAtualizacao.alcance = data.alcance;
@@ -366,27 +429,34 @@ export class EquipamentosService {
     // Campos de proteção
     if (data.proficienciaProtecao !== undefined)
       dadosAtualizacao.proficienciaProtecao = data.proficienciaProtecao;
-    if (data.tipoProtecao !== undefined) dadosAtualizacao.tipoProtecao = data.tipoProtecao;
-    if (data.bonusDefesa !== undefined) dadosAtualizacao.bonusDefesa = data.bonusDefesa;
+    if (data.tipoProtecao !== undefined)
+      dadosAtualizacao.tipoProtecao = data.tipoProtecao;
+    if (data.bonusDefesa !== undefined)
+      dadosAtualizacao.bonusDefesa = data.bonusDefesa;
     if (data.penalidadeCarga !== undefined)
       dadosAtualizacao.penalidadeCarga = data.penalidadeCarga;
 
     // Campos de acessório
-    if (data.tipoAcessorio !== undefined) dadosAtualizacao.tipoAcessorio = data.tipoAcessorio;
+    if (data.tipoAcessorio !== undefined)
+      dadosAtualizacao.tipoAcessorio = data.tipoAcessorio;
     if (data.periciaBonificada !== undefined)
       dadosAtualizacao.periciaBonificada = data.periciaBonificada;
-    if (data.bonusPericia !== undefined) dadosAtualizacao.bonusPericia = data.bonusPericia;
+    if (data.bonusPericia !== undefined)
+      dadosAtualizacao.bonusPericia = data.bonusPericia;
     if (data.requereEmpunhar !== undefined)
       dadosAtualizacao.requereEmpunhar = data.requereEmpunhar;
     if (data.maxVestimentas !== undefined)
       dadosAtualizacao.maxVestimentas = data.maxVestimentas;
 
     // Campos de munição
-    if (data.duracaoCenas !== undefined) dadosAtualizacao.duracaoCenas = data.duracaoCenas;
-    if (data.recuperavel !== undefined) dadosAtualizacao.recuperavel = data.recuperavel;
+    if (data.duracaoCenas !== undefined)
+      dadosAtualizacao.duracaoCenas = data.duracaoCenas;
+    if (data.recuperavel !== undefined)
+      dadosAtualizacao.recuperavel = data.recuperavel;
 
     // Campos de explosivo
-    if (data.tipoExplosivo !== undefined) dadosAtualizacao.tipoExplosivo = data.tipoExplosivo;
+    if (data.tipoExplosivo !== undefined)
+      dadosAtualizacao.tipoExplosivo = data.tipoExplosivo;
 
     // Atualizar equipamento
     const equipamento = await this.prisma.equipamentoCatalogo.update({
@@ -424,13 +494,20 @@ export class EquipamentosService {
     // Verificar uso em inventários
     const [emUsoBase, emUsoCampanha] = await Promise.all([
       this.prisma.inventarioItemBase.count({ where: { equipamentoId: id } }),
-      this.prisma.inventarioItemCampanha.count({ where: { equipamentoId: id } }),
+      this.prisma.inventarioItemCampanha.count({
+        where: { equipamentoId: id },
+      }),
     ]);
 
     const totalUsos = emUsoBase + emUsoCampanha;
 
     if (totalUsos > 0) {
-      throw new EquipamentoEmUsoException(id, totalUsos, emUsoBase, emUsoCampanha);
+      throw new EquipamentoEmUsoException(
+        id,
+        totalUsos,
+        emUsoBase,
+        emUsoCampanha,
+      );
     }
 
     // Deletar (cascade vai limpar danos, reduções, amaldiçoados)
@@ -450,6 +527,8 @@ export class EquipamentosService {
       nome: equipamento.nome,
       descricao: equipamento.descricao,
       tipo: equipamento.tipo,
+      fonte: equipamento.fonte,
+      suplementoId: equipamento.suplementoId,
       categoria: equipamento.categoria,
       espacos: equipamento.espacos,
       complexidadeMaldicao: equipamento.complexidadeMaldicao,
@@ -484,6 +563,8 @@ export class EquipamentosService {
       nome: equipamento.nome,
       descricao: equipamento.descricao,
       tipo: equipamento.tipo,
+      fonte: equipamento.fonte,
+      suplementoId: equipamento.suplementoId,
       categoria: equipamento.categoria,
       espacos: equipamento.espacos,
       complexidadeMaldicao: equipamento.complexidadeMaldicao,
@@ -527,7 +608,8 @@ export class EquipamentosService {
       armaAmaldicoada: equipamento.armaAmaldicoada
         ? {
             tipoBase: equipamento.armaAmaldicoada.tipoBase,
-            proficienciaRequerida: equipamento.armaAmaldicoada.proficienciaRequerida,
+            proficienciaRequerida:
+              equipamento.armaAmaldicoada.proficienciaRequerida,
             efeito: equipamento.armaAmaldicoada.efeito,
           }
         : null,
@@ -536,27 +618,31 @@ export class EquipamentosService {
             tipoBase: equipamento.protecaoAmaldicoada.tipoBase,
             bonusDefesa: equipamento.protecaoAmaldicoada.bonusDefesa,
             penalidadeCarga: equipamento.protecaoAmaldicoada.penalidadeCarga,
-            proficienciaRequerida: equipamento.protecaoAmaldicoada.proficienciaRequerida,
+            proficienciaRequerida:
+              equipamento.protecaoAmaldicoada.proficienciaRequerida,
             efeito: equipamento.protecaoAmaldicoada.efeito,
           }
         : null,
       artefatoAmaldicoado: equipamento.artefatoAmaldicoado
         ? {
             tipoBase: equipamento.artefatoAmaldicoado.tipoBase,
-            proficienciaRequerida: equipamento.artefatoAmaldicoado.proficienciaRequerida,
+            proficienciaRequerida:
+              equipamento.artefatoAmaldicoado.proficienciaRequerida,
             efeito: equipamento.artefatoAmaldicoado.efeito,
             custoUso: equipamento.artefatoAmaldicoado.custoUso,
             manutencao: equipamento.artefatoAmaldicoado.manutencao,
           }
         : null,
-      modificacoesDisponiveis: equipamento.modificacoesAplicaveis?.map((ma: any) => ({
-        id: ma.modificacao.id,
-        codigo: ma.modificacao.codigo,
-        nome: ma.modificacao.nome,
-        descricao: ma.modificacao.descricao,
-        tipo: ma.modificacao.tipo,
-        incrementoEspacos: ma.modificacao.incrementoEspacos,
-      })),
+      modificacoesDisponiveis: equipamento.modificacoesAplicaveis?.map(
+        (ma: any) => ({
+          id: ma.modificacao.id,
+          codigo: ma.modificacao.codigo,
+          nome: ma.modificacao.nome,
+          descricao: ma.modificacao.descricao,
+          tipo: ma.modificacao.tipo,
+          incrementoEspacos: ma.modificacao.incrementoEspacos,
+        }),
+      ),
     };
   }
 }

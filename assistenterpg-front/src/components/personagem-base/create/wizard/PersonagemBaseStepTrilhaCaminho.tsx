@@ -4,6 +4,7 @@
 import type { TrilhaCatalogo, CaminhoCatalogo } from '@/lib/api';
 import { SelectModal, type SelectModalOption } from '@/components/ui/SelectModal';
 import { Icon } from '@/components/ui/Icon';
+import type { IconName } from '@/components/ui/Icon';
 import { InfoTile } from '@/components/ui/InfoTile';
 
 type Props = {
@@ -26,7 +27,7 @@ export function PersonagemBaseStepTrilhaCaminho({
   const trilhaSelecionada = trilhas.find((t) => String(t.id) === trilhaId);
 
   // Mapa de bônus por trilha
-  const bonusTrilha: Record<string, { bonus: string; icon: string }> = {
+  const bonusTrilha: Record<string, { bonus: string; icon: IconName }> = {
     'Especialista em Shikigami': {
       bonus: '+1 grau em Técnica de Shikigami',
       icon: 'sparkles',
@@ -55,7 +56,7 @@ export function PersonagemBaseStepTrilhaCaminho({
       details: bonus ? (
         <div className="text-xs space-y-2">
           <div className="flex items-start gap-2 text-app-success">
-            <Icon name={bonus.icon as any} className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <Icon name={bonus.icon} className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span className="font-medium">{bonus.bonus}</span>
           </div>
         </div>

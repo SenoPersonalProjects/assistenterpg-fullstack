@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilterHabilidadeDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const client_1 = require("@prisma/client");
 const create_habilidade_dto_1 = require("./create-habilidade.dto");
 class FilterHabilidadeDto {
     tipo;
     origem;
+    fonte;
+    suplementoId;
     busca;
     pagina = 1;
     limite = 20;
@@ -31,6 +34,18 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], FilterHabilidadeDto.prototype, "origem", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.TipoFonte),
+    __metadata("design:type", String)
+], FilterHabilidadeDto.prototype, "fonte", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Number)
+], FilterHabilidadeDto.prototype, "suplementoId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

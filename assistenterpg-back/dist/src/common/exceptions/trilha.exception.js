@@ -6,7 +6,9 @@ const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
 class TrilhaNaoEncontradaException extends base_exception_1.BaseException {
     constructor(identificador) {
-        super('Trilha não encontrada', common_1.HttpStatus.NOT_FOUND, 'TRILHA_NOT_FOUND', { identificador });
+        super('Trilha não encontrada', common_1.HttpStatus.NOT_FOUND, 'TRILHA_NOT_FOUND', {
+            identificador,
+        });
     }
 }
 exports.TrilhaNaoEncontradaException = TrilhaNaoEncontradaException;
@@ -18,7 +20,9 @@ class TrilhaClasseNaoEncontradaException extends base_exception_1.BaseException 
 exports.TrilhaClasseNaoEncontradaException = TrilhaClasseNaoEncontradaException;
 class TrilhaNomeDuplicadoException extends business_exception_1.BusinessException {
     constructor(nome) {
-        super(`Trilha com nome "${nome}" já existe`, 'TRILHA_NOME_DUPLICADO', { nome });
+        super(`Trilha com nome "${nome}" já existe`, 'TRILHA_NOME_DUPLICADO', {
+            nome,
+        });
     }
 }
 exports.TrilhaNomeDuplicadoException = TrilhaNomeDuplicadoException;
@@ -30,13 +34,17 @@ class TrilhaEmUsoException extends business_exception_1.BusinessException {
 exports.TrilhaEmUsoException = TrilhaEmUsoException;
 class CaminhoNaoEncontradoException extends base_exception_1.BaseException {
     constructor(identificador) {
-        super('Caminho não encontrado', common_1.HttpStatus.NOT_FOUND, 'CAMINHO_NOT_FOUND', { identificador });
+        super('Caminho não encontrado', common_1.HttpStatus.NOT_FOUND, 'CAMINHO_NOT_FOUND', {
+            identificador,
+        });
     }
 }
 exports.CaminhoNaoEncontradoException = CaminhoNaoEncontradoException;
 class CaminhoNomeDuplicadoException extends business_exception_1.BusinessException {
     constructor(nome) {
-        super(`Caminho com nome "${nome}" já existe`, 'CAMINHO_NOME_DUPLICADO', { nome });
+        super(`Caminho com nome "${nome}" já existe`, 'CAMINHO_NOME_DUPLICADO', {
+            nome,
+        });
     }
 }
 exports.CaminhoNomeDuplicadoException = CaminhoNomeDuplicadoException;

@@ -4,6 +4,7 @@ import { UpdateClaDto } from './dto/update-cla.dto';
 export declare class ClasService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private validarFonteSuplemento;
     create(dto: CreateClaDto): Promise<{
         tecnicasHereditarias: ({
             tecnica: {

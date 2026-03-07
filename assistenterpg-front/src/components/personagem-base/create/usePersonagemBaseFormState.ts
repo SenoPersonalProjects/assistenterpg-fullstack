@@ -9,7 +9,7 @@ import type {
   TrilhaCatalogo,
   CaminhoCatalogo,
   PoderGenericoInstanciaPayload,
-  ItemInventarioPayload, // ✅ MUDOU: ItemInventarioDto → ItemInventarioPayload
+  ItemInventarioPayload,
 } from '@/lib/api';
 
 type InitialValues = {
@@ -46,7 +46,7 @@ type InitialValues = {
 
   passivasAtributosAtivos?: AtributoBaseCodigo[];
 
-  itensInventario?: ItemInventarioPayload[]; // ✅ MUDOU
+  itensInventario?: ItemInventarioPayload[];
 };
 
 type Params = {
@@ -112,7 +112,7 @@ export function usePersonagemBaseFormState({
   >([]);
 
   // ==================== INVENTÁRIO ====================
-  // ✅ MUDOU: ItemInventarioDto[] → ItemInventarioPayload[]
+  // Formato alinhado ao payload atual do backend.
   const [itensInventario, setItensInventario] = useState<ItemInventarioPayload[]>(
     []
   );
@@ -205,8 +205,8 @@ export function usePersonagemBaseFormState({
         }
 
         setInitialized(true);
-      } catch (error) {
-        console.error('[Hook] Erro ao hidratar:', error);
+      } catch {
+        setErro('Nao foi possivel carregar os dados iniciais do personagem para edicao.');
         setInitialized(true);
       }
     })();
@@ -224,10 +224,12 @@ export function usePersonagemBaseFormState({
     prevClasseIdRef.current = classeId;
 
     if (!classeId) {
-      setTrilhas([]);
-      setTrilhaId('');
-      setCaminhos([]);
-      setCaminhoId('');
+      queueMicrotask(() => {
+        setTrilhas([]);
+        setTrilhaId('');
+        setCaminhos([]);
+        setCaminhoId('');
+      });
       return;
     }
 
@@ -243,8 +245,8 @@ export function usePersonagemBaseFormState({
           setCaminhos([]);
           setCaminhoId('');
         }
-      } catch (e) {
-        console.error(e);
+      } catch {
+        setErro('Nao foi possivel carregar as trilhas da classe selecionada.');
       }
     })();
   }, [classeId, carregarTrilhasDaClasse, initialized]);
@@ -255,8 +257,10 @@ export function usePersonagemBaseFormState({
     prevTrilhaIdRef.current = trilhaId;
 
     if (!trilhaId) {
-      setCaminhos([]);
-      setCaminhoId('');
+      queueMicrotask(() => {
+        setCaminhos([]);
+        setCaminhoId('');
+      });
       return;
     }
 
@@ -270,8 +274,8 @@ export function usePersonagemBaseFormState({
         if (mudouTrilha && initialized) {
           setCaminhoId('');
         }
-      } catch (e) {
-        console.error(e);
+      } catch {
+        setErro('Nao foi possivel carregar os caminhos da trilha selecionada.');
       }
     })();
   }, [trilhaId, carregarCaminhosDaTrilha, initialized]);
@@ -292,7 +296,7 @@ export function usePersonagemBaseFormState({
   }, []);
 
   const addPoderGenericoInstancia = useCallback(
-    (habilidadeId: number, config?: any) => {
+    (habilidadeId: number, config?: Record<string, unknown>) => {
       setPoderesGenericos((prev) => [...prev, { habilidadeId, config }]);
     },
     []
@@ -303,7 +307,7 @@ export function usePersonagemBaseFormState({
   }, []);
 
   const updatePoderGenericoInstancia = useCallback(
-    (index: number, partialConfig: any) => {
+    (index: number, partialConfig: Record<string, unknown>) => {
       setPoderesGenericos((prev) =>
         prev.map((inst, i) =>
           i === index
@@ -336,7 +340,7 @@ export function usePersonagemBaseFormState({
   }, []);
 
   // ==================== INVENTÁRIO HELPERS ====================
-  // ✅ MUDOU: ItemInventarioDto → ItemInventarioPayload
+  // ItemInventarioDto -> ItemInventarioPayload.
   const addItemInventario = useCallback((item: ItemInventarioPayload) => {
     setItensInventario((prev) => [...prev, item]);
   }, []);
@@ -345,7 +349,7 @@ export function usePersonagemBaseFormState({
     setItensInventario((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // ✅ MUDOU: ItemInventarioDto → ItemInventarioPayload
+  // ItemInventarioDto -> ItemInventarioPayload.
   const updateItemInventario = useCallback(
     (index: number, updates: Partial<ItemInventarioPayload>) => {
       setItensInventario((prev) =>
@@ -372,7 +376,7 @@ export function usePersonagemBaseFormState({
         erros.push(`Item ${index + 1}: quantidade deve ser maior que 0`);
       }
 
-      // ✅ MUDOU: modificacoes → modificacoesIds
+      // modificacoes -> modificacoesIds.
       if (item.modificacoesIds && !Array.isArray(item.modificacoesIds)) {
         erros.push(`Item ${index + 1}: modificacoesIds deve ser um array`);
       }
@@ -399,12 +403,6 @@ export function usePersonagemBaseFormState({
         `Inventário inválido:\n${validacaoInventario.erros.join('\n')}`
       );
     }
-
-    // ✅ ADICIONAR: Log de debug temporário
-    console.log('🔍 DEBUG - Itens inventário antes de enviar:', 
-      JSON.stringify(itensInventario, null, 2)
-    );
-
     return {
       nome: nome.trim(),
       nivel: Number(nivel),
@@ -451,7 +449,7 @@ export function usePersonagemBaseFormState({
         passivasAtributosAtivos.length > 0 ? passivasAtributosAtivos : undefined,
       passivasAtributoIds: undefined,
 
-      // ✅ SIMPLIFICADO: Agora o estado já está no formato correto
+      // O estado ja esta no formato esperado pelo endpoint.
       itensInventario: itensInventario.length > 0 ? itensInventario : undefined,
     };
   }, [

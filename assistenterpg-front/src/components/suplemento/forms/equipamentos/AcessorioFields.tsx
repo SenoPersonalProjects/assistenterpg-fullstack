@@ -10,10 +10,11 @@ import {
   TipoAcessorio,
   TIPO_ACESSORIO_LABELS,
 } from '@/lib/types/homebrew-enums';
+import type { HomebrewFormDados } from '../../hooks/useHomebrewForm';
 
 type Props = {
-  dados: any;
-  onChange: (dados: any) => void;
+  dados: HomebrewFormDados;
+  onChange: (dados: Partial<HomebrewFormDados>) => void;
 };
 
 export function AcessorioFields({ dados, onChange }: Props) {

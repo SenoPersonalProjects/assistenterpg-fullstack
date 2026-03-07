@@ -11,13 +11,33 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrigensService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const origem_exception_1 = require("../common/exceptions/origem.exception");
+const suplemento_exception_1 = require("../common/exceptions/suplemento.exception");
 const database_exception_1 = require("../common/exceptions/database.exception");
 let OrigensService = class OrigensService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    async validarFonteSuplemento(fonte, suplementoId) {
+        if (suplementoId) {
+            const suplemento = await this.prisma.suplemento.findUnique({
+                where: { id: suplementoId },
+                select: { id: true },
+            });
+            if (!suplemento) {
+                throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
+            }
+            if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
+                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+            }
+            return;
+        }
+        if (fonte === client_1.TipoFonte.SUPLEMENTO) {
+            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+        }
     }
     addHabilidadesIniciais(origem) {
         const habilidadesIniciais = origem.habilidadesOrigem?.map((rel) => rel.habilidade) ?? [];
@@ -57,6 +77,10 @@ let OrigensService = class OrigensService {
                     throw new origem_exception_1.OrigemHabilidadesInvalidasException(idsInvalidos);
                 }
             }
+            const suplementoIdFinal = dto.suplementoId ?? null;
+            const fonteFinal = dto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const origem = await this.prisma.origem.create({
                 data: {
                     nome: dto.nome,
@@ -65,6 +89,8 @@ let OrigensService = class OrigensService {
                     requerGrandeCla: dto.requerGrandeCla ?? false,
                     requerTecnicaHeriditaria: dto.requerTecnicaHeriditaria ?? false,
                     bloqueiaTecnicaHeriditaria: dto.bloqueiaTecnicaHeriditaria ?? false,
+                    fonte: fonteFinal,
+                    suplementoId: suplementoIdFinal,
                     ...(dto.pericias?.length && {
                         pericias: {
                             create: dto.pericias.map((p) => ({
@@ -175,7 +201,7 @@ let OrigensService = class OrigensService {
     }
     async update(id, dto) {
         try {
-            await this.findOne(id);
+            const origemAtual = await this.findOne(id);
             if (dto.nome) {
                 const duplicado = await this.prisma.origem.findFirst({
                     where: {
@@ -210,6 +236,12 @@ let OrigensService = class OrigensService {
                     throw new origem_exception_1.OrigemHabilidadesInvalidasException(idsInvalidos);
                 }
             }
+            const suplementoIdFinal = dto.suplementoId !== undefined
+                ? dto.suplementoId
+                : origemAtual.suplementoId;
+            const fonteFinal = dto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : origemAtual.fonte);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const origem = await this.prisma.origem.update({
                 where: { id },
                 data: {
@@ -226,6 +258,10 @@ let OrigensService = class OrigensService {
                     }),
                     ...(dto.bloqueiaTecnicaHeriditaria !== undefined && {
                         bloqueiaTecnicaHeriditaria: dto.bloqueiaTecnicaHeriditaria,
+                    }),
+                    ...(fonteFinal !== origemAtual.fonte && { fonte: fonteFinal }),
+                    ...(dto.suplementoId !== undefined && {
+                        suplementoId: dto.suplementoId,
                     }),
                     ...(dto.pericias !== undefined && {
                         pericias: {

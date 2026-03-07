@@ -7,9 +7,13 @@ describe('TecnicasAmaldicoadasController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TecnicasAmaldicoadasController],
-    }).useMocker(() => ({})).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
-    controller = module.get<TecnicasAmaldicoadasController>(TecnicasAmaldicoadasController);
+    controller = module.get<TecnicasAmaldicoadasController>(
+      TecnicasAmaldicoadasController,
+    );
   });
 
   it('should be defined', () => {

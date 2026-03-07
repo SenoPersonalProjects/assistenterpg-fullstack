@@ -8,10 +8,12 @@ import {
   IsEnum,
   MinLength,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { TipoFonte } from '@prisma/client';
 
-// ✅ Enum dos tipos de habilidade (SEM TECNICA_INATA)
+// Enum dos tipos de habilidade (SEM TECNICA_INATA)
 export enum TipoHabilidade {
   RECURSO_CLASSE = 'RECURSO_CLASSE',
   EFEITO_GRAU = 'EFEITO_GRAU',
@@ -22,7 +24,7 @@ export enum TipoHabilidade {
   ESCOLA_TECNICA = 'ESCOLA_TECNICA',
 }
 
-// ✅ DTO para efeito de grau
+// DTO para efeito de grau
 export class EfeitoGrauDto {
   @IsString()
   @IsNotEmpty()
@@ -36,17 +38,17 @@ export class EfeitoGrauDto {
   escalonamentoPorNivel?: any; // JSON livre
 }
 
-// ✅ DTO principal (SEM hereditaria e clasHereditariosIds)
+// DTO principal (SEM hereditaria e clasHereditariosIds)
 export class CreateHabilidadeDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(3, { message: 'Nome deve ter no mínimo 3 caracteres' })
-  @MaxLength(100, { message: 'Nome deve ter no máximo 100 caracteres' })
+  @MinLength(3, { message: 'Nome deve ter no minimo 3 caracteres' })
+  @MaxLength(100, { message: 'Nome deve ter no maximo 100 caracteres' })
   nome: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000, { message: 'Descrição deve ter no máximo 1000 caracteres' })
+  @MaxLength(1000, { message: 'Descricao deve ter no maximo 1000 caracteres' })
   descricao?: string;
 
   @IsEnum(TipoHabilidade, {
@@ -60,12 +62,21 @@ export class CreateHabilidadeDto {
   origem?: string;
 
   @IsOptional()
-  requisitos?: any; // JSON livre (validar estrutura no service se necessário)
+  requisitos?: any; // JSON livre (validar estrutura no service se necessario)
 
   @IsOptional()
   mecanicasEspeciais?: any; // JSON livre
 
-  // ✅ Relações (apenas efeitos de grau)
+  @IsOptional()
+  @IsEnum(TipoFonte)
+  fonte?: TipoFonte;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  suplementoId?: number;
+
+  // Relacoes (apenas efeitos de grau)
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

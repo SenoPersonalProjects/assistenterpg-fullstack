@@ -10,10 +10,7 @@ import {
   StatsEquipados,
 } from './engine/inventario.types';
 import { InventarioEngine } from './engine/inventario.engine';
-import {
-  CategoriaEquipamento,
-  ComplexidadeMaldicao,
-} from '@prisma/client';
+import { CategoriaEquipamento, ComplexidadeMaldicao } from '@prisma/client';
 
 @Injectable()
 export class InventarioMapper {
@@ -24,7 +21,7 @@ export class InventarioMapper {
    */
   mapItem(item: ItemInventarioComDados): ItemInventarioDto {
     // Usar categoriaCalculada do item se existir, senão calcular
-    const categoriaCalculada = item.categoriaCalculada 
+    const categoriaCalculada = item.categoriaCalculada
       ? (item.categoriaCalculada as CategoriaEquipamento)
       : this.engine.calcularCategoriaFinal(
           item.equipamento.categoria,

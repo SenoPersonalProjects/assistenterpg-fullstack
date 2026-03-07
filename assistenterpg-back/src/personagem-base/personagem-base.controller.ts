@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Post,
   Patch,
   Delete,
@@ -16,7 +17,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { PersonagemBaseService } from './personagem-base.service';
 import { CreatePersonagemBaseDto } from './dto/create-personagem-base.dto';
 import { UpdatePersonagemBaseDto } from './dto/update-personagem-base.dto';
-import { ConsultarInfoGrausTreinamentoDto, ConsultarPericiasElegiveisDto } from './dto/consultar-graus-treinamento.dto';
+import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
+import {
+  ConsultarInfoGrausTreinamentoDto,
+  ConsultarPericiasElegiveisDto,
+} from './dto/consultar-graus-treinamento.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('personagens-base')
@@ -74,12 +79,36 @@ export class PersonagemBaseController {
     @Query('origemId') origemId?: string,
   ) {
     const origemIdNum = origemId ? Number(origemId) : undefined;
-    return this.personagemBaseService.listarTecnicasDisponveis(claId, origemIdNum);
+    return this.personagemBaseService.listarTecnicasDisponveis(
+      claId,
+      origemIdNum,
+    );
   }
 
   @Get('meus')
   async listarMeus(@Request() req: { user: { id: number } }) {
     return this.personagemBaseService.listarDoUsuario(req.user.id);
+  }
+
+  @Get(':id/exportar')
+  @Header('Content-Type', 'application/json')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="personagem-base-export.json"',
+  )
+  async exportar(
+    @Request() req: { user: { id: number } },
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.personagemBaseService.exportar(req.user.id, id);
+  }
+
+  @Post('importar')
+  async importar(
+    @Request() req: { user: { id: number } },
+    @Body() dto: ImportarPersonagemBaseDto,
+  ) {
+    return this.personagemBaseService.importar(req.user.id, dto);
   }
 
   @Get(':id')

@@ -41,7 +41,11 @@ export class HomebrewsService {
   /**
    * Lista homebrews com filtros e paginação
    */
-  async listar(filtros: FiltrarHomebrewsDto, usuarioId?: number, isAdmin: boolean = false) {
+  async listar(
+    filtros: FiltrarHomebrewsDto,
+    usuarioId?: number,
+    isAdmin: boolean = false,
+  ) {
     try {
       const {
         nome,
@@ -74,7 +78,10 @@ export class HomebrewsService {
       if (apenasPublicados) {
         where.status = StatusPublicacao.PUBLICADO;
       } else if (!isAdmin) {
-        where.OR = [{ status: StatusPublicacao.PUBLICADO }, { usuarioId: usuarioId }];
+        where.OR = [
+          { status: StatusPublicacao.PUBLICADO },
+          { usuarioId: usuarioId },
+        ];
       }
 
       const [total, homebrews] = await Promise.all([
@@ -204,16 +211,24 @@ export class HomebrewsService {
   async criar(createHomebrewDto: CreateHomebrewDto, usuarioId: number) {
     try {
       // 1️⃣ Validar dados específicos do tipo
-      await validateHomebrewDados(createHomebrewDto.tipo, createHomebrewDto.dados);
+      await validateHomebrewDados(
+        createHomebrewDto.tipo,
+        createHomebrewDto.dados,
+      );
 
       // 2️⃣ Validações customizadas (regras de negócio)
-      this.validarDadosCustomizados(createHomebrewDto.tipo, createHomebrewDto.dados);
+      this.validarDadosCustomizados(
+        createHomebrewDto.tipo,
+        createHomebrewDto.dados,
+      );
 
       // 3️⃣ Gerar código único
       const codigo = this.gerarCodigo(usuarioId);
 
       // 4️⃣ Preparar tags (garantir que seja array)
-      const tags = Array.isArray(createHomebrewDto.tags) ? createHomebrewDto.tags : [];
+      const tags = Array.isArray(createHomebrewDto.tags)
+        ? createHomebrewDto.tags
+        : [];
 
       // 5️⃣ Criar homebrew
       const homebrew = await this.prisma.homebrew.create({
@@ -239,7 +254,9 @@ export class HomebrewsService {
         },
       });
 
-      this.logger.log(`Homebrew criado: ${homebrew.codigo} por usuário ${usuarioId}`);
+      this.logger.log(
+        `Homebrew criado: ${homebrew.codigo} por usuário ${usuarioId}`,
+      );
 
       return this.mapDetalhado(homebrew);
     } catch (error) {
@@ -288,12 +305,14 @@ export class HomebrewsService {
       // 3️⃣ Preparar dados de atualização
       const dadosAtualizacao: any = {};
 
-      if (updateHomebrewDto.nome !== undefined) dadosAtualizacao.nome = updateHomebrewDto.nome;
+      if (updateHomebrewDto.nome !== undefined)
+        dadosAtualizacao.nome = updateHomebrewDto.nome;
       if (updateHomebrewDto.descricao !== undefined)
         dadosAtualizacao.descricao = updateHomebrewDto.descricao;
       if (updateHomebrewDto.status !== undefined)
         dadosAtualizacao.status = updateHomebrewDto.status;
-      if (updateHomebrewDto.tags !== undefined) dadosAtualizacao.tags = updateHomebrewDto.tags;
+      if (updateHomebrewDto.tags !== undefined)
+        dadosAtualizacao.tags = updateHomebrewDto.tags;
 
       // 4️⃣ Se atualizar tipo, validar compatibilidade com dados
       if (updateHomebrewDto.tipo !== undefined) {
@@ -327,7 +346,9 @@ export class HomebrewsService {
         },
       });
 
-      this.logger.log(`Homebrew atualizado: ${atualizado.codigo} (v${atualizado.versao})`);
+      this.logger.log(
+        `Homebrew atualizado: ${atualizado.codigo} (v${atualizado.versao})`,
+      );
 
       return this.mapDetalhado(atualizado);
     } catch (error) {
@@ -350,7 +371,11 @@ export class HomebrewsService {
   /**
    * DELETE - Remover homebrew
    */
-  async deletar(id: number, usuarioId: number, isAdmin: boolean = false): Promise<void> {
+  async deletar(
+    id: number,
+    usuarioId: number,
+    isAdmin: boolean = false,
+  ): Promise<void> {
     try {
       // 1️⃣ Buscar homebrew
       const homebrew = await this.prisma.homebrew.findUnique({
@@ -371,7 +396,9 @@ export class HomebrewsService {
         where: { id },
       });
 
-      this.logger.log(`Homebrew deletado: ${homebrew.codigo} por usuário ${usuarioId}`);
+      this.logger.log(
+        `Homebrew deletado: ${homebrew.codigo} por usuário ${usuarioId}`,
+      );
     } catch (error) {
       if (error.code?.startsWith('P')) {
         handlePrismaError(error);
@@ -398,7 +425,11 @@ export class HomebrewsService {
       }
 
       if (homebrew.usuarioId !== usuarioId && !isAdmin) {
-        throw new HomebrewSemPermissaoException('publicar', 'este homebrew', id);
+        throw new HomebrewSemPermissaoException(
+          'publicar',
+          'este homebrew',
+          id,
+        );
       }
 
       if (homebrew.status === StatusPublicacao.PUBLICADO) {
@@ -443,7 +474,11 @@ export class HomebrewsService {
       }
 
       if (homebrew.usuarioId !== usuarioId && !isAdmin) {
-        throw new HomebrewSemPermissaoException('arquivar', 'este homebrew', id);
+        throw new HomebrewSemPermissaoException(
+          'arquivar',
+          'este homebrew',
+          id,
+        );
       }
 
       const atualizado = await this.prisma.homebrew.update({
@@ -522,12 +557,20 @@ export class HomebrewsService {
   /**
    * Verificar permissão de leitura
    */
-  private verificarPermissaoLeitura(homebrew: any, usuarioId?: number, isAdmin: boolean = false) {
+  private verificarPermissaoLeitura(
+    homebrew: any,
+    usuarioId?: number,
+    isAdmin: boolean = false,
+  ) {
     const isOwner = homebrew.usuarioId === usuarioId;
     const isPublicado = homebrew.status === StatusPublicacao.PUBLICADO;
 
     if (!isPublicado && !isOwner && !isAdmin) {
-      throw new HomebrewSemPermissaoException('visualizar', 'este homebrew', homebrew.id);
+      throw new HomebrewSemPermissaoException(
+        'visualizar',
+        'este homebrew',
+        homebrew.id,
+      );
     }
   }
 

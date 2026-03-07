@@ -6,6 +6,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 @Module({
   imports: [PrismaModule],
   providers: [TiposGrauService],
-  controllers: [TiposGrauController]
+  controllers: [TiposGrauController],
 })
 export class TiposGrauModule {}

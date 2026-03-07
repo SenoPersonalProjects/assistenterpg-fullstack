@@ -6,7 +6,9 @@ const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
 class UsuarioNaoEncontradoException extends base_exception_1.BaseException {
     constructor(identificador) {
-        super('Usuário não encontrado', common_1.HttpStatus.NOT_FOUND, 'USUARIO_NOT_FOUND', { identificador });
+        super('Usuário não encontrado', common_1.HttpStatus.NOT_FOUND, 'USUARIO_NOT_FOUND', {
+            identificador,
+        });
     }
 }
 exports.UsuarioNaoEncontradoException = UsuarioNaoEncontradoException;

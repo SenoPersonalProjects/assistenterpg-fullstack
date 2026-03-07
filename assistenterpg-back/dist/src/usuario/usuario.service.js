@@ -55,7 +55,9 @@ let UsuarioService = class UsuarioService {
     }
     async criarUsuario(apelido, email, senha) {
         try {
-            const existente = await this.prisma.usuario.findUnique({ where: { email } });
+            const existente = await this.prisma.usuario.findUnique({
+                where: { email },
+            });
             if (existente) {
                 throw new usuario_exception_1.UsuarioEmailDuplicadoException(email);
             }

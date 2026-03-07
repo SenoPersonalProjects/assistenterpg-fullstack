@@ -111,7 +111,9 @@ export class CompendioService {
   }
 
   async atualizarCategoria(id: number, dto: UpdateCategoriaDto) {
-    const existe = await this.prisma.compendioCategoria.findUnique({ where: { id } });
+    const existe = await this.prisma.compendioCategoria.findUnique({
+      where: { id },
+    });
 
     if (!existe) {
       throw new CompendioCategoriaException(id);
@@ -141,7 +143,10 @@ export class CompendioService {
     }
 
     if (existe.subcategorias.length > 0) {
-      throw new CompendioCategoriaComSubcategoriasException(id, existe.subcategorias.length);
+      throw new CompendioCategoriaComSubcategoriasException(
+        id,
+        existe.subcategorias.length,
+      );
     }
 
     await this.prisma.compendioCategoria.delete({ where: { id } });
@@ -248,16 +253,20 @@ export class CompendioService {
   }
 
   async atualizarSubcategoria(id: number, dto: UpdateSubcategoriaDto) {
-    const existe = await this.prisma.compendioSubcategoria.findUnique({ where: { id } });
+    const existe = await this.prisma.compendioSubcategoria.findUnique({
+      where: { id },
+    });
 
     if (!existe) {
       throw new CompendioSubcategoriaException(id);
     }
 
     if (dto.codigo && dto.codigo !== existe.codigo) {
-      const outraComCodigo = await this.prisma.compendioSubcategoria.findUnique({
-        where: { codigo: dto.codigo },
-      });
+      const outraComCodigo = await this.prisma.compendioSubcategoria.findUnique(
+        {
+          where: { codigo: dto.codigo },
+        },
+      );
 
       if (outraComCodigo) {
         throw new CompendioSubcategoriaDuplicadaException(dto.codigo);
@@ -282,7 +291,10 @@ export class CompendioService {
     }
 
     if (existe.artigos.length > 0) {
-      throw new CompendioSubcategoriaComArtigosException(id, existe.artigos.length);
+      throw new CompendioSubcategoriaComArtigosException(
+        id,
+        existe.artigos.length,
+      );
     }
 
     await this.prisma.compendioSubcategoria.delete({ where: { id } });
@@ -387,7 +399,9 @@ export class CompendioService {
   }
 
   async atualizarArtigo(id: number, dto: UpdateArtigoDto) {
-    const existe = await this.prisma.compendioArtigo.findUnique({ where: { id } });
+    const existe = await this.prisma.compendioArtigo.findUnique({
+      where: { id },
+    });
 
     if (!existe) {
       throw new CompendioArtigoException(id);
@@ -415,7 +429,9 @@ export class CompendioService {
   }
 
   async removerArtigo(id: number) {
-    const existe = await this.prisma.compendioArtigo.findUnique({ where: { id } });
+    const existe = await this.prisma.compendioArtigo.findUnique({
+      where: { id },
+    });
 
     if (!existe) {
       throw new CompendioArtigoException(id);

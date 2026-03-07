@@ -17,7 +17,6 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@/components/ui/Icon';
-import { Alert } from '@/components/ui/Alert';
 
 type Props = {
   atributos: {
@@ -76,6 +75,26 @@ function tiersPorValor(valor: number): Array<1 | 2> {
 
 type IntConfig = NonNullable<PassivasAtributoConfigFront['INT_I']>;
 type IntConfigII = NonNullable<PassivasAtributoConfigFront['INT_II']>;
+type PassivaOpcaoEscolha = { descricao: string } & Record<string, unknown>;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function extrairOpcoesEscolha(efeitos: unknown): PassivaOpcaoEscolha[] | null {
+  const record = asRecord(efeitos);
+  if (!record) return null;
+
+  const escolhaRaw = record.escolha;
+  if (!Array.isArray(escolhaRaw)) return null;
+
+  const opcoes = escolhaRaw.filter((opcao): opcao is PassivaOpcaoEscolha => {
+    const opcaoRecord = asRecord(opcao);
+    return !!opcaoRecord && typeof opcaoRecord.descricao === 'string';
+  });
+
+  return opcoes.length > 0 ? opcoes : null;
+}
 
 function IntelectoChoicesPanel(props: {
   valorIntelecto: number;
@@ -104,8 +123,8 @@ function IntelectoChoicesPanel(props: {
   const intI: IntConfig = config.INT_I ?? {};
   const intII: IntConfigII = config.INT_II ?? {};
 
-  const profsIntI = intI.proficienciasCodigos ?? [];
-  const profsIntII = intII.proficienciasCodigos ?? [];
+  const profsIntI = useMemo(() => intI.proficienciasCodigos ?? [], [intI.proficienciasCodigos]);
+  const profsIntII = useMemo(() => intII.proficienciasCodigos ?? [], [intII.proficienciasCodigos]);
 
   const maxEscolhasIntII = 2;
 
@@ -348,15 +367,15 @@ export function PassivasAtributosSelector({
     const intAtivo = ativos.includes('INT');
 
     if (!intAtivo || valorInt < 3) {
-      delete (novoConfig as any).INT_I;
-      delete (novoConfig as any).INT_II;
+      delete novoConfig.INT_I;
+      delete novoConfig.INT_II;
     } else if (valorInt >= 3 && valorInt < 6) {
       if (!novoConfig.INT_I) {
         novoConfig.INT_I = {};
       }
-      delete (novoConfig as any).INT_II;
+      delete novoConfig.INT_II;
     } else if (valorInt >= 6) {
-      delete (novoConfig as any).INT_I;
+      delete novoConfig.INT_I;
       if (!novoConfig.INT_II) {
         novoConfig.INT_II = {};
       }
@@ -440,18 +459,11 @@ export function PassivasAtributosSelector({
               ) : (
                 <div className="mt-3 space-y-2">
                   {passivasAplicadas.map((p) => {
-                    const efeitos = p.efeitos as any;
-                    const temEscolha =
-                      efeitos && typeof efeitos === 'object' && 'escolha' in efeitos;
-                    const opcoes = temEscolha
-                      ? (efeitos.escolha as Array<{
-                          descricao: string;
-                          [key: string]: any;
-                        }>)
-                      : null;
+                    const efeitos = asRecord(p.efeitos);
+                    const opcoes = extrairOpcoesEscolha(p.efeitos);
+                    const temEscolha = !!opcoes;
 
-                    const escolhaSelecionada =
-                      (escolhasConfig as any).passivaIdToIndex?.[p.id] ?? 0;
+                    const escolhaSelecionada = escolhasConfig.passivaIdToIndex?.[p.id] ?? 0;
 
                     return (
                       <div
@@ -477,15 +489,14 @@ export function PassivasAtributosSelector({
                                 onChange={(e) => {
                                   const novaEscolha = parseInt(e.target.value, 10);
 
-                                  const antigo =
-                                    (escolhasConfig as any).passivaIdToIndex ?? {};
+                                  const antigo = escolhasConfig.passivaIdToIndex ?? {};
                                   const novoConfig: PassivasAtributoConfigFront = {
                                     ...escolhasConfig,
                                     passivaIdToIndex: {
                                       ...antigo,
                                       [p.id]: novaEscolha,
                                     },
-                                  } as any;
+                                  };
 
                                   onChangeEscolha(novoConfig);
                                 }}

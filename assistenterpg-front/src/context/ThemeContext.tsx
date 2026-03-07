@@ -14,29 +14,22 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const THEME_KEY = 'assistenterpg_theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    const stored = localStorage.getItem(THEME_KEY);
+    return stored === 'light' || stored === 'dark' ? stored : 'dark';
+  });
 
   // carregar do localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem(THEME_KEY) as Theme | null;
-    if (stored === 'light' || stored === 'dark') {
-      setTheme(stored);
-      document.documentElement.classList.toggle('dark', stored === 'dark');
-    } else {
-      // default: dark
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   const toggleTheme = () => {
     setTheme(prev => {
-      const next: Theme = prev === 'dark' ? 'light' : 'dark';
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(THEME_KEY, next);
-        document.documentElement.classList.toggle('dark', next === 'dark');
-      }
-      return next;
+      return prev === 'dark' ? 'light' : 'dark';
     });
   };
 

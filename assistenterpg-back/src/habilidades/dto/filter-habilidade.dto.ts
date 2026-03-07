@@ -1,5 +1,6 @@
 import { IsOptional, IsString, IsInt, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
+import { TipoFonte } from '@prisma/client';
 import { TipoHabilidade } from './create-habilidade.dto';
 
 export class FilterHabilidadeDto {
@@ -10,6 +11,16 @@ export class FilterHabilidadeDto {
   @IsOptional()
   @IsString()
   origem?: string;
+
+  @IsOptional()
+  @IsEnum(TipoFonte)
+  fonte?: TipoFonte;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  suplementoId?: number;
 
   @IsOptional()
   @IsString()

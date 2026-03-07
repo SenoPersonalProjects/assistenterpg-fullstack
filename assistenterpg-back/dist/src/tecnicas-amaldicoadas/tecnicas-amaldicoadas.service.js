@@ -20,6 +20,24 @@ let TecnicasAmaldicoadasService = class TecnicasAmaldicoadasService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    async validarFonteSuplemento(fonte, suplementoId) {
+        if (suplementoId) {
+            const suplemento = await this.prisma.suplemento.findUnique({
+                where: { id: suplementoId },
+                select: { id: true },
+            });
+            if (!suplemento) {
+                throw new tecnica_amaldicoada_exception_1.TecnicaSuplementoNaoEncontradoException(suplementoId);
+            }
+            if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
+                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+            }
+            return;
+        }
+        if (fonte === client_1.TipoFonte.SUPLEMENTO) {
+            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+        }
+    }
     async findAllTecnicas(filtros) {
         try {
             const where = {};
@@ -178,17 +196,14 @@ let TecnicasAmaldicoadasService = class TecnicasAmaldicoadasService {
             if (dto.hereditaria && dto.tipo !== client_1.TipoTecnicaAmaldicoada.INATA) {
                 throw new tecnica_amaldicoada_exception_1.TecnicaNaoInataHereditariaException(dto.tipo);
             }
-            if (dto.hereditaria && (!dto.clasHereditarios || dto.clasHereditarios.length === 0)) {
+            if (dto.hereditaria &&
+                (!dto.clasHereditarios || dto.clasHereditarios.length === 0)) {
                 throw new tecnica_amaldicoada_exception_1.TecnicaHereditariaSemClaException();
             }
-            if (dto.suplementoId) {
-                const suplemento = await this.prisma.suplemento.findUnique({
-                    where: { id: dto.suplementoId },
-                });
-                if (!suplemento) {
-                    throw new tecnica_amaldicoada_exception_1.TecnicaSuplementoNaoEncontradoException(dto.suplementoId);
-                }
-            }
+            const suplementoIdFinal = dto.suplementoId ?? null;
+            const fonteFinal = dto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const tecnica = await this.prisma.tecnicaAmaldicoada.create({
                 data: {
                     codigo: dto.codigo,
@@ -197,12 +212,14 @@ let TecnicasAmaldicoadasService = class TecnicasAmaldicoadasService {
                     tipo: dto.tipo,
                     hereditaria: dto.hereditaria ?? false,
                     linkExterno: dto.linkExterno ?? null,
-                    fonte: dto.fonte ?? client_1.TipoFonte.HOMEBREW,
-                    suplementoId: dto.suplementoId ?? null,
+                    fonte: fonteFinal,
+                    suplementoId: suplementoIdFinal,
                     requisitos: dto.requisitos ?? null,
                 },
             });
-            if (dto.hereditaria && dto.clasHereditarios && dto.clasHereditarios.length > 0) {
+            if (dto.hereditaria &&
+                dto.clasHereditarios &&
+                dto.clasHereditarios.length > 0) {
                 await this.vincularClas(tecnica.id, dto.clasHereditarios);
             }
             return this.findOneTecnica(tecnica.id);
@@ -227,21 +244,21 @@ let TecnicasAmaldicoadasService = class TecnicasAmaldicoadasService {
             if (hereditariaFinal && tipoFinal === client_1.TipoTecnicaAmaldicoada.NAO_INATA) {
                 throw new tecnica_amaldicoada_exception_1.TecnicaNaoInataHereditariaException(tipoFinal);
             }
-            if (dto.suplementoId) {
-                const suplemento = await this.prisma.suplemento.findUnique({
-                    where: { id: dto.suplementoId },
-                });
-                if (!suplemento) {
-                    throw new tecnica_amaldicoada_exception_1.TecnicaSuplementoNaoEncontradoException(dto.suplementoId);
-                }
-            }
+            const suplementoIdFinal = dto.suplementoId !== undefined
+                ? dto.suplementoId
+                : tecnica.suplementoId;
+            const fonteFinal = dto.fonte ?? (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : tecnica.fonte);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             const shouldUpdateClas = dto.clasHereditarios !== undefined;
             if (shouldUpdateClas) {
-                if (hereditariaFinal && (!dto.clasHereditarios || dto.clasHereditarios.length === 0)) {
+                if (hereditariaFinal &&
+                    (!dto.clasHereditarios || dto.clasHereditarios.length === 0)) {
                     throw new tecnica_amaldicoada_exception_1.TecnicaHereditariaSemClaException(id);
                 }
                 await this.prisma.tecnicaCla.deleteMany({ where: { tecnicaId: id } });
-                if (hereditariaFinal && dto.clasHereditarios && dto.clasHereditarios.length > 0) {
+                if (hereditariaFinal &&
+                    dto.clasHereditarios &&
+                    dto.clasHereditarios.length > 0) {
                     await this.vincularClas(id, dto.clasHereditarios);
                 }
             }
@@ -253,8 +270,10 @@ let TecnicasAmaldicoadasService = class TecnicasAmaldicoadasService {
                     tipo: dto.tipo,
                     hereditaria: dto.hereditaria,
                     linkExterno: dto.linkExterno,
-                    fonte: dto.fonte,
-                    suplementoId: dto.suplementoId,
+                    fonte: fonteFinal,
+                    ...(dto.suplementoId !== undefined && {
+                        suplementoId: dto.suplementoId,
+                    }),
                     requisitos: dto.requisitos,
                 },
             });

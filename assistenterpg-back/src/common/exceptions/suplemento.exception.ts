@@ -55,11 +55,10 @@ export class SuplementoNaoPublicadoException extends BusinessException {
 
 export class SuplementoJaAtivoException extends BusinessException {
   constructor(usuarioId: number, suplementoId: number) {
-    super(
-      'Suplemento já está ativo para este usuário',
-      'SUPLEMENTO_JA_ATIVO',
-      { usuarioId, suplementoId },
-    );
+    super('Suplemento já está ativo para este usuário', 'SUPLEMENTO_JA_ATIVO', {
+      usuarioId,
+      suplementoId,
+    });
   }
 }
 

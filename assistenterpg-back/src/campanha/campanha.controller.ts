@@ -21,7 +21,7 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas')
 export class CampanhaController {
-  constructor(private readonly campanhaService: CampanhaService) { }
+  constructor(private readonly campanhaService: CampanhaService) {}
 
   @Post()
   async criar(
@@ -94,9 +94,7 @@ export class CampanhaController {
 
   @Get('convites/pendentes')
   async listarConvitesPendentes(@Request() req: { user: { id: number } }) {
-    return this.campanhaService.listarConvitesPendentesPorUsuario(
-      req.user.id,
-    );
+    return this.campanhaService.listarConvitesPendentesPorUsuario(req.user.id);
   }
 
   @Post('convites/:codigo/aceitar')

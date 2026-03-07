@@ -15,6 +15,8 @@ const class_transformer_1 = require("class-transformer");
 const client_1 = require("@prisma/client");
 class FiltrarEquipamentosDto {
     tipo;
+    fontes;
+    suplementoId;
     complexidadeMaldicao;
     proficienciaArma;
     proficienciaProtecao;
@@ -32,6 +34,24 @@ __decorate([
     (0, class_validator_1.IsEnum)(client_1.TipoEquipamento),
     __metadata("design:type", String)
 ], FiltrarEquipamentosDto.prototype, "tipo", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsEnum)(client_1.TipoFonte, { each: true }),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        if (typeof value === 'string')
+            return value.split(',');
+        return value;
+    }),
+    __metadata("design:type", Array)
+], FiltrarEquipamentosDto.prototype, "fontes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_transformer_1.Type)(() => Number),
+    __metadata("design:type", Number)
+], FiltrarEquipamentosDto.prototype, "suplementoId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(client_1.ComplexidadeMaldicao),

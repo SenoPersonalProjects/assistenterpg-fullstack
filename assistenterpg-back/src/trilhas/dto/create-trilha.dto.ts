@@ -9,10 +9,13 @@ import {
   MaxLength,
   IsArray,
   ValidateNested,
+  IsEnum,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { TipoFonte } from '@prisma/client';
 
-// ✅ DTO para habilidades da trilha (opcional na criação)
+// DTO para habilidades da trilha (opcional na criacao)
 export class HabilidadeTrilhaDto {
   @IsInt()
   @IsNotEmpty()
@@ -24,7 +27,7 @@ export class HabilidadeTrilhaDto {
 
   @IsOptional()
   @IsInt()
-  caminhoId?: number; // Se for habilidade específica de um caminho
+  caminhoId?: number; // Se for habilidade especifica de um caminho
 }
 
 export class CreateTrilhaDto {
@@ -34,19 +37,28 @@ export class CreateTrilhaDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(3, { message: 'Nome deve ter no mínimo 3 caracteres' })
-  @MaxLength(100, { message: 'Nome deve ter no máximo 100 caracteres' })
+  @MinLength(3, { message: 'Nome deve ter no minimo 3 caracteres' })
+  @MaxLength(100, { message: 'Nome deve ter no maximo 100 caracteres' })
   nome: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000, { message: 'Descrição deve ter no máximo 1000 caracteres' })
+  @MaxLength(1000, { message: 'Descricao deve ter no maximo 1000 caracteres' })
   descricao?: string;
 
   @IsOptional()
-  requisitos?: any; // JSON livre (ex: nível mínimo, atributos, etc)
+  requisitos?: any; // JSON livre (ex: nivel minimo, atributos, etc)
 
-  // ✅ Habilidades da trilha (opcional na criação)
+  @IsOptional()
+  @IsEnum(TipoFonte)
+  fonte?: TipoFonte;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  suplementoId?: number;
+
+  // Habilidades da trilha (opcional na criacao)
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

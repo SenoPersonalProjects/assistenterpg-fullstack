@@ -20,6 +20,7 @@ import {
   podeSerVestido,
   LIMITES_VESTIR,
   SUBTIPO_VESTIMENTA,
+  type ItemInventarioParaVestir,
 } from '@/lib/utils/inventario';
 import type {
   EquipamentoCatalogo,
@@ -91,7 +92,7 @@ export function InventarioModalReview({
     if (equipado && podeVestir) {
       // ✅ CORRIGIDO: Converter ItemInventarioPayload[] para formato esperado
       const itensConvertidos = itensInventario
-        .map((item) => {
+        .map((item): ItemInventarioParaVestir => {
           const equip = equipamentos.find((e) => e.id === item.equipamentoId);
           return {
             equipamentoId: item.equipamentoId,
@@ -110,8 +111,7 @@ export function InventarioModalReview({
                 }
               : undefined,
           };
-        })
-        .filter((item) => item.equipamento !== undefined) as any[];
+        });
 
       const validacaoVestir = validarPodeVestir(
         equipamento,
@@ -156,15 +156,14 @@ export function InventarioModalReview({
 
         vestiveisAtual += item.quantidade;
 
-        const tipoAcessorio = (equip as any).tipoAcessorio;
+        const tipoAcessorio = equip.tipoAcessorio;
         if (equip.tipo === 'ACESSORIO' && tipoAcessorio === SUBTIPO_VESTIMENTA) {
           vestimentasAtual += item.quantidade;
         }
       });
 
     const ehVestimenta =
-      equipamento.tipo === 'ACESSORIO' &&
-      (equipamento as any).tipoAcessorio === SUBTIPO_VESTIMENTA;
+      equipamento.tipo === 'ACESSORIO' && equipamento.tipoAcessorio === SUBTIPO_VESTIMENTA;
 
     return {
       vestiveisAtual,
@@ -254,7 +253,7 @@ export function InventarioModalReview({
           />
           <p className="text-xs text-app-muted mt-1 flex items-center gap-1">
             <Icon name="info" className="w-3 h-3" />
-            Deixe vazio para usar o nome padrão. Ex: "Katana +1", "Mochila do João"
+            Deixe vazio para usar o nome padrão. Ex: &quot;Katana +1&quot;, &quot;Mochila do João&quot;
           </p>
         </div>
 
@@ -347,7 +346,7 @@ export function InventarioModalReview({
 
             {/* Limite de vestimentas (se aplicável) */}
             {equipamento.tipo === 'ACESSORIO' &&
-              (equipamento as any).tipoAcessorio === SUBTIPO_VESTIMENTA && (
+              equipamento.tipoAcessorio === SUBTIPO_VESTIMENTA && (
                 <div className="flex items-center justify-between">
                   <span className="text-app-muted">👔 Vestimentas:</span>
                   <span
@@ -461,3 +460,4 @@ export function InventarioModalReview({
     </div>
   );
 }
+

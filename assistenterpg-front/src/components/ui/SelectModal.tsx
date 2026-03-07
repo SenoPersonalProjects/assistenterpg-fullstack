@@ -9,7 +9,7 @@ import { Button } from './Button';
 import { Badge } from './Badge';
 import { ClickableCard } from './ClickableCard';
 
-export type SelectModalOption<T = any> = {
+export type SelectModalOption<T = unknown> = {
   value: string | number;
   label: string;
   description?: string | null;

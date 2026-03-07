@@ -17,8 +17,8 @@ function validateHomebrewTrilhaCustom(dados) {
                 nivelDuplicado: niveisOrdenados[i],
                 posicoesAfetadas: niveis
                     .map((n, idx) => ({ nivel: n, index: idx }))
-                    .filter(item => item.nivel === niveisOrdenados[i])
-                    .map(item => item.index)
+                    .filter((item) => item.nivel === niveisOrdenados[i])
+                    .map((item) => item.index),
             }, 'DUPLICATE_ABILITY_LEVELS');
         }
     }

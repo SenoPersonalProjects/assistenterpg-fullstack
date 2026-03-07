@@ -8,10 +8,11 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
+import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
-  dados: any;
-  onChange: (dados: any) => void;
+  dados: HomebrewFormDados;
+  onChange: (dados: Partial<HomebrewFormDados>) => void;
 };
 
 export function OrigemFormFields({ dados, onChange }: Props) {

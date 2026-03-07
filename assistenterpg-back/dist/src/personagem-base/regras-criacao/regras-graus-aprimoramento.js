@@ -11,7 +11,10 @@ function calcularGrausLivresMax(nivel) {
 }
 function calcularGrausLivresExtras(habilidades, nivelPersonagem, passivasAtributosConfig) {
     const deHabilidades = calcularGrausLivresDeHabilidades(habilidades, nivelPersonagem);
-    const deIntelecto = passivasAtributosConfig?.INT_II?.tipoGrauCodigoAprimoramento ? 1 : 0;
+    const deIntelecto = passivasAtributosConfig?.INT_II
+        ?.tipoGrauCodigoAprimoramento
+        ? 1
+        : 0;
     return {
         deHabilidades,
         deIntelecto,

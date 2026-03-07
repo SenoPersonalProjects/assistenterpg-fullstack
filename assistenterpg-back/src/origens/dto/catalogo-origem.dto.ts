@@ -1,5 +1,5 @@
 // src/origens/dto/catalogo-origem.dto.ts
-import { HabilidadeCatalogoDto } from "src/habilidades/dto/catalogo-habilidade.dto";
+import { HabilidadeCatalogoDto } from 'src/habilidades/dto/catalogo-habilidade.dto';
 
 export class OrigemPericiaCatalogoDto {
   id: number;

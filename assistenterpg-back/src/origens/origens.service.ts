@@ -1,6 +1,7 @@
 // src/origens/origens.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { TipoFonte } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrigemDto } from './dto/create-origem.dto';
 import { UpdateOrigemDto } from './dto/update-origem.dto';
@@ -14,6 +15,7 @@ import {
   OrigemHabilidadesInvalidasException,
   OrigemEmUsoException,
 } from 'src/common/exceptions/origem.exception';
+import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemento.exception';
 
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
@@ -21,11 +23,40 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 export class OrigensService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new SuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new BadRequestException(
+          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+        );
+      }
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+    }
+  }
+
   // ========================================
   // ✅ HELPER PRIVADO
   // ========================================
 
-  private addHabilidadesIniciais<T extends { habilidadesOrigem?: any[] }>(origem: T) {
+  private addHabilidadesIniciais<T extends { habilidadesOrigem?: any[] }>(
+    origem: T,
+  ) {
     const habilidadesIniciais: HabilidadeCatalogoDto[] =
       origem.habilidadesOrigem?.map((rel: any) => rel.habilidade) ?? [];
 
@@ -63,7 +94,9 @@ export class OrigensService {
 
         if (periciasExistentes.length !== periciaIds.length) {
           const idsEncontrados = periciasExistentes.map((p) => p.id);
-          const idsInvalidos = periciaIds.filter((id) => !idsEncontrados.includes(id));
+          const idsInvalidos = periciaIds.filter(
+            (id) => !idsEncontrados.includes(id),
+          );
           throw new OrigemPericiasInvalidasException(idsInvalidos);
         }
       }
@@ -85,6 +118,12 @@ export class OrigensService {
       }
 
       // Criar origem com relações
+      const suplementoIdFinal = dto.suplementoId ?? null;
+      const fonteFinal =
+        dto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
       const origem = await this.prisma.origem.create({
         data: {
           nome: dto.nome,
@@ -93,6 +132,8 @@ export class OrigensService {
           requerGrandeCla: dto.requerGrandeCla ?? false,
           requerTecnicaHeriditaria: dto.requerTecnicaHeriditaria ?? false,
           bloqueiaTecnicaHeriditaria: dto.bloqueiaTecnicaHeriditaria ?? false,
+          fonte: fonteFinal,
+          suplementoId: suplementoIdFinal,
 
           // ✅ Criar perícias
           ...(dto.pericias?.length && {
@@ -221,7 +262,7 @@ export class OrigensService {
   async update(id: number, dto: UpdateOrigemDto) {
     try {
       // Verificar se existe
-      await this.findOne(id);
+      const origemAtual = await this.findOne(id);
 
       // Verificar nome duplicado (se mudou)
       if (dto.nome) {
@@ -247,7 +288,9 @@ export class OrigensService {
 
         if (periciasExistentes.length !== periciaIds.length) {
           const idsEncontrados = periciasExistentes.map((p) => p.id);
-          const idsInvalidos = periciaIds.filter((id) => !idsEncontrados.includes(id));
+          const idsInvalidos = periciaIds.filter(
+            (id) => !idsEncontrados.includes(id),
+          );
           throw new OrigemPericiasInvalidasException(idsInvalidos);
         }
       }
@@ -268,6 +311,15 @@ export class OrigensService {
         }
       }
 
+      const suplementoIdFinal =
+        dto.suplementoId !== undefined
+          ? dto.suplementoId
+          : origemAtual.suplementoId;
+      const fonteFinal =
+        dto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : origemAtual.fonte);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
       // Atualizar origem
       const origem = await this.prisma.origem.update({
         where: { id },
@@ -285,6 +337,10 @@ export class OrigensService {
           }),
           ...(dto.bloqueiaTecnicaHeriditaria !== undefined && {
             bloqueiaTecnicaHeriditaria: dto.bloqueiaTecnicaHeriditaria,
+          }),
+          ...(fonteFinal !== origemAtual.fonte && { fonte: fonteFinal }),
+          ...(dto.suplementoId !== undefined && {
+            suplementoId: dto.suplementoId,
           }),
 
           // ✅ Atualizar perícias (deletar e recriar)

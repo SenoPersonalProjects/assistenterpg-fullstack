@@ -1,4 +1,4 @@
-// personagem-base/create/modal/InventarioModalEquipamento.tsx - COM DEBUG
+// personagem-base/create/modal/InventarioModalEquipamento.tsx
 
 'use client';
 
@@ -31,12 +31,6 @@ export function InventarioModalEquipamento({
     setEquipamentoExpandido(equipamentoExpandido === equipId ? null : equipId);
   };
 
-  // ✅ DEBUG: Verificar estrutura dos equipamentos
-  if (equipamentosFiltrados.length > 0) {
-    console.log('🔍 Primeiro equipamento:', equipamentosFiltrados[0]);
-    console.log('🔍 Descricao do primeiro:', equipamentosFiltrados[0].descricao);
-    console.log('🔍 Tem descricao?', !!equipamentosFiltrados[0].descricao);
-  }
 
   return (
     <div className="space-y-4">
@@ -57,11 +51,6 @@ export function InventarioModalEquipamento({
             const selecionado = equipamentoSelecionado?.id === equip.id;
             const expandido = equipamentoExpandido === equip.id;
             
-            // ✅ DEBUG: Log por equipamento
-            const temDescricao = !!equip.descricao && equip.descricao.trim().length > 0;
-            if (!temDescricao) {
-              console.log(`❌ ${equip.nome} não tem descrição:`, equip.descricao);
-            }
 
             return (
               <div
@@ -103,7 +92,7 @@ export function InventarioModalEquipamento({
                   </div>
                 </div>
 
-                {/* ✅ CORRIGIDO: Verificação mais robusta */}
+                {/* Verificação mais robusta */}
                 {equip.descricao && equip.descricao.trim().length > 0 && (
                   <div className="px-4 pb-4">
                     <button

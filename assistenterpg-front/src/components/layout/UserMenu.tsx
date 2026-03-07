@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -30,10 +30,7 @@ export function UserMenu() {
       {open && (
         <>
           {/* Overlay para fechar ao clicar fora */}
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
 
           {/* Menu */}
           <div className="absolute right-0 mt-2 w-64 z-20">
@@ -57,8 +54,16 @@ export function UserMenu() {
                 <ThemeToggle />
               </div>
 
-              {/* Notificações (movido pra cá) */}
+              {/* Notificações */}
               <NotificationsButton pendingNotifications={0} className="w-full justify-start" />
+
+              {isAdmin && (
+                <Link href="/suplementos/admin" onClick={() => setOpen(false)}>
+                  <Button variant="secondary" className="w-full justify-start">
+                    Painel CRUD Admin
+                  </Button>
+                </Link>
+              )}
 
               {/* Versão */}
               <div className="flex gap-2 items-center">

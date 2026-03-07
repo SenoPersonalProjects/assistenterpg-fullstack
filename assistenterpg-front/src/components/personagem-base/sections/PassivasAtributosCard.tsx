@@ -30,6 +30,11 @@ type Props = {
   passivasSelecionadas: PassivaAtributoCatalogo[];
 };
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
 export function PassivasAtributosCard({
   passivasAtributosAtivos,
   passivasSelecionadas,
@@ -55,54 +60,42 @@ export function PassivasAtributosCard({
 
       {passivasSelecionadas.length > 0 ? (
         <div className="space-y-3">
-          {passivasSelecionadas.map((passiva) => (
-            <div
-              key={passiva.id}
-              className="rounded border border-app-border bg-app-surface p-3"
-            >
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-sm font-medium text-app-fg">
-                  {passiva.nome}
-                </p>
-                <span className="text-xs text-app-primary">
-                  {passiva.atributo}{' '}
-                  {passiva.nivel === 2 ? 'II' : 'I'}
-                </span>
-              </div>
+          {passivasSelecionadas.map((passiva) => {
+            const efeitosPassiva = asRecord(passiva.efeitos);
+            const entradasEfeitos = efeitosPassiva ? Object.entries(efeitosPassiva) : [];
 
-              {passiva.descricao && (
-                <p className="text-xs text-app-muted">
-                  {passiva.descricao}
-                </p>
-              )}
+            return (
+              <div
+                key={passiva.id}
+                className="rounded border border-app-border bg-app-surface p-3"
+              >
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-sm font-medium text-app-fg">{passiva.nome}</p>
+                  <span className="text-xs text-app-primary">
+                    {passiva.atributo} {passiva.nivel === 2 ? 'II' : 'I'}
+                  </span>
+                </div>
 
-              {passiva.efeitos &&
-                Object.keys(passiva.efeitos).length > 0 && (
+                {passiva.descricao && <p className="text-xs text-app-muted">{passiva.descricao}</p>}
+
+                {entradasEfeitos.length > 0 && (
                   <div className="mt-2 border-t border-app-border pt-2">
-                    <p className="mb-1 text-[10px] text-app-muted">
-                      Efeitos:
-                    </p>
+                    <p className="mb-1 text-[10px] text-app-muted">Efeitos:</p>
                     <ul className="space-y-0.5">
-                      {Object.entries(passiva.efeitos).map(
-                        ([key, value]) => {
-                          const label =
-                            LABEL_EFEITOS_PASSIVA[key] ?? key;
-                          return (
-                            <li
-                              key={key}
-                              className="text-[10px] text-app-success"
-                            >
-                              • {label}:{' '}
-                              <strong>+{String(value)}</strong>
-                            </li>
-                          );
-                        },
-                      )}
+                      {entradasEfeitos.map(([key, value]) => {
+                        const label = LABEL_EFEITOS_PASSIVA[key] ?? key;
+                        return (
+                          <li key={key} className="text-[10px] text-app-success">
+                            • {label}: <strong>+{String(value)}</strong>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <EmptyState

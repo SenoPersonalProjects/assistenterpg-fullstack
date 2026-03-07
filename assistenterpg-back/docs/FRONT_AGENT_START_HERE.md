@@ -42,3 +42,12 @@ Guia de entrada rápida para o agente/time que vai revisar ou implementar o fron
 ## 5) Nota operacional importante
 
 Foi corrigido um bloqueador de execução no backend (`package.json` inválido por chave `prebuild` duplicada/mal formada). Com isso, o projeto volta a ser parseável pelo npm e os scripts ficam acessíveis normalmente.
+
+## 6) Pacote wizard/import-export (leitura obrigatoria para este modulo)
+
+1. `docs/FRONT_ONLY_WIZARD_BACKEND_CONTRACT_2026-03-05.md`
+2. `docs/FRONT_ONLY_WIZARD_TEST_MATRIX_2026-03-05.md`
+3. `docs/BACKEND_PACKAGE_FRONT_AGENT_2026-03-05.md`
+4. `docs/front-smoke-2026-03-05/README.md`
+5. `docs/WIZARD_BACKEND_UNIFICADO_HANDOFF_2026-03-05.md` (documento unificado do modulo)
+6. `docs/WIZARD_CONTRATO_CONFIRMACOES_2026-03-05.md` (confirmacoes explicitas de parser/erros/espacos)

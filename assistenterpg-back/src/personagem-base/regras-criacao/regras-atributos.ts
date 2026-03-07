@@ -76,7 +76,10 @@ export type AtributosValores = {
   vigor: number;
 };
 
-function getValorAtributoBase(atributos: AtributosValores, base: AtributoBase): number {
+function getValorAtributoBase(
+  atributos: AtributosValores,
+  base: AtributoBase,
+): number {
   switch (base) {
     case AtributoBase.AGI:
       return atributos.agilidade;
@@ -110,7 +113,9 @@ function mapBaseToPassiva(base: AtributoBase): AtributoPassiva {
   }
 }
 
-export function listarAtributosElegiveisPassivas(atributos: AtributosValores): AtributoBase[] {
+export function listarAtributosElegiveisPassivas(
+  atributos: AtributosValores,
+): AtributoBase[] {
   const ordem: AtributoBase[] = [
     AtributoBase.AGI,
     AtributoBase.FOR,
@@ -175,7 +180,9 @@ export async function resolverPassivasAtributos(
   const { atributos, prisma, strict = false } = params;
 
   const elegiveis = listarAtributosElegiveisPassivas(atributos);
-  const escolhidos = normalizarListaAtributosBase(params.passivasAtributosAtivos);
+  const escolhidos = normalizarListaAtributosBase(
+    params.passivasAtributosAtivos,
+  );
 
   if (escolhidos.length > 2) {
     throw new PassivasExcedemLimiteException(escolhidos.length, elegiveis);
@@ -201,7 +208,7 @@ export async function resolverPassivasAtributos(
     };
   }
 
-  const ativos = elegiveis.length <= 2 ? elegiveis : (escolhidos as AtributoBase[]);
+  const ativos = elegiveis.length <= 2 ? elegiveis : escolhidos;
 
   const filtros: Array<{ atributo: AtributoPassiva; nivel: 1 | 2 }> = [];
   for (const a of ativos) {
@@ -215,7 +222,13 @@ export async function resolverPassivasAtributos(
   }
 
   if (filtros.length === 0) {
-    return { elegiveis, ativos, passivaIds: [], passivaCodigos: [], needsChoice: false };
+    return {
+      elegiveis,
+      ativos,
+      passivaIds: [],
+      passivaCodigos: [],
+      needsChoice: false,
+    };
   }
 
   const passivas = await prisma.passivaAtributo.findMany({
@@ -282,11 +295,14 @@ export async function validarPassivasAtributos({
     }
   }
 
-  const porAtributo = passivas.reduce((acc, p) => {
-    if (!acc[p.atributo]) acc[p.atributo] = [];
-    acc[p.atributo].push(p);
-    return acc;
-  }, {} as Record<string, typeof passivas>);
+  const porAtributo = passivas.reduce(
+    (acc, p) => {
+      if (!acc[p.atributo]) acc[p.atributo] = [];
+      acc[p.atributo].push(p);
+      return acc;
+    },
+    {} as Record<string, typeof passivas>,
+  );
 
   const atributosComPassivas = Object.keys(porAtributo);
   if (atributosComPassivas.length > 2) {
@@ -298,19 +314,23 @@ export async function validarPassivasAtributos({
 
   for (const [atributo, passivasDoAtributo] of Object.entries(porAtributo)) {
     if (passivasDoAtributo.length > 2) {
-      throw new PassivasDuplicadasException(atributo, passivasDoAtributo.length);
+      throw new PassivasDuplicadasException(
+        atributo,
+        passivasDoAtributo.length,
+      );
     }
 
     const niveis = new Set(passivasDoAtributo.map((p) => p.nivel));
     if (niveis.size !== passivasDoAtributo.length) {
-      throw new PassivasDuplicadasException(atributo, passivasDoAtributo.length);
+      throw new PassivasDuplicadasException(
+        atributo,
+        passivasDoAtributo.length,
+      );
     }
   }
 }
 
-export function calcularEfeitosPassivas(
-  passivas: Array<{ efeitos: any }>,
-): {
+export function calcularEfeitosPassivas(passivas: Array<{ efeitos: any }>): {
   deslocamentoExtra: number;
   reacoesExtra: number;
   peExtra: number;
@@ -344,25 +364,37 @@ export function calcularEfeitosPassivas(
   };
 
   for (const passiva of passivas) {
-    const efeitosPassiva = passiva.efeitos as any;
+    const efeitosPassiva = passiva.efeitos;
 
     if (efeitosPassiva.deslocamento) {
-      efeitos.deslocamentoExtra = Math.max(efeitos.deslocamentoExtra, efeitosPassiva.deslocamento);
+      efeitos.deslocamentoExtra = Math.max(
+        efeitos.deslocamentoExtra,
+        efeitosPassiva.deslocamento,
+      );
     }
     if (efeitosPassiva.reacoes) {
       efeitos.reacoesExtra += efeitosPassiva.reacoes;
     }
     if (efeitosPassiva.passosDanoCorpoACorpo) {
-      efeitos.passosDanoCorpoACorpo = Math.max(efeitos.passosDanoCorpoACorpo, efeitosPassiva.passosDanoCorpoACorpo);
+      efeitos.passosDanoCorpoACorpo = Math.max(
+        efeitos.passosDanoCorpoACorpo,
+        efeitosPassiva.passosDanoCorpoACorpo,
+      );
     }
     if (efeitosPassiva.dadosDanoCorpoACorpo) {
       efeitos.dadosDanoCorpoACorpo += efeitosPassiva.dadosDanoCorpoACorpo;
     }
     if (efeitosPassiva.periciasExtras) {
-      efeitos.periciasExtras = Math.max(efeitos.periciasExtras, efeitosPassiva.periciasExtras);
+      efeitos.periciasExtras = Math.max(
+        efeitos.periciasExtras,
+        efeitosPassiva.periciasExtras,
+      );
     }
     if (efeitosPassiva.proficienciasExtras) {
-      efeitos.proficienciasExtras = Math.max(efeitos.proficienciasExtras, efeitosPassiva.proficienciasExtras);
+      efeitos.proficienciasExtras = Math.max(
+        efeitos.proficienciasExtras,
+        efeitosPassiva.proficienciasExtras,
+      );
     }
     if (efeitosPassiva.grauTreinamentoExtra) {
       efeitos.grauTreinamentoExtra += efeitosPassiva.grauTreinamentoExtra;
@@ -400,13 +432,21 @@ export function calcularEfeitosPassivas(
 export function aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias(params: {
   passivasAtivasCodigos: string[];
   passivasConfig: PassivasAtributoConfig | null | undefined;
-  periciasMap: Map<string, { grauTreinamento: number; periciaId: number; bonusExtra: number }>;
+  periciasMap: Map<
+    string,
+    { grauTreinamento: number; periciaId: number; bonusExtra: number }
+  >;
   profsExtrasPayload: string[];
 }): {
   profsExtrasFinal: string[];
   periciasLivresExtras: number;
 } {
-  const { passivasAtivasCodigos, passivasConfig, periciasMap, profsExtrasPayload } = params;
+  const {
+    passivasAtivasCodigos,
+    passivasConfig,
+    periciasMap,
+    profsExtrasPayload,
+  } = params;
 
   const cfg = passivasConfig ?? {};
   const profsExtras = new Set(profsExtrasPayload);
@@ -426,7 +466,10 @@ export function aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias(params: 
     const totalEscolhas = periciasCodigos.length + profsCodigos.length;
 
     if (totalEscolhas > maxTotal) {
-      throw new PassivasIntelectoConfigInvalidaException(codigoPassiva, maxTotal);
+      throw new PassivasIntelectoConfigInvalidaException(
+        codigoPassiva,
+        maxTotal,
+      );
     }
 
     const periciasLivresDestaPassiva = maxTotal - totalEscolhas;
@@ -435,7 +478,10 @@ export function aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias(params: 
     for (const codigo of periciasCodigos) {
       const entry = periciasMap.get(codigo);
       if (!entry) {
-        throw new PassivaIntelectoPericiaInexistenteException(codigoPassiva, codigo);
+        throw new PassivaIntelectoPericiaInexistenteException(
+          codigoPassiva,
+          codigo,
+        );
       }
     }
 
@@ -446,7 +492,10 @@ export function aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias(params: 
     if (conf.periciaCodigoTreino) {
       const entry = periciasMap.get(conf.periciaCodigoTreino);
       if (!entry) {
-        throw new PassivaIntelectoPericiaInexistenteException(codigoPassiva, conf.periciaCodigoTreino);
+        throw new PassivaIntelectoPericiaInexistenteException(
+          codigoPassiva,
+          conf.periciaCodigoTreino,
+        );
       }
       entry.grauTreinamento += 1;
       periciasMap.set(conf.periciaCodigoTreino, entry);

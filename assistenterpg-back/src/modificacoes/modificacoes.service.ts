@@ -26,7 +26,7 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
 @Injectable()
 export class ModificacoesService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   // ========================================
   // ✅ CRUD COMPLETO
@@ -38,9 +38,10 @@ export class ModificacoesService {
   async create(createDto: CreateModificacaoDto) {
     try {
       // Verificar se código já existe
-      const existenteCodigo = await this.prisma.modificacaoEquipamento.findUnique({
-        where: { codigo: createDto.codigo },
-      });
+      const existenteCodigo =
+        await this.prisma.modificacaoEquipamento.findUnique({
+          where: { codigo: createDto.codigo },
+        });
 
       if (existenteCodigo) {
         throw new ModificacaoCodigoDuplicadoException(createDto.codigo);
@@ -53,7 +54,9 @@ export class ModificacoesService {
         });
 
         if (!suplemento) {
-          throw new ModificacaoSuplementoNaoEncontradoException(createDto.suplementoId);
+          throw new ModificacaoSuplementoNaoEncontradoException(
+            createDto.suplementoId,
+          );
         }
 
         // Se forneceu suplementoId, fonte deve ser SUPLEMENTO
@@ -64,13 +67,15 @@ export class ModificacoesService {
 
       // Validar equipamentos compatíveis (se fornecidos)
       if (createDto.equipamentosCompatíveisIds?.length) {
-        const equipamentosExistentes = await this.prisma.equipamentoCatalogo.findMany({
-          where: { id: { in: createDto.equipamentosCompatíveisIds } },
-          select: { id: true },
-        });
+        const equipamentosExistentes =
+          await this.prisma.equipamentoCatalogo.findMany({
+            where: { id: { in: createDto.equipamentosCompatíveisIds } },
+            select: { id: true },
+          });
 
         if (
-          equipamentosExistentes.length !== createDto.equipamentosCompatíveisIds.length
+          equipamentosExistentes.length !==
+          createDto.equipamentosCompatíveisIds.length
         ) {
           const idsEncontrados = equipamentosExistentes.map((e) => e.id);
           const idsInvalidos = createDto.equipamentosCompatíveisIds.filter(
@@ -89,16 +94,18 @@ export class ModificacoesService {
           tipo: createDto.tipo,
           incrementoEspacos: createDto.incrementoEspacos,
           restricoes: createDto.restricoes as any,
-          efeitosMecanicos: createDto.efeitosMecanicos as any,
+          efeitosMecanicos: createDto.efeitosMecanicos,
           fonte: createDto.fonte ?? TipoFonte.SISTEMA_BASE,
           suplementoId: createDto.suplementoId,
 
           // ✅ Criar relações com equipamentos compatíveis
           ...(createDto.equipamentosCompatíveisIds?.length && {
             equipamentosApplicaveis: {
-              create: createDto.equipamentosCompatíveisIds.map((equipamentoId) => ({
-                equipamentoId,
-              })),
+              create: createDto.equipamentosCompatíveisIds.map(
+                (equipamentoId) => ({
+                  equipamentoId,
+                }),
+              ),
             },
           }),
         },
@@ -151,19 +158,23 @@ export class ModificacoesService {
         });
 
         if (!suplemento) {
-          throw new ModificacaoSuplementoNaoEncontradoException(updateDto.suplementoId);
+          throw new ModificacaoSuplementoNaoEncontradoException(
+            updateDto.suplementoId,
+          );
         }
       }
 
       // Validar equipamentos compatíveis (se fornecidos)
       if (updateDto.equipamentosCompatíveisIds?.length) {
-        const equipamentosExistentes = await this.prisma.equipamentoCatalogo.findMany({
-          where: { id: { in: updateDto.equipamentosCompatíveisIds } },
-          select: { id: true },
-        });
+        const equipamentosExistentes =
+          await this.prisma.equipamentoCatalogo.findMany({
+            where: { id: { in: updateDto.equipamentosCompatíveisIds } },
+            select: { id: true },
+          });
 
         if (
-          equipamentosExistentes.length !== updateDto.equipamentosCompatíveisIds.length
+          equipamentosExistentes.length !==
+          updateDto.equipamentosCompatíveisIds.length
         ) {
           const idsEncontrados = equipamentosExistentes.map((e) => e.id);
           const idsInvalidos = updateDto.equipamentosCompatíveisIds.filter(
@@ -190,7 +201,7 @@ export class ModificacoesService {
             restricoes: updateDto.restricoes as any,
           }),
           ...(updateDto.efeitosMecanicos !== undefined && {
-            efeitosMecanicos: updateDto.efeitosMecanicos as any,
+            efeitosMecanicos: updateDto.efeitosMecanicos,
           }),
           ...(updateDto.fonte && { fonte: updateDto.fonte }),
           ...(updateDto.suplementoId !== undefined && {
@@ -202,9 +213,11 @@ export class ModificacoesService {
             equipamentosApplicaveis: {
               deleteMany: {},
               ...(updateDto.equipamentosCompatíveisIds.length > 0 && {
-                create: updateDto.equipamentosCompatíveisIds.map((equipamentoId) => ({
-                  equipamentoId,
-                })),
+                create: updateDto.equipamentosCompatíveisIds.map(
+                  (equipamentoId) => ({
+                    equipamentoId,
+                  }),
+                ),
               }),
             },
           }),
@@ -279,7 +292,14 @@ export class ModificacoesService {
    */
   async listar(filtros: FiltrarModificacoesDto) {
     try {
-      const { tipo, fontes, suplementoId, busca, pagina = 1, limite = 50 } = filtros;
+      const {
+        tipo,
+        fontes,
+        suplementoId,
+        busca,
+        pagina = 1,
+        limite = 50,
+      } = filtros;
 
       const where: any = {};
 
@@ -452,7 +472,10 @@ export class ModificacoesService {
     }
 
     // ✅ 2. Validar exclusão de escudos
-    if (restricoes.excluiEscudos && equipamento.proficienciaProtecao === 'ESCUDO') {
+    if (
+      restricoes.excluiEscudos &&
+      equipamento.proficienciaProtecao === 'ESCUDO'
+    ) {
       erros.push('Modificação não aplicável a escudos');
     }
 
@@ -498,10 +521,13 @@ export class ModificacoesService {
         COMPLEXA: 2,
       };
       const minima = hierarquia[restricoes.complexidadeMinima] || 0;
-      const atual = hierarquia[equipamento.complexidadeMaldicao || 'NENHUMA'] || 0;
+      const atual =
+        hierarquia[equipamento.complexidadeMaldicao || 'NENHUMA'] || 0;
 
       if (atual < minima) {
-        erros.push(`Requer complexidade mínima: ${restricoes.complexidadeMinima}`);
+        erros.push(
+          `Requer complexidade mínima: ${restricoes.complexidadeMinima}`,
+        );
       }
     }
 
@@ -521,15 +547,21 @@ export class ModificacoesService {
 
     // ✅ 10. Validar proficiências de arma
     if (restricoes.proficienciasArma?.length && equipamento.proficienciaArma) {
-      if (!restricoes.proficienciasArma.includes(equipamento.proficienciaArma)) {
-        erros.push(`Requer proficiência: ${restricoes.proficienciasArma.join(', ')}`);
+      if (
+        !restricoes.proficienciasArma.includes(equipamento.proficienciaArma)
+      ) {
+        erros.push(
+          `Requer proficiência: ${restricoes.proficienciasArma.join(', ')}`,
+        );
       }
     }
 
     // ✅ 11. Validar alcances
     if (restricoes.alcancesPermitidos?.length && equipamento.alcance) {
       if (!restricoes.alcancesPermitidos.includes(equipamento.alcance)) {
-        erros.push(`Requer alcance: ${restricoes.alcancesPermitidos.join(', ')}`);
+        erros.push(
+          `Requer alcance: ${restricoes.alcancesPermitidos.join(', ')}`,
+        );
       }
     }
 
@@ -621,12 +653,14 @@ export class ModificacoesService {
 
       // ✅ Opcional: equipamentos compatíveis
       ...(modificacao.equipamentosApplicaveis && {
-        equipamentosCompatíveis: modificacao.equipamentosApplicaveis.map((ea: any) => ({
-          id: ea.equipamento.id,
-          codigo: ea.equipamento.codigo,
-          nome: ea.equipamento.nome,
-          tipo: ea.equipamento.tipo,
-        })),
+        equipamentosCompatíveis: modificacao.equipamentosApplicaveis.map(
+          (ea: any) => ({
+            id: ea.equipamento.id,
+            codigo: ea.equipamento.codigo,
+            nome: ea.equipamento.nome,
+            tipo: ea.equipamento.tipo,
+          }),
+        ),
       }),
 
       // ✅ Opcional: quantidade de usos

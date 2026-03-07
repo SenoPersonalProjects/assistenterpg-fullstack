@@ -12,7 +12,7 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';  // ✅ ATUALIZADO
+import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // ✅ ATUALIZADO
 import { InventarioService } from './inventario.service';
 import { AdicionarItemDto } from './dto/adicionar-item.dto';
 import { AtualizarItemDto } from './dto/atualizar-item.dto';
@@ -21,7 +21,7 @@ import { RemoverModificacaoDto } from './dto/remover-modificacao.dto';
 import { PreviewItemDto } from './dto/preview-item.dto';
 import { PreviewItensInventarioDto } from './dto/preview-itens-inventario.dto';
 
-@UseGuards(JwtAuthGuard)  // ✅ ATUALIZADO
+@UseGuards(JwtAuthGuard) // ✅ ATUALIZADO
 @Controller('inventario')
 export class InventarioController {
   constructor(private readonly inventarioService: InventarioService) {}
@@ -61,16 +61,24 @@ export class InventarioController {
    */
   @Post('preview')
   async previewItensInventario(@Body() dto: PreviewItensInventarioDto) {
-    console.log('[InventarioController] ============ CHEGOU NO CONTROLLER ============');
-    console.log('[InventarioController] Body recebido:', JSON.stringify(dto, null, 2));
+    console.log(
+      '[InventarioController] ============ CHEGOU NO CONTROLLER ============',
+    );
+    console.log(
+      '[InventarioController] Body recebido:',
+      JSON.stringify(dto, null, 2),
+    );
     console.log('[InventarioController] Tipos:', {
       forca: typeof dto.forca,
       prestigioBase: typeof dto.prestigioBase,
-      itens: Array.isArray(dto.itens) ? `array[${dto.itens.length}]` : typeof dto.itens,
+      itens: Array.isArray(dto.itens)
+        ? `array[${dto.itens.length}]`
+        : typeof dto.itens,
     });
 
     try {
-      const resultado = await this.inventarioService.previewItensInventario(dto);
+      const resultado =
+        await this.inventarioService.previewItensInventario(dto);
       console.log('[InventarioController] ✅ Preview gerado com sucesso');
       return resultado;
     } catch (err) {
@@ -120,9 +128,9 @@ export class InventarioController {
   ) {
     // ✅ CORRIGIDO: Extrair itemId do DTO e passar como segundo parâmetro
     return this.inventarioService.aplicarModificacao(
-      req.user.id, 
-      dto.itemId,  // ✅ NOVO: Segundo parâmetro
-      dto          // ✅ Terceiro parâmetro
+      req.user.id,
+      dto.itemId, // ✅ NOVO: Segundo parâmetro
+      dto, // ✅ Terceiro parâmetro
     );
   }
 
@@ -134,8 +142,8 @@ export class InventarioController {
     // ✅ CORRIGIDO: Extrair itemId do DTO e passar como segundo parâmetro
     return this.inventarioService.removerModificacao(
       req.user.id,
-      dto.itemId,  // ✅ NOVO: Segundo parâmetro
-      dto          // ✅ Terceiro parâmetro
+      dto.itemId, // ✅ NOVO: Segundo parâmetro
+      dto, // ✅ Terceiro parâmetro
     );
   }
 }

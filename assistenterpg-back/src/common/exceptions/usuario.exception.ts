@@ -10,22 +10,15 @@ import { BusinessException } from './business.exception';
 
 export class UsuarioNaoEncontradoException extends BaseException {
   constructor(identificador?: string | number) {
-    super(
-      'Usuário não encontrado',
-      HttpStatus.NOT_FOUND,
-      'USUARIO_NOT_FOUND',
-      { identificador },
-    );
+    super('Usuário não encontrado', HttpStatus.NOT_FOUND, 'USUARIO_NOT_FOUND', {
+      identificador,
+    });
   }
 }
 
 export class UsuarioEmailDuplicadoException extends BusinessException {
   constructor(email: string) {
-    super(
-      'Email já está em uso',
-      'USUARIO_EMAIL_DUPLICADO',
-      { email },
-    );
+    super('Email já está em uso', 'USUARIO_EMAIL_DUPLICADO', { email });
   }
 }
 

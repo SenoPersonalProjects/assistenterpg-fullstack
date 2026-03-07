@@ -48,7 +48,10 @@ class InventarioEspacosInsuficientesException extends business_exception_1.Busin
 exports.InventarioEspacosInsuficientesException = InventarioEspacosInsuficientesException;
 class InventarioGrauXamaExcedidoException extends business_exception_1.BusinessException {
     constructor(grauAtual, erros) {
-        super('Limites de Grau Xamã excedidos', 'INVENTARIO_GRAU_XAMA_EXCEDIDO', { grauAtual, erros });
+        super('Limites de Grau Xamã excedidos', 'INVENTARIO_GRAU_XAMA_EXCEDIDO', {
+            grauAtual,
+            erros,
+        });
     }
 }
 exports.InventarioGrauXamaExcedidoException = InventarioGrauXamaExcedidoException;

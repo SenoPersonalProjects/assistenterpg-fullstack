@@ -18,7 +18,7 @@ exports.TrilhasModule = TrilhasModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [trilhas_service_1.TrilhasService],
-        controllers: [trilhas_controller_1.TrilhasController]
+        controllers: [trilhas_controller_1.TrilhasController],
     })
 ], TrilhasModule);
 //# sourceMappingURL=trilhas.module.js.map

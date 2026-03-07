@@ -20,7 +20,11 @@ type PrismaLike = PrismaService | Prisma.TransactionClient;
 // ============================================================================
 // Tipos de requisitos (JSON)
 // ============================================================================
-type RequisitoPericia = { codigo: string; grauMinimo: number; alternativa?: boolean };
+type RequisitoPericia = {
+  codigo: string;
+  grauMinimo: number;
+  alternativa?: boolean;
+};
 type RequisitoGrau = { tipoGrauCodigo: string; valorMinimo: number };
 
 type RequisitosPoder = {
@@ -65,7 +69,9 @@ type MecanicasEspeciaisPoder = {
   [k: string]: unknown;
 };
 
-function isMecanicasEspeciaisPoder(value: unknown): value is MecanicasEspeciaisPoder {
+function isMecanicasEspeciaisPoder(
+  value: unknown,
+): value is MecanicasEspeciaisPoder {
   if (!value) return false;
   if (typeof value !== 'object') return false;
 
@@ -153,7 +159,11 @@ export async function validarPoderesGenericos(
   // 1) slots
   const slotsDisponiveis = calcularSlotsPoderesGenericos(nivel);
   if (poderes.length > slotsDisponiveis) {
-    throw new PoderesGenericosExcedemSlotsException(nivel, slotsDisponiveis, poderes.length);
+    throw new PoderesGenericosExcedemSlotsException(
+      nivel,
+      slotsDisponiveis,
+      poderes.length,
+    );
   }
 
   // 2) buscar poderes do catálogo (ids únicos)
@@ -190,16 +200,22 @@ export async function validarPoderesGenericos(
     const poderDb = poderPorId.get(habilidadeId);
     const mecRaw = poderDb?.mecanicasEspeciais;
 
-    const mec = isMecanicasEspeciaisPoder(mecRaw) ? (mecRaw as MecanicasEspeciaisPoder) : null;
+    const mec = isMecanicasEspeciaisPoder(mecRaw)
+      ? (mecRaw as MecanicasEspeciaisPoder)
+      : null;
     const repetivel = !!mec?.repetivel;
 
     if (!repetivel) {
-      throw new PoderGenericoNaoRepetivelException(poderDb?.nome ?? String(habilidadeId));
+      throw new PoderGenericoNaoRepetivelException(
+        poderDb?.nome ?? String(habilidadeId),
+      );
     }
   }
 
   // 4) mapas de pré-requisitos
-  const periciasMap = new Map(pericias.map((p) => [p.codigo, p.grauTreinamento]));
+  const periciasMap = new Map(
+    pericias.map((p) => [p.codigo, p.grauTreinamento]),
+  );
   const grausMap = new Map(graus.map((g) => [g.tipoGrauCodigo, g.valor]));
 
   // Pré-requisitos de poderes: validar contra nomes dos poderes selecionados (instâncias)
@@ -213,7 +229,10 @@ export async function validarPoderesGenericos(
       const requisitos: RequisitosPoder = rawReq;
 
       if (requisitos.nivelMinimo && nivel < requisitos.nivelMinimo) {
-        throw new PoderGenericoRequisitoNivelException(poder.nome, requisitos.nivelMinimo);
+        throw new PoderGenericoRequisitoNivelException(
+          poder.nome,
+          requisitos.nivelMinimo,
+        );
       }
 
       if (requisitos.pericias && Array.isArray(requisitos.pericias)) {
@@ -228,7 +247,10 @@ export async function validarPoderesGenericos(
         validarGraus(poder.nome, requisitos.graus, grausMap);
       }
 
-      if (requisitos.poderesPreRequisitos && Array.isArray(requisitos.poderesPreRequisitos)) {
+      if (
+        requisitos.poderesPreRequisitos &&
+        Array.isArray(requisitos.poderesPreRequisitos)
+      ) {
         validarPoderesPreRequisitos(
           poder.nome,
           requisitos.poderesPreRequisitos,
@@ -259,7 +281,8 @@ export async function validarPoderesGenericos(
 
     // Implementação completa: PERICIAS
     if (escolha.tipo === 'PERICIAS') {
-      const qtd = typeof escolha.quantidade === 'number' ? escolha.quantidade : 2;
+      const qtd =
+        typeof escolha.quantidade === 'number' ? escolha.quantidade : 2;
       await validarConfigPericias(poderDb.nome, inst.config, qtd, prisma);
       continue;
     }
@@ -374,8 +397,13 @@ function validarAtributos(
 ): void {
   const alternativa = atributosReq.alternativa;
 
-  const entries = Object.entries(atributosReq).filter(([k]) => k !== 'alternativa') as Array<
-    [keyof Omit<NonNullable<RequisitosPoder['atributos']>, 'alternativa'>, number]
+  const entries = Object.entries(atributosReq).filter(
+    ([k]) => k !== 'alternativa',
+  ) as Array<
+    [
+      keyof Omit<NonNullable<RequisitosPoder['atributos']>, 'alternativa'>,
+      number,
+    ]
   >;
 
   if (alternativa) {
@@ -385,7 +413,9 @@ function validarAtributos(
     });
 
     if (!atendeuAlgum) {
-      const opcoes = entries.map(([k, v]) => `${String(k).toUpperCase()} ${v}+`).join(' ou ');
+      const opcoes = entries
+        .map(([k, v]) => `${String(k).toUpperCase()} ${v}+`)
+        .join(' ou ');
       throw new PoderGenericoRequisitoAtributoException(poderNome, opcoes);
     }
   } else {

@@ -20,7 +20,11 @@ exports.PersonagemBaseModule = PersonagemBaseModule;
 exports.PersonagemBaseModule = PersonagemBaseModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule, inventario_module_1.InventarioModule],
-        providers: [personagem_base_service_1.PersonagemBaseService, personagem_base_mapper_1.PersonagemBaseMapper, personagem_base_persistence_1.PersonagemBasePersistence],
+        providers: [
+            personagem_base_service_1.PersonagemBaseService,
+            personagem_base_mapper_1.PersonagemBaseMapper,
+            personagem_base_persistence_1.PersonagemBasePersistence,
+        ],
         controllers: [personagem_base_controller_1.PersonagemBaseController],
     })
 ], PersonagemBaseModule);

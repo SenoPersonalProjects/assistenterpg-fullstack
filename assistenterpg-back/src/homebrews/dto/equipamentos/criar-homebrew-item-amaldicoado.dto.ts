@@ -8,7 +8,7 @@ import { EquipamentoBaseDto } from '../base/equipamento-base.dto';
  * DTO para homebrews de ITEM AMALDIÇOADO
  * Itens com propriedades amaldiçoadas genéricas
  * Ex: Anátema Amaldiçoada, Âncora de Barreira, Guia de Maldições
- * 
+ *
  * DIFERENÇA de FERRAMENTA_AMALDICOADA:
  * - FERRAMENTA = Arma/Proteção/Artefato amaldiçoado (estrutura complexa)
  * - ITEM = Item genérico com efeito amaldiçoado (estrutura simples)

@@ -39,7 +39,9 @@ let InventarioController = class InventarioController {
         console.log('[InventarioController] Tipos:', {
             forca: typeof dto.forca,
             prestigioBase: typeof dto.prestigioBase,
-            itens: Array.isArray(dto.itens) ? `array[${dto.itens.length}]` : typeof dto.itens,
+            itens: Array.isArray(dto.itens)
+                ? `array[${dto.itens.length}]`
+                : typeof dto.itens,
         });
         try {
             const resultado = await this.inventarioService.previewItensInventario(dto);

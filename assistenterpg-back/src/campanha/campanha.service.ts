@@ -20,7 +20,10 @@ import {
 export class CampanhaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async criarCampanha(donoId: number, dto: { nome: string; descricao?: string }) {
+  async criarCampanha(
+    donoId: number,
+    dto: { nome: string; descricao?: string },
+  ) {
     return this.prisma.campanha.create({
       data: {
         nome: dto.nome,
@@ -173,12 +176,14 @@ export class CampanhaService {
     dados: { usuarioId: number; papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' },
   ) {
     // só o dono pode gerenciar membros (pode ajustar depois)
-    const campanha = await this.prisma.campanha.findUnique({ where: { id: campanhaId } });
-    
+    const campanha = await this.prisma.campanha.findUnique({
+      where: { id: campanhaId },
+    });
+
     if (!campanha) {
       throw new CampanhaNaoEncontradaException(campanhaId);
     }
-    
+
     if (campanha.donoId !== solicitanteId) {
       throw new CampanhaApenasDonoException('gerenciar membros');
     }
@@ -231,11 +236,11 @@ export class CampanhaService {
       where: { id: campanhaId },
       include: { dono: true },
     });
-    
+
     if (!campanha) {
       throw new CampanhaNaoEncontradaException(campanhaId);
     }
-    
+
     if (campanha.donoId !== donoId) {
       throw new CampanhaApenasDonoException('enviar convites');
     }
@@ -257,7 +262,7 @@ export class CampanhaService {
       where: { id: usuarioId },
       select: { email: true },
     });
-    
+
     if (!usuario) {
       throw new UsuarioNaoEncontradoException(usuarioId);
     }
@@ -293,13 +298,16 @@ export class CampanhaService {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
-    
+
     if (!usuario) {
       throw new UsuarioNaoEncontradoException(usuarioId);
     }
-    
+
     if (usuario.email !== convite.email) {
-      throw new ConviteNaoPertenceUsuarioException(convite.email, usuario.email);
+      throw new ConviteNaoPertenceUsuarioException(
+        convite.email,
+        usuario.email,
+      );
     }
 
     // verifica se já é membro
@@ -311,7 +319,7 @@ export class CampanhaService {
         },
       },
     });
-    
+
     if (jaMembro) {
       throw new UsuarioJaMembroCampanhaException(usuarioId, convite.campanhaId);
     }
@@ -352,13 +360,16 @@ export class CampanhaService {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id: usuarioId },
     });
-    
+
     if (!usuario) {
       throw new UsuarioNaoEncontradoException(usuarioId);
     }
-    
+
     if (usuario.email !== convite.email) {
-      throw new ConviteNaoPertenceUsuarioException(convite.email, usuario.email);
+      throw new ConviteNaoPertenceUsuarioException(
+        convite.email,
+        usuario.email,
+      );
     }
 
     return this.prisma.conviteCampanha.update({

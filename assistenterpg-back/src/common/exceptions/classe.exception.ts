@@ -10,22 +10,17 @@ import { BusinessException } from './business.exception';
 
 export class ClasseNaoEncontradaException extends BaseException {
   constructor(identificador?: string | number) {
-    super(
-      'Classe não encontrada',
-      HttpStatus.NOT_FOUND,
-      'CLASSE_NOT_FOUND',
-      { identificador },
-    );
+    super('Classe não encontrada', HttpStatus.NOT_FOUND, 'CLASSE_NOT_FOUND', {
+      identificador,
+    });
   }
 }
 
 export class ClasseNomeDuplicadoException extends BusinessException {
   constructor(nome: string) {
-    super(
-      `Classe com nome "${nome}" já existe`,
-      'CLASSE_NOME_DUPLICADO',
-      { nome },
-    );
+    super(`Classe com nome "${nome}" já existe`, 'CLASSE_NOME_DUPLICADO', {
+      nome,
+    });
   }
 }
 

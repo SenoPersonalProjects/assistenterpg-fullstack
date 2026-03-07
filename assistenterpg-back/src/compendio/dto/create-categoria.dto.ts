@@ -1,5 +1,12 @@
 // src/compendio/dto/create-categoria.dto.ts
-import { IsString, IsNotEmpty, IsOptional, IsInt, IsBoolean, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateCategoriaDto {
   @IsString()

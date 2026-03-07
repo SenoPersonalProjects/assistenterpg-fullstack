@@ -4,16 +4,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
+import type { IconName } from '@/components/ui/Icon';
 import { UserMenu } from './UserMenu';
 import { useAuth } from '@/context/AuthContext';
 
 type NavItem = {
   href: string;
   label: string;
-  icon: any;
+  icon: IconName;
 };
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { href: '/home', label: 'Início', icon: 'home' },
   { href: '/campanhas', label: 'Campanhas', icon: 'campaign' },
   { href: '/personagens-base', label: 'Personagens', icon: 'characters' },
@@ -28,6 +29,14 @@ export function NavigationBar() {
   const { usuario } = useAuth();
   
   const isAdmin = usuario?.role === 'ADMIN';
+  const adminNavItem: NavItem = {
+    href: '/suplementos/admin',
+    label: 'Admin Conteudo',
+    icon: 'settings',
+  };
+  const navItems: NavItem[] = isAdmin
+    ? [...baseNavItems, adminNavItem]
+    : baseNavItems;
 
   const isActive = (href: string) => {
     if (href === '/home') return pathname === '/home';
@@ -56,24 +65,40 @@ export function NavigationBar() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`
-                  flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
-                  transition-colors
-                  ${
-                    isActive(item.href)
-                      ? 'bg-app-primary/10 text-app-primary'
-                      : 'text-app-muted hover:text-app-fg hover:bg-app-bg'
-                  }
-                `}
-              >
-                <Icon name={item.icon} className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const itemIsActive = isActive(item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  title={item.label}
+                  className={`
+                    group/nav flex items-center overflow-hidden rounded-lg py-2 text-sm font-medium
+                    transition-all duration-200
+                    ${
+                      itemIsActive
+                        ? 'px-3 bg-app-primary/10 text-app-primary'
+                        : 'px-2.5 text-app-muted hover:text-app-fg hover:bg-app-bg hover:px-3 focus-visible:text-app-fg focus-visible:bg-app-bg focus-visible:px-3'
+                    }
+                  `}
+                >
+                  <Icon name={item.icon} className="w-5 h-5 shrink-0" />
+                  <span
+                    className={`
+                      overflow-hidden whitespace-nowrap transition-all duration-200
+                      ${
+                        itemIsActive
+                          ? 'ml-2 max-w-[9rem] opacity-100'
+                          : 'ml-0 max-w-0 opacity-0 group-hover/nav:ml-2 group-hover/nav:max-w-[9rem] group-hover/nav:opacity-100 group-focus/nav:ml-2 group-focus/nav:max-w-[9rem] group-focus/nav:opacity-100'
+                      }
+                    `}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
 
           {/* Right Side: Settings + User Menu (SEM NOTIFICAÇÕES) */}

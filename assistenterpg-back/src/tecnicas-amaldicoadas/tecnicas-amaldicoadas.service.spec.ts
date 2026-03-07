@@ -7,9 +7,13 @@ describe('TecnicasAmaldicoadasService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [TecnicasAmaldicoadasService],
-    }).useMocker(() => ({})).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
-    service = module.get<TecnicasAmaldicoadasService>(TecnicasAmaldicoadasService);
+    service = module.get<TecnicasAmaldicoadasService>(
+      TecnicasAmaldicoadasService,
+    );
   });
 
   it('should be defined', () => {

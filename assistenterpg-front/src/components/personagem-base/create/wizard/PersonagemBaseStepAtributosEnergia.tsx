@@ -87,7 +87,7 @@ function tetoPorNivel(nivel: number): number {
 function stableStringify(value: unknown): string {
   const seen = new WeakSet();
 
-  const normalize = (v: any): any => {
+  const normalize = (v: unknown): unknown => {
     if (v === undefined) return undefined;
     if (v === null) return null;
     if (typeof v !== 'object') return v;
@@ -96,9 +96,10 @@ function stableStringify(value: unknown): string {
 
     if (Array.isArray(v)) return v.map(normalize);
 
-    const out: Record<string, any> = {};
+    const out: Record<string, unknown> = {};
     for (const k of Object.keys(v).sort()) {
-      const nv = normalize(v[k]);
+      const valueRecord = v as Record<string, unknown>;
+      const nv = normalize(valueRecord[k]);
       if (nv !== undefined) out[k] = nv;
     }
     return out;
@@ -117,11 +118,11 @@ function sanitizarPassivasConfig(
   const sanitizado: PassivasAtributoConfigFront = { ...config };
 
   if (sanitizado.INT_I && !sanitizado.INT_I.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_I;
+    delete sanitizado.INT_I;
   }
 
   if (sanitizado.INT_II && !sanitizado.INT_II.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_II;
+    delete sanitizado.INT_II;
   }
 
   const temConfig = Object.keys(sanitizado).some(
@@ -366,12 +367,12 @@ export function PersonagemBaseStepAtributosEnergia(props: Props) {
     profsFinaisCodigos,
   ]);
 
-  // ✅ CORRIGIDO: Remover parâmetro token
+  // Recalcula preview base quando os dados mudam.
   useEffect(() => {
     if (!payloadBase) {
       if (previewDebounceRef.current) window.clearTimeout(previewDebounceRef.current);
       lastPayloadKeyRef.current = null;
-      setPreviewBase(null);
+      queueMicrotask(() => setPreviewBase(null));
       return;
     }
 
@@ -384,15 +385,14 @@ export function PersonagemBaseStepAtributosEnergia(props: Props) {
     const reqId = ++reqBaseRef.current;
 
     previewDebounceRef.current = window.setTimeout(() => {
-      // ✅ MUDANÇA: Não passa mais o token
+      // Chamada de preview sem token explicito no payload.
       apiPreviewPersonagemBase(payloadBase)
         .then((res) => {
           if (reqId !== reqBaseRef.current) return;
           setPreviewBase(res);
         })
-        .catch((error) => {
+        .catch(() => {
           if (reqId !== reqBaseRef.current) return;
-          console.error('Erro ao buscar preview base (atributos):', error);
           setPreviewBase(null);
         });
     }, 250);
@@ -400,7 +400,7 @@ export function PersonagemBaseStepAtributosEnergia(props: Props) {
     return () => {
       if (previewDebounceRef.current) window.clearTimeout(previewDebounceRef.current);
     };
-  }, [payloadBase]); // ✅ Remover 'token' das dependências
+  }, [payloadBase]); // Sem dependencia de token: o interceptor cuida da autenticacao.
 
   function makeHandlers(
     value: number,

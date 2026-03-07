@@ -1,7 +1,7 @@
-// src/app/homebrews/[id]/page.tsx
+﻿// src/app/homebrews/[id]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiGetHomebrew, HomebrewDetalhado, TipoHomebrewConteudo } from '@/lib/api/homebrews';
@@ -10,7 +10,7 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { InfoTile } from '@/components/ui/InfoTile';
@@ -21,14 +21,79 @@ type Props = {
   };
 };
 
+type TecnicaHabilidadeDados = {
+  nome?: string;
+  codigo?: string;
+  execucao?: string;
+  descricao?: string;
+  custoPE?: number | string;
+  custoEA?: number | string;
+  alcance?: string;
+  area?: string;
+  duracao?: string;
+  resistencia?: string;
+  efeito?: string;
+  aprimoramentos?: unknown[];
+};
+
+type HomebrewDados = {
+  [key: string]: unknown;
+  tecnicaInataId?: number | string | null;
+  caracteristicas?: unknown;
+  requisitos?: unknown;
+  pericias?: string[];
+  habilidades?: unknown;
+  classeId?: number | string | null;
+  nivelRequisito?: number | string | null;
+  categoria?: string;
+  espacos?: number | string | null;
+  descricao?: string | null;
+  proficienciaArma?: string | null;
+  empunhaduras?: string[];
+  tipoArma?: string | null;
+  alcance?: string | null;
+  danos?: unknown;
+  criticoValor?: number | string | null;
+  criticoMultiplicador?: number | string | null;
+  agil?: boolean | null;
+  proficienciaProtecao?: string | null;
+  tipoProtecao?: string | null;
+  bonusDefesa?: number | string | null;
+  penalidadeCarga?: number | string | null;
+  reducoesDano?: unknown[];
+  tipoAcessorio?: string | null;
+  bonusPE?: number | string | null;
+  bonusPV?: number | string | null;
+  duracaoCenas?: number | string | null;
+  recuperavel?: boolean | null;
+  tipoExplosivo?: string | null;
+  efeito?: string | null;
+  tipoAmaldicoado?: string | null;
+  armaAmaldicoada?: unknown;
+  protecaoAmaldicoada?: unknown;
+  artefatoAmaldicoado?: unknown;
+  efeitos?: string | null;
+  mecanicas?: unknown;
+  tipo?: string | null;
+};
+
+function asHomebrewDados(value: unknown): HomebrewDados {
+  return value && typeof value === 'object' ? (value as HomebrewDados) : {};
+}
+
+function hasValue(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== null && value !== undefined && value !== '';
+}
+
 const TIPO_LABELS: Record<TipoHomebrewConteudo, string> = {
-  CLA: 'Clã',
+  CLA: 'ClÃ£',
   ORIGEM: 'Origem',
   TRILHA: 'Trilha',
   CAMINHO: 'Caminho',
   EQUIPAMENTO: 'Equipamento',
-  PODER_GENERICO: 'Poder Genérico',
-  TECNICA_AMALDICOADA: 'Técnica Amaldiçoada',
+  PODER_GENERICO: 'Poder GenÃ©rico',
+  TECNICA_AMALDICOADA: 'TÃ©cnica AmaldiÃ§oada',
 };
 
 const TIPO_ICONS: Record<TipoHomebrewConteudo, string> = {
@@ -56,18 +121,7 @@ export default function HomebrewDetalhePage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!authLoading && !usuario) {
-      router.push('/auth/login');
-      return;
-    }
-
-    if (!authLoading && usuario) {
-      carregarHomebrew();
-    }
-  }, [authLoading, usuario, router, homebrewId]);
-
-  async function carregarHomebrew() {
+  const carregarHomebrew = useCallback(async () => {
     try {
       setLoading(true);
       setErro(null);
@@ -79,7 +133,18 @@ export default function HomebrewDetalhePage({ params }: Props) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [homebrewId]);
+
+  useEffect(() => {
+    if (!authLoading && !usuario) {
+      router.push('/auth/login');
+      return;
+    }
+
+    if (!authLoading && usuario) {
+      carregarHomebrew();
+    }
+  }, [authLoading, usuario, router, carregarHomebrew]);
 
   if (authLoading || loading) {
     return (
@@ -93,7 +158,7 @@ export default function HomebrewDetalhePage({ params }: Props) {
     return (
       <div className="min-h-screen bg-app-bg p-6">
         <div className="max-w-4xl mx-auto space-y-4">
-          <ErrorAlert message={erro ?? 'Homebrew não encontrado'} />
+          <ErrorAlert message={erro ?? 'Homebrew nÃ£o encontrado'} />
           <Button variant="secondary" onClick={() => router.push('/homebrews')}>
             <Icon name="back" className="w-4 h-4 mr-2" />
             Voltar para homebrews
@@ -112,7 +177,7 @@ export default function HomebrewDetalhePage({ params }: Props) {
         <header className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
             <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name={TIPO_ICONS[homebrew.tipo] as any} className="w-7 h-7 text-app-primary" />
+              <Icon name={TIPO_ICONS[homebrew.tipo] as IconName} className="w-7 h-7 text-app-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -122,7 +187,7 @@ export default function HomebrewDetalhePage({ params }: Props) {
                 </Badge>
               </div>
               <p className="text-sm text-app-muted">
-                {TIPO_LABELS[homebrew.tipo]} • v{homebrew.versao}
+                {TIPO_LABELS[homebrew.tipo]} â€¢ v{homebrew.versao}
               </p>
               {homebrew.descricao && (
                 <p className="text-sm text-app-muted mt-2 leading-relaxed">{homebrew.descricao}</p>
@@ -155,13 +220,13 @@ export default function HomebrewDetalhePage({ params }: Props) {
           </div>
         )}
 
-        {/* Informações gerais */}
+        {/* InformaÃ§Ãµes gerais */}
         <Card>
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg mb-3">Informações gerais</h2>
+            <h2 className="text-lg font-semibold text-app-fg mb-3">InformaÃ§Ãµes gerais</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <InfoTile label="Tipo" value={TIPO_LABELS[homebrew.tipo]} />
-              <InfoTile label="Versão" value={homebrew.versao} />
+              <InfoTile label="VersÃ£o" value={homebrew.versao} />
               <InfoTile label="Criado por" value={homebrew.usuarioApelido ?? 'Desconhecido'} />
               <InfoTile
                 label="Criado em"
@@ -171,7 +236,7 @@ export default function HomebrewDetalhePage({ params }: Props) {
           </div>
         </Card>
 
-        {/* Dados específicos */}
+        {/* Dados especÃ­ficos */}
         <RenderDadosEspecificos tipo={homebrew.tipo} dados={homebrew.dados} />
 
         {/* JSON Debug */}
@@ -195,19 +260,20 @@ export default function HomebrewDetalhePage({ params }: Props) {
 }
 
 // ============================================================================
-// COMPONENTE AUXILIAR: Renderizar dados específicos por tipo
+// COMPONENTE AUXILIAR: Renderizar dados especÃ­ficos por tipo
 // ============================================================================
 
 type RenderProps = {
   tipo: TipoHomebrewConteudo;
-  dados: any;
+  dados: unknown;
 };
 
 function RenderDadosEspecificos({ tipo, dados }: RenderProps) {
-  if (!dados || Object.keys(dados).length === 0) {
+  const dadosNormalizados = asHomebrewDados(dados);
+  if (Object.keys(dadosNormalizados).length === 0) {
     return (
       <Card>
-        <p className="text-sm text-app-muted italic">Nenhum dado específico cadastrado.</p>
+        <p className="text-sm text-app-muted italic">Nenhum dado especÃ­fico cadastrado.</p>
       </Card>
     );
   }
@@ -215,39 +281,39 @@ function RenderDadosEspecificos({ tipo, dados }: RenderProps) {
   return (
     <Card>
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-app-fg">Dados específicos</h2>
+        <h2 className="text-lg font-semibold text-app-fg">Dados especÃ­ficos</h2>
 
-        {tipo === 'CLA' && <RenderCla dados={dados} />}
-        {tipo === 'ORIGEM' && <RenderOrigem dados={dados} />}
-        {tipo === 'TRILHA' && <RenderTrilha dados={dados} />}
-        {tipo === 'CAMINHO' && <RenderCaminho dados={dados} />}
-        {tipo === 'EQUIPAMENTO' && <RenderEquipamento dados={dados} />}
-        {tipo === 'PODER_GENERICO' && <RenderPoderGenerico dados={dados} />}
-        {tipo === 'TECNICA_AMALDICOADA' && <RenderTecnicaAmaldicoada dados={dados} />}
+        {tipo === 'CLA' && <RenderCla dados={dadosNormalizados} />}
+        {tipo === 'ORIGEM' && <RenderOrigem dados={dadosNormalizados} />}
+        {tipo === 'TRILHA' && <RenderTrilha dados={dadosNormalizados} />}
+        {tipo === 'CAMINHO' && <RenderCaminho dados={dadosNormalizados} />}
+        {tipo === 'EQUIPAMENTO' && <RenderEquipamento dados={dadosNormalizados} />}
+        {tipo === 'PODER_GENERICO' && <RenderPoderGenerico dados={dadosNormalizados} />}
+        {tipo === 'TECNICA_AMALDICOADA' && <RenderTecnicaAmaldicoada dados={dadosNormalizados} />}
       </div>
     </Card>
   );
 }
 
 // ============================================================================
-// RENDERIZADORES ESPECÍFICOS (BASEADOS NOS DTOS)
+// RENDERIZADORES ESPECÃFICOS (BASEADOS NOS DTOS)
 // ============================================================================
 
-function RenderCla({ dados }: { dados: any }) {
+function RenderCla({ dados }: { dados: HomebrewDados }) {
   return (
     <div className="space-y-3 text-sm">
-      {dados.tecnicaInataId && (
-        <InfoTile label="ID da Técnica Inata" value={String(dados.tecnicaInataId)} />
+      {hasValue(dados.tecnicaInataId) && (
+        <InfoTile label="ID da TÃ©cnica Inata" value={String(dados.tecnicaInataId)} />
       )}
-      {dados.caracteristicas && (
+      {hasValue(dados.caracteristicas) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">Características</p>
+          <p className="text-xs font-medium text-app-muted mb-2">CaracterÃ­sticas</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-48">
             {JSON.stringify(dados.caracteristicas, null, 2)}
           </pre>
         </div>
       )}
-      {dados.requisitos && (
+      {hasValue(dados.requisitos) && (
         <div>
           <p className="text-xs font-medium text-app-muted mb-2">Requisitos</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-48">
@@ -261,12 +327,12 @@ function RenderCla({ dados }: { dados: any }) {
   );
 }
 
-function RenderOrigem({ dados }: { dados: any }) {
+function RenderOrigem({ dados }: { dados: HomebrewDados }) {
   return (
     <div className="space-y-3 text-sm">
-      {dados.pericias && Array.isArray(dados.pericias) && (
+      {hasValue(dados.pericias) && Array.isArray(dados.pericias) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">Perícias</p>
+          <p className="text-xs font-medium text-app-muted mb-2">PerÃ­cias</p>
           <div className="flex flex-wrap gap-2">
             {dados.pericias.map((p: string, idx: number) => (
               <Badge key={idx} color="blue" size="sm">
@@ -276,7 +342,7 @@ function RenderOrigem({ dados }: { dados: any }) {
           </div>
         </div>
       )}
-      {dados.habilidades && (
+      {hasValue(dados.habilidades) && (
         <div>
           <p className="text-xs font-medium text-app-muted mb-2">Habilidades Iniciais</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-48">
@@ -288,16 +354,16 @@ function RenderOrigem({ dados }: { dados: any }) {
   );
 }
 
-function RenderTrilha({ dados }: { dados: any }) {
+function RenderTrilha({ dados }: { dados: HomebrewDados }) {
   return (
     <div className="space-y-3 text-sm">
-      {dados.classeId && <InfoTile label="ID da Classe" value={String(dados.classeId)} />}
-      {dados.nivelRequisito && (
-        <InfoTile label="Nível de Requisito" value={String(dados.nivelRequisito)} />
+      {hasValue(dados.classeId) && <InfoTile label="ID da Classe" value={String(dados.classeId)} />}
+      {hasValue(dados.nivelRequisito) && (
+        <InfoTile label="NÃ­vel de Requisito" value={String(dados.nivelRequisito)} />
       )}
-      {dados.habilidades && (
+      {hasValue(dados.habilidades) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">Habilidades por Nível</p>
+          <p className="text-xs font-medium text-app-muted mb-2">Habilidades por NÃ­vel</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-64">
             {JSON.stringify(dados.habilidades, null, 2)}
           </pre>
@@ -307,10 +373,10 @@ function RenderTrilha({ dados }: { dados: any }) {
   );
 }
 
-function RenderCaminho({ dados }: { dados: any }) {
+function RenderCaminho({ dados }: { dados: HomebrewDados }) {
   return (
     <div className="space-y-3 text-sm">
-      {dados.requisitos && (
+      {hasValue(dados.requisitos) && (
         <div>
           <p className="text-xs font-medium text-app-muted mb-2">Requisitos</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-32">
@@ -320,7 +386,7 @@ function RenderCaminho({ dados }: { dados: any }) {
           </pre>
         </div>
       )}
-      {dados.habilidades && (
+      {hasValue(dados.habilidades) && (
         <div>
           <p className="text-xs font-medium text-app-muted mb-2">Habilidades do Caminho</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-64">
@@ -332,26 +398,26 @@ function RenderCaminho({ dados }: { dados: any }) {
   );
 }
 
-function RenderEquipamento({ dados }: { dados: any }) {
+function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
   const { categoria } = dados;
 
   return (
     <div className="space-y-4 text-sm">
       {/* Campos base */}
       {categoria && <InfoTile label="Categoria" value={categoria} />}
-      {dados.espacos != null && <InfoTile label="Espaços" value={String(dados.espacos)} />}
-      {dados.descricao && <InfoTile label="Descrição" value={dados.descricao} />}
+      {dados.espacos != null && <InfoTile label="EspaÃ§os" value={String(dados.espacos)} />}
+      {hasValue(dados.descricao) && <InfoTile label="DescriÃ§Ã£o" value={dados.descricao} />}
 
       {/* ARMA */}
-      {categoria === 'ARMA' && dados.proficienciaArma && (
+      {categoria === 'ARMA' && hasValue(dados.proficienciaArma) && (
         <>
-          <InfoTile label="Proficiência" value={dados.proficienciaArma} />
-          {dados.empunhaduras && (
+          <InfoTile label="ProficiÃªncia" value={dados.proficienciaArma} />
+          {Array.isArray(dados.empunhaduras) && (
             <InfoTile label="Empunhaduras" value={dados.empunhaduras.join(', ')} />
           )}
-          {dados.tipoArma && <InfoTile label="Tipo de Arma" value={dados.tipoArma} />}
-          {dados.alcance && <InfoTile label="Alcance" value={dados.alcance} />}
-          {dados.danos && (
+          {hasValue(dados.tipoArma) && <InfoTile label="Tipo de Arma" value={dados.tipoArma} />}
+          {hasValue(dados.alcance) && <InfoTile label="Alcance" value={dados.alcance} />}
+          {hasValue(dados.danos) && (
             <div>
               <p className="text-xs font-medium text-app-muted mb-2">Danos</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
@@ -360,24 +426,24 @@ function RenderEquipamento({ dados }: { dados: any }) {
             </div>
           )}
           {dados.criticoValor != null && (
-            <InfoTile label="Crítico" value={`${dados.criticoValor}x (${dados.criticoMultiplicador})`} />
+            <InfoTile label="CrÃ­tico" value={`${dados.criticoValor}x (${dados.criticoMultiplicador})`} />
           )}
-          {dados.agil != null && <InfoTile label="Ágil" value={dados.agil ? 'Sim' : 'Não'} />}
+          {dados.agil != null && <InfoTile label="Ãgil" value={dados.agil ? 'Sim' : 'NÃ£o'} />}
         </>
       )}
 
-      {/* PROTEÇÃO */}
-      {categoria === 'PROTECAO' && dados.proficienciaProtecao && (
+      {/* PROTEÃ‡ÃƒO */}
+      {categoria === 'PROTECAO' && hasValue(dados.proficienciaProtecao) && (
         <>
-          <InfoTile label="Proficiência" value={dados.proficienciaProtecao} />
-          {dados.tipoProtecao && <InfoTile label="Tipo" value={dados.tipoProtecao} />}
-          {dados.bonusDefesa != null && <InfoTile label="Bônus Defesa" value={String(dados.bonusDefesa)} />}
+          <InfoTile label="ProficiÃªncia" value={dados.proficienciaProtecao} />
+          {hasValue(dados.tipoProtecao) && <InfoTile label="Tipo" value={dados.tipoProtecao} />}
+          {dados.bonusDefesa != null && <InfoTile label="BÃ´nus Defesa" value={String(dados.bonusDefesa)} />}
           {dados.penalidadeCarga != null && (
             <InfoTile label="Penalidade de Carga" value={String(dados.penalidadeCarga)} />
           )}
-          {dados.reducoesDano && dados.reducoesDano.length > 0 && (
+          {Array.isArray(dados.reducoesDano) && dados.reducoesDano.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">Reduções de Dano</p>
+              <p className="text-xs font-medium text-app-muted mb-2">ReduÃ§Ãµes de Dano</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.reducoesDano, null, 2)}
               </pre>
@@ -386,21 +452,21 @@ function RenderEquipamento({ dados }: { dados: any }) {
         </>
       )}
 
-      {/* ACESSÓRIO */}
-      {categoria === 'ACESSORIO' && dados.tipoAcessorio && (
+      {/* ACESSÃ“RIO */}
+      {categoria === 'ACESSORIO' && hasValue(dados.tipoAcessorio) && (
         <>
-          <InfoTile label="Tipo de Acessório" value={dados.tipoAcessorio} />
-          {dados.bonusPE != null && <InfoTile label="Bônus PE" value={String(dados.bonusPE)} />}
-          {dados.bonusPV != null && <InfoTile label="Bônus PV" value={String(dados.bonusPV)} />}
+          <InfoTile label="Tipo de AcessÃ³rio" value={dados.tipoAcessorio} />
+          {dados.bonusPE != null && <InfoTile label="BÃ´nus PE" value={String(dados.bonusPE)} />}
+          {dados.bonusPV != null && <InfoTile label="BÃ´nus PV" value={String(dados.bonusPV)} />}
         </>
       )}
 
-      {/* MUNIÇÃO */}
+      {/* MUNIÃ‡ÃƒO */}
       {categoria === 'MUNICAO' && (
         <>
-          {dados.duracaoCenas && <InfoTile label="Duração (cenas)" value={dados.duracaoCenas} />}
+          {hasValue(dados.duracaoCenas) && <InfoTile label="DuraÃ§Ã£o (cenas)" value={dados.duracaoCenas} />}
           {dados.recuperavel != null && (
-            <InfoTile label="Recuperável" value={dados.recuperavel ? 'Sim' : 'Não'} />
+            <InfoTile label="RecuperÃ¡vel" value={dados.recuperavel ? 'Sim' : 'NÃ£o'} />
           )}
         </>
       )}
@@ -408,34 +474,34 @@ function RenderEquipamento({ dados }: { dados: any }) {
       {/* EXPLOSIVO */}
       {categoria === 'EXPLOSIVO' && (
         <>
-          {dados.tipoExplosivo && <InfoTile label="Tipo" value={dados.tipoExplosivo} />}
-          {dados.efeito && <InfoTile label="Efeito" value={dados.efeito} />}
+          {hasValue(dados.tipoExplosivo) && <InfoTile label="Tipo" value={dados.tipoExplosivo} />}
+          {hasValue(dados.efeito) && <InfoTile label="Efeito" value={dados.efeito} />}
         </>
       )}
 
-      {/* FERRAMENTA AMALDIÇOADA */}
-      {categoria === 'FERRAMENTA_AMALDICOADA' && dados.tipoAmaldicoado && (
+      {/* FERRAMENTA AMALDIÃ‡OADA */}
+      {categoria === 'FERRAMENTA_AMALDICOADA' && hasValue(dados.tipoAmaldicoado) && (
         <>
-          <InfoTile label="Tipo Amaldiçoado" value={dados.tipoAmaldicoado} />
-          {dados.armaAmaldicoada && (
+          <InfoTile label="Tipo AmaldiÃ§oado" value={dados.tipoAmaldicoado} />
+          {hasValue(dados.armaAmaldicoada) && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">Arma Amaldiçoada</p>
+              <p className="text-xs font-medium text-app-muted mb-2">Arma AmaldiÃ§oada</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.armaAmaldicoada, null, 2)}
               </pre>
             </div>
           )}
-          {dados.protecaoAmaldicoada && (
+          {hasValue(dados.protecaoAmaldicoada) && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">Proteção Amaldiçoada</p>
+              <p className="text-xs font-medium text-app-muted mb-2">ProteÃ§Ã£o AmaldiÃ§oada</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.protecaoAmaldicoada, null, 2)}
               </pre>
             </div>
           )}
-          {dados.artefatoAmaldicoado && (
+          {hasValue(dados.artefatoAmaldicoado) && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">Artefato Amaldiçoado</p>
+              <p className="text-xs font-medium text-app-muted mb-2">Artefato AmaldiÃ§oado</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.artefatoAmaldicoado, null, 2)}
               </pre>
@@ -445,25 +511,25 @@ function RenderEquipamento({ dados }: { dados: any }) {
       )}
 
       {/* ITEM OPERACIONAL */}
-      {categoria === 'ITEM_OPERACIONAL' && dados.efeito && (
+      {categoria === 'ITEM_OPERACIONAL' && hasValue(dados.efeito) && (
         <InfoTile label="Efeito" value={dados.efeito} />
       )}
 
-      {/* ITEM AMALDIÇOADO */}
+      {/* ITEM AMALDIÃ‡OADO */}
       {categoria === 'ITEM_AMALDICOADO' && (
         <>
-          {dados.tipoAmaldicoado && <InfoTile label="Tipo" value={dados.tipoAmaldicoado} />}
-          {dados.efeito && <InfoTile label="Efeito" value={dados.efeito} />}
+          {hasValue(dados.tipoAmaldicoado) && <InfoTile label="Tipo" value={dados.tipoAmaldicoado} />}
+          {hasValue(dados.efeito) && <InfoTile label="Efeito" value={dados.efeito} />}
         </>
       )}
     </div>
   );
 }
 
-function RenderPoderGenerico({ dados }: { dados: any }) {
+function RenderPoderGenerico({ dados }: { dados: HomebrewDados }) {
   return (
     <div className="space-y-3 text-sm">
-      {dados.requisitos && (
+      {hasValue(dados.requisitos) && (
         <div>
           <p className="text-xs font-medium text-app-muted mb-2">Requisitos</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3">
@@ -473,10 +539,10 @@ function RenderPoderGenerico({ dados }: { dados: any }) {
           </pre>
         </div>
       )}
-      {dados.efeitos && <InfoTile label="Efeitos" value={dados.efeitos} />}
-      {dados.mecanicas && (
+      {hasValue(dados.efeitos) && <InfoTile label="Efeitos" value={dados.efeitos} />}
+      {hasValue(dados.mecanicas) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">Mecânicas Especiais</p>
+          <p className="text-xs font-medium text-app-muted mb-2">MecÃ¢nicas Especiais</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3">
             {typeof dados.mecanicas === 'string'
               ? dados.mecanicas
@@ -488,24 +554,31 @@ function RenderPoderGenerico({ dados }: { dados: any }) {
   );
 }
 
-function RenderTecnicaAmaldicoada({ dados }: { dados: any }) {
+function RenderTecnicaAmaldicoada({ dados }: { dados: HomebrewDados }) {
+  const habilidades: TecnicaHabilidadeDados[] = Array.isArray(dados.habilidades)
+    ? dados.habilidades.filter(
+        (habilidade): habilidade is TecnicaHabilidadeDados =>
+          !!habilidade && typeof habilidade === 'object',
+      )
+    : [];
+
   return (
     <div className="space-y-4 text-sm">
       {/* Campos base */}
-      {dados.tipo && <InfoTile label="Tipo" value={dados.tipo} />}
-      {dados.descricao && <InfoTile label="Descrição" value={dados.descricao} />}
+      {hasValue(dados.tipo) && <InfoTile label="Tipo" value={dados.tipo} />}
+      {hasValue(dados.descricao) && <InfoTile label="DescriÃ§Ã£o" value={dados.descricao} />}
 
       {/* Habilidades */}
-      {dados.habilidades && Array.isArray(dados.habilidades) && (
+      {habilidades.length > 0 && (
         <div>
           <p className="text-xs font-medium text-app-muted mb-3">Habilidades</p>
           <div className="space-y-4">
-            {dados.habilidades.map((hab: any, idx: number) => (
+            {habilidades.map((hab, idx) => (
               <div key={idx} className="border border-app-border rounded-lg p-4 bg-app-base">
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-semibold text-app-fg">{hab.nome}</p>
-                    <p className="text-xs text-app-muted">Código: {hab.codigo}</p>
+                    <p className="text-xs text-app-muted">CÃ³digo: {hab.codigo}</p>
                   </div>
                   <Badge color="purple" size="sm">
                     {hab.execucao}
@@ -518,9 +591,9 @@ function RenderTecnicaAmaldicoada({ dados }: { dados: any }) {
                   <InfoTile label="Custo PE" value={String(hab.custoPE)} />
                   <InfoTile label="Custo EA" value={String(hab.custoEA)} />
                   {hab.alcance && <InfoTile label="Alcance" value={hab.alcance} />}
-                  {hab.area && <InfoTile label="Área" value={hab.area} />}
-                  {hab.duracao && <InfoTile label="Duração" value={hab.duracao} />}
-                  {hab.resistencia && <InfoTile label="Resistência" value={hab.resistencia} />}
+                  {hab.area && <InfoTile label="Ãrea" value={hab.area} />}
+                  {hab.duracao && <InfoTile label="DuraÃ§Ã£o" value={hab.duracao} />}
+                  {hab.resistencia && <InfoTile label="ResistÃªncia" value={hab.resistencia} />}
                 </div>
 
                 {hab.efeito && (
@@ -546,3 +619,4 @@ function RenderTecnicaAmaldicoada({ dados }: { dados: any }) {
     </div>
   );
 }
+

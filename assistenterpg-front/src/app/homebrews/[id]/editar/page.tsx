@@ -31,9 +31,9 @@ export default function EditarHomebrewPage({ params }: Props) {
         setCarregando(true);
         const data = await apiGetHomebrew(homebrewId);
         setHomebrew(data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('[EditarHomebrewPage] Erro ao carregar:', err);
-        setErro(err?.message ?? 'Erro ao carregar homebrew');
+        setErro(err instanceof Error ? err.message : 'Erro ao carregar homebrew');
       } finally {
         setCarregando(false);
       }

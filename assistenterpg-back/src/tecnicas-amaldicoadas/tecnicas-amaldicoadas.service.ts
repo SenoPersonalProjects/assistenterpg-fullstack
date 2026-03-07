@@ -1,6 +1,6 @@
 // src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TipoTecnicaAmaldicoada, TipoFonte, Prisma } from '@prisma/client';
 
@@ -36,7 +36,34 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
 @Injectable()
 export class TecnicasAmaldicoadasService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
+
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new TecnicaSuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new BadRequestException(
+          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+        );
+      }
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+    }
+  }
 
   // ==========================================
   // 📚 TÉCNICAS AMALDIÇOADAS - CRUD
@@ -45,7 +72,9 @@ export class TecnicasAmaldicoadasService {
   /**
    * Buscar todas as técnicas com filtros opcionais
    */
-  async findAllTecnicas(filtros: FiltrarTecnicasDto): Promise<TecnicaDetalhadaDto[]> {
+  async findAllTecnicas(
+    filtros: FiltrarTecnicasDto,
+  ): Promise<TecnicaDetalhadaDto[]> {
     try {
       const where: Prisma.TecnicaAmaldicoadaWhereInput = {};
 
@@ -91,26 +120,26 @@ export class TecnicasAmaldicoadasService {
           clas:
             filtros.incluirClas !== false
               ? {
-                include: {
-                  cla: {
-                    select: {
-                      id: true,
-                      nome: true,
-                      grandeCla: true,
+                  include: {
+                    cla: {
+                      select: {
+                        id: true,
+                        nome: true,
+                        grandeCla: true,
+                      },
                     },
                   },
-                },
-              }
+                }
               : false,
           habilidades: filtros.incluirHabilidades
             ? {
-              include: {
-                variacoes: {
-                  orderBy: { ordem: 'asc' },
+                include: {
+                  variacoes: {
+                    orderBy: { ordem: 'asc' },
+                  },
                 },
-              },
-              orderBy: { ordem: 'asc' },
-            }
+                orderBy: { ordem: 'asc' },
+              }
             : false,
           suplemento: true, // ✅ NOVO: Incluir dados do suplemento
         },
@@ -235,20 +264,18 @@ export class TecnicasAmaldicoadasService {
         throw new TecnicaNaoInataHereditariaException(dto.tipo);
       }
 
-      if (dto.hereditaria && (!dto.clasHereditarios || dto.clasHereditarios.length === 0)) {
+      if (
+        dto.hereditaria &&
+        (!dto.clasHereditarios || dto.clasHereditarios.length === 0)
+      ) {
         throw new TecnicaHereditariaSemClaException();
       }
 
-      // ✅ NOVO: Validar suplemento (se fornecido)
-      if (dto.suplementoId) {
-        const suplemento = await this.prisma.suplemento.findUnique({
-          where: { id: dto.suplementoId },
-        });
-
-        if (!suplemento) {
-          throw new TecnicaSuplementoNaoEncontradoException(dto.suplementoId);
-        }
-      }
+      const suplementoIdFinal = dto.suplementoId ?? null;
+      const fonteFinal =
+        dto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
 
       // Criar técnica
       const tecnica = await this.prisma.tecnicaAmaldicoada.create({
@@ -261,15 +288,19 @@ export class TecnicasAmaldicoadasService {
           linkExterno: dto.linkExterno ?? null,
 
           // ✅ CORRIGIDO: origem → fonte
-          fonte: dto.fonte ?? TipoFonte.HOMEBREW,
-          suplementoId: dto.suplementoId ?? null,
+          fonte: fonteFinal,
+          suplementoId: suplementoIdFinal,
 
           requisitos: dto.requisitos ?? null,
         },
       });
 
       // Vincular clãs (se hereditária)
-      if (dto.hereditaria && dto.clasHereditarios && dto.clasHereditarios.length > 0) {
+      if (
+        dto.hereditaria &&
+        dto.clasHereditarios &&
+        dto.clasHereditarios.length > 0
+      ) {
         await this.vincularClas(tecnica.id, dto.clasHereditarios);
       }
 
@@ -285,7 +316,10 @@ export class TecnicasAmaldicoadasService {
   /**
    * Atualizar técnica
    */
-  async updateTecnica(id: number, dto: UpdateTecnicaDto): Promise<TecnicaDetalhadaDto> {
+  async updateTecnica(
+    id: number,
+    dto: UpdateTecnicaDto,
+  ): Promise<TecnicaDetalhadaDto> {
     try {
       const tecnica = await this.prisma.tecnicaAmaldicoada.findUnique({
         where: { id },
@@ -304,30 +338,34 @@ export class TecnicasAmaldicoadasService {
         throw new TecnicaNaoInataHereditariaException(tipoFinal);
       }
 
-      // ✅ NOVO: Validar suplemento (se fornecido)
-      if (dto.suplementoId) {
-        const suplemento = await this.prisma.suplemento.findUnique({
-          where: { id: dto.suplementoId },
-        });
-
-        if (!suplemento) {
-          throw new TecnicaSuplementoNaoEncontradoException(dto.suplementoId);
-        }
-      }
+      const suplementoIdFinal =
+        dto.suplementoId !== undefined
+          ? dto.suplementoId
+          : tecnica.suplementoId;
+      const fonteFinal =
+        dto.fonte ?? (suplementoIdFinal ? TipoFonte.SUPLEMENTO : tecnica.fonte);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
 
       // Só atualizar clãs se clasHereditarios foi explicitamente enviado
       const shouldUpdateClas = dto.clasHereditarios !== undefined;
 
       if (shouldUpdateClas) {
         // Validar se técnica hereditária tem clãs
-        if (hereditariaFinal && (!dto.clasHereditarios || dto.clasHereditarios.length === 0)) {
+        if (
+          hereditariaFinal &&
+          (!dto.clasHereditarios || dto.clasHereditarios.length === 0)
+        ) {
           throw new TecnicaHereditariaSemClaException(id);
         }
 
         // Atualizar vínculos com clãs
         await this.prisma.tecnicaCla.deleteMany({ where: { tecnicaId: id } });
 
-        if (hereditariaFinal && dto.clasHereditarios && dto.clasHereditarios.length > 0) {
+        if (
+          hereditariaFinal &&
+          dto.clasHereditarios &&
+          dto.clasHereditarios.length > 0
+        ) {
           await this.vincularClas(id, dto.clasHereditarios);
         }
       }
@@ -343,8 +381,10 @@ export class TecnicasAmaldicoadasService {
           linkExterno: dto.linkExterno,
 
           // ✅ CORRIGIDO: origem → fonte
-          fonte: dto.fonte,
-          suplementoId: dto.suplementoId,
+          fonte: fonteFinal,
+          ...(dto.suplementoId !== undefined && {
+            suplementoId: dto.suplementoId,
+          }),
 
           requisitos: dto.requisitos,
         },
@@ -390,7 +430,10 @@ export class TecnicasAmaldicoadasService {
         personagensCampanhaAprendeu: tecnica._count.personagensCampanhaAprendeu,
       };
 
-      const totalUso = Object.values(detalhesUso).reduce((acc, val) => acc + val, 0);
+      const totalUso = Object.values(detalhesUso).reduce(
+        (acc, val) => acc + val,
+        0,
+      );
 
       if (totalUso > 0) {
         throw new TecnicaEmUsoException(id, totalUso, detalhesUso);
@@ -735,7 +778,9 @@ export class TecnicasAmaldicoadasService {
       });
 
       if (!habilidade) {
-        throw new HabilidadeTecnicaNaoEncontradaException(dto.habilidadeTecnicaId);
+        throw new HabilidadeTecnicaNaoEncontradaException(
+          dto.habilidadeTecnicaId,
+        );
       }
 
       return this.prisma.variacaoHabilidade.create({
@@ -849,7 +894,10 @@ export class TecnicasAmaldicoadasService {
   // 🔧 MÉTODOS AUXILIARES
   // ==========================================
 
-  private async vincularClas(tecnicaId: number, claNomes: string[]): Promise<void> {
+  private async vincularClas(
+    tecnicaId: number,
+    claNomes: string[],
+  ): Promise<void> {
     for (const nome of claNomes) {
       const cla = await this.prisma.cla.findUnique({ where: { nome } });
 

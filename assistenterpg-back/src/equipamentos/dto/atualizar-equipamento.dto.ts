@@ -26,6 +26,7 @@ import {
   TipoExplosivo,
   TipoUsoEquipamento,
   TipoAmaldicoado,
+  TipoFonte,
 } from '@prisma/client';
 
 /**
@@ -57,6 +58,15 @@ export class AtualizarEquipamentoDto {
   @IsOptional()
   @IsEnum(TipoEquipamento)
   tipo?: TipoEquipamento;
+
+  @IsOptional()
+  @IsEnum(TipoFonte)
+  fonte?: TipoFonte;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  suplementoId?: number;
 
   @IsOptional()
   @IsEnum(CategoriaEquipamento)

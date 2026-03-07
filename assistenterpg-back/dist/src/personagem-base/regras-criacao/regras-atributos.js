@@ -129,7 +129,13 @@ async function resolverPassivasAtributos(params) {
         }
     }
     if (filtros.length === 0) {
-        return { elegiveis, ativos, passivaIds: [], passivaCodigos: [], needsChoice: false };
+        return {
+            elegiveis,
+            ativos,
+            passivaIds: [],
+            passivaCodigos: [],
+            needsChoice: false,
+        };
     }
     const passivas = await prisma.passivaAtributo.findMany({
         where: {
@@ -253,7 +259,7 @@ function calcularEfeitosPassivas(passivas) {
     return efeitos;
 }
 function aplicarEfeitosPassivasIntelectoEmPericiasEProficiencias(params) {
-    const { passivasAtivasCodigos, passivasConfig, periciasMap, profsExtrasPayload } = params;
+    const { passivasAtivasCodigos, passivasConfig, periciasMap, profsExtrasPayload, } = params;
     const cfg = passivasConfig ?? {};
     const profsExtras = new Set(profsExtrasPayload);
     let periciasLivresExtras = 0;

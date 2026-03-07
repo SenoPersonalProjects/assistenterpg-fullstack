@@ -7,6 +7,8 @@ class EquipamentoResumoDto {
     nome;
     descricao;
     tipo;
+    fonte;
+    suplementoId;
     categoria;
     espacos;
     complexidadeMaldicao;

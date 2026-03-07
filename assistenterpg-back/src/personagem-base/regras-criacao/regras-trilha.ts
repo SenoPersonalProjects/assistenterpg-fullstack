@@ -18,11 +18,9 @@ type PrismaLike = PrismaService | Prisma.TransactionClient;
  * Exemplo: Médico de Campo exige Medicina treinada
  */
 export function validarRequisitosTrilha(
-  requisitos:
-    | {
-        pericias?: Array<{ codigo: string; treinada: boolean }>;
-      }
-    | null,
+  requisitos: {
+    pericias?: Array<{ codigo: string; treinada: boolean }>;
+  } | null,
   periciasPersonagem: Array<{ codigo: string; grauTreinamento: number }>,
 ): { valido: boolean; mensagemErro?: string } {
   if (!requisitos?.pericias) {
@@ -50,7 +48,9 @@ export async function validarTrilhaECaminho(
   classeId: number,
   trilhaId: number | null | undefined,
   caminhoId: number | null | undefined,
-  periciasPersonagem: Array<{ codigo: string; grauTreinamento: number }> | undefined,
+  periciasPersonagem:
+    | Array<{ codigo: string; grauTreinamento: number }>
+    | undefined,
   prisma: PrismaLike,
 ): Promise<void> {
   if (trilhaId) {
@@ -67,7 +67,10 @@ export async function validarTrilhaECaminho(
 
     // Validar requisitos de perícias
     if (periciasPersonagem && trilha.requisitos) {
-      const validacao = validarRequisitosTrilha(trilha.requisitos as any, periciasPersonagem);
+      const validacao = validarRequisitosTrilha(
+        trilha.requisitos as any,
+        periciasPersonagem,
+      );
 
       if (!validacao.valido) {
         throw new TrilhaRequisitoNaoAtendidoException(validacao.mensagemErro!);

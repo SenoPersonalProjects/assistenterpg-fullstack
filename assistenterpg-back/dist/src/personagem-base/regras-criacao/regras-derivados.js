@@ -136,8 +136,12 @@ function calcularBloqueioEsquiva(params) {
     const { defesa, periciasMap } = params;
     const fortitude = periciasMap.get('FORTITUDE');
     const reflexos = periciasMap.get('REFLEXOS');
-    const bonusFortitude = fortitude ? fortitude.grauTreinamento * 5 + fortitude.bonusExtra : 0;
-    const bonusReflexos = reflexos ? reflexos.grauTreinamento * 5 + reflexos.bonusExtra : 0;
+    const bonusFortitude = fortitude
+        ? fortitude.grauTreinamento * 5 + fortitude.bonusExtra
+        : 0;
+    const bonusReflexos = reflexos
+        ? reflexos.grauTreinamento * 5 + reflexos.bonusExtra
+        : 0;
     const bloqueio = bonusFortitude;
     const esquiva = defesa + bonusReflexos;
     return { bloqueio, esquiva };

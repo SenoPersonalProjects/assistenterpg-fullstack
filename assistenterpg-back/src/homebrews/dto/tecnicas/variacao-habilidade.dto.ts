@@ -1,6 +1,15 @@
 // src/homebrews/dto/tecnicas/variacao-habilidade.dto.ts
 
-import { IsNotEmpty, IsString, IsOptional, IsInt, IsBoolean, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TipoExecucao, AreaEfeito, TipoDano } from '@prisma/client';
 import { DadoDanoDto, EscalonamentoDanoDto } from './shared-tecnica.dto'; // ✅ IMPORTAR DO SHARED

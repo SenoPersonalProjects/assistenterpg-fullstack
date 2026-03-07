@@ -14,16 +14,39 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const equipamento_exception_1 = require("../common/exceptions/equipamento.exception");
+const suplemento_exception_1 = require("../common/exceptions/suplemento.exception");
 let EquipamentosService = class EquipamentosService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
     }
+    async validarFonteSuplemento(fonte, suplementoId) {
+        if (suplementoId) {
+            const suplemento = await this.prisma.suplemento.findUnique({
+                where: { id: suplementoId },
+                select: { id: true },
+            });
+            if (!suplemento) {
+                throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
+            }
+            if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
+                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+            }
+            return;
+        }
+        if (fonte === client_1.TipoFonte.SUPLEMENTO) {
+            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+        }
+    }
     async listar(filtros) {
-        const { tipo, complexidadeMaldicao, proficienciaArma, proficienciaProtecao, alcance, tipoAcessorio, categoria, apenasAmaldicoados, busca, pagina = 1, limite = 20, } = filtros;
+        const { tipo, fontes, suplementoId, complexidadeMaldicao, proficienciaArma, proficienciaProtecao, alcance, tipoAcessorio, categoria, apenasAmaldicoados, busca, pagina = 1, limite = 20, } = filtros;
         const where = {};
         if (tipo)
             where.tipo = tipo;
+        if (fontes?.length)
+            where.fonte = { in: fontes };
+        if (suplementoId)
+            where.suplementoId = suplementoId;
         if (complexidadeMaldicao)
             where.complexidadeMaldicao = complexidadeMaldicao;
         if (proficienciaArma)
@@ -59,6 +82,8 @@ let EquipamentosService = class EquipamentosService {
                     nome: true,
                     descricao: true,
                     tipo: true,
+                    fonte: true,
+                    suplementoId: true,
                     categoria: true,
                     espacos: true,
                     complexidadeMaldicao: true,
@@ -156,11 +181,17 @@ let EquipamentosService = class EquipamentosService {
         if (existente) {
             throw new equipamento_exception_1.EquipamentoCodigoDuplicadoException(data.codigo);
         }
+        const suplementoIdFinal = data.suplementoId ?? null;
+        const fonteFinal = data.fonte ??
+            (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+        await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
         const dadosCriacao = {
             codigo: data.codigo,
             nome: data.nome,
             descricao: data.descricao || null,
             tipo: data.tipo,
+            fonte: fonteFinal,
+            suplementoId: suplementoIdFinal,
             categoria: data.categoria || 'CATEGORIA_0',
             espacos: data.espacos || 1,
             complexidadeMaldicao: data.complexidadeMaldicao || 'NENHUMA',
@@ -173,7 +204,9 @@ let EquipamentosService = class EquipamentosService {
         if (data.tipo === 'ARMA') {
             Object.assign(dadosCriacao, {
                 proficienciaArma: data.proficienciaArma || null,
-                empunhaduras: data.empunhaduras ? JSON.stringify(data.empunhaduras) : null,
+                empunhaduras: data.empunhaduras
+                    ? JSON.stringify(data.empunhaduras)
+                    : null,
                 tipoArma: data.tipoArma || null,
                 subtipoDistancia: data.subtipoDistancia || null,
                 agil: data.agil || false,
@@ -242,6 +275,12 @@ let EquipamentosService = class EquipamentosService {
                 throw new equipamento_exception_1.EquipamentoCodigoDuplicadoException(data.codigo);
             }
         }
+        const suplementoIdFinal = data.suplementoId !== undefined
+            ? data.suplementoId
+            : existente.suplementoId;
+        const fonteFinal = data.fonte ??
+            (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : existente.fonte);
+        await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
         const dadosAtualizacao = {};
         if (data.codigo !== undefined)
             dadosAtualizacao.codigo = data.codigo;
@@ -251,6 +290,10 @@ let EquipamentosService = class EquipamentosService {
             dadosAtualizacao.descricao = data.descricao;
         if (data.tipo !== undefined)
             dadosAtualizacao.tipo = data.tipo;
+        if (fonteFinal !== existente.fonte)
+            dadosAtualizacao.fonte = fonteFinal;
+        if (data.suplementoId !== undefined)
+            dadosAtualizacao.suplementoId = data.suplementoId;
         if (data.categoria !== undefined)
             dadosAtualizacao.categoria = data.categoria;
         if (data.espacos !== undefined)
@@ -266,7 +309,8 @@ let EquipamentosService = class EquipamentosService {
         if (data.efeitoMaldicao !== undefined)
             dadosAtualizacao.efeitoMaldicao = data.efeitoMaldicao;
         if (data.requerFerramentasAmaldicoadas !== undefined)
-            dadosAtualizacao.requerFerramentasAmaldicoadas = data.requerFerramentasAmaldicoadas;
+            dadosAtualizacao.requerFerramentasAmaldicoadas =
+                data.requerFerramentasAmaldicoadas;
         if (data.proficienciaArma !== undefined)
             dadosAtualizacao.proficienciaArma = data.proficienciaArma;
         if (data.empunhaduras !== undefined)
@@ -338,7 +382,9 @@ let EquipamentosService = class EquipamentosService {
         }
         const [emUsoBase, emUsoCampanha] = await Promise.all([
             this.prisma.inventarioItemBase.count({ where: { equipamentoId: id } }),
-            this.prisma.inventarioItemCampanha.count({ where: { equipamentoId: id } }),
+            this.prisma.inventarioItemCampanha.count({
+                where: { equipamentoId: id },
+            }),
         ]);
         const totalUsos = emUsoBase + emUsoCampanha;
         if (totalUsos > 0) {
@@ -355,6 +401,8 @@ let EquipamentosService = class EquipamentosService {
             nome: equipamento.nome,
             descricao: equipamento.descricao,
             tipo: equipamento.tipo,
+            fonte: equipamento.fonte,
+            suplementoId: equipamento.suplementoId,
             categoria: equipamento.categoria,
             espacos: equipamento.espacos,
             complexidadeMaldicao: equipamento.complexidadeMaldicao,
@@ -388,6 +436,8 @@ let EquipamentosService = class EquipamentosService {
             nome: equipamento.nome,
             descricao: equipamento.descricao,
             tipo: equipamento.tipo,
+            fonte: equipamento.fonte,
+            suplementoId: equipamento.suplementoId,
             categoria: equipamento.categoria,
             espacos: equipamento.espacos,
             complexidadeMaldicao: equipamento.complexidadeMaldicao,

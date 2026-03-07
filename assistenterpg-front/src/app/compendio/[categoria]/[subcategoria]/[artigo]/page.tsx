@@ -6,7 +6,6 @@ import { ArtigoContent } from '@/components/compendio/ArtigoContent';
 import { Badge } from '@/components/ui/Badge';
 import { CompendioLayout } from '@/components/compendio/CompendioLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
-import Link from 'next/link';
 
 type Props = {
   params: Promise<{ categoria: string; subcategoria: string; artigo: string }>;

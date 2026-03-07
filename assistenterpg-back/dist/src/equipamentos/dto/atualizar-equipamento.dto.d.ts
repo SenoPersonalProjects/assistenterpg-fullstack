@@ -1,9 +1,11 @@
-import { TipoEquipamento, CategoriaEquipamento, ComplexidadeMaldicao, ProficienciaArma, EmpunhaduraArma, TipoArma, SubtipoArmaDistancia, AlcanceArma, ProficienciaProtecao, TipoProtecao, TipoAcessorio, TipoExplosivo, TipoUsoEquipamento, TipoAmaldicoado } from '@prisma/client';
+import { TipoEquipamento, CategoriaEquipamento, ComplexidadeMaldicao, ProficienciaArma, EmpunhaduraArma, TipoArma, SubtipoArmaDistancia, AlcanceArma, ProficienciaProtecao, TipoProtecao, TipoAcessorio, TipoExplosivo, TipoUsoEquipamento, TipoAmaldicoado, TipoFonte } from '@prisma/client';
 export declare class AtualizarEquipamentoDto {
     codigo?: string;
     nome?: string;
     descricao?: string;
     tipo?: TipoEquipamento;
+    fonte?: TipoFonte;
+    suplementoId?: number;
     categoria?: CategoriaEquipamento;
     espacos?: number;
     complexidadeMaldicao?: ComplexidadeMaldicao;

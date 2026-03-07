@@ -75,13 +75,19 @@ export function PersonagemBaseStepPericias(props: Props) {
 
   const requestIdRef = useRef(0);
 
-  const listaClasses = props.classes ?? [];
-  const listaOrigens = props.origens ?? [];
-  const listaPericias = props.todasPericias ?? [];
+  const listaClasses = useMemo(() => props.classes ?? [], [props.classes]);
+  const listaOrigens = useMemo(() => props.origens ?? [], [props.origens]);
+  const listaPericias = useMemo(() => props.todasPericias ?? [], [props.todasPericias]);
 
-  const livres = props.periciasLivresCodigos ?? [];
-  const codigosClasse = props.periciasClasseEscolhidasCodigos ?? [];
-  const codigosOrigem = props.periciasOrigemEscolhidasCodigos ?? [];
+  const livres = useMemo(() => props.periciasLivresCodigos ?? [], [props.periciasLivresCodigos]);
+  const codigosClasse = useMemo(
+    () => props.periciasClasseEscolhidasCodigos ?? [],
+    [props.periciasClasseEscolhidasCodigos],
+  );
+  const codigosOrigem = useMemo(
+    () => props.periciasOrigemEscolhidasCodigos ?? [],
+    [props.periciasOrigemEscolhidasCodigos],
+  );
 
   const classeSelecionada = useMemo(
     () => listaClasses.find((c) => String(c.id) === props.classeId),
@@ -92,8 +98,9 @@ export function PersonagemBaseStepPericias(props: Props) {
     [listaOrigens, props.origemId],
   );
 
-  const periciasOrigem = origemSelecionada?.pericias ?? [];
-  const periciasClasse = classeSelecionada?.pericias ?? [];
+  const periciasOrigem = useMemo(() => origemSelecionada?.pericias ?? [], [origemSelecionada]);
+  const periciasClasse = useMemo(() => classeSelecionada?.pericias ?? [], [classeSelecionada]);
+  const onChangePericiasLivresExtras = props.onChangePericiasLivresExtras;
 
   const periciasFixasOrigem = useMemo(
     () => periciasOrigem.filter((op) => op.tipo === 'FIXA').map((op) => op.pericia) ?? [],
@@ -136,7 +143,7 @@ export function PersonagemBaseStepPericias(props: Props) {
     return [...listaPericias].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   }, [listaPericias]);
 
-  // ✅ Filtro de busca
+  // Filtro de busca
   const periciasFiltradasBusca = useMemo(() => {
     if (!buscaLivres.trim()) return periciasOrdenadas;
     const termo = buscaLivres.toLowerCase().trim();
@@ -272,13 +279,13 @@ export function PersonagemBaseStepPericias(props: Props) {
   // Preview com debounce
   useEffect(() => {
     if (!token || !payloadPreview) {
-      setPreviewCalculado(null);
-      props.onChangePericiasLivresExtras?.(0);
+      queueMicrotask(() => setPreviewCalculado(null));
+      onChangePericiasLivresExtras?.(0);
       return;
     }
 
     const requestId = ++requestIdRef.current;
-    setCarregando(true);
+    queueMicrotask(() => setCarregando(true));
 
     const timeout = setTimeout(() => {
       apiPreviewPersonagemBase(payloadPreview)
@@ -287,13 +294,12 @@ export function PersonagemBaseStepPericias(props: Props) {
           setPreviewCalculado(res);
 
           const extra = res.periciasLivresInfo?.deIntelecto ?? 0;
-          props.onChangePericiasLivresExtras?.(extra);
+          onChangePericiasLivresExtras?.(extra);
         })
-        .catch((err) => {
+        .catch(() => {
           if (requestId !== requestIdRef.current) return;
-          console.error('[Pericias][preview] erro:', err);
           setPreviewCalculado(null);
-          props.onChangePericiasLivresExtras?.(0);
+          onChangePericiasLivresExtras?.(0);
         })
         .finally(() => {
           if (requestId !== requestIdRef.current) return;
@@ -302,7 +308,7 @@ export function PersonagemBaseStepPericias(props: Props) {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [token, payloadPreview, props]);
+  }, [token, payloadPreview, onChangePericiasLivresExtras]);
 
   const limiteAtingido = livresMax > 0 && livres.length >= livresMax;
   const proximoDoLimite = livresMax > 0 && livres.length >= livresMax - 1 && livres.length < livresMax;
@@ -335,7 +341,7 @@ export function PersonagemBaseStepPericias(props: Props) {
         right={<Icon name="list" className="h-5 w-5 text-app-muted" />}
         contentClassName="space-y-4"
       >
-        {/* ✅ 1. GARANTIDAS (sempre visíveis, compactas) */}
+        {/* 1. GARANTIDAS (sempre visíveis, compactas) */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Icon name="check" className="w-4 h-4 text-app-success" />
@@ -378,7 +384,7 @@ export function PersonagemBaseStepPericias(props: Props) {
           )}
         </div>
 
-        {/* ✅ 2. LIVRES (principal interação) */}
+        {/* 2. LIVRES (principal interação) */}
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -434,7 +440,7 @@ export function PersonagemBaseStepPericias(props: Props) {
               <div className="max-h-80 overflow-y-auto rounded border border-app-border bg-app-surface">
                 {periciasFiltradasBusca.length === 0 ? (
                   <div className="p-4 text-center text-xs text-app-muted">
-                    Nenhuma perícia encontrada para "{buscaLivres}"
+                    Nenhuma perícia encontrada para &quot;{buscaLivres}&quot;
                   </div>
                 ) : (
                   <div className="divide-y divide-app-border">
@@ -476,7 +482,7 @@ export function PersonagemBaseStepPericias(props: Props) {
           )}
         </div>
 
-        {/* ✅ 3. PREVIEW CALCULADAS (collapse) */}
+        {/* 3. PREVIEW CALCULADAS (collapse) */}
         <div className="rounded border border-app-border bg-app-elevated">
           <button
             type="button"

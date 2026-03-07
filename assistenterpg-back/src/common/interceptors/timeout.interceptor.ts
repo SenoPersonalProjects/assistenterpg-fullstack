@@ -20,7 +20,10 @@ export class TimeoutInterceptor implements NestInterceptor {
       timeout(30000), // 30 segundos
       catchError((err) => {
         if (err instanceof TimeoutError) {
-          return throwError(() => new RequestTimeoutException('Requisição excedeu o tempo limite'));
+          return throwError(
+            () =>
+              new RequestTimeoutException('Requisição excedeu o tempo limite'),
+          );
         }
         return throwError(() => err);
       }),

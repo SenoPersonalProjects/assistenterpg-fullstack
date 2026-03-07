@@ -48,10 +48,10 @@ export default async function BuscaPage({ searchParams }: Props) {
           <div className="mt-6 text-sm text-app-muted space-y-2">
             <p>💡 <strong>Dicas de busca:</strong></p>
             <ul className="text-left ml-4 space-y-1 mt-2">
-              <li>• "atributos base"</li>
-              <li>• "perícias lista"</li>
-              <li>• "jujutsu combate"</li>
-              <li>• "classes combatente"</li>
+              <li>• &quot;atributos base&quot;</li>
+              <li>• &quot;perícias lista&quot;</li>
+              <li>• &quot;jujutsu combate&quot;</li>
+              <li>• &quot;classes combatente&quot;</li>
             </ul>
           </div>
         </EmptyState>
@@ -60,7 +60,7 @@ export default async function BuscaPage({ searchParams }: Props) {
           title={`${resultados.length} resultado(s) encontrados`}
           description={`Mostrando resultados para "${query}". Refine sua busca se necessário.`}
         >
-          {resultados.map((artigo: any) => (
+          {resultados.map((artigo) => (
             <ArtigoCard
               key={artigo.id}
               artigo={artigo}
@@ -73,3 +73,4 @@ export default async function BuscaPage({ searchParams }: Props) {
     </CompendioLayout>
   );
 }
+

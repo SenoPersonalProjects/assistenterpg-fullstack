@@ -1,7 +1,7 @@
 // src/app/homebrews/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -12,9 +12,9 @@ import {
   apiPublicarHomebrew,
   apiArquivarHomebrew,
   HomebrewResumo,
-  TipoHomebrewConteudo,
-  StatusPublicacao,
 } from '@/lib/api/homebrews';
+import type { FiltrarHomebrewsDto } from '@/lib/api/homebrews';
+import { TipoHomebrewConteudo, StatusPublicacao } from '@/lib/types/homebrew-enums';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
 import { HomebrewCard } from '@/components/homebrew/HomebrewCard';
 import { Button } from '@/components/ui/Button';
@@ -47,29 +47,37 @@ export default function HomebrewsPage() {
   const [filtroNome, setFiltroNome] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<TipoHomebrewConteudo | 'TODOS'>('TODOS');
   const [filtroStatus, setFiltroStatus] = useState<StatusPublicacao | 'TODOS'>('TODOS');
+  const filtroNomeRef = useRef(filtroNome);
 
-  useEffect(() => {
-    if (!authLoading && !usuario) {
-      router.push('/auth/login');
-      return;
-    }
+  const valoresTipoFiltro = useMemo<Array<TipoHomebrewConteudo | 'TODOS'>>(
+    () => [
+      'TODOS',
+      TipoHomebrewConteudo.CLA,
+      TipoHomebrewConteudo.TRILHA,
+      TipoHomebrewConteudo.CAMINHO,
+      TipoHomebrewConteudo.ORIGEM,
+      TipoHomebrewConteudo.EQUIPAMENTO,
+      TipoHomebrewConteudo.PODER_GENERICO,
+      TipoHomebrewConteudo.TECNICA_AMALDICOADA,
+    ],
+    [],
+  );
+  const valoresStatusFiltro = useMemo<Array<StatusPublicacao | 'TODOS'>>(
+    () => ['TODOS', StatusPublicacao.RASCUNHO, StatusPublicacao.PUBLICADO, StatusPublicacao.ARQUIVADO],
+    [],
+  );
 
-    if (!authLoading && usuario) {
-      carregarHomebrews();
-    }
-  }, [authLoading, usuario, router, paginaAtual, filtroTipo, filtroStatus]);
-
-  async function carregarHomebrews() {
+  const carregarHomebrews = useCallback(async (nomeBusca: string) => {
     try {
       setLoading(true);
       setErro(null);
 
-      const filtros: any = {
+      const filtros: Omit<FiltrarHomebrewsDto, 'usuarioId'> = {
         pagina: paginaAtual,
         limite,
       };
 
-      if (filtroNome) filtros.nome = filtroNome;
+      if (nomeBusca) filtros.nome = nomeBusca;
       if (filtroTipo !== 'TODOS') filtros.tipo = filtroTipo;
       if (filtroStatus !== 'TODOS') filtros.status = filtroStatus;
 
@@ -83,11 +91,26 @@ export default function HomebrewsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [paginaAtual, filtroTipo, filtroStatus, showToast]);
+
+  useEffect(() => {
+    filtroNomeRef.current = filtroNome;
+  }, [filtroNome]);
+
+  useEffect(() => {
+    if (!authLoading && !usuario) {
+      router.push('/auth/login');
+      return;
+    }
+
+    if (!authLoading && usuario) {
+      carregarHomebrews(filtroNomeRef.current);
+    }
+  }, [authLoading, usuario, router, carregarHomebrews]);
 
   function handleBuscar() {
     setPaginaAtual(1);
-    carregarHomebrews();
+    carregarHomebrews(filtroNome);
   }
 
   async function handlePublicar(homebrew: HomebrewResumo) {
@@ -197,31 +220,41 @@ export default function HomebrewsPage() {
               </div>
 
               {/* Tipo */}
-              <Select
-                value={filtroTipo}
-                onChange={(e) => setFiltroTipo(e.target.value as any)}
-                className="md:w-48"
-              >
+                <Select
+                  value={filtroTipo}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (valoresTipoFiltro.includes(value as TipoHomebrewConteudo | 'TODOS')) {
+                      setFiltroTipo(value as TipoHomebrewConteudo | 'TODOS');
+                    }
+                  }}
+                  className="md:w-48"
+                >
                 <option value="TODOS">Todos os tipos</option>
-                <option value="CLA">Clã</option>
-                <option value="TRILHA">Trilha</option>
-                <option value="CAMINHO">Caminho</option>
-                <option value="ORIGEM">Origem</option>
-                <option value="EQUIPAMENTO">Equipamento</option>
-                <option value="PODER_GENERICO">Poder Genérico</option>
-                <option value="TECNICA_AMALDICOADA">Técnica Amaldiçoada</option>
+                <option value={TipoHomebrewConteudo.CLA}>Clã</option>
+                <option value={TipoHomebrewConteudo.TRILHA}>Trilha</option>
+                <option value={TipoHomebrewConteudo.CAMINHO}>Caminho</option>
+                <option value={TipoHomebrewConteudo.ORIGEM}>Origem</option>
+                <option value={TipoHomebrewConteudo.EQUIPAMENTO}>Equipamento</option>
+                <option value={TipoHomebrewConteudo.PODER_GENERICO}>Poder Genérico</option>
+                <option value={TipoHomebrewConteudo.TECNICA_AMALDICOADA}>Técnica Amaldiçoada</option>
               </Select>
 
               {/* Status */}
-              <Select
-                value={filtroStatus}
-                onChange={(e) => setFiltroStatus(e.target.value as any)}
-                className="md:w-48"
-              >
+                <Select
+                  value={filtroStatus}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (valoresStatusFiltro.includes(value as StatusPublicacao | 'TODOS')) {
+                      setFiltroStatus(value as StatusPublicacao | 'TODOS');
+                    }
+                  }}
+                  className="md:w-48"
+                >
                 <option value="TODOS">Todos os status</option>
-                <option value="RASCUNHO">Rascunho</option>
-                <option value="PUBLICADO">Publicado</option>
-                <option value="ARQUIVADO">Arquivado</option>
+                <option value={StatusPublicacao.RASCUNHO}>Rascunho</option>
+                <option value={StatusPublicacao.PUBLICADO}>Publicado</option>
+                <option value={StatusPublicacao.ARQUIVADO}>Arquivado</option>
               </Select>
 
               {/* Botão buscar */}

@@ -61,7 +61,8 @@ export async function validarOrigemClaTecnica(
     // ✅ VALIDAÇÃO: Origem requer técnica hereditária
     if (origem.requerTecnicaHeriditaria) {
       const tecnicaEhDoCla =
-        tecnicaInata.hereditaria && tecnicaInata.clas.some((rel) => rel.claId === cla.id);
+        tecnicaInata.hereditaria &&
+        tecnicaInata.clas.some((rel) => rel.claId === cla.id);
 
       if (!tecnicaEhDoCla) {
         throw new OrigemRequerTecnicaHereditariaException(origem.nome);
@@ -75,7 +76,9 @@ export async function validarOrigemClaTecnica(
 
     // ✅ VALIDAÇÃO: Se técnica é hereditária, verificar compatibilidade com clã
     if (tecnicaInata.hereditaria) {
-      const tecnicaEhCompativel = tecnicaInata.clas.some((rel) => rel.claId === cla.id);
+      const tecnicaEhCompativel = tecnicaInata.clas.some(
+        (rel) => rel.claId === cla.id,
+      );
 
       if (!tecnicaEhCompativel) {
         throw new TecnicaHereditariaIncompativelException(cla.nome);

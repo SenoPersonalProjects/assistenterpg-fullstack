@@ -1,5 +1,13 @@
 //src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsInt, IsBoolean, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsInt,
+  IsBoolean,
+  Min,
+} from 'class-validator';
 import { TipoExecucao, AreaEfeito, TipoDano } from '@prisma/client';
 
 export class CreateHabilidadeTecnicaDto {

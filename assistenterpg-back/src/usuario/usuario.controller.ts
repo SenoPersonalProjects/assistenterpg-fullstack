@@ -10,14 +10,14 @@ import {
   UseGuards,
   Header,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';  // ✅ NOVO
+import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // ✅ NOVO
 import { UsuarioService } from './usuario.service';
 import { AtualizarPreferenciasDto } from './dto/atualizar-preferencias.dto';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
 import { ExcluirContaDto } from './dto/excluir-conta.dto';
 
 @Controller('usuarios')
-@UseGuards(JwtAuthGuard)  // ✅ NOVO: Aplicar guard em todo o controller
+@UseGuards(JwtAuthGuard) // ✅ NOVO: Aplicar guard em todo o controller
 export class UsuarioController {
   constructor(private readonly usuarioService: UsuarioService) {}
 
@@ -56,7 +56,10 @@ export class UsuarioController {
 
   @Get('me/exportar')
   @Header('Content-Type', 'application/json')
-  @Header('Content-Disposition', 'attachment; filename="dados-assistenterpg.json"')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="dados-assistenterpg.json"',
+  )
   async exportarDados(@Request() req: { user: { id: number } }) {
     return this.usuarioService.exportarDados(req.user.id);
   }

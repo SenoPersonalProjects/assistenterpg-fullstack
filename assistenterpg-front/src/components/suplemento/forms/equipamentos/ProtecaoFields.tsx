@@ -15,10 +15,11 @@ import {
   TIPO_REDUCAO_DANO_LABELS,
 } from '@/lib/types/homebrew-enums';
 import type { DadosReducaoDano } from '@/lib/api/homebrews';
+import type { HomebrewFormDados } from '../../hooks/useHomebrewForm';
 
 type Props = {
-  dados: any;
-  onChange: (dados: any) => void;
+  dados: HomebrewFormDados;
+  onChange: (dados: Partial<HomebrewFormDados>) => void;
 };
 
 export function ProtecaoFields({ dados, onChange }: Props) {
@@ -32,7 +33,7 @@ export function ProtecaoFields({ dados, onChange }: Props) {
     onChange({ reducoesDano: [...reducoesDano, novaReducao] });
   }
 
-  function updateReducao(index: number, campo: keyof DadosReducaoDano, valor: any) {
+  function updateReducao(index: number, campo: keyof DadosReducaoDano, valor: unknown) {
     const novasReducoes = [...reducoesDano];
     novasReducoes[index] = { ...novasReducoes[index], [campo]: valor };
     onChange({ reducoesDano: novasReducoes });

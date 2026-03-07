@@ -1,6 +1,8 @@
-import { TipoEquipamento, ComplexidadeMaldicao, ProficienciaArma, ProficienciaProtecao, AlcanceArma, TipoAcessorio } from '@prisma/client';
+import { TipoEquipamento, ComplexidadeMaldicao, ProficienciaArma, ProficienciaProtecao, AlcanceArma, TipoAcessorio, TipoFonte } from '@prisma/client';
 export declare class FiltrarEquipamentosDto {
     tipo?: TipoEquipamento;
+    fontes?: TipoFonte[];
+    suplementoId?: number;
     complexidadeMaldicao?: ComplexidadeMaldicao;
     proficienciaArma?: ProficienciaArma;
     proficienciaProtecao?: ProficienciaProtecao;

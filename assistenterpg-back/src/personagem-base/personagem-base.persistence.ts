@@ -25,10 +25,17 @@ export class PersonagemBasePersistence {
         periciasMapCodigo: Map<string, PericiaStatePersist>;
         grausTreinamento?: Array<{
           nivel: number;
-          melhorias: Array<{ periciaCodigo: string; grauAnterior: number; grauNovo: number }>;
+          melhorias: Array<{
+            periciaCodigo: string;
+            grauAnterior: number;
+            grauNovo: number;
+          }>;
         }>;
         habilidadesParaPersistir: Array<{ habilidadeId: number }>;
-        poderesGenericosNormalizados: Array<{ habilidadeId: number; config: any }>;
+        poderesGenericosNormalizados: Array<{
+          habilidadeId: number;
+          config: any;
+        }>;
         passivasResolvidas: { passivaIds: number[]; ativos: string[] };
         passivasAtributosConfigLimpo?: any;
         dtoNormalizado: any;
@@ -44,15 +51,17 @@ export class PersonagemBasePersistence {
 
     // 1) Mapear proficienciasCodigos (DTO) → proficienciasExtrasCodigos (model)
     if (dataSanitizado.proficienciasCodigos !== undefined) {
-      dataSanitizado.proficienciasExtrasCodigos = dataSanitizado.proficienciasCodigos;
+      dataSanitizado.proficienciasExtrasCodigos =
+        dataSanitizado.proficienciasCodigos;
     }
 
     // 2) ✅ REMOVER TODOS OS CAMPOS QUE NÃO EXISTEM NO MODEL
     delete dataSanitizado.proficienciasCodigos;
     delete dataSanitizado.periciasLivresExtras;
     delete dataSanitizado.itensInventario;
-    delete dataSanitizado.defesa;          // ❌ Campo inexistente
-    delete dataSanitizado.defesaTotal;     // ❌ Campo inexistente
+    delete dataSanitizado.passivasAtributoIds;
+    delete dataSanitizado.defesa; // ❌ Campo inexistente
+    delete dataSanitizado.defesaTotal; // ❌ Campo inexistente
 
     // ✅ NOVO: Buscar códigos de resistências para criar relações
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
@@ -71,13 +80,15 @@ export class PersonagemBasePersistence {
         donoId,
 
         passivasAtributosAtivos: estado.passivasResolvidas.ativos,
-        passivasAtributosConfig: estado.passivasAtributosConfigLimpo ?? undefined,
+        passivasAtributosConfig:
+          estado.passivasAtributosConfigLimpo ?? undefined,
 
         periciasClasseEscolhidasCodigos:
           estado.dtoNormalizado?.periciasClasseEscolhidasCodigos ?? [],
         periciasOrigemEscolhidasCodigos:
           estado.dtoNormalizado?.periciasOrigemEscolhidasCodigos ?? [],
-        periciasLivresCodigos: estado.dtoNormalizado?.periciasLivresCodigos ?? [],
+        periciasLivresCodigos:
+          estado.dtoNormalizado?.periciasLivresCodigos ?? [],
 
         proficiencias: {
           create: estado.profsFinais.map((codigo) => ({
@@ -185,10 +196,17 @@ export class PersonagemBasePersistence {
         periciasMapCodigo: Map<string, PericiaStatePersist>;
         grausTreinamento?: Array<{
           nivel: number;
-          melhorias: Array<{ periciaCodigo: string; grauAnterior: number; grauNovo: number }>;
+          melhorias: Array<{
+            periciaCodigo: string;
+            grauAnterior: number;
+            grauNovo: number;
+          }>;
         }>;
         habilidadesParaPersistir: Array<{ habilidadeId: number }>;
-        poderesGenericosNormalizados: Array<{ habilidadeId: number; config: any }>;
+        poderesGenericosNormalizados: Array<{
+          habilidadeId: number;
+          config: any;
+        }>;
         passivasResolvidas: { passivaIds: number[] };
         resistenciasFinais: Map<string, number>;
         dtoNormalizado?: any;
@@ -203,15 +221,17 @@ export class PersonagemBasePersistence {
 
     // 1) Mapear proficienciasCodigos (DTO) → proficienciasExtrasCodigos (model)
     if (dataUpdateSanitizado.proficienciasCodigos !== undefined) {
-      dataUpdateSanitizado.proficienciasExtrasCodigos = dataUpdateSanitizado.proficienciasCodigos;
+      dataUpdateSanitizado.proficienciasExtrasCodigos =
+        dataUpdateSanitizado.proficienciasCodigos;
     }
 
     // 2) ✅ REMOVER TODOS OS CAMPOS QUE NÃO EXISTEM NO MODEL
     delete dataUpdateSanitizado.proficienciasCodigos;
     delete dataUpdateSanitizado.periciasLivresExtras;
     delete dataUpdateSanitizado.itensInventario;
-    delete dataUpdateSanitizado.defesa;          // ❌ Campo inexistente
-    delete dataUpdateSanitizado.defesaTotal;     // ❌ Campo inexistente
+    delete dataUpdateSanitizado.passivasAtributoIds;
+    delete dataUpdateSanitizado.defesa; // ❌ Campo inexistente
+    delete dataUpdateSanitizado.defesaTotal; // ❌ Campo inexistente
 
     // ✅ NOVO: Preparar resistências
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
@@ -289,9 +309,11 @@ export class PersonagemBasePersistence {
           deleteMany: {},
           ...(estado.passivasResolvidas.passivaIds.length
             ? {
-                create: estado.passivasResolvidas.passivaIds.map((passivaId) => ({
-                  passiva: { connect: { id: passivaId } },
-                })),
+                create: estado.passivasResolvidas.passivaIds.map(
+                  (passivaId) => ({
+                    passiva: { connect: { id: passivaId } },
+                  }),
+                ),
               }
             : {}),
         },

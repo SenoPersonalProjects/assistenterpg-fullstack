@@ -1,6 +1,7 @@
 // src/clas/clas.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { TipoFonte } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClaDto } from './dto/create-cla.dto';
 import { UpdateClaDto } from './dto/update-cla.dto';
@@ -12,10 +13,38 @@ import {
   TecnicasHereditariasInvalidasException,
   ClaEmUsoException,
 } from 'src/common/exceptions/cla.exception';
+import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemento.exception';
 
 @Injectable()
 export class ClasService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new SuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new BadRequestException(
+          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+        );
+      }
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+    }
+  }
 
   // ========================================
   // ✅ CRUD COMPLETO
@@ -46,17 +75,27 @@ export class ClasService {
 
       if (tecnicasExistentes.length !== dto.tecnicasHereditariasIds.length) {
         const idsEncontrados = new Set(tecnicasExistentes.map((t) => t.id));
-        const idsInvalidos = dto.tecnicasHereditariasIds.filter((id) => !idsEncontrados.has(id));
+        const idsInvalidos = dto.tecnicasHereditariasIds.filter(
+          (id) => !idsEncontrados.has(id),
+        );
         throw new TecnicasHereditariasInvalidasException(idsInvalidos);
       }
     }
 
     // Criar clã com técnicas hereditárias
+    const suplementoIdFinal = dto.suplementoId ?? null;
+    const fonteFinal =
+      dto.fonte ??
+      (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
     const cla = await this.prisma.cla.create({
       data: {
         nome: dto.nome,
         descricao: dto.descricao,
         grandeCla: dto.grandeCla,
+        fonte: fonteFinal,
+        suplementoId: suplementoIdFinal,
 
         // ✅ CORRIGIDO: Criar técnicas hereditárias
         ...(dto.tecnicasHereditariasIds?.length && {
@@ -159,7 +198,7 @@ export class ClasService {
    */
   async update(id: number, dto: UpdateClaDto) {
     // Verificar se existe
-    await this.findOne(id);
+    const claAtual = await this.findOne(id);
 
     // Verificar nome duplicado (se mudou)
     if (dto.nome) {
@@ -187,18 +226,30 @@ export class ClasService {
 
       if (tecnicasExistentes.length !== dto.tecnicasHereditariasIds.length) {
         const idsEncontrados = new Set(tecnicasExistentes.map((t) => t.id));
-        const idsInvalidos = dto.tecnicasHereditariasIds.filter((id) => !idsEncontrados.has(id));
+        const idsInvalidos = dto.tecnicasHereditariasIds.filter(
+          (id) => !idsEncontrados.has(id),
+        );
         throw new TecnicasHereditariasInvalidasException(idsInvalidos);
       }
     }
 
     // Atualizar clã
+    const suplementoIdFinal =
+      dto.suplementoId !== undefined ? dto.suplementoId : claAtual.suplementoId;
+    const fonteFinal =
+      dto.fonte ?? (suplementoIdFinal ? TipoFonte.SUPLEMENTO : claAtual.fonte);
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
     const cla = await this.prisma.cla.update({
       where: { id },
       data: {
         ...(dto.nome && { nome: dto.nome }),
         ...(dto.descricao !== undefined && { descricao: dto.descricao }),
         ...(dto.grandeCla !== undefined && { grandeCla: dto.grandeCla }),
+        ...(fonteFinal !== claAtual.fonte && { fonte: fonteFinal }),
+        ...(dto.suplementoId !== undefined && {
+          suplementoId: dto.suplementoId,
+        }),
 
         // ✅ CORRIGIDO: Atualizar técnicas hereditárias (deletar e recriar)
         ...(dto.tecnicasHereditariasIds !== undefined && {

@@ -7,7 +7,9 @@ describe('ModificacoesController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ModificacoesController],
-    }).useMocker(() => ({})).compile();
+    })
+      .useMocker(() => ({}))
+      .compile();
 
     controller = module.get<ModificacoesController>(ModificacoesController);
   });

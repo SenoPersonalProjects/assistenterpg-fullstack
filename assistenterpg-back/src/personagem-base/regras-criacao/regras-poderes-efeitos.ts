@@ -47,7 +47,9 @@ function isJsonObject(value: unknown): value is Prisma.JsonObject {
 type EscolhaPericias = { tipo: 'PERICIAS'; quantidade?: number };
 
 // Extrai com segurança mec.escolha quando for do tipo PERICIAS
-function getEscolhaPericias(mec: Prisma.JsonValue | null): EscolhaPericias | null {
+function getEscolhaPericias(
+  mec: Prisma.JsonValue | null,
+): EscolhaPericias | null {
   if (!isJsonObject(mec)) return null;
 
   const escolha = (mec as any).escolha as unknown;
@@ -79,7 +81,9 @@ export async function aplicarEfeitosPoderesEmPericias(
     throw new PoderesGenericosNaoEncontradosException();
   }
 
-  const poderPorId = new Map<number, PoderDb>(poderesDb.map((p) => [p.id, p] as const));
+  const poderPorId = new Map<number, PoderDb>(
+    poderesDb.map((p) => [p.id, p] as const),
+  );
   const maxPermitido = getMaxNivelTreinoPermitidoPorNivelPersonagem(nivel);
 
   for (const inst of poderes) {
@@ -89,7 +93,8 @@ export async function aplicarEfeitosPoderesEmPericias(
     const escolhaMec = getEscolhaPericias(poderDb.mecanicasEspeciais);
     if (!escolhaMec) continue;
 
-    const qtd = typeof escolhaMec.quantidade === 'number' ? escolhaMec.quantidade : 2;
+    const qtd =
+      typeof escolhaMec.quantidade === 'number' ? escolhaMec.quantidade : 2;
     const codigos: unknown = inst.config?.periciasCodigos ?? [];
 
     if (!Array.isArray(codigos) || codigos.some((c) => typeof c !== 'string')) {
@@ -131,7 +136,11 @@ export async function aplicarEfeitosPoderesEmPericias(
       const proximo = pericia.grauTreinamento + 1;
 
       if (proximo > maxPermitido) {
-        throw new PoderGenericoPericiaNivelException(poderDb.nome, codigo, nivel);
+        throw new PoderGenericoPericiaNivelException(
+          poderDb.nome,
+          codigo,
+          nivel,
+        );
       }
 
       if (proximo > 4) {
@@ -199,7 +208,9 @@ export async function aplicarEfeitosPoderesEmGraus(
  * Procura por mecanicasEspeciais.proficiencias (array de códigos)
  */
 export async function extrairProficienciasDeHabilidades(
-  habilidades: Array<{ habilidade: { mecanicasEspeciais?: any; nome?: string } }>,
+  habilidades: Array<{
+    habilidade: { mecanicasEspeciais?: any; nome?: string };
+  }>,
   prisma: PrismaLike,
 ): Promise<string[]> {
   const profsCodigos = new Set<string>();
@@ -269,7 +280,10 @@ export async function aplicarEfeitosPoderesEmProficiencias(
   }));
 
   // ✅ Usar função genérica
-  const profsDePoderes = await extrairProficienciasDeHabilidades(habilidadesComRelacao, prisma);
+  const profsDePoderes = await extrairProficienciasDeHabilidades(
+    habilidadesComRelacao,
+    prisma,
+  );
 
   return profsDePoderes;
 }
@@ -293,7 +307,9 @@ export async function aplicarEfeitosPoderesEmProficiencias(
  * }
  */
 export function extrairResistenciasDeHabilidades(
-  habilidades: Array<{ habilidade: { mecanicasEspeciais?: any; nome?: string } }>,
+  habilidades: Array<{
+    habilidade: { mecanicasEspeciais?: any; nome?: string };
+  }>,
 ): Map<string, number> {
   const resistencias = new Map<string, number>();
 

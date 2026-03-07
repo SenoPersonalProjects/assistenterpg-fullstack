@@ -100,7 +100,9 @@ export class CondicoesService {
       where: { id },
       data: {
         ...(updateDto.nome && { nome: updateDto.nome }),
-        ...(updateDto.descricao !== undefined && { descricao: updateDto.descricao }),
+        ...(updateDto.descricao !== undefined && {
+          descricao: updateDto.descricao,
+        }),
       },
     });
   }

@@ -30,7 +30,10 @@ class SuplementoNaoPublicadoException extends business_exception_1.BusinessExcep
 exports.SuplementoNaoPublicadoException = SuplementoNaoPublicadoException;
 class SuplementoJaAtivoException extends business_exception_1.BusinessException {
     constructor(usuarioId, suplementoId) {
-        super('Suplemento já está ativo para este usuário', 'SUPLEMENTO_JA_ATIVO', { usuarioId, suplementoId });
+        super('Suplemento já está ativo para este usuário', 'SUPLEMENTO_JA_ATIVO', {
+            usuarioId,
+            suplementoId,
+        });
     }
 }
 exports.SuplementoJaAtivoException = SuplementoJaAtivoException;

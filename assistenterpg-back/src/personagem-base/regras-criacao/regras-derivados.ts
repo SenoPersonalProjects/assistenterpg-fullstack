@@ -115,14 +115,18 @@ async function calcularEfeitosPassivas(
   for (const passiva of passivas) {
     const e = passiva.efeitos as any;
 
-    if (typeof e?.deslocamento === 'number') efeitos.deslocamento += e.deslocamento;
+    if (typeof e?.deslocamento === 'number')
+      efeitos.deslocamento += e.deslocamento;
     if (typeof e?.reacoes === 'number') efeitos.reacoes += e.reacoes;
     if (typeof e?.peExtra === 'number') efeitos.peExtra += e.peExtra;
     if (typeof e?.eaExtra === 'number') efeitos.eaExtra += e.eaExtra;
-    if (typeof e?.limitePeEaExtra === 'number') efeitos.limitePeEaExtra += e.limitePeEaExtra;
+    if (typeof e?.limitePeEaExtra === 'number')
+      efeitos.limitePeEaExtra += e.limitePeEaExtra;
     if (e?.pvExtraLimitePeEa === true) efeitos.pvExtraLimitePeEa = true;
-    if (typeof e?.rodadasMorrendo === 'number') efeitos.rodadasMorrendo += e.rodadasMorrendo;
-    if (typeof e?.rodadasEnlouquecendo === 'number') efeitos.rodadasEnlouquecendo += e.rodadasEnlouquecendo;
+    if (typeof e?.rodadasMorrendo === 'number')
+      efeitos.rodadasMorrendo += e.rodadasMorrendo;
+    if (typeof e?.rodadasEnlouquecendo === 'number')
+      efeitos.rodadasEnlouquecendo += e.rodadasEnlouquecendo;
   }
 
   return efeitos;
@@ -158,13 +162,19 @@ export async function calcularAtributosDerivados(
     throw new ValoresClasseNaoDefinidosException(classe.nome);
   }
 
-  const efeitosPassivas = await calcularEfeitosPassivas(passivasAtributoIds ?? [], prisma);
+  const efeitosPassivas = await calcularEfeitosPassivas(
+    passivasAtributoIds ?? [],
+    prisma,
+  );
 
-  const atributoEa = atributoChaveEa === AtributoBaseEA.INT ? intelecto : presenca;
+  const atributoEa =
+    atributoChaveEa === AtributoBaseEA.INT ? intelecto : presenca;
 
-  const pvBase = valores.pvInicial + vigor + (nivel - 1) * (valores.pvPorNivel + vigor);
+  const pvBase =
+    valores.pvInicial + vigor + (nivel - 1) * (valores.pvPorNivel + vigor);
   const limitePeEa = nivel + efeitosPassivas.limitePeEaExtra;
-  const pvMaximo = pvBase + (efeitosPassivas.pvExtraLimitePeEa ? limitePeEa : 0);
+  const pvMaximo =
+    pvBase + (efeitosPassivas.pvExtraLimitePeEa ? limitePeEa : 0);
 
   const peMaximo =
     valores.peInicial +
@@ -214,8 +224,12 @@ export function calcularBloqueioEsquiva(params: {
   const fortitude = periciasMap.get('FORTITUDE');
   const reflexos = periciasMap.get('REFLEXOS');
 
-  const bonusFortitude = fortitude ? fortitude.grauTreinamento * 5 + fortitude.bonusExtra : 0;
-  const bonusReflexos = reflexos ? reflexos.grauTreinamento * 5 + reflexos.bonusExtra : 0;
+  const bonusFortitude = fortitude
+    ? fortitude.grauTreinamento * 5 + fortitude.bonusExtra
+    : 0;
+  const bonusReflexos = reflexos
+    ? reflexos.grauTreinamento * 5 + reflexos.bonusExtra
+    : 0;
 
   const bloqueio = bonusFortitude;
   const esquiva = defesa + bonusReflexos;

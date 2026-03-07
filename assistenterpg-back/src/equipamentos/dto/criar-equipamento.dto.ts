@@ -8,12 +8,10 @@ import {
   Min,
   IsBoolean,
   IsArray,
-  ValidateNested,
   MinLength,
   MaxLength,
   IsNotEmpty,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import {
   TipoEquipamento,
   CategoriaEquipamento,
@@ -29,6 +27,7 @@ import {
   TipoExplosivo,
   TipoUsoEquipamento,
   TipoAmaldicoado,
+  TipoFonte,
 } from '@prisma/client';
 
 export class CriarEquipamentoDto {
@@ -52,6 +51,15 @@ export class CriarEquipamentoDto {
     message: `Tipo deve ser: ${Object.values(TipoEquipamento).join(', ')}`,
   })
   tipo: TipoEquipamento;
+
+  @IsOptional()
+  @IsEnum(TipoFonte)
+  fonte?: TipoFonte;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  suplementoId?: number;
 
   // ============================================================
   // CAMPOS BÁSICOS OPCIONAIS

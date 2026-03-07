@@ -16,6 +16,8 @@ class CriarEquipamentoDto {
     codigo;
     nome;
     tipo;
+    fonte;
+    suplementoId;
     descricao;
     categoria;
     espacos;
@@ -69,6 +71,17 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], CriarEquipamentoDto.prototype, "tipo", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.TipoFonte),
+    __metadata("design:type", String)
+], CriarEquipamentoDto.prototype, "fonte", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CriarEquipamentoDto.prototype, "suplementoId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

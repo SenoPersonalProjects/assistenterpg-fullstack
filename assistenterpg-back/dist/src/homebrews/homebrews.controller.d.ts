@@ -20,8 +20,8 @@ export declare class HomebrewsController {
             status: import("@prisma/client").$Enums.StatusPublicacao;
             codigo: string;
             tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
-            tags: import("@prisma/client/runtime/library").JsonValue;
             versao: string;
+            tags: import("@prisma/client/runtime/library").JsonValue;
         }[];
         paginacao: {
             pagina: number;
@@ -46,8 +46,8 @@ export declare class HomebrewsController {
             status: import("@prisma/client").$Enums.StatusPublicacao;
             codigo: string;
             tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
-            tags: import("@prisma/client/runtime/library").JsonValue;
             versao: string;
+            tags: import("@prisma/client/runtime/library").JsonValue;
         }[];
         paginacao: {
             pagina: number;
@@ -75,9 +75,9 @@ export declare class HomebrewsController {
         status: import("@prisma/client").$Enums.StatusPublicacao;
         codigo: string;
         tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
-        dados: import("@prisma/client/runtime/library").JsonValue;
-        tags: import("@prisma/client/runtime/library").JsonValue | null;
         versao: string;
+        tags: import("@prisma/client/runtime/library").JsonValue | null;
+        dados: import("@prisma/client/runtime/library").JsonValue;
     }>;
     arquivar(id: number, req: any): Promise<{
         usuario: {
@@ -94,8 +94,8 @@ export declare class HomebrewsController {
         status: import("@prisma/client").$Enums.StatusPublicacao;
         codigo: string;
         tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
-        dados: import("@prisma/client/runtime/library").JsonValue;
-        tags: import("@prisma/client/runtime/library").JsonValue | null;
         versao: string;
+        tags: import("@prisma/client/runtime/library").JsonValue | null;
+        dados: import("@prisma/client/runtime/library").JsonValue;
     }>;
 }

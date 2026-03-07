@@ -1,7 +1,6 @@
 // src/components/suplemento/forms/equipamentos/ArmaFields.tsx
 'use client';
 
-import { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -23,10 +22,11 @@ import {
   TIPO_DANO_LABELS,
 } from '@/lib/types/homebrew-enums';
 import type { DadosDanoArma } from '@/lib/api/homebrews';
+import type { HomebrewFormDados } from '../../hooks/useHomebrewForm';
 
 type Props = {
-  dados: any;
-  onChange: (dados: any) => void;
+  dados: HomebrewFormDados;
+  onChange: (dados: Partial<HomebrewFormDados>) => void;
 };
 
 export function ArmaFields({ dados, onChange }: Props) {
@@ -42,7 +42,7 @@ export function ArmaFields({ dados, onChange }: Props) {
     onChange({ danos: [...danos, novoDano] });
   }
 
-  function updateDano(index: number, campo: keyof DadosDanoArma, valor: any) {
+  function updateDano(index: number, campo: keyof DadosDanoArma, valor: unknown) {
     const novosDanos = [...danos];
     novosDanos[index] = { ...novosDanos[index], [campo]: valor };
     onChange({ danos: novosDanos });

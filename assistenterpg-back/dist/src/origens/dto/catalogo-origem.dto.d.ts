@@ -1,4 +1,4 @@
-import { HabilidadeCatalogoDto } from "src/habilidades/dto/catalogo-habilidade.dto";
+import { HabilidadeCatalogoDto } from 'src/habilidades/dto/catalogo-habilidade.dto';
 export declare class OrigemPericiaCatalogoDto {
     id: number;
     tipo: 'FIXA' | 'ESCOLHA';

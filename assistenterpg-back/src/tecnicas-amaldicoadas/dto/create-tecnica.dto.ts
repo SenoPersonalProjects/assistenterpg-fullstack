@@ -1,7 +1,15 @@
 // src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts
 
-import { IsNotEmpty, IsString, IsBoolean, IsOptional, IsArray, IsEnum, IsInt } from 'class-validator';
-import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client';  // ✅ NOVO
+import {
+  IsNotEmpty,
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  IsEnum,
+  IsInt,
+} from 'class-validator';
+import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client'; // ✅ NOVO
 
 export class CreateTecnicaDto {
   @IsNotEmpty()

@@ -1,3 +1,4 @@
+import { TipoFonte } from '@prisma/client';
 export declare class OrigemPericiaDto {
     periciaId: number;
     tipo: 'FIXA' | 'ESCOLHA';
@@ -10,6 +11,8 @@ export declare class CreateOrigemDto {
     requerGrandeCla?: boolean;
     requerTecnicaHeriditaria?: boolean;
     bloqueiaTecnicaHeriditaria?: boolean;
+    fonte?: TipoFonte;
+    suplementoId?: number;
     pericias?: OrigemPericiaDto[];
     habilidadesIds?: number[];
 }

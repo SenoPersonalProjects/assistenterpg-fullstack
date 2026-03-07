@@ -32,7 +32,8 @@ async function validarOrigemClaTecnica(claId, origemId, tecnicaInataId, prisma) 
             throw new personagem_exception_1.TecnicaInataTipoInvalidoException();
         }
         if (origem.requerTecnicaHeriditaria) {
-            const tecnicaEhDoCla = tecnicaInata.hereditaria && tecnicaInata.clas.some((rel) => rel.claId === cla.id);
+            const tecnicaEhDoCla = tecnicaInata.hereditaria &&
+                tecnicaInata.clas.some((rel) => rel.claId === cla.id);
             if (!tecnicaEhDoCla) {
                 throw new personagem_exception_1.OrigemRequerTecnicaHereditariaException(origem.nome);
             }

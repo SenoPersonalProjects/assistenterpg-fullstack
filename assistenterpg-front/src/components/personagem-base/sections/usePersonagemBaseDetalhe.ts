@@ -17,6 +17,8 @@ import {
   apiGetTiposGrau,
   apiGetEquipamentos,
   apiGetModificacoes,
+  extrairMensagemErro,
+  traduzirErro,
   type AlinhamentoCatalogo,
   type CaminhoCatalogo,
   type ClasseCatalogo,
@@ -46,6 +48,31 @@ type Catalogos = {
   modificacoes: ModificacaoCatalogo[];
 };
 
+function mensagemErroCarregarDetalhe(error: unknown): string {
+  const status = Number(
+    (error as { status?: number })?.status ??
+      (error as { response?: { status?: number } })?.response?.status ??
+      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
+      0,
+  );
+  const code = (error as { body?: { code?: string } })?.body?.code;
+  const base = traduzirErro(code, extrairMensagemErro(error), status);
+
+  if (status === 404) {
+    return 'Personagem nao encontrado.';
+  }
+
+  if (status === 403) {
+    return 'Voce nao tem permissao para acessar este personagem.';
+  }
+
+  if (status === 400 || status === 422) {
+    return `Nao foi possivel carregar este personagem. ${base}`;
+  }
+
+  return base;
+}
+
 function sortPassivas(selecionadas: PassivaAtributoCatalogo[]) {
   return selecionadas.sort((a, b) => {
     if (a.atributo === b.atributo) return a.nivel - b.nivel;
@@ -53,7 +80,7 @@ function sortPassivas(selecionadas: PassivaAtributoCatalogo[]) {
   });
 }
 
-// ✅ CORRIGIDO: Removido parâmetro token
+// Busca passivas selecionadas sem token explícito no payload.
 async function carregarPassivasSelecionadas(
   passivasAtributoIds: number[],
 ): Promise<PassivaAtributoCatalogo[]> {
@@ -72,7 +99,7 @@ async function carregarPassivasSelecionadas(
   return sortPassivas(selecionadas);
 }
 
-// ✅ CORRIGIDO: Removido parâmetro token
+// Carrega equipamentos em páginas para mapear dados de inventário.
 async function carregarTodosEquipamentos(): Promise<EquipamentoCatalogo[]> {
   try {
     let todosEquipamentos: EquipamentoCatalogo[] = [];
@@ -89,13 +116,12 @@ async function carregarTodosEquipamentos(): Promise<EquipamentoCatalogo[]> {
     }
 
     return todosEquipamentos;
-  } catch (err) {
-    console.error('[usePersonagemBaseDetalhe] Erro ao carregar equipamentos:', err);
+  } catch {
     return [];
   }
 }
 
-// ✅ CORRIGIDO: Removido parâmetro token
+// Carrega modificações em páginas para mapear dados de inventário.
 async function carregarTodasModificacoes(): Promise<ModificacaoCatalogo[]> {
   try {
     let todasModificacoes: ModificacaoCatalogo[] = [];
@@ -112,8 +138,7 @@ async function carregarTodasModificacoes(): Promise<ModificacaoCatalogo[]> {
     }
 
     return todasModificacoes;
-  } catch (err) {
-    console.error('[usePersonagemBaseDetalhe] Erro ao carregar modificações:', err);
+  } catch {
     return [];
   }
 }
@@ -185,7 +210,7 @@ export function usePersonagemBaseDetalhe(
         modificacoesCompletas,
       ] = await Promise.all([
         apiGetPersonagemBase( numericId, true),
-        // ✅ CORRIGIDO: Removido token de todas as chamadas abaixo
+        // Chamadas de catálogo sem token explícito no payload.
         apiGetClasses(),
         apiGetClas(),
         apiGetOrigens(),
@@ -215,23 +240,21 @@ export function usePersonagemBaseDetalhe(
 
       if (detalhe.passivasAtributoIds && detalhe.passivasAtributoIds.length > 0) {
         try {
-          // ✅ CORRIGIDO: Removido token
+          // Resolução de passivas selecionadas para apresentação.
           const selecionadas = await carregarPassivasSelecionadas(
             detalhe.passivasAtributoIds,
           );
           setPassivasSelecionadasState(selecionadas);
-        } catch (e) {
-          console.error(e);
+        } catch {
           setPassivasSelecionadasState([]);
         }
       }
     } catch (e) {
-      console.error(e);
-      setErro('Erro ao carregar personagem-base');
+      setErro(mensagemErroCarregarDetalhe(e));
     } finally {
       setLoading(false);
     }
-  }, [numericId, router]);
+  }, [numericId]);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -244,7 +267,7 @@ export function usePersonagemBaseDetalhe(
     }
   }, [authLoading, usuario, numericId, refresh, router]);
 
-  // ✅ CORRIGIDO: Removido token das chamadas
+  // Carregadores auxiliares usados no modo de edição.
   const carregarTrilhasDaClasse = useCallback(
     async (classeId: number): Promise<TrilhaCatalogo[]> => {
       const { apiGetTrilhasDaClasse } = await import('@/lib/api');

@@ -18,7 +18,7 @@ exports.ClassesModule = ClassesModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [classes_service_1.ClassesService],
-        controllers: [classes_controller_1.ClassesController]
+        controllers: [classes_controller_1.ClassesController],
     })
 ], ClassesModule);
 //# sourceMappingURL=classes.module.js.map

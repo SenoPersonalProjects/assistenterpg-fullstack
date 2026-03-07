@@ -86,7 +86,10 @@ export class SuplementosService {
   /**
    * Buscar suplemento por ID
    */
-  async findOne(id: number, usuarioId?: number): Promise<SuplementoCatalogoDto> {
+  async findOne(
+    id: number,
+    usuarioId?: number,
+  ): Promise<SuplementoCatalogoDto> {
     try {
       const suplemento = await this.prisma.suplemento.findUnique({
         where: { id },
@@ -115,7 +118,10 @@ export class SuplementosService {
   /**
    * Buscar suplemento por código
    */
-  async findByCodigo(codigo: string, usuarioId?: number): Promise<SuplementoCatalogoDto> {
+  async findByCodigo(
+    codigo: string,
+    usuarioId?: number,
+  ): Promise<SuplementoCatalogoDto> {
     try {
       const suplemento = await this.prisma.suplemento.findUnique({
         where: { codigo },
@@ -182,7 +188,10 @@ export class SuplementosService {
   /**
    * Atualizar suplemento (ADMIN)
    */
-  async update(id: number, dto: UpdateSuplementoDto): Promise<SuplementoCatalogoDto> {
+  async update(
+    id: number,
+    dto: UpdateSuplementoDto,
+  ): Promise<SuplementoCatalogoDto> {
     try {
       const suplemento = await this.prisma.suplemento.findUnique({
         where: { id },
@@ -203,7 +212,11 @@ export class SuplementosService {
           banner: dto.banner,
           // ✅ CORRIGIDO: Usar tipo correto do Prisma para JSON
           tags:
-            dto.tags !== undefined ? (dto.tags ? dto.tags : Prisma.JsonNull) : undefined,
+            dto.tags !== undefined
+              ? dto.tags
+                ? dto.tags
+                : Prisma.JsonNull
+              : undefined,
           autor: dto.autor,
         },
       });
@@ -287,7 +300,9 @@ export class SuplementosService {
   /**
    * Listar suplementos ativos do usuário
    */
-  async findSuplementosAtivos(usuarioId: number): Promise<SuplementoCatalogoDto[]> {
+  async findSuplementosAtivos(
+    usuarioId: number,
+  ): Promise<SuplementoCatalogoDto[]> {
     try {
       const suplementos = await this.prisma.suplemento.findMany({
         where: {
@@ -316,7 +331,10 @@ export class SuplementosService {
   /**
    * Ativar suplemento para usuário
    */
-  async ativarSuplemento(usuarioId: number, suplementoId: number): Promise<void> {
+  async ativarSuplemento(
+    usuarioId: number,
+    suplementoId: number,
+  ): Promise<void> {
     try {
       // Verificar se suplemento existe e está publicado
       const suplemento = await this.prisma.suplemento.findUnique({
@@ -328,7 +346,10 @@ export class SuplementosService {
       }
 
       if (suplemento.status !== StatusPublicacao.PUBLICADO) {
-        throw new SuplementoNaoPublicadoException(suplementoId, suplemento.status);
+        throw new SuplementoNaoPublicadoException(
+          suplementoId,
+          suplemento.status,
+        );
       }
 
       // Verificar se já está ativo
@@ -363,7 +384,10 @@ export class SuplementosService {
   /**
    * Desativar suplemento para usuário
    */
-  async desativarSuplemento(usuarioId: number, suplementoId: number): Promise<void> {
+  async desativarSuplemento(
+    usuarioId: number,
+    suplementoId: number,
+  ): Promise<void> {
     try {
       const ativo = await this.prisma.usuarioSuplemento.findUnique({
         where: {

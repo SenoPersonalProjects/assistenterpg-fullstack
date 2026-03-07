@@ -141,7 +141,9 @@ let CampanhaService = class CampanhaService {
         });
     }
     async adicionarMembro(campanhaId, solicitanteId, dados) {
-        const campanha = await this.prisma.campanha.findUnique({ where: { id: campanhaId } });
+        const campanha = await this.prisma.campanha.findUnique({
+            where: { id: campanhaId },
+        });
         if (!campanha) {
             throw new campanha_exception_1.CampanhaNaoEncontradaException(campanhaId);
         }

@@ -21,21 +21,16 @@ export class CampanhaNaoEncontradaException extends BaseException {
 
 export class CampanhaAcessoNegadoException extends BusinessException {
   constructor(campanhaId?: number, usuarioId?: number) {
-    super(
-      'Você não tem acesso a esta campanha',
-      'CAMPANHA_ACESSO_NEGADO',
-      { campanhaId, usuarioId },
-    );
+    super('Você não tem acesso a esta campanha', 'CAMPANHA_ACESSO_NEGADO', {
+      campanhaId,
+      usuarioId,
+    });
   }
 }
 
 export class CampanhaApenasDonoException extends BusinessException {
   constructor(acao: string) {
-    super(
-      `Apenas o dono pode ${acao}`,
-      'CAMPANHA_APENAS_DONO',
-      { acao },
-    );
+    super(`Apenas o dono pode ${acao}`, 'CAMPANHA_APENAS_DONO', { acao });
   }
 }
 
@@ -45,22 +40,18 @@ export class CampanhaApenasDonoException extends BusinessException {
 
 export class UsuarioNaoEncontradoException extends BaseException {
   constructor(identificador?: string | number) {
-    super(
-      'Usuário não encontrado',
-      HttpStatus.NOT_FOUND,
-      'USUARIO_NOT_FOUND',
-      { identificador },
-    );
+    super('Usuário não encontrado', HttpStatus.NOT_FOUND, 'USUARIO_NOT_FOUND', {
+      identificador,
+    });
   }
 }
 
 export class UsuarioJaMembroCampanhaException extends BusinessException {
   constructor(usuarioId: number, campanhaId: number) {
-    super(
-      'Usuário já é membro desta campanha',
-      'USUARIO_JA_MEMBRO',
-      { usuarioId, campanhaId },
-    );
+    super('Usuário já é membro desta campanha', 'USUARIO_JA_MEMBRO', {
+      usuarioId,
+      campanhaId,
+    });
   }
 }
 
@@ -70,22 +61,18 @@ export class UsuarioJaMembroCampanhaException extends BusinessException {
 
 export class ConviteNaoEncontradoException extends BaseException {
   constructor(codigo?: string) {
-    super(
-      'Convite não encontrado',
-      HttpStatus.NOT_FOUND,
-      'CONVITE_NOT_FOUND',
-      { codigo },
-    );
+    super('Convite não encontrado', HttpStatus.NOT_FOUND, 'CONVITE_NOT_FOUND', {
+      codigo,
+    });
   }
 }
 
 export class ConviteInvalidoOuUtilizadoException extends BusinessException {
   constructor(codigo: string, status?: string) {
-    super(
-      'Convite inválido ou já utilizado',
-      'CONVITE_INVALIDO',
-      { codigo, status },
-    );
+    super('Convite inválido ou já utilizado', 'CONVITE_INVALIDO', {
+      codigo,
+      status,
+    });
   }
 }
 

@@ -18,6 +18,7 @@ const passport_1 = require("@nestjs/passport");
 const personagem_base_service_1 = require("./personagem-base.service");
 const create_personagem_base_dto_1 = require("./dto/create-personagem-base.dto");
 const update_personagem_base_dto_1 = require("./dto/update-personagem-base.dto");
+const importar_personagem_base_dto_1 = require("./dto/importar-personagem-base.dto");
 const consultar_graus_treinamento_dto_1 = require("./dto/consultar-graus-treinamento.dto");
 let PersonagemBaseController = class PersonagemBaseController {
     personagemBaseService;
@@ -45,6 +46,12 @@ let PersonagemBaseController = class PersonagemBaseController {
     }
     async listarMeus(req) {
         return this.personagemBaseService.listarDoUsuario(req.user.id);
+    }
+    async exportar(req, id) {
+        return this.personagemBaseService.exportar(req.user.id, id);
+    }
+    async importar(req, dto) {
+        return this.personagemBaseService.importar(req.user.id, dto);
     }
     async buscarPorId(req, id, incluirInventario) {
         const incluir = incluirInventario === 'true';
@@ -109,6 +116,24 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], PersonagemBaseController.prototype, "listarMeus", null);
+__decorate([
+    (0, common_1.Get)(':id/exportar'),
+    (0, common_1.Header)('Content-Type', 'application/json'),
+    (0, common_1.Header)('Content-Disposition', 'attachment; filename="personagem-base-export.json"'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Number]),
+    __metadata("design:returntype", Promise)
+], PersonagemBaseController.prototype, "exportar", null);
+__decorate([
+    (0, common_1.Post)('importar'),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, importar_personagem_base_dto_1.ImportarPersonagemBaseDto]),
+    __metadata("design:returntype", Promise)
+], PersonagemBaseController.prototype, "importar", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Request)()),

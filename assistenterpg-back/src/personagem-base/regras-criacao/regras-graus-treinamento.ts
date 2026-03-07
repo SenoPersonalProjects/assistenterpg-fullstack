@@ -33,7 +33,10 @@ export async function validarGrausTreinamento(
   // Validar que todos os níveis informados são válidos
   for (const gt of grausTreinamento) {
     if (!niveisDisponiveis.includes(gt.nivel)) {
-      throw new GrauTreinamentoNivelInvalidoException(gt.nivel, niveisDisponiveis);
+      throw new GrauTreinamentoNivelInvalidoException(
+        gt.nivel,
+        niveisDisponiveis,
+      );
     }
 
     // Validar quantidade de melhorias (2 + INT)
@@ -48,7 +51,9 @@ export async function validarGrausTreinamento(
     }
 
     // Buscar códigos das perícias para validação
-    const codigosUnicos = Array.from(new Set(gt.melhorias.map((m) => m.periciaCodigo)));
+    const codigosUnicos = Array.from(
+      new Set(gt.melhorias.map((m) => m.periciaCodigo)),
+    );
     const pericias = await prisma.pericia.findMany({
       where: { codigo: { in: codigosUnicos } },
     });
@@ -58,17 +63,23 @@ export async function validarGrausTreinamento(
     for (const melhoria of gt.melhorias) {
       // Verificar se perícia existe
       if (!mapaCodigos.has(melhoria.periciaCodigo)) {
-        throw new GrauTreinamentoPericiaInexistenteException(melhoria.periciaCodigo);
+        throw new GrauTreinamentoPericiaInexistenteException(
+          melhoria.periciaCodigo,
+        );
       }
 
       const pericia = periciasMap.get(melhoria.periciaCodigo);
       if (!pericia) {
-        throw new GrauTreinamentoPericiaDestreinadaException(melhoria.periciaCodigo);
+        throw new GrauTreinamentoPericiaDestreinadaException(
+          melhoria.periciaCodigo,
+        );
       }
 
       // Verificar se perícia está treinada (grau > 0)
       if (pericia.grauTreinamento === 0) {
-        throw new GrauTreinamentoPericiaDestreinadaException(melhoria.periciaCodigo);
+        throw new GrauTreinamentoPericiaDestreinadaException(
+          melhoria.periciaCodigo,
+        );
       }
 
       // Verificar progressão (não pode pular etapas: 0 → 5 → 10 → 15 → 20)

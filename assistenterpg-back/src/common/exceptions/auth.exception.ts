@@ -74,11 +74,9 @@ export class AcessoNegadoException extends BaseException {
       ? `Acesso negado. Role necessária: ${roleNecessaria}`
       : 'Acesso negado';
 
-    super(
-      mensagem,
-      HttpStatus.FORBIDDEN,
-      'ACESSO_NEGADO',
-      { recurso, roleNecessaria },
-    );
+    super(mensagem, HttpStatus.FORBIDDEN, 'ACESSO_NEGADO', {
+      recurso,
+      roleNecessaria,
+    });
   }
 }

@@ -6,13 +6,17 @@ const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
 class ClasseNaoEncontradaException extends base_exception_1.BaseException {
     constructor(identificador) {
-        super('Classe não encontrada', common_1.HttpStatus.NOT_FOUND, 'CLASSE_NOT_FOUND', { identificador });
+        super('Classe não encontrada', common_1.HttpStatus.NOT_FOUND, 'CLASSE_NOT_FOUND', {
+            identificador,
+        });
     }
 }
 exports.ClasseNaoEncontradaException = ClasseNaoEncontradaException;
 class ClasseNomeDuplicadoException extends business_exception_1.BusinessException {
     constructor(nome) {
-        super(`Classe com nome "${nome}" já existe`, 'CLASSE_NOME_DUPLICADO', { nome });
+        super(`Classe com nome "${nome}" já existe`, 'CLASSE_NOME_DUPLICADO', {
+            nome,
+        });
     }
 }
 exports.ClasseNomeDuplicadoException = ClasseNomeDuplicadoException;

@@ -1,5 +1,9 @@
 // src/inventario/dto/inventario-completo.dto.ts
-import { CategoriaEquipamento, ComplexidadeMaldicao, TipoEquipamento } from '@prisma/client';
+import {
+  CategoriaEquipamento,
+  ComplexidadeMaldicao,
+  TipoEquipamento,
+} from '@prisma/client';
 
 export class EquipamentoBaseDto {
   id: number;

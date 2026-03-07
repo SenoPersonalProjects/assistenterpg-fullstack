@@ -4,10 +4,11 @@
 
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
-  dados: any;
-  onChange: (dados: any) => void;
+  dados: HomebrewFormDados;
+  onChange: (dados: Partial<HomebrewFormDados>) => void;
 };
 
 export function ClaFormFields({ dados, onChange }: Props) {

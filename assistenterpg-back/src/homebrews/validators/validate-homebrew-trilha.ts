@@ -1,8 +1,8 @@
 // src/homebrews/validators/validate-homebrew-trilha.ts
 
-import { 
+import {
   ValidationException,
-  ValorForaDoIntervaloException 
+  ValorForaDoIntervaloException,
 } from '../../common/exceptions/validation.exception';
 
 /**
@@ -11,7 +11,12 @@ import {
 export function validateHomebrewTrilhaCustom(dados: any): void {
   // ✅ Validar que nivelRequisito é positivo
   if (dados.nivelRequisito !== undefined && dados.nivelRequisito < 1) {
-    throw new ValorForaDoIntervaloException('nivelRequisito', 1, 20, dados.nivelRequisito);
+    throw new ValorForaDoIntervaloException(
+      'nivelRequisito',
+      1,
+      20,
+      dados.nivelRequisito,
+    );
   }
 
   // ✅ Validar que tem pelo menos 1 habilidade
@@ -33,12 +38,12 @@ export function validateHomebrewTrilhaCustom(dados: any): void {
       throw new ValidationException(
         `Habilidades devem ter níveis únicos`,
         'habilidades.nivel',
-        { 
+        {
           nivelDuplicado: niveisOrdenados[i],
           posicoesAfetadas: niveis
             .map((n, idx) => ({ nivel: n, index: idx }))
-            .filter(item => item.nivel === niveisOrdenados[i])
-            .map(item => item.index)
+            .filter((item) => item.nivel === niveisOrdenados[i])
+            .map((item) => item.index),
         },
         'DUPLICATE_ABILITY_LEVELS',
       );

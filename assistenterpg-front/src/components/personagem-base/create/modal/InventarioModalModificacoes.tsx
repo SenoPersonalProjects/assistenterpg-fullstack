@@ -77,7 +77,7 @@ export function InventarioModalModificacoes({
           </div>
         </div>
         <p className="text-xs text-app-muted text-center">
-          Clique em "Continuar" para prosseguir sem modificações
+          Clique em &quot;Continuar&quot; para prosseguir sem modificações
         </p>
       </div>
     );
@@ -104,6 +104,14 @@ export function InventarioModalModificacoes({
           const selecionada = modificacoesSelecionadas.some((m) => m.id === mod.id);
           const desabilitada = !valida && !selecionada;
           const expandida = modExpandida === mod.id;
+          const efeitosMecanicos =
+            mod.efeitosMecanicos && typeof mod.efeitosMecanicos === 'object'
+              ? (mod.efeitosMecanicos as Record<string, unknown>)
+              : null;
+          const efeitosDescricao =
+            typeof efeitosMecanicos?.descricao === 'string' ? efeitosMecanicos.descricao : null;
+          const efeitosRestricao =
+            typeof efeitosMecanicos?.restricao === 'string' ? efeitosMecanicos.restricao : null;
 
           return (
             <div
@@ -183,7 +191,7 @@ export function InventarioModalModificacoes({
               </label>
 
               {/* ✅ NOVO: Botão para expandir descrição */}
-              {(mod.descricao || mod.efeitosMecanicos) && (
+              {Boolean(mod.descricao || efeitosMecanicos) && (
                 <div className="px-4 pb-4">
                   <button
                     onClick={(e) => {
@@ -211,21 +219,17 @@ export function InventarioModalModificacoes({
                       )}
 
                       {/* Efeitos mecânicos */}
-                      {mod.efeitosMecanicos && (
+                      {efeitosMecanicos && (
                         <div className="p-3 bg-app-primary/5 rounded-lg border border-app-primary/20">
                           <p className="text-xs font-semibold text-app-fg mb-2 flex items-center gap-1">
                             <Icon name="sparkles" className="w-3 h-3 text-app-primary" />
                             Efeitos Mecânicos
                           </p>
-                          {mod.efeitosMecanicos.descricao && (
-                            <p className="text-xs text-app-muted mb-2">
-                              {mod.efeitosMecanicos.descricao}
-                            </p>
-                          )}
-                          {mod.efeitosMecanicos.restricao && (
+                          {efeitosDescricao && <p className="text-xs text-app-muted mb-2">{efeitosDescricao}</p>}
+                          {efeitosRestricao && (
                             <p className="text-xs text-app-warning flex items-start gap-1">
                               <Icon name="warning" className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                              <span>{mod.efeitosMecanicos.restricao}</span>
+                              <span>{efeitosRestricao}</span>
                             </p>
                           )}
                         </div>
@@ -244,10 +248,11 @@ export function InventarioModalModificacoes({
         <p className="text-xs text-app-muted flex items-start gap-2">
           <Icon name="info" className="w-4 h-4 text-app-primary flex-shrink-0 mt-0.5" />
           <span>
-            Modificações podem alterar espaços, categoria e propriedades do equipamento. Clique em "Ver detalhes" para mais informações.
+            Modificações podem alterar espaços, categoria e propriedades do equipamento. Clique em &quot;Ver detalhes&quot; para mais informações.
           </span>
         </p>
       </div>
     </div>
   );
 }
+

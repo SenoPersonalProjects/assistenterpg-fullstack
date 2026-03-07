@@ -1,7 +1,6 @@
 // src/components/ui/Portal.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 type PortalProps = {
@@ -9,14 +8,7 @@ type PortalProps = {
 };
 
 export function Portal({ children }: PortalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  if (!mounted) return null;
+  if (typeof document === 'undefined') return null;
 
   return createPortal(children, document.body);
 }

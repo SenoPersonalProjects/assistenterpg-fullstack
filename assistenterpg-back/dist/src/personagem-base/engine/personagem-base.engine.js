@@ -65,14 +65,15 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(habilidades, nivel) {
         if (m?.defesa?.bonus && typeof m.defesa.bonus === 'number') {
             mods.defesaExtra += m.defesa.bonus;
         }
-        if (m?.inventario?.espacosExtra && typeof m.inventario.espacosExtra === 'number') {
+        if (m?.inventario?.espacosExtra &&
+            typeof m.inventario.espacosExtra === 'number') {
             mods.espacosInventarioExtra += m.inventario.espacosExtra;
         }
     }
     return mods;
 }
 async function calcularEstadoFinalPersonagemBase(params) {
-    const { dto: dtoIn, strictPassivas, prisma, personagemBaseId, itensInventarioCalculados } = params;
+    const { dto: dtoIn, strictPassivas, prisma, personagemBaseId, itensInventarioCalculados, } = params;
     const poderesGenericosNormalizados = normalizePoderesGenericos(dtoIn.poderesGenericos);
     const passivasAtributosConfigLimpo = limparUndefinedDeepJson(dtoIn.passivasAtributosConfig);
     const dtoNormalizado = {
@@ -130,7 +131,9 @@ async function calcularEstadoFinalPersonagemBase(params) {
         periciasMap: periciasMapCodigo,
         profsExtrasPayload: profsPayloadCodigos,
     });
-    const classe = await prisma.classe.findUnique({ where: { id: dtoNormalizado.classeId } });
+    const classe = await prisma.classe.findUnique({
+        where: { id: dtoNormalizado.classeId },
+    });
     const periciasLivres = dtoNormalizado.periciasLivresCodigos ?? [];
     const maxLivresBase = (classe?.periciasLivresBase ?? 0) + dtoNormalizado.intelecto;
     const maxLivresTotal = maxLivresBase + periciasLivresExtras;
@@ -204,7 +207,11 @@ async function calcularEstadoFinalPersonagemBase(params) {
         include: { proficiencia: true },
     });
     const profsClasseCodigos = profsClasse.map((cp) => cp.proficiencia.codigo);
-    const profsFinais = Array.from(new Set([...profsClasseCodigos, ...profsDeHabilidades, ...profsExtrasDeIntelecto]));
+    const profsFinais = Array.from(new Set([
+        ...profsClasseCodigos,
+        ...profsDeHabilidades,
+        ...profsExtrasDeIntelecto,
+    ]));
     const derivadosBase = await (0, regras_derivados_1.calcularAtributosDerivados)({
         nivel: dtoNormalizado.nivel,
         classeId: dtoNormalizado.classeId,
@@ -216,11 +223,12 @@ async function calcularEstadoFinalPersonagemBase(params) {
         atributoChaveEa: dtoNormalizado.atributoChaveEa,
         passivasAtributoIds: passivasResolvidas.passivaIds,
     }, prisma);
-    const calcMods = params.calcularModsDerivadosPorHabilidades ?? calcularModificadoresDerivadosPorHabilidadesLocal;
+    const calcMods = params.calcularModsDerivadosPorHabilidades ??
+        calcularModificadoresDerivadosPorHabilidadesLocal;
     const mods = calcMods(habilidades, dtoNormalizado.nivel);
     const resistenciasDeHabilidades = (0, regras_poderes_efeitos_1.extrairResistenciasDeHabilidades)(habilidades);
     let defesaEquipamento = 0;
-    let resistenciasDeEquipamentos = new Map();
+    const resistenciasDeEquipamentos = new Map();
     if (personagemBaseId) {
         const personagemComResistencias = await prisma.personagemBase.findUnique({
             where: { id: personagemBaseId },

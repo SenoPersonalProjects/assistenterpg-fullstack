@@ -18,7 +18,7 @@ exports.OrigensModule = OrigensModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [origens_service_1.OrigensService],
-        controllers: [origens_controller_1.OrigensController]
+        controllers: [origens_controller_1.OrigensController],
     })
 ], OrigensModule);
 //# sourceMappingURL=origens.module.js.map

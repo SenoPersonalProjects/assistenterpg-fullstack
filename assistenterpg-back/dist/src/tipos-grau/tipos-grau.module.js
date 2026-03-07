@@ -18,7 +18,7 @@ exports.TiposGrauModule = TiposGrauModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [tipos_grau_service_1.TiposGrauService],
-        controllers: [tipos_grau_controller_1.TiposGrauController]
+        controllers: [tipos_grau_controller_1.TiposGrauController],
     })
 ], TiposGrauModule);
 //# sourceMappingURL=tipos-grau.module.js.map

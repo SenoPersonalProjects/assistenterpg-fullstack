@@ -32,7 +32,6 @@ export default function CampanhasPage() {
   const [campanhas, setCampanhas] = useState<CampanhaResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [campanhaParaExcluir, setCampanhaParaExcluir] = useState<CampanhaResumo | null>(null);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -61,8 +60,6 @@ export default function CampanhasPage() {
   }
 
   function handleDeleteClick(campanha: CampanhaResumo) {
-    setCampanhaParaExcluir(campanha);
-
     confirm({
       title: `Tem certeza que deseja excluir a campanha "${campanha.nome}"?`,
       description: 'Esta ação é irreversível!',
@@ -80,7 +77,6 @@ export default function CampanhasPage() {
           setErro(mensagem);
           showToast(mensagem, 'error');
         } finally {
-          setCampanhaParaExcluir(null);
         }
       },
     });

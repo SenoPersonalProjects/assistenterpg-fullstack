@@ -10,22 +10,17 @@ import { BusinessException } from './business.exception';
 
 export class OrigemNaoEncontradaException extends BaseException {
   constructor(identificador?: string | number) {
-    super(
-      'Origem não encontrada',
-      HttpStatus.NOT_FOUND,
-      'ORIGEM_NOT_FOUND',
-      { identificador },
-    );
+    super('Origem não encontrada', HttpStatus.NOT_FOUND, 'ORIGEM_NOT_FOUND', {
+      identificador,
+    });
   }
 }
 
 export class OrigemNomeDuplicadoException extends BusinessException {
   constructor(nome: string) {
-    super(
-      `Origem com nome "${nome}" já existe`,
-      'ORIGEM_NOME_DUPLICADO',
-      { nome },
-    );
+    super(`Origem com nome "${nome}" já existe`, 'ORIGEM_NOME_DUPLICADO', {
+      nome,
+    });
   }
 }
 

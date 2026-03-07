@@ -45,13 +45,14 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
         })
             .filter((g) => g !== null);
         const espacosInventario = {
-            base: personagem.espacosInventarioBase ?? (personagem.forca * 5),
+            base: personagem.espacosInventarioBase ?? personagem.forca * 5,
             extra: personagem.espacosInventarioExtra ?? 0,
-            total: (personagem.espacosInventarioBase ?? (personagem.forca * 5)) + (personagem.espacosInventarioExtra ?? 0),
+            total: (personagem.espacosInventarioBase ?? personagem.forca * 5) +
+                (personagem.espacosInventarioExtra ?? 0),
         };
         const itensInventario = await this.mapItensInventario(personagem.id, prisma);
         const espacosOcupados = itensInventario.reduce((total, item) => {
-            return total + (item.espacosCalculados * item.quantidade);
+            return total + item.espacosCalculados * item.quantidade;
         }, 0);
         const sobrecarregado = espacosOcupados > espacosInventario.total;
         const resistencias = (personagem.resistencias ?? []).map((r) => ({
@@ -91,15 +92,17 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
             classe: personagem.classe,
             trilha: personagem.trilha,
             caminho: personagem.caminho,
-            tecnicaInata: personagem.tecnicaInata ? {
-                id: personagem.tecnicaInata.id,
-                codigo: personagem.tecnicaInata.codigo,
-                nome: personagem.tecnicaInata.nome,
-                descricao: personagem.tecnicaInata.descricao,
-                tipo: personagem.tecnicaInata.tipo,
-                hereditaria: personagem.tecnicaInata.hereditaria,
-                linkExterno: personagem.tecnicaInata.linkExterno,
-            } : null,
+            tecnicaInata: personagem.tecnicaInata
+                ? {
+                    id: personagem.tecnicaInata.id,
+                    codigo: personagem.tecnicaInata.codigo,
+                    nome: personagem.tecnicaInata.nome,
+                    descricao: personagem.tecnicaInata.descricao,
+                    tipo: personagem.tecnicaInata.tipo,
+                    hereditaria: personagem.tecnicaInata.hereditaria,
+                    linkExterno: personagem.tecnicaInata.linkExterno,
+                }
+                : null,
             proficiencias: (personagem.proficiencias ?? []).map((pp) => ({
                 id: pp.proficiencia.id,
                 codigo: pp.proficiencia.codigo,
@@ -168,7 +171,8 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
                 sanMaximo: personagem.sanMaximo,
                 defesaBase: personagem.defesaBase ?? personagem.defesa ?? 10,
                 defesaEquipamento: personagem.defesaEquipamento ?? 0,
-                defesaTotal: (personagem.defesaBase ?? personagem.defesa ?? 10) + (personagem.defesaEquipamento ?? 0),
+                defesaTotal: (personagem.defesaBase ?? personagem.defesa ?? 10) +
+                    (personagem.defesaEquipamento ?? 0),
                 deslocamento: personagem.deslocamento,
                 limitePeEaPorTurno: personagem.limitePeEaPorTurno,
                 reacoesBasePorTurno: personagem.reacoesBasePorTurno,

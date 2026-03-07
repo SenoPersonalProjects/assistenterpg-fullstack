@@ -21,10 +21,10 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     // 1️⃣ Buscar roles requeridas do metadata
-    const requiredRoles = this.reflector.getAllAndOverride<RoleUsuario[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<RoleUsuario[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     // 2️⃣ Se não há roles definidas, permite acesso
     if (!requiredRoles || requiredRoles.length === 0) {

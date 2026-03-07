@@ -42,31 +42,12 @@ export function SecaoInventario({
   personagem,
   equipamentos = [],
 }: Props) {
-  const itensInventario: ItemInventarioDto[] = personagem.itensInventario ?? [];
+  const itensInventario = useMemo<ItemInventarioDto[]>(
+    () => personagem.itensInventario ?? [],
+    [personagem.itensInventario],
+  );
 
-  // ✅ DEBUG: Verificar dados
-  useMemo(() => {
-    console.group('🔍 [SecaoInventario] DEBUG');
-    console.log('itensInventario:', itensInventario);
-    console.log('itensInventario length:', itensInventario.length);
-    console.log('equipamentos:', equipamentos);
-    console.log('equipamentos length:', equipamentos.length);
-    
-    itensInventario.forEach((item, idx) => {
-      console.log(`Item ${idx}:`, {
-        id: item.id,
-        equipamentoId: item.equipamentoId,
-        equipado: item.equipado,
-        quantidade: item.quantidade,
-        equipamento: item.equipamento,
-        tipo: item.equipamento?.tipo,
-      });
-    });
-    
-    console.groupEnd();
-  }, [itensInventario, equipamentos]);
-
-  // ✅ Usar dados do backend
+  // Usar dados do backend.
   const espacosBase = personagem.espacosInventarioBase;
   const espacosExtra = personagem.espacosInventarioExtra || 0;
   const espacosOcupados = personagem.espacosOcupados || 0;
@@ -82,7 +63,7 @@ export function SecaoInventario({
     [personagem.prestigioBase],
   );
 
-  // ✅ CORRIGIDO: Normalizar categorias do backend
+  // Normalizar categorias do backend.
   const itensPorCategoria = useMemo(() => {
     const contagem: Record<string, number> = {
       '0': 0,
@@ -102,37 +83,14 @@ export function SecaoInventario({
     return contagem;
   }, [itensInventario]);
 
-  // ✅ CORRIGIDO: Sistema de vestir agora detecta FERRAMENTA_AMALDICOADA
+  // Sistema de vestir agora detecta FERRAMENTA_AMALDICOADA.
   const { vestiveis, vestimentas } = useMemo(() => {
-    console.group('🎯 [contarItensVestiveis] DEBUG');
-    
     if (!itensInventario || itensInventario.length === 0) {
-      console.log('⚠️ itensInventario está vazio!');
-      console.groupEnd();
       return { vestiveis: 0, vestimentas: 0 };
     }
 
-    console.log('📊 Chamando contarItensVestiveis com:');
-    console.log('  - itensInventario:', itensInventario);
-    console.log('  - equipamentos:', equipamentos);
-
-    // ✅ USA A FUNÇÃO CORRIGIDA DO UTILS
-    const resultado = contarItensVestiveis(itensInventario, equipamentos);
-    
-    console.log('📈 Resultado:', resultado);
-    console.groupEnd();
-    
-    return resultado;
+    return contarItensVestiveis(itensInventario, equipamentos);
   }, [itensInventario, equipamentos]);
-
-  // ✅ DEBUG: Resultado final
-  useMemo(() => {
-    console.log('✅ [SecaoInventario] Final Result:', {
-      vestiveis,
-      vestimentas,
-      itensEquipados: itensInventario.filter(i => i.equipado).length,
-    });
-  }, [vestiveis, vestimentas, itensInventario]);
 
   // Stats equipados (placeholder)
   const statsEquipados = useMemo(() => {
@@ -142,7 +100,7 @@ export function SecaoInventario({
       danosTotais: [],
       reducoesDano: [],
     };
-  }, [itensInventario]);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -293,7 +251,7 @@ export function SecaoInventario({
         </div>
       </div>
 
-      {/* ✅ SISTEMA DE VESTIR */}
+      {/* SISTEMA DE VESTIR */}
       <div className="card">
         <div className="card__body">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -375,7 +333,7 @@ export function SecaoInventario({
         </div>
       </div>
 
-      {/* ✅ STATS EQUIPADOS */}
+      {/* STATS EQUIPADOS */}
       {itensInventario.some((item) => item.equipado) && (
         <div className="card">
           <div className="card__body">

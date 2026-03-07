@@ -108,6 +108,24 @@ function tetoPorNivel(nivel: number): number {
   return nivel <= 3 ? 3 : 7;
 }
 
+type PoderGenericoConfig = Record<string, unknown> & {
+  periciasCodigos?: string[];
+  proficiencias?: string[];
+  tipoGrauCodigo?: string;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+}
+
 function sanitizarPassivasConfig(
   config: PassivasAtributoConfigFront | undefined,
   ativos: AtributoBaseCodigo[],
@@ -118,11 +136,11 @@ function sanitizarPassivasConfig(
   const sanitizado: PassivasAtributoConfigFront = { ...config };
 
   if (sanitizado.INT_I && !sanitizado.INT_I.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_I;
+    delete sanitizado.INT_I;
   }
 
   if (sanitizado.INT_II && !sanitizado.INT_II.periciaCodigoTreino) {
-    delete (sanitizado as any).INT_II;
+    delete sanitizado.INT_II;
   }
 
   const temConfig = Object.keys(sanitizado).some(
@@ -154,18 +172,16 @@ function sanitizarPoderesGenericos(
 
   const validos = poderes
     .map((inst) => {
-      const cfg = inst.config ?? {};
+      const cfgBase = asRecord(inst.config) ?? {};
 
-      if (Object.keys(cfg).length === 0) {
+      if (Object.keys(cfgBase).length === 0) {
         return { ...inst, config: {} };
       }
 
-      const cfgValidado = { ...cfg } as any;
+      const cfgValidado: PoderGenericoConfig = { ...cfgBase };
 
       if ('periciasCodigos' in cfgValidado) {
-        const pericias = Array.isArray(cfgValidado.periciasCodigos)
-          ? cfgValidado.periciasCodigos.filter((p: any) => p && String(p).trim() !== '')
-          : [];
+        const pericias = toStringArray(cfgValidado.periciasCodigos);
 
         if (pericias.length === 0) return null;
 
@@ -173,9 +189,7 @@ function sanitizarPoderesGenericos(
       }
 
       if ('proficiencias' in cfgValidado) {
-        const profs = Array.isArray(cfgValidado.proficiencias)
-          ? cfgValidado.proficiencias.filter((p: any) => p && String(p).trim() !== '')
-          : [];
+        const profs = toStringArray(cfgValidado.proficiencias);
 
         if (profs.length === 0) return null;
 
@@ -194,13 +208,13 @@ function sanitizarPoderesGenericos(
   return validos.length > 0 ? validos : undefined;
 }
 
-// ✅ NOVA FUNÇÃO: Sanitizar itens de inventário para envio ao backend
+// Sanitiza itens de inventário para envio ao backend.
 function sanitizarItensInventario(
   itens: ItemInventarioPayload[],
 ): ItemInventarioPayload[] | undefined {
   if (!itens || itens.length === 0) return undefined;
 
-  const itensSanitizados = itens.map((item: any) => ({
+  const itensSanitizados = itens.map((item) => ({
     equipamentoId: item.equipamentoId,
     quantidade: item.quantidade,
     equipado: item.equipado,
@@ -400,6 +414,7 @@ export function PersonagemBaseWizard(props: Props) {
 
     try {
       const base = mode === 'edit' ? buildUpdatePayload() : buildCreatePayload();
+      const basePayload = base as Partial<CreatePersonagemBasePayload>;
 
       const configSanitizado = sanitizarPassivasConfig(
         passivasAtributosConfig,
@@ -410,11 +425,11 @@ export function PersonagemBaseWizard(props: Props) {
 
       const poderesGenericosSanitizados = sanitizarPoderesGenericos(poderesGenericos);
 
-      // ✅ CORRIGIDO: Sanitizar itens de inventário
+      // Sanitizar itens de inventário
       const itensInventarioSanitizados = sanitizarItensInventario(itensInventario);
 
       return {
-        ...(base as any),
+        ...basePayload,
         grausTreinamento: grausTreinamentoSanitizados,
         passivasAtributosConfig: configSanitizado,
         passivasAtributosAtivos:
@@ -425,8 +440,7 @@ export function PersonagemBaseWizard(props: Props) {
         periciasLivresExtras,
         itensInventario: itensInventarioSanitizados,
       } as CreatePersonagemBasePayload;
-    } catch (e) {
-      console.error('[Wizard][payload] erro ao montar payload:', e);
+    } catch {
       return null;
     }
   }, [
@@ -470,9 +484,8 @@ export function PersonagemBaseWizard(props: Props) {
           if (requestId !== requestIdRef.current) return;
           setPreviewGlobal(res);
         })
-        .catch((err) => {
+        .catch(() => {
           if (requestId !== requestIdRef.current) return;
-          console.error('[Wizard][preview global] erro:', err);
           setPreviewGlobal(null);
         })
         .finally(() => {
@@ -503,14 +516,6 @@ export function PersonagemBaseWizard(props: Props) {
     return previewGlobal.proficiencias.map((p) => p.codigo);
   }, [previewGlobal]);
 
-  const profsResultantesDetalhadas = useMemo(
-    () =>
-      profsFinaisCodigos
-        .map((codigo) => proficiencias.find((p) => p.codigo === codigo))
-        .filter(Boolean) as ProficienciaCatalogo[],
-    [profsFinaisCodigos, proficiencias],
-  );
-
   async function handleFinalSubmit() {
     if (!nome.trim()) {
       setErro('Nome é obrigatório');
@@ -537,8 +542,6 @@ export function PersonagemBaseWizard(props: Props) {
     setSubmitting(true);
 
     try {
-      console.log('[Wizard] Payload final sanitizado:', previewPayload);
-
       if (mode === 'edit') {
         await (props as EditProps).onSubmitEdit(
           previewPayload as unknown as UpdatePersonagemBasePayload,
@@ -555,11 +558,13 @@ export function PersonagemBaseWizard(props: Props) {
         setPreviewGlobal(null);
         setStep(1);
       }
-    } catch (e: any) {
-      console.error('[Wizard] Erro ao submeter:', e);
+    } catch (e) {
       setErro(
-        e?.message ??
-        (mode === 'edit' ? 'Erro ao salvar personagem-base' : 'Erro ao criar personagem-base'),
+        e instanceof Error
+          ? e.message
+          : mode === 'edit'
+            ? 'Erro ao salvar personagem-base'
+            : 'Erro ao criar personagem-base',
       );
     } finally {
       setSubmitting(false);
@@ -961,7 +966,9 @@ export function PersonagemBaseWizard(props: Props) {
             <>
               <SectionTitle>Revisão final</SectionTitle>
               <PersonagemBaseStepRevisao
-                preview={(previewPayload ?? ({} as any)) as CreatePersonagemBasePayload}
+                preview={
+                  (previewPayload ?? ({} as unknown as CreatePersonagemBasePayload))
+                }
                 classes={classes}
                 origens={origens}
                 clas={clas}

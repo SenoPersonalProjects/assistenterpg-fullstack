@@ -155,7 +155,11 @@ let SuplementosService = class SuplementosService {
                     status: dto.status,
                     icone: dto.icone,
                     banner: dto.banner,
-                    tags: dto.tags !== undefined ? (dto.tags ? dto.tags : client_1.Prisma.JsonNull) : undefined,
+                    tags: dto.tags !== undefined
+                        ? dto.tags
+                            ? dto.tags
+                            : client_1.Prisma.JsonNull
+                        : undefined,
                     autor: dto.autor,
                 },
             });

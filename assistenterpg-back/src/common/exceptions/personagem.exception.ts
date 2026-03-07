@@ -123,7 +123,12 @@ export class CatalogoPassivasInconsisteException extends BaseException {
 }
 
 export class PassivaRequisitoNaoAtendidoException extends BusinessException {
-  constructor(passivaName: string, atributo: string, requisito: number, valorAtual: number) {
+  constructor(
+    passivaName: string,
+    atributo: string,
+    requisito: number,
+    valorAtual: number,
+  ) {
     super(
       `Passiva "${passivaName}" requer ${atributo} >= ${requisito}, mas você tem ${valorAtual}`,
       'PASSIVE_REQUIREMENT_NOT_MET',
@@ -147,7 +152,11 @@ export class PassivasLimiteAtributoExcedidoException extends BusinessException {
     super(
       `Você pode ter passivas em no máximo 2 atributos diferentes`,
       'TOO_MANY_PASSIVE_ATTRIBUTES',
-      { maximo: 2, quantidadeSelecionada: quantidade, atributos: atributosComPassivas },
+      {
+        maximo: 2,
+        quantidadeSelecionada: quantidade,
+        atributos: atributosComPassivas,
+      },
     );
   }
 }
@@ -208,12 +217,9 @@ export class PassivaIntelectoGrauExcedeMaximoException extends BusinessException
 
 export class ClasseNaoEncontradaException extends BaseException {
   constructor(classeId?: number) {
-    super(
-      'Classe não encontrada',
-      HttpStatus.NOT_FOUND,
-      'CLASS_NOT_FOUND',
-      { classeId },
-    );
+    super('Classe não encontrada', HttpStatus.NOT_FOUND, 'CLASS_NOT_FOUND', {
+      classeId,
+    });
   }
 }
 
@@ -254,7 +260,11 @@ export class GrauAprimoramentoForaDoLimiteException extends ValidationException 
 }
 
 export class GrauAprimoramentoExcedeMaximoComBonusException extends BusinessException {
-  constructor(tipoGrauCodigo: string, valorFinal: number, bonusHabilidades: number) {
+  constructor(
+    tipoGrauCodigo: string,
+    valorFinal: number,
+    bonusHabilidades: number,
+  ) {
     super(
       `Grau de "${tipoGrauCodigo}" ficaria acima de 5 (${valorFinal}) com os bônus de habilidades. ` +
         `Reduza seus graus livres neste tipo para no máximo ${5 - bonusHabilidades}`,
@@ -265,7 +275,11 @@ export class GrauAprimoramentoExcedeMaximoComBonusException extends BusinessExce
 }
 
 export class GrauAprimoramentoExcedeMaximoComPoderesException extends BusinessException {
-  constructor(tipoGrauCodigo: string, valorFinal: number, bonusPoderes: number) {
+  constructor(
+    tipoGrauCodigo: string,
+    valorFinal: number,
+    bonusPoderes: number,
+  ) {
     super(
       `Grau de "${tipoGrauCodigo}" ficaria acima de 5 (${valorFinal}) com os bônus de poderes genéricos. ` +
         `Reduza seus graus livres neste tipo para no máximo ${5 - bonusPoderes}`,
@@ -290,7 +304,12 @@ export class GrauTreinamentoNivelInvalidoException extends BusinessException {
 }
 
 export class GrauTreinamentoExcedeMelhoriasException extends BusinessException {
-  constructor(nivel: number, quantidadeInformada: number, maximo: number, intelecto: number) {
+  constructor(
+    nivel: number,
+    quantidadeInformada: number,
+    maximo: number,
+    intelecto: number,
+  ) {
     super(
       `No nível ${nivel}, você pode fazer no máximo ${maximo} melhorias (2 + INT ${intelecto})`,
       'TRAINING_EXCEEDS_IMPROVEMENTS',
@@ -331,7 +350,11 @@ export class GrauTreinamentoProgressaoInvalidaException extends BusinessExceptio
 }
 
 export class GrauTreinamentoNivelMinimoException extends BusinessException {
-  constructor(tipoGrau: 'Graduado' | 'Veterano' | 'Expert', grau: number, nivelMinimo: number) {
+  constructor(
+    tipoGrau: 'Graduado' | 'Veterano' | 'Expert',
+    grau: number,
+    nivelMinimo: number,
+  ) {
     super(
       `${tipoGrau} (${grau}) só pode ser alcançado a partir do nível ${nivelMinimo}`,
       'TRAINING_LEVEL_REQUIREMENT',
@@ -503,7 +526,11 @@ export class PericiaJujutsuNaoEncontradaException extends BaseException {
 // ============================================================================
 
 export class PoderesGenericosExcedemSlotsException extends BusinessException {
-  constructor(nivel: number, slotsDisponiveis: number, quantidadeSelecionada: number) {
+  constructor(
+    nivel: number,
+    slotsDisponiveis: number,
+    quantidadeSelecionada: number,
+  ) {
     super(
       `Nível ${nivel} permite no máximo ${slotsDisponiveis} poderes genéricos, mas ${quantidadeSelecionada} foram selecionados`,
       'POWERS_EXCEED_SLOTS',
@@ -553,32 +580,35 @@ export class PoderGenericoRequerEscolhaException extends BusinessException {
 }
 
 export class PoderGenericoConfigInvalidaException extends BusinessException {
-  constructor(poderNome: string, campo: string, mensagem: string, extraDetails?: Record<string, any>) {
-    super(
-      `"${poderNome}": ${mensagem}`,
-      'POWER_CONFIG_INVALID',
-      { poder: poderNome, campo, ...extraDetails },
-    );
+  constructor(
+    poderNome: string,
+    campo: string,
+    mensagem: string,
+    extraDetails?: Record<string, any>,
+  ) {
+    super(`"${poderNome}": ${mensagem}`, 'POWER_CONFIG_INVALID', {
+      poder: poderNome,
+      campo,
+      ...extraDetails,
+    });
   }
 }
 
 export class PoderGenericoRequisitoPericiaException extends BusinessException {
   constructor(poderNome: string, pericias: string) {
-    super(
-      `"${poderNome}" requer ${pericias}`,
-      'POWER_SKILL_REQUIREMENT',
-      { poder: poderNome, requisitoPericias: pericias },
-    );
+    super(`"${poderNome}" requer ${pericias}`, 'POWER_SKILL_REQUIREMENT', {
+      poder: poderNome,
+      requisitoPericias: pericias,
+    });
   }
 }
 
 export class PoderGenericoRequisitoAtributoException extends BusinessException {
   constructor(poderNome: string, atributos: string) {
-    super(
-      `"${poderNome}" requer ${atributos}`,
-      'POWER_ATTRIBUTE_REQUIREMENT',
-      { poder: poderNome, requisitoAtributos: atributos },
-    );
+    super(`"${poderNome}" requer ${atributos}`, 'POWER_ATTRIBUTE_REQUIREMENT', {
+      poder: poderNome,
+      requisitoAtributos: atributos,
+    });
   }
 }
 
@@ -638,12 +668,9 @@ export class ProficienciaNaoEncontradaException extends BusinessException {
 
 export class TrilhaNaoEncontradaException extends BaseException {
   constructor(trilhaId?: number) {
-    super(
-      'Trilha não encontrada',
-      HttpStatus.NOT_FOUND,
-      'PATH_NOT_FOUND',
-      { trilhaId },
-    );
+    super('Trilha não encontrada', HttpStatus.NOT_FOUND, 'PATH_NOT_FOUND', {
+      trilhaId,
+    });
   }
 }
 
@@ -658,21 +685,15 @@ export class TrilhaIncompativelException extends BusinessException {
 
 export class TrilhaRequisitoNaoAtendidoException extends BusinessException {
   constructor(mensagem: string) {
-    super(
-      mensagem,
-      'PATH_REQUIREMENT_NOT_MET',
-    );
+    super(mensagem, 'PATH_REQUIREMENT_NOT_MET');
   }
 }
 
 export class CaminhoNaoEncontradoException extends BaseException {
   constructor(caminhoId?: number) {
-    super(
-      'Caminho não encontrado',
-      HttpStatus.NOT_FOUND,
-      'WAY_NOT_FOUND',
-      { caminhoId },
-    );
+    super('Caminho não encontrado', HttpStatus.NOT_FOUND, 'WAY_NOT_FOUND', {
+      caminhoId,
+    });
   }
 }
 

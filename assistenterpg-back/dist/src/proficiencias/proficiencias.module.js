@@ -18,7 +18,7 @@ exports.ProficienciasModule = ProficienciasModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [proficiencias_service_1.ProficienciasService],
-        controllers: [proficiencias_controller_1.ProficienciasController]
+        controllers: [proficiencias_controller_1.ProficienciasController],
     })
 ], ProficienciasModule);
 //# sourceMappingURL=proficiencias.module.js.map

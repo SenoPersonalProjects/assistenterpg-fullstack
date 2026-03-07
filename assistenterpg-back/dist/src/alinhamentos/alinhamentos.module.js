@@ -18,7 +18,7 @@ exports.AlinhamentosModule = AlinhamentosModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [alinhamentos_service_1.AlinhamentosService],
-        controllers: [alinhamentos_controller_1.AlinhamentosController]
+        controllers: [alinhamentos_controller_1.AlinhamentosController],
     })
 ], AlinhamentosModule);
 //# sourceMappingURL=alinhamentos.module.js.map

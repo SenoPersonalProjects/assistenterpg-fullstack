@@ -5,6 +5,7 @@ import { ClasseCatalogoDto } from './dto/catalogo-classe.dto';
 export declare class ClassesService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private validarFonteSuplemento;
     create(dto: CreateClasseDto): Promise<{
         id: number;
         nome: string;

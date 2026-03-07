@@ -44,7 +44,8 @@ let ModificacoesService = class ModificacoesService {
                     where: { id: { in: createDto.equipamentosCompatíveisIds } },
                     select: { id: true },
                 });
-                if (equipamentosExistentes.length !== createDto.equipamentosCompatíveisIds.length) {
+                if (equipamentosExistentes.length !==
+                    createDto.equipamentosCompatíveisIds.length) {
                     const idsEncontrados = equipamentosExistentes.map((e) => e.id);
                     const idsInvalidos = createDto.equipamentosCompatíveisIds.filter((id) => !idsEncontrados.includes(id));
                     throw new modificacao_exception_1.ModificacaoEquipamentosInvalidosException(idsInvalidos);
@@ -115,7 +116,8 @@ let ModificacoesService = class ModificacoesService {
                     where: { id: { in: updateDto.equipamentosCompatíveisIds } },
                     select: { id: true },
                 });
-                if (equipamentosExistentes.length !== updateDto.equipamentosCompatíveisIds.length) {
+                if (equipamentosExistentes.length !==
+                    updateDto.equipamentosCompatíveisIds.length) {
                     const idsEncontrados = equipamentosExistentes.map((e) => e.id);
                     const idsInvalidos = updateDto.equipamentosCompatíveisIds.filter((id) => !idsEncontrados.includes(id));
                     throw new modificacao_exception_1.ModificacaoEquipamentosInvalidosException(idsInvalidos);
@@ -205,7 +207,7 @@ let ModificacoesService = class ModificacoesService {
     }
     async listar(filtros) {
         try {
-            const { tipo, fontes, suplementoId, busca, pagina = 1, limite = 50 } = filtros;
+            const { tipo, fontes, suplementoId, busca, pagina = 1, limite = 50, } = filtros;
             const where = {};
             if (tipo)
                 where.tipo = tipo;
@@ -337,7 +339,8 @@ let ModificacoesService = class ModificacoesService {
                 erros.push(`Modificação só aplicável a: ${restricoes.tiposEquipamento.join(', ')}`);
             }
         }
-        if (restricoes.excluiEscudos && equipamento.proficienciaProtecao === 'ESCUDO') {
+        if (restricoes.excluiEscudos &&
+            equipamento.proficienciaProtecao === 'ESCUDO') {
             erros.push('Modificação não aplicável a escudos');
         }
         if (restricoes.tiposProtecao?.length && equipamento.tipoProtecao) {

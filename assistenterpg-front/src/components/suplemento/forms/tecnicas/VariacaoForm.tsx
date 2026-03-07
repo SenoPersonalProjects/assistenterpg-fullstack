@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Badge } from '@/components/ui/Badge';
 import {
   TipoExecucao,
   AreaEfeito,
@@ -51,7 +50,7 @@ export function VariacaoForm({
     onChange({ dadosDano: [...dadosDano, novoDado] });
   }
 
-  function updateDadoDano(dadoIndex: number, campo: keyof DadoDanoTecnica, valor: any) {
+  function updateDadoDano(dadoIndex: number, campo: keyof DadoDanoTecnica, valor: unknown) {
     const novosDados = [...dadosDano];
     novosDados[dadoIndex] = { ...novosDados[dadoIndex], [campo]: valor };
     onChange({ dadosDano: novosDados });

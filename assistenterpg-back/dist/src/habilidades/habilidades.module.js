@@ -18,7 +18,7 @@ exports.HabilidadesModule = HabilidadesModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [habilidades_service_1.HabilidadesService],
-        controllers: [habilidades_controller_1.HabilidadesController]
+        controllers: [habilidades_controller_1.HabilidadesController],
     })
 ], HabilidadesModule);
 //# sourceMappingURL=habilidades.module.js.map

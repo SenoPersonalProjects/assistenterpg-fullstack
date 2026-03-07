@@ -458,7 +458,7 @@ export function PersonagemBaseStepClasseOrigem({
     );
   };
 
-  const renderHabilidades = (habs: any[]) => {
+  const renderHabilidades = (habs: Array<{ id: number; nome: string; descricao: string | null }>) => {
     if (!habs || habs.length === 0) return null;
 
     return (

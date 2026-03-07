@@ -6,11 +6,15 @@ import { useParams, useRouter } from 'next/navigation';
 
 import {
   apiDeletePersonagemBase,
+  apiExportarPersonagemBase,
   apiUpdatePersonagemBase,
+  extrairMensagemErro,
+  traduzirErro,
   type UpdatePersonagemBasePayload,
 } from '@/lib/api';
 
 import { useConfirm } from '@/hooks/useConfirm';
+import { useToast } from '@/context/ToastContext';
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
@@ -28,9 +32,90 @@ import { SecaoOrigemClasse } from '@/components/personagem-base/sections/SecaoOr
 import { SecaoPoderes } from '@/components/personagem-base/sections/SecaoPoderes';
 import { SecaoInventario } from '@/components/personagem-base/sections/SecaoInventario';
 
+function nomeArquivoExportacao(nomePersonagem: string): string {
+  const base = nomePersonagem
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  const nomeSeguro = base || 'personagem';
+  const data = new Date().toISOString().slice(0, 10);
+  return `personagem-${nomeSeguro}-${data}.json`;
+}
+
+function baixarJsonArquivo(conteudo: unknown, arquivo: string) {
+  const blob = new Blob([JSON.stringify(conteudo, null, 2)], {
+    type: 'application/json;charset=utf-8',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = arquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+function mensagemErroExportacao(error: unknown): string {
+  const status = Number(
+    (error as { status?: number })?.status ??
+      (error as { response?: { status?: number } })?.response?.status ??
+      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
+      0,
+  );
+  const code = (error as { body?: { code?: string } })?.body?.code;
+  const base = traduzirErro(code, extrairMensagemErro(error), status);
+
+  if (status === 404) {
+    return 'Personagem não encontrado para exportação.';
+  }
+
+  if (status === 400 || status === 422) {
+    return `Não foi possível exportar o JSON. ${base}`;
+  }
+
+  return base;
+}
+
+function mensagemErroOperacaoPersonagem(
+  error: unknown,
+  acao: 'atualizar' | 'excluir',
+): string {
+  const status = Number(
+    (error as { status?: number })?.status ??
+      (error as { response?: { status?: number } })?.response?.status ??
+      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
+      0,
+  );
+  const code = (error as { body?: { code?: string } })?.body?.code;
+  const base = traduzirErro(code, extrairMensagemErro(error), status);
+
+  if (status === 404) {
+    return acao === 'excluir'
+      ? 'Personagem nao encontrado para exclusao.'
+      : 'Personagem nao encontrado para atualizacao.';
+  }
+
+  if (status === 400 || status === 422) {
+    return acao === 'excluir'
+      ? `Nao foi possivel excluir o personagem. ${base}`
+      : `Nao foi possivel atualizar o personagem. ${base}`;
+  }
+
+  if (status === 403) {
+    return 'Voce nao tem permissao para executar esta acao.';
+  }
+
+  return base;
+}
+
 export default function PersonagemBaseDetalhePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { showToast } = useToast();
   const id = params?.id;
   const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
 
@@ -49,6 +134,7 @@ export default function PersonagemBaseDetalhePage() {
 
   const [modoEdicao, setModoEdicao] = useState(false);
   const [erroLocal, setErroLocal] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
 
   const alinhamento = useMemo(
     () => catalogos.alinhamentos.find((a) => a.id === personagem?.alinhamentoId),
@@ -73,7 +159,7 @@ export default function PersonagemBaseDetalhePage() {
   const habilidadesIniciaisOrigem = useMemo(
     () =>
       origemCatalogo?.habilidadesIniciais ??
-      origemCatalogo?.habilidadesOrigem?.map((r: any) => r.habilidade) ??
+      origemCatalogo?.habilidadesOrigem?.map((r) => r.habilidade) ??
       [],
     [origemCatalogo],
   );
@@ -134,8 +220,7 @@ export default function PersonagemBaseDetalhePage() {
       await refresh();
       setModoEdicao(false);
     } catch (e) {
-      console.error(e);
-      setErroLocal('Erro ao atualizar personagem-base');
+      setErroLocal(mensagemErroOperacaoPersonagem(e, 'atualizar'));
     }
   }
 
@@ -153,11 +238,29 @@ export default function PersonagemBaseDetalhePage() {
           await apiDeletePersonagemBase(personagem.id);
           router.push('/personagens-base');
         } catch (e) {
-          console.error(e);
-          setErroLocal('Erro ao excluir personagem-base');
+          setErroLocal(mensagemErroOperacaoPersonagem(e, 'excluir'));
         }
       },
     });
+  }
+
+  async function handleExportarClick() {
+    if (!personagem) return;
+
+    try {
+      setErroLocal(null);
+      setExportando(true);
+
+      const exportacao = await apiExportarPersonagemBase(personagem.id);
+      const arquivo = nomeArquivoExportacao(personagem.nome);
+      baixarJsonArquivo(exportacao, arquivo);
+      showToast('JSON exportado com sucesso.', 'success');
+    } catch (error) {
+      const mensagem = mensagemErroExportacao(error);
+      setErroLocal(mensagem);
+    } finally {
+      setExportando(false);
+    }
   }
 
   if (!id) {
@@ -292,6 +395,15 @@ export default function PersonagemBaseDetalhePage() {
             </Button>
             {!modoEdicao ? (
               <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleExportarClick}
+                  disabled={exportando}
+                >
+                  <Icon name="download" className="w-4 h-4 mr-2" />
+                  {exportando ? 'Exportando...' : 'Exportar JSON'}
+                </Button>
                 <Button variant="primary" size="sm" onClick={() => setModoEdicao(true)}>
                   <Icon name="edit" className="w-4 h-4 mr-2" />
                   Editar

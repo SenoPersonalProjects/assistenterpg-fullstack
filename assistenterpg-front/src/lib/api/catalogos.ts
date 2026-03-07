@@ -1,6 +1,8 @@
 // lib/api/catalogos.ts
 import { apiClient } from './axios-client';
+import { normalizeListResult, type ListResult } from './pagination';
 import type {
+  TipoFonte,
   ClasseCatalogo,
   ClaCatalogo,
   OrigemCatalogo,
@@ -9,11 +11,42 @@ import type {
   TipoGrauCatalogo,
   TrilhaCatalogo,
   CaminhoCatalogo,
+  HabilidadeCatalogo,
+  TipoHabilidadeCatalogo,
+  TecnicaAmaldicoadaCatalogo,
   TecnicaInataCatalogo,
+  TipoTecnicaAmaldicoada,
   AlinhamentoCatalogo,
   PoderGenericoCatalogo,
   PassivasDisponiveisResponse,
-} from '@/lib/types'; // ✅ ATUALIZADO
+} from '@/lib/types';
+
+export type FiltrarTrilhasDto = {
+  classeId?: number;
+};
+
+export type FiltrarHabilidadesDto = {
+  tipo?: TipoHabilidadeCatalogo;
+  origem?: string;
+  fonte?: TipoFonte;
+  suplementoId?: number;
+  busca?: string;
+  pagina?: number;
+  limite?: number;
+};
+
+export type FiltrarTecnicasAmaldicoadasDto = {
+  nome?: string;
+  codigo?: string;
+  tipo?: TipoTecnicaAmaldicoada;
+  hereditaria?: boolean;
+  claId?: number;
+  claNome?: string;
+  fonte?: TipoFonte;
+  suplementoId?: number;
+  incluirHabilidades?: boolean;
+  incluirClas?: boolean;
+};
 
 export async function apiGetClasses(): Promise<ClasseCatalogo[]> {
   const { data } = await apiClient.get('/classes');
@@ -45,9 +78,37 @@ export async function apiGetTiposGrau(): Promise<TipoGrauCatalogo[]> {
   return data;
 }
 
-export async function apiGetTrilhasDaClasse(classeId: number): Promise<TrilhaCatalogo[]> {
-  const { data } = await apiClient.get(`/classes/${classeId}/trilhas`);
+export async function apiGetTrilhas(filtros?: FiltrarTrilhasDto): Promise<TrilhaCatalogo[]> {
+  const params = new URLSearchParams();
+
+  if (filtros?.classeId !== undefined) params.append('classeId', filtros.classeId.toString());
+
+  const query = params.toString();
+  const { data } = await apiClient.get(`/trilhas${query ? `?${query}` : ''}`);
   return data;
+}
+
+export async function apiGetTrilhasDaClasse(classeId: number): Promise<TrilhaCatalogo[]> {
+  return apiGetTrilhas({ classeId });
+}
+
+export async function apiGetHabilidades(
+  filtros?: FiltrarHabilidadesDto,
+): Promise<ListResult<HabilidadeCatalogo>> {
+  const params = new URLSearchParams();
+
+  if (filtros?.tipo) params.append('tipo', filtros.tipo);
+  if (filtros?.origem) params.append('origem', filtros.origem);
+  if (filtros?.fonte) params.append('fonte', filtros.fonte);
+  if (filtros?.suplementoId !== undefined)
+    params.append('suplementoId', filtros.suplementoId.toString());
+  if (filtros?.busca) params.append('busca', filtros.busca);
+  if (filtros?.pagina !== undefined) params.append('pagina', filtros.pagina.toString());
+  if (filtros?.limite !== undefined) params.append('limite', filtros.limite.toString());
+
+  const query = params.toString();
+  const { data } = await apiClient.get(`/habilidades${query ? `?${query}` : ''}`);
+  return normalizeListResult<HabilidadeCatalogo>(data);
 }
 
 export async function apiGetCaminhosDaTrilha(trilhaId: number): Promise<CaminhoCatalogo[]> {
@@ -55,15 +116,44 @@ export async function apiGetCaminhosDaTrilha(trilhaId: number): Promise<CaminhoC
   return data;
 }
 
-export async function apiGetTecnicasInatas(): Promise<TecnicaInataCatalogo[]> {
-  const { data } = await apiClient.get('/tecnicas-amaldicoadas?tipo=INATA');
+export async function apiGetTecnicasAmaldicoadas(
+  filtros?: FiltrarTecnicasAmaldicoadasDto,
+): Promise<TecnicaAmaldicoadaCatalogo[]> {
+  const params = new URLSearchParams();
 
-  return data.map((tecnica: any) => ({
+  if (filtros?.nome) params.append('nome', filtros.nome);
+  if (filtros?.codigo) params.append('codigo', filtros.codigo);
+  if (filtros?.tipo) params.append('tipo', filtros.tipo);
+  if (filtros?.hereditaria !== undefined)
+    params.append('hereditaria', filtros.hereditaria.toString());
+  if (filtros?.claId !== undefined) params.append('claId', filtros.claId.toString());
+  if (filtros?.claNome) params.append('claNome', filtros.claNome);
+  if (filtros?.fonte) params.append('fonte', filtros.fonte);
+  if (filtros?.suplementoId !== undefined)
+    params.append('suplementoId', filtros.suplementoId.toString());
+  if (filtros?.incluirHabilidades !== undefined)
+    params.append('incluirHabilidades', filtros.incluirHabilidades.toString());
+  if (filtros?.incluirClas !== undefined)
+    params.append('incluirClas', filtros.incluirClas.toString());
+
+  const query = params.toString();
+  const { data } = await apiClient.get(`/tecnicas-amaldicoadas${query ? `?${query}` : ''}`);
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiGetTecnicasInatas(): Promise<TecnicaInataCatalogo[]> {
+  const data = await apiGetTecnicasAmaldicoadas({ tipo: 'INATA' as TipoTecnicaAmaldicoada });
+
+  return data.map((tecnica) => ({
     id: tecnica.id,
+    codigo: tecnica.codigo,
     nome: tecnica.nome,
     descricao: tecnica.descricao,
-    hereditaria: tecnica.hereditaria,
-    clasHereditarios: tecnica.clasHereditarios.map((cla: any) => ({
+    tipo: tecnica.tipo,
+    hereditaria: tecnica.hereditaria ?? false,
+    fonte: tecnica.fonte,
+    suplementoId: tecnica.suplementoId ?? null,
+    clasHereditarios: (tecnica.clasHereditarios ?? []).map((cla) => ({
       claId: cla.id,
       claNome: cla.nome,
     })),

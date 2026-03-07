@@ -3,7 +3,6 @@
 
 import React from 'react';
 import { SectionCard } from '@/components/ui/SectionCard';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 
@@ -11,7 +10,13 @@ type PoderGenerico = {
   id: number;
   habilidadeId: number;
   nome: string;
-  config?: Record<string, any>;
+  config?: PoderConfig;
+};
+
+type PoderConfig = {
+  periciasCodigos?: string[];
+  tipoGrauCodigo?: string;
+  [key: string]: unknown;
 };
 
 type Props = {
@@ -25,7 +30,7 @@ function ConfigDisplay({
   periciasMap,
   tiposGrauMap,
 }: {
-  config?: Record<string, any>;
+  config?: PoderConfig;
   periciasMap?: Map<string, { nome: string }>;
   tiposGrauMap?: Map<string, string>;
 }) {

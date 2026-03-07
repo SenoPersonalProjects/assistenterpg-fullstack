@@ -6,16 +6,19 @@ import { TecnicaBaseFields } from './tecnicas/TecnicaBaseFields';
 import { HabilidadesList } from './tecnicas/HabilidadesList';
 import { Icon } from '@/components/ui/Icon';
 import type { HabilidadeTecnica } from '@/lib/api/homebrews';
+import type { HomebrewFormDados } from '../hooks/useHomebrewForm';
 
 type Props = {
-  dados: any;
-  onChange: (dados: any) => void;
+  dados: HomebrewFormDados;
+  onChange: (dados: Partial<HomebrewFormDados>) => void;
 };
 
 export function TecnicaAmaldicoadaFormFields({ dados, onChange }: Props) {
-  const habilidades: HabilidadeTecnica[] = dados.habilidades ?? [];
+  const habilidades: HabilidadeTecnica[] = Array.isArray(dados.habilidades)
+    ? (dados.habilidades as HabilidadeTecnica[])
+    : [];
 
-  function handleBaseChange(baseDados: any) {
+  function handleBaseChange(baseDados: Partial<HomebrewFormDados>) {
     onChange({ ...dados, ...baseDados });
   }
 

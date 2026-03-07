@@ -22,20 +22,20 @@ export interface ItemInventarioComDados {
     categoria: string;
     espacos: number;
     complexidadeMaldicao: string;
-    
+
     // Campos específicos
     bonusDefesa?: number | null;
     penalidadeCarga?: number | null;
     tipoAcessorio?: string | null; // ✅ NOVO (para detectar VESTIMENTA)
     efeito?: string | null; // ✅ NOVO (para detectar Mochila)
-    
+
     danos?: Array<{
       empunhadura: string | null;
       tipoDano: string;
       rolagem: string;
       valorFlat: number;
     }> | null;
-    
+
     reducesDano?: Array<{
       tipoReducao: string;
       valor: number;

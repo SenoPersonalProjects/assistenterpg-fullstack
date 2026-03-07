@@ -13,7 +13,9 @@ class HomebrewNaoEncontradoException extends base_exception_1.BaseException {
 exports.HomebrewNaoEncontradoException = HomebrewNaoEncontradoException;
 class HomebrewJaPublicadoException extends business_exception_1.BusinessException {
     constructor(homebrewId) {
-        super('Homebrew já está publicado', 'HOMEBREW_JA_PUBLICADO', { homebrewId });
+        super('Homebrew já está publicado', 'HOMEBREW_JA_PUBLICADO', {
+            homebrewId,
+        });
     }
 }
 exports.HomebrewJaPublicadoException = HomebrewJaPublicadoException;

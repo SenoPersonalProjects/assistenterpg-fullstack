@@ -1,3 +1,4 @@
+import { TipoFonte } from '@prisma/client';
 export declare enum TipoHabilidade {
     RECURSO_CLASSE = "RECURSO_CLASSE",
     EFEITO_GRAU = "EFEITO_GRAU",
@@ -19,5 +20,7 @@ export declare class CreateHabilidadeDto {
     origem?: string;
     requisitos?: any;
     mecanicasEspeciais?: any;
+    fonte?: TipoFonte;
+    suplementoId?: number;
     efeitosGrau?: EfeitoGrauDto[];
 }

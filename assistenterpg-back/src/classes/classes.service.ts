@@ -1,7 +1,8 @@
 // src/classes/classes.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TipoFonte } from '@prisma/client';
 import { CreateClasseDto } from './dto/create-classe.dto';
 import { UpdateClasseDto } from './dto/update-classe.dto';
 import {
@@ -16,10 +17,38 @@ import {
   ClasseNomeDuplicadoException,
   ClasseEmUsoException,
 } from 'src/common/exceptions/classe.exception';
+import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemento.exception';
 
 @Injectable()
 export class ClassesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new SuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new BadRequestException(
+          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+        );
+      }
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+    }
+  }
 
   async create(dto: CreateClasseDto) {
     // ✅ VALIDAR: Verificar nome duplicado
@@ -31,7 +60,21 @@ export class ClassesService {
       throw new ClasseNomeDuplicadoException(dto.nome);
     }
 
-    return this.prisma.classe.create({ data: dto });
+    const suplementoIdFinal = dto.suplementoId ?? null;
+    const fonteFinal =
+      dto.fonte ??
+      (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
+    return this.prisma.classe.create({
+      data: {
+        nome: dto.nome,
+        descricao: dto.descricao,
+        fonte: fonteFinal,
+        suplementoId: suplementoIdFinal,
+      },
+    });
   }
 
   private mapToCatalogo(classe: any): ClasseCatalogoDto {
@@ -39,6 +82,8 @@ export class ClassesService {
       id: classe.id,
       nome: classe.nome,
       descricao: classe.descricao,
+      fonte: classe.fonte,
+      suplementoId: classe.suplementoId,
       periciasLivresBase: classe.periciasLivresBase,
       pericias:
         classe.pericias?.map(
@@ -69,7 +114,8 @@ export class ClassesService {
 
       // ✅ NOVO: habilidades iniciais (nível 1)
       // Conservador: vem o objeto completo da Habilidade (include: true)
-      habilidadesIniciais: classe.habilidadesClasse?.map((hc: any) => hc.habilidade) ?? [],
+      habilidadesIniciais:
+        classe.habilidadesClasse?.map((hc: any) => hc.habilidade) ?? [],
     };
   }
 
@@ -119,7 +165,7 @@ export class ClassesService {
 
   async findTrilhas(id: number) {
     const classe = await this.prisma.classe.findUnique({ where: { id } });
-    
+
     if (!classe) {
       throw new ClasseNaoEncontradaException(id);
     }
@@ -138,8 +184,10 @@ export class ClassesService {
   }
 
   async update(id: number, dto: UpdateClasseDto) {
-    // Verificar se existe
-    await this.findOne(id);
+    const classeAtual = await this.prisma.classe.findUnique({ where: { id } });
+    if (!classeAtual) {
+      throw new ClasseNaoEncontradaException(id);
+    }
 
     // ✅ VALIDAR: Verificar nome duplicado (se mudou)
     if (dto.nome) {
@@ -155,9 +203,26 @@ export class ClassesService {
       }
     }
 
+    const suplementoIdFinal =
+      dto.suplementoId !== undefined
+        ? dto.suplementoId
+        : classeAtual.suplementoId;
+    const fonteFinal =
+      dto.fonte ??
+      (suplementoIdFinal ? TipoFonte.SUPLEMENTO : classeAtual.fonte);
+
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
     return this.prisma.classe.update({
       where: { id },
-      data: dto,
+      data: {
+        ...(dto.nome !== undefined && { nome: dto.nome }),
+        ...(dto.descricao !== undefined && { descricao: dto.descricao }),
+        ...(fonteFinal !== classeAtual.fonte && { fonte: fonteFinal }),
+        ...(dto.suplementoId !== undefined && {
+          suplementoId: dto.suplementoId,
+        }),
+      },
     });
   }
 
@@ -178,7 +243,7 @@ export class ClassesService {
     }
 
     await this.prisma.classe.delete({ where: { id } });
-    
+
     return { sucesso: true };
   }
 }

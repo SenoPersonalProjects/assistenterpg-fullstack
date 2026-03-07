@@ -12,11 +12,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClassesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const client_1 = require("@prisma/client");
 const classe_exception_1 = require("../common/exceptions/classe.exception");
+const suplemento_exception_1 = require("../common/exceptions/suplemento.exception");
 let ClassesService = class ClassesService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    async validarFonteSuplemento(fonte, suplementoId) {
+        if (suplementoId) {
+            const suplemento = await this.prisma.suplemento.findUnique({
+                where: { id: suplementoId },
+                select: { id: true },
+            });
+            if (!suplemento) {
+                throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
+            }
+            if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
+                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+            }
+            return;
+        }
+        if (fonte === client_1.TipoFonte.SUPLEMENTO) {
+            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+        }
     }
     async create(dto) {
         const existente = await this.prisma.classe.findUnique({
@@ -25,13 +45,26 @@ let ClassesService = class ClassesService {
         if (existente) {
             throw new classe_exception_1.ClasseNomeDuplicadoException(dto.nome);
         }
-        return this.prisma.classe.create({ data: dto });
+        const suplementoIdFinal = dto.suplementoId ?? null;
+        const fonteFinal = dto.fonte ??
+            (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+        await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+        return this.prisma.classe.create({
+            data: {
+                nome: dto.nome,
+                descricao: dto.descricao,
+                fonte: fonteFinal,
+                suplementoId: suplementoIdFinal,
+            },
+        });
     }
     mapToCatalogo(classe) {
         return {
             id: classe.id,
             nome: classe.nome,
             descricao: classe.descricao,
+            fonte: classe.fonte,
+            suplementoId: classe.suplementoId,
             periciasLivresBase: classe.periciasLivresBase,
             pericias: classe.pericias?.map((rel) => ({
                 id: rel.id,
@@ -108,7 +141,10 @@ let ClassesService = class ClassesService {
         }));
     }
     async update(id, dto) {
-        await this.findOne(id);
+        const classeAtual = await this.prisma.classe.findUnique({ where: { id } });
+        if (!classeAtual) {
+            throw new classe_exception_1.ClasseNaoEncontradaException(id);
+        }
         if (dto.nome) {
             const duplicado = await this.prisma.classe.findFirst({
                 where: {
@@ -120,9 +156,22 @@ let ClassesService = class ClassesService {
                 throw new classe_exception_1.ClasseNomeDuplicadoException(dto.nome);
             }
         }
+        const suplementoIdFinal = dto.suplementoId !== undefined
+            ? dto.suplementoId
+            : classeAtual.suplementoId;
+        const fonteFinal = dto.fonte ??
+            (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : classeAtual.fonte);
+        await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
         return this.prisma.classe.update({
             where: { id },
-            data: dto,
+            data: {
+                ...(dto.nome !== undefined && { nome: dto.nome }),
+                ...(dto.descricao !== undefined && { descricao: dto.descricao }),
+                ...(fonteFinal !== classeAtual.fonte && { fonte: fonteFinal }),
+                ...(dto.suplementoId !== undefined && {
+                    suplementoId: dto.suplementoId,
+                }),
+            },
         });
     }
     async remove(id) {

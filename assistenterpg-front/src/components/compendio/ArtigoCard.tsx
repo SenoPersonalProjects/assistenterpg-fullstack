@@ -4,7 +4,10 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import type { Artigo } from '@/lib/utils/compendio';
+import type { CompendioArtigoCompleto, CompendioArtigoResumido } from '@/lib/utils/compendio';
+
+type Artigo = CompendioArtigoResumido &
+  Partial<Pick<CompendioArtigoCompleto, 'tags' | 'nivelDificuldade'>>;
 
 interface ArtigoCardProps {
   artigo: Artigo;
@@ -40,7 +43,7 @@ export function ArtigoCard({ artigo, categoriaCodigo, subcategoriaCodigo }: Arti
               {artigo.nivelDificuldade}
             </Badge>
           )}
-          {artigo.tags && artigo.tags.slice(0, 3).map((tag) => (
+          {Array.isArray(artigo.tags) && artigo.tags.slice(0, 3).map((tag: string) => (
             <Badge key={tag} color="gray" size="sm">
               {tag}
             </Badge>

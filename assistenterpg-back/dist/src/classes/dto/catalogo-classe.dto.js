@@ -22,6 +22,8 @@ class ClasseCatalogoDto {
     id;
     nome;
     descricao;
+    fonte;
+    suplementoId;
     periciasLivresBase;
     pericias;
     proficiencias;

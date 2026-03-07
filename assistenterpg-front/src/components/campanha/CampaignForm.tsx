@@ -11,6 +11,16 @@ type Props = {
   onSubmit: (data: { nome: string; descricao?: string }) => Promise<void>;
 };
 
+type CampaignFormError = {
+  status?: number;
+  response?: { status?: number };
+  body?: {
+    statusCode?: number;
+    code?: string;
+    details?: { nome?: string[] };
+  };
+};
+
 export function CampaignForm({ onSubmit }: Props) {
   const { showToast } = useToast();
   const [nome, setNome] = useState('');
@@ -37,22 +47,23 @@ export function CampaignForm({ onSubmit }: Props) {
       setNome('');
       setDescricao('');
       showToast('Campanha criada com sucesso!', 'success');
-    } catch (error: any) {
-      const status = Number(error?.status || error?.response?.status || error?.body?.statusCode || 0);
+    } catch (error: unknown) {
+      const err = error as CampaignFormError;
+      const status = Number(err.status || err.response?.status || err.body?.statusCode || 0);
 
       if (status === 422) {
-        const erroCampoNome = error?.body?.details?.nome;
+        const erroCampoNome = err.body?.details?.nome;
         if (Array.isArray(erroCampoNome) && erroCampoNome.length > 0) {
           setNomeErro(String(erroCampoNome[0]));
           return;
         }
 
-        const mensagem422 = traduzirErro(error?.body?.code, extrairMensagemErro(error), 422);
+        const mensagem422 = traduzirErro(err.body?.code, extrairMensagemErro(error), 422);
         setNomeErro(mensagem422);
         return;
       }
 
-      const mensagemGlobal = traduzirErro(error?.body?.code, extrairMensagemErro(error), status);
+      const mensagemGlobal = traduzirErro(err.body?.code, extrairMensagemErro(error), status);
       showToast(mensagemGlobal, 'error');
     } finally {
       setCreating(false);

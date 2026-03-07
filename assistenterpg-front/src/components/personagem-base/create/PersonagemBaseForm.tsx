@@ -118,7 +118,6 @@ export function PersonagemBaseForm(props: Props) {
     classes,
     clas,
     origens,
-    proficiencias,
     tiposGrau,
     tecnicasInatas,
     alinhamentos,

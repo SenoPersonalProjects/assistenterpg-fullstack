@@ -18,7 +18,7 @@ exports.PericiasModule = PericiasModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [pericias_service_1.PericiasService],
-        controllers: [pericias_controller_1.PericiasController]
+        controllers: [pericias_controller_1.PericiasController],
     })
 ], PericiasModule);
 //# sourceMappingURL=pericias.module.js.map

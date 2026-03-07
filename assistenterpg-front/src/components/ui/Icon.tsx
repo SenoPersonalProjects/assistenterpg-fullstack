@@ -33,7 +33,6 @@ import {
   List,
   Eye,
   EyeOff,
-  Clipboard,
   ClipboardCheck,
   ExternalLink,
   RefreshCw,

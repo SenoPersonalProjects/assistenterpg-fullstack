@@ -28,7 +28,10 @@ type FontePericia =
  * ✅ Aplica uma fonte de perícia ao mapa
  */
 function aplicarFontePericia(
-  mapa: Map<string, { periciaId: number; grauTreinamento: number; bonusExtra: number }>,
+  mapa: Map<
+    string,
+    { periciaId: number; grauTreinamento: number; bonusExtra: number }
+  >,
   codigo: string,
   fonte: FontePericia,
 ): void {
@@ -42,7 +45,9 @@ function aplicarFontePericia(
   } else {
     // ✅ ATUALIZADO: Escola Técnica também é fonte fixa
     const fonteFixa =
-      fonte === 'ORIGEM_FIXA' || fonte === 'CLASSE_FIXA' || fonte === 'ESCOLA_TECNICA';
+      fonte === 'ORIGEM_FIXA' ||
+      fonte === 'CLASSE_FIXA' ||
+      fonte === 'ESCOLA_TECNICA';
 
     if (fonteFixa) entry.bonusExtra += 2;
   }
@@ -59,7 +64,10 @@ function validarEProcessarPericiasOrigem(
     pericia: { codigo: string };
   }>,
   periciasOrigemEscolhidasCodigos: string[],
-  mapa: Map<string, { periciaId: number; grauTreinamento: number; bonusExtra: number }>,
+  mapa: Map<
+    string,
+    { periciaId: number; grauTreinamento: number; bonusExtra: number }
+  >,
 ): void {
   const periciasOrigemEscolhidas = periciasOrigemEscolhidasCodigos ?? [];
 
@@ -120,7 +128,10 @@ function validarEProcessarPericiasClasse(
     pericia: { codigo: string };
   }>,
   periciasClasseEscolhidasCodigos: string[],
-  mapa: Map<string, { periciaId: number; grauTreinamento: number; bonusExtra: number }>,
+  mapa: Map<
+    string,
+    { periciaId: number; grauTreinamento: number; bonusExtra: number }
+  >,
 ): void {
   const periciasClasseEscolhidas = periciasClasseEscolhidasCodigos ?? [];
 
@@ -175,7 +186,10 @@ function validarEProcessarPericiasClasse(
  */
 function aplicarPericiasEscolaTecnica(
   estudouEscolaTecnica: boolean,
-  mapa: Map<string, { periciaId: number; grauTreinamento: number; bonusExtra: number }>,
+  mapa: Map<
+    string,
+    { periciaId: number; grauTreinamento: number; bonusExtra: number }
+  >,
 ): void {
   if (!estudouEscolaTecnica) return;
 
@@ -198,7 +212,9 @@ function aplicarPericiasEscolaTecnica(
 export async function montarPericiasPersonagem(
   dto: CreatePersonagemBaseDto,
   prisma: PrismaLike,
-): Promise<{ periciaId: number; grauTreinamento: number; bonusExtra: number }[]> {
+): Promise<
+  { periciaId: number; grauTreinamento: number; bonusExtra: number }[]
+> {
   const {
     classeId,
     origemId,
@@ -206,7 +222,7 @@ export async function montarPericiasPersonagem(
     periciasOrigemEscolhidasCodigos,
     periciasLivresCodigos,
     estudouEscolaTecnica,
-  } = dto as CreatePersonagemBaseDto;
+  } = dto;
 
   const periciasClasseEscolhidas = periciasClasseEscolhidasCodigos ?? [];
   const periciasOrigemEscolhidas = periciasOrigemEscolhidasCodigos ?? [];
@@ -239,10 +255,18 @@ export async function montarPericiasPersonagem(
   }
 
   // Processar perícias da origem
-  validarEProcessarPericiasOrigem(origemPericias, periciasOrigemEscolhidas, mapa);
+  validarEProcessarPericiasOrigem(
+    origemPericias,
+    periciasOrigemEscolhidas,
+    mapa,
+  );
 
   // Processar perícias da classe
-  validarEProcessarPericiasClasse(classePericias, periciasClasseEscolhidas, mapa);
+  validarEProcessarPericiasClasse(
+    classePericias,
+    periciasClasseEscolhidas,
+    mapa,
+  );
 
   // ✅ NOVO: Processar Escola Técnica (fonte fixa)
   aplicarPericiasEscolaTecnica(estudouEscolaTecnica, mapa);

@@ -1,7 +1,7 @@
 // src/app/suplementos/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -46,18 +46,7 @@ export default function SuplementosPage() {
 
   const isAdmin = usuario?.role === 'ADMIN';
 
-  useEffect(() => {
-    if (!authLoading && !usuario) {
-      router.push('/auth/login');
-      return;
-    }
-
-    if (!authLoading && usuario) {
-      carregarSuplementos();
-    }
-  }, [authLoading, usuario, router]);
-
-  async function carregarSuplementos() {
+  const carregarSuplementos = useCallback(async () => {
     try {
       setLoading(true);
       setErro(null);
@@ -70,7 +59,18 @@ export default function SuplementosPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!authLoading && !usuario) {
+      router.push('/auth/login');
+      return;
+    }
+
+    if (!authLoading && usuario) {
+      carregarSuplementos();
+    }
+  }, [authLoading, usuario, router, carregarSuplementos]);
 
   async function handleAtivar(suplemento: SuplementoCatalogo) {
     try {

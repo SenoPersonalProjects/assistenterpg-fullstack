@@ -36,7 +36,9 @@ let AllExceptionsFilter = AllExceptionsFilter_1 = class AllExceptionsFilter {
             }
         }
         const status = common_1.HttpStatus.INTERNAL_SERVER_ERROR;
-        const errorMessage = exception instanceof Error ? exception.message : 'Erro interno no servidor';
+        const errorMessage = exception instanceof Error
+            ? exception.message
+            : 'Erro interno no servidor';
         const errorResponse = {
             statusCode: status,
             timestamp: new Date().toISOString(),

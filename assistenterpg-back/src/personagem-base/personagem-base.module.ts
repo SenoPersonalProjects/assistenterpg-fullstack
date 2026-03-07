@@ -8,7 +8,11 @@ import { PersonagemBaseService } from './personagem-base.service';
 
 @Module({
   imports: [PrismaModule, InventarioModule],
-  providers: [PersonagemBaseService, PersonagemBaseMapper, PersonagemBasePersistence],
+  providers: [
+    PersonagemBaseService,
+    PersonagemBaseMapper,
+    PersonagemBasePersistence,
+  ],
   controllers: [PersonagemBaseController],
 })
 export class PersonagemBaseModule {}

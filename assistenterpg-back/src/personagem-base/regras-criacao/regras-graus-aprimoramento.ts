@@ -71,9 +71,15 @@ export function calcularGrausLivresExtras(
   deIntelecto: number;
   totalExtras: number;
 } {
-  const deHabilidades = calcularGrausLivresDeHabilidades(habilidades, nivelPersonagem);
+  const deHabilidades = calcularGrausLivresDeHabilidades(
+    habilidades,
+    nivelPersonagem,
+  );
 
-  const deIntelecto = passivasAtributosConfig?.INT_II?.tipoGrauCodigoAprimoramento ? 1 : 0;
+  const deIntelecto = passivasAtributosConfig?.INT_II
+    ?.tipoGrauCodigoAprimoramento
+    ? 1
+    : 0;
 
   return {
     deHabilidades,
@@ -92,7 +98,9 @@ export function calcularBonusGrausDePoderesGenericos(
 ): Map<string, number> {
   const bonusMap = new Map<string, number>();
 
-  const habPorId = new Map(habilidades.map((h) => [h.habilidadeId, h.habilidade]));
+  const habPorId = new Map(
+    habilidades.map((h) => [h.habilidadeId, h.habilidade]),
+  );
 
   for (const inst of poderes) {
     const hab = habPorId.get(inst.habilidadeId);
@@ -132,10 +140,17 @@ export async function aplicarRegrasDeGraus(
   const bonusHabilidades = calcularBonusDeHabilidades(habilidades, nivel);
 
   // ✅ NOVO: Bônus de poderes genéricos (escolha dinâmica)
-  const bonusPoderes = calcularBonusGrausDePoderesGenericos(poderes ?? [], habilidades);
+  const bonusPoderes = calcularBonusGrausDePoderesGenericos(
+    poderes ?? [],
+    habilidades,
+  );
 
   // Apenas informativo, usado em logs/preview
-  const extras = calcularGrausLivresExtras(habilidades, nivel, passivasAtributosConfig);
+  const extras = calcularGrausLivresExtras(
+    habilidades,
+    nivel,
+    passivasAtributosConfig,
+  );
 
   // 1) Validar faixa atual (0–5) ANTES dos bônus de habilidades
   for (const [codigo, valor] of mapa.entries()) {
@@ -154,7 +169,11 @@ export async function aplicarRegrasDeGraus(
 
     // Validar que bônus não ultrapassa 5
     if (novo > 5) {
-      throw new GrauAprimoramentoExcedeMaximoComBonusException(codigo, novo, bonus);
+      throw new GrauAprimoramentoExcedeMaximoComBonusException(
+        codigo,
+        novo,
+        bonus,
+      );
     }
 
     mapa.set(codigo, novo);
@@ -167,7 +186,11 @@ export async function aplicarRegrasDeGraus(
 
     // Validar que bônus não ultrapassa 5
     if (novo > 5) {
-      throw new GrauAprimoramentoExcedeMaximoComPoderesException(codigo, novo, bonus);
+      throw new GrauAprimoramentoExcedeMaximoComPoderesException(
+        codigo,
+        novo,
+        bonus,
+      );
     }
 
     mapa.set(codigo, novo);

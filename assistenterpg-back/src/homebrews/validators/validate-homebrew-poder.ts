@@ -7,7 +7,11 @@ import { ValidationException } from '../../common/exceptions/validation.exceptio
  */
 export function validateHomebrewPoderCustom(dados: any): void {
   // ✅ Validar que efeitos não está vazio
-  if (!dados.efeitos || typeof dados.efeitos !== 'string' || dados.efeitos.trim().length === 0) {
+  if (
+    !dados.efeitos ||
+    typeof dados.efeitos !== 'string' ||
+    dados.efeitos.trim().length === 0
+  ) {
     throw new ValidationException(
       'Poder deve ter o campo "efeitos" preenchido',
       'efeitos',

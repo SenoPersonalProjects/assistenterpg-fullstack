@@ -1,6 +1,13 @@
 // src/homebrews/dto/equipamentos/criar-homebrew-ferramenta-amaldicoada.dto.ts
 
-import { IsNotEmpty, IsEnum, IsString, IsBoolean, ValidateNested, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsEnum,
+  IsString,
+  IsBoolean,
+  ValidateNested,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { TipoAmaldicoado } from '@prisma/client';
 import { EquipamentoBaseDto } from '../base/equipamento-base.dto';

@@ -1,7 +1,7 @@
 // app/home/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -12,6 +12,7 @@ import {
 } from '@/lib/api';
 import { apiGetMeusHomebrews } from '@/lib/api/homebrews';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import type { CampanhaResumo, PersonagemBaseResumo } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -30,8 +31,8 @@ export default function HomePage() {
     homebrews: 0,
     artigosLidos: 0 
   });
-  const [campanhasRecentes, setCampanhasRecentes] = useState<any[]>([]);
-  const [personagensRecentes, setPersonagensRecentes] = useState<any[]>([]);
+  const [campanhasRecentes, setCampanhasRecentes] = useState<CampanhaResumo[]>([]);
+  const [personagensRecentes, setPersonagensRecentes] = useState<PersonagemBaseResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -41,13 +42,7 @@ export default function HomePage() {
     }
   }, [loading, usuario, router]);
 
-  useEffect(() => {
-    if (!loading && usuario) {
-      carregarDados();
-    }
-  }, [loading, usuario]);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     try {
       setCarregando(true);
       setErro(null);
@@ -78,7 +73,13 @@ export default function HomePage() {
     } finally {
       setCarregando(false);
     }
-  }
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!loading && usuario) {
+      carregarDados();
+    }
+  }, [loading, usuario, carregarDados]);
 
   if (loading || carregando) {
     return (

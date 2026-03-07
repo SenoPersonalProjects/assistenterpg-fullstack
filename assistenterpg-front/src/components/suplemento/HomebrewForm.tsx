@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { StatusPublicacao } from '@/lib/types/homebrew-enums';
 
 import type { TipoHomebrewConteudo, CreateHomebrewDto } from '@/lib/api/homebrews';
-import { useHomebrewForm } from './hooks/useHomebrewForm';
+import { useHomebrewForm, type HomebrewFormInitialValues } from './hooks/useHomebrewForm';
 
 // Formulários específicos
 import { ClaFormFields } from './forms/ClaFormFields';
@@ -25,7 +26,7 @@ import { TecnicaAmaldicoadaFormFields } from './forms/TecnicaAmaldicoadaFormFiel
 type Props = {
   onSubmit: (data: CreateHomebrewDto) => Promise<void>;
   onCancel: () => void;
-  initialValues?: any;
+  initialValues?: HomebrewFormInitialValues;
 };
 
 const TIPO_LABELS: Record<TipoHomebrewConteudo, string> = {
@@ -38,7 +39,7 @@ const TIPO_LABELS: Record<TipoHomebrewConteudo, string> = {
   TECNICA_AMALDICOADA: 'Técnica Amaldiçoada',
 };
 
-const TIPO_ICONS: Record<TipoHomebrewConteudo, string> = {
+const TIPO_ICONS: Record<TipoHomebrewConteudo, IconName> = {
   CLA: 'clan',
   ORIGEM: 'story',
   TRILHA: 'school',
@@ -104,9 +105,9 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
       } else {
         onCancel();
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('[HomebrewForm] Erro:', err);
-      setErro(err?.message ?? 'Erro ao salvar homebrew');
+      setErro(err instanceof Error ? err.message : 'Erro ao salvar homebrew');
     } finally {
       setSubmitting(false);
     }
@@ -134,7 +135,7 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
             <Select
               label="Status *"
               value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
+              onChange={(e) => setStatus(e.target.value as StatusPublicacao)}
             >
               <option value="RASCUNHO">Rascunho</option>
               <option value="PUBLICADO">Publicado</option>
@@ -146,7 +147,7 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
           <div className="rounded-lg border border-app-primary/30 bg-app-primary/5 p-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name={TIPO_ICONS[tipo] as any} className="w-5 h-5 text-app-primary" />
+                <Icon name={TIPO_ICONS[tipo]} className="w-5 h-5 text-app-primary" />
               </div>
               <div className="flex-1">
                 <p className="text-xs text-app-muted">Criando</p>
@@ -216,7 +217,7 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
           {/* Campos Específicos por Tipo */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-app-fg flex items-center gap-2">
-              <Icon name={TIPO_ICONS[tipo] as any} className="w-4 h-4 text-app-primary" />
+              <Icon name={TIPO_ICONS[tipo]} className="w-4 h-4 text-app-primary" />
               Dados específicos de {TIPO_LABELS[tipo]}
             </h3>
 

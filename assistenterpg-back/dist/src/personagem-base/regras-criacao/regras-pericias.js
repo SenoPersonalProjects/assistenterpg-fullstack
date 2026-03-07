@@ -11,7 +11,9 @@ function aplicarFontePericia(mapa, codigo, fonte) {
         entry.grauTreinamento = 1;
     }
     else {
-        const fonteFixa = fonte === 'ORIGEM_FIXA' || fonte === 'CLASSE_FIXA' || fonte === 'ESCOLA_TECNICA';
+        const fonteFixa = fonte === 'ORIGEM_FIXA' ||
+            fonte === 'CLASSE_FIXA' ||
+            fonte === 'ESCOLA_TECNICA';
         if (fonteFixa)
             entry.bonusExtra += 2;
     }

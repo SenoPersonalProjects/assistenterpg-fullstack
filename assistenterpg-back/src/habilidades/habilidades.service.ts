@@ -1,8 +1,8 @@
 // src/habilidades/habilidades.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { Prisma, TipoFonte } from '@prisma/client';
 import { buscarPoderesGenericosDisponiveis } from '../personagem-base/regras-criacao/regras-poderes';
 import { CreateHabilidadeDto } from './dto/create-habilidade.dto';
 import { UpdateHabilidadeDto } from './dto/update-habilidade.dto';
@@ -15,10 +15,38 @@ import {
   TipoGrauNaoEncontradoException,
   HabilidadeEmUsoException,
 } from 'src/common/exceptions/habilidade.exception';
+import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemento.exception';
 
 @Injectable()
 export class HabilidadesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ) {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new SuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new BadRequestException(
+          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+        );
+      }
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+    }
+  }
 
   // ========================================
   // ✅ MÉTODOS ESPECÍFICOS
@@ -53,7 +81,9 @@ export class HabilidadesService {
     // Validar tipos de grau (se fornecidos)
     if (createDto.efeitosGrau?.length) {
       const tiposGrau = await this.prisma.tipoGrau.findMany({
-        where: { codigo: { in: createDto.efeitosGrau.map((e) => e.tipoGrauCodigo) } },
+        where: {
+          codigo: { in: createDto.efeitosGrau.map((e) => e.tipoGrauCodigo) },
+        },
         select: { codigo: true },
       });
 
@@ -68,6 +98,12 @@ export class HabilidadesService {
     }
 
     // Criar habilidade com relações
+    const suplementoIdFinal = createDto.suplementoId ?? null;
+    const fonteFinal =
+      createDto.fonte ??
+      (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
     const habilidade = await this.prisma.habilidade.create({
       data: {
         nome: createDto.nome,
@@ -76,6 +112,8 @@ export class HabilidadesService {
         origem: createDto.origem,
         requisitos: createDto.requisitos,
         mecanicasEspeciais: createDto.mecanicasEspeciais,
+        fonte: fonteFinal,
+        suplementoId: suplementoIdFinal,
 
         // ✅ Criar efeitos de grau
         ...(createDto.efeitosGrau?.length && {
@@ -104,16 +142,29 @@ export class HabilidadesService {
    * FIND ALL - Listar habilidades com filtros e paginação
    */
   async findAll(filtros: FilterHabilidadeDto) {
-    const { tipo, origem, busca, pagina = 1, limite = 20 } = filtros;
+    const {
+      tipo,
+      origem,
+      fonte,
+      suplementoId,
+      busca,
+      pagina = 1,
+      limite = 20,
+    } = filtros;
 
     const where: Prisma.HabilidadeWhereInput = {};
 
     if (tipo) where.tipo = tipo;
     if (origem) where.origem = origem;
+    if (fonte) where.fonte = fonte;
+    if (suplementoId) where.suplementoId = suplementoId;
 
     // Busca por nome ou descrição (MySQL já é case-insensitive)
     if (busca) {
-      where.OR = [{ nome: { contains: busca } }, { descricao: { contains: busca } }];
+      where.OR = [
+        { nome: { contains: busca } },
+        { descricao: { contains: busca } },
+      ];
     }
 
     const [total, dados] = await Promise.all([
@@ -205,7 +256,7 @@ export class HabilidadesService {
    */
   async update(id: number, updateDto: UpdateHabilidadeDto) {
     // Verificar se existe
-    await this.findOne(id);
+    const habilidadeAtual = await this.findOne(id);
 
     // Verificar nome duplicado (se mudou)
     if (updateDto.nome) {
@@ -224,7 +275,9 @@ export class HabilidadesService {
     // Validar tipos de grau (se fornecidos)
     if (updateDto.efeitosGrau?.length) {
       const tiposGrau = await this.prisma.tipoGrau.findMany({
-        where: { codigo: { in: updateDto.efeitosGrau.map((e) => e.tipoGrauCodigo) } },
+        where: {
+          codigo: { in: updateDto.efeitosGrau.map((e) => e.tipoGrauCodigo) },
+        },
         select: { codigo: true },
       });
 
@@ -238,17 +291,34 @@ export class HabilidadesService {
       }
     }
 
+    const suplementoIdFinal =
+      updateDto.suplementoId !== undefined
+        ? updateDto.suplementoId
+        : habilidadeAtual.suplementoId;
+    const fonteFinal =
+      updateDto.fonte ??
+      (suplementoIdFinal ? TipoFonte.SUPLEMENTO : habilidadeAtual.fonte);
+    await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
+
     // Atualizar habilidade
     const habilidade = await this.prisma.habilidade.update({
       where: { id },
       data: {
         ...(updateDto.nome && { nome: updateDto.nome }),
-        ...(updateDto.descricao !== undefined && { descricao: updateDto.descricao }),
+        ...(updateDto.descricao !== undefined && {
+          descricao: updateDto.descricao,
+        }),
         ...(updateDto.tipo && { tipo: updateDto.tipo }),
         ...(updateDto.origem !== undefined && { origem: updateDto.origem }),
-        ...(updateDto.requisitos !== undefined && { requisitos: updateDto.requisitos }),
+        ...(updateDto.requisitos !== undefined && {
+          requisitos: updateDto.requisitos,
+        }),
         ...(updateDto.mecanicasEspeciais !== undefined && {
           mecanicasEspeciais: updateDto.mecanicasEspeciais,
+        }),
+        ...(fonteFinal !== habilidadeAtual.fonte && { fonte: fonteFinal }),
+        ...(updateDto.suplementoId !== undefined && {
+          suplementoId: updateDto.suplementoId,
         }),
 
         // ✅ Atualizar efeitos de grau (deletar e recriar)
@@ -292,8 +362,12 @@ export class HabilidadesService {
       usadaEmTrilhas,
       usadaEmOrigens,
     ] = await Promise.all([
-      this.prisma.habilidadePersonagemBase.count({ where: { habilidadeId: id } }),
-      this.prisma.habilidadePersonagemCampanha.count({ where: { habilidadeId: id } }),
+      this.prisma.habilidadePersonagemBase.count({
+        where: { habilidadeId: id },
+      }),
+      this.prisma.habilidadePersonagemCampanha.count({
+        where: { habilidadeId: id },
+      }),
       this.prisma.habilidadeClasse.count({ where: { habilidadeId: id } }),
       this.prisma.habilidadeTrilha.count({ where: { habilidadeId: id } }),
       this.prisma.habilidadeOrigem.count({ where: { habilidadeId: id } }),

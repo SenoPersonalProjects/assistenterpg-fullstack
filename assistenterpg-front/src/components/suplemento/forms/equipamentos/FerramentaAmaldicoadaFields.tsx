@@ -2,7 +2,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -14,20 +13,24 @@ import {
 } from '@/lib/types/homebrew-enums';
 import { ArmaFields } from './ArmaFields';
 import { ProtecaoFields } from './ProtecaoFields';
+import type { HomebrewFormDados } from '../../hooks/useHomebrewForm';
 
 type Props = {
-  dados: any;
-  onChange: (dados: any) => void;
+  dados: HomebrewFormDados;
+  onChange: (dados: Partial<HomebrewFormDados>) => void;
 };
 
 export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
   const tipoAmaldicoado = dados.tipoAmaldicoado as TipoAmaldicoado | undefined;
 
-  function updateSubDados(campo: 'armaAmaldicoada' | 'protecaoAmaldicoada' | 'artefatoAmaldicoado', subDados: any) {
+  function updateSubDados(
+    campo: 'armaAmaldicoada' | 'protecaoAmaldicoada' | 'artefatoAmaldicoado',
+    subDados: Record<string, unknown>,
+  ) {
     onChange({ [campo]: { ...dados[campo], ...subDados } });
   }
 
-  function updateDadosArma(dadosArma: any) {
+  function updateDadosArma(dadosArma: Record<string, unknown>) {
     const armaAmaldicoada = dados.armaAmaldicoada || {};
     onChange({
       armaAmaldicoada: {
@@ -37,7 +40,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
     });
   }
 
-  function updateDadosProtecao(dadosProtecao: any) {
+  function updateDadosProtecao(dadosProtecao: Record<string, unknown>) {
     const protecaoAmaldicoada = dados.protecaoAmaldicoada || {};
     onChange({
       protecaoAmaldicoada: {

@@ -76,7 +76,9 @@ async function validarPoderesGenericos(params, prisma) {
             continue;
         const poderDb = poderPorId.get(habilidadeId);
         const mecRaw = poderDb?.mecanicasEspeciais;
-        const mec = isMecanicasEspeciaisPoder(mecRaw) ? mecRaw : null;
+        const mec = isMecanicasEspeciaisPoder(mecRaw)
+            ? mecRaw
+            : null;
         const repetivel = !!mec?.repetivel;
         if (!repetivel) {
             throw new personagem_exception_1.PoderGenericoNaoRepetivelException(poderDb?.nome ?? String(habilidadeId));
@@ -101,7 +103,8 @@ async function validarPoderesGenericos(params, prisma) {
             if (requisitos.graus && Array.isArray(requisitos.graus)) {
                 validarGraus(poder.nome, requisitos.graus, grausMap);
             }
-            if (requisitos.poderesPreRequisitos && Array.isArray(requisitos.poderesPreRequisitos)) {
+            if (requisitos.poderesPreRequisitos &&
+                Array.isArray(requisitos.poderesPreRequisitos)) {
                 validarPoderesPreRequisitos(poder.nome, requisitos.poderesPreRequisitos, nomesPoderesSelecionados);
             }
         }
@@ -180,7 +183,9 @@ function validarAtributos(poderNome, atributosReq, atributos) {
             return valorAtual >= valorMin;
         });
         if (!atendeuAlgum) {
-            const opcoes = entries.map(([k, v]) => `${String(k).toUpperCase()} ${v}+`).join(' ou ');
+            const opcoes = entries
+                .map(([k, v]) => `${String(k).toUpperCase()} ${v}+`)
+                .join(' ou ');
             throw new personagem_exception_1.PoderGenericoRequisitoAtributoException(poderNome, opcoes);
         }
     }

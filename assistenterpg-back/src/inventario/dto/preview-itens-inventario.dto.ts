@@ -1,6 +1,13 @@
 // src/inventario/dto/preview-itens-inventario.dto.ts
 
-import { IsInt, IsArray, ValidateNested, IsOptional, IsBoolean, IsString } from 'class-validator';
+import {
+  IsInt,
+  IsArray,
+  ValidateNested,
+  IsOptional,
+  IsBoolean,
+  IsString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ItemPreviewDto {

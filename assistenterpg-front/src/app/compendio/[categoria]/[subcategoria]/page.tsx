@@ -2,6 +2,7 @@
 // ✅ FINAL - Usa EmptyState genérico
 
 import { apiBuscarSubcategoriaPorCodigo } from '@/lib/utils/compendio';
+import type { CompendioArtigoResumido } from '@/lib/utils/compendio';
 import { ArtigoCard } from '@/components/compendio/ArtigoCard';
 import { CompendioLayout } from '@/components/compendio/CompendioLayout';
 import { EmptyState } from '@/components/ui/EmptyState'; // ✅ Genérico
@@ -39,7 +40,7 @@ export default async function SubcategoriaPage({ params }: Props) {
 
   const artigos = subcategoriaData.artigos || [];
   const totalArtigos = artigos.length;
-  const artigosDestaque = artigos.filter((a: any) => a.destaque).length;
+  const artigosDestaque = artigos.filter((a: CompendioArtigoResumido) => a.destaque).length;
   const categoriaNome = subcategoriaData.categoria?.nome || 'Categoria';
 
   return (
@@ -89,8 +90,8 @@ export default async function SubcategoriaPage({ params }: Props) {
                 description="Artigos recomendados desta subcategoria"
               >
                 {artigos
-                  .filter((artigo: any) => artigo.destaque)
-                  .map((artigo: any) => (
+                  .filter((artigo: CompendioArtigoResumido) => artigo.destaque)
+                  .map((artigo: CompendioArtigoResumido) => (
                     <ArtigoCard
                       key={artigo.id}
                       artigo={artigo}
@@ -106,7 +107,7 @@ export default async function SubcategoriaPage({ params }: Props) {
             title={`Artigos (${totalArtigos})`}
             description="Lista completa desta subcategoria"
           >
-            {artigos.map((artigo: any) => (
+            {artigos.map((artigo: CompendioArtigoResumido) => (
               <ArtigoCard
                 key={artigo.id}
                 artigo={artigo}

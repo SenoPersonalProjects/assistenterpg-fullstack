@@ -33,7 +33,7 @@ export function InventarioAlertaVestir({ itens, equipamentos, className }: Props
         totalVestiveis += item.quantidade;
 
         // Verificar se é vestimenta (só para ACESSORIO)
-        const tipoAcessorio = (equip as any).tipoAcessorio;
+        const tipoAcessorio = equip.tipoAcessorio;
         if (equip.tipo === 'ACESSORIO' && tipoAcessorio === 'VESTIMENTA') {
           totalVestimentas += item.quantidade;
         }

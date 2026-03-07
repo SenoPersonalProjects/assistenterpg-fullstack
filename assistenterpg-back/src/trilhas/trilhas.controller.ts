@@ -36,7 +36,9 @@ export class TrilhasController {
 
   // FIND ALL - Listar trilhas (com filtro opcional por classe)
   @Get()
-  findAll(@Query('classeId', new ParseIntPipe({ optional: true })) classeId?: number) {
+  findAll(
+    @Query('classeId', new ParseIntPipe({ optional: true })) classeId?: number,
+  ) {
     return this.trilhasService.findAll(classeId);
   }
 
@@ -48,7 +50,10 @@ export class TrilhasController {
 
   // UPDATE - Atualizar trilha
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateDto: UpdateTrilhaDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateTrilhaDto,
+  ) {
     return this.trilhasService.update(id, updateDto);
   }
 
