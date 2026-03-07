@@ -1,0 +1,11 @@
+﻿{
+    "request":  {
+                    "operation":  "JSON.parse malformado",
+                    "stage":  "client-parse",
+                    "payload":  "{\"schema\":\"assistenterpg.personagem-base.v1\", \"schemaVersion\": 1, \"personagem\": {"
+                },
+    "response":  {
+                     "parseError":  "Objeto inválido transmitido, \u0027:\u0027 ou \u0027}\u0027 esperado. (81): {\"schema\":\"assistenterpg.personagem-base.v1\", \"schemaVersion\": 1, \"personagem\": {",
+                     "blockedBeforeHttp":  true
+                 }
+}

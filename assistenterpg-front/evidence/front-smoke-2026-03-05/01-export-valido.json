@@ -1,0 +1,101 @@
+﻿{
+    "request":  {
+                    "method":  "GET",
+                    "url":  "http://localhost:3000/personagens-base/1/exportar",
+                    "headers":  {
+                                    "Authorization":  "Bearer \u003ctoken\u003e"
+                                }
+                },
+    "response":  {
+                     "body":  {
+                                  "schema":  "assistenterpg.personagem-base.v1",
+                                  "schemaVersion":  1,
+                                  "exportadoEm":  "2026-03-05T10:00:44.708Z",
+                                  "personagem":  {
+                                                     "nome":  "Smoke Wizard Base",
+                                                     "nivel":  1,
+                                                     "claId":  18,
+                                                     "origemId":  4,
+                                                     "classeId":  3,
+                                                     "trilhaId":  null,
+                                                     "caminhoId":  null,
+                                                     "agilidade":  2,
+                                                     "forca":  2,
+                                                     "intelecto":  2,
+                                                     "presenca":  2,
+                                                     "vigor":  1,
+                                                     "estudouEscolaTecnica":  false,
+                                                     "tecnicaInataId":  null,
+                                                     "idade":  null,
+                                                     "prestigioBase":  0,
+                                                     "prestigioClaBase":  null,
+                                                     "alinhamentoId":  null,
+                                                     "background":  "Fixture para smoke test front",
+                                                     "atributoChaveEa":  "INT",
+                                                     "proficienciasCodigos":  [
+
+                                                                              ],
+                                                     "grausAprimoramento":  [
+
+                                                                            ],
+                                                     "grausTreinamento":  [
+
+                                                                          ],
+                                                     "poderesGenericos":  [
+
+                                                                          ],
+                                                     "passivasAtributoIds":  [
+
+                                                                             ],
+                                                     "passivasAtributosAtivos":  [
+
+                                                                                 ],
+                                                     "passivasAtributosConfig":  {
+
+                                                                                 },
+                                                     "periciasClasseEscolhidasCodigos":  [
+
+                                                                                         ],
+                                                     "periciasOrigemEscolhidasCodigos":  [
+
+                                                                                         ],
+                                                     "periciasLivresCodigos":  [
+
+                                                                               ],
+                                                     "periciasLivresExtras":  0,
+                                                     "itensInventario":  [
+
+                                                                         ]
+                                                 },
+                                  "referencias":  {
+                                                      "personagemIdOriginal":  1,
+                                                      "cla":  {
+                                                                  "id":  18,
+                                                                  "nome":  "Sem Clã"
+                                                              },
+                                                      "origem":  {
+                                                                     "id":  4,
+                                                                     "nome":  "Acadêmico"
+                                                                 },
+                                                      "classe":  {
+                                                                     "id":  3,
+                                                                     "nome":  "Especialista"
+                                                                 },
+                                                      "trilha":  null,
+                                                      "caminho":  null,
+                                                      "alinhamento":  null,
+                                                      "tecnicaInata":  null,
+                                                      "poderesGenericos":  [
+
+                                                                           ],
+                                                      "passivas":  [
+
+                                                                   ],
+                                                      "itensInventario":  [
+
+                                                                          ]
+                                                  }
+                              },
+                     "status":  200
+                 }
+}

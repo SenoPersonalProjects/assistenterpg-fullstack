@@ -1,0 +1,16 @@
+{
+  "statusCode": 400,
+  "body": {
+    "statusCode": 400,
+    "timestamp": "2026-03-05T05:19:51.408Z",
+    "path": "/personagens-base/importar",
+    "method": "POST",
+    "code": "HTTP_EXCEPTION",
+    "message": "Nao foi possivel resolver a referencia de cla na importacao.",
+    "details": {
+      "message": "Nao foi possivel resolver a referencia de cla na importacao.",
+      "error": "Bad Request",
+      "statusCode": 400
+    }
+  }
+}

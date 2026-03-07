@@ -1,0 +1,22 @@
+﻿{
+    "request":  {
+                    "body":  {
+                                 "senha":  "FrontSmoke123",
+                                 "email":  "front.wizard.smoke@test.local"
+                             },
+                    "method":  "POST",
+                    "url":  "http://localhost:3000/auth/login"
+                },
+    "response":  {
+                     "body":  {
+                                  "access_token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImVtYWlsIjoiZnJvbnQud2l6YXJkLnNtb2tlQHRlc3QubG9jYWwiLCJpYXQiOjE3NzI3MDQ4NDQsImV4cCI6MTc3MzMwOTY0NH0.VfFlqO24lLl5_8kZ17AAqsXO_mfktleuLylUueP0BOQ",
+                                  "usuario":  {
+                                                  "id":  2,
+                                                  "email":  "front.wizard.smoke@test.local",
+                                                  "apelido":  "FrontSmoke",
+                                                  "role":  "USUARIO"
+                                              }
+                              },
+                     "status":  201
+                 }
+}

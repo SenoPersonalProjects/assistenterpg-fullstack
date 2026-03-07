@@ -1,0 +1,114 @@
+﻿{
+    "request":  {
+                    "body":  {
+                                 "schema":  "assistenterpg.personagem-base.v1",
+                                 "schemaVersion":  1,
+                                 "exportadoEm":  "2026-03-05T10:00:44.708Z",
+                                 "personagem":  {
+                                                    "nome":  "Smoke Wizard Base",
+                                                    "nivel":  1,
+                                                    "claId":  18,
+                                                    "origemId":  999999,
+                                                    "classeId":  999999,
+                                                    "trilhaId":  null,
+                                                    "caminhoId":  null,
+                                                    "agilidade":  2,
+                                                    "forca":  2,
+                                                    "intelecto":  2,
+                                                    "presenca":  2,
+                                                    "vigor":  1,
+                                                    "estudouEscolaTecnica":  false,
+                                                    "tecnicaInataId":  null,
+                                                    "idade":  null,
+                                                    "prestigioBase":  0,
+                                                    "prestigioClaBase":  null,
+                                                    "alinhamentoId":  null,
+                                                    "background":  "Fixture para smoke test front",
+                                                    "atributoChaveEa":  "INT",
+                                                    "proficienciasCodigos":  [
+
+                                                                             ],
+                                                    "grausAprimoramento":  [
+
+                                                                           ],
+                                                    "grausTreinamento":  [
+
+                                                                         ],
+                                                    "poderesGenericos":  [
+
+                                                                         ],
+                                                    "passivasAtributoIds":  [
+
+                                                                            ],
+                                                    "passivasAtributosAtivos":  [
+
+                                                                                ],
+                                                    "passivasAtributosConfig":  {
+
+                                                                                },
+                                                    "periciasClasseEscolhidasCodigos":  [
+
+                                                                                        ],
+                                                    "periciasOrigemEscolhidasCodigos":  [
+
+                                                                                        ],
+                                                    "periciasLivresCodigos":  [
+
+                                                                              ],
+                                                    "periciasLivresExtras":  0,
+                                                    "itensInventario":  [
+
+                                                                        ]
+                                                },
+                                 "referencias":  {
+                                                     "personagemIdOriginal":  1,
+                                                     "cla":  {
+                                                                 "id":  18,
+                                                                 "nome":  "Sem Clã"
+                                                             },
+                                                     "origem":  {
+                                                                    "id":  999999,
+                                                                    "nome":  "Origem Inexistente Front"
+                                                                },
+                                                     "classe":  {
+                                                                    "id":  999999,
+                                                                    "nome":  "Classe Inexistente Front"
+                                                                },
+                                                     "trilha":  null,
+                                                     "caminho":  null,
+                                                     "alinhamento":  null,
+                                                     "tecnicaInata":  null,
+                                                     "poderesGenericos":  [
+
+                                                                          ],
+                                                     "passivas":  [
+
+                                                                  ],
+                                                     "itensInventario":  [
+
+                                                                         ]
+                                                 }
+                             },
+                    "method":  "POST",
+                    "url":  "http://localhost:3000/personagens-base/importar",
+                    "headers":  {
+                                    "Authorization":  "Bearer \u003ctoken\u003e"
+                                }
+                },
+    "response":  {
+                     "body":  {
+                                  "statusCode":  400,
+                                  "timestamp":  "2026-03-05T10:00:44.831Z",
+                                  "path":  "/personagens-base/importar",
+                                  "method":  "POST",
+                                  "code":  "HTTP_EXCEPTION",
+                                  "message":  "Nao foi possivel resolver a referencia de origem na importacao.",
+                                  "details":  {
+                                                  "message":  "Nao foi possivel resolver a referencia de origem na importacao.",
+                                                  "error":  "Bad Request",
+                                                  "statusCode":  400
+                                              }
+                              },
+                     "status":  400
+                 }
+}

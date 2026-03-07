@@ -4,6 +4,7 @@
  */
 
 import type { AtributoBaseCodigo, AtributoChaveEA } from './common.types';
+import type { ItemInventarioDto } from './inventario.types';
 
 /* ============================================================================ */
 /* RESISTÊNCIAS E ATRIBUTOS DERIVADOS */
@@ -69,7 +70,7 @@ export type PassivasAtributoConfigFront = {
 
 export type PoderGenericoInstanciaPayload = {
   habilidadeId: number;
-  config?: any;
+  config?: Record<string, unknown>;
 };
 
 /* ============================================================================ */
@@ -135,6 +136,58 @@ export type PersonagemBaseCriado = {
   caminho: string | null;
 };
 
+type ReferenciaImportExport = {
+  id?: number;
+  nome?: string | null;
+  codigo?: string | null;
+} | null;
+
+export type PersonagemBaseReferenciasImportExport = {
+  cla?: ReferenciaImportExport;
+  origem?: ReferenciaImportExport;
+  classe?: ReferenciaImportExport;
+  trilha?: ReferenciaImportExport;
+  caminho?: ReferenciaImportExport;
+  alinhamento?: ReferenciaImportExport;
+  tecnicaInata?: ReferenciaImportExport;
+  poderesGenericos?: ReferenciaImportExport[];
+  passivas?: ReferenciaImportExport[];
+  itensInventario?: Array<Record<string, unknown>>;
+  [key: string]: unknown;
+};
+
+export type PersonagemBaseExportResponse = {
+  schema: string;
+  schemaVersion: number;
+  exportadoEm: string;
+  personagem: CreatePersonagemBasePayload;
+  referencias?: PersonagemBaseReferenciasImportExport;
+};
+
+export type PersonagemBaseImportRequest = {
+  schema: string;
+  schemaVersion: number;
+  exportadoEm?: string;
+  personagem: CreatePersonagemBasePayload;
+  referencias?: PersonagemBaseReferenciasImportExport;
+  nomeSobrescrito?: string;
+};
+
+export type PersonagemBaseImportResponse = {
+  id: number;
+  nome: string;
+  nivel: number;
+  cla: string;
+  origem: string;
+  classe: string;
+  trilha: string | null;
+  caminho: string | null;
+  importado: boolean;
+  schema: string;
+  schemaVersion: number;
+  importadoEm: string;
+};
+
 export type PersonagemBasePreview = {
   nome: string;
   nivel: number;
@@ -198,7 +251,7 @@ export type PersonagemBasePreview = {
     habilidadeNome: string;
     tipoGrauCodigo: string;
     valor: number;
-    escalonamentoPorNivel: any;
+    escalonamentoPorNivel: unknown;
   }>;
 
   grausLivresInfo?: {
@@ -247,7 +300,26 @@ export type PersonagemBasePreview = {
     base: number;
     extra: number;
     total: number;
+    ocupados?: number;
+    restantes?: number;
+    sobrecarregado?: boolean;
+    limitesPorCategoria?: Record<string, number>;
+    itensPorCategoria?: Record<string, number>;
   };
+
+  errosInventario?: string[];
+  errosItens?: Array<
+    | string
+    | {
+        index?: number;
+        indice?: number;
+        itemIndex?: number;
+        equipamentoId?: number;
+        mensagem?: string;
+        message?: string;
+        erro?: string;
+      }
+  >;
 };
 
 /* ============================================================================ */
@@ -394,7 +466,7 @@ export type PersonagemBaseDetalhe = {
     id: number;
     habilidadeId: number;
     nome: string;
-    config?: any;
+    config?: Record<string, unknown>;
   }>;
 
   poderesGenericosSelecionadosIds?: number[];
@@ -406,7 +478,7 @@ export type PersonagemBaseDetalhe = {
     atributo: string;
     nivel: number;
     descricao: string;
-    efeitos: any;
+    efeitos: unknown;
   }>;
 
   passivasAtributoIds?: number[];
@@ -419,7 +491,7 @@ export type PersonagemBaseDetalhe = {
   espacosOcupados: number;
   sobrecarregado: boolean;
 
-  itensInventario?: any[]; // Importado de inventario.types.ts
+  itensInventario?: ItemInventarioDto[]; // Importado de inventario.types.ts
 
   resistencias?: ResistenciaSimplificadaDto[];
   resistenciasDetalhadas?: Record<string, ResistenciaDetalhadaDto>;

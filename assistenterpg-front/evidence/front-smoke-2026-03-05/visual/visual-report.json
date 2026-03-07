@@ -1,0 +1,217 @@
+{
+  "generatedAt": "2026-03-05T13:54:23.367Z",
+  "files": [
+    {
+      "file": "evidence\\front-smoke-2026-03-05\\visual\\visual-a-erro-global-revisao.png",
+      "routeHits": 2,
+      "previewResponses": [
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 422,
+          "summary": {
+            "code": "WAY_REQUIRES_PATH",
+            "message": "Não é possível selecionar um caminho sem uma trilha",
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": null,
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 422,
+          "summary": {
+            "code": "WAY_REQUIRES_PATH",
+            "message": "Não é possível selecionar um caminho sem uma trilha",
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": null,
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        }
+      ]
+    },
+    {
+      "file": "evidence\\front-smoke-2026-03-05\\visual\\visual-b-erro-por-item-errosItens.png",
+      "routeHits": 2,
+      "previewResponses": [
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": true,
+            "errosItens": [
+              {
+                "equipamentoId": 999999,
+                "erro": "Equipamento não encontrado"
+              }
+            ],
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": true,
+            "errosItens": [
+              {
+                "equipamentoId": 999999,
+                "erro": "Equipamento não encontrado"
+              }
+            ],
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        }
+      ]
+    },
+    {
+      "file": "evidence\\front-smoke-2026-03-05\\visual\\visual-c-estado-inventario.png",
+      "routeHits": 0,
+      "previewResponses": [
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        },
+        {
+          "status": 201,
+          "summary": {
+            "code": null,
+            "message": null,
+            "hasErrosItens": false,
+            "errosItens": null,
+            "espacosInventario": {
+              "base": 10,
+              "extra": 0,
+              "total": 10
+            },
+            "trilhaId": null,
+            "caminhoId": null
+          }
+        }
+      ]
+    }
+  ]
+}

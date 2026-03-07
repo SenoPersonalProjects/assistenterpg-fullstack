@@ -10,6 +10,10 @@ import type {
   ModificacaoCatalogo,
 } from '@/lib/types'; // ✅ ATUALIZADO
 
+type EquipamentoComIncremento = EquipamentoCatalogo & {
+  incrementoEspacos?: number | null;
+};
+
 /* ============================================================================ */
 /* CONSTANTES */
 /* ============================================================================ */
@@ -123,7 +127,7 @@ export const ICONES_CATEGORIA_GRAU: Record<string, IconName> = {
 /**
  * Normaliza categoria do backend para formato esperado
  */
-export function normalizarCategoria(categoria: any): string {
+export function normalizarCategoria(categoria: unknown): string {
   if (categoria === null || categoria === undefined) {
     return '0';
   }
@@ -224,7 +228,7 @@ export function calcularEspacosExtraDeItens(
     if (!equipamento) return total;
 
     // ✅ Verifica se equipamento tem incrementoEspacos
-    const incremento = (equipamento as any).incrementoEspacos || 0;
+    const incremento = (equipamento as EquipamentoComIncremento).incrementoEspacos ?? 0;
     
     // ✅ Só conta incrementos POSITIVOS (espaços extras)
     if (incremento > 0) {
@@ -268,6 +272,13 @@ export type ItemVestivel = {
   quantidade: number;
 };
 
+export type ItemInventarioParaVestir = {
+  equipamentoId: number;
+  quantidade: number;
+  equipado: boolean;
+  equipamento?: EquipamentoCatalogo;
+};
+
 export type ResultadoValidacaoVestir = {
   valido: boolean;
   totalVestiveis: number;
@@ -278,7 +289,7 @@ export type ResultadoValidacaoVestir = {
 /**
  * Detecta o tipo base de um equipamento (considerando amaldiçoados)
  */
-function detectarTipoBase(equipamento: any): string | null {
+function detectarTipoBase(equipamento: EquipamentoCatalogo): string | null {
   const tipo = equipamento.tipo;
 
   if (tipo === 'ARMA') return 'ARMA';
@@ -313,13 +324,13 @@ export function podeSerVestido(equipamento: EquipamentoCatalogo): boolean {
   if (DEBUG) {
     console.log(`\n🔎 [podeSerVestido] Analisando: "${equipamento.nome}" (ID: ${equipamento.id})`);
     console.log(`   tipo: "${equipamento.tipo}"`);
-    console.log(`   protecaoAmaldicoada: ${JSON.stringify((equipamento as any).protecaoAmaldicoada)}`);
-    console.log(`   tipoUso: "${(equipamento as any).tipoUso}"`);
+    console.log(`   protecaoAmaldicoada: ${JSON.stringify(equipamento.protecaoAmaldicoada)}`);
+    console.log(`   tipoUso: "${equipamento.tipoUso}"`);
   }
 
   // ✅ PRIORIDADE 1: Ferramenta amaldiçoada que é PROTEÇÃO
   if (equipamento.tipo === 'FERRAMENTA_AMALDICOADA') {
-    const temProtecao = !!(equipamento as any).protecaoAmaldicoada;
+    const temProtecao = !!equipamento.protecaoAmaldicoada;
 
     if (DEBUG) {
       console.log(`   ✓ É FERRAMENTA_AMALDICOADA`);
@@ -333,7 +344,7 @@ export function podeSerVestido(equipamento: EquipamentoCatalogo): boolean {
   }
 
   // ✅ PRIORIDADE 2 & 3: Respeitar tipoUso
-  const tipoUso = (equipamento as any).tipoUso;
+  const tipoUso = equipamento.tipoUso;
 
   if (DEBUG) {
     console.log(`   tipoUso (valor bruto): "${tipoUso}"`);
@@ -354,7 +365,7 @@ export function podeSerVestido(equipamento: EquipamentoCatalogo): boolean {
   }
 
   // ✅ PRIORIDADE 4: Fallback
-  const resultado = ehVestivel(equipamento.tipo, (equipamento as any).tipoAcessorio);
+  const resultado = ehVestivel(equipamento.tipo, equipamento.tipoAcessorio);
   if (DEBUG) console.log(`   ✅ RETORNA: ${resultado} (fallback ehVestivel)`);
   return resultado;
 }
@@ -420,7 +431,7 @@ export function validarSistemaVestir(
  * item.equipamento pode estar serializado parcialmente pelo backend
  */
 export function contarItensVestiveis(
-  itens: ItemInventarioDto[],
+  itens: ItemInventarioParaVestir[],
   equipamentos: EquipamentoCatalogo[] = [],
 ): { vestiveis: number; vestimentas: number } {
   let vestiveis = 0;
@@ -452,7 +463,7 @@ export function contarItensVestiveis(
 
     const ehVestimenta =
       equip.tipo === 'ACESSORIO' &&
-      (equip as any).tipoAcessorio === SUBTIPO_VESTIMENTA;
+      equip.tipoAcessorio === SUBTIPO_VESTIMENTA;
 
     if (ehVestimenta) {
       vestimentas += item.quantidade;
@@ -487,7 +498,7 @@ export function validarCategoriaNaoExcedeEspecial(
 }
 
 export function validarLimitesVestidos(
-  itensInventario: ItemInventarioDto[],
+  itensInventario: ItemInventarioParaVestir[],
   equipamentos: EquipamentoCatalogo[],
   novoItemVestido?: { equipamentoId: number; quantidade: number },
 ): { valido: boolean; erros: string[] } {
@@ -505,12 +516,12 @@ export function validarLimitesVestidos(
     const equipNovo = equipamentos.find((e) => e.id === novoItemVestido.equipamentoId);
 
     if (equipNovo) {
-      const tipoBase = detectarTipoBase(equipNovo as any);
+      const tipoBase = detectarTipoBase(equipNovo);
 
       const ehProtecao = tipoBase === 'PROTECAO';
       const ehVestimenta =
         tipoBase === 'ACESSORIO' &&
-        (equipNovo as any).tipoAcessorio === SUBTIPO_VESTIMENTA;
+        equipNovo.tipoAcessorio === SUBTIPO_VESTIMENTA;
 
       if (ehProtecao || ehVestimenta) {
         totalVestiveisComNovo += novoItemVestido.quantidade;
@@ -551,7 +562,7 @@ export function validarLimitesVestidos(
 export function validarPodeVestir(
   equipamento: EquipamentoCatalogo,
   quantidade: number,
-  itensInventario: ItemInventarioDto[],
+  itensInventario: ItemInventarioParaVestir[],
   equipamentos: EquipamentoCatalogo[],
 ): {
   valido: boolean;
@@ -564,8 +575,6 @@ export function validarPodeVestir(
     novoTotalVestimentas: number;
   };
 } {
-  const erros: string[] = [];
-
   const podeVestir = podeSerVestido(equipamento);
 
   if (!podeVestir) {
@@ -590,7 +599,7 @@ export function validarPodeVestir(
   const { vestiveis, vestimentas } = contarItensVestiveis(itensInventario, equipamentos);
 
   const ehVestimenta =
-    equipamento.tipo === 'ACESSORIO' && (equipamento as any).tipoAcessorio === SUBTIPO_VESTIMENTA;
+    equipamento.tipo === 'ACESSORIO' && equipamento.tipoAcessorio === SUBTIPO_VESTIMENTA;
 
   return {
     valido: validacao.valido,
@@ -677,7 +686,7 @@ export function formatarIncrementoEspacos(incremento: number): string {
   return `${incremento} esp.`;
 }
 
-function verificarTipoCompativel(tipoMod: string, equipamento: any): boolean {
+function verificarTipoCompativel(tipoMod: string, equipamento: EquipamentoCatalogo): boolean {
   const tipoEquip = equipamento.tipo;
   const tipoArma = equipamento.tipoArma;
   const subtipoDistancia = equipamento.subtipoDistancia;
@@ -720,9 +729,9 @@ function verificarTipoCompativel(tipoMod: string, equipamento: any): boolean {
 }
 
 export function filtrarModificacoesCompativeis(
-  modificacoes: any[],
-  equipamento: any,
-): any[] {
+  modificacoes: ModificacaoCatalogo[],
+  equipamento: EquipamentoCatalogo | null | undefined,
+): ModificacaoCatalogo[] {
   if (!Array.isArray(modificacoes) || modificacoes.length === 0) return [];
   if (!equipamento) return [];
 

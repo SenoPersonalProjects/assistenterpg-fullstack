@@ -4,6 +4,7 @@
  */
 
 import type { ItemInventarioPayload } from './personagem.types';
+import type { TipoFonte } from './homebrew-enums';
 
 /* ============================================================================ */
 /* EQUIPAMENTOS */
@@ -25,14 +26,16 @@ export type EquipamentoCatalogo = {
   id: number;
   codigo: string;
   nome: string;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
   tipo: string;
-  categoria: number;
+  categoria: string;
   espacos: number;
   complexidadeMaldicao?: string | null;
   descricao?: string | null;
   peso?: number | null;
   valor?: number | null;
-  requisitos?: any;
+  requisitos?: unknown;
   proficienciaArma?: string | null;
   proficienciaProtecao?: string | null;
   alcance?: string | null;
@@ -46,9 +49,9 @@ export type EquipamentoCatalogo = {
   tipoAmaldicoado?: string | null;
   efeito?: string | null;
 
-  armaAmaldicoada?: any;
-  protecaoAmaldicoada?: any;
-  artefatoAmaldicoado?: any;
+  armaAmaldicoada?: unknown;
+  protecaoAmaldicoada?: unknown;
+  artefatoAmaldicoado?: unknown;
 };
 
 export type EquipamentoResumoDto = {
@@ -56,8 +59,10 @@ export type EquipamentoResumoDto = {
   codigo: string;
   nome: string;
   descricao: string | null;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
   tipo: string;
-  categoria: number;
+  categoria: string;
   espacos: number;
   complexidadeMaldicao: string;
   proficienciaArma?: string | null;
@@ -94,8 +99,10 @@ export type EquipamentoDetalhadoDto = {
   codigo: string;
   nome: string;
   descricao: string | null;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
   tipo: string;
-  categoria: number;
+  categoria: string;
   espacos: number;
   complexidadeMaldicao: string;
 
@@ -172,9 +179,9 @@ export type ModificacaoCatalogo = {
   incrementoEspacos: number;
   apenasAmaldicoadas: boolean;
   requerComplexidade?: string | null;
-  efeitosMecanicos?: any;
-  requisitos?: any;
-  fonte?: string;
+  efeitosMecanicos?: unknown;
+  requisitos?: unknown;
+  fonte?: TipoFonte;
   suplementoId?: number | null;
 };
 
@@ -196,7 +203,7 @@ export type ModificacaoItemDto = {
   incrementoEspacos: number;
   apenasAmaldicoadas: boolean;
   requerComplexidade?: string | null;
-  efeitosMecanicos?: any;
+  efeitosMecanicos?: unknown;
 };
 
 /* ============================================================================ */
@@ -294,9 +301,9 @@ export type FiltrarEquipamentosDto = {
   proficienciaProtecao?: string;
   alcance?: string;
   tipoAcessorio?: string;
-  categoria?: number;
+  categoria?: string;
   apenasAmaldicoados?: boolean;
-  fontes?: string[];
+  fontes?: TipoFonte[];
   suplementoId?: number;
   busca?: string;
   pagina?: number;
@@ -307,7 +314,7 @@ export type FiltrarModificacoesDto = {
   tipo?: string;
   apenasAmaldicoadas?: boolean;
   requerComplexidade?: string;
-  fontes?: string[];
+  fontes?: TipoFonte[];
   suplementoId?: number;
   busca?: string;
   pagina?: number;

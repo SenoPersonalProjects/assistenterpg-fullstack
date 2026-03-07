@@ -14,5 +14,5 @@ export type ApiErrorBody = {
   message: string | string[];
   error: string;
   code?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 };

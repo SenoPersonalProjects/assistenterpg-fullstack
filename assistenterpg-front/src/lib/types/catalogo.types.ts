@@ -4,6 +4,16 @@
  */
 
 import type { AtributoBaseCodigo } from './common.types';
+import type { TipoFonte, TipoTecnicaAmaldicoada } from './homebrew-enums';
+
+export type TipoHabilidadeCatalogo =
+  | 'RECURSO_CLASSE'
+  | 'EFEITO_GRAU'
+  | 'PODER_GENERICO'
+  | 'MECANICA_ESPECIAL'
+  | 'HABILIDADE_ORIGEM'
+  | 'HABILIDADE_TRILHA'
+  | 'ESCOLA_TECNICA';
 
 /* ============================================================================ */
 /* HABILIDADES */
@@ -13,13 +23,15 @@ export type HabilidadeCatalogo = {
   id: number;
   nome: string;
   descricao: string | null;
-  tipo: string;
-  [key: string]: any;
+  tipo: TipoHabilidadeCatalogo | string;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
+  [key: string]: unknown;
 };
 
 export type OrigemHabilidadeRel = {
   habilidade: HabilidadeCatalogo;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 /* ============================================================================ */
@@ -52,6 +64,8 @@ export type ClasseCatalogo = {
   id: number;
   nome: string;
   descricao: string | null;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
   periciasLivresBase: number;
   pericias: ClassePericiaCatalogo[];
   proficiencias?: ClasseProficienciaCatalogo[];
@@ -67,6 +81,8 @@ export type ClaCatalogo = {
   nome: string;
   descricao: string | null;
   grandeCla: boolean;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
 };
 
 /* ============================================================================ */
@@ -89,6 +105,8 @@ export type OrigemCatalogo = {
   id: number;
   nome: string;
   descricao: string | null;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
 
   requisitosTexto?: string | null;
   requerGrandeCla: boolean;
@@ -128,6 +146,8 @@ export type TrilhaCatalogo = {
   nome: string;
   descricao: string | null;
   classeId: number;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
 };
 
 export type CaminhoCatalogo = {
@@ -139,10 +159,29 @@ export type CaminhoCatalogo = {
 
 export type TecnicaInataCatalogo = {
   id: number;
+  codigo?: string;
   nome: string;
   descricao: string | null;
+  tipo?: TipoTecnicaAmaldicoada;
   hereditaria: boolean;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
   clasHereditarios: { claId: number; claNome: string }[];
+};
+
+export type TecnicaAmaldicoadaCatalogo = {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  tipo: TipoTecnicaAmaldicoada;
+  hereditaria?: boolean;
+  linkExterno?: string | null;
+  requisitos?: unknown;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
+  clasHereditarios?: Array<{ id: number; nome: string }>;
+  habilidades?: unknown[];
 };
 
 export type AlinhamentoCatalogo = {
@@ -167,8 +206,10 @@ export type PoderGenericoCatalogo = {
   nome: string;
   descricao: string | null;
   origem: string | null;
-  requisitos: any;
-  mecanicasEspeciais?: any;
+  requisitos: unknown;
+  mecanicasEspeciais?: unknown;
+  fonte?: TipoFonte;
+  suplementoId?: number | null;
 };
 
 export type PassivaAtributoCatalogo = {
@@ -179,7 +220,7 @@ export type PassivaAtributoCatalogo = {
   nivel: number;
   requisito: number;
   descricao: string;
-  efeitos: any;
+  efeitos: unknown;
 };
 
 export type PassivasDisponiveisResponse = {

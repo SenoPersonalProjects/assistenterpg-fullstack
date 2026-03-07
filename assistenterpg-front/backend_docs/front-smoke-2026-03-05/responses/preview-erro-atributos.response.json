@@ -1,0 +1,18 @@
+{
+  "statusCode": 400,
+  "body": {
+    "statusCode": 400,
+    "timestamp": "2026-03-05T05:19:51.434Z",
+    "path": "/personagens-base/preview",
+    "method": "POST",
+    "code": "INVALID_ATTRIBUTE_SUM",
+    "message": "Soma de atributos inválida (5). Para nível 1, a soma deve ser 9",
+    "details": {
+      "nivel": 1,
+      "somaAtual": 5,
+      "somaEsperada": 9
+    },
+    "field": "atributos",
+    "stack": "SomatorioAtributosInvalidoException: Soma de atributos inválida (5). Para nível 1, a soma deve ser 9\n    at validarAtributos (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\regras-criacao\\regras-atributos.ts:63:11)\n    at calcularEstadoFinalPersonagemBase (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\engine\\personagem-base.engine.ts:194:19)\n    at PersonagemBaseService.executarEngine (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\personagem-base.service.ts:906:45)\n    at PersonagemBaseService.preview (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\personagem-base.service.ts:1104:31)\n    at PersonagemBaseController.preview (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\personagem-base.controller.ts:45:39)\n    at D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\node_modules\\@nestjs\\core\\router\\router-execution-context.js:38:29"
+  }
+}

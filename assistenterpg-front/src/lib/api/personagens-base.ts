@@ -5,11 +5,14 @@ import type {
   PersonagemBaseCriado,
   PersonagemBasePreview,
   PersonagemBaseDetalhe,
+  PersonagemBaseExportResponse,
+  PersonagemBaseImportRequest,
+  PersonagemBaseImportResponse,
   CreatePersonagemBasePayload,
   UpdatePersonagemBasePayload,
   InfoGrausTreinamento,
   PericiaElegivelTreinamento,
-} from '@/lib/types'; // ✅ ATUALIZADO
+} from '@/lib/types';
 
 export async function apiGetMeusPersonagensBase(): Promise<PersonagemBaseResumo[]> {
   const { data } = await apiClient.get('/personagens-base/meus');
@@ -46,6 +49,21 @@ export async function apiUpdatePersonagemBase(
 
 export async function apiDeletePersonagemBase(id: number): Promise<void> {
   await apiClient.delete(`/personagens-base/${id}`);
+}
+
+export async function apiExportarPersonagemBase(id: number): Promise<PersonagemBaseExportResponse> {
+  const { data } = await apiClient.get(`/personagens-base/${id}/exportar`);
+  return data;
+}
+
+export async function apiImportarPersonagemBase(
+  payload: PersonagemBaseImportRequest,
+): Promise<PersonagemBaseImportResponse> {
+  const { data } = await apiClient.post('/personagens-base/importar', {
+    ...payload,
+    nomeSobrescrito: payload.nomeSobrescrito?.trim() || undefined,
+  });
+  return data;
 }
 
 export async function apiPreviewPersonagemBase(

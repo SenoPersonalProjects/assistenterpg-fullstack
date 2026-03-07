@@ -1,0 +1,77 @@
+﻿{
+    "request":  {
+                    "body":  {
+                                 "nome":  "Smoke Wizard Base",
+                                 "nivel":  1,
+                                 "claId":  18,
+                                 "origemId":  4,
+                                 "classeId":  3,
+                                 "trilhaId":  null,
+                                 "caminhoId":  1,
+                                 "agilidade":  2,
+                                 "forca":  2,
+                                 "intelecto":  2,
+                                 "presenca":  2,
+                                 "vigor":  1,
+                                 "estudouEscolaTecnica":  false,
+                                 "tecnicaInataId":  null,
+                                 "idade":  null,
+                                 "prestigioBase":  0,
+                                 "prestigioClaBase":  null,
+                                 "alinhamentoId":  null,
+                                 "background":  "Fixture para smoke test front",
+                                 "atributoChaveEa":  "INT",
+                                 "proficienciasCodigos":  [
+
+                                                          ],
+                                 "grausAprimoramento":  [
+
+                                                        ],
+                                 "grausTreinamento":  [
+
+                                                      ],
+                                 "poderesGenericos":  [
+
+                                                      ],
+                                 "passivasAtributoIds":  [
+
+                                                         ],
+                                 "passivasAtributosAtivos":  [
+
+                                                             ],
+                                 "passivasAtributosConfig":  {
+
+                                                             },
+                                 "periciasClasseEscolhidasCodigos":  [
+
+                                                                     ],
+                                 "periciasOrigemEscolhidasCodigos":  [
+
+                                                                     ],
+                                 "periciasLivresCodigos":  [
+
+                                                           ],
+                                 "periciasLivresExtras":  0,
+                                 "itensInventario":  [
+
+                                                     ]
+                             },
+                    "method":  "POST",
+                    "url":  "http://localhost:3000/personagens-base/preview",
+                    "headers":  {
+                                    "Authorization":  "Bearer \u003ctoken\u003e"
+                                }
+                },
+    "response":  {
+                     "body":  {
+                                  "statusCode":  422,
+                                  "timestamp":  "2026-03-05T10:00:44.914Z",
+                                  "path":  "/personagens-base/preview",
+                                  "method":  "POST",
+                                  "code":  "WAY_REQUIRES_PATH",
+                                  "message":  "Não é possível selecionar um caminho sem uma trilha",
+                                  "stack":  "CaminhoSemTrilhaException: Não é possível selecionar um caminho sem uma trilha\n    at validarTrilhaECaminho (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\regras-criacao\\regras-trilha.ts:83:13)\n    at calcularEstadoFinalPersonagemBase (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\engine\\personagem-base.engine.ts:313:30)\n    at async PersonagemBaseService.preview (D:\\RPG\\PROGRAMAÇÃO\\Projeto Real\\backend\\assistenterpg-back\\src\\personagem-base\\personagem-base.service.ts:1104:20)"
+                              },
+                     "status":  422
+                 }
+}

@@ -34,6 +34,9 @@ import {
 // TIPOS BASE
 // ============================================================================
 
+export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[];
+export type JsonObject = { [key: string]: JsonValue };
+
 /**
  * Homebrew resumido (para listagem)
  */
@@ -56,7 +59,7 @@ export type HomebrewResumo = {
  * Homebrew detalhado
  */
 export type HomebrewDetalhado = HomebrewResumo & {
-  dados: any; // JSON - estrutura varia por tipo
+  dados: JsonValue; // JSON - estrutura varia por tipo
 };
 
 /**
@@ -87,7 +90,7 @@ export type CreateHomebrewDto = {
   status?: StatusPublicacao;
   tags?: string[];
   versao?: string;
-  dados: any; // Estrutura varia por tipo
+  dados: JsonValue; // Estrutura varia por tipo
 };
 
 /**
@@ -413,7 +416,7 @@ export type VariacaoHabilidade = {
   escalonamentoCustoEA?: number;
   escalonamentoDano?: EscalonamentoDano;
   efeitoAdicional?: string;
-  requisitos?: any;
+  requisitos?: JsonValue;
   ordem?: number;
 };
 
@@ -421,7 +424,7 @@ export type HabilidadeTecnica = {
   codigo: string;
   nome: string;
   descricao: string;
-  requisitos?: any;
+  requisitos?: JsonValue;
   execucao: TipoExecucao;
   area?: AreaEfeito;
   alcance?: string;
@@ -450,7 +453,7 @@ export type DadosTecnicaAmaldicoada = {
   tipo: TipoTecnicaAmaldicoada;
   hereditaria?: boolean;
   linkExterno?: string;
-  requisitos?: any;
+  requisitos?: JsonValue;
   habilidades: HabilidadeTecnica[];
 };
 
@@ -460,30 +463,30 @@ export type DadosTecnicaAmaldicoada = {
 
 export type DadosCla = {
   tecnicaInataId?: number;
-  caracteristicas?: any[];
-  requisitos?: any;
+  caracteristicas?: JsonValue[];
+  requisitos?: JsonValue;
 };
 
 export type DadosOrigem = {
   pericias: string[];
-  habilidades?: any[];
+  habilidades?: JsonValue[];
 };
 
 export type DadosTrilha = {
   classeId: number;
   nivelRequisito?: number;
-  habilidades: any[];
+  habilidades: JsonValue[];
 };
 
 export type DadosCaminho = {
-  requisitos?: any;
-  habilidades: any[];
+  requisitos?: JsonValue;
+  habilidades: JsonValue[];
 };
 
 export type DadosPoderGenerico = {
-  requisitos?: any;
+  requisitos?: JsonValue;
   efeitos: string;
-  mecanicas?: any;
+  mecanicas?: JsonValue;
 };
 
 // ============================================================================

@@ -71,7 +71,7 @@ export interface CompendioArtigoCompleto extends CompendioArtigoResumido {
 
 type ApiErrorBody = {
   message?: string | string[];
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 class ApiError extends Error {
@@ -93,7 +93,7 @@ async function parseApiError(
   const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
 
   if (body && typeof body === 'object' && 'message' in body) {
-    const msg = (body as any).message;
+    const msg = body.message;
     const message = Array.isArray(msg) ? msg.join(' ') : String(msg);
     return { message, body };
   }

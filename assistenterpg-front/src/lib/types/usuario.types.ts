@@ -39,8 +39,8 @@ export type DadosExportados = {
     email: string;
     criadoEm: string;
   };
-  personagens: any[];
-  campanhas: any[];
+  personagens: Array<Record<string, unknown>>;
+  campanhas: Array<Record<string, unknown>>;
   preferencias: PreferenciasUsuario | null;
 };
 
