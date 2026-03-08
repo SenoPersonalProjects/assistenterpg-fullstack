@@ -4,7 +4,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { apiCriarConvite, apiGetCampanhaById } from '@/lib/api';
+import {
+  apiCriarConvite,
+  apiGetCampanhaById,
+  extrairMensagemErro,
+  formatarErroComContexto,
+  traduzirErro,
+} from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { SectionTitle } from '@/components/ui/SectionTitle';
@@ -36,6 +42,77 @@ type CampanhaDetalheDto = {
   _count: { membros: number; personagens: number; sessoes: number };
 };
 
+function mensagemErroCarregarCampanha(error: unknown): string {
+  const status = Number(
+    (error as { status?: number })?.status ??
+      (error as { response?: { status?: number } })?.response?.status ??
+      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
+      0,
+  );
+  const code = (error as { body?: { code?: string } })?.body?.code;
+  const base = traduzirErro(code, extrairMensagemErro(error), status);
+
+  if (status === 404) {
+    return formatarErroComContexto('Campanha nao encontrada.', error, {
+      incluirEndpoint: true,
+      incluirRequestId: true,
+    });
+  }
+
+  if (status === 403) {
+    return formatarErroComContexto(
+      'Voce nao tem permissao para acessar esta campanha.',
+      error,
+      {
+        incluirEndpoint: true,
+        incluirRequestId: true,
+      },
+    );
+  }
+
+  if (status === 400 || status === 422) {
+    return formatarErroComContexto(`Nao foi possivel carregar a campanha. ${base}`, error, {
+      incluirEndpoint: true,
+      incluirRequestId: true,
+    });
+  }
+
+  return formatarErroComContexto(base, error, {
+    incluirEndpoint: true,
+    incluirRequestId: true,
+  });
+}
+
+function mensagemErroConvidarMembro(error: unknown): string {
+  const status = Number(
+    (error as { status?: number })?.status ??
+      (error as { response?: { status?: number } })?.response?.status ??
+      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
+      0,
+  );
+  const code = (error as { body?: { code?: string } })?.body?.code;
+  const base = traduzirErro(code, extrairMensagemErro(error), status);
+
+  if (status === 409) {
+    return formatarErroComContexto('Nao foi possivel enviar o convite. Usuario ja e membro.', error, {
+      incluirEndpoint: true,
+      incluirRequestId: true,
+    });
+  }
+
+  if (status === 400 || status === 422) {
+    return formatarErroComContexto(`Nao foi possivel enviar o convite. ${base}`, error, {
+      incluirEndpoint: true,
+      incluirRequestId: true,
+    });
+  }
+
+  return formatarErroComContexto(base, error, {
+    incluirEndpoint: true,
+    incluirRequestId: true,
+  });
+}
+
 export default function CampanhaDetalhePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -58,8 +135,8 @@ export default function CampanhaDetalhePage() {
       try {
         const data = await apiGetCampanhaById<CampanhaDetalheDto>(id);
         setCampanha(data);
-      } catch {
-        setErro('Erro ao carregar campanha');
+      } catch (error) {
+        setErro(mensagemErroCarregarCampanha(error));
         setCampanha(null);
       } finally {
         setLoading(false);
@@ -81,7 +158,11 @@ export default function CampanhaDetalhePage() {
       throw new Error('Apenas o dono pode enviar convites');
     }
 
-    await apiCriarConvite(campanha.id, data);
+    try {
+      await apiCriarConvite(campanha.id, data);
+    } catch (error) {
+      throw new Error(mensagemErroConvidarMembro(error));
+    }
   }
 
   if (authLoading || loading) {

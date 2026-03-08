@@ -18,6 +18,7 @@ import {
   apiGetEquipamentos,
   apiGetModificacoes,
   extrairMensagemErro,
+  formatarErroComContexto,
   traduzirErro,
   type AlinhamentoCatalogo,
   type CaminhoCatalogo,
@@ -102,18 +103,34 @@ function mensagemErroCarregarDetalhe(error: unknown): string {
   const base = traduzirErro(code, extrairMensagemErro(error), status);
 
   if (status === 404) {
-    return 'Personagem nao encontrado.';
+    return formatarErroComContexto('Personagem nao encontrado.', error, {
+      incluirEndpoint: true,
+      incluirRequestId: true,
+    });
   }
 
   if (status === 403) {
-    return 'Voce nao tem permissao para acessar este personagem.';
+    return formatarErroComContexto(
+      'Voce nao tem permissao para acessar este personagem.',
+      error,
+      {
+        incluirEndpoint: true,
+        incluirRequestId: true,
+      },
+    );
   }
 
   if (status === 400 || status === 422) {
-    return `Nao foi possivel carregar este personagem. ${base}`;
+    return formatarErroComContexto(`Nao foi possivel carregar este personagem. ${base}`, error, {
+      incluirEndpoint: true,
+      incluirRequestId: true,
+    });
   }
 
-  return base;
+  return formatarErroComContexto(base, error, {
+    incluirEndpoint: true,
+    incluirRequestId: true,
+  });
 }
 
 function sortPassivas(selecionadas: PassivaAtributoCatalogo[]) {

@@ -1,15 +1,13 @@
 // src/lib/api/axios-client.ts
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { getToken, clearToken } from '../utils/auth';
-import type { ApiErrorBody } from '@/lib/types'; // ✅ ATUALIZADO
+import type { ApiErrorBody } from '@/lib/types';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 let isRedirectingToLogin = false;
 
-/**
- * ✅ Cliente axios com interceptors configurados
- */
+/** Cliente axios com interceptors configurados. */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -17,26 +15,37 @@ export const apiClient = axios.create({
   },
 });
 
-/**
- * ✅ Classe de erro customizada
- */
+/** Classe de erro customizada. */
 export class ApiError extends Error {
   status: number;
   body: ApiErrorBody | null;
   code?: string;
+  method?: string;
+  endpoint?: string;
+  requestId?: string;
 
-  constructor(message: string, status: number, body: ApiErrorBody | null) {
+  constructor(
+    message: string,
+    status: number,
+    body: ApiErrorBody | null,
+    context?: {
+      method?: string;
+      endpoint?: string;
+      requestId?: string;
+    },
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.body = body;
     this.code = body?.code;
+    this.method = context?.method;
+    this.endpoint = context?.endpoint;
+    this.requestId = context?.requestId;
   }
 }
 
-/**
- * ✅ REQUEST INTERCEPTOR: Adiciona token automaticamente
- */
+/** Request interceptor: adiciona token automaticamente. */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getToken();
@@ -48,25 +57,43 @@ apiClient.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error),
 );
 
-/**
- * ✅ RESPONSE INTERCEPTOR: Trata 401 globalmente
- */
+/** Response interceptor: trata 401 globalmente. */
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError<ApiErrorBody>) => {
-    // 1️⃣ Erro de rede (offline)
+    const method = error.config?.method?.toUpperCase();
+    const endpoint = error.config?.url;
+    // 1) Erro de rede (offline)
     if (!error.response) {
       throw new ApiError(
-        'Erro de conexão',
+        'Erro de conexao',
         0,
-        { statusCode: 0, message: 'Erro de conexão', error: 'NETWORK_ERROR', code: 'NETWORK_ERROR' },
+        { statusCode: 0, message: 'Erro de conexao', error: 'NETWORK_ERROR', code: 'NETWORK_ERROR' },
+        { method, endpoint },
       );
     }
 
     const status = error.response.status;
     const body = error.response.data;
+    const headers = error.response.headers ?? {};
+    const requestIdHeaderRaw =
+      headers['x-request-id'] ??
+      headers['x-correlation-id'] ??
+      headers['X-Request-Id'] ??
+      headers['X-Correlation-Id'];
+    const requestIdHeader =
+      typeof requestIdHeaderRaw === 'string'
+        ? requestIdHeaderRaw
+        : Array.isArray(requestIdHeaderRaw) && requestIdHeaderRaw.length > 0
+          ? requestIdHeaderRaw[0]
+          : undefined;
+    const requestIdBody =
+      body?.details && typeof body.details.requestId === 'string'
+        ? body.details.requestId
+        : undefined;
+    const requestId = requestIdHeader ?? requestIdBody;
 
-    // 2️⃣ 401: Token expirou ou inválido
+    // 2) 401: Token expirou ou invalido
     if (status === 401) {
       clearToken();
 
@@ -80,11 +107,16 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // 3️⃣ Criar ApiError com corpo estruturado
+    // 3) Criar ApiError com corpo estruturado
     const message = Array.isArray(body?.message)
       ? body.message.join(', ')
       : String(body?.message || 'Erro desconhecido');
 
-    throw new ApiError(message, status, body || null);
+    throw new ApiError(message, status, body || null, {
+      method,
+      endpoint,
+      requestId,
+    });
   },
 );
+

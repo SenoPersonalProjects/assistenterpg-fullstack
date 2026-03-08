@@ -372,3 +372,145 @@ export function extrairMensagemErro(error: unknown): string {
 
   return traduzirErro(code, "Ocorreu um erro. Tente novamente.", status);
 }
+
+export type ContextoErroApi = {
+  status?: number;
+  code?: string;
+  method?: string;
+  endpoint?: string;
+  requestId?: string;
+};
+
+function valorHeaderComoString(
+  headers: Record<string, unknown> | null,
+  chaves: string[],
+): string | undefined {
+  if (!headers) return undefined;
+
+  for (const chave of chaves) {
+    const valor = headers[chave];
+    if (typeof valor === "string" && valor.trim()) {
+      return valor.trim();
+    }
+
+    if (Array.isArray(valor) && valor.length > 0 && typeof valor[0] === "string") {
+      return valor[0].trim();
+    }
+  }
+
+  return undefined;
+}
+
+export function extrairContextoErro(error: unknown): ContextoErroApi {
+  const err =
+    error && typeof error === "object"
+      ? (error as Record<string, unknown>)
+      : {};
+  const response =
+    err.response && typeof err.response === "object"
+      ? (err.response as Record<string, unknown>)
+      : null;
+  const body =
+    err.body && typeof err.body === "object"
+      ? (err.body as Record<string, unknown>)
+      : null;
+  const config =
+    response?.config && typeof response.config === "object"
+      ? (response.config as Record<string, unknown>)
+      : null;
+  const headers =
+    response?.headers && typeof response.headers === "object"
+      ? (response.headers as Record<string, unknown>)
+      : null;
+  const details =
+    body?.details && typeof body.details === "object"
+      ? (body.details as Record<string, unknown>)
+      : null;
+
+  const statusRaw = Number(err.status || response?.status || body?.statusCode || 0);
+  const status = Number.isFinite(statusRaw) && statusRaw > 0 ? statusRaw : undefined;
+
+  const code =
+    typeof err.code === "string"
+      ? err.code
+      : typeof body?.code === "string"
+        ? body.code
+        : undefined;
+
+  const methodRaw =
+    typeof err.method === "string"
+      ? err.method
+      : typeof config?.method === "string"
+        ? config.method
+        : undefined;
+  const method = methodRaw ? methodRaw.toUpperCase() : undefined;
+
+  const endpoint =
+    typeof err.endpoint === "string"
+      ? err.endpoint
+      : typeof config?.url === "string"
+        ? config.url
+        : undefined;
+
+  const requestIdFromHeaders = valorHeaderComoString(headers, [
+    "x-request-id",
+    "x-correlation-id",
+    "X-Request-Id",
+    "X-Correlation-Id",
+  ]);
+  const requestIdFromBody =
+    typeof err.requestId === "string"
+      ? err.requestId
+      : typeof details?.requestId === "string"
+        ? details.requestId
+        : undefined;
+
+  return {
+    status,
+    code,
+    method,
+    endpoint,
+    requestId: requestIdFromHeaders ?? requestIdFromBody,
+  };
+}
+
+type FormatarErroComContextoOptions = {
+  incluirStatus?: boolean;
+  incluirCode?: boolean;
+  incluirEndpoint?: boolean;
+  incluirRequestId?: boolean;
+};
+
+export function formatarErroComContexto(
+  mensagemBase: string,
+  error: unknown,
+  options: FormatarErroComContextoOptions = {},
+): string {
+  const contexto = extrairContextoErro(error);
+  const partes: string[] = [];
+
+  if (options.incluirStatus !== false && contexto.status) {
+    partes.push(`status ${contexto.status}`);
+  }
+
+  if (options.incluirCode !== false && contexto.code) {
+    partes.push(`code ${contexto.code}`);
+  }
+
+  if (options.incluirEndpoint && contexto.endpoint) {
+    const endpointComMetodo = contexto.method
+      ? `${contexto.method} ${contexto.endpoint}`
+      : contexto.endpoint;
+    partes.push(endpointComMetodo);
+  }
+
+  if (options.incluirRequestId && contexto.requestId) {
+    partes.push(`requestId ${contexto.requestId}`);
+  }
+
+  if (partes.length === 0) {
+    return mensagemBase;
+  }
+
+  return `${mensagemBase} (${partes.join(" | ")})`;
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { extrairMensagemErro } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -38,8 +39,12 @@ export function InviteMemberForm({ onInvite }: Props) {
       await onInvite({ email: email.trim(), papel });
       setSucesso('Convite enviado');
       setEmail('');
-    } catch {
-      setErro('Erro ao enviar convite');
+    } catch (error) {
+      const mensagem =
+        error instanceof Error && error.message
+          ? error.message
+          : extrairMensagemErro(error);
+      setErro(mensagem);
     } finally {
       setLoading(false);
     }

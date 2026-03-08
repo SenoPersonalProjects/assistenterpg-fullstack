@@ -1,7 +1,13 @@
 // lib/api/index.ts
 
 export { API_BASE_URL, apiClient, ApiError } from './axios-client';
-export { extrairMensagemErro, traduzirErro, ERROR_MESSAGES } from './error-handler';
+export {
+  extrairMensagemErro,
+  traduzirErro,
+  ERROR_MESSAGES,
+  extrairContextoErro,
+  formatarErroComContexto,
+} from './error-handler';
 
 export * from '@/lib/types';
 
