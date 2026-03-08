@@ -8,7 +8,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 export interface ErrorDetails {
   code?: string; // Código do erro (ex: "HB_001", "USER_NOT_FOUND")
   message: string; // Mensagem principal
-  details?: any; // Detalhes adicionais (objeto, array, etc)
+  details?: unknown; // Detalhes adicionais (objeto, array, etc)
   field?: string; // Campo específico que causou o erro
   timestamp?: string; // Timestamp do erro
   path?: string; // Rota onde ocorreu o erro
@@ -20,7 +20,7 @@ export interface ErrorDetails {
  */
 export class BaseException extends HttpException {
   public readonly code: string;
-  public readonly details?: any;
+  public readonly details?: unknown;
   public readonly field?: string;
   public readonly timestamp: string;
 
@@ -28,7 +28,7 @@ export class BaseException extends HttpException {
     message: string,
     status: HttpStatus,
     code?: string,
-    details?: any,
+    details?: unknown,
     field?: string,
   ) {
     super(

@@ -1,10 +1,252 @@
-// src/personagem-base/personagem-base.mapper.ts
+﻿// src/personagem-base/personagem-base.mapper.ts
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  CategoriaEquipamento,
+  Prisma,
+  TipoEquipamento,
+  TipoModificacao,
+} from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { GrauTreinamentoDto } from './dto/create-personagem-base.dto';
+
+type PrismaLike = PrismaService | Prisma.TransactionClient;
+
+export const personagemBaseDetalhadoInclude =
+  Prisma.validator<Prisma.PersonagemBaseInclude>()({
+    cla: true,
+    origem: true,
+    classe: true,
+    trilha: true,
+    caminho: true,
+    tecnicaInata: true,
+    alinhamento: true,
+    proficiencias: { include: { proficiencia: true } },
+    grausAprimoramento: {
+      include: {
+        tipoGrau: true,
+      },
+    },
+    pericias: { include: { pericia: true } },
+    grausTreinamento: true,
+    habilidadesBase: { include: { habilidade: true } },
+    passivas: { include: { passiva: true } },
+    poderesGenericos: { include: { habilidade: true } },
+    resistencias: {
+      include: {
+        resistenciaTipo: true,
+      },
+    },
+  });
+
+const inventarioItemDetalhadoInclude =
+  Prisma.validator<Prisma.InventarioItemBaseInclude>()({
+    equipamento: true,
+    modificacoes: {
+      include: {
+        modificacao: true,
+      },
+    },
+  });
+
+export type PersonagemBaseResumoEntity = Prisma.PersonagemBaseGetPayload<{
+  include: { cla: true; classe: true };
+}>;
+
+export type PersonagemBaseDetalhadoEntity = Prisma.PersonagemBaseGetPayload<{
+  include: typeof personagemBaseDetalhadoInclude;
+}>;
+
+type InventarioItemDetalhadoEntity = Prisma.InventarioItemBaseGetPayload<{
+  include: typeof inventarioItemDetalhadoInclude;
+}>;
+
+type GrauAprimoramentoAjustado = {
+  tipoGrauCodigo: string;
+  tipoGrauNome: string;
+  valorTotal: number;
+  valorLivre: number;
+  bonus: number;
+};
+
+type InventarioModificacaoMapeada = {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  tipo: TipoModificacao;
+  incrementoEspacos: number;
+  apenasAmaldicoadas: boolean;
+  requerComplexidade: string | null;
+  efeitosMecanicos: Prisma.JsonValue | null;
+};
+
+type InventarioItemMapeado = {
+  id: number;
+  equipamentoId: number;
+  quantidade: number;
+  equipado: boolean;
+  espacosCalculados: number;
+  categoriaCalculada: string;
+  nomeCustomizado: string | null;
+  notas: string | null;
+  equipamento: {
+    id: number;
+    codigo: string;
+    nome: string;
+    descricao: string | null;
+    tipo: TipoEquipamento;
+    categoria: CategoriaEquipamento;
+    espacos: number;
+    complexidadeMaldicao: string;
+  };
+  modificacoes: InventarioModificacaoMapeada[];
+};
+
+type ResistenciasMapeadas = Array<{
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  valor: number;
+}>;
+
+export type PersonagemDetalhadoMapeado = {
+  id: number;
+  nome: string;
+  nivel: number;
+  claId: number;
+  origemId: number;
+  classeId: number;
+  trilhaId: number | null;
+  caminhoId: number | null;
+  agilidade: number;
+  forca: number;
+  intelecto: number;
+  presenca: number;
+  vigor: number;
+  estudouEscolaTecnica: boolean;
+  tecnicaInataId: number | null;
+  idade: number | null;
+  prestigioBase: number | null;
+  prestigioClaBase: number | null;
+  alinhamentoId: number | null;
+  background: string | null;
+  atributoChaveEa: PersonagemBaseDetalhadoEntity['atributoChaveEa'];
+  proficienciasExtrasCodigos: string[];
+  periciasClasseEscolhidasCodigos: string[];
+  periciasOrigemEscolhidasCodigos: string[];
+  periciasLivresCodigos: string[];
+  cla: PersonagemBaseDetalhadoEntity['cla'];
+  origem: PersonagemBaseDetalhadoEntity['origem'];
+  classe: PersonagemBaseDetalhadoEntity['classe'];
+  trilha: PersonagemBaseDetalhadoEntity['trilha'];
+  caminho: PersonagemBaseDetalhadoEntity['caminho'];
+  alinhamento: PersonagemBaseDetalhadoEntity['alinhamento'];
+  tecnicaInata: {
+    id: number;
+    codigo: string;
+    nome: string;
+    descricao: string | null;
+    tipo: string;
+    hereditaria: boolean;
+    linkExterno: string | null;
+  } | null;
+  proficiencias: Array<{
+    id: number;
+    codigo: string;
+    nome: string;
+    tipo: string;
+    categoria: string | null;
+    subtipo: string | null;
+  }>;
+  grausAprimoramento: GrauAprimoramentoAjustado[];
+  pericias: Array<{
+    id: number;
+    codigo: string;
+    nome: string;
+    atributoBase: string;
+    somenteTreinada: boolean;
+    penalizaPorCarga: boolean;
+    precisaKit: boolean;
+    grauTreinamento: number;
+    bonusExtra: number;
+    bonusTotal: number;
+  }>;
+  grausTreinamento: GrauTreinamentoDto[];
+  habilidades: Array<{
+    id: number;
+    nome: string;
+    tipo: string;
+    descricao: string | null;
+  }>;
+  poderesGenericos: Array<{
+    id: number;
+    habilidadeId: number;
+    nome: string;
+    config: Prisma.JsonValue;
+  }>;
+  poderesGenericosSelecionadosIds: number[];
+  passivasAtributosAtivos: string[];
+  passivasAtributosConfig: Prisma.JsonValue | null;
+  passivasAtributoIds: number[];
+  passivas: Array<{
+    id: number;
+    codigo: string;
+    nome: string;
+    atributo: string;
+    nivel: number;
+    descricao: string | null;
+    efeitos: Prisma.JsonValue | null;
+  }>;
+  atributosDerivados: {
+    pvMaximo: number;
+    peMaximo: number;
+    eaMaximo: number;
+    sanMaximo: number;
+    defesaBase: number;
+    defesaEquipamento: number;
+    defesaTotal: number;
+    deslocamento: number;
+    limitePeEaPorTurno: number;
+    reacoesBasePorTurno: number;
+    turnosMorrendo: number;
+    turnosEnlouquecendo: number;
+    bloqueio: number;
+    esquiva: number;
+  };
+  resistencias: ResistenciasMapeadas;
+  espacosInventarioBase: number;
+  espacosInventarioExtra: number;
+  espacosOcupados: number;
+  sobrecarregado: boolean;
+  itensInventario: InventarioItemMapeado[];
+};
 
 @Injectable()
 export class PersonagemBaseMapper {
+  private isJsonObject(
+    value: Prisma.JsonValue | null | undefined,
+  ): value is Prisma.JsonObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private hasTipoGrauChoice(
+    value: Prisma.JsonValue | null | undefined,
+  ): boolean {
+    if (!this.isJsonObject(value)) return false;
+    const escolha = value.escolha;
+    if (!this.isJsonObject(escolha)) return false;
+    return escolha.tipo === 'TIPO_GRAU';
+  }
+
+  private getTipoGrauCodigoConfig(
+    value: Prisma.JsonValue | null | undefined,
+  ): string | null {
+    if (!this.isJsonObject(value)) return null;
+    const codigo = value.tipoGrauCodigo;
+    if (typeof codigo !== 'string' || codigo.trim().length === 0) return null;
+    return codigo;
+  }
+
   private jsonToStringArray(
     value: Prisma.JsonValue | null | undefined,
   ): string[] {
@@ -12,7 +254,7 @@ export class PersonagemBaseMapper {
     return value.filter((v) => typeof v === 'string');
   }
 
-  mapResumo(personagem: any) {
+  mapResumo(personagem: PersonagemBaseResumoEntity) {
     return {
       id: personagem.id,
       nome: personagem.nome,
@@ -22,19 +264,24 @@ export class PersonagemBaseMapper {
     };
   }
 
-  async mapDetalhado(personagem: any, prisma: any) {
+  async mapDetalhado(
+    personagem: PersonagemBaseDetalhadoEntity,
+    prisma: PrismaLike,
+  ): Promise<PersonagemDetalhadoMapeado> {
     const bonusDeHabilidades = await this.calcularBonusGrausDeHabilidades(
       personagem,
       prisma,
     );
 
-    const grausAprimoramentoAjustados = (personagem.grausAprimoramento ?? [])
-      .map((g: any) => {
+    const grausAprimoramentoAjustados: GrauAprimoramentoAjustado[] = (
+      personagem.grausAprimoramento ?? []
+    )
+      .map((g) => {
         const valorDB = g.valor;
         const codigo = g.tipoGrau?.codigo;
 
         if (!codigo) {
-          console.warn('⚠️ [MAPPER] Grau sem tipoGrau.codigo:', g);
+          console.warn('[MAPPER] Grau sem tipoGrau.codigo:', g);
           return null;
         }
 
@@ -43,13 +290,13 @@ export class PersonagemBaseMapper {
 
         return {
           tipoGrauCodigo: codigo,
-          tipoGrauNome: g.tipoGrau?.nome,
+          tipoGrauNome: g.tipoGrau?.nome ?? '',
           valorTotal: valorDB,
-          valorLivre: valorLivre,
-          bonus: bonus,
+          valorLivre,
+          bonus,
         };
       })
-      .filter((g) => g !== null);
+      .filter((g): g is GrauAprimoramentoAjustado => g !== null);
 
     const espacosInventario = {
       base: personagem.espacosInventarioBase ?? personagem.forca * 5,
@@ -59,7 +306,6 @@ export class PersonagemBaseMapper {
         (personagem.espacosInventarioExtra ?? 0),
     };
 
-    // ✅ Mapear inventário completo
     const itensInventario = await this.mapItensInventario(
       personagem.id,
       prisma,
@@ -69,8 +315,9 @@ export class PersonagemBaseMapper {
     }, 0);
     const sobrecarregado = espacosOcupados > espacosInventario.total;
 
-    // ✅ NOVO: Mapear resistências
-    const resistencias = (personagem.resistencias ?? []).map((r: any) => ({
+    const resistencias: ResistenciasMapeadas = (
+      personagem.resistencias ?? []
+    ).map((r) => ({
       codigo: r.resistenciaTipo.codigo,
       nome: r.resistenciaTipo.nome,
       descricao: r.resistenciaTipo.descricao,
@@ -123,6 +370,7 @@ export class PersonagemBaseMapper {
       classe: personagem.classe,
       trilha: personagem.trilha,
       caminho: personagem.caminho,
+      alinhamento: personagem.alinhamento,
 
       tecnicaInata: personagem.tecnicaInata
         ? {
@@ -136,7 +384,7 @@ export class PersonagemBaseMapper {
           }
         : null,
 
-      proficiencias: (personagem.proficiencias ?? []).map((pp: any) => ({
+      proficiencias: (personagem.proficiencias ?? []).map((pp) => ({
         id: pp.proficiencia.id,
         codigo: pp.proficiencia.codigo,
         nome: pp.proficiencia.nome,
@@ -147,7 +395,7 @@ export class PersonagemBaseMapper {
 
       grausAprimoramento: grausAprimoramentoAjustados,
 
-      pericias: (personagem.pericias ?? []).map((p: any) => ({
+      pericias: (personagem.pericias ?? []).map((p) => ({
         id: p.pericia.id,
         codigo: p.pericia.codigo,
         nome: p.pericia.nome,
@@ -161,7 +409,7 @@ export class PersonagemBaseMapper {
       })),
 
       grausTreinamento: (personagem.grausTreinamento ?? []).reduce(
-        (acc: GrauTreinamentoDto[], gt: any) => {
+        (acc: GrauTreinamentoDto[], gt) => {
           const nivelExistente = acc.find((g) => g.nivel === gt.nivel);
           const melhoria = {
             periciaCodigo: gt.periciaCodigo,
@@ -179,14 +427,14 @@ export class PersonagemBaseMapper {
         [] as GrauTreinamentoDto[],
       ),
 
-      habilidades: (personagem.habilidadesBase ?? []).map((hab: any) => ({
+      habilidades: (personagem.habilidadesBase ?? []).map((hab) => ({
         id: hab.habilidade.id,
         nome: hab.habilidade.nome,
         tipo: hab.habilidade.tipo,
         descricao: hab.habilidade.descricao,
       })),
 
-      poderesGenericos: (personagem.poderesGenericos ?? []).map((p: any) => ({
+      poderesGenericos: (personagem.poderesGenericos ?? []).map((p) => ({
         id: p.id,
         habilidadeId: p.habilidadeId,
         nome: p.habilidade.nome,
@@ -194,7 +442,7 @@ export class PersonagemBaseMapper {
       })),
 
       poderesGenericosSelecionadosIds: (personagem.poderesGenericos ?? []).map(
-        (p: any) => p.habilidadeId,
+        (p) => p.habilidadeId,
       ),
 
       passivasAtributosAtivos: this.jsonToStringArray(
@@ -203,11 +451,9 @@ export class PersonagemBaseMapper {
 
       passivasAtributosConfig: personagem.passivasAtributosConfig ?? null,
 
-      passivasAtributoIds: (personagem.passivas ?? []).map(
-        (p: any) => p.passiva.id,
-      ),
+      passivasAtributoIds: (personagem.passivas ?? []).map((p) => p.passiva.id),
 
-      passivas: (personagem.passivas ?? []).map((p: any) => ({
+      passivas: (personagem.passivas ?? []).map((p) => ({
         id: p.passiva.id,
         codigo: p.passiva.codigo,
         nome: p.passiva.nome,
@@ -217,17 +463,15 @@ export class PersonagemBaseMapper {
         efeitos: p.passiva.efeitos,
       })),
 
-      // ✅ ATUALIZADO: Separar defesa (base + equipamento + total)
       atributosDerivados: {
         pvMaximo: personagem.pvMaximo,
         peMaximo: personagem.peMaximo,
         eaMaximo: personagem.eaMaximo,
         sanMaximo: personagem.sanMaximo,
-        defesaBase: personagem.defesaBase ?? personagem.defesa ?? 10, // Retrocompatibilidade
+        defesaBase: personagem.defesaBase ?? 10,
         defesaEquipamento: personagem.defesaEquipamento ?? 0,
         defesaTotal:
-          (personagem.defesaBase ?? personagem.defesa ?? 10) +
-          (personagem.defesaEquipamento ?? 0),
+          (personagem.defesaBase ?? 10) + (personagem.defesaEquipamento ?? 0),
         deslocamento: personagem.deslocamento,
         limitePeEaPorTurno: personagem.limitePeEaPorTurno,
         reacoesBasePorTurno: personagem.reacoesBasePorTurno,
@@ -237,10 +481,8 @@ export class PersonagemBaseMapper {
         esquiva: personagem.esquiva ?? 0,
       },
 
-      // ✅ NOVO: Resistências
       resistencias,
 
-      // Inventário
       espacosInventarioBase: espacosInventario.base,
       espacosInventarioExtra: espacosInventario.extra,
       espacosOcupados,
@@ -249,83 +491,95 @@ export class PersonagemBaseMapper {
     };
   }
 
-  /**
-   * ✅ CORRIGIDO: Mapeia itens do inventário com equipamento e modificações
-   * Usa include correto para buscar relações aninhadas
-   */
-  private async mapItensInventario(personagemBaseId: number, prisma: any) {
+  private async mapItensInventario(
+    personagemBaseId: number,
+    prisma: PrismaLike,
+  ): Promise<InventarioItemMapeado[]> {
     try {
-      const itens = await prisma.inventarioItemBase.findMany({
-        where: { personagemBaseId },
-        include: {
-          equipamento: true, // ✅ Busca equipamento completo
-          modificacoes: {
-            include: {
-              modificacao: true, // ✅ Busca modificação completa (tabela junction)
-            },
-          },
-        },
-        orderBy: { id: 'asc' },
-      });
-
-      return itens.map((item: any) => {
-        let espacosPorUnidade = item.equipamento.espacos;
-
-        // ✅ CORRIGIDO: modificacoes é um array de relações junction
-        const modsAplicadas = (item.modificacoes || []).map((junction: any) => {
-          const mod = junction.modificacao; // ✅ Acessar objeto modificacao dentro do junction
-          espacosPorUnidade += mod.incrementoEspacos;
-
-          return {
-            id: mod.id,
-            codigo: mod.codigo, // ✅ Agora funciona (objeto completo foi buscado)
-            nome: mod.nome,
-            descricao: mod.descricao,
-            tipo: mod.tipo,
-            incrementoEspacos: mod.incrementoEspacos,
-            apenasAmaldicoadas: mod.apenasAmaldicoadas,
-            requerComplexidade: mod.requerComplexidade,
-            efeitosMecanicos: mod.efeitosMecanicos,
-          };
+      const itens: InventarioItemDetalhadoEntity[] =
+        await prisma.inventarioItemBase.findMany({
+          where: { personagemBaseId },
+          include: inventarioItemDetalhadoInclude,
+          orderBy: { id: 'asc' },
         });
 
-        const categoriaCalculada = item.equipamento.categoria.toString();
+      const itensMapeados: InventarioItemMapeado[] = [];
 
-        return {
+      for (const item of itens) {
+        const equipamento = item.equipamento;
+        if (!equipamento) continue;
+
+        let espacosPorUnidade = equipamento.espacos;
+
+        const modsAplicadas: InventarioModificacaoMapeada[] = (
+          item.modificacoes ?? []
+        ).flatMap((junction) => {
+          const mod = junction.modificacao;
+          if (!mod) return [];
+
+          espacosPorUnidade += mod.incrementoEspacos;
+          const restricoes = this.isJsonObject(mod.restricoes)
+            ? mod.restricoes
+            : null;
+
+          const apenasAmaldicoadas =
+            restricoes && typeof restricoes.apenasAmaldicoadas === 'boolean'
+              ? restricoes.apenasAmaldicoadas
+              : false;
+
+          const requerComplexidade =
+            restricoes && typeof restricoes.requerComplexidade === 'string'
+              ? restricoes.requerComplexidade
+              : null;
+
+          return [
+            {
+              id: mod.id,
+              codigo: mod.codigo,
+              nome: mod.nome,
+              descricao: mod.descricao,
+              tipo: mod.tipo,
+              incrementoEspacos: mod.incrementoEspacos,
+              apenasAmaldicoadas,
+              requerComplexidade,
+              efeitosMecanicos: mod.efeitosMecanicos,
+            },
+          ];
+        });
+
+        itensMapeados.push({
           id: item.id,
           equipamentoId: item.equipamentoId,
           quantidade: item.quantidade,
           equipado: item.equipado,
           espacosCalculados: espacosPorUnidade,
-          categoriaCalculada,
+          categoriaCalculada: equipamento.categoria.toString(),
           nomeCustomizado: item.nomeCustomizado,
           notas: item.notas,
           equipamento: {
-            id: item.equipamento.id,
-            codigo: item.equipamento.codigo,
-            nome: item.equipamento.nome,
-            descricao: item.equipamento.descricao,
-            tipo: item.equipamento.tipo,
-            categoria: item.equipamento.categoria,
-            espacos: item.equipamento.espacos,
-            complexidadeMaldicao:
-              item.equipamento.complexidadeMaldicao || 'NENHUMA',
+            id: equipamento.id,
+            codigo: equipamento.codigo,
+            nome: equipamento.nome,
+            descricao: equipamento.descricao,
+            tipo: equipamento.tipo,
+            categoria: equipamento.categoria,
+            espacos: equipamento.espacos,
+            complexidadeMaldicao: equipamento.complexidadeMaldicao || 'NENHUMA',
           },
           modificacoes: modsAplicadas,
-        };
-      });
+        });
+      }
+
+      return itensMapeados;
     } catch (error) {
-      console.error('[MAPPER] Erro ao mapear itens de inventário:', error);
+      console.error('[MAPPER] Erro ao mapear itens de inventario:', error);
       return [];
     }
   }
 
-  /**
-   * ✅ Calcula bônus de graus vindos de habilidades E poderes genéricos
-   */
   private async calcularBonusGrausDeHabilidades(
-    personagem: any,
-    prisma: any,
+    personagem: PersonagemBaseDetalhadoEntity,
+    prisma: PrismaLike,
   ): Promise<Map<string, number>> {
     const bonusMap = new Map<string, number>();
 
@@ -370,25 +624,23 @@ export class PersonagemBaseMapper {
 
       for (const poder of poderesGenericos) {
         const mec = poder.habilidade.mecanicasEspeciais;
+        if (!this.hasTipoGrauChoice(mec)) continue;
 
-        if (mec?.escolha?.tipo === 'TIPO_GRAU') {
-          const codigo = poder.config?.tipoGrauCodigo;
+        const codigo = this.getTipoGrauCodigoConfig(poder.config);
+        if (!codigo) continue;
 
-          if (typeof codigo === 'string' && codigo.trim()) {
-            const atual = bonusMap.get(codigo) ?? 0;
-            bonusMap.set(codigo, atual + 1);
-          }
-        }
+        const atual = bonusMap.get(codigo) ?? 0;
+        bonusMap.set(codigo, atual + 1);
       }
 
       if (bonusMap.size > 0) {
         console.log(
-          '[MAPPER] Bônus de graus calculados:',
+          '[MAPPER] Bonus de graus calculados:',
           Object.fromEntries(bonusMap),
         );
       }
     } catch (err) {
-      console.error('[MAPPER] Erro ao calcular bônus de graus:', err);
+      console.error('[MAPPER] Erro ao calcular bonus de graus:', err);
     }
 
     return bonusMap;

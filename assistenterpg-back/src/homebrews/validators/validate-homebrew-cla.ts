@@ -5,10 +5,18 @@ import { FormatoInvalidoException } from '../../common/exceptions/validation.exc
 /**
  * Validações customizadas para Clã
  */
-export function validateHomebrewClaCustom(dados: any): void {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function validateHomebrewClaCustom(dados: unknown): void {
+  if (!isRecord(dados)) return;
+
+  const tecnicaInataId = dados.tecnicaInataId;
+
   // ✅ Se tem técnica inata, deve ser ID válido
-  if (dados.tecnicaInataId !== undefined && dados.tecnicaInataId !== null) {
-    if (typeof dados.tecnicaInataId !== 'number' || dados.tecnicaInataId <= 0) {
+  if (tecnicaInataId !== undefined && tecnicaInataId !== null) {
+    if (typeof tecnicaInataId !== 'number' || tecnicaInataId <= 0) {
       throw new FormatoInvalidoException('tecnicaInataId', 'número positivo');
     }
   }

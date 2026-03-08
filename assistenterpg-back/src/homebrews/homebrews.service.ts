@@ -1,24 +1,21 @@
-// src/homebrews/homebrews.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
-
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma, StatusPublicacao, TipoHomebrewConteudo } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHomebrewDto } from './dto/create-homebrew.dto';
 import { UpdateHomebrewDto } from './dto/update-homebrew.dto';
 import { FiltrarHomebrewsDto } from './dto/filtrar-homebrews.dto';
 import { HomebrewDetalhadoDto } from './dto/homebrew-detalhado.dto';
-import { StatusPublicacao } from '@prisma/client';
+import { HomebrewTecnicaDto } from './dto/tecnicas/criar-homebrew-tecnica.dto';
+import { HomebrewTrilhaDto } from './dto/trilhas/criar-homebrew-trilha.dto';
 
-// ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
   HomebrewNaoEncontradoException,
   HomebrewJaPublicadoException,
   HomebrewDadosInvalidosException,
   HomebrewSemPermissaoException,
 } from 'src/common/exceptions/homebrew.exception';
-
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
-// Validators
 import { validateHomebrewDados } from './validators/validate-homebrew-dados';
 import { validateHomebrewTecnicaCustom } from './validators/validate-homebrew-tecnica';
 import { validateHomebrewEquipamentoCustom } from './validators/validate-homebrew-equipamento';
@@ -28,19 +25,88 @@ import { validateHomebrewCaminhoCustom } from './validators/validate-homebrew-ca
 import { validateHomebrewClaCustom } from './validators/validate-homebrew-cla';
 import { validateHomebrewPoderCustom } from './validators/validate-homebrew-poder';
 
+const homebrewDetalhadoInclude = {
+  usuario: {
+    select: {
+      id: true,
+      apelido: true,
+      email: true,
+    },
+  },
+} satisfies Prisma.HomebrewInclude;
+
+type HomebrewDetalhadoPayload = Prisma.HomebrewGetPayload<{
+  include: typeof homebrewDetalhadoInclude;
+}>;
+
+type HomebrewPermissaoPayload = Pick<
+  HomebrewDetalhadoPayload,
+  'id' | 'usuarioId' | 'status'
+>;
+
 @Injectable()
 export class HomebrewsService {
   private readonly logger = new Logger(HomebrewsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 
-  // ========================================
-  // ✅ MÉTODOS PÚBLICOS - CRUD
-  // ========================================
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
 
-  /**
-   * Lista homebrews com filtros e paginação
-   */
+  private extrairMensagensValidacao(error: unknown): string[] | null {
+    if (typeof error !== 'object' || error === null || !('response' in error)) {
+      return null;
+    }
+
+    const response = (error as { response?: unknown }).response;
+    if (
+      typeof response !== 'object' ||
+      response === null ||
+      !('message' in response)
+    ) {
+      return null;
+    }
+
+    const message = (response as { message?: unknown }).message;
+
+    if (Array.isArray(message)) {
+      const mensagens = message.filter(
+        (item): item is string => typeof item === 'string',
+      );
+      return mensagens.length > 0 ? mensagens : null;
+    }
+
+    if (typeof message === 'string') {
+      return [message];
+    }
+
+    return null;
+  }
+
+  private normalizarJsonParaPersistir(
+    value: unknown,
+  ): Prisma.InputJsonValue | Prisma.JsonNullValueInput {
+    if (value === null) {
+      return Prisma.JsonNull;
+    }
+
+    return value as Prisma.InputJsonValue;
+  }
+
+  private mapearTags(tags: Prisma.JsonValue | null): string[] {
+    if (!Array.isArray(tags)) {
+      return [];
+    }
+
+    return tags.filter((tag): tag is string => typeof tag === 'string');
+  }
+
   async listar(
     filtros: FiltrarHomebrewsDto,
     usuarioId?: number,
@@ -57,10 +123,10 @@ export class HomebrewsService {
         limite = 20,
       } = filtros;
 
-      const where: any = {};
+      const where: Prisma.HomebrewWhereInput = {};
 
       if (nome) {
-        where.nome = { contains: nome, mode: 'insensitive' };
+        where.nome = { contains: nome };
       }
 
       if (tipo) {
@@ -78,10 +144,11 @@ export class HomebrewsService {
       if (apenasPublicados) {
         where.status = StatusPublicacao.PUBLICADO;
       } else if (!isAdmin) {
-        where.OR = [
-          { status: StatusPublicacao.PUBLICADO },
-          { usuarioId: usuarioId },
-        ];
+        if (usuarioId !== undefined) {
+          where.OR = [{ status: StatusPublicacao.PUBLICADO }, { usuarioId }];
+        } else {
+          where.status = StatusPublicacao.PUBLICADO;
+        }
       }
 
       const [total, homebrews] = await Promise.all([
@@ -122,18 +189,12 @@ export class HomebrewsService {
           totalPaginas: Math.ceil(total / limite),
         },
       };
-    } catch (error) {
-      // ✅ Tratar erros do Prisma
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Busca homebrew detalhado por ID
-   */
   async buscarPorId(
     id: number,
     usuarioId?: number,
@@ -142,15 +203,7 @@ export class HomebrewsService {
     try {
       const homebrew = await this.prisma.homebrew.findUnique({
         where: { id },
-        include: {
-          usuario: {
-            select: {
-              id: true,
-              apelido: true,
-              email: true,
-            },
-          },
-        },
+        include: homebrewDetalhadoInclude,
       });
 
       if (!homebrew) {
@@ -160,17 +213,12 @@ export class HomebrewsService {
       this.verificarPermissaoLeitura(homebrew, usuarioId, isAdmin);
 
       return this.mapDetalhado(homebrew);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Busca homebrew detalhado por código
-   */
   async buscarPorCodigo(
     codigo: string,
     usuarioId?: number,
@@ -179,15 +227,7 @@ export class HomebrewsService {
     try {
       const homebrew = await this.prisma.homebrew.findFirst({
         where: { codigo },
-        include: {
-          usuario: {
-            select: {
-              id: true,
-              apelido: true,
-              email: true,
-            },
-          },
-        },
+        include: homebrewDetalhadoInclude,
       });
 
       if (!homebrew) {
@@ -197,90 +237,62 @@ export class HomebrewsService {
       this.verificarPermissaoLeitura(homebrew, usuarioId, isAdmin);
 
       return this.mapDetalhado(homebrew);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * CREATE - Criar homebrew
-   */
   async criar(createHomebrewDto: CreateHomebrewDto, usuarioId: number) {
     try {
-      // 1️⃣ Validar dados específicos do tipo
       await validateHomebrewDados(
         createHomebrewDto.tipo,
         createHomebrewDto.dados,
       );
 
-      // 2️⃣ Validações customizadas (regras de negócio)
       this.validarDadosCustomizados(
         createHomebrewDto.tipo,
         createHomebrewDto.dados,
       );
 
-      // 3️⃣ Gerar código único
       const codigo = this.gerarCodigo(usuarioId);
-
-      // 4️⃣ Preparar tags (garantir que seja array)
       const tags = Array.isArray(createHomebrewDto.tags)
         ? createHomebrewDto.tags
         : [];
 
-      // 5️⃣ Criar homebrew
+      const data: Prisma.HomebrewUncheckedCreateInput = {
+        codigo,
+        nome: createHomebrewDto.nome,
+        descricao: createHomebrewDto.descricao ?? null,
+        tipo: createHomebrewDto.tipo,
+        status: createHomebrewDto.status ?? StatusPublicacao.RASCUNHO,
+        dados: this.normalizarJsonParaPersistir(createHomebrewDto.dados),
+        tags: this.normalizarJsonParaPersistir(tags),
+        versao: createHomebrewDto.versao ?? '1.0.0',
+        usuarioId,
+      };
+
       const homebrew = await this.prisma.homebrew.create({
-        data: {
-          codigo,
-          nome: createHomebrewDto.nome,
-          descricao: createHomebrewDto.descricao || null,
-          tipo: createHomebrewDto.tipo,
-          status: createHomebrewDto.status || StatusPublicacao.RASCUNHO,
-          dados: createHomebrewDto.dados as any,
-          tags: tags as any,
-          versao: createHomebrewDto.versao || '1.0.0',
-          usuarioId,
-        },
-        include: {
-          usuario: {
-            select: {
-              id: true,
-              apelido: true,
-              email: true,
-            },
-          },
-        },
+        data,
+        include: homebrewDetalhadoInclude,
       });
 
       this.logger.log(
-        `Homebrew criado: ${homebrew.codigo} por usuário ${usuarioId}`,
+        `Homebrew criado: ${homebrew.codigo} por usu�rio ${usuarioId}`,
       );
 
       return this.mapDetalhado(homebrew);
-    } catch (error) {
-      // ✅ Capturar erros de validação e transformar
-      if (error.response?.message) {
-        // Se veio do validator (BadRequestException)
-        const messages = Array.isArray(error.response.message)
-          ? error.response.message
-          : [error.response.message];
-        throw new HomebrewDadosInvalidosException(messages);
+    } catch (error: unknown) {
+      const mensagens = this.extrairMensagensValidacao(error);
+      if (mensagens) {
+        throw new HomebrewDadosInvalidosException(mensagens);
       }
 
-      // ✅ Tratar erros do Prisma
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
-
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * UPDATE - Atualizar homebrew
-   */
   async atualizar(
     id: number,
     updateHomebrewDto: UpdateHomebrewDto,
@@ -288,7 +300,6 @@ export class HomebrewsService {
     isAdmin: boolean = false,
   ) {
     try {
-      // 1️⃣ Buscar homebrew
       const homebrew = await this.prisma.homebrew.findUnique({
         where: { id },
       });
@@ -297,53 +308,46 @@ export class HomebrewsService {
         throw new HomebrewNaoEncontradoException(id);
       }
 
-      // 2️⃣ Verificar permissões (apenas dono ou admin)
       if (homebrew.usuarioId !== usuarioId && !isAdmin) {
         throw new HomebrewSemPermissaoException('editar', 'este homebrew', id);
       }
 
-      // 3️⃣ Preparar dados de atualização
-      const dadosAtualizacao: any = {};
+      const dadosAtualizacao: Prisma.HomebrewUncheckedUpdateInput = {};
 
-      if (updateHomebrewDto.nome !== undefined)
+      if (updateHomebrewDto.nome !== undefined) {
         dadosAtualizacao.nome = updateHomebrewDto.nome;
-      if (updateHomebrewDto.descricao !== undefined)
+      }
+      if (updateHomebrewDto.descricao !== undefined) {
         dadosAtualizacao.descricao = updateHomebrewDto.descricao;
-      if (updateHomebrewDto.status !== undefined)
+      }
+      if (updateHomebrewDto.status !== undefined) {
         dadosAtualizacao.status = updateHomebrewDto.status;
-      if (updateHomebrewDto.tags !== undefined)
-        dadosAtualizacao.tags = updateHomebrewDto.tags;
+      }
+      if (updateHomebrewDto.tags !== undefined) {
+        dadosAtualizacao.tags = this.normalizarJsonParaPersistir(
+          updateHomebrewDto.tags,
+        );
+      }
 
-      // 4️⃣ Se atualizar tipo, validar compatibilidade com dados
       if (updateHomebrewDto.tipo !== undefined) {
         dadosAtualizacao.tipo = updateHomebrewDto.tipo;
       }
 
-      // 5️⃣ Se atualizar dados, validar
       if (updateHomebrewDto.dados !== undefined) {
-        const tipoFinal = updateHomebrewDto.tipo || homebrew.tipo;
+        const tipoFinal = updateHomebrewDto.tipo ?? homebrew.tipo;
         await validateHomebrewDados(tipoFinal, updateHomebrewDto.dados);
         this.validarDadosCustomizados(tipoFinal, updateHomebrewDto.dados);
 
-        dadosAtualizacao.dados = updateHomebrewDto.dados;
-
-        // Incrementar versão automaticamente
+        dadosAtualizacao.dados = this.normalizarJsonParaPersistir(
+          updateHomebrewDto.dados,
+        );
         dadosAtualizacao.versao = this.incrementarVersao(homebrew.versao);
       }
 
-      // 6️⃣ Atualizar
       const atualizado = await this.prisma.homebrew.update({
         where: { id },
         data: dadosAtualizacao,
-        include: {
-          usuario: {
-            select: {
-              id: true,
-              apelido: true,
-              email: true,
-            },
-          },
-        },
+        include: homebrewDetalhadoInclude,
       });
 
       this.logger.log(
@@ -351,33 +355,23 @@ export class HomebrewsService {
       );
 
       return this.mapDetalhado(atualizado);
-    } catch (error) {
-      // ✅ Capturar erros de validação
-      if (error.response?.message) {
-        const messages = Array.isArray(error.response.message)
-          ? error.response.message
-          : [error.response.message];
-        throw new HomebrewDadosInvalidosException(messages);
+    } catch (error: unknown) {
+      const mensagens = this.extrairMensagensValidacao(error);
+      if (mensagens) {
+        throw new HomebrewDadosInvalidosException(mensagens);
       }
 
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
-
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * DELETE - Remover homebrew
-   */
   async deletar(
     id: number,
     usuarioId: number,
     isAdmin: boolean = false,
   ): Promise<void> {
     try {
-      // 1️⃣ Buscar homebrew
       const homebrew = await this.prisma.homebrew.findUnique({
         where: { id },
       });
@@ -386,34 +380,23 @@ export class HomebrewsService {
         throw new HomebrewNaoEncontradoException(id);
       }
 
-      // 2️⃣ Verificar permissões (apenas dono ou admin)
       if (homebrew.usuarioId !== usuarioId && !isAdmin) {
         throw new HomebrewSemPermissaoException('deletar', 'este homebrew', id);
       }
 
-      // 3️⃣ Deletar
       await this.prisma.homebrew.delete({
         where: { id },
       });
 
       this.logger.log(
-        `Homebrew deletado: ${homebrew.codigo} por usuário ${usuarioId}`,
+        `Homebrew deletado: ${homebrew.codigo} por usu�rio ${usuarioId}`,
       );
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  // ========================================
-  // ✅ ROTAS ESPECÍFICAS
-  // ========================================
-
-  /**
-   * Publicar homebrew (mudar status para PUBLICADO)
-   */
   async publicar(id: number, usuarioId: number, isAdmin: boolean = false) {
     try {
       const homebrew = await this.prisma.homebrew.findUnique({
@@ -452,17 +435,12 @@ export class HomebrewsService {
       this.logger.log(`Homebrew publicado: ${atualizado.codigo}`);
 
       return atualizado;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Arquivar homebrew (mudar status para ARQUIVADO)
-   */
   async arquivar(id: number, usuarioId: number, isAdmin: boolean = false) {
     try {
       const homebrew = await this.prisma.homebrew.findUnique({
@@ -497,71 +475,55 @@ export class HomebrewsService {
       this.logger.log(`Homebrew arquivado: ${atualizado.codigo}`);
 
       return atualizado;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Buscar homebrews do usuário autenticado
-   */
   async meus(usuarioId: number, filtros: FiltrarHomebrewsDto) {
     return this.listar({ ...filtros, usuarioId }, usuarioId, false);
   }
 
-  // ========================================
-  // ✅ HELPERS PRIVADOS
-  // ========================================
-
-  /**
-   * Gerar código único para homebrew
-   * Formato: USER_{userId}_HB_{timestamp}
-   */
   private gerarCodigo(usuarioId: number): string {
     const timestamp = Date.now();
     return `USER_${usuarioId}_HB_${timestamp}`;
   }
 
-  /**
-   * Validar dados customizados por tipo
-   */
-  private validarDadosCustomizados(tipo: string, dados: any): void {
+  private validarDadosCustomizados(
+    tipo: TipoHomebrewConteudo,
+    dados: unknown,
+  ): void {
     switch (tipo) {
-      case 'TECNICA_AMALDICOADA':
-        validateHomebrewTecnicaCustom(dados);
+      case TipoHomebrewConteudo.TECNICA_AMALDICOADA:
+        validateHomebrewTecnicaCustom(dados as HomebrewTecnicaDto);
         break;
-      case 'EQUIPAMENTO':
+      case TipoHomebrewConteudo.EQUIPAMENTO:
         validateHomebrewEquipamentoCustom(dados);
         break;
-      case 'ORIGEM':
+      case TipoHomebrewConteudo.ORIGEM:
         validateHomebrewOrigemCustom(dados);
         break;
-      case 'TRILHA':
-        validateHomebrewTrilhaCustom(dados);
+      case TipoHomebrewConteudo.TRILHA:
+        validateHomebrewTrilhaCustom(dados as HomebrewTrilhaDto);
         break;
-      case 'CAMINHO':
+      case TipoHomebrewConteudo.CAMINHO:
         validateHomebrewCaminhoCustom(dados);
         break;
-      case 'CLA':
+      case TipoHomebrewConteudo.CLA:
         validateHomebrewClaCustom(dados);
         break;
-      case 'PODER_GENERICO':
+      case TipoHomebrewConteudo.PODER_GENERICO:
         validateHomebrewPoderCustom(dados);
         break;
     }
   }
 
-  /**
-   * Verificar permissão de leitura
-   */
   private verificarPermissaoLeitura(
-    homebrew: any,
+    homebrew: HomebrewPermissaoPayload,
     usuarioId?: number,
     isAdmin: boolean = false,
-  ) {
+  ): void {
     const isOwner = homebrew.usuarioId === usuarioId;
     const isPublicado = homebrew.status === StatusPublicacao.PUBLICADO;
 
@@ -574,33 +536,31 @@ export class HomebrewsService {
     }
   }
 
-  /**
-   * Incrementar versão (semântica: major.minor.patch)
-   */
   private incrementarVersao(versaoAtual: string): string {
     const partes = versaoAtual.split('.');
-    if (partes.length !== 3) return '1.0.1';
+    if (partes.length !== 3) {
+      return '1.0.1';
+    }
 
     const [major, minor, patch] = partes.map(Number);
     return `${major}.${minor}.${patch + 1}`;
   }
 
-  /**
-   * Mapear para DTO detalhado
-   */
-  private mapDetalhado(homebrew: any): HomebrewDetalhadoDto {
+  private mapDetalhado(
+    homebrew: HomebrewDetalhadoPayload,
+  ): HomebrewDetalhadoDto {
     return {
       id: homebrew.id,
       codigo: homebrew.codigo,
       nome: homebrew.nome,
-      descricao: homebrew.descricao,
+      descricao: homebrew.descricao ?? undefined,
       tipo: homebrew.tipo,
       status: homebrew.status,
       dados: homebrew.dados,
-      tags: homebrew.tags || [],
+      tags: this.mapearTags(homebrew.tags),
       versao: homebrew.versao,
       usuarioId: homebrew.usuarioId,
-      usuarioApelido: homebrew.usuario?.apelido,
+      usuarioApelido: homebrew.usuario.apelido,
       criadoEm: homebrew.criadoEm,
       atualizadoEm: homebrew.atualizadoEm,
     };

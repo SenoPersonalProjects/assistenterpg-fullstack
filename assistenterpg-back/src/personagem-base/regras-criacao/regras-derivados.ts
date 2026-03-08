@@ -47,6 +47,8 @@ interface EfeitosPassivas {
   rodadasEnlouquecendo: number;
 }
 
+type EfeitosPassivasParcial = Partial<EfeitosPassivas>;
+
 const VALORES_CLASSE = {
   Combatente: {
     pvInicial: 20,
@@ -79,6 +81,42 @@ const VALORES_CLASSE = {
     sanPorNivel: 4,
   },
 } as const;
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function extrairEfeitosPassiva(
+  efeitos: Prisma.JsonValue | null,
+): EfeitosPassivasParcial {
+  if (!isJsonObject(efeitos)) return {};
+
+  return {
+    deslocamento:
+      typeof efeitos.deslocamento === 'number'
+        ? efeitos.deslocamento
+        : undefined,
+    reacoes: typeof efeitos.reacoes === 'number' ? efeitos.reacoes : undefined,
+    peExtra: typeof efeitos.peExtra === 'number' ? efeitos.peExtra : undefined,
+    eaExtra: typeof efeitos.eaExtra === 'number' ? efeitos.eaExtra : undefined,
+    limitePeEaExtra:
+      typeof efeitos.limitePeEaExtra === 'number'
+        ? efeitos.limitePeEaExtra
+        : undefined,
+    pvExtraLimitePeEa:
+      efeitos.pvExtraLimitePeEa === true
+        ? efeitos.pvExtraLimitePeEa
+        : undefined,
+    rodadasMorrendo:
+      typeof efeitos.rodadasMorrendo === 'number'
+        ? efeitos.rodadasMorrendo
+        : undefined,
+    rodadasEnlouquecendo:
+      typeof efeitos.rodadasEnlouquecendo === 'number'
+        ? efeitos.rodadasEnlouquecendo
+        : undefined,
+  };
+}
 
 async function calcularEfeitosPassivas(
   passivasIds: number[],
@@ -113,19 +151,19 @@ async function calcularEfeitosPassivas(
   };
 
   for (const passiva of passivas) {
-    const e = passiva.efeitos as any;
+    const e = extrairEfeitosPassiva(passiva.efeitos);
 
-    if (typeof e?.deslocamento === 'number')
+    if (typeof e.deslocamento === 'number')
       efeitos.deslocamento += e.deslocamento;
-    if (typeof e?.reacoes === 'number') efeitos.reacoes += e.reacoes;
-    if (typeof e?.peExtra === 'number') efeitos.peExtra += e.peExtra;
-    if (typeof e?.eaExtra === 'number') efeitos.eaExtra += e.eaExtra;
-    if (typeof e?.limitePeEaExtra === 'number')
+    if (typeof e.reacoes === 'number') efeitos.reacoes += e.reacoes;
+    if (typeof e.peExtra === 'number') efeitos.peExtra += e.peExtra;
+    if (typeof e.eaExtra === 'number') efeitos.eaExtra += e.eaExtra;
+    if (typeof e.limitePeEaExtra === 'number')
       efeitos.limitePeEaExtra += e.limitePeEaExtra;
-    if (e?.pvExtraLimitePeEa === true) efeitos.pvExtraLimitePeEa = true;
-    if (typeof e?.rodadasMorrendo === 'number')
+    if (e.pvExtraLimitePeEa === true) efeitos.pvExtraLimitePeEa = true;
+    if (typeof e.rodadasMorrendo === 'number')
       efeitos.rodadasMorrendo += e.rodadasMorrendo;
-    if (typeof e?.rodadasEnlouquecendo === 'number')
+    if (typeof e.rodadasEnlouquecendo === 'number')
       efeitos.rodadasEnlouquecendo += e.rodadasEnlouquecendo;
   }
 

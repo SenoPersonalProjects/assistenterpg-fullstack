@@ -27,7 +27,10 @@ describe('ModificacoesController', () => {
       const guards = Reflect.getMetadata(
         GUARDS_METADATA,
         controller[methodName],
-      );
+      ) as unknown;
+
+      expect(Array.isArray(guards)).toBe(true);
+      if (!Array.isArray(guards)) continue;
 
       expect(guards).toHaveLength(1);
       expect(typeof guards[0]).toBe('function');
@@ -41,7 +44,10 @@ describe('ModificacoesController', () => {
       const guards = Reflect.getMetadata(
         GUARDS_METADATA,
         controller[methodName],
-      );
+      ) as unknown;
+
+      expect(Array.isArray(guards)).toBe(true);
+      if (!Array.isArray(guards)) continue;
 
       expect(guards).toHaveLength(2);
       expect(typeof guards[0]).toBe('function');

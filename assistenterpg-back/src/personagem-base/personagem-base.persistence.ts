@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { EngineResult } from './engine/personagem-base.engine.types';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
@@ -11,6 +12,82 @@ type PericiaStatePersist = {
   bonusExtra: number;
 };
 
+type PersistenciaEstado = Pick<
+  EngineResult,
+  | 'profsFinais'
+  | 'grausFinais'
+  | 'periciasMapCodigo'
+  | 'grausTreinamento'
+  | 'habilidadesParaPersistir'
+  | 'poderesGenericosNormalizados'
+  | 'passivasResolvidas'
+  | 'passivasAtributosConfigLimpo'
+  | 'dtoNormalizado'
+  | 'resistenciasFinais'
+>;
+
+type DataSanitizavel = Record<string, unknown> & {
+  proficienciasCodigos?: string[];
+  proficienciasExtrasCodigos?: unknown;
+  periciasLivresExtras?: unknown;
+  itensInventario?: unknown;
+  passivasAtributoIds?: unknown;
+  defesa?: unknown;
+  defesaTotal?: unknown;
+};
+
+const personagemCriadoInclude =
+  Prisma.validator<Prisma.PersonagemBaseInclude>()({
+    cla: true,
+    origem: true,
+    classe: true,
+    trilha: true,
+    caminho: true,
+    resistencias: {
+      include: {
+        resistenciaTipo: true,
+      },
+    },
+    inventarioItens: {
+      include: {
+        equipamento: true,
+        modificacoes: {
+          include: {
+            modificacao: true,
+          },
+        },
+      },
+    },
+  });
+
+export type PersonagemCriadoEntity = Prisma.PersonagemBaseGetPayload<{
+  include: typeof personagemCriadoInclude;
+}>;
+
+function sanitizarDataBase(dataBase: Record<string, unknown>): DataSanitizavel {
+  const dataSanitizado: DataSanitizavel = { ...dataBase };
+
+  if (Array.isArray(dataSanitizado.proficienciasCodigos)) {
+    dataSanitizado.proficienciasExtrasCodigos =
+      dataSanitizado.proficienciasCodigos;
+  }
+
+  delete dataSanitizado.proficienciasCodigos;
+  delete dataSanitizado.periciasLivresExtras;
+  delete dataSanitizado.itensInventario;
+  delete dataSanitizado.passivasAtributoIds;
+  delete dataSanitizado.defesa;
+  delete dataSanitizado.defesaTotal;
+
+  return dataSanitizado;
+}
+
+function toNullableInputJson(
+  value: Prisma.JsonValue,
+): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
+  return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
+}
+
 @Injectable()
 export class PersonagemBasePersistence {
   constructor(private readonly prisma: PrismaService) {}
@@ -18,7 +95,7 @@ export class PersonagemBasePersistence {
   async criarComEstado(
     params: {
       donoId: number;
-      dataBase: any;
+      dataBase: Record<string, unknown>;
       estado: {
         profsFinais: string[];
         grausFinais: Array<{ tipoGrauCodigo: string; valor: number }>;
@@ -34,44 +111,29 @@ export class PersonagemBasePersistence {
         habilidadesParaPersistir: Array<{ habilidadeId: number }>;
         poderesGenericosNormalizados: Array<{
           habilidadeId: number;
-          config: any;
+          config: Prisma.JsonValue;
         }>;
-        passivasResolvidas: { passivaIds: number[]; ativos: string[] };
-        passivasAtributosConfigLimpo?: any;
-        dtoNormalizado: any;
+        passivasResolvidas: PersistenciaEstado['passivasResolvidas'];
+        passivasAtributosConfigLimpo?: PersistenciaEstado['passivasAtributosConfigLimpo'];
+        dtoNormalizado: PersistenciaEstado['dtoNormalizado'];
         resistenciasFinais: Map<string, number>;
       };
     },
     prisma: PrismaLike = this.prisma,
-  ) {
+  ): Promise<PersonagemCriadoEntity> {
     const { donoId, dataBase, estado } = params;
 
-    // ✅ SANITIZAR dataBase: mapear nomes DTO → model e remover campos inválidos
-    const dataSanitizado: any = { ...dataBase };
-
-    // 1) Mapear proficienciasCodigos (DTO) → proficienciasExtrasCodigos (model)
-    if (dataSanitizado.proficienciasCodigos !== undefined) {
-      dataSanitizado.proficienciasExtrasCodigos =
-        dataSanitizado.proficienciasCodigos;
-    }
-
-    // 2) ✅ REMOVER TODOS OS CAMPOS QUE NÃO EXISTEM NO MODEL
-    delete dataSanitizado.proficienciasCodigos;
-    delete dataSanitizado.periciasLivresExtras;
-    delete dataSanitizado.itensInventario;
-    delete dataSanitizado.passivasAtributoIds;
-    delete dataSanitizado.defesa; // ❌ Campo inexistente
-    delete dataSanitizado.defesaTotal; // ❌ Campo inexistente
-
-    // ✅ NOVO: Buscar códigos de resistências para criar relações
+    // âœ… SANITIZAR dataBase: mapear nomes DTO â†’ model e remover campos invÃ¡lidos
+    const dataSanitizado = sanitizarDataBase(dataBase);
+    // âœ… NOVO: Buscar cÃ³digos de resistÃªncias para criar relaÃ§Ãµes
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
       estado.resistenciasFinais,
       prisma,
     );
 
-    // ✅ NOVO: Preparar itens do inventário
+    // âœ… NOVO: Preparar itens do inventÃ¡rio
     const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
-      estado.dtoNormalizado?.itensInventario ?? [],
+      estado.dtoNormalizado.itensInventario ?? [],
     );
 
     return prisma.personagemBase.create({
@@ -81,14 +143,15 @@ export class PersonagemBasePersistence {
 
         passivasAtributosAtivos: estado.passivasResolvidas.ativos,
         passivasAtributosConfig:
-          estado.passivasAtributosConfigLimpo ?? undefined,
+          (estado.passivasAtributosConfigLimpo as Prisma.InputJsonValue) ??
+          undefined,
 
         periciasClasseEscolhidasCodigos:
-          estado.dtoNormalizado?.periciasClasseEscolhidasCodigos ?? [],
+          estado.dtoNormalizado.periciasClasseEscolhidasCodigos ?? [],
         periciasOrigemEscolhidasCodigos:
-          estado.dtoNormalizado?.periciasOrigemEscolhidasCodigos ?? [],
+          estado.dtoNormalizado.periciasOrigemEscolhidasCodigos ?? [],
         periciasLivresCodigos:
-          estado.dtoNormalizado?.periciasLivresCodigos ?? [],
+          estado.dtoNormalizado.periciasLivresCodigos ?? [],
 
         proficiencias: {
           create: estado.profsFinais.map((codigo) => ({
@@ -134,7 +197,7 @@ export class PersonagemBasePersistence {
           ? {
               create: estado.poderesGenericosNormalizados.map((p) => ({
                 habilidade: { connect: { id: p.habilidadeId } },
-                config: p.config,
+                config: toNullableInputJson(p.config),
               })),
             }
           : undefined,
@@ -147,49 +210,28 @@ export class PersonagemBasePersistence {
             }
           : undefined,
 
-        // ✅ NOVO: Criar resistências
+        // âœ… NOVO: Criar resistÃªncias
         resistencias: resistenciasParaCriar.length
           ? {
               create: resistenciasParaCriar,
             }
           : undefined,
 
-        // ✅ CORRIGIDO: Criar itens do inventário com nome correto
+        // âœ… CORRIGIDO: Criar itens do inventÃ¡rio com nome correto
         inventarioItens: itensInventarioParaCriar.length
           ? {
               create: itensInventarioParaCriar,
             }
           : undefined,
-      },
-      include: {
-        cla: true,
-        origem: true,
-        classe: true,
-        trilha: true,
-        caminho: true,
-        resistencias: {
-          include: {
-            resistenciaTipo: true,
-          },
-        },
-        inventarioItens: {
-          include: {
-            equipamento: true,
-            modificacoes: {
-              include: {
-                modificacao: true,
-              },
-            },
-          },
-        },
-      },
-    });
+      } as unknown as Prisma.PersonagemBaseCreateInput,
+      include: personagemCriadoInclude,
+    }) as unknown as Promise<PersonagemCriadoEntity>;
   }
 
   async atualizarRebuildComEstado(
     params: {
       id: number;
-      dataUpdateBase: any;
+      dataUpdateBase: Record<string, unknown>;
       estado: {
         profsFinais: string[];
         grausFinais: Array<{ tipoGrauCodigo: string; valor: number }>;
@@ -205,52 +247,37 @@ export class PersonagemBasePersistence {
         habilidadesParaPersistir: Array<{ habilidadeId: number }>;
         poderesGenericosNormalizados: Array<{
           habilidadeId: number;
-          config: any;
+          config: Prisma.JsonValue;
         }>;
         passivasResolvidas: { passivaIds: number[] };
         resistenciasFinais: Map<string, number>;
-        dtoNormalizado?: any;
+        dtoNormalizado: PersistenciaEstado['dtoNormalizado'];
       };
     },
     prisma: PrismaLike = this.prisma,
   ) {
     const { id, dataUpdateBase, estado } = params;
 
-    // ✅ CORRIGIDO: Usar dataUpdateBase (não dataBase)
-    const dataUpdateSanitizado: any = { ...dataUpdateBase };
-
-    // 1) Mapear proficienciasCodigos (DTO) → proficienciasExtrasCodigos (model)
-    if (dataUpdateSanitizado.proficienciasCodigos !== undefined) {
-      dataUpdateSanitizado.proficienciasExtrasCodigos =
-        dataUpdateSanitizado.proficienciasCodigos;
-    }
-
-    // 2) ✅ REMOVER TODOS OS CAMPOS QUE NÃO EXISTEM NO MODEL
-    delete dataUpdateSanitizado.proficienciasCodigos;
-    delete dataUpdateSanitizado.periciasLivresExtras;
-    delete dataUpdateSanitizado.itensInventario;
-    delete dataUpdateSanitizado.passivasAtributoIds;
-    delete dataUpdateSanitizado.defesa; // ❌ Campo inexistente
-    delete dataUpdateSanitizado.defesaTotal; // ❌ Campo inexistente
-
-    // ✅ NOVO: Preparar resistências
+    // âœ… CORRIGIDO: Usar dataUpdateBase (nÃ£o dataBase)
+    const dataUpdateSanitizado = sanitizarDataBase(dataUpdateBase);
+    // âœ… NOVO: Preparar resistÃªncias
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
       estado.resistenciasFinais,
       prisma,
     );
 
-    // ✅ NOVO: Preparar itens do inventário
+    // âœ… NOVO: Preparar itens do inventÃ¡rio
     const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
-      estado.dtoNormalizado?.itensInventario ?? [],
+      estado.dtoNormalizado.itensInventario ?? [],
     );
 
     // 1) update base (inclui proficienciasExtrasCodigos se vier no dataUpdateBase)
     await prisma.personagemBase.update({
       where: { id },
-      data: dataUpdateSanitizado,
+      data: dataUpdateSanitizado as Prisma.PersonagemBaseUpdateInput,
     });
 
-    // 2) rebuild relações
+    // 2) rebuild relaÃ§Ãµes
     await prisma.personagemBase.update({
       where: { id },
       data: {
@@ -301,7 +328,7 @@ export class PersonagemBasePersistence {
           deleteMany: {},
           create: estado.poderesGenericosNormalizados.map((p) => ({
             habilidade: { connect: { id: p.habilidadeId } },
-            config: p.config,
+            config: toNullableInputJson(p.config),
           })),
         },
 
@@ -318,7 +345,7 @@ export class PersonagemBasePersistence {
             : {}),
         },
 
-        // ✅ NOVO: Rebuild resistências
+        // âœ… NOVO: Rebuild resistÃªncias
         resistencias: {
           deleteMany: {},
           ...(resistenciasParaCriar.length
@@ -328,7 +355,7 @@ export class PersonagemBasePersistence {
             : {}),
         },
 
-        // ✅ CORRIGIDO: Rebuild inventário
+        // âœ… CORRIGIDO: Rebuild inventÃ¡rio
         inventarioItens: {
           deleteMany: {},
           ...(itensInventarioParaCriar.length
@@ -384,8 +411,8 @@ export class PersonagemBasePersistence {
   }
 
   /**
-   * ✅ CORRIGIDO: Prepara resistências para criação no banco
-   * Converte Map<codigo, valor> → Array de objetos no formato correto para nested create
+   * âœ… CORRIGIDO: Prepara resistÃªncias para criaÃ§Ã£o no banco
+   * Converte Map<codigo, valor> â†’ Array de objetos no formato correto para nested create
    */
   private async prepararResistenciasParaCriacao(
     resistenciasFinais: Map<string, number>,
@@ -400,7 +427,7 @@ export class PersonagemBasePersistence {
       return [];
     }
 
-    // Filtrar apenas resistências com valor > 0
+    // Filtrar apenas resistÃªncias com valor > 0
     const resistenciasValidas = Array.from(resistenciasFinais.entries()).filter(
       ([, valor]) => valor > 0,
     );
@@ -409,7 +436,7 @@ export class PersonagemBasePersistence {
       return [];
     }
 
-    // Validar que todos os códigos existem no banco
+    // Validar que todos os cÃ³digos existem no banco
     const codigos = resistenciasValidas.map(([codigo]) => codigo);
     const resistenciasTipo = await prisma.resistenciaTipo.findMany({
       where: { codigo: { in: codigos } },
@@ -418,7 +445,7 @@ export class PersonagemBasePersistence {
 
     const codigosValidos = new Set(resistenciasTipo.map((r) => r.codigo));
 
-    // ✅ FORMATO CORRETO: { valor, resistenciaTipo: { connect: { codigo } } }
+    // âœ… FORMATO CORRETO: { valor, resistenciaTipo: { connect: { codigo } } }
     return resistenciasValidas
       .filter(([codigo]) => codigosValidos.has(codigo))
       .map(([codigo, valor]) => ({
@@ -428,14 +455,14 @@ export class PersonagemBasePersistence {
   }
 
   /**
-   * ✅ NOVA FUNÇÃO: Prepara itens do inventário para criação no Prisma
-   * Converte array de ItemInventarioPayload → formato correto para nested create
+   * âœ… NOVA FUNÃ‡ÃƒO: Prepara itens do inventÃ¡rio para criaÃ§Ã£o no Prisma
+   * Converte array de ItemInventarioPayload â†’ formato correto para nested create
    */
   private prepararItensInventarioParaCriacao(
     itensInventario: Array<{
       equipamentoId: number;
       quantidade: number;
-      equipado: boolean;
+      equipado?: boolean;
       modificacoesIds?: number[];
       nomeCustomizado?: string | null;
       notas?: string | null;
@@ -459,7 +486,7 @@ export class PersonagemBasePersistence {
     return itensInventario.map((item) => ({
       equipamento: { connect: { id: item.equipamentoId } },
       quantidade: item.quantidade,
-      equipado: item.equipado,
+      equipado: item.equipado ?? false,
       nomeCustomizado: item.nomeCustomizado || null,
       notas: item.notas || null,
       modificacoes:

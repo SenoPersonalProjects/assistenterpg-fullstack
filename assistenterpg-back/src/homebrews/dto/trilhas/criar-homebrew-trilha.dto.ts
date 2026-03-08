@@ -1,21 +1,20 @@
-// src/homebrews/dto/trilhas/criar-homebrew-trilha.dto.ts
-
 import { IsNotEmpty, IsInt, IsArray, IsOptional } from 'class-validator';
 
-/**
- * DTO para homebrews de TRILHA
- * Estrutura: { classeId: number, nivelRequisito: number, habilidades: any[] }
- */
+export type HomebrewTrilhaHabilidadeDto = {
+  nivel: number;
+  [key: string]: unknown;
+};
+
 export class HomebrewTrilhaDto {
   @IsNotEmpty()
   @IsInt()
-  classeId: number; // ID da classe (ex: 1 = Feiticeiro)
+  classeId: number;
 
   @IsOptional()
   @IsInt()
-  nivelRequisito?: number; // Nível mínimo necessário (default: 1)
+  nivelRequisito?: number;
 
   @IsNotEmpty()
   @IsArray()
-  habilidades: any[]; // Habilidades da trilha por nível
+  habilidades: HomebrewTrilhaHabilidadeDto[];
 }

@@ -9,6 +9,12 @@ import {
   AcessoNegadoException,
 } from 'src/common/exceptions/auth.exception';
 
+type RequestComRole = {
+  user?: {
+    role?: RoleUsuario;
+  };
+};
+
 /**
  * Guard simplificado que permite apenas ADMIN
  * ✅ REFATORADO: Usar exceções customizadas
@@ -16,7 +22,7 @@ import {
 @Injectable()
 export class AdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<RequestComRole>();
 
     // ✅ Se não há usuário autenticado
     if (!user) {

@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { ComplexidadeMaldicao, Prisma, TipoEquipamento } from '@prisma/client';
 import { InventarioEngine } from './engine/inventario.engine';
 import { InventarioMapper } from './inventario.mapper';
 import { AdicionarItemDto } from './dto/adicionar-item.dto';
@@ -16,7 +16,6 @@ import {
   PreviewAdicionarItemResponse,
   ResumoInventarioCompleto,
 } from './engine/inventario.types';
-import { TipoEquipamento } from '@prisma/client';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -40,6 +39,40 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 // ✅ Type helper para Prisma client ou transação
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
+const inventarioItemComDadosInclude =
+  Prisma.validator<Prisma.InventarioItemBaseInclude>()({
+    equipamento: {
+      include: {
+        danos: {
+          orderBy: { ordem: 'asc' },
+        },
+        reducesDano: true,
+      },
+    },
+    modificacoes: {
+      include: {
+        modificacao: true,
+      },
+    },
+  });
+
+const modificacaoPreviewSelect =
+  Prisma.validator<Prisma.ModificacaoEquipamentoSelect>()({
+    id: true,
+    nome: true,
+    incrementoEspacos: true,
+  });
+
+const modificacaoCalculoSelect =
+  Prisma.validator<Prisma.ModificacaoEquipamentoSelect>()({
+    id: true,
+    incrementoEspacos: true,
+  });
+
+type ModificacaoCalculoEntity = Prisma.ModificacaoEquipamentoGetPayload<{
+  select: typeof modificacaoCalculoSelect;
+}>;
+
 @Injectable()
 export class InventarioService {
   constructor(
@@ -49,6 +82,15 @@ export class InventarioService {
   ) {}
 
   // ==================== HELPERS PRIVADOS ====================
+
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
 
   /**
    * Valida se o usuário é dono do personagem
@@ -103,25 +145,11 @@ export class InventarioService {
 
     const itens = await db.inventarioItemBase.findMany({
       where: { personagemBaseId },
-      include: {
-        equipamento: {
-          include: {
-            danos: {
-              orderBy: { ordem: 'asc' },
-            },
-            reducesDano: true,
-          },
-        },
-        modificacoes: {
-          include: {
-            modificacao: true,
-          },
-        },
-      },
+      include: inventarioItemComDadosInclude,
       orderBy: [{ equipado: 'desc' }, { equipamento: { nome: 'asc' } }],
     });
 
-    return itens as unknown as ItemInventarioComDados[];
+    return itens;
   }
 
   /**
@@ -317,17 +345,32 @@ export class InventarioService {
     const itensSimulados = [...itensEquipados];
 
     // Adicionar novo item à simulação
-    itensSimulados.push({
+    const itemSimulado: ItemInventarioComDados = {
+      id: -1,
+      equipamentoId: -1,
       equipado: true,
       quantidade: novoItemVestivel.quantidade,
+      nomeCustomizado: null,
+      notas: null,
+      categoriaCalculada: null,
       equipamento: {
+        id: -1,
+        codigo: 'SIMULADO',
+        nome: 'Item Simulado',
         tipo: novoItemVestivel.tipo,
+        categoria: 'CATEGORIA_0',
+        espacos: 0,
+        complexidadeMaldicao: ComplexidadeMaldicao.NENHUMA,
         tipoAcessorio: novoItemVestivel.tipoAcessorio,
+        danos: [],
+        reducesDano: [],
       },
-    } as any);
+      modificacoes: [],
+    };
+    itensSimulados.push(itemSimulado);
 
     // Validar via engine
-    const validacao = this.engine.validarSistemaVestir(itensSimulados as any);
+    const validacao = this.engine.validarSistemaVestir(itensSimulados);
 
     if (!validacao.valido) {
       throw new InventarioLimiteVestirExcedidoException({
@@ -496,6 +539,7 @@ export class InventarioService {
         modificacoesIds.length > 0
           ? await this.prisma.modificacaoEquipamento.findMany({
               where: { id: { in: modificacoesIds } },
+              select: modificacaoPreviewSelect,
             })
           : [];
 
@@ -545,17 +589,37 @@ export class InventarioService {
             tipo: equipamento.tipo,
             categoria: equipamento.categoria,
             espacos: equipamento.espacos,
+            complexidadeMaldicao: equipamento.complexidadeMaldicao,
+            efeito: equipamento.efeito,
           },
         };
       });
 
       const espacosBase = forca * 5;
+      const itensParaCalculoEspacosExtras: ItemInventarioComDados[] =
+        itensCalculados.map((item) => ({
+          id: 0,
+          equipamentoId: item.equipamentoId,
+          quantidade: item.quantidade,
+          equipado: item.equipado,
+          nomeCustomizado: item.nomeCustomizado ?? null,
+          notas: null,
+          categoriaCalculada: item.categoriaCalculada,
+          equipamento: {
+            id: item.equipamento.id,
+            codigo: item.equipamento.codigo,
+            nome: item.equipamento.nome,
+            tipo: item.equipamento.tipo,
+            categoria: item.equipamento.categoria,
+            espacos: item.equipamento.espacos,
+            complexidadeMaldicao: item.equipamento.complexidadeMaldicao,
+            efeito: item.equipamento.efeito ?? null,
+          },
+          modificacoes: [],
+        }));
+
       const espacosExtra = this.engine.calcularEspacosExtraDeItens(
-        itensCalculados.map((i) => ({
-          equipamentoId: i.equipamentoId,
-          quantidade: i.quantidade,
-          equipamento: equipamentosMap.get(i.equipamentoId),
-        })) as any,
+        itensParaCalculoEspacosExtras,
       );
       const espacosTotal = espacosBase + espacosExtra;
 
@@ -596,10 +660,8 @@ export class InventarioService {
         },
         itensPorCategoria,
       };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -630,7 +692,7 @@ export class InventarioService {
           equipamentoId: dto.equipamentoId,
           quantidade: dto.quantidade,
           modificacoes: dto.modificacoes,
-        } as PreviewItemDto);
+        });
 
         // Validar GRAU XAMÃ
         if (!preview.grauXama.valido && !dto.ignorarLimitesGrauXama) {
@@ -657,10 +719,11 @@ export class InventarioService {
       }
 
       // 3. Validar modificações (se houver)
-      let modificacoesValidas: any[] = [];
+      let modificacoesValidas: ModificacaoCalculoEntity[] = [];
       if (dto.modificacoes && dto.modificacoes.length > 0) {
         modificacoesValidas = await db.modificacaoEquipamento.findMany({
           where: { id: { in: dto.modificacoes } },
+          select: modificacaoCalculoSelect,
         });
 
         if (modificacoesValidas.length !== dto.modificacoes.length) {
@@ -738,19 +801,7 @@ export class InventarioService {
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
         },
-        include: {
-          equipamento: {
-            include: {
-              danos: true,
-              reducesDano: true,
-            },
-          },
-          modificacoes: {
-            include: {
-              modificacao: true,
-            },
-          },
-        },
+        include: inventarioItemComDadosInclude,
       });
 
       // 9. Criar relacionamentos de modificações (se houver)
@@ -769,28 +820,16 @@ export class InventarioService {
       // 11. Recarregar item com modificações
       const itemComMods = await db.inventarioItemBase.findUnique({
         where: { id: item.id },
-        include: {
-          equipamento: {
-            include: {
-              danos: true,
-              reducesDano: true,
-            },
-          },
-          modificacoes: {
-            include: {
-              modificacao: true,
-            },
-          },
-        },
+        include: inventarioItemComDadosInclude,
       });
 
-      return this.mapper.mapItem(
-        itemComMods as unknown as ItemInventarioComDados,
-      );
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
+      if (!itemComMods) {
+        throw new InventarioItemNaoEncontradoException(item.id);
       }
+
+      return this.mapper.mapItem(itemComMods);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -908,31 +947,15 @@ export class InventarioService {
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
         },
-        include: {
-          equipamento: {
-            include: {
-              danos: true,
-              reducesDano: true,
-            },
-          },
-          modificacoes: {
-            include: {
-              modificacao: true,
-            },
-          },
-        },
+        include: inventarioItemComDadosInclude,
       });
 
       // ✅ Atualizar estado do inventário (recalcula defesa e RDs)
       await this.atualizarEstadoInventario(itemExiste.personagemBaseId);
 
-      return this.mapper.mapItem(
-        itemAtualizado as unknown as ItemInventarioComDados,
-      );
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+      return this.mapper.mapItem(itemAtualizado);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -967,10 +990,8 @@ export class InventarioService {
       await this.atualizarEstadoInventario(item.personagemBaseId);
 
       return { sucesso: true, mensagem: 'Item removido com sucesso' };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -1090,28 +1111,16 @@ export class InventarioService {
       // Recarregar item
       const itemAtualizado = await this.prisma.inventarioItemBase.findUnique({
         where: { id: itemId },
-        include: {
-          equipamento: {
-            include: {
-              danos: true,
-              reducesDano: true,
-            },
-          },
-          modificacoes: {
-            include: {
-              modificacao: true,
-            },
-          },
-        },
+        include: inventarioItemComDadosInclude,
       });
 
-      return this.mapper.mapItem(
-        itemAtualizado as unknown as ItemInventarioComDados,
-      );
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
+      if (!itemAtualizado) {
+        throw new InventarioItemNaoEncontradoException(itemId);
       }
+
+      return this.mapper.mapItem(itemAtualizado);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -1205,28 +1214,16 @@ export class InventarioService {
       // Recarregar item
       const itemAtualizado = await this.prisma.inventarioItemBase.findUnique({
         where: { id: itemId },
-        include: {
-          equipamento: {
-            include: {
-              danos: true,
-              reducesDano: true,
-            },
-          },
-          modificacoes: {
-            include: {
-              modificacao: true,
-            },
-          },
-        },
+        include: inventarioItemComDadosInclude,
       });
 
-      return this.mapper.mapItem(
-        itemAtualizado as unknown as ItemInventarioComDados,
-      );
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
+      if (!itemAtualizado) {
+        throw new InventarioItemNaoEncontradoException(itemId);
       }
+
+      return this.mapper.mapItem(itemAtualizado);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }

@@ -26,12 +26,22 @@ import { validarOrigemClaTecnica } from './regras-criacao/regras-origem-cla';
 
 // Engine
 import { calcularEstadoFinalPersonagemBase } from './engine/personagem-base.engine';
+import { HabilidadeComEfeitos } from './engine/personagem-base.engine.types';
 
 // NOVOS
-import { PersonagemBaseMapper } from './personagem-base.mapper';
+import {
+  PersonagemBaseMapper,
+  PersonagemBaseDetalhadoEntity,
+  PersonagemDetalhadoMapeado,
+  personagemBaseDetalhadoInclude,
+} from './personagem-base.mapper';
 import { PersonagemBasePersistence } from './personagem-base.persistence';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
+type PoderGenericoComConfig = {
+  habilidadeId: number;
+  config?: Prisma.JsonValue;
+};
 
 type ModDerivados = {
   pvPorNivelExtra: number;
@@ -39,6 +49,25 @@ type ModDerivados = {
   limitePeEaExtra: number;
   defesaExtra: number;
   espacosInventarioExtra: number;
+};
+
+type ResumoInventario = {
+  espacosBase: number;
+  espacosExtra: number;
+  espacosTotal: number;
+  espacosOcupados: number;
+  espacosDisponiveis: number;
+  sobrecarregado: boolean;
+  quantidadeItens: number;
+};
+
+type PersonagemDetalhadoComInventario = PersonagemDetalhadoMapeado & {
+  inventario?: ResumoInventario;
+};
+
+type ErroItemPreview = {
+  equipamentoId: number;
+  erro: string;
 };
 
 @Injectable()
@@ -52,12 +81,12 @@ export class PersonagemBaseService {
   ) {}
 
   // ==================== HELPERS GERAIS ====================
-  private limparUndefined<T extends Record<string, any>>(obj: T): T {
-    const out: any = { ...obj };
+  private limparUndefined<T extends Record<string, unknown>>(obj: T): T {
+    const out: Record<string, unknown> = { ...obj };
     for (const k of Object.keys(out)) {
       if (out[k] === undefined) delete out[k];
     }
-    return out;
+    return out as T;
   }
 
   private jsonToStringArray(
@@ -83,8 +112,8 @@ export class PersonagemBaseService {
   }
 
   private getPoderesFromRelacao(
-    poderes: Array<{ habilidadeId: number; config: any }> | undefined,
-  ): Array<{ habilidadeId: number; config?: any }> {
+    poderes: PoderGenericoComConfig[] | undefined,
+  ): PoderGenericoComConfig[] {
     return (poderes ?? []).map((p) => ({
       habilidadeId: p.habilidadeId,
       config: p.config ?? undefined,
@@ -93,7 +122,36 @@ export class PersonagemBaseService {
 
   private limparUndefinedDeepJson<T>(value: T | undefined): T | undefined {
     if (value === undefined) return undefined;
-    return JSON.parse(JSON.stringify(value));
+    const normalized: unknown = JSON.parse(JSON.stringify(value));
+    return normalized as T;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private getNestedRecord(
+    value: Record<string, unknown> | null | undefined,
+    key: string,
+  ): Record<string, unknown> | null {
+    if (!value) return null;
+    const nested = value[key];
+    return this.isRecord(nested) ? nested : null;
+  }
+
+  private getNumberField(
+    value: Record<string, unknown> | null | undefined,
+    key: string,
+  ): number | null {
+    if (!value) return null;
+    const current = value[key];
+    return typeof current === 'number' ? current : null;
+  }
+
+  private extrairItensPreviewInventario(value: unknown): unknown[] {
+    if (!this.isRecord(value)) return [];
+    const itens = value.itens;
+    return Array.isArray(itens) ? itens : [];
   }
 
   private removerItensInventarioDoDto(
@@ -159,7 +217,7 @@ export class PersonagemBaseService {
       (referencias?.poderesGenericos ?? []).map((ref) => [ref.index, ref]),
     );
 
-    const resolvidos: Array<{ habilidadeId: number; config?: any }> = [];
+    const resolvidos: PoderGenericoComConfig[] = [];
 
     for (let index = 0; index < poderes.length; index++) {
       const poder = poderes[index];
@@ -568,8 +626,8 @@ export class PersonagemBaseService {
   private async validarItensInventarioNoPreview(
     dto: CreatePersonagemBaseDto,
   ): Promise<{
-    itensValidados: any[];
-    errosItens: any[];
+    itensValidados: unknown[];
+    errosItens: ErroItemPreview[];
   }> {
     if (!dto.itensInventario?.length) {
       return { itensValidados: [], errosItens: [] };
@@ -585,24 +643,26 @@ export class PersonagemBaseService {
 
     try {
       const previewInventario =
-        await this.inventarioService.previewItensInventario({
+        (await this.inventarioService.previewItensInventario({
           forca: dto.forca,
           prestigioBase: dto.prestigioBase ?? 0,
           itens: itensPreview,
-        });
+        })) as unknown;
+      const itensValidados =
+        this.extrairItensPreviewInventario(previewInventario);
 
       return {
-        itensValidados: previewInventario.itens ?? [],
+        itensValidados,
         errosItens: [],
       };
     } catch {
-      const itensValidados: any[] = [];
-      const errosItens: any[] = [];
+      const itensValidados: unknown[] = [];
+      const errosItens: ErroItemPreview[] = [];
 
       for (const item of dto.itensInventario) {
         try {
           const previewItem =
-            await this.inventarioService.previewItensInventario({
+            (await this.inventarioService.previewItensInventario({
               forca: dto.forca,
               prestigioBase: dto.prestigioBase ?? 0,
               itens: [
@@ -614,13 +674,21 @@ export class PersonagemBaseService {
                   nomeCustomizado: item.nomeCustomizado,
                 },
               ],
-            });
+            })) as unknown;
 
-          itensValidados.push(previewItem.itens[0]);
-        } catch (error: any) {
+          const itensPreviewItem =
+            this.extrairItensPreviewInventario(previewItem);
+          if (itensPreviewItem[0]) {
+            itensValidados.push(itensPreviewItem[0]);
+          }
+        } catch (error: unknown) {
+          const erro =
+            error instanceof Error
+              ? error.message
+              : 'Erro desconhecido ao validar item';
           errosItens.push({
             equipamentoId: item.equipamentoId,
-            erro: error.message,
+            erro,
           });
         }
       }
@@ -641,10 +709,10 @@ export class PersonagemBaseService {
       caminhoId?: number | null;
       tecnicaInataId?: number | null;
       estudouEscolaTecnica: boolean;
-      poderesGenericos?: Array<{ habilidadeId: number; config?: any }>;
+      poderesGenericos?: PoderGenericoComConfig[];
     },
     prisma: PrismaLike = this.prisma,
-  ) {
+  ): Promise<HabilidadeComEfeitos> {
     const {
       nivel,
       origemId,
@@ -656,19 +724,26 @@ export class PersonagemBaseService {
       poderesGenericos,
     } = params;
 
-    const habilidades: Array<{
-      habilidadeId: number;
-      habilidade: {
-        nome: string;
-        tipo?: string;
-        mecanicasEspeciais?: any;
-        efeitosGrau: Array<{
-          tipoGrauCodigo: string;
-          valor: number;
-          escalonamentoPorNivel: any;
-        }>;
-      };
-    }> = [];
+    const habilidades: HabilidadeComEfeitos = [];
+    const mapHabilidade = (habilidade: {
+      nome: string;
+      tipo: string;
+      mecanicasEspeciais: Prisma.JsonValue | null;
+      efeitosGrau: Array<{
+        tipoGrauCodigo: string;
+        valor: number;
+        escalonamentoPorNivel: Prisma.JsonValue | null;
+      }>;
+    }): HabilidadeComEfeitos[number]['habilidade'] => ({
+      nome: habilidade.nome,
+      tipo: habilidade.tipo,
+      mecanicasEspeciais: habilidade.mecanicasEspeciais,
+      efeitosGrau: habilidade.efeitosGrau.map((efeito) => ({
+        tipoGrauCodigo: efeito.tipoGrauCodigo,
+        valor: efeito.valor,
+        escalonamentoPorNivel: efeito.escalonamentoPorNivel,
+      })),
+    });
 
     // Habilidades da origem
     const habilidadesOrigem = await prisma.habilidadeOrigem.findMany({
@@ -683,7 +758,7 @@ export class PersonagemBaseService {
     habilidades.push(
       ...habilidadesOrigem.map((ho) => ({
         habilidadeId: ho.habilidadeId,
-        habilidade: ho.habilidade as any,
+        habilidade: mapHabilidade(ho.habilidade),
       })),
     );
 
@@ -704,7 +779,7 @@ export class PersonagemBaseService {
     if (recursoClasse) {
       habilidades.push({
         habilidadeId: recursoClasse.habilidadeId,
-        habilidade: recursoClasse.habilidade as any,
+        habilidade: mapHabilidade(recursoClasse.habilidade),
       });
     }
 
@@ -725,7 +800,7 @@ export class PersonagemBaseService {
     habilidades.push(
       ...habilidadesClasse.map((hc) => ({
         habilidadeId: hc.habilidadeId,
-        habilidade: hc.habilidade as any,
+        habilidade: mapHabilidade(hc.habilidade),
       })),
     );
 
@@ -747,7 +822,7 @@ export class PersonagemBaseService {
       habilidades.push(
         ...habilidadesTrilha.map((ht) => ({
           habilidadeId: ht.habilidadeId,
-          habilidade: ht.habilidade as any,
+          habilidade: mapHabilidade(ht.habilidade),
         })),
       );
     }
@@ -769,7 +844,7 @@ export class PersonagemBaseService {
       habilidades.push(
         ...habilidadesCaminho.map((ht) => ({
           habilidadeId: ht.habilidadeId,
-          habilidade: ht.habilidade as any,
+          habilidade: mapHabilidade(ht.habilidade),
         })),
       );
     }
@@ -808,7 +883,7 @@ export class PersonagemBaseService {
       if (escolaTecnica) {
         habilidades.push({
           habilidadeId: escolaTecnica.id,
-          habilidade: escolaTecnica as any,
+          habilidade: mapHabilidade(escolaTecnica),
         });
       }
     }
@@ -835,7 +910,7 @@ export class PersonagemBaseService {
 
         habilidades.push({
           habilidadeId: poder.id,
-          habilidade: poder as any,
+          habilidade: mapHabilidade(poder),
         });
       }
     }
@@ -845,9 +920,7 @@ export class PersonagemBaseService {
 
   /** âœ… Calcula modificadores de derivados por habilidades */
   private calcularModificadoresDerivadosPorHabilidades(
-    habilidades: Array<{
-      habilidade: { nome: string; mecanicasEspeciais?: any };
-    }>,
+    habilidades: HabilidadeComEfeitos,
     nivel: number,
   ): ModDerivados {
     const mods: ModDerivados = {
@@ -859,36 +932,45 @@ export class PersonagemBaseService {
     };
 
     for (const h of habilidades) {
-      const m = h.habilidade.mecanicasEspeciais;
+      const mecanicas = this.isRecord(h.habilidade.mecanicasEspeciais)
+        ? h.habilidade.mecanicasEspeciais
+        : null;
+      const recursos = this.getNestedRecord(mecanicas, 'recursos');
+      const defesa = this.getNestedRecord(mecanicas, 'defesa');
+      const inventario = this.getNestedRecord(mecanicas, 'inventario');
+      const pvPorNivel = this.getNumberField(mecanicas, 'pvPorNivel');
+      const peBase = this.getNumberField(recursos, 'peBase');
+      const pePorNivelImpar = this.getNumberField(recursos, 'pePorNivelImpar');
+      const limitePePorTurnoBonus = this.getNumberField(
+        recursos,
+        'limitePePorTurnoBonus',
+      );
+      const defesaBonus = this.getNumberField(defesa, 'bonus');
+      const espacosExtra = this.getNumberField(inventario, 'espacosExtra');
 
-      if (m?.pvPorNivel && typeof m.pvPorNivel === 'number') {
-        mods.pvPorNivelExtra += m.pvPorNivel;
+      if (pvPorNivel !== null) {
+        mods.pvPorNivelExtra += pvPorNivel;
       }
 
-      if (m?.recursos) {
-        if (typeof m.recursos.peBase === 'number') {
-          mods.peBaseExtra += m.recursos.peBase;
-        }
-
-        if (typeof m.recursos.pePorNivelImpar === 'number') {
-          const niveisImpares = Math.ceil(nivel / 2);
-          mods.peBaseExtra += m.recursos.pePorNivelImpar * niveisImpares;
-        }
-
-        if (typeof m.recursos.limitePePorTurnoBonus === 'number') {
-          mods.limitePeEaExtra += m.recursos.limitePePorTurnoBonus;
-        }
+      if (peBase !== null) {
+        mods.peBaseExtra += peBase;
       }
 
-      if (m?.defesa?.bonus && typeof m.defesa.bonus === 'number') {
-        mods.defesaExtra += m.defesa.bonus;
+      if (pePorNivelImpar !== null) {
+        const niveisImpares = Math.ceil(nivel / 2);
+        mods.peBaseExtra += pePorNivelImpar * niveisImpares;
       }
 
-      if (
-        m?.inventario?.espacosExtra &&
-        typeof m.inventario.espacosExtra === 'number'
-      ) {
-        mods.espacosInventarioExtra += m.inventario.espacosExtra;
+      if (limitePePorTurnoBonus !== null) {
+        mods.limitePeEaExtra += limitePePorTurnoBonus;
+      }
+
+      if (defesaBonus !== null) {
+        mods.defesaExtra += defesaBonus;
+      }
+
+      if (espacosExtra !== null) {
+        mods.espacosInventarioExtra += espacosExtra;
       }
     }
 
@@ -908,17 +990,18 @@ export class PersonagemBaseService {
       strictPassivas: opts.strictPassivas,
       prisma: opts.prisma,
       personagemBaseId: opts.personagemBaseId,
-      buscarHabilidadesPersonagem: this.buscarHabilidadesPersonagem.bind(this),
-      calcularModsDerivadosPorHabilidades:
-        this.calcularModificadoresDerivadosPorHabilidades.bind(this),
+      buscarHabilidadesPersonagem: (engineParams, prisma) =>
+        this.buscarHabilidadesPersonagem(engineParams, prisma),
+      calcularModsDerivadosPorHabilidades: (habilidades, nivel) =>
+        this.calcularModificadoresDerivadosPorHabilidades(habilidades, nivel),
     });
   }
 
   private montarDtoCompletoParaUpdate(
-    existe: any,
+    existe: PersonagemBaseDetalhadoEntity,
     dto: UpdatePersonagemBaseDto,
   ): CreatePersonagemBaseDto {
-    const patch: any = dto as any;
+    const patch = dto;
 
     const periciasClasseEscolhidasFinal =
       patch.periciasClasseEscolhidasCodigos ??
@@ -932,9 +1015,10 @@ export class PersonagemBaseService {
       patch.periciasLivresCodigos ??
       this.jsonToStringArray(existe.periciasLivresCodigos);
 
-    const passivasAtributosAtivosFinal =
-      patch.passivasAtributosAtivos ??
-      this.jsonToStringArray(existe.passivasAtributosAtivos);
+    const passivasAtributosAtivosFinal = (patch.passivasAtributosAtivos ??
+      this.jsonToStringArray(
+        existe.passivasAtributosAtivos,
+      )) as CreatePersonagemBaseDto['passivasAtributosAtivos'];
 
     const passivasAtributosConfigRaw =
       patch.passivasAtributosConfig !== undefined
@@ -943,18 +1027,19 @@ export class PersonagemBaseService {
 
     const passivasAtributosConfigFinal = this.limparUndefinedDeepJson(
       passivasAtributosConfigRaw ?? undefined,
-    );
+    ) as CreatePersonagemBaseDto['passivasAtributosConfig'] | undefined;
 
     const poderesBancoNormalizados = this.getPoderesFromRelacao(
       existe.poderesGenericos,
     ).map((inst) => ({ ...inst, config: inst.config ?? {} }));
 
+    const poderesPayloadNormalizados = this.getPoderesFromRelacao(
+      patch.poderesGenericos,
+    ).map((inst) => ({ ...inst, config: inst.config ?? {} }));
+
     const poderesFinal =
       patch.poderesGenericos !== undefined
-        ? (patch.poderesGenericos as any[]).map((inst) => ({
-            ...inst,
-            config: inst.config ?? {},
-          }))
+        ? poderesPayloadNormalizados
         : poderesBancoNormalizados;
 
     const profsExtrasFinal =
@@ -965,7 +1050,7 @@ export class PersonagemBaseService {
     const grausAprimoramentoFinal =
       patch.grausAprimoramento !== undefined
         ? patch.grausAprimoramento
-        : (existe.grausAprimoramento ?? []).map((g: any) => ({
+        : (existe.grausAprimoramento ?? []).map((g) => ({
             tipoGrauCodigo: g.tipoGrau.codigo,
             valor: g.valor,
           }));
@@ -973,17 +1058,23 @@ export class PersonagemBaseService {
     const grausTreinamentoFinal =
       patch.grausTreinamento !== undefined
         ? patch.grausTreinamento
-        : (existe.grausTreinamento ?? []).reduce((acc: any[], gt: any) => {
-            const nivelExistente = acc.find((x) => x.nivel === gt.nivel);
-            const melhoria = {
-              periciaCodigo: gt.periciaCodigo,
-              grauAnterior: gt.grauAnterior,
-              grauNovo: gt.grauNovo,
-            };
-            if (nivelExistente) nivelExistente.melhorias.push(melhoria);
-            else acc.push({ nivel: gt.nivel, melhorias: [melhoria] });
-            return acc;
-          }, [] as any[]);
+        : (existe.grausTreinamento ?? []).reduce(
+            (
+              acc: NonNullable<CreatePersonagemBaseDto['grausTreinamento']>,
+              gt,
+            ) => {
+              const nivelExistente = acc.find((x) => x.nivel === gt.nivel);
+              const melhoria = {
+                periciaCodigo: gt.periciaCodigo,
+                grauAnterior: gt.grauAnterior,
+                grauNovo: gt.grauNovo,
+              };
+              if (nivelExistente) nivelExistente.melhorias.push(melhoria);
+              else acc.push({ nivel: gt.nivel, melhorias: [melhoria] });
+              return acc;
+            },
+            [] as NonNullable<CreatePersonagemBaseDto['grausTreinamento']>,
+          );
 
     const dtoCompleto: CreatePersonagemBaseDto = {
       nome: patch.nome ?? existe.nome,
@@ -1037,20 +1128,22 @@ export class PersonagemBaseService {
         this.getPassivasIdsFromRelacao(existe.passivas ?? []),
 
       passivasAtributosAtivos: passivasAtributosAtivosFinal ?? [],
-      passivasAtributosConfig: passivasAtributosConfigFinal ?? {},
+      passivasAtributosConfig: passivasAtributosConfigFinal ?? undefined,
 
       periciasClasseEscolhidasCodigos: periciasClasseEscolhidasFinal ?? [],
       periciasOrigemEscolhidasCodigos: periciasOrigemEscolhidasFinal ?? [],
       periciasLivresCodigos: periciasLivresFinal ?? [],
 
       periciasLivresExtras: 0,
-    } as any;
+    };
 
     return dtoCompleto;
   }
 
   // ==================== INVENTÃRIO (SIMPLIFICADO) ====================
-  private async calcularResumoInventario(personagemBaseId: number) {
+  private async calcularResumoInventario(
+    personagemBaseId: number,
+  ): Promise<ResumoInventario | null> {
     try {
       const personagem = await this.prisma.personagemBase.findUnique({
         where: { id: personagemBaseId },
@@ -1094,11 +1187,10 @@ export class PersonagemBaseService {
   // ==================== PREVIEW / CRUD ====================
 
   async preview(donoId: number, dto: CreatePersonagemBaseDto) {
-    const patch: any = dto as any;
-    const dtoPreview: any = { ...dto };
+    const dtoPreview: CreatePersonagemBaseDto = { ...dto };
 
-    if (patch.periciasLivresExtras !== undefined) {
-      dtoPreview.periciasLivresExtras = patch.periciasLivresExtras;
+    if (dto.periciasLivresExtras !== undefined) {
+      dtoPreview.periciasLivresExtras = dto.periciasLivresExtras;
     }
 
     const estado = await this.executarEngine(dtoPreview, {
@@ -1171,16 +1263,16 @@ export class PersonagemBaseService {
       ...estado.dtoNormalizado,
 
       proficienciasExtrasCodigos:
-        (estado.dtoNormalizado as any).proficienciasCodigos ?? [],
+        estado.dtoNormalizado.proficienciasCodigos ?? [],
 
-      passivasNeedsChoice: (estado.passivasResolvidas as any).needsChoice,
-      passivasElegiveis: (estado.passivasResolvidas as any).elegiveis,
+      passivasNeedsChoice: estado.passivasResolvidas.needsChoice,
+      passivasElegiveis: estado.passivasResolvidas.elegiveis,
 
       passivasAtributosAtivos: estado.passivasResolvidas.ativos,
       passivasAtributoIds: estado.passivasResolvidas.passivaIds,
 
       passivasAtributosConfig:
-        (estado.dtoNormalizado as any).passivasAtributosConfig ?? {},
+        estado.dtoNormalizado.passivasAtributosConfig ?? {},
 
       poderesGenericos: estado.poderesGenericosNormalizados ?? [],
 
@@ -1236,7 +1328,7 @@ export class PersonagemBaseService {
       // âœ… Inicializar campos de inventÃ¡rio
       espacosOcupados: 0,
       sobrecarregado: false,
-    } as any);
+    });
 
     const personagem = await this.prisma.$transaction(async (tx) => {
       const personagemCriado = await this.persistence.criarComEstado(
@@ -1299,42 +1391,20 @@ export class PersonagemBaseService {
     return lista.map((p) => this.mapper.mapResumo(p));
   }
 
-  async buscarPorId(donoId: number, id: number, incluirInventario = false) {
+  async buscarPorId(
+    donoId: number,
+    id: number,
+    incluirInventario = false,
+  ): Promise<PersonagemDetalhadoComInventario> {
     const personagem = await this.prisma.personagemBase.findFirst({
       where: { id, donoId },
-      include: {
-        cla: true,
-        origem: true,
-        classe: true,
-        trilha: true,
-        caminho: true,
-        tecnicaInata: true,
-        alinhamento: true,
-        proficiencias: { include: { proficiencia: true } },
-        grausAprimoramento: {
-          include: {
-            tipoGrau: true,
-          },
-        },
-        pericias: { include: { pericia: true } },
-        grausTreinamento: true,
-        habilidadesBase: { include: { habilidade: true } },
-        passivas: { include: { passiva: true } },
-        poderesGenericos: { include: { habilidade: true } },
-        resistencias: {
-          include: {
-            resistenciaTipo: true,
-          },
-        },
-      },
+      include: personagemBaseDetalhadoInclude,
     });
 
     if (!personagem) throw new PersonagemBaseNaoEncontradoException(id);
 
-    const personagemDetalhado: any = await this.mapper.mapDetalhado(
-      personagem,
-      this.prisma,
-    );
+    const personagemDetalhado: PersonagemDetalhadoComInventario =
+      await this.mapper.mapDetalhado(personagem, this.prisma);
 
     if (incluirInventario) {
       const resumoInventario = await this.calcularResumoInventario(id);
@@ -1378,30 +1448,30 @@ export class PersonagemBaseService {
 
       proficienciasCodigos: personagem.proficienciasExtrasCodigos ?? [],
 
-      grausAprimoramento: (personagem.grausAprimoramento ?? []).map(
-        (g: any) => {
-          const valorLivre =
-            typeof g.valorLivre === 'number'
-              ? g.valorLivre
-              : Math.max(0, (g.valorTotal ?? 0) - (g.bonus ?? 0));
+      grausAprimoramento: (personagem.grausAprimoramento ?? []).map((g) => {
+        const valorLivre =
+          typeof g.valorLivre === 'number'
+            ? g.valorLivre
+            : Math.max(0, (g.valorTotal ?? 0) - (g.bonus ?? 0));
 
-          return {
-            tipoGrauCodigo: g.tipoGrauCodigo,
-            valor: valorLivre,
-          };
-        },
-      ),
+        return {
+          tipoGrauCodigo: g.tipoGrauCodigo,
+          valor: valorLivre,
+        };
+      }),
 
       grausTreinamento: personagem.grausTreinamento ?? [],
 
-      poderesGenericos: (personagem.poderesGenericos ?? []).map((p: any) => ({
+      poderesGenericos: (personagem.poderesGenericos ?? []).map((p) => ({
         habilidadeId: p.habilidadeId,
         config: p.config ?? {},
       })),
 
       passivasAtributoIds: personagem.passivasAtributoIds ?? [],
-      passivasAtributosAtivos: personagem.passivasAtributosAtivos ?? [],
-      passivasAtributosConfig: personagem.passivasAtributosConfig ?? {},
+      passivasAtributosAtivos: (personagem.passivasAtributosAtivos ??
+        []) as CreatePersonagemBaseDto['passivasAtributosAtivos'],
+      passivasAtributosConfig: (personagem.passivasAtributosConfig ??
+        {}) as CreatePersonagemBaseDto['passivasAtributosConfig'],
 
       periciasClasseEscolhidasCodigos:
         personagem.periciasClasseEscolhidasCodigos ?? [],
@@ -1410,11 +1480,11 @@ export class PersonagemBaseService {
       periciasLivresCodigos: personagem.periciasLivresCodigos ?? [],
       periciasLivresExtras: 0,
 
-      itensInventario: (personagem.itensInventario ?? []).map((item: any) => ({
+      itensInventario: (personagem.itensInventario ?? []).map((item) => ({
         equipamentoId: item.equipamentoId,
         quantidade: item.quantidade,
         equipado: item.equipado ?? false,
-        modificacoesIds: (item.modificacoes ?? []).map((mod: any) => mod.id),
+        modificacoesIds: (item.modificacoes ?? []).map((mod) => mod.id),
         nomeCustomizado: item.nomeCustomizado ?? null,
         notas: item.notas ?? null,
       })),
@@ -1453,26 +1523,26 @@ export class PersonagemBaseService {
             }
           : null,
         poderesGenericos: (personagem.poderesGenericos ?? []).map(
-          (p: any, index: number) => ({
+          (p, index: number) => ({
             index,
             habilidadeId: p.habilidadeId,
             habilidadeNome: p.nome,
           }),
         ),
-        passivas: (personagem.passivas ?? []).map((p: any, index: number) => ({
+        passivas: (personagem.passivas ?? []).map((p, index: number) => ({
           index,
           passivaId: p.id,
           codigo: p.codigo,
           nome: p.nome,
         })),
         itensInventario: (personagem.itensInventario ?? []).map(
-          (item: any, index: number) => ({
+          (item, index: number) => ({
             index,
             equipamentoId: item.equipamento?.id ?? item.equipamentoId,
             equipamentoCodigo: item.equipamento?.codigo,
             equipamentoNome: item.equipamento?.nome,
             modificacoes: (item.modificacoes ?? []).map(
-              (mod: any, modIndex: number) => ({
+              (mod, modIndex: number) => ({
                 index: modIndex,
                 modificacaoId: mod.id,
                 codigo: mod.codigo,
@@ -1501,32 +1571,7 @@ export class PersonagemBaseService {
   async atualizar(donoId: number, id: number, dto: UpdatePersonagemBaseDto) {
     const existe = await this.prisma.personagemBase.findFirst({
       where: { id, donoId },
-      include: {
-        proficiencias: { include: { proficiencia: true } },
-        grausAprimoramento: { include: { tipoGrau: true } },
-        pericias: { include: { pericia: true } },
-        grausTreinamento: true,
-        habilidadesBase: {
-          include: {
-            habilidade: {
-              include: { efeitosGrau: true },
-            },
-          },
-        },
-        passivas: { include: { passiva: true } },
-        poderesGenericos: {
-          include: {
-            habilidade: {
-              include: { efeitosGrau: true },
-            },
-          },
-        },
-        cla: true,
-        classe: true,
-        origem: true,
-        trilha: true,
-        caminho: true,
-      },
+      include: personagemBaseDetalhadoInclude,
     });
 
     if (!existe) throw new PersonagemBaseNaoEncontradoException(id);
@@ -1563,8 +1608,8 @@ export class PersonagemBaseService {
         origemId: estado.dtoNormalizado.origemId,
         classeId: estado.dtoNormalizado.classeId,
 
-        trilhaId: (estado.dtoNormalizado as any).trilhaId ?? null,
-        caminhoId: (estado.dtoNormalizado as any).caminhoId ?? null,
+        trilhaId: estado.dtoNormalizado.trilhaId ?? null,
+        caminhoId: estado.dtoNormalizado.caminhoId ?? null,
 
         agilidade: estado.dtoNormalizado.agilidade,
         forca: estado.dtoNormalizado.forca,
@@ -1573,16 +1618,15 @@ export class PersonagemBaseService {
         vigor: estado.dtoNormalizado.vigor,
 
         estudouEscolaTecnica: estado.dtoNormalizado.estudouEscolaTecnica,
-        tecnicaInataId: (estado.dtoNormalizado as any).tecnicaInataId ?? null,
+        tecnicaInataId: estado.dtoNormalizado.tecnicaInataId ?? null,
 
-        idade: (estado.dtoNormalizado as any).idade ?? null,
-        prestigioBase: (estado.dtoNormalizado as any).prestigioBase ?? null,
-        prestigioClaBase:
-          (estado.dtoNormalizado as any).prestigioClaBase ?? null,
-        alinhamentoId: (estado.dtoNormalizado as any).alinhamentoId ?? null,
-        background: (estado.dtoNormalizado as any).background ?? null,
+        idade: estado.dtoNormalizado.idade ?? null,
+        prestigioBase: estado.dtoNormalizado.prestigioBase ?? null,
+        prestigioClaBase: estado.dtoNormalizado.prestigioClaBase ?? null,
+        alinhamentoId: estado.dtoNormalizado.alinhamentoId ?? null,
+        background: estado.dtoNormalizado.background ?? null,
 
-        atributoChaveEa: (estado.dtoNormalizado as any).atributoChaveEa,
+        atributoChaveEa: estado.dtoNormalizado.atributoChaveEa,
 
         pvMaximo: estado.derivadosFinais.pvMaximo,
         peMaximo: estado.derivadosFinais.peMaximo,
@@ -1609,11 +1653,11 @@ export class PersonagemBaseService {
         proficienciasExtrasCodigos: dtoCompleto.proficienciasCodigos ?? [],
 
         periciasClasseEscolhidasCodigos:
-          (estado.dtoNormalizado as any).periciasClasseEscolhidasCodigos ?? [],
+          estado.dtoNormalizado.periciasClasseEscolhidasCodigos ?? [],
         periciasOrigemEscolhidasCodigos:
-          (estado.dtoNormalizado as any).periciasOrigemEscolhidasCodigos ?? [],
+          estado.dtoNormalizado.periciasOrigemEscolhidasCodigos ?? [],
         periciasLivresCodigos:
-          (estado.dtoNormalizado as any).periciasLivresCodigos ?? [],
+          estado.dtoNormalizado.periciasLivresCodigos ?? [],
       });
 
       const resultado = await this.persistence.atualizarRebuildComEstado(
@@ -1804,6 +1848,16 @@ export class PersonagemBaseService {
       orderBy: [{ atributo: 'asc' }, { nivel: 'asc' }],
     });
 
+    type PassivaDisponivel = {
+      id: number;
+      codigo: string;
+      nome: string;
+      nivel: number;
+      requisito: number | null;
+      descricao: string | null;
+      efeitos: Prisma.JsonValue | null;
+    };
+
     const porAtributo = passivas.reduce(
       (acc, p) => {
         if (!acc[p.atributo]) acc[p.atributo] = [];
@@ -1818,7 +1872,7 @@ export class PersonagemBaseService {
         });
         return acc;
       },
-      {} as Record<string, any>,
+      {} as Record<string, PassivaDisponivel[]>,
     );
 
     return porAtributo;

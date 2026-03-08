@@ -1,12 +1,18 @@
 // src/personagem-base/engine/personagem-base.engine.ts
 
 // ✅ IMPORTS ATUALIZADOS
-import { AtributoBaseEA } from '@prisma/client';
+import { AtributoBaseEA, Prisma } from '@prisma/client';
+import {
+  CreatePersonagemBaseDto,
+  PassivaIntelectoConfigDto,
+} from '../dto/create-personagem-base.dto';
 
 import {
   aplicarRegrasDeGraus,
   calcularGrausLivresExtras,
   calcularGrausLivresMax,
+  HabilidadePersonagem,
+  MecanicasEspeciaisHabilidade,
 } from '../regras-criacao/regras-graus-aprimoramento';
 
 import {
@@ -65,24 +71,45 @@ type BuscarHabilidadesFn = (
     caminhoId?: number | null;
     tecnicaInataId?: number | null;
     estudouEscolaTecnica: boolean;
-    poderesGenericos?: Array<{ habilidadeId: number; config?: any }>;
+    poderesGenericos?: PoderGenericoNormalizado[];
   },
   prisma: PrismaLike,
 ) => Promise<HabilidadeComEfeitos>;
 
 type CalcularModsDerivadosFn = (
-  habilidades: Array<{
-    habilidade: { nome: string; mecanicasEspeciais?: any };
-  }>,
+  habilidades: HabilidadeComEfeitos,
   nivel: number,
 ) => ModDerivados;
 
-function limparUndefined<T extends Record<string, any>>(obj: T): T {
-  const out: any = { ...obj };
-  for (const k of Object.keys(out)) {
-    if (out[k] === undefined) delete out[k];
-  }
-  return out;
+type PoderGenericoEntrada = { habilidadeId: number; config?: Prisma.JsonValue };
+type PoderGenericoNormalizado = {
+  habilidadeId: number;
+  config: Prisma.JsonValue;
+};
+type DtoNormalizado = CreatePersonagemBaseDto & {
+  poderesGenericos?: PoderGenericoNormalizado[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getNestedRecord(
+  value: Record<string, unknown> | null | undefined,
+  key: string,
+): Record<string, unknown> | null {
+  if (!value) return null;
+  const nested = value[key];
+  return isRecord(nested) ? nested : null;
+}
+
+function getNumberField(
+  value: Record<string, unknown> | null | undefined,
+  key: string,
+): number | null {
+  if (!value) return null;
+  const current = value[key];
+  return typeof current === 'number' ? current : null;
 }
 
 // ✅ REFATORADO: Usar exceção customizada
@@ -96,23 +123,58 @@ function validarAtributoChaveEa(
 }
 
 function normalizePoderesGenericos(
-  poderes: Array<{ habilidadeId: number; config?: any }> | undefined,
-): Array<{ habilidadeId: number; config: any }> {
-  return (poderes ?? []).map((inst: any) => ({
-    ...inst,
-    config: inst?.config ?? {},
+  poderes: PoderGenericoEntrada[] | undefined,
+): PoderGenericoNormalizado[] {
+  return (poderes ?? []).map((inst) => ({
+    habilidadeId: inst.habilidadeId,
+    config: inst.config ?? {},
   }));
 }
 
 function limparUndefinedDeepJson<T>(value: T | undefined): T | undefined {
   if (value === undefined) return undefined;
-  return JSON.parse(JSON.stringify(value));
+  const normalized: unknown = JSON.parse(JSON.stringify(value));
+  return normalized as T;
+}
+
+function getLegacyInt2Config(value: unknown): PassivaIntelectoConfigDto | null {
+  if (!isRecord(value)) return null;
+
+  const candidates = [value.INTII, value.INT_II, value.INTII_];
+  for (const candidate of candidates) {
+    if (!isRecord(candidate)) continue;
+    const tipoGrauCodigoAprimoramento = candidate.tipoGrauCodigoAprimoramento;
+    const periciaCodigoTreino = candidate.periciaCodigoTreino;
+    const periciasCodigos = candidate.periciasCodigos;
+    const proficienciasCodigos = candidate.proficienciasCodigos;
+
+    return {
+      tipoGrauCodigoAprimoramento:
+        typeof tipoGrauCodigoAprimoramento === 'string'
+          ? tipoGrauCodigoAprimoramento
+          : undefined,
+      periciaCodigoTreino:
+        typeof periciaCodigoTreino === 'string'
+          ? periciaCodigoTreino
+          : undefined,
+      periciasCodigos:
+        Array.isArray(periciasCodigos) &&
+        periciasCodigos.every((v) => typeof v === 'string')
+          ? periciasCodigos
+          : undefined,
+      proficienciasCodigos:
+        Array.isArray(proficienciasCodigos) &&
+        proficienciasCodigos.every((v) => typeof v === 'string')
+          ? proficienciasCodigos
+          : undefined,
+    };
+  }
+
+  return null;
 }
 
 function calcularModificadoresDerivadosPorHabilidadesLocal(
-  habilidades: Array<{
-    habilidade: { nome: string; mecanicasEspeciais?: any };
-  }>,
+  habilidades: HabilidadeComEfeitos,
   nivel: number,
 ): ModDerivados {
   const mods: ModDerivados = {
@@ -124,40 +186,89 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
   };
 
   for (const h of habilidades) {
-    const m = h.habilidade.mecanicasEspeciais;
+    const mecanicas = isRecord(h.habilidade.mecanicasEspeciais)
+      ? h.habilidade.mecanicasEspeciais
+      : null;
+    const recursos = getNestedRecord(mecanicas, 'recursos');
+    const defesa = getNestedRecord(mecanicas, 'defesa');
+    const inventario = getNestedRecord(mecanicas, 'inventario');
+    const pvPorNivel = getNumberField(mecanicas, 'pvPorNivel');
+    const peBase = getNumberField(recursos, 'peBase');
+    const pePorNivelImpar = getNumberField(recursos, 'pePorNivelImpar');
+    const limitePePorTurnoBonus = getNumberField(
+      recursos,
+      'limitePePorTurnoBonus',
+    );
+    const defesaBonus = getNumberField(defesa, 'bonus');
+    const espacosExtra = getNumberField(inventario, 'espacosExtra');
 
-    if (m?.pvPorNivel && typeof m.pvPorNivel === 'number') {
-      mods.pvPorNivelExtra += m.pvPorNivel;
+    if (pvPorNivel !== null) {
+      mods.pvPorNivelExtra += pvPorNivel;
     }
 
-    if (m?.recursos) {
-      if (typeof m.recursos.peBase === 'number') {
-        mods.peBaseExtra += m.recursos.peBase;
-      }
-
-      if (typeof m.recursos.pePorNivelImpar === 'number') {
-        const niveisImpares = Math.ceil(nivel / 2);
-        mods.peBaseExtra += m.recursos.pePorNivelImpar * niveisImpares;
-      }
-
-      if (typeof m.recursos.limitePePorTurnoBonus === 'number') {
-        mods.limitePeEaExtra += m.recursos.limitePePorTurnoBonus;
-      }
+    if (peBase !== null) {
+      mods.peBaseExtra += peBase;
     }
 
-    if (m?.defesa?.bonus && typeof m.defesa.bonus === 'number') {
-      mods.defesaExtra += m.defesa.bonus;
+    if (pePorNivelImpar !== null) {
+      const niveisImpares = Math.ceil(nivel / 2);
+      mods.peBaseExtra += pePorNivelImpar * niveisImpares;
     }
 
-    if (
-      m?.inventario?.espacosExtra &&
-      typeof m.inventario.espacosExtra === 'number'
-    ) {
-      mods.espacosInventarioExtra += m.inventario.espacosExtra;
+    if (limitePePorTurnoBonus !== null) {
+      mods.limitePeEaExtra += limitePePorTurnoBonus;
+    }
+
+    if (defesaBonus !== null) {
+      mods.defesaExtra += defesaBonus;
+    }
+
+    if (espacosExtra !== null) {
+      mods.espacosInventarioExtra += espacosExtra;
     }
   }
 
   return mods;
+}
+
+function toEscalonamentoPorNivel(
+  value: Prisma.JsonValue | null,
+): { niveis: number[] } | null {
+  if (!isRecord(value)) return null;
+  const niveis = value.niveis;
+  if (!Array.isArray(niveis) || niveis.some((n) => typeof n !== 'number')) {
+    return null;
+  }
+  return { niveis: niveis as number[] };
+}
+
+function toMecanicasEspeciaisHabilidade(
+  value: Prisma.JsonValue | null | undefined,
+): MecanicasEspeciaisHabilidade | null {
+  if (!isRecord(value)) return null;
+  return value as unknown as MecanicasEspeciaisHabilidade;
+}
+
+function normalizarHabilidadesParaGraus(
+  habilidades: HabilidadeComEfeitos,
+): HabilidadePersonagem[] {
+  return habilidades.map((h) => ({
+    habilidadeId: h.habilidadeId,
+    habilidade: {
+      nome: h.habilidade.nome,
+      tipo: h.habilidade.tipo,
+      mecanicasEspeciais: toMecanicasEspeciaisHabilidade(
+        h.habilidade.mecanicasEspeciais,
+      ),
+      efeitosGrau: (h.habilidade.efeitosGrau ?? []).map((efeito) => ({
+        tipoGrauCodigo: efeito.tipoGrauCodigo,
+        valor: efeito.valor,
+        escalonamentoPorNivel: toEscalonamentoPorNivel(
+          efeito.escalonamentoPorNivel,
+        ),
+      })),
+    },
+  }));
 }
 
 export async function calcularEstadoFinalPersonagemBase(
@@ -177,13 +288,13 @@ export async function calcularEstadoFinalPersonagemBase(
   } = params;
 
   const poderesGenericosNormalizados = normalizePoderesGenericos(
-    dtoIn.poderesGenericos as any,
+    dtoIn.poderesGenericos,
   );
   const passivasAtributosConfigLimpo = limparUndefinedDeepJson(
-    dtoIn.passivasAtributosConfig as any,
+    dtoIn.passivasAtributosConfig,
   );
 
-  const dtoNormalizado: any = {
+  const dtoNormalizado: DtoNormalizado = {
     ...dtoIn,
     poderesGenericos: poderesGenericosNormalizados,
     passivasAtributosConfig: passivasAtributosConfigLimpo,
@@ -204,13 +315,13 @@ export async function calcularEstadoFinalPersonagemBase(
     dtoNormalizado.claId,
     dtoNormalizado.origemId,
     dtoNormalizado.tecnicaInataId,
-    prisma as any,
+    prisma,
   );
 
   // 1) Perícias base
   const periciasCalculadas = await montarPericiasPersonagem(
     dtoNormalizado,
-    prisma as any,
+    prisma,
   );
 
   const todasPericias = await prisma.pericia.findMany();
@@ -236,7 +347,7 @@ export async function calcularEstadoFinalPersonagemBase(
       poderes: poderesGenericosNormalizados,
       periciasMap: periciasMapCodigo,
     },
-    prisma as any,
+    prisma,
   );
 
   // 3) Passivas
@@ -250,7 +361,7 @@ export async function calcularEstadoFinalPersonagemBase(
     },
     passivasAtributosAtivos: dtoNormalizado.passivasAtributosAtivos,
     strict: strictPassivas,
-    prisma: prisma as any,
+    prisma,
   });
 
   const passivasCodigosAtivos = passivasResolvidas.passivaCodigos ?? [];
@@ -293,7 +404,7 @@ export async function calcularEstadoFinalPersonagemBase(
     dtoNormalizado.intelecto,
     dtoNormalizado.grausTreinamento,
     periciasMapCodigo,
-    prisma as any,
+    prisma,
   );
 
   aplicarGrausTreinamento(dtoNormalizado.grausTreinamento, periciasMapCodigo);
@@ -311,7 +422,7 @@ export async function calcularEstadoFinalPersonagemBase(
     dtoNormalizado.trilhaId,
     dtoNormalizado.caminhoId,
     periciasComCodigo,
-    prisma as any,
+    prisma,
   );
 
   // 5) Habilidades
@@ -326,29 +437,30 @@ export async function calcularEstadoFinalPersonagemBase(
       estudouEscolaTecnica: dtoNormalizado.estudouEscolaTecnica,
       poderesGenericos: poderesGenericosNormalizados,
     },
-    prisma as any,
+    prisma,
   );
 
   const habilidadesParaPersistir = habilidades
     .filter((h) => h.habilidade?.tipo !== 'PODER_GENERICO')
     .map((h) => ({ habilidadeId: h.habilidadeId }));
+  const habilidadesParaGraus = normalizarHabilidadesParaGraus(habilidades);
 
   // 5.1) Profs de habilidades
   const profsDeHabilidades = await extrairProficienciasDeHabilidades(
-    habilidades as any,
-    prisma as any,
+    habilidades,
+    prisma,
   );
 
   // 6) Graus de aprimoramento
   const grausUsuario = dtoNormalizado.grausAprimoramento ?? [];
   const pontosUsuario = grausUsuario.reduce(
-    (acc: number, g: any) => acc + (g.valor || 0),
+    (acc: number, g) => acc + (g.valor || 0),
     0,
   );
 
   const baseLivres = calcularGrausLivresMax(dtoNormalizado.nivel);
   const extrasLivres = calcularGrausLivresExtras(
-    habilidades as any,
+    habilidadesParaGraus,
     dtoNormalizado.nivel,
     dtoNormalizado.passivasAtributosConfig,
   );
@@ -369,7 +481,7 @@ export async function calcularEstadoFinalPersonagemBase(
 
   const grausComPoderes = await aplicarEfeitosPoderesEmGraus(
     { poderes: poderesGenericosNormalizados, grausLivres: grausUsuario },
-    prisma as any,
+    prisma,
   );
 
   const grausComIntelecto = aplicarIntelectoEmGraus({
@@ -383,7 +495,7 @@ export async function calcularEstadoFinalPersonagemBase(
     await validarPoderesGenericos(
       {
         nivel: dtoNormalizado.nivel,
-        poderes: poderesGenericosNormalizados as any,
+        poderes: poderesGenericosNormalizados,
         pericias: periciasComCodigo,
         atributos: {
           agilidade: dtoNormalizado.agilidade,
@@ -394,7 +506,7 @@ export async function calcularEstadoFinalPersonagemBase(
         },
         graus: grausComIntelecto ?? [],
       },
-      prisma as any,
+      prisma,
     );
   }
 
@@ -402,7 +514,7 @@ export async function calcularEstadoFinalPersonagemBase(
   const grausFinais = aplicarRegrasDeGraus(
     {
       nivel: dtoNormalizado.nivel,
-      habilidades,
+      habilidades: habilidadesParaGraus,
       poderes: poderesGenericosNormalizados,
       passivasAtributosConfig: dtoNormalizado.passivasAtributosConfig,
     },
@@ -437,18 +549,17 @@ export async function calcularEstadoFinalPersonagemBase(
       atributoChaveEa: dtoNormalizado.atributoChaveEa,
       passivasAtributoIds: passivasResolvidas.passivaIds,
     },
-    prisma as any,
+    prisma,
   );
 
   const calcMods =
     params.calcularModsDerivadosPorHabilidades ??
     calcularModificadoresDerivadosPorHabilidadesLocal;
-  const mods = calcMods(habilidades as any, dtoNormalizado.nivel);
+  const mods = calcMods(habilidades, dtoNormalizado.nivel);
 
   // 11) RESISTÊNCIAS E EQUIPAMENTOS
-  const resistenciasDeHabilidades = extrairResistenciasDeHabilidades(
-    habilidades as any,
-  );
+  const resistenciasDeHabilidades =
+    extrairResistenciasDeHabilidades(habilidades);
 
   let defesaEquipamento = 0;
   const resistenciasDeEquipamentos = new Map<string, number>();
@@ -530,20 +641,22 @@ export async function calcularEstadoFinalPersonagemBase(
     })),
   );
 
-  const cfg: any = dtoNormalizado.passivasAtributosConfig ?? {};
-  const cfgInt2 = cfg.INTII ?? cfg.INT_II ?? cfg.INTII_ ?? undefined;
+  const cfgInt2 =
+    dtoNormalizado.passivasAtributosConfig?.INT_II ??
+    getLegacyInt2Config(dtoNormalizado.passivasAtributosConfig);
+  const tipoGrauCodigoAprimoramento = cfgInt2?.tipoGrauCodigoAprimoramento;
 
-  if (cfgInt2?.tipoGrauCodigoAprimoramento) {
+  if (typeof tipoGrauCodigoAprimoramento === 'string') {
     bonusHabilidades.push({
       habilidadeNome: 'Intelecto II',
-      tipoGrauCodigo: cfgInt2.tipoGrauCodigoAprimoramento,
+      tipoGrauCodigo: tipoGrauCodigoAprimoramento,
       valor: 1,
       escalonamentoPorNivel: null,
     });
   }
 
   return {
-    dtoNormalizado: limparUndefined(dtoNormalizado),
+    dtoNormalizado,
     passivasResolvidas,
     passivasAtributosConfigLimpo: passivasAtributosConfigLimpo ?? null,
     poderesGenericosNormalizados,

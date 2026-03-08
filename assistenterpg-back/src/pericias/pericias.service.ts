@@ -1,6 +1,7 @@
 // src/pericias/pericias.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
@@ -11,6 +12,15 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 export class PericiasService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
+
   async findAll() {
     try {
       return this.prisma.pericia.findMany({
@@ -19,10 +29,8 @@ export class PericiasService {
           { nome: 'asc' },
         ],
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -38,10 +46,8 @@ export class PericiasService {
       }
 
       return pericia;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }

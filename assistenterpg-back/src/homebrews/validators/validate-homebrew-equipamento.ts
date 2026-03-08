@@ -9,9 +9,15 @@ import {
  * Validações customizadas para Equipamentos
  * (além das validações do DTO)
  */
-export function validateHomebrewEquipamentoCustom(dados: any): void {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function validateHomebrewEquipamentoCustom(dados: unknown): void {
+  if (!isRecord(dados)) return;
+
   // ✅ Validar categoria (CATEGORIA_0 a CATEGORIA_4 ou ESPECIAL)
-  if (dados.categoria) {
+  if (dados.categoria !== undefined && dados.categoria !== null) {
     const categoriasValidas = [
       'CATEGORIA_0',
       'CATEGORIA_1',
@@ -21,9 +27,15 @@ export function validateHomebrewEquipamentoCustom(dados: any): void {
       'ESPECIAL',
     ];
 
-    if (!categoriasValidas.includes(dados.categoria)) {
+    const categoria = dados.categoria;
+    if (
+      typeof categoria !== 'string' ||
+      !categoriasValidas.includes(categoria)
+    ) {
+      const categoriaTexto =
+        typeof categoria === 'string' ? categoria : '<invalida>';
       throw new ValidationException(
-        `Categoria inválida: "${dados.categoria}"`,
+        `Categoria inválida: "${categoriaTexto}"`,
         'categoria',
         { categoriasValidas },
         'INVALID_CATEGORY',
@@ -33,8 +45,14 @@ export function validateHomebrewEquipamentoCustom(dados: any): void {
 
   // ✅ Validar espaços (mínimo 0, máximo razoável 10)
   if (dados.espacos !== undefined) {
-    if (dados.espacos < 0 || dados.espacos > 10) {
-      throw new ValorForaDoIntervaloException('espacos', 0, 10, dados.espacos);
+    const espacos = dados.espacos;
+    if (typeof espacos !== 'number' || espacos < 0 || espacos > 10) {
+      throw new ValorForaDoIntervaloException(
+        'espacos',
+        0,
+        10,
+        Number(espacos),
+      );
     }
   }
 }

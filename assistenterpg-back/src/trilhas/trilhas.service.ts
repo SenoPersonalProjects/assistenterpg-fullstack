@@ -1,7 +1,7 @@
 // src/trilhas/trilhas.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { TipoFonte } from '@prisma/client';
+import { Prisma, TipoFonte } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrilhaDto } from './dto/create-trilha.dto';
 import { UpdateTrilhaDto } from './dto/update-trilha.dto';
@@ -25,6 +25,29 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 @Injectable()
 export class TrilhasService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
+
+  private normalizarJsonParaPersistir(
+    value: unknown,
+  ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (value === null) {
+      return Prisma.JsonNull;
+    }
+
+    return value as Prisma.InputJsonValue;
+  }
 
   private async validarFonteSuplemento(
     fonte: TipoFonte,
@@ -106,7 +129,7 @@ export class TrilhasService {
           classeId: createDto.classeId,
           nome: createDto.nome,
           descricao: createDto.descricao,
-          requisitos: createDto.requisitos,
+          requisitos: this.normalizarJsonParaPersistir(createDto.requisitos),
           fonte: fonteFinal,
           suplementoId: suplementoIdFinal,
 
@@ -135,10 +158,8 @@ export class TrilhasService {
       });
 
       return trilha;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -163,10 +184,8 @@ export class TrilhasService {
         },
         orderBy: { nome: 'asc' },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -205,10 +224,8 @@ export class TrilhasService {
       }
 
       return trilha;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -251,7 +268,7 @@ export class TrilhasService {
             descricao: updateDto.descricao,
           }),
           ...(updateDto.requisitos !== undefined && {
-            requisitos: updateDto.requisitos,
+            requisitos: this.normalizarJsonParaPersistir(updateDto.requisitos),
           }),
           ...(fonteFinal !== trilhaAtual.fonte && { fonte: fonteFinal }),
           ...(updateDto.suplementoId !== undefined && {
@@ -284,10 +301,8 @@ export class TrilhasService {
       });
 
       return trilha;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -319,10 +334,8 @@ export class TrilhasService {
       });
 
       return { message: 'Trilha removida com sucesso' };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -384,10 +397,8 @@ export class TrilhasService {
       });
 
       return caminho;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -465,10 +476,8 @@ export class TrilhasService {
       });
 
       return caminho;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -500,10 +509,8 @@ export class TrilhasService {
       });
 
       return { message: 'Caminho removido com sucesso' };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -528,10 +535,8 @@ export class TrilhasService {
         descricao: c.descricao,
         trilhaId: c.trilhaId,
       }));
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -559,10 +564,8 @@ export class TrilhasService {
         caminhoId: ht.caminhoId,
         caminhoNome: ht.caminho?.nome ?? null,
       }));
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }

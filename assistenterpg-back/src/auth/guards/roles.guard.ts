@@ -11,6 +11,12 @@ import {
   AcessoNegadoException,
 } from 'src/common/exceptions/auth.exception';
 
+type RequestComRole = {
+  user?: {
+    role?: RoleUsuario;
+  };
+};
+
 /**
  * Guard que verifica se o usuário tem a role necessária
  * ✅ REFATORADO: Usar exceções customizadas
@@ -32,7 +38,7 @@ export class RolesGuard implements CanActivate {
     }
 
     // 3️⃣ Buscar usuário da requisição (já injetado pelo JwtAuthGuard)
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<RequestComRole>();
 
     // 4️⃣ Se não há usuário, nega acesso
     if (!user) {

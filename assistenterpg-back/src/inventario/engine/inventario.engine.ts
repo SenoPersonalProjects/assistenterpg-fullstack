@@ -15,6 +15,33 @@ import {
   TipoAcessorio,
 } from '@prisma/client';
 
+const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
+  CategoriaEquipamento.CATEGORIA_0,
+  CategoriaEquipamento.CATEGORIA_4,
+  CategoriaEquipamento.CATEGORIA_3,
+  CategoriaEquipamento.CATEGORIA_2,
+  CategoriaEquipamento.CATEGORIA_1,
+  CategoriaEquipamento.ESPECIAL,
+];
+
+function isCategoriaEquipamento(value: unknown): value is CategoriaEquipamento {
+  return (
+    typeof value === 'string' &&
+    ORDEM_CATEGORIAS.includes(value as CategoriaEquipamento)
+  );
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function extrairNumeroJson(value: unknown, key: string): number | undefined {
+  if (!isJsonObject(value)) return undefined;
+
+  const raw = value[key];
+  return typeof raw === 'number' ? raw : undefined;
+}
+
 /**
  * Engine puro de cálculos de inventário
  * Não acessa o banco de dados diretamente
@@ -29,19 +56,14 @@ export class InventarioEngine {
     categoriaOriginal: string,
     quantidadeModificacoes: number,
   ): CategoriaEquipamento {
-    const ORDEM_CATEGORIAS = [
-      'CATEGORIA_0',
-      'CATEGORIA_4',
-      'CATEGORIA_3',
-      'CATEGORIA_2',
-      'CATEGORIA_1',
-      'ESPECIAL',
-    ] as const;
+    if (!isCategoriaEquipamento(categoriaOriginal)) {
+      return CategoriaEquipamento.CATEGORIA_0;
+    }
 
-    const indexOriginal = ORDEM_CATEGORIAS.indexOf(categoriaOriginal as any);
+    const indexOriginal = ORDEM_CATEGORIAS.indexOf(categoriaOriginal);
 
     if (indexOriginal === -1) {
-      return 'CATEGORIA_0' as CategoriaEquipamento;
+      return CategoriaEquipamento.CATEGORIA_0;
     }
 
     const indexFinal = Math.min(
@@ -49,7 +71,7 @@ export class InventarioEngine {
       ORDEM_CATEGORIAS.length - 1,
     );
 
-    return ORDEM_CATEGORIAS[indexFinal] as CategoriaEquipamento;
+    return ORDEM_CATEGORIAS[indexFinal];
   }
 
   /**
@@ -175,9 +197,12 @@ export class InventarioEngine {
 
       // ✅ NOVO: Defesa das modificações (bonusDefesa em efeitosMecanicos)
       item.modificacoes.forEach((modJunction) => {
-        const efeitos = modJunction.modificacao.efeitosMecanicos as any;
-        if (efeitos && typeof efeitos.bonusDefesa === 'number') {
-          defesaTotal += efeitos.bonusDefesa * item.quantidade;
+        const bonusDefesa = extrairNumeroJson(
+          modJunction.modificacao.efeitosMecanicos,
+          'bonusDefesa',
+        );
+        if (typeof bonusDefesa === 'number') {
+          defesaTotal += bonusDefesa * item.quantidade;
         }
       });
     });
@@ -240,15 +265,18 @@ export class InventarioEngine {
 
       // ✅ NOVO: RD das modificações (rdAdicional em efeitosMecanicos)
       item.modificacoes.forEach((modJunction) => {
-        const efeitos = modJunction.modificacao.efeitosMecanicos as any;
-        if (efeitos && typeof efeitos.rdAdicional === 'number') {
+        const rdAdicional = extrairNumeroJson(
+          modJunction.modificacao.efeitosMecanicos,
+          'rdAdicional',
+        );
+        if (typeof rdAdicional === 'number') {
           // rdAdicional se aplica a TODOS os tipos de RD já existentes no item
           if (item.equipamento.reducesDano) {
             item.equipamento.reducesDano.forEach((rd) => {
               const valorAtual = reducoesPorTipo.get(rd.tipoReducao) || 0;
               reducoesPorTipo.set(
                 rd.tipoReducao,
-                valorAtual + efeitos.rdAdicional * item.quantidade,
+                valorAtual + rdAdicional * item.quantidade,
               );
             });
           }
@@ -463,7 +491,9 @@ export class InventarioEngine {
   previewAdicionarItem(
     itensAtuais: ItemInventarioComDados[],
     novoItem: {
-      equipamento: any;
+      equipamento: {
+        categoria: string;
+      };
       quantidade: number;
     },
     personagem: {
@@ -490,7 +520,11 @@ export class InventarioEngine {
       {},
     );
 
-    const categoriaNovoItem = novoItem.equipamento.categoria;
+    const categoriaNovoItem = isCategoriaEquipamento(
+      novoItem.equipamento.categoria,
+    )
+      ? novoItem.equipamento.categoria
+      : CategoriaEquipamento.CATEGORIA_0;
     itensPorCategoriaAtual[categoriaNovoItem] =
       (itensPorCategoriaAtual[categoriaNovoItem] ?? 0) + novoItem.quantidade;
 

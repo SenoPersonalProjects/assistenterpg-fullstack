@@ -1,6 +1,7 @@
 // src/usuario/usuario.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { AtualizarPreferenciasDto } from './dto/atualizar-preferencias.dto';
@@ -20,6 +21,15 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 @Injectable()
 export class UsuarioService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
 
   async criarUsuario(apelido: string, email: string, senha: string) {
     try {
@@ -48,10 +58,8 @@ export class UsuarioService {
           criadoEm: true,
         },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -77,10 +85,8 @@ export class UsuarioService {
       }
 
       return usuario;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -106,10 +112,8 @@ export class UsuarioService {
       }
 
       return usuario;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -133,10 +137,8 @@ export class UsuarioService {
       }
 
       return usuario;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -160,10 +162,8 @@ export class UsuarioService {
         personagens: totalPersonagens,
         artigosLidos: 0,
       };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -181,10 +181,8 @@ export class UsuarioService {
       }
 
       return preferencias;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -199,10 +197,8 @@ export class UsuarioService {
         update: dto,
         create: { usuarioId, ...dto },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -234,10 +230,8 @@ export class UsuarioService {
       });
 
       return { mensagem: 'Senha alterada com sucesso' };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -292,10 +286,8 @@ export class UsuarioService {
         campanhas,
         preferencias,
       };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -321,10 +313,8 @@ export class UsuarioService {
       });
 
       return { mensagem: 'Conta excluída com sucesso' };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }

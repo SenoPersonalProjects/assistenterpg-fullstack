@@ -1,6 +1,7 @@
 // src/tipos-grau/tipos-grau.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTipoGrauDto } from './dto/create-tipo-grau.dto';
 import { UpdateTipoGrauDto } from './dto/update-tipo-grau.dto';
@@ -18,6 +19,15 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 export class TiposGrauService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
+
   async create(dto: CreateTipoGrauDto) {
     try {
       // ✅ OPCIONAL: Validar código único (se houver campo codigo)
@@ -31,10 +41,8 @@ export class TiposGrauService {
       // }
 
       return this.prisma.tipoGrau.create({ data: dto });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -44,10 +52,8 @@ export class TiposGrauService {
       return this.prisma.tipoGrau.findMany({
         orderBy: { nome: 'asc' },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -61,10 +67,8 @@ export class TiposGrauService {
       }
 
       return tipo;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -90,10 +94,8 @@ export class TiposGrauService {
         where: { id },
         data: dto,
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -111,10 +113,8 @@ export class TiposGrauService {
       await this.prisma.tipoGrau.delete({ where: { id } });
 
       return { sucesso: true };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }

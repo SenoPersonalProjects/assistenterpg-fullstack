@@ -6,7 +6,13 @@ import { FiltrarModificacoesDto } from './dto/filtrar-modificacoes.dto';
 import { ModificacaoDetalhadaDto } from './dto/modificacao-detalhada.dto';
 import { CreateModificacaoDto } from './dto/create-modificacao.dto';
 import { UpdateModificacaoDto } from './dto/update-modificacao.dto';
-import { TipoFonte, ComplexidadeMaldicao } from '@prisma/client';
+import {
+  CategoriaEquipamento,
+  ComplexidadeMaldicao,
+  Prisma,
+  ProficienciaProtecao,
+  TipoFonte,
+} from '@prisma/client';
 import {
   RestricoesModificacao,
   ResultadoValidacaoRestricoes,
@@ -24,9 +30,147 @@ import {
 
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
+const equipamentoCompativelSelect =
+  Prisma.validator<Prisma.EquipamentoCatalogoSelect>()({
+    id: true,
+    codigo: true,
+    nome: true,
+    tipo: true,
+  });
+
+const equipamentoRestricoesSelect =
+  Prisma.validator<Prisma.EquipamentoCatalogoSelect>()({
+    id: true,
+    tipo: true,
+    categoria: true,
+    complexidadeMaldicao: true,
+    proficienciaProtecao: true,
+    tipoProtecao: true,
+    tipoArma: true,
+    proficienciaArma: true,
+    alcance: true,
+  });
+
+const modificacaoComEquipamentosInclude =
+  Prisma.validator<Prisma.ModificacaoEquipamentoInclude>()({
+    equipamentosApplicaveis: {
+      include: {
+        equipamento: {
+          select: equipamentoCompativelSelect,
+        },
+      },
+    },
+  });
+
+const modificacaoDetalhadaInclude =
+  Prisma.validator<Prisma.ModificacaoEquipamentoInclude>()({
+    suplemento: {
+      select: {
+        id: true,
+        codigo: true,
+        nome: true,
+      },
+    },
+    equipamentosApplicaveis: {
+      include: {
+        equipamento: {
+          select: equipamentoCompativelSelect,
+        },
+      },
+    },
+    _count: {
+      select: {
+        itensBase: true,
+        itensCampanha: true,
+      },
+    },
+  });
+
+const complexidadeHierarquia: Record<ComplexidadeMaldicao, number> = {
+  NENHUMA: 0,
+  SIMPLES: 1,
+  COMPLEXA: 2,
+};
+
+type EquipamentoCompativelEntity = Prisma.EquipamentoCatalogoGetPayload<{
+  select: typeof equipamentoCompativelSelect;
+}>;
+
+type EquipamentoRestricoesEntity = Prisma.EquipamentoCatalogoGetPayload<{
+  select: typeof equipamentoRestricoesSelect;
+}>;
+
+type ModificacaoBaseEntity =
+  Prisma.ModificacaoEquipamentoGetPayload<Prisma.ModificacaoEquipamentoDefaultArgs>;
+
+type ModificacaoMapEntity = ModificacaoBaseEntity & {
+  equipamentosApplicaveis?: Array<{ equipamento: EquipamentoCompativelEntity }>;
+  _count?: {
+    itensBase: number;
+    itensCampanha: number;
+  };
+};
+
+type ModificacaoComRestricoesEntity = Pick<
+  ModificacaoBaseEntity,
+  'codigo' | 'nome' | 'restricoes'
+>;
+
 @Injectable()
 export class ModificacoesService {
   constructor(private prisma: PrismaService) {}
+
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
+
+  private normalizarJsonParaPersistir(
+    value: unknown,
+  ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (value === null) {
+      return Prisma.JsonNull;
+    }
+
+    return value as Prisma.InputJsonValue;
+  }
+
+  private parseRestricoes(
+    value: Prisma.JsonValue | null,
+  ): RestricoesModificacao | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null;
+    }
+
+    return value as unknown as RestricoesModificacao;
+  }
+
+  private categoriaParaNumero(categoria: CategoriaEquipamento): number {
+    switch (categoria) {
+      case CategoriaEquipamento.CATEGORIA_0:
+        return 0;
+      case CategoriaEquipamento.CATEGORIA_1:
+        return 1;
+      case CategoriaEquipamento.CATEGORIA_2:
+        return 2;
+      case CategoriaEquipamento.CATEGORIA_3:
+        return 3;
+      case CategoriaEquipamento.CATEGORIA_4:
+        return 4;
+      case CategoriaEquipamento.ESPECIAL:
+        return 0;
+      default:
+        return 0;
+    }
+  }
 
   // ========================================
   // ✅ CRUD COMPLETO
@@ -93,8 +237,10 @@ export class ModificacoesService {
           descricao: createDto.descricao,
           tipo: createDto.tipo,
           incrementoEspacos: createDto.incrementoEspacos,
-          restricoes: createDto.restricoes as any,
-          efeitosMecanicos: createDto.efeitosMecanicos,
+          restricoes: this.normalizarJsonParaPersistir(createDto.restricoes),
+          efeitosMecanicos: this.normalizarJsonParaPersistir(
+            createDto.efeitosMecanicos,
+          ),
           fonte: createDto.fonte ?? TipoFonte.SISTEMA_BASE,
           suplementoId: createDto.suplementoId,
 
@@ -109,22 +255,12 @@ export class ModificacoesService {
             },
           }),
         },
-        include: {
-          equipamentosApplicaveis: {
-            include: {
-              equipamento: {
-                select: { id: true, codigo: true, nome: true, tipo: true },
-              },
-            },
-          },
-        },
+        include: modificacaoComEquipamentosInclude,
       });
 
       return this.mapDetalhado(modificacao);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -198,10 +334,12 @@ export class ModificacoesService {
             incrementoEspacos: updateDto.incrementoEspacos,
           }),
           ...(updateDto.restricoes !== undefined && {
-            restricoes: updateDto.restricoes as any,
+            restricoes: this.normalizarJsonParaPersistir(updateDto.restricoes),
           }),
           ...(updateDto.efeitosMecanicos !== undefined && {
-            efeitosMecanicos: updateDto.efeitosMecanicos,
+            efeitosMecanicos: this.normalizarJsonParaPersistir(
+              updateDto.efeitosMecanicos,
+            ),
           }),
           ...(updateDto.fonte && { fonte: updateDto.fonte }),
           ...(updateDto.suplementoId !== undefined && {
@@ -222,22 +360,12 @@ export class ModificacoesService {
             },
           }),
         },
-        include: {
-          equipamentosApplicaveis: {
-            include: {
-              equipamento: {
-                select: { id: true, codigo: true, nome: true, tipo: true },
-              },
-            },
-          },
-        },
+        include: modificacaoComEquipamentosInclude,
       });
 
       return this.mapDetalhado(modificacao);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -275,10 +403,8 @@ export class ModificacoesService {
       });
 
       return { message: 'Modificação removida com sucesso' };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -301,7 +427,7 @@ export class ModificacoesService {
         limite = 50,
       } = filtros;
 
-      const where: any = {};
+      const where: Prisma.ModificacaoEquipamentoWhereInput = {};
 
       if (tipo) where.tipo = tipo;
 
@@ -314,9 +440,9 @@ export class ModificacoesService {
 
       if (busca) {
         where.OR = [
-          { nome: { contains: busca, mode: 'insensitive' } },
-          { descricao: { contains: busca, mode: 'insensitive' } },
-          { codigo: { contains: busca, mode: 'insensitive' } },
+          { nome: { contains: busca } },
+          { descricao: { contains: busca } },
+          { codigo: { contains: busca } },
         ];
       }
 
@@ -327,18 +453,7 @@ export class ModificacoesService {
           skip: (pagina - 1) * limite,
           take: limite,
           orderBy: [{ tipo: 'asc' }, { nome: 'asc' }],
-          include: {
-            suplemento: {
-              select: { id: true, codigo: true, nome: true },
-            },
-            _count: {
-              select: {
-                equipamentosApplicaveis: true,
-                itensBase: true,
-                itensCampanha: true,
-              },
-            },
-          },
+          include: modificacaoDetalhadaInclude,
         }),
       ]);
 
@@ -353,10 +468,8 @@ export class ModificacoesService {
           totalPaginas: Math.ceil(total / limite),
         },
       };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -368,24 +481,7 @@ export class ModificacoesService {
     try {
       const modificacao = await this.prisma.modificacaoEquipamento.findUnique({
         where: { id },
-        include: {
-          suplemento: {
-            select: { id: true, codigo: true, nome: true },
-          },
-          equipamentosApplicaveis: {
-            include: {
-              equipamento: {
-                select: { id: true, codigo: true, nome: true, tipo: true },
-              },
-            },
-          },
-          _count: {
-            select: {
-              itensBase: true,
-              itensCampanha: true,
-            },
-          },
-        },
+        include: modificacaoDetalhadaInclude,
       });
 
       if (!modificacao) {
@@ -393,10 +489,8 @@ export class ModificacoesService {
       }
 
       return this.mapDetalhado(modificacao);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -408,6 +502,7 @@ export class ModificacoesService {
     try {
       const equipamento = await this.prisma.equipamentoCatalogo.findUnique({
         where: { id: equipamentoId },
+        select: equipamentoRestricoesSelect,
       });
 
       if (!equipamento) {
@@ -430,7 +525,7 @@ export class ModificacoesService {
       const compatíveis: ModificacaoDetalhadaDto[] = [];
 
       for (const mod of modificacoes) {
-        const validacao = this.validarRestricoes(equipamento as any, mod);
+        const validacao = this.validarRestricoes(equipamento, mod);
 
         if (validacao.valido) {
           compatíveis.push(this.mapDetalhado(mod));
@@ -438,10 +533,8 @@ export class ModificacoesService {
       }
 
       return compatíveis;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -454,11 +547,11 @@ export class ModificacoesService {
    * Valida se uma modificação pode ser aplicada a um equipamento
    */
   validarRestricoes(
-    equipamento: any,
-    modificacao: any,
+    equipamento: EquipamentoRestricoesEntity,
+    modificacao: ModificacaoComRestricoesEntity,
   ): ResultadoValidacaoRestricoes {
     const erros: string[] = [];
-    const restricoes = modificacao.restricoes as RestricoesModificacao;
+    const restricoes = this.parseRestricoes(modificacao.restricoes);
 
     if (!restricoes) {
       return { valido: true, erros: [] };
@@ -476,7 +569,7 @@ export class ModificacoesService {
     // ✅ 2. Validar exclusão de escudos
     if (
       restricoes.excluiEscudos &&
-      equipamento.proficienciaProtecao === 'ESCUDO'
+      equipamento.proficienciaProtecao === ProficienciaProtecao.ESCUDO
     ) {
       erros.push('Modificação não aplicável a escudos');
     }
@@ -517,14 +610,8 @@ export class ModificacoesService {
 
     // ✅ 7. Validar complexidade mínima
     if (restricoes.complexidadeMinima) {
-      const hierarquia = {
-        NENHUMA: 0,
-        SIMPLES: 1,
-        COMPLEXA: 2,
-      };
-      const minima = hierarquia[restricoes.complexidadeMinima] || 0;
-      const atual =
-        hierarquia[equipamento.complexidadeMaldicao || 'NENHUMA'] || 0;
+      const minima = complexidadeHierarquia[restricoes.complexidadeMinima];
+      const atual = complexidadeHierarquia[equipamento.complexidadeMaldicao];
 
       if (atual < minima) {
         erros.push(
@@ -535,14 +622,20 @@ export class ModificacoesService {
 
     // ✅ 8. Validar categoria mínima
     if (restricoes.categoriaMinima !== undefined) {
-      if (equipamento.categoria > restricoes.categoriaMinima) {
+      const categoriaEquipamento = this.categoriaParaNumero(
+        equipamento.categoria,
+      );
+      if (categoriaEquipamento > restricoes.categoriaMinima) {
         erros.push(`Requer categoria mínima: ${restricoes.categoriaMinima}`);
       }
     }
 
     // ✅ 9. Validar categoria máxima
     if (restricoes.categoriaMaxima !== undefined) {
-      if (equipamento.categoria < restricoes.categoriaMaxima) {
+      const categoriaEquipamento = this.categoriaParaNumero(
+        equipamento.categoria,
+      );
+      if (categoriaEquipamento < restricoes.categoriaMaxima) {
         erros.push(`Requer categoria máxima: ${restricoes.categoriaMaxima}`);
       }
     }
@@ -577,11 +670,11 @@ export class ModificacoesService {
    * Valida conflitos entre modificações em um item
    */
   validarConflitosModificacoes(
-    modificacaoNova: any,
-    modificacoesExistentes: any[],
+    modificacaoNova: ModificacaoComRestricoesEntity,
+    modificacoesExistentes: ModificacaoComRestricoesEntity[],
   ): ResultadoValidacaoRestricoes {
     const erros: string[] = [];
-    const restricoes = modificacaoNova.restricoes as RestricoesModificacao;
+    const restricoes = this.parseRestricoes(modificacaoNova.restricoes);
 
     if (!restricoes) {
       return { valido: true, erros: [] };
@@ -640,7 +733,11 @@ export class ModificacoesService {
   /**
    * Mapeia para DTO
    */
-  private mapDetalhado(modificacao: any): ModificacaoDetalhadaDto {
+  private mapDetalhado(
+    modificacao: ModificacaoMapEntity,
+  ): ModificacaoDetalhadaDto {
+    const restricoes = this.parseRestricoes(modificacao.restricoes);
+
     return {
       id: modificacao.id,
       codigo: modificacao.codigo,
@@ -648,7 +745,7 @@ export class ModificacoesService {
       descricao: modificacao.descricao,
       tipo: modificacao.tipo,
       incrementoEspacos: modificacao.incrementoEspacos,
-      restricoes: modificacao.restricoes as RestricoesModificacao,
+      restricoes,
       efeitosMecanicos: modificacao.efeitosMecanicos,
       fonte: modificacao.fonte,
       suplementoId: modificacao.suplementoId,
@@ -656,7 +753,7 @@ export class ModificacoesService {
       // ✅ Opcional: equipamentos compatíveis
       ...(modificacao.equipamentosApplicaveis && {
         equipamentosCompatíveis: modificacao.equipamentosApplicaveis.map(
-          (ea: any) => ({
+          (ea) => ({
             id: ea.equipamento.id,
             codigo: ea.equipamento.codigo,
             nome: ea.equipamento.nome,

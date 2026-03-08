@@ -1,6 +1,7 @@
 // src/proficiencias/proficiencias.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProficienciaDto } from './dto/create-proficiencia.dto';
 import { UpdateProficienciaDto } from './dto/update-proficiencia.dto';
@@ -18,6 +19,15 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 export class ProficienciasService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
+
   async create(dto: CreateProficienciaDto) {
     try {
       // ✅ OPCIONAL: Validar nome único (se necessário)
@@ -29,10 +39,8 @@ export class ProficienciasService {
       // }
 
       return this.prisma.proficiencia.create({ data: dto });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -42,10 +50,8 @@ export class ProficienciasService {
       return this.prisma.proficiencia.findMany({
         orderBy: { nome: 'asc' },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -59,10 +65,8 @@ export class ProficienciasService {
       }
 
       return prof;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -88,10 +92,8 @@ export class ProficienciasService {
         where: { id },
         data: dto,
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -109,10 +111,8 @@ export class ProficienciasService {
       await this.prisma.proficiencia.delete({ where: { id } });
 
       return { sucesso: true };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }

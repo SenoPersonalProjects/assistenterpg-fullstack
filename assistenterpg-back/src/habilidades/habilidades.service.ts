@@ -21,6 +21,14 @@ import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemen
 export class HabilidadesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toNullableInputJson(
+    value: unknown,
+  ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return Prisma.JsonNull;
+    return value as Prisma.InputJsonValue;
+  }
+
   private async validarFonteSuplemento(
     fonte: TipoFonte,
     suplementoId: number | null,
@@ -110,8 +118,10 @@ export class HabilidadesService {
         descricao: createDto.descricao,
         tipo: createDto.tipo,
         origem: createDto.origem,
-        requisitos: createDto.requisitos,
-        mecanicasEspeciais: createDto.mecanicasEspeciais,
+        requisitos: this.toNullableInputJson(createDto.requisitos),
+        mecanicasEspeciais: this.toNullableInputJson(
+          createDto.mecanicasEspeciais,
+        ),
         fonte: fonteFinal,
         suplementoId: suplementoIdFinal,
 
@@ -121,7 +131,9 @@ export class HabilidadesService {
             create: createDto.efeitosGrau.map((efeito) => ({
               tipoGrauCodigo: efeito.tipoGrauCodigo,
               valor: efeito.valor ?? 1,
-              escalonamentoPorNivel: efeito.escalonamentoPorNivel,
+              escalonamentoPorNivel: this.toNullableInputJson(
+                efeito.escalonamentoPorNivel,
+              ),
             })),
           },
         }),
@@ -311,10 +323,12 @@ export class HabilidadesService {
         ...(updateDto.tipo && { tipo: updateDto.tipo }),
         ...(updateDto.origem !== undefined && { origem: updateDto.origem }),
         ...(updateDto.requisitos !== undefined && {
-          requisitos: updateDto.requisitos,
+          requisitos: this.toNullableInputJson(updateDto.requisitos),
         }),
         ...(updateDto.mecanicasEspeciais !== undefined && {
-          mecanicasEspeciais: updateDto.mecanicasEspeciais,
+          mecanicasEspeciais: this.toNullableInputJson(
+            updateDto.mecanicasEspeciais,
+          ),
         }),
         ...(fonteFinal !== habilidadeAtual.fonte && { fonte: fonteFinal }),
         ...(updateDto.suplementoId !== undefined && {
@@ -329,7 +343,9 @@ export class HabilidadesService {
               create: updateDto.efeitosGrau.map((efeito) => ({
                 tipoGrauCodigo: efeito.tipoGrauCodigo,
                 valor: efeito.valor ?? 1,
-                escalonamentoPorNivel: efeito.escalonamentoPorNivel,
+                escalonamentoPorNivel: this.toNullableInputJson(
+                  efeito.escalonamentoPorNivel,
+                ),
               })),
             }),
           },

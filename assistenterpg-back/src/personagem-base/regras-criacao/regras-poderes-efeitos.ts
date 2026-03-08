@@ -14,7 +14,7 @@ type PrismaLike = Pick<PrismaService, 'habilidade' | 'proficiencia'>;
 
 type PoderGenericoInstanciaInput = {
   habilidadeId: number;
-  config?: any;
+  config?: unknown;
 };
 
 type PericiaState = {
@@ -52,11 +52,46 @@ function getEscolhaPericias(
 ): EscolhaPericias | null {
   if (!isJsonObject(mec)) return null;
 
-  const escolha = (mec as any).escolha as unknown;
+  const escolha = mec.escolha;
   if (!isJsonObject(escolha)) return null;
 
-  if ((escolha as any).tipo !== 'PERICIAS') return null;
-  return escolha as EscolhaPericias;
+  if (escolha.tipo !== 'PERICIAS') return null;
+  return {
+    tipo: 'PERICIAS',
+    quantidade:
+      typeof escolha.quantidade === 'number' ? escolha.quantidade : undefined,
+  };
+}
+
+function getStringArrayFromConfig(
+  config: unknown,
+  field: string,
+): string[] | null {
+  if (!isJsonObject(config)) return null;
+
+  const value = config[field];
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== 'string')
+  ) {
+    return null;
+  }
+
+  return value as string[];
+}
+
+function hasEscolhaTipoGrau(mec: Prisma.JsonValue | null): boolean {
+  if (!isJsonObject(mec)) return false;
+  const escolha = mec.escolha;
+  return isJsonObject(escolha) && escolha.tipo === 'TIPO_GRAU';
+}
+
+function getTipoGrauCodigo(config: unknown): string | null {
+  if (!isJsonObject(config)) return null;
+
+  const codigo = config.tipoGrauCodigo;
+  if (typeof codigo !== 'string' || !codigo.trim()) return null;
+  return codigo;
 }
 
 export async function aplicarEfeitosPoderesEmPericias(
@@ -95,9 +130,9 @@ export async function aplicarEfeitosPoderesEmPericias(
 
     const qtd =
       typeof escolhaMec.quantidade === 'number' ? escolhaMec.quantidade : 2;
-    const codigos: unknown = inst.config?.periciasCodigos ?? [];
+    const codigos = getStringArrayFromConfig(inst.config, 'periciasCodigos');
 
-    if (!Array.isArray(codigos) || codigos.some((c) => typeof c !== 'string')) {
+    if (!codigos) {
       throw new PoderGenericoConfigInvalidaException(
         poderDb.nome,
         'periciasCodigos',
@@ -180,13 +215,10 @@ export async function aplicarEfeitosPoderesEmGraus(
     const poderDb = poderPorId.get(inst.habilidadeId);
     if (!poderDb) continue;
 
-    const mec = poderDb.mecanicasEspeciais as any;
-    const escolha = mec?.escolha;
+    if (!hasEscolhaTipoGrau(poderDb.mecanicasEspeciais)) continue;
 
-    if (!escolha || escolha.tipo !== 'TIPO_GRAU') continue;
-
-    const codigo: unknown = inst.config?.tipoGrauCodigo;
-    if (typeof codigo !== 'string' || !codigo.trim()) {
+    const codigo = getTipoGrauCodigo(inst.config);
+    if (!codigo) {
       throw new PoderGenericoConfigInvalidaException(
         poderDb.nome,
         'tipoGrauCodigo',
@@ -209,7 +241,7 @@ export async function aplicarEfeitosPoderesEmGraus(
  */
 export async function extrairProficienciasDeHabilidades(
   habilidades: Array<{
-    habilidade: { mecanicasEspeciais?: any; nome?: string };
+    habilidade: { mecanicasEspeciais?: Prisma.JsonValue | null; nome?: string };
   }>,
   prisma: PrismaLike,
 ): Promise<string[]> {
@@ -217,7 +249,7 @@ export async function extrairProficienciasDeHabilidades(
 
   for (const hab of habilidades) {
     const mecanicas = hab.habilidade.mecanicasEspeciais;
-    if (!mecanicas || typeof mecanicas !== 'object') continue;
+    if (!isJsonObject(mecanicas)) continue;
 
     // ✅ Campo: mecanicasEspeciais.proficiencias (array)
     const profsArray = mecanicas.proficiencias;
@@ -308,21 +340,18 @@ export async function aplicarEfeitosPoderesEmProficiencias(
  */
 export function extrairResistenciasDeHabilidades(
   habilidades: Array<{
-    habilidade: { mecanicasEspeciais?: any; nome?: string };
+    habilidade: { mecanicasEspeciais?: Prisma.JsonValue | null; nome?: string };
   }>,
 ): Map<string, number> {
   const resistencias = new Map<string, number>();
 
   for (const hab of habilidades) {
     const mecanicas = hab.habilidade.mecanicasEspeciais;
-    if (!mecanicas || typeof mecanicas !== 'object') continue;
+    if (!isJsonObject(mecanicas)) continue;
 
     // ✅ Campo: mecanicasEspeciais.resistencias (objeto)
     const resistenciasObj = mecanicas.resistencias;
-    if (!resistenciasObj || typeof resistenciasObj !== 'object') continue;
-
-    // ✅ Evitar processar arrays (apenas objetos)
-    if (Array.isArray(resistenciasObj)) continue;
+    if (!isJsonObject(resistenciasObj)) continue;
 
     // ✅ Formato esperado: { "BALISTICO": 2, "ENERGIA_AMALDICOADA": 5, "DANO": 1 }
     for (const [codigo, valor] of Object.entries(resistenciasObj)) {

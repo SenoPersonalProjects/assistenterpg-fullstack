@@ -10,6 +10,37 @@ import {
 import { Request, Response } from 'express';
 import { BaseException } from '../exceptions/base.exception';
 
+type ErrorResponseBody = {
+  statusCode: number;
+  timestamp: string;
+  path: string;
+  method: string;
+  code?: string;
+  message?: string | string[];
+  details?: unknown;
+  field?: string;
+  stack?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function toStringValue(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function toStringOrStringArray(value: unknown): string | string[] | undefined {
+  if (typeof value === 'string') return value;
+  if (
+    Array.isArray(value) &&
+    value.every((entry) => typeof entry === 'string')
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
 /**
  * Filtro global para HttpException
  */
@@ -23,10 +54,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const status = exception.getStatus();
 
-    const exceptionResponse: any = exception.getResponse();
+    const exceptionResponse = exception.getResponse();
 
     // Estrutura de resposta de erro
-    const errorResponse: any = {
+    const errorResponse: ErrorResponseBody = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
@@ -36,7 +67,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // Se for BaseException (nossas exceções customizadas)
     if (exception instanceof BaseException) {
       errorResponse.code = exception.code;
-      errorResponse.message = exceptionResponse.message || exception.message;
+      const mensagem = isRecord(exceptionResponse)
+        ? toStringOrStringArray(exceptionResponse.message)
+        : undefined;
+      errorResponse.message = mensagem ?? exception.message;
       errorResponse.details = exception.details;
       errorResponse.field = exception.field;
 
@@ -46,13 +80,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else {
       // HttpException padrão do NestJS
-      errorResponse.code = 'HTTP_EXCEPTION';
+      errorResponse.code =
+        isRecord(exceptionResponse) && toStringValue(exceptionResponse.code)
+          ? toStringValue(exceptionResponse.code)
+          : 'HTTP_EXCEPTION';
       errorResponse.message =
         typeof exceptionResponse === 'string'
           ? exceptionResponse
-          : exceptionResponse.message || 'Erro no servidor';
+          : isRecord(exceptionResponse)
+            ? (toStringOrStringArray(exceptionResponse.message) ??
+              'Erro no servidor')
+            : 'Erro no servidor';
 
-      if (typeof exceptionResponse === 'object') {
+      if (isRecord(exceptionResponse)) {
         errorResponse.details = exceptionResponse;
       }
     }

@@ -1,5 +1,3 @@
-// src/homebrews/homebrews.controller.ts
-
 import {
   Controller,
   Get,
@@ -14,98 +12,89 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Request as ExpressRequest } from 'express';
+import { RoleUsuario } from '@prisma/client';
 import { HomebrewsService } from './homebrews.service';
 import { CreateHomebrewDto } from './dto/create-homebrew.dto';
 import { UpdateHomebrewDto } from './dto/update-homebrew.dto';
 import { FiltrarHomebrewsDto } from './dto/filtrar-homebrews.dto';
-import { RoleUsuario } from '@prisma/client'; // Adicionar no topo
+
+type UsuarioAutenticado = {
+  id: number;
+  role: RoleUsuario;
+};
+
+type AuthenticatedRequest = ExpressRequest & {
+  user: UsuarioAutenticado;
+};
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('homebrews')
 export class HomebrewsController {
   constructor(private readonly homebrewsService: HomebrewsService) {}
 
-  // ========================================
-  // ✅ ROTAS ESPECÍFICAS (antes do CRUD genérico)
-  // ========================================
+  private getUserContext(req: AuthenticatedRequest): {
+    usuarioId: number;
+    isAdmin: boolean;
+  } {
+    return {
+      usuarioId: req.user.id,
+      isAdmin: req.user.role === RoleUsuario.ADMIN,
+    };
+  }
 
-  /**
-   * GET /homebrews/meus
-   * Listar homebrews do usuário autenticado
-   */
   @Get('meus')
-  meus(@Request() req: any, @Query() filtros: FiltrarHomebrewsDto) {
-    const usuarioId = req.user.id;
+  meus(
+    @Request() req: AuthenticatedRequest,
+    @Query() filtros: FiltrarHomebrewsDto,
+  ) {
+    const { usuarioId } = this.getUserContext(req);
     return this.homebrewsService.meus(usuarioId, filtros);
   }
 
-  /**
-   * GET /homebrews/codigo/:codigo
-   * Buscar homebrew por código
-   */
   @Get('codigo/:codigo')
-  buscarPorCodigo(@Param('codigo') codigo: string, @Request() req: any) {
-    const usuarioId = req.user?.id;
-    const isAdmin = req.user?.role === RoleUsuario.ADMIN;
+  buscarPorCodigo(
+    @Param('codigo') codigo: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.buscarPorCodigo(codigo, usuarioId, isAdmin);
   }
 
-  // ========================================
-  // ✅ CRUD COMPLETO
-  // ========================================
-
-  /**
-   * GET /homebrews
-   * Listar homebrews com filtros
-   * Query params:
-   * - nome: string
-   * - tipo: TipoHomebrewConteudo
-   * - status: StatusPublicacao
-   * - usuarioId: number
-   * - apenasPublicados: boolean
-   * - pagina: number (default: 1)
-   * - limite: number (default: 20)
-   */
   @Get()
-  listar(@Query() filtros: FiltrarHomebrewsDto, @Request() req: any) {
-    const usuarioId = req.user?.id;
-    const isAdmin = req.user?.role === RoleUsuario.ADMIN;
+  listar(
+    @Query() filtros: FiltrarHomebrewsDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.listar(filtros, usuarioId, isAdmin);
   }
 
-  /**
-   * GET /homebrews/:id
-   * Buscar homebrew por ID
-   */
   @Get(':id')
-  buscarPorId(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-    const usuarioId = req.user?.id;
-    const isAdmin = req.user?.role === RoleUsuario.ADMIN;
+  buscarPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.buscarPorId(id, usuarioId, isAdmin);
   }
 
-  /**
-   * POST /homebrews
-   * Criar novo homebrew
-   */
   @Post()
-  criar(@Body() createHomebrewDto: CreateHomebrewDto, @Request() req: any) {
-    const usuarioId = req.user.id;
+  criar(
+    @Body() createHomebrewDto: CreateHomebrewDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId } = this.getUserContext(req);
     return this.homebrewsService.criar(createHomebrewDto, usuarioId);
   }
 
-  /**
-   * PATCH /homebrews/:id
-   * Atualizar homebrew
-   */
   @Patch(':id')
   atualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateHomebrewDto: UpdateHomebrewDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
-    const usuarioId = req.user.id;
-    const isAdmin = req.user?.role === RoleUsuario.ADMIN;
+    const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.atualizar(
       id,
       updateHomebrewDto,
@@ -114,36 +103,30 @@ export class HomebrewsController {
     );
   }
 
-  /**
-   * DELETE /homebrews/:id
-   * Deletar homebrew
-   */
   @Delete(':id')
-  deletar(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-    const usuarioId = req.user.id;
-    const isAdmin = req.user?.role === RoleUsuario.ADMIN;
+  deletar(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.deletar(id, usuarioId, isAdmin);
   }
 
-  /**
-   * PATCH /homebrews/:id/publicar
-   * Publicar homebrew (mudar status para PUBLICADO)
-   */
   @Patch(':id/publicar')
-  publicar(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-    const usuarioId = req.user.id;
-    const isAdmin = req.user?.role === RoleUsuario.ADMIN;
+  publicar(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.publicar(id, usuarioId, isAdmin);
   }
 
-  /**
-   * PATCH /homebrews/:id/arquivar
-   * Arquivar homebrew (mudar status para ARQUIVADO)
-   */
   @Patch(':id/arquivar')
-  arquivar(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
-    const usuarioId = req.user.id;
-    const isAdmin = req.user?.role === RoleUsuario.ADMIN;
+  arquivar(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.arquivar(id, usuarioId, isAdmin);
   }
 }

@@ -11,6 +11,56 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { handlePrismaError } from '../exceptions/database.exception';
 
+type DbErrorPayload = {
+  code?: string;
+  message: string;
+  details?: unknown;
+  stack?: string;
+};
+
+type InternalErrorResponse = {
+  statusCode: number;
+  timestamp: string;
+  path: string;
+  method: string;
+  code: string;
+  message: string;
+  details?: unknown;
+  stack?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseDbError(error: unknown): DbErrorPayload {
+  if (error instanceof Error) {
+    const code =
+      isRecord(error) && typeof error.code === 'string'
+        ? error.code
+        : undefined;
+    const details = isRecord(error) ? error.details : undefined;
+    return {
+      code,
+      message: error.message,
+      details,
+      stack: error.stack,
+    };
+  }
+
+  if (isRecord(error)) {
+    const code = typeof error.code === 'string' ? error.code : undefined;
+    const message =
+      typeof error.message === 'string'
+        ? error.message
+        : 'Erro de banco de dados';
+    const details = error.details;
+    return { code, message, details };
+  }
+
+  return { message: 'Erro de banco de dados' };
+}
+
 /**
  * Filtro global para exceções não-HTTP (fallback)
  */
@@ -30,17 +80,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
     ) {
       try {
         handlePrismaError(exception);
-      } catch (dbError: any) {
-        this.logger.error(`Database Error: ${dbError.message}`, dbError.stack);
+      } catch (dbError: unknown) {
+        const erro = parseDbError(dbError);
+        this.logger.error(`Database Error: ${erro.message}`, erro.stack ?? '');
 
         return response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
           statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
           timestamp: new Date().toISOString(),
           path: request.url,
           method: request.method,
-          code: dbError.code || 'DB_ERROR',
-          message: dbError.message,
-          details: dbError.details,
+          code: erro.code ?? 'DB_ERROR',
+          message: erro.message,
+          details: erro.details,
         });
       }
     }
@@ -51,7 +102,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.message
         : 'Erro interno no servidor';
 
-    const errorResponse = {
+    const errorResponse: InternalErrorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
@@ -61,7 +112,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     if (process.env.NODE_ENV === 'development' && exception instanceof Error) {
-      (errorResponse as any).stack = exception.stack;
+      errorResponse.stack = exception.stack;
     }
 
     this.logger.error(

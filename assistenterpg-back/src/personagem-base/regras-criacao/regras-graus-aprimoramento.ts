@@ -39,7 +39,7 @@ export interface MecanicasEspeciaisHabilidade {
   };
   escolha?: {
     tipo: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   acoes?: Record<string, string>;
   itens?: Record<string, number>;
@@ -93,7 +93,7 @@ export function calcularGrausLivresExtras(
  * (Ex.: Treinamento Específico escolhe um tipo de grau via config)
  */
 export function calcularBonusGrausDePoderesGenericos(
-  poderes: Array<{ habilidadeId: number; config: any }>,
+  poderes: Array<{ habilidadeId: number; config?: unknown }>,
   habilidades: HabilidadePersonagem[],
 ): Map<string, number> {
   const bonusMap = new Map<string, number>();
@@ -109,7 +109,12 @@ export function calcularBonusGrausDePoderesGenericos(
     const mec = hab.mecanicasEspeciais;
     if (mec?.escolha?.tipo !== 'TIPO_GRAU') continue;
 
-    const codigo = inst.config?.tipoGrauCodigo;
+    const codigo =
+      typeof inst.config === 'object' &&
+      inst.config !== null &&
+      !Array.isArray(inst.config)
+        ? (inst.config as Record<string, unknown>).tipoGrauCodigo
+        : undefined;
     if (typeof codigo !== 'string') continue;
 
     const atual = bonusMap.get(codigo) ?? 0;
@@ -123,7 +128,7 @@ export function aplicarRegrasDeGraus(
   params: {
     nivel: number;
     habilidades: HabilidadePersonagem[];
-    poderes?: Array<{ habilidadeId: number; config: any }>; // ✅ NOVO
+    poderes?: Array<{ habilidadeId: number; config?: unknown }>; // ✅ NOVO
     passivasAtributosConfig?: PassivasAtributoConfigDto | null;
   },
   grausLivres: GrauLivre[],

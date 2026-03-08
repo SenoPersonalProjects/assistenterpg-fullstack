@@ -84,8 +84,14 @@ function isMecanicasEspeciaisPoder(
 // ============================================================================
 export type PoderGenericoInstanciaInput = {
   habilidadeId: number;
-  config?: any; // Json
+  config?: unknown; // Json
 };
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+  );
+}
 
 /**
  * ✅ Calcula quantos slots de poderes genéricos o personagem tem disponível
@@ -294,13 +300,16 @@ export async function validarPoderesGenericos(
 
 async function validarConfigPericias(
   poderNome: string,
-  config: any,
+  config: unknown,
   quantidade: number,
   prisma: PrismaLike,
 ): Promise<void> {
-  const codigos = config?.periciasCodigos;
+  const codigos =
+    typeof config === 'object' && config !== null && !Array.isArray(config)
+      ? (config as Record<string, unknown>).periciasCodigos
+      : undefined;
 
-  if (!Array.isArray(codigos) || codigos.some((c) => typeof c !== 'string')) {
+  if (!isStringArray(codigos)) {
     throw new PoderGenericoConfigInvalidaException(
       poderNome,
       'periciasCodigos',

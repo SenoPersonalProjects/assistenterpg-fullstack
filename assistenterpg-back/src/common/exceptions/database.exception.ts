@@ -8,15 +8,28 @@ import { Prisma } from '@prisma/client';
  * Exceção de banco de dados
  */
 export class DatabaseException extends BaseException {
-  constructor(message: string, code: string, details?: any) {
+  constructor(message: string, code: string, details?: unknown) {
     super(message, HttpStatus.INTERNAL_SERVER_ERROR, code, details);
   }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as { message?: unknown }).message === 'string'
+  ) {
+    return (error as { message: string }).message;
+  }
+  return 'Erro desconhecido';
 }
 
 /**
  * Converter erros do Prisma em exceções customizadas
  */
-export function handlePrismaError(error: any): never {
+export function handlePrismaError(error: unknown): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     switch (error.code) {
       case 'P2002': {
@@ -74,6 +87,6 @@ export function handlePrismaError(error: any): never {
   throw new DatabaseException(
     'Erro interno no banco de dados',
     'DB_INTERNAL_ERROR',
-    { message: error.message },
+    { message: getErrorMessage(error) },
   );
 }

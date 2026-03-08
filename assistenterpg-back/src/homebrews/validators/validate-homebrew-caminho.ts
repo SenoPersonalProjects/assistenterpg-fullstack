@@ -5,9 +5,15 @@ import { ValidationException } from '../../common/exceptions/validation.exceptio
 /**
  * Validações customizadas para Caminho
  */
-export function validateHomebrewCaminhoCustom(dados: any): void {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function validateHomebrewCaminhoCustom(dados: unknown): void {
+  const habilidades = isRecord(dados) ? dados.habilidades : undefined;
+
   // ✅ Validar que tem pelo menos 1 habilidade
-  if (!dados.habilidades || dados.habilidades.length === 0) {
+  if (!Array.isArray(habilidades) || habilidades.length === 0) {
     throw new ValidationException(
       'Caminho deve ter pelo menos 1 habilidade',
       'habilidades',

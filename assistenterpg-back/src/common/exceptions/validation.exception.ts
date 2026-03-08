@@ -10,7 +10,7 @@ export class ValidationException extends BaseException {
   constructor(
     message: string,
     field?: string,
-    details?: any,
+    details?: unknown,
     code: string = 'VALIDATION_ERROR',
   ) {
     super(message, HttpStatus.BAD_REQUEST, code, details, field);
@@ -55,7 +55,7 @@ export class ValorForaDoIntervaloException extends ValidationException {
 }
 
 export class ValoresUnicosException extends ValidationException {
-  constructor(field: string, valorDuplicado: any) {
+  constructor(field: string, valorDuplicado: unknown) {
     super(
       `O campo "${field}" contém valores duplicados`,
       field,

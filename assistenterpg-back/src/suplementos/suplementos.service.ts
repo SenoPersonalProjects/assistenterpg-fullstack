@@ -1,37 +1,51 @@
-// src/suplementos/suplementos.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
-
 import { Injectable } from '@nestjs/common';
+import {
+  Prisma,
+  StatusPublicacao,
+  Suplemento,
+  UsuarioSuplemento,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { StatusPublicacao, Prisma } from '@prisma/client';
 
 import { CreateSuplementoDto } from './dto/create-suplemento.dto';
 import { UpdateSuplementoDto } from './dto/update-suplemento.dto';
 import { FiltrarSuplementosDto } from './dto/filtrar-suplementos.dto';
 import { SuplementoCatalogoDto } from './dto/suplemento-catalogo.dto';
-
-// ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
-  SuplementoNaoEncontradoException,
   SuplementoCodigoDuplicadoException,
   SuplementoComConteudoVinculadoException,
-  SuplementoNaoPublicadoException,
   SuplementoJaAtivoException,
   SuplementoNaoAtivoException,
+  SuplementoNaoEncontradoException,
+  SuplementoNaoPublicadoException,
 } from 'src/common/exceptions/suplemento.exception';
-
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
+
+type SuplementoMapeavel = Suplemento & {
+  usuariosAtivos?: UsuarioSuplemento[];
+};
 
 @Injectable()
 export class SuplementosService {
   constructor(private prisma: PrismaService) {}
 
-  // ==========================================
-  // 📚 CRUD ADMIN - SUPLEMENTOS
-  // ==========================================
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
 
-  /**
-   * Listar todos os suplementos (com filtros opcionais)
-   */
+  private mapearTags(tags: Prisma.JsonValue | null): string[] {
+    if (!Array.isArray(tags)) {
+      return [];
+    }
+
+    return tags.filter((tag): tag is string => typeof tag === 'string');
+  }
+
   async findAll(
     filtros: FiltrarSuplementosDto,
     usuarioId?: number,
@@ -55,104 +69,116 @@ export class SuplementosService {
         where.autor = { contains: filtros.autor };
       }
 
-      // Se usuário quer apenas seus suplementos ativos
       if (filtros.apenasAtivos && usuarioId) {
         where.usuariosAtivos = {
           some: { usuarioId },
         };
       }
 
+      if (usuarioId) {
+        const suplementos = await this.prisma.suplemento.findMany({
+          where,
+          include: {
+            usuariosAtivos: {
+              where: { usuarioId },
+            },
+          },
+          orderBy: { nome: 'asc' },
+        });
+
+        return suplementos.map((suplemento) =>
+          this.mapToDto(suplemento, usuarioId),
+        );
+      }
+
       const suplementos = await this.prisma.suplemento.findMany({
         where,
-        include: {
-          usuariosAtivos: usuarioId
-            ? {
-                where: { usuarioId },
-              }
-            : false,
-        },
         orderBy: { nome: 'asc' },
       });
 
-      return suplementos.map((s) => this.mapToDto(s, usuarioId));
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+      return suplementos.map((suplemento) => this.mapToDto(suplemento));
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Buscar suplemento por ID
-   */
   async findOne(
     id: number,
     usuarioId?: number,
   ): Promise<SuplementoCatalogoDto> {
     try {
+      if (usuarioId) {
+        const suplemento = await this.prisma.suplemento.findUnique({
+          where: { id },
+          include: {
+            usuariosAtivos: {
+              where: { usuarioId },
+            },
+          },
+        });
+
+        if (!suplemento) {
+          throw new SuplementoNaoEncontradoException(id);
+        }
+
+        return this.mapToDto(suplemento, usuarioId);
+      }
+
       const suplemento = await this.prisma.suplemento.findUnique({
         where: { id },
-        include: {
-          usuariosAtivos: usuarioId
-            ? {
-                where: { usuarioId },
-              }
-            : false,
-        },
       });
 
       if (!suplemento) {
         throw new SuplementoNaoEncontradoException(id);
       }
 
-      return this.mapToDto(suplemento, usuarioId);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+      return this.mapToDto(suplemento);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Buscar suplemento por código
-   */
   async findByCodigo(
     codigo: string,
     usuarioId?: number,
   ): Promise<SuplementoCatalogoDto> {
     try {
+      if (usuarioId) {
+        const suplemento = await this.prisma.suplemento.findUnique({
+          where: { codigo },
+          include: {
+            usuariosAtivos: {
+              where: { usuarioId },
+            },
+          },
+        });
+
+        if (!suplemento) {
+          throw new SuplementoNaoEncontradoException(codigo);
+        }
+
+        return this.mapToDto(suplemento, usuarioId);
+      }
+
       const suplemento = await this.prisma.suplemento.findUnique({
         where: { codigo },
-        include: {
-          usuariosAtivos: usuarioId
-            ? {
-                where: { usuarioId },
-              }
-            : false,
-        },
       });
 
       if (!suplemento) {
         throw new SuplementoNaoEncontradoException(codigo);
       }
 
-      return this.mapToDto(suplemento, usuarioId);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+      return this.mapToDto(suplemento);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Criar novo suplemento (ADMIN)
-   */
   async create(dto: CreateSuplementoDto): Promise<SuplementoCatalogoDto> {
     try {
-      // Verificar se código já existe
       const existe = await this.prisma.suplemento.findUnique({
         where: { codigo: dto.codigo },
       });
@@ -170,24 +196,18 @@ export class SuplementosService {
           status: dto.status ?? StatusPublicacao.RASCUNHO,
           icone: dto.icone ?? null,
           banner: dto.banner ?? null,
-          // ✅ CORRIGIDO: Usar tipo correto do Prisma para JSON
           tags: dto.tags ? dto.tags : Prisma.JsonNull,
           autor: dto.autor ?? null,
         },
       });
 
       return this.mapToDto(suplemento);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Atualizar suplemento (ADMIN)
-   */
   async update(
     id: number,
     dto: UpdateSuplementoDto,
@@ -210,7 +230,6 @@ export class SuplementosService {
           status: dto.status,
           icone: dto.icone,
           banner: dto.banner,
-          // ✅ CORRIGIDO: Usar tipo correto do Prisma para JSON
           tags:
             dto.tags !== undefined
               ? dto.tags
@@ -222,17 +241,12 @@ export class SuplementosService {
       });
 
       return this.mapToDto(atualizado);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Deletar suplemento (ADMIN)
-   */
   async remove(id: number): Promise<void> {
     try {
       const suplemento = await this.prisma.suplemento.findUnique({
@@ -258,7 +272,6 @@ export class SuplementosService {
         throw new SuplementoNaoEncontradoException(id);
       }
 
-      // Verificar se tem conteúdo vinculado
       const detalhesConteudo = {
         cla: suplemento._count.cla,
         classes: suplemento._count.classes,
@@ -285,21 +298,12 @@ export class SuplementosService {
       }
 
       await this.prisma.suplemento.delete({ where: { id } });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  // ==========================================
-  // 👤 ATIVAÇÃO/DESATIVAÇÃO DE SUPLEMENTOS
-  // ==========================================
-
-  /**
-   * Listar suplementos ativos do usuário
-   */
   async findSuplementosAtivos(
     usuarioId: number,
   ): Promise<SuplementoCatalogoDto[]> {
@@ -309,7 +313,7 @@ export class SuplementosService {
           usuariosAtivos: {
             some: { usuarioId },
           },
-          status: StatusPublicacao.PUBLICADO, // Apenas publicados
+          status: StatusPublicacao.PUBLICADO,
         },
         include: {
           usuariosAtivos: {
@@ -319,24 +323,20 @@ export class SuplementosService {
         orderBy: { nome: 'asc' },
       });
 
-      return suplementos.map((s) => this.mapToDto(s, usuarioId));
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+      return suplementos.map((suplemento) =>
+        this.mapToDto(suplemento, usuarioId),
+      );
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Ativar suplemento para usuário
-   */
   async ativarSuplemento(
     usuarioId: number,
     suplementoId: number,
   ): Promise<void> {
     try {
-      // Verificar se suplemento existe e está publicado
       const suplemento = await this.prisma.suplemento.findUnique({
         where: { id: suplementoId },
       });
@@ -352,7 +352,6 @@ export class SuplementosService {
         );
       }
 
-      // Verificar se já está ativo
       const jaAtivo = await this.prisma.usuarioSuplemento.findUnique({
         where: {
           usuarioId_suplementoId: {
@@ -366,24 +365,18 @@ export class SuplementosService {
         throw new SuplementoJaAtivoException(usuarioId, suplementoId);
       }
 
-      // Ativar
       await this.prisma.usuarioSuplemento.create({
         data: {
           usuarioId,
           suplementoId,
         },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  /**
-   * Desativar suplemento para usuário
-   */
   async desativarSuplemento(
     usuarioId: number,
     suplementoId: number,
@@ -410,34 +403,30 @@ export class SuplementosService {
           },
         },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
 
-  // ==========================================
-  // 🔧 MÉTODOS AUXILIARES
-  // ==========================================
-
-  private mapToDto(suplemento: any, usuarioId?: number): SuplementoCatalogoDto {
+  private mapToDto(
+    suplemento: SuplementoMapeavel,
+    usuarioId?: number,
+  ): SuplementoCatalogoDto {
     return {
       id: suplemento.id,
       codigo: suplemento.codigo,
       nome: suplemento.nome,
-      descricao: suplemento.descricao,
+      descricao: suplemento.descricao ?? undefined,
       versao: suplemento.versao,
       status: suplemento.status,
-      icone: suplemento.icone,
-      banner: suplemento.banner,
-      tags:
-        suplemento.tags && suplemento.tags !== Prisma.JsonNull
-          ? (suplemento.tags as string[])
-          : [],
-      autor: suplemento.autor,
-      ativo: usuarioId ? suplemento.usuariosAtivos?.length > 0 : undefined,
+      icone: suplemento.icone ?? undefined,
+      banner: suplemento.banner ?? undefined,
+      tags: this.mapearTags(suplemento.tags),
+      autor: suplemento.autor ?? undefined,
+      ativo: usuarioId
+        ? (suplemento.usuariosAtivos?.length ?? 0) > 0
+        : undefined,
       criadoEm: suplemento.criadoEm,
       atualizadoEm: suplemento.atualizadoEm,
     };

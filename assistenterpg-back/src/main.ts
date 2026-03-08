@@ -9,6 +9,15 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 
+function isPortInUseError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'EADDRINUSE'
+  );
+}
+
 async function listenWithPortFallback(
   app: Awaited<ReturnType<typeof NestFactory.create>>,
   logger: Logger,
@@ -28,8 +37,8 @@ async function listenWithPortFallback(
     try {
       await app.listen(currentPort);
       return currentPort;
-    } catch (error: any) {
-      const isPortInUse = error?.code === 'EADDRINUSE';
+    } catch (error: unknown) {
+      const isPortInUse = isPortInUseError(error);
       const hasNextAttempt = attempt < maxAttempts;
 
       if (isPortInUse && hasNextAttempt) {

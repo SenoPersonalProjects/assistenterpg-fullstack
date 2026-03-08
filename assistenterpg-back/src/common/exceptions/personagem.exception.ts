@@ -21,7 +21,7 @@ export class PersonagemBaseNaoEncontradoException extends BaseException {
 }
 
 export class ErroAtualizacaoPersonagemException extends BusinessException {
-  constructor(details?: Record<string, any>) {
+  constructor(details?: Record<string, unknown>) {
     super(
       'Falha ao atualizar personagem-base',
       'UPDATE_PERSONAGEM_FAILED',
@@ -35,7 +35,7 @@ export class ErroAtualizacaoPersonagemException extends BusinessException {
 // ============================================================================
 
 export class AtributoNaoInteiroException extends ValidationException {
-  constructor(nomeAtributo: string, valor: any) {
+  constructor(nomeAtributo: string, valor: unknown) {
     super(
       `O atributo "${nomeAtributo}" deve ser um número inteiro`,
       nomeAtributo,
@@ -68,7 +68,7 @@ export class SomatorioAtributosInvalidoException extends ValidationException {
 }
 
 export class AtributoChaveEaInvalidoException extends ValidationException {
-  constructor(valor: any, valoresValidos: string[]) {
+  constructor(valor: unknown, valoresValidos: string[]) {
     super(
       `O atributo-chave de Energia Amaldiçoada deve ser INT ou PRE`,
       'atributoChaveEa',
@@ -238,7 +238,7 @@ export class ValoresClasseNaoDefinidosException extends BusinessException {
 // ============================================================================
 
 export class GrauAprimoramentoNaoInteiroException extends ValidationException {
-  constructor(tipoGrauCodigo: string, valor: any) {
+  constructor(tipoGrauCodigo: string, valor: unknown) {
     super(
       `Valor inválido para grau de aprimoramento em "${tipoGrauCodigo}" (deve ser inteiro)`,
       `grausAprimoramento.${tipoGrauCodigo}`,

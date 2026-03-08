@@ -28,7 +28,7 @@ describe('EquipamentosController', () => {
       const guards = Reflect.getMetadata(
         GUARDS_METADATA,
         controller[methodName],
-      );
+      ) as unknown;
 
       expect(guards).toEqual([JwtAuthGuard, AdminGuard]);
     }
@@ -41,7 +41,7 @@ describe('EquipamentosController', () => {
       const guards = Reflect.getMetadata(
         GUARDS_METADATA,
         controller[methodName],
-      );
+      ) as unknown;
 
       expect(guards).toBeUndefined();
     }

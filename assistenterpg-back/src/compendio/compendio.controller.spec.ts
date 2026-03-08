@@ -38,7 +38,7 @@ describe('CompendioController', () => {
       const guards = Reflect.getMetadata(
         GUARDS_METADATA,
         controller[methodName],
-      );
+      ) as unknown;
 
       expect(guards).toEqual([JwtAuthGuard, AdminGuard]);
     }
@@ -60,7 +60,7 @@ describe('CompendioController', () => {
       const guards = Reflect.getMetadata(
         GUARDS_METADATA,
         controller[methodName],
-      );
+      ) as unknown;
 
       expect(guards).toBeUndefined();
     }

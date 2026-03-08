@@ -21,7 +21,7 @@ export class FiltrarModificacoesDto {
   @IsOptional()
   @IsArray()
   @IsEnum(TipoFonte, { each: true })
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     if (typeof value === 'string') return value.split(',');
     return value;
   })

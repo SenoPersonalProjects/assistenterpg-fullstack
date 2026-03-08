@@ -1,15 +1,10 @@
-// src/homebrews/validators/validate-homebrew-trilha.ts
-
 import {
   ValidationException,
   ValorForaDoIntervaloException,
 } from '../../common/exceptions/validation.exception';
+import { HomebrewTrilhaDto } from '../dto/trilhas/criar-homebrew-trilha.dto';
 
-/**
- * Validações customizadas para Trilha
- */
-export function validateHomebrewTrilhaCustom(dados: any): void {
-  // ✅ Validar que nivelRequisito é positivo
+export function validateHomebrewTrilhaCustom(dados: HomebrewTrilhaDto): void {
   if (dados.nivelRequisito !== undefined && dados.nivelRequisito < 1) {
     throw new ValorForaDoIntervaloException(
       'nivelRequisito',
@@ -19,8 +14,9 @@ export function validateHomebrewTrilhaCustom(dados: any): void {
     );
   }
 
-  // ✅ Validar que tem pelo menos 1 habilidade
-  if (!dados.habilidades || dados.habilidades.length === 0) {
+  const habilidades = dados.habilidades;
+
+  if (!habilidades || habilidades.length === 0) {
     throw new ValidationException(
       'Trilha deve ter pelo menos 1 habilidade',
       'habilidades',
@@ -29,20 +25,21 @@ export function validateHomebrewTrilhaCustom(dados: any): void {
     );
   }
 
-  // ✅ Validar níveis crescentes e únicos
-  const niveis = dados.habilidades.map((h: any) => h.nivel);
+  const niveis = habilidades.map((habilidade) => habilidade.nivel);
   const niveisOrdenados = [...niveis].sort((a, b) => a - b);
 
   for (let i = 1; i < niveisOrdenados.length; i++) {
     if (niveisOrdenados[i] === niveisOrdenados[i - 1]) {
+      const nivelDuplicado = niveisOrdenados[i];
+
       throw new ValidationException(
-        `Habilidades devem ter níveis únicos`,
+        'Habilidades devem ter n�veis �nicos',
         'habilidades.nivel',
         {
-          nivelDuplicado: niveisOrdenados[i],
+          nivelDuplicado,
           posicoesAfetadas: niveis
-            .map((n, idx) => ({ nivel: n, index: idx }))
-            .filter((item) => item.nivel === niveisOrdenados[i])
+            .map((nivel, index) => ({ nivel, index }))
+            .filter((item) => item.nivel === nivelDuplicado)
             .map((item) => item.index),
         },
         'DUPLICATE_ABILITY_LEVELS',

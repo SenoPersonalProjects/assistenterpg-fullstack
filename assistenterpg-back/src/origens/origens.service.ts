@@ -1,7 +1,7 @@
 // src/origens/origens.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { TipoFonte } from '@prisma/client';
+import { Prisma, TipoFonte } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrigemDto } from './dto/create-origem.dto';
 import { UpdateOrigemDto } from './dto/update-origem.dto';
@@ -19,9 +19,22 @@ import { SuplementoNaoEncontradoException } from 'src/common/exceptions/suplemen
 
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
+type OrigemComHabilidades = {
+  habilidadesOrigem?: Array<{ habilidade: HabilidadeCatalogoDto }>;
+};
+
 @Injectable()
 export class OrigensService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
 
   private async validarFonteSuplemento(
     fonte: TipoFonte,
@@ -54,11 +67,9 @@ export class OrigensService {
   // ✅ HELPER PRIVADO
   // ========================================
 
-  private addHabilidadesIniciais<T extends { habilidadesOrigem?: any[] }>(
-    origem: T,
-  ) {
+  private addHabilidadesIniciais<T extends OrigemComHabilidades>(origem: T) {
     const habilidadesIniciais: HabilidadeCatalogoDto[] =
-      origem.habilidadesOrigem?.map((rel: any) => rel.habilidade) ?? [];
+      origem.habilidadesOrigem?.map((rel) => rel.habilidade) ?? [];
 
     return {
       ...origem,
@@ -170,10 +181,8 @@ export class OrigensService {
       });
 
       return this.addHabilidadesIniciais(origem);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -207,10 +216,8 @@ export class OrigensService {
       });
 
       return origens.map((o) => this.addHabilidadesIniciais(o));
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -248,10 +255,8 @@ export class OrigensService {
       }
 
       return this.addHabilidadesIniciais(origem);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -384,10 +389,8 @@ export class OrigensService {
       });
 
       return this.addHabilidadesIniciais(origem);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -419,10 +422,8 @@ export class OrigensService {
       await this.prisma.origem.delete({ where: { id } });
 
       return { message: 'Origem removida com sucesso' };
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }

@@ -34,9 +34,80 @@ import {
 
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
+const tecnicaDetalhadaInclude = {
+  clas: {
+    include: {
+      cla: {
+        select: {
+          id: true,
+          nome: true,
+          grandeCla: true,
+        },
+      },
+    },
+  },
+  habilidades: {
+    include: {
+      variacoes: {
+        orderBy: { ordem: 'asc' as const },
+      },
+    },
+    orderBy: { ordem: 'asc' as const },
+  },
+  suplemento: true,
+} satisfies Prisma.TecnicaAmaldicoadaInclude;
+
+type TecnicaDetalhadaPayload = Prisma.TecnicaAmaldicoadaGetPayload<{
+  include: typeof tecnicaDetalhadaInclude;
+}>;
+
+const tecnicaUsoInclude = {
+  _count: {
+    select: {
+      personagensBaseComInata: true,
+      personagensCampanhaComInata: true,
+      personagensBaseAprendeu: true,
+      personagensCampanhaAprendeu: true,
+    },
+  },
+} satisfies Prisma.TecnicaAmaldicoadaInclude;
+
 @Injectable()
 export class TecnicasAmaldicoadasService {
   constructor(private prisma: PrismaService) {}
+
+  private tratarErroPrisma(error: unknown): void {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientValidationError
+    ) {
+      handlePrismaError(error);
+    }
+  }
+
+  private normalizarJsonOuNull(
+    value: unknown,
+  ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
+    if (value === undefined || value === null) {
+      return Prisma.JsonNull;
+    }
+
+    return value as Prisma.InputJsonValue;
+  }
+
+  private normalizarJsonOpcional(
+    value: unknown,
+  ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (value === null) {
+      return Prisma.JsonNull;
+    }
+
+    return value as Prisma.InputJsonValue;
+  }
 
   private async validarFonteSuplemento(
     fonte: TipoFonte,
@@ -114,43 +185,23 @@ export class TecnicasAmaldicoadasService {
         };
       }
 
+      const incluirClas = filtros.incluirClas !== false;
+      const incluirHabilidades = filtros.incluirHabilidades === true;
+
       const tecnicas = await this.prisma.tecnicaAmaldicoada.findMany({
         where,
-        include: {
-          clas:
-            filtros.incluirClas !== false
-              ? {
-                  include: {
-                    cla: {
-                      select: {
-                        id: true,
-                        nome: true,
-                        grandeCla: true,
-                      },
-                    },
-                  },
-                }
-              : false,
-          habilidades: filtros.incluirHabilidades
-            ? {
-                include: {
-                  variacoes: {
-                    orderBy: { ordem: 'asc' },
-                  },
-                },
-                orderBy: { ordem: 'asc' },
-              }
-            : false,
-          suplemento: true, // ✅ NOVO: Incluir dados do suplemento
-        },
+        include: tecnicaDetalhadaInclude,
         orderBy: { nome: 'asc' },
       });
 
-      return tecnicas.map((t) => this.mapTecnicaToDto(t));
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+      return tecnicas.map((tecnica) =>
+        this.mapTecnicaToDto(tecnica, {
+          incluirClas,
+          incluirHabilidades,
+        }),
+      );
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -162,28 +213,7 @@ export class TecnicasAmaldicoadasService {
     try {
       const tecnica = await this.prisma.tecnicaAmaldicoada.findUnique({
         where: { id },
-        include: {
-          clas: {
-            include: {
-              cla: {
-                select: {
-                  id: true,
-                  nome: true,
-                  grandeCla: true,
-                },
-              },
-            },
-          },
-          habilidades: {
-            include: {
-              variacoes: {
-                orderBy: { ordem: 'asc' },
-              },
-            },
-            orderBy: { ordem: 'asc' },
-          },
-          suplemento: true, // ✅ NOVO
-        },
+        include: tecnicaDetalhadaInclude,
       });
 
       if (!tecnica) {
@@ -191,10 +221,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       return this.mapTecnicaToDto(tecnica);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -206,28 +234,7 @@ export class TecnicasAmaldicoadasService {
     try {
       const tecnica = await this.prisma.tecnicaAmaldicoada.findUnique({
         where: { codigo },
-        include: {
-          clas: {
-            include: {
-              cla: {
-                select: {
-                  id: true,
-                  nome: true,
-                  grandeCla: true,
-                },
-              },
-            },
-          },
-          habilidades: {
-            include: {
-              variacoes: {
-                orderBy: { ordem: 'asc' },
-              },
-            },
-            orderBy: { ordem: 'asc' },
-          },
-          suplemento: true, // ✅ NOVO
-        },
+        include: tecnicaDetalhadaInclude,
       });
 
       if (!tecnica) {
@@ -235,10 +242,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       return this.mapTecnicaToDto(tecnica);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -291,7 +296,7 @@ export class TecnicasAmaldicoadasService {
           fonte: fonteFinal,
           suplementoId: suplementoIdFinal,
 
-          requisitos: dto.requisitos ?? null,
+          requisitos: this.normalizarJsonOuNull(dto.requisitos),
         },
       });
 
@@ -305,10 +310,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       return this.findOneTecnica(tecnica.id);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -386,15 +389,13 @@ export class TecnicasAmaldicoadasService {
             suplementoId: dto.suplementoId,
           }),
 
-          requisitos: dto.requisitos,
+          requisitos: this.normalizarJsonOpcional(dto.requisitos),
         },
       });
 
       return this.findOneTecnica(id);
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -406,16 +407,7 @@ export class TecnicasAmaldicoadasService {
     try {
       const tecnica = await this.prisma.tecnicaAmaldicoada.findUnique({
         where: { id },
-        include: {
-          _count: {
-            select: {
-              personagensBaseComInata: true,
-              personagensCampanhaComInata: true,
-              personagensBaseAprendeu: true,
-              personagensCampanhaAprendeu: true,
-            },
-          },
-        },
+        include: tecnicaUsoInclude,
       });
 
       if (!tecnica) {
@@ -440,10 +432,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       await this.prisma.tecnicaAmaldicoada.delete({ where: { id } });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -460,36 +450,13 @@ export class TecnicasAmaldicoadasService {
             some: { claId },
           },
         },
-        include: {
-          clas: {
-            include: {
-              cla: {
-                select: {
-                  id: true,
-                  nome: true,
-                  grandeCla: true,
-                },
-              },
-            },
-          },
-          habilidades: {
-            include: {
-              variacoes: {
-                orderBy: { ordem: 'asc' },
-              },
-            },
-            orderBy: { ordem: 'asc' },
-          },
-          suplemento: true, // ✅ NOVO
-        },
+        include: tecnicaDetalhadaInclude,
         orderBy: { nome: 'asc' },
       });
 
-      return tecnicas.map((t) => this.mapTecnicaToDto(t));
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+      return tecnicas.map((tecnica) => this.mapTecnicaToDto(tecnica));
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -520,10 +487,8 @@ export class TecnicasAmaldicoadasService {
         },
         orderBy: { ordem: 'asc' },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -554,10 +519,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       return habilidade;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -591,7 +554,7 @@ export class TecnicasAmaldicoadasService {
           codigo: dto.codigo,
           nome: dto.nome,
           descricao: dto.descricao,
-          requisitos: dto.requisitos ?? null,
+          requisitos: this.normalizarJsonOuNull(dto.requisitos),
           execucao: dto.execucao,
           area: dto.area ?? null,
           alcance: dto.alcance ?? null,
@@ -601,16 +564,16 @@ export class TecnicasAmaldicoadasService {
           dtResistencia: dto.dtResistencia ?? null,
           custoPE: dto.custoPE ?? 0,
           custoEA: dto.custoEA ?? 0,
-          testesExigidos: dto.testesExigidos ?? null,
+          testesExigidos: this.normalizarJsonOuNull(dto.testesExigidos),
           criticoValor: dto.criticoValor ?? null,
           criticoMultiplicador: dto.criticoMultiplicador ?? null,
           danoFlat: dto.danoFlat ?? null,
           danoFlatTipo: dto.danoFlatTipo ?? null,
-          dadosDano: dto.dadosDano ?? null,
+          dadosDano: this.normalizarJsonOuNull(dto.dadosDano),
           escalonaPorGrau: dto.escalonaPorGrau ?? false,
           grauTipoGrauCodigo: dto.grauTipoGrauCodigo ?? null,
           escalonamentoCustoEA: dto.escalonamentoCustoEA ?? 0,
-          escalonamentoDano: dto.escalonamentoDano ?? null,
+          escalonamentoDano: this.normalizarJsonOuNull(dto.escalonamentoDano),
           efeito: dto.efeito,
           ordem: dto.ordem ?? 0,
         },
@@ -618,10 +581,8 @@ export class TecnicasAmaldicoadasService {
           variacoes: true,
         },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -644,7 +605,7 @@ export class TecnicasAmaldicoadasService {
         data: {
           nome: dto.nome,
           descricao: dto.descricao,
-          requisitos: dto.requisitos,
+          requisitos: this.normalizarJsonOpcional(dto.requisitos),
           execucao: dto.execucao,
           area: dto.area,
           alcance: dto.alcance,
@@ -654,16 +615,16 @@ export class TecnicasAmaldicoadasService {
           dtResistencia: dto.dtResistencia,
           custoPE: dto.custoPE,
           custoEA: dto.custoEA,
-          testesExigidos: dto.testesExigidos,
+          testesExigidos: this.normalizarJsonOpcional(dto.testesExigidos),
           criticoValor: dto.criticoValor,
           criticoMultiplicador: dto.criticoMultiplicador,
           danoFlat: dto.danoFlat,
           danoFlatTipo: dto.danoFlatTipo,
-          dadosDano: dto.dadosDano,
+          dadosDano: this.normalizarJsonOpcional(dto.dadosDano),
           escalonaPorGrau: dto.escalonaPorGrau,
           grauTipoGrauCodigo: dto.grauTipoGrauCodigo,
           escalonamentoCustoEA: dto.escalonamentoCustoEA,
-          escalonamentoDano: dto.escalonamentoDano,
+          escalonamentoDano: this.normalizarJsonOpcional(dto.escalonamentoDano),
           efeito: dto.efeito,
           ordem: dto.ordem,
         },
@@ -671,10 +632,8 @@ export class TecnicasAmaldicoadasService {
           variacoes: true,
         },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -693,10 +652,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       await this.prisma.habilidadeTecnica.delete({ where: { id } });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -722,10 +679,8 @@ export class TecnicasAmaldicoadasService {
         where: { habilidadeTecnicaId },
         orderBy: { ordem: 'asc' },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -760,10 +715,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       return variacao;
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -802,19 +755,17 @@ export class TecnicasAmaldicoadasService {
           criticoMultiplicador: dto.criticoMultiplicador ?? null,
           danoFlat: dto.danoFlat ?? null,
           danoFlatTipo: dto.danoFlatTipo ?? null,
-          dadosDano: dto.dadosDano ?? null,
+          dadosDano: this.normalizarJsonOuNull(dto.dadosDano),
           escalonaPorGrau: dto.escalonaPorGrau ?? null,
           escalonamentoCustoEA: dto.escalonamentoCustoEA ?? null,
-          escalonamentoDano: dto.escalonamentoDano ?? null,
+          escalonamentoDano: this.normalizarJsonOuNull(dto.escalonamentoDano),
           efeitoAdicional: dto.efeitoAdicional ?? null,
-          requisitos: dto.requisitos ?? null,
+          requisitos: this.normalizarJsonOuNull(dto.requisitos),
           ordem: dto.ordem ?? 0,
         },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -851,19 +802,17 @@ export class TecnicasAmaldicoadasService {
           criticoMultiplicador: dto.criticoMultiplicador,
           danoFlat: dto.danoFlat,
           danoFlatTipo: dto.danoFlatTipo,
-          dadosDano: dto.dadosDano,
+          dadosDano: this.normalizarJsonOpcional(dto.dadosDano),
           escalonaPorGrau: dto.escalonaPorGrau,
           escalonamentoCustoEA: dto.escalonamentoCustoEA,
-          escalonamentoDano: dto.escalonamentoDano,
+          escalonamentoDano: this.normalizarJsonOpcional(dto.escalonamentoDano),
           efeitoAdicional: dto.efeitoAdicional,
-          requisitos: dto.requisitos,
+          requisitos: this.normalizarJsonOpcional(dto.requisitos),
           ordem: dto.ordem,
         },
       });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -882,10 +831,8 @@ export class TecnicasAmaldicoadasService {
       }
 
       await this.prisma.variacaoHabilidade.delete({ where: { id } });
-    } catch (error) {
-      if (error.code?.startsWith('P')) {
-        handlePrismaError(error);
-      }
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
       throw error;
     }
   }
@@ -915,7 +862,16 @@ export class TecnicasAmaldicoadasService {
   }
 
   // ✅ CORRIGIDO: Mapper atualizado
-  private mapTecnicaToDto(tecnica: any): TecnicaDetalhadaDto {
+  private mapTecnicaToDto(
+    tecnica: TecnicaDetalhadaPayload,
+    options?: {
+      incluirClas?: boolean;
+      incluirHabilidades?: boolean;
+    },
+  ): TecnicaDetalhadaDto {
+    const incluirClas = options?.incluirClas !== false;
+    const incluirHabilidades = options?.incluirHabilidades !== false;
+
     return {
       id: tecnica.id,
       codigo: tecnica.codigo,
@@ -923,15 +879,16 @@ export class TecnicasAmaldicoadasService {
       descricao: tecnica.descricao,
       tipo: tecnica.tipo,
       hereditaria: tecnica.hereditaria,
-      linkExterno: tecnica.linkExterno,
-
-      // ✅ CORRIGIDO: origem → fonte
+      linkExterno: tecnica.linkExterno ?? undefined,
       fonte: tecnica.fonte,
-      suplementoId: tecnica.suplementoId,
-
-      requisitos: tecnica.requisitos,
-      clasHereditarios: tecnica.clas?.map((tc: any) => tc.cla) ?? [],
-      habilidades: tecnica.habilidades ?? [],
+      suplementoId: tecnica.suplementoId ?? undefined,
+      requisitos: tecnica.requisitos ?? undefined,
+      clasHereditarios: incluirClas
+        ? tecnica.clas.map((tecnicaCla) => tecnicaCla.cla)
+        : [],
+      habilidades: incluirHabilidades
+        ? (tecnica.habilidades as unknown as TecnicaDetalhadaDto['habilidades'])
+        : [],
       criadoEm: tecnica.criadoEm,
       atualizadoEm: tecnica.atualizadoEm,
     };

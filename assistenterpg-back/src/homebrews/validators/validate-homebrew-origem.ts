@@ -8,9 +8,15 @@ import {
 /**
  * Validações customizadas para Origem
  */
-export function validateHomebrewOrigemCustom(dados: any): void {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function validateHomebrewOrigemCustom(dados: unknown): void {
+  const periciasRaw = isRecord(dados) ? dados.pericias : undefined;
+
   // ✅ Validar que tem pelo menos 1 perícia
-  if (!dados.pericias || dados.pericias.length === 0) {
+  if (!Array.isArray(periciasRaw) || periciasRaw.length === 0) {
     throw new ValidationException(
       'Origem deve ter pelo menos 1 perícia',
       'pericias',
@@ -20,12 +26,11 @@ export function validateHomebrewOrigemCustom(dados: any): void {
   }
 
   // ✅ Validar perícias únicas
-  const periciasUnicas = new Set(dados.pericias);
+  const periciasUnicas = new Set(periciasRaw);
 
-  if (dados.pericias.length !== periciasUnicas.size) {
-    const duplicadas = dados.pericias.filter(
-      (pericia: any, index: number) =>
-        dados.pericias.indexOf(pericia) !== index,
+  if (periciasRaw.length !== periciasUnicas.size) {
+    const duplicadas = periciasRaw.filter(
+      (pericia, index) => periciasRaw.indexOf(pericia) !== index,
     );
     throw new ValoresUnicosException('pericias', duplicadas);
   }

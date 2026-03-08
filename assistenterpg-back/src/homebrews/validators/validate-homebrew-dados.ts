@@ -1,6 +1,7 @@
 // src/homebrews/validators/validate-homebrew-dados.ts
 
 import { plainToInstance } from 'class-transformer';
+import type { ClassConstructor } from 'class-transformer';
 import { validate } from 'class-validator';
 import { TipoHomebrewConteudo } from '@prisma/client';
 
@@ -34,7 +35,7 @@ import { HomebrewPoderDto } from '../dto/poderes/criar-homebrew-poder.dto';
 /**
  * Mapeia tipo de equipamento (dentro de dados.tipo) para o DTO correspondente
  */
-const TIPO_EQUIPAMENTO_TO_DTO_MAP: Record<string, any> = {
+const TIPO_EQUIPAMENTO_TO_DTO_MAP: Record<string, ClassConstructor<object>> = {
   ARMA: HomebrewArmaDto,
   PROTECAO: HomebrewProtecaoDto,
   ACESSORIO: HomebrewAcessorioDto,
@@ -48,7 +49,7 @@ const TIPO_EQUIPAMENTO_TO_DTO_MAP: Record<string, any> = {
 /**
  * Mapeia tipo de homebrew para o DTO correspondente
  */
-const TIPO_TO_DTO_MAP: Record<string, any> = {
+const TIPO_TO_DTO_MAP: Record<string, ClassConstructor<object>> = {
   TECNICA_AMALDICOADA: HomebrewTecnicaDto,
   ORIGEM: HomebrewOrigemDto,
   TRILHA: HomebrewTrilhaDto,
@@ -57,19 +58,23 @@ const TIPO_TO_DTO_MAP: Record<string, any> = {
   PODER_GENERICO: HomebrewPoderDto,
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
  * Valida os dados do homebrew baseado no tipo
  * Usa class-validator através dos DTOs
  */
 export async function validateHomebrewDados(
   tipo: TipoHomebrewConteudo,
-  dados: any,
+  dados: unknown,
 ): Promise<void> {
-  let DtoClass: any;
+  let DtoClass: ClassConstructor<object> | undefined;
 
   // ✅ EQUIPAMENTO precisa verificar o tipo interno
   if (tipo === 'EQUIPAMENTO') {
-    if (!dados.tipo) {
+    if (!isRecord(dados) || typeof dados.tipo !== 'string') {
       throw new CampoObrigatorioException('tipo'); // ✅ Exceção customizada
     }
 
@@ -85,6 +90,18 @@ export async function validateHomebrewDados(
       const tiposValidos = Object.keys(TIPO_TO_DTO_MAP);
       throw new HomebrewTipoNaoSuportadoException(tipo, tiposValidos); // ✅ Exceção customizada
     }
+  }
+
+  if (!isRecord(dados)) {
+    throw new HomebrewDadosInvalidosException([
+      'dados: deve ser um objeto válido',
+    ]);
+  }
+  if (!DtoClass) {
+    throw new HomebrewTipoNaoSuportadoException(
+      tipo,
+      Object.keys(TIPO_TO_DTO_MAP),
+    );
   }
 
   // Converter dados para instância do DTO

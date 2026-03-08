@@ -12,6 +12,10 @@ import {
 } from 'src/common/exceptions/personagem.exception';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
+type RequisitoPericiaTrilha = { codigo: string; treinada: boolean };
+type RequisitosTrilha = {
+  pericias?: RequisitoPericiaTrilha[];
+};
 
 /**
  * ✅ Validar se personagem atende requisitos de trilha
@@ -68,7 +72,7 @@ export async function validarTrilhaECaminho(
     // Validar requisitos de perícias
     if (periciasPersonagem && trilha.requisitos) {
       const validacao = validarRequisitosTrilha(
-        trilha.requisitos as any,
+        trilha.requisitos as RequisitosTrilha,
         periciasPersonagem,
       );
 

@@ -1,6 +1,7 @@
 // src/personagem-base/regras-criacao/regras-atributos.ts
 
-import { AtributoBase, AtributoPassiva, PrismaClient } from '@prisma/client';
+import { AtributoBase, AtributoPassiva, Prisma } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 
 // ✅ Exceções customizadas
 import {
@@ -75,6 +76,8 @@ export type AtributosValores = {
   presenca: number;
   vigor: number;
 };
+
+type PrismaLike = PrismaService | Prisma.TransactionClient;
 
 function getValorAtributoBase(
   atributos: AtributosValores,
@@ -169,7 +172,7 @@ export type ResolverPassivasResult = {
 
 type ResolverPassivasParams = {
   atributos: AtributosValores;
-  prisma: PrismaClient;
+  prisma: PrismaLike;
   passivasAtributosAtivos?: unknown;
   strict?: boolean;
 };
@@ -257,7 +260,7 @@ export async function resolverPassivasAtributos(
 interface ValidarPassivasParams {
   passivasIds: number[];
   atributos: AtributosValores;
-  prisma: PrismaClient;
+  prisma: PrismaLike;
 }
 
 export async function validarPassivasAtributos({
@@ -330,7 +333,78 @@ export async function validarPassivasAtributos({
   }
 }
 
-export function calcularEfeitosPassivas(passivas: Array<{ efeitos: any }>): {
+type EfeitosPassiva = {
+  deslocamento?: number;
+  reacoes?: number;
+  peExtra?: number;
+  eaExtra?: number;
+  limitePeEaExtra?: number;
+  pvExtraLimitePeEa?: boolean;
+  rodadasMorrendo?: number;
+  rodadasEnlouquecendo?: number;
+  passosDanoCorpoACorpo?: number;
+  dadosDanoCorpoACorpo?: number;
+  periciasExtras?: number;
+  proficienciasExtras?: number;
+  grauTreinamentoExtra?: number;
+  grauAprimoramentoExtra?: number;
+};
+
+function parseEfeitosPassiva(value: Prisma.JsonValue | null): EfeitosPassiva {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const record = value as Record<string, unknown>;
+  return {
+    deslocamento:
+      typeof record.deslocamento === 'number' ? record.deslocamento : undefined,
+    reacoes: typeof record.reacoes === 'number' ? record.reacoes : undefined,
+    peExtra: typeof record.peExtra === 'number' ? record.peExtra : undefined,
+    eaExtra: typeof record.eaExtra === 'number' ? record.eaExtra : undefined,
+    limitePeEaExtra:
+      typeof record.limitePeEaExtra === 'number'
+        ? record.limitePeEaExtra
+        : undefined,
+    pvExtraLimitePeEa:
+      typeof record.pvExtraLimitePeEa === 'boolean'
+        ? record.pvExtraLimitePeEa
+        : undefined,
+    rodadasMorrendo:
+      typeof record.rodadasMorrendo === 'number'
+        ? record.rodadasMorrendo
+        : undefined,
+    rodadasEnlouquecendo:
+      typeof record.rodadasEnlouquecendo === 'number'
+        ? record.rodadasEnlouquecendo
+        : undefined,
+    passosDanoCorpoACorpo:
+      typeof record.passosDanoCorpoACorpo === 'number'
+        ? record.passosDanoCorpoACorpo
+        : undefined,
+    dadosDanoCorpoACorpo:
+      typeof record.dadosDanoCorpoACorpo === 'number'
+        ? record.dadosDanoCorpoACorpo
+        : undefined,
+    periciasExtras:
+      typeof record.periciasExtras === 'number'
+        ? record.periciasExtras
+        : undefined,
+    proficienciasExtras:
+      typeof record.proficienciasExtras === 'number'
+        ? record.proficienciasExtras
+        : undefined,
+    grauTreinamentoExtra:
+      typeof record.grauTreinamentoExtra === 'number'
+        ? record.grauTreinamentoExtra
+        : undefined,
+    grauAprimoramentoExtra:
+      typeof record.grauAprimoramentoExtra === 'number'
+        ? record.grauAprimoramentoExtra
+        : undefined,
+  };
+}
+
+export function calcularEfeitosPassivas(
+  passivas: Array<{ efeitos: Prisma.JsonValue | null }>,
+): {
   deslocamentoExtra: number;
   reacoesExtra: number;
   peExtra: number;
@@ -364,7 +438,7 @@ export function calcularEfeitosPassivas(passivas: Array<{ efeitos: any }>): {
   };
 
   for (const passiva of passivas) {
-    const efeitosPassiva = passiva.efeitos;
+    const efeitosPassiva = parseEfeitosPassiva(passiva.efeitos);
 
     if (efeitosPassiva.deslocamento) {
       efeitos.deslocamentoExtra = Math.max(
