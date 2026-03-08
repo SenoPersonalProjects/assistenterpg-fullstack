@@ -8,6 +8,32 @@ type MinhasCampanhasQuery = {
   limit?: number;
 };
 
+type CampanhaByIdOptions = {
+  forceRefresh?: boolean;
+  cacheTtlMs?: number;
+};
+
+type CampanhaDetalheCacheEntry = {
+  data: unknown;
+  expiresAt: number;
+};
+
+const CAMPANHA_DETALHE_CACHE_TTL_MS = 30_000;
+const campanhaDetalheCache = new Map<string, CampanhaDetalheCacheEntry>();
+const campanhaDetalheInFlight = new Map<string, Promise<unknown>>();
+
+export function apiInvalidateCampanhaDetalheCache(id?: number | string): void {
+  if (id === undefined) {
+    campanhaDetalheCache.clear();
+    campanhaDetalheInFlight.clear();
+    return;
+  }
+
+  const key = String(id);
+  campanhaDetalheCache.delete(key);
+  campanhaDetalheInFlight.delete(key);
+}
+
 export async function apiGetMinhasCampanhas(
   query?: MinhasCampanhasQuery,
 ): Promise<ListResult<CampanhaResumo>> {
@@ -31,11 +57,45 @@ export async function apiCreateCampanha(payload: {
 
 export async function apiDeleteCampanha(id: number): Promise<void> {
   await apiClient.delete(`/campanhas/${id}`);
+  apiInvalidateCampanhaDetalheCache(id);
 }
 
-export async function apiGetCampanhaById<T = unknown>(id: number | string): Promise<T> {
-  const { data } = await apiClient.get(`/campanhas/${id}`);
-  return data as T;
+export async function apiGetCampanhaById<T = unknown>(
+  id: number | string,
+  options: CampanhaByIdOptions = {},
+): Promise<T> {
+  const key = String(id);
+  const ttlMs = options.cacheTtlMs ?? CAMPANHA_DETALHE_CACHE_TTL_MS;
+
+  if (options.forceRefresh) {
+    apiInvalidateCampanhaDetalheCache(key);
+  } else {
+    const cacheEntry = campanhaDetalheCache.get(key);
+    if (cacheEntry && cacheEntry.expiresAt > Date.now()) {
+      return cacheEntry.data as T;
+    }
+  }
+
+  const requestInFlight = campanhaDetalheInFlight.get(key);
+  if (requestInFlight) {
+    return (await requestInFlight) as T;
+  }
+
+  const request = apiClient
+    .get(`/campanhas/${id}`)
+    .then(({ data }) => {
+      campanhaDetalheCache.set(key, {
+        data,
+        expiresAt: Date.now() + ttlMs,
+      });
+      return data;
+    })
+    .finally(() => {
+      campanhaDetalheInFlight.delete(key);
+    });
+
+  campanhaDetalheInFlight.set(key, request);
+  return (await request) as T;
 }
 
 export async function apiCriarConvite(

@@ -25,6 +25,7 @@ import {
   type ClaCatalogo,
   type OrigemCatalogo,
   type PassivaAtributoCatalogo,
+  type PassivasDisponiveisResponse,
   type PericiaCatalogo,
   type PersonagemBaseDetalhe,
   type ProficienciaCatalogo,
@@ -47,6 +48,48 @@ type Catalogos = {
   equipamentos: EquipamentoCatalogo[];
   modificacoes: ModificacaoCatalogo[];
 };
+
+type TimedCache<T> = {
+  value: T;
+  expiresAt: number;
+};
+
+const CATALOGOS_CACHE_TTL_MS = 5 * 60 * 1000;
+const PASSIVAS_CACHE_TTL_MS = 60 * 1000;
+
+const CATALOGOS_VAZIOS: Catalogos = {
+  classes: [],
+  clas: [],
+  origens: [],
+  proficiencias: [],
+  tiposGrau: [],
+  tecnicasInatas: [],
+  alinhamentos: [],
+  pericias: [],
+  equipamentos: [],
+  modificacoes: [],
+};
+
+let catalogosCache: TimedCache<Catalogos> | null = null;
+let catalogosInFlight: Promise<Catalogos> | null = null;
+
+let passivasCache: TimedCache<PassivasDisponiveisResponse> | null = null;
+let passivasInFlight: Promise<PassivasDisponiveisResponse> | null = null;
+
+function cloneCatalogos(catalogos: Catalogos): Catalogos {
+  return {
+    classes: [...catalogos.classes],
+    clas: [...catalogos.clas],
+    origens: [...catalogos.origens],
+    proficiencias: [...catalogos.proficiencias],
+    tiposGrau: [...catalogos.tiposGrau],
+    tecnicasInatas: [...catalogos.tecnicasInatas],
+    alinhamentos: [...catalogos.alinhamentos],
+    pericias: [...catalogos.pericias],
+    equipamentos: [...catalogos.equipamentos],
+    modificacoes: [...catalogos.modificacoes],
+  };
+}
 
 function mensagemErroCarregarDetalhe(error: unknown): string {
   const status = Number(
@@ -80,17 +123,42 @@ function sortPassivas(selecionadas: PassivaAtributoCatalogo[]) {
   });
 }
 
-// Busca passivas selecionadas sem token explícito no payload.
+// Busca passivas selecionadas sem token explicito no payload.
+async function carregarPassivasDisponiveisComCache(): Promise<PassivasDisponiveisResponse> {
+  if (passivasCache && passivasCache.expiresAt > Date.now()) {
+    return passivasCache.value;
+  }
+
+  if (passivasInFlight) {
+    return passivasInFlight;
+  }
+
+  passivasInFlight = apiGetPassivasDisponiveis()
+    .then((data) => {
+      passivasCache = {
+        value: data,
+        expiresAt: Date.now() + PASSIVAS_CACHE_TTL_MS,
+      };
+      return data;
+    })
+    .finally(() => {
+      passivasInFlight = null;
+    });
+
+  return passivasInFlight;
+}
+
 async function carregarPassivasSelecionadas(
   passivasAtributoIds: number[],
 ): Promise<PassivaAtributoCatalogo[]> {
   if (!passivasAtributoIds || passivasAtributoIds.length === 0) return [];
-  const todasPassivas = await apiGetPassivasDisponiveis();
+  const todasPassivas = await carregarPassivasDisponiveisComCache();
+  const idsSelecionados = new Set(passivasAtributoIds);
   const selecionadas: PassivaAtributoCatalogo[] = [];
 
   for (const lista of Object.values(todasPassivas)) {
     for (const passiva of lista) {
-      if (passivasAtributoIds.includes(passiva.id)) {
+      if (idsSelecionados.has(passiva.id)) {
         selecionadas.push(passiva);
       }
     }
@@ -99,17 +167,17 @@ async function carregarPassivasSelecionadas(
   return sortPassivas(selecionadas);
 }
 
-// Carrega equipamentos em páginas para mapear dados de inventário.
+// Carrega equipamentos em paginas para mapear dados de inventario.
 async function carregarTodosEquipamentos(): Promise<EquipamentoCatalogo[]> {
   try {
-    let todosEquipamentos: EquipamentoCatalogo[] = [];
+    const todosEquipamentos: EquipamentoCatalogo[] = [];
     let pagina = 1;
     let temMais = true;
 
     while (temMais) {
       const response = await apiGetEquipamentos({ pagina, limite: 100 });
       const equipsAtual = Array.isArray(response.items) ? response.items : [];
-      todosEquipamentos = [...todosEquipamentos, ...equipsAtual];
+      todosEquipamentos.push(...equipsAtual);
 
       temMais = pagina < response.totalPages;
       pagina++;
@@ -121,17 +189,17 @@ async function carregarTodosEquipamentos(): Promise<EquipamentoCatalogo[]> {
   }
 }
 
-// Carrega modificações em páginas para mapear dados de inventário.
+// Carrega modificacoes em paginas para mapear dados de inventario.
 async function carregarTodasModificacoes(): Promise<ModificacaoCatalogo[]> {
   try {
-    let todasModificacoes: ModificacaoCatalogo[] = [];
+    const todasModificacoes: ModificacaoCatalogo[] = [];
     let pagina = 1;
     let temMais = true;
 
     while (temMais) {
       const response = await apiGetModificacoes({ pagina, limite: 100 });
       const modsAtual = Array.isArray(response.items) ? response.items : [];
-      todasModificacoes = [...todasModificacoes, ...modsAtual];
+      todasModificacoes.push(...modsAtual);
 
       temMais = pagina < response.totalPages;
       pagina++;
@@ -141,6 +209,68 @@ async function carregarTodasModificacoes(): Promise<ModificacaoCatalogo[]> {
   } catch {
     return [];
   }
+}
+
+async function carregarCatalogosCompartilhados(): Promise<Catalogos> {
+  if (catalogosCache && catalogosCache.expiresAt > Date.now()) {
+    return cloneCatalogos(catalogosCache.value);
+  }
+
+  if (catalogosInFlight) {
+    return catalogosInFlight;
+  }
+
+  catalogosInFlight = Promise.all([
+    apiGetClasses(),
+    apiGetClas(),
+    apiGetOrigens(),
+    apiGetProficiencias(),
+    apiGetTiposGrau(),
+    apiGetTecnicasInatas(),
+    apiGetAlinhamentos(),
+    apiGetPericias(),
+    carregarTodosEquipamentos(),
+    carregarTodasModificacoes(),
+  ])
+    .then(
+      ([
+        classesRes,
+        clasRes,
+        origensRes,
+        profsRes,
+        tiposGrauRes,
+        tecnicasInatasRes,
+        alinhamentosRes,
+        periciasRes,
+        equipamentosCompletos,
+        modificacoesCompletas,
+      ]) => {
+        const catalogos = {
+          classes: classesRes,
+          clas: clasRes,
+          origens: origensRes,
+          proficiencias: profsRes,
+          tiposGrau: tiposGrauRes,
+          tecnicasInatas: tecnicasInatasRes,
+          alinhamentos: alinhamentosRes,
+          pericias: periciasRes,
+          equipamentos: equipamentosCompletos,
+          modificacoes: modificacoesCompletas,
+        };
+
+        catalogosCache = {
+          value: catalogos,
+          expiresAt: Date.now() + CATALOGOS_CACHE_TTL_MS,
+        };
+
+        return cloneCatalogos(catalogos);
+      },
+    )
+    .finally(() => {
+      catalogosInFlight = null;
+    });
+
+  return catalogosInFlight;
 }
 
 export type UsePersonagemBaseDetalheResult = {
@@ -166,18 +296,7 @@ export function usePersonagemBaseDetalhe(
     PassivaAtributoCatalogo[]
   >([]);
 
-  const [catalogos, setCatalogos] = useState<Catalogos>({
-    classes: [],
-    clas: [],
-    origens: [],
-    proficiencias: [],
-    tiposGrau: [],
-    tecnicasInatas: [],
-    alinhamentos: [],
-    pericias: [],
-    equipamentos: [],
-    modificacoes: [],
-  });
+  const [catalogos, setCatalogos] = useState<Catalogos>(() => cloneCatalogos(CATALOGOS_VAZIOS));
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -190,57 +309,21 @@ export function usePersonagemBaseDetalhe(
   const refresh = useCallback(async () => {
     if (!numericId) return;
 
-
     setLoading(true);
     setErro(null);
     setPassivasSelecionadasState([]);
 
     try {
-      const [
-        detalhe,
-        classesRes,
-        clasRes,
-        origensRes,
-        profsRes,
-        tiposGrauRes,
-        tecnicasInatasRes,
-        alinhamentosRes,
-        periciasRes,
-        equipamentosCompletos,
-        modificacoesCompletas,
-      ] = await Promise.all([
-        apiGetPersonagemBase( numericId, true),
-        // Chamadas de catálogo sem token explícito no payload.
-        apiGetClasses(),
-        apiGetClas(),
-        apiGetOrigens(),
-        apiGetProficiencias(),
-        apiGetTiposGrau(),
-        apiGetTecnicasInatas(),
-        apiGetAlinhamentos(),
-        apiGetPericias(),
-        carregarTodosEquipamentos(),
-        carregarTodasModificacoes(),
+      const [detalhe, catalogosCompartilhados] = await Promise.all([
+        apiGetPersonagemBase(numericId, true),
+        carregarCatalogosCompartilhados(),
       ]);
 
       setPersonagem(detalhe);
-
-      setCatalogos({
-        classes: classesRes,
-        clas: clasRes,
-        origens: origensRes,
-        proficiencias: profsRes,
-        tiposGrau: tiposGrauRes,
-        tecnicasInatas: tecnicasInatasRes,
-        alinhamentos: alinhamentosRes,
-        pericias: periciasRes,
-        equipamentos: equipamentosCompletos,
-        modificacoes: modificacoesCompletas,
-      });
+      setCatalogos(catalogosCompartilhados);
 
       if (detalhe.passivasAtributoIds && detalhe.passivasAtributoIds.length > 0) {
         try {
-          // Resolução de passivas selecionadas para apresentação.
           const selecionadas = await carregarPassivasSelecionadas(
             detalhe.passivasAtributoIds,
           );
@@ -263,11 +346,11 @@ export function usePersonagemBaseDetalhe(
     }
 
     if (!authLoading && usuario && numericId) {
-      refresh();
+      void refresh();
     }
   }, [authLoading, usuario, numericId, refresh, router]);
 
-  // Carregadores auxiliares usados no modo de edição.
+  // Carregadores auxiliares usados no modo de edicao.
   const carregarTrilhasDaClasse = useCallback(
     async (classeId: number): Promise<TrilhaCatalogo[]> => {
       const { apiGetTrilhasDaClasse } = await import('@/lib/api');
