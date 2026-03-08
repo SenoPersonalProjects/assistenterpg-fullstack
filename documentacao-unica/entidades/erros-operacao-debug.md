@@ -30,6 +30,9 @@ Formato de resposta esperado:
 - Priorize `code` para tratamento no frontend; `message` pode mudar.
 - Em validacao (`400`), use `details.validationErrors` para exibir campos com erro.
 - Em regras de negocio (`422`), use `details` para montar feedback orientado a acao.
+- No frontend, a camada de API tambem tenta extrair `requestId` de `x-request-id`/`x-correlation-id` para facilitar suporte.
+- Em telas criticas, mensagens podem incluir contexto tecnico no formato:
+  `status ... | code ... | METODO /rota | requestId ...`.
 
 ## Codigos transversais
 

@@ -198,8 +198,10 @@ Observacoes:
 
 No frontend:
 
-- `ApiError` encapsula `status`, `code` e `body`
+- `ApiError` encapsula `status`, `code`, `body`, `method`, `endpoint` e `requestId`
 - `error-handler.ts` traduz codigos conhecidos para mensagens amigaveis
+- `extrairContextoErro` consolida contexto tecnico (status/code/metodo/endpoint/requestId)
+- `formatarErroComContexto` pode anexar contexto tecnico na mensagem final para debug de tela
 
 ## 4.3 Paginacao e envelopes de lista
 
