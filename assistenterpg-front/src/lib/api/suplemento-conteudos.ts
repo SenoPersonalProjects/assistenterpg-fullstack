@@ -7,7 +7,10 @@ import type {
   CaminhoCatalogo,
   OrigemCatalogo,
   HabilidadeCatalogo,
+  ProficienciaCatalogo,
+  TipoGrauCatalogo,
   TecnicaAmaldicoadaCatalogo,
+  CondicaoCatalogo,
   EquipamentoResumoDto,
   EquipamentoDetalhadoDto,
   CreateClassePayload,
@@ -20,6 +23,12 @@ import type {
   UpdateCaminhoPayload,
   CreateOrigemPayload,
   UpdateOrigemPayload,
+  CreateProficienciaPayload,
+  UpdateProficienciaPayload,
+  CreateTipoGrauPayload,
+  UpdateTipoGrauPayload,
+  CreateCondicaoPayload,
+  UpdateCondicaoPayload,
   CreateHabilidadePayload,
   UpdateHabilidadePayload,
   CreateEquipamentoPayload,
@@ -172,6 +181,108 @@ export async function apiAdminUpdateOrigem(
   payload: UpdateOrigemPayload,
 ): Promise<OrigemCatalogo> {
   const { data } = await apiClient.patch(`/origens/${id}`, payload);
+  return data;
+}
+
+// =============================
+// PROFICIENCIAS
+// =============================
+
+export async function apiAdminGetProficiencias(): Promise<ProficienciaCatalogo[]> {
+  const { data } = await apiClient.get('/proficiencias');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiAdminGetProficiencia(id: number): Promise<ProficienciaCatalogo> {
+  const { data } = await apiClient.get(`/proficiencias/${id}`);
+  return data;
+}
+
+export async function apiAdminCreateProficiencia(
+  payload: CreateProficienciaPayload,
+): Promise<ProficienciaCatalogo> {
+  const { data } = await apiClient.post('/proficiencias', payload);
+  return data;
+}
+
+export async function apiAdminUpdateProficiencia(
+  id: number,
+  payload: UpdateProficienciaPayload,
+): Promise<ProficienciaCatalogo> {
+  const { data } = await apiClient.patch(`/proficiencias/${id}`, payload);
+  return data;
+}
+
+export async function apiAdminDeleteProficiencia(id: number): Promise<{ sucesso: boolean }> {
+  const { data } = await apiClient.delete(`/proficiencias/${id}`);
+  return data;
+}
+
+// =============================
+// TIPOS DE GRAU
+// =============================
+
+export async function apiAdminGetTiposGrau(): Promise<TipoGrauCatalogo[]> {
+  const { data } = await apiClient.get('/tipos-grau');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiAdminGetTipoGrau(id: number): Promise<TipoGrauCatalogo> {
+  const { data } = await apiClient.get(`/tipos-grau/${id}`);
+  return data;
+}
+
+export async function apiAdminCreateTipoGrau(
+  payload: CreateTipoGrauPayload,
+): Promise<TipoGrauCatalogo> {
+  const { data } = await apiClient.post('/tipos-grau', payload);
+  return data;
+}
+
+export async function apiAdminUpdateTipoGrau(
+  id: number,
+  payload: UpdateTipoGrauPayload,
+): Promise<TipoGrauCatalogo> {
+  const { data } = await apiClient.patch(`/tipos-grau/${id}`, payload);
+  return data;
+}
+
+export async function apiAdminDeleteTipoGrau(id: number): Promise<{ sucesso: boolean }> {
+  const { data } = await apiClient.delete(`/tipos-grau/${id}`);
+  return data;
+}
+
+// =============================
+// CONDICOES
+// =============================
+
+export async function apiAdminGetCondicoes(): Promise<CondicaoCatalogo[]> {
+  const { data } = await apiClient.get('/condicoes');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiAdminGetCondicao(id: number): Promise<CondicaoCatalogo> {
+  const { data } = await apiClient.get(`/condicoes/${id}`);
+  return data;
+}
+
+export async function apiAdminCreateCondicao(
+  payload: CreateCondicaoPayload,
+): Promise<CondicaoCatalogo> {
+  const { data } = await apiClient.post('/condicoes', payload);
+  return data;
+}
+
+export async function apiAdminUpdateCondicao(
+  id: number,
+  payload: UpdateCondicaoPayload,
+): Promise<CondicaoCatalogo> {
+  const { data } = await apiClient.patch(`/condicoes/${id}`, payload);
+  return data;
+}
+
+export async function apiAdminDeleteCondicao(id: number): Promise<{ message: string }> {
+  const { data } = await apiClient.delete(`/condicoes/${id}`);
   return data;
 }
 

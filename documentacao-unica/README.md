@@ -1368,7 +1368,13 @@ Integracao frontend neste bloco:
   - `apiGetProficiencias`
   - `apiGetTiposGrau`
   - `apiGetAlinhamentos`
-- frontend hoje nao possui cliente administrativo para CRUD de `condicoes`, `proficiencias` e `tipos-grau`; quando necessario, operacao e feita direto via API autenticada.
+- escrita/admin via [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts):
+  - proficiencias: `apiAdminGetProficiencias`, `apiAdminGetProficiencia`, `apiAdminCreateProficiencia`, `apiAdminUpdateProficiencia`, `apiAdminDeleteProficiencia`
+  - tipos-grau: `apiAdminGetTiposGrau`, `apiAdminGetTipoGrau`, `apiAdminCreateTipoGrau`, `apiAdminUpdateTipoGrau`, `apiAdminDeleteTipoGrau`
+  - condicoes: `apiAdminGetCondicoes`, `apiAdminGetCondicao`, `apiAdminCreateCondicao`, `apiAdminUpdateCondicao`, `apiAdminDeleteCondicao`
+- interface admin:
+  - [`assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx), [`assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx) e [`assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx) cobrem CRUD completo desses catalogos
+  - [`assistenterpg-front/src/lib/constants/suplemento-admin.ts`](../assistenterpg-front/src/lib/constants/suplemento-admin.ts) e [`assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx`](../assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx) foram ampliados para expor os novos modulos no painel admin
 
 ## 6. Tipos de dados e enums aceitos
 
@@ -1495,6 +1501,11 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts`](../assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts) recebeu tipagem dedicada para payloads/respostas de habilidades e variacoes de tecnica
   - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx) e [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) passaram a integrar esses endpoints na UI admin
   - o modal de habilidades/variacoes foi ampliado para editar tambem campos avancados do contrato (execucao/area/alcance/alvo/duracao/resistencia/criticos/dano/escalonamento/requisitos), priorizando editores guiados e mantendo modo JSON apenas como fallback para casos complexos
+- frontend cliente/admin de catalogos menores:
+  - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts) agora expoe CRUD completo de `proficiencias`, `tipos-grau` e `condicoes`
+  - [`assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts`](../assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts) recebeu payloads/tipos para `Create/Update` desses catalogos e `CondicaoCatalogo`
+  - [`assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx), [`assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx) e [`assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx) integram esse CRUD no painel admin
+  - [`assistenterpg-front/src/lib/constants/suplemento-admin.ts`](../assistenterpg-front/src/lib/constants/suplemento-admin.ts) e [`assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx`](../assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx) ganharam os novos modulos (`proficiencias`, `tipos-grau`, `condicoes`)
 - backend contrato de filtros (suplementos/homebrews):
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
   - [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): `usuarioId`, `pagina` e `limite` agora exigem `>= 1`

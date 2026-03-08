@@ -15,6 +15,9 @@ import { ClasAdminPanel } from '@/components/suplemento-admin/panels/ClasAdminPa
 import { TrilhasAdminPanel } from '@/components/suplemento-admin/panels/TrilhasAdminPanel';
 import { CaminhosAdminPanel } from '@/components/suplemento-admin/panels/CaminhosAdminPanel';
 import { OrigensAdminPanel } from '@/components/suplemento-admin/panels/OrigensAdminPanel';
+import { ProficienciasAdminPanel } from '@/components/suplemento-admin/panels/ProficienciasAdminPanel';
+import { TiposGrauAdminPanel } from '@/components/suplemento-admin/panels/TiposGrauAdminPanel';
+import { CondicoesAdminPanel } from '@/components/suplemento-admin/panels/CondicoesAdminPanel';
 import { EquipamentosAdminPanel } from '@/components/suplemento-admin/panels/EquipamentosAdminPanel';
 import { TecnicasAdminPanel } from '@/components/suplemento-admin/panels/TecnicasAdminPanel';
 
@@ -92,6 +95,9 @@ export default function SuplementosAdminModuloPage() {
         {modulo.id === 'trilhas' && <TrilhasAdminPanel />}
         {modulo.id === 'caminhos' && <CaminhosAdminPanel />}
         {modulo.id === 'origens' && <OrigensAdminPanel />}
+        {modulo.id === 'proficiencias' && <ProficienciasAdminPanel />}
+        {modulo.id === 'tipos-grau' && <TiposGrauAdminPanel />}
+        {modulo.id === 'condicoes' && <CondicoesAdminPanel />}
         {modulo.id === 'habilidades' && <HabilidadesAdminPanel />}
         {modulo.id === 'equipamentos' && <EquipamentosAdminPanel />}
         {modulo.id === 'tecnicas-amaldicoadas' && <TecnicasAdminPanel />}

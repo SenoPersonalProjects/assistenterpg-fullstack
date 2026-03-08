@@ -26,6 +26,8 @@ import type {
   CaminhoCatalogo,
   OrigemCatalogo,
   HabilidadeCatalogo,
+  ProficienciaCatalogo,
+  TipoGrauCatalogo,
   TecnicaAmaldicoadaCatalogo,
   TipoHabilidadeCatalogo,
 } from './catalogo.types';
@@ -152,6 +154,41 @@ export type CreateEquipamentoPayload = ConteudoComFonte & {
 };
 
 export type UpdateEquipamentoPayload = Partial<CreateEquipamentoPayload>;
+
+export type CreateProficienciaPayload = {
+  codigo: string;
+  nome: string;
+  descricao?: string | null;
+  tipo: string;
+  categoria: string;
+  subtipo?: string | null;
+};
+
+export type UpdateProficienciaPayload = Partial<CreateProficienciaPayload>;
+
+export type CreateTipoGrauPayload = {
+  codigo: string;
+  nome: string;
+  descricao?: string | null;
+};
+
+export type UpdateTipoGrauPayload = Partial<CreateTipoGrauPayload>;
+
+export type CondicaoCatalogo = {
+  id: number;
+  nome: string;
+  descricao: string;
+  _count?: {
+    condicoesPersonagemSessao: number;
+  };
+};
+
+export type CreateCondicaoPayload = {
+  nome: string;
+  descricao: string;
+};
+
+export type UpdateCondicaoPayload = Partial<CreateCondicaoPayload>;
 
 export type CreateTecnicaPayload = ConteudoComFonte & {
   codigo: string;
@@ -339,6 +376,9 @@ export type AdminModuloSuplemento =
   | 'trilhas'
   | 'caminhos'
   | 'origens'
+  | 'proficiencias'
+  | 'tipos-grau'
+  | 'condicoes'
   | 'habilidades'
   | 'equipamentos'
   | 'tecnicas-amaldicoadas';
@@ -349,6 +389,9 @@ export type ConteudoModuloMap = {
   trilhas: TrilhaCatalogo;
   caminhos: CaminhoCatalogo;
   origens: OrigemCatalogo;
+  proficiencias: ProficienciaCatalogo;
+  'tipos-grau': TipoGrauCatalogo;
+  condicoes: CondicaoCatalogo;
   habilidades: HabilidadeCatalogo;
   equipamentos: EquipamentoResumoDto | EquipamentoDetalhadoDto;
   'tecnicas-amaldicoadas': TecnicaAmaldicoadaCatalogo;
