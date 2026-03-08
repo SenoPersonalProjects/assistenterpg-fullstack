@@ -95,10 +95,21 @@ Scripts relevantes:
 - `API_VERSION` (padrao `v1`)
 - `JWT_SECRET` (obrigatorio em producao)
 - `NODE_ENV`
+- `DATABASE_URL` (obrigatorio para Prisma)
+- `PRISMA_PREBUILD_AUTO_GENERATE` (`false` desliga tentativa automatica de `prisma generate` no prebuild)
 
 ### Frontend
 
 - `NEXT_PUBLIC_API_URL` (padrao: `http://localhost:3000`)
+
+## 3.4 Notas de build
+
+- backend:
+  - `npm run build` executa `prebuild` e valida Prisma Client antes de compilar
+  - se o client estiver desatualizado, o script tenta `prisma generate` (quando `PRISMA_PREBUILD_AUTO_GENERATE != false`)
+- frontend:
+  - rotas do compendio usam fallback seguro quando a API estiver indisponivel durante build SSR
+  - em indisponibilidade de API, `/compendio` renderiza estado vazio em vez de quebrar o `next build`
 
 ## 4. Contrato HTTP global
 
@@ -121,12 +132,15 @@ Protecao de rotas:
   - `POST /suplementos`
   - `PATCH /suplementos/:id`
   - `DELETE /suplementos/:id`
+  - rotas de escrita de `equipamentos`
+  - rotas de escrita de `modificacoes`
+  - rotas de escrita de `compendio` (categorias/subcategorias/artigos)
 
 Observacoes importantes:
 
-- `modificacoes` (create/update/delete) ainda estao apenas com JWT (sem `AdminGuard`)
-- `compendio` esta sem guard ativo no controller (CRUD e leitura publicos no estado atual)
-- `equipamentos` esta sem guard no controller (leitura e escrita publicas no estado atual)
+- `equipamentos`: leitura publica; escrita com `JWT+Admin`
+- `modificacoes`: leitura com `JWT`; escrita com `JWT+Admin`
+- `compendio`: leitura publica; escrita com `JWT+Admin`
 
 ## 4.2 Formato padrao de erro
 
@@ -300,17 +314,19 @@ Tipos de resposta:
 
 ## 5.7 Equipamentos
 
-Rotas atuais `Auth: Publica`:
+Rotas:
 
-- `GET /equipamentos`
-  - query: [`FiltrarEquipamentosDto`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.ts)
-  - resposta: `{ dados, paginacao }`
-- `GET /equipamentos/:id`
-- `GET /equipamentos/codigo/:codigo`
-- `POST /equipamentos`
-  - body: [`CriarEquipamentoDto`](../assistenterpg-back/src/equipamentos/dto/criar-equipamento.dto.ts)
-- `PUT /equipamentos/:id`
-- `DELETE /equipamentos/:id`
+- leitura:
+  - `GET /equipamentos` - `Auth: Publica`
+    - query: [`FiltrarEquipamentosDto`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.ts)
+    - resposta: `{ dados, paginacao }`
+  - `GET /equipamentos/:id` - `Auth: Publica`
+  - `GET /equipamentos/codigo/:codigo` - `Auth: Publica`
+- escrita:
+  - `POST /equipamentos` - `Auth: JWT+Admin`
+    - body: [`CriarEquipamentoDto`](../assistenterpg-back/src/equipamentos/dto/criar-equipamento.dto.ts)
+  - `PUT /equipamentos/:id` - `Auth: JWT+Admin`
+  - `DELETE /equipamentos/:id` - `Auth: JWT+Admin`
 
 Regras importantes:
 
@@ -319,17 +335,19 @@ Regras importantes:
 
 ## 5.8 Modificacoes
 
-Rotas `Auth: JWT` (inclusive create/update/delete no estado atual):
+Rotas:
 
-- `GET /modificacoes`
-  - query: [`FiltrarModificacoesDto`](../assistenterpg-back/src/modificacoes/dto/filtrar-modificacoes.dto.ts)
-  - resposta: `{ dados, paginacao }`
-- `GET /modificacoes/:id`
-- `GET /modificacoes/equipamento/:equipamentoId/compativeis`
-- `POST /modificacoes`
-  - body: [`CreateModificacaoDto`](../assistenterpg-back/src/modificacoes/dto/create-modificacao.dto.ts)
-- `PATCH /modificacoes/:id`
-- `DELETE /modificacoes/:id`
+- leitura:
+  - `GET /modificacoes` - `Auth: JWT`
+    - query: [`FiltrarModificacoesDto`](../assistenterpg-back/src/modificacoes/dto/filtrar-modificacoes.dto.ts)
+    - resposta: `{ dados, paginacao }`
+  - `GET /modificacoes/:id` - `Auth: JWT`
+  - `GET /modificacoes/equipamento/:equipamentoId/compativeis` - `Auth: JWT`
+- escrita:
+  - `POST /modificacoes` - `Auth: JWT+Admin`
+    - body: [`CreateModificacaoDto`](../assistenterpg-back/src/modificacoes/dto/create-modificacao.dto.ts)
+  - `PATCH /modificacoes/:id` - `Auth: JWT+Admin`
+  - `DELETE /modificacoes/:id` - `Auth: JWT+Admin`
 
 Regras importantes:
 
@@ -390,29 +408,34 @@ Regras importantes:
 
 ## 5.11 Compendio
 
-Rotas atuais `Auth: Publica`:
+Rotas:
 
-- categorias:
-  - `GET /compendio/categorias`
-  - `GET /compendio/categorias/codigo/:codigo`
-  - `POST /compendio/categorias`
-  - `PUT /compendio/categorias/:id`
-  - `DELETE /compendio/categorias/:id`
-- subcategorias:
-  - `GET /compendio/categorias/:categoriaId/subcategorias`
-  - `GET /compendio/subcategorias/codigo/:codigo`
-  - `POST /compendio/subcategorias`
-  - `PUT /compendio/subcategorias/:id`
-  - `DELETE /compendio/subcategorias/:id`
-- artigos:
-  - `GET /compendio/artigos`
-  - `GET /compendio/artigos/codigo/:codigo`
-  - `POST /compendio/artigos`
-  - `PUT /compendio/artigos/:id`
-  - `DELETE /compendio/artigos/:id`
-- busca:
-  - `GET /compendio/buscar?q=...` (minimo 3 caracteres)
-  - `GET /compendio/destaques`
+- leitura (publica):
+  - categorias:
+    - `GET /compendio/categorias`
+    - `GET /compendio/categorias/codigo/:codigo`
+  - subcategorias:
+    - `GET /compendio/categorias/:categoriaId/subcategorias`
+    - `GET /compendio/subcategorias/codigo/:codigo`
+  - artigos:
+    - `GET /compendio/artigos`
+    - `GET /compendio/artigos/codigo/:codigo`
+  - busca:
+    - `GET /compendio/buscar?q=...` (minimo 3 caracteres)
+    - `GET /compendio/destaques`
+- escrita (admin):
+  - categorias:
+    - `POST /compendio/categorias` - `Auth: JWT+Admin`
+    - `PUT /compendio/categorias/:id` - `Auth: JWT+Admin`
+    - `DELETE /compendio/categorias/:id` - `Auth: JWT+Admin`
+  - subcategorias:
+    - `POST /compendio/subcategorias` - `Auth: JWT+Admin`
+    - `PUT /compendio/subcategorias/:id` - `Auth: JWT+Admin`
+    - `DELETE /compendio/subcategorias/:id` - `Auth: JWT+Admin`
+  - artigos:
+    - `POST /compendio/artigos` - `Auth: JWT+Admin`
+    - `PUT /compendio/artigos/:id` - `Auth: JWT+Admin`
+    - `DELETE /compendio/artigos/:id` - `Auth: JWT+Admin`
 
 Comportamento esperado:
 
@@ -599,13 +622,23 @@ Impacto:
 - requests validos continuam funcionando
 - payloads invalidos passam a falhar mais cedo com erro estruturado
 
+Correcoes adicionais aplicadas apos a consolidacao inicial:
+
+- frontend compendio:
+  - [`assistenterpg-front/src/lib/utils/compendio.ts`](../assistenterpg-front/src/lib/utils/compendio.ts) agora trata indisponibilidade da API com fallback seguro
+  - buscas por codigo retornam `null` em fallback/404 para alinhar com as paginas dinamicas
+  - [`assistenterpg-front/src/app/compendio/page.tsx`](../assistenterpg-front/src/app/compendio/page.tsx) exibe estado vazio amigavel quando API nao responde no build
+- backend prebuild Prisma:
+  - [`assistenterpg-back/scripts/check-prisma-client.js`](../assistenterpg-back/scripts/check-prisma-client.js) foi corrigido para remover bloco duplicado que quebrava `npm run build`
+- backend autorizacao de escrita:
+  - [`assistenterpg-back/src/modificacoes/modificacoes.controller.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.ts): create/update/delete agora exigem `JWT+Admin`
+  - [`assistenterpg-back/src/equipamentos/equipamentos.controller.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.ts): create/update/delete agora exigem `JWT+Admin`
+  - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
+
 ## 8.3 Pontos de atencao (nao alterados para evitar quebra)
 
-- autorizacao:
-  - `modificacoes` create/update/delete ainda sem `AdminGuard`
-  - `equipamentos` sem guard no controller
-  - `compendio` com guards comentados
 - padrao de paginacao ainda heterogeneo no backend
+- backend ainda falha em `npm run lint` por alto volume de pendencias antigas de tipagem/estilo
 - ha comentarios de debug antigos em alguns controllers/services (nao afetam contrato)
 
 ## 9. Guia rapido de requests (exemplos)
@@ -682,4 +715,3 @@ Retorno esperado:
 
 - Nao criar documentacao paralela em `assistenterpg-back/docs` ou `assistenterpg-front/backend_docs`.
 - Toda alteracao de contrato/front/back deve atualizar este arquivo.
-

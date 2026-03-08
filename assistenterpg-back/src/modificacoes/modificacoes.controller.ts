@@ -17,6 +17,7 @@ import { ModificacoesService } from './modificacoes.service';
 import { FiltrarModificacoesDto } from './dto/filtrar-modificacoes.dto';
 import { CreateModificacaoDto } from './dto/create-modificacao.dto';
 import { UpdateModificacaoDto } from './dto/update-modificacao.dto';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @Controller('modificacoes')
 export class ModificacoesController {
@@ -63,13 +64,11 @@ export class ModificacoesController {
   // ========================================
   // ✅ ROTAS ADMIN (requerem AdminGuard)
   // ========================================
-  // TODO: Adicionar @UseGuards(AdminGuard) quando implementar
-
   /**
    * CREATE - Criar nova modificação (ADMIN)
    */
   @Post()
-  @UseGuards(AuthGuard('jwt')) // TODO: Adicionar AdminGuard
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   create(@Body() createDto: CreateModificacaoDto) {
     return this.modificacoesService.create(createDto);
   }
@@ -78,7 +77,7 @@ export class ModificacoesController {
    * UPDATE - Atualizar modificação (ADMIN)
    */
   @Patch(':id')
-  @UseGuards(AuthGuard('jwt')) // TODO: Adicionar AdminGuard
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateModificacaoDto,
@@ -90,7 +89,7 @@ export class ModificacoesController {
    * DELETE - Remover modificação (ADMIN)
    */
   @Delete(':id')
-  @UseGuards(AuthGuard('jwt')) // TODO: Adicionar AdminGuard
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.modificacoesService.remove(id);
   }

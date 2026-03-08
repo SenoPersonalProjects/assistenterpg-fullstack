@@ -12,11 +12,14 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { EquipamentosService } from './equipamentos.service';
 import { FiltrarEquipamentosDto } from './dto/filtrar-equipamentos.dto';
 import { CriarEquipamentoDto } from './dto/criar-equipamento.dto';
 import { AtualizarEquipamentoDto } from './dto/atualizar-equipamento.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @Controller('equipamentos')
 export class EquipamentosController {
@@ -55,6 +58,7 @@ export class EquipamentosController {
    * Cria um novo equipamento
    */
   @Post()
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @HttpCode(HttpStatus.CREATED)
   async criar(@Body() data: CriarEquipamentoDto) {
     return this.equipamentosService.criar(data);
@@ -65,6 +69,7 @@ export class EquipamentosController {
    * Atualiza um equipamento existente
    */
   @Put(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async atualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() data: AtualizarEquipamentoDto,
@@ -77,6 +82,7 @@ export class EquipamentosController {
    * Deleta um equipamento (se não estiver em uso)
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async deletar(@Param('id', ParseIntPipe) id: number) {
     await this.equipamentosService.deletar(id);

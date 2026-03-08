@@ -19,7 +19,8 @@ import { UpdateSubcategoriaDto } from './dto/update-subcategoria.dto';
 import { CreateArtigoDto } from './dto/create-artigo.dto';
 import { UpdateArtigoDto } from './dto/update-artigo.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
-// import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // ✅ Descomentar quando tiver auth
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 @Controller('compendio')
 export class CompendioController {
@@ -46,13 +47,13 @@ export class CompendioController {
   }
 
   @Post('categorias')
-  // @UseGuards(JwtAuthGuard) // ✅ Descomentar para proteger rota
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async criarCategoria(@Body() dto: CreateCategoriaDto) {
     return this.compendioService.criarCategoria(dto);
   }
 
   @Put('categorias/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async atualizarCategoria(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCategoriaDto,
@@ -61,7 +62,7 @@ export class CompendioController {
   }
 
   @Delete('categorias/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async removerCategoria(@Param('id', ParseIntPipe) id: number) {
     return this.compendioService.removerCategoria(id);
   }
@@ -89,13 +90,13 @@ export class CompendioController {
   }
 
   @Post('subcategorias')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async criarSubcategoria(@Body() dto: CreateSubcategoriaDto) {
     return this.compendioService.criarSubcategoria(dto);
   }
 
   @Put('subcategorias/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async atualizarSubcategoria(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSubcategoriaDto,
@@ -104,7 +105,7 @@ export class CompendioController {
   }
 
   @Delete('subcategorias/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async removerSubcategoria(@Param('id', ParseIntPipe) id: number) {
     return this.compendioService.removerSubcategoria(id);
   }
@@ -133,13 +134,13 @@ export class CompendioController {
   }
 
   @Post('artigos')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async criarArtigo(@Body() dto: CreateArtigoDto) {
     return this.compendioService.criarArtigo(dto);
   }
 
   @Put('artigos/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async atualizarArtigo(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateArtigoDto,
@@ -148,7 +149,7 @@ export class CompendioController {
   }
 
   @Delete('artigos/:id')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async removerArtigo(@Param('id', ParseIntPipe) id: number) {
     return this.compendioService.removerArtigo(id);
   }

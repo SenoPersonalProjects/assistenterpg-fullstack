@@ -1,6 +1,6 @@
 // lib/api/compendio.ts
 /**
- * API do Compêndio (regras, artigos, categorias)
+ * API do Compendio (regras, artigos, categorias)
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -86,6 +86,16 @@ class ApiError extends Error {
   }
 }
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+function logCompendioWarning(context: string, error: unknown): void {
+  // Keep compendio pages renderable when API is temporarily unavailable.
+  console.warn(`[compendio] ${context}: ${errorMessage(error)}`);
+}
+
 async function parseApiError(
   res: Response,
   fallback: string,
@@ -102,43 +112,64 @@ async function parseApiError(
 }
 
 /* ============================================================================ */
-/* FUNÇÕES DA API */
+/* FUNCOES DA API */
 /* ============================================================================ */
 
 /**
  * Lista todas as categorias com subcategorias (cache: 5min)
  */
 export async function apiListarCategorias(): Promise<CompendioCategoria[]> {
-  const res = await fetch(`${API_BASE_URL}/compendio/categorias`, {
-    cache: 'default',
-    next: { revalidate: 300 },
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}/compendio/categorias`, {
+      cache: 'default',
+      next: { revalidate: 300 },
+    });
 
-  if (!res.ok) {
-    const { message, body } = await parseApiError(res, 'Falha ao carregar categorias');
-    throw new ApiError(message, res.status, body);
+    if (!res.ok) {
+      const { message, body } = await parseApiError(
+        res,
+        'Falha ao carregar categorias',
+      );
+      throw new ApiError(message, res.status, body);
+    }
+
+    return res.json();
+  } catch (error) {
+    logCompendioWarning('Falha ao carregar categorias; usando lista vazia', error);
+    return [];
   }
-
-  return res.json();
 }
 
 /**
- * Busca categoria específica por código (cache: 1min)
+ * Busca categoria especifica por codigo (cache: 1min)
  */
 export async function apiBuscarCategoriaPorCodigo(
   codigo: string,
-): Promise<CompendioCategoria> {
-  const res = await fetch(`${API_BASE_URL}/compendio/categorias/codigo/${codigo}`, {
-    cache: 'default',
-    next: { revalidate: 60 },
-  });
+): Promise<CompendioCategoria | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/compendio/categorias/codigo/${codigo}`, {
+      cache: 'default',
+      next: { revalidate: 60 },
+    });
 
-  if (!res.ok) {
-    const { message, body } = await parseApiError(res, `Categoria "${codigo}" não encontrada`);
-    throw new ApiError(message, res.status, body);
+    if (!res.ok) {
+      if (res.status === 404) return null;
+
+      const { message, body } = await parseApiError(
+        res,
+        `Categoria "${codigo}" nao encontrada`,
+      );
+      throw new ApiError(message, res.status, body);
+    }
+
+    return res.json();
+  } catch (error) {
+    logCompendioWarning(
+      `Falha ao buscar categoria "${codigo}"; retornando nulo`,
+      error,
+    );
+    return null;
   }
-
-  return res.json();
 }
 
 /**
@@ -153,28 +184,9 @@ export async function apiListarSubcategorias(
   });
 
   if (!res.ok) {
-    const { message, body } = await parseApiError(res, 'Falha ao carregar subcategorias');
-    throw new ApiError(message, res.status, body);
-  }
-
-  return res.json();
-}
-
-/**
- * Busca subcategoria por código (cache: 1min)
- */
-export async function apiBuscarSubcategoriaPorCodigo(
-  codigo: string,
-): Promise<CompendioSubcategoriaComArtigo> {
-  const res = await fetch(`${API_BASE_URL}/compendio/subcategorias/codigo/${codigo}`, {
-    cache: 'default',
-    next: { revalidate: 60 },
-  });
-
-  if (!res.ok) {
     const { message, body } = await parseApiError(
       res,
-      `Subcategoria "${codigo}" não encontrada`,
+      'Falha ao carregar subcategorias',
     );
     throw new ApiError(message, res.status, body);
   }
@@ -183,57 +195,117 @@ export async function apiBuscarSubcategoriaPorCodigo(
 }
 
 /**
- * Busca artigo completo por código (cache: 10min)
+ * Busca subcategoria por codigo (cache: 1min)
  */
-export async function apiBuscarArtigoPorCodigo(codigo: string): Promise<CompendioArtigoCompleto> {
-  const res = await fetch(`${API_BASE_URL}/compendio/artigos/codigo/${codigo}`, {
-    cache: 'default',
-    next: { revalidate: 600 },
-  });
+export async function apiBuscarSubcategoriaPorCodigo(
+  codigo: string,
+): Promise<CompendioSubcategoriaComArtigo | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/compendio/subcategorias/codigo/${codigo}`, {
+      cache: 'default',
+      next: { revalidate: 60 },
+    });
 
-  if (!res.ok) {
-    const { message, body } = await parseApiError(res, `Artigo "${codigo}" não encontrado`);
-    throw new ApiError(message, res.status, body);
+    if (!res.ok) {
+      if (res.status === 404) return null;
+
+      const { message, body } = await parseApiError(
+        res,
+        `Subcategoria "${codigo}" nao encontrada`,
+      );
+      throw new ApiError(message, res.status, body);
+    }
+
+    return res.json();
+  } catch (error) {
+    logCompendioWarning(
+      `Falha ao buscar subcategoria "${codigo}"; retornando nulo`,
+      error,
+    );
+    return null;
   }
+}
 
-  return res.json();
+/**
+ * Busca artigo completo por codigo (cache: 10min)
+ */
+export async function apiBuscarArtigoPorCodigo(
+  codigo: string,
+): Promise<CompendioArtigoCompleto | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/compendio/artigos/codigo/${codigo}`, {
+      cache: 'default',
+      next: { revalidate: 600 },
+    });
+
+    if (!res.ok) {
+      if (res.status === 404) return null;
+
+      const { message, body } = await parseApiError(
+        res,
+        `Artigo "${codigo}" nao encontrado`,
+      );
+      throw new ApiError(message, res.status, body);
+    }
+
+    return res.json();
+  } catch (error) {
+    logCompendioWarning(
+      `Falha ao buscar artigo "${codigo}"; retornando nulo`,
+      error,
+    );
+    return null;
+  }
 }
 
 /**
  * Lista artigos em destaque (cache: 5min)
  */
 export async function apiListarDestaques(): Promise<CompendioArtigoCompleto[]> {
-  const res = await fetch(`${API_BASE_URL}/compendio/destaques`, {
-    cache: 'default',
-    next: { revalidate: 300 },
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}/compendio/destaques`, {
+      cache: 'default',
+      next: { revalidate: 300 },
+    });
 
-  if (!res.ok) {
-    const { message, body } = await parseApiError(res, 'Falha ao carregar destaques');
-    throw new ApiError(message, res.status, body);
+    if (!res.ok) {
+      const { message, body } = await parseApiError(
+        res,
+        'Falha ao carregar destaques',
+      );
+      throw new ApiError(message, res.status, body);
+    }
+
+    return res.json();
+  } catch (error) {
+    logCompendioWarning('Falha ao carregar destaques; usando lista vazia', error);
+    return [];
   }
-
-  return res.json();
 }
 
 /**
- * Busca artigos por termo (NO cache)
+ * Busca artigos por termo (no cache)
  */
 export async function apiBuscarCompendio(query: string): Promise<CompendioArtigoCompleto[]> {
   if (!query || query.trim().length < 3) {
     return [];
   }
 
-  const res = await fetch(`${API_BASE_URL}/compendio/buscar?q=${encodeURIComponent(query)}`, {
-    cache: 'no-store',
-  });
+  try {
+    const res = await fetch(`${API_BASE_URL}/compendio/buscar?q=${encodeURIComponent(query)}`, {
+      cache: 'no-store',
+    });
 
-  if (!res.ok) {
-    const { message, body } = await parseApiError(res, 'Falha na busca');
-    throw new ApiError(message, res.status, body);
+    if (!res.ok) {
+      const { message, body } = await parseApiError(res, 'Falha na busca');
+      throw new ApiError(message, res.status, body);
+    }
+
+    return res.json();
+  } catch (error) {
+    logCompendioWarning('Falha na busca do compendio; usando lista vazia', error);
+    return [];
   }
-
-  return res.json();
 }
 
 /**
