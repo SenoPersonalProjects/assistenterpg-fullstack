@@ -434,6 +434,51 @@ Regras importantes:
 - valida `fonte` x `suplementoId`
 - impede delete se equipamento estiver em uso
 
+Detalhamento:
+
+- leitura publica
+  - `GET /equipamentos`
+    - query: [`FiltrarEquipamentosDto`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.ts)
+      - `tipo`, `complexidadeMaldicao`, `proficienciaArma`, `proficienciaProtecao`, `alcance`, `tipoAcessorio`
+      - `categoria` inteiro `0..4`
+      - `fontes` como lista (ex.: `SISTEMA_BASE,SUPLEMENTO`)
+      - `suplementoId` inteiro `>= 1`
+      - `apenasAmaldicoados` boolean (`true/false`, `1/0`, `yes/no`, `on/off`)
+      - `busca` textual
+      - `pagina` (default `1`) e `limite` (default `20`, max `100`)
+    - resposta: envelope `{ dados, paginacao }`
+      - `dados`: lista de [`EquipamentoResumoDto`](../assistenterpg-back/src/equipamentos/dto/equipamento-resumo.dto.ts)
+      - `paginacao`: `{ pagina, limite, total, totalPaginas }`
+  - `GET /equipamentos/:id`
+  - `GET /equipamentos/codigo/:codigo`
+    - resposta: [`EquipamentoDetalhadoDto`](../assistenterpg-back/src/equipamentos/dto/equipamento-detalhado.dto.ts)
+    - erro esperado: `EQUIPAMENTO_NOT_FOUND` (404)
+- escrita admin (`Auth: JWT+Admin`)
+  - `POST /equipamentos`
+    - body: [`CriarEquipamentoDto`](../assistenterpg-back/src/equipamentos/dto/criar-equipamento.dto.ts)
+    - defaults de criacao relevantes:
+      - `fonte`: `SISTEMA_BASE` quando `suplementoId` nao e informado
+      - `complexidadeMaldicao`: `NENHUMA`
+      - `categoria`: `CATEGORIA_0`
+      - `espacos`: `1`
+  - `PUT /equipamentos/:id`
+    - body parcial: [`AtualizarEquipamentoDto`](../assistenterpg-back/src/equipamentos/dto/atualizar-equipamento.dto.ts)
+  - `DELETE /equipamentos/:id`
+    - sucesso: `204 No Content`
+- regras de consistencia backend
+  - quando `suplementoId` e informado, `fonte` deve ser `SUPLEMENTO`
+  - quando `fonte=SUPLEMENTO`, `suplementoId` e obrigatorio
+- erros esperados
+  - `EQUIPAMENTO_NOT_FOUND` (404)
+  - `EQUIPAMENTO_CODIGO_DUPLICADO` (422)
+  - `EQUIPAMENTO_EM_USO` (422)
+  - `SUPLEMENTO_NOT_FOUND` (404)
+  - `BadRequestException` (400) para combinacao invalida de `fonte`/`suplementoId`
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/equipamentos.ts`](../assistenterpg-front/src/lib/api/equipamentos.ts) cobre leitura e normalizacao da listagem (`normalizeListResult`), alem da consulta por `id` e por `codigo`.
+
 ## 5.8 Modificacoes
 
 Rotas:
@@ -455,6 +500,47 @@ Regras importantes:
 - valida restricoes por tipo/categoria/complexidade
 - valida conflitos entre modificacoes
 - impede delete em uso
+
+Detalhamento:
+
+- leitura (`Auth: JWT`)
+  - `GET /modificacoes`
+    - query: [`FiltrarModificacoesDto`](../assistenterpg-back/src/modificacoes/dto/filtrar-modificacoes.dto.ts)
+      - `tipo`, `fontes`, `suplementoId`, `busca`, `pagina`, `limite`
+      - `fontes` aceita lista separada por virgula
+      - `pagina` default `1`; `limite` default `50` (max `100`)
+    - resposta: envelope `{ dados, paginacao }`
+      - `dados`: lista de [`ModificacaoDetalhadaDto`](../assistenterpg-back/src/modificacoes/dto/modificacao-detalhada.dto.ts)
+  - `GET /modificacoes/:id`
+    - erro esperado: `MODIFICACAO_NOT_FOUND` (404)
+  - `GET /modificacoes/equipamento/:equipamentoId/compativeis`
+    - valida existencia do equipamento base
+    - retorna apenas modificacoes que passam em `validarRestricoes(...)`
+    - erro esperado: `MODIFICACAO_EQUIPAMENTO_NOT_FOUND` (404)
+- escrita admin (`Auth: JWT+Admin`)
+  - `POST /modificacoes`
+    - body: [`CreateModificacaoDto`](../assistenterpg-back/src/modificacoes/dto/create-modificacao.dto.ts)
+    - campos relevantes:
+      - `codigo`, `nome`, `tipo`, `incrementoEspacos` obrigatorios
+      - `restricoes` e `efeitosMecanicos` como JSON livre
+      - `equipamentosCompatíveisIds` opcional para vinculos iniciais
+  - `PATCH /modificacoes/:id`
+    - body parcial: [`UpdateModificacaoDto`](../assistenterpg-back/src/modificacoes/dto/update-modificacao.dto.ts)
+    - quando `equipamentosCompatíveisIds` e enviado:
+      - lista substitui os vinculos atuais (inclusive `[]` para limpar)
+  - `DELETE /modificacoes/:id`
+    - sucesso: `{ "message": "Modificacao removida com sucesso" }`
+- erros esperados
+  - `MODIFICACAO_NOT_FOUND` (404)
+  - `MODIFICACAO_CODIGO_DUPLICADO` (422)
+  - `MODIFICACAO_SUPLEMENTO_NOT_FOUND` (404)
+  - `MODIFICACAO_FONTE_INVALIDA` (422)
+  - `MODIFICACAO_EQUIPAMENTOS_INVALIDOS` (404)
+  - `MODIFICACAO_EM_USO` (422)
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/modificacoes.ts`](../assistenterpg-front/src/lib/api/modificacoes.ts) cobre listagem, detalhe e compativeis por equipamento, com mapeamento de campos de `restricoes` para o shape de UI (`apenasAmaldicoadas`, `requerComplexidade`).
 
 ## 5.9 Suplementos
 
@@ -1266,9 +1352,11 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
 - backend contrato de filtros (suplementos/homebrews):
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
   - [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): `usuarioId`, `pagina` e `limite` agora exigem `>= 1`
+- backend contrato de filtros (equipamentos):
+  - [`assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.ts`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.ts): parse de `apenasAmaldicoados` em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
 - testes de DTO:
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts) cobre parse de boolean, rejeicao de valor invalido e validacao de `claId/suplementoId`
-  - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts) cobrem parse de boolean e limites minimos de filtros
+  - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts), [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts) e [`assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts) cobrem parse de boolean e limites minimos de filtros
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
 - baseline de lint no backend:
