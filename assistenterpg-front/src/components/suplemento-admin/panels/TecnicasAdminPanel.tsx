@@ -15,6 +15,7 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
+import { TecnicaHabilidadesModal } from './TecnicaHabilidadesModal';
 import { FONTE_OPTIONS, fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
   apiAdminGetTecnicasAmaldicoadas,
@@ -356,6 +357,8 @@ export function TecnicasAdminPanel() {
   const [appliedFilters, setAppliedFilters] = useState<DraftFilters>(INITIAL_DRAFT_FILTERS);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TecnicaAmaldicoadaCatalogo | null>(null);
+  const [habilidadesModalOpen, setHabilidadesModalOpen] = useState(false);
+  const [habilidadesItem, setHabilidadesItem] = useState<TecnicaAmaldicoadaCatalogo | null>(null);
 
   const suplementosById = useMemo(() => {
     const map = new Map<number, string>();
@@ -568,17 +571,30 @@ export function TecnicasAdminPanel() {
                       </td>
                       <td className="py-3 pr-2 text-app-fg">{formatClasHereditarios(item)}</td>
                       <td className="py-3 text-right">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setEditingItem(item);
-                            setModalOpen(true);
-                          }}
-                        >
-                          <Icon name="edit" className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
+                        <div className="inline-flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setEditingItem(item);
+                              setModalOpen(true);
+                            }}
+                          >
+                            <Icon name="edit" className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setHabilidadesItem(item);
+                              setHabilidadesModalOpen(true);
+                            }}
+                          >
+                            <Icon name="technique" className="w-4 h-4 mr-1" />
+                            Habilidades
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -598,6 +614,16 @@ export function TecnicasAdminPanel() {
         }}
         tecnica={editingItem}
         suplementos={suplementos}
+      />
+
+      <TecnicaHabilidadesModal
+        isOpen={habilidadesModalOpen}
+        tecnica={habilidadesItem}
+        onClose={(success) => {
+          setHabilidadesModalOpen(false);
+          setHabilidadesItem(null);
+          if (success) carregarDados();
+        }}
       />
     </div>
   );
