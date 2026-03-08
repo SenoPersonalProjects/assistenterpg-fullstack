@@ -1,8 +1,30 @@
 // src/suplementos/dto/filtrar-suplementos.dto.ts
 
 import { IsOptional, IsString, IsEnum, IsBoolean } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { StatusPublicacao } from '@prisma/client';
+
+const parseBooleanQueryValue = ({ value }: { value: unknown }): unknown => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+      return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return value;
+};
 
 export class FiltrarSuplementosDto {
   @IsOptional()
@@ -23,6 +45,6 @@ export class FiltrarSuplementosDto {
 
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
-  apenasAtivos?: boolean; // Filtrar apenas suplementos ativos do usuário
+  @Transform(parseBooleanQueryValue)
+  apenasAtivos?: boolean;
 }

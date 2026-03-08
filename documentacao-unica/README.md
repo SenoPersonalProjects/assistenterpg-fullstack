@@ -382,6 +382,47 @@ Regra de negocio:
 - usuario so ativa suplemento `PUBLICADO`
 - delete admin falha se houver conteudo vinculado (classes, origens, habilidades etc)
 
+Detalhamento:
+
+- listagem e consulta (`Auth: JWT`)
+  - `GET /suplementos`
+    - query: [`FiltrarSuplementosDto`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts)
+      - `nome`, `codigo`, `status`, `autor`, `apenasAtivos`
+      - `apenasAtivos` aceita `true/false`, `1/0`, `yes/no`, `on/off`
+    - resposta: array de [`SuplementoCatalogoDto`](../assistenterpg-back/src/suplementos/dto/suplemento-catalogo.dto.ts) ordenado por `nome`
+    - quando autenticado, cada item pode incluir `ativo` (suplemento ativo para o usuario)
+  - `GET /suplementos/:id`
+  - `GET /suplementos/codigo/:codigo`
+  - erros esperados: `SUPLEMENTO_NOT_FOUND` (404)
+- ativacao/desativacao do usuario (`Auth: JWT`)
+  - `GET /suplementos/me/ativos`
+    - retorna apenas suplementos `PUBLICADO` ativos para o usuario
+  - `POST /suplementos/:id/ativar`
+    - sucesso: `{ "message": "Suplemento ativado com sucesso" }`
+    - erros esperados:
+      - `SUPLEMENTO_NOT_FOUND` (404)
+      - `SUPLEMENTO_NAO_PUBLICADO` (422)
+      - `SUPLEMENTO_JA_ATIVO` (422)
+  - `DELETE /suplementos/:id/desativar`
+    - sucesso: `{ "message": "Suplemento desativado com sucesso" }`
+    - erro esperado: `SUPLEMENTO_NAO_ATIVO` (404)
+- admin (`Auth: JWT+Admin`)
+  - `POST /suplementos`
+    - body: [`CreateSuplementoDto`](../assistenterpg-back/src/suplementos/dto/create-suplemento.dto.ts)
+      - `codigo`, `nome` obrigatorios
+      - `descricao`, `versao`, `status`, `icone`, `banner`, `tags`, `autor` opcionais
+    - erro esperado: `SUPLEMENTO_CODIGO_DUPLICADO` (422)
+  - `PATCH /suplementos/:id`
+    - body parcial: [`UpdateSuplementoDto`](../assistenterpg-back/src/suplementos/dto/update-suplemento.dto.ts)
+  - `DELETE /suplementos/:id`
+    - bloqueia exclusao quando houver conteudo vinculado
+    - erros esperados: `SUPLEMENTO_NOT_FOUND` (404), `SUPLEMENTO_COM_CONTEUDO_VINCULADO` (422)
+    - sucesso: `{ "message": "Suplemento deletado com sucesso" }`
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/suplementos.ts`](../assistenterpg-front/src/lib/api/suplementos.ts) cobre leitura, ativacao/desativacao e CRUD admin de suplementos.
+
 ## 5.10 Homebrews
 
 Controller com `AuthGuard('jwt')` (`Auth: JWT`):
@@ -407,6 +448,47 @@ Regras importantes:
 - leitura para nao admin: somente `PUBLICADO` ou proprio autor
 - publicar/arquivar requer dono ou admin
 - `dados` varia por tipo e passa por validacao especializada
+
+Detalhamento:
+
+- listagem (`Auth: JWT`)
+  - `GET /homebrews`
+  - `GET /homebrews/meus`
+  - query: [`FiltrarHomebrewsDto`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts)
+    - `nome`, `tipo`, `status`, `usuarioId`, `apenasPublicados`, `pagina`, `limite`
+    - `apenasPublicados` aceita `true/false`, `1/0`, `yes/no`, `on/off`
+    - `usuarioId`, `pagina`, `limite` devem ser `>= 1` quando informados
+  - resposta: envelope paginado `{ dados, paginacao }` com ordenacao por `criadoEm desc`
+- consulta (`Auth: JWT`)
+  - `GET /homebrews/:id`
+  - `GET /homebrews/codigo/:codigo`
+  - resposta: [`HomebrewDetalhadoDto`](../assistenterpg-back/src/homebrews/dto/homebrew-detalhado.dto.ts)
+  - erros esperados:
+    - `HOMEBREW_NOT_FOUND` (404)
+    - `HOMEBREW_SEM_PERMISSAO` (403) para conteudo nao publicado de outro usuario
+- criacao e edicao (`Auth: JWT`)
+  - `POST /homebrews`
+    - body: [`CreateHomebrewDto`](../assistenterpg-back/src/homebrews/dto/create-homebrew.dto.ts)
+    - `tipo` + `dados` passam por validacao especializada por categoria
+  - `PATCH /homebrews/:id`
+    - body parcial: [`UpdateHomebrewDto`](../assistenterpg-back/src/homebrews/dto/update-homebrew.dto.ts)
+    - ao alterar `dados`, a versao e incrementada automaticamente (`patch +1`)
+  - erros esperados:
+    - `HOMEBREW_DADOS_INVALIDOS` (400)
+    - `HOMEBREW_SEM_PERMISSAO` (403) para edicao sem ser dono/admin
+- ciclo de vida (`Auth: JWT`)
+  - `PATCH /homebrews/:id/publicar`
+    - erro esperado: `HOMEBREW_JA_PUBLICADO` (422)
+  - `PATCH /homebrews/:id/arquivar`
+  - ambas exigem dono ou admin
+- exclusao (`Auth: JWT`)
+  - `DELETE /homebrews/:id`
+  - exige dono ou admin
+  - erro esperado: `HOMEBREW_SEM_PERMISSAO` (403)
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/homebrews.ts`](../assistenterpg-front/src/lib/api/homebrews.ts) cobre listagem/consulta/criacao/edicao/publicacao/arquivamento/exclusao, com normalizacao de listas paginadas.
 
 ## 5.11 Compendio
 
@@ -1007,8 +1089,12 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts) e [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts): IDs agora exigem `>= 1` quando informados
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts): `PATCH /tecnicas-amaldicoadas/:id` agora valida nome duplicado e mantem consistencia de vinculos de cla ao alternar `hereditaria`
+- backend contrato de filtros (suplementos/homebrews):
+  - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
+  - [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): `usuarioId`, `pagina` e `limite` agora exigem `>= 1`
 - testes de DTO:
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts) cobre parse de boolean, rejeicao de valor invalido e validacao de `claId/suplementoId`
+  - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts) cobrem parse de boolean e limites minimos de filtros
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
 - baseline de lint no backend:

@@ -6,44 +6,66 @@ import {
   IsEnum,
   IsInt,
   IsBoolean,
+  Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { TipoHomebrewConteudo, StatusPublicacao } from '@prisma/client';
 
-/**
- * DTO para filtrar homebrews
- */
+const parseBooleanQueryValue = ({ value }: { value: unknown }): unknown => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+      return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return value;
+};
+
 export class FiltrarHomebrewsDto {
   @IsOptional()
   @IsString()
-  nome?: string; // Busca por nome (contains)
+  nome?: string;
 
   @IsOptional()
   @IsEnum(TipoHomebrewConteudo)
-  tipo?: TipoHomebrewConteudo; // Filtrar por tipo
+  tipo?: TipoHomebrewConteudo;
 
   @IsOptional()
   @IsEnum(StatusPublicacao)
-  status?: StatusPublicacao; // Filtrar por status
+  status?: StatusPublicacao;
 
   @IsOptional()
   @IsInt()
+  @Min(1)
   @Type(() => Number)
-  usuarioId?: number; // Filtrar homebrews de um usuário específico (ADMIN ou próprio usuário)
+  usuarioId?: number;
 
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
-  apenasPublicados?: boolean; // true = apenas publicados, false = todos
-
-  // ✅ PAGINAÇÃO
-  @IsOptional()
-  @IsInt()
-  @Type(() => Number)
-  pagina?: number; // Página atual (default: 1)
+  @Transform(parseBooleanQueryValue)
+  apenasPublicados?: boolean;
 
   @IsOptional()
   @IsInt()
+  @Min(1)
   @Type(() => Number)
-  limite?: number; // Itens por página (default: 20)
+  pagina?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  limite?: number;
 }
