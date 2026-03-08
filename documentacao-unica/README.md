@@ -137,12 +137,14 @@ Protecao de rotas:
   - rotas de escrita de `equipamentos`
   - rotas de escrita de `modificacoes`
   - rotas de escrita de `compendio` (categorias/subcategorias/artigos)
+  - rotas de escrita de `proficiencias`, `tipos-grau` e `condicoes`
 
 Observacoes importantes:
 
 - `equipamentos`: leitura publica; escrita com `JWT+Admin`
 - `modificacoes`: leitura com `JWT`; escrita com `JWT+Admin`
 - `compendio`: leitura publica; escrita com `JWT+Admin`
+- `proficiencias`, `tipos-grau` e `condicoes`: leitura com `JWT`; escrita com `JWT+Admin`
 
 ## 4.2 Formato padrao de erro
 
@@ -921,6 +923,7 @@ Integracao frontend:
 Auth atual:
 
 - maioria `Auth: JWT` por guard no nivel de classe
+- rotas de escrita criticas usam `Auth: JWT+Admin` (guard no metodo)
 
 Rotas principais:
 
@@ -1295,7 +1298,7 @@ Detalhamento do bloco de catalogos menores:
   - `GET /pericias/:id`
     - `id` deve ser inteiro (`ParseIntPipe`)
     - erros esperados: `PERICIA_NOT_FOUND` (404)
-- `proficiencias` (`Auth: JWT`)
+- `proficiencias` (`GET: Auth: JWT | POST/PATCH/DELETE: Auth: JWT+Admin`)
   - `POST /proficiencias`
     - body: [`CreateProficienciaDto`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts)
       - `codigo`: string obrigatoria, max 50
@@ -1317,7 +1320,7 @@ Detalhamento do bloco de catalogos menores:
     - resposta esperada: `{ "sucesso": true }`
   - observacao de erro de banco:
     - `codigo` e unico no schema; duplicidade gera `DB_UNIQUE_VIOLATION`
-- `tipos-grau` (`Auth: JWT`)
+- `tipos-grau` (`GET: Auth: JWT | POST/PATCH/DELETE: Auth: JWT+Admin`)
   - `POST /tipos-grau`
     - body: [`CreateTipoGrauDto`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts)
       - `codigo`: string obrigatoria, max 50
@@ -1336,7 +1339,7 @@ Detalhamento do bloco de catalogos menores:
     - resposta esperada: `{ "sucesso": true }`
   - observacao de erro de banco:
     - `codigo` e unico no schema; duplicidade gera `DB_UNIQUE_VIOLATION`
-- `condicoes` (`Auth: JWT`)
+- `condicoes` (`GET: Auth: JWT | POST/PATCH/DELETE: Auth: JWT+Admin`)
   - `POST /condicoes`
     - body: [`CreateCondicaoDto`](../assistenterpg-back/src/condicoes/dto/create-condicao.dto.ts)
       - `nome`: string obrigatoria, min 3, max 100
@@ -1482,6 +1485,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/equipamentos/equipamentos.controller.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
+  - [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts), [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) e [`assistenterpg-back/src/condicoes/condicoes.controller.ts`](../assistenterpg-back/src/condicoes/condicoes.controller.ts): `POST/PATCH/DELETE` agora exigem `JWT+Admin`, mantendo `GET` com `JWT`
 - backend contrato de leitura do compendio:
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): `GET /compendio/artigos` agora usa `ParseIntPipe` em `subcategoriaId`, retornando `400` para query invalida em vez de ignorar filtro silenciosamente
 - backend contrato de leitura de personagem-base:
@@ -1517,6 +1521,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts), [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts) e [`assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts) cobrem parse de boolean e limites minimos de filtros
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
+  - [`assistenterpg-back/src/proficiencias/proficiencias.controller.spec.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.spec.ts), [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.spec.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.spec.ts) e [`assistenterpg-back/src/condicoes/condicoes.controller.spec.ts`](../assistenterpg-back/src/condicoes/condicoes.controller.spec.ts) agora validam por metadata a separacao `GET=JWT` e `POST/PATCH/DELETE=JWT+Admin`
 - baseline de lint no backend:
   - [`assistenterpg-back/eslint.config.mjs`](../assistenterpg-back/eslint.config.mjs) foi ajustado para tratar `no-unsafe-*` como `warn`, permitindo `npm run lint` passar sem mascarar o debito historico
   - erros de lint de baixo esforco (imports/variaveis nao usadas, `require-await`, `no-case-declarations`) foram corrigidos em modulos afetados

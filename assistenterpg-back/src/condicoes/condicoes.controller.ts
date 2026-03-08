@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { CondicoesService } from './condicoes.service';
 import { CreateCondicaoDto } from './dto/create-condicao.dto';
 import { UpdateCondicaoDto } from './dto/update-condicao.dto';
@@ -21,6 +22,7 @@ import { UpdateCondicaoDto } from './dto/update-condicao.dto';
 export class CondicoesController {
   constructor(private readonly condicoesService: CondicoesService) {}
 
+  @UseGuards(AdminGuard)
   @Post()
   create(@Body() createCondicaoDto: CreateCondicaoDto) {
     return this.condicoesService.create(createCondicaoDto);
@@ -36,6 +38,7 @@ export class CondicoesController {
     return this.condicoesService.findOne(id);
   }
 
+  @UseGuards(AdminGuard)
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -44,6 +47,7 @@ export class CondicoesController {
     return this.condicoesService.update(id, updateCondicaoDto);
   }
 
+  @UseGuards(AdminGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.condicoesService.remove(id);

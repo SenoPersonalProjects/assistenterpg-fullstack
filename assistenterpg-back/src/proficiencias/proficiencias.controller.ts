@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { ProficienciasService } from './proficiencias.service';
 import { CreateProficienciaDto } from './dto/create-proficiencia.dto';
 import { UpdateProficienciaDto } from './dto/update-proficiencia.dto';
@@ -19,6 +20,7 @@ import { UpdateProficienciaDto } from './dto/update-proficiencia.dto';
 export class ProficienciasController {
   constructor(private readonly proficienciasService: ProficienciasService) {}
 
+  @UseGuards(AdminGuard)
   @Post()
   create(@Body() dto: CreateProficienciaDto) {
     return this.proficienciasService.create(dto);
@@ -34,6 +36,7 @@ export class ProficienciasController {
     return this.proficienciasService.findOne(id);
   }
 
+  @UseGuards(AdminGuard)
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -42,6 +45,7 @@ export class ProficienciasController {
     return this.proficienciasService.update(id, dto);
   }
 
+  @UseGuards(AdminGuard)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.proficienciasService.remove(id);
