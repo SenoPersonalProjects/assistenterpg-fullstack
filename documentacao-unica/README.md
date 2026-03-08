@@ -1535,6 +1535,9 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - validacoes de catalogo relacionadas a `fonte/suplementoId` passaram a retornar codigos de dominio (`FONTE_SUPLEMENTO_OBRIGATORIA` e `SUPLEMENTO_ID_OBRIGATORIO`) em vez de `BAD_REQUEST` generico
 - cobertura de paginacao e contrato de lista:
   - [`assistenterpg-front/src/lib/api/pagination.test.ts`](../assistenterpg-front/src/lib/api/pagination.test.ts) cobre normalizacao de envelopes `items/total/page/limit/totalPages`, `dados/paginacao` e payloads malformados
+  - [`assistenterpg-front/src/lib/utils/lista-paginada.ts`](../assistenterpg-front/src/lib/utils/lista-paginada.ts) centraliza regra de ajuste de pagina fora do range (ex.: ultima pagina fica vazia apos exclusao)
+  - [`assistenterpg-front/src/lib/utils/lista-paginada.test.ts`](../assistenterpg-front/src/lib/utils/lista-paginada.test.ts) cobre cenarios de ajuste/aplicacao de dados e normalizacao de `totalPages`
+  - [`assistenterpg-front/src/app/campanhas/page.tsx`](../assistenterpg-front/src/app/campanhas/page.tsx) e [`assistenterpg-front/src/app/personagens-base/page.tsx`](../assistenterpg-front/src/app/personagens-base/page.tsx) passaram a reutilizar a mesma regra de fallback de pagina
   - [`assistenterpg-back/src/common/dto/pagination-query.dto.spec.ts`](../assistenterpg-back/src/common/dto/pagination-query.dto.spec.ts) cobre limites de `page/limit` no DTO
   - [`assistenterpg-back/src/common/dto/pagination-query.integration.spec.ts`](../assistenterpg-back/src/common/dto/pagination-query.integration.spec.ts) valida no nivel HTTP conversao de query string para numero e retorno de `VALIDATION_ERROR` para valores fora da regra
 - backend autorizacao de escrita:

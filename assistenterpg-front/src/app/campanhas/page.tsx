@@ -22,6 +22,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { resolverListaPaginada } from '@/lib/utils/lista-paginada';
 
 export default function CampanhasPage() {
   const router = useRouter();
@@ -40,20 +41,20 @@ export default function CampanhasPage() {
     try {
       setLoading(true);
       const dados = await apiGetMinhasCampanhas({ page: paginaAtual, limit: 12 });
-      const totalPaginasCalculado = Math.max(1, dados.totalPages);
+      const listaResolvida = resolverListaPaginada(paginaAtual, {
+        items: dados.items,
+        total: dados.total,
+        totalPages: dados.totalPages,
+      });
 
-      if (
-        dados.items.length === 0 &&
-        paginaAtual > 1 &&
-        totalPaginasCalculado < paginaAtual
-      ) {
-        setPagina(totalPaginasCalculado);
+      if (listaResolvida.acao === 'ajustar-pagina') {
+        setPagina(listaResolvida.pagina);
         return;
       }
 
-      setCampanhas(dados.items);
-      setTotalCampanhas(dados.total);
-      setTotalPaginas(totalPaginasCalculado);
+      setCampanhas(listaResolvida.items);
+      setTotalCampanhas(listaResolvida.total);
+      setTotalPaginas(listaResolvida.totalPaginas);
       setErro(null);
     } catch (error) {
       const mensagem = extrairMensagemErro(error);

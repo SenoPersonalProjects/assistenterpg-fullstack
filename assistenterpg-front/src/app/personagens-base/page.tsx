@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { PersonagemBaseListItem } from '@/components/personagem-base/create/PersonagemBaseListItem';
 import { ImportarPersonagemJsonModal } from '@/components/personagem-base/create/ImportarPersonagemJsonModal';
+import { resolverListaPaginada } from '@/lib/utils/lista-paginada';
 
 function mensagemErroListaPersonagens(error: unknown, contexto: 'carregar' | 'excluir'): string {
   const status = Number(
@@ -87,20 +88,20 @@ export default function PersonagensBasePage() {
         page: paginaAtual,
         limit: 12,
       });
-      const totalPaginasCalculado = Math.max(1, personagensRes.totalPages);
+      const listaResolvida = resolverListaPaginada(paginaAtual, {
+        items: personagensRes.items,
+        total: personagensRes.total,
+        totalPages: personagensRes.totalPages,
+      });
 
-      if (
-        personagensRes.items.length === 0 &&
-        paginaAtual > 1 &&
-        totalPaginasCalculado < paginaAtual
-      ) {
-        setPagina(totalPaginasCalculado);
+      if (listaResolvida.acao === 'ajustar-pagina') {
+        setPagina(listaResolvida.pagina);
         return;
       }
 
-      setPersonagens(personagensRes.items);
-      setTotalPaginas(totalPaginasCalculado);
-      setTotalItens(personagensRes.total);
+      setPersonagens(listaResolvida.items);
+      setTotalPaginas(listaResolvida.totalPaginas);
+      setTotalItens(listaResolvida.total);
     } catch (e) {
       setErro(mensagemErroListaPersonagens(e, 'carregar'));
     } finally {
