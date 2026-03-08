@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  HttpCode,
   Get,
   HttpStatus,
   INestApplication,
   Post,
+  Param,
   ValidationPipe,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -27,6 +29,17 @@ class CampanhasErroTesteController {
   criar(@Body() body: CriarCampanhaTesteDto) {
     return { ok: true, nome: body.nome };
   }
+
+  @Get(':id')
+  buscar(@Param('id') id: string) {
+    throw new BaseException(
+      'Campanha nao encontrada',
+      HttpStatus.NOT_FOUND,
+      'CAMPANHA_NOT_FOUND',
+      { campanhaId: Number(id) },
+      'campanhaId',
+    );
+  }
 }
 
 @Controller('personagens-base')
@@ -45,6 +58,18 @@ class PersonagensErroTesteController {
 
 @Controller('inventario')
 class InventarioErroTesteController {
+  @Post('validar')
+  @HttpCode(HttpStatus.UNPROCESSABLE_ENTITY)
+  validarEspaco() {
+    throw new BaseException(
+      'Espaco insuficiente no inventario',
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'INVENTARIO_ESPACOS_INSUFICIENTES',
+      { espacosDisponiveis: 0, espacosNecessarios: 2 },
+      'espacosDisponiveis',
+    );
+  }
+
   @Get('quebra')
   quebra() {
     throw new Error('erro inesperado de inventario');
@@ -115,6 +140,60 @@ describe('ErrorContract (integration)', () => {
     expect(body.message).toBe('Acesso negado ao personagem');
     expect(body.field).toBe('personagemId');
     expect(body.details).toEqual({ personagemId: 10 });
+  });
+
+  it('should return 404 domain payload for campanhas', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/campanhas/404')
+      .expect(HttpStatus.NOT_FOUND);
+
+    const body = asBody(response.body);
+
+    expect(body.statusCode).toBe(HttpStatus.NOT_FOUND);
+    expect(body.code).toBe('CAMPANHA_NOT_FOUND');
+    expect(body.error).toBe('Not Found');
+    expect(body.message).toBe('Campanha nao encontrada');
+    expect(body.field).toBe('campanhaId');
+    expect(body.details).toEqual({ campanhaId: 404 });
+    expect(body.path).toBe('/campanhas/404');
+    expect(body.method).toBe('GET');
+  });
+
+  it('should return 422 domain payload for inventario validations', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/inventario/validar')
+      .expect(HttpStatus.UNPROCESSABLE_ENTITY);
+
+    const body = asBody(response.body);
+
+    expect(body.statusCode).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
+    expect(body.code).toBe('INVENTARIO_ESPACOS_INSUFICIENTES');
+    expect(body.error).toBe('Unprocessable Entity');
+    expect(body.message).toBe('Espaco insuficiente no inventario');
+    expect(body.field).toBe('espacosDisponiveis');
+    expect(body.details).toEqual({
+      espacosDisponiveis: 0,
+      espacosNecessarios: 2,
+    });
+    expect(body.path).toBe('/inventario/validar');
+    expect(body.method).toBe('POST');
+  });
+
+  it('should generate and echo x-request-id when header is missing', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/campanhas/999')
+      .expect(HttpStatus.NOT_FOUND);
+
+    const body = asBody(response.body);
+    const responseTrace = response.headers['x-request-id'];
+
+    expect(typeof responseTrace).toBe('string');
+    if (typeof responseTrace !== 'string') {
+      throw new Error('x-request-id ausente no response');
+    }
+    expect(responseTrace.length).toBeGreaterThan(10);
+    expect(body.traceId).toBe(responseTrace);
+    expect(body.code).toBe('CAMPANHA_NOT_FOUND');
   });
 
   it('should return INTERNAL_ERROR for unexpected exceptions', async () => {
