@@ -16,6 +16,15 @@ Cobertura desta documentacao:
 - comportamentos esperados e regras de negocio
 - comportamento de integracao do frontend com o backend
 
+## 1.1 Navegacao por entidade
+
+Para reduzir ambiguidade e facilitar manutencao, este README permanece como visao consolidada e os detalhes por entidade ficam nestes arquivos (na mesma pasta `documentacao-unica/`):
+
+- matriz de acesso: [`entidades/autorizacao-matriz.md`](./entidades/autorizacao-matriz.md)
+- tecnicas amaldicoadas (tecnica/habilidade/variacao): [`entidades/tecnicas-amaldicoadas.md`](./entidades/tecnicas-amaldicoadas.md)
+- catalogos menores (pericias/proficiencias/tipos-grau/condicoes/alinhamentos): [`entidades/catalogos-menores.md`](./entidades/catalogos-menores.md)
+- auditoria de consistencia (docs x regras x schema): [`entidades/auditoria-consistencia.md`](./entidades/auditoria-consistencia.md)
+
 ## 2. Arquitetura
 
 ### 2.1 Backend
@@ -1204,6 +1213,8 @@ Integracao frontend neste bloco:
 
 Detalhamento do bloco `tecnicas-amaldicoadas`:
 
+- detalhamento completo por entidade: [`entidades/tecnicas-amaldicoadas.md`](./entidades/tecnicas-amaldicoadas.md)
+
 - auth atual:
   - leitura (`GET`) com `Auth: JWT`
   - escrita (`POST/PATCH/DELETE`) com `Auth: JWT+Admin`
@@ -1293,6 +1304,8 @@ Integracao frontend neste bloco:
   - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) cobre CRUD de habilidades e variacoes em modal dedicado, incluindo campos avancados com entrada guiada para `requisitos`, `testesExigidos`, `dadosDano` e `escalonamentoDano` (mantendo modo JSON avancado como fallback)
 
 Detalhamento do bloco de catalogos menores:
+
+- detalhamento completo por entidade: [`entidades/catalogos-menores.md`](./entidades/catalogos-menores.md)
 
 - `pericias` (`Auth: JWT`)
   - `GET /pericias`
