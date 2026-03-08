@@ -630,6 +630,101 @@ Integracao frontend neste bloco:
   - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts): `apiAdminCreate*` e `apiAdminUpdate*` para `classes`, `clas` e `origens`
   - observacao: o frontend atual nao expoe funcao de delete para esses tres modulos, embora os endpoints `DELETE` existam no backend
 
+Detalhamento do bloco `trilhas`, `caminhos` e `habilidades`:
+
+- `trilhas` (`Auth: JWT`)
+  - `POST /trilhas`
+    - body: [`CreateTrilhaDto`](../assistenterpg-back/src/trilhas/dto/create-trilha.dto.ts)
+      - `classeId`: inteiro obrigatorio
+      - `nome`: string obrigatoria, min 3, max 100
+      - `descricao`: string opcional, max 1000
+      - `requisitos`: JSON opcional
+      - `fonte`: enum `TipoFonte` opcional
+      - `suplementoId`: inteiro opcional, `>= 1`
+      - `habilidades`: array opcional de `{ habilidadeId, nivelConcedido, caminhoId? }`
+    - regras:
+      - classe inexistente falha com `TRILHA_CLASSE_NOT_FOUND` (404)
+      - nome duplicado falha com `TRILHA_NOME_DUPLICADO` (422)
+      - validacao `fonte/suplementoId` segue a mesma regra dos outros catalogos
+  - `GET /trilhas?classeId=...`
+    - `classeId` opcional (inteiro)
+    - resposta: array ordenado por `nome`, com `classe`, `caminhos` e `_count`
+  - `GET /trilhas/:id`
+    - `id` inteiro obrigatorio
+    - resposta detalhada com `classe`, `caminhos`, `habilidadesTrilha` e `_count`
+    - erro esperado: `TRILHA_NOT_FOUND` (404)
+  - `PATCH /trilhas/:id`
+    - body parcial: [`UpdateTrilhaDto`](../assistenterpg-back/src/trilhas/dto/update-trilha.dto.ts)
+    - permite atualizar `classeId` (validando existencia da classe)
+    - quando `habilidades` e enviado, a lista da trilha e substituida (`deleteMany + create`)
+    - `habilidades: []` limpa os vinculos da trilha
+  - `DELETE /trilhas/:id`
+    - bloqueia exclusao se houver personagens vinculados
+    - erros esperados: `TRILHA_NOT_FOUND` (404), `TRILHA_EM_USO` (422)
+    - sucesso: `{ "message": "Trilha removida com sucesso" }`
+- `caminhos` (subrotas em `trilhas`, `Auth: JWT`)
+  - `POST /trilhas/caminhos`
+    - body: [`CreateCaminhoDto`](../assistenterpg-back/src/trilhas/dto/create-caminho.dto.ts)
+      - `trilhaId`: inteiro obrigatorio
+      - `nome`: string obrigatoria, min 3, max 100
+      - `descricao`: string opcional, max 1000
+      - `fonte`, `suplementoId` opcionais (mesma regra de consistencia)
+      - `habilidades`: array opcional de `{ habilidadeId, nivelConcedido }`
+    - regras:
+      - trilha inexistente falha com `TRILHA_NOT_FOUND` (404)
+      - nome duplicado falha com `CAMINHO_NOME_DUPLICADO` (422)
+  - `PATCH /trilhas/caminhos/:id`
+    - body parcial: [`UpdateCaminhoDto`](../assistenterpg-back/src/trilhas/dto/update-caminho.dto.ts)
+    - se `trilhaId` for enviado, valida trilha de destino
+    - quando `habilidades` e enviado, substitui somente as habilidades do caminho
+    - `habilidades: []` limpa os vinculos do caminho
+  - `DELETE /trilhas/caminhos/:id`
+    - bloqueia exclusao se houver personagens vinculados
+    - erros esperados: `CAMINHO_NOT_FOUND` (404), `CAMINHO_EM_USO` (422)
+    - sucesso: `{ "message": "Caminho removido com sucesso" }`
+  - leitura relacionada:
+    - `GET /trilhas/:id/caminhos`: lista simplificada `{ id, nome, descricao, trilhaId }`
+    - `GET /trilhas/:id/habilidades`: lista consolidada por nivel com nome/descricao da habilidade e caminho associado
+- `habilidades` (`Auth: JWT`)
+  - `GET /habilidades/poderes-genericos`
+    - resposta: poderes genericos calculados pela regra de criacao de personagem
+  - `GET /habilidades`
+    - query: [`FilterHabilidadeDto`](../assistenterpg-back/src/habilidades/dto/filter-habilidade.dto.ts)
+      - `tipo`, `origem`, `fonte`, `suplementoId`, `busca`, `pagina`, `limite`
+    - resposta paginada em envelope `{ dados, paginacao }`
+  - `GET /habilidades/:id`
+    - `id` inteiro obrigatorio
+    - resposta detalhada com `efeitosGrau`, vinculos (`classes`, `trilhas`, `origens`) e `_count`
+    - erro esperado: `HABILIDADE_NOT_FOUND` (404)
+  - `POST /habilidades`
+    - body: [`CreateHabilidadeDto`](../assistenterpg-back/src/habilidades/dto/create-habilidade.dto.ts)
+      - `nome`: string obrigatoria, min 3, max 100
+      - `descricao`: string opcional, max 1000
+      - `tipo`: enum `TipoHabilidade` obrigatorio
+      - `origem`: string opcional, max 50
+      - `requisitos`, `mecanicasEspeciais`: JSON opcionais
+      - `fonte`, `suplementoId`: opcionais
+      - `efeitosGrau`: array opcional `{ tipoGrauCodigo, valor?, escalonamentoPorNivel? }`
+    - regras:
+      - nome duplicado falha com `HABILIDADE_NOME_DUPLICADO` (422)
+      - `tipoGrauCodigo` invalido em `efeitosGrau` falha com `TIPO_GRAU_NOT_FOUND` (404)
+  - `PATCH /habilidades/:id`
+    - body parcial: [`UpdateHabilidadeDto`](../assistenterpg-back/src/habilidades/dto/update-habilidade.dto.ts)
+    - `efeitosGrau` substitui a lista existente (`deleteMany + create`)
+    - `efeitosGrau: []` limpa os efeitos de grau da habilidade
+  - `DELETE /habilidades/:id`
+    - bloqueia exclusao quando a habilidade esta vinculada a personagens/catalogos
+    - erros esperados: `HABILIDADE_NOT_FOUND` (404), `HABILIDADE_EM_USO` (422)
+    - sucesso: `{ "message": "Habilidade removida com sucesso" }`
+
+Integracao frontend neste bloco:
+
+- leitura de catalogo:
+  - [`assistenterpg-front/src/lib/api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts): `apiGetTrilhas`, `apiGetTrilhasDaClasse`, `apiGetCaminhosDaTrilha`, `apiGetHabilidades`, `apiGetPoderesGenericos`
+- escrita/admin:
+  - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts): `apiAdminCreate/UpdateTrilha`, `apiAdminCreate/UpdateCaminho`, `apiAdminCreate/UpdateHabilidade`
+  - observacao: frontend atual nao expoe funcao de delete para `trilhas`, `caminhos` e `habilidades`, apesar dos endpoints `DELETE` existirem no backend
+
 Detalhamento do bloco de catalogos menores:
 
 - `pericias` (`Auth: JWT`)
@@ -823,6 +918,9 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
 - backend contrato de catalogos menores:
   - IDs de rota de [`assistenterpg-back/src/classes/classes.controller.ts`](../assistenterpg-back/src/classes/classes.controller.ts), [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
   - DTOs [`assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts), [`assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts), [`assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts) e [`assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts) agora possuem validacao `class-validator` consistente com `ValidationPipe` global
+- backend contrato de trilhas/caminhos:
+  - [`assistenterpg-back/src/trilhas/trilhas.service.ts`](../assistenterpg-back/src/trilhas/trilhas.service.ts): `PATCH /trilhas/:id` agora aplica `classeId` quando enviado (com validacao de existencia da classe)
+  - [`assistenterpg-back/src/trilhas/trilhas.service.ts`](../assistenterpg-back/src/trilhas/trilhas.service.ts): `PATCH /trilhas/:id` e `PATCH /trilhas/caminhos/:id` agora aceitam array vazio para limpar habilidades vinculadas
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
 - baseline de lint no backend:

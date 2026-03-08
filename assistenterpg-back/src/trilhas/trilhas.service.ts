@@ -236,6 +236,17 @@ export class TrilhasService {
       // Verificar se existe
       const trilhaAtual = await this.ensureTrilha(id);
 
+      if (updateDto.classeId !== undefined) {
+        const classe = await this.prisma.classe.findUnique({
+          where: { id: updateDto.classeId },
+          select: { id: true },
+        });
+
+        if (!classe) {
+          throw new TrilhaClasseNaoEncontradaException(updateDto.classeId);
+        }
+      }
+
       // Verificar nome duplicado (se mudou)
       if (updateDto.nome) {
         const duplicado = await this.prisma.trilha.findFirst({
@@ -263,6 +274,9 @@ export class TrilhasService {
       const trilha = await this.prisma.trilha.update({
         where: { id },
         data: {
+          ...(updateDto.classeId !== undefined && {
+            classeId: updateDto.classeId,
+          }),
           ...(updateDto.nome && { nome: updateDto.nome }),
           ...(updateDto.descricao !== undefined && {
             descricao: updateDto.descricao,
@@ -276,14 +290,16 @@ export class TrilhasService {
           }),
 
           // ✅ Atualizar habilidades (deletar e recriar)
-          ...(updateDto.habilidades && {
+          ...(updateDto.habilidades !== undefined && {
             habilidadesTrilha: {
               deleteMany: {},
-              create: updateDto.habilidades.map((hab) => ({
-                habilidadeId: hab.habilidadeId,
-                nivelConcedido: hab.nivelConcedido,
-                caminhoId: hab.caminhoId,
-              })),
+              ...(updateDto.habilidades.length > 0 && {
+                create: updateDto.habilidades.map((hab) => ({
+                  habilidadeId: hab.habilidadeId,
+                  nivelConcedido: hab.nivelConcedido,
+                  caminhoId: hab.caminhoId,
+                })),
+              }),
             },
           }),
         },
@@ -453,14 +469,16 @@ export class TrilhasService {
           }),
 
           // ✅ Atualizar habilidades (deletar e recriar)
-          ...(updateDto.habilidades && {
+          ...(updateDto.habilidades !== undefined && {
             habilidadesTrilha: {
               deleteMany: { caminhoId: id },
-              create: updateDto.habilidades.map((hab) => ({
-                trilhaId: updateDto.trilhaId ?? caminhoAtual.trilhaId,
-                habilidadeId: hab.habilidadeId,
-                nivelConcedido: hab.nivelConcedido,
-              })),
+              ...(updateDto.habilidades.length > 0 && {
+                create: updateDto.habilidades.map((hab) => ({
+                  trilhaId: updateDto.trilhaId ?? caminhoAtual.trilhaId,
+                  habilidadeId: hab.habilidadeId,
+                  nivelConcedido: hab.nivelConcedido,
+                })),
+              }),
             },
           }),
         },
