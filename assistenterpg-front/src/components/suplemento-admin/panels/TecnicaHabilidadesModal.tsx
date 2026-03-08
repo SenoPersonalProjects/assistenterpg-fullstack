@@ -44,6 +44,12 @@ type Props = {
   onClose: (success?: boolean) => void;
 };
 
+type DadoDanoDraft = {
+  quantidade: string;
+  dado: string;
+  tipo: '' | TipoDano;
+};
+
 type HabilidadeFormState = {
   codigo: string;
   nome: string;
@@ -67,9 +73,13 @@ type HabilidadeFormState = {
   efeito: string;
   ordem: string;
   requisitosJson: string;
-  testesExigidosJson: string;
-  dadosDanoJson: string;
-  escalonamentoDanoJson: string;
+  testesExigidosInput: string;
+  testesExigidosLista: string[];
+  dadosDano: DadoDanoDraft[];
+  escalonamentoDanoAtivo: boolean;
+  escalonamentoDanoQuantidade: string;
+  escalonamentoDanoDado: string;
+  escalonamentoDanoTipo: '' | TipoDano;
 };
 
 type VariacaoFormState = {
@@ -94,8 +104,11 @@ type VariacaoFormState = {
   efeitoAdicional: string;
   ordem: string;
   requisitosJson: string;
-  dadosDanoJson: string;
-  escalonamentoDanoJson: string;
+  dadosDano: DadoDanoDraft[];
+  escalonamentoDanoAtivo: boolean;
+  escalonamentoDanoQuantidade: string;
+  escalonamentoDanoDado: string;
+  escalonamentoDanoTipo: '' | TipoDano;
 };
 
 function parseNumber(value: string): number | undefined {
@@ -128,7 +141,110 @@ function parseOptionalJson(input: string): { value?: unknown } {
   }
 }
 
+function isObjectLike(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseTestesExigidos(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter((item) => item.length > 0);
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split('\n')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  return [];
+}
+
+function parseDadosDano(value: unknown): DadoDanoDraft[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!isObjectLike(item)) return null;
+
+      const quantidade =
+        typeof item.quantidade === 'number' && Number.isFinite(item.quantidade)
+          ? String(item.quantidade)
+          : '';
+      const dado = typeof item.dado === 'string' ? item.dado : '';
+      const tipo = typeof item.tipo === 'string' ? (item.tipo as TipoDano) : '';
+
+      return { quantidade, dado, tipo };
+    })
+    .filter((item): item is DadoDanoDraft => item !== null);
+}
+
+function serializeDadosDano(value: DadoDanoDraft[]): Array<{ quantidade: number; dado: string; tipo: TipoDano }> {
+  return value
+    .map((item) => {
+      const quantidade = parseNumber(item.quantidade);
+      const dado = item.dado.trim();
+      const tipo = item.tipo;
+
+      if (!quantidade || quantidade < 1 || !dado || !tipo) {
+        return null;
+      }
+
+      return { quantidade, dado, tipo };
+    })
+    .filter((item): item is { quantidade: number; dado: string; tipo: TipoDano } => item !== null);
+}
+
+function parseEscalonamentoDano(value: unknown): {
+  ativo: boolean;
+  quantidade: string;
+  dado: string;
+  tipo: '' | TipoDano;
+} {
+  if (!isObjectLike(value)) {
+    return { ativo: false, quantidade: '', dado: '', tipo: '' };
+  }
+
+  const quantidade =
+    typeof value.quantidade === 'number' && Number.isFinite(value.quantidade)
+      ? String(value.quantidade)
+      : '';
+  const dado = typeof value.dado === 'string' ? value.dado : '';
+  const tipo = typeof value.tipo === 'string' ? (value.tipo as TipoDano) : '';
+
+  const ativo = quantidade.length > 0 || dado.length > 0 || tipo.length > 0;
+  return { ativo, quantidade, dado, tipo };
+}
+
+function serializeEscalonamentoDano(
+  ativo: boolean,
+  quantidade: string,
+  dado: string,
+  tipo: '' | TipoDano,
+): { quantidade: number; dado: string; tipo: TipoDano } | null {
+  if (!ativo) return null;
+
+  const quantidadeFinal = parseNumber(quantidade);
+  const dadoFinal = dado.trim();
+
+  if (!quantidadeFinal || quantidadeFinal < 1 || !dadoFinal || !tipo) {
+    return null;
+  }
+
+  return {
+    quantidade: quantidadeFinal,
+    dado: dadoFinal,
+    tipo,
+  };
+}
+
 function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): HabilidadeFormState {
+  const testesExigidosLista = parseTestesExigidos(item?.testesExigidos);
+  const dadosDano = parseDadosDano(item?.dadosDano);
+  const escalonamentoDano = parseEscalonamentoDano(item?.escalonamentoDano);
+
   return {
     codigo: item?.codigo ?? '',
     nome: item?.nome ?? '',
@@ -157,13 +273,20 @@ function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): Habi
     efeito: item?.efeito ?? '',
     ordem: String(item?.ordem ?? 0),
     requisitosJson: stringifyUnknown(item?.requisitos),
-    testesExigidosJson: stringifyUnknown(item?.testesExigidos),
-    dadosDanoJson: stringifyUnknown(item?.dadosDano),
-    escalonamentoDanoJson: stringifyUnknown(item?.escalonamentoDano),
+    testesExigidosInput: '',
+    testesExigidosLista,
+    dadosDano,
+    escalonamentoDanoAtivo: escalonamentoDano.ativo,
+    escalonamentoDanoQuantidade: escalonamentoDano.quantidade,
+    escalonamentoDanoDado: escalonamentoDano.dado,
+    escalonamentoDanoTipo: escalonamentoDano.tipo,
   };
 }
 
 function buildVariacaoFormState(item?: VariacaoHabilidadeTecnicaCatalogo | null): VariacaoFormState {
+  const dadosDano = parseDadosDano(item?.dadosDano);
+  const escalonamentoDano = parseEscalonamentoDano(item?.escalonamentoDano);
+
   return {
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
@@ -193,8 +316,11 @@ function buildVariacaoFormState(item?: VariacaoHabilidadeTecnicaCatalogo | null)
     efeitoAdicional: item?.efeitoAdicional ?? '',
     ordem: String(item?.ordem ?? 0),
     requisitosJson: stringifyUnknown(item?.requisitos),
-    dadosDanoJson: stringifyUnknown(item?.dadosDano),
-    escalonamentoDanoJson: stringifyUnknown(item?.escalonamentoDano),
+    dadosDano,
+    escalonamentoDanoAtivo: escalonamentoDano.ativo,
+    escalonamentoDanoQuantidade: escalonamentoDano.quantidade,
+    escalonamentoDanoDado: escalonamentoDano.dado,
+    escalonamentoDanoTipo: escalonamentoDano.tipo,
   };
 }
 
@@ -228,6 +354,47 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
     });
   }
 
+  function addTesteExigido() {
+    const novoItem = form.testesExigidosInput.trim();
+    if (!novoItem) return;
+
+    setForm((prev) => ({
+      ...prev,
+      testesExigidosInput: '',
+      testesExigidosLista: prev.testesExigidosLista.includes(novoItem)
+        ? prev.testesExigidosLista
+        : [...prev.testesExigidosLista, novoItem],
+    }));
+  }
+
+  function removeTesteExigido(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      testesExigidosLista: prev.testesExigidosLista.filter((_, i) => i !== index),
+    }));
+  }
+
+  function addDadoDano() {
+    setForm((prev) => ({
+      ...prev,
+      dadosDano: [...prev.dadosDano, { quantidade: '1', dado: 'd6', tipo: '' }],
+    }));
+  }
+
+  function updateDadoDano(index: number, patch: Partial<DadoDanoDraft>) {
+    setForm((prev) => ({
+      ...prev,
+      dadosDano: prev.dadosDano.map((item, i) => (i === index ? { ...item, ...patch } : item)),
+    }));
+  }
+
+  function removeDadoDano(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      dadosDano: prev.dadosDano.filter((_, i) => i !== index),
+    }));
+  }
+
   function validate(): boolean {
     const next: Record<string, string> = {};
     if (!isEditing && !form.codigo.trim()) next.codigo = 'Codigo e obrigatorio.';
@@ -251,9 +418,13 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
       setSaving(true);
 
       const requisitosParsed = parseOptionalJson(form.requisitosJson);
-      const testesExigidosParsed = parseOptionalJson(form.testesExigidosJson);
-      const dadosDanoParsed = parseOptionalJson(form.dadosDanoJson);
-      const escalonamentoDanoParsed = parseOptionalJson(form.escalonamentoDanoJson);
+      const dadosDano = serializeDadosDano(form.dadosDano);
+      const escalonamentoDano = serializeEscalonamentoDano(
+        form.escalonamentoDanoAtivo,
+        form.escalonamentoDanoQuantidade,
+        form.escalonamentoDanoDado,
+        form.escalonamentoDanoTipo,
+      );
 
       const basePayload = {
         nome: form.nome.trim(),
@@ -275,9 +446,10 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
         grauTipoGrauCodigo: form.grauTipoGrauCodigo.trim() || undefined,
         escalonamentoCustoEA: parseNumber(form.escalonamentoCustoEA),
         requisitos: requisitosParsed.value,
-        testesExigidos: testesExigidosParsed.value,
-        dadosDano: dadosDanoParsed.value,
-        escalonamentoDano: escalonamentoDanoParsed.value,
+        testesExigidos:
+          form.testesExigidosLista.length > 0 ? form.testesExigidosLista : null,
+        dadosDano: dadosDano.length > 0 ? dadosDano : null,
+        escalonamentoDano,
         efeito: form.efeito.trim(),
         ordem: parseNumber(form.ordem),
       };
@@ -488,24 +660,130 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
           value={form.requisitosJson}
           onChange={(e) => setField('requisitosJson', e.target.value)}
         />
-        <Textarea
-          label="Testes exigidos (JSON)"
-          rows={2}
-          value={form.testesExigidosJson}
-          onChange={(e) => setField('testesExigidosJson', e.target.value)}
-        />
-        <Textarea
-          label="Dados de dano (JSON)"
-          rows={2}
-          value={form.dadosDanoJson}
-          onChange={(e) => setField('dadosDanoJson', e.target.value)}
-        />
-        <Textarea
-          label="Escalonamento de dano (JSON)"
-          rows={2}
-          value={form.escalonamentoDanoJson}
-          onChange={(e) => setField('escalonamentoDanoJson', e.target.value)}
-        />
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-app-fg">Testes exigidos</label>
+          <div className="flex gap-2">
+            <Input
+              label=""
+              value={form.testesExigidosInput}
+              onChange={(e) => setField('testesExigidosInput', e.target.value)}
+              placeholder="Ex: Acrobacia DC 15"
+            />
+            <Button type="button" variant="secondary" onClick={addTesteExigido}>
+              <Icon name="add" className="w-4 h-4 mr-1" />
+              Adicionar
+            </Button>
+          </div>
+          {form.testesExigidosLista.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {form.testesExigidosLista.map((item, index) => (
+                <span
+                  key={`${item}-${index}`}
+                  className="inline-flex items-center gap-1 rounded border border-app-border px-2 py-1 text-xs text-app-fg"
+                >
+                  {item}
+                  <button
+                    type="button"
+                    className="text-app-danger"
+                    onClick={() => removeTesteExigido(index)}
+                  >
+                    <Icon name="close" className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-app-muted">Nenhum teste adicionado.</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-app-fg">Dados de dano</label>
+            <Button type="button" variant="secondary" size="sm" onClick={addDadoDano}>
+              <Icon name="add" className="w-4 h-4 mr-1" />
+              Adicionar dano
+            </Button>
+          </div>
+          {form.dadosDano.length > 0 ? (
+            <div className="space-y-2">
+              {form.dadosDano.map((item, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                  <Input
+                    label="Qtd"
+                    type="number"
+                    min={1}
+                    value={item.quantidade}
+                    onChange={(e) => updateDadoDano(index, { quantidade: e.target.value })}
+                  />
+                  <Input
+                    label="Dado"
+                    value={item.dado}
+                    onChange={(e) => updateDadoDano(index, { dado: e.target.value })}
+                    placeholder="d6"
+                  />
+                  <Select
+                    label="Tipo"
+                    value={item.tipo}
+                    onChange={(e) => updateDadoDano(index, { tipo: e.target.value as '' | TipoDano })}
+                  >
+                    <option value="">Selecione</option>
+                    {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button type="button" variant="secondary" onClick={() => removeDadoDano(index)}>
+                    <Icon name="delete" className="w-4 h-4 mr-1" />
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-app-muted">Nenhum dado de dano adicionado.</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Checkbox
+            label="Escalonamento de dano"
+            checked={form.escalonamentoDanoAtivo}
+            onChange={(e) => setField('escalonamentoDanoAtivo', e.target.checked)}
+          />
+          {form.escalonamentoDanoAtivo ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <Input
+                label="Qtd"
+                type="number"
+                min={1}
+                value={form.escalonamentoDanoQuantidade}
+                onChange={(e) => setField('escalonamentoDanoQuantidade', e.target.value)}
+              />
+              <Input
+                label="Dado"
+                value={form.escalonamentoDanoDado}
+                onChange={(e) => setField('escalonamentoDanoDado', e.target.value)}
+                placeholder="d6"
+              />
+              <Select
+                label="Tipo"
+                value={form.escalonamentoDanoTipo}
+                onChange={(e) =>
+                  setField('escalonamentoDanoTipo', e.target.value as '' | TipoDano)
+                }
+              >
+                <option value="">Selecione</option>
+                {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : null}
+        </div>
       </div>
     </Modal>
   );
@@ -541,6 +819,27 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
     });
   }
 
+  function addDadoDano() {
+    setForm((prev) => ({
+      ...prev,
+      dadosDano: [...prev.dadosDano, { quantidade: '1', dado: 'd6', tipo: '' }],
+    }));
+  }
+
+  function updateDadoDano(index: number, patch: Partial<DadoDanoDraft>) {
+    setForm((prev) => ({
+      ...prev,
+      dadosDano: prev.dadosDano.map((item, i) => (i === index ? { ...item, ...patch } : item)),
+    }));
+  }
+
+  function removeDadoDano(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      dadosDano: prev.dadosDano.filter((_, i) => i !== index),
+    }));
+  }
+
   function validate(): boolean {
     const next: Record<string, string> = {};
     if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
@@ -556,8 +855,13 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
       setSaving(true);
 
       const requisitosParsed = parseOptionalJson(form.requisitosJson);
-      const dadosDanoParsed = parseOptionalJson(form.dadosDanoJson);
-      const escalonamentoDanoParsed = parseOptionalJson(form.escalonamentoDanoJson);
+      const dadosDano = serializeDadosDano(form.dadosDano);
+      const escalonamentoDano = serializeEscalonamentoDano(
+        form.escalonamentoDanoAtivo,
+        form.escalonamentoDanoQuantidade,
+        form.escalonamentoDanoDado,
+        form.escalonamentoDanoTipo,
+      );
 
       const basePayload = {
         nome: form.nome.trim(),
@@ -578,10 +882,10 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
         danoFlatTipo: form.danoFlatTipo || undefined,
         escalonaPorGrau: form.escalonaPorGrau,
         escalonamentoCustoEA: parseNumber(form.escalonamentoCustoEA),
-        escalonamentoDano: escalonamentoDanoParsed.value,
+        escalonamentoDano,
         efeitoAdicional: form.efeitoAdicional.trim() || undefined,
         requisitos: requisitosParsed.value,
-        dadosDano: dadosDanoParsed.value,
+        dadosDano: dadosDano.length > 0 ? dadosDano : null,
         ordem: parseNumber(form.ordem),
       };
 
@@ -781,18 +1085,93 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
           value={form.requisitosJson}
           onChange={(e) => setField('requisitosJson', e.target.value)}
         />
-        <Textarea
-          label="Dados de dano (JSON)"
-          rows={2}
-          value={form.dadosDanoJson}
-          onChange={(e) => setField('dadosDanoJson', e.target.value)}
-        />
-        <Textarea
-          label="Escalonamento de dano (JSON)"
-          rows={2}
-          value={form.escalonamentoDanoJson}
-          onChange={(e) => setField('escalonamentoDanoJson', e.target.value)}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-app-fg">Dados de dano</label>
+            <Button type="button" variant="secondary" size="sm" onClick={addDadoDano}>
+              <Icon name="add" className="w-4 h-4 mr-1" />
+              Adicionar dano
+            </Button>
+          </div>
+          {form.dadosDano.length > 0 ? (
+            <div className="space-y-2">
+              {form.dadosDano.map((item, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                  <Input
+                    label="Qtd"
+                    type="number"
+                    min={1}
+                    value={item.quantidade}
+                    onChange={(e) => updateDadoDano(index, { quantidade: e.target.value })}
+                  />
+                  <Input
+                    label="Dado"
+                    value={item.dado}
+                    onChange={(e) => updateDadoDano(index, { dado: e.target.value })}
+                    placeholder="d6"
+                  />
+                  <Select
+                    label="Tipo"
+                    value={item.tipo}
+                    onChange={(e) => updateDadoDano(index, { tipo: e.target.value as '' | TipoDano })}
+                  >
+                    <option value="">Selecione</option>
+                    {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button type="button" variant="secondary" onClick={() => removeDadoDano(index)}>
+                    <Icon name="delete" className="w-4 h-4 mr-1" />
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-app-muted">Nenhum dado de dano adicionado.</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Checkbox
+            label="Escalonamento de dano"
+            checked={form.escalonamentoDanoAtivo}
+            onChange={(e) => setField('escalonamentoDanoAtivo', e.target.checked)}
+          />
+          {form.escalonamentoDanoAtivo ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <Input
+                label="Qtd"
+                type="number"
+                min={1}
+                value={form.escalonamentoDanoQuantidade}
+                onChange={(e) => setField('escalonamentoDanoQuantidade', e.target.value)}
+              />
+              <Input
+                label="Dado"
+                value={form.escalonamentoDanoDado}
+                onChange={(e) => setField('escalonamentoDanoDado', e.target.value)}
+                placeholder="d6"
+              />
+              <Select
+                label="Tipo"
+                value={form.escalonamentoDanoTipo}
+                onChange={(e) =>
+                  setField('escalonamentoDanoTipo', e.target.value as '' | TipoDano)
+                }
+              >
+                <option value="">Selecione</option>
+                {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : null}
+        </div>
       </div>
     </Modal>
   );
