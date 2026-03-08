@@ -3,8 +3,21 @@ import { apiClient } from './axios-client';
 import { normalizeListResult, type ListResult } from './pagination';
 import type { CampanhaResumo, ConviteCampanha } from '@/lib/types'; // ✅ ATUALIZADO
 
-export async function apiGetMinhasCampanhas(): Promise<ListResult<CampanhaResumo>> {
-  const { data } = await apiClient.get('/campanhas/minhas');
+type MinhasCampanhasQuery = {
+  page?: number;
+  limit?: number;
+};
+
+export async function apiGetMinhasCampanhas(
+  query?: MinhasCampanhasQuery,
+): Promise<ListResult<CampanhaResumo>> {
+  const params = new URLSearchParams();
+  if (query?.page) params.set('page', String(query.page));
+  if (query?.limit) params.set('limit', String(query.limit));
+
+  const url =
+    params.size > 0 ? `/campanhas/minhas?${params.toString()}` : '/campanhas/minhas';
+  const { data } = await apiClient.get(url);
   return normalizeListResult<CampanhaResumo>(data);
 }
 

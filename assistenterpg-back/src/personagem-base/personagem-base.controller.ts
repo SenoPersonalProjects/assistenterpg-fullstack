@@ -22,6 +22,7 @@ import {
   ConsultarInfoGrausTreinamentoDto,
   ConsultarPericiasElegiveisDto,
 } from './dto/consultar-graus-treinamento.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('personagens-base')
@@ -83,8 +84,15 @@ export class PersonagemBaseController {
   }
 
   @Get('meus')
-  async listarMeus(@Request() req: { user: { id: number } }) {
-    return this.personagemBaseService.listarDoUsuario(req.user.id);
+  async listarMeus(
+    @Request() req: { user: { id: number } },
+    @Query() paginacao: PaginationQueryDto,
+  ) {
+    return this.personagemBaseService.listarDoUsuario(
+      req.user.id,
+      paginacao.page,
+      paginacao.limit,
+    );
   }
 
   @Get(':id/exportar')

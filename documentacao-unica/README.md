@@ -429,6 +429,7 @@ Controller com `AuthGuard('jwt')` (`Auth: JWT`):
 - `GET /personagens-base/passivas-disponiveis`
 - `GET /personagens-base/tecnicas-disponiveis?claId=&origemId=`
 - `GET /personagens-base/meus`
+  - query opcional: `page`, `limit`
 - `GET /personagens-base/:id`
   - query opcional: `incluirInventario=true`
 - `PATCH /personagens-base/:id`
@@ -472,7 +473,8 @@ Detalhamento:
     - retorno: `{ hereditarias, naoHereditarias, todas }`
 - consultas de personagem
   - `GET /personagens-base/meus`
-    - retorna lista resumida do usuario
+    - sem `page/limit`: retorna lista resumida do usuario
+    - com `page/limit`: retorna `{ items, total, page, limit, totalPages }`
   - `GET /personagens-base/:id`
     - query opcional: `incluirInventario=true`
     - retorna detalhe mapeado pelo [`personagem-base.mapper.ts`](../assistenterpg-back/src/personagem-base/personagem-base.mapper.ts)

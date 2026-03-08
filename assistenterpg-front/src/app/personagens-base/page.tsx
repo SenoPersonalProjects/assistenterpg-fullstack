@@ -1,4 +1,4 @@
-// app/personagens-base/page.tsx
+﻿// app/personagens-base/page.tsx
 // UX PADRONIZADA - Igual home + campanhas
 
 'use client';
@@ -63,6 +63,9 @@ export default function PersonagensBasePage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalItens, setTotalItens] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -71,19 +74,33 @@ export default function PersonagensBasePage() {
     }
 
     if (!authLoading && usuario) {
-
-      carregarDados();
+      carregarDados(pagina);
     }
-  }, [authLoading, usuario, router]);
+  }, [authLoading, usuario, router, pagina]);
 
-  async function carregarDados() {
+  async function carregarDados(paginaAtual: number) {
     try {
       setErro(null);
       setLoading(true);
 
-      const personagensRes = await apiGetMeusPersonagensBase();
+      const personagensRes = await apiGetMeusPersonagensBase({
+        page: paginaAtual,
+        limit: 12,
+      });
+      const totalPaginasCalculado = Math.max(1, personagensRes.totalPages);
 
-      setPersonagens(personagensRes);
+      if (
+        personagensRes.items.length === 0 &&
+        paginaAtual > 1 &&
+        totalPaginasCalculado < paginaAtual
+      ) {
+        setPagina(totalPaginasCalculado);
+        return;
+      }
+
+      setPersonagens(personagensRes.items);
+      setTotalPaginas(totalPaginasCalculado);
+      setTotalItens(personagensRes.total);
     } catch (e) {
       setErro(mensagemErroListaPersonagens(e, 'carregar'));
     } finally {
@@ -94,15 +111,14 @@ export default function PersonagensBasePage() {
   function handleDeleteClick(personagem: PersonagemBaseResumo) {
     confirm({
       title: `Excluir "${personagem.nome}"?`,
-      description: 'Esta ação é irreversível!',
+      description: 'Esta aÃ§Ã£o Ã© irreversÃ­vel!',
       confirmLabel: 'Sim, excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
       onConfirm: async () => {
         try {
           await apiDeletePersonagemBase(personagem.id);
-          setPersonagens(prev => prev.filter(p => p.id !== personagem.id));
-          setErro(null);
+          await carregarDados(pagina);
         } catch (error) {
           setErro(mensagemErroListaPersonagens(error, 'excluir'));
         }
@@ -110,7 +126,7 @@ export default function PersonagensBasePage() {
     });
   }
 
-  if (authLoading || loading) {
+  if (authLoading || (loading && personagens.length === 0 && totalItens === 0)) {
     return (
       <Loading
         message="Carregando personagens..."
@@ -125,7 +141,7 @@ export default function PersonagensBasePage() {
     <>
       <main className="min-h-screen bg-app-bg p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header - Padrão home/campanhas */}
+          {/* Header - PadrÃ£o home/campanhas */}
           <header className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
@@ -136,7 +152,7 @@ export default function PersonagensBasePage() {
                   Meus personagens-base
                 </h1>
                 <p className="text-sm text-app-muted mt-0.5">
-                  ({personagens.length}) Crie fichas reutilizáveis para suas campanhas
+                  ({totalItens}) Crie fichas reutilizÃ¡veis para suas campanhas
                 </p>
               </div>
             </div>
@@ -173,9 +189,13 @@ export default function PersonagensBasePage() {
           {/* Lista */}
           <section>
             <SectionTitle>
-              Personagens-base ({personagens.length})
+              Personagens-base ({totalItens})
             </SectionTitle>
-            
+
+            {loading && personagens.length > 0 && (
+              <p className="mt-2 text-sm text-app-muted">Atualizando lista...</p>
+            )}
+             
             {personagens.length === 0 ? (
               <EmptyState 
                 variant="card"
@@ -205,9 +225,37 @@ export default function PersonagensBasePage() {
                 ))}
               </div>
             )}
+
+            {totalPaginas > 1 && (
+              <div className="mt-6 flex items-center justify-between rounded-lg border border-app-border bg-app-surface px-4 py-3">
+                <p className="text-sm text-app-muted">
+                  Pagina {pagina} de {totalPaginas}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={loading || pagina <= 1}
+                    onClick={() => setPagina((prev) => Math.max(1, prev - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={loading || pagina >= totalPaginas}
+                    onClick={() =>
+                      setPagina((prev) => Math.min(totalPaginas, prev + 1))
+                    }
+                  >
+                    Proxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </section>
 
-          {/* Card de ajuda - só quando vazio */}
+          {/* Card de ajuda - sÃ³ quando vazio */}
           {personagens.length === 0 && (
             <section>
               <div className="rounded-lg border border-app-border bg-app-surface p-6">
@@ -217,19 +265,19 @@ export default function PersonagensBasePage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-app-fg mb-2">
-                      O que são personagens-base?
+                      O que sÃ£o personagens-base?
                     </h3>
                     <p className="text-sm text-app-muted leading-relaxed mb-4">
-                      São fichas reutilizáveis que você cria uma vez e usa em várias campanhas.
+                      SÃ£o fichas reutilizÃ¡veis que vocÃª cria uma vez e usa em vÃ¡rias campanhas.
                     </p>
                     <ul className="space-y-2.5 text-sm text-app-muted">
                       <li className="flex items-start gap-2.5">
                         <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Defina atributos, classe, clã e técnica inata</span>
+                        <span>Defina atributos, classe, clÃ£ e tÃ©cnica inata</span>
                       </li>
                       <li className="flex items-start gap-2.5">
                         <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Escolha perícias e distribua pontos de aprimoramento</span>
+                        <span>Escolha perÃ­cias e distribua pontos de aprimoramento</span>
                       </li>
                       <li className="flex items-start gap-2.5">
                         <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
@@ -244,7 +292,7 @@ export default function PersonagensBasePage() {
         </div>
       </main>
 
-      {/* Confirm Dialog - Padrão campanhas */}
+      {/* Confirm Dialog - PadrÃ£o campanhas */}
       <ConfirmDialog
         isOpen={isOpen}
         onClose={handleClose}
@@ -258,12 +306,12 @@ export default function PersonagensBasePage() {
         <div className="rounded border border-app-danger/40 bg-app-danger/5 p-3">
           <p className="text-xs font-semibold text-app-danger mb-2 flex items-center gap-1.5">
             <Icon name="warning" className="w-4 h-4" />
-            ATENÇÃO: Esta ação é IRREVERSÍVEL!
+            ATENÃ‡ÃƒO: Esta aÃ§Ã£o Ã© IRREVERSÃVEL!
           </p>
           <ul className="space-y-1 text-xs text-app-danger/90">
-            <li>• Personagem-base excluído permanentemente</li>
-            <li>• Todas as instâncias em campanhas removidas</li>
-            <li>• Histórico e progresso perdidos</li>
+            <li>â€¢ Personagem-base excluÃ­do permanentemente</li>
+            <li>â€¢ Todas as instÃ¢ncias em campanhas removidas</li>
+            <li>â€¢ HistÃ³rico e progresso perdidos</li>
           </ul>
         </div>
       </ConfirmDialog>
@@ -276,3 +324,4 @@ export default function PersonagensBasePage() {
     </>
   );
 }
+

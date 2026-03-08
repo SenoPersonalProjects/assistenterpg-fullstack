@@ -50,8 +50,8 @@ export default function HomePage() {
       // Buscar dados em paralelo (sem passar token - axios já injeta)
       const [statsData, campanhas, personagens, homebrews] = await Promise.all([
         apiObterEstatisticas(),
-        apiGetMinhasCampanhas(),
-        apiGetMeusPersonagensBase(),
+        apiGetMinhasCampanhas({ page: 1, limit: 2 }),
+        apiGetMeusPersonagensBase({ page: 1, limit: 2 }),
         apiGetMeusHomebrews({ limite: 10 }).catch(() => ({ items: [], total: 0, page: 1, limit: 10, totalPages: 1 })),
       ]);
 
@@ -60,11 +60,8 @@ export default function HomePage() {
         homebrews: homebrews.total,
       });
       
-      // Pegar apenas as 2 campanhas mais recentes
-      setCampanhasRecentes(campanhas.items.slice(0, 2));
-      
-      // Pegar apenas os 2 personagens mais recentes
-      setPersonagensRecentes(personagens.slice(0, 2));
+      setCampanhasRecentes(campanhas.items);
+      setPersonagensRecentes(personagens.items);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       const mensagem = extrairMensagemErro(error);

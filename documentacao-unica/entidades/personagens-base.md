@@ -72,7 +72,9 @@ Este documento detalha o contrato real do modulo `personagens-base`, cruzando:
 ## Consulta e manutencao
 
 - `GET /personagens-base/meus`
-  - lista resumida do usuario autenticado
+  - query opcional: `page`, `limit`
+  - sem `page/limit`: lista resumida do usuario autenticado
+  - com `page/limit`: `{ items, total, page, limit, totalPages }`
 
 - `GET /personagens-base/:id?incluirInventario=true|false`
   - retorna detalhe completo mapeado em `personagem-base.mapper.ts`
@@ -320,4 +322,3 @@ Modelos e constraints relevantes:
   - `assistenterpg-front/src/lib/types/personagem.types.ts`
 - consumo auxiliar:
   - `assistenterpg-front/src/lib/api/catalogos.ts` (`passivas-disponiveis`)
-

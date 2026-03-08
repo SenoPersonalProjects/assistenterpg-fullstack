@@ -1,5 +1,6 @@
 // lib/api/personagens-base.ts
 import { apiClient } from './axios-client';
+import { normalizeListResult, type ListResult } from './pagination';
 import type {
   PersonagemBaseResumo,
   PersonagemBaseCriado,
@@ -14,9 +15,24 @@ import type {
   PericiaElegivelTreinamento,
 } from '@/lib/types';
 
-export async function apiGetMeusPersonagensBase(): Promise<PersonagemBaseResumo[]> {
-  const { data } = await apiClient.get('/personagens-base/meus');
-  return data;
+type MeusPersonagensQuery = {
+  page?: number;
+  limit?: number;
+};
+
+export async function apiGetMeusPersonagensBase(
+  query?: MeusPersonagensQuery,
+): Promise<ListResult<PersonagemBaseResumo>> {
+  const params = new URLSearchParams();
+  if (query?.page) params.set('page', String(query.page));
+  if (query?.limit) params.set('limit', String(query.limit));
+
+  const url =
+    params.size > 0
+      ? `/personagens-base/meus?${params.toString()}`
+      : '/personagens-base/meus';
+  const { data } = await apiClient.get(url);
+  return normalizeListResult<PersonagemBaseResumo>(data);
 }
 
 export async function apiGetPersonagemBase(

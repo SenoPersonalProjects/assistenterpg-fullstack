@@ -1,7 +1,7 @@
 // app/campanhas/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -32,6 +32,37 @@ export default function CampanhasPage() {
   const [campanhas, setCampanhas] = useState<CampanhaResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalCampanhas, setTotalCampanhas] = useState(0);
+
+  const carregarDados = useCallback(async (paginaAtual: number) => {
+    try {
+      setLoading(true);
+      const dados = await apiGetMinhasCampanhas({ page: paginaAtual, limit: 12 });
+      const totalPaginasCalculado = Math.max(1, dados.totalPages);
+
+      if (
+        dados.items.length === 0 &&
+        paginaAtual > 1 &&
+        totalPaginasCalculado < paginaAtual
+      ) {
+        setPagina(totalPaginasCalculado);
+        return;
+      }
+
+      setCampanhas(dados.items);
+      setTotalCampanhas(dados.total);
+      setTotalPaginas(totalPaginasCalculado);
+      setErro(null);
+    } catch (error) {
+      const mensagem = extrairMensagemErro(error);
+      setErro(mensagem);
+      showToast(mensagem, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -40,23 +71,20 @@ export default function CampanhasPage() {
     }
 
     if (!authLoading && usuario) {
-      apiGetMinhasCampanhas()
-        .then((dados) => {
-          setCampanhas(dados.items);
-          setErro(null);
-        })
-        .catch((error) => {
-          const mensagem = extrairMensagemErro(error);
-          setErro(mensagem);
-          showToast(mensagem, 'error');
-        })
-        .finally(() => setLoading(false));
+      void carregarDados(pagina);
     }
-  }, [authLoading, usuario, router, showToast]);
+  }, [authLoading, usuario, router, carregarDados, pagina]);
 
   async function handleCreate(data: { nome: string; descricao?: string }) {
-    const nova = await apiCreateCampanha(data);
-    setCampanhas((prev) => [nova, ...prev]);
+    await apiCreateCampanha(data);
+    showToast('Campanha criada com sucesso.', 'success');
+
+    if (pagina !== 1) {
+      setPagina(1);
+      return;
+    }
+
+    await carregarDados(1);
   }
 
   function handleDeleteClick(campanha: CampanhaResumo) {
@@ -69,20 +97,18 @@ export default function CampanhasPage() {
       onConfirm: async () => {
         try {
           await apiDeleteCampanha(campanha.id);
-          setCampanhas((prev) => prev.filter((c) => c.id !== campanha.id));
-          setErro(null);
+          await carregarDados(pagina);
           showToast('Campanha excluída com sucesso.', 'success');
         } catch (error) {
           const mensagem = extrairMensagemErro(error);
           setErro(mensagem);
           showToast(mensagem, 'error');
-        } finally {
         }
       },
     });
   }
 
-  if (authLoading || loading) {
+  if (authLoading || (loading && campanhas.length === 0 && totalCampanhas === 0)) {
     return <Loading message="Carregando campanhas..." className="p-6 text-app-fg" />;
   }
 
@@ -126,9 +152,13 @@ export default function CampanhasPage() {
           </section>
 
           <section>
-            <SectionTitle>Campanhas ({campanhas.length})</SectionTitle>
+            <SectionTitle>Campanhas ({totalCampanhas})</SectionTitle>
 
-            {campanhas.length === 0 ? (
+            {loading && campanhas.length > 0 && (
+              <p className="mt-2 text-sm text-app-muted">Atualizando lista...</p>
+            )}
+
+            {totalCampanhas === 0 ? (
               <div className="mt-4">
                 <EmptyState
                   variant="card"
@@ -144,9 +174,37 @@ export default function CampanhasPage() {
                 ))}
               </div>
             )}
+
+            {totalPaginas > 1 && (
+              <div className="mt-6 flex items-center justify-between rounded-lg border border-app-border bg-app-surface px-4 py-3">
+                <p className="text-sm text-app-muted">
+                  Pagina {pagina} de {totalPaginas}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={loading || pagina <= 1}
+                    onClick={() => setPagina((prev) => Math.max(1, prev - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={loading || pagina >= totalPaginas}
+                    onClick={() =>
+                      setPagina((prev) => Math.min(totalPaginas, prev + 1))
+                    }
+                  >
+                    Proxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </section>
 
-          {campanhas.length === 0 && (
+          {totalCampanhas === 0 && (
             <section>
               <div className="rounded-lg border border-app-border bg-app-surface p-6">
                 <div className="flex items-start gap-4">

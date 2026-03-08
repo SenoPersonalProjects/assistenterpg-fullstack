@@ -36,6 +36,7 @@ import {
   personagemBaseDetalhadoInclude,
 } from './personagem-base.mapper';
 import { PersonagemBasePersistence } from './personagem-base.persistence';
+import { PaginatedResult } from 'src/common/dto/pagination-query.dto';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 type PoderGenericoComConfig = {
@@ -1383,14 +1384,44 @@ export class PersonagemBaseService {
     };
   }
 
-  async listarDoUsuario(donoId: number) {
-    const lista = await this.prisma.personagemBase.findMany({
-      where: { donoId },
-      include: { cla: true, classe: true },
-      orderBy: { nome: 'asc' },
-    });
+  async listarDoUsuario(
+    donoId: number,
+    page?: number,
+    limit?: number,
+  ): Promise<any[] | PaginatedResult<any>> {
+    const where = { donoId };
+    const include = { cla: true, classe: true };
+    const orderBy = { nome: 'asc' as const };
 
-    return lista.map((p) => this.mapper.mapResumo(p));
+    if (!page || !limit) {
+      const lista = await this.prisma.personagemBase.findMany({
+        where,
+        include,
+        orderBy,
+      });
+
+      return lista.map((p) => this.mapper.mapResumo(p));
+    }
+
+    const skip = (page - 1) * limit;
+    const [items, total] = await Promise.all([
+      this.prisma.personagemBase.findMany({
+        where,
+        include,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      this.prisma.personagemBase.count({ where }),
+    ]);
+
+    return {
+      items: items.map((p) => this.mapper.mapResumo(p)),
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
   async buscarPorId(
