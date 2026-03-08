@@ -276,18 +276,25 @@ export type StatsEquipadosDto = {
 };
 
 export type InventarioCompletoDto = {
-  personagemBaseId: number;
-
-  espacosBase?: number;
-  espacosExtra?: number;
-
-  espacosTotal: number;
-  espacosOcupados: number;
-  espacosDisponiveis: number;
-  sobrecarregado: boolean;
-  itens: ItemInventarioDto[];
-
-  statsEquipados?: StatsEquipadosDto;
+  espacos: {
+    espacosTotal: number;
+    espacosOcupados: number;
+    espacosDisponiveis: number;
+    sobrecarregado: boolean;
+  };
+  grauXama: {
+    grauAtual: string;
+    prestigioMinimoRequisito: number;
+  };
+  resumoPorCategoria: Array<{
+    categoria: string;
+    quantidadeItens: number;
+    quantidadeTotal: number;
+    limiteGrauXama: number;
+    podeAdicionarMais: boolean;
+  }>;
+  podeAdicionarCategoria0: boolean;
+  statsEquipados: StatsEquipadosDto;
 };
 
 /* ============================================================================ */

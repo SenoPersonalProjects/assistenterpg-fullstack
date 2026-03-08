@@ -384,6 +384,60 @@ Regras importantes:
 - validacao forte de atributos, passivas, poderes, pericias e vinculos de classe/trilha/caminho
 - importacao resolve referencias de catalogo (id/codigo/nome) antes de criar
 
+Detalhamento:
+
+- autenticacao
+  - todas as rotas do modulo usam `Auth: JWT` no nivel de classe
+- criacao e preview
+  - `POST /personagens-base`
+    - body: [`CreatePersonagemBaseDto`](../assistenterpg-back/src/personagem-base/dto/create-personagem-base.dto.ts)
+    - cria personagem, calcula derivados e pode criar itens iniciais via `InventarioService`
+    - sucesso: resumo `{ id, nome, nivel, cla, origem, classe, trilha, caminho }`
+  - `POST /personagens-base/preview`
+    - usa o mesmo body do create
+    - nao persiste em banco
+    - retorna preview completo com derivados, pericias, graus, passivas, poderes, resistencias e inventario validado
+    - `errosItens` pode existir para itens invalidos sem bloquear o preview inteiro
+- consultas auxiliares de criacao
+  - `GET /personagens-base/graus-treinamento/info?nivel=&intelecto=`
+    - query: [`ConsultarInfoGrausTreinamentoDto`](../assistenterpg-back/src/personagem-base/dto/consultar-graus-treinamento.dto.ts)
+    - retorna niveis elegiveis + limites de progressao
+  - `POST /personagens-base/graus-treinamento/pericias-elegiveis`
+    - body: [`ConsultarPericiasElegiveisDto`](../assistenterpg-back/src/personagem-base/dto/consultar-graus-treinamento.dto.ts)
+  - `GET /personagens-base/passivas-disponiveis`
+    - retorno agrupado por atributo (`INT`, `PRE`, `FOR`, `AGI`, `VIG`)
+  - `GET /personagens-base/tecnicas-disponiveis?claId=&origemId=`
+    - `claId` obrigatorio (inteiro)
+    - `origemId` opcional (inteiro; invalido gera 400)
+    - retorno: `{ hereditarias, naoHereditarias, todas }`
+- consultas de personagem
+  - `GET /personagens-base/meus`
+    - retorna lista resumida do usuario
+  - `GET /personagens-base/:id`
+    - query opcional: `incluirInventario=true`
+    - retorna detalhe mapeado pelo [`personagem-base.mapper.ts`](../assistenterpg-back/src/personagem-base/personagem-base.mapper.ts)
+  - `GET /personagens-base/:id/exportar`
+    - headers de download JSON
+    - retorno: [`PersonagemBaseExportResponse`](../assistenterpg-front/src/lib/types/personagem.types.ts)
+  - `POST /personagens-base/importar`
+    - body: [`ImportarPersonagemBaseDto`](../assistenterpg-back/src/personagem-base/dto/importar-personagem-base.dto.ts)
+    - resolve referencias opcionais por `id/nome/codigo` antes de criar
+- atualizacao e exclusao
+  - `PATCH /personagens-base/:id`
+    - body parcial: [`UpdatePersonagemBaseDto`](../assistenterpg-back/src/personagem-base/dto/update-personagem-base.dto.ts)
+    - rebuild completo do estado final (graus/pericias/proficiencias/habilidades/resistencias)
+  - `DELETE /personagens-base/:id`
+    - remove personagem e relacionamentos associados
+    - retorno: `{ "sucesso": true }`
+- erros esperados (principais)
+  - `PERSONAGEM_BASE_NOT_FOUND` (404)
+  - erros de regra de negocio/validacao vindos da engine e do modulo de personagem em [`personagem.exception.ts`](../assistenterpg-back/src/common/exceptions/personagem.exception.ts) (ex.: trilha incompativel, tecnica inata invalida, limites de passivas/graus/pericias)
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/personagens-base.ts`](../assistenterpg-front/src/lib/api/personagens-base.ts) cobre CRUD, preview, export/import e endpoints de graus de treinamento.
+- [`assistenterpg-front/src/lib/api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts) consome `GET /personagens-base/passivas-disponiveis`.
+
 ## 5.6 Inventario
 
 Controller com `JwtAuthGuard` no nivel de classe (`Auth: JWT`):
@@ -412,6 +466,61 @@ Tipos de resposta:
 
 - resumo inventario: [`ResumoInventarioCompleto`](../assistenterpg-back/src/inventario/engine/inventario.types.ts)
 - preview adicionar item: [`PreviewAdicionarItemResponse`](../assistenterpg-back/src/inventario/engine/inventario.types.ts)
+
+Detalhamento:
+
+- autenticacao
+  - todas as rotas estao protegidas por `JwtAuthGuard` no nivel de classe
+  - observacao: apesar de comentario antigo no controller, `POST /inventario/preview` tambem exige JWT
+- consultas
+  - `GET /inventario/personagem/:personagemBaseId`
+    - retorna [`ResumoInventarioCompleto`](../assistenterpg-back/src/inventario/engine/inventario.types.ts):
+      - `espacos`
+      - `grauXama`
+      - `resumoPorCategoria`
+      - `podeAdicionarCategoria0`
+      - `statsEquipados`
+  - `POST /inventario/preview-adicionar`
+    - body: [`PreviewItemDto`](../assistenterpg-back/src/inventario/dto/preview-item.dto.ts)
+    - simula adicao de 1 item sem persistir e valida espaco + grau xama
+  - `POST /inventario/preview`
+    - body: [`PreviewItensInventarioDto`](../assistenterpg-back/src/inventario/dto/preview-itens-inventario.dto.ts)
+    - simula lista completa para wizard (calcula categoria final, espacos, grau xama e itens por categoria)
+- CRUD de itens
+  - `POST /inventario/adicionar`
+    - body: [`AdicionarItemDto`](../assistenterpg-back/src/inventario/dto/adicionar-item.dto.ts)
+    - valida ownership, compatibilidade de modificacoes, limite 2x capacidade, regra de vestir e grau xama
+  - `PATCH /inventario/item/:itemId`
+    - body: [`AtualizarItemDto`](../assistenterpg-back/src/inventario/dto/atualizar-item.dto.ts)
+    - valida novamente limites quando altera `quantidade`/`equipado`
+  - `DELETE /inventario/item/:itemId`
+    - remove item + vinculos de modificacoes
+    - sucesso: `{ "sucesso": true, "mensagem": "Item removido com sucesso" }`
+- modificacoes em item
+  - `POST /inventario/aplicar-modificacao`
+    - body: [`AplicarModificacaoDto`](../assistenterpg-back/src/inventario/dto/aplicar-modificacao.dto.ts)
+  - `POST /inventario/remover-modificacao`
+    - body: [`RemoverModificacaoDto`](../assistenterpg-back/src/inventario/dto/remover-modificacao.dto.ts)
+  - ambos retornam item atualizado do inventario
+- erros esperados (principais)
+  - `INVENTARIO_PERSONAGEM_NOT_FOUND` (404)
+  - `INVENTARIO_SEM_PERMISSAO` (403)
+  - `INVENTARIO_ITEM_NOT_FOUND` (404)
+  - `INVENTARIO_EQUIPAMENTO_NOT_FOUND` (404)
+  - `INVENTARIO_CAPACIDADE_EXCEDIDA` (422)
+  - `INVENTARIO_ESPACOS_INSUFICIENTES` (422)
+  - `INVENTARIO_LIMITE_VESTIR_EXCEDIDO` (422)
+  - `INVENTARIO_GRAU_XAMA_EXCEDIDO` (422)
+  - `INVENTARIO_MODIFICACAO_NOT_FOUND` (404)
+  - `INVENTARIO_MODIFICACAO_INVALIDA` (422)
+  - `INVENTARIO_MODIFICACAO_INCOMPATIVEL` (422)
+  - `INVENTARIO_MODIFICACAO_DUPLICADA` (422)
+  - `INVENTARIO_MODIFICACAO_NAO_APLICADA` (422)
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/inventario.ts`](../assistenterpg-front/src/lib/api/inventario.ts) cobre busca de resumo, previews, CRUD de item e fluxo de modificacoes.
+- [`assistenterpg-front/src/lib/utils/inventario.ts`](../assistenterpg-front/src/lib/utils/inventario.ts) concentra normalizacao e validacoes auxiliares usadas na UI de inventario.
 
 ## 5.7 Equipamentos
 
@@ -1339,6 +1448,8 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
 - backend contrato de leitura do compendio:
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): `GET /compendio/artigos` agora usa `ParseIntPipe` em `subcategoriaId`, retornando `400` para query invalida em vez de ignorar filtro silenciosamente
+- backend contrato de leitura de personagem-base:
+  - [`assistenterpg-back/src/personagem-base/personagem-base.controller.ts`](../assistenterpg-back/src/personagem-base/personagem-base.controller.ts): `GET /personagens-base/tecnicas-disponiveis` agora valida `origemId` com `ParseIntPipe` opcional, retornando `400` para query invalida em vez de ignorar silenciosamente
 - backend contrato de catalogos menores:
   - IDs de rota de [`assistenterpg-back/src/classes/classes.controller.ts`](../assistenterpg-back/src/classes/classes.controller.ts), [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
   - DTOs [`assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts), [`assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts), [`assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts) e [`assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts) agora possuem validacao `class-validator` consistente com `ValidationPipe` global
@@ -1367,6 +1478,8 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
 - testes de fallback no frontend:
   - [`assistenterpg-front/src/lib/utils/compendio.test.ts`](../assistenterpg-front/src/lib/utils/compendio.test.ts) cobre fallback de categorias/destaques/busca por codigo/busca textual
   - [`assistenterpg-front/package.json`](../assistenterpg-front/package.json) agora expoe scripts `test` e `test:watch` via Vitest
+- contrato de tipos no frontend:
+  - [`assistenterpg-front/src/lib/types/inventario.types.ts`](../assistenterpg-front/src/lib/types/inventario.types.ts): `InventarioCompletoDto` foi alinhado com o retorno real de `GET /inventario/personagem/:id` (`{ espacos, grauXama, resumoPorCategoria, podeAdicionarCategoria0, statsEquipados }`)
 
 ## 8.3 Pontos de atencao (nao alterados para evitar quebra)
 

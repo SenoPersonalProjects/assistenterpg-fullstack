@@ -76,13 +76,10 @@ export class PersonagemBaseController {
   @Get('tecnicas-disponiveis')
   async listarTecnicasDisponiveis(
     @Query('claId', ParseIntPipe) claId: number,
-    @Query('origemId') origemId?: string,
+    @Query('origemId', new ParseIntPipe({ optional: true }))
+    origemId?: number,
   ) {
-    const origemIdNum = origemId ? Number(origemId) : undefined;
-    return this.personagemBaseService.listarTecnicasDisponveis(
-      claId,
-      origemIdNum,
-    );
+    return this.personagemBaseService.listarTecnicasDisponveis(claId, origemId);
   }
 
   @Get('meus')
