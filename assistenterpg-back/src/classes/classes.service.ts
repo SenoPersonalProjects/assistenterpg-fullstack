@@ -47,15 +47,22 @@ export class ClassesService {
       }
 
       if (fonte !== TipoFonte.SUPLEMENTO) {
-        throw new BadRequestException(
-          'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
-        );
+        throw new BadRequestException({
+          code: 'FONTE_SUPLEMENTO_OBRIGATORIA',
+          message:
+            'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+          field: 'fonte',
+        });
       }
       return;
     }
 
     if (fonte === TipoFonte.SUPLEMENTO) {
-      throw new BadRequestException('fonte SUPLEMENTO exige suplementoId');
+      throw new BadRequestException({
+        code: 'SUPLEMENTO_ID_OBRIGATORIO',
+        message: 'fonte SUPLEMENTO exige suplementoId',
+        field: 'suplementoId',
+      });
     }
   }
 

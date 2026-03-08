@@ -21,8 +21,17 @@ Cobertura desta documentacao:
 Para reduzir ambiguidade e facilitar manutencao, este README permanece como visao consolidada e os detalhes por entidade ficam nestes arquivos (na mesma pasta `documentacao-unica/`):
 
 - matriz de acesso: [`entidades/autorizacao-matriz.md`](./entidades/autorizacao-matriz.md)
+- auth/usuarios/campanhas: [`entidades/auth-usuarios-campanhas.md`](./entidades/auth-usuarios-campanhas.md)
+- catalogos de progressao (cla/classes/trilhas/caminhos/origens/habilidades): [`entidades/catalogos-progressao.md`](./entidades/catalogos-progressao.md)
 - tecnicas amaldicoadas (tecnica/habilidade/variacao): [`entidades/tecnicas-amaldicoadas.md`](./entidades/tecnicas-amaldicoadas.md)
 - catalogos menores (pericias/proficiencias/tipos-grau/condicoes/alinhamentos): [`entidades/catalogos-menores.md`](./entidades/catalogos-menores.md)
+- personagens-base (regras, payloads, import/export): [`entidades/personagens-base.md`](./entidades/personagens-base.md)
+- inventario (espacos, grau xama, vestir, modificacoes): [`entidades/inventario.md`](./entidades/inventario.md)
+- equipamentos/modificacoes: [`entidades/equipamentos-modificacoes.md`](./entidades/equipamentos-modificacoes.md)
+- compendio: [`entidades/compendio.md`](./entidades/compendio.md)
+- suplementos/homebrews: [`entidades/suplementos-homebrews.md`](./entidades/suplementos-homebrews.md)
+- erros de operacao e debug (codigo -> acao): [`entidades/erros-operacao-debug.md`](./entidades/erros-operacao-debug.md)
+- checklist de cobertura de erros (back x front): [`entidades/checklist-cobertura-erros-front-back.md`](./entidades/checklist-cobertura-erros-front-back.md)
 - auditoria de consistencia (docs x regras x schema): [`entidades/auditoria-consistencia.md`](./entidades/auditoria-consistencia.md)
 
 ## 2. Arquitetura
@@ -143,6 +152,7 @@ Protecao de rotas:
   - `POST /suplementos`
   - `PATCH /suplementos/:id`
   - `DELETE /suplementos/:id`
+  - rotas de escrita de `classes`, `clas`, `origens`, `trilhas` e `habilidades`
   - rotas de escrita de `equipamentos`
   - rotas de escrita de `modificacoes`
   - rotas de escrita de `compendio` (categorias/subcategorias/artigos)
@@ -156,6 +166,7 @@ Observacoes importantes:
 - `compendio`: leitura publica; escrita com `JWT+Admin`
 - `tecnicas-amaldicoadas`: leitura com `JWT`; escrita com `JWT+Admin`
 - `proficiencias`, `tipos-grau` e `condicoes`: leitura com `JWT`; escrita com `JWT+Admin`
+- `classes`, `clas`, `origens`, `trilhas` e `habilidades`: leitura com `JWT`; escrita com `JWT+Admin`
 
 ## 4.2 Formato padrao de erro
 
@@ -167,12 +178,23 @@ Envelope de erro esperado (global):
   "timestamp": "2026-03-08T12:00:00.000Z",
   "path": "/rota",
   "method": "POST",
+  "traceId": "7f8a36b6-3f2f-45b0-9f76-5d0f5d01f31c",
   "code": "CODIGO_ERRO",
+  "error": "Bad Request",
   "message": "Mensagem",
   "details": {},
   "field": "campo"
 }
 ```
+
+Observacoes:
+
+- resposta de erro retorna `traceId` e tambem envia o header `x-request-id`
+- campo `error` segue o nome HTTP padrao (`Bad Request`, `Unauthorized`, etc.)
+- para validacao de DTO (`400`), o backend usa `code: VALIDATION_ERROR` e inclui `details.validationErrors`
+- para validacoes de `fonte/suplementoId`, os codigos esperados sao `FONTE_SUPLEMENTO_OBRIGATORIA` e `SUPLEMENTO_ID_OBRIGATORIO`
+- em `NODE_ENV=development`, o backend pode incluir `stack` e `errorType`
+- mapa de erro por entidade e acao de debug: [`entidades/erros-operacao-debug.md`](./entidades/erros-operacao-debug.md)
 
 No frontend:
 
@@ -183,8 +205,8 @@ No frontend:
 
 Ha dois padroes de lista no backend hoje:
 
-1) Padrao `items/total/page/limit/totalPages`
-2) Padrao `dados/paginacao` com:
+1. Padrao `items/total/page/limit/totalPages`
+2. Padrao `dados/paginacao` com:
    - `paginacao.pagina`
    - `paginacao.limite`
    - `paginacao.total`
@@ -369,12 +391,12 @@ Detalhamento:
       - `email` (email obrigatorio)
       - `papel` (`MESTRE | JOGADOR | OBSERVADOR`)
     - observacao de comportamento atual:
-      - o convite persiste `email` e `codigo`; o `papel` e validado no DTO, mas ainda nao e persistido na tabela de convite
+      - o convite persiste `email`, `codigo` e `papel`
   - `GET /campanhas/convites/pendentes`
     - retorna convites pendentes para o email do usuario logado
   - `POST /campanhas/convites/:codigo/aceitar`
     - valida codigo pendente e email do usuario
-    - cria membro com papel padrao `JOGADOR`
+    - cria membro com o `papel` salvo no convite (fallback `JOGADOR` para dados legados)
   - `POST /campanhas/convites/:codigo/recusar`
     - marca convite como `RECUSADO`
 - erros esperados de convite:
@@ -391,6 +413,8 @@ Integracao frontend:
   - fluxo de convite (criar/listar pendentes/aceitar/recusar)
 
 ## 5.5 Personagens base
+
+Detalhamento por entidade: [`entidades/personagens-base.md`](./entidades/personagens-base.md)
 
 Controller com `AuthGuard('jwt')` (`Auth: JWT`):
 
@@ -476,6 +500,8 @@ Integracao frontend:
 
 ## 5.6 Inventario
 
+Detalhamento por entidade: [`entidades/inventario.md`](./entidades/inventario.md)
+
 Controller com `JwtAuthGuard` no nivel de classe (`Auth: JWT`):
 
 - `GET /inventario/personagem/:personagemBaseId`
@@ -483,7 +509,6 @@ Controller com `JwtAuthGuard` no nivel de classe (`Auth: JWT`):
   - body: [`PreviewItemDto`](../assistenterpg-back/src/inventario/dto/preview-item.dto.ts)
 - `POST /inventario/preview`
   - body: [`PreviewItensInventarioDto`](../assistenterpg-back/src/inventario/dto/preview-itens-inventario.dto.ts)
-  - nota: comentario no controller fala "sem autenticacao", mas na pratica esta protegido por guard de classe
 - `POST /inventario/adicionar`
   - body: [`AdicionarItemDto`](../assistenterpg-back/src/inventario/dto/adicionar-item.dto.ts)
 - `PATCH /inventario/item/:itemId`
@@ -1019,7 +1044,7 @@ Rotas principais:
 
 Detalhamento do bloco `classes`, `clas` e `origens`:
 
-- `classes` (`Auth: JWT`)
+- `classes` (`GET: JWT`, `POST/PATCH/DELETE: JWT+Admin`)
   - `POST /classes`
     - body: [`CreateClasseDto`](../assistenterpg-back/src/classes/dto/create-classe.dto.ts)
       - `nome`: string obrigatoria, max 100
@@ -1049,7 +1074,7 @@ Detalhamento do bloco `classes`, `clas` e `origens`:
     - bloqueia exclusao se houver personagens vinculados
     - erros esperados: `CLASSE_NOT_FOUND` (404), `CLASSE_EM_USO` (422)
     - sucesso: `{ "sucesso": true }`
-- `clas` (`Auth: JWT`)
+- `clas` (`GET: JWT`, `POST/PATCH/DELETE: JWT+Admin`)
   - `POST /clas`
     - body: [`CreateClaDto`](../assistenterpg-back/src/clas/dto/create-cla.dto.ts)
       - `nome`: string obrigatoria, min 3, max 100
@@ -1076,7 +1101,7 @@ Detalhamento do bloco `classes`, `clas` e `origens`:
     - bloqueia exclusao se houver personagens vinculados
     - erros esperados: `CLA_NOT_FOUND` (404), `CLA_EM_USO` (422)
     - sucesso: `{ "message": "Cla removido com sucesso" }`
-- `origens` (`Auth: JWT`)
+- `origens` (`GET: JWT`, `POST/PATCH/DELETE: JWT+Admin`)
   - `POST /origens`
     - body: [`CreateOrigemDto`](../assistenterpg-back/src/origens/dto/create-origem.dto.ts)
       - `nome`: string obrigatoria, min 3, max 100
@@ -1118,7 +1143,7 @@ Integracao frontend neste bloco:
 
 Detalhamento do bloco `trilhas`, `caminhos` e `habilidades`:
 
-- `trilhas` (`Auth: JWT`)
+- `trilhas` (`GET: JWT`, `POST/PATCH/DELETE: JWT+Admin`)
   - `POST /trilhas`
     - body: [`CreateTrilhaDto`](../assistenterpg-back/src/trilhas/dto/create-trilha.dto.ts)
       - `classeId`: inteiro obrigatorio
@@ -1148,7 +1173,7 @@ Detalhamento do bloco `trilhas`, `caminhos` e `habilidades`:
     - bloqueia exclusao se houver personagens vinculados
     - erros esperados: `TRILHA_NOT_FOUND` (404), `TRILHA_EM_USO` (422)
     - sucesso: `{ "message": "Trilha removida com sucesso" }`
-- `caminhos` (subrotas em `trilhas`, `Auth: JWT`)
+- `caminhos` (subrotas em `trilhas`, `GET: JWT`, `POST/PATCH/DELETE: JWT+Admin`)
   - `POST /trilhas/caminhos`
     - body: [`CreateCaminhoDto`](../assistenterpg-back/src/trilhas/dto/create-caminho.dto.ts)
       - `trilhaId`: inteiro obrigatorio
@@ -1171,7 +1196,7 @@ Detalhamento do bloco `trilhas`, `caminhos` e `habilidades`:
   - leitura relacionada:
     - `GET /trilhas/:id/caminhos`: lista simplificada `{ id, nome, descricao, trilhaId }`
     - `GET /trilhas/:id/habilidades`: lista consolidada por nivel com nome/descricao da habilidade e caminho associado
-- `habilidades` (`Auth: JWT`)
+- `habilidades` (`GET: JWT`, `POST/PATCH/DELETE: JWT+Admin`)
   - `GET /habilidades/poderes-genericos`
     - resposta: poderes genericos calculados pela regra de criacao de personagem
   - `GET /habilidades`
@@ -1497,7 +1522,15 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-front/src/app/compendio/page.tsx`](../assistenterpg-front/src/app/compendio/page.tsx) exibe estado vazio amigavel quando API nao responde no build
 - backend prebuild Prisma:
   - [`assistenterpg-back/scripts/check-prisma-client.js`](../assistenterpg-back/scripts/check-prisma-client.js) foi corrigido para remover bloco duplicado que quebrava `npm run build`
+- backend tratativa de erros e observabilidade:
+  - [`assistenterpg-back/src/common/http/error-response.util.ts`](../assistenterpg-back/src/common/http/error-response.util.ts) centraliza normalizacao do contrato de erro (`code`, `error`, `message`, `details`, `field`)
+  - [`assistenterpg-back/src/common/filters/http-exception.filter.ts`](../assistenterpg-back/src/common/filters/http-exception.filter.ts) e [`assistenterpg-back/src/common/filters/all-exceptions.filter.ts`](../assistenterpg-back/src/common/filters/all-exceptions.filter.ts) agora usam o mesmo formato padrao, incluindo `VALIDATION_ERROR` para erros de DTO e `x-request-id/traceId` consistente
+  - [`assistenterpg-back/src/common/interceptors/logging.interceptor.ts`](../assistenterpg-back/src/common/interceptors/logging.interceptor.ts) passa a logar status real da resposta e mascarar campos sensiveis no body (`senha`, `token`, etc.)
+  - [`assistenterpg-back/src/common/http/error-response.util.spec.ts`](../assistenterpg-back/src/common/http/error-response.util.spec.ts) cobre casos-base de normalizacao para evitar regressao de contrato
+  - [`assistenterpg-back/src/common/filters/error-contract.integration.spec.ts`](../assistenterpg-back/src/common/filters/error-contract.integration.spec.ts) valida no nivel HTTP o envelope final de erro para cenarios de validacao, erro de dominio e erro inesperado
+  - validacoes de catalogo relacionadas a `fonte/suplementoId` passaram a retornar codigos de dominio (`FONTE_SUPLEMENTO_OBRIGATORIA` e `SUPLEMENTO_ID_OBRIGATORIO`) em vez de `BAD_REQUEST` generico
 - backend autorizacao de escrita:
+  - [`assistenterpg-back/src/classes/classes.controller.ts`](../assistenterpg-back/src/classes/classes.controller.ts), [`assistenterpg-back/src/clas/clas.controller.ts`](../assistenterpg-back/src/clas/clas.controller.ts), [`assistenterpg-back/src/origens/origens.controller.ts`](../assistenterpg-back/src/origens/origens.controller.ts), [`assistenterpg-back/src/trilhas/trilhas.controller.ts`](../assistenterpg-back/src/trilhas/trilhas.controller.ts) e [`assistenterpg-back/src/habilidades/habilidades.controller.ts`](../assistenterpg-back/src/habilidades/habilidades.controller.ts): rotas de escrita (`POST/PATCH/DELETE`) agora exigem `JWT+Admin`, mantendo leitura (`GET`) com `JWT`
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/equipamentos/equipamentos.controller.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
@@ -1609,7 +1642,12 @@ Content-Type: application/json
   "forca": 2,
   "prestigioBase": 3,
   "itens": [
-    { "equipamentoId": 10, "quantidade": 1, "equipado": true, "modificacoes": [2] }
+    {
+      "equipamentoId": 10,
+      "quantidade": 1,
+      "equipado": true,
+      "modificacoes": [2]
+    }
   ]
 }
 ```

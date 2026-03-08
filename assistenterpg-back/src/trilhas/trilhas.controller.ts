@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { TrilhasService } from './trilhas.service';
 import { CreateTrilhaDto } from './dto/create-trilha.dto';
 import { UpdateTrilhaDto } from './dto/update-trilha.dto';
@@ -30,6 +31,7 @@ export class TrilhasController {
 
   // CREATE - Criar nova trilha
   @Post()
+  @UseGuards(AdminGuard)
   create(@Body() createDto: CreateTrilhaDto) {
     return this.trilhasService.create(createDto);
   }
@@ -50,6 +52,7 @@ export class TrilhasController {
 
   // UPDATE - Atualizar trilha
   @Patch(':id')
+  @UseGuards(AdminGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateTrilhaDto,
@@ -59,6 +62,7 @@ export class TrilhasController {
 
   // DELETE - Remover trilha
   @Delete(':id')
+  @UseGuards(AdminGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.trilhasService.remove(id);
   }
@@ -83,12 +87,14 @@ export class TrilhasController {
 
   // CREATE - Criar novo caminho
   @Post('caminhos')
+  @UseGuards(AdminGuard)
   createCaminho(@Body() createDto: CreateCaminhoDto) {
     return this.trilhasService.createCaminho(createDto);
   }
 
   // UPDATE - Atualizar caminho
   @Patch('caminhos/:id')
+  @UseGuards(AdminGuard)
   updateCaminho(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateCaminhoDto,
@@ -98,6 +104,7 @@ export class TrilhasController {
 
   // DELETE - Remover caminho
   @Delete('caminhos/:id')
+  @UseGuards(AdminGuard)
   removeCaminho(@Param('id', ParseIntPipe) id: number) {
     return this.trilhasService.removeCaminho(id);
   }

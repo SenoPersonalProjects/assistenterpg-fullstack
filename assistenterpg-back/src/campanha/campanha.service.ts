@@ -230,6 +230,7 @@ export class CampanhaService {
     campanhaId: number,
     donoId: number,
     email: string,
+    papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR',
   ) {
     const campanha = await this.prisma.campanha.findUnique({
       where: { id: campanhaId },
@@ -250,6 +251,7 @@ export class CampanhaService {
       data: {
         campanhaId,
         email,
+        papel,
         codigo,
         status: 'PENDENTE',
       },
@@ -323,12 +325,16 @@ export class CampanhaService {
       throw new UsuarioJaMembroCampanhaException(usuarioId, convite.campanhaId);
     }
 
-    // por enquanto todo mundo entra como JOGADOR; depois podemos guardar o papel no convite
+    const papelConvite =
+      convite.papel === 'MESTRE' || convite.papel === 'OBSERVADOR'
+        ? convite.papel
+        : 'JOGADOR';
+
     const membro = await this.prisma.membroCampanha.create({
       data: {
         campanhaId: convite.campanhaId,
         usuarioId,
-        papel: 'JOGADOR',
+        papel: papelConvite,
       },
     });
 

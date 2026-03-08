@@ -88,6 +88,7 @@ export class CampanhaController {
       id,
       req.user.id,
       dto.email,
+      dto.papel,
     );
   }
 

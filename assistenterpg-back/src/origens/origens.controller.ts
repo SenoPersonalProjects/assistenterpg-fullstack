@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { OrigensService } from './origens.service';
 import { CreateOrigemDto } from './dto/create-origem.dto';
 import { UpdateOrigemDto } from './dto/update-origem.dto';
@@ -25,6 +26,7 @@ export class OrigensController {
    * CREATE - Criar nova origem (ADMIN)
    */
   @Post()
+  @UseGuards(AdminGuard)
   create(@Body() dto: CreateOrigemDto) {
     return this.origensService.create(dto);
   }
@@ -49,6 +51,7 @@ export class OrigensController {
    * UPDATE - Atualizar origem (ADMIN)
    */
   @Patch(':id')
+  @UseGuards(AdminGuard)
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateOrigemDto) {
     return this.origensService.update(id, dto);
   }
@@ -57,6 +60,7 @@ export class OrigensController {
    * DELETE - Remover origem (ADMIN)
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.origensService.remove(id);
   }

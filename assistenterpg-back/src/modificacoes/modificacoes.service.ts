@@ -143,6 +143,32 @@ export class ModificacoesService {
     return value as Prisma.InputJsonValue;
   }
 
+  private async validarFonteSuplemento(
+    fonte: TipoFonte,
+    suplementoId: number | null,
+  ): Promise<void> {
+    if (suplementoId) {
+      const suplemento = await this.prisma.suplemento.findUnique({
+        where: { id: suplementoId },
+        select: { id: true },
+      });
+
+      if (!suplemento) {
+        throw new ModificacaoSuplementoNaoEncontradoException(suplementoId);
+      }
+
+      if (fonte !== TipoFonte.SUPLEMENTO) {
+        throw new ModificacaoFonteInvalidaException();
+      }
+
+      return;
+    }
+
+    if (fonte === TipoFonte.SUPLEMENTO) {
+      throw new ModificacaoFonteInvalidaException();
+    }
+  }
+
   private parseRestricoes(
     value: Prisma.JsonValue | null,
   ): RestricoesModificacao | null {
@@ -191,23 +217,11 @@ export class ModificacoesService {
         throw new ModificacaoCodigoDuplicadoException(createDto.codigo);
       }
 
-      // Validar suplemento (se fornecido)
-      if (createDto.suplementoId) {
-        const suplemento = await this.prisma.suplemento.findUnique({
-          where: { id: createDto.suplementoId },
-        });
-
-        if (!suplemento) {
-          throw new ModificacaoSuplementoNaoEncontradoException(
-            createDto.suplementoId,
-          );
-        }
-
-        // Se forneceu suplementoId, fonte deve ser SUPLEMENTO
-        if (createDto.fonte && createDto.fonte !== TipoFonte.SUPLEMENTO) {
-          throw new ModificacaoFonteInvalidaException();
-        }
-      }
+      const suplementoIdFinal = createDto.suplementoId ?? null;
+      const fonteFinal =
+        createDto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : TipoFonte.SISTEMA_BASE);
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
 
       // Validar equipamentos compatíveis (se fornecidos)
       if (createDto.equipamentosCompatíveisIds?.length) {
@@ -241,8 +255,8 @@ export class ModificacoesService {
           efeitosMecanicos: this.normalizarJsonParaPersistir(
             createDto.efeitosMecanicos,
           ),
-          fonte: createDto.fonte ?? TipoFonte.SISTEMA_BASE,
-          suplementoId: createDto.suplementoId,
+          fonte: fonteFinal,
+          suplementoId: suplementoIdFinal,
 
           // ✅ Criar relações com equipamentos compatíveis
           ...(createDto.equipamentosCompatíveisIds?.length && {
@@ -271,7 +285,19 @@ export class ModificacoesService {
   async update(id: number, updateDto: UpdateModificacaoDto) {
     try {
       // Verificar se existe
-      await this.buscarPorId(id);
+      const modificacaoAtual =
+        await this.prisma.modificacaoEquipamento.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            fonte: true,
+            suplementoId: true,
+          },
+        });
+
+      if (!modificacaoAtual) {
+        throw new ModificacaoNaoEncontradaException(id);
+      }
 
       // Verificar código duplicado (se mudou)
       if (updateDto.codigo) {
@@ -287,18 +313,15 @@ export class ModificacoesService {
         }
       }
 
-      // Validar suplemento (se fornecido)
-      if (updateDto.suplementoId) {
-        const suplemento = await this.prisma.suplemento.findUnique({
-          where: { id: updateDto.suplementoId },
-        });
+      const suplementoIdFinal =
+        updateDto.suplementoId !== undefined
+          ? updateDto.suplementoId
+          : modificacaoAtual.suplementoId;
+      const fonteFinal =
+        updateDto.fonte ??
+        (suplementoIdFinal ? TipoFonte.SUPLEMENTO : modificacaoAtual.fonte);
 
-        if (!suplemento) {
-          throw new ModificacaoSuplementoNaoEncontradoException(
-            updateDto.suplementoId,
-          );
-        }
-      }
+      await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
 
       // Validar equipamentos compatíveis (se fornecidos)
       if (updateDto.equipamentosCompatíveisIds?.length) {
@@ -341,7 +364,7 @@ export class ModificacoesService {
               updateDto.efeitosMecanicos,
             ),
           }),
-          ...(updateDto.fonte && { fonte: updateDto.fonte }),
+          ...(fonteFinal !== modificacaoAtual.fonte && { fonte: fonteFinal }),
           ...(updateDto.suplementoId !== undefined && {
             suplementoId: updateDto.suplementoId,
           }),
@@ -512,7 +535,18 @@ export class ModificacoesService {
       // Buscar todas as modificações do mesmo tipo base
       const modificacoes = await this.prisma.modificacaoEquipamento.findMany({
         where: {
-          // Filtrar por tipo compatível (implementar lógica de compatibilidade)
+          OR: [
+            {
+              equipamentosApplicaveis: {
+                some: { equipamentoId },
+              },
+            },
+            {
+              equipamentosApplicaveis: {
+                none: {},
+              },
+            },
+          ],
         },
         include: {
           suplemento: {

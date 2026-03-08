@@ -15,32 +15,55 @@ A auditoria foi feita comparando:
 ## Resultado atual
 
 - cobertura de modulos do backend no README: ok (todos os controllers principais aparecem)
-- autenticacao/autorizacao:
-  - escrita de `tecnicas-amaldicoadas`, `proficiencias`, `tipos-grau`, `condicoes` ajustada para `JWT+Admin`
-  - documentacao alinhada com esse comportamento
+- cobertura por entidade em arquivos dedicados:
+  - `auth-usuarios-campanhas`: ok
+  - `catalogos-progressao`: ok
+  - `tecnicas-amaldicoadas`: ok
+  - `catalogos-menores`: ok
+  - `personagens-base`: ok
+  - `inventario`: ok
+  - `equipamentos-modificacoes`: ok
+  - `compendio`: ok
+  - `suplementos-homebrews`: ok
 - contratos de payload:
-  - `tecnicas-amaldicoadas` e `catalogos menores` detalhados com campos obrigatorios/opcionais
+  - campos obrigatorios/opcionais e formatos de query documentados por entidade
 - constraints de schema:
-  - unicidades e regras principais refletidas na documentacao
+  - unicidades, relacoes e bloqueios de exclusao em uso refletidos na documentacao
+- erros:
+  - envelope global atualizado com `traceId` e header `x-request-id`
+  - codigos de erro por dominio mapeados nos docs de entidade
 
 ## Pontos de atencao (comportamento atual, nao quebra)
 
 - `proficiencias` e `tipos-grau`:
   - service nao faz precheck explicito de "em uso" antes de deletar
-  - hoje a integridade fica majoritariamente delegada ao banco/Prisma (erro de FK quando aplicavel)
-  - recomendacao futura: padronizar mensagem de negocio para erro "em uso" (similar ao que ja existe em `condicoes`, `classes`, `trilhas`, `origens`, `tecnicas`)
+  - integridade fica delegada ao banco/Prisma (erro de FK quando aplicavel)
+- `personagens-base`:
+  - `PATCH /personagens-base/:id` aceita `itensInventario` no DTO, mas o fluxo de update nao aplica esse campo
+  - para inventario, usar endpoints de `/inventario`
 
 ## Evidencias (arquivos chave)
 
 - schema:
   - `assistenterpg-back/prisma/schema.prisma`
 - regras de negocio:
+  - `assistenterpg-back/src/auth/auth.service.ts`
+  - `assistenterpg-back/src/usuario/usuario.service.ts`
+  - `assistenterpg-back/src/campanha/campanha.service.ts`
+  - `assistenterpg-back/src/classes/classes.service.ts`
+  - `assistenterpg-back/src/clas/clas.service.ts`
+  - `assistenterpg-back/src/trilhas/trilhas.service.ts`
+  - `assistenterpg-back/src/origens/origens.service.ts`
+  - `assistenterpg-back/src/habilidades/habilidades.service.ts`
   - `assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts`
-  - `assistenterpg-back/src/condicoes/condicoes.service.ts`
-  - `assistenterpg-back/src/proficiencias/proficiencias.service.ts`
-  - `assistenterpg-back/src/tipos-grau/tipos-grau.service.ts`
+  - `assistenterpg-back/src/personagem-base/personagem-base.service.ts`
+  - `assistenterpg-back/src/inventario/inventario.service.ts`
+  - `assistenterpg-back/src/equipamentos/equipamentos.service.ts`
+  - `assistenterpg-back/src/modificacoes/modificacoes.service.ts`
+  - `assistenterpg-back/src/compendio/compendio.service.ts`
+  - `assistenterpg-back/src/suplementos/suplementos.service.ts`
+  - `assistenterpg-back/src/homebrews/homebrews.service.ts`
 - autorizacao:
-  - `assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.controller.ts`
-  - `assistenterpg-back/src/proficiencias/proficiencias.controller.ts`
-  - `assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`
-  - `assistenterpg-back/src/condicoes/condicoes.controller.ts`
+  - `assistenterpg-back/src/auth/jwt-auth.guard.ts`
+  - `assistenterpg-back/src/auth/guards/admin.guard.ts`
+  - controllers dos modulos citados acima

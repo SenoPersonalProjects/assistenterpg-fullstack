@@ -35,7 +35,8 @@ Atualizado em: 2026-03-08
   - leitura: JWT
   - create/update/delete: JWT+Admin
 - `classes`, `clas`, `origens`, `trilhas`, `caminhos`, `habilidades`
-  - principal: JWT
+  - leitura (`GET`): JWT
+  - escrita (`POST/PATCH/DELETE`): JWT+Admin
 - `tecnicas-amaldicoadas` (tecnica/habilidade/variacao)
   - leitura (`GET`): JWT
   - escrita (`POST/PATCH/DELETE`): JWT+Admin

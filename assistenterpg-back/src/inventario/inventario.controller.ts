@@ -21,48 +21,6 @@ import { RemoverModificacaoDto } from './dto/remover-modificacao.dto';
 import { PreviewItemDto } from './dto/preview-item.dto';
 import { PreviewItensInventarioDto } from './dto/preview-itens-inventario.dto';
 
-type ErroLog = {
-  message: string;
-  name: string;
-  status: number | null;
-  response: unknown;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function extrairErroLog(err: unknown): ErroLog {
-  if (err instanceof Error) {
-    const status =
-      isRecord(err) && typeof err.status === 'number' ? err.status : null;
-    const response = isRecord(err) ? err.response : undefined;
-    return {
-      message: err.message,
-      name: err.name,
-      status,
-      response,
-    };
-  }
-
-  if (isRecord(err)) {
-    return {
-      message:
-        typeof err.message === 'string' ? err.message : 'Erro desconhecido',
-      name: typeof err.name === 'string' ? err.name : 'UnknownError',
-      status: typeof err.status === 'number' ? err.status : null,
-      response: err.response,
-    };
-  }
-
-  return {
-    message: 'Erro desconhecido',
-    name: 'UnknownError',
-    status: null,
-    response: undefined,
-  };
-}
-
 @UseGuards(JwtAuthGuard) // ✅ ATUALIZADO
 @Controller('inventario')
 export class InventarioController {
@@ -98,42 +56,16 @@ export class InventarioController {
   }
 
   /**
-   * ✅ TESTE: POST /inventario/preview SEM autenticação (temporário)
+   * POST /inventario/preview
    * Preview de múltiplos itens (wizard)
    */
   @Post('preview')
-  async previewItensInventario(@Body() dto: PreviewItensInventarioDto) {
-    console.log(
-      '[InventarioController] ============ CHEGOU NO CONTROLLER ============',
-    );
-    console.log(
-      '[InventarioController] Body recebido:',
-      JSON.stringify(dto, null, 2),
-    );
-    console.log('[InventarioController] Tipos:', {
-      forca: typeof dto.forca,
-      prestigioBase: typeof dto.prestigioBase,
-      itens: Array.isArray(dto.itens)
-        ? `array[${dto.itens.length}]`
-        : typeof dto.itens,
-    });
-
-    try {
-      const resultado = (await this.inventarioService.previewItensInventario(
-        dto,
-      )) as unknown;
-      console.log('[InventarioController] ✅ Preview gerado com sucesso');
-      return resultado;
-    } catch (err: unknown) {
-      const erro = extrairErroLog(err);
-      console.error('[InventarioController] ❌ Erro ao gerar preview:', {
-        message: erro.message,
-        name: erro.name,
-        status: erro.status,
-        response: erro.response,
-      });
-      throw err;
-    }
+  async previewItensInventario(
+    @Body() dto: PreviewItensInventarioDto,
+  ): Promise<unknown> {
+    return this.inventarioService.previewItensInventario(
+      dto,
+    ) as Promise<unknown>;
   }
 
   // ==================== CRUD DE ITENS ====================

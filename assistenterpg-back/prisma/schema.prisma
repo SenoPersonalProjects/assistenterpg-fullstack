@@ -882,6 +882,7 @@ model ConviteCampanha {
   id           Int       @id @default(autoincrement())
   campanhaId   Int
   email        String
+  papel        String    @default("JOGADOR")
   codigo       String    @unique
   status       String    @default("PENDENTE")
   criadoEm     DateTime  @default(now())
@@ -1806,5 +1807,4 @@ model Homebrew {
   @@index([tipo])
   @@index([status])
 }
-
 

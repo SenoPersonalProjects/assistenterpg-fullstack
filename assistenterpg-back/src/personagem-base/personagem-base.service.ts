@@ -199,9 +199,11 @@ export class PersonagemBaseService {
     }
 
     if (params.obrigatorio || houveTentativaResolucao) {
-      throw new BadRequestException(
-        `Nao foi possivel resolver a referencia de ${params.label} na importacao.`,
-      );
+      throw new BadRequestException({
+        code: 'REFERENCIA_IMPORTACAO_INVALIDA',
+        message: `Nao foi possivel resolver a referencia de ${params.label} na importacao.`,
+        details: { label: params.label },
+      });
     }
 
     return null;

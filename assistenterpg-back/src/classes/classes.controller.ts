@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { ClassesService } from './classes.service';
 import { CreateClasseDto } from './dto/create-classe.dto';
 import { UpdateClasseDto } from './dto/update-classe.dto';
@@ -20,6 +21,7 @@ export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
   @Post()
+  @UseGuards(AdminGuard)
   create(@Body() dto: CreateClasseDto) {
     return this.classesService.create(dto);
   }
@@ -40,11 +42,13 @@ export class ClassesController {
   }
 
   @Patch(':id')
+  @UseGuards(AdminGuard)
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateClasseDto) {
     return this.classesService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(AdminGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.classesService.remove(id);
   }

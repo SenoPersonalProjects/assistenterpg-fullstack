@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { HabilidadesService } from './habilidades.service';
 import { CreateHabilidadeDto } from './dto/create-habilidade.dto';
 import { UpdateHabilidadeDto } from './dto/update-habilidade.dto';
@@ -64,6 +65,7 @@ export class HabilidadesController {
    * CREATE - Criar nova habilidade (ADMIN)
    */
   @Post()
+  @UseGuards(AdminGuard)
   create(@Body() createDto: CreateHabilidadeDto) {
     return this.habilidadesService.create(createDto);
   }
@@ -72,6 +74,7 @@ export class HabilidadesController {
    * UPDATE - Atualizar habilidade (ADMIN)
    */
   @Patch(':id')
+  @UseGuards(AdminGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateHabilidadeDto,
@@ -83,6 +86,7 @@ export class HabilidadesController {
    * DELETE - Remover habilidade (ADMIN)
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.habilidadesService.remove(id);
   }

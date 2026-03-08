@@ -1,5 +1,3 @@
-// src/common/filters/http-exception.filter.ts
-
 import {
   ExceptionFilter,
   Catch,
@@ -9,97 +7,43 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { BaseException } from '../exceptions/base.exception';
+import {
+  createErrorBase,
+  ErrorResponseBody,
+  normalizeHttpExceptionPayload,
+} from '../http/error-response.util';
+import { getOrCreateTraceId } from '../http/request-trace.util';
 
-type ErrorResponseBody = {
-  statusCode: number;
-  timestamp: string;
-  path: string;
-  method: string;
-  code?: string;
-  message?: string | string[];
-  details?: unknown;
-  field?: string;
-  stack?: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function toStringValue(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function toStringOrStringArray(value: unknown): string | string[] | undefined {
-  if (typeof value === 'string') return value;
-  if (
-    Array.isArray(value) &&
-    value.every((entry) => typeof entry === 'string')
-  ) {
-    return value;
-  }
-  return undefined;
-}
-
-/**
- * Filtro global para HttpException
- */
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>(); // ✅ CORRETO
+    const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     const status = exception.getStatus();
+    const traceId = getOrCreateTraceId(request, response);
 
-    const exceptionResponse = exception.getResponse();
+    const payload = normalizeHttpExceptionPayload(
+      status,
+      exception.getResponse(),
+      exception.message,
+      exception instanceof BaseException ? exception : undefined,
+    );
 
-    // Estrutura de resposta de erro
     const errorResponse: ErrorResponseBody = {
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      method: request.method,
+      ...createErrorBase(request, traceId, status),
+      ...payload,
     };
 
-    // Se for BaseException (nossas exceções customizadas)
-    if (exception instanceof BaseException) {
-      errorResponse.code = exception.code;
-      const mensagem = isRecord(exceptionResponse)
-        ? toStringOrStringArray(exceptionResponse.message)
-        : undefined;
-      errorResponse.message = mensagem ?? exception.message;
-      errorResponse.details = exception.details;
-      errorResponse.field = exception.field;
-
-      // Adicionar stack trace apenas em desenvolvimento
-      if (process.env.NODE_ENV === 'development') {
-        errorResponse.stack = exception.stack;
-      }
-    } else {
-      // HttpException padrão do NestJS
-      errorResponse.code =
-        isRecord(exceptionResponse) && toStringValue(exceptionResponse.code)
-          ? toStringValue(exceptionResponse.code)
-          : 'HTTP_EXCEPTION';
-      errorResponse.message =
-        typeof exceptionResponse === 'string'
-          ? exceptionResponse
-          : isRecord(exceptionResponse)
-            ? (toStringOrStringArray(exceptionResponse.message) ??
-              'Erro no servidor')
-            : 'Erro no servidor';
-
-      if (isRecord(exceptionResponse)) {
-        errorResponse.details = exceptionResponse;
-      }
+    if (process.env.NODE_ENV === 'development') {
+      errorResponse.stack = exception.stack;
+      errorResponse.errorType = exception.name;
     }
 
-    // Log do erro
     this.logger.error(
-      `[${request.method}] ${request.url} - Status: ${status}`,
+      `[traceId=${traceId}] [${request.method}] ${request.originalUrl ?? request.url} - Status: ${status}`,
       JSON.stringify(errorResponse, null, 2),
     );
 

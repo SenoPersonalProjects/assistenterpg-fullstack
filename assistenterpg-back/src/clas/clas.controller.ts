@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { ClasService } from './clas.service';
 import { CreateClaDto } from './dto/create-cla.dto';
 import { UpdateClaDto } from './dto/update-cla.dto';
@@ -25,6 +26,7 @@ export class ClasController {
    * CREATE - Criar novo clã (ADMIN)
    */
   @Post()
+  @UseGuards(AdminGuard)
   create(@Body() dto: CreateClaDto) {
     return this.claService.create(dto);
   }
@@ -49,6 +51,7 @@ export class ClasController {
    * UPDATE - Atualizar clã (ADMIN)
    */
   @Patch(':id')
+  @UseGuards(AdminGuard)
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateClaDto) {
     return this.claService.update(id, dto);
   }
@@ -57,6 +60,7 @@ export class ClasController {
    * DELETE - Remover clã (ADMIN)
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.claService.remove(id);
   }
