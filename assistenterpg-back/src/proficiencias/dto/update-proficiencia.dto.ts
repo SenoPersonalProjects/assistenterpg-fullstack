@@ -1,7 +1,4 @@
-export class UpdateProficienciaDto {
-  nome?: string;
-  descricao?: string | null;
-  tipo?: string;
-  categoria?: string;
-  subtipo?: string | null;
-}
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateProficienciaDto } from './create-proficiencia.dto';
+
+export class UpdateProficienciaDto extends PartialType(CreateProficienciaDto) {}

@@ -1,4 +1,10 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PericiasService } from './pericias.service';
 
@@ -13,7 +19,7 @@ export class PericiasController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.periciasService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.periciasService.findOne(id);
   }
 }

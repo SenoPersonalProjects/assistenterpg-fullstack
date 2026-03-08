@@ -531,6 +531,90 @@ Rotas principais:
 - `alinhamentos`
   - `GET /alinhamentos`
 
+Detalhamento do bloco de catalogos menores:
+
+- `pericias` (`Auth: JWT`)
+  - `GET /pericias`
+    - resposta: array ordenado por `atributoBase` e `nome`
+    - campos: `id`, `codigo`, `nome`, `descricao`, `atributoBase`, `somenteTreinada`, `penalizaPorCarga`, `precisaKit`
+  - `GET /pericias/:id`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - erros esperados: `PERICIA_NOT_FOUND` (404)
+- `proficiencias` (`Auth: JWT`)
+  - `POST /proficiencias`
+    - body: [`CreateProficienciaDto`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts)
+      - `codigo`: string obrigatoria, max 50
+      - `nome`: string obrigatoria, min 2, max 100
+      - `descricao`: string opcional/null, max 5000
+      - `tipo`: string obrigatoria, max 50
+      - `categoria`: string obrigatoria, max 50
+      - `subtipo`: string opcional/null, max 50
+  - `GET /proficiencias`
+    - resposta: array ordenado por `nome`
+  - `GET /proficiencias/:id`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - erros esperados: `PROFICIENCIA_NOT_FOUND` (404)
+  - `PATCH /proficiencias/:id`
+    - body parcial: [`UpdateProficienciaDto`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts)
+    - `id` deve ser inteiro (`ParseIntPipe`)
+  - `DELETE /proficiencias/:id`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - resposta esperada: `{ "sucesso": true }`
+  - observacao de erro de banco:
+    - `codigo` e unico no schema; duplicidade gera `DB_UNIQUE_VIOLATION`
+- `tipos-grau` (`Auth: JWT`)
+  - `POST /tipos-grau`
+    - body: [`CreateTipoGrauDto`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts)
+      - `codigo`: string obrigatoria, max 50
+      - `nome`: string obrigatoria, min 2, max 100
+      - `descricao`: string opcional/null, max 5000
+  - `GET /tipos-grau`
+    - resposta: array ordenado por `nome`
+  - `GET /tipos-grau/:id`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - erros esperados: `TIPO_GRAU_NOT_FOUND` (404)
+  - `PATCH /tipos-grau/:id`
+    - body parcial: [`UpdateTipoGrauDto`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts)
+    - `id` deve ser inteiro (`ParseIntPipe`)
+  - `DELETE /tipos-grau/:id`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - resposta esperada: `{ "sucesso": true }`
+  - observacao de erro de banco:
+    - `codigo` e unico no schema; duplicidade gera `DB_UNIQUE_VIOLATION`
+- `condicoes` (`Auth: JWT`)
+  - `POST /condicoes`
+    - body: [`CreateCondicaoDto`](../assistenterpg-back/src/condicoes/dto/create-condicao.dto.ts)
+      - `nome`: string obrigatoria, min 3, max 100
+      - `descricao`: string obrigatoria, min 10
+    - erros esperados: `CONDICAO_NOME_DUPLICADO` (422)
+  - `GET /condicoes`
+    - resposta: array ordenado por `nome`
+    - cada item inclui `_count.condicoesPersonagemSessao`
+  - `GET /condicoes/:id`
+    - `id` inteiro obrigatorio
+    - inclui `_count.condicoesPersonagemSessao`
+    - erros esperados: `CONDICAO_NOT_FOUND` (404)
+  - `PATCH /condicoes/:id`
+    - body parcial: [`UpdateCondicaoDto`](../assistenterpg-back/src/condicoes/dto/update-condicao.dto.ts)
+    - erros esperados: `CONDICAO_NOT_FOUND` (404), `CONDICAO_NOME_DUPLICADO` (422)
+  - `DELETE /condicoes/:id`
+    - bloqueia remocao se houver uso em sessao
+    - erros esperados: `CONDICAO_NOT_FOUND` (404), `CONDICAO_EM_USO` (422)
+    - sucesso: `{ "message": "Condicao removida com sucesso" }`
+- `alinhamentos` (`Auth: JWT`)
+  - `GET /alinhamentos`
+    - resposta: array ordenado por `nome`
+    - campos: `id`, `nome`, `descricao`
+
+Integracao frontend neste bloco:
+
+- leitura via [`assistenterpg-front/src/lib/api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts):
+  - `apiGetPericias`
+  - `apiGetProficiencias`
+  - `apiGetTiposGrau`
+  - `apiGetAlinhamentos`
+- frontend hoje nao possui cliente administrativo para CRUD de `condicoes`, `proficiencias` e `tipos-grau`; quando necessario, operacao e feita direto via API autenticada.
+
 ## 6. Tipos de dados e enums aceitos
 
 Fonte principal de enums:
@@ -637,6 +721,9 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/equipamentos/equipamentos.controller.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
+- backend contrato de catalogos menores:
+  - IDs de rota de [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
+  - DTOs [`assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts), [`assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts), [`assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts) e [`assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts) agora possuem validacao `class-validator` consistente com `ValidationPipe` global
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
 - baseline de lint no backend:

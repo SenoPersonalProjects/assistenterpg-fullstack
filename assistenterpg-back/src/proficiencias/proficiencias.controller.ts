@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   UseGuards,
@@ -29,17 +30,20 @@ export class ProficienciasController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.proficienciasService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.proficienciasService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateProficienciaDto) {
-    return this.proficienciasService.update(+id, dto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateProficienciaDto,
+  ) {
+    return this.proficienciasService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.proficienciasService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.proficienciasService.remove(id);
   }
 }

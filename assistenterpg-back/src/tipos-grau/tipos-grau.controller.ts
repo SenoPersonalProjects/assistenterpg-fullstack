@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   UseGuards,
@@ -29,17 +30,20 @@ export class TiposGrauController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tiposGrauService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.tiposGrauService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateTipoGrauDto) {
-    return this.tiposGrauService.update(+id, dto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTipoGrauDto,
+  ) {
+    return this.tiposGrauService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.tiposGrauService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.tiposGrauService.remove(id);
   }
 }
