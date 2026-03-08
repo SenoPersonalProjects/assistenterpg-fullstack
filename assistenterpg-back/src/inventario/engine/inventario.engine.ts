@@ -26,7 +26,7 @@ export class InventarioEngine {
    * Progressão: CATEGORIA_0 → CATEGORIA_4 → CATEGORIA_3 → CATEGORIA_2 → CATEGORIA_1 → ESPECIAL
    */
   calcularCategoriaFinal(
-    categoriaOriginal: CategoriaEquipamento | string,
+    categoriaOriginal: string,
     quantidadeModificacoes: number,
   ): CategoriaEquipamento {
     const ORDEM_CATEGORIAS = [

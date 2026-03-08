@@ -402,7 +402,7 @@ export class PersonagemBasePersistence {
 
     // Filtrar apenas resistências com valor > 0
     const resistenciasValidas = Array.from(resistenciasFinais.entries()).filter(
-      ([_, valor]) => valor > 0,
+      ([, valor]) => valor > 0,
     );
 
     if (resistenciasValidas.length === 0) {

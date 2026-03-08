@@ -14,7 +14,7 @@ export class ModificacaoDetalhadaDto {
   // ✅ NOVO: Sistema de restrições
   restricoes: RestricoesModificacao | null;
 
-  efeitosMecanicos: any | null;
+  efeitosMecanicos: unknown;
 
   // ✅ NOVO: Fonte e suplemento
   fonte: TipoFonte;

@@ -1,6 +1,6 @@
 // src/homebrews/dto/clas/criar-homebrew-cla.dto.ts
 
-import { IsNotEmpty, IsArray, IsOptional, IsInt } from 'class-validator';
+import { IsArray, IsOptional, IsInt } from 'class-validator';
 
 /**
  * DTO para homebrews de CLÃ

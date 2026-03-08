@@ -33,9 +33,10 @@ export class AuthService {
       }
 
       // ✅ Retornar usuário sem senhaHash
-      const { senhaHash, ...resto } = usuario;
-      return resto;
-    } catch (error) {
+      const { senhaHash, ...usuarioSemSenha } = usuario;
+      void senhaHash;
+      return usuarioSemSenha;
+    } catch {
       // ✅ SEGURANÇA: Transformar qualquer erro em "Credenciais inválidas"
       // Isso previne user enumeration (atacante não sabe se email existe)
       throw new CredenciaisInvalidasException();

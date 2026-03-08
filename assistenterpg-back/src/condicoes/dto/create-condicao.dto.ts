@@ -1,12 +1,6 @@
 // src/condicoes/dto/create-condicao.dto.ts
 
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsNotEmpty, MinLength, MaxLength } from 'class-validator';
 
 export class CreateCondicaoDto {
   @IsString()

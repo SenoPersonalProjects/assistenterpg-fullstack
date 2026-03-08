@@ -82,6 +82,8 @@ Scripts relevantes:
 - `npm run build`
 - `npm run start`
 - `npm run lint`
+- `npm run test`
+- `npm run test:watch`
 
 ## 3.3 Variaveis de ambiente
 
@@ -637,11 +639,17 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
+- baseline de lint no backend:
+  - [`assistenterpg-back/eslint.config.mjs`](../assistenterpg-back/eslint.config.mjs) foi ajustado para tratar `no-unsafe-*` como `warn`, permitindo `npm run lint` passar sem mascarar o debito historico
+  - erros de lint de baixo esforco (imports/variaveis nao usadas, `require-await`, `no-case-declarations`) foram corrigidos em modulos afetados
+- testes de fallback no frontend:
+  - [`assistenterpg-front/src/lib/utils/compendio.test.ts`](../assistenterpg-front/src/lib/utils/compendio.test.ts) cobre fallback de categorias/destaques/busca por codigo/busca textual
+  - [`assistenterpg-front/package.json`](../assistenterpg-front/package.json) agora expoe scripts `test` e `test:watch` via Vitest
 
 ## 8.3 Pontos de atencao (nao alterados para evitar quebra)
 
 - padrao de paginacao ainda heterogeneo no backend
-- backend ainda falha em `npm run lint` por alto volume de pendencias antigas de tipagem/estilo
+- backend passa em `npm run lint`, mas ainda possui alto volume de warnings `no-unsafe-*` (debito legado de tipagem)
 - ha comentarios de debug antigos em alguns controllers/services (nao afetam contrato)
 
 ## 9. Guia rapido de requests (exemplos)

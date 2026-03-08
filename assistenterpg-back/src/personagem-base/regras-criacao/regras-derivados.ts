@@ -140,7 +140,6 @@ export async function calcularAtributosDerivados(
     nivel,
     classeId,
     agilidade,
-    forca,
     intelecto,
     presenca,
     vigor,

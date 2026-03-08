@@ -15,9 +15,7 @@ import {
 } from '@nestjs/common';
 import { SuplementosService } from './suplementos.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
 
 import { CreateSuplementoDto } from './dto/create-suplemento.dto';
 import { UpdateSuplementoDto } from './dto/update-suplemento.dto';

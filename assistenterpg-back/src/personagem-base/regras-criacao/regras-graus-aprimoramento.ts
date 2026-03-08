@@ -119,7 +119,7 @@ export function calcularBonusGrausDePoderesGenericos(
   return bonusMap;
 }
 
-export async function aplicarRegrasDeGraus(
+export function aplicarRegrasDeGraus(
   params: {
     nivel: number;
     habilidades: HabilidadePersonagem[];
@@ -127,8 +127,8 @@ export async function aplicarRegrasDeGraus(
     passivasAtributosConfig?: PassivasAtributoConfigDto | null;
   },
   grausLivres: GrauLivre[],
-): Promise<GrauLivre[]> {
-  const { nivel, habilidades, poderes, passivasAtributosConfig } = params;
+): GrauLivre[] {
+  const { nivel, habilidades, poderes } = params;
 
   // 0) Normalizar: somar duplicados por código (entrada do usuário já tratada)
   const mapa = new Map<string, number>();
@@ -146,12 +146,6 @@ export async function aplicarRegrasDeGraus(
   );
 
   // Apenas informativo, usado em logs/preview
-  const extras = calcularGrausLivresExtras(
-    habilidades,
-    nivel,
-    passivasAtributosConfig,
-  );
-
   // 1) Validar faixa atual (0–5) ANTES dos bônus de habilidades
   for (const [codigo, valor] of mapa.entries()) {
     if (!Number.isInteger(valor)) {

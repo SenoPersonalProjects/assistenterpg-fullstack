@@ -1696,13 +1696,13 @@ export class PersonagemBaseService {
 
   // ==================== MÃ‰TODOS AUXILIARES ====================
 
-  async consultarInfoGrausTreinamento(
+  consultarInfoGrausTreinamento(
     nivel: number,
     intelecto: number,
-  ): Promise<{
+  ): {
     niveisDisponiveis: Array<{ nivel: number; maxMelhorias: number }>;
     limitesGrau: { graduado: number; veterano: number; expert: number };
-  }> {
+  } {
     const niveisValidos = [3, 7, 11, 16];
     const niveisDisponiveis = niveisValidos
       .filter((n) => nivel >= n)

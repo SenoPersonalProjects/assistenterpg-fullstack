@@ -343,7 +343,9 @@ export class ModificacoesService {
       ]);
 
       return {
-        dados: modificacoes.map(this.mapDetalhado),
+        dados: modificacoes.map((modificacao) =>
+          this.mapDetalhado(modificacao),
+        ),
         paginacao: {
           pagina,
           limite,
@@ -428,7 +430,7 @@ export class ModificacoesService {
       const compatíveis: ModificacaoDetalhadaDto[] = [];
 
       for (const mod of modificacoes) {
-        const validacao = await this.validarRestricoes(equipamento as any, mod);
+        const validacao = this.validarRestricoes(equipamento as any, mod);
 
         if (validacao.valido) {
           compatíveis.push(this.mapDetalhado(mod));
@@ -451,10 +453,10 @@ export class ModificacoesService {
   /**
    * Valida se uma modificação pode ser aplicada a um equipamento
    */
-  async validarRestricoes(
+  validarRestricoes(
     equipamento: any,
     modificacao: any,
-  ): Promise<ResultadoValidacaoRestricoes> {
+  ): ResultadoValidacaoRestricoes {
     const erros: string[] = [];
     const restricoes = modificacao.restricoes as RestricoesModificacao;
 
@@ -574,10 +576,10 @@ export class ModificacoesService {
   /**
    * Valida conflitos entre modificações em um item
    */
-  async validarConflitosModificacoes(
+  validarConflitosModificacoes(
     modificacaoNova: any,
     modificacoesExistentes: any[],
-  ): Promise<ResultadoValidacaoRestricoes> {
+  ): ResultadoValidacaoRestricoes {
     const erros: string[] = [];
     const restricoes = modificacaoNova.restricoes as RestricoesModificacao;
 

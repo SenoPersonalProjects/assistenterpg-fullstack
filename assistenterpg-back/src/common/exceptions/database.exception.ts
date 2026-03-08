@@ -19,7 +19,7 @@ export class DatabaseException extends BaseException {
 export function handlePrismaError(error: any): never {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     switch (error.code) {
-      case 'P2002':
+      case 'P2002': {
         // Unique constraint violation
         const fields = error.meta?.target as string[];
         throw new DatabaseException(
@@ -27,6 +27,7 @@ export function handlePrismaError(error: any): never {
           'DB_UNIQUE_VIOLATION',
           { fields, value: error.meta },
         );
+      }
 
       case 'P2003':
         // Foreign key constraint violation

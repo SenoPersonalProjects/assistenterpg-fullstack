@@ -230,7 +230,6 @@ export class CampanhaService {
     campanhaId: number,
     donoId: number,
     email: string,
-    papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR',
   ) {
     const campanha = await this.prisma.campanha.findUnique({
       where: { id: campanhaId },

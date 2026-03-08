@@ -10,10 +10,8 @@ import {
   MinLength,
   MaxLength,
   IsArray,
-  ValidateNested,
   IsObject,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { TipoModificacao, TipoFonte } from '@prisma/client';
 import type { RestricoesModificacao } from '../types/restricoes.types';
 

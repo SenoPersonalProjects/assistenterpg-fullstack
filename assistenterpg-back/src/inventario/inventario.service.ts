@@ -1,6 +1,6 @@
 // src/inventario/inventario.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { InventarioEngine } from './engine/inventario.engine';
@@ -16,7 +16,7 @@ import {
   PreviewAdicionarItemResponse,
   ResumoInventarioCompleto,
 } from './engine/inventario.types';
-import { CategoriaEquipamento, TipoEquipamento } from '@prisma/client';
+import { TipoEquipamento } from '@prisma/client';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -264,7 +264,7 @@ export class InventarioService {
 
     // Filtrar apenas resistências com valor > 0
     const resistenciasValidas = Array.from(resistencias.entries()).filter(
-      ([_, valor]) => valor > 0,
+      ([, valor]) => valor > 0,
     );
 
     if (resistenciasValidas.length === 0) {
@@ -1177,10 +1177,6 @@ export class InventarioService {
       );
 
       // Recalcular espaços
-      const modRemovida = item.modificacoes.find(
-        (m) => m.modificacao.id === dto.modificacaoId,
-      );
-
       const espacosBaseItem = item.equipamento.espacos;
       const incrementoModsNovo = item.modificacoes
         .filter((m) => m.modificacao.id !== dto.modificacaoId)

@@ -24,8 +24,9 @@ export class UsuarioController {
   @Get('me')
   async getMe(@Request() req: { user: { id: number } }) {
     const usuario = await this.usuarioService.buscarPorId(req.user.id);
-    const { senhaHash, ...resto } = usuario;
-    return resto;
+    const { senhaHash, ...usuarioSemSenha } = usuario;
+    void senhaHash;
+    return usuarioSemSenha;
   }
 
   @Get('me/estatisticas')

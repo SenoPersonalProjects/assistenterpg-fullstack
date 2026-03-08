@@ -47,7 +47,7 @@ export class PersonagemBaseController {
 
   // ✅ NOVO: Consulta níveis que concedem graus de treinamento e quantas melhorias
   @Get('graus-treinamento/info')
-  async consultarInfoGrausTreinamento(
+  consultarInfoGrausTreinamento(
     @Query() query: ConsultarInfoGrausTreinamentoDto,
   ) {
     return this.personagemBaseService.consultarInfoGrausTreinamento(

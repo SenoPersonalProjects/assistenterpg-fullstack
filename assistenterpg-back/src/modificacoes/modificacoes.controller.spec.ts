@@ -21,11 +21,7 @@ describe('ModificacoesController', () => {
   });
 
   it('should require JWT on read routes', () => {
-    const readMethods = [
-      'listar',
-      'buscarPorId',
-      'buscarCompatíveis',
-    ] as const;
+    const readMethods = ['listar', 'buscarPorId', 'buscarCompatíveis'] as const;
 
     for (const methodName of readMethods) {
       const guards = Reflect.getMetadata(

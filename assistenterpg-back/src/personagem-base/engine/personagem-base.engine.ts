@@ -217,10 +217,6 @@ export async function calcularEstadoFinalPersonagemBase(
   const mapaPericiasPorId = new Map(
     todasPericias.map((p) => [p.id, p] as const),
   );
-  const mapaPericiasPorCodigo = new Map(
-    todasPericias.map((p) => [p.codigo, p] as const),
-  );
-
   const periciasMapCodigo = new Map<string, PericiaState>();
   for (const p of periciasCalculadas) {
     const pericia = mapaPericiasPorId.get(p.periciaId);
@@ -403,7 +399,7 @@ export async function calcularEstadoFinalPersonagemBase(
   }
 
   // 8) Regras de graus
-  const grausFinais = await aplicarRegrasDeGraus(
+  const grausFinais = aplicarRegrasDeGraus(
     {
       nivel: dtoNormalizado.nivel,
       habilidades,

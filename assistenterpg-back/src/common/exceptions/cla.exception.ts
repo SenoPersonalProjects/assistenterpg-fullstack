@@ -3,7 +3,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { BaseException } from './base.exception';
 import { BusinessException } from './business.exception';
-import { ValidationException } from './validation.exception';
 
 // ============================================================================
 // CLÃ - EXCEÇÕES
