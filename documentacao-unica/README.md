@@ -1277,10 +1277,13 @@ Integracao frontend neste bloco:
 
 - leitura/publicacao em catalogo:
   - [`assistenterpg-front/src/lib/api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts): `apiGetTecnicasAmaldicoadas`, `apiGetTecnicasInatas`
-- escrita/admin do cadastro principal:
-  - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts): `apiAdminCreateTecnicaAmaldicoada`, `apiAdminUpdateTecnicaAmaldicoada`
-- lacuna atual:
-  - frontend ainda nao expoe cliente dedicado para CRUD de `habilidades` e `variacoes` de tecnica (rotas existem no backend)
+- escrita/admin:
+  - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts):
+    - tecnicas: `apiAdminCreateTecnicaAmaldicoada`, `apiAdminUpdateTecnicaAmaldicoada`
+    - habilidades de tecnica: `apiAdminGetHabilidadesDaTecnica`, `apiAdminGetHabilidadeDaTecnica`, `apiAdminCreateHabilidadeDaTecnica`, `apiAdminUpdateHabilidadeDaTecnica`, `apiAdminDeleteHabilidadeDaTecnica`
+    - variacoes: `apiAdminGetVariacoesDaHabilidadeTecnica`, `apiAdminGetVariacaoDaHabilidadeTecnica`, `apiAdminCreateVariacaoDaHabilidadeTecnica`, `apiAdminUpdateVariacaoDaHabilidadeTecnica`, `apiAdminDeleteVariacaoDaHabilidadeTecnica`
+- observacao de interface:
+  - o painel admin atual ainda concentra UX no cadastro principal de tecnicas; os novos clientes de habilidade/variacao ficam prontos para fluxo dedicado no frontend
 
 Detalhamento do bloco de catalogos menores:
 
@@ -1486,6 +1489,9 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts) e [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts): IDs agora exigem `>= 1` quando informados; `clasHereditarios` tambem passou a exigir strings nao vazias (com `trim`) no create/update
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts): `PATCH /tecnicas-amaldicoadas/:id` agora valida nome duplicado e mantem consistencia de vinculos de cla ao alternar `hereditaria`
+- frontend cliente de tecnicas-amaldicoadas:
+  - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts) agora expoe cliente completo para habilidades/variacoes de tecnica (GET/GET by id/POST/PATCH/DELETE)
+  - [`assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts`](../assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts) recebeu tipagem dedicada para payloads/respostas de habilidades e variacoes de tecnica
 - backend contrato de filtros (suplementos/homebrews):
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
   - [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): `usuarioId`, `pagina` e `limite` agora exigem `>= 1`

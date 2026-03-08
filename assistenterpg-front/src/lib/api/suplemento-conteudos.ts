@@ -26,6 +26,12 @@ import type {
   UpdateEquipamentoPayload,
   CreateTecnicaPayload,
   UpdateTecnicaPayload,
+  HabilidadeTecnicaCatalogo,
+  VariacaoHabilidadeTecnicaCatalogo,
+  CreateHabilidadeTecnicaPayload,
+  UpdateHabilidadeTecnicaPayload,
+  CreateVariacaoHabilidadeTecnicaPayload,
+  UpdateVariacaoHabilidadeTecnicaPayload,
   ListHabilidadesFilters,
   ListEquipamentosFilters,
   ListTecnicasFilters,
@@ -329,5 +335,87 @@ export async function apiAdminUpdateTecnicaAmaldicoada(
   payload: UpdateTecnicaPayload,
 ): Promise<TecnicaAmaldicoadaCatalogo> {
   const { data } = await apiClient.patch(`/tecnicas-amaldicoadas/${id}`, payload);
+  return data;
+}
+
+// =============================
+// HABILIDADES DE TECNICA
+// =============================
+
+export async function apiAdminGetHabilidadesDaTecnica(
+  tecnicaId: number,
+): Promise<HabilidadeTecnicaCatalogo[]> {
+  const { data } = await apiClient.get(`/tecnicas-amaldicoadas/${tecnicaId}/habilidades`);
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiAdminGetHabilidadeDaTecnica(
+  id: number,
+): Promise<HabilidadeTecnicaCatalogo> {
+  const { data } = await apiClient.get(`/tecnicas-amaldicoadas/habilidades/${id}`);
+  return data;
+}
+
+export async function apiAdminCreateHabilidadeDaTecnica(
+  payload: CreateHabilidadeTecnicaPayload,
+): Promise<HabilidadeTecnicaCatalogo> {
+  const { data } = await apiClient.post('/tecnicas-amaldicoadas/habilidades', payload);
+  return data;
+}
+
+export async function apiAdminUpdateHabilidadeDaTecnica(
+  id: number,
+  payload: UpdateHabilidadeTecnicaPayload,
+): Promise<HabilidadeTecnicaCatalogo> {
+  const { data } = await apiClient.patch(`/tecnicas-amaldicoadas/habilidades/${id}`, payload);
+  return data;
+}
+
+export async function apiAdminDeleteHabilidadeDaTecnica(
+  id: number,
+): Promise<{ sucesso: boolean }> {
+  const { data } = await apiClient.delete(`/tecnicas-amaldicoadas/habilidades/${id}`);
+  return data;
+}
+
+// =============================
+// VARIACOES DE HABILIDADE
+// =============================
+
+export async function apiAdminGetVariacoesDaHabilidadeTecnica(
+  habilidadeId: number,
+): Promise<VariacaoHabilidadeTecnicaCatalogo[]> {
+  const { data } = await apiClient.get(
+    `/tecnicas-amaldicoadas/habilidades/${habilidadeId}/variacoes`,
+  );
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiAdminGetVariacaoDaHabilidadeTecnica(
+  id: number,
+): Promise<VariacaoHabilidadeTecnicaCatalogo> {
+  const { data } = await apiClient.get(`/tecnicas-amaldicoadas/variacoes/${id}`);
+  return data;
+}
+
+export async function apiAdminCreateVariacaoDaHabilidadeTecnica(
+  payload: CreateVariacaoHabilidadeTecnicaPayload,
+): Promise<VariacaoHabilidadeTecnicaCatalogo> {
+  const { data } = await apiClient.post('/tecnicas-amaldicoadas/variacoes', payload);
+  return data;
+}
+
+export async function apiAdminUpdateVariacaoDaHabilidadeTecnica(
+  id: number,
+  payload: UpdateVariacaoHabilidadeTecnicaPayload,
+): Promise<VariacaoHabilidadeTecnicaCatalogo> {
+  const { data } = await apiClient.patch(`/tecnicas-amaldicoadas/variacoes/${id}`, payload);
+  return data;
+}
+
+export async function apiAdminDeleteVariacaoDaHabilidadeTecnica(
+  id: number,
+): Promise<{ sucesso: boolean }> {
+  const { data } = await apiClient.delete(`/tecnicas-amaldicoadas/variacoes/${id}`);
   return data;
 }

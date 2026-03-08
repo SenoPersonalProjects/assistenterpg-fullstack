@@ -15,6 +15,9 @@ import type {
   TipoUsoEquipamento,
   TipoAmaldicoado,
   TipoTecnicaAmaldicoada,
+  TipoExecucao,
+  AreaEfeito,
+  TipoDano,
 } from './homebrew-enums';
 import type {
   ClasseCatalogo,
@@ -162,6 +165,134 @@ export type CreateTecnicaPayload = ConteudoComFonte & {
 };
 
 export type UpdateTecnicaPayload = Partial<Omit<CreateTecnicaPayload, 'codigo'>>;
+
+export type VariacaoHabilidadeTecnicaCatalogo = {
+  id: number;
+  habilidadeTecnicaId: number;
+  nome: string;
+  descricao: string;
+  substituiCustos: boolean;
+  custoPE?: number | null;
+  custoEA?: number | null;
+  execucao?: TipoExecucao | null;
+  area?: AreaEfeito | null;
+  alcance?: string | null;
+  alvo?: string | null;
+  duracao?: string | null;
+  resistencia?: string | null;
+  dtResistencia?: string | null;
+  criticoValor?: number | null;
+  criticoMultiplicador?: number | null;
+  danoFlat?: number | null;
+  danoFlatTipo?: TipoDano | null;
+  dadosDano?: unknown;
+  escalonaPorGrau?: boolean | null;
+  escalonamentoCustoEA?: number | null;
+  escalonamentoDano?: unknown;
+  efeitoAdicional?: string | null;
+  requisitos?: unknown;
+  ordem: number;
+};
+
+export type HabilidadeTecnicaCatalogo = {
+  id: number;
+  tecnicaId: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  requisitos?: unknown;
+  execucao: TipoExecucao;
+  area?: AreaEfeito | null;
+  alcance?: string | null;
+  alvo?: string | null;
+  duracao?: string | null;
+  resistencia?: string | null;
+  dtResistencia?: string | null;
+  custoPE: number;
+  custoEA: number;
+  testesExigidos?: unknown;
+  criticoValor?: number | null;
+  criticoMultiplicador?: number | null;
+  danoFlat?: number | null;
+  danoFlatTipo?: TipoDano | null;
+  dadosDano?: unknown;
+  escalonaPorGrau: boolean;
+  grauTipoGrauCodigo?: string | null;
+  escalonamentoCustoEA: number;
+  escalonamentoDano?: unknown;
+  efeito: string;
+  ordem: number;
+  variacoes?: VariacaoHabilidadeTecnicaCatalogo[];
+  tecnica?: {
+    id: number;
+    codigo: string;
+    nome: string;
+  };
+};
+
+export type CreateHabilidadeTecnicaPayload = {
+  tecnicaId: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  requisitos?: unknown;
+  execucao: TipoExecucao;
+  area?: AreaEfeito;
+  alcance?: string;
+  alvo?: string;
+  duracao?: string;
+  resistencia?: string;
+  dtResistencia?: string;
+  custoPE?: number;
+  custoEA?: number;
+  testesExigidos?: unknown;
+  criticoValor?: number;
+  criticoMultiplicador?: number;
+  danoFlat?: number;
+  danoFlatTipo?: TipoDano;
+  dadosDano?: unknown;
+  escalonaPorGrau?: boolean;
+  grauTipoGrauCodigo?: string;
+  escalonamentoCustoEA?: number;
+  escalonamentoDano?: unknown;
+  efeito: string;
+  ordem?: number;
+};
+
+export type UpdateHabilidadeTecnicaPayload = Partial<
+  Omit<CreateHabilidadeTecnicaPayload, 'tecnicaId' | 'codigo'>
+>;
+
+export type CreateVariacaoHabilidadeTecnicaPayload = {
+  habilidadeTecnicaId: number;
+  nome: string;
+  descricao: string;
+  substituiCustos?: boolean;
+  custoPE?: number;
+  custoEA?: number;
+  execucao?: TipoExecucao;
+  area?: AreaEfeito;
+  alcance?: string;
+  alvo?: string;
+  duracao?: string;
+  resistencia?: string;
+  dtResistencia?: string;
+  criticoValor?: number;
+  criticoMultiplicador?: number;
+  danoFlat?: number;
+  danoFlatTipo?: TipoDano;
+  dadosDano?: unknown;
+  escalonaPorGrau?: boolean;
+  escalonamentoCustoEA?: number;
+  escalonamentoDano?: unknown;
+  efeitoAdicional?: string;
+  requisitos?: unknown;
+  ordem?: number;
+};
+
+export type UpdateVariacaoHabilidadeTecnicaPayload = Partial<
+  Omit<CreateVariacaoHabilidadeTecnicaPayload, 'habilidadeTecnicaId'>
+>;
 
 export type ListHabilidadesFilters = {
   tipo?: TipoHabilidadeCatalogo;
