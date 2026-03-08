@@ -50,6 +50,11 @@ type DadoDanoDraft = {
   tipo: '' | TipoDano;
 };
 
+type RequisitoDraft = {
+  chave: string;
+  valor: string;
+};
+
 type HabilidadeFormState = {
   codigo: string;
   nome: string;
@@ -72,6 +77,10 @@ type HabilidadeFormState = {
   escalonamentoCustoEA: string;
   efeito: string;
   ordem: string;
+  requisitosModo: 'guiado' | 'json';
+  requisitosItens: RequisitoDraft[];
+  requisitosNovaChave: string;
+  requisitosNovoValor: string;
   requisitosJson: string;
   testesExigidosInput: string;
   testesExigidosLista: string[];
@@ -103,6 +112,10 @@ type VariacaoFormState = {
   escalonamentoCustoEA: string;
   efeitoAdicional: string;
   ordem: string;
+  requisitosModo: 'guiado' | 'json';
+  requisitosItens: RequisitoDraft[];
+  requisitosNovaChave: string;
+  requisitosNovoValor: string;
   requisitosJson: string;
   dadosDano: DadoDanoDraft[];
   escalonamentoDanoAtivo: boolean;
@@ -139,6 +152,63 @@ function parseOptionalJson(input: string): { value?: unknown } {
   } catch {
     return { value: trimmed };
   }
+}
+
+function parseLooseJsonValue(value: string): unknown {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function parseRequisitosState(value: unknown): {
+  modo: 'guiado' | 'json';
+  itens: RequisitoDraft[];
+  json: string;
+} {
+  if (isObjectLike(value)) {
+    return {
+      modo: 'guiado',
+      itens: Object.entries(value).map(([chave, item]) => ({
+        chave,
+        valor: stringifyUnknown(item),
+      })),
+      json: stringifyUnknown(value),
+    };
+  }
+
+  if (value !== undefined && value !== null) {
+    return {
+      modo: 'json',
+      itens: [],
+      json: stringifyUnknown(value),
+    };
+  }
+
+  return {
+    modo: 'guiado',
+    itens: [],
+    json: '',
+  };
+}
+
+function serializeRequisitosGuiados(itens: RequisitoDraft[]): Record<string, unknown> | undefined {
+  const entries = itens
+    .map((item) => ({
+      chave: item.chave.trim(),
+      valor: parseLooseJsonValue(item.valor),
+    }))
+    .filter((item) => item.chave.length > 0);
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries.map((item) => [item.chave, item.valor]));
 }
 
 function isObjectLike(value: unknown): value is Record<string, unknown> {
@@ -244,6 +314,7 @@ function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): Habi
   const testesExigidosLista = parseTestesExigidos(item?.testesExigidos);
   const dadosDano = parseDadosDano(item?.dadosDano);
   const escalonamentoDano = parseEscalonamentoDano(item?.escalonamentoDano);
+  const requisitos = parseRequisitosState(item?.requisitos);
 
   return {
     codigo: item?.codigo ?? '',
@@ -272,7 +343,11 @@ function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): Habi
       item?.escalonamentoCustoEA !== undefined ? String(item.escalonamentoCustoEA) : '',
     efeito: item?.efeito ?? '',
     ordem: String(item?.ordem ?? 0),
-    requisitosJson: stringifyUnknown(item?.requisitos),
+    requisitosModo: requisitos.modo,
+    requisitosItens: requisitos.itens,
+    requisitosNovaChave: '',
+    requisitosNovoValor: '',
+    requisitosJson: requisitos.json,
     testesExigidosInput: '',
     testesExigidosLista,
     dadosDano,
@@ -286,6 +361,7 @@ function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): Habi
 function buildVariacaoFormState(item?: VariacaoHabilidadeTecnicaCatalogo | null): VariacaoFormState {
   const dadosDano = parseDadosDano(item?.dadosDano);
   const escalonamentoDano = parseEscalonamentoDano(item?.escalonamentoDano);
+  const requisitos = parseRequisitosState(item?.requisitos);
 
   return {
     nome: item?.nome ?? '',
@@ -315,7 +391,11 @@ function buildVariacaoFormState(item?: VariacaoHabilidadeTecnicaCatalogo | null)
         : '',
     efeitoAdicional: item?.efeitoAdicional ?? '',
     ordem: String(item?.ordem ?? 0),
-    requisitosJson: stringifyUnknown(item?.requisitos),
+    requisitosModo: requisitos.modo,
+    requisitosItens: requisitos.itens,
+    requisitosNovaChave: '',
+    requisitosNovoValor: '',
+    requisitosJson: requisitos.json,
     dadosDano,
     escalonamentoDanoAtivo: escalonamentoDano.ativo,
     escalonamentoDanoQuantidade: escalonamentoDano.quantidade,
@@ -395,6 +475,34 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
     }));
   }
 
+  function addRequisito() {
+    const chave = form.requisitosNovaChave.trim();
+    if (!chave) return;
+
+    setForm((prev) => ({
+      ...prev,
+      requisitosNovaChave: '',
+      requisitosNovoValor: '',
+      requisitosItens: [...prev.requisitosItens, { chave, valor: prev.requisitosNovoValor }],
+    }));
+  }
+
+  function updateRequisito(index: number, patch: Partial<RequisitoDraft>) {
+    setForm((prev) => ({
+      ...prev,
+      requisitosItens: prev.requisitosItens.map((item, i) =>
+        i === index ? { ...item, ...patch } : item,
+      ),
+    }));
+  }
+
+  function removeRequisito(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      requisitosItens: prev.requisitosItens.filter((_, i) => i !== index),
+    }));
+  }
+
   function validate(): boolean {
     const next: Record<string, string> = {};
     if (!isEditing && !form.codigo.trim()) next.codigo = 'Codigo e obrigatorio.';
@@ -417,7 +525,8 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
     try {
       setSaving(true);
 
-      const requisitosParsed = parseOptionalJson(form.requisitosJson);
+      const requisitosGuiados = serializeRequisitosGuiados(form.requisitosItens);
+      const requisitosJson = parseOptionalJson(form.requisitosJson);
       const dadosDano = serializeDadosDano(form.dadosDano);
       const escalonamentoDano = serializeEscalonamentoDano(
         form.escalonamentoDanoAtivo,
@@ -445,7 +554,8 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
         escalonaPorGrau: form.escalonaPorGrau,
         grauTipoGrauCodigo: form.grauTipoGrauCodigo.trim() || undefined,
         escalonamentoCustoEA: parseNumber(form.escalonamentoCustoEA),
-        requisitos: requisitosParsed.value,
+        requisitos:
+          form.requisitosModo === 'guiado' ? requisitosGuiados : requisitosJson.value,
         testesExigidos:
           form.testesExigidosLista.length > 0 ? form.testesExigidosLista : null,
         dadosDano: dadosDano.length > 0 ? dadosDano : null,
@@ -654,12 +764,71 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
           onChange={(e) => setField('efeito', e.target.value)}
           error={errors.efeito}
         />
-        <Textarea
-          label="Requisitos (JSON ou texto)"
-          rows={2}
-          value={form.requisitosJson}
-          onChange={(e) => setField('requisitosJson', e.target.value)}
-        />
+        <div className="space-y-2">
+          <Select
+            label="Modo de requisitos"
+            value={form.requisitosModo}
+            onChange={(e) => setField('requisitosModo', e.target.value as 'guiado' | 'json')}
+          >
+            <option value="guiado">Guiado (chave/valor)</option>
+            <option value="json">JSON/Texto avancado</option>
+          </Select>
+
+          {form.requisitosModo === 'guiado' ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                <Input
+                  label="Chave"
+                  value={form.requisitosNovaChave}
+                  onChange={(e) => setField('requisitosNovaChave', e.target.value)}
+                  placeholder="nivelMinimo"
+                />
+                <Input
+                  label="Valor"
+                  value={form.requisitosNovoValor}
+                  onChange={(e) => setField('requisitosNovoValor', e.target.value)}
+                  placeholder='10 | "texto" | true | {"x":1}'
+                />
+                <Button type="button" variant="secondary" onClick={addRequisito}>
+                  <Icon name="add" className="w-4 h-4 mr-1" />
+                  Adicionar requisito
+                </Button>
+              </div>
+
+              {form.requisitosItens.length > 0 ? (
+                <div className="space-y-2">
+                  {form.requisitosItens.map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                      <Input
+                        label="Chave"
+                        value={item.chave}
+                        onChange={(e) => updateRequisito(index, { chave: e.target.value })}
+                      />
+                      <Input
+                        label="Valor"
+                        value={item.valor}
+                        onChange={(e) => updateRequisito(index, { valor: e.target.value })}
+                      />
+                      <Button type="button" variant="secondary" onClick={() => removeRequisito(index)}>
+                        <Icon name="delete" className="w-4 h-4 mr-1" />
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-app-muted">Nenhum requisito estruturado adicionado.</p>
+              )}
+            </div>
+          ) : (
+            <Textarea
+              label="Requisitos (JSON ou texto)"
+              rows={2}
+              value={form.requisitosJson}
+              onChange={(e) => setField('requisitosJson', e.target.value)}
+            />
+          )}
+        </div>
         <div className="space-y-2">
           <label className="text-xs font-medium text-app-fg">Testes exigidos</label>
           <div className="flex gap-2">
@@ -840,6 +1009,34 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
     }));
   }
 
+  function addRequisito() {
+    const chave = form.requisitosNovaChave.trim();
+    if (!chave) return;
+
+    setForm((prev) => ({
+      ...prev,
+      requisitosNovaChave: '',
+      requisitosNovoValor: '',
+      requisitosItens: [...prev.requisitosItens, { chave, valor: prev.requisitosNovoValor }],
+    }));
+  }
+
+  function updateRequisito(index: number, patch: Partial<RequisitoDraft>) {
+    setForm((prev) => ({
+      ...prev,
+      requisitosItens: prev.requisitosItens.map((item, i) =>
+        i === index ? { ...item, ...patch } : item,
+      ),
+    }));
+  }
+
+  function removeRequisito(index: number) {
+    setForm((prev) => ({
+      ...prev,
+      requisitosItens: prev.requisitosItens.filter((_, i) => i !== index),
+    }));
+  }
+
   function validate(): boolean {
     const next: Record<string, string> = {};
     if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
@@ -854,7 +1051,8 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
     try {
       setSaving(true);
 
-      const requisitosParsed = parseOptionalJson(form.requisitosJson);
+      const requisitosGuiados = serializeRequisitosGuiados(form.requisitosItens);
+      const requisitosJson = parseOptionalJson(form.requisitosJson);
       const dadosDano = serializeDadosDano(form.dadosDano);
       const escalonamentoDano = serializeEscalonamentoDano(
         form.escalonamentoDanoAtivo,
@@ -884,7 +1082,8 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
         escalonamentoCustoEA: parseNumber(form.escalonamentoCustoEA),
         escalonamentoDano,
         efeitoAdicional: form.efeitoAdicional.trim() || undefined,
-        requisitos: requisitosParsed.value,
+        requisitos:
+          form.requisitosModo === 'guiado' ? requisitosGuiados : requisitosJson.value,
         dadosDano: dadosDano.length > 0 ? dadosDano : null,
         ordem: parseNumber(form.ordem),
       };
@@ -1079,12 +1278,71 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
           value={form.efeitoAdicional}
           onChange={(e) => setField('efeitoAdicional', e.target.value)}
         />
-        <Textarea
-          label="Requisitos (JSON ou texto)"
-          rows={2}
-          value={form.requisitosJson}
-          onChange={(e) => setField('requisitosJson', e.target.value)}
-        />
+        <div className="space-y-2">
+          <Select
+            label="Modo de requisitos"
+            value={form.requisitosModo}
+            onChange={(e) => setField('requisitosModo', e.target.value as 'guiado' | 'json')}
+          >
+            <option value="guiado">Guiado (chave/valor)</option>
+            <option value="json">JSON/Texto avancado</option>
+          </Select>
+
+          {form.requisitosModo === 'guiado' ? (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                <Input
+                  label="Chave"
+                  value={form.requisitosNovaChave}
+                  onChange={(e) => setField('requisitosNovaChave', e.target.value)}
+                  placeholder="nivelMinimo"
+                />
+                <Input
+                  label="Valor"
+                  value={form.requisitosNovoValor}
+                  onChange={(e) => setField('requisitosNovoValor', e.target.value)}
+                  placeholder='10 | "texto" | true | {"x":1}'
+                />
+                <Button type="button" variant="secondary" onClick={addRequisito}>
+                  <Icon name="add" className="w-4 h-4 mr-1" />
+                  Adicionar requisito
+                </Button>
+              </div>
+
+              {form.requisitosItens.length > 0 ? (
+                <div className="space-y-2">
+                  {form.requisitosItens.map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                      <Input
+                        label="Chave"
+                        value={item.chave}
+                        onChange={(e) => updateRequisito(index, { chave: e.target.value })}
+                      />
+                      <Input
+                        label="Valor"
+                        value={item.valor}
+                        onChange={(e) => updateRequisito(index, { valor: e.target.value })}
+                      />
+                      <Button type="button" variant="secondary" onClick={() => removeRequisito(index)}>
+                        <Icon name="delete" className="w-4 h-4 mr-1" />
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-app-muted">Nenhum requisito estruturado adicionado.</p>
+              )}
+            </div>
+          ) : (
+            <Textarea
+              label="Requisitos (JSON ou texto)"
+              rows={2}
+              value={form.requisitosJson}
+              onChange={(e) => setField('requisitosJson', e.target.value)}
+            />
+          )}
+        </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-app-fg">Dados de dano</label>
