@@ -531,6 +531,105 @@ Rotas principais:
 - `alinhamentos`
   - `GET /alinhamentos`
 
+Detalhamento do bloco `classes`, `clas` e `origens`:
+
+- `classes` (`Auth: JWT`)
+  - `POST /classes`
+    - body: [`CreateClasseDto`](../assistenterpg-back/src/classes/dto/create-classe.dto.ts)
+      - `nome`: string obrigatoria, max 100
+      - `descricao`: string opcional/null, max 2000
+      - `fonte`: enum `TipoFonte` opcional
+      - `suplementoId`: inteiro opcional, `>= 1`
+    - regras:
+      - `nome` duplicado falha com `CLASSE_NOME_DUPLICADO` (422)
+      - se `suplementoId` for informado, `fonte` deve ser `SUPLEMENTO`
+      - se `fonte=SUPLEMENTO`, `suplementoId` torna-se obrigatorio
+  - `GET /classes`
+    - resposta: array ordenado por `nome`
+    - cada item retorna catalogo enriquecido: `pericias`, `proficiencias`, `habilidadesIniciais`, `fonte`, `suplementoId`
+  - `GET /classes/:id`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - resposta no mesmo formato de catalogo enriquecido
+    - erro esperado: `CLASSE_NOT_FOUND` (404)
+  - `GET /classes/:id/trilhas`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - resposta: array `{ id, nome, descricao, classeId }` ordenado por `nome`
+  - `PATCH /classes/:id`
+    - body parcial: [`UpdateClasseDto`](../assistenterpg-back/src/classes/dto/update-classe.dto.ts)
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - reaplica validacoes de nome/fonte/suplemento
+  - `DELETE /classes/:id`
+    - `id` deve ser inteiro (`ParseIntPipe`)
+    - bloqueia exclusao se houver personagens vinculados
+    - erros esperados: `CLASSE_NOT_FOUND` (404), `CLASSE_EM_USO` (422)
+    - sucesso: `{ "sucesso": true }`
+- `clas` (`Auth: JWT`)
+  - `POST /clas`
+    - body: [`CreateClaDto`](../assistenterpg-back/src/clas/dto/create-cla.dto.ts)
+      - `nome`: string obrigatoria, min 3, max 100
+      - `descricao`: string opcional, max 2000
+      - `grandeCla`: boolean obrigatorio
+      - `fonte`: enum `TipoFonte` opcional
+      - `suplementoId`: inteiro opcional, `>= 1`
+      - `tecnicasHereditariasIds`: array opcional de inteiros
+    - regras:
+      - `nome` duplicado falha com `CLA_NOME_DUPLICADO` (422)
+      - IDs em `tecnicasHereditariasIds` devem existir e ser tecnicas com `hereditaria=true`
+      - IDs invalidos falham com `CLA_TECNICAS_INVALIDAS` (422)
+  - `GET /clas`
+    - resposta: array ordenado por `nome`
+    - inclui `tecnicasHereditarias` e `_count` (`personagensBase`, `personagensCampanha`)
+  - `GET /clas/:id`
+    - `id` inteiro obrigatorio
+    - inclui `tecnicasHereditarias` (com dados da tecnica) e `_count`
+    - erro esperado: `CLA_NOT_FOUND` (404)
+  - `PATCH /clas/:id`
+    - body parcial: [`UpdateClaDto`](../assistenterpg-back/src/clas/dto/update-cla.dto.ts)
+    - se `tecnicasHereditariasIds` for enviado, o vinculo e substituido (delete/recreate)
+  - `DELETE /clas/:id`
+    - bloqueia exclusao se houver personagens vinculados
+    - erros esperados: `CLA_NOT_FOUND` (404), `CLA_EM_USO` (422)
+    - sucesso: `{ "message": "Cla removido com sucesso" }`
+- `origens` (`Auth: JWT`)
+  - `POST /origens`
+    - body: [`CreateOrigemDto`](../assistenterpg-back/src/origens/dto/create-origem.dto.ts)
+      - `nome`: string obrigatoria, min 3, max 100
+      - `descricao`: string opcional, max 2000
+      - `requisitosTexto`: string opcional, max 500
+      - `requerGrandeCla`, `requerTecnicaHeriditaria`, `bloqueiaTecnicaHeriditaria`: boolean opcionais
+      - `fonte`: enum `TipoFonte` opcional
+      - `suplementoId`: inteiro opcional, `>= 1`
+      - `pericias`: array opcional de objetos `{ periciaId, tipo: FIXA|ESCOLHA, grupoEscolha? }`
+      - `habilidadesIds`: array opcional de inteiros
+    - regras:
+      - `nome` duplicado falha com `ORIGEM_NOME_DUPLICADO` (422)
+      - `periciaId` inexistente falha com `ORIGEM_PERICIAS_INVALIDAS` (404)
+      - `habilidadeId` inexistente falha com `ORIGEM_HABILIDADES_INVALIDAS` (404)
+      - campos booleanos ausentes entram como `false`
+  - `GET /origens`
+    - resposta: array ordenado por `nome`
+    - inclui `pericias` (com `pericia`), `habilidadesOrigem`, `habilidadesIniciais` e `_count`
+  - `GET /origens/:id`
+    - `id` inteiro obrigatorio
+    - mesmo formato enriquecido do `findAll`
+    - erro esperado: `ORIGEM_NOT_FOUND` (404)
+  - `PATCH /origens/:id`
+    - body parcial: [`UpdateOrigemDto`](../assistenterpg-back/src/origens/dto/update-origem.dto.ts)
+    - se `pericias` for enviado, relacao e substituida (delete/recreate)
+    - se `habilidadesIds` for enviado, relacao e substituida (delete/recreate)
+  - `DELETE /origens/:id`
+    - bloqueia exclusao se houver personagens vinculados
+    - erros esperados: `ORIGEM_NOT_FOUND` (404), `ORIGEM_EM_USO` (422)
+    - sucesso: `{ "message": "Origem removida com sucesso" }`
+
+Integracao frontend neste bloco:
+
+- leitura de catalogo:
+  - [`assistenterpg-front/src/lib/api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts): `apiGetClasses`, `apiGetClas`, `apiGetOrigens`
+- escrita/admin:
+  - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts): `apiAdminCreate*` e `apiAdminUpdate*` para `classes`, `clas` e `origens`
+  - observacao: o frontend atual nao expoe funcao de delete para esses tres modulos, embora os endpoints `DELETE` existam no backend
+
 Detalhamento do bloco de catalogos menores:
 
 - `pericias` (`Auth: JWT`)
@@ -722,7 +821,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/equipamentos/equipamentos.controller.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
 - backend contrato de catalogos menores:
-  - IDs de rota de [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
+  - IDs de rota de [`assistenterpg-back/src/classes/classes.controller.ts`](../assistenterpg-back/src/classes/classes.controller.ts), [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
   - DTOs [`assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts), [`assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts), [`assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts) e [`assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts) agora possuem validacao `class-validator` consistente com `ValidationPipe` global
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   UseGuards,
@@ -29,22 +30,22 @@ export class ClassesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.classesService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.classesService.findOne(id);
   }
 
   @Get(':id/trilhas')
-  findTrilhas(@Param('id') id: string) {
-    return this.classesService.findTrilhas(+id);
+  findTrilhas(@Param('id', ParseIntPipe) id: number) {
+    return this.classesService.findTrilhas(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateClasseDto) {
-    return this.classesService.update(+id, dto);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateClasseDto) {
+    return this.classesService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.classesService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.classesService.remove(id);
   }
 }
