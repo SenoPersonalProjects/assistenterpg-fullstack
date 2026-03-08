@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * Garante que o Prisma Client esteja disponível para compilar a API.
+ * Ensures Prisma Client is available before backend build.
  *
- * Fluxo:
- * 1) valida exports essenciais de @prisma/client;
- * 2) se faltar, tenta `prisma generate` automaticamente (a menos que desabilitado);
- * 3) revalida e falha com mensagem acionável.
+ * Flow:
+ * 1) validate required exports from @prisma/client;
+ * 2) if missing, try `prisma generate` automatically (unless disabled);
+ * 3) validate again and fail with actionable message.
  */
 
 const { spawnSync } = require('node:child_process');
@@ -18,14 +18,14 @@ function printHeader(msg) {
 }
 
 function printManualHelp(extra = '') {
-  printHeader('❌ Prisma Client não está pronto para compilar o backend.');
+  printHeader('Prisma Client nao esta pronto para compilar o backend.');
   console.error('   Execute manualmente:');
   console.error("   DATABASE_URL='<url>' npx prisma generate\n");
   if (extra) console.error(`   Detalhe: ${extra}\n`);
   console.error(
     '   Dica: em ambientes com proxy/rede restrita, valide acesso a binaries.prisma.sh.',
   );
-  console.error('   Consulte: docs/PRISMA_GENERATE_TROUBLESHOOTING.md\n');
+  console.error('   Consulte: documentacao-unica/README.md\n');
 }
 
 function validateClient() {
@@ -64,7 +64,7 @@ function runGenerate() {
   if (typeof result.status === 'number' && result.status !== 0) {
     return {
       ok: false,
-      reason: `prisma generate saiu com código ${result.status}`,
+      reason: `prisma generate saiu com codigo ${result.status}`,
     };
   }
 
@@ -73,7 +73,7 @@ function runGenerate() {
 
 const initial = validateClient();
 if (initial.ok) {
-  console.log('✅ Prisma Client encontrado e compatível para o build.');
+  console.log('Prisma Client encontrado e compativel para o build.');
   process.exit(0);
 }
 
@@ -86,7 +86,7 @@ if (!autoGenerateEnabled) {
 }
 
 printHeader(
-  '⚠️ Prisma Client ausente/incompatível. Tentando gerar automaticamente...',
+  'Prisma Client ausente/incompativel. Tentando gerar automaticamente...',
 );
 
 const generated = runGenerate();
@@ -98,39 +98,9 @@ if (!generated.ok) {
 const afterGenerate = validateClient();
 if (!afterGenerate.ok) {
   printManualHelp(
-    `Após generate, validação ainda falhou: ${afterGenerate.reason}`,
+    `Apos generate, validacao ainda falhou: ${afterGenerate.reason}`,
   );
   process.exit(1);
 }
 
-console.log('✅ Prisma Client gerado automaticamente e validado para o build.');
- * Falha cedo com uma mensagem clara quando o Prisma Client está desatualizado
- * ou não foi gerado para o schema atual.
- */
-
-function exitWithHelp(extra = '') {
-  console.error('\n❌ Prisma Client não está pronto para compilar o backend.');
-  console.error('   Execute antes:');
-  console.error("   DATABASE_URL='<url>' npx prisma generate\n");
-  if (extra) console.error(`   Detalhe: ${extra}\n`);
-  console.error('   Dica: em ambientes com proxy/rede restrita, valide acesso a binaries.prisma.sh.\n');
-  process.exit(1);
-}
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const prisma = require('@prisma/client');
-
-  if (!prisma?.PrismaClient) {
-    exitWithHelp('Export PrismaClient não encontrado em @prisma/client.');
-  }
-
-  // enum amplamente usado no código; quando ausente, o client está incompatível com o schema.
-  if (!prisma?.RoleUsuario) {
-    exitWithHelp('Enum RoleUsuario não encontrado em @prisma/client.');
-  }
-
-  console.log('✅ Prisma Client encontrado e com enums esperados para o build.');
-} catch (error) {
-  exitWithHelp(error instanceof Error ? error.message : String(error));
-}
+console.log('Prisma Client gerado automaticamente e validado para o build.');

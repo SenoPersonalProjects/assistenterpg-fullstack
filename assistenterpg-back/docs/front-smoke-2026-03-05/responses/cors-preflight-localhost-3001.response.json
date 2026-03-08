@@ -1,6 +1,0 @@
-{
-  "statusCode": 204,
-  "accessControlAllowOrigin": "http://localhost:3001",
-  "accessControlAllowCredentials": "true",
-  "accessControlAllowMethods": "GET,HEAD,PUT,PATCH,POST,DELETE"
-}

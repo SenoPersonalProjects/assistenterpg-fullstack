@@ -33,13 +33,17 @@ async function listenWithPortFallback(
       const hasNextAttempt = attempt < maxAttempts;
 
       if (isPortInUse && hasNextAttempt) {
-        logger.warn(`Porta ${currentPort} em uso. Tentando ${currentPort + 1}...`);
+        logger.warn(
+          `Porta ${currentPort} em uso. Tentando ${currentPort + 1}...`,
+        );
         currentPort += 1;
         continue;
       }
 
       if (isPortInUse) {
-        logger.error(`Nao foi possivel iniciar a API: porta ${currentPort} em uso.`);
+        logger.error(
+          `Nao foi possivel iniciar a API: porta ${currentPort} em uso.`,
+        );
         logger.error(
           'Defina PORT para outra porta ou finalize o processo que ocupa essa porta.',
         );
@@ -84,7 +88,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor(), new TimeoutInterceptor());
 
   const preferredPortRaw = Number(process.env.PORT ?? 3000);
-  const preferredPort = Number.isFinite(preferredPortRaw) ? preferredPortRaw : 3000;
+  const preferredPort = Number.isFinite(preferredPortRaw)
+    ? preferredPortRaw
+    : 3000;
 
   const enableSwagger = process.env.SWAGGER_ENABLED !== 'false';
   const apiVersion = process.env.API_VERSION || 'v1';
