@@ -725,6 +725,88 @@ Integracao frontend neste bloco:
   - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts): `apiAdminCreate/UpdateTrilha`, `apiAdminCreate/UpdateCaminho`, `apiAdminCreate/UpdateHabilidade`
   - observacao: frontend atual nao expoe funcao de delete para `trilhas`, `caminhos` e `habilidades`, apesar dos endpoints `DELETE` existirem no backend
 
+Detalhamento do bloco `tecnicas-amaldicoadas`:
+
+- auth atual:
+  - todas as rotas do modulo estao sob `Auth: JWT` (nao ha `AdminGuard` neste controller)
+- tecnicas (`/tecnicas-amaldicoadas`)
+  - `GET /tecnicas-amaldicoadas`
+    - query: [`FiltrarTecnicasDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts)
+      - `nome`, `codigo`, `tipo`, `claId`, `claNome`, `fonte`, `suplementoId`
+      - booleans: `hereditaria`, `incluirHabilidades`, `incluirClas`
+      - booleans aceitos: `true/false`, `1/0`, `yes/no`, `on/off`
+      - `claId` e `suplementoId` devem ser `>= 1` quando informados
+    - resposta: lista de [`TecnicaDetalhadaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/tecnica-detalhada.dto.ts)
+    - padrao de include:
+      - `incluirClas=false` remove `clasHereditarios`
+      - `incluirHabilidades=false` remove `habilidades`
+  - `GET /tecnicas-amaldicoadas/:id`
+    - `id` inteiro obrigatorio
+    - erro esperado: `TECNICA_NOT_FOUND` (404)
+  - `GET /tecnicas-amaldicoadas/codigo/:codigo`
+    - erro esperado: `TECNICA_NOT_FOUND` (404)
+  - `GET /tecnicas-amaldicoadas/cla/:claId`
+    - `claId` inteiro obrigatorio
+    - retorna tecnicas hereditarias vinculadas ao cla
+  - `POST /tecnicas-amaldicoadas`
+    - body: [`CreateTecnicaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts)
+      - `codigo`, `nome`, `descricao`, `tipo` obrigatorios
+      - `hereditaria`, `clasHereditarios`, `linkExterno`, `fonte`, `suplementoId`, `requisitos` opcionais
+    - regras:
+      - codigo/nome duplicado: `TECNICA_CODIGO_OU_NOME_DUPLICADO` (422)
+      - tecnica `hereditaria` deve ser `INATA`: `TECNICA_NAO_INATA_HEREDITARIA` (422)
+      - tecnica `hereditaria` exige pelo menos 1 cla: `TECNICA_HEREDITARIA_SEM_CLA` (422)
+      - cla inexistente em `clasHereditarios`: `TECNICA_CLA_NOT_FOUND` (404)
+      - `suplementoId` invalido: `TECNICA_SUPLEMENTO_NOT_FOUND` (404)
+  - `PATCH /tecnicas-amaldicoadas/:id`
+    - body parcial: [`UpdateTecnicaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/update-tecnica.dto.ts)
+    - regras relevantes:
+      - nao permite transformar em tecnica hereditaria sem cla vinculado
+      - quando `hereditaria=false`, vinculos de cla sao limpos
+      - quando `clasHereditarios` e enviado, os vinculos sao substituidos
+      - nome duplicado: `TECNICA_CODIGO_OU_NOME_DUPLICADO` (422)
+  - `DELETE /tecnicas-amaldicoadas/:id`
+    - bloqueia exclusao quando tecnica estiver em uso por personagem
+    - erro esperado: `TECNICA_EM_USO` (422)
+    - sucesso: `{ "sucesso": true }`
+- habilidades de tecnica
+  - `GET /tecnicas-amaldicoadas/:tecnicaId/habilidades`
+  - `GET /tecnicas-amaldicoadas/habilidades/:id`
+  - `POST /tecnicas-amaldicoadas/habilidades`
+    - body: [`CreateHabilidadeTecnicaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts)
+      - `tecnicaId`, `codigo`, `nome`, `descricao`, `execucao`, `efeito` obrigatorios
+      - campos de dano/custo/escalonamento sao opcionais
+      - `tecnicaId` deve ser `>= 1`
+    - regras:
+      - tecnica inexistente: `TECNICA_NOT_FOUND` (404)
+      - codigo duplicado: `HABILIDADE_CODIGO_DUPLICADO` (422)
+  - `PATCH /tecnicas-amaldicoadas/habilidades/:id`
+    - body parcial: [`UpdateHabilidadeTecnicaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/update-habilidade-tecnica.dto.ts)
+  - `DELETE /tecnicas-amaldicoadas/habilidades/:id`
+    - sucesso: `{ "sucesso": true }`
+    - erro esperado: `HABILIDADE_TECNICA_NOT_FOUND` (404)
+- variacoes de habilidade tecnica
+  - `GET /tecnicas-amaldicoadas/habilidades/:habilidadeId/variacoes`
+  - `GET /tecnicas-amaldicoadas/variacoes/:id`
+  - `POST /tecnicas-amaldicoadas/variacoes`
+    - body: [`CreateVariacaoHabilidadeDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts)
+      - `habilidadeTecnicaId`, `nome`, `descricao` obrigatorios
+      - `habilidadeTecnicaId` deve ser `>= 1`
+  - `PATCH /tecnicas-amaldicoadas/variacoes/:id`
+    - body parcial: [`UpdateVariacaoHabilidadeDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/update-variacao.dto.ts)
+  - `DELETE /tecnicas-amaldicoadas/variacoes/:id`
+    - sucesso: `{ "sucesso": true }`
+    - erro esperado: `VARIACAO_HABILIDADE_NOT_FOUND` (404)
+
+Integracao frontend neste bloco:
+
+- leitura/publicacao em catalogo:
+  - [`assistenterpg-front/src/lib/api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts): `apiGetTecnicasAmaldicoadas`, `apiGetTecnicasInatas`
+- escrita/admin do cadastro principal:
+  - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts): `apiAdminCreateTecnicaAmaldicoada`, `apiAdminUpdateTecnicaAmaldicoada`
+- lacuna atual:
+  - frontend ainda nao expoe cliente dedicado para CRUD de `habilidades` e `variacoes` de tecnica (rotas existem no backend)
+
 Detalhamento do bloco de catalogos menores:
 
 - `pericias` (`Auth: JWT`)
@@ -921,6 +1003,12 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
 - backend contrato de trilhas/caminhos:
   - [`assistenterpg-back/src/trilhas/trilhas.service.ts`](../assistenterpg-back/src/trilhas/trilhas.service.ts): `PATCH /trilhas/:id` agora aplica `classeId` quando enviado (com validacao de existencia da classe)
   - [`assistenterpg-back/src/trilhas/trilhas.service.ts`](../assistenterpg-back/src/trilhas/trilhas.service.ts): `PATCH /trilhas/:id` e `PATCH /trilhas/caminhos/:id` agora aceitam array vazio para limpar habilidades vinculadas
+- backend contrato de tecnicas-amaldicoadas:
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts) e [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts): IDs agora exigem `>= 1` quando informados
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts): `PATCH /tecnicas-amaldicoadas/:id` agora valida nome duplicado e mantem consistencia de vinculos de cla ao alternar `hereditaria`
+- testes de DTO:
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts) cobre parse de boolean, rejeicao de valor invalido e validacao de `claId/suplementoId`
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
 - baseline de lint no backend:

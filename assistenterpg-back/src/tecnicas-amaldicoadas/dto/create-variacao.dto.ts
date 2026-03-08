@@ -13,6 +13,7 @@ import { TipoExecucao, AreaEfeito, TipoDano } from '@prisma/client';
 export class CreateVariacaoHabilidadeDto {
   @IsNotEmpty()
   @IsInt()
+  @Min(1)
   habilidadeTecnicaId: number;
 
   @IsNotEmpty()

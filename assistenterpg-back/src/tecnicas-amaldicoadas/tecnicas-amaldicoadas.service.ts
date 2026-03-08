@@ -332,6 +332,23 @@ export class TecnicasAmaldicoadasService {
         throw new TecnicaNaoEncontradaException(id);
       }
 
+      if (dto.nome) {
+        const tecnicaComMesmoNome =
+          await this.prisma.tecnicaAmaldicoada.findFirst({
+            where: {
+              nome: dto.nome,
+              NOT: { id },
+            },
+          });
+
+        if (tecnicaComMesmoNome) {
+          throw new TecnicaCodigoOuNomeDuplicadoException(
+            tecnica.codigo,
+            dto.nome,
+          );
+        }
+      }
+
       // Determinar tipo final (atual ou atualizado)
       const tipoFinal = dto.tipo ?? tecnica.tipo;
       const hereditariaFinal = dto.hereditaria ?? tecnica.hereditaria;
@@ -349,8 +366,21 @@ export class TecnicasAmaldicoadasService {
         dto.fonte ?? (suplementoIdFinal ? TipoFonte.SUPLEMENTO : tecnica.fonte);
       await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
 
-      // Só atualizar clãs se clasHereditarios foi explicitamente enviado
-      const shouldUpdateClas = dto.clasHereditarios !== undefined;
+      // Atualiza vínculos com clãs quando:
+      // - lista de clãs foi explicitamente enviada
+      // - técnica foi marcada como não hereditária
+      const shouldUpdateClas =
+        dto.clasHereditarios !== undefined || dto.hereditaria === false;
+
+      if (dto.hereditaria === true && dto.clasHereditarios === undefined) {
+        const totalClasVinculados = await this.prisma.tecnicaCla.count({
+          where: { tecnicaId: id },
+        });
+
+        if (totalClasVinculados === 0) {
+          throw new TecnicaHereditariaSemClaException(id);
+        }
+      }
 
       if (shouldUpdateClas) {
         // Validar se técnica hereditária tem clãs

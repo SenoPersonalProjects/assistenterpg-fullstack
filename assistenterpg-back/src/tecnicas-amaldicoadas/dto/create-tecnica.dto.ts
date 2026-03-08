@@ -8,6 +8,7 @@ import {
   IsArray,
   IsEnum,
   IsInt,
+  Min,
 } from 'class-validator';
 import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client'; // ✅ NOVO
 
@@ -49,6 +50,7 @@ export class CreateTecnicaDto {
   // ✅ NOVO: suplementoId
   @IsOptional()
   @IsInt()
+  @Min(1)
   suplementoId?: number;
 
   @IsOptional()

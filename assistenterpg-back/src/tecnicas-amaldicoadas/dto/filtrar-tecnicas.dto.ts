@@ -6,9 +6,32 @@ import {
   IsString,
   IsEnum,
   IsInt,
+  Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client'; // ✅ NOVO
+import { Transform, Type } from 'class-transformer';
+import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client';
+
+const parseBooleanQueryValue = ({ value }: { value: unknown }): unknown => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+      return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+      return false;
+    }
+  }
+
+  return value;
+};
 
 export class FiltrarTecnicasDto {
   @IsOptional()
@@ -25,11 +48,12 @@ export class FiltrarTecnicasDto {
 
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
+  @Transform(parseBooleanQueryValue)
   hereditaria?: boolean;
 
   @IsOptional()
   @IsInt()
+  @Min(1)
   @Type(() => Number)
   claId?: number;
 
@@ -37,24 +61,23 @@ export class FiltrarTecnicasDto {
   @IsString()
   claNome?: string;
 
-  // ✅ CORRIGIDO: origem → fonte
   @IsOptional()
   @IsEnum(TipoFonte)
   fonte?: TipoFonte;
 
-  // ✅ NOVO: Filtrar por suplemento
   @IsOptional()
   @IsInt()
+  @Min(1)
   @Type(() => Number)
   suplementoId?: number;
 
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
+  @Transform(parseBooleanQueryValue)
   incluirHabilidades?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  @Type(() => Boolean)
+  @Transform(parseBooleanQueryValue)
   incluirClas?: boolean;
 }
