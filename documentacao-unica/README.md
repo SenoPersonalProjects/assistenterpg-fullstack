@@ -202,6 +202,11 @@ Legendas:
 - `GET /` - `Auth: Publica`
   - resposta: string (`Hello World!`)
 
+Detalhamento:
+
+- endpoint simples de disponibilidade da API
+- usado como verificador basico de deploy/uptime (sem dependencia de auth)
+
 ## 5.2 Auth
 
 - `POST /auth/register` - `Auth: Publica`
@@ -214,6 +219,24 @@ Legendas:
 - `POST /auth/login` - `Auth: Publica`
   - body: [`LoginDto`](../assistenterpg-back/src/auth/dto/login.dto.ts)
   - resposta: [`LoginResponse`](../assistenterpg-front/src/lib/types/auth.types.ts)
+
+Detalhamento:
+
+- `POST /auth/register`
+  - cria usuario via `UsuarioService` com hash de senha (`bcrypt`)
+  - retorno inclui: `id`, `apelido`, `email`, `role`, `criadoEm`
+  - nao retorna `senhaHash`
+  - erro esperado: `USUARIO_EMAIL_DUPLICADO` (422)
+- `POST /auth/login`
+  - valida email/senha sem revelar se o email existe
+  - retorno:
+    - `access_token` (JWT)
+    - `usuario` (`id`, `email`, `apelido`, `role`)
+  - erro esperado: `CREDENCIAIS_INVALIDAS` (401) para qualquer falha de credencial
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/auth.ts`](../assistenterpg-front/src/lib/api/auth.ts) cobre `register`, `login` e `get me` (via `/usuarios/me`).
 
 ## 5.3 Usuarios
 
