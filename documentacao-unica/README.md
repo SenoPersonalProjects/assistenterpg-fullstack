@@ -231,6 +231,51 @@ Todas as rotas `Auth: JWT`:
 - `DELETE /usuarios/me`
   - body: [`ExcluirContaDto`](../assistenterpg-back/src/usuario/dto/excluir-conta.dto.ts)
 
+Detalhamento:
+
+- `GET /usuarios/me`
+  - retorna perfil do usuario autenticado sem `senhaHash`
+  - campos principais: `id`, `apelido`, `email`, `role`, `criadoEm`, `atualizadoEm`
+- `GET /usuarios/me/estatisticas`
+  - retorno esperado:
+    - `campanhas`
+    - `personagens`
+    - `artigosLidos` (atualmente sempre `0`)
+- `GET /usuarios/me/preferencias`
+  - retorna preferencias do usuario
+  - se nao houver registro, o backend cria um com defaults e retorna
+- `PATCH /usuarios/me/preferencias`
+  - body: [`AtualizarPreferenciasDto`](../assistenterpg-back/src/usuario/dto/atualizar-preferencias.dto.ts)
+    - `notificacoesEmail?`, `notificacoesPush?`, `notificacoesConvites?`, `notificacoesAtualizacoes?` (boolean)
+    - `idioma?` (string)
+  - persistencia via `upsert`
+- `PATCH /usuarios/me/senha`
+  - body: [`AlterarSenhaDto`](../assistenterpg-back/src/usuario/dto/alterar-senha.dto.ts)
+    - `senhaAtual` (string)
+    - `novaSenha` (string, min 6)
+  - retorno de sucesso: `{ "mensagem": "Senha alterada com sucesso" }`
+  - erro esperado: `USUARIO_SENHA_INCORRETA` (401)
+- `GET /usuarios/me/exportar`
+  - headers de download: `Content-Disposition: attachment; filename=\"dados-assistenterpg.json\"`
+  - retorna snapshot com:
+    - dados basicos do usuario
+    - personagens
+    - campanhas (como dono/membro)
+    - preferencias
+- `DELETE /usuarios/me`
+  - body: [`ExcluirContaDto`](../assistenterpg-back/src/usuario/dto/excluir-conta.dto.ts)
+  - valida senha antes de excluir
+  - retorno de sucesso: `{ "mensagem": "Conta excluida com sucesso" }`
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/usuarios.ts`](../assistenterpg-front/src/lib/api/usuarios.ts) cobre:
+  - estatisticas
+  - preferencias (get/patch)
+  - alteracao de senha
+  - exportacao de dados (download `blob`)
+  - exclusao da conta
+
 ## 5.4 Campanhas
 
 Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
@@ -254,6 +299,60 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 Regra de negocio relevante:
 
 - convites e acesso validam dono/membro e email do usuario
+
+Detalhamento:
+
+- `POST /campanhas`
+  - body: [`CreateCampanhaDto`](../assistenterpg-back/src/campanha/dto/create-campanha.dto.ts)
+    - `nome`: string obrigatoria, min 3, max 100
+    - `descricao?`: string opcional, max 500
+  - cria campanha com `status: "ATIVA"` e inclui contadores
+- `GET /campanhas/minhas`
+  - query opcional: `page`, `limit` ([`PaginationQueryDto`](../assistenterpg-back/src/common/dto/pagination-query.dto.ts))
+  - sem paginacao: retorna array
+  - com paginacao: retorna envelope `{ items, total, page, limit, totalPages }`
+- `GET /campanhas/:id`
+  - exige que usuario seja dono ou membro
+  - inclui `dono`, `membros` e `_count` de personagens/sessoes
+  - erro esperado: `CAMPANHA_ACESSO_NEGADO` (422)
+- `DELETE /campanhas/:id`
+  - apenas dono pode excluir
+  - sucesso: `{ "message": "Campanha excluida com sucesso", "id": <campanhaId> }`
+  - erro esperado: `CAMPANHA_APENAS_DONO` (422)
+- `GET /campanhas/:id/membros`
+  - exige acesso a campanha (dono ou membro)
+- `POST /campanhas/:id/membros`
+  - body: [`AddMembroDto`](../assistenterpg-back/src/campanha/dto/add-membro.dto.ts)
+    - `usuarioId` inteiro `>= 1`
+    - `papel`: `MESTRE | JOGADOR | OBSERVADOR`
+  - apenas dono pode gerenciar membros
+- convites:
+  - `POST /campanhas/:id/convites`
+    - body: [`CreateConviteDto`](../assistenterpg-back/src/campanha/dto/create-convite.dto.ts)
+    - campos:
+      - `email` (email obrigatorio)
+      - `papel` (`MESTRE | JOGADOR | OBSERVADOR`)
+    - observacao de comportamento atual:
+      - o convite persiste `email` e `codigo`; o `papel` e validado no DTO, mas ainda nao e persistido na tabela de convite
+  - `GET /campanhas/convites/pendentes`
+    - retorna convites pendentes para o email do usuario logado
+  - `POST /campanhas/convites/:codigo/aceitar`
+    - valida codigo pendente e email do usuario
+    - cria membro com papel padrao `JOGADOR`
+  - `POST /campanhas/convites/:codigo/recusar`
+    - marca convite como `RECUSADO`
+- erros esperados de convite:
+  - `CONVITE_NOT_FOUND` (404)
+  - `CONVITE_INVALIDO` (422)
+  - `CONVITE_NAO_PERTENCE_USUARIO` (422)
+
+Integracao frontend:
+
+- [`assistenterpg-front/src/lib/api/campanhas.ts`](../assistenterpg-front/src/lib/api/campanhas.ts) cobre:
+  - listagem de campanhas do usuario
+  - criacao e exclusao
+  - detalhe de campanha
+  - fluxo de convite (criar/listar pendentes/aceitar/recusar)
 
 ## 5.5 Personagens base
 
@@ -525,6 +624,79 @@ Comportamento esperado:
 
 - listagens aceitam modo paginado e nao paginado
 - `buscar` falha se `q` tiver menos de 3 caracteres
+
+Detalhamento:
+
+- leitura publica
+  - categorias:
+    - `GET /compendio/categorias`
+      - query:
+        - `todas=true` inclui inativas (default: apenas ativas)
+        - `page`, `limit` opcionais para paginacao
+      - resposta:
+        - sem `page/limit`: array
+        - com `page/limit`: `{ items, total, page, limit, totalPages }`
+    - `GET /compendio/categorias/codigo/:codigo`
+      - inclui subcategorias ativas da categoria
+      - erro esperado: `COMPENDIO_CATEGORIA_NOT_FOUND` (404)
+  - subcategorias:
+    - `GET /compendio/categorias/:categoriaId/subcategorias`
+      - query:
+        - `todas=true` inclui inativas (default: apenas ativas)
+        - `page`, `limit` opcionais
+      - pode retornar array ou envelope paginado
+    - `GET /compendio/subcategorias/codigo/:codigo`
+      - inclui categoria e artigos ativos
+      - erro esperado: `COMPENDIO_SUBCATEGORIA_NOT_FOUND` (404)
+  - artigos:
+    - `GET /compendio/artigos`
+      - query:
+        - `subcategoriaId` opcional (inteiro; invalido gera 400)
+        - `todas=true` inclui inativos (default: apenas ativos)
+        - `page`, `limit` opcionais
+      - pode retornar array ou envelope paginado
+    - `GET /compendio/artigos/codigo/:codigo`
+      - inclui subcategoria e categoria
+      - erro esperado: `COMPENDIO_ARTIGO_NOT_FOUND` (404)
+  - busca e destaques:
+    - `GET /compendio/buscar?q=...`
+      - `q` minimo 3 caracteres
+      - limite interno: 20 itens
+      - erro esperado: `COMPENDIO_BUSCA_INVALIDA` (400)
+    - `GET /compendio/destaques`
+      - retorna ate 6 artigos ativos com `destaque=true`
+- escrita admin (`Auth: JWT+Admin`)
+  - categorias:
+    - `POST /compendio/categorias`
+      - body: [`CreateCategoriaDto`](../assistenterpg-back/src/compendio/dto/create-categoria.dto.ts)
+    - `PUT /compendio/categorias/:id`
+      - body parcial: [`UpdateCategoriaDto`](../assistenterpg-back/src/compendio/dto/update-categoria.dto.ts)
+    - `DELETE /compendio/categorias/:id`
+      - bloqueia exclusao com subcategorias vinculadas
+      - erros: `COMPENDIO_CATEGORIA_NOT_FOUND` (404), `COMPENDIO_CATEGORIA_COM_SUBCATEGORIAS` (422)
+  - subcategorias:
+    - `POST /compendio/subcategorias`
+      - body: [`CreateSubcategoriaDto`](../assistenterpg-back/src/compendio/dto/create-subcategoria.dto.ts)
+    - `PUT /compendio/subcategorias/:id`
+      - body parcial: [`UpdateSubcategoriaDto`](../assistenterpg-back/src/compendio/dto/update-subcategoria.dto.ts)
+    - `DELETE /compendio/subcategorias/:id`
+      - bloqueia exclusao com artigos vinculados
+      - erros: `COMPENDIO_SUBCATEGORIA_NOT_FOUND` (404), `COMPENDIO_SUBCATEGORIA_COM_ARTIGOS` (422)
+  - artigos:
+    - `POST /compendio/artigos`
+      - body: [`CreateArtigoDto`](../assistenterpg-back/src/compendio/dto/create-artigo.dto.ts)
+    - `PUT /compendio/artigos/:id`
+      - body parcial: [`UpdateArtigoDto`](../assistenterpg-back/src/compendio/dto/update-artigo.dto.ts)
+    - `DELETE /compendio/artigos/:id`
+      - erro esperado: `COMPENDIO_ARTIGO_NOT_FOUND` (404)
+
+Integracao frontend:
+
+- consumo principal via fetch SSR em [`assistenterpg-front/src/lib/utils/compendio.ts`](../assistenterpg-front/src/lib/utils/compendio.ts):
+  - categorias/subcategorias/artigos por codigo
+  - busca textual
+  - destaques
+  - fallback resiliente para indisponibilidade de API em build/runtime
 
 ## 5.12 Catalogos de conteudo (classes/clas/origens/trilhas/habilidades/tecnicas/pericias/proficiencias/tipos-grau/condicoes/alinhamentos)
 
@@ -1079,6 +1251,8 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/equipamentos/equipamentos.controller.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.ts): create/update/delete agora exigem `JWT+Admin`
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): CRUD de categorias/subcategorias/artigos agora exige `JWT+Admin`
+- backend contrato de leitura do compendio:
+  - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): `GET /compendio/artigos` agora usa `ParseIntPipe` em `subcategoriaId`, retornando `400` para query invalida em vez de ignorar filtro silenciosamente
 - backend contrato de catalogos menores:
   - IDs de rota de [`assistenterpg-back/src/classes/classes.controller.ts`](../assistenterpg-back/src/classes/classes.controller.ts), [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
   - DTOs [`assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts), [`assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts), [`assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts) e [`assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts) agora possuem validacao `class-validator` consistente com `ValidationPipe` global

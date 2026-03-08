@@ -114,14 +114,14 @@ export class CompendioController {
 
   @Get('artigos')
   async listarArtigos(
-    @Query('subcategoriaId') subcategoriaId?: string,
+    @Query('subcategoriaId', new ParseIntPipe({ optional: true }))
+    subcategoriaId?: number,
     @Query('todas') todas?: string,
     @Query() paginacao?: PaginationQueryDto,
   ) {
     const apenasAtivos = todas !== 'true';
-    const subId = subcategoriaId ? parseInt(subcategoriaId, 10) : undefined;
     return this.compendioService.listarArtigos(
-      subId,
+      subcategoriaId,
       apenasAtivos,
       paginacao?.page,
       paginacao?.limit,
