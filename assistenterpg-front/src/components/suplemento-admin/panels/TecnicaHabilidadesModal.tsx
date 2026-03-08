@@ -24,7 +24,11 @@ import {
   apiAdminDeleteVariacaoDaHabilidadeTecnica,
   extrairMensagemErro,
   TipoExecucao,
+  AreaEfeito,
+  TipoDano,
   TIPO_EXECUCAO_LABELS,
+  AREA_EFEITO_LABELS,
+  TIPO_DANO_LABELS,
   type TecnicaAmaldicoadaCatalogo,
   type HabilidadeTecnicaCatalogo,
   type VariacaoHabilidadeTecnicaCatalogo,
@@ -45,10 +49,27 @@ type HabilidadeFormState = {
   nome: string;
   descricao: string;
   execucao: TipoExecucao;
+  area: '' | AreaEfeito;
+  alcance: string;
+  alvo: string;
+  duracao: string;
+  resistencia: string;
+  dtResistencia: string;
   custoPE: string;
   custoEA: string;
+  criticoValor: string;
+  criticoMultiplicador: string;
+  danoFlat: string;
+  danoFlatTipo: '' | TipoDano;
+  escalonaPorGrau: boolean;
+  grauTipoGrauCodigo: string;
+  escalonamentoCustoEA: string;
   efeito: string;
   ordem: string;
+  requisitosJson: string;
+  testesExigidosJson: string;
+  dadosDanoJson: string;
+  escalonamentoDanoJson: string;
 };
 
 type VariacaoFormState = {
@@ -57,7 +78,24 @@ type VariacaoFormState = {
   substituiCustos: boolean;
   custoPE: string;
   custoEA: string;
+  execucao: '' | TipoExecucao;
+  area: '' | AreaEfeito;
+  alcance: string;
+  alvo: string;
+  duracao: string;
+  resistencia: string;
+  dtResistencia: string;
+  criticoValor: string;
+  criticoMultiplicador: string;
+  danoFlat: string;
+  danoFlatTipo: '' | TipoDano;
+  escalonaPorGrau: boolean;
+  escalonamentoCustoEA: string;
+  efeitoAdicional: string;
   ordem: string;
+  requisitosJson: string;
+  dadosDanoJson: string;
+  escalonamentoDanoJson: string;
 };
 
 function parseNumber(value: string): number | undefined {
@@ -68,16 +106,60 @@ function parseNumber(value: string): number | undefined {
   return parsed;
 }
 
+function stringifyUnknown(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return '';
+  }
+}
+
+function parseOptionalJson(input: string): { value?: unknown } {
+  const trimmed = input.trim();
+  if (!trimmed) return {};
+
+  try {
+    return { value: JSON.parse(trimmed) as unknown };
+  } catch {
+    return { value: trimmed };
+  }
+}
+
 function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): HabilidadeFormState {
   return {
     codigo: item?.codigo ?? '',
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
     execucao: item?.execucao ?? TipoExecucao.ACAO_PADRAO,
+    area: item?.area ?? '',
+    alcance: item?.alcance ?? '',
+    alvo: item?.alvo ?? '',
+    duracao: item?.duracao ?? '',
+    resistencia: item?.resistencia ?? '',
+    dtResistencia: item?.dtResistencia ?? '',
     custoPE: String(item?.custoPE ?? 0),
     custoEA: String(item?.custoEA ?? 0),
+    criticoValor:
+      item?.criticoValor !== undefined && item?.criticoValor !== null ? String(item.criticoValor) : '',
+    criticoMultiplicador:
+      item?.criticoMultiplicador !== undefined && item?.criticoMultiplicador !== null
+        ? String(item.criticoMultiplicador)
+        : '',
+    danoFlat: item?.danoFlat !== undefined && item?.danoFlat !== null ? String(item.danoFlat) : '',
+    danoFlatTipo: item?.danoFlatTipo ?? '',
+    escalonaPorGrau: item?.escalonaPorGrau ?? false,
+    grauTipoGrauCodigo: item?.grauTipoGrauCodigo ?? '',
+    escalonamentoCustoEA:
+      item?.escalonamentoCustoEA !== undefined ? String(item.escalonamentoCustoEA) : '',
     efeito: item?.efeito ?? '',
     ordem: String(item?.ordem ?? 0),
+    requisitosJson: stringifyUnknown(item?.requisitos),
+    testesExigidosJson: stringifyUnknown(item?.testesExigidos),
+    dadosDanoJson: stringifyUnknown(item?.dadosDano),
+    escalonamentoDanoJson: stringifyUnknown(item?.escalonamentoDano),
   };
 }
 
@@ -88,7 +170,31 @@ function buildVariacaoFormState(item?: VariacaoHabilidadeTecnicaCatalogo | null)
     substituiCustos: item?.substituiCustos ?? false,
     custoPE: item?.custoPE !== undefined && item?.custoPE !== null ? String(item.custoPE) : '',
     custoEA: item?.custoEA !== undefined && item?.custoEA !== null ? String(item.custoEA) : '',
+    execucao: item?.execucao ?? '',
+    area: item?.area ?? '',
+    alcance: item?.alcance ?? '',
+    alvo: item?.alvo ?? '',
+    duracao: item?.duracao ?? '',
+    resistencia: item?.resistencia ?? '',
+    dtResistencia: item?.dtResistencia ?? '',
+    criticoValor:
+      item?.criticoValor !== undefined && item?.criticoValor !== null ? String(item.criticoValor) : '',
+    criticoMultiplicador:
+      item?.criticoMultiplicador !== undefined && item?.criticoMultiplicador !== null
+        ? String(item.criticoMultiplicador)
+        : '',
+    danoFlat: item?.danoFlat !== undefined && item?.danoFlat !== null ? String(item.danoFlat) : '',
+    danoFlatTipo: item?.danoFlatTipo ?? '',
+    escalonaPorGrau: item?.escalonaPorGrau ?? false,
+    escalonamentoCustoEA:
+      item?.escalonamentoCustoEA !== undefined && item?.escalonamentoCustoEA !== null
+        ? String(item.escalonamentoCustoEA)
+        : '',
+    efeitoAdicional: item?.efeitoAdicional ?? '',
     ordem: String(item?.ordem ?? 0),
+    requisitosJson: stringifyUnknown(item?.requisitos),
+    dadosDanoJson: stringifyUnknown(item?.dadosDano),
+    escalonamentoDanoJson: stringifyUnknown(item?.escalonamentoDano),
   };
 }
 
@@ -144,12 +250,34 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
     try {
       setSaving(true);
 
+      const requisitosParsed = parseOptionalJson(form.requisitosJson);
+      const testesExigidosParsed = parseOptionalJson(form.testesExigidosJson);
+      const dadosDanoParsed = parseOptionalJson(form.dadosDanoJson);
+      const escalonamentoDanoParsed = parseOptionalJson(form.escalonamentoDanoJson);
+
       const basePayload = {
         nome: form.nome.trim(),
         descricao: form.descricao.trim(),
         execucao: form.execucao,
+        area: form.area || undefined,
+        alcance: form.alcance.trim() || undefined,
+        alvo: form.alvo.trim() || undefined,
+        duracao: form.duracao.trim() || undefined,
+        resistencia: form.resistencia.trim() || undefined,
+        dtResistencia: form.dtResistencia.trim() || undefined,
         custoPE: Number(form.custoPE),
         custoEA: Number(form.custoEA),
+        criticoValor: parseNumber(form.criticoValor),
+        criticoMultiplicador: parseNumber(form.criticoMultiplicador),
+        danoFlat: parseNumber(form.danoFlat),
+        danoFlatTipo: form.danoFlatTipo || undefined,
+        escalonaPorGrau: form.escalonaPorGrau,
+        grauTipoGrauCodigo: form.grauTipoGrauCodigo.trim() || undefined,
+        escalonamentoCustoEA: parseNumber(form.escalonamentoCustoEA),
+        requisitos: requisitosParsed.value,
+        testesExigidos: testesExigidosParsed.value,
+        dadosDano: dadosDanoParsed.value,
+        escalonamentoDano: escalonamentoDanoParsed.value,
         efeito: form.efeito.trim(),
         ordem: parseNumber(form.ordem),
       };
@@ -210,19 +338,174 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             error={errors.codigo}
             helperText={isEditing ? 'Codigo nao pode ser alterado no update.' : undefined}
           />
-          <Input label="Nome *" value={form.nome} onChange={(e) => setField('nome', e.target.value)} error={errors.nome} />
-          <Select label="Execucao *" value={form.execucao} onChange={(e) => setField('execucao', e.target.value as TipoExecucao)}>
+          <Input
+            label="Nome *"
+            value={form.nome}
+            onChange={(e) => setField('nome', e.target.value)}
+            error={errors.nome}
+          />
+          <Select
+            label="Execucao *"
+            value={form.execucao}
+            onChange={(e) => setField('execucao', e.target.value as TipoExecucao)}
+          >
             {(Object.entries(TIPO_EXECUCAO_LABELS) as [TipoExecucao, string][]).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+              <option key={value} value={value}>
+                {label}
+              </option>
             ))}
           </Select>
-          <Input label="Ordem" type="number" min={0} value={form.ordem} onChange={(e) => setField('ordem', e.target.value)} />
-          <Input label="Custo PE *" type="number" min={0} value={form.custoPE} onChange={(e) => setField('custoPE', e.target.value)} error={errors.custoPE} />
-          <Input label="Custo EA *" type="number" min={0} value={form.custoEA} onChange={(e) => setField('custoEA', e.target.value)} error={errors.custoEA} />
+          <Select
+            label="Area"
+            value={form.area}
+            onChange={(e) => setField('area', e.target.value as '' | AreaEfeito)}
+          >
+            <option value="">Nao definida</option>
+            {(Object.entries(AREA_EFEITO_LABELS) as [AreaEfeito, string][]).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+          <Input
+            label="Ordem"
+            type="number"
+            min={0}
+            value={form.ordem}
+            onChange={(e) => setField('ordem', e.target.value)}
+          />
+          <Input
+            label="Custo PE *"
+            type="number"
+            min={0}
+            value={form.custoPE}
+            onChange={(e) => setField('custoPE', e.target.value)}
+            error={errors.custoPE}
+          />
+          <Input
+            label="Custo EA *"
+            type="number"
+            min={0}
+            value={form.custoEA}
+            onChange={(e) => setField('custoEA', e.target.value)}
+            error={errors.custoEA}
+          />
+          <Input
+            label="Grau tipo (codigo)"
+            value={form.grauTipoGrauCodigo}
+            onChange={(e) => setField('grauTipoGrauCodigo', e.target.value)}
+          />
         </div>
 
-        <Textarea label="Descricao *" rows={4} value={form.descricao} onChange={(e) => setField('descricao', e.target.value)} error={errors.descricao} />
-        <Textarea label="Efeito *" rows={4} value={form.efeito} onChange={(e) => setField('efeito', e.target.value)} error={errors.efeito} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input
+            label="Alcance"
+            value={form.alcance}
+            onChange={(e) => setField('alcance', e.target.value)}
+          />
+          <Input label="Alvo" value={form.alvo} onChange={(e) => setField('alvo', e.target.value)} />
+          <Input
+            label="Duracao"
+            value={form.duracao}
+            onChange={(e) => setField('duracao', e.target.value)}
+          />
+          <Input
+            label="Resistencia"
+            value={form.resistencia}
+            onChange={(e) => setField('resistencia', e.target.value)}
+          />
+          <Input
+            label="DT resistencia"
+            value={form.dtResistencia}
+            onChange={(e) => setField('dtResistencia', e.target.value)}
+          />
+          <Input
+            label="Escalonamento custo EA"
+            type="number"
+            min={0}
+            value={form.escalonamentoCustoEA}
+            onChange={(e) => setField('escalonamentoCustoEA', e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input
+            label="Critico valor"
+            type="number"
+            value={form.criticoValor}
+            onChange={(e) => setField('criticoValor', e.target.value)}
+          />
+          <Input
+            label="Critico multiplicador"
+            type="number"
+            value={form.criticoMultiplicador}
+            onChange={(e) => setField('criticoMultiplicador', e.target.value)}
+          />
+          <Input
+            label="Dano flat"
+            type="number"
+            value={form.danoFlat}
+            onChange={(e) => setField('danoFlat', e.target.value)}
+          />
+        </div>
+
+        <Select
+          label="Tipo dano flat"
+          value={form.danoFlatTipo}
+          onChange={(e) => setField('danoFlatTipo', e.target.value as '' | TipoDano)}
+        >
+          <option value="">Nao definido</option>
+          {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
+
+        <Checkbox
+          label="Escalona por grau"
+          checked={form.escalonaPorGrau}
+          onChange={(e) => setField('escalonaPorGrau', e.target.checked)}
+        />
+
+        <Textarea
+          label="Descricao *"
+          rows={4}
+          value={form.descricao}
+          onChange={(e) => setField('descricao', e.target.value)}
+          error={errors.descricao}
+        />
+        <Textarea
+          label="Efeito *"
+          rows={4}
+          value={form.efeito}
+          onChange={(e) => setField('efeito', e.target.value)}
+          error={errors.efeito}
+        />
+        <Textarea
+          label="Requisitos (JSON ou texto)"
+          rows={2}
+          value={form.requisitosJson}
+          onChange={(e) => setField('requisitosJson', e.target.value)}
+        />
+        <Textarea
+          label="Testes exigidos (JSON)"
+          rows={2}
+          value={form.testesExigidosJson}
+          onChange={(e) => setField('testesExigidosJson', e.target.value)}
+        />
+        <Textarea
+          label="Dados de dano (JSON)"
+          rows={2}
+          value={form.dadosDanoJson}
+          onChange={(e) => setField('dadosDanoJson', e.target.value)}
+        />
+        <Textarea
+          label="Escalonamento de dano (JSON)"
+          rows={2}
+          value={form.escalonamentoDanoJson}
+          onChange={(e) => setField('escalonamentoDanoJson', e.target.value)}
+        />
       </div>
     </Modal>
   );
@@ -272,12 +555,33 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
     try {
       setSaving(true);
 
+      const requisitosParsed = parseOptionalJson(form.requisitosJson);
+      const dadosDanoParsed = parseOptionalJson(form.dadosDanoJson);
+      const escalonamentoDanoParsed = parseOptionalJson(form.escalonamentoDanoJson);
+
       const basePayload = {
         nome: form.nome.trim(),
         descricao: form.descricao.trim(),
         substituiCustos: form.substituiCustos,
         custoPE: parseNumber(form.custoPE),
         custoEA: parseNumber(form.custoEA),
+        execucao: form.execucao || undefined,
+        area: form.area || undefined,
+        alcance: form.alcance.trim() || undefined,
+        alvo: form.alvo.trim() || undefined,
+        duracao: form.duracao.trim() || undefined,
+        resistencia: form.resistencia.trim() || undefined,
+        dtResistencia: form.dtResistencia.trim() || undefined,
+        criticoValor: parseNumber(form.criticoValor),
+        criticoMultiplicador: parseNumber(form.criticoMultiplicador),
+        danoFlat: parseNumber(form.danoFlat),
+        danoFlatTipo: form.danoFlatTipo || undefined,
+        escalonaPorGrau: form.escalonaPorGrau,
+        escalonamentoCustoEA: parseNumber(form.escalonamentoCustoEA),
+        escalonamentoDano: escalonamentoDanoParsed.value,
+        efeitoAdicional: form.efeitoAdicional.trim() || undefined,
+        requisitos: requisitosParsed.value,
+        dadosDano: dadosDanoParsed.value,
         ordem: parseNumber(form.ordem),
       };
 
@@ -327,14 +631,168 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
       }
     >
       <div className="space-y-4">
-        <Input label="Nome *" value={form.nome} onChange={(e) => setField('nome', e.target.value)} error={errors.nome} />
-        <Textarea label="Descricao *" rows={3} value={form.descricao} onChange={(e) => setField('descricao', e.target.value)} error={errors.descricao} />
-        <Checkbox label="Substitui custos" checked={form.substituiCustos} onChange={(e) => setField('substituiCustos', e.target.checked)} />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Input label="Custo PE" type="number" min={0} value={form.custoPE} onChange={(e) => setField('custoPE', e.target.value)} />
-          <Input label="Custo EA" type="number" min={0} value={form.custoEA} onChange={(e) => setField('custoEA', e.target.value)} />
-          <Input label="Ordem" type="number" min={0} value={form.ordem} onChange={(e) => setField('ordem', e.target.value)} />
+        <Input
+          label="Nome *"
+          value={form.nome}
+          onChange={(e) => setField('nome', e.target.value)}
+          error={errors.nome}
+        />
+        <Textarea
+          label="Descricao *"
+          rows={3}
+          value={form.descricao}
+          onChange={(e) => setField('descricao', e.target.value)}
+          error={errors.descricao}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Select
+            label="Execucao"
+            value={form.execucao}
+            onChange={(e) => setField('execucao', e.target.value as '' | TipoExecucao)}
+          >
+            <option value="">Nao definida</option>
+            {(Object.entries(TIPO_EXECUCAO_LABELS) as [TipoExecucao, string][]).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Area"
+            value={form.area}
+            onChange={(e) => setField('area', e.target.value as '' | AreaEfeito)}
+          >
+            <option value="">Nao definida</option>
+            {(Object.entries(AREA_EFEITO_LABELS) as [AreaEfeito, string][]).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input
+            label="Alcance"
+            value={form.alcance}
+            onChange={(e) => setField('alcance', e.target.value)}
+          />
+          <Input label="Alvo" value={form.alvo} onChange={(e) => setField('alvo', e.target.value)} />
+          <Input
+            label="Duracao"
+            value={form.duracao}
+            onChange={(e) => setField('duracao', e.target.value)}
+          />
+          <Input
+            label="Resistencia"
+            value={form.resistencia}
+            onChange={(e) => setField('resistencia', e.target.value)}
+          />
+          <Input
+            label="DT resistencia"
+            value={form.dtResistencia}
+            onChange={(e) => setField('dtResistencia', e.target.value)}
+          />
+          <Input
+            label="Escalonamento custo EA"
+            type="number"
+            min={0}
+            value={form.escalonamentoCustoEA}
+            onChange={(e) => setField('escalonamentoCustoEA', e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Input
+            label="Custo PE"
+            type="number"
+            min={0}
+            value={form.custoPE}
+            onChange={(e) => setField('custoPE', e.target.value)}
+          />
+          <Input
+            label="Custo EA"
+            type="number"
+            min={0}
+            value={form.custoEA}
+            onChange={(e) => setField('custoEA', e.target.value)}
+          />
+          <Input
+            label="Ordem"
+            type="number"
+            min={0}
+            value={form.ordem}
+            onChange={(e) => setField('ordem', e.target.value)}
+          />
+          <Input
+            label="Critico valor"
+            type="number"
+            value={form.criticoValor}
+            onChange={(e) => setField('criticoValor', e.target.value)}
+          />
+          <Input
+            label="Critico multiplicador"
+            type="number"
+            value={form.criticoMultiplicador}
+            onChange={(e) => setField('criticoMultiplicador', e.target.value)}
+          />
+          <Input
+            label="Dano flat"
+            type="number"
+            value={form.danoFlat}
+            onChange={(e) => setField('danoFlat', e.target.value)}
+          />
+        </div>
+
+        <Select
+          label="Tipo dano flat"
+          value={form.danoFlatTipo}
+          onChange={(e) => setField('danoFlatTipo', e.target.value as '' | TipoDano)}
+        >
+          <option value="">Nao definido</option>
+          {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
+
+        <Checkbox
+          label="Substitui custos"
+          checked={form.substituiCustos}
+          onChange={(e) => setField('substituiCustos', e.target.checked)}
+        />
+        <Checkbox
+          label="Escalona por grau"
+          checked={form.escalonaPorGrau}
+          onChange={(e) => setField('escalonaPorGrau', e.target.checked)}
+        />
+
+        <Textarea
+          label="Efeito adicional"
+          rows={2}
+          value={form.efeitoAdicional}
+          onChange={(e) => setField('efeitoAdicional', e.target.value)}
+        />
+        <Textarea
+          label="Requisitos (JSON ou texto)"
+          rows={2}
+          value={form.requisitosJson}
+          onChange={(e) => setField('requisitosJson', e.target.value)}
+        />
+        <Textarea
+          label="Dados de dano (JSON)"
+          rows={2}
+          value={form.dadosDanoJson}
+          onChange={(e) => setField('dadosDanoJson', e.target.value)}
+        />
+        <Textarea
+          label="Escalonamento de dano (JSON)"
+          rows={2}
+          value={form.escalonamentoDanoJson}
+          onChange={(e) => setField('escalonamentoDanoJson', e.target.value)}
+        />
       </div>
     </Modal>
   );

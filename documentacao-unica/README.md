@@ -1284,7 +1284,7 @@ Integracao frontend neste bloco:
     - variacoes: `apiAdminGetVariacoesDaHabilidadeTecnica`, `apiAdminGetVariacaoDaHabilidadeTecnica`, `apiAdminCreateVariacaoDaHabilidadeTecnica`, `apiAdminUpdateVariacaoDaHabilidadeTecnica`, `apiAdminDeleteVariacaoDaHabilidadeTecnica`
 - interface admin:
   - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx) agora expoe acao `Habilidades` por tecnica
-  - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) cobre CRUD de habilidades e variacoes em modal dedicado
+  - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) cobre CRUD de habilidades e variacoes em modal dedicado, incluindo campos avancados (area/alcance/alvo/duracao/resistencia/critico/dano/escalonamento e JSONs tecnicos)
 
 Detalhamento do bloco de catalogos menores:
 
@@ -1494,6 +1494,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts) agora expoe cliente completo para habilidades/variacoes de tecnica (GET/GET by id/POST/PATCH/DELETE)
   - [`assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts`](../assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts) recebeu tipagem dedicada para payloads/respostas de habilidades e variacoes de tecnica
   - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx) e [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) passaram a integrar esses endpoints na UI admin
+  - o modal de habilidades/variacoes foi ampliado para editar tambem campos avancados do contrato (execucao/area/alcance/alvo/duracao/resistencia/criticos/dano/escalonamento e JSONs opcionais)
 - backend contrato de filtros (suplementos/homebrews):
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
   - [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): `usuarioId`, `pagina` e `limite` agora exigem `>= 1`
