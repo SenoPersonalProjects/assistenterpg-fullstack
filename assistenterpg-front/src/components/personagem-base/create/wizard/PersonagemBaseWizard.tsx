@@ -211,8 +211,8 @@ function sanitizarPoderesGenericos(
 // Sanitiza itens de inventário para envio ao backend.
 function sanitizarItensInventario(
   itens: ItemInventarioPayload[],
-): ItemInventarioPayload[] | undefined {
-  if (!itens || itens.length === 0) return undefined;
+): ItemInventarioPayload[] {
+  if (!itens || itens.length === 0) return [];
 
   const itensSanitizados = itens.map((item) => ({
     equipamentoId: item.equipamentoId,
@@ -223,7 +223,7 @@ function sanitizarItensInventario(
     notas: item.notas || null,
   }));
 
-  return itensSanitizados.length > 0 ? itensSanitizados : undefined;
+  return itensSanitizados;
 }
 
 export function PersonagemBaseWizard(props: Props) {

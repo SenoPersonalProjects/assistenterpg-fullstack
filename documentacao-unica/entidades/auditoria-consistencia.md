@@ -38,9 +38,6 @@ A auditoria foi feita comparando:
 - `proficiencias` e `tipos-grau`:
   - service nao faz precheck explicito de "em uso" antes de deletar
   - integridade fica delegada ao banco/Prisma (erro de FK quando aplicavel)
-- `personagens-base`:
-  - `PATCH /personagens-base/:id` aceita `itensInventario` no DTO, mas o fluxo de update nao aplica esse campo
-  - para inventario, usar endpoints de `/inventario`
 
 ## Evidencias (arquivos chave)
 

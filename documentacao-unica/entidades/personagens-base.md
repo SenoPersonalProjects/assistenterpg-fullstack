@@ -88,9 +88,10 @@ Este documento detalha o contrato real do modulo `personagens-base`, cruzando:
     - revalida regras de origem/cla/tecnica e trilha/caminho
     - recalcula estado completo no engine
     - aplica rebuild de relacionamentos
-  - observacao importante:
-    - `UpdatePersonagemBaseDto` possui campo `itensInventario`, mas o fluxo de update nao aplica esse campo
-    - inventario deve ser alterado pelos endpoints de `/inventario`
+    - quando `itensInventario` e enviado, o inventario e sincronizado no mesmo fluxo:
+      - remove itens/modificacoes atuais
+      - recria os itens enviados via `InventarioService`
+      - `itensInventario: []` limpa o inventario do personagem
 
 - `DELETE /personagens-base/:id`
   - remove personagem e tabelas relacionadas (inventario, habilidades, poderes, passivas, resistencias, etc)
@@ -246,6 +247,7 @@ Este documento detalha o contrato real do modulo `personagens-base`, cruzando:
 
 - preview valida itens via `InventarioService.previewItensInventario`
 - create adiciona itens via `InventarioService.adicionarItem` na mesma transacao do personagem
+- update sincroniza inventario quando o campo `itensInventario` e enviado no `PATCH /personagens-base/:id`
 - em caso de erro de item no create, a transacao inteira e revertida
 
 ## Erros esperados (principais codigos)

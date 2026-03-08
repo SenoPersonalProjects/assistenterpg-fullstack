@@ -490,6 +490,8 @@ Detalhamento:
   - `PATCH /personagens-base/:id`
     - body parcial: [`UpdatePersonagemBaseDto`](../assistenterpg-back/src/personagem-base/dto/update-personagem-base.dto.ts)
     - rebuild completo do estado final (graus/pericias/proficiencias/habilidades/resistencias)
+    - quando `itensInventario` e enviado, o inventario e sincronizado na mesma operacao
+    - `itensInventario: []` limpa os itens do personagem
   - `DELETE /personagens-base/:id`
     - remove personagem e relacionamentos associados
     - retorno: `{ "sucesso": true }`
@@ -1550,6 +1552,9 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/compendio/compendio.controller.ts`](../assistenterpg-back/src/compendio/compendio.controller.ts): `GET /compendio/artigos` agora usa `ParseIntPipe` em `subcategoriaId`, retornando `400` para query invalida em vez de ignorar filtro silenciosamente
 - backend contrato de leitura de personagem-base:
   - [`assistenterpg-back/src/personagem-base/personagem-base.controller.ts`](../assistenterpg-back/src/personagem-base/personagem-base.controller.ts): `GET /personagens-base/tecnicas-disponiveis` agora valida `origemId` com `ParseIntPipe` opcional, retornando `400` para query invalida em vez de ignorar silenciosamente
+  - [`assistenterpg-back/src/personagem-base/personagem-base.service.ts`](../assistenterpg-back/src/personagem-base/personagem-base.service.ts): `PATCH /personagens-base/:id` agora sincroniza `itensInventario` quando enviado (inclusive limpeza com array vazio)
+  - [`assistenterpg-back/src/personagem-base/personagem-base.service.spec.ts`](../assistenterpg-back/src/personagem-base/personagem-base.service.spec.ts) cobre cenarios de sincronizacao de inventario no update (`undefined`, lista vazia e lista com itens)
+  - [`assistenterpg-front/src/components/personagem-base/create/wizard/PersonagemBaseWizard.tsx`](../assistenterpg-front/src/components/personagem-base/create/wizard/PersonagemBaseWizard.tsx) agora envia `itensInventario: []` em vez de omitir o campo quando o inventario e esvaziado
 - backend contrato de catalogos menores:
   - IDs de rota de [`assistenterpg-back/src/classes/classes.controller.ts`](../assistenterpg-back/src/classes/classes.controller.ts), [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
   - DTOs [`assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts), [`assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts), [`assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts) e [`assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts) agora possuem validacao `class-validator` consistente com `ValidationPipe` global

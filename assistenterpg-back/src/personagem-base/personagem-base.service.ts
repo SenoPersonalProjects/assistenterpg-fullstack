@@ -163,6 +163,59 @@ export class PersonagemBaseService {
     return clone;
   }
 
+  private async sincronizarItensInventarioNoUpdate(
+    donoId: number,
+    personagemBaseId: number,
+    itensInventario: ItemInventarioDto[] | undefined,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (itensInventario === undefined) {
+      return;
+    }
+
+    await tx.inventarioItemBaseModificacao.deleteMany({
+      where: {
+        item: {
+          personagemBaseId,
+        },
+      },
+    });
+
+    await tx.inventarioItemBase.deleteMany({
+      where: { personagemBaseId },
+    });
+
+    if (itensInventario.length === 0) {
+      await tx.personagemBase.update({
+        where: { id: personagemBaseId },
+        data: {
+          espacosOcupados: 0,
+          sobrecarregado: false,
+        },
+      });
+      return;
+    }
+
+    for (const item of itensInventario) {
+      await this.inventarioService.adicionarItem(
+        donoId,
+        {
+          personagemBaseId,
+          equipamentoId: item.equipamentoId,
+          quantidade: item.quantidade,
+          equipado: item.equipado ?? false,
+          modificacoes: item.modificacoesIds ?? [],
+          nomeCustomizado: item.nomeCustomizado,
+          notas: item.notas,
+        },
+        {
+          tx,
+          skipOwnershipCheck: true,
+        },
+      );
+    }
+  }
+
   private async resolverIdComReferencia(params: {
     label: string;
     idAtual?: number | null;
@@ -1708,6 +1761,13 @@ export class PersonagemBaseService {
       // âœ… INVENTÃRIO: Delegar COMPLETAMENTE para InventarioService
       // O service jÃ¡ possui atualizarEstadoInventario() que recalcula tudo
       // Apenas atualizamos espacosInventarioBase/Extra aqui (forÃ§a mudou?)
+
+      await this.sincronizarItensInventarioNoUpdate(
+        donoId,
+        id,
+        dto.itensInventario,
+        tx,
+      );
 
       return resultado;
     });
