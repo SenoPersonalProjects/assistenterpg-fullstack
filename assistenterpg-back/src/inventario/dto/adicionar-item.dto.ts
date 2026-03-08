@@ -12,16 +12,33 @@ import { Transform } from 'class-transformer';
 function parseIntComFallback(value: unknown, fallback: number): unknown {
   if (value === undefined || value === null || value === '') return fallback;
   if (typeof value === 'number') return value;
-  if (typeof value === 'string') return parseInt(value, 10);
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (normalized === '') return fallback;
+    if (!/^[+-]?\d+$/.test(normalized)) return value;
+    return parseInt(normalized, 10);
+  }
   return value;
 }
 
 function parseBooleanComFallbackFalse(value: unknown): unknown {
   if (typeof value === 'string') {
-    return value.toLowerCase() === 'true';
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '' || normalized === 'false' || normalized === '0') {
+      return false;
+    }
+    if (normalized === 'true' || normalized === '1') {
+      return true;
+    }
+    return value;
+  }
+  if (typeof value === 'number') {
+    if (value === 0) return false;
+    if (value === 1) return true;
+    return value;
   }
   if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null) return false;
+  if (value === undefined || value === null || value === '') return false;
   return value;
 }
 

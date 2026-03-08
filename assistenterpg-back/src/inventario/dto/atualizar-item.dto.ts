@@ -5,16 +5,30 @@ import { Transform } from 'class-transformer';
 function parseIntSemFallback(value: unknown): unknown {
   if (value === undefined || value === null || value === '') return undefined;
   if (typeof value === 'number') return value;
-  if (typeof value === 'string') return parseInt(value, 10);
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (normalized === '') return undefined;
+    if (!/^[+-]?\d+$/.test(normalized)) return value;
+    return parseInt(normalized, 10);
+  }
   return value;
 }
 
 function parseBooleanSemFallback(value: unknown): unknown {
   if (typeof value === 'string') {
-    return value.toLowerCase() === 'true';
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') return undefined;
+    if (normalized === 'true' || normalized === '1') return true;
+    if (normalized === 'false' || normalized === '0') return false;
+    return value;
+  }
+  if (typeof value === 'number') {
+    if (value === 1) return true;
+    if (value === 0) return false;
+    return value;
   }
   if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null) return undefined;
+  if (value === undefined || value === null || value === '') return undefined;
   return value;
 }
 

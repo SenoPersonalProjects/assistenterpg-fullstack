@@ -89,7 +89,8 @@ Este documento detalha o contrato real do modulo `inventario`, cruzando:
   - aceita string numerica
 - `equipado?: boolean`
   - default `false`
-  - string `"true"` vira `true`, demais valores viram `false`
+  - aceita boolean, `"true"/"false"` e `"1"/"0"`
+  - valor invalido gera erro de validacao (`VALIDATION_ERROR`)
 - `modificacoes?: int[]`
 - `nomeCustomizado?: string | null`
 - `notas?: string | null`
@@ -98,7 +99,11 @@ Este documento detalha o contrato real do modulo `inventario`, cruzando:
 ## `AtualizarItemDto`
 
 - `quantidade?: int >= 1` (sem fallback quando ausente)
+  - aceita numero inteiro ou string inteira (ex.: `"3"`)
+  - string com numero parcial (ex.: `"3abc"`) gera erro de validacao
 - `equipado?: boolean`
+  - aceita boolean, `"true"/"false"` e `"1"/"0"`
+  - valor invalido gera erro de validacao
 - `nomeCustomizado?: string`
 - `notas?: string`
 
@@ -272,4 +277,3 @@ Modelos e constraints relevantes:
 - tipos:
   - `assistenterpg-front/src/lib/types/inventario.types.ts`
 - `personagens-base` tambem envia itens iniciais via `itensInventario` em create/import
-
