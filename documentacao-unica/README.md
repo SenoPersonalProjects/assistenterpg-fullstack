@@ -1224,6 +1224,7 @@ Detalhamento do bloco `tecnicas-amaldicoadas`:
     - body: [`CreateTecnicaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts)
       - `codigo`, `nome`, `descricao`, `tipo` obrigatorios
       - `hereditaria`, `clasHereditarios`, `linkExterno`, `fonte`, `suplementoId`, `requisitos` opcionais
+      - `clasHereditarios` (quando informado) deve ser array de strings nao vazias; o backend faz `trim` de cada entrada antes de validar
     - regras:
       - codigo/nome duplicado: `TECNICA_CODIGO_OU_NOME_DUPLICADO` (422)
       - tecnica `hereditaria` deve ser `INATA`: `TECNICA_NAO_INATA_HEREDITARIA` (422)
@@ -1233,6 +1234,8 @@ Detalhamento do bloco `tecnicas-amaldicoadas`:
   - `PATCH /tecnicas-amaldicoadas/:id`
     - body parcial: [`UpdateTecnicaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/update-tecnica.dto.ts)
     - regras relevantes:
+      - `codigo` nao e atualizavel nesse endpoint
+      - `clasHereditarios` (quando informado) deve seguir a mesma validacao do create (strings nao vazias com `trim`)
       - nao permite transformar em tecnica hereditaria sem cla vinculado
       - quando `hereditaria=false`, vinculos de cla sao limpos
       - quando `clasHereditarios` e enviado, os vinculos sao substituidos
@@ -1481,7 +1484,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/trilhas/trilhas.service.ts`](../assistenterpg-back/src/trilhas/trilhas.service.ts): `PATCH /trilhas/:id` e `PATCH /trilhas/caminhos/:id` agora aceitam array vazio para limpar habilidades vinculadas
 - backend contrato de tecnicas-amaldicoadas:
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
-  - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts) e [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts): IDs agora exigem `>= 1` quando informados
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts) e [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts): IDs agora exigem `>= 1` quando informados; `clasHereditarios` tambem passou a exigir strings nao vazias (com `trim`) no create/update
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts): `PATCH /tecnicas-amaldicoadas/:id` agora valida nome duplicado e mantem consistencia de vinculos de cla ao alternar `hereditaria`
 - backend contrato de filtros (suplementos/homebrews):
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.ts) e [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
@@ -1490,6 +1493,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.ts`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.ts): parse de `apenasAmaldicoados` em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
 - testes de DTO:
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.spec.ts) cobre parse de boolean, rejeicao de valor invalido e validacao de `claId/suplementoId`
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.spec.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.spec.ts) cobre normalizacao e validacao de `clasHereditarios` (strings vazias/espacos)
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts), [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts) e [`assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts) cobrem parse de boolean e limites minimos de filtros
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao

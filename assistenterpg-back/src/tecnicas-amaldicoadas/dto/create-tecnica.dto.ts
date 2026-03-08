@@ -10,7 +10,8 @@ import {
   IsInt,
   Min,
 } from 'class-validator';
-import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client'; // ✅ NOVO
+import { Transform } from 'class-transformer';
+import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client';
 
 export class CreateTecnicaDto {
   @IsNotEmpty()
@@ -35,19 +36,27 @@ export class CreateTecnicaDto {
 
   @IsOptional()
   @IsArray()
+  @Transform(({ value }: { value: unknown }): unknown => {
+    if (!Array.isArray(value)) {
+      return value;
+    }
+
+    return value.map((item: unknown) =>
+      typeof item === 'string' ? item.trim() : item,
+    );
+  })
   @IsString({ each: true })
-  clasHereditarios?: string[]; // Nomes dos clãs
+  @IsNotEmpty({ each: true })
+  clasHereditarios?: string[];
 
   @IsOptional()
   @IsString()
   linkExterno?: string;
 
-  // ✅ CORRIGIDO: origem → fonte
   @IsOptional()
   @IsEnum(TipoFonte)
   fonte?: TipoFonte;
 
-  // ✅ NOVO: suplementoId
   @IsOptional()
   @IsInt()
   @Min(1)
