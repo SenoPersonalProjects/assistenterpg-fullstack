@@ -137,6 +137,7 @@ Protecao de rotas:
   - rotas de escrita de `equipamentos`
   - rotas de escrita de `modificacoes`
   - rotas de escrita de `compendio` (categorias/subcategorias/artigos)
+  - rotas de escrita de `tecnicas-amaldicoadas` (tecnicas/habilidades/variacoes)
   - rotas de escrita de `proficiencias`, `tipos-grau` e `condicoes`
 
 Observacoes importantes:
@@ -144,6 +145,7 @@ Observacoes importantes:
 - `equipamentos`: leitura publica; escrita com `JWT+Admin`
 - `modificacoes`: leitura com `JWT`; escrita com `JWT+Admin`
 - `compendio`: leitura publica; escrita com `JWT+Admin`
+- `tecnicas-amaldicoadas`: leitura com `JWT`; escrita com `JWT+Admin`
 - `proficiencias`, `tipos-grau` e `condicoes`: leitura com `JWT`; escrita com `JWT+Admin`
 
 ## 4.2 Formato padrao de erro
@@ -1203,7 +1205,8 @@ Integracao frontend neste bloco:
 Detalhamento do bloco `tecnicas-amaldicoadas`:
 
 - auth atual:
-  - todas as rotas do modulo estao sob `Auth: JWT` (nao ha `AdminGuard` neste controller)
+  - leitura (`GET`) com `Auth: JWT`
+  - escrita (`POST/PATCH/DELETE`) com `Auth: JWT+Admin`
 - tecnicas (`/tecnicas-amaldicoadas`)
   - `GET /tecnicas-amaldicoadas`
     - query: [`FiltrarTecnicasDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts)
@@ -1500,6 +1503,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts): parse de boolean em query foi corrigido (`false`/`0` nao sao mais convertidos para `true`)
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/filtrar-tecnicas.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts), [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-habilidade-tecnica.dto.ts) e [`assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-variacao.dto.ts): IDs agora exigem `>= 1` quando informados; `clasHereditarios` tambem passou a exigir strings nao vazias (com `trim`) no create/update
   - [`assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.service.ts): `PATCH /tecnicas-amaldicoadas/:id` agora valida nome duplicado e mantem consistencia de vinculos de cla ao alternar `hereditaria`
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.controller.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.controller.ts): rotas de escrita (`POST/PATCH/DELETE`) agora exigem `JWT+Admin`, mantendo leitura (`GET`) com `JWT`
 - frontend cliente de tecnicas-amaldicoadas:
   - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts) agora expoe cliente completo para habilidades/variacoes de tecnica (GET/GET by id/POST/PATCH/DELETE)
   - [`assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts`](../assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts) recebeu tipagem dedicada para payloads/respostas de habilidades e variacoes de tecnica
@@ -1521,6 +1525,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts`](../assistenterpg-back/src/suplementos/dto/filtrar-suplementos.dto.spec.ts), [`assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts`](../assistenterpg-back/src/homebrews/dto/filtrar-homebrews.dto.spec.ts) e [`assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts`](../assistenterpg-back/src/equipamentos/dto/filtrar-equipamentos.dto.spec.ts) cobrem parse de boolean e limites minimos de filtros
 - testes de contrato de auth:
   - [`assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts`](../assistenterpg-back/src/modificacoes/modificacoes.controller.spec.ts), [`assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts`](../assistenterpg-back/src/equipamentos/equipamentos.controller.spec.ts) e [`assistenterpg-back/src/compendio/compendio.controller.spec.ts`](../assistenterpg-back/src/compendio/compendio.controller.spec.ts) agora validam via metadata quais rotas sao publicas/JWT/JWT+Admin, reduzindo risco de regressao de autorizacao
+  - [`assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.controller.spec.ts`](../assistenterpg-back/src/tecnicas-amaldicoadas/tecnicas-amaldicoadas.controller.spec.ts) agora valida por metadata a separacao `GET=JWT` e `POST/PATCH/DELETE=JWT+Admin` para tecnicas/habilidades/variacoes
   - [`assistenterpg-back/src/proficiencias/proficiencias.controller.spec.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.spec.ts), [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.spec.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.spec.ts) e [`assistenterpg-back/src/condicoes/condicoes.controller.spec.ts`](../assistenterpg-back/src/condicoes/condicoes.controller.spec.ts) agora validam por metadata a separacao `GET=JWT` e `POST/PATCH/DELETE=JWT+Admin`
 - baseline de lint no backend:
   - [`assistenterpg-back/eslint.config.mjs`](../assistenterpg-back/eslint.config.mjs) foi ajustado para tratar `no-unsafe-*` como `warn`, permitindo `npm run lint` passar sem mascarar o debito historico

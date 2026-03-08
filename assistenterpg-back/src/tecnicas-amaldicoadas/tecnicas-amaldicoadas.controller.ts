@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { TecnicasAmaldicoadasService } from './tecnicas-amaldicoadas.service';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
 // DTOs - Técnicas
 import { CreateTecnicaDto } from './dto/create-tecnica.dto';
@@ -57,6 +58,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Post()
+  @UseGuards(AdminGuard)
   async createTecnica(
     @Request() req: { user: { id: number } },
     @Body() dto: CreateTecnicaDto,
@@ -65,6 +67,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Patch(':id')
+  @UseGuards(AdminGuard)
   async updateTecnica(
     @Request() req: { user: { id: number } },
     @Param('id', ParseIntPipe) id: number,
@@ -74,6 +77,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Delete(':id')
+  @UseGuards(AdminGuard)
   async removeTecnica(
     @Request() req: { user: { id: number } },
     @Param('id', ParseIntPipe) id: number,
@@ -99,6 +103,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Post('habilidades')
+  @UseGuards(AdminGuard)
   async createHabilidade(
     @Request() req: { user: { id: number } },
     @Body() dto: CreateHabilidadeTecnicaDto,
@@ -107,6 +112,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Patch('habilidades/:id')
+  @UseGuards(AdminGuard)
   async updateHabilidade(
     @Request() req: { user: { id: number } },
     @Param('id', ParseIntPipe) id: number,
@@ -116,6 +122,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Delete('habilidades/:id')
+  @UseGuards(AdminGuard)
   async removeHabilidade(
     @Request() req: { user: { id: number } },
     @Param('id', ParseIntPipe) id: number,
@@ -141,6 +148,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Post('variacoes')
+  @UseGuards(AdminGuard)
   async createVariacao(
     @Request() req: { user: { id: number } },
     @Body() dto: CreateVariacaoHabilidadeDto,
@@ -149,6 +157,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Patch('variacoes/:id')
+  @UseGuards(AdminGuard)
   async updateVariacao(
     @Request() req: { user: { id: number } },
     @Param('id', ParseIntPipe) id: number,
@@ -158,6 +167,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Delete('variacoes/:id')
+  @UseGuards(AdminGuard)
   async removeVariacao(
     @Request() req: { user: { id: number } },
     @Param('id', ParseIntPipe) id: number,
