@@ -1214,9 +1214,8 @@ export class PersonagemBaseService {
 
       if (!personagem) return null;
 
-      const itens = await this.prisma.inventarioItemBase.findMany({
+      const quantidadeItens = await this.prisma.inventarioItemBase.count({
         where: { personagemBaseId },
-        select: { id: true },
       });
 
       const espacosTotal =
@@ -1232,7 +1231,7 @@ export class PersonagemBaseService {
         espacosOcupados: personagem.espacosOcupados || 0,
         espacosDisponiveis,
         sobrecarregado: personagem.sobrecarregado || false,
-        quantidadeItens: itens.length,
+        quantidadeItens,
       };
     } catch (error) {
       console.error('[SERVICE] Erro ao calcular resumo de inventÃ¡rio:', error);
@@ -1254,7 +1253,32 @@ export class PersonagemBaseService {
       prisma: this.prisma,
     });
 
-    const todasPericias = await this.prisma.pericia.findMany();
+    const resistenciasArray = Array.from(
+      estado.resistenciasFinais.entries(),
+    ).map(([codigo, valor]) => ({ codigo, valor }));
+    const codigosResistencia = resistenciasArray.map((r) => r.codigo);
+
+    const [todasPericias, proficienciasDetalhadas, tiposGrau] =
+      await Promise.all([
+        this.prisma.pericia.findMany(),
+        this.prisma.proficiencia.findMany({
+          where: { codigo: { in: estado.profsFinais } },
+        }),
+        this.prisma.tipoGrau.findMany({
+          where: {
+            codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
+          },
+        }),
+      ]);
+
+    const resistenciasTipos =
+      codigosResistencia.length > 0
+        ? await this.prisma.resistenciaTipo.findMany({
+            where: { codigo: { in: codigosResistencia } },
+            select: { codigo: true, nome: true, descricao: true },
+          })
+        : [];
+
     const mapaPericiasPorCodigo = new Map(
       todasPericias.map((p) => [p.codigo, p] as const),
     );
@@ -1273,43 +1297,22 @@ export class PersonagemBaseService {
       };
     });
 
-    const proficienciasDetalhadas = await this.prisma.proficiencia.findMany({
-      where: { codigo: { in: estado.profsFinais } },
-    });
-
-    const tiposGrau = await this.prisma.tipoGrau.findMany({
-      where: {
-        codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
-      },
-    });
-
     const mapaTiposGrau = new Map(
       tiposGrau.map((t) => [t.codigo, t.nome] as const),
     );
     const habilidadesNomes = estado.habilidades.map((h) => h.habilidade.nome);
-
-    const resistenciasArray = Array.from(
-      estado.resistenciasFinais.entries(),
-    ).map(([codigo, valor]) => ({ codigo, valor }));
-
-    const resistenciasComNomes =
-      resistenciasArray.length > 0
-        ? await Promise.all(
-            resistenciasArray.map(async (r) => {
-              const tipo = await this.prisma.resistenciaTipo.findUnique({
-                where: { codigo: r.codigo },
-                select: { nome: true, descricao: true },
-              });
-
-              return {
-                codigo: r.codigo,
-                nome: tipo?.nome ?? r.codigo,
-                descricao: tipo?.descricao ?? null,
-                valor: r.valor,
-              };
-            }),
-          )
-        : [];
+    const mapaResistenciasTipo = new Map(
+      resistenciasTipos.map((tipo) => [tipo.codigo, tipo] as const),
+    );
+    const resistenciasComNomes = resistenciasArray.map((r) => {
+      const tipo = mapaResistenciasTipo.get(r.codigo);
+      return {
+        codigo: r.codigo,
+        nome: tipo?.nome ?? r.codigo,
+        descricao: tipo?.descricao ?? null,
+        valor: r.valor,
+      };
+    });
 
     // âœ… VALIDAR ITENS (se houver) usando preview do InventarioService
     const { itensValidados, errosItens } =

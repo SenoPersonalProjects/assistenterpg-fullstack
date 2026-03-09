@@ -2,14 +2,14 @@
 
 'use client';
 
-import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useMemo, useEffect, useState, useCallback, useDeferredValue } from 'react';
 import type {
   ItemInventarioPayload,
   EquipamentoCatalogo,
   ModificacaoCatalogo,
   PreviewAdicionarItemResponse,
 } from '@/lib/api';
-import { apiGetEquipamentos, apiGetModificacoes, apiPreviewItensInventario } from '@/lib/api';
+import { apiPreviewItensInventario } from '@/lib/api';
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
   // calcularEspacosExtraDeItens
@@ -39,11 +39,14 @@ import { InventarioAlertaVestir } from '../InventarioAlertaVestir';
 type Props = {
   forca: number;
   prestigioBase: number;
+  equipamentos: EquipamentoCatalogo[];
+  modificacoes: ModificacaoCatalogo[];
   itensInventario: ItemInventarioPayload[];
   onChangeItensInventario: (itens: ItemInventarioPayload[]) => void;
 };
 
 type ModalStep = 'categoria' | 'equipamento' | 'modificacoes' | 'review' | 'editar-item';
+const LIMITE_RENDER_ITENS_INICIAL = 80;
 
 export function PersonagemBaseStepInventario(props: Props) {
   const { sincronizarInventario, carregando: carregandoSincronizacao } = useInventarioPreview({
@@ -52,9 +55,8 @@ export function PersonagemBaseStepInventario(props: Props) {
   });
 
   // Estados básicos
-  const [equipamentos, setEquipamentos] = useState<EquipamentoCatalogo[]>([]);
-  const [modificacoes, setModificacoes] = useState<ModificacaoCatalogo[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const equipamentos = props.equipamentos;
+  const modificacoes = props.modificacoes;
 
   // Estado para armazenar preview do backend (espaços calculados)
   const [previewInventario, setPreviewInventario] = useState<{
@@ -68,6 +70,7 @@ export function PersonagemBaseStepInventario(props: Props) {
   // Filtros da lista de itens
   const [filtroCategoria, setFiltroCategoria] = useState<string>('TODOS');
   const [buscaItem, setBuscaItem] = useState('');
+  const [limiteRenderItens, setLimiteRenderItens] = useState(LIMITE_RENDER_ITENS_INICIAL);
 
   // Modal
   const [modalAberto, setModalAberto] = useState(false);
@@ -98,50 +101,27 @@ export function PersonagemBaseStepInventario(props: Props) {
   // ConfirmDialog
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [itemToRemove, setItemToRemove] = useState<number | null>(null);
+  const termoBuscaItemDeferred = useDeferredValue(buscaItem);
+  const termoBuscaEquipamentoDeferred = useDeferredValue(buscaEquipamento);
 
   const grauXama = useMemo(
     () => getGrauXamaPorPrestigio(props.prestigioBase),
     [props.prestigioBase],
   );
 
-  // Carregar catálogos
-  useEffect(() => {
-    const carregarEquipamentos = async () => {
-      try {
-        let todosEquipamentos: EquipamentoCatalogo[] = [];
-        let pagina = 1;
-        let temMais = true;
 
-        while (temMais) {
-          const response = await apiGetEquipamentos({ pagina, limite: 100 });
-          const equipsAtual = Array.isArray(response.items) ? response.items : [];
-          todosEquipamentos = [...todosEquipamentos, ...equipsAtual];
+  const equipamentoPorId = useMemo(() => {
+    const mapa = new Map<number, EquipamentoCatalogo>();
+    for (const equip of equipamentos) {
+      mapa.set(equip.id, equip);
+    }
+    return mapa;
+  }, [equipamentos]);
 
-          temMais = pagina < response.totalPages;
-          pagina++;
-        }
-
-        return todosEquipamentos;
-      } catch {
-        return [];
-      }
-    };
-
-    Promise.all([carregarEquipamentos(), apiGetModificacoes()])
-      .then(([equips, mods]) => {
-        setEquipamentos(Array.isArray(equips) ? equips : []);
-        setModificacoes(mods.items || []);
-      })
-      .catch(() => {
-        setEquipamentos([]);
-        setModificacoes([]);
-      })
-      .finally(() => setCarregando(false));
-  }, []);
 
   // Sincronizar com backend sempre que itens mudarem
   useEffect(() => {
-    if (carregando || props.itensInventario.length === 0) {
+    if (props.itensInventario.length === 0) {
       // Caso vazio: calcular espaços base manualmente
       setPreviewInventario({
         espacosBase: props.forca * 5,
@@ -198,7 +178,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     return () => {
       isCancelled = true;
     };
-  }, [carregando, props.itensInventario, props.forca, props.prestigioBase]);
+  }, [props.itensInventario, props.forca, props.prestigioBase]);
 
   // Usar preview do backend
   const espacosBase = previewInventario?.espacosBase ?? props.forca * 5;
@@ -221,7 +201,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     if (!Array.isArray(props.itensInventario)) return contagem;
 
     props.itensInventario.forEach((item) => {
-      const equip = equipamentos.find((e) => e.id === item.equipamentoId);
+      const equip = equipamentoPorId.get(item.equipamentoId);
       if (equip) {
         const cat = normalizarCategoria(equip.categoria);
         contagem[cat] = (contagem[cat] || 0) + item.quantidade;
@@ -229,7 +209,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     });
 
     return contagem;
-  }, [props.itensInventario, equipamentos]);
+  }, [props.itensInventario, equipamentoPorId]);
 
   // Itens filtrados (categoria + busca)
   const itensFiltrados = useMemo(() => {
@@ -238,7 +218,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     // Filtro por categoria
     if (filtroCategoria !== 'TODOS') {
       itens = itens.filter(({ item }) => {
-        const equip = equipamentos.find((e) => e.id === item.equipamentoId);
+        const equip = equipamentoPorId.get(item.equipamentoId);
         if (!equip) return false;
         const cat = normalizarCategoria(equip.categoria);
         return cat === filtroCategoria;
@@ -246,10 +226,10 @@ export function PersonagemBaseStepInventario(props: Props) {
     }
 
     // Busca por nome
-    if (buscaItem.trim()) {
-      const termo = buscaItem.toLowerCase();
+    if (termoBuscaItemDeferred.trim()) {
+      const termo = termoBuscaItemDeferred.toLowerCase();
       itens = itens.filter(({ item }) => {
-        const equip = equipamentos.find((e) => e.id === item.equipamentoId);
+        const equip = equipamentoPorId.get(item.equipamentoId);
         if (!equip) return false;
         const nomeExibido = item.nomeCustomizado || equip.nome;
         return (
@@ -260,7 +240,16 @@ export function PersonagemBaseStepInventario(props: Props) {
     }
 
     return itens;
-  }, [props.itensInventario, filtroCategoria, buscaItem, equipamentos]);
+  }, [props.itensInventario, filtroCategoria, termoBuscaItemDeferred, equipamentoPorId]);
+
+  useEffect(() => {
+    setLimiteRenderItens(LIMITE_RENDER_ITENS_INICIAL);
+  }, [filtroCategoria, termoBuscaItemDeferred]);
+
+  const itensRenderizados = useMemo(
+    () => itensFiltrados.slice(0, limiteRenderItens),
+    [itensFiltrados, limiteRenderItens],
+  );
 
   // Categorização
   const equipamentosPorCategoria = useMemo(() => {
@@ -347,8 +336,8 @@ export function PersonagemBaseStepInventario(props: Props) {
   const equipamentosFiltrados = useMemo(() => {
     let equips = equipamentosPorCategoria[categoriaAtiva] || [];
 
-    if (buscaEquipamento.trim()) {
-      const termo = buscaEquipamento.toLowerCase();
+    if (termoBuscaEquipamentoDeferred.trim()) {
+      const termo = termoBuscaEquipamentoDeferred.toLowerCase();
       equips = equips.filter(
         (equip) =>
           equip.nome.toLowerCase().includes(termo) || equip.codigo.toLowerCase().includes(termo),
@@ -356,7 +345,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     }
 
     return equips;
-  }, [equipamentosPorCategoria, categoriaAtiva, buscaEquipamento]);
+  }, [equipamentosPorCategoria, categoriaAtiva, termoBuscaEquipamentoDeferred]);
 
   const modificacoesCompativeis = useMemo(() => {
     if (!equipamentoSelecionado) return [];
@@ -365,10 +354,10 @@ export function PersonagemBaseStepInventario(props: Props) {
 
   const modificacoesCompativeisEdicao = useMemo(() => {
     if (!itemEditando) return [];
-    const equip = equipamentos.find((e) => e.id === itemEditando.equipamentoId);
+    const equip = equipamentoPorId.get(itemEditando.equipamentoId);
     if (!equip) return [];
     return filtrarModificacoesCompativeis(modificacoes, equip);
-  }, [modificacoes, itemEditando, equipamentos]);
+  }, [modificacoes, itemEditando, equipamentoPorId]);
 
   // Handler para validar ao marcar "equipado"
   const handleEquipadoChange = useCallback(
@@ -385,7 +374,7 @@ export function PersonagemBaseStepInventario(props: Props) {
       // Converter itens do wizard para formato esperado
       const itensConvertidos = props.itensInventario.reduce<ItemInventarioParaVestir[]>(
         (acc, item) => {
-          const equip = equipamentos.find((e) => e.id === item.equipamentoId);
+          const equip = equipamentoPorId.get(item.equipamentoId);
           if (!equip) return acc;
 
           acc.push({
@@ -418,7 +407,7 @@ export function PersonagemBaseStepInventario(props: Props) {
 
       setEquipado(true);
     },
-    [equipamentoSelecionado, quantidade, props.itensInventario, equipamentos],
+    [equipamentoSelecionado, quantidade, props.itensInventario, equipamentos, equipamentoPorId],
   );
 
   // Handler para validar ao marcar "equipado" na edição
@@ -433,13 +422,13 @@ export function PersonagemBaseStepInventario(props: Props) {
 
       if (!itemEditando) return;
 
-      const equip = equipamentos.find((e) => e.id === itemEditando.equipamentoId);
+      const equip = equipamentoPorId.get(itemEditando.equipamentoId);
       if (!equip) return;
 
       const itensExcetoAtual = props.itensInventario
         .filter((_, idx) => idx !== indiceItemEditando)
         .reduce<ItemInventarioParaVestir[]>((acc, item) => {
-          const e = equipamentos.find((eq) => eq.id === item.equipamentoId);
+          const e = equipamentoPorId.get(item.equipamentoId);
           if (!e) return acc;
 
           acc.push({
@@ -465,7 +454,14 @@ export function PersonagemBaseStepInventario(props: Props) {
 
       setEquipadoEditando(true);
     },
-    [itemEditando, quantidadeEditando, props.itensInventario, equipamentos, indiceItemEditando],
+    [
+      itemEditando,
+      quantidadeEditando,
+      props.itensInventario,
+      equipamentos,
+      indiceItemEditando,
+      equipamentoPorId,
+    ],
   );
 
   // Handlers de Modal
@@ -698,9 +694,27 @@ export function PersonagemBaseStepInventario(props: Props) {
     [props, sincronizarInventario],
   );
 
-  if (carregando) {
-    return <div className="text-app-muted">Carregando equipamentos...</div>;
-  }
+  const handleToggleModificacao = useCallback((mod: ModificacaoCatalogo, checked: boolean) => {
+    setModificacoesSelecionadas((atual) => {
+      if (checked) {
+        if (atual.some((item) => item.id === mod.id)) return atual;
+        return [...atual, mod];
+      }
+
+      return atual.filter((item) => item.id !== mod.id);
+    });
+  }, []);
+
+  const handleToggleModificacaoEdicao = useCallback((modId: number, checked: boolean) => {
+    setModificacoesEditando((atual) => {
+      if (checked) {
+        if (atual.includes(modId)) return atual;
+        return [...atual, modId];
+      }
+
+      return atual.filter((id) => id !== modId);
+    });
+  }, []);
 
   return (
     <>
@@ -804,8 +818,8 @@ export function PersonagemBaseStepInventario(props: Props) {
                 />
               ) : (
                 <div className="space-y-2">
-                  {itensFiltrados.map(({ item, indexOriginal }) => {
-                    const equip = equipamentos.find((e) => e.id === item.equipamentoId);
+                  {itensRenderizados.map(({ item, indexOriginal }) => {
+                    const equip = equipamentoPorId.get(item.equipamentoId);
                     if (!equip) return null;
 
                     return (
@@ -820,6 +834,21 @@ export function PersonagemBaseStepInventario(props: Props) {
                       />
                     );
                   })}
+
+                  {itensFiltrados.length > limiteRenderItens && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full"
+                      onClick={() =>
+                        setLimiteRenderItens((atual) =>
+                          Math.min(itensFiltrados.length, atual + LIMITE_RENDER_ITENS_INICIAL),
+                        )
+                      }
+                    >
+                      Mostrar mais ({itensFiltrados.length - limiteRenderItens} restantes)
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -901,6 +930,7 @@ export function PersonagemBaseStepInventario(props: Props) {
 
               {stepAtual === 'equipamento' && (
                 <InventarioModalEquipamento
+                  key={`equipamento-${categoriaAtiva}`}
                   busca={buscaEquipamento}
                   onBuscaChange={setBuscaEquipamento}
                   equipamentosFiltrados={equipamentosFiltrados}
@@ -911,18 +941,11 @@ export function PersonagemBaseStepInventario(props: Props) {
 
               {stepAtual === 'modificacoes' && equipamentoSelecionado && (
                 <InventarioModalModificacoes
+                  key={`modificacoes-${equipamentoSelecionado.id}`}
                   equipamento={equipamentoSelecionado}
                   modificacoesCompativeis={modificacoesCompativeis}
                   modificacoesSelecionadas={modificacoesSelecionadas}
-                  onToggleModificacao={(mod, checked) => {
-                    if (checked) {
-                      setModificacoesSelecionadas([...modificacoesSelecionadas, mod]);
-                    } else {
-                      setModificacoesSelecionadas(
-                        modificacoesSelecionadas.filter((m) => m.id !== mod.id),
-                      );
-                    }
-                  }}
+                  onToggleModificacao={handleToggleModificacao}
                 />
               )}
 
@@ -958,15 +981,7 @@ export function PersonagemBaseStepInventario(props: Props) {
                   nomeCustomizado={nomeCustomizadoEditando}
                   equipado={equipadoEditando}
                   onQuantidadeChange={setQuantidadeEditando}
-                  onToggleModificacao={(modId, checked) => {
-                    if (checked) {
-                      setModificacoesEditando([...modificacoesEditando, modId]);
-                    } else {
-                      setModificacoesEditando(
-                        modificacoesEditando.filter((id) => id !== modId),
-                      );
-                    }
-                  }}
+                  onToggleModificacao={handleToggleModificacaoEdicao}
                   onNomeCustomizadoChange={setNomeCustomizadoEditando}
                   onEquipadoChange={handleEquipadoEditandoChange}
                 />
@@ -1046,7 +1061,7 @@ export function PersonagemBaseStepInventario(props: Props) {
               Deseja remover{' '}
               {(() => {
                 const item = props.itensInventario[itemToRemove];
-                const equip = equipamentos.find((e) => e.id === item.equipamentoId);
+                const equip = equipamentoPorId.get(item.equipamentoId);
                 return item.nomeCustomizado || equip?.nome;
               })()}{' '}
               deste item do inventário?

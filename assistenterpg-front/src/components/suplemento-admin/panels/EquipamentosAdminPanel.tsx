@@ -437,7 +437,7 @@ export function EquipamentosAdminPanel() {
           </Select>
         </div>
 
-        <div className="flex items-center gap-2 mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button variant="primary" onClick={aplicarFiltros}>
             Aplicar filtros
           </Button>
@@ -518,16 +518,17 @@ export function EquipamentosAdminPanel() {
               </table>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-app-muted">
                 Pagina {result.page} de {result.totalPages} - Total {result.total}
               </div>
-              <div className="flex gap-2">
+              <div className="flex w-full gap-2 sm:w-auto">
                 <Button
                   variant="secondary"
                   size="sm"
                   disabled={result.page <= 1}
                   onClick={() => mudarPagina(result.page - 1)}
+                  className="flex-1 sm:flex-none"
                 >
                   Anterior
                 </Button>
@@ -536,6 +537,7 @@ export function EquipamentosAdminPanel() {
                   size="sm"
                   disabled={result.page >= result.totalPages}
                   onClick={() => mudarPagina(result.page + 1)}
+                  className="flex-1 sm:flex-none"
                 >
                   Proxima
                 </Button>

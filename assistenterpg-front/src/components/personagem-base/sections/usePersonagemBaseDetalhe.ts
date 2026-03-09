@@ -5,18 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 import {
-  apiGetAlinhamentos,
-  apiGetClasses,
-  apiGetClas,
-  apiGetOrigens,
+  apiGetCatalogosBasicos,
   apiGetPassivasDisponiveis,
-  apiGetPericias,
   apiGetPersonagemBase,
-  apiGetProficiencias,
-  apiGetTecnicasInatas,
-  apiGetTiposGrau,
-  apiGetEquipamentos,
-  apiGetModificacoes,
+  apiGetTodosEquipamentos,
+  apiGetTodasModificacoes,
   extrairMensagemErro,
   formatarErroComContexto,
   traduzirErro,
@@ -187,20 +180,7 @@ async function carregarPassivasSelecionadas(
 // Carrega equipamentos em paginas para mapear dados de inventario.
 async function carregarTodosEquipamentos(): Promise<EquipamentoCatalogo[]> {
   try {
-    const todosEquipamentos: EquipamentoCatalogo[] = [];
-    let pagina = 1;
-    let temMais = true;
-
-    while (temMais) {
-      const response = await apiGetEquipamentos({ pagina, limite: 100 });
-      const equipsAtual = Array.isArray(response.items) ? response.items : [];
-      todosEquipamentos.push(...equipsAtual);
-
-      temMais = pagina < response.totalPages;
-      pagina++;
-    }
-
-    return todosEquipamentos;
+    return await apiGetTodosEquipamentos({ limitePorPagina: 100 });
   } catch {
     return [];
   }
@@ -209,20 +189,7 @@ async function carregarTodosEquipamentos(): Promise<EquipamentoCatalogo[]> {
 // Carrega modificacoes em paginas para mapear dados de inventario.
 async function carregarTodasModificacoes(): Promise<ModificacaoCatalogo[]> {
   try {
-    const todasModificacoes: ModificacaoCatalogo[] = [];
-    let pagina = 1;
-    let temMais = true;
-
-    while (temMais) {
-      const response = await apiGetModificacoes({ pagina, limite: 100 });
-      const modsAtual = Array.isArray(response.items) ? response.items : [];
-      todasModificacoes.push(...modsAtual);
-
-      temMais = pagina < response.totalPages;
-      pagina++;
-    }
-
-    return todasModificacoes;
+    return await apiGetTodasModificacoes({ limitePorPagina: 100 });
   } catch {
     return [];
   }
@@ -238,39 +205,25 @@ async function carregarCatalogosCompartilhados(): Promise<Catalogos> {
   }
 
   catalogosInFlight = Promise.all([
-    apiGetClasses(),
-    apiGetClas(),
-    apiGetOrigens(),
-    apiGetProficiencias(),
-    apiGetTiposGrau(),
-    apiGetTecnicasInatas(),
-    apiGetAlinhamentos(),
-    apiGetPericias(),
+    apiGetCatalogosBasicos(),
     carregarTodosEquipamentos(),
     carregarTodasModificacoes(),
   ])
     .then(
       ([
-        classesRes,
-        clasRes,
-        origensRes,
-        profsRes,
-        tiposGrauRes,
-        tecnicasInatasRes,
-        alinhamentosRes,
-        periciasRes,
+        catalogosBasicos,
         equipamentosCompletos,
         modificacoesCompletas,
       ]) => {
         const catalogos = {
-          classes: classesRes,
-          clas: clasRes,
-          origens: origensRes,
-          proficiencias: profsRes,
-          tiposGrau: tiposGrauRes,
-          tecnicasInatas: tecnicasInatasRes,
-          alinhamentos: alinhamentosRes,
-          pericias: periciasRes,
+          classes: catalogosBasicos.classes,
+          clas: catalogosBasicos.clas,
+          origens: catalogosBasicos.origens,
+          proficiencias: catalogosBasicos.proficiencias,
+          tiposGrau: catalogosBasicos.tiposGrau,
+          tecnicasInatas: catalogosBasicos.tecnicasInatas,
+          alinhamentos: catalogosBasicos.alinhamentos,
+          pericias: catalogosBasicos.pericias,
           equipamentos: equipamentosCompletos,
           modificacoes: modificacoesCompletas,
         };

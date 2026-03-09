@@ -296,6 +296,9 @@ model Campanha {
   personagens PersonagemCampanha[]
   sessoes     Sessao[]
   convites    ConviteCampanha[]
+
+  @@index([donoId])
+  @@index([donoId, criadoEm])
 }
 
 model MembroCampanha {
@@ -309,6 +312,8 @@ model MembroCampanha {
   usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@unique([campanhaId, usuarioId])
+  @@index([usuarioId])
+  @@index([usuarioId, campanhaId])
 }
 
 // ========================================
@@ -401,6 +406,9 @@ model PersonagemBase {
   habilidadesBase     HabilidadePersonagemBase[]
   poderesGenericos    PoderGenericoPersonagemBase[]
   tecnicasAprendidas  PersonagemBaseTecnica[]
+
+  @@index([donoId])
+  @@index([donoId, nome])
 }
 
 
@@ -469,6 +477,9 @@ model PersonagemCampanha {
   grausAprimoramento  GrauPersonagemCampanha[]
   poderesGenericos    PoderGenericoPersonagemCampanha[]
   tecnicasAprendidas  PersonagemCampanhaTecnica[]
+
+  @@index([campanhaId])
+  @@index([personagemBaseId])
 }
 
 
@@ -891,6 +902,8 @@ model ConviteCampanha {
   campanha Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
 
   @@index([email])
+  @@index([email, status, criadoEm])
+  @@index([campanhaId, status])
 }
 
 model Proficiencia {
@@ -1806,5 +1819,6 @@ model Homebrew {
   @@index([usuarioId])
   @@index([tipo])
   @@index([status])
+  @@index([usuarioId, criadoEm])
+  @@index([status, criadoEm])
 }
-

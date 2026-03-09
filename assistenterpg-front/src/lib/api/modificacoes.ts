@@ -6,6 +6,10 @@ import type { FiltrarModificacoesDto, ModificacaoCatalogo } from '@/lib/types';
 const MODIFICACOES_DEFAULT_PAGE = 1;
 const MODIFICACOES_DEFAULT_LIMIT = 50;
 
+type FiltrarTodasModificacoesDto = Omit<FiltrarModificacoesDto, 'pagina' | 'limite'> & {
+  limitePorPagina?: number;
+};
+
 type RawRestricoesModificacao = {
   apenasAmaldicoados?: boolean;
   complexidadeMinima?: string | null;
@@ -62,6 +66,44 @@ export async function apiGetModificacoes(
   }));
 
   return { ...normalized, items };
+}
+
+export async function apiGetTodasModificacoes(
+  filtros?: FiltrarTodasModificacoesDto,
+): Promise<ModificacaoCatalogo[]> {
+  const { limitePorPagina = 100, ...filtrosBase } = filtros ?? {};
+  const primeiraPagina = await apiGetModificacoes({
+    ...filtrosBase,
+    pagina: 1,
+    limite: limitePorPagina,
+  });
+
+  const itens = Array.isArray(primeiraPagina.items) ? [...primeiraPagina.items] : [];
+  const totalPages = Math.max(1, primeiraPagina.totalPages || 1);
+
+  if (totalPages <= 1) {
+    return itens;
+  }
+
+  const promessasPaginas: Promise<ListResult<ModificacaoCatalogo>>[] = [];
+  for (let pagina = 2; pagina <= totalPages; pagina++) {
+    promessasPaginas.push(
+      apiGetModificacoes({
+        ...filtrosBase,
+        pagina,
+        limite: limitePorPagina,
+      }),
+    );
+  }
+
+  const respostas = await Promise.all(promessasPaginas);
+  for (const resposta of respostas) {
+    if (Array.isArray(resposta.items) && resposta.items.length > 0) {
+      itens.push(...resposta.items);
+    }
+  }
+
+  return itens;
 }
 
 export async function apiGetModificacaoDetalhada(id: number): Promise<ModificacaoCatalogo> {

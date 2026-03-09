@@ -48,6 +48,114 @@ export type FiltrarTecnicasAmaldicoadasDto = {
   incluirClas?: boolean;
 };
 
+type CatalogosBasicosOptions = {
+  forceRefresh?: boolean;
+  cacheTtlMs?: number;
+};
+
+export type CatalogosBasicosResponse = {
+  classes: ClasseCatalogo[];
+  clas: ClaCatalogo[];
+  origens: OrigemCatalogo[];
+  proficiencias: ProficienciaCatalogo[];
+  tiposGrau: TipoGrauCatalogo[];
+  tecnicasInatas: TecnicaInataCatalogo[];
+  alinhamentos: AlinhamentoCatalogo[];
+  pericias: PericiaCatalogo[];
+};
+
+type CatalogosBasicosCacheEntry = {
+  data: CatalogosBasicosResponse;
+  expiresAt: number;
+};
+
+const CATALOGOS_BASICOS_CACHE_TTL_MS = 60_000;
+let catalogosBasicosCache: CatalogosBasicosCacheEntry | null = null;
+let catalogosBasicosInFlight: Promise<CatalogosBasicosResponse> | null = null;
+
+function cloneCatalogosBasicos(data: CatalogosBasicosResponse): CatalogosBasicosResponse {
+  return {
+    classes: [...data.classes],
+    clas: [...data.clas],
+    origens: [...data.origens],
+    proficiencias: [...data.proficiencias],
+    tiposGrau: [...data.tiposGrau],
+    tecnicasInatas: [...data.tecnicasInatas],
+    alinhamentos: [...data.alinhamentos],
+    pericias: [...data.pericias],
+  };
+}
+
+export function apiInvalidateCatalogosBasicosCache(): void {
+  catalogosBasicosCache = null;
+  catalogosBasicosInFlight = null;
+}
+
+export async function apiGetCatalogosBasicos(
+  options: CatalogosBasicosOptions = {},
+): Promise<CatalogosBasicosResponse> {
+  const ttlMs = options.cacheTtlMs ?? CATALOGOS_BASICOS_CACHE_TTL_MS;
+
+  if (options.forceRefresh) {
+    apiInvalidateCatalogosBasicosCache();
+  } else if (catalogosBasicosCache && catalogosBasicosCache.expiresAt > Date.now()) {
+    return cloneCatalogosBasicos(catalogosBasicosCache.data);
+  }
+
+  if (catalogosBasicosInFlight) {
+    const data = await catalogosBasicosInFlight;
+    return cloneCatalogosBasicos(data);
+  }
+
+  const request = Promise.all([
+    apiGetClasses(),
+    apiGetClas(),
+    apiGetOrigens(),
+    apiGetProficiencias(),
+    apiGetTiposGrau(),
+    apiGetTecnicasInatas(),
+    apiGetAlinhamentos(),
+    apiGetPericias(),
+  ])
+    .then(
+      ([
+        classes,
+        clas,
+        origens,
+        proficiencias,
+        tiposGrau,
+        tecnicasInatas,
+        alinhamentos,
+        pericias,
+      ]) => {
+        const data: CatalogosBasicosResponse = {
+          classes,
+          clas,
+          origens,
+          proficiencias,
+          tiposGrau,
+          tecnicasInatas,
+          alinhamentos,
+          pericias,
+        };
+
+        catalogosBasicosCache = {
+          data,
+          expiresAt: Date.now() + ttlMs,
+        };
+
+        return data;
+      },
+    )
+    .finally(() => {
+      catalogosBasicosInFlight = null;
+    });
+
+  catalogosBasicosInFlight = request;
+  const data = await request;
+  return cloneCatalogosBasicos(data);
+}
+
 export async function apiGetClasses(): Promise<ClasseCatalogo[]> {
   const { data } = await apiClient.get('/classes');
   return data;

@@ -498,7 +498,7 @@ export function TecnicasAdminPanel() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button variant="primary" onClick={aplicarFiltros}>
             Aplicar filtros
           </Button>

@@ -465,8 +465,21 @@ export function PersonagemBaseWizard(props: Props) {
     itensInventario,
   ]);
 
+  const previewPayloadHash = useMemo(
+    () => (previewPayload ? JSON.stringify(previewPayload) : null),
+    [previewPayload],
+  );
+
   useEffect(() => {
-    if (!token || !previewPayload) {
+    if (!token || !previewPayloadHash) {
+      setPreviewGlobal(null);
+      return;
+    }
+
+    let payload: CreatePersonagemBasePayload;
+    try {
+      payload = JSON.parse(previewPayloadHash) as CreatePersonagemBasePayload;
+    } catch {
       setPreviewGlobal(null);
       return;
     }
@@ -479,7 +492,7 @@ export function PersonagemBaseWizard(props: Props) {
     setLoadingPreviewGlobal(true);
 
     previewDebounceRef.current = window.setTimeout(() => {
-      apiPreviewPersonagemBase(previewPayload)
+      apiPreviewPersonagemBase(payload)
         .then((res) => {
           if (requestId !== requestIdRef.current) return;
           setPreviewGlobal(res);
@@ -497,7 +510,7 @@ export function PersonagemBaseWizard(props: Props) {
     return () => {
       if (previewDebounceRef.current) window.clearTimeout(previewDebounceRef.current);
     };
-  }, [token, previewPayload]);
+  }, [token, previewPayloadHash]);
 
   const hydratedExtrasRef = useRef(false);
   useEffect(() => {
@@ -571,12 +584,23 @@ export function PersonagemBaseWizard(props: Props) {
     }
   }
 
-  async function handleNext() {
+  function handleNext() {
+    if (loadingStep) return;
     setLoadingStep(true);
-    await new Promise((resolve) => setTimeout(resolve, 100));
     setStep((s) => Math.min(MAX_STEP, s + 1));
-    setLoadingStep(false);
   }
+
+  useEffect(() => {
+    if (!loadingStep) return;
+
+    const raf = window.requestAnimationFrame(() => {
+      setLoadingStep(false);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+    };
+  }, [loadingStep]);
 
   function handlePrev() {
     if (step === 1) {
@@ -914,6 +938,8 @@ export function PersonagemBaseWizard(props: Props) {
               <PersonagemBaseStepInventario
                 forca={forca}
                 prestigioBase={prestigioBase}
+                equipamentos={equipamentos}
+                modificacoes={modificacoes}
                 itensInventario={itensInventario}
                 onChangeItensInventario={setItensInventario}
               />

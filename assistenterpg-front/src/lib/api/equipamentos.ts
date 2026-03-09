@@ -10,6 +10,10 @@ import type {
 const EQUIPAMENTOS_DEFAULT_PAGE = 1;
 const EQUIPAMENTOS_DEFAULT_LIMIT = 20;
 
+type FiltrarTodosEquipamentosDto = Omit<FiltrarEquipamentosDto, 'pagina' | 'limite'> & {
+  limitePorPagina?: number;
+};
+
 function buildEquipamentosQuery(filtros?: FiltrarEquipamentosDto): string {
   const params = new URLSearchParams();
 
@@ -37,6 +41,44 @@ export async function apiGetEquipamentos(
   const query = buildEquipamentosQuery(filtros);
   const { data } = await apiClient.get(`/equipamentos?${query}`);
   return normalizeListResult<EquipamentoCatalogo>(data);
+}
+
+export async function apiGetTodosEquipamentos(
+  filtros?: FiltrarTodosEquipamentosDto,
+): Promise<EquipamentoCatalogo[]> {
+  const { limitePorPagina = 100, ...filtrosBase } = filtros ?? {};
+  const primeiraPagina = await apiGetEquipamentos({
+    ...filtrosBase,
+    pagina: 1,
+    limite: limitePorPagina,
+  });
+
+  const itens = Array.isArray(primeiraPagina.items) ? [...primeiraPagina.items] : [];
+  const totalPages = Math.max(1, primeiraPagina.totalPages || 1);
+
+  if (totalPages <= 1) {
+    return itens;
+  }
+
+  const promessasPaginas: Promise<ListResult<EquipamentoCatalogo>>[] = [];
+  for (let pagina = 2; pagina <= totalPages; pagina++) {
+    promessasPaginas.push(
+      apiGetEquipamentos({
+        ...filtrosBase,
+        pagina,
+        limite: limitePorPagina,
+      }),
+    );
+  }
+
+  const respostas = await Promise.all(promessasPaginas);
+  for (const resposta of respostas) {
+    if (Array.isArray(resposta.items) && resposta.items.length > 0) {
+      itens.push(...resposta.items);
+    }
+  }
+
+  return itens;
 }
 
 export async function apiGetEquipamentoDetalhado(id: number): Promise<EquipamentoDetalhadoDto> {

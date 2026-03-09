@@ -143,7 +143,7 @@ export default function PersonagensBasePage() {
       <main className="min-h-screen bg-app-bg p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header - PadrÃ£o home/campanhas */}
-          <header className="flex items-center justify-between">
+          <header className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
                 <Icon name="characters" className="w-6 h-6 text-app-primary" />
@@ -158,10 +158,11 @@ export default function PersonagensBasePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
               <Button
                 variant="secondary"
                 onClick={() => setImportModalOpen(true)}
+                className="flex-1 sm:flex-none"
               >
                 <Icon name="upload" className="w-4 h-4 mr-2" />
                 Importar JSON
@@ -170,6 +171,7 @@ export default function PersonagensBasePage() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => router.push('/')}
+                className="flex-1 sm:flex-none"
               >
                 <Icon name="back" className="w-4 h-4 mr-2" />
                 Voltar
@@ -177,6 +179,7 @@ export default function PersonagensBasePage() {
               <Button 
                 variant="primary"
                 onClick={() => router.push('/personagens-base/novo')}
+                className="flex-1 sm:flex-none"
               >
                 <Icon name="add" className="w-4 h-4 mr-2" />
                 Novo personagem
@@ -228,16 +231,17 @@ export default function PersonagensBasePage() {
             )}
 
             {totalPaginas > 1 && (
-              <div className="mt-6 flex items-center justify-between rounded-lg border border-app-border bg-app-surface px-4 py-3">
+              <div className="mt-6 flex flex-col gap-3 rounded-lg border border-app-border bg-app-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-app-muted">
                   Pagina {pagina} de {totalPaginas}
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full items-center gap-2 sm:w-auto">
                   <Button
                     variant="ghost"
                     size="sm"
                     disabled={loading || pagina <= 1}
                     onClick={() => setPagina((prev) => Math.max(1, prev - 1))}
+                    className="flex-1 sm:flex-none"
                   >
                     Anterior
                   </Button>
@@ -248,6 +252,7 @@ export default function PersonagensBasePage() {
                     onClick={() =>
                       setPagina((prev) => Math.min(totalPaginas, prev + 1))
                     }
+                    className="flex-1 sm:flex-none"
                   >
                     Proxima
                   </Button>

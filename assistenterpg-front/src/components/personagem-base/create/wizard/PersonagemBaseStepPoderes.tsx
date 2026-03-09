@@ -1,7 +1,7 @@
 ﻿// components/personagem-base/create/wizard/PersonagemBaseStepPoderes.tsx
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   apiGetPoderesGenericos,
   apiPreviewPersonagemBase,
@@ -240,7 +240,9 @@ export function PersonagemBaseStepPoderes({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [termoBusca, setTermoBusca] = useState('');
+  const [limiteRenderPoderes, setLimiteRenderPoderes] = useState(60);
   const [configAberta, setConfigAberta] = useState<Record<number, boolean>>({});
+  const termoBuscaDeferred = useDeferredValue(termoBusca);
 
   const reqPreviewRef = useRef(0);
 
@@ -453,16 +455,21 @@ export function PersonagemBaseStepPoderes({
   );
 
   const poderesFiltrados = useMemo(() => {
-    if (!termoBusca.trim()) return poderes;
+    if (!termoBuscaDeferred.trim()) return poderes;
 
-    const termo = termoBusca.toLowerCase();
+    const termo = termoBuscaDeferred.toLowerCase();
     return poderes.filter(
       (p) =>
         p.nome.toLowerCase().includes(termo) ||
         p.descricao?.toLowerCase().includes(termo) ||
         p.origem?.toLowerCase().includes(termo),
     );
-  }, [poderes, termoBusca]);
+  }, [poderes, termoBuscaDeferred]);
+
+  const poderesRenderizados = useMemo(
+    () => poderesFiltrados.slice(0, limiteRenderPoderes),
+    [poderesFiltrados, limiteRenderPoderes],
+  );
 
   if (loadingCatalogo) {
     return <Loading message="Carregando poderes genÃ©ricos..." />;
@@ -555,13 +562,16 @@ export function PersonagemBaseStepPoderes({
           type="text"
           placeholder="Buscar poderes..."
           value={termoBusca}
-          onChange={(e) => setTermoBusca(e.target.value)}
+          onChange={(e) => {
+            setTermoBusca(e.target.value);
+            setLimiteRenderPoderes(60);
+          }}
           icon="search"
         />
 
         {/* âœ… 3. LISTA DE PODERES */}
         <div className="space-y-2">
-          {poderesFiltrados.map((poder) => {
+          {poderesRenderizados.map((poder) => {
             const mecanicas = poder.mecanicasEspeciais as
               | {
                   repetivel?: boolean;
@@ -820,6 +830,19 @@ export function PersonagemBaseStepPoderes({
             );
           })}
         </div>
+
+        {poderesFiltrados.length > limiteRenderPoderes && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() =>
+              setLimiteRenderPoderes((atual) => Math.min(poderesFiltrados.length, atual + 60))
+            }
+            className="w-full"
+          >
+            Mostrar mais ({poderesFiltrados.length - limiteRenderPoderes} restantes)
+          </Button>
+        )}
 
         {/* âœ… Empty states */}
         {poderesFiltrados.length === 0 && termoBusca && (

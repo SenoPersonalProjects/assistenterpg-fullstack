@@ -14,6 +14,8 @@ import {
   apiDeletePersonagemBase,
   apiGetPersonagemBase,
   apiInvalidatePersonagemBaseCache,
+  apiInvalidatePersonagemBasePreviewCache,
+  apiPreviewPersonagemBase,
   apiUpdatePersonagemBase,
 } from './personagens-base';
 
@@ -30,6 +32,7 @@ describe('personagens-base api cache and invalidation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiInvalidatePersonagemBaseCache();
+    apiInvalidatePersonagemBasePreviewCache();
   });
 
   it('dedupes in-flight request for same key', async () => {
@@ -99,5 +102,102 @@ describe('personagens-base api cache and invalidation', () => {
     expect(mockedApiClient.delete).toHaveBeenCalledWith('/personagens-base/99');
     expect(mockedApiClient.get).toHaveBeenCalledTimes(3);
   });
-});
 
+  it('dedupes in-flight preview request and serves from cache', async () => {
+    const payload = {
+      nome: 'Preview',
+      nivel: 3,
+      claId: 1,
+      origemId: 2,
+      classeId: 3,
+      trilhaId: null,
+      caminhoId: null,
+      agilidade: 2,
+      forca: 2,
+      intelecto: 2,
+      presenca: 2,
+      vigor: 1,
+      estudouEscolaTecnica: false,
+      tecnicaInataId: null,
+      atributoChaveEa: 'INT' as const,
+      prestigioBase: 0,
+      prestigioClaBase: null,
+      idade: null,
+      alinhamentoId: null,
+      background: null,
+      periciasClasseEscolhidasCodigos: [],
+      periciasOrigemEscolhidasCodigos: [],
+      periciasLivresCodigos: [],
+      grausAprimoramento: [],
+      proficienciasCodigos: [],
+      grausTreinamento: [],
+      itensInventario: [],
+    };
+
+    let resolver: ((value: unknown) => void) | null = null;
+    mockedApiClient.post.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolver = resolve;
+      }),
+    );
+
+    const p1 = apiPreviewPersonagemBase(payload);
+    const p2 = apiPreviewPersonagemBase(payload);
+
+    expect(mockedApiClient.post).toHaveBeenCalledTimes(1);
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/personagens-base/preview', payload);
+
+    resolver?.({ data: { resumo: 'ok' } });
+    const [r1, r2] = await Promise.all([p1, p2]);
+
+    expect(r1).toEqual({ resumo: 'ok' });
+    expect(r2).toEqual({ resumo: 'ok' });
+
+    const r3 = await apiPreviewPersonagemBase(payload);
+    expect(r3).toEqual({ resumo: 'ok' });
+    expect(mockedApiClient.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('forces preview refresh when requested', async () => {
+    const payload = {
+      nome: 'Preview2',
+      nivel: 2,
+      claId: 1,
+      origemId: 2,
+      classeId: 3,
+      trilhaId: null,
+      caminhoId: null,
+      agilidade: 2,
+      forca: 2,
+      intelecto: 2,
+      presenca: 2,
+      vigor: 1,
+      estudouEscolaTecnica: false,
+      tecnicaInataId: null,
+      atributoChaveEa: 'INT' as const,
+      prestigioBase: 0,
+      prestigioClaBase: null,
+      idade: null,
+      alinhamentoId: null,
+      background: null,
+      periciasClasseEscolhidasCodigos: [],
+      periciasOrigemEscolhidasCodigos: [],
+      periciasLivresCodigos: [],
+      grausAprimoramento: [],
+      proficienciasCodigos: [],
+      grausTreinamento: [],
+      itensInventario: [],
+    };
+
+    mockedApiClient.post
+      .mockResolvedValueOnce({ data: { resumo: 'v1' } })
+      .mockResolvedValueOnce({ data: { resumo: 'v2' } });
+
+    const primeiro = await apiPreviewPersonagemBase(payload);
+    const segundo = await apiPreviewPersonagemBase(payload, { forceRefresh: true });
+
+    expect(primeiro).toEqual({ resumo: 'v1' });
+    expect(segundo).toEqual({ resumo: 'v2' });
+    expect(mockedApiClient.post).toHaveBeenCalledTimes(2);
+  });
+});

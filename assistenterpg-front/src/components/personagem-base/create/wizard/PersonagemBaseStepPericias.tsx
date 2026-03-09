@@ -1,7 +1,7 @@
 // components/personagem-base/wizard/PersonagemBaseStepPericias.tsx
 'use client';
 
-import { useMemo, useEffect, useState, useRef } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   ClasseCatalogo,
   OrigemCatalogo,
@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 
@@ -71,7 +72,9 @@ export function PersonagemBaseStepPericias(props: Props) {
   const [previewCalculado, setPreviewCalculado] = useState<PersonagemBasePreview | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [buscaLivres, setBuscaLivres] = useState('');
+  const [limiteRenderPericias, setLimiteRenderPericias] = useState(80);
   const [previewAberto, setPreviewAberto] = useState(false);
+  const buscaLivresDeferred = useDeferredValue(buscaLivres);
 
   const requestIdRef = useRef(0);
 
@@ -145,14 +148,19 @@ export function PersonagemBaseStepPericias(props: Props) {
 
   // Filtro de busca
   const periciasFiltradasBusca = useMemo(() => {
-    if (!buscaLivres.trim()) return periciasOrdenadas;
-    const termo = buscaLivres.toLowerCase().trim();
+    if (!buscaLivresDeferred.trim()) return periciasOrdenadas;
+    const termo = buscaLivresDeferred.toLowerCase().trim();
     return periciasOrdenadas.filter(
       (p) =>
         p.nome.toLowerCase().includes(termo) ||
         p.codigo.toLowerCase().includes(termo),
     );
-  }, [periciasOrdenadas, buscaLivres]);
+  }, [periciasOrdenadas, buscaLivresDeferred]);
+
+  const periciasRenderizadas = useMemo(
+    () => periciasFiltradasBusca.slice(0, limiteRenderPericias),
+    [periciasFiltradasBusca, limiteRenderPericias],
+  );
 
   function obterFontePericia(codigo: string): {
     label: string;
@@ -432,7 +440,10 @@ export function PersonagemBaseStepPericias(props: Props) {
                 type="text"
                 placeholder="Buscar perícia por nome ou código..."
                 value={buscaLivres}
-                onChange={(e) => setBuscaLivres(e.target.value)}
+                onChange={(e) => {
+                  setBuscaLivres(e.target.value);
+                  setLimiteRenderPericias(80);
+                }}
                 icon="search"
               />
 
@@ -444,7 +455,7 @@ export function PersonagemBaseStepPericias(props: Props) {
                   </div>
                 ) : (
                   <div className="divide-y divide-app-border">
-                    {periciasFiltradasBusca.map((p) => {
+                    {periciasRenderizadas.map((p) => {
                       const ehGarantida = codigosFixos.has(p.codigo);
                       const selecionadaLivre = livres.includes(p.codigo);
                       const disabled = ehGarantida || (!selecionadaLivre && limiteAtingido);
@@ -478,6 +489,20 @@ export function PersonagemBaseStepPericias(props: Props) {
                   </div>
                 )}
               </div>
+              {periciasFiltradasBusca.length > limiteRenderPericias && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() =>
+                    setLimiteRenderPericias((atual) =>
+                      Math.min(periciasFiltradasBusca.length, atual + 80),
+                    )
+                  }
+                >
+                  Mostrar mais ({periciasFiltradasBusca.length - limiteRenderPericias} restantes)
+                </Button>
+              )}
             </>
           )}
         </div>

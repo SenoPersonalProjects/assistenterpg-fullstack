@@ -4,19 +4,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  apiGetClasses,
-  apiGetClas,
-  apiGetOrigens,
-  apiGetProficiencias,
-  apiGetTiposGrau,
-  apiGetTecnicasInatas,
+  apiGetCatalogosBasicos,
   apiGetTrilhasDaClasse,
   apiGetCaminhosDaTrilha,
   apiCreatePersonagemBase,
-  apiGetAlinhamentos,
-  apiGetPericias,
-  apiGetEquipamentos,
-  apiGetModificacoes,
+  apiGetTodosEquipamentos,
+  apiGetTodasModificacoes,
   extrairMensagemErro,
   traduzirErro,
   ClasseCatalogo,
@@ -97,39 +90,25 @@ export default function NovoPersonagemBasePage() {
         try {
           setErro(null);
           const [
-            classesRes,
-            clasRes,
-            origensRes,
-            profsRes,
-            tiposGrauRes,
-            tecnicasInatasRes,
-            alinhamentosRes,
-            periciasRes,
-            equipamentosRes,
-            modificacoesRes,
+            catalogosBasicos,
+            equipamentosCompletos,
+            modificacoesCompletas,
           ] = await Promise.all([
-            apiGetClasses(),
-            apiGetClas(),
-            apiGetOrigens(),
-            apiGetProficiencias(),
-            apiGetTiposGrau(),
-            apiGetTecnicasInatas(),
-            apiGetAlinhamentos(),
-            apiGetPericias(),
-            apiGetEquipamentos(),
-            apiGetModificacoes(),
+            apiGetCatalogosBasicos(),
+            apiGetTodosEquipamentos({ limitePorPagina: 100 }),
+            apiGetTodasModificacoes({ limitePorPagina: 100 }),
           ]);
 
-          setClasses(classesRes);
-          setClas(clasRes);
-          setOrigens(origensRes);
-          setProficiencias(profsRes);
-          setTiposGrau(tiposGrauRes);
-          setTecnicasInatas(tecnicasInatasRes);
-          setAlinhamentos(alinhamentosRes);
-          setPericias(periciasRes);
-          setEquipamentos(equipamentosRes.items);
-          setModificacoes(modificacoesRes.items);
+          setClasses(catalogosBasicos.classes);
+          setClas(catalogosBasicos.clas);
+          setOrigens(catalogosBasicos.origens);
+          setProficiencias(catalogosBasicos.proficiencias);
+          setTiposGrau(catalogosBasicos.tiposGrau);
+          setTecnicasInatas(catalogosBasicos.tecnicasInatas);
+          setAlinhamentos(catalogosBasicos.alinhamentos);
+          setPericias(catalogosBasicos.pericias);
+          setEquipamentos(equipamentosCompletos);
+          setModificacoes(modificacoesCompletas);
         } catch (e) {
           setErro(mensagemErroNovoPersonagem(e, 'catalogos'));
         } finally {
@@ -167,13 +146,18 @@ export default function NovoPersonagemBasePage() {
   return (
     <main className="min-h-screen bg-app-bg px-4 py-8">
       <div className="max-w-5xl mx-auto space-y-6">
-        <header className="flex items-center justify-between">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-app-fg">Novo personagem-base</h1>
             <p className="text-sm text-app-muted">Siga os passos para montar o seu personagem-base completo.</p>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={() => router.push('/personagens-base')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => router.push('/personagens-base')}
+          >
             Voltar para a lista
           </Button>
         </header>

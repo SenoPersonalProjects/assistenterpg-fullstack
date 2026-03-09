@@ -39,7 +39,7 @@ export default function SuplementosAdminPage() {
   return (
     <main className="min-h-screen bg-app-bg p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <header className="flex items-center gap-3">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-danger/10">
             <Icon name="settings" className="w-6 h-6 text-app-danger" />
           </div>

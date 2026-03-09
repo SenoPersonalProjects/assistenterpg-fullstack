@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -9,17 +10,121 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
 import { SUPLEMENTO_ADMIN_MODULES } from '@/lib/constants/suplemento-admin';
-import { HabilidadesAdminPanel } from '@/components/suplemento-admin/habilidades/HabilidadesAdminPanel';
-import { ClassesAdminPanel } from '@/components/suplemento-admin/panels/ClassesAdminPanel';
-import { ClasAdminPanel } from '@/components/suplemento-admin/panels/ClasAdminPanel';
-import { TrilhasAdminPanel } from '@/components/suplemento-admin/panels/TrilhasAdminPanel';
-import { CaminhosAdminPanel } from '@/components/suplemento-admin/panels/CaminhosAdminPanel';
-import { OrigensAdminPanel } from '@/components/suplemento-admin/panels/OrigensAdminPanel';
-import { ProficienciasAdminPanel } from '@/components/suplemento-admin/panels/ProficienciasAdminPanel';
-import { TiposGrauAdminPanel } from '@/components/suplemento-admin/panels/TiposGrauAdminPanel';
-import { CondicoesAdminPanel } from '@/components/suplemento-admin/panels/CondicoesAdminPanel';
-import { EquipamentosAdminPanel } from '@/components/suplemento-admin/panels/EquipamentosAdminPanel';
-import { TecnicasAdminPanel } from '@/components/suplemento-admin/panels/TecnicasAdminPanel';
+
+function ModuloLoading() {
+  return (
+    <Card>
+      <Loading message="Carregando modulo..." className="text-app-fg py-6" />
+    </Card>
+  );
+}
+
+const ClassesAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/ClassesAdminPanel').then((mod) => mod.ClassesAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const ClasAdminPanel = dynamic(
+  () => import('@/components/suplemento-admin/panels/ClasAdminPanel').then((mod) => mod.ClasAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const TrilhasAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/TrilhasAdminPanel').then((mod) => mod.TrilhasAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const CaminhosAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/CaminhosAdminPanel').then((mod) => mod.CaminhosAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const OrigensAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/OrigensAdminPanel').then((mod) => mod.OrigensAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const ProficienciasAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/ProficienciasAdminPanel').then(
+      (mod) => mod.ProficienciasAdminPanel,
+    ),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const TiposGrauAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/TiposGrauAdminPanel').then((mod) => mod.TiposGrauAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const CondicoesAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/CondicoesAdminPanel').then((mod) => mod.CondicoesAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const HabilidadesAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/habilidades/HabilidadesAdminPanel').then(
+      (mod) => mod.HabilidadesAdminPanel,
+    ),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const EquipamentosAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/EquipamentosAdminPanel').then(
+      (mod) => mod.EquipamentosAdminPanel,
+    ),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const TecnicasAdminPanel = dynamic(
+  () =>
+    import('@/components/suplemento-admin/panels/TecnicasAdminPanel').then((mod) => mod.TecnicasAdminPanel),
+  {
+    loading: ModuloLoading,
+  },
+);
+
+const ADMIN_PANEL_BY_MODULE = {
+  classes: ClassesAdminPanel,
+  clas: ClasAdminPanel,
+  trilhas: TrilhasAdminPanel,
+  caminhos: CaminhosAdminPanel,
+  origens: OrigensAdminPanel,
+  proficiencias: ProficienciasAdminPanel,
+  'tipos-grau': TiposGrauAdminPanel,
+  condicoes: CondicoesAdminPanel,
+  habilidades: HabilidadesAdminPanel,
+  equipamentos: EquipamentosAdminPanel,
+  'tecnicas-amaldicoadas': TecnicasAdminPanel,
+} as const;
 
 export default function SuplementosAdminModuloPage() {
   const params = useParams<{ modulo: string }>();
@@ -30,6 +135,7 @@ export default function SuplementosAdminModuloPage() {
     () => SUPLEMENTO_ADMIN_MODULES.find((item) => item.slug === params.modulo),
     [params.modulo],
   );
+  const PainelModulo = modulo ? ADMIN_PANEL_BY_MODULE[modulo.id] : null;
 
   useEffect(() => {
     if (!loading && !usuario) {
@@ -74,8 +180,8 @@ export default function SuplementosAdminModuloPage() {
 
   return (
     <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <header className="flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
               <Icon name={modulo.icon} className="w-6 h-6 text-app-primary" />
@@ -85,22 +191,14 @@ export default function SuplementosAdminModuloPage() {
               <p className="text-sm text-app-muted">{modulo.description}</p>
             </div>
           </div>
-          <Link href="/suplementos/admin">
-            <Button variant="secondary">Voltar</Button>
+          <Link href="/suplementos/admin" className="w-full sm:w-auto">
+            <Button variant="secondary" className="w-full sm:w-auto">
+              Voltar
+            </Button>
           </Link>
         </header>
 
-        {modulo.id === 'classes' && <ClassesAdminPanel />}
-        {modulo.id === 'clas' && <ClasAdminPanel />}
-        {modulo.id === 'trilhas' && <TrilhasAdminPanel />}
-        {modulo.id === 'caminhos' && <CaminhosAdminPanel />}
-        {modulo.id === 'origens' && <OrigensAdminPanel />}
-        {modulo.id === 'proficiencias' && <ProficienciasAdminPanel />}
-        {modulo.id === 'tipos-grau' && <TiposGrauAdminPanel />}
-        {modulo.id === 'condicoes' && <CondicoesAdminPanel />}
-        {modulo.id === 'habilidades' && <HabilidadesAdminPanel />}
-        {modulo.id === 'equipamentos' && <EquipamentosAdminPanel />}
-        {modulo.id === 'tecnicas-amaldicoadas' && <TecnicasAdminPanel />}
+        {PainelModulo ? <PainelModulo /> : null}
       </div>
     </main>
   );
