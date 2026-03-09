@@ -329,18 +329,31 @@ export class HomebrewsService {
         );
       }
 
+      const tipoFoiAlterado =
+        updateHomebrewDto.tipo !== undefined &&
+        updateHomebrewDto.tipo !== homebrew.tipo;
+
       if (updateHomebrewDto.tipo !== undefined) {
         dadosAtualizacao.tipo = updateHomebrewDto.tipo;
       }
 
+      const tipoFinal = updateHomebrewDto.tipo ?? homebrew.tipo;
+      let dadosForamAlterados = false;
+
       if (updateHomebrewDto.dados !== undefined) {
-        const tipoFinal = updateHomebrewDto.tipo ?? homebrew.tipo;
         await validateHomebrewDados(tipoFinal, updateHomebrewDto.dados);
         this.validarDadosCustomizados(tipoFinal, updateHomebrewDto.dados);
 
         dadosAtualizacao.dados = this.normalizarJsonParaPersistir(
           updateHomebrewDto.dados,
         );
+        dadosForamAlterados = true;
+      } else if (tipoFoiAlterado) {
+        await validateHomebrewDados(tipoFinal, homebrew.dados);
+        this.validarDadosCustomizados(tipoFinal, homebrew.dados);
+      }
+
+      if (dadosForamAlterados || tipoFoiAlterado) {
         dadosAtualizacao.versao = this.incrementarVersao(homebrew.versao);
       }
 

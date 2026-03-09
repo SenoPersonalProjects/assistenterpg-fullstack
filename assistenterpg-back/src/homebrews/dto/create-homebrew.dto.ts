@@ -13,8 +13,9 @@ import { HomebrewExplosivoDto } from './equipamentos/criar-homebrew-explosivo.dt
 import { HomebrewFerramentaAmaldicoadaDto } from './equipamentos/criar-homebrew-ferramenta-amaldicoada.dto';
 import { HomebrewItemOperacionalDto } from './equipamentos/criar-homebrew-item-operacional.dto';
 import { HomebrewItemAmaldicoadoDto } from './equipamentos/criar-homebrew-item-amaldicoado.dto';
+import { HomebrewEquipamentoGenericoDto } from './equipamentos/criar-homebrew-generico.dto';
 
-// Técnicas
+// Tecnicas
 import { HomebrewTecnicaDto } from './tecnicas/criar-homebrew-tecnica.dto';
 
 // Outros
@@ -25,20 +26,16 @@ import { HomebrewClaDto } from './clas/criar-homebrew-cla.dto';
 import { HomebrewPoderDto } from './poderes/criar-homebrew-poder.dto';
 
 /**
- * DTO principal para criação de Homebrew
- * Tipo define qual estrutura de dados será validada
+ * DTO principal para criacao de Homebrew.
+ * O campo `tipo` define qual estrutura de `dados` sera validada.
  */
 export class CreateHomebrewDto extends CreateHomebrewBaseDto {
   @IsNotEmpty()
   @IsEnum(TipoHomebrewConteudo)
   tipo: TipoHomebrewConteudo;
 
-  /**
-   * Dados específicos do homebrew
-   * Estrutura varia por tipo (validado em runtime)
-   */
   @IsNotEmpty()
-  dados: // Equipamentos
+  dados:
     | HomebrewArmaDto
     | HomebrewProtecaoDto
     | HomebrewAcessorioDto
@@ -47,9 +44,8 @@ export class CreateHomebrewDto extends CreateHomebrewBaseDto {
     | HomebrewFerramentaAmaldicoadaDto
     | HomebrewItemOperacionalDto
     | HomebrewItemAmaldicoadoDto
-    // Técnicas
+    | HomebrewEquipamentoGenericoDto
     | HomebrewTecnicaDto
-    // Outros
     | HomebrewOrigemDto
     | HomebrewTrilhaDto
     | HomebrewCaminhoDto

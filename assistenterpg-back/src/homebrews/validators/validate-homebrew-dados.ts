@@ -2,17 +2,13 @@
 
 import { plainToInstance } from 'class-transformer';
 import type { ClassConstructor } from 'class-transformer';
-import { validate } from 'class-validator';
+import { validate, type ValidationError } from 'class-validator';
 import { TipoHomebrewConteudo } from '@prisma/client';
 
-// ✅ Exceções customizadas
-import {
-  HomebrewDadosInvalidosException,
-  HomebrewTipoNaoSuportadoException,
-} from '../../common/exceptions/business.exception';
+import { HomebrewDadosInvalidosException } from '../../common/exceptions/homebrew.exception';
+import { HomebrewTipoNaoSuportadoException } from '../../common/exceptions/business.exception';
 import { CampoObrigatorioException } from '../../common/exceptions/validation.exception';
 
-// Equipamentos
 import { HomebrewArmaDto } from '../dto/equipamentos/criar-homebrew-arma.dto';
 import { HomebrewProtecaoDto } from '../dto/equipamentos/criar-homebrew-protecao.dto';
 import { HomebrewAcessorioDto } from '../dto/equipamentos/criar-homebrew-acessorio.dto';
@@ -21,20 +17,16 @@ import { HomebrewExplosivoDto } from '../dto/equipamentos/criar-homebrew-explosi
 import { HomebrewFerramentaAmaldicoadaDto } from '../dto/equipamentos/criar-homebrew-ferramenta-amaldicoada.dto';
 import { HomebrewItemOperacionalDto } from '../dto/equipamentos/criar-homebrew-item-operacional.dto';
 import { HomebrewItemAmaldicoadoDto } from '../dto/equipamentos/criar-homebrew-item-amaldicoado.dto';
+import { HomebrewEquipamentoGenericoDto } from '../dto/equipamentos/criar-homebrew-generico.dto';
 
-// Técnicas
 import { HomebrewTecnicaDto } from '../dto/tecnicas/criar-homebrew-tecnica.dto';
 
-// Outros
 import { HomebrewOrigemDto } from '../dto/origens/criar-homebrew-origem.dto';
 import { HomebrewTrilhaDto } from '../dto/trilhas/criar-homebrew-trilha.dto';
 import { HomebrewCaminhoDto } from '../dto/caminhos/criar-homebrew-caminho.dto';
 import { HomebrewClaDto } from '../dto/clas/criar-homebrew-cla.dto';
 import { HomebrewPoderDto } from '../dto/poderes/criar-homebrew-poder.dto';
 
-/**
- * Mapeia tipo de equipamento (dentro de dados.tipo) para o DTO correspondente
- */
 const TIPO_EQUIPAMENTO_TO_DTO_MAP: Record<string, ClassConstructor<object>> = {
   ARMA: HomebrewArmaDto,
   PROTECAO: HomebrewProtecaoDto,
@@ -44,11 +36,9 @@ const TIPO_EQUIPAMENTO_TO_DTO_MAP: Record<string, ClassConstructor<object>> = {
   FERRAMENTA_AMALDICOADA: HomebrewFerramentaAmaldicoadaDto,
   ITEM_OPERACIONAL: HomebrewItemOperacionalDto,
   ITEM_AMALDICOADO: HomebrewItemAmaldicoadoDto,
+  GENERICO: HomebrewEquipamentoGenericoDto,
 };
 
-/**
- * Mapeia tipo de homebrew para o DTO correspondente
- */
 const TIPO_TO_DTO_MAP: Record<string, ClassConstructor<object>> = {
   TECNICA_AMALDICOADA: HomebrewTecnicaDto,
   ORIGEM: HomebrewOrigemDto,
@@ -62,66 +52,86 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/**
- * Valida os dados do homebrew baseado no tipo
- * Usa class-validator através dos DTOs
- */
+function coletarMensagensErrosValidacao(
+  erros: ValidationError[],
+  parentPath = '',
+): string[] {
+  const mensagens: string[] = [];
+
+  for (const erro of erros) {
+    const campoAtual = parentPath
+      ? `${parentPath}.${erro.property}`
+      : erro.property;
+
+    if (erro.constraints) {
+      for (const mensagem of Object.values(erro.constraints)) {
+        mensagens.push(`${campoAtual}: ${mensagem}`);
+      }
+    }
+
+    if (erro.children && erro.children.length > 0) {
+      mensagens.push(
+        ...coletarMensagensErrosValidacao(erro.children, campoAtual),
+      );
+    }
+  }
+
+  return mensagens;
+}
+
 export async function validateHomebrewDados(
   tipo: TipoHomebrewConteudo,
   dados: unknown,
 ): Promise<void> {
-  let DtoClass: ClassConstructor<object> | undefined;
+  let dtoClass: ClassConstructor<object> | undefined;
 
-  // ✅ EQUIPAMENTO precisa verificar o tipo interno
   if (tipo === 'EQUIPAMENTO') {
     if (!isRecord(dados) || typeof dados.tipo !== 'string') {
-      throw new CampoObrigatorioException('tipo'); // ✅ Exceção customizada
+      throw new CampoObrigatorioException('tipo');
     }
 
-    DtoClass = TIPO_EQUIPAMENTO_TO_DTO_MAP[dados.tipo];
-    if (!DtoClass) {
-      const tiposValidos = Object.keys(TIPO_EQUIPAMENTO_TO_DTO_MAP);
-      throw new HomebrewTipoNaoSuportadoException(dados.tipo, tiposValidos); // ✅ Exceção customizada
+    dtoClass = TIPO_EQUIPAMENTO_TO_DTO_MAP[dados.tipo];
+    if (!dtoClass) {
+      throw new HomebrewTipoNaoSuportadoException(
+        dados.tipo,
+        Object.keys(TIPO_EQUIPAMENTO_TO_DTO_MAP),
+      );
     }
   } else {
-    // ✅ Outros tipos usam mapeamento direto
-    DtoClass = TIPO_TO_DTO_MAP[tipo];
-    if (!DtoClass) {
-      const tiposValidos = Object.keys(TIPO_TO_DTO_MAP);
-      throw new HomebrewTipoNaoSuportadoException(tipo, tiposValidos); // ✅ Exceção customizada
+    dtoClass = TIPO_TO_DTO_MAP[tipo];
+    if (!dtoClass) {
+      throw new HomebrewTipoNaoSuportadoException(
+        tipo,
+        Object.keys(TIPO_TO_DTO_MAP),
+      );
     }
   }
 
   if (!isRecord(dados)) {
     throw new HomebrewDadosInvalidosException([
-      'dados: deve ser um objeto válido',
+      'dados: deve ser um objeto valido',
     ]);
   }
-  if (!DtoClass) {
+
+  if (!dtoClass) {
     throw new HomebrewTipoNaoSuportadoException(
       tipo,
       Object.keys(TIPO_TO_DTO_MAP),
     );
   }
 
-  // Converter dados para instância do DTO
-  const dtoInstance = plainToInstance(DtoClass, dados);
-
-  // Validar usando class-validator
+  const dtoInstance = plainToInstance(dtoClass, dados);
   const errors = await validate(dtoInstance, {
-    whitelist: true, // Remove propriedades não decoradas
-    forbidNonWhitelisted: true, // Lança erro se houver propriedades extras
+    whitelist: true,
+    forbidNonWhitelisted: true,
   });
 
-  // Se houver erros, lançar exceção com detalhes
   if (errors.length > 0) {
-    const messages = errors.map((error) => {
-      const constraints = error.constraints
-        ? Object.values(error.constraints).join(', ')
-        : 'Validação falhou';
-      return `${error.property}: ${constraints}`;
-    });
+    const messages = coletarMensagensErrosValidacao(errors);
+    if (messages.length === 0) {
+      messages.push('Dados do homebrew invalidos');
+    }
 
-    throw new HomebrewDadosInvalidosException(messages); // ✅ Exceção customizada
+    throw new HomebrewDadosInvalidosException(messages);
   }
 }

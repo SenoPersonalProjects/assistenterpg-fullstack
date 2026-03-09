@@ -1,22 +1,104 @@
 // src/homebrews/validators/validate-homebrew-equipamento.ts
 
+import { TipoAmaldicoado, TipoEquipamento } from '@prisma/client';
 import {
   ValorForaDoIntervaloException,
   ValidationException,
 } from '../../common/exceptions/validation.exception';
 
-/**
- * Validações customizadas para Equipamentos
- * (além das validações do DTO)
- */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function validarFerramentaAmaldicoada(dados: Record<string, unknown>): void {
+  const tipoAmaldicoado = dados.tipoAmaldicoado;
+
+  const temArma = isRecord(dados.armaAmaldicoada);
+  const temProtecao = isRecord(dados.protecaoAmaldicoada);
+  const temArtefato = isRecord(dados.artefatoAmaldicoado);
+
+  if (!temArma && !temProtecao && !temArtefato) {
+    throw new ValidationException(
+      'Ferramenta amaldi�oada deve ter arma, protecao ou artefato configurado',
+      'tipoAmaldicoado',
+      {
+        camposEsperados: [
+          'armaAmaldicoada',
+          'protecaoAmaldicoada',
+          'artefatoAmaldicoado',
+        ],
+      },
+      'MISSING_AMALDICOADO_PAYLOAD',
+    );
+  }
+
+  if (tipoAmaldicoado === TipoAmaldicoado.ITEM) {
+    throw new ValidationException(
+      'Ferramenta amaldi�oada nao suporta tipo ITEM',
+      'tipoAmaldicoado',
+      {
+        tipoRecebido: tipoAmaldicoado,
+        tiposValidos: [
+          TipoAmaldicoado.ARMA,
+          TipoAmaldicoado.PROTECAO,
+          TipoAmaldicoado.ARTEFATO,
+        ],
+      },
+      'INVALID_AMALDICOADO_TYPE',
+    );
+  }
+
+  if (tipoAmaldicoado === TipoAmaldicoado.ARMA && !temArma) {
+    throw new ValidationException(
+      'tipoAmaldicoado=ARMA exige campo armaAmaldicoada',
+      'armaAmaldicoada',
+      { tipoAmaldicoado },
+      'MISSING_AMALDICOADO_SUBTYPE_DATA',
+    );
+  }
+
+  if (tipoAmaldicoado === TipoAmaldicoado.PROTECAO && !temProtecao) {
+    throw new ValidationException(
+      'tipoAmaldicoado=PROTECAO exige campo protecaoAmaldicoada',
+      'protecaoAmaldicoada',
+      { tipoAmaldicoado },
+      'MISSING_AMALDICOADO_SUBTYPE_DATA',
+    );
+  }
+
+  if (tipoAmaldicoado === TipoAmaldicoado.ARTEFATO && !temArtefato) {
+    throw new ValidationException(
+      'tipoAmaldicoado=ARTEFATO exige campo artefatoAmaldicoado',
+      'artefatoAmaldicoado',
+      { tipoAmaldicoado },
+      'MISSING_AMALDICOADO_SUBTYPE_DATA',
+    );
+  }
+}
+
+function validarItemAmaldicoado(dados: Record<string, unknown>): void {
+  const tipoAmaldicoado = dados.tipoAmaldicoado;
+
+  if (
+    tipoAmaldicoado !== undefined &&
+    tipoAmaldicoado !== TipoAmaldicoado.ITEM
+  ) {
+    throw new ValidationException(
+      'Item amaldi�oado aceita apenas tipoAmaldicoado=ITEM',
+      'tipoAmaldicoado',
+      { tipoRecebido: tipoAmaldicoado, tipoEsperado: TipoAmaldicoado.ITEM },
+      'INVALID_AMALDICOADO_TYPE',
+    );
+  }
+}
+
+/**
+ * Validacoes customizadas para Equipamentos
+ * (alem das validacoes do DTO)
+ */
 export function validateHomebrewEquipamentoCustom(dados: unknown): void {
   if (!isRecord(dados)) return;
 
-  // ✅ Validar categoria (CATEGORIA_0 a CATEGORIA_4 ou ESPECIAL)
   if (dados.categoria !== undefined && dados.categoria !== null) {
     const categoriasValidas = [
       'CATEGORIA_0',
@@ -35,7 +117,7 @@ export function validateHomebrewEquipamentoCustom(dados: unknown): void {
       const categoriaTexto =
         typeof categoria === 'string' ? categoria : '<invalida>';
       throw new ValidationException(
-        `Categoria inválida: "${categoriaTexto}"`,
+        `Categoria invalida: "${categoriaTexto}"`,
         'categoria',
         { categoriasValidas },
         'INVALID_CATEGORY',
@@ -43,7 +125,6 @@ export function validateHomebrewEquipamentoCustom(dados: unknown): void {
     }
   }
 
-  // ✅ Validar espaços (mínimo 0, máximo razoável 10)
   if (dados.espacos !== undefined) {
     const espacos = dados.espacos;
     if (typeof espacos !== 'number' || espacos < 0 || espacos > 10) {
@@ -54,5 +135,13 @@ export function validateHomebrewEquipamentoCustom(dados: unknown): void {
         Number(espacos),
       );
     }
+  }
+
+  if (dados.tipo === TipoEquipamento.FERRAMENTA_AMALDICOADA) {
+    validarFerramentaAmaldicoada(dados);
+  }
+
+  if (dados.tipo === TipoEquipamento.ITEM_AMALDICOADO) {
+    validarItemAmaldicoado(dados);
   }
 }

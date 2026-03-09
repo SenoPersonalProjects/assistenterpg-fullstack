@@ -9,18 +9,33 @@ import {
   IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { OmitType } from '@nestjs/mapped-types';
 import { TipoAmaldicoado } from '@prisma/client';
 import { EquipamentoBaseDto } from '../base/equipamento-base.dto';
 import { HomebrewArmaDto } from './criar-homebrew-arma.dto';
 import { HomebrewProtecaoDto } from './criar-homebrew-protecao.dto';
 
+export class DadosArmaAmaldicoadaDto extends OmitType(HomebrewArmaDto, [
+  'tipo',
+  'categoria',
+  'espacos',
+  'tipoUso',
+] as const) {}
+
+export class DadosProtecaoAmaldicoadaDto extends OmitType(HomebrewProtecaoDto, [
+  'tipo',
+  'categoria',
+  'espacos',
+  'tipoUso',
+] as const) {}
+
 /**
- * DTO para Artefato Amaldiçoado
+ * DTO para Artefato Amaldicoado
  */
 export class ArtefatoAmaldicoadoDto {
   @IsNotEmpty()
   @IsString()
-  tipoBase: string; // Ex: "Amuleto", "Anel", "Talismã"
+  tipoBase: string;
 
   @IsNotEmpty()
   @IsBoolean()
@@ -32,20 +47,20 @@ export class ArtefatoAmaldicoadoDto {
 
   @IsNotEmpty()
   @IsString()
-  custoUso: string; // Ex: "1 PE por uso"
+  custoUso: string;
 
   @IsNotEmpty()
   @IsString()
-  manutencao: string; // Ex: "Requer recarga semanal"
+  manutencao: string;
 }
 
 /**
- * DTO para Arma Amaldiçoada
+ * DTO para Arma Amaldicoada
  */
 export class ArmaAmaldicoadaDto {
   @IsNotEmpty()
   @IsString()
-  tipoBase: string; // Ex: "FACA", "ESPADA"
+  tipoBase: string;
 
   @IsNotEmpty()
   @IsBoolean()
@@ -55,20 +70,19 @@ export class ArmaAmaldicoadaDto {
   @IsString()
   efeito: string;
 
-  // Dados da arma base (herda de HomebrewArmaDto)
   @IsNotEmpty()
   @ValidateNested()
-  @Type(() => HomebrewArmaDto)
-  dadosArma: HomebrewArmaDto;
+  @Type(() => DadosArmaAmaldicoadaDto)
+  dadosArma: DadosArmaAmaldicoadaDto;
 }
 
 /**
- * DTO para Proteção Amaldiçoada
+ * DTO para Protecao Amaldicoada
  */
 export class ProtecaoAmaldicoadaDto {
   @IsNotEmpty()
   @IsString()
-  tipoBase: string; // Ex: "Colete", "Escudo"
+  tipoBase: string;
 
   @IsNotEmpty()
   @IsBoolean()
@@ -78,22 +92,20 @@ export class ProtecaoAmaldicoadaDto {
   @IsString()
   efeito: string;
 
-  // Dados da proteção base (herda de HomebrewProtecaoDto)
   @IsNotEmpty()
   @ValidateNested()
-  @Type(() => HomebrewProtecaoDto)
-  dadosProtecao: HomebrewProtecaoDto;
+  @Type(() => DadosProtecaoAmaldicoadaDto)
+  dadosProtecao: DadosProtecaoAmaldicoadaDto;
 }
 
 /**
- * DTO para homebrews de FERRAMENTA AMALDIÇOADA
+ * DTO para homebrews de FERRAMENTA_AMALDICOADA
  */
 export class HomebrewFerramentaAmaldicoadaDto extends EquipamentoBaseDto {
   @IsNotEmpty()
   @IsEnum(TipoAmaldicoado)
-  tipoAmaldicoado: TipoAmaldicoado; // ARMA, PROTECAO, ITEM, ARTEFATO
+  tipoAmaldicoado: TipoAmaldicoado;
 
-  // Um dos três deve ser fornecido (validado no validator)
   @IsOptional()
   @ValidateNested()
   @Type(() => ArmaAmaldicoadaDto)
