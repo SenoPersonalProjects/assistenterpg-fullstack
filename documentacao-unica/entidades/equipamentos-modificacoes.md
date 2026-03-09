@@ -57,7 +57,7 @@ Este documento cobre `equipamentos` e `modificacoes`, cruzando:
 - `proficienciaArma?`, `proficienciaProtecao?`
 - `alcance?`, `tipoAcessorio?`
 - `categoria?` (0..4)
-- `apenasAmaldicoados?` (parse robusto de boolean: `true/false/1/0/yes/no/on/off`)
+- `apenasAmaldicoados?` (parse robusto de boolean: `true/false/1/0/yes/no/on/off`; valor invalido retorna `400 VALIDATION_ERROR`, inclusive com `enableImplicitConversion` ativo)
 - `busca?`
 - `pagina?` (min 1), `limite?` (1..100)
 
@@ -150,6 +150,12 @@ Campos especificos por tipo tambem sao aceitos (arma/protecao/acessorio/municao/
   - `MODIFICACAO_EQUIPAMENTOS_INVALIDOS`
   - `MODIFICACAO_EM_USO`
   - `MODIFICACAO_EQUIPAMENTO_NOT_FOUND`
+
+## Contrato de erro validado em teste de integracao
+
+- `GET /equipamentos?apenasAmaldicoados=talvez` -> `400`, `code: VALIDATION_ERROR`, `field: apenasAmaldicoados`
+- `POST /equipamentos` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+- `GET /equipamentos/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
 
 ## Consistencia com schema
 

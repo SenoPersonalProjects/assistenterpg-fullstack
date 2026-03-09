@@ -4,17 +4,28 @@ import { IsOptional, IsString, IsEnum, IsBoolean } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { StatusPublicacao } from '@prisma/client';
 
-const parseBooleanQueryValue = ({ value }: { value: unknown }): unknown => {
-  if (value === undefined || value === null || value === '') {
+const parseBooleanQueryValue = ({
+  value,
+  obj,
+  key,
+}: {
+  value: unknown;
+  obj?: Record<string, unknown>;
+  key?: string;
+}): unknown => {
+  const rawValue =
+    obj && typeof key === 'string' && key.length > 0 ? obj[key] : value;
+
+  if (rawValue === undefined || rawValue === null || rawValue === '') {
     return undefined;
   }
 
-  if (typeof value === 'boolean') {
-    return value;
+  if (typeof rawValue === 'boolean') {
+    return rawValue;
   }
 
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
+  if (typeof rawValue === 'string') {
+    const normalized = rawValue.trim().toLowerCase();
     if (['1', 'true', 'yes', 'on'].includes(normalized)) {
       return true;
     }
@@ -23,7 +34,7 @@ const parseBooleanQueryValue = ({ value }: { value: unknown }): unknown => {
     }
   }
 
-  return value;
+  return rawValue;
 };
 
 export class FiltrarSuplementosDto {

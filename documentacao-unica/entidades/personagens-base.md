@@ -69,6 +69,12 @@ Este documento detalha o contrato real do modulo `personagens-base`, cruzando:
   - retorno: `{ hereditarias, naoHereditarias, todas }`
   - se origem bloqueia tecnica hereditaria, as hereditarias sao filtradas
 
+Contrato de erro validado em teste de integracao:
+
+- `GET /personagens-base/tecnicas-disponiveis?claId=abc` -> `400`, `code: VALIDATION_ERROR`
+- `GET /personagens-base/tecnicas-disponiveis?claId=1&origemId=abc` -> `400`, `code: VALIDATION_ERROR`
+- `GET /personagens-base/graus-treinamento/info?nivel=0&intelecto=1` -> `400`, `code: VALIDATION_ERROR`, `field: nivel`
+
 ## Consulta e manutencao
 
 - `GET /personagens-base/meus`

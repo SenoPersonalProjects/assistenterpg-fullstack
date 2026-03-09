@@ -117,6 +117,11 @@ Documento de contrato do modulo `compendio`, com base em:
 - busca:
   - `COMPENDIO_BUSCA_INVALIDA`
 
+## Contrato de erro validado em teste de integracao
+
+- `GET /compendio/artigos?subcategoriaId=abc` -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
+- `POST /compendio/artigos` com `subcategoriaId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: subcategoriaId`
+
 ## Consistencia com schema
 
 - `CompendioCategoria.codigo`, `CompendioSubcategoria.codigo`, `CompendioArtigo.codigo` sao `@unique`.

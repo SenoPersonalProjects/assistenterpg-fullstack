@@ -15,6 +15,19 @@ describe('FiltrarHomebrewsDto', () => {
     expect(dto.apenasPublicados).toBe(false);
   });
 
+  it('deve rejeitar valor booleano invalido com implicit conversion habilitada', () => {
+    const dto = plainToInstance(
+      FiltrarHomebrewsDto,
+      { apenasPublicados: 'talvez' },
+      { enableImplicitConversion: true },
+    );
+
+    const errors = validateSync(dto);
+
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].property).toBe('apenasPublicados');
+  });
+
   it('deve exigir usuarioId, pagina e limite >= 1', () => {
     const dto = plainToInstance(FiltrarHomebrewsDto, {
       usuarioId: '0',

@@ -16,9 +16,13 @@ describe('FiltrarEquipamentosDto', () => {
   });
 
   it('deve rejeitar valor booleano invalido', () => {
-    const dto = plainToInstance(FiltrarEquipamentosDto, {
-      apenasAmaldicoados: 'invalid',
-    });
+    const dto = plainToInstance(
+      FiltrarEquipamentosDto,
+      {
+        apenasAmaldicoados: 'invalid',
+      },
+      { enableImplicitConversion: true },
+    );
 
     const errors = validateSync(dto);
 

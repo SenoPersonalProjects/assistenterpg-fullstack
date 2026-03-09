@@ -229,6 +229,24 @@ Caminhos:
   - `TIPO_GRAU_NOT_FOUND`
   - `HABILIDADE_EM_USO`
 
+## Contrato de erro validado em teste de integracao
+
+- trilhas:
+  - `GET /trilhas?classeId=abc` -> `400`, `code: VALIDATION_ERROR` (parse de query)
+  - `POST /trilhas` com `classeId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: classeId`
+- classes:
+  - `GET /classes/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /classes` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+- clas:
+  - `GET /clas/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /clas` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+- origens:
+  - `GET /origens/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /origens` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+- habilidades:
+  - `GET /habilidades?pagina=0` -> `400`, `code: VALIDATION_ERROR`, `field: pagina`
+  - `POST /habilidades` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+
 ## Consistencia com schema
 
 Restricoes relevantes em `schema.prisma`:

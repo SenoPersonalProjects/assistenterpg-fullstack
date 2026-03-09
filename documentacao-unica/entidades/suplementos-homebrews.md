@@ -67,6 +67,7 @@ Admin:
 Filtros de listagem (`FiltrarSuplementosDto`):
 
 - `nome?`, `codigo?`, `status?`, `autor?`, `apenasAtivos?`
+- `apenasAtivos` aceita `true/false/1/0/yes/no/on/off`; valor invalido retorna `400 VALIDATION_ERROR` (com parse estrito no valor bruto da query)
 
 ## Homebrews (`/homebrews`)
 
@@ -83,6 +84,7 @@ Filtros de listagem (`FiltrarSuplementosDto`):
 Filtros de listagem (`FiltrarHomebrewsDto`):
 
 - `nome?`, `tipo?`, `status?`, `usuarioId?`, `apenasPublicados?`, `pagina?`, `limite?`
+- `apenasPublicados` aceita `true/false/1/0/yes/no/on/off`; valor invalido retorna `400 VALIDATION_ERROR` (com parse estrito no valor bruto da query)
 
 ## Payloads de escrita
 
@@ -145,6 +147,17 @@ Filtros de listagem (`FiltrarHomebrewsDto`):
   - `HOMEBREW_JA_PUBLICADO`
   - `HOMEBREW_DADOS_INVALIDOS`
   - `HOMEBREW_SEM_PERMISSAO`
+
+## Contrato de erro validado em teste de integracao
+
+- suplementos:
+  - `GET /suplementos?apenasAtivos=talvez` -> `400`, `code: VALIDATION_ERROR`, `field: apenasAtivos`
+  - `POST /suplementos` com `icone` invalido -> `400`, `code: VALIDATION_ERROR`, `field: icone`
+  - `GET /suplementos/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
+- homebrews:
+  - `GET /homebrews?pagina=0` -> `400`, `code: VALIDATION_ERROR`, `field: pagina`
+  - `POST /homebrews` com `tipo` invalido -> `400`, `code: VALIDATION_ERROR`, `field: tipo`
+  - `GET /homebrews/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
 
 ## Consistencia com schema
 

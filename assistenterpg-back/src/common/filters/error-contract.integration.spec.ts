@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Param,
+  Query,
   ValidationPipe,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -22,6 +23,12 @@ import { AdicionarItemDto } from '../../inventario/dto/adicionar-item.dto';
 import { AplicarModificacaoDto } from '../../inventario/dto/aplicar-modificacao.dto';
 import { AtualizarItemDto } from '../../inventario/dto/atualizar-item.dto';
 import { RemoverModificacaoDto } from '../../inventario/dto/remover-modificacao.dto';
+import { FiltrarEquipamentosDto } from '../../equipamentos/dto/filtrar-equipamentos.dto';
+import { CriarEquipamentoDto } from '../../equipamentos/dto/criar-equipamento.dto';
+import { FiltrarSuplementosDto } from '../../suplementos/dto/filtrar-suplementos.dto';
+import { CreateSuplementoDto } from '../../suplementos/dto/create-suplemento.dto';
+import { FiltrarHomebrewsDto } from '../../homebrews/dto/filtrar-homebrews.dto';
+import { CreateHomebrewDto } from '../../homebrews/dto/create-homebrew.dto';
 
 class CriarCampanhaTesteDto {
   @IsString()
@@ -112,6 +119,60 @@ class InventarioErroTesteController {
   }
 }
 
+@Controller('equipamentos')
+class EquipamentosErroTesteController {
+  @Get()
+  listar(@Query() filtros: FiltrarEquipamentosDto) {
+    return { ok: true, filtros };
+  }
+
+  @Get(':id')
+  buscarPorId(@Param('id', ParseIntPipe) id: number) {
+    return { ok: true, id };
+  }
+
+  @Post()
+  criar(@Body() body: CriarEquipamentoDto) {
+    return { ok: true, body };
+  }
+}
+
+@Controller('suplementos')
+class SuplementosErroTesteController {
+  @Get()
+  listar(@Query() filtros: FiltrarSuplementosDto) {
+    return { ok: true, filtros };
+  }
+
+  @Get(':id')
+  buscarPorId(@Param('id', ParseIntPipe) id: number) {
+    return { ok: true, id };
+  }
+
+  @Post()
+  criar(@Body() body: CreateSuplementoDto) {
+    return { ok: true, body };
+  }
+}
+
+@Controller('homebrews')
+class HomebrewsErroTesteController {
+  @Get()
+  listar(@Query() filtros: FiltrarHomebrewsDto) {
+    return { ok: true, filtros };
+  }
+
+  @Get(':id')
+  buscarPorId(@Param('id', ParseIntPipe) id: number) {
+    return { ok: true, id };
+  }
+
+  @Post()
+  criar(@Body() body: CreateHomebrewDto) {
+    return { ok: true, body };
+  }
+}
+
 describe('ErrorContract (integration)', () => {
   let app: INestApplication<App>;
 
@@ -125,6 +186,9 @@ describe('ErrorContract (integration)', () => {
         CampanhasErroTesteController,
         PersonagensErroTesteController,
         InventarioErroTesteController,
+        EquipamentosErroTesteController,
+        SuplementosErroTesteController,
+        HomebrewsErroTesteController,
       ],
     }).compile();
 
@@ -401,6 +465,237 @@ describe('ErrorContract (integration)', () => {
       ),
     ).toBe(true);
     expect(body.path).toBe('/inventario/personagem/abc');
+    expect(body.method).toBe('GET');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid equipamentos query boolean', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/equipamentos?apenasAmaldicoados=talvez')
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('apenasAmaldicoados');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) =>
+        String(msg).includes('apenasAmaldicoados'),
+      ),
+    ).toBe(true);
+    expect(body.path).toBe('/equipamentos?apenasAmaldicoados=talvez');
+    expect(body.method).toBe('GET');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid equipamentos create payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/equipamentos')
+      .send({
+        codigo: 'EQP_TESTE',
+        nome: 'Equipamento Teste',
+        tipo: 'ARMA',
+        suplementoId: 'abc',
+      })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('suplementoId');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) => String(msg).includes('suplementoId')),
+    ).toBe(true);
+    expect(body.path).toBe('/equipamentos');
+    expect(body.method).toBe('POST');
+  });
+
+  it('should return VALIDATION_ERROR for invalid equipamentos id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/equipamentos/abc')
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBeUndefined();
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) =>
+        String(msg).includes('numeric string is expected'),
+      ),
+    ).toBe(true);
+    expect(body.path).toBe('/equipamentos/abc');
+    expect(body.method).toBe('GET');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid suplementos query boolean', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/suplementos?apenasAtivos=talvez')
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('apenasAtivos');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) => String(msg).includes('apenasAtivos')),
+    ).toBe(true);
+    expect(body.path).toBe('/suplementos?apenasAtivos=talvez');
+    expect(body.method).toBe('GET');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid suplementos create payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/suplementos')
+      .send({
+        codigo: 'SUP_TESTE',
+        nome: 'Suplemento Teste',
+        icone: 'nao-e-url',
+      })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('icone');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(validationErrors.some((msg) => String(msg).includes('icone'))).toBe(
+      true,
+    );
+    expect(body.path).toBe('/suplementos');
+    expect(body.method).toBe('POST');
+  });
+
+  it('should return VALIDATION_ERROR for invalid suplementos id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/suplementos/abc')
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBeUndefined();
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) =>
+        String(msg).includes('numeric string is expected'),
+      ),
+    ).toBe(true);
+    expect(body.path).toBe('/suplementos/abc');
+    expect(body.method).toBe('GET');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid homebrews query page', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/homebrews?pagina=0')
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('pagina');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(validationErrors.some((msg) => String(msg).includes('pagina'))).toBe(
+      true,
+    );
+    expect(body.path).toBe('/homebrews?pagina=0');
+    expect(body.method).toBe('GET');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid homebrews create payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/homebrews')
+      .send({
+        nome: 'Homebrew Teste',
+        tipo: 'TIPO_INVALIDO',
+        dados: {},
+      })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('tipo');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(validationErrors.some((msg) => String(msg).includes('tipo'))).toBe(
+      true,
+    );
+    expect(body.path).toBe('/homebrews');
+    expect(body.method).toBe('POST');
+  });
+
+  it('should return VALIDATION_ERROR for invalid homebrews id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/homebrews/abc')
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBeUndefined();
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) =>
+        String(msg).includes('numeric string is expected'),
+      ),
+    ).toBe(true);
+    expect(body.path).toBe('/homebrews/abc');
     expect(body.method).toBe('GET');
   });
 });

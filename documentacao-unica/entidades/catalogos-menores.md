@@ -131,6 +131,20 @@ Retorno tipico:
 
 - leitura de catalogo, ordenacao por `nome` (alinhamentos) e por regra de dominio em pericias
 
+## Contrato de erro validado em teste de integracao
+
+- pericias:
+  - `GET /pericias/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+- proficiencias:
+  - `GET /proficiencias/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /proficiencias` com `nome` invalido -> `400`, `code: VALIDATION_ERROR`, `field: nome`
+- tipos-grau:
+  - `GET /tipos-grau/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /tipos-grau` com `nome` invalido -> `400`, `code: VALIDATION_ERROR`, `field: nome`
+- condicoes:
+  - `GET /condicoes/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /condicoes` com `descricao` invalida -> `400`, `code: VALIDATION_ERROR` (`field` pode ficar ausente quando a mensagem customizada nao inclui o nome tecnico do campo)
+
 ## Consistencia com Schema
 
 Restrições de schema relevantes:

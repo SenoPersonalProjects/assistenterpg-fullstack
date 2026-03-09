@@ -20,9 +20,13 @@ describe('FiltrarTecnicasDto', () => {
   });
 
   it('deve falhar quando booleano recebe valor invalido', () => {
-    const dto = plainToInstance(FiltrarTecnicasDto, {
-      hereditaria: 'talvez',
-    });
+    const dto = plainToInstance(
+      FiltrarTecnicasDto,
+      {
+        hereditaria: 'talvez',
+      },
+      { enableImplicitConversion: true },
+    );
 
     const errors = validateSync(dto);
 

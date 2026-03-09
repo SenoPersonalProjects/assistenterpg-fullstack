@@ -16,9 +16,13 @@ describe('FiltrarSuplementosDto', () => {
   });
 
   it('deve rejeitar valor booleano invalido', () => {
-    const dto = plainToInstance(FiltrarSuplementosDto, {
-      apenasAtivos: 'invalid',
-    });
+    const dto = plainToInstance(
+      FiltrarSuplementosDto,
+      {
+        apenasAtivos: 'invalid',
+      },
+      { enableImplicitConversion: true },
+    );
 
     const errors = validateSync(dto);
 
