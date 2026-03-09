@@ -17,6 +17,7 @@ import { App } from 'supertest/types';
 import { BaseException } from '../exceptions/base.exception';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { HttpExceptionFilter } from './http-exception.filter';
+import { AdicionarItemDto } from '../../inventario/dto/adicionar-item.dto';
 import { AtualizarItemDto } from '../../inventario/dto/atualizar-item.dto';
 
 class CriarCampanhaTesteDto {
@@ -75,6 +76,11 @@ class InventarioErroTesteController {
   @Get('quebra')
   quebra() {
     throw new Error('erro inesperado de inventario');
+  }
+
+  @Post('adicionar')
+  adicionarItem(@Body() body: AdicionarItemDto) {
+    return { ok: true, body };
   }
 
   @Patch('item/:itemId')
@@ -241,5 +247,61 @@ describe('ErrorContract (integration)', () => {
     ).toBe(true);
     expect(body.path).toBe('/inventario/item/10');
     expect(body.method).toBe('PATCH');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid inventario add boolean payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/inventario/adicionar')
+      .send({
+        personagemBaseId: 1,
+        equipamentoId: 2,
+        equipado: 'talvez',
+      })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('equipado');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) => String(msg).includes('equipado')),
+    ).toBe(true);
+    expect(body.path).toBe('/inventario/adicionar');
+    expect(body.method).toBe('POST');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid inventario add quantidade payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/inventario/adicionar')
+      .send({
+        personagemBaseId: 1,
+        equipamentoId: 2,
+        quantidade: '2abc',
+      })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('quantidade');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) => String(msg).includes('quantidade')),
+    ).toBe(true);
+    expect(body.path).toBe('/inventario/adicionar');
+    expect(body.method).toBe('POST');
   });
 });

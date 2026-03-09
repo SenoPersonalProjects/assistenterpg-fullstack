@@ -52,13 +52,17 @@ export class AdicionarItemDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Transform(({ value }: { value: unknown }) => parseIntComFallback(value, 1))
+  @Transform(
+    ({ value, obj }: { value: unknown; obj?: { quantidade?: unknown } }) =>
+      parseIntComFallback(obj?.quantidade ?? value, 1),
+  )
   quantidade?: number = 1;
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) =>
-    parseBooleanComFallbackFalse(value),
+  @Transform(
+    ({ value, obj }: { value: unknown; obj?: { equipado?: unknown } }) =>
+      parseBooleanComFallbackFalse(obj?.equipado ?? value),
   )
   equipado?: boolean = false;
 
@@ -79,8 +83,14 @@ export class AdicionarItemDto {
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) =>
-    parseBooleanComFallbackFalse(value),
+  @Transform(
+    ({
+      value,
+      obj,
+    }: {
+      value: unknown;
+      obj?: { ignorarLimitesGrauXama?: unknown };
+    }) => parseBooleanComFallbackFalse(obj?.ignorarLimitesGrauXama ?? value),
   )
   ignorarLimitesGrauXama?: boolean = false;
 }

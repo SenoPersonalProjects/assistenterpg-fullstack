@@ -36,12 +36,18 @@ export class AtualizarItemDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Transform(({ value }: { value: unknown }) => parseIntSemFallback(value))
+  @Transform(
+    ({ value, obj }: { value: unknown; obj?: { quantidade?: unknown } }) =>
+      parseIntSemFallback(obj?.quantidade ?? value),
+  )
   quantidade?: number;
 
   @IsOptional()
   @IsBoolean()
-  @Transform(({ value }: { value: unknown }) => parseBooleanSemFallback(value))
+  @Transform(
+    ({ value, obj }: { value: unknown; obj?: { equipado?: unknown } }) =>
+      parseBooleanSemFallback(obj?.equipado ?? value),
+  )
   equipado?: boolean;
 
   @IsOptional()

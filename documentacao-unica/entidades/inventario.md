@@ -87,6 +87,7 @@ Este documento detalha o contrato real do modulo `inventario`, cruzando:
 - `quantidade?: int >= 1`
   - default `1`
   - aceita string numerica
+  - string com numero parcial (ex.: `"2abc"`) gera erro de validacao
 - `equipado?: boolean`
   - default `false`
   - aceita boolean, `"true"/"false"` e `"1"/"0"`
