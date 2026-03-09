@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SessaoTurnoIndisponivelEmCenaLivreException = exports.SessaoCampanhaNaoEncontradaException = exports.CampanhaModificadorJaDesfeitoException = exports.CampanhaModificadorNaoEncontradoException = exports.CampanhaPersonagemEdicaoNegadaException = exports.CampanhaPersonagemLimiteUsuarioException = exports.CampanhaPersonagemAssociacaoNegadaException = exports.PersonagemCampanhaNaoEncontradoException = exports.ConviteCodigoIndisponivelException = exports.ConvitePendenteDuplicadoException = exports.ConviteNaoPertenceUsuarioException = exports.ConviteInvalidoOuUtilizadoException = exports.ConviteNaoEncontradoException = exports.UsuarioJaMembroCampanhaException = exports.UsuarioNaoEncontradoException = exports.CampanhaApenasMestreException = exports.CampanhaApenasDonoException = exports.CampanhaAcessoNegadoException = exports.CampanhaNaoEncontradaException = void 0;
+exports.NpcSessaoNaoEncontradoException = exports.SessaoTurnoIndisponivelEmCenaLivreException = exports.SessaoCampanhaNaoEncontradaException = exports.CampanhaModificadorJaDesfeitoException = exports.CampanhaModificadorNaoEncontradoException = exports.CampanhaPersonagemEdicaoNegadaException = exports.CampanhaPersonagemLimiteUsuarioException = exports.CampanhaPersonagemAssociacaoNegadaException = exports.PersonagemCampanhaNaoEncontradoException = exports.ConviteCodigoIndisponivelException = exports.ConvitePendenteDuplicadoException = exports.ConviteNaoPertenceUsuarioException = exports.ConviteInvalidoOuUtilizadoException = exports.ConviteNaoEncontradoException = exports.UsuarioJaMembroCampanhaException = exports.UsuarioNaoEncontradoException = exports.CampanhaApenasMestreException = exports.CampanhaApenasDonoException = exports.CampanhaAcessoNegadoException = exports.CampanhaNaoEncontradaException = void 0;
 const common_1 = require("@nestjs/common");
 const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
@@ -165,4 +165,14 @@ class SessaoTurnoIndisponivelEmCenaLivreException extends business_exception_1.B
     }
 }
 exports.SessaoTurnoIndisponivelEmCenaLivreException = SessaoTurnoIndisponivelEmCenaLivreException;
+class NpcSessaoNaoEncontradoException extends base_exception_1.BaseException {
+    constructor(npcSessaoId, sessaoId, campanhaId) {
+        super('NPC/Ameaca da sessao nao encontrado', common_1.HttpStatus.NOT_FOUND, 'NPC_SESSAO_NOT_FOUND', {
+            npcSessaoId,
+            sessaoId,
+            campanhaId,
+        });
+    }
+}
+exports.NpcSessaoNaoEncontradoException = NpcSessaoNaoEncontradoException;
 //# sourceMappingURL=campanha.exception.js.map
