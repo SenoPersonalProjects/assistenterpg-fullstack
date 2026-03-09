@@ -23,6 +23,8 @@ import { CondicoesModule } from './condicoes/condicoes.module';
 import { TecnicasAmaldicoadasModule } from './tecnicas-amaldicoadas/tecnicas-amaldicoadas.module';
 import { SuplementosModule } from './suplementos/suplementos.module';
 import { HomebrewsModule } from './homebrews/homebrews.module';
+import { SessaoModule } from './sessao/sessao.module';
+import { NpcsAmeacasModule } from './npcs-ameacas/npcs-ameacas.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { HomebrewsModule } from './homebrews/homebrews.module';
     TecnicasAmaldicoadasModule,
     SuplementosModule,
     HomebrewsModule,
+    SessaoModule,
+    NpcsAmeacasModule,
   ],
   controllers: [AppController],
   providers: [AppService],

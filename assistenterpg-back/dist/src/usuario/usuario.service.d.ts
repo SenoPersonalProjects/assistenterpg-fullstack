@@ -8,35 +8,35 @@ export declare class UsuarioService {
     private tratarErroPrisma;
     criarUsuario(apelido: string, email: string, senha: string): Promise<{
         id: number;
-        email: string;
         apelido: string;
-        role: import("@prisma/client").$Enums.RoleUsuario;
+        email: string;
         criadoEm: Date;
+        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     buscarPorEmail(email: string): Promise<{
         id: number;
-        email: string;
         apelido: string;
+        email: string;
         senhaHash: string;
-        role: import("@prisma/client").$Enums.RoleUsuario;
         criadoEm: Date;
         atualizadoEm: Date;
+        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     buscarPorId(id: number): Promise<{
         id: number;
-        email: string;
         apelido: string;
+        email: string;
         senhaHash: string;
-        role: import("@prisma/client").$Enums.RoleUsuario;
         criadoEm: Date;
         atualizadoEm: Date;
+        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     buscarPorApelido(apelido: string): Promise<{
         id: number;
-        email: string;
         apelido: string;
-        role: import("@prisma/client").$Enums.RoleUsuario;
+        email: string;
         criadoEm: Date;
+        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     obterEstatisticas(usuarioId: number): Promise<{
         campanhas: number;
@@ -44,26 +44,26 @@ export declare class UsuarioService {
         artigosLidos: number;
     }>;
     obterPreferencias(usuarioId: number): Promise<{
+        id: number;
+        criadoEm: Date;
+        atualizadoEm: Date;
+        usuarioId: number;
         notificacoesEmail: boolean;
         notificacoesPush: boolean;
         notificacoesConvites: boolean;
         notificacoesAtualizacoes: boolean;
         idioma: string;
-        id: number;
-        criadoEm: Date;
-        atualizadoEm: Date;
-        usuarioId: number;
     }>;
     atualizarPreferencias(usuarioId: number, dto: AtualizarPreferenciasDto): Promise<{
+        id: number;
+        criadoEm: Date;
+        atualizadoEm: Date;
+        usuarioId: number;
         notificacoesEmail: boolean;
         notificacoesPush: boolean;
         notificacoesConvites: boolean;
         notificacoesAtualizacoes: boolean;
         idioma: string;
-        id: number;
-        criadoEm: Date;
-        atualizadoEm: Date;
-        usuarioId: number;
     }>;
     alterarSenha(usuarioId: number, dto: AlterarSenhaDto): Promise<{
         mensagem: string;
@@ -72,25 +72,36 @@ export declare class UsuarioService {
         exportadoEm: string;
         usuario: {
             id: number;
-            email: string;
             apelido: string;
-            role: import("@prisma/client").$Enums.RoleUsuario;
+            email: string;
             criadoEm: Date;
+            role: import("@prisma/client").$Enums.RoleUsuario;
         } | null;
         personagens: ({
+            origem: {
+                id: number;
+                nome: string;
+                descricao: string | null;
+                requisitosTexto: string | null;
+                requerGrandeCla: boolean;
+                requerTecnicaHeriditaria: boolean;
+                bloqueiaTecnicaHeriditaria: boolean;
+                fonte: import("@prisma/client").$Enums.TipoFonte;
+                suplementoId: number | null;
+            };
             classe: {
                 id: number;
                 nome: string;
                 descricao: string | null;
-                periciasLivresBase: number;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
+                periciasLivresBase: number;
             };
             trilha: {
                 id: number;
                 nome: string;
-                classeId: number;
                 descricao: string | null;
+                classeId: number;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: Prisma.JsonValue | null;
@@ -98,8 +109,8 @@ export declare class UsuarioService {
             caminho: {
                 id: number;
                 nome: string;
-                trilhaId: number;
                 descricao: string | null;
+                trilhaId: number;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
             } | null;
@@ -107,20 +118,9 @@ export declare class UsuarioService {
                 id: number;
                 nome: string;
                 descricao: string | null;
-                fonte: import("@prisma/client").$Enums.TipoFonte;
-                suplementoId: number | null;
                 grandeCla: boolean;
-            };
-            origem: {
-                id: number;
-                nome: string;
-                descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitosTexto: string | null;
-                requerGrandeCla: boolean;
-                requerTecnicaHeriditaria: boolean;
-                bloqueiaTecnicaHeriditaria: boolean;
             };
             tecnicaInata: {
                 id: number;
@@ -128,11 +128,11 @@ export declare class UsuarioService {
                 atualizadoEm: Date;
                 nome: string;
                 descricao: string;
+                tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
+                codigo: string;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: Prisma.JsonValue | null;
-                codigo: string;
-                tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
                 hereditaria: boolean;
                 linkExterno: string | null;
             } | null;
@@ -151,8 +151,8 @@ export declare class UsuarioService {
             intelecto: number;
             presenca: number;
             vigor: number;
-            estudouEscolaTecnica: boolean;
             tecnicaInataId: number | null;
+            estudouEscolaTecnica: boolean;
             passivasAtributosAtivos: Prisma.JsonValue | null;
             passivasAtributosConfig: Prisma.JsonValue | null;
             proficienciasExtrasCodigos: Prisma.JsonValue | null;
@@ -191,8 +191,8 @@ export declare class UsuarioService {
                 };
             } & {
                 id: number;
-                usuarioId: number;
                 campanhaId: number;
+                usuarioId: number;
                 papel: string;
                 entrouEm: Date;
             })[];
@@ -206,15 +206,15 @@ export declare class UsuarioService {
             status: string;
         })[];
         preferencias: {
+            id: number;
+            criadoEm: Date;
+            atualizadoEm: Date;
+            usuarioId: number;
             notificacoesEmail: boolean;
             notificacoesPush: boolean;
             notificacoesConvites: boolean;
             notificacoesAtualizacoes: boolean;
             idioma: string;
-            id: number;
-            criadoEm: Date;
-            atualizadoEm: Date;
-            usuarioId: number;
         } | null;
     }>;
     excluirConta(usuarioId: number, senha: string): Promise<{

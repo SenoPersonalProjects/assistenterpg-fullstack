@@ -14,19 +14,19 @@ export declare class HomebrewsService {
     private mapearTags;
     listar(filtros: FiltrarHomebrewsDto, usuarioId?: number, isAdmin?: boolean): Promise<{
         dados: {
+            id: number;
+            criadoEm: Date;
+            atualizadoEm: Date;
+            nome: string;
+            descricao: string | null;
+            status: import("@prisma/client").$Enums.StatusPublicacao;
+            usuarioId: number;
+            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
+            codigo: string;
             usuario: {
                 id: number;
                 apelido: string;
             };
-            id: number;
-            criadoEm: Date;
-            atualizadoEm: Date;
-            usuarioId: number;
-            nome: string;
-            descricao: string | null;
-            status: import("@prisma/client").$Enums.StatusPublicacao;
-            codigo: string;
-            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
             versao: string;
             tags: Prisma.JsonValue;
         }[];
@@ -51,15 +51,15 @@ export declare class HomebrewsService {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
-        usuarioId: number;
         nome: string;
         descricao: string | null;
         status: import("@prisma/client").$Enums.StatusPublicacao;
-        codigo: string;
+        usuarioId: number;
+        dados: Prisma.JsonValue;
         tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
+        codigo: string;
         versao: string;
         tags: Prisma.JsonValue | null;
-        dados: Prisma.JsonValue;
     }>;
     arquivar(id: number, usuarioId: number, isAdmin?: boolean): Promise<{
         usuario: {
@@ -70,31 +70,31 @@ export declare class HomebrewsService {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
-        usuarioId: number;
         nome: string;
         descricao: string | null;
         status: import("@prisma/client").$Enums.StatusPublicacao;
-        codigo: string;
+        usuarioId: number;
+        dados: Prisma.JsonValue;
         tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
+        codigo: string;
         versao: string;
         tags: Prisma.JsonValue | null;
-        dados: Prisma.JsonValue;
     }>;
     meus(usuarioId: number, filtros: FiltrarHomebrewsDto): Promise<{
         dados: {
+            id: number;
+            criadoEm: Date;
+            atualizadoEm: Date;
+            nome: string;
+            descricao: string | null;
+            status: import("@prisma/client").$Enums.StatusPublicacao;
+            usuarioId: number;
+            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
+            codigo: string;
             usuario: {
                 id: number;
                 apelido: string;
             };
-            id: number;
-            criadoEm: Date;
-            atualizadoEm: Date;
-            usuarioId: number;
-            nome: string;
-            descricao: string | null;
-            status: import("@prisma/client").$Enums.StatusPublicacao;
-            codigo: string;
-            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
             versao: string;
             tags: Prisma.JsonValue;
         }[];

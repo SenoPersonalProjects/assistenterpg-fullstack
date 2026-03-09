@@ -1,0 +1,10 @@
+ALTER TABLE `Sessao`
+  ADD COLUMN `status` VARCHAR(191) NOT NULL DEFAULT 'LOBBY',
+  ADD COLUMN `rodadaAtual` INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN `indiceTurnoAtual` INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN `cenaAtualTipo` VARCHAR(191) NOT NULL DEFAULT 'LIVRE',
+  ADD COLUMN `cenaAtualNome` VARCHAR(191) NULL,
+  ADD COLUMN `iniciadoEm` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  ADD COLUMN `encerradoEm` DATETIME(3) NULL;
+
+CREATE INDEX `Sessao_campanhaId_iniciadoEm_idx` ON `Sessao`(`campanhaId`, `iniciadoEm`);

@@ -10,8 +10,8 @@ export declare class ClasController {
                 id: number;
                 nome: string;
                 descricao: string;
-                codigo: string;
                 tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
+                codigo: string;
             };
         } & {
             id: number;
@@ -22,9 +22,9 @@ export declare class ClasController {
         id: number;
         nome: string;
         descricao: string | null;
+        grandeCla: boolean;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        grandeCla: boolean;
     }>;
     findAll(): Promise<({
         _count: {
@@ -36,8 +36,8 @@ export declare class ClasController {
                 id: number;
                 nome: string;
                 descricao: string;
-                codigo: string;
                 tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
+                codigo: string;
             };
         } & {
             id: number;
@@ -48,9 +48,9 @@ export declare class ClasController {
         id: number;
         nome: string;
         descricao: string | null;
+        grandeCla: boolean;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        grandeCla: boolean;
     })[]>;
     findOne(id: number): Promise<{
         _count: {
@@ -62,9 +62,9 @@ export declare class ClasController {
                 id: number;
                 nome: string;
                 descricao: string;
-                requisitos: import("@prisma/client/runtime/library").JsonValue;
-                codigo: string;
                 tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
+                codigo: string;
+                requisitos: import("@prisma/client/runtime/library").JsonValue;
             };
         } & {
             id: number;
@@ -75,9 +75,9 @@ export declare class ClasController {
         id: number;
         nome: string;
         descricao: string | null;
+        grandeCla: boolean;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        grandeCla: boolean;
     }>;
     update(id: number, dto: UpdateClaDto): Promise<{
         tecnicasHereditarias: ({
@@ -85,8 +85,8 @@ export declare class ClasController {
                 id: number;
                 nome: string;
                 descricao: string;
-                codigo: string;
                 tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
+                codigo: string;
             };
         } & {
             id: number;
@@ -97,9 +97,9 @@ export declare class ClasController {
         id: number;
         nome: string;
         descricao: string | null;
+        grandeCla: boolean;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        grandeCla: boolean;
     }>;
     remove(id: number): Promise<{
         message: string;

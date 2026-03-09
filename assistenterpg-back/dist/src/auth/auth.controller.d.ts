@@ -8,10 +8,10 @@ export declare class AuthController {
     constructor(authService: AuthService, usuarioService: UsuarioService);
     register(dto: RegisterDto): Promise<{
         id: number;
-        email: string;
         apelido: string;
-        role: import("@prisma/client").$Enums.RoleUsuario;
+        email: string;
         criadoEm: Date;
+        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     login(dto: LoginDto): Promise<{
         access_token: string;

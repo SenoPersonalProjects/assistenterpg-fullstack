@@ -41,8 +41,8 @@ export declare class TrilhasService {
     } & {
         id: number;
         nome: string;
-        classeId: number;
         descricao: string | null;
+        classeId: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: Prisma.JsonValue | null;
@@ -64,8 +64,8 @@ export declare class TrilhasService {
     } & {
         id: number;
         nome: string;
-        classeId: number;
         descricao: string | null;
+        classeId: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: Prisma.JsonValue | null;
@@ -105,8 +105,8 @@ export declare class TrilhasService {
     } & {
         id: number;
         nome: string;
-        classeId: number;
         descricao: string | null;
+        classeId: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: Prisma.JsonValue | null;
@@ -140,8 +140,8 @@ export declare class TrilhasService {
     } & {
         id: number;
         nome: string;
-        classeId: number;
         descricao: string | null;
+        classeId: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: Prisma.JsonValue | null;
@@ -170,8 +170,8 @@ export declare class TrilhasService {
     } & {
         id: number;
         nome: string;
-        trilhaId: number;
         descricao: string | null;
+        trilhaId: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
     }>;
@@ -196,8 +196,8 @@ export declare class TrilhasService {
     } & {
         id: number;
         nome: string;
-        trilhaId: number;
         descricao: string | null;
+        trilhaId: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
     }>;

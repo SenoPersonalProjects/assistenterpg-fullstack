@@ -103,17 +103,17 @@ export declare class PersonagemBasePersistence {
             id: number;
             nome: string;
             descricao: string | null;
-            periciasLivresBase: number;
             fonte: import("@prisma/client").$Enums.TipoFonte;
             suplementoId: number | null;
+            periciasLivresBase: number;
         };
         cla: {
             id: number;
             nome: string;
             descricao: string | null;
+            grandeCla: boolean;
             fonte: import("@prisma/client").$Enums.TipoFonte;
             suplementoId: number | null;
-            grandeCla: boolean;
         };
         resistencias: ({
             resistenciaTipo: {
@@ -124,8 +124,8 @@ export declare class PersonagemBasePersistence {
             };
         } & {
             id: number;
-            valor: number;
             personagemBaseId: number;
+            valor: number;
             resistenciaTipoId: number;
         })[];
         inventarioItens: ({
@@ -136,10 +136,10 @@ export declare class PersonagemBasePersistence {
                     atualizadoEm: Date;
                     nome: string;
                     descricao: string | null;
+                    tipo: import("@prisma/client").$Enums.TipoModificacao;
+                    codigo: string;
                     fonte: import("@prisma/client").$Enums.TipoFonte;
                     suplementoId: number | null;
-                    codigo: string;
-                    tipo: import("@prisma/client").$Enums.TipoModificacao;
                     incrementoEspacos: number;
                     restricoes: Prisma.JsonValue | null;
                     efeitosMecanicos: Prisma.JsonValue | null;
@@ -155,10 +155,10 @@ export declare class PersonagemBasePersistence {
                 atualizadoEm: Date;
                 nome: string;
                 descricao: string | null;
+                tipo: import("@prisma/client").$Enums.TipoEquipamento;
+                codigo: string;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                codigo: string;
-                tipo: import("@prisma/client").$Enums.TipoEquipamento;
                 penalidadeCarga: number;
                 bonusDefesa: number;
                 categoria: import("@prisma/client").$Enums.CategoriaEquipamento;
@@ -195,9 +195,9 @@ export declare class PersonagemBasePersistence {
             criadoEm: Date;
             atualizadoEm: Date;
             personagemBaseId: number;
-            equipamentoId: number;
             quantidade: number;
             equipado: boolean;
+            equipamentoId: number;
             nomeCustomizado: string | null;
             notas: string | null;
             espacosCalculados: number;
@@ -218,8 +218,8 @@ export declare class PersonagemBasePersistence {
         intelecto: number;
         presenca: number;
         vigor: number;
-        estudouEscolaTecnica: boolean;
         tecnicaInataId: number | null;
+        estudouEscolaTecnica: boolean;
         passivasAtributosAtivos: Prisma.JsonValue | null;
         passivasAtributosConfig: Prisma.JsonValue | null;
         proficienciasExtrasCodigos: Prisma.JsonValue | null;

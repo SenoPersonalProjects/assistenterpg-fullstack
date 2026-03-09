@@ -1,0 +1,321 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  apiGetMeusPersonagensBase,
+  apiListarPersonagensCampanha,
+  apiVincularPersonagemCampanha,
+  extrairMensagemErro,
+} from '@/lib/api';
+import type { PersonagemBaseResumo, PersonagemCampanhaResumo } from '@/lib/types';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
+import { Icon } from '@/components/ui/Icon';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Modal } from '@/components/ui/Modal';
+import { CampaignCharacterEditorModal } from './CampaignCharacterEditorModal';
+
+type Props = {
+  campanhaId: number;
+  usuarioId: number;
+  usuarioEhMestre: boolean;
+  onTotalPersonagensChange?: (total: number) => void;
+};
+
+function chaveDismissSugestao(campanhaId: number): string {
+  return `assistenterpg:campanha:${campanhaId}:sugestao-personagem-dismissed`;
+}
+
+function formatarRecursos(personagem: PersonagemCampanhaResumo): string {
+  return `PV ${personagem.recursos.pvAtual}/${personagem.recursos.pvMax} · PE ${personagem.recursos.peAtual}/${personagem.recursos.peMax} · EA ${personagem.recursos.eaAtual}/${personagem.recursos.eaMax} · SAN ${personagem.recursos.sanAtual}/${personagem.recursos.sanMax}`;
+}
+
+export function CampaignCharactersSection({
+  campanhaId,
+  usuarioId,
+  usuarioEhMestre,
+  onTotalPersonagensChange,
+}: Props) {
+  const [personagensCampanha, setPersonagensCampanha] = useState<
+    PersonagemCampanhaResumo[]
+  >([]);
+  const [personagensBase, setPersonagensBase] = useState<PersonagemBaseResumo[]>([]);
+  const [personagemBaseSelecionado, setPersonagemBaseSelecionado] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [associando, setAssociando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+  const [personagemEdicao, setPersonagemEdicao] =
+    useState<PersonagemCampanhaResumo | null>(null);
+  const [sugestaoAberta, setSugestaoAberta] = useState(false);
+  const [sugestaoInicializada, setSugestaoInicializada] = useState(false);
+
+  useEffect(() => {
+    setSugestaoAberta(false);
+    setSugestaoInicializada(false);
+  }, [campanhaId]);
+
+  const carregarDados = useCallback(async () => {
+    setLoading(true);
+    setErro(null);
+    try {
+      const [personagens, meusPersonagens] = await Promise.all([
+        apiListarPersonagensCampanha(campanhaId),
+        apiGetMeusPersonagensBase({ page: 1, limit: 200 }),
+      ]);
+
+      setPersonagensCampanha(personagens);
+      onTotalPersonagensChange?.(personagens.length);
+      setPersonagensBase(meusPersonagens.items);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setLoading(false);
+    }
+  }, [campanhaId, onTotalPersonagensChange]);
+
+  useEffect(() => {
+    void carregarDados();
+  }, [carregarDados]);
+
+  const idsBaseJaAssociados = useMemo(
+    () => new Set(personagensCampanha.map((personagem) => personagem.personagemBaseId)),
+    [personagensCampanha],
+  );
+
+  const opcoesPersonagensBase = useMemo(
+    () =>
+      personagensBase
+        .filter((personagem) => !idsBaseJaAssociados.has(personagem.id))
+        .map((personagem) => ({
+          value: String(personagem.id),
+          label: `${personagem.nome} (Nv ${personagem.nivel})`,
+        })),
+    [personagensBase, idsBaseJaAssociados],
+  );
+
+  const usuarioJaTemPersonagemNaCampanha = useMemo(
+    () =>
+      personagensCampanha.some((personagem) => personagem.donoId === usuarioId),
+    [personagensCampanha, usuarioId],
+  );
+
+  useEffect(() => {
+    if (loading || sugestaoInicializada) return;
+
+    if (typeof window === 'undefined') {
+      setSugestaoInicializada(true);
+      return;
+    }
+
+    const foiDispensada =
+      window.sessionStorage.getItem(chaveDismissSugestao(campanhaId)) === '1';
+    const deveSugerir =
+      !usuarioJaTemPersonagemNaCampanha &&
+      opcoesPersonagensBase.length > 0 &&
+      !foiDispensada;
+
+    if (deveSugerir) {
+      setPersonagemBaseSelecionado((atual) =>
+        atual || opcoesPersonagensBase[0]?.value || '',
+      );
+      setSugestaoAberta(true);
+    }
+
+    setSugestaoInicializada(true);
+  }, [
+    campanhaId,
+    loading,
+    opcoesPersonagensBase,
+    sugestaoInicializada,
+    usuarioJaTemPersonagemNaCampanha,
+  ]);
+
+  function handleDispensarSugestao() {
+    setSugestaoAberta(false);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(chaveDismissSugestao(campanhaId), '1');
+    }
+  }
+
+  async function handleAssociarPersonagem() {
+    if (!personagemBaseSelecionado) {
+      setErro('Selecione um personagem-base para associar.');
+      return;
+    }
+
+    setErro(null);
+    setSucesso(null);
+    setAssociando(true);
+    try {
+      await apiVincularPersonagemCampanha(campanhaId, {
+        personagemBaseId: Number(personagemBaseSelecionado),
+      });
+      setPersonagemBaseSelecionado('');
+      setSucesso('Personagem associado com sucesso na campanha.');
+      setSugestaoAberta(false);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem(chaveDismissSugestao(campanhaId));
+      }
+      await carregarDados();
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setAssociando(false);
+    }
+  }
+
+  function handlePersonagemAtualizado(personagemAtualizado: PersonagemCampanhaResumo) {
+    setPersonagensCampanha((atual) =>
+      atual.map((personagem) =>
+        personagem.id === personagemAtualizado.id ? personagemAtualizado : personagem,
+      ),
+    );
+    setPersonagemEdicao(personagemAtualizado);
+  }
+
+  return (
+    <section className="space-y-4">
+      <div className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-app-fg">
+          Associar personagem-base
+        </h3>
+        <p className="text-sm text-app-muted">
+          Cada usuario pode ter apenas 1 personagem por campanha. O personagem da
+          campanha pode receber modificadores sem alterar a ficha-base.
+        </p>
+        <div className="flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="md:w-[340px]">
+            <Select
+              label="Meu personagem-base"
+              value={personagemBaseSelecionado}
+              onChange={(event) => setPersonagemBaseSelecionado(event.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {opcoesPersonagensBase.map((opcao) => (
+                <option key={opcao.value} value={opcao.value}>
+                  {opcao.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <Button onClick={handleAssociarPersonagem} disabled={associando || loading}>
+            {associando ? 'Associando...' : 'Associar personagem'}
+          </Button>
+        </div>
+        {erro && (
+          <p className="text-sm text-app-danger">
+            {erro}
+          </p>
+        )}
+        {sucesso && (
+          <p className="text-sm text-app-success">
+            {sucesso}
+          </p>
+        )}
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-app-muted flex items-center gap-2">
+          <Icon name="spinner" className="w-4 h-4" />
+          Carregando personagens da campanha...
+        </p>
+      ) : personagensCampanha.length === 0 ? (
+        <EmptyState
+          variant="card"
+          icon="characters"
+          title="Nenhum personagem associado"
+          description="Associe um personagem-base para comecar a jogar nesta campanha."
+        />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {personagensCampanha.map((personagem) => {
+            const podeEditar = usuarioEhMestre || personagem.donoId === usuarioId;
+            return (
+              <Card key={personagem.id} className="space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="text-base font-semibold text-app-fg">
+                      {personagem.nome}
+                    </h4>
+                    <p className="text-xs text-app-muted">
+                      Dono: {personagem.dono.apelido} · Base:{' '}
+                      {personagem.personagemBase.nome}
+                    </p>
+                  </div>
+                  <span className="rounded border border-app-border px-2 py-1 text-xs text-app-muted">
+                    Nv {personagem.nivel}
+                  </span>
+                </div>
+                <p className="text-sm text-app-muted">{formatarRecursos(personagem)}</p>
+                <p className="text-xs text-app-muted">
+                  Defesa {personagem.defesa.total} · Esquiva {personagem.atributos.esquiva}
+                  {' '}· Bloqueio {personagem.atributos.bloqueio}
+                </p>
+                <p className="text-xs text-app-muted">
+                  Modificadores ativos: {personagem.modificadoresAtivos.length}
+                </p>
+                {podeEditar && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPersonagemEdicao(personagem)}
+                  >
+                    Editar ficha da campanha
+                  </Button>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      <CampaignCharacterEditorModal
+        isOpen={Boolean(personagemEdicao)}
+        campanhaId={campanhaId}
+        personagem={personagemEdicao}
+        onClose={() => setPersonagemEdicao(null)}
+        onPersonagemAtualizado={handlePersonagemAtualizado}
+      />
+
+      <Modal
+        isOpen={sugestaoAberta}
+        onClose={handleDispensarSugestao}
+        title="Associar personagem na campanha"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-app-muted">
+            Voce ainda nao associou seu personagem nesta campanha. Isso nao e
+            obrigatorio, mas ajuda a liberar a ficha resumida na sessao e o
+            controle dos recursos.
+          </p>
+          <Select
+            label="Personagem-base sugerido"
+            value={personagemBaseSelecionado}
+            onChange={(event) => setPersonagemBaseSelecionado(event.target.value)}
+          >
+            <option value="">Selecione...</option>
+            {opcoesPersonagensBase.map((opcao) => (
+              <option key={opcao.value} value={opcao.value}>
+                {opcao.label}
+              </option>
+            ))}
+          </Select>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="secondary" onClick={handleDispensarSugestao}>
+              Agora nao
+            </Button>
+            <Button
+              onClick={() => void handleAssociarPersonagem()}
+              disabled={associando || !personagemBaseSelecionado}
+            >
+              {associando ? 'Associando...' : 'Associar personagem'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </section>
+  );
+}

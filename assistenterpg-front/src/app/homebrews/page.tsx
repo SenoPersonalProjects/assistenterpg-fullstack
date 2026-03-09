@@ -286,6 +286,7 @@ export default function HomebrewsPage() {
                   <HomebrewCard
                     key={h.id}
                     homebrew={h}
+                    onView={() => router.push(`/homebrews/${h.id}`)}
                     onEdit={() => router.push(`/homebrews/${h.id}/editar`)}
                     onPublicar={() => handlePublicar(h)}
                     onArquivar={() => handleArquivar(h)}

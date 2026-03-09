@@ -36,9 +36,10 @@ describe('personagens-base api cache and invalidation', () => {
   });
 
   it('dedupes in-flight request for same key', async () => {
-    let resolver: ((value: unknown) => void) | null = null;
+    type PersonagemGetResponse = { data: { id: number; nome: string; nivel: number } };
+    let resolver!: (value: PersonagemGetResponse) => void;
     mockedApiClient.get.mockReturnValueOnce(
-      new Promise((resolve) => {
+      new Promise<PersonagemGetResponse>((resolve) => {
         resolver = resolve;
       }),
     );
@@ -51,7 +52,7 @@ describe('personagens-base api cache and invalidation', () => {
       '/personagens-base/77?incluirInventario=true',
     );
 
-    resolver?.({ data: { id: 77, nome: 'Kento', nivel: 3 } });
+    resolver({ data: { id: 77, nome: 'Kento', nivel: 3 } });
     const [r1, r2] = await Promise.all([p1, p2]);
 
     expect(r1).toEqual({ id: 77, nome: 'Kento', nivel: 3 });
@@ -134,9 +135,10 @@ describe('personagens-base api cache and invalidation', () => {
       itensInventario: [],
     };
 
-    let resolver: ((value: unknown) => void) | null = null;
+    type PreviewResponse = { data: { resumo: string } };
+    let resolver!: (value: PreviewResponse) => void;
     mockedApiClient.post.mockReturnValueOnce(
-      new Promise((resolve) => {
+      new Promise<PreviewResponse>((resolve) => {
         resolver = resolve;
       }),
     );
@@ -147,7 +149,7 @@ describe('personagens-base api cache and invalidation', () => {
     expect(mockedApiClient.post).toHaveBeenCalledTimes(1);
     expect(mockedApiClient.post).toHaveBeenCalledWith('/personagens-base/preview', payload);
 
-    resolver?.({ data: { resumo: 'ok' } });
+    resolver({ data: { resumo: 'ok' } });
     const [r1, r2] = await Promise.all([p1, p2]);
 
     expect(r1).toEqual({ resumo: 'ok' });

@@ -58,8 +58,8 @@ export declare class TecnicasAmaldicoadasService {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        requisitos: Prisma.JsonValue | null;
         codigo: string;
+        requisitos: Prisma.JsonValue | null;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;
@@ -124,8 +124,8 @@ export declare class TecnicasAmaldicoadasService {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        requisitos: Prisma.JsonValue | null;
         codigo: string;
+        requisitos: Prisma.JsonValue | null;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;
@@ -185,8 +185,8 @@ export declare class TecnicasAmaldicoadasService {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        requisitos: Prisma.JsonValue | null;
         codigo: string;
+        requisitos: Prisma.JsonValue | null;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;
@@ -246,8 +246,8 @@ export declare class TecnicasAmaldicoadasService {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        requisitos: Prisma.JsonValue | null;
         codigo: string;
+        requisitos: Prisma.JsonValue | null;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;

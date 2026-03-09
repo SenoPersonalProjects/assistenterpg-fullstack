@@ -19,10 +19,10 @@ export declare class CompendioService {
                 nome: string;
                 descricao: string | null;
                 codigo: string;
+                ativo: boolean;
                 ordem: number;
                 icone: string | null;
                 cor: string | null;
-                ativo: boolean;
             };
         } & {
             id: number;
@@ -31,8 +31,8 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
-            ordem: number;
             ativo: boolean;
+            ordem: number;
             categoriaId: number;
         })[];
     } & {
@@ -42,10 +42,10 @@ export declare class CompendioService {
         nome: string;
         descricao: string | null;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         icone: string | null;
         cor: string | null;
-        ativo: boolean;
     }>;
     criarCategoria(dto: CreateCategoriaDto): Promise<{
         id: number;
@@ -54,10 +54,10 @@ export declare class CompendioService {
         nome: string;
         descricao: string | null;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         icone: string | null;
         cor: string | null;
-        ativo: boolean;
     }>;
     atualizarCategoria(id: number, dto: UpdateCategoriaDto): Promise<{
         id: number;
@@ -66,10 +66,10 @@ export declare class CompendioService {
         nome: string;
         descricao: string | null;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         icone: string | null;
         cor: string | null;
-        ativo: boolean;
     }>;
     removerCategoria(id: number): Promise<{
         sucesso: boolean;
@@ -83,10 +83,10 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
+            ativo: boolean;
             ordem: number;
             icone: string | null;
             cor: string | null;
-            ativo: boolean;
         };
         artigos: ({
             subcategoria: {
@@ -96,19 +96,19 @@ export declare class CompendioService {
                 nome: string;
                 descricao: string | null;
                 codigo: string;
-                ordem: number;
                 ativo: boolean;
+                ordem: number;
                 categoriaId: number;
             };
         } & {
             id: number;
             criadoEm: Date;
             atualizadoEm: Date;
+            titulo: string;
             codigo: string;
+            ativo: boolean;
             ordem: number;
             tags: import("@prisma/client/runtime/library").JsonValue | null;
-            ativo: boolean;
-            titulo: string;
             resumo: string | null;
             conteudo: string;
             subcategoriaId: number;
@@ -124,8 +124,8 @@ export declare class CompendioService {
         nome: string;
         descricao: string | null;
         codigo: string;
-        ordem: number;
         ativo: boolean;
+        ordem: number;
         categoriaId: number;
     }>;
     criarSubcategoria(dto: CreateSubcategoriaDto): Promise<{
@@ -136,10 +136,10 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
+            ativo: boolean;
             ordem: number;
             icone: string | null;
             cor: string | null;
-            ativo: boolean;
         };
     } & {
         id: number;
@@ -148,8 +148,8 @@ export declare class CompendioService {
         nome: string;
         descricao: string | null;
         codigo: string;
-        ordem: number;
         ativo: boolean;
+        ordem: number;
         categoriaId: number;
     }>;
     atualizarSubcategoria(id: number, dto: UpdateSubcategoriaDto): Promise<{
@@ -160,10 +160,10 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
+            ativo: boolean;
             ordem: number;
             icone: string | null;
             cor: string | null;
-            ativo: boolean;
         };
     } & {
         id: number;
@@ -172,8 +172,8 @@ export declare class CompendioService {
         nome: string;
         descricao: string | null;
         codigo: string;
-        ordem: number;
         ativo: boolean;
+        ordem: number;
         categoriaId: number;
     }>;
     removerSubcategoria(id: number): Promise<{
@@ -189,10 +189,10 @@ export declare class CompendioService {
                 nome: string;
                 descricao: string | null;
                 codigo: string;
+                ativo: boolean;
                 ordem: number;
                 icone: string | null;
                 cor: string | null;
-                ativo: boolean;
             };
         } & {
             id: number;
@@ -201,19 +201,19 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
-            ordem: number;
             ativo: boolean;
+            ordem: number;
             categoriaId: number;
         };
     } & {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
+        titulo: string;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
-        ativo: boolean;
-        titulo: string;
         resumo: string | null;
         conteudo: string;
         subcategoriaId: number;
@@ -231,10 +231,10 @@ export declare class CompendioService {
                 nome: string;
                 descricao: string | null;
                 codigo: string;
+                ativo: boolean;
                 ordem: number;
                 icone: string | null;
                 cor: string | null;
-                ativo: boolean;
             };
         } & {
             id: number;
@@ -243,19 +243,19 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
-            ordem: number;
             ativo: boolean;
+            ordem: number;
             categoriaId: number;
         };
     } & {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
+        titulo: string;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
-        ativo: boolean;
-        titulo: string;
         resumo: string | null;
         conteudo: string;
         subcategoriaId: number;
@@ -273,10 +273,10 @@ export declare class CompendioService {
                 nome: string;
                 descricao: string | null;
                 codigo: string;
+                ativo: boolean;
                 ordem: number;
                 icone: string | null;
                 cor: string | null;
-                ativo: boolean;
             };
         } & {
             id: number;
@@ -285,19 +285,19 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
-            ordem: number;
             ativo: boolean;
+            ordem: number;
             categoriaId: number;
         };
     } & {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
+        titulo: string;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
-        ativo: boolean;
-        titulo: string;
         resumo: string | null;
         conteudo: string;
         subcategoriaId: number;
@@ -318,10 +318,10 @@ export declare class CompendioService {
                 nome: string;
                 descricao: string | null;
                 codigo: string;
+                ativo: boolean;
                 ordem: number;
                 icone: string | null;
                 cor: string | null;
-                ativo: boolean;
             };
         } & {
             id: number;
@@ -330,19 +330,19 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
-            ordem: number;
             ativo: boolean;
+            ordem: number;
             categoriaId: number;
         };
     } & {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
+        titulo: string;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
-        ativo: boolean;
-        titulo: string;
         resumo: string | null;
         conteudo: string;
         subcategoriaId: number;
@@ -360,10 +360,10 @@ export declare class CompendioService {
                 nome: string;
                 descricao: string | null;
                 codigo: string;
+                ativo: boolean;
                 ordem: number;
                 icone: string | null;
                 cor: string | null;
-                ativo: boolean;
             };
         } & {
             id: number;
@@ -372,19 +372,19 @@ export declare class CompendioService {
             nome: string;
             descricao: string | null;
             codigo: string;
-            ordem: number;
             ativo: boolean;
+            ordem: number;
             categoriaId: number;
         };
     } & {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
+        titulo: string;
         codigo: string;
+        ativo: boolean;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
-        ativo: boolean;
-        titulo: string;
         resumo: string | null;
         conteudo: string;
         subcategoriaId: number;

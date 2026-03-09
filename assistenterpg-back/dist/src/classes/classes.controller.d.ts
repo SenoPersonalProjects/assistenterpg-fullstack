@@ -8,9 +8,9 @@ export declare class ClassesController {
         id: number;
         nome: string;
         descricao: string | null;
-        periciasLivresBase: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
+        periciasLivresBase: number;
     }>;
     findAll(): Promise<import("./dto/catalogo-classe.dto").ClasseCatalogoDto[]>;
     findOne(id: number): Promise<import("./dto/catalogo-classe.dto").ClasseCatalogoDto>;
@@ -24,9 +24,9 @@ export declare class ClassesController {
         id: number;
         nome: string;
         descricao: string | null;
-        periciasLivresBase: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
+        periciasLivresBase: number;
     }>;
     remove(id: number): Promise<{
         sucesso: boolean;

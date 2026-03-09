@@ -3,10 +3,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { IconName } from '@/components/ui/Icon';
 import { UserMenu } from './UserMenu';
+import { NotificationsButton } from './NotificationsButton';
 import { useAuth } from '@/context/AuthContext';
+import {
+  apiInscreverAtualizacaoConvitesPendentes,
+  apiListarConvitesPendentes,
+} from '@/lib/api';
 
 type NavItem = {
   href: string;
@@ -15,19 +21,22 @@ type NavItem = {
 };
 
 const baseNavItems: NavItem[] = [
-  { href: '/home', label: 'Início', icon: 'home' },
+  { href: '/home', label: 'Inicio', icon: 'home' },
   { href: '/campanhas', label: 'Campanhas', icon: 'campaign' },
   { href: '/personagens-base', label: 'Personagens', icon: 'characters' },
+  { href: '/npcs-ameacas', label: 'NPCs/Ameacas', icon: 'curse' },
   { href: '/homebrews', label: 'Homebrews', icon: 'sparkles' },
   { href: '/suplementos', label: 'Suplementos', icon: 'book' },
-  { href: '/compendio', label: 'Compêndio', icon: 'rules' },
-  // ✅ FUTURO: { href: '/marketplace', label: 'Marketplace', icon: 'store' },
+  { href: '/compendio', label: 'Compendio', icon: 'rules' },
+  // FUTURO: { href: '/marketplace', label: 'Marketplace', icon: 'store' },
 ];
 
 export function NavigationBar() {
   const pathname = usePathname();
   const { usuario } = useAuth();
-  
+  const [pendingNotifications, setPendingNotifications] = useState(0);
+  const userId = usuario?.id;
+
   const isAdmin = usuario?.role === 'ADMIN';
   const adminNavItem: NavItem = {
     href: '/suplementos/admin',
@@ -37,6 +46,59 @@ export function NavigationBar() {
   const navItems: NavItem[] = isAdmin
     ? [...baseNavItems, adminNavItem]
     : baseNavItems;
+
+  useEffect(() => {
+    let active = true;
+    let intervalId: number | null = null;
+
+    async function carregarNotificacoes() {
+      if (!userId) {
+        if (active) {
+          setPendingNotifications(0);
+        }
+        return;
+      }
+
+      try {
+        const convites = await apiListarConvitesPendentes();
+        if (active) {
+          setPendingNotifications(convites.length);
+        }
+      } catch {
+        if (active) {
+          setPendingNotifications(0);
+        }
+      }
+    }
+
+    void carregarNotificacoes();
+
+    const unsubscribe = apiInscreverAtualizacaoConvitesPendentes((total) => {
+      if (!active || !userId) return;
+
+      if (typeof total === 'number') {
+        setPendingNotifications(total);
+        return;
+      }
+
+      void carregarNotificacoes();
+    });
+
+    if (userId) {
+      intervalId = window.setInterval(() => {
+        void carregarNotificacoes();
+      }, 60_000);
+    }
+
+    return () => {
+      active = false;
+      unsubscribe();
+
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [userId]);
 
   const isActive = (href: string) => {
     if (href === '/home') return pathname === '/home';
@@ -52,7 +114,6 @@ export function NavigationBar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo/Brand */}
           <Link href="/home" className="flex items-center gap-2 group">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
               <span className="text-white font-bold text-xl">JK</span>
@@ -63,7 +124,6 @@ export function NavigationBar() {
             </div>
           </Link>
 
-          {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const itemIsActive = isActive(item.href);
@@ -101,8 +161,7 @@ export function NavigationBar() {
             })}
           </div>
 
-          {/* Right Side: Settings + User Menu (SEM NOTIFICAÇÕES) */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link href="/configuracoes">
               <button
                 className={`
@@ -113,17 +172,22 @@ export function NavigationBar() {
                       : 'text-app-muted hover:text-app-fg hover:bg-app-bg'
                   }
                 `}
-                title="Configurações"
+                title="Configuracoes"
               >
                 <Icon name="settings" className="w-6 h-6" />
               </button>
             </Link>
 
+            <NotificationsButton
+              pendingNotifications={pendingNotifications}
+              showLabel={false}
+              active={pathname === '/notificacoes'}
+            />
+
             <UserMenu />
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         <div className="md:hidden flex items-center gap-1 pb-3 overflow-x-auto">
           {navItems.map((item) => (
             <Link

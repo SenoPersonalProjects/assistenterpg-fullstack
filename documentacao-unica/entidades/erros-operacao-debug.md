@@ -1,6 +1,6 @@
 # Erros de Operacao e Debug (Por Entidade)
 
-Atualizado em: 2026-03-08
+Atualizado em: 2026-03-09
 
 ## Escopo
 
@@ -71,10 +71,27 @@ Formato de resposta esperado:
 | `CAMPANHA_NOT_FOUND`           | `404` | Campanha nao existe                          | Atualizar lista e remover referencia local   |
 | `CAMPANHA_ACESSO_NEGADO`       | `422` | Usuario sem acesso (nao dono/nao membro)     | Bloquear navegacao para recursos da campanha |
 | `CAMPANHA_APENAS_DONO`         | `422` | Acao exclusiva do dono                       | Exibir CTA de permissao insuficiente         |
+| `CAMPANHA_APENAS_MESTRE`       | `422` | Acao exclusiva de mestre na campanha         | Desabilitar controles de sessao para jogador |
+| `CAMPANHA_PERSONAGEM_ASSOCIACAO_NEGADA` | `422` | Tentativa de associar personagem sem permissao | Restringir selecao ao personagem autorizado  |
+| `CAMPANHA_PERSONAGEM_LIMITE_USUARIO` | `422` | Usuario tentou associar segundo personagem na campanha | Mostrar regra de 1 personagem por usuario    |
+| `CAMPANHA_PERSONAGEM_EDICAO_NEGADA` | `422` | Usuario tentou editar ficha de campanha sem permissao | Desabilitar acoes de edicao na UI            |
+| `PERSONAGEM_CAMPANHA_NOT_FOUND` | `404` | Ficha de campanha inexistente/fora da campanha | Recarregar lista e limpar referencia local   |
+| `CAMPANHA_MODIFICADOR_NOT_FOUND` | `404` | Modificador inexistente para aquela ficha     | Atualizar lista de modificadores             |
+| `CAMPANHA_MODIFICADOR_JA_DESFEITO` | `422` | Tentativa de desfazer modificador ja desfeito | Impedir segundo undo da mesma entrada        |
+| `SESSAO_CAMPANHA_NOT_FOUND`    | `404` | Sessao nao existe ou nao pertence a campanha | Voltar para tela da campanha e recarregar lista |
+| `SESSAO_TURNO_INDISPONIVEL`    | `422` | Avanco de turno em cena `LIVRE`              | Trocar cena para combate/investigacao/furtividade antes de avancar turno |
 | `USUARIO_JA_MEMBRO`            | `422` | Tentativa de adicionar membro duplicado      | Evitar convite duplicado para mesmo usuario  |
 | `CONVITE_NOT_FOUND`            | `404` | Codigo de convite inexistente                | Solicitar novo convite                       |
 | `CONVITE_INVALIDO`             | `422` | Convite expirado/ja respondido/invalido      | Encerrar fluxo de aceite e exibir motivo     |
 | `CONVITE_NAO_PERTENCE_USUARIO` | `422` | Email do convite nao bate com usuario logado | Pedir login com conta correta                |
+| `CONVITE_DUPLICADO_PENDENTE`   | `422` | Ja existe convite pendente para o mesmo email| Orientar a reutilizar/aguardar convite atual |
+| `CONVITE_CODIGO_INDISPONIVEL`  | `500` | Falha em gerar codigo unico de convite       | Solicitar nova tentativa e logar incidente   |
+
+## NPCs e Ameacas
+
+| Codigo                 | HTTP  | Quando ocorre                               | Acao recomendada                               |
+| ---------------------- | ----- | ------------------------------------------- | ---------------------------------------------- |
+| `NPC_AMEACA_NOT_FOUND` | `404` | Ficha inexistente ou fora do escopo do dono | Recarregar lista e remover referencia da UI    |
 
 ## Personagens Base
 

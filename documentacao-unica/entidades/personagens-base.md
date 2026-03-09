@@ -1,6 +1,6 @@
 # Personagens Base (Contrato Detalhado)
 
-Atualizado em: 2026-03-08
+Atualizado em: 2026-03-09
 
 ## Escopo
 
@@ -26,6 +26,9 @@ Este documento detalha o contrato real do modulo `personagens-base`, cruzando:
 - integracao frontend:
   - `assistenterpg-front/src/lib/api/personagens-base.ts`
   - `assistenterpg-front/src/lib/types/personagem.types.ts`
+  - `assistenterpg-front/src/app/personagens-base/novo/page.tsx`
+  - `assistenterpg-front/src/components/personagem-base/create/modal/FontesConteudoModal.tsx`
+  - `assistenterpg-front/src/lib/utils/fontes-conteudo.ts`
 
 ## Matriz de autorizacao
 
@@ -330,3 +333,15 @@ Modelos e constraints relevantes:
   - `assistenterpg-front/src/lib/types/personagem.types.ts`
 - consumo auxiliar:
   - `assistenterpg-front/src/lib/api/catalogos.ts` (`passivas-disponiveis`)
+
+### Fluxo de fontes de conteudo (frontend de criacao)
+
+- antes de preencher o wizard de criacao, a tela `app/personagens-base/novo/page.tsx` abre o modal `FontesConteudoModal`.
+- o sistema base e sempre considerado ativo e nao pode ser removido.
+- o usuario pode habilitar fontes extras:
+  - suplementos oficiais ativos (`GET /suplementos/me/ativos`)
+  - homebrews acessiveis (merge de `GET /homebrews?apenasPublicados=true` com `GET /homebrews/meus`)
+- a selecao e persistida localmente no navegador por `usuarioId` (chave de storage dedicada), evitando reconfiguracao a cada abertura da tela.
+- apos confirmar o modal, o frontend aplica filtro local por `fonte/suplementoId/homebrewId` usando `lib/utils/fontes-conteudo.ts` em:
+  - classes, clas, origens, tecnicas inatas, trilhas, equipamentos e modificacoes.
+- ao alterar fontes, o wizard e reiniciado (remount por chave de selecao) para evitar inconsistencias de estado entre selecao antiga e novo catalogo visivel.

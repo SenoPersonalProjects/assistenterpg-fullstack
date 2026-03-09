@@ -17,9 +17,9 @@ export declare class HabilidadesController {
             _count: {
                 personagensBase: number;
                 personagensCampanha: number;
+                habilidadesOrigem: number;
                 habilidadesClasse: number;
                 habilidadesTrilha: number;
-                habilidadesOrigem: number;
             };
             efeitosGrau: ({
                 tipoGrau: {
@@ -28,20 +28,20 @@ export declare class HabilidadesController {
                 };
             } & {
                 id: number;
+                habilidadeId: number;
                 valor: number;
                 tipoGrauCodigo: string;
-                habilidadeId: number;
                 escalonamentoPorNivel: import("@prisma/client/runtime/library").JsonValue | null;
             })[];
         } & {
-            origem: string | null;
             id: number;
             nome: string;
             descricao: string | null;
+            tipo: string;
+            origem: string | null;
             fonte: import("@prisma/client").$Enums.TipoFonte;
             suplementoId: number | null;
             requisitos: import("@prisma/client/runtime/library").JsonValue | null;
-            tipo: string;
             hereditaria: boolean;
             mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
         })[];
@@ -57,6 +57,16 @@ export declare class HabilidadesController {
             personagensBase: number;
             personagensCampanha: number;
         };
+        habilidadesOrigem: ({
+            origem: {
+                id: number;
+                nome: string;
+            };
+        } & {
+            id: number;
+            origemId: number;
+            habilidadeId: number;
+        })[];
         habilidadesClasse: ({
             classe: {
                 id: number;
@@ -84,16 +94,6 @@ export declare class HabilidadesController {
             habilidadeId: number;
             nivelConcedido: number;
         })[];
-        habilidadesOrigem: ({
-            origem: {
-                id: number;
-                nome: string;
-            };
-        } & {
-            id: number;
-            origemId: number;
-            habilidadeId: number;
-        })[];
         efeitosGrau: ({
             tipoGrau: {
                 nome: string;
@@ -102,20 +102,20 @@ export declare class HabilidadesController {
             };
         } & {
             id: number;
+            habilidadeId: number;
             valor: number;
             tipoGrauCodigo: string;
-            habilidadeId: number;
             escalonamentoPorNivel: import("@prisma/client/runtime/library").JsonValue | null;
         })[];
     } & {
-        origem: string | null;
         id: number;
         nome: string;
         descricao: string | null;
+        tipo: string;
+        origem: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
-        tipo: string;
         hereditaria: boolean;
         mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
@@ -127,20 +127,20 @@ export declare class HabilidadesController {
             };
         } & {
             id: number;
+            habilidadeId: number;
             valor: number;
             tipoGrauCodigo: string;
-            habilidadeId: number;
             escalonamentoPorNivel: import("@prisma/client/runtime/library").JsonValue | null;
         })[];
     } & {
-        origem: string | null;
         id: number;
         nome: string;
         descricao: string | null;
+        tipo: string;
+        origem: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
-        tipo: string;
         hereditaria: boolean;
         mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
@@ -152,20 +152,20 @@ export declare class HabilidadesController {
             };
         } & {
             id: number;
+            habilidadeId: number;
             valor: number;
             tipoGrauCodigo: string;
-            habilidadeId: number;
             escalonamentoPorNivel: import("@prisma/client/runtime/library").JsonValue | null;
         })[];
     } & {
-        origem: string | null;
         id: number;
         nome: string;
         descricao: string | null;
+        tipo: string;
+        origem: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
-        tipo: string;
         hereditaria: boolean;
         mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
     }>;

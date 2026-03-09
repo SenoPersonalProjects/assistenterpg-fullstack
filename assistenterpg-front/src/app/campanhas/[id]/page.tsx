@@ -16,7 +16,8 @@ import { Button } from '@/components/ui/Button';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { CampaignHeader } from '@/components/campanha/CampaignHeader';
 import { CampaignMembersSection } from '@/components/campanha/CampaignMembersSection';
-import { CampaignSessionsPlaceholder } from '@/components/campanha/CampaignSessionsPlaceholder';
+import { CampaignCharactersSection } from '@/components/campanha/CampaignCharactersSection';
+import { CampaignSessionsSection } from '@/components/campanha/CampaignSessionsSection';
 import { InviteMemberForm } from '@/components/campanha/InviteMemberForm';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
@@ -200,6 +201,11 @@ export default function CampanhaDetalhePage() {
   }
 
   const dataCriacao = new Date(campanha.criadoEm).toLocaleDateString('pt-BR');
+  const papelDoUsuario =
+    campanha.membros.find((membro) => membro.usuarioId === usuario?.id)?.papel ??
+    null;
+  const usuarioEhMestre =
+    usuario?.id === campanha.donoId || papelDoUsuario === 'MESTRE';
 
   return (
     <main className="min-h-screen bg-app-bg p-6">
@@ -266,6 +272,28 @@ export default function CampanhaDetalhePage() {
           />
         </section>
 
+        <section>
+          <SectionTitle>Personagens da campanha</SectionTitle>
+          <CampaignCharactersSection
+            campanhaId={campanha.id}
+            usuarioId={usuario?.id ?? 0}
+            usuarioEhMestre={Boolean(usuarioEhMestre)}
+            onTotalPersonagensChange={(total) =>
+              setCampanha((anterior) =>
+                anterior
+                  ? {
+                      ...anterior,
+                      _count: {
+                        ...anterior._count,
+                        personagens: total,
+                      },
+                    }
+                  : anterior,
+              )
+            }
+          />
+        </section>
+
         {/* ✅ Convites (somente dono) */}
         {usuario?.id === campanha.donoId && (
           <section>
@@ -281,10 +309,26 @@ export default function CampanhaDetalhePage() {
           </section>
         )}
 
-        {/* ✅ Sessões (placeholder) */}
+        {/* ✅ Sessões */}
         <section>
           <SectionTitle>Sessões</SectionTitle>
-          <CampaignSessionsPlaceholder />
+          <CampaignSessionsSection
+            campanhaId={campanha.id}
+            usuarioEhMestre={Boolean(usuarioEhMestre)}
+            onTotalSessoesChange={(total) =>
+              setCampanha((anterior) =>
+                anterior
+                  ? {
+                      ...anterior,
+                      _count: {
+                        ...anterior._count,
+                        sessoes: total,
+                      },
+                    }
+                  : anterior,
+              )
+            }
+          />
         </section>
 
         {/* ✅ Botão de voltar no final da página */}

@@ -1,7 +1,7 @@
 // app/personagens-base/novo/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   apiGetCatalogosBasicos,
@@ -10,6 +10,7 @@ import {
   apiCreatePersonagemBase,
   apiGetTodosEquipamentos,
   apiGetTodasModificacoes,
+  apiGetMeusSuplementosAtivos,
   extrairMensagemErro,
   traduzirErro,
   ClasseCatalogo,
@@ -25,12 +26,26 @@ import {
   PericiaCatalogo,
   EquipamentoCatalogo,
   ModificacaoCatalogo,
+  SuplementoCatalogo,
 } from '@/lib/api';
+import { apiGetHomebrews, apiGetMeusHomebrews, type HomebrewResumo } from '@/lib/api/homebrews';
 import { useAuth } from '@/context/AuthContext';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Icon } from '@/components/ui/Icon';
 import { PersonagemBaseWizard } from '@/components/personagem-base/create/wizard/PersonagemBaseWizard';
+import { FontesConteudoModal } from '@/components/personagem-base/create/modal/FontesConteudoModal';
+import {
+  FONTES_CONTEUDO_INICIAIS,
+  type FontesConteudoSelecionadas,
+  carregarFontesConteudoSalvas,
+  criarChaveFontesConteudo,
+  filtrarListaPorFontes,
+  normalizarFontesConteudoSelecionadas,
+  salvarFontesConteudo,
+} from '@/lib/utils/fontes-conteudo';
 
 function mensagemErroNovoPersonagem(error: unknown, contexto: 'catalogos' | 'criar'): string {
   const status = Number(
@@ -61,6 +76,64 @@ function mensagemErroNovoPersonagem(error: unknown, contexto: 'catalogos' | 'cri
   return base;
 }
 
+async function carregarHomebrewsAcessiveis(): Promise<HomebrewResumo[]> {
+  async function carregarTodasPaginas(
+    callback: (pagina: number) => Promise<{ items: HomebrewResumo[]; totalPages: number }>,
+  ): Promise<HomebrewResumo[]> {
+    const primeiraPagina = await callback(1);
+    const itens = [...(primeiraPagina.items ?? [])];
+    const totalPaginas = Math.max(1, primeiraPagina.totalPages || 1);
+
+    if (totalPaginas <= 1) {
+      return itens;
+    }
+
+    const promessasPaginas: Array<Promise<{ items: HomebrewResumo[] }>> = [];
+    for (let pagina = 2; pagina <= totalPaginas; pagina += 1) {
+      promessasPaginas.push(callback(pagina));
+    }
+
+    const paginasRestantes = await Promise.all(promessasPaginas);
+    for (const pagina of paginasRestantes) {
+      if (Array.isArray(pagina.items) && pagina.items.length > 0) {
+        itens.push(...pagina.items);
+      }
+    }
+
+    return itens;
+  }
+
+  const [homebrewsPublicas, minhasHomebrews] = await Promise.all([
+    carregarTodasPaginas((pagina) =>
+      apiGetHomebrews({ apenasPublicados: true, pagina, limite: 100 }),
+    ),
+    carregarTodasPaginas((pagina) => apiGetMeusHomebrews({ pagina, limite: 100 })),
+  ]);
+
+  const porId = new Map<number, HomebrewResumo>();
+  for (const homebrew of [...minhasHomebrews, ...homebrewsPublicas]) {
+    if (homebrew.status === 'ARQUIVADO') continue;
+    porId.set(homebrew.id, homebrew);
+  }
+
+  return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+function sanitizarSelecaoComAcesso(
+  selecao: FontesConteudoSelecionadas,
+  suplementosAcessiveis: SuplementoCatalogo[],
+  homebrewsAcessiveis: HomebrewResumo[],
+): FontesConteudoSelecionadas {
+  const normalizada = normalizarFontesConteudoSelecionadas(selecao);
+  const suplementoIdsValidos = new Set(suplementosAcessiveis.map((item) => item.id));
+  const homebrewIdsValidos = new Set(homebrewsAcessiveis.map((item) => item.id));
+
+  return {
+    suplementoIds: normalizada.suplementoIds.filter((id) => suplementoIdsValidos.has(id)),
+    homebrewIds: normalizada.homebrewIds.filter((id) => homebrewIdsValidos.has(id)),
+  };
+}
+
 export default function NovoPersonagemBasePage() {
   const router = useRouter();
   const { usuario, loading: authLoading } = useAuth();
@@ -75,6 +148,12 @@ export default function NovoPersonagemBasePage() {
   const [pericias, setPericias] = useState<PericiaCatalogo[]>([]);
   const [equipamentos, setEquipamentos] = useState<EquipamentoCatalogo[]>([]);
   const [modificacoes, setModificacoes] = useState<ModificacaoCatalogo[]>([]);
+  const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
+  const [homebrews, setHomebrews] = useState<HomebrewResumo[]>([]);
+  const [fontesSelecionadas, setFontesSelecionadas] =
+    useState<FontesConteudoSelecionadas>(FONTES_CONTEUDO_INICIAIS);
+  const [fontesModalOpen, setFontesModalOpen] = useState(false);
+  const [fontesModalVersion, setFontesModalVersion] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -86,6 +165,8 @@ export default function NovoPersonagemBasePage() {
     }
 
     if (!authLoading && usuario) {
+      const usuarioId = Number.isInteger(usuario.id) && usuario.id > 0 ? usuario.id : null;
+
       async function carregarCatalogos() {
         try {
           setErro(null);
@@ -93,10 +174,14 @@ export default function NovoPersonagemBasePage() {
             catalogosBasicos,
             equipamentosCompletos,
             modificacoesCompletas,
+            suplementosAtivos,
+            homebrewsAcessiveis,
           ] = await Promise.all([
             apiGetCatalogosBasicos(),
             apiGetTodosEquipamentos({ limitePorPagina: 100 }),
             apiGetTodasModificacoes({ limitePorPagina: 100 }),
+            apiGetMeusSuplementosAtivos(),
+            carregarHomebrewsAcessiveis(),
           ]);
 
           setClasses(catalogosBasicos.classes);
@@ -109,6 +194,27 @@ export default function NovoPersonagemBasePage() {
           setPericias(catalogosBasicos.pericias);
           setEquipamentos(equipamentosCompletos);
           setModificacoes(modificacoesCompletas);
+          setSuplementos(suplementosAtivos);
+          setHomebrews(homebrewsAcessiveis);
+
+          const selecaoSalva = usuarioId ? carregarFontesConteudoSalvas(usuarioId) : null;
+
+          const selecaoInicial = sanitizarSelecaoComAcesso(
+            selecaoSalva ?? FONTES_CONTEUDO_INICIAIS,
+            suplementosAtivos,
+            homebrewsAcessiveis,
+          );
+
+          setFontesSelecionadas(selecaoInicial);
+
+          if (selecaoSalva && usuarioId) {
+            salvarFontesConteudo(usuarioId, selecaoInicial);
+          }
+
+          if (!selecaoSalva) {
+            setFontesModalVersion((version) => version + 1);
+            setFontesModalOpen(true);
+          }
         } catch (e) {
           setErro(mensagemErroNovoPersonagem(e, 'catalogos'));
         } finally {
@@ -121,12 +227,65 @@ export default function NovoPersonagemBasePage() {
   }, [authLoading, usuario, router]);
 
   const carregarTrilhasDaClasse = async (classeId: number): Promise<TrilhaCatalogo[]> => {
-    return apiGetTrilhasDaClasse(classeId);
+    const trilhas = await apiGetTrilhasDaClasse(classeId);
+    return filtrarListaPorFontes(trilhas, fontesSelecionadas);
   };
 
   const carregarCaminhosDaTrilha = async (trilhaId: number): Promise<CaminhoCatalogo[]> => {
-    return apiGetCaminhosDaTrilha(trilhaId);
+    const caminhos = await apiGetCaminhosDaTrilha(trilhaId);
+    return filtrarListaPorFontes(caminhos, fontesSelecionadas);
   };
+
+  const classesFiltradas = useMemo(
+    () => filtrarListaPorFontes(classes, fontesSelecionadas),
+    [classes, fontesSelecionadas],
+  );
+  const clasFiltrados = useMemo(
+    () => filtrarListaPorFontes(clas, fontesSelecionadas),
+    [clas, fontesSelecionadas],
+  );
+  const origensFiltradas = useMemo(
+    () => filtrarListaPorFontes(origens, fontesSelecionadas),
+    [origens, fontesSelecionadas],
+  );
+  const tecnicasInatasFiltradas = useMemo(
+    () => filtrarListaPorFontes(tecnicasInatas, fontesSelecionadas),
+    [tecnicasInatas, fontesSelecionadas],
+  );
+  const equipamentosFiltrados = useMemo(
+    () => filtrarListaPorFontes(equipamentos, fontesSelecionadas),
+    [equipamentos, fontesSelecionadas],
+  );
+  const modificacoesFiltradas = useMemo(
+    () => filtrarListaPorFontes(modificacoes, fontesSelecionadas),
+    [modificacoes, fontesSelecionadas],
+  );
+
+  const chaveFontesWizard = useMemo(
+    () => criarChaveFontesConteudo(fontesSelecionadas),
+    [fontesSelecionadas],
+  );
+
+  const resumoFontes = useMemo(() => {
+    return {
+      suplementos: fontesSelecionadas.suplementoIds.length,
+      homebrews: fontesSelecionadas.homebrewIds.length,
+    };
+  }, [fontesSelecionadas]);
+
+  function handleAplicarFontes(selecao: FontesConteudoSelecionadas) {
+    const selecaoSanitizada = sanitizarSelecaoComAcesso(selecao, suplementos, homebrews);
+    setFontesSelecionadas(selecaoSanitizada);
+
+    if (typeof usuario?.id === 'number' && usuario.id > 0) {
+      salvarFontesConteudo(usuario.id, selecaoSanitizada);
+    }
+  }
+
+  function abrirModalFontes() {
+    setFontesModalVersion((version) => version + 1);
+    setFontesModalOpen(true);
+  }
 
   async function handleCreate(data: CreatePersonagemBasePayload) {
     try {
@@ -164,22 +323,60 @@ export default function NovoPersonagemBasePage() {
 
         {erro && <ErrorAlert message={erro} />}
 
+        <section className="rounded-lg border border-app-border bg-app-surface p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-app-fg">
+                Fontes habilitadas para esta criacao
+              </p>
+              <p className="text-xs text-app-muted">
+                Sistema base (fixo) + {resumoFontes.suplementos} suplemento(s) +{' '}
+                {resumoFontes.homebrews} homebrew(s)
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Badge color="green" size="sm">
+                Base
+              </Badge>
+              <Button variant="secondary" size="sm" onClick={abrirModalFontes}>
+                <Icon name="settings" className="w-4 h-4 mr-2" />
+                Escolher fontes
+              </Button>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-app-muted">
+            Alterar as fontes reinicia o wizard para manter as validacoes coerentes.
+          </p>
+        </section>
+
         <PersonagemBaseWizard
-          classes={classes}
-          clas={clas}
-          origens={origens}
+          key={chaveFontesWizard}
+          classes={classesFiltradas}
+          clas={clasFiltrados}
+          origens={origensFiltradas}
           proficiencias={proficiencias}
           tiposGrau={tiposGrau}
-          tecnicasInatas={tecnicasInatas}
+          tecnicasInatas={tecnicasInatasFiltradas}
           alinhamentos={alinhamentos}
           pericias={pericias}
-          equipamentos={equipamentos}
-          modificacoes={modificacoes}
+          equipamentos={equipamentosFiltrados}
+          modificacoes={modificacoesFiltradas}
           carregarTrilhasDaClasse={carregarTrilhasDaClasse}
           carregarCaminhosDaTrilha={carregarCaminhosDaTrilha}
           onSubmitCreate={handleCreate}
         />
       </div>
+
+      <FontesConteudoModal
+        key={fontesModalVersion}
+        isOpen={fontesModalOpen}
+        onClose={() => setFontesModalOpen(false)}
+        onConfirm={handleAplicarFontes}
+        suplementos={suplementos}
+        homebrews={homebrews}
+        selecaoAtual={fontesSelecionadas}
+      />
     </main>
   );
 }

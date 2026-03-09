@@ -1,0 +1,18 @@
+export const CAMPOS_MODIFICADOR_PERSONAGEM_CAMPANHA = [
+  'PV_MAX',
+  'PE_MAX',
+  'EA_MAX',
+  'SAN_MAX',
+  'DEFESA_BASE',
+  'DEFESA_EQUIPAMENTO',
+  'DEFESA_OUTROS',
+  'ESQUIVA',
+  'BLOQUEIO',
+  'DESLOCAMENTO',
+  'LIMITE_PE_EA_POR_TURNO',
+  'PRESTIGIO_GERAL',
+  'PRESTIGIO_CLA',
+] as const;
+
+export type CampoModificadorPersonagemCampanha =
+  (typeof CAMPOS_MODIFICADOR_PERSONAGEM_CAMPANHA)[number];

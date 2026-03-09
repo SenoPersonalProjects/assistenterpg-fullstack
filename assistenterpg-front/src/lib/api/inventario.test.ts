@@ -80,9 +80,10 @@ describe('inventario api preview cache and dedupe', () => {
   });
 
   it('dedupes in-flight preview request and serves from cache', async () => {
-    let resolver: ((value: unknown) => void) | null = null;
+    type PreviewResponse = { data: ReturnType<typeof buildPreviewResponse> };
+    let resolver!: (value: PreviewResponse) => void;
     mockedApiClient.post.mockReturnValueOnce(
-      new Promise((resolve) => {
+      new Promise<PreviewResponse>((resolve) => {
         resolver = resolve;
       }),
     );
@@ -93,7 +94,7 @@ describe('inventario api preview cache and dedupe', () => {
     expect(mockedApiClient.post).toHaveBeenCalledTimes(1);
     expect(mockedApiClient.post).toHaveBeenCalledWith('/inventario/preview', payload);
 
-    resolver?.({ data: buildPreviewResponse('A') });
+    resolver({ data: buildPreviewResponse('A') });
 
     const [r1, r2] = await Promise.all([p1, p2]);
 

@@ -9,6 +9,7 @@ import { Icon, IconName } from '@/components/ui/Icon';
 
 type HomebrewCardProps = {
   homebrew: HomebrewResumo;
+  onView: () => void;
   onEdit: () => void;
   onPublicar: () => void;
   onArquivar: () => void;
@@ -40,6 +41,7 @@ const STATUS_COLOR: Record<StatusPublicacao, 'green' | 'yellow' | 'gray'> = {
 
 export function HomebrewCard({
   homebrew,
+  onView,
   onEdit,
   onPublicar,
   onArquivar,
@@ -53,7 +55,19 @@ export function HomebrewCard({
   const podeEditar = homebrew.status !== 'ARQUIVADO';
 
   return (
-    <Card className="flex flex-col h-full hover:border-app-primary/50 transition-colors">
+    <Card
+      className="flex flex-col h-full cursor-pointer hover:border-app-primary/50 transition-colors"
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir homebrew ${homebrew.nome}`}
+      onClick={onView}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onView();
+        }
+      }}
+    >
       {/* Header com tipo e ícone */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -131,7 +145,10 @@ export function HomebrewCard({
               variant="secondary"
               size="sm"
               className="w-full"
-              onClick={onEdit}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit();
+              }}
               disabled={processando}
             >
               <Icon name="edit" className="w-4 h-4 mr-2" />
@@ -146,7 +163,10 @@ export function HomebrewCard({
                 variant="primary"
                 size="sm"
                 className="flex-1"
-                onClick={onPublicar}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onPublicar();
+                }}
                 disabled={processando}
               >
                 {processando ? (
@@ -168,7 +188,10 @@ export function HomebrewCard({
                 variant="secondary"
                 size="sm"
                 className="flex-1"
-                onClick={onArquivar}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onArquivar();
+                }}
                 disabled={processando}
               >
                 {processando ? (
@@ -190,7 +213,10 @@ export function HomebrewCard({
               variant="ghost"
               size="sm"
               className="text-app-danger hover:bg-app-danger/10"
-              onClick={onDelete}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete();
+              }}
               disabled={processando}
             >
               <Icon name="delete" className="w-4 h-4" />
@@ -202,7 +228,15 @@ export function HomebrewCard({
       {/* Se não é dono, mostrar apenas visualizar */}
       {!isOwner && (
         <div className="mt-4 pt-4 border-t border-app-border">
-          <Button variant="ghost" size="sm" className="w-full" onClick={onEdit}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            onClick={(event) => {
+              event.stopPropagation();
+              onView();
+            }}
+          >
             <Icon name="eye" className="w-4 h-4 mr-2" />
             Visualizar
           </Button>

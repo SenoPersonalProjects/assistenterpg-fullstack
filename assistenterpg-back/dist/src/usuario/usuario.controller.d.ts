@@ -11,11 +11,11 @@ export declare class UsuarioController {
         };
     }): Promise<{
         id: number;
-        email: string;
         apelido: string;
-        role: import("@prisma/client").$Enums.RoleUsuario;
+        email: string;
         criadoEm: Date;
         atualizadoEm: Date;
+        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     obterEstatisticas(req: {
         user: {
@@ -31,30 +31,30 @@ export declare class UsuarioController {
             id: number;
         };
     }): Promise<{
+        id: number;
+        criadoEm: Date;
+        atualizadoEm: Date;
+        usuarioId: number;
         notificacoesEmail: boolean;
         notificacoesPush: boolean;
         notificacoesConvites: boolean;
         notificacoesAtualizacoes: boolean;
         idioma: string;
-        id: number;
-        criadoEm: Date;
-        atualizadoEm: Date;
-        usuarioId: number;
     }>;
     atualizarPreferencias(req: {
         user: {
             id: number;
         };
     }, dto: AtualizarPreferenciasDto): Promise<{
+        id: number;
+        criadoEm: Date;
+        atualizadoEm: Date;
+        usuarioId: number;
         notificacoesEmail: boolean;
         notificacoesPush: boolean;
         notificacoesConvites: boolean;
         notificacoesAtualizacoes: boolean;
         idioma: string;
-        id: number;
-        criadoEm: Date;
-        atualizadoEm: Date;
-        usuarioId: number;
     }>;
     alterarSenha(req: {
         user: {
@@ -71,25 +71,36 @@ export declare class UsuarioController {
         exportadoEm: string;
         usuario: {
             id: number;
-            email: string;
             apelido: string;
-            role: import("@prisma/client").$Enums.RoleUsuario;
+            email: string;
             criadoEm: Date;
+            role: import("@prisma/client").$Enums.RoleUsuario;
         } | null;
         personagens: ({
+            origem: {
+                id: number;
+                nome: string;
+                descricao: string | null;
+                requisitosTexto: string | null;
+                requerGrandeCla: boolean;
+                requerTecnicaHeriditaria: boolean;
+                bloqueiaTecnicaHeriditaria: boolean;
+                fonte: import("@prisma/client").$Enums.TipoFonte;
+                suplementoId: number | null;
+            };
             classe: {
                 id: number;
                 nome: string;
                 descricao: string | null;
-                periciasLivresBase: number;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
+                periciasLivresBase: number;
             };
             trilha: {
                 id: number;
                 nome: string;
-                classeId: number;
                 descricao: string | null;
+                classeId: number;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: import("@prisma/client/runtime/library").JsonValue | null;
@@ -97,8 +108,8 @@ export declare class UsuarioController {
             caminho: {
                 id: number;
                 nome: string;
-                trilhaId: number;
                 descricao: string | null;
+                trilhaId: number;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
             } | null;
@@ -106,20 +117,9 @@ export declare class UsuarioController {
                 id: number;
                 nome: string;
                 descricao: string | null;
-                fonte: import("@prisma/client").$Enums.TipoFonte;
-                suplementoId: number | null;
                 grandeCla: boolean;
-            };
-            origem: {
-                id: number;
-                nome: string;
-                descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitosTexto: string | null;
-                requerGrandeCla: boolean;
-                requerTecnicaHeriditaria: boolean;
-                bloqueiaTecnicaHeriditaria: boolean;
             };
             tecnicaInata: {
                 id: number;
@@ -127,11 +127,11 @@ export declare class UsuarioController {
                 atualizadoEm: Date;
                 nome: string;
                 descricao: string;
+                tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
+                codigo: string;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: import("@prisma/client/runtime/library").JsonValue | null;
-                codigo: string;
-                tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
                 hereditaria: boolean;
                 linkExterno: string | null;
             } | null;
@@ -150,8 +150,8 @@ export declare class UsuarioController {
             intelecto: number;
             presenca: number;
             vigor: number;
-            estudouEscolaTecnica: boolean;
             tecnicaInataId: number | null;
+            estudouEscolaTecnica: boolean;
             passivasAtributosAtivos: import("@prisma/client/runtime/library").JsonValue | null;
             passivasAtributosConfig: import("@prisma/client/runtime/library").JsonValue | null;
             proficienciasExtrasCodigos: import("@prisma/client/runtime/library").JsonValue | null;
@@ -190,8 +190,8 @@ export declare class UsuarioController {
                 };
             } & {
                 id: number;
-                usuarioId: number;
                 campanhaId: number;
+                usuarioId: number;
                 papel: string;
                 entrouEm: Date;
             })[];
@@ -205,15 +205,15 @@ export declare class UsuarioController {
             status: string;
         })[];
         preferencias: {
+            id: number;
+            criadoEm: Date;
+            atualizadoEm: Date;
+            usuarioId: number;
             notificacoesEmail: boolean;
             notificacoesPush: boolean;
             notificacoesConvites: boolean;
             notificacoesAtualizacoes: boolean;
             idioma: string;
-            id: number;
-            criadoEm: Date;
-            atualizadoEm: Date;
-            usuarioId: number;
         } | null;
     }>;
     excluirConta(req: {

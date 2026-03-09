@@ -1,6 +1,7 @@
 // src/components/suplemento/HomebrewForm.tsx
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -78,6 +79,21 @@ function extrairMensagensDetalhes(details: unknown): string[] {
   return [];
 }
 
+function parseTagsInput(value: string): string[] {
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+}
+
+function tagsIguais(atual: string[], proxima: string[]): boolean {
+  if (atual.length !== proxima.length) {
+    return false;
+  }
+
+  return atual.every((tag, index) => tag === proxima[index]);
+}
+
 export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
   const {
     tipo,
@@ -103,14 +119,18 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
     reset,
   } = useHomebrewForm({ initialValues });
 
-  const tagsString = tags.join(", ");
+  const [tagsInput, setTagsInput] = useState(() => tags.join(", "));
+
+  useEffect(() => {
+    setTagsInput(tags.join(", "));
+  }, [tags]);
 
   function handleTagsChange(value: string) {
-    const tagsArray = value
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
-    setTags(tagsArray);
+    setTagsInput(value);
+    const tagsArray = parseTagsInput(value);
+    if (!tagsIguais(tags, tagsArray)) {
+      setTags(tagsArray);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent, criarOutro = false) {
@@ -234,7 +254,7 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Tags"
-                value={tagsString}
+                value={tagsInput}
                 onChange={(e) => handleTagsChange(e.target.value)}
                 placeholder="Ex: combate, suporte (separar por vírgula)"
               />

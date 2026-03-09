@@ -32,6 +32,8 @@ const condicoes_module_1 = require("./condicoes/condicoes.module");
 const tecnicas_amaldicoadas_module_1 = require("./tecnicas-amaldicoadas/tecnicas-amaldicoadas.module");
 const suplementos_module_1 = require("./suplementos/suplementos.module");
 const homebrews_module_1 = require("./homebrews/homebrews.module");
+const sessao_module_1 = require("./sessao/sessao.module");
+const npcs_ameacas_module_1 = require("./npcs-ameacas/npcs-ameacas.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -60,6 +62,8 @@ exports.AppModule = AppModule = __decorate([
             tecnicas_amaldicoadas_module_1.TecnicasAmaldicoadasModule,
             suplementos_module_1.SuplementosModule,
             homebrews_module_1.HomebrewsModule,
+            sessao_module_1.SessaoModule,
+            npcs_ameacas_module_1.NpcsAmeacasModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

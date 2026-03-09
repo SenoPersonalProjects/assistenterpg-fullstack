@@ -22,3 +22,4 @@ export * from './modificacoes';
 export * from './inventario';
 export * from './pagination';
 export * from './suplemento-conteudos';
+export * from './npcs-ameacas';

@@ -7,11 +7,11 @@ export declare class AuthService {
     constructor(usuarioService: UsuarioService, jwtService: JwtService);
     validarUsuario(email: string, senha: string): Promise<{
         id: number;
-        email: string;
         apelido: string;
-        role: import("@prisma/client").$Enums.RoleUsuario;
+        email: string;
         criadoEm: Date;
         atualizadoEm: Date;
+        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     login(usuario: {
         id: number;
