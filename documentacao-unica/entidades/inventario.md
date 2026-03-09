@@ -247,6 +247,12 @@ Tambem podem surgir erros de banco (via `database.exception.ts`), por exemplo:
 - `DB_FOREIGN_KEY_VIOLATION`
 - `DB_RECORD_NOT_FOUND`
 
+Para erros de validacao de DTO (`400`):
+
+- `code` esperado: `VALIDATION_ERROR`
+- `details.validationErrors`: lista de mensagens de validacao
+- `field`: quando possivel, o backend infere o primeiro campo invalido a partir da mensagem (ex.: `quantidade`)
+
 ## Consistencia com schema (Prisma)
 
 Modelos e constraints relevantes:

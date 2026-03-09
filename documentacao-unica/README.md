@@ -192,6 +192,7 @@ Observacoes:
 - resposta de erro retorna `traceId` e tambem envia o header `x-request-id`
 - campo `error` segue o nome HTTP padrao (`Bad Request`, `Unauthorized`, etc.)
 - para validacao de DTO (`400`), o backend usa `code: VALIDATION_ERROR` e inclui `details.validationErrors`
+- para validacao de DTO (`400`), o backend tenta inferir `field` com base na primeira mensagem de validacao (ex.: `quantidade`)
 - para validacoes de `fonte/suplementoId`, os codigos esperados sao `FONTE_SUPLEMENTO_OBRIGATORIA` e `SUPLEMENTO_ID_OBRIGATORIO`
 - em `NODE_ENV=development`, o backend pode incluir `stack` e `errorType`
 - mapa de erro por entidade e acao de debug: [`entidades/erros-operacao-debug.md`](./entidades/erros-operacao-debug.md)
@@ -1558,6 +1559,8 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
 - backend contrato de DTO do inventario:
   - [`assistenterpg-back/src/inventario/dto/adicionar-item.dto.ts`](../assistenterpg-back/src/inventario/dto/adicionar-item.dto.ts) e [`assistenterpg-back/src/inventario/dto/atualizar-item.dto.ts`](../assistenterpg-back/src/inventario/dto/atualizar-item.dto.ts): parse de boolean/int ficou estrito para evitar fallback silencioso em payload invalido (ex.: `"abc"` nao vira `false` nem `3`)
   - [`assistenterpg-back/src/inventario/dto/adicionar-item.dto.spec.ts`](../assistenterpg-back/src/inventario/dto/adicionar-item.dto.spec.ts) e [`assistenterpg-back/src/inventario/dto/atualizar-item.dto.spec.ts`](../assistenterpg-back/src/inventario/dto/atualizar-item.dto.spec.ts) cobrem conversoes validas e rejeicao de entradas invalidas
+  - [`assistenterpg-back/src/common/http/error-response.util.ts`](../assistenterpg-back/src/common/http/error-response.util.ts): `VALIDATION_ERROR` agora tenta inferir `field` a partir das mensagens do class-validator
+  - [`assistenterpg-back/src/common/filters/error-contract.integration.spec.ts`](../assistenterpg-back/src/common/filters/error-contract.integration.spec.ts) valida o contrato de erro para `PATCH /inventario/item/:itemId` com payload invalido
 - backend contrato de catalogos menores:
   - IDs de rota de [`assistenterpg-back/src/classes/classes.controller.ts`](../assistenterpg-back/src/classes/classes.controller.ts), [`assistenterpg-back/src/pericias/pericias.controller.ts`](../assistenterpg-back/src/pericias/pericias.controller.ts), [`assistenterpg-back/src/proficiencias/proficiencias.controller.ts`](../assistenterpg-back/src/proficiencias/proficiencias.controller.ts) e [`assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts`](../assistenterpg-back/src/tipos-grau/tipos-grau.controller.ts) agora usam `ParseIntPipe` para falhar com 400 em params invalidos
   - DTOs [`assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/create-proficiencia.dto.ts), [`assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts`](../assistenterpg-back/src/proficiencias/dto/update-proficiencia.dto.ts), [`assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/create-tipo-grau.dto.ts) e [`assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts`](../assistenterpg-back/src/tipos-grau/dto/update-tipo-grau.dto.ts) agora possuem validacao `class-validator` consistente com `ValidationPipe` global

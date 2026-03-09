@@ -68,6 +68,28 @@ function statusLabel(statusCode: number): string {
     .join(' ');
 }
 
+function inferFieldFromValidationMessages(
+  message: string[],
+): string | undefined {
+  for (const validationMessage of message) {
+    const eachMatch = validationMessage.match(
+      /^each value in ([A-Za-z0-9_.[\]-]+)\s/,
+    );
+    if (eachMatch?.[1]) {
+      return eachMatch[1];
+    }
+
+    const directMatch = validationMessage.match(
+      /^([A-Za-z0-9_.[\]-]+)\s(?:must|should|cannot|has|is)\b/,
+    );
+    if (directMatch?.[1]) {
+      return directMatch[1];
+    }
+  }
+
+  return undefined;
+}
+
 function defaultCodeFor(
   statusCode: number,
   message: string | string[],
@@ -147,6 +169,11 @@ export function normalizeHttpExceptionPayload(
     error: explicitError ?? statusLabel(statusCode),
     message,
     details: baseException?.details ?? details,
-    field: baseException?.field ?? fieldFromResponse,
+    field:
+      baseException?.field ??
+      fieldFromResponse ??
+      (Array.isArray(message)
+        ? inferFieldFromValidationMessages(message)
+        : undefined),
   };
 }

@@ -5,6 +5,7 @@ import {
   Get,
   HttpStatus,
   INestApplication,
+  Patch,
   Post,
   Param,
   ValidationPipe,
@@ -16,6 +17,7 @@ import { App } from 'supertest/types';
 import { BaseException } from '../exceptions/base.exception';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { HttpExceptionFilter } from './http-exception.filter';
+import { AtualizarItemDto } from '../../inventario/dto/atualizar-item.dto';
 
 class CriarCampanhaTesteDto {
   @IsString()
@@ -73,6 +75,14 @@ class InventarioErroTesteController {
   @Get('quebra')
   quebra() {
     throw new Error('erro inesperado de inventario');
+  }
+
+  @Patch('item/:itemId')
+  atualizarItem(
+    @Param('itemId') itemId: string,
+    @Body() body: AtualizarItemDto,
+  ) {
+    return { ok: true, itemId: Number(itemId), body };
   }
 }
 
@@ -207,5 +217,29 @@ describe('ErrorContract (integration)', () => {
     expect(body.error).toBe('Internal Server Error');
     expect(body.message).toBe('Erro interno no servidor');
     expect(typeof body.traceId).toBe('string');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid inventario patch payload', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/inventario/item/10')
+      .send({ quantidade: '3abc' })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('quantidade');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) => String(msg).includes('quantidade')),
+    ).toBe(true);
+    expect(body.path).toBe('/inventario/item/10');
+    expect(body.method).toBe('PATCH');
   });
 });

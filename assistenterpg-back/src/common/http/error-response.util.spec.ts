@@ -60,6 +60,22 @@ describe('error-response.util', () => {
       expect(payload.details).toEqual({
         validationErrors: ['nome must be a string'],
       });
+      expect(payload.field).toBe('nome');
+    });
+
+    it('deve inferir field para mensagens "each value in ..."', () => {
+      const payload = normalizeHttpExceptionPayload(
+        HttpStatus.BAD_REQUEST,
+        {
+          statusCode: 400,
+          message: ['each value in modificacoes must be an integer number'],
+          error: 'Bad Request',
+        },
+        'Erro padrao',
+      );
+
+      expect(payload.code).toBe('VALIDATION_ERROR');
+      expect(payload.field).toBe('modificacoes');
     });
 
     it('deve respeitar codigo explicito quando presente', () => {
