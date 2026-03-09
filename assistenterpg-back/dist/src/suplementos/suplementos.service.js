@@ -11,14 +11,26 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SuplementosService = void 0;
 const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
+const prisma_service_1 = require("../prisma/prisma.service");
 const suplemento_exception_1 = require("../common/exceptions/suplemento.exception");
 const database_exception_1 = require("../common/exceptions/database.exception");
 let SuplementosService = class SuplementosService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    tratarErroPrisma(error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError ||
+            error instanceof client_1.Prisma.PrismaClientValidationError) {
+            (0, database_exception_1.handlePrismaError)(error);
+        }
+    }
+    mapearTags(tags) {
+        if (!Array.isArray(tags)) {
+            return [];
+        }
+        return tags.filter((tag) => typeof tag === 'string');
     }
     async findAll(filtros, usuarioId) {
         try {
@@ -40,71 +52,84 @@ let SuplementosService = class SuplementosService {
                     some: { usuarioId },
                 };
             }
+            if (usuarioId) {
+                const suplementos = await this.prisma.suplemento.findMany({
+                    where,
+                    include: {
+                        usuariosAtivos: {
+                            where: { usuarioId },
+                        },
+                    },
+                    orderBy: { nome: 'asc' },
+                });
+                return suplementos.map((suplemento) => this.mapToDto(suplemento, usuarioId));
+            }
             const suplementos = await this.prisma.suplemento.findMany({
                 where,
-                include: {
-                    usuariosAtivos: usuarioId
-                        ? {
-                            where: { usuarioId },
-                        }
-                        : false,
-                },
                 orderBy: { nome: 'asc' },
             });
-            return suplementos.map((s) => this.mapToDto(s, usuarioId));
+            return suplementos.map((suplemento) => this.mapToDto(suplemento));
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
     async findOne(id, usuarioId) {
         try {
+            if (usuarioId) {
+                const suplemento = await this.prisma.suplemento.findUnique({
+                    where: { id },
+                    include: {
+                        usuariosAtivos: {
+                            where: { usuarioId },
+                        },
+                    },
+                });
+                if (!suplemento) {
+                    throw new suplemento_exception_1.SuplementoNaoEncontradoException(id);
+                }
+                return this.mapToDto(suplemento, usuarioId);
+            }
             const suplemento = await this.prisma.suplemento.findUnique({
                 where: { id },
-                include: {
-                    usuariosAtivos: usuarioId
-                        ? {
-                            where: { usuarioId },
-                        }
-                        : false,
-                },
             });
             if (!suplemento) {
                 throw new suplemento_exception_1.SuplementoNaoEncontradoException(id);
             }
-            return this.mapToDto(suplemento, usuarioId);
+            return this.mapToDto(suplemento);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
     async findByCodigo(codigo, usuarioId) {
         try {
+            if (usuarioId) {
+                const suplemento = await this.prisma.suplemento.findUnique({
+                    where: { codigo },
+                    include: {
+                        usuariosAtivos: {
+                            where: { usuarioId },
+                        },
+                    },
+                });
+                if (!suplemento) {
+                    throw new suplemento_exception_1.SuplementoNaoEncontradoException(codigo);
+                }
+                return this.mapToDto(suplemento, usuarioId);
+            }
             const suplemento = await this.prisma.suplemento.findUnique({
                 where: { codigo },
-                include: {
-                    usuariosAtivos: usuarioId
-                        ? {
-                            where: { usuarioId },
-                        }
-                        : false,
-                },
             });
             if (!suplemento) {
                 throw new suplemento_exception_1.SuplementoNaoEncontradoException(codigo);
             }
-            return this.mapToDto(suplemento, usuarioId);
+            return this.mapToDto(suplemento);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -132,9 +157,7 @@ let SuplementosService = class SuplementosService {
             return this.mapToDto(suplemento);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -166,9 +189,7 @@ let SuplementosService = class SuplementosService {
             return this.mapToDto(atualizado);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -213,9 +234,7 @@ let SuplementosService = class SuplementosService {
             await this.prisma.suplemento.delete({ where: { id } });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -235,12 +254,10 @@ let SuplementosService = class SuplementosService {
                 },
                 orderBy: { nome: 'asc' },
             });
-            return suplementos.map((s) => this.mapToDto(s, usuarioId));
+            return suplementos.map((suplemento) => this.mapToDto(suplemento, usuarioId));
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -274,9 +291,7 @@ let SuplementosService = class SuplementosService {
             });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -303,9 +318,7 @@ let SuplementosService = class SuplementosService {
             });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -314,16 +327,16 @@ let SuplementosService = class SuplementosService {
             id: suplemento.id,
             codigo: suplemento.codigo,
             nome: suplemento.nome,
-            descricao: suplemento.descricao,
+            descricao: suplemento.descricao ?? undefined,
             versao: suplemento.versao,
             status: suplemento.status,
-            icone: suplemento.icone,
-            banner: suplemento.banner,
-            tags: suplemento.tags && suplemento.tags !== client_1.Prisma.JsonNull
-                ? suplemento.tags
-                : [],
-            autor: suplemento.autor,
-            ativo: usuarioId ? suplemento.usuariosAtivos?.length > 0 : undefined,
+            icone: suplemento.icone ?? undefined,
+            banner: suplemento.banner ?? undefined,
+            tags: this.mapearTags(suplemento.tags),
+            autor: suplemento.autor ?? undefined,
+            ativo: usuarioId
+                ? (suplemento.usuariosAtivos?.length ?? 0) > 0
+                : undefined,
             criadoEm: suplemento.criadoEm,
             atualizadoEm: suplemento.atualizadoEm,
         };

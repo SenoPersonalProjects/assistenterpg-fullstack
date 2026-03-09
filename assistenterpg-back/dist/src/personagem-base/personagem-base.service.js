@@ -62,12 +62,73 @@ let PersonagemBaseService = class PersonagemBaseService {
     limparUndefinedDeepJson(value) {
         if (value === undefined)
             return undefined;
-        return JSON.parse(JSON.stringify(value));
+        const normalized = JSON.parse(JSON.stringify(value));
+        return normalized;
+    }
+    isRecord(value) {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+    getNestedRecord(value, key) {
+        if (!value)
+            return null;
+        const nested = value[key];
+        return this.isRecord(nested) ? nested : null;
+    }
+    getNumberField(value, key) {
+        if (!value)
+            return null;
+        const current = value[key];
+        return typeof current === 'number' ? current : null;
+    }
+    extrairItensPreviewInventario(value) {
+        if (!this.isRecord(value))
+            return [];
+        const itens = value.itens;
+        return Array.isArray(itens) ? itens : [];
     }
     removerItensInventarioDoDto(dto) {
         const clone = { ...dto };
         delete clone.itensInventario;
         return clone;
+    }
+    async sincronizarItensInventarioNoUpdate(donoId, personagemBaseId, itensInventario, tx) {
+        if (itensInventario === undefined) {
+            return;
+        }
+        await tx.inventarioItemBaseModificacao.deleteMany({
+            where: {
+                item: {
+                    personagemBaseId,
+                },
+            },
+        });
+        await tx.inventarioItemBase.deleteMany({
+            where: { personagemBaseId },
+        });
+        if (itensInventario.length === 0) {
+            await tx.personagemBase.update({
+                where: { id: personagemBaseId },
+                data: {
+                    espacosOcupados: 0,
+                    sobrecarregado: false,
+                },
+            });
+            return;
+        }
+        for (const item of itensInventario) {
+            await this.inventarioService.adicionarItem(donoId, {
+                personagemBaseId,
+                equipamentoId: item.equipamentoId,
+                quantidade: item.quantidade,
+                equipado: item.equipado ?? false,
+                modificacoes: item.modificacoesIds ?? [],
+                nomeCustomizado: item.nomeCustomizado,
+                notas: item.notas,
+            }, {
+                tx,
+                skipOwnershipCheck: true,
+            });
+        }
     }
     async resolverIdComReferencia(params) {
         const idsCandidatos = Array.from(new Set([params.idAtual, params.referencia?.id].filter((id) => typeof id === 'number' && Number.isInteger(id))));
@@ -90,7 +151,11 @@ let PersonagemBaseService = class PersonagemBaseService {
                 return encontrado;
         }
         if (params.obrigatorio || houveTentativaResolucao) {
-            throw new common_1.BadRequestException(`Nao foi possivel resolver a referencia de ${params.label} na importacao.`);
+            throw new common_1.BadRequestException({
+                code: 'REFERENCIA_IMPORTACAO_INVALIDA',
+                message: `Nao foi possivel resolver a referencia de ${params.label} na importacao.`,
+                details: { label: params.label },
+            });
         }
         return null;
     }
@@ -448,13 +513,14 @@ let PersonagemBaseService = class PersonagemBaseService {
             nomeCustomizado: item.nomeCustomizado,
         }));
         try {
-            const previewInventario = await this.inventarioService.previewItensInventario({
+            const previewInventario = (await this.inventarioService.previewItensInventario({
                 forca: dto.forca,
                 prestigioBase: dto.prestigioBase ?? 0,
                 itens: itensPreview,
-            });
+            }));
+            const itensValidados = this.extrairItensPreviewInventario(previewInventario);
             return {
-                itensValidados: previewInventario.itens ?? [],
+                itensValidados,
                 errosItens: [],
             };
         }
@@ -463,7 +529,7 @@ let PersonagemBaseService = class PersonagemBaseService {
             const errosItens = [];
             for (const item of dto.itensInventario) {
                 try {
-                    const previewItem = await this.inventarioService.previewItensInventario({
+                    const previewItem = (await this.inventarioService.previewItensInventario({
                         forca: dto.forca,
                         prestigioBase: dto.prestigioBase ?? 0,
                         itens: [
@@ -475,13 +541,19 @@ let PersonagemBaseService = class PersonagemBaseService {
                                 nomeCustomizado: item.nomeCustomizado,
                             },
                         ],
-                    });
-                    itensValidados.push(previewItem.itens[0]);
+                    }));
+                    const itensPreviewItem = this.extrairItensPreviewInventario(previewItem);
+                    if (itensPreviewItem[0]) {
+                        itensValidados.push(itensPreviewItem[0]);
+                    }
                 }
                 catch (error) {
+                    const erro = error instanceof Error
+                        ? error.message
+                        : 'Erro desconhecido ao validar item';
                     errosItens.push({
                         equipamentoId: item.equipamentoId,
-                        erro: error.message,
+                        erro,
                     });
                 }
             }
@@ -491,6 +563,16 @@ let PersonagemBaseService = class PersonagemBaseService {
     async buscarHabilidadesPersonagem(params, prisma = this.prisma) {
         const { nivel, origemId, classeId, trilhaId, caminhoId, tecnicaInataId, estudouEscolaTecnica, poderesGenericos, } = params;
         const habilidades = [];
+        const mapHabilidade = (habilidade) => ({
+            nome: habilidade.nome,
+            tipo: habilidade.tipo,
+            mecanicasEspeciais: habilidade.mecanicasEspeciais,
+            efeitosGrau: habilidade.efeitosGrau.map((efeito) => ({
+                tipoGrauCodigo: efeito.tipoGrauCodigo,
+                valor: efeito.valor,
+                escalonamentoPorNivel: efeito.escalonamentoPorNivel,
+            })),
+        });
         const habilidadesOrigem = await prisma.habilidadeOrigem.findMany({
             where: { origemId },
             include: {
@@ -501,7 +583,7 @@ let PersonagemBaseService = class PersonagemBaseService {
         });
         habilidades.push(...habilidadesOrigem.map((ho) => ({
             habilidadeId: ho.habilidadeId,
-            habilidade: ho.habilidade,
+            habilidade: mapHabilidade(ho.habilidade),
         })));
         const recursoClasse = await prisma.habilidadeClasse.findFirst({
             where: {
@@ -518,7 +600,7 @@ let PersonagemBaseService = class PersonagemBaseService {
         if (recursoClasse) {
             habilidades.push({
                 habilidadeId: recursoClasse.habilidadeId,
-                habilidade: recursoClasse.habilidade,
+                habilidade: mapHabilidade(recursoClasse.habilidade),
             });
         }
         const habilidadesClasse = await prisma.habilidadeClasse.findMany({
@@ -535,7 +617,7 @@ let PersonagemBaseService = class PersonagemBaseService {
         });
         habilidades.push(...habilidadesClasse.map((hc) => ({
             habilidadeId: hc.habilidadeId,
-            habilidade: hc.habilidade,
+            habilidade: mapHabilidade(hc.habilidade),
         })));
         if (trilhaId) {
             const habilidadesTrilha = await prisma.habilidadeTrilha.findMany({
@@ -552,7 +634,7 @@ let PersonagemBaseService = class PersonagemBaseService {
             });
             habilidades.push(...habilidadesTrilha.map((ht) => ({
                 habilidadeId: ht.habilidadeId,
-                habilidade: ht.habilidade,
+                habilidade: mapHabilidade(ht.habilidade),
             })));
         }
         if (caminhoId) {
@@ -569,7 +651,7 @@ let PersonagemBaseService = class PersonagemBaseService {
             });
             habilidades.push(...habilidadesCaminho.map((ht) => ({
                 habilidadeId: ht.habilidadeId,
-                habilidade: ht.habilidade,
+                habilidade: mapHabilidade(ht.habilidade),
             })));
         }
         if (tecnicaInataId) {
@@ -601,7 +683,7 @@ let PersonagemBaseService = class PersonagemBaseService {
             if (escolaTecnica) {
                 habilidades.push({
                     habilidadeId: escolaTecnica.id,
-                    habilidade: escolaTecnica,
+                    habilidade: mapHabilidade(escolaTecnica),
                 });
             }
         }
@@ -621,7 +703,7 @@ let PersonagemBaseService = class PersonagemBaseService {
                     continue;
                 habilidades.push({
                     habilidadeId: poder.id,
-                    habilidade: poder,
+                    habilidade: mapHabilidade(poder),
                 });
             }
         }
@@ -636,28 +718,36 @@ let PersonagemBaseService = class PersonagemBaseService {
             espacosInventarioExtra: 0,
         };
         for (const h of habilidades) {
-            const m = h.habilidade.mecanicasEspeciais;
-            if (m?.pvPorNivel && typeof m.pvPorNivel === 'number') {
-                mods.pvPorNivelExtra += m.pvPorNivel;
+            const mecanicas = this.isRecord(h.habilidade.mecanicasEspeciais)
+                ? h.habilidade.mecanicasEspeciais
+                : null;
+            const recursos = this.getNestedRecord(mecanicas, 'recursos');
+            const defesa = this.getNestedRecord(mecanicas, 'defesa');
+            const inventario = this.getNestedRecord(mecanicas, 'inventario');
+            const pvPorNivel = this.getNumberField(mecanicas, 'pvPorNivel');
+            const peBase = this.getNumberField(recursos, 'peBase');
+            const pePorNivelImpar = this.getNumberField(recursos, 'pePorNivelImpar');
+            const limitePePorTurnoBonus = this.getNumberField(recursos, 'limitePePorTurnoBonus');
+            const defesaBonus = this.getNumberField(defesa, 'bonus');
+            const espacosExtra = this.getNumberField(inventario, 'espacosExtra');
+            if (pvPorNivel !== null) {
+                mods.pvPorNivelExtra += pvPorNivel;
             }
-            if (m?.recursos) {
-                if (typeof m.recursos.peBase === 'number') {
-                    mods.peBaseExtra += m.recursos.peBase;
-                }
-                if (typeof m.recursos.pePorNivelImpar === 'number') {
-                    const niveisImpares = Math.ceil(nivel / 2);
-                    mods.peBaseExtra += m.recursos.pePorNivelImpar * niveisImpares;
-                }
-                if (typeof m.recursos.limitePePorTurnoBonus === 'number') {
-                    mods.limitePeEaExtra += m.recursos.limitePePorTurnoBonus;
-                }
+            if (peBase !== null) {
+                mods.peBaseExtra += peBase;
             }
-            if (m?.defesa?.bonus && typeof m.defesa.bonus === 'number') {
-                mods.defesaExtra += m.defesa.bonus;
+            if (pePorNivelImpar !== null) {
+                const niveisImpares = Math.ceil(nivel / 2);
+                mods.peBaseExtra += pePorNivelImpar * niveisImpares;
             }
-            if (m?.inventario?.espacosExtra &&
-                typeof m.inventario.espacosExtra === 'number') {
-                mods.espacosInventarioExtra += m.inventario.espacosExtra;
+            if (limitePePorTurnoBonus !== null) {
+                mods.limitePeEaExtra += limitePePorTurnoBonus;
+            }
+            if (defesaBonus !== null) {
+                mods.defesaExtra += defesaBonus;
+            }
+            if (espacosExtra !== null) {
+                mods.espacosInventarioExtra += espacosExtra;
             }
         }
         return mods;
@@ -668,8 +758,8 @@ let PersonagemBaseService = class PersonagemBaseService {
             strictPassivas: opts.strictPassivas,
             prisma: opts.prisma,
             personagemBaseId: opts.personagemBaseId,
-            buscarHabilidadesPersonagem: this.buscarHabilidadesPersonagem.bind(this),
-            calcularModsDerivadosPorHabilidades: this.calcularModificadoresDerivadosPorHabilidades.bind(this),
+            buscarHabilidadesPersonagem: (engineParams, prisma) => this.buscarHabilidadesPersonagem(engineParams, prisma),
+            calcularModsDerivadosPorHabilidades: (habilidades, nivel) => this.calcularModificadoresDerivadosPorHabilidades(habilidades, nivel),
         });
     }
     montarDtoCompletoParaUpdate(existe, dto) {
@@ -680,18 +770,16 @@ let PersonagemBaseService = class PersonagemBaseService {
             this.jsonToStringArray(existe.periciasOrigemEscolhidasCodigos);
         const periciasLivresFinal = patch.periciasLivresCodigos ??
             this.jsonToStringArray(existe.periciasLivresCodigos);
-        const passivasAtributosAtivosFinal = patch.passivasAtributosAtivos ??
-            this.jsonToStringArray(existe.passivasAtributosAtivos);
+        const passivasAtributosAtivosFinal = (patch.passivasAtributosAtivos ??
+            this.jsonToStringArray(existe.passivasAtributosAtivos));
         const passivasAtributosConfigRaw = patch.passivasAtributosConfig !== undefined
             ? patch.passivasAtributosConfig
             : (existe.passivasAtributosConfig ?? null);
         const passivasAtributosConfigFinal = this.limparUndefinedDeepJson(passivasAtributosConfigRaw ?? undefined);
         const poderesBancoNormalizados = this.getPoderesFromRelacao(existe.poderesGenericos).map((inst) => ({ ...inst, config: inst.config ?? {} }));
+        const poderesPayloadNormalizados = this.getPoderesFromRelacao(patch.poderesGenericos).map((inst) => ({ ...inst, config: inst.config ?? {} }));
         const poderesFinal = patch.poderesGenericos !== undefined
-            ? patch.poderesGenericos.map((inst) => ({
-                ...inst,
-                config: inst.config ?? {},
-            }))
+            ? poderesPayloadNormalizados
             : poderesBancoNormalizados;
         const profsExtrasFinal = patch.proficienciasCodigos !== undefined
             ? patch.proficienciasCodigos
@@ -751,7 +839,7 @@ let PersonagemBaseService = class PersonagemBaseService {
             passivasAtributoIds: patch.passivasAtributoIds ??
                 this.getPassivasIdsFromRelacao(existe.passivas ?? []),
             passivasAtributosAtivos: passivasAtributosAtivosFinal ?? [],
-            passivasAtributosConfig: passivasAtributosConfigFinal ?? {},
+            passivasAtributosConfig: passivasAtributosConfigFinal ?? undefined,
             periciasClasseEscolhidasCodigos: periciasClasseEscolhidasFinal ?? [],
             periciasOrigemEscolhidasCodigos: periciasOrigemEscolhidasFinal ?? [],
             periciasLivresCodigos: periciasLivresFinal ?? [],
@@ -773,9 +861,8 @@ let PersonagemBaseService = class PersonagemBaseService {
             });
             if (!personagem)
                 return null;
-            const itens = await this.prisma.inventarioItemBase.findMany({
+            const quantidadeItens = await this.prisma.inventarioItemBase.count({
                 where: { personagemBaseId },
-                select: { id: true },
             });
             const espacosTotal = personagem.espacosInventarioBase +
                 (personagem.espacosInventarioExtra || 0);
@@ -787,7 +874,7 @@ let PersonagemBaseService = class PersonagemBaseService {
                 espacosOcupados: personagem.espacosOcupados || 0,
                 espacosDisponiveis,
                 sobrecarregado: personagem.sobrecarregado || false,
-                quantidadeItens: itens.length,
+                quantidadeItens,
             };
         }
         catch (error) {
@@ -796,16 +883,33 @@ let PersonagemBaseService = class PersonagemBaseService {
         }
     }
     async preview(donoId, dto) {
-        const patch = dto;
         const dtoPreview = { ...dto };
-        if (patch.periciasLivresExtras !== undefined) {
-            dtoPreview.periciasLivresExtras = patch.periciasLivresExtras;
+        if (dto.periciasLivresExtras !== undefined) {
+            dtoPreview.periciasLivresExtras = dto.periciasLivresExtras;
         }
         const estado = await this.executarEngine(dtoPreview, {
             strictPassivas: false,
             prisma: this.prisma,
         });
-        const todasPericias = await this.prisma.pericia.findMany();
+        const resistenciasArray = Array.from(estado.resistenciasFinais.entries()).map(([codigo, valor]) => ({ codigo, valor }));
+        const codigosResistencia = resistenciasArray.map((r) => r.codigo);
+        const [todasPericias, proficienciasDetalhadas, tiposGrau] = await Promise.all([
+            this.prisma.pericia.findMany(),
+            this.prisma.proficiencia.findMany({
+                where: { codigo: { in: estado.profsFinais } },
+            }),
+            this.prisma.tipoGrau.findMany({
+                where: {
+                    codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
+                },
+            }),
+        ]);
+        const resistenciasTipos = codigosResistencia.length > 0
+            ? await this.prisma.resistenciaTipo.findMany({
+                where: { codigo: { in: codigosResistencia } },
+                select: { codigo: true, nome: true, descricao: true },
+            })
+            : [];
         const mapaPericiasPorCodigo = new Map(todasPericias.map((p) => [p.codigo, p]));
         const periciasDetalhadas = Array.from(estado.periciasMapCodigo.entries()).map(([codigo, p]) => {
             const pericia = mapaPericiasPorCodigo.get(codigo);
@@ -818,31 +922,18 @@ let PersonagemBaseService = class PersonagemBaseService {
                 bonusTotal: p.grauTreinamento * 5 + p.bonusExtra,
             };
         });
-        const proficienciasDetalhadas = await this.prisma.proficiencia.findMany({
-            where: { codigo: { in: estado.profsFinais } },
-        });
-        const tiposGrau = await this.prisma.tipoGrau.findMany({
-            where: {
-                codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
-            },
-        });
         const mapaTiposGrau = new Map(tiposGrau.map((t) => [t.codigo, t.nome]));
         const habilidadesNomes = estado.habilidades.map((h) => h.habilidade.nome);
-        const resistenciasArray = Array.from(estado.resistenciasFinais.entries()).map(([codigo, valor]) => ({ codigo, valor }));
-        const resistenciasComNomes = resistenciasArray.length > 0
-            ? await Promise.all(resistenciasArray.map(async (r) => {
-                const tipo = await this.prisma.resistenciaTipo.findUnique({
-                    where: { codigo: r.codigo },
-                    select: { nome: true, descricao: true },
-                });
-                return {
-                    codigo: r.codigo,
-                    nome: tipo?.nome ?? r.codigo,
-                    descricao: tipo?.descricao ?? null,
-                    valor: r.valor,
-                };
-            }))
-            : [];
+        const mapaResistenciasTipo = new Map(resistenciasTipos.map((tipo) => [tipo.codigo, tipo]));
+        const resistenciasComNomes = resistenciasArray.map((r) => {
+            const tipo = mapaResistenciasTipo.get(r.codigo);
+            return {
+                codigo: r.codigo,
+                nome: tipo?.nome ?? r.codigo,
+                descricao: tipo?.descricao ?? null,
+                valor: r.valor,
+            };
+        });
         const { itensValidados, errosItens } = await this.validarItensInventarioNoPreview(dto);
         return {
             ...estado.dtoNormalizado,
@@ -930,42 +1021,41 @@ let PersonagemBaseService = class PersonagemBaseService {
             caminho: personagem.caminho?.nome ?? null,
         };
     }
-    async listarDoUsuario(donoId) {
-        const lista = await this.prisma.personagemBase.findMany({
-            where: { donoId },
-            include: { cla: true, classe: true },
-            orderBy: { nome: 'asc' },
-        });
-        return lista.map((p) => this.mapper.mapResumo(p));
+    async listarDoUsuario(donoId, page, limit) {
+        const where = { donoId };
+        const include = { cla: true, classe: true };
+        const orderBy = { nome: 'asc' };
+        if (!page || !limit) {
+            const lista = await this.prisma.personagemBase.findMany({
+                where,
+                include,
+                orderBy,
+            });
+            return lista.map((p) => this.mapper.mapResumo(p));
+        }
+        const skip = (page - 1) * limit;
+        const [items, total] = await Promise.all([
+            this.prisma.personagemBase.findMany({
+                where,
+                include,
+                orderBy,
+                skip,
+                take: limit,
+            }),
+            this.prisma.personagemBase.count({ where }),
+        ]);
+        return {
+            items: items.map((p) => this.mapper.mapResumo(p)),
+            total,
+            page,
+            limit,
+            totalPages: Math.max(1, Math.ceil(total / limit)),
+        };
     }
     async buscarPorId(donoId, id, incluirInventario = false) {
         const personagem = await this.prisma.personagemBase.findFirst({
             where: { id, donoId },
-            include: {
-                cla: true,
-                origem: true,
-                classe: true,
-                trilha: true,
-                caminho: true,
-                tecnicaInata: true,
-                alinhamento: true,
-                proficiencias: { include: { proficiencia: true } },
-                grausAprimoramento: {
-                    include: {
-                        tipoGrau: true,
-                    },
-                },
-                pericias: { include: { pericia: true } },
-                grausTreinamento: true,
-                habilidadesBase: { include: { habilidade: true } },
-                passivas: { include: { passiva: true } },
-                poderesGenericos: { include: { habilidade: true } },
-                resistencias: {
-                    include: {
-                        resistenciaTipo: true,
-                    },
-                },
-            },
+            include: personagem_base_mapper_1.personagemBaseDetalhadoInclude,
         });
         if (!personagem)
             throw new personagem_exception_1.PersonagemBaseNaoEncontradoException(id);
@@ -1017,8 +1107,10 @@ let PersonagemBaseService = class PersonagemBaseService {
                 config: p.config ?? {},
             })),
             passivasAtributoIds: personagem.passivasAtributoIds ?? [],
-            passivasAtributosAtivos: personagem.passivasAtributosAtivos ?? [],
-            passivasAtributosConfig: personagem.passivasAtributosConfig ?? {},
+            passivasAtributosAtivos: (personagem.passivasAtributosAtivos ??
+                []),
+            passivasAtributosConfig: (personagem.passivasAtributosConfig ??
+                {}),
             periciasClasseEscolhidasCodigos: personagem.periciasClasseEscolhidasCodigos ?? [],
             periciasOrigemEscolhidasCodigos: personagem.periciasOrigemEscolhidasCodigos ?? [],
             periciasLivresCodigos: personagem.periciasLivresCodigos ?? [],
@@ -1104,32 +1196,7 @@ let PersonagemBaseService = class PersonagemBaseService {
     async atualizar(donoId, id, dto) {
         const existe = await this.prisma.personagemBase.findFirst({
             where: { id, donoId },
-            include: {
-                proficiencias: { include: { proficiencia: true } },
-                grausAprimoramento: { include: { tipoGrau: true } },
-                pericias: { include: { pericia: true } },
-                grausTreinamento: true,
-                habilidadesBase: {
-                    include: {
-                        habilidade: {
-                            include: { efeitosGrau: true },
-                        },
-                    },
-                },
-                passivas: { include: { passiva: true } },
-                poderesGenericos: {
-                    include: {
-                        habilidade: {
-                            include: { efeitosGrau: true },
-                        },
-                    },
-                },
-                cla: true,
-                classe: true,
-                origem: true,
-                trilha: true,
-                caminho: true,
-            },
+            include: personagem_base_mapper_1.personagemBaseDetalhadoInclude,
         });
         if (!existe)
             throw new personagem_exception_1.PersonagemBaseNaoEncontradoException(id);
@@ -1194,6 +1261,7 @@ let PersonagemBaseService = class PersonagemBaseService {
                     resistenciasFinais: estado.resistenciasFinais,
                 },
             }, tx);
+            await this.sincronizarItensInventarioNoUpdate(donoId, id, dto.itensInventario, tx);
             return resultado;
         });
         if (!atualizado) {
@@ -1247,7 +1315,7 @@ let PersonagemBaseService = class PersonagemBaseService {
         await this.prisma.personagemBase.delete({ where: { id } });
         return { sucesso: true };
     }
-    async consultarInfoGrausTreinamento(nivel, intelecto) {
+    consultarInfoGrausTreinamento(nivel, intelecto) {
         const niveisValidos = [3, 7, 11, 16];
         const niveisDisponiveis = niveisValidos
             .filter((n) => nivel >= n)

@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TiposGrauService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const tipo_grau_exception_1 = require("../common/exceptions/tipo-grau.exception");
 const database_exception_1 = require("../common/exceptions/database.exception");
@@ -19,14 +20,18 @@ let TiposGrauService = class TiposGrauService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    tratarErroPrisma(error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError ||
+            error instanceof client_1.Prisma.PrismaClientValidationError) {
+            (0, database_exception_1.handlePrismaError)(error);
+        }
+    }
     async create(dto) {
         try {
             return this.prisma.tipoGrau.create({ data: dto });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -37,9 +42,7 @@ let TiposGrauService = class TiposGrauService {
             });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -52,9 +55,7 @@ let TiposGrauService = class TiposGrauService {
             return tipo;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -67,9 +68,7 @@ let TiposGrauService = class TiposGrauService {
             });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -80,9 +79,7 @@ let TiposGrauService = class TiposGrauService {
             return { sucesso: true };
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }

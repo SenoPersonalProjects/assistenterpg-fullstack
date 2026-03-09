@@ -12,6 +12,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PreviewItemDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+function parseIntComFallback(value, fallback) {
+    if (value === undefined || value === null || value === '')
+        return fallback;
+    if (typeof value === 'number')
+        return value;
+    if (typeof value === 'string')
+        return parseInt(value, 10);
+    return value;
+}
 class PreviewItemDto {
     personagemBaseId;
     equipamentoId;
@@ -31,7 +40,7 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(1),
-    (0, class_transformer_1.Transform)(({ value }) => parseInt(value)),
+    (0, class_transformer_1.Transform)(({ value }) => parseIntComFallback(value, 1)),
     __metadata("design:type", Number)
 ], PreviewItemDto.prototype, "quantidade", void 0);
 __decorate([

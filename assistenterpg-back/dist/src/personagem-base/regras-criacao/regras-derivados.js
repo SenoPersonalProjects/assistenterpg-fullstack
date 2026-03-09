@@ -36,6 +36,33 @@ const VALORES_CLASSE = {
         sanPorNivel: 4,
     },
 };
+function isJsonObject(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+function extrairEfeitosPassiva(efeitos) {
+    if (!isJsonObject(efeitos))
+        return {};
+    return {
+        deslocamento: typeof efeitos.deslocamento === 'number'
+            ? efeitos.deslocamento
+            : undefined,
+        reacoes: typeof efeitos.reacoes === 'number' ? efeitos.reacoes : undefined,
+        peExtra: typeof efeitos.peExtra === 'number' ? efeitos.peExtra : undefined,
+        eaExtra: typeof efeitos.eaExtra === 'number' ? efeitos.eaExtra : undefined,
+        limitePeEaExtra: typeof efeitos.limitePeEaExtra === 'number'
+            ? efeitos.limitePeEaExtra
+            : undefined,
+        pvExtraLimitePeEa: efeitos.pvExtraLimitePeEa === true
+            ? efeitos.pvExtraLimitePeEa
+            : undefined,
+        rodadasMorrendo: typeof efeitos.rodadasMorrendo === 'number'
+            ? efeitos.rodadasMorrendo
+            : undefined,
+        rodadasEnlouquecendo: typeof efeitos.rodadasEnlouquecendo === 'number'
+            ? efeitos.rodadasEnlouquecendo
+            : undefined,
+    };
+}
 async function calcularEfeitosPassivas(passivasIds, prisma) {
     if (!passivasIds || passivasIds.length === 0) {
         return {
@@ -63,28 +90,28 @@ async function calcularEfeitosPassivas(passivasIds, prisma) {
         rodadasEnlouquecendo: 0,
     };
     for (const passiva of passivas) {
-        const e = passiva.efeitos;
-        if (typeof e?.deslocamento === 'number')
+        const e = extrairEfeitosPassiva(passiva.efeitos);
+        if (typeof e.deslocamento === 'number')
             efeitos.deslocamento += e.deslocamento;
-        if (typeof e?.reacoes === 'number')
+        if (typeof e.reacoes === 'number')
             efeitos.reacoes += e.reacoes;
-        if (typeof e?.peExtra === 'number')
+        if (typeof e.peExtra === 'number')
             efeitos.peExtra += e.peExtra;
-        if (typeof e?.eaExtra === 'number')
+        if (typeof e.eaExtra === 'number')
             efeitos.eaExtra += e.eaExtra;
-        if (typeof e?.limitePeEaExtra === 'number')
+        if (typeof e.limitePeEaExtra === 'number')
             efeitos.limitePeEaExtra += e.limitePeEaExtra;
-        if (e?.pvExtraLimitePeEa === true)
+        if (e.pvExtraLimitePeEa === true)
             efeitos.pvExtraLimitePeEa = true;
-        if (typeof e?.rodadasMorrendo === 'number')
+        if (typeof e.rodadasMorrendo === 'number')
             efeitos.rodadasMorrendo += e.rodadasMorrendo;
-        if (typeof e?.rodadasEnlouquecendo === 'number')
+        if (typeof e.rodadasEnlouquecendo === 'number')
             efeitos.rodadasEnlouquecendo += e.rodadasEnlouquecendo;
     }
     return efeitos;
 }
 async function calcularAtributosDerivados(params, prisma) {
-    const { nivel, classeId, agilidade, forca, intelecto, presenca, vigor, atributoChaveEa, passivasAtributoIds, } = params;
+    const { nivel, classeId, agilidade, intelecto, presenca, vigor, atributoChaveEa, passivasAtributoIds, } = params;
     const classe = await prisma.classe.findUnique({
         where: { id: classeId },
     });

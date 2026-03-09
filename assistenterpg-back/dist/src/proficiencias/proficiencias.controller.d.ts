@@ -22,7 +22,7 @@ export declare class ProficienciasController {
         categoria: string;
         subtipo: string | null;
     }[]>;
-    findOne(id: string): Promise<{
+    findOne(id: number): Promise<{
         id: number;
         nome: string;
         descricao: string | null;
@@ -31,7 +31,7 @@ export declare class ProficienciasController {
         categoria: string;
         subtipo: string | null;
     }>;
-    update(id: string, dto: UpdateProficienciaDto): Promise<{
+    update(id: number, dto: UpdateProficienciaDto): Promise<{
         id: number;
         nome: string;
         descricao: string | null;
@@ -40,7 +40,7 @@ export declare class ProficienciasController {
         categoria: string;
         subtipo: string | null;
     }>;
-    remove(id: string): Promise<{
+    remove(id: number): Promise<{
         sucesso: boolean;
     }>;
 }

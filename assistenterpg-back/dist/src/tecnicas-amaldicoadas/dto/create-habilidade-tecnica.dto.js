@@ -44,6 +44,7 @@ exports.CreateHabilidadeTecnicaDto = CreateHabilidadeTecnicaDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
     __metadata("design:type", Number)
 ], CreateHabilidadeTecnicaDto.prototype, "tecnicaId", void 0);
 __decorate([

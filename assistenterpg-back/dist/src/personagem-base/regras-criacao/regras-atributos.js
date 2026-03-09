@@ -194,6 +194,47 @@ async function validarPassivasAtributos({ passivasIds, atributos, prisma, }) {
         }
     }
 }
+function parseEfeitosPassiva(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+        return {};
+    const record = value;
+    return {
+        deslocamento: typeof record.deslocamento === 'number' ? record.deslocamento : undefined,
+        reacoes: typeof record.reacoes === 'number' ? record.reacoes : undefined,
+        peExtra: typeof record.peExtra === 'number' ? record.peExtra : undefined,
+        eaExtra: typeof record.eaExtra === 'number' ? record.eaExtra : undefined,
+        limitePeEaExtra: typeof record.limitePeEaExtra === 'number'
+            ? record.limitePeEaExtra
+            : undefined,
+        pvExtraLimitePeEa: typeof record.pvExtraLimitePeEa === 'boolean'
+            ? record.pvExtraLimitePeEa
+            : undefined,
+        rodadasMorrendo: typeof record.rodadasMorrendo === 'number'
+            ? record.rodadasMorrendo
+            : undefined,
+        rodadasEnlouquecendo: typeof record.rodadasEnlouquecendo === 'number'
+            ? record.rodadasEnlouquecendo
+            : undefined,
+        passosDanoCorpoACorpo: typeof record.passosDanoCorpoACorpo === 'number'
+            ? record.passosDanoCorpoACorpo
+            : undefined,
+        dadosDanoCorpoACorpo: typeof record.dadosDanoCorpoACorpo === 'number'
+            ? record.dadosDanoCorpoACorpo
+            : undefined,
+        periciasExtras: typeof record.periciasExtras === 'number'
+            ? record.periciasExtras
+            : undefined,
+        proficienciasExtras: typeof record.proficienciasExtras === 'number'
+            ? record.proficienciasExtras
+            : undefined,
+        grauTreinamentoExtra: typeof record.grauTreinamentoExtra === 'number'
+            ? record.grauTreinamentoExtra
+            : undefined,
+        grauAprimoramentoExtra: typeof record.grauAprimoramentoExtra === 'number'
+            ? record.grauAprimoramentoExtra
+            : undefined,
+    };
+}
 function calcularEfeitosPassivas(passivas) {
     const efeitos = {
         deslocamentoExtra: 0,
@@ -212,7 +253,7 @@ function calcularEfeitosPassivas(passivas) {
         grauAprimoramentoExtra: 0,
     };
     for (const passiva of passivas) {
-        const efeitosPassiva = passiva.efeitos;
+        const efeitosPassiva = parseEfeitosPassiva(passiva.efeitos);
         if (efeitosPassiva.deslocamento) {
             efeitos.deslocamentoExtra = Math.max(efeitos.deslocamentoExtra, efeitosPassiva.deslocamento);
         }

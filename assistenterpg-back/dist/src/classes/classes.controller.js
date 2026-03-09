@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClassesController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 const classes_service_1 = require("./classes.service");
 const create_classe_dto_1 = require("./dto/create-classe.dto");
 const update_classe_dto_1 = require("./dto/update-classe.dto");
@@ -30,21 +31,22 @@ let ClassesController = class ClassesController {
         return this.classesService.findAll();
     }
     findOne(id) {
-        return this.classesService.findOne(+id);
+        return this.classesService.findOne(id);
     }
     findTrilhas(id) {
-        return this.classesService.findTrilhas(+id);
+        return this.classesService.findTrilhas(id);
     }
     update(id, dto) {
-        return this.classesService.update(+id, dto);
+        return this.classesService.update(id, dto);
     }
     remove(id) {
-        return this.classesService.remove(+id);
+        return this.classesService.remove(id);
     }
 };
 exports.ClassesController = ClassesController;
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_classe_dto_1.CreateClasseDto]),
@@ -58,31 +60,33 @@ __decorate([
 ], ClassesController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], ClassesController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Get)(':id/trilhas'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], ClassesController.prototype, "findTrilhas", null);
 __decorate([
     (0, common_1.Patch)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_classe_dto_1.UpdateClasseDto]),
+    __metadata("design:paramtypes", [Number, update_classe_dto_1.UpdateClasseDto]),
     __metadata("design:returntype", void 0)
 ], ClassesController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], ClassesController.prototype, "remove", null);
 exports.ClassesController = ClassesController = __decorate([

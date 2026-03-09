@@ -10,6 +10,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HttpExceptionFilter = void 0;
 const common_1 = require("@nestjs/common");
 const base_exception_1 = require("../exceptions/base.exception");
+const error_response_util_1 = require("../http/error-response.util");
+const request_trace_util_1 = require("../http/request-trace.util");
 let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
     logger = new common_1.Logger(HttpExceptionFilter_1.name);
     catch(exception, host) {
@@ -17,33 +19,17 @@ let HttpExceptionFilter = HttpExceptionFilter_1 = class HttpExceptionFilter {
         const response = ctx.getResponse();
         const request = ctx.getRequest();
         const status = exception.getStatus();
-        const exceptionResponse = exception.getResponse();
+        const traceId = (0, request_trace_util_1.getOrCreateTraceId)(request, response);
+        const payload = (0, error_response_util_1.normalizeHttpExceptionPayload)(status, exception.getResponse(), exception.message, exception instanceof base_exception_1.BaseException ? exception : undefined);
         const errorResponse = {
-            statusCode: status,
-            timestamp: new Date().toISOString(),
-            path: request.url,
-            method: request.method,
+            ...(0, error_response_util_1.createErrorBase)(request, traceId, status),
+            ...payload,
         };
-        if (exception instanceof base_exception_1.BaseException) {
-            errorResponse.code = exception.code;
-            errorResponse.message = exceptionResponse.message || exception.message;
-            errorResponse.details = exception.details;
-            errorResponse.field = exception.field;
-            if (process.env.NODE_ENV === 'development') {
-                errorResponse.stack = exception.stack;
-            }
+        if (process.env.NODE_ENV === 'development') {
+            errorResponse.stack = exception.stack;
+            errorResponse.errorType = exception.name;
         }
-        else {
-            errorResponse.code = 'HTTP_EXCEPTION';
-            errorResponse.message =
-                typeof exceptionResponse === 'string'
-                    ? exceptionResponse
-                    : exceptionResponse.message || 'Erro no servidor';
-            if (typeof exceptionResponse === 'object') {
-                errorResponse.details = exceptionResponse;
-            }
-        }
-        this.logger.error(`[${request.method}] ${request.url} - Status: ${status}`, JSON.stringify(errorResponse, null, 2));
+        this.logger.error(`[traceId=${traceId}] [${request.method}] ${request.originalUrl ?? request.url} - Status: ${status}`, JSON.stringify(errorResponse, null, 2));
         response.status(status).json(errorResponse);
     }
 };

@@ -12,13 +12,20 @@ const regras_poderes_1 = require("../regras-criacao/regras-poderes");
 const regras_poderes_efeitos_1 = require("../regras-criacao/regras-poderes-efeitos");
 const regras_derivados_1 = require("../regras-criacao/regras-derivados");
 const personagem_exception_1 = require("../../common/exceptions/personagem.exception");
-function limparUndefined(obj) {
-    const out = { ...obj };
-    for (const k of Object.keys(out)) {
-        if (out[k] === undefined)
-            delete out[k];
-    }
-    return out;
+function isRecord(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+function getNestedRecord(value, key) {
+    if (!value)
+        return null;
+    const nested = value[key];
+    return isRecord(nested) ? nested : null;
+}
+function getNumberField(value, key) {
+    if (!value)
+        return null;
+    const current = value[key];
+    return typeof current === 'number' ? current : null;
 }
 function validarAtributoChaveEa(valor) {
     const valoresValidos = Object.values(client_1.AtributoBaseEA);
@@ -28,14 +35,45 @@ function validarAtributoChaveEa(valor) {
 }
 function normalizePoderesGenericos(poderes) {
     return (poderes ?? []).map((inst) => ({
-        ...inst,
-        config: inst?.config ?? {},
+        habilidadeId: inst.habilidadeId,
+        config: inst.config ?? {},
     }));
 }
 function limparUndefinedDeepJson(value) {
     if (value === undefined)
         return undefined;
-    return JSON.parse(JSON.stringify(value));
+    const normalized = JSON.parse(JSON.stringify(value));
+    return normalized;
+}
+function getLegacyInt2Config(value) {
+    if (!isRecord(value))
+        return null;
+    const candidates = [value.INTII, value.INT_II, value.INTII_];
+    for (const candidate of candidates) {
+        if (!isRecord(candidate))
+            continue;
+        const tipoGrauCodigoAprimoramento = candidate.tipoGrauCodigoAprimoramento;
+        const periciaCodigoTreino = candidate.periciaCodigoTreino;
+        const periciasCodigos = candidate.periciasCodigos;
+        const proficienciasCodigos = candidate.proficienciasCodigos;
+        return {
+            tipoGrauCodigoAprimoramento: typeof tipoGrauCodigoAprimoramento === 'string'
+                ? tipoGrauCodigoAprimoramento
+                : undefined,
+            periciaCodigoTreino: typeof periciaCodigoTreino === 'string'
+                ? periciaCodigoTreino
+                : undefined,
+            periciasCodigos: Array.isArray(periciasCodigos) &&
+                periciasCodigos.every((v) => typeof v === 'string')
+                ? periciasCodigos
+                : undefined,
+            proficienciasCodigos: Array.isArray(proficienciasCodigos) &&
+                proficienciasCodigos.every((v) => typeof v === 'string')
+                ? proficienciasCodigos
+                : undefined,
+        };
+    }
+    return null;
 }
 function calcularModificadoresDerivadosPorHabilidadesLocal(habilidades, nivel) {
     const mods = {
@@ -46,31 +84,68 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(habilidades, nivel) {
         espacosInventarioExtra: 0,
     };
     for (const h of habilidades) {
-        const m = h.habilidade.mecanicasEspeciais;
-        if (m?.pvPorNivel && typeof m.pvPorNivel === 'number') {
-            mods.pvPorNivelExtra += m.pvPorNivel;
+        const mecanicas = isRecord(h.habilidade.mecanicasEspeciais)
+            ? h.habilidade.mecanicasEspeciais
+            : null;
+        const recursos = getNestedRecord(mecanicas, 'recursos');
+        const defesa = getNestedRecord(mecanicas, 'defesa');
+        const inventario = getNestedRecord(mecanicas, 'inventario');
+        const pvPorNivel = getNumberField(mecanicas, 'pvPorNivel');
+        const peBase = getNumberField(recursos, 'peBase');
+        const pePorNivelImpar = getNumberField(recursos, 'pePorNivelImpar');
+        const limitePePorTurnoBonus = getNumberField(recursos, 'limitePePorTurnoBonus');
+        const defesaBonus = getNumberField(defesa, 'bonus');
+        const espacosExtra = getNumberField(inventario, 'espacosExtra');
+        if (pvPorNivel !== null) {
+            mods.pvPorNivelExtra += pvPorNivel;
         }
-        if (m?.recursos) {
-            if (typeof m.recursos.peBase === 'number') {
-                mods.peBaseExtra += m.recursos.peBase;
-            }
-            if (typeof m.recursos.pePorNivelImpar === 'number') {
-                const niveisImpares = Math.ceil(nivel / 2);
-                mods.peBaseExtra += m.recursos.pePorNivelImpar * niveisImpares;
-            }
-            if (typeof m.recursos.limitePePorTurnoBonus === 'number') {
-                mods.limitePeEaExtra += m.recursos.limitePePorTurnoBonus;
-            }
+        if (peBase !== null) {
+            mods.peBaseExtra += peBase;
         }
-        if (m?.defesa?.bonus && typeof m.defesa.bonus === 'number') {
-            mods.defesaExtra += m.defesa.bonus;
+        if (pePorNivelImpar !== null) {
+            const niveisImpares = Math.ceil(nivel / 2);
+            mods.peBaseExtra += pePorNivelImpar * niveisImpares;
         }
-        if (m?.inventario?.espacosExtra &&
-            typeof m.inventario.espacosExtra === 'number') {
-            mods.espacosInventarioExtra += m.inventario.espacosExtra;
+        if (limitePePorTurnoBonus !== null) {
+            mods.limitePeEaExtra += limitePePorTurnoBonus;
+        }
+        if (defesaBonus !== null) {
+            mods.defesaExtra += defesaBonus;
+        }
+        if (espacosExtra !== null) {
+            mods.espacosInventarioExtra += espacosExtra;
         }
     }
     return mods;
+}
+function toEscalonamentoPorNivel(value) {
+    if (!isRecord(value))
+        return null;
+    const niveis = value.niveis;
+    if (!Array.isArray(niveis) || niveis.some((n) => typeof n !== 'number')) {
+        return null;
+    }
+    return { niveis: niveis };
+}
+function toMecanicasEspeciaisHabilidade(value) {
+    if (!isRecord(value))
+        return null;
+    return value;
+}
+function normalizarHabilidadesParaGraus(habilidades) {
+    return habilidades.map((h) => ({
+        habilidadeId: h.habilidadeId,
+        habilidade: {
+            nome: h.habilidade.nome,
+            tipo: h.habilidade.tipo,
+            mecanicasEspeciais: toMecanicasEspeciaisHabilidade(h.habilidade.mecanicasEspeciais),
+            efeitosGrau: (h.habilidade.efeitosGrau ?? []).map((efeito) => ({
+                tipoGrauCodigo: efeito.tipoGrauCodigo,
+                valor: efeito.valor,
+                escalonamentoPorNivel: toEscalonamentoPorNivel(efeito.escalonamentoPorNivel),
+            })),
+        },
+    }));
 }
 async function calcularEstadoFinalPersonagemBase(params) {
     const { dto: dtoIn, strictPassivas, prisma, personagemBaseId, itensInventarioCalculados, } = params;
@@ -94,7 +169,6 @@ async function calcularEstadoFinalPersonagemBase(params) {
     const periciasCalculadas = await (0, regras_pericias_1.montarPericiasPersonagem)(dtoNormalizado, prisma);
     const todasPericias = await prisma.pericia.findMany();
     const mapaPericiasPorId = new Map(todasPericias.map((p) => [p.id, p]));
-    const mapaPericiasPorCodigo = new Map(todasPericias.map((p) => [p.codigo, p]));
     const periciasMapCodigo = new Map();
     for (const p of periciasCalculadas) {
         const pericia = mapaPericiasPorId.get(p.periciaId);
@@ -121,7 +195,7 @@ async function calcularEstadoFinalPersonagemBase(params) {
         },
         passivasAtributosAtivos: dtoNormalizado.passivasAtributosAtivos,
         strict: strictPassivas,
-        prisma: prisma,
+        prisma,
     });
     const passivasCodigosAtivos = passivasResolvidas.passivaCodigos ?? [];
     const profsPayloadCodigos = dtoNormalizado.proficienciasCodigos ?? [];
@@ -163,11 +237,12 @@ async function calcularEstadoFinalPersonagemBase(params) {
     const habilidadesParaPersistir = habilidades
         .filter((h) => h.habilidade?.tipo !== 'PODER_GENERICO')
         .map((h) => ({ habilidadeId: h.habilidadeId }));
+    const habilidadesParaGraus = normalizarHabilidadesParaGraus(habilidades);
     const profsDeHabilidades = await (0, regras_poderes_efeitos_1.extrairProficienciasDeHabilidades)(habilidades, prisma);
     const grausUsuario = dtoNormalizado.grausAprimoramento ?? [];
     const pontosUsuario = grausUsuario.reduce((acc, g) => acc + (g.valor || 0), 0);
     const baseLivres = (0, regras_graus_aprimoramento_1.calcularGrausLivresMax)(dtoNormalizado.nivel);
-    const extrasLivres = (0, regras_graus_aprimoramento_1.calcularGrausLivresExtras)(habilidades, dtoNormalizado.nivel, dtoNormalizado.passivasAtributosConfig);
+    const extrasLivres = (0, regras_graus_aprimoramento_1.calcularGrausLivresExtras)(habilidadesParaGraus, dtoNormalizado.nivel, dtoNormalizado.passivasAtributosConfig);
     const maxTotalLivres = baseLivres + extrasLivres.totalExtras;
     if (pontosUsuario > maxTotalLivres) {
         throw new personagem_exception_1.GrausAprimoramentoExcedemTotalException(dtoNormalizado.nivel, pontosUsuario, maxTotalLivres, {
@@ -196,9 +271,9 @@ async function calcularEstadoFinalPersonagemBase(params) {
             graus: grausComIntelecto ?? [],
         }, prisma);
     }
-    const grausFinais = await (0, regras_graus_aprimoramento_1.aplicarRegrasDeGraus)({
+    const grausFinais = (0, regras_graus_aprimoramento_1.aplicarRegrasDeGraus)({
         nivel: dtoNormalizado.nivel,
-        habilidades,
+        habilidades: habilidadesParaGraus,
         poderes: poderesGenericosNormalizados,
         passivasAtributosConfig: dtoNormalizado.passivasAtributosConfig,
     }, grausComIntelecto);
@@ -280,18 +355,19 @@ async function calcularEstadoFinalPersonagemBase(params) {
         valor: efeito.valor,
         escalonamentoPorNivel: efeito.escalonamentoPorNivel,
     })));
-    const cfg = dtoNormalizado.passivasAtributosConfig ?? {};
-    const cfgInt2 = cfg.INTII ?? cfg.INT_II ?? cfg.INTII_ ?? undefined;
-    if (cfgInt2?.tipoGrauCodigoAprimoramento) {
+    const cfgInt2 = dtoNormalizado.passivasAtributosConfig?.INT_II ??
+        getLegacyInt2Config(dtoNormalizado.passivasAtributosConfig);
+    const tipoGrauCodigoAprimoramento = cfgInt2?.tipoGrauCodigoAprimoramento;
+    if (typeof tipoGrauCodigoAprimoramento === 'string') {
         bonusHabilidades.push({
             habilidadeNome: 'Intelecto II',
-            tipoGrauCodigo: cfgInt2.tipoGrauCodigoAprimoramento,
+            tipoGrauCodigo: tipoGrauCodigoAprimoramento,
             valor: 1,
             escalonamentoPorNivel: null,
         });
     }
     return {
-        dtoNormalizado: limparUndefined(dtoNormalizado),
+        dtoNormalizado,
         passivasResolvidas,
         passivasAtributosConfigLimpo: passivasAtributosConfigLimpo ?? null,
         poderesGenericosNormalizados,

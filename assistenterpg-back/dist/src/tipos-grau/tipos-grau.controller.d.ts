@@ -16,19 +16,19 @@ export declare class TiposGrauController {
         descricao: string | null;
         codigo: string;
     }[]>;
-    findOne(id: string): Promise<{
+    findOne(id: number): Promise<{
         id: number;
         nome: string;
         descricao: string | null;
         codigo: string;
     }>;
-    update(id: string, dto: UpdateTipoGrauDto): Promise<{
+    update(id: number, dto: UpdateTipoGrauDto): Promise<{
         id: number;
         nome: string;
         descricao: string | null;
         codigo: string;
     }>;
-    remove(id: string): Promise<{
+    remove(id: number): Promise<{
         sucesso: boolean;
     }>;
 }

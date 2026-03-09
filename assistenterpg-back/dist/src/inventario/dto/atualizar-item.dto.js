@@ -12,6 +12,45 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AtualizarItemDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+function parseIntSemFallback(value) {
+    if (value === undefined || value === null || value === '')
+        return undefined;
+    if (typeof value === 'number')
+        return value;
+    if (typeof value === 'string') {
+        const normalized = value.trim();
+        if (normalized === '')
+            return undefined;
+        if (!/^[+-]?\d+$/.test(normalized))
+            return value;
+        return parseInt(normalized, 10);
+    }
+    return value;
+}
+function parseBooleanSemFallback(value) {
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === '')
+            return undefined;
+        if (normalized === 'true' || normalized === '1')
+            return true;
+        if (normalized === 'false' || normalized === '0')
+            return false;
+        return value;
+    }
+    if (typeof value === 'number') {
+        if (value === 1)
+            return true;
+        if (value === 0)
+            return false;
+        return value;
+    }
+    if (typeof value === 'boolean')
+        return value;
+    if (value === undefined || value === null || value === '')
+        return undefined;
+    return value;
+}
 class AtualizarItemDto {
     quantidade;
     equipado;
@@ -23,22 +62,13 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(1),
-    (0, class_transformer_1.Transform)(({ value }) => {
-        if (value === undefined || value === null)
-            return undefined;
-        return parseInt(value);
-    }),
+    (0, class_transformer_1.Transform)(({ value, obj }) => parseIntSemFallback(obj?.quantidade ?? value)),
     __metadata("design:type", Number)
 ], AtualizarItemDto.prototype, "quantidade", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsBoolean)(),
-    (0, class_transformer_1.Transform)(({ value }) => {
-        if (typeof value === 'string') {
-            return value.toLowerCase() === 'true';
-        }
-        return value;
-    }),
+    (0, class_transformer_1.Transform)(({ value, obj }) => parseBooleanSemFallback(obj?.equipado ?? value)),
     __metadata("design:type", Boolean)
 ], AtualizarItemDto.prototype, "equipado", void 0);
 __decorate([

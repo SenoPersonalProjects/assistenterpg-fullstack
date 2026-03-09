@@ -1,1 +1,1 @@
-export declare function validateHomebrewEquipamentoCustom(dados: any): void;
+export declare function validateHomebrewEquipamentoCustom(dados: unknown): void;

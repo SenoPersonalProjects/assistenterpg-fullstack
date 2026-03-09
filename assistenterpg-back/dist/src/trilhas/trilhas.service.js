@@ -21,6 +21,21 @@ let TrilhasService = class TrilhasService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    tratarErroPrisma(error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError ||
+            error instanceof client_1.Prisma.PrismaClientValidationError) {
+            (0, database_exception_1.handlePrismaError)(error);
+        }
+    }
+    normalizarJsonParaPersistir(value) {
+        if (value === undefined) {
+            return undefined;
+        }
+        if (value === null) {
+            return client_1.Prisma.JsonNull;
+        }
+        return value;
+    }
     async validarFonteSuplemento(fonte, suplementoId) {
         if (suplementoId) {
             const suplemento = await this.prisma.suplemento.findUnique({
@@ -31,12 +46,20 @@ let TrilhasService = class TrilhasService {
                 throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
             }
             if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
-                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+                throw new common_1.BadRequestException({
+                    code: 'FONTE_SUPLEMENTO_OBRIGATORIA',
+                    message: 'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+                    field: 'fonte',
+                });
             }
             return;
         }
         if (fonte === client_1.TipoFonte.SUPLEMENTO) {
-            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+            throw new common_1.BadRequestException({
+                code: 'SUPLEMENTO_ID_OBRIGATORIO',
+                message: 'fonte SUPLEMENTO exige suplementoId',
+                field: 'suplementoId',
+            });
         }
     }
     async ensureTrilha(id) {
@@ -76,7 +99,7 @@ let TrilhasService = class TrilhasService {
                     classeId: createDto.classeId,
                     nome: createDto.nome,
                     descricao: createDto.descricao,
-                    requisitos: createDto.requisitos,
+                    requisitos: this.normalizarJsonParaPersistir(createDto.requisitos),
                     fonte: fonteFinal,
                     suplementoId: suplementoIdFinal,
                     ...(createDto.habilidades?.length && {
@@ -104,9 +127,7 @@ let TrilhasService = class TrilhasService {
             return trilha;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -130,9 +151,7 @@ let TrilhasService = class TrilhasService {
             });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -169,15 +188,22 @@ let TrilhasService = class TrilhasService {
             return trilha;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
     async update(id, updateDto) {
         try {
             const trilhaAtual = await this.ensureTrilha(id);
+            if (updateDto.classeId !== undefined) {
+                const classe = await this.prisma.classe.findUnique({
+                    where: { id: updateDto.classeId },
+                    select: { id: true },
+                });
+                if (!classe) {
+                    throw new trilha_exception_1.TrilhaClasseNaoEncontradaException(updateDto.classeId);
+                }
+            }
             if (updateDto.nome) {
                 const duplicado = await this.prisma.trilha.findFirst({
                     where: {
@@ -198,25 +224,30 @@ let TrilhasService = class TrilhasService {
             const trilha = await this.prisma.trilha.update({
                 where: { id },
                 data: {
+                    ...(updateDto.classeId !== undefined && {
+                        classeId: updateDto.classeId,
+                    }),
                     ...(updateDto.nome && { nome: updateDto.nome }),
                     ...(updateDto.descricao !== undefined && {
                         descricao: updateDto.descricao,
                     }),
                     ...(updateDto.requisitos !== undefined && {
-                        requisitos: updateDto.requisitos,
+                        requisitos: this.normalizarJsonParaPersistir(updateDto.requisitos),
                     }),
                     ...(fonteFinal !== trilhaAtual.fonte && { fonte: fonteFinal }),
                     ...(updateDto.suplementoId !== undefined && {
                         suplementoId: updateDto.suplementoId,
                     }),
-                    ...(updateDto.habilidades && {
+                    ...(updateDto.habilidades !== undefined && {
                         habilidadesTrilha: {
                             deleteMany: {},
-                            create: updateDto.habilidades.map((hab) => ({
-                                habilidadeId: hab.habilidadeId,
-                                nivelConcedido: hab.nivelConcedido,
-                                caminhoId: hab.caminhoId,
-                            })),
+                            ...(updateDto.habilidades.length > 0 && {
+                                create: updateDto.habilidades.map((hab) => ({
+                                    habilidadeId: hab.habilidadeId,
+                                    nivelConcedido: hab.nivelConcedido,
+                                    caminhoId: hab.caminhoId,
+                                })),
+                            }),
                         },
                     }),
                 },
@@ -235,9 +266,7 @@ let TrilhasService = class TrilhasService {
             return trilha;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -261,9 +290,7 @@ let TrilhasService = class TrilhasService {
             return { message: 'Trilha removida com sucesso' };
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -310,9 +337,7 @@ let TrilhasService = class TrilhasService {
             return caminho;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -353,14 +378,16 @@ let TrilhasService = class TrilhasService {
                     ...(updateDto.suplementoId !== undefined && {
                         suplementoId: updateDto.suplementoId,
                     }),
-                    ...(updateDto.habilidades && {
+                    ...(updateDto.habilidades !== undefined && {
                         habilidadesTrilha: {
                             deleteMany: { caminhoId: id },
-                            create: updateDto.habilidades.map((hab) => ({
-                                trilhaId: updateDto.trilhaId ?? caminhoAtual.trilhaId,
-                                habilidadeId: hab.habilidadeId,
-                                nivelConcedido: hab.nivelConcedido,
-                            })),
+                            ...(updateDto.habilidades.length > 0 && {
+                                create: updateDto.habilidades.map((hab) => ({
+                                    trilhaId: updateDto.trilhaId ?? caminhoAtual.trilhaId,
+                                    habilidadeId: hab.habilidadeId,
+                                    nivelConcedido: hab.nivelConcedido,
+                                })),
+                            }),
                         },
                     }),
                 },
@@ -377,9 +404,7 @@ let TrilhasService = class TrilhasService {
             return caminho;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -403,9 +428,7 @@ let TrilhasService = class TrilhasService {
             return { message: 'Caminho removido com sucesso' };
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -424,9 +447,7 @@ let TrilhasService = class TrilhasService {
             }));
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -452,9 +473,7 @@ let TrilhasService = class TrilhasService {
             }));
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }

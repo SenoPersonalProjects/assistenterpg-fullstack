@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 export type PoderGenericoInstanciaInput = {
     habilidadeId: number;
-    config?: any;
+    config?: unknown;
 };
 export declare function calcularSlotsPoderesGenericos(nivel: number): number;
 export declare function buscarPoderesGenericosDisponiveis(prisma: PrismaLike): Promise<Array<{

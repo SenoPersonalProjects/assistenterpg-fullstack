@@ -9,13 +9,30 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HomebrewFerramentaAmaldicoadaDto = exports.ProtecaoAmaldicoadaDto = exports.ArmaAmaldicoadaDto = exports.ArtefatoAmaldicoadoDto = void 0;
+exports.HomebrewFerramentaAmaldicoadaDto = exports.ProtecaoAmaldicoadaDto = exports.ArmaAmaldicoadaDto = exports.ArtefatoAmaldicoadoDto = exports.DadosProtecaoAmaldicoadaDto = exports.DadosArmaAmaldicoadaDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const mapped_types_1 = require("@nestjs/mapped-types");
 const client_1 = require("@prisma/client");
 const equipamento_base_dto_1 = require("../base/equipamento-base.dto");
 const criar_homebrew_arma_dto_1 = require("./criar-homebrew-arma.dto");
 const criar_homebrew_protecao_dto_1 = require("./criar-homebrew-protecao.dto");
+class DadosArmaAmaldicoadaDto extends (0, mapped_types_1.OmitType)(criar_homebrew_arma_dto_1.HomebrewArmaDto, [
+    'tipo',
+    'categoria',
+    'espacos',
+    'tipoUso',
+]) {
+}
+exports.DadosArmaAmaldicoadaDto = DadosArmaAmaldicoadaDto;
+class DadosProtecaoAmaldicoadaDto extends (0, mapped_types_1.OmitType)(criar_homebrew_protecao_dto_1.HomebrewProtecaoDto, [
+    'tipo',
+    'categoria',
+    'espacos',
+    'tipoUso',
+]) {
+}
+exports.DadosProtecaoAmaldicoadaDto = DadosProtecaoAmaldicoadaDto;
 class ArtefatoAmaldicoadoDto {
     tipoBase;
     proficienciaRequerida;
@@ -74,8 +91,8 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.ValidateNested)(),
-    (0, class_transformer_1.Type)(() => criar_homebrew_arma_dto_1.HomebrewArmaDto),
-    __metadata("design:type", criar_homebrew_arma_dto_1.HomebrewArmaDto)
+    (0, class_transformer_1.Type)(() => DadosArmaAmaldicoadaDto),
+    __metadata("design:type", DadosArmaAmaldicoadaDto)
 ], ArmaAmaldicoadaDto.prototype, "dadosArma", void 0);
 class ProtecaoAmaldicoadaDto {
     tipoBase;
@@ -102,8 +119,8 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.ValidateNested)(),
-    (0, class_transformer_1.Type)(() => criar_homebrew_protecao_dto_1.HomebrewProtecaoDto),
-    __metadata("design:type", criar_homebrew_protecao_dto_1.HomebrewProtecaoDto)
+    (0, class_transformer_1.Type)(() => DadosProtecaoAmaldicoadaDto),
+    __metadata("design:type", DadosProtecaoAmaldicoadaDto)
 ], ProtecaoAmaldicoadaDto.prototype, "dadosProtecao", void 0);
 class HomebrewFerramentaAmaldicoadaDto extends equipamento_base_dto_1.EquipamentoBaseDto {
     tipoAmaldicoado;

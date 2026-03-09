@@ -13,11 +13,17 @@ exports.EquipamentoBaseDto = void 0;
 const class_validator_1 = require("class-validator");
 const client_1 = require("@prisma/client");
 class EquipamentoBaseDto {
+    tipo;
     categoria;
     espacos;
     tipoUso;
 }
 exports.EquipamentoBaseDto = EquipamentoBaseDto;
+__decorate([
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsEnum)(client_1.TipoEquipamento),
+    __metadata("design:type", String)
+], EquipamentoBaseDto.prototype, "tipo", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsEnum)(client_1.CategoriaEquipamento),

@@ -196,6 +196,7 @@ let CampanhaService = class CampanhaService {
             data: {
                 campanhaId,
                 email,
+                papel,
                 codigo,
                 status: 'PENDENTE',
             },
@@ -253,11 +254,14 @@ let CampanhaService = class CampanhaService {
         if (jaMembro) {
             throw new campanha_exception_1.UsuarioJaMembroCampanhaException(usuarioId, convite.campanhaId);
         }
+        const papelConvite = convite.papel === 'MESTRE' || convite.papel === 'OBSERVADOR'
+            ? convite.papel
+            : 'JOGADOR';
         const membro = await this.prisma.membroCampanha.create({
             data: {
                 campanhaId: convite.campanhaId,
                 usuarioId,
-                papel: 'JOGADOR',
+                papel: papelConvite,
             },
         });
         await this.prisma.conviteCampanha.update({

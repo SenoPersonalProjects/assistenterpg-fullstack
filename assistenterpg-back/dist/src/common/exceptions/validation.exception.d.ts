@@ -1,6 +1,6 @@
 import { BaseException } from './base.exception';
 export declare class ValidationException extends BaseException {
-    constructor(message: string, field?: string, details?: any, code?: string);
+    constructor(message: string, field?: string, details?: unknown, code?: string);
 }
 export declare class CampoObrigatorioException extends ValidationException {
     constructor(field: string);
@@ -12,5 +12,5 @@ export declare class ValorForaDoIntervaloException extends ValidationException {
     constructor(field: string, min: number, max: number, valorRecebido: number);
 }
 export declare class ValoresUnicosException extends ValidationException {
-    constructor(field: string, valorDuplicado: any);
+    constructor(field: string, valorDuplicado: unknown);
 }

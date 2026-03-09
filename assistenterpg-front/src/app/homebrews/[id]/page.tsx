@@ -2,7 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiGetHomebrew, HomebrewDetalhado, TipoHomebrewConteudo } from '@/lib/api/homebrews';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
@@ -14,12 +14,6 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { InfoTile } from '@/components/ui/InfoTile';
-
-type Props = {
-  params: {
-    id: string;
-  };
-};
 
 type TecnicaHabilidadeDados = {
   nome?: string;
@@ -112,16 +106,25 @@ const STATUS_COLOR: Record<string, 'green' | 'yellow' | 'gray'> = {
   ARQUIVADO: 'gray',
 };
 
-export default function HomebrewDetalhePage({ params }: Props) {
+export default function HomebrewDetalhePage() {
+  const params = useParams<{ id?: string | string[] }>();
   const router = useRouter();
   const { usuario, loading: authLoading } = useAuth();
-  const homebrewId = Number(params.id);
+  const homebrewIdParam = Array.isArray(params.id) ? params.id[0] : params.id;
+  const homebrewId = Number(homebrewIdParam);
+  const homebrewIdValido = Number.isFinite(homebrewId);
 
   const [homebrew, setHomebrew] = useState<HomebrewDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   const carregarHomebrew = useCallback(async () => {
+    if (!homebrewIdValido) {
+      setErro('ID de homebrew invalido.');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setErro(null);
@@ -133,7 +136,7 @@ export default function HomebrewDetalhePage({ params }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [homebrewId]);
+  }, [homebrewId, homebrewIdValido]);
 
   useEffect(() => {
     if (!authLoading && !usuario) {

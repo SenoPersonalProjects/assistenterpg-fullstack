@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrigensController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 const origens_service_1 = require("./origens.service");
 const create_origem_dto_1 = require("./dto/create-origem.dto");
 const update_origem_dto_1 = require("./dto/update-origem.dto");
@@ -42,6 +43,7 @@ let OrigensController = class OrigensController {
 exports.OrigensController = OrigensController;
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_origem_dto_1.CreateOrigemDto]),
@@ -62,6 +64,7 @@ __decorate([
 ], OrigensController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -70,6 +73,7 @@ __decorate([
 ], OrigensController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

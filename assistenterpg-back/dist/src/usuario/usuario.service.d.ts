@@ -1,9 +1,11 @@
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AtualizarPreferenciasDto } from './dto/atualizar-preferencias.dto';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
 export declare class UsuarioService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
     criarUsuario(apelido: string, email: string, senha: string): Promise<{
         id: number;
         email: string;
@@ -91,7 +93,7 @@ export declare class UsuarioService {
                 descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                requisitos: Prisma.JsonValue | null;
             } | null;
             caminho: {
                 id: number;
@@ -128,7 +130,7 @@ export declare class UsuarioService {
                 descricao: string;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                requisitos: Prisma.JsonValue | null;
                 codigo: string;
                 tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
                 hereditaria: boolean;
@@ -151,9 +153,9 @@ export declare class UsuarioService {
             vigor: number;
             estudouEscolaTecnica: boolean;
             tecnicaInataId: number | null;
-            passivasAtributosAtivos: import("@prisma/client/runtime/library").JsonValue | null;
-            passivasAtributosConfig: import("@prisma/client/runtime/library").JsonValue | null;
-            proficienciasExtrasCodigos: import("@prisma/client/runtime/library").JsonValue | null;
+            passivasAtributosAtivos: Prisma.JsonValue | null;
+            passivasAtributosConfig: Prisma.JsonValue | null;
+            proficienciasExtrasCodigos: Prisma.JsonValue | null;
             idade: number | null;
             prestigioBase: number;
             prestigioClaBase: number | null;
@@ -164,9 +166,9 @@ export declare class UsuarioService {
             espacosInventarioExtra: number;
             espacosOcupados: number;
             sobrecarregado: boolean;
-            periciasClasseEscolhidasCodigos: import("@prisma/client/runtime/library").JsonValue | null;
-            periciasOrigemEscolhidasCodigos: import("@prisma/client/runtime/library").JsonValue | null;
-            periciasLivresCodigos: import("@prisma/client/runtime/library").JsonValue | null;
+            periciasClasseEscolhidasCodigos: Prisma.JsonValue | null;
+            periciasOrigemEscolhidasCodigos: Prisma.JsonValue | null;
+            periciasLivresCodigos: Prisma.JsonValue | null;
             pvMaximo: number;
             peMaximo: number;
             eaMaximo: number;

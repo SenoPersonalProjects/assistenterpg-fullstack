@@ -12,6 +12,46 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PersonagemBasePersistence = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const client_1 = require("@prisma/client");
+const personagemCriadoInclude = client_1.Prisma.validator()({
+    cla: true,
+    origem: true,
+    classe: true,
+    trilha: true,
+    caminho: true,
+    resistencias: {
+        include: {
+            resistenciaTipo: true,
+        },
+    },
+    inventarioItens: {
+        include: {
+            equipamento: true,
+            modificacoes: {
+                include: {
+                    modificacao: true,
+                },
+            },
+        },
+    },
+});
+function sanitizarDataBase(dataBase) {
+    const dataSanitizado = { ...dataBase };
+    if (Array.isArray(dataSanitizado.proficienciasCodigos)) {
+        dataSanitizado.proficienciasExtrasCodigos =
+            dataSanitizado.proficienciasCodigos;
+    }
+    delete dataSanitizado.proficienciasCodigos;
+    delete dataSanitizado.periciasLivresExtras;
+    delete dataSanitizado.itensInventario;
+    delete dataSanitizado.passivasAtributoIds;
+    delete dataSanitizado.defesa;
+    delete dataSanitizado.defesaTotal;
+    return dataSanitizado;
+}
+function toNullableInputJson(value) {
+    return value === null ? client_1.Prisma.JsonNull : value;
+}
 let PersonagemBasePersistence = class PersonagemBasePersistence {
     prisma;
     constructor(prisma) {
@@ -19,28 +59,19 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
     }
     async criarComEstado(params, prisma = this.prisma) {
         const { donoId, dataBase, estado } = params;
-        const dataSanitizado = { ...dataBase };
-        if (dataSanitizado.proficienciasCodigos !== undefined) {
-            dataSanitizado.proficienciasExtrasCodigos =
-                dataSanitizado.proficienciasCodigos;
-        }
-        delete dataSanitizado.proficienciasCodigos;
-        delete dataSanitizado.periciasLivresExtras;
-        delete dataSanitizado.itensInventario;
-        delete dataSanitizado.passivasAtributoIds;
-        delete dataSanitizado.defesa;
-        delete dataSanitizado.defesaTotal;
+        const dataSanitizado = sanitizarDataBase(dataBase);
         const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(estado.resistenciasFinais, prisma);
-        const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(estado.dtoNormalizado?.itensInventario ?? []);
+        const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(estado.dtoNormalizado.itensInventario ?? []);
         return prisma.personagemBase.create({
             data: {
                 ...dataSanitizado,
                 donoId,
                 passivasAtributosAtivos: estado.passivasResolvidas.ativos,
-                passivasAtributosConfig: estado.passivasAtributosConfigLimpo ?? undefined,
-                periciasClasseEscolhidasCodigos: estado.dtoNormalizado?.periciasClasseEscolhidasCodigos ?? [],
-                periciasOrigemEscolhidasCodigos: estado.dtoNormalizado?.periciasOrigemEscolhidasCodigos ?? [],
-                periciasLivresCodigos: estado.dtoNormalizado?.periciasLivresCodigos ?? [],
+                passivasAtributosConfig: estado.passivasAtributosConfigLimpo ??
+                    undefined,
+                periciasClasseEscolhidasCodigos: estado.dtoNormalizado.periciasClasseEscolhidasCodigos ?? [],
+                periciasOrigemEscolhidasCodigos: estado.dtoNormalizado.periciasOrigemEscolhidasCodigos ?? [],
+                periciasLivresCodigos: estado.dtoNormalizado.periciasLivresCodigos ?? [],
                 proficiencias: {
                     create: estado.profsFinais.map((codigo) => ({
                         proficiencia: { connect: { codigo } },
@@ -78,7 +109,7 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
                     ? {
                         create: estado.poderesGenericosNormalizados.map((p) => ({
                             habilidade: { connect: { id: p.habilidadeId } },
-                            config: p.config,
+                            config: toNullableInputJson(p.config),
                         })),
                     }
                     : undefined,
@@ -100,45 +131,14 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
                     }
                     : undefined,
             },
-            include: {
-                cla: true,
-                origem: true,
-                classe: true,
-                trilha: true,
-                caminho: true,
-                resistencias: {
-                    include: {
-                        resistenciaTipo: true,
-                    },
-                },
-                inventarioItens: {
-                    include: {
-                        equipamento: true,
-                        modificacoes: {
-                            include: {
-                                modificacao: true,
-                            },
-                        },
-                    },
-                },
-            },
+            include: personagemCriadoInclude,
         });
     }
     async atualizarRebuildComEstado(params, prisma = this.prisma) {
         const { id, dataUpdateBase, estado } = params;
-        const dataUpdateSanitizado = { ...dataUpdateBase };
-        if (dataUpdateSanitizado.proficienciasCodigos !== undefined) {
-            dataUpdateSanitizado.proficienciasExtrasCodigos =
-                dataUpdateSanitizado.proficienciasCodigos;
-        }
-        delete dataUpdateSanitizado.proficienciasCodigos;
-        delete dataUpdateSanitizado.periciasLivresExtras;
-        delete dataUpdateSanitizado.itensInventario;
-        delete dataUpdateSanitizado.passivasAtributoIds;
-        delete dataUpdateSanitizado.defesa;
-        delete dataUpdateSanitizado.defesaTotal;
+        const dataUpdateSanitizado = sanitizarDataBase(dataUpdateBase);
         const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(estado.resistenciasFinais, prisma);
-        const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(estado.dtoNormalizado?.itensInventario ?? []);
+        const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(estado.dtoNormalizado.itensInventario ?? []);
         await prisma.personagemBase.update({
             where: { id },
             data: dataUpdateSanitizado,
@@ -186,7 +186,7 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
                     deleteMany: {},
                     create: estado.poderesGenericosNormalizados.map((p) => ({
                         habilidade: { connect: { id: p.habilidadeId } },
-                        config: p.config,
+                        config: toNullableInputJson(p.config),
                     })),
                 },
                 passivas: {
@@ -263,7 +263,7 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
         if (!resistenciasFinais || resistenciasFinais.size === 0) {
             return [];
         }
-        const resistenciasValidas = Array.from(resistenciasFinais.entries()).filter(([_, valor]) => valor > 0);
+        const resistenciasValidas = Array.from(resistenciasFinais.entries()).filter(([, valor]) => valor > 0);
         if (resistenciasValidas.length === 0) {
             return [];
         }
@@ -287,7 +287,7 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
         return itensInventario.map((item) => ({
             equipamento: { connect: { id: item.equipamentoId } },
             quantidade: item.quantidade,
-            equipado: item.equipado,
+            equipado: item.equipado ?? false,
             nomeCustomizado: item.nomeCustomizado || null,
             notas: item.notas || null,
             modificacoes: item.modificacoesIds && item.modificacoesIds.length > 0

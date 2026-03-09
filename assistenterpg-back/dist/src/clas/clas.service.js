@@ -30,12 +30,20 @@ let ClasService = class ClasService {
                 throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
             }
             if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
-                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+                throw new common_1.BadRequestException({
+                    code: 'FONTE_SUPLEMENTO_OBRIGATORIA',
+                    message: 'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+                    field: 'fonte',
+                });
             }
             return;
         }
         if (fonte === client_1.TipoFonte.SUPLEMENTO) {
-            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+            throw new common_1.BadRequestException({
+                code: 'SUPLEMENTO_ID_OBRIGATORIO',
+                message: 'fonte SUPLEMENTO exige suplementoId',
+                field: 'suplementoId',
+            });
         }
     }
     async create(dto) {

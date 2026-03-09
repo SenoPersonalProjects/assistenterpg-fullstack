@@ -21,6 +21,13 @@ let HabilidadesService = class HabilidadesService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    toNullableInputJson(value) {
+        if (value === undefined)
+            return undefined;
+        if (value === null)
+            return client_1.Prisma.JsonNull;
+        return value;
+    }
     async validarFonteSuplemento(fonte, suplementoId) {
         if (suplementoId) {
             const suplemento = await this.prisma.suplemento.findUnique({
@@ -31,12 +38,20 @@ let HabilidadesService = class HabilidadesService {
                 throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
             }
             if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
-                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+                throw new common_1.BadRequestException({
+                    code: 'FONTE_SUPLEMENTO_OBRIGATORIA',
+                    message: 'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+                    field: 'fonte',
+                });
             }
             return;
         }
         if (fonte === client_1.TipoFonte.SUPLEMENTO) {
-            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+            throw new common_1.BadRequestException({
+                code: 'SUPLEMENTO_ID_OBRIGATORIO',
+                message: 'fonte SUPLEMENTO exige suplementoId',
+                field: 'suplementoId',
+            });
         }
     }
     async findPoderesGenericos() {
@@ -74,8 +89,8 @@ let HabilidadesService = class HabilidadesService {
                 descricao: createDto.descricao,
                 tipo: createDto.tipo,
                 origem: createDto.origem,
-                requisitos: createDto.requisitos,
-                mecanicasEspeciais: createDto.mecanicasEspeciais,
+                requisitos: this.toNullableInputJson(createDto.requisitos),
+                mecanicasEspeciais: this.toNullableInputJson(createDto.mecanicasEspeciais),
                 fonte: fonteFinal,
                 suplementoId: suplementoIdFinal,
                 ...(createDto.efeitosGrau?.length && {
@@ -83,7 +98,7 @@ let HabilidadesService = class HabilidadesService {
                         create: createDto.efeitosGrau.map((efeito) => ({
                             tipoGrauCodigo: efeito.tipoGrauCodigo,
                             valor: efeito.valor ?? 1,
-                            escalonamentoPorNivel: efeito.escalonamentoPorNivel,
+                            escalonamentoPorNivel: this.toNullableInputJson(efeito.escalonamentoPorNivel),
                         })),
                     },
                 }),
@@ -235,10 +250,10 @@ let HabilidadesService = class HabilidadesService {
                 ...(updateDto.tipo && { tipo: updateDto.tipo }),
                 ...(updateDto.origem !== undefined && { origem: updateDto.origem }),
                 ...(updateDto.requisitos !== undefined && {
-                    requisitos: updateDto.requisitos,
+                    requisitos: this.toNullableInputJson(updateDto.requisitos),
                 }),
                 ...(updateDto.mecanicasEspeciais !== undefined && {
-                    mecanicasEspeciais: updateDto.mecanicasEspeciais,
+                    mecanicasEspeciais: this.toNullableInputJson(updateDto.mecanicasEspeciais),
                 }),
                 ...(fonteFinal !== habilidadeAtual.fonte && { fonte: fonteFinal }),
                 ...(updateDto.suplementoId !== undefined && {
@@ -251,7 +266,7 @@ let HabilidadesService = class HabilidadesService {
                             create: updateDto.efeitosGrau.map((efeito) => ({
                                 tipoGrauCodigo: efeito.tipoGrauCodigo,
                                 valor: efeito.valor ?? 1,
-                                escalonamentoPorNivel: efeito.escalonamentoPorNivel,
+                                escalonamentoPorNivel: this.toNullableInputJson(efeito.escalonamentoPorNivel),
                             })),
                         }),
                     },

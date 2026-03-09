@@ -62,10 +62,11 @@ let AuthService = class AuthService {
             if (!senhaValida) {
                 throw new auth_exception_1.CredenciaisInvalidasException();
             }
-            const { senhaHash, ...resto } = usuario;
-            return resto;
+            const { senhaHash, ...usuarioSemSenha } = usuario;
+            void senhaHash;
+            return usuarioSemSenha;
         }
-        catch (error) {
+        catch {
             throw new auth_exception_1.CredenciaisInvalidasException();
         }
     }

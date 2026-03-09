@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrilhaDto } from './dto/create-trilha.dto';
 import { UpdateTrilhaDto } from './dto/update-trilha.dto';
@@ -6,6 +7,8 @@ import { UpdateCaminhoDto } from './dto/update-caminho.dto';
 export declare class TrilhasService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
+    private normalizarJsonParaPersistir;
     private validarFonteSuplemento;
     private ensureTrilha;
     private ensureCaminho;
@@ -42,7 +45,7 @@ export declare class TrilhasService {
         descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        requisitos: Prisma.JsonValue | null;
     }>;
     findAll(classeId?: number): Promise<({
         classe: {
@@ -65,7 +68,7 @@ export declare class TrilhasService {
         descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        requisitos: Prisma.JsonValue | null;
     })[]>;
     findOne(id: number): Promise<{
         classe: {
@@ -106,7 +109,7 @@ export declare class TrilhasService {
         descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        requisitos: Prisma.JsonValue | null;
     }>;
     update(id: number, updateDto: UpdateTrilhaDto): Promise<{
         classe: {
@@ -141,7 +144,7 @@ export declare class TrilhasService {
         descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        requisitos: Prisma.JsonValue | null;
     }>;
     remove(id: number): Promise<{
         message: string;

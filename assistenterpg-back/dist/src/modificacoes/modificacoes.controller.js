@@ -19,6 +19,7 @@ const modificacoes_service_1 = require("./modificacoes.service");
 const filtrar_modificacoes_dto_1 = require("./dto/filtrar-modificacoes.dto");
 const create_modificacao_dto_1 = require("./dto/create-modificacao.dto");
 const update_modificacao_dto_1 = require("./dto/update-modificacao.dto");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 let ModificacoesController = class ModificacoesController {
     modificacoesService;
     constructor(modificacoesService) {
@@ -70,7 +71,7 @@ __decorate([
 ], ModificacoesController.prototype, "buscarCompat\u00EDveis", null);
 __decorate([
     (0, common_1.Post)(),
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_modificacao_dto_1.CreateModificacaoDto]),
@@ -78,7 +79,7 @@ __decorate([
 ], ModificacoesController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(':id'),
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -87,7 +88,7 @@ __decorate([
 ], ModificacoesController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
-    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt'), admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

@@ -1,7 +1,7 @@
 import { ItemInventarioComDados, StatsEquipados, ResultadoEspacos, PreviewAdicionarItemResponse, ValidacaoGrauXama, ValidacaoVestir } from './inventario.types';
 import { CategoriaEquipamento, GrauFeiticeiro } from '@prisma/client';
 export declare class InventarioEngine {
-    calcularCategoriaFinal(categoriaOriginal: CategoriaEquipamento | string, quantidadeModificacoes: number): CategoriaEquipamento;
+    calcularCategoriaFinal(categoriaOriginal: string, quantidadeModificacoes: number): CategoriaEquipamento;
     calcularEspacosItem(item: ItemInventarioComDados): number;
     calcularEspacoUnitario(item: ItemInventarioComDados): number;
     calcularEspacosOcupados(itens: ItemInventarioComDados[]): number;
@@ -26,7 +26,9 @@ export declare class InventarioEngine {
     };
     validarLimitesGrauXama(prestigioBase: number, limitesPorCategoria: Record<string, number>, itensPorCategoria: Record<string, number>): ValidacaoGrauXama;
     previewAdicionarItem(itensAtuais: ItemInventarioComDados[], novoItem: {
-        equipamento: any;
+        equipamento: {
+            categoria: string;
+        };
         quantidade: number;
     }, personagem: {
         espacosInventarioBase: number;

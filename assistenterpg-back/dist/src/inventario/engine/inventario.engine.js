@@ -9,19 +9,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.InventarioEngine = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
+const ORDEM_CATEGORIAS = [
+    client_1.CategoriaEquipamento.CATEGORIA_0,
+    client_1.CategoriaEquipamento.CATEGORIA_4,
+    client_1.CategoriaEquipamento.CATEGORIA_3,
+    client_1.CategoriaEquipamento.CATEGORIA_2,
+    client_1.CategoriaEquipamento.CATEGORIA_1,
+    client_1.CategoriaEquipamento.ESPECIAL,
+];
+function isCategoriaEquipamento(value) {
+    return (typeof value === 'string' &&
+        ORDEM_CATEGORIAS.includes(value));
+}
+function isJsonObject(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+function extrairNumeroJson(value, key) {
+    if (!isJsonObject(value))
+        return undefined;
+    const raw = value[key];
+    return typeof raw === 'number' ? raw : undefined;
+}
 let InventarioEngine = class InventarioEngine {
     calcularCategoriaFinal(categoriaOriginal, quantidadeModificacoes) {
-        const ORDEM_CATEGORIAS = [
-            'CATEGORIA_0',
-            'CATEGORIA_4',
-            'CATEGORIA_3',
-            'CATEGORIA_2',
-            'CATEGORIA_1',
-            'ESPECIAL',
-        ];
+        if (!isCategoriaEquipamento(categoriaOriginal)) {
+            return client_1.CategoriaEquipamento.CATEGORIA_0;
+        }
         const indexOriginal = ORDEM_CATEGORIAS.indexOf(categoriaOriginal);
         if (indexOriginal === -1) {
-            return 'CATEGORIA_0';
+            return client_1.CategoriaEquipamento.CATEGORIA_0;
         }
         const indexFinal = Math.min(indexOriginal + quantidadeModificacoes, ORDEM_CATEGORIAS.length - 1);
         return ORDEM_CATEGORIAS[indexFinal];
@@ -89,9 +105,9 @@ let InventarioEngine = class InventarioEngine {
                 defesaTotal += item.equipamento.bonusDefesa * item.quantidade;
             }
             item.modificacoes.forEach((modJunction) => {
-                const efeitos = modJunction.modificacao.efeitosMecanicos;
-                if (efeitos && typeof efeitos.bonusDefesa === 'number') {
-                    defesaTotal += efeitos.bonusDefesa * item.quantidade;
+                const bonusDefesa = extrairNumeroJson(modJunction.modificacao.efeitosMecanicos, 'bonusDefesa');
+                if (typeof bonusDefesa === 'number') {
+                    defesaTotal += bonusDefesa * item.quantidade;
                 }
             });
         });
@@ -130,12 +146,12 @@ let InventarioEngine = class InventarioEngine {
                 });
             }
             item.modificacoes.forEach((modJunction) => {
-                const efeitos = modJunction.modificacao.efeitosMecanicos;
-                if (efeitos && typeof efeitos.rdAdicional === 'number') {
+                const rdAdicional = extrairNumeroJson(modJunction.modificacao.efeitosMecanicos, 'rdAdicional');
+                if (typeof rdAdicional === 'number') {
                     if (item.equipamento.reducesDano) {
                         item.equipamento.reducesDano.forEach((rd) => {
                             const valorAtual = reducoesPorTipo.get(rd.tipoReducao) || 0;
-                            reducoesPorTipo.set(rd.tipoReducao, valorAtual + efeitos.rdAdicional * item.quantidade);
+                            reducoesPorTipo.set(rd.tipoReducao, valorAtual + rdAdicional * item.quantidade);
                         });
                     }
                 }
@@ -271,7 +287,9 @@ let InventarioEngine = class InventarioEngine {
             acc[cat] = (acc[cat] ?? 0) + item.quantidade;
             return acc;
         }, {});
-        const categoriaNovoItem = novoItem.equipamento.categoria;
+        const categoriaNovoItem = isCategoriaEquipamento(novoItem.equipamento.categoria)
+            ? novoItem.equipamento.categoria
+            : client_1.CategoriaEquipamento.CATEGORIA_0;
         itensPorCategoriaAtual[categoriaNovoItem] =
             (itensPorCategoriaAtual[categoriaNovoItem] ?? 0) + novoItem.quantidade;
         const validacaoGrauXama = this.validarLimitesGrauXama(personagem.prestigioBase, limitesGrauXama, itensPorCategoriaAtual);

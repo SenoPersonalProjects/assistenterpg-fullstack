@@ -4,6 +4,7 @@ import { UpdateTipoGrauDto } from './dto/update-tipo-grau.dto';
 export declare class TiposGrauService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
     create(dto: CreateTipoGrauDto): Promise<{
         id: number;
         nome: string;

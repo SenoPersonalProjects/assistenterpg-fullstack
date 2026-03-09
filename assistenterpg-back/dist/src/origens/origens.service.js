@@ -21,6 +21,12 @@ let OrigensService = class OrigensService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    tratarErroPrisma(error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError ||
+            error instanceof client_1.Prisma.PrismaClientValidationError) {
+            (0, database_exception_1.handlePrismaError)(error);
+        }
+    }
     async validarFonteSuplemento(fonte, suplementoId) {
         if (suplementoId) {
             const suplemento = await this.prisma.suplemento.findUnique({
@@ -31,12 +37,20 @@ let OrigensService = class OrigensService {
                 throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
             }
             if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
-                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+                throw new common_1.BadRequestException({
+                    code: 'FONTE_SUPLEMENTO_OBRIGATORIA',
+                    message: 'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+                    field: 'fonte',
+                });
             }
             return;
         }
         if (fonte === client_1.TipoFonte.SUPLEMENTO) {
-            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+            throw new common_1.BadRequestException({
+                code: 'SUPLEMENTO_ID_OBRIGATORIO',
+                message: 'fonte SUPLEMENTO exige suplementoId',
+                field: 'suplementoId',
+            });
         }
     }
     addHabilidadesIniciais(origem) {
@@ -124,9 +138,7 @@ let OrigensService = class OrigensService {
             return this.addHabilidadesIniciais(origem);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -157,9 +169,7 @@ let OrigensService = class OrigensService {
             return origens.map((o) => this.addHabilidadesIniciais(o));
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -193,9 +203,7 @@ let OrigensService = class OrigensService {
             return this.addHabilidadesIniciais(origem);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -302,9 +310,7 @@ let OrigensService = class OrigensService {
             return this.addHabilidadesIniciais(origem);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -326,9 +332,7 @@ let OrigensService = class OrigensService {
             return { message: 'Origem removida com sucesso' };
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }

@@ -3,6 +3,7 @@ import { CreatePersonagemBaseDto } from './dto/create-personagem-base.dto';
 import { UpdatePersonagemBaseDto } from './dto/update-personagem-base.dto';
 import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
 import { ConsultarInfoGrausTreinamentoDto, ConsultarPericiasElegiveisDto } from './dto/consultar-graus-treinamento.dto';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 export declare class PersonagemBaseController {
     private readonly personagemBaseService;
     constructor(personagemBaseService: PersonagemBaseService);
@@ -25,15 +26,15 @@ export declare class PersonagemBaseController {
             id: number;
         };
     }, dto: CreatePersonagemBaseDto): Promise<{
-        proficienciasExtrasCodigos: any;
-        passivasNeedsChoice: any;
-        passivasElegiveis: any;
+        proficienciasExtrasCodigos: string[];
+        passivasNeedsChoice: boolean | undefined;
+        passivasElegiveis: unknown;
         passivasAtributosAtivos: import("@prisma/client").$Enums.AtributoBase[];
         passivasAtributoIds: number[];
-        passivasAtributosConfig: any;
+        passivasAtributosConfig: import("./dto/create-personagem-base.dto").PassivasAtributoConfigDto;
         poderesGenericos: {
             habilidadeId: number;
-            config: any;
+            config: import("@prisma/client/runtime/library").JsonValue;
         }[];
         pericias: {
             codigo: string;
@@ -60,7 +61,7 @@ export declare class PersonagemBaseController {
             habilidadeNome: string;
             tipoGrauCodigo: string;
             valor: number;
-            escalonamentoPorNivel: any;
+            escalonamentoPorNivel: import("@prisma/client/runtime/library").JsonValue | null;
         }[];
         atributosDerivados: {
             pvMaximo: number;
@@ -101,8 +102,11 @@ export declare class PersonagemBaseController {
             descricao: string | null;
             valor: number;
         }[];
-        itensInventario: any[];
-        errosItens: any[] | undefined;
+        itensInventario: unknown[];
+        errosItens: {
+            equipamentoId: number;
+            erro: string;
+        }[] | undefined;
         nome: string;
         nivel: number;
         claId: number;
@@ -130,7 +134,7 @@ export declare class PersonagemBaseController {
         periciasLivresCodigos: string[];
         periciasLivresExtras?: number;
     }>;
-    consultarInfoGrausTreinamento(query: ConsultarInfoGrausTreinamentoDto): Promise<{
+    consultarInfoGrausTreinamento(query: ConsultarInfoGrausTreinamentoDto): {
         niveisDisponiveis: Array<{
             nivel: number;
             maxMelhorias: number;
@@ -140,15 +144,23 @@ export declare class PersonagemBaseController {
             veterano: number;
             expert: number;
         };
-    }>;
+    };
     consultarPericiasElegiveis(body: ConsultarPericiasElegiveisDto): Promise<{
         codigo: string;
         nome: string;
         atributoBase: string;
         grauAtual: number;
     }[]>;
-    listarPassivasDisponiveis(): Promise<Record<string, any>>;
-    listarTecnicasDisponiveis(claId: number, origemId?: string): Promise<{
+    listarPassivasDisponiveis(): Promise<Record<string, {
+        id: number;
+        codigo: string;
+        nome: string;
+        nivel: number;
+        requisito: number | null;
+        descricao: string | null;
+        efeitos: import("@prisma/client/runtime/library").JsonValue | null;
+    }[]>>;
+    listarTecnicasDisponiveis(claId: number, origemId?: number): Promise<{
         hereditarias: {
             id: number;
             nome: string;
@@ -178,13 +190,7 @@ export declare class PersonagemBaseController {
         user: {
             id: number;
         };
-    }): Promise<{
-        id: any;
-        nome: any;
-        nivel: any;
-        cla: any;
-        classe: any;
-    }[]>;
+    }, paginacao: PaginationQueryDto): Promise<any[] | import("src/common/dto/pagination-query.dto").PaginatedResult<any>>;
     exportar(req: {
         user: {
             id: number;
@@ -195,39 +201,59 @@ export declare class PersonagemBaseController {
         exportadoEm: string;
         personagem: CreatePersonagemBaseDto;
         referencias: {
-            personagemIdOriginal: any;
+            personagemIdOriginal: number;
             cla: {
-                id: any;
-                nome: any;
+                id: number;
+                nome: string;
             } | null;
             origem: {
-                id: any;
-                nome: any;
+                id: number;
+                nome: string;
             } | null;
             classe: {
-                id: any;
-                nome: any;
+                id: number;
+                nome: string;
             } | null;
             trilha: {
-                id: any;
-                nome: any;
+                id: number;
+                nome: string;
             } | null;
             caminho: {
-                id: any;
-                nome: any;
+                id: number;
+                nome: string;
             } | null;
             alinhamento: {
-                id: any;
-                nome: any;
+                id: number;
+                nome: string;
             } | null;
             tecnicaInata: {
-                id: any;
-                codigo: any;
-                nome: any;
+                id: number;
+                codigo: string;
+                nome: string;
             } | null;
-            poderesGenericos: any;
-            passivas: any;
-            itensInventario: any;
+            poderesGenericos: {
+                index: number;
+                habilidadeId: number;
+                habilidadeNome: string;
+            }[];
+            passivas: {
+                index: number;
+                passivaId: number;
+                codigo: string;
+                nome: string;
+            }[];
+            itensInventario: {
+                index: number;
+                equipamentoId: number;
+                equipamentoCodigo: string;
+                equipamentoNome: string;
+                modificacoes: {
+                    index: number;
+                    modificacaoId: number;
+                    codigo: string;
+                    nome: string;
+                }[];
+            }[];
         };
     }>;
     importar(req: {
@@ -252,17 +278,27 @@ export declare class PersonagemBaseController {
         user: {
             id: number;
         };
-    }, id: number, incluirInventario?: string): Promise<any>;
+    }, id: number, incluirInventario?: string): Promise<import("./personagem-base.mapper").PersonagemDetalhadoMapeado & {
+        inventario?: {
+            espacosBase: number;
+            espacosExtra: number;
+            espacosTotal: number;
+            espacosOcupados: number;
+            espacosDisponiveis: number;
+            sobrecarregado: boolean;
+            quantidadeItens: number;
+        };
+    }>;
     atualizar(req: {
         user: {
             id: number;
         };
     }, id: number, dto: UpdatePersonagemBaseDto): Promise<{
-        id: any;
-        nome: any;
-        nivel: any;
-        cla: any;
-        classe: any;
+        id: number;
+        nome: string;
+        nivel: number;
+        cla: string;
+        classe: string;
     }>;
     remover(req: {
         user: {

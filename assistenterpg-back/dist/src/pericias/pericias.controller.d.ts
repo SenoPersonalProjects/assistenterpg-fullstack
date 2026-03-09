@@ -12,7 +12,7 @@ export declare class PericiasController {
         penalizaPorCarga: boolean;
         precisaKit: boolean;
     }[]>;
-    findOne(id: string): Promise<{
+    findOne(id: number): Promise<{
         id: number;
         nome: string;
         descricao: string;

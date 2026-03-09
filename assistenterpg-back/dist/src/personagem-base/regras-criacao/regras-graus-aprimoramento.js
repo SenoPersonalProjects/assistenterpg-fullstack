@@ -31,7 +31,11 @@ function calcularBonusGrausDePoderesGenericos(poderes, habilidades) {
         const mec = hab.mecanicasEspeciais;
         if (mec?.escolha?.tipo !== 'TIPO_GRAU')
             continue;
-        const codigo = inst.config?.tipoGrauCodigo;
+        const codigo = typeof inst.config === 'object' &&
+            inst.config !== null &&
+            !Array.isArray(inst.config)
+            ? inst.config.tipoGrauCodigo
+            : undefined;
         if (typeof codigo !== 'string')
             continue;
         const atual = bonusMap.get(codigo) ?? 0;
@@ -39,15 +43,14 @@ function calcularBonusGrausDePoderesGenericos(poderes, habilidades) {
     }
     return bonusMap;
 }
-async function aplicarRegrasDeGraus(params, grausLivres) {
-    const { nivel, habilidades, poderes, passivasAtributosConfig } = params;
+function aplicarRegrasDeGraus(params, grausLivres) {
+    const { nivel, habilidades, poderes } = params;
     const mapa = new Map();
     for (const g of grausLivres ?? []) {
         mapa.set(g.tipoGrauCodigo, (mapa.get(g.tipoGrauCodigo) ?? 0) + g.valor);
     }
     const bonusHabilidades = calcularBonusDeHabilidades(habilidades, nivel);
     const bonusPoderes = calcularBonusGrausDePoderesGenericos(poderes ?? [], habilidades);
-    const extras = calcularGrausLivresExtras(habilidades, nivel, passivasAtributosConfig);
     for (const [codigo, valor] of mapa.entries()) {
         if (!Number.isInteger(valor)) {
             throw new personagem_exception_1.GrauAprimoramentoNaoInteiroException(codigo, valor);

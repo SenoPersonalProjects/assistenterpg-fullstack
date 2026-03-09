@@ -14,6 +14,7 @@ export declare class InventarioService {
     private readonly engine;
     private readonly mapper;
     constructor(prisma: PrismaService, engine: InventarioEngine, mapper: InventarioMapper);
+    private tratarErroPrisma;
     private validarPropriedade;
     private buscarLimitesGrauXama;
     private carregarItensInventario;

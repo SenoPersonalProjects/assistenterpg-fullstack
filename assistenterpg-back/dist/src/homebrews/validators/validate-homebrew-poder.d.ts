@@ -1,1 +1,1 @@
-export declare function validateHomebrewPoderCustom(dados: any): void;
+export declare function validateHomebrewPoderCustom(dados: unknown): void;

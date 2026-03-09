@@ -99,6 +99,7 @@ export declare class CampanhaService {
         status: string;
         codigo: string;
         campanhaId: number;
+        papel: string;
         respondidoEm: Date | null;
     }>;
     listarConvitesPendentesPorUsuario(usuarioId: number): Promise<({
@@ -116,6 +117,7 @@ export declare class CampanhaService {
         status: string;
         codigo: string;
         campanhaId: number;
+        papel: string;
         respondidoEm: Date | null;
     })[]>;
     aceitarConvite(codigo: string, usuarioId: number): Promise<{
@@ -132,6 +134,7 @@ export declare class CampanhaService {
         status: string;
         codigo: string;
         campanhaId: number;
+        papel: string;
         respondidoEm: Date | null;
     }>;
 }

@@ -33,34 +33,64 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const initialToken = getToken();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(initialToken);
-  const [loading, setLoading] = useState(Boolean(initialToken));
+  const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Estratégia oficial: autenticação SPA com Bearer em localStorage.
   useEffect(() => {
-    if (!token) {
-      return;
-    }
+    let active = true;
 
-    apiGetMe()
-      .then((u) => setUsuario(u))
-      .catch(() => {
+    const bootstrapAuth = async () => {
+      const storedToken = getToken();
+
+      if (!storedToken) {
+        if (active) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (active) {
+        setToken(storedToken);
+      }
+
+      try {
+        const u = await apiGetMe();
+        if (active) {
+          setUsuario(u);
+        }
+      } catch {
         clearToken();
-        setToken(null);
-        setUsuario(null);
-      })
-      .finally(() => setLoading(false));
-  }, [token]);
+        if (active) {
+          setToken(null);
+          setUsuario(null);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    bootstrapAuth();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const login = useCallback(
     async (email: string, senha: string) => {
-      const resp: LoginResponse = await apiLogin(email, senha);
-      saveToken(resp.access_token);
-      setToken(resp.access_token);
-      setUsuario(resp.usuario);
-      router.push('/home');
+      setLoading(true);
+      try {
+        const resp: LoginResponse = await apiLogin(email, senha);
+        saveToken(resp.access_token);
+        setToken(resp.access_token);
+        setUsuario(resp.usuario);
+        router.push('/home');
+      } finally {
+        setLoading(false);
+      }
     },
     [router],
   );
@@ -77,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearToken();
     setToken(null);
     setUsuario(null);
+    setLoading(false);
     router.push('/auth/login');
   }, [router]);
 

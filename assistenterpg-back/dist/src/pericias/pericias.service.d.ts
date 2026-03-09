@@ -2,6 +2,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export declare class PericiasService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
     findAll(): Promise<{
         id: number;
         nome: string;

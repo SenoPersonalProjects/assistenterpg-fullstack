@@ -1,7 +1,7 @@
 // src/app/homebrews/[id]/editar/page.tsx
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -11,21 +11,24 @@ import { HomebrewForm } from '@/components/suplemento/HomebrewForm';
 import { apiGetHomebrew, apiUpdateHomebrew } from '@/lib/api/homebrews';
 import type { CreateHomebrewDto, HomebrewDetalhado } from '@/lib/api/homebrews';
 
-type Props = {
-  params: {
-    id: string;
-  };
-};
-
-export default function EditarHomebrewPage({ params }: Props) {
+export default function EditarHomebrewPage() {
+  const params = useParams<{ id?: string | string[] }>();
   const router = useRouter();
-  const homebrewId = Number(params.id);
+  const homebrewIdParam = Array.isArray(params.id) ? params.id[0] : params.id;
+  const homebrewId = Number(homebrewIdParam);
+  const homebrewIdValido = Number.isFinite(homebrewId);
 
   const [homebrew, setHomebrew] = useState<HomebrewDetalhado | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!homebrewIdValido) {
+      setErro('ID de homebrew invalido.');
+      setCarregando(false);
+      return;
+    }
+
     (async () => {
       try {
         setCarregando(true);
@@ -38,7 +41,7 @@ export default function EditarHomebrewPage({ params }: Props) {
         setCarregando(false);
       }
     })();
-  }, [homebrewId]);
+  }, [homebrewId, homebrewIdValido]);
 
   async function handleSubmit(data: CreateHomebrewDto) {
     try {

@@ -34,29 +34,7 @@ let InventarioController = class InventarioController {
         return this.inventarioService.previewAdicionarItem(req.user.id, dto);
     }
     async previewItensInventario(dto) {
-        console.log('[InventarioController] ============ CHEGOU NO CONTROLLER ============');
-        console.log('[InventarioController] Body recebido:', JSON.stringify(dto, null, 2));
-        console.log('[InventarioController] Tipos:', {
-            forca: typeof dto.forca,
-            prestigioBase: typeof dto.prestigioBase,
-            itens: Array.isArray(dto.itens)
-                ? `array[${dto.itens.length}]`
-                : typeof dto.itens,
-        });
-        try {
-            const resultado = await this.inventarioService.previewItensInventario(dto);
-            console.log('[InventarioController] ✅ Preview gerado com sucesso');
-            return resultado;
-        }
-        catch (err) {
-            console.error('[InventarioController] ❌ Erro ao gerar preview:', {
-                message: err.message,
-                name: err.name,
-                status: err.status,
-                response: err.response,
-            });
-            throw err;
-        }
+        return this.inventarioService.previewItensInventario(dto);
     }
     async adicionarItem(req, dto) {
         return this.inventarioService.adicionarItem(req.user.id, dto);

@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TiposGrauController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 const tipos_grau_service_1 = require("./tipos-grau.service");
 const create_tipo_grau_dto_1 = require("./dto/create-tipo-grau.dto");
 const update_tipo_grau_dto_1 = require("./dto/update-tipo-grau.dto");
@@ -30,17 +31,18 @@ let TiposGrauController = class TiposGrauController {
         return this.tiposGrauService.findAll();
     }
     findOne(id) {
-        return this.tiposGrauService.findOne(+id);
+        return this.tiposGrauService.findOne(id);
     }
     update(id, dto) {
-        return this.tiposGrauService.update(+id, dto);
+        return this.tiposGrauService.update(id, dto);
     }
     remove(id) {
-        return this.tiposGrauService.remove(+id);
+        return this.tiposGrauService.remove(id);
     }
 };
 exports.TiposGrauController = TiposGrauController;
 __decorate([
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -55,24 +57,26 @@ __decorate([
 ], TiposGrauController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], TiposGrauController.prototype, "findOne", null);
 __decorate([
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     (0, common_1.Patch)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_tipo_grau_dto_1.UpdateTipoGrauDto]),
+    __metadata("design:paramtypes", [Number, update_tipo_grau_dto_1.UpdateTipoGrauDto]),
     __metadata("design:returntype", void 0)
 ], TiposGrauController.prototype, "update", null);
 __decorate([
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     (0, common_1.Delete)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], TiposGrauController.prototype, "remove", null);
 exports.TiposGrauController = TiposGrauController = __decorate([

@@ -8,6 +8,7 @@ import { HomebrewExplosivoDto } from './equipamentos/criar-homebrew-explosivo.dt
 import { HomebrewFerramentaAmaldicoadaDto } from './equipamentos/criar-homebrew-ferramenta-amaldicoada.dto';
 import { HomebrewItemOperacionalDto } from './equipamentos/criar-homebrew-item-operacional.dto';
 import { HomebrewItemAmaldicoadoDto } from './equipamentos/criar-homebrew-item-amaldicoado.dto';
+import { HomebrewEquipamentoGenericoDto } from './equipamentos/criar-homebrew-generico.dto';
 import { HomebrewTecnicaDto } from './tecnicas/criar-homebrew-tecnica.dto';
 import { HomebrewOrigemDto } from './origens/criar-homebrew-origem.dto';
 import { HomebrewTrilhaDto } from './trilhas/criar-homebrew-trilha.dto';
@@ -16,5 +17,5 @@ import { HomebrewClaDto } from './clas/criar-homebrew-cla.dto';
 import { HomebrewPoderDto } from './poderes/criar-homebrew-poder.dto';
 export declare class CreateHomebrewDto extends CreateHomebrewBaseDto {
     tipo: TipoHomebrewConteudo;
-    dados: HomebrewArmaDto | HomebrewProtecaoDto | HomebrewAcessorioDto | HomebrewMunicaoDto | HomebrewExplosivoDto | HomebrewFerramentaAmaldicoadaDto | HomebrewItemOperacionalDto | HomebrewItemAmaldicoadoDto | HomebrewTecnicaDto | HomebrewOrigemDto | HomebrewTrilhaDto | HomebrewCaminhoDto | HomebrewClaDto | HomebrewPoderDto;
+    dados: HomebrewArmaDto | HomebrewProtecaoDto | HomebrewAcessorioDto | HomebrewMunicaoDto | HomebrewExplosivoDto | HomebrewFerramentaAmaldicoadaDto | HomebrewItemOperacionalDto | HomebrewItemAmaldicoadoDto | HomebrewEquipamentoGenericoDto | HomebrewTecnicaDto | HomebrewOrigemDto | HomebrewTrilhaDto | HomebrewCaminhoDto | HomebrewClaDto | HomebrewPoderDto;
 }

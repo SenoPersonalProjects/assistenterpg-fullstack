@@ -18,6 +18,8 @@ const equipamentos_service_1 = require("./equipamentos.service");
 const filtrar_equipamentos_dto_1 = require("./dto/filtrar-equipamentos.dto");
 const criar_equipamento_dto_1 = require("./dto/criar-equipamento.dto");
 const atualizar_equipamento_dto_1 = require("./dto/atualizar-equipamento.dto");
+const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 let EquipamentosController = class EquipamentosController {
     equipamentosService;
     constructor(equipamentosService) {
@@ -66,6 +68,7 @@ __decorate([
 ], EquipamentosController.prototype, "buscarPorCodigo", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -74,6 +77,7 @@ __decorate([
 ], EquipamentosController.prototype, "criar", null);
 __decorate([
     (0, common_1.Put)(':id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -82,6 +86,7 @@ __decorate([
 ], EquipamentosController.prototype, "atualizar", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),

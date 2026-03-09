@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PericiasService = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../prisma/prisma.service");
 const pericia_exception_1 = require("../common/exceptions/pericia.exception");
 const database_exception_1 = require("../common/exceptions/database.exception");
@@ -18,6 +19,12 @@ let PericiasService = class PericiasService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    tratarErroPrisma(error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError ||
+            error instanceof client_1.Prisma.PrismaClientValidationError) {
+            (0, database_exception_1.handlePrismaError)(error);
+        }
     }
     async findAll() {
         try {
@@ -29,9 +36,7 @@ let PericiasService = class PericiasService {
             });
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -46,9 +51,7 @@ let PericiasService = class PericiasService {
             return pericia;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }

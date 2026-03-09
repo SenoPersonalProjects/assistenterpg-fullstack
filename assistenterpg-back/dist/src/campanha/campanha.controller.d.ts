@@ -122,6 +122,7 @@ export declare class CampanhaController {
         status: string;
         codigo: string;
         campanhaId: number;
+        papel: string;
         respondidoEm: Date | null;
     }>;
     listarConvitesPendentes(req: {
@@ -143,6 +144,7 @@ export declare class CampanhaController {
         status: string;
         codigo: string;
         campanhaId: number;
+        papel: string;
         respondidoEm: Date | null;
     })[]>;
     aceitarConvite(codigo: string, req: {
@@ -167,6 +169,7 @@ export declare class CampanhaController {
         status: string;
         codigo: string;
         campanhaId: number;
+        papel: string;
         respondidoEm: Date | null;
     }>;
 }

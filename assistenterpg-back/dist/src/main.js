@@ -8,6 +8,12 @@ const all_exceptions_filter_1 = require("./common/filters/all-exceptions.filter"
 const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 const logging_interceptor_1 = require("./common/interceptors/logging.interceptor");
 const timeout_interceptor_1 = require("./common/interceptors/timeout.interceptor");
+function isPortInUseError(error) {
+    return (typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'EADDRINUSE');
+}
 async function listenWithPortFallback(app, logger, preferredPort) {
     const autoRetryFlag = process.env.PORT_AUTO_RETRY;
     const isDevLike = process.env.NODE_ENV !== 'production';
@@ -21,7 +27,7 @@ async function listenWithPortFallback(app, logger, preferredPort) {
             return currentPort;
         }
         catch (error) {
-            const isPortInUse = error?.code === 'EADDRINUSE';
+            const isPortInUse = isPortInUseError(error);
             const hasNextAttempt = attempt < maxAttempts;
             if (isPortInUse && hasNextAttempt) {
                 logger.warn(`Porta ${currentPort} em uso. Tentando ${currentPort + 1}...`);
@@ -59,7 +65,9 @@ async function bootstrap() {
     app.useGlobalFilters(new all_exceptions_filter_1.AllExceptionsFilter(), new http_exception_filter_1.HttpExceptionFilter());
     app.useGlobalInterceptors(new logging_interceptor_1.LoggingInterceptor(), new timeout_interceptor_1.TimeoutInterceptor());
     const preferredPortRaw = Number(process.env.PORT ?? 3000);
-    const preferredPort = Number.isFinite(preferredPortRaw) ? preferredPortRaw : 3000;
+    const preferredPort = Number.isFinite(preferredPortRaw)
+        ? preferredPortRaw
+        : 3000;
     const enableSwagger = process.env.SWAGGER_ENABLED !== 'false';
     const apiVersion = process.env.API_VERSION || 'v1';
     if (enableSwagger) {

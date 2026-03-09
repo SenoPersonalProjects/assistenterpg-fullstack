@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HabilidadesController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 const habilidades_service_1 = require("./habilidades.service");
 const create_habilidade_dto_1 = require("./dto/create-habilidade.dto");
 const update_habilidade_dto_1 = require("./dto/update-habilidade.dto");
@@ -66,6 +67,7 @@ __decorate([
 ], HabilidadesController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_habilidade_dto_1.CreateHabilidadeDto]),
@@ -73,6 +75,7 @@ __decorate([
 ], HabilidadesController.prototype, "create", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -81,6 +84,7 @@ __decorate([
 ], HabilidadesController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

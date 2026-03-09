@@ -1,8 +1,9 @@
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 type PrismaLike = Pick<PrismaService, 'habilidade' | 'proficiencia'>;
 type PoderGenericoInstanciaInput = {
     habilidadeId: number;
-    config?: any;
+    config?: unknown;
 };
 type PericiaState = {
     grauTreinamento: number;
@@ -24,7 +25,7 @@ export declare function aplicarEfeitosPoderesEmGraus(params: {
 }, prisma: PrismaLike): Promise<GrauLivre[]>;
 export declare function extrairProficienciasDeHabilidades(habilidades: Array<{
     habilidade: {
-        mecanicasEspeciais?: any;
+        mecanicasEspeciais?: Prisma.JsonValue | null;
         nome?: string;
     };
 }>, prisma: PrismaLike): Promise<string[]>;
@@ -35,7 +36,7 @@ export declare function aplicarEfeitosPoderesEmProficiencias(params: {
 }, prisma: PrismaLike): Promise<string[]>;
 export declare function extrairResistenciasDeHabilidades(habilidades: Array<{
     habilidade: {
-        mecanicasEspeciais?: any;
+        mecanicasEspeciais?: Prisma.JsonValue | null;
         nome?: string;
     };
 }>): Map<string, number>;

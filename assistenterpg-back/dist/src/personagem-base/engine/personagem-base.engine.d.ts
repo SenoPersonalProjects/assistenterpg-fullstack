@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { EngineParams, EngineResult, HabilidadeComEfeitos, ModDerivados, PrismaLike, ItemInventarioCalculado } from './personagem-base.engine.types';
 type BuscarHabilidadesFn = (params: {
     nivel: number;
@@ -7,17 +8,13 @@ type BuscarHabilidadesFn = (params: {
     caminhoId?: number | null;
     tecnicaInataId?: number | null;
     estudouEscolaTecnica: boolean;
-    poderesGenericos?: Array<{
-        habilidadeId: number;
-        config?: any;
-    }>;
+    poderesGenericos?: PoderGenericoNormalizado[];
 }, prisma: PrismaLike) => Promise<HabilidadeComEfeitos>;
-type CalcularModsDerivadosFn = (habilidades: Array<{
-    habilidade: {
-        nome: string;
-        mecanicasEspeciais?: any;
-    };
-}>, nivel: number) => ModDerivados;
+type CalcularModsDerivadosFn = (habilidades: HabilidadeComEfeitos, nivel: number) => ModDerivados;
+type PoderGenericoNormalizado = {
+    habilidadeId: number;
+    config: Prisma.JsonValue;
+};
 export declare function calcularEstadoFinalPersonagemBase(params: EngineParams & {
     prisma: PrismaLike;
     buscarHabilidadesPersonagem: BuscarHabilidadesFn;

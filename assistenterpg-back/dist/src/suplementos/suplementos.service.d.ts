@@ -6,6 +6,8 @@ import { SuplementoCatalogoDto } from './dto/suplemento-catalogo.dto';
 export declare class SuplementosService {
     private prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
+    private mapearTags;
     findAll(filtros: FiltrarSuplementosDto, usuarioId?: number): Promise<SuplementoCatalogoDto[]>;
     findOne(id: number, usuarioId?: number): Promise<SuplementoCatalogoDto>;
     findByCodigo(codigo: string, usuarioId?: number): Promise<SuplementoCatalogoDto>;

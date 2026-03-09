@@ -24,6 +24,9 @@ function isMecanicasEspeciaisPoder(value) {
     const v = value;
     return 'repetivel' in v || 'escolha' in v;
 }
+function isStringArray(value) {
+    return (Array.isArray(value) && value.every((entry) => typeof entry === 'string'));
+}
 function calcularSlotsPoderesGenericos(nivel) {
     const niveisQueDaoPoder = [3, 6, 9, 12, 15, 18];
     return niveisQueDaoPoder.filter((n) => nivel >= n).length;
@@ -131,8 +134,10 @@ async function validarPoderesGenericos(params, prisma) {
     }
 }
 async function validarConfigPericias(poderNome, config, quantidade, prisma) {
-    const codigos = config?.periciasCodigos;
-    if (!Array.isArray(codigos) || codigos.some((c) => typeof c !== 'string')) {
+    const codigos = typeof config === 'object' && config !== null && !Array.isArray(config)
+        ? config.periciasCodigos
+        : undefined;
+    if (!isStringArray(codigos)) {
         throw new personagem_exception_1.PoderGenericoConfigInvalidaException(poderNome, 'periciasCodigos', 'deve ser array de strings');
     }
     const unicos = Array.from(new Set(codigos));

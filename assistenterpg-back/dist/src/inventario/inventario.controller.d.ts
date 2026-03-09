@@ -18,7 +18,7 @@ export declare class InventarioController {
             id: number;
         };
     }, dto: PreviewItemDto): Promise<import("./engine/inventario.types").PreviewAdicionarItemResponse>;
-    previewItensInventario(dto: PreviewItensInventarioDto): Promise<any>;
+    previewItensInventario(dto: PreviewItensInventarioDto): Promise<unknown>;
     adicionarItem(req: {
         user: {
             id: number;

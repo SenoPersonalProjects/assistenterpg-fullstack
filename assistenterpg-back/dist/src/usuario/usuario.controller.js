@@ -26,8 +26,9 @@ let UsuarioController = class UsuarioController {
     }
     async getMe(req) {
         const usuario = await this.usuarioService.buscarPorId(req.user.id);
-        const { senhaHash, ...resto } = usuario;
-        return resto;
+        const { senhaHash, ...usuarioSemSenha } = usuario;
+        void senhaHash;
+        return usuarioSemSenha;
     }
     async obterEstatisticas(req) {
         return this.usuarioService.obterEstatisticas(req.user.id);

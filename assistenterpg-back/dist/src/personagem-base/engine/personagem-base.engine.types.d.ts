@@ -20,18 +20,18 @@ export type PassivasResolvidas = {
     passivaIds: number[];
     passivaCodigos: string[];
     needsChoice?: boolean;
-    elegiveis?: any;
+    elegiveis?: unknown;
 };
 export type HabilidadeComEfeitos = Array<{
     habilidadeId: number;
     habilidade: {
         nome: string;
         tipo?: string;
-        mecanicasEspeciais?: any;
+        mecanicasEspeciais?: Prisma.JsonValue | null;
         efeitosGrau: Array<{
             tipoGrauCodigo: string;
             valor: number;
-            escalonamentoPorNivel: any;
+            escalonamentoPorNivel: Prisma.JsonValue | null;
         }>;
     };
 }>;
@@ -78,7 +78,7 @@ export type EngineResult = {
     passivasAtributosConfigLimpo?: PassivasAtributoConfigDto | null;
     poderesGenericosNormalizados: Array<{
         habilidadeId: number;
-        config: any;
+        config: Prisma.JsonValue;
     }>;
     periciasMapCodigo: Map<string, PericiaState>;
     periciasComCodigo: PericiaComCodigo[];
@@ -120,7 +120,7 @@ export type EngineResult = {
         habilidadeNome: string;
         tipoGrauCodigo: string;
         valor: number;
-        escalonamentoPorNivel: any;
+        escalonamentoPorNivel: Prisma.JsonValue | null;
     }>;
     grausLivresInfo: {
         base: number;

@@ -4,6 +4,7 @@ import { UpdateProficienciaDto } from './dto/update-proficiencia.dto';
 export declare class ProficienciasService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
     create(dto: CreateProficienciaDto): Promise<{
         id: number;
         nome: string;

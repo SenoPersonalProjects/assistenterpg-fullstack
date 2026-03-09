@@ -16,6 +16,7 @@ exports.TecnicasAmaldicoadasController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
 const tecnicas_amaldicoadas_service_1 = require("./tecnicas-amaldicoadas.service");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 const create_tecnica_dto_1 = require("./dto/create-tecnica.dto");
 const update_tecnica_dto_1 = require("./dto/update-tecnica.dto");
 const filtrar_tecnicas_dto_1 = require("./dto/filtrar-tecnicas.dto");
@@ -114,6 +115,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "findOneTecnica", null);
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -122,6 +124,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "createTecnica", null);
 __decorate([
     (0, common_1.Patch)(':id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(2, (0, common_1.Body)()),
@@ -131,6 +134,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "updateTecnica", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
@@ -153,6 +157,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "findOneHabilidade", null);
 __decorate([
     (0, common_1.Post)('habilidades'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -161,6 +166,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "createHabilidade", null);
 __decorate([
     (0, common_1.Patch)('habilidades/:id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(2, (0, common_1.Body)()),
@@ -170,6 +176,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "updateHabilidade", null);
 __decorate([
     (0, common_1.Delete)('habilidades/:id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
@@ -192,6 +199,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "findOneVariacao", null);
 __decorate([
     (0, common_1.Post)('variacoes'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -200,6 +208,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "createVariacao", null);
 __decorate([
     (0, common_1.Patch)('variacoes/:id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(2, (0, common_1.Body)()),
@@ -209,6 +218,7 @@ __decorate([
 ], TecnicasAmaldicoadasController.prototype, "updateVariacao", null);
 __decorate([
     (0, common_1.Delete)('variacoes/:id'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),

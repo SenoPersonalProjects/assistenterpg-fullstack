@@ -15,10 +15,120 @@ const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
 const modificacao_exception_1 = require("../common/exceptions/modificacao.exception");
 const database_exception_1 = require("../common/exceptions/database.exception");
+const equipamentoCompativelSelect = client_1.Prisma.validator()({
+    id: true,
+    codigo: true,
+    nome: true,
+    tipo: true,
+});
+const equipamentoRestricoesSelect = client_1.Prisma.validator()({
+    id: true,
+    tipo: true,
+    categoria: true,
+    complexidadeMaldicao: true,
+    proficienciaProtecao: true,
+    tipoProtecao: true,
+    tipoArma: true,
+    proficienciaArma: true,
+    alcance: true,
+});
+const modificacaoComEquipamentosInclude = client_1.Prisma.validator()({
+    equipamentosApplicaveis: {
+        include: {
+            equipamento: {
+                select: equipamentoCompativelSelect,
+            },
+        },
+    },
+});
+const modificacaoDetalhadaInclude = client_1.Prisma.validator()({
+    suplemento: {
+        select: {
+            id: true,
+            codigo: true,
+            nome: true,
+        },
+    },
+    equipamentosApplicaveis: {
+        include: {
+            equipamento: {
+                select: equipamentoCompativelSelect,
+            },
+        },
+    },
+    _count: {
+        select: {
+            itensBase: true,
+            itensCampanha: true,
+        },
+    },
+});
+const complexidadeHierarquia = {
+    NENHUMA: 0,
+    SIMPLES: 1,
+    COMPLEXA: 2,
+};
 let ModificacoesService = class ModificacoesService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
+    }
+    tratarErroPrisma(error) {
+        if (error instanceof client_1.Prisma.PrismaClientKnownRequestError ||
+            error instanceof client_1.Prisma.PrismaClientValidationError) {
+            (0, database_exception_1.handlePrismaError)(error);
+        }
+    }
+    normalizarJsonParaPersistir(value) {
+        if (value === undefined) {
+            return undefined;
+        }
+        if (value === null) {
+            return client_1.Prisma.JsonNull;
+        }
+        return value;
+    }
+    async validarFonteSuplemento(fonte, suplementoId) {
+        if (suplementoId) {
+            const suplemento = await this.prisma.suplemento.findUnique({
+                where: { id: suplementoId },
+                select: { id: true },
+            });
+            if (!suplemento) {
+                throw new modificacao_exception_1.ModificacaoSuplementoNaoEncontradoException(suplementoId);
+            }
+            if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
+                throw new modificacao_exception_1.ModificacaoFonteInvalidaException();
+            }
+            return;
+        }
+        if (fonte === client_1.TipoFonte.SUPLEMENTO) {
+            throw new modificacao_exception_1.ModificacaoFonteInvalidaException();
+        }
+    }
+    parseRestricoes(value) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return null;
+        }
+        return value;
+    }
+    categoriaParaNumero(categoria) {
+        switch (categoria) {
+            case client_1.CategoriaEquipamento.CATEGORIA_0:
+                return 0;
+            case client_1.CategoriaEquipamento.CATEGORIA_1:
+                return 1;
+            case client_1.CategoriaEquipamento.CATEGORIA_2:
+                return 2;
+            case client_1.CategoriaEquipamento.CATEGORIA_3:
+                return 3;
+            case client_1.CategoriaEquipamento.CATEGORIA_4:
+                return 4;
+            case client_1.CategoriaEquipamento.ESPECIAL:
+                return 0;
+            default:
+                return 0;
+        }
     }
     async create(createDto) {
         try {
@@ -28,17 +138,10 @@ let ModificacoesService = class ModificacoesService {
             if (existenteCodigo) {
                 throw new modificacao_exception_1.ModificacaoCodigoDuplicadoException(createDto.codigo);
             }
-            if (createDto.suplementoId) {
-                const suplemento = await this.prisma.suplemento.findUnique({
-                    where: { id: createDto.suplementoId },
-                });
-                if (!suplemento) {
-                    throw new modificacao_exception_1.ModificacaoSuplementoNaoEncontradoException(createDto.suplementoId);
-                }
-                if (createDto.fonte && createDto.fonte !== client_1.TipoFonte.SUPLEMENTO) {
-                    throw new modificacao_exception_1.ModificacaoFonteInvalidaException();
-                }
-            }
+            const suplementoIdFinal = createDto.suplementoId ?? null;
+            const fonteFinal = createDto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : client_1.TipoFonte.SISTEMA_BASE);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             if (createDto.equipamentosCompatíveisIds?.length) {
                 const equipamentosExistentes = await this.prisma.equipamentoCatalogo.findMany({
                     where: { id: { in: createDto.equipamentosCompatíveisIds } },
@@ -58,10 +161,10 @@ let ModificacoesService = class ModificacoesService {
                     descricao: createDto.descricao,
                     tipo: createDto.tipo,
                     incrementoEspacos: createDto.incrementoEspacos,
-                    restricoes: createDto.restricoes,
-                    efeitosMecanicos: createDto.efeitosMecanicos,
-                    fonte: createDto.fonte ?? client_1.TipoFonte.SISTEMA_BASE,
-                    suplementoId: createDto.suplementoId,
+                    restricoes: this.normalizarJsonParaPersistir(createDto.restricoes),
+                    efeitosMecanicos: this.normalizarJsonParaPersistir(createDto.efeitosMecanicos),
+                    fonte: fonteFinal,
+                    suplementoId: suplementoIdFinal,
                     ...(createDto.equipamentosCompatíveisIds?.length && {
                         equipamentosApplicaveis: {
                             create: createDto.equipamentosCompatíveisIds.map((equipamentoId) => ({
@@ -70,28 +173,28 @@ let ModificacoesService = class ModificacoesService {
                         },
                     }),
                 },
-                include: {
-                    equipamentosApplicaveis: {
-                        include: {
-                            equipamento: {
-                                select: { id: true, codigo: true, nome: true, tipo: true },
-                            },
-                        },
-                    },
-                },
+                include: modificacaoComEquipamentosInclude,
             });
             return this.mapDetalhado(modificacao);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
     async update(id, updateDto) {
         try {
-            await this.buscarPorId(id);
+            const modificacaoAtual = await this.prisma.modificacaoEquipamento.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    fonte: true,
+                    suplementoId: true,
+                },
+            });
+            if (!modificacaoAtual) {
+                throw new modificacao_exception_1.ModificacaoNaoEncontradaException(id);
+            }
             if (updateDto.codigo) {
                 const duplicado = await this.prisma.modificacaoEquipamento.findFirst({
                     where: {
@@ -103,14 +206,12 @@ let ModificacoesService = class ModificacoesService {
                     throw new modificacao_exception_1.ModificacaoCodigoDuplicadoException(updateDto.codigo);
                 }
             }
-            if (updateDto.suplementoId) {
-                const suplemento = await this.prisma.suplemento.findUnique({
-                    where: { id: updateDto.suplementoId },
-                });
-                if (!suplemento) {
-                    throw new modificacao_exception_1.ModificacaoSuplementoNaoEncontradoException(updateDto.suplementoId);
-                }
-            }
+            const suplementoIdFinal = updateDto.suplementoId !== undefined
+                ? updateDto.suplementoId
+                : modificacaoAtual.suplementoId;
+            const fonteFinal = updateDto.fonte ??
+                (suplementoIdFinal ? client_1.TipoFonte.SUPLEMENTO : modificacaoAtual.fonte);
+            await this.validarFonteSuplemento(fonteFinal, suplementoIdFinal);
             if (updateDto.equipamentosCompatíveisIds?.length) {
                 const equipamentosExistentes = await this.prisma.equipamentoCatalogo.findMany({
                     where: { id: { in: updateDto.equipamentosCompatíveisIds } },
@@ -136,12 +237,12 @@ let ModificacoesService = class ModificacoesService {
                         incrementoEspacos: updateDto.incrementoEspacos,
                     }),
                     ...(updateDto.restricoes !== undefined && {
-                        restricoes: updateDto.restricoes,
+                        restricoes: this.normalizarJsonParaPersistir(updateDto.restricoes),
                     }),
                     ...(updateDto.efeitosMecanicos !== undefined && {
-                        efeitosMecanicos: updateDto.efeitosMecanicos,
+                        efeitosMecanicos: this.normalizarJsonParaPersistir(updateDto.efeitosMecanicos),
                     }),
-                    ...(updateDto.fonte && { fonte: updateDto.fonte }),
+                    ...(fonteFinal !== modificacaoAtual.fonte && { fonte: fonteFinal }),
                     ...(updateDto.suplementoId !== undefined && {
                         suplementoId: updateDto.suplementoId,
                     }),
@@ -156,22 +257,12 @@ let ModificacoesService = class ModificacoesService {
                         },
                     }),
                 },
-                include: {
-                    equipamentosApplicaveis: {
-                        include: {
-                            equipamento: {
-                                select: { id: true, codigo: true, nome: true, tipo: true },
-                            },
-                        },
-                    },
-                },
+                include: modificacaoComEquipamentosInclude,
             });
             return this.mapDetalhado(modificacao);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -199,9 +290,7 @@ let ModificacoesService = class ModificacoesService {
             return { message: 'Modificação removida com sucesso' };
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -218,9 +307,9 @@ let ModificacoesService = class ModificacoesService {
                 where.suplementoId = suplementoId;
             if (busca) {
                 where.OR = [
-                    { nome: { contains: busca, mode: 'insensitive' } },
-                    { descricao: { contains: busca, mode: 'insensitive' } },
-                    { codigo: { contains: busca, mode: 'insensitive' } },
+                    { nome: { contains: busca } },
+                    { descricao: { contains: busca } },
+                    { codigo: { contains: busca } },
                 ];
             }
             const [total, modificacoes] = await Promise.all([
@@ -230,22 +319,11 @@ let ModificacoesService = class ModificacoesService {
                     skip: (pagina - 1) * limite,
                     take: limite,
                     orderBy: [{ tipo: 'asc' }, { nome: 'asc' }],
-                    include: {
-                        suplemento: {
-                            select: { id: true, codigo: true, nome: true },
-                        },
-                        _count: {
-                            select: {
-                                equipamentosApplicaveis: true,
-                                itensBase: true,
-                                itensCampanha: true,
-                            },
-                        },
-                    },
+                    include: modificacaoDetalhadaInclude,
                 }),
             ]);
             return {
-                dados: modificacoes.map(this.mapDetalhado),
+                dados: modificacoes.map((modificacao) => this.mapDetalhado(modificacao)),
                 paginacao: {
                     pagina,
                     limite,
@@ -255,9 +333,7 @@ let ModificacoesService = class ModificacoesService {
             };
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -265,24 +341,7 @@ let ModificacoesService = class ModificacoesService {
         try {
             const modificacao = await this.prisma.modificacaoEquipamento.findUnique({
                 where: { id },
-                include: {
-                    suplemento: {
-                        select: { id: true, codigo: true, nome: true },
-                    },
-                    equipamentosApplicaveis: {
-                        include: {
-                            equipamento: {
-                                select: { id: true, codigo: true, nome: true, tipo: true },
-                            },
-                        },
-                    },
-                    _count: {
-                        select: {
-                            itensBase: true,
-                            itensCampanha: true,
-                        },
-                    },
-                },
+                include: modificacaoDetalhadaInclude,
             });
             if (!modificacao) {
                 throw new modificacao_exception_1.ModificacaoNaoEncontradaException(id);
@@ -290,9 +349,7 @@ let ModificacoesService = class ModificacoesService {
             return this.mapDetalhado(modificacao);
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
@@ -300,12 +357,26 @@ let ModificacoesService = class ModificacoesService {
         try {
             const equipamento = await this.prisma.equipamentoCatalogo.findUnique({
                 where: { id: equipamentoId },
+                select: equipamentoRestricoesSelect,
             });
             if (!equipamento) {
                 throw new modificacao_exception_1.ModificacaoEquipamentoNaoEncontradoException(equipamentoId);
             }
             const modificacoes = await this.prisma.modificacaoEquipamento.findMany({
-                where: {},
+                where: {
+                    OR: [
+                        {
+                            equipamentosApplicaveis: {
+                                some: { equipamentoId },
+                            },
+                        },
+                        {
+                            equipamentosApplicaveis: {
+                                none: {},
+                            },
+                        },
+                    ],
+                },
                 include: {
                     suplemento: {
                         select: { id: true, codigo: true, nome: true },
@@ -314,7 +385,7 @@ let ModificacoesService = class ModificacoesService {
             });
             const compatíveis = [];
             for (const mod of modificacoes) {
-                const validacao = await this.validarRestricoes(equipamento, mod);
+                const validacao = this.validarRestricoes(equipamento, mod);
                 if (validacao.valido) {
                     compatíveis.push(this.mapDetalhado(mod));
                 }
@@ -322,15 +393,13 @@ let ModificacoesService = class ModificacoesService {
             return compatíveis;
         }
         catch (error) {
-            if (error.code?.startsWith('P')) {
-                (0, database_exception_1.handlePrismaError)(error);
-            }
+            this.tratarErroPrisma(error);
             throw error;
         }
     }
-    async validarRestricoes(equipamento, modificacao) {
+    validarRestricoes(equipamento, modificacao) {
         const erros = [];
-        const restricoes = modificacao.restricoes;
+        const restricoes = this.parseRestricoes(modificacao.restricoes);
         if (!restricoes) {
             return { valido: true, erros: [] };
         }
@@ -340,7 +409,7 @@ let ModificacoesService = class ModificacoesService {
             }
         }
         if (restricoes.excluiEscudos &&
-            equipamento.proficienciaProtecao === 'ESCUDO') {
+            equipamento.proficienciaProtecao === client_1.ProficienciaProtecao.ESCUDO) {
             erros.push('Modificação não aplicável a escudos');
         }
         if (restricoes.tiposProtecao?.length && equipamento.tipoProtecao) {
@@ -366,24 +435,21 @@ let ModificacoesService = class ModificacoesService {
             }
         }
         if (restricoes.complexidadeMinima) {
-            const hierarquia = {
-                NENHUMA: 0,
-                SIMPLES: 1,
-                COMPLEXA: 2,
-            };
-            const minima = hierarquia[restricoes.complexidadeMinima] || 0;
-            const atual = hierarquia[equipamento.complexidadeMaldicao || 'NENHUMA'] || 0;
+            const minima = complexidadeHierarquia[restricoes.complexidadeMinima];
+            const atual = complexidadeHierarquia[equipamento.complexidadeMaldicao];
             if (atual < minima) {
                 erros.push(`Requer complexidade mínima: ${restricoes.complexidadeMinima}`);
             }
         }
         if (restricoes.categoriaMinima !== undefined) {
-            if (equipamento.categoria > restricoes.categoriaMinima) {
+            const categoriaEquipamento = this.categoriaParaNumero(equipamento.categoria);
+            if (categoriaEquipamento > restricoes.categoriaMinima) {
                 erros.push(`Requer categoria mínima: ${restricoes.categoriaMinima}`);
             }
         }
         if (restricoes.categoriaMaxima !== undefined) {
-            if (equipamento.categoria < restricoes.categoriaMaxima) {
+            const categoriaEquipamento = this.categoriaParaNumero(equipamento.categoria);
+            if (categoriaEquipamento < restricoes.categoriaMaxima) {
                 erros.push(`Requer categoria máxima: ${restricoes.categoriaMaxima}`);
             }
         }
@@ -402,9 +468,9 @@ let ModificacoesService = class ModificacoesService {
             erros,
         };
     }
-    async validarConflitosModificacoes(modificacaoNova, modificacoesExistentes) {
+    validarConflitosModificacoes(modificacaoNova, modificacoesExistentes) {
         const erros = [];
-        const restricoes = modificacaoNova.restricoes;
+        const restricoes = this.parseRestricoes(modificacaoNova.restricoes);
         if (!restricoes) {
             return { valido: true, erros: [] };
         }
@@ -437,6 +503,7 @@ let ModificacoesService = class ModificacoesService {
         };
     }
     mapDetalhado(modificacao) {
+        const restricoes = this.parseRestricoes(modificacao.restricoes);
         return {
             id: modificacao.id,
             codigo: modificacao.codigo,
@@ -444,7 +511,7 @@ let ModificacoesService = class ModificacoesService {
             descricao: modificacao.descricao,
             tipo: modificacao.tipo,
             incrementoEspacos: modificacao.incrementoEspacos,
-            restricoes: modificacao.restricoes,
+            restricoes,
             efeitosMecanicos: modificacao.efeitosMecanicos,
             fonte: modificacao.fonte,
             suplementoId: modificacao.suplementoId,

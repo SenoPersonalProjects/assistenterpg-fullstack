@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHomebrewDto } from './dto/create-homebrew.dto';
 import { UpdateHomebrewDto } from './dto/update-homebrew.dto';
@@ -7,6 +8,10 @@ export declare class HomebrewsService {
     private readonly prisma;
     private readonly logger;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
+    private extrairMensagensValidacao;
+    private normalizarJsonParaPersistir;
+    private mapearTags;
     listar(filtros: FiltrarHomebrewsDto, usuarioId?: number, isAdmin?: boolean): Promise<{
         dados: {
             usuario: {
@@ -23,7 +28,7 @@ export declare class HomebrewsService {
             codigo: string;
             tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
             versao: string;
-            tags: import("@prisma/client/runtime/library").JsonValue;
+            tags: Prisma.JsonValue;
         }[];
         paginacao: {
             pagina: number;
@@ -53,8 +58,8 @@ export declare class HomebrewsService {
         codigo: string;
         tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
         versao: string;
-        tags: import("@prisma/client/runtime/library").JsonValue | null;
-        dados: import("@prisma/client/runtime/library").JsonValue;
+        tags: Prisma.JsonValue | null;
+        dados: Prisma.JsonValue;
     }>;
     arquivar(id: number, usuarioId: number, isAdmin?: boolean): Promise<{
         usuario: {
@@ -72,8 +77,8 @@ export declare class HomebrewsService {
         codigo: string;
         tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
         versao: string;
-        tags: import("@prisma/client/runtime/library").JsonValue | null;
-        dados: import("@prisma/client/runtime/library").JsonValue;
+        tags: Prisma.JsonValue | null;
+        dados: Prisma.JsonValue;
     }>;
     meus(usuarioId: number, filtros: FiltrarHomebrewsDto): Promise<{
         dados: {
@@ -91,7 +96,7 @@ export declare class HomebrewsService {
             codigo: string;
             tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
             versao: string;
-            tags: import("@prisma/client/runtime/library").JsonValue;
+            tags: Prisma.JsonValue;
         }[];
         paginacao: {
             pagina: number;

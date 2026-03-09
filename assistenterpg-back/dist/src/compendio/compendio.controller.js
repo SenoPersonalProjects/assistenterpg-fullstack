@@ -22,6 +22,8 @@ const update_subcategoria_dto_1 = require("./dto/update-subcategoria.dto");
 const create_artigo_dto_1 = require("./dto/create-artigo.dto");
 const update_artigo_dto_1 = require("./dto/update-artigo.dto");
 const pagination_query_dto_1 = require("../common/dto/pagination-query.dto");
+const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 let CompendioController = class CompendioController {
     compendioService;
     constructor(compendioService) {
@@ -61,8 +63,7 @@ let CompendioController = class CompendioController {
     }
     async listarArtigos(subcategoriaId, todas, paginacao) {
         const apenasAtivos = todas !== 'true';
-        const subId = subcategoriaId ? parseInt(subcategoriaId, 10) : undefined;
-        return this.compendioService.listarArtigos(subId, apenasAtivos, paginacao?.page, paginacao?.limit);
+        return this.compendioService.listarArtigos(subcategoriaId, apenasAtivos, paginacao?.page, paginacao?.limit);
     }
     async buscarArtigoPorCodigo(codigo) {
         return this.compendioService.buscarArtigoPorCodigo(codigo);
@@ -101,6 +102,7 @@ __decorate([
 ], CompendioController.prototype, "buscarCategoriaPorCodigo", null);
 __decorate([
     (0, common_1.Post)('categorias'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_categoria_dto_1.CreateCategoriaDto]),
@@ -108,6 +110,7 @@ __decorate([
 ], CompendioController.prototype, "criarCategoria", null);
 __decorate([
     (0, common_1.Put)('categorias/:id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -116,6 +119,7 @@ __decorate([
 ], CompendioController.prototype, "atualizarCategoria", null);
 __decorate([
     (0, common_1.Delete)('categorias/:id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),
@@ -139,6 +143,7 @@ __decorate([
 ], CompendioController.prototype, "buscarSubcategoriaPorCodigo", null);
 __decorate([
     (0, common_1.Post)('subcategorias'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_subcategoria_dto_1.CreateSubcategoriaDto]),
@@ -146,6 +151,7 @@ __decorate([
 ], CompendioController.prototype, "criarSubcategoria", null);
 __decorate([
     (0, common_1.Put)('subcategorias/:id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -154,6 +160,7 @@ __decorate([
 ], CompendioController.prototype, "atualizarSubcategoria", null);
 __decorate([
     (0, common_1.Delete)('subcategorias/:id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),
@@ -161,11 +168,11 @@ __decorate([
 ], CompendioController.prototype, "removerSubcategoria", null);
 __decorate([
     (0, common_1.Get)('artigos'),
-    __param(0, (0, common_1.Query)('subcategoriaId')),
+    __param(0, (0, common_1.Query)('subcategoriaId', new common_1.ParseIntPipe({ optional: true }))),
     __param(1, (0, common_1.Query)('todas')),
     __param(2, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, pagination_query_dto_1.PaginationQueryDto]),
+    __metadata("design:paramtypes", [Number, String, pagination_query_dto_1.PaginationQueryDto]),
     __metadata("design:returntype", Promise)
 ], CompendioController.prototype, "listarArtigos", null);
 __decorate([
@@ -177,6 +184,7 @@ __decorate([
 ], CompendioController.prototype, "buscarArtigoPorCodigo", null);
 __decorate([
     (0, common_1.Post)('artigos'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_artigo_dto_1.CreateArtigoDto]),
@@ -184,6 +192,7 @@ __decorate([
 ], CompendioController.prototype, "criarArtigo", null);
 __decorate([
     (0, common_1.Put)('artigos/:id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -192,6 +201,7 @@ __decorate([
 ], CompendioController.prototype, "atualizarArtigo", null);
 __decorate([
     (0, common_1.Delete)('artigos/:id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, admin_guard_1.AdminGuard),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),

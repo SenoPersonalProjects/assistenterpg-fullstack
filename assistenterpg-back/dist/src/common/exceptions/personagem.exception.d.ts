@@ -5,10 +5,10 @@ export declare class PersonagemBaseNaoEncontradoException extends BaseException 
     constructor(personagemBaseId?: number);
 }
 export declare class ErroAtualizacaoPersonagemException extends BusinessException {
-    constructor(details?: Record<string, any>);
+    constructor(details?: Record<string, unknown>);
 }
 export declare class AtributoNaoInteiroException extends ValidationException {
-    constructor(nomeAtributo: string, valor: any);
+    constructor(nomeAtributo: string, valor: unknown);
 }
 export declare class AtributoForaDoLimiteException extends ValidationException {
     constructor(nomeAtributo: string, valor: number);
@@ -17,7 +17,7 @@ export declare class SomatorioAtributosInvalidoException extends ValidationExcep
     constructor(nivel: number, somaAtual: number, somaEsperada: number);
 }
 export declare class AtributoChaveEaInvalidoException extends ValidationException {
-    constructor(valor: any, valoresValidos: string[]);
+    constructor(valor: unknown, valoresValidos: string[]);
 }
 export declare class PassivasExcedemLimiteException extends BusinessException {
     constructor(quantidadeEscolhida: number, elegiveis: string[]);
@@ -62,7 +62,7 @@ export declare class ValoresClasseNaoDefinidosException extends BusinessExceptio
     constructor(classeNome: string);
 }
 export declare class GrauAprimoramentoNaoInteiroException extends ValidationException {
-    constructor(tipoGrauCodigo: string, valor: any);
+    constructor(tipoGrauCodigo: string, valor: unknown);
 }
 export declare class GrauAprimoramentoForaDoLimiteException extends ValidationException {
     constructor(tipoGrauCodigo: string, valor: number);

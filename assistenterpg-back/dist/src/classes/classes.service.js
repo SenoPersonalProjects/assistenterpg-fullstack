@@ -11,10 +11,18 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClassesService = void 0;
 const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
 const client_1 = require("@prisma/client");
+const prisma_service_1 = require("../prisma/prisma.service");
 const classe_exception_1 = require("../common/exceptions/classe.exception");
 const suplemento_exception_1 = require("../common/exceptions/suplemento.exception");
+const classeCatalogoInclude = {
+    pericias: { include: { pericia: true } },
+    proficiencias: { include: { proficiencia: true } },
+    habilidadesClasse: {
+        where: { nivelConcedido: 1 },
+        include: { habilidade: true },
+    },
+};
 let ClassesService = class ClassesService {
     prisma;
     constructor(prisma) {
@@ -30,12 +38,20 @@ let ClassesService = class ClassesService {
                 throw new suplemento_exception_1.SuplementoNaoEncontradoException(suplementoId);
             }
             if (fonte !== client_1.TipoFonte.SUPLEMENTO) {
-                throw new common_1.BadRequestException('Quando suplementoId for informado, fonte deve ser SUPLEMENTO');
+                throw new common_1.BadRequestException({
+                    code: 'FONTE_SUPLEMENTO_OBRIGATORIA',
+                    message: 'Quando suplementoId for informado, fonte deve ser SUPLEMENTO',
+                    field: 'fonte',
+                });
             }
             return;
         }
         if (fonte === client_1.TipoFonte.SUPLEMENTO) {
-            throw new common_1.BadRequestException('fonte SUPLEMENTO exige suplementoId');
+            throw new common_1.BadRequestException({
+                code: 'SUPLEMENTO_ID_OBRIGATORIO',
+                message: 'fonte SUPLEMENTO exige suplementoId',
+                field: 'suplementoId',
+            });
         }
     }
     async create(dto) {
@@ -66,7 +82,7 @@ let ClassesService = class ClassesService {
             fonte: classe.fonte,
             suplementoId: classe.suplementoId,
             periciasLivresBase: classe.periciasLivresBase,
-            pericias: classe.pericias?.map((rel) => ({
+            pericias: classe.pericias.map((rel) => ({
                 id: rel.id,
                 tipo: rel.tipo,
                 grupoEscolha: rel.grupoEscolha,
@@ -76,8 +92,8 @@ let ClassesService = class ClassesService {
                     nome: rel.pericia.nome,
                     descricao: rel.pericia.descricao,
                 },
-            })) ?? [],
-            proficiencias: classe.proficiencias?.map((rel) => ({
+            })),
+            proficiencias: classe.proficiencias.map((rel) => ({
                 id: rel.proficiencia.id,
                 codigo: rel.proficiencia.codigo,
                 nome: rel.proficiencia.nome,
@@ -85,39 +101,21 @@ let ClassesService = class ClassesService {
                 tipo: rel.proficiencia.tipo,
                 categoria: rel.proficiencia.categoria,
                 subtipo: rel.proficiencia.subtipo,
-            })) ?? [],
-            habilidadesIniciais: classe.habilidadesClasse?.map((hc) => hc.habilidade) ?? [],
+            })),
+            habilidadesIniciais: classe.habilidadesClasse.map((hc) => hc.habilidade),
         };
     }
     async findAll() {
         const classes = await this.prisma.classe.findMany({
             orderBy: { nome: 'asc' },
-            include: {
-                pericias: { include: { pericia: true } },
-                proficiencias: { include: { proficiencia: true } },
-                habilidadesClasse: {
-                    where: { nivelConcedido: 1 },
-                    include: {
-                        habilidade: true,
-                    },
-                },
-            },
+            include: classeCatalogoInclude,
         });
-        return classes.map((c) => this.mapToCatalogo(c));
+        return classes.map((classe) => this.mapToCatalogo(classe));
     }
     async findOne(id) {
         const classe = await this.prisma.classe.findUnique({
             where: { id },
-            include: {
-                pericias: { include: { pericia: true } },
-                proficiencias: { include: { proficiencia: true } },
-                habilidadesClasse: {
-                    where: { nivelConcedido: 1 },
-                    include: {
-                        habilidade: true,
-                    },
-                },
-            },
+            include: classeCatalogoInclude,
         });
         if (!classe) {
             throw new classe_exception_1.ClasseNaoEncontradaException(id);
@@ -133,11 +131,11 @@ let ClassesService = class ClassesService {
             where: { classeId: id },
             orderBy: { nome: 'asc' },
         });
-        return trilhas.map((t) => ({
-            id: t.id,
-            nome: t.nome,
-            descricao: t.descricao,
-            classeId: t.classeId,
+        return trilhas.map((trilha) => ({
+            id: trilha.id,
+            nome: trilha.nome,
+            descricao: trilha.descricao,
+            classeId: trilha.classeId,
         }));
     }
     async update(id, dto) {

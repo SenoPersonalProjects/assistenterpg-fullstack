@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProficienciasController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const admin_guard_1 = require("../auth/guards/admin.guard");
 const proficiencias_service_1 = require("./proficiencias.service");
 const create_proficiencia_dto_1 = require("./dto/create-proficiencia.dto");
 const update_proficiencia_dto_1 = require("./dto/update-proficiencia.dto");
@@ -30,17 +31,18 @@ let ProficienciasController = class ProficienciasController {
         return this.proficienciasService.findAll();
     }
     findOne(id) {
-        return this.proficienciasService.findOne(+id);
+        return this.proficienciasService.findOne(id);
     }
     update(id, dto) {
-        return this.proficienciasService.update(+id, dto);
+        return this.proficienciasService.update(id, dto);
     }
     remove(id) {
-        return this.proficienciasService.remove(+id);
+        return this.proficienciasService.remove(id);
     }
 };
 exports.ProficienciasController = ProficienciasController;
 __decorate([
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -55,24 +57,26 @@ __decorate([
 ], ProficienciasController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], ProficienciasController.prototype, "findOne", null);
 __decorate([
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     (0, common_1.Patch)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, update_proficiencia_dto_1.UpdateProficienciaDto]),
+    __metadata("design:paramtypes", [Number, update_proficiencia_dto_1.UpdateProficienciaDto]),
     __metadata("design:returntype", void 0)
 ], ProficienciasController.prototype, "update", null);
 __decorate([
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
     (0, common_1.Delete)(':id'),
-    __param(0, (0, common_1.Param)('id')),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], ProficienciasController.prototype, "remove", null);
 exports.ProficienciasController = ProficienciasController = __decorate([

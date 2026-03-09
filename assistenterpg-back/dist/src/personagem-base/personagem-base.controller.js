@@ -20,6 +20,7 @@ const create_personagem_base_dto_1 = require("./dto/create-personagem-base.dto")
 const update_personagem_base_dto_1 = require("./dto/update-personagem-base.dto");
 const importar_personagem_base_dto_1 = require("./dto/importar-personagem-base.dto");
 const consultar_graus_treinamento_dto_1 = require("./dto/consultar-graus-treinamento.dto");
+const pagination_query_dto_1 = require("../common/dto/pagination-query.dto");
 let PersonagemBaseController = class PersonagemBaseController {
     personagemBaseService;
     constructor(personagemBaseService) {
@@ -31,7 +32,7 @@ let PersonagemBaseController = class PersonagemBaseController {
     async preview(req, dto) {
         return this.personagemBaseService.preview(req.user.id, dto);
     }
-    async consultarInfoGrausTreinamento(query) {
+    consultarInfoGrausTreinamento(query) {
         return this.personagemBaseService.consultarInfoGrausTreinamento(Number(query.nivel), Number(query.intelecto));
     }
     async consultarPericiasElegiveis(body) {
@@ -41,11 +42,10 @@ let PersonagemBaseController = class PersonagemBaseController {
         return this.personagemBaseService.listarPassivasDisponiveis();
     }
     async listarTecnicasDisponiveis(claId, origemId) {
-        const origemIdNum = origemId ? Number(origemId) : undefined;
-        return this.personagemBaseService.listarTecnicasDisponveis(claId, origemIdNum);
+        return this.personagemBaseService.listarTecnicasDisponveis(claId, origemId);
     }
-    async listarMeus(req) {
-        return this.personagemBaseService.listarDoUsuario(req.user.id);
+    async listarMeus(req, paginacao) {
+        return this.personagemBaseService.listarDoUsuario(req.user.id, paginacao.page, paginacao.limit);
     }
     async exportar(req, id) {
         return this.personagemBaseService.exportar(req.user.id, id);
@@ -86,7 +86,7 @@ __decorate([
     __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [consultar_graus_treinamento_dto_1.ConsultarInfoGrausTreinamentoDto]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", void 0)
 ], PersonagemBaseController.prototype, "consultarInfoGrausTreinamento", null);
 __decorate([
     (0, common_1.Post)('graus-treinamento/pericias-elegiveis'),
@@ -104,16 +104,17 @@ __decorate([
 __decorate([
     (0, common_1.Get)('tecnicas-disponiveis'),
     __param(0, (0, common_1.Query)('claId', common_1.ParseIntPipe)),
-    __param(1, (0, common_1.Query)('origemId')),
+    __param(1, (0, common_1.Query)('origemId', new common_1.ParseIntPipe({ optional: true }))),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, String]),
+    __metadata("design:paramtypes", [Number, Number]),
     __metadata("design:returntype", Promise)
 ], PersonagemBaseController.prototype, "listarTecnicasDisponiveis", null);
 __decorate([
     (0, common_1.Get)('meus'),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, pagination_query_dto_1.PaginationQueryDto]),
     __metadata("design:returntype", Promise)
 ], PersonagemBaseController.prototype, "listarMeus", null);
 __decorate([

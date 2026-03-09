@@ -14,7 +14,10 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
-  // ✅ Loading durante verificação de autenticação inicial
+  if (isPublicRoute) {
+    return <>{children}</>;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-app-bg">
@@ -23,6 +26,5 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // ✅ Middleware já cuida dos redirects, aqui só adiciona padding
-  return <div className={!isPublicRoute ? 'pt-16' : ''}>{children}</div>;
+  return <div className="pt-16">{children}</div>;
 }

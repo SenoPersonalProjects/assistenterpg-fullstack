@@ -11,12 +11,24 @@ class DatabaseException extends base_exception_1.BaseException {
     }
 }
 exports.DatabaseException = DatabaseException;
+function getErrorMessage(error) {
+    if (error instanceof Error)
+        return error.message;
+    if (typeof error === 'object' &&
+        error !== null &&
+        'message' in error &&
+        typeof error.message === 'string') {
+        return error.message;
+    }
+    return 'Erro desconhecido';
+}
 function handlePrismaError(error) {
     if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
         switch (error.code) {
-            case 'P2002':
+            case 'P2002': {
                 const fields = error.meta?.target;
                 throw new DatabaseException(`Registro duplicado: ${fields?.join(', ') || 'campo único'}`, 'DB_UNIQUE_VIOLATION', { fields, value: error.meta });
+            }
             case 'P2003':
                 throw new DatabaseException('Referência inválida: registro relacionado não existe', 'DB_FOREIGN_KEY_VIOLATION', { field: error.meta?.field_name });
             case 'P2025':
@@ -30,6 +42,6 @@ function handlePrismaError(error) {
     if (error instanceof client_1.Prisma.PrismaClientValidationError) {
         throw new DatabaseException('Erro de validação no banco de dados', 'DB_VALIDATION_ERROR', { message: error.message });
     }
-    throw new DatabaseException('Erro interno no banco de dados', 'DB_INTERNAL_ERROR', { message: error.message });
+    throw new DatabaseException('Erro interno no banco de dados', 'DB_INTERNAL_ERROR', { message: getErrorMessage(error) });
 }
 //# sourceMappingURL=database.exception.js.map

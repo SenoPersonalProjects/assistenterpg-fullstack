@@ -1,4 +1,5 @@
-import { AtributoBase, PrismaClient } from '@prisma/client';
+import { AtributoBase, Prisma } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 export declare function calcularTotalAtributosEsperado(nivel: number): number;
 export declare function validarAtributos(params: {
     nivel: number;
@@ -15,6 +16,7 @@ export type AtributosValores = {
     presenca: number;
     vigor: number;
 };
+type PrismaLike = PrismaService | Prisma.TransactionClient;
 export declare function listarAtributosElegiveisPassivas(atributos: AtributosValores): AtributoBase[];
 export type PassivaIntelectoConfig = {
     periciasCodigos?: string[];
@@ -35,7 +37,7 @@ export type ResolverPassivasResult = {
 };
 type ResolverPassivasParams = {
     atributos: AtributosValores;
-    prisma: PrismaClient;
+    prisma: PrismaLike;
     passivasAtributosAtivos?: unknown;
     strict?: boolean;
 };
@@ -43,11 +45,11 @@ export declare function resolverPassivasAtributos(params: ResolverPassivasParams
 interface ValidarPassivasParams {
     passivasIds: number[];
     atributos: AtributosValores;
-    prisma: PrismaClient;
+    prisma: PrismaLike;
 }
 export declare function validarPassivasAtributos({ passivasIds, atributos, prisma, }: ValidarPassivasParams): Promise<void>;
 export declare function calcularEfeitosPassivas(passivas: Array<{
-    efeitos: any;
+    efeitos: Prisma.JsonValue | null;
 }>): {
     deslocamentoExtra: number;
     reacoesExtra: number;

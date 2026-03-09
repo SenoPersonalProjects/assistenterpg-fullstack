@@ -15,57 +15,56 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HomebrewsController = void 0;
 const common_1 = require("@nestjs/common");
 const passport_1 = require("@nestjs/passport");
+const client_1 = require("@prisma/client");
 const homebrews_service_1 = require("./homebrews.service");
 const create_homebrew_dto_1 = require("./dto/create-homebrew.dto");
 const update_homebrew_dto_1 = require("./dto/update-homebrew.dto");
 const filtrar_homebrews_dto_1 = require("./dto/filtrar-homebrews.dto");
-const client_1 = require("@prisma/client");
 let HomebrewsController = class HomebrewsController {
     homebrewsService;
     constructor(homebrewsService) {
         this.homebrewsService = homebrewsService;
     }
+    getUserContext(req) {
+        return {
+            usuarioId: req.user.id,
+            isAdmin: req.user.role === client_1.RoleUsuario.ADMIN,
+        };
+    }
     meus(req, filtros) {
-        const usuarioId = req.user.id;
+        const { usuarioId } = this.getUserContext(req);
         return this.homebrewsService.meus(usuarioId, filtros);
     }
     buscarPorCodigo(codigo, req) {
-        const usuarioId = req.user?.id;
-        const isAdmin = req.user?.role === client_1.RoleUsuario.ADMIN;
+        const { usuarioId, isAdmin } = this.getUserContext(req);
         return this.homebrewsService.buscarPorCodigo(codigo, usuarioId, isAdmin);
     }
     listar(filtros, req) {
-        const usuarioId = req.user?.id;
-        const isAdmin = req.user?.role === client_1.RoleUsuario.ADMIN;
+        const { usuarioId, isAdmin } = this.getUserContext(req);
         return this.homebrewsService.listar(filtros, usuarioId, isAdmin);
     }
     buscarPorId(id, req) {
-        const usuarioId = req.user?.id;
-        const isAdmin = req.user?.role === client_1.RoleUsuario.ADMIN;
+        const { usuarioId, isAdmin } = this.getUserContext(req);
         return this.homebrewsService.buscarPorId(id, usuarioId, isAdmin);
     }
     criar(createHomebrewDto, req) {
-        const usuarioId = req.user.id;
+        const { usuarioId } = this.getUserContext(req);
         return this.homebrewsService.criar(createHomebrewDto, usuarioId);
     }
     atualizar(id, updateHomebrewDto, req) {
-        const usuarioId = req.user.id;
-        const isAdmin = req.user?.role === client_1.RoleUsuario.ADMIN;
+        const { usuarioId, isAdmin } = this.getUserContext(req);
         return this.homebrewsService.atualizar(id, updateHomebrewDto, usuarioId, isAdmin);
     }
     deletar(id, req) {
-        const usuarioId = req.user.id;
-        const isAdmin = req.user?.role === client_1.RoleUsuario.ADMIN;
+        const { usuarioId, isAdmin } = this.getUserContext(req);
         return this.homebrewsService.deletar(id, usuarioId, isAdmin);
     }
     publicar(id, req) {
-        const usuarioId = req.user.id;
-        const isAdmin = req.user?.role === client_1.RoleUsuario.ADMIN;
+        const { usuarioId, isAdmin } = this.getUserContext(req);
         return this.homebrewsService.publicar(id, usuarioId, isAdmin);
     }
     arquivar(id, req) {
-        const usuarioId = req.user.id;
-        const isAdmin = req.user?.role === client_1.RoleUsuario.ADMIN;
+        const { usuarioId, isAdmin } = this.getUserContext(req);
         return this.homebrewsService.arquivar(id, usuarioId, isAdmin);
     }
 };

@@ -1,1 +1,1 @@
-{"version":3,"file":"update-proficiencia.dto.js","sourceRoot":"","sources":["../../../../src/proficiencias/dto/update-proficiencia.dto.ts"],"names":[],"mappings":";;;AAAA,MAAa,qBAAqB;IAChC,IAAI,CAAU;IACd,SAAS,CAAiB;IAC1B,IAAI,CAAU;IACd,SAAS,CAAU;IACnB,OAAO,CAAiB;CACzB;AAND,sDAMC"}
+{"version":3,"file":"update-proficiencia.dto.js","sourceRoot":"","sources":["../../../../src/proficiencias/dto/update-proficiencia.dto.ts"],"names":[],"mappings":";;;AAAA,uDAAmD;AACnD,uEAAkE;AAElE,MAAa,qBAAsB,SAAQ,IAAA,0BAAW,EAAC,+CAAqB,CAAC;CAAG;AAAhF,sDAAgF"}

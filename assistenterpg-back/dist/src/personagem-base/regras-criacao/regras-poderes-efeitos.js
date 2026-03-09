@@ -26,7 +26,34 @@ function getEscolhaPericias(mec) {
         return null;
     if (escolha.tipo !== 'PERICIAS')
         return null;
-    return escolha;
+    return {
+        tipo: 'PERICIAS',
+        quantidade: typeof escolha.quantidade === 'number' ? escolha.quantidade : undefined,
+    };
+}
+function getStringArrayFromConfig(config, field) {
+    if (!isJsonObject(config))
+        return null;
+    const value = config[field];
+    if (!Array.isArray(value) ||
+        value.some((entry) => typeof entry !== 'string')) {
+        return null;
+    }
+    return value;
+}
+function hasEscolhaTipoGrau(mec) {
+    if (!isJsonObject(mec))
+        return false;
+    const escolha = mec.escolha;
+    return isJsonObject(escolha) && escolha.tipo === 'TIPO_GRAU';
+}
+function getTipoGrauCodigo(config) {
+    if (!isJsonObject(config))
+        return null;
+    const codigo = config.tipoGrauCodigo;
+    if (typeof codigo !== 'string' || !codigo.trim())
+        return null;
+    return codigo;
 }
 async function aplicarEfeitosPoderesEmPericias(params, prisma) {
     const { nivel, poderes, periciasMap } = params;
@@ -50,8 +77,8 @@ async function aplicarEfeitosPoderesEmPericias(params, prisma) {
         if (!escolhaMec)
             continue;
         const qtd = typeof escolhaMec.quantidade === 'number' ? escolhaMec.quantidade : 2;
-        const codigos = inst.config?.periciasCodigos ?? [];
-        if (!Array.isArray(codigos) || codigos.some((c) => typeof c !== 'string')) {
+        const codigos = getStringArrayFromConfig(inst.config, 'periciasCodigos');
+        if (!codigos) {
             throw new personagem_exception_1.PoderGenericoConfigInvalidaException(poderDb.nome, 'periciasCodigos', 'deve ser array de strings');
         }
         const unicos = Array.from(new Set(codigos));
@@ -91,12 +118,10 @@ async function aplicarEfeitosPoderesEmGraus(params, prisma) {
         const poderDb = poderPorId.get(inst.habilidadeId);
         if (!poderDb)
             continue;
-        const mec = poderDb.mecanicasEspeciais;
-        const escolha = mec?.escolha;
-        if (!escolha || escolha.tipo !== 'TIPO_GRAU')
+        if (!hasEscolhaTipoGrau(poderDb.mecanicasEspeciais))
             continue;
-        const codigo = inst.config?.tipoGrauCodigo;
-        if (typeof codigo !== 'string' || !codigo.trim()) {
+        const codigo = getTipoGrauCodigo(inst.config);
+        if (!codigo) {
             throw new personagem_exception_1.PoderGenericoConfigInvalidaException(poderDb.nome, 'tipoGrauCodigo', 'exige config.tipoGrauCodigo (string) na instância');
         }
     }
@@ -106,7 +131,7 @@ async function extrairProficienciasDeHabilidades(habilidades, prisma) {
     const profsCodigos = new Set();
     for (const hab of habilidades) {
         const mecanicas = hab.habilidade.mecanicasEspeciais;
-        if (!mecanicas || typeof mecanicas !== 'object')
+        if (!isJsonObject(mecanicas))
             continue;
         const profsArray = mecanicas.proficiencias;
         if (!Array.isArray(profsArray))
@@ -153,12 +178,10 @@ function extrairResistenciasDeHabilidades(habilidades) {
     const resistencias = new Map();
     for (const hab of habilidades) {
         const mecanicas = hab.habilidade.mecanicasEspeciais;
-        if (!mecanicas || typeof mecanicas !== 'object')
+        if (!isJsonObject(mecanicas))
             continue;
         const resistenciasObj = mecanicas.resistencias;
-        if (!resistenciasObj || typeof resistenciasObj !== 'object')
-            continue;
-        if (Array.isArray(resistenciasObj))
+        if (!isJsonObject(resistenciasObj))
             continue;
         for (const [codigo, valor] of Object.entries(resistenciasObj)) {
             if (typeof valor === 'number' && valor > 0) {

@@ -8,7 +8,7 @@ export declare class ModificacaoDetalhadaDto {
     tipo: TipoModificacao;
     incrementoEspacos: number;
     restricoes: RestricoesModificacao | null;
-    efeitosMecanicos: any | null;
+    efeitosMecanicos: unknown;
     fonte: TipoFonte;
     suplementoId: number | null;
     equipamentosCompatíveis?: Array<{

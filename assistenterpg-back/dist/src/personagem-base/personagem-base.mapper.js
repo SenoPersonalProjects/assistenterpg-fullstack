@@ -6,9 +6,62 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PersonagemBaseMapper = void 0;
+exports.PersonagemBaseMapper = exports.personagemBaseDetalhadoInclude = void 0;
 const common_1 = require("@nestjs/common");
+const client_1 = require("@prisma/client");
+exports.personagemBaseDetalhadoInclude = client_1.Prisma.validator()({
+    cla: true,
+    origem: true,
+    classe: true,
+    trilha: true,
+    caminho: true,
+    tecnicaInata: true,
+    alinhamento: true,
+    proficiencias: { include: { proficiencia: true } },
+    grausAprimoramento: {
+        include: {
+            tipoGrau: true,
+        },
+    },
+    pericias: { include: { pericia: true } },
+    grausTreinamento: true,
+    habilidadesBase: { include: { habilidade: true } },
+    passivas: { include: { passiva: true } },
+    poderesGenericos: { include: { habilidade: true } },
+    resistencias: {
+        include: {
+            resistenciaTipo: true,
+        },
+    },
+});
+const inventarioItemDetalhadoInclude = client_1.Prisma.validator()({
+    equipamento: true,
+    modificacoes: {
+        include: {
+            modificacao: true,
+        },
+    },
+});
 let PersonagemBaseMapper = class PersonagemBaseMapper {
+    isJsonObject(value) {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+    hasTipoGrauChoice(value) {
+        if (!this.isJsonObject(value))
+            return false;
+        const escolha = value.escolha;
+        if (!this.isJsonObject(escolha))
+            return false;
+        return escolha.tipo === 'TIPO_GRAU';
+    }
+    getTipoGrauCodigoConfig(value) {
+        if (!this.isJsonObject(value))
+            return null;
+        const codigo = value.tipoGrauCodigo;
+        if (typeof codigo !== 'string' || codigo.trim().length === 0)
+            return null;
+        return codigo;
+    }
     jsonToStringArray(value) {
         if (!Array.isArray(value))
             return [];
@@ -30,17 +83,17 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
             const valorDB = g.valor;
             const codigo = g.tipoGrau?.codigo;
             if (!codigo) {
-                console.warn('⚠️ [MAPPER] Grau sem tipoGrau.codigo:', g);
+                console.warn('[MAPPER] Grau sem tipoGrau.codigo:', g);
                 return null;
             }
             const bonus = bonusDeHabilidades.get(codigo) ?? 0;
             const valorLivre = Math.max(0, valorDB - bonus);
             return {
                 tipoGrauCodigo: codigo,
-                tipoGrauNome: g.tipoGrau?.nome,
+                tipoGrauNome: g.tipoGrau?.nome ?? '',
                 valorTotal: valorDB,
-                valorLivre: valorLivre,
-                bonus: bonus,
+                valorLivre,
+                bonus,
             };
         })
             .filter((g) => g !== null);
@@ -92,6 +145,7 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
             classe: personagem.classe,
             trilha: personagem.trilha,
             caminho: personagem.caminho,
+            alinhamento: personagem.alinhamento,
             tecnicaInata: personagem.tecnicaInata
                 ? {
                     id: personagem.tecnicaInata.id,
@@ -169,10 +223,9 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
                 peMaximo: personagem.peMaximo,
                 eaMaximo: personagem.eaMaximo,
                 sanMaximo: personagem.sanMaximo,
-                defesaBase: personagem.defesaBase ?? personagem.defesa ?? 10,
+                defesaBase: personagem.defesaBase ?? 10,
                 defesaEquipamento: personagem.defesaEquipamento ?? 0,
-                defesaTotal: (personagem.defesaBase ?? personagem.defesa ?? 10) +
-                    (personagem.defesaEquipamento ?? 0),
+                defesaTotal: (personagem.defesaBase ?? 10) + (personagem.defesaEquipamento ?? 0),
                 deslocamento: personagem.deslocamento,
                 limitePeEaPorTurno: personagem.limitePeEaPorTurno,
                 reacoesBasePorTurno: personagem.reacoesBasePorTurno,
@@ -193,59 +246,69 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
         try {
             const itens = await prisma.inventarioItemBase.findMany({
                 where: { personagemBaseId },
-                include: {
-                    equipamento: true,
-                    modificacoes: {
-                        include: {
-                            modificacao: true,
-                        },
-                    },
-                },
+                include: inventarioItemDetalhadoInclude,
                 orderBy: { id: 'asc' },
             });
-            return itens.map((item) => {
-                let espacosPorUnidade = item.equipamento.espacos;
-                const modsAplicadas = (item.modificacoes || []).map((junction) => {
+            const itensMapeados = [];
+            for (const item of itens) {
+                const equipamento = item.equipamento;
+                if (!equipamento)
+                    continue;
+                let espacosPorUnidade = equipamento.espacos;
+                const modsAplicadas = (item.modificacoes ?? []).flatMap((junction) => {
                     const mod = junction.modificacao;
+                    if (!mod)
+                        return [];
                     espacosPorUnidade += mod.incrementoEspacos;
-                    return {
-                        id: mod.id,
-                        codigo: mod.codigo,
-                        nome: mod.nome,
-                        descricao: mod.descricao,
-                        tipo: mod.tipo,
-                        incrementoEspacos: mod.incrementoEspacos,
-                        apenasAmaldicoadas: mod.apenasAmaldicoadas,
-                        requerComplexidade: mod.requerComplexidade,
-                        efeitosMecanicos: mod.efeitosMecanicos,
-                    };
+                    const restricoes = this.isJsonObject(mod.restricoes)
+                        ? mod.restricoes
+                        : null;
+                    const apenasAmaldicoadas = restricoes && typeof restricoes.apenasAmaldicoadas === 'boolean'
+                        ? restricoes.apenasAmaldicoadas
+                        : false;
+                    const requerComplexidade = restricoes && typeof restricoes.requerComplexidade === 'string'
+                        ? restricoes.requerComplexidade
+                        : null;
+                    return [
+                        {
+                            id: mod.id,
+                            codigo: mod.codigo,
+                            nome: mod.nome,
+                            descricao: mod.descricao,
+                            tipo: mod.tipo,
+                            incrementoEspacos: mod.incrementoEspacos,
+                            apenasAmaldicoadas,
+                            requerComplexidade,
+                            efeitosMecanicos: mod.efeitosMecanicos,
+                        },
+                    ];
                 });
-                const categoriaCalculada = item.equipamento.categoria.toString();
-                return {
+                itensMapeados.push({
                     id: item.id,
                     equipamentoId: item.equipamentoId,
                     quantidade: item.quantidade,
                     equipado: item.equipado,
                     espacosCalculados: espacosPorUnidade,
-                    categoriaCalculada,
+                    categoriaCalculada: equipamento.categoria.toString(),
                     nomeCustomizado: item.nomeCustomizado,
                     notas: item.notas,
                     equipamento: {
-                        id: item.equipamento.id,
-                        codigo: item.equipamento.codigo,
-                        nome: item.equipamento.nome,
-                        descricao: item.equipamento.descricao,
-                        tipo: item.equipamento.tipo,
-                        categoria: item.equipamento.categoria,
-                        espacos: item.equipamento.espacos,
-                        complexidadeMaldicao: item.equipamento.complexidadeMaldicao || 'NENHUMA',
+                        id: equipamento.id,
+                        codigo: equipamento.codigo,
+                        nome: equipamento.nome,
+                        descricao: equipamento.descricao,
+                        tipo: equipamento.tipo,
+                        categoria: equipamento.categoria,
+                        espacos: equipamento.espacos,
+                        complexidadeMaldicao: equipamento.complexidadeMaldicao || 'NENHUMA',
                     },
                     modificacoes: modsAplicadas,
-                };
-            });
+                });
+            }
+            return itensMapeados;
         }
         catch (error) {
-            console.error('[MAPPER] Erro ao mapear itens de inventário:', error);
+            console.error('[MAPPER] Erro ao mapear itens de inventario:', error);
             return [];
         }
     }
@@ -287,20 +350,20 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
             }
             for (const poder of poderesGenericos) {
                 const mec = poder.habilidade.mecanicasEspeciais;
-                if (mec?.escolha?.tipo === 'TIPO_GRAU') {
-                    const codigo = poder.config?.tipoGrauCodigo;
-                    if (typeof codigo === 'string' && codigo.trim()) {
-                        const atual = bonusMap.get(codigo) ?? 0;
-                        bonusMap.set(codigo, atual + 1);
-                    }
-                }
+                if (!this.hasTipoGrauChoice(mec))
+                    continue;
+                const codigo = this.getTipoGrauCodigoConfig(poder.config);
+                if (!codigo)
+                    continue;
+                const atual = bonusMap.get(codigo) ?? 0;
+                bonusMap.set(codigo, atual + 1);
             }
             if (bonusMap.size > 0) {
-                console.log('[MAPPER] Bônus de graus calculados:', Object.fromEntries(bonusMap));
+                console.log('[MAPPER] Bonus de graus calculados:', Object.fromEntries(bonusMap));
             }
         }
         catch (err) {
-            console.error('[MAPPER] Erro ao calcular bônus de graus:', err);
+            console.error('[MAPPER] Erro ao calcular bonus de graus:', err);
         }
         return bonusMap;
     }

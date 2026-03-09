@@ -11,6 +11,9 @@ import { UpdateVariacaoHabilidadeDto } from './dto/update-variacao.dto';
 export declare class TecnicasAmaldicoadasService {
     private prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
+    private normalizarJsonOuNull;
+    private normalizarJsonOpcional;
     private validarFonteSuplemento;
     findAllTecnicas(filtros: FiltrarTecnicasDto): Promise<TecnicaDetalhadaDto[]>;
     findOneTecnica(id: number): Promise<TecnicaDetalhadaDto>;

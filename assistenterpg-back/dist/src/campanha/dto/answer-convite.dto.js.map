@@ -1,1 +1,1 @@
-{"version":3,"file":"answer-convite.dto.js","sourceRoot":"","sources":["../../../../src/campanha/dto/answer-convite.dto.ts"],"names":[],"mappings":";;;AAAA,MAAa,gBAAgB;IAC3B,OAAO,CAAU;CAClB;AAFD,4CAEC"}
+{"version":3,"file":"answer-convite.dto.js","sourceRoot":"","sources":["../../../../src/campanha/dto/answer-convite.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,qDAA4C;AAE5C,MAAa,gBAAgB;IAE3B,OAAO,CAAU;CAClB;AAHD,4CAGC;AADC;IADC,IAAA,2BAAS,EAAC,EAAE,OAAO,EAAE,2BAA2B,EAAE,CAAC;;iDACnC"}

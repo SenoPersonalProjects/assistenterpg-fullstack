@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrigemDto } from './dto/create-origem.dto';
 import { UpdateOrigemDto } from './dto/update-origem.dto';
@@ -5,6 +6,7 @@ import { HabilidadeCatalogoDto } from '../habilidades/dto/catalogo-habilidade.dt
 export declare class OrigensService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private tratarErroPrisma;
     private validarFonteSuplemento;
     private addHabilidadesIniciais;
     create(dto: CreateOrigemDto): Promise<{
@@ -34,10 +36,10 @@ export declare class OrigensService {
                 descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                requisitos: Prisma.JsonValue | null;
                 tipo: string;
                 hereditaria: boolean;
-                mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
+                mecanicasEspeciais: Prisma.JsonValue | null;
             };
         } & {
             id: number;
@@ -88,10 +90,10 @@ export declare class OrigensService {
                 descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                requisitos: Prisma.JsonValue | null;
                 tipo: string;
                 hereditaria: boolean;
-                mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
+                mecanicasEspeciais: Prisma.JsonValue | null;
             };
         } & {
             id: number;
@@ -142,10 +144,10 @@ export declare class OrigensService {
                 descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                requisitos: Prisma.JsonValue | null;
                 tipo: string;
                 hereditaria: boolean;
-                mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
+                mecanicasEspeciais: Prisma.JsonValue | null;
             };
         } & {
             id: number;
@@ -192,10 +194,10 @@ export declare class OrigensService {
                 descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                requisitos: Prisma.JsonValue | null;
                 tipo: string;
                 hereditaria: boolean;
-                mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
+                mecanicasEspeciais: Prisma.JsonValue | null;
             };
         } & {
             id: number;

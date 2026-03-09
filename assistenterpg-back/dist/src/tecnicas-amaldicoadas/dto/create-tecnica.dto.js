@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateTecnicaDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 const client_1 = require("@prisma/client");
 class CreateTecnicaDto {
     codigo;
@@ -53,7 +54,14 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
+    (0, class_transformer_1.Transform)(({ value }) => {
+        if (!Array.isArray(value)) {
+            return value;
+        }
+        return value.map((item) => typeof item === 'string' ? item.trim() : item);
+    }),
     (0, class_validator_1.IsString)({ each: true }),
+    (0, class_validator_1.IsNotEmpty)({ each: true }),
     __metadata("design:type", Array)
 ], CreateTecnicaDto.prototype, "clasHereditarios", void 0);
 __decorate([
@@ -69,6 +77,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(1),
     __metadata("design:type", Number)
 ], CreateTecnicaDto.prototype, "suplementoId", void 0);
 __decorate([

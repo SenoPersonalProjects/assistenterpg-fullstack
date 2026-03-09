@@ -13,14 +13,14 @@ export declare class ClassesController {
         suplementoId: number | null;
     }>;
     findAll(): Promise<import("./dto/catalogo-classe.dto").ClasseCatalogoDto[]>;
-    findOne(id: string): Promise<import("./dto/catalogo-classe.dto").ClasseCatalogoDto>;
-    findTrilhas(id: string): Promise<{
+    findOne(id: number): Promise<import("./dto/catalogo-classe.dto").ClasseCatalogoDto>;
+    findTrilhas(id: number): Promise<{
         id: number;
         nome: string;
         descricao: string | null;
         classeId: number;
     }[]>;
-    update(id: string, dto: UpdateClasseDto): Promise<{
+    update(id: number, dto: UpdateClasseDto): Promise<{
         id: number;
         nome: string;
         descricao: string | null;
@@ -28,7 +28,7 @@ export declare class ClassesController {
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
     }>;
-    remove(id: string): Promise<{
+    remove(id: number): Promise<{
         sucesso: boolean;
     }>;
 }

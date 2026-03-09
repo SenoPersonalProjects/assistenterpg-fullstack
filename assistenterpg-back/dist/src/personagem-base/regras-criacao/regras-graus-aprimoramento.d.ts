@@ -21,7 +21,7 @@ export interface MecanicasEspeciaisHabilidade {
     };
     escolha?: {
         tipo: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     acoes?: Record<string, string>;
     itens?: Record<string, number>;
@@ -43,14 +43,14 @@ export declare function calcularGrausLivresExtras(habilidades: HabilidadePersona
 };
 export declare function calcularBonusGrausDePoderesGenericos(poderes: Array<{
     habilidadeId: number;
-    config: any;
+    config?: unknown;
 }>, habilidades: HabilidadePersonagem[]): Map<string, number>;
 export declare function aplicarRegrasDeGraus(params: {
     nivel: number;
     habilidades: HabilidadePersonagem[];
     poderes?: Array<{
         habilidadeId: number;
-        config: any;
+        config?: unknown;
     }>;
     passivasAtributosConfig?: PassivasAtributoConfigDto | null;
-}, grausLivres: GrauLivre[]): Promise<GrauLivre[]>;
+}, grausLivres: GrauLivre[]): GrauLivre[];

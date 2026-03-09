@@ -13,6 +13,25 @@ exports.FiltrarSuplementosDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
 const client_1 = require("@prisma/client");
+const parseBooleanQueryValue = ({ value, obj, key, }) => {
+    const rawValue = obj && typeof key === 'string' && key.length > 0 ? obj[key] : value;
+    if (rawValue === undefined || rawValue === null || rawValue === '') {
+        return undefined;
+    }
+    if (typeof rawValue === 'boolean') {
+        return rawValue;
+    }
+    if (typeof rawValue === 'string') {
+        const normalized = rawValue.trim().toLowerCase();
+        if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+            return true;
+        }
+        if (['0', 'false', 'no', 'off'].includes(normalized)) {
+            return false;
+        }
+    }
+    return rawValue;
+};
 class FiltrarSuplementosDto {
     nome;
     codigo;
@@ -44,7 +63,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsBoolean)(),
-    (0, class_transformer_1.Type)(() => Boolean),
+    (0, class_transformer_1.Transform)(parseBooleanQueryValue),
     __metadata("design:type", Boolean)
 ], FiltrarSuplementosDto.prototype, "apenasAtivos", void 0);
 //# sourceMappingURL=filtrar-suplementos.dto.js.map

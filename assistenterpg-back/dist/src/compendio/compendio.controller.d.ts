@@ -179,7 +179,7 @@ export declare class CompendioController {
     removerSubcategoria(id: number): Promise<{
         sucesso: boolean;
     }>;
-    listarArtigos(subcategoriaId?: string, todas?: string, paginacao?: PaginationQueryDto): Promise<any[] | import("src/common/dto/pagination-query.dto").PaginatedResult<any>>;
+    listarArtigos(subcategoriaId?: number, todas?: string, paginacao?: PaginationQueryDto): Promise<any[] | import("src/common/dto/pagination-query.dto").PaginatedResult<any>>;
     buscarArtigoPorCodigo(codigo: string): Promise<{
         subcategoria: {
             categoria: {

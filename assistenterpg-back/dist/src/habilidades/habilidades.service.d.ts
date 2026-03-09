@@ -6,6 +6,7 @@ import { FilterHabilidadeDto } from './dto/filter-habilidade.dto';
 export declare class HabilidadesService {
     private readonly prisma;
     constructor(prisma: PrismaService);
+    private toNullableInputJson;
     private validarFonteSuplemento;
     findPoderesGenericos(): Promise<{
         id: number;

@@ -24,4 +24,7 @@ export declare class EquipamentosService {
     deletar(id: number): Promise<void>;
     private mapResumo;
     private mapDetalhado;
+    private parseEmpunhaduras;
+    private categoriaNumeroParaEnum;
+    private categoriaEnumParaNumero;
 }
