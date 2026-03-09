@@ -1,6 +1,6 @@
 # Suplementos e Homebrews (Contrato Detalhado)
 
-Atualizado em: 2026-03-08
+Atualizado em: 2026-03-09
 
 ## Escopo
 
@@ -123,11 +123,20 @@ Filtros de listagem (`FiltrarHomebrewsDto`):
 - validacao dos dados:
   - validacao estrutural por tipo (`validateHomebrewDados`)
   - validacao custom complementar por tipo (`validate-homebrew-*.ts`)
+  - para `tipo=EQUIPAMENTO`, `dados.tipo` e obrigatorio e define o DTO de validacao.
+  - `EQUIPAMENTO.GENERICO` e aceito e usa apenas campos base (`tipo`, `categoria`, `espacos`, `tipoUso?`, `efeito?`).
+  - `EQUIPAMENTO.FERRAMENTA_AMALDICOADA`:
+    - `tipoAmaldicoado` aceito: `ARMA`, `PROTECAO`, `ARTEFATO` (nao aceita `ITEM`).
+    - exige um subtipo correspondente (`armaAmaldicoada`, `protecaoAmaldicoada` ou `artefatoAmaldicoado`).
+    - em `armaAmaldicoada.dadosArma` e `protecaoAmaldicoada.dadosProtecao`, os campos base de equipamento nao sao exigidos (apenas os campos especificos).
+  - `EQUIPAMENTO.ITEM_AMALDICOADO` aceita apenas `tipoAmaldicoado=ITEM`.
+  - mensagens de erro de validacao de `dados` retornam caminhos detalhados (incluindo campos aninhados).
 - leitura:
   - nao publicado so para dono/admin
   - publicado pode ser lido por usuarios autenticados
 - update:
   - se `dados` mudar, versao e incrementada automaticamente (patch semver)
+  - se `tipo` mudar (mesmo sem `dados` no patch), os `dados` persistidos sao revalidados com o novo tipo e a versao e incrementada.
 - publicar:
   - bloqueia se ja estiver publicado
 - arquivar:
