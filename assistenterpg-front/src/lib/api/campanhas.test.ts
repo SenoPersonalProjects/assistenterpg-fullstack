@@ -5,20 +5,37 @@ vi.mock('./axios-client', () => ({
     get: vi.fn(),
     post: vi.fn(),
     delete: vi.fn(),
+    patch: vi.fn(),
   },
 }));
 
 import { apiClient } from './axios-client';
 import {
+  apiAceitarConvite,
+  apiAtualizarCenaSessaoCampanha,
+  apiAtualizarNpcSessaoCampanha,
+  apiAvancarTurnoSessaoCampanha,
+  apiAdicionarNpcSessaoCampanha,
+  apiCriarSessaoCampanha,
   apiDeleteCampanha,
   apiGetCampanhaById,
+  apiGetSessaoCampanha,
   apiInvalidateCampanhaDetalheCache,
+  apiListarChatSessaoCampanha,
+  apiListarPersonagensCampanha,
+  apiListarSessoesCampanha,
+  apiListarConvitesPendentes,
+  apiRemoverNpcSessaoCampanha,
+  apiRecusarConvite,
+  apiEnviarMensagemChatSessaoCampanha,
+  apiVincularPersonagemCampanha,
 } from './campanhas';
 
 type AxiosLike = {
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
 };
 
 const mockedApiClient = apiClient as unknown as AxiosLike;
@@ -30,9 +47,10 @@ describe('campanhas api cache and dedupe', () => {
   });
 
   it('dedupes in-flight request and serves from cache', async () => {
-    let resolver: ((value: unknown) => void) | null = null;
+    type CampanhaGetResponse = { data: { id: number; nome: string } };
+    let resolver!: (value: CampanhaGetResponse) => void;
     mockedApiClient.get.mockReturnValueOnce(
-      new Promise((resolve) => {
+      new Promise<CampanhaGetResponse>((resolve) => {
         resolver = resolve;
       }),
     );
@@ -43,7 +61,7 @@ describe('campanhas api cache and dedupe', () => {
     expect(mockedApiClient.get).toHaveBeenCalledTimes(1);
     expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/123');
 
-    resolver?.({ data: { id: 123, nome: 'Campanha Alpha' } });
+    resolver({ data: { id: 123, nome: 'Campanha Alpha' } });
     const [r1, r2] = await Promise.all([p1, p2]);
 
     expect(r1).toEqual({ id: 123, nome: 'Campanha Alpha' });
@@ -85,5 +103,199 @@ describe('campanhas api cache and dedupe', () => {
     expect(mockedApiClient.get).toHaveBeenCalledTimes(2);
     expect(depois.nome).toBe('Depois');
   });
-});
 
+  it('lists pending invites', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 1, codigo: 'ABC123' }],
+    });
+
+    const convites = await apiListarConvitesPendentes();
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/convites/pendentes');
+    expect(convites).toEqual([{ id: 1, codigo: 'ABC123' }]);
+  });
+
+  it('accepts invite by code', async () => {
+    mockedApiClient.post.mockResolvedValueOnce(undefined);
+
+    await apiAceitarConvite('CODIGO1');
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/campanhas/convites/CODIGO1/aceitar');
+  });
+
+  it('rejects invite by code', async () => {
+    mockedApiClient.post.mockResolvedValueOnce(undefined);
+
+    await apiRecusarConvite('CODIGO2');
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/campanhas/convites/CODIGO2/recusar');
+  });
+
+  it('lists campaign characters', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 1, nome: 'Yuta' }],
+    });
+
+    const personagens = await apiListarPersonagensCampanha(15);
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/15/personagens');
+    expect(personagens).toEqual([{ id: 1, nome: 'Yuta' }]);
+  });
+
+  it('links base character to campaign', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 9, personagemBaseId: 42 },
+    });
+
+    const personagem = await apiVincularPersonagemCampanha(12, {
+      personagemBaseId: 42,
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/campanhas/12/personagens', {
+      personagemBaseId: 42,
+    });
+    expect(personagem).toEqual({ id: 9, personagemBaseId: 42 });
+  });
+
+  it('lists campaign sessions', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 1, titulo: 'Sessao 1' }],
+    });
+
+    const sessoes = await apiListarSessoesCampanha(44);
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/44/sessoes');
+    expect(sessoes).toEqual([{ id: 1, titulo: 'Sessao 1' }]);
+  });
+
+  it('creates campaign session', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 13, titulo: 'Sessao teste' },
+    });
+
+    const sessao = await apiCriarSessaoCampanha(44, { titulo: 'Sessao teste' });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/campanhas/44/sessoes', {
+      titulo: 'Sessao teste',
+    });
+    expect(sessao).toEqual({ id: 13, titulo: 'Sessao teste' });
+  });
+
+  it('gets campaign session details', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: { id: 13, titulo: 'Sessao teste' },
+    });
+
+    const sessao = await apiGetSessaoCampanha(44, 13);
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/44/sessoes/13');
+    expect(sessao).toEqual({ id: 13, titulo: 'Sessao teste' });
+  });
+
+  it('updates session scene', async () => {
+    mockedApiClient.patch.mockResolvedValueOnce({
+      data: { id: 13, cenaAtual: { tipo: 'COMBATE' } },
+    });
+
+    const sessao = await apiAtualizarCenaSessaoCampanha(44, 13, {
+      tipo: 'COMBATE',
+      nome: 'Confronto',
+    });
+
+    expect(mockedApiClient.patch).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/cena',
+      {
+        tipo: 'COMBATE',
+        nome: 'Confronto',
+      },
+    );
+    expect(sessao).toEqual({ id: 13, cenaAtual: { tipo: 'COMBATE' } });
+  });
+
+  it('advances session turn', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const sessao = await apiAvancarTurnoSessaoCampanha(44, 13);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/turno/avancar',
+    );
+    expect(sessao).toEqual({ id: 13 });
+  });
+
+  it('adds npc/ameaca to session scene', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13, npcs: [{ npcSessaoId: 3 }] } });
+
+    const sessao = await apiAdicionarNpcSessaoCampanha(44, 13, {
+      npcAmeacaId: 99,
+      nomeExibicao: 'Taro Ishikawa',
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/npcs',
+      {
+        npcAmeacaId: 99,
+        nomeExibicao: 'Taro Ishikawa',
+      },
+    );
+    expect(sessao).toEqual({ id: 13, npcs: [{ npcSessaoId: 3 }] });
+  });
+
+  it('updates npc/ameaca in session scene', async () => {
+    mockedApiClient.patch.mockResolvedValueOnce({ data: { id: 13, npcs: [{ npcSessaoId: 3, defesa: 18 }] } });
+
+    const sessao = await apiAtualizarNpcSessaoCampanha(44, 13, 3, {
+      defesa: 18,
+      pontosVidaAtual: 31,
+    });
+
+    expect(mockedApiClient.patch).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/npcs/3',
+      {
+        defesa: 18,
+        pontosVidaAtual: 31,
+      },
+    );
+    expect(sessao).toEqual({ id: 13, npcs: [{ npcSessaoId: 3, defesa: 18 }] });
+  });
+
+  it('removes npc/ameaca from session scene', async () => {
+    mockedApiClient.delete.mockResolvedValueOnce({ data: { id: 13, npcs: [] } });
+
+    const sessao = await apiRemoverNpcSessaoCampanha(44, 13, 3);
+
+    expect(mockedApiClient.delete).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/npcs/3',
+    );
+    expect(sessao).toEqual({ id: 13, npcs: [] });
+  });
+
+  it('lists session chat with afterId', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 90, mensagem: 'oi' }],
+    });
+
+    const mensagens = await apiListarChatSessaoCampanha(44, 13, 80);
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/chat?afterId=80',
+    );
+    expect(mensagens).toEqual([{ id: 90, mensagem: 'oi' }]);
+  });
+
+  it('sends session chat message', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 91, mensagem: 'teste' },
+    });
+
+    const mensagem = await apiEnviarMensagemChatSessaoCampanha(44, 13, {
+      mensagem: 'teste',
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/chat',
+      { mensagem: 'teste' },
+    );
+    expect(mensagem).toEqual({ id: 91, mensagem: 'teste' });
+  });
+});

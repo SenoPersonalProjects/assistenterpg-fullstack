@@ -1,4 +1,11 @@
 // lib/types/campanha.types.ts
+import type {
+  NpcAmeacaAcao,
+  NpcAmeacaPassiva,
+  TipoFichaNpcAmeaca,
+  TipoNpcAmeaca,
+} from './npc-ameaca.types';
+
 /**
  * Types relacionados a campanhas e convites
  */
@@ -17,6 +24,7 @@ export type ConviteCampanha = {
   id: number;
   campanhaId: number;
   email: string;
+  papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' | string;
   codigo: string;
   status: string;
   criadoEm: string;
@@ -25,5 +33,220 @@ export type ConviteCampanha = {
     id: number;
     nome: string;
     dono?: { apelido: string };
+  };
+};
+
+export type CampoModificadorPersonagemCampanha =
+  | 'PV_MAX'
+  | 'PE_MAX'
+  | 'EA_MAX'
+  | 'SAN_MAX'
+  | 'DEFESA_BASE'
+  | 'DEFESA_EQUIPAMENTO'
+  | 'DEFESA_OUTROS'
+  | 'ESQUIVA'
+  | 'BLOQUEIO'
+  | 'DESLOCAMENTO'
+  | 'LIMITE_PE_EA_POR_TURNO'
+  | 'PRESTIGIO_GERAL'
+  | 'PRESTIGIO_CLA';
+
+export type ModificadorPersonagemCampanha = {
+  id: number;
+  campanhaId: number;
+  personagemCampanhaId: number;
+  campo: CampoModificadorPersonagemCampanha;
+  valor: number;
+  nome: string;
+  descricao: string | null;
+  ativo: boolean;
+  criadoEm: string;
+  criadoPorId: number;
+  criadoPor?: { id: number; apelido: string };
+  desfeitoEm: string | null;
+  desfeitoPorId: number | null;
+  desfeitoPor?: { id: number; apelido: string } | null;
+  motivoDesfazer: string | null;
+};
+
+export type HistoricoPersonagemCampanha = {
+  id: number;
+  personagemCampanhaId: number;
+  campanhaId: number;
+  criadoPorId: number | null;
+  tipo: string;
+  descricao: string | null;
+  dados: unknown;
+  criadoEm: string;
+  criadoPor?: { id: number; apelido: string } | null;
+};
+
+export type PersonagemCampanhaResumo = {
+  id: number;
+  campanhaId: number;
+  personagemBaseId: number;
+  donoId: number;
+  nome: string;
+  nivel: number;
+  recursos: {
+    pvAtual: number;
+    pvMax: number;
+    peAtual: number;
+    peMax: number;
+    eaAtual: number;
+    eaMax: number;
+    sanAtual: number;
+    sanMax: number;
+  };
+  defesa: {
+    base: number;
+    equipamento: number;
+    outros: number;
+    total: number;
+  };
+  atributos: {
+    limitePeEaPorTurno: number;
+    prestigioGeral: number;
+    prestigioCla: number | null;
+    deslocamento: number;
+    esquiva: number;
+    bloqueio: number;
+    turnosMorrendo: number;
+    turnosEnlouquecendo: number;
+  };
+  personagemBase: {
+    id: number;
+    nome: string;
+  };
+  dono: {
+    id: number;
+    apelido: string;
+  };
+  modificadoresAtivos: Array<{
+    id: number;
+    campo: CampoModificadorPersonagemCampanha;
+    valor: number;
+    nome: string;
+    descricao: string | null;
+    criadoEm: string;
+    criadoPorId: number;
+  }>;
+};
+
+export type TipoCenaSessaoCampanha =
+  | 'LIVRE'
+  | 'INVESTIGACAO'
+  | 'FURTIVIDADE'
+  | 'COMBATE'
+  | 'OUTRA';
+
+export type NpcSessaoCampanha = {
+  npcSessaoId: number;
+  npcAmeacaId: number | null;
+  nome: string;
+  fichaTipo: TipoFichaNpcAmeaca;
+  tipo: TipoNpcAmeaca;
+  vd: number;
+  defesa: number;
+  pontosVidaAtual: number;
+  pontosVidaMax: number;
+  machucado: number | null;
+  deslocamentoMetros: number;
+  notasCena: string | null;
+  passivas: NpcAmeacaPassiva[];
+  acoes: NpcAmeacaAcao[];
+  podeEditar: boolean;
+};
+
+export type AdicionarNpcSessaoCampanhaPayload = {
+  npcAmeacaId: number;
+  nomeExibicao?: string;
+  vd?: number;
+  defesa?: number;
+  pontosVidaMax?: number;
+  pontosVidaAtual?: number;
+  machucado?: number | null;
+  deslocamentoMetros?: number;
+  notasCena?: string;
+};
+
+export type AtualizarNpcSessaoCampanhaPayload = Partial<
+  Omit<AdicionarNpcSessaoCampanhaPayload, 'npcAmeacaId'>
+>;
+
+export type SessaoCampanhaResumo = {
+  id: number;
+  campanhaId: number;
+  titulo: string;
+  status: string;
+  rodadaAtual: number | null;
+  indiceTurnoAtual: number | null;
+  cenaAtualTipo: TipoCenaSessaoCampanha | string;
+  cenaAtualNome: string | null;
+  controleTurnosAtivo: boolean;
+  iniciadoEm: string;
+  encerradoEm: string | null;
+  totalPersonagens: number;
+  totalEventos: number;
+};
+
+export type SessaoCampanhaDetalhe = {
+  id: number;
+  campanhaId: number;
+  titulo: string;
+  status: string;
+  rodadaAtual: number | null;
+  indiceTurnoAtual: number | null;
+  controleTurnosAtivo: boolean;
+  cenaAtual: {
+    id: number | null;
+    tipo: TipoCenaSessaoCampanha | string;
+    nome: string | null;
+    controleTurnosAtivo: boolean;
+  };
+  turnoAtual: {
+    personagemSessaoId: number;
+    personagemCampanhaId: number;
+    donoId: number;
+    nomeJogador: string;
+    nomePersonagem: string;
+  } | null;
+  permissoes: {
+    ehMestre: boolean;
+    podeEditarTodos: boolean;
+  };
+  cards: Array<{
+    personagemSessaoId: number;
+    personagemCampanhaId: number;
+    personagemBaseId: number;
+    donoId: number;
+    nomeJogador: string;
+    nomePersonagem: string;
+    podeEditar: boolean;
+    visibilidade: 'completa' | 'resumida';
+    recursos: {
+      pvAtual: number;
+      pvMax: number;
+      peAtual: number;
+      peMax: number;
+      eaAtual: number;
+      eaMax: number;
+      sanAtual: number;
+      sanMax: number;
+    } | null;
+  }>;
+  npcs: NpcSessaoCampanha[];
+  iniciadoEm: string;
+  encerradoEm: string | null;
+};
+
+export type MensagemChatSessao = {
+  id: number;
+  criadoEm: string;
+  mensagem: string;
+  autor: {
+    usuarioId: number | null;
+    apelido: string;
+    personagemNome: string | null;
   };
 };

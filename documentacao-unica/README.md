@@ -1,6 +1,6 @@
 # AssistenteRPG - Documentacao Unica (Front + Back)
 
-Atualizado em: 2026-03-08
+Atualizado em: 2026-03-09
 
 ## 1. Objetivo e escopo
 
@@ -26,6 +26,7 @@ Para reduzir ambiguidade e facilitar manutencao, este README permanece como visa
 - tecnicas amaldicoadas (tecnica/habilidade/variacao): [`entidades/tecnicas-amaldicoadas.md`](./entidades/tecnicas-amaldicoadas.md)
 - catalogos menores (pericias/proficiencias/tipos-grau/condicoes/alinhamentos): [`entidades/catalogos-menores.md`](./entidades/catalogos-menores.md)
 - personagens-base (regras, payloads, import/export): [`entidades/personagens-base.md`](./entidades/personagens-base.md)
+- npcs/ameacas (ficha simplificada): [`entidades/npcs-ameacas.md`](./entidades/npcs-ameacas.md)
 - inventario (espacos, grau xama, vestir, modificacoes): [`entidades/inventario.md`](./entidades/inventario.md)
 - equipamentos/modificacoes: [`entidades/equipamentos-modificacoes.md`](./entidades/equipamentos-modificacoes.md)
 - compendio: [`entidades/compendio.md`](./entidades/compendio.md)
@@ -357,6 +358,32 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 - `GET /campanhas/convites/pendentes`
 - `POST /campanhas/convites/:codigo/aceitar`
 - `POST /campanhas/convites/:codigo/recusar`
+- `GET /campanhas/:id/personagens`
+- `POST /campanhas/:id/personagens`
+  - body: [`VincularPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/vincular-personagem-campanha.dto.ts)
+- `PATCH /campanhas/:id/personagens/:personagemCampanhaId/recursos`
+  - body: [`AtualizarRecursosPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/atualizar-recursos-personagem-campanha.dto.ts)
+- `GET /campanhas/:id/personagens/:personagemCampanhaId/modificadores?incluirInativos=true|false`
+- `POST /campanhas/:id/personagens/:personagemCampanhaId/modificadores`
+  - body: [`AplicarModificadorPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/aplicar-modificador-personagem-campanha.dto.ts)
+- `POST /campanhas/:id/personagens/:personagemCampanhaId/modificadores/:modificadorId/desfazer`
+  - body opcional: [`DesfazerModificadorPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/desfazer-modificador-personagem-campanha.dto.ts)
+- `GET /campanhas/:id/personagens/:personagemCampanhaId/historico`
+- `GET /campanhas/:id/sessoes`
+- `POST /campanhas/:id/sessoes`
+  - body: [`CreateSessaoCampanhaDto`](../assistenterpg-back/src/sessao/dto/create-sessao-campanha.dto.ts)
+- `GET /campanhas/:id/sessoes/:sessaoId`
+- `PATCH /campanhas/:id/sessoes/:sessaoId/cena`
+  - body: [`AtualizarCenaSessaoDto`](../assistenterpg-back/src/sessao/dto/atualizar-cena-sessao.dto.ts)
+- `POST /campanhas/:id/sessoes/:sessaoId/turno/avancar`
+- `GET /campanhas/:id/sessoes/:sessaoId/chat?afterId=`
+- `POST /campanhas/:id/sessoes/:sessaoId/chat`
+  - body: [`EnviarChatSessaoDto`](../assistenterpg-back/src/sessao/dto/enviar-chat-sessao.dto.ts)
+- `POST /campanhas/:id/sessoes/:sessaoId/npcs`
+  - body: [`AdicionarNpcSessaoDto`](../assistenterpg-back/src/sessao/dto/adicionar-npc-sessao.dto.ts)
+- `PATCH /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
+  - body: [`AtualizarNpcSessaoDto`](../assistenterpg-back/src/sessao/dto/atualizar-npc-sessao.dto.ts)
+- `DELETE /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
 
 Regra de negocio relevante:
 
@@ -394,19 +421,58 @@ Detalhamento:
     - campos:
       - `email` (email obrigatorio)
       - `papel` (`MESTRE | JOGADOR | OBSERVADOR`)
-    - observacao de comportamento atual:
-      - o convite persiste `email`, `codigo` e `papel`
+    - regras de negocio adicionais:
+      - apenas o dono da campanha pode enviar convite
+      - bloqueia convite para o email do dono da campanha
+      - bloqueia convite para usuario que ja e membro da campanha
+      - bloqueia convite pendente duplicado para o mesmo email na mesma campanha
+      - gera `codigo` unico com retry automatico (ate 5 tentativas em colisao)
   - `GET /campanhas/convites/pendentes`
     - retorna convites pendentes para o email do usuario logado
   - `POST /campanhas/convites/:codigo/aceitar`
     - valida codigo pendente e email do usuario
     - cria membro com o `papel` salvo no convite (fallback `JOGADOR` para dados legados)
+    - aplica transacao para criar membro e marcar convite como `ACEITO` de forma atomica
   - `POST /campanhas/convites/:codigo/recusar`
     - marca convite como `RECUSADO`
 - erros esperados de convite:
   - `CONVITE_NOT_FOUND` (404)
   - `CONVITE_INVALIDO` (422)
   - `CONVITE_NAO_PERTENCE_USUARIO` (422)
+  - `CONVITE_DUPLICADO_PENDENTE` (422)
+  - `CONVITE_CODIGO_INDISPONIVEL` (500)
+- personagens de campanha:
+  - associacao de personagem-base segue limite de 1 personagem por usuario na campanha.
+  - mestres (dono ou membro com papel `MESTRE`) podem editar qualquer ficha da campanha.
+  - jogadores/observadores editam apenas a propria ficha da campanha.
+  - modificadores alteram apenas `PersonagemCampanha` (nao alteram `PersonagemBase`).
+  - cada modificador guarda fonte (`nome`, `descricao`) e pode ser desfeito com seguranca.
+  - historico de alteracoes e persistido em `PersonagemCampanhaHistorico`.
+- sessoes de campanha:
+  - apenas mestre pode iniciar sessao, atualizar cena e avancar turno.
+  - dono e membros podem entrar no lobby e usar chat.
+  - `LIVRE` nao usa contagem de rodada/turno.
+  - em `LIVRE`, `turnoAtual`, `rodadaAtual` e `indiceTurnoAtual` retornam `null` no detalhe.
+  - `POST /turno/avancar` em `LIVRE` retorna erro de negocio (`SESSAO_TURNO_INDISPONIVEL`).
+  - cards da sessao respeitam permissao:
+    - mestre ve/edita todos.
+    - jogador edita apenas o proprio card e ve os demais em modo resumido.
+  - NPCs/Ameacas em sessao:
+    - apenas mestre adiciona/edita/remove na cena atual.
+    - cada instancia fica vinculada a uma `cenaId`.
+    - `passivas` e `acoes` sao guias de mesa (nao ha automacao mecanica).
+- erros esperados de personagem/modificador de campanha:
+  - `CAMPANHA_PERSONAGEM_ASSOCIACAO_NEGADA` (422)
+  - `CAMPANHA_PERSONAGEM_LIMITE_USUARIO` (422)
+  - `CAMPANHA_PERSONAGEM_EDICAO_NEGADA` (422)
+  - `PERSONAGEM_CAMPANHA_NOT_FOUND` (404)
+  - `CAMPANHA_MODIFICADOR_NOT_FOUND` (404)
+  - `CAMPANHA_MODIFICADOR_JA_DESFEITO` (422)
+  - `CAMPANHA_APENAS_MESTRE` (422)
+  - `SESSAO_CAMPANHA_NOT_FOUND` (404)
+  - `SESSAO_TURNO_INDISPONIVEL` (422)
+  - `NPC_AMEACA_NOT_FOUND` (404)
+  - `NPC_SESSAO_NOT_FOUND` (404)
 
 Integracao frontend:
 
@@ -415,6 +481,10 @@ Integracao frontend:
   - criacao e exclusao
   - detalhe de campanha
   - fluxo de convite (criar/listar pendentes/aceitar/recusar)
+  - personagens de campanha (listar, associar, atualizar recursos, aplicar/desfazer modificadores, historico)
+  - sessoes de campanha (listar, criar, detalhe, atualizar cena, avancar turno, listar/enviar chat)
+  - notificacao local de atualizacao de pendencias de convite (`apiInscreverAtualizacaoConvitesPendentes` / `apiNotificarConvitesPendentesAtualizados`) para manter badge da navbar sincronizado
+  - sugestao de associacao de personagem ao entrar na campanha (nao obrigatoria) no componente [`CampaignCharactersSection`](../assistenterpg-front/src/components/campanha/CampaignCharactersSection.tsx)
 
 ## 5.5 Personagens base
 
@@ -505,6 +575,9 @@ Integracao frontend:
 
 - [`assistenterpg-front/src/lib/api/personagens-base.ts`](../assistenterpg-front/src/lib/api/personagens-base.ts) cobre CRUD, preview, export/import e endpoints de graus de treinamento.
 - [`assistenterpg-front/src/lib/api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts) consome `GET /personagens-base/passivas-disponiveis`.
+- [`assistenterpg-front/src/app/personagens-base/novo/page.tsx`](../assistenterpg-front/src/app/personagens-base/novo/page.tsx) agora abre o modal de fontes antes da criacao, mantendo `SISTEMA_BASE` fixo e permitindo habilitar suplementos/homebrews por selecao.
+- [`assistenterpg-front/src/components/personagem-base/create/modal/FontesConteudoModal.tsx`](../assistenterpg-front/src/components/personagem-base/create/modal/FontesConteudoModal.tsx) centraliza a pergunta de fontes extras e reutiliza o padrao visual de modal.
+- [`assistenterpg-front/src/lib/utils/fontes-conteudo.ts`](../assistenterpg-front/src/lib/utils/fontes-conteudo.ts) aplica o filtro local por `fonte/suplementoId/homebrewId` nos catalogos exibidos pelo wizard e persiste a selecao no `localStorage` por `usuarioId`.
 
 ## 5.6 Inventario
 
@@ -1428,6 +1501,38 @@ Integracao frontend neste bloco:
   - [`assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx), [`assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx) e [`assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx) cobrem CRUD completo desses catalogos
   - [`assistenterpg-front/src/lib/constants/suplemento-admin.ts`](../assistenterpg-front/src/lib/constants/suplemento-admin.ts) e [`assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx`](../assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx) foram ampliados para expor os novos modulos no painel admin
 
+## 5.13 NPCs/Ameacas
+
+Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
+
+- `POST /npcs-ameacas`
+  - body: [`CreateNpcAmeacaDto`](../assistenterpg-back/src/npcs-ameacas/dto/create-npc-ameaca.dto.ts)
+- `GET /npcs-ameacas/meus`
+  - query opcional: `page`, `limit`, `nome`, `fichaTipo`, `tipo`, `tamanho`
+  - resposta: `{ items, total, page, limit, totalPages }`
+- `GET /npcs-ameacas/:id`
+- `PATCH /npcs-ameacas/:id`
+  - body: [`UpdateNpcAmeacaDto`](../assistenterpg-back/src/npcs-ameacas/dto/update-npc-ameaca.dto.ts)
+- `DELETE /npcs-ameacas/:id`
+
+Detalhamento:
+
+- modulo de ficha simplificada para NPC/Ameaca (VD placeholder, atributos, pericias principais, defesa/PV, deslocamento, resistencias/vulnerabilidades, passivas e acoes).
+- acesso sempre restrito ao dono da ficha (`donoId`).
+- listas estruturadas (`periciasEspeciais`, `passivas`, `acoes`, `resistencias`, `vulnerabilidades`) sao persistidas em JSON.
+- exclusao retorna `{ message, id }`.
+
+Integracao frontend:
+
+- cliente HTTP: [`assistenterpg-front/src/lib/api/npcs-ameacas.ts`](../assistenterpg-front/src/lib/api/npcs-ameacas.ts)
+- tipos: [`assistenterpg-front/src/lib/types/npc-ameaca.types.ts`](../assistenterpg-front/src/lib/types/npc-ameaca.types.ts)
+- telas:
+  - [`assistenterpg-front/src/app/npcs-ameacas/page.tsx`](../assistenterpg-front/src/app/npcs-ameacas/page.tsx)
+  - [`assistenterpg-front/src/app/npcs-ameacas/novo/page.tsx`](../assistenterpg-front/src/app/npcs-ameacas/novo/page.tsx)
+  - [`assistenterpg-front/src/app/npcs-ameacas/[id]/page.tsx`](../assistenterpg-front/src/app/npcs-ameacas/[id]/page.tsx)
+  - [`assistenterpg-front/src/app/npcs-ameacas/[id]/editar/page.tsx`](../assistenterpg-front/src/app/npcs-ameacas/[id]/editar/page.tsx)
+  - formulario reutilizavel: [`assistenterpg-front/src/components/npc-ameaca/NpcAmeacaForm.tsx`](../assistenterpg-front/src/components/npc-ameaca/NpcAmeacaForm.tsx)
+
 ## 6. Tipos de dados e enums aceitos
 
 Fonte principal de enums:
@@ -1464,6 +1569,7 @@ Enums centrais usados em requests/responses:
 Para payloads completos:
 
 - personagem: [`personagem.types.ts`](../assistenterpg-front/src/lib/types/personagem.types.ts)
+- npcs/ameacas: [`npc-ameaca.types.ts`](../assistenterpg-front/src/lib/types/npc-ameaca.types.ts)
 - inventario/equipamentos/modificacoes: [`inventario.types.ts`](../assistenterpg-front/src/lib/types/inventario.types.ts)
 - catalogos: [`catalogo.types.ts`](../assistenterpg-front/src/lib/types/catalogo.types.ts)
 - suplementos: [`suplemento.types.ts`](../assistenterpg-front/src/lib/types/suplemento.types.ts)
@@ -1479,6 +1585,7 @@ Arquivos principais:
 - usuarios: [`api/usuarios.ts`](../assistenterpg-front/src/lib/api/usuarios.ts)
 - campanhas: [`api/campanhas.ts`](../assistenterpg-front/src/lib/api/campanhas.ts)
 - personagens: [`api/personagens-base.ts`](../assistenterpg-front/src/lib/api/personagens-base.ts)
+- npcs/ameacas: [`api/npcs-ameacas.ts`](../assistenterpg-front/src/lib/api/npcs-ameacas.ts)
 - inventario: [`api/inventario.ts`](../assistenterpg-front/src/lib/api/inventario.ts)
 - catalogos: [`api/catalogos.ts`](../assistenterpg-front/src/lib/api/catalogos.ts)
 - equipamentos/modificacoes: [`api/equipamentos.ts`](../assistenterpg-front/src/lib/api/equipamentos.ts), [`api/modificacoes.ts`](../assistenterpg-front/src/lib/api/modificacoes.ts)
@@ -1494,6 +1601,7 @@ Paginas principais existentes:
 - home: `/home`
 - campanhas: `/campanhas`, `/campanhas/[id]`
 - personagens: `/personagens-base`, `/personagens-base/novo`, `/personagens-base/[id]`
+- npcs/ameacas: `/npcs-ameacas`, `/npcs-ameacas/novo`, `/npcs-ameacas/[id]`, `/npcs-ameacas/[id]/editar`
 - compendio: `/compendio` e rotas filhas
 - suplementos: `/suplementos`, `/suplementos/admin`, `/suplementos/admin/[modulo]`
 - homebrews: `/homebrews`, `/homebrews/novo`, `/homebrews/[id]`, `/homebrews/[id]/editar`
@@ -1555,7 +1663,9 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
     - `Campanha`: `donoId`, `donoId+criadoEm`
     - `MembroCampanha`: `usuarioId`, `usuarioId+campanhaId`
     - `PersonagemBase`: `donoId`, `donoId+nome`
-    - `PersonagemCampanha`: `campanhaId`, `personagemBaseId`
+    - `PersonagemCampanha`: `campanhaId`, `personagemBaseId`, `donoId`, `campanhaId+personagemBaseId (unique)`, `campanhaId+donoId (unique)`
+    - `PersonagemCampanhaModificador`: `personagemCampanhaId+ativo`, `campanhaId+criadoEm`
+    - `PersonagemCampanhaHistorico`: `personagemCampanhaId+criadoEm`, `campanhaId+criadoEm`
     - `ConviteCampanha`: `email+status+criadoEm`, `campanhaId+status`
     - `Homebrew`: `usuarioId+criadoEm`, `status+criadoEm`
 - backend prebuild Prisma:

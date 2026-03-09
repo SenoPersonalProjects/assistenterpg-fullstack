@@ -16,22 +16,21 @@ datasource db {
 // ========================================
 
 enum TipoReducaoDano {
-  DANO              // Guarda-chuva geral
+  DANO // Guarda-chuva geral
   BALISTICO
   IMPACTO
-  CORTE             // ✅ NÃO É "CORTANTE"
-  PERFURACAO        // ✅ NÃO É "PERFURANTE"
+  CORTE // ✅ NÃO É "CORTANTE"
+  PERFURACAO // ✅ NÃO É "PERFURANTE"
   FOGO
   ELETRICIDADE
   FRIO
   ENERGIA_AMALDICOADA
   ENERGIA_POSITIVA
   MENTAL
-  FISICO            // ✅ NOVO: Guarda-chuva
-  SOBRENATURAL      // ✅ NOVO: Guarda-chuva
-  MUNDANO           // ✅ NOVO: Guarda-chuva
+  FISICO // ✅ NOVO: Guarda-chuva
+  SOBRENATURAL // ✅ NOVO: Guarda-chuva
+  MUNDANO // ✅ NOVO: Guarda-chuva
 }
-
 
 enum AtributoBase {
   AGI
@@ -151,7 +150,6 @@ enum CategoriaEquipamento {
   ESPECIAL
 }
 
-
 enum TipoModificacao {
   CORPO_A_CORPO_E_DISPARO
   ARMA_FOGO
@@ -188,8 +186,8 @@ enum TipoAmaldicoado {
 // ========================================
 
 enum TipoTecnicaAmaldicoada {
-  INATA        // Técnica única do personagem
-  NAO_INATA    // Técnicas genéricas (revestimento, controle de EA, etc)
+  INATA // Técnica única do personagem
+  NAO_INATA // Técnicas genéricas (revestimento, controle de EA, etc)
 }
 
 enum TipoExecucao {
@@ -239,6 +237,22 @@ enum RoleUsuario {
   ADMIN
 }
 
+enum CampoModificadorPersonagemCampanha {
+  PV_MAX
+  PE_MAX
+  EA_MAX
+  SAN_MAX
+  DEFESA_BASE
+  DEFESA_EQUIPAMENTO
+  DEFESA_OUTROS
+  ESQUIVA
+  BLOQUEIO
+  DESLOCAMENTO
+  LIMITE_PE_EA_POR_TURNO
+  PRESTIGIO_GERAL
+  PRESTIGIO_CLA
+}
+
 enum StatusPublicacao {
   RASCUNHO
   PUBLICADO
@@ -255,32 +269,59 @@ enum TipoHomebrewConteudo {
   TECNICA_AMALDICOADA
 }
 
+enum TipoFichaNpcAmeaca {
+  NPC
+  AMEACA
+}
+
+enum TipoNpcAmeaca {
+  PESSOA
+  FEITICEIRO
+  MALDICAO
+  ANIMAL
+  HIBRIDO
+  ESPIRITO
+  OUTRO
+}
+
+enum TamanhoNpcAmeaca {
+  MIUDO
+  PEQUENO
+  MEDIO
+  GRANDE
+  ENORME
+}
+
 // ========================================
 // ✅ USUÁRIOS E CAMPANHAS
 // ========================================
 
 model Usuario {
-  id           Int      @id @default(autoincrement())
-  apelido      String
-  email        String   @unique
-  senhaHash    String
-  
+  id        Int    @id @default(autoincrement())
+  apelido   String
+  email     String @unique
+  senhaHash String
+
   // ✅ NOVO: Role do usuário
-  role         RoleUsuario @default(USUARIO)
-  
+  role RoleUsuario @default(USUARIO)
+
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  campanhasQuePossui Campanha[]       @relation("CampanhasDoDono")
-  personagensBase    PersonagemBase[]
-  membrosCampanha    MembroCampanha[]
-  preferencias       PreferenciaUsuario?
-  
-  // ✅ NOVO: Relações com suplementos e homebrews
-  suplementosAtivos  UsuarioSuplemento[]
-  homebrews          Homebrew[]
-}
+  campanhasQuePossui                       Campanha[]                      @relation("CampanhasDoDono")
+  personagensBase                          PersonagemBase[]
+  personagensCampanha                      PersonagemCampanha[]            @relation("PersonagensCampanhaDoDono")
+  membrosCampanha                          MembroCampanha[]
+  historicosPersonagemCampanha             PersonagemCampanhaHistorico[]
+  modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[] @relation("ModificadorPersonagemCampanhaCriadoPor")
+  modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[] @relation("ModificadorPersonagemCampanhaDesfeitoPor")
+  npcsAmeacas                              NpcAmeaca[]
+  preferencias                             PreferenciaUsuario?
 
+  // ✅ NOVO: Relações com suplementos e homebrews
+  suplementosAtivos UsuarioSuplemento[]
+  homebrews         Homebrew[]
+}
 
 model Campanha {
   id           Int      @id @default(autoincrement())
@@ -291,11 +332,13 @@ model Campanha {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  dono        Usuario              @relation("CampanhasDoDono", fields: [donoId], references: [id], onDelete: Cascade)
-  membros     MembroCampanha[]
-  personagens PersonagemCampanha[]
-  sessoes     Sessao[]
-  convites    ConviteCampanha[]
+  dono                     Usuario                         @relation("CampanhasDoDono", fields: [donoId], references: [id], onDelete: Cascade)
+  membros                  MembroCampanha[]
+  personagens              PersonagemCampanha[]
+  historicoPersonagens     PersonagemCampanhaHistorico[]
+  modificadoresPersonagens PersonagemCampanhaModificador[]
+  sessoes                  Sessao[]
+  convites                 ConviteCampanha[]
 
   @@index([donoId])
   @@index([donoId, criadoEm])
@@ -368,20 +411,20 @@ model PersonagemBase {
   espacosOcupados        Int     @default(0)
   sobrecarregado         Boolean @default(false)
 
-  periciasClasseEscolhidasCodigos  Json?
-  periciasOrigemEscolhidasCodigos  Json?
-  periciasLivresCodigos            Json?
+  periciasClasseEscolhidasCodigos Json?
+  periciasOrigemEscolhidasCodigos Json?
+  periciasLivresCodigos           Json?
 
-  pvMaximo            Int @default(0)
-  peMaximo            Int @default(0)
-  eaMaximo            Int @default(0)
-  sanMaximo           Int @default(0)
-  
+  pvMaximo  Int @default(0)
+  peMaximo  Int @default(0)
+  eaMaximo  Int @default(0)
+  sanMaximo Int @default(0)
+
   // ✅ NOVO: Separar defesa base e bônus de equipamento
   defesaBase        Int @default(10)
   defesaEquipamento Int @default(0)
   defesaOutros      Int @default(0)
-  
+
   deslocamento        Int @default(9)
   limitePeEaPorTurno  Int @default(1)
   reacoesBasePorTurno Int @default(2)
@@ -411,11 +454,58 @@ model PersonagemBase {
   @@index([donoId, nome])
 }
 
+model NpcAmeaca {
+  id        Int                @id @default(autoincrement())
+  donoId    Int
+  nome      String
+  descricao String?            @db.Text
+  fichaTipo TipoFichaNpcAmeaca @default(AMEACA)
+  tipo      TipoNpcAmeaca
+  tamanho   TamanhoNpcAmeaca   @default(MEDIO)
+  vd        Int                @default(0)
+
+  agilidade Int @default(0)
+  forca     Int @default(0)
+  intelecto Int @default(0)
+  presenca  Int @default(0)
+  vigor     Int @default(0)
+
+  percepcao  Int @default(0)
+  iniciativa Int @default(0)
+  fortitude  Int @default(0)
+  reflexos   Int @default(0)
+  vontade    Int @default(0)
+  luta       Int @default(0)
+  jujutsu    Int @default(0)
+
+  defesa     Int  @default(10)
+  pontosVida Int  @default(1)
+  machucado  Int?
+
+  deslocamentoMetros Int @default(6)
+
+  periciasEspeciais Json?
+  resistencias      Json?
+  vulnerabilidades  Json?
+  passivas          Json?
+  acoes             Json?
+  usoTatico         String? @db.Text
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  dono             Usuario           @relation(fields: [donoId], references: [id], onDelete: Cascade)
+  instanciasSessao NpcAmeacaSessao[]
+
+  @@index([donoId])
+  @@index([donoId, nome])
+}
 
 model PersonagemCampanha {
   id               Int @id @default(autoincrement())
   campanhaId       Int
   personagemBaseId Int
+  donoId           Int
 
   nome      String
   nivel     Int
@@ -465,6 +555,7 @@ model PersonagemCampanha {
 
   campanha       Campanha       @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   personagemBase PersonagemBase @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
+  dono           Usuario        @relation("PersonagensCampanhaDoDono", fields: [donoId], references: [id], onDelete: Cascade)
   cla            Cla            @relation(fields: [claId], references: [id])
   origem         Origem         @relation(fields: [origemId], references: [id])
   classe         Classe         @relation(fields: [classeId], references: [id])
@@ -473,25 +564,81 @@ model PersonagemCampanha {
 
   personagensSessao   PersonagemSessao[]
   habilidadesCampanha HabilidadePersonagemCampanha[]
-  inventarioItens     InventarioItemCampanha[]        @relation("InventarioCampanha")
+  inventarioItens     InventarioItemCampanha[]          @relation("InventarioCampanha")
   grausAprimoramento  GrauPersonagemCampanha[]
   poderesGenericos    PoderGenericoPersonagemCampanha[]
   tecnicasAprendidas  PersonagemCampanhaTecnica[]
+  historico           PersonagemCampanhaHistorico[]
+  modificadores       PersonagemCampanhaModificador[]
 
+  @@unique([campanhaId, personagemBaseId])
+  @@unique([campanhaId, donoId])
   @@index([campanhaId])
   @@index([personagemBaseId])
+  @@index([donoId])
 }
 
+model PersonagemCampanhaHistorico {
+  id                   Int      @id @default(autoincrement())
+  personagemCampanhaId Int
+  campanhaId           Int
+  criadoPorId          Int?
+  tipo                 String
+  descricao            String?  @db.Text
+  dados                Json?
+  criadoEm             DateTime @default(now())
+
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  campanha           Campanha           @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  criadoPor          Usuario?           @relation(fields: [criadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([personagemCampanhaId, criadoEm])
+  @@index([campanhaId, criadoEm])
+}
+
+model PersonagemCampanhaModificador {
+  id                   Int                                @id @default(autoincrement())
+  personagemCampanhaId Int
+  campanhaId           Int
+  campo                CampoModificadorPersonagemCampanha
+  valor                Int
+  nome                 String
+  descricao            String?                            @db.Text
+  ativo                Boolean                            @default(true)
+  criadoPorId          Int
+  criadoEm             DateTime                           @default(now())
+  desfeitoPorId        Int?
+  desfeitoEm           DateTime?
+  motivoDesfazer       String?                            @db.Text
+
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  campanha           Campanha           @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  criadoPor          Usuario            @relation("ModificadorPersonagemCampanhaCriadoPor", fields: [criadoPorId], references: [id], onDelete: Cascade)
+  desfeitoPor        Usuario?           @relation("ModificadorPersonagemCampanhaDesfeitoPor", fields: [desfeitoPorId], references: [id], onDelete: SetNull)
+
+  @@index([personagemCampanhaId, ativo])
+  @@index([campanhaId, criadoEm])
+}
 
 model Sessao {
-  id         Int    @id @default(autoincrement())
-  campanhaId Int
-  titulo     String
+  id               Int       @id @default(autoincrement())
+  campanhaId       Int
+  titulo           String
+  status           String    @default("LOBBY")
+  rodadaAtual      Int       @default(1)
+  indiceTurnoAtual Int       @default(0)
+  cenaAtualTipo    String    @default("LIVRE")
+  cenaAtualNome    String?
+  iniciadoEm       DateTime  @default(now())
+  encerradoEm      DateTime?
 
   campanha    Campanha           @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   cenas       Cena[]
   personagens PersonagemSessao[] @relation("PersonagensDaSessao")
+  npcs        NpcAmeacaSessao[]
   eventos     EventoSessao[]
+
+  @@index([campanhaId, iniciadoEm])
 }
 
 model Cena {
@@ -500,8 +647,39 @@ model Cena {
 
   sessao      Sessao                     @relation(fields: [sessaoId], references: [id])
   personagens PersonagemSessao[]         @relation("PersonagensDaCena")
+  npcs        NpcAmeacaSessao[]
   condicoes   CondicaoPersonagemSessao[]
   eventos     EventoSessao[]
+}
+
+model NpcAmeacaSessao {
+  id                 Int              @id @default(autoincrement())
+  sessaoId           Int
+  cenaId             Int?
+  npcAmeacaId        Int?
+  nomeExibicao       String
+  fichaTipo          TipoFichaNpcAmeaca @default(AMEACA)
+  tipo               TipoNpcAmeaca
+  vd                 Int              @default(0)
+  defesa             Int              @default(10)
+  pontosVidaAtual    Int              @default(1)
+  pontosVidaMax      Int              @default(1)
+  machucado          Int?
+  deslocamentoMetros Int              @default(6)
+  passivasGuia       Json?
+  acoesGuia          Json?
+  notasCena          String?          @db.Text
+  criadoEm           DateTime         @default(now())
+  atualizadoEm       DateTime         @updatedAt
+
+  sessao    Sessao     @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  cena      Cena?      @relation(fields: [cenaId], references: [id], onDelete: SetNull)
+  npcAmeaca NpcAmeaca? @relation(fields: [npcAmeacaId], references: [id], onDelete: SetNull)
+
+  @@index([sessaoId])
+  @@index([cenaId])
+  @@index([npcAmeacaId])
+  @@index([sessaoId, cenaId])
 }
 
 model PersonagemSessao {
@@ -566,11 +744,11 @@ model Classe {
   descricao String? @db.Text
 
   periciasLivresBase Int @default(0)
-  
+
   // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte  @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
   trilhas             Trilha[]
   personagensBase     PersonagemBase[]
@@ -578,11 +756,10 @@ model Classe {
   habilidadesClasse   HabilidadeClasse[]
   pericias            ClassePericia[]
   proficiencias       ClasseProficiencia[]
-  
+
   @@index([fonte])
   @@index([suplementoId])
 }
-
 
 model ClassePericia {
   id        Int @id @default(autoincrement())
@@ -609,50 +786,48 @@ model ClasseProficiencia {
   @@unique([classeId, proficienciaId])
 }
 
-  model Trilha {
-    id        Int     @id @default(autoincrement())
-    classeId  Int
-    nome      String  @unique
-    descricao String? @db.Text
+model Trilha {
+  id        Int     @id @default(autoincrement())
+  classeId  Int
+  nome      String  @unique
+  descricao String? @db.Text
 
-    requisitos Json?
-    
-    // ✅ NOVO: Fonte e suplemento
-    fonte         TipoFonte  @default(SISTEMA_BASE)
-    suplementoId  Int?
-    suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  requisitos Json?
 
-    classe              Classe               @relation(fields: [classeId], references: [id])
-    caminhos            Caminho[]
-    personagensBase     PersonagemBase[]
-    personagensCampanha PersonagemCampanha[]
-    habilidadesTrilha   HabilidadeTrilha[]
-    
-    @@index([fonte])
-    @@index([suplementoId])
-  }
+  // ✅ NOVO: Fonte e suplemento
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
+  classe              Classe               @relation(fields: [classeId], references: [id])
+  caminhos            Caminho[]
+  personagensBase     PersonagemBase[]
+  personagensCampanha PersonagemCampanha[]
+  habilidadesTrilha   HabilidadeTrilha[]
+
+  @@index([fonte])
+  @@index([suplementoId])
+}
 
 model Caminho {
   id        Int     @id @default(autoincrement())
   trilhaId  Int
   nome      String  @unique
   descricao String? @db.Text
-  
+
   // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte  @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
   trilha              Trilha               @relation(fields: [trilhaId], references: [id])
   personagensBase     PersonagemBase[]
   personagensCampanha PersonagemCampanha[]
   habilidadesTrilha   HabilidadeTrilha[]
-  
+
   @@index([fonte])
   @@index([suplementoId])
 }
-
 
 model Cla {
   id        Int     @id @default(autoincrement())
@@ -661,20 +836,19 @@ model Cla {
   grandeCla Boolean @default(false)
 
   // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte   @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
   personagensBase     PersonagemBase[]
   personagensCampanha PersonagemCampanha[]
 
   // ✅ Técnicas Amaldiçoadas hereditárias do clã (N:N)
   tecnicasHereditarias TecnicaCla[]
-  
+
   @@index([fonte])
   @@index([suplementoId])
 }
-
 
 model Origem {
   id        Int     @id @default(autoincrement())
@@ -685,21 +859,20 @@ model Origem {
   requerGrandeCla            Boolean @default(false)
   requerTecnicaHeriditaria   Boolean @default(false)
   bloqueiaTecnicaHeriditaria Boolean @default(false)
-  
+
   // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte  @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
   personagensBase     PersonagemBase[]
   personagensCampanha PersonagemCampanha[]
   habilidadesOrigem   HabilidadeOrigem[]
   pericias            OrigemPericia[]
-  
+
   @@index([fonte])
   @@index([suplementoId])
 }
-
 
 model OrigemPericia {
   id        Int @id @default(autoincrement())
@@ -728,9 +901,9 @@ model Habilidade {
   mecanicasEspeciais Json?
 
   // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte  @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
   personagensBase     HabilidadePersonagemBase[]
   personagensCampanha HabilidadePersonagemCampanha[]
@@ -933,10 +1106,10 @@ model PersonagemBaseProficiencia {
 }
 
 model PersonagemBaseResistencia {
-  id               Int @id @default(autoincrement())
-  personagemBaseId Int
+  id                Int @id @default(autoincrement())
+  personagemBaseId  Int
   resistenciaTipoId Int
-  valor            Int @default(0)
+  valor             Int @default(0)
 
   personagemBase  PersonagemBase  @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
   resistenciaTipo ResistenciaTipo @relation(fields: [resistenciaTipoId], references: [id])
@@ -957,7 +1130,6 @@ model ResistenciaTipo {
   resistenciasPersonagemBase     PersonagemBaseResistencia[]
   resistenciasPersonagemCampanha PersonagemCampanhaResistencia[]
 }
-
 
 model PersonagemCampanhaResistencia {
   id                   Int @id @default(autoincrement())
@@ -1056,33 +1228,33 @@ model PersonagemBasePassiva {
 // ========================================
 
 model CompendioCategoria {
-  id        Int      @id @default(autoincrement())
-  codigo    String   @unique @db.VarChar(100)
-  nome      String   @db.VarChar(200)
-  descricao String?  @db.Text
-  icone     String?  @db.VarChar(50)
-  cor       String?  @db.VarChar(20)
-  ordem     Int      @default(0)
-  ativo     Boolean  @default(true)
+  id        Int     @id @default(autoincrement())
+  codigo    String  @unique @db.VarChar(100)
+  nome      String  @db.VarChar(200)
+  descricao String? @db.Text
+  icone     String? @db.VarChar(50)
+  cor       String? @db.VarChar(20)
+  ordem     Int     @default(0)
+  ativo     Boolean @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   subcategorias CompendioSubcategoria[]
 
-  @@map("compendio_categorias")
   @@index([ordem])
   @@index([ativo])
+  @@map("compendio_categorias")
 }
 
 model CompendioSubcategoria {
-  id          Int      @id @default(autoincrement())
-  codigo      String   @unique @db.VarChar(100)
-  nome        String   @db.VarChar(200)
-  descricao   String?  @db.Text
-  categoriaId Int      @map("categoria_id")
-  ordem       Int      @default(0)
-  ativo       Boolean  @default(true)
+  id          Int     @id @default(autoincrement())
+  codigo      String  @unique @db.VarChar(100)
+  nome        String  @db.VarChar(200)
+  descricao   String? @db.Text
+  categoriaId Int     @map("categoria_id")
+  ordem       Int     @default(0)
+  ativo       Boolean @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -1090,41 +1262,41 @@ model CompendioSubcategoria {
   categoria CompendioCategoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
   artigos   CompendioArtigo[]
 
-  @@map("compendio_subcategorias")
   @@index([categoriaId])
   @@index([ordem])
   @@index([ativo])
+  @@map("compendio_subcategorias")
 }
 
 model CompendioArtigo {
-  id               Int      @id @default(autoincrement())
-  codigo           String   @unique @db.VarChar(100)
-  titulo           String   @db.VarChar(300)
-  resumo           String?  @db.Text
-  conteudo         String   @db.Text
-  subcategoriaId   Int      @map("subcategoria_id")
-  ordem            Int      @default(0)
+  id             Int     @id @default(autoincrement())
+  codigo         String  @unique @db.VarChar(100)
+  titulo         String  @db.VarChar(300)
+  resumo         String? @db.Text
+  conteudo       String  @db.Text
+  subcategoriaId Int     @map("subcategoria_id")
+  ordem          Int     @default(0)
 
   tags             Json?
-  palavrasChave    String?  @db.Text @map("palavras_chave")
-  nivelDificuldade String?  @db.VarChar(20) @map("nivel_dificuldade")
+  palavrasChave    String? @map("palavras_chave") @db.Text
+  nivelDificuldade String? @map("nivel_dificuldade") @db.VarChar(20)
 
   artigosRelacionados Json? @map("artigos_relacionados")
 
-  ativo     Boolean @default(true)
-  destaque  Boolean @default(false)
+  ativo    Boolean @default(true)
+  destaque Boolean @default(false)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   subcategoria CompendioSubcategoria @relation(fields: [subcategoriaId], references: [id], onDelete: Cascade)
 
-  @@map("compendio_artigos")
   @@index([subcategoriaId])
   @@index([ordem])
   @@index([ativo])
   @@index([destaque])
   @@fulltext([titulo, resumo, palavrasChave])
+  @@map("compendio_artigos")
 }
 
 model PreferenciaUsuario {
@@ -1150,57 +1322,57 @@ model PreferenciaUsuario {
 // ========================================
 
 model EquipamentoCatalogo {
-  id                    Int      @id @default(autoincrement())
-  codigo                String   @unique
-  nome                  String
-  descricao             String?  @db.Text
-  tipo                  TipoEquipamento
-  categoria             CategoriaEquipamento @default(CATEGORIA_0)
-  espacos               Int      @default(1)
+  id        Int                  @id @default(autoincrement())
+  codigo    String               @unique
+  nome      String
+  descricao String?              @db.Text
+  tipo      TipoEquipamento
+  categoria CategoriaEquipamento @default(CATEGORIA_0)
+  espacos   Int                  @default(1)
 
-    // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte  @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  // ✅ NOVO: Fonte e suplemento
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
-  proficienciaArma      ProficienciaArma?
-  empunhaduras          Json?
-  tipoArma              TipoArma?
-  subtipoDistancia      SubtipoArmaDistancia?
-  agil                  Boolean  @default(false)
+  proficienciaArma ProficienciaArma?
+  empunhaduras     Json?
+  tipoArma         TipoArma?
+  subtipoDistancia SubtipoArmaDistancia?
+  agil             Boolean               @default(false)
 
-  criticoValor          Int?
-  criticoMultiplicador  Int?
-  alcance               AlcanceArma?
-  tipoMunicaoCodigo     String?
-  habilidadeEspecial    String?  @db.Text
+  criticoValor         Int?
+  criticoMultiplicador Int?
+  alcance              AlcanceArma?
+  tipoMunicaoCodigo    String?
+  habilidadeEspecial   String?      @db.Text
 
-  duracaoCenas          Int?
-  recuperavel           Boolean  @default(false)
+  duracaoCenas Int?
+  recuperavel  Boolean @default(false)
 
-  proficienciaProtecao  ProficienciaProtecao?
-  tipoProtecao          TipoProtecao?
-  bonusDefesa           Int      @default(0)
-  penalidadeCarga       Int      @default(0)
+  proficienciaProtecao ProficienciaProtecao?
+  tipoProtecao         TipoProtecao?
+  bonusDefesa          Int                   @default(0)
+  penalidadeCarga      Int                   @default(0)
 
-  tipoAcessorio         TipoAcessorio?
-  periciaBonificada     String?
-  bonusPericia          Int      @default(0)
-  requereEmpunhar       Boolean  @default(false)
-  maxVestimentas        Int      @default(0)
+  tipoAcessorio     TipoAcessorio?
+  periciaBonificada String?
+  bonusPericia      Int            @default(0)
+  requereEmpunhar   Boolean        @default(false)
+  maxVestimentas    Int            @default(0)
 
-  tipoExplosivo         TipoExplosivo?
+  tipoExplosivo TipoExplosivo?
 
   // ✅ CORRIGIDO: Mudou de tipoAmaldicoado (antigo) para tipoUso
-  tipoUso               TipoUsoEquipamento?
+  tipoUso         TipoUsoEquipamento?
   // ✅ NOVO: Tipo do amaldiçoado (ARMA, PROTECAO, ITEM, ARTEFATO)
-  tipoAmaldicoado       TipoAmaldicoado?
+  tipoAmaldicoado TipoAmaldicoado?
 
-  efeito                String?  @db.Text
+  efeito String? @db.Text
 
-  complexidadeMaldicao   ComplexidadeMaldicao @default(NENHUMA)
-  efeitoMaldicao         String?  @db.Text
-  requerFerramentasAmaldicoadas Boolean @default(false)
+  complexidadeMaldicao          ComplexidadeMaldicao @default(NENHUMA)
+  efeitoMaldicao                String?              @db.Text
+  requerFerramentasAmaldicoadas Boolean              @default(false)
 
   modificacoesAplicaveis EquipamentoModificacaoAplicavel[]
 
@@ -1217,12 +1389,12 @@ model EquipamentoCatalogo {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  @@map("equipamento_catalogo")
   @@index([tipo])
   @@index([categoria])
   @@index([tipoAmaldicoado])
   @@index([fonte])
   @@index([suplementoId])
+  @@map("equipamento_catalogo")
 }
 
 // ========================================
@@ -1230,14 +1402,14 @@ model EquipamentoCatalogo {
 // ========================================
 
 model EquipamentoDano {
-  id            Int              @id @default(autoincrement())
+  id            Int                 @id @default(autoincrement())
   equipamentoId Int
   equipamento   EquipamentoCatalogo @relation("EquipamentoDano", fields: [equipamentoId], references: [id], onDelete: Cascade)
 
   empunhadura EmpunhaduraArma?
   tipoDano    TipoDano
   rolagem     String
-  valorFlat   Int @default(0)
+  valorFlat   Int              @default(0)
 
   ordem Int @default(0)
 
@@ -1255,12 +1427,12 @@ model EquipamentoDano {
 // ========================================
 
 model EquipamentoReducaoDano {
-  id            Int              @id @default(autoincrement())
+  id            Int                 @id @default(autoincrement())
   equipamentoId Int
   equipamento   EquipamentoCatalogo @relation("EquipamentoReducaoDano", fields: [equipamentoId], references: [id], onDelete: Cascade)
 
   tipoReducao TipoReducaoDano
-  valor      Int @default(0)
+  valor       Int             @default(0)
 
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
@@ -1276,8 +1448,8 @@ model EquipamentoReducaoDano {
 // ========================================
 
 model ArmaAmaldicoada {
-  id            Int @id @default(autoincrement())
-  equipamentoId Int @unique
+  id            Int                 @id @default(autoincrement())
+  equipamentoId Int                 @unique
   equipamento   EquipamentoCatalogo @relation(fields: [equipamentoId], references: [id], onDelete: Cascade)
 
   tipoBase              String
@@ -1295,8 +1467,8 @@ model ArmaAmaldicoada {
 // ========================================
 
 model ProtecaoAmaldicoada {
-  id            Int @id @default(autoincrement())
-  equipamentoId Int @unique
+  id            Int                 @id @default(autoincrement())
+  equipamentoId Int                 @unique
   equipamento   EquipamentoCatalogo @relation(fields: [equipamentoId], references: [id], onDelete: Cascade)
 
   tipoBase              String
@@ -1316,8 +1488,8 @@ model ProtecaoAmaldicoada {
 // ========================================
 
 model ArtefatoAmaldicoado {
-  id            Int @id @default(autoincrement())
-  equipamentoId Int @unique
+  id            Int                 @id @default(autoincrement())
+  equipamentoId Int                 @unique
   equipamento   EquipamentoCatalogo @relation(fields: [equipamentoId], references: [id], onDelete: Cascade)
 
   tipoBase              String
@@ -1337,23 +1509,23 @@ model ArtefatoAmaldicoado {
 // ========================================
 
 model ModificacaoEquipamento {
-  id                  Int    @id @default(autoincrement())
-  codigo              String @unique
-  nome                String
-  descricao           String? @db.Text
-  tipo                TipoModificacao
-  incrementoEspacos   Int    @default(1)
+  id                Int             @id @default(autoincrement())
+  codigo            String          @unique
+  nome              String
+  descricao         String?         @db.Text
+  tipo              TipoModificacao
+  incrementoEspacos Int             @default(1)
 
   // ✅ NOVO: Sistema de restrições flexível
-  restricoes          Json?
-  
+  restricoes Json?
+
   // ✅ Efeitos mecânicos (bonus, penalidades, etc)
-  efeitosMecanicos    Json?
-  
+  efeitosMecanicos Json?
+
   // ✅ Fonte e suplemento
-  fonte         TipoFonte  @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
 
   equipamentosApplicaveis EquipamentoModificacaoAplicavel[]
   itensBase               InventarioItemBaseModificacao[]
@@ -1362,12 +1534,11 @@ model ModificacaoEquipamento {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  @@map("modificacao_equipamento")
   @@index([tipo])
   @@index([fonte])
   @@index([suplementoId])
+  @@map("modificacao_equipamento")
 }
-
 
 model EquipamentoModificacaoAplicavel {
   id            Int @id @default(autoincrement())
@@ -1386,9 +1557,9 @@ model EquipamentoModificacaoAplicavel {
 // ========================================
 
 model GrauFeiticeiroLimite {
-  id          Int           @id @default(autoincrement())
-  prestigioMin Int          @unique
-  grau        GrauFeiticeiro @unique
+  id           Int            @id @default(autoincrement())
+  prestigioMin Int            @unique
+  grau         GrauFeiticeiro @unique
 
   limitesPorCategoria Json
 
@@ -1397,9 +1568,9 @@ model GrauFeiticeiroLimite {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  @@map("grau_feiticeiro_limite")
   @@index([prestigioMin])
   @@index([grau])
+  @@map("grau_feiticeiro_limite")
 }
 
 // ========================================
@@ -1407,7 +1578,7 @@ model GrauFeiticeiroLimite {
 // ========================================
 
 model InventarioItemBase {
-  id               Int @id @default(autoincrement())
+  id               Int            @id @default(autoincrement())
   personagemBaseId Int
   personagemBase   PersonagemBase @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
 
@@ -1417,8 +1588,8 @@ model InventarioItemBase {
   quantidade Int     @default(1)
   equipado   Boolean @default(false)
 
-  espacosCalculados               Int      @default(1)
-  categoriaCalculada             CategoriaEquipamento @default(CATEGORIA_0)
+  espacosCalculados  Int                  @default(1)
+  categoriaCalculada CategoriaEquipamento @default(CATEGORIA_0)
 
   modificacoes InventarioItemBaseModificacao[]
 
@@ -1428,9 +1599,9 @@ model InventarioItemBase {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  @@map("inventario_item_base")
   @@index([personagemBaseId])
   @@index([equipamentoId])
+  @@map("inventario_item_base")
 }
 
 model InventarioItemBaseModificacao {
@@ -1438,7 +1609,7 @@ model InventarioItemBaseModificacao {
   itemId        Int
   modificacaoId Int
 
-  item        InventarioItemBase   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item        InventarioItemBase     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   modificacao ModificacaoEquipamento @relation(fields: [modificacaoId], references: [id])
 
   @@unique([itemId, modificacaoId])
@@ -1450,7 +1621,7 @@ model InventarioItemBaseModificacao {
 // ========================================
 
 model InventarioItemCampanha {
-  id                   Int @id @default(autoincrement())
+  id                   Int                @id @default(autoincrement())
   personagemCampanhaId Int
   personagemCampanha   PersonagemCampanha @relation("InventarioCampanha", fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
 
@@ -1460,7 +1631,7 @@ model InventarioItemCampanha {
   quantidade Int     @default(1)
   equipado   Boolean @default(false)
 
-  categoriaCalculada             CategoriaEquipamento @default(CATEGORIA_0)
+  categoriaCalculada CategoriaEquipamento @default(CATEGORIA_0)
 
   modificacoes InventarioItemCampanhaModificacao[]
 
@@ -1472,9 +1643,9 @@ model InventarioItemCampanha {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  @@map("inventario_item_campanha")
   @@index([personagemCampanhaId])
   @@index([equipamentoId])
+  @@map("inventario_item_campanha")
 }
 
 model InventarioItemCampanhaModificacao {
@@ -1494,47 +1665,47 @@ model InventarioItemCampanhaModificacao {
 // ========================================
 
 model TecnicaAmaldicoada {
-  id        Int     @id @default(autoincrement())
-  codigo    String  @unique
-  nome      String  @unique
-  descricao String  @db.Text
-  
-  tipo      TipoTecnicaAmaldicoada
-  
+  id        Int    @id @default(autoincrement())
+  codigo    String @unique
+  nome      String @unique
+  descricao String @db.Text
+
+  tipo TipoTecnicaAmaldicoada
+
   // ✅ Para técnicas inatas hereditárias (ex: Técnicas de Clã)
-  hereditaria Boolean @default(false)
+  hereditaria Boolean      @default(false)
   clas        TecnicaCla[] // Múltiplos clãs podem ter a mesma técnica
-  
+
   // ✅ Link externo (documentação, wiki, etc)
   linkExterno String? @db.Text
-  
+
   // ✅ Requisitos gerais da técnica (JSON livre)
   requisitos Json? // Ex: { "nivel": 5, "atributo": "INT >= 3" }
-  
+
   // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte  @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
-  
+  fonte        TipoFonte   @default(SISTEMA_BASE)
+  suplementoId Int?
+  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+
   // ✅ Habilidades da técnica
   habilidades HabilidadeTecnica[]
-  
+
   // ✅ Personagens que possuem essa técnica inata
-  personagensBaseComInata     PersonagemBase[]      @relation("TecnicaInataPersonagemBase")
-  personagensCampanhaComInata PersonagemCampanha[]  @relation("TecnicaInataPersonagemCampanha")
-  
+  personagensBaseComInata     PersonagemBase[]     @relation("TecnicaInataPersonagemBase")
+  personagensCampanhaComInata PersonagemCampanha[] @relation("TecnicaInataPersonagemCampanha")
+
   // ✅ Personagens que aprenderam técnicas não-inatas
   personagensBaseAprendeu     PersonagemBaseTecnica[]
   personagensCampanhaAprendeu PersonagemCampanhaTecnica[]
-  
+
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
-  
-  @@map("tecnica_amaldicoada")
+
   @@index([tipo])
   @@index([hereditaria])
   @@index([fonte])
   @@index([suplementoId])
+  @@map("tecnica_amaldicoada")
 }
 
 // ========================================
@@ -1545,10 +1716,10 @@ model TecnicaCla {
   id        Int @id @default(autoincrement())
   tecnicaId Int
   claId     Int
-  
+
   tecnica TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
   cla     Cla                @relation(fields: [claId], references: [id], onDelete: Cascade)
-  
+
   @@unique([tecnicaId, claId])
   @@map("tecnica_cla")
 }
@@ -1558,71 +1729,71 @@ model TecnicaCla {
 // ========================================
 
 model HabilidadeTecnica {
-  id          Int    @id @default(autoincrement())
-  tecnicaId   Int
-  tecnica     TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
-  
-  codigo      String @unique
-  nome        String
-  descricao   String @db.Text
-  
+  id        Int                @id @default(autoincrement())
+  tecnicaId Int
+  tecnica   TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
+
+  codigo    String @unique
+  nome      String
+  descricao String @db.Text
+
   // ✅ Requisitos estruturados (JSON)
   // Formato: { "Nível": 5, "Grau de Aprimoramento em Técnica Amaldiçoada": 2 }
-  requisitos  Json?
-  
+  requisitos Json?
+
   // ✅ Execução
-  execucao    TipoExecucao
-  area        AreaEfeito?
+  execucao TipoExecucao
+  area     AreaEfeito?
 
-  alcance     String?
+  alcance String?
 
-  alvo        String?  // Ex: "Você", "1 criatura", "Todos em alcance curto"
-  duracao     String?  // Ex: "Instantâneo", "Sustentado", "3 turnos", "1 cena"
-  
+  alvo    String? // Ex: "Você", "1 criatura", "Todos em alcance curto"
+  duracao String? // Ex: "Instantâneo", "Sustentado", "3 turnos", "1 cena"
+
   // ✅ Resistência
-  resistencia     String? @db.Text // Ex: "Fortitude", "Reflexos", "Vontade"
-  dtResistencia   String? @db.Text // Ex: "10 + Limite PE/EA + INT", "CD 15 fixa"
-  
+  resistencia   String? @db.Text // Ex: "Fortitude", "Reflexos", "Vontade"
+  dtResistencia String? @db.Text // Ex: "10 + Limite PE/EA + INT", "CD 15 fixa"
+
   // ✅ Custos base
-  custoPE     Int     @default(0)
-  custoEA     Int     @default(0)
-  
+  custoPE Int @default(0)
+  custoEA Int @default(0)
+
   // ✅ Teste exigido (perícias necessárias)
   testesExigidos Json? // Ex: ["Atletismo", "Acrobacia"]
-  
+
   // ✅ Dano base
-  criticoValor         Int?    // Ex: 19 (crítico em 19-20)
-  criticoMultiplicador Int?    // Ex: 2 (x2), 3 (x3)
+  criticoValor         Int? // Ex: 19 (crítico em 19-20)
+  criticoMultiplicador Int? // Ex: 2 (x2), 3 (x3)
 
   // ✅ ATUALIZADO: Dano flat com tipo (SOBRESCREVE se definido)
-  danoFlat             Int?     @default(0)
-  danoFlatTipo         TipoDano?
-  
+  danoFlat     Int?      @default(0)
+  danoFlatTipo TipoDano?
+
   // ✅ Dados de dano (array JSON)
   dadosDano Json? // Ex: [{ "quantidade": 1, "dado": "d4", "tipo": "CORTANTE" }, { "quantidade": 2, "dado": "d6", "tipo": "IMPACTO" }]
-  
+
   // ✅ Escalonamento por grau de aprimoramento
   escalonaPorGrau      Boolean @default(false)
   grauTipoGrauCodigo   String? // Qual grau usar (ex: "TECNICA_AMALDICOADA")
   escalonamentoCustoEA Int     @default(0) // Custo adicional por grau investido
-  escalonamentoDano    Json?   // Ex: { "quantidade": 1, "dado": "d4", "tipo": "CORTANTE" } (adiciona por grau)
-  
+  escalonamentoDano    Json? // Ex: { "quantidade": 1, "dado": "d4", "tipo": "CORTANTE" } (adiciona por grau)
+
   // ✅ Efeito (texto livre)
   efeito String @db.Text
-  
+
   // ✅ Variações (Liberação Superior/Máxima)
   variacoes VariacaoHabilidade[]
-  
+
   // ✅ Ordem de exibição
   ordem Int @default(0)
-  
+
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
-  
-  @@map("habilidade_tecnica")
+
   @@index([tecnicaId])
   @@index([ordem])
   @@index([grauTipoGrauCodigo])
+  @@map("habilidade_tecnica")
 }
 
 // ========================================
@@ -1630,60 +1801,59 @@ model HabilidadeTecnica {
 // ========================================
 
 model VariacaoHabilidade {
-  id                  Int    @id @default(autoincrement())
+  id                  Int               @id @default(autoincrement())
   habilidadeTecnicaId Int
   habilidadeTecnica   HabilidadeTecnica @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
-  
-  nome                String  // Ex: "Liberação Superior", "Liberação Máxima"
-  descricao           String  @db.Text
-  
+
+  nome      String // Ex: "Liberação Superior", "Liberação Máxima"
+  descricao String @db.Text
+
   // ✅ Custos (SOBRESCREVE custos base se definido, senão ADICIONA)
-  substituiCustos     Boolean @default(false) // true = substitui, false = adiciona
-  custoPE             Int?
-  custoEA             Int?
-  
+  substituiCustos Boolean @default(false) // true = substitui, false = adiciona
+  custoPE         Int?
+  custoEA         Int?
+
   // ✅ Execução (opcional - sobrescreve se definido)
-  execucao            TipoExecucao?
-  area                AreaEfeito?
-  alcance             String? // Ex: "12 m", "MEDIO"
-  alvo                String? @db.Text
-  duracao             String? @db.Text
-  
+  execucao TipoExecucao?
+  area     AreaEfeito?
+  alcance  String? // Ex: "12 m", "MEDIO"
+  alvo     String?       @db.Text
+  duracao  String?       @db.Text
+
   // ✅ Resistência (opcional - sobrescreve se definido)
-  resistencia         String? @db.Text
-  dtResistencia       String? @db.Text
-  
+  resistencia   String? @db.Text
+  dtResistencia String? @db.Text
+
   // ✅ Dano (SOBRESCREVE se definido)
   criticoValor         Int?
   criticoMultiplicador Int?
 
-
   // ✅ ATUALIZADO: Dano flat com tipo (SOBRESCREVE se definido)
-  danoFlat             Int?
-  danoFlatTipo         TipoDano?
-  
-  dadosDano            Json? // Mesmo formato da habilidade base
-  
+  danoFlat     Int?
+  danoFlatTipo TipoDano?
+
+  dadosDano Json? // Mesmo formato da habilidade base
+
   // ✅ Escalonamento (opcional - sobrescreve se definido)
   escalonaPorGrau      Boolean?
   escalonamentoCustoEA Int?
   escalonamentoDano    Json?
-  
+
   // ✅ Efeito (ADICIONA ao efeito base)
   efeitoAdicional String? @db.Text
-  
+
   // ✅ Requisitos específicos da variação
   requisitos Json? // Era: requisitos String? @db.Text
-  
+
   // ✅ Ordem de exibição
   ordem Int @default(0)
-  
+
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
-  
-  @@map("variacao_habilidade")
+
   @@index([habilidadeTecnicaId])
   @@index([ordem])
+  @@map("variacao_habilidade")
 }
 
 // ========================================
@@ -1694,28 +1864,28 @@ model PersonagemBaseTecnica {
   id               Int @id @default(autoincrement())
   personagemBaseId Int
   tecnicaId        Int
-  
-  personagemBase PersonagemBase      @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
-  tecnica        TecnicaAmaldicoada  @relation(fields: [tecnicaId], references: [id])
-  
+
+  personagemBase PersonagemBase     @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
+  tecnica        TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id])
+
   @@unique([personagemBaseId, tecnicaId])
-  @@map("personagem_base_tecnica")
   @@index([personagemBaseId])
   @@index([tecnicaId])
+  @@map("personagem_base_tecnica")
 }
 
 model PersonagemCampanhaTecnica {
   id                   Int @id @default(autoincrement())
   personagemCampanhaId Int
   tecnicaId            Int
-  
-  personagemCampanha PersonagemCampanha  @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
-  tecnica            TecnicaAmaldicoada  @relation(fields: [tecnicaId], references: [id])
-  
+
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  tecnica            TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id])
+
   @@unique([personagemCampanhaId, tecnicaId])
-  @@map("personagem_campanha_tecnica")
   @@index([personagemCampanhaId])
   @@index([tecnicaId])
+  @@map("personagem_campanha_tecnica")
 }
 
 // ========================================
@@ -1723,41 +1893,41 @@ model PersonagemCampanhaTecnica {
 // ========================================
 
 model Suplemento {
-  id               Int      @id @default(autoincrement())
-  codigo           String   @unique // Ex: "KAKYN", "HIDDEN_INVENTORY"
-  nome             String
-  descricao        String?  @db.Text
-  versao           String   @default("1.0.0")
-  status           StatusPublicacao @default(RASCUNHO)
-  
+  id        Int              @id @default(autoincrement())
+  codigo    String           @unique // Ex: "KAKYN", "HIDDEN_INVENTORY"
+  nome      String
+  descricao String?          @db.Text
+  versao    String           @default("1.0.0")
+  status    StatusPublicacao @default(RASCUNHO)
+
   // ✅ Visual
-  icone            String?  @db.Text // URL da imagem de ícone
-  banner           String?  @db.Text // URL do banner
-  
+  icone  String? @db.Text // URL da imagem de ícone
+  banner String? @db.Text // URL do banner
+
   // ✅ Metadados
-  tags             Json?    // ["Kakyn", "Geografia", "Clãs"]
-  autor            String?  // Nome do criador (se aplicável)
-  
-  criadoEm         DateTime @default(now())
-  atualizadoEm     DateTime @updatedAt
-  
+  tags  Json? // ["Kakyn", "Geografia", "Clãs"]
+  autor String? // Nome do criador (se aplicável)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
   // ✅ Relações: Conteúdo do suplemento
-  cla              Cla[]
-  classes          Classe[]
-  trilhas          Trilha[]
-  caminhos         Caminho[]
-  origens          Origem[]
-  equipamentos     EquipamentoCatalogo[]
-  habilidades      Habilidade[]
-  tecnicas         TecnicaAmaldicoada[]
-  modificacoes     ModificacaoEquipamento[]
-  
+  cla          Cla[]
+  classes      Classe[]
+  trilhas      Trilha[]
+  caminhos     Caminho[]
+  origens      Origem[]
+  equipamentos EquipamentoCatalogo[]
+  habilidades  Habilidade[]
+  tecnicas     TecnicaAmaldicoada[]
+  modificacoes ModificacaoEquipamento[]
+
   // ✅ Usuários que ativaram este suplemento
-  usuariosAtivos   UsuarioSuplemento[]
-  
-  @@map("suplementos")
+  usuariosAtivos UsuarioSuplemento[]
+
   @@index([status])
   @@index([codigo])
+  @@map("suplementos")
 }
 
 // ========================================
@@ -1765,18 +1935,18 @@ model Suplemento {
 // ========================================
 
 model UsuarioSuplemento {
-  id            Int      @id @default(autoincrement())
-  usuarioId     Int
-  suplementoId  Int
-  ativadoEm     DateTime @default(now())
-  
-  usuario       Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  suplemento    Suplemento  @relation(fields: [suplementoId], references: [id], onDelete: Cascade)
-  
+  id           Int      @id @default(autoincrement())
+  usuarioId    Int
+  suplementoId Int
+  ativadoEm    DateTime @default(now())
+
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  suplemento Suplemento @relation(fields: [suplementoId], references: [id], onDelete: Cascade)
+
   @@unique([usuarioId, suplementoId])
-  @@map("usuario_suplemento")
   @@index([usuarioId])
   @@index([suplementoId])
+  @@map("usuario_suplemento")
 }
 
 // ========================================
@@ -1784,41 +1954,41 @@ model UsuarioSuplemento {
 // ========================================
 
 model Homebrew {
-  id               Int      @id @default(autoincrement())
-  codigo           String   // Gerado automaticamente: "USER_{userId}_HB_{timestamp}"
-  nome             String
-  descricao        String?  @db.Text
-  
+  id        Int     @id @default(autoincrement())
+  codigo    String // Gerado automaticamente: "USER_{userId}_HB_{timestamp}"
+  nome      String
+  descricao String? @db.Text
+
   // ✅ Tipo de conteúdo homebrew
-  tipo             TipoHomebrewConteudo
-  
+  tipo TipoHomebrewConteudo
+
   // ✅ Status
-  status           StatusPublicacao @default(RASCUNHO)
-  
+  status StatusPublicacao @default(RASCUNHO)
+
   // ✅ Dono
-  usuarioId        Int
-  usuario          Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  
+  usuarioId Int
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
   // ✅ Dados estruturados (JSON) - Estrutura varia por tipo
   // Para TRILHA: { classeId, nivelRequisito, habilidades: [...] }
   // Para ORIGEM: { pericias: [...], habilidades: [...] }
   // Para EQUIPAMENTO: { tipo, categoria, espacos, danos: [...] }
   // Para PODER_GENERICO: { requisitos, efeitos, mecanicas }
   // Para TECNICA_AMALDICOADA: { habilidades: [...], requisitos }
-  dados            Json
-  
+  dados Json
+
   // ✅ Metadados
-  tags             Json?    // ["Customizado", "Homebrew", "Experimental"]
-  versao           String   @default("1.0.0")
-  
-  criadoEm         DateTime @default(now())
-  atualizadoEm     DateTime @updatedAt
-  
+  tags   Json? // ["Customizado", "Homebrew", "Experimental"]
+  versao String @default("1.0.0")
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
   @@unique([usuarioId, codigo])
-  @@map("homebrews")
   @@index([usuarioId])
   @@index([tipo])
   @@index([status])
   @@index([usuarioId, criadoEm])
   @@index([status, criadoEm])
+  @@map("homebrews")
 }
