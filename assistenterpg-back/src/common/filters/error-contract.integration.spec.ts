@@ -18,7 +18,9 @@ import { BaseException } from '../exceptions/base.exception';
 import { AllExceptionsFilter } from './all-exceptions.filter';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { AdicionarItemDto } from '../../inventario/dto/adicionar-item.dto';
+import { AplicarModificacaoDto } from '../../inventario/dto/aplicar-modificacao.dto';
 import { AtualizarItemDto } from '../../inventario/dto/atualizar-item.dto';
+import { RemoverModificacaoDto } from '../../inventario/dto/remover-modificacao.dto';
 
 class CriarCampanhaTesteDto {
   @IsString()
@@ -80,6 +82,16 @@ class InventarioErroTesteController {
 
   @Post('adicionar')
   adicionarItem(@Body() body: AdicionarItemDto) {
+    return { ok: true, body };
+  }
+
+  @Post('aplicar-modificacao')
+  aplicarModificacao(@Body() body: AplicarModificacaoDto) {
+    return { ok: true, body };
+  }
+
+  @Post('remover-modificacao')
+  removerModificacao(@Body() body: RemoverModificacaoDto) {
     return { ok: true, body };
   }
 
@@ -302,6 +314,60 @@ describe('ErrorContract (integration)', () => {
       validationErrors.some((msg) => String(msg).includes('quantidade')),
     ).toBe(true);
     expect(body.path).toBe('/inventario/adicionar');
+    expect(body.method).toBe('POST');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid inventario aplicar-modificacao payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/inventario/aplicar-modificacao')
+      .send({
+        itemId: 'item-invalido',
+        modificacaoId: 2,
+      })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('itemId');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(validationErrors.some((msg) => String(msg).includes('itemId'))).toBe(
+      true,
+    );
+    expect(body.path).toBe('/inventario/aplicar-modificacao');
+    expect(body.method).toBe('POST');
+  });
+
+  it('should return VALIDATION_ERROR with field for invalid inventario remover-modificacao payload', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/inventario/remover-modificacao')
+      .send({
+        itemId: 1,
+        modificacaoId: 'mod-invalida',
+      })
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBe('modificacaoId');
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) => String(msg).includes('modificacaoId')),
+    ).toBe(true);
+    expect(body.path).toBe('/inventario/remover-modificacao');
     expect(body.method).toBe('POST');
   });
 });
