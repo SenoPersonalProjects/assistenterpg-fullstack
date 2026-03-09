@@ -254,6 +254,7 @@ Para erros de validacao de DTO (`400`):
 - `details.validationErrors`: lista de mensagens de validacao
 - `field`: quando possivel, o backend infere o primeiro campo invalido a partir da mensagem (ex.: `quantidade`)
 - cobertura de contrato HTTP inclui invalidacoes em:
+  - `GET /inventario/personagem/:personagemBaseId` (param invalido)
   - `PATCH /inventario/item/:itemId`
   - `POST /inventario/adicionar`
   - `POST /inventario/aplicar-modificacao`

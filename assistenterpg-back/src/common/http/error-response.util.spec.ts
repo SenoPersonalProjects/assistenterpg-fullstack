@@ -78,6 +78,28 @@ describe('error-response.util', () => {
       expect(payload.field).toBe('modificacoes');
     });
 
+    it('deve mapear erro de parse de param para VALIDATION_ERROR com details', () => {
+      const payload = normalizeHttpExceptionPayload(
+        HttpStatus.BAD_REQUEST,
+        {
+          statusCode: 400,
+          message: 'Validation failed (numeric string is expected)',
+          error: 'Bad Request',
+        },
+        'Erro padrao',
+      );
+
+      expect(payload.code).toBe('VALIDATION_ERROR');
+      expect(payload.error).toBe('Bad Request');
+      expect(payload.message).toBe(
+        'Validation failed (numeric string is expected)',
+      );
+      expect(payload.details).toEqual({
+        validationErrors: ['Validation failed (numeric string is expected)'],
+      });
+      expect(payload.field).toBeUndefined();
+    });
+
     it('deve respeitar codigo explicito quando presente', () => {
       const payload = normalizeHttpExceptionPayload(
         HttpStatus.CONFLICT,

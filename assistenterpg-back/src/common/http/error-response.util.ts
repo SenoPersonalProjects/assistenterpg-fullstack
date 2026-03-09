@@ -94,11 +94,25 @@ function defaultCodeFor(
   statusCode: number,
   message: string | string[],
 ): string {
-  if (statusCode === 400 && Array.isArray(message)) {
+  if (isValidationLikeBadRequest(statusCode, message)) {
     return 'VALIDATION_ERROR';
   }
 
   return CODE_BY_STATUS[statusCode] ?? 'HTTP_EXCEPTION';
+}
+
+function isValidationLikeBadRequest(
+  statusCode: number,
+  message: string | string[],
+): boolean {
+  if (statusCode !== 400) return false;
+  if (Array.isArray(message)) return true;
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('validation failed') ||
+    normalized.includes('numeric string is expected')
+  );
 }
 
 function getPath(request: Request): string {
@@ -157,8 +171,13 @@ export function normalizeHttpExceptionPayload(
     : undefined;
 
   let details = detailsFromResponse;
-  if (details === undefined && Array.isArray(message)) {
-    details = { validationErrors: message };
+  if (
+    details === undefined &&
+    isValidationLikeBadRequest(statusCode, message)
+  ) {
+    details = {
+      validationErrors: Array.isArray(message) ? message : [message],
+    };
   }
 
   return {
@@ -172,8 +191,10 @@ export function normalizeHttpExceptionPayload(
     field:
       baseException?.field ??
       fieldFromResponse ??
-      (Array.isArray(message)
-        ? inferFieldFromValidationMessages(message)
+      (isValidationLikeBadRequest(statusCode, message)
+        ? inferFieldFromValidationMessages(
+            Array.isArray(message) ? message : [message],
+          )
         : undefined),
   };
 }

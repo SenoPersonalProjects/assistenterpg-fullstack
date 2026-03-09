@@ -5,6 +5,7 @@ import {
   Get,
   HttpStatus,
   INestApplication,
+  ParseIntPipe,
   Patch,
   Post,
   Param,
@@ -93,6 +94,13 @@ class InventarioErroTesteController {
   @Post('remover-modificacao')
   removerModificacao(@Body() body: RemoverModificacaoDto) {
     return { ok: true, body };
+  }
+
+  @Get('personagem/:personagemBaseId')
+  buscarInventario(
+    @Param('personagemBaseId', ParseIntPipe) personagemBaseId: number,
+  ) {
+    return { ok: true, personagemBaseId };
   }
 
   @Patch('item/:itemId')
@@ -369,5 +377,30 @@ describe('ErrorContract (integration)', () => {
     ).toBe(true);
     expect(body.path).toBe('/inventario/remover-modificacao');
     expect(body.method).toBe('POST');
+  });
+
+  it('should return VALIDATION_ERROR for invalid inventario personagem id param', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/inventario/personagem/abc')
+      .expect(HttpStatus.BAD_REQUEST);
+
+    const body = asBody(response.body);
+    const details = asBody(body.details);
+    const validationErrors = details.validationErrors;
+
+    expect(body.code).toBe('VALIDATION_ERROR');
+    expect(body.error).toBe('Bad Request');
+    expect(body.field).toBeUndefined();
+    expect(Array.isArray(validationErrors)).toBe(true);
+    if (!Array.isArray(validationErrors)) {
+      throw new Error('validationErrors deve ser array');
+    }
+    expect(
+      validationErrors.some((msg) =>
+        String(msg).includes('numeric string is expected'),
+      ),
+    ).toBe(true);
+    expect(body.path).toBe('/inventario/personagem/abc');
+    expect(body.method).toBe('GET');
   });
 });
