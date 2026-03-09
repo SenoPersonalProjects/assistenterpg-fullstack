@@ -1,7 +1,7 @@
 // src/lib/api/homebrews.ts
 
-import { apiClient } from './axios-client';
-import { normalizeListResult, type ListResult } from './pagination';
+import { apiClient } from "./axios-client";
+import { normalizeListResult, type ListResult } from "./pagination";
 
 // ============================================================================
 // ✅ IMPORTS DE ENUMS (sincronizados)
@@ -28,13 +28,19 @@ import {
   TipoTecnicaAmaldicoada,
   TipoExecucao,
   AreaEfeito,
-} from '@/lib/types/homebrew-enums';
+} from "@/lib/types/homebrew-enums";
 
 // ============================================================================
 // TIPOS BASE
 // ============================================================================
 
-export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[];
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonObject
+  | JsonValue[];
 export type JsonObject = { [key: string]: JsonValue };
 
 /**
@@ -102,29 +108,34 @@ export type UpdateHomebrewDto = Partial<CreateHomebrewDto>;
 // FUNÇÕES DA API
 // ============================================================================
 
-
 type HomebrewListQueryParam =
-  | 'nome'
-  | 'tipo'
-  | 'status'
-  | 'usuarioId'
-  | 'apenasPublicados'
-  | 'pagina'
-  | 'limite';
+  | "nome"
+  | "tipo"
+  | "status"
+  | "usuarioId"
+  | "apenasPublicados"
+  | "pagina"
+  | "limite";
 
 const HOMEBREWS_QUERY_PARAMS = {
-  nome: 'nome',
-  tipo: 'tipo',
-  status: 'status',
-  usuarioId: 'usuarioId',
-  apenasPublicados: 'apenasPublicados',
-  pagina: 'pagina',
-  limite: 'limite',
+  nome: "nome",
+  tipo: "tipo",
+  status: "status",
+  usuarioId: "usuarioId",
+  apenasPublicados: "apenasPublicados",
+  pagina: "pagina",
+  limite: "limite",
 } as const satisfies Record<HomebrewListQueryParam, HomebrewListQueryParam>;
 
 type HomebrewsListFilters = Pick<
   FiltrarHomebrewsDto,
-  'nome' | 'tipo' | 'status' | 'usuarioId' | 'apenasPublicados' | 'pagina' | 'limite'
+  | "nome"
+  | "tipo"
+  | "status"
+  | "usuarioId"
+  | "apenasPublicados"
+  | "pagina"
+  | "limite"
 >;
 
 function appendHomebrewQueryParam(
@@ -138,10 +149,16 @@ function appendHomebrewQueryParam(
 function buildHomebrewsQuery(filtros?: HomebrewsListFilters): string {
   const params = new URLSearchParams();
 
-  if (filtros?.nome) appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.nome, filtros.nome);
-  if (filtros?.tipo) appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.tipo, filtros.tipo);
+  if (filtros?.nome)
+    appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.nome, filtros.nome);
+  if (filtros?.tipo)
+    appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.tipo, filtros.tipo);
   if (filtros?.status)
-    appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.status, filtros.status);
+    appendHomebrewQueryParam(
+      params,
+      HOMEBREWS_QUERY_PARAMS.status,
+      filtros.status,
+    );
   if (filtros?.usuarioId !== undefined)
     appendHomebrewQueryParam(
       params,
@@ -149,11 +166,23 @@ function buildHomebrewsQuery(filtros?: HomebrewsListFilters): string {
       filtros.usuarioId.toString(),
     );
   if (filtros?.apenasPublicados)
-    appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.apenasPublicados, 'true');
+    appendHomebrewQueryParam(
+      params,
+      HOMEBREWS_QUERY_PARAMS.apenasPublicados,
+      "true",
+    );
   if (filtros?.pagina !== undefined)
-    appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.pagina, filtros.pagina.toString());
+    appendHomebrewQueryParam(
+      params,
+      HOMEBREWS_QUERY_PARAMS.pagina,
+      filtros.pagina.toString(),
+    );
   if (filtros?.limite !== undefined)
-    appendHomebrewQueryParam(params, HOMEBREWS_QUERY_PARAMS.limite, filtros.limite.toString());
+    appendHomebrewQueryParam(
+      params,
+      HOMEBREWS_QUERY_PARAMS.limite,
+      filtros.limite.toString(),
+    );
 
   return params.toString();
 }
@@ -163,7 +192,7 @@ function buildHomebrewsQuery(filtros?: HomebrewsListFilters): string {
  * Exemplo final de query: `nome=katana&status=PUBLICADO&apenasPublicados=true&pagina=1&limite=12`
  */
 export async function apiGetHomebrews(
-  filtros?: FiltrarHomebrewsDto
+  filtros?: FiltrarHomebrewsDto,
 ): Promise<HomebrewsPaginados> {
   const query = buildHomebrewsQuery(filtros);
   const { data } = await apiClient.get(`/homebrews?${query}`);
@@ -175,7 +204,7 @@ export async function apiGetHomebrews(
  * Exemplo final de query: `tipo=EQUIPAMENTO&status=RASCUNHO&pagina=1&limite=10`
  */
 export async function apiGetMeusHomebrews(
-  filtros?: Omit<FiltrarHomebrewsDto, 'usuarioId'>
+  filtros?: Omit<FiltrarHomebrewsDto, "usuarioId">,
 ): Promise<HomebrewsPaginados> {
   const query = buildHomebrewsQuery(filtros);
   const { data } = await apiClient.get(`/homebrews/meus?${query}`);
@@ -193,7 +222,9 @@ export async function apiGetHomebrew(id: number): Promise<HomebrewDetalhado> {
 /**
  * ✅ Buscar homebrew por código
  */
-export async function apiGetHomebrewByCodigo(codigo: string): Promise<HomebrewDetalhado> {
+export async function apiGetHomebrewByCodigo(
+  codigo: string,
+): Promise<HomebrewDetalhado> {
   const { data } = await apiClient.get(`/homebrews/codigo/${codigo}`);
   return data;
 }
@@ -202,9 +233,9 @@ export async function apiGetHomebrewByCodigo(codigo: string): Promise<HomebrewDe
  * ✅ Criar homebrew
  */
 export async function apiCreateHomebrew(
-  payload: CreateHomebrewDto
+  payload: CreateHomebrewDto,
 ): Promise<HomebrewDetalhado> {
-  const { data } = await apiClient.post('/homebrews', payload);
+  const { data } = await apiClient.post("/homebrews", payload);
   return data;
 }
 
@@ -213,7 +244,7 @@ export async function apiCreateHomebrew(
  */
 export async function apiUpdateHomebrew(
   id: number,
-  payload: UpdateHomebrewDto
+  payload: UpdateHomebrewDto,
 ): Promise<HomebrewDetalhado> {
   const { data } = await apiClient.patch(`/homebrews/${id}`, payload);
   return data;
@@ -322,23 +353,36 @@ export type DadosExplosivo = {
   efeito: string;
 };
 
+type DadosArmaAmaldicoadaBase = Omit<
+  DadosArma,
+  "tipo" | "categoria" | "espacos" | "tipoUso"
+>;
+
+type DadosProtecaoAmaldicoadaBase = Omit<
+  DadosProtecao,
+  "tipo" | "categoria" | "espacos" | "tipoUso"
+>;
+
 export type DadosFerramentaAmaldicoada = {
   tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA; // ✅ CORRIGIDO
   categoria: CategoriaEquipamento; // ✅ CORRIGIDO
   espacos: number;
   tipoUso?: TipoUsoEquipamento;
-  tipoAmaldicoado: TipoAmaldicoado;
+  tipoAmaldicoado:
+    | TipoAmaldicoado.ARMA
+    | TipoAmaldicoado.PROTECAO
+    | TipoAmaldicoado.ARTEFATO;
   armaAmaldicoada?: {
     tipoBase: string;
     proficienciaRequerida: boolean;
     efeito: string;
-    dadosArma: DadosArma;
+    dadosArma: DadosArmaAmaldicoadaBase;
   };
   protecaoAmaldicoada?: {
     tipoBase: string;
     proficienciaRequerida: boolean;
     efeito: string;
-    dadosProtecao: DadosProtecao;
+    dadosProtecao: DadosProtecaoAmaldicoadaBase;
   };
   artefatoAmaldicoado?: {
     tipoBase: string;
@@ -364,10 +408,17 @@ export type DadosItemAmaldicado = {
   categoria: CategoriaEquipamento; // ✅ CORRIGIDO
   espacos: number;
   tipoUso?: TipoUsoEquipamento;
-  tipoAmaldicoado: TipoAmaldicoado;
+  tipoAmaldicoado: TipoAmaldicoado.ITEM;
   efeito: string;
 };
 
+export type DadosEquipamentoGenerico = {
+  tipo: TipoEquipamento.GENERICO;
+  categoria: CategoriaEquipamento;
+  espacos: number;
+  tipoUso?: TipoUsoEquipamento;
+  efeito?: string;
+};
 export type DadosEquipamento =
   | DadosArma
   | DadosProtecao
@@ -376,7 +427,8 @@ export type DadosEquipamento =
   | DadosExplosivo
   | DadosFerramentaAmaldicoada
   | DadosItemOperacional
-  | DadosItemAmaldicado;
+  | DadosItemAmaldicado
+  | DadosEquipamentoGenerico;
 
 // ============================================================================
 // TIPOS DETALHADOS PARA TÉCNICAS

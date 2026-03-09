@@ -1,27 +1,34 @@
 // src/components/suplemento/HomebrewForm.tsx
-'use client';
+"use client";
 
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Textarea } from '@/components/ui/Textarea';
-import { Icon, type IconName } from '@/components/ui/Icon';
-import { Badge } from '@/components/ui/Badge';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { StatusPublicacao } from '@/lib/types/homebrew-enums';
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { Textarea } from "@/components/ui/Textarea";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import { Badge } from "@/components/ui/Badge";
+import { ErrorAlert } from "@/components/ui/ErrorAlert";
+import { StatusPublicacao } from "@/lib/types/homebrew-enums";
+import { ApiError } from "@/lib/api/axios-client";
 
-import type { TipoHomebrewConteudo, CreateHomebrewDto } from '@/lib/api/homebrews';
-import { useHomebrewForm, type HomebrewFormInitialValues } from './hooks/useHomebrewForm';
+import type {
+  TipoHomebrewConteudo,
+  CreateHomebrewDto,
+} from "@/lib/api/homebrews";
+import {
+  useHomebrewForm,
+  type HomebrewFormInitialValues,
+} from "./hooks/useHomebrewForm";
 
 // Formulários específicos
-import { ClaFormFields } from './forms/ClaFormFields';
-import { OrigemFormFields } from './forms/OrigemFormFields';
-import { TrilhaFormFields } from './forms/TrilhaFormFields';
-import { CaminhoFormFields } from './forms/CaminhoFormFields';
-import { EquipamentoFormFields } from './forms/EquipamentoFormFields';
-import { PoderGenericoFormFields } from './forms/PoderGenericoFormFields';
-import { TecnicaAmaldicoadaFormFields } from './forms/TecnicaAmaldicoadaFormFields';
+import { ClaFormFields } from "./forms/ClaFormFields";
+import { OrigemFormFields } from "./forms/OrigemFormFields";
+import { TrilhaFormFields } from "./forms/TrilhaFormFields";
+import { CaminhoFormFields } from "./forms/CaminhoFormFields";
+import { EquipamentoFormFields } from "./forms/EquipamentoFormFields";
+import { PoderGenericoFormFields } from "./forms/PoderGenericoFormFields";
+import { TecnicaAmaldicoadaFormFields } from "./forms/TecnicaAmaldicoadaFormFields";
 
 type Props = {
   onSubmit: (data: CreateHomebrewDto) => Promise<void>;
@@ -30,24 +37,46 @@ type Props = {
 };
 
 const TIPO_LABELS: Record<TipoHomebrewConteudo, string> = {
-  CLA: 'Clã',
-  ORIGEM: 'Origem',
-  TRILHA: 'Trilha',
-  CAMINHO: 'Caminho',
-  EQUIPAMENTO: 'Equipamento',
-  PODER_GENERICO: 'Poder Genérico',
-  TECNICA_AMALDICOADA: 'Técnica Amaldiçoada',
+  CLA: "Clã",
+  ORIGEM: "Origem",
+  TRILHA: "Trilha",
+  CAMINHO: "Caminho",
+  EQUIPAMENTO: "Equipamento",
+  PODER_GENERICO: "Poder Genérico",
+  TECNICA_AMALDICOADA: "Técnica Amaldiçoada",
 };
 
 const TIPO_ICONS: Record<TipoHomebrewConteudo, IconName> = {
-  CLA: 'clan',
-  ORIGEM: 'story',
-  TRILHA: 'school',
-  CAMINHO: 'map',
-  EQUIPAMENTO: 'item',
-  PODER_GENERICO: 'sparkles',
-  TECNICA_AMALDICOADA: 'technique',
+  CLA: "clan",
+  ORIGEM: "story",
+  TRILHA: "school",
+  CAMINHO: "map",
+  EQUIPAMENTO: "item",
+  PODER_GENERICO: "sparkles",
+  TECNICA_AMALDICOADA: "technique",
 };
+
+function extrairMensagensDetalhes(details: unknown): string[] {
+  if (!details) return [];
+
+  if (typeof details === "string") return [details];
+
+  if (Array.isArray(details)) {
+    return details.filter((item): item is string => typeof item === "string");
+  }
+
+  if (typeof details === "object") {
+    const mensagens: string[] = [];
+
+    for (const valor of Object.values(details as Record<string, unknown>)) {
+      mensagens.push(...extrairMensagensDetalhes(valor));
+    }
+
+    return mensagens;
+  }
+
+  return [];
+}
 
 export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
   const {
@@ -74,11 +103,11 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
     reset,
   } = useHomebrewForm({ initialValues });
 
-  const tagsString = tags.join(', ');
+  const tagsString = tags.join(", ");
 
   function handleTagsChange(value: string) {
     const tagsArray = value
-      .split(',')
+      .split(",")
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
     setTags(tagsArray);
@@ -89,7 +118,7 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
 
     const validacao = validar();
     if (!validacao.valido) {
-      setErro(validacao.erros.join('\n'));
+      setErro(validacao.erros.join("\n"));
       return;
     }
 
@@ -106,8 +135,21 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
         onCancel();
       }
     } catch (err) {
-      console.error('[HomebrewForm] Erro:', err);
-      setErro(err instanceof Error ? err.message : 'Erro ao salvar homebrew');
+      console.error("[HomebrewForm] Erro:", err);
+
+      if (err instanceof ApiError) {
+        const mensagens = [
+          err.message,
+          ...extrairMensagensDetalhes(err.body?.details),
+        ].filter(
+          (mensagem, index, arr) => mensagem && arr.indexOf(mensagem) === index,
+        );
+
+        setErro(mensagens.join("\n"));
+        return;
+      }
+
+      setErro(err instanceof Error ? err.message : "Erro ao salvar homebrew");
     } finally {
       setSubmitting(false);
     }
@@ -147,11 +189,16 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
           <div className="rounded-lg border border-app-primary/30 bg-app-primary/5 p-3">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name={TIPO_ICONS[tipo]} className="w-5 h-5 text-app-primary" />
+                <Icon
+                  name={TIPO_ICONS[tipo]}
+                  className="w-5 h-5 text-app-primary"
+                />
               </div>
               <div className="flex-1">
                 <p className="text-xs text-app-muted">Criando</p>
-                <p className="text-base font-semibold text-app-fg">{TIPO_LABELS[tipo]}</p>
+                <p className="text-base font-semibold text-app-fg">
+                  {TIPO_LABELS[tipo]}
+                </p>
               </div>
             </div>
           </div>
@@ -170,7 +217,7 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
               label="Nome *"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              placeholder={`Ex: ${tipo === 'EQUIPAMENTO' ? 'Espada Flamejante' : tipo === 'CLA' ? 'Clã Gojo' : 'Técnica do Trovão'}`}
+              placeholder={`Ex: ${tipo === "EQUIPAMENTO" ? "Espada Flamejante" : tipo === "CLA" ? "Clã Gojo" : "Técnica do Trovão"}`}
               required
               autoFocus
             />
@@ -217,17 +264,37 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
           {/* Campos Específicos por Tipo */}
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-app-fg flex items-center gap-2">
-              <Icon name={TIPO_ICONS[tipo]} className="w-4 h-4 text-app-primary" />
+              <Icon
+                name={TIPO_ICONS[tipo]}
+                className="w-4 h-4 text-app-primary"
+              />
               Dados específicos de {TIPO_LABELS[tipo]}
             </h3>
 
-            {tipo === 'CLA' && <ClaFormFields dados={dados} onChange={updateDados} />}
-            {tipo === 'ORIGEM' && <OrigemFormFields dados={dados} onChange={updateDados} />}
-            {tipo === 'TRILHA' && <TrilhaFormFields dados={dados} onChange={updateDados} />}
-            {tipo === 'CAMINHO' && <CaminhoFormFields dados={dados} onChange={updateDados} />}
-            {tipo === 'EQUIPAMENTO' && <EquipamentoFormFields dados={dados} onChange={updateDados} />}
-            {tipo === 'PODER_GENERICO' && <PoderGenericoFormFields dados={dados} onChange={updateDados} />}
-            {tipo === 'TECNICA_AMALDICOADA' && <TecnicaAmaldicoadaFormFields dados={dados} onChange={updateDados} />}
+            {tipo === "CLA" && (
+              <ClaFormFields dados={dados} onChange={updateDados} />
+            )}
+            {tipo === "ORIGEM" && (
+              <OrigemFormFields dados={dados} onChange={updateDados} />
+            )}
+            {tipo === "TRILHA" && (
+              <TrilhaFormFields dados={dados} onChange={updateDados} />
+            )}
+            {tipo === "CAMINHO" && (
+              <CaminhoFormFields dados={dados} onChange={updateDados} />
+            )}
+            {tipo === "EQUIPAMENTO" && (
+              <EquipamentoFormFields dados={dados} onChange={updateDados} />
+            )}
+            {tipo === "PODER_GENERICO" && (
+              <PoderGenericoFormFields dados={dados} onChange={updateDados} />
+            )}
+            {tipo === "TECNICA_AMALDICOADA" && (
+              <TecnicaAmaldicoadaFormFields
+                dados={dados}
+                onChange={updateDados}
+              />
+            )}
           </div>
 
           {/* Erro */}
@@ -257,7 +324,10 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
               >
                 {submitting ? (
                   <>
-                    <Icon name="loading" className="w-4 h-4 animate-spin mr-2" />
+                    <Icon
+                      name="loading"
+                      className="w-4 h-4 animate-spin mr-2"
+                    />
                     Salvando...
                   </>
                 ) : (
@@ -271,7 +341,10 @@ export function HomebrewForm({ onSubmit, onCancel, initialValues }: Props) {
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
                   <>
-                    <Icon name="loading" className="w-4 h-4 animate-spin mr-2" />
+                    <Icon
+                      name="loading"
+                      className="w-4 h-4 animate-spin mr-2"
+                    />
                     Salvando...
                   </>
                 ) : (
