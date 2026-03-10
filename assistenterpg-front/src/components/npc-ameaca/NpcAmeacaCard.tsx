@@ -20,13 +20,24 @@ function traduzirFichaTipo(valor: NpcAmeacaResumo['fichaTipo']): string {
 
 function traduzirTipo(valor: NpcAmeacaResumo['tipo']): string {
   const mapa: Record<NpcAmeacaResumo['tipo'], string> = {
-    PESSOA: 'Pessoa',
+    HUMANO: 'Humano',
     FEITICEIRO: 'Feiticeiro',
     MALDICAO: 'Maldicao',
     ANIMAL: 'Animal',
     HIBRIDO: 'Hibrido',
-    ESPIRITO: 'Espirito',
     OUTRO: 'Outro',
+  };
+  return mapa[valor];
+}
+
+function traduzirTamanho(valor: NpcAmeacaResumo['tamanho']): string {
+  const mapa: Record<NpcAmeacaResumo['tamanho'], string> = {
+    MINUSCULO: 'Minusculo',
+    PEQUENO: 'Pequeno',
+    MEDIO: 'Medio',
+    GRANDE: 'Grande',
+    ENORME: 'Enorme',
+    COLOSSAL: 'Colossal',
   };
   return mapa[valor];
 }
@@ -44,7 +55,7 @@ export function NpcAmeacaCard({
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-app-fg">{npcAmeaca.nome}</h3>
           <p className="text-xs text-app-muted">
-            {traduzirTipo(npcAmeaca.tipo)} | Tamanho {npcAmeaca.tamanho}
+            {traduzirTipo(npcAmeaca.tipo)} | Tamanho {traduzirTamanho(npcAmeaca.tamanho)}
           </p>
         </div>
         <Badge color={npcAmeaca.fichaTipo === 'NPC' ? 'blue' : 'red'} size="sm">

@@ -144,12 +144,11 @@ export default function NpcsAmeacasPage() {
                 onChange={(e) => setFiltroTipo(e.target.value as TipoNpcAmeaca | 'TODOS')}
               >
                 <option value="TODOS">Todos os tipos</option>
-                <option value="PESSOA">Pessoa</option>
+                <option value="HUMANO">Humano</option>
                 <option value="FEITICEIRO">Feiticeiro</option>
                 <option value="MALDICAO">Maldicao</option>
                 <option value="ANIMAL">Animal</option>
                 <option value="HIBRIDO">Hibrido</option>
-                <option value="ESPIRITO">Espirito</option>
                 <option value="OUTRO">Outro</option>
               </Select>
 

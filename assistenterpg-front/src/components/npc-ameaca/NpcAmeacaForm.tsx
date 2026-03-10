@@ -1,13 +1,15 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { apiGetPericias } from '@/lib/api/catalogos';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
 import type {
   CreateNpcAmeacaPayload,
   NpcAmeacaAcao,
   NpcAmeacaDetalhe,
   NpcAmeacaPassiva,
-  NpcAmeacaPericiaEspecial,
+  NpcAmeacaPericiaEspecialPayload,
+  PericiaCatalogo,
   TamanhoNpcAmeaca,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
@@ -28,9 +30,38 @@ type NpcAmeacaFormProps = {
 };
 
 type PericiaEspecialFormValue = {
-  nome: string;
+  codigo: string;
+  dados: string;
   bonus: string;
   descricao: string;
+};
+
+type AtributoBaseCodigo = 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG';
+
+type PericiaPrincipalMeta = {
+  codigo: string;
+  label: string;
+  campoBonus: keyof Pick<
+    FormState,
+    | 'percepcao'
+    | 'iniciativa'
+    | 'fortitude'
+    | 'reflexos'
+    | 'vontade'
+    | 'luta'
+    | 'jujutsu'
+  >;
+  campoDados: keyof Pick<
+    FormState,
+    | 'percepcaoDados'
+    | 'iniciativaDados'
+    | 'fortitudeDados'
+    | 'reflexosDados'
+    | 'vontadeDados'
+    | 'lutaDados'
+    | 'jujutsuDados'
+  >;
+  atributoBase: AtributoBaseCodigo;
 };
 
 type PassivaFormValue = {
@@ -81,6 +112,13 @@ type FormState = {
   vontade: string;
   luta: string;
   jujutsu: string;
+  percepcaoDados: string;
+  iniciativaDados: string;
+  fortitudeDados: string;
+  reflexosDados: string;
+  vontadeDados: string;
+  lutaDados: string;
+  jujutsuDados: string;
   defesa: string;
   pontosVida: string;
   machucado: string;
@@ -99,21 +137,73 @@ const fichaOptions: Array<{ value: TipoFichaNpcAmeaca; label: string }> = [
 ];
 
 const tipoOptions: Array<{ value: TipoNpcAmeaca; label: string }> = [
-  { value: 'PESSOA', label: 'Pessoa' },
+  { value: 'HUMANO', label: 'Humano' },
   { value: 'FEITICEIRO', label: 'Feiticeiro' },
   { value: 'MALDICAO', label: 'Maldicao' },
   { value: 'ANIMAL', label: 'Animal' },
   { value: 'HIBRIDO', label: 'Hibrido' },
-  { value: 'ESPIRITO', label: 'Espirito' },
   { value: 'OUTRO', label: 'Outro' },
 ];
 
 const tamanhoOptions: Array<{ value: TamanhoNpcAmeaca; label: string }> = [
-  { value: 'MIUDO', label: 'Miudo' },
+  { value: 'MINUSCULO', label: 'Minusculo' },
   { value: 'PEQUENO', label: 'Pequeno' },
   { value: 'MEDIO', label: 'Medio' },
   { value: 'GRANDE', label: 'Grande' },
   { value: 'ENORME', label: 'Enorme' },
+  { value: 'COLOSSAL', label: 'Colossal' },
+];
+
+const periciasPrincipaisMeta: PericiaPrincipalMeta[] = [
+  {
+    codigo: 'PERCEPCAO',
+    label: 'Percepcao',
+    campoBonus: 'percepcao',
+    campoDados: 'percepcaoDados',
+    atributoBase: 'PRE',
+  },
+  {
+    codigo: 'INICIATIVA',
+    label: 'Iniciativa',
+    campoBonus: 'iniciativa',
+    campoDados: 'iniciativaDados',
+    atributoBase: 'AGI',
+  },
+  {
+    codigo: 'FORTITUDE',
+    label: 'Fortitude',
+    campoBonus: 'fortitude',
+    campoDados: 'fortitudeDados',
+    atributoBase: 'VIG',
+  },
+  {
+    codigo: 'REFLEXOS',
+    label: 'Reflexos',
+    campoBonus: 'reflexos',
+    campoDados: 'reflexosDados',
+    atributoBase: 'AGI',
+  },
+  {
+    codigo: 'VONTADE',
+    label: 'Vontade',
+    campoBonus: 'vontade',
+    campoDados: 'vontadeDados',
+    atributoBase: 'PRE',
+  },
+  {
+    codigo: 'LUTA',
+    label: 'Luta',
+    campoBonus: 'luta',
+    campoDados: 'lutaDados',
+    atributoBase: 'FOR',
+  },
+  {
+    codigo: 'JUJUTSU',
+    label: 'Jujutsu',
+    campoBonus: 'jujutsu',
+    campoDados: 'jujutsuDados',
+    atributoBase: 'INT',
+  },
 ];
 
 function paraStringNumero(valor: number | null | undefined): string {
@@ -126,13 +216,53 @@ function paraListaTexto(lista: string[] | undefined): string {
   return lista.join(', ');
 }
 
+function calcularDadosPadrao(atributo: number): number {
+  if (atributo > 0) return atributo;
+  return 2 + Math.abs(atributo);
+}
+
+function formatarBonus(valor: number): string {
+  return valor >= 0 ? `+${valor}` : String(valor);
+}
+
+function obterAtributoDoForm(
+  form: Pick<FormState, 'agilidade' | 'forca' | 'intelecto' | 'presenca' | 'vigor'>,
+  atributoBase: AtributoBaseCodigo,
+): number {
+  const mapa: Record<AtributoBaseCodigo, keyof typeof form> = {
+    AGI: 'agilidade',
+    FOR: 'forca',
+    INT: 'intelecto',
+    PRE: 'presenca',
+    VIG: 'vigor',
+  };
+
+  const valorBruto = Number(form[mapa[atributoBase]]);
+  if (!Number.isFinite(valorBruto)) return 0;
+  return Math.trunc(valorBruto);
+}
+
+function aplicarDadosPadraoPericiasPrincipais(form: FormState): FormState {
+  const atualizado = { ...form };
+
+  for (const pericia of periciasPrincipaisMeta) {
+    if (String(atualizado[pericia.campoDados] ?? '').trim().length > 0) {
+      continue;
+    }
+    const valorAtributo = obterAtributoDoForm(atualizado, pericia.atributoBase);
+    atualizado[pericia.campoDados] = String(calcularDadosPadrao(valorAtributo));
+  }
+
+  return atualizado;
+}
+
 function criarEstadoInicial(dados?: NpcAmeacaDetalhe | null): FormState {
   if (!dados) {
-    return {
+    return aplicarDadosPadraoPericiasPrincipais({
       nome: '',
       descricao: '',
       fichaTipo: 'AMEACA',
-      tipo: 'PESSOA',
+      tipo: 'HUMANO',
       tamanho: 'MEDIO',
       vd: '0',
       agilidade: '0',
@@ -147,6 +277,13 @@ function criarEstadoInicial(dados?: NpcAmeacaDetalhe | null): FormState {
       vontade: '0',
       luta: '0',
       jujutsu: '0',
+      percepcaoDados: '',
+      iniciativaDados: '',
+      fortitudeDados: '',
+      reflexosDados: '',
+      vontadeDados: '',
+      lutaDados: '',
+      jujutsuDados: '',
       defesa: '10',
       pontosVida: '1',
       machucado: '',
@@ -157,10 +294,10 @@ function criarEstadoInicial(dados?: NpcAmeacaDetalhe | null): FormState {
       periciasEspeciais: [],
       passivas: [],
       acoes: [],
-    };
+    });
   }
 
-  return {
+  return aplicarDadosPadraoPericiasPrincipais({
     nome: dados.nome ?? '',
     descricao: dados.descricao ?? '',
     fichaTipo: dados.fichaTipo,
@@ -179,6 +316,13 @@ function criarEstadoInicial(dados?: NpcAmeacaDetalhe | null): FormState {
     vontade: paraStringNumero(dados.vontade),
     luta: paraStringNumero(dados.luta),
     jujutsu: paraStringNumero(dados.jujutsu),
+    percepcaoDados: paraStringNumero(dados.percepcaoDados),
+    iniciativaDados: paraStringNumero(dados.iniciativaDados),
+    fortitudeDados: paraStringNumero(dados.fortitudeDados),
+    reflexosDados: paraStringNumero(dados.reflexosDados),
+    vontadeDados: paraStringNumero(dados.vontadeDados),
+    lutaDados: paraStringNumero(dados.lutaDados),
+    jujutsuDados: paraStringNumero(dados.jujutsuDados),
     defesa: paraStringNumero(dados.defesa),
     pontosVida: paraStringNumero(dados.pontosVida),
     machucado: paraStringNumero(dados.machucado),
@@ -187,7 +331,8 @@ function criarEstadoInicial(dados?: NpcAmeacaDetalhe | null): FormState {
     vulnerabilidades: paraListaTexto(dados.vulnerabilidades),
     usoTatico: dados.usoTatico ?? '',
     periciasEspeciais: (dados.periciasEspeciais ?? []).map((pericia) => ({
-      nome: pericia.nome ?? '',
+      codigo: pericia.codigo ?? '',
+      dados: paraStringNumero(pericia.dados),
       bonus: paraStringNumero(pericia.bonus),
       descricao: pericia.descricao ?? '',
     })),
@@ -218,7 +363,7 @@ function criarEstadoInicial(dados?: NpcAmeacaDetalhe | null): FormState {
       requisitos: acao.requisitos ?? '',
       descricao: acao.descricao ?? '',
     })),
-  };
+  });
 }
 
 function paraNumeroOpcional(valor: string): number | undefined {
@@ -244,14 +389,15 @@ function quebrarListaPorVirgula(texto: string): string[] {
 
 function mapearPericiasEspeciais(
   pericias: PericiaEspecialFormValue[],
-): NpcAmeacaPericiaEspecial[] {
+): NpcAmeacaPericiaEspecialPayload[] {
   return pericias
     .map((pericia) => ({
-      nome: pericia.nome.trim(),
+      codigo: pericia.codigo.trim(),
+      dados: paraNumeroOpcional(pericia.dados),
       bonus: paraNumeroOpcional(pericia.bonus),
       descricao: pericia.descricao.trim() || undefined,
     }))
-    .filter((pericia) => pericia.nome.length > 0);
+    .filter((pericia) => pericia.codigo.length > 0);
 }
 
 function mapearPassivas(passivas: PassivaFormValue[]): NpcAmeacaPassiva[] {
@@ -303,7 +449,7 @@ function criarPresetAkane(): FormState {
     descricao:
       'Civil vulneravel em estado de trauma severo, foco narrativo de resgate.',
     fichaTipo: 'NPC',
-    tipo: 'PESSOA',
+    tipo: 'HUMANO',
     tamanho: 'MEDIO',
     vd: '15',
     agilidade: '1',
@@ -318,15 +464,22 @@ function criarPresetAkane(): FormState {
     vontade: '4',
     luta: '2',
     jujutsu: '0',
+    percepcaoDados: '1',
+    iniciativaDados: '1',
+    fortitudeDados: '1',
+    reflexosDados: '1',
+    vontadeDados: '1',
+    lutaDados: '1',
+    jujutsuDados: '1',
     defesa: '12',
     pontosVida: '22',
     machucado: '11',
     deslocamentoMetros: '6',
     vulnerabilidades: 'dano fisico',
     periciasEspeciais: [
-      { nome: 'Empatia', bonus: '6', descricao: '' },
-      { nome: 'Intuicao', bonus: '4', descricao: '' },
-      { nome: 'Sobrevivencia', bonus: '3', descricao: '' },
+      { codigo: 'DIPLOMACIA', dados: '2', bonus: '6', descricao: '' },
+      { codigo: 'INTUICAO', dados: '2', bonus: '4', descricao: '' },
+      { codigo: 'SOBREVIVENCIA', dados: '1', bonus: '3', descricao: '' },
     ],
     passivas: [
       {
@@ -403,7 +556,7 @@ function criarPresetTaro(): FormState {
     descricao:
       'Fazendeiro robusto, potencial aliado ou problema, movido por vinganca.',
     fichaTipo: 'NPC',
-    tipo: 'PESSOA',
+    tipo: 'HUMANO',
     tamanho: 'MEDIO',
     vd: '35',
     agilidade: '1',
@@ -418,15 +571,22 @@ function criarPresetTaro(): FormState {
     vontade: '5',
     luta: '7',
     jujutsu: '0',
+    percepcaoDados: '2',
+    iniciativaDados: '2',
+    fortitudeDados: '3',
+    reflexosDados: '2',
+    vontadeDados: '2',
+    lutaDados: '2',
+    jujutsuDados: '1',
     defesa: '16',
     pontosVida: '45',
     machucado: '22',
     deslocamentoMetros: '9',
     periciasEspeciais: [
-      { nome: 'Intimidacao', bonus: '6', descricao: '' },
-      { nome: 'Pontaria', bonus: '8', descricao: '' },
-      { nome: 'Sobrevivencia', bonus: '7', descricao: '' },
-      { nome: 'Luta', bonus: '7', descricao: '' },
+      { codigo: 'INTIMIDACAO', dados: '2', bonus: '6', descricao: '' },
+      { codigo: 'PONTARIA', dados: '2', bonus: '8', descricao: '' },
+      { codigo: 'SOBREVIVENCIA', dados: '2', bonus: '7', descricao: '' },
+      { codigo: 'LUTA', dados: '2', bonus: '7', descricao: '' },
     ],
     passivas: [
       {
@@ -530,8 +690,37 @@ export function NpcAmeacaForm({
   const [form, setForm] = useState<FormState>(() => criarEstadoInicial(initialValues));
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [catalogoPericias, setCatalogoPericias] = useState<PericiaCatalogo[]>([]);
 
   const isEdicao = useMemo(() => !!initialValues, [initialValues]);
+  const periciasPorCodigo = useMemo(
+    () => new Map(catalogoPericias.map((item) => [item.codigo, item])),
+    [catalogoPericias],
+  );
+
+  useEffect(() => {
+    let ativo = true;
+
+    (async () => {
+      try {
+        const lista = await apiGetPericias();
+        if (!ativo) return;
+        const ordenada = [...lista].sort((a, b) =>
+          a.nome.localeCompare(b.nome, 'pt-BR'),
+        );
+        setCatalogoPericias(ordenada);
+      } catch {
+        if (!ativo) return;
+        setErro(
+          'Nao foi possivel carregar o catalogo de pericias. Tente recarregar a pagina.',
+        );
+      }
+    })();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   function atualizarCampo<K extends keyof FormState>(campo: K, valor: FormState[K]) {
     setForm((prev) => ({
@@ -543,8 +732,26 @@ export function NpcAmeacaForm({
   function atualizarPericiaEspecial(index: number, parcial: Partial<PericiaEspecialFormValue>) {
     setForm((prev) => {
       const lista = [...prev.periciasEspeciais];
-      lista[index] = { ...lista[index], ...parcial };
+      const atualizada = { ...lista[index], ...parcial };
+      if (parcial.codigo !== undefined && parcial.codigo.length > 0) {
+        const pericia = periciasPorCodigo.get(parcial.codigo);
+        if (pericia && String(atualizada.dados).trim().length === 0) {
+          const atributo = obterAtributoDoForm(prev, pericia.atributoBase);
+          atualizada.dados = String(calcularDadosPadrao(atributo));
+        }
+      }
+      lista[index] = atualizada;
       return { ...prev, periciasEspeciais: lista };
+    });
+  }
+
+  function recalcularDadosPericiasPrincipais() {
+    setForm((prev) => {
+      const resetado = { ...prev };
+      for (const meta of periciasPrincipaisMeta) {
+        resetado[meta.campoDados] = '';
+      }
+      return aplicarDadosPadraoPericiasPrincipais(resetado);
     });
   }
 
@@ -593,6 +800,13 @@ export function NpcAmeacaForm({
       vontade: paraNumeroOpcional(form.vontade),
       luta: paraNumeroOpcional(form.luta),
       jujutsu: paraNumeroOpcional(form.jujutsu),
+      percepcaoDados: paraNumeroOpcional(form.percepcaoDados),
+      iniciativaDados: paraNumeroOpcional(form.iniciativaDados),
+      fortitudeDados: paraNumeroOpcional(form.fortitudeDados),
+      reflexosDados: paraNumeroOpcional(form.reflexosDados),
+      vontadeDados: paraNumeroOpcional(form.vontadeDados),
+      lutaDados: paraNumeroOpcional(form.lutaDados),
+      jujutsuDados: paraNumeroOpcional(form.jujutsuDados),
       defesa: paraNumeroOpcional(form.defesa),
       pontosVida: paraNumeroOpcional(form.pontosVida),
       machucado: paraNumeroOpcionalNulo(form.machucado),
@@ -748,50 +962,52 @@ export function NpcAmeacaForm({
       </Card>
 
       <Card className="space-y-4">
-        <h2 className="text-lg font-semibold text-app-fg">Pericias principais</h2>
-        <div className={classeGridBase()}>
-          <Input
-            type="number"
-            label="Percepcao"
-            value={form.percepcao}
-            onChange={(e) => atualizarCampo('percepcao', e.target.value)}
-          />
-          <Input
-            type="number"
-            label="Iniciativa"
-            value={form.iniciativa}
-            onChange={(e) => atualizarCampo('iniciativa', e.target.value)}
-          />
-          <Input
-            type="number"
-            label="Fortitude"
-            value={form.fortitude}
-            onChange={(e) => atualizarCampo('fortitude', e.target.value)}
-          />
-          <Input
-            type="number"
-            label="Reflexos"
-            value={form.reflexos}
-            onChange={(e) => atualizarCampo('reflexos', e.target.value)}
-          />
-          <Input
-            type="number"
-            label="Vontade"
-            value={form.vontade}
-            onChange={(e) => atualizarCampo('vontade', e.target.value)}
-          />
-          <Input
-            type="number"
-            label="Luta"
-            value={form.luta}
-            onChange={(e) => atualizarCampo('luta', e.target.value)}
-          />
-          <Input
-            type="number"
-            label="Jujutsu"
-            value={form.jujutsu}
-            onChange={(e) => atualizarCampo('jujutsu', e.target.value)}
-          />
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold text-app-fg">Pericias principais</h2>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={recalcularDadosPericiasPrincipais}
+          >
+            Recalcular dados padrao
+          </Button>
+        </div>
+        <p className="text-xs text-app-muted">
+          Dados padrao seguem atributo base da pericia. Voce pode sobrescrever manualmente.
+        </p>
+        <div className="space-y-3">
+          {periciasPrincipaisMeta.map((pericia) => (
+            <div
+              key={pericia.codigo}
+              className="rounded border border-app-border p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-app-fg">{pericia.label}</span>
+                <span className="text-xs text-app-muted">
+                  Atributo base: {pericia.atributoBase}
+                </span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Input
+                  type="number"
+                  label="Dados (d20)"
+                  value={form[pericia.campoDados]}
+                  onChange={(e) => atualizarCampo(pericia.campoDados, e.target.value)}
+                  min={1}
+                />
+                <Input
+                  type="number"
+                  label="Bonus"
+                  value={form[pericia.campoBonus]}
+                  onChange={(e) => atualizarCampo(pericia.campoBonus, e.target.value)}
+                />
+              </div>
+              <p className="text-xs text-app-muted">
+                Teste atual: {form[pericia.campoDados]}d20 {formatarBonus(Number(form[pericia.campoBonus] || 0))}
+              </p>
+            </div>
+          ))}
         </div>
       </Card>
 
@@ -850,7 +1066,7 @@ export function NpcAmeacaForm({
             onClick={() =>
               atualizarCampo('periciasEspeciais', [
                 ...form.periciasEspeciais,
-                { nome: '', bonus: '', descricao: '' },
+                { codigo: '', dados: '', bonus: '', descricao: '' },
               ])
             }
           >
@@ -858,6 +1074,9 @@ export function NpcAmeacaForm({
             Adicionar
           </Button>
         </div>
+        <p className="text-xs text-app-muted">
+          Escolha apenas pericias oficiais. Os dados podem usar o padrao do atributo base ou um valor customizado.
+        </p>
 
         {form.periciasEspeciais.length === 0 ? (
           <p className="text-sm text-app-muted">Sem pericias especiais.</p>
@@ -885,13 +1104,29 @@ export function NpcAmeacaForm({
                     Remover
                   </Button>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <Input
-                    label="Nome"
-                    value={pericia.nome}
+                <div className="grid gap-2 sm:grid-cols-4">
+                  <Select
+                    label="Pericia"
+                    value={pericia.codigo}
                     onChange={(e) =>
-                      atualizarPericiaEspecial(index, { nome: e.target.value })
+                      atualizarPericiaEspecial(index, { codigo: e.target.value })
                     }
+                  >
+                    <option value="">Selecione...</option>
+                    {catalogoPericias.map((item) => (
+                      <option key={item.codigo} value={item.codigo}>
+                        {item.nome} ({item.codigo})
+                      </option>
+                    ))}
+                  </Select>
+                  <Input
+                    type="number"
+                    label="Dados (d20)"
+                    value={pericia.dados}
+                    onChange={(e) =>
+                      atualizarPericiaEspecial(index, { dados: e.target.value })
+                    }
+                    min={1}
                   />
                   <Input
                     type="number"
@@ -909,6 +1144,12 @@ export function NpcAmeacaForm({
                     }
                   />
                 </div>
+                <p className="text-xs text-app-muted">
+                  Atributo base:{' '}
+                  {pericia.codigo
+                    ? periciasPorCodigo.get(pericia.codigo)?.atributoBase ?? '-'
+                    : '-'}
+                </p>
               </div>
             ))}
           </div>

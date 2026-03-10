@@ -1,23 +1,33 @@
 export type TipoFichaNpcAmeaca = 'NPC' | 'AMEACA';
 
 export type TipoNpcAmeaca =
-  | 'PESSOA'
+  | 'HUMANO'
   | 'FEITICEIRO'
   | 'MALDICAO'
   | 'ANIMAL'
   | 'HIBRIDO'
-  | 'ESPIRITO'
   | 'OUTRO';
 
 export type TamanhoNpcAmeaca =
-  | 'MIUDO'
+  | 'MINUSCULO'
   | 'PEQUENO'
   | 'MEDIO'
   | 'GRANDE'
-  | 'ENORME';
+  | 'ENORME'
+  | 'COLOSSAL';
 
 export type NpcAmeacaPericiaEspecial = {
+  codigo: string;
   nome: string;
+  atributoBase: 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG';
+  dados: number;
+  bonus?: number;
+  descricao?: string;
+};
+
+export type NpcAmeacaPericiaEspecialPayload = {
+  codigo: string;
+  dados?: number;
   bonus?: number;
   descricao?: string;
 };
@@ -79,6 +89,13 @@ export type NpcAmeacaDetalhe = NpcAmeacaResumo & {
   vontade: number;
   luta: number;
   jujutsu: number;
+  percepcaoDados: number;
+  iniciativaDados: number;
+  fortitudeDados: number;
+  reflexosDados: number;
+  vontadeDados: number;
+  lutaDados: number;
+  jujutsuDados: number;
   machucado: number | null;
   deslocamentoMetros: number;
   periciasEspeciais: NpcAmeacaPericiaEspecial[];
@@ -108,11 +125,18 @@ export type CreateNpcAmeacaPayload = {
   vontade?: number;
   luta?: number;
   jujutsu?: number;
+  percepcaoDados?: number;
+  iniciativaDados?: number;
+  fortitudeDados?: number;
+  reflexosDados?: number;
+  vontadeDados?: number;
+  lutaDados?: number;
+  jujutsuDados?: number;
   defesa?: number;
   pontosVida?: number;
   machucado?: number | null;
   deslocamentoMetros?: number;
-  periciasEspeciais?: NpcAmeacaPericiaEspecial[];
+  periciasEspeciais?: NpcAmeacaPericiaEspecialPayload[];
   resistencias?: string[];
   vulnerabilidades?: string[];
   passivas?: NpcAmeacaPassiva[];

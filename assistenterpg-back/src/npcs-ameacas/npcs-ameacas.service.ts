@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma, TipoFichaNpcAmeaca } from '@prisma/client';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { AtributoBase, Prisma, TipoFichaNpcAmeaca } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 import { NpcAmeacaNaoEncontradaException } from 'src/common/exceptions/npc-ameaca.exception';
@@ -8,6 +8,58 @@ import { ListarNpcsAmeacasDto } from './dto/listar-npcs-ameacas.dto';
 import { UpdateNpcAmeacaDto } from './dto/update-npc-ameaca.dto';
 
 type NpcAmeacaModel = Prisma.NpcAmeacaGetPayload<Record<string, never>>;
+
+type PericiaCatalogo = {
+  codigo: string;
+  nome: string;
+  atributoBase: AtributoBase;
+};
+
+type AtributosNpc = {
+  agilidade: number;
+  forca: number;
+  intelecto: number;
+  presenca: number;
+  vigor: number;
+};
+
+type PericiaEspecialEntrada = {
+  codigo: string;
+  dados?: number;
+  bonus?: number;
+  descricao?: string;
+};
+
+type PericiaPrincipalCodigo =
+  | 'PERCEPCAO'
+  | 'INICIATIVA'
+  | 'FORTITUDE'
+  | 'REFLEXOS'
+  | 'VONTADE'
+  | 'LUTA'
+  | 'JUJUTSU';
+
+type CampoDadosPericiaPrincipal =
+  | 'percepcaoDados'
+  | 'iniciativaDados'
+  | 'fortitudeDados'
+  | 'reflexosDados'
+  | 'vontadeDados'
+  | 'lutaDados'
+  | 'jujutsuDados';
+
+const PERICIA_PRINCIPAL_META: Record<
+  PericiaPrincipalCodigo,
+  { campoDados: CampoDadosPericiaPrincipal; atributoBase: AtributoBase }
+> = {
+  PERCEPCAO: { campoDados: 'percepcaoDados', atributoBase: 'PRE' },
+  INICIATIVA: { campoDados: 'iniciativaDados', atributoBase: 'AGI' },
+  FORTITUDE: { campoDados: 'fortitudeDados', atributoBase: 'VIG' },
+  REFLEXOS: { campoDados: 'reflexosDados', atributoBase: 'AGI' },
+  VONTADE: { campoDados: 'vontadeDados', atributoBase: 'PRE' },
+  LUTA: { campoDados: 'lutaDados', atributoBase: 'FOR' },
+  JUJUTSU: { campoDados: 'jujutsuDados', atributoBase: 'INT' },
+};
 
 @Injectable()
 export class NpcsAmeacasService {
@@ -56,6 +108,119 @@ export class NpcsAmeacasService {
     );
   }
 
+  private normalizarBuscaPericia(valor: string): string {
+    return valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase();
+  }
+
+  private calcularDadosPadraoPericia(atributo: number): number {
+    if (atributo > 0) return atributo;
+    return 2 + Math.abs(atributo);
+  }
+
+  private obterAtributoNpcPorBase(
+    atributos: AtributosNpc,
+    atributoBase: AtributoBase,
+  ): number {
+    switch (atributoBase) {
+      case 'AGI':
+        return atributos.agilidade;
+      case 'FOR':
+        return atributos.forca;
+      case 'INT':
+        return atributos.intelecto;
+      case 'PRE':
+        return atributos.presenca;
+      case 'VIG':
+        return atributos.vigor;
+      default:
+        return 0;
+    }
+  }
+
+  private montarAtributosNpc(
+    origem:
+      | {
+          agilidade?: number | null;
+          forca?: number | null;
+          intelecto?: number | null;
+          presenca?: number | null;
+          vigor?: number | null;
+        }
+      | NpcAmeacaModel,
+  ): AtributosNpc {
+    return {
+      agilidade: Number(origem.agilidade ?? 0),
+      forca: Number(origem.forca ?? 0),
+      intelecto: Number(origem.intelecto ?? 0),
+      presenca: Number(origem.presenca ?? 0),
+      vigor: Number(origem.vigor ?? 0),
+    };
+  }
+
+  private async normalizarPericiasEspeciais(
+    entradas: PericiaEspecialEntrada[],
+    atributos: AtributosNpc,
+  ): Promise<Array<Record<string, unknown>>> {
+    if (!entradas.length) return [];
+
+    const catalogo = await this.prisma.pericia.findMany({
+      select: { codigo: true, nome: true, atributoBase: true },
+    });
+
+    const porCodigo = new Map<string, PericiaCatalogo>();
+    for (const pericia of catalogo) {
+      porCodigo.set(this.normalizarBuscaPericia(pericia.codigo), pericia);
+    }
+
+    return entradas.map((entrada, index) => {
+      const codigoRaw = entrada.codigo?.trim();
+      const pericia =
+        codigoRaw && codigoRaw.length > 0
+          ? porCodigo.get(this.normalizarBuscaPericia(codigoRaw))
+          : undefined;
+
+      if (!pericia) {
+        throw new BadRequestException(
+          `Pericia especial invalida na posicao ${index + 1}. Use apenas codigos oficiais de pericia.`,
+        );
+      }
+
+      const atributo = this.obterAtributoNpcPorBase(
+        atributos,
+        pericia.atributoBase,
+      );
+
+      return {
+        codigo: pericia.codigo,
+        nome: pericia.nome,
+        atributoBase: pericia.atributoBase,
+        dados:
+          typeof entrada.dados === 'number'
+            ? entrada.dados
+            : this.calcularDadosPadraoPericia(atributo),
+        bonus: typeof entrada.bonus === 'number' ? entrada.bonus : undefined,
+        descricao: this.normalizarTexto(entrada.descricao) ?? undefined,
+      };
+    });
+  }
+
+  private resolverDadosPericiaPrincipal(
+    codigo: PericiaPrincipalCodigo,
+    npcAmeaca: NpcAmeacaModel,
+  ): number {
+    const { campoDados, atributoBase } = PERICIA_PRINCIPAL_META[codigo];
+    const valorPersistido = npcAmeaca[campoDados];
+    if (typeof valorPersistido === 'number') return valorPersistido;
+
+    const atributos = this.montarAtributosNpc(npcAmeaca);
+    const atributo = this.obterAtributoNpcPorBase(atributos, atributoBase);
+    return this.calcularDadosPadraoPericia(atributo);
+  }
+
   private mapearResumo(npcAmeaca: NpcAmeacaModel) {
     return {
       id: npcAmeaca.id,
@@ -88,6 +253,13 @@ export class NpcsAmeacasService {
       vontade: npcAmeaca.vontade,
       luta: npcAmeaca.luta,
       jujutsu: npcAmeaca.jujutsu,
+      percepcaoDados: this.resolverDadosPericiaPrincipal('PERCEPCAO', npcAmeaca),
+      iniciativaDados: this.resolverDadosPericiaPrincipal('INICIATIVA', npcAmeaca),
+      fortitudeDados: this.resolverDadosPericiaPrincipal('FORTITUDE', npcAmeaca),
+      reflexosDados: this.resolverDadosPericiaPrincipal('REFLEXOS', npcAmeaca),
+      vontadeDados: this.resolverDadosPericiaPrincipal('VONTADE', npcAmeaca),
+      lutaDados: this.resolverDadosPericiaPrincipal('LUTA', npcAmeaca),
+      jujutsuDados: this.resolverDadosPericiaPrincipal('JUJUTSU', npcAmeaca),
       machucado: npcAmeaca.machucado,
       deslocamentoMetros: npcAmeaca.deslocamentoMetros,
       periciasEspeciais: this.mapearListaObjeto(npcAmeaca.periciasEspeciais),
@@ -167,6 +339,12 @@ export class NpcsAmeacasService {
 
   async criar(usuarioId: number, dto: CreateNpcAmeacaDto) {
     try {
+      const atributos = this.montarAtributosNpc(dto);
+      const periciasEspeciais = await this.normalizarPericiasEspeciais(
+        (dto.periciasEspeciais as PericiaEspecialEntrada[] | undefined) ?? [],
+        atributos,
+      );
+
       const npcAmeaca = await this.prisma.npcAmeaca.create({
         data: {
           dono: {
@@ -192,13 +370,18 @@ export class NpcsAmeacasService {
           vontade: dto.vontade,
           luta: dto.luta,
           jujutsu: dto.jujutsu,
+          percepcaoDados: dto.percepcaoDados,
+          iniciativaDados: dto.iniciativaDados,
+          fortitudeDados: dto.fortitudeDados,
+          reflexosDados: dto.reflexosDados,
+          vontadeDados: dto.vontadeDados,
+          lutaDados: dto.lutaDados,
+          jujutsuDados: dto.jujutsuDados,
           defesa: dto.defesa,
           pontosVida: dto.pontosVida,
           machucado: dto.machucado ?? undefined,
           deslocamentoMetros: dto.deslocamentoMetros,
-          periciasEspeciais: this.normalizarJsonParaPersistir(
-            dto.periciasEspeciais ?? [],
-          ),
+          periciasEspeciais: this.normalizarJsonParaPersistir(periciasEspeciais),
           resistencias: this.normalizarJsonParaPersistir(dto.resistencias ?? []),
           vulnerabilidades: this.normalizarJsonParaPersistir(
             dto.vulnerabilidades ?? [],
@@ -228,8 +411,7 @@ export class NpcsAmeacasService {
 
   async atualizar(usuarioId: number, id: number, dto: UpdateNpcAmeacaDto) {
     try {
-      await this.buscarDoUsuarioOuFalhar(usuarioId, id);
-
+      const existente = await this.buscarDoUsuarioOuFalhar(usuarioId, id);
       const data: Prisma.NpcAmeacaUpdateInput = {};
 
       if (dto.nome !== undefined) data.nome = dto.nome.trim();
@@ -260,6 +442,13 @@ export class NpcsAmeacasService {
       if (dto.vontade !== undefined) data.vontade = dto.vontade;
       if (dto.luta !== undefined) data.luta = dto.luta;
       if (dto.jujutsu !== undefined) data.jujutsu = dto.jujutsu;
+      if (dto.percepcaoDados !== undefined) data.percepcaoDados = dto.percepcaoDados;
+      if (dto.iniciativaDados !== undefined) data.iniciativaDados = dto.iniciativaDados;
+      if (dto.fortitudeDados !== undefined) data.fortitudeDados = dto.fortitudeDados;
+      if (dto.reflexosDados !== undefined) data.reflexosDados = dto.reflexosDados;
+      if (dto.vontadeDados !== undefined) data.vontadeDados = dto.vontadeDados;
+      if (dto.lutaDados !== undefined) data.lutaDados = dto.lutaDados;
+      if (dto.jujutsuDados !== undefined) data.jujutsuDados = dto.jujutsuDados;
       if (dto.defesa !== undefined) data.defesa = dto.defesa;
       if (dto.pontosVida !== undefined) data.pontosVida = dto.pontosVida;
       if (dto.machucado !== undefined) data.machucado = dto.machucado;
@@ -268,8 +457,21 @@ export class NpcsAmeacasService {
       }
 
       if (dto.periciasEspeciais !== undefined) {
+        const atributosAtualizados = this.montarAtributosNpc({
+          agilidade: dto.agilidade ?? existente.agilidade,
+          forca: dto.forca ?? existente.forca,
+          intelecto: dto.intelecto ?? existente.intelecto,
+          presenca: dto.presenca ?? existente.presenca,
+          vigor: dto.vigor ?? existente.vigor,
+        });
+
+        const periciasEspeciais = await this.normalizarPericiasEspeciais(
+          dto.periciasEspeciais as PericiaEspecialEntrada[],
+          atributosAtualizados,
+        );
+
         data.periciasEspeciais = this.normalizarJsonParaPersistir(
-          dto.periciasEspeciais,
+          periciasEspeciais,
         );
       }
 

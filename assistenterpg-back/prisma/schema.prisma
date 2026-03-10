@@ -275,21 +275,21 @@ enum TipoFichaNpcAmeaca {
 }
 
 enum TipoNpcAmeaca {
-  PESSOA
+  HUMANO
   FEITICEIRO
   MALDICAO
   ANIMAL
   HIBRIDO
-  ESPIRITO
   OUTRO
 }
 
 enum TamanhoNpcAmeaca {
-  MIUDO
+  MINUSCULO
   PEQUENO
   MEDIO
   GRANDE
   ENORME
+  COLOSSAL
 }
 
 // ========================================
@@ -477,6 +477,14 @@ model NpcAmeaca {
   vontade    Int @default(0)
   luta       Int @default(0)
   jujutsu    Int @default(0)
+
+  percepcaoDados  Int?
+  iniciativaDados Int?
+  fortitudeDados  Int?
+  reflexosDados   Int?
+  vontadeDados    Int?
+  lutaDados       Int?
+  jujutsuDados    Int?
 
   defesa     Int  @default(10)
   pontosVida Int  @default(1)

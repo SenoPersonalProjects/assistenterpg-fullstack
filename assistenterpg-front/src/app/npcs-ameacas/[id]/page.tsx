@@ -18,15 +18,30 @@ function traduzirFichaTipo(tipo: NpcAmeacaDetalhe['fichaTipo']) {
 
 function traduzirTipo(tipo: NpcAmeacaDetalhe['tipo']) {
   const mapa: Record<NpcAmeacaDetalhe['tipo'], string> = {
-    PESSOA: 'Pessoa',
+    HUMANO: 'Humano',
     FEITICEIRO: 'Feiticeiro',
     MALDICAO: 'Maldicao',
     ANIMAL: 'Animal',
     HIBRIDO: 'Hibrido',
-    ESPIRITO: 'Espirito',
     OUTRO: 'Outro',
   };
   return mapa[tipo];
+}
+
+function traduzirTamanho(tamanho: NpcAmeacaDetalhe['tamanho']) {
+  const mapa: Record<NpcAmeacaDetalhe['tamanho'], string> = {
+    MINUSCULO: 'Minusculo',
+    PEQUENO: 'Pequeno',
+    MEDIO: 'Medio',
+    GRANDE: 'Grande',
+    ENORME: 'Enorme',
+    COLOSSAL: 'Colossal',
+  };
+  return mapa[tamanho];
+}
+
+function formatarTestePericia(dados: number, bonus: number): string {
+  return `${dados}d20 ${bonus >= 0 ? `+${bonus}` : bonus}`;
 }
 
 export default function NpcAmeacaDetalhePage() {
@@ -113,7 +128,7 @@ export default function NpcAmeacaDetalhePage() {
                 </Badge>
               </div>
               <p className="text-sm text-app-muted">
-                {traduzirTipo(item.tipo)} | Tamanho {item.tamanho}
+                {traduzirTipo(item.tipo)} | Tamanho {traduzirTamanho(item.tamanho)}
               </p>
             </div>
           </div>
@@ -175,13 +190,13 @@ export default function NpcAmeacaDetalhePage() {
             ))}
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm text-app-fg">
-            <p>Percepcao: {item.percepcao}</p>
-            <p>Iniciativa: {item.iniciativa}</p>
-            <p>Fortitude: {item.fortitude}</p>
-            <p>Reflexos: {item.reflexos}</p>
-            <p>Vontade: {item.vontade}</p>
-            <p>Luta: {item.luta}</p>
-            <p>Jujutsu: {item.jujutsu}</p>
+            <p>Percepcao: {formatarTestePericia(item.percepcaoDados, item.percepcao)}</p>
+            <p>Iniciativa: {formatarTestePericia(item.iniciativaDados, item.iniciativa)}</p>
+            <p>Fortitude: {formatarTestePericia(item.fortitudeDados, item.fortitude)}</p>
+            <p>Reflexos: {formatarTestePericia(item.reflexosDados, item.reflexos)}</p>
+            <p>Vontade: {formatarTestePericia(item.vontadeDados, item.vontade)}</p>
+            <p>Luta: {formatarTestePericia(item.lutaDados, item.luta)}</p>
+            <p>Jujutsu: {formatarTestePericia(item.jujutsuDados, item.jujutsu)}</p>
           </div>
           {item.periciasEspeciais.length > 0 && (
             <div>
@@ -189,8 +204,15 @@ export default function NpcAmeacaDetalhePage() {
               <ul className="space-y-1 text-sm text-app-fg">
                 {item.periciasEspeciais.map((pericia, index) => (
                   <li key={`pericia-${index}`} className="rounded border border-app-border px-3 py-2">
-                    <span className="font-medium">{String(pericia.nome)}</span>
-                    {typeof pericia.bonus === 'number' && ` | bonus ${pericia.bonus}`}
+                    <span className="font-medium">
+                      {String(pericia.nome)} ({String(pericia.codigo)})
+                    </span>
+                    {typeof pericia.dados === 'number' &&
+                      typeof pericia.bonus === 'number' &&
+                      ` | ${formatarTestePericia(pericia.dados, pericia.bonus)}`}
+                    {typeof pericia.dados === 'number' &&
+                      typeof pericia.bonus !== 'number' &&
+                      ` | ${pericia.dados}d20`}
                     {pericia.descricao && ` | ${String(pericia.descricao)}`}
                   </li>
                 ))}

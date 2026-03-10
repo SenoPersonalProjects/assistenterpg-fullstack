@@ -1,6 +1,6 @@
 # NPCs e Ameacas (Ficha Simplificada)
 
-Atualizado em: 2026-03-09
+Atualizado em: 2026-03-10
 
 ## Escopo
 
@@ -42,8 +42,8 @@ Regra de acesso:
     - `page`, `limit`
     - `nome`
     - `fichaTipo`: `NPC | AMEACA`
-    - `tipo`: `PESSOA | FEITICEIRO | MALDICAO | ANIMAL | HIBRIDO | ESPIRITO | OUTRO`
-    - `tamanho`: `MIUDO | PEQUENO | MEDIO | GRANDE | ENORME`
+    - `tipo`: `HUMANO | FEITICEIRO | MALDICAO | ANIMAL | HIBRIDO | OUTRO`
+    - `tamanho`: `MINUSCULO | PEQUENO | MEDIO | GRANDE | ENORME | COLOSSAL`
 - `GET /npcs-ameacas/:id`
 - `PATCH /npcs-ameacas/:id`
 - `DELETE /npcs-ameacas/:id`
@@ -62,7 +62,10 @@ Campos principais:
 - atributos:
   - `agilidade`, `forca`, `intelecto`, `presenca`, `vigor`
 - pericias principais:
-  - `percepcao`, `iniciativa`, `fortitude`, `reflexos`, `vontade`, `luta`, `jujutsu`
+  - bonus:
+    - `percepcao`, `iniciativa`, `fortitude`, `reflexos`, `vontade`, `luta`, `jujutsu`
+  - dados (override opcional):
+    - `percepcaoDados`, `iniciativaDados`, `fortitudeDados`, `reflexosDados`, `vontadeDados`, `lutaDados`, `jujutsuDados`
 - combate:
   - `defesa`
   - `pontosVida`
@@ -71,7 +74,7 @@ Campos principais:
 - listas:
   - `resistencias: string[]`
   - `vulnerabilidades: string[]`
-  - `periciasEspeciais: { nome, bonus?, descricao? }[]`
+  - `periciasEspeciais: { codigo, dados?, bonus?, descricao? }[]`
   - `passivas: { nome, descricao, gatilho?, alcance?, alvo?, duracao?, requisitos?, efeitoGuia? }[]`
   - `acoes: { nome, tipoExecucao?, alcance?, alvo?, duracao?, resistencia?, dtResistencia?, custoPE?, custoEA?, teste?, dano?, critico?, efeito?, requisitos?, descricao? }[]`
 - apoio narrativo:
@@ -81,6 +84,10 @@ Observacao:
 
 - `vd` permanece sem formula automatica nesta etapa.
 - campos de `passivas` e `acoes` funcionam como guia de mesa para o mestre (sem automacao mecanica no sistema).
+- `periciasEspeciais` aceitam apenas codigos oficiais de pericia (tabela `Pericia`).
+- para dados de pericia, o sistema usa padrao por atributo quando nao houver override:
+  - atributo `> 0`: rola `atributo` dados e pega o melhor.
+  - atributo `<= 0`: rola `2 + abs(atributo)` dados e pega o pior.
 
 ## Persistencia
 
@@ -97,6 +104,7 @@ Pontos importantes:
 Migration:
 
 - [`assistenterpg-back/prisma/migrations/20260309173000_add_npcs_ameacas/migration.sql`](../../assistenterpg-back/prisma/migrations/20260309173000_add_npcs_ameacas/migration.sql)
+- [`assistenterpg-back/prisma/migrations/20260310183000_npc_ameaca_enums_pericias_dados/migration.sql`](../../assistenterpg-back/prisma/migrations/20260310183000_npc_ameaca_enums_pericias_dados/migration.sql)
 
 ## Erros esperados
 
@@ -153,7 +161,7 @@ Endpoints relacionados (modulo de sessao):
   "nome": "Akane Fujimoto",
   "descricao": "Civil vulneravel, alvo de resgate.",
   "fichaTipo": "NPC",
-  "tipo": "PESSOA",
+  "tipo": "HUMANO",
   "tamanho": "MEDIO",
   "vd": 15,
   "agilidade": 1,
@@ -168,6 +176,13 @@ Endpoints relacionados (modulo de sessao):
   "vontade": 4,
   "luta": 2,
   "jujutsu": 0,
+  "percepcaoDados": 1,
+  "iniciativaDados": 1,
+  "fortitudeDados": 1,
+  "reflexosDados": 1,
+  "vontadeDados": 1,
+  "lutaDados": 1,
+  "jujutsuDados": 1,
   "defesa": 12,
   "pontosVida": 22,
   "machucado": 11,
@@ -175,8 +190,8 @@ Endpoints relacionados (modulo de sessao):
   "resistencias": ["mental leve"],
   "vulnerabilidades": ["dano fisico"],
   "periciasEspeciais": [
-    { "nome": "Empatia", "bonus": 6 },
-    { "nome": "Intuicao", "bonus": 4 }
+    { "codigo": "DIPLOMACIA", "dados": 2, "bonus": 6 },
+    { "codigo": "INTUICAO", "dados": 2, "bonus": 4 }
   ],
   "passivas": [
     { "nome": "Fragil", "descricao": "Recebe +2 dano fisico." }

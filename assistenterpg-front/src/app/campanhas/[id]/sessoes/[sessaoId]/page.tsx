@@ -75,12 +75,11 @@ function labelCena(tipo: string): string {
 
 function labelTipoNpc(tipo: string): string {
   const labels: Record<string, string> = {
-    PESSOA: 'Pessoa',
+    HUMANO: 'Humano',
     FEITICEIRO: 'Feiticeiro',
     MALDICAO: 'Maldicao',
     ANIMAL: 'Animal',
     HIBRIDO: 'Hibrido',
-    ESPIRITO: 'Espirito',
     OUTRO: 'Outro',
   };
 

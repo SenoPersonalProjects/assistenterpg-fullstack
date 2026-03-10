@@ -19,7 +19,14 @@ import {
 class NpcAmeacaPericiaEspecialDto {
   @IsString()
   @MaxLength(80)
-  nome!: string;
+  codigo!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  dados?: number;
 
   @IsOptional()
   @Type(() => Number)
@@ -265,6 +272,55 @@ export class CreateNpcAmeacaDto {
   @Min(-50)
   @Max(200)
   jujutsu?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  percepcaoDados?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  iniciativaDados?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  fortitudeDados?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  reflexosDados?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  vontadeDados?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  lutaDados?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  jujutsuDados?: number;
 
   @IsOptional()
   @Type(() => Number)
