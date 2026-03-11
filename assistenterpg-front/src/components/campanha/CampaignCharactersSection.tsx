@@ -28,7 +28,7 @@ function chaveDismissSugestao(campanhaId: number): string {
 }
 
 function formatarRecursos(personagem: PersonagemCampanhaResumo): string {
-  return `PV ${personagem.recursos.pvAtual}/${personagem.recursos.pvMax} · PE ${personagem.recursos.peAtual}/${personagem.recursos.peMax} · EA ${personagem.recursos.eaAtual}/${personagem.recursos.eaMax} · SAN ${personagem.recursos.sanAtual}/${personagem.recursos.sanMax}`;
+  return `PV ${personagem.recursos.pvAtual}/${personagem.recursos.pvMax} | PE ${personagem.recursos.peAtual}/${personagem.recursos.peMax} | EA ${personagem.recursos.eaAtual}/${personagem.recursos.eaMax} | SAN ${personagem.recursos.sanAtual}/${personagem.recursos.sanMax}`;
 }
 
 export function CampaignCharactersSection({
@@ -100,6 +100,8 @@ export function CampaignCharactersSection({
       personagensCampanha.some((personagem) => personagem.donoId === usuarioId),
     [personagensCampanha, usuarioId],
   );
+  const limiteUsuarioAtingido =
+    !usuarioEhMestre && usuarioJaTemPersonagemNaCampanha;
 
   useEffect(() => {
     if (loading || sugestaoInicializada) return;
@@ -182,15 +184,21 @@ export function CampaignCharactersSection({
           Associar personagem-base
         </h3>
         <p className="text-sm text-app-muted">
-          Cada usuario pode ter apenas 1 personagem por campanha. O personagem da
-          campanha pode receber modificadores sem alterar a ficha-base.
+          Jogadores e observadores podem ter apenas 1 personagem por campanha.
+          Mestres podem associar varios personagens. A ficha da campanha pode
+          receber modificadores sem alterar a ficha-base.
         </p>
         <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <div className="md:w-[340px]">
             <Select
-              label="Meu personagem-base"
+              label={
+                usuarioEhMestre
+                  ? 'Personagem-base para associar'
+                  : 'Meu personagem-base'
+              }
               value={personagemBaseSelecionado}
               onChange={(event) => setPersonagemBaseSelecionado(event.target.value)}
+              disabled={limiteUsuarioAtingido}
             >
               <option value="">Selecione...</option>
               {opcoesPersonagensBase.map((opcao) => (
@@ -200,10 +208,18 @@ export function CampaignCharactersSection({
               ))}
             </Select>
           </div>
-          <Button onClick={handleAssociarPersonagem} disabled={associando || loading}>
+          <Button
+            onClick={handleAssociarPersonagem}
+            disabled={associando || loading || limiteUsuarioAtingido}
+          >
             {associando ? 'Associando...' : 'Associar personagem'}
           </Button>
         </div>
+        {limiteUsuarioAtingido && (
+          <p className="text-sm text-app-muted">
+            Voce ja possui um personagem associado nesta campanha.
+          </p>
+        )}
         {erro && (
           <p className="text-sm text-app-danger">
             {erro}
@@ -240,7 +256,7 @@ export function CampaignCharactersSection({
                       {personagem.nome}
                     </h4>
                     <p className="text-xs text-app-muted">
-                      Dono: {personagem.dono.apelido} · Base:{' '}
+                      Dono: {personagem.dono.apelido} | Base:{' '}
                       {personagem.personagemBase.nome}
                     </p>
                   </div>
@@ -250,8 +266,8 @@ export function CampaignCharactersSection({
                 </div>
                 <p className="text-sm text-app-muted">{formatarRecursos(personagem)}</p>
                 <p className="text-xs text-app-muted">
-                  Defesa {personagem.defesa.total} · Esquiva {personagem.atributos.esquiva}
-                  {' '}· Bloqueio {personagem.atributos.bloqueio}
+                  Defesa {personagem.defesa.total} | Esquiva {personagem.atributos.esquiva}
+                  {' '}| Bloqueio {personagem.atributos.bloqueio}
                 </p>
                 <p className="text-xs text-app-muted">
                   Modificadores ativos: {personagem.modificadoresAtivos.length}

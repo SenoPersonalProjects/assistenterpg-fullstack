@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaApenasDonoException,
   CampanhaPersonagemAssociacaoNegadaException,
+  CampanhaPersonagemLimiteUsuarioException,
   ConviteCodigoIndisponivelException,
   ConvitePendenteDuplicadoException,
   UsuarioJaMembroCampanhaException,
@@ -392,6 +393,7 @@ describe('CampanhaService', () => {
 
     const tx = {
       personagemCampanha: {
+        findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({ id: 501 }),
       },
       personagemCampanhaResistencia: {
@@ -490,6 +492,146 @@ describe('CampanhaService', () => {
     await expect(
       service.vincularPersonagemBase(7, 3, 77),
     ).rejects.toBeInstanceOf(CampanhaPersonagemAssociacaoNegadaException);
+  });
+
+  it('deve manter limite de 1 personagem por campanha para jogador', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemBase.findUnique.mockResolvedValue({
+      id: 42,
+      donoId: 3,
+      nome: 'Yuta',
+      nivel: 5,
+      claId: 1,
+      origemId: 2,
+      classeId: 3,
+      trilhaId: null,
+      caminhoId: null,
+      pvMaximo: 120,
+      peMaximo: 50,
+      eaMaximo: 100,
+      sanMaximo: 30,
+      limitePeEaPorTurno: 2,
+      prestigioBase: 0,
+      prestigioClaBase: null,
+      defesaBase: 16,
+      defesaEquipamento: 2,
+      defesaOutros: 0,
+      esquiva: 3,
+      bloqueio: 4,
+      deslocamento: 9,
+      turnosMorrendo: 3,
+      turnosEnlouquecendo: 3,
+      espacosInventarioBase: 10,
+      espacosInventarioExtra: 0,
+      espacosOcupados: 5,
+      sobrecarregado: false,
+      tecnicaInataId: null,
+      resistencias: [],
+    });
+    prisma.personagemCampanha.findFirst.mockResolvedValue({ id: 88 });
+
+    await expect(
+      service.vincularPersonagemBase(7, 3, 42),
+    ).rejects.toBeInstanceOf(CampanhaPersonagemLimiteUsuarioException);
+  });
+
+  it('deve permitir multiplos personagens para mestre na mesma campanha', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemBase.findUnique.mockResolvedValue({
+      id: 42,
+      donoId: 1,
+      nome: 'Gojo',
+      nivel: 10,
+      claId: 1,
+      origemId: 2,
+      classeId: 3,
+      trilhaId: null,
+      caminhoId: null,
+      pvMaximo: 220,
+      peMaximo: 90,
+      eaMaximo: 200,
+      sanMaximo: 40,
+      limitePeEaPorTurno: 4,
+      prestigioBase: 2,
+      prestigioClaBase: 1,
+      defesaBase: 20,
+      defesaEquipamento: 4,
+      defesaOutros: 2,
+      esquiva: 5,
+      bloqueio: 6,
+      deslocamento: 9,
+      turnosMorrendo: 3,
+      turnosEnlouquecendo: 3,
+      espacosInventarioBase: 10,
+      espacosInventarioExtra: 5,
+      espacosOcupados: 8,
+      sobrecarregado: false,
+      tecnicaInataId: null,
+      resistencias: [],
+    });
+
+    const tx = {
+      personagemCampanha: {
+        findFirst: jest.fn(),
+        create: jest.fn().mockResolvedValue({ id: 900 }),
+      },
+      personagemCampanhaResistencia: {
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      personagemCampanhaHistorico: {
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<number>) => callback(tx),
+    );
+
+    prisma.personagemCampanha.findUnique.mockResolvedValue({
+      id: 900,
+      campanhaId: 7,
+      personagemBaseId: 42,
+      donoId: 1,
+      nome: 'Gojo',
+      nivel: 10,
+      pvMax: 220,
+      pvAtual: 220,
+      peMax: 90,
+      peAtual: 90,
+      eaMax: 200,
+      eaAtual: 200,
+      sanMax: 40,
+      sanAtual: 40,
+      limitePeEaPorTurno: 4,
+      prestigioGeral: 2,
+      prestigioCla: 1,
+      defesaBase: 20,
+      defesaEquipamento: 4,
+      defesaOutros: 2,
+      esquiva: 5,
+      bloqueio: 6,
+      deslocamento: 9,
+      turnosMorrendo: 3,
+      turnosEnlouquecendo: 3,
+      personagemBase: { id: 42, nome: 'Gojo' },
+      dono: { id: 1, apelido: 'Mestre' },
+      modificadores: [],
+    });
+
+    const personagem = await service.vincularPersonagemBase(7, 1, 42);
+
+    expect(prisma.personagemCampanha.findFirst).not.toHaveBeenCalled();
+    expect(tx.personagemCampanha.findFirst).not.toHaveBeenCalled();
+    expect(tx.personagemCampanha.create).toHaveBeenCalledTimes(1);
+    expect(personagem.id).toBe(900);
   });
 
   it('deve aplicar modificador e ajustar recurso atual quando maximo reduz', async () => {

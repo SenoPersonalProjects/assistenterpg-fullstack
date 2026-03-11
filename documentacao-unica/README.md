@@ -1,6 +1,6 @@
 # AssistenteRPG - Documentacao Unica (Front + Back)
 
-Atualizado em: 2026-03-09
+Atualizado em: 2026-03-11
 
 ## 1. Objetivo e escopo
 
@@ -445,7 +445,9 @@ Detalhamento:
   - `CONVITE_DUPLICADO_PENDENTE` (422)
   - `CONVITE_CODIGO_INDISPONIVEL` (500)
 - personagens de campanha:
-  - associacao de personagem-base segue limite de 1 personagem por usuario na campanha.
+  - associacao de personagem-base:
+    - jogadores e observadores seguem limite de 1 personagem por usuario na campanha.
+    - mestres (dono ou membro com papel `MESTRE`) podem associar multiplos personagens.
   - mestres (dono ou membro com papel `MESTRE`) podem editar qualquer ficha da campanha.
   - jogadores/observadores editam apenas a propria ficha da campanha.
   - modificadores alteram apenas `PersonagemCampanha` (nao alteram `PersonagemBase`).

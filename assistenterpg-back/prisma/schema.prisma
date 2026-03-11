@@ -580,8 +580,8 @@ model PersonagemCampanha {
   modificadores       PersonagemCampanhaModificador[]
 
   @@unique([campanhaId, personagemBaseId])
-  @@unique([campanhaId, donoId])
   @@index([campanhaId])
+  @@index([campanhaId, donoId])
   @@index([personagemBaseId])
   @@index([donoId])
 }

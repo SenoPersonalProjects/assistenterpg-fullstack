@@ -445,23 +445,52 @@ export class CampanhaService {
       );
     }
 
-    const personagemExistenteDoDono =
-      await this.prisma.personagemCampanha.findFirst({
-        where: {
-          campanhaId,
-          donoId: personagemBase.donoId,
-        },
-        select: { id: true },
-      });
-
-    if (personagemExistenteDoDono) {
-      throw new CampanhaPersonagemLimiteUsuarioException(
-        campanhaId,
-        personagemBase.donoId,
+    const donoEhMestreNaCampanha =
+      personagemBase.donoId === acesso.campanha.donoId ||
+      acesso.campanha.membros.some(
+        (membro) =>
+          membro.usuarioId === personagemBase.donoId &&
+          membro.papel === 'MESTRE',
       );
+    const deveAplicarLimitePorUsuario = !donoEhMestreNaCampanha;
+
+    if (deveAplicarLimitePorUsuario) {
+      const personagemExistenteDoDono =
+        await this.prisma.personagemCampanha.findFirst({
+          where: {
+            campanhaId,
+            donoId: personagemBase.donoId,
+          },
+          select: { id: true },
+        });
+
+      if (personagemExistenteDoDono) {
+        throw new CampanhaPersonagemLimiteUsuarioException(
+          campanhaId,
+          personagemBase.donoId,
+        );
+      }
     }
 
     const personagemCampanhaId = await this.prisma.$transaction(async (tx) => {
+      if (deveAplicarLimitePorUsuario) {
+        const personagemExistenteDoDono =
+          await tx.personagemCampanha.findFirst({
+            where: {
+              campanhaId,
+              donoId: personagemBase.donoId,
+            },
+            select: { id: true },
+          });
+
+        if (personagemExistenteDoDono) {
+          throw new CampanhaPersonagemLimiteUsuarioException(
+            campanhaId,
+            personagemBase.donoId,
+          );
+        }
+      }
+
       let personagemCriado: { id: number };
       try {
         personagemCriado = await tx.personagemCampanha.create({
@@ -506,12 +535,18 @@ export class CampanhaService {
           },
         });
       } catch (error) {
+        const conflitoDono = this.isUniqueConstraintViolation(error, [
+          'campanhaId',
+          'donoId',
+        ]);
+        const conflitoPersonagemBase = this.isUniqueConstraintViolation(error, [
+          'campanhaId',
+          'personagemBaseId',
+        ]);
+
         if (
-          this.isUniqueConstraintViolation(error, ['campanhaId', 'donoId']) ||
-          this.isUniqueConstraintViolation(error, [
-            'campanhaId',
-            'personagemBaseId',
-          ])
+          (conflitoDono && deveAplicarLimitePorUsuario) ||
+          conflitoPersonagemBase
         ) {
           throw new CampanhaPersonagemLimiteUsuarioException(
             campanhaId,

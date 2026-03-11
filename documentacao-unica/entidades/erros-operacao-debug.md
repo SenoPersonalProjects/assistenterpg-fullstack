@@ -1,6 +1,6 @@
 # Erros de Operacao e Debug (Por Entidade)
 
-Atualizado em: 2026-03-09
+Atualizado em: 2026-03-11
 
 ## Escopo
 
@@ -73,7 +73,7 @@ Formato de resposta esperado:
 | `CAMPANHA_APENAS_DONO`         | `422` | Acao exclusiva do dono                       | Exibir CTA de permissao insuficiente         |
 | `CAMPANHA_APENAS_MESTRE`       | `422` | Acao exclusiva de mestre na campanha         | Desabilitar controles de sessao para jogador |
 | `CAMPANHA_PERSONAGEM_ASSOCIACAO_NEGADA` | `422` | Tentativa de associar personagem sem permissao | Restringir selecao ao personagem autorizado  |
-| `CAMPANHA_PERSONAGEM_LIMITE_USUARIO` | `422` | Usuario tentou associar segundo personagem na campanha | Mostrar regra de 1 personagem por usuario    |
+| `CAMPANHA_PERSONAGEM_LIMITE_USUARIO` | `422` | Jogador/observador tentou associar segundo personagem na campanha | Mostrar regra de 1 personagem para nao-mestres |
 | `CAMPANHA_PERSONAGEM_EDICAO_NEGADA` | `422` | Usuario tentou editar ficha de campanha sem permissao | Desabilitar acoes de edicao na UI            |
 | `PERSONAGEM_CAMPANHA_NOT_FOUND` | `404` | Ficha de campanha inexistente/fora da campanha | Recarregar lista e limpar referencia local   |
 | `CAMPANHA_MODIFICADOR_NOT_FOUND` | `404` | Modificador inexistente para aquela ficha     | Atualizar lista de modificadores             |

@@ -1,6 +1,6 @@
 # Auth, Usuarios e Campanhas (Contrato Detalhado)
 
-Atualizado em: 2026-03-09
+Atualizado em: 2026-03-11
 
 ## Escopo
 
@@ -188,7 +188,9 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - aceite de convite ocorre em transacao (cria membro + marca convite como `ACEITO` no mesmo bloco atomico).
 - personagem de campanha:
   - associacao de personagem-base (`POST /campanhas/:id/personagens`) exige acesso a campanha.
-  - regra de limite: 1 personagem por usuario em cada campanha (`@@unique([campanhaId, donoId])`).
+  - regra de limite:
+    - jogadores/observadores: 1 personagem por usuario em cada campanha.
+    - mestres (dono ou membro `MESTRE`): sem limite de quantidade de personagens na campanha.
   - jogador/observador so pode associar personagem-base proprio.
   - mestre da campanha (dono ou membro com papel `MESTRE`) pode associar personagem de qualquer participante da campanha.
   - editar ficha de campanha (`recursos` e `modificadores`) segue regra:
@@ -265,7 +267,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - `ConviteCampanha.codigo` e `@unique`.
 - `PersonagemCampanha` possui:
   - `@@unique([campanhaId, personagemBaseId])`
-  - `@@unique([campanhaId, donoId])`
+  - `@@index([campanhaId, donoId])`
 - `PersonagemCampanhaModificador` guarda modificadores narrativos com soft-undo (`ativo`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
 - `PersonagemCampanhaHistorico` guarda trilha de auditoria de alteracoes de ficha de campanha.
 - `Sessao` guarda estado do lobby (`status`, `cenaAtualTipo`, `cenaAtualNome`, `rodadaAtual`, `indiceTurnoAtual`, `iniciadoEm`, `encerradoEm`).
