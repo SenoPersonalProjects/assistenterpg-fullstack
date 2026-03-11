@@ -472,7 +472,7 @@ export function PersonagemBaseStepPoderes({
   );
 
   if (loadingCatalogo) {
-    return <Loading message="Carregando poderes genÃ©ricos..." />;
+    return <Loading message="Carregando poderes genéricos..." />;
   }
 
   if (erro) {
@@ -482,14 +482,14 @@ export function PersonagemBaseStepPoderes({
   if (slotsDisponiveis === 0) {
     return (
       <SectionCard
-        title="Poderes genÃ©ricos"
+        title="Poderes genéricos"
         right={<Icon name="sparkles" className="h-5 w-5 text-app-muted" />}
       >
         <EmptyState
           variant="card"
           icon="info"
-          title="Ainda indisponÃ­vel"
-          description="Poderes genÃ©ricos sÃ£o desbloqueados nos nÃ­veis 3, 6, 9, 12, 15 e 18."
+          title="Ainda indisponível"
+          description="Poderes genéricos são desbloqueados nos níveis 3, 6, 9, 12, 15 e 18."
         />
       </SectionCard>
     );
@@ -501,7 +501,7 @@ export function PersonagemBaseStepPoderes({
   return (
     <div className="space-y-4">
       <SectionCard
-        title="Poderes genÃ©ricos"
+        title="Poderes genéricos"
         right={
           <div className="flex items-center gap-2">
             {loadingPreview && <Icon name="spinner" className="w-4 h-4 animate-spin text-app-muted" />}
@@ -510,7 +510,7 @@ export function PersonagemBaseStepPoderes({
         }
         contentClassName="space-y-4"
       >
-        {/* âœ… 1. INFO + RESUMO */}
+        {/* 1. Info + resumo */}
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
@@ -519,11 +519,11 @@ export function PersonagemBaseStepPoderes({
                 <p className="text-sm font-medium text-app-fg">Slots de poderes</p>
               </div>
               <p className="text-xs text-app-muted mt-1">
-                VocÃª pode selecionar atÃ© {slotsDisponiveis} poder(es) genÃ©rico(s) neste nÃ­vel.
+                Você pode selecionar até {slotsDisponiveis} poder(es) genérico(s) neste nível.
               </p>
             </div>
 
-            {/* âœ… Badge resumo */}
+            {/* Badge resumo */}
             <div
               className={`rounded-full px-3 py-1 text-sm font-semibold whitespace-nowrap ${
                 semSlotsLivres
@@ -537,7 +537,7 @@ export function PersonagemBaseStepPoderes({
             </div>
           </div>
 
-          {/* âœ… Progress bar */}
+          {/* Progress bar */}
           <div className="space-y-1">
             <div className="h-2 rounded-full bg-app-border overflow-hidden">
               <div
@@ -557,7 +557,7 @@ export function PersonagemBaseStepPoderes({
           </div>
         </div>
 
-        {/* âœ… 2. BUSCA */}
+        {/* 2. Busca */}
         <Input
           type="text"
           placeholder="Buscar poderes..."
@@ -569,7 +569,7 @@ export function PersonagemBaseStepPoderes({
           icon="search"
         />
 
-        {/* âœ… 3. LISTA DE PODERES */}
+        {/* 3. Lista de poderes */}
         <div className="space-y-2">
           {poderesRenderizados.map((poder) => {
             const mecanicas = poder.mecanicasEspeciais as
@@ -625,11 +625,11 @@ export function PersonagemBaseStepPoderes({
                         <h4 className="font-semibold text-app-fg text-sm">{poder.nome}</h4>
                         {repetivel && (
                           <span className="rounded-full bg-app-primary/10 px-2 py-0.5 text-[10px] font-medium text-app-primary">
-                            RepetÃ­vel
+                            Repetível
                           </span>
                         )}
                         {poder.origem && (
-                          <span className="text-[10px] text-app-muted">ðŸ“œ {poder.origem}</span>
+                          <span className="text-[10px] text-app-muted">Origem: {poder.origem}</span>
                         )}
                       </div>
 
@@ -641,16 +641,16 @@ export function PersonagemBaseStepPoderes({
 
                       {!validacao.atende && validacao.motivoNaoAtende && (
                         <p className="text-xs text-app-danger mt-1">
-                          âŒ {validacao.motivoNaoAtende}
+                          Requisitos: {validacao.motivoNaoAtende}
                         </p>
                       )}
                     </div>
 
-                    {/* âœ… Controles */}
+                    {/* Controles */}
                     <div className="flex items-center gap-2">
                       {selecionado && (
                         <span className="text-xs text-app-muted font-medium">
-                          {instanciasDestePoder.length}Ã—
+                          {instanciasDestePoder.length}×
                         </span>
                       )}
 
@@ -667,7 +667,7 @@ export function PersonagemBaseStepPoderes({
                         }}
                         className="h-8 w-8 px-0 text-lg font-bold"
                       >
-                        âˆ’
+                        -
                       </Button>
 
                       <Button
@@ -681,10 +681,10 @@ export function PersonagemBaseStepPoderes({
                         className="h-8 w-8 px-0 text-lg font-bold"
                         title={
                           semSlotsLivres
-                            ? 'Sem slots disponÃ­veis'
+                            ? 'Sem slots disponíveis'
                             : !validacao.atende
-                            ? 'Requisitos nÃ£o atendidos'
-                            : 'Adicionar instÃ¢ncia'
+                            ? 'Requisitos não atendidos'
+                            : 'Adicionar instância'
                         }
                       >
                         +
@@ -692,7 +692,7 @@ export function PersonagemBaseStepPoderes({
                     </div>
                   </div>
 
-                  {/* âœ… Config (collapse) */}
+                  {/* Config (collapse) */}
                   {escolha && instanciasDestePoder.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-app-border/50">
                       <button
@@ -701,7 +701,7 @@ export function PersonagemBaseStepPoderes({
                         className="w-full flex items-center justify-between text-left hover:opacity-70 transition-opacity"
                       >
                         <span className="text-xs font-medium text-app-fg">
-                          Configurar instÃ¢ncias ({instanciasDestePoder.length})
+                          Configurar instâncias ({instanciasDestePoder.length})
                         </span>
                         <Icon
                           name="chevron-down"
@@ -731,7 +731,7 @@ export function PersonagemBaseStepPoderes({
                                   className="rounded border border-app-border bg-app-elevated p-2 space-y-1.5"
                                 >
                                   <p className="text-[10px] text-app-muted">
-                                    InstÃ¢ncia {idx + 1} â€“ escolha {quantidade} perÃ­cia(s)
+                                    Instância {idx + 1} - escolha {quantidade} perícia(s)
                                   </p>
 
                                   {valores.map((valorAtual: string, idxPericia: number) => {
@@ -757,7 +757,7 @@ export function PersonagemBaseStepPoderes({
                                           });
                                         }}
                                       >
-                                        <option value="">PerÃ­cia {idxPericia + 1}...</option>
+                                        <option value="">Perícia {idxPericia + 1}...</option>
                                         {opcoes.map((p) => (
                                           <option key={p.codigo} value={p.codigo}>
                                             {p.nome} (grau {p.grauTreinamento})
@@ -785,7 +785,7 @@ export function PersonagemBaseStepPoderes({
                                   className="rounded border border-app-border bg-app-elevated p-2"
                                 >
                                   <p className="text-[10px] text-app-muted mb-1.5">
-                                    InstÃ¢ncia {idx + 1} â€“ escolha um tipo de grau
+                                    Instância {idx + 1} - escolha um tipo de grau
                                   </p>
 
                                   <select
@@ -816,7 +816,7 @@ export function PersonagemBaseStepPoderes({
                                 className="rounded border border-app-border bg-app-elevated p-2"
                               >
                                 <p className="text-[10px] text-app-muted">
-                                  Tipo &quot;{escolha.tipo}&quot; sem UI especÃ­fica.
+                                  Tipo &quot;{escolha.tipo}&quot; sem UI específica.
                                 </p>
                               </div>
                             );
@@ -844,7 +844,7 @@ export function PersonagemBaseStepPoderes({
           </Button>
         )}
 
-        {/* âœ… Empty states */}
+        {/* Empty states */}
         {poderesFiltrados.length === 0 && termoBusca && (
           <EmptyState
             variant="card"
@@ -858,8 +858,8 @@ export function PersonagemBaseStepPoderes({
           <EmptyState
             variant="card"
             icon="info"
-            title="Nenhum poder disponÃ­vel"
-            description="O catÃ¡logo de poderes genÃ©ricos estÃ¡ vazio."
+            title="Nenhum poder disponível"
+            description="O catálogo de poderes genéricos está vazio."
           />
         )}
       </SectionCard>

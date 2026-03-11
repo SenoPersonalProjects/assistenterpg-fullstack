@@ -68,20 +68,28 @@ const ATRIBUTO_LABEL: Record<AtributoBaseCodigo, string> = {
 };
 
 function getValorAtributo(preview: Props['preview'], atributo: AtributoBaseCodigo): number {
+  let valor: number;
   switch (atributo) {
     case 'AGI':
-      return preview.agilidade;
+      valor = preview.agilidade;
+      break;
     case 'FOR':
-      return preview.forca;
+      valor = preview.forca;
+      break;
     case 'INT':
-      return preview.intelecto;
+      valor = preview.intelecto;
+      break;
     case 'PRE':
-      return preview.presenca;
+      valor = preview.presenca;
+      break;
     case 'VIG':
-      return preview.vigor;
+      valor = preview.vigor;
+      break;
     default:
-      return 0;
+      valor = 0;
   }
+
+  return Number.isFinite(valor) ? valor : 0;
 }
 
 type PoderGenericoPreview = PoderGenericoInstanciaPayload & {
@@ -140,6 +148,11 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function toFiniteNumber(value: unknown): number | null {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function toSafeNumber(value: unknown, fallback = 0): number {
+  const n = toFiniteNumber(value);
+  return n === null ? fallback : n;
 }
 
 function extractStringArray(value: unknown): string[] {
@@ -372,18 +385,16 @@ export function PersonagemBaseStepRevisao({
         setErrosInventarioPreview(resultado.errosInventario ?? []);
         setErrosInventarioItensPreview(extractErrosItens(resultado.errosItens));
 
-        if (
-          resultado.espacosInventario?.ocupados != null &&
-          resultado.espacosInventario?.total != null
-        ) {
+        const ocupados = toFiniteNumber(resultado.espacosInventario?.ocupados);
+        const total = toFiniteNumber(resultado.espacosInventario?.total);
+        const restantes = toFiniteNumber(resultado.espacosInventario?.restantes);
+
+        if (ocupados !== null && total !== null) {
           setEspacosInventarioErro({
-            ocupados: Number(resultado.espacosInventario.ocupados),
-            total: Number(resultado.espacosInventario.total),
-            restantes:
-              resultado.espacosInventario.restantes != null
-                ? Number(resultado.espacosInventario.restantes)
-                : undefined,
-            sobrecarregado: resultado.espacosInventario.sobrecarregado,
+            ocupados,
+            total,
+            restantes: restantes ?? undefined,
+            sobrecarregado: resultado.espacosInventario?.sobrecarregado,
           });
         }
 
@@ -505,20 +516,29 @@ export function PersonagemBaseStepRevisao({
   // Usa dados calculados pelo backend para o resumo de inventário.
   const inventarioInfo = useMemo(() => {
     const itens = previewCalculado?.itensInventario ?? [];
-    const espacosTotal = previewCalculado?.espacosInventario?.total ?? preview.forca * 5;
-    const espacosOcupados =
-      previewCalculado?.espacosInventario?.ocupados ??
-      itens.reduce((sum, item) => sum + item.espacosTotal, 0);
-    const espacosRestantes =
-      previewCalculado?.espacosInventario?.restantes ?? espacosTotal - espacosOcupados;
+    const espacosTotalCalculado = toFiniteNumber(previewCalculado?.espacosInventario?.total);
+    const espacosTotalFallback = Math.max(0, toSafeNumber(preview.forca) * 5);
+    const espacosTotal = espacosTotalCalculado ?? espacosTotalFallback;
+    const espacosOcupadosCalculado = toFiniteNumber(previewCalculado?.espacosInventario?.ocupados);
+    const espacosOcupadosFallback = itens.reduce(
+      (sum, item) => sum + toSafeNumber(item.espacosTotal),
+      0,
+    );
+    const espacosOcupados = espacosOcupadosCalculado ?? espacosOcupadosFallback;
+    const espacosRestantesCalculado = toFiniteNumber(previewCalculado?.espacosInventario?.restantes);
+    const espacosRestantes = espacosRestantesCalculado ?? espacosTotal - espacosOcupados;
+    const totalItens = itens.reduce((sum, item) => sum + toSafeNumber(item.quantidade), 0);
     const sobrecarregado =
-      previewCalculado?.espacosInventario?.sobrecarregado ?? espacosOcupados > espacosTotal;
+      typeof previewCalculado?.espacosInventario?.sobrecarregado === 'boolean'
+        ? previewCalculado.espacosInventario.sobrecarregado
+        : espacosOcupados > espacosTotal;
 
     return {
       itens,
       espacosTotal,
       espacosOcupados,
       espacosRestantes,
+      totalItens,
       sobrecarregado,
       limitesPorCategoria: previewCalculado?.espacosInventario?.limitesPorCategoria ?? null,
       itensPorCategoria: previewCalculado?.espacosInventario?.itensPorCategoria ?? null,
@@ -969,7 +989,7 @@ export function PersonagemBaseStepRevisao({
           />
           <InfoTile
             label="Total de itens"
-            value={inventarioInfo.itens.reduce((sum, item) => sum + item.quantidade, 0)}
+            value={inventarioInfo.totalItens}
           />
           <InfoTile
             label="Espaços restantes"

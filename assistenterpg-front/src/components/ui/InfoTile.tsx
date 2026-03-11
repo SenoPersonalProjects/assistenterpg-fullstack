@@ -12,6 +12,9 @@ type Props = {
 };
 
 export function InfoTile({ label, value, right, className = '', valueClassName = '' }: Props) {
+  const safeValue =
+    typeof value === 'number' && !Number.isFinite(value) ? '—' : value;
+
   return (
     <div className={['rounded border border-app-border bg-app-surface p-3', className].join(' ')}>
       <div className="mb-1 flex items-start justify-between gap-3">
@@ -19,7 +22,9 @@ export function InfoTile({ label, value, right, className = '', valueClassName =
         {right ? <div className="shrink-0">{right}</div> : null}
       </div>
 
-      <div className={['text-sm font-medium text-app-fg', valueClassName].join(' ')}>{value}</div>
+      <div className={['text-sm font-medium text-app-fg', valueClassName].join(' ')}>
+        {safeValue}
+      </div>
     </div>
   );
 }

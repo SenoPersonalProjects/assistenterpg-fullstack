@@ -1,6 +1,6 @@
 ﻿// lib/utils/poderes.ts
 /**
- * UtilitÃ¡rios de poderes genÃ©ricos (validaÃ§Ãµes, requisitos)
+ * Utilitários de poderes genéricos (validações, requisitos)
  */
 
 export type AtributoBaseCodigo = 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG';
@@ -20,7 +20,7 @@ type RequisitosPoder = {
 };
 
 /**
- * Calcula quantos slots de poderes genÃ©ricos o personagem tem
+ * Calcula quantos slots de poderes genéricos o personagem tem
  */
 export function calcularSlotsPoderes(nivel: number): number {
   const niveisQueDaoPoder = [3, 6, 9, 12, 15, 18];
@@ -28,7 +28,7 @@ export function calcularSlotsPoderes(nivel: number): number {
 }
 
 /**
- * Valida se o personagem atende aos requisitos de um poder genÃ©rico
+ * Valida se o personagem atende aos requisitos de um poder genérico
  */
 export function validarRequisitosPoder(
   requisitos: unknown | null | undefined,
@@ -43,7 +43,7 @@ export function validarRequisitosPoder(
       vigor: number;
     };
     graus: Record<string, number>;
-    // Aceita IDs diretos OU instÃ¢ncias com { habilidadeId }
+    // Aceita IDs diretos OU instâncias com { habilidadeId }
     poderesSelecionados: number[] | Array<{ habilidadeId: number }>;
     todosPoderes: Array<{ id: number; nome: string; requisitos?: unknown }>;
   },
@@ -56,15 +56,15 @@ export function validarRequisitosPoder(
     typeof p === 'number' ? p : p.habilidadeId,
   );
 
-  // Validar nÃ­vel mÃ­nimo
+  // Validar nível mínimo
   if (requisitosObj.nivelMinimo && personagem.nivel < requisitosObj.nivelMinimo) {
     return {
       atende: false,
-      motivoNaoAtende: `Requer nÃ­vel ${requisitosObj.nivelMinimo}+`,
+      motivoNaoAtende: `Requer nível ${requisitosObj.nivelMinimo}+`,
     };
   }
 
-  // Validar perÃ­cias
+  // Validar perícias
   if (requisitosObj.pericias && Array.isArray(requisitosObj.pericias)) {
     const resultadoPericias = validarPericiasRequisito(
       requisitosObj.pericias,
@@ -88,7 +88,7 @@ export function validarRequisitosPoder(
     if (!resultadoGraus.atende) return resultadoGraus;
   }
 
-  // Validar prÃ©-requisitos de outros poderes
+  // Validar pré-requisitos de outros poderes
   if (requisitosObj.poderesPreRequisitos && Array.isArray(requisitosObj.poderesPreRequisitos)) {
     const resultadoPoderes = validarPoderesPreRequisitos(
       requisitosObj.poderesPreRequisitos,
@@ -102,7 +102,7 @@ export function validarRequisitosPoder(
 }
 
 /**
- * Valida perÃ­cias (suporta requisitos alternativos)
+ * Valida perícias (suporta requisitos alternativos)
  */
 function validarPericiasRequisito(
   periciasReq: Array<{ codigo: string; grauMinimo: number; alternativa?: boolean }>,
@@ -213,7 +213,7 @@ function validarGrausRequisito(
 }
 
 /**
- * Valida prÃ©-requisitos de outros poderes
+ * Valida pré-requisitos de outros poderes
  */
 function validarPoderesPreRequisitos(
   poderesReq: string[],
@@ -237,14 +237,14 @@ function validarPoderesPreRequisitos(
 }
 
 /**
- * ObtÃ©m nÃ­veis que concedem poderes genÃ©ricos
+ * Obtém níveis que concedem poderes genéricos
  */
 export function getNiveisQueDaoPoder(): number[] {
   return [3, 6, 9, 12, 15, 18];
 }
 
 /**
- * Verifica se um nÃ­vel especÃ­fico concede poder genÃ©rico
+ * Verifica se um nível específico concede poder genérico
  */
 export function nivelConcedePoder(nivel: number): boolean {
   return getNiveisQueDaoPoder().includes(nivel);
