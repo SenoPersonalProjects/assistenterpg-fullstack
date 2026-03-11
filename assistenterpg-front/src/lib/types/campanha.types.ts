@@ -226,6 +226,12 @@ export type SessaoCampanhaDetalhe = {
     ehMestre: boolean;
     podeEditarTodos: boolean;
   };
+  participantes: Array<{
+    usuarioId: number;
+    apelido: string;
+    papel: string;
+    ehDono: boolean;
+  }>;
   cards: Array<{
     personagemSessaoId: number;
     personagemCampanhaId: number;

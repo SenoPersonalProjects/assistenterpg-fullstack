@@ -72,6 +72,7 @@ Comportamentos globais do frontend:
 - token JWT armazenado em `localStorage` (`assistenterpg_token`)
 - interceptor Axios adiciona `Authorization: Bearer <token>`
 - resposta `401` limpa token e redireciona para `/auth/login`
+- lobby de sessao usa WebSocket (`socket.io`) em `assistenterpg-front/src/lib/realtime/sessao-socket.ts`
 - fallback de navegacao com loading global em `assistenterpg-front/src/app/loading.tsx`
 - skeletons de rota por modulo (`campanhas`, `homebrews`, `personagens-base`, `npcs-ameacas`, `compendio`, `suplementos`, `configuracoes`, `notificacoes`, `home`) via `loading.tsx`
 - componente reutilizavel de skeleton: `assistenterpg-front/src/components/ui/RouteLoadingSkeleton.tsx`
@@ -387,6 +388,14 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 - `PATCH /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
   - body: [`AtualizarNpcSessaoDto`](../assistenterpg-back/src/sessao/dto/atualizar-npc-sessao.dto.ts)
 - `DELETE /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
+- canal realtime de sessao (WebSocket):
+  - namespace: `/sessoes`
+  - evento cliente -> servidor: `sessao:join` (`{ campanhaId, sessaoId }`)
+  - eventos servidor -> cliente:
+    - `sessao:joined`
+    - `sessao:erro`
+    - `sessao:atualizada` (`CHAT_NOVA | CENA_ATUALIZADA | TURNO_AVANCADO | NPC_ATUALIZADO | SESSAO_ENCERRADA`)
+    - `sessao:presenca` (`onlineUsuarioIds`)
 
 Regra de negocio relevante:
 
@@ -464,6 +473,9 @@ Detalhamento:
   - apenas mestre pode iniciar sessao, atualizar cena e avancar turno.
   - apenas mestre pode encerrar sessao (`POST /campanhas/:id/sessoes/:sessaoId/encerrar`).
   - dono e membros podem entrar no lobby e usar chat.
+  - detalhe da sessao retorna `participantes` da campanha (apelido/papel/flag de dono).
+  - presenca online do lobby e sincronizada por WebSocket (`sessao:presenca`).
+  - frontend mantem polling de fallback (3s desconectado / 15s conectado) para resiliencia quando o socket cair.
   - `LIVRE` nao usa contagem de rodada/turno.
   - em `LIVRE`, `turnoAtual`, `rodadaAtual` e `indiceTurnoAtual` retornam `null` no detalhe.
   - `POST /turno/avancar` em `LIVRE` retorna erro de negocio (`SESSAO_TURNO_INDISPONIVEL`).
@@ -498,6 +510,7 @@ Integracao frontend:
   - personagens de campanha (listar, associar, atualizar recursos, aplicar/desfazer modificadores, historico)
   - listagem de personagens-base disponiveis por campanha para suportar associacao por mestres
   - sessoes de campanha (listar, criar, detalhe, atualizar cena, avancar turno, listar/enviar chat)
+  - realtime de sessoes (join/presenca/eventos) via `assistenterpg-front/src/lib/realtime/sessao-socket.ts`
   - notificacao local de atualizacao de pendencias de convite (`apiInscreverAtualizacaoConvitesPendentes` / `apiNotificarConvitesPendentesAtualizados`) para manter badge da navbar sincronizado
   - sugestao de associacao de personagem ao entrar na campanha (nao obrigatoria) no componente [`CampaignCharactersSection`](../assistenterpg-front/src/components/campanha/CampaignCharactersSection.tsx)
 

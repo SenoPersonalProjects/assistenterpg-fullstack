@@ -20,9 +20,17 @@ type AcessoCampanha = {
   campanha: {
     id: number;
     donoId: number;
+    dono: {
+      id: number;
+      apelido: string;
+    };
     membros: Array<{
       usuarioId: number;
       papel: string;
+      usuario: {
+        id: number;
+        apelido: string;
+      };
     }>;
   };
   ehDono: boolean;
@@ -296,6 +304,7 @@ export class SessaoService {
         ehMestre: acesso.ehMestre,
         podeEditarTodos: acesso.ehMestre,
       },
+      participantes: this.mapearParticipantesCampanha(acesso.campanha),
       cards: personagensOrdenados.map((personagem) => {
         const podeEditar =
           acesso.ehMestre || personagem.personagemCampanha.donoId === usuarioId;
@@ -812,6 +821,14 @@ export class SessaoService {
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
+  async validarAcessoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+  ): Promise<void> {
+    await this.obterSessaoComAcesso(campanhaId, sessaoId, usuarioId);
+  }
+
   private async obterAcessoCampanha(
     campanhaId: number,
     usuarioId: number,
@@ -821,10 +838,22 @@ export class SessaoService {
       select: {
         id: true,
         donoId: true,
+        dono: {
+          select: {
+            id: true,
+            apelido: true,
+          },
+        },
         membros: {
           select: {
             usuarioId: true,
             papel: true,
+            usuario: {
+              select: {
+                id: true,
+                apelido: true,
+              },
+            },
           },
         },
       },
@@ -904,6 +933,38 @@ export class SessaoService {
     if (!acesso.ehMestre) {
       throw new CampanhaApenasMestreException(acao);
     }
+  }
+
+  private mapearParticipantesCampanha(campanha: AcessoCampanha['campanha']) {
+    const participantes = new Map<
+      number,
+      { usuarioId: number; apelido: string; papel: string; ehDono: boolean }
+    >();
+
+    participantes.set(campanha.dono.id, {
+      usuarioId: campanha.dono.id,
+      apelido: campanha.dono.apelido,
+      papel: 'MESTRE',
+      ehDono: true,
+    });
+
+    for (const membro of campanha.membros) {
+      if (membro.usuarioId === campanha.dono.id) continue;
+
+      participantes.set(membro.usuarioId, {
+        usuarioId: membro.usuarioId,
+        apelido: membro.usuario.apelido,
+        papel: membro.papel,
+        ehDono: false,
+      });
+    }
+
+    return Array.from(participantes.values()).sort((a, b) => {
+      if (a.ehDono !== b.ehDono) {
+        return a.ehDono ? -1 : 1;
+      }
+      return a.apelido.localeCompare(b.apelido, 'pt-BR');
+    });
   }
 
   private clampNumero(valor: number, min: number, max: number): number {

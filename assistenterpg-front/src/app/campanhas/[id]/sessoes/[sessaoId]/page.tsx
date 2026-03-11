@@ -32,6 +32,11 @@ import { Select } from '@/components/ui/Select';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  conectarSocketSessao,
+  type EventoSessaoPresenca,
+  type EventoSessaoAtualizada,
+} from '@/lib/realtime/sessao-socket';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -87,6 +92,16 @@ function labelTipoNpc(tipo: string): string {
   return labels[tipo] ?? tipo;
 }
 
+function labelPapelParticipante(papel: string): string {
+  const labels: Record<string, string> = {
+    MESTRE: 'Mestre',
+    JOGADOR: 'Jogador',
+    OBSERVADOR: 'Observador',
+  };
+
+  return labels[papel] ?? papel;
+}
+
 export default function SessaoCampanhaPage() {
   const params = useParams<{ id: string; sessaoId: string }>();
   const router = useRouter();
@@ -122,9 +137,12 @@ export default function SessaoCampanhaPage() {
   const [adicionandoNpc, setAdicionandoNpc] = useState(false);
   const [salvandoNpcId, setSalvandoNpcId] = useState<number | null>(null);
   const [removendoNpcId, setRemovendoNpcId] = useState<number | null>(null);
+  const [socketConectado, setSocketConectado] = useState(false);
+  const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
 
   const chatRef = useRef<MensagemChatSessao[]>([]);
   const fimChatRef = useRef<HTMLDivElement | null>(null);
+  const sincronizandoTempoRealRef = useRef(false);
 
   useEffect(() => {
     chatRef.current = chat;
@@ -170,6 +188,46 @@ export default function SessaoCampanhaPage() {
     },
     [],
   );
+
+  const anexarMensagensNoChat = useCallback((mensagensNovas: MensagemChatSessao[]) => {
+    if (mensagensNovas.length === 0) return;
+
+    setChat((anterior) => {
+      const ids = new Set(anterior.map((item) => item.id));
+      const unicas = mensagensNovas.filter((item) => !ids.has(item.id));
+      return unicas.length > 0 ? [...anterior, ...unicas] : anterior;
+    });
+  }, []);
+
+  const sincronizarTempoReal = useCallback(async () => {
+    if (!idsValidos || !usuario || sincronizandoTempoRealRef.current) return;
+
+    sincronizandoTempoRealRef.current = true;
+    try {
+      const afterId = chatRef.current.length
+        ? chatRef.current[chatRef.current.length - 1].id
+        : undefined;
+      const [detalheAtual, mensagensNovas] = await Promise.all([
+        apiGetSessaoCampanha(campanhaId, sessaoId),
+        apiListarChatSessaoCampanha(campanhaId, sessaoId, afterId),
+      ]);
+
+      setDetalhe(detalheAtual);
+      sincronizarEstadosDerivados(detalheAtual);
+      anexarMensagensNoChat(mensagensNovas);
+    } catch {
+      // sincronizacao silenciosa de fallback/realtime
+    } finally {
+      sincronizandoTempoRealRef.current = false;
+    }
+  }, [
+    anexarMensagensNoChat,
+    campanhaId,
+    idsValidos,
+    sessaoId,
+    sincronizarEstadosDerivados,
+    usuario,
+  ]);
 
   const carregarInicial = useCallback(async () => {
     if (!idsValidos || !usuario) return;
@@ -235,50 +293,259 @@ export default function SessaoCampanhaPage() {
   useEffect(() => {
     if (!idsValidos || !usuario) return;
 
-    let ativo = true;
-    const intervalo = setInterval(() => {
-      void (async () => {
-        try {
-          const afterId = chatRef.current.length
-            ? chatRef.current[chatRef.current.length - 1].id
-            : undefined;
-          const [detalheAtual, mensagensNovas] = await Promise.all([
-            apiGetSessaoCampanha(campanhaId, sessaoId),
-            apiListarChatSessaoCampanha(campanhaId, sessaoId, afterId),
-          ]);
-
-          if (!ativo) return;
-          setDetalhe(detalheAtual);
-          sincronizarEstadosDerivados(detalheAtual);
-
-          if (mensagensNovas.length > 0) {
-            setChat((anterior) => {
-              const ids = new Set(anterior.map((item) => item.id));
-              const unicas = mensagensNovas.filter((item) => !ids.has(item.id));
-              return unicas.length > 0 ? [...anterior, ...unicas] : anterior;
-            });
-          }
-        } catch {
-          // polling silencioso
-        }
-      })();
-    }, 3000);
+    const intervaloMs = socketConectado ? 15000 : 3000;
+    const intervalo = window.setInterval(() => {
+      void sincronizarTempoReal();
+    }, intervaloMs);
 
     return () => {
-      ativo = false;
-      clearInterval(intervalo);
+      window.clearInterval(intervalo);
     };
-  }, [campanhaId, idsValidos, sessaoId, sincronizarEstadosDerivados, usuario]);
+  }, [idsValidos, socketConectado, sincronizarTempoReal, usuario]);
+
+  useEffect(() => {
+    if (!idsValidos || !usuario) return;
+
+    const socket = conectarSocketSessao();
+
+    const entrarNaSala = () => {
+      socket.emit('sessao:join', { campanhaId, sessaoId });
+    };
+
+    const handleConnect = () => {
+      setSocketConectado(true);
+      setOnlineUsuarioIds((anterior) =>
+        anterior.includes(usuario.id) ? anterior : [...anterior, usuario.id],
+      );
+      entrarNaSala();
+    };
+
+    const handleDisconnect = () => {
+      setSocketConectado(false);
+      setOnlineUsuarioIds([]);
+    };
+
+    const handleConnectError = () => {
+      setSocketConectado(false);
+      setOnlineUsuarioIds([]);
+    };
+
+    const handleSessaoErro = () => {
+      setSocketConectado(false);
+      setOnlineUsuarioIds([]);
+    };
+
+    const handleSessaoPresenca = (evento: EventoSessaoPresenca) => {
+      if (!evento) return;
+      if (evento.campanhaId !== campanhaId || evento.sessaoId !== sessaoId) return;
+      setOnlineUsuarioIds(
+        Array.isArray(evento.onlineUsuarioIds) ? evento.onlineUsuarioIds : [],
+      );
+    };
+
+    const handleSessaoAtualizada = (evento: EventoSessaoAtualizada) => {
+      if (!evento) return;
+      if (evento.campanhaId !== campanhaId || evento.sessaoId !== sessaoId) return;
+      void sincronizarTempoReal();
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
+    socket.on('sessao:joined', () => setSocketConectado(true));
+    socket.on('sessao:erro', handleSessaoErro);
+    socket.on('sessao:presenca', handleSessaoPresenca);
+    socket.on('sessao:atualizada', handleSessaoAtualizada);
+
+    if (socket.connected) {
+      handleConnect();
+    }
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('connect_error', handleConnectError);
+      socket.off('sessao:joined');
+      socket.off('sessao:erro', handleSessaoErro);
+      socket.off('sessao:presenca', handleSessaoPresenca);
+      socket.off('sessao:atualizada', handleSessaoAtualizada);
+      socket.disconnect();
+      setSocketConectado(false);
+      setOnlineUsuarioIds([]);
+    };
+  }, [campanhaId, idsValidos, sessaoId, sincronizarTempoReal, usuario]);
 
   const podeControlarSessao = Boolean(detalhe?.permissoes.ehMestre);
   const sessaoEncerrada = detalhe?.status === 'ENCERRADA';
+  const participantes = detalhe?.participantes ?? [];
   const cards = detalhe?.cards ?? [];
   const npcs = detalhe?.npcs ?? [];
+  const onlineSet = useMemo(() => new Set(onlineUsuarioIds), [onlineUsuarioIds]);
 
   const tituloSessao = useMemo(() => {
     if (!detalhe) return 'Sessao da campanha';
     return detalhe.titulo;
   }, [detalhe]);
+  const totalParticipantesOnline = useMemo(
+    () => participantes.filter((participante) => onlineSet.has(participante.usuarioId)).length,
+    [onlineSet, participantes],
+  );
+
+  const renderCardsSessao = () => (
+    <>
+      <Card className="space-y-2">
+        <h2 className="text-sm font-semibold text-app-fg">Personagens da sessao</h2>
+        <p className="text-xs text-app-muted">
+          Jogadores editam apenas sua ficha. O mestre pode editar todas.
+        </p>
+      </Card>
+
+      {cards.length === 0 ? (
+        <EmptyState
+          variant="card"
+          icon="characters"
+          title="Sem personagens na sessao"
+          description="Associe personagens na campanha para aparecerem no lobby."
+        />
+      ) : (
+        cards.map((card) => {
+          const recursos = card.recursos;
+          const draft = edicaoRecursos[card.personagemCampanhaId];
+
+          return (
+            <Card key={card.personagemSessaoId} className="space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-app-fg">{card.nomePersonagem}</h3>
+                <p className="text-xs text-app-muted">Jogador: {card.nomeJogador}</p>
+              </div>
+
+              {recursos ? (
+                card.podeEditar ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        label={`PV (max ${recursos.pvMax})`}
+                        type="number"
+                        value={draft?.pvAtual ?? String(recursos.pvAtual)}
+                        onChange={(event) =>
+                          setEdicaoRecursos((anterior) => ({
+                            ...anterior,
+                            [card.personagemCampanhaId]: {
+                              ...(anterior[card.personagemCampanhaId] ?? {
+                                pvAtual: String(recursos.pvAtual),
+                                peAtual: String(recursos.peAtual),
+                                eaAtual: String(recursos.eaAtual),
+                                sanAtual: String(recursos.sanAtual),
+                              }),
+                              pvAtual: event.target.value,
+                            },
+                          }))
+                        }
+                      />
+                      <Input
+                        label={`PE (max ${recursos.peMax})`}
+                        type="number"
+                        value={draft?.peAtual ?? String(recursos.peAtual)}
+                        onChange={(event) =>
+                          setEdicaoRecursos((anterior) => ({
+                            ...anterior,
+                            [card.personagemCampanhaId]: {
+                              ...(anterior[card.personagemCampanhaId] ?? {
+                                pvAtual: String(recursos.pvAtual),
+                                peAtual: String(recursos.peAtual),
+                                eaAtual: String(recursos.eaAtual),
+                                sanAtual: String(recursos.sanAtual),
+                              }),
+                              peAtual: event.target.value,
+                            },
+                          }))
+                        }
+                      />
+                      <Input
+                        label={`EA (max ${recursos.eaMax})`}
+                        type="number"
+                        value={draft?.eaAtual ?? String(recursos.eaAtual)}
+                        onChange={(event) =>
+                          setEdicaoRecursos((anterior) => ({
+                            ...anterior,
+                            [card.personagemCampanhaId]: {
+                              ...(anterior[card.personagemCampanhaId] ?? {
+                                pvAtual: String(recursos.pvAtual),
+                                peAtual: String(recursos.peAtual),
+                                eaAtual: String(recursos.eaAtual),
+                                sanAtual: String(recursos.sanAtual),
+                              }),
+                              eaAtual: event.target.value,
+                            },
+                          }))
+                        }
+                      />
+                      <Input
+                        label={`SAN (max ${recursos.sanMax})`}
+                        type="number"
+                        value={draft?.sanAtual ?? String(recursos.sanAtual)}
+                        onChange={(event) =>
+                          setEdicaoRecursos((anterior) => ({
+                            ...anterior,
+                            [card.personagemCampanhaId]: {
+                              ...(anterior[card.personagemCampanhaId] ?? {
+                                pvAtual: String(recursos.pvAtual),
+                                peAtual: String(recursos.peAtual),
+                                eaAtual: String(recursos.eaAtual),
+                                sanAtual: String(recursos.sanAtual),
+                              }),
+                              sanAtual: event.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => void handleSalvarCard(card.personagemCampanhaId)}
+                      disabled={
+                        sessaoEncerrada || salvandoCardId === card.personagemCampanhaId
+                      }
+                    >
+                      {salvandoCardId === card.personagemCampanhaId
+                        ? 'Salvando...'
+                        : 'Salvar recursos'}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-app-muted">
+                    PV {recursos.pvAtual}/{recursos.pvMax} | PE {recursos.peAtual}/
+                    {recursos.peMax} | EA {recursos.eaAtual}/{recursos.eaMax} | SAN{' '}
+                    {recursos.sanAtual}/{recursos.sanMax}
+                  </p>
+                )
+              ) : (
+                <p className="text-xs text-app-muted">
+                  Visao resumida: apenas nome do jogador e personagem.
+                </p>
+              )}
+
+              {card.podeEditar ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    window.open(
+                      `/personagens-base/${card.personagemBaseId}`,
+                      '_blank',
+                      'noopener,noreferrer',
+                    )
+                  }
+                >
+                  Abrir ficha completa
+                </Button>
+              ) : null}
+            </Card>
+          );
+        })
+      )}
+    </>
+  );
 
   async function handleAtualizarCena() {
     if (!detalhe) return;
@@ -505,181 +772,51 @@ export default function SessaoCampanhaPage() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <section className="space-y-3">
-            <Card className="space-y-2">
-              <h2 className="text-sm font-semibold text-app-fg">
-                Personagens da sessao
-              </h2>
-              <p className="text-xs text-app-muted">
-                Jogadores editam apenas sua ficha. O mestre pode editar todas.
-              </p>
-            </Card>
-
-            {cards.length === 0 ? (
-              <EmptyState
-                variant="card"
-                icon="characters"
-                title="Sem personagens na sessao"
-                description="Associe personagens na campanha para aparecerem no lobby."
-              />
+            {podeControlarSessao ? (
+              <Card className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-app-fg">
+                      Escudo do Mestre
+                    </h2>
+                    <p className="text-xs text-app-muted">
+                      Painel rapido com indicadores da mesa (placeholder).
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface p-2">
+                    <Icon name="shield" className="h-4 w-4 text-app-fg" />
+                  </span>
+                </div>
+                <div className="grid gap-2 text-xs">
+                  <div className="rounded border border-app-border bg-app-surface px-2 py-1.5 text-app-fg">
+                    Participantes online: {totalParticipantesOnline}/{participantes.length}
+                  </div>
+                  <div className="rounded border border-app-border bg-app-surface px-2 py-1.5 text-app-fg">
+                    Cena atual: {labelCena(detalhe.cenaAtual.tipo)}
+                  </div>
+                  <div className="rounded border border-app-border bg-app-surface px-2 py-1.5 text-app-fg">
+                    Status da sessao: {sessaoEncerrada ? 'Encerrada' : 'Ativa'}
+                  </div>
+                </div>
+              </Card>
             ) : (
-              cards.map((card) => {
-                const recursos = card.recursos;
-                const draft = edicaoRecursos[card.personagemCampanhaId];
-
-                return (
-                  <Card key={card.personagemSessaoId} className="space-y-3">
-                    <div>
-                      <h3 className="text-sm font-semibold text-app-fg">
-                        {card.nomePersonagem}
-                      </h3>
-                      <p className="text-xs text-app-muted">
-                        Jogador: {card.nomeJogador}
-                      </p>
-                    </div>
-
-                    {recursos ? (
-                      card.podeEditar ? (
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
-                              label={`PV (max ${recursos.pvMax})`}
-                              type="number"
-                              value={draft?.pvAtual ?? String(recursos.pvAtual)}
-                              onChange={(event) =>
-                                setEdicaoRecursos((anterior) => ({
-                                  ...anterior,
-                                  [card.personagemCampanhaId]: {
-                                    ...(anterior[card.personagemCampanhaId] ?? {
-                                      pvAtual: String(recursos.pvAtual),
-                                      peAtual: String(recursos.peAtual),
-                                      eaAtual: String(recursos.eaAtual),
-                                      sanAtual: String(recursos.sanAtual),
-                                    }),
-                                    pvAtual: event.target.value,
-                                  },
-                                }))
-                              }
-                            />
-                            <Input
-                              label={`PE (max ${recursos.peMax})`}
-                              type="number"
-                              value={draft?.peAtual ?? String(recursos.peAtual)}
-                              onChange={(event) =>
-                                setEdicaoRecursos((anterior) => ({
-                                  ...anterior,
-                                  [card.personagemCampanhaId]: {
-                                    ...(anterior[card.personagemCampanhaId] ?? {
-                                      pvAtual: String(recursos.pvAtual),
-                                      peAtual: String(recursos.peAtual),
-                                      eaAtual: String(recursos.eaAtual),
-                                      sanAtual: String(recursos.sanAtual),
-                                    }),
-                                    peAtual: event.target.value,
-                                  },
-                                }))
-                              }
-                            />
-                            <Input
-                              label={`EA (max ${recursos.eaMax})`}
-                              type="number"
-                              value={draft?.eaAtual ?? String(recursos.eaAtual)}
-                              onChange={(event) =>
-                                setEdicaoRecursos((anterior) => ({
-                                  ...anterior,
-                                  [card.personagemCampanhaId]: {
-                                    ...(anterior[card.personagemCampanhaId] ?? {
-                                      pvAtual: String(recursos.pvAtual),
-                                      peAtual: String(recursos.peAtual),
-                                      eaAtual: String(recursos.eaAtual),
-                                      sanAtual: String(recursos.sanAtual),
-                                    }),
-                                    eaAtual: event.target.value,
-                                  },
-                                }))
-                              }
-                            />
-                            <Input
-                              label={`SAN (max ${recursos.sanMax})`}
-                              type="number"
-                              value={draft?.sanAtual ?? String(recursos.sanAtual)}
-                              onChange={(event) =>
-                                setEdicaoRecursos((anterior) => ({
-                                  ...anterior,
-                                  [card.personagemCampanhaId]: {
-                                    ...(anterior[card.personagemCampanhaId] ?? {
-                                      pvAtual: String(recursos.pvAtual),
-                                      peAtual: String(recursos.peAtual),
-                                      eaAtual: String(recursos.eaAtual),
-                                      sanAtual: String(recursos.sanAtual),
-                                    }),
-                                    sanAtual: event.target.value,
-                                  },
-                                }))
-                              }
-                            />
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              void handleSalvarCard(card.personagemCampanhaId)
-                            }
-                            disabled={
-                              sessaoEncerrada ||
-                              salvandoCardId === card.personagemCampanhaId
-                            }
-                          >
-                            {salvandoCardId === card.personagemCampanhaId
-                              ? 'Salvando...'
-                              : 'Salvar recursos'}
-                          </Button>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-app-muted">
-                          PV {recursos.pvAtual}/{recursos.pvMax} · PE {recursos.peAtual}/
-                          {recursos.peMax} · EA {recursos.eaAtual}/{recursos.eaMax} · SAN{' '}
-                          {recursos.sanAtual}/{recursos.sanMax}
-                        </p>
-                      )
-                    ) : (
-                      <p className="text-xs text-app-muted">
-                        Visao resumida: apenas nome do jogador e personagem.
-                      </p>
-                    )}
-
-                    {card.podeEditar ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          window.open(
-                            `/personagens-base/${card.personagemBaseId}`,
-                            '_blank',
-                            'noopener,noreferrer',
-                          )
-                        }
-                      >
-                        Abrir ficha completa
-                      </Button>
-                    ) : null}
-                  </Card>
-                );
-              })
+              renderCardsSessao()
             )}
 
             <Card className="space-y-2">
               <h2 className="text-sm font-semibold text-app-fg">
-                Aliados ou ameaças na cena
+                Aliados ou ameacas na cena
               </h2>
               <p className="text-xs text-app-muted">
-                Mestre adiciona e ajusta aliados ou ameaças por cena. Jogadores veem em modo leitura.
+                Mestre adiciona e ajusta aliados ou ameacas por cena. Jogadores veem em modo leitura.
               </p>
             </Card>
 
             {podeControlarSessao ? (
               <Card className="space-y-2">
-                <h3 className="text-sm font-semibold text-app-fg">Adicionar aliado ou ameaça</h3>
+                <h3 className="text-sm font-semibold text-app-fg">Adicionar aliado ou ameaca</h3>
                 <Select
-                  label="Ficha disponível"
+                  label="Ficha disponivel"
                   value={npcSelecionadoId}
                   onChange={(event) => setNpcSelecionadoId(event.target.value)}
                 >
@@ -716,8 +853,8 @@ export default function SessaoCampanhaPage() {
               <EmptyState
                 variant="card"
                 icon="curse"
-                title="Sem aliados ou ameaças nesta cena"
-                description="O mestre pode adicionar aliados ou ameaças para esta cena."
+                title="Sem aliados ou ameacas nesta cena"
+                description="O mestre pode adicionar aliados ou ameacas para esta cena."
               />
             ) : (
               npcs.map((npc) => {
@@ -744,7 +881,7 @@ export default function SessaoCampanhaPage() {
                     <div>
                       <h3 className="text-sm font-semibold text-app-fg">{npc.nome}</h3>
                       <p className="text-xs text-app-muted">
-                        {npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça'} | {labelTipoNpc(npc.tipo)}
+                        {npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaca'} | {labelTipoNpc(npc.tipo)}
                       </p>
                     </div>
 
@@ -964,13 +1101,15 @@ export default function SessaoCampanhaPage() {
           </section>
 
           <section className="space-y-3">
+            {podeControlarSessao ? renderCardsSessao() : null}
+
             <Card className="space-y-3">
               <h2 className="text-sm font-semibold text-app-fg">Cena atual</h2>
               <p className="text-sm text-app-muted">{labelCena(detalhe.cenaAtual.tipo)}</p>
               {detalhe.cenaAtual.nome ? (
                 <p className="text-xs text-app-muted">{detalhe.cenaAtual.nome}</p>
               ) : null}
-              <p className="text-xs text-app-muted">Aliados ou ameaças na cena: {npcs.length}</p>
+              <p className="text-xs text-app-muted">Aliados ou ameacas na cena: {npcs.length}</p>
 
               {detalhe.controleTurnosAtivo ? (
                 <div className="rounded border border-app-border p-3 space-y-1">
@@ -1053,6 +1192,58 @@ export default function SessaoCampanhaPage() {
 
           <section className="space-y-3">
             <Card className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-app-fg">Participantes</h2>
+                <span
+                  className={
+                    socketConectado
+                      ? 'inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300'
+                      : 'inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300'
+                  }
+                >
+                  {socketConectado ? 'Tempo real' : 'Fallback (polling)'}
+                </span>
+              </div>
+              {participantes.length === 0 ? (
+                <p className="text-xs text-app-muted">
+                  Nenhum participante carregado para esta campanha.
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {participantes.map((participante) => {
+                    const online = onlineSet.has(participante.usuarioId);
+
+                    return (
+                      <div
+                        key={participante.usuarioId}
+                        className="flex items-center justify-between rounded border border-app-border bg-app-surface px-2 py-1.5"
+                      >
+                        <div>
+                          <p className="text-xs font-semibold text-app-fg">
+                            {participante.apelido}
+                            {participante.ehDono ? ' (Dono)' : ''}
+                          </p>
+                          <p className="text-[11px] text-app-muted">
+                            {labelPapelParticipante(participante.papel)}
+                          </p>
+                        </div>
+                        <span
+                          className={
+                            online
+                              ? 'text-[11px] font-medium text-emerald-300'
+                              : 'text-[11px] font-medium text-app-muted'
+                          }
+                        >
+                          {online ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+
+            <Card className="space-y-3">
               <h2 className="text-sm font-semibold text-app-fg">Chat em tempo real</h2>
               <div className="h-[420px] overflow-y-auto rounded border border-app-border p-3 space-y-2 bg-app-bg">
                 {chat.length === 0 ? (
@@ -1067,7 +1258,7 @@ export default function SessaoCampanhaPage() {
                         {item.autor.personagemNome
                           ? ` (${item.autor.personagemNome})`
                           : ''}{' '}
-                        · {formatarDataHora(item.criadoEm)}
+                        | {formatarDataHora(item.criadoEm)}
                       </p>
                       <p className="text-sm text-app-fg whitespace-pre-wrap">{item.mensagem}</p>
                     </div>

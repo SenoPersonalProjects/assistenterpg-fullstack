@@ -142,6 +142,15 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - body `AtualizarNpcSessaoDto`:
     - mesmos campos opcionais de edicao da instancia em cena (exceto `npcAmeacaId`)
 - `DELETE /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
+- canal realtime de sessao (WebSocket):
+  - namespace `/sessoes`
+  - evento cliente -> servidor:
+    - `sessao:join` (`{ campanhaId, sessaoId }`)
+  - eventos servidor -> cliente:
+    - `sessao:joined`
+    - `sessao:erro`
+    - `sessao:atualizada` (`CHAT_NOVA`, `CENA_ATUALIZADA`, `TURNO_AVANCADO`, `NPC_ATUALIZADO`, `SESSAO_ENCERRADA`)
+    - `sessao:presenca` (`onlineUsuarioIds`)
 
 ## Regras de negocio
 
@@ -217,6 +226,9 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - participantes da campanha podem:
     - abrir detalhe do lobby
     - listar/enviar mensagens no chat
+  - detalhe da sessao inclui `participantes` da campanha (apelido/papel/ehDono) para o lobby.
+  - status online da mesa e propagado por `sessao:presenca`.
+  - frontend mantem polling de fallback para sincronizacao silenciosa quando websocket estiver indisponivel.
   - regra de cena livre:
     - `LIVRE` nao possui contagem de rodadas/turnos.
     - em `LIVRE`, detalhe retorna `rodadaAtual`, `indiceTurnoAtual` e `turnoAtual` como `null`.
@@ -296,6 +308,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - listar minhas, criar/excluir, detalhe, fluxo de convites
   - personagens de campanha (associacao/edicao/modificadores/historico)
   - sessoes de campanha (CRUD de lobby + chat + controle de cena/turno)
+  - realtime do lobby (join, atualizacoes e presenca) via `assistenterpg-front/src/lib/realtime/sessao-socket.ts`
   - listagem em `assistenterpg-front/src/app/campanhas/page.tsx` com preview modal antes da navegacao completa
 
 Arquivos:

@@ -19,11 +19,15 @@ import { EnviarChatSessaoDto } from './dto/enviar-chat-sessao.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
+import { SessaoGateway } from './sessao.gateway';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas/:campanhaId/sessoes')
 export class SessaoController {
-  constructor(private readonly sessaoService: SessaoService) {}
+  constructor(
+    private readonly sessaoService: SessaoService,
+    private readonly sessaoGateway: SessaoGateway,
+  ) {}
 
   @Get()
   async listarSessoesCampanha(
@@ -77,12 +81,16 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: EnviarChatSessaoDto,
   ) {
-    return this.sessaoService.enviarMensagemChatSessao(
+    const resultado = await this.sessaoService.enviarMensagemChatSessao(
       campanhaId,
       sessaoId,
       req.user.id,
       dto.mensagem,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'CHAT_NOVA');
+
+    return resultado;
   }
 
   @Post(':sessaoId/turno/avancar')
@@ -91,11 +99,19 @@ export class SessaoController {
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
     @Request() req: { user: { id: number } },
   ) {
-    return this.sessaoService.avancarTurnoSessao(
+    const resultado = await this.sessaoService.avancarTurnoSessao(
       campanhaId,
       sessaoId,
       req.user.id,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'TURNO_AVANCADO',
+    );
+
+    return resultado;
   }
 
   @Post(':sessaoId/encerrar')
@@ -104,11 +120,19 @@ export class SessaoController {
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
     @Request() req: { user: { id: number } },
   ) {
-    return this.sessaoService.encerrarSessaoCampanha(
+    const resultado = await this.sessaoService.encerrarSessaoCampanha(
       campanhaId,
       sessaoId,
       req.user.id,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'SESSAO_ENCERRADA',
+    );
+
+    return resultado;
   }
 
   @Patch(':sessaoId/cena')
@@ -118,12 +142,20 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AtualizarCenaSessaoDto,
   ) {
-    return this.sessaoService.atualizarCenaSessao(
+    const resultado = await this.sessaoService.atualizarCenaSessao(
       campanhaId,
       sessaoId,
       req.user.id,
       dto,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'CENA_ATUALIZADA',
+    );
+
+    return resultado;
   }
 
   @Post(':sessaoId/npcs')
@@ -133,12 +165,20 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AdicionarNpcSessaoDto,
   ) {
-    return this.sessaoService.adicionarNpcSessao(
+    const resultado = await this.sessaoService.adicionarNpcSessao(
       campanhaId,
       sessaoId,
       req.user.id,
       dto,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+
+    return resultado;
   }
 
   @Patch(':sessaoId/npcs/:npcSessaoId')
@@ -149,13 +189,21 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AtualizarNpcSessaoDto,
   ) {
-    return this.sessaoService.atualizarNpcSessao(
+    const resultado = await this.sessaoService.atualizarNpcSessao(
       campanhaId,
       sessaoId,
       npcSessaoId,
       req.user.id,
       dto,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+
+    return resultado;
   }
 
   @Delete(':sessaoId/npcs/:npcSessaoId')
@@ -165,11 +213,19 @@ export class SessaoController {
     @Param('npcSessaoId', ParseIntPipe) npcSessaoId: number,
     @Request() req: { user: { id: number } },
   ) {
-    return this.sessaoService.removerNpcSessao(
+    const resultado = await this.sessaoService.removerNpcSessao(
       campanhaId,
       sessaoId,
       npcSessaoId,
       req.user.id,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+
+    return resultado;
   }
 }
