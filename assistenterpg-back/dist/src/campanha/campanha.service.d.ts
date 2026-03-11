@@ -4,6 +4,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AplicarModificadorPersonagemCampanhaDto } from './dto/aplicar-modificador-personagem-campanha.dto';
 import { AtualizarRecursosPersonagemCampanhaDto } from './dto/atualizar-recursos-personagem-campanha.dto';
 type PapelCampanha = 'MESTRE' | 'JOGADOR' | 'OBSERVADOR';
+type FiltrosListarModificadoresCampanha = {
+    sessaoId?: number;
+    cenaId?: number;
+};
 export declare class CampanhaService {
     private readonly prisma;
     constructor(prisma: PrismaService);
@@ -263,10 +267,12 @@ export declare class CampanhaService {
             criadoPorId: number;
         }[];
     }>;
-    listarModificadoresPersonagemCampanha(campanhaId: number, personagemCampanhaId: number, usuarioId: number, incluirInativos?: boolean): Promise<{
+    listarModificadoresPersonagemCampanha(campanhaId: number, personagemCampanhaId: number, usuarioId: number, incluirInativos?: boolean, filtros?: FiltrosListarModificadoresCampanha): Promise<{
         id: number;
         campanhaId: number;
         personagemCampanhaId: number;
+        sessaoId: number | null;
+        cenaId: number | null;
         campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
         valor: number;
         nome: string;
@@ -293,6 +299,8 @@ export declare class CampanhaService {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            sessaoId: number | null;
+            cenaId: number | null;
             personagemCampanhaId: number;
             valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
@@ -370,6 +378,8 @@ export declare class CampanhaService {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            sessaoId: number | null;
+            cenaId: number | null;
             personagemCampanhaId: number;
             valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
@@ -446,6 +456,7 @@ export declare class CampanhaService {
         tipo: string;
         criadoPorId: number | null;
     })[]>;
+    private validarContextoSessaoCena;
     private garantirAcesso;
     private obterPersonagemCampanhaComPermissao;
     private mapearPersonagemCampanhaResposta;

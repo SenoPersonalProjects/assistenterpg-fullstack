@@ -25,9 +25,13 @@ import { Icon } from '@/components/ui/Icon';
 type Props = {
   isOpen: boolean;
   campanhaId: number;
-  personagem: PersonagemCampanhaResumo | null;
+  personagem: Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null;
   onClose: () => void;
   onPersonagemAtualizado: (personagem: PersonagemCampanhaResumo) => void;
+  contextoSessao?: {
+    sessaoId: number;
+    cenaId?: number | null;
+  };
 };
 
 const CAMPOS_MODIFICADOR_OPTIONS: Array<{
@@ -66,6 +70,7 @@ export function CampaignCharacterEditorModal({
   personagem,
   onClose,
   onPersonagemAtualizado,
+  contextoSessao,
 }: Props) {
   const [pvAtual, setPvAtual] = useState('');
   const [peAtual, setPeAtual] = useState('');
@@ -94,6 +99,23 @@ export function CampaignCharacterEditorModal({
     if (!personagem) return 'Editar ficha da campanha';
     return `Editar ficha: ${personagem.nome}`;
   }, [personagem]);
+  const filtrosModificador = useMemo(() => {
+    if (!contextoSessao) return undefined;
+    return {
+      sessaoId: contextoSessao.sessaoId,
+      ...(typeof contextoSessao.cenaId === 'number'
+        ? { cenaId: contextoSessao.cenaId }
+        : {}),
+    };
+  }, [contextoSessao]);
+
+  const contextoLabel = useMemo(() => {
+    if (!contextoSessao) return null;
+    if (typeof contextoSessao.cenaId === 'number') {
+      return `Sessao #${contextoSessao.sessaoId} - Cena #${contextoSessao.cenaId}`;
+    }
+    return `Sessao #${contextoSessao.sessaoId}`;
+  }, [contextoSessao]);
 
   const carregarDadosRelacionados = useCallback(async () => {
     if (!personagemId) return;
@@ -105,6 +127,7 @@ export function CampaignCharacterEditorModal({
           campanhaId,
           personagemId,
           true,
+          filtrosModificador,
         ),
         apiListarHistoricoPersonagemCampanha(campanhaId, personagemId),
       ]);
@@ -116,7 +139,7 @@ export function CampaignCharacterEditorModal({
     } finally {
       setLoadingDados(false);
     }
-  }, [campanhaId, personagemId]);
+  }, [campanhaId, filtrosModificador, personagemId]);
 
   useEffect(() => {
     if (!isOpen || !personagem) return;
@@ -197,6 +220,11 @@ export function CampaignCharacterEditorModal({
           valor,
           nome: nomeModificador.trim(),
           descricao: descricaoModificador.trim() || undefined,
+          sessaoId: contextoSessao?.sessaoId,
+          cenaId:
+            typeof contextoSessao?.cenaId === 'number'
+              ? contextoSessao.cenaId
+              : undefined,
         },
       );
 
@@ -239,6 +267,14 @@ export function CampaignCharacterEditorModal({
     <Modal isOpen={isOpen} onClose={onClose} title={titulo} size="xl">
       {!personagem ? null : (
         <div className="space-y-5">
+          {contextoLabel ? (
+            <section className="rounded-lg border border-app-border bg-app-surface p-3">
+              <p className="text-xs text-app-muted">
+                Contexto dos modificadores: {contextoLabel}
+              </p>
+            </section>
+          ) : null}
+
           <section className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
             <h3 className="text-sm font-semibold text-app-fg">
               Recursos atuais da campanha
@@ -371,6 +407,17 @@ export function CampaignCharacterEditorModal({
                         <p className="text-xs text-app-muted">
                           Criado em {formatarDataHora(modificador.criadoEm)}
                         </p>
+                        {modificador.sessaoId !== null || modificador.cenaId !== null ? (
+                          <p className="text-xs text-app-muted">
+                            Contexto:{' '}
+                            {modificador.sessaoId !== null
+                              ? `Sessao #${modificador.sessaoId}`
+                              : 'Sessao nao informada'}
+                            {modificador.cenaId !== null
+                              ? ` - Cena #${modificador.cenaId}`
+                              : ''}
+                          </p>
+                        ) : null}
                         {!modificador.ativo && modificador.desfeitoEm && (
                           <p className="text-xs text-app-muted">
                             Desfeito em {formatarDataHora(modificador.desfeitoEm)}

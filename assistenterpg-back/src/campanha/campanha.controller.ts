@@ -1,5 +1,6 @@
 // src/campanha/campanha.controller.ts
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -147,12 +148,35 @@ export class CampanhaController {
     @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
     @Request() req: { user: { id: number } },
     @Query('incluirInativos') incluirInativos?: string,
+    @Query('sessaoId') sessaoId?: string,
+    @Query('cenaId') cenaId?: string,
   ) {
+    const parseOptionalQueryInt = (
+      valor: string | undefined,
+      campo: 'sessaoId' | 'cenaId',
+    ): number | undefined => {
+      if (typeof valor !== 'string' || valor.trim() === '') {
+        return undefined;
+      }
+      const numero = Number(valor);
+      if (!Number.isInteger(numero) || numero < 1) {
+        throw new BadRequestException(`${campo} deve ser inteiro >= 1`);
+      }
+      return numero;
+    };
+
+    const sessaoIdNumero = parseOptionalQueryInt(sessaoId, 'sessaoId');
+    const cenaIdNumero = parseOptionalQueryInt(cenaId, 'cenaId');
+
     return this.campanhaService.listarModificadoresPersonagemCampanha(
       id,
       personagemCampanhaId,
       req.user.id,
       incluirInativos === 'true',
+      {
+        sessaoId: sessaoIdNumero,
+        cenaId: cenaIdNumero,
+      },
     );
   }
 

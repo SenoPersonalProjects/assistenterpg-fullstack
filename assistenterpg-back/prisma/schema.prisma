@@ -608,6 +608,8 @@ model PersonagemCampanhaModificador {
   id                   Int                                @id @default(autoincrement())
   personagemCampanhaId Int
   campanhaId           Int
+  sessaoId             Int?
+  cenaId               Int?
   campo                CampoModificadorPersonagemCampanha
   valor                Int
   nome                 String
@@ -626,6 +628,10 @@ model PersonagemCampanhaModificador {
 
   @@index([personagemCampanhaId, ativo])
   @@index([campanhaId, criadoEm])
+  @@index([sessaoId])
+  @@index([cenaId])
+  @@index([campanhaId, personagemCampanhaId, sessaoId, ativo], map: "PCM_camp_pers_sess_ativo_idx")
+  @@index([campanhaId, personagemCampanhaId, cenaId, ativo], map: "PCM_camp_pers_cena_ativo_idx")
 }
 
 model Sessao {

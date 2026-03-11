@@ -17,6 +17,8 @@ import {
   apiAvancarTurnoSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
   apiCriarSessaoCampanha,
+  apiAplicarModificadorPersonagemCampanha,
+  apiListarModificadoresPersonagemCampanha,
   apiDesassociarPersonagemCampanha,
   apiDeleteCampanha,
   apiEncerrarSessaoCampanha,
@@ -344,5 +346,47 @@ describe('campanhas api cache and dedupe', () => {
       { mensagem: 'teste' },
     );
     expect(mensagem).toEqual({ id: 91, mensagem: 'teste' });
+  });
+
+  it('lists campaign character modifiers with session/cena filters', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 10, campo: 'EA_MAX', valor: -5 }],
+    });
+
+    const modificadores = await apiListarModificadoresPersonagemCampanha(44, 13, true, {
+      sessaoId: 7,
+      cenaId: 22,
+    });
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/campanhas/44/personagens/13/modificadores?incluirInativos=true&sessaoId=7&cenaId=22',
+    );
+    expect(modificadores).toEqual([{ id: 10, campo: 'EA_MAX', valor: -5 }]);
+  });
+
+  it('applies campaign character modifier with session/cena context', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { modificador: { id: 2 }, personagem: { id: 13 } },
+    });
+
+    const resposta = await apiAplicarModificadorPersonagemCampanha(44, 13, {
+      campo: 'EA_MAX',
+      valor: -5,
+      nome: 'Fadiga da cena',
+      sessaoId: 7,
+      cenaId: 22,
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/personagens/13/modificadores',
+      {
+        campo: 'EA_MAX',
+        valor: -5,
+        nome: 'Fadiga da cena',
+        sessaoId: 7,
+        cenaId: 22,
+      },
+    );
+    expect(resposta).toEqual({ modificador: { id: 2 }, personagem: { id: 13 } });
   });
 });

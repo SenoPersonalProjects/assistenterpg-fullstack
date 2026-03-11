@@ -55,6 +55,8 @@ export type ModificadorPersonagemCampanha = {
   id: number;
   campanhaId: number;
   personagemCampanhaId: number;
+  sessaoId: number | null;
+  cenaId: number | null;
   campo: CampoModificadorPersonagemCampanha;
   valor: number;
   nome: string;

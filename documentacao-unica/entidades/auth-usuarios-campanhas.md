@@ -109,13 +109,19 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - `PATCH /campanhas/:id/personagens/:personagemCampanhaId/recursos`
   - body `AtualizarRecursosPersonagemCampanhaDto`:
     - `pvAtual?`, `peAtual?`, `eaAtual?`, `sanAtual?` (int >= 0)
-- `GET /campanhas/:id/personagens/:personagemCampanhaId/modificadores?incluirInativos=true|false`
+- `GET /campanhas/:id/personagens/:personagemCampanhaId/modificadores`
+  - query opcional:
+    - `incluirInativos=true|false`
+    - `sessaoId` (int >= 1)
+    - `cenaId` (int >= 1)
 - `POST /campanhas/:id/personagens/:personagemCampanhaId/modificadores`
   - body `AplicarModificadorPersonagemCampanhaDto`:
     - `campo`: `PV_MAX | PE_MAX | EA_MAX | SAN_MAX | DEFESA_BASE | DEFESA_EQUIPAMENTO | DEFESA_OUTROS | ESQUIVA | BLOQUEIO | DESLOCAMENTO | LIMITE_PE_EA_POR_TURNO | PRESTIGIO_GERAL | PRESTIGIO_CLA`
     - `valor`: int e diferente de `0`
     - `nome`: string obrigatoria (max 80)
     - `descricao?`: string opcional (max 500)
+    - `sessaoId?`: int >= 1
+    - `cenaId?`: int >= 1 (exige `sessaoId` no mesmo payload)
 - `POST /campanhas/:id/personagens/:personagemCampanhaId/modificadores/:modificadorId/desfazer`
   - body opcional `DesfazerModificadorPersonagemCampanhaDto`:
     - `motivo?`: string opcional (max 500)
@@ -214,6 +220,10 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - mestre edita qualquer ficha da campanha.
     - jogador/observador edita apenas a propria ficha.
   - modificadores sao aplicados na ficha de campanha, sem alterar a ficha-base.
+  - modificadores podem ser contextualizados por sessao/cena:
+    - `sessaoId` valida se pertence a campanha.
+    - `cenaId` valida se pertence a `sessaoId`.
+    - `cenaId` sem `sessaoId` falha com `CENA_SESSAO_NOT_FOUND`.
   - cada modificador registra fonte (`nome`, `descricao`) e pode ser desfeito com seguranca.
   - todo ajuste manual relevante gera historico em `PersonagemCampanhaHistorico`.
 - sessoes de campanha:
@@ -269,6 +279,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - `CAMPANHA_MODIFICADOR_NOT_FOUND`
   - `CAMPANHA_MODIFICADOR_JA_DESFEITO`
   - `SESSAO_CAMPANHA_NOT_FOUND`
+  - `CENA_SESSAO_NOT_FOUND`
   - `SESSAO_TURNO_INDISPONIVEL`
   - `NPC_AMEACA_NOT_FOUND`
   - `NPC_SESSAO_NOT_FOUND`
@@ -289,7 +300,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - `PersonagemCampanha` possui:
   - `@@unique([campanhaId, personagemBaseId])`
   - `@@index([campanhaId, donoId])`
-- `PersonagemCampanhaModificador` guarda modificadores narrativos com soft-undo (`ativo`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
+- `PersonagemCampanhaModificador` guarda modificadores narrativos com soft-undo (`ativo`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`) e contexto opcional (`sessaoId`, `cenaId`).
 - `PersonagemCampanhaHistorico` guarda trilha de auditoria de alteracoes de ficha de campanha.
 - `Sessao` guarda estado do lobby (`status`, `cenaAtualTipo`, `cenaAtualNome`, `rodadaAtual`, `indiceTurnoAtual`, `iniciadoEm`, `encerradoEm`).
 - `Cena` versiona troca de cena por sessao.

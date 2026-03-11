@@ -157,4 +157,37 @@ describe('CampanhaController', () => {
       descricao: 'Teste',
     });
   });
+
+  it('deve encaminhar listagem de modificadores com filtros de sessao e cena', async () => {
+    campanhaServiceMock.listarModificadoresPersonagemCampanha.mockResolvedValue([]);
+
+    await controller.listarModificadoresPersonagemCampanha(
+      2,
+      9,
+      { user: { id: 10 } },
+      'true',
+      '33',
+      '77',
+    );
+
+    expect(
+      campanhaServiceMock.listarModificadoresPersonagemCampanha,
+    ).toHaveBeenCalledWith(2, 9, 10, true, {
+      sessaoId: 33,
+      cenaId: 77,
+    });
+  });
+
+  it('deve falhar quando sessaoId for invalido', async () => {
+    await expect(
+      controller.listarModificadoresPersonagemCampanha(
+        2,
+        9,
+        { user: { id: 10 } },
+        'false',
+        'abc',
+        undefined,
+      ),
+    ).rejects.toThrow('sessaoId deve ser inteiro >= 1');
+  });
 });

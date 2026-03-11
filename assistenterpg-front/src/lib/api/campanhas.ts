@@ -254,8 +254,22 @@ export async function apiListarModificadoresPersonagemCampanha(
   campanhaId: number,
   personagemCampanhaId: number,
   incluirInativos = false,
+  filtros?: {
+    sessaoId?: number;
+    cenaId?: number;
+  },
 ): Promise<ModificadorPersonagemCampanha[]> {
-  const sufixo = incluirInativos ? '?incluirInativos=true' : '';
+  const query = new URLSearchParams();
+  if (incluirInativos) {
+    query.set('incluirInativos', 'true');
+  }
+  if (typeof filtros?.sessaoId === 'number' && Number.isInteger(filtros.sessaoId)) {
+    query.set('sessaoId', String(filtros.sessaoId));
+  }
+  if (typeof filtros?.cenaId === 'number' && Number.isInteger(filtros.cenaId)) {
+    query.set('cenaId', String(filtros.cenaId));
+  }
+  const sufixo = query.size > 0 ? `?${query.toString()}` : '';
   const { data } = await apiClient.get(
     `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/modificadores${sufixo}`,
   );
@@ -270,6 +284,8 @@ export async function apiAplicarModificadorPersonagemCampanha(
     valor: number;
     nome: string;
     descricao?: string;
+    sessaoId?: number;
+    cenaId?: number;
   },
 ): Promise<{
   modificador: ModificadorPersonagemCampanha;

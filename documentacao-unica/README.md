@@ -367,9 +367,11 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
   - body: [`VincularPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/vincular-personagem-campanha.dto.ts)
 - `PATCH /campanhas/:id/personagens/:personagemCampanhaId/recursos`
   - body: [`AtualizarRecursosPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/atualizar-recursos-personagem-campanha.dto.ts)
-- `GET /campanhas/:id/personagens/:personagemCampanhaId/modificadores?incluirInativos=true|false`
+- `GET /campanhas/:id/personagens/:personagemCampanhaId/modificadores`
+  - query opcional: `incluirInativos=true|false`, `sessaoId`, `cenaId`
 - `POST /campanhas/:id/personagens/:personagemCampanhaId/modificadores`
   - body: [`AplicarModificadorPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/aplicar-modificador-personagem-campanha.dto.ts)
+    - `sessaoId?`, `cenaId?` (contexto opcional de sessao/cena)
 - `POST /campanhas/:id/personagens/:personagemCampanhaId/modificadores/:modificadorId/desfazer`
   - body opcional: [`DesfazerModificadorPersonagemCampanhaDto`](../assistenterpg-back/src/campanha/dto/desfazer-modificador-personagem-campanha.dto.ts)
 - `GET /campanhas/:id/personagens/:personagemCampanhaId/historico`
@@ -467,6 +469,10 @@ Detalhamento:
   - mestres (dono ou membro com papel `MESTRE`) podem editar qualquer ficha da campanha.
   - jogadores/observadores editam apenas a propria ficha da campanha.
   - modificadores alteram apenas `PersonagemCampanha` (nao alteram `PersonagemBase`).
+  - modificadores podem ser contextualizados por sessao/cena:
+    - `sessaoId` precisa pertencer a campanha.
+    - `cenaId` precisa pertencer a `sessaoId`.
+    - `cenaId` sem `sessaoId` retorna `CENA_SESSAO_NOT_FOUND`.
   - cada modificador guarda fonte (`nome`, `descricao`) e pode ser desfeito com seguranca.
   - historico de alteracoes e persistido em `PersonagemCampanhaHistorico`.
 - sessoes de campanha:
@@ -496,6 +502,7 @@ Detalhamento:
   - `CAMPANHA_MODIFICADOR_JA_DESFEITO` (422)
   - `CAMPANHA_APENAS_MESTRE` (422)
   - `SESSAO_CAMPANHA_NOT_FOUND` (404)
+  - `CENA_SESSAO_NOT_FOUND` (404)
   - `SESSAO_TURNO_INDISPONIVEL` (422)
   - `NPC_AMEACA_NOT_FOUND` (404)
   - `NPC_SESSAO_NOT_FOUND` (404)
@@ -1692,7 +1699,7 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
     - `MembroCampanha`: `usuarioId`, `usuarioId+campanhaId`
     - `PersonagemBase`: `donoId`, `donoId+nome`
     - `PersonagemCampanha`: `campanhaId`, `personagemBaseId`, `donoId`, `campanhaId+personagemBaseId (unique)`, `campanhaId+donoId (unique)`
-    - `PersonagemCampanhaModificador`: `personagemCampanhaId+ativo`, `campanhaId+criadoEm`
+    - `PersonagemCampanhaModificador`: `personagemCampanhaId+ativo`, `campanhaId+criadoEm`, `sessaoId`, `cenaId`, `campanhaId+personagemCampanhaId+sessaoId+ativo`, `campanhaId+personagemCampanhaId+cenaId+ativo`
     - `PersonagemCampanhaHistorico`: `personagemCampanhaId+criadoEm`, `campanhaId+criadoEm`
     - `ConviteCampanha`: `email+status+criadoEm`, `campanhaId+status`
     - `Homebrew`: `usuarioId+criadoEm`, `status+criadoEm`

@@ -192,6 +192,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Modificador da ficha de campanha não encontrado",
   CAMPANHA_MODIFICADOR_JA_DESFEITO: "Este modificador já foi desfeito",
   SESSAO_CAMPANHA_NOT_FOUND: "Sessão da campanha não encontrada.",
+  CENA_SESSAO_NOT_FOUND: "Cena da sessao nao encontrada.",
   SESSAO_TURNO_INDISPONIVEL:
     "Cena livre não possui contagem de rodada/turno.",
   NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",
@@ -531,4 +532,5 @@ export function formatarErroComContexto(
 
   return `${mensagemBase} (${partes.join(" | ")})`;
 }
+
 

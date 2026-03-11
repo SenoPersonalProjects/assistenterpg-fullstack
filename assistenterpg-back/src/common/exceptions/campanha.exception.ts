@@ -256,6 +256,21 @@ export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessExcepti
   }
 }
 
+export class CenaSessaoNaoEncontradaException extends BaseException {
+  constructor(cenaId?: number, sessaoId?: number, campanhaId?: number) {
+    super(
+      'Cena da sessao nao encontrada',
+      HttpStatus.NOT_FOUND,
+      'CENA_SESSAO_NOT_FOUND',
+      {
+        cenaId,
+        sessaoId,
+        campanhaId,
+      },
+    );
+  }
+}
+
 export class NpcSessaoNaoEncontradoException extends BaseException {
   constructor(npcSessaoId?: number, sessaoId?: number, campanhaId?: number) {
     super(

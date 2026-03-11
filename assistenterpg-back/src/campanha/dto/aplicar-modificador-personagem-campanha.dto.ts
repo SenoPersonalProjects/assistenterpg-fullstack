@@ -31,4 +31,14 @@ export class AplicarModificadorPersonagemCampanhaDto {
   @IsString({ message: 'descricao deve ser texto' })
   @MaxLength(500, { message: 'descricao deve ter no maximo 500 caracteres' })
   descricao?: string;
+
+  @IsOptional()
+  @IsInt({ message: 'sessaoId deve ser inteiro' })
+  @Min(1, { message: 'sessaoId deve ser maior ou igual a 1' })
+  sessaoId?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'cenaId deve ser inteiro' })
+  @Min(1, { message: 'cenaId deve ser maior ou igual a 1' })
+  cenaId?: number;
 }

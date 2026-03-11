@@ -308,10 +308,12 @@ export declare class CampanhaController {
         user: {
             id: number;
         };
-    }, incluirInativos?: string): Promise<{
+    }, incluirInativos?: string, sessaoId?: string, cenaId?: string): Promise<{
         id: number;
         campanhaId: number;
         personagemCampanhaId: number;
+        sessaoId: number | null;
+        cenaId: number | null;
         campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
         valor: number;
         nome: string;
@@ -342,6 +344,8 @@ export declare class CampanhaController {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            sessaoId: number | null;
+            cenaId: number | null;
             personagemCampanhaId: number;
             valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
@@ -423,6 +427,8 @@ export declare class CampanhaController {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            sessaoId: number | null;
+            cenaId: number | null;
             personagemCampanhaId: number;
             valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;

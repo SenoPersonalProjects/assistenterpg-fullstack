@@ -61,6 +61,12 @@ type PrismaMock = {
     create: jest.Mock;
     update: jest.Mock;
   };
+  sessao: {
+    findFirst: jest.Mock;
+  };
+  cena: {
+    findFirst: jest.Mock;
+  };
   $transaction: jest.Mock;
 };
 
@@ -117,6 +123,12 @@ describe('CampanhaService', () => {
         findFirst: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+      },
+      sessao: {
+        findFirst: jest.fn(),
+      },
+      cena: {
+        findFirst: jest.fn(),
       },
       $transaction: jest.fn(),
     };
@@ -882,6 +894,128 @@ describe('CampanhaService', () => {
     );
     expect(resultado.personagem.recursos.eaMax).toBe(80);
     expect(resultado.personagem.recursos.eaAtual).toBe(80);
+  });
+
+  it('deve aplicar modificador com contexto de sessao e cena validos', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemCampanha.findUnique.mockResolvedValue({
+      id: 5,
+      campanhaId: 7,
+      donoId: 3,
+      pvMax: 100,
+      pvAtual: 80,
+      peMax: 50,
+      peAtual: 40,
+      eaMax: 100,
+      eaAtual: 95,
+      sanMax: 30,
+      sanAtual: 25,
+      defesaBase: 10,
+      defesaEquipamento: 0,
+      defesaOutros: 0,
+      esquiva: 0,
+      bloqueio: 0,
+      deslocamento: 9,
+      limitePeEaPorTurno: 2,
+      prestigioGeral: 0,
+      prestigioCla: null,
+    });
+    prisma.sessao.findFirst.mockResolvedValue({ id: 33 });
+    prisma.cena.findFirst.mockResolvedValue({ id: 44 });
+
+    const tx = {
+      personagemCampanhaModificador: {
+        create: jest.fn().mockResolvedValue({
+          id: 81,
+          campanhaId: 7,
+          personagemCampanhaId: 5,
+          sessaoId: 33,
+          cenaId: 44,
+          campo: 'EA_MAX',
+          valor: -10,
+          nome: 'Exaustao',
+        }),
+      },
+      personagemCampanha: {
+        update: jest.fn().mockResolvedValue({
+          id: 5,
+          campanhaId: 7,
+          personagemBaseId: 42,
+          donoId: 3,
+          nome: 'Yuta',
+          nivel: 5,
+          pvMax: 100,
+          pvAtual: 80,
+          peMax: 50,
+          peAtual: 40,
+          eaMax: 90,
+          eaAtual: 90,
+          sanMax: 30,
+          sanAtual: 25,
+          limitePeEaPorTurno: 2,
+          prestigioGeral: 0,
+          prestigioCla: null,
+          defesaBase: 10,
+          defesaEquipamento: 0,
+          defesaOutros: 0,
+          esquiva: 0,
+          bloqueio: 0,
+          deslocamento: 9,
+          turnosMorrendo: 3,
+          turnosEnlouquecendo: 3,
+          personagemBase: { id: 42, nome: 'Yuta' },
+          dono: { id: 3, apelido: 'Jogador' },
+          modificadores: [],
+        }),
+      },
+      personagemCampanhaHistorico: {
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+
+    prisma.$transaction.mockImplementation(
+      async (
+        callback: (txArg: typeof tx) => Promise<{
+          modificador: { id: number; sessaoId: number; cenaId: number };
+          personagem: unknown;
+        }>,
+      ) => callback(tx),
+    );
+
+    await service.aplicarModificadorPersonagemCampanha(7, 5, 3, {
+      campo: 'EA_MAX',
+      valor: -10,
+      nome: 'Exaustao',
+      sessaoId: 33,
+      cenaId: 44,
+    });
+
+    expect(prisma.sessao.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 33,
+        campanhaId: 7,
+      },
+      select: { id: true },
+    });
+    expect(prisma.cena.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 44,
+        sessaoId: 33,
+      },
+      select: { id: true },
+    });
+    expect(tx.personagemCampanhaModificador.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sessaoId: 33,
+          cenaId: 44,
+        }),
+      }),
+    );
   });
 
   it('deve impedir criacao de convite por usuario que nao e dono', async () => {

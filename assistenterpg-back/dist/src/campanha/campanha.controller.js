@@ -62,8 +62,23 @@ let CampanhaController = class CampanhaController {
     async atualizarRecursosPersonagemCampanha(id, personagemCampanhaId, req, dto) {
         return this.campanhaService.atualizarRecursosPersonagemCampanha(id, personagemCampanhaId, req.user.id, dto);
     }
-    async listarModificadoresPersonagemCampanha(id, personagemCampanhaId, req, incluirInativos) {
-        return this.campanhaService.listarModificadoresPersonagemCampanha(id, personagemCampanhaId, req.user.id, incluirInativos === 'true');
+    async listarModificadoresPersonagemCampanha(id, personagemCampanhaId, req, incluirInativos, sessaoId, cenaId) {
+        const parseOptionalQueryInt = (valor, campo) => {
+            if (typeof valor !== 'string' || valor.trim() === '') {
+                return undefined;
+            }
+            const numero = Number(valor);
+            if (!Number.isInteger(numero) || numero < 1) {
+                throw new common_1.BadRequestException(`${campo} deve ser inteiro >= 1`);
+            }
+            return numero;
+        };
+        const sessaoIdNumero = parseOptionalQueryInt(sessaoId, 'sessaoId');
+        const cenaIdNumero = parseOptionalQueryInt(cenaId, 'cenaId');
+        return this.campanhaService.listarModificadoresPersonagemCampanha(id, personagemCampanhaId, req.user.id, incluirInativos === 'true', {
+            sessaoId: sessaoIdNumero,
+            cenaId: cenaIdNumero,
+        });
     }
     async aplicarModificadorPersonagemCampanha(id, personagemCampanhaId, req, dto) {
         return this.campanhaService.aplicarModificadorPersonagemCampanha(id, personagemCampanhaId, req.user.id, dto);
@@ -187,8 +202,10 @@ __decorate([
     __param(1, (0, common_1.Param)('personagemCampanhaId', common_1.ParseIntPipe)),
     __param(2, (0, common_1.Request)()),
     __param(3, (0, common_1.Query)('incluirInativos')),
+    __param(4, (0, common_1.Query)('sessaoId')),
+    __param(5, (0, common_1.Query)('cenaId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Number, Object, String]),
+    __metadata("design:paramtypes", [Number, Number, Object, String, String, String]),
     __metadata("design:returntype", Promise)
 ], CampanhaController.prototype, "listarModificadoresPersonagemCampanha", null);
 __decorate([

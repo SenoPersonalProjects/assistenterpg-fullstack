@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { PaginatedResult } from 'src/common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  CenaSessaoNaoEncontradaException,
   CampanhaNaoEncontradaException,
   CampanhaAcessoNegadoException,
   CampanhaApenasDonoException,
@@ -22,6 +23,7 @@ import {
   CampanhaPersonagemDesassociacaoNegadaException,
   CampanhaModificadorNaoEncontradoException,
   CampanhaModificadorJaDesfeitoException,
+  SessaoCampanhaNaoEncontradaException,
 } from 'src/common/exceptions/campanha.exception';
 import { PersonagemBaseNaoEncontradoException } from 'src/common/exceptions/personagem.exception';
 import { AplicarModificadorPersonagemCampanhaDto } from './dto/aplicar-modificador-personagem-campanha.dto';
@@ -54,6 +56,11 @@ type CampoPersonagemCampanhaNumerico =
   | 'prestigioCla';
 
 type CampoRecursoAtual = 'pvAtual' | 'peAtual' | 'eaAtual' | 'sanAtual';
+
+type FiltrosListarModificadoresCampanha = {
+  sessaoId?: number;
+  cenaId?: number;
+};
 
 type ConfigCampoModificador = {
   campoBanco: CampoPersonagemCampanhaNumerico;
@@ -818,6 +825,7 @@ export class CampanhaService {
     personagemCampanhaId: number,
     usuarioId: number,
     incluirInativos = false,
+    filtros: FiltrosListarModificadoresCampanha = {},
   ) {
     await this.obterPersonagemCampanhaComPermissao(
       campanhaId,
@@ -825,12 +833,19 @@ export class CampanhaService {
       usuarioId,
       false,
     );
+    const contexto = await this.validarContextoSessaoCena(
+      campanhaId,
+      filtros.sessaoId,
+      filtros.cenaId,
+    );
 
     const modificadores =
       await this.prisma.personagemCampanhaModificador.findMany({
         where: {
           campanhaId,
           personagemCampanhaId,
+          ...(contexto.sessaoId !== null ? { sessaoId: contexto.sessaoId } : {}),
+          ...(contexto.cenaId !== null ? { cenaId: contexto.cenaId } : {}),
           ...(incluirInativos ? {} : { ativo: true }),
         },
         include: {
@@ -854,6 +869,8 @@ export class CampanhaService {
       id: modificador.id,
       campanhaId: modificador.campanhaId,
       personagemCampanhaId: modificador.personagemCampanhaId,
+      sessaoId: modificador.sessaoId,
+      cenaId: modificador.cenaId,
       campo: modificador.campo,
       valor: modificador.valor,
       nome: modificador.nome,
@@ -875,15 +892,20 @@ export class CampanhaService {
     usuarioId: number,
     dto: AplicarModificadorPersonagemCampanhaDto,
   ) {
-    const contexto = await this.obterPersonagemCampanhaComPermissao(
+    const contextoPersonagem = await this.obterPersonagemCampanhaComPermissao(
       campanhaId,
       personagemCampanhaId,
       usuarioId,
       true,
     );
+    const contextoSessaoCena = await this.validarContextoSessaoCena(
+      campanhaId,
+      dto.sessaoId,
+      dto.cenaId,
+    );
     const configCampo = CONFIG_MODIFICADOR_CAMPO[dto.campo];
     const valorAtualCampo = this.lerCampoNumerico(
-      contexto.personagem,
+      contextoPersonagem.personagem,
       configCampo.campoBanco,
     );
     const valorCalculado = valorAtualCampo + dto.valor;
@@ -898,7 +920,7 @@ export class CampanhaService {
 
     if (configCampo.campoRecursoAtual) {
       const recursoAtual = this.lerCampoNumerico(
-        contexto.personagem,
+        contextoPersonagem.personagem,
         configCampo.campoRecursoAtual,
       );
       const recursoAjustado = this.clamp(recursoAtual, 0, valorFinal);
@@ -912,6 +934,8 @@ export class CampanhaService {
         data: {
           campanhaId,
           personagemCampanhaId,
+          sessaoId: contextoSessaoCena.sessaoId,
+          cenaId: contextoSessaoCena.cenaId,
           campo: dto.campo,
           valor: dto.valor,
           nome: dto.nome.trim(),
@@ -938,6 +962,8 @@ export class CampanhaService {
             campo: dto.campo,
             valor: dto.valor,
             nome: dto.nome,
+            sessaoId: contextoSessaoCena.sessaoId,
+            cenaId: contextoSessaoCena.cenaId,
             valorAntes: valorAtualCampo,
             valorDepois: valorFinal,
           },
@@ -1059,6 +1085,8 @@ export class CampanhaService {
             modificadorId: modificador.id,
             campo: modificador.campo,
             valor: modificador.valor,
+            sessaoId: modificador.sessaoId,
+            cenaId: modificador.cenaId,
             valorAntes: valorAtualCampo,
             valorDepois: valorFinal,
             motivo: motivo?.trim() || null,
@@ -1105,6 +1133,60 @@ export class CampanhaService {
     });
 
     return historico;
+  }
+
+  private async validarContextoSessaoCena(
+    campanhaId: number,
+    sessaoId?: number,
+    cenaId?: number,
+  ): Promise<{ sessaoId: number | null; cenaId: number | null }> {
+    if (cenaId !== undefined && sessaoId === undefined) {
+      throw new CenaSessaoNaoEncontradaException(cenaId, undefined, campanhaId);
+    }
+
+    let sessaoValidaId: number | null = null;
+    let cenaValidaId: number | null = null;
+
+    if (sessaoId !== undefined) {
+      const sessao = await this.prisma.sessao.findFirst({
+        where: {
+          id: sessaoId,
+          campanhaId,
+        },
+        select: { id: true },
+      });
+
+      if (!sessao) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      sessaoValidaId = sessao.id;
+    }
+
+    if (cenaId !== undefined && sessaoValidaId !== null) {
+      const cena = await this.prisma.cena.findFirst({
+        where: {
+          id: cenaId,
+          sessaoId: sessaoValidaId,
+        },
+        select: { id: true },
+      });
+
+      if (!cena) {
+        throw new CenaSessaoNaoEncontradaException(
+          cenaId,
+          sessaoValidaId,
+          campanhaId,
+        );
+      }
+
+      cenaValidaId = cena.id;
+    }
+
+    return {
+      sessaoId: sessaoValidaId,
+      cenaId: cenaValidaId,
+    };
   }
 
   private async garantirAcesso(campanhaId: number, usuarioId: number) {

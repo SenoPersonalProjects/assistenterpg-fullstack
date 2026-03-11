@@ -21,6 +21,7 @@ import type {
   MensagemChatSessao,
   NpcAmeacaResumo,
   NpcSessaoCampanha,
+  PersonagemCampanhaResumo,
   SessaoCampanhaDetalhe,
   TipoCenaSessaoCampanha,
 } from '@/lib/types';
@@ -32,6 +33,7 @@ import { Select } from '@/components/ui/Select';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import {
   conectarSocketSessao,
   type EventoSessaoPresenca,
@@ -83,9 +85,9 @@ function labelTipoNpc(tipo: string): string {
   const labels: Record<string, string> = {
     HUMANO: 'Humano',
     FEITICEIRO: 'Feiticeiro',
-    MALDICAO: 'Maldição',
+    MALDICAO: 'Maldicao',
     ANIMAL: 'Animal',
-    HIBRIDO: 'Híbrido',
+    HIBRIDO: 'Hibrido',
     OUTRO: 'Outro',
   };
 
@@ -139,6 +141,9 @@ export default function SessaoCampanhaPage() {
   const [removendoNpcId, setRemovendoNpcId] = useState<number | null>(null);
   const [socketConectado, setSocketConectado] = useState(false);
   const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
+  const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
+    Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null
+  >(null);
 
   const chatRef = useRef<MensagemChatSessao[]>([]);
   const fimChatRef = useRef<HTMLDivElement | null>(null);
@@ -500,17 +505,27 @@ export default function SessaoCampanhaPage() {
                         }
                       />
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => void handleSalvarCard(card.personagemCampanhaId)}
-                      disabled={
-                        sessaoEncerrada || salvandoCardId === card.personagemCampanhaId
-                      }
-                    >
-                      {salvandoCardId === card.personagemCampanhaId
-                        ? 'Salvando...'
-                        : 'Salvar recursos'}
-                    </Button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        onClick={() => void handleSalvarCard(card.personagemCampanhaId)}
+                        disabled={
+                          sessaoEncerrada || salvandoCardId === card.personagemCampanhaId
+                        }
+                      >
+                        {salvandoCardId === card.personagemCampanhaId
+                          ? 'Salvando...'
+                          : 'Salvar recursos'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleAbrirEdicaoPersonagem(card)}
+                        disabled={sessaoEncerrada || !card.recursos}
+                      >
+                        Ajustes narrativos
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-sm text-app-muted">
@@ -623,6 +638,57 @@ export default function SessaoCampanhaPage() {
     } finally {
       setSalvandoCardId(null);
     }
+  }
+
+  function handleAbrirEdicaoPersonagem(card: SessaoCampanhaDetalhe['cards'][number]) {
+    if (!card.recursos) return;
+
+    setPersonagemEmEdicao({
+      id: card.personagemCampanhaId,
+      nome: card.nomePersonagem,
+      recursos: card.recursos,
+    });
+  }
+
+  function handlePersonagemAtualizadoNoModal(personagem: PersonagemCampanhaResumo) {
+    setDetalhe((anterior) => {
+      if (!anterior) return anterior;
+
+      return {
+        ...anterior,
+        cards: anterior.cards.map((card) => {
+          if (card.personagemCampanhaId !== personagem.id || !card.recursos) {
+            return card;
+          }
+
+          return {
+            ...card,
+            recursos: {
+              pvAtual: personagem.recursos.pvAtual,
+              pvMax: personagem.recursos.pvMax,
+              peAtual: personagem.recursos.peAtual,
+              peMax: personagem.recursos.peMax,
+              eaAtual: personagem.recursos.eaAtual,
+              eaMax: personagem.recursos.eaMax,
+              sanAtual: personagem.recursos.sanAtual,
+              sanMax: personagem.recursos.sanMax,
+            },
+          };
+        }),
+      };
+    });
+
+    setEdicaoRecursos((anterior) => ({
+      ...anterior,
+      [personagem.id]: {
+        pvAtual: String(personagem.recursos.pvAtual),
+        peAtual: String(personagem.recursos.peAtual),
+        eaAtual: String(personagem.recursos.eaAtual),
+        sanAtual: String(personagem.recursos.sanAtual),
+      },
+    }));
+
+    void sincronizarTempoReal();
   }
 
   async function handleAdicionarNpcNaCena() {
@@ -1293,7 +1359,20 @@ export default function SessaoCampanhaPage() {
             </Card>
           </section>
         </div>
+
+        <CampaignCharacterEditorModal
+          isOpen={Boolean(personagemEmEdicao)}
+          campanhaId={campanhaId}
+          personagem={personagemEmEdicao}
+          contextoSessao={{
+            sessaoId,
+            cenaId: detalhe.cenaAtual.id ?? undefined,
+          }}
+          onClose={() => setPersonagemEmEdicao(null)}
+          onPersonagemAtualizado={handlePersonagemAtualizadoNoModal}
+        />
       </div>
     </main>
   );
 }
+
