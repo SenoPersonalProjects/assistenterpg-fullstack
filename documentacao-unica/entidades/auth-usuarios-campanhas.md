@@ -264,7 +264,8 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - eventos desfeitos recebem marcacao no JSON `dados` (`desfeito`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
     - tipos reversiveis atuais: `TURNO_AVANCADO`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
   - escudo do mestre (V1):
-    - painel de consulta rapida com topicos placeholder (condicoes, pericias, dominios, dificuldades, tipos de dano/acoes, ferimentos, insanidade e mecanicas de cena).
+    - painel de consulta rapida com busca e secoes recolhiveis.
+    - inclui conteudo operacional inicial para: pericias, condicoes, conflitos/expansao de dominio, dificuldades, teste unido, tipos de dano/acoes, ferimentos, insanidade, situacoes especiais, multidoes, interludio, investigacao, furtividade, perseguicao e aspectos congenitos.
   - card editavel da sessao oferece `Ajustes narrativos`, reaproveitando o modal de ficha de campanha com contexto de `sessaoId/cenaId`.
   - no modal contextualizado, o historico permite filtros rapidos combinados:
     - contexto: `Todos`, `Sessao atual` e `Cena atual`.

@@ -37,6 +37,7 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
+import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
 import {
   conectarSocketSessao,
   type EventoSessaoPresenca,
@@ -66,78 +67,6 @@ type NpcEditavel = {
   deslocamentoMetros: string;
   notasCena: string;
 };
-
-const GUIAS_ESCUDO_MESTRE: Array<{ id: string; titulo: string; placeholder: string }> = [
-  { id: 'condicoes', titulo: 'Condicoes', placeholder: 'Guia rapido de condicoes em elaboracao.' },
-  { id: 'pericias', titulo: 'Pericias', placeholder: 'Resumo de uso de pericias em elaboracao.' },
-  {
-    id: 'conflito-dominios',
-    titulo: 'Regra de conflito de dominios',
-    placeholder: 'Regra de conflito de dominios em elaboracao.',
-  },
-  {
-    id: 'primeira-expansao',
-    titulo: 'Regra de primeira expansao de dominios',
-    placeholder: 'Regra de primeira expansao de dominios em elaboracao.',
-  },
-  {
-    id: 'guia-dificuldades',
-    titulo: 'Tabela de guia de dificuldades',
-    placeholder: 'Tabela de dificuldades em elaboracao.',
-  },
-  {
-    id: 'testes-varias-pericias',
-    titulo: 'Regra de testes com varias pericias',
-    placeholder: 'Regra unica de testes com varias pericias em elaboracao.',
-  },
-  { id: 'tipos-dano', titulo: 'Tipos de dano', placeholder: 'Tabela de tipos de dano em elaboracao.' },
-  { id: 'tipos-acoes', titulo: 'Tipos de acoes', placeholder: 'Resumo de tipos de acoes em elaboracao.' },
-  {
-    id: 'ferimentos-morte',
-    titulo: 'Ferimentos e morte',
-    placeholder: 'Fluxo de ferimentos e morte em elaboracao.',
-  },
-  {
-    id: 'insanidade-loucura',
-    titulo: 'Insanidade e loucura',
-    placeholder: 'Regras de insanidade e loucura em elaboracao.',
-  },
-  {
-    id: 'situacoes-especiais',
-    titulo: 'Situacoes especiais',
-    placeholder: 'Resumo de situacoes especiais em elaboracao.',
-  },
-  {
-    id: 'multidoes',
-    titulo: 'Mecanica de multidoes',
-    placeholder: 'Mecanica de multidoes em elaboracao.',
-  },
-  {
-    id: 'interludio',
-    titulo: 'Mecanica de interludio',
-    placeholder: 'Mecanica de interludio em elaboracao.',
-  },
-  {
-    id: 'investigacao',
-    titulo: 'Mecanica de investigacao',
-    placeholder: 'Mecanica de investigacao em elaboracao.',
-  },
-  {
-    id: 'furtividade',
-    titulo: 'Mecanica de furtividade',
-    placeholder: 'Mecanica de furtividade em elaboracao.',
-  },
-  {
-    id: 'perseguicao',
-    titulo: 'Mecanica de perseguicao',
-    placeholder: 'Mecanica de perseguicao em elaboracao.',
-  },
-  {
-    id: 'aspectos-congenitos',
-    titulo: 'Aspectos congenitos',
-    placeholder: 'Resumo de aspectos congenitos em elaboracao.',
-  },
-];
 
 function formatarDataHora(valor: string): string {
   const data = new Date(valor);
@@ -954,26 +883,14 @@ export default function SessaoCampanhaPage() {
                       Escudo do Mestre
                     </h2>
                     <p className="text-xs text-app-muted">
-                      Guias rapidos da mesa. Conteudo detalhado entra nas proximas iteracoes.
+                      Guias rapidos com regras operacionais da mesa.
                     </p>
                   </div>
                   <span className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface p-2">
                     <Icon name="shield" className="h-4 w-4 text-app-fg" />
                   </span>
                 </div>
-                <div className="max-h-[460px] overflow-y-auto space-y-2 pr-1">
-                  {GUIAS_ESCUDO_MESTRE.map((guia) => (
-                    <details
-                      key={guia.id}
-                      className="rounded border border-app-border bg-app-surface px-3 py-2"
-                    >
-                      <summary className="cursor-pointer text-xs font-semibold text-app-fg">
-                        {guia.titulo}
-                      </summary>
-                      <p className="mt-2 text-xs text-app-muted">{guia.placeholder}</p>
-                    </details>
-                  ))}
-                </div>
+                <MestreShieldGuide />
               </Card>
             ) : (
               renderCardsSessao()

@@ -494,6 +494,7 @@ Detalhamento:
     - jogador edita apenas o proprio card e ve os demais em modo resumido.
   - painel central da sessao (cena atual, rodada/turno e status) e visivel para todos.
   - coluna direita do lobby concentra participantes online, timeline de eventos e chat.
+  - escudo do mestre (coluna esquerda para mestres) possui busca e secoes recolhiveis com guias operacionais da mesa.
   - timeline operacional da sessao (`GET /eventos`) traz eventos estruturados (cena/turno/npc/chat opcional).
   - desfazer evento de sessao (`POST /eventos/:eventoId/desfazer`) segue regra de seguranca:
     - apenas mestre pode desfazer.
