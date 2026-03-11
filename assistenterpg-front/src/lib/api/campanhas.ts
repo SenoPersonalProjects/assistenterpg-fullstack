@@ -11,6 +11,7 @@ import type {
   AdicionarNpcSessaoCampanhaPayload,
   AtualizarNpcSessaoCampanhaPayload,
   CampoModificadorPersonagemCampanha,
+  EventoSessaoTimeline,
   MensagemChatSessao,
   SessaoCampanhaDetalhe,
   SessaoCampanhaResumo,
@@ -435,6 +436,44 @@ export async function apiListarChatSessaoCampanha(
 
   const { data } = await apiClient.get(url);
   return Array.isArray(data) ? data : [];
+}
+
+export async function apiListarEventosSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  query?: {
+    limit?: number;
+    incluirChat?: boolean;
+  },
+): Promise<EventoSessaoTimeline[]> {
+  const params = new URLSearchParams();
+  if (query?.limit && Number.isFinite(query.limit)) {
+    params.set('limit', String(Math.trunc(query.limit)));
+  }
+  if (query?.incluirChat === true) {
+    params.set('incluirChat', 'true');
+  }
+
+  const url =
+    params.size > 0
+      ? `/campanhas/${campanhaId}/sessoes/${sessaoId}/eventos?${params.toString()}`
+      : `/campanhas/${campanhaId}/sessoes/${sessaoId}/eventos`;
+
+  const { data } = await apiClient.get(url);
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiDesfazerEventoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  eventoId: number,
+  payload?: { motivo?: string },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/eventos/${eventoId}/desfazer`,
+    payload ?? {},
+  );
+  return data;
 }
 
 export async function apiEnviarMensagemChatSessaoCampanha(

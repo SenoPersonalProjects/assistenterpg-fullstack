@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NpcSessaoNaoEncontradoException = exports.CenaSessaoNaoEncontradaException = exports.SessaoTurnoIndisponivelEmCenaLivreException = exports.SessaoCampanhaNaoEncontradaException = exports.CampanhaModificadorJaDesfeitoException = exports.CampanhaModificadorNaoEncontradoException = exports.CampanhaPersonagemDesassociacaoNegadaException = exports.CampanhaPersonagemEdicaoNegadaException = exports.CampanhaPersonagemLimiteUsuarioException = exports.CampanhaPersonagemAssociacaoNegadaException = exports.PersonagemCampanhaNaoEncontradoException = exports.ConviteCodigoIndisponivelException = exports.ConvitePendenteDuplicadoException = exports.ConviteNaoPertenceUsuarioException = exports.ConviteInvalidoOuUtilizadoException = exports.ConviteNaoEncontradoException = exports.UsuarioJaMembroCampanhaException = exports.UsuarioNaoEncontradoException = exports.CampanhaApenasMestreException = exports.CampanhaApenasDonoException = exports.CampanhaAcessoNegadoException = exports.CampanhaNaoEncontradaException = void 0;
+exports.SessaoEventoDesfazerNaoPermitidoException = exports.SessaoEventoNaoEncontradoException = exports.NpcSessaoNaoEncontradoException = exports.CenaSessaoNaoEncontradaException = exports.SessaoTurnoIndisponivelEmCenaLivreException = exports.SessaoCampanhaNaoEncontradaException = exports.CampanhaModificadorJaDesfeitoException = exports.CampanhaModificadorNaoEncontradoException = exports.CampanhaPersonagemDesassociacaoNegadaException = exports.CampanhaPersonagemEdicaoNegadaException = exports.CampanhaPersonagemLimiteUsuarioException = exports.CampanhaPersonagemAssociacaoNegadaException = exports.PersonagemCampanhaNaoEncontradoException = exports.ConviteCodigoIndisponivelException = exports.ConvitePendenteDuplicadoException = exports.ConviteNaoPertenceUsuarioException = exports.ConviteInvalidoOuUtilizadoException = exports.ConviteNaoEncontradoException = exports.UsuarioJaMembroCampanhaException = exports.UsuarioNaoEncontradoException = exports.CampanhaApenasMestreException = exports.CampanhaApenasDonoException = exports.CampanhaAcessoNegadoException = exports.CampanhaNaoEncontradaException = void 0;
 const common_1 = require("@nestjs/common");
 const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
@@ -195,4 +195,24 @@ class NpcSessaoNaoEncontradoException extends base_exception_1.BaseException {
     }
 }
 exports.NpcSessaoNaoEncontradoException = NpcSessaoNaoEncontradoException;
+class SessaoEventoNaoEncontradoException extends base_exception_1.BaseException {
+    constructor(eventoId, sessaoId, campanhaId) {
+        super('Evento da sessao nao encontrado', common_1.HttpStatus.NOT_FOUND, 'SESSAO_EVENTO_NOT_FOUND', {
+            eventoId,
+            sessaoId,
+            campanhaId,
+        });
+    }
+}
+exports.SessaoEventoNaoEncontradoException = SessaoEventoNaoEncontradoException;
+class SessaoEventoDesfazerNaoPermitidoException extends business_exception_1.BusinessException {
+    constructor(eventoId, sessaoId, tipoEvento) {
+        super('Este evento nao pode ser desfeito com seguranca', 'SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO', {
+            eventoId,
+            sessaoId,
+            tipoEvento,
+        });
+    }
+}
+exports.SessaoEventoDesfazerNaoPermitidoException = SessaoEventoDesfazerNaoPermitidoException;
 //# sourceMappingURL=campanha.exception.js.map

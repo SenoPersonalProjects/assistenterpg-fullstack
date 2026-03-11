@@ -269,3 +269,20 @@ export type MensagemChatSessao = {
     personagemNome: string | null;
   };
 };
+
+export type EventoSessaoTimeline = {
+  id: number;
+  sessaoId: number;
+  cenaId: number | null;
+  criadoEm: string;
+  tipoEvento: string;
+  descricao: string;
+  desfeito: boolean;
+  podeDesfazer: boolean;
+  dados: unknown;
+  autor: {
+    usuarioId: number | null;
+    apelido: string;
+    personagemNome: string | null;
+  } | null;
+};

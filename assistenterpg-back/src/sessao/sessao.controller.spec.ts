@@ -11,6 +11,7 @@ describe('SessaoController', () => {
     criarSessaoCampanha: jest.fn(),
     buscarDetalheSessao: jest.fn(),
     listarChatSessao: jest.fn(),
+    listarEventosSessao: jest.fn(),
     enviarMensagemChatSessao: jest.fn(),
     avancarTurnoSessao: jest.fn(),
     encerrarSessaoCampanha: jest.fn(),
@@ -18,6 +19,7 @@ describe('SessaoController', () => {
     adicionarNpcSessao: jest.fn(),
     atualizarNpcSessao: jest.fn(),
     removerNpcSessao: jest.fn(),
+    desfazerEventoSessao: jest.fn(),
   };
 
   const sessaoGatewayMock = {
@@ -73,6 +75,24 @@ describe('SessaoController', () => {
       12,
       3,
       44,
+    );
+  });
+
+  it('deve encaminhar listagem de eventos da sessao para o service', async () => {
+    sessaoServiceMock.listarEventosSessao.mockResolvedValue([]);
+
+    await controller.listarEventosSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      { limit: 30, incluirChat: false },
+    );
+
+    expect(sessaoServiceMock.listarEventosSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      { limit: 30, incluirChat: false },
     );
   });
 
@@ -136,6 +156,31 @@ describe('SessaoController', () => {
       7,
       12,
       'CENA_ATUALIZADA',
+    );
+  });
+
+  it('deve desfazer evento da sessao e emitir notificacao realtime', async () => {
+    sessaoServiceMock.desfazerEventoSessao.mockResolvedValue({ id: 12 });
+
+    await controller.desfazerEventoSessao(
+      7,
+      12,
+      99,
+      { user: { id: 3 } },
+      { motivo: 'erro de mesa' },
+    );
+
+    expect(sessaoServiceMock.desfazerEventoSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      99,
+      3,
+      'erro de mesa',
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'SESSAO_EVENTO_DESFEITO',
     );
   });
 });

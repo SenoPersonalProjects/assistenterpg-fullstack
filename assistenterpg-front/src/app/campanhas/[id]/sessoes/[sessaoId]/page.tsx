@@ -9,15 +9,18 @@ import {
   apiAtualizarNpcSessaoCampanha,
   apiAtualizarRecursosPersonagemCampanha,
   apiAvancarTurnoSessaoCampanha,
+  apiDesfazerEventoSessaoCampanha,
   apiEncerrarSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
   apiGetSessaoCampanha,
   apiGetMeusNpcsAmeacas,
   apiListarChatSessaoCampanha,
+  apiListarEventosSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
+  EventoSessaoTimeline,
   MensagemChatSessao,
   NpcAmeacaResumo,
   NpcSessaoCampanha,
@@ -63,6 +66,78 @@ type NpcEditavel = {
   deslocamentoMetros: string;
   notasCena: string;
 };
+
+const GUIAS_ESCUDO_MESTRE: Array<{ id: string; titulo: string; placeholder: string }> = [
+  { id: 'condicoes', titulo: 'Condicoes', placeholder: 'Guia rapido de condicoes em elaboracao.' },
+  { id: 'pericias', titulo: 'Pericias', placeholder: 'Resumo de uso de pericias em elaboracao.' },
+  {
+    id: 'conflito-dominios',
+    titulo: 'Regra de conflito de dominios',
+    placeholder: 'Regra de conflito de dominios em elaboracao.',
+  },
+  {
+    id: 'primeira-expansao',
+    titulo: 'Regra de primeira expansao de dominios',
+    placeholder: 'Regra de primeira expansao de dominios em elaboracao.',
+  },
+  {
+    id: 'guia-dificuldades',
+    titulo: 'Tabela de guia de dificuldades',
+    placeholder: 'Tabela de dificuldades em elaboracao.',
+  },
+  {
+    id: 'testes-varias-pericias',
+    titulo: 'Regra de testes com varias pericias',
+    placeholder: 'Regra unica de testes com varias pericias em elaboracao.',
+  },
+  { id: 'tipos-dano', titulo: 'Tipos de dano', placeholder: 'Tabela de tipos de dano em elaboracao.' },
+  { id: 'tipos-acoes', titulo: 'Tipos de acoes', placeholder: 'Resumo de tipos de acoes em elaboracao.' },
+  {
+    id: 'ferimentos-morte',
+    titulo: 'Ferimentos e morte',
+    placeholder: 'Fluxo de ferimentos e morte em elaboracao.',
+  },
+  {
+    id: 'insanidade-loucura',
+    titulo: 'Insanidade e loucura',
+    placeholder: 'Regras de insanidade e loucura em elaboracao.',
+  },
+  {
+    id: 'situacoes-especiais',
+    titulo: 'Situacoes especiais',
+    placeholder: 'Resumo de situacoes especiais em elaboracao.',
+  },
+  {
+    id: 'multidoes',
+    titulo: 'Mecanica de multidoes',
+    placeholder: 'Mecanica de multidoes em elaboracao.',
+  },
+  {
+    id: 'interludio',
+    titulo: 'Mecanica de interludio',
+    placeholder: 'Mecanica de interludio em elaboracao.',
+  },
+  {
+    id: 'investigacao',
+    titulo: 'Mecanica de investigacao',
+    placeholder: 'Mecanica de investigacao em elaboracao.',
+  },
+  {
+    id: 'furtividade',
+    titulo: 'Mecanica de furtividade',
+    placeholder: 'Mecanica de furtividade em elaboracao.',
+  },
+  {
+    id: 'perseguicao',
+    titulo: 'Mecanica de perseguicao',
+    placeholder: 'Mecanica de perseguicao em elaboracao.',
+  },
+  {
+    id: 'aspectos-congenitos',
+    titulo: 'Aspectos congenitos',
+    placeholder: 'Resumo de aspectos congenitos em elaboracao.',
+  },
+];
 
 function formatarDataHora(valor: string): string {
   const data = new Date(valor);
@@ -119,6 +194,7 @@ export default function SessaoCampanhaPage() {
 
   const [detalhe, setDetalhe] = useState<SessaoCampanhaDetalhe | null>(null);
   const [chat, setChat] = useState<MensagemChatSessao[]>([]);
+  const [eventosSessao, setEventosSessao] = useState<EventoSessaoTimeline[]>([]);
   const [mensagem, setMensagem] = useState('');
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
   const [cenaNome, setCenaNome] = useState('');
@@ -139,6 +215,8 @@ export default function SessaoCampanhaPage() {
   const [adicionandoNpc, setAdicionandoNpc] = useState(false);
   const [salvandoNpcId, setSalvandoNpcId] = useState<number | null>(null);
   const [removendoNpcId, setRemovendoNpcId] = useState<number | null>(null);
+  const [desfazendoEventoId, setDesfazendoEventoId] = useState<number | null>(null);
+  const [motivoDesfazerEvento, setMotivoDesfazerEvento] = useState('');
   const [socketConectado, setSocketConectado] = useState(false);
   const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
@@ -212,27 +290,25 @@ export default function SessaoCampanhaPage() {
       const afterId = chatRef.current.length
         ? chatRef.current[chatRef.current.length - 1].id
         : undefined;
-      const [detalheAtual, mensagensNovas] = await Promise.all([
+      const [detalheAtual, mensagensNovas, eventos] = await Promise.all([
         apiGetSessaoCampanha(campanhaId, sessaoId),
         apiListarChatSessaoCampanha(campanhaId, sessaoId, afterId),
+        apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+          limit: 80,
+          incluirChat: false,
+        }),
       ]);
 
       setDetalhe(detalheAtual);
       sincronizarEstadosDerivados(detalheAtual);
       anexarMensagensNoChat(mensagensNovas);
+      setEventosSessao(eventos);
     } catch {
       // sincronizacao silenciosa de fallback/realtime
     } finally {
       sincronizandoTempoRealRef.current = false;
     }
-  }, [
-    anexarMensagensNoChat,
-    campanhaId,
-    idsValidos,
-    sessaoId,
-    sincronizarEstadosDerivados,
-    usuario,
-  ]);
+  }, [anexarMensagensNoChat, campanhaId, idsValidos, sessaoId, sincronizarEstadosDerivados, usuario]);
 
   const carregarInicial = useCallback(async () => {
     if (!idsValidos || !usuario) return;
@@ -240,13 +316,18 @@ export default function SessaoCampanhaPage() {
     setLoading(true);
     setErro(null);
     try {
-      const [detalheSessao, chatInicial] = await Promise.all([
+      const [detalheSessao, chatInicial, eventos] = await Promise.all([
         apiGetSessaoCampanha(campanhaId, sessaoId),
         apiListarChatSessaoCampanha(campanhaId, sessaoId),
+        apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+          limit: 80,
+          incluirChat: false,
+        }),
       ]);
       setDetalhe(detalheSessao);
       sincronizarEstadosDerivados(detalheSessao);
       setChat(chatInicial);
+      setEventosSessao(eventos);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
@@ -762,6 +843,33 @@ export default function SessaoCampanhaPage() {
     }
   }
 
+  async function handleDesfazerEvento(eventoId: number) {
+    if (!idsValidos || !usuario) return;
+
+    setDesfazendoEventoId(eventoId);
+    setErro(null);
+    try {
+      const [detalheAtualizada, eventosAtualizados] = await Promise.all([
+        apiDesfazerEventoSessaoCampanha(campanhaId, sessaoId, eventoId, {
+          motivo: motivoDesfazerEvento.trim() || undefined,
+        }),
+        apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+          limit: 80,
+          incluirChat: false,
+        }),
+      ]);
+
+      setDetalhe(detalheAtualizada);
+      sincronizarEstadosDerivados(detalheAtualizada);
+      setEventosSessao(eventosAtualizados);
+      setMotivoDesfazerEvento('');
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setDesfazendoEventoId(null);
+    }
+  }
+
   async function handleEnviarMensagem() {
     const mensagemLimpa = mensagem.trim();
     if (!mensagemLimpa) return;
@@ -846,23 +954,25 @@ export default function SessaoCampanhaPage() {
                       Escudo do Mestre
                     </h2>
                     <p className="text-xs text-app-muted">
-                      Painel rapido com indicadores da mesa (placeholder).
+                      Guias rapidos da mesa. Conteudo detalhado entra nas proximas iteracoes.
                     </p>
                   </div>
                   <span className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface p-2">
                     <Icon name="shield" className="h-4 w-4 text-app-fg" />
                   </span>
                 </div>
-                <div className="grid gap-2 text-xs">
-                  <div className="rounded border border-app-border bg-app-surface px-2 py-1.5 text-app-fg">
-                    Participantes online: {totalParticipantesOnline}/{participantes.length}
-                  </div>
-                  <div className="rounded border border-app-border bg-app-surface px-2 py-1.5 text-app-fg">
-                    Cena atual: {labelCena(detalhe.cenaAtual.tipo)}
-                  </div>
-                  <div className="rounded border border-app-border bg-app-surface px-2 py-1.5 text-app-fg">
-                    Status da sessao: {sessaoEncerrada ? 'Encerrada' : 'Ativa'}
-                  </div>
+                <div className="max-h-[460px] overflow-y-auto space-y-2 pr-1">
+                  {GUIAS_ESCUDO_MESTRE.map((guia) => (
+                    <details
+                      key={guia.id}
+                      className="rounded border border-app-border bg-app-surface px-3 py-2"
+                    >
+                      <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+                        {guia.titulo}
+                      </summary>
+                      <p className="mt-2 text-xs text-app-muted">{guia.placeholder}</p>
+                    </details>
+                  ))}
                 </div>
               </Card>
             ) : (
@@ -1170,11 +1280,15 @@ export default function SessaoCampanhaPage() {
             {podeControlarSessao ? renderCardsSessao() : null}
 
             <Card className="space-y-3">
-              <h2 className="text-sm font-semibold text-app-fg">Cena atual</h2>
-              <p className="text-sm text-app-muted">{labelCena(detalhe.cenaAtual.tipo)}</p>
+              <h2 className="text-sm font-semibold text-app-fg">Painel da sessao</h2>
+              <p className="text-sm text-app-muted">Cena: {labelCena(detalhe.cenaAtual.tipo)}</p>
               {detalhe.cenaAtual.nome ? (
                 <p className="text-xs text-app-muted">{detalhe.cenaAtual.nome}</p>
               ) : null}
+              <p className="text-xs text-app-muted">
+                Status: {sessaoEncerrada ? 'Encerrada' : 'Ativa'} | Participantes online:{' '}
+                {totalParticipantesOnline}/{participantes.length}
+              </p>
               <p className="text-xs text-app-muted">Aliados ou ameacas na cena: {npcs.length}</p>
 
               {detalhe.controleTurnosAtivo ? (
@@ -1307,6 +1421,72 @@ export default function SessaoCampanhaPage() {
                   })}
                 </div>
               )}
+            </Card>
+
+            <Card className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-app-fg">Timeline da sessao</h2>
+                <span className="text-[11px] text-app-muted">
+                  {eventosSessao.length} evento(s)
+                </span>
+              </div>
+
+              {podeControlarSessao ? (
+                <Input
+                  label="Motivo para desfazer (opcional)"
+                  value={motivoDesfazerEvento}
+                  onChange={(event) => setMotivoDesfazerEvento(event.target.value)}
+                  maxLength={240}
+                  placeholder="Ex.: acao registrada por engano"
+                  disabled={Boolean(desfazendoEventoId) || sessaoEncerrada}
+                />
+              ) : null}
+
+              <div className="max-h-[320px] overflow-y-auto rounded border border-app-border p-2 space-y-2">
+                {eventosSessao.length === 0 ? (
+                  <p className="text-xs text-app-muted">
+                    Nenhum evento operacional registrado ainda.
+                  </p>
+                ) : (
+                  eventosSessao.map((evento) => (
+                    <div
+                      key={evento.id}
+                      className="rounded border border-app-border bg-app-surface px-2 py-2 space-y-1"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-semibold text-app-fg">
+                          {evento.descricao}
+                        </p>
+                        {evento.desfeito ? (
+                          <span className="text-[10px] rounded border border-app-border px-1.5 py-0.5 text-app-muted">
+                            Desfeito
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-[11px] text-app-muted">
+                        {evento.tipoEvento}
+                        {typeof evento.cenaId === 'number' ? ` | Cena #${evento.cenaId}` : ''}
+                      </p>
+                      <p className="text-[11px] text-app-muted">
+                        {formatarDataHora(evento.criadoEm)}
+                        {evento.autor?.apelido ? ` por ${evento.autor.apelido}` : ''}
+                      </p>
+                      {podeControlarSessao && evento.podeDesfazer ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void handleDesfazerEvento(evento.id)}
+                          disabled={Boolean(desfazendoEventoId) || sessaoEncerrada}
+                        >
+                          {desfazendoEventoId === evento.id
+                            ? 'Desfazendo...'
+                            : 'Desfazer evento'}
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </div>
             </Card>
 
             <Card className="space-y-3">

@@ -19,6 +19,8 @@ import { EnviarChatSessaoDto } from './dto/enviar-chat-sessao.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
+import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
+import { DesfazerEventoSessaoDto } from './dto/desfazer-evento-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
 
 @UseGuards(AuthGuard('jwt'))
@@ -71,6 +73,21 @@ export class SessaoController {
       sessaoId,
       req.user.id,
       query.afterId,
+    );
+  }
+
+  @Get(':sessaoId/eventos')
+  async listarEventosSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Query() query: ListarEventosSessaoDto,
+  ) {
+    return this.sessaoService.listarEventosSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      query,
     );
   }
 
@@ -224,6 +241,31 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       'NPC_ATUALIZADO',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/eventos/:eventoId/desfazer')
+  async desfazerEventoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('eventoId', ParseIntPipe) eventoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: DesfazerEventoSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.desfazerEventoSessao(
+      campanhaId,
+      sessaoId,
+      eventoId,
+      req.user.id,
+      dto.motivo,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'SESSAO_EVENTO_DESFEITO',
     );
 
     return resultado;

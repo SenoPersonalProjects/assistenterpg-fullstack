@@ -66,3 +66,9 @@ export declare class CenaSessaoNaoEncontradaException extends BaseException {
 export declare class NpcSessaoNaoEncontradoException extends BaseException {
     constructor(npcSessaoId?: number, sessaoId?: number, campanhaId?: number);
 }
+export declare class SessaoEventoNaoEncontradoException extends BaseException {
+    constructor(eventoId?: number, sessaoId?: number, campanhaId?: number);
+}
+export declare class SessaoEventoDesfazerNaoPermitidoException extends BusinessException {
+    constructor(eventoId: number, sessaoId: number, tipoEvento?: string);
+}

@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TipoFichaNpcAmeaca, TipoNpcAmeaca } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CampanhaAcessoNegadoException,
   CampanhaApenasMestreException,
   CampanhaNaoEncontradaException,
   NpcSessaoNaoEncontradoException,
+  SessaoEventoDesfazerNaoPermitidoException,
+  SessaoEventoNaoEncontradoException,
   SessaoCampanhaNaoEncontradaException,
   SessaoTurnoIndisponivelEmCenaLivreException,
   UsuarioNaoEncontradoException,
@@ -15,6 +17,7 @@ import { CreateSessaoCampanhaDto } from './dto/create-sessao-campanha.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
+import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 
 type AcessoCampanha = {
   campanha: {
@@ -47,6 +50,48 @@ type EventoChatMapeado = {
     personagemNome: string | null;
   };
 };
+
+type EventoSessaoMapeado = {
+  id: number;
+  sessaoId: number;
+  cenaId: number | null;
+  criadoEm: Date;
+  tipoEvento: string;
+  descricao: string;
+  desfeito: boolean;
+  podeDesfazer: boolean;
+  dados: Prisma.JsonValue | null;
+  autor: {
+    usuarioId: number | null;
+    apelido: string;
+    personagemNome: string | null;
+  } | null;
+};
+
+type SnapshotNpcSessao = {
+  npcAmeacaId: number | null;
+  nomeExibicao: string;
+  fichaTipo: TipoFichaNpcAmeaca;
+  tipo: TipoNpcAmeaca;
+  vd: number;
+  defesa: number;
+  pontosVidaAtual: number;
+  pontosVidaMax: number;
+  machucado: number | null;
+  deslocamentoMetros: number;
+  passivasGuia: Prisma.JsonValue | null;
+  acoesGuia: Prisma.JsonValue | null;
+  notasCena: string | null;
+  cenaId: number | null;
+};
+
+const TIPOS_EVENTO_REVERSIVEIS = new Set<string>([
+  'TURNO_AVANCADO',
+  'CENA_ATUALIZADA',
+  'NPC_ADICIONADO',
+  'NPC_ATUALIZADO',
+  'NPC_REMOVIDO',
+]);
 
 @Injectable()
 export class SessaoService {
@@ -471,6 +516,423 @@ export class SessaoService {
     return this.mapearEventoChat(evento);
   }
 
+  async listarEventosSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    query: ListarEventosSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoComAcesso(campanhaId, sessaoId, usuarioId);
+    const limit = query.limit ?? 80;
+    const incluirChat = query.incluirChat === true;
+
+    const eventos = await this.prisma.eventoSessao.findMany({
+      where: {
+        sessaoId,
+        ...(incluirChat ? {} : { tipoEvento: { not: 'CHAT' } }),
+      },
+      include: {
+        personagemAtor: {
+          include: {
+            personagemCampanha: {
+              select: {
+                nome: true,
+                donoId: true,
+                dono: {
+                  select: {
+                    apelido: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { id: 'desc' },
+      take: limit,
+    });
+
+    const ultimoEventoReversivel = acesso.ehMestre
+      ? await this.obterUltimoEventoReversivelDisponivel(this.prisma, sessaoId)
+      : null;
+
+    return eventos.map((evento) =>
+      this.mapearEventoSessao(
+        evento,
+        acesso.ehMestre && evento.id === ultimoEventoReversivel?.id,
+      ),
+    );
+  }
+
+  async desfazerEventoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    eventoId: number,
+    usuarioId: number,
+    motivo?: string,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'desfazer evento da sessao');
+
+    const motivoLimpo = motivo?.trim() || null;
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+          status: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      const evento = await tx.eventoSessao.findFirst({
+        where: {
+          id: eventoId,
+          sessaoId,
+        },
+      });
+
+      if (!evento) {
+        throw new SessaoEventoNaoEncontradoException(eventoId, sessaoId, campanhaId);
+      }
+
+      if (!TIPOS_EVENTO_REVERSIVEIS.has(evento.tipoEvento)) {
+        throw new SessaoEventoDesfazerNaoPermitidoException(
+          eventoId,
+          sessaoId,
+          evento.tipoEvento,
+        );
+      }
+
+      if (this.eventoJaFoiDesfeito(evento.dados)) {
+        throw new SessaoEventoDesfazerNaoPermitidoException(
+          eventoId,
+          sessaoId,
+          evento.tipoEvento,
+        );
+      }
+
+      const ultimoEventoReversivel = await this.obterUltimoEventoReversivelDisponivel(
+        tx,
+        sessaoId,
+      );
+
+      if (!ultimoEventoReversivel || ultimoEventoReversivel.id !== eventoId) {
+        throw new SessaoEventoDesfazerNaoPermitidoException(
+          eventoId,
+          sessaoId,
+          evento.tipoEvento,
+        );
+      }
+
+      if (sessao.status === 'ENCERRADA') {
+        throw new SessaoEventoDesfazerNaoPermitidoException(
+          eventoId,
+          sessaoId,
+          evento.tipoEvento,
+        );
+      }
+
+      const dadosEvento = this.extrairRegistro(evento.dados);
+
+      switch (evento.tipoEvento) {
+        case 'TURNO_AVANCADO': {
+          const indiceAnterior = this.lerInteiroRegistro(
+            dadosEvento,
+            'indiceAnterior',
+          );
+          const indiceNovo = this.lerInteiroRegistro(dadosEvento, 'indiceNovo');
+          const rodadaNova = this.lerInteiroRegistro(dadosEvento, 'rodadaNova');
+          const rodadaAnteriorInformada = this.lerInteiroOpcionalRegistro(
+            dadosEvento,
+            'rodadaAnterior',
+          );
+          if (
+            indiceAnterior === null ||
+            indiceNovo === null ||
+            rodadaNova === null
+          ) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+          const rodadaAnterior =
+            rodadaAnteriorInformada ??
+            Math.max(1, rodadaNova - (indiceNovo === 0 ? 1 : 0));
+
+          await tx.sessao.update({
+            where: { id: sessaoId },
+            data: {
+              indiceTurnoAtual: indiceAnterior,
+              rodadaAtual: rodadaAnterior,
+            },
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: evento.cenaId,
+              tipoEvento: 'TURNO_DESFEITO',
+              dados: {
+                eventoOriginalId: evento.id,
+                indiceAnterior,
+                indiceNovo,
+                rodadaAnterior,
+                rodadaNova,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              },
+            },
+          });
+          break;
+        }
+        case 'CENA_ATUALIZADA': {
+          const cenaAnteriorId = this.lerInteiroRegistro(dadosEvento, 'cenaAnteriorId');
+          const tipoAnterior = this.lerTextoRegistro(dadosEvento, 'tipoAnterior');
+          const nomeAnterior = this.lerTextoOpcionalRegistro(
+            dadosEvento,
+            'nomeAnterior',
+          );
+          const rodadaAnterior = this.lerInteiroRegistro(dadosEvento, 'rodadaAnterior');
+          const indiceTurnoAnterior = this.lerInteiroRegistro(
+            dadosEvento,
+            'indiceTurnoAnterior',
+          );
+          if (
+            cenaAnteriorId === null ||
+            tipoAnterior === null ||
+            rodadaAnterior === null ||
+            indiceTurnoAnterior === null
+          ) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          const cenaAnteriorExiste = await tx.cena.findFirst({
+            where: {
+              id: cenaAnteriorId,
+              sessaoId,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          if (!cenaAnteriorExiste) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          await tx.personagemSessao.updateMany({
+            where: { sessaoId },
+            data: { cenaId: cenaAnteriorId },
+          });
+
+          await tx.sessao.update({
+            where: { id: sessaoId },
+            data: {
+              cenaAtualTipo: tipoAnterior,
+              cenaAtualNome: nomeAnterior,
+              rodadaAtual: rodadaAnterior,
+              indiceTurnoAtual: indiceTurnoAnterior,
+            },
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: cenaAnteriorId,
+              tipoEvento: 'CENA_DESFEITA',
+              dados: {
+                eventoOriginalId: evento.id,
+                cenaAnteriorId,
+                tipoAnterior,
+                nomeAnterior,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              },
+            },
+          });
+          break;
+        }
+        case 'NPC_ADICIONADO': {
+          const npcSessaoId = this.lerInteiroRegistro(dadosEvento, 'npcSessaoId');
+          if (npcSessaoId === null) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+          const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
+            where: {
+              id: npcSessaoId,
+              sessaoId,
+            },
+          });
+
+          if (!npcSessaoAtual) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          await tx.npcAmeacaSessao.delete({
+            where: {
+              id: npcSessaoId,
+            },
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: npcSessaoAtual.cenaId,
+              tipoEvento: 'NPC_ADICAO_DESFEITA',
+              dados: {
+                eventoOriginalId: evento.id,
+                npcSessaoId,
+                nome: npcSessaoAtual.nomeExibicao,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              },
+            },
+          });
+          break;
+        }
+        case 'NPC_ATUALIZADO': {
+          const npcSessaoId = this.lerInteiroRegistro(dadosEvento, 'npcSessaoId');
+          const anterior = this.lerRegistroOpcionalRegistro(dadosEvento, 'anterior');
+
+          if (npcSessaoId === null || !anterior) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
+            where: {
+              id: npcSessaoId,
+              sessaoId,
+            },
+          });
+
+          if (!npcSessaoAtual) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          const dataAnterior = this.montarUpdateNpcPorSnapshot(anterior);
+          if (!dataAnterior) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          await tx.npcAmeacaSessao.update({
+            where: {
+              id: npcSessaoId,
+            },
+            data: dataAnterior,
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: npcSessaoAtual.cenaId,
+              tipoEvento: 'NPC_ATUALIZACAO_DESFEITA',
+              dados: {
+                eventoOriginalId: evento.id,
+                npcSessaoId,
+                nome: npcSessaoAtual.nomeExibicao,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              },
+            },
+          });
+          break;
+        }
+        case 'NPC_REMOVIDO': {
+          const snapshot = this.lerSnapshotNpcRegistro(dadosEvento, 'snapshot');
+          if (!snapshot) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          const npcRestaurado = await tx.npcAmeacaSessao.create({
+            data: {
+              sessaoId,
+              cenaId: snapshot.cenaId ?? evento.cenaId ?? null,
+              npcAmeacaId: snapshot.npcAmeacaId,
+              nomeExibicao: snapshot.nomeExibicao,
+              fichaTipo: snapshot.fichaTipo,
+              tipo: snapshot.tipo,
+              vd: snapshot.vd,
+              defesa: snapshot.defesa,
+              pontosVidaAtual: snapshot.pontosVidaAtual,
+              pontosVidaMax: snapshot.pontosVidaMax,
+              machucado: snapshot.machucado,
+              deslocamentoMetros: snapshot.deslocamentoMetros,
+              passivasGuia: this.jsonParaPersistencia(snapshot.passivasGuia),
+              acoesGuia: this.jsonParaPersistencia(snapshot.acoesGuia),
+              notasCena: snapshot.notasCena,
+            },
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: snapshot.cenaId ?? evento.cenaId ?? null,
+              tipoEvento: 'NPC_REMOCAO_DESFEITA',
+              dados: {
+                eventoOriginalId: evento.id,
+                npcSessaoIdRestaurado: npcRestaurado.id,
+                nome: npcRestaurado.nomeExibicao,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              },
+            },
+          });
+          break;
+        }
+        default:
+          throw new SessaoEventoDesfazerNaoPermitidoException(
+            eventoId,
+            sessaoId,
+            evento.tipoEvento,
+          );
+      }
+
+      await this.marcarEventoComoDesfeitoTx(tx, evento, usuarioId, motivoLimpo);
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
   async avancarTurnoSessao(
     campanhaId: number,
     sessaoId: number,
@@ -527,6 +989,7 @@ export class SessaoService {
           dados: {
             indiceAnterior,
             indiceNovo,
+            rodadaAnterior: sessao.rodadaAtual,
             rodadaNova,
             avancadoPorId: usuarioId,
           },
@@ -555,6 +1018,12 @@ export class SessaoService {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
 
+      const cenaAnterior = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const nomeNovaCena = dto.nome?.trim() || null;
+      const rodadaNova = dto.tipo === 'LIVRE' ? 1 : sessao.rodadaAtual;
+      const indiceTurnoNovo =
+        dto.tipo === 'LIVRE' ? 0 : sessao.indiceTurnoAtual;
+
       const cena = await tx.cena.create({
         data: {
           sessaoId,
@@ -570,9 +1039,9 @@ export class SessaoService {
         where: { id: sessaoId },
         data: {
           cenaAtualTipo: dto.tipo,
-          cenaAtualNome: dto.nome?.trim() || null,
-          rodadaAtual: dto.tipo === 'LIVRE' ? 1 : sessao.rodadaAtual,
-          indiceTurnoAtual: dto.tipo === 'LIVRE' ? 0 : sessao.indiceTurnoAtual,
+          cenaAtualNome: nomeNovaCena,
+          rodadaAtual: rodadaNova,
+          indiceTurnoAtual: indiceTurnoNovo,
         },
       });
 
@@ -582,8 +1051,16 @@ export class SessaoService {
           cenaId: cena.id,
           tipoEvento: 'CENA_ATUALIZADA',
           dados: {
-            tipo: dto.tipo,
-            nome: dto.nome?.trim() || null,
+            tipoNovo: dto.tipo,
+            nomeNovo: nomeNovaCena,
+            tipoAnterior: sessao.cenaAtualTipo,
+            nomeAnterior: sessao.cenaAtualNome,
+            rodadaAnterior: sessao.rodadaAtual,
+            rodadaNova,
+            indiceTurnoAnterior: sessao.indiceTurnoAtual,
+            indiceTurnoNovo,
+            cenaAnteriorId: cenaAnterior.id,
+            cenaNovaId: cena.id,
             atualizadoPorId: usuarioId,
           },
         },
@@ -666,6 +1143,7 @@ export class SessaoService {
             npcSessaoId: npcSessao.id,
             npcAmeacaId: npcBase.id,
             nome: npcSessao.nomeExibicao,
+            snapshot: this.snapshotNpcSessao(npcSessao),
             adicionadoPorId: usuarioId,
           },
         },
@@ -738,7 +1216,7 @@ export class SessaoService {
         data.notasCena = dto.notasCena.trim() || null;
       }
 
-      await tx.npcAmeacaSessao.update({
+      const npcSessaoAtualizado = await tx.npcAmeacaSessao.update({
         where: {
           id: npcSessaoId,
         },
@@ -752,6 +1230,8 @@ export class SessaoService {
           tipoEvento: 'NPC_ATUALIZADO',
           dados: {
             npcSessaoId,
+            anterior: this.snapshotNpcSessao(npcSessaoAtual),
+            atual: this.snapshotNpcSessao(npcSessaoAtualizado),
             atualizadoPorId: usuarioId,
           },
         },
@@ -812,6 +1292,7 @@ export class SessaoService {
           dados: {
             npcSessaoId,
             nome: npcSessaoAtual.nomeExibicao,
+            snapshot: this.snapshotNpcSessao(npcSessaoAtual),
             removidoPorId: usuarioId,
           },
         },
@@ -993,6 +1474,356 @@ export class SessaoService {
   ): Prisma.InputJsonValue | Prisma.JsonNullValueInput {
     if (valor === null) return Prisma.JsonNull;
     return valor as Prisma.InputJsonValue;
+  }
+
+  private async obterUltimoEventoReversivelDisponivel(
+    tx: Prisma.TransactionClient | PrismaService,
+    sessaoId: number,
+  ) {
+    const eventos = await tx.eventoSessao.findMany({
+      where: {
+        sessaoId,
+        tipoEvento: {
+          in: Array.from(TIPOS_EVENTO_REVERSIVEIS),
+        },
+      },
+      orderBy: {
+        id: 'desc',
+      },
+      take: 120,
+    });
+
+    for (const evento of eventos) {
+      if (!this.eventoJaFoiDesfeito(evento.dados)) {
+        return evento;
+      }
+    }
+
+    return null;
+  }
+
+  private eventoJaFoiDesfeito(dados: Prisma.JsonValue | null): boolean {
+    const registro = this.extrairRegistro(dados);
+    return registro.desfeito === true;
+  }
+
+  private extrairRegistro(dados: Prisma.JsonValue | null): Record<string, unknown> {
+    if (!dados || typeof dados !== 'object' || Array.isArray(dados)) {
+      return {};
+    }
+    return dados as Record<string, unknown>;
+  }
+
+  private lerInteiroRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): number | null {
+    const valor = registro[chave];
+    if (typeof valor === 'number' && Number.isInteger(valor)) {
+      return valor;
+    }
+    return null;
+  }
+
+  private lerInteiroOpcionalRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): number | null {
+    const valor = registro[chave];
+    if (valor === undefined || valor === null) return null;
+    if (typeof valor === 'number' && Number.isInteger(valor)) {
+      return valor;
+    }
+    return null;
+  }
+
+  private lerTextoRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): string | null {
+    const valor = registro[chave];
+    if (typeof valor !== 'string') return null;
+    const texto = valor.trim();
+    return texto.length > 0 ? texto : null;
+  }
+
+  private lerTextoOpcionalRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): string | null {
+    const valor = registro[chave];
+    if (valor === undefined || valor === null) return null;
+    if (typeof valor !== 'string') return null;
+    const texto = valor.trim();
+    return texto.length > 0 ? texto : null;
+  }
+
+  private lerRegistroOpcionalRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): Record<string, unknown> | null {
+    const valor = registro[chave];
+    if (!valor || typeof valor !== 'object' || Array.isArray(valor)) {
+      return null;
+    }
+    return valor as Record<string, unknown>;
+  }
+
+  private lerSnapshotNpcRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): SnapshotNpcSessao | null {
+    const bruto = this.lerRegistroOpcionalRegistro(registro, chave);
+    if (!bruto) return null;
+
+    const nomeExibicao = this.lerTextoRegistro(bruto, 'nomeExibicao');
+    const fichaTipo = this.normalizarTipoFichaNpcAmeaca(
+      this.lerTextoRegistro(bruto, 'fichaTipo'),
+    );
+    const tipo = this.normalizarTipoNpcAmeaca(this.lerTextoRegistro(bruto, 'tipo'));
+    const vd = this.lerInteiroRegistro(bruto, 'vd');
+    const defesa = this.lerInteiroRegistro(bruto, 'defesa');
+    const pontosVidaAtual = this.lerInteiroRegistro(bruto, 'pontosVidaAtual');
+    const pontosVidaMax = this.lerInteiroRegistro(bruto, 'pontosVidaMax');
+    const deslocamentoMetros = this.lerInteiroRegistro(bruto, 'deslocamentoMetros');
+
+    if (
+      !nomeExibicao ||
+      !fichaTipo ||
+      !tipo ||
+      vd === null ||
+      defesa === null ||
+      pontosVidaAtual === null ||
+      pontosVidaMax === null ||
+      deslocamentoMetros === null
+    ) {
+      return null;
+    }
+
+    const machucado = this.lerInteiroOpcionalRegistro(bruto, 'machucado');
+    const npcAmeacaId = this.lerInteiroOpcionalRegistro(bruto, 'npcAmeacaId');
+    const cenaId = this.lerInteiroOpcionalRegistro(bruto, 'cenaId');
+    const notasCena = this.lerTextoOpcionalRegistro(bruto, 'notasCena');
+
+    return {
+      npcAmeacaId,
+      nomeExibicao,
+      fichaTipo,
+      tipo,
+      vd,
+      defesa,
+      pontosVidaAtual,
+      pontosVidaMax,
+      machucado,
+      deslocamentoMetros,
+      passivasGuia: (bruto.passivasGuia ?? null) as Prisma.JsonValue | null,
+      acoesGuia: (bruto.acoesGuia ?? null) as Prisma.JsonValue | null,
+      notasCena,
+      cenaId,
+    };
+  }
+
+  private snapshotNpcSessao(npc: {
+    npcAmeacaId: number | null;
+    nomeExibicao: string;
+    fichaTipo: TipoFichaNpcAmeaca;
+    tipo: TipoNpcAmeaca;
+    vd: number;
+    defesa: number;
+    pontosVidaAtual: number;
+    pontosVidaMax: number;
+    machucado: number | null;
+    deslocamentoMetros: number;
+    passivasGuia: Prisma.JsonValue | null;
+    acoesGuia: Prisma.JsonValue | null;
+    notasCena: string | null;
+    cenaId: number | null;
+  }): SnapshotNpcSessao {
+    return {
+      npcAmeacaId: npc.npcAmeacaId,
+      nomeExibicao: npc.nomeExibicao,
+      fichaTipo: npc.fichaTipo,
+      tipo: npc.tipo,
+      vd: npc.vd,
+      defesa: npc.defesa,
+      pontosVidaAtual: npc.pontosVidaAtual,
+      pontosVidaMax: npc.pontosVidaMax,
+      machucado: npc.machucado,
+      deslocamentoMetros: npc.deslocamentoMetros,
+      passivasGuia: npc.passivasGuia,
+      acoesGuia: npc.acoesGuia,
+      notasCena: npc.notasCena,
+      cenaId: npc.cenaId,
+    };
+  }
+
+  private montarUpdateNpcPorSnapshot(snapshot: Record<string, unknown>) {
+    const dados = this.lerSnapshotNpcRegistro({ snapshot }, 'snapshot');
+    if (!dados) {
+      return null;
+    }
+
+    return {
+      nomeExibicao: dados.nomeExibicao,
+      vd: dados.vd,
+      defesa: dados.defesa,
+      pontosVidaAtual: dados.pontosVidaAtual,
+      pontosVidaMax: dados.pontosVidaMax,
+      machucado: dados.machucado,
+      deslocamentoMetros: dados.deslocamentoMetros,
+      notasCena: dados.notasCena,
+    } satisfies Prisma.NpcAmeacaSessaoUpdateInput;
+  }
+
+  private normalizarTipoFichaNpcAmeaca(
+    valor: string | null,
+  ): TipoFichaNpcAmeaca | null {
+    if (!valor) return null;
+    const tiposValidos: TipoFichaNpcAmeaca[] = ['NPC', 'AMEACA'];
+    return tiposValidos.includes(valor as TipoFichaNpcAmeaca)
+      ? (valor as TipoFichaNpcAmeaca)
+      : null;
+  }
+
+  private normalizarTipoNpcAmeaca(valor: string | null): TipoNpcAmeaca | null {
+    if (!valor) return null;
+    const tiposValidos: TipoNpcAmeaca[] = [
+      'HUMANO',
+      'FEITICEIRO',
+      'MALDICAO',
+      'ANIMAL',
+      'HIBRIDO',
+      'OUTRO',
+    ];
+    return tiposValidos.includes(valor as TipoNpcAmeaca)
+      ? (valor as TipoNpcAmeaca)
+      : null;
+  }
+
+  private async marcarEventoComoDesfeitoTx(
+    tx: Prisma.TransactionClient,
+    evento: { id: number; dados: Prisma.JsonValue | null },
+    usuarioId: number,
+    motivo: string | null,
+  ): Promise<void> {
+    const dadosOriginais = this.extrairRegistro(evento.dados);
+
+    await tx.eventoSessao.update({
+      where: { id: evento.id },
+      data: {
+        dados: this.jsonParaPersistencia({
+          ...dadosOriginais,
+          desfeito: true,
+          desfeitoEm: new Date().toISOString(),
+          desfeitoPorId: usuarioId,
+          motivoDesfazer: motivo,
+        }),
+      },
+    });
+  }
+
+  private mapearEventoSessao(
+    evento: Prisma.EventoSessaoGetPayload<{
+      include: {
+        personagemAtor: {
+          include: {
+            personagemCampanha: {
+              select: {
+                nome: true;
+                donoId: true;
+                dono: {
+                  select: {
+                    apelido: true;
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    }>,
+    podeDesfazer: boolean,
+  ): EventoSessaoMapeado {
+    const dados = this.extrairRegistro(evento.dados);
+    const desfeito = this.eventoJaFoiDesfeito(evento.dados);
+
+    let autor: EventoSessaoMapeado['autor'] = null;
+    if (evento.personagemAtor) {
+      autor = {
+        usuarioId: evento.personagemAtor.personagemCampanha.donoId,
+        apelido: evento.personagemAtor.personagemCampanha.dono.apelido,
+        personagemNome: evento.personagemAtor.personagemCampanha.nome,
+      };
+    } else if (typeof dados.autorApelido === 'string') {
+      autor = {
+        usuarioId: null,
+        apelido: dados.autorApelido,
+        personagemNome: null,
+      };
+    }
+
+    return {
+      id: evento.id,
+      sessaoId: evento.sessaoId,
+      cenaId: evento.cenaId,
+      criadoEm: evento.criadoEm,
+      tipoEvento: evento.tipoEvento,
+      descricao: this.descreverEventoSessao(evento.tipoEvento, dados),
+      desfeito,
+      podeDesfazer: !desfeito && podeDesfazer,
+      dados: evento.dados ?? null,
+      autor,
+    };
+  }
+
+  private descreverEventoSessao(
+    tipoEvento: string,
+    dados: Record<string, unknown>,
+  ): string {
+    switch (tipoEvento) {
+      case 'SESSAO_INICIADA':
+        return 'Sessao iniciada';
+      case 'SESSAO_ENCERRADA':
+        return 'Sessao encerrada';
+      case 'CENA_ATUALIZADA': {
+        const tipo = this.lerTextoRegistro(dados, 'tipoNovo');
+        const nome = this.lerTextoOpcionalRegistro(dados, 'nomeNovo');
+        return `Cena atualizada${tipo ? ` para ${this.labelTipoCena(tipo)}` : ''}${nome ? ` (${nome})` : ''}`;
+      }
+      case 'CENA_DESFEITA':
+        return 'Ultima troca de cena desfeita';
+      case 'TURNO_AVANCADO': {
+        const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
+        return `Turno avancado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
+      }
+      case 'TURNO_DESFEITO':
+        return 'Ultimo avanco de turno desfeito';
+      case 'NPC_ADICIONADO':
+        return `Aliado ou ameaca adicionado${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
+      case 'NPC_ATUALIZADO':
+        return 'Ficha de aliado ou ameaca atualizada';
+      case 'NPC_REMOVIDO':
+        return `Aliado ou ameaca removido${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
+      case 'NPC_ADICAO_DESFEITA':
+      case 'NPC_ATUALIZACAO_DESFEITA':
+      case 'NPC_REMOCAO_DESFEITA':
+        return 'Alteracao de aliado ou ameaca desfeita';
+      case 'CHAT':
+        return 'Mensagem no chat da sessao';
+      default:
+        return tipoEvento;
+    }
+  }
+
+  private labelTipoCena(tipo: string): string {
+    const labels: Record<string, string> = {
+      LIVRE: 'Cena livre',
+      INVESTIGACAO: 'Investigacao',
+      FURTIVIDADE: 'Furtividade',
+      COMBATE: 'Combate',
+      OUTRA: 'Outra',
+    };
+    return labels[tipo] ?? tipo;
   }
 
   private mapearEventoChat(

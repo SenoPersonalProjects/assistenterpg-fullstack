@@ -140,6 +140,13 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - `POST /campanhas/:id/sessoes/:sessaoId/chat`
   - body `EnviarChatSessaoDto`:
     - `mensagem`: string obrigatoria (max 1000)
+- `GET /campanhas/:id/sessoes/:sessaoId/eventos`
+  - query opcional:
+    - `limit`: int entre 1 e 200
+    - `incluirChat`: boolean
+- `POST /campanhas/:id/sessoes/:sessaoId/eventos/:eventoId/desfazer`
+  - body opcional `DesfazerEventoSessaoDto`:
+    - `motivo?`: string opcional (max 240)
 - `POST /campanhas/:id/sessoes/:sessaoId/npcs`
   - body `AdicionarNpcSessaoDto`:
     - `npcAmeacaId` (obrigatorio)
@@ -155,7 +162,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - eventos servidor -> cliente:
     - `sessao:joined`
     - `sessao:erro`
-    - `sessao:atualizada` (`CHAT_NOVA`, `CENA_ATUALIZADA`, `TURNO_AVANCADO`, `NPC_ATUALIZADO`, `SESSAO_ENCERRADA`)
+    - `sessao:atualizada` (`CHAT_NOVA`, `CENA_ATUALIZADA`, `TURNO_AVANCADO`, `NPC_ATUALIZADO`, `SESSAO_ENCERRADA`, `SESSAO_EVENTO_DESFEITO`)
     - `sessao:presenca` (`onlineUsuarioIds`)
 
 ## Regras de negocio
@@ -246,6 +253,18 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - visibilidade de cards:
     - mestre ve/edita todos os cards.
     - jogador ve card completo apenas do proprio personagem e cards resumidos dos demais.
+  - painel central da sessao (cena/rodada/turno/status) e compartilhado para todos os participantes.
+  - coluna direita do lobby concentra participantes online, timeline de eventos e chat.
+  - timeline de eventos:
+    - `GET /eventos` retorna eventos estruturados da sessao (chat opcional).
+    - cada evento retorna `descricao`, `desfeito` e `podeDesfazer` (para mestres no ultimo evento reversivel da pilha).
+  - desfazer seguro de evento:
+    - apenas mestre pode desfazer.
+    - apenas o ultimo evento reversivel ainda nao desfeito pode ser revertido (LIFO).
+    - eventos desfeitos recebem marcacao no JSON `dados` (`desfeito`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
+    - tipos reversiveis atuais: `TURNO_AVANCADO`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
+  - escudo do mestre (V1):
+    - painel de consulta rapida com topicos placeholder (condicoes, pericias, dominios, dificuldades, tipos de dano/acoes, ferimentos, insanidade e mecanicas de cena).
   - card editavel da sessao oferece `Ajustes narrativos`, reaproveitando o modal de ficha de campanha com contexto de `sessaoId/cenaId`.
   - no modal contextualizado, o historico permite filtros rapidos combinados:
     - contexto: `Todos`, `Sessao atual` e `Cena atual`.
@@ -285,6 +304,8 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - `SESSAO_CAMPANHA_NOT_FOUND`
   - `CENA_SESSAO_NOT_FOUND`
   - `SESSAO_TURNO_INDISPONIVEL`
+  - `SESSAO_EVENTO_NOT_FOUND`
+  - `SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO`
   - `NPC_AMEACA_NOT_FOUND`
   - `NPC_SESSAO_NOT_FOUND`
   - `USUARIO_JA_MEMBRO`
@@ -322,7 +343,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - campanhas:
   - listar minhas, criar/excluir, detalhe, fluxo de convites
   - personagens de campanha (associacao/edicao/modificadores/historico)
-  - sessoes de campanha (CRUD de lobby + chat + controle de cena/turno)
+  - sessoes de campanha (CRUD de lobby + chat + controle de cena/turno + timeline de eventos + desfazer seguro)
   - realtime do lobby (join, atualizacoes e presenca) via `assistenterpg-front/src/lib/realtime/sessao-socket.ts`
   - listagem em `assistenterpg-front/src/app/campanhas/page.tsx` com preview modal antes da navegacao completa
 

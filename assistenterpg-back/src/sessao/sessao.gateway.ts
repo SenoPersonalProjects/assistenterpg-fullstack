@@ -26,7 +26,8 @@ type EventoSessaoAtualizada = {
     | 'CENA_ATUALIZADA'
     | 'TURNO_AVANCADO'
     | 'NPC_ATUALIZADO'
-    | 'SESSAO_ENCERRADA';
+    | 'SESSAO_ENCERRADA'
+    | 'SESSAO_EVENTO_DESFEITO';
   em: string;
 };
 

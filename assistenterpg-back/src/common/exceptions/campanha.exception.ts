@@ -285,3 +285,32 @@ export class NpcSessaoNaoEncontradoException extends BaseException {
     );
   }
 }
+
+export class SessaoEventoNaoEncontradoException extends BaseException {
+  constructor(eventoId?: number, sessaoId?: number, campanhaId?: number) {
+    super(
+      'Evento da sessao nao encontrado',
+      HttpStatus.NOT_FOUND,
+      'SESSAO_EVENTO_NOT_FOUND',
+      {
+        eventoId,
+        sessaoId,
+        campanhaId,
+      },
+    );
+  }
+}
+
+export class SessaoEventoDesfazerNaoPermitidoException extends BusinessException {
+  constructor(eventoId: number, sessaoId: number, tipoEvento?: string) {
+    super(
+      'Este evento nao pode ser desfeito com seguranca',
+      'SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO',
+      {
+        eventoId,
+        sessaoId,
+        tipoEvento,
+      },
+    );
+  }
+}

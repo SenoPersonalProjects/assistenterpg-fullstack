@@ -385,6 +385,10 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 - `GET /campanhas/:id/sessoes/:sessaoId/chat?afterId=`
 - `POST /campanhas/:id/sessoes/:sessaoId/chat`
   - body: [`EnviarChatSessaoDto`](../assistenterpg-back/src/sessao/dto/enviar-chat-sessao.dto.ts)
+- `GET /campanhas/:id/sessoes/:sessaoId/eventos`
+  - query opcional: `limit` (1..200), `incluirChat` (`true|false`)
+- `POST /campanhas/:id/sessoes/:sessaoId/eventos/:eventoId/desfazer`
+  - body opcional: [`DesfazerEventoSessaoDto`](../assistenterpg-back/src/sessao/dto/desfazer-evento-sessao.dto.ts)
 - `POST /campanhas/:id/sessoes/:sessaoId/npcs`
   - body: [`AdicionarNpcSessaoDto`](../assistenterpg-back/src/sessao/dto/adicionar-npc-sessao.dto.ts)
 - `PATCH /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
@@ -396,7 +400,7 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
   - eventos servidor -> cliente:
     - `sessao:joined`
     - `sessao:erro`
-    - `sessao:atualizada` (`CHAT_NOVA | CENA_ATUALIZADA | TURNO_AVANCADO | NPC_ATUALIZADO | SESSAO_ENCERRADA`)
+    - `sessao:atualizada` (`CHAT_NOVA | CENA_ATUALIZADA | TURNO_AVANCADO | NPC_ATUALIZADO | SESSAO_ENCERRADA | SESSAO_EVENTO_DESFEITO`)
     - `sessao:presenca` (`onlineUsuarioIds`)
 
 Regra de negocio relevante:
@@ -488,6 +492,14 @@ Detalhamento:
   - cards da sessao respeitam permissao:
     - mestre ve/edita todos.
     - jogador edita apenas o proprio card e ve os demais em modo resumido.
+  - painel central da sessao (cena atual, rodada/turno e status) e visivel para todos.
+  - coluna direita do lobby concentra participantes online, timeline de eventos e chat.
+  - timeline operacional da sessao (`GET /eventos`) traz eventos estruturados (cena/turno/npc/chat opcional).
+  - desfazer evento de sessao (`POST /eventos/:eventoId/desfazer`) segue regra de seguranca:
+    - apenas mestre pode desfazer.
+    - apenas o ultimo evento reversivel ainda nao desfeito pode ser revertido (modelo pilha/LIFO).
+    - eventos ja desfeitos ficam marcados no `dados` (`desfeito`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
+    - tipos reversiveis atuais: `TURNO_AVANCADO`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
   - no lobby, o botao `Ajustes narrativos` do card abre o mesmo modal de edicao da ficha de campanha, ja contextualizado com `sessaoId/cenaId` atuais.
   - no modal contextualizado, o historico possui filtros rapidos combinados:
     - contexto: `Todos`, `Sessao atual` e `Cena atual`.
@@ -508,6 +520,8 @@ Detalhamento:
   - `SESSAO_CAMPANHA_NOT_FOUND` (404)
   - `CENA_SESSAO_NOT_FOUND` (404)
   - `SESSAO_TURNO_INDISPONIVEL` (422)
+  - `SESSAO_EVENTO_NOT_FOUND` (404)
+  - `SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO` (422)
   - `NPC_AMEACA_NOT_FOUND` (404)
   - `NPC_SESSAO_NOT_FOUND` (404)
 
@@ -520,7 +534,7 @@ Integracao frontend:
   - fluxo de convite (criar/listar pendentes/aceitar/recusar)
   - personagens de campanha (listar, associar, atualizar recursos, aplicar/desfazer modificadores, historico)
   - listagem de personagens-base disponiveis por campanha para suportar associacao por mestres
-  - sessoes de campanha (listar, criar, detalhe, atualizar cena, avancar turno, listar/enviar chat)
+  - sessoes de campanha (listar, criar, detalhe, atualizar cena, avancar turno, listar/enviar chat, listar timeline de eventos, desfazer ultimo evento reversivel)
   - realtime de sessoes (join/presenca/eventos) via `assistenterpg-front/src/lib/realtime/sessao-socket.ts`
   - notificacao local de atualizacao de pendencias de convite (`apiInscreverAtualizacaoConvitesPendentes` / `apiNotificarConvitesPendentesAtualizados`) para manter badge da navbar sincronizado
   - sugestao de associacao de personagem ao entrar na campanha (nao obrigatoria) no componente [`CampaignCharactersSection`](../assistenterpg-front/src/components/campanha/CampaignCharactersSection.tsx)

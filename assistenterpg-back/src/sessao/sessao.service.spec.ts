@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SessaoService } from './sessao.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SessaoTurnoIndisponivelEmCenaLivreException } from 'src/common/exceptions/campanha.exception';
+import {
+  SessaoEventoDesfazerNaoPermitidoException,
+  SessaoTurnoIndisponivelEmCenaLivreException,
+} from 'src/common/exceptions/campanha.exception';
 
 describe('SessaoService', () => {
   let service: SessaoService;
@@ -117,5 +120,74 @@ describe('SessaoService', () => {
       }),
     );
     expect(resultado).toEqual(detalheEncerrada);
+  });
+
+  it('deve bloquear desfazer quando evento nao for o ultimo reversivel', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 10,
+      membros: [],
+    });
+
+    const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          status: 'LOBBY',
+        }),
+      },
+      eventoSessao: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 100,
+          sessaoId: 21,
+          tipoEvento: 'TURNO_AVANCADO',
+          dados: {
+            indiceAnterior: 0,
+            indiceNovo: 1,
+            rodadaAnterior: 1,
+            rodadaNova: 1,
+          },
+        }),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 200,
+            sessaoId: 21,
+            tipoEvento: 'NPC_ATUALIZADO',
+            dados: {},
+          },
+          {
+            id: 100,
+            sessaoId: 21,
+            tipoEvento: 'TURNO_AVANCADO',
+            dados: {},
+          },
+        ]),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+      cena: {
+        findFirst: jest.fn(),
+      },
+      personagemSessao: {
+        updateMany: jest.fn(),
+      },
+      npcAmeacaSessao: {
+        findFirst: jest.fn(),
+        update: jest.fn(),
+        create: jest.fn(),
+        delete: jest.fn(),
+      },
+    };
+
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    await expect(
+      service.desfazerEventoSessao(7, 21, 100, 10, 'corrigir fluxo'),
+    ).rejects.toBeInstanceOf(SessaoEventoDesfazerNaoPermitidoException);
+    expect(tx.eventoSessao.create).not.toHaveBeenCalled();
+    expect(tx.eventoSessao.update).not.toHaveBeenCalled();
   });
 });
