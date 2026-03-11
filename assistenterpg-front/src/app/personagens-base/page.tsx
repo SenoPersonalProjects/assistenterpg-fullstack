@@ -9,7 +9,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useConfirm } from '@/hooks/useConfirm';
 import {
   apiGetMeusPersonagensBase,
+  apiGetPersonagemBase,
   apiDeletePersonagemBase,
+  PersonagemBaseDetalhe,
   PersonagemBaseResumo,
   extrairMensagemErro,
   traduzirErro,
@@ -23,6 +25,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { PersonagemBaseListItem } from '@/components/personagem-base/create/PersonagemBaseListItem';
 import { ImportarPersonagemJsonModal } from '@/components/personagem-base/create/ImportarPersonagemJsonModal';
+import { PersonagemBasePreviewModal } from '@/components/personagem-base/PersonagemBasePreviewModal';
 import { resolverListaPaginada } from '@/lib/utils/lista-paginada';
 
 function mensagemErroListaPersonagens(error: unknown, contexto: 'carregar' | 'excluir'): string {
@@ -67,6 +70,11 @@ export default function PersonagensBasePage() {
   const [pagina, setPagina] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalItens, setTotalItens] = useState(0);
+  const [previewAberto, setPreviewAberto] = useState(false);
+  const [previewResumo, setPreviewResumo] = useState<PersonagemBaseResumo | null>(null);
+  const [previewDetalhe, setPreviewDetalhe] = useState<PersonagemBaseDetalhe | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewErro, setPreviewErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -112,19 +120,53 @@ export default function PersonagensBasePage() {
   function handleDeleteClick(personagem: PersonagemBaseResumo) {
     confirm({
       title: `Excluir "${personagem.nome}"?`,
-      description: 'Esta aÃ§Ã£o Ã© irreversÃ­vel!',
+      description: 'Esta ação é irreversível!',
       confirmLabel: 'Sim, excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
       onConfirm: async () => {
         try {
           await apiDeletePersonagemBase(personagem.id);
+          if (previewResumo?.id === personagem.id) {
+            setPreviewAberto(false);
+            setPreviewResumo(null);
+            setPreviewDetalhe(null);
+          }
           await carregarDados(pagina);
         } catch (error) {
           setErro(mensagemErroListaPersonagens(error, 'excluir'));
         }
       },
     });
+  }
+
+  function handlePreviewClose() {
+    setPreviewAberto(false);
+    setPreviewErro(null);
+    setPreviewLoading(false);
+  }
+
+  function handlePreviewOpenFull() {
+    if (!previewResumo) return;
+    handlePreviewClose();
+    router.push(`/personagens-base/${previewResumo.id}`);
+  }
+
+  async function handleOpenPreview(personagem: PersonagemBaseResumo) {
+    setPreviewAberto(true);
+    setPreviewResumo(personagem);
+    setPreviewDetalhe(null);
+    setPreviewErro(null);
+    setPreviewLoading(true);
+
+    try {
+      const detalhe = await apiGetPersonagemBase(personagem.id, false);
+      setPreviewDetalhe(detalhe);
+    } catch (error) {
+      setPreviewErro(`Nao foi possivel carregar a pre-visualizacao. ${extrairMensagemErro(error)}`);
+    } finally {
+      setPreviewLoading(false);
+    }
   }
 
   if (authLoading || (loading && personagens.length === 0 && totalItens === 0)) {
@@ -142,7 +184,7 @@ export default function PersonagensBasePage() {
     <>
       <main className="min-h-screen bg-app-bg p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header - PadrÃ£o home/campanhas */}
+          {/* Header - Padrão home/campanhas */}
           <header className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
@@ -153,7 +195,7 @@ export default function PersonagensBasePage() {
                   Meus personagens-base
                 </h1>
                 <p className="text-sm text-app-muted mt-0.5">
-                  ({totalItens}) Crie fichas reutilizÃ¡veis para suas campanhas
+                  ({totalItens}) Crie fichas reutilizáveis para suas campanhas
                 </p>
               </div>
             </div>
@@ -223,7 +265,7 @@ export default function PersonagensBasePage() {
                   <PersonagemBaseListItem
                     key={p.id}
                     personagem={p}
-                    onClick={() => router.push(`/personagens-base/${p.id}`)}
+                    onClick={() => void handleOpenPreview(p)}
                     onDelete={() => handleDeleteClick(p)}
                   />
                 ))}
@@ -261,7 +303,7 @@ export default function PersonagensBasePage() {
             )}
           </section>
 
-          {/* Card de ajuda - sÃ³ quando vazio */}
+          {/* Card de ajuda - só quando vazio */}
           {personagens.length === 0 && (
             <section>
               <div className="rounded-lg border border-app-border bg-app-surface p-6">
@@ -271,19 +313,19 @@ export default function PersonagensBasePage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-app-fg mb-2">
-                      O que sÃ£o personagens-base?
+                      O que são personagens-base?
                     </h3>
                     <p className="text-sm text-app-muted leading-relaxed mb-4">
-                      SÃ£o fichas reutilizÃ¡veis que vocÃª cria uma vez e usa em vÃ¡rias campanhas.
+                      São fichas reutilizáveis que você cria uma vez e usa em várias campanhas.
                     </p>
                     <ul className="space-y-2.5 text-sm text-app-muted">
                       <li className="flex items-start gap-2.5">
                         <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Defina atributos, classe, clÃ£ e tÃ©cnica inata</span>
+                        <span>Defina atributos, classe, clã e técnica inata</span>
                       </li>
                       <li className="flex items-start gap-2.5">
                         <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Escolha perÃ­cias e distribua pontos de aprimoramento</span>
+                        <span>Escolha perícias e distribua pontos de aprimoramento</span>
                       </li>
                       <li className="flex items-start gap-2.5">
                         <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
@@ -298,7 +340,7 @@ export default function PersonagensBasePage() {
         </div>
       </main>
 
-      {/* Confirm Dialog - PadrÃ£o campanhas */}
+      {/* Confirm Dialog - Padrão campanhas */}
       <ConfirmDialog
         isOpen={isOpen}
         onClose={handleClose}
@@ -312,12 +354,12 @@ export default function PersonagensBasePage() {
         <div className="rounded border border-app-danger/40 bg-app-danger/5 p-3">
           <p className="text-xs font-semibold text-app-danger mb-2 flex items-center gap-1.5">
             <Icon name="warning" className="w-4 h-4" />
-            ATENÃ‡ÃƒO: Esta aÃ§Ã£o Ã© IRREVERSÃVEL!
+            ATENÇÃO: Esta ação é IRREVERSÍVEL!
           </p>
           <ul className="space-y-1 text-xs text-app-danger/90">
-            <li>â€¢ Personagem-base excluÃ­do permanentemente</li>
-            <li>â€¢ Todas as instÃ¢ncias em campanhas removidas</li>
-            <li>â€¢ HistÃ³rico e progresso perdidos</li>
+            <li>• Personagem-base excluído permanentemente</li>
+            <li>• Todas as instâncias em campanhas removidas</li>
+            <li>• Histórico e progresso perdidos</li>
           </ul>
         </div>
       </ConfirmDialog>
@@ -326,6 +368,16 @@ export default function PersonagensBasePage() {
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onImported={(personagemId) => router.push(`/personagens-base/${personagemId}`)}
+      />
+
+      <PersonagemBasePreviewModal
+        isOpen={previewAberto}
+        onClose={handlePreviewClose}
+        resumo={previewResumo}
+        detalhe={previewDetalhe}
+        loading={previewLoading}
+        error={previewErro}
+        onOpenFull={handlePreviewOpenFull}
       />
     </>
   );

@@ -333,6 +333,9 @@ Modelos e constraints relevantes:
   - `assistenterpg-front/src/lib/types/personagem.types.ts`
 - consumo auxiliar:
   - `assistenterpg-front/src/lib/api/catalogos.ts` (`passivas-disponiveis`)
+- listagem:
+  - `assistenterpg-front/src/app/personagens-base/page.tsx` com pre-visualizacao em modal antes da navegacao completa
+  - componente: `assistenterpg-front/src/components/personagem-base/PersonagemBasePreviewModal.tsx`
 
 ### Fluxo de fontes de conteudo (frontend de criacao)
 
