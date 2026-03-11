@@ -285,9 +285,12 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - listar minhas, criar/excluir, detalhe, fluxo de convites
   - personagens de campanha (associacao/edicao/modificadores/historico)
   - sessoes de campanha (CRUD de lobby + chat + controle de cena/turno)
+  - listagem em `assistenterpg-front/src/app/campanhas/page.tsx` com preview modal antes da navegacao completa
 
 Arquivos:
 
 - `assistenterpg-front/src/lib/api/auth.ts`
 - `assistenterpg-front/src/lib/api/usuarios.ts`
 - `assistenterpg-front/src/lib/api/campanhas.ts`
+- `assistenterpg-front/src/components/campanha/CampaignPreviewModal.tsx`
+- `assistenterpg-front/src/components/campanha/CampaignCard.tsx`

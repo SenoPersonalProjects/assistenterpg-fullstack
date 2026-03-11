@@ -1,11 +1,12 @@
 // src/components/homebrew/HomebrewCard.tsx
 'use client';
 
-import { HomebrewResumo, TipoHomebrewConteudo, StatusPublicacao } from '@/lib/api/homebrews';
+import { HomebrewResumo } from '@/lib/api/homebrews';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
-import { Icon, IconName } from '@/components/ui/Icon';
+import { Icon } from '@/components/ui/Icon';
+import { getHomebrewStatusColor, getHomebrewTipoConfig } from './homebrewUi';
 
 type HomebrewCardProps = {
   homebrew: HomebrewResumo;
@@ -18,27 +19,6 @@ type HomebrewCardProps = {
   isOwner?: boolean;
 };
 
-// Mapeamento de tipos para ícones e cores
-const TIPO_CONFIG: Record<
-  TipoHomebrewConteudo,
-  { icon: IconName; label: string; color: 'blue' | 'purple' | 'cyan' | 'orange' | 'green' | 'yellow' }
-> = {
-  CLA: { icon: 'clan', label: 'Clã', color: 'blue' },
-  TRILHA: { icon: 'school', label: 'Trilha', color: 'purple' },
-  CAMINHO: { icon: 'map', label: 'Caminho', color: 'cyan' },
-  ORIGEM: { icon: 'story', label: 'Origem', color: 'orange' },
-  EQUIPAMENTO: { icon: 'item', label: 'Equipamento', color: 'green' },
-  PODER_GENERICO: { icon: 'sparkles', label: 'Poder', color: 'yellow' },
-  TECNICA_AMALDICOADA: { icon: 'technique', label: 'Técnica', color: 'purple' },
-};
-
-// Mapeamento de status para cores
-const STATUS_COLOR: Record<StatusPublicacao, 'green' | 'yellow' | 'gray'> = {
-  PUBLICADO: 'green',
-  RASCUNHO: 'yellow',
-  ARQUIVADO: 'gray',
-};
-
 export function HomebrewCard({
   homebrew,
   onView,
@@ -49,7 +29,7 @@ export function HomebrewCard({
   processando = false,
   isOwner = true,
 }: HomebrewCardProps) {
-  const tipoConfig = TIPO_CONFIG[homebrew.tipo];
+  const tipoConfig = getHomebrewTipoConfig(homebrew.tipo);
   const podePublicar = homebrew.status === 'RASCUNHO';
   const podeArquivar = homebrew.status === 'PUBLICADO';
   const podeEditar = homebrew.status !== 'ARQUIVADO';
@@ -91,7 +71,7 @@ export function HomebrewCard({
         </div>
 
         {/* Status badge */}
-        <Badge color={STATUS_COLOR[homebrew.status]} size="sm">
+        <Badge color={getHomebrewStatusColor(homebrew.status)} size="sm">
           {homebrew.status}
         </Badge>
       </div>

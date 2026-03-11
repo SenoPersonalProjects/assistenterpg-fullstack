@@ -11,9 +11,10 @@ import type { CampanhaResumo } from '@/lib/api';
 type Props = {
   campanha: CampanhaResumo;
   onDelete?: () => void; // ✅ Simplificado: apenas chama a função
+  onView?: () => void;
 };
 
-export function CampaignCard({ campanha, onDelete }: Props) {
+export function CampaignCard({ campanha, onDelete, onView }: Props) {
   const router = useRouter();
 
   const corStatus =
@@ -30,6 +31,15 @@ export function CampaignCard({ campanha, onDelete }: Props) {
     if (onDelete) {
       onDelete();
     }
+  };
+
+  const handleView = () => {
+    if (onView) {
+      onView();
+      return;
+    }
+
+    router.push(`/campanhas/${campanha.id}`);
   };
 
   return (
@@ -55,9 +65,9 @@ export function CampaignCard({ campanha, onDelete }: Props) {
           variant="ghost"
           size="sm"
           className="flex-1"
-          onClick={() => router.push(`/campanhas/${campanha.id}`)}
+          onClick={handleView}
         >
-          Abrir campanha
+          {onView ? 'Ver resumo' : 'Abrir campanha'}
         </Button>
 
         {/* ✅ Botão de excluir (só aparece se onDelete foi passado) */}

@@ -8,6 +8,7 @@ import { useToast } from '@/context/ToastContext';
 import {
   apiGetMinhasCampanhas,
   apiCreateCampanha,
+  apiGetCampanhaById,
   apiDeleteCampanha,
   CampanhaResumo,
 } from '@/lib/api';
@@ -16,6 +17,10 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { CampaignForm } from '@/components/campanha/CampaignForm';
 import { CampaignCard } from '@/components/campanha/CampaignCard';
+import {
+  CampaignPreviewModal,
+  type CampanhaPreviewDetalhe,
+} from '@/components/campanha/CampaignPreviewModal';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -36,6 +41,11 @@ export default function CampanhasPage() {
   const [pagina, setPagina] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalCampanhas, setTotalCampanhas] = useState(0);
+  const [previewAberto, setPreviewAberto] = useState(false);
+  const [previewResumo, setPreviewResumo] = useState<CampanhaResumo | null>(null);
+  const [previewDetalhe, setPreviewDetalhe] = useState<CampanhaPreviewDetalhe | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewErro, setPreviewErro] = useState<string | null>(null);
 
   const carregarDados = useCallback(async (paginaAtual: number) => {
     try {
@@ -98,6 +108,11 @@ export default function CampanhasPage() {
       onConfirm: async () => {
         try {
           await apiDeleteCampanha(campanha.id);
+          if (previewResumo?.id === campanha.id) {
+            setPreviewAberto(false);
+            setPreviewResumo(null);
+            setPreviewDetalhe(null);
+          }
           await carregarDados(pagina);
           showToast('Campanha excluída com sucesso.', 'success');
         } catch (error) {
@@ -107,6 +122,35 @@ export default function CampanhasPage() {
         }
       },
     });
+  }
+
+  function handlePreviewClose() {
+    setPreviewAberto(false);
+    setPreviewErro(null);
+    setPreviewLoading(false);
+  }
+
+  function handlePreviewOpenFull() {
+    if (!previewResumo) return;
+    handlePreviewClose();
+    router.push(`/campanhas/${previewResumo.id}`);
+  }
+
+  async function handleOpenPreview(campanha: CampanhaResumo) {
+    setPreviewAberto(true);
+    setPreviewResumo(campanha);
+    setPreviewDetalhe(null);
+    setPreviewErro(null);
+    setPreviewLoading(true);
+
+    try {
+      const detalhe = await apiGetCampanhaById<CampanhaPreviewDetalhe>(campanha.id);
+      setPreviewDetalhe(detalhe);
+    } catch (error) {
+      setPreviewErro(extrairMensagemErro(error));
+    } finally {
+      setPreviewLoading(false);
+    }
   }
 
   if (authLoading || (loading && campanhas.length === 0 && totalCampanhas === 0)) {
@@ -171,7 +215,12 @@ export default function CampanhasPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
                 {campanhas.map((c) => (
-                  <CampaignCard key={c.id} campanha={c} onDelete={() => handleDeleteClick(c)} />
+                  <CampaignCard
+                    key={c.id}
+                    campanha={c}
+                    onView={() => void handleOpenPreview(c)}
+                    onDelete={() => handleDeleteClick(c)}
+                  />
                 ))}
               </div>
             )}
@@ -267,6 +316,16 @@ export default function CampanhasPage() {
           </ul>
         </div>
       </ConfirmDialog>
+
+      <CampaignPreviewModal
+        isOpen={previewAberto}
+        onClose={handlePreviewClose}
+        resumo={previewResumo}
+        detalhe={previewDetalhe}
+        loading={previewLoading}
+        error={previewErro}
+        onOpenFull={handlePreviewOpenFull}
+      />
     </>
   );
 }

@@ -9,14 +9,17 @@ import { useConfirm } from '@/hooks/useConfirm';
 import {
   apiGetMeusHomebrews,
   apiDeleteHomebrew,
+  apiGetHomebrew,
   apiPublicarHomebrew,
   apiArquivarHomebrew,
+  HomebrewDetalhado,
   HomebrewResumo,
 } from '@/lib/api/homebrews';
 import type { FiltrarHomebrewsDto } from '@/lib/api/homebrews';
 import { TipoHomebrewConteudo, StatusPublicacao } from '@/lib/types/homebrew-enums';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
 import { HomebrewCard } from '@/components/homebrew/HomebrewCard';
+import { HomebrewPreviewModal } from '@/components/homebrew/HomebrewPreviewModal';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -37,6 +40,11 @@ export default function HomebrewsPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [processando, setProcessando] = useState<number | null>(null);
+  const [previewAberto, setPreviewAberto] = useState(false);
+  const [previewResumo, setPreviewResumo] = useState<HomebrewResumo | null>(null);
+  const [previewDetalhe, setPreviewDetalhe] = useState<HomebrewDetalhado | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewErro, setPreviewErro] = useState<string | null>(null);
 
   // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -160,6 +168,11 @@ export default function HomebrewsPage() {
         try {
           await apiDeleteHomebrew(homebrew.id);
           setHomebrews((prev) => prev.filter((h) => h.id !== homebrew.id));
+          if (previewResumo?.id === homebrew.id) {
+            setPreviewAberto(false);
+            setPreviewResumo(null);
+            setPreviewDetalhe(null);
+          }
           showToast('Homebrew excluído com sucesso!', 'success');
         } catch (error) {
           const mensagem = extrairMensagemErro(error);
@@ -167,6 +180,41 @@ export default function HomebrewsPage() {
         }
       },
     });
+  }
+
+  function handlePreviewClose() {
+    setPreviewAberto(false);
+    setPreviewErro(null);
+    setPreviewLoading(false);
+  }
+
+  function handlePreviewOpenFull() {
+    if (!previewResumo) return;
+    handlePreviewClose();
+    router.push(`/homebrews/${previewResumo.id}`);
+  }
+
+  function handlePreviewEdit() {
+    if (!previewResumo) return;
+    handlePreviewClose();
+    router.push(`/homebrews/${previewResumo.id}/editar`);
+  }
+
+  async function handleOpenPreview(homebrew: HomebrewResumo) {
+    setPreviewAberto(true);
+    setPreviewResumo(homebrew);
+    setPreviewDetalhe(null);
+    setPreviewErro(null);
+    setPreviewLoading(true);
+
+    try {
+      const detalhe = await apiGetHomebrew(homebrew.id);
+      setPreviewDetalhe(detalhe);
+    } catch (error) {
+      setPreviewErro(extrairMensagemErro(error));
+    } finally {
+      setPreviewLoading(false);
+    }
   }
 
   if (authLoading || loading) {
@@ -286,7 +334,7 @@ export default function HomebrewsPage() {
                   <HomebrewCard
                     key={h.id}
                     homebrew={h}
-                    onView={() => router.push(`/homebrews/${h.id}`)}
+                    onView={() => void handleOpenPreview(h)}
                     onEdit={() => router.push(`/homebrews/${h.id}/editar`)}
                     onPublicar={() => handlePublicar(h)}
                     onArquivar={() => handleArquivar(h)}
@@ -370,6 +418,18 @@ export default function HomebrewsPage() {
         confirmLabel={options?.confirmLabel}
         cancelLabel={options?.cancelLabel}
         variant={options?.variant}
+      />
+
+      <HomebrewPreviewModal
+        isOpen={previewAberto}
+        onClose={handlePreviewClose}
+        resumo={previewResumo}
+        detalhe={previewDetalhe}
+        loading={previewLoading}
+        error={previewErro}
+        canEdit={Boolean(previewResumo && usuario && previewResumo.usuarioId === usuario.id)}
+        onOpenFull={handlePreviewOpenFull}
+        onEdit={handlePreviewEdit}
       />
     </>
   );

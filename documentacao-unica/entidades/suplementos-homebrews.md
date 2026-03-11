@@ -185,6 +185,11 @@ Filtros de listagem (`FiltrarHomebrewsDto`):
   - `assistenterpg-front/src/lib/api/suplementos.ts`
 - homebrews:
   - `assistenterpg-front/src/lib/api/homebrews.ts`
+  - listagem em `assistenterpg-front/src/app/homebrews/page.tsx` com preview modal antes da navegacao completa
+  - componentes de UI:
+    - `assistenterpg-front/src/components/homebrew/HomebrewPreviewModal.tsx`
+    - `assistenterpg-front/src/components/homebrew/homebrewUi.ts`
+    - `assistenterpg-front/src/components/homebrew/HomebrewCard.tsx`
 
 Observacao de contrato front/back:
 
