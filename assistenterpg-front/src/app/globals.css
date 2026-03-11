@@ -239,3 +239,37 @@ body {
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out;
 }
+
+/* ========================================================================= */
+/* NPC UI                                                                    */
+/* ========================================================================= */
+
+.npc-page-shell {
+  background:
+    radial-gradient(900px 420px at 100% -10%, var(--overlay-subtle), transparent 60%),
+    var(--bg);
+}
+
+.npc-hero {
+  background: linear-gradient(140deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.06));
+}
+
+.dark .npc-hero {
+  background: linear-gradient(140deg, rgba(59, 130, 246, 0.16), rgba(167, 139, 250, 0.14));
+}
+
+.npc-panel {
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--bg-surface), var(--bg-card));
+  box-shadow: 0 22px 45px -40px rgba(15, 23, 42, 0.75);
+}
+
+.dark .npc-panel {
+  box-shadow: 0 24px 48px -42px rgba(2, 6, 23, 0.95);
+}
+
+.npc-stat-tile {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--bg-surface);
+}

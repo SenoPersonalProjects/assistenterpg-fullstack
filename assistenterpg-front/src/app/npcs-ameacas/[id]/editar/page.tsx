@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NpcAmeacaForm } from '@/components/npc-ameaca/NpcAmeacaForm';
+import { NpcAmeacaPageHeader } from '@/components/npc-ameaca/NpcAmeacaPageHeader';
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
@@ -24,7 +25,7 @@ export default function EditarNpcAmeacaPage() {
 
   useEffect(() => {
     if (!idValido) {
-      setErro('ID invalido.');
+      setErro('ID inválido.');
       setLoading(false);
       return;
     }
@@ -54,7 +55,7 @@ export default function EditarNpcAmeacaPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
+      <div className="npc-page-shell min-h-screen p-6">
         <Loading message="Carregando ficha..." className="text-app-fg" />
       </div>
     );
@@ -62,9 +63,9 @@ export default function EditarNpcAmeacaPage() {
 
   if (erro || !item) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
+      <div className="npc-page-shell min-h-screen p-6">
         <div className="mx-auto max-w-4xl space-y-4">
-          <ErrorAlert message={erro ?? 'Ficha nao encontrada.'} />
+          <ErrorAlert message={erro ?? 'Ficha não encontrada.'} />
           <Button variant="secondary" onClick={() => router.push('/npcs-ameacas')}>
             <Icon name="back" className="h-4 w-4 mr-2" />
             Voltar
@@ -75,30 +76,25 @@ export default function EditarNpcAmeacaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-app-bg p-6">
+    <div className="npc-page-shell min-h-screen p-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="edit" className="h-6 w-6 text-app-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-app-fg">Editar NPC/Ameaca</h1>
-              <p className="text-sm text-app-muted">{item.nome}</p>
-            </div>
-          </div>
-
-          <Button variant="ghost" onClick={handleCancel}>
-            <Icon name="close" className="h-4 w-4 mr-2" />
-            Cancelar
-          </Button>
-        </header>
+        <NpcAmeacaPageHeader
+          title="Editar NPC"
+          description={`Ajuste os dados de "${item.nome}" para a cena.`}
+          icon="edit"
+          actions={
+            <Button variant="ghost" onClick={handleCancel}>
+              <Icon name="close" className="mr-2 h-4 w-4" />
+              Cancelar
+            </Button>
+          }
+        />
 
         <NpcAmeacaForm
           initialValues={item}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
-          submitLabel="Salvar alteracoes"
+          submitLabel="Salvar alterações"
         />
       </div>
     </div>

@@ -77,9 +77,9 @@ function labelTipoNpc(tipo: string): string {
   const labels: Record<string, string> = {
     HUMANO: 'Humano',
     FEITICEIRO: 'Feiticeiro',
-    MALDICAO: 'Maldicao',
+    MALDICAO: 'Maldição',
     ANIMAL: 'Animal',
-    HIBRIDO: 'Hibrido',
+    HIBRIDO: 'Híbrido',
     OUTRO: 'Outro',
   };
 
@@ -640,18 +640,18 @@ export default function SessaoCampanhaPage() {
 
             <Card className="space-y-2">
               <h2 className="text-sm font-semibold text-app-fg">
-                NPCs/Ameacas na cena
+                Aliados ou ameaças na cena
               </h2>
               <p className="text-xs text-app-muted">
-                Mestre adiciona e ajusta os NPCs por cena. Jogadores veem em modo leitura.
+                Mestre adiciona e ajusta aliados ou ameaças por cena. Jogadores veem em modo leitura.
               </p>
             </Card>
 
             {podeControlarSessao ? (
               <Card className="space-y-2">
-                <h3 className="text-sm font-semibold text-app-fg">Adicionar NPC/Ameaca</h3>
+                <h3 className="text-sm font-semibold text-app-fg">Adicionar aliado ou ameaça</h3>
                 <Select
-                  label="Ficha disponivel"
+                  label="Ficha disponível"
                   value={npcSelecionadoId}
                   onChange={(event) => setNpcSelecionadoId(event.target.value)}
                 >
@@ -687,8 +687,8 @@ export default function SessaoCampanhaPage() {
               <EmptyState
                 variant="card"
                 icon="curse"
-                title="Sem NPCs nesta cena"
-                description="O mestre pode adicionar NPCs/Ameacas para esta cena."
+                title="Sem aliados ou ameaças nesta cena"
+                description="O mestre pode adicionar aliados ou ameaças para esta cena."
               />
             ) : (
               npcs.map((npc) => {
@@ -715,7 +715,7 @@ export default function SessaoCampanhaPage() {
                     <div>
                       <h3 className="text-sm font-semibold text-app-fg">{npc.nome}</h3>
                       <p className="text-xs text-app-muted">
-                        {npc.fichaTipo === 'NPC' ? 'NPC' : 'Ameaca'} | {labelTipoNpc(npc.tipo)}
+                        {npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça'} | {labelTipoNpc(npc.tipo)}
                       </p>
                     </div>
 
@@ -859,7 +859,7 @@ export default function SessaoCampanhaPage() {
                           >
                             {salvandoNpcId === npc.npcSessaoId
                               ? 'Salvando...'
-                              : 'Salvar NPC'}
+                              : 'Salvar ficha'}
                           </Button>
                           <Button
                             variant="secondary"
@@ -937,7 +937,7 @@ export default function SessaoCampanhaPage() {
               {detalhe.cenaAtual.nome ? (
                 <p className="text-xs text-app-muted">{detalhe.cenaAtual.nome}</p>
               ) : null}
-              <p className="text-xs text-app-muted">NPCs/Ameacas na cena: {npcs.length}</p>
+              <p className="text-xs text-app-muted">Aliados ou ameaças na cena: {npcs.length}</p>
 
               {detalhe.controleTurnosAtivo ? (
                 <div className="rounded border border-app-border p-3 space-y-1">

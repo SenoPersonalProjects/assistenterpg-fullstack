@@ -19,8 +19,14 @@ import { Card } from '@/components/ui/Card';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
+import {
+  fichaTipoOptions,
+  tamanhoNpcOptions,
+  tipoNpcOptions,
+} from './npcAmeacaUi';
 
 type NpcAmeacaFormProps = {
   initialValues?: NpcAmeacaDetalhe | null;
@@ -131,33 +137,10 @@ type FormState = {
   acoes: AcaoFormValue[];
 };
 
-const fichaOptions: Array<{ value: TipoFichaNpcAmeaca; label: string }> = [
-  { value: 'AMEACA', label: 'Ameaca' },
-  { value: 'NPC', label: 'NPC' },
-];
-
-const tipoOptions: Array<{ value: TipoNpcAmeaca; label: string }> = [
-  { value: 'HUMANO', label: 'Humano' },
-  { value: 'FEITICEIRO', label: 'Feiticeiro' },
-  { value: 'MALDICAO', label: 'Maldicao' },
-  { value: 'ANIMAL', label: 'Animal' },
-  { value: 'HIBRIDO', label: 'Hibrido' },
-  { value: 'OUTRO', label: 'Outro' },
-];
-
-const tamanhoOptions: Array<{ value: TamanhoNpcAmeaca; label: string }> = [
-  { value: 'MINUSCULO', label: 'Minusculo' },
-  { value: 'PEQUENO', label: 'Pequeno' },
-  { value: 'MEDIO', label: 'Medio' },
-  { value: 'GRANDE', label: 'Grande' },
-  { value: 'ENORME', label: 'Enorme' },
-  { value: 'COLOSSAL', label: 'Colossal' },
-];
-
 const periciasPrincipaisMeta: PericiaPrincipalMeta[] = [
   {
     codigo: 'PERCEPCAO',
-    label: 'Percepcao',
+    label: 'Percepção',
     campoBonus: 'percepcao',
     campoDados: 'percepcaoDados',
     atributoBase: 'PRE',
@@ -447,7 +430,7 @@ function criarPresetAkane(): FormState {
     ...base,
     nome: 'Akane Fujimoto',
     descricao:
-      'Civil vulneravel em estado de trauma severo, foco narrativo de resgate.',
+      'Civil vulnerável em estado de trauma severo, foco narrativo de resgate.',
     fichaTipo: 'NPC',
     tipo: 'HUMANO',
     tamanho: 'MEDIO',
@@ -485,7 +468,7 @@ function criarPresetAkane(): FormState {
       {
         nome: 'Amor distorcido',
         descricao:
-          'Nao ataca o progenito; prioriza protege-lo em qualquer conflito.',
+          'Não ataca o progenito; prioriza protegê-lo em qualquer conflito.',
         gatilho: 'Ao escolher alvo',
         alcance: '',
         alvo: '',
@@ -496,7 +479,7 @@ function criarPresetAkane(): FormState {
       {
         nome: 'Fragil',
         descricao:
-          'Recebe +2 de dano fisico e pode ficar inconsciente com dano massivo.',
+          'Recebe +2 de dano físico e pode ficar inconsciente com dano massivo.',
         gatilho: 'Quando recebe dano',
         alcance: '',
         alvo: '',
@@ -511,7 +494,7 @@ function criarPresetAkane(): FormState {
         tipoExecucao: 'PADRAO',
         alcance: 'Corpo a corpo',
         alvo: '1 criatura',
-        duracao: 'Instantaneo',
+        duracao: 'Instantâneo',
         resistencia: '',
         dtResistencia: '',
         custoPE: '',
@@ -520,7 +503,7 @@ function criarPresetAkane(): FormState {
         dano: '1d3 impacto',
         critico: '',
         efeito:
-          'Nao e golpe letal; tenta apenas afastar para ganhar tempo.',
+          'Não é golpe letal; tenta apenas afastar para ganhar tempo.',
         requisitos: '',
         descricao: '',
       },
@@ -544,7 +527,7 @@ function criarPresetAkane(): FormState {
       },
     ],
     usoTatico:
-      'Objetivo de resgate e dilema moral; nao deve ser tratada como combatente.',
+      'Objetivo de resgate e dilema moral; não deve ser tratada como combatente.',
   };
 }
 
@@ -554,7 +537,7 @@ function criarPresetTaro(): FormState {
     ...base,
     nome: 'Taro Ishikawa',
     descricao:
-      'Fazendeiro robusto, potencial aliado ou problema, movido por vinganca.',
+      'Fazendeiro robusto, potencial aliado ou problema, movido por vingança.',
     fichaTipo: 'NPC',
     tipo: 'HUMANO',
     tamanho: 'MEDIO',
@@ -603,7 +586,7 @@ function criarPresetTaro(): FormState {
       {
         nome: 'Furia camponesa',
         descricao:
-          '+2 ataque/dano, -2 defesa, nao recua ate fim da cena ou morte do alvo.',
+          '+2 ataque/dano, -2 defesa, não recua até fim da cena ou morte do alvo.',
         gatilho: 'Condicional',
         alcance: '',
         alvo: '',
@@ -614,7 +597,7 @@ function criarPresetTaro(): FormState {
       {
         nome: 'Atirador de fazenda',
         descricao:
-          'Ignora penalidade de distancia em alcance medio com a espingarda.',
+          'Ignora penalidade de distância em alcance médio com a espingarda.',
         gatilho: 'Ataques a distancia',
         alcance: '',
         alvo: '',
@@ -627,17 +610,17 @@ function criarPresetTaro(): FormState {
       {
         nome: 'Espingarda velha',
         tipoExecucao: 'PADRAO',
-        alcance: 'Medio',
+        alcance: 'Médio',
         alvo: '1 criatura',
-        duracao: 'Instantaneo',
+        duracao: 'Instantâneo',
         resistencia: '',
         dtResistencia: '',
         custoPE: '',
         custoEA: '',
         teste: '2d20 +8',
-        dano: '2d10 +5 balistico',
+        dano: '2d10 +5 balístico',
         critico: '20/x3',
-        efeito: 'Possui 2 tiros carregados; recarregar exige acao completa.',
+        efeito: 'Possui 2 tiros carregados; recarregar exige ação completa.',
         requisitos: '',
         descricao: '',
       },
@@ -646,7 +629,7 @@ function criarPresetTaro(): FormState {
         tipoExecucao: 'PADRAO',
         alcance: 'Corpo a corpo',
         alvo: '1 criatura',
-        duracao: 'Instantaneo',
+        duracao: 'Instantâneo',
         resistencia: '',
         dtResistencia: '',
         custoPE: '',
@@ -663,7 +646,7 @@ function criarPresetTaro(): FormState {
         tipoExecucao: 'PADRAO',
         alcance: 'Corpo a corpo',
         alvo: '1 criatura',
-        duracao: 'Instantaneo',
+        duracao: 'Instantâneo',
         resistencia: 'Reflexos',
         dtResistencia: '18',
         custoPE: '',
@@ -690,6 +673,7 @@ export function NpcAmeacaForm({
   const [form, setForm] = useState<FormState>(() => criarEstadoInicial(initialValues));
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [modeloModalAberto, setModeloModalAberto] = useState(false);
   const [catalogoPericias, setCatalogoPericias] = useState<PericiaCatalogo[]>([]);
 
   const isEdicao = useMemo(() => !!initialValues, [initialValues]);
@@ -712,7 +696,7 @@ export function NpcAmeacaForm({
       } catch {
         if (!ativo) return;
         setErro(
-          'Nao foi possivel carregar o catalogo de pericias. Tente recarregar a pagina.',
+          'Não foi possível carregar o catálogo de perícias. Tente recarregar a página.',
         );
       }
     })();
@@ -833,24 +817,17 @@ export function NpcAmeacaForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {erro && <ErrorAlert message={erro} />}
 
-      <Card className="space-y-4">
+      <Card className="npc-panel space-y-4">
         <h2 className="text-lg font-semibold text-app-fg">Dados gerais</h2>
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => setForm(criarPresetAkane())}
+            onClick={() => setModeloModalAberto(true)}
           >
-            Carregar modelo Akane
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => setForm(criarPresetTaro())}
-          >
-            Carregar modelo Taro
+            <Icon name="sparkles" className="mr-1 h-4 w-4" />
+            Usar modelo
           </Button>
           <Button
             type="button"
@@ -874,13 +851,13 @@ export function NpcAmeacaForm({
             className="lg:col-span-2"
           />
           <Select
-            label="Tipo da ficha"
+            label="Perfil da ficha"
             value={form.fichaTipo}
             onChange={(e) =>
               atualizarCampo('fichaTipo', e.target.value as TipoFichaNpcAmeaca)
             }
           >
-            {fichaOptions.map((option) => (
+            {fichaTipoOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -891,7 +868,7 @@ export function NpcAmeacaForm({
             value={form.tipo}
             onChange={(e) => atualizarCampo('tipo', e.target.value as TipoNpcAmeaca)}
           >
-            {tipoOptions.map((option) => (
+            {tipoNpcOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -904,7 +881,7 @@ export function NpcAmeacaForm({
               atualizarCampo('tamanho', e.target.value as TamanhoNpcAmeaca)
             }
           >
-            {tamanhoOptions.map((option) => (
+            {tamanhoNpcOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -918,14 +895,55 @@ export function NpcAmeacaForm({
           />
         </div>
         <Textarea
-          label="Descricao"
+          label="Descrição"
           value={form.descricao}
           onChange={(e) => atualizarCampo('descricao', e.target.value)}
           rows={4}
         />
       </Card>
 
-      <Card className="space-y-4">
+      <Modal
+        isOpen={modeloModalAberto}
+        onClose={() => setModeloModalAberto(false)}
+        title="Selecionar modelo"
+        size="md"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-app-muted">
+            Escolha um modelo de aliado ou ameaça para preencher a ficha rapidamente.
+          </p>
+          <div className="grid gap-2">
+            <button
+              type="button"
+              className="rounded border border-app-border bg-app-card p-3 text-left transition-colors hover:bg-app-surface"
+              onClick={() => {
+                setForm(criarPresetAkane());
+                setModeloModalAberto(false);
+              }}
+            >
+              <p className="text-sm font-semibold text-app-fg">Modelo Akane</p>
+              <p className="text-xs text-app-muted">
+                Aliado frágil e vulnerável, ideal para cenas de resgate.
+              </p>
+            </button>
+            <button
+              type="button"
+              className="rounded border border-app-border bg-app-card p-3 text-left transition-colors hover:bg-app-surface"
+              onClick={() => {
+                setForm(criarPresetTaro());
+                setModeloModalAberto(false);
+              }}
+            >
+              <p className="text-sm font-semibold text-app-fg">Modelo Taro</p>
+              <p className="text-xs text-app-muted">
+                Aliado combativo com perfil agressivo e ações de pressão.
+              </p>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Card className="npc-panel space-y-4">
         <h2 className="text-lg font-semibold text-app-fg">Atributos</h2>
         <div className={classeGridBase()}>
           <Input
@@ -961,20 +979,20 @@ export function NpcAmeacaForm({
         </div>
       </Card>
 
-      <Card className="space-y-4">
+      <Card className="npc-panel space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-app-fg">Pericias principais</h2>
+          <h2 className="text-lg font-semibold text-app-fg">Perícias principais</h2>
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={recalcularDadosPericiasPrincipais}
           >
-            Recalcular dados padrao
+            Recalcular dados padrão
           </Button>
         </div>
         <p className="text-xs text-app-muted">
-          Dados padrao seguem atributo base da pericia. Voce pode sobrescrever manualmente.
+          Dados padrão seguem o atributo base da perícia. Você pode sobrescrever manualmente.
         </p>
         <div className="space-y-3">
           {periciasPrincipaisMeta.map((pericia) => (
@@ -998,7 +1016,7 @@ export function NpcAmeacaForm({
                 />
                 <Input
                   type="number"
-                  label="Bonus"
+                  label="Bônus"
                   value={form[pericia.campoBonus]}
                   onChange={(e) => atualizarCampo(pericia.campoBonus, e.target.value)}
                 />
@@ -1011,7 +1029,7 @@ export function NpcAmeacaForm({
         </div>
       </Card>
 
-      <Card className="space-y-4">
+      <Card className="npc-panel space-y-4">
         <h2 className="text-lg font-semibold text-app-fg">Defesa e recursos</h2>
         <div className={classeGridBase()}>
           <Input
@@ -1042,23 +1060,23 @@ export function NpcAmeacaForm({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
-            label="Resistencias (separadas por virgula)"
+            label="Resistências (separadas por vírgula)"
             value={form.resistencias}
             onChange={(e) => atualizarCampo('resistencias', e.target.value)}
             placeholder="Ex.: fogo, corte, mental"
           />
           <Input
-            label="Vulnerabilidades (separadas por virgula)"
+            label="Vulnerabilidades (separadas por vírgula)"
             value={form.vulnerabilidades}
             onChange={(e) => atualizarCampo('vulnerabilidades', e.target.value)}
-            placeholder="Ex.: energia positiva, eletrico"
+                placeholder="Ex.: energia positiva, elétrico"
           />
         </div>
       </Card>
 
-      <Card className="space-y-4">
+      <Card className="npc-panel space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-app-fg">Pericias especiais</h2>
+          <h2 className="text-lg font-semibold text-app-fg">Perícias especiais</h2>
           <Button
             type="button"
             variant="secondary"
@@ -1075,11 +1093,11 @@ export function NpcAmeacaForm({
           </Button>
         </div>
         <p className="text-xs text-app-muted">
-          Escolha apenas pericias oficiais. Os dados podem usar o padrao do atributo base ou um valor customizado.
+          Escolha apenas perícias oficiais. Os dados podem usar o padrão do atributo base ou um valor customizado.
         </p>
 
         {form.periciasEspeciais.length === 0 ? (
-          <p className="text-sm text-app-muted">Sem pericias especiais.</p>
+          <p className="text-sm text-app-muted">Sem perícias especiais.</p>
         ) : (
           <div className="space-y-3">
             {form.periciasEspeciais.map((pericia, index) => (
@@ -1088,7 +1106,7 @@ export function NpcAmeacaForm({
                 className="rounded border border-app-border p-3 space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-app-muted">Pericia #{index + 1}</span>
+                  <span className="text-xs text-app-muted">Perícia #{index + 1}</span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -1106,7 +1124,7 @@ export function NpcAmeacaForm({
                 </div>
                 <div className="grid gap-2 sm:grid-cols-4">
                   <Select
-                    label="Pericia"
+                    label="Perícia"
                     value={pericia.codigo}
                     onChange={(e) =>
                       atualizarPericiaEspecial(index, { codigo: e.target.value })
@@ -1130,14 +1148,14 @@ export function NpcAmeacaForm({
                   />
                   <Input
                     type="number"
-                    label="Bonus"
+                    label="Bônus"
                     value={pericia.bonus}
                     onChange={(e) =>
                       atualizarPericiaEspecial(index, { bonus: e.target.value })
                     }
                   />
                   <Input
-                    label="Descricao curta"
+                    label="Descrição curta"
                     value={pericia.descricao}
                     onChange={(e) =>
                       atualizarPericiaEspecial(index, { descricao: e.target.value })
@@ -1156,7 +1174,7 @@ export function NpcAmeacaForm({
         )}
       </Card>
 
-      <Card className="space-y-4">
+      <Card className="npc-panel space-y-4">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-app-fg">Passivas</h2>
           <Button
@@ -1184,7 +1202,7 @@ export function NpcAmeacaForm({
           </Button>
         </div>
         <p className="text-xs text-app-muted">
-          Passivas funcionam como guia narrativo/mecanico para o mestre e nao sao aplicadas automaticamente pelo sistema.
+          Passivas funcionam como guia narrativo/mecânico para o mestre e não são aplicadas automaticamente pelo sistema.
         </p>
 
         {form.passivas.length === 0 ? (
@@ -1240,7 +1258,7 @@ export function NpcAmeacaForm({
                     onChange={(e) => atualizarPassiva(index, { alvo: e.target.value })}
                   />
                   <Input
-                    label="Duracao (opcional)"
+                    label="Duração (opcional)"
                     value={passiva.duracao}
                     onChange={(e) =>
                       atualizarPassiva(index, { duracao: e.target.value })
@@ -1255,7 +1273,7 @@ export function NpcAmeacaForm({
                   />
                 </div>
                 <Textarea
-                  label="Descricao"
+                  label="Descrição"
                   value={passiva.descricao}
                   onChange={(e) =>
                     atualizarPassiva(index, { descricao: e.target.value })
@@ -1276,9 +1294,9 @@ export function NpcAmeacaForm({
         )}
       </Card>
 
-      <Card className="space-y-4">
+      <Card className="npc-panel space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-app-fg">Acoes</h2>
+          <h2 className="text-lg font-semibold text-app-fg">Ações</h2>
           <Button
             type="button"
             variant="secondary"
@@ -1311,11 +1329,11 @@ export function NpcAmeacaForm({
           </Button>
         </div>
         <p className="text-xs text-app-muted">
-          Campos de acao seguem o padrao de habilidades, mas servem como referencia de mesa (sem automacao de efeitos).
+          Campos de ação seguem o padrão de habilidades, mas servem como referência de mesa (sem automação de efeitos).
         </p>
 
         {form.acoes.length === 0 ? (
-          <p className="text-sm text-app-muted">Sem acoes cadastradas.</p>
+          <p className="text-sm text-app-muted">Sem ações cadastradas.</p>
         ) : (
           <div className="space-y-3">
             {form.acoes.map((acao, index) => (
@@ -1324,7 +1342,7 @@ export function NpcAmeacaForm({
                 className="rounded border border-app-border p-3 space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-app-muted">Acao #{index + 1}</span>
+                  <span className="text-xs text-app-muted">Ação #{index + 1}</span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -1347,7 +1365,7 @@ export function NpcAmeacaForm({
                     onChange={(e) => atualizarAcao(index, { nome: e.target.value })}
                   />
                   <Input
-                    label="Execucao"
+                    label="Execução"
                     value={acao.tipoExecucao}
                     onChange={(e) =>
                       atualizarAcao(index, { tipoExecucao: e.target.value })
@@ -1366,13 +1384,13 @@ export function NpcAmeacaForm({
                     placeholder="Ex.: 1 criatura"
                   />
                   <Input
-                    label="Duracao"
+                    label="Duração"
                     value={acao.duracao}
                     onChange={(e) => atualizarAcao(index, { duracao: e.target.value })}
                     placeholder="Ex.: Instantaneo"
                   />
                   <Input
-                    label="Resistencia"
+                    label="Resistência"
                     value={acao.resistencia}
                     onChange={(e) =>
                       atualizarAcao(index, { resistencia: e.target.value })
@@ -1380,7 +1398,7 @@ export function NpcAmeacaForm({
                     placeholder="Ex.: Reflexos"
                   />
                   <Input
-                    label="DT resistencia"
+                    label="DT resistência"
                     value={acao.dtResistencia}
                     onChange={(e) =>
                       atualizarAcao(index, { dtResistencia: e.target.value })
@@ -1412,7 +1430,7 @@ export function NpcAmeacaForm({
                     onChange={(e) => atualizarAcao(index, { dano: e.target.value })}
                   />
                   <Input
-                    label="Critico"
+                    label="Crítico"
                     value={acao.critico}
                     onChange={(e) => atualizarAcao(index, { critico: e.target.value })}
                     placeholder="Ex.: 20/x3"
@@ -1431,7 +1449,7 @@ export function NpcAmeacaForm({
                   placeholder="Ex.: precisa de cobertura"
                 />
                 <Textarea
-                  label="Descricao adicional"
+                  label="Descrição adicional"
                   value={acao.descricao}
                   onChange={(e) => atualizarAcao(index, { descricao: e.target.value })}
                   rows={2}
@@ -1442,9 +1460,9 @@ export function NpcAmeacaForm({
         )}
       </Card>
 
-      <Card>
+      <Card className="npc-panel">
         <Textarea
-          label="Uso tatico e observacoes"
+          label="Uso tático e observações"
           value={form.usoTatico}
           onChange={(e) => atualizarCampo('usoTatico', e.target.value)}
           rows={4}
@@ -1462,7 +1480,7 @@ export function NpcAmeacaForm({
 
       {isEdicao && (
         <p className="text-xs text-app-muted">
-          Alteracoes salvas apenas nesta ficha de NPC/Ameaca.
+          Alterações salvas apenas nesta ficha de aliado ou ameaça.
         </p>
       )}
     </form>

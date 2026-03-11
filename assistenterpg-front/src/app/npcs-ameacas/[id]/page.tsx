@@ -5,40 +5,19 @@ import { useParams, useRouter } from 'next/navigation';
 import { apiGetNpcAmeaca } from '@/lib/api/npcs-ameacas';
 import type { NpcAmeacaDetalhe } from '@/lib/types';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { NpcAmeacaPageHeader } from '@/components/npc-ameaca/NpcAmeacaPageHeader';
+import {
+  corBadgeFichaTipo,
+  labelFichaTipo,
+  labelTamanhoNpc,
+  labelTipoNpc,
+} from '@/components/npc-ameaca/npcAmeacaUi';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
-
-function traduzirFichaTipo(tipo: NpcAmeacaDetalhe['fichaTipo']) {
-  return tipo === 'NPC' ? 'NPC' : 'Ameaca';
-}
-
-function traduzirTipo(tipo: NpcAmeacaDetalhe['tipo']) {
-  const mapa: Record<NpcAmeacaDetalhe['tipo'], string> = {
-    HUMANO: 'Humano',
-    FEITICEIRO: 'Feiticeiro',
-    MALDICAO: 'Maldicao',
-    ANIMAL: 'Animal',
-    HIBRIDO: 'Hibrido',
-    OUTRO: 'Outro',
-  };
-  return mapa[tipo];
-}
-
-function traduzirTamanho(tamanho: NpcAmeacaDetalhe['tamanho']) {
-  const mapa: Record<NpcAmeacaDetalhe['tamanho'], string> = {
-    MINUSCULO: 'Minusculo',
-    PEQUENO: 'Pequeno',
-    MEDIO: 'Medio',
-    GRANDE: 'Grande',
-    ENORME: 'Enorme',
-    COLOSSAL: 'Colossal',
-  };
-  return mapa[tamanho];
-}
+import { SectionCard } from '@/components/ui/SectionCard';
 
 function formatarTestePericia(dados: number, bonus: number): string {
   return `${dados}d20 ${bonus >= 0 ? `+${bonus}` : bonus}`;
@@ -57,7 +36,7 @@ export default function NpcAmeacaDetalhePage() {
 
   useEffect(() => {
     if (!idValido) {
-      setErro('ID invalido.');
+      setErro('ID inválido.');
       setLoading(false);
       return;
     }
@@ -92,7 +71,7 @@ export default function NpcAmeacaDetalhePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
+      <div className="npc-page-shell min-h-screen p-6">
         <Loading message="Carregando ficha..." className="text-app-fg" />
       </div>
     );
@@ -100,11 +79,11 @@ export default function NpcAmeacaDetalhePage() {
 
   if (erro || !item) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
+      <div className="npc-page-shell min-h-screen p-6">
         <div className="mx-auto max-w-4xl space-y-4">
-          <ErrorAlert message={erro ?? 'Ficha nao encontrada.'} />
+          <ErrorAlert message={erro ?? 'Ficha não encontrada.'} />
           <Button variant="secondary" onClick={() => router.push('/npcs-ameacas')}>
-            <Icon name="back" className="h-4 w-4 mr-2" />
+            <Icon name="back" className="mr-2 h-4 w-4" />
             Voltar
           </Button>
         </div>
@@ -113,84 +92,74 @@ export default function NpcAmeacaDetalhePage() {
   }
 
   return (
-    <div className="min-h-screen bg-app-bg p-6">
+    <div className="npc-page-shell min-h-screen p-6">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="curse" className="h-6 w-6 text-app-primary" />
-            </div>
-            <div>
-              <div className="mb-1 flex items-center gap-2">
-                <h1 className="text-3xl font-bold text-app-fg">{item.nome}</h1>
-                <Badge color={item.fichaTipo === 'NPC' ? 'blue' : 'red'} size="sm">
-                  {traduzirFichaTipo(item.fichaTipo)}
-                </Badge>
-              </div>
-              <p className="text-sm text-app-muted">
-                {traduzirTipo(item.tipo)} | Tamanho {traduzirTamanho(item.tamanho)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => router.push(`/npcs-ameacas/${item.id}/editar`)}
-            >
-              <Icon name="edit" className="h-4 w-4 mr-2" />
-              Editar
-            </Button>
-            <Button variant="ghost" onClick={() => router.push('/npcs-ameacas')}>
-              <Icon name="back" className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-          </div>
-        </header>
+        <NpcAmeacaPageHeader
+          title={item.nome}
+          description={`${labelTipoNpc(item.tipo)} • Tamanho ${labelTamanhoNpc(item.tamanho)}`}
+          badge={<Badge color={corBadgeFichaTipo(item.fichaTipo)}>{labelFichaTipo(item.fichaTipo)}</Badge>}
+          actions={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => router.push(`/npcs-ameacas/${item.id}/editar`)}
+              >
+                <Icon name="edit" className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+              <Button variant="ghost" onClick={() => router.push('/npcs-ameacas')}>
+                <Icon name="back" className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+            </>
+          }
+        />
 
         {item.descricao && (
-          <Card>
+          <SectionCard title="Descrição" className="npc-panel">
             <p className="text-sm leading-relaxed text-app-fg">{item.descricao}</p>
-          </Card>
+          </SectionCard>
         )}
 
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-app-fg">Resumo rapido</h2>
+        <SectionCard title="Resumo rápido" className="npc-panel" contentClassName="space-y-3">
           <div className="grid gap-3 sm:grid-cols-4">
-            <div className="rounded border border-app-border bg-app-base p-3">
+            <div className="npc-stat-tile p-3">
               <p className="text-xs text-app-muted">VD</p>
               <p className="text-xl font-semibold text-app-fg">{item.vd}</p>
             </div>
-            <div className="rounded border border-app-border bg-app-base p-3">
+            <div className="npc-stat-tile p-3">
               <p className="text-xs text-app-muted">Defesa</p>
               <p className="text-xl font-semibold text-app-fg">{item.defesa}</p>
             </div>
-            <div className="rounded border border-app-border bg-app-base p-3">
+            <div className="npc-stat-tile p-3">
               <p className="text-xs text-app-muted">PV</p>
               <p className="text-xl font-semibold text-app-fg">{item.pontosVida}</p>
             </div>
-            <div className="rounded border border-app-border bg-app-base p-3">
+            <div className="npc-stat-tile p-3">
               <p className="text-xs text-app-muted">Deslocamento</p>
               <p className="text-xl font-semibold text-app-fg">{item.deslocamentoMetros}m</p>
             </div>
           </div>
-          {item.machucado !== null && (
+          {item.machucado !== null ? (
             <p className="text-sm text-app-muted">Machucado: {item.machucado}</p>
-          )}
-        </Card>
+          ) : null}
+        </SectionCard>
 
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-app-fg">Atributos e pericias</h2>
+        <SectionCard
+          title="Atributos e perícias"
+          className="npc-panel"
+          contentClassName="space-y-3"
+        >
           <div className="grid gap-3 sm:grid-cols-5">
             {valoresAtributos.map(([label, valor]) => (
-              <div key={label} className="rounded border border-app-border bg-app-base p-3">
+              <div key={label} className="npc-stat-tile p-3">
                 <p className="text-xs text-app-muted">{label}</p>
                 <p className="text-lg font-semibold text-app-fg">{valor}</p>
               </div>
             ))}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm text-app-fg">
-            <p>Percepcao: {formatarTestePericia(item.percepcaoDados, item.percepcao)}</p>
+          <div className="grid gap-2 text-sm text-app-fg sm:grid-cols-2 lg:grid-cols-4">
+            <p>Percepção: {formatarTestePericia(item.percepcaoDados, item.percepcao)}</p>
             <p>Iniciativa: {formatarTestePericia(item.iniciativaDados, item.iniciativa)}</p>
             <p>Fortitude: {formatarTestePericia(item.fortitudeDados, item.fortitude)}</p>
             <p>Reflexos: {formatarTestePericia(item.reflexosDados, item.reflexos)}</p>
@@ -198,9 +167,10 @@ export default function NpcAmeacaDetalhePage() {
             <p>Luta: {formatarTestePericia(item.lutaDados, item.luta)}</p>
             <p>Jujutsu: {formatarTestePericia(item.jujutsuDados, item.jujutsu)}</p>
           </div>
-          {item.periciasEspeciais.length > 0 && (
+
+          {item.periciasEspeciais.length > 0 ? (
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-app-fg">Pericias especiais</h3>
+              <h3 className="mb-2 text-sm font-semibold text-app-fg">Perícias especiais</h3>
               <ul className="space-y-1 text-sm text-app-fg">
                 {item.periciasEspeciais.map((pericia, index) => (
                   <li key={`pericia-${index}`} className="rounded border border-app-border px-3 py-2">
@@ -213,50 +183,51 @@ export default function NpcAmeacaDetalhePage() {
                     {typeof pericia.dados === 'number' &&
                       typeof pericia.bonus !== 'number' &&
                       ` | ${pericia.dados}d20`}
-                    {pericia.descricao && ` | ${String(pericia.descricao)}`}
+                    {pericia.descricao ? ` | ${String(pericia.descricao)}` : null}
                   </li>
                 ))}
               </ul>
             </div>
-          )}
-        </Card>
+          ) : null}
+        </SectionCard>
 
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-app-fg">Resistencias e vulnerabilidades</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <p className="mb-2 text-sm font-medium text-app-fg">Resistencias</p>
-              {item.resistencias.length === 0 ? (
-                <p className="text-sm text-app-muted">Nenhuma resistencia cadastrada.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {item.resistencias.map((resistencia) => (
-                    <Badge key={resistencia} color="blue" size="sm">
-                      {resistencia}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-medium text-app-fg">Vulnerabilidades</p>
-              {item.vulnerabilidades.length === 0 ? (
-                <p className="text-sm text-app-muted">Nenhuma vulnerabilidade cadastrada.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {item.vulnerabilidades.map((vulnerabilidade) => (
-                    <Badge key={vulnerabilidade} color="red" size="sm">
-                      {vulnerabilidade}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
+        <SectionCard
+          title="Resistências e vulnerabilidades"
+          className="npc-panel"
+          contentClassName="grid gap-3 sm:grid-cols-2"
+        >
+          <div>
+            <p className="mb-2 text-sm font-medium text-app-fg">Resistências</p>
+            {item.resistencias.length === 0 ? (
+              <p className="text-sm text-app-muted">Nenhuma resistência cadastrada.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {item.resistencias.map((resistencia) => (
+                  <Badge key={resistencia} color="blue" size="sm">
+                    {resistencia}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
-        </Card>
 
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-app-fg">Passivas</h2>
+          <div>
+            <p className="mb-2 text-sm font-medium text-app-fg">Vulnerabilidades</p>
+            {item.vulnerabilidades.length === 0 ? (
+              <p className="text-sm text-app-muted">Nenhuma vulnerabilidade cadastrada.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {item.vulnerabilidades.map((vulnerabilidade) => (
+                  <Badge key={vulnerabilidade} color="red" size="sm">
+                    {vulnerabilidade}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Passivas" className="npc-panel">
           {item.passivas.length === 0 ? (
             <p className="text-sm text-app-muted">Sem passivas cadastradas.</p>
           ) : (
@@ -288,16 +259,15 @@ export default function NpcAmeacaDetalhePage() {
               ))}
             </div>
           )}
-        </Card>
+        </SectionCard>
 
-        <Card className="space-y-3">
-          <h2 className="text-lg font-semibold text-app-fg">Acoes</h2>
+        <SectionCard title="Ações" className="npc-panel">
           {item.acoes.length === 0 ? (
-            <p className="text-sm text-app-muted">Sem acoes cadastradas.</p>
+            <p className="text-sm text-app-muted">Sem ações cadastradas.</p>
           ) : (
             <div className="space-y-2">
               {item.acoes.map((acao, index) => (
-                <div key={`acao-${index}`} className="rounded border border-app-border p-3 space-y-1">
+                <div key={`acao-${index}`} className="space-y-1 rounded border border-app-border p-3">
                   <p className="text-sm font-semibold text-app-fg">{String(acao.nome)}</p>
                   <p className="text-xs text-app-muted">
                     {[
@@ -316,29 +286,24 @@ export default function NpcAmeacaDetalhePage() {
                       .filter(Boolean)
                       .join(' | ')}
                   </p>
-                  {acao.efeito && (
-                    <p className="text-sm text-app-muted">{String(acao.efeito)}</p>
-                  )}
-                  {acao.requisitos && (
-                    <p className="text-xs text-app-muted">
-                      Requisitos: {String(acao.requisitos)}
-                    </p>
-                  )}
-                  {acao.descricao && (
+                  {acao.efeito ? <p className="text-sm text-app-muted">{String(acao.efeito)}</p> : null}
+                  {acao.requisitos ? (
+                    <p className="text-xs text-app-muted">Requisitos: {String(acao.requisitos)}</p>
+                  ) : null}
+                  {acao.descricao ? (
                     <p className="text-sm text-app-muted">{String(acao.descricao)}</p>
-                  )}
+                  ) : null}
                 </div>
               ))}
             </div>
           )}
-        </Card>
+        </SectionCard>
 
-        {item.usoTatico && (
-          <Card className="space-y-2">
-            <h2 className="text-lg font-semibold text-app-fg">Uso tatico</h2>
+        {item.usoTatico ? (
+          <SectionCard title="Uso tático" className="npc-panel">
             <p className="text-sm leading-relaxed text-app-fg">{item.usoTatico}</p>
-          </Card>
-        )}
+          </SectionCard>
+        ) : null}
       </div>
     </div>
   );

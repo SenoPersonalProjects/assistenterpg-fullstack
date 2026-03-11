@@ -194,7 +194,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SESSAO_CAMPANHA_NOT_FOUND: "Sessão da campanha não encontrada.",
   SESSAO_TURNO_INDISPONIVEL:
     "Cena livre não possui contagem de rodada/turno.",
-  NPC_AMEACA_NOT_FOUND: "NPC/Ameaça não encontrado",
+  NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",
   CONVITE_NOT_FOUND: "Convite não encontrado",
   CONVITE_INVALIDO: "Convite inválido ou já utilizado",
   CONVITE_NAO_PERTENCE_USUARIO: "Este convite não pertence ao usuário logado",

@@ -202,7 +202,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - iniciar sessao
     - trocar cena
     - avancar turno
-    - adicionar/editar/remover NPCs/Ameacas da cena
+    - adicionar/editar/remover aliados/ameacas da cena
   - participantes da campanha podem:
     - abrir detalhe do lobby
     - listar/enviar mensagens no chat
@@ -213,7 +213,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - visibilidade de cards:
     - mestre ve/edita todos os cards.
     - jogador ve card completo apenas do proprio personagem e cards resumidos dos demais.
-  - NPCs/Ameacas em sessao:
+  - aliados/ameacas em sessao:
     - cada instancia fica vinculada a uma `cenaId` em `NpcAmeacaSessao`.
     - a cena atual retorna lista `npcs` junto do detalhe da sessao.
     - passivas/acoes das instancias sao guias descritivos para o mestre (nao aplicam automacao de efeito).
@@ -272,7 +272,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - `Cena` versiona troca de cena por sessao.
 - `EventoSessao` guarda eventos estruturados do lobby (chat, troca de cena, turno).
 - `PersonagemSessao` representa cada personagem participante na sessao atual.
-- `NpcAmeacaSessao` representa cada NPC/Ameaca adicionado em uma cena da sessao.
+- `NpcAmeacaSessao` representa cada aliado/ameaca adicionado em uma cena da sessao.
 - `Campanha.status` e `ConviteCampanha.status` sao `String` no schema (nao enum).
 
 ## Integracao frontend

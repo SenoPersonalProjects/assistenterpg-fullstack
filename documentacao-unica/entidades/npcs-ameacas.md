@@ -1,10 +1,10 @@
-# NPCs e Ameacas (Ficha Simplificada)
+# NPC (Aliados ou Ameacas) - Ficha Simplificada
 
 Atualizado em: 2026-03-10
 
 ## Escopo
 
-Modulo para criacao e manutencao de fichas simplificadas de NPCs e Ameacas.
+Modulo para criacao e manutencao de fichas simplificadas de aliados ou ameacas.
 
 Objetivo:
 
@@ -24,7 +24,12 @@ Arquivos principais:
   - [`assistenterpg-front/src/lib/api/npcs-ameacas.ts`](../../assistenterpg-front/src/lib/api/npcs-ameacas.ts)
   - [`assistenterpg-front/src/lib/types/npc-ameaca.types.ts`](../../assistenterpg-front/src/lib/types/npc-ameaca.types.ts)
   - [`assistenterpg-front/src/components/npc-ameaca/NpcAmeacaForm.tsx`](../../assistenterpg-front/src/components/npc-ameaca/NpcAmeacaForm.tsx)
+  - [`assistenterpg-front/src/components/npc-ameaca/NpcAmeacaPageHeader.tsx`](../../assistenterpg-front/src/components/npc-ameaca/NpcAmeacaPageHeader.tsx)
+  - [`assistenterpg-front/src/components/npc-ameaca/NpcAmeacaCard.tsx`](../../assistenterpg-front/src/components/npc-ameaca/NpcAmeacaCard.tsx)
+  - [`assistenterpg-front/src/components/npc-ameaca/NpcAmeacaPreviewModal.tsx`](../../assistenterpg-front/src/components/npc-ameaca/NpcAmeacaPreviewModal.tsx)
+  - [`assistenterpg-front/src/components/npc-ameaca/npcAmeacaUi.ts`](../../assistenterpg-front/src/components/npc-ameaca/npcAmeacaUi.ts)
   - [`assistenterpg-front/src/app/npcs-ameacas/page.tsx`](../../assistenterpg-front/src/app/npcs-ameacas/page.tsx)
+  - [`assistenterpg-front/src/app/globals.css`](../../assistenterpg-front/src/app/globals.css) (classes `npc-*`)
 
 ## Autorizacao
 
@@ -133,7 +138,7 @@ Cliente:
 
 ## Uso em sessoes/cenas de campanha
 
-NPCs/Ameacas podem ser instanciados na cena atual de uma sessao de campanha.
+Aliados/ameacas podem ser instanciados na cena atual de uma sessao de campanha.
 
 Persistencia:
 
@@ -143,7 +148,7 @@ Persistencia:
 
 Regras:
 
-- apenas mestre pode adicionar/editar/remover NPCs na sessao;
+- apenas mestre pode adicionar/editar/remover aliados/ameacas na sessao;
 - cada instancia fica vinculada a uma `cenaId` (controle por cena);
 - a instancia guarda snapshot (nome/valores/passivas/acoes) para uso em mesa;
 - passivas e acoes continuam descritivas (guia), sem efeitos automatizados.
@@ -153,6 +158,30 @@ Endpoints relacionados (modulo de sessao):
 - `POST /campanhas/:campanhaId/sessoes/:sessaoId/npcs`
 - `PATCH /campanhas/:campanhaId/sessoes/:sessaoId/npcs/:npcSessaoId`
 - `DELETE /campanhas/:campanhaId/sessoes/:sessaoId/npcs/:npcSessaoId`
+
+## UI/UX (frontend)
+
+Nome da secao na navegacao:
+
+- `NPC`
+
+Terminologia de tipo de ficha na interface:
+
+- `NPC` (tecnico) exibido como `Aliado`
+- `AMEACA` (tecnico) exibido como `Ameaca`
+
+Padroes de UI reaproveitados:
+
+- cabecalho padrao via `NpcAmeacaPageHeader`;
+- labels/opcoes centralizadas em `npcAmeacaUi.ts`;
+- cards com estilo consistente via classes globais:
+  - `npc-page-shell`
+  - `npc-hero`
+  - `npc-panel`
+  - `npc-stat-tile`
+- modal para selecao rapida de modelos no formulario (`Akane` e `Taro`);
+- modal de pre-visualizacao na listagem (`NpcAmeacaPreviewModal`) com atalho para abrir ficha completa ou editar;
+- no contexto de campanha/sessao, referencias textuais em UI usam `aliados ou ameacas`.
 
 ## Exemplo de payload (criacao)
 

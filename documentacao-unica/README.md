@@ -457,7 +457,7 @@ Detalhamento:
   - cards da sessao respeitam permissao:
     - mestre ve/edita todos.
     - jogador edita apenas o proprio card e ve os demais em modo resumido.
-  - NPCs/Ameacas em sessao:
+  - Aliados/Ameacas em sessao:
     - apenas mestre adiciona/edita/remove na cena atual.
     - cada instancia fica vinculada a uma `cenaId`.
     - `passivas` e `acoes` sao guias de mesa (nao ha automacao mecanica).
@@ -1501,7 +1501,7 @@ Integracao frontend neste bloco:
   - [`assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/ProficienciasAdminPanel.tsx), [`assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TiposGrauAdminPanel.tsx) e [`assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/CondicoesAdminPanel.tsx) cobrem CRUD completo desses catalogos
   - [`assistenterpg-front/src/lib/constants/suplemento-admin.ts`](../assistenterpg-front/src/lib/constants/suplemento-admin.ts) e [`assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx`](../assistenterpg-front/src/app/suplementos/admin/[modulo]/page.tsx) foram ampliados para expor os novos modulos no painel admin
 
-## 5.13 NPCs/Ameacas
+## 5.13 NPC (Aliados/Ameacas)
 
 Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 
@@ -1517,7 +1517,7 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 
 Detalhamento:
 
-- modulo de ficha simplificada para NPC/Ameaca (VD placeholder, atributos, pericias principais, defesa/PV, deslocamento, resistencias/vulnerabilidades, passivas e acoes).
+- modulo de ficha simplificada para aliado/ameaca (VD placeholder, atributos, pericias principais, defesa/PV, deslocamento, resistencias/vulnerabilidades, passivas e acoes).
 - acesso sempre restrito ao dono da ficha (`donoId`).
 - listas estruturadas (`periciasEspeciais`, `passivas`, `acoes`, `resistencias`, `vulnerabilidades`) sao persistidas em JSON.
 - exclusao retorna `{ message, id }`.

@@ -87,7 +87,7 @@ Formato de resposta esperado:
 | `CONVITE_DUPLICADO_PENDENTE`   | `422` | Ja existe convite pendente para o mesmo email| Orientar a reutilizar/aguardar convite atual |
 | `CONVITE_CODIGO_INDISPONIVEL`  | `500` | Falha em gerar codigo unico de convite       | Solicitar nova tentativa e logar incidente   |
 
-## NPCs e Ameacas
+## NPC (Aliados e Ameacas)
 
 | Codigo                 | HTTP  | Quando ocorre                               | Acao recomendada                               |
 | ---------------------- | ----- | ------------------------------------------- | ---------------------------------------------- |
