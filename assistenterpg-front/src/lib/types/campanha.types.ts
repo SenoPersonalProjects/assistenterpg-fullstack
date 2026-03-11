@@ -133,6 +133,17 @@ export type PersonagemCampanhaResumo = {
   }>;
 };
 
+export type PersonagemBaseDisponivelCampanha = {
+  id: number;
+  nome: string;
+  nivel: number;
+  donoId: number;
+  dono: {
+    id: number;
+    apelido: string;
+  };
+};
+
 export type TipoCenaSessaoCampanha =
   | 'LIVRE'
   | 'INVESTIGACAO'

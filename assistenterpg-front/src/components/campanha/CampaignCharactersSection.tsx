@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  apiGetMeusPersonagensBase,
+  apiListarPersonagensBaseDisponiveisCampanha,
   apiListarPersonagensCampanha,
   apiVincularPersonagemCampanha,
   extrairMensagemErro,
 } from '@/lib/api';
-import type { PersonagemBaseResumo, PersonagemCampanhaResumo } from '@/lib/types';
+import type {
+  PersonagemBaseDisponivelCampanha,
+  PersonagemCampanhaResumo,
+} from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -40,7 +43,9 @@ export function CampaignCharactersSection({
   const [personagensCampanha, setPersonagensCampanha] = useState<
     PersonagemCampanhaResumo[]
   >([]);
-  const [personagensBase, setPersonagensBase] = useState<PersonagemBaseResumo[]>([]);
+  const [personagensBase, setPersonagensBase] = useState<
+    PersonagemBaseDisponivelCampanha[]
+  >([]);
   const [personagemBaseSelecionado, setPersonagemBaseSelecionado] = useState('');
   const [loading, setLoading] = useState(true);
   const [associando, setAssociando] = useState(false);
@@ -60,14 +65,14 @@ export function CampaignCharactersSection({
     setLoading(true);
     setErro(null);
     try {
-      const [personagens, meusPersonagens] = await Promise.all([
+      const [personagens, personagensDisponiveis] = await Promise.all([
         apiListarPersonagensCampanha(campanhaId),
-        apiGetMeusPersonagensBase({ page: 1, limit: 200 }),
+        apiListarPersonagensBaseDisponiveisCampanha(campanhaId),
       ]);
 
       setPersonagensCampanha(personagens);
       onTotalPersonagensChange?.(personagens.length);
-      setPersonagensBase(meusPersonagens.items);
+      setPersonagensBase(personagensDisponiveis);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
@@ -90,9 +95,11 @@ export function CampaignCharactersSection({
         .filter((personagem) => !idsBaseJaAssociados.has(personagem.id))
         .map((personagem) => ({
           value: String(personagem.id),
-          label: `${personagem.nome} (Nv ${personagem.nivel})`,
+          label: usuarioEhMestre
+            ? `${personagem.nome} (Nv ${personagem.nivel}) - ${personagem.dono.apelido}`
+            : `${personagem.nome} (Nv ${personagem.nivel})`,
         })),
-    [personagensBase, idsBaseJaAssociados],
+    [personagensBase, idsBaseJaAssociados, usuarioEhMestre],
   );
 
   const usuarioJaTemPersonagemNaCampanha = useMemo(

@@ -6,6 +6,7 @@ import type {
   ConviteCampanha,
   HistoricoPersonagemCampanha,
   ModificadorPersonagemCampanha,
+  PersonagemBaseDisponivelCampanha,
   PersonagemCampanhaResumo,
   AdicionarNpcSessaoCampanhaPayload,
   AtualizarNpcSessaoCampanhaPayload,
@@ -192,6 +193,15 @@ export async function apiListarPersonagensCampanha(
   campanhaId: number,
 ): Promise<PersonagemCampanhaResumo[]> {
   const { data } = await apiClient.get(`/campanhas/${campanhaId}/personagens`);
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiListarPersonagensBaseDisponiveisCampanha(
+  campanhaId: number,
+): Promise<PersonagemBaseDisponivelCampanha[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/personagens-base-disponiveis`,
+  );
   return Array.isArray(data) ? data : [];
 }
 

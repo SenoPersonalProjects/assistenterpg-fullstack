@@ -34,6 +34,7 @@ type PrismaMock = {
   };
   personagemBase: {
     findUnique: jest.Mock;
+    findMany: jest.Mock;
   };
   personagemCampanha: {
     findMany: jest.Mock;
@@ -86,6 +87,7 @@ describe('CampanhaService', () => {
       },
       personagemBase: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
       },
       personagemCampanha: {
         findMany: jest.fn(),
@@ -445,6 +447,88 @@ describe('CampanhaService', () => {
     expect(tx.personagemCampanhaHistorico.create).toHaveBeenCalled();
     expect(personagem.id).toBe(501);
     expect(personagem.recursos.eaMax).toBe(100);
+  });
+
+  it('deve listar personagens-base disponiveis apenas do proprio usuario quando nao mestre', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [
+        { usuarioId: 3, papel: 'JOGADOR' },
+        { usuarioId: 4, papel: 'JOGADOR' },
+      ],
+    });
+    prisma.personagemCampanha.findMany.mockResolvedValue([{ personagemBaseId: 30 }]);
+    prisma.personagemBase.findMany.mockResolvedValue([
+      {
+        id: 31,
+        nome: 'Yuji',
+        nivel: 4,
+        donoId: 3,
+        dono: { id: 3, apelido: 'Jogador' },
+      },
+    ]);
+
+    const resultado = await service.listarPersonagensBaseDisponiveisParaAssociacao(
+      7,
+      3,
+    );
+
+    expect(prisma.personagemBase.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          donoId: { in: [3] },
+          id: { notIn: [30] },
+        }),
+      }),
+    );
+    expect(resultado).toEqual([
+      {
+        id: 31,
+        nome: 'Yuji',
+        nivel: 4,
+        donoId: 3,
+        dono: { id: 3, apelido: 'Jogador' },
+      },
+    ]);
+  });
+
+  it('deve listar personagens-base disponiveis de todos participantes para mestre', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [
+        { usuarioId: 3, papel: 'JOGADOR' },
+        { usuarioId: 4, papel: 'OBSERVADOR' },
+      ],
+    });
+    prisma.personagemCampanha.findMany.mockResolvedValue([]);
+    prisma.personagemBase.findMany.mockResolvedValue([
+      {
+        id: 11,
+        nome: 'Gojo',
+        nivel: 10,
+        donoId: 1,
+        dono: { id: 1, apelido: 'Mestre' },
+      },
+      {
+        id: 32,
+        nome: 'Megumi',
+        nivel: 5,
+        donoId: 3,
+        dono: { id: 3, apelido: 'Jogador' },
+      },
+    ]);
+
+    await service.listarPersonagensBaseDisponiveisParaAssociacao(7, 1);
+
+    expect(prisma.personagemBase.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          donoId: { in: [1, 3, 4] },
+        }),
+      }),
+    );
   });
 
   it('deve impedir que jogador associe personagem-base de outro usuario', async () => {

@@ -50,6 +50,9 @@ let CampanhaController = class CampanhaController {
     async listarPersonagensCampanha(id, req) {
         return this.campanhaService.listarPersonagensCampanha(id, req.user.id);
     }
+    async listarPersonagensBaseDisponiveis(id, req) {
+        return this.campanhaService.listarPersonagensBaseDisponiveisParaAssociacao(id, req.user.id);
+    }
     async vincularPersonagemCampanha(id, req, dto) {
         return this.campanhaService.vincularPersonagemBase(id, req.user.id, dto.personagemBaseId);
     }
@@ -139,6 +142,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], CampanhaController.prototype, "listarPersonagensCampanha", null);
+__decorate([
+    (0, common_1.Get)(':id/personagens-base-disponiveis'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], CampanhaController.prototype, "listarPersonagensBaseDisponiveis", null);
 __decorate([
     (0, common_1.Post)(':id/personagens'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

@@ -14,6 +14,7 @@ describe('CampanhaController', () => {
     listarMembros: jest.fn(),
     adicionarMembro: jest.fn(),
     listarPersonagensCampanha: jest.fn(),
+    listarPersonagensBaseDisponiveisParaAssociacao: jest.fn(),
     vincularPersonagemBase: jest.fn(),
     atualizarRecursosPersonagemCampanha: jest.fn(),
     listarModificadoresPersonagemCampanha: jest.fn(),
@@ -108,6 +109,18 @@ describe('CampanhaController', () => {
       3,
       42,
     );
+  });
+
+  it('deve encaminhar listagem de personagens-base disponiveis para o service', async () => {
+    campanhaServiceMock.listarPersonagensBaseDisponiveisParaAssociacao.mockResolvedValue(
+      [{ id: 1 }],
+    );
+
+    await controller.listarPersonagensBaseDisponiveis(7, { user: { id: 3 } });
+
+    expect(
+      campanhaServiceMock.listarPersonagensBaseDisponiveisParaAssociacao,
+    ).toHaveBeenCalledWith(7, 3);
   });
 
   it('deve encaminhar aplicacao de modificador para o service', async () => {

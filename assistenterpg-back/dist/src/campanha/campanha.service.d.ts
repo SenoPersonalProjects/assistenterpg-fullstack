@@ -145,6 +145,16 @@ export declare class CampanhaService {
             criadoPorId: number;
         }[];
     }[]>;
+    listarPersonagensBaseDisponiveisParaAssociacao(campanhaId: number, usuarioId: number): Promise<{
+        id: number;
+        nome: string;
+        nivel: number;
+        donoId: number;
+        dono: {
+            id: number;
+            apelido: string;
+        };
+    }[]>;
     vincularPersonagemBase(campanhaId: number, solicitanteId: number, personagemBaseId: number): Promise<{
         id: number;
         campanhaId: number;

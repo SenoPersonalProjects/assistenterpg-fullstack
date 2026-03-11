@@ -89,6 +89,17 @@ export class CampanhaController {
     return this.campanhaService.listarPersonagensCampanha(id, req.user.id);
   }
 
+  @Get(':id/personagens-base-disponiveis')
+  async listarPersonagensBaseDisponiveis(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarPersonagensBaseDisponiveisParaAssociacao(
+      id,
+      req.user.id,
+    );
+  }
+
   @Post(':id/personagens')
   async vincularPersonagemCampanha(
     @Param('id', ParseIntPipe) id: number,

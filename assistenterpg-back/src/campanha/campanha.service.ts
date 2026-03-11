@@ -369,6 +369,62 @@ export class CampanhaService {
     );
   }
 
+  async listarPersonagensBaseDisponiveisParaAssociacao(
+    campanhaId: number,
+    usuarioId: number,
+  ) {
+    const acesso = await this.garantirAcesso(campanhaId, usuarioId);
+
+    const idsDonosPermitidos = acesso.ehMestre
+      ? [
+          acesso.campanha.donoId,
+          ...acesso.campanha.membros.map((membro) => membro.usuarioId),
+        ]
+      : [usuarioId];
+    const idsDonosUnicos = Array.from(new Set(idsDonosPermitidos));
+
+    const personagensJaAssociados = await this.prisma.personagemCampanha.findMany({
+      where: { campanhaId },
+      select: { personagemBaseId: true },
+    });
+    const idsPersonagensJaAssociados = personagensJaAssociados.map(
+      (personagem) => personagem.personagemBaseId,
+    );
+
+    const personagensBase = await this.prisma.personagemBase.findMany({
+      where: {
+        donoId: { in: idsDonosUnicos },
+        ...(idsPersonagensJaAssociados.length > 0
+          ? { id: { notIn: idsPersonagensJaAssociados } }
+          : {}),
+      },
+      select: {
+        id: true,
+        nome: true,
+        nivel: true,
+        donoId: true,
+        dono: {
+          select: {
+            id: true,
+            apelido: true,
+          },
+        },
+      },
+      orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+    });
+
+    return personagensBase.map((personagem) => ({
+      id: personagem.id,
+      nome: personagem.nome,
+      nivel: personagem.nivel,
+      donoId: personagem.donoId,
+      dono: {
+        id: personagem.dono.id,
+        apelido: personagem.dono.apelido,
+      },
+    }));
+  }
+
   async vincularPersonagemBase(
     campanhaId: number,
     solicitanteId: number,

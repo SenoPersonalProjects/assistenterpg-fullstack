@@ -280,6 +280,52 @@ let CampanhaService = class CampanhaService {
         });
         return personagens.map((personagem) => this.mapearPersonagemCampanhaResposta(personagem));
     }
+    async listarPersonagensBaseDisponiveisParaAssociacao(campanhaId, usuarioId) {
+        const acesso = await this.garantirAcesso(campanhaId, usuarioId);
+        const idsDonosPermitidos = acesso.ehMestre
+            ? [
+                acesso.campanha.donoId,
+                ...acesso.campanha.membros.map((membro) => membro.usuarioId),
+            ]
+            : [usuarioId];
+        const idsDonosUnicos = Array.from(new Set(idsDonosPermitidos));
+        const personagensJaAssociados = await this.prisma.personagemCampanha.findMany({
+            where: { campanhaId },
+            select: { personagemBaseId: true },
+        });
+        const idsPersonagensJaAssociados = personagensJaAssociados.map((personagem) => personagem.personagemBaseId);
+        const personagensBase = await this.prisma.personagemBase.findMany({
+            where: {
+                donoId: { in: idsDonosUnicos },
+                ...(idsPersonagensJaAssociados.length > 0
+                    ? { id: { notIn: idsPersonagensJaAssociados } }
+                    : {}),
+            },
+            select: {
+                id: true,
+                nome: true,
+                nivel: true,
+                donoId: true,
+                dono: {
+                    select: {
+                        id: true,
+                        apelido: true,
+                    },
+                },
+            },
+            orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+        });
+        return personagensBase.map((personagem) => ({
+            id: personagem.id,
+            nome: personagem.nome,
+            nivel: personagem.nivel,
+            donoId: personagem.donoId,
+            dono: {
+                id: personagem.dono.id,
+                apelido: personagem.dono.apelido,
+            },
+        }));
+    }
     async vincularPersonagemBase(campanhaId, solicitanteId, personagemBaseId) {
         const acesso = await this.garantirAcesso(campanhaId, solicitanteId);
         const personagemBase = await this.prisma.personagemBase.findUnique({
@@ -334,17 +380,35 @@ let CampanhaService = class CampanhaService {
         if (!acesso.ehMestre && !solicitanteEhDonoDoPersonagem) {
             throw new campanha_exception_1.CampanhaPersonagemAssociacaoNegadaException(campanhaId, solicitanteId, personagemBaseId);
         }
-        const personagemExistenteDoDono = await this.prisma.personagemCampanha.findFirst({
-            where: {
-                campanhaId,
-                donoId: personagemBase.donoId,
-            },
-            select: { id: true },
-        });
-        if (personagemExistenteDoDono) {
-            throw new campanha_exception_1.CampanhaPersonagemLimiteUsuarioException(campanhaId, personagemBase.donoId);
+        const donoEhMestreNaCampanha = personagemBase.donoId === acesso.campanha.donoId ||
+            acesso.campanha.membros.some((membro) => membro.usuarioId === personagemBase.donoId &&
+                membro.papel === 'MESTRE');
+        const deveAplicarLimitePorUsuario = !donoEhMestreNaCampanha;
+        if (deveAplicarLimitePorUsuario) {
+            const personagemExistenteDoDono = await this.prisma.personagemCampanha.findFirst({
+                where: {
+                    campanhaId,
+                    donoId: personagemBase.donoId,
+                },
+                select: { id: true },
+            });
+            if (personagemExistenteDoDono) {
+                throw new campanha_exception_1.CampanhaPersonagemLimiteUsuarioException(campanhaId, personagemBase.donoId);
+            }
         }
         const personagemCampanhaId = await this.prisma.$transaction(async (tx) => {
+            if (deveAplicarLimitePorUsuario) {
+                const personagemExistenteDoDono = await tx.personagemCampanha.findFirst({
+                    where: {
+                        campanhaId,
+                        donoId: personagemBase.donoId,
+                    },
+                    select: { id: true },
+                });
+                if (personagemExistenteDoDono) {
+                    throw new campanha_exception_1.CampanhaPersonagemLimiteUsuarioException(campanhaId, personagemBase.donoId);
+                }
+            }
             let personagemCriado;
             try {
                 personagemCriado = await tx.personagemCampanha.create({
@@ -390,11 +454,16 @@ let CampanhaService = class CampanhaService {
                 });
             }
             catch (error) {
-                if (this.isUniqueConstraintViolation(error, ['campanhaId', 'donoId']) ||
-                    this.isUniqueConstraintViolation(error, [
-                        'campanhaId',
-                        'personagemBaseId',
-                    ])) {
+                const conflitoDono = this.isUniqueConstraintViolation(error, [
+                    'campanhaId',
+                    'donoId',
+                ]);
+                const conflitoPersonagemBase = this.isUniqueConstraintViolation(error, [
+                    'campanhaId',
+                    'personagemBaseId',
+                ]);
+                if ((conflitoDono && deveAplicarLimitePorUsuario) ||
+                    conflitoPersonagemBase) {
                     throw new campanha_exception_1.CampanhaPersonagemLimiteUsuarioException(campanhaId, personagemBase.donoId);
                 }
                 throw error;

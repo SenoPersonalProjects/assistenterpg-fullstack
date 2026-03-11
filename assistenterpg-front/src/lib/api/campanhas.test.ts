@@ -22,6 +22,7 @@ import {
   apiGetSessaoCampanha,
   apiInvalidateCampanhaDetalheCache,
   apiListarChatSessaoCampanha,
+  apiListarPersonagensBaseDisponiveisCampanha,
   apiListarPersonagensCampanha,
   apiListarSessoesCampanha,
   apiListarConvitesPendentes,
@@ -140,6 +141,21 @@ describe('campanhas api cache and dedupe', () => {
 
     expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/15/personagens');
     expect(personagens).toEqual([{ id: 1, nome: 'Yuta' }]);
+  });
+
+  it('lists available base characters for campaign association', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 2, nome: 'Megumi', dono: { id: 3, apelido: 'Jogador' } }],
+    });
+
+    const personagens = await apiListarPersonagensBaseDisponiveisCampanha(15);
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/campanhas/15/personagens-base-disponiveis',
+    );
+    expect(personagens).toEqual([
+      { id: 2, nome: 'Megumi', dono: { id: 3, apelido: 'Jogador' } },
+    ]);
   });
 
   it('links base character to campaign', async () => {

@@ -445,6 +445,9 @@ Detalhamento:
   - `CONVITE_DUPLICADO_PENDENTE` (422)
   - `CONVITE_CODIGO_INDISPONIVEL` (500)
 - personagens de campanha:
+  - `GET /campanhas/:id/personagens-base-disponiveis` retorna os personagens-base elegiveis para associacao:
+    - jogadores/observadores recebem apenas os proprios personagens ainda nao associados.
+    - mestres (dono ou membro `MESTRE`) recebem personagens dos participantes da campanha (incluindo dono), excluindo os ja associados.
   - associacao de personagem-base:
     - jogadores e observadores seguem limite de 1 personagem por usuario na campanha.
     - mestres (dono ou membro com papel `MESTRE`) podem associar multiplos personagens.
@@ -487,6 +490,7 @@ Integracao frontend:
   - detalhe de campanha
   - fluxo de convite (criar/listar pendentes/aceitar/recusar)
   - personagens de campanha (listar, associar, atualizar recursos, aplicar/desfazer modificadores, historico)
+  - listagem de personagens-base disponiveis por campanha para suportar associacao por mestres
   - sessoes de campanha (listar, criar, detalhe, atualizar cena, avancar turno, listar/enviar chat)
   - notificacao local de atualizacao de pendencias de convite (`apiInscreverAtualizacaoConvitesPendentes` / `apiNotificarConvitesPendentesAtualizados`) para manter badge da navbar sincronizado
   - sugestao de associacao de personagem ao entrar na campanha (nao obrigatoria) no componente [`CampaignCharactersSection`](../assistenterpg-front/src/components/campanha/CampaignCharactersSection.tsx)

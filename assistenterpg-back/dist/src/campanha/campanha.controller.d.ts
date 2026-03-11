@@ -170,6 +170,20 @@ export declare class CampanhaController {
             criadoPorId: number;
         }[];
     }[]>;
+    listarPersonagensBaseDisponiveis(id: number, req: {
+        user: {
+            id: number;
+        };
+    }): Promise<{
+        id: number;
+        nome: string;
+        nivel: number;
+        donoId: number;
+        dono: {
+            id: number;
+            apelido: string;
+        };
+    }[]>;
     vincularPersonagemCampanha(id: number, req: {
         user: {
             id: number;

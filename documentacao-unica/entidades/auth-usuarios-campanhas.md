@@ -187,6 +187,10 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - ao aceitar convite, membro entra com o `papel` salvo no convite (fallback `JOGADOR` para legados).
 - aceite de convite ocorre em transacao (cria membro + marca convite como `ACEITO` no mesmo bloco atomico).
 - personagem de campanha:
+  - listagem de personagens-base disponiveis para associacao:
+    - `GET /campanhas/:id/personagens-base-disponiveis`
+    - jogadores/observadores recebem apenas personagens proprios ainda nao vinculados na campanha.
+    - mestres recebem personagens dos participantes (dono + membros), excluindo os ja vinculados.
   - associacao de personagem-base (`POST /campanhas/:id/personagens`) exige acesso a campanha.
   - regra de limite:
     - jogadores/observadores: 1 personagem por usuario em cada campanha.
