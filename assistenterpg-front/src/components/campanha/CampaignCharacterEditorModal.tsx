@@ -35,6 +35,7 @@ type Props = {
 };
 
 type FiltroHistoricoContexto = 'TODOS' | 'SESSAO_ATUAL' | 'CENA_ATUAL';
+const FILTRO_HISTORICO_TIPO_TODOS = '__TODOS__';
 
 const CAMPOS_MODIFICADOR_OPTIONS: Array<{
   value: CampoModificadorPersonagemCampanha;
@@ -125,6 +126,9 @@ export function CampaignCharacterEditorModal({
   const [historico, setHistorico] = useState<HistoricoPersonagemCampanha[]>([]);
   const [filtroHistorico, setFiltroHistorico] =
     useState<FiltroHistoricoContexto>('TODOS');
+  const [filtroTipoHistorico, setFiltroTipoHistorico] = useState<string>(
+    FILTRO_HISTORICO_TIPO_TODOS,
+  );
   const [loadingDados, setLoadingDados] = useState(false);
   const [savingRecursos, setSavingRecursos] = useState(false);
   const [savingModificador, setSavingModificador] = useState(false);
@@ -177,7 +181,22 @@ export function CampaignCharacterEditorModal({
     return opcoes;
   }, [contextoSessao]);
 
-  const historicoFiltrado = useMemo(() => {
+  const opcoesFiltroTipoHistorico = useMemo(() => {
+    const tiposUnicos = Array.from(
+      new Set(
+        historico
+          .map((evento) => evento.tipo)
+          .filter((tipo) => typeof tipo === 'string' && tipo.trim() !== ''),
+      ),
+    ).sort((tipoA, tipoB) => tipoA.localeCompare(tipoB, 'pt-BR'));
+
+    return [
+      { value: FILTRO_HISTORICO_TIPO_TODOS, label: 'Todos os tipos' },
+      ...tiposUnicos.map((tipo) => ({ value: tipo, label: tipo })),
+    ];
+  }, [historico]);
+
+  const historicoFiltradoPorContexto = useMemo(() => {
     if (!contextoSessao || filtroHistorico === 'TODOS') {
       return historico;
     }
@@ -201,6 +220,15 @@ export function CampaignCharacterEditorModal({
       );
     });
   }, [contextoSessao, filtroHistorico, historico]);
+
+  const historicoFiltrado = useMemo(() => {
+    if (filtroTipoHistorico === FILTRO_HISTORICO_TIPO_TODOS) {
+      return historicoFiltradoPorContexto;
+    }
+    return historicoFiltradoPorContexto.filter(
+      (evento) => evento.tipo === filtroTipoHistorico,
+    );
+  }, [filtroTipoHistorico, historicoFiltradoPorContexto]);
 
   const carregarDadosRelacionados = useCallback(async () => {
     if (!personagemId) return;
@@ -241,7 +269,18 @@ export function CampaignCharacterEditorModal({
   useEffect(() => {
     if (!isOpen) return;
     setFiltroHistorico(obterFiltroHistoricoPadrao(contextoSessao));
+    setFiltroTipoHistorico(FILTRO_HISTORICO_TIPO_TODOS);
   }, [isOpen, contextoSessao?.sessaoId, contextoSessao?.cenaId]);
+
+  useEffect(() => {
+    if (filtroTipoHistorico === FILTRO_HISTORICO_TIPO_TODOS) return;
+    const tipoAindaExiste = historico.some(
+      (evento) => evento.tipo === filtroTipoHistorico,
+    );
+    if (!tipoAindaExiste) {
+      setFiltroTipoHistorico(FILTRO_HISTORICO_TIPO_TODOS);
+    }
+  }, [historico, filtroTipoHistorico]);
 
   async function handleSalvarRecursos() {
     if (!personagemId || !personagem) return;
@@ -540,20 +579,30 @@ export function CampaignCharacterEditorModal({
           <section className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-app-fg">Historico</h3>
-              {contextoSessao ? (
-                <div className="min-w-[220px]">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                {contextoSessao ? (
+                  <div className="sm:min-w-[220px]">
+                    <Select
+                      aria-label="Filtro de contexto do historico"
+                      value={filtroHistorico}
+                      onChange={(event) =>
+                        setFiltroHistorico(
+                          event.target.value as FiltroHistoricoContexto,
+                        )
+                      }
+                      options={opcoesFiltroHistorico}
+                    />
+                  </div>
+                ) : null}
+                <div className="sm:min-w-[220px]">
                   <Select
-                    aria-label="Filtro de contexto do historico"
-                    value={filtroHistorico}
-                    onChange={(event) =>
-                      setFiltroHistorico(
-                        event.target.value as FiltroHistoricoContexto,
-                      )
-                    }
-                    options={opcoesFiltroHistorico}
+                    aria-label="Filtro de tipo do historico"
+                    value={filtroTipoHistorico}
+                    onChange={(event) => setFiltroTipoHistorico(event.target.value)}
+                    options={opcoesFiltroTipoHistorico}
                   />
                 </div>
-              ) : null}
+              </div>
             </div>
             {historico.length > 0 ? (
               <p className="text-xs text-app-muted">
