@@ -1,5 +1,6 @@
 import { RouteLoadingSkeleton } from '@/components/ui/RouteLoadingSkeleton';
 
 export default function HomebrewDetalheLoading() {
-  return <RouteLoadingSkeleton message="Carregando conteúdo..." variant="detail" />;
+  return <RouteLoadingSkeleton message="Carregando conteudo..." variant="detail" />;
 }
+

@@ -73,7 +73,7 @@ Comportamentos globais do frontend:
 - interceptor Axios adiciona `Authorization: Bearer <token>`
 - resposta `401` limpa token e redireciona para `/auth/login`
 - fallback de navegacao com loading global em `assistenterpg-front/src/app/loading.tsx`
-- skeletons de rota por modulo (`campanhas`, `homebrews`, `personagens-base`, `npcs-ameacas`) via `loading.tsx`
+- skeletons de rota por modulo (`campanhas`, `homebrews`, `personagens-base`, `npcs-ameacas`, `compendio`, `suplementos`, `configuracoes`, `notificacoes`, `home`) via `loading.tsx`
 - componente reutilizavel de skeleton: `assistenterpg-front/src/components/ui/RouteLoadingSkeleton.tsx`
 - normalizacao de listas paginadas aceita:
   - array puro
