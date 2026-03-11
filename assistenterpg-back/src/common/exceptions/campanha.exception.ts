@@ -188,6 +188,20 @@ export class CampanhaPersonagemEdicaoNegadaException extends BusinessException {
   }
 }
 
+export class CampanhaPersonagemDesassociacaoNegadaException extends BusinessException {
+  constructor(campanhaId: number, personagemCampanhaId: number, sessaoId?: number) {
+    super(
+      'Nao e possivel desassociar personagem que ja participou de sessao',
+      'CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA',
+      {
+        campanhaId,
+        personagemCampanhaId,
+        sessaoId,
+      },
+    );
+  }
+}
+
 export class CampanhaModificadorNaoEncontradoException extends BaseException {
   constructor(modificadorId: number, personagemCampanhaId: number) {
     super(

@@ -63,4 +63,59 @@ describe('SessaoService', () => {
     );
     expect(tx.personagemSessao.findMany).not.toHaveBeenCalled();
   });
+
+  it('deve encerrar sessao quando usuario for mestre', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 10,
+      membros: [],
+    });
+
+    const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          status: 'LOBBY',
+          cenas: [{ id: 81 }],
+        }),
+        update: jest.fn().mockResolvedValue({
+          id: 21,
+          status: 'ENCERRADA',
+        }),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({ id: 301 }),
+      },
+    };
+
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    const detalheEncerrada = { id: 21, status: 'ENCERRADA' };
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue(detalheEncerrada as never);
+
+    const resultado = await service.encerrarSessaoCampanha(7, 21, 10);
+
+    expect(tx.sessao.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 21 },
+        data: expect.objectContaining({
+          status: 'ENCERRADA',
+        }),
+      }),
+    );
+    expect(tx.eventoSessao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sessaoId: 21,
+          tipoEvento: 'SESSAO_ENCERRADA',
+        }),
+      }),
+    );
+    expect(resultado).toEqual(detalheEncerrada);
+  });
 });

@@ -217,6 +217,22 @@ export async function apiVincularPersonagemCampanha(
   return data;
 }
 
+export async function apiDesassociarPersonagemCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+): Promise<{
+  id: number;
+  campanhaId: number;
+  personagemBaseId: number;
+  message: string;
+}> {
+  const { data } = await apiClient.delete(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}`,
+  );
+  apiInvalidateCampanhaDetalheCache(campanhaId);
+  return data;
+}
+
 export async function apiAtualizarRecursosPersonagemCampanha(
   campanhaId: number,
   personagemCampanhaId: number,
@@ -305,6 +321,16 @@ export async function apiCriarSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(`/campanhas/${campanhaId}/sessoes`, payload ?? {});
   apiInvalidateCampanhaDetalheCache(campanhaId);
+  return data;
+}
+
+export async function apiEncerrarSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/encerrar`,
+  );
   return data;
 }
 

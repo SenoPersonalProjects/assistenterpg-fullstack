@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  apiDesassociarPersonagemCampanha,
   apiListarPersonagensBaseDisponiveisCampanha,
   apiListarPersonagensCampanha,
   apiVincularPersonagemCampanha,
@@ -53,6 +54,11 @@ export function CampaignCharactersSection({
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [personagemEdicao, setPersonagemEdicao] =
     useState<PersonagemCampanhaResumo | null>(null);
+  const [personagemRemocao, setPersonagemRemocao] =
+    useState<PersonagemCampanhaResumo | null>(null);
+  const [removendoPersonagemId, setRemovendoPersonagemId] = useState<number | null>(
+    null,
+  );
   const [sugestaoAberta, setSugestaoAberta] = useState(false);
   const [sugestaoInicializada, setSugestaoInicializada] = useState(false);
 
@@ -184,6 +190,28 @@ export function CampaignCharactersSection({
     setPersonagemEdicao(personagemAtualizado);
   }
 
+  function handleSolicitarDesassociar(personagem: PersonagemCampanhaResumo) {
+    setPersonagemRemocao(personagem);
+  }
+
+  async function handleConfirmarDesassociacao() {
+    if (!personagemRemocao) return;
+
+    setErro(null);
+    setSucesso(null);
+    setRemovendoPersonagemId(personagemRemocao.id);
+    try {
+      await apiDesassociarPersonagemCampanha(campanhaId, personagemRemocao.id);
+      setPersonagemRemocao(null);
+      setSucesso('Personagem desassociado da campanha com sucesso.');
+      await carregarDados();
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setRemovendoPersonagemId(null);
+    }
+  }
+
   return (
     <section className="space-y-4">
       <div className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
@@ -280,13 +308,25 @@ export function CampaignCharactersSection({
                   Modificadores ativos: {personagem.modificadoresAtivos.length}
                 </p>
                 {podeEditar && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPersonagemEdicao(personagem)}
-                  >
-                    Editar ficha da campanha
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPersonagemEdicao(personagem)}
+                    >
+                      Editar ficha da campanha
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleSolicitarDesassociar(personagem)}
+                      disabled={removendoPersonagemId === personagem.id}
+                    >
+                      {removendoPersonagemId === personagem.id
+                        ? 'Desassociando...'
+                        : 'Desassociar'}
+                    </Button>
+                  </div>
                 )}
               </Card>
             );
@@ -335,6 +375,40 @@ export function CampaignCharactersSection({
               disabled={associando || !personagemBaseSelecionado}
             >
               {associando ? 'Associando...' : 'Associar personagem'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(personagemRemocao)}
+        onClose={() => setPersonagemRemocao(null)}
+        title="Desassociar personagem da campanha"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-app-muted">
+            {personagemRemocao
+              ? `Deseja desassociar "${personagemRemocao.nome}" desta campanha?`
+              : 'Deseja desassociar este personagem da campanha?'}
+          </p>
+          <p className="text-xs text-app-muted">
+            Isso remove a ficha da campanha e libera o personagem-base para nova associacao.
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setPersonagemRemocao(null)}
+              disabled={removendoPersonagemId !== null}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => void handleConfirmarDesassociacao()}
+              disabled={removendoPersonagemId !== null}
+            >
+              {removendoPersonagemId !== null ? 'Desassociando...' : 'Desassociar'}
             </Button>
           </div>
         </div>

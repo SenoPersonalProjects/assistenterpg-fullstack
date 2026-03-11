@@ -98,6 +98,19 @@ export class SessaoController {
     );
   }
 
+  @Post(':sessaoId/encerrar')
+  async encerrarSessaoCampanha(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.sessaoService.encerrarSessaoCampanha(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+    );
+  }
+
   @Patch(':sessaoId/cena')
   async atualizarCenaSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,

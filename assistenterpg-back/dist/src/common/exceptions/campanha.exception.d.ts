@@ -45,6 +45,9 @@ export declare class CampanhaPersonagemLimiteUsuarioException extends BusinessEx
 export declare class CampanhaPersonagemEdicaoNegadaException extends BusinessException {
     constructor(campanhaId: number, personagemCampanhaId: number, usuarioId: number);
 }
+export declare class CampanhaPersonagemDesassociacaoNegadaException extends BusinessException {
+    constructor(campanhaId: number, personagemCampanhaId: number, sessaoId?: number);
+}
 export declare class CampanhaModificadorNaoEncontradoException extends BaseException {
     constructor(modificadorId: number, personagemCampanhaId: number);
 }

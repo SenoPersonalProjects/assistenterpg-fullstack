@@ -192,6 +192,10 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - jogadores/observadores recebem apenas personagens proprios ainda nao vinculados na campanha.
     - mestres recebem personagens dos participantes (dono + membros), excluindo os ja vinculados.
   - associacao de personagem-base (`POST /campanhas/:id/personagens`) exige acesso a campanha.
+  - desassociacao de personagem de campanha (`DELETE /campanhas/:id/personagens/:personagemCampanhaId`):
+    - mestre pode desassociar qualquer ficha.
+    - jogador/observador pode desassociar apenas ficha propria.
+    - bloqueado quando a ficha ja participou de sessao (`CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA`).
   - regra de limite:
     - jogadores/observadores: 1 personagem por usuario em cada campanha.
     - mestres (dono ou membro `MESTRE`): sem limite de quantidade de personagens na campanha.
@@ -206,6 +210,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - sessoes de campanha:
   - apenas mestre (dono ou membro `MESTRE`) pode:
     - iniciar sessao
+    - encerrar sessao
     - trocar cena
     - avancar turno
     - adicionar/editar/remover aliados/ameacas da cena

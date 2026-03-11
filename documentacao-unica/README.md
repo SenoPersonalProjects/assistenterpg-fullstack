@@ -451,6 +451,10 @@ Detalhamento:
   - associacao de personagem-base:
     - jogadores e observadores seguem limite de 1 personagem por usuario na campanha.
     - mestres (dono ou membro com papel `MESTRE`) podem associar multiplos personagens.
+  - desassociacao de personagem-base:
+    - `DELETE /campanhas/:id/personagens/:personagemCampanhaId`
+    - mestre pode desassociar qualquer ficha; jogador/observador desassocia apenas a propria.
+    - bloqueia desassociacao quando a ficha ja participou de sessao (`CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA`).
   - mestres (dono ou membro com papel `MESTRE`) podem editar qualquer ficha da campanha.
   - jogadores/observadores editam apenas a propria ficha da campanha.
   - modificadores alteram apenas `PersonagemCampanha` (nao alteram `PersonagemBase`).
@@ -458,6 +462,7 @@ Detalhamento:
   - historico de alteracoes e persistido em `PersonagemCampanhaHistorico`.
 - sessoes de campanha:
   - apenas mestre pode iniciar sessao, atualizar cena e avancar turno.
+  - apenas mestre pode encerrar sessao (`POST /campanhas/:id/sessoes/:sessaoId/encerrar`).
   - dono e membros podem entrar no lobby e usar chat.
   - `LIVRE` nao usa contagem de rodada/turno.
   - em `LIVRE`, `turnoAtual`, `rodadaAtual` e `indiceTurnoAtual` retornam `null` no detalhe.
@@ -473,6 +478,7 @@ Detalhamento:
   - `CAMPANHA_PERSONAGEM_ASSOCIACAO_NEGADA` (422)
   - `CAMPANHA_PERSONAGEM_LIMITE_USUARIO` (422)
   - `CAMPANHA_PERSONAGEM_EDICAO_NEGADA` (422)
+  - `CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA` (422)
   - `PERSONAGEM_CAMPANHA_NOT_FOUND` (404)
   - `CAMPANHA_MODIFICADOR_NOT_FOUND` (404)
   - `CAMPANHA_MODIFICADOR_JA_DESFEITO` (422)

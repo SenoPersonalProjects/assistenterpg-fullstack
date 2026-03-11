@@ -17,7 +17,9 @@ import {
   apiAvancarTurnoSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
   apiCriarSessaoCampanha,
+  apiDesassociarPersonagemCampanha,
   apiDeleteCampanha,
+  apiEncerrarSessaoCampanha,
   apiGetCampanhaById,
   apiGetSessaoCampanha,
   apiInvalidateCampanhaDetalheCache,
@@ -173,6 +175,22 @@ describe('campanhas api cache and dedupe', () => {
     expect(personagem).toEqual({ id: 9, personagemBaseId: 42 });
   });
 
+  it('unlinks campaign character association', async () => {
+    mockedApiClient.delete.mockResolvedValueOnce({
+      data: { id: 9, campanhaId: 12, personagemBaseId: 42, message: 'ok' },
+    });
+
+    const resposta = await apiDesassociarPersonagemCampanha(12, 9);
+
+    expect(mockedApiClient.delete).toHaveBeenCalledWith('/campanhas/12/personagens/9');
+    expect(resposta).toEqual({
+      id: 9,
+      campanhaId: 12,
+      personagemBaseId: 42,
+      message: 'ok',
+    });
+  });
+
   it('lists campaign sessions', async () => {
     mockedApiClient.get.mockResolvedValueOnce({
       data: [{ id: 1, titulo: 'Sessao 1' }],
@@ -195,6 +213,19 @@ describe('campanhas api cache and dedupe', () => {
       titulo: 'Sessao teste',
     });
     expect(sessao).toEqual({ id: 13, titulo: 'Sessao teste' });
+  });
+
+  it('closes campaign session', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 13, status: 'ENCERRADA' },
+    });
+
+    const sessao = await apiEncerrarSessaoCampanha(44, 13);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/encerrar',
+    );
+    expect(sessao).toEqual({ id: 13, status: 'ENCERRADA' });
   });
 
   it('gets campaign session details', async () => {

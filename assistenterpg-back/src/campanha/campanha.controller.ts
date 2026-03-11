@@ -113,6 +113,19 @@ export class CampanhaController {
     );
   }
 
+  @Delete(':id/personagens/:personagemCampanhaId')
+  async desassociarPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.desassociarPersonagemCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
   @Patch(':id/personagens/:personagemCampanhaId/recursos')
   async atualizarRecursosPersonagemCampanha(
     @Param('id', ParseIntPipe) id: number,

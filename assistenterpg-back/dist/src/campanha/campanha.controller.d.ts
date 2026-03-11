@@ -239,6 +239,16 @@ export declare class CampanhaController {
             criadoPorId: number;
         }[];
     }>;
+    desassociarPersonagemCampanha(id: number, personagemCampanhaId: number, req: {
+        user: {
+            id: number;
+        };
+    }): Promise<{
+        id: number;
+        campanhaId: number;
+        personagemBaseId: number;
+        message: string;
+    }>;
     atualizarRecursosPersonagemCampanha(id: number, personagemCampanhaId: number, req: {
         user: {
             id: number;

@@ -12,6 +12,7 @@ describe('SessaoController', () => {
     listarChatSessao: jest.fn(),
     enviarMensagemChatSessao: jest.fn(),
     avancarTurnoSessao: jest.fn(),
+    encerrarSessaoCampanha: jest.fn(),
     atualizarCenaSessao: jest.fn(),
     adicionarNpcSessao: jest.fn(),
     atualizarNpcSessao: jest.fn(),
@@ -63,6 +64,18 @@ describe('SessaoController', () => {
       12,
       3,
       44,
+    );
+  });
+
+  it('deve encaminhar encerramento de sessao para o service', async () => {
+    sessaoServiceMock.encerrarSessaoCampanha.mockResolvedValue({ id: 12 });
+
+    await controller.encerrarSessaoCampanha(7, 12, { user: { id: 3 } });
+
+    expect(sessaoServiceMock.encerrarSessaoCampanha).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
     );
   });
 });

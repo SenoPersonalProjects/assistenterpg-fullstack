@@ -146,6 +146,60 @@ export class SessaoService {
     return this.buscarDetalheSessao(campanhaId, sessaoCriada.id, usuarioId);
   }
 
+  async encerrarSessaoCampanha(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'encerrar sessao');
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+          status: true,
+          cenas: {
+            select: { id: true },
+            orderBy: { id: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      if (sessao.status === 'ENCERRADA') {
+        return;
+      }
+
+      await tx.sessao.update({
+        where: { id: sessaoId },
+        data: {
+          status: 'ENCERRADA',
+          encerradoEm: new Date(),
+        },
+      });
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: sessao.cenas[0]?.id ?? null,
+          tipoEvento: 'SESSAO_ENCERRADA',
+          dados: {
+            encerradoPorId: usuarioId,
+          },
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
   async buscarDetalheSessao(
     campanhaId: number,
     sessaoId: number,

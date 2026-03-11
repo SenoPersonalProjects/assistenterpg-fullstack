@@ -206,6 +206,12 @@ export declare class CampanhaService {
             criadoPorId: number;
         }[];
     }>;
+    desassociarPersonagemCampanha(campanhaId: number, personagemCampanhaId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        personagemBaseId: number;
+        message: string;
+    }>;
     atualizarRecursosPersonagemCampanha(campanhaId: number, personagemCampanhaId: number, usuarioId: number, dto: AtualizarRecursosPersonagemCampanhaDto): Promise<{
         id: number;
         campanhaId: number;

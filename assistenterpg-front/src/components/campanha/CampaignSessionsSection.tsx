@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  apiEncerrarSessaoCampanha,
   apiCriarSessaoCampanha,
   apiListarSessoesCampanha,
   extrairMensagemErro,
@@ -58,6 +59,7 @@ export function CampaignSessionsSection({
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [criando, setCriando] = useState(false);
+  const [encerrandoSessaoId, setEncerrandoSessaoId] = useState<number | null>(null);
   const [tituloNovaSessao, setTituloNovaSessao] = useState('');
 
   const carregarSessoes = useCallback(async () => {
@@ -92,6 +94,19 @@ export function CampaignSessionsSection({
       setErro(extrairMensagemErro(error));
     } finally {
       setCriando(false);
+    }
+  }
+
+  async function handleEncerrarSessao(sessaoId: number) {
+    setEncerrandoSessaoId(sessaoId);
+    setErro(null);
+    try {
+      await apiEncerrarSessaoCampanha(campanhaId, sessaoId);
+      await carregarSessoes();
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setEncerrandoSessaoId(null);
     }
   }
 
@@ -204,6 +219,18 @@ export function CampaignSessionsSection({
               >
                 Entrar no lobby
               </Button>
+              {usuarioEhMestre && sessao.status !== 'ENCERRADA' ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void handleEncerrarSessao(sessao.id)}
+                  disabled={encerrandoSessaoId === sessao.id}
+                >
+                  {encerrandoSessaoId === sessao.id
+                    ? 'Encerrando...'
+                    : 'Encerrar sessao'}
+                </Button>
+              ) : null}
             </Card>
           ))}
         </div>

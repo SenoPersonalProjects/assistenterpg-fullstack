@@ -9,6 +9,7 @@ import {
   apiAtualizarNpcSessaoCampanha,
   apiAtualizarRecursosPersonagemCampanha,
   apiAvancarTurnoSessaoCampanha,
+  apiEncerrarSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
   apiGetSessaoCampanha,
   apiGetMeusNpcsAmeacas,
@@ -116,6 +117,7 @@ export default function SessaoCampanhaPage() {
   const [enviandoMensagem, setEnviandoMensagem] = useState(false);
   const [atualizandoCena, setAtualizandoCena] = useState(false);
   const [avancandoTurno, setAvancandoTurno] = useState(false);
+  const [encerrandoSessao, setEncerrandoSessao] = useState(false);
   const [salvandoCardId, setSalvandoCardId] = useState<number | null>(null);
   const [adicionandoNpc, setAdicionandoNpc] = useState(false);
   const [salvandoNpcId, setSalvandoNpcId] = useState<number | null>(null);
@@ -269,6 +271,7 @@ export default function SessaoCampanhaPage() {
   }, [campanhaId, idsValidos, sessaoId, sincronizarEstadosDerivados, usuario]);
 
   const podeControlarSessao = Boolean(detalhe?.permissoes.ehMestre);
+  const sessaoEncerrada = detalhe?.status === 'ENCERRADA';
   const cards = detalhe?.cards ?? [];
   const npcs = detalhe?.npcs ?? [];
 
@@ -309,6 +312,22 @@ export default function SessaoCampanhaPage() {
       setErro(extrairMensagemErro(error));
     } finally {
       setAvancandoTurno(false);
+    }
+  }
+
+  async function handleEncerrarSessao() {
+    if (!detalhe || detalhe.status === 'ENCERRADA') return;
+
+    setEncerrandoSessao(true);
+    setErro(null);
+    try {
+      const atualizado = await apiEncerrarSessaoCampanha(campanhaId, sessaoId);
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setEncerrandoSessao(false);
     }
   }
 
@@ -469,6 +488,12 @@ export default function SessaoCampanhaPage() {
             <p className="text-sm text-app-muted">
               Sessao iniciada em {formatarDataHora(detalhe.iniciadoEm)}
             </p>
+            {sessaoEncerrada ? (
+              <p className="text-xs text-app-muted">
+                Sessao encerrada em{' '}
+                {detalhe.encerradoEm ? formatarDataHora(detalhe.encerradoEm) : '-'}
+              </p>
+            ) : null}
           </div>
           <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>
             <Icon name="back" className="w-4 h-4 mr-2" />
@@ -598,7 +623,10 @@ export default function SessaoCampanhaPage() {
                             onClick={() =>
                               void handleSalvarCard(card.personagemCampanhaId)
                             }
-                            disabled={salvandoCardId === card.personagemCampanhaId}
+                            disabled={
+                              sessaoEncerrada ||
+                              salvandoCardId === card.personagemCampanhaId
+                            }
                           >
                             {salvandoCardId === card.personagemCampanhaId
                               ? 'Salvando...'
@@ -674,6 +702,7 @@ export default function SessaoCampanhaPage() {
                   onClick={() => void handleAdicionarNpcNaCena()}
                   disabled={
                     adicionandoNpc ||
+                    sessaoEncerrada ||
                     npcsDisponiveis.length === 0 ||
                     !npcSelecionadoId
                   }
@@ -855,7 +884,9 @@ export default function SessaoCampanhaPage() {
                           <Button
                             size="sm"
                             onClick={() => void handleSalvarNpc(npc)}
-                            disabled={salvandoNpcId === npc.npcSessaoId}
+                            disabled={
+                              sessaoEncerrada || salvandoNpcId === npc.npcSessaoId
+                            }
                           >
                             {salvandoNpcId === npc.npcSessaoId
                               ? 'Salvando...'
@@ -865,7 +896,9 @@ export default function SessaoCampanhaPage() {
                             variant="secondary"
                             size="sm"
                             onClick={() => void handleRemoverNpc(npc.npcSessaoId)}
-                            disabled={removendoNpcId === npc.npcSessaoId}
+                            disabled={
+                              sessaoEncerrada || removendoNpcId === npc.npcSessaoId
+                            }
                           >
                             {removendoNpcId === npc.npcSessaoId
                               ? 'Removendo...'
@@ -968,26 +1001,42 @@ export default function SessaoCampanhaPage() {
                     setCenaTipo(event.target.value as TipoCenaSessaoCampanha)
                   }
                   options={OPCOES_CENA}
+                  disabled={sessaoEncerrada}
                 />
                 <Input
                   label="Nome da cena (opcional)"
                   value={cenaNome}
                   onChange={(event) => setCenaNome(event.target.value)}
                   maxLength={120}
+                  disabled={sessaoEncerrada}
                 />
                 <div className="flex items-center gap-2">
-                  <Button onClick={() => void handleAtualizarCena()} disabled={atualizandoCena}>
+                  <Button
+                    onClick={() => void handleAtualizarCena()}
+                    disabled={atualizandoCena || sessaoEncerrada}
+                  >
                     {atualizandoCena ? 'Atualizando...' : 'Atualizar cena'}
                   </Button>
                   {detalhe.controleTurnosAtivo ? (
                     <Button
                       variant="secondary"
                       onClick={() => void handleAvancarTurno()}
-                      disabled={avancandoTurno}
+                      disabled={avancandoTurno || sessaoEncerrada}
                     >
                       {avancandoTurno ? 'Avancando...' : 'Avancar turno'}
                     </Button>
                   ) : null}
+                  <Button
+                    variant="secondary"
+                    onClick={() => void handleEncerrarSessao()}
+                    disabled={encerrandoSessao || sessaoEncerrada}
+                  >
+                    {encerrandoSessao
+                      ? 'Encerrando...'
+                      : sessaoEncerrada
+                        ? 'Sessao encerrada'
+                        : 'Encerrar sessao'}
+                  </Button>
                 </div>
               </Card>
             ) : (
@@ -1034,6 +1083,7 @@ export default function SessaoCampanhaPage() {
                     value={mensagem}
                     onChange={(event) => setMensagem(event.target.value)}
                     maxLength={1000}
+                    disabled={sessaoEncerrada}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' && !event.shiftKey) {
                         event.preventDefault();
@@ -1044,7 +1094,7 @@ export default function SessaoCampanhaPage() {
                 </div>
                 <Button
                   onClick={() => void handleEnviarMensagem()}
-                  disabled={enviandoMensagem || !mensagem.trim()}
+                  disabled={sessaoEncerrada || enviandoMensagem || !mensagem.trim()}
                 >
                   {enviandoMensagem ? 'Enviando...' : 'Enviar'}
                 </Button>

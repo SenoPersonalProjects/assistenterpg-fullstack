@@ -503,6 +503,48 @@ let CampanhaService = class CampanhaService {
         }
         return this.mapearPersonagemCampanhaResposta(personagemCampanha);
     }
+    async desassociarPersonagemCampanha(campanhaId, personagemCampanhaId, usuarioId) {
+        const acesso = await this.garantirAcesso(campanhaId, usuarioId);
+        const personagem = await this.prisma.personagemCampanha.findUnique({
+            where: { id: personagemCampanhaId },
+            select: {
+                id: true,
+                campanhaId: true,
+                personagemBaseId: true,
+                donoId: true,
+            },
+        });
+        if (!personagem || personagem.campanhaId !== campanhaId) {
+            throw new campanha_exception_1.PersonagemCampanhaNaoEncontradoException(personagemCampanhaId, campanhaId);
+        }
+        const podeRemover = acesso.ehMestre || personagem.donoId === usuarioId;
+        if (!podeRemover) {
+            throw new campanha_exception_1.CampanhaPersonagemEdicaoNegadaException(campanhaId, personagemCampanhaId, usuarioId);
+        }
+        const participacaoEmSessao = await this.prisma.personagemSessao.findFirst({
+            where: {
+                personagemCampanhaId,
+            },
+            select: {
+                id: true,
+                sessaoId: true,
+            },
+        });
+        if (participacaoEmSessao) {
+            throw new campanha_exception_1.CampanhaPersonagemDesassociacaoNegadaException(campanhaId, personagemCampanhaId, participacaoEmSessao.sessaoId);
+        }
+        await this.prisma.personagemCampanha.delete({
+            where: {
+                id: personagemCampanhaId,
+            },
+        });
+        return {
+            id: personagemCampanhaId,
+            campanhaId,
+            personagemBaseId: personagem.personagemBaseId,
+            message: 'Personagem desassociado com sucesso',
+        };
+    }
     async atualizarRecursosPersonagemCampanha(campanhaId, personagemCampanhaId, usuarioId, dto) {
         const contexto = await this.obterPersonagemCampanhaComPermissao(campanhaId, personagemCampanhaId, usuarioId, true);
         const antes = {

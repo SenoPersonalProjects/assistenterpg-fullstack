@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NpcSessaoNaoEncontradoException = exports.SessaoTurnoIndisponivelEmCenaLivreException = exports.SessaoCampanhaNaoEncontradaException = exports.CampanhaModificadorJaDesfeitoException = exports.CampanhaModificadorNaoEncontradoException = exports.CampanhaPersonagemEdicaoNegadaException = exports.CampanhaPersonagemLimiteUsuarioException = exports.CampanhaPersonagemAssociacaoNegadaException = exports.PersonagemCampanhaNaoEncontradoException = exports.ConviteCodigoIndisponivelException = exports.ConvitePendenteDuplicadoException = exports.ConviteNaoPertenceUsuarioException = exports.ConviteInvalidoOuUtilizadoException = exports.ConviteNaoEncontradoException = exports.UsuarioJaMembroCampanhaException = exports.UsuarioNaoEncontradoException = exports.CampanhaApenasMestreException = exports.CampanhaApenasDonoException = exports.CampanhaAcessoNegadoException = exports.CampanhaNaoEncontradaException = void 0;
+exports.NpcSessaoNaoEncontradoException = exports.SessaoTurnoIndisponivelEmCenaLivreException = exports.SessaoCampanhaNaoEncontradaException = exports.CampanhaModificadorJaDesfeitoException = exports.CampanhaModificadorNaoEncontradoException = exports.CampanhaPersonagemDesassociacaoNegadaException = exports.CampanhaPersonagemEdicaoNegadaException = exports.CampanhaPersonagemLimiteUsuarioException = exports.CampanhaPersonagemAssociacaoNegadaException = exports.PersonagemCampanhaNaoEncontradoException = exports.ConviteCodigoIndisponivelException = exports.ConvitePendenteDuplicadoException = exports.ConviteNaoPertenceUsuarioException = exports.ConviteInvalidoOuUtilizadoException = exports.ConviteNaoEncontradoException = exports.UsuarioJaMembroCampanhaException = exports.UsuarioNaoEncontradoException = exports.CampanhaApenasMestreException = exports.CampanhaApenasDonoException = exports.CampanhaAcessoNegadoException = exports.CampanhaNaoEncontradaException = void 0;
 const common_1 = require("@nestjs/common");
 const base_exception_1 = require("./base.exception");
 const business_exception_1 = require("./business.exception");
@@ -129,6 +129,16 @@ class CampanhaPersonagemEdicaoNegadaException extends business_exception_1.Busin
     }
 }
 exports.CampanhaPersonagemEdicaoNegadaException = CampanhaPersonagemEdicaoNegadaException;
+class CampanhaPersonagemDesassociacaoNegadaException extends business_exception_1.BusinessException {
+    constructor(campanhaId, personagemCampanhaId, sessaoId) {
+        super('Nao e possivel desassociar personagem que ja participou de sessao', 'CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA', {
+            campanhaId,
+            personagemCampanhaId,
+            sessaoId,
+        });
+    }
+}
+exports.CampanhaPersonagemDesassociacaoNegadaException = CampanhaPersonagemDesassociacaoNegadaException;
 class CampanhaModificadorNaoEncontradoException extends base_exception_1.BaseException {
     constructor(modificadorId, personagemCampanhaId) {
         super('Modificador da ficha de campanha nao encontrado', common_1.HttpStatus.NOT_FOUND, 'CAMPANHA_MODIFICADOR_NOT_FOUND', {

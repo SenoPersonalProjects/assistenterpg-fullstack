@@ -4,6 +4,7 @@ import { CampanhaService } from './campanha.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaApenasDonoException,
+  CampanhaPersonagemDesassociacaoNegadaException,
   CampanhaPersonagemAssociacaoNegadaException,
   CampanhaPersonagemLimiteUsuarioException,
   ConviteCodigoIndisponivelException,
@@ -42,6 +43,10 @@ type PrismaMock = {
     findUnique: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
+  };
+  personagemSessao: {
+    findFirst: jest.Mock;
   };
   personagemCampanhaResistencia: {
     createMany: jest.Mock;
@@ -95,6 +100,10 @@ describe('CampanhaService', () => {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        delete: jest.fn(),
+      },
+      personagemSessao: {
+        findFirst: jest.fn(),
       },
       personagemCampanhaResistencia: {
         createMany: jest.fn(),
@@ -576,6 +585,58 @@ describe('CampanhaService', () => {
     await expect(
       service.vincularPersonagemBase(7, 3, 77),
     ).rejects.toBeInstanceOf(CampanhaPersonagemAssociacaoNegadaException);
+  });
+
+  it('deve desassociar personagem de campanha quando usuario tem permissao', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemCampanha.findUnique.mockResolvedValue({
+      id: 901,
+      campanhaId: 7,
+      personagemBaseId: 42,
+      donoId: 3,
+    });
+    prisma.personagemSessao.findFirst.mockResolvedValue(null);
+    prisma.personagemCampanha.delete.mockResolvedValue({ id: 901 });
+
+    const resposta = await service.desassociarPersonagemCampanha(7, 901, 3);
+
+    expect(prisma.personagemCampanha.delete).toHaveBeenCalledWith({
+      where: { id: 901 },
+    });
+    expect(resposta).toEqual({
+      id: 901,
+      campanhaId: 7,
+      personagemBaseId: 42,
+      message: 'Personagem desassociado com sucesso',
+    });
+  });
+
+  it('deve bloquear desassociacao quando personagem ja participou de sessao', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemCampanha.findUnique.mockResolvedValue({
+      id: 901,
+      campanhaId: 7,
+      personagemBaseId: 42,
+      donoId: 3,
+    });
+    prisma.personagemSessao.findFirst.mockResolvedValue({
+      id: 15,
+      sessaoId: 33,
+    });
+
+    await expect(
+      service.desassociarPersonagemCampanha(7, 901, 3),
+    ).rejects.toBeInstanceOf(CampanhaPersonagemDesassociacaoNegadaException);
+
+    expect(prisma.personagemCampanha.delete).not.toHaveBeenCalled();
   });
 
   it('deve manter limite de 1 personagem por campanha para jogador', async () => {

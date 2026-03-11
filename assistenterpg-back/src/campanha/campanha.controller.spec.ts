@@ -16,6 +16,7 @@ describe('CampanhaController', () => {
     listarPersonagensCampanha: jest.fn(),
     listarPersonagensBaseDisponiveisParaAssociacao: jest.fn(),
     vincularPersonagemBase: jest.fn(),
+    desassociarPersonagemCampanha: jest.fn(),
     atualizarRecursosPersonagemCampanha: jest.fn(),
     listarModificadoresPersonagemCampanha: jest.fn(),
     aplicarModificadorPersonagemCampanha: jest.fn(),
@@ -121,6 +122,18 @@ describe('CampanhaController', () => {
     expect(
       campanhaServiceMock.listarPersonagensBaseDisponiveisParaAssociacao,
     ).toHaveBeenCalledWith(7, 3);
+  });
+
+  it('deve encaminhar desassociacao de personagem da campanha para o service', async () => {
+    campanhaServiceMock.desassociarPersonagemCampanha.mockResolvedValue({ id: 55 });
+
+    await controller.desassociarPersonagemCampanha(7, 55, { user: { id: 3 } });
+
+    expect(campanhaServiceMock.desassociarPersonagemCampanha).toHaveBeenCalledWith(
+      7,
+      55,
+      3,
+    );
   });
 
   it('deve encaminhar aplicacao de modificador para o service', async () => {

@@ -56,6 +56,9 @@ let CampanhaController = class CampanhaController {
     async vincularPersonagemCampanha(id, req, dto) {
         return this.campanhaService.vincularPersonagemBase(id, req.user.id, dto.personagemBaseId);
     }
+    async desassociarPersonagemCampanha(id, personagemCampanhaId, req) {
+        return this.campanhaService.desassociarPersonagemCampanha(id, personagemCampanhaId, req.user.id);
+    }
     async atualizarRecursosPersonagemCampanha(id, personagemCampanhaId, req, dto) {
         return this.campanhaService.atualizarRecursosPersonagemCampanha(id, personagemCampanhaId, req.user.id, dto);
     }
@@ -159,6 +162,15 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object, vincular_personagem_campanha_dto_1.VincularPersonagemCampanhaDto]),
     __metadata("design:returntype", Promise)
 ], CampanhaController.prototype, "vincularPersonagemCampanha", null);
+__decorate([
+    (0, common_1.Delete)(':id/personagens/:personagemCampanhaId'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Param)('personagemCampanhaId', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, Object]),
+    __metadata("design:returntype", Promise)
+], CampanhaController.prototype, "desassociarPersonagemCampanha", null);
 __decorate([
     (0, common_1.Patch)(':id/personagens/:personagemCampanhaId/recursos'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

@@ -19,6 +19,7 @@ import {
   CampanhaPersonagemAssociacaoNegadaException,
   CampanhaPersonagemLimiteUsuarioException,
   CampanhaPersonagemEdicaoNegadaException,
+  CampanhaPersonagemDesassociacaoNegadaException,
   CampanhaModificadorNaoEncontradoException,
   CampanhaModificadorJaDesfeitoException,
 } from 'src/common/exceptions/campanha.exception';
@@ -654,6 +655,71 @@ export class CampanhaService {
     }
 
     return this.mapearPersonagemCampanhaResposta(personagemCampanha);
+  }
+
+  async desassociarPersonagemCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    const acesso = await this.garantirAcesso(campanhaId, usuarioId);
+
+    const personagem = await this.prisma.personagemCampanha.findUnique({
+      where: { id: personagemCampanhaId },
+      select: {
+        id: true,
+        campanhaId: true,
+        personagemBaseId: true,
+        donoId: true,
+      },
+    });
+
+    if (!personagem || personagem.campanhaId !== campanhaId) {
+      throw new PersonagemCampanhaNaoEncontradoException(
+        personagemCampanhaId,
+        campanhaId,
+      );
+    }
+
+    const podeRemover = acesso.ehMestre || personagem.donoId === usuarioId;
+    if (!podeRemover) {
+      throw new CampanhaPersonagemEdicaoNegadaException(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+      );
+    }
+
+    const participacaoEmSessao = await this.prisma.personagemSessao.findFirst({
+      where: {
+        personagemCampanhaId,
+      },
+      select: {
+        id: true,
+        sessaoId: true,
+      },
+    });
+
+    if (participacaoEmSessao) {
+      throw new CampanhaPersonagemDesassociacaoNegadaException(
+        campanhaId,
+        personagemCampanhaId,
+        participacaoEmSessao.sessaoId,
+      );
+    }
+
+    await this.prisma.personagemCampanha.delete({
+      where: {
+        id: personagemCampanhaId,
+      },
+    });
+
+    return {
+      id: personagemCampanhaId,
+      campanhaId,
+      personagemBaseId: personagem.personagemBaseId,
+      message: 'Personagem desassociado com sucesso',
+    };
   }
 
   async atualizarRecursosPersonagemCampanha(
