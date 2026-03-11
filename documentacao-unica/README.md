@@ -488,6 +488,8 @@ Detalhamento:
   - cards da sessao respeitam permissao:
     - mestre ve/edita todos.
     - jogador edita apenas o proprio card e ve os demais em modo resumido.
+  - no lobby, o botao `Ajustes narrativos` do card abre o mesmo modal de edicao da ficha de campanha, ja contextualizado com `sessaoId/cenaId` atuais.
+  - no modal contextualizado, o historico possui filtro rapido: `Todos`, `Sessao atual` e `Cena atual`.
   - Aliados/Ameacas em sessao:
     - apenas mestre adiciona/edita/remove na cena atual.
     - cada instancia fica vinculada a uma `cenaId`.

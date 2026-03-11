@@ -246,6 +246,8 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - visibilidade de cards:
     - mestre ve/edita todos os cards.
     - jogador ve card completo apenas do proprio personagem e cards resumidos dos demais.
+  - card editavel da sessao oferece `Ajustes narrativos`, reaproveitando o modal de ficha de campanha com contexto de `sessaoId/cenaId`.
+  - no modal contextualizado, o historico permite filtro rapido por `Todos`, `Sessao atual` e `Cena atual`.
   - aliados/ameacas em sessao:
     - cada instancia fica vinculada a uma `cenaId` em `NpcAmeacaSessao`.
     - a cena atual retorna lista `npcs` junto do detalhe da sessao.

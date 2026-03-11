@@ -34,6 +34,8 @@ type Props = {
   };
 };
 
+type FiltroHistoricoContexto = 'TODOS' | 'SESSAO_ATUAL' | 'CENA_ATUAL';
+
 const CAMPOS_MODIFICADOR_OPTIONS: Array<{
   value: CampoModificadorPersonagemCampanha;
   label: string;
@@ -64,6 +66,40 @@ function formatarDataHora(valor: string): string {
   return data.toLocaleString('pt-BR');
 }
 
+function obterFiltroHistoricoPadrao(
+  contextoSessao?: { sessaoId: number; cenaId?: number | null },
+): FiltroHistoricoContexto {
+  if (!contextoSessao) return 'TODOS';
+  if (typeof contextoSessao.cenaId === 'number') return 'CENA_ATUAL';
+  return 'SESSAO_ATUAL';
+}
+
+function normalizarIdContexto(valor: unknown): number | null {
+  if (typeof valor === 'number' && Number.isInteger(valor) && valor > 0) {
+    return valor;
+  }
+  if (typeof valor === 'string' && valor.trim() !== '') {
+    const numero = Number(valor);
+    if (Number.isInteger(numero) && numero > 0) return numero;
+  }
+  return null;
+}
+
+function extrairContextoHistorico(dados: unknown): {
+  sessaoId: number | null;
+  cenaId: number | null;
+} {
+  if (!dados || typeof dados !== 'object' || Array.isArray(dados)) {
+    return { sessaoId: null, cenaId: null };
+  }
+
+  const registro = dados as Record<string, unknown>;
+  return {
+    sessaoId: normalizarIdContexto(registro.sessaoId),
+    cenaId: normalizarIdContexto(registro.cenaId),
+  };
+}
+
 export function CampaignCharacterEditorModal({
   isOpen,
   campanhaId,
@@ -87,6 +123,8 @@ export function CampaignCharacterEditorModal({
     ModificadorPersonagemCampanha[]
   >([]);
   const [historico, setHistorico] = useState<HistoricoPersonagemCampanha[]>([]);
+  const [filtroHistorico, setFiltroHistorico] =
+    useState<FiltroHistoricoContexto>('TODOS');
   const [loadingDados, setLoadingDados] = useState(false);
   const [savingRecursos, setSavingRecursos] = useState(false);
   const [savingModificador, setSavingModificador] = useState(false);
@@ -116,6 +154,53 @@ export function CampaignCharacterEditorModal({
     }
     return `Sessao #${contextoSessao.sessaoId}`;
   }, [contextoSessao]);
+
+  const opcoesFiltroHistorico = useMemo(() => {
+    const opcoes: Array<{ value: FiltroHistoricoContexto; label: string }> = [
+      { value: 'TODOS', label: 'Todos os eventos' },
+    ];
+
+    if (contextoSessao) {
+      opcoes.push({
+        value: 'SESSAO_ATUAL',
+        label: `Sessao atual (#${contextoSessao.sessaoId})`,
+      });
+    }
+
+    if (contextoSessao && typeof contextoSessao.cenaId === 'number') {
+      opcoes.push({
+        value: 'CENA_ATUAL',
+        label: `Cena atual (#${contextoSessao.cenaId})`,
+      });
+    }
+
+    return opcoes;
+  }, [contextoSessao]);
+
+  const historicoFiltrado = useMemo(() => {
+    if (!contextoSessao || filtroHistorico === 'TODOS') {
+      return historico;
+    }
+
+    if (filtroHistorico === 'SESSAO_ATUAL') {
+      return historico.filter((evento) => {
+        const contextoEvento = extrairContextoHistorico(evento.dados);
+        return contextoEvento.sessaoId === contextoSessao.sessaoId;
+      });
+    }
+
+    if (typeof contextoSessao.cenaId !== 'number') {
+      return [];
+    }
+
+    return historico.filter((evento) => {
+      const contextoEvento = extrairContextoHistorico(evento.dados);
+      return (
+        contextoEvento.sessaoId === contextoSessao.sessaoId &&
+        contextoEvento.cenaId === contextoSessao.cenaId
+      );
+    });
+  }, [contextoSessao, filtroHistorico, historico]);
 
   const carregarDadosRelacionados = useCallback(async () => {
     if (!personagemId) return;
@@ -152,6 +237,11 @@ export function CampaignCharacterEditorModal({
     setSucesso(null);
     void carregarDadosRelacionados();
   }, [isOpen, personagemId, campanhaId, personagem, carregarDadosRelacionados]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setFiltroHistorico(obterFiltroHistoricoPadrao(contextoSessao));
+  }, [isOpen, contextoSessao?.sessaoId, contextoSessao?.cenaId]);
 
   async function handleSalvarRecursos() {
     if (!personagemId || !personagem) return;
@@ -448,30 +538,68 @@ export function CampaignCharacterEditorModal({
           </section>
 
           <section className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-app-fg">Historico</h3>
-            {historico.length === 0 ? (
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-app-fg">Historico</h3>
+              {contextoSessao ? (
+                <div className="min-w-[220px]">
+                  <Select
+                    aria-label="Filtro de contexto do historico"
+                    value={filtroHistorico}
+                    onChange={(event) =>
+                      setFiltroHistorico(
+                        event.target.value as FiltroHistoricoContexto,
+                      )
+                    }
+                    options={opcoesFiltroHistorico}
+                  />
+                </div>
+              ) : null}
+            </div>
+            {historico.length > 0 ? (
+              <p className="text-xs text-app-muted">
+                Mostrando {historicoFiltrado.length} de {historico.length} evento(s).
+              </p>
+            ) : null}
+            {historicoFiltrado.length === 0 ? (
               <p className="text-sm text-app-muted">
-                Nenhum evento registrado para esta ficha ainda.
+                {historico.length === 0
+                  ? 'Nenhum evento registrado para esta ficha ainda.'
+                  : 'Nenhum evento encontrado para o filtro selecionado.'}
               </p>
             ) : (
               <ul className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {historico.map((evento) => (
-                  <li
-                    key={evento.id}
-                    className="rounded border border-app-border px-3 py-2"
-                  >
-                    <p className="text-sm text-app-fg">{evento.tipo}</p>
-                    {evento.descricao && (
-                      <p className="text-sm text-app-muted">{evento.descricao}</p>
-                    )}
-                    <p className="text-xs text-app-muted">
-                      {formatarDataHora(evento.criadoEm)}
-                      {evento.criadoPor?.apelido
-                        ? ` por ${evento.criadoPor.apelido}`
-                        : ''}
-                    </p>
-                  </li>
-                ))}
+                {historicoFiltrado.map((evento) => {
+                  const contextoEvento = extrairContextoHistorico(evento.dados);
+                  return (
+                    <li
+                      key={evento.id}
+                      className="rounded border border-app-border px-3 py-2"
+                    >
+                      <p className="text-sm text-app-fg">{evento.tipo}</p>
+                      {evento.descricao && (
+                        <p className="text-sm text-app-muted">{evento.descricao}</p>
+                      )}
+                      {(contextoEvento.sessaoId !== null ||
+                        contextoEvento.cenaId !== null) && (
+                        <p className="text-xs text-app-muted">
+                          Contexto:{' '}
+                          {contextoEvento.sessaoId !== null
+                            ? `Sessao #${contextoEvento.sessaoId}`
+                            : 'Sessao nao informada'}
+                          {contextoEvento.cenaId !== null
+                            ? ` - Cena #${contextoEvento.cenaId}`
+                            : ''}
+                        </p>
+                      )}
+                      <p className="text-xs text-app-muted">
+                        {formatarDataHora(evento.criadoEm)}
+                        {evento.criadoPor?.apelido
+                          ? ` por ${evento.criadoPor.apelido}`
+                          : ''}
+                      </p>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
