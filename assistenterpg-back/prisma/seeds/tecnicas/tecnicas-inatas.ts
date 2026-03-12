@@ -70,6 +70,42 @@ type SeedTecnicaInataComHabilidades = SeedTecnicaInata & {
   habilidades?: SeedHabilidadeTecnicaInata[];
 };
 
+const MOJIBAKE_PATTERN = /Ã.|Â.|â[\u0080-\u00BF]|�/;
+
+function scoreMojibake(value: string): number {
+  return (value.match(/Ã|Â|â|�/g) ?? []).length;
+}
+
+function corrigirMojibakeSeedTexto(
+  value: string | null | undefined,
+): string | null {
+  if (typeof value !== 'string') return value ?? null;
+  if (!MOJIBAKE_PATTERN.test(value)) return value;
+
+  const reparado = Buffer.from(value, 'latin1').toString('utf8');
+  return scoreMojibake(reparado) < scoreMojibake(value) ? reparado : value;
+}
+
+function corrigirMojibakeSeedJson(
+  value: Prisma.InputJsonValue | null | undefined,
+): Prisma.InputJsonValue | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') {
+    return corrigirMojibakeSeedTexto(value) as Prisma.InputJsonValue;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      corrigirMojibakeSeedJson(item as Prisma.InputJsonValue),
+    ) as Prisma.InputJsonValue;
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, Prisma.InputJsonValue>)
+      .map(([key, item]) => [key, corrigirMojibakeSeedJson(item)]);
+    return Object.fromEntries(entries) as Prisma.InputJsonValue;
+  }
+  return value;
+}
+
 export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   // ========================================
   // âœ… TÃ‰CNICAS HEREDITÃRIAS
@@ -1270,31 +1306,36 @@ function mapHabilidadeDataInata(
   return {
     tecnicaId,
     codigo: habilidade.codigo,
-    nome: habilidade.nome,
-    descricao: habilidade.descricao,
-    requisitos: jsonOrNull(habilidade.requisitos ?? null),
+    nome: corrigirMojibakeSeedTexto(habilidade.nome) ?? habilidade.nome,
+    descricao:
+      corrigirMojibakeSeedTexto(habilidade.descricao) ?? habilidade.descricao,
+    requisitos: jsonOrNull(corrigirMojibakeSeedJson(habilidade.requisitos)),
     execucao: habilidade.execucao,
     area: habilidade.area ?? null,
-    alcance: habilidade.alcance ?? null,
-    alvo: habilidade.alvo ?? null,
-    duracao: habilidade.duracao ?? null,
-    resistencia: habilidade.resistencia ?? null,
-    dtResistencia: habilidade.dtResistencia ?? null,
+    alcance: corrigirMojibakeSeedTexto(habilidade.alcance) ?? null,
+    alvo: corrigirMojibakeSeedTexto(habilidade.alvo) ?? null,
+    duracao: corrigirMojibakeSeedTexto(habilidade.duracao) ?? null,
+    resistencia: corrigirMojibakeSeedTexto(habilidade.resistencia) ?? null,
+    dtResistencia: corrigirMojibakeSeedTexto(habilidade.dtResistencia) ?? null,
     custoPE: habilidade.custoPE ?? 0,
     custoEA: habilidade.custoEA ?? 0,
     custoSustentacaoEA: habilidade.custoSustentacaoEA ?? null,
     custoSustentacaoPE: habilidade.custoSustentacaoPE ?? null,
-    testesExigidos: jsonOrNull(habilidade.testesExigidos ?? null),
-    efeito: habilidade.efeito,
+    testesExigidos: jsonOrNull(corrigirMojibakeSeedJson(habilidade.testesExigidos)),
+    efeito: corrigirMojibakeSeedTexto(habilidade.efeito) ?? habilidade.efeito,
     escalonaPorGrau: habilidade.escalonaPorGrau ?? false,
     grauTipoGrauCodigo: habilidade.grauTipoGrauCodigo ?? null,
     escalonamentoCustoEA: habilidade.escalonamentoCustoEA ?? 0,
     escalonamentoCustoPE: habilidade.escalonamentoCustoPE ?? 0,
     escalonamentoTipo: habilidade.escalonamentoTipo ?? 'OUTRO',
     escalonamentoEfeito: jsonOrNull(
-      habilidade.escalonamentoEfeito ?? habilidade.escalonamentoDano ?? null,
+      corrigirMojibakeSeedJson(
+        habilidade.escalonamentoEfeito ?? habilidade.escalonamentoDano ?? null,
+      ),
     ),
-    escalonamentoDano: jsonOrNull(habilidade.escalonamentoDano ?? null),
+    escalonamentoDano: jsonOrNull(
+      corrigirMojibakeSeedJson(habilidade.escalonamentoDano),
+    ),
     ordem: habilidade.ordem,
   };
 }
@@ -1305,8 +1346,8 @@ function mapVariacaoDataInata(
 ) {
   return {
     habilidadeTecnicaId,
-    nome: variacao.nome,
-    descricao: variacao.descricao,
+    nome: corrigirMojibakeSeedTexto(variacao.nome) ?? variacao.nome,
+    descricao: corrigirMojibakeSeedTexto(variacao.descricao) ?? variacao.descricao,
     substituiCustos: variacao.substituiCustos ?? false,
     custoPE: variacao.custoPE ?? null,
     custoEA: variacao.custoEA ?? null,
@@ -1314,19 +1355,23 @@ function mapVariacaoDataInata(
     custoSustentacaoPE: variacao.custoSustentacaoPE ?? null,
     execucao: variacao.execucao ?? null,
     area: variacao.area ?? null,
-    alcance: variacao.alcance ?? null,
-    alvo: variacao.alvo ?? null,
-    duracao: variacao.duracao ?? null,
-    resistencia: variacao.resistencia ?? null,
-    dtResistencia: variacao.dtResistencia ?? null,
+    alcance: corrigirMojibakeSeedTexto(variacao.alcance) ?? null,
+    alvo: corrigirMojibakeSeedTexto(variacao.alvo) ?? null,
+    duracao: corrigirMojibakeSeedTexto(variacao.duracao) ?? null,
+    resistencia: corrigirMojibakeSeedTexto(variacao.resistencia) ?? null,
+    dtResistencia: corrigirMojibakeSeedTexto(variacao.dtResistencia) ?? null,
     escalonaPorGrau: variacao.escalonaPorGrau ?? null,
     escalonamentoCustoEA: variacao.escalonamentoCustoEA ?? null,
     escalonamentoCustoPE: variacao.escalonamentoCustoPE ?? null,
     escalonamentoTipo: variacao.escalonamentoTipo ?? null,
-    escalonamentoEfeito: jsonOrNull(variacao.escalonamentoEfeito ?? null),
-    escalonamentoDano: jsonOrNull(variacao.escalonamentoDano ?? null),
-    efeitoAdicional: variacao.efeitoAdicional ?? null,
-    requisitos: jsonOrNull(variacao.requisitos ?? null),
+    escalonamentoEfeito: jsonOrNull(
+      corrigirMojibakeSeedJson(variacao.escalonamentoEfeito),
+    ),
+    escalonamentoDano: jsonOrNull(
+      corrigirMojibakeSeedJson(variacao.escalonamentoDano),
+    ),
+    efeitoAdicional: corrigirMojibakeSeedTexto(variacao.efeitoAdicional) ?? null,
+    requisitos: jsonOrNull(corrigirMojibakeSeedJson(variacao.requisitos)),
     ordem: variacao.ordem,
   };
 }
@@ -1336,7 +1381,9 @@ async function seedVariacoesDaHabilidadeInata(
   habilidadeId: number,
   variacoes: SeedVariacaoTecnicaInata[],
 ) {
-  const nomes = variacoes.map((variacao) => variacao.nome);
+  const nomes = variacoes.map(
+    (variacao) => corrigirMojibakeSeedTexto(variacao.nome) ?? variacao.nome,
+  );
   if (nomes.length > 0) {
     await prisma.variacaoHabilidade.deleteMany({
       where: {
@@ -1351,10 +1398,12 @@ async function seedVariacoesDaHabilidadeInata(
   }
 
   for (const variacao of variacoes) {
+    const nomeVariacao =
+      corrigirMojibakeSeedTexto(variacao.nome) ?? variacao.nome;
     const existente = await prisma.variacaoHabilidade.findFirst({
       where: {
         habilidadeTecnicaId: habilidadeId,
-        nome: variacao.nome,
+        nome: nomeVariacao,
       },
       select: { id: true },
     });
@@ -1417,12 +1466,14 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
     const tecnica = await prisma.tecnicaAmaldicoada.upsert({
       where: { codigo: tec.codigo },
       update: {
-        nome: tec.nome,
-        descricao: tec.descricao ?? 'TÃ©cnica AmaldiÃ§oada Inata',
+        nome: corrigirMojibakeSeedTexto(tec.nome) ?? tec.nome,
+        descricao:
+          corrigirMojibakeSeedTexto(tec.descricao) ??
+          'Tecnica Amaldicoada Inata',
         tipo: TipoTecnicaAmaldicoada.INATA,
         hereditaria: tec.hereditaria,
         linkExterno: tec.linkExterno ?? null,
-        requisitos: jsonOrNull(tec.requisitos ?? null),
+        requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
         
         // âœ… NOVO: Fonte e suplemento
         fonte: TipoFonte.SISTEMA_BASE,
@@ -1430,12 +1481,14 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
       },
       create: {
         codigo: tec.codigo,
-        nome: tec.nome,
-        descricao: tec.descricao ?? 'TÃ©cnica AmaldiÃ§oada Inata',
+        nome: corrigirMojibakeSeedTexto(tec.nome) ?? tec.nome,
+        descricao:
+          corrigirMojibakeSeedTexto(tec.descricao) ??
+          'Tecnica Amaldicoada Inata',
         tipo: TipoTecnicaAmaldicoada.INATA,
         hereditaria: tec.hereditaria,
         linkExterno: tec.linkExterno ?? null,
-        requisitos: jsonOrNull(tec.requisitos ?? null),
+        requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
         
         // âœ… NOVO: Fonte e suplemento
         fonte: TipoFonte.SISTEMA_BASE,

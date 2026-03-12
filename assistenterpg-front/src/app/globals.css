@@ -305,3 +305,92 @@ body {
 .dark .skeleton::after {
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
 }
+
+/* ========================================================================= */
+/* Sessao UI                                                                 */
+/* ========================================================================= */
+
+.session-page-shell {
+  background:
+    radial-gradient(900px 480px at 105% -8%, rgba(37, 99, 235, 0.09), transparent 64%),
+    radial-gradient(820px 420px at -10% 8%, rgba(124, 58, 237, 0.08), transparent 66%),
+    var(--bg);
+}
+
+.dark .session-page-shell {
+  background:
+    radial-gradient(900px 480px at 105% -8%, rgba(59, 130, 246, 0.14), transparent 64%),
+    radial-gradient(820px 420px at -10% 8%, rgba(167, 139, 250, 0.12), transparent 66%),
+    var(--bg);
+}
+
+.session-hero {
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  padding: 1rem;
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.85), rgba(243, 244, 246, 0.65));
+  box-shadow: 0 20px 48px -42px rgba(15, 23, 42, 0.75);
+}
+
+.dark .session-hero {
+  background:
+    linear-gradient(140deg, rgba(21, 26, 44, 0.86), rgba(16, 22, 42, 0.68));
+  box-shadow: 0 22px 52px -44px rgba(2, 6, 23, 0.95);
+}
+
+.session-panel {
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--bg-surface), var(--bg-card));
+  box-shadow: 0 18px 44px -40px rgba(15, 23, 42, 0.72);
+}
+
+.dark .session-panel {
+  box-shadow: 0 22px 48px -42px rgba(2, 6, 23, 0.96);
+}
+
+.session-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.session-panel-title {
+  color: var(--fg);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.session-panel-subtitle {
+  margin-top: 0.2rem;
+  color: var(--fg-muted);
+  font-size: 0.74rem;
+  line-height: 1.32;
+}
+
+.session-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.session-chip {
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  background: var(--bg-surface);
+  color: var(--fg-muted);
+  font-size: 0.69rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.33rem 0.55rem;
+}
+
+.session-box {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.7rem;
+  background: var(--bg-surface);
+  padding: 0.65rem;
+}

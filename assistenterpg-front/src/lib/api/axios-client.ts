@@ -2,6 +2,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import { getToken, clearToken } from '../utils/auth';
 import type { ApiErrorBody } from '@/lib/types';
+import { corrigirMojibakeDeep } from '../utils/encoding';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -59,7 +60,10 @@ apiClient.interceptors.request.use(
 
 /** Response interceptor: trata 401 globalmente. */
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => response,
+  (response: AxiosResponse) => {
+    response.data = corrigirMojibakeDeep(response.data);
+    return response;
+  },
   (error: AxiosError<ApiErrorBody>) => {
     const hadToken = Boolean(getToken());
     const method = error.config?.method?.toUpperCase();

@@ -51,11 +51,15 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
 import { Select } from '@/components/ui/Select';
+import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
+import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
+import { corrigirMojibakeTexto } from '@/lib/utils/encoding';
 import {
   formatarCustos,
   resolverCustoExibicaoSessao as resolverCustoExibicao,
@@ -174,6 +178,11 @@ function labelPapelParticipante(papel: string): string {
   return labels[papel] ?? papel;
 }
 
+function textoSeguro(value: string | null | undefined): string {
+  if (!value) return '';
+  return corrigirMojibakeTexto(value);
+}
+
 function descreverDuracaoCondicao(
   duracaoModo: string,
   duracaoValor: number | null,
@@ -245,6 +254,7 @@ export default function SessaoCampanhaPage() {
   const [npcsDisponiveis, setNpcsDisponiveis] = useState<NpcAmeacaResumo[]>([]);
   const [npcSelecionadoId, setNpcSelecionadoId] = useState('');
   const [nomeNpcCustomizado, setNomeNpcCustomizado] = useState('');
+  const [modalAdicionarNpcAberto, setModalAdicionarNpcAberto] = useState(false);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [enviandoMensagem, setEnviandoMensagem] = useState(false);
@@ -856,12 +866,10 @@ export default function SessaoCampanhaPage() {
 
   const renderCardsSessao = () => (
     <>
-      <Card className="space-y-2">
-        <h2 className="text-sm font-semibold text-app-fg">Personagens da sessao</h2>
-        <p className="text-xs text-app-muted">
-          Jogadores editam apenas sua ficha. O mestre pode editar todas.
-        </p>
-      </Card>
+      <SessionPanel
+        title="Personagens da sessao"
+        subtitle="Jogadores editam apenas sua ficha. O mestre pode editar todas."
+      />
 
       {cards.length === 0 ? (
         <EmptyState
@@ -916,12 +924,12 @@ export default function SessaoCampanhaPage() {
             return (
               <div key={tecnica.id} className="space-y-2 rounded border border-app-border p-2">
                 <div>
-                  <p className="text-xs font-semibold text-app-fg">{tecnica.nome}</p>
+                  <p className="text-xs font-semibold text-app-fg">{textoSeguro(tecnica.nome)}</p>
                   <p className="text-[11px] text-app-muted">
-                    {tecnica.codigo} | {tecnica.tipo}
+                    {textoSeguro(tecnica.codigo)} | {textoSeguro(tecnica.tipo)}
                   </p>
                   {tecnica.descricao ? (
-                    <p className="text-[11px] text-app-muted">{tecnica.descricao}</p>
+                    <p className="text-[11px] text-app-muted">{textoSeguro(tecnica.descricao)}</p>
                   ) : null}
                 </div>
                 {habilidadesVisiveis.length === 0 ? (
@@ -964,7 +972,7 @@ export default function SessaoCampanhaPage() {
                         className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1.5"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-app-fg">{habilidade.nome}</p>
+                          <p className="text-xs font-semibold text-app-fg">{textoSeguro(habilidade.nome)}</p>
                           {qtdSustentacaoBaseAtiva > 0 ? (
                             <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
                               Sustentada ativa x{qtdSustentacaoBaseAtiva}
@@ -972,10 +980,10 @@ export default function SessaoCampanhaPage() {
                           ) : null}
                         </div>
                         <p className="text-[11px] text-app-muted">
-                          {habilidade.execucao}
-                          {habilidade.alcance ? ` | Alcance: ${habilidade.alcance}` : ''}
-                          {habilidade.alvo ? ` | Alvo: ${habilidade.alvo}` : ''}
-                          {custoBase.duracao ? ` | Duracao: ${custoBase.duracao}` : ''}
+                          {textoSeguro(habilidade.execucao)}
+                          {habilidade.alcance ? ` | Alcance: ${textoSeguro(habilidade.alcance)}` : ''}
+                          {habilidade.alvo ? ` | Alvo: ${textoSeguro(habilidade.alvo)}` : ''}
+                          {custoBase.duracao ? ` | Duracao: ${textoSeguro(custoBase.duracao)}` : ''}
                         </p>
                         <p className="text-[11px] text-app-muted">
                           Custo base: {formatarCustos(custoBase.custoEA, custoBase.custoPE)}
@@ -1010,7 +1018,7 @@ export default function SessaoCampanhaPage() {
                           </div>
                         ) : null}
                         <p className="text-[11px] text-app-muted whitespace-pre-wrap">
-                          {habilidade.efeito}
+                          {textoSeguro(habilidade.efeito)}
                         </p>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {card.podeEditar ? (
@@ -1081,7 +1089,7 @@ export default function SessaoCampanhaPage() {
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <p className="text-[11px] font-semibold text-app-fg">
-                                    {variacao.nome}
+                                    {textoSeguro(variacao.nome)}
                                   </p>
                                   {qtdSustentacaoVariacaoAtiva > 0 ? (
                                     <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
@@ -1089,12 +1097,12 @@ export default function SessaoCampanhaPage() {
                                     </span>
                                   ) : null}
                                 </div>
-                                <p className="text-[11px] text-app-muted">{variacao.descricao}</p>
+                                <p className="text-[11px] text-app-muted">{textoSeguro(variacao.descricao)}</p>
                                 <p className="text-[11px] text-app-muted">
-                                  {execucaoVariacao}
-                                  {alcanceVariacao ? ` | Alcance: ${alcanceVariacao}` : ''}
-                                  {alvoVariacao ? ` | Alvo: ${alvoVariacao}` : ''}
-                                  {duracaoVariacao ? ` | Duracao: ${duracaoVariacao}` : ''}
+                                  {textoSeguro(execucaoVariacao)}
+                                  {alcanceVariacao ? ` | Alcance: ${textoSeguro(alcanceVariacao)}` : ''}
+                                  {alvoVariacao ? ` | Alvo: ${textoSeguro(alvoVariacao)}` : ''}
+                                  {duracaoVariacao ? ` | Duracao: ${textoSeguro(duracaoVariacao)}` : ''}
                                 </p>
                                 <p className="text-[11px] text-app-muted">
                                   Custo: {formatarCustos(custoVariacao.custoEA, custoVariacao.custoPE)}
@@ -1107,7 +1115,7 @@ export default function SessaoCampanhaPage() {
                                 </p>
                                 {variacao.efeitoAdicional ? (
                                   <p className="text-[11px] text-app-muted whitespace-pre-wrap">
-                                    {variacao.efeitoAdicional}
+                                    {textoSeguro(variacao.efeitoAdicional)}
                                   </p>
                                 ) : null}
 
@@ -1175,7 +1183,7 @@ export default function SessaoCampanhaPage() {
           };
 
           return (
-            <Card key={card.personagemSessaoId} className="space-y-3">
+            <Card key={card.personagemSessaoId} className="session-panel space-y-3">
               <div>
                 <h3 className="text-sm font-semibold text-app-fg">{card.nomePersonagem}</h3>
                 <p className="text-xs text-app-muted">Jogador: {card.nomeJogador}</p>
@@ -1856,6 +1864,7 @@ export default function SessaoCampanhaPage() {
       setDetalhe(atualizado);
       sincronizarEstadosDerivados(atualizado);
       setNomeNpcCustomizado('');
+      setModalAdicionarNpcAberto(false);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
@@ -1991,11 +2000,11 @@ export default function SessaoCampanhaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-7xl mx-auto space-y-4">
-        <header className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-app-fg">{tituloSessao}</h1>
+    <main className="session-page-shell min-h-screen p-4 md:p-6">
+      <div className="mx-auto max-w-[1600px] space-y-4">
+        <header className="session-hero flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold text-app-fg">{tituloSessao}</h1>
             <p className="text-sm text-app-muted">
               Sessao iniciada em {formatarDataHora(detalhe.iniciadoEm)}
             </p>
@@ -2005,83 +2014,73 @@ export default function SessaoCampanhaPage() {
                 {detalhe.encerradoEm ? formatarDataHora(detalhe.encerradoEm) : '-'}
               </p>
             ) : null}
+            <div className="session-chip-row mt-2.5">
+              <span className="session-chip">
+                Cena: {labelCena(detalhe.cenaAtual.tipo)}
+              </span>
+              <span className="session-chip">
+                Participantes online: {totalParticipantesOnline}/{participantes.length}
+              </span>
+              <span className="session-chip">
+                Aliados ou ameacas: {npcs.length}
+              </span>
+              {detalhe.controleTurnosAtivo ? (
+                <span className="session-chip">
+                  Rodada {detalhe.rodadaAtual ?? 1}
+                </span>
+              ) : null}
+            </div>
           </div>
-          <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>
-            <Icon name="back" className="w-4 h-4 mr-2" />
-            Voltar para campanha
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge color={sessaoEncerrada ? 'gray' : 'green'} size="md">
+              {sessaoEncerrada ? 'Sessao encerrada' : 'Sessao ativa'}
+            </Badge>
+            <Badge color={socketConectado ? 'cyan' : 'yellow'} size="md">
+              {socketConectado ? 'Tempo real' : 'Fallback polling'}
+            </Badge>
+            <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>
+              <Icon name="back" className="w-4 h-4 mr-2" />
+              Voltar para campanha
+            </Button>
+          </div>
         </header>
 
         {erro ? <ErrorAlert message={erro} /> : null}
 
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)_minmax(350px,0.83fr)]">
           <section className="space-y-3">
             {podeControlarSessao ? (
-              <Card className="space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold text-app-fg">
-                      Escudo do Mestre
-                    </h2>
-                    <p className="text-xs text-app-muted">
-                      Guias rapidos com regras operacionais da mesa.
-                    </p>
-                  </div>
+              <SessionPanel
+                title="Escudo do Mestre"
+                subtitle="Guias rapidos com regras operacionais da mesa."
+                right={
                   <span className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface p-2">
                     <Icon name="shield" className="h-4 w-4 text-app-fg" />
                   </span>
-                </div>
+                }
+              >
                 <MestreShieldGuide />
-              </Card>
+              </SessionPanel>
             ) : (
               renderCardsSessao()
             )}
 
-            <Card className="space-y-2">
-              <h2 className="text-sm font-semibold text-app-fg">
-                Aliados ou ameacas na cena
-              </h2>
-              <p className="text-xs text-app-muted">
-                Mestre adiciona e ajusta aliados ou ameacas por cena. Jogadores veem em modo leitura.
-              </p>
-            </Card>
-
-            {podeControlarSessao ? (
-              <Card className="space-y-2">
-                <h3 className="text-sm font-semibold text-app-fg">Adicionar aliado ou ameaca</h3>
-                <Select
-                  label="Ficha disponivel"
-                  value={npcSelecionadoId}
-                  onChange={(event) => setNpcSelecionadoId(event.target.value)}
-                >
-                  {npcsDisponiveis.length === 0 ? (
-                    <option value="">Nenhuma ficha encontrada</option>
-                  ) : null}
-                  {npcsDisponiveis.map((npcDisponivel) => (
-                    <option key={npcDisponivel.id} value={String(npcDisponivel.id)}>
-                      {npcDisponivel.nome} ({labelTipoNpc(npcDisponivel.tipo)})
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  label="Nome em cena (opcional)"
-                  value={nomeNpcCustomizado}
-                  onChange={(event) => setNomeNpcCustomizado(event.target.value)}
-                  placeholder="Ex.: Taro (ferido)"
-                />
-                <Button
-                  onClick={() => void handleAdicionarNpcNaCena()}
-                  disabled={
-                    adicionandoNpc ||
-                    sessaoEncerrada ||
-                    npcsDisponiveis.length === 0 ||
-                    !npcSelecionadoId
-                  }
-                >
-                  {adicionandoNpc ? 'Adicionando...' : 'Adicionar na cena'}
-                </Button>
-              </Card>
-            ) : null}
+            <SessionPanel
+              title="Aliados ou ameacas na cena"
+              subtitle="Mestre adiciona e ajusta aliados ou ameacas por cena. Jogadores visualizam em modo leitura."
+              right={
+                podeControlarSessao ? (
+                  <Button
+                    size="sm"
+                    onClick={() => setModalAdicionarNpcAberto(true)}
+                    disabled={sessaoEncerrada || npcsDisponiveis.length === 0}
+                  >
+                    <Icon name="add" className="mr-1.5 h-3.5 w-3.5" />
+                    Adicionar
+                  </Button>
+                ) : undefined
+              }
+            />
 
             {npcs.length === 0 ? (
               <EmptyState
@@ -2111,7 +2110,7 @@ export default function SessaoCampanhaPage() {
                     .join(' | ');
 
                 return (
-                  <Card key={npc.npcSessaoId} className="space-y-3">
+                  <Card key={npc.npcSessaoId} className="session-panel space-y-3">
                     <div>
                       <h3 className="text-sm font-semibold text-app-fg">{npc.nome}</h3>
                       <p className="text-xs text-app-muted">
@@ -2339,8 +2338,10 @@ export default function SessaoCampanhaPage() {
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
 
-            <Card className="space-y-3">
-              <h2 className="text-sm font-semibold text-app-fg">Painel da sessao</h2>
+            <SessionPanel
+              title="Painel da sessao"
+              subtitle="Cena, status de combate e ordem de iniciativa."
+            >
               <p className="text-sm text-app-muted">Cena: {labelCena(detalhe.cenaAtual.tipo)}</p>
               {detalhe.cenaAtual.nome ? (
                 <p className="text-xs text-app-muted">{detalhe.cenaAtual.nome}</p>
@@ -2352,7 +2353,7 @@ export default function SessaoCampanhaPage() {
               <p className="text-xs text-app-muted">Aliados ou ameacas na cena: {npcs.length}</p>
 
               {detalhe.controleTurnosAtivo ? (
-                <div className="rounded border border-app-border p-3 space-y-1">
+                <div className="session-box space-y-1">
                   <p className="text-sm text-app-fg">Rodada: {detalhe.rodadaAtual ?? 1}</p>
                   <p className="text-sm text-app-fg">
                     Turno atual:{' '}
@@ -2453,13 +2454,13 @@ export default function SessaoCampanhaPage() {
                   Cena livre: sem contagem de rodadas/turnos.
                 </p>
               )}
-            </Card>
+            </SessionPanel>
 
             {podeControlarSessao ? (
-              <Card className="space-y-3">
-                <h3 className="text-sm font-semibold text-app-fg">
-                  Controle do mestre
-                </h3>
+              <SessionPanel
+                title="Controle do mestre"
+                subtitle="Ajustes de cena, turnos e encerramento da sessao."
+              >
                 <Select
                   label="Tipo de cena"
                   value={cenaTipo}
@@ -2526,33 +2527,29 @@ export default function SessaoCampanhaPage() {
                         : 'Encerrar sessao'}
                   </Button>
                 </div>
-              </Card>
+              </SessionPanel>
             ) : (
-              <Card className="space-y-2">
-                <h3 className="text-sm font-semibold text-app-fg">
-                  Controle da sessao
-                </h3>
+              <SessionPanel
+                title="Controle da sessao"
+                subtitle="Apenas o mestre pode trocar cena e controlar turnos."
+              >
                 <p className="text-sm text-app-muted">
                   Apenas o mestre pode trocar cena e controlar turnos.
                 </p>
-              </Card>
+              </SessionPanel>
             )}
           </section>
 
-          <section className="space-y-3">
-            <Card className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-app-fg">Participantes</h2>
-                <span
-                  className={
-                    socketConectado
-                      ? 'inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-300'
-                      : 'inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300'
-                  }
-                >
-                  {socketConectado ? 'Tempo real' : 'Fallback (polling)'}
-                </span>
-              </div>
+          <section className="space-y-3 xl:sticky xl:top-4 xl:self-start">
+            <SessionPanel
+              title="Participantes"
+              subtitle="Quem esta na campanha e quem esta online agora."
+              right={
+                <Badge color={socketConectado ? 'cyan' : 'yellow'} size="sm">
+                  {socketConectado ? 'Tempo real' : 'Fallback polling'}
+                </Badge>
+              }
+            >
               {participantes.length === 0 ? (
                 <p className="text-xs text-app-muted">
                   Nenhum participante carregado para esta campanha.
@@ -2569,7 +2566,7 @@ export default function SessaoCampanhaPage() {
                       >
                         <div>
                           <p className="text-xs font-semibold text-app-fg">
-                            {participante.apelido}
+                            {textoSeguro(participante.apelido)}
                             {participante.ehDono ? ' (Dono)' : ''}
                           </p>
                           <p className="text-[11px] text-app-muted">
@@ -2590,15 +2587,12 @@ export default function SessaoCampanhaPage() {
                   })}
                 </div>
               )}
-            </Card>
+            </SessionPanel>
 
-            <Card className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-app-fg">Timeline da sessao</h2>
-                <span className="text-[11px] text-app-muted">
-                  {eventosSessao.length} evento(s)
-                </span>
-              </div>
+            <SessionPanel
+              title="Timeline da sessao"
+              subtitle={`${eventosSessao.length} evento(s) operacionais`}
+            >
 
               {podeControlarSessao ? (
                 <Input
@@ -2624,7 +2618,7 @@ export default function SessaoCampanhaPage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-xs font-semibold text-app-fg">
-                          {evento.descricao}
+                          {textoSeguro(evento.descricao)}
                         </p>
                         {evento.desfeito ? (
                           <span className="text-[10px] rounded border border-app-border px-1.5 py-0.5 text-app-muted">
@@ -2633,12 +2627,12 @@ export default function SessaoCampanhaPage() {
                         ) : null}
                       </div>
                       <p className="text-[11px] text-app-muted">
-                        {evento.tipoEvento}
+                        {textoSeguro(evento.tipoEvento)}
                         {typeof evento.cenaId === 'number' ? ` | Cena #${evento.cenaId}` : ''}
                       </p>
                       <p className="text-[11px] text-app-muted">
                         {formatarDataHora(evento.criadoEm)}
-                        {evento.autor?.apelido ? ` por ${evento.autor.apelido}` : ''}
+                        {evento.autor?.apelido ? ` por ${textoSeguro(evento.autor.apelido)}` : ''}
                       </p>
                       {podeControlarSessao && evento.podeDesfazer ? (
                         <Button
@@ -2656,10 +2650,12 @@ export default function SessaoCampanhaPage() {
                   ))
                 )}
               </div>
-            </Card>
+            </SessionPanel>
 
-            <Card className="space-y-3">
-              <h2 className="text-sm font-semibold text-app-fg">Chat em tempo real</h2>
+            <SessionPanel
+              title="Chat em tempo real"
+              subtitle="Mensagens sincronizadas da sessao ativa."
+            >
               <div className="h-[420px] overflow-y-auto rounded border border-app-border p-3 space-y-2 bg-app-bg">
                 {chat.length === 0 ? (
                   <p className="text-xs text-app-muted">
@@ -2669,13 +2665,13 @@ export default function SessaoCampanhaPage() {
                   chat.map((item) => (
                     <div key={item.id} className="rounded border border-app-border bg-app-surface px-2 py-1.5">
                       <p className="text-xs text-app-muted">
-                        {item.autor.apelido}
+                        {textoSeguro(item.autor.apelido)}
                         {item.autor.personagemNome
-                          ? ` (${item.autor.personagemNome})`
+                          ? ` (${textoSeguro(item.autor.personagemNome)})`
                           : ''}{' '}
                         | {formatarDataHora(item.criadoEm)}
                       </p>
-                      <p className="text-sm text-app-fg whitespace-pre-wrap">{item.mensagem}</p>
+                      <p className="text-sm text-app-fg whitespace-pre-wrap">{textoSeguro(item.mensagem)}</p>
                     </div>
                   ))
                 )}
@@ -2705,9 +2701,64 @@ export default function SessaoCampanhaPage() {
                   {enviandoMensagem ? 'Enviando...' : 'Enviar'}
                 </Button>
               </div>
-            </Card>
+            </SessionPanel>
           </section>
         </div>
+
+        <Modal
+          isOpen={modalAdicionarNpcAberto}
+          onClose={() => setModalAdicionarNpcAberto(false)}
+          title="Adicionar aliado ou ameaca na cena"
+          size="md"
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => setModalAdicionarNpcAberto(false)}
+                disabled={adicionandoNpc}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => void handleAdicionarNpcNaCena()}
+                disabled={
+                  adicionandoNpc ||
+                  sessaoEncerrada ||
+                  npcsDisponiveis.length === 0 ||
+                  !npcSelecionadoId
+                }
+              >
+                {adicionandoNpc ? 'Adicionando...' : 'Adicionar na cena'}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <Select
+              label="Ficha disponivel"
+              value={npcSelecionadoId}
+              onChange={(event) => setNpcSelecionadoId(event.target.value)}
+            >
+              {npcsDisponiveis.length === 0 ? (
+                <option value="">Nenhuma ficha encontrada</option>
+              ) : null}
+              {npcsDisponiveis.map((npcDisponivel) => (
+                <option key={npcDisponivel.id} value={String(npcDisponivel.id)}>
+                  {textoSeguro(npcDisponivel.nome)} ({labelTipoNpc(npcDisponivel.tipo)})
+                </option>
+              ))}
+            </Select>
+            <Input
+              label="Nome em cena (opcional)"
+              value={nomeNpcCustomizado}
+              onChange={(event) => setNomeNpcCustomizado(event.target.value)}
+              placeholder="Ex.: Taro (ferido)"
+            />
+            <p className="text-xs text-app-muted">
+              Dica: use o nome em cena para diferenciar aliados ou ameacas iguais na mesma rodada.
+            </p>
+          </div>
+        </Modal>
 
         <CampaignCharacterEditorModal
           isOpen={Boolean(personagemEmEdicao)}
