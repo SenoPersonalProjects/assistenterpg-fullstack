@@ -250,7 +250,10 @@ export async function apiGetTecnicasAmaldicoadas(
 }
 
 export async function apiGetTecnicasInatas(): Promise<TecnicaInataCatalogo[]> {
-  const data = await apiGetTecnicasAmaldicoadas({ tipo: 'INATA' as TipoTecnicaAmaldicoada });
+  const data = await apiGetTecnicasAmaldicoadas({
+    tipo: 'INATA' as TipoTecnicaAmaldicoada,
+    incluirHabilidades: true,
+  });
 
   return data.map((tecnica) => ({
     id: tecnica.id,
@@ -264,6 +267,10 @@ export async function apiGetTecnicasInatas(): Promise<TecnicaInataCatalogo[]> {
     clasHereditarios: (tecnica.clasHereditarios ?? []).map((cla) => ({
       claId: cla.id,
       claNome: cla.nome,
+    })),
+    habilidades: (tecnica.habilidades ?? []).map((habilidade) => ({
+      ...habilidade,
+      variacoes: habilidade.variacoes ?? [],
     })),
   }));
 }

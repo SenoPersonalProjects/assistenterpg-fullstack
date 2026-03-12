@@ -173,6 +173,7 @@ export type TecnicaInataCatalogo = {
   fonte?: TipoFonte;
   suplementoId?: number | null;
   clasHereditarios: { claId: number; claNome: string }[];
+  habilidades?: HabilidadeTecnicaResumoCatalogo[];
 };
 
 export type VariacaoHabilidadeTecnicaResumoCatalogo = {

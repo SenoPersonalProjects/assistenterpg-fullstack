@@ -495,6 +495,14 @@ export function PersonagemBaseStepRevisao({
   const tecnicaInata = preview.tecnicaInataId
     ? tecnicasInatas.find((t) => t.id === preview.tecnicaInataId)
     : null;
+  const tecnicaInataHabilidades = tecnicaInata?.habilidades ?? [];
+  const resumoTecnicaInataHabilidades =
+    tecnicaInataHabilidades.length > 0
+      ? tecnicaInataHabilidades
+          .slice(0, 3)
+          .map((habilidade) => habilidade.nome)
+          .join(', ')
+      : 'Nenhuma habilidade cadastrada';
 
   const habilidadesOrigem =
     origem?.habilidadesIniciais ?? origem?.habilidadesOrigem?.map((r) => r.habilidade) ?? [];
@@ -947,9 +955,21 @@ export function PersonagemBaseStepRevisao({
       <SectionCard
         title="Técnica inata e escola"
         right={<Icon name="skills" className="h-5 w-5 text-app-muted" />}
-        contentClassName="grid gap-2.5 sm:grid-cols-2"
+        contentClassName="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3"
       >
         <InfoTile label="Técnica inata" value={tecnicaInata?.nome ?? 'Nenhuma'} />
+        <InfoTile
+          label="Pacote inato"
+          value={`${tecnicaInataHabilidades.length} habilidade(s)`}
+          valueClassName="font-medium"
+          right={
+            tecnicaInata ? (
+              <Badge color="blue" size="sm">
+                Ativo
+              </Badge>
+            ) : undefined
+          }
+        />
         <InfoTile
           label="Estudou na Escola Técnica"
           value={preview.estudouEscolaTecnica ? 'Sim' : 'Não'}
@@ -959,6 +979,17 @@ export function PersonagemBaseStepRevisao({
             </Badge>
           }
         />
+        {tecnicaInata ? (
+          <InfoTile
+            label="Habilidades em destaque"
+            value={
+              tecnicaInataHabilidades.length > 3
+                ? `${resumoTecnicaInataHabilidades} (+${tecnicaInataHabilidades.length - 3})`
+                : resumoTecnicaInataHabilidades
+            }
+            valueClassName="font-normal"
+          />
+        ) : null}
       </SectionCard>
 
       {/* INVENTÁRIO - SEMPRE EXIBIR */}

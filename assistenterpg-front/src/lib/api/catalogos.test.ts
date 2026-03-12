@@ -65,7 +65,7 @@ function payloadByUrl(url: string, version: string): unknown {
           descricao: null,
         },
       ];
-    case '/tecnicas-amaldicoadas?tipo=INATA':
+    case '/tecnicas-amaldicoadas?tipo=INATA&incluirHabilidades=true':
       return [
         {
           id: 1,
@@ -75,6 +75,7 @@ function payloadByUrl(url: string, version: string): unknown {
           tipo: 'INATA',
           hereditaria: false,
           clasHereditarios: [],
+          habilidades: [],
         },
       ];
     case '/alinhamentos':

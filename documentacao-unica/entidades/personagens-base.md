@@ -365,4 +365,13 @@ Modelos e constraints relevantes:
 - a selecao e persistida localmente no navegador por `usuarioId` (chave de storage dedicada), evitando reconfiguracao a cada abertura da tela.
 - apos confirmar o modal, o frontend aplica filtro local por `fonte/suplementoId/homebrewId` usando `lib/utils/fontes-conteudo.ts` em:
   - classes, clas, origens, tecnicas inatas, trilhas, equipamentos e modificacoes.
+- o catalogo de tecnicas inatas agora e buscado com `incluirHabilidades=true`:
+  - `assistenterpg-front/src/lib/api/catalogos.ts` (`apiGetTecnicasInatas`)
+  - cada tecnica inata passa a carregar tambem `habilidades` (e variacoes) no payload usado pelo wizard.
+- no passo `Cla e tecnica inata` do wizard:
+  - `assistenterpg-front/src/components/personagem-base/create/wizard/PersonagemBaseStepClaTecnica.tsx`
+  - ao selecionar uma tecnica, o usuario visualiza o "pacote" com preview das habilidades liberadas (nome, execucao/duracao/alcance e custo base).
+- no passo de revisao:
+  - `assistenterpg-front/src/components/personagem-base/create/wizard/PersonagemBaseStepRevisao.tsx`
+  - o resumo exibe contador de habilidades da tecnica inata e highlights das primeiras habilidades cadastradas.
 - ao alterar fontes, o wizard e reiniciado (remount por chave de selecao) para evitar inconsistencias de estado entre selecao antiga e novo catalogo visivel.

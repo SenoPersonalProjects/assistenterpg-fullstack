@@ -22,6 +22,13 @@ type Props = {
   onChangePrestigioClaBase: (v: string) => void;
 };
 
+function formatarCustoEAePE(custoEA: number, custoPE: number): string {
+  if (custoEA <= 0 && custoPE <= 0) return 'Sem custo';
+  if (custoEA > 0 && custoPE > 0) return `${custoEA} EA / ${custoPE} PE`;
+  if (custoEA > 0) return `${custoEA} EA`;
+  return `${custoPE} PE`;
+}
+
 export function PersonagemBaseStepClaTecnica({
   clas,
   tecnicasInatas,
@@ -60,6 +67,10 @@ export function PersonagemBaseStepClaTecnica({
     if (!claIdNumber) return false;
     return t.clasHereditarios.some((rel) => rel.claId === claIdNumber);
   });
+  const tecnicaSelecionada = tecnicasDisponiveis.find(
+    (t) => String(t.id) === tecnicaInataId,
+  );
+  const habilidadesTecnicaSelecionada = tecnicaSelecionada?.habilidades ?? [];
 
   // Opções de técnicas para o SelectModal
   const tecnicasOptions: SelectModalOption<TecnicaInataCatalogo>[] = tecnicasDisponiveis.map((tec) => {
@@ -188,6 +199,55 @@ export function PersonagemBaseStepClaTecnica({
                 : 'Selecione um clã primeiro'
             }
           />
+
+          {tecnicaSelecionada ? (
+            <div className="rounded border border-app-border bg-app-surface p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-app-fg">
+                  Pacote da tecnica selecionada
+                </p>
+                <span className="text-[11px] text-app-muted">
+                  {habilidadesTecnicaSelecionada.length}{' '}
+                  {habilidadesTecnicaSelecionada.length === 1
+                    ? 'habilidade'
+                    : 'habilidades'}
+                </span>
+              </div>
+
+              {habilidadesTecnicaSelecionada.length === 0 ? (
+                <p className="text-[11px] text-app-muted">
+                  Esta tecnica ainda nao possui habilidades cadastradas.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {habilidadesTecnicaSelecionada.slice(0, 4).map((habilidade) => (
+                    <div
+                      key={habilidade.id}
+                      className="rounded border border-app-border bg-app-bg px-2 py-1.5"
+                    >
+                      <p className="text-xs font-medium text-app-fg">
+                        {habilidade.nome}
+                      </p>
+                      <p className="text-[11px] text-app-muted">
+                        {habilidade.execucao}
+                        {habilidade.alcance ? ` | Alcance: ${habilidade.alcance}` : ''}
+                        {habilidade.duracao ? ` | Duracao: ${habilidade.duracao}` : ''}
+                      </p>
+                      <p className="text-[11px] text-app-muted">
+                        Custo: {formatarCustoEAePE(habilidade.custoEA, habilidade.custoPE)}
+                      </p>
+                    </div>
+                  ))}
+
+                  {habilidadesTecnicaSelecionada.length > 4 ? (
+                    <p className="text-[11px] text-app-muted">
+                      +{habilidadesTecnicaSelecionada.length - 4} habilidade(s) adicional(is)
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
