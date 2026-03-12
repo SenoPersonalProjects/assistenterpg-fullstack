@@ -772,6 +772,9 @@ export class SessaoService {
       });
       sustentacoesPorPersonagemSessao.set(sustentacao.personagemSessaoId, listaAtual);
     }
+    const tecnicasNaoInatasCatalogo = await this.listarTecnicasNaoInatasCatalogo(
+      this.prisma,
+    );
 
     return {
       id: sessao.id,
@@ -825,6 +828,7 @@ export class SessaoService {
         const visibilidade = podeEditar ? 'completa' : 'resumida';
         const tecnicas = this.resolverTecnicasSessaoPersonagem(
           personagem.personagemCampanha,
+          tecnicasNaoInatasCatalogo,
         );
         const sustentacoesAtivas =
           sustentacoesPorPersonagemSessao.get(personagem.id) ?? [];
@@ -2195,8 +2199,12 @@ export class SessaoService {
         );
       }
 
+      const tecnicasNaoInatasCatalogo = await this.listarTecnicasNaoInatasCatalogo(
+        tx,
+      );
       const tecnicasDisponiveis = this.resolverTecnicasSessaoPersonagem(
         personagemSessao.personagemCampanha,
+        tecnicasNaoInatasCatalogo,
       );
       const habilidade = this.buscarHabilidadeTecnicaDisponivel(
         tecnicasDisponiveis,
@@ -3113,8 +3121,32 @@ export class SessaoService {
     };
   }
 
+  private async listarTecnicasNaoInatasCatalogo(
+    prismaLike: PrismaService | Prisma.TransactionClient,
+  ): Promise<TecnicaSessaoRaw[]> {
+    return prismaLike.tecnicaAmaldicoada.findMany({
+      where: {
+        tipo: 'NAO_INATA',
+      },
+      include: {
+        habilidades: {
+          include: {
+            variacoes: {
+              orderBy: { ordem: 'asc' },
+            },
+          },
+          orderBy: { ordem: 'asc' },
+        },
+      },
+      orderBy: {
+        nome: 'asc',
+      },
+    }) as Promise<TecnicaSessaoRaw[]>;
+  }
+
   private resolverTecnicasSessaoPersonagem(
     personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+    tecnicasNaoInatasCatalogo: TecnicaSessaoRaw[] = [],
   ): {
     tecnicaInata: TecnicaSessaoResumo | null;
     tecnicasNaoInatas: TecnicaSessaoResumo[];
@@ -3126,13 +3158,21 @@ export class SessaoService {
       : null;
 
     const mapaTecnicas = new Map<number, TecnicaSessaoRaw>();
+
+    for (const tecnicaCatalogo of tecnicasNaoInatasCatalogo) {
+      if (!tecnicaCatalogo || tecnicaCatalogo.tipo !== 'NAO_INATA') continue;
+      mapaTecnicas.set(tecnicaCatalogo.id, tecnicaCatalogo);
+    }
+
+    // Compatibilidade com dados antigos que so possuem relacoes salvas.
     const tecnicasCampanha = personagemCampanha.tecnicasAprendidas ?? [];
     const tecnicasBase = personagemCampanha.personagemBase?.tecnicasAprendidas ?? [];
-
     for (const relacao of [...tecnicasCampanha, ...tecnicasBase]) {
       const tecnica = relacao?.tecnica;
       if (!tecnica || tecnica.tipo !== 'NAO_INATA') continue;
-      mapaTecnicas.set(tecnica.id, tecnica);
+      if (!mapaTecnicas.has(tecnica.id)) {
+        mapaTecnicas.set(tecnica.id, tecnica);
+      }
     }
 
     const tecnicasNaoInatas = Array.from(mapaTecnicas.values())

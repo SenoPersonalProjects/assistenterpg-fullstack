@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCondicaoDto } from './dto/create-condicao.dto';
 import { UpdateCondicaoDto } from './dto/update-condicao.dto';
+import { CONDICOES_PADRAO } from './condicoes-padrao';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -15,6 +16,24 @@ import {
 @Injectable()
 export class CondicoesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async garantirCondicoesPadrao(): Promise<void> {
+    const totalAtual = await this.prisma.condicao.count();
+    if (totalAtual > 0) return;
+
+    await this.prisma.$transaction(async (tx) => {
+      const totalTx = await tx.condicao.count();
+      if (totalTx > 0) return;
+
+      await tx.condicao.createMany({
+        data: CONDICOES_PADRAO.map((condicao) => ({
+          nome: condicao.nome,
+          descricao: condicao.descricao,
+        })),
+        skipDuplicates: true,
+      });
+    });
+  }
 
   /**
    * CREATE - Criar nova condição
@@ -41,6 +60,8 @@ export class CondicoesService {
    * FIND ALL - Listar todas as condições
    */
   async findAll() {
+    await this.garantirCondicoesPadrao();
+
     return this.prisma.condicao.findMany({
       orderBy: { nome: 'asc' },
       include: {

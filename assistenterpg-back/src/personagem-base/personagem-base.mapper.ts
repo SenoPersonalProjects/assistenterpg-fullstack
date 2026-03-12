@@ -535,12 +535,27 @@ export class PersonagemBaseMapper {
           })),
       });
 
-    const tecnicasNaoInatas: TecnicaDetalhadaMapeada[] = (
-      personagem.tecnicasAprendidas ?? []
-    )
-      .map((relacao) => relacao.tecnica)
-      .filter((tecnica) => tecnica.tipo === 'NAO_INATA')
-      .sort((a, b) => a.nome.localeCompare(b.nome))
+    const tecnicasNaoInatasCatalogo = await prisma.tecnicaAmaldicoada.findMany({
+      where: {
+        tipo: 'NAO_INATA',
+      },
+      include: {
+        habilidades: {
+          include: {
+            variacoes: {
+              orderBy: { ordem: 'asc' },
+            },
+          },
+          orderBy: { ordem: 'asc' },
+        },
+      },
+      orderBy: {
+        nome: 'asc',
+      },
+    });
+
+    const tecnicasNaoInatas: TecnicaDetalhadaMapeada[] = tecnicasNaoInatasCatalogo
+      .filter((tecnica) => atendeRequisitosGraus(tecnica.requisitos, grausMap))
       .map(mapTecnicaDetalhada);
 
     const tecnicaInataDetalhada: TecnicaDetalhadaMapeada | null =
