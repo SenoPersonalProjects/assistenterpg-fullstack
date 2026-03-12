@@ -10,6 +10,11 @@ export type UsuarioMe = {
   apelido: string;
   email: string;
   role: string;
+  emailVerificadoEm?: string | null;
+};
+
+export type ApiMensagemAuth = {
+  mensagem: string;
 };
 
 /**
@@ -32,6 +37,55 @@ export async function apiLogin(email: string, senha: string): Promise<LoginRespo
     email,
     senha,
   });
+  return data;
+}
+
+/**
+ * Solicita recuperacao de senha por email.
+ */
+export async function apiForgotPassword(email: string): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>('/auth/forgot-password', {
+    email,
+  });
+  return data;
+}
+
+/**
+ * Redefine senha usando token de recuperacao.
+ */
+export async function apiResetPassword(
+  token: string,
+  novaSenha: string,
+): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>('/auth/reset-password', {
+    token,
+    novaSenha,
+  });
+  return data;
+}
+
+/**
+ * Verifica email com token de conta nova.
+ */
+export async function apiVerifyEmail(token: string): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>('/auth/verify-email', {
+    token,
+  });
+  return data;
+}
+
+/**
+ * Reenvia email de verificacao.
+ */
+export async function apiResendVerificationEmail(
+  email: string,
+): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>(
+    '/auth/resend-verification-email',
+    {
+      email,
+    },
+  );
   return data;
 }
 

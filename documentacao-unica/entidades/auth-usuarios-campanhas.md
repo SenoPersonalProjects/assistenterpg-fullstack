@@ -34,6 +34,10 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - `auth`
   - `POST /auth/register`: publica
   - `POST /auth/login`: publica
+  - `POST /auth/forgot-password`: publica
+  - `POST /auth/reset-password`: publica
+  - `POST /auth/verify-email`: publica
+  - `POST /auth/resend-verification-email`: publica
 - `usuarios`
   - todas as rotas: `Auth: JWT` (`@UseGuards(JwtAuthGuard)` no controller)
 - `campanhas`
@@ -57,7 +61,32 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - `senha: string`
   - retorno:
     - `access_token`
-    - `usuario: { id, email, apelido, role }`
+    - `usuario: { id, email, apelido, role, emailVerificado }`
+
+- `POST /auth/forgot-password`
+  - body `ForgotPasswordDto`:
+    - `email: email`
+  - retorno:
+    - `mensagem: string` (sempre generica, sem revelar existencia do email)
+
+- `POST /auth/reset-password`
+  - body `ResetPasswordDto`:
+    - `token: string`
+    - `novaSenha: string` (min 6)
+  - retorno:
+    - `mensagem: string`
+
+- `POST /auth/verify-email`
+  - body `VerifyEmailDto`:
+    - `token: string`
+  - retorno:
+    - `mensagem: string`
+
+- `POST /auth/resend-verification-email`
+  - body `ResendVerificationEmailDto`:
+    - `email: email`
+  - retorno:
+    - `mensagem: string` (sempre generica)
 
 ## Usuarios (`/usuarios/me`)
 
@@ -197,8 +226,17 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 ## Auth
 
 - registro valida unicidade de email e gera hash (`bcrypt`).
+- registro dispara envio de link de verificacao de email.
 - login nao vaza se email existe ou nao:
   - qualquer falha de email/senha retorna `CREDENCIAIS_INVALIDAS`.
+- login exige email verificado:
+  - se credenciais validas e email nao verificado, retorna `AUTH_EMAIL_NAO_VERIFICADO` (403).
+- recuperacao de senha:
+  - usa token temporario de uso unico (`AuthToken`, tipo `RECUPERACAO_SENHA`).
+  - resposta de solicitacao e sempre generica para evitar enumeracao de usuarios.
+- verificacao de email:
+  - usa token temporario de uso unico (`AuthToken`, tipo `VERIFICACAO_EMAIL`).
+  - reenvio invalida tokens anteriores ativos antes de gerar novo link.
 
 ## Usuarios
 

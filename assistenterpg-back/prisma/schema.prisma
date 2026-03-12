@@ -246,6 +246,11 @@ enum RoleUsuario {
   ADMIN
 }
 
+enum TipoTokenAuth {
+  RECUPERACAO_SENHA
+  VERIFICACAO_EMAIL
+}
+
 enum CampoModificadorPersonagemCampanha {
   PV_MAX
   PE_MAX
@@ -306,10 +311,11 @@ enum TamanhoNpcAmeaca {
 // ========================================
 
 model Usuario {
-  id        Int    @id @default(autoincrement())
-  apelido   String
-  email     String @unique
-  senhaHash String
+  id                Int       @id @default(autoincrement())
+  apelido           String
+  email             String    @unique
+  senhaHash         String
+  emailVerificadoEm DateTime?
 
   // ✅ NOVO: Role do usuário
   role RoleUsuario @default(USUARIO)
@@ -317,21 +323,38 @@ model Usuario {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  campanhasQuePossui                       Campanha[]                      @relation("CampanhasDoDono")
+  campanhasQuePossui                       Campanha[]                             @relation("CampanhasDoDono")
   personagensBase                          PersonagemBase[]
-  personagensCampanha                      PersonagemCampanha[]            @relation("PersonagensCampanhaDoDono")
+  personagensCampanha                      PersonagemCampanha[]                   @relation("PersonagensCampanhaDoDono")
   membrosCampanha                          MembroCampanha[]
   historicosPersonagemCampanha             PersonagemCampanhaHistorico[]
-  modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[] @relation("ModificadorPersonagemCampanhaCriadoPor")
-  modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[] @relation("ModificadorPersonagemCampanhaDesfeitoPor")
+  modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaCriadoPor")
+  modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaDesfeitoPor")
   sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoCriadaPor")
   sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoDesativadaPor")
   npcsAmeacas                              NpcAmeaca[]
   preferencias                             PreferenciaUsuario?
+  tokensAuth                               AuthToken[]
 
   // ✅ NOVO: Relações com suplementos e homebrews
   suplementosAtivos UsuarioSuplemento[]
   homebrews         Homebrew[]
+}
+
+model AuthToken {
+  id        Int           @id @default(autoincrement())
+  usuarioId Int
+  tipo      TipoTokenAuth
+  tokenHash String        @unique
+  expiraEm  DateTime
+  usadoEm   DateTime?
+  criadoEm  DateTime      @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, tipo, usadoEm], map: "AuthToken_usuario_tipo_usado_idx")
+  @@index([tipo, expiraEm], map: "AuthToken_tipo_expira_idx")
+  @@map("auth_tokens")
 }
 
 model Campanha {
@@ -657,13 +680,13 @@ model Sessao {
   iniciadoEm       DateTime  @default(now())
   encerradoEm      DateTime?
 
-  campanha    Campanha           @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
-  cenas       Cena[]
-  personagens PersonagemSessao[] @relation("PersonagensDaSessao")
-  npcs        NpcAmeacaSessao[]
+  campanha               Campanha                               @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  cenas                  Cena[]
+  personagens            PersonagemSessao[]                     @relation("PersonagensDaSessao")
+  npcs                   NpcAmeacaSessao[]
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
-  condicoes  CondicaoPersonagemSessao[]
-  eventos     EventoSessao[]
+  condicoes              CondicaoPersonagemSessao[]
+  eventos                EventoSessao[]
 
   @@index([campanhaId, iniciadoEm])
 }
@@ -680,28 +703,28 @@ model Cena {
 }
 
 model NpcAmeacaSessao {
-  id                 Int              @id @default(autoincrement())
+  id                 Int                @id @default(autoincrement())
   sessaoId           Int
   cenaId             Int?
   npcAmeacaId        Int?
   nomeExibicao       String
   fichaTipo          TipoFichaNpcAmeaca @default(AMEACA)
   tipo               TipoNpcAmeaca
-  vd                 Int              @default(0)
-  defesa             Int              @default(10)
-  pontosVidaAtual    Int              @default(1)
-  pontosVidaMax      Int              @default(1)
+  vd                 Int                @default(0)
+  defesa             Int                @default(10)
+  pontosVidaAtual    Int                @default(1)
+  pontosVidaMax      Int                @default(1)
   machucado          Int?
-  deslocamentoMetros Int              @default(6)
+  deslocamentoMetros Int                @default(6)
   passivasGuia       Json?
   acoesGuia          Json?
-  notasCena          String?          @db.Text
-  criadoEm           DateTime         @default(now())
-  atualizadoEm       DateTime         @updatedAt
+  notasCena          String?            @db.Text
+  criadoEm           DateTime           @default(now())
+  atualizadoEm       DateTime           @updatedAt
 
-  sessao    Sessao     @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
-  cena      Cena?      @relation(fields: [cenaId], references: [id], onDelete: SetNull)
-  npcAmeaca NpcAmeaca? @relation(fields: [npcAmeacaId], references: [id], onDelete: SetNull)
+  sessao    Sessao                     @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  cena      Cena?                      @relation(fields: [cenaId], references: [id], onDelete: SetNull)
+  npcAmeaca NpcAmeaca?                 @relation(fields: [npcAmeacaId], references: [id], onDelete: SetNull)
   condicoes CondicaoPersonagemSessao[]
 
   @@index([sessaoId])
@@ -720,38 +743,38 @@ model PersonagemSessao {
   cena               Cena?              @relation("PersonagensDaCena", fields: [cenaId], references: [id])
   personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id])
 
-  condicoes       CondicaoPersonagemSessao[]
+  condicoes              CondicaoPersonagemSessao[]
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
-  eventosComoAtor EventoSessao[]             @relation("EventosComoAtor")
-  eventosComoAlvo EventoSessao[]             @relation("EventosComoAlvo")
+  eventosComoAtor        EventoSessao[]                         @relation("EventosComoAtor")
+  eventosComoAlvo        EventoSessao[]                         @relation("EventosComoAlvo")
 }
 
 model PersonagemSessaoHabilidadeSustentada {
-  id                  Int      @id @default(autoincrement())
-  sessaoId            Int
-  personagemSessaoId  Int
-  habilidadeTecnicaId Int
+  id                   Int  @id @default(autoincrement())
+  sessaoId             Int
+  personagemSessaoId   Int
+  habilidadeTecnicaId  Int
   variacaoHabilidadeId Int?
 
-  nomeHabilidade      String
-  nomeVariacao        String?
-  custoSustentacaoEA  Int      @default(1)
-  custoSustentacaoPE  Int      @default(0)
-  ativadaNaRodada     Int      @default(1)
-  ultimaCobrancaRodada Int     @default(1)
-  ativa               Boolean  @default(true)
-  criadaPorUsuarioId  Int
-  criadoEm            DateTime @default(now())
-  desativadaEm        DateTime?
+  nomeHabilidade         String
+  nomeVariacao           String?
+  custoSustentacaoEA     Int       @default(1)
+  custoSustentacaoPE     Int       @default(0)
+  ativadaNaRodada        Int       @default(1)
+  ultimaCobrancaRodada   Int       @default(1)
+  ativa                  Boolean   @default(true)
+  criadaPorUsuarioId     Int
+  criadoEm               DateTime  @default(now())
+  desativadaEm           DateTime?
   desativadaPorUsuarioId Int?
-  motivoDesativacao   String?  @db.Text
+  motivoDesativacao      String?   @db.Text
 
-  sessao              Sessao            @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
-  personagemSessao    PersonagemSessao  @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
-  habilidadeTecnica   HabilidadeTecnica @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
-  variacaoHabilidade  VariacaoHabilidade? @relation(fields: [variacaoHabilidadeId], references: [id], onDelete: SetNull)
-  criadaPor           Usuario           @relation("SustentacaoSessaoCriadaPor", fields: [criadaPorUsuarioId], references: [id], onDelete: Cascade)
-  desativadaPor       Usuario?          @relation("SustentacaoSessaoDesativadaPor", fields: [desativadaPorUsuarioId], references: [id], onDelete: SetNull)
+  sessao             Sessao              @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  personagemSessao   PersonagemSessao    @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  habilidadeTecnica  HabilidadeTecnica   @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
+  variacaoHabilidade VariacaoHabilidade? @relation(fields: [variacaoHabilidadeId], references: [id], onDelete: SetNull)
+  criadaPor          Usuario             @relation("SustentacaoSessaoCriadaPor", fields: [criadaPorUsuarioId], references: [id], onDelete: Cascade)
+  desativadaPor      Usuario?            @relation("SustentacaoSessaoDesativadaPor", fields: [desativadaPorUsuarioId], references: [id], onDelete: SetNull)
 
   @@index([sessaoId, ativa])
   @@index([personagemSessaoId, ativa])
@@ -768,7 +791,7 @@ model Condicao {
 }
 
 model CondicaoPersonagemSessao {
-  id                 Int      @id @default(autoincrement())
+  id                 Int  @id @default(autoincrement())
   sessaoId           Int?
   personagemSessaoId Int?
   npcSessaoId        Int?
@@ -777,19 +800,19 @@ model CondicaoPersonagemSessao {
   turnoAplicacao     Int
   duracaoTurnos      Int?
 
-  duracaoModo        String   @default("ATE_REMOVER")
-  duracaoValor       Int?
-  restanteDuracao    Int?
-  ativo              Boolean  @default(true)
-  automatica         Boolean  @default(false)
-  chaveAutomacao     String?
-  contadorTurnos     Int      @default(0)
-  origemDescricao    String?  @db.Text
-  observacao         String?  @db.Text
-  removidaEm         DateTime?
-  motivoRemocao      String?  @db.Text
+  duracaoModo     String    @default("ATE_REMOVER")
+  duracaoValor    Int?
+  restanteDuracao Int?
+  ativo           Boolean   @default(true)
+  automatica      Boolean   @default(false)
+  chaveAutomacao  String?
+  contadorTurnos  Int       @default(0)
+  origemDescricao String?   @db.Text
+  observacao      String?   @db.Text
+  removidaEm      DateTime?
+  motivoRemocao   String?   @db.Text
 
-  sessao          Sessao?            @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  sessao           Sessao?           @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
   personagemSessao PersonagemSessao? @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
   npcSessao        NpcAmeacaSessao?  @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
   condicao         Condicao          @relation(fields: [condicaoId], references: [id])
@@ -1838,8 +1861,8 @@ model HabilidadeTecnica {
   dtResistencia String? @db.Text // Ex: "10 + Limite PE/EA + INT", "CD 15 fixa"
 
   // ✅ Custos base
-  custoPE Int @default(0)
-  custoEA Int @default(0)
+  custoPE            Int  @default(0)
+  custoEA            Int  @default(0)
   custoSustentacaoEA Int?
   custoSustentacaoPE Int?
 
@@ -1858,10 +1881,10 @@ model HabilidadeTecnica {
   dadosDano Json? // Ex: [{ "quantidade": 1, "dado": "d4", "tipo": "CORTANTE" }, { "quantidade": 2, "dado": "d6", "tipo": "IMPACTO" }]
 
   // ✅ Escalonamento por grau de aprimoramento
-  escalonaPorGrau      Boolean @default(false)
+  escalonaPorGrau      Boolean                     @default(false)
   grauTipoGrauCodigo   String? // Qual grau usar (ex: "TECNICA_AMALDICOADA")
-  escalonamentoCustoEA Int     @default(0) // Custo adicional por grau investido
-  escalonamentoCustoPE Int     @default(0) // Custo adicional de PE por acumulo
+  escalonamentoCustoEA Int                         @default(0) // Custo adicional por grau investido
+  escalonamentoCustoPE Int                         @default(0) // Custo adicional de PE por acumulo
   escalonamentoTipo    TipoEscalonamentoHabilidade @default(OUTRO)
   escalonamentoEfeito  Json? // Estrutura tipada por tipo de escalonamento
   escalonamentoDano    Json? // Ex: { "quantidade": 1, "dado": "d4", "tipo": "CORTANTE" } (adiciona por grau)
@@ -1870,7 +1893,7 @@ model HabilidadeTecnica {
   efeito String @db.Text
 
   // ✅ Variações (Liberação Superior/Máxima)
-  variacoes VariacaoHabilidade[]
+  variacoes          VariacaoHabilidade[]
   sustentacoesSessao PersonagemSessaoHabilidadeSustentada[]
 
   // ✅ Ordem de exibição
@@ -1898,9 +1921,9 @@ model VariacaoHabilidade {
   descricao String @db.Text
 
   // ✅ Custos (SOBRESCREVE custos base se definido, senão ADICIONA)
-  substituiCustos Boolean @default(false) // true = substitui, false = adiciona
-  custoPE         Int?
-  custoEA         Int?
+  substituiCustos    Boolean @default(false) // true = substitui, false = adiciona
+  custoPE            Int?
+  custoEA            Int?
   custoSustentacaoEA Int?
   custoSustentacaoPE Int?
 

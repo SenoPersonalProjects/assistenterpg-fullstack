@@ -35,6 +35,32 @@ export class TokenInvalidoException extends BaseException {
 }
 
 /**
+ * Token de recuperacao/verificacao invalido, usado ou expirado
+ */
+export class AuthTokenInvalidoOuExpiradoException extends BaseException {
+  constructor() {
+    super(
+      'Token invalido ou expirado',
+      HttpStatus.UNAUTHORIZED,
+      'AUTH_TOKEN_INVALIDO_OU_EXPIRADO',
+    );
+  }
+}
+
+/**
+ * Conta ainda nao verificou email
+ */
+export class AuthEmailNaoVerificadoException extends BaseException {
+  constructor() {
+    super(
+      'Email ainda nao verificado',
+      HttpStatus.FORBIDDEN,
+      'AUTH_EMAIL_NAO_VERIFICADO',
+    );
+  }
+}
+
+/**
  * Usuário do token não existe mais no sistema
  */
 export class UsuarioTokenNaoEncontradoException extends BaseException {

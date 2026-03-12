@@ -264,6 +264,22 @@ Detalhamento:
   - body: [`LoginDto`](../assistenterpg-back/src/auth/dto/login.dto.ts)
   - resposta: [`LoginResponse`](../assistenterpg-front/src/lib/types/auth.types.ts)
 
+- `POST /auth/forgot-password` - `Auth: Publica`
+  - body: `ForgotPasswordDto` (`email`)
+  - resposta: `{ mensagem }` (sempre generica)
+
+- `POST /auth/reset-password` - `Auth: Publica`
+  - body: `ResetPasswordDto` (`token`, `novaSenha`)
+  - resposta: `{ mensagem }`
+
+- `POST /auth/verify-email` - `Auth: Publica`
+  - body: `VerifyEmailDto` (`token`)
+  - resposta: `{ mensagem }`
+
+- `POST /auth/resend-verification-email` - `Auth: Publica`
+  - body: `ResendVerificationEmailDto` (`email`)
+  - resposta: `{ mensagem }` (sempre generica)
+
 Detalhamento:
 
 - `POST /auth/register`
@@ -273,10 +289,19 @@ Detalhamento:
   - erro esperado: `USUARIO_EMAIL_DUPLICADO` (422)
 - `POST /auth/login`
   - valida email/senha sem revelar se o email existe
+  - exige email verificado (`AUTH_EMAIL_NAO_VERIFICADO` quando pendente)
   - retorno:
     - `access_token` (JWT)
-    - `usuario` (`id`, `email`, `apelido`, `role`)
+    - `usuario` (`id`, `email`, `apelido`, `role`, `emailVerificado`)
   - erro esperado: `CREDENCIAIS_INVALIDAS` (401) para qualquer falha de credencial
+  - erro esperado: `AUTH_EMAIL_NAO_VERIFICADO` (403) para conta ainda nao verificada
+
+- tokens de auth por email:
+  - recuperacao de senha e verificacao de email usam tokens de uso unico (`auth_tokens` no banco)
+  - codigos: `AUTH_TOKEN_INVALIDO_OU_EXPIRADO` para link invalido/usado/expirado
+  - envio de email:
+    - `AUTH_EMAIL_MODE=ethereal` (padrao gratuito para testes, gera preview URL no log)
+    - `AUTH_EMAIL_MODE=smtp` (envio real, depende do provedor SMTP configurado)
 
 Integracao frontend:
 

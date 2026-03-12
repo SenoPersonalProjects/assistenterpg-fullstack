@@ -18,6 +18,7 @@ type Usuario = {
   apelido: string;
   email: string;
   role: string;
+  emailVerificado?: boolean;
 };
 
 type AuthContextType = {
@@ -57,7 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const u = await apiGetMe();
         if (active) {
-          setUsuario(u);
+          setUsuario({
+            id: u.id,
+            apelido: u.apelido,
+            email: u.email,
+            role: u.role,
+            emailVerificado: Boolean(u.emailVerificadoEm),
+          });
         }
       } catch {
         clearToken();

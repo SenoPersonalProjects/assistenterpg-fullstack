@@ -1,13 +1,9 @@
-// src/usuario/usuario.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
-
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { AtualizarPreferenciasDto } from './dto/atualizar-preferencias.dto';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
-
-// ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
   UsuarioNaoEncontradoException,
   UsuarioEmailDuplicadoException,
@@ -15,7 +11,6 @@ import {
   UsuarioEmailNaoEncontradoException,
   UsuarioApelidoNaoEncontradoException,
 } from 'src/common/exceptions/usuario.exception';
-
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
 @Injectable()
@@ -48,13 +43,13 @@ export class UsuarioService {
           apelido,
           email,
           senhaHash,
-          // role: RoleUsuario.JOGADOR ✅ Já é o default no schema
         },
         select: {
           id: true,
           apelido: true,
           email: true,
-          role: true, // ✅ NOVO
+          role: true,
+          emailVerificadoEm: true,
           criadoEm: true,
         },
       });
@@ -64,7 +59,6 @@ export class UsuarioService {
     }
   }
 
-  // ✅ ATUALIZADO: Incluir role
   async buscarPorEmail(email: string) {
     try {
       const usuario = await this.prisma.usuario.findUnique({
@@ -73,8 +67,9 @@ export class UsuarioService {
           id: true,
           apelido: true,
           email: true,
-          senhaHash: true, // Necessário para validação de senha
-          role: true, // ✅ NOVO
+          senhaHash: true,
+          role: true,
+          emailVerificadoEm: true,
           criadoEm: true,
           atualizadoEm: true,
         },
@@ -91,7 +86,27 @@ export class UsuarioService {
     }
   }
 
-  // ✅ ATUALIZADO: Incluir role
+  async buscarPorEmailOpcional(email: string) {
+    try {
+      return await this.prisma.usuario.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          apelido: true,
+          email: true,
+          senhaHash: true,
+          role: true,
+          emailVerificadoEm: true,
+          criadoEm: true,
+          atualizadoEm: true,
+        },
+      });
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
   async buscarPorId(id: number) {
     try {
       const usuario = await this.prisma.usuario.findUnique({
@@ -100,8 +115,9 @@ export class UsuarioService {
           id: true,
           apelido: true,
           email: true,
-          role: true, // ✅ NOVO
-          senhaHash: true, // Necessário para alguns casos
+          role: true,
+          senhaHash: true,
+          emailVerificadoEm: true,
           criadoEm: true,
           atualizadoEm: true,
         },
@@ -118,7 +134,6 @@ export class UsuarioService {
     }
   }
 
-  // ✅ ATUALIZADO: Incluir role
   async buscarPorApelido(apelido: string) {
     try {
       const usuario = await this.prisma.usuario.findFirst({
@@ -127,7 +142,8 @@ export class UsuarioService {
           id: true,
           apelido: true,
           email: true,
-          role: true, // ✅ NOVO
+          role: true,
+          emailVerificadoEm: true,
           criadoEm: true,
         },
       });
@@ -143,7 +159,6 @@ export class UsuarioService {
     }
   }
 
-  // ✅ RESTO DO CÓDIGO PERMANECE IGUAL
   async obterEstatisticas(usuarioId: number) {
     try {
       const [totalCampanhas, totalPersonagens] = await Promise.all([
@@ -236,48 +251,78 @@ export class UsuarioService {
     }
   }
 
+  async atualizarSenhaHash(usuarioId: number, senhaHash: string) {
+    try {
+      await this.prisma.usuario.update({
+        where: { id: usuarioId },
+        data: { senhaHash },
+      });
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async marcarEmailComoVerificado(usuarioId: number) {
+    try {
+      return await this.prisma.usuario.update({
+        where: { id: usuarioId },
+        data: {
+          emailVerificadoEm: new Date(),
+        },
+        select: {
+          id: true,
+          email: true,
+          emailVerificadoEm: true,
+        },
+      });
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
   async exportarDados(usuarioId: number) {
     try {
-      const [usuario, personagens, campanhas, preferencias] = await Promise.all(
-        [
-          this.prisma.usuario.findUnique({
-            where: { id: usuarioId },
-            select: {
-              id: true,
-              apelido: true,
-              email: true,
-              role: true, // ✅ NOVO
-              criadoEm: true,
-            },
-          }),
-          this.prisma.personagemBase.findMany({
-            where: { donoId: usuarioId },
-            include: {
-              classe: true,
-              origem: true,
-              cla: true,
-              trilha: true,
-              caminho: true,
-              tecnicaInata: true,
-            },
-          }),
-          this.prisma.campanha.findMany({
-            where: {
-              OR: [{ donoId: usuarioId }, { membros: { some: { usuarioId } } }],
-            },
-            include: {
-              membros: {
-                include: {
-                  usuario: { select: { apelido: true } },
-                },
+      const [usuario, personagens, campanhas, preferencias] = await Promise.all([
+        this.prisma.usuario.findUnique({
+          where: { id: usuarioId },
+          select: {
+            id: true,
+            apelido: true,
+            email: true,
+            role: true,
+            emailVerificadoEm: true,
+            criadoEm: true,
+          },
+        }),
+        this.prisma.personagemBase.findMany({
+          where: { donoId: usuarioId },
+          include: {
+            classe: true,
+            origem: true,
+            cla: true,
+            trilha: true,
+            caminho: true,
+            tecnicaInata: true,
+          },
+        }),
+        this.prisma.campanha.findMany({
+          where: {
+            OR: [{ donoId: usuarioId }, { membros: { some: { usuarioId } } }],
+          },
+          include: {
+            membros: {
+              include: {
+                usuario: { select: { apelido: true } },
               },
             },
-          }),
-          this.prisma.preferenciaUsuario.findUnique({
-            where: { usuarioId },
-          }),
-        ],
-      );
+          },
+        }),
+        this.prisma.preferenciaUsuario.findUnique({
+          where: { usuarioId },
+        }),
+      ]);
 
       return {
         exportadoEm: new Date().toISOString(),
@@ -312,7 +357,7 @@ export class UsuarioService {
         where: { id: usuarioId },
       });
 
-      return { mensagem: 'Conta excluída com sucesso' };
+      return { mensagem: 'Conta excluida com sucesso' };
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;

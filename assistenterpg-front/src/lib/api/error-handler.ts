@@ -8,7 +8,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // AUTH
   CREDENCIAIS_INVALIDAS: "Email ou senha incorretos",
   AUTH_CREDENCIAIS_INVALIDAS: "Email ou senha incorretos",
-  TOKEN_INVALIDO: "Sua sessão expirou. Faça login novamente.",
+  TOKEN_INVALIDO: "Sua sessao expirou. Faca login novamente.",
+  AUTH_TOKEN_INVALIDO_OU_EXPIRADO:
+    "Link invalido ou expirado. Solicite um novo link.",
+  AUTH_EMAIL_NAO_VERIFICADO:
+    "Email ainda nao verificado. Verifique sua caixa de entrada.",
   USUARIO_TOKEN_NAO_ENCONTRADO:
     "Sua conta não foi encontrada. Faça login novamente.",
   USUARIO_NAO_AUTENTICADO:
@@ -532,5 +536,7 @@ export function formatarErroComContexto(
 
   return `${mensagemBase} (${partes.join(" | ")})`;
 }
+
+
 
 

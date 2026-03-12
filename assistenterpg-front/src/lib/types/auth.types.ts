@@ -10,5 +10,6 @@ export type LoginResponse = {
     apelido: string;
     email: string;
     role: string;
+    emailVerificado: boolean;
   };
 };

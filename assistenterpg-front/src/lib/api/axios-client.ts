@@ -61,6 +61,7 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError<ApiErrorBody>) => {
+    const hadToken = Boolean(getToken());
     const method = error.config?.method?.toUpperCase();
     const endpoint = error.config?.url;
     // 1) Erro de rede (offline)
@@ -94,7 +95,7 @@ apiClient.interceptors.response.use(
     const requestId = requestIdHeader ?? requestIdBody;
 
     // 2) 401: Token expirou ou invalido
-    if (status === 401) {
+    if (status === 401 && hadToken) {
       clearToken();
 
       if (

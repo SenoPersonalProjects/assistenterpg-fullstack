@@ -1,5 +1,3 @@
-// src/components/auth/RegisterForm.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -23,9 +21,8 @@ export function RegisterForm() {
 
     try {
       await register(apelido, email, senha);
-      showToast('Conta criada com sucesso! Faça login.', 'success');
+      showToast('Conta criada! Verifique seu email antes de fazer login.', 'success');
     } catch (error) {
-      // ✅ Extrair mensagem traduzida do erro
       const mensagem = extrairMensagemErro(error);
       showToast(mensagem, 'error');
     } finally {

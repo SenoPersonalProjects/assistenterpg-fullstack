@@ -13,11 +13,15 @@ import { JwtStrategy } from './jwt.strategy';
 
 import { RolesGuard } from './guards/roles.guard';
 import { AdminGuard } from './guards/admin.guard';
+import { PrismaModule } from 'src/prisma/prisma.module';
+import { AuthTokenService } from './auth-token.service';
+import { AuthMailService } from './auth-mail.service';
 
 @Module({
   imports: [
     ConfigModule,
     UsuarioModule,
+    PrismaModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -38,7 +42,15 @@ import { AdminGuard } from './guards/admin.guard';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, RolesGuard, AdminGuard],
+  providers: [
+    AuthService,
+    AuthTokenService,
+    AuthMailService,
+    LocalStrategy,
+    JwtStrategy,
+    RolesGuard,
+    AdminGuard,
+  ],
   controllers: [AuthController],
   exports: [AuthService, RolesGuard, AdminGuard],
 })

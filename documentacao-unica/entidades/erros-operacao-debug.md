@@ -58,6 +58,8 @@ Formato de resposta esperado:
 | ------------------------------ | ----- | -------------------------------------------------- | ----------------------------------------------------- |
 | `CREDENCIAIS_INVALIDAS`        | `401` | Login com email/senha invalidos                    | Pedir nova autenticacao sem revelar qual campo falhou |
 | `TOKEN_INVALIDO`               | `401` | Token expirado ou invalido                         | Limpar sessao e redirecionar para login               |
+| `AUTH_TOKEN_INVALIDO_OU_EXPIRADO` | `401` | Link de reset/verificacao invalido, usado ou expirado | Solicitar novo link (forgot/resend)                   |
+| `AUTH_EMAIL_NAO_VERIFICADO`    | `403` | Login com credencial valida, mas email nao verificado | Exibir CTA para reenviar verificacao                  |
 | `USUARIO_TOKEN_NAO_ENCONTRADO` | `401` | Token valido, mas usuario nao existe               | Forcar logout e novo login                            |
 | `USUARIO_NAO_AUTENTICADO`      | `401` | Rota protegida sem JWT                             | Solicitar login                                       |
 | `USUARIO_NOT_FOUND`            | `404` | Usuario inexistente em consulta direta             | Recarregar estado local e validar id/email            |
