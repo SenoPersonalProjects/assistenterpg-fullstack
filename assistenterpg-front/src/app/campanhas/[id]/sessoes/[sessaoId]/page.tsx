@@ -56,6 +56,10 @@ import {
   resolverCustoExibicaoSessao as resolverCustoExibicao,
 } from '@/lib/campanha/sessao-habilidades';
 import {
+  carregarFiltroSustentadasLobby,
+  salvarFiltroSustentadasLobby,
+} from '@/lib/campanha/sessao-filtro-sustentadas';
+import {
   conectarSocketSessao,
   type EventoSessaoPresenca,
   type EventoSessaoAtualizada,
@@ -204,6 +208,7 @@ export default function SessaoCampanhaPage() {
   const [mostrarSomenteSustentadas, setMostrarSomenteSustentadas] = useState<
     Record<number, boolean>
   >({});
+  const [filtroSustentadasHydrated, setFiltroSustentadasHydrated] = useState(false);
   const [socketConectado, setSocketConectado] = useState(false);
   const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
   const [indiceIniciativaArrastado, setIndiceIniciativaArrastado] = useState<
@@ -227,6 +232,40 @@ export default function SessaoCampanhaPage() {
   useEffect(() => {
     fimChatRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chat]);
+
+  useEffect(() => {
+    if (!idsValidos || !usuario) {
+      setMostrarSomenteSustentadas({});
+      setFiltroSustentadasHydrated(false);
+      return;
+    }
+
+    const filtroSalvo = carregarFiltroSustentadasLobby(
+      usuario.id,
+      campanhaId,
+      sessaoId,
+    );
+    setMostrarSomenteSustentadas(filtroSalvo);
+    setFiltroSustentadasHydrated(true);
+  }, [campanhaId, idsValidos, sessaoId, usuario]);
+
+  useEffect(() => {
+    if (!idsValidos || !usuario || !filtroSustentadasHydrated) return;
+
+    salvarFiltroSustentadasLobby(
+      usuario.id,
+      campanhaId,
+      sessaoId,
+      mostrarSomenteSustentadas,
+    );
+  }, [
+    campanhaId,
+    filtroSustentadasHydrated,
+    idsValidos,
+    mostrarSomenteSustentadas,
+    sessaoId,
+    usuario,
+  ]);
 
   const sincronizarEstadosDerivados = useCallback(
     (proximoDetalhe: SessaoCampanhaDetalhe) => {
