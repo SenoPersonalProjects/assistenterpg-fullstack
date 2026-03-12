@@ -174,7 +174,9 @@ Restrições principais:
   - modal dedicado para CRUD de habilidades/variacoes
 - painel admin de habilidades:
   - CRUD de poderes genericos continua no modulo `habilidades`
-  - cadastro de habilidade de tecnica agora abre um seletor de tecnica (inata/nao inata) e redireciona para o CRUD dedicado da tecnica escolhida
+  - fluxo de criacao unificado: o botao `Nova habilidade` abre seletor de tipo (`PODER_GENERICO`, `HABILIDADE_TECNICA_INATA`, `HABILIDADE_TECNICA_NAO_INATA`)
+  - quando tipo for tecnica, o seletor exige tecnica alvo (inata/nao inata) e abre o CRUD dedicado da tecnica escolhida
+  - quando tipo for poder generico, abre diretamente o editor generico no mesmo modulo
 - formulario de homebrew de tecnicas:
   - usa o mesmo padrao guiado para `execucao`, `area`, `alcance` e `duracao`
   - permite fallback para texto livre em `alcance` e `duracao` quando necessario

@@ -388,6 +388,39 @@ describe('SessaoService', () => {
     expect(tx.eventoSessao.findMany).toHaveBeenCalled();
   });
 
+  it('deve permitir estourar limite apenas no primeiro uso base sem escalonamento', () => {
+    const bloqueado = (service as any).deveBloquearPorLimitePeEaTurno(
+      1,
+      0,
+      2,
+      true,
+    );
+
+    expect(bloqueado).toBe(false);
+  });
+
+  it('deve bloquear novo uso quando ja houve gasto no turno, mesmo sendo uso base sem escalonamento', () => {
+    const bloqueado = (service as any).deveBloquearPorLimitePeEaTurno(
+      1,
+      2,
+      1,
+      true,
+    );
+
+    expect(bloqueado).toBe(true);
+  });
+
+  it('deve bloquear uso nao-base ao exceder limite por turno', () => {
+    const bloqueado = (service as any).deveBloquearPorLimitePeEaTurno(
+      5,
+      4,
+      2,
+      false,
+    );
+
+    expect(bloqueado).toBe(true);
+  });
+
   it('deve cobrar sustentacao em EA e PE ao avancar para nova rodada', async () => {
     const acessoMestre = {
       campanha: {

@@ -41,6 +41,11 @@ type DraftFilters = {
   limite: number;
 };
 
+type CadastroHabilidadeTipo =
+  | 'PODER_GENERICO'
+  | 'HABILIDADE_TECNICA_INATA'
+  | 'HABILIDADE_TECNICA_NAO_INATA';
+
 type AppliedFilters = DraftFilters & {
   pagina: number;
 };
@@ -103,13 +108,27 @@ function fonteBadgeColor(fonte?: TipoFonte): 'gray' | 'blue' | 'orange' {
   return 'gray';
 }
 
+function mapCadastroTipoToTecnicaTipo(
+  cadastroTipo: CadastroHabilidadeTipo,
+): TipoTecnicaAmaldicoada | null {
+  if (cadastroTipo === 'HABILIDADE_TECNICA_INATA') {
+    return TipoTecnicaAmaldicoada.INATA;
+  }
+
+  if (cadastroTipo === 'HABILIDADE_TECNICA_NAO_INATA') {
+    return TipoTecnicaAmaldicoada.NAO_INATA;
+  }
+
+  return null;
+}
+
 type SelecionarTecnicaModalProps = {
   isOpen: boolean;
   loading: boolean;
-  tipo: TipoTecnicaAmaldicoada;
+  cadastroTipo: CadastroHabilidadeTipo;
   tecnicas: TecnicaAmaldicoadaCatalogo[];
   selectedId: string;
-  onChangeTipo: (value: TipoTecnicaAmaldicoada) => void;
+  onChangeCadastroTipo: (value: CadastroHabilidadeTipo) => void;
   onChangeSelectedId: (value: string) => void;
   onClose: () => void;
   onConfirm: () => void;
@@ -118,27 +137,36 @@ type SelecionarTecnicaModalProps = {
 function SelecionarTecnicaModal({
   isOpen,
   loading,
-  tipo,
+  cadastroTipo,
   tecnicas,
   selectedId,
-  onChangeTipo,
+  onChangeCadastroTipo,
   onChangeSelectedId,
   onClose,
   onConfirm,
 }: SelecionarTecnicaModalProps) {
+  const isHabilidadeTecnica = cadastroTipo !== 'PODER_GENERICO';
+  const confirmLabel = isHabilidadeTecnica
+    ? 'Abrir editor da tecnica'
+    : 'Abrir editor generico';
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Nova habilidade de tecnica"
+      title="Nova habilidade"
       size="lg"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button variant="primary" onClick={onConfirm} disabled={!selectedId || loading}>
-            Abrir editor da tecnica
+          <Button
+            variant="primary"
+            onClick={onConfirm}
+            disabled={isHabilidadeTecnica && (!selectedId || loading)}
+          >
+            {confirmLabel}
           </Button>
         </>
       }
@@ -146,22 +174,29 @@ function SelecionarTecnicaModal({
       <div className="space-y-4">
         <Card>
           <p className="text-sm text-app-muted">
-            Cadastro de habilidade de tecnica e separado do poder generico.
-            Selecione a tecnica de destino para abrir o CRUD dedicado.
+            Selecione o tipo de habilidade. Para tecnicas, o sistema abre o CRUD dedicado da
+            tecnica escolhida.
           </p>
         </Card>
 
         <div className="grid grid-cols-1 gap-3">
           <Select
-            label="Tipo da tecnica"
-            value={tipo}
-            onChange={(e) => onChangeTipo(e.target.value as TipoTecnicaAmaldicoada)}
+            label="Tipo de habilidade"
+            value={cadastroTipo}
+            onChange={(e) => onChangeCadastroTipo(e.target.value as CadastroHabilidadeTipo)}
           >
-            <option value={TipoTecnicaAmaldicoada.INATA}>Tecnica Inata</option>
-            <option value={TipoTecnicaAmaldicoada.NAO_INATA}>Tecnica Nao Inata</option>
+            <option value="PODER_GENERICO">Poder Generico</option>
+            <option value="HABILIDADE_TECNICA_INATA">Habilidade de Tecnica Inata</option>
+            <option value="HABILIDADE_TECNICA_NAO_INATA">Habilidade de Tecnica Nao Inata</option>
           </Select>
 
-          {loading ? (
+          {!isHabilidadeTecnica ? (
+            <Card>
+              <p className="text-sm text-app-muted">
+                O editor de poder generico permite cadastrar habilidades independentes de tecnica.
+              </p>
+            </Card>
+          ) : loading ? (
             <Loading message="Carregando tecnicas..." className="py-6 text-app-fg" />
           ) : tecnicas.length === 0 ? (
             <EmptyState
@@ -183,6 +218,19 @@ function SelecionarTecnicaModal({
                 </option>
               ))}
             </Select>
+          )}
+
+          {isHabilidadeTecnica && (
+            <Input
+              label="Classificacao"
+              value={
+                cadastroTipo === 'HABILIDADE_TECNICA_INATA'
+                  ? 'Tecnica Inata'
+                  : 'Tecnica Nao Inata'
+              }
+              disabled
+              helperText="As habilidades serao cadastradas no CRUD da tecnica selecionada."
+            />
           )}
         </div>
       </div>
@@ -212,9 +260,8 @@ export function HabilidadesAdminPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [habilidadeEditando, setHabilidadeEditando] = useState<HabilidadeCatalogo | null>(null);
   const [tecnicaSelectorOpen, setTecnicaSelectorOpen] = useState(false);
-  const [tecnicaTipoSelecionado, setTecnicaTipoSelecionado] = useState<TipoTecnicaAmaldicoada>(
-    TipoTecnicaAmaldicoada.INATA,
-  );
+  const [cadastroTipoSelecionado, setCadastroTipoSelecionado] =
+    useState<CadastroHabilidadeTipo>('PODER_GENERICO');
   const [tecnicasDisponiveis, setTecnicasDisponiveis] = useState<TecnicaAmaldicoadaCatalogo[]>([]);
   const [tecnicasLoading, setTecnicasLoading] = useState(false);
   const [tecnicaSelecionadaId, setTecnicaSelecionadaId] = useState('');
@@ -282,8 +329,14 @@ export function HabilidadesAdminPanel() {
 
   useEffect(() => {
     if (!tecnicaSelectorOpen) return;
-    carregarTecnicasDisponiveis(tecnicaTipoSelecionado);
-  }, [tecnicaSelectorOpen, tecnicaTipoSelecionado, carregarTecnicasDisponiveis]);
+    const tipoTecnica = mapCadastroTipoToTecnicaTipo(cadastroTipoSelecionado);
+    if (!tipoTecnica) {
+      setTecnicasDisponiveis([]);
+      return;
+    }
+
+    carregarTecnicasDisponiveis(tipoTecnica);
+  }, [tecnicaSelectorOpen, cadastroTipoSelecionado, carregarTecnicasDisponiveis]);
 
   function aplicarFiltros() {
     setAppliedFilters({
@@ -332,13 +385,19 @@ export function HabilidadesAdminPanel() {
     setModalOpen(true);
   }
 
-  function abrirCriacaoHabilidadeTecnica() {
-    setTecnicaTipoSelecionado(TipoTecnicaAmaldicoada.INATA);
+  function abrirFluxoNovaHabilidade() {
+    setCadastroTipoSelecionado('PODER_GENERICO');
     setTecnicaSelecionadaId('');
     setTecnicaSelectorOpen(true);
   }
 
   function confirmarTecnicaSelecionada() {
+    if (cadastroTipoSelecionado === 'PODER_GENERICO') {
+      setTecnicaSelectorOpen(false);
+      abrirCriacao();
+      return;
+    }
+
     const tecnica = tecnicasDisponiveis.find((item) => item.id === Number(tecnicaSelecionadaId));
     if (!tecnica) {
       showToast('Selecione uma tecnica valida.', 'error');
@@ -362,17 +421,13 @@ export function HabilidadesAdminPanel() {
           <div>
             <h2 className="text-xl font-semibold text-app-fg">Gerenciar Habilidades</h2>
             <p className="text-sm text-app-muted">
-              Poderes genericos ficam aqui. Habilidades de tecnica usam CRUD dedicado por tecnica.
+              Cadastre poderes genericos ou habilidades associadas a tecnicas (inatas e nao inatas).
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
-            <Button variant="secondary" onClick={abrirCriacaoHabilidadeTecnica}>
-              <Icon name="technique" className="w-4 h-4 mr-2" />
-              Nova habilidade de tecnica
-            </Button>
-            <Button variant="primary" onClick={abrirCriacao}>
+            <Button variant="primary" onClick={abrirFluxoNovaHabilidade}>
               <Icon name="add" className="w-4 h-4 mr-2" />
-              Novo poder generico
+              Nova habilidade
             </Button>
           </div>
         </div>
@@ -479,7 +534,7 @@ export function HabilidadesAdminPanel() {
             title="Nenhuma habilidade encontrada"
             description="Ajuste os filtros ou crie uma nova habilidade."
             actionLabel="Nova habilidade"
-            onAction={abrirCriacao}
+            onAction={abrirFluxoNovaHabilidade}
           />
         ) : (
           <div className="space-y-4">
@@ -579,11 +634,11 @@ export function HabilidadesAdminPanel() {
       <SelecionarTecnicaModal
         isOpen={tecnicaSelectorOpen}
         loading={tecnicasLoading}
-        tipo={tecnicaTipoSelecionado}
+        cadastroTipo={cadastroTipoSelecionado}
         tecnicas={tecnicasDisponiveis}
         selectedId={tecnicaSelecionadaId}
-        onChangeTipo={(value) => {
-          setTecnicaTipoSelecionado(value);
+        onChangeCadastroTipo={(value) => {
+          setCadastroTipoSelecionado(value);
           setTecnicaSelecionadaId('');
         }}
         onChangeSelectedId={setTecnicaSelecionadaId}

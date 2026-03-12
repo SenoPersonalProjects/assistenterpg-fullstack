@@ -22,6 +22,7 @@ import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
 import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import {
   atendeRequisitosGraus,
   montarMapaGraus,
@@ -209,6 +210,22 @@ type CustoHabilidadeResolvido = {
   isUsoBaseSemEscalonamento: boolean;
 };
 
+type CondicaoAtivaSessaoResumo = {
+  id: number;
+  condicaoId: number;
+  nome: string;
+  descricao: string;
+  automatica: boolean;
+  chaveAutomacao: string | null;
+  duracaoModo: string;
+  duracaoValor: number | null;
+  restanteDuracao: number | null;
+  contadorTurnos: number;
+  origemDescricao: string | null;
+  observacao: string | null;
+  turnoAplicacao: number;
+};
+
 type VariacaoTecnicaSessaoRaw = {
   id: number;
   habilidadeTecnicaId: number;
@@ -309,7 +326,24 @@ const TIPOS_EVENTO_REVERSIVEIS = new Set<string>([
   'NPC_ADICIONADO',
   'NPC_ATUALIZADO',
   'NPC_REMOVIDO',
+  'CONDICAO_APLICADA',
+  'CONDICAO_REMOVIDA',
 ]);
+
+const CONDICAO_DURACAO_MODOS = {
+  ATE_REMOVER: 'ATE_REMOVER',
+  RODADAS: 'RODADAS',
+  TURNOS_ALVO: 'TURNOS_ALVO',
+} as const;
+
+const CONDICAO_AUTOMACAO_CHAVES = {
+  MACHUCADO: 'MACHUCADO',
+  MORRENDO: 'MORRENDO',
+  CAIDO: 'CAIDO',
+  ENLOUQUECENDO: 'ENLOUQUECENDO',
+  INSANO: 'INSANO',
+  MORTO: 'MORTO',
+} as const;
 
 @Injectable()
 export class SessaoService {
@@ -477,6 +511,8 @@ export class SessaoService {
     usuarioId: number,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    await this.sincronizarCondicoesAutomaticasSessao(sessaoId);
+
     const sessao = await this.prisma.sessao.findUnique({
       where: { id: sessaoId },
       include: {
@@ -580,11 +616,67 @@ export class SessaoService {
                 },
               },
             },
+            condicoes: {
+              where: {
+                ativo: true,
+              },
+              orderBy: {
+                id: 'asc',
+              },
+              select: {
+                id: true,
+                condicaoId: true,
+                turnoAplicacao: true,
+                duracaoModo: true,
+                duracaoValor: true,
+                restanteDuracao: true,
+                automatica: true,
+                chaveAutomacao: true,
+                contadorTurnos: true,
+                origemDescricao: true,
+                observacao: true,
+                condicao: {
+                  select: {
+                    nome: true,
+                    descricao: true,
+                  },
+                },
+              },
+            },
           },
         },
         npcs: {
           orderBy: {
             id: 'asc',
+          },
+          include: {
+            condicoes: {
+              where: {
+                ativo: true,
+              },
+              orderBy: {
+                id: 'asc',
+              },
+              select: {
+                id: true,
+                condicaoId: true,
+                turnoAplicacao: true,
+                duracaoModo: true,
+                duracaoValor: true,
+                restanteDuracao: true,
+                automatica: true,
+                chaveAutomacao: true,
+                contadorTurnos: true,
+                origemDescricao: true,
+                observacao: true,
+                condicao: {
+                  select: {
+                    nome: true,
+                    descricao: true,
+                  },
+                },
+              },
+            },
           },
         },
         habilidadesSustentadas: {
@@ -736,6 +828,7 @@ export class SessaoService {
         );
         const sustentacoesAtivas =
           sustentacoesPorPersonagemSessao.get(personagem.id) ?? [];
+        const condicoesAtivas = this.mapearCondicoesAtivasSessao(personagem.condicoes);
 
         return {
           personagemSessaoId: personagem.id,
@@ -764,6 +857,7 @@ export class SessaoService {
             visibilidade === 'completa' ? tecnicas.tecnicasNaoInatas : [],
           sustentacoesAtivas:
             visibilidade === 'completa' ? sustentacoesAtivas : [],
+          condicoesAtivas,
         };
       }),
       npcs: npcsCenaAtual.map((npc) => ({
@@ -781,6 +875,7 @@ export class SessaoService {
           notasCena: npc.notasCena,
           passivas: this.mapearListaObjeto(npc.passivasGuia),
           acoes: this.mapearListaObjeto(npc.acoesGuia),
+          condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
           podeEditar: acesso.ehMestre,
         })),
       iniciadoEm: sessao.iniciadoEm,
@@ -1357,6 +1452,137 @@ export class SessaoService {
                 eventoOriginalId: evento.id,
                 npcSessaoIdRestaurado: npcRestaurado.id,
                 nome: npcRestaurado.nomeExibicao,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              },
+            },
+          });
+          break;
+        }
+        case 'CONDICAO_APLICADA': {
+          const condicaoSessaoId = this.lerInteiroRegistro(
+            dadosEvento,
+            'condicaoSessaoId',
+          );
+          const modoOperacao = this.lerTextoOpcionalRegistro(
+            dadosEvento,
+            'modoOperacao',
+          );
+          if (condicaoSessaoId === null) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          const condicaoAtual = await tx.condicaoPersonagemSessao.findFirst({
+            where: {
+              id: condicaoSessaoId,
+              sessaoId,
+            },
+          });
+
+          if (!condicaoAtual) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          if (modoOperacao === 'ATUALIZADA') {
+            const snapshotAnterior = this.lerSnapshotCondicaoRegistro(
+              dadosEvento,
+              'snapshotAnterior',
+            );
+            if (!snapshotAnterior) {
+              throw new SessaoEventoDesfazerNaoPermitidoException(
+                eventoId,
+                sessaoId,
+                evento.tipoEvento,
+              );
+            }
+            await tx.condicaoPersonagemSessao.update({
+              where: {
+                id: condicaoSessaoId,
+              },
+              data: this.montarUpdateCondicaoPorSnapshot(snapshotAnterior),
+            });
+          } else {
+            await tx.condicaoPersonagemSessao.update({
+              where: {
+                id: condicaoSessaoId,
+              },
+              data: {
+                ativo: false,
+                removidaEm: new Date(),
+                motivoRemocao: 'Aplicacao de condicao desfeita.',
+              },
+            });
+          }
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: condicaoAtual.cenaId,
+              personagemAtorId: condicaoAtual.personagemSessaoId,
+              tipoEvento: 'CONDICAO_APLICACAO_DESFEITA',
+              dados: {
+                eventoOriginalId: evento.id,
+                condicaoSessaoId,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              },
+            },
+          });
+          break;
+        }
+        case 'CONDICAO_REMOVIDA': {
+          const condicaoSessaoId = this.lerInteiroRegistro(
+            dadosEvento,
+            'condicaoSessaoId',
+          );
+          const snapshot = this.lerSnapshotCondicaoRegistro(dadosEvento, 'snapshot');
+          if (condicaoSessaoId === null || !snapshot) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          const condicaoAtual = await tx.condicaoPersonagemSessao.findFirst({
+            where: {
+              id: condicaoSessaoId,
+              sessaoId,
+            },
+          });
+
+          if (!condicaoAtual) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          await tx.condicaoPersonagemSessao.update({
+            where: {
+              id: condicaoSessaoId,
+            },
+            data: this.montarUpdateCondicaoPorSnapshot(snapshot),
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: snapshot.cenaId,
+              personagemAtorId: snapshot.personagemSessaoId,
+              tipoEvento: 'CONDICAO_REMOCAO_DESFEITA',
+              dados: {
+                eventoOriginalId: evento.id,
+                condicaoSessaoId,
                 desfeitoPorId: usuarioId,
                 motivo: motivoLimpo,
               },
@@ -2032,12 +2258,13 @@ export class SessaoService {
           turnoReferencia,
         );
 
-        const deveValidarLimiteTurno = !custo.isUsoBaseSemEscalonamento;
-        if (
-          deveValidarLimiteTurno &&
-          limitePeEaPorTurno > 0 &&
-          gastoPeEaNoTurnoAntesUso + custoTotalUso > limitePeEaPorTurno
-        ) {
+        const bloqueadoPorLimiteTurno = this.deveBloquearPorLimitePeEaTurno(
+          limitePeEaPorTurno,
+          gastoPeEaNoTurnoAntesUso,
+          custoTotalUso,
+          custo.isUsoBaseSemEscalonamento,
+        );
+        if (bloqueadoPorLimiteTurno) {
           throw new BusinessException(
             'Limite de PE/EA por turno excedido para esta acao',
             'SESSAO_LIMITE_PEEA_EXCEDIDO',
@@ -2127,6 +2354,265 @@ export class SessaoService {
               : null,
             gastoPeEaNoTurnoAposUso,
             usadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async aplicarCondicaoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AplicarCondicaoSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'aplicar condicao');
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+          rodadaAtual: true,
+          cenas: {
+            select: { id: true },
+            orderBy: { id: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      const condicao = await tx.condicao.findUnique({
+        where: { id: dto.condicaoId },
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+        },
+      });
+
+      if (!condicao) {
+        throw new BusinessException(
+          'Condicao nao encontrada',
+          'SESSAO_CONDICAO_NOT_FOUND',
+          {
+            campanhaId,
+            sessaoId,
+            condicaoId: dto.condicaoId,
+          },
+        );
+      }
+
+      const alvo = await this.resolverAlvoCondicaoSessaoTx(tx, sessaoId, dto);
+      const duracao = this.resolverDuracaoCondicao(
+        dto.duracaoModo,
+        dto.duracaoValor,
+      );
+      const cenaAtualId = sessao.cenas[0]?.id ?? alvo.cenaId;
+
+      if (!cenaAtualId) {
+        throw new BusinessException(
+          'Cena atual da sessao nao encontrada para aplicar condicao',
+          'SESSAO_CENA_ATUAL_NOT_FOUND',
+          {
+            campanhaId,
+            sessaoId,
+          },
+        );
+      }
+
+      const existente = await tx.condicaoPersonagemSessao.findFirst({
+        where: {
+          sessaoId,
+          condicaoId: condicao.id,
+          ativo: true,
+          personagemSessaoId: alvo.personagemSessaoId,
+          npcSessaoId: alvo.npcSessaoId,
+        },
+      });
+
+      const snapshotAnterior = existente
+        ? this.snapshotCondicaoSessao(existente)
+        : null;
+
+      const condicaoAtiva = existente
+        ? await tx.condicaoPersonagemSessao.update({
+            where: {
+              id: existente.id,
+            },
+            data: {
+              cenaId: alvo.cenaId ?? cenaAtualId,
+              turnoAplicacao: sessao.rodadaAtual,
+              duracaoTurnos: duracao.duracaoTurnos,
+              duracaoModo: duracao.duracaoModo,
+              duracaoValor: duracao.duracaoValor,
+              restanteDuracao: duracao.restanteDuracao,
+              ativo: true,
+              automatica: false,
+              chaveAutomacao: null,
+              contadorTurnos: 0,
+              origemDescricao: dto.origemDescricao?.trim() || null,
+              observacao: dto.observacao?.trim() || null,
+              removidaEm: null,
+              motivoRemocao: null,
+            },
+          })
+        : await tx.condicaoPersonagemSessao.create({
+            data: {
+              sessaoId,
+              personagemSessaoId: alvo.personagemSessaoId,
+              npcSessaoId: alvo.npcSessaoId,
+              condicaoId: condicao.id,
+              cenaId: alvo.cenaId ?? cenaAtualId,
+              turnoAplicacao: sessao.rodadaAtual,
+              duracaoTurnos: duracao.duracaoTurnos,
+              duracaoModo: duracao.duracaoModo,
+              duracaoValor: duracao.duracaoValor,
+              restanteDuracao: duracao.restanteDuracao,
+              ativo: true,
+              automatica: false,
+              origemDescricao: dto.origemDescricao?.trim() || null,
+              observacao: dto.observacao?.trim() || null,
+            },
+          });
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: alvo.cenaId ?? cenaAtualId,
+          personagemAtorId: alvo.personagemSessaoId,
+          tipoEvento: 'CONDICAO_APLICADA',
+          dados: this.jsonParaPersistencia({
+            condicaoSessaoId: condicaoAtiva.id,
+            condicaoId: condicao.id,
+            condicaoNome: condicao.nome,
+            alvoTipo: dto.alvoTipo,
+            personagemSessaoId: alvo.personagemSessaoId,
+            npcSessaoId: alvo.npcSessaoId,
+            alvoNome: alvo.nome,
+            duracaoModo: duracao.duracaoModo,
+            duracaoValor: duracao.duracaoValor,
+            restanteDuracao: duracao.restanteDuracao,
+            origemDescricao: dto.origemDescricao?.trim() || null,
+            observacao: dto.observacao?.trim() || null,
+            modoOperacao: existente ? 'ATUALIZADA' : 'CRIADA',
+            snapshotAnterior,
+            aplicadaPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async removerCondicaoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    condicaoSessaoId: number,
+    usuarioId: number,
+    motivo?: string,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'remover condicao');
+    const motivoLimpo = motivo?.trim() || null;
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      const condicaoSessao = await tx.condicaoPersonagemSessao.findFirst({
+        where: {
+          id: condicaoSessaoId,
+          sessaoId,
+          ativo: true,
+        },
+        include: {
+          condicao: {
+            select: {
+              id: true,
+              nome: true,
+            },
+          },
+          personagemSessao: {
+            include: {
+              personagemCampanha: {
+                select: {
+                  nome: true,
+                },
+              },
+            },
+          },
+          npcSessao: {
+            select: {
+              nomeExibicao: true,
+            },
+          },
+        },
+      });
+
+      if (!condicaoSessao) {
+        throw new BusinessException(
+          'Condicao ativa nao encontrada nesta sessao',
+          'SESSAO_CONDICAO_ATIVA_NOT_FOUND',
+          {
+            campanhaId,
+            sessaoId,
+            condicaoSessaoId,
+          },
+        );
+      }
+
+      const snapshot = this.snapshotCondicaoSessao(condicaoSessao);
+      const alvoNome =
+        condicaoSessao.personagemSessao?.personagemCampanha.nome ??
+        condicaoSessao.npcSessao?.nomeExibicao ??
+        'Alvo';
+
+      await tx.condicaoPersonagemSessao.update({
+        where: {
+          id: condicaoSessao.id,
+        },
+        data: {
+          ativo: false,
+          removidaEm: new Date(),
+          motivoRemocao: motivoLimpo,
+        },
+      });
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: condicaoSessao.cenaId,
+          personagemAtorId: condicaoSessao.personagemSessaoId,
+          tipoEvento: 'CONDICAO_REMOVIDA',
+          dados: this.jsonParaPersistencia({
+            condicaoSessaoId: condicaoSessao.id,
+            condicaoId: condicaoSessao.condicao.id,
+            condicaoNome: condicaoSessao.condicao.nome,
+            personagemSessaoId: condicaoSessao.personagemSessaoId,
+            npcSessaoId: condicaoSessao.npcSessaoId,
+            alvoNome,
+            motivo: motivoLimpo,
+            snapshot,
+            removidaPorId: usuarioId,
           }),
         },
       });
@@ -2925,6 +3411,39 @@ export class SessaoService {
     return gasto;
   }
 
+  private deveBloquearPorLimitePeEaTurno(
+    limitePeEaPorTurno: number,
+    gastoPeEaNoTurnoAntesUso: number,
+    custoTotalUso: number,
+    isUsoBaseSemEscalonamento: boolean,
+  ): boolean {
+    const limiteNormalizado = Math.max(
+      0,
+      Math.trunc(Number.isFinite(limitePeEaPorTurno) ? limitePeEaPorTurno : 0),
+    );
+    if (limiteNormalizado <= 0) return false;
+
+    const gastoAtual = Math.max(
+      0,
+      Math.trunc(
+        Number.isFinite(gastoPeEaNoTurnoAntesUso) ? gastoPeEaNoTurnoAntesUso : 0,
+      ),
+    );
+    const custoUso = Math.max(
+      0,
+      Math.trunc(Number.isFinite(custoTotalUso) ? custoTotalUso : 0),
+    );
+    const gastoTotal = gastoAtual + custoUso;
+
+    // Regra especial: uso base sem escalonamento pode ultrapassar o limite
+    // apenas quando for o primeiro uso do turno.
+    if (isUsoBaseSemEscalonamento && gastoAtual === 0) {
+      return false;
+    }
+
+    return gastoTotal > limiteNormalizado;
+  }
+
   private mapearParticipantesCampanha(campanha: AcessoCampanha['campanha']) {
     const participantes = new Map<
       number,
@@ -3445,6 +3964,16 @@ export class SessaoService {
         }
       }
 
+      if (acao !== 'VOLTAR') {
+        await this.processarCondicoesNoAvancoTurnoTx(tx, {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          rodadaAnterior: sessao.rodadaAtual,
+          rodadaNova,
+          participanteTurnoNovo: participantes[indiceNovo] ?? null,
+        });
+      }
+
       const tipoEvento =
         acao === 'AVANCAR'
           ? 'TURNO_AVANCADO'
@@ -3472,6 +4001,756 @@ export class SessaoService {
         },
       });
     });
+  }
+
+  private mapearCondicoesAtivasSessao(
+    condicoes: Array<{
+      id: number;
+      condicaoId: number;
+      turnoAplicacao: number;
+      duracaoModo: string;
+      duracaoValor: number | null;
+      restanteDuracao: number | null;
+      automatica: boolean;
+      chaveAutomacao: string | null;
+      contadorTurnos: number;
+      origemDescricao: string | null;
+      observacao: string | null;
+      condicao: {
+        nome: string;
+        descricao: string;
+      };
+    }>,
+  ): CondicaoAtivaSessaoResumo[] {
+    return condicoes.map((condicaoAtiva) => ({
+      id: condicaoAtiva.id,
+      condicaoId: condicaoAtiva.condicaoId,
+      nome: condicaoAtiva.condicao.nome,
+      descricao: condicaoAtiva.condicao.descricao,
+      automatica: condicaoAtiva.automatica,
+      chaveAutomacao: condicaoAtiva.chaveAutomacao,
+      duracaoModo: condicaoAtiva.duracaoModo,
+      duracaoValor: condicaoAtiva.duracaoValor,
+      restanteDuracao: condicaoAtiva.restanteDuracao,
+      contadorTurnos: condicaoAtiva.contadorTurnos,
+      origemDescricao: condicaoAtiva.origemDescricao,
+      observacao: condicaoAtiva.observacao,
+      turnoAplicacao: condicaoAtiva.turnoAplicacao,
+    }));
+  }
+
+  private snapshotCondicaoSessao(condicao: {
+    id: number;
+    sessaoId: number | null;
+    personagemSessaoId: number | null;
+    npcSessaoId: number | null;
+    condicaoId: number;
+    cenaId: number;
+    turnoAplicacao: number;
+    duracaoTurnos: number | null;
+    duracaoModo: string;
+    duracaoValor: number | null;
+    restanteDuracao: number | null;
+    ativo: boolean;
+    automatica: boolean;
+    chaveAutomacao: string | null;
+    contadorTurnos: number;
+    origemDescricao: string | null;
+    observacao: string | null;
+    removidaEm?: Date | null;
+    motivoRemocao?: string | null;
+  }) {
+    return {
+      id: condicao.id,
+      sessaoId: condicao.sessaoId,
+      personagemSessaoId: condicao.personagemSessaoId,
+      npcSessaoId: condicao.npcSessaoId,
+      condicaoId: condicao.condicaoId,
+      cenaId: condicao.cenaId,
+      turnoAplicacao: condicao.turnoAplicacao,
+      duracaoTurnos: condicao.duracaoTurnos,
+      duracaoModo: condicao.duracaoModo,
+      duracaoValor: condicao.duracaoValor,
+      restanteDuracao: condicao.restanteDuracao,
+      ativo: condicao.ativo,
+      automatica: condicao.automatica,
+      chaveAutomacao: condicao.chaveAutomacao,
+      contadorTurnos: condicao.contadorTurnos,
+      origemDescricao: condicao.origemDescricao,
+      observacao: condicao.observacao,
+      removidaEm: condicao.removidaEm
+        ? condicao.removidaEm.toISOString()
+        : null,
+      motivoRemocao: condicao.motivoRemocao ?? null,
+    };
+  }
+
+  private resolverDuracaoCondicao(
+    duracaoModo: string | undefined,
+    duracaoValor: number | undefined,
+  ): {
+    duracaoModo: string;
+    duracaoValor: number | null;
+    restanteDuracao: number | null;
+    duracaoTurnos: number | null;
+  } {
+    const modo = this.normalizarTextoComparacao(duracaoModo) || CONDICAO_DURACAO_MODOS.ATE_REMOVER;
+    if (
+      modo !== CONDICAO_DURACAO_MODOS.ATE_REMOVER &&
+      modo !== CONDICAO_DURACAO_MODOS.RODADAS &&
+      modo !== CONDICAO_DURACAO_MODOS.TURNOS_ALVO
+    ) {
+      throw new BusinessException(
+        'Modo de duracao de condicao invalido',
+        'SESSAO_CONDICAO_DURACAO_INVALIDA',
+        { duracaoModo },
+      );
+    }
+
+    if (modo === CONDICAO_DURACAO_MODOS.ATE_REMOVER) {
+      return {
+        duracaoModo: modo,
+        duracaoValor: null,
+        restanteDuracao: null,
+        duracaoTurnos: null,
+      };
+    }
+
+    const valor = Number.isFinite(duracaoValor ?? NaN)
+      ? Math.max(1, Math.trunc(duracaoValor as number))
+      : null;
+    if (!valor) {
+      throw new BusinessException(
+        'Duracao numerica da condicao e obrigatoria',
+        'SESSAO_CONDICAO_DURACAO_VALOR_REQUIRED',
+        { duracaoModo: modo },
+      );
+    }
+
+    return {
+      duracaoModo: modo,
+      duracaoValor: valor,
+      restanteDuracao: valor,
+      duracaoTurnos: valor,
+    };
+  }
+
+  private async resolverAlvoCondicaoSessaoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    dto: AplicarCondicaoSessaoDto,
+  ): Promise<{
+    personagemSessaoId: number | null;
+    npcSessaoId: number | null;
+    cenaId: number | null;
+    nome: string;
+  }> {
+    if (dto.alvoTipo === 'PERSONAGEM') {
+      const personagem = await tx.personagemSessao.findFirst({
+        where: {
+          id: dto.personagemSessaoId,
+          sessaoId,
+        },
+        select: {
+          id: true,
+          cenaId: true,
+          personagemCampanha: {
+            select: {
+              nome: true,
+            },
+          },
+        },
+      });
+
+      if (!personagem) {
+        throw new BusinessException(
+          'Personagem da sessao nao encontrado para aplicar condicao',
+          'SESSAO_CONDICAO_ALVO_PERSONAGEM_NOT_FOUND',
+          {
+            sessaoId,
+            personagemSessaoId: dto.personagemSessaoId,
+          },
+        );
+      }
+
+      return {
+        personagemSessaoId: personagem.id,
+        npcSessaoId: null,
+        cenaId: personagem.cenaId,
+        nome: personagem.personagemCampanha.nome,
+      };
+    }
+
+    const npc = await tx.npcAmeacaSessao.findFirst({
+      where: {
+        id: dto.npcSessaoId,
+        sessaoId,
+      },
+      select: {
+        id: true,
+        cenaId: true,
+        nomeExibicao: true,
+      },
+    });
+
+    if (!npc) {
+      throw new BusinessException(
+        'NPC/Ameaca da sessao nao encontrado para aplicar condicao',
+        'SESSAO_CONDICAO_ALVO_NPC_NOT_FOUND',
+        {
+          sessaoId,
+          npcSessaoId: dto.npcSessaoId,
+        },
+      );
+    }
+
+    return {
+      personagemSessaoId: null,
+      npcSessaoId: npc.id,
+      cenaId: npc.cenaId,
+      nome: npc.nomeExibicao,
+    };
+  }
+
+  private async sincronizarCondicoesAutomaticasSessao(sessaoId: number): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
+    });
+  }
+
+  private async obterMapaCondicoesSistemaTx(tx: Prisma.TransactionClient) {
+    const condicaoDelegate = (
+      tx as Prisma.TransactionClient & {
+        condicao?: { findMany?: typeof tx.condicao.findMany };
+      }
+    ).condicao;
+    if (!condicaoDelegate?.findMany) {
+      return {
+        machucadoId: null,
+        morrendoId: null,
+        caidoId: null,
+        enlouquecendoId: null,
+        insanoId: null,
+        mortoId: null,
+      };
+    }
+
+    const condicoes = await condicaoDelegate.findMany({
+      select: {
+        id: true,
+        nome: true,
+      },
+    });
+
+    const porNomeNormalizado = new Map<string, number>();
+    for (const condicao of condicoes) {
+      porNomeNormalizado.set(this.normalizarTextoComparacao(condicao.nome), condicao.id);
+    }
+
+    const resolverPorAliases = (aliases: string[]): number | null => {
+      for (const alias of aliases) {
+        const condicaoId = porNomeNormalizado.get(this.normalizarTextoComparacao(alias));
+        if (condicaoId) return condicaoId;
+      }
+      return null;
+    };
+
+    return {
+      machucadoId: resolverPorAliases(['MACHUCADO']),
+      morrendoId: resolverPorAliases(['MORRENDO']),
+      caidoId: resolverPorAliases(['CAIDO']),
+      enlouquecendoId: resolverPorAliases(['ENLOUQUECENDO']),
+      insanoId: resolverPorAliases(['INSANO', 'LOUCO', 'ENLOUQUECIDO']),
+      mortoId: resolverPorAliases(['MORTO', 'MORTA', 'MORTE']),
+    };
+  }
+
+  private async sincronizarCondicaoAutomaticaAlvoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      rodadaAtual: number;
+      personagemSessaoId: number | null;
+      npcSessaoId: number | null;
+      condicaoId: number | null;
+      chaveAutomacao: string;
+      ativa: boolean;
+      origemDescricao: string;
+    },
+  ): Promise<void> {
+    if (!args.condicaoId) return;
+
+    const existente = await tx.condicaoPersonagemSessao.findFirst({
+      where: {
+        sessaoId: args.sessaoId,
+        condicaoId: args.condicaoId,
+        personagemSessaoId: args.personagemSessaoId,
+        npcSessaoId: args.npcSessaoId,
+        automatica: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
+
+    if (args.ativa) {
+      if (existente) {
+        if (!existente.ativo) {
+          await tx.condicaoPersonagemSessao.update({
+            where: { id: existente.id },
+            data: {
+              ativo: true,
+              removidaEm: null,
+              motivoRemocao: null,
+              cenaId: args.cenaId,
+              turnoAplicacao: args.rodadaAtual,
+            },
+          });
+        }
+        return;
+      }
+
+      await tx.condicaoPersonagemSessao.create({
+        data: {
+          sessaoId: args.sessaoId,
+          personagemSessaoId: args.personagemSessaoId,
+          npcSessaoId: args.npcSessaoId,
+          condicaoId: args.condicaoId,
+          cenaId: args.cenaId,
+          turnoAplicacao: args.rodadaAtual,
+          duracaoModo: CONDICAO_DURACAO_MODOS.ATE_REMOVER,
+          ativo: true,
+          automatica: true,
+          chaveAutomacao: args.chaveAutomacao,
+          contadorTurnos: 0,
+          origemDescricao: args.origemDescricao,
+          observacao: null,
+        },
+      });
+      return;
+    }
+
+    if (existente?.ativo) {
+      await tx.condicaoPersonagemSessao.update({
+        where: { id: existente.id },
+        data: {
+          ativo: false,
+          removidaEm: new Date(),
+          motivoRemocao: 'Condicao automatica removida por mudanca de estado.',
+        },
+      });
+    }
+  }
+
+  private async sincronizarCondicoesAutomaticasSessaoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+  ): Promise<void> {
+    const sessao = await tx.sessao.findUnique({
+      where: { id: sessaoId },
+      select: {
+        id: true,
+        rodadaAtual: true,
+        cenas: {
+          select: { id: true },
+          orderBy: { id: 'desc' },
+          take: 1,
+        },
+        personagens: {
+          select: {
+            id: true,
+            cenaId: true,
+            personagemCampanha: {
+              select: {
+                pvAtual: true,
+                pvMax: true,
+                sanAtual: true,
+              },
+            },
+          },
+        },
+        npcs: {
+          select: {
+            id: true,
+            cenaId: true,
+            pontosVidaAtual: true,
+            pontosVidaMax: true,
+          },
+        },
+      },
+    });
+
+    if (!sessao) return;
+
+    const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+    const cenas = Array.isArray(sessao.cenas) ? sessao.cenas : [];
+    const personagens = Array.isArray(sessao.personagens)
+      ? sessao.personagens
+      : [];
+    const npcs = Array.isArray(sessao.npcs) ? sessao.npcs : [];
+    const cenaAtualId = cenas[0]?.id ?? null;
+
+    for (const personagem of personagens) {
+      const pvAtual = personagem.personagemCampanha.pvAtual;
+      const pvMax = Math.max(1, personagem.personagemCampanha.pvMax);
+      const sanAtual = personagem.personagemCampanha.sanAtual;
+      const machucado = pvAtual > 0 && pvAtual <= Math.floor(pvMax / 2);
+      const morrendo = pvAtual <= 0;
+      const caido = pvAtual <= 0;
+      const enlouquecendo = sanAtual <= 0;
+      const cenaId = personagem.cenaId ?? cenaAtualId;
+      if (!cenaId) continue;
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: personagem.id,
+        npcSessaoId: null,
+        condicaoId: mapaSistema.machucadoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MACHUCADO,
+        ativa: machucado,
+        origemDescricao: 'Automatica por PV <= metade.',
+      });
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: personagem.id,
+        npcSessaoId: null,
+        condicaoId: mapaSistema.morrendoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORRENDO,
+        ativa: morrendo,
+        origemDescricao: 'Automatica por PV <= 0.',
+      });
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: personagem.id,
+        npcSessaoId: null,
+        condicaoId: mapaSistema.caidoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.CAIDO,
+        ativa: caido,
+        origemDescricao: 'Automatica por PV <= 0.',
+      });
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: personagem.id,
+        npcSessaoId: null,
+        condicaoId: mapaSistema.enlouquecendoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO,
+        ativa: enlouquecendo,
+        origemDescricao: 'Automatica por SAN <= 0.',
+      });
+    }
+
+    for (const npc of npcs) {
+      const pvAtual = npc.pontosVidaAtual;
+      const pvMax = Math.max(1, npc.pontosVidaMax);
+      const machucado = pvAtual > 0 && pvAtual <= Math.floor(pvMax / 2);
+      const morrendo = pvAtual <= 0;
+      const caido = pvAtual <= 0;
+      const cenaId = npc.cenaId ?? cenaAtualId;
+      if (!cenaId) continue;
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: null,
+        npcSessaoId: npc.id,
+        condicaoId: mapaSistema.machucadoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MACHUCADO,
+        ativa: machucado,
+        origemDescricao: 'Automatica por PV <= metade.',
+      });
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: null,
+        npcSessaoId: npc.id,
+        condicaoId: mapaSistema.morrendoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORRENDO,
+        ativa: morrendo,
+        origemDescricao: 'Automatica por PV <= 0.',
+      });
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: null,
+        npcSessaoId: npc.id,
+        condicaoId: mapaSistema.caidoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.CAIDO,
+        ativa: caido,
+        origemDescricao: 'Automatica por PV <= 0.',
+      });
+    }
+  }
+
+  private async processarCondicoesNoAvancoTurnoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      rodadaAnterior: number;
+      rodadaNova: number;
+      participanteTurnoNovo: ParticipanteIniciativa | null;
+    },
+  ): Promise<void> {
+    const { sessaoId, cenaId, rodadaAnterior, rodadaNova, participanteTurnoNovo } =
+      args;
+    if (!participanteTurnoNovo) return;
+
+    await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
+
+    const condicaoSessaoDelegate = (
+      tx as Prisma.TransactionClient & {
+        condicaoPersonagemSessao?: {
+          findMany?: typeof tx.condicaoPersonagemSessao.findMany;
+          update?: typeof tx.condicaoPersonagemSessao.update;
+        };
+      }
+    ).condicaoPersonagemSessao;
+    if (!condicaoSessaoDelegate?.findMany || !condicaoSessaoDelegate.update) {
+      return;
+    }
+
+    if (rodadaNova > rodadaAnterior) {
+      const condicoesPorRodada = await condicaoSessaoDelegate.findMany({
+        where: {
+          sessaoId,
+          ativo: true,
+          automatica: false,
+          duracaoModo: CONDICAO_DURACAO_MODOS.RODADAS,
+          restanteDuracao: { not: null },
+        },
+        orderBy: { id: 'asc' },
+      });
+
+      for (const condicao of condicoesPorRodada) {
+        const restanteAnterior = Math.max(0, condicao.restanteDuracao ?? 0);
+        const restanteNovo = Math.max(0, restanteAnterior - 1);
+        const expirada = restanteNovo <= 0;
+
+        await condicaoSessaoDelegate.update({
+          where: { id: condicao.id },
+          data: {
+            restanteDuracao: expirada ? 0 : restanteNovo,
+            ativo: !expirada,
+            removidaEm: expirada ? new Date() : null,
+            motivoRemocao: expirada ? 'Duracao em rodadas encerrada.' : null,
+          },
+        });
+
+        if (expirada) {
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: condicao.cenaId ?? cenaId,
+              personagemAtorId: condicao.personagemSessaoId,
+              tipoEvento: 'CONDICAO_EXPIRADA',
+              dados: this.jsonParaPersistencia({
+                condicaoSessaoId: condicao.id,
+                personagemSessaoId: condicao.personagemSessaoId,
+                npcSessaoId: condicao.npcSessaoId,
+                modo: CONDICAO_DURACAO_MODOS.RODADAS,
+              }),
+            },
+          });
+        }
+      }
+    }
+
+    if (participanteTurnoNovo.tipoParticipante === 'PERSONAGEM') {
+      const personagemSessaoId = participanteTurnoNovo.personagemSessaoId;
+      if (personagemSessaoId) {
+        const condicoesPorTurno = await condicaoSessaoDelegate.findMany({
+          where: {
+            sessaoId,
+            ativo: true,
+            automatica: false,
+            duracaoModo: CONDICAO_DURACAO_MODOS.TURNOS_ALVO,
+            personagemSessaoId,
+            restanteDuracao: { not: null },
+          },
+          orderBy: { id: 'asc' },
+        });
+
+        for (const condicao of condicoesPorTurno) {
+          const restanteAnterior = Math.max(0, condicao.restanteDuracao ?? 0);
+          const restanteNovo = Math.max(0, restanteAnterior - 1);
+          const expirada = restanteNovo <= 0;
+
+          await condicaoSessaoDelegate.update({
+            where: { id: condicao.id },
+            data: {
+              restanteDuracao: expirada ? 0 : restanteNovo,
+              ativo: !expirada,
+              removidaEm: expirada ? new Date() : null,
+              motivoRemocao: expirada ? 'Duracao em turnos do alvo encerrada.' : null,
+            },
+          });
+
+          if (expirada) {
+            await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                cenaId: condicao.cenaId ?? cenaId,
+                personagemAtorId: condicao.personagemSessaoId,
+                tipoEvento: 'CONDICAO_EXPIRADA',
+                dados: this.jsonParaPersistencia({
+                  condicaoSessaoId: condicao.id,
+                  personagemSessaoId: condicao.personagemSessaoId,
+                  npcSessaoId: condicao.npcSessaoId,
+                  modo: CONDICAO_DURACAO_MODOS.TURNOS_ALVO,
+                }),
+              },
+            });
+          }
+        }
+
+        const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+        const personagem = await tx.personagemSessao.findFirst({
+          where: {
+            id: personagemSessaoId,
+            sessaoId,
+          },
+          select: {
+            id: true,
+            cenaId: true,
+            personagemCampanha: {
+              select: {
+                turnosMorrendo: true,
+                turnosEnlouquecendo: true,
+              },
+            },
+          },
+        });
+
+        if (personagem) {
+          const condicoesAutomaticas = await condicaoSessaoDelegate.findMany({
+            where: {
+              sessaoId,
+              personagemSessaoId: personagem.id,
+              ativo: true,
+              automatica: true,
+              chaveAutomacao: {
+                in: [
+                  CONDICAO_AUTOMACAO_CHAVES.MORRENDO,
+                  CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO,
+                ],
+              },
+            },
+            orderBy: { id: 'asc' },
+          });
+
+          for (const condicao of condicoesAutomaticas) {
+            const contadorNovo = Math.max(0, condicao.contadorTurnos + 1);
+            await condicaoSessaoDelegate.update({
+              where: { id: condicao.id },
+              data: {
+                contadorTurnos: contadorNovo,
+              },
+            });
+
+            const cenaCondicao = personagem.cenaId ?? cenaId;
+            if (
+              condicao.chaveAutomacao === CONDICAO_AUTOMACAO_CHAVES.MORRENDO &&
+              contadorNovo >= personagem.personagemCampanha.turnosMorrendo
+            ) {
+              await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+                sessaoId,
+                cenaId: cenaCondicao,
+                rodadaAtual: rodadaNova,
+                personagemSessaoId: personagem.id,
+                npcSessaoId: null,
+                condicaoId: mapaSistema.mortoId,
+                chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORTO,
+                ativa: true,
+                origemDescricao: 'Automatica por exceder turnos morrendo.',
+              });
+            }
+
+            if (
+              condicao.chaveAutomacao ===
+                CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO &&
+              contadorNovo >= personagem.personagemCampanha.turnosEnlouquecendo
+            ) {
+              await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+                sessaoId,
+                cenaId: cenaCondicao,
+                rodadaAtual: rodadaNova,
+                personagemSessaoId: personagem.id,
+                npcSessaoId: null,
+                condicaoId: mapaSistema.insanoId,
+                chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.INSANO,
+                ativa: true,
+                origemDescricao: 'Automatica por exceder turnos enlouquecendo.',
+              });
+            }
+          }
+        }
+      }
+    } else if (participanteTurnoNovo.tipoParticipante === 'NPC') {
+      const npcSessaoId = participanteTurnoNovo.npcSessaoId;
+      if (npcSessaoId) {
+        const condicoesPorTurno = await condicaoSessaoDelegate.findMany({
+          where: {
+            sessaoId,
+            ativo: true,
+            automatica: false,
+            duracaoModo: CONDICAO_DURACAO_MODOS.TURNOS_ALVO,
+            npcSessaoId,
+            restanteDuracao: { not: null },
+          },
+          orderBy: { id: 'asc' },
+        });
+
+        for (const condicao of condicoesPorTurno) {
+          const restanteAnterior = Math.max(0, condicao.restanteDuracao ?? 0);
+          const restanteNovo = Math.max(0, restanteAnterior - 1);
+          const expirada = restanteNovo <= 0;
+
+          await condicaoSessaoDelegate.update({
+            where: { id: condicao.id },
+            data: {
+              restanteDuracao: expirada ? 0 : restanteNovo,
+              ativo: !expirada,
+              removidaEm: expirada ? new Date() : null,
+              motivoRemocao: expirada ? 'Duracao em turnos do alvo encerrada.' : null,
+            },
+          });
+
+          if (expirada) {
+            await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                cenaId: condicao.cenaId ?? cenaId,
+                personagemAtorId: null,
+                tipoEvento: 'CONDICAO_EXPIRADA',
+                dados: this.jsonParaPersistencia({
+                  condicaoSessaoId: condicao.id,
+                  personagemSessaoId: condicao.personagemSessaoId,
+                  npcSessaoId: condicao.npcSessaoId,
+                  modo: CONDICAO_DURACAO_MODOS.TURNOS_ALVO,
+                }),
+              },
+            });
+          }
+        }
+      }
+    }
   }
 
   private mapearListaObjeto(valor: Prisma.JsonValue | null): Prisma.JsonObject[] {
@@ -3634,6 +4913,106 @@ export class SessaoService {
       notasCena,
       cenaId,
     };
+  }
+
+  private lerSnapshotCondicaoRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): {
+    id: number;
+    sessaoId: number | null;
+    personagemSessaoId: number | null;
+    npcSessaoId: number | null;
+    condicaoId: number;
+    cenaId: number;
+    turnoAplicacao: number;
+    duracaoTurnos: number | null;
+    duracaoModo: string;
+    duracaoValor: number | null;
+    restanteDuracao: number | null;
+    ativo: boolean;
+    automatica: boolean;
+    chaveAutomacao: string | null;
+    contadorTurnos: number;
+    origemDescricao: string | null;
+    observacao: string | null;
+    removidaEm: string | null;
+    motivoRemocao: string | null;
+  } | null {
+    const bruto = this.lerRegistroOpcionalRegistro(registro, chave);
+    if (!bruto) return null;
+
+    const id = this.lerInteiroRegistro(bruto, 'id');
+    const condicaoId = this.lerInteiroRegistro(bruto, 'condicaoId');
+    const cenaId = this.lerInteiroRegistro(bruto, 'cenaId');
+    const turnoAplicacao = this.lerInteiroRegistro(bruto, 'turnoAplicacao');
+    const duracaoModo = this.lerTextoRegistro(bruto, 'duracaoModo');
+    const contadorTurnos = this.lerInteiroRegistro(bruto, 'contadorTurnos');
+
+    if (
+      id === null ||
+      condicaoId === null ||
+      cenaId === null ||
+      turnoAplicacao === null ||
+      !duracaoModo ||
+      contadorTurnos === null
+    ) {
+      return null;
+    }
+
+    return {
+      id,
+      sessaoId: this.lerInteiroOpcionalRegistro(bruto, 'sessaoId'),
+      personagemSessaoId: this.lerInteiroOpcionalRegistro(bruto, 'personagemSessaoId'),
+      npcSessaoId: this.lerInteiroOpcionalRegistro(bruto, 'npcSessaoId'),
+      condicaoId,
+      cenaId,
+      turnoAplicacao,
+      duracaoTurnos: this.lerInteiroOpcionalRegistro(bruto, 'duracaoTurnos'),
+      duracaoModo,
+      duracaoValor: this.lerInteiroOpcionalRegistro(bruto, 'duracaoValor'),
+      restanteDuracao: this.lerInteiroOpcionalRegistro(bruto, 'restanteDuracao'),
+      ativo: bruto.ativo === true,
+      automatica: bruto.automatica === true,
+      chaveAutomacao: this.lerTextoOpcionalRegistro(bruto, 'chaveAutomacao'),
+      contadorTurnos,
+      origemDescricao: this.lerTextoOpcionalRegistro(bruto, 'origemDescricao'),
+      observacao: this.lerTextoOpcionalRegistro(bruto, 'observacao'),
+      removidaEm: this.lerTextoOpcionalRegistro(bruto, 'removidaEm'),
+      motivoRemocao: this.lerTextoOpcionalRegistro(bruto, 'motivoRemocao'),
+    };
+  }
+
+  private montarUpdateCondicaoPorSnapshot(
+    snapshot: ReturnType<SessaoService['lerSnapshotCondicaoRegistro']>,
+  ): Prisma.CondicaoPersonagemSessaoUncheckedUpdateInput {
+    if (!snapshot) {
+      throw new BusinessException(
+        'Snapshot de condicao invalido',
+        'SESSAO_CONDICAO_SNAPSHOT_INVALIDO',
+      );
+    }
+
+    return {
+      sessaoId: snapshot.sessaoId,
+      personagemSessaoId: snapshot.personagemSessaoId,
+      npcSessaoId: snapshot.npcSessaoId,
+      condicaoId: snapshot.condicaoId,
+      cenaId: snapshot.cenaId,
+      turnoAplicacao: snapshot.turnoAplicacao,
+      duracaoTurnos: snapshot.duracaoTurnos,
+      duracaoModo: snapshot.duracaoModo,
+      duracaoValor: snapshot.duracaoValor,
+      restanteDuracao: snapshot.restanteDuracao,
+      ativo: snapshot.ativo,
+      automatica: snapshot.automatica,
+      chaveAutomacao: snapshot.chaveAutomacao,
+      contadorTurnos: snapshot.contadorTurnos,
+      origemDescricao: snapshot.origemDescricao,
+      observacao: snapshot.observacao,
+      removidaEm: snapshot.removidaEm ? new Date(snapshot.removidaEm) : null,
+      motivoRemocao: snapshot.motivoRemocao,
+    } satisfies Prisma.CondicaoPersonagemSessaoUncheckedUpdateInput;
   }
 
   private snapshotNpcSessao(npc: {
@@ -3856,6 +5235,21 @@ export class SessaoService {
         const motivoSistema = this.lerTextoOpcionalRegistro(dados, 'motivoSistema');
         return `Sustentacao encerrada${habilidade ? `: ${habilidade}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
       }
+      case 'CONDICAO_APLICADA': {
+        const condicaoNome = this.lerTextoOpcionalRegistro(dados, 'condicaoNome');
+        const alvoNome = this.lerTextoOpcionalRegistro(dados, 'alvoNome');
+        return `Condicao aplicada${condicaoNome ? `: ${condicaoNome}` : ''}${alvoNome ? ` em ${alvoNome}` : ''}`;
+      }
+      case 'CONDICAO_REMOVIDA': {
+        const condicaoNome = this.lerTextoOpcionalRegistro(dados, 'condicaoNome');
+        const alvoNome = this.lerTextoOpcionalRegistro(dados, 'alvoNome');
+        return `Condicao removida${condicaoNome ? `: ${condicaoNome}` : ''}${alvoNome ? ` de ${alvoNome}` : ''}`;
+      }
+      case 'CONDICAO_EXPIRADA':
+        return 'Condicao expirada automaticamente';
+      case 'CONDICAO_APLICACAO_DESFEITA':
+      case 'CONDICAO_REMOCAO_DESFEITA':
+        return 'Alteracao de condicao desfeita';
       case 'CHAT':
         return 'Mensagem no chat da sessao';
       default:

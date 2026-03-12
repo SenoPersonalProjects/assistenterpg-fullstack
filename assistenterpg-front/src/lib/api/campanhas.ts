@@ -8,6 +8,7 @@ import type {
   ModificadorPersonagemCampanha,
   PersonagemBaseDisponivelCampanha,
   PersonagemCampanhaResumo,
+  AplicarCondicaoSessaoCampanhaPayload,
   AdicionarNpcSessaoCampanhaPayload,
   AtualizarNpcSessaoCampanhaPayload,
   CampoModificadorPersonagemCampanha,
@@ -461,6 +462,31 @@ export async function apiRemoverNpcSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.delete(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs/${npcSessaoId}`,
+  );
+  return data;
+}
+
+export async function apiAplicarCondicaoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: AplicarCondicaoSessaoCampanhaPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/condicoes/aplicar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiRemoverCondicaoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  condicaoSessaoId: number,
+  payload?: { motivo?: string },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/condicoes/${condicaoSessaoId}/remover`,
+    payload ?? {},
   );
   return data;
 }

@@ -11,7 +11,9 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
+  apiAdminGetCondicoes,
   apiAdicionarNpcSessaoCampanha,
+  apiAplicarCondicaoSessaoCampanha,
   apiAtualizarOrdemIniciativaSessaoCampanha,
   apiAtualizarCenaSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
@@ -26,12 +28,15 @@ import {
   apiListarChatSessaoCampanha,
   apiListarEventosSessaoCampanha,
   apiPularTurnoSessaoCampanha,
+  apiRemoverCondicaoSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
   apiUsarHabilidadeSessaoCampanha,
   apiVoltarTurnoSessaoCampanha,
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
+  CondicaoCatalogo,
+  DuracaoCondicaoSessaoModo,
   EventoSessaoTimeline,
   MensagemChatSessao,
   NpcAmeacaResumo,
@@ -92,6 +97,33 @@ type NpcEditavel = {
 
 type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
+type FormCondicaoSessao = {
+  condicaoId: string;
+  duracaoModo: DuracaoCondicaoSessaoModo;
+  duracaoValor: string;
+  origemDescricao: string;
+  observacao: string;
+  motivoRemocao: string;
+};
+
+const FORM_CONDICAO_PADRAO: FormCondicaoSessao = {
+  condicaoId: '',
+  duracaoModo: 'ATE_REMOVER',
+  duracaoValor: '1',
+  origemDescricao: '',
+  observacao: '',
+  motivoRemocao: '',
+};
+
+const OPCOES_DURACAO_CONDICAO: Array<{
+  value: DuracaoCondicaoSessaoModo;
+  label: string;
+}> = [
+  { value: 'ATE_REMOVER', label: 'Ate remover manualmente' },
+  { value: 'RODADAS', label: 'Por rodadas da cena' },
+  { value: 'TURNOS_ALVO', label: 'Por turnos do alvo' },
+];
+
 function formatarDataHora(valor: string): string {
   const data = new Date(valor);
   if (Number.isNaN(data.getTime())) return valor;
@@ -102,6 +134,16 @@ function parseRecurso(valor: string, fallback: number): number {
   const numero = Number(valor);
   if (!Number.isFinite(numero)) return fallback;
   return Math.trunc(numero);
+}
+
+function parseInteiroPositivo(
+  valor: string,
+  fallback: number | null = null,
+): number | null {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return fallback;
+  const inteiro = Math.trunc(numero);
+  return inteiro > 0 ? inteiro : fallback;
 }
 
 function labelCena(tipo: string): string {
@@ -130,6 +172,23 @@ function labelPapelParticipante(papel: string): string {
   };
 
   return labels[papel] ?? papel;
+}
+
+function descreverDuracaoCondicao(
+  duracaoModo: string,
+  duracaoValor: number | null,
+  restanteDuracao: number | null,
+): string {
+  if (duracaoModo === 'ATE_REMOVER') {
+    return 'Duracao: ate remover';
+  }
+
+  const sufixo = duracaoModo === 'RODADAS' ? 'rodada(s)' : 'turno(s) do alvo';
+  const total = typeof duracaoValor === 'number' ? `${duracaoValor} ${sufixo}` : `? ${sufixo}`;
+  if (typeof restanteDuracao === 'number') {
+    return `Duracao: ${total} | Restante: ${restanteDuracao}`;
+  }
+  return `Duracao: ${total}`;
 }
 
 function labelParticipanteIniciativa(
@@ -179,6 +238,10 @@ export default function SessaoCampanhaPage() {
     Record<number, RecursosEditaveis>
   >({});
   const [edicaoNpcs, setEdicaoNpcs] = useState<Record<number, NpcEditavel>>({});
+  const [catalogoCondicoes, setCatalogoCondicoes] = useState<CondicaoCatalogo[]>([]);
+  const [formCondicaoPorAlvo, setFormCondicaoPorAlvo] = useState<
+    Record<string, FormCondicaoSessao>
+  >({});
   const [npcsDisponiveis, setNpcsDisponiveis] = useState<NpcAmeacaResumo[]>([]);
   const [npcSelecionadoId, setNpcSelecionadoId] = useState('');
   const [nomeNpcCustomizado, setNomeNpcCustomizado] = useState('');
@@ -196,6 +259,9 @@ export default function SessaoCampanhaPage() {
   const [removendoNpcId, setRemovendoNpcId] = useState<number | null>(null);
   const [desfazendoEventoId, setDesfazendoEventoId] = useState<number | null>(null);
   const [motivoDesfazerEvento, setMotivoDesfazerEvento] = useState('');
+  const [acaoCondicaoPendente, setAcaoCondicaoPendente] = useState<string | null>(
+    null,
+  );
   const [acaoHabilidadePendente, setAcaoHabilidadePendente] = useState<
     string | null
   >(null);
@@ -224,6 +290,48 @@ export default function SessaoCampanhaPage() {
   const chatRef = useRef<MensagemChatSessao[]>([]);
   const fimChatRef = useRef<HTMLDivElement | null>(null);
   const sincronizandoTempoRealRef = useRef(false);
+
+  const chaveAlvoCondicao = useCallback(
+    (alvoTipo: 'PERSONAGEM' | 'NPC', alvoId: number) => `${alvoTipo}:${alvoId}`,
+    [],
+  );
+
+  const chaveAcaoAplicarCondicao = useCallback(
+    (alvoTipo: 'PERSONAGEM' | 'NPC', alvoId: number) =>
+      `aplicar:${alvoTipo}:${alvoId}`,
+    [],
+  );
+
+  const chaveAcaoRemoverCondicao = useCallback(
+    (condicaoSessaoId: number) => `remover:${condicaoSessaoId}`,
+    [],
+  );
+
+  const obterFormCondicaoAlvo = useCallback(
+    (alvoTipo: 'PERSONAGEM' | 'NPC', alvoId: number): FormCondicaoSessao =>
+      formCondicaoPorAlvo[chaveAlvoCondicao(alvoTipo, alvoId)] ??
+      FORM_CONDICAO_PADRAO,
+    [chaveAlvoCondicao, formCondicaoPorAlvo],
+  );
+
+  const atualizarCampoFormCondicao = useCallback(
+    (
+      alvoTipo: 'PERSONAGEM' | 'NPC',
+      alvoId: number,
+      campo: keyof FormCondicaoSessao,
+      valor: string,
+    ) => {
+      const chave = chaveAlvoCondicao(alvoTipo, alvoId);
+      setFormCondicaoPorAlvo((estadoAtual) => ({
+        ...estadoAtual,
+        [chave]: {
+          ...(estadoAtual[chave] ?? FORM_CONDICAO_PADRAO),
+          [campo]: valor,
+        },
+      }));
+    },
+    [chaveAlvoCondicao],
+  );
 
   useEffect(() => {
     chatRef.current = chat;
@@ -409,6 +517,29 @@ export default function SessaoCampanhaPage() {
   }, [detalhe?.permissoes.ehMestre, idsValidos, npcSelecionadoId, usuario]);
 
   useEffect(() => {
+    if (!idsValidos || !usuario || !detalhe?.permissoes.ehMestre) {
+      setCatalogoCondicoes([]);
+      return;
+    }
+
+    let ativo = true;
+    void (async () => {
+      try {
+        const condicoes = await apiAdminGetCondicoes();
+        if (!ativo) return;
+        setCatalogoCondicoes(condicoes);
+      } catch {
+        if (!ativo) return;
+        setCatalogoCondicoes([]);
+      }
+    })();
+
+    return () => {
+      ativo = false;
+    };
+  }, [detalhe?.permissoes.ehMestre, idsValidos, usuario]);
+
+  useEffect(() => {
     if (!idsValidos || !usuario) return;
 
     const intervaloMs = socketConectado ? 15000 : 3000;
@@ -546,6 +677,182 @@ export default function SessaoCampanhaPage() {
   ): string {
     return `encerrar:${personagemSessaoId}:${sustentacaoId}`;
   }
+
+  const renderPainelCondicoes = (
+    alvoTipo: 'PERSONAGEM' | 'NPC',
+    alvoId: number,
+    condicoesAtivas: SessaoCampanhaDetalhe['cards'][number]['condicoesAtivas'],
+  ) => {
+    const form = obterFormCondicaoAlvo(alvoTipo, alvoId);
+    const chaveAplicar = chaveAcaoAplicarCondicao(alvoTipo, alvoId);
+    const campoDuracaoDesabilitado = form.duracaoModo === 'ATE_REMOVER';
+
+    return (
+      <details className="rounded border border-app-border p-2">
+        <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+          Condicoes da sessao ({condicoesAtivas.length})
+        </summary>
+        <div className="mt-2 space-y-2">
+          {condicoesAtivas.length === 0 ? (
+            <p className="text-[11px] text-app-muted">
+              Nenhuma condicao ativa neste alvo.
+            </p>
+          ) : (
+            condicoesAtivas.map((condicao) => {
+              const chaveRemover = chaveAcaoRemoverCondicao(condicao.id);
+              return (
+                <div
+                  key={`condicao-ativa-${condicao.id}`}
+                  className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-app-fg">{condicao.nome}</p>
+                    <span className="text-[10px] text-app-muted">
+                      {condicao.automatica ? 'Automatica' : 'Manual'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-app-muted">
+                    {descreverDuracaoCondicao(
+                      condicao.duracaoModo,
+                      condicao.duracaoValor,
+                      condicao.restanteDuracao,
+                    )}
+                  </p>
+                  {condicao.origemDescricao ? (
+                    <p className="text-[11px] text-app-muted">
+                      Origem: {condicao.origemDescricao}
+                    </p>
+                  ) : null}
+                  {condicao.observacao ? (
+                    <p className="text-[11px] text-app-muted">{condicao.observacao}</p>
+                  ) : null}
+                  {podeControlarSessao ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        void handleRemoverCondicao(alvoTipo, alvoId, condicao.id)
+                      }
+                      disabled={sessaoEncerrada || acaoCondicaoPendente === chaveRemover}
+                    >
+                      {acaoCondicaoPendente === chaveRemover
+                        ? 'Removendo...'
+                        : 'Remover condicao'}
+                    </Button>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
+
+          {podeControlarSessao ? (
+            <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
+              <Select
+                label="Aplicar condicao"
+                value={form.condicaoId}
+                onChange={(event) =>
+                  atualizarCampoFormCondicao(
+                    alvoTipo,
+                    alvoId,
+                    'condicaoId',
+                    event.target.value,
+                  )
+                }
+                disabled={sessaoEncerrada || catalogoCondicoes.length === 0}
+              >
+                <option value="">Selecione</option>
+                {catalogoCondicoes.map((condicaoCatalogo) => (
+                  <option key={condicaoCatalogo.id} value={String(condicaoCatalogo.id)}>
+                    {condicaoCatalogo.nome}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label="Duracao"
+                value={form.duracaoModo}
+                onChange={(event) =>
+                  atualizarCampoFormCondicao(
+                    alvoTipo,
+                    alvoId,
+                    'duracaoModo',
+                    event.target.value,
+                  )
+                }
+                options={OPCOES_DURACAO_CONDICAO}
+                disabled={sessaoEncerrada}
+              />
+              <Input
+                label="Duracao (valor)"
+                type="number"
+                min={1}
+                value={form.duracaoValor}
+                onChange={(event) =>
+                  atualizarCampoFormCondicao(
+                    alvoTipo,
+                    alvoId,
+                    'duracaoValor',
+                    event.target.value,
+                  )
+                }
+                disabled={sessaoEncerrada || campoDuracaoDesabilitado}
+              />
+              <Input
+                label="Origem (opcional)"
+                value={form.origemDescricao}
+                onChange={(event) =>
+                  atualizarCampoFormCondicao(
+                    alvoTipo,
+                    alvoId,
+                    'origemDescricao',
+                    event.target.value,
+                  )
+                }
+                maxLength={255}
+                disabled={sessaoEncerrada}
+              />
+              <Input
+                label="Observacao (opcional)"
+                value={form.observacao}
+                onChange={(event) =>
+                  atualizarCampoFormCondicao(
+                    alvoTipo,
+                    alvoId,
+                    'observacao',
+                    event.target.value,
+                  )
+                }
+                maxLength={500}
+                disabled={sessaoEncerrada}
+              />
+              <Input
+                label="Motivo da remocao (opcional)"
+                value={form.motivoRemocao}
+                onChange={(event) =>
+                  atualizarCampoFormCondicao(
+                    alvoTipo,
+                    alvoId,
+                    'motivoRemocao',
+                    event.target.value,
+                  )
+                }
+                maxLength={500}
+                disabled={sessaoEncerrada}
+              />
+              <Button
+                size="sm"
+                onClick={() => void handleAplicarCondicao(alvoTipo, alvoId)}
+                disabled={sessaoEncerrada || acaoCondicaoPendente === chaveAplicar}
+              >
+                {acaoCondicaoPendente === chaveAplicar
+                  ? 'Aplicando...'
+                  : 'Aplicar condicao'}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </details>
+    );
+  };
 
   const renderCardsSessao = () => (
     <>
@@ -1008,6 +1315,12 @@ export default function SessaoCampanhaPage() {
                     Mostrar somente sustentadas ativas
                   </label>
 
+                  {renderPainelCondicoes(
+                    'PERSONAGEM',
+                    card.personagemSessaoId,
+                    card.condicoesAtivas,
+                  )}
+
                   <details className="rounded border border-app-border p-2">
                     <summary className="cursor-pointer text-xs font-semibold text-app-fg">
                       Tecnica inata
@@ -1321,6 +1634,80 @@ export default function SessaoCampanhaPage() {
       setErro(extrairMensagemErro(error));
     } finally {
       setSalvandoCardId(null);
+    }
+  }
+
+  async function handleAplicarCondicao(
+    alvoTipo: 'PERSONAGEM' | 'NPC',
+    alvoId: number,
+  ) {
+    if (!podeControlarSessao || sessaoEncerrada) return;
+
+    const form = obterFormCondicaoAlvo(alvoTipo, alvoId);
+    const condicaoId = parseInteiroPositivo(form.condicaoId);
+    if (!condicaoId) {
+      setErro('Selecione uma condicao valida para aplicar.');
+      return;
+    }
+
+    const requerDuracaoNumerica = form.duracaoModo !== 'ATE_REMOVER';
+    const duracaoValor = requerDuracaoNumerica
+      ? parseInteiroPositivo(form.duracaoValor)
+      : null;
+    if (requerDuracaoNumerica && !duracaoValor) {
+      setErro('Informe uma duracao numerica maior que zero.');
+      return;
+    }
+
+    const chaveAcao = chaveAcaoAplicarCondicao(alvoTipo, alvoId);
+    setAcaoCondicaoPendente(chaveAcao);
+    setErro(null);
+    try {
+      const atualizado = await apiAplicarCondicaoSessaoCampanha(campanhaId, sessaoId, {
+        condicaoId,
+        alvoTipo,
+        personagemSessaoId: alvoTipo === 'PERSONAGEM' ? alvoId : undefined,
+        npcSessaoId: alvoTipo === 'NPC' ? alvoId : undefined,
+        duracaoModo: form.duracaoModo,
+        duracaoValor: duracaoValor ?? undefined,
+        origemDescricao: form.origemDescricao.trim() || undefined,
+        observacao: form.observacao.trim() || undefined,
+      });
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setAcaoCondicaoPendente(null);
+    }
+  }
+
+  async function handleRemoverCondicao(
+    alvoTipo: 'PERSONAGEM' | 'NPC',
+    alvoId: number,
+    condicaoSessaoId: number,
+  ) {
+    if (!podeControlarSessao || sessaoEncerrada) return;
+
+    const form = obterFormCondicaoAlvo(alvoTipo, alvoId);
+    const chaveAcao = chaveAcaoRemoverCondicao(condicaoSessaoId);
+    setAcaoCondicaoPendente(chaveAcao);
+    setErro(null);
+    try {
+      const atualizado = await apiRemoverCondicaoSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        condicaoSessaoId,
+        {
+          motivo: form.motivoRemocao.trim() || undefined,
+        },
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setAcaoCondicaoPendente(null);
     }
   }
 
@@ -1896,6 +2283,8 @@ export default function SessaoCampanhaPage() {
                         {npc.pontosVidaMax} | Desloc. {npc.deslocamentoMetros}m
                       </p>
                     )}
+
+                    {renderPainelCondicoes('NPC', npc.npcSessaoId, npc.condicoesAtivas)}
 
                     {npc.passivas.length > 0 ? (
                       <details className="rounded border border-app-border p-2">

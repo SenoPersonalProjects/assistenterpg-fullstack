@@ -662,6 +662,7 @@ model Sessao {
   personagens PersonagemSessao[] @relation("PersonagensDaSessao")
   npcs        NpcAmeacaSessao[]
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
+  condicoes  CondicaoPersonagemSessao[]
   eventos     EventoSessao[]
 
   @@index([campanhaId, iniciadoEm])
@@ -701,6 +702,7 @@ model NpcAmeacaSessao {
   sessao    Sessao     @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
   cena      Cena?      @relation(fields: [cenaId], references: [id], onDelete: SetNull)
   npcAmeaca NpcAmeaca? @relation(fields: [npcAmeacaId], references: [id], onDelete: SetNull)
+  condicoes CondicaoPersonagemSessao[]
 
   @@index([sessaoId])
   @@index([cenaId])
@@ -766,16 +768,37 @@ model Condicao {
 }
 
 model CondicaoPersonagemSessao {
-  id                 Int  @id @default(autoincrement())
-  personagemSessaoId Int
+  id                 Int      @id @default(autoincrement())
+  sessaoId           Int?
+  personagemSessaoId Int?
+  npcSessaoId        Int?
   condicaoId         Int
   cenaId             Int
   turnoAplicacao     Int
   duracaoTurnos      Int?
 
-  personagemSessao PersonagemSessao @relation(fields: [personagemSessaoId], references: [id])
-  condicao         Condicao         @relation(fields: [condicaoId], references: [id])
-  cena             Cena             @relation(fields: [cenaId], references: [id])
+  duracaoModo        String   @default("ATE_REMOVER")
+  duracaoValor       Int?
+  restanteDuracao    Int?
+  ativo              Boolean  @default(true)
+  automatica         Boolean  @default(false)
+  chaveAutomacao     String?
+  contadorTurnos     Int      @default(0)
+  origemDescricao    String?  @db.Text
+  observacao         String?  @db.Text
+  removidaEm         DateTime?
+  motivoRemocao      String?  @db.Text
+
+  sessao          Sessao?            @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  personagemSessao PersonagemSessao? @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  npcSessao        NpcAmeacaSessao?  @relation(fields: [npcSessaoId], references: [id], onDelete: Cascade)
+  condicao         Condicao          @relation(fields: [condicaoId], references: [id])
+  cena             Cena              @relation(fields: [cenaId], references: [id])
+
+  @@index([sessaoId, ativo])
+  @@index([personagemSessaoId, ativo])
+  @@index([npcSessaoId, ativo])
+  @@index([condicaoId])
 }
 
 model EventoSessao {

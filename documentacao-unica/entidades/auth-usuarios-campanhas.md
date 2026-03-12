@@ -1,6 +1,6 @@
 # Auth, Usuarios e Campanhas (Contrato Detalhado)
 
-Atualizado em: 2026-03-11
+Atualizado em: 2026-03-12
 
 ## Escopo
 
@@ -166,6 +166,19 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - `habilidadeTecnicaId`: int >= 1
     - `variacaoHabilidadeId?`: int >= 1
     - `acumulos?`: int >= 0
+- `POST /campanhas/:id/sessoes/:sessaoId/condicoes/aplicar`
+  - body `AplicarCondicaoSessaoDto`:
+    - `condicaoId`: int >= 1
+    - `alvoTipo`: `PERSONAGEM | NPC`
+    - `personagemSessaoId?`: int >= 1 (obrigatorio quando `alvoTipo=PERSONAGEM`)
+    - `npcSessaoId?`: int >= 1 (obrigatorio quando `alvoTipo=NPC`)
+    - `duracaoModo?`: `ATE_REMOVER | RODADAS | TURNOS_ALVO`
+    - `duracaoValor?`: int >= 1 (obrigatorio quando `duracaoModo` for `RODADAS` ou `TURNOS_ALVO`)
+    - `origemDescricao?`: string opcional (max 255)
+    - `observacao?`: string opcional (max 2000)
+- `POST /campanhas/:id/sessoes/:sessaoId/condicoes/:condicaoSessaoId/remover`
+  - body opcional `RemoverCondicaoSessaoDto`:
+    - `motivo?`: string opcional (max 2000)
 - `POST /campanhas/:id/sessoes/:sessaoId/personagens/:personagemSessaoId/sustentacoes/:sustentacaoId/encerrar`
   - body opcional `EncerrarSustentacaoSessaoDto`:
     - `motivo?`: string opcional (max 240)
@@ -176,7 +189,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - eventos servidor -> cliente:
     - `sessao:joined`
     - `sessao:erro`
-    - `sessao:atualizada` (`CHAT_NOVA`, `CENA_ATUALIZADA`, `TURNO_AVANCADO`, `TURNO_RECUADO`, `TURNO_PULADO`, `ORDEM_INICIATIVA_ATUALIZADA`, `NPC_ATUALIZADO`, `SESSAO_ENCERRADA`, `SESSAO_EVENTO_DESFEITO`, `HABILIDADE_USADA`, `HABILIDADE_SUSTENTADA_ENCERRADA`)
+    - `sessao:atualizada` (`CHAT_NOVA`, `CENA_ATUALIZADA`, `TURNO_AVANCADO`, `TURNO_RECUADO`, `TURNO_PULADO`, `ORDEM_INICIATIVA_ATUALIZADA`, `NPC_ATUALIZADO`, `SESSAO_ENCERRADA`, `SESSAO_EVENTO_DESFEITO`, `HABILIDADE_USADA`, `HABILIDADE_SUSTENTADA_ENCERRADA`, `CONDICAO_APLICADA`, `CONDICAO_REMOVIDA`)
     - `sessao:presenca` (`onlineUsuarioIds`)
 
 ## Regras de negocio
@@ -255,6 +268,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - controlar turno (`avancar`, `voltar`, `pular`)
     - reordenar iniciativa
     - adicionar/editar/remover aliados/ameacas da cena
+    - aplicar/remover condicoes na instancia de personagem ou NPC da sessao
   - participantes da campanha podem:
     - abrir detalhe do lobby
     - listar/enviar mensagens no chat
@@ -278,6 +292,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - `tecnicaInata` com habilidades/variacoes filtradas por grau.
     - `tecnicasNaoInatas` habilitadas por grau (sem escolha manual do jogador).
     - `sustentacoesAtivas` por personagem da sessao.
+    - `condicoesAtivas` por personagem da sessao.
   - uso de habilidades em sessao:
     - consumo imediato de `EA/PE` no momento do uso.
     - `acumulos` habilita escalonamento quando a habilidade/variacao suporta acumulo, limitado pelo grau de aprimoramento da tecnica.
@@ -288,7 +303,8 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - sustentacao passa a cobrar por rodada a partir da rodada seguinte a ativacao.
     - ao avancar rodada, o backend cobra sustentacao automaticamente e encerra se faltar `EA`.
     - limite de gasto por turno usa soma combinada `PE + EA` no turno atual.
-    - excecao: uso base (sem variacao e sem acumulos) ignora validacao desse limite por turno.
+    - excecao de limite: uso base (sem variacao e sem acumulos) pode ultrapassar o limite apenas se for o primeiro uso do turno (`gasto atual = 0`).
+    - apos qualquer gasto no turno, novos usos (inclusive uso base) passam a respeitar o limite combinado normalmente.
     - encerramento manual da sustentacao usa rota dedicada.
   - frontend aplica cooldown curto anti-duplo-clique no uso de habilidade/variacao.
   - no lobby da sessao, as variacoes de habilidade sao exibidas em bloco proprio com metadados de execucao/alcance/alvo/duracao, custo base e custo de sustentacao por rodada.
@@ -304,7 +320,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - apenas mestre pode desfazer.
     - apenas o ultimo evento reversivel ainda nao desfeito pode ser revertido (LIFO).
     - eventos desfeitos recebem marcacao no JSON `dados` (`desfeito`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
-    - tipos reversiveis atuais: `TURNO_AVANCADO`, `TURNO_RECUADO`, `TURNO_PULADO`, `ORDEM_INICIATIVA_ATUALIZADA`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
+    - tipos reversiveis atuais: `TURNO_AVANCADO`, `TURNO_RECUADO`, `TURNO_PULADO`, `ORDEM_INICIATIVA_ATUALIZADA`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`, `CONDICAO_APLICADA`, `CONDICAO_REMOVIDA`.
   - escudo do mestre (V1):
     - painel de consulta rapida com busca, modo `Resumo/Detalhado` e secoes recolhiveis.
     - inclui conteudo operacional inicial para: pericias, condicoes, conflitos/expansao de dominio, dificuldades, teste unido, tipos de dano/acoes, ferimentos, insanidade, situacoes especiais, multidoes, interludio, investigacao, furtividade, perseguicao e aspectos congenitos.
@@ -319,6 +335,15 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - cada instancia fica vinculada a uma `cenaId` em `NpcAmeacaSessao`.
     - a cena atual retorna lista `npcs` junto do detalhe da sessao.
     - passivas/acoes das instancias sao guias descritivos para o mestre (nao aplicam automacao de efeito).
+    - cada instancia tambem retorna `condicoesAtivas`.
+  - condicoes em sessao:
+    - aplicacao manual aceita modos de duracao `ATE_REMOVER`, `RODADAS` e `TURNOS_ALVO`.
+    - expiracao automatica ocorre quando `restanteDuracao` chega a zero (modos `RODADAS` e `TURNOS_ALVO`).
+    - automacoes de recurso:
+      - `MACHUCADO` quando `PV` fica em metade ou menos.
+      - `MORRENDO` quando `PV` chega a `0` ou menos.
+      - `CAIDO` junto com `MORRENDO` quando `PV` chega a `0` ou menos.
+      - `ENLOUQUECENDO` quando `SAN` chega a `0` ou menos (personagem).
 
 ## Pontos de atencao
 

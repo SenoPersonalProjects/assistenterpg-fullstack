@@ -24,6 +24,8 @@ import { DesfazerEventoSessaoDto } from './dto/desfazer-evento-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { EncerrarSustentacaoSessaoDto } from './dto/encerrar-sustentacao-sessao.dto';
+import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
+import { RemoverCondicaoSessaoDto } from './dto/remover-condicao-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
 
 @UseGuards(AuthGuard('jwt'))
@@ -133,6 +135,54 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       'HABILIDADE_USADA',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/condicoes/aplicar')
+  async aplicarCondicaoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AplicarCondicaoSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.aplicarCondicaoSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'CONDICAO_APLICADA',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/condicoes/:condicaoSessaoId/remover')
+  async removerCondicaoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('condicaoSessaoId', ParseIntPipe) condicaoSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: RemoverCondicaoSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.removerCondicaoSessao(
+      campanhaId,
+      sessaoId,
+      condicaoSessaoId,
+      req.user.id,
+      dto.motivo,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'CONDICAO_REMOVIDA',
     );
 
     return resultado;

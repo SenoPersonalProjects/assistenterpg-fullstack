@@ -168,7 +168,29 @@ export type NpcSessaoCampanha = {
   notasCena: string | null;
   passivas: NpcAmeacaPassiva[];
   acoes: NpcAmeacaAcao[];
+  condicoesAtivas: CondicaoAtivaSessaoCampanha[];
   podeEditar: boolean;
+};
+
+export type DuracaoCondicaoSessaoModo =
+  | 'ATE_REMOVER'
+  | 'RODADAS'
+  | 'TURNOS_ALVO';
+
+export type CondicaoAtivaSessaoCampanha = {
+  id: number;
+  condicaoId: number;
+  nome: string;
+  descricao: string;
+  automatica: boolean;
+  chaveAutomacao: string | null;
+  duracaoModo: DuracaoCondicaoSessaoModo | string;
+  duracaoValor: number | null;
+  restanteDuracao: number | null;
+  contadorTurnos: number;
+  origemDescricao: string | null;
+  observacao: string | null;
+  turnoAplicacao: number;
 };
 
 export type AdicionarNpcSessaoCampanhaPayload = {
@@ -186,6 +208,17 @@ export type AdicionarNpcSessaoCampanhaPayload = {
 export type AtualizarNpcSessaoCampanhaPayload = Partial<
   Omit<AdicionarNpcSessaoCampanhaPayload, 'npcAmeacaId'>
 >;
+
+export type AplicarCondicaoSessaoCampanhaPayload = {
+  condicaoId: number;
+  alvoTipo: 'PERSONAGEM' | 'NPC';
+  personagemSessaoId?: number;
+  npcSessaoId?: number;
+  duracaoModo?: DuracaoCondicaoSessaoModo;
+  duracaoValor?: number;
+  origemDescricao?: string;
+  observacao?: string;
+};
 
 export type SessaoCampanhaResumo = {
   id: number;
@@ -364,6 +397,7 @@ export type SessaoCampanhaDetalhe = {
     tecnicaInata: TecnicaSessaoCampanha | null;
     tecnicasNaoInatas: TecnicaSessaoCampanha[];
     sustentacoesAtivas: SustentacaoAtivaSessaoCampanha[];
+    condicoesAtivas: CondicaoAtivaSessaoCampanha[];
   }>;
   npcs: NpcSessaoCampanha[];
   iniciadoEm: string;
