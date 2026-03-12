@@ -8,7 +8,11 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { GrauTreinamentoDto } from './dto/create-personagem-base.dto';
-import { atendeRequisitosGraus, montarMapaGraus } from './regras-criacao/regras-tecnicas-nao-inatas';
+import {
+  atendeRequisitoBaseTecnicaNaoInata,
+  atendeRequisitosGraus,
+  montarMapaGraus,
+} from './regras-criacao/regras-tecnicas-nao-inatas';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
@@ -555,7 +559,11 @@ export class PersonagemBaseMapper {
     });
 
     const tecnicasNaoInatas: TecnicaDetalhadaMapeada[] = tecnicasNaoInatasCatalogo
-      .filter((tecnica) => atendeRequisitosGraus(tecnica.requisitos, grausMap))
+      .filter(
+        (tecnica) =>
+          atendeRequisitoBaseTecnicaNaoInata(tecnica.codigo, grausMap) &&
+          atendeRequisitosGraus(tecnica.requisitos, grausMap),
+      )
       .map(mapTecnicaDetalhada);
 
     const tecnicaInataDetalhada: TecnicaDetalhadaMapeada | null =

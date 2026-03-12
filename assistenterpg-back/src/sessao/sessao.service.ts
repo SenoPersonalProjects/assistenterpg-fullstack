@@ -24,6 +24,7 @@ import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciat
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import {
+  atendeRequisitoBaseTecnicaNaoInata,
   atendeRequisitosGraus,
   montarMapaGraus,
 } from 'src/personagem-base/regras-criacao/regras-tecnicas-nao-inatas';
@@ -3102,6 +3103,13 @@ export class SessaoService {
     tecnica: TecnicaSessaoRaw,
     grausMap: Map<string, number>,
   ): TecnicaSessaoResumo | null {
+    if (
+      tecnica.tipo === 'NAO_INATA' &&
+      !atendeRequisitoBaseTecnicaNaoInata(tecnica.codigo, grausMap)
+    ) {
+      return null;
+    }
+
     if (!atendeRequisitosGraus(tecnica.requisitos, grausMap)) {
       return null;
     }

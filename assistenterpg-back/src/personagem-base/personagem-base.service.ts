@@ -24,6 +24,7 @@ import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
 import { validarTrilhaECaminho } from './regras-criacao/regras-trilha';
 import { validarOrigemClaTecnica } from './regras-criacao/regras-origem-cla';
 import {
+  atendeRequisitoBaseTecnicaNaoInata,
   atendeRequisitosGraus,
   montarMapaGraus,
 } from './regras-criacao/regras-tecnicas-nao-inatas';
@@ -805,7 +806,11 @@ export class PersonagemBaseService {
     });
 
     return tecnicas
-      .filter((tecnica) => atendeRequisitosGraus(tecnica.requisitos, grausMap))
+      .filter(
+        (tecnica) =>
+          atendeRequisitoBaseTecnicaNaoInata(tecnica.codigo, grausMap) &&
+          atendeRequisitosGraus(tecnica.requisitos, grausMap),
+      )
       .map((tecnica) => this.filtrarTecnicaPorGraus(tecnica, grausMap));
   }
 

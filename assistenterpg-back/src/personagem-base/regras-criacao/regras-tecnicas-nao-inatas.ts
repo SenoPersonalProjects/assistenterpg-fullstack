@@ -10,8 +10,22 @@ type RequisitoGrau = {
   valorMinimo: number;
 };
 
+const REQUISITO_BASE_POR_TECNICA_NAO_INATA: Record<string, string> = {
+  NAOINATA_TECNICA_AMALDICOADA: 'TECNICA_AMALDICOADA',
+  NAOINATA_TECNICA_REVERSA: 'TECNICA_REVERSA',
+  NAOINATA_TECNICA_BARREIRA: 'TECNICA_BARREIRA',
+  NAOINATA_TECNICA_ANTI_BARREIRA: 'TECNICA_ANTI_BARREIRA',
+  NAOINATA_TECNICA_SHIKIGAMI: 'TECNICA_SHIKIGAMI',
+  NAOINATA_TECNICA_CORPOS_AMALDICOADOS: 'TECNICA_CADAVERES',
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizarCodigo(valor: string | null | undefined): string {
+  if (!valor) return '';
+  return valor.trim().toUpperCase();
 }
 
 function toNumberOrNull(value: unknown): number | null {
@@ -89,4 +103,15 @@ export function atendeRequisitosGraus(
     const grauAtual = grausMap.get(req.tipoGrauCodigo) ?? 0;
     return grauAtual >= req.valorMinimo;
   });
+}
+
+export function atendeRequisitoBaseTecnicaNaoInata(
+  tecnicaCodigo: string | null | undefined,
+  grausMap: Map<string, number>,
+): boolean {
+  const codigoNormalizado = normalizarCodigo(tecnicaCodigo);
+  const tipoGrauCodigo = REQUISITO_BASE_POR_TECNICA_NAO_INATA[codigoNormalizado];
+  if (!tipoGrauCodigo) return true;
+
+  return (grausMap.get(tipoGrauCodigo) ?? 0) >= 1;
 }

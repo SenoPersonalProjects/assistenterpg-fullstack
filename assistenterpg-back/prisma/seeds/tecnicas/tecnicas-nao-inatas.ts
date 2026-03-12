@@ -75,6 +75,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
     nome: 'Tecnica Amaldicoada',
     descricao:
       'Aplicacoes basicas de energia amaldicoada usadas por feiticeiros jujutsu.',
+    requisitos: {
+      graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 1 }],
+    },
     habilidades: [
       {
         codigo: 'NAOINATA_REVESTIMENTO_OFENSIVO',
@@ -289,6 +292,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
     nome: 'Tecnica de Barreira',
     descricao:
       'Construcao de barreiras para ocultar, conter, impor regras e manipular area.',
+    requisitos: {
+      graus: [{ tipoGrauCodigo: 'TECNICA_BARREIRA', valorMinimo: 1 }],
+    },
     habilidades: [
       {
         codigo: 'NAOINATA_BARREIRA_SIMPLES',
@@ -433,6 +439,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
     nome: 'Tecnica Anti-Barreira',
     descricao:
       'Tecnicas para neutralizar acerto garantido de dominios e efeitos automaticos.',
+    requisitos: {
+      graus: [{ tipoGrauCodigo: 'TECNICA_ANTI_BARREIRA', valorMinimo: 1 }],
+    },
     habilidades: [
       {
         codigo: 'NAOINATA_CESTA_OCA',
@@ -545,7 +554,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
     descricao:
       'Processa energia amaldicoada negativa em energia positiva para cura e reversao.',
     requisitos: {
-      graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 }],
+      graus: [
+        { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 },
+        { tipoGrauCodigo: 'TECNICA_REVERSA', valorMinimo: 1 },
+      ],
     },
     habilidades: [
       {
@@ -792,6 +804,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
     nome: 'Tecnica de Shikigami',
     descricao:
       'Invocacao e controle de shikigamis com apoio de talismas, ritos ou ferramentas.',
+    requisitos: {
+      graus: [{ tipoGrauCodigo: 'TECNICA_SHIKIGAMI', valorMinimo: 1 }],
+    },
     habilidades: [
       {
         codigo: 'NAOINATA_INVOCAR_SHIKIGAMI',
@@ -850,6 +865,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
     nome: 'Tecnica de Corpos Amaldicoados',
     descricao:
       'Animacao de objetos inanimados por nucleo amaldicoado para gerar autocontrole.',
+    requisitos: {
+      graus: [{ tipoGrauCodigo: 'TECNICA_CADAVERES', valorMinimo: 1 }],
+    },
     habilidades: [
       {
         codigo: 'NAOINATA_CRIAR_CORPO_AMALDICOADO',
