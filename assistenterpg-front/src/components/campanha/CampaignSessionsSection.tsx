@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   apiEncerrarSessaoCampanha,
@@ -61,6 +61,11 @@ export function CampaignSessionsSection({
   const [criando, setCriando] = useState(false);
   const [encerrandoSessaoId, setEncerrandoSessaoId] = useState<number | null>(null);
   const [tituloNovaSessao, setTituloNovaSessao] = useState('');
+  const onTotalSessoesChangeRef = useRef(onTotalSessoesChange);
+
+  useEffect(() => {
+    onTotalSessoesChangeRef.current = onTotalSessoesChange;
+  }, [onTotalSessoesChange]);
 
   const carregarSessoes = useCallback(async () => {
     setLoading(true);
@@ -68,13 +73,13 @@ export function CampaignSessionsSection({
     try {
       const dados = await apiListarSessoesCampanha(campanhaId);
       setSessoes(dados);
-      onTotalSessoesChange?.(dados.length);
+      onTotalSessoesChangeRef.current?.(dados.length);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
       setLoading(false);
     }
-  }, [campanhaId, onTotalSessoesChange]);
+  }, [campanhaId]);
 
   useEffect(() => {
     void carregarSessoes();

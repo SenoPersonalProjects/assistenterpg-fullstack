@@ -1,7 +1,7 @@
 // app/campanhas/[id]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -122,6 +122,32 @@ export default function CampanhaDetalhePage() {
   const [campanha, setCampanha] = useState<CampanhaDetalheDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  const handleTotalPersonagensChange = useCallback((total: number) => {
+    setCampanha((anterior) => {
+      if (!anterior || anterior._count.personagens === total) return anterior;
+      return {
+        ...anterior,
+        _count: {
+          ...anterior._count,
+          personagens: total,
+        },
+      };
+    });
+  }, []);
+
+  const handleTotalSessoesChange = useCallback((total: number) => {
+    setCampanha((anterior) => {
+      if (!anterior || anterior._count.sessoes === total) return anterior;
+      return {
+        ...anterior,
+        _count: {
+          ...anterior._count,
+          sessoes: total,
+        },
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -278,19 +304,7 @@ export default function CampanhaDetalhePage() {
             campanhaId={campanha.id}
             usuarioId={usuario?.id ?? 0}
             usuarioEhMestre={Boolean(usuarioEhMestre)}
-            onTotalPersonagensChange={(total) =>
-              setCampanha((anterior) =>
-                anterior
-                  ? {
-                      ...anterior,
-                      _count: {
-                        ...anterior._count,
-                        personagens: total,
-                      },
-                    }
-                  : anterior,
-              )
-            }
+            onTotalPersonagensChange={handleTotalPersonagensChange}
           />
         </section>
 
@@ -315,19 +329,7 @@ export default function CampanhaDetalhePage() {
           <CampaignSessionsSection
             campanhaId={campanha.id}
             usuarioEhMestre={Boolean(usuarioEhMestre)}
-            onTotalSessoesChange={(total) =>
-              setCampanha((anterior) =>
-                anterior
-                  ? {
-                      ...anterior,
-                      _count: {
-                        ...anterior._count,
-                        sessoes: total,
-                      },
-                    }
-                  : anterior,
-              )
-            }
+            onTotalSessoesChange={handleTotalSessoesChange}
           />
         </section>
 

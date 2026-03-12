@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   apiDesassociarPersonagemCampanha,
   apiListarPersonagensBaseDisponiveisCampanha,
@@ -61,6 +61,11 @@ export function CampaignCharactersSection({
   );
   const [sugestaoAberta, setSugestaoAberta] = useState(false);
   const [sugestaoInicializada, setSugestaoInicializada] = useState(false);
+  const onTotalPersonagensChangeRef = useRef(onTotalPersonagensChange);
+
+  useEffect(() => {
+    onTotalPersonagensChangeRef.current = onTotalPersonagensChange;
+  }, [onTotalPersonagensChange]);
 
   useEffect(() => {
     setSugestaoAberta(false);
@@ -77,14 +82,14 @@ export function CampaignCharactersSection({
       ]);
 
       setPersonagensCampanha(personagens);
-      onTotalPersonagensChange?.(personagens.length);
+      onTotalPersonagensChangeRef.current?.(personagens.length);
       setPersonagensBase(personagensDisponiveis);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
       setLoading(false);
     }
-  }, [campanhaId, onTotalPersonagensChange]);
+  }, [campanhaId]);
 
   useEffect(() => {
     void carregarDados();
