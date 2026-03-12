@@ -20,6 +20,16 @@ import {
 } from '@/lib/types/homebrew-enums';
 import type { HabilidadeTecnica, DadoDanoTecnica, EscalonamentoDano } from '@/lib/api/homebrews';
 import { VariacoesList } from './VariacoesList';
+import {
+  ALCANCE_PRESET_OPTIONS,
+  DURACAO_PRESET_OPTIONS,
+  parseAlcancePreset,
+  parseDuracaoPreset,
+  serializeAlcancePreset,
+  serializeDuracaoPreset,
+  type AlcancePresetValue,
+  type DuracaoPresetValue,
+} from './alcance-duracao-presets';
 
 type Props = {
   habilidade: HabilidadeTecnica;
@@ -41,7 +51,29 @@ export function HabilidadeForm({
   onMoveDown,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const [alcanceCustomMode, setAlcanceCustomMode] = useState(false);
+  const [duracaoCustomMode, setDuracaoCustomMode] = useState(false);
   const dadosDano: DadoDanoTecnica[] = habilidade.dadosDano ?? [];
+  const alcanceParsed = parseAlcancePreset(habilidade.alcance);
+  const duracaoParsed = parseDuracaoPreset(habilidade.duracao);
+  const alcanceSelectValue: AlcancePresetValue = alcanceCustomMode
+    ? 'PERSONALIZADO'
+    : alcanceParsed.preset;
+  const duracaoSelectValue: DuracaoPresetValue = duracaoCustomMode
+    ? 'PERSONALIZADA'
+    : duracaoParsed.preset;
+  const alcanceCustomValue =
+    alcanceParsed.preset === 'PERSONALIZADO'
+      ? alcanceParsed.custom
+      : alcanceCustomMode
+        ? (habilidade.alcance ?? '')
+        : '';
+  const duracaoCustomValue =
+    duracaoParsed.preset === 'PERSONALIZADA'
+      ? duracaoParsed.custom
+      : duracaoCustomMode
+        ? (habilidade.duracao ?? '')
+        : '';
 
   function addDadoDano() {
     const novoDado: DadoDanoTecnica = {
@@ -60,6 +92,32 @@ export function HabilidadeForm({
 
   function removeDadoDano(dadoIndex: number) {
     onChange({ dadosDano: dadosDano.filter((_, i) => i !== dadoIndex) });
+  }
+
+  function handleAlcancePresetChange(nextValue: AlcancePresetValue) {
+    if (nextValue === 'PERSONALIZADO') {
+      setAlcanceCustomMode(true);
+      if (alcanceParsed.preset !== 'PERSONALIZADO') {
+        onChange({ alcance: '' });
+      }
+      return;
+    }
+
+    setAlcanceCustomMode(false);
+    onChange({ alcance: serializeAlcancePreset(nextValue) });
+  }
+
+  function handleDuracaoPresetChange(nextValue: DuracaoPresetValue) {
+    if (nextValue === 'PERSONALIZADA') {
+      setDuracaoCustomMode(true);
+      if (duracaoParsed.preset !== 'PERSONALIZADA') {
+        onChange({ duracao: '' });
+      }
+      return;
+    }
+
+    setDuracaoCustomMode(false);
+    onChange({ duracao: serializeDuracaoPreset(nextValue) });
   }
 
   const nomeExibido = habilidade.nome || `Habilidade #${index + 1}`;
@@ -196,12 +254,17 @@ export function HabilidadeForm({
 
           {/* Alcance, Alvo, Duração */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <Input
+            <Select
               label="Alcance"
-              value={habilidade.alcance ?? ''}
-              onChange={(e) => onChange({ alcance: e.target.value })}
-              placeholder="Ex: CURTO, 12m"
-            />
+              value={alcanceSelectValue}
+              onChange={(e) => handleAlcancePresetChange(e.target.value as AlcancePresetValue)}
+            >
+              {ALCANCE_PRESET_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
 
             <Input
               label="Alvo"
@@ -210,13 +273,50 @@ export function HabilidadeForm({
               placeholder="Ex: 1 criatura, Você"
             />
 
-            <Input
+            <Select
               label="Duração"
-              value={habilidade.duracao ?? ''}
-              onChange={(e) => onChange({ duracao: e.target.value })}
-              placeholder="Ex: Instantâneo, 3 turnos"
-            />
+              value={duracaoSelectValue}
+              onChange={(e) => handleDuracaoPresetChange(e.target.value as DuracaoPresetValue)}
+            >
+              {DURACAO_PRESET_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
           </div>
+
+
+          {(alcanceSelectValue === 'PERSONALIZADO' ||
+            duracaoSelectValue === 'PERSONALIZADA') && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {alcanceSelectValue === 'PERSONALIZADO' ? (
+                <Input
+                  label="Alcance personalizado"
+                  value={alcanceCustomValue}
+                  onChange={(e) => {
+                    setAlcanceCustomMode(true);
+                    onChange({ alcance: e.target.value });
+                  }}
+                  placeholder="Ex: 12m, 30m, linha de visão"
+                />
+              ) : (
+                <div />
+              )}
+
+              {duracaoSelectValue === 'PERSONALIZADA' ? (
+                <Input
+                  label="Duração personalizada"
+                  value={duracaoCustomValue}
+                  onChange={(e) => {
+                    setDuracaoCustomMode(true);
+                    onChange({ duracao: e.target.value });
+                  }}
+                  placeholder="Ex: 3 turnos, 1 hora, até fim da missão"
+                />
+              ) : null}
+            </div>
+          )}
 
           {/* Resistência */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

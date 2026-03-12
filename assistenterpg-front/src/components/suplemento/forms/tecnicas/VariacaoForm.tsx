@@ -18,6 +18,16 @@ import {
   TIPO_DANO_LABELS,
 } from '@/lib/types/homebrew-enums';
 import type { VariacaoHabilidade, DadoDanoTecnica, EscalonamentoDano } from '@/lib/api/homebrews';
+import {
+  ALCANCE_PRESET_OPTIONS,
+  DURACAO_PRESET_OPTIONS,
+  parseAlcancePreset,
+  parseDuracaoPreset,
+  serializeAlcancePreset,
+  serializeDuracaoPreset,
+  type AlcancePresetValue,
+  type DuracaoPresetValue,
+} from './alcance-duracao-presets';
 
 type Props = {
   variacao: VariacaoHabilidade;
@@ -39,7 +49,33 @@ export function VariacaoForm({
   onMoveDown,
 }: Props) {
   const [collapsed, setCollapsed] = useState(false);
+  const [alcanceCustomMode, setAlcanceCustomMode] = useState(false);
+  const [duracaoCustomMode, setDuracaoCustomMode] = useState(false);
   const dadosDano: DadoDanoTecnica[] = variacao.dadosDano ?? [];
+  const alcanceParsed = parseAlcancePreset(variacao.alcance);
+  const duracaoParsed = parseDuracaoPreset(variacao.duracao);
+  const alcanceSelectValue: AlcancePresetValue | 'MANTER_ORIGINAL' = alcanceCustomMode
+    ? 'PERSONALIZADO'
+    : variacao.alcance === undefined
+      ? 'MANTER_ORIGINAL'
+      : alcanceParsed.preset;
+  const duracaoSelectValue: DuracaoPresetValue | 'MANTER_ORIGINAL' = duracaoCustomMode
+    ? 'PERSONALIZADA'
+    : variacao.duracao === undefined
+      ? 'MANTER_ORIGINAL'
+      : duracaoParsed.preset;
+  const alcanceCustomValue =
+    alcanceParsed.preset === 'PERSONALIZADO'
+      ? alcanceParsed.custom
+      : alcanceCustomMode
+        ? (variacao.alcance ?? '')
+        : '';
+  const duracaoCustomValue =
+    duracaoParsed.preset === 'PERSONALIZADA'
+      ? duracaoParsed.custom
+      : duracaoCustomMode
+        ? (variacao.duracao ?? '')
+        : '';
 
   function addDadoDano() {
     const novoDado: DadoDanoTecnica = {
@@ -58,6 +94,48 @@ export function VariacaoForm({
 
   function removeDadoDano(dadoIndex: number) {
     onChange({ dadosDano: dadosDano.filter((_, i) => i !== dadoIndex) });
+  }
+
+  function handleAlcancePresetChange(
+    nextValue: AlcancePresetValue | 'MANTER_ORIGINAL',
+  ) {
+    if (nextValue === 'MANTER_ORIGINAL') {
+      setAlcanceCustomMode(false);
+      onChange({ alcance: undefined });
+      return;
+    }
+
+    if (nextValue === 'PERSONALIZADO') {
+      setAlcanceCustomMode(true);
+      if (alcanceParsed.preset !== 'PERSONALIZADO') {
+        onChange({ alcance: '' });
+      }
+      return;
+    }
+
+    setAlcanceCustomMode(false);
+    onChange({ alcance: serializeAlcancePreset(nextValue) });
+  }
+
+  function handleDuracaoPresetChange(
+    nextValue: DuracaoPresetValue | 'MANTER_ORIGINAL',
+  ) {
+    if (nextValue === 'MANTER_ORIGINAL') {
+      setDuracaoCustomMode(false);
+      onChange({ duracao: undefined });
+      return;
+    }
+
+    if (nextValue === 'PERSONALIZADA') {
+      setDuracaoCustomMode(true);
+      if (duracaoParsed.preset !== 'PERSONALIZADA') {
+        onChange({ duracao: '' });
+      }
+      return;
+    }
+
+    setDuracaoCustomMode(false);
+    onChange({ duracao: serializeDuracaoPreset(nextValue) });
   }
 
   const nomeExibido = variacao.nome || `Variação #${index + 1}`;
@@ -211,12 +289,22 @@ export function VariacaoForm({
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <Input
+              <Select
                 label="Alcance"
-                value={variacao.alcance ?? ''}
-                onChange={(e) => onChange({ alcance: e.target.value })}
-                placeholder="Manter original"
-              />
+                value={alcanceSelectValue}
+                onChange={(e) =>
+                  handleAlcancePresetChange(
+                    e.target.value as AlcancePresetValue | 'MANTER_ORIGINAL',
+                  )
+                }
+              >
+                <option value="MANTER_ORIGINAL">Manter original</option>
+                {ALCANCE_PRESET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
 
               <Input
                 label="Alvo"
@@ -225,13 +313,54 @@ export function VariacaoForm({
                 placeholder="Manter original"
               />
 
-              <Input
+              <Select
                 label="Duração"
-                value={variacao.duracao ?? ''}
-                onChange={(e) => onChange({ duracao: e.target.value })}
-                placeholder="Manter original"
-              />
+                value={duracaoSelectValue}
+                onChange={(e) =>
+                  handleDuracaoPresetChange(
+                    e.target.value as DuracaoPresetValue | 'MANTER_ORIGINAL',
+                  )
+                }
+              >
+                <option value="MANTER_ORIGINAL">Manter original</option>
+                {DURACAO_PRESET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
             </div>
+
+            {(alcanceSelectValue === 'PERSONALIZADO' ||
+              duracaoSelectValue === 'PERSONALIZADA') && (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {alcanceSelectValue === 'PERSONALIZADO' ? (
+                  <Input
+                    label="Alcance personalizado"
+                    value={alcanceCustomValue}
+                    onChange={(e) => {
+                      setAlcanceCustomMode(true);
+                      onChange({ alcance: e.target.value });
+                    }}
+                    placeholder="Ex: 12m, 30m, linha de visão"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {duracaoSelectValue === 'PERSONALIZADA' ? (
+                  <Input
+                    label="Duração personalizada"
+                    value={duracaoCustomValue}
+                    onChange={(e) => {
+                      setDuracaoCustomMode(true);
+                      onChange({ duracao: e.target.value });
+                    }}
+                    placeholder="Ex: 3 turnos, 1 hora, até fim da cena"
+                  />
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* Resistência (sobrescreve se definido) */}
