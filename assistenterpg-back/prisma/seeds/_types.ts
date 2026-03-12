@@ -106,6 +106,11 @@ export type SeedResistenciaTipo = {
   descricao?: string | null;
 };
 
+export type SeedCondicao = {
+  nome: string;
+  descricao: string;
+};
+
 // =======================
 // PERÍCIAS / ALINHAMENTOS
 // =======================

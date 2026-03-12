@@ -11,6 +11,7 @@ import { seedPericias } from './seeds/catalogos/pericias';
 import { seedProficiencias } from './seeds/catalogos/proficiencias';
 import { seedResistencias } from './seeds/catalogos/resistencias';
 import { seedTiposGrau } from './seeds/catalogos/tipos-graus';
+import { seedCondicoes } from './seeds/catalogos/condicoes';
 
 // =======================
 // Catálogos de Equipamentos
@@ -76,6 +77,7 @@ async function main() {
   await seedTiposGrau(prisma);
   await seedResistencias(prisma);
   await seedPericias(prisma);
+  await seedCondicoes(prisma);
   await seedAlinhamentos(prisma);
   await seedPassivasAtributos(prisma);
   console.log('✅ Catálogos base concluídos!\n');
