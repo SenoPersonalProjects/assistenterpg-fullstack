@@ -985,29 +985,9 @@ export class PersonagemBaseService {
       );
     }
 
-    // TÃ©cnica inata
-    if (tecnicaInataId) {
-      const tecnicaInata = await prisma.tecnicaAmaldicoada.findUnique({
-        where: { id: tecnicaInataId },
-        select: {
-          id: true,
-          nome: true,
-          tipo: true,
-        },
-      });
-
-      if (tecnicaInata) {
-        habilidades.push({
-          habilidadeId: tecnicaInata.id,
-          habilidade: {
-            nome: tecnicaInata.nome,
-            tipo: tecnicaInata.tipo,
-            mecanicasEspeciais: null,
-            efeitosGrau: [],
-          },
-        });
-      }
-    }
+    // Tecnica inata (persistida separadamente)
+    // Tecnica inata e tratada separadamente do catalogo de habilidades.
+    // Nao deve entrar em habilidadesBase para evitar colisao de ID entre tabelas.
 
     // Escola TÃ©cnica como habilidade (se estudou)
     if (estudouEscolaTecnica) {
