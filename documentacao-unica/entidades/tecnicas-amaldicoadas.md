@@ -24,9 +24,13 @@ Este documento detalha o contrato real de `tecnicas-amaldicoadas` cruzando:
 - `GET /tecnicas-amaldicoadas`
   - query: `FiltrarTecnicasDto`
   - booleans aceitos em query: `true/false`, `1/0`, `yes/no`, `on/off`
+- `GET /tecnicas-amaldicoadas/importar-json/guia`
+- `GET /tecnicas-amaldicoadas/exportar-json`
+  - query opcional: filtros de `FiltrarTecnicasDto` + `id` + `incluirIds`
 - `GET /tecnicas-amaldicoadas/:id`
 - `GET /tecnicas-amaldicoadas/codigo/:codigo`
 - `GET /tecnicas-amaldicoadas/cla/:claId`
+- `POST /tecnicas-amaldicoadas/importar-json`
 - `POST /tecnicas-amaldicoadas`
 - `PATCH /tecnicas-amaldicoadas/:id`
 - `DELETE /tecnicas-amaldicoadas/:id`
@@ -100,6 +104,49 @@ Campos de create (principais):
 - variacao pertence sempre a uma habilidade tecnica existente
 - campos JSON (`dadosDano`, `escalonamentoEfeito`, `escalonamentoDano`, `requisitos`) sao normalizados/atualizados como opcionais
 
+## Importacao e Exportacao JSON
+
+- schema atual:
+  - `schema`: `tecnicas-amaldicoadas.import-export`
+  - `schemaVersion`: `1`
+- formato esperado:
+  - `modo`: `UPSERT`
+  - `tecnicas`: array de tecnicas com estrutura aninhada de `habilidades` e `variacoes`
+  - flags opcionais:
+    - `substituirHabilidadesAusentes`
+    - `substituirVariacoesAusentes`
+- regra de upsert:
+  - tecnica por `codigo`
+  - habilidade por `codigo`
+  - variacao por `id` (quando informado) ou `nome` dentro da habilidade
+- retorno da importacao:
+  - total recebido
+  - contadores de criacao/atualizacao/remocao por nivel (`tecnicas`, `habilidades`, `variacoes`)
+  - lista de avisos (`avisos`)
+- guia oficial:
+  - `GET /tecnicas-amaldicoadas/importar-json/guia` retorna exemplos minimo/completo e campos obrigatorios
+
+Exemplo minimo:
+
+```json
+{
+  "schema": "tecnicas-amaldicoadas.import-export",
+  "schemaVersion": 1,
+  "modo": "UPSERT",
+  "tecnicas": [
+    {
+      "codigo": "TEC_EXEMPLO",
+      "nome": "Tecnica Exemplo",
+      "descricao": "Descricao resumida da tecnica.",
+      "tipo": "INATA",
+      "hereditaria": false,
+      "fonte": "SISTEMA_BASE",
+      "habilidades": []
+    }
+  ]
+}
+```
+
 ## Persistencia (Schema)
 
 Restrições principais:
@@ -123,7 +170,11 @@ Restrições principais:
 - painel admin de tecnicas:
   - listagem/filtro de tecnicas
   - CRUD de tecnica
+  - importacao/exportacao JSON (guia + exportar filtradas + exportar por linha + importar arquivo/conteudo)
   - modal dedicado para CRUD de habilidades/variacoes
+- painel admin de habilidades:
+  - CRUD de poderes genericos continua no modulo `habilidades`
+  - cadastro de habilidade de tecnica agora abre um seletor de tecnica (inata/nao inata) e redireciona para o CRUD dedicado da tecnica escolhida
 - formulario de homebrew de tecnicas:
   - usa o mesmo padrao guiado para `execucao`, `area`, `alcance` e `duracao`
   - permite fallback para texto livre em `alcance` e `duracao` quando necessario

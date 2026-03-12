@@ -4,10 +4,34 @@ import { CreateTecnicaDto } from './dto/create-tecnica.dto';
 import { UpdateTecnicaDto } from './dto/update-tecnica.dto';
 import { FiltrarTecnicasDto } from './dto/filtrar-tecnicas.dto';
 import { TecnicaDetalhadaDto } from './dto/tecnica-detalhada.dto';
+import { ExportarTecnicasJsonDto } from './dto/exportar-tecnicas-json.dto';
+import { ImportarTecnicasJsonDto } from './dto/importar-tecnicas-json.dto';
 import { CreateHabilidadeTecnicaDto } from './dto/create-habilidade-tecnica.dto';
 import { UpdateHabilidadeTecnicaDto } from './dto/update-habilidade-tecnica.dto';
 import { CreateVariacaoHabilidadeDto } from './dto/create-variacao.dto';
 import { UpdateVariacaoHabilidadeDto } from './dto/update-variacao.dto';
+type RegistroJson = Record<string, unknown>;
+type ImportacaoTecnicasResumo = {
+    schema: string;
+    schemaVersion: number;
+    modo: 'UPSERT';
+    totalRecebido: number;
+    tecnicas: {
+        criadas: number;
+        atualizadas: number;
+    };
+    habilidades: {
+        criadas: number;
+        atualizadas: number;
+        removidas: number;
+    };
+    variacoes: {
+        criadas: number;
+        atualizadas: number;
+        removidas: number;
+    };
+    avisos: string[];
+};
 export declare class TecnicasAmaldicoadasService {
     private prisma;
     constructor(prisma: PrismaService);
@@ -15,6 +39,22 @@ export declare class TecnicasAmaldicoadasService {
     private normalizarJsonOuNull;
     private normalizarJsonOpcional;
     private validarFonteSuplemento;
+    private garantirObjeto;
+    private lerStringObrigatoria;
+    private lerStringOpcional;
+    private lerNumeroOpcional;
+    private lerInteiroOpcional;
+    private lerBooleanOpcional;
+    private lerArrayStringsOpcional;
+    private lerEnumObrigatorio;
+    private lerEnumOpcional;
+    private parseVariacaoImport;
+    private parseHabilidadeImport;
+    private parseTecnicaImport;
+    private mapTecnicaExportJson;
+    getGuiaImportacaoJson(): Promise<RegistroJson>;
+    exportarTecnicasJson(query: ExportarTecnicasJsonDto): Promise<RegistroJson>;
+    importarTecnicasJson(dto: ImportarTecnicasJsonDto): Promise<ImportacaoTecnicasResumo>;
     findAllTecnicas(filtros: FiltrarTecnicasDto): Promise<TecnicaDetalhadaDto[]>;
     findOneTecnica(id: number): Promise<TecnicaDetalhadaDto>;
     findTecnicaByCodigo(codigo: string): Promise<TecnicaDetalhadaDto>;
@@ -463,3 +503,4 @@ export declare class TecnicasAmaldicoadasService {
     private vincularClas;
     private mapTecnicaToDto;
 }
+export {};

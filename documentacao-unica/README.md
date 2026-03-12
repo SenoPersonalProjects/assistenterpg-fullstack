@@ -1186,9 +1186,12 @@ Rotas principais:
   - `DELETE /habilidades/:id`
 - `tecnicas-amaldicoadas`
   - `GET /tecnicas-amaldicoadas`
+  - `GET /tecnicas-amaldicoadas/importar-json/guia`
+  - `GET /tecnicas-amaldicoadas/exportar-json`
   - `GET /tecnicas-amaldicoadas/codigo/:codigo`
   - `GET /tecnicas-amaldicoadas/cla/:claId`
   - `GET /tecnicas-amaldicoadas/:id`
+  - `POST /tecnicas-amaldicoadas/importar-json`
   - `POST /tecnicas-amaldicoadas`
   - `PATCH /tecnicas-amaldicoadas/:id`
   - `DELETE /tecnicas-amaldicoadas/:id`
@@ -1438,6 +1441,11 @@ Detalhamento do bloco `tecnicas-amaldicoadas`:
     - padrao de include:
       - `incluirClas=false` remove `clasHereditarios`
       - `incluirHabilidades=false` remove `habilidades`
+  - `GET /tecnicas-amaldicoadas/importar-json/guia`
+    - resposta: schema + regras + exemplos minimo/completo do formato JSON oficial
+  - `GET /tecnicas-amaldicoadas/exportar-json`
+    - query opcional: filtros de `FiltrarTecnicasDto` + `id` + `incluirIds`
+    - retorna payload pronto para round-trip no `POST /importar-json`
   - `GET /tecnicas-amaldicoadas/:id`
     - `id` inteiro obrigatorio
     - erro esperado: `TECNICA_NOT_FOUND` (404)
@@ -1446,6 +1454,10 @@ Detalhamento do bloco `tecnicas-amaldicoadas`:
   - `GET /tecnicas-amaldicoadas/cla/:claId`
     - `claId` inteiro obrigatorio
     - retorna tecnicas hereditarias vinculadas ao cla
+  - `POST /tecnicas-amaldicoadas/importar-json`
+    - body: `{ schema?, schemaVersion?, modo?, substituirHabilidadesAusentes?, substituirVariacoesAusentes?, tecnicas: [...] }`
+    - modo atual: `UPSERT` (tecnica por `codigo`, habilidade por `codigo`, variacao por `id` ou `nome`)
+    - resposta: resumo com contadores de criacao/atualizacao/remocao + avisos
   - `POST /tecnicas-amaldicoadas`
     - body: [`CreateTecnicaDto`](../assistenterpg-back/src/tecnicas-amaldicoadas/dto/create-tecnica.dto.ts)
       - `codigo`, `nome`, `descricao`, `tipo` obrigatorios
@@ -1506,11 +1518,13 @@ Integracao frontend neste bloco:
 - escrita/admin:
   - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts):
     - tecnicas: `apiAdminCreateTecnicaAmaldicoada`, `apiAdminUpdateTecnicaAmaldicoada`
+    - import/export JSON: `apiAdminGetGuiaImportacaoTecnicasJson`, `apiAdminExportarTecnicasJson`, `apiAdminImportarTecnicasJson`
     - habilidades de tecnica: `apiAdminGetHabilidadesDaTecnica`, `apiAdminGetHabilidadeDaTecnica`, `apiAdminCreateHabilidadeDaTecnica`, `apiAdminUpdateHabilidadeDaTecnica`, `apiAdminDeleteHabilidadeDaTecnica`
     - variacoes: `apiAdminGetVariacoesDaHabilidadeTecnica`, `apiAdminGetVariacaoDaHabilidadeTecnica`, `apiAdminCreateVariacaoDaHabilidadeTecnica`, `apiAdminUpdateVariacaoDaHabilidadeTecnica`, `apiAdminDeleteVariacaoDaHabilidadeTecnica`
 - interface admin:
-  - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx) agora expoe acao `Habilidades` por tecnica
+  - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx) agora expoe CRUD manual + importacao/exportacao JSON (guia, exportar filtradas e por tecnica, importar arquivo/conteudo)
   - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) cobre CRUD de habilidades e variacoes em modal dedicado, incluindo campos avancados com entrada guiada para `requisitos`, `testesExigidos`, `dadosDano` e escalonamento (tipado e fallback JSON)
+  - [`assistenterpg-front/src/components/suplemento-admin/habilidades/HabilidadesAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/habilidades/HabilidadesAdminPanel.tsx) ganhou fluxo de selecao de tecnica (inata/nao inata) para abrir o CRUD dedicado de habilidades tecnicas, mantendo `poder generico` no modulo de habilidades
 
 Detalhamento do bloco de catalogos menores:
 

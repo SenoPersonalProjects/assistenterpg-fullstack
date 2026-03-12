@@ -6,16 +6,19 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ModalHabilidadeAdminForm } from './ModalHabilidadeAdminForm';
+import { TecnicaHabilidadesModal } from '../panels/TecnicaHabilidadesModal';
 import {
   apiAdminGetHabilidades,
   apiAdminCreateHabilidade,
   apiAdminUpdateHabilidade,
+  apiAdminGetTecnicasAmaldicoadas,
   apiGetSuplementos,
   extrairMensagemErro,
   type HabilidadeCatalogo,
@@ -23,6 +26,8 @@ import {
   type ListHabilidadesFilters,
   type TipoFonte,
   type TipoHabilidadeCatalogo,
+  TipoTecnicaAmaldicoada,
+  type TecnicaAmaldicoadaCatalogo,
   type SuplementoCatalogo,
   type CreateHabilidadePayload,
   type UpdateHabilidadePayload,
@@ -98,6 +103,93 @@ function fonteBadgeColor(fonte?: TipoFonte): 'gray' | 'blue' | 'orange' {
   return 'gray';
 }
 
+type SelecionarTecnicaModalProps = {
+  isOpen: boolean;
+  loading: boolean;
+  tipo: TipoTecnicaAmaldicoada;
+  tecnicas: TecnicaAmaldicoadaCatalogo[];
+  selectedId: string;
+  onChangeTipo: (value: TipoTecnicaAmaldicoada) => void;
+  onChangeSelectedId: (value: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+};
+
+function SelecionarTecnicaModal({
+  isOpen,
+  loading,
+  tipo,
+  tecnicas,
+  selectedId,
+  onChangeTipo,
+  onChangeSelectedId,
+  onClose,
+  onConfirm,
+}: SelecionarTecnicaModalProps) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Nova habilidade de tecnica"
+      size="lg"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button variant="primary" onClick={onConfirm} disabled={!selectedId || loading}>
+            Abrir editor da tecnica
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Card>
+          <p className="text-sm text-app-muted">
+            Cadastro de habilidade de tecnica e separado do poder generico.
+            Selecione a tecnica de destino para abrir o CRUD dedicado.
+          </p>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-3">
+          <Select
+            label="Tipo da tecnica"
+            value={tipo}
+            onChange={(e) => onChangeTipo(e.target.value as TipoTecnicaAmaldicoada)}
+          >
+            <option value={TipoTecnicaAmaldicoada.INATA}>Tecnica Inata</option>
+            <option value={TipoTecnicaAmaldicoada.NAO_INATA}>Tecnica Nao Inata</option>
+          </Select>
+
+          {loading ? (
+            <Loading message="Carregando tecnicas..." className="py-6 text-app-fg" />
+          ) : tecnicas.length === 0 ? (
+            <EmptyState
+              variant="card"
+              icon="technique"
+              title="Nenhuma tecnica encontrada"
+              description="Cadastre a tecnica primeiro no modulo de tecnicas."
+            />
+          ) : (
+            <Select
+              label="Tecnica de destino"
+              value={selectedId}
+              onChange={(e) => onChangeSelectedId(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {tecnicas.map((tecnica) => (
+                <option key={tecnica.id} value={String(tecnica.id)}>
+                  {tecnica.codigo} - {tecnica.nome}
+                </option>
+              ))}
+            </Select>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export function HabilidadesAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -119,6 +211,16 @@ export function HabilidadesAdminPanel() {
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [habilidadeEditando, setHabilidadeEditando] = useState<HabilidadeCatalogo | null>(null);
+  const [tecnicaSelectorOpen, setTecnicaSelectorOpen] = useState(false);
+  const [tecnicaTipoSelecionado, setTecnicaTipoSelecionado] = useState<TipoTecnicaAmaldicoada>(
+    TipoTecnicaAmaldicoada.INATA,
+  );
+  const [tecnicasDisponiveis, setTecnicasDisponiveis] = useState<TecnicaAmaldicoadaCatalogo[]>([]);
+  const [tecnicasLoading, setTecnicasLoading] = useState(false);
+  const [tecnicaSelecionadaId, setTecnicaSelecionadaId] = useState('');
+  const [tecnicaHabilidadesModalOpen, setTecnicaHabilidadesModalOpen] = useState(false);
+  const [tecnicaHabilidadesItem, setTecnicaHabilidadesItem] =
+    useState<TecnicaAmaldicoadaCatalogo | null>(null);
 
   const suplementoNameById = useMemo(() => {
     const map = new Map<number, string>();
@@ -151,6 +253,25 @@ export function HabilidadesAdminPanel() {
     }
   }, [appliedFilters, showToast]);
 
+  const carregarTecnicasDisponiveis = useCallback(
+    async (tipo: TipoTecnicaAmaldicoada) => {
+      try {
+        setTecnicasLoading(true);
+        const data = await apiAdminGetTecnicasAmaldicoadas({
+          tipo,
+          incluirClas: true,
+          incluirHabilidades: false,
+        });
+        setTecnicasDisponiveis(data);
+      } catch (error) {
+        showToast(extrairMensagemErro(error), 'error');
+      } finally {
+        setTecnicasLoading(false);
+      }
+    },
+    [showToast],
+  );
+
   useEffect(() => {
     carregarSuplementos();
   }, [carregarSuplementos]);
@@ -158,6 +279,11 @@ export function HabilidadesAdminPanel() {
   useEffect(() => {
     carregarHabilidades();
   }, [carregarHabilidades]);
+
+  useEffect(() => {
+    if (!tecnicaSelectorOpen) return;
+    carregarTecnicasDisponiveis(tecnicaTipoSelecionado);
+  }, [tecnicaSelectorOpen, tecnicaTipoSelecionado, carregarTecnicasDisponiveis]);
 
   function aplicarFiltros() {
     setAppliedFilters({
@@ -206,6 +332,24 @@ export function HabilidadesAdminPanel() {
     setModalOpen(true);
   }
 
+  function abrirCriacaoHabilidadeTecnica() {
+    setTecnicaTipoSelecionado(TipoTecnicaAmaldicoada.INATA);
+    setTecnicaSelecionadaId('');
+    setTecnicaSelectorOpen(true);
+  }
+
+  function confirmarTecnicaSelecionada() {
+    const tecnica = tecnicasDisponiveis.find((item) => item.id === Number(tecnicaSelecionadaId));
+    if (!tecnica) {
+      showToast('Selecione uma tecnica valida.', 'error');
+      return;
+    }
+
+    setTecnicaHabilidadesItem(tecnica);
+    setTecnicaHabilidadesModalOpen(true);
+    setTecnicaSelectorOpen(false);
+  }
+
   function abrirEdicao(habilidade: HabilidadeCatalogo) {
     setHabilidadeEditando(habilidade);
     setModalOpen(true);
@@ -217,12 +361,20 @@ export function HabilidadesAdminPanel() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-app-fg">Gerenciar Habilidades</h2>
-            <p className="text-sm text-app-muted">CRUD admin de habilidades com fonte e suplemento.</p>
+            <p className="text-sm text-app-muted">
+              Poderes genericos ficam aqui. Habilidades de tecnica usam CRUD dedicado por tecnica.
+            </p>
           </div>
-          <Button variant="primary" onClick={abrirCriacao}>
-            <Icon name="add" className="w-4 h-4 mr-2" />
-            Nova habilidade
-          </Button>
+          <div className="flex flex-wrap gap-2 justify-end">
+            <Button variant="secondary" onClick={abrirCriacaoHabilidadeTecnica}>
+              <Icon name="technique" className="w-4 h-4 mr-2" />
+              Nova habilidade de tecnica
+            </Button>
+            <Button variant="primary" onClick={abrirCriacao}>
+              <Icon name="add" className="w-4 h-4 mr-2" />
+              Novo poder generico
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -422,6 +574,33 @@ export function HabilidadesAdminPanel() {
         onSubmitUpdate={handleUpdate}
         suplementos={suplementos}
         habilidade={habilidadeEditando}
+      />
+
+      <SelecionarTecnicaModal
+        isOpen={tecnicaSelectorOpen}
+        loading={tecnicasLoading}
+        tipo={tecnicaTipoSelecionado}
+        tecnicas={tecnicasDisponiveis}
+        selectedId={tecnicaSelecionadaId}
+        onChangeTipo={(value) => {
+          setTecnicaTipoSelecionado(value);
+          setTecnicaSelecionadaId('');
+        }}
+        onChangeSelectedId={setTecnicaSelecionadaId}
+        onClose={() => setTecnicaSelectorOpen(false)}
+        onConfirm={confirmarTecnicaSelecionada}
+      />
+
+      <TecnicaHabilidadesModal
+        isOpen={tecnicaHabilidadesModalOpen}
+        tecnica={tecnicaHabilidadesItem}
+        onClose={(success) => {
+          setTecnicaHabilidadesModalOpen(false);
+          setTecnicaHabilidadesItem(null);
+          if (success) {
+            carregarHabilidades();
+          }
+        }}
       />
     </div>
   );

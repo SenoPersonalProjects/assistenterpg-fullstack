@@ -40,6 +40,8 @@ describe('TecnicasAmaldicoadasController', () => {
       'findAllTecnicas',
       'findTecnicaByCodigo',
       'findTecnicasByCla',
+      'getGuiaImportacaoJson',
+      'exportarJson',
       'findOneTecnica',
       'findAllHabilidades',
       'findOneHabilidade',
@@ -59,6 +61,7 @@ describe('TecnicasAmaldicoadasController', () => {
 
   it('should require AdminGuard on write routes', () => {
     const writeMethods = [
+      'importarJson',
       'createTecnica',
       'updateTecnica',
       'removeTecnica',

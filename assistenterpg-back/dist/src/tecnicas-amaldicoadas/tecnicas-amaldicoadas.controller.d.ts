@@ -2,6 +2,8 @@ import { TecnicasAmaldicoadasService } from './tecnicas-amaldicoadas.service';
 import { CreateTecnicaDto } from './dto/create-tecnica.dto';
 import { UpdateTecnicaDto } from './dto/update-tecnica.dto';
 import { FiltrarTecnicasDto } from './dto/filtrar-tecnicas.dto';
+import { ExportarTecnicasJsonDto } from './dto/exportar-tecnicas-json.dto';
+import { ImportarTecnicasJsonDto } from './dto/importar-tecnicas-json.dto';
 import { CreateHabilidadeTecnicaDto } from './dto/create-habilidade-tecnica.dto';
 import { UpdateHabilidadeTecnicaDto } from './dto/update-habilidade-tecnica.dto';
 import { CreateVariacaoHabilidadeDto } from './dto/create-variacao.dto';
@@ -12,7 +14,38 @@ export declare class TecnicasAmaldicoadasController {
     findAllTecnicas(filtros: FiltrarTecnicasDto): Promise<import("./dto/tecnica-detalhada.dto").TecnicaDetalhadaDto[]>;
     findTecnicaByCodigo(codigo: string): Promise<import("./dto/tecnica-detalhada.dto").TecnicaDetalhadaDto>;
     findTecnicasByCla(claId: number): Promise<import("./dto/tecnica-detalhada.dto").TecnicaDetalhadaDto[]>;
+    getGuiaImportacaoJson(): Promise<{
+        [x: string]: unknown;
+    }>;
+    exportarJson(query: ExportarTecnicasJsonDto): Promise<{
+        [x: string]: unknown;
+    }>;
     findOneTecnica(id: number): Promise<import("./dto/tecnica-detalhada.dto").TecnicaDetalhadaDto>;
+    importarJson(req: {
+        user: {
+            id: number;
+        };
+    }, dto: ImportarTecnicasJsonDto): Promise<{
+        schema: string;
+        schemaVersion: number;
+        modo: "UPSERT";
+        totalRecebido: number;
+        tecnicas: {
+            criadas: number;
+            atualizadas: number;
+        };
+        habilidades: {
+            criadas: number;
+            atualizadas: number;
+            removidas: number;
+        };
+        variacoes: {
+            criadas: number;
+            atualizadas: number;
+            removidas: number;
+        };
+        avisos: string[];
+    }>;
     createTecnica(req: {
         user: {
             id: number;

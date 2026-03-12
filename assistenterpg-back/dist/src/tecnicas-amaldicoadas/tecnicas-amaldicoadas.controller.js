@@ -20,6 +20,8 @@ const admin_guard_1 = require("../auth/guards/admin.guard");
 const create_tecnica_dto_1 = require("./dto/create-tecnica.dto");
 const update_tecnica_dto_1 = require("./dto/update-tecnica.dto");
 const filtrar_tecnicas_dto_1 = require("./dto/filtrar-tecnicas.dto");
+const exportar_tecnicas_json_dto_1 = require("./dto/exportar-tecnicas-json.dto");
+const importar_tecnicas_json_dto_1 = require("./dto/importar-tecnicas-json.dto");
 const create_habilidade_tecnica_dto_1 = require("./dto/create-habilidade-tecnica.dto");
 const update_habilidade_tecnica_dto_1 = require("./dto/update-habilidade-tecnica.dto");
 const create_variacao_dto_1 = require("./dto/create-variacao.dto");
@@ -38,8 +40,17 @@ let TecnicasAmaldicoadasController = class TecnicasAmaldicoadasController {
     async findTecnicasByCla(claId) {
         return this.service.findTecnicasByCla(claId);
     }
+    async getGuiaImportacaoJson() {
+        return this.service.getGuiaImportacaoJson();
+    }
+    async exportarJson(query) {
+        return this.service.exportarTecnicasJson(query);
+    }
     async findOneTecnica(id) {
         return this.service.findOneTecnica(id);
+    }
+    async importarJson(req, dto) {
+        return this.service.importarTecnicasJson(dto);
     }
     async createTecnica(req, dto) {
         return this.service.createTecnica(dto);
@@ -107,12 +118,34 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], TecnicasAmaldicoadasController.prototype, "findTecnicasByCla", null);
 __decorate([
+    (0, common_1.Get)('importar-json/guia'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], TecnicasAmaldicoadasController.prototype, "getGuiaImportacaoJson", null);
+__decorate([
+    (0, common_1.Get)('exportar-json'),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [exportar_tecnicas_json_dto_1.ExportarTecnicasJsonDto]),
+    __metadata("design:returntype", Promise)
+], TecnicasAmaldicoadasController.prototype, "exportarJson", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", Promise)
 ], TecnicasAmaldicoadasController.prototype, "findOneTecnica", null);
+__decorate([
+    (0, common_1.Post)('importar-json'),
+    (0, common_1.UseGuards)(admin_guard_1.AdminGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, importar_tecnicas_json_dto_1.ImportarTecnicasJsonDto]),
+    __metadata("design:returntype", Promise)
+], TecnicasAmaldicoadasController.prototype, "importarJson", null);
 __decorate([
     (0, common_1.Post)(),
     (0, common_1.UseGuards)(admin_guard_1.AdminGuard),

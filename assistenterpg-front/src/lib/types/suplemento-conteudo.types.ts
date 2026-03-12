@@ -203,6 +203,87 @@ export type CreateTecnicaPayload = ConteudoComFonte & {
 
 export type UpdateTecnicaPayload = Partial<Omit<CreateTecnicaPayload, 'codigo'>>;
 
+export type VariacaoTecnicaJsonPayload = Omit<
+  CreateVariacaoHabilidadeTecnicaPayload,
+  'habilidadeTecnicaId'
+> & {
+  id?: number;
+};
+
+export type HabilidadeTecnicaJsonPayload = Omit<
+  CreateHabilidadeTecnicaPayload,
+  'tecnicaId'
+> & {
+  id?: number;
+  variacoes?: VariacaoTecnicaJsonPayload[];
+};
+
+export type TecnicaJsonPayload = Omit<CreateTecnicaPayload, 'codigo'> & {
+  id?: number;
+  codigo: string;
+  habilidades?: HabilidadeTecnicaJsonPayload[];
+};
+
+export type ExportarTecnicasJsonFilters = ListTecnicasFilters & {
+  id?: number;
+  incluirIds?: boolean;
+};
+
+export type ExportarTecnicasJsonResponse = {
+  schema: string;
+  schemaVersion: number;
+  exportadoEm: string;
+  totalTecnicas: number;
+  tecnicas: TecnicaJsonPayload[];
+};
+
+export type ImportarTecnicasJsonPayload = {
+  schema?: string;
+  schemaVersion?: number;
+  modo?: 'UPSERT';
+  substituirHabilidadesAusentes?: boolean;
+  substituirVariacoesAusentes?: boolean;
+  tecnicas: TecnicaJsonPayload[];
+};
+
+export type ImportarTecnicasJsonResultado = {
+  schema: string;
+  schemaVersion: number;
+  modo: 'UPSERT';
+  totalRecebido: number;
+  tecnicas: {
+    criadas: number;
+    atualizadas: number;
+  };
+  habilidades: {
+    criadas: number;
+    atualizadas: number;
+    removidas: number;
+  };
+  variacoes: {
+    criadas: number;
+    atualizadas: number;
+    removidas: number;
+  };
+  avisos: string[];
+};
+
+export type GuiaImportacaoTecnicasJsonResponse = {
+  schema: string;
+  schemaVersion: number;
+  descricao: string;
+  regras: string[];
+  exemplos: {
+    minimo: ImportarTecnicasJsonPayload;
+    completo: ImportarTecnicasJsonPayload;
+  };
+  camposObrigatorios: {
+    tecnica: string[];
+    habilidade: string[];
+    variacao: string[];
+  };
+};
+
 export type VariacaoHabilidadeTecnicaCatalogo = {
   id: number;
   habilidadeTecnicaId: number;

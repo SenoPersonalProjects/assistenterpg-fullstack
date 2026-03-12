@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useToast } from '@/context/ToastContext';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -21,6 +21,9 @@ import {
   apiAdminGetTecnicasAmaldicoadas,
   apiAdminCreateTecnicaAmaldicoada,
   apiAdminUpdateTecnicaAmaldicoada,
+  apiAdminGetGuiaImportacaoTecnicasJson,
+  apiAdminExportarTecnicasJson,
+  apiAdminImportarTecnicasJson,
   apiGetSuplementos,
   extrairMensagemErro,
   TipoTecnicaAmaldicoada,
@@ -30,6 +33,9 @@ import {
   type TipoFonte,
   type CreateTecnicaPayload,
   type UpdateTecnicaPayload,
+  type GuiaImportacaoTecnicasJsonResponse,
+  type ImportarTecnicasJsonPayload,
+  type ImportarTecnicasJsonResultado,
 } from '@/lib/api';
 
 type DraftFilters = {
@@ -141,6 +147,53 @@ function buildFormState(item?: TecnicaAmaldicoadaCatalogo | null): TecnicaFormSt
 function formatClasHereditarios(item: TecnicaAmaldicoadaCatalogo): string {
   const nomes = extractClaNomes(item);
   return nomes.length > 0 ? nomes.join(', ') : '-';
+}
+
+function buildSafeTimestampForFile(): string {
+  return new Date().toISOString().replace(/[:.]/g, '-');
+}
+
+function baixarJsonComoArquivo(conteudo: unknown, nomeArquivo: string): void {
+  const blob = new Blob([JSON.stringify(conteudo, null, 2)], {
+    type: 'application/json;charset=utf-8',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function parseImportPayload(raw: string): ImportarTecnicasJsonPayload {
+  const parsed = JSON.parse(raw) as unknown;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('JSON invalido: o arquivo deve ser um objeto.');
+  }
+
+  const asRecord = parsed as Record<string, unknown>;
+  const tecnicasRaw = asRecord.tecnicas;
+  if (!Array.isArray(tecnicasRaw)) {
+    throw new Error('JSON invalido: campo "tecnicas" deve ser um array.');
+  }
+
+  return {
+    schema: typeof asRecord.schema === 'string' ? asRecord.schema : undefined,
+    schemaVersion:
+      typeof asRecord.schemaVersion === 'number' ? asRecord.schemaVersion : undefined,
+    modo: asRecord.modo === 'UPSERT' ? 'UPSERT' : undefined,
+    substituirHabilidadesAusentes:
+      typeof asRecord.substituirHabilidadesAusentes === 'boolean'
+        ? asRecord.substituirHabilidadesAusentes
+        : undefined,
+    substituirVariacoesAusentes:
+      typeof asRecord.substituirVariacoesAusentes === 'boolean'
+        ? asRecord.substituirVariacoesAusentes
+        : undefined,
+    tecnicas: tecnicasRaw as ImportarTecnicasJsonPayload['tecnicas'],
+  };
 }
 
 type ModalProps = {
@@ -347,6 +400,175 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
   );
 }
 
+type GuiaJsonModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  guia: GuiaImportacaoTecnicasJsonResponse | null;
+  loading: boolean;
+  onReload: () => void;
+};
+
+function GuiaJsonModal({ isOpen, onClose, guia, loading, onReload }: GuiaJsonModalProps) {
+  const exemploMinimo = guia ? JSON.stringify(guia.exemplos.minimo, null, 2) : '';
+  const exemploCompleto = guia ? JSON.stringify(guia.exemplos.completo, null, 2) : '';
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Guia de formato JSON"
+      size="xl"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onReload} disabled={loading}>
+            Atualizar guia
+          </Button>
+          <Button variant="primary" onClick={onClose}>
+            Fechar
+          </Button>
+        </>
+      }
+    >
+      {loading ? (
+        <Loading message="Carregando guia..." className="py-8 text-app-fg" />
+      ) : guia ? (
+        <div className="space-y-4">
+          <Card>
+            <div className="space-y-2 text-sm text-app-fg">
+              <div>
+                <span className="font-medium">Schema:</span> {guia.schema} v{guia.schemaVersion}
+              </div>
+              <p className="text-app-muted">{guia.descricao}</p>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-sm font-semibold text-app-fg mb-2">Regras</h3>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-app-muted">
+              {guia.regras.map((regra) => (
+                <li key={regra}>{regra}</li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card>
+            <h3 className="text-sm font-semibold text-app-fg mb-2">Exemplo minimo</h3>
+            <Textarea value={exemploMinimo} rows={12} readOnly />
+          </Card>
+
+          <Card>
+            <h3 className="text-sm font-semibold text-app-fg mb-2">Exemplo completo</h3>
+            <Textarea value={exemploCompleto} rows={18} readOnly />
+          </Card>
+        </div>
+      ) : (
+        <EmptyState
+          variant="card"
+          icon="warning"
+          title="Guia indisponivel"
+          description="Nao foi possivel carregar o formato JSON."
+        />
+      )}
+    </Modal>
+  );
+}
+
+type ImportJsonModalProps = {
+  isOpen: boolean;
+  onClose: (success?: boolean) => void;
+  onImport: (payload: ImportarTecnicasJsonPayload) => Promise<ImportarTecnicasJsonResultado>;
+};
+
+function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
+  const [jsonInput, setJsonInput] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setJsonInput('');
+      setFileName('');
+      setError(null);
+      setImporting(false);
+    }
+  }, [isOpen]);
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      JSON.parse(content);
+      setJsonInput(content);
+      setFileName(file.name);
+      setError(null);
+    } catch {
+      setError('Arquivo JSON invalido.');
+    }
+  }
+
+  async function handleImport() {
+    try {
+      setError(null);
+      setImporting(true);
+      const payload = parseImportPayload(jsonInput);
+      await onImport(payload);
+      onClose(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao importar JSON.');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={() => onClose(false)}
+      title="Importar tecnicas via JSON"
+      size="xl"
+      footer={
+        <>
+          <Button variant="ghost" onClick={() => onClose(false)} disabled={importing}>
+            Cancelar
+          </Button>
+          <Button variant="primary" onClick={handleImport} disabled={importing || !jsonInput.trim()}>
+            {importing ? 'Importando...' : 'Importar'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Card>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-app-fg">Arquivo JSON</p>
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-app-muted file:mr-3 file:rounded file:border file:border-app-border file:bg-app-surface file:px-3 file:py-1 file:text-app-fg hover:file:bg-app-secondary-hover"
+              disabled={importing}
+            />
+            {fileName ? <p className="text-xs text-app-muted">Arquivo: {fileName}</p> : null}
+          </div>
+        </Card>
+
+        <Textarea
+          label="Conteudo JSON"
+          rows={16}
+          value={jsonInput}
+          onChange={(e) => setJsonInput(e.target.value)}
+          placeholder='Cole o JSON no formato { "tecnicas": [...] }'
+        />
+
+        {error ? <ErrorAlert message={error} /> : null}
+      </div>
+    </Modal>
+  );
+}
+
 export function TecnicasAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -359,6 +581,10 @@ export function TecnicasAdminPanel() {
   const [editingItem, setEditingItem] = useState<TecnicaAmaldicoadaCatalogo | null>(null);
   const [habilidadesModalOpen, setHabilidadesModalOpen] = useState(false);
   const [habilidadesItem, setHabilidadesItem] = useState<TecnicaAmaldicoadaCatalogo | null>(null);
+  const [guiaModalOpen, setGuiaModalOpen] = useState(false);
+  const [guiaJson, setGuiaJson] = useState<GuiaImportacaoTecnicasJsonResponse | null>(null);
+  const [guiaLoading, setGuiaLoading] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const suplementosById = useMemo(() => {
     const map = new Map<number, string>();
@@ -389,6 +615,49 @@ export function TecnicasAdminPanel() {
       setLoading(false);
     }
   }, [appliedFilters, showToast]);
+
+  const carregarGuiaJson = useCallback(async () => {
+    try {
+      setGuiaLoading(true);
+      const data = await apiAdminGetGuiaImportacaoTecnicasJson();
+      setGuiaJson(data);
+    } catch (error) {
+      showToast(extrairMensagemErro(error), 'error');
+    } finally {
+      setGuiaLoading(false);
+    }
+  }, [showToast]);
+
+  const exportarTecnicas = useCallback(
+    async (filtros?: ListTecnicasFilters & { id?: number }, nomeBase?: string) => {
+      try {
+        const data = await apiAdminExportarTecnicasJson({
+          ...filtros,
+          incluirIds: true,
+        });
+        const safeBase = nomeBase ?? 'tecnicas-amaldicoadas';
+        const fileName = `${safeBase}-${buildSafeTimestampForFile()}.json`;
+        baixarJsonComoArquivo(data, fileName);
+        showToast(`JSON exportado com ${data.totalTecnicas} tecnica(s).`, 'success');
+      } catch (error) {
+        showToast(extrairMensagemErro(error), 'error');
+      }
+    },
+    [showToast],
+  );
+
+  const importarTecnicas = useCallback(
+    async (payload: ImportarTecnicasJsonPayload): Promise<ImportarTecnicasJsonResultado> => {
+      const result = await apiAdminImportarTecnicasJson(payload);
+      showToast(
+        `Importacao concluida: ${result.tecnicas.criadas} criadas, ${result.tecnicas.atualizadas} atualizadas.`,
+        'success',
+      );
+      await carregarDados();
+      return result;
+    },
+    [carregarDados, showToast],
+  );
 
   useEffect(() => {
     carregarSuplementos();
@@ -506,6 +775,29 @@ export function TecnicasAdminPanel() {
             Limpar
           </Button>
           <Button
+            variant="secondary"
+            onClick={() => exportarTecnicas(toApiFilters(appliedFilters), 'tecnicas-filtradas')}
+          >
+            <Icon name="download" className="w-4 h-4 mr-1" />
+            Exportar filtradas
+          </Button>
+          <Button variant="secondary" onClick={() => setImportModalOpen(true)}>
+            <Icon name="upload" className="w-4 h-4 mr-1" />
+            Importar JSON
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setGuiaModalOpen(true);
+              if (!guiaJson) {
+                carregarGuiaJson();
+              }
+            }}
+          >
+            <Icon name="info" className="w-4 h-4 mr-1" />
+            Guia JSON
+          </Button>
+          <Button
             variant="primary"
             onClick={() => {
               setEditingItem(null);
@@ -594,6 +886,19 @@ export function TecnicasAdminPanel() {
                             <Icon name="technique" className="w-4 h-4 mr-1" />
                             Habilidades
                           </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              exportarTecnicas(
+                                { id: item.id, incluirClas: true, incluirHabilidades: true },
+                                `${item.codigo.toLowerCase() || 'tecnica'}-export`,
+                              )
+                            }
+                          >
+                            <Icon name="download" className="w-4 h-4 mr-1" />
+                            Exportar
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -624,6 +929,25 @@ export function TecnicasAdminPanel() {
           setHabilidadesItem(null);
           if (success) carregarDados();
         }}
+      />
+
+      <GuiaJsonModal
+        isOpen={guiaModalOpen}
+        onClose={() => setGuiaModalOpen(false)}
+        guia={guiaJson}
+        loading={guiaLoading}
+        onReload={carregarGuiaJson}
+      />
+
+      <ImportJsonModal
+        isOpen={importModalOpen}
+        onClose={(success) => {
+          setImportModalOpen(false);
+          if (success) {
+            carregarDados();
+          }
+        }}
+        onImport={importarTecnicas}
       />
     </div>
   );

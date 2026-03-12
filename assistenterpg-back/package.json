@@ -19,6 +19,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "prisma db seed",
+    "seed:tecnicas:inatas": "ts-node prisma/seeds/tecnicas/seed-tecnicas-inatas.ts",
     "seed:compendio": "ts-node prisma/seeds/compendio/seed-compendio.ts",
     "prebuild": "node scripts/check-prisma-client.js",
     "prisma:generate:safe": "PRISMA_PREBUILD_AUTO_GENERATE=true node scripts/check-prisma-client.js"

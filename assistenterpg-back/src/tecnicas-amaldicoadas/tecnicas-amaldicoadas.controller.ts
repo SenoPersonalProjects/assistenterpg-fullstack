@@ -19,6 +19,8 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { CreateTecnicaDto } from './dto/create-tecnica.dto';
 import { UpdateTecnicaDto } from './dto/update-tecnica.dto';
 import { FiltrarTecnicasDto } from './dto/filtrar-tecnicas.dto';
+import { ExportarTecnicasJsonDto } from './dto/exportar-tecnicas-json.dto';
+import { ImportarTecnicasJsonDto } from './dto/importar-tecnicas-json.dto';
 
 // DTOs - Habilidades
 import { CreateHabilidadeTecnicaDto } from './dto/create-habilidade-tecnica.dto';
@@ -52,9 +54,28 @@ export class TecnicasAmaldicoadasController {
     return this.service.findTecnicasByCla(claId);
   }
 
+  @Get('importar-json/guia')
+  async getGuiaImportacaoJson() {
+    return this.service.getGuiaImportacaoJson();
+  }
+
+  @Get('exportar-json')
+  async exportarJson(@Query() query: ExportarTecnicasJsonDto) {
+    return this.service.exportarTecnicasJson(query);
+  }
+
   @Get(':id')
   async findOneTecnica(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOneTecnica(id);
+  }
+
+  @Post('importar-json')
+  @UseGuards(AdminGuard)
+  async importarJson(
+    @Request() req: { user: { id: number } },
+    @Body() dto: ImportarTecnicasJsonDto,
+  ) {
+    return this.service.importarTecnicasJson(dto);
   }
 
   @Post()

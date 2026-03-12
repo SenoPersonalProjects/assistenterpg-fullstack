@@ -41,6 +41,11 @@ import type {
   UpdateHabilidadeTecnicaPayload,
   CreateVariacaoHabilidadeTecnicaPayload,
   UpdateVariacaoHabilidadeTecnicaPayload,
+  ExportarTecnicasJsonFilters,
+  ExportarTecnicasJsonResponse,
+  GuiaImportacaoTecnicasJsonResponse,
+  ImportarTecnicasJsonPayload,
+  ImportarTecnicasJsonResultado,
   ListHabilidadesFilters,
   ListEquipamentosFilters,
   ListTecnicasFilters,
@@ -412,6 +417,15 @@ function buildTecnicasQuery(filtros?: ListTecnicasFilters): string {
   return params.toString();
 }
 
+function buildExportTecnicasJsonQuery(filtros?: ExportarTecnicasJsonFilters): string {
+  const params = new URLSearchParams(buildTecnicasQuery(filtros));
+
+  appendIfNumber(params, 'id', filtros?.id);
+  appendIfBoolean(params, 'incluirIds', filtros?.incluirIds);
+
+  return params.toString();
+}
+
 export async function apiAdminGetTecnicasAmaldicoadas(
   filtros?: ListTecnicasFilters,
 ): Promise<TecnicaAmaldicoadaCatalogo[]> {
@@ -446,6 +460,28 @@ export async function apiAdminUpdateTecnicaAmaldicoada(
   payload: UpdateTecnicaPayload,
 ): Promise<TecnicaAmaldicoadaCatalogo> {
   const { data } = await apiClient.patch(`/tecnicas-amaldicoadas/${id}`, payload);
+  return data;
+}
+
+export async function apiAdminGetGuiaImportacaoTecnicasJson(): Promise<GuiaImportacaoTecnicasJsonResponse> {
+  const { data } = await apiClient.get('/tecnicas-amaldicoadas/importar-json/guia');
+  return data;
+}
+
+export async function apiAdminExportarTecnicasJson(
+  filtros?: ExportarTecnicasJsonFilters,
+): Promise<ExportarTecnicasJsonResponse> {
+  const query = buildExportTecnicasJsonQuery(filtros);
+  const { data } = await apiClient.get(
+    `/tecnicas-amaldicoadas/exportar-json${query ? `?${query}` : ''}`,
+  );
+  return data;
+}
+
+export async function apiAdminImportarTecnicasJson(
+  payload: ImportarTecnicasJsonPayload,
+): Promise<ImportarTecnicasJsonResultado> {
+  const { data } = await apiClient.post('/tecnicas-amaldicoadas/importar-json', payload);
   return data;
 }
 
