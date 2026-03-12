@@ -201,6 +201,9 @@ export default function SessaoCampanhaPage() {
   const [acumulosHabilidade, setAcumulosHabilidade] = useState<Record<string, string>>(
     {},
   );
+  const [mostrarSomenteSustentadas, setMostrarSomenteSustentadas] = useState<
+    Record<number, boolean>
+  >({});
   const [socketConectado, setSocketConectado] = useState(false);
   const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
   const [indiceIniciativaArrastado, setIndiceIniciativaArrastado] = useState<
@@ -549,24 +552,41 @@ export default function SessaoCampanhaPage() {
 
           const renderTecnica = (
             tecnica: NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>,
-          ) => (
-            <div key={tecnica.id} className="space-y-2 rounded border border-app-border p-2">
-              <div>
-                <p className="text-xs font-semibold text-app-fg">{tecnica.nome}</p>
-                <p className="text-[11px] text-app-muted">
-                  {tecnica.codigo} | {tecnica.tipo}
-                </p>
-                {tecnica.descricao ? (
-                  <p className="text-[11px] text-app-muted">{tecnica.descricao}</p>
-                ) : null}
-              </div>
-              {tecnica.habilidades.length === 0 ? (
-                <p className="text-[11px] text-app-muted">
-                  Nenhuma habilidade liberada com os graus atuais.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {tecnica.habilidades.map((habilidade) => {
+          ) => {
+            const filtroSomenteSustentadasAtivas = Boolean(
+              mostrarSomenteSustentadas[card.personagemSessaoId],
+            );
+            const habilidadesVisiveis = filtroSomenteSustentadasAtivas
+              ? tecnica.habilidades.filter((habilidade) => {
+                  const baseAtiva = obterQtdSustentacaoAtiva(habilidade.id) > 0;
+                  const variacaoAtiva = habilidade.variacoes.some(
+                    (variacao) =>
+                      obterQtdSustentacaoAtiva(habilidade.id, variacao.id) > 0,
+                  );
+                  return baseAtiva || variacaoAtiva;
+                })
+              : tecnica.habilidades;
+
+            return (
+              <div key={tecnica.id} className="space-y-2 rounded border border-app-border p-2">
+                <div>
+                  <p className="text-xs font-semibold text-app-fg">{tecnica.nome}</p>
+                  <p className="text-[11px] text-app-muted">
+                    {tecnica.codigo} | {tecnica.tipo}
+                  </p>
+                  {tecnica.descricao ? (
+                    <p className="text-[11px] text-app-muted">{tecnica.descricao}</p>
+                  ) : null}
+                </div>
+                {habilidadesVisiveis.length === 0 ? (
+                  <p className="text-[11px] text-app-muted">
+                    {filtroSomenteSustentadasAtivas
+                      ? 'Nenhuma habilidade com sustentacao ativa nesta tecnica.'
+                      : 'Nenhuma habilidade liberada com os graus atuais.'}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {habilidadesVisiveis.map((habilidade) => {
                     const custoBase = resolverCustoExibicao(habilidade);
                     const chaveAcumuloBase = montarChaveAcumuloHabilidade(
                       card.personagemSessaoId,
@@ -668,7 +688,16 @@ export default function SessaoCampanhaPage() {
                             </Button>
                           ) : null}
 
-                          {habilidade.variacoes.map((variacao) => {
+                          {(filtroSomenteSustentadasAtivas
+                            ? habilidade.variacoes.filter(
+                                (variacao) =>
+                                  obterQtdSustentacaoAtiva(
+                                    habilidade.id,
+                                    variacao.id,
+                                  ) > 0,
+                              )
+                            : habilidade.variacoes
+                          ).map((variacao) => {
                             const custoVariacao = resolverCustoExibicao(habilidade, variacao);
                             const execucaoVariacao = variacao.execucao ?? habilidade.execucao;
                             const alcanceVariacao = variacao.alcance ?? habilidade.alcance;
@@ -792,11 +821,12 @@ export default function SessaoCampanhaPage() {
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              )}
-            </div>
-          );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          };
 
           return (
             <Card key={card.personagemSessaoId} className="space-y-3">
@@ -923,6 +953,22 @@ export default function SessaoCampanhaPage() {
 
               {recursos ? (
                 <div className="space-y-2">
+                  <label className="inline-flex items-center gap-2 text-[11px] text-app-muted">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(mostrarSomenteSustentadas[card.personagemSessaoId])}
+                      onChange={(event) =>
+                        setMostrarSomenteSustentadas((estadoAtual) => ({
+                          ...estadoAtual,
+                          [card.personagemSessaoId]: event.target.checked,
+                        }))
+                      }
+                      disabled={card.sustentacoesAtivas.length === 0}
+                      className="h-3.5 w-3.5 rounded border border-app-border bg-app-surface"
+                    />
+                    Mostrar somente sustentadas ativas
+                  </label>
+
                   <details className="rounded border border-app-border p-2">
                     <summary className="cursor-pointer text-xs font-semibold text-app-fg">
                       Tecnica inata

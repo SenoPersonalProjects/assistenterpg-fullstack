@@ -293,6 +293,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - frontend aplica cooldown curto anti-duplo-clique no uso de habilidade/variacao.
   - no lobby da sessao, as variacoes de habilidade sao exibidas em bloco proprio com metadados de execucao/alcance/alvo/duracao, custo base e custo de sustentacao por rodada.
   - habilidades e variacoes com sustentacao ativa recebem marcador visual (`Ativa xN`) no proprio card de tecnica.
+  - cada card de personagem possui filtro rapido `Mostrar somente sustentadas ativas`, limitando a listagem para habilidades/variacoes atualmente sustentadas.
   - painel central da sessao (cena/rodada/turno/status) e compartilhado para todos os participantes.
   - coluna direita do lobby concentra participantes online, timeline de eventos e chat.
   - timeline de eventos:
