@@ -302,6 +302,10 @@ Detalhamento:
   - envio de email:
     - `AUTH_EMAIL_MODE=ethereal` (padrao gratuito para testes, gera preview URL no log)
     - `AUTH_EMAIL_MODE=smtp` (envio real, depende do provedor SMTP configurado)
+    - sem dominio proprio:
+      - use uma conta real (ex.: Gmail) em `AUTH_SMTP_USER`
+      - use senha de app em `AUTH_SMTP_PASS`
+      - deixe `AUTH_EMAIL_FROM` vazio para usar automaticamente o `AUTH_SMTP_USER` como remetente
 
 Integracao frontend:
 

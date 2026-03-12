@@ -237,6 +237,10 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - verificacao de email:
   - usa token temporario de uso unico (`AuthToken`, tipo `VERIFICACAO_EMAIL`).
   - reenvio invalida tokens anteriores ativos antes de gerar novo link.
+- envio de email real sem dominio:
+  - `AUTH_EMAIL_MODE=smtp`
+  - pode usar conta pessoal (ex.: Gmail) com senha de app
+  - `AUTH_EMAIL_FROM` pode ficar vazio para usar o mesmo endereco de `AUTH_SMTP_USER` como remetente
 
 ## Usuarios
 

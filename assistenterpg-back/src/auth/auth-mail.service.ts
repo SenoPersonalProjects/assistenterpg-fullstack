@@ -190,7 +190,13 @@ export class AuthMailService {
   }
 
   private getRemetenteFormatado() {
-    const email = process.env.AUTH_EMAIL_FROM ?? 'no-reply@assistenterpg.local';
+    const fromConfigurado = (process.env.AUTH_EMAIL_FROM ?? '').trim();
+    const usuarioSmtp = (process.env.AUTH_SMTP_USER ?? '').trim();
+    const email =
+      fromConfigurado &&
+      !fromConfigurado.toLowerCase().endsWith('@assistenterpg.local')
+        ? fromConfigurado
+        : usuarioSmtp || fromConfigurado || 'no-reply@localhost.local';
     const nome = process.env.AUTH_EMAIL_FROM_NAME ?? 'AssistenteRPG';
     return `"${nome}" <${email}>`;
   }
