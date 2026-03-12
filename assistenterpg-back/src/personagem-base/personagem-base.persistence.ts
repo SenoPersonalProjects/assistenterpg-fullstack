@@ -24,7 +24,9 @@ type PersistenciaEstado = Pick<
   | 'passivasAtributosConfigLimpo'
   | 'dtoNormalizado'
   | 'resistenciasFinais'
->;
+> & {
+  tecnicasNaoInatasIds: number[];
+};
 
 type DataSanitizavel = Record<string, unknown> & {
   proficienciasCodigos?: string[];
@@ -117,6 +119,7 @@ export class PersonagemBasePersistence {
         passivasAtributosConfigLimpo?: PersistenciaEstado['passivasAtributosConfigLimpo'];
         dtoNormalizado: PersistenciaEstado['dtoNormalizado'];
         resistenciasFinais: Map<string, number>;
+        tecnicasNaoInatasIds: number[];
       };
     },
     prisma: PrismaLike = this.prisma,
@@ -165,6 +168,14 @@ export class PersonagemBasePersistence {
             valor: g.valor,
           })),
         },
+
+        tecnicasAprendidas: estado.tecnicasNaoInatasIds.length
+          ? {
+              create: estado.tecnicasNaoInatasIds.map((tecnicaId) => ({
+                tecnica: { connect: { id: tecnicaId } },
+              })),
+            }
+          : undefined,
 
         pericias: {
           create: Array.from(estado.periciasMapCodigo.values()).map((p) => ({
@@ -252,6 +263,7 @@ export class PersonagemBasePersistence {
         passivasResolvidas: { passivaIds: number[] };
         resistenciasFinais: Map<string, number>;
         dtoNormalizado: PersistenciaEstado['dtoNormalizado'];
+        tecnicasNaoInatasIds: number[];
       };
     },
     prisma: PrismaLike = this.prisma,
@@ -294,6 +306,17 @@ export class PersonagemBasePersistence {
             tipoGrau: { connect: { codigo: g.tipoGrauCodigo } },
             valor: g.valor,
           })),
+        },
+
+        tecnicasAprendidas: {
+          deleteMany: {},
+          ...(estado.tecnicasNaoInatasIds.length
+            ? {
+                create: estado.tecnicasNaoInatasIds.map((tecnicaId) => ({
+                  tecnica: { connect: { id: tecnicaId } },
+                })),
+              }
+            : {}),
         },
 
         pericias: {

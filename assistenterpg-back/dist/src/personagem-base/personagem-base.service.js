@@ -17,9 +17,20 @@ const inventario_service_1 = require("../inventario/inventario.service");
 const personagem_exception_1 = require("../common/exceptions/personagem.exception");
 const regras_trilha_1 = require("./regras-criacao/regras-trilha");
 const regras_origem_cla_1 = require("./regras-criacao/regras-origem-cla");
+const regras_tecnicas_nao_inatas_1 = require("./regras-criacao/regras-tecnicas-nao-inatas");
 const personagem_base_engine_1 = require("./engine/personagem-base.engine");
 const personagem_base_mapper_1 = require("./personagem-base.mapper");
 const personagem_base_persistence_1 = require("./personagem-base.persistence");
+const tecnicaComHabilidadesInclude = client_1.Prisma.validator()({
+    habilidades: {
+        include: {
+            variacoes: {
+                orderBy: { ordem: 'asc' },
+            },
+        },
+        orderBy: { ordem: 'asc' },
+    },
+});
 let PersonagemBaseService = class PersonagemBaseService {
     prisma;
     mapper;
@@ -560,6 +571,42 @@ let PersonagemBaseService = class PersonagemBaseService {
             return { itensValidados, errosItens };
         }
     }
+    filtrarTecnicaPorGraus(tecnica, grausMap) {
+        return {
+            ...tecnica,
+            habilidades: (tecnica.habilidades ?? [])
+                .filter((habilidade) => (0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(habilidade.requisitos, grausMap))
+                .map((habilidade) => ({
+                ...habilidade,
+                variacoes: (habilidade.variacoes ?? []).filter((variacao) => (0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(variacao.requisitos, grausMap)),
+            })),
+        };
+    }
+    async listarTecnicasNaoInatasAtivasPorGraus(graus, prisma) {
+        const grausMap = (0, regras_tecnicas_nao_inatas_1.montarMapaGraus)(graus);
+        const tecnicas = await prisma.tecnicaAmaldicoada.findMany({
+            where: { tipo: 'NAO_INATA' },
+            include: tecnicaComHabilidadesInclude,
+            orderBy: { nome: 'asc' },
+        });
+        return tecnicas
+            .filter((tecnica) => (0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(tecnica.requisitos, grausMap))
+            .map((tecnica) => this.filtrarTecnicaPorGraus(tecnica, grausMap));
+    }
+    async buscarTecnicaInataAtivaPorGraus(tecnicaInataId, graus, prisma) {
+        if (!tecnicaInataId)
+            return null;
+        const grausMap = (0, regras_tecnicas_nao_inatas_1.montarMapaGraus)(graus);
+        const tecnica = await prisma.tecnicaAmaldicoada.findFirst({
+            where: { id: tecnicaInataId, tipo: 'INATA' },
+            include: tecnicaComHabilidadesInclude,
+        });
+        if (!tecnica)
+            return null;
+        if (!(0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(tecnica.requisitos, grausMap))
+            return null;
+        return this.filtrarTecnicaPorGraus(tecnica, grausMap);
+    }
     async buscarHabilidadesPersonagem(params, prisma = this.prisma) {
         const { nivel, origemId, classeId, trilhaId, caminhoId, tecnicaInataId, estudouEscolaTecnica, poderesGenericos, } = params;
         const habilidades = [];
@@ -893,7 +940,7 @@ let PersonagemBaseService = class PersonagemBaseService {
         });
         const resistenciasArray = Array.from(estado.resistenciasFinais.entries()).map(([codigo, valor]) => ({ codigo, valor }));
         const codigosResistencia = resistenciasArray.map((r) => r.codigo);
-        const [todasPericias, proficienciasDetalhadas, tiposGrau] = await Promise.all([
+        const [todasPericias, proficienciasDetalhadas, tiposGrau, tecnicasNaoInatas, tecnicaInata,] = await Promise.all([
             this.prisma.pericia.findMany(),
             this.prisma.proficiencia.findMany({
                 where: { codigo: { in: estado.profsFinais } },
@@ -903,6 +950,8 @@ let PersonagemBaseService = class PersonagemBaseService {
                     codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
                 },
             }),
+            this.listarTecnicasNaoInatasAtivasPorGraus(estado.grausFinais, this.prisma),
+            this.buscarTecnicaInataAtivaPorGraus(estado.dtoNormalizado.tecnicaInataId, estado.grausFinais, this.prisma),
         ]);
         const resistenciasTipos = codigosResistencia.length > 0
             ? await this.prisma.resistenciaTipo.findMany({
@@ -960,6 +1009,8 @@ let PersonagemBaseService = class PersonagemBaseService {
             habilidadesAtivas: habilidadesNomes,
             bonusHabilidades: estado.bonusHabilidades,
             atributosDerivados: estado.derivadosFinais,
+            tecnicasNaoInatas,
+            tecnicaInata,
             grausLivresInfo: estado.grausLivresInfo,
             periciasLivresInfo: estado.periciasLivresInfo,
             espacosInventario: estado.espacosInventario,
@@ -984,12 +1035,14 @@ let PersonagemBaseService = class PersonagemBaseService {
             sobrecarregado: false,
         });
         const personagem = await this.prisma.$transaction(async (tx) => {
+            const tecnicasNaoInatasAtivas = await this.listarTecnicasNaoInatasAtivasPorGraus(estado.grausFinais, tx);
             const personagemCriado = await this.persistence.criarComEstado({
                 donoId,
                 dataBase,
                 estado: {
                     ...estado,
                     resistenciasFinais: estado.resistenciasFinais,
+                    tecnicasNaoInatasIds: tecnicasNaoInatasAtivas.map((t) => t.id),
                 },
             }, tx);
             if (dto.itensInventario && dto.itensInventario.length > 0) {
@@ -1209,6 +1262,7 @@ let PersonagemBaseService = class PersonagemBaseService {
                 prisma: tx,
                 personagemBaseId: id,
             });
+            const tecnicasNaoInatasAtivas = await this.listarTecnicasNaoInatasAtivasPorGraus(estado.grausFinais, tx);
             const dataUpdateBase = this.limparUndefined({
                 nome: estado.dtoNormalizado.nome,
                 nivel: estado.dtoNormalizado.nivel,
@@ -1259,6 +1313,7 @@ let PersonagemBaseService = class PersonagemBaseService {
                 estado: {
                     ...estado,
                     resistenciasFinais: estado.resistenciasFinais,
+                    tecnicasNaoInatasIds: tecnicasNaoInatasAtivas.map((t) => t.id),
                 },
             }, tx);
             await this.sincronizarItensInventarioNoUpdate(donoId, id, dto.itensInventario, tx);

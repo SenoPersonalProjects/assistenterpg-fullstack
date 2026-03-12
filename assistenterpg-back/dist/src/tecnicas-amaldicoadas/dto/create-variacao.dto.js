@@ -19,6 +19,8 @@ class CreateVariacaoHabilidadeDto {
     substituiCustos;
     custoPE;
     custoEA;
+    custoSustentacaoEA;
+    custoSustentacaoPE;
     execucao;
     area;
     alcance;
@@ -33,6 +35,9 @@ class CreateVariacaoHabilidadeDto {
     dadosDano;
     escalonaPorGrau;
     escalonamentoCustoEA;
+    escalonamentoCustoPE;
+    escalonamentoTipo;
+    escalonamentoEfeito;
     escalonamentoDano;
     efeitoAdicional;
     requisitos;
@@ -72,6 +77,18 @@ __decorate([
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateVariacaoHabilidadeDto.prototype, "custoEA", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateVariacaoHabilidadeDto.prototype, "custoSustentacaoEA", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateVariacaoHabilidadeDto.prototype, "custoSustentacaoPE", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(client_1.TipoExecucao),
@@ -142,6 +159,21 @@ __decorate([
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateVariacaoHabilidadeDto.prototype, "escalonamentoCustoEA", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateVariacaoHabilidadeDto.prototype, "escalonamentoCustoPE", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(client_1.TipoEscalonamentoHabilidade),
+    __metadata("design:type", String)
+], CreateVariacaoHabilidadeDto.prototype, "escalonamentoTipo", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], CreateVariacaoHabilidadeDto.prototype, "escalonamentoEfeito", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)

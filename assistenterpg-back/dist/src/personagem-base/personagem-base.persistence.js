@@ -83,6 +83,13 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
                         valor: g.valor,
                     })),
                 },
+                tecnicasAprendidas: estado.tecnicasNaoInatasIds.length
+                    ? {
+                        create: estado.tecnicasNaoInatasIds.map((tecnicaId) => ({
+                            tecnica: { connect: { id: tecnicaId } },
+                        })),
+                    }
+                    : undefined,
                 pericias: {
                     create: Array.from(estado.periciasMapCodigo.values()).map((p) => ({
                         pericia: { connect: { id: p.periciaId } },
@@ -158,6 +165,16 @@ let PersonagemBasePersistence = class PersonagemBasePersistence {
                         tipoGrau: { connect: { codigo: g.tipoGrauCodigo } },
                         valor: g.valor,
                     })),
+                },
+                tecnicasAprendidas: {
+                    deleteMany: {},
+                    ...(estado.tecnicasNaoInatasIds.length
+                        ? {
+                            create: estado.tecnicasNaoInatasIds.map((tecnicaId) => ({
+                                tecnica: { connect: { id: tecnicaId } },
+                            })),
+                        }
+                        : {}),
                 },
                 pericias: {
                     deleteMany: {},

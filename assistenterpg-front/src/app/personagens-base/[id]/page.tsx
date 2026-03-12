@@ -141,11 +141,6 @@ export default function PersonagemBaseDetalhePage() {
     [catalogos.alinhamentos, personagem?.alinhamentoId],
   );
 
-  const tecnicaInata = useMemo(
-    () => catalogos.tecnicasInatas.find((t) => t.id === personagem?.tecnicaInataId),
-    [catalogos.tecnicasInatas, personagem?.tecnicaInataId],
-  );
-
   const origemCatalogo = useMemo(
     () => catalogos.origens.find((o) => o.id === personagem?.origemId),
     [catalogos.origens, personagem?.origemId],
@@ -296,7 +291,7 @@ export default function PersonagemBaseDetalhePage() {
         <SecaoInfoBasicas
           personagem={personagem}
           alinhamento={alinhamento}
-          tecnicaInata={tecnicaInata}
+          tecnicaInata={personagem.tecnicaInata ?? undefined}
           classeCatalogo={classeCatalogo}
           passivasSelecionadas={passivasSelecionadas}
         />

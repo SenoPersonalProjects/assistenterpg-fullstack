@@ -14,6 +14,9 @@ describe('SessaoController', () => {
     listarEventosSessao: jest.fn(),
     enviarMensagemChatSessao: jest.fn(),
     avancarTurnoSessao: jest.fn(),
+    voltarTurnoSessao: jest.fn(),
+    pularTurnoSessao: jest.fn(),
+    atualizarOrdemIniciativaSessao: jest.fn(),
     encerrarSessaoCampanha: jest.fn(),
     atualizarCenaSessao: jest.fn(),
     adicionarNpcSessao: jest.fn(),
@@ -156,6 +159,67 @@ describe('SessaoController', () => {
       7,
       12,
       'CENA_ATUALIZADA',
+    );
+  });
+
+  it('deve emitir evento ao voltar turno', async () => {
+    sessaoServiceMock.voltarTurnoSessao.mockResolvedValue({ id: 12 });
+
+    await controller.voltarTurnoSessao(7, 12, { user: { id: 3 } });
+
+    expect(sessaoServiceMock.voltarTurnoSessao).toHaveBeenCalledWith(7, 12, 3);
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'TURNO_RECUADO',
+    );
+  });
+
+  it('deve emitir evento ao pular turno', async () => {
+    sessaoServiceMock.pularTurnoSessao.mockResolvedValue({ id: 12 });
+
+    await controller.pularTurnoSessao(7, 12, { user: { id: 3 } });
+
+    expect(sessaoServiceMock.pularTurnoSessao).toHaveBeenCalledWith(7, 12, 3);
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'TURNO_PULADO',
+    );
+  });
+
+  it('deve emitir evento ao atualizar ordem de iniciativa', async () => {
+    sessaoServiceMock.atualizarOrdemIniciativaSessao.mockResolvedValue({ id: 12 });
+
+    await controller.atualizarOrdemIniciativaSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      {
+        ordem: [
+          { tipoParticipante: 'PERSONAGEM', id: 20 },
+          { tipoParticipante: 'NPC', id: 44 },
+        ],
+        indiceTurnoAtual: 1,
+      },
+    );
+
+    expect(sessaoServiceMock.atualizarOrdemIniciativaSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      {
+        ordem: [
+          { tipoParticipante: 'PERSONAGEM', id: 20 },
+          { tipoParticipante: 'NPC', id: 44 },
+        ],
+        indiceTurnoAtual: 1,
+      },
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'ORDEM_INICIATIVA_ATUALIZADA',
     );
   });
 

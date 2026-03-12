@@ -21,6 +21,9 @@ import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
 import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { DesfazerEventoSessaoDto } from './dto/desfazer-evento-sessao.dto';
+import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
+import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import { EncerrarSustentacaoSessaoDto } from './dto/encerrar-sustentacao-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
 
 @UseGuards(AuthGuard('jwt'))
@@ -110,6 +113,61 @@ export class SessaoController {
     return resultado;
   }
 
+  @Post(':sessaoId/personagens/:personagemSessaoId/habilidades/usar')
+  async usarHabilidadeSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: UsarHabilidadeSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.usarHabilidadeSessao(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'HABILIDADE_USADA',
+    );
+
+    return resultado;
+  }
+
+  @Post(
+    ':sessaoId/personagens/:personagemSessaoId/sustentacoes/:sustentacaoId/encerrar',
+  )
+  async encerrarSustentacaoHabilidadeSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Param('sustentacaoId', ParseIntPipe) sustentacaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: EncerrarSustentacaoSessaoDto,
+  ) {
+    const resultado =
+      await this.sessaoService.encerrarSustentacaoHabilidadeSessao(
+        campanhaId,
+        sessaoId,
+        personagemSessaoId,
+        sustentacaoId,
+        req.user.id,
+        dto.motivo,
+      );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'HABILIDADE_SUSTENTADA_ENCERRADA',
+    );
+
+    return resultado;
+  }
+
   @Post(':sessaoId/turno/avancar')
   async avancarTurnoSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
@@ -126,6 +184,71 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       'TURNO_AVANCADO',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/turno/voltar')
+  async voltarTurnoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    const resultado = await this.sessaoService.voltarTurnoSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'TURNO_RECUADO',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/turno/pular')
+  async pularTurnoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    const resultado = await this.sessaoService.pularTurnoSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'TURNO_PULADO',
+    );
+
+    return resultado;
+  }
+
+  @Patch(':sessaoId/iniciativa/ordem')
+  async atualizarOrdemIniciativaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarOrdemIniciativaSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarOrdemIniciativaSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'ORDEM_INICIATIVA_ATUALIZADA',
     );
 
     return resultado;

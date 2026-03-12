@@ -1,14 +1,23 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+} from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
   apiAdicionarNpcSessaoCampanha,
+  apiAtualizarOrdemIniciativaSessaoCampanha,
   apiAtualizarCenaSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
   apiAtualizarRecursosPersonagemCampanha,
   apiAvancarTurnoSessaoCampanha,
+  apiEncerrarSustentacaoHabilidadeSessaoCampanha,
   apiDesfazerEventoSessaoCampanha,
   apiEncerrarSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
@@ -16,7 +25,10 @@ import {
   apiGetMeusNpcsAmeacas,
   apiListarChatSessaoCampanha,
   apiListarEventosSessaoCampanha,
+  apiPularTurnoSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
+  apiUsarHabilidadeSessaoCampanha,
+  apiVoltarTurnoSessaoCampanha,
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
@@ -24,6 +36,7 @@ import type {
   MensagemChatSessao,
   NpcAmeacaResumo,
   NpcSessaoCampanha,
+  ParticipanteIniciativaSessaoCampanha,
   PersonagemCampanhaResumo,
   SessaoCampanhaDetalhe,
   TipoCenaSessaoCampanha,
@@ -39,6 +52,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
 import {
+  formatarCustos,
+  resolverCustoExibicaoSessao as resolverCustoExibicao,
+} from '@/lib/campanha/sessao-habilidades';
+import {
   conectarSocketSessao,
   type EventoSessaoPresenca,
   type EventoSessaoAtualizada,
@@ -51,6 +68,7 @@ const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'COMBATE', label: 'Combate' },
   { value: 'OUTRA', label: 'Outra' },
 ];
+const COOLDOWN_USO_HABILIDADE_MS = 2500;
 
 type RecursosEditaveis = {
   pvAtual: string;
@@ -67,6 +85,8 @@ type NpcEditavel = {
   deslocamentoMetros: string;
   notasCena: string;
 };
+
+type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
 function formatarDataHora(valor: string): string {
   const data = new Date(valor);
@@ -108,6 +128,23 @@ function labelPapelParticipante(papel: string): string {
   return labels[papel] ?? papel;
 }
 
+function labelParticipanteIniciativa(
+  participante: Pick<
+    ParticipanteIniciativaSessaoCampanha,
+    'tipoParticipante' | 'nomePersonagem' | 'nomeJogador'
+  >,
+): string {
+  if (participante.tipoParticipante === 'NPC') {
+    return `${participante.nomePersonagem} (Aliado/Ameaca)`;
+  }
+
+  if (participante.nomeJogador) {
+    return `${participante.nomePersonagem} (${participante.nomeJogador})`;
+  }
+
+  return participante.nomePersonagem;
+}
+
 export default function SessaoCampanhaPage() {
   const params = useParams<{ id: string; sessaoId: string }>();
   const router = useRouter();
@@ -138,7 +175,9 @@ export default function SessaoCampanhaPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [enviandoMensagem, setEnviandoMensagem] = useState(false);
   const [atualizandoCena, setAtualizandoCena] = useState(false);
-  const [avancandoTurno, setAvancandoTurno] = useState(false);
+  const [acaoTurnoPendente, setAcaoTurnoPendente] =
+    useState<AcaoControleTurno | null>(null);
+  const [reordenandoIniciativa, setReordenandoIniciativa] = useState(false);
   const [encerrandoSessao, setEncerrandoSessao] = useState(false);
   const [salvandoCardId, setSalvandoCardId] = useState<number | null>(null);
   const [adicionandoNpc, setAdicionandoNpc] = useState(false);
@@ -146,8 +185,23 @@ export default function SessaoCampanhaPage() {
   const [removendoNpcId, setRemovendoNpcId] = useState<number | null>(null);
   const [desfazendoEventoId, setDesfazendoEventoId] = useState<number | null>(null);
   const [motivoDesfazerEvento, setMotivoDesfazerEvento] = useState('');
+  const [acaoHabilidadePendente, setAcaoHabilidadePendente] = useState<
+    string | null
+  >(null);
+  const [ultimoUsoHabilidadeMs, setUltimoUsoHabilidadeMs] = useState<
+    Record<string, number>
+  >({});
+  const [acumulosHabilidade, setAcumulosHabilidade] = useState<Record<string, string>>(
+    {},
+  );
   const [socketConectado, setSocketConectado] = useState(false);
   const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
+  const [indiceIniciativaArrastado, setIndiceIniciativaArrastado] = useState<
+    number | null
+  >(null);
+  const [indiceIniciativaHover, setIndiceIniciativaHover] = useState<number | null>(
+    null,
+  );
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
     Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null
   >(null);
@@ -395,6 +449,15 @@ export default function SessaoCampanhaPage() {
   const participantes = detalhe?.participantes ?? [];
   const cards = detalhe?.cards ?? [];
   const npcs = detalhe?.npcs ?? [];
+  const iniciativaOrdem = detalhe?.iniciativa.ordem ?? [];
+  const iniciativaIndiceAtual = detalhe?.iniciativa.indiceAtual ?? null;
+  const turnoAtualLabel = detalhe?.turnoAtual
+    ? `${labelParticipanteIniciativa(detalhe.turnoAtual)}${
+        typeof detalhe.turnoAtual.valorIniciativa === 'number'
+          ? ` | INI ${detalhe.turnoAtual.valorIniciativa}`
+          : ''
+      }`
+    : null;
   const onlineSet = useMemo(() => new Set(onlineUsuarioIds), [onlineUsuarioIds]);
 
   const tituloSessao = useMemo(() => {
@@ -405,6 +468,35 @@ export default function SessaoCampanhaPage() {
     () => participantes.filter((participante) => onlineSet.has(participante.usuarioId)).length,
     [onlineSet, participantes],
   );
+
+  function montarChaveUsoHabilidade(
+    personagemSessaoId: number,
+    habilidadeTecnicaId: number,
+    variacaoHabilidadeId?: number,
+  ): string {
+    return `usar:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+  }
+
+  function montarChaveAcumuloHabilidade(
+    personagemSessaoId: number,
+    habilidadeTecnicaId: number,
+    variacaoHabilidadeId?: number,
+  ): string {
+    return `acumulo:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
+  }
+
+  function parseAcumulos(valor: string | undefined, maximo: number): number {
+    const numero = Number(valor);
+    if (!Number.isFinite(numero)) return 0;
+    return Math.max(0, Math.min(maximo, Math.trunc(numero)));
+  }
+
+  function montarChaveEncerrarSustentacao(
+    personagemSessaoId: number,
+    sustentacaoId: number,
+  ): string {
+    return `encerrar:${personagemSessaoId}:${sustentacaoId}`;
+  }
 
   const renderCardsSessao = () => (
     <>
@@ -426,6 +518,202 @@ export default function SessaoCampanhaPage() {
         cards.map((card) => {
           const recursos = card.recursos;
           const draft = edicaoRecursos[card.personagemCampanhaId];
+
+          const renderTecnica = (
+            tecnica: NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>,
+          ) => (
+            <div key={tecnica.id} className="space-y-2 rounded border border-app-border p-2">
+              <div>
+                <p className="text-xs font-semibold text-app-fg">{tecnica.nome}</p>
+                <p className="text-[11px] text-app-muted">
+                  {tecnica.codigo} | {tecnica.tipo}
+                </p>
+                {tecnica.descricao ? (
+                  <p className="text-[11px] text-app-muted">{tecnica.descricao}</p>
+                ) : null}
+              </div>
+              {tecnica.habilidades.length === 0 ? (
+                <p className="text-[11px] text-app-muted">
+                  Nenhuma habilidade liberada com os graus atuais.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {tecnica.habilidades.map((habilidade) => {
+                    const custoBase = resolverCustoExibicao(habilidade);
+                    const chaveAcumuloBase = montarChaveAcumuloHabilidade(
+                      card.personagemSessaoId,
+                      habilidade.id,
+                    );
+                    const acumulosBase = custoBase.escalonavel
+                      ? parseAcumulos(
+                          acumulosHabilidade[chaveAcumuloBase],
+                          custoBase.acumulosMaximos,
+                        )
+                      : 0;
+                    const custoBaseTotalEA =
+                      custoBase.custoEA +
+                      custoBase.escalonamentoCustoEA * acumulosBase;
+                    const custoBaseTotalPE =
+                      custoBase.custoPE +
+                      custoBase.escalonamentoCustoPE * acumulosBase;
+                    const chaveBase = montarChaveUsoHabilidade(
+                      card.personagemSessaoId,
+                      habilidade.id,
+                    );
+
+                    return (
+                      <div
+                        key={`habilidade-${habilidade.id}`}
+                        className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1.5"
+                      >
+                        <p className="text-xs font-semibold text-app-fg">{habilidade.nome}</p>
+                        <p className="text-[11px] text-app-muted">
+                          {habilidade.execucao}
+                          {habilidade.alcance ? ` | Alcance: ${habilidade.alcance}` : ''}
+                          {habilidade.alvo ? ` | Alvo: ${habilidade.alvo}` : ''}
+                          {custoBase.duracao ? ` | Duracao: ${custoBase.duracao}` : ''}
+                        </p>
+                        <p className="text-[11px] text-app-muted">
+                          Custo base: {formatarCustos(custoBase.custoEA, custoBase.custoPE)}
+                          {custoBase.sustentada
+                            ? ` | Sustentacao: ${formatarCustos(custoBase.custoSustentacaoEA ?? 0, custoBase.custoSustentacaoPE ?? 0)}/rodada`
+                            : ''}
+                        </p>
+                        {custoBase.escalonavel ? (
+                          <div className="flex items-center gap-2 text-[11px] text-app-muted">
+                            <span>Acumulos</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={custoBase.acumulosMaximos}
+                              value={acumulosHabilidade[chaveAcumuloBase] ?? '0'}
+                              onChange={(event) => {
+                                const normalizado = parseAcumulos(
+                                  event.target.value,
+                                  custoBase.acumulosMaximos,
+                                );
+                                setAcumulosHabilidade((estadoAtual) => ({
+                                  ...estadoAtual,
+                                  [chaveAcumuloBase]: String(normalizado),
+                                }));
+                              }}
+                              disabled={!card.podeEditar || sessaoEncerrada}
+                              className="w-16 rounded border border-app-border bg-app-surface px-2 py-1 text-[11px] text-app-fg"
+                            />
+                            <span>
+                              {`max ${custoBase.acumulosMaximos} | +EA ${custoBase.escalonamentoCustoEA}/acumulo${custoBase.escalonamentoCustoPE > 0 ? ` | +PE ${custoBase.escalonamentoCustoPE}/acumulo` : ''}`}
+                            </span>
+                          </div>
+                        ) : null}
+                        <p className="text-[11px] text-app-muted whitespace-pre-wrap">
+                          {habilidade.efeito}
+                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {card.podeEditar ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() =>
+                                void handleUsarHabilidade(
+                                  card.personagemSessaoId,
+                                  habilidade.id,
+                                  undefined,
+                                  acumulosBase,
+                                )
+                              }
+                              disabled={sessaoEncerrada || acaoHabilidadePendente === chaveBase}
+                              title={`Custo: ${formatarCustos(custoBaseTotalEA, custoBaseTotalPE)}`}
+                            >
+                              {acaoHabilidadePendente === chaveBase
+                                ? 'Aplicando...'
+                                : 'Usar base'}
+                            </Button>
+                          ) : null}
+
+                          {habilidade.variacoes.map((variacao) => {
+                            const custoVariacao = resolverCustoExibicao(habilidade, variacao);
+                            const chaveAcumuloVariacao = montarChaveAcumuloHabilidade(
+                              card.personagemSessaoId,
+                              habilidade.id,
+                              variacao.id,
+                            );
+                            const acumulosVariacao = custoVariacao.escalonavel
+                              ? parseAcumulos(
+                                  acumulosHabilidade[chaveAcumuloVariacao],
+                                  custoVariacao.acumulosMaximos,
+                                )
+                              : 0;
+                            const custoVariacaoTotalEA =
+                              custoVariacao.custoEA +
+                              custoVariacao.escalonamentoCustoEA * acumulosVariacao;
+                            const custoVariacaoTotalPE =
+                              custoVariacao.custoPE +
+                              custoVariacao.escalonamentoCustoPE * acumulosVariacao;
+                            const chaveVariacao = montarChaveUsoHabilidade(
+                              card.personagemSessaoId,
+                              habilidade.id,
+                              variacao.id,
+                            );
+
+                            return (
+                              <div
+                                key={`variacao-${variacao.id}`}
+                                className="flex items-center gap-1.5"
+                              >
+                                {custoVariacao.escalonavel ? (
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={custoVariacao.acumulosMaximos}
+                                    value={acumulosHabilidade[chaveAcumuloVariacao] ?? '0'}
+                                    onChange={(event) => {
+                                      const normalizado = parseAcumulos(
+                                        event.target.value,
+                                        custoVariacao.acumulosMaximos,
+                                      );
+                                      setAcumulosHabilidade((estadoAtual) => ({
+                                        ...estadoAtual,
+                                        [chaveAcumuloVariacao]: String(normalizado),
+                                      }));
+                                    }}
+                                    disabled={!card.podeEditar || sessaoEncerrada}
+                                    className="w-14 rounded border border-app-border bg-app-surface px-1.5 py-1 text-[11px] text-app-fg"
+                                    title={`Acumulos (max ${custoVariacao.acumulosMaximos})`}
+                                  />
+                                ) : null}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() =>
+                                    void handleUsarHabilidade(
+                                      card.personagemSessaoId,
+                                      habilidade.id,
+                                      variacao.id,
+                                      acumulosVariacao,
+                                    )
+                                  }
+                                  disabled={
+                                    !card.podeEditar ||
+                                    sessaoEncerrada ||
+                                    acaoHabilidadePendente === chaveVariacao
+                                  }
+                                  title={`Custo: ${formatarCustos(custoVariacaoTotalEA, custoVariacaoTotalPE)}`}
+                                >
+                                  {acaoHabilidadePendente === chaveVariacao
+                                    ? 'Aplicando...'
+                                    : variacao.nome}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
 
           return (
             <Card key={card.personagemSessaoId} className="space-y-3">
@@ -550,6 +838,103 @@ export default function SessaoCampanhaPage() {
                 </p>
               )}
 
+              {recursos ? (
+                <div className="space-y-2">
+                  <details className="rounded border border-app-border p-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+                      Tecnica inata
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      {card.tecnicaInata ? (
+                        renderTecnica(card.tecnicaInata)
+                      ) : (
+                        <p className="text-[11px] text-app-muted">
+                          Personagem sem tecnica inata cadastrada.
+                        </p>
+                      )}
+                    </div>
+                  </details>
+
+                  <details className="rounded border border-app-border p-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+                      Tecnicas nao inatas ({card.tecnicasNaoInatas.length})
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      {card.tecnicasNaoInatas.length > 0 ? (
+                        card.tecnicasNaoInatas.map((tecnica) => renderTecnica(tecnica))
+                      ) : (
+                        <p className="text-[11px] text-app-muted">
+                          Nenhuma tecnica nao inata disponivel no momento.
+                        </p>
+                      )}
+                    </div>
+                  </details>
+
+                  <details className="rounded border border-app-border p-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+                      Sustentacoes ativas ({card.sustentacoesAtivas.length})
+                    </summary>
+                    <div className="mt-2 space-y-1.5">
+                      {card.sustentacoesAtivas.length === 0 ? (
+                        <p className="text-[11px] text-app-muted">
+                          Nenhuma habilidade sustentada ativa.
+                        </p>
+                      ) : (
+                        card.sustentacoesAtivas.map((sustentacao) => {
+                          const chaveEncerrar = montarChaveEncerrarSustentacao(
+                            card.personagemSessaoId,
+                            sustentacao.id,
+                          );
+                          return (
+                            <div
+                              key={`sustentacao-${sustentacao.id}`}
+                              className="rounded border border-app-border bg-app-surface px-2 py-1.5 flex items-center justify-between gap-2"
+                            >
+                              <div>
+                                <p className="text-xs font-semibold text-app-fg">
+                                  {sustentacao.nomeHabilidade}
+                                  {sustentacao.nomeVariacao
+                                    ? ` (${sustentacao.nomeVariacao})`
+                                    : ''}
+                                </p>
+                                <p className="text-[11px] text-app-muted">
+                                  {formatarCustos(
+                                    sustentacao.custoSustentacaoEA,
+                                    sustentacao.custoSustentacaoPE,
+                                  )}
+                                  /rodada | Ativa desde rodada{' '}
+                                  {sustentacao.ativadaNaRodada}
+                                </p>
+                              </div>
+                              {card.podeEditar ? (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() =>
+                                    void handleEncerrarSustentacao(
+                                      card.personagemSessaoId,
+                                      sustentacao.id,
+                                    )
+                                  }
+                                  disabled={
+                                    sessaoEncerrada ||
+                                    acaoHabilidadePendente === chaveEncerrar
+                                  }
+                                >
+                                  {acaoHabilidadePendente === chaveEncerrar
+                                    ? 'Encerrando...'
+                                    : 'Encerrar'}
+                                </Button>
+                              ) : null}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+
               {card.podeEditar ? (
                 <Button
                   variant="ghost"
@@ -591,19 +976,140 @@ export default function SessaoCampanhaPage() {
     }
   }
 
-  async function handleAvancarTurno() {
-    if (!detalhe) return;
+  async function handleControleTurno(acao: AcaoControleTurno) {
+    if (!detalhe || !detalhe.controleTurnosAtivo) return;
 
-    setAvancandoTurno(true);
+    setAcaoTurnoPendente(acao);
     setErro(null);
     try {
-      const atualizado = await apiAvancarTurnoSessaoCampanha(campanhaId, sessaoId);
+      const atualizado =
+        acao === 'VOLTAR'
+          ? await apiVoltarTurnoSessaoCampanha(campanhaId, sessaoId)
+          : acao === 'PULAR'
+            ? await apiPularTurnoSessaoCampanha(campanhaId, sessaoId)
+            : await apiAvancarTurnoSessaoCampanha(campanhaId, sessaoId);
       setDetalhe(atualizado);
       sincronizarEstadosDerivados(atualizado);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
-      setAvancandoTurno(false);
+      setAcaoTurnoPendente(null);
+    }
+  }
+
+  async function handleMoverIniciativa(
+    indiceAtual: number,
+    direcao: 'SUBIR' | 'DESCER',
+  ) {
+    if (!detalhe?.controleTurnosAtivo || !podeControlarSessao) return;
+    if (sessaoEncerrada || reordenandoIniciativa) return;
+
+    const ordemAtual = detalhe.iniciativa.ordem;
+    const deslocamento = direcao === 'SUBIR' ? -1 : 1;
+    const indiceDestino = indiceAtual + deslocamento;
+    if (indiceDestino < 0 || indiceDestino >= ordemAtual.length) {
+      return;
+    }
+
+    const novaOrdem = [...ordemAtual];
+    const [movido] = novaOrdem.splice(indiceAtual, 1);
+    novaOrdem.splice(indiceDestino, 0, movido);
+    const payload = montarPayloadOrdemIniciativa(
+      novaOrdem,
+      detalhe.iniciativa.indiceAtual,
+    );
+    if (!payload) return;
+
+    setReordenandoIniciativa(true);
+    setErro(null);
+    try {
+      const atualizado = await apiAtualizarOrdemIniciativaSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        payload,
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setReordenandoIniciativa(false);
+    }
+  }
+
+  function montarPayloadOrdemIniciativa(
+    ordem: SessaoCampanhaDetalhe['iniciativa']['ordem'],
+    indiceTurnoAtual: number | null,
+  ):
+    | {
+        ordem: Array<{ tipoParticipante: 'PERSONAGEM' | 'NPC'; id: number }>;
+        indiceTurnoAtual?: number;
+      }
+    | null {
+    const payload = {
+      ordem: ordem.map((participante) => ({
+        tipoParticipante: participante.tipoParticipante,
+        id:
+          participante.tipoParticipante === 'NPC'
+            ? (participante.npcSessaoId ?? 0)
+            : (participante.personagemSessaoId ?? 0),
+      })),
+      indiceTurnoAtual: indiceTurnoAtual ?? undefined,
+    };
+
+    if (payload.ordem.some((item) => item.id <= 0)) {
+      setErro('Nao foi possivel reordenar iniciativa: participante invalido.');
+      return null;
+    }
+
+    return payload;
+  }
+
+  async function handleDropIniciativa(indiceDestino: number) {
+    if (!detalhe?.controleTurnosAtivo || !podeControlarSessao) return;
+    if (sessaoEncerrada || reordenandoIniciativa) return;
+    if (indiceIniciativaArrastado === null) return;
+
+    const ordemAtual = detalhe.iniciativa.ordem;
+    if (
+      indiceIniciativaArrastado < 0 ||
+      indiceIniciativaArrastado >= ordemAtual.length ||
+      indiceDestino < 0 ||
+      indiceDestino >= ordemAtual.length
+    ) {
+      return;
+    }
+
+    if (indiceIniciativaArrastado === indiceDestino) {
+      return;
+    }
+
+    const novaOrdem = [...ordemAtual];
+    const [movido] = novaOrdem.splice(indiceIniciativaArrastado, 1);
+    novaOrdem.splice(indiceDestino, 0, movido);
+
+    const payload = montarPayloadOrdemIniciativa(
+      novaOrdem,
+      detalhe.iniciativa.indiceAtual,
+    );
+    if (!payload) return;
+
+    setReordenandoIniciativa(true);
+    setErro(null);
+    try {
+      const atualizado = await apiAtualizarOrdemIniciativaSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        payload,
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setReordenandoIniciativa(false);
+      setIndiceIniciativaArrastado(null);
+      setIndiceIniciativaHover(null);
     }
   }
 
@@ -647,6 +1153,86 @@ export default function SessaoCampanhaPage() {
       setErro(extrairMensagemErro(error));
     } finally {
       setSalvandoCardId(null);
+    }
+  }
+
+  async function handleUsarHabilidade(
+    personagemSessaoId: number,
+    habilidadeTecnicaId: number,
+    variacaoHabilidadeId?: number,
+    acumulos?: number,
+  ) {
+    if (sessaoEncerrada) return;
+
+    const chave = montarChaveUsoHabilidade(
+      personagemSessaoId,
+      habilidadeTecnicaId,
+      variacaoHabilidadeId,
+    );
+    const agora = Date.now();
+    const ultimoUso = ultimoUsoHabilidadeMs[chave] ?? 0;
+    const restanteCooldown = COOLDOWN_USO_HABILIDADE_MS - (agora - ultimoUso);
+    if (restanteCooldown > 0) {
+      setErro(
+        `Aguarde ${Math.ceil(restanteCooldown / 1000)}s antes de usar novamente.`,
+      );
+      return;
+    }
+
+    setAcaoHabilidadePendente(chave);
+    setUltimoUsoHabilidadeMs((estadoAtual) => ({
+      ...estadoAtual,
+      [chave]: agora,
+    }));
+    setErro(null);
+    try {
+      const atualizado = await apiUsarHabilidadeSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        personagemSessaoId,
+        {
+          habilidadeTecnicaId,
+          variacaoHabilidadeId,
+          acumulos:
+            typeof acumulos === 'number' && Number.isFinite(acumulos)
+              ? Math.max(0, Math.trunc(acumulos))
+              : undefined,
+        },
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setAcaoHabilidadePendente(null);
+    }
+  }
+
+  async function handleEncerrarSustentacao(
+    personagemSessaoId: number,
+    sustentacaoId: number,
+  ) {
+    if (sessaoEncerrada) return;
+
+    const chave = montarChaveEncerrarSustentacao(
+      personagemSessaoId,
+      sustentacaoId,
+    );
+    setAcaoHabilidadePendente(chave);
+    setErro(null);
+    try {
+      const atualizado = await apiEncerrarSustentacaoHabilidadeSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        personagemSessaoId,
+        sustentacaoId,
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setAcaoHabilidadePendente(null);
     }
   }
 
@@ -1213,10 +1799,97 @@ export default function SessaoCampanhaPage() {
                   <p className="text-sm text-app-fg">Rodada: {detalhe.rodadaAtual ?? 1}</p>
                   <p className="text-sm text-app-fg">
                     Turno atual:{' '}
-                    {detalhe.turnoAtual
-                      ? `${detalhe.turnoAtual.nomePersonagem} (${detalhe.turnoAtual.nomeJogador})`
-                      : 'Sem turno definido'}
+                    {turnoAtualLabel ?? 'Sem turno definido'}
                   </p>
+                  <p className="text-xs text-app-muted">
+                    Ordem de iniciativa: {iniciativaOrdem.length} participante(s)
+                  </p>
+                  <p className="text-[11px] text-app-muted">
+                    Regra: ao mover na ordem, a INI fica 1 ponto acima/abaixo do vizinho.
+                  </p>
+                  {iniciativaOrdem.length > 0 ? (
+                    <div className="mt-2 space-y-1.5">
+                      {iniciativaOrdem.map((participante, indice) => {
+                        const emTurno = iniciativaIndiceAtual === indice;
+                        const primeiro = indice === 0;
+                        const ultimo = indice === iniciativaOrdem.length - 1;
+                        const podeArrastar =
+                          podeControlarSessao && !sessaoEncerrada && !reordenandoIniciativa;
+                        const hoverAtivo =
+                          indiceIniciativaHover === indice &&
+                          indiceIniciativaArrastado !== null &&
+                          indiceIniciativaArrastado !== indice;
+
+                        return (
+                          <div
+                            key={`${participante.tipoParticipante}-${participante.personagemSessaoId ?? participante.npcSessaoId ?? indice}`}
+                            draggable={podeArrastar}
+                            onDragStart={(event: DragEvent<HTMLDivElement>) => {
+                              if (!podeArrastar) return;
+                              setIndiceIniciativaArrastado(indice);
+                              setIndiceIniciativaHover(indice);
+                              event.dataTransfer.effectAllowed = 'move';
+                              event.dataTransfer.setData('text/plain', String(indice));
+                            }}
+                            onDragOver={(event: DragEvent<HTMLDivElement>) => {
+                              if (!podeArrastar) return;
+                              event.preventDefault();
+                              if (indiceIniciativaHover !== indice) {
+                                setIndiceIniciativaHover(indice);
+                              }
+                              event.dataTransfer.dropEffect = 'move';
+                            }}
+                            onDrop={(event: DragEvent<HTMLDivElement>) => {
+                              if (!podeArrastar) return;
+                              event.preventDefault();
+                              void handleDropIniciativa(indice);
+                            }}
+                            onDragEnd={() => {
+                              setIndiceIniciativaArrastado(null);
+                              setIndiceIniciativaHover(null);
+                            }}
+                            className={
+                              emTurno
+                                ? hoverAtivo
+                                  ? 'flex items-center justify-between gap-2 rounded border border-cyan-400 bg-cyan-500/10 px-2 py-1.5'
+                                  : 'flex items-center justify-between gap-2 rounded border border-emerald-500/50 bg-emerald-500/10 px-2 py-1.5'
+                                : hoverAtivo
+                                  ? 'flex items-center justify-between gap-2 rounded border border-cyan-400 bg-cyan-500/10 px-2 py-1.5'
+                                  : 'flex items-center justify-between gap-2 rounded border border-app-border bg-app-surface px-2 py-1.5'
+                            }
+                          >
+                            <p className="text-xs text-app-fg">
+                              <span className="font-semibold mr-1">#{indice + 1}</span>
+                              {labelParticipanteIniciativa(participante)}
+                              <span className="ml-2 text-app-muted">
+                                INI {participante.valorIniciativa}
+                              </span>
+                            </p>
+                            {podeControlarSessao ? (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => void handleMoverIniciativa(indice, 'SUBIR')}
+                                  disabled={sessaoEncerrada || reordenandoIniciativa || primeiro}
+                                >
+                                  <Icon name="chevron-up" className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => void handleMoverIniciativa(indice, 'DESCER')}
+                                  disabled={sessaoEncerrada || reordenandoIniciativa || ultimo}
+                                >
+                                  <Icon name="chevron-down" className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <p className="text-sm text-app-muted">
@@ -1254,13 +1927,35 @@ export default function SessaoCampanhaPage() {
                     {atualizandoCena ? 'Atualizando...' : 'Atualizar cena'}
                   </Button>
                   {detalhe.controleTurnosAtivo ? (
-                    <Button
-                      variant="secondary"
-                      onClick={() => void handleAvancarTurno()}
-                      disabled={avancandoTurno || sessaoEncerrada}
-                    >
-                      {avancandoTurno ? 'Avancando...' : 'Avancar turno'}
-                    </Button>
+                    <>
+                      <Button
+                        variant="secondary"
+                        onClick={() => void handleControleTurno('VOLTAR')}
+                        disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                      >
+                        {acaoTurnoPendente === 'VOLTAR'
+                          ? 'Voltando...'
+                          : 'Voltar turno'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => void handleControleTurno('PULAR')}
+                        disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                      >
+                        {acaoTurnoPendente === 'PULAR'
+                          ? 'Pulando...'
+                          : 'Pular turno'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => void handleControleTurno('AVANCAR')}
+                        disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                      >
+                        {acaoTurnoPendente === 'AVANCAR'
+                          ? 'Avancando...'
+                          : 'Avancar turno'}
+                      </Button>
+                    </>
                   ) : null}
                   <Button
                     variant="secondary"

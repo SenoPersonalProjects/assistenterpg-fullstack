@@ -31,6 +31,7 @@ import { seedXamaGraus } from './seeds/catalogos/graus-xama';
 // Técnicas Amaldiçoadas (✅ NOVO)
 // =======================
 import { seedTecnicasInatas } from './seeds/tecnicas/tecnicas-inatas';
+import { seedTecnicasNaoInatas } from './seeds/tecnicas/tecnicas-nao-inatas';
 
 // =======================
 // Habilidades
@@ -105,9 +106,10 @@ async function main() {
   // ============================================================
   // 3️⃣ TÉCNICAS AMALDIÇOADAS (✅ NOVO)
   // ============================================================
-  console.log('🔥 [3/8] Cadastrando técnicas amaldiçoadas inatas...');
+  console.log('🔥 [3/8] Cadastrando tecnicas amaldicoadas (inatas + nao-inatas)...');
   await seedTecnicasInatas(prisma);
-  console.log('✅ Técnicas amaldiçoadas concluídas!\n');
+  await seedTecnicasNaoInatas(prisma);
+  console.log('✅ Tecnicas amaldicoadas concluidas!\n');
 
   // ============================================================
   // 4️⃣ TRILHAS E CAMINHOS
@@ -168,7 +170,7 @@ async function main() {
   console.log('   • Utilitários');
   console.log('   • Ferramentas Amaldiçoadas (40 itens)');
   console.log('✅ Modificações de equipamentos (21 modificações)');
-  console.log('✅ Técnicas Amaldiçoadas Inatas (47 técnicas)'); // ✅ NOVO
+  console.log('✅ Tecnicas Amaldicoadas (inatas + nao-inatas basicas)');
   console.log('✅ Trilhas, caminhos e relações');
   console.log('✅ Habilidades e vínculos');
   console.log('✅ Pós-processamentos');

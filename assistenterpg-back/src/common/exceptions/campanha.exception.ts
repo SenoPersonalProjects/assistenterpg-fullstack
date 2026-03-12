@@ -256,6 +256,19 @@ export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessExcepti
   }
 }
 
+export class SessaoOrdemIniciativaInvalidaException extends BusinessException {
+  constructor(sessaoId?: number, campanhaId?: number) {
+    super(
+      'Ordem de iniciativa invalida para os participantes atuais da sessao',
+      'SESSAO_ORDEM_INICIATIVA_INVALIDA',
+      {
+        sessaoId,
+        campanhaId,
+      },
+    );
+  }
+}
+
 export class CenaSessaoNaoEncontradaException extends BaseException {
   constructor(cenaId?: number, sessaoId?: number, campanhaId?: number) {
     super(

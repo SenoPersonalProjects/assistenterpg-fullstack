@@ -8,7 +8,12 @@ import {
   IsBoolean,
   Min,
 } from 'class-validator';
-import { TipoExecucao, AreaEfeito, TipoDano } from '@prisma/client';
+import {
+  TipoExecucao,
+  AreaEfeito,
+  TipoDano,
+  TipoEscalonamentoHabilidade,
+} from '@prisma/client';
 
 export class CreateHabilidadeTecnicaDto {
   @IsNotEmpty()
@@ -70,6 +75,16 @@ export class CreateHabilidadeTecnicaDto {
   custoEA?: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  custoSustentacaoEA?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  custoSustentacaoPE?: number;
+
+  @IsOptional()
   testesExigidos?: any;
 
   @IsOptional()
@@ -103,6 +118,18 @@ export class CreateHabilidadeTecnicaDto {
   @IsInt()
   @Min(0)
   escalonamentoCustoEA?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  escalonamentoCustoPE?: number;
+
+  @IsOptional()
+  @IsEnum(TipoEscalonamentoHabilidade)
+  escalonamentoTipo?: TipoEscalonamentoHabilidade;
+
+  @IsOptional()
+  escalonamentoEfeito?: any;
 
   @IsOptional()
   escalonamentoDano?: any;

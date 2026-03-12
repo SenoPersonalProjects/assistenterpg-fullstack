@@ -1,4 +1,4 @@
-import { TipoExecucao, AreaEfeito, TipoDano } from '@prisma/client';
+import { TipoExecucao, AreaEfeito, TipoDano, TipoEscalonamentoHabilidade } from '@prisma/client';
 export declare class CreateVariacaoHabilidadeDto {
     habilidadeTecnicaId: number;
     nome: string;
@@ -6,6 +6,8 @@ export declare class CreateVariacaoHabilidadeDto {
     substituiCustos?: boolean;
     custoPE?: number;
     custoEA?: number;
+    custoSustentacaoEA?: number;
+    custoSustentacaoPE?: number;
     execucao?: TipoExecucao;
     area?: AreaEfeito;
     alcance?: string;
@@ -20,6 +22,9 @@ export declare class CreateVariacaoHabilidadeDto {
     dadosDano?: any;
     escalonaPorGrau?: boolean;
     escalonamentoCustoEA?: number;
+    escalonamentoCustoPE?: number;
+    escalonamentoTipo?: TipoEscalonamentoHabilidade;
+    escalonamentoEfeito?: any;
     escalonamentoDano?: any;
     efeitoAdicional?: string;
     requisitos?: any;

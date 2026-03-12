@@ -1,6 +1,6 @@
 # Personagens Base (Contrato Detalhado)
 
-Atualizado em: 2026-03-09
+Atualizado em: 2026-03-12
 
 ## Escopo
 
@@ -336,6 +336,24 @@ Modelos e constraints relevantes:
 - listagem:
   - `assistenterpg-front/src/app/personagens-base/page.tsx` com pre-visualizacao em modal antes da navegacao completa
   - componente: `assistenterpg-front/src/components/personagem-base/PersonagemBasePreviewModal.tsx`
+
+### Tecnicas nao-inatas na ficha (aba Poderes)
+
+- a tela de detalhe do personagem (`assistenterpg-front/src/app/personagens-base/[id]/page.tsx`) passou a renderizar, dentro da aba `Poderes`, duas subsecoes explicitas:
+  - `Tecnica Inata` (tecnica escolhida no personagem; um personagem possui apenas uma tecnica inata, com multiplas habilidades/variacoes)
+  - `Tecnicas Nao-Inatas` (derivadas automaticamente dos graus de aprimoramento do personagem)
+- regra de negocio atual:
+  - o jogador **nao escolhe manualmente** habilidades nao-inatas
+  - o backend calcula as tecnicas/habilidades/variacoes disponiveis com base em `grausAprimoramento` e `requisitos.graus`
+  - a persistencia da relacao ocorre em `PersonagemBaseTecnica` (`tecnicasAprendidas`) no create/update
+- o calculo centraliza em:
+  - `assistenterpg-back/src/personagem-base/regras-criacao/regras-tecnicas-nao-inatas.ts`
+  - `assistenterpg-back/src/personagem-base/personagem-base.service.ts` (`listarTecnicasNaoInatasAtivasPorGraus`)
+  - `assistenterpg-back/src/personagem-base/personagem-base.mapper.ts` (filtro final de habilidades e variacoes por grau no detalhe)
+- no frontend, a aba `Poderes` usa as tecnicas nao-inatas que ja vem do `GET /personagens-base/:id` (campo `tecnicasNaoInatas`), sem nova consulta manual ao catalogo para montar essa lista.
+- o detalhe do personagem tambem retorna `tecnicaInata` completa (com habilidades e variacoes), permitindo exibir as habilidades da tecnica inata diretamente na ficha.
+- a renderizacao detalhada (metadados, efeito, requisitos e variacoes por habilidade) foi centralizada em:
+  - `assistenterpg-front/src/components/personagem-base/sections/SecaoPoderes.tsx`
 
 ### Fluxo de fontes de conteudo (frontend de criacao)
 

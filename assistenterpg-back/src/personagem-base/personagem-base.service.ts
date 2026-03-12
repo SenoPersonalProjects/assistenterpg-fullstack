@@ -23,6 +23,10 @@ import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
 
 import { validarTrilhaECaminho } from './regras-criacao/regras-trilha';
 import { validarOrigemClaTecnica } from './regras-criacao/regras-origem-cla';
+import {
+  atendeRequisitosGraus,
+  montarMapaGraus,
+} from './regras-criacao/regras-tecnicas-nao-inatas';
 
 // Engine
 import { calcularEstadoFinalPersonagemBase } from './engine/personagem-base.engine';
@@ -70,6 +74,22 @@ type ErroItemPreview = {
   equipamentoId: number;
   erro: string;
 };
+
+const tecnicaComHabilidadesInclude =
+  Prisma.validator<Prisma.TecnicaAmaldicoadaInclude>()({
+    habilidades: {
+      include: {
+        variacoes: {
+          orderBy: { ordem: 'asc' },
+        },
+      },
+      orderBy: { ordem: 'asc' },
+    },
+  });
+
+type TecnicaComHabilidades = Prisma.TecnicaAmaldicoadaGetPayload<{
+  include: typeof tecnicaComHabilidadesInclude;
+}>;
 
 @Injectable()
 export class PersonagemBaseService {
@@ -753,6 +773,61 @@ export class PersonagemBaseService {
     }
   }
 
+  private filtrarTecnicaPorGraus(
+    tecnica: TecnicaComHabilidades,
+    grausMap: Map<string, number>,
+  ): TecnicaComHabilidades {
+    return {
+      ...tecnica,
+      habilidades: (tecnica.habilidades ?? [])
+        .filter((habilidade) =>
+          atendeRequisitosGraus(habilidade.requisitos, grausMap),
+        )
+        .map((habilidade) => ({
+          ...habilidade,
+          variacoes: (habilidade.variacoes ?? []).filter((variacao) =>
+            atendeRequisitosGraus(variacao.requisitos, grausMap),
+          ),
+        })),
+    };
+  }
+
+  private async listarTecnicasNaoInatasAtivasPorGraus(
+    graus: Array<{ tipoGrauCodigo: string; valor: number }>,
+    prisma: PrismaLike,
+  ): Promise<TecnicaComHabilidades[]> {
+    const grausMap = montarMapaGraus(graus);
+
+    const tecnicas = await prisma.tecnicaAmaldicoada.findMany({
+      where: { tipo: 'NAO_INATA' },
+      include: tecnicaComHabilidadesInclude,
+      orderBy: { nome: 'asc' },
+    });
+
+    return tecnicas
+      .filter((tecnica) => atendeRequisitosGraus(tecnica.requisitos, grausMap))
+      .map((tecnica) => this.filtrarTecnicaPorGraus(tecnica, grausMap));
+  }
+
+  private async buscarTecnicaInataAtivaPorGraus(
+    tecnicaInataId: number | null | undefined,
+    graus: Array<{ tipoGrauCodigo: string; valor: number }>,
+    prisma: PrismaLike,
+  ): Promise<TecnicaComHabilidades | null> {
+    if (!tecnicaInataId) return null;
+
+    const grausMap = montarMapaGraus(graus);
+    const tecnica = await prisma.tecnicaAmaldicoada.findFirst({
+      where: { id: tecnicaInataId, tipo: 'INATA' },
+      include: tecnicaComHabilidadesInclude,
+    });
+
+    if (!tecnica) return null;
+    if (!atendeRequisitosGraus(tecnica.requisitos, grausMap)) return null;
+
+    return this.filtrarTecnicaPorGraus(tecnica, grausMap);
+  }
+
   // ==================== HOOKS DO ENGINE ====================
 
   /** âœ… Busca habilidades do personagem */
@@ -1258,7 +1333,13 @@ export class PersonagemBaseService {
     ).map(([codigo, valor]) => ({ codigo, valor }));
     const codigosResistencia = resistenciasArray.map((r) => r.codigo);
 
-    const [todasPericias, proficienciasDetalhadas, tiposGrau] =
+    const [
+      todasPericias,
+      proficienciasDetalhadas,
+      tiposGrau,
+      tecnicasNaoInatas,
+      tecnicaInata,
+    ] =
       await Promise.all([
         this.prisma.pericia.findMany(),
         this.prisma.proficiencia.findMany({
@@ -1269,6 +1350,15 @@ export class PersonagemBaseService {
             codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
           },
         }),
+        this.listarTecnicasNaoInatasAtivasPorGraus(
+          estado.grausFinais,
+          this.prisma,
+        ),
+        this.buscarTecnicaInataAtivaPorGraus(
+          estado.dtoNormalizado.tecnicaInataId,
+          estado.grausFinais,
+          this.prisma,
+        ),
       ]);
 
     const resistenciasTipos =
@@ -1355,6 +1445,8 @@ export class PersonagemBaseService {
       bonusHabilidades: estado.bonusHabilidades,
 
       atributosDerivados: estado.derivadosFinais,
+      tecnicasNaoInatas,
+      tecnicaInata,
 
       grausLivresInfo: estado.grausLivresInfo,
       periciasLivresInfo: estado.periciasLivresInfo,
@@ -1390,6 +1482,12 @@ export class PersonagemBaseService {
     });
 
     const personagem = await this.prisma.$transaction(async (tx) => {
+      const tecnicasNaoInatasAtivas =
+        await this.listarTecnicasNaoInatasAtivasPorGraus(
+          estado.grausFinais,
+          tx,
+        );
+
       const personagemCriado = await this.persistence.criarComEstado(
         {
           donoId,
@@ -1397,6 +1495,7 @@ export class PersonagemBaseService {
           estado: {
             ...estado,
             resistenciasFinais: estado.resistenciasFinais,
+            tecnicasNaoInatasIds: tecnicasNaoInatasAtivas.map((t) => t.id),
           },
         },
         tx,
@@ -1689,6 +1788,12 @@ export class PersonagemBaseService {
         personagemBaseId: id,
       });
 
+      const tecnicasNaoInatasAtivas =
+        await this.listarTecnicasNaoInatasAtivasPorGraus(
+          estado.grausFinais,
+          tx,
+        );
+
       const dataUpdateBase = this.limparUndefined({
         nome: estado.dtoNormalizado.nome,
         nivel: estado.dtoNormalizado.nivel,
@@ -1756,6 +1861,7 @@ export class PersonagemBaseService {
           estado: {
             ...estado,
             resistenciasFinais: estado.resistenciasFinais,
+            tecnicasNaoInatasIds: tecnicasNaoInatasAtivas.map((t) => t.id),
           },
         },
         tx,

@@ -195,6 +195,7 @@ enum TipoExecucao {
   ACAO_LIVRE
   ACAO_PADRAO
   ACAO_COMPLETA
+  RITUAL_ETAPAS
   AO_ATACAR
   REACAO_ESPECIAL
   REACAO_BLOQUEIO
@@ -220,6 +221,14 @@ enum AreaEfeito {
   CUBO
   ESFERA
   OUTROS
+}
+
+enum TipoEscalonamentoHabilidade {
+  DANO
+  CURA
+  NUMERICO
+  REGRAS
+  OUTRO
 }
 
 // ========================================
@@ -315,6 +324,8 @@ model Usuario {
   historicosPersonagemCampanha             PersonagemCampanhaHistorico[]
   modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[] @relation("ModificadorPersonagemCampanhaCriadoPor")
   modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[] @relation("ModificadorPersonagemCampanhaDesfeitoPor")
+  sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoCriadaPor")
+  sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoDesativadaPor")
   npcsAmeacas                              NpcAmeaca[]
   preferencias                             PreferenciaUsuario?
 
@@ -650,6 +661,7 @@ model Sessao {
   cenas       Cena[]
   personagens PersonagemSessao[] @relation("PersonagensDaSessao")
   npcs        NpcAmeacaSessao[]
+  habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
   eventos     EventoSessao[]
 
   @@index([campanhaId, iniciadoEm])
@@ -707,8 +719,42 @@ model PersonagemSessao {
   personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id])
 
   condicoes       CondicaoPersonagemSessao[]
+  habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
   eventosComoAtor EventoSessao[]             @relation("EventosComoAtor")
   eventosComoAlvo EventoSessao[]             @relation("EventosComoAlvo")
+}
+
+model PersonagemSessaoHabilidadeSustentada {
+  id                  Int      @id @default(autoincrement())
+  sessaoId            Int
+  personagemSessaoId  Int
+  habilidadeTecnicaId Int
+  variacaoHabilidadeId Int?
+
+  nomeHabilidade      String
+  nomeVariacao        String?
+  custoSustentacaoEA  Int      @default(1)
+  custoSustentacaoPE  Int      @default(0)
+  ativadaNaRodada     Int      @default(1)
+  ultimaCobrancaRodada Int     @default(1)
+  ativa               Boolean  @default(true)
+  criadaPorUsuarioId  Int
+  criadoEm            DateTime @default(now())
+  desativadaEm        DateTime?
+  desativadaPorUsuarioId Int?
+  motivoDesativacao   String?  @db.Text
+
+  sessao              Sessao            @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  personagemSessao    PersonagemSessao  @relation(fields: [personagemSessaoId], references: [id], onDelete: Cascade)
+  habilidadeTecnica   HabilidadeTecnica @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
+  variacaoHabilidade  VariacaoHabilidade? @relation(fields: [variacaoHabilidadeId], references: [id], onDelete: SetNull)
+  criadaPor           Usuario           @relation("SustentacaoSessaoCriadaPor", fields: [criadaPorUsuarioId], references: [id], onDelete: Cascade)
+  desativadaPor       Usuario?          @relation("SustentacaoSessaoDesativadaPor", fields: [desativadaPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([sessaoId, ativa])
+  @@index([personagemSessaoId, ativa])
+  @@index([habilidadeTecnicaId])
+  @@index([variacaoHabilidadeId])
 }
 
 model Condicao {
@@ -1771,6 +1817,8 @@ model HabilidadeTecnica {
   // ✅ Custos base
   custoPE Int @default(0)
   custoEA Int @default(0)
+  custoSustentacaoEA Int?
+  custoSustentacaoPE Int?
 
   // ✅ Teste exigido (perícias necessárias)
   testesExigidos Json? // Ex: ["Atletismo", "Acrobacia"]
@@ -1790,6 +1838,9 @@ model HabilidadeTecnica {
   escalonaPorGrau      Boolean @default(false)
   grauTipoGrauCodigo   String? // Qual grau usar (ex: "TECNICA_AMALDICOADA")
   escalonamentoCustoEA Int     @default(0) // Custo adicional por grau investido
+  escalonamentoCustoPE Int     @default(0) // Custo adicional de PE por acumulo
+  escalonamentoTipo    TipoEscalonamentoHabilidade @default(OUTRO)
+  escalonamentoEfeito  Json? // Estrutura tipada por tipo de escalonamento
   escalonamentoDano    Json? // Ex: { "quantidade": 1, "dado": "d4", "tipo": "CORTANTE" } (adiciona por grau)
 
   // ✅ Efeito (texto livre)
@@ -1797,6 +1848,7 @@ model HabilidadeTecnica {
 
   // ✅ Variações (Liberação Superior/Máxima)
   variacoes VariacaoHabilidade[]
+  sustentacoesSessao PersonagemSessaoHabilidadeSustentada[]
 
   // ✅ Ordem de exibição
   ordem Int @default(0)
@@ -1826,6 +1878,8 @@ model VariacaoHabilidade {
   substituiCustos Boolean @default(false) // true = substitui, false = adiciona
   custoPE         Int?
   custoEA         Int?
+  custoSustentacaoEA Int?
+  custoSustentacaoPE Int?
 
   // ✅ Execução (opcional - sobrescreve se definido)
   execucao TipoExecucao?
@@ -1851,6 +1905,9 @@ model VariacaoHabilidade {
   // ✅ Escalonamento (opcional - sobrescreve se definido)
   escalonaPorGrau      Boolean?
   escalonamentoCustoEA Int?
+  escalonamentoCustoPE Int?
+  escalonamentoTipo    TipoEscalonamentoHabilidade?
+  escalonamentoEfeito  Json?
   escalonamentoDano    Json?
 
   // ✅ Efeito (ADICIONA ao efeito base)
@@ -1864,6 +1921,8 @@ model VariacaoHabilidade {
 
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
+
+  sustentacoesSessao PersonagemSessaoHabilidadeSustentada[]
 
   @@index([habilidadeTecnicaId])
   @@index([ordem])

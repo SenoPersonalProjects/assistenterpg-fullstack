@@ -5,8 +5,10 @@ import {
   CampanhaAcessoNegadoException,
   CampanhaApenasMestreException,
   CampanhaNaoEncontradaException,
+  CampanhaPersonagemEdicaoNegadaException,
   NpcSessaoNaoEncontradoException,
   SessaoEventoDesfazerNaoPermitidoException,
+  SessaoOrdemIniciativaInvalidaException,
   SessaoEventoNaoEncontradoException,
   SessaoCampanhaNaoEncontradaException,
   SessaoTurnoIndisponivelEmCenaLivreException,
@@ -18,6 +20,13 @@ import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
 import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
+import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
+import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import {
+  atendeRequisitosGraus,
+  montarMapaGraus,
+} from 'src/personagem-base/regras-criacao/regras-tecnicas-nao-inatas';
+import { BusinessException } from 'src/common/exceptions/business.exception';
 
 type AcessoCampanha = {
   campanha: {
@@ -85,8 +94,217 @@ type SnapshotNpcSessao = {
   cenaId: number | null;
 };
 
+type TipoParticipanteIniciativa = 'PERSONAGEM' | 'NPC';
+
+type ParticipanteIniciativa = {
+  tipoParticipante: TipoParticipanteIniciativa;
+  token: string;
+  personagemSessaoId: number | null;
+  npcSessaoId: number | null;
+  personagemCampanhaId: number | null;
+  donoId: number | null;
+  nomeJogador: string | null;
+  nomePersonagem: string;
+  podeEditar: boolean;
+};
+
+type OrdemIniciativaEvento = {
+  ordemAnterior: string[];
+  ordemAtual: string[];
+  indiceTurnoAnterior: number;
+  indiceTurnoNovo: number;
+};
+
+type VariacaoTecnicaSessaoResumo = {
+  id: number;
+  habilidadeTecnicaId: number;
+  nome: string;
+  descricao: string;
+  substituiCustos: boolean;
+  custoPE: number | null;
+  custoEA: number | null;
+  custoSustentacaoEA: number | null;
+  custoSustentacaoPE: number | null;
+  execucao: string | null;
+  area: string | null;
+  alcance: string | null;
+  alvo: string | null;
+  duracao: string | null;
+  resistencia: string | null;
+  dtResistencia: string | null;
+  danoFlat: number | null;
+  danoFlatTipo: string | null;
+  efeitoAdicional: string | null;
+  escalonaPorGrau: boolean | null;
+  grauTipoGrauCodigo: string | null;
+  acumulosMaximos: number;
+  escalonamentoCustoEA: number | null;
+  escalonamentoCustoPE: number | null;
+  escalonamentoTipo: string | null;
+  escalonamentoEfeito: Prisma.JsonValue | null;
+  escalonamentoDano: Prisma.JsonValue | null;
+  requisitos: Prisma.JsonValue | null;
+  ordem: number;
+};
+
+type HabilidadeTecnicaSessaoResumo = {
+  id: number;
+  tecnicaId: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  requisitos: Prisma.JsonValue | null;
+  execucao: string;
+  area: string | null;
+  alcance: string | null;
+  alvo: string | null;
+  duracao: string | null;
+  custoPE: number;
+  custoEA: number;
+  custoSustentacaoEA: number | null;
+  custoSustentacaoPE: number | null;
+  escalonaPorGrau: boolean;
+  grauTipoGrauCodigo: string | null;
+  acumulosMaximos: number;
+  escalonamentoCustoEA: number;
+  escalonamentoCustoPE: number;
+  escalonamentoTipo: string;
+  escalonamentoEfeito: Prisma.JsonValue | null;
+  escalonamentoDano: Prisma.JsonValue | null;
+  danoFlat: number | null;
+  danoFlatTipo: string | null;
+  efeito: string;
+  ordem: number;
+  variacoes: VariacaoTecnicaSessaoResumo[];
+};
+
+type TecnicaSessaoResumo = {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  tipo: string;
+  habilidades: HabilidadeTecnicaSessaoResumo[];
+};
+
+type CustoHabilidadeResolvido = {
+  nomeVariacao: string | null;
+  variacaoHabilidadeId: number | null;
+  custoEA: number;
+  custoPE: number;
+  duracao: string | null;
+  isSustentada: boolean;
+  custoSustentacaoEA: number | null;
+  custoSustentacaoPE: number | null;
+  acumulosSolicitados: number;
+  acumulosAplicados: number;
+  acumulosMaximos: number;
+  custoEscalonamentoEA: number;
+  custoEscalonamentoPE: number;
+  custoEscalonamentoTotalEA: number;
+  custoEscalonamentoTotalPE: number;
+  escalonamentoTipo: string;
+  escalonamentoEfeito: Prisma.JsonValue | null;
+  resumoEscalonamento: string | null;
+  isUsoBaseSemEscalonamento: boolean;
+};
+
+type VariacaoTecnicaSessaoRaw = {
+  id: number;
+  habilidadeTecnicaId: number;
+  nome: string;
+  descricao: string;
+  substituiCustos: boolean;
+  custoPE: number | null;
+  custoEA: number | null;
+  custoSustentacaoEA: number | null;
+  custoSustentacaoPE: number | null;
+  execucao: string | null;
+  area: string | null;
+  alcance: string | null;
+  alvo: string | null;
+  duracao: string | null;
+  resistencia: string | null;
+  dtResistencia: string | null;
+  danoFlat: number | null;
+  danoFlatTipo: string | null;
+  efeitoAdicional: string | null;
+  escalonaPorGrau: boolean | null;
+  escalonamentoCustoEA: number | null;
+  escalonamentoCustoPE: number | null;
+  escalonamentoTipo: string | null;
+  escalonamentoEfeito: Prisma.JsonValue | null;
+  escalonamentoDano: Prisma.JsonValue | null;
+  requisitos: Prisma.JsonValue | null;
+  ordem: number;
+};
+
+type HabilidadeTecnicaSessaoRaw = {
+  id: number;
+  tecnicaId: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  requisitos: Prisma.JsonValue | null;
+  execucao: string;
+  area: string | null;
+  alcance: string | null;
+  alvo: string | null;
+  duracao: string | null;
+  custoPE: number;
+  custoEA: number;
+  custoSustentacaoEA: number | null;
+  custoSustentacaoPE: number | null;
+  escalonaPorGrau: boolean;
+  grauTipoGrauCodigo: string | null;
+  escalonamentoCustoEA: number;
+  escalonamentoCustoPE: number;
+  escalonamentoTipo: string;
+  escalonamentoEfeito: Prisma.JsonValue | null;
+  escalonamentoDano: Prisma.JsonValue | null;
+  danoFlat: number | null;
+  danoFlatTipo: string | null;
+  efeito: string;
+  ordem: number;
+  variacoes: VariacaoTecnicaSessaoRaw[];
+};
+
+type TecnicaSessaoRaw = {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  tipo: string;
+  requisitos: Prisma.JsonValue | null;
+  habilidades: HabilidadeTecnicaSessaoRaw[];
+};
+
+type RelacaoTecnicaSessaoRaw = {
+  tecnica: TecnicaSessaoRaw;
+};
+
+type GrauSessaoRaw = {
+  valor: number;
+  tipoGrau: {
+    codigo: string;
+  };
+};
+
+type PersonagemCampanhaTecnicasSessaoRaw = {
+  tecnicaInata: TecnicaSessaoRaw | null;
+  tecnicasAprendidas: RelacaoTecnicaSessaoRaw[];
+  grausAprimoramento: GrauSessaoRaw[];
+  personagemBase?: {
+    tecnicasAprendidas: RelacaoTecnicaSessaoRaw[];
+    grausAprimoramento: GrauSessaoRaw[];
+  } | null;
+};
+
 const TIPOS_EVENTO_REVERSIVEIS = new Set<string>([
   'TURNO_AVANCADO',
+  'TURNO_RECUADO',
+  'TURNO_PULADO',
+  'ORDEM_INICIATIVA_ATUALIZADA',
   'CENA_ATUALIZADA',
   'NPC_ADICIONADO',
   'NPC_ATUALIZADO',
@@ -288,6 +506,72 @@ export class SessaoService {
                 eaMax: true,
                 sanAtual: true,
                 sanMax: true,
+                tecnicaInata: {
+                  include: {
+                    habilidades: {
+                      include: {
+                        variacoes: {
+                          orderBy: { ordem: 'asc' },
+                        },
+                      },
+                      orderBy: { ordem: 'asc' },
+                    },
+                  },
+                },
+                tecnicasAprendidas: {
+                  include: {
+                    tecnica: {
+                      include: {
+                        habilidades: {
+                          include: {
+                            variacoes: {
+                              orderBy: { ordem: 'asc' },
+                            },
+                          },
+                          orderBy: { ordem: 'asc' },
+                        },
+                      },
+                    },
+                  },
+                },
+                grausAprimoramento: {
+                  include: {
+                    tipoGrau: {
+                      select: {
+                        codigo: true,
+                      },
+                    },
+                  },
+                },
+                personagemBase: {
+                  select: {
+                    grausAprimoramento: {
+                      include: {
+                        tipoGrau: {
+                          select: {
+                            codigo: true,
+                          },
+                        },
+                      },
+                    },
+                    tecnicasAprendidas: {
+                      include: {
+                        tecnica: {
+                          include: {
+                            habilidades: {
+                              include: {
+                                variacoes: {
+                                  orderBy: { ordem: 'asc' },
+                                },
+                              },
+                              orderBy: { ordem: 'asc' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
                 dono: {
                   select: {
                     id: true,
@@ -303,6 +587,27 @@ export class SessaoService {
             id: 'asc',
           },
         },
+        habilidadesSustentadas: {
+          where: {
+            ativa: true,
+          },
+          orderBy: {
+            id: 'asc',
+          },
+          select: {
+            id: true,
+            personagemSessaoId: true,
+            habilidadeTecnicaId: true,
+            variacaoHabilidadeId: true,
+            nomeHabilidade: true,
+            nomeVariacao: true,
+            custoSustentacaoEA: true,
+            custoSustentacaoPE: true,
+            ativadaNaRodada: true,
+            ultimaCobrancaRodada: true,
+            criadoEm: true,
+          },
+        },
       },
     });
 
@@ -312,15 +617,69 @@ export class SessaoService {
 
     const personagensOrdenados = sessao.personagens;
     const cenaAtualId = sessao.cenas[0]?.id ?? null;
-    const totalPersonagens = personagensOrdenados.length;
+    const npcsCenaAtual = sessao.npcs.filter((npc) => npc.cenaId === cenaAtualId);
+    const participantesIniciativaPadrao = this.montarParticipantesIniciativa(
+      personagensOrdenados,
+      npcsCenaAtual,
+      acesso.ehMestre,
+      usuarioId,
+    );
+    const ordemPersistida = await this.obterOrdemIniciativaPersistida(
+      this.prisma,
+      sessaoId,
+    );
+    const participantesIniciativa = this.aplicarOrdemIniciativaPersistida(
+      participantesIniciativaPadrao,
+      ordemPersistida,
+    );
+    const totalParticipantesIniciativa = participantesIniciativa.length;
+    const valorIniciativaBase = Math.max(20, totalParticipantesIniciativa);
+    const obterValorIniciativa = (indice: number) => valorIniciativaBase - indice;
     const controleTurnosAtivo = sessao.cenaAtualTipo !== 'LIVRE';
     const indiceTurno = controleTurnosAtivo
-      ? this.clampIndiceTurno(sessao.indiceTurnoAtual, totalPersonagens)
+      ? this.clampIndiceTurno(
+          sessao.indiceTurnoAtual,
+          totalParticipantesIniciativa,
+        )
       : null;
     const personagemTurnoAtual =
-      controleTurnosAtivo && totalPersonagens > 0 && indiceTurno !== null
-        ? personagensOrdenados[indiceTurno]
+      controleTurnosAtivo &&
+      totalParticipantesIniciativa > 0 &&
+      indiceTurno !== null
+        ? participantesIniciativa[indiceTurno]
         : null;
+    const sustentacoesPorPersonagemSessao = new Map<
+      number,
+      Array<{
+        id: number;
+        habilidadeTecnicaId: number;
+        variacaoHabilidadeId: number | null;
+        nomeHabilidade: string;
+        nomeVariacao: string | null;
+        custoSustentacaoEA: number;
+        custoSustentacaoPE: number;
+        ativadaNaRodada: number;
+        ultimaCobrancaRodada: number;
+        criadaEm: Date;
+      }>
+    >();
+    for (const sustentacao of sessao.habilidadesSustentadas) {
+      const listaAtual =
+        sustentacoesPorPersonagemSessao.get(sustentacao.personagemSessaoId) ?? [];
+      listaAtual.push({
+        id: sustentacao.id,
+        habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+        variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+        nomeHabilidade: sustentacao.nomeHabilidade,
+        nomeVariacao: sustentacao.nomeVariacao,
+        custoSustentacaoEA: sustentacao.custoSustentacaoEA,
+        custoSustentacaoPE: sustentacao.custoSustentacaoPE,
+        ativadaNaRodada: sustentacao.ativadaNaRodada,
+        ultimaCobrancaRodada: sustentacao.ultimaCobrancaRodada,
+        criadaEm: sustentacao.criadoEm,
+      });
+      sustentacoesPorPersonagemSessao.set(sustentacao.personagemSessaoId, listaAtual);
+    }
 
     return {
       id: sessao.id,
@@ -338,13 +697,31 @@ export class SessaoService {
       controleTurnosAtivo,
       turnoAtual: personagemTurnoAtual
         ? {
-            personagemSessaoId: personagemTurnoAtual.id,
-            personagemCampanhaId: personagemTurnoAtual.personagemCampanha.id,
-            donoId: personagemTurnoAtual.personagemCampanha.donoId,
-            nomeJogador: personagemTurnoAtual.personagemCampanha.dono.apelido,
-            nomePersonagem: personagemTurnoAtual.personagemCampanha.nome,
+            tipoParticipante: personagemTurnoAtual.tipoParticipante,
+            personagemSessaoId: personagemTurnoAtual.personagemSessaoId,
+            npcSessaoId: personagemTurnoAtual.npcSessaoId,
+            personagemCampanhaId: personagemTurnoAtual.personagemCampanhaId,
+            donoId: personagemTurnoAtual.donoId,
+            nomeJogador: personagemTurnoAtual.nomeJogador,
+            nomePersonagem: personagemTurnoAtual.nomePersonagem,
+            valorIniciativa:
+              indiceTurno === null ? null : obterValorIniciativa(indiceTurno),
           }
         : null,
+      iniciativa: {
+        indiceAtual: controleTurnosAtivo ? indiceTurno : null,
+        ordem: participantesIniciativa.map((participante, indice) => ({
+          tipoParticipante: participante.tipoParticipante,
+          personagemSessaoId: participante.personagemSessaoId,
+          npcSessaoId: participante.npcSessaoId,
+          personagemCampanhaId: participante.personagemCampanhaId,
+          donoId: participante.donoId,
+          nomeJogador: participante.nomeJogador,
+          nomePersonagem: participante.nomePersonagem,
+          podeEditar: participante.podeEditar,
+          valorIniciativa: obterValorIniciativa(indice),
+        })),
+      },
       permissoes: {
         ehMestre: acesso.ehMestre,
         podeEditarTodos: acesso.ehMestre,
@@ -354,6 +731,11 @@ export class SessaoService {
         const podeEditar =
           acesso.ehMestre || personagem.personagemCampanha.donoId === usuarioId;
         const visibilidade = podeEditar ? 'completa' : 'resumida';
+        const tecnicas = this.resolverTecnicasSessaoPersonagem(
+          personagem.personagemCampanha,
+        );
+        const sustentacoesAtivas =
+          sustentacoesPorPersonagemSessao.get(personagem.id) ?? [];
 
         return {
           personagemSessaoId: personagem.id,
@@ -377,11 +759,14 @@ export class SessaoService {
                   sanMax: personagem.personagemCampanha.sanMax,
                 }
               : null,
+          tecnicaInata: visibilidade === 'completa' ? tecnicas.tecnicaInata : null,
+          tecnicasNaoInatas:
+            visibilidade === 'completa' ? tecnicas.tecnicasNaoInatas : [],
+          sustentacoesAtivas:
+            visibilidade === 'completa' ? sustentacoesAtivas : [],
         };
       }),
-      npcs: sessao.npcs
-        .filter((npc) => npc.cenaId === cenaAtualId)
-        .map((npc) => ({
+      npcs: npcsCenaAtual.map((npc) => ({
           npcSessaoId: npc.id,
           npcAmeacaId: npc.npcAmeacaId,
           nome: npc.nomeExibicao,
@@ -641,7 +1026,9 @@ export class SessaoService {
       const dadosEvento = this.extrairRegistro(evento.dados);
 
       switch (evento.tipoEvento) {
-        case 'TURNO_AVANCADO': {
+        case 'TURNO_AVANCADO':
+        case 'TURNO_RECUADO':
+        case 'TURNO_PULADO': {
           const indiceAnterior = this.lerInteiroRegistro(
             dadosEvento,
             'indiceAnterior',
@@ -682,6 +1069,7 @@ export class SessaoService {
               tipoEvento: 'TURNO_DESFEITO',
               dados: {
                 eventoOriginalId: evento.id,
+                tipoEventoOriginal: evento.tipoEvento,
                 indiceAnterior,
                 indiceNovo,
                 rodadaAnterior,
@@ -689,6 +1077,63 @@ export class SessaoService {
                 desfeitoPorId: usuarioId,
                 motivo: motivoLimpo,
               },
+            },
+          });
+          break;
+        }
+        case 'ORDEM_INICIATIVA_ATUALIZADA': {
+          const ordemEvento = this.lerOrdemIniciativaEvento(dadosEvento);
+          if (!ordemEvento) {
+            throw new SessaoEventoDesfazerNaoPermitidoException(
+              eventoId,
+              sessaoId,
+              evento.tipoEvento,
+            );
+          }
+
+          const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          const participantesPadrao = await this.carregarParticipantesIniciativa(
+            tx,
+            sessaoId,
+            cenaAtual.id,
+            acesso.ehMestre,
+            usuarioId,
+          );
+          const ordemRestaurada = this.aplicarOrdemIniciativaPersistida(
+            participantesPadrao,
+            ordemEvento.ordemAnterior,
+          );
+
+          if (ordemRestaurada.length === 0) {
+            break;
+          }
+
+          const indiceTurnoRestaurado = this.clampIndiceTurno(
+            ordemEvento.indiceTurnoAnterior,
+            ordemRestaurada.length,
+          );
+
+          await tx.sessao.update({
+            where: { id: sessaoId },
+            data: {
+              indiceTurnoAtual: indiceTurnoRestaurado,
+            },
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: cenaAtual.id,
+              tipoEvento: 'ORDEM_INICIATIVA_DESFEITA',
+              dados: this.jsonParaPersistencia({
+                eventoOriginalId: evento.id,
+                ordemAtual: ordemRestaurada.map(
+                  (participante) => participante.token,
+                ),
+                indiceTurnoRestaurado,
+                desfeitoPorId: usuarioId,
+                motivo: motivoLimpo,
+              }),
             },
           });
           break;
@@ -938,8 +1383,44 @@ export class SessaoService {
     sessaoId: number,
     usuarioId: number,
   ) {
+    await this.aplicarAjusteTurnoSessao(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'AVANCAR',
+    );
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async voltarTurnoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+  ) {
+    await this.aplicarAjusteTurnoSessao(campanhaId, sessaoId, usuarioId, 'VOLTAR');
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async pularTurnoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+  ) {
+    await this.aplicarAjusteTurnoSessao(campanhaId, sessaoId, usuarioId, 'PULAR');
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async atualizarOrdemIniciativaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarOrdemIniciativaSessaoDto,
+  ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'avancar turno');
+    this.assertMestre(acesso, 'atualizar ordem de iniciativa');
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -957,42 +1438,80 @@ export class SessaoService {
         );
       }
 
-      const personagens = await tx.personagemSessao.findMany({
-        where: { sessaoId },
-        orderBy: { id: 'asc' },
-        select: {
-          id: true,
-        },
-      });
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const participantesPadrao = await this.carregarParticipantesIniciativa(
+        tx,
+        sessaoId,
+        cenaAtual.id,
+        acesso.ehMestre,
+        usuarioId,
+      );
 
-      if (personagens.length === 0) return;
+      if (participantesPadrao.length === 0) {
+        return;
+      }
+
+      const ordemPersistida = await this.obterOrdemIniciativaPersistida(tx, sessaoId);
+      const ordemAtual = this.aplicarOrdemIniciativaPersistida(
+        participantesPadrao,
+        ordemPersistida,
+      );
+      const tokensAtuais = ordemAtual.map((participante) => participante.token);
+      const tokensNovos = dto.ordem.map((item) =>
+        this.criarTokenParticipante(item.tipoParticipante, item.id),
+      );
+      const ordemNovaNormalizada = this.validarEOrdenarIniciativaPorTokens(
+        ordemAtual,
+        tokensNovos,
+        sessaoId,
+        campanhaId,
+      );
+      const tokensNovaOrdem = ordemNovaNormalizada.map(
+        (participante) => participante.token,
+      );
 
       const indiceAnterior = this.clampIndiceTurno(
         sessao.indiceTurnoAtual,
-        personagens.length,
+        ordemAtual.length,
       );
-      const indiceNovo = (indiceAnterior + 1) % personagens.length;
-      const rodadaNova = sessao.rodadaAtual + (indiceNovo === 0 ? 1 : 0);
+
+      const tokenTurnoAnterior = ordemAtual[indiceAnterior]?.token ?? null;
+      const indiceTurnoNovoInformado =
+        typeof dto.indiceTurnoAtual === 'number'
+          ? this.clampIndiceTurno(dto.indiceTurnoAtual, ordemNovaNormalizada.length)
+          : null;
+      const indiceTurnoNovo =
+        tokenTurnoAnterior
+          ? this.clampIndiceTurno(
+              ordemNovaNormalizada.findIndex(
+                (participante) => participante.token === tokenTurnoAnterior,
+              ),
+              ordemNovaNormalizada.length,
+            )
+          : indiceTurnoNovoInformado ??
+            this.clampIndiceTurno(sessao.indiceTurnoAtual, ordemNovaNormalizada.length);
 
       await tx.sessao.update({
         where: { id: sessaoId },
         data: {
-          indiceTurnoAtual: indiceNovo,
-          rodadaAtual: rodadaNova,
+          indiceTurnoAtual: indiceTurnoNovo,
         },
       });
+
+      const dadosEvento: OrdemIniciativaEvento & { atualizadoPorId: number } = {
+        ordemAnterior: tokensAtuais,
+        ordemAtual: tokensNovaOrdem,
+        indiceTurnoAnterior: indiceAnterior,
+        indiceTurnoNovo,
+        atualizadoPorId: usuarioId,
+      };
 
       await tx.eventoSessao.create({
         data: {
           sessaoId,
-          tipoEvento: 'TURNO_AVANCADO',
-          dados: {
-            indiceAnterior,
-            indiceNovo,
-            rodadaAnterior: sessao.rodadaAtual,
-            rodadaNova,
-            avancadoPorId: usuarioId,
-          },
+          cenaId: cenaAtual.id,
+          tipoEvento: 'ORDEM_INICIATIVA_ATUALIZADA',
+          dados: this.jsonParaPersistencia(dadosEvento),
         },
       });
     });
@@ -1302,6 +1821,448 @@ export class SessaoService {
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
+  async usarHabilidadeSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    usuarioId: number,
+    dto: UsarHabilidadeSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+          status: true,
+          cenaAtualTipo: true,
+          rodadaAtual: true,
+          indiceTurnoAtual: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      if (sessao.status === 'ENCERRADA') {
+        throw new BusinessException(
+          'Sessao encerrada nao permite uso de habilidades',
+          'SESSAO_ENCERRADA',
+          {
+            campanhaId,
+            sessaoId,
+          },
+        );
+      }
+
+      const personagemSessao = await tx.personagemSessao.findFirst({
+        where: {
+          id: personagemSessaoId,
+          sessaoId,
+        },
+        include: {
+          personagemCampanha: {
+            select: {
+              id: true,
+              personagemBaseId: true,
+              donoId: true,
+              nome: true,
+              peAtual: true,
+              peMax: true,
+              eaAtual: true,
+              eaMax: true,
+              limitePeEaPorTurno: true,
+              tecnicaInata: {
+                include: {
+                  habilidades: {
+                    include: {
+                      variacoes: {
+                        orderBy: { ordem: 'asc' },
+                      },
+                    },
+                    orderBy: { ordem: 'asc' },
+                  },
+                },
+              },
+              tecnicasAprendidas: {
+                include: {
+                  tecnica: {
+                    include: {
+                      habilidades: {
+                        include: {
+                          variacoes: {
+                            orderBy: { ordem: 'asc' },
+                          },
+                        },
+                        orderBy: { ordem: 'asc' },
+                      },
+                    },
+                  },
+                },
+              },
+              grausAprimoramento: {
+                include: {
+                  tipoGrau: {
+                    select: {
+                      codigo: true,
+                    },
+                  },
+                },
+              },
+              personagemBase: {
+                select: {
+                  grausAprimoramento: {
+                    include: {
+                      tipoGrau: {
+                        select: {
+                          codigo: true,
+                        },
+                      },
+                    },
+                  },
+                  tecnicasAprendidas: {
+                    include: {
+                      tecnica: {
+                        include: {
+                          habilidades: {
+                            include: {
+                              variacoes: {
+                                orderBy: { ordem: 'asc' },
+                              },
+                            },
+                            orderBy: { ordem: 'asc' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!personagemSessao) {
+        throw new BusinessException(
+          'Personagem nao encontrado nesta sessao',
+          'SESSAO_PERSONAGEM_NOT_FOUND',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+          },
+        );
+      }
+
+      if (
+        !acesso.ehMestre &&
+        personagemSessao.personagemCampanha.donoId !== usuarioId
+      ) {
+        throw new CampanhaPersonagemEdicaoNegadaException(
+          campanhaId,
+          personagemSessao.personagemCampanha.id,
+          usuarioId,
+        );
+      }
+
+      const tecnicasDisponiveis = this.resolverTecnicasSessaoPersonagem(
+        personagemSessao.personagemCampanha,
+      );
+      const habilidade = this.buscarHabilidadeTecnicaDisponivel(
+        tecnicasDisponiveis,
+        dto.habilidadeTecnicaId,
+      );
+
+      if (!habilidade) {
+        throw new BusinessException(
+          'Habilidade nao disponivel para este personagem',
+          'SESSAO_HABILIDADE_NAO_DISPONIVEL',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+            habilidadeTecnicaId: dto.habilidadeTecnicaId,
+          },
+        );
+      }
+
+      const custo = this.resolverCustoUsoHabilidade(
+        habilidade,
+        this.montarMapaGrausPersonagemSessao(personagemSessao.personagemCampanha),
+        dto.variacaoHabilidadeId,
+        dto.acumulos ?? 0,
+      );
+
+      const recursosAtuais = personagemSessao.personagemCampanha;
+      if (recursosAtuais.eaAtual < custo.custoEA || recursosAtuais.peAtual < custo.custoPE) {
+        throw new BusinessException(
+          'Recursos insuficientes para usar esta habilidade',
+          'SESSAO_RECURSO_INSUFICIENTE',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+            habilidadeTecnicaId: dto.habilidadeTecnicaId,
+            variacaoHabilidadeId: custo.variacaoHabilidadeId,
+            custoEA: custo.custoEA,
+            custoPE: custo.custoPE,
+            eaAtual: recursosAtuais.eaAtual,
+            peAtual: recursosAtuais.peAtual,
+          },
+        );
+      }
+
+      const turnoReferencia = this.montarReferenciaTurnoAtualSessao(sessao);
+      const limitePeEaPorTurno = Math.max(
+        0,
+        Math.trunc(recursosAtuais.limitePeEaPorTurno ?? 0),
+      );
+      const custoTotalUso = custo.custoEA + custo.custoPE;
+
+      let gastoPeEaNoTurnoAntesUso = 0;
+      if (turnoReferencia) {
+        gastoPeEaNoTurnoAntesUso = await this.calcularGastoPeEaNoTurnoAtual(
+          tx,
+          sessaoId,
+          personagemSessaoId,
+          turnoReferencia,
+        );
+
+        const deveValidarLimiteTurno = !custo.isUsoBaseSemEscalonamento;
+        if (
+          deveValidarLimiteTurno &&
+          limitePeEaPorTurno > 0 &&
+          gastoPeEaNoTurnoAntesUso + custoTotalUso > limitePeEaPorTurno
+        ) {
+          throw new BusinessException(
+            'Limite de PE/EA por turno excedido para esta acao',
+            'SESSAO_LIMITE_PEEA_EXCEDIDO',
+            {
+              campanhaId,
+              sessaoId,
+              personagemSessaoId,
+              habilidadeTecnicaId: dto.habilidadeTecnicaId,
+              variacaoHabilidadeId: custo.variacaoHabilidadeId,
+              limitePeEaPorTurno,
+              gastoPeEaNoTurnoAtual: gastoPeEaNoTurnoAntesUso,
+              custoEA: custo.custoEA,
+              custoPE: custo.custoPE,
+              custoTotal: custoTotalUso,
+              turnoReferencia,
+              usoBaseSemEscalonamento: custo.isUsoBaseSemEscalonamento,
+            },
+          );
+        }
+      }
+      const gastoPeEaNoTurnoAposUso = turnoReferencia
+        ? gastoPeEaNoTurnoAntesUso + custoTotalUso
+        : null;
+
+      await tx.personagemCampanha.update({
+        where: { id: personagemSessao.personagemCampanha.id },
+        data: {
+          eaAtual: recursosAtuais.eaAtual - custo.custoEA,
+          peAtual: recursosAtuais.peAtual - custo.custoPE,
+        },
+      });
+
+      if (
+        custo.isSustentada &&
+        ((custo.custoSustentacaoEA ?? 0) > 0 || (custo.custoSustentacaoPE ?? 0) > 0)
+      ) {
+        await tx.personagemSessaoHabilidadeSustentada.create({
+          data: {
+            sessaoId,
+            personagemSessaoId,
+            habilidadeTecnicaId: habilidade.id,
+            variacaoHabilidadeId: custo.variacaoHabilidadeId,
+            nomeHabilidade: habilidade.nome,
+            nomeVariacao: custo.nomeVariacao,
+            custoSustentacaoEA: custo.custoSustentacaoEA ?? 1,
+            custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
+            ativadaNaRodada: sessao.rodadaAtual,
+            ultimaCobrancaRodada: sessao.rodadaAtual,
+            criadaPorUsuarioId: usuarioId,
+          },
+        });
+      }
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          personagemAtorId: personagemSessaoId,
+          tipoEvento: 'HABILIDADE_USADA',
+          dados: this.jsonParaPersistencia({
+            habilidadeTecnicaId: habilidade.id,
+            habilidadeNome: habilidade.nome,
+            variacaoHabilidadeId: custo.variacaoHabilidadeId,
+            variacaoNome: custo.nomeVariacao,
+            custoEA: custo.custoEA,
+            custoPE: custo.custoPE,
+            duracao: custo.duracao,
+            sustentada: custo.isSustentada,
+            custoSustentacaoEA: custo.custoSustentacaoEA,
+            custoSustentacaoPE: custo.custoSustentacaoPE,
+            acumulosSolicitados: custo.acumulosSolicitados,
+            acumulosAplicados: custo.acumulosAplicados,
+            acumulosMaximos: custo.acumulosMaximos,
+            custoEscalonamentoEA: custo.custoEscalonamentoEA,
+            custoEscalonamentoPE: custo.custoEscalonamentoPE,
+            custoEscalonamentoTotalEA: custo.custoEscalonamentoTotalEA,
+            custoEscalonamentoTotalPE: custo.custoEscalonamentoTotalPE,
+            escalonamentoTipo: custo.escalonamentoTipo,
+            escalonamentoEfeito: custo.escalonamentoEfeito,
+            resumoEscalonamento: custo.resumoEscalonamento,
+            usoBaseSemEscalonamento: custo.isUsoBaseSemEscalonamento,
+            turnoReferencia,
+            limitePeEaPorTurno: limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
+            gastoPeEaNoTurnoAntesUso: turnoReferencia
+              ? gastoPeEaNoTurnoAntesUso
+              : null,
+            gastoPeEaNoTurnoAposUso,
+            usadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async encerrarSustentacaoHabilidadeSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    sustentacaoId: number,
+    usuarioId: number,
+    motivo?: string,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const motivoLimpo = motivo?.trim() || null;
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      const personagemSessao = await tx.personagemSessao.findFirst({
+        where: {
+          id: personagemSessaoId,
+          sessaoId,
+        },
+        select: {
+          id: true,
+          personagemCampanha: {
+            select: {
+              id: true,
+              donoId: true,
+            },
+          },
+        },
+      });
+
+      if (!personagemSessao) {
+        throw new BusinessException(
+          'Personagem nao encontrado nesta sessao',
+          'SESSAO_PERSONAGEM_NOT_FOUND',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+          },
+        );
+      }
+
+      if (
+        !acesso.ehMestre &&
+        personagemSessao.personagemCampanha.donoId !== usuarioId
+      ) {
+        throw new CampanhaPersonagemEdicaoNegadaException(
+          campanhaId,
+          personagemSessao.personagemCampanha.id,
+          usuarioId,
+        );
+      }
+
+      const sustentacao = await tx.personagemSessaoHabilidadeSustentada.findFirst({
+        where: {
+          id: sustentacaoId,
+          sessaoId,
+          personagemSessaoId,
+          ativa: true,
+        },
+        select: {
+          id: true,
+          nomeHabilidade: true,
+          nomeVariacao: true,
+          habilidadeTecnicaId: true,
+          variacaoHabilidadeId: true,
+          sessaoId: true,
+          personagemSessaoId: true,
+        },
+      });
+
+      if (!sustentacao) {
+        throw new BusinessException(
+          'Sustentacao ativa nao encontrada',
+          'SESSAO_SUSTENTACAO_NOT_FOUND',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+            sustentacaoId,
+          },
+        );
+      }
+
+      await tx.personagemSessaoHabilidadeSustentada.update({
+        where: { id: sustentacao.id },
+        data: {
+          ativa: false,
+          desativadaEm: new Date(),
+          desativadaPorUsuarioId: usuarioId,
+          motivoDesativacao: motivoLimpo,
+        },
+      });
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          personagemAtorId: personagemSessaoId,
+          tipoEvento: 'HABILIDADE_SUSTENTADA_ENCERRADA',
+          dados: this.jsonParaPersistencia({
+            sustentacaoId: sustentacao.id,
+            habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+            habilidadeNome: sustentacao.nomeHabilidade,
+            variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+            variacaoNome: sustentacao.nomeVariacao,
+            encerradaPorId: usuarioId,
+            motivo: motivoLimpo,
+            motivoSistema: null,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
   async validarAcessoSessao(
     campanhaId: number,
     sessaoId: number,
@@ -1416,6 +2377,554 @@ export class SessaoService {
     }
   }
 
+  private normalizarTextoComparacao(valor: string | null | undefined): string {
+    if (!valor) return '';
+    return valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase();
+  }
+
+  private duracaoEhSustentada(duracao: string | null | undefined): boolean {
+    const normalizado = this.normalizarTextoComparacao(duracao);
+    return (
+      normalizado.includes('SUSTENTAD') ||
+      normalizado.includes('SUSTAIN') ||
+      normalizado.includes('CONCENTRACAO')
+    );
+  }
+
+  private normalizarCustoPositivo(
+    valor: number | null | undefined,
+    fallback: number,
+  ): number {
+    if (typeof valor !== 'number' || !Number.isFinite(valor)) {
+      return Math.max(0, Math.trunc(fallback));
+    }
+    return Math.max(0, Math.trunc(valor));
+  }
+
+  private normalizarTipoEscalonamento(
+    tipo: string | null | undefined,
+    escalonamentoDano?: Prisma.JsonValue | null,
+  ): string {
+    const tipoNormalizado = (tipo ?? '').trim().toUpperCase();
+    if (
+      tipoNormalizado === 'DANO' ||
+      tipoNormalizado === 'CURA' ||
+      tipoNormalizado === 'NUMERICO' ||
+      tipoNormalizado === 'REGRAS' ||
+      tipoNormalizado === 'OUTRO'
+    ) {
+      return tipoNormalizado;
+    }
+    if (escalonamentoDano) {
+      return 'DANO';
+    }
+    return 'OUTRO';
+  }
+
+  private resolverEfeitoEscalonamento(
+    escalonamentoEfeito: Prisma.JsonValue | null | undefined,
+    escalonamentoDano: Prisma.JsonValue | null | undefined,
+  ): Prisma.JsonValue | null {
+    if (
+      escalonamentoEfeito &&
+      typeof escalonamentoEfeito === 'object' &&
+      !Array.isArray(escalonamentoEfeito)
+    ) {
+      return escalonamentoEfeito;
+    }
+    if (
+      escalonamentoDano &&
+      typeof escalonamentoDano === 'object' &&
+      !Array.isArray(escalonamentoDano)
+    ) {
+      return escalonamentoDano;
+    }
+    return null;
+  }
+
+  private montarResumoEscalonamento(
+    tipoEscalonamento: string,
+    efeitoEscalonamento: Prisma.JsonValue | null,
+    acumulos: number,
+  ): string | null {
+    if (acumulos <= 0 || !efeitoEscalonamento) return null;
+
+    const efeito = this.extrairRegistro(efeitoEscalonamento);
+    switch (tipoEscalonamento) {
+      case 'DANO':
+      case 'CURA': {
+        const quantidade = this.lerInteiroRegistro(efeito, 'quantidade') ?? 0;
+        const dado = this.lerTextoOpcionalRegistro(efeito, 'dado');
+        const bonusFixo = this.lerInteiroRegistro(efeito, 'bonusFixo') ?? 0;
+        const totalQuantidade = quantidade * acumulos;
+        const totalBonusFixo = bonusFixo * acumulos;
+        const partes: string[] = [];
+        if (totalQuantidade > 0 && dado) partes.push(`${totalQuantidade}${dado}`);
+        if (totalBonusFixo > 0) partes.push(`+${totalBonusFixo}`);
+        if (partes.length === 0) return null;
+        return `${tipoEscalonamento === 'CURA' ? 'Cura' : 'Dano'} escalonado: ${partes.join(' ')}`;
+      }
+      case 'NUMERICO': {
+        const incremento = this.lerInteiroRegistro(efeito, 'incremento') ?? 0;
+        const unidade = this.lerTextoOpcionalRegistro(efeito, 'unidade') ?? '';
+        const label = this.lerTextoOpcionalRegistro(efeito, 'label') ?? 'Valor';
+        if (incremento === 0) return null;
+        const total = incremento * acumulos;
+        return `${label}: +${total}${unidade ? ` ${unidade}` : ''}`;
+      }
+      case 'REGRAS': {
+        const incrementoRegras =
+          this.lerInteiroRegistro(efeito, 'incrementoRegras') ?? 1;
+        const totalRegras = incrementoRegras * acumulos;
+        return `Regras adicionais: +${totalRegras}`;
+      }
+      case 'OUTRO':
+      default: {
+        const descricao =
+          this.lerTextoOpcionalRegistro(efeito, 'descricaoPorAcumulo') ??
+          this.lerTextoOpcionalRegistro(efeito, 'descricao');
+        if (!descricao) return null;
+        return `${descricao} (x${acumulos})`;
+      }
+    }
+  }
+
+  private mapearHabilidadeTecnicaResumo(
+    habilidade: HabilidadeTecnicaSessaoRaw,
+    grausMap: Map<string, number>,
+  ): HabilidadeTecnicaSessaoResumo | null {
+    if (!atendeRequisitosGraus(habilidade.requisitos, grausMap)) {
+      return null;
+    }
+
+    const tipoGrauEscalonamento = habilidade.grauTipoGrauCodigo?.trim() || null;
+    const acumulosMaximosHabilidade =
+      habilidade.escalonaPorGrau && tipoGrauEscalonamento
+        ? Math.max(0, grausMap.get(tipoGrauEscalonamento) ?? 0)
+        : 0;
+
+    const variacoes = (habilidade.variacoes ?? [])
+      .filter((variacao) => atendeRequisitosGraus(variacao.requisitos, grausMap))
+      .sort((a, b) => a.ordem - b.ordem)
+      .map((variacao): VariacaoTecnicaSessaoResumo => {
+        const variacaoEscalonavel =
+          typeof variacao.escalonaPorGrau === 'boolean'
+            ? variacao.escalonaPorGrau
+            : habilidade.escalonaPorGrau;
+
+        const acumulosMaximosVariacao =
+          variacaoEscalonavel && tipoGrauEscalonamento
+            ? Math.max(0, grausMap.get(tipoGrauEscalonamento) ?? 0)
+            : 0;
+
+        const tipoEscalonamentoVariacao = this.normalizarTipoEscalonamento(
+          variacao.escalonamentoTipo,
+          variacao.escalonamentoDano,
+        );
+        const efeitoEscalonamentoVariacao = this.resolverEfeitoEscalonamento(
+          variacao.escalonamentoEfeito,
+          variacao.escalonamentoDano,
+        );
+
+        return {
+          id: variacao.id,
+          habilidadeTecnicaId: variacao.habilidadeTecnicaId,
+          nome: variacao.nome,
+          descricao: variacao.descricao,
+          substituiCustos: variacao.substituiCustos,
+          custoPE: variacao.custoPE,
+          custoEA: variacao.custoEA,
+          custoSustentacaoEA: variacao.custoSustentacaoEA,
+          custoSustentacaoPE: variacao.custoSustentacaoPE,
+          execucao: variacao.execucao,
+          area: variacao.area,
+          alcance: variacao.alcance,
+          alvo: variacao.alvo,
+          duracao: variacao.duracao,
+          resistencia: variacao.resistencia,
+          dtResistencia: variacao.dtResistencia,
+          danoFlat: variacao.danoFlat,
+          danoFlatTipo: variacao.danoFlatTipo,
+          efeitoAdicional: variacao.efeitoAdicional,
+          escalonaPorGrau: variacao.escalonaPorGrau,
+          grauTipoGrauCodigo: tipoGrauEscalonamento,
+          acumulosMaximos: acumulosMaximosVariacao,
+          escalonamentoCustoEA: variacao.escalonamentoCustoEA,
+          escalonamentoCustoPE: variacao.escalonamentoCustoPE,
+          escalonamentoTipo: tipoEscalonamentoVariacao,
+          escalonamentoEfeito: efeitoEscalonamentoVariacao,
+          escalonamentoDano: variacao.escalonamentoDano,
+          requisitos: variacao.requisitos,
+          ordem: variacao.ordem,
+        };
+      });
+
+    const tipoEscalonamentoHabilidade = this.normalizarTipoEscalonamento(
+      habilidade.escalonamentoTipo,
+      habilidade.escalonamentoDano,
+    );
+    const efeitoEscalonamentoHabilidade = this.resolverEfeitoEscalonamento(
+      habilidade.escalonamentoEfeito,
+      habilidade.escalonamentoDano,
+    );
+
+    return {
+      id: habilidade.id,
+      tecnicaId: habilidade.tecnicaId,
+      codigo: habilidade.codigo,
+      nome: habilidade.nome,
+      descricao: habilidade.descricao,
+      requisitos: habilidade.requisitos,
+      execucao: habilidade.execucao,
+      area: habilidade.area,
+      alcance: habilidade.alcance,
+      alvo: habilidade.alvo,
+      duracao: habilidade.duracao,
+      custoPE: habilidade.custoPE,
+      custoEA: habilidade.custoEA,
+      custoSustentacaoEA: habilidade.custoSustentacaoEA,
+      custoSustentacaoPE: habilidade.custoSustentacaoPE,
+      escalonaPorGrau: habilidade.escalonaPorGrau,
+      grauTipoGrauCodigo: tipoGrauEscalonamento,
+      acumulosMaximos: acumulosMaximosHabilidade,
+      escalonamentoCustoEA: habilidade.escalonamentoCustoEA,
+      escalonamentoCustoPE: habilidade.escalonamentoCustoPE,
+      escalonamentoTipo: tipoEscalonamentoHabilidade,
+      escalonamentoEfeito: efeitoEscalonamentoHabilidade,
+      escalonamentoDano: habilidade.escalonamentoDano,
+      danoFlat: habilidade.danoFlat,
+      danoFlatTipo: habilidade.danoFlatTipo,
+      efeito: habilidade.efeito,
+      ordem: habilidade.ordem,
+      variacoes,
+    };
+  }
+
+  private filtrarTecnicaPorGrausSessao(
+    tecnica: TecnicaSessaoRaw,
+    grausMap: Map<string, number>,
+  ): TecnicaSessaoResumo | null {
+    if (!atendeRequisitosGraus(tecnica.requisitos, grausMap)) {
+      return null;
+    }
+
+    const habilidades = (tecnica.habilidades ?? [])
+      .map((habilidade) => this.mapearHabilidadeTecnicaResumo(habilidade, grausMap))
+      .filter((habilidade): habilidade is HabilidadeTecnicaSessaoResumo => !!habilidade)
+      .sort((a, b) => a.ordem - b.ordem);
+
+    return {
+      id: tecnica.id,
+      codigo: tecnica.codigo,
+      nome: tecnica.nome,
+      descricao: tecnica.descricao ?? '',
+      tipo: tecnica.tipo,
+      habilidades,
+    };
+  }
+
+  private resolverTecnicasSessaoPersonagem(
+    personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+  ): {
+    tecnicaInata: TecnicaSessaoResumo | null;
+    tecnicasNaoInatas: TecnicaSessaoResumo[];
+  } {
+    const grausMap = this.montarMapaGrausPersonagemSessao(personagemCampanha);
+
+    const tecnicaInata = personagemCampanha.tecnicaInata
+      ? this.filtrarTecnicaPorGrausSessao(personagemCampanha.tecnicaInata, grausMap)
+      : null;
+
+    const mapaTecnicas = new Map<number, TecnicaSessaoRaw>();
+    const tecnicasCampanha = personagemCampanha.tecnicasAprendidas ?? [];
+    const tecnicasBase = personagemCampanha.personagemBase?.tecnicasAprendidas ?? [];
+
+    for (const relacao of [...tecnicasCampanha, ...tecnicasBase]) {
+      const tecnica = relacao?.tecnica;
+      if (!tecnica || tecnica.tipo !== 'NAO_INATA') continue;
+      mapaTecnicas.set(tecnica.id, tecnica);
+    }
+
+    const tecnicasNaoInatas = Array.from(mapaTecnicas.values())
+      .map((tecnica) => this.filtrarTecnicaPorGrausSessao(tecnica, grausMap))
+      .filter((tecnica): tecnica is TecnicaSessaoResumo => !!tecnica)
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    return {
+      tecnicaInata,
+      tecnicasNaoInatas,
+    };
+  }
+
+  private buscarHabilidadeTecnicaDisponivel(
+    tecnicasDisponiveis: {
+      tecnicaInata: TecnicaSessaoResumo | null;
+      tecnicasNaoInatas: TecnicaSessaoResumo[];
+    },
+    habilidadeTecnicaId: number,
+  ): HabilidadeTecnicaSessaoResumo | null {
+    const listaTecnicas = [
+      ...(tecnicasDisponiveis.tecnicaInata
+        ? [tecnicasDisponiveis.tecnicaInata]
+        : []),
+      ...tecnicasDisponiveis.tecnicasNaoInatas,
+    ];
+
+    for (const tecnica of listaTecnicas) {
+      const habilidade = tecnica.habilidades.find(
+        (item) => item.id === habilidadeTecnicaId,
+      );
+      if (habilidade) return habilidade;
+    }
+
+    return null;
+  }
+
+  private resolverCustoUsoHabilidade(
+    habilidade: HabilidadeTecnicaSessaoResumo,
+    grausMap: Map<string, number>,
+    variacaoHabilidadeId?: number,
+    acumulosSolicitados = 0,
+  ): CustoHabilidadeResolvido {
+    const variacaoSelecionada =
+      typeof variacaoHabilidadeId === 'number'
+        ? habilidade.variacoes.find((variacao) => variacao.id === variacaoHabilidadeId)
+        : null;
+
+    if (typeof variacaoHabilidadeId === 'number' && !variacaoSelecionada) {
+      throw new BusinessException(
+        'Variacao da habilidade nao encontrada',
+        'SESSAO_VARIACAO_HABILIDADE_NOT_FOUND',
+        {
+          habilidadeTecnicaId: habilidade.id,
+          variacaoHabilidadeId,
+        },
+      );
+    }
+
+    const acumulosNormalizados = Math.max(
+      0,
+      Math.trunc(Number.isFinite(acumulosSolicitados) ? acumulosSolicitados : 0),
+    );
+
+    const baseEA = this.normalizarCustoPositivo(habilidade.custoEA, 0);
+    const basePE = this.normalizarCustoPositivo(habilidade.custoPE, 0);
+
+    let custoEA = baseEA;
+    let custoPE = basePE;
+    let duracao = habilidade.duracao;
+    let custoSustentacaoEA = habilidade.custoSustentacaoEA;
+    let custoSustentacaoPE = habilidade.custoSustentacaoPE;
+    let escalonaPorGrau = habilidade.escalonaPorGrau;
+    let escalonamentoCustoEA = habilidade.escalonamentoCustoEA;
+    let escalonamentoCustoPE = habilidade.escalonamentoCustoPE;
+    let escalonamentoTipo = habilidade.escalonamentoTipo;
+    let escalonamentoEfeito = habilidade.escalonamentoEfeito;
+    let escalonamentoDano = habilidade.escalonamentoDano;
+    let grauTipoGrauCodigo = habilidade.grauTipoGrauCodigo;
+
+    if (variacaoSelecionada) {
+      if (variacaoSelecionada.substituiCustos) {
+        custoEA = this.normalizarCustoPositivo(variacaoSelecionada.custoEA, custoEA);
+        custoPE = this.normalizarCustoPositivo(variacaoSelecionada.custoPE, custoPE);
+      } else {
+        custoEA += this.normalizarCustoPositivo(variacaoSelecionada.custoEA, 0);
+        custoPE += this.normalizarCustoPositivo(variacaoSelecionada.custoPE, 0);
+      }
+
+      if (variacaoSelecionada.duracao) {
+        duracao = variacaoSelecionada.duracao;
+      }
+      if (variacaoSelecionada.custoSustentacaoEA !== null) {
+        custoSustentacaoEA = variacaoSelecionada.custoSustentacaoEA;
+      }
+      if (variacaoSelecionada.custoSustentacaoPE !== null) {
+        custoSustentacaoPE = variacaoSelecionada.custoSustentacaoPE;
+      }
+      if (typeof variacaoSelecionada.escalonaPorGrau === 'boolean') {
+        escalonaPorGrau = variacaoSelecionada.escalonaPorGrau;
+      }
+      if (typeof variacaoSelecionada.escalonamentoCustoEA === 'number') {
+        escalonamentoCustoEA = variacaoSelecionada.escalonamentoCustoEA;
+      }
+      if (typeof variacaoSelecionada.escalonamentoCustoPE === 'number') {
+        escalonamentoCustoPE = variacaoSelecionada.escalonamentoCustoPE;
+      }
+      if (typeof variacaoSelecionada.escalonamentoTipo === 'string') {
+        escalonamentoTipo = variacaoSelecionada.escalonamentoTipo;
+      }
+      if (variacaoSelecionada.escalonamentoEfeito !== null) {
+        escalonamentoEfeito = variacaoSelecionada.escalonamentoEfeito;
+      }
+      if (variacaoSelecionada.escalonamentoDano !== null) {
+        escalonamentoDano = variacaoSelecionada.escalonamentoDano;
+      }
+    }
+
+    const podeEscalonar = escalonaPorGrau === true;
+    const tipoGrauEscalonamento = grauTipoGrauCodigo?.trim() || null;
+    const acumulosMaximos =
+      podeEscalonar && tipoGrauEscalonamento
+        ? Math.max(0, grausMap.get(tipoGrauEscalonamento) ?? 0)
+        : 0;
+
+    if (acumulosNormalizados > 0 && !podeEscalonar) {
+      throw new BusinessException(
+        'Esta habilidade nao possui escalonamento por acumulos',
+        'SESSAO_HABILIDADE_SEM_ESCALONAMENTO',
+        {
+          habilidadeTecnicaId: habilidade.id,
+          variacaoHabilidadeId: variacaoSelecionada?.id ?? null,
+          acumulosSolicitados: acumulosNormalizados,
+        },
+      );
+    }
+
+    if (acumulosNormalizados > acumulosMaximos) {
+      throw new BusinessException(
+        'Quantidade de acumulos excede o grau de aprimoramento permitido',
+        'SESSAO_ACUMULO_EXCEDE_GRAU',
+        {
+          habilidadeTecnicaId: habilidade.id,
+          variacaoHabilidadeId: variacaoSelecionada?.id ?? null,
+          acumulosSolicitados: acumulosNormalizados,
+          acumulosMaximos,
+          tipoGrauCodigo: tipoGrauEscalonamento,
+        },
+      );
+    }
+
+    let custoEscalonamentoEA = 0;
+    let custoEscalonamentoPE = 0;
+    if (acumulosNormalizados > 0) {
+      const fallbackEscalonamentoEA =
+        tipoGrauEscalonamento === 'TECNICA_REVERSA' ? 2 : 1;
+      custoEscalonamentoEA = this.normalizarCustoPositivo(
+        escalonamentoCustoEA,
+        fallbackEscalonamentoEA,
+      );
+      if (custoEscalonamentoEA <= 0) {
+        custoEscalonamentoEA = fallbackEscalonamentoEA;
+      }
+      custoEA += custoEscalonamentoEA * acumulosNormalizados;
+
+      custoEscalonamentoPE = this.normalizarCustoPositivo(escalonamentoCustoPE, 0);
+      if (custoEscalonamentoPE > 0) {
+        custoPE += custoEscalonamentoPE * acumulosNormalizados;
+      }
+    }
+
+    const isUsoBaseSemEscalonamento =
+      variacaoSelecionada === null && acumulosNormalizados === 0;
+
+    const isSustentada = this.duracaoEhSustentada(duracao);
+    const custoSustentacaoEANormalizado = isSustentada
+      ? this.normalizarCustoPositivo(custoSustentacaoEA, 1)
+      : null;
+    const custoSustentacaoPENormalizado = isSustentada
+      ? this.normalizarCustoPositivo(custoSustentacaoPE, 0)
+      : null;
+    const tipoEscalonamentoNormalizado = this.normalizarTipoEscalonamento(
+      escalonamentoTipo,
+      escalonamentoDano,
+    );
+    const efeitoEscalonamentoNormalizado = this.resolverEfeitoEscalonamento(
+      escalonamentoEfeito,
+      escalonamentoDano,
+    );
+    const resumoEscalonamento = this.montarResumoEscalonamento(
+      tipoEscalonamentoNormalizado,
+      efeitoEscalonamentoNormalizado,
+      acumulosNormalizados,
+    );
+
+    return {
+      nomeVariacao: variacaoSelecionada?.nome ?? null,
+      variacaoHabilidadeId: variacaoSelecionada?.id ?? null,
+      custoEA: this.normalizarCustoPositivo(custoEA, 0),
+      custoPE: this.normalizarCustoPositivo(custoPE, 0),
+      duracao: duracao ?? null,
+      isSustentada,
+      custoSustentacaoEA: custoSustentacaoEANormalizado,
+      custoSustentacaoPE: custoSustentacaoPENormalizado,
+      acumulosSolicitados: acumulosNormalizados,
+      acumulosAplicados: acumulosNormalizados,
+      acumulosMaximos,
+      custoEscalonamentoEA,
+      custoEscalonamentoPE,
+      custoEscalonamentoTotalEA: custoEscalonamentoEA * acumulosNormalizados,
+      custoEscalonamentoTotalPE: custoEscalonamentoPE * acumulosNormalizados,
+      escalonamentoTipo: tipoEscalonamentoNormalizado,
+      escalonamentoEfeito: efeitoEscalonamentoNormalizado,
+      resumoEscalonamento,
+      isUsoBaseSemEscalonamento,
+    };
+  }
+
+  private montarMapaGrausPersonagemSessao(
+    personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+  ): Map<string, number> {
+    const grausPreferenciais = personagemCampanha.grausAprimoramento?.length
+      ? personagemCampanha.grausAprimoramento
+      : (personagemCampanha.personagemBase?.grausAprimoramento ?? []);
+
+    return montarMapaGraus(
+      grausPreferenciais.map((grau) => ({
+        tipoGrauCodigo: grau.tipoGrau.codigo,
+        valor: grau.valor,
+      })),
+    );
+  }
+
+  private montarReferenciaTurnoAtualSessao(sessao: {
+    cenaAtualTipo: string;
+    rodadaAtual: number;
+    indiceTurnoAtual: number;
+  }): string | null {
+    if (sessao.cenaAtualTipo === 'LIVRE') return null;
+    return `${sessao.rodadaAtual}:${sessao.indiceTurnoAtual}`;
+  }
+
+  private async calcularGastoPeEaNoTurnoAtual(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    personagemSessaoId: number,
+    turnoReferencia: string,
+  ): Promise<number> {
+    const eventos = await tx.eventoSessao.findMany({
+      where: {
+        sessaoId,
+        personagemAtorId: personagemSessaoId,
+        tipoEvento: 'HABILIDADE_USADA',
+      },
+      orderBy: {
+        id: 'desc',
+      },
+      take: 400,
+      select: {
+        dados: true,
+      },
+    });
+
+    let gasto = 0;
+    for (const evento of eventos) {
+      const dados = this.extrairRegistro(evento.dados);
+      const turnoEvento = this.lerTextoOpcionalRegistro(dados, 'turnoReferencia');
+      if (turnoEvento !== turnoReferencia) continue;
+      if (this.eventoJaFoiDesfeito(evento.dados)) continue;
+
+      const custoEA = this.lerInteiroRegistro(dados, 'custoEA') ?? 0;
+      const custoPE = this.lerInteiroRegistro(dados, 'custoPE') ?? 0;
+      gasto += Math.max(0, custoEA) + Math.max(0, custoPE);
+    }
+
+    return gasto;
+  }
+
   private mapearParticipantesCampanha(campanha: AcessoCampanha['campanha']) {
     const participantes = new Map<
       number,
@@ -1459,6 +2968,510 @@ export class SessaoService {
     if (indice < 0) return 0;
     if (indice >= totalPersonagens) return totalPersonagens - 1;
     return indice;
+  }
+
+  private criarTokenParticipante(
+    tipoParticipante: TipoParticipanteIniciativa,
+    id: number,
+  ): string {
+    return `${tipoParticipante}:${id}`;
+  }
+
+  private lerTokenParticipante(
+    token: string,
+  ): { tipoParticipante: TipoParticipanteIniciativa; id: number } | null {
+    const [tipo, idTexto] = token.split(':');
+    if (tipo !== 'PERSONAGEM' && tipo !== 'NPC') {
+      return null;
+    }
+    const id = Number(idTexto);
+    if (!Number.isInteger(id) || id <= 0) {
+      return null;
+    }
+    return {
+      tipoParticipante: tipo,
+      id,
+    };
+  }
+
+  private lerListaTokensRegistro(
+    registro: Record<string, unknown>,
+    chave: string,
+  ): string[] | null {
+    const valor = registro[chave];
+    if (!Array.isArray(valor)) return null;
+
+    const tokens: string[] = [];
+    for (const item of valor) {
+      if (typeof item !== 'string') {
+        continue;
+      }
+      const token = item.trim();
+      if (!this.lerTokenParticipante(token)) {
+        continue;
+      }
+      if (!tokens.includes(token)) {
+        tokens.push(token);
+      }
+    }
+
+    return tokens.length > 0 ? tokens : null;
+  }
+
+  private lerOrdemIniciativaEvento(
+    registro: Record<string, unknown>,
+  ): OrdemIniciativaEvento | null {
+    const ordemAnterior = this.lerListaTokensRegistro(registro, 'ordemAnterior');
+    const ordemAtual = this.lerListaTokensRegistro(registro, 'ordemAtual');
+    const indiceTurnoAnterior = this.lerInteiroRegistro(
+      registro,
+      'indiceTurnoAnterior',
+    );
+    const indiceTurnoNovo = this.lerInteiroRegistro(registro, 'indiceTurnoNovo');
+
+    if (
+      !ordemAnterior ||
+      !ordemAtual ||
+      indiceTurnoAnterior === null ||
+      indiceTurnoNovo === null
+    ) {
+      return null;
+    }
+
+    return {
+      ordemAnterior,
+      ordemAtual,
+      indiceTurnoAnterior,
+      indiceTurnoNovo,
+    };
+  }
+
+  private montarParticipantesIniciativa(
+    personagens: Array<{
+      id: number;
+      personagemCampanha: {
+        id: number;
+        nome: string;
+        donoId: number;
+        dono: {
+          apelido: string;
+        };
+      };
+    }>,
+    npcs: Array<{
+      id: number;
+      nomeExibicao: string;
+    }>,
+    ehMestre: boolean,
+    usuarioId: number,
+  ): ParticipanteIniciativa[] {
+    const participantesPersonagens: ParticipanteIniciativa[] = personagens.map(
+      (personagem) => {
+        const token = this.criarTokenParticipante('PERSONAGEM', personagem.id);
+        const podeEditar = ehMestre || personagem.personagemCampanha.donoId === usuarioId;
+
+        return {
+          tipoParticipante: 'PERSONAGEM',
+          token,
+          personagemSessaoId: personagem.id,
+          npcSessaoId: null,
+          personagemCampanhaId: personagem.personagemCampanha.id,
+          donoId: personagem.personagemCampanha.donoId,
+          nomeJogador: personagem.personagemCampanha.dono.apelido,
+          nomePersonagem: personagem.personagemCampanha.nome,
+          podeEditar,
+        };
+      },
+    );
+
+    const participantesNpcs: ParticipanteIniciativa[] = npcs.map((npc) => ({
+      tipoParticipante: 'NPC',
+      token: this.criarTokenParticipante('NPC', npc.id),
+      personagemSessaoId: null,
+      npcSessaoId: npc.id,
+      personagemCampanhaId: null,
+      donoId: null,
+      nomeJogador: null,
+      nomePersonagem: npc.nomeExibicao,
+      podeEditar: ehMestre,
+    }));
+
+    return [...participantesPersonagens, ...participantesNpcs];
+  }
+
+  private aplicarOrdemIniciativaPersistida(
+    participantesPadrao: ParticipanteIniciativa[],
+    tokensPersistidos: string[] | null,
+  ): ParticipanteIniciativa[] {
+    if (!tokensPersistidos || tokensPersistidos.length === 0) {
+      return participantesPadrao;
+    }
+
+    const porToken = new Map(
+      participantesPadrao.map((participante) => [participante.token, participante]),
+    );
+    const tokensUsados = new Set<string>();
+    const ordenados: ParticipanteIniciativa[] = [];
+
+    for (const token of tokensPersistidos) {
+      const participante = porToken.get(token);
+      if (!participante || tokensUsados.has(token)) continue;
+      tokensUsados.add(token);
+      ordenados.push(participante);
+    }
+
+    for (const participante of participantesPadrao) {
+      if (tokensUsados.has(participante.token)) continue;
+      ordenados.push(participante);
+    }
+
+    return ordenados;
+  }
+
+  private validarEOrdenarIniciativaPorTokens(
+    participantesAtuais: ParticipanteIniciativa[],
+    tokensRecebidos: string[],
+    sessaoId: number,
+    campanhaId: number,
+  ): ParticipanteIniciativa[] {
+    const tokensAtuais = participantesAtuais.map((participante) => participante.token);
+    const mapaAtuais = new Map(
+      participantesAtuais.map((participante) => [participante.token, participante]),
+    );
+    const tokensRecebidosUnicos = Array.from(new Set(tokensRecebidos));
+
+    if (
+      tokensRecebidosUnicos.length !== tokensAtuais.length ||
+      tokensRecebidosUnicos.some((token) => !mapaAtuais.has(token))
+    ) {
+      throw new SessaoOrdemIniciativaInvalidaException(sessaoId, campanhaId);
+    }
+
+    return tokensRecebidosUnicos.map((token) => mapaAtuais.get(token)!);
+  }
+
+  private async obterOrdemIniciativaPersistida(
+    tx: Prisma.TransactionClient | PrismaService,
+    sessaoId: number,
+  ): Promise<string[] | null> {
+    const eventos = await tx.eventoSessao.findMany({
+      where: {
+        sessaoId,
+        tipoEvento: {
+          in: ['ORDEM_INICIATIVA_ATUALIZADA', 'ORDEM_INICIATIVA_DESFEITA'],
+        },
+      },
+      orderBy: {
+        id: 'desc',
+      },
+      take: 120,
+      select: {
+        dados: true,
+      },
+    });
+
+    for (const evento of eventos) {
+      if (this.eventoJaFoiDesfeito(evento.dados)) continue;
+      const dados = this.extrairRegistro(evento.dados);
+      const tokens =
+        this.lerListaTokensRegistro(dados, 'ordemAtual') ??
+        this.lerListaTokensRegistro(dados, 'ordem');
+      if (tokens && tokens.length > 0) {
+        return tokens;
+      }
+    }
+
+    return null;
+  }
+
+  private async carregarParticipantesIniciativa(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    cenaAtualId: number,
+    ehMestre: boolean,
+    usuarioId: number,
+  ): Promise<ParticipanteIniciativa[]> {
+    const [personagens, npcs] = await Promise.all([
+      tx.personagemSessao.findMany({
+        where: { sessaoId },
+        orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          personagemCampanha: {
+            select: {
+              id: true,
+              nome: true,
+              donoId: true,
+              dono: {
+                select: {
+                  apelido: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      tx.npcAmeacaSessao.findMany({
+        where: {
+          sessaoId,
+          cenaId: cenaAtualId,
+        },
+        orderBy: {
+          id: 'asc',
+        },
+        select: {
+          id: true,
+          nomeExibicao: true,
+        },
+      }),
+    ]);
+
+    return this.montarParticipantesIniciativa(
+      personagens,
+      npcs,
+      ehMestre,
+      usuarioId,
+    );
+  }
+
+  private async aplicarAjusteTurnoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    acao: 'AVANCAR' | 'VOLTAR' | 'PULAR',
+  ): Promise<void> {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, acao === 'VOLTAR' ? 'voltar turno' : acao === 'PULAR' ? 'pular turno' : 'avancar turno');
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      if (sessao.cenaAtualTipo === 'LIVRE') {
+        throw new SessaoTurnoIndisponivelEmCenaLivreException(
+          sessaoId,
+          campanhaId,
+        );
+      }
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const participantesPadrao = await this.carregarParticipantesIniciativa(
+        tx,
+        sessaoId,
+        cenaAtual.id,
+        acesso.ehMestre,
+        usuarioId,
+      );
+      const ordemPersistida = await this.obterOrdemIniciativaPersistida(tx, sessaoId);
+      const participantes = this.aplicarOrdemIniciativaPersistida(
+        participantesPadrao,
+        ordemPersistida,
+      );
+
+      if (participantes.length === 0) {
+        return;
+      }
+
+      const indiceAnterior = this.clampIndiceTurno(
+        sessao.indiceTurnoAtual,
+        participantes.length,
+      );
+      let indiceNovo = indiceAnterior;
+      let rodadaNova = sessao.rodadaAtual;
+
+      if (acao === 'VOLTAR') {
+        indiceNovo =
+          (indiceAnterior - 1 + participantes.length) % participantes.length;
+        rodadaNova = this.clampNumero(
+          sessao.rodadaAtual - (indiceAnterior === 0 ? 1 : 0),
+          1,
+          Number.MAX_SAFE_INTEGER,
+        );
+      } else {
+        indiceNovo = (indiceAnterior + 1) % participantes.length;
+        rodadaNova = sessao.rodadaAtual + (indiceNovo === 0 ? 1 : 0);
+      }
+
+      await tx.sessao.update({
+        where: { id: sessaoId },
+        data: {
+          indiceTurnoAtual: indiceNovo,
+          rodadaAtual: rodadaNova,
+        },
+      });
+
+      if (rodadaNova > sessao.rodadaAtual) {
+        const sustentacoesAtivas = await tx.personagemSessaoHabilidadeSustentada.findMany({
+          where: {
+            sessaoId,
+            ativa: true,
+          },
+          orderBy: {
+            id: 'asc',
+          },
+          select: {
+            id: true,
+            sessaoId: true,
+            personagemSessaoId: true,
+            nomeHabilidade: true,
+            nomeVariacao: true,
+            custoSustentacaoEA: true,
+            custoSustentacaoPE: true,
+            ultimaCobrancaRodada: true,
+            habilidadeTecnicaId: true,
+            variacaoHabilidadeId: true,
+            personagemSessao: {
+              select: {
+                personagemCampanha: {
+                  select: {
+                    id: true,
+                    eaAtual: true,
+                    peAtual: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const eaAtualPorPersonagemCampanha = new Map<number, number>();
+        const peAtualPorPersonagemCampanha = new Map<number, number>();
+
+        for (const sustentacao of sustentacoesAtivas) {
+          if (sustentacao.ultimaCobrancaRodada >= rodadaNova) {
+            continue;
+          }
+
+          const personagemCampanhaId =
+            sustentacao.personagemSessao.personagemCampanha.id;
+          const eaAtual =
+            eaAtualPorPersonagemCampanha.get(personagemCampanhaId) ??
+            sustentacao.personagemSessao.personagemCampanha.eaAtual;
+          const peAtual =
+            peAtualPorPersonagemCampanha.get(personagemCampanhaId) ??
+            sustentacao.personagemSessao.personagemCampanha.peAtual;
+          const custoSustentacaoEA = this.normalizarCustoPositivo(
+            sustentacao.custoSustentacaoEA,
+            1,
+          );
+          const custoSustentacaoPE = this.normalizarCustoPositivo(
+            sustentacao.custoSustentacaoPE,
+            0,
+          );
+
+          if (eaAtual >= custoSustentacaoEA && peAtual >= custoSustentacaoPE) {
+            const novoEa = eaAtual - custoSustentacaoEA;
+            const novoPe = peAtual - custoSustentacaoPE;
+            eaAtualPorPersonagemCampanha.set(personagemCampanhaId, novoEa);
+            peAtualPorPersonagemCampanha.set(personagemCampanhaId, novoPe);
+
+            await tx.personagemCampanha.update({
+              where: { id: personagemCampanhaId },
+              data: {
+                eaAtual: novoEa,
+                peAtual: novoPe,
+              },
+            });
+
+            await tx.personagemSessaoHabilidadeSustentada.update({
+              where: {
+                id: sustentacao.id,
+              },
+              data: {
+                ultimaCobrancaRodada: rodadaNova,
+              },
+            });
+
+            await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                cenaId: cenaAtual.id,
+                personagemAtorId: sustentacao.personagemSessaoId,
+                tipoEvento: 'HABILIDADE_SUSTENTADA_COBRADA',
+                dados: this.jsonParaPersistencia({
+                  sustentacaoId: sustentacao.id,
+                  habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+                  variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+                  habilidadeNome: sustentacao.nomeHabilidade,
+                  variacaoNome: sustentacao.nomeVariacao,
+                  custoEA: custoSustentacaoEA,
+                  custoPE: custoSustentacaoPE,
+                  rodada: rodadaNova,
+                }),
+              },
+            });
+          } else {
+            const recursosInsuficientes: string[] = [];
+            if (eaAtual < custoSustentacaoEA) recursosInsuficientes.push('EA');
+            if (peAtual < custoSustentacaoPE) recursosInsuficientes.push('PE');
+            const motivoSistema = `${recursosInsuficientes.join(' e ')} insuficiente(s) para sustentar habilidade na rodada ${rodadaNova}.`;
+            await tx.personagemSessaoHabilidadeSustentada.update({
+              where: {
+                id: sustentacao.id,
+              },
+              data: {
+                ativa: false,
+                desativadaEm: new Date(),
+                desativadaPorUsuarioId: null,
+                motivoDesativacao: motivoSistema,
+              },
+            });
+
+            await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                cenaId: cenaAtual.id,
+                personagemAtorId: sustentacao.personagemSessaoId,
+                tipoEvento: 'HABILIDADE_SUSTENTADA_ENCERRADA',
+                dados: this.jsonParaPersistencia({
+                  sustentacaoId: sustentacao.id,
+                  habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+                  variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+                  habilidadeNome: sustentacao.nomeHabilidade,
+                  variacaoNome: sustentacao.nomeVariacao,
+                  encerradaPorId: null,
+                  motivo: null,
+                  motivoSistema,
+                  rodada: rodadaNova,
+                }),
+              },
+            });
+          }
+        }
+      }
+
+      const tipoEvento =
+        acao === 'AVANCAR'
+          ? 'TURNO_AVANCADO'
+          : acao === 'VOLTAR'
+            ? 'TURNO_RECUADO'
+            : 'TURNO_PULADO';
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento,
+          dados: this.jsonParaPersistencia({
+            indiceAnterior,
+            indiceNovo,
+            rodadaAnterior: sessao.rodadaAtual,
+            rodadaNova,
+            tokenAnterior: participantes[indiceAnterior]?.token ?? null,
+            tokenNovo: participantes[indiceNovo]?.token ?? null,
+            ...(acao === 'PULAR'
+              ? { tokenPulado: participantes[indiceAnterior]?.token ?? null }
+              : {}),
+            ajustadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
   }
 
   private mapearListaObjeto(valor: Prisma.JsonValue | null): Prisma.JsonObject[] {
@@ -1796,8 +3809,20 @@ export class SessaoService {
         const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
         return `Turno avancado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
       }
+      case 'TURNO_RECUADO': {
+        const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
+        return `Turno recuado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
+      }
+      case 'TURNO_PULADO': {
+        const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
+        return `Turno pulado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
+      }
       case 'TURNO_DESFEITO':
-        return 'Ultimo avanco de turno desfeito';
+        return 'Ultimo ajuste de turno desfeito';
+      case 'ORDEM_INICIATIVA_ATUALIZADA':
+        return 'Ordem de iniciativa atualizada';
+      case 'ORDEM_INICIATIVA_DESFEITA':
+        return 'Reordenacao de iniciativa desfeita';
       case 'NPC_ADICIONADO':
         return `Aliado ou ameaca adicionado${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
       case 'NPC_ATUALIZADO':
@@ -1808,6 +3833,29 @@ export class SessaoService {
       case 'NPC_ATUALIZACAO_DESFEITA':
       case 'NPC_REMOCAO_DESFEITA':
         return 'Alteracao de aliado ou ameaca desfeita';
+      case 'HABILIDADE_USADA': {
+        const habilidade = this.lerTextoOpcionalRegistro(dados, 'habilidadeNome');
+        const variacao = this.lerTextoOpcionalRegistro(dados, 'variacaoNome');
+        const resumoEscalonamento = this.lerTextoOpcionalRegistro(
+          dados,
+          'resumoEscalonamento',
+        );
+        return `Habilidade usada${habilidade ? `: ${habilidade}` : ''}${variacao ? ` (${variacao})` : ''}${resumoEscalonamento ? ` | ${resumoEscalonamento}` : ''}`;
+      }
+      case 'HABILIDADE_SUSTENTADA_COBRADA': {
+        const habilidade = this.lerTextoOpcionalRegistro(dados, 'habilidadeNome');
+        const custoEA = this.lerInteiroRegistro(dados, 'custoEA');
+        const custoPE = this.lerInteiroRegistro(dados, 'custoPE');
+        const partesCusto: string[] = [];
+        if (custoEA !== null && custoEA > 0) partesCusto.push(`EA -${custoEA}`);
+        if (custoPE !== null && custoPE > 0) partesCusto.push(`PE -${custoPE}`);
+        return `Sustentacao cobrada${habilidade ? `: ${habilidade}` : ''}${partesCusto.length > 0 ? ` (${partesCusto.join(' | ')})` : ''}`;
+      }
+      case 'HABILIDADE_SUSTENTADA_ENCERRADA': {
+        const habilidade = this.lerTextoOpcionalRegistro(dados, 'habilidadeNome');
+        const motivoSistema = this.lerTextoOpcionalRegistro(dados, 'motivoSistema');
+        return `Sustentacao encerrada${habilidade ? `: ${habilidade}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
+      }
       case 'CHAT':
         return 'Mensagem no chat da sessao';
       default:

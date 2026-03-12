@@ -5,6 +5,7 @@
 
 import type { AtributoBaseCodigo, AtributoChaveEA } from './common.types';
 import type { ItemInventarioDto } from './inventario.types';
+import type { TecnicaAmaldicoadaCatalogo } from './catalogo.types';
 
 /* ============================================================================ */
 /* RESISTÊNCIAS E ATRIBUTOS DERIVADOS */
@@ -254,6 +255,9 @@ export type PersonagemBasePreview = {
     escalonamentoPorNivel: unknown;
   }>;
 
+  tecnicaInata?: TecnicaAmaldicoadaCatalogo | null;
+  tecnicasNaoInatas?: TecnicaAmaldicoadaCatalogo[];
+
   grausLivresInfo?: {
     base: number;
     deHabilidades: number;
@@ -414,6 +418,8 @@ export type PersonagemBaseDetalhe = {
 
   atributosDerivados: AtributosDerivados;
 
+  tecnicaInata: TecnicaAmaldicoadaCatalogo | null;
+
   cla: { id: number; nome: string; grandeCla: boolean };
   origem: { id: number; nome: string };
   classe: { id: number; nome: string };
@@ -461,6 +467,8 @@ export type PersonagemBaseDetalhe = {
     tipo: string;
     descricao: string | null;
   }>;
+
+  tecnicasNaoInatas: TecnicaAmaldicoadaCatalogo[];
 
   poderesGenericos?: Array<{
     id: number;

@@ -1,4 +1,4 @@
-import { TipoExecucao, AreaEfeito, TipoDano } from '@prisma/client';
+import { TipoExecucao, AreaEfeito, TipoDano, TipoEscalonamentoHabilidade } from '@prisma/client';
 export declare class CreateHabilidadeTecnicaDto {
     tecnicaId: number;
     codigo: string;
@@ -14,6 +14,8 @@ export declare class CreateHabilidadeTecnicaDto {
     dtResistencia?: string;
     custoPE?: number;
     custoEA?: number;
+    custoSustentacaoEA?: number;
+    custoSustentacaoPE?: number;
     testesExigidos?: any;
     criticoValor?: number;
     criticoMultiplicador?: number;
@@ -23,6 +25,9 @@ export declare class CreateHabilidadeTecnicaDto {
     escalonaPorGrau?: boolean;
     grauTipoGrauCodigo?: string;
     escalonamentoCustoEA?: number;
+    escalonamentoCustoPE?: number;
+    escalonamentoTipo?: TipoEscalonamentoHabilidade;
+    escalonamentoEfeito?: any;
     escalonamentoDano?: any;
     efeito: string;
     ordem?: number;

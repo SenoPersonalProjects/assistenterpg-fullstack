@@ -15,6 +15,8 @@ export class HabilidadeVariacaoDto {
   substituiCustos: boolean;
   custoPE?: number;
   custoEA?: number;
+  custoSustentacaoEA?: number;
+  custoSustentacaoPE?: number;
   execucao?: string;
   area?: string;
   alcance?: string;
@@ -29,6 +31,9 @@ export class HabilidadeVariacaoDto {
   dadosDano?: any;
   escalonaPorGrau?: boolean;
   escalonamentoCustoEA?: number;
+  escalonamentoCustoPE?: number;
+  escalonamentoTipo?: string;
+  escalonamentoEfeito?: any;
   escalonamentoDano?: any;
   efeitoAdicional?: string;
   requisitos?: any;
@@ -50,6 +55,8 @@ export class HabilidadeTecnicaDto {
   dtResistencia?: string;
   custoPE: number;
   custoEA: number;
+  custoSustentacaoEA?: number;
+  custoSustentacaoPE?: number;
   testesExigidos?: any;
   criticoValor?: number;
   criticoMultiplicador?: number;
@@ -59,6 +66,9 @@ export class HabilidadeTecnicaDto {
   escalonaPorGrau: boolean;
   grauTipoGrauCodigo?: string;
   escalonamentoCustoEA: number;
+  escalonamentoCustoPE: number;
+  escalonamentoTipo?: string;
+  escalonamentoEfeito?: any;
   escalonamentoDano?: any;
   efeito: string;
   ordem: number;

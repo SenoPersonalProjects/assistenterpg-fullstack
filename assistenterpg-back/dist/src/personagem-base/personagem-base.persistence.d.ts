@@ -7,7 +7,9 @@ type PericiaStatePersist = {
     grauTreinamento: number;
     bonusExtra: number;
 };
-type PersistenciaEstado = Pick<EngineResult, 'profsFinais' | 'grausFinais' | 'periciasMapCodigo' | 'grausTreinamento' | 'habilidadesParaPersistir' | 'poderesGenericosNormalizados' | 'passivasResolvidas' | 'passivasAtributosConfigLimpo' | 'dtoNormalizado' | 'resistenciasFinais'>;
+type PersistenciaEstado = Pick<EngineResult, 'profsFinais' | 'grausFinais' | 'periciasMapCodigo' | 'grausTreinamento' | 'habilidadesParaPersistir' | 'poderesGenericosNormalizados' | 'passivasResolvidas' | 'passivasAtributosConfigLimpo' | 'dtoNormalizado' | 'resistenciasFinais'> & {
+    tecnicasNaoInatasIds: number[];
+};
 declare const personagemCriadoInclude: {
     cla: true;
     origem: true;
@@ -65,6 +67,7 @@ export declare class PersonagemBasePersistence {
             passivasAtributosConfigLimpo?: PersistenciaEstado['passivasAtributosConfigLimpo'];
             dtoNormalizado: PersistenciaEstado['dtoNormalizado'];
             resistenciasFinais: Map<string, number>;
+            tecnicasNaoInatasIds: number[];
         };
     }, prisma?: PrismaLike): Promise<PersonagemCriadoEntity>;
     atualizarRebuildComEstado(params: {
@@ -97,6 +100,7 @@ export declare class PersonagemBasePersistence {
             };
             resistenciasFinais: Map<string, number>;
             dtoNormalizado: PersistenciaEstado['dtoNormalizado'];
+            tecnicasNaoInatasIds: number[];
         };
     }, prisma?: PrismaLike): Promise<({
         classe: {

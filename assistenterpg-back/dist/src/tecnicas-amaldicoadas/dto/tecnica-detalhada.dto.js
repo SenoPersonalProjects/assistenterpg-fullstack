@@ -14,6 +14,8 @@ class HabilidadeVariacaoDto {
     substituiCustos;
     custoPE;
     custoEA;
+    custoSustentacaoEA;
+    custoSustentacaoPE;
     execucao;
     area;
     alcance;
@@ -28,6 +30,9 @@ class HabilidadeVariacaoDto {
     dadosDano;
     escalonaPorGrau;
     escalonamentoCustoEA;
+    escalonamentoCustoPE;
+    escalonamentoTipo;
+    escalonamentoEfeito;
     escalonamentoDano;
     efeitoAdicional;
     requisitos;
@@ -49,6 +54,8 @@ class HabilidadeTecnicaDto {
     dtResistencia;
     custoPE;
     custoEA;
+    custoSustentacaoEA;
+    custoSustentacaoPE;
     testesExigidos;
     criticoValor;
     criticoMultiplicador;
@@ -58,6 +65,9 @@ class HabilidadeTecnicaDto {
     escalonaPorGrau;
     grauTipoGrauCodigo;
     escalonamentoCustoEA;
+    escalonamentoCustoPE;
+    escalonamentoTipo;
+    escalonamentoEfeito;
     escalonamentoDano;
     efeito;
     ordem;

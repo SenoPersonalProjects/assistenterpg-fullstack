@@ -1,6 +1,6 @@
 # AssistenteRPG - Documentacao Unica (Front + Back)
 
-Atualizado em: 2026-03-11
+Atualizado em: 2026-03-12
 
 ## 1. Objetivo e escopo
 
@@ -382,6 +382,10 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 - `PATCH /campanhas/:id/sessoes/:sessaoId/cena`
   - body: [`AtualizarCenaSessaoDto`](../assistenterpg-back/src/sessao/dto/atualizar-cena-sessao.dto.ts)
 - `POST /campanhas/:id/sessoes/:sessaoId/turno/avancar`
+- `POST /campanhas/:id/sessoes/:sessaoId/turno/voltar`
+- `POST /campanhas/:id/sessoes/:sessaoId/turno/pular`
+- `PATCH /campanhas/:id/sessoes/:sessaoId/iniciativa/ordem`
+  - body: [`AtualizarOrdemIniciativaSessaoDto`](../assistenterpg-back/src/sessao/dto/atualizar-ordem-iniciativa-sessao.dto.ts)
 - `GET /campanhas/:id/sessoes/:sessaoId/chat?afterId=`
 - `POST /campanhas/:id/sessoes/:sessaoId/chat`
   - body: [`EnviarChatSessaoDto`](../assistenterpg-back/src/sessao/dto/enviar-chat-sessao.dto.ts)
@@ -394,13 +398,20 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
 - `PATCH /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
   - body: [`AtualizarNpcSessaoDto`](../assistenterpg-back/src/sessao/dto/atualizar-npc-sessao.dto.ts)
 - `DELETE /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
+- `POST /campanhas/:id/sessoes/:sessaoId/personagens/:personagemSessaoId/habilidades/usar`
+  - body: [`UsarHabilidadeSessaoDto`](../assistenterpg-back/src/sessao/dto/usar-habilidade-sessao.dto.ts)
+    - `habilidadeTecnicaId`: int `>= 1`
+    - `variacaoHabilidadeId?`: int `>= 1`
+    - `acumulos?`: int `>= 0`
+- `POST /campanhas/:id/sessoes/:sessaoId/personagens/:personagemSessaoId/sustentacoes/:sustentacaoId/encerrar`
+  - body opcional: [`EncerrarSustentacaoSessaoDto`](../assistenterpg-back/src/sessao/dto/encerrar-sustentacao-sessao.dto.ts)
 - canal realtime de sessao (WebSocket):
   - namespace: `/sessoes`
   - evento cliente -> servidor: `sessao:join` (`{ campanhaId, sessaoId }`)
   - eventos servidor -> cliente:
     - `sessao:joined`
     - `sessao:erro`
-    - `sessao:atualizada` (`CHAT_NOVA | CENA_ATUALIZADA | TURNO_AVANCADO | NPC_ATUALIZADO | SESSAO_ENCERRADA | SESSAO_EVENTO_DESFEITO`)
+    - `sessao:atualizada` (`CHAT_NOVA | CENA_ATUALIZADA | TURNO_AVANCADO | TURNO_RECUADO | TURNO_PULADO | ORDEM_INICIATIVA_ATUALIZADA | NPC_ATUALIZADO | SESSAO_ENCERRADA | SESSAO_EVENTO_DESFEITO | HABILIDADE_USADA | HABILIDADE_SUSTENTADA_ENCERRADA`)
     - `sessao:presenca` (`onlineUsuarioIds`)
 
 Regra de negocio relevante:
@@ -480,27 +491,53 @@ Detalhamento:
   - cada modificador guarda fonte (`nome`, `descricao`) e pode ser desfeito com seguranca.
   - historico de alteracoes e persistido em `PersonagemCampanhaHistorico`.
 - sessoes de campanha:
-  - apenas mestre pode iniciar sessao, atualizar cena e avancar turno.
+  - apenas mestre pode iniciar sessao, atualizar cena e controlar turno (`avancar`, `voltar`, `pular`).
+  - apenas mestre pode reordenar manualmente a iniciativa (`PATCH /iniciativa/ordem`).
   - apenas mestre pode encerrar sessao (`POST /campanhas/:id/sessoes/:sessaoId/encerrar`).
   - dono e membros podem entrar no lobby e usar chat.
   - detalhe da sessao retorna `participantes` da campanha (apelido/papel/flag de dono).
+  - detalhe da sessao retorna `iniciativa` com ordem unificada de personagens + aliados/ameacas da cena atual.
+  - cada participante da iniciativa inclui `valorIniciativa` (inteiro) para leitura de mesa.
+  - ao reordenar iniciativa, a INI e normalizada em passos de 1 ponto entre vizinhos (regra `+1/-1` por posicao).
+  - reordenacao pode ser feita por botoes (subir/descer) e drag-and-drop no lobby do mestre.
+  - iniciativa e controlada por participante da cena (personagem/NPC), nao por usuario.
   - presenca online do lobby e sincronizada por WebSocket (`sessao:presenca`).
   - frontend mantem polling de fallback (3s desconectado / 15s conectado) para resiliencia quando o socket cair.
   - `LIVRE` nao usa contagem de rodada/turno.
-  - em `LIVRE`, `turnoAtual`, `rodadaAtual` e `indiceTurnoAtual` retornam `null` no detalhe.
-  - `POST /turno/avancar` em `LIVRE` retorna erro de negocio (`SESSAO_TURNO_INDISPONIVEL`).
+  - em `LIVRE`, `turnoAtual`, `rodadaAtual`, `indiceTurnoAtual` e `iniciativa.indiceAtual` retornam `null` no detalhe.
+  - `POST /turno/avancar`, `POST /turno/voltar`, `POST /turno/pular` e `PATCH /iniciativa/ordem` em `LIVRE` retornam erro de negocio (`SESSAO_TURNO_INDISPONIVEL`).
+  - `PATCH /iniciativa/ordem` valida o conjunto exato de participantes em cena; payload invalido retorna `SESSAO_ORDEM_INICIATIVA_INVALIDA`.
   - cards da sessao respeitam permissao:
     - mestre ve/edita todos.
     - jogador edita apenas o proprio card e ve os demais em modo resumido.
+  - cards completos da sessao incluem:
+    - `tecnicaInata` (com habilidades/variacoes filtradas por graus)
+    - `tecnicasNaoInatas` (habilitadas por grau; sem escolha manual do jogador)
+    - `sustentacoesAtivas` por personagem da sessao
+  - uso de habilidades em sessao:
+    - `POST /personagens/:personagemSessaoId/habilidades/usar` consome custo imediato de `EA/PE`.
+    - `acumulos` aplica escalonamento quando a habilidade/variacao suporta acumulo; o limite segue o grau de aprimoramento vinculado.
+    - escalonamento pode cobrar custo extra em `EA` e `PE` por acumulo (`escalonamentoCustoEA` e `escalonamentoCustoPE`).
+    - escalonamento tipado (`escalonamentoTipo` + `escalonamentoEfeito`) suporta casos de dano, cura, regras de barreira e outros efeitos guiados.
+    - para habilidades sustentadas, cria sustentacao ativa com custo por rodada.
+    - custo de sustentacao usa `custoSustentacaoEA` e `custoSustentacaoPE` da habilidade/variacao; fallback padrao `1 EA/rodada` e `0 PE/rodada`.
+    - custo de sustentacao inicia no uso e passa a cobrar por rodada a partir da rodada seguinte.
+    - quando a rodada avanca, o backend cobra sustentacao automaticamente e encerra se faltar `EA` ou `PE`.
+    - limite por turno usa a soma combinada `PE + EA` do turno atual do participante.
+    - excecao: uso base (sem variacao e sem acumulos) ignora validacao de limite por turno.
+    - encerramento manual usa `POST /sustentacoes/:sustentacaoId/encerrar`.
+  - frontend aplica trava anti-clique para uso de habilidade (cooldown curto de seguranca) para evitar gasto duplicado acidental.
   - painel central da sessao (cena atual, rodada/turno e status) e visivel para todos.
   - coluna direita do lobby concentra participantes online, timeline de eventos e chat.
-  - escudo do mestre (coluna esquerda para mestres) possui busca e secoes recolhiveis com guias operacionais da mesa.
+  - escudo do mestre (coluna esquerda para mestres) possui busca, modo `Resumo/Detalhado` e secoes recolhiveis com guias operacionais da mesa.
+  - no modo detalhado, cada guia organiza subtopicos em acordeoes internos automáticos (baseados em secoes `##`), para leitura rapida em mesa.
+  - no modo detalhado, os topicos operacionais principais ja estao preenchidos (pericias, condicoes, dominios, dificuldades, teste unido, tipos de dano/acoes, ferimentos, insanidade, situacoes especiais, multidoes, interludio, investigacao, furtividade e perseguicao).
   - timeline operacional da sessao (`GET /eventos`) traz eventos estruturados (cena/turno/npc/chat opcional).
   - desfazer evento de sessao (`POST /eventos/:eventoId/desfazer`) segue regra de seguranca:
     - apenas mestre pode desfazer.
     - apenas o ultimo evento reversivel ainda nao desfeito pode ser revertido (modelo pilha/LIFO).
     - eventos ja desfeitos ficam marcados no `dados` (`desfeito`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
-    - tipos reversiveis atuais: `TURNO_AVANCADO`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
+    - tipos reversiveis atuais: `TURNO_AVANCADO`, `TURNO_RECUADO`, `TURNO_PULADO`, `ORDEM_INICIATIVA_ATUALIZADA`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
   - no lobby, o botao `Ajustes narrativos` do card abre o mesmo modal de edicao da ficha de campanha, ja contextualizado com `sessaoId/cenaId` atuais.
   - no modal contextualizado, o historico possui filtros rapidos combinados:
     - contexto: `Todos`, `Sessao atual` e `Cena atual`.
@@ -521,8 +558,16 @@ Detalhamento:
   - `SESSAO_CAMPANHA_NOT_FOUND` (404)
   - `CENA_SESSAO_NOT_FOUND` (404)
   - `SESSAO_TURNO_INDISPONIVEL` (422)
+  - `SESSAO_ORDEM_INICIATIVA_INVALIDA` (422)
   - `SESSAO_EVENTO_NOT_FOUND` (404)
   - `SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO` (422)
+  - `SESSAO_HABILIDADE_NAO_DISPONIVEL` (422)
+  - `SESSAO_RECURSO_INSUFICIENTE` (422)
+  - `SESSAO_VARIACAO_HABILIDADE_NOT_FOUND` (422)
+  - `SESSAO_HABILIDADE_SEM_ESCALONAMENTO` (422)
+  - `SESSAO_ACUMULO_EXCEDE_GRAU` (422)
+  - `SESSAO_LIMITE_PEEA_EXCEDIDO` (422)
+  - `SESSAO_SUSTENTACAO_NOT_FOUND` (422)
   - `NPC_AMEACA_NOT_FOUND` (404)
   - `NPC_SESSAO_NOT_FOUND` (404)
 
@@ -535,7 +580,7 @@ Integracao frontend:
   - fluxo de convite (criar/listar pendentes/aceitar/recusar)
   - personagens de campanha (listar, associar, atualizar recursos, aplicar/desfazer modificadores, historico)
   - listagem de personagens-base disponiveis por campanha para suportar associacao por mestres
-  - sessoes de campanha (listar, criar, detalhe, atualizar cena, avancar turno, listar/enviar chat, listar timeline de eventos, desfazer ultimo evento reversivel)
+  - sessoes de campanha (listar, criar, detalhe, atualizar cena, controlar turno `avancar/voltar/pular`, reordenar iniciativa, listar/enviar chat, listar timeline de eventos, desfazer ultimo evento reversivel)
   - realtime de sessoes (join/presenca/eventos) via `assistenterpg-front/src/lib/realtime/sessao-socket.ts`
   - notificacao local de atualizacao de pendencias de convite (`apiInscreverAtualizacaoConvitesPendentes` / `apiNotificarConvitesPendentesAtualizados`) para manter badge da navbar sincronizado
   - sugestao de associacao de personagem ao entrar na campanha (nao obrigatoria) no componente [`CampaignCharactersSection`](../assistenterpg-front/src/components/campanha/CampaignCharactersSection.tsx)
@@ -1461,7 +1506,7 @@ Integracao frontend neste bloco:
     - variacoes: `apiAdminGetVariacoesDaHabilidadeTecnica`, `apiAdminGetVariacaoDaHabilidadeTecnica`, `apiAdminCreateVariacaoDaHabilidadeTecnica`, `apiAdminUpdateVariacaoDaHabilidadeTecnica`, `apiAdminDeleteVariacaoDaHabilidadeTecnica`
 - interface admin:
   - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx) agora expoe acao `Habilidades` por tecnica
-  - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) cobre CRUD de habilidades e variacoes em modal dedicado, incluindo campos avancados com entrada guiada para `requisitos`, `testesExigidos`, `dadosDano` e `escalonamentoDano` (mantendo modo JSON avancado como fallback)
+  - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) cobre CRUD de habilidades e variacoes em modal dedicado, incluindo campos avancados com entrada guiada para `requisitos`, `testesExigidos`, `dadosDano` e escalonamento (tipado e fallback JSON)
 
 Detalhamento do bloco de catalogos menores:
 
@@ -1773,6 +1818,9 @@ Correcoes adicionais aplicadas apos a consolidacao inicial:
   - [`assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts`](../assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts) recebeu tipagem dedicada para payloads/respostas de habilidades e variacoes de tecnica
   - [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicasAdminPanel.tsx) e [`assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx`](../assistenterpg-front/src/components/suplemento-admin/panels/TecnicaHabilidadesModal.tsx) passaram a integrar esses endpoints na UI admin
   - o modal de habilidades/variacoes foi ampliado para editar tambem campos avancados do contrato (execucao/area/alcance/alvo/duracao/resistencia/criticos/dano/escalonamento/requisitos), priorizando editores guiados e mantendo modo JSON apenas como fallback para casos complexos
+  - seed de tecnicas nao-inatas basicas foi adicionado em [`assistenterpg-back/prisma/seeds/tecnicas/tecnicas-nao-inatas.ts`](../assistenterpg-back/prisma/seeds/tecnicas/tecnicas-nao-inatas.ts) e integrado no pipeline principal [`assistenterpg-back/prisma/seeds.ts`](../assistenterpg-back/prisma/seeds.ts)
+  - a ficha de personagem (aba `Poderes`) agora exibe subsecoes de `Tecnica Inata` e `Tecnicas Nao-Inatas` com habilidades/variacoes vindas de `GET /tecnicas-amaldicoadas?tipo=NAO_INATA&incluirHabilidades=true`
+  - arquivos principais do frontend impactados: [`assistenterpg-front/src/components/personagem-base/sections/usePersonagemBaseDetalhe.ts`](../assistenterpg-front/src/components/personagem-base/sections/usePersonagemBaseDetalhe.ts), [`assistenterpg-front/src/components/personagem-base/sections/SecaoPoderes.tsx`](../assistenterpg-front/src/components/personagem-base/sections/SecaoPoderes.tsx) e [`assistenterpg-front/src/lib/types/catalogo.types.ts`](../assistenterpg-front/src/lib/types/catalogo.types.ts)
 - frontend cliente/admin de catalogos menores:
   - [`assistenterpg-front/src/lib/api/suplemento-conteudos.ts`](../assistenterpg-front/src/lib/api/suplemento-conteudos.ts) agora expoe CRUD completo de `proficiencias`, `tipos-grau` e `condicoes`
   - [`assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts`](../assistenterpg-front/src/lib/types/suplemento-conteudo.types.ts) recebeu payloads/tipos para `Create/Update` desses catalogos e `CondicaoCatalogo`

@@ -8,7 +8,22 @@ export declare const personagemBaseDetalhadoInclude: {
     classe: true;
     trilha: true;
     caminho: true;
-    tecnicaInata: true;
+    tecnicaInata: {
+        include: {
+            habilidades: {
+                include: {
+                    variacoes: {
+                        orderBy: {
+                            ordem: "asc";
+                        };
+                    };
+                };
+                orderBy: {
+                    ordem: "asc";
+                };
+            };
+        };
+    };
     alinhamento: true;
     proficiencias: {
         include: {
@@ -39,6 +54,26 @@ export declare const personagemBaseDetalhadoInclude: {
     poderesGenericos: {
         include: {
             habilidade: true;
+        };
+    };
+    tecnicasAprendidas: {
+        include: {
+            tecnica: {
+                include: {
+                    habilidades: {
+                        include: {
+                            variacoes: {
+                                orderBy: {
+                                    ordem: "asc";
+                                };
+                            };
+                        };
+                        orderBy: {
+                            ordem: "asc";
+                        };
+                    };
+                };
+            };
         };
     };
     resistencias: {
@@ -101,6 +136,64 @@ type ResistenciasMapeadas = Array<{
     descricao: string | null;
     valor: number;
 }>;
+type TecnicaDetalhadaMapeada = {
+    id: number;
+    codigo: string;
+    nome: string;
+    descricao: string | null;
+    tipo: string;
+    hereditaria: boolean;
+    linkExterno: string | null;
+    requisitos: Prisma.JsonValue | null;
+    fonte: string;
+    suplementoId: number | null;
+    habilidades: Array<{
+        id: number;
+        tecnicaId: number;
+        codigo: string;
+        nome: string;
+        descricao: string;
+        requisitos: Prisma.JsonValue | null;
+        execucao: string;
+        area: string | null;
+        alcance: string | null;
+        alvo: string | null;
+        duracao: string | null;
+        custoPE: number;
+        custoEA: number;
+        danoFlat: number | null;
+        danoFlatTipo: string | null;
+        efeito: string;
+        ordem: number;
+        variacoes: Array<{
+            id: number;
+            habilidadeTecnicaId: number;
+            nome: string;
+            descricao: string;
+            substituiCustos: boolean;
+            custoPE: number | null;
+            custoEA: number | null;
+            execucao: string | null;
+            area: string | null;
+            alcance: string | null;
+            alvo: string | null;
+            duracao: string | null;
+            resistencia: string | null;
+            dtResistencia: string | null;
+            criticoValor: number | null;
+            criticoMultiplicador: number | null;
+            danoFlat: number | null;
+            danoFlatTipo: string | null;
+            dadosDano: Prisma.JsonValue | null;
+            escalonaPorGrau: boolean | null;
+            escalonamentoCustoEA: number | null;
+            escalonamentoDano: Prisma.JsonValue | null;
+            efeitoAdicional: string | null;
+            requisitos: Prisma.JsonValue | null;
+            ordem: number;
+        }>;
+    }>;
+};
 export type PersonagemDetalhadoMapeado = {
     id: number;
     nome: string;
@@ -133,15 +226,7 @@ export type PersonagemDetalhadoMapeado = {
     trilha: PersonagemBaseDetalhadoEntity['trilha'];
     caminho: PersonagemBaseDetalhadoEntity['caminho'];
     alinhamento: PersonagemBaseDetalhadoEntity['alinhamento'];
-    tecnicaInata: {
-        id: number;
-        codigo: string;
-        nome: string;
-        descricao: string | null;
-        tipo: string;
-        hereditaria: boolean;
-        linkExterno: string | null;
-    } | null;
+    tecnicaInata: TecnicaDetalhadaMapeada | null;
     proficiencias: Array<{
         id: number;
         codigo: string;
@@ -206,6 +291,7 @@ export type PersonagemDetalhadoMapeado = {
         esquiva: number;
     };
     resistencias: ResistenciasMapeadas;
+    tecnicasNaoInatas: TecnicaDetalhadaMapeada[];
     espacosInventarioBase: number;
     espacosInventarioExtra: number;
     espacosOcupados: number;

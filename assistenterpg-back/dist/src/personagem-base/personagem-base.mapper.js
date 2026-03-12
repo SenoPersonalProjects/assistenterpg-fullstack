@@ -9,13 +9,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PersonagemBaseMapper = exports.personagemBaseDetalhadoInclude = void 0;
 const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
+const regras_tecnicas_nao_inatas_1 = require("./regras-criacao/regras-tecnicas-nao-inatas");
 exports.personagemBaseDetalhadoInclude = client_1.Prisma.validator()({
     cla: true,
     origem: true,
     classe: true,
     trilha: true,
     caminho: true,
-    tecnicaInata: true,
+    tecnicaInata: {
+        include: {
+            habilidades: {
+                include: {
+                    variacoes: {
+                        orderBy: { ordem: 'asc' },
+                    },
+                },
+                orderBy: { ordem: 'asc' },
+            },
+        },
+    },
     alinhamento: true,
     proficiencias: { include: { proficiencia: true } },
     grausAprimoramento: {
@@ -28,6 +40,22 @@ exports.personagemBaseDetalhadoInclude = client_1.Prisma.validator()({
     habilidadesBase: { include: { habilidade: true } },
     passivas: { include: { passiva: true } },
     poderesGenericos: { include: { habilidade: true } },
+    tecnicasAprendidas: {
+        include: {
+            tecnica: {
+                include: {
+                    habilidades: {
+                        include: {
+                            variacoes: {
+                                orderBy: { ordem: 'asc' },
+                            },
+                        },
+                        orderBy: { ordem: 'asc' },
+                    },
+                },
+            },
+        },
+    },
     resistencias: {
         include: {
             resistenciaTipo: true,
@@ -114,6 +142,78 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
             descricao: r.resistenciaTipo.descricao,
             valor: r.valor,
         }));
+        const grausMap = (0, regras_tecnicas_nao_inatas_1.montarMapaGraus)(grausAprimoramentoAjustados.map((g) => ({
+            tipoGrauCodigo: g.tipoGrauCodigo,
+            valor: g.valorTotal,
+        })));
+        const mapTecnicaDetalhada = (tecnica) => ({
+            id: tecnica.id,
+            codigo: tecnica.codigo,
+            nome: tecnica.nome,
+            descricao: tecnica.descricao,
+            tipo: tecnica.tipo,
+            hereditaria: tecnica.hereditaria,
+            linkExterno: tecnica.linkExterno,
+            requisitos: tecnica.requisitos,
+            fonte: tecnica.fonte,
+            suplementoId: tecnica.suplementoId,
+            habilidades: (tecnica.habilidades ?? [])
+                .filter((habilidade) => (0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(habilidade.requisitos, grausMap))
+                .map((habilidade) => ({
+                id: habilidade.id,
+                tecnicaId: habilidade.tecnicaId,
+                codigo: habilidade.codigo,
+                nome: habilidade.nome,
+                descricao: habilidade.descricao,
+                requisitos: habilidade.requisitos,
+                execucao: habilidade.execucao,
+                area: habilidade.area,
+                alcance: habilidade.alcance,
+                alvo: habilidade.alvo,
+                duracao: habilidade.duracao,
+                custoPE: habilidade.custoPE,
+                custoEA: habilidade.custoEA,
+                danoFlat: habilidade.danoFlat,
+                danoFlatTipo: habilidade.danoFlatTipo,
+                efeito: habilidade.efeito,
+                ordem: habilidade.ordem,
+                variacoes: (habilidade.variacoes ?? [])
+                    .filter((variacao) => (0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(variacao.requisitos, grausMap))
+                    .map((variacao) => ({
+                    id: variacao.id,
+                    habilidadeTecnicaId: variacao.habilidadeTecnicaId,
+                    nome: variacao.nome,
+                    descricao: variacao.descricao,
+                    substituiCustos: variacao.substituiCustos,
+                    custoPE: variacao.custoPE,
+                    custoEA: variacao.custoEA,
+                    execucao: variacao.execucao,
+                    area: variacao.area,
+                    alcance: variacao.alcance,
+                    alvo: variacao.alvo,
+                    duracao: variacao.duracao,
+                    resistencia: variacao.resistencia,
+                    dtResistencia: variacao.dtResistencia,
+                    criticoValor: variacao.criticoValor,
+                    criticoMultiplicador: variacao.criticoMultiplicador,
+                    danoFlat: variacao.danoFlat,
+                    danoFlatTipo: variacao.danoFlatTipo,
+                    dadosDano: variacao.dadosDano,
+                    escalonaPorGrau: variacao.escalonaPorGrau,
+                    escalonamentoCustoEA: variacao.escalonamentoCustoEA,
+                    escalonamentoDano: variacao.escalonamentoDano,
+                    efeitoAdicional: variacao.efeitoAdicional,
+                    requisitos: variacao.requisitos,
+                    ordem: variacao.ordem,
+                })),
+            })),
+        });
+        const tecnicasNaoInatas = (personagem.tecnicasAprendidas ?? [])
+            .map((relacao) => relacao.tecnica)
+            .filter((tecnica) => tecnica.tipo === 'NAO_INATA')
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .map(mapTecnicaDetalhada);
+        const tecnicaInataDetalhada = personagem.tecnicaInata ? mapTecnicaDetalhada(personagem.tecnicaInata) : null;
         return {
             id: personagem.id,
             nome: personagem.nome,
@@ -146,17 +246,7 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
             trilha: personagem.trilha,
             caminho: personagem.caminho,
             alinhamento: personagem.alinhamento,
-            tecnicaInata: personagem.tecnicaInata
-                ? {
-                    id: personagem.tecnicaInata.id,
-                    codigo: personagem.tecnicaInata.codigo,
-                    nome: personagem.tecnicaInata.nome,
-                    descricao: personagem.tecnicaInata.descricao,
-                    tipo: personagem.tecnicaInata.tipo,
-                    hereditaria: personagem.tecnicaInata.hereditaria,
-                    linkExterno: personagem.tecnicaInata.linkExterno,
-                }
-                : null,
+            tecnicaInata: tecnicaInataDetalhada,
             proficiencias: (personagem.proficiencias ?? []).map((pp) => ({
                 id: pp.proficiencia.id,
                 codigo: pp.proficiencia.codigo,
@@ -235,6 +325,7 @@ let PersonagemBaseMapper = class PersonagemBaseMapper {
                 esquiva: personagem.esquiva ?? 0,
             },
             resistencias,
+            tecnicasNaoInatas,
             espacosInventarioBase: espacosInventario.base,
             espacosInventarioExtra: espacosInventario.extra,
             espacosOcupados,

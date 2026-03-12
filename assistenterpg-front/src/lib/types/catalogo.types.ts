@@ -4,7 +4,13 @@
  */
 
 import type { AtributoBaseCodigo } from './common.types';
-import type { TipoFonte, TipoTecnicaAmaldicoada } from './homebrew-enums';
+import type {
+  AreaEfeito,
+  TipoDano,
+  TipoExecucao,
+  TipoFonte,
+  TipoTecnicaAmaldicoada,
+} from './homebrew-enums';
 
 export type TipoHabilidadeCatalogo =
   | 'RECURSO_CLASSE'
@@ -169,6 +175,53 @@ export type TecnicaInataCatalogo = {
   clasHereditarios: { claId: number; claNome: string }[];
 };
 
+export type VariacaoHabilidadeTecnicaResumoCatalogo = {
+  id: number;
+  habilidadeTecnicaId: number;
+  nome: string;
+  descricao: string;
+  substituiCustos: boolean;
+  custoPE?: number | null;
+  custoEA?: number | null;
+  custoSustentacaoEA?: number | null;
+  custoSustentacaoPE?: number | null;
+  execucao?: TipoExecucao | null;
+  area?: AreaEfeito | null;
+  alcance?: string | null;
+  alvo?: string | null;
+  duracao?: string | null;
+  resistencia?: string | null;
+  dtResistencia?: string | null;
+  danoFlat?: number | null;
+  danoFlatTipo?: TipoDano | null;
+  efeitoAdicional?: string | null;
+  requisitos?: unknown;
+  ordem: number;
+};
+
+export type HabilidadeTecnicaResumoCatalogo = {
+  id: number;
+  tecnicaId: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  requisitos?: unknown;
+  execucao: TipoExecucao;
+  area?: AreaEfeito | null;
+  alcance?: string | null;
+  alvo?: string | null;
+  duracao?: string | null;
+  custoPE: number;
+  custoEA: number;
+  custoSustentacaoEA?: number | null;
+  custoSustentacaoPE?: number | null;
+  danoFlat?: number | null;
+  danoFlatTipo?: TipoDano | null;
+  efeito: string;
+  ordem: number;
+  variacoes?: VariacaoHabilidadeTecnicaResumoCatalogo[];
+};
+
 export type TecnicaAmaldicoadaCatalogo = {
   id: number;
   codigo: string;
@@ -181,7 +234,7 @@ export type TecnicaAmaldicoadaCatalogo = {
   fonte?: TipoFonte;
   suplementoId?: number | null;
   clasHereditarios?: Array<{ id: number; nome: string }>;
-  habilidades?: unknown[];
+  habilidades?: HabilidadeTecnicaResumoCatalogo[];
 };
 
 export type AlinhamentoCatalogo = {

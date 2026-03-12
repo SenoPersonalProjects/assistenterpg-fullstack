@@ -203,6 +203,116 @@ export type SessaoCampanhaResumo = {
   totalEventos: number;
 };
 
+export type TipoParticipanteIniciativaSessao = 'PERSONAGEM' | 'NPC';
+
+export type TurnoAtualSessaoCampanha = {
+  tipoParticipante: TipoParticipanteIniciativaSessao;
+  personagemSessaoId: number | null;
+  npcSessaoId: number | null;
+  personagemCampanhaId: number | null;
+  donoId: number | null;
+  nomeJogador: string | null;
+  nomePersonagem: string;
+  valorIniciativa: number | null;
+};
+
+export type ParticipanteIniciativaSessaoCampanha = {
+  tipoParticipante: TipoParticipanteIniciativaSessao;
+  personagemSessaoId: number | null;
+  npcSessaoId: number | null;
+  personagemCampanhaId: number | null;
+  donoId: number | null;
+  nomeJogador: string | null;
+  nomePersonagem: string;
+  podeEditar: boolean;
+  valorIniciativa: number;
+};
+
+export type VariacaoHabilidadeSessaoCampanha = {
+  id: number;
+  habilidadeTecnicaId: number;
+  nome: string;
+  descricao: string;
+  substituiCustos: boolean;
+  custoPE: number | null;
+  custoEA: number | null;
+  custoSustentacaoEA: number | null;
+  custoSustentacaoPE: number | null;
+  execucao: string | null;
+  area: string | null;
+  alcance: string | null;
+  alvo: string | null;
+  duracao: string | null;
+  resistencia: string | null;
+  dtResistencia: string | null;
+  danoFlat: number | null;
+  danoFlatTipo: string | null;
+  efeitoAdicional: string | null;
+  escalonaPorGrau: boolean | null;
+  grauTipoGrauCodigo: string | null;
+  acumulosMaximos: number;
+  escalonamentoCustoEA: number | null;
+  escalonamentoCustoPE: number | null;
+  escalonamentoTipo: string | null;
+  escalonamentoEfeito: unknown;
+  escalonamentoDano: unknown;
+  requisitos: unknown;
+  ordem: number;
+};
+
+export type HabilidadeTecnicaSessaoCampanha = {
+  id: number;
+  tecnicaId: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  requisitos: unknown;
+  execucao: string;
+  area: string | null;
+  alcance: string | null;
+  alvo: string | null;
+  duracao: string | null;
+  custoPE: number;
+  custoEA: number;
+  custoSustentacaoEA: number | null;
+  custoSustentacaoPE: number | null;
+  escalonaPorGrau: boolean;
+  grauTipoGrauCodigo: string | null;
+  acumulosMaximos: number;
+  escalonamentoCustoEA: number;
+  escalonamentoCustoPE: number;
+  escalonamentoTipo: string;
+  escalonamentoEfeito: unknown;
+  escalonamentoDano: unknown;
+  danoFlat: number | null;
+  danoFlatTipo: string | null;
+  efeito: string;
+  ordem: number;
+  variacoes: VariacaoHabilidadeSessaoCampanha[];
+};
+
+export type TecnicaSessaoCampanha = {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao: string;
+  tipo: string;
+  habilidades: HabilidadeTecnicaSessaoCampanha[];
+};
+
+export type SustentacaoAtivaSessaoCampanha = {
+  id: number;
+  habilidadeTecnicaId: number;
+  variacaoHabilidadeId: number | null;
+  nomeHabilidade: string;
+  nomeVariacao: string | null;
+  custoSustentacaoEA: number;
+  custoSustentacaoPE: number;
+  ativadaNaRodada: number;
+  ultimaCobrancaRodada: number;
+  criadaEm: string;
+};
+
 export type SessaoCampanhaDetalhe = {
   id: number;
   campanhaId: number;
@@ -217,13 +327,11 @@ export type SessaoCampanhaDetalhe = {
     nome: string | null;
     controleTurnosAtivo: boolean;
   };
-  turnoAtual: {
-    personagemSessaoId: number;
-    personagemCampanhaId: number;
-    donoId: number;
-    nomeJogador: string;
-    nomePersonagem: string;
-  } | null;
+  turnoAtual: TurnoAtualSessaoCampanha | null;
+  iniciativa: {
+    indiceAtual: number | null;
+    ordem: ParticipanteIniciativaSessaoCampanha[];
+  };
   permissoes: {
     ehMestre: boolean;
     podeEditarTodos: boolean;
@@ -253,6 +361,9 @@ export type SessaoCampanhaDetalhe = {
       sanAtual: number;
       sanMax: number;
     } | null;
+    tecnicaInata: TecnicaSessaoCampanha | null;
+    tecnicasNaoInatas: TecnicaSessaoCampanha[];
+    sustentacoesAtivas: SustentacaoAtivaSessaoCampanha[];
   }>;
   npcs: NpcSessaoCampanha[];
   iniciadoEm: string;

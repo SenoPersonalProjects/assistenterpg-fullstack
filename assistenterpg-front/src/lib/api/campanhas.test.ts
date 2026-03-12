@@ -12,6 +12,7 @@ vi.mock('./axios-client', () => ({
 import { apiClient } from './axios-client';
 import {
   apiAceitarConvite,
+  apiAtualizarOrdemIniciativaSessaoCampanha,
   apiAtualizarCenaSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
   apiAvancarTurnoSessaoCampanha,
@@ -33,6 +34,8 @@ import {
   apiRemoverNpcSessaoCampanha,
   apiRecusarConvite,
   apiEnviarMensagemChatSessaoCampanha,
+  apiPularTurnoSessaoCampanha,
+  apiVoltarTurnoSessaoCampanha,
   apiVincularPersonagemCampanha,
 } from './campanhas';
 
@@ -268,6 +271,52 @@ describe('campanhas api cache and dedupe', () => {
 
     expect(mockedApiClient.post).toHaveBeenCalledWith(
       '/campanhas/44/sessoes/13/turno/avancar',
+    );
+    expect(sessao).toEqual({ id: 13 });
+  });
+
+  it('moves session turn back', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const sessao = await apiVoltarTurnoSessaoCampanha(44, 13);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/turno/voltar',
+    );
+    expect(sessao).toEqual({ id: 13 });
+  });
+
+  it('skips current session turn', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const sessao = await apiPularTurnoSessaoCampanha(44, 13);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/turno/pular',
+    );
+    expect(sessao).toEqual({ id: 13 });
+  });
+
+  it('updates session initiative order', async () => {
+    mockedApiClient.patch.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const sessao = await apiAtualizarOrdemIniciativaSessaoCampanha(44, 13, {
+      ordem: [
+        { tipoParticipante: 'PERSONAGEM', id: 2 },
+        { tipoParticipante: 'NPC', id: 8 },
+      ],
+      indiceTurnoAtual: 1,
+    });
+
+    expect(mockedApiClient.patch).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/iniciativa/ordem',
+      {
+        ordem: [
+          { tipoParticipante: 'PERSONAGEM', id: 2 },
+          { tipoParticipante: 'NPC', id: 8 },
+        ],
+        indiceTurnoAtual: 1,
+      },
     );
     expect(sessao).toEqual({ id: 13 });
   });

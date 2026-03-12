@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { GrauTreinamentoDto } from './dto/create-personagem-base.dto';
+import { atendeRequisitosGraus, montarMapaGraus } from './regras-criacao/regras-tecnicas-nao-inatas';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
@@ -18,7 +19,18 @@ export const personagemBaseDetalhadoInclude =
     classe: true,
     trilha: true,
     caminho: true,
-    tecnicaInata: true,
+    tecnicaInata: {
+      include: {
+        habilidades: {
+          include: {
+            variacoes: {
+              orderBy: { ordem: 'asc' },
+            },
+          },
+          orderBy: { ordem: 'asc' },
+        },
+      },
+    },
     alinhamento: true,
     proficiencias: { include: { proficiencia: true } },
     grausAprimoramento: {
@@ -31,6 +43,22 @@ export const personagemBaseDetalhadoInclude =
     habilidadesBase: { include: { habilidade: true } },
     passivas: { include: { passiva: true } },
     poderesGenericos: { include: { habilidade: true } },
+    tecnicasAprendidas: {
+      include: {
+        tecnica: {
+          include: {
+            habilidades: {
+              include: {
+                variacoes: {
+                  orderBy: { ordem: 'asc' },
+                },
+              },
+              orderBy: { ordem: 'asc' },
+            },
+          },
+        },
+      },
+    },
     resistencias: {
       include: {
         resistenciaTipo: true,
@@ -109,6 +137,65 @@ type ResistenciasMapeadas = Array<{
   valor: number;
 }>;
 
+type TecnicaDetalhadaMapeada = {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  tipo: string;
+  hereditaria: boolean;
+  linkExterno: string | null;
+  requisitos: Prisma.JsonValue | null;
+  fonte: string;
+  suplementoId: number | null;
+  habilidades: Array<{
+    id: number;
+    tecnicaId: number;
+    codigo: string;
+    nome: string;
+    descricao: string;
+    requisitos: Prisma.JsonValue | null;
+    execucao: string;
+    area: string | null;
+    alcance: string | null;
+    alvo: string | null;
+    duracao: string | null;
+    custoPE: number;
+    custoEA: number;
+    danoFlat: number | null;
+    danoFlatTipo: string | null;
+    efeito: string;
+    ordem: number;
+    variacoes: Array<{
+      id: number;
+      habilidadeTecnicaId: number;
+      nome: string;
+      descricao: string;
+      substituiCustos: boolean;
+      custoPE: number | null;
+      custoEA: number | null;
+      execucao: string | null;
+      area: string | null;
+      alcance: string | null;
+      alvo: string | null;
+      duracao: string | null;
+      resistencia: string | null;
+      dtResistencia: string | null;
+      criticoValor: number | null;
+      criticoMultiplicador: number | null;
+      danoFlat: number | null;
+      danoFlatTipo: string | null;
+      dadosDano: Prisma.JsonValue | null;
+      escalonaPorGrau: boolean | null;
+      escalonamentoCustoEA: number | null;
+      escalonamentoDano: Prisma.JsonValue | null;
+      efeitoAdicional: string | null;
+      requisitos: Prisma.JsonValue | null;
+      ordem: number;
+    }>;
+  }>;
+};
+
 export type PersonagemDetalhadoMapeado = {
   id: number;
   nome: string;
@@ -141,15 +228,7 @@ export type PersonagemDetalhadoMapeado = {
   trilha: PersonagemBaseDetalhadoEntity['trilha'];
   caminho: PersonagemBaseDetalhadoEntity['caminho'];
   alinhamento: PersonagemBaseDetalhadoEntity['alinhamento'];
-  tecnicaInata: {
-    id: number;
-    codigo: string;
-    nome: string;
-    descricao: string | null;
-    tipo: string;
-    hereditaria: boolean;
-    linkExterno: string | null;
-  } | null;
+  tecnicaInata: TecnicaDetalhadaMapeada | null;
   proficiencias: Array<{
     id: number;
     codigo: string;
@@ -214,6 +293,7 @@ export type PersonagemDetalhadoMapeado = {
     esquiva: number;
   };
   resistencias: ResistenciasMapeadas;
+  tecnicasNaoInatas: TecnicaDetalhadaMapeada[];
   espacosInventarioBase: number;
   espacosInventarioExtra: number;
   espacosOcupados: number;
@@ -324,6 +404,148 @@ export class PersonagemBaseMapper {
       valor: r.valor,
     }));
 
+    const grausMap = montarMapaGraus(
+      grausAprimoramentoAjustados.map((g) => ({
+        tipoGrauCodigo: g.tipoGrauCodigo,
+        valor: g.valorTotal,
+      })),
+    );
+
+    const mapTecnicaDetalhada = (tecnica: {
+      id: number;
+      codigo: string;
+      nome: string;
+      descricao: string | null;
+      tipo: string;
+      hereditaria: boolean;
+      linkExterno: string | null;
+      requisitos: Prisma.JsonValue | null;
+      fonte: string;
+      suplementoId: number | null;
+      habilidades: Array<{
+        id: number;
+        tecnicaId: number;
+        codigo: string;
+        nome: string;
+        descricao: string;
+        requisitos: Prisma.JsonValue | null;
+        execucao: string;
+        area: string | null;
+        alcance: string | null;
+        alvo: string | null;
+        duracao: string | null;
+        custoPE: number;
+        custoEA: number;
+        danoFlat: number | null;
+        danoFlatTipo: string | null;
+        efeito: string;
+        ordem: number;
+        variacoes: Array<{
+          id: number;
+          habilidadeTecnicaId: number;
+          nome: string;
+          descricao: string;
+          substituiCustos: boolean;
+          custoPE: number | null;
+          custoEA: number | null;
+          execucao: string | null;
+          area: string | null;
+          alcance: string | null;
+          alvo: string | null;
+          duracao: string | null;
+          resistencia: string | null;
+          dtResistencia: string | null;
+          criticoValor: number | null;
+          criticoMultiplicador: number | null;
+          danoFlat: number | null;
+          danoFlatTipo: string | null;
+          dadosDano: Prisma.JsonValue | null;
+          escalonaPorGrau: boolean | null;
+          escalonamentoCustoEA: number | null;
+          escalonamentoDano: Prisma.JsonValue | null;
+          efeitoAdicional: string | null;
+          requisitos: Prisma.JsonValue | null;
+          ordem: number;
+        }>;
+      }>;
+    }): TecnicaDetalhadaMapeada => ({
+        id: tecnica.id,
+        codigo: tecnica.codigo,
+        nome: tecnica.nome,
+        descricao: tecnica.descricao,
+        tipo: tecnica.tipo,
+        hereditaria: tecnica.hereditaria,
+        linkExterno: tecnica.linkExterno,
+        requisitos: tecnica.requisitos,
+        fonte: tecnica.fonte,
+        suplementoId: tecnica.suplementoId,
+        habilidades: (tecnica.habilidades ?? [])
+          .filter((habilidade) =>
+            atendeRequisitosGraus(habilidade.requisitos, grausMap),
+          )
+          .map((habilidade) => ({
+            id: habilidade.id,
+            tecnicaId: habilidade.tecnicaId,
+            codigo: habilidade.codigo,
+            nome: habilidade.nome,
+            descricao: habilidade.descricao,
+            requisitos: habilidade.requisitos,
+            execucao: habilidade.execucao,
+            area: habilidade.area,
+            alcance: habilidade.alcance,
+            alvo: habilidade.alvo,
+            duracao: habilidade.duracao,
+            custoPE: habilidade.custoPE,
+            custoEA: habilidade.custoEA,
+            danoFlat: habilidade.danoFlat,
+            danoFlatTipo: habilidade.danoFlatTipo,
+            efeito: habilidade.efeito,
+            ordem: habilidade.ordem,
+            variacoes: (habilidade.variacoes ?? [])
+              .filter((variacao) =>
+                atendeRequisitosGraus(variacao.requisitos, grausMap),
+              )
+              .map((variacao) => ({
+                id: variacao.id,
+                habilidadeTecnicaId: variacao.habilidadeTecnicaId,
+                nome: variacao.nome,
+                descricao: variacao.descricao,
+                substituiCustos: variacao.substituiCustos,
+                custoPE: variacao.custoPE,
+                custoEA: variacao.custoEA,
+                execucao: variacao.execucao,
+                area: variacao.area,
+                alcance: variacao.alcance,
+                alvo: variacao.alvo,
+                duracao: variacao.duracao,
+                resistencia: variacao.resistencia,
+                dtResistencia: variacao.dtResistencia,
+                criticoValor: variacao.criticoValor,
+                criticoMultiplicador: variacao.criticoMultiplicador,
+                danoFlat: variacao.danoFlat,
+                danoFlatTipo: variacao.danoFlatTipo,
+                dadosDano: variacao.dadosDano,
+                escalonaPorGrau: variacao.escalonaPorGrau,
+                escalonamentoCustoEA: variacao.escalonamentoCustoEA,
+                escalonamentoDano: variacao.escalonamentoDano,
+                efeitoAdicional: variacao.efeitoAdicional,
+                requisitos: variacao.requisitos,
+                ordem: variacao.ordem,
+              })),
+          })),
+      });
+
+    const tecnicasNaoInatas: TecnicaDetalhadaMapeada[] = (
+      personagem.tecnicasAprendidas ?? []
+    )
+      .map((relacao) => relacao.tecnica)
+      .filter((tecnica) => tecnica.tipo === 'NAO_INATA')
+      .sort((a, b) => a.nome.localeCompare(b.nome))
+      .map(mapTecnicaDetalhada);
+
+    const tecnicaInataDetalhada: TecnicaDetalhadaMapeada | null =
+      personagem.tecnicaInata ? mapTecnicaDetalhada(personagem.tecnicaInata) : null;
+
     return {
       id: personagem.id,
       nome: personagem.nome,
@@ -372,17 +594,7 @@ export class PersonagemBaseMapper {
       caminho: personagem.caminho,
       alinhamento: personagem.alinhamento,
 
-      tecnicaInata: personagem.tecnicaInata
-        ? {
-            id: personagem.tecnicaInata.id,
-            codigo: personagem.tecnicaInata.codigo,
-            nome: personagem.tecnicaInata.nome,
-            descricao: personagem.tecnicaInata.descricao,
-            tipo: personagem.tecnicaInata.tipo,
-            hereditaria: personagem.tecnicaInata.hereditaria,
-            linkExterno: personagem.tecnicaInata.linkExterno,
-          }
-        : null,
+      tecnicaInata: tecnicaInataDetalhada,
 
       proficiencias: (personagem.proficiencias ?? []).map((pp) => ({
         id: pp.proficiencia.id,
@@ -482,6 +694,7 @@ export class PersonagemBaseMapper {
       },
 
       resistencias,
+      tecnicasNaoInatas,
 
       espacosInventarioBase: espacosInventario.base,
       espacosInventarioExtra: espacosInventario.extra,

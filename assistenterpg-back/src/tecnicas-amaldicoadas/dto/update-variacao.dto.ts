@@ -7,7 +7,13 @@ import {
   IsBoolean,
   Min,
 } from 'class-validator';
-import { AreaEfeito, Prisma, TipoDano, TipoExecucao } from '@prisma/client';
+import {
+  AreaEfeito,
+  Prisma,
+  TipoDano,
+  TipoEscalonamentoHabilidade,
+  TipoExecucao,
+} from '@prisma/client';
 
 export class UpdateVariacaoHabilidadeDto {
   @IsOptional()
@@ -31,6 +37,16 @@ export class UpdateVariacaoHabilidadeDto {
   @IsInt()
   @Min(0)
   custoEA?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  custoSustentacaoEA?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  custoSustentacaoPE?: number;
 
   @IsOptional()
   @IsEnum(TipoExecucao)
@@ -87,6 +103,18 @@ export class UpdateVariacaoHabilidadeDto {
   @IsInt()
   @Min(0)
   escalonamentoCustoEA?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  escalonamentoCustoPE?: number;
+
+  @IsOptional()
+  @IsEnum(TipoEscalonamentoHabilidade)
+  escalonamentoTipo?: TipoEscalonamentoHabilidade;
+
+  @IsOptional()
+  escalonamentoEfeito?: Prisma.InputJsonValue;
 
   @IsOptional()
   escalonamentoDano?: Prisma.InputJsonValue;

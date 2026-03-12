@@ -18,6 +18,20 @@ import type {
   TipoCenaSessaoCampanha,
 } from '@/lib/types';
 
+export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
+  ordem: Array<{
+    tipoParticipante: 'PERSONAGEM' | 'NPC';
+    id: number;
+  }>;
+  indiceTurnoAtual?: number;
+};
+
+export type UsarHabilidadeSessaoCampanhaPayload = {
+  habilidadeTecnicaId: number;
+  variacaoHabilidadeId?: number;
+  acumulos?: number;
+};
+
 type MinhasCampanhasQuery = {
   page?: number;
   limit?: number;
@@ -383,6 +397,38 @@ export async function apiAvancarTurnoSessaoCampanha(
   return data;
 }
 
+export async function apiVoltarTurnoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/turno/voltar`,
+  );
+  return data;
+}
+
+export async function apiPularTurnoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/turno/pular`,
+  );
+  return data;
+}
+
+export async function apiAtualizarOrdemIniciativaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: AtualizarOrdemIniciativaSessaoCampanhaPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/iniciativa/ordem`,
+    payload,
+  );
+  return data;
+}
+
 export async function apiAdicionarNpcSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -415,6 +461,33 @@ export async function apiRemoverNpcSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.delete(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs/${npcSessaoId}`,
+  );
+  return data;
+}
+
+export async function apiUsarHabilidadeSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemSessaoId: number,
+  payload: UsarHabilidadeSessaoCampanhaPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/habilidades/usar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiEncerrarSustentacaoHabilidadeSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemSessaoId: number,
+  sustentacaoId: number,
+  payload?: { motivo?: string },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/sustentacoes/${sustentacaoId}/encerrar`,
+    payload ?? {},
   );
   return data;
 }

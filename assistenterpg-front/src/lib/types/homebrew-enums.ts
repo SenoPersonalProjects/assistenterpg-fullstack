@@ -182,6 +182,7 @@ export enum TipoExecucao {
   ACAO_LIVRE = 'ACAO_LIVRE',
   ACAO_PADRAO = 'ACAO_PADRAO',
   ACAO_COMPLETA = 'ACAO_COMPLETA',
+  RITUAL_ETAPAS = 'RITUAL_ETAPAS',
   AO_ATACAR = 'AO_ATACAR',
   REACAO_ESPECIAL = 'REACAO_ESPECIAL',
   REACAO_BLOQUEIO = 'REACAO_BLOQUEIO',
@@ -207,6 +208,14 @@ export enum AreaEfeito {
   CUBO = 'CUBO',
   ESFERA = 'ESFERA',
   OUTROS = 'OUTROS',
+}
+
+export enum TipoEscalonamentoHabilidade {
+  DANO = 'DANO',
+  CURA = 'CURA',
+  NUMERICO = 'NUMERICO',
+  REGRAS = 'REGRAS',
+  OUTRO = 'OUTRO',
 }
 
 // ============================================================================
@@ -383,6 +392,7 @@ export const TIPO_EXECUCAO_LABELS: Record<TipoExecucao, string> = {
   [TipoExecucao.ACAO_MOVIMENTO]: 'Ação de Movimento',
   [TipoExecucao.ACAO_PADRAO]: 'Ação Padrão',
   [TipoExecucao.ACAO_COMPLETA]: 'Ação Completa',
+  [TipoExecucao.RITUAL_ETAPAS]: 'Ritual de Etapas',
   [TipoExecucao.AO_ATACAR]: 'Ao Atacar',
   [TipoExecucao.REACAO]: 'Reação',
   [TipoExecucao.REACAO_ESPECIAL]: 'Reação Especial',

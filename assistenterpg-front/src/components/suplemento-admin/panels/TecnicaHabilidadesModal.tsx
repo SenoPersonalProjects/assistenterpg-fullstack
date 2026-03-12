@@ -55,19 +55,43 @@ type RequisitoDraft = {
   valor: string;
 };
 
+type AlcancePresetValue =
+  | 'NAO_DEFINIDO'
+  | 'PESSOAL'
+  | 'TOQUE'
+  | 'CORPO_A_CORPO'
+  | 'CURTO'
+  | 'MEDIO'
+  | 'LONGO'
+  | 'EXTREMO'
+  | 'ILIMITADO'
+  | 'PERSONALIZADO';
+
+type DuracaoPresetValue =
+  | 'NAO_DEFINIDA'
+  | 'INSTANTANEA'
+  | 'CENA'
+  | 'SUSTENTADA'
+  | 'PERMANENTE'
+  | 'PERSONALIZADA';
+
 type HabilidadeFormState = {
   codigo: string;
   nome: string;
   descricao: string;
   execucao: TipoExecucao;
   area: '' | AreaEfeito;
-  alcance: string;
+  alcancePreset: AlcancePresetValue;
+  alcanceCustom: string;
   alvo: string;
-  duracao: string;
+  duracaoPreset: DuracaoPresetValue;
+  duracaoCustom: string;
   resistencia: string;
   dtResistencia: string;
   custoPE: string;
   custoEA: string;
+  custoSustentacaoEA: string;
+  custoSustentacaoPE: string;
   criticoValor: string;
   criticoMultiplicador: string;
   danoFlat: string;
@@ -97,11 +121,15 @@ type VariacaoFormState = {
   substituiCustos: boolean;
   custoPE: string;
   custoEA: string;
+  custoSustentacaoEA: string;
+  custoSustentacaoPE: string;
   execucao: '' | TipoExecucao;
   area: '' | AreaEfeito;
-  alcance: string;
+  alcancePreset: AlcancePresetValue;
+  alcanceCustom: string;
   alvo: string;
-  duracao: string;
+  duracaoPreset: DuracaoPresetValue;
+  duracaoCustom: string;
   resistencia: string;
   dtResistencia: string;
   criticoValor: string;
@@ -123,6 +151,128 @@ type VariacaoFormState = {
   escalonamentoDanoDado: string;
   escalonamentoDanoTipo: '' | TipoDano;
 };
+
+const ALCANCE_PRESET_OPTIONS: Array<{ value: AlcancePresetValue; label: string }> = [
+  { value: 'NAO_DEFINIDO', label: 'Nao definido' },
+  { value: 'PESSOAL', label: 'Pessoal' },
+  { value: 'TOQUE', label: 'Toque' },
+  { value: 'CORPO_A_CORPO', label: 'Corpo a corpo (1,5m)' },
+  { value: 'CURTO', label: 'Curto (9m)' },
+  { value: 'MEDIO', label: 'Medio (18m)' },
+  { value: 'LONGO', label: 'Longo (36m)' },
+  { value: 'EXTREMO', label: 'Extremo (90m)' },
+  { value: 'ILIMITADO', label: 'Ilimitado' },
+  { value: 'PERSONALIZADO', label: 'Personalizado (texto livre)' },
+];
+
+const DURACAO_PRESET_OPTIONS: Array<{ value: DuracaoPresetValue; label: string }> = [
+  { value: 'NAO_DEFINIDA', label: 'Nao definida' },
+  { value: 'INSTANTANEA', label: 'Instantanea' },
+  { value: 'CENA', label: 'Cena' },
+  { value: 'SUSTENTADA', label: 'Sustentada' },
+  { value: 'PERMANENTE', label: 'Permanente' },
+  { value: 'PERSONALIZADA', label: 'Personalizada (texto livre)' },
+];
+
+function normalizeLookup(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function parseAlcancePreset(value: string | null | undefined): {
+  preset: AlcancePresetValue;
+  custom: string;
+} {
+  const raw = value?.trim() ?? '';
+  if (!raw) {
+    return { preset: 'NAO_DEFINIDO', custom: '' };
+  }
+
+  const normalized = normalizeLookup(raw);
+
+  if (normalized === 'PESSOAL') return { preset: 'PESSOAL', custom: '' };
+  if (normalized === 'TOQUE') return { preset: 'TOQUE', custom: '' };
+  if (normalized === 'CORPOACORPO' || normalized === 'ADJACENTE') {
+    return { preset: 'CORPO_A_CORPO', custom: '' };
+  }
+  if (normalized === 'CURTO' || normalized === 'CURTO9M') return { preset: 'CURTO', custom: '' };
+  if (normalized === 'MEDIO' || normalized === 'MEDIO18M') return { preset: 'MEDIO', custom: '' };
+  if (normalized === 'LONGO' || normalized === 'LONGO36M') return { preset: 'LONGO', custom: '' };
+  if (normalized === 'EXTREMO' || normalized === 'EXTREMO90M') return { preset: 'EXTREMO', custom: '' };
+  if (normalized === 'ILIMITADO') return { preset: 'ILIMITADO', custom: '' };
+
+  return { preset: 'PERSONALIZADO', custom: raw };
+}
+
+function serializeAlcancePreset(
+  preset: AlcancePresetValue,
+  custom: string,
+): string | undefined {
+  if (preset === 'NAO_DEFINIDO') return undefined;
+  if (preset === 'PERSONALIZADO') {
+    const trimmed = custom.trim();
+    return trimmed || undefined;
+  }
+
+  if (preset === 'PESSOAL') return 'PESSOAL';
+  if (preset === 'TOQUE') return 'TOQUE';
+  if (preset === 'CORPO_A_CORPO') return 'CORPO A CORPO (1,5m)';
+  if (preset === 'CURTO') return 'CURTO (9m)';
+  if (preset === 'MEDIO') return 'MEDIO (18m)';
+  if (preset === 'LONGO') return 'LONGO (36m)';
+  if (preset === 'EXTREMO') return 'EXTREMO (90m)';
+  if (preset === 'ILIMITADO') return 'ILIMITADO';
+
+  return undefined;
+}
+
+function parseDuracaoPreset(value: string | null | undefined): {
+  preset: DuracaoPresetValue;
+  custom: string;
+} {
+  const raw = value?.trim() ?? '';
+  if (!raw) {
+    return { preset: 'NAO_DEFINIDA', custom: '' };
+  }
+
+  const normalized = normalizeLookup(raw);
+
+  if (normalized === 'INSTANTANEA' || normalized === 'INSTANTANEO') {
+    return { preset: 'INSTANTANEA', custom: '' };
+  }
+  if (normalized === 'CENA' || normalized === '1CENA' || normalized === 'UMACENA') {
+    return { preset: 'CENA', custom: '' };
+  }
+  if (normalized === 'SUSTENTADA' || normalized === 'SUSTENTADO') {
+    return { preset: 'SUSTENTADA', custom: '' };
+  }
+  if (normalized === 'PERMANENTE') {
+    return { preset: 'PERMANENTE', custom: '' };
+  }
+
+  return { preset: 'PERSONALIZADA', custom: raw };
+}
+
+function serializeDuracaoPreset(
+  preset: DuracaoPresetValue,
+  custom: string,
+): string | undefined {
+  if (preset === 'NAO_DEFINIDA') return undefined;
+  if (preset === 'PERSONALIZADA') {
+    const trimmed = custom.trim();
+    return trimmed || undefined;
+  }
+
+  if (preset === 'INSTANTANEA') return 'INSTANTANEA';
+  if (preset === 'CENA') return 'CENA';
+  if (preset === 'SUSTENTADA') return 'SUSTENTADA';
+  if (preset === 'PERMANENTE') return 'PERMANENTE';
+
+  return undefined;
+}
 
 function parseNumber(value: string): number | undefined {
   const trimmed = value.trim();
@@ -315,6 +465,8 @@ function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): Habi
   const dadosDano = parseDadosDano(item?.dadosDano);
   const escalonamentoDano = parseEscalonamentoDano(item?.escalonamentoDano);
   const requisitos = parseRequisitosState(item?.requisitos);
+  const alcance = parseAlcancePreset(item?.alcance);
+  const duracao = parseDuracaoPreset(item?.duracao);
 
   return {
     codigo: item?.codigo ?? '',
@@ -322,13 +474,23 @@ function buildHabilidadeFormState(item?: HabilidadeTecnicaCatalogo | null): Habi
     descricao: item?.descricao ?? '',
     execucao: item?.execucao ?? TipoExecucao.ACAO_PADRAO,
     area: item?.area ?? '',
-    alcance: item?.alcance ?? '',
+    alcancePreset: alcance.preset,
+    alcanceCustom: alcance.custom,
     alvo: item?.alvo ?? '',
-    duracao: item?.duracao ?? '',
+    duracaoPreset: duracao.preset,
+    duracaoCustom: duracao.custom,
     resistencia: item?.resistencia ?? '',
     dtResistencia: item?.dtResistencia ?? '',
     custoPE: String(item?.custoPE ?? 0),
     custoEA: String(item?.custoEA ?? 0),
+    custoSustentacaoEA:
+      item?.custoSustentacaoEA !== undefined && item?.custoSustentacaoEA !== null
+        ? String(item.custoSustentacaoEA)
+        : '',
+    custoSustentacaoPE:
+      item?.custoSustentacaoPE !== undefined && item?.custoSustentacaoPE !== null
+        ? String(item.custoSustentacaoPE)
+        : '',
     criticoValor:
       item?.criticoValor !== undefined && item?.criticoValor !== null ? String(item.criticoValor) : '',
     criticoMultiplicador:
@@ -362,6 +524,8 @@ function buildVariacaoFormState(item?: VariacaoHabilidadeTecnicaCatalogo | null)
   const dadosDano = parseDadosDano(item?.dadosDano);
   const escalonamentoDano = parseEscalonamentoDano(item?.escalonamentoDano);
   const requisitos = parseRequisitosState(item?.requisitos);
+  const alcance = parseAlcancePreset(item?.alcance);
+  const duracao = parseDuracaoPreset(item?.duracao);
 
   return {
     nome: item?.nome ?? '',
@@ -369,11 +533,21 @@ function buildVariacaoFormState(item?: VariacaoHabilidadeTecnicaCatalogo | null)
     substituiCustos: item?.substituiCustos ?? false,
     custoPE: item?.custoPE !== undefined && item?.custoPE !== null ? String(item.custoPE) : '',
     custoEA: item?.custoEA !== undefined && item?.custoEA !== null ? String(item.custoEA) : '',
+    custoSustentacaoEA:
+      item?.custoSustentacaoEA !== undefined && item?.custoSustentacaoEA !== null
+        ? String(item.custoSustentacaoEA)
+        : '',
+    custoSustentacaoPE:
+      item?.custoSustentacaoPE !== undefined && item?.custoSustentacaoPE !== null
+        ? String(item.custoSustentacaoPE)
+        : '',
     execucao: item?.execucao ?? '',
     area: item?.area ?? '',
-    alcance: item?.alcance ?? '',
+    alcancePreset: alcance.preset,
+    alcanceCustom: alcance.custom,
     alvo: item?.alvo ?? '',
-    duracao: item?.duracao ?? '',
+    duracaoPreset: duracao.preset,
+    duracaoCustom: duracao.custom,
     resistencia: item?.resistencia ?? '',
     dtResistencia: item?.dtResistencia ?? '',
     criticoValor:
@@ -509,11 +683,31 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
     if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
     if (!form.descricao.trim()) next.descricao = 'Descricao e obrigatoria.';
     if (!form.efeito.trim()) next.efeito = 'Efeito e obrigatorio.';
+    if (form.alcancePreset === 'PERSONALIZADO' && !form.alcanceCustom.trim()) {
+      next.alcanceCustom = 'Informe o alcance personalizado.';
+    }
+    if (form.duracaoPreset === 'PERSONALIZADA' && !form.duracaoCustom.trim()) {
+      next.duracaoCustom = 'Informe a duracao personalizada.';
+    }
 
     const custoPE = parseNumber(form.custoPE);
     const custoEA = parseNumber(form.custoEA);
+    const custoSustentacaoEA = parseNumber(form.custoSustentacaoEA);
+    const custoSustentacaoPE = parseNumber(form.custoSustentacaoPE);
     if (custoPE === undefined || custoPE < 0) next.custoPE = 'Informe numero >= 0.';
     if (custoEA === undefined || custoEA < 0) next.custoEA = 'Informe numero >= 0.';
+    if (
+      form.custoSustentacaoEA.trim() &&
+      (custoSustentacaoEA === undefined || custoSustentacaoEA < 0)
+    ) {
+      next.custoSustentacaoEA = 'Informe numero >= 0.';
+    }
+    if (
+      form.custoSustentacaoPE.trim() &&
+      (custoSustentacaoPE === undefined || custoSustentacaoPE < 0)
+    ) {
+      next.custoSustentacaoPE = 'Informe numero >= 0.';
+    }
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -540,13 +734,15 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
         descricao: form.descricao.trim(),
         execucao: form.execucao,
         area: form.area || undefined,
-        alcance: form.alcance.trim() || undefined,
+        alcance: serializeAlcancePreset(form.alcancePreset, form.alcanceCustom),
         alvo: form.alvo.trim() || undefined,
-        duracao: form.duracao.trim() || undefined,
+        duracao: serializeDuracaoPreset(form.duracaoPreset, form.duracaoCustom),
         resistencia: form.resistencia.trim() || undefined,
         dtResistencia: form.dtResistencia.trim() || undefined,
         custoPE: Number(form.custoPE),
         custoEA: Number(form.custoEA),
+        custoSustentacaoEA: parseNumber(form.custoSustentacaoEA),
+        custoSustentacaoPE: parseNumber(form.custoSustentacaoPE),
         criticoValor: parseNumber(form.criticoValor),
         criticoMultiplicador: parseNumber(form.criticoMultiplicador),
         danoFlat: parseNumber(form.danoFlat),
@@ -673,6 +869,24 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             error={errors.custoEA}
           />
           <Input
+            label="Sustentacao EA/rodada"
+            type="number"
+            min={0}
+            value={form.custoSustentacaoEA}
+            onChange={(e) => setField('custoSustentacaoEA', e.target.value)}
+            error={errors.custoSustentacaoEA}
+            helperText="Vazio usa fallback padrao na sessao (1 EA/rodada)."
+          />
+          <Input
+            label="Sustentacao PE/rodada"
+            type="number"
+            min={0}
+            value={form.custoSustentacaoPE}
+            onChange={(e) => setField('custoSustentacaoPE', e.target.value)}
+            error={errors.custoSustentacaoPE}
+            helperText="Opcional. Sem valor = 0 PE/rodada."
+          />
+          <Input
             label="Grau tipo (codigo)"
             value={form.grauTipoGrauCodigo}
             onChange={(e) => setField('grauTipoGrauCodigo', e.target.value)}
@@ -680,17 +894,33 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Input
+          <Select
             label="Alcance"
-            value={form.alcance}
-            onChange={(e) => setField('alcance', e.target.value)}
-          />
+            value={form.alcancePreset}
+            onChange={(e) =>
+              setField('alcancePreset', e.target.value as AlcancePresetValue)
+            }
+          >
+            {ALCANCE_PRESET_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
           <Input label="Alvo" value={form.alvo} onChange={(e) => setField('alvo', e.target.value)} />
-          <Input
+          <Select
             label="Duracao"
-            value={form.duracao}
-            onChange={(e) => setField('duracao', e.target.value)}
-          />
+            value={form.duracaoPreset}
+            onChange={(e) =>
+              setField('duracaoPreset', e.target.value as DuracaoPresetValue)
+            }
+          >
+            {DURACAO_PRESET_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
           <Input
             label="Resistencia"
             value={form.resistencia}
@@ -709,6 +939,32 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             onChange={(e) => setField('escalonamentoCustoEA', e.target.value)}
           />
         </div>
+
+        {(form.alcancePreset === 'PERSONALIZADO' ||
+          form.duracaoPreset === 'PERSONALIZADA') && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {form.alcancePreset === 'PERSONALIZADO' ? (
+              <Input
+                label="Alcance personalizado"
+                value={form.alcanceCustom}
+                onChange={(e) => setField('alcanceCustom', e.target.value)}
+                placeholder="Ex: 12m, 30m, em linha de visao"
+                error={errors.alcanceCustom}
+              />
+            ) : (
+              <div />
+            )}
+            {form.duracaoPreset === 'PERSONALIZADA' ? (
+              <Input
+                label="Duracao personalizada"
+                value={form.duracaoCustom}
+                onChange={(e) => setField('duracaoCustom', e.target.value)}
+                placeholder="Ex: 3 turnos, 1 hora, ate o fim da missao"
+                error={errors.duracaoCustom}
+              />
+            ) : null}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Input
@@ -1041,6 +1297,26 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
     const next: Record<string, string> = {};
     if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
     if (!form.descricao.trim()) next.descricao = 'Descricao e obrigatoria.';
+    if (form.alcancePreset === 'PERSONALIZADO' && !form.alcanceCustom.trim()) {
+      next.alcanceCustom = 'Informe o alcance personalizado.';
+    }
+    if (form.duracaoPreset === 'PERSONALIZADA' && !form.duracaoCustom.trim()) {
+      next.duracaoCustom = 'Informe a duracao personalizada.';
+    }
+    const custoSustentacaoEA = parseNumber(form.custoSustentacaoEA);
+    const custoSustentacaoPE = parseNumber(form.custoSustentacaoPE);
+    if (
+      form.custoSustentacaoEA.trim() &&
+      (custoSustentacaoEA === undefined || custoSustentacaoEA < 0)
+    ) {
+      next.custoSustentacaoEA = 'Informe numero >= 0.';
+    }
+    if (
+      form.custoSustentacaoPE.trim() &&
+      (custoSustentacaoPE === undefined || custoSustentacaoPE < 0)
+    ) {
+      next.custoSustentacaoPE = 'Informe numero >= 0.';
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -1067,11 +1343,13 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
         substituiCustos: form.substituiCustos,
         custoPE: parseNumber(form.custoPE),
         custoEA: parseNumber(form.custoEA),
+        custoSustentacaoEA: parseNumber(form.custoSustentacaoEA),
+        custoSustentacaoPE: parseNumber(form.custoSustentacaoPE),
         execucao: form.execucao || undefined,
         area: form.area || undefined,
-        alcance: form.alcance.trim() || undefined,
+        alcance: serializeAlcancePreset(form.alcancePreset, form.alcanceCustom),
         alvo: form.alvo.trim() || undefined,
-        duracao: form.duracao.trim() || undefined,
+        duracao: serializeDuracaoPreset(form.duracaoPreset, form.duracaoCustom),
         resistencia: form.resistencia.trim() || undefined,
         dtResistencia: form.dtResistencia.trim() || undefined,
         criticoValor: parseNumber(form.criticoValor),
@@ -1176,17 +1454,33 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Input
+          <Select
             label="Alcance"
-            value={form.alcance}
-            onChange={(e) => setField('alcance', e.target.value)}
-          />
+            value={form.alcancePreset}
+            onChange={(e) =>
+              setField('alcancePreset', e.target.value as AlcancePresetValue)
+            }
+          >
+            {ALCANCE_PRESET_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
           <Input label="Alvo" value={form.alvo} onChange={(e) => setField('alvo', e.target.value)} />
-          <Input
+          <Select
             label="Duracao"
-            value={form.duracao}
-            onChange={(e) => setField('duracao', e.target.value)}
-          />
+            value={form.duracaoPreset}
+            onChange={(e) =>
+              setField('duracaoPreset', e.target.value as DuracaoPresetValue)
+            }
+          >
+            {DURACAO_PRESET_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
           <Input
             label="Resistencia"
             value={form.resistencia}
@@ -1206,6 +1500,32 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
           />
         </div>
 
+        {(form.alcancePreset === 'PERSONALIZADO' ||
+          form.duracaoPreset === 'PERSONALIZADA') && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {form.alcancePreset === 'PERSONALIZADO' ? (
+              <Input
+                label="Alcance personalizado"
+                value={form.alcanceCustom}
+                onChange={(e) => setField('alcanceCustom', e.target.value)}
+                placeholder="Ex: 12m, 30m, em linha de visao"
+                error={errors.alcanceCustom}
+              />
+            ) : (
+              <div />
+            )}
+            {form.duracaoPreset === 'PERSONALIZADA' ? (
+              <Input
+                label="Duracao personalizada"
+                value={form.duracaoCustom}
+                onChange={(e) => setField('duracaoCustom', e.target.value)}
+                placeholder="Ex: 3 turnos, 1 hora, ate o fim da cena"
+                error={errors.duracaoCustom}
+              />
+            ) : null}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Input
             label="Custo PE"
@@ -1220,6 +1540,24 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             min={0}
             value={form.custoEA}
             onChange={(e) => setField('custoEA', e.target.value)}
+          />
+          <Input
+            label="Sustentacao EA/rodada"
+            type="number"
+            min={0}
+            value={form.custoSustentacaoEA}
+            onChange={(e) => setField('custoSustentacaoEA', e.target.value)}
+            error={errors.custoSustentacaoEA}
+            helperText="Opcional. Vazio usa fallback da habilidade/base."
+          />
+          <Input
+            label="Sustentacao PE/rodada"
+            type="number"
+            min={0}
+            value={form.custoSustentacaoPE}
+            onChange={(e) => setField('custoSustentacaoPE', e.target.value)}
+            error={errors.custoSustentacaoPE}
+            helperText="Opcional. Sem valor = 0 PE/rodada."
           />
           <Input
             label="Ordem"
@@ -1530,7 +1868,15 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
                         <td className="py-3 pr-2 text-app-muted">#{item.id}</td>
                         <td className="py-3 pr-2 text-app-fg font-medium">{item.nome}</td>
                         <td className="py-3 pr-2 text-app-fg">{item.ordem}</td>
-                        <td className="py-3 pr-2 text-app-fg">{item.custoPE ?? 0} PE / {item.custoEA ?? 0} EA</td>
+                        <td className="py-3 pr-2 text-app-fg">
+                          {item.custoPE ?? 0} PE / {item.custoEA ?? 0} EA
+                          {typeof item.custoSustentacaoEA === 'number'
+                            ? ` / SUST EA ${item.custoSustentacaoEA}`
+                            : ''}
+                          {typeof item.custoSustentacaoPE === 'number'
+                            ? ` / SUST PE ${item.custoSustentacaoPE}`
+                            : ''}
+                        </td>
                         <td className="py-3 text-right">
                           <div className="inline-flex gap-2">
                             <Button variant="secondary" size="sm" onClick={() => { setEditingItem(item); setModalOpen(true); }}>
@@ -1669,7 +2015,15 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
                         <td className="py-3 pr-2 text-app-fg">{item.codigo}</td>
                         <td className="py-3 pr-2 text-app-fg font-medium">{item.nome}</td>
                         <td className="py-3 pr-2 text-app-fg">{item.ordem}</td>
-                        <td className="py-3 pr-2 text-app-fg">{item.custoPE} PE / {item.custoEA} EA</td>
+                        <td className="py-3 pr-2 text-app-fg">
+                          {item.custoPE} PE / {item.custoEA} EA
+                          {typeof item.custoSustentacaoEA === 'number'
+                            ? ` / SUST EA ${item.custoSustentacaoEA}`
+                            : ''}
+                          {typeof item.custoSustentacaoPE === 'number'
+                            ? ` / SUST PE ${item.custoSustentacaoPE}`
+                            : ''}
+                        </td>
                         <td className="py-3 pr-2 text-app-fg">{item.variacoes?.length ?? 0}</td>
                         <td className="py-3 text-right">
                           <div className="inline-flex gap-2">

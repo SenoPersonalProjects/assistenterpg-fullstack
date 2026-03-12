@@ -1,6 +1,6 @@
 # Tecnicas Amaldicoadas (Contrato Detalhado)
 
-Atualizado em: 2026-03-08
+Atualizado em: 2026-03-12
 
 ## Escopo
 
@@ -47,7 +47,21 @@ Campos de create (principais):
 Campos de create (principais):
 
 - obrigatorios: `tecnicaId`, `codigo`, `nome`, `descricao`, `execucao`, `efeito`
-- opcionais: `requisitos`, `area`, `alcance`, `alvo`, `duracao`, `resistencia`, `dtResistencia`, `custoPE`, `custoEA`, `testesExigidos`, `criticoValor`, `criticoMultiplicador`, `danoFlat`, `danoFlatTipo`, `dadosDano`, `escalonaPorGrau`, `grauTipoGrauCodigo`, `escalonamentoCustoEA`, `escalonamentoDano`, `ordem`
+- opcionais: `requisitos`, `area`, `alcance`, `alvo`, `duracao`, `resistencia`, `dtResistencia`, `custoPE`, `custoEA`, `custoSustentacaoEA`, `custoSustentacaoPE`, `testesExigidos`, `criticoValor`, `criticoMultiplicador`, `danoFlat`, `danoFlatTipo`, `dadosDano`, `escalonaPorGrau`, `grauTipoGrauCodigo`, `escalonamentoCustoEA`, `escalonamentoCustoPE`, `escalonamentoTipo`, `escalonamentoEfeito`, `escalonamentoDano`, `ordem`
+
+Valores suportados em `execucao`:
+
+- `ACAO_LIVRE`
+- `ACAO_MOVIMENTO`
+- `ACAO_PADRAO`
+- `ACAO_COMPLETA`
+- `RITUAL_ETAPAS`
+- `AO_ATACAR`
+- `REACAO`
+- `REACAO_ESPECIAL`
+- `REACAO_BLOQUEIO`
+- `REACAO_ESQUIVA`
+- `SUSTENTADA`
 
 ## Variacoes de Habilidade
 
@@ -60,7 +74,7 @@ Campos de create (principais):
 Campos de create (principais):
 
 - obrigatorios: `habilidadeTecnicaId`, `nome`, `descricao`
-- opcionais: `substituiCustos`, `custoPE`, `custoEA`, `execucao`, `area`, `alcance`, `alvo`, `duracao`, `resistencia`, `dtResistencia`, `criticoValor`, `criticoMultiplicador`, `danoFlat`, `danoFlatTipo`, `dadosDano`, `escalonaPorGrau`, `escalonamentoCustoEA`, `escalonamentoDano`, `efeitoAdicional`, `requisitos`, `ordem`
+- opcionais: `substituiCustos`, `custoPE`, `custoEA`, `custoSustentacaoEA`, `custoSustentacaoPE`, `execucao`, `area`, `alcance`, `alvo`, `duracao`, `resistencia`, `dtResistencia`, `criticoValor`, `criticoMultiplicador`, `danoFlat`, `danoFlatTipo`, `dadosDano`, `escalonaPorGrau`, `escalonamentoCustoEA`, `escalonamentoCustoPE`, `escalonamentoTipo`, `escalonamentoEfeito`, `escalonamentoDano`, `efeitoAdicional`, `requisitos`, `ordem`
 
 ## Regras de Negocio
 
@@ -78,13 +92,13 @@ Campos de create (principais):
 
 - `tecnicaId` deve existir
 - `codigo` da habilidade e globalmente unico (`@unique`)
-- campos JSON (`requisitos`, `testesExigidos`, `dadosDano`, `escalonamentoDano`) sao normalizados para `null` quando vazios
+- campos JSON (`requisitos`, `testesExigidos`, `dadosDano`, `escalonamentoEfeito`, `escalonamentoDano`) sao normalizados para `null` quando vazios
 
 ## Variacao
 
 - `habilidadeTecnicaId` deve existir
 - variacao pertence sempre a uma habilidade tecnica existente
-- campos JSON (`dadosDano`, `escalonamentoDano`, `requisitos`) sao normalizados/atualizados como opcionais
+- campos JSON (`dadosDano`, `escalonamentoEfeito`, `escalonamentoDano`, `requisitos`) sao normalizados/atualizados como opcionais
 
 ## Persistencia (Schema)
 
@@ -95,8 +109,13 @@ Restrições principais:
 - `HabilidadeTecnica.codigo` -> `@unique`
 - `TecnicaCla` -> `@@unique([tecnicaId, claId])`
 - `TecnicaAmaldicoada.hereditaria` -> `@default(false)`
-- `HabilidadeTecnica.custoPE/custoEA/escalonamentoCustoEA` -> defaults `0`
+- `HabilidadeTecnica.custoPE/custoEA/escalonamentoCustoEA/escalonamentoCustoPE` -> defaults `0`
+- `HabilidadeTecnica.escalonamentoTipo` -> default `OUTRO`
+- `HabilidadeTecnica.custoSustentacaoEA` -> opcional (`null`), com fallback de `1` no runtime de sessao quando `duracao` for sustentada
+- `HabilidadeTecnica.custoSustentacaoPE` -> opcional (`null`), com fallback de `0` no runtime de sessao quando `duracao` for sustentada
 - `VariacaoHabilidade.substituiCustos` -> `@default(false)`
+- `VariacaoHabilidade.custoSustentacaoEA` -> opcional (`null`), podendo sobrescrever custo por rodada da habilidade base
+- `VariacaoHabilidade.custoSustentacaoPE` -> opcional (`null`), podendo sobrescrever custo em `PE` por rodada da habilidade base
 - `ordem` em habilidade/variacao -> `@default(0)`
 
 ## Comportamento Esperado no Frontend
@@ -105,9 +124,33 @@ Restrições principais:
   - listagem/filtro de tecnicas
   - CRUD de tecnica
   - modal dedicado para CRUD de habilidades/variacoes
+- formulario de homebrew de tecnicas:
+  - usa o mesmo padrao guiado para `execucao`, `area`, `alcance` e `duracao`
+  - permite fallback para texto livre em `alcance` e `duracao` quando necessario
 - campos estruturados com editores guiados no modal:
   - `requisitos`
   - `testesExigidos`
   - `dadosDano`
   - `escalonamentoDano`
+- campos semiestruturados com presets + fallback livre:
+  - `alcance`: `PESSOAL`, `TOQUE`, `CORPO A CORPO (1,5m)`, `CURTO (9m)`, `MEDIO (18m)`, `LONGO (36m)`, `EXTREMO (90m)`, `ILIMITADO` ou texto personalizado
+  - `duracao`: `INSTANTANEA`, `CENA`, `SUSTENTADA`, `PERMANENTE` ou texto personalizado
 - fallback avancado para JSON livre (quando necessario)
+
+## Seed base de tecnicas nao-inatas
+
+- foi adicionado seed idempotente para tecnicas nao-inatas do sistema base em:
+  - `assistenterpg-back/prisma/seeds/tecnicas/tecnicas-nao-inatas.ts`
+- esse seed cria/atualiza:
+  - containers `TecnicaAmaldicoada` com `tipo=NAO_INATA`, `fonte=SISTEMA_BASE`, `hereditaria=false`
+  - `HabilidadeTecnica` por tecnica (com `codigo` unico global)
+  - `VariacaoHabilidade` por habilidade
+- ao reseedar, o processo remove habilidades/variacoes obsoletas dentro das tecnicas nao-inatas seedadas para evitar legado incorreto.
+- o pipeline principal de seed agora executa:
+  - `seedTecnicasInatas(prisma)`
+  - `seedTecnicasNaoInatas(prisma)`
+  - arquivo: `assistenterpg-back/prisma/seeds.ts`
+- no fluxo de personagem-base, tecnicas nao-inatas/habilidades/variacoes sao habilitadas automaticamente pelos graus de aprimoramento (via `requisitos.graus`), sem escolha manual do jogador na ficha.
+- no detalhe de personagem-base, a tecnica inata selecionada tambem e retornada com suas habilidades/variacoes para exibicao direta na aba de poderes.
+- no fluxo de sessao de campanha, uso de habilidade aplica custo imediato e, quando sustentada, registra custo por rodada com base em `custoSustentacaoEA` + `custoSustentacaoPE` (habilidade/variacao), com fallback `1 EA/rodada` + `0 PE/rodada`.
+- no fluxo de sessao, acúmulos suportam custo adicional de `EA` e `PE` (`escalonamentoCustoEA` + `escalonamentoCustoPE`) e salvam resumo tipado por `escalonamentoTipo`/`escalonamentoEfeito` no evento de timeline.

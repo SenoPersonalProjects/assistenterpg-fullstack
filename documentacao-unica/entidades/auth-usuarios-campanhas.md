@@ -136,6 +136,12 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - `tipo`: `LIVRE | INVESTIGACAO | FURTIVIDADE | COMBATE | OUTRA`
     - `nome?`: string opcional (max 120)
 - `POST /campanhas/:id/sessoes/:sessaoId/turno/avancar`
+- `POST /campanhas/:id/sessoes/:sessaoId/turno/voltar`
+- `POST /campanhas/:id/sessoes/:sessaoId/turno/pular`
+- `PATCH /campanhas/:id/sessoes/:sessaoId/iniciativa/ordem`
+  - body `AtualizarOrdemIniciativaSessaoDto`:
+    - `ordem`: lista obrigatoria com `{ tipoParticipante: PERSONAGEM|NPC, id }`
+    - `indiceTurnoAtual?`: inteiro opcional >= 0
 - `GET /campanhas/:id/sessoes/:sessaoId/chat?afterId=`
 - `POST /campanhas/:id/sessoes/:sessaoId/chat`
   - body `EnviarChatSessaoDto`:
@@ -155,6 +161,14 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - body `AtualizarNpcSessaoDto`:
     - mesmos campos opcionais de edicao da instancia em cena (exceto `npcAmeacaId`)
 - `DELETE /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
+- `POST /campanhas/:id/sessoes/:sessaoId/personagens/:personagemSessaoId/habilidades/usar`
+  - body `UsarHabilidadeSessaoDto`:
+    - `habilidadeTecnicaId`: int >= 1
+    - `variacaoHabilidadeId?`: int >= 1
+    - `acumulos?`: int >= 0
+- `POST /campanhas/:id/sessoes/:sessaoId/personagens/:personagemSessaoId/sustentacoes/:sustentacaoId/encerrar`
+  - body opcional `EncerrarSustentacaoSessaoDto`:
+    - `motivo?`: string opcional (max 240)
 - canal realtime de sessao (WebSocket):
   - namespace `/sessoes`
   - evento cliente -> servidor:
@@ -162,7 +176,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - eventos servidor -> cliente:
     - `sessao:joined`
     - `sessao:erro`
-    - `sessao:atualizada` (`CHAT_NOVA`, `CENA_ATUALIZADA`, `TURNO_AVANCADO`, `NPC_ATUALIZADO`, `SESSAO_ENCERRADA`, `SESSAO_EVENTO_DESFEITO`)
+    - `sessao:atualizada` (`CHAT_NOVA`, `CENA_ATUALIZADA`, `TURNO_AVANCADO`, `TURNO_RECUADO`, `TURNO_PULADO`, `ORDEM_INICIATIVA_ATUALIZADA`, `NPC_ATUALIZADO`, `SESSAO_ENCERRADA`, `SESSAO_EVENTO_DESFEITO`, `HABILIDADE_USADA`, `HABILIDADE_SUSTENTADA_ENCERRADA`)
     - `sessao:presenca` (`onlineUsuarioIds`)
 
 ## Regras de negocio
@@ -238,21 +252,45 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - iniciar sessao
     - encerrar sessao
     - trocar cena
-    - avancar turno
+    - controlar turno (`avancar`, `voltar`, `pular`)
+    - reordenar iniciativa
     - adicionar/editar/remover aliados/ameacas da cena
   - participantes da campanha podem:
     - abrir detalhe do lobby
     - listar/enviar mensagens no chat
   - detalhe da sessao inclui `participantes` da campanha (apelido/papel/ehDono) para o lobby.
+  - detalhe da sessao inclui `iniciativa` com ordem unificada de personagens e aliados/ameacas da cena.
+  - cada item de iniciativa retorna `valorIniciativa` inteiro.
+  - ao reordenar iniciativa, os valores sao normalizados com diferenca de 1 ponto por posicao (`+1/-1` entre vizinhos).
+  - reordenacao pode ser feita por botoes ou drag-and-drop no painel do mestre.
+  - iniciativa e por participante da cena (`PERSONAGEM` ou `NPC`), nao por usuario.
   - status online da mesa e propagado por `sessao:presenca`.
   - frontend mantem polling de fallback para sincronizacao silenciosa quando websocket estiver indisponivel.
   - regra de cena livre:
     - `LIVRE` nao possui contagem de rodadas/turnos.
-    - em `LIVRE`, detalhe retorna `rodadaAtual`, `indiceTurnoAtual` e `turnoAtual` como `null`.
-    - `POST /turno/avancar` em `LIVRE` falha com `SESSAO_TURNO_INDISPONIVEL`.
+    - em `LIVRE`, detalhe retorna `rodadaAtual`, `indiceTurnoAtual`, `turnoAtual` e `iniciativa.indiceAtual` como `null`.
+    - `POST /turno/avancar`, `POST /turno/voltar`, `POST /turno/pular` e `PATCH /iniciativa/ordem` em `LIVRE` falham com `SESSAO_TURNO_INDISPONIVEL`.
+  - `PATCH /iniciativa/ordem` valida a lista exata de participantes da cena; payload divergente retorna `SESSAO_ORDEM_INICIATIVA_INVALIDA`.
   - visibilidade de cards:
     - mestre ve/edita todos os cards.
     - jogador ve card completo apenas do proprio personagem e cards resumidos dos demais.
+  - cards completos retornam:
+    - `tecnicaInata` com habilidades/variacoes filtradas por grau.
+    - `tecnicasNaoInatas` habilitadas por grau (sem escolha manual do jogador).
+    - `sustentacoesAtivas` por personagem da sessao.
+  - uso de habilidades em sessao:
+    - consumo imediato de `EA/PE` no momento do uso.
+    - `acumulos` habilita escalonamento quando a habilidade/variacao suporta acumulo, limitado pelo grau de aprimoramento da tecnica.
+    - escalonamento suporta custo adicional em `EA` e `PE` por acumulo.
+    - escalonamento tipado (`escalonamentoTipo` + `escalonamentoEfeito`) permite representar dano, cura, regras e outros efeitos guiados.
+    - habilidades sustentadas criam sustentacao ativa vinculada ao personagem da sessao.
+    - custo por rodada usa `custoSustentacaoEA` quando definido; fallback padrao `1 EA/rodada`.
+    - sustentacao passa a cobrar por rodada a partir da rodada seguinte a ativacao.
+    - ao avancar rodada, o backend cobra sustentacao automaticamente e encerra se faltar `EA`.
+    - limite de gasto por turno usa soma combinada `PE + EA` no turno atual.
+    - excecao: uso base (sem variacao e sem acumulos) ignora validacao desse limite por turno.
+    - encerramento manual da sustentacao usa rota dedicada.
+  - frontend aplica cooldown curto anti-duplo-clique no uso de habilidade/variacao.
   - painel central da sessao (cena/rodada/turno/status) e compartilhado para todos os participantes.
   - coluna direita do lobby concentra participantes online, timeline de eventos e chat.
   - timeline de eventos:
@@ -262,10 +300,13 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
     - apenas mestre pode desfazer.
     - apenas o ultimo evento reversivel ainda nao desfeito pode ser revertido (LIFO).
     - eventos desfeitos recebem marcacao no JSON `dados` (`desfeito`, `desfeitoEm`, `desfeitoPorId`, `motivoDesfazer`).
-    - tipos reversiveis atuais: `TURNO_AVANCADO`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
+    - tipos reversiveis atuais: `TURNO_AVANCADO`, `TURNO_RECUADO`, `TURNO_PULADO`, `ORDEM_INICIATIVA_ATUALIZADA`, `CENA_ATUALIZADA`, `NPC_ADICIONADO`, `NPC_ATUALIZADO`, `NPC_REMOVIDO`.
   - escudo do mestre (V1):
-    - painel de consulta rapida com busca e secoes recolhiveis.
+    - painel de consulta rapida com busca, modo `Resumo/Detalhado` e secoes recolhiveis.
     - inclui conteudo operacional inicial para: pericias, condicoes, conflitos/expansao de dominio, dificuldades, teste unido, tipos de dano/acoes, ferimentos, insanidade, situacoes especiais, multidoes, interludio, investigacao, furtividade, perseguicao e aspectos congenitos.
+    - modo detalhado preenchido em nivel completo/literal para os topicos operacionais da V1, com fallback para resumo quando necessario.
+    - no modo detalhado, cada guia quebra automaticamente em subtopicos colapsaveis usando secoes markdown `##`.
+    - topico `Aspectos congenitos` foi atualizado com versao detalhada completa (dons especiais + restricoes congenitas, com requisitos, bonus e limitacoes).
   - card editavel da sessao oferece `Ajustes narrativos`, reaproveitando o modal de ficha de campanha com contexto de `sessaoId/cenaId`.
   - no modal contextualizado, o historico permite filtros rapidos combinados:
     - contexto: `Todos`, `Sessao atual` e `Cena atual`.
@@ -305,8 +346,16 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
   - `SESSAO_CAMPANHA_NOT_FOUND`
   - `CENA_SESSAO_NOT_FOUND`
   - `SESSAO_TURNO_INDISPONIVEL`
+  - `SESSAO_ORDEM_INICIATIVA_INVALIDA`
   - `SESSAO_EVENTO_NOT_FOUND`
   - `SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO`
+  - `SESSAO_HABILIDADE_NAO_DISPONIVEL`
+  - `SESSAO_RECURSO_INSUFICIENTE`
+  - `SESSAO_VARIACAO_HABILIDADE_NOT_FOUND`
+  - `SESSAO_HABILIDADE_SEM_ESCALONAMENTO`
+  - `SESSAO_ACUMULO_EXCEDE_GRAU`
+  - `SESSAO_LIMITE_PEEA_EXCEDIDO`
+  - `SESSAO_SUSTENTACAO_NOT_FOUND`
   - `NPC_AMEACA_NOT_FOUND`
   - `NPC_SESSAO_NOT_FOUND`
   - `USUARIO_JA_MEMBRO`
@@ -332,6 +381,7 @@ Este documento detalha o contrato real dos modulos `auth`, `usuario` e `campanha
 - `Cena` versiona troca de cena por sessao.
 - `EventoSessao` guarda eventos estruturados do lobby (chat, troca de cena, turno).
 - `PersonagemSessao` representa cada personagem participante na sessao atual.
+- `PersonagemSessaoHabilidadeSustentada` guarda sustentacoes ativas da sessao (custo/rodada, rodada de ativacao e encerramento).
 - `NpcAmeacaSessao` representa cada aliado/ameaca adicionado em uma cena da sessao.
 - `Campanha.status` e `ConviteCampanha.status` sao `String` no schema (nao enum).
 

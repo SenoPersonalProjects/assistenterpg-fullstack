@@ -6,9 +6,14 @@ export type EventoSessaoAtualizadaTipo =
   | 'CHAT_NOVA'
   | 'CENA_ATUALIZADA'
   | 'TURNO_AVANCADO'
+  | 'TURNO_RECUADO'
+  | 'TURNO_PULADO'
+  | 'ORDEM_INICIATIVA_ATUALIZADA'
   | 'NPC_ATUALIZADO'
   | 'SESSAO_ENCERRADA'
-  | 'SESSAO_EVENTO_DESFEITO';
+  | 'SESSAO_EVENTO_DESFEITO'
+  | 'HABILIDADE_USADA'
+  | 'HABILIDADE_SUSTENTADA_ENCERRADA';
 
 export type EventoSessaoAtualizada = {
   campanhaId: number;

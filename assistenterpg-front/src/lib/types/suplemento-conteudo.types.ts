@@ -211,6 +211,8 @@ export type VariacaoHabilidadeTecnicaCatalogo = {
   substituiCustos: boolean;
   custoPE?: number | null;
   custoEA?: number | null;
+  custoSustentacaoEA?: number | null;
+  custoSustentacaoPE?: number | null;
   execucao?: TipoExecucao | null;
   area?: AreaEfeito | null;
   alcance?: string | null;
@@ -225,6 +227,9 @@ export type VariacaoHabilidadeTecnicaCatalogo = {
   dadosDano?: unknown;
   escalonaPorGrau?: boolean | null;
   escalonamentoCustoEA?: number | null;
+  escalonamentoCustoPE?: number | null;
+  escalonamentoTipo?: string | null;
+  escalonamentoEfeito?: unknown;
   escalonamentoDano?: unknown;
   efeitoAdicional?: string | null;
   requisitos?: unknown;
@@ -247,6 +252,8 @@ export type HabilidadeTecnicaCatalogo = {
   dtResistencia?: string | null;
   custoPE: number;
   custoEA: number;
+  custoSustentacaoEA?: number | null;
+  custoSustentacaoPE?: number | null;
   testesExigidos?: unknown;
   criticoValor?: number | null;
   criticoMultiplicador?: number | null;
@@ -256,6 +263,9 @@ export type HabilidadeTecnicaCatalogo = {
   escalonaPorGrau: boolean;
   grauTipoGrauCodigo?: string | null;
   escalonamentoCustoEA: number;
+  escalonamentoCustoPE: number;
+  escalonamentoTipo?: string;
+  escalonamentoEfeito?: unknown;
   escalonamentoDano?: unknown;
   efeito: string;
   ordem: number;
@@ -282,6 +292,8 @@ export type CreateHabilidadeTecnicaPayload = {
   dtResistencia?: string;
   custoPE?: number;
   custoEA?: number;
+  custoSustentacaoEA?: number;
+  custoSustentacaoPE?: number;
   testesExigidos?: unknown;
   criticoValor?: number;
   criticoMultiplicador?: number;
@@ -291,6 +303,9 @@ export type CreateHabilidadeTecnicaPayload = {
   escalonaPorGrau?: boolean;
   grauTipoGrauCodigo?: string;
   escalonamentoCustoEA?: number;
+  escalonamentoCustoPE?: number;
+  escalonamentoTipo?: string;
+  escalonamentoEfeito?: unknown;
   escalonamentoDano?: unknown;
   efeito: string;
   ordem?: number;
@@ -307,6 +322,8 @@ export type CreateVariacaoHabilidadeTecnicaPayload = {
   substituiCustos?: boolean;
   custoPE?: number;
   custoEA?: number;
+  custoSustentacaoEA?: number;
+  custoSustentacaoPE?: number;
   execucao?: TipoExecucao;
   area?: AreaEfeito;
   alcance?: string;
@@ -321,6 +338,9 @@ export type CreateVariacaoHabilidadeTecnicaPayload = {
   dadosDano?: unknown;
   escalonaPorGrau?: boolean;
   escalonamentoCustoEA?: number;
+  escalonamentoCustoPE?: number;
+  escalonamentoTipo?: string;
+  escalonamentoEfeito?: unknown;
   escalonamentoDano?: unknown;
   efeitoAdicional?: string;
   requisitos?: unknown;

@@ -1,10 +1,12 @@
-import { AreaEfeito, Prisma, TipoDano, TipoExecucao } from '@prisma/client';
+import { AreaEfeito, Prisma, TipoDano, TipoEscalonamentoHabilidade, TipoExecucao } from '@prisma/client';
 export declare class UpdateVariacaoHabilidadeDto {
     nome?: string;
     descricao?: string;
     substituiCustos?: boolean;
     custoPE?: number;
     custoEA?: number;
+    custoSustentacaoEA?: number;
+    custoSustentacaoPE?: number;
     execucao?: TipoExecucao;
     area?: AreaEfeito;
     alcance?: string;
@@ -19,6 +21,9 @@ export declare class UpdateVariacaoHabilidadeDto {
     dadosDano?: Prisma.InputJsonValue;
     escalonaPorGrau?: boolean;
     escalonamentoCustoEA?: number;
+    escalonamentoCustoPE?: number;
+    escalonamentoTipo?: TipoEscalonamentoHabilidade;
+    escalonamentoEfeito?: Prisma.InputJsonValue;
     escalonamentoDano?: Prisma.InputJsonValue;
     efeitoAdicional?: string;
     requisitos?: Prisma.InputJsonValue;
