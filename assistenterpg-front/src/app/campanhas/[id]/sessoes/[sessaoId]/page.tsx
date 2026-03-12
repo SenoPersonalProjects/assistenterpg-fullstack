@@ -35,6 +35,7 @@ import {
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
+  CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
   DuracaoCondicaoSessaoModo,
   EventoSessaoTimeline,
@@ -110,6 +111,13 @@ type FormCondicaoSessao = {
   motivoRemocao: string;
 };
 
+type AlvoCondicoesModal = {
+  alvoTipo: 'PERSONAGEM' | 'NPC';
+  alvoId: number;
+  nomeAlvo: string;
+  condicoesAtivas: CondicaoAtivaSessaoCampanha[];
+};
+
 const FORM_CONDICAO_PADRAO: FormCondicaoSessao = {
   condicaoId: '',
   duracaoModo: 'ATE_REMOVER',
@@ -181,6 +189,33 @@ function labelPapelParticipante(papel: string): string {
 function textoSeguro(value: string | null | undefined): string {
   if (!value) return '';
   return corrigirMojibakeTexto(value);
+}
+
+function formatarDadosEventoParaExibicao(dados: unknown): string {
+  if (dados === null || typeof dados === 'undefined') {
+    return 'Sem dados adicionais.';
+  }
+
+  if (typeof dados === 'string') {
+    return dados;
+  }
+
+  try {
+    return JSON.stringify(dados, null, 2);
+  } catch {
+    return String(dados);
+  }
+}
+
+function isTypingElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName;
+  return (
+    target.isContentEditable ||
+    tagName === 'INPUT' ||
+    tagName === 'TEXTAREA' ||
+    tagName === 'SELECT'
+  );
 }
 
 function descreverDuracaoCondicao(
@@ -255,6 +290,12 @@ export default function SessaoCampanhaPage() {
   const [npcSelecionadoId, setNpcSelecionadoId] = useState('');
   const [nomeNpcCustomizado, setNomeNpcCustomizado] = useState('');
   const [modalAdicionarNpcAberto, setModalAdicionarNpcAberto] = useState(false);
+  const [modalCondicoesAberto, setModalCondicoesAberto] =
+    useState<AlvoCondicoesModal | null>(null);
+  const [buscaCondicoesModal, setBuscaCondicoesModal] = useState('');
+  const [eventoDetalheModal, setEventoDetalheModal] =
+    useState<EventoSessaoTimeline | null>(null);
+  const [motivoDesfazerEventoModal, setMotivoDesfazerEventoModal] = useState('');
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [enviandoMensagem, setEnviandoMensagem] = useState(false);
@@ -268,7 +309,6 @@ export default function SessaoCampanhaPage() {
   const [salvandoNpcId, setSalvandoNpcId] = useState<number | null>(null);
   const [removendoNpcId, setRemovendoNpcId] = useState<number | null>(null);
   const [desfazendoEventoId, setDesfazendoEventoId] = useState<number | null>(null);
-  const [motivoDesfazerEvento, setMotivoDesfazerEvento] = useState('');
   const [acaoCondicaoPendente, setAcaoCondicaoPendente] = useState<string | null>(
     null,
   );
@@ -658,6 +698,85 @@ export default function SessaoCampanhaPage() {
     () => participantes.filter((participante) => onlineSet.has(participante.usuarioId)).length,
     [onlineSet, participantes],
   );
+  const condicoesFiltradasModal = useMemo(() => {
+    if (!buscaCondicoesModal.trim()) return catalogoCondicoes;
+    const busca = textoSeguro(buscaCondicoesModal).toLowerCase().trim();
+    return catalogoCondicoes.filter((condicao) => {
+      const nome = textoSeguro(condicao.nome).toLowerCase();
+      const descricao = textoSeguro(condicao.descricao).toLowerCase();
+      return nome.includes(busca) || descricao.includes(busca);
+    });
+  }, [buscaCondicoesModal, catalogoCondicoes]);
+  const formCondicaoModal = modalCondicoesAberto
+    ? obterFormCondicaoAlvo(
+        modalCondicoesAberto.alvoTipo,
+        modalCondicoesAberto.alvoId,
+      )
+    : FORM_CONDICAO_PADRAO;
+  const campoDuracaoCondicaoModalDesabilitado =
+    formCondicaoModal.duracaoModo === 'ATE_REMOVER';
+  const condicoesAtivasModal = useMemo(() => {
+    if (!modalCondicoesAberto) return [];
+
+    if (modalCondicoesAberto.alvoTipo === 'PERSONAGEM') {
+      return (
+        detalhe?.cards.find(
+          (card) => card.personagemSessaoId === modalCondicoesAberto.alvoId,
+        )?.condicoesAtivas ?? modalCondicoesAberto.condicoesAtivas
+      );
+    }
+
+    return (
+      detalhe?.npcs.find((npc) => npc.npcSessaoId === modalCondicoesAberto.alvoId)
+        ?.condicoesAtivas ?? modalCondicoesAberto.condicoesAtivas
+    );
+  }, [detalhe, modalCondicoesAberto]);
+  const dadosEventoDetalheModal = useMemo(
+    () => formatarDadosEventoParaExibicao(eventoDetalheModal?.dados),
+    [eventoDetalheModal],
+  );
+
+  useEffect(() => {
+    if (!idsValidos || !usuario || !podeControlarSessao) return;
+    if (sessaoEncerrada || !detalhe?.controleTurnosAtivo) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (isTypingElement(event.target)) return;
+      if (modalAdicionarNpcAberto || modalCondicoesAberto || eventoDetalheModal) {
+        return;
+      }
+      if (Boolean(acaoTurnoPendente)) return;
+
+      if (event.key === '.') {
+        event.preventDefault();
+        void handleControleTurno('AVANCAR');
+      }
+
+      if (event.key === ',' && event.shiftKey) {
+        event.preventDefault();
+        void handleControleTurno('VOLTAR');
+      }
+
+      if (event.key === '/' && event.shiftKey) {
+        event.preventDefault();
+        void handleControleTurno('PULAR');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    acaoTurnoPendente,
+    detalhe?.controleTurnosAtivo,
+    eventoDetalheModal,
+    idsValidos,
+    modalAdicionarNpcAberto,
+    modalCondicoesAberto,
+    podeControlarSessao,
+    sessaoEncerrada,
+    usuario,
+  ]);
 
   function montarChaveUsoHabilidade(
     personagemSessaoId: number,
@@ -691,11 +810,11 @@ export default function SessaoCampanhaPage() {
   const renderPainelCondicoes = (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
+    nomeAlvo: string,
     condicoesAtivas: SessaoCampanhaDetalhe['cards'][number]['condicoesAtivas'],
   ) => {
     const form = obterFormCondicaoAlvo(alvoTipo, alvoId);
     const chaveAplicar = chaveAcaoAplicarCondicao(alvoTipo, alvoId);
-    const campoDuracaoDesabilitado = form.duracaoModo === 'ATE_REMOVER';
 
     return (
       <details className="rounded border border-app-border p-2">
@@ -756,107 +875,39 @@ export default function SessaoCampanhaPage() {
           )}
 
           {podeControlarSessao ? (
-            <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
-              <Select
-                label="Aplicar condicao"
-                value={form.condicaoId}
-                onChange={(event) =>
-                  atualizarCampoFormCondicao(
-                    alvoTipo,
-                    alvoId,
-                    'condicaoId',
-                    event.target.value,
-                  )
-                }
-                disabled={sessaoEncerrada || catalogoCondicoes.length === 0}
-              >
-                <option value="">Selecione</option>
-                {catalogoCondicoes.map((condicaoCatalogo) => (
-                  <option key={condicaoCatalogo.id} value={String(condicaoCatalogo.id)}>
-                    {condicaoCatalogo.nome}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                label="Duracao"
-                value={form.duracaoModo}
-                onChange={(event) =>
-                  atualizarCampoFormCondicao(
-                    alvoTipo,
-                    alvoId,
-                    'duracaoModo',
-                    event.target.value,
-                  )
-                }
-                options={OPCOES_DURACAO_CONDICAO}
-                disabled={sessaoEncerrada}
-              />
-              <Input
-                label="Duracao (valor)"
-                type="number"
-                min={1}
-                value={form.duracaoValor}
-                onChange={(event) =>
-                  atualizarCampoFormCondicao(
-                    alvoTipo,
-                    alvoId,
-                    'duracaoValor',
-                    event.target.value,
-                  )
-                }
-                disabled={sessaoEncerrada || campoDuracaoDesabilitado}
-              />
-              <Input
-                label="Origem (opcional)"
-                value={form.origemDescricao}
-                onChange={(event) =>
-                  atualizarCampoFormCondicao(
-                    alvoTipo,
-                    alvoId,
-                    'origemDescricao',
-                    event.target.value,
-                  )
-                }
-                maxLength={255}
-                disabled={sessaoEncerrada}
-              />
-              <Input
-                label="Observacao (opcional)"
-                value={form.observacao}
-                onChange={(event) =>
-                  atualizarCampoFormCondicao(
-                    alvoTipo,
-                    alvoId,
-                    'observacao',
-                    event.target.value,
-                  )
-                }
-                maxLength={500}
-                disabled={sessaoEncerrada}
-              />
-              <Input
-                label="Motivo da remocao (opcional)"
-                value={form.motivoRemocao}
-                onChange={(event) =>
-                  atualizarCampoFormCondicao(
-                    alvoTipo,
-                    alvoId,
-                    'motivoRemocao',
-                    event.target.value,
-                  )
-                }
-                maxLength={500}
-                disabled={sessaoEncerrada}
-              />
-              <Button
-                size="sm"
-                onClick={() => void handleAplicarCondicao(alvoTipo, alvoId)}
-                disabled={sessaoEncerrada || acaoCondicaoPendente === chaveAplicar}
-              >
-                {acaoCondicaoPendente === chaveAplicar
-                  ? 'Aplicando...'
-                  : 'Aplicar condicao'}
-              </Button>
+            <div className="rounded border border-app-border bg-app-bg p-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setModalCondicoesAberto({
+                      alvoTipo,
+                      alvoId,
+                      nomeAlvo,
+                      condicoesAtivas,
+                    })
+                  }
+                  disabled={sessaoEncerrada}
+                >
+                  Gerenciar condicoes
+                </Button>
+                {form.condicaoId ? (
+                  <span className="text-[11px] text-app-muted">
+                    Selecionada: {textoSeguro(
+                      catalogoCondicoes.find((item) => String(item.id) === form.condicaoId)
+                        ?.nome ?? 'Condicao',
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-app-muted">
+                    Abra o modal para aplicar/remover com busca rapida.
+                  </span>
+                )}
+                {acaoCondicaoPendente === chaveAplicar ? (
+                  <span className="text-[11px] text-app-muted">Aplicando...</span>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>
@@ -1326,6 +1377,7 @@ export default function SessaoCampanhaPage() {
                   {renderPainelCondicoes(
                     'PERSONAGEM',
                     card.personagemSessaoId,
+                    card.nomePersonagem,
                     card.condicoesAtivas,
                   )}
 
@@ -1922,7 +1974,7 @@ export default function SessaoCampanhaPage() {
     }
   }
 
-  async function handleDesfazerEvento(eventoId: number) {
+  async function handleDesfazerEvento(eventoId: number, motivo?: string) {
     if (!idsValidos || !usuario) return;
 
     setDesfazendoEventoId(eventoId);
@@ -1930,7 +1982,7 @@ export default function SessaoCampanhaPage() {
     try {
       const [detalheAtualizada, eventosAtualizados] = await Promise.all([
         apiDesfazerEventoSessaoCampanha(campanhaId, sessaoId, eventoId, {
-          motivo: motivoDesfazerEvento.trim() || undefined,
+          motivo: motivo?.trim() || undefined,
         }),
         apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
           limit: 80,
@@ -1941,7 +1993,8 @@ export default function SessaoCampanhaPage() {
       setDetalhe(detalheAtualizada);
       sincronizarEstadosDerivados(detalheAtualizada);
       setEventosSessao(eventosAtualizados);
-      setMotivoDesfazerEvento('');
+      setMotivoDesfazerEventoModal('');
+      setEventoDetalheModal(null);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
@@ -2283,7 +2336,12 @@ export default function SessaoCampanhaPage() {
                       </p>
                     )}
 
-                    {renderPainelCondicoes('NPC', npc.npcSessaoId, npc.condicoesAtivas)}
+                    {renderPainelCondicoes(
+                      'NPC',
+                      npc.npcSessaoId,
+                      npc.nome,
+                      npc.condicoesAtivas,
+                    )}
 
                     {npc.passivas.length > 0 ? (
                       <details className="rounded border border-app-border p-2">
@@ -2527,6 +2585,13 @@ export default function SessaoCampanhaPage() {
                         : 'Encerrar sessao'}
                   </Button>
                 </div>
+                {detalhe.controleTurnosAtivo ? (
+                  <p className="text-xs text-app-muted">
+                    Atalhos: <span className="font-semibold">.</span> avancar |{' '}
+                    <span className="font-semibold">Shift + ,</span> voltar |{' '}
+                    <span className="font-semibold">Shift + /</span> pular.
+                  </p>
+                ) : null}
               </SessionPanel>
             ) : (
               <SessionPanel
@@ -2594,17 +2659,6 @@ export default function SessaoCampanhaPage() {
               subtitle={`${eventosSessao.length} evento(s) operacionais`}
             >
 
-              {podeControlarSessao ? (
-                <Input
-                  label="Motivo para desfazer (opcional)"
-                  value={motivoDesfazerEvento}
-                  onChange={(event) => setMotivoDesfazerEvento(event.target.value)}
-                  maxLength={240}
-                  placeholder="Ex.: acao registrada por engano"
-                  disabled={Boolean(desfazendoEventoId) || sessaoEncerrada}
-                />
-              ) : null}
-
               <div className="max-h-[320px] overflow-y-auto rounded border border-app-border p-2 space-y-2">
                 {eventosSessao.length === 0 ? (
                   <p className="text-xs text-app-muted">
@@ -2634,18 +2688,30 @@ export default function SessaoCampanhaPage() {
                         {formatarDataHora(evento.criadoEm)}
                         {evento.autor?.apelido ? ` por ${textoSeguro(evento.autor.apelido)}` : ''}
                       </p>
-                      {podeControlarSessao && evento.podeDesfazer ? (
+                      <div className="flex items-center gap-2">
                         <Button
                           size="sm"
-                          variant="secondary"
-                          onClick={() => void handleDesfazerEvento(evento.id)}
-                          disabled={Boolean(desfazendoEventoId) || sessaoEncerrada}
+                          variant="ghost"
+                          onClick={() => {
+                            setEventoDetalheModal(evento);
+                            setMotivoDesfazerEventoModal('');
+                          }}
                         >
-                          {desfazendoEventoId === evento.id
-                            ? 'Desfazendo...'
-                            : 'Desfazer evento'}
+                          Detalhes
                         </Button>
-                      ) : null}
+                        {podeControlarSessao && evento.podeDesfazer ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => void handleDesfazerEvento(evento.id)}
+                            disabled={Boolean(desfazendoEventoId) || sessaoEncerrada}
+                          >
+                            {desfazendoEventoId === evento.id
+                              ? 'Desfazendo...'
+                              : 'Desfazer evento'}
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
                   ))
                 )}
@@ -2758,6 +2824,329 @@ export default function SessaoCampanhaPage() {
               Dica: use o nome em cena para diferenciar aliados ou ameacas iguais na mesma rodada.
             </p>
           </div>
+        </Modal>
+
+        <Modal
+          isOpen={Boolean(modalCondicoesAberto)}
+          onClose={() => {
+            setModalCondicoesAberto(null);
+            setBuscaCondicoesModal('');
+          }}
+          title={
+            modalCondicoesAberto
+              ? `Gerenciar condicoes | ${textoSeguro(modalCondicoesAberto.nomeAlvo)}`
+              : 'Gerenciar condicoes'
+          }
+          size="xl"
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setModalCondicoesAberto(null);
+                  setBuscaCondicoesModal('');
+                }}
+              >
+                Fechar
+              </Button>
+              <Button
+                onClick={() =>
+                  modalCondicoesAberto
+                    ? void handleAplicarCondicao(
+                        modalCondicoesAberto.alvoTipo,
+                        modalCondicoesAberto.alvoId,
+                      )
+                    : undefined
+                }
+                disabled={
+                  !modalCondicoesAberto ||
+                  sessaoEncerrada ||
+                  !formCondicaoModal.condicaoId ||
+                  acaoCondicaoPendente ===
+                    (modalCondicoesAberto
+                      ? chaveAcaoAplicarCondicao(
+                          modalCondicoesAberto.alvoTipo,
+                          modalCondicoesAberto.alvoId,
+                        )
+                      : null)
+                }
+              >
+                {modalCondicoesAberto &&
+                acaoCondicaoPendente ===
+                  chaveAcaoAplicarCondicao(
+                    modalCondicoesAberto.alvoTipo,
+                    modalCondicoesAberto.alvoId,
+                  )
+                  ? 'Aplicando...'
+                  : 'Aplicar condicao'}
+              </Button>
+            </>
+          }
+        >
+          {modalCondicoesAberto ? (
+            <div className="grid gap-3 md:grid-cols-[1.25fr_1fr]">
+              <div className="space-y-3">
+                <Input
+                  label="Buscar condicao"
+                  value={buscaCondicoesModal}
+                  onChange={(event) => setBuscaCondicoesModal(event.target.value)}
+                  placeholder="Ex.: Sangrando, Enredado..."
+                  icon="search"
+                />
+                <div className="max-h-[340px] overflow-y-auto rounded border border-app-border bg-app-bg p-2 space-y-1.5">
+                  {condicoesFiltradasModal.length === 0 ? (
+                    <p className="text-xs text-app-muted">
+                      Nenhuma condicao encontrada para essa busca.
+                    </p>
+                  ) : (
+                    condicoesFiltradasModal.map((condicao) => {
+                      const selecionada =
+                        formCondicaoModal.condicaoId === String(condicao.id);
+                      return (
+                        <button
+                          key={condicao.id}
+                          type="button"
+                          onClick={() =>
+                            atualizarCampoFormCondicao(
+                              modalCondicoesAberto.alvoTipo,
+                              modalCondicoesAberto.alvoId,
+                              'condicaoId',
+                              String(condicao.id),
+                            )
+                          }
+                          className={
+                            selecionada
+                              ? 'w-full rounded border border-cyan-400 bg-cyan-500/10 px-2 py-1.5 text-left'
+                              : 'w-full rounded border border-app-border bg-app-surface px-2 py-1.5 text-left hover:border-cyan-400/50'
+                          }
+                        >
+                          <p className="text-xs font-semibold text-app-fg">
+                            {textoSeguro(condicao.nome)}
+                          </p>
+                          <p className="text-[11px] text-app-muted line-clamp-2">
+                            {textoSeguro(condicao.descricao)}
+                          </p>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
+                  <p className="text-xs font-semibold text-app-fg">
+                    Parametros de aplicacao
+                  </p>
+                  <Select
+                    label="Modo de duracao"
+                    value={formCondicaoModal.duracaoModo}
+                    onChange={(event) =>
+                      atualizarCampoFormCondicao(
+                        modalCondicoesAberto.alvoTipo,
+                        modalCondicoesAberto.alvoId,
+                        'duracaoModo',
+                        event.target.value,
+                      )
+                    }
+                    options={OPCOES_DURACAO_CONDICAO}
+                  />
+                  <Input
+                    label="Duracao (numero)"
+                    type="number"
+                    min={1}
+                    value={formCondicaoModal.duracaoValor}
+                    onChange={(event) =>
+                      atualizarCampoFormCondicao(
+                        modalCondicoesAberto.alvoTipo,
+                        modalCondicoesAberto.alvoId,
+                        'duracaoValor',
+                        event.target.value,
+                      )
+                    }
+                    disabled={campoDuracaoCondicaoModalDesabilitado}
+                  />
+                  <Input
+                    label="Origem (opcional)"
+                    value={formCondicaoModal.origemDescricao}
+                    onChange={(event) =>
+                      atualizarCampoFormCondicao(
+                        modalCondicoesAberto.alvoTipo,
+                        modalCondicoesAberto.alvoId,
+                        'origemDescricao',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Ex.: Tecnica inata, armadilha..."
+                  />
+                  <Input
+                    label="Observacao (opcional)"
+                    value={formCondicaoModal.observacao}
+                    onChange={(event) =>
+                      atualizarCampoFormCondicao(
+                        modalCondicoesAberto.alvoTipo,
+                        modalCondicoesAberto.alvoId,
+                        'observacao',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Detalhe livre para lembrar contexto"
+                  />
+                </div>
+
+                <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
+                  <Input
+                    label="Motivo para remocao (opcional)"
+                    value={formCondicaoModal.motivoRemocao}
+                    onChange={(event) =>
+                      atualizarCampoFormCondicao(
+                        modalCondicoesAberto.alvoTipo,
+                        modalCondicoesAberto.alvoId,
+                        'motivoRemocao',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Ex.: Curado, efeito encerrado..."
+                  />
+                  <p className="text-[11px] text-app-muted">
+                    Condicoes ativas neste alvo ({condicoesAtivasModal.length})
+                  </p>
+                  <div className="max-h-[220px] overflow-y-auto space-y-1.5">
+                    {condicoesAtivasModal.length === 0 ? (
+                      <p className="text-xs text-app-muted">
+                        Nenhuma condicao ativa no momento.
+                      </p>
+                    ) : (
+                      condicoesAtivasModal.map((condicao) => {
+                        const chaveRemover = chaveAcaoRemoverCondicao(condicao.id);
+                        return (
+                          <div
+                            key={`modal-condicao-ativa-${condicao.id}`}
+                            className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold text-app-fg">
+                                {textoSeguro(condicao.nome)}
+                              </p>
+                              <Button
+                                size="xs"
+                                variant="secondary"
+                                onClick={() =>
+                                  void handleRemoverCondicao(
+                                    modalCondicoesAberto.alvoTipo,
+                                    modalCondicoesAberto.alvoId,
+                                    condicao.id,
+                                  )
+                                }
+                                disabled={
+                                  sessaoEncerrada ||
+                                  acaoCondicaoPendente === chaveRemover
+                                }
+                              >
+                                {acaoCondicaoPendente === chaveRemover
+                                  ? 'Removendo...'
+                                  : 'Remover'}
+                              </Button>
+                            </div>
+                            <p className="text-[11px] text-app-muted">
+                              {descreverDuracaoCondicao(
+                                condicao.duracaoModo,
+                                condicao.duracaoValor,
+                                condicao.restanteDuracao,
+                              )}
+                            </p>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </Modal>
+
+        <Modal
+          isOpen={Boolean(eventoDetalheModal)}
+          onClose={() => {
+            setEventoDetalheModal(null);
+            setMotivoDesfazerEventoModal('');
+          }}
+          title="Detalhes do evento da sessao"
+          size="lg"
+          footer={
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setEventoDetalheModal(null);
+                  setMotivoDesfazerEventoModal('');
+                }}
+              >
+                Fechar
+              </Button>
+              {eventoDetalheModal && podeControlarSessao && eventoDetalheModal.podeDesfazer ? (
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    void handleDesfazerEvento(
+                      eventoDetalheModal.id,
+                      motivoDesfazerEventoModal,
+                    )
+                  }
+                  disabled={sessaoEncerrada || Boolean(desfazendoEventoId)}
+                >
+                  {desfazendoEventoId === eventoDetalheModal.id
+                    ? 'Desfazendo...'
+                    : 'Desfazer evento'}
+                </Button>
+              ) : null}
+            </>
+          }
+        >
+          {eventoDetalheModal ? (
+            <div className="space-y-3">
+              <div className="rounded border border-app-border bg-app-bg p-2 space-y-1">
+                <p className="text-xs font-semibold text-app-fg">
+                  {textoSeguro(eventoDetalheModal.descricao)}
+                </p>
+                <p className="text-[11px] text-app-muted">
+                  Tipo: {textoSeguro(eventoDetalheModal.tipoEvento)}
+                  {typeof eventoDetalheModal.cenaId === 'number'
+                    ? ` | Cena #${eventoDetalheModal.cenaId}`
+                    : ''}
+                </p>
+                <p className="text-[11px] text-app-muted">
+                  {formatarDataHora(eventoDetalheModal.criadoEm)}
+                  {eventoDetalheModal.autor?.apelido
+                    ? ` por ${textoSeguro(eventoDetalheModal.autor.apelido)}`
+                    : ''}
+                </p>
+                {eventoDetalheModal.desfeito ? (
+                  <p className="text-[11px] text-app-muted">
+                    Evento marcado como desfeito.
+                  </p>
+                ) : null}
+              </div>
+
+              {podeControlarSessao && eventoDetalheModal.podeDesfazer ? (
+                <Input
+                  label="Motivo para desfazer (opcional)"
+                  value={motivoDesfazerEventoModal}
+                  onChange={(event) => setMotivoDesfazerEventoModal(event.target.value)}
+                  placeholder="Ex.: acao aplicada por engano"
+                  disabled={sessaoEncerrada || Boolean(desfazendoEventoId)}
+                />
+              ) : null}
+
+              <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
+                <p className="text-xs font-semibold text-app-fg">Dados brutos</p>
+                <pre className="max-h-[320px] overflow-auto rounded border border-app-border bg-app-surface p-2 text-[11px] text-app-muted whitespace-pre-wrap break-words">
+                  {dadosEventoDetalheModal}
+                </pre>
+              </div>
+            </div>
+          ) : null}
         </Modal>
 
         <CampaignCharacterEditorModal
