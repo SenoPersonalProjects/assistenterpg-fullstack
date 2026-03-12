@@ -527,6 +527,8 @@ Detalhamento:
     - excecao: uso base (sem variacao e sem acumulos) ignora validacao de limite por turno.
     - encerramento manual usa `POST /sustentacoes/:sustentacaoId/encerrar`.
   - frontend aplica trava anti-clique para uso de habilidade (cooldown curto de seguranca) para evitar gasto duplicado acidental.
+  - no card de tecnicas do lobby, variacoes de habilidade exibem metadados e custos completos (incluindo sustentacao/rodada quando aplicavel), mantendo acao rapida de uso.
+  - habilidades/variacoes com sustentacao ativa exibem marcador visual de quantidade (`Ativa xN`) no proprio bloco.
   - painel central da sessao (cena atual, rodada/turno e status) e visivel para todos.
   - coluna direita do lobby concentra participantes online, timeline de eventos e chat.
   - escudo do mestre (coluna esquerda para mestres) possui busca, modo `Resumo/Detalhado` e secoes recolhiveis com guias operacionais da mesa.
