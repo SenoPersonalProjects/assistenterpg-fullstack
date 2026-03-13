@@ -3,6 +3,8 @@
 import type { RefObject } from 'react';
 import { Input } from '@/components/ui/Input';
 import type { MensagemChatSessao } from '@/lib/types';
+import { textoSeguro } from '@/lib/campanha/sessao-formatters';
+import { formatarDataHora } from '@/lib/utils/formatters';
 
 type ChatPanelProps = {
   chat: MensagemChatSessao[];
@@ -11,8 +13,6 @@ type ChatPanelProps = {
   sessaoEncerrada: boolean;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
-  formatarDataHora: (valor: string) => string;
-  textoSeguro: (valor: string | null | undefined) => string;
   fimChatRef: RefObject<HTMLDivElement | null>;
 };
 
@@ -23,8 +23,6 @@ export function ChatPanel({
   sessaoEncerrada,
   onMensagemChange,
   onEnviarMensagem,
-  formatarDataHora,
-  textoSeguro,
   fimChatRef,
 }: ChatPanelProps) {
   return (

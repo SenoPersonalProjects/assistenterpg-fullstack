@@ -9,6 +9,10 @@ import type {
   CondicaoCatalogo,
   DuracaoCondicaoSessaoModo,
 } from '@/lib/types';
+import {
+  descreverDuracaoCondicao,
+  textoSeguro,
+} from '@/lib/campanha/sessao-formatters';
 import type { AlvoCondicoesModal, FormCondicaoSessao } from '@/components/campanha/sessao/types';
 
 type CondicoesModalProps = {
@@ -29,12 +33,6 @@ type CondicoesModalProps = {
   opcoesDuracao: Array<{ value: DuracaoCondicaoSessaoModo; label: string }>;
   chaveAcaoAplicar: string | null;
   chaveAcaoRemover: (condicaoSessaoId: number) => string;
-  textoSeguro: (value: string | null | undefined) => string;
-  descreverDuracaoCondicao: (
-    duracaoModo: string,
-    duracaoValor: number | null,
-    restanteDuracao: number | null,
-  ) => string;
 };
 
 export function CondicoesModal({
@@ -55,8 +53,6 @@ export function CondicoesModal({
   opcoesDuracao,
   chaveAcaoAplicar,
   chaveAcaoRemover,
-  textoSeguro,
-  descreverDuracaoCondicao,
 }: CondicoesModalProps) {
   return (
     <Modal

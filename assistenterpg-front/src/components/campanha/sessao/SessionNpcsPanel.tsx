@@ -35,7 +35,6 @@ type SessionNpcsPanelProps = {
     nomeAlvo: string,
     condicoesAtivas: CondicaoAtivaSessaoCampanha[],
   ) => ReactNode;
-  labelTipoNpc: (tipo: string) => string;
 };
 
 export function SessionNpcsPanel({
@@ -51,7 +50,6 @@ export function SessionNpcsPanel({
   onSalvarNpc,
   onSolicitarRemoverNpc,
   renderPainelCondicoes,
-  labelTipoNpc,
 }: SessionNpcsPanelProps) {
   return (
     <>
@@ -93,7 +91,6 @@ export function SessionNpcsPanel({
             onSalvar={() => onSalvarNpc(npc)}
             onSolicitarRemover={() => onSolicitarRemoverNpc(npc)}
             renderPainelCondicoes={renderPainelCondicoes}
-            labelTipoNpc={labelTipoNpc}
           />
         ))
       )}

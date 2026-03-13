@@ -62,14 +62,12 @@ import {
 import {
   descreverDuracaoCondicao,
   labelCena,
-  labelPapelParticipante,
   textoSeguro,
 } from '@/lib/campanha/sessao-formatters';
 import {
   formatarCustos,
   resolverCustoExibicaoSessao as resolverCustoExibicao,
 } from '@/lib/campanha/sessao-habilidades';
-import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
 import { formatarDataHora } from '@/lib/utils/formatters';
 import {
   carregarFiltroSustentadasLobby,
@@ -1480,7 +1478,6 @@ export default function SessaoCampanhaPage() {
               onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
               onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
               renderPainelCondicoes={renderPainelCondicoes}
-              labelTipoNpc={labelTipoNpc}
             />
             </section>
           ) : null}
@@ -1591,8 +1588,6 @@ export default function SessaoCampanhaPage() {
                   <ParticipantsPanel
                     participantes={participantes}
                     onlineSet={onlineSet}
-                    labelPapelParticipante={labelPapelParticipante}
-                    textoSeguro={textoSeguro}
                   />
                 ) : null}
 
@@ -1609,8 +1604,6 @@ export default function SessaoCampanhaPage() {
                     onDesfazerEvento={(eventoId) =>
                       void handleDesfazerEvento(eventoId)
                     }
-                    formatarDataHora={formatarDataHora}
-                    textoSeguro={textoSeguro}
                   />
                 ) : null}
 
@@ -1623,8 +1616,6 @@ export default function SessaoCampanhaPage() {
                       sessaoEncerrada={sessaoEncerrada}
                       onMensagemChange={setMensagem}
                       onEnviarMensagem={() => void handleEnviarMensagem()}
-                      formatarDataHora={formatarDataHora}
-                      textoSeguro={textoSeguro}
                       fimChatRef={fimChatRef}
                     />
                     <Button
@@ -1654,8 +1645,6 @@ export default function SessaoCampanhaPage() {
           onNpcSelecionadoChange={setNpcSelecionadoId}
           nomeNpcCustomizado={nomeNpcCustomizado}
           onNomeNpcCustomizadoChange={setNomeNpcCustomizado}
-          textoSeguro={textoSeguro}
-          labelTipoNpc={labelTipoNpc}
         />
 
         <ConfirmEndSessionModal
@@ -1732,8 +1721,6 @@ export default function SessaoCampanhaPage() {
               : null
           }
           chaveAcaoRemover={chaveAcaoRemoverCondicao}
-          textoSeguro={textoSeguro}
-          descreverDuracaoCondicao={descreverDuracaoCondicao}
         />
 
         <EventoDetalheModal
@@ -1751,8 +1738,6 @@ export default function SessaoCampanhaPage() {
           motivoDesfazer={motivoDesfazerEventoModal}
           onMotivoDesfazerChange={setMotivoDesfazerEventoModal}
           dadosEventoDetalhe={dadosEventoDetalheModal}
-          textoSeguro={textoSeguro}
-          formatarDataHora={formatarDataHora}
         />
 
         <CampaignCharacterEditorModal

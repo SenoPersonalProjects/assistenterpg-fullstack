@@ -2,6 +2,8 @@
 
 import { Button } from '@/components/ui/Button';
 import type { EventoSessaoTimeline } from '@/lib/types';
+import { textoSeguro } from '@/lib/campanha/sessao-formatters';
+import { formatarDataHora } from '@/lib/utils/formatters';
 
 type TimelinePanelProps = {
   eventosSessao: EventoSessaoTimeline[];
@@ -10,8 +12,6 @@ type TimelinePanelProps = {
   desfazendoEventoId: number | null;
   onAbrirDetalhes: (evento: EventoSessaoTimeline) => void;
   onDesfazerEvento: (eventoId: number) => void;
-  formatarDataHora: (valor: string) => string;
-  textoSeguro: (valor: string | null | undefined) => string;
 };
 
 export function TimelinePanel({
@@ -21,8 +21,6 @@ export function TimelinePanel({
   desfazendoEventoId,
   onAbrirDetalhes,
   onDesfazerEvento,
-  formatarDataHora,
-  textoSeguro,
 }: TimelinePanelProps) {
   return (
     <div className="max-h-[420px] overflow-y-auto rounded border border-app-border p-2 space-y-2">

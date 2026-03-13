@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import type { EventoSessaoTimeline } from '@/lib/types';
+import { textoSeguro } from '@/lib/campanha/sessao-formatters';
+import { formatarDataHora } from '@/lib/utils/formatters';
 
 type EventoDetalheModalProps = {
   evento: EventoSessaoTimeline | null;
@@ -15,8 +17,6 @@ type EventoDetalheModalProps = {
   motivoDesfazer: string;
   onMotivoDesfazerChange: (valor: string) => void;
   dadosEventoDetalhe: string;
-  textoSeguro: (value: string | null | undefined) => string;
-  formatarDataHora: (valor: string) => string;
 };
 
 export function EventoDetalheModal({
@@ -29,8 +29,6 @@ export function EventoDetalheModal({
   motivoDesfazer,
   onMotivoDesfazerChange,
   dadosEventoDetalhe,
-  textoSeguro,
-  formatarDataHora,
 }: EventoDetalheModalProps) {
   const podeDesfazer = Boolean(evento && podeControlarSessao && evento.podeDesfazer);
 

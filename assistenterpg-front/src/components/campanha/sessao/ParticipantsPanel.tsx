@@ -1,4 +1,6 @@
-﻿'use client';
+'use client';
+
+import { labelPapelParticipante, textoSeguro } from '@/lib/campanha/sessao-formatters';
 
 type ParticipanteItem = {
   usuarioId: number;
@@ -10,15 +12,11 @@ type ParticipanteItem = {
 type ParticipantsPanelProps = {
   participantes: ParticipanteItem[];
   onlineSet: Set<number>;
-  labelPapelParticipante: (papel: string) => string;
-  textoSeguro: (valor: string | null | undefined) => string;
 };
 
 export function ParticipantsPanel({
   participantes,
   onlineSet,
-  labelPapelParticipante,
-  textoSeguro,
 }: ParticipantsPanelProps) {
   if (participantes.length === 0) {
     return (
@@ -62,4 +60,3 @@ export function ParticipantsPanel({
     </div>
   );
 }
-

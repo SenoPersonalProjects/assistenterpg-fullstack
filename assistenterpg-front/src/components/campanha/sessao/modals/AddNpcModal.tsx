@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import type { NpcAmeacaResumo } from '@/lib/types';
+import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
+import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 
 type AddNpcModalProps = {
   isOpen: boolean;
@@ -17,8 +19,6 @@ type AddNpcModalProps = {
   onNpcSelecionadoChange: (value: string) => void;
   nomeNpcCustomizado: string;
   onNomeNpcCustomizadoChange: (value: string) => void;
-  textoSeguro: (value: string | null | undefined) => string;
-  labelTipoNpc: (tipo: string) => string;
 };
 
 export function AddNpcModal({
@@ -32,8 +32,6 @@ export function AddNpcModal({
   onNpcSelecionadoChange,
   nomeNpcCustomizado,
   onNomeNpcCustomizadoChange,
-  textoSeguro,
-  labelTipoNpc,
 }: AddNpcModalProps) {
   return (
     <Modal

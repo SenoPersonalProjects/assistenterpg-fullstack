@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import type { CondicaoAtivaSessaoCampanha, NpcSessaoCampanha } from '@/lib/types';
 import type { NpcEditavel } from '@/components/campanha/sessao/types';
+import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
 
 type NpcSessionCardProps = {
   npc: NpcSessaoCampanha;
@@ -27,7 +28,6 @@ type NpcSessionCardProps = {
     nomeAlvo: string,
     condicoesAtivas: CondicaoAtivaSessaoCampanha[],
   ) => ReactNode;
-  labelTipoNpc: (tipo: string) => string;
 };
 
 export function NpcSessionCard({
@@ -41,7 +41,6 @@ export function NpcSessionCard({
   onSalvar,
   onSolicitarRemover,
   renderPainelCondicoes,
-  labelTipoNpc,
 }: NpcSessionCardProps) {
   const metadadosAcao = (acao: NpcSessaoCampanha['acoes'][number]) =>
     [
