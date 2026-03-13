@@ -59,6 +59,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
+import { SessionCharacterResourceCard } from '@/components/campanha/sessao/SessionCharacterResourceCard';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { corrigirMojibakeTexto } from '@/lib/utils/encoding';
 import {
@@ -333,6 +334,8 @@ export default function SessaoCampanhaPage() {
   const [indiceIniciativaHover, setIndiceIniciativaHover] = useState<number | null>(
     null,
   );
+  const [colunaEsquerdaRecolhida, setColunaEsquerdaRecolhida] = useState(false);
+  const [colunaDireitaRecolhida, setColunaDireitaRecolhida] = useState(false);
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
     Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null
   >(null);
@@ -698,6 +701,27 @@ export default function SessaoCampanhaPage() {
     () => participantes.filter((participante) => onlineSet.has(participante.usuarioId)).length,
     [onlineSet, participantes],
   );
+  const iniciativaPorPersonagemSessao = useMemo(() => {
+    const mapa = new Map<number, number>();
+    for (const participante of iniciativaOrdem) {
+      if (participante.tipoParticipante !== 'PERSONAGEM') continue;
+      if (typeof participante.personagemSessaoId !== 'number') continue;
+      mapa.set(participante.personagemSessaoId, participante.valorIniciativa);
+    }
+    return mapa;
+  }, [iniciativaOrdem]);
+  const gridSessaoClassName = useMemo(() => {
+    if (colunaEsquerdaRecolhida && colunaDireitaRecolhida) {
+      return 'grid gap-4 xl:grid-cols-1';
+    }
+    if (colunaEsquerdaRecolhida) {
+      return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]';
+    }
+    if (colunaDireitaRecolhida) {
+      return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)]';
+    }
+    return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)_minmax(350px,0.83fr)]';
+  }, [colunaDireitaRecolhida, colunaEsquerdaRecolhida]);
   const condicoesFiltradasModal = useMemo(() => {
     if (!buscaCondicoesModal.trim()) return catalogoCondicoes;
     const busca = textoSeguro(buscaCondicoesModal).toLowerCase().trim();
@@ -933,6 +957,9 @@ export default function SessaoCampanhaPage() {
         cards.map((card) => {
           const recursos = card.recursos;
           const draft = edicaoRecursos[card.personagemCampanhaId];
+          const iniciativaValor = iniciativaPorPersonagemSessao.get(
+            card.personagemSessaoId,
+          );
           const sustentacoesAtivasPorHabilidade = new Map<string, number>();
           for (const sustentacao of card.sustentacoesAtivas) {
             const chave = montarChaveSustentacaoAtiva(
@@ -1235,10 +1262,28 @@ export default function SessaoCampanhaPage() {
 
           return (
             <Card key={card.personagemSessaoId} className="session-panel space-y-3">
-              <div>
-                <h3 className="text-sm font-semibold text-app-fg">{card.nomePersonagem}</h3>
-                <p className="text-xs text-app-muted">Jogador: {card.nomeJogador}</p>
-              </div>
+              {recursos ? (
+                <SessionCharacterResourceCard
+                  nomePersonagem={card.nomePersonagem}
+                  nomeJogador={card.nomeJogador}
+                  iniciativaValor={iniciativaValor ?? null}
+                  recursos={{
+                    pvAtual: recursos.pvAtual,
+                    pvMax: recursos.pvMax,
+                    sanAtual: recursos.sanAtual,
+                    sanMax: recursos.sanMax,
+                    eaAtual: recursos.eaAtual,
+                    eaMax: recursos.eaMax,
+                    peAtual: recursos.peAtual,
+                    peMax: recursos.peMax,
+                  }}
+                />
+              ) : (
+                <div>
+                  <h3 className="text-sm font-semibold text-app-fg">{card.nomePersonagem}</h3>
+                  <p className="text-xs text-app-muted">Jogador: {card.nomeJogador}</p>
+                </div>
+              )}
 
               {recursos ? (
                 card.podeEditar ? (
@@ -1343,13 +1388,7 @@ export default function SessaoCampanhaPage() {
                       </Button>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-app-muted">
-                    PV {recursos.pvAtual}/{recursos.pvMax} | PE {recursos.peAtual}/
-                    {recursos.peMax} | EA {recursos.eaAtual}/{recursos.eaMax} | SAN{' '}
-                    {recursos.sanAtual}/{recursos.sanMax}
-                  </p>
-                )
+                ) : null
               ) : (
                 <p className="text-xs text-app-muted">
                   Visao resumida: apenas nome do jogador e personagem.
@@ -2100,8 +2139,26 @@ export default function SessaoCampanhaPage() {
 
         {erro ? <ErrorAlert message={erro} /> : null}
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)_minmax(350px,0.83fr)]">
-          <section className="space-y-3">
+        <div className="session-layout-controls">
+          <Button
+            size="sm"
+            variant={colunaEsquerdaRecolhida ? 'secondary' : 'ghost'}
+            onClick={() => setColunaEsquerdaRecolhida((valorAtual) => !valorAtual)}
+          >
+            {colunaEsquerdaRecolhida ? 'Mostrar painel esquerdo' : 'Ocultar painel esquerdo'}
+          </Button>
+          <Button
+            size="sm"
+            variant={colunaDireitaRecolhida ? 'secondary' : 'ghost'}
+            onClick={() => setColunaDireitaRecolhida((valorAtual) => !valorAtual)}
+          >
+            {colunaDireitaRecolhida ? 'Mostrar painel direito' : 'Ocultar painel direito'}
+          </Button>
+        </div>
+
+        <div className={gridSessaoClassName}>
+          {!colunaEsquerdaRecolhida ? (
+            <section className="space-y-3">
             {podeControlarSessao ? (
               <SessionPanel
                 title="Escudo do Mestre"
@@ -2391,7 +2448,8 @@ export default function SessaoCampanhaPage() {
                 );
               })
             )}
-          </section>
+            </section>
+          ) : null}
 
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
@@ -2605,7 +2663,8 @@ export default function SessaoCampanhaPage() {
             )}
           </section>
 
-          <section className="space-y-3 xl:sticky xl:top-4 xl:self-start">
+          {!colunaDireitaRecolhida ? (
+            <section className="space-y-3 xl:sticky xl:top-4 xl:self-start">
             <SessionPanel
               title="Participantes"
               subtitle="Quem esta na campanha e quem esta online agora."
@@ -2768,7 +2827,8 @@ export default function SessaoCampanhaPage() {
                 </Button>
               </div>
             </SessionPanel>
-          </section>
+            </section>
+          ) : null}
         </div>
 
         <Modal

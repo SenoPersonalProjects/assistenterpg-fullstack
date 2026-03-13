@@ -1285,6 +1285,10 @@ export class SessaoService {
             where: { sessaoId },
             data: { cenaId: cenaAnteriorId },
           });
+          await tx.npcAmeacaSessao.updateMany({
+            where: { sessaoId },
+            data: { cenaId: cenaAnteriorId },
+          });
 
           await tx.sessao.update({
             where: { id: sessaoId },
@@ -1781,6 +1785,10 @@ export class SessaoService {
       });
 
       await tx.personagemSessao.updateMany({
+        where: { sessaoId },
+        data: { cenaId: cena.id },
+      });
+      await tx.npcAmeacaSessao.updateMany({
         where: { sessaoId },
         data: { cenaId: cena.id },
       });
