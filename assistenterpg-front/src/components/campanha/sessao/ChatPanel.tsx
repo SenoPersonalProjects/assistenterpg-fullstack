@@ -1,18 +1,22 @@
 ﻿'use client';
 
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import type { MensagemChatSessao } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
 
+const LIMIAR_AGRUPAMENTO_MS = 5 * 60 * 1000;
+const ALTURA_MAX_TEXTAREA = 180;
+
 type ChatPanelProps = {
   chat: MensagemChatSessao[];
   mensagem: string;
   enviandoMensagem: boolean;
   sessaoEncerrada: boolean;
+  usuarioId?: number | null;
   erro?: string | null;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
@@ -24,62 +28,174 @@ export function ChatPanel({
   mensagem,
   enviandoMensagem,
   sessaoEncerrada,
+  usuarioId,
   erro,
   onMensagemChange,
   onEnviarMensagem,
   fimChatRef,
 }: ChatPanelProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const enviandoRef = useRef(false);
+  const [autoScrollAtivo, setAutoScrollAtivo] = useState(true);
+  const [sucessoEnvio, setSucessoEnvio] = useState(false);
+
   const podeEnviar =
     !sessaoEncerrada && !enviandoMensagem && mensagem.trim().length > 0;
+  const ultimaMensagem = chat[chat.length - 1];
+  const ultimaEhMinha =
+    typeof usuarioId === 'number' &&
+    ultimaMensagem?.autor.usuarioId === usuarioId;
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    const altura = Math.min(textarea.scrollHeight, ALTURA_MAX_TEXTAREA);
+    textarea.style.height = `${altura}px`;
+  }, [mensagem]);
+
+  useEffect(() => {
+    const estavaEnviando = enviandoRef.current;
+    if (estavaEnviando && !enviandoMensagem && mensagem.trim() === '' && !erro) {
+      const showId = window.setTimeout(() => setSucessoEnvio(true), 0);
+      const hideId = window.setTimeout(() => setSucessoEnvio(false), 2000);
+      return () => {
+        window.clearTimeout(showId);
+        window.clearTimeout(hideId);
+      };
+    }
+    enviandoRef.current = enviandoMensagem;
+  }, [enviandoMensagem, mensagem, erro]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    if (autoScrollAtivo || ultimaEhMinha) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: autoScrollAtivo ? 'smooth' : 'auto',
+      });
+    }
+  }, [chat.length, autoScrollAtivo, ultimaEhMinha]);
+
+  const handleScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const distancia =
+      container.scrollHeight - (container.scrollTop + container.clientHeight);
+    setAutoScrollAtivo(distancia < 80);
+  };
+
+  const mensagensRenderizadas = useMemo(
+    () =>
+      chat.map((item, index) => {
+        const apelido = textoSeguro(item.autor.apelido);
+        const personagemNome = textoSeguro(item.autor.personagemNome);
+        const autorLabel = apelido || 'Autor desconhecido';
+        const autorKey = `${item.autor.usuarioId ?? 'anon'}:${apelido}:${personagemNome}`;
+        const anterior = index > 0 ? chat[index - 1] : null;
+        const anteriorKey = anterior
+          ? `${anterior.autor.usuarioId ?? 'anon'}:${textoSeguro(
+              anterior.autor.apelido,
+            )}:${textoSeguro(anterior.autor.personagemNome)}`
+          : null;
+        const dataAtual = new Date(item.criadoEm);
+        const dataAnterior = anterior ? new Date(anterior.criadoEm) : null;
+        const diffMs =
+          dataAnterior &&
+          !Number.isNaN(dataAnterior.getTime()) &&
+          !Number.isNaN(dataAtual.getTime())
+            ? dataAtual.getTime() - dataAnterior.getTime()
+            : null;
+        const mesmoAutor = anteriorKey === autorKey;
+        const dentroDoAgrupamento = diffMs !== null && diffMs <= LIMIAR_AGRUPAMENTO_MS;
+        const mostrarCabecalho = !anterior || !mesmoAutor || !dentroDoAgrupamento;
+        const ehMinhaMensagem =
+          typeof usuarioId === 'number' && item.autor.usuarioId === usuarioId;
+
+        return (
+          <div
+            key={item.id}
+            className={`session-chat__message${
+              ehMinhaMensagem ? ' session-chat__message--self' : ''
+            }${!mostrarCabecalho ? ' session-chat__message--grouped' : ''}`}
+          >
+            {mostrarCabecalho ? (
+              <div className="session-chat__header">
+                <span className="session-chat__author">
+                  {ehMinhaMensagem ? 'Voce' : autorLabel}
+                </span>
+                {personagemNome ? (
+                  <span className="session-chat__meta">({personagemNome})</span>
+                ) : null}
+                <span className="session-chat__meta">
+                  {formatarDataHora(item.criadoEm)}
+                </span>
+              </div>
+            ) : null}
+            <div className="session-chat__bubble">
+              <p className="session-chat__text">{textoSeguro(item.mensagem)}</p>
+            </div>
+          </div>
+        );
+      }),
+    [chat, usuarioId],
+  );
 
   return (
-    <div className="space-y-2">
+    <div className="session-chat">
       {erro ? <ErrorAlert message={erro} /> : null}
-      <div className="h-[420px] overflow-y-auto rounded border border-app-border p-3 space-y-2 bg-app-bg">
+      {sucessoEnvio ? (
+        <p className="session-chat__hint session-chat__hint--success">
+          Mensagem enviada.
+        </p>
+      ) : null}
+      {sessaoEncerrada ? (
+        <p className="session-chat__hint">
+          Sessao encerrada. O chat esta em modo leitura.
+        </p>
+      ) : null}
+      <div ref={scrollRef} className="session-chat__scroll" onScroll={handleScroll}>
         {chat.length === 0 ? (
-          <p className="text-xs text-app-muted">
+          <p className="session-chat__empty">
             Nenhuma mensagem ainda. Inicie a conversa da sessao.
           </p>
         ) : (
-          chat.map((item) => (
-            <div
-              key={item.id}
-              className="rounded border border-app-border bg-app-surface px-2 py-1.5"
-            >
-              <p className="text-xs text-app-muted">
-                {textoSeguro(item.autor.apelido)}
-                {item.autor.personagemNome
-                  ? ` (${textoSeguro(item.autor.personagemNome)})`
-                  : ''}{' '}
-                | {formatarDataHora(item.criadoEm)}
-              </p>
-              <p className="text-sm text-app-fg whitespace-pre-wrap">
-                {textoSeguro(item.mensagem)}
-              </p>
-            </div>
-          ))
+          mensagensRenderizadas
         )}
         <div ref={fimChatRef} />
       </div>
 
-      <Input
-        label="Mensagem"
-        value={mensagem}
-        onChange={(event) => onMensagemChange(event.target.value)}
-        maxLength={1000}
-        disabled={sessaoEncerrada || enviandoMensagem}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            onEnviarMensagem();
-          }
-        }}
-      />
-
-      <Button onClick={onEnviarMensagem} disabled={!podeEnviar}>
-        {enviandoMensagem ? 'Enviando...' : 'Enviar'}
-      </Button>
+      <div className="session-chat__input-row">
+        <label className="text-sm font-medium text-app-fg">Mensagem</label>
+        <textarea
+          ref={textareaRef}
+          value={mensagem}
+          onChange={(event) => onMensagemChange(event.target.value)}
+          maxLength={1000}
+          disabled={sessaoEncerrada || enviandoMensagem}
+          rows={2}
+          placeholder="Digite uma mensagem... (Enter envia, Shift+Enter quebra linha)"
+          className="session-chat__input"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              if (podeEnviar) {
+                onEnviarMensagem();
+              }
+            }
+          }}
+        />
+        <div className="session-chat__footer">
+          <span className="session-chat__hint">
+            Enter envia • Shift+Enter quebra linha
+          </span>
+          <Button onClick={onEnviarMensagem} disabled={!podeEnviar}>
+            {enviandoMensagem ? 'Enviando...' : 'Enviar'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
-

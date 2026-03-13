@@ -277,10 +277,6 @@ export default function SessaoCampanhaPage() {
   }, [chat]);
 
   useEffect(() => {
-    fimChatRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chat]);
-
-  useEffect(() => {
     if (!idsValidos || !usuario) {
       setMostrarSomenteSustentadas({});
       setFiltroSustentadasHydrated(false);
@@ -1279,6 +1275,7 @@ export default function SessaoCampanhaPage() {
                     mensagem={mensagem}
                     enviandoMensagem={enviandoMensagem}
                     sessaoEncerrada={sessaoEncerrada}
+                    usuarioId={usuario?.id ?? null}
                     erro={erroChat}
                     onMensagemChange={setMensagem}
                     onEnviarMensagem={() => void handleEnviarMensagem()}
