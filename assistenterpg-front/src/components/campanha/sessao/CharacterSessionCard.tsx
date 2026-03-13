@@ -72,6 +72,65 @@ function montarChaveSustentacaoAtiva(
   return `${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
 }
 
+function normalizarStatusTexto(valor: string): string {
+  return textoSeguro(valor)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function resolverStatusFisico(
+  recursos: NonNullable<SessaoCampanhaDetalhe['cards'][number]['recursos']>,
+  condicoesAtivas: CondicaoAtivaSessaoCampanha[],
+): string {
+  const nomes = condicoesAtivas.map((condicao) => normalizarStatusTexto(condicao.nome));
+  const condicaoMorta = nomes.some((nome) => nome.includes('morto'));
+  const condicaoMorrendo = condicoesAtivas.find((condicao) =>
+    normalizarStatusTexto(condicao.nome).includes('morrendo'),
+  );
+
+  if (condicaoMorta || (condicaoMorrendo && condicaoMorrendo.contadorTurnos >= 3)) {
+    return 'Morto';
+  }
+
+  if (recursos.pvAtual <= 0) {
+    return 'Morrendo';
+  }
+
+  if (recursos.pvMax > 0 && recursos.pvAtual <= recursos.pvMax / 2) {
+    return 'Machucado';
+  }
+
+  return 'Vivo';
+}
+
+function resolverStatusMental(
+  recursos: NonNullable<SessaoCampanhaDetalhe['cards'][number]['recursos']>,
+  condicoesAtivas: CondicaoAtivaSessaoCampanha[],
+): string {
+  const nomes = condicoesAtivas.map((condicao) => normalizarStatusTexto(condicao.nome));
+  const condicaoLouca = nomes.some(
+    (nome) =>
+      nome.includes('louco') ||
+      nome.includes('insanidade permanente') ||
+      nome.includes('loucura permanente'),
+  );
+
+  if (condicaoLouca) {
+    return 'Louco';
+  }
+
+  if (recursos.sanAtual <= 0) {
+    return 'Enlouquecendo';
+  }
+
+  if (recursos.sanMax > 0 && recursos.sanAtual <= recursos.sanMax / 2) {
+    return 'Ruim';
+  }
+
+  return 'Bom';
+}
+
 export function CharacterSessionCard({
   card,
   iniciativaValor,
@@ -168,6 +227,12 @@ export function CharacterSessionCard({
         : 'Aplicando habilidade...',
     );
   }
+  const statusFisico = recursos
+    ? resolverStatusFisico(recursos, card.condicoesAtivas)
+    : null;
+  const statusMental = recursos
+    ? resolverStatusMental(recursos, card.condicoesAtivas)
+    : null;
 
   return (
     <Card className="session-panel space-y-3">
@@ -512,27 +577,18 @@ export function CharacterSessionCard({
               INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
             </span>
             <span className="session-chip">
-              PV {recursos.pvAtual}/{recursos.pvMax}
-            </span>
-            <span className="session-chip">
-              PE {recursos.peAtual}/{recursos.peMax}
-            </span>
-            <span className="session-chip">
-              EA {recursos.eaAtual}/{recursos.eaMax}
-            </span>
-            <span className="session-chip">
-              SAN {recursos.sanAtual}/{recursos.sanMax}
-            </span>
-            <span className="session-chip">
               Condicoes {totalCondicoesAtivasCard}
             </span>
             <span className="session-chip">
               Sustentacoes {totalSustentacoesAtivasCard}
             </span>
+            {statusFisico ? (
+              <span className="session-chip">Estado: {statusFisico}</span>
+            ) : null}
+            {statusMental ? (
+              <span className="session-chip">Mental: {statusMental}</span>
+            ) : null}
           </div>
-          <p className="text-[11px] text-app-muted">
-            Tecnica principal: {resumoTecnica}
-          </p>
         </div>
       ) : null}
     </Card>

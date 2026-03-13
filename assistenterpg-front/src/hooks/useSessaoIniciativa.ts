@@ -44,7 +44,7 @@ export function useSessaoIniciativa({
 
   const handleMoverIniciativa = useCallback(
     async (indiceAtual: number, direcao: 'SUBIR' | 'DESCER') => {
-      if (!detalhe?.controleTurnosAtivo || !podeControlarSessao) return;
+      if (!detalhe || !podeControlarSessao) return;
       if (sessaoEncerrada || reordenandoIniciativa) return;
 
       const ordemAtual = detalhe.iniciativa.ordem;
@@ -98,7 +98,7 @@ export function useSessaoIniciativa({
 
   const handleDropIniciativa = useCallback(
     async (indiceDestino: number) => {
-      if (!detalhe?.controleTurnosAtivo || !podeControlarSessao) return;
+      if (!detalhe || !podeControlarSessao) return;
       if (sessaoEncerrada || reordenandoIniciativa) return;
       if (indiceIniciativaArrastado === null) return;
 
