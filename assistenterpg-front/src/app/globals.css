@@ -578,13 +578,19 @@ body {
 }
 
 .session-operational-bar__block--turno {
-  border-color: color-mix(in srgb, var(--success) 55%, var(--border-subtle));
-  background: color-mix(in srgb, var(--success) 8%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--success) 70%, var(--border-subtle));
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-surface));
+  padding: 0.55rem 0.7rem;
 }
 
 .session-operational-bar__block--proximo {
   border-color: color-mix(in srgb, var(--info) 55%, var(--border-subtle));
   background: color-mix(in srgb, var(--info) 8%, var(--bg-surface));
+}
+
+.session-operational-bar__block--modo {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border-subtle));
+  background: color-mix(in srgb, var(--primary) 6%, var(--bg-surface));
 }
 
 .session-operational-bar__label {
@@ -600,6 +606,16 @@ body {
   font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.session-operational-bar__block--turno .session-operational-bar__value {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.session-operational-bar__block--proximo .session-operational-bar__value {
+  color: var(--fg-muted);
+  font-weight: 600;
 }
 
 .session-operational-bar__meta {
@@ -624,10 +640,11 @@ body {
   border-radius: 0.4rem;
   padding: 0 0.3rem;
   margin-left: 0.25rem;
-  background: var(--bg-surface);
+  background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
   color: var(--fg-muted);
-  font-size: 0.6rem;
-  font-weight: 700;
+  font-size: 0.55rem;
+  font-weight: 600;
+  opacity: 0.8;
   line-height: 1.1;
 }
 
@@ -660,6 +677,12 @@ body {
   .session-operational-bar__actions > button {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (min-width: 768px) {
+  .session-operational-bar__block--turno {
+    grid-column: span 2;
   }
 }
 
