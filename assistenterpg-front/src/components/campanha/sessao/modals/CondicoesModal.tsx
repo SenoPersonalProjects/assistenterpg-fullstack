@@ -29,7 +29,7 @@ type CondicoesModalProps = {
   onSelecionarCondicao: (condicaoId: string) => void;
   onAtualizarCampo: (campo: keyof FormCondicaoSessao, valor: string) => void;
   onAplicarCondicao: () => void;
-  onRemoverCondicao: (condicaoSessaoId: number) => void;
+  onRemoverCondicao: (condicao: CondicaoAtivaSessaoCampanha) => void;
   opcoesDuracao: Array<{ value: DuracaoCondicaoSessaoModo; label: string }>;
   chaveAcaoAplicar: string | null;
   chaveAcaoRemover: (condicaoSessaoId: number) => string;
@@ -188,7 +188,7 @@ export function CondicoesModal({
                           <Button
                             size="xs"
                             variant="secondary"
-                            onClick={() => onRemoverCondicao(condicao.id)}
+                            onClick={() => onRemoverCondicao(condicao)}
                             disabled={
                               sessaoEncerrada || acaoCondicaoPendente === chaveRemover
                             }

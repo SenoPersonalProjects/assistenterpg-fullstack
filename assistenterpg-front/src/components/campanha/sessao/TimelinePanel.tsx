@@ -11,7 +11,7 @@ type TimelinePanelProps = {
   podeControlarSessao: boolean;
   desfazendoEventoId: number | null;
   onAbrirDetalhes: (evento: EventoSessaoTimeline) => void;
-  onDesfazerEvento: (eventoId: number) => void;
+  onDesfazerEvento: (evento: EventoSessaoTimeline) => void;
 };
 
 export function TimelinePanel({
@@ -60,7 +60,7 @@ export function TimelinePanel({
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={() => onDesfazerEvento(evento.id)}
+                  onClick={() => onDesfazerEvento(evento)}
                   disabled={Boolean(desfazendoEventoId) || sessaoEncerrada}
                 >
                   {desfazendoEventoId === evento.id ? 'Desfazendo...' : 'Desfazer evento'}

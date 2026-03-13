@@ -10,7 +10,7 @@ import { formatarDataHora } from '@/lib/utils/formatters';
 type EventoDetalheModalProps = {
   evento: EventoSessaoTimeline | null;
   onClose: () => void;
-  onDesfazerEvento: (eventoId: number, motivo?: string) => void;
+  onDesfazerEvento: (evento: EventoSessaoTimeline, motivo?: string) => void;
   sessaoEncerrada: boolean;
   podeControlarSessao: boolean;
   desfazendoEventoId: number | null;
@@ -46,7 +46,7 @@ export function EventoDetalheModal({
           {podeDesfazer && evento ? (
             <Button
               variant="secondary"
-              onClick={() => onDesfazerEvento(evento.id, motivoDesfazer)}
+              onClick={() => onDesfazerEvento(evento, motivoDesfazer)}
               disabled={sessaoEncerrada || Boolean(desfazendoEventoId)}
             >
               {desfazendoEventoId === evento.id ? 'Desfazendo...' : 'Desfazer evento'}

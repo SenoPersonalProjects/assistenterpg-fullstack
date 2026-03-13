@@ -10,6 +10,7 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   apiAdminGetCondicoes,
   apiGetSessaoCampanha,
@@ -19,6 +20,7 @@ import {
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
+  CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
   EventoSessaoTimeline,
   MensagemChatSessao,
@@ -35,6 +37,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
 import {
@@ -171,6 +174,13 @@ export default function SessaoCampanhaPage() {
   const router = useRouter();
   const { usuario, loading: authLoading } = useAuth();
   const { showToast } = useToast();
+  const {
+    isOpen: confirmacaoAberta,
+    options: confirmacaoOptions,
+    confirm,
+    handleClose: fecharConfirmacao,
+    handleConfirm: confirmarAcao,
+  } = useConfirm();
 
   const campanhaId = Number(params.id);
   const sessaoId = Number(params.sessaoId);
@@ -551,6 +561,42 @@ export default function SessaoCampanhaPage() {
     },
   });
 
+  const solicitarDesfazerEvento = useCallback(
+    (evento: EventoSessaoTimeline, motivo?: string) => {
+      confirm({
+        title: 'Desfazer evento?',
+        description: `Voce esta prestes a desfazer: ${textoSeguro(evento.descricao)}.`,
+        confirmLabel: 'Desfazer evento',
+        cancelLabel: 'Manter',
+        variant: 'warning',
+        onConfirm: () => handleDesfazerEvento(evento.id, motivo),
+      });
+    },
+    [confirm, handleDesfazerEvento],
+  );
+
+  const solicitarRemocaoCondicao = useCallback(
+    (
+      alvoTipo: 'PERSONAGEM' | 'NPC',
+      alvoId: number,
+      condicao: CondicaoAtivaSessaoCampanha,
+    ) => {
+      confirm({
+        title: 'Remover condicao?',
+        description: `Remover "${textoSeguro(condicao.nome)}". ${descreverDuracaoCondicao(
+          condicao.duracaoModo,
+          condicao.duracaoValor,
+          condicao.restanteDuracao,
+        )}`,
+        confirmLabel: 'Remover condicao',
+        cancelLabel: 'Manter',
+        variant: 'warning',
+        onConfirm: () => handleRemoverCondicao(alvoTipo, alvoId, condicao.id),
+      });
+    },
+    [confirm, handleRemoverCondicao],
+  );
+
   useEffect(() => {
     if (!authLoading && !usuario) {
       router.push('/auth/login');
@@ -840,9 +886,7 @@ export default function SessaoCampanhaPage() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() =>
-                      void handleRemoverCondicao(alvoTipo, alvoId, condicao.id)
-                    }
+                    onClick={() => solicitarRemocaoCondicao(alvoTipo, alvoId, condicao)}
                     disabled={sessaoEncerrada || acaoCondicaoPendente === chaveRemover}
                   >
                     {acaoCondicaoPendente === chaveRemover
@@ -1596,9 +1640,7 @@ export default function SessaoCampanhaPage() {
                       setEventoDetalheModal(evento);
                       setMotivoDesfazerEventoModal('');
                     }}
-                    onDesfazerEvento={(eventoId) =>
-                      void handleDesfazerEvento(eventoId)
-                    }
+                    onDesfazerEvento={(evento) => solicitarDesfazerEvento(evento)}
                   />
                 ) : null}
 
@@ -1690,12 +1732,12 @@ export default function SessaoCampanhaPage() {
               modalCondicoesAberto.alvoId,
             );
           }}
-          onRemoverCondicao={(condicaoSessaoId) => {
+          onRemoverCondicao={(condicao) => {
             if (!modalCondicoesAberto) return;
-            void handleRemoverCondicao(
+            solicitarRemocaoCondicao(
               modalCondicoesAberto.alvoTipo,
               modalCondicoesAberto.alvoId,
-              condicaoSessaoId,
+              condicao,
             );
           }}
           opcoesDuracao={OPCOES_DURACAO_CONDICAO}
@@ -1716,8 +1758,8 @@ export default function SessaoCampanhaPage() {
             setEventoDetalheModal(null);
             setMotivoDesfazerEventoModal('');
           }}
-          onDesfazerEvento={(eventoId, motivo) =>
-            void handleDesfazerEvento(eventoId, motivo)
+          onDesfazerEvento={(evento, motivo) =>
+            solicitarDesfazerEvento(evento, motivo)
           }
           sessaoEncerrada={sessaoEncerrada}
           podeControlarSessao={podeControlarSessao}
@@ -1737,6 +1779,17 @@ export default function SessaoCampanhaPage() {
           }}
           onClose={() => setPersonagemEmEdicao(null)}
           onPersonagemAtualizado={handlePersonagemAtualizadoNoModal}
+        />
+
+        <ConfirmDialog
+          isOpen={confirmacaoAberta}
+          onClose={fecharConfirmacao}
+          onConfirm={confirmarAcao}
+          title={confirmacaoOptions?.title ?? ''}
+          description={confirmacaoOptions?.description ?? ''}
+          confirmLabel={confirmacaoOptions?.confirmLabel}
+          cancelLabel={confirmacaoOptions?.cancelLabel}
+          variant={confirmacaoOptions?.variant}
         />
       </div>
     </main>
