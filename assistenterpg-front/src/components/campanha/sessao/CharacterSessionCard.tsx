@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
@@ -119,9 +120,16 @@ export function CharacterSessionCard({
   >;
   let totalHabilidades = 0;
   let totalHabilidadesSustentadas = 0;
+  let totalHabilidadesInata = 0;
+  let totalHabilidadesNaoInatas = 0;
   for (const tecnica of tecnicasDisponiveis) {
     for (const habilidade of tecnica.habilidades) {
       totalHabilidades += 1;
+      if (tecnica.id === card.tecnicaInata?.id) {
+        totalHabilidadesInata += 1;
+      } else {
+        totalHabilidadesNaoInatas += 1;
+      }
       const baseAtiva = mapaSustentacoes.has(
         montarChaveSustentacaoAtiva(habilidade.id),
       );
@@ -134,6 +142,29 @@ export function CharacterSessionCard({
         totalHabilidadesSustentadas += 1;
       }
     }
+  }
+  const [tecnicaInataAberta, setTecnicaInataAberta] = useState(true);
+  const todasTecnicasAbertas = tecnicaInataAberta && tecnicasNaoInatasAbertas;
+  const acaoHabilidadeCard =
+    acaoHabilidadePendente &&
+    new RegExp(`^(usar|encerrar):${card.personagemSessaoId}:`).test(
+      acaoHabilidadePendente,
+    )
+      ? acaoHabilidadePendente
+      : null;
+  const mensagensStatus: string[] = [];
+  if (
+    campoRecursoPendenteCard ||
+    salvandoCardId === card.personagemCampanhaId
+  ) {
+    mensagensStatus.push('Atualizando recurso...');
+  }
+  if (acaoHabilidadeCard) {
+    mensagensStatus.push(
+      acaoHabilidadeCard.startsWith('encerrar:')
+        ? 'Encerrando sustentacao...'
+        : 'Aplicando habilidade...',
+    );
   }
 
   return (
@@ -179,7 +210,16 @@ export function CharacterSessionCard({
           </Badge>
           <p className="text-xs text-app-muted">
             Recursos completos indisponiveis para este personagem no momento.
+            Voce ainda pode acompanhar a iniciativa e informacoes basicas.
           </p>
+        </div>
+      ) : null}
+
+      {mensagensStatus.length > 0 ? (
+        <div className="rounded border border-app-border bg-app-surface px-2 py-1.5 text-[11px] text-app-muted space-y-1">
+          {mensagensStatus.map((mensagem) => (
+            <p key={mensagem}>{mensagem}</p>
+          ))}
         </div>
       ) : null}
 
@@ -216,33 +256,49 @@ export function CharacterSessionCard({
               <p className="text-xs text-app-muted">
                 Resumo rapido do personagem na sessao.
               </p>
-              <div className="session-chip-row">
-                <span className="session-chip">
-                  INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
-                </span>
-                <span className="session-chip">
-                  PV {recursos.pvAtual}/{recursos.pvMax}
-                </span>
-                <span className="session-chip">
-                  PE {recursos.peAtual}/{recursos.peMax}
-                </span>
-                <span className="session-chip">
-                  EA {recursos.eaAtual}/{recursos.eaMax}
-                </span>
-                <span className="session-chip">
-                  SAN {recursos.sanAtual}/{recursos.sanMax}
-                </span>
-                <span className="session-chip">
-                  Condicoes {totalCondicoesAtivasCard}
-                </span>
-                <span className="session-chip">
-                  Sustentacoes {totalSustentacoesAtivasCard}
-                </span>
-                <span className="session-chip">Tecnicas {totalTecnicasCard}</span>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[11px] font-semibold text-app-muted uppercase">
+                    Estado atual
+                  </p>
+                  <div className="session-chip-row">
+                    <span className="session-chip">
+                      INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
+                    </span>
+                    <span className="session-chip">
+                      PV {recursos.pvAtual}/{recursos.pvMax}
+                    </span>
+                    <span className="session-chip">
+                      SAN {recursos.sanAtual}/{recursos.sanMax}
+                    </span>
+                    <span className="session-chip">
+                      Condicoes {totalCondicoesAtivasCard}
+                    </span>
+                    <span className="session-chip">
+                      Sustentacoes {totalSustentacoesAtivasCard}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-app-muted uppercase">
+                    Capacidade
+                  </p>
+                  <div className="session-chip-row">
+                    <span className="session-chip">
+                      PE {recursos.peAtual}/{recursos.peMax}
+                    </span>
+                    <span className="session-chip">
+                      EA {recursos.eaAtual}/{recursos.eaMax}
+                    </span>
+                    <span className="session-chip">
+                      Tecnicas {totalTecnicasCard}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-app-muted">
+                    Tecnica principal: {resumoTecnica}
+                  </p>
+                </div>
               </div>
-              <p className="text-[11px] text-app-muted">
-                Tecnica principal: {resumoTecnica}
-              </p>
               {card.podeEditar ? (
                 <div className="flex items-center gap-2 flex-wrap">
                   <Button
@@ -288,27 +344,43 @@ export function CharacterSessionCard({
                     disabled={card.sustentacoesAtivas.length === 0}
                     className="h-3.5 w-3.5 rounded border border-app-border bg-app-surface"
                   />
-                  Mostrar apenas habilidades com sustentacao ativa (
-                  {card.sustentacoesAtivas.length})
+                  Somente sustentadas ({card.sustentacoesAtivas.length})
                 </label>
-                {mostrarSomenteSustentadasAtivas ? (
+                <div className="flex items-center gap-2">
+                  {mostrarSomenteSustentadasAtivas ? (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => onToggleMostrarSomenteSustentadas(false)}
+                    >
+                      Limpar filtro
+                    </Button>
+                  ) : null}
                   <Button
                     size="xs"
                     variant="ghost"
-                    onClick={() => onToggleMostrarSomenteSustentadas(false)}
+                    onClick={() => {
+                      const proximo = !todasTecnicasAbertas;
+                      setTecnicaInataAberta(proximo);
+                      onToggleTecnicasNaoInatas(proximo);
+                    }}
                   >
-                    Limpar filtro
+                    {todasTecnicasAbertas ? 'Recolher tudo' : 'Expandir tudo'}
                   </Button>
-                ) : null}
+                </div>
               </div>
               <p className="text-[11px] text-app-muted">
                 {mostrarSomenteSustentadasAtivas
                   ? `Mostrando ${totalHabilidadesSustentadas} de ${totalHabilidades} habilidades`
                   : `Total de habilidades: ${totalHabilidades}`}
               </p>
-              <details className="rounded border border-app-border p-2" open>
+              <details
+                className="rounded border border-app-border p-2"
+                open={tecnicaInataAberta}
+                onToggle={(event) => setTecnicaInataAberta(event.currentTarget.open)}
+              >
                 <summary className="cursor-pointer text-xs font-semibold text-app-fg">
-                  Tecnica inata
+                  Tecnica inata ({totalHabilidadesInata} habilidade(s))
                 </summary>
                 <div className="mt-2 space-y-2">
                   {card.tecnicaInata ? (
@@ -327,7 +399,7 @@ export function CharacterSessionCard({
                 onToggle={(event) => onToggleTecnicasNaoInatas(event.currentTarget.open)}
               >
                 <summary className="cursor-pointer text-xs font-semibold text-app-fg">
-                  Tecnicas nao inatas ({card.tecnicasNaoInatas.length})
+                  Tecnicas nao inatas ({card.tecnicasNaoInatas.length} tecnica(s) | {totalHabilidadesNaoInatas} habilidade(s))
                 </summary>
                 <div className="mt-2 space-y-2">
                   {card.tecnicasNaoInatas.length > 0 ? (
@@ -357,6 +429,14 @@ export function CharacterSessionCard({
                     card.personagemSessaoId,
                     sustentacao.id,
                   );
+                  const custoTotal =
+                    sustentacao.custoSustentacaoEA + sustentacao.custoSustentacaoPE;
+                  const custoBadgeColor =
+                    custoTotal >= 4 || sustentacao.custoSustentacaoPE > 0
+                      ? 'orange'
+                      : custoTotal >= 2
+                        ? 'yellow'
+                        : 'blue';
                   return (
                     <div
                       key={`sustentacao-${sustentacao.id}`}
@@ -374,7 +454,17 @@ export function CharacterSessionCard({
                             Ativa desde rodada {sustentacao.ativadaNaRodada}
                           </p>
                         </div>
-                        <Badge color="blue" size="sm">
+                        <Badge
+                          color={custoBadgeColor}
+                          size="sm"
+                          title={
+                            custoBadgeColor === 'orange'
+                              ? 'Custo alto por rodada'
+                              : custoBadgeColor === 'yellow'
+                                ? 'Custo moderado por rodada'
+                                : 'Custo por rodada'
+                          }
+                        >
                           {formatarCustos(
                             sustentacao.custoSustentacaoEA,
                             sustentacao.custoSustentacaoPE,
@@ -417,6 +507,9 @@ export function CharacterSessionCard({
         <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
           <div className="session-chip-row">
             <span className="session-chip">
+              INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
+            </span>
+            <span className="session-chip">
               PV {recursos.pvAtual}/{recursos.pvMax}
             </span>
             <span className="session-chip">
@@ -435,11 +528,9 @@ export function CharacterSessionCard({
               Sustentacoes {totalSustentacoesAtivasCard}
             </span>
           </div>
-          {card.podeEditar ? (
-            <Button variant="ghost" size="sm" onClick={onAbrirFichaCompleta}>
-              Abrir ficha completa
-            </Button>
-          ) : null}
+          <p className="text-[11px] text-app-muted">
+            Tecnica principal: {resumoTecnica}
+          </p>
         </div>
       ) : null}
     </Card>
