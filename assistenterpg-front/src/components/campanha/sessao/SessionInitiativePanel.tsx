@@ -43,13 +43,28 @@ export function SessionInitiativePanel({
   onMoverIniciativa,
   labelParticipanteIniciativa,
 }: SessionInitiativePanelProps) {
+  const indiceAtualValido =
+    typeof iniciativaIndiceAtual === 'number' &&
+    iniciativaIndiceAtual >= 0 &&
+    iniciativaIndiceAtual < iniciativaOrdem.length;
+  const turnoAtual = indiceAtualValido
+    ? iniciativaOrdem[iniciativaIndiceAtual]
+    : null;
   const indiceProximo =
     controleTurnosAtivo && iniciativaOrdem.length > 0
-      ? typeof iniciativaIndiceAtual === 'number'
+      ? indiceAtualValido
         ? (iniciativaIndiceAtual + 1) % iniciativaOrdem.length
         : 0
       : null;
+  const proximoParticipante =
+    indiceProximo !== null ? iniciativaOrdem[indiceProximo] : null;
   const mostrarAjudaReordenacao = podeControlarSessao && controleTurnosAtivo;
+  const turnoAtualResumo = turnoAtual
+    ? labelParticipanteIniciativa(turnoAtual)
+    : 'Aguardando inicio';
+  const proximoResumo = proximoParticipante
+    ? labelParticipanteIniciativa(proximoParticipante)
+    : '—';
 
   return (
     <SessionPanel
@@ -57,6 +72,15 @@ export function SessionInitiativePanel({
       subtitle="Arraste ou use as setas para reordenar os participantes."
     >
       <div className="session-box space-y-2">
+        {controleTurnosAtivo ? (
+          <div className="session-chip-row">
+            <span className="session-chip">Turno atual: {turnoAtualResumo}</span>
+            <span className="session-chip">Proximo: {proximoResumo}</span>
+            <span className="session-chip">
+              Total na fila: {iniciativaOrdem.length}
+            </span>
+          </div>
+        ) : null}
         {controleTurnosAtivo ? (
           <p className="text-xs text-app-muted">
             {iniciativaOrdem.length} participante(s) na fila de iniciativa.
@@ -83,11 +107,8 @@ export function SessionInitiativePanel({
         ) : (
           <div className="space-y-1.5">
             {iniciativaOrdem.map((participante, indice) => {
-              const emTurno = iniciativaIndiceAtual === indice;
-              const proximo =
-                indiceProximo !== null &&
-                indiceProximo === indice &&
-                iniciativaIndiceAtual !== null;
+              const emTurno = indiceAtualValido && iniciativaIndiceAtual === indice;
+              const proximo = indiceProximo !== null && indiceProximo === indice;
               const primeiro = indice === 0;
               const ultimo = indice === iniciativaOrdem.length - 1;
               const podeArrastar =
@@ -97,6 +118,7 @@ export function SessionInitiativePanel({
                 indiceIniciativaArrastado !== null &&
                 indiceIniciativaArrastado !== indice;
               const arrastando = indiceIniciativaArrastado === indice;
+              const nomeParticipante = labelParticipanteIniciativa(participante);
 
               return (
                 <div
@@ -139,7 +161,7 @@ export function SessionInitiativePanel({
                     <span className="session-iniciativa-pos">#{indice + 1}</span>
                     <div className="min-w-0">
                       <p className="truncate text-xs font-semibold text-app-fg">
-                        {labelParticipanteIniciativa(participante)}
+                        {nomeParticipante}
                       </p>
                       <div className="session-iniciativa-meta">
                         <span>INI {participante.valorIniciativa}</span>
@@ -161,6 +183,8 @@ export function SessionInitiativePanel({
                       <Button
                         variant="ghost"
                         size="sm"
+                        title={`Mover ${nomeParticipante} para cima`}
+                        aria-label={`Mover ${nomeParticipante} para cima`}
                         onClick={() => onMoverIniciativa(indice, 'SUBIR')}
                         disabled={sessaoEncerrada || reordenandoIniciativa || primeiro}
                       >
@@ -169,6 +193,8 @@ export function SessionInitiativePanel({
                       <Button
                         variant="ghost"
                         size="sm"
+                        title={`Mover ${nomeParticipante} para baixo`}
+                        aria-label={`Mover ${nomeParticipante} para baixo`}
                         onClick={() => onMoverIniciativa(indice, 'DESCER')}
                         disabled={sessaoEncerrada || reordenandoIniciativa || ultimo}
                       >

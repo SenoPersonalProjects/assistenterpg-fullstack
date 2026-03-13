@@ -831,17 +831,21 @@ body {
   border-radius: 0.56rem;
   background: var(--bg-surface);
   padding: 0.36rem 0.44rem;
+  transition: border-color 140ms ease, background-color 140ms ease,
+    box-shadow 140ms ease, transform 140ms ease;
 }
 
 .session-iniciativa-linha--hover {
   border-style: dashed;
   border-color: color-mix(in srgb, var(--info) 65%, var(--border-subtle));
   background: color-mix(in srgb, var(--info) 10%, transparent);
+  box-shadow: 0 10px 20px -20px rgba(8, 145, 178, 0.45);
 }
 
 .session-iniciativa-linha--turno {
   border-color: color-mix(in srgb, var(--success) 65%, var(--border-subtle));
-  background: color-mix(in srgb, var(--success) 14%, transparent);
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  box-shadow: 0 14px 28px -24px rgba(22, 163, 74, 0.6);
 }
 
 .session-iniciativa-linha--proximo {
@@ -850,8 +854,9 @@ body {
 }
 
 .session-iniciativa-linha--dragging {
-  opacity: 0.7;
+  opacity: 0.82;
   box-shadow: 0 12px 24px -20px rgba(15, 23, 42, 0.6);
+  transform: scale(1.01);
 }
 
 .session-iniciativa-handle {
@@ -865,6 +870,7 @@ body {
   color: var(--fg-muted);
   background: var(--bg-surface);
   cursor: grab;
+  transition: color 140ms ease, border-color 140ms ease;
 }
 
 .session-iniciativa-handle:active {
@@ -875,15 +881,33 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  height: 1.2rem;
+  min-width: 2.2rem;
+  height: 1.35rem;
   border-radius: 9999px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   color: var(--fg-muted);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
+}
+
+.session-iniciativa-linha--turno .session-iniciativa-pos {
+  border-color: color-mix(in srgb, var(--success) 70%, var(--border-subtle));
+  background: color-mix(in srgb, var(--success) 20%, var(--bg-surface));
+  color: var(--fg);
+  font-weight: 800;
+}
+
+.session-iniciativa-linha--proximo .session-iniciativa-pos {
+  border-color: color-mix(in srgb, var(--info) 60%, var(--border-subtle));
+  background: color-mix(in srgb, var(--info) 12%, var(--bg-surface));
+  color: var(--fg);
+}
+
+.session-iniciativa-linha--dragging .session-iniciativa-handle {
+  color: var(--fg);
+  cursor: grabbing;
 }
 
 .session-iniciativa-meta {
