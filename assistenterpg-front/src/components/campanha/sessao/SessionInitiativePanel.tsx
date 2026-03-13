@@ -3,19 +3,13 @@
 import type { DragEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { Badge } from '@/components/ui/Badge';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import type { ParticipanteIniciativaSessaoCampanha } from '@/lib/types';
 
 type SessionInitiativePanelProps = {
-  cenaLabel: string;
-  cenaNome: string | null;
   sessaoEncerrada: boolean;
-  totalParticipantesOnline: number;
-  totalParticipantes: number;
-  totalNpcs: number;
   controleTurnosAtivo: boolean;
-  rodadaAtual: number | null;
-  turnoAtualLabel: string | null;
   iniciativaOrdem: ParticipanteIniciativaSessaoCampanha[];
   iniciativaIndiceAtual: number | null;
   podeControlarSessao: boolean;
@@ -35,15 +29,8 @@ type SessionInitiativePanelProps = {
 };
 
 export function SessionInitiativePanel({
-  cenaLabel,
-  cenaNome,
   sessaoEncerrada,
-  totalParticipantesOnline,
-  totalParticipantes,
-  totalNpcs,
   controleTurnosAtivo,
-  rodadaAtual,
-  turnoAtualLabel,
   iniciativaOrdem,
   iniciativaIndiceAtual,
   podeControlarSessao,
@@ -56,122 +43,146 @@ export function SessionInitiativePanel({
   onMoverIniciativa,
   labelParticipanteIniciativa,
 }: SessionInitiativePanelProps) {
+  const indiceProximo =
+    controleTurnosAtivo && iniciativaOrdem.length > 0
+      ? typeof iniciativaIndiceAtual === 'number'
+        ? (iniciativaIndiceAtual + 1) % iniciativaOrdem.length
+        : 0
+      : null;
+  const mostrarAjudaReordenacao = podeControlarSessao && controleTurnosAtivo;
+
   return (
     <SessionPanel
-      title="Painel da sessao"
-      subtitle="Cena, status de combate e ordem de iniciativa."
+      title="Ordem de iniciativa"
+      subtitle="Arraste ou use as setas para reordenar os participantes."
     >
-      <p className="text-sm text-app-muted">Cena: {cenaLabel}</p>
-      {cenaNome ? <p className="text-xs text-app-muted">{cenaNome}</p> : null}
-      <p className="text-xs text-app-muted">
-        Status: {sessaoEncerrada ? 'Encerrada' : 'Ativa'} | Participantes online:{' '}
-        {totalParticipantesOnline}/{totalParticipantes}
-      </p>
-      <p className="text-xs text-app-muted">Aliados ou ameacas na cena: {totalNpcs}</p>
-
-      {controleTurnosAtivo ? (
-        <div className="session-box space-y-1">
-          <p className="text-sm text-app-fg">Rodada: {rodadaAtual ?? 1}</p>
-          <p className="text-sm text-app-fg">
-            Turno atual: {turnoAtualLabel ?? 'Sem turno definido'}
-          </p>
+      <div className="session-box space-y-2">
+        {controleTurnosAtivo ? (
           <p className="text-xs text-app-muted">
-            Ordem de iniciativa: {iniciativaOrdem.length} participante(s)
+            {iniciativaOrdem.length} participante(s) na fila de iniciativa.
           </p>
-          <p className="text-[11px] text-app-muted">
-            Regra: ao mover na ordem, a INI fica 1 ponto acima/abaixo do vizinho.
+        ) : (
+          <p className="text-xs text-app-muted">
+            Controle de turnos desativado. A iniciativa pode ser organizada para
+            referencia rapida.
           </p>
-          {iniciativaOrdem.length > 0 ? (
-            <div className="mt-2 space-y-1.5">
-              {iniciativaOrdem.map((participante, indice) => {
-                const emTurno = iniciativaIndiceAtual === indice;
-                const primeiro = indice === 0;
-                const ultimo = indice === iniciativaOrdem.length - 1;
-                const podeArrastar =
-                  podeControlarSessao && !sessaoEncerrada && !reordenandoIniciativa;
-                const hoverAtivo =
-                  indiceIniciativaHover === indice &&
-                  indiceIniciativaArrastado !== null &&
-                  indiceIniciativaArrastado !== indice;
+        )}
 
-                return (
-                  <div
-                    key={`${participante.tipoParticipante}-${participante.personagemSessaoId ?? participante.npcSessaoId ?? indice}`}
-                    draggable={podeArrastar}
-                    onDragStart={(event: DragEvent<HTMLDivElement>) => {
-                      if (!podeArrastar) return;
-                      onSetIndiceIniciativaArrastado(indice);
+        {mostrarAjudaReordenacao ? (
+          <details className="text-[11px] text-app-muted">
+            <summary className="cursor-pointer">Como funciona a reordenacao</summary>
+            <p className="mt-1">
+              Ao mover na ordem, a INI fica 1 ponto acima ou abaixo do vizinho.
+            </p>
+          </details>
+        ) : null}
+
+        {iniciativaOrdem.length === 0 ? (
+          <p className="text-sm text-app-muted">
+            Nenhum participante entrou na iniciativa ainda.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {iniciativaOrdem.map((participante, indice) => {
+              const emTurno = iniciativaIndiceAtual === indice;
+              const proximo =
+                indiceProximo !== null &&
+                indiceProximo === indice &&
+                iniciativaIndiceAtual !== null;
+              const primeiro = indice === 0;
+              const ultimo = indice === iniciativaOrdem.length - 1;
+              const podeArrastar =
+                podeControlarSessao && !sessaoEncerrada && !reordenandoIniciativa;
+              const hoverAtivo =
+                indiceIniciativaHover === indice &&
+                indiceIniciativaArrastado !== null &&
+                indiceIniciativaArrastado !== indice;
+              const arrastando = indiceIniciativaArrastado === indice;
+
+              return (
+                <div
+                  key={`${participante.tipoParticipante}-${participante.personagemSessaoId ?? participante.npcSessaoId ?? indice}`}
+                  draggable={podeArrastar}
+                  onDragStart={(event: DragEvent<HTMLDivElement>) => {
+                    if (!podeArrastar) return;
+                    onSetIndiceIniciativaArrastado(indice);
+                    onSetIndiceIniciativaHover(indice);
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', String(indice));
+                  }}
+                  onDragOver={(event: DragEvent<HTMLDivElement>) => {
+                    if (!podeArrastar) return;
+                    event.preventDefault();
+                    if (indiceIniciativaHover !== indice) {
                       onSetIndiceIniciativaHover(indice);
-                      event.dataTransfer.effectAllowed = 'move';
-                      event.dataTransfer.setData('text/plain', String(indice));
-                    }}
-                    onDragOver={(event: DragEvent<HTMLDivElement>) => {
-                      if (!podeArrastar) return;
-                      event.preventDefault();
-                      if (indiceIniciativaHover !== indice) {
-                        onSetIndiceIniciativaHover(indice);
-                      }
-                      event.dataTransfer.dropEffect = 'move';
-                    }}
-                    onDrop={(event: DragEvent<HTMLDivElement>) => {
-                      if (!podeArrastar) return;
-                      event.preventDefault();
-                      onDropIniciativa(indice);
-                    }}
-                    onDragEnd={() => {
-                      onSetIndiceIniciativaArrastado(null);
-                      onSetIndiceIniciativaHover(null);
-                    }}
-                    className={`session-iniciativa-linha${
-                      emTurno ? ' session-iniciativa-linha--turno' : ''
-                    }${hoverAtivo ? ' session-iniciativa-linha--hover' : ''}`}
-                  >
-                    <div className="min-w-0 flex items-center gap-2">
-                      <span className="session-iniciativa-handle">
-                        <Icon name="menu-vertical" className="h-3 w-3" />
-                      </span>
-                      <p className="truncate text-xs text-app-fg">
-                        <span className="font-semibold mr-1">#{indice + 1}</span>
+                    }
+                    event.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(event: DragEvent<HTMLDivElement>) => {
+                    if (!podeArrastar) return;
+                    event.preventDefault();
+                    onDropIniciativa(indice);
+                  }}
+                  onDragEnd={() => {
+                    onSetIndiceIniciativaArrastado(null);
+                    onSetIndiceIniciativaHover(null);
+                  }}
+                  className={`session-iniciativa-linha${
+                    emTurno ? ' session-iniciativa-linha--turno' : ''
+                  }${proximo ? ' session-iniciativa-linha--proximo' : ''}${
+                    hoverAtivo ? ' session-iniciativa-linha--hover' : ''
+                  }${arrastando ? ' session-iniciativa-linha--dragging' : ''}`}
+                >
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span className="session-iniciativa-handle">
+                      <Icon name="menu-vertical" className="h-3 w-3" />
+                    </span>
+                    <span className="session-iniciativa-pos">#{indice + 1}</span>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-app-fg">
                         {labelParticipanteIniciativa(participante)}
-                        <span className="ml-2 text-app-muted">
-                          INI {participante.valorIniciativa}
-                        </span>
                       </p>
-                      {emTurno ? (
-                        <span className="rounded border border-emerald-500/40 bg-emerald-500/12 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
-                          ⚡ Turno atual
-                        </span>
-                      ) : null}
-                    </div>
-                    {podeControlarSessao ? (
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onMoverIniciativa(indice, 'SUBIR')}
-                          disabled={sessaoEncerrada || reordenandoIniciativa || primeiro}
-                        >
-                          <Icon name="chevron-up" className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onMoverIniciativa(indice, 'DESCER')}
-                          disabled={sessaoEncerrada || reordenandoIniciativa || ultimo}
-                        >
-                          <Icon name="chevron-down" className="w-3.5 h-3.5" />
-                        </Button>
+                      <div className="session-iniciativa-meta">
+                        <span>INI {participante.valorIniciativa}</span>
+                        {emTurno ? (
+                          <Badge color="green" size="sm">
+                            Em turno
+                          </Badge>
+                        ) : null}
+                        {proximo ? (
+                          <Badge color="cyan" size="sm">
+                            Proximo
+                          </Badge>
+                        ) : null}
                       </div>
-                    ) : null}
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <p className="text-sm text-app-muted">Cena livre: sem contagem de rodadas/turnos.</p>
-      )}
+                  {podeControlarSessao ? (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onMoverIniciativa(indice, 'SUBIR')}
+                        disabled={sessaoEncerrada || reordenandoIniciativa || primeiro}
+                      >
+                        <Icon name="chevron-up" className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onMoverIniciativa(indice, 'DESCER')}
+                        disabled={sessaoEncerrada || reordenandoIniciativa || ultimo}
+                      >
+                        <Icon name="chevron-down" className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </SessionPanel>
   );
 }

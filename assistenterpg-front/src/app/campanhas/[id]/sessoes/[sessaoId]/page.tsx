@@ -1378,7 +1378,7 @@ export default function SessaoCampanhaPage() {
     <main className="session-page-shell min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-[1600px] space-y-4">
         <header className="session-hero flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-1">
             <h1 className="truncate text-2xl font-bold text-app-fg">{tituloSessao}</h1>
             <p className="text-sm text-app-muted">
               Sessao iniciada em {formatarDataHora(detalhe.iniciadoEm)}
@@ -1389,29 +1389,13 @@ export default function SessaoCampanhaPage() {
                 {detalhe.encerradoEm ? formatarDataHora(detalhe.encerradoEm) : '-'}
               </p>
             ) : null}
-            <div className="session-chip-row mt-2.5">
-              <span className="session-chip">
-                Cena: {labelCena(detalhe.cenaAtual.tipo)}
-              </span>
-              <span className="session-chip">
-                Participantes online: {totalParticipantesOnline}/{participantes.length}
-              </span>
-              <span className="session-chip">
-                Aliados ou ameacas: {npcs.length}
-              </span>
-              {detalhe.controleTurnosAtivo ? (
-                <span className="session-chip">
-                  Rodada {detalhe.rodadaAtual ?? 1}
-                </span>
-              ) : null}
-            </div>
+            <p className="text-xs text-app-muted">
+              Participantes online: {totalParticipantesOnline}/{participantes.length}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge color={sessaoEncerrada ? 'gray' : 'green'} size="md">
               {sessaoEncerrada ? 'Sessao encerrada' : 'Sessao ativa'}
-            </Badge>
-            <Badge color={socketConectado ? 'cyan' : 'yellow'} size="md">
-              {socketConectado ? 'Tempo real' : 'Fallback polling'}
             </Badge>
             <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>
               <Icon name="back" className="w-4 h-4 mr-2" />
@@ -1493,6 +1477,7 @@ export default function SessaoCampanhaPage() {
                     title="Mostrar painel esquerdo"
                   >
                     <Icon name="chevron-right" className="h-3.5 w-3.5" />
+                    <span className="ml-1 hidden md:inline">Mostrar painel esquerdo</span>
                   </Button>
                 ) : (
                   <span />
@@ -1505,6 +1490,7 @@ export default function SessaoCampanhaPage() {
                     title="Mostrar painel direito"
                   >
                     <Icon name="chevron-left" className="h-3.5 w-3.5" />
+                    <span className="ml-1 hidden md:inline">Mostrar painel lateral</span>
                   </Button>
                 ) : null}
               </div>
@@ -1512,15 +1498,8 @@ export default function SessaoCampanhaPage() {
             {podeControlarSessao ? renderCardsSessao() : null}
 
             <SessionInitiativePanel
-              cenaLabel={labelCena(detalhe.cenaAtual.tipo)}
-              cenaNome={detalhe.cenaAtual.nome}
               sessaoEncerrada={sessaoEncerrada}
-              totalParticipantesOnline={totalParticipantesOnline}
-              totalParticipantes={participantes.length}
-              totalNpcs={npcs.length}
               controleTurnosAtivo={detalhe.controleTurnosAtivo}
-              rodadaAtual={detalhe.rodadaAtual}
-              turnoAtualLabel={turnoAtualLabel}
               iniciativaOrdem={iniciativaOrdem}
               iniciativaIndiceAtual={iniciativaIndiceAtual}
               podeControlarSessao={podeControlarSessao}
@@ -1573,7 +1552,7 @@ export default function SessaoCampanhaPage() {
               subtitle="Chat, eventos e participantes da sessao."
               right={
                 <Badge color={socketConectado ? 'cyan' : 'yellow'} size="sm">
-                  {socketConectado ? 'Tempo real' : 'Fallback polling'}
+                  {socketConectado ? 'Tempo real' : 'Atualizacao periodica'}
                 </Badge>
               }
             >
@@ -1608,23 +1587,15 @@ export default function SessaoCampanhaPage() {
                 ) : null}
 
                 {abaPainelDireitoAtiva === 'chat' ? (
-                  <div className="space-y-2">
-                    <ChatPanel
-                      chat={chat}
-                      mensagem={mensagem}
-                      enviandoMensagem={enviandoMensagem}
-                      sessaoEncerrada={sessaoEncerrada}
-                      onMensagemChange={setMensagem}
-                      onEnviarMensagem={() => void handleEnviarMensagem()}
-                      fimChatRef={fimChatRef}
-                    />
-                    <Button
-                      onClick={() => void handleEnviarMensagem()}
-                      disabled={sessaoEncerrada || enviandoMensagem || !mensagem.trim()}
-                    >
-                      {enviandoMensagem ? 'Enviando...' : 'Enviar'}
-                    </Button>
-                  </div>
+                  <ChatPanel
+                    chat={chat}
+                    mensagem={mensagem}
+                    enviandoMensagem={enviandoMensagem}
+                    sessaoEncerrada={sessaoEncerrada}
+                    onMensagemChange={setMensagem}
+                    onEnviarMensagem={() => void handleEnviarMensagem()}
+                    fimChatRef={fimChatRef}
+                  />
                 ) : null}
               </SessionSidebarTabs>
             </SessionPanel>

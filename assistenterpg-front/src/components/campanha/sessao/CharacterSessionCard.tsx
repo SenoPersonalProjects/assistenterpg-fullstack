@@ -7,8 +7,10 @@ import type {
 } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { SessionCharacterResourceCard } from '@/components/campanha/sessao/SessionCharacterResourceCard';
 import { SessionTabs } from '@/components/campanha/sessao/SessionTabs';
+import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 
 export type CampoAjusteRecursoCard = 'pv' | 'pe' | 'ea' | 'san';
 export type AbaDetalheCard =
@@ -93,6 +95,9 @@ export function CharacterSessionCard({
   formatarCustos,
 }: CharacterSessionCardProps) {
   const recursos = card.recursos;
+  const resumoTecnica = card.tecnicaInata?.nome
+    ? textoSeguro(card.tecnicaInata.nome)
+    : 'Sem tecnica inata';
 
   return (
     <Card className="session-panel space-y-3">
@@ -131,9 +136,14 @@ export function CharacterSessionCard({
       )}
 
       {!recursos ? (
-        <p className="text-xs text-app-muted">
-          Visao resumida: apenas nome do jogador e personagem.
-        </p>
+        <div className="space-y-2">
+          <Badge size="sm" color="gray">
+            Somente leitura
+          </Badge>
+          <p className="text-xs text-app-muted">
+            Recursos completos indisponiveis para este personagem no momento.
+          </p>
+        </div>
       ) : null}
 
       {recursos && cardRecursosExpandido ? (
@@ -167,7 +177,34 @@ export function CharacterSessionCard({
           {abaDetalheCard === 'RESUMO' ? (
             <div className="space-y-2 rounded border border-app-border p-2">
               <p className="text-xs text-app-muted">
-                Aba operacional resumida do personagem na sessao.
+                Resumo rapido do personagem na sessao.
+              </p>
+              <div className="session-chip-row">
+                <span className="session-chip">
+                  INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
+                </span>
+                <span className="session-chip">
+                  PV {recursos.pvAtual}/{recursos.pvMax}
+                </span>
+                <span className="session-chip">
+                  PE {recursos.peAtual}/{recursos.peMax}
+                </span>
+                <span className="session-chip">
+                  EA {recursos.eaAtual}/{recursos.eaMax}
+                </span>
+                <span className="session-chip">
+                  SAN {recursos.sanAtual}/{recursos.sanMax}
+                </span>
+                <span className="session-chip">
+                  Condicoes {totalCondicoesAtivasCard}
+                </span>
+                <span className="session-chip">
+                  Sustentacoes {totalSustentacoesAtivasCard}
+                </span>
+                <span className="session-chip">Tecnicas {totalTecnicasCard}</span>
+              </div>
+              <p className="text-[11px] text-app-muted">
+                Tecnica principal: {resumoTecnica}
               </p>
               {card.podeEditar ? (
                 <div className="flex items-center gap-2 flex-wrap">
@@ -178,6 +215,13 @@ export function CharacterSessionCard({
                     disabled={sessaoEncerrada || !card.recursos}
                   >
                     Ajustes narrativos
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onAbrirFichaCompleta}
+                  >
+                    Abrir ficha completa
                   </Button>
                 </div>
               ) : null}
@@ -205,7 +249,8 @@ export function CharacterSessionCard({
                   disabled={card.sustentacoesAtivas.length === 0}
                   className="h-3.5 w-3.5 rounded border border-app-border bg-app-surface"
                 />
-                Somente sustentadas ativas ({card.sustentacoesAtivas.length})
+                Mostrar apenas habilidades com sustentacao ativa (
+                {card.sustentacoesAtivas.length})
               </label>
               <details className="rounded border border-app-border p-2" open>
                 <summary className="cursor-pointer text-xs font-semibold text-app-fg">
@@ -222,7 +267,7 @@ export function CharacterSessionCard({
                 </div>
               </details>
 
-              <details className="rounded border border-app-border p-2" open>
+              <details className="rounded border border-app-border p-2">
                 <summary className="cursor-pointer text-xs font-semibold text-app-fg">
                   Tecnicas nao inatas ({card.tecnicasNaoInatas.length})
                 </summary>
@@ -304,15 +349,33 @@ export function CharacterSessionCard({
       ) : null}
 
       {recursos && !cardRecursosExpandido ? (
-        <p className="text-[11px] text-app-muted">
-          Card resumido ativo. Abra para ver condicoes, tecnicas e sustentacoes.
-        </p>
-      ) : null}
-
-      {card.podeEditar ? (
-        <Button variant="ghost" size="sm" onClick={onAbrirFichaCompleta}>
-          Abrir ficha completa
-        </Button>
+        <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
+          <div className="session-chip-row">
+            <span className="session-chip">
+              PV {recursos.pvAtual}/{recursos.pvMax}
+            </span>
+            <span className="session-chip">
+              PE {recursos.peAtual}/{recursos.peMax}
+            </span>
+            <span className="session-chip">
+              EA {recursos.eaAtual}/{recursos.eaMax}
+            </span>
+            <span className="session-chip">
+              SAN {recursos.sanAtual}/{recursos.sanMax}
+            </span>
+            <span className="session-chip">
+              Condicoes {totalCondicoesAtivasCard}
+            </span>
+            <span className="session-chip">
+              Sustentacoes {totalSustentacoesAtivasCard}
+            </span>
+          </div>
+          {card.podeEditar ? (
+            <Button variant="ghost" size="sm" onClick={onAbrirFichaCompleta}>
+              Abrir ficha completa
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </Card>
   );

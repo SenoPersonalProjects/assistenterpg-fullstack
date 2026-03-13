@@ -41,38 +41,46 @@ export function SessionOperationalBar({
 }: SessionOperationalBarProps) {
   return (
     <section className={`session-operational-bar ${className}`}>
-      <div className="session-operational-bar__context">
-        <p className="session-operational-bar__scene">
-          Cena: <strong>{cenaLabel}</strong>
-          {cenaNome ? ` — ${cenaNome}` : ''}
-        </p>
-        <p className="session-operational-bar__turn">
-          {controleTurnosAtivo ? (
-            <>
-              Rodada: <strong>{rodadaAtual ?? 1}</strong>
-              {' | '}
-              Turno: <strong>{turnoAtualLabel ?? 'Sem turno definido'}</strong>
-              {proximoTurnoLabel ? (
-                <>
-                  {' | '}
-                  Proximo: <strong>{proximoTurnoLabel}</strong>
-                </>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <strong>Cena livre</strong> (sem controle de turnos)
-            </>
-          )}
-        </p>
+      <div className="session-operational-bar__stats">
+        <div className="session-operational-bar__block">
+          <span className="session-operational-bar__label">Cena</span>
+          <span className="session-operational-bar__value">
+            {cenaLabel}
+            {cenaNome ? ` — ${cenaNome}` : ''}
+          </span>
+        </div>
+        {controleTurnosAtivo ? (
+          <>
+            <div className="session-operational-bar__block">
+              <span className="session-operational-bar__label">Rodada</span>
+              <span className="session-operational-bar__value">
+                {rodadaAtual ?? 1}
+              </span>
+            </div>
+            <div className="session-operational-bar__block session-operational-bar__block--turno">
+              <span className="session-operational-bar__label">Turno atual</span>
+              <span className="session-operational-bar__value">
+                {turnoAtualLabel ?? 'Sem turno definido'}
+              </span>
+            </div>
+            <div className="session-operational-bar__block session-operational-bar__block--proximo">
+              <span className="session-operational-bar__label">Proximo</span>
+              <span className="session-operational-bar__value">
+                {proximoTurnoLabel ?? '—'}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="session-operational-bar__block session-operational-bar__block--turno">
+            <span className="session-operational-bar__label">Modo</span>
+            <span className="session-operational-bar__value">Cena livre</span>
+          </div>
+        )}
       </div>
 
       <div className="session-operational-bar__meta">
-        <Badge color={sessaoEncerrada ? 'gray' : 'green'} size="sm">
-          Sessao: {sessaoEncerrada ? 'Encerrada' : 'Ativa'}
-        </Badge>
         <Badge color={realtimeAtivo ? 'cyan' : 'yellow'} size="sm">
-          Sync: {realtimeAtivo ? 'Real-time' : 'Fallback'}
+          {realtimeAtivo ? 'Tempo real' : 'Atualizacao periodica'}
         </Badge>
       </div>
 
@@ -86,6 +94,7 @@ export function SessionOperationalBar({
           >
             <Icon name="chevron-left" className="mr-1 h-3.5 w-3.5" />
             {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar'}
+            <span className="session-operational-bar__shortcut">Shift + ,</span>
           </Button>
           <Button
             variant="secondary"
@@ -95,6 +104,7 @@ export function SessionOperationalBar({
           >
             <Icon name="skip-forward" className="mr-1 h-3.5 w-3.5" />
             {acaoTurnoPendente === 'PULAR' ? 'Pulando...' : 'Pular'}
+            <span className="session-operational-bar__shortcut">Shift + /</span>
           </Button>
           <Button
             variant="primary"
@@ -104,6 +114,7 @@ export function SessionOperationalBar({
           >
             <Icon name="forward" className="mr-1 h-3.5 w-3.5" />
             {acaoTurnoPendente === 'AVANCAR' ? 'Avancando...' : 'Avancar'}
+            <span className="session-operational-bar__shortcut">.</span>
           </Button>
         </div>
       ) : null}

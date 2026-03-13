@@ -2,6 +2,7 @@
 
 import type { RefObject } from 'react';
 import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import type { MensagemChatSessao } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
@@ -25,6 +26,9 @@ export function ChatPanel({
   onEnviarMensagem,
   fimChatRef,
 }: ChatPanelProps) {
+  const podeEnviar =
+    !sessaoEncerrada && !enviandoMensagem && mensagem.trim().length > 0;
+
   return (
     <div className="space-y-2">
       <div className="h-[420px] overflow-y-auto rounded border border-app-border p-3 space-y-2 bg-app-bg">
@@ -67,6 +71,10 @@ export function ChatPanel({
           }
         }}
       />
+
+      <Button onClick={onEnviarMensagem} disabled={!podeEnviar}>
+        {enviandoMensagem ? 'Enviando...' : 'Enviar'}
+      </Button>
     </div>
   );
 }

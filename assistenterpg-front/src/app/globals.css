@@ -562,6 +562,46 @@ body {
   line-height: 1.3;
 }
 
+.session-operational-bar__stats {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.session-operational-bar__block {
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.7rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--bg-surface);
+  display: grid;
+  gap: 0.15rem;
+}
+
+.session-operational-bar__block--turno {
+  border-color: color-mix(in srgb, var(--success) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--success) 8%, var(--bg-surface));
+}
+
+.session-operational-bar__block--proximo {
+  border-color: color-mix(in srgb, var(--info) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--info) 8%, var(--bg-surface));
+}
+
+.session-operational-bar__label {
+  color: var(--fg-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.session-operational-bar__value {
+  color: var(--fg);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .session-operational-bar__meta {
   display: flex;
   flex-wrap: wrap;
@@ -569,11 +609,42 @@ body {
   gap: 0.42rem;
 }
 
+.session-operational-bar__shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  padding: 0 0.3rem;
+  margin-left: 0.25rem;
+  background: var(--bg-surface);
+  color: var(--fg-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
 .session-operational-bar__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.34rem;
+}
+
+@media (max-width: 640px) {
+  .session-operational-bar__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .session-operational-bar__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .session-operational-bar__actions .session-operational-bar__shortcut {
+    display: none;
+  }
 }
 
 .session-tabs {
@@ -691,6 +762,16 @@ body {
   background: color-mix(in srgb, var(--success) 14%, transparent);
 }
 
+.session-iniciativa-linha--proximo {
+  border-color: color-mix(in srgb, var(--info) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--info) 7%, transparent);
+}
+
+.session-iniciativa-linha--dragging {
+  opacity: 0.7;
+  box-shadow: 0 12px 24px -20px rgba(15, 23, 42, 0.6);
+}
+
 .session-iniciativa-handle {
   display: inline-flex;
   align-items: center;
@@ -701,4 +782,34 @@ body {
   border-radius: 0.35rem;
   color: var(--fg-muted);
   background: var(--bg-surface);
+  cursor: grab;
+}
+
+.session-iniciativa-handle:active {
+  cursor: grabbing;
+}
+
+.session-iniciativa-pos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 1.2rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--fg-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.session-iniciativa-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--fg-muted);
+  font-size: 0.65rem;
+  line-height: 1.2;
 }
