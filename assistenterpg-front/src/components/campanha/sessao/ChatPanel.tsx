@@ -10,6 +10,7 @@ import { formatarDataHora } from '@/lib/utils/formatters';
 
 const LIMIAR_AGRUPAMENTO_MS = 5 * 60 * 1000;
 const ALTURA_MAX_TEXTAREA = 180;
+const LIMITE_MENSAGEM_CHAT = 100;
 
 type ChatPanelProps = {
   chat: MensagemChatSessao[];
@@ -195,7 +196,7 @@ export function ChatPanel({
           ref={textareaRef}
           value={mensagem}
           onChange={(event) => onMensagemChange(event.target.value)}
-          maxLength={1000}
+          maxLength={LIMITE_MENSAGEM_CHAT}
           disabled={sessaoEncerrada || enviandoMensagem}
           rows={2}
           placeholder="Digite uma mensagem... (Enter envia, Shift+Enter quebra linha)"

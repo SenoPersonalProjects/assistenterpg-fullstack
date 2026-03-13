@@ -943,6 +943,7 @@ body {
 .session-chat__scroll {
   height: 420px;
   overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid var(--border-subtle);
   border-radius: 0.7rem;
   padding: 0.7rem;
@@ -962,6 +963,7 @@ body {
   flex-direction: column;
   gap: 0.2rem;
   max-width: 80%;
+  min-width: 0;
   align-self: flex-start;
 }
 
@@ -1001,6 +1003,7 @@ body {
   background: var(--bg-surface);
   padding: 0.45rem 0.6rem;
   border-radius: 0.75rem;
+  max-width: 100%;
 }
 
 .session-chat__message--self .session-chat__bubble {
@@ -1013,6 +1016,8 @@ body {
   color: var(--fg);
   line-height: 1.35;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .session-chat__input-row {
