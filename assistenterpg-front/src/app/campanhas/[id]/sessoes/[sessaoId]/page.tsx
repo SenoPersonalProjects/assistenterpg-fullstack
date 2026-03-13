@@ -797,105 +797,121 @@ export default function SessaoCampanhaPage() {
     alvoId: number,
     nomeAlvo: string,
     condicoesAtivas: SessaoCampanhaDetalhe['cards'][number]['condicoesAtivas'],
+    modo: 'inline' | 'accordion' = 'accordion',
   ) => {
     const form = obterFormCondicaoAlvo(alvoTipo, alvoId);
     const chaveAplicar = chaveAcaoAplicarCondicao(alvoTipo, alvoId);
+    const Conteudo = (
+      <div className="mt-2 space-y-2">
+        {condicoesAtivas.length === 0 ? (
+          <p className="text-[11px] text-app-muted">
+            Nenhuma condicao ativa neste alvo.
+          </p>
+        ) : (
+          condicoesAtivas.map((condicao) => {
+            const chaveRemover = chaveAcaoRemoverCondicao(condicao.id);
+            return (
+              <div
+                key={`condicao-ativa-${condicao.id}`}
+                className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-app-fg">{condicao.nome}</p>
+                  <span className="text-[10px] text-app-muted">
+                    {condicao.automatica ? 'Automatica' : 'Manual'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-app-muted">
+                  {descreverDuracaoCondicao(
+                    condicao.duracaoModo,
+                    condicao.duracaoValor,
+                    condicao.restanteDuracao,
+                  )}
+                </p>
+                {condicao.origemDescricao ? (
+                  <p className="text-[11px] text-app-muted">
+                    Origem: {condicao.origemDescricao}
+                  </p>
+                ) : null}
+                {condicao.observacao ? (
+                  <p className="text-[11px] text-app-muted">{condicao.observacao}</p>
+                ) : null}
+                {podeControlarSessao ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      void handleRemoverCondicao(alvoTipo, alvoId, condicao.id)
+                    }
+                    disabled={sessaoEncerrada || acaoCondicaoPendente === chaveRemover}
+                  >
+                    {acaoCondicaoPendente === chaveRemover
+                      ? 'Removendo...'
+                      : 'Remover condicao'}
+                  </Button>
+                ) : null}
+              </div>
+            );
+          })
+        )}
+
+        {podeControlarSessao ? (
+          <div className="rounded border border-app-border bg-app-bg p-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setModalCondicoesAberto({
+                    alvoTipo,
+                    alvoId,
+                    nomeAlvo,
+                    condicoesAtivas,
+                  })
+                }
+                disabled={sessaoEncerrada}
+              >
+                Gerenciar condicoes
+              </Button>
+              {form.condicaoId ? (
+                <span className="text-[11px] text-app-muted">
+                  Selecionada:{' '}
+                  {textoSeguro(
+                    catalogoCondicoes.find((item) => String(item.id) === form.condicaoId)
+                      ?.nome ?? 'Condicao',
+                  )}
+                </span>
+              ) : (
+                <span className="text-[11px] text-app-muted">
+                  Abra o modal para aplicar/remover com busca rapida.
+                </span>
+              )}
+              {acaoCondicaoPendente === chaveAplicar ? (
+                <span className="text-[11px] text-app-muted">Aplicando...</span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+
+    if (modo === 'inline') {
+      return (
+        <div className="rounded border border-app-border p-2">
+          <p className="text-xs font-semibold text-app-fg">
+            Condicoes da sessao ({condicoesAtivas.length})
+          </p>
+          {Conteudo}
+        </div>
+      );
+    }
 
     return (
       <details className="rounded border border-app-border p-2">
         <summary className="cursor-pointer text-xs font-semibold text-app-fg">
           Condicoes da sessao ({condicoesAtivas.length})
         </summary>
-        <div className="mt-2 space-y-2">
-          {condicoesAtivas.length === 0 ? (
-            <p className="text-[11px] text-app-muted">
-              Nenhuma condicao ativa neste alvo.
-            </p>
-          ) : (
-            condicoesAtivas.map((condicao) => {
-              const chaveRemover = chaveAcaoRemoverCondicao(condicao.id);
-              return (
-                <div
-                  key={`condicao-ativa-${condicao.id}`}
-                  className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-app-fg">{condicao.nome}</p>
-                    <span className="text-[10px] text-app-muted">
-                      {condicao.automatica ? 'Automatica' : 'Manual'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-app-muted">
-                    {descreverDuracaoCondicao(
-                      condicao.duracaoModo,
-                      condicao.duracaoValor,
-                      condicao.restanteDuracao,
-                    )}
-                  </p>
-                  {condicao.origemDescricao ? (
-                    <p className="text-[11px] text-app-muted">
-                      Origem: {condicao.origemDescricao}
-                    </p>
-                  ) : null}
-                  {condicao.observacao ? (
-                    <p className="text-[11px] text-app-muted">{condicao.observacao}</p>
-                  ) : null}
-                  {podeControlarSessao ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        void handleRemoverCondicao(alvoTipo, alvoId, condicao.id)
-                      }
-                      disabled={sessaoEncerrada || acaoCondicaoPendente === chaveRemover}
-                    >
-                      {acaoCondicaoPendente === chaveRemover
-                        ? 'Removendo...'
-                        : 'Remover condicao'}
-                    </Button>
-                  ) : null}
-                </div>
-              );
-            })
-          )}
-
-          {podeControlarSessao ? (
-            <div className="rounded border border-app-border bg-app-bg p-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() =>
-                    setModalCondicoesAberto({
-                      alvoTipo,
-                      alvoId,
-                      nomeAlvo,
-                      condicoesAtivas,
-                    })
-                  }
-                  disabled={sessaoEncerrada}
-                >
-                  Gerenciar condicoes
-                </Button>
-                {form.condicaoId ? (
-                  <span className="text-[11px] text-app-muted">
-                    Selecionada: {textoSeguro(
-                      catalogoCondicoes.find((item) => String(item.id) === form.condicaoId)
-                        ?.nome ?? 'Condicao',
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-app-muted">
-                    Abra o modal para aplicar/remover com busca rapida.
-                  </span>
-                )}
-                {acaoCondicaoPendente === chaveAplicar ? (
-                  <span className="text-[11px] text-app-muted">Aplicando...</span>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-        </div>
+        {Conteudo}
       </details>
     );
   };

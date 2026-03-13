@@ -49,6 +49,7 @@ type CharacterSessionCardProps = {
     alvoId: number,
     nomeAlvo: string,
     condicoesAtivas: CondicaoAtivaSessaoCampanha[],
+    modo?: 'inline' | 'accordion',
   ) => ReactNode;
   renderTecnica: (
     tecnica: NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>,
@@ -65,6 +66,13 @@ function montarChaveEncerrarSustentacao(
   sustentacaoId: number,
 ): string {
   return `encerrar:${personagemSessaoId}:${sustentacaoId}`;
+}
+
+function montarChaveSustentacaoAtiva(
+  habilidadeTecnicaId: number,
+  variacaoHabilidadeId?: number | null,
+): string {
+  return `${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
 }
 
 export function CharacterSessionCard({
@@ -98,6 +106,38 @@ export function CharacterSessionCard({
   const resumoTecnica = card.tecnicaInata?.nome
     ? textoSeguro(card.tecnicaInata.nome)
     : 'Sem tecnica inata';
+  const mapaSustentacoes = new Map<string, number>();
+  for (const sustentacao of card.sustentacoesAtivas) {
+    const chave = montarChaveSustentacaoAtiva(
+      sustentacao.habilidadeTecnicaId,
+      sustentacao.variacaoHabilidadeId,
+    );
+    mapaSustentacoes.set(chave, (mapaSustentacoes.get(chave) ?? 0) + 1);
+  }
+  const tecnicasDisponiveis = [
+    card.tecnicaInata,
+    ...card.tecnicasNaoInatas,
+  ].filter(Boolean) as Array<
+    NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>
+  >;
+  let totalHabilidades = 0;
+  let totalHabilidadesSustentadas = 0;
+  for (const tecnica of tecnicasDisponiveis) {
+    for (const habilidade of tecnica.habilidades) {
+      totalHabilidades += 1;
+      const baseAtiva = mapaSustentacoes.has(
+        montarChaveSustentacaoAtiva(habilidade.id),
+      );
+      const variacaoAtiva = habilidade.variacoes.some((variacao) =>
+        mapaSustentacoes.has(
+          montarChaveSustentacaoAtiva(habilidade.id, variacao.id),
+        ),
+      );
+      if (baseAtiva || variacaoAtiva) {
+        totalHabilidadesSustentadas += 1;
+      }
+    }
+  }
 
   return (
     <Card className="session-panel space-y-3">
@@ -152,12 +192,6 @@ export function CharacterSessionCard({
             tabs={[
               { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
               {
-                id: 'CONDICOES',
-                label: 'Condicoes',
-                icon: 'status',
-                count: totalCondicoesAtivasCard,
-              },
-              {
                 id: 'TECNICAS',
                 label: 'Tecnicas',
                 icon: 'technique',
@@ -168,6 +202,12 @@ export function CharacterSessionCard({
                 label: 'Sustentacoes',
                 icon: 'energy',
                 count: totalSustentacoesAtivasCard,
+              },
+              {
+                id: 'CONDICOES',
+                label: 'Condicoes',
+                icon: 'status',
+                count: totalCondicoesAtivasCard,
               },
             ]}
             activeId={abaDetalheCard}
@@ -234,24 +274,41 @@ export function CharacterSessionCard({
                 card.personagemSessaoId,
                 card.nomePersonagem,
                 card.condicoesAtivas,
+                'inline',
               )
             : null}
 
           {abaDetalheCard === 'TECNICAS' ? (
             <div className="space-y-2">
-              <label className="inline-flex items-center gap-2 text-[11px] text-app-muted">
-                <input
-                  type="checkbox"
-                  checked={mostrarSomenteSustentadasAtivas}
-                  onChange={(event) =>
-                    onToggleMostrarSomenteSustentadas(event.target.checked)
-                  }
-                  disabled={card.sustentacoesAtivas.length === 0}
-                  className="h-3.5 w-3.5 rounded border border-app-border bg-app-surface"
-                />
-                Mostrar apenas habilidades com sustentacao ativa (
-                {card.sustentacoesAtivas.length})
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="inline-flex items-center gap-2 text-[11px] text-app-muted">
+                  <input
+                    type="checkbox"
+                    checked={mostrarSomenteSustentadasAtivas}
+                    onChange={(event) =>
+                      onToggleMostrarSomenteSustentadas(event.target.checked)
+                    }
+                    disabled={card.sustentacoesAtivas.length === 0}
+                    className="h-3.5 w-3.5 rounded border border-app-border bg-app-surface"
+                  />
+                  Mostrar apenas habilidades com sustentacao ativa (
+                  {card.sustentacoesAtivas.length})
+                </label>
+                {mostrarSomenteSustentadasAtivas ? (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => onToggleMostrarSomenteSustentadas(false)}
+                  >
+                    Limpar filtro
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-[11px] text-app-muted">
+                {mostrarSomenteSustentadasAtivas
+                  ? `Mostrando ${totalHabilidadesSustentadas} de ${totalHabilidades} habilidades`
+                  : `Total de habilidades: ${totalHabilidades}`}
+              </p>
               <details className="rounded border border-app-border p-2" open>
                 <summary className="cursor-pointer text-xs font-semibold text-app-fg">
                   Tecnica inata
@@ -302,42 +359,49 @@ export function CharacterSessionCard({
                   return (
                     <div
                       key={`sustentacao-${sustentacao.id}`}
-                      className="rounded border border-app-border bg-app-surface px-2 py-1.5 flex items-center justify-between gap-2"
+                      className="rounded border border-app-border bg-app-surface px-2 py-2 space-y-2"
                     >
-                      <div>
-                        <p className="text-xs font-semibold text-app-fg">
-                          {sustentacao.nomeHabilidade}
-                          {sustentacao.nomeVariacao
-                            ? ` (${sustentacao.nomeVariacao})`
-                            : ''}
-                        </p>
-                        <p className="text-[11px] text-app-muted">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold text-app-fg">
+                            {sustentacao.nomeHabilidade}
+                            {sustentacao.nomeVariacao
+                              ? ` (${sustentacao.nomeVariacao})`
+                              : ''}
+                          </p>
+                          <p className="text-[11px] text-app-muted">
+                            Ativa desde rodada {sustentacao.ativadaNaRodada}
+                          </p>
+                        </div>
+                        <Badge color="blue" size="sm">
                           {formatarCustos(
                             sustentacao.custoSustentacaoEA,
                             sustentacao.custoSustentacaoPE,
                           )}
-                          /rodada | Ativa desde rodada {sustentacao.ativadaNaRodada}
-                        </p>
+                          /rodada
+                        </Badge>
                       </div>
                       {card.podeEditar ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() =>
-                            onEncerrarSustentacao(
-                              card.personagemSessaoId,
-                              sustentacao.id,
-                            )
-                          }
-                          disabled={
-                            sessaoEncerrada ||
-                            acaoHabilidadePendente === chaveEncerrar
-                          }
-                        >
-                          {acaoHabilidadePendente === chaveEncerrar
-                            ? 'Encerrando...'
-                            : 'Encerrar'}
-                        </Button>
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              onEncerrarSustentacao(
+                                card.personagemSessaoId,
+                                sustentacao.id,
+                              )
+                            }
+                            disabled={
+                              sessaoEncerrada ||
+                              acaoHabilidadePendente === chaveEncerrar
+                            }
+                          >
+                            {acaoHabilidadePendente === chaveEncerrar
+                              ? 'Encerrando...'
+                              : 'Encerrar'}
+                          </Button>
+                        </div>
                       ) : null}
                     </div>
                   );
