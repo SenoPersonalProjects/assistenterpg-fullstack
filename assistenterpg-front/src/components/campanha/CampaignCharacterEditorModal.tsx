@@ -15,6 +15,7 @@ import type {
   ModificadorPersonagemCampanha,
   PersonagemCampanhaResumo,
 } from '@/lib/types';
+import { formatarDataHora } from '@/lib/utils/formatters';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -60,12 +61,6 @@ const LABEL_CAMPO_MODIFICADOR: Record<CampoModificadorPersonagemCampanha, string
   Object.fromEntries(
     CAMPOS_MODIFICADOR_OPTIONS.map((item) => [item.value, item.label]),
   ) as Record<CampoModificadorPersonagemCampanha, string>;
-
-function formatarDataHora(valor: string): string {
-  const data = new Date(valor);
-  if (Number.isNaN(data.getTime())) return valor;
-  return data.toLocaleString('pt-BR');
-}
 
 function obterFiltroHistoricoPadrao(
   contextoSessao?: { sessaoId: number; cenaId?: number | null },

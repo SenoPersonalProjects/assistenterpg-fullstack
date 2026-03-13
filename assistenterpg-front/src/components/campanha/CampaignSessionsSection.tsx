@@ -9,6 +9,8 @@ import {
   extrairMensagemErro,
 } from '@/lib/api';
 import type { SessaoCampanhaResumo } from '@/lib/types';
+import { labelCena } from '@/lib/campanha/sessao-formatters';
+import { formatarDataHora } from '@/lib/utils/formatters';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -21,27 +23,6 @@ type Props = {
   usuarioEhMestre: boolean;
   onTotalSessoesChange?: (total: number) => void;
 };
-
-function formatarDataHora(valor: string): string {
-  const data = new Date(valor);
-  if (Number.isNaN(data.getTime())) return valor;
-  return data.toLocaleString('pt-BR');
-}
-
-function labelCena(tipo: string): string {
-  switch (tipo) {
-    case 'LIVRE':
-      return 'Cena livre';
-    case 'INVESTIGACAO':
-      return 'Investigacao';
-    case 'FURTIVIDADE':
-      return 'Furtividade';
-    case 'COMBATE':
-      return 'Combate';
-    default:
-      return 'Outra cena';
-  }
-}
 
 function corStatusSessao(status: string): 'green' | 'yellow' | 'gray' {
   if (status === 'ENCERRADA') return 'gray';

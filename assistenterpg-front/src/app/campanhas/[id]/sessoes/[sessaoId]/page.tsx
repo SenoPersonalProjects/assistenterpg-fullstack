@@ -59,11 +59,18 @@ import {
   type AlvoCondicoesModal,
   type NpcEditavel,
 } from '@/components/campanha/sessao/types';
-import { corrigirMojibakeTexto } from '@/lib/utils/encoding';
+import {
+  descreverDuracaoCondicao,
+  labelCena,
+  labelPapelParticipante,
+  labelTipoNpc,
+  textoSeguro,
+} from '@/lib/campanha/sessao-formatters';
 import {
   formatarCustos,
   resolverCustoExibicaoSessao as resolverCustoExibicao,
 } from '@/lib/campanha/sessao-habilidades';
+import { formatarDataHora } from '@/lib/utils/formatters';
 import {
   carregarFiltroSustentadasLobby,
   salvarFiltroSustentadasLobby,
@@ -99,45 +106,6 @@ const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'OUTRA', label: 'Outra' },
 ];
 
-function formatarDataHora(valor: string): string {
-  const data = new Date(valor);
-  if (Number.isNaN(data.getTime())) return valor;
-  return data.toLocaleString('pt-BR');
-}
-
-function labelCena(tipo: string): string {
-  const cena = OPCOES_CENA.find((item) => item.value === tipo);
-  return cena?.label ?? 'Outra cena';
-}
-
-function labelTipoNpc(tipo: string): string {
-  const labels: Record<string, string> = {
-    HUMANO: 'Humano',
-    FEITICEIRO: 'Feiticeiro',
-    MALDICAO: 'Maldicao',
-    ANIMAL: 'Animal',
-    HIBRIDO: 'Hibrido',
-    OUTRO: 'Outro',
-  };
-
-  return labels[tipo] ?? tipo;
-}
-
-function labelPapelParticipante(papel: string): string {
-  const labels: Record<string, string> = {
-    MESTRE: 'Mestre',
-    JOGADOR: 'Jogador',
-    OBSERVADOR: 'Observador',
-  };
-
-  return labels[papel] ?? papel;
-}
-
-function textoSeguro(value: string | null | undefined): string {
-  if (!value) return '';
-  return corrigirMojibakeTexto(value);
-}
-
 function formatarDadosEventoParaExibicao(dados: unknown): string {
   if (dados === null || typeof dados === 'undefined') {
     return 'Sem dados adicionais.';
@@ -163,23 +131,6 @@ function isTypingElement(target: EventTarget | null): boolean {
     tagName === 'TEXTAREA' ||
     tagName === 'SELECT'
   );
-}
-
-function descreverDuracaoCondicao(
-  duracaoModo: string,
-  duracaoValor: number | null,
-  restanteDuracao: number | null,
-): string {
-  if (duracaoModo === 'ATE_REMOVER') {
-    return 'Duracao: ate remover';
-  }
-
-  const sufixo = duracaoModo === 'RODADAS' ? 'rodada(s)' : 'turno(s) do alvo';
-  const total = typeof duracaoValor === 'number' ? `${duracaoValor} ${sufixo}` : `? ${sufixo}`;
-  if (typeof restanteDuracao === 'number') {
-    return `Duracao: ${total} | Restante: ${restanteDuracao}`;
-  }
-  return `Duracao: ${total}`;
 }
 
 function labelParticipanteIniciativa(
