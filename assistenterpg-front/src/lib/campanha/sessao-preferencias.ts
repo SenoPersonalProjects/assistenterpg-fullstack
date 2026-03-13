@@ -43,7 +43,23 @@ function normalizarAbas(raw: unknown): Record<number, AbaDetalheCard> {
   return resultado;
 }
 
-function normalizarTecnicas(
+function normalizarTecnicasAbertas(
+  raw: unknown,
+): Record<number, boolean> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+
+  const resultado: Record<number, boolean> = {};
+  for (const [chave, valor] of Object.entries(raw as Record<string, unknown>)) {
+    const personagemSessaoId = Number(chave);
+    if (!Number.isInteger(personagemSessaoId) || personagemSessaoId < 1) continue;
+    if (typeof valor !== 'boolean') continue;
+    resultado[personagemSessaoId] = valor;
+  }
+
+  return resultado;
+}
+
+function normalizarTecnicasSomenteAbertas(
   raw: unknown,
 ): Record<number, boolean> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
@@ -107,8 +123,10 @@ export function carregarPreferenciasSessao(
     const parsed = JSON.parse(raw) as Partial<PreferenciasSessaoLobby>;
     return {
       abasDetalheCard: normalizarAbas(parsed.abasDetalheCard),
-      tecnicasInatasAbertas: normalizarTecnicas(parsed.tecnicasInatasAbertas),
-      tecnicasNaoInatasAbertas: normalizarTecnicas(parsed.tecnicasNaoInatasAbertas),
+      tecnicasInatasAbertas: normalizarTecnicasAbertas(parsed.tecnicasInatasAbertas),
+      tecnicasNaoInatasAbertas: normalizarTecnicasSomenteAbertas(
+        parsed.tecnicasNaoInatasAbertas,
+      ),
     };
   } catch {
     return {
@@ -133,8 +151,10 @@ export function salvarPreferenciasSessao(
   try {
     const normalizado = {
       abasDetalheCard: normalizarAbas(preferencias.abasDetalheCard),
-      tecnicasInatasAbertas: normalizarTecnicas(preferencias.tecnicasInatasAbertas),
-      tecnicasNaoInatasAbertas: normalizarTecnicas(
+      tecnicasInatasAbertas: normalizarTecnicasAbertas(
+        preferencias.tecnicasInatasAbertas,
+      ),
+      tecnicasNaoInatasAbertas: normalizarTecnicasSomenteAbertas(
         preferencias.tecnicasNaoInatasAbertas,
       ),
     };
