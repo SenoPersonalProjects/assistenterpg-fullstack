@@ -1,6 +1,5 @@
 ﻿'use client';
 
-import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
@@ -24,6 +23,8 @@ type CharacterSessionCardProps = {
   mostrarSomenteSustentadasAtivas: boolean;
   onToggleMostrarSomenteSustentadas: (checked: boolean) => void;
   onAtualizarAbaDetalheCard: (aba: AbaDetalheCard) => void;
+  tecnicaInataAberta: boolean;
+  onToggleTecnicaInata: (aberto: boolean) => void;
   tecnicasNaoInatasAbertas: boolean;
   onToggleTecnicasNaoInatas: (aberto: boolean) => void;
   ajustesRecursos: Record<CampoAjusteRecursoCard, string>;
@@ -82,6 +83,8 @@ export function CharacterSessionCard({
   mostrarSomenteSustentadasAtivas,
   onToggleMostrarSomenteSustentadas,
   onAtualizarAbaDetalheCard,
+  tecnicaInataAberta,
+  onToggleTecnicaInata,
   tecnicasNaoInatasAbertas,
   onToggleTecnicasNaoInatas,
   ajustesRecursos,
@@ -143,7 +146,6 @@ export function CharacterSessionCard({
       }
     }
   }
-  const [tecnicaInataAberta, setTecnicaInataAberta] = useState(true);
   const todasTecnicasAbertas = tecnicaInataAberta && tecnicasNaoInatasAbertas;
   const acaoHabilidadeCard =
     acaoHabilidadePendente &&
@@ -361,7 +363,7 @@ export function CharacterSessionCard({
                     variant="ghost"
                     onClick={() => {
                       const proximo = !todasTecnicasAbertas;
-                      setTecnicaInataAberta(proximo);
+                      onToggleTecnicaInata(proximo);
                       onToggleTecnicasNaoInatas(proximo);
                     }}
                   >
@@ -377,7 +379,7 @@ export function CharacterSessionCard({
               <details
                 className="rounded border border-app-border p-2"
                 open={tecnicaInataAberta}
-                onToggle={(event) => setTecnicaInataAberta(event.currentTarget.open)}
+                onToggle={(event) => onToggleTecnicaInata(event.currentTarget.open)}
               >
                 <summary className="cursor-pointer text-xs font-semibold text-app-fg">
                   Tecnica inata ({totalHabilidadesInata} habilidade(s))

@@ -2,6 +2,7 @@ export type AbaDetalheCard = 'RESUMO' | 'TECNICAS' | 'SUSTENTACOES' | 'CONDICOES
 
 export type PreferenciasSessaoLobby = {
   abasDetalheCard: Record<number, AbaDetalheCard>;
+  tecnicasInatasAbertas: Record<number, boolean>;
   tecnicasNaoInatasAbertas: Record<number, boolean>;
 };
 
@@ -64,16 +65,32 @@ export function carregarPreferenciasSessao(
   sessaoId: number,
 ): PreferenciasSessaoLobby {
   if (typeof window === 'undefined') {
-    return { abasDetalheCard: {}, tecnicasNaoInatasAbertas: {} };
+    return {
+      abasDetalheCard: {},
+      tecnicasInatasAbertas: {},
+      tecnicasNaoInatasAbertas: {},
+    };
   }
   if (!ehInteiroPositivo(usuarioId)) {
-    return { abasDetalheCard: {}, tecnicasNaoInatasAbertas: {} };
+    return {
+      abasDetalheCard: {},
+      tecnicasInatasAbertas: {},
+      tecnicasNaoInatasAbertas: {},
+    };
   }
   if (!ehInteiroPositivo(campanhaId)) {
-    return { abasDetalheCard: {}, tecnicasNaoInatasAbertas: {} };
+    return {
+      abasDetalheCard: {},
+      tecnicasInatasAbertas: {},
+      tecnicasNaoInatasAbertas: {},
+    };
   }
   if (!ehInteiroPositivo(sessaoId)) {
-    return { abasDetalheCard: {}, tecnicasNaoInatasAbertas: {} };
+    return {
+      abasDetalheCard: {},
+      tecnicasInatasAbertas: {},
+      tecnicasNaoInatasAbertas: {},
+    };
   }
 
   try {
@@ -81,15 +98,24 @@ export function carregarPreferenciasSessao(
       criarStorageKey(usuarioId, campanhaId, sessaoId),
     );
     if (!raw) {
-      return { abasDetalheCard: {}, tecnicasNaoInatasAbertas: {} };
+      return {
+        abasDetalheCard: {},
+        tecnicasInatasAbertas: {},
+        tecnicasNaoInatasAbertas: {},
+      };
     }
     const parsed = JSON.parse(raw) as Partial<PreferenciasSessaoLobby>;
     return {
       abasDetalheCard: normalizarAbas(parsed.abasDetalheCard),
+      tecnicasInatasAbertas: normalizarTecnicas(parsed.tecnicasInatasAbertas),
       tecnicasNaoInatasAbertas: normalizarTecnicas(parsed.tecnicasNaoInatasAbertas),
     };
   } catch {
-    return { abasDetalheCard: {}, tecnicasNaoInatasAbertas: {} };
+    return {
+      abasDetalheCard: {},
+      tecnicasInatasAbertas: {},
+      tecnicasNaoInatasAbertas: {},
+    };
   }
 }
 
@@ -107,6 +133,7 @@ export function salvarPreferenciasSessao(
   try {
     const normalizado = {
       abasDetalheCard: normalizarAbas(preferencias.abasDetalheCard),
+      tecnicasInatasAbertas: normalizarTecnicas(preferencias.tecnicasInatasAbertas),
       tecnicasNaoInatasAbertas: normalizarTecnicas(
         preferencias.tecnicasNaoInatasAbertas,
       ),
@@ -114,6 +141,7 @@ export function salvarPreferenciasSessao(
 
     const vazio =
       Object.keys(normalizado.abasDetalheCard).length === 0 &&
+      Object.keys(normalizado.tecnicasInatasAbertas).length === 0 &&
       Object.keys(normalizado.tecnicasNaoInatasAbertas).length === 0;
 
     if (vazio) {

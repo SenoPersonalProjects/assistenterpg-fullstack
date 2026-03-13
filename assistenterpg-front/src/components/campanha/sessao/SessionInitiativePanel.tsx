@@ -90,6 +90,11 @@ export function SessionInitiativePanel({
             Controle de turnos desativado. Use a ordem como referencia rapida.
           </p>
         )}
+        {reordenandoIniciativa ? (
+          <p className="text-[11px] text-app-muted">
+            Reordenando iniciativa...
+          </p>
+        ) : null}
 
         {mostrarAjudaReordenacao ? (
           <details className="text-[11px] text-app-muted">

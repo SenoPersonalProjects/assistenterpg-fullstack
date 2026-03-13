@@ -41,7 +41,6 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
 import { SessionCharactersPanel } from '@/components/campanha/sessao/SessionCharactersPanel';
-import { SessionConditionsPanel } from '@/components/campanha/sessao/SessionConditionsPanel';
 import { SessionOperationalBar } from '@/components/campanha/sessao/SessionOperationalBar';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { SessionInitiativePanel } from '@/components/campanha/sessao/SessionInitiativePanel';
@@ -97,6 +96,7 @@ import {
 import { useSessaoChat } from '@/hooks/useSessaoChat';
 import { useSessaoEncerramento } from '@/hooks/useSessaoEncerramento';
 import { useSessaoEventos } from '@/hooks/useSessaoEventos';
+import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -224,6 +224,9 @@ export default function SessaoCampanhaPage() {
   const [abasDetalheCard, setAbasDetalheCard] = useState<
     Record<number, AbaDetalheCard>
   >({});
+  const [tecnicasInatasAbertas, setTecnicasInatasAbertas] = useState<
+    Record<number, boolean>
+  >({});
   const [tecnicasNaoInatasAbertas, setTecnicasNaoInatasAbertas] = useState<
     Record<number, boolean>
   >({});
@@ -313,6 +316,7 @@ export default function SessaoCampanhaPage() {
   useEffect(() => {
     if (!idsValidos || !usuario) {
       setAbasDetalheCard({});
+      setTecnicasInatasAbertas({});
       setTecnicasNaoInatasAbertas({});
       setPreferenciasHydrated(false);
       return;
@@ -320,6 +324,7 @@ export default function SessaoCampanhaPage() {
 
     const prefs = carregarPreferenciasSessao(usuario.id, campanhaId, sessaoId);
     setAbasDetalheCard(prefs.abasDetalheCard);
+    setTecnicasInatasAbertas(prefs.tecnicasInatasAbertas);
     setTecnicasNaoInatasAbertas(prefs.tecnicasNaoInatasAbertas);
     setPreferenciasHydrated(true);
   }, [campanhaId, idsValidos, sessaoId, usuario]);
@@ -329,6 +334,7 @@ export default function SessaoCampanhaPage() {
 
     salvarPreferenciasSessao(usuario.id, campanhaId, sessaoId, {
       abasDetalheCard,
+      tecnicasInatasAbertas,
       tecnicasNaoInatasAbertas,
     });
   }, [
@@ -337,6 +343,7 @@ export default function SessaoCampanhaPage() {
     idsValidos,
     preferenciasHydrated,
     sessaoId,
+    tecnicasInatasAbertas,
     tecnicasNaoInatasAbertas,
     usuario,
   ]);
@@ -860,6 +867,16 @@ export default function SessaoCampanhaPage() {
     [],
   );
 
+  const atualizarTecnicasInatasAbertas = useCallback(
+    (personagemSessaoId: number, aberto: boolean) => {
+      setTecnicasInatasAbertas((estadoAtual) => ({
+        ...estadoAtual,
+        [personagemSessaoId]: aberto,
+      }));
+    },
+    [],
+  );
+
   const atualizarTecnicasNaoInatasAbertas = useCallback(
     (personagemSessaoId: number, aberto: boolean) => {
       setTecnicasNaoInatasAbertas((estadoAtual) => ({
@@ -894,41 +911,19 @@ export default function SessaoCampanhaPage() {
     [],
   );
 
-  const renderPainelCondicoes = (
-    alvoTipo: 'PERSONAGEM' | 'NPC',
-    alvoId: number,
-    nomeAlvo: string,
-    condicoesAtivas: SessaoCampanhaDetalhe['cards'][number]['condicoesAtivas'],
-    modo: 'inline' | 'accordion' = 'accordion',
-  ) => {
-    const form = obterFormCondicaoAlvo(alvoTipo, alvoId);
-    const chaveAplicar = chaveAcaoAplicarCondicao(alvoTipo, alvoId);
-    return (
-      <SessionConditionsPanel
-        condicoesAtivas={condicoesAtivas}
-        catalogoCondicoes={catalogoCondicoes}
-        formCondicao={form}
-        podeControlarSessao={podeControlarSessao}
-        sessaoEncerrada={sessaoEncerrada}
-        acaoCondicaoPendente={acaoCondicaoPendente}
-        chaveAcaoAplicar={chaveAplicar}
-        chaveAcaoRemover={chaveAcaoRemoverCondicao}
-        onAbrirModal={() =>
-          setModalCondicoesAberto({
-            alvoTipo,
-            alvoId,
-            nomeAlvo,
-            condicoesAtivas,
-          })
-        }
-        onRemoverCondicao={(condicao) =>
-          solicitarRemocaoCondicao(alvoTipo, alvoId, condicao, modo)
-        }
-        modo={modo}
-        erro={erroCondicoes}
-      />
-    );
-  };
+  const renderPainelCondicoes = useSessionConditionsPanel({
+    catalogoCondicoes,
+    obterFormCondicaoAlvo,
+    chaveAcaoAplicarCondicao,
+    chaveAcaoRemoverCondicao,
+    podeControlarSessao,
+    sessaoEncerrada,
+    acaoCondicaoPendente,
+    erro: erroCondicoes,
+    onAbrirModal: (modal) => setModalCondicoesAberto(modal),
+    onRemoverCondicao: (alvoTipo, alvoId, condicao, modo) =>
+      solicitarRemocaoCondicao(alvoTipo, alvoId, condicao, modo),
+  });
 
   const renderCardsSessao = () => (
     <SessionCharactersPanel
@@ -946,6 +941,8 @@ export default function SessaoCampanhaPage() {
       onToggleMostrarSomenteSustentadas={atualizarFiltroSustentadas}
       abasDetalheCard={abasDetalheCard}
       onAtualizarAbaDetalheCard={atualizarAbaDetalheCard}
+      tecnicasInatasAbertas={tecnicasInatasAbertas}
+      onToggleTecnicaInata={atualizarTecnicasInatasAbertas}
       tecnicasNaoInatasAbertas={tecnicasNaoInatasAbertas}
       onToggleTecnicasNaoInatas={atualizarTecnicasNaoInatasAbertas}
       acumulosHabilidade={acumulosHabilidade}
