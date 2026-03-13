@@ -63,13 +63,13 @@ import {
   descreverDuracaoCondicao,
   labelCena,
   labelPapelParticipante,
-  labelTipoNpc,
   textoSeguro,
 } from '@/lib/campanha/sessao-formatters';
 import {
   formatarCustos,
   resolverCustoExibicaoSessao as resolverCustoExibicao,
 } from '@/lib/campanha/sessao-habilidades';
+import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
 import { formatarDataHora } from '@/lib/utils/formatters';
 import {
   carregarFiltroSustentadasLobby,

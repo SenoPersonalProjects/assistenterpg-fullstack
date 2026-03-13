@@ -9,15 +9,6 @@ const LABEL_CENA: Record<TipoCenaSessaoCampanha, string> = {
   OUTRA: 'Outra',
 };
 
-const LABEL_TIPO_NPC: Record<string, string> = {
-  HUMANO: 'Humano',
-  FEITICEIRO: 'Feiticeiro',
-  MALDICAO: 'Maldicao',
-  ANIMAL: 'Animal',
-  HIBRIDO: 'Hibrido',
-  OUTRO: 'Outro',
-};
-
 const LABEL_PAPEL_PARTICIPANTE: Record<string, string> = {
   MESTRE: 'Mestre',
   JOGADOR: 'Jogador',
@@ -26,10 +17,6 @@ const LABEL_PAPEL_PARTICIPANTE: Record<string, string> = {
 
 export function labelCena(tipo: TipoCenaSessaoCampanha | string): string {
   return LABEL_CENA[tipo as TipoCenaSessaoCampanha] ?? 'Outra cena';
-}
-
-export function labelTipoNpc(tipo: string): string {
-  return LABEL_TIPO_NPC[tipo] ?? tipo;
 }
 
 export function labelPapelParticipante(papel: string): string {
