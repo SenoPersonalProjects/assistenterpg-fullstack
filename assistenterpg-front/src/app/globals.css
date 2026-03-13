@@ -1048,6 +1048,11 @@ body {
   gap: 0.5rem;
 }
 
+.session-chat__jump {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .session-chat__hint {
   font-size: 0.65rem;
   color: var(--fg-muted);

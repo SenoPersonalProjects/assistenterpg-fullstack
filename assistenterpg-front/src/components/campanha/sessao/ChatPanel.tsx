@@ -46,6 +46,7 @@ export function ChatPanel({
   const ultimaEhMinha =
     typeof usuarioId === 'number' &&
     ultimaMensagem?.autor.usuarioId === usuarioId;
+  const mostrarPular = !autoScrollAtivo && chat.length > 0;
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -85,6 +86,19 @@ export function ChatPanel({
     const distancia =
       container.scrollHeight - (container.scrollTop + container.clientHeight);
     setAutoScrollAtivo(distancia < 80);
+  };
+
+  const handleEnviar = () => {
+    if (!podeEnviar) return;
+    setAutoScrollAtivo(true);
+    onEnviarMensagem();
+  };
+
+  const handlePularParaFim = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    setAutoScrollAtivo(true);
   };
 
   const mensagensRenderizadas = useMemo(
@@ -167,6 +181,14 @@ export function ChatPanel({
         <div ref={fimChatRef} />
       </div>
 
+      {mostrarPular ? (
+        <div className="session-chat__jump">
+          <Button size="xs" variant="ghost" onClick={handlePularParaFim}>
+            Pular para o fim
+          </Button>
+        </div>
+      ) : null}
+
       <div className="session-chat__input-row">
         <label className="text-sm font-medium text-app-fg">Mensagem</label>
         <textarea
@@ -181,9 +203,7 @@ export function ChatPanel({
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
-              if (podeEnviar) {
-                onEnviarMensagem();
-              }
+              handleEnviar();
             }
           }}
         />
@@ -191,7 +211,7 @@ export function ChatPanel({
           <span className="session-chat__hint">
             Enter envia • Shift+Enter quebra linha
           </span>
-          <Button onClick={onEnviarMensagem} disabled={!podeEnviar}>
+          <Button onClick={handleEnviar} disabled={!podeEnviar}>
             {enviandoMensagem ? 'Enviando...' : 'Enviar'}
           </Button>
         </div>
