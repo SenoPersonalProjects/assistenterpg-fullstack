@@ -34,7 +34,6 @@ import type {
 } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -46,10 +45,7 @@ import { SessionOperationalBar } from '@/components/campanha/sessao/SessionOpera
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { SessionInitiativePanel } from '@/components/campanha/sessao/SessionInitiativePanel';
 import { SessionMasterControls } from '@/components/campanha/sessao/SessionMasterControls';
-import { SessionSidebarTabs } from '@/components/campanha/sessao/SessionSidebarTabs';
-import { ParticipantsPanel } from '@/components/campanha/sessao/ParticipantsPanel';
-import { TimelinePanel } from '@/components/campanha/sessao/TimelinePanel';
-import { ChatPanel } from '@/components/campanha/sessao/ChatPanel';
+import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { AddNpcModal } from '@/components/campanha/sessao/modals/AddNpcModal';
 import { ConfirmEndSessionModal } from '@/components/campanha/sessao/modals/ConfirmEndSessionModal';
@@ -1168,59 +1164,33 @@ export default function SessaoCampanhaPage() {
               >
                 <Icon name="chevron-left" className="h-3.5 w-3.5" />
               </button>
-            <SessionPanel
-              title="Painel lateral"
-              subtitle="Chat, eventos e participantes da sessao."
-              right={
-                <Badge color={socketConectado ? 'cyan' : 'yellow'} size="sm">
-                  {socketConectado ? 'Tempo real' : 'Atualizacao periodica'}
-                </Badge>
+            <SessionSidebarPanel
+              activeTab={abaPainelDireitoAtiva}
+              onChangeTab={setAbaPainelDireitoAtiva}
+              chat={chat}
+              eventosSessao={eventosSessao}
+              participantes={participantes}
+              onlineSet={onlineSet}
+              sessaoEncerrada={sessaoEncerrada}
+              podeControlarSessao={podeControlarSessao}
+              desfazendoEventoId={desfazendoEventoId}
+              erroEventos={erroEventos}
+              erroChat={erroChat}
+              enviandoMensagem={enviandoMensagem}
+              mensagem={mensagem}
+              usuarioId={usuario?.id ?? null}
+              fimChatRef={fimChatRef}
+              onMensagemChange={setMensagem}
+              onEnviarMensagem={() => void handleEnviarMensagem()}
+              onAbrirDetalhes={(evento) => {
+                setEventoDetalheModal(evento);
+                setMotivoDesfazerEventoModal('');
+              }}
+              onDesfazerEvento={(evento) =>
+                solicitarDesfazerEvento(evento, undefined, 'lista')
               }
-            >
-              <SessionSidebarTabs
-                activeTab={abaPainelDireitoAtiva}
-                onChange={setAbaPainelDireitoAtiva}
-                totalChat={chat.length}
-                totalEventos={eventosSessao.length}
-                totalParticipantes={participantes.length}
-              >
-                {abaPainelDireitoAtiva === 'participantes' ? (
-                  <ParticipantsPanel
-                    participantes={participantes}
-                    onlineSet={onlineSet}
-                  />
-                ) : null}
-
-                {abaPainelDireitoAtiva === 'eventos' ? (
-                  <TimelinePanel
-                    eventosSessao={eventosSessao}
-                    sessaoEncerrada={sessaoEncerrada}
-                    podeControlarSessao={podeControlarSessao}
-                    desfazendoEventoId={desfazendoEventoId}
-                    erro={erroEventos}
-                    onAbrirDetalhes={(evento) => {
-                      setEventoDetalheModal(evento);
-                      setMotivoDesfazerEventoModal('');
-                    }}
-                    onDesfazerEvento={(evento) => solicitarDesfazerEvento(evento, undefined, 'lista')}
-                  />
-                ) : null}
-
-                {abaPainelDireitoAtiva === 'chat' ? (
-                  <ChatPanel
-                    chat={chat}
-                    mensagem={mensagem}
-                    enviandoMensagem={enviandoMensagem}
-                    sessaoEncerrada={sessaoEncerrada}
-                    usuarioId={usuario?.id ?? null}
-                    erro={erroChat}
-                    onMensagemChange={setMensagem}
-                    onEnviarMensagem={() => void handleEnviarMensagem()}
-                    fimChatRef={fimChatRef}
-                  />
-                ) : null}
-              </SessionSidebarTabs>
-            </SessionPanel>
+              realtimeAtivo={socketConectado}
+            />
             </section>
           ) : null}
         </div>
