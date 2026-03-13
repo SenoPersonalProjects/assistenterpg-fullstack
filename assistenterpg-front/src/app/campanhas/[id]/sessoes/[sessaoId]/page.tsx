@@ -208,7 +208,10 @@ export default function SessaoCampanhaPage() {
   const [motivoDesfazerEventoModal, setMotivoDesfazerEventoModal] = useState('');
   const [loading, setLoading] = useState(true);
   const [erroGlobal, setErroGlobal] = useState<string | null>(null);
-  const [erroOperacional, setErroOperacional] = useState<string | null>(null);
+  const [erroCena, setErroCena] = useState<string | null>(null);
+  const [erroTurnos, setErroTurnos] = useState<string | null>(null);
+  const [erroIniciativa, setErroIniciativa] = useState<string | null>(null);
+  const [erroEncerramento, setErroEncerramento] = useState<string | null>(null);
   const [erroChat, setErroChat] = useState<string | null>(null);
   const [erroNpcs, setErroNpcs] = useState<string | null>(null);
   const [erroCondicoes, setErroCondicoes] = useState<string | null>(null);
@@ -470,7 +473,7 @@ export default function SessaoCampanhaPage() {
     detalhe,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro: setErroOperacional,
+    setErro: setErroCena,
     showToast,
   });
 
@@ -480,7 +483,7 @@ export default function SessaoCampanhaPage() {
     detalhe,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro: setErroOperacional,
+    setErro: setErroTurnos,
     showToast,
   });
 
@@ -500,7 +503,7 @@ export default function SessaoCampanhaPage() {
     sessaoEncerrada,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro: setErroOperacional,
+    setErro: setErroIniciativa,
   });
 
   const {
@@ -577,7 +580,7 @@ export default function SessaoCampanhaPage() {
     detalhe,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro: setErroOperacional,
+    setErro: setErroEncerramento,
     showToast,
     onEncerramentoConfirmado: () => setConfirmarEncerrarSessaoAberto(false),
   });
@@ -1094,6 +1097,7 @@ export default function SessaoCampanhaPage() {
           podeControlarSessao={podeControlarSessao}
           totalParticipantesOnline={totalParticipantesOnline}
           totalParticipantes={participantes.length}
+          erro={erroTurnos}
           acaoTurnoPendente={acaoTurnoPendente}
           onAvancarTurno={() => void handleControleTurno('AVANCAR')}
           onPularTurno={() => void handleControleTurno('PULAR')}
@@ -1101,7 +1105,6 @@ export default function SessaoCampanhaPage() {
         />
 
         {erroGlobal ? <ErrorAlert message={erroGlobal} /> : null}
-        {erroOperacional ? <ErrorAlert message={erroOperacional} /> : null}
 
         {colunaEsquerdaRecolhida ? (
           <button
@@ -1187,6 +1190,7 @@ export default function SessaoCampanhaPage() {
               reordenandoIniciativa={reordenandoIniciativa}
               indiceIniciativaArrastado={indiceIniciativaArrastado}
               indiceIniciativaHover={indiceIniciativaHover}
+              erro={erroIniciativa}
               onSetIndiceIniciativaArrastado={setIndiceIniciativaArrastado}
               onSetIndiceIniciativaHover={setIndiceIniciativaHover}
               onDropIniciativa={(indiceDestino) =>
@@ -1208,6 +1212,9 @@ export default function SessaoCampanhaPage() {
               atualizandoCena={atualizandoCena}
               acaoTurnoPendente={acaoTurnoPendente}
               encerrandoSessao={encerrandoSessao}
+              erroCena={erroCena}
+              erroTurnos={erroTurnos}
+              erroEncerramento={erroEncerramento}
               onCenaTipoChange={setCenaTipo}
               onCenaNomeChange={setCenaNome}
               onAtualizarCena={() => void handleAtualizarCena(cenaTipo, cenaNome)}

@@ -4,6 +4,7 @@ import type { DragEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import type { ParticipanteIniciativaSessaoCampanha } from '@/lib/types';
 
@@ -16,6 +17,7 @@ type SessionInitiativePanelProps = {
   reordenandoIniciativa: boolean;
   indiceIniciativaArrastado: number | null;
   indiceIniciativaHover: number | null;
+  erro?: string | null;
   onSetIndiceIniciativaArrastado: (indice: number | null) => void;
   onSetIndiceIniciativaHover: (indice: number | null) => void;
   onDropIniciativa: (indiceDestino: number) => void;
@@ -37,6 +39,7 @@ export function SessionInitiativePanel({
   reordenandoIniciativa,
   indiceIniciativaArrastado,
   indiceIniciativaHover,
+  erro,
   onSetIndiceIniciativaArrastado,
   onSetIndiceIniciativaHover,
   onDropIniciativa,
@@ -71,6 +74,7 @@ export function SessionInitiativePanel({
       title="Ordem de iniciativa"
       subtitle="Arraste ou use as setas para reordenar os participantes."
     >
+      {erro ? <ErrorAlert message={erro} /> : null}
       <div className="session-box space-y-2">
         {controleTurnosAtivo ? (
           <div className="session-chip-row">

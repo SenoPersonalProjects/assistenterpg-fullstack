@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import type { TipoCenaSessaoCampanha } from '@/lib/types';
 import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
@@ -17,6 +18,9 @@ type SessionMasterControlsProps = {
   atualizandoCena: boolean;
   acaoTurnoPendente: AcaoControleTurno | null;
   encerrandoSessao: boolean;
+  erroCena?: string | null;
+  erroTurnos?: string | null;
+  erroEncerramento?: string | null;
   onCenaTipoChange: (tipo: TipoCenaSessaoCampanha) => void;
   onCenaNomeChange: (nome: string) => void;
   onAtualizarCena: () => void;
@@ -34,6 +38,9 @@ export function SessionMasterControls({
   atualizandoCena,
   acaoTurnoPendente,
   encerrandoSessao,
+  erroCena,
+  erroTurnos,
+  erroEncerramento,
   onCenaTipoChange,
   onCenaNomeChange,
   onAtualizarCena,
@@ -58,6 +65,9 @@ export function SessionMasterControls({
       title="Controle do mestre"
       subtitle="Ajustes de cena, turnos e encerramento da sessao."
     >
+      {erroCena ? <ErrorAlert message={erroCena} /> : null}
+      {erroTurnos ? <ErrorAlert message={erroTurnos} /> : null}
+      {erroEncerramento ? <ErrorAlert message={erroEncerramento} /> : null}
       <Select
         label="Tipo de cena"
         value={cenaTipo}

@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 
 type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
@@ -18,6 +19,7 @@ type SessionOperationalBarProps = {
   podeControlarSessao: boolean;
   totalParticipantesOnline?: number;
   totalParticipantes?: number;
+  erro?: string | null;
   acaoTurnoPendente: AcaoControleTurno | null;
   onAvancarTurno: () => void;
   onPularTurno: () => void;
@@ -37,6 +39,7 @@ export function SessionOperationalBar({
   podeControlarSessao,
   totalParticipantesOnline,
   totalParticipantes,
+  erro,
   acaoTurnoPendente,
   onAvancarTurno,
   onPularTurno,
@@ -45,6 +48,9 @@ export function SessionOperationalBar({
 }: SessionOperationalBarProps) {
   return (
     <section className={`session-operational-bar ${className}`}>
+      {erro ? (
+        <ErrorAlert message={erro} className="session-operational-bar__error" />
+      ) : null}
       <div className="session-operational-bar__stats">
         {controleTurnosAtivo ? (
           <>
