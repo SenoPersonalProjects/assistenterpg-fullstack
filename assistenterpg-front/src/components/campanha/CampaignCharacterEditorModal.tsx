@@ -159,6 +159,11 @@ export function CampaignCharacterEditorModal({
     return `Sessao #${contextoSessao.sessaoId}`;
   }, [contextoSessao]);
 
+  const filtroHistoricoPadrao = useMemo(
+    () => obterFiltroHistoricoPadrao(contextoSessao),
+    [contextoSessao],
+  );
+
   const opcoesFiltroHistorico = useMemo(() => {
     const opcoes: Array<{ value: FiltroHistoricoContexto; label: string }> = [
       { value: 'TODOS', label: 'Todos os eventos' },
@@ -268,9 +273,9 @@ export function CampaignCharacterEditorModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setFiltroHistorico(obterFiltroHistoricoPadrao(contextoSessao));
+    setFiltroHistorico(filtroHistoricoPadrao);
     setFiltroTipoHistorico(FILTRO_HISTORICO_TIPO_TODOS);
-  }, [isOpen, contextoSessao?.sessaoId, contextoSessao?.cenaId]);
+  }, [filtroHistoricoPadrao, isOpen]);
 
   useEffect(() => {
     if (filtroTipoHistorico === FILTRO_HISTORICO_TIPO_TODOS) return;

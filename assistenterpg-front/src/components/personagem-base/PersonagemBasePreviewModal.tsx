@@ -152,7 +152,7 @@ export function PersonagemBasePreviewModal({
             </>
           ) : (
             <p className="text-sm text-app-muted">
-              Clique em "Abrir ficha" para visualizar os detalhes completos.
+              Clique em &quot;Abrir ficha&quot; para visualizar os detalhes completos.
             </p>
           )}
         </div>
