@@ -11,6 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/hooks/useConfirm';
+import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import {
   apiAdminGetCondicoes,
   apiGetSessaoCampanha,
@@ -66,15 +67,6 @@ import {
 } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
 import {
-  carregarFiltroSustentadasLobby,
-  salvarFiltroSustentadasLobby,
-} from '@/lib/campanha/sessao-filtro-sustentadas';
-import {
-  carregarPreferenciasSessao,
-  salvarPreferenciasSessao,
-  type AbaDetalheCard,
-} from '@/lib/campanha/sessao-preferencias';
-import {
   calcularIndiceProximoTurno,
   COOLDOWN_USO_HABILIDADE_MS,
   OPCOES_DURACAO_CONDICAO,
@@ -96,6 +88,8 @@ import {
 import { useSessaoChat } from '@/hooks/useSessaoChat';
 import { useSessaoEncerramento } from '@/hooks/useSessaoEncerramento';
 import { useSessaoEventos } from '@/hooks/useSessaoEventos';
+import { useSessaoPreferencias } from '@/hooks/useSessaoPreferencias';
+import { useSessaoFiltroSustentadas } from '@/hooks/useSessaoFiltroSustentadas';
 import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
@@ -220,20 +214,6 @@ export default function SessaoCampanhaPage() {
   const [acumulosHabilidade, setAcumulosHabilidade] = useState<Record<string, string>>(
     {},
   );
-  const [mostrarSomenteSustentadas, setMostrarSomenteSustentadas] = useState<
-    Record<number, boolean>
-  >({});
-  const [filtroSustentadasHydrated, setFiltroSustentadasHydrated] = useState(false);
-  const [abasDetalheCard, setAbasDetalheCard] = useState<
-    Record<number, AbaDetalheCard>
-  >({});
-  const [tecnicasInatasAbertas, setTecnicasInatasAbertas] = useState<
-    Record<number, boolean>
-  >({});
-  const [tecnicasNaoInatasAbertas, setTecnicasNaoInatasAbertas] = useState<
-    Record<number, boolean>
-  >({});
-  const [preferenciasHydrated, setPreferenciasHydrated] = useState(false);
   const [confirmarEncerrarSessaoAberto, setConfirmarEncerrarSessaoAberto] =
     useState(false);
   const [npcRemocaoConfirmacao, setNpcRemocaoConfirmacao] =
@@ -282,74 +262,27 @@ export default function SessaoCampanhaPage() {
     chatRef.current = chat;
   }, [chat]);
 
-  useEffect(() => {
-    if (!idsValidos || !usuario) {
-      setMostrarSomenteSustentadas({});
-      setFiltroSustentadasHydrated(false);
-      return;
-    }
-
-    const filtroSalvo = carregarFiltroSustentadasLobby(
-      usuario.id,
+  const { mostrarSomenteSustentadas, setMostrarSomenteSustentadas } =
+    useSessaoFiltroSustentadas({
+      idsValidos,
+      usuarioId: usuario?.id,
       campanhaId,
       sessaoId,
-    );
-    setMostrarSomenteSustentadas(filtroSalvo);
-    setFiltroSustentadasHydrated(true);
-  }, [campanhaId, idsValidos, sessaoId, usuario]);
-
-  useEffect(() => {
-    if (!idsValidos || !usuario || !filtroSustentadasHydrated) return;
-
-    salvarFiltroSustentadasLobby(
-      usuario.id,
-      campanhaId,
-      sessaoId,
-      mostrarSomenteSustentadas,
-    );
-  }, [
-    campanhaId,
-    filtroSustentadasHydrated,
-    idsValidos,
-    mostrarSomenteSustentadas,
-    sessaoId,
-    usuario,
-  ]);
-
-  useEffect(() => {
-    if (!idsValidos || !usuario) {
-      setAbasDetalheCard({});
-      setTecnicasInatasAbertas({});
-      setTecnicasNaoInatasAbertas({});
-      setPreferenciasHydrated(false);
-      return;
-    }
-
-    const prefs = carregarPreferenciasSessao(usuario.id, campanhaId, sessaoId);
-    setAbasDetalheCard(prefs.abasDetalheCard);
-    setTecnicasInatasAbertas(prefs.tecnicasInatasAbertas);
-    setTecnicasNaoInatasAbertas(prefs.tecnicasNaoInatasAbertas);
-    setPreferenciasHydrated(true);
-  }, [campanhaId, idsValidos, sessaoId, usuario]);
-
-  useEffect(() => {
-    if (!idsValidos || !usuario || !preferenciasHydrated) return;
-
-    salvarPreferenciasSessao(usuario.id, campanhaId, sessaoId, {
-      abasDetalheCard,
-      tecnicasInatasAbertas,
-      tecnicasNaoInatasAbertas,
     });
-  }, [
+
+  const {
     abasDetalheCard,
-    campanhaId,
-    idsValidos,
-    preferenciasHydrated,
-    sessaoId,
+    setAbasDetalheCard,
     tecnicasInatasAbertas,
+    setTecnicasInatasAbertas,
     tecnicasNaoInatasAbertas,
-    usuario,
-  ]);
+    setTecnicasNaoInatasAbertas,
+  } = useSessaoPreferencias({
+    idsValidos,
+    usuarioId: usuario?.id,
+    campanhaId,
+    sessaoId,
+  });
 
   const sincronizarEstadosDerivados = useCallback(
     (proximoDetalhe: SessaoCampanhaDetalhe) => {
@@ -867,7 +800,7 @@ export default function SessaoCampanhaPage() {
         [personagemSessaoId]: aba,
       }));
     },
-    [],
+    [setAbasDetalheCard],
   );
 
   const atualizarTecnicasInatasAbertas = useCallback(
@@ -877,7 +810,7 @@ export default function SessaoCampanhaPage() {
         [personagemSessaoId]: aberto,
       }));
     },
-    [],
+    [setTecnicasInatasAbertas],
   );
 
   const atualizarTecnicasNaoInatasAbertas = useCallback(
@@ -887,7 +820,7 @@ export default function SessaoCampanhaPage() {
         [personagemSessaoId]: aberto,
       }));
     },
-    [],
+    [setTecnicasNaoInatasAbertas],
   );
 
   const atualizarAcumuloHabilidade = useCallback((chave: string, valor: string) => {
@@ -911,7 +844,7 @@ export default function SessaoCampanhaPage() {
         [personagemSessaoId]: checked,
       }));
     },
-    [],
+    [setMostrarSomenteSustentadas],
   );
 
   const renderPainelCondicoes = useSessionConditionsPanel({
