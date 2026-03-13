@@ -18,7 +18,7 @@ exports.EnviarChatSessaoDto = EnviarChatSessaoDto;
 __decorate([
     (0, class_validator_1.IsString)({ message: 'mensagem deve ser texto' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'mensagem e obrigatoria' }),
-    (0, class_validator_1.MaxLength)(1000, { message: 'mensagem deve ter no maximo 1000 caracteres' }),
+    (0, class_validator_1.MaxLength)(100, { message: 'mensagem deve ter no maximo 100 caracteres' }),
     __metadata("design:type", String)
 ], EnviarChatSessaoDto.prototype, "mensagem", void 0);
 //# sourceMappingURL=enviar-chat-sessao.dto.js.map

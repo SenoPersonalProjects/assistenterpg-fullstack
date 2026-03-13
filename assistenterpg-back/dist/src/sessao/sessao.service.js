@@ -465,6 +465,8 @@ let SessaoService = class SessaoService {
                     nomePersonagem: personagem.personagemCampanha.nome,
                     podeEditar,
                     visibilidade,
+                    turnosMorrendo: personagem.personagemCampanha.turnosMorrendo,
+                    turnosEnlouquecendo: personagem.personagemCampanha.turnosEnlouquecendo,
                     recursos: visibilidade === 'completa'
                         ? {
                             pvAtual: personagem.personagemCampanha.pvAtual,
@@ -1040,9 +1042,6 @@ let SessaoService = class SessaoService {
             });
             if (!sessao || sessao.campanhaId !== campanhaId) {
                 throw new campanha_exception_1.SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
-            }
-            if (sessao.cenaAtualTipo === 'LIVRE') {
-                throw new campanha_exception_1.SessaoTurnoIndisponivelEmCenaLivreException(sessaoId, campanhaId);
             }
             const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
             const participantesPadrao = await this.carregarParticipantesIniciativa(tx, sessaoId, cenaAtual.id, acesso.ehMestre, usuarioId);

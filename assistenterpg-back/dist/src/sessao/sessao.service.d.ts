@@ -194,6 +194,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -298,6 +300,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -402,6 +406,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -509,6 +515,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -613,6 +621,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -717,6 +727,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -821,6 +833,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -925,6 +939,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1029,6 +1045,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1133,6 +1151,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1237,6 +1257,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1341,6 +1363,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1445,6 +1469,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1549,6 +1575,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1653,6 +1681,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;
@@ -1757,6 +1787,8 @@ export declare class SessaoService {
             nomePersonagem: string;
             podeEditar: boolean;
             visibilidade: string;
+            turnosMorrendo: any;
+            turnosEnlouquecendo: any;
             recursos: {
                 pvAtual: number;
                 pvMax: number;

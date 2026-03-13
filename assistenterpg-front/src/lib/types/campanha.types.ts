@@ -384,6 +384,8 @@ export type SessaoCampanhaDetalhe = {
     nomePersonagem: string;
     podeEditar: boolean;
     visibilidade: 'completa' | 'resumida';
+    turnosMorrendo?: number;
+    turnosEnlouquecendo?: number;
     recursos: {
       pvAtual: number;
       pvMax: number;

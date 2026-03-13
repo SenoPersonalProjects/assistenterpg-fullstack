@@ -844,6 +844,8 @@ export class SessaoService {
           nomePersonagem: personagem.personagemCampanha.nome,
           podeEditar,
           visibilidade,
+          turnosMorrendo: personagem.personagemCampanha.turnosMorrendo,
+          turnosEnlouquecendo: personagem.personagemCampanha.turnosEnlouquecendo,
           recursos:
             visibilidade === 'completa'
               ? {
@@ -1664,13 +1666,6 @@ export class SessaoService {
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
-      }
-
-      if (sessao.cenaAtualTipo === 'LIVRE') {
-        throw new SessaoTurnoIndisponivelEmCenaLivreException(
-          sessaoId,
-          campanhaId,
-        );
       }
 
       const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
