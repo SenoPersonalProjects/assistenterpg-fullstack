@@ -208,14 +208,19 @@ export function ChatPanel({
             }
           }}
         />
-        <div className="session-chat__footer">
+      <div className="session-chat__footer">
+        <div className="session-chat__footer-meta">
           <span className="session-chat__hint">
             Enter envia • Shift+Enter quebra linha
           </span>
-          <Button onClick={handleEnviar} disabled={!podeEnviar}>
-            {enviandoMensagem ? 'Enviando...' : 'Enviar'}
-          </Button>
+          <span className="session-chat__counter">
+            {mensagem.length}/{LIMITE_MENSAGEM_CHAT}
+          </span>
         </div>
+        <Button onClick={handleEnviar} disabled={!podeEnviar}>
+          {enviandoMensagem ? 'Enviando...' : 'Enviar'}
+        </Button>
+      </div>
       </div>
     </div>
   );

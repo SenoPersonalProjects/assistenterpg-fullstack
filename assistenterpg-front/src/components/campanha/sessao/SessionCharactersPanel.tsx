@@ -122,6 +122,7 @@ export function SessionCharactersPanel({
 
     return (
       <SessionTechniqueBlock
+        key={`tecnica-${tecnica.id}`}
         card={card}
         tecnica={tecnica}
         mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}

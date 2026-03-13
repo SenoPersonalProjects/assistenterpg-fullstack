@@ -1057,6 +1057,19 @@ body {
   gap: 0.5rem;
 }
 
+.session-chat__footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.session-chat__counter {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
 .session-chat__jump {
   display: flex;
   justify-content: flex-end;
