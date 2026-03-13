@@ -1,5 +1,8 @@
 'use client';
 
+import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+
 type RecursosResumo = {
   pvAtual: number;
   pvMax: number;
@@ -16,11 +19,20 @@ type SessionCharacterResourceCardProps = {
   nomeJogador?: string;
   iniciativaValor?: number | null;
   recursos: RecursosResumo;
+  expandido?: boolean;
+  onAlternarExpandido?: () => void;
+  podeAjustar?: boolean;
+  ajustePersonalizado?: Partial<Record<LinhaRecurso['key'], string>>;
+  onAtualizarAjustePersonalizado?: (campo: LinhaRecurso['key'], valor: string) => void;
+  onAplicarAjustePersonalizado?: (campo: LinhaRecurso['key']) => void;
+  onAplicarAjusteRapido?: (campo: LinhaRecurso['key'], delta: number) => void;
+  acaoPendenteCampo?: LinhaRecurso['key'] | null;
+  desabilitado?: boolean;
   className?: string;
 };
 
 type LinhaRecurso = {
-  key: string;
+  key: 'pv' | 'san' | 'ea' | 'pe';
   label: string;
   atual: number;
   maximo: number;
@@ -38,6 +50,15 @@ export function SessionCharacterResourceCard({
   nomeJogador,
   iniciativaValor,
   recursos,
+  expandido = false,
+  onAlternarExpandido,
+  podeAjustar = false,
+  ajustePersonalizado,
+  onAtualizarAjustePersonalizado,
+  onAplicarAjustePersonalizado,
+  onAplicarAjusteRapido,
+  acaoPendenteCampo = null,
+  desabilitado = false,
   className = '',
 }: SessionCharacterResourceCardProps) {
   const linhas: LinhaRecurso[] = [
@@ -80,9 +101,24 @@ export function SessionCharacterResourceCard({
             <p className="truncate text-[11px] text-app-muted">Jogador: {nomeJogador}</p>
           ) : null}
         </div>
-        <span className="session-initiative-badge">
-          INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="session-initiative-badge">
+            INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
+          </span>
+          {onAlternarExpandido ? (
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={onAlternarExpandido}
+              title={expandido ? 'Recolher detalhes' : 'Expandir detalhes'}
+            >
+              <Icon
+                name={expandido ? 'chevron-up' : 'chevron-down'}
+                className="h-3.5 w-3.5"
+              />
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="session-resource-list">
@@ -100,10 +136,68 @@ export function SessionCharacterResourceCard({
                 style={{ width: `${clampPercentual(linha.atual, linha.maximo)}%` }}
               />
             </div>
+            {podeAjustar ? (
+              <div className="session-resource-actions">
+                <div className="session-resource-actions__quick">
+                  <Button
+                    size="xs"
+                    variant="secondary"
+                    onClick={() => onAplicarAjusteRapido?.(linha.key, -5)}
+                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                  >
+                    -5
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="secondary"
+                    onClick={() => onAplicarAjusteRapido?.(linha.key, -1)}
+                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                  >
+                    -1
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="secondary"
+                    onClick={() => onAplicarAjusteRapido?.(linha.key, 1)}
+                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                  >
+                    +1
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="secondary"
+                    onClick={() => onAplicarAjusteRapido?.(linha.key, 5)}
+                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                  >
+                    +5
+                  </Button>
+                </div>
+                <div className="session-resource-actions__custom">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={ajustePersonalizado?.[linha.key] ?? '0'}
+                    onChange={(event) =>
+                      onAtualizarAjustePersonalizado?.(linha.key, event.target.value)
+                    }
+                    className="session-resource-actions__input"
+                    placeholder="+3 / -2"
+                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                  />
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => onAplicarAjustePersonalizado?.(linha.key)}
+                    disabled={desabilitado || acaoPendenteCampo === linha.key}
+                  >
+                    {acaoPendenteCampo === linha.key ? 'Aplicando...' : 'Aplicar'}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
     </div>
   );
 }
-

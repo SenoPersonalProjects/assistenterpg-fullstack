@@ -85,13 +85,6 @@ const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
 ];
 const COOLDOWN_USO_HABILIDADE_MS = 2500;
 
-type RecursosEditaveis = {
-  pvAtual: string;
-  peAtual: string;
-  eaAtual: string;
-  sanAtual: string;
-};
-
 type NpcEditavel = {
   vd: string;
   defesa: string;
@@ -102,6 +95,8 @@ type NpcEditavel = {
 };
 
 type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
+type CampoAjusteRecurso = 'pv' | 'pe' | 'ea' | 'san';
+type AjustesRecursos = Record<CampoAjusteRecurso, string>;
 
 type FormCondicaoSessao = {
   condicaoId: string;
@@ -136,6 +131,12 @@ const OPCOES_DURACAO_CONDICAO: Array<{
   { value: 'RODADAS', label: 'Por rodadas da cena' },
   { value: 'TURNOS_ALVO', label: 'Por turnos do alvo' },
 ];
+const AJUSTE_RECURSO_PADRAO: AjustesRecursos = {
+  pv: '0',
+  pe: '0',
+  ea: '0',
+  san: '0',
+};
 
 function formatarDataHora(valor: string): string {
   const data = new Date(valor);
@@ -147,6 +148,16 @@ function parseRecurso(valor: string, fallback: number): number {
   const numero = Number(valor);
   if (!Number.isFinite(numero)) return fallback;
   return Math.trunc(numero);
+}
+
+function parseInteiroComSinal(valor: string): number | null {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return null;
+  return Math.trunc(numero);
+}
+
+function clampEntre(valor: number, minimo: number, maximo: number): number {
+  return Math.max(minimo, Math.min(maximo, valor));
 }
 
 function parseInteiroPositivo(
@@ -279,8 +290,11 @@ export default function SessaoCampanhaPage() {
   const [mensagem, setMensagem] = useState('');
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
   const [cenaNome, setCenaNome] = useState('');
-  const [edicaoRecursos, setEdicaoRecursos] = useState<
-    Record<number, RecursosEditaveis>
+  const [ajustesRecursosPorCard, setAjustesRecursosPorCard] = useState<
+    Record<number, AjustesRecursos>
+  >({});
+  const [cardsRecursosExpandidos, setCardsRecursosExpandidos] = useState<
+    Record<number, boolean>
   >({});
   const [edicaoNpcs, setEdicaoNpcs] = useState<Record<number, NpcEditavel>>({});
   const [catalogoCondicoes, setCatalogoCondicoes] = useState<CondicaoCatalogo[]>([]);
@@ -306,6 +320,9 @@ export default function SessaoCampanhaPage() {
   const [reordenandoIniciativa, setReordenandoIniciativa] = useState(false);
   const [encerrandoSessao, setEncerrandoSessao] = useState(false);
   const [salvandoCardId, setSalvandoCardId] = useState<number | null>(null);
+  const [campoRecursoPendente, setCampoRecursoPendente] = useState<
+    `${number}:${CampoAjusteRecurso}` | null
+  >(null);
   const [adicionandoNpc, setAdicionandoNpc] = useState(false);
   const [salvandoNpcId, setSalvandoNpcId] = useState<number | null>(null);
   const [removendoNpcId, setRemovendoNpcId] = useState<number | null>(null);
@@ -433,16 +450,14 @@ export default function SessaoCampanhaPage() {
       setCenaTipo(proximoDetalhe.cenaAtual.tipo as TipoCenaSessaoCampanha);
       setCenaNome(proximoDetalhe.cenaAtual.nome ?? '');
 
-      setEdicaoRecursos((estadoAtual) => {
+      setAjustesRecursosPorCard((estadoAtual) => {
         const proximoEstado = { ...estadoAtual };
         for (const card of proximoDetalhe.cards) {
-          if (!card.recursos || !card.podeEditar) continue;
-          proximoEstado[card.personagemCampanhaId] = {
-            pvAtual: String(card.recursos.pvAtual),
-            peAtual: String(card.recursos.peAtual),
-            eaAtual: String(card.recursos.eaAtual),
-            sanAtual: String(card.recursos.sanAtual),
-          };
+          if (!card.podeEditar) continue;
+          proximoEstado[card.personagemCampanhaId] =
+            proximoEstado[card.personagemCampanhaId] ?? {
+              ...AJUSTE_RECURSO_PADRAO,
+            };
         }
         return proximoEstado;
       });
@@ -956,7 +971,14 @@ export default function SessaoCampanhaPage() {
       ) : (
         cards.map((card) => {
           const recursos = card.recursos;
-          const draft = edicaoRecursos[card.personagemCampanhaId];
+          const ajustesRecursos = obterAjustesRecursosCard(card.personagemCampanhaId);
+          const cardRecursosExpandido = Boolean(
+            cardsRecursosExpandidos[card.personagemSessaoId],
+          );
+          const campoRecursoPendenteCard =
+            campoRecursoPendente?.startsWith(`${card.personagemCampanhaId}:`)
+              ? (campoRecursoPendente.split(':')[1] as CampoAjusteRecurso)
+              : null;
           const iniciativaValor = iniciativaPorPersonagemSessao.get(
             card.personagemSessaoId,
           );
@@ -1267,6 +1289,33 @@ export default function SessaoCampanhaPage() {
                   nomePersonagem={card.nomePersonagem}
                   nomeJogador={card.nomeJogador}
                   iniciativaValor={iniciativaValor ?? null}
+                  expandido={cardRecursosExpandido}
+                  onAlternarExpandido={() =>
+                    setCardsRecursosExpandidos((estadoAtual) => ({
+                      ...estadoAtual,
+                      [card.personagemSessaoId]:
+                        !estadoAtual[card.personagemSessaoId],
+                    }))
+                  }
+                  podeAjustar={card.podeEditar}
+                  ajustePersonalizado={ajustesRecursos}
+                  onAtualizarAjustePersonalizado={(campo, valor) =>
+                    atualizarAjusteRecursoCard(
+                      card.personagemCampanhaId,
+                      campo,
+                      valor,
+                    )
+                  }
+                  onAplicarAjusteRapido={(campo, delta) =>
+                    void handleAplicarDeltaRecursoCard(card, campo, delta)
+                  }
+                  onAplicarAjustePersonalizado={(campo) =>
+                    void handleAplicarAjustePersonalizadoRecursoCard(card, campo)
+                  }
+                  acaoPendenteCampo={campoRecursoPendenteCard}
+                  desabilitado={
+                    sessaoEncerrada || salvandoCardId === card.personagemCampanhaId
+                  }
                   recursos={{
                     pvAtual: recursos.pvAtual,
                     pvMax: recursos.pvMax,
@@ -1285,99 +1334,16 @@ export default function SessaoCampanhaPage() {
                 </div>
               )}
 
-              {recursos ? (
-                card.podeEditar ? (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        label={`PV (max ${recursos.pvMax})`}
-                        type="number"
-                        value={draft?.pvAtual ?? String(recursos.pvAtual)}
-                        onChange={(event) =>
-                          setEdicaoRecursos((anterior) => ({
-                            ...anterior,
-                            [card.personagemCampanhaId]: {
-                              ...(anterior[card.personagemCampanhaId] ?? {
-                                pvAtual: String(recursos.pvAtual),
-                                peAtual: String(recursos.peAtual),
-                                eaAtual: String(recursos.eaAtual),
-                                sanAtual: String(recursos.sanAtual),
-                              }),
-                              pvAtual: event.target.value,
-                            },
-                          }))
-                        }
-                      />
-                      <Input
-                        label={`PE (max ${recursos.peMax})`}
-                        type="number"
-                        value={draft?.peAtual ?? String(recursos.peAtual)}
-                        onChange={(event) =>
-                          setEdicaoRecursos((anterior) => ({
-                            ...anterior,
-                            [card.personagemCampanhaId]: {
-                              ...(anterior[card.personagemCampanhaId] ?? {
-                                pvAtual: String(recursos.pvAtual),
-                                peAtual: String(recursos.peAtual),
-                                eaAtual: String(recursos.eaAtual),
-                                sanAtual: String(recursos.sanAtual),
-                              }),
-                              peAtual: event.target.value,
-                            },
-                          }))
-                        }
-                      />
-                      <Input
-                        label={`EA (max ${recursos.eaMax})`}
-                        type="number"
-                        value={draft?.eaAtual ?? String(recursos.eaAtual)}
-                        onChange={(event) =>
-                          setEdicaoRecursos((anterior) => ({
-                            ...anterior,
-                            [card.personagemCampanhaId]: {
-                              ...(anterior[card.personagemCampanhaId] ?? {
-                                pvAtual: String(recursos.pvAtual),
-                                peAtual: String(recursos.peAtual),
-                                eaAtual: String(recursos.eaAtual),
-                                sanAtual: String(recursos.sanAtual),
-                              }),
-                              eaAtual: event.target.value,
-                            },
-                          }))
-                        }
-                      />
-                      <Input
-                        label={`SAN (max ${recursos.sanMax})`}
-                        type="number"
-                        value={draft?.sanAtual ?? String(recursos.sanAtual)}
-                        onChange={(event) =>
-                          setEdicaoRecursos((anterior) => ({
-                            ...anterior,
-                            [card.personagemCampanhaId]: {
-                              ...(anterior[card.personagemCampanhaId] ?? {
-                                pvAtual: String(recursos.pvAtual),
-                                peAtual: String(recursos.peAtual),
-                                eaAtual: String(recursos.eaAtual),
-                                sanAtual: String(recursos.sanAtual),
-                              }),
-                              sanAtual: event.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </div>
+              {!recursos ? (
+                <p className="text-xs text-app-muted">
+                  Visao resumida: apenas nome do jogador e personagem.
+                </p>
+              ) : null}
+
+              {recursos && cardRecursosExpandido ? (
+                <div className="space-y-2">
+                  {card.podeEditar ? (
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Button
-                        size="sm"
-                        onClick={() => void handleSalvarCard(card.personagemCampanhaId)}
-                        disabled={
-                          sessaoEncerrada || salvandoCardId === card.personagemCampanhaId
-                        }
-                      >
-                        {salvandoCardId === card.personagemCampanhaId
-                          ? 'Salvando...'
-                          : 'Salvar recursos'}
-                      </Button>
                       <Button
                         variant="secondary"
                         size="sm"
@@ -1387,16 +1353,7 @@ export default function SessaoCampanhaPage() {
                         Ajustes narrativos
                       </Button>
                     </div>
-                  </div>
-                ) : null
-              ) : (
-                <p className="text-xs text-app-muted">
-                  Visao resumida: apenas nome do jogador e personagem.
-                </p>
-              )}
-
-              {recursos ? (
-                <div className="space-y-2">
+                  ) : null}
                   <label className="inline-flex items-center gap-2 text-[11px] text-app-muted">
                     <input
                       type="checkbox"
@@ -1513,6 +1470,12 @@ export default function SessaoCampanhaPage() {
                     </div>
                   </details>
                 </div>
+              ) : null}
+
+              {recursos && !cardRecursosExpandido ? (
+                <p className="text-[11px] text-app-muted">
+                  Card resumido ativo. Abra para ver condicoes, tecnicas e sustentacoes.
+                </p>
               ) : null}
 
               {card.podeEditar ? (
@@ -1709,23 +1672,85 @@ export default function SessaoCampanhaPage() {
     }
   }
 
-  async function handleSalvarCard(personagemCampanhaId: number) {
-    if (!detalhe) return;
-    const card = detalhe.cards.find(
-      (item) => item.personagemCampanhaId === personagemCampanhaId,
-    );
-    const draft = edicaoRecursos[personagemCampanhaId];
-    if (!card?.recursos || !draft) return;
+  function obterAjustesRecursosCard(personagemCampanhaId: number): AjustesRecursos {
+    return ajustesRecursosPorCard[personagemCampanhaId] ?? AJUSTE_RECURSO_PADRAO;
+  }
 
-    setSalvandoCardId(personagemCampanhaId);
+  function atualizarAjusteRecursoCard(
+    personagemCampanhaId: number,
+    campo: CampoAjusteRecurso,
+    valor: string,
+  ) {
+    setAjustesRecursosPorCard((estadoAtual) => ({
+      ...estadoAtual,
+      [personagemCampanhaId]: {
+        ...(estadoAtual[personagemCampanhaId] ?? AJUSTE_RECURSO_PADRAO),
+        [campo]: valor,
+      },
+    }));
+  }
+
+  function montarPayloadAjustadoRecursoCard(
+    card: SessaoCampanhaDetalhe['cards'][number],
+    campo: CampoAjusteRecurso,
+    delta: number,
+  ): {
+    pvAtual: number;
+    peAtual: number;
+    eaAtual: number;
+    sanAtual: number;
+  } | null {
+    if (!card.recursos) return null;
+
+    const base = {
+      pvAtual: card.recursos.pvAtual,
+      peAtual: card.recursos.peAtual,
+      eaAtual: card.recursos.eaAtual,
+      sanAtual: card.recursos.sanAtual,
+    };
+
+    switch (campo) {
+      case 'pv':
+        base.pvAtual = clampEntre(base.pvAtual + delta, 0, card.recursos.pvMax);
+        break;
+      case 'pe':
+        base.peAtual = clampEntre(base.peAtual + delta, 0, card.recursos.peMax);
+        break;
+      case 'ea':
+        base.eaAtual = clampEntre(base.eaAtual + delta, 0, card.recursos.eaMax);
+        break;
+      case 'san':
+        base.sanAtual = clampEntre(base.sanAtual + delta, 0, card.recursos.sanMax);
+        break;
+      default:
+        return null;
+    }
+
+    return base;
+  }
+
+  async function handleAplicarDeltaRecursoCard(
+    card: SessaoCampanhaDetalhe['cards'][number],
+    campo: CampoAjusteRecurso,
+    delta: number,
+  ) {
+    if (!card.podeEditar || !card.recursos || sessaoEncerrada) return;
+    if (!Number.isFinite(delta) || Math.trunc(delta) === 0) return;
+
+    const deltaInteiro = Math.trunc(delta);
+    const payload = montarPayloadAjustadoRecursoCard(card, campo, deltaInteiro);
+    if (!payload) return;
+    const chaveCampo = `${card.personagemCampanhaId}:${campo}` as const;
+
+    setSalvandoCardId(card.personagemCampanhaId);
+    setCampoRecursoPendente(chaveCampo);
     setErro(null);
     try {
-      await apiAtualizarRecursosPersonagemCampanha(campanhaId, personagemCampanhaId, {
-        pvAtual: parseRecurso(draft.pvAtual, card.recursos.pvAtual),
-        peAtual: parseRecurso(draft.peAtual, card.recursos.peAtual),
-        eaAtual: parseRecurso(draft.eaAtual, card.recursos.eaAtual),
-        sanAtual: parseRecurso(draft.sanAtual, card.recursos.sanAtual),
-      });
+      await apiAtualizarRecursosPersonagemCampanha(
+        campanhaId,
+        card.personagemCampanhaId,
+        payload,
+      );
       const atualizado = await apiGetSessaoCampanha(campanhaId, sessaoId);
       setDetalhe(atualizado);
       sincronizarEstadosDerivados(atualizado);
@@ -1733,7 +1758,22 @@ export default function SessaoCampanhaPage() {
       setErro(extrairMensagemErro(error));
     } finally {
       setSalvandoCardId(null);
+      setCampoRecursoPendente(null);
     }
+  }
+
+  async function handleAplicarAjustePersonalizadoRecursoCard(
+    card: SessaoCampanhaDetalhe['cards'][number],
+    campo: CampoAjusteRecurso,
+  ) {
+    const ajuste = obterAjustesRecursosCard(card.personagemCampanhaId)[campo];
+    const delta = parseInteiroComSinal(ajuste);
+    if (delta === null || delta === 0) {
+      setErro('Informe um ajuste inteiro diferente de zero (ex.: -3, +2).');
+      return;
+    }
+
+    await handleAplicarDeltaRecursoCard(card, campo, delta);
   }
 
   async function handleAplicarCondicao(
@@ -1928,13 +1968,10 @@ export default function SessaoCampanhaPage() {
       };
     });
 
-    setEdicaoRecursos((anterior) => ({
+    setAjustesRecursosPorCard((anterior) => ({
       ...anterior,
       [personagem.id]: {
-        pvAtual: String(personagem.recursos.pvAtual),
-        peAtual: String(personagem.recursos.peAtual),
-        eaAtual: String(personagem.recursos.eaAtual),
-        sanAtual: String(personagem.recursos.sanAtual),
+        ...AJUSTE_RECURSO_PADRAO,
       },
     }));
 
@@ -2139,26 +2176,19 @@ export default function SessaoCampanhaPage() {
 
         {erro ? <ErrorAlert message={erro} /> : null}
 
-        <div className="session-layout-controls">
-          <Button
-            size="sm"
-            variant={colunaEsquerdaRecolhida ? 'secondary' : 'ghost'}
-            onClick={() => setColunaEsquerdaRecolhida((valorAtual) => !valorAtual)}
-          >
-            {colunaEsquerdaRecolhida ? 'Mostrar painel esquerdo' : 'Ocultar painel esquerdo'}
-          </Button>
-          <Button
-            size="sm"
-            variant={colunaDireitaRecolhida ? 'secondary' : 'ghost'}
-            onClick={() => setColunaDireitaRecolhida((valorAtual) => !valorAtual)}
-          >
-            {colunaDireitaRecolhida ? 'Mostrar painel direito' : 'Ocultar painel direito'}
-          </Button>
-        </div>
-
         <div className={gridSessaoClassName}>
           {!colunaEsquerdaRecolhida ? (
             <section className="space-y-3">
+            <div className="flex justify-end">
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => setColunaEsquerdaRecolhida(true)}
+                title="Ocultar painel esquerdo"
+              >
+                <Icon name="chevron-left" className="h-3.5 w-3.5" />
+              </Button>
+            </div>
             {podeControlarSessao ? (
               <SessionPanel
                 title="Escudo do Mestre"
@@ -2452,6 +2482,32 @@ export default function SessaoCampanhaPage() {
           ) : null}
 
           <section className="space-y-3">
+            {(colunaEsquerdaRecolhida || colunaDireitaRecolhida) ? (
+              <div className="flex items-center justify-between gap-2">
+                {colunaEsquerdaRecolhida ? (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setColunaEsquerdaRecolhida(false)}
+                    title="Mostrar painel esquerdo"
+                  >
+                    <Icon name="chevron-right" className="h-3.5 w-3.5" />
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                {colunaDireitaRecolhida ? (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setColunaDireitaRecolhida(false)}
+                    title="Mostrar painel direito"
+                  >
+                    <Icon name="chevron-left" className="h-3.5 w-3.5" />
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
             {podeControlarSessao ? renderCardsSessao() : null}
 
             <SessionPanel
@@ -2665,6 +2721,16 @@ export default function SessaoCampanhaPage() {
 
           {!colunaDireitaRecolhida ? (
             <section className="space-y-3 xl:sticky xl:top-4 xl:self-start">
+            <div className="flex justify-start">
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => setColunaDireitaRecolhida(true)}
+                title="Ocultar painel direito"
+              >
+                <Icon name="chevron-right" className="h-3.5 w-3.5" />
+              </Button>
+            </div>
             <SessionPanel
               title="Participantes"
               subtitle="Quem esta na campanha e quem esta online agora."

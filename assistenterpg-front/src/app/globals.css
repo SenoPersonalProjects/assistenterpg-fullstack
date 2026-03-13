@@ -395,12 +395,6 @@ body {
   padding: 0.65rem;
 }
 
-.session-layout-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
 .session-resource-card {
   border: 1px solid var(--border-subtle);
   border-radius: 0.8rem;
@@ -495,4 +489,37 @@ body {
 
 .session-resource-fill--pe {
   background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+.session-resource-actions {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.session-resource-actions__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.session-resource-actions__custom {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.session-resource-actions__input {
+  width: 4.25rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  background: var(--bg-surface);
+  color: var(--fg);
+  font-size: 0.69rem;
+  line-height: 1;
+  padding: 0.27rem 0.35rem;
+}
+
+.session-resource-actions__input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 70%, transparent);
+  outline-offset: 0;
 }
