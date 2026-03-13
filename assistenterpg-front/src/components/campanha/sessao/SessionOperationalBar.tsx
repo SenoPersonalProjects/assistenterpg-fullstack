@@ -16,6 +16,8 @@ type SessionOperationalBarProps = {
   realtimeAtivo: boolean;
   controleTurnosAtivo: boolean;
   podeControlarSessao: boolean;
+  totalParticipantesOnline?: number;
+  totalParticipantes?: number;
   acaoTurnoPendente: AcaoControleTurno | null;
   onAvancarTurno: () => void;
   onPularTurno: () => void;
@@ -33,6 +35,8 @@ export function SessionOperationalBar({
   realtimeAtivo,
   controleTurnosAtivo,
   podeControlarSessao,
+  totalParticipantesOnline,
+  totalParticipantes,
   acaoTurnoPendente,
   onAvancarTurno,
   onPularTurno,
@@ -79,9 +83,18 @@ export function SessionOperationalBar({
       </div>
 
       <div className="session-operational-bar__meta">
+        <Badge color={sessaoEncerrada ? 'gray' : 'green'} size="sm">
+          {sessaoEncerrada ? 'Sessao encerrada' : 'Sessao ativa'}
+        </Badge>
         <Badge color={realtimeAtivo ? 'cyan' : 'yellow'} size="sm">
           {realtimeAtivo ? 'Tempo real' : 'Atualizacao periodica'}
         </Badge>
+        {typeof totalParticipantesOnline === 'number' &&
+        typeof totalParticipantes === 'number' ? (
+          <span className="session-operational-bar__meta-text">
+            Online {totalParticipantesOnline}/{totalParticipantes}
+          </span>
+        ) : null}
       </div>
 
       {podeControlarSessao && controleTurnosAtivo ? (

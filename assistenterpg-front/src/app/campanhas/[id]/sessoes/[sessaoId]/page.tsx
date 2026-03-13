@@ -40,10 +40,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
-import {
-  CharacterSessionCard,
-  type AbaDetalheCard,
-} from '@/components/campanha/sessao/CharacterSessionCard';
+import { SessionCharactersPanel } from '@/components/campanha/sessao/SessionCharactersPanel';
+import { SessionConditionsPanel } from '@/components/campanha/sessao/SessionConditionsPanel';
 import { SessionOperationalBar } from '@/components/campanha/sessao/SessionOperationalBar';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { SessionInitiativePanel } from '@/components/campanha/sessao/SessionInitiativePanel';
@@ -67,15 +65,16 @@ import {
   labelCena,
   textoSeguro,
 } from '@/lib/campanha/sessao-formatters';
-import {
-  formatarCustos,
-  resolverCustoExibicaoSessao as resolverCustoExibicao,
-} from '@/lib/campanha/sessao-habilidades';
 import { formatarDataHora } from '@/lib/utils/formatters';
 import {
   carregarFiltroSustentadasLobby,
   salvarFiltroSustentadasLobby,
 } from '@/lib/campanha/sessao-filtro-sustentadas';
+import {
+  carregarPreferenciasSessao,
+  salvarPreferenciasSessao,
+  type AbaDetalheCard,
+} from '@/lib/campanha/sessao-preferencias';
 import {
   calcularIndiceProximoTurno,
   COOLDOWN_USO_HABILIDADE_MS,
@@ -151,13 +150,6 @@ function labelParticipanteIniciativa(
   return participante.nomePersonagem;
 }
 
-function montarChaveSustentacaoAtiva(
-  habilidadeTecnicaId: number,
-  variacaoHabilidadeId?: number | null,
-): string {
-  return `${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
-}
-
 function montarEdicaoNpcBase(npc: NpcSessaoCampanha): NpcEditavel {
   return {
     vd: String(npc.vd),
@@ -215,7 +207,13 @@ export default function SessaoCampanhaPage() {
     useState<EventoSessaoTimeline | null>(null);
   const [motivoDesfazerEventoModal, setMotivoDesfazerEventoModal] = useState('');
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erroGlobal, setErroGlobal] = useState<string | null>(null);
+  const [erroOperacional, setErroOperacional] = useState<string | null>(null);
+  const [erroChat, setErroChat] = useState<string | null>(null);
+  const [erroNpcs, setErroNpcs] = useState<string | null>(null);
+  const [erroCondicoes, setErroCondicoes] = useState<string | null>(null);
+  const [erroEventos, setErroEventos] = useState<string | null>(null);
+  const [erroCards, setErroCards] = useState<string | null>(null);
   const [acumulosHabilidade, setAcumulosHabilidade] = useState<Record<string, string>>(
     {},
   );
@@ -226,6 +224,10 @@ export default function SessaoCampanhaPage() {
   const [abasDetalheCard, setAbasDetalheCard] = useState<
     Record<number, AbaDetalheCard>
   >({});
+  const [tecnicasNaoInatasAbertas, setTecnicasNaoInatasAbertas] = useState<
+    Record<number, boolean>
+  >({});
+  const [preferenciasHydrated, setPreferenciasHydrated] = useState(false);
   const [confirmarEncerrarSessaoAberto, setConfirmarEncerrarSessaoAberto] =
     useState(false);
   const [npcRemocaoConfirmacao, setNpcRemocaoConfirmacao] =
@@ -312,6 +314,37 @@ export default function SessaoCampanhaPage() {
     usuario,
   ]);
 
+  useEffect(() => {
+    if (!idsValidos || !usuario) {
+      setAbasDetalheCard({});
+      setTecnicasNaoInatasAbertas({});
+      setPreferenciasHydrated(false);
+      return;
+    }
+
+    const prefs = carregarPreferenciasSessao(usuario.id, campanhaId, sessaoId);
+    setAbasDetalheCard(prefs.abasDetalheCard);
+    setTecnicasNaoInatasAbertas(prefs.tecnicasNaoInatasAbertas);
+    setPreferenciasHydrated(true);
+  }, [campanhaId, idsValidos, sessaoId, usuario]);
+
+  useEffect(() => {
+    if (!idsValidos || !usuario || !preferenciasHydrated) return;
+
+    salvarPreferenciasSessao(usuario.id, campanhaId, sessaoId, {
+      abasDetalheCard,
+      tecnicasNaoInatasAbertas,
+    });
+  }, [
+    abasDetalheCard,
+    campanhaId,
+    idsValidos,
+    preferenciasHydrated,
+    sessaoId,
+    tecnicasNaoInatasAbertas,
+    usuario,
+  ]);
+
   const sincronizarEstadosDerivados = useCallback(
     (proximoDetalhe: SessaoCampanhaDetalhe) => {
       setCenaTipo(proximoDetalhe.cenaAtual.tipo as TipoCenaSessaoCampanha);
@@ -382,7 +415,7 @@ export default function SessaoCampanhaPage() {
     if (!idsValidos || !usuario) return;
 
     setLoading(true);
-    setErro(null);
+    setErroGlobal(null);
     try {
       const [detalheSessao, chatInicial, eventos] = await Promise.all([
         apiGetSessaoCampanha(campanhaId, sessaoId),
@@ -397,7 +430,7 @@ export default function SessaoCampanhaPage() {
       setChat(chatInicial);
       setEventosSessao(eventos);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErroGlobal(extrairMensagemErro(error));
     } finally {
       setLoading(false);
     }
@@ -434,7 +467,7 @@ export default function SessaoCampanhaPage() {
     detalhe,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro,
+    setErro: setErroOperacional,
     showToast,
   });
 
@@ -444,7 +477,7 @@ export default function SessaoCampanhaPage() {
     detalhe,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro,
+    setErro: setErroOperacional,
     showToast,
   });
 
@@ -464,7 +497,7 @@ export default function SessaoCampanhaPage() {
     sessaoEncerrada,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro,
+    setErro: setErroOperacional,
   });
 
   const {
@@ -483,7 +516,7 @@ export default function SessaoCampanhaPage() {
     podeControlarSessao,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro,
+    setErro: setErroCondicoes,
     showToast,
   });
 
@@ -494,7 +527,7 @@ export default function SessaoCampanhaPage() {
       sessaoEncerrada,
       setDetalhe: (atualizado) => setDetalhe(atualizado),
       sincronizarEstadosDerivados,
-      setErro,
+      setErro: setErroCards,
       cooldownMs: COOLDOWN_USO_HABILIDADE_MS,
     });
 
@@ -505,7 +538,7 @@ export default function SessaoCampanhaPage() {
       sessaoEncerrada,
       setDetalhe: (atualizado) => setDetalhe(atualizado),
       sincronizarEstadosDerivados,
-      setErro,
+      setErro: setErroCards,
       obterAjustesRecursosCard,
     });
 
@@ -516,7 +549,7 @@ export default function SessaoCampanhaPage() {
       edicaoNpcs,
       setDetalhe: (atualizado) => setDetalhe(atualizado),
       sincronizarEstadosDerivados,
-      setErro,
+      setErro: setErroNpcs,
       showToast,
       onNpcAdicionado: () => {
         setNomeNpcCustomizado('');
@@ -532,7 +565,7 @@ export default function SessaoCampanhaPage() {
     mensagem,
     setMensagem,
     setChat: (atualizar) => setChat(atualizar),
-    setErro,
+    setErro: setErroChat,
   });
 
   const { encerrandoSessao, handleEncerrarSessao } = useSessaoEncerramento({
@@ -541,7 +574,7 @@ export default function SessaoCampanhaPage() {
     detalhe,
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
-    setErro,
+    setErro: setErroOperacional,
     showToast,
     onEncerramentoConfirmado: () => setConfirmarEncerrarSessaoAberto(false),
   });
@@ -554,7 +587,7 @@ export default function SessaoCampanhaPage() {
     setDetalhe: (atualizado) => setDetalhe(atualizado),
     sincronizarEstadosDerivados,
     setEventosSessao,
-    setErro,
+    setErro: setErroEventos,
     onEventoDesfeito: () => {
       setMotivoDesfazerEventoModal('');
       setEventoDetalheModal(null);
@@ -562,7 +595,16 @@ export default function SessaoCampanhaPage() {
   });
 
   const solicitarDesfazerEvento = useCallback(
-    (evento: EventoSessaoTimeline, motivo?: string) => {
+    (
+      evento: EventoSessaoTimeline,
+      motivo?: string,
+      origem: 'lista' | 'detalhe' = 'lista',
+    ) => {
+      if (origem === 'detalhe') {
+        void handleDesfazerEvento(evento.id, motivo);
+        return;
+      }
+
       confirm({
         title: 'Desfazer evento?',
         description: `Voce esta prestes a desfazer: ${textoSeguro(evento.descricao)}.`,
@@ -580,7 +622,17 @@ export default function SessaoCampanhaPage() {
       alvoTipo: 'PERSONAGEM' | 'NPC',
       alvoId: number,
       condicao: CondicaoAtivaSessaoCampanha,
+      origem: 'inline' | 'accordion' | 'modal' = 'inline',
     ) => {
+      const requerConfirmacao =
+        origem !== 'modal' &&
+        (condicao.automatica || condicao.duracaoModo === 'ATE_REMOVER');
+
+      if (!requerConfirmacao) {
+        void handleRemoverCondicao(alvoTipo, alvoId, condicao.id);
+        return;
+      }
+
       confirm({
         title: 'Remover condicao?',
         description: `Remover "${textoSeguro(condicao.nome)}". ${descreverDuracaoCondicao(
@@ -604,7 +656,7 @@ export default function SessaoCampanhaPage() {
     }
 
     if (!authLoading && usuario && !idsValidos) {
-      setErro('IDs de campanha/sessao invalidos.');
+      setErroGlobal('IDs de campanha/sessao invalidos.');
       setLoading(false);
       return;
     }
@@ -802,41 +854,49 @@ export default function SessaoCampanhaPage() {
     usuario,
   ]);
 
-  function montarChaveUsoHabilidade(
-    personagemSessaoId: number,
-    habilidadeTecnicaId: number,
-    variacaoHabilidadeId?: number,
-  ): string {
-    return `usar:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
-  }
+  const atualizarAbaDetalheCard = useCallback(
+    (personagemSessaoId: number, aba: AbaDetalheCard) => {
+      setAbasDetalheCard((estadoAtual) => ({
+        ...estadoAtual,
+        [personagemSessaoId]: aba,
+      }));
+    },
+    [],
+  );
 
-  function montarChaveAcumuloHabilidade(
-    personagemSessaoId: number,
-    habilidadeTecnicaId: number,
-    variacaoHabilidadeId?: number,
-  ): string {
-    return `acumulo:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
-  }
+  const atualizarTecnicasNaoInatasAbertas = useCallback(
+    (personagemSessaoId: number, aberto: boolean) => {
+      setTecnicasNaoInatasAbertas((estadoAtual) => ({
+        ...estadoAtual,
+        [personagemSessaoId]: aberto,
+      }));
+    },
+    [],
+  );
 
-  function parseAcumulos(valor: string | undefined, maximo: number): number {
-    const numero = Number(valor);
-    if (!Number.isFinite(numero)) return 0;
-    return Math.max(0, Math.min(maximo, Math.trunc(numero)));
-  }
-
-  function obterAbaDetalheCard(personagemSessaoId: number): AbaDetalheCard {
-    return abasDetalheCard[personagemSessaoId] ?? 'RESUMO';
-  }
-
-  function atualizarAbaDetalheCard(
-    personagemSessaoId: number,
-    aba: AbaDetalheCard,
-  ) {
-    setAbasDetalheCard((estadoAtual) => ({
+  const atualizarAcumuloHabilidade = useCallback((chave: string, valor: string) => {
+    setAcumulosHabilidade((estadoAtual) => ({
       ...estadoAtual,
-      [personagemSessaoId]: aba,
+      [chave]: valor,
     }));
-  }
+  }, []);
+
+  const alternarCardExpandido = useCallback((personagemSessaoId: number) => {
+    setCardsRecursosExpandidos((estadoAtual) => ({
+      ...estadoAtual,
+      [personagemSessaoId]: !estadoAtual[personagemSessaoId],
+    }));
+  }, []);
+
+  const atualizarFiltroSustentadas = useCallback(
+    (personagemSessaoId: number, checked: boolean) => {
+      setMostrarSomenteSustentadas((estadoAtual) => ({
+        ...estadoAtual,
+        [personagemSessaoId]: checked,
+      }));
+    },
+    [],
+  );
 
   const renderPainelCondicoes = (
     alvoTipo: 'PERSONAGEM' | 'NPC',
@@ -847,514 +907,85 @@ export default function SessaoCampanhaPage() {
   ) => {
     const form = obterFormCondicaoAlvo(alvoTipo, alvoId);
     const chaveAplicar = chaveAcaoAplicarCondicao(alvoTipo, alvoId);
-    const Conteudo = (
-      <div className="mt-2 space-y-2">
-        {condicoesAtivas.length === 0 ? (
-          <p className="text-[11px] text-app-muted">
-            Nenhuma condicao ativa neste alvo.
-          </p>
-        ) : (
-          condicoesAtivas.map((condicao) => {
-            const chaveRemover = chaveAcaoRemoverCondicao(condicao.id);
-            return (
-              <div
-                key={`condicao-ativa-${condicao.id}`}
-                className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-app-fg">{condicao.nome}</p>
-                  <span className="text-[10px] text-app-muted">
-                    {condicao.automatica ? 'Automatica' : 'Manual'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-app-muted">
-                  {descreverDuracaoCondicao(
-                    condicao.duracaoModo,
-                    condicao.duracaoValor,
-                    condicao.restanteDuracao,
-                  )}
-                </p>
-                {condicao.origemDescricao ? (
-                  <p className="text-[11px] text-app-muted">
-                    Origem: {condicao.origemDescricao}
-                  </p>
-                ) : null}
-                {condicao.observacao ? (
-                  <p className="text-[11px] text-app-muted">{condicao.observacao}</p>
-                ) : null}
-                {podeControlarSessao ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => solicitarRemocaoCondicao(alvoTipo, alvoId, condicao)}
-                    disabled={sessaoEncerrada || acaoCondicaoPendente === chaveRemover}
-                  >
-                    {acaoCondicaoPendente === chaveRemover
-                      ? 'Removendo...'
-                      : 'Remover condicao'}
-                  </Button>
-                ) : null}
-              </div>
-            );
-          })
-        )}
-
-        {podeControlarSessao ? (
-          <div className="rounded border border-app-border bg-app-bg p-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() =>
-                  setModalCondicoesAberto({
-                    alvoTipo,
-                    alvoId,
-                    nomeAlvo,
-                    condicoesAtivas,
-                  })
-                }
-                disabled={sessaoEncerrada}
-              >
-                Gerenciar condicoes
-              </Button>
-              {form.condicaoId ? (
-                <span className="text-[11px] text-app-muted">
-                  Selecionada:{' '}
-                  {textoSeguro(
-                    catalogoCondicoes.find((item) => String(item.id) === form.condicaoId)
-                      ?.nome ?? 'Condicao',
-                  )}
-                </span>
-              ) : (
-                <span className="text-[11px] text-app-muted">
-                  Abra o modal para aplicar/remover com busca rapida.
-                </span>
-              )}
-              {acaoCondicaoPendente === chaveAplicar ? (
-                <span className="text-[11px] text-app-muted">Aplicando...</span>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-
-    if (modo === 'inline') {
-      return (
-        <div className="rounded border border-app-border p-2">
-          <p className="text-xs font-semibold text-app-fg">
-            Condicoes da sessao ({condicoesAtivas.length})
-          </p>
-          {Conteudo}
-        </div>
-      );
-    }
-
     return (
-      <details className="rounded border border-app-border p-2">
-        <summary className="cursor-pointer text-xs font-semibold text-app-fg">
-          Condicoes da sessao ({condicoesAtivas.length})
-        </summary>
-        {Conteudo}
-      </details>
+      <SessionConditionsPanel
+        condicoesAtivas={condicoesAtivas}
+        catalogoCondicoes={catalogoCondicoes}
+        formCondicao={form}
+        podeControlarSessao={podeControlarSessao}
+        sessaoEncerrada={sessaoEncerrada}
+        acaoCondicaoPendente={acaoCondicaoPendente}
+        chaveAcaoAplicar={chaveAplicar}
+        chaveAcaoRemover={chaveAcaoRemoverCondicao}
+        onAbrirModal={() =>
+          setModalCondicoesAberto({
+            alvoTipo,
+            alvoId,
+            nomeAlvo,
+            condicoesAtivas,
+          })
+        }
+        onRemoverCondicao={(condicao) =>
+          solicitarRemocaoCondicao(alvoTipo, alvoId, condicao, modo)
+        }
+        modo={modo}
+        erro={erroCondicoes}
+      />
     );
   };
 
   const renderCardsSessao = () => (
-    <>
-      <SessionPanel
-        title="Personagens da sessao"
-        subtitle="Jogadores editam apenas sua ficha. O mestre pode editar todas."
-      />
-
-      {cards.length === 0 ? (
-        <EmptyState
-          variant="card"
-          icon="characters"
-          title="Sem personagens na sessao"
-          description="Associe personagens na campanha para aparecerem no lobby."
-        />
-      ) : (
-        cards.map((card) => {
-          const ajustesRecursos = obterAjustesRecursosCard(card.personagemCampanhaId);
-          const cardRecursosExpandido = Boolean(
-            cardsRecursosExpandidos[card.personagemSessaoId],
-          );
-          const campoRecursoPendenteCard =
-            campoRecursoPendente?.startsWith(`${card.personagemCampanhaId}:`)
-              ? (campoRecursoPendente.split(':')[1] as CampoAjusteRecurso)
-              : null;
-          const iniciativaValor = iniciativaPorPersonagemSessao.get(
-            card.personagemSessaoId,
-          );
-          const abaDetalheCard = obterAbaDetalheCard(card.personagemSessaoId);
-          const totalTecnicasCard =
-            (card.tecnicaInata ? 1 : 0) + card.tecnicasNaoInatas.length;
-          const totalCondicoesAtivasCard = card.condicoesAtivas.length;
-          const totalSustentacoesAtivasCard = card.sustentacoesAtivas.length;
-          const sustentacoesAtivasPorHabilidade = new Map<string, number>();
-          for (const sustentacao of card.sustentacoesAtivas) {
-            const chave = montarChaveSustentacaoAtiva(
-              sustentacao.habilidadeTecnicaId,
-              sustentacao.variacaoHabilidadeId,
-            );
-            sustentacoesAtivasPorHabilidade.set(
-              chave,
-              (sustentacoesAtivasPorHabilidade.get(chave) ?? 0) + 1,
-            );
-          }
-          const obterQtdSustentacaoAtiva = (
-            habilidadeTecnicaId: number,
-            variacaoHabilidadeId?: number | null,
-          ) =>
-            sustentacoesAtivasPorHabilidade.get(
-              montarChaveSustentacaoAtiva(
-                habilidadeTecnicaId,
-                variacaoHabilidadeId,
-              ),
-            ) ?? 0;
-
-          const renderTecnica = (
-            tecnica: NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>,
-          ) => {
-            const filtroSomenteSustentadasAtivas = Boolean(
-              mostrarSomenteSustentadas[card.personagemSessaoId],
-            );
-            const habilidadesVisiveis = filtroSomenteSustentadasAtivas
-              ? tecnica.habilidades.filter((habilidade) => {
-                  const baseAtiva = obterQtdSustentacaoAtiva(habilidade.id) > 0;
-                  const variacaoAtiva = habilidade.variacoes.some(
-                    (variacao) =>
-                      obterQtdSustentacaoAtiva(habilidade.id, variacao.id) > 0,
-                  );
-                  return baseAtiva || variacaoAtiva;
-                })
-              : tecnica.habilidades;
-
-            return (
-              <div key={tecnica.id} className="space-y-2 rounded border border-app-border p-2">
-                <div>
-                  <p className="text-xs font-semibold text-app-fg">{textoSeguro(tecnica.nome)}</p>
-                  <p className="text-[11px] text-app-muted">
-                    {textoSeguro(tecnica.codigo)} | {textoSeguro(tecnica.tipo)}
-                  </p>
-                  {tecnica.descricao ? (
-                    <p className="text-[11px] text-app-muted">{textoSeguro(tecnica.descricao)}</p>
-                  ) : null}
-                </div>
-                {habilidadesVisiveis.length === 0 ? (
-                  <p className="text-[11px] text-app-muted">
-                    {filtroSomenteSustentadasAtivas
-                      ? 'Nenhuma habilidade com sustentacao ativa nesta tecnica.'
-                      : 'Nenhuma habilidade liberada com os graus atuais.'}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {habilidadesVisiveis.map((habilidade) => {
-                    const custoBase = resolverCustoExibicao(habilidade);
-                    const chaveAcumuloBase = montarChaveAcumuloHabilidade(
-                      card.personagemSessaoId,
-                      habilidade.id,
-                    );
-                    const acumulosBase = custoBase.escalonavel
-                      ? parseAcumulos(
-                          acumulosHabilidade[chaveAcumuloBase],
-                          custoBase.acumulosMaximos,
-                        )
-                      : 0;
-                    const custoBaseTotalEA =
-                      custoBase.custoEA +
-                      custoBase.escalonamentoCustoEA * acumulosBase;
-                    const custoBaseTotalPE =
-                      custoBase.custoPE +
-                      custoBase.escalonamentoCustoPE * acumulosBase;
-                    const chaveBase = montarChaveUsoHabilidade(
-                      card.personagemSessaoId,
-                      habilidade.id,
-                    );
-                    const qtdSustentacaoBaseAtiva = obterQtdSustentacaoAtiva(
-                      habilidade.id,
-                    );
-
-                    return (
-                      <div
-                        key={`habilidade-${habilidade.id}`}
-                        className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-app-fg">{textoSeguro(habilidade.nome)}</p>
-                          {qtdSustentacaoBaseAtiva > 0 ? (
-                            <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
-                              Sustentada ativa x{qtdSustentacaoBaseAtiva}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="text-[11px] text-app-muted">
-                          {textoSeguro(habilidade.execucao)}
-                          {habilidade.alcance ? ` | Alcance: ${textoSeguro(habilidade.alcance)}` : ''}
-                          {habilidade.alvo ? ` | Alvo: ${textoSeguro(habilidade.alvo)}` : ''}
-                          {custoBase.duracao ? ` | Duracao: ${textoSeguro(custoBase.duracao)}` : ''}
-                        </p>
-                        <p className="text-[11px] text-app-muted">
-                          Custo base: {formatarCustos(custoBase.custoEA, custoBase.custoPE)}
-                          {custoBase.sustentada
-                            ? ` | Sustentacao: ${formatarCustos(custoBase.custoSustentacaoEA ?? 0, custoBase.custoSustentacaoPE ?? 0)}/rodada`
-                            : ''}
-                        </p>
-                        {custoBase.escalonavel ? (
-                          <div className="flex items-center gap-2 text-[11px] text-app-muted">
-                            <span>Acumulos</span>
-                            <input
-                              type="number"
-                              min={0}
-                              max={custoBase.acumulosMaximos}
-                              value={acumulosHabilidade[chaveAcumuloBase] ?? '0'}
-                              onChange={(event) => {
-                                const normalizado = parseAcumulos(
-                                  event.target.value,
-                                  custoBase.acumulosMaximos,
-                                );
-                                setAcumulosHabilidade((estadoAtual) => ({
-                                  ...estadoAtual,
-                                  [chaveAcumuloBase]: String(normalizado),
-                                }));
-                              }}
-                              disabled={!card.podeEditar || sessaoEncerrada}
-                              className="w-16 rounded border border-app-border bg-app-surface px-2 py-1 text-[11px] text-app-fg"
-                            />
-                            <span>
-                              {`max ${custoBase.acumulosMaximos} | +EA ${custoBase.escalonamentoCustoEA}/acumulo${custoBase.escalonamentoCustoPE > 0 ? ` | +PE ${custoBase.escalonamentoCustoPE}/acumulo` : ''}`}
-                            </span>
-                          </div>
-                        ) : null}
-                        <p className="text-[11px] text-app-muted whitespace-pre-wrap">
-                          {textoSeguro(habilidade.efeito)}
-                        </p>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          {card.podeEditar ? (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() =>
-                                void handleUsarHabilidade(
-                                  card.personagemSessaoId,
-                                  habilidade.id,
-                                  undefined,
-                                  acumulosBase,
-                                )
-                              }
-                              disabled={sessaoEncerrada || acaoHabilidadePendente === chaveBase}
-                              title={`Custo: ${formatarCustos(custoBaseTotalEA, custoBaseTotalPE)}`}
-                            >
-                              {acaoHabilidadePendente === chaveBase
-                                ? 'Aplicando...'
-                                : 'Usar base'}
-                            </Button>
-                          ) : null}
-
-                          {(filtroSomenteSustentadasAtivas
-                            ? habilidade.variacoes.filter(
-                                (variacao) =>
-                                  obterQtdSustentacaoAtiva(
-                                    habilidade.id,
-                                    variacao.id,
-                                  ) > 0,
-                              )
-                            : habilidade.variacoes
-                          ).map((variacao) => {
-                            const custoVariacao = resolverCustoExibicao(habilidade, variacao);
-                            const execucaoVariacao = variacao.execucao ?? habilidade.execucao;
-                            const alcanceVariacao = variacao.alcance ?? habilidade.alcance;
-                            const alvoVariacao = variacao.alvo ?? habilidade.alvo;
-                            const duracaoVariacao = variacao.duracao ?? custoVariacao.duracao;
-                            const chaveAcumuloVariacao = montarChaveAcumuloHabilidade(
-                              card.personagemSessaoId,
-                              habilidade.id,
-                              variacao.id,
-                            );
-                            const acumulosVariacao = custoVariacao.escalonavel
-                              ? parseAcumulos(
-                                  acumulosHabilidade[chaveAcumuloVariacao],
-                                  custoVariacao.acumulosMaximos,
-                                )
-                              : 0;
-                            const custoVariacaoTotalEA =
-                              custoVariacao.custoEA +
-                              custoVariacao.escalonamentoCustoEA * acumulosVariacao;
-                            const custoVariacaoTotalPE =
-                              custoVariacao.custoPE +
-                              custoVariacao.escalonamentoCustoPE * acumulosVariacao;
-                            const chaveVariacao = montarChaveUsoHabilidade(
-                              card.personagemSessaoId,
-                              habilidade.id,
-                              variacao.id,
-                            );
-                            const qtdSustentacaoVariacaoAtiva =
-                              obterQtdSustentacaoAtiva(habilidade.id, variacao.id);
-
-                            return (
-                              <div
-                                key={`variacao-${variacao.id}`}
-                                className="w-full rounded border border-app-border bg-app-bg px-2 py-1.5 space-y-1"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="text-[11px] font-semibold text-app-fg">
-                                    {textoSeguro(variacao.nome)}
-                                  </p>
-                                  {qtdSustentacaoVariacaoAtiva > 0 ? (
-                                    <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
-                                      Ativa x{qtdSustentacaoVariacaoAtiva}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <p className="text-[11px] text-app-muted">{textoSeguro(variacao.descricao)}</p>
-                                <p className="text-[11px] text-app-muted">
-                                  {textoSeguro(execucaoVariacao)}
-                                  {alcanceVariacao ? ` | Alcance: ${textoSeguro(alcanceVariacao)}` : ''}
-                                  {alvoVariacao ? ` | Alvo: ${textoSeguro(alvoVariacao)}` : ''}
-                                  {duracaoVariacao ? ` | Duracao: ${textoSeguro(duracaoVariacao)}` : ''}
-                                </p>
-                                <p className="text-[11px] text-app-muted">
-                                  Custo: {formatarCustos(custoVariacao.custoEA, custoVariacao.custoPE)}
-                                  {custoVariacao.sustentada
-                                    ? ` | Sustentacao: ${formatarCustos(
-                                        custoVariacao.custoSustentacaoEA ?? 0,
-                                        custoVariacao.custoSustentacaoPE ?? 0,
-                                      )}/rodada`
-                                    : ''}
-                                </p>
-                                {variacao.efeitoAdicional ? (
-                                  <p className="text-[11px] text-app-muted whitespace-pre-wrap">
-                                    {textoSeguro(variacao.efeitoAdicional)}
-                                  </p>
-                                ) : null}
-
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {custoVariacao.escalonavel ? (
-                                    <>
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        max={custoVariacao.acumulosMaximos}
-                                        value={acumulosHabilidade[chaveAcumuloVariacao] ?? '0'}
-                                        onChange={(event) => {
-                                          const normalizado = parseAcumulos(
-                                            event.target.value,
-                                            custoVariacao.acumulosMaximos,
-                                          );
-                                          setAcumulosHabilidade((estadoAtual) => ({
-                                            ...estadoAtual,
-                                            [chaveAcumuloVariacao]: String(normalizado),
-                                          }));
-                                        }}
-                                        disabled={!card.podeEditar || sessaoEncerrada}
-                                        className="w-14 rounded border border-app-border bg-app-surface px-1.5 py-1 text-[11px] text-app-fg"
-                                        title={`Acumulos (max ${custoVariacao.acumulosMaximos})`}
-                                      />
-                                      <span className="text-[11px] text-app-muted">
-                                        {`max ${custoVariacao.acumulosMaximos} | +EA ${custoVariacao.escalonamentoCustoEA}/acumulo${custoVariacao.escalonamentoCustoPE > 0 ? ` | +PE ${custoVariacao.escalonamentoCustoPE}/acumulo` : ''}`}
-                                      </span>
-                                    </>
-                                  ) : null}
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() =>
-                                      void handleUsarHabilidade(
-                                        card.personagemSessaoId,
-                                        habilidade.id,
-                                        variacao.id,
-                                        acumulosVariacao,
-                                      )
-                                    }
-                                    disabled={
-                                      !card.podeEditar ||
-                                      sessaoEncerrada ||
-                                      acaoHabilidadePendente === chaveVariacao
-                                    }
-                                    title={`Custo total: ${formatarCustos(custoVariacaoTotalEA, custoVariacaoTotalPE)}`}
-                                  >
-                                    {acaoHabilidadePendente === chaveVariacao
-                                      ? 'Aplicando...'
-                                      : 'Usar variacao'}
-                                  </Button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          };
-
-          return (
-            <CharacterSessionCard
-              key={card.personagemSessaoId}
-              card={card}
-              iniciativaValor={iniciativaValor ?? null}
-              cardRecursosExpandido={cardRecursosExpandido}
-              abaDetalheCard={abaDetalheCard}
-              totalCondicoesAtivasCard={totalCondicoesAtivasCard}
-              totalTecnicasCard={totalTecnicasCard}
-              totalSustentacoesAtivasCard={totalSustentacoesAtivasCard}
-              mostrarSomenteSustentadasAtivas={Boolean(
-                mostrarSomenteSustentadas[card.personagemSessaoId],
-              )}
-              onToggleMostrarSomenteSustentadas={(checked) =>
-                setMostrarSomenteSustentadas((estadoAtual) => ({
-                  ...estadoAtual,
-                  [card.personagemSessaoId]: checked,
-                }))
-              }
-              onAtualizarAbaDetalheCard={(aba) =>
-                atualizarAbaDetalheCard(card.personagemSessaoId, aba)
-              }
-              ajustesRecursos={ajustesRecursos}
-              campoRecursoPendenteCard={campoRecursoPendenteCard}
-              sessaoEncerrada={sessaoEncerrada}
-              salvandoCardId={salvandoCardId}
-              acaoHabilidadePendente={acaoHabilidadePendente}
-              onAlternarExpandido={() =>
-                setCardsRecursosExpandidos((estadoAtual) => ({
-                  ...estadoAtual,
-                  [card.personagemSessaoId]:
-                    !estadoAtual[card.personagemSessaoId],
-                }))
-              }
-              onAtualizarAjusteRecursoPersonalizado={(campo, valor) =>
-                atualizarAjusteRecursoCard(card.personagemCampanhaId, campo, valor)
-              }
-              onAplicarDeltaRecurso={(campo, delta) =>
-                void handleAplicarDeltaRecursoCard(card, campo, delta)
-              }
-              onAplicarAjustePersonalizado={(campo) =>
-                void handleAplicarAjustePersonalizadoRecursoCard(card, campo)
-              }
-              onAbrirEdicaoPersonagem={() => handleAbrirEdicaoPersonagem(card)}
-              onAbrirFichaCompleta={() =>
-                window.open(
-                  `/personagens-base/${card.personagemBaseId}`,
-                  '_blank',
-                  'noopener,noreferrer',
-                )
-              }
-              renderPainelCondicoes={renderPainelCondicoes}
-              renderTecnica={renderTecnica}
-              onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
-                void handleEncerrarSustentacao(personagemSessaoId, sustentacaoId)
-              }
-              formatarCustos={formatarCustos}
-            />
-          );
-        })
-      )}
-    </>
+    <SessionCharactersPanel
+      cards={cards}
+      iniciativaPorPersonagemSessao={iniciativaPorPersonagemSessao}
+      cardsRecursosExpandidos={cardsRecursosExpandidos}
+      onAlternarExpandido={alternarCardExpandido}
+      obterAjustesRecursosCard={obterAjustesRecursosCard}
+      onAtualizarAjusteRecursoCard={atualizarAjusteRecursoCard}
+      campoRecursoPendente={campoRecursoPendente}
+      salvandoCardId={salvandoCardId}
+      sessaoEncerrada={sessaoEncerrada}
+      acaoHabilidadePendente={acaoHabilidadePendente}
+      mostrarSomenteSustentadas={mostrarSomenteSustentadas}
+      onToggleMostrarSomenteSustentadas={atualizarFiltroSustentadas}
+      abasDetalheCard={abasDetalheCard}
+      onAtualizarAbaDetalheCard={atualizarAbaDetalheCard}
+      tecnicasNaoInatasAbertas={tecnicasNaoInatasAbertas}
+      onToggleTecnicasNaoInatas={atualizarTecnicasNaoInatasAbertas}
+      acumulosHabilidade={acumulosHabilidade}
+      onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
+      onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos) =>
+        void handleUsarHabilidade(
+          personagemSessaoId,
+          habilidadeTecnicaId,
+          variacaoId,
+          acumulos,
+        )
+      }
+      onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
+        void handleEncerrarSustentacao(personagemSessaoId, sustentacaoId)
+      }
+      onAplicarDeltaRecursoCard={(card, campo, delta) =>
+        void handleAplicarDeltaRecursoCard(card, campo, delta)
+      }
+      onAplicarAjustePersonalizadoRecursoCard={(card, campo) =>
+        void handleAplicarAjustePersonalizadoRecursoCard(card, campo)
+      }
+      onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
+      onAbrirFichaCompleta={handleAbrirFichaCompleta}
+      renderPainelCondicoes={renderPainelCondicoes}
+      erro={erroCards}
+    />
   );
+
+  function handleAbrirFichaCompleta(card: SessaoCampanhaDetalhe['cards'][number]) {
+    window.open(
+      `/personagens-base/${card.personagemBaseId}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
+
   function handleAbrirEdicaoPersonagem(card: SessaoCampanhaDetalhe['cards'][number]) {
     if (!card.recursos) return;
 
@@ -1416,8 +1047,8 @@ export default function SessaoCampanhaPage() {
     return (
       <main className="min-h-screen bg-app-bg p-6">
         <div className="max-w-4xl mx-auto space-y-4">
-          {erro ? <ErrorAlert message={erro} /> : null}
-          {!erro ? (
+          {erroGlobal ? <ErrorAlert message={erroGlobal} /> : null}
+          {!erroGlobal ? (
             <EmptyState
               variant="card"
               icon="campaign"
@@ -1449,14 +1080,8 @@ export default function SessaoCampanhaPage() {
                 {detalhe.encerradoEm ? formatarDataHora(detalhe.encerradoEm) : '-'}
               </p>
             ) : null}
-            <p className="text-xs text-app-muted">
-              Participantes online: {totalParticipantesOnline}/{participantes.length}
-            </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge color={sessaoEncerrada ? 'gray' : 'green'} size="md">
-              {sessaoEncerrada ? 'Sessao encerrada' : 'Sessao ativa'}
-            </Badge>
             <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>
               <Icon name="back" className="w-4 h-4 mr-2" />
               Voltar para campanha
@@ -1474,13 +1099,43 @@ export default function SessaoCampanhaPage() {
           realtimeAtivo={socketConectado}
           controleTurnosAtivo={detalhe.controleTurnosAtivo}
           podeControlarSessao={podeControlarSessao}
+          totalParticipantesOnline={totalParticipantesOnline}
+          totalParticipantes={participantes.length}
           acaoTurnoPendente={acaoTurnoPendente}
           onAvancarTurno={() => void handleControleTurno('AVANCAR')}
           onPularTurno={() => void handleControleTurno('PULAR')}
           onVoltarTurno={() => void handleControleTurno('VOLTAR')}
         />
 
-        {erro ? <ErrorAlert message={erro} /> : null}
+        {erroGlobal ? <ErrorAlert message={erroGlobal} /> : null}
+        {erroOperacional ? <ErrorAlert message={erroOperacional} /> : null}
+
+        {colunaEsquerdaRecolhida ? (
+          <button
+            type="button"
+            className="session-column-handle session-column-handle--left"
+            onClick={() => setColunaEsquerdaRecolhida(false)}
+            aria-label="Mostrar painel esquerdo"
+          >
+            <Icon name="chevron-right" className="h-3.5 w-3.5" />
+            <span className="session-column-handle__text">
+              Mostrar painel esquerdo
+            </span>
+          </button>
+        ) : null}
+        {colunaDireitaRecolhida ? (
+          <button
+            type="button"
+            className="session-column-handle session-column-handle--right"
+            onClick={() => setColunaDireitaRecolhida(false)}
+            aria-label="Mostrar painel lateral"
+          >
+            <Icon name="chevron-left" className="h-3.5 w-3.5" />
+            <span className="session-column-handle__text">
+              Mostrar painel lateral
+            </span>
+          </button>
+        ) : null}
 
         <div className={gridSessaoClassName}>
           {!colunaEsquerdaRecolhida ? (
@@ -1517,6 +1172,7 @@ export default function SessaoCampanhaPage() {
               edicaoNpcs={edicaoNpcs}
               salvandoNpcId={salvandoNpcId}
               removendoNpcId={removendoNpcId}
+              erro={erroNpcs}
               onAbrirAdicionar={() => setModalAdicionarNpcAberto(true)}
               onAtualizarCampo={atualizarCampoEdicaoNpc}
               onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
@@ -1527,34 +1183,6 @@ export default function SessaoCampanhaPage() {
           ) : null}
 
           <section className="space-y-3">
-            {(colunaEsquerdaRecolhida || colunaDireitaRecolhida) ? (
-              <div className="flex items-center justify-between gap-2">
-                {colunaEsquerdaRecolhida ? (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => setColunaEsquerdaRecolhida(false)}
-                    title="Mostrar painel esquerdo"
-                  >
-                    <Icon name="chevron-right" className="h-3.5 w-3.5" />
-                    <span className="ml-1 hidden md:inline">Mostrar painel esquerdo</span>
-                  </Button>
-                ) : (
-                  <span />
-                )}
-                {colunaDireitaRecolhida ? (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => setColunaDireitaRecolhida(false)}
-                    title="Mostrar painel direito"
-                  >
-                    <Icon name="chevron-left" className="h-3.5 w-3.5" />
-                    <span className="ml-1 hidden md:inline">Mostrar painel lateral</span>
-                  </Button>
-                ) : null}
-              </div>
-            ) : null}
             {podeControlarSessao ? renderCardsSessao() : null}
 
             <SessionInitiativePanel
@@ -1636,11 +1264,12 @@ export default function SessaoCampanhaPage() {
                     sessaoEncerrada={sessaoEncerrada}
                     podeControlarSessao={podeControlarSessao}
                     desfazendoEventoId={desfazendoEventoId}
+                    erro={erroEventos}
                     onAbrirDetalhes={(evento) => {
                       setEventoDetalheModal(evento);
                       setMotivoDesfazerEventoModal('');
                     }}
-                    onDesfazerEvento={(evento) => solicitarDesfazerEvento(evento)}
+                    onDesfazerEvento={(evento) => solicitarDesfazerEvento(evento, undefined, 'lista')}
                   />
                 ) : null}
 
@@ -1650,6 +1279,7 @@ export default function SessaoCampanhaPage() {
                     mensagem={mensagem}
                     enviandoMensagem={enviandoMensagem}
                     sessaoEncerrada={sessaoEncerrada}
+                    erro={erroChat}
                     onMensagemChange={setMensagem}
                     onEnviarMensagem={() => void handleEnviarMensagem()}
                     fimChatRef={fimChatRef}
@@ -1703,6 +1333,7 @@ export default function SessaoCampanhaPage() {
           condicoesAtivas={condicoesAtivasModal}
           sessaoEncerrada={sessaoEncerrada}
           acaoCondicaoPendente={acaoCondicaoPendente}
+          erro={erroCondicoes}
           onClose={() => {
             setModalCondicoesAberto(null);
             setBuscaCondicoesModal('');
@@ -1738,6 +1369,7 @@ export default function SessaoCampanhaPage() {
               modalCondicoesAberto.alvoTipo,
               modalCondicoesAberto.alvoId,
               condicao,
+              'modal',
             );
           }}
           opcoesDuracao={OPCOES_DURACAO_CONDICAO}
@@ -1759,7 +1391,7 @@ export default function SessaoCampanhaPage() {
             setMotivoDesfazerEventoModal('');
           }}
           onDesfazerEvento={(evento, motivo) =>
-            solicitarDesfazerEvento(evento, motivo)
+            solicitarDesfazerEvento(evento, motivo, 'detalhe')
           }
           sessaoEncerrada={sessaoEncerrada}
           podeControlarSessao={podeControlarSessao}

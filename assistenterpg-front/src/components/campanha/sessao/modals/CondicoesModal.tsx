@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import type {
   CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
@@ -25,6 +26,7 @@ type CondicoesModalProps = {
   condicoesAtivas: CondicaoAtivaSessaoCampanha[];
   sessaoEncerrada: boolean;
   acaoCondicaoPendente: string | null;
+  erro?: string | null;
   onClose: () => void;
   onSelecionarCondicao: (condicaoId: string) => void;
   onAtualizarCampo: (campo: keyof FormCondicaoSessao, valor: string) => void;
@@ -45,6 +47,7 @@ export function CondicoesModal({
   condicoesAtivas,
   sessaoEncerrada,
   acaoCondicaoPendente,
+  erro,
   onClose,
   onSelecionarCondicao,
   onAtualizarCampo,
@@ -87,6 +90,7 @@ export function CondicoesModal({
     >
       {modalCondicoes ? (
         <div className="grid gap-3 md:grid-cols-[1.25fr_1fr]">
+          {erro ? <ErrorAlert message={erro} className="md:col-span-2" /> : null}
           <div className="space-y-3">
             <Input
               label="Buscar condicao"

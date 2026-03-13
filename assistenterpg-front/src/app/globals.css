@@ -609,6 +609,12 @@ body {
   gap: 0.42rem;
 }
 
+.session-operational-bar__meta-text {
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
 .session-operational-bar__shortcut {
   display: inline-flex;
   align-items: center;
@@ -718,6 +724,49 @@ body {
 
 .session-column {
   position: relative;
+}
+
+.session-column-handle {
+  position: fixed;
+  top: 50%;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  background: var(--bg-surface);
+  color: var(--fg);
+  box-shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.75);
+  transform: translateY(-50%);
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.session-column-handle:hover {
+  border-color: color-mix(in srgb, var(--primary) 50%, var(--border-subtle));
+  color: var(--fg);
+}
+
+.session-column-handle--left {
+  left: 0.35rem;
+}
+
+.session-column-handle--right {
+  right: 0.35rem;
+}
+
+.session-column-handle__text {
+  display: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .session-column-handle__text {
+    display: inline;
+  }
 }
 
 .session-column-toggle {

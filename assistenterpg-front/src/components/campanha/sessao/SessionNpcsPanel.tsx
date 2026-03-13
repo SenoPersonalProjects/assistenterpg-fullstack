@@ -5,6 +5,7 @@ import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import type {
   CondicaoAtivaSessaoCampanha,
   NpcAmeacaResumo,
@@ -21,6 +22,7 @@ type SessionNpcsPanelProps = {
   edicaoNpcs: Record<number, NpcEditavel>;
   salvandoNpcId: number | null;
   removendoNpcId: number | null;
+  erro?: string | null;
   onAbrirAdicionar: () => void;
   onAtualizarCampo: (
     npc: NpcSessaoCampanha,
@@ -45,6 +47,7 @@ export function SessionNpcsPanel({
   edicaoNpcs,
   salvandoNpcId,
   removendoNpcId,
+  erro,
   onAbrirAdicionar,
   onAtualizarCampo,
   onSalvarNpc,
@@ -69,6 +72,8 @@ export function SessionNpcsPanel({
           ) : undefined
         }
       />
+
+      {erro ? <ErrorAlert message={erro} /> : null}
 
       {npcs.length === 0 ? (
         <EmptyState

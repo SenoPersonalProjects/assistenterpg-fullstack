@@ -1,23 +1,16 @@
 ﻿'use client';
 
 import type { ReactNode } from 'react';
-import type {
-  CondicaoAtivaSessaoCampanha,
-  SessaoCampanhaDetalhe,
-} from '@/lib/types';
+import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { SessionCharacterResourceCard } from '@/components/campanha/sessao/SessionCharacterResourceCard';
 import { SessionTabs } from '@/components/campanha/sessao/SessionTabs';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
+import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 
 export type CampoAjusteRecursoCard = 'pv' | 'pe' | 'ea' | 'san';
-export type AbaDetalheCard =
-  | 'RESUMO'
-  | 'CONDICOES'
-  | 'TECNICAS'
-  | 'SUSTENTACOES';
 
 type CharacterSessionCardProps = {
   card: SessaoCampanhaDetalhe['cards'][number];
@@ -30,6 +23,8 @@ type CharacterSessionCardProps = {
   mostrarSomenteSustentadasAtivas: boolean;
   onToggleMostrarSomenteSustentadas: (checked: boolean) => void;
   onAtualizarAbaDetalheCard: (aba: AbaDetalheCard) => void;
+  tecnicasNaoInatasAbertas: boolean;
+  onToggleTecnicasNaoInatas: (aberto: boolean) => void;
   ajustesRecursos: Record<CampoAjusteRecursoCard, string>;
   campoRecursoPendenteCard: CampoAjusteRecursoCard | null;
   sessaoEncerrada: boolean;
@@ -86,6 +81,8 @@ export function CharacterSessionCard({
   mostrarSomenteSustentadasAtivas,
   onToggleMostrarSomenteSustentadas,
   onAtualizarAbaDetalheCard,
+  tecnicasNaoInatasAbertas,
+  onToggleTecnicasNaoInatas,
   ajustesRecursos,
   campoRecursoPendenteCard,
   sessaoEncerrada,
@@ -324,7 +321,11 @@ export function CharacterSessionCard({
                 </div>
               </details>
 
-              <details className="rounded border border-app-border p-2">
+              <details
+                className="rounded border border-app-border p-2"
+                open={tecnicasNaoInatasAbertas}
+                onToggle={(event) => onToggleTecnicasNaoInatas(event.currentTarget.open)}
+              >
                 <summary className="cursor-pointer text-xs font-semibold text-app-fg">
                   Tecnicas nao inatas ({card.tecnicasNaoInatas.length})
                 </summary>

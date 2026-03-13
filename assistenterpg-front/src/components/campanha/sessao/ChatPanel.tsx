@@ -3,6 +3,7 @@
 import type { RefObject } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import type { MensagemChatSessao } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
@@ -12,6 +13,7 @@ type ChatPanelProps = {
   mensagem: string;
   enviandoMensagem: boolean;
   sessaoEncerrada: boolean;
+  erro?: string | null;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
   fimChatRef: RefObject<HTMLDivElement | null>;
@@ -22,6 +24,7 @@ export function ChatPanel({
   mensagem,
   enviandoMensagem,
   sessaoEncerrada,
+  erro,
   onMensagemChange,
   onEnviarMensagem,
   fimChatRef,
@@ -31,6 +34,7 @@ export function ChatPanel({
 
   return (
     <div className="space-y-2">
+      {erro ? <ErrorAlert message={erro} /> : null}
       <div className="h-[420px] overflow-y-auto rounded border border-app-border p-3 space-y-2 bg-app-bg">
         {chat.length === 0 ? (
           <p className="text-xs text-app-muted">
