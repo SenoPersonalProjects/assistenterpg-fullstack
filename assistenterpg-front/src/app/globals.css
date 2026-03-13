@@ -433,12 +433,14 @@ body {
 
 .session-resource-list {
   display: grid;
-  gap: 0.38rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.65rem;
 }
 
 .session-resource-row {
   display: grid;
   gap: 0.23rem;
+  min-width: 0;
 }
 
 .session-resource-row__meta {
@@ -659,7 +661,34 @@ body {
   gap: 0.34rem;
 }
 
+.session-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--fg);
+}
+
+.session-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  padding: 0.15rem 0.45rem;
+  background: var(--bg-surface);
+  color: var(--fg);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
 @media (max-width: 640px) {
+  .session-resource-list {
+    grid-template-columns: 1fr;
+  }
+
   .session-operational-bar__stats {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   }

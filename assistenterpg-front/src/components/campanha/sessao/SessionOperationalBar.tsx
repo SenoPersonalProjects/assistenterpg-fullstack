@@ -1,9 +1,12 @@
 ﻿'use client';
 
+import { useState } from 'react';
+
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Modal } from '@/components/ui/Modal';
 
 type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
@@ -46,6 +49,8 @@ export function SessionOperationalBar({
   onVoltarTurno,
   className = '',
 }: SessionOperationalBarProps) {
+  const [atalhosAbertos, setAtalhosAbertos] = useState(false);
+
   return (
     <section className={`session-operational-bar ${className}`}>
       {erro ? (
@@ -124,7 +129,6 @@ export function SessionOperationalBar({
           >
             <Icon name="chevron-left" className="mr-1 h-3.5 w-3.5" />
             {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar'}
-            <span className="session-operational-bar__shortcut">Shift + ,</span>
           </Button>
           <Button
             variant="secondary"
@@ -134,7 +138,6 @@ export function SessionOperationalBar({
           >
             <Icon name="skip-forward" className="mr-1 h-3.5 w-3.5" />
             {acaoTurnoPendente === 'PULAR' ? 'Pulando...' : 'Pular'}
-            <span className="session-operational-bar__shortcut">Shift + /</span>
           </Button>
           <Button
             variant="primary"
@@ -144,13 +147,50 @@ export function SessionOperationalBar({
           >
             <Icon name="forward" className="mr-1 h-3.5 w-3.5" />
             {acaoTurnoPendente === 'AVANCAR' ? 'Avancando...' : 'Avancar'}
-            <span className="session-operational-bar__shortcut">.</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setAtalhosAbertos(true)}
+            title="Ver atalhos"
+          >
+            <Icon name="info" className="mr-1 h-3.5 w-3.5" />
+            Atalhos
           </Button>
         </div>
       ) : null}
+
+      <Modal
+        isOpen={atalhosAbertos}
+        onClose={() => setAtalhosAbertos(false)}
+        title="Atalhos da sessao"
+        size="sm"
+      >
+        <div className="space-y-2">
+          <p className="text-xs text-app-muted">
+            Atalhos funcionam quando o foco nao esta em campos de texto.
+          </p>
+          <div className="space-y-1.5">
+            <div className="session-shortcut-row">
+              <span>Avancar turno</span>
+              <span className="session-kbd">.</span>
+            </div>
+            <div className="session-shortcut-row">
+              <span>Voltar turno</span>
+              <span className="session-kbd">Shift + ,</span>
+            </div>
+            <div className="session-shortcut-row">
+              <span>Pular turno</span>
+              <span className="session-kbd">Shift + /</span>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }
 
 export type { AcaoControleTurno };
+
+
 
