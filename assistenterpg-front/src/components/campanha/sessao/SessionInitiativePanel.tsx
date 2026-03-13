@@ -63,8 +63,7 @@ export function SessionInitiativePanel({
           </p>
         ) : (
           <p className="text-xs text-app-muted">
-            Controle de turnos desativado. A iniciativa pode ser organizada para
-            referencia rapida.
+            Controle de turnos desativado. Use a ordem como referencia rapida.
           </p>
         )}
 

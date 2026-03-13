@@ -634,7 +634,12 @@ body {
 
 @media (max-width: 640px) {
   .session-operational-bar__stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
+  .session-operational-bar__block--turno {
+    order: -1;
+    grid-column: 1 / -1;
   }
 
   .session-operational-bar__actions {
@@ -644,6 +649,11 @@ body {
 
   .session-operational-bar__actions .session-operational-bar__shortcut {
     display: none;
+  }
+
+  .session-operational-bar__actions > button {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -812,4 +822,14 @@ body {
   color: var(--fg-muted);
   font-size: 0.65rem;
   line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  .session-iniciativa-linha {
+    align-items: flex-start;
+  }
+
+  .session-iniciativa-linha > div:last-child {
+    margin-left: auto;
+  }
 }

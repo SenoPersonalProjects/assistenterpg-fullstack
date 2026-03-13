@@ -64,7 +64,7 @@ export function SessionOperationalBar({
               </span>
             </div>
             <div className="session-operational-bar__block session-operational-bar__block--proximo">
-              <span className="session-operational-bar__label">Proximo</span>
+              <span className="session-operational-bar__label">Proximo turno</span>
               <span className="session-operational-bar__value">
                 {proximoTurnoLabel ?? '—'}
               </span>
