@@ -80,6 +80,7 @@ let UsuarioService = class UsuarioService {
                     apelido: true,
                     email: true,
                     role: true,
+                    emailVerificadoEm: true,
                     criadoEm: true,
                 },
             });
@@ -99,6 +100,7 @@ let UsuarioService = class UsuarioService {
                     email: true,
                     senhaHash: true,
                     role: true,
+                    emailVerificadoEm: true,
                     criadoEm: true,
                     atualizadoEm: true,
                 },
@@ -107,6 +109,27 @@ let UsuarioService = class UsuarioService {
                 throw new usuario_exception_1.UsuarioEmailNaoEncontradoException(email);
             }
             return usuario;
+        }
+        catch (error) {
+            this.tratarErroPrisma(error);
+            throw error;
+        }
+    }
+    async buscarPorEmailOpcional(email) {
+        try {
+            return await this.prisma.usuario.findUnique({
+                where: { email },
+                select: {
+                    id: true,
+                    apelido: true,
+                    email: true,
+                    senhaHash: true,
+                    role: true,
+                    emailVerificadoEm: true,
+                    criadoEm: true,
+                    atualizadoEm: true,
+                },
+            });
         }
         catch (error) {
             this.tratarErroPrisma(error);
@@ -123,6 +146,7 @@ let UsuarioService = class UsuarioService {
                     email: true,
                     role: true,
                     senhaHash: true,
+                    emailVerificadoEm: true,
                     criadoEm: true,
                     atualizadoEm: true,
                 },
@@ -146,6 +170,7 @@ let UsuarioService = class UsuarioService {
                     apelido: true,
                     email: true,
                     role: true,
+                    emailVerificadoEm: true,
                     criadoEm: true,
                 },
             });
@@ -236,6 +261,37 @@ let UsuarioService = class UsuarioService {
             throw error;
         }
     }
+    async atualizarSenhaHash(usuarioId, senhaHash) {
+        try {
+            await this.prisma.usuario.update({
+                where: { id: usuarioId },
+                data: { senhaHash },
+            });
+        }
+        catch (error) {
+            this.tratarErroPrisma(error);
+            throw error;
+        }
+    }
+    async marcarEmailComoVerificado(usuarioId) {
+        try {
+            return await this.prisma.usuario.update({
+                where: { id: usuarioId },
+                data: {
+                    emailVerificadoEm: new Date(),
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    emailVerificadoEm: true,
+                },
+            });
+        }
+        catch (error) {
+            this.tratarErroPrisma(error);
+            throw error;
+        }
+    }
     async exportarDados(usuarioId) {
         try {
             const [usuario, personagens, campanhas, preferencias] = await Promise.all([
@@ -246,6 +302,7 @@ let UsuarioService = class UsuarioService {
                         apelido: true,
                         email: true,
                         role: true,
+                        emailVerificadoEm: true,
                         criadoEm: true,
                     },
                 }),
@@ -304,7 +361,7 @@ let UsuarioService = class UsuarioService {
             await this.prisma.usuario.delete({
                 where: { id: usuarioId },
             });
-            return { mensagem: 'Conta excluída com sucesso' };
+            return { mensagem: 'Conta excluida com sucesso' };
         }
         catch (error) {
             this.tratarErroPrisma(error);

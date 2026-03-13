@@ -104,9 +104,9 @@ export declare class CompendioService {
             id: number;
             criadoEm: Date;
             atualizadoEm: Date;
-            titulo: string;
             codigo: string;
             ativo: boolean;
+            titulo: string;
             ordem: number;
             tags: import("@prisma/client/runtime/library").JsonValue | null;
             resumo: string | null;
@@ -209,9 +209,9 @@ export declare class CompendioService {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
-        titulo: string;
         codigo: string;
         ativo: boolean;
+        titulo: string;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
         resumo: string | null;
@@ -251,9 +251,9 @@ export declare class CompendioService {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
-        titulo: string;
         codigo: string;
         ativo: boolean;
+        titulo: string;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
         resumo: string | null;
@@ -293,9 +293,9 @@ export declare class CompendioService {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
-        titulo: string;
         codigo: string;
         ativo: boolean;
+        titulo: string;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
         resumo: string | null;
@@ -338,9 +338,9 @@ export declare class CompendioService {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
-        titulo: string;
         codigo: string;
         ativo: boolean;
+        titulo: string;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
         resumo: string | null;
@@ -380,9 +380,9 @@ export declare class CompendioService {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
-        titulo: string;
         codigo: string;
         ativo: boolean;
+        titulo: string;
         ordem: number;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
         resumo: string | null;

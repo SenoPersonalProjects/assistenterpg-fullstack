@@ -25,14 +25,14 @@ export declare class OrigensController {
         })[];
         habilidadesOrigem: ({
             habilidade: {
+                origem: string | null;
                 id: number;
                 nome: string;
                 descricao: string | null;
-                tipo: string;
-                origem: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                tipo: string;
                 hereditaria: boolean;
                 mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
             };
@@ -45,12 +45,12 @@ export declare class OrigensController {
         id: number;
         nome: string;
         descricao: string | null;
+        fonte: import("@prisma/client").$Enums.TipoFonte;
+        suplementoId: number | null;
         requisitosTexto: string | null;
         requerGrandeCla: boolean;
         requerTecnicaHeriditaria: boolean;
         bloqueiaTecnicaHeriditaria: boolean;
-        fonte: import("@prisma/client").$Enums.TipoFonte;
-        suplementoId: number | null;
     } & {
         habilidadesIniciais: import("../habilidades/dto/catalogo-habilidade.dto").HabilidadeCatalogoDto[];
     }>;
@@ -79,14 +79,14 @@ export declare class OrigensController {
         })[];
         habilidadesOrigem: ({
             habilidade: {
+                origem: string | null;
                 id: number;
                 nome: string;
                 descricao: string | null;
-                tipo: string;
-                origem: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                tipo: string;
                 hereditaria: boolean;
                 mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
             };
@@ -99,12 +99,12 @@ export declare class OrigensController {
         id: number;
         nome: string;
         descricao: string | null;
+        fonte: import("@prisma/client").$Enums.TipoFonte;
+        suplementoId: number | null;
         requisitosTexto: string | null;
         requerGrandeCla: boolean;
         requerTecnicaHeriditaria: boolean;
         bloqueiaTecnicaHeriditaria: boolean;
-        fonte: import("@prisma/client").$Enums.TipoFonte;
-        suplementoId: number | null;
     } & {
         habilidadesIniciais: import("../habilidades/dto/catalogo-habilidade.dto").HabilidadeCatalogoDto[];
     })[]>;
@@ -133,14 +133,14 @@ export declare class OrigensController {
         })[];
         habilidadesOrigem: ({
             habilidade: {
+                origem: string | null;
                 id: number;
                 nome: string;
                 descricao: string | null;
-                tipo: string;
-                origem: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                tipo: string;
                 hereditaria: boolean;
                 mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
             };
@@ -153,12 +153,12 @@ export declare class OrigensController {
         id: number;
         nome: string;
         descricao: string | null;
+        fonte: import("@prisma/client").$Enums.TipoFonte;
+        suplementoId: number | null;
         requisitosTexto: string | null;
         requerGrandeCla: boolean;
         requerTecnicaHeriditaria: boolean;
         bloqueiaTecnicaHeriditaria: boolean;
-        fonte: import("@prisma/client").$Enums.TipoFonte;
-        suplementoId: number | null;
     } & {
         habilidadesIniciais: import("../habilidades/dto/catalogo-habilidade.dto").HabilidadeCatalogoDto[];
     }>;
@@ -183,14 +183,14 @@ export declare class OrigensController {
         })[];
         habilidadesOrigem: ({
             habilidade: {
+                origem: string | null;
                 id: number;
                 nome: string;
                 descricao: string | null;
-                tipo: string;
-                origem: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+                tipo: string;
                 hereditaria: boolean;
                 mecanicasEspeciais: import("@prisma/client/runtime/library").JsonValue | null;
             };
@@ -203,12 +203,12 @@ export declare class OrigensController {
         id: number;
         nome: string;
         descricao: string | null;
+        fonte: import("@prisma/client").$Enums.TipoFonte;
+        suplementoId: number | null;
         requisitosTexto: string | null;
         requerGrandeCla: boolean;
         requerTecnicaHeriditaria: boolean;
         bloqueiaTecnicaHeriditaria: boolean;
-        fonte: import("@prisma/client").$Enums.TipoFonte;
-        suplementoId: number | null;
     } & {
         habilidadesIniciais: import("../habilidades/dto/catalogo-habilidade.dto").HabilidadeCatalogoDto[];
     }>;

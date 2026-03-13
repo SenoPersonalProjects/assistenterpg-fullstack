@@ -9,8 +9,8 @@ export declare class ProficienciasService {
         id: number;
         nome: string;
         descricao: string | null;
-        tipo: string;
         codigo: string;
+        tipo: string;
         categoria: string;
         subtipo: string | null;
     }>;
@@ -18,8 +18,8 @@ export declare class ProficienciasService {
         id: number;
         nome: string;
         descricao: string | null;
-        tipo: string;
         codigo: string;
+        tipo: string;
         categoria: string;
         subtipo: string | null;
     }[]>;
@@ -27,8 +27,8 @@ export declare class ProficienciasService {
         id: number;
         nome: string;
         descricao: string | null;
-        tipo: string;
         codigo: string;
+        tipo: string;
         categoria: string;
         subtipo: string | null;
     }>;
@@ -36,8 +36,8 @@ export declare class ProficienciasService {
         id: number;
         nome: string;
         descricao: string | null;
-        tipo: string;
         codigo: string;
+        tipo: string;
         categoria: string;
         subtipo: string | null;
     }>;

@@ -35,8 +35,8 @@ export declare class TrilhasController {
     } & {
         id: number;
         nome: string;
-        descricao: string | null;
         classeId: number;
+        descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
@@ -58,8 +58,8 @@ export declare class TrilhasController {
     } & {
         id: number;
         nome: string;
-        descricao: string | null;
         classeId: number;
+        descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
@@ -99,8 +99,8 @@ export declare class TrilhasController {
     } & {
         id: number;
         nome: string;
-        descricao: string | null;
         classeId: number;
+        descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
@@ -134,8 +134,8 @@ export declare class TrilhasController {
     } & {
         id: number;
         nome: string;
-        descricao: string | null;
         classeId: number;
+        descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
@@ -179,8 +179,8 @@ export declare class TrilhasController {
     } & {
         id: number;
         nome: string;
-        descricao: string | null;
         trilhaId: number;
+        descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
     }>;
@@ -205,8 +205,8 @@ export declare class TrilhasController {
     } & {
         id: number;
         nome: string;
-        descricao: string | null;
         trilhaId: number;
+        descricao: string | null;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
     }>;

@@ -10,9 +10,9 @@ export declare class ClassesService {
         id: number;
         nome: string;
         descricao: string | null;
+        periciasLivresBase: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        periciasLivresBase: number;
     }>;
     private mapToCatalogo;
     findAll(): Promise<ClasseCatalogoDto[]>;
@@ -27,9 +27,9 @@ export declare class ClassesService {
         id: number;
         nome: string;
         descricao: string | null;
+        periciasLivresBase: number;
         fonte: import("@prisma/client").$Enums.TipoFonte;
         suplementoId: number | null;
-        periciasLivresBase: number;
     }>;
     remove(id: number): Promise<{
         sucesso: boolean;

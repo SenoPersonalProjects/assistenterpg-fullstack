@@ -22,8 +22,8 @@ export declare class CampanhaService {
         };
         dono: {
             id: number;
-            apelido: string;
             email: string;
+            apelido: string;
         };
     } & {
         id: number;
@@ -47,8 +47,8 @@ export declare class CampanhaService {
             };
         } & {
             id: number;
-            campanhaId: number;
             usuarioId: number;
+            campanhaId: number;
             papel: string;
             entrouEm: Date;
         })[];
@@ -72,13 +72,13 @@ export declare class CampanhaService {
     listarMembros(campanhaId: number, usuarioId: number): Promise<({
         usuario: {
             id: number;
-            apelido: string;
             email: string;
+            apelido: string;
         };
     } & {
         id: number;
-        campanhaId: number;
         usuarioId: number;
+        campanhaId: number;
         papel: string;
         entrouEm: Date;
     })[]>;
@@ -88,13 +88,13 @@ export declare class CampanhaService {
     }): Promise<{
         usuario: {
             id: number;
-            apelido: string;
             email: string;
+            apelido: string;
         };
     } & {
         id: number;
-        campanhaId: number;
         usuarioId: number;
+        campanhaId: number;
         papel: string;
         entrouEm: Date;
     }>;
@@ -144,8 +144,8 @@ export declare class CampanhaService {
             criadoEm: Date;
             nome: string;
             descricao: string | null;
-            valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             criadoPorId: number;
         }[];
     }[]>;
@@ -205,8 +205,8 @@ export declare class CampanhaService {
             criadoEm: Date;
             nome: string;
             descricao: string | null;
-            valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             criadoPorId: number;
         }[];
     }>;
@@ -262,8 +262,8 @@ export declare class CampanhaService {
             criadoEm: Date;
             nome: string;
             descricao: string | null;
-            valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             criadoPorId: number;
         }[];
     }>;
@@ -299,12 +299,12 @@ export declare class CampanhaService {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             sessaoId: number | null;
             cenaId: number | null;
-            personagemCampanhaId: number;
-            valor: number;
-            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
             ativo: boolean;
+            personagemCampanhaId: number;
             criadoPorId: number;
             desfeitoPorId: number | null;
             desfeitoEm: Date | null;
@@ -356,8 +356,8 @@ export declare class CampanhaService {
                 criadoEm: Date;
                 nome: string;
                 descricao: string | null;
-                valor: number;
                 campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+                valor: number;
                 criadoPorId: number;
             }[];
         };
@@ -378,12 +378,12 @@ export declare class CampanhaService {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             sessaoId: number | null;
             cenaId: number | null;
-            personagemCampanhaId: number;
-            valor: number;
-            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
             ativo: boolean;
+            personagemCampanhaId: number;
             criadoPorId: number;
             desfeitoPorId: number | null;
             desfeitoEm: Date | null;
@@ -435,8 +435,8 @@ export declare class CampanhaService {
                 criadoEm: Date;
                 nome: string;
                 descricao: string | null;
-                valor: number;
                 campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+                valor: number;
                 criadoPorId: number;
             }[];
         };
@@ -450,11 +450,11 @@ export declare class CampanhaService {
         id: number;
         criadoEm: Date;
         descricao: string | null;
+        tipo: string;
         campanhaId: number;
         personagemCampanhaId: number;
-        dados: Prisma.JsonValue | null;
-        tipo: string;
         criadoPorId: number | null;
+        dados: Prisma.JsonValue | null;
     })[]>;
     private validarContextoSessaoCena;
     private garantirAcesso;
@@ -470,9 +470,9 @@ export declare class CampanhaService {
         email: string;
         criadoEm: Date;
         status: string;
+        codigo: string;
         campanhaId: number;
         papel: string;
-        codigo: string;
         respondidoEm: Date | null;
     }>;
     listarConvitesPendentesPorUsuario(usuarioId: number): Promise<({
@@ -488,9 +488,9 @@ export declare class CampanhaService {
         email: string;
         criadoEm: Date;
         status: string;
+        codigo: string;
         campanhaId: number;
         papel: string;
-        codigo: string;
         respondidoEm: Date | null;
     })[]>;
     aceitarConvite(codigo: string, usuarioId: number): Promise<any>;
@@ -499,9 +499,9 @@ export declare class CampanhaService {
         email: string;
         criadoEm: Date;
         status: string;
+        codigo: string;
         campanhaId: number;
         papel: string;
-        codigo: string;
         respondidoEm: Date | null;
     }>;
 }

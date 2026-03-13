@@ -17,19 +17,19 @@ export declare class HomebrewsController {
     private getUserContext;
     meus(req: AuthenticatedRequest, filtros: FiltrarHomebrewsDto): Promise<{
         dados: {
-            id: number;
-            criadoEm: Date;
-            atualizadoEm: Date;
-            nome: string;
-            descricao: string | null;
-            status: import("@prisma/client").$Enums.StatusPublicacao;
-            usuarioId: number;
-            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
-            codigo: string;
             usuario: {
                 id: number;
                 apelido: string;
             };
+            id: number;
+            criadoEm: Date;
+            atualizadoEm: Date;
+            usuarioId: number;
+            nome: string;
+            descricao: string | null;
+            status: import("@prisma/client").$Enums.StatusPublicacao;
+            codigo: string;
+            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
             versao: string;
             tags: import("@prisma/client/runtime/library").JsonValue;
         }[];
@@ -43,19 +43,19 @@ export declare class HomebrewsController {
     buscarPorCodigo(codigo: string, req: AuthenticatedRequest): Promise<import("./dto/homebrew-detalhado.dto").HomebrewDetalhadoDto>;
     listar(filtros: FiltrarHomebrewsDto, req: AuthenticatedRequest): Promise<{
         dados: {
-            id: number;
-            criadoEm: Date;
-            atualizadoEm: Date;
-            nome: string;
-            descricao: string | null;
-            status: import("@prisma/client").$Enums.StatusPublicacao;
-            usuarioId: number;
-            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
-            codigo: string;
             usuario: {
                 id: number;
                 apelido: string;
             };
+            id: number;
+            criadoEm: Date;
+            atualizadoEm: Date;
+            usuarioId: number;
+            nome: string;
+            descricao: string | null;
+            status: import("@prisma/client").$Enums.StatusPublicacao;
+            codigo: string;
+            tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
             versao: string;
             tags: import("@prisma/client/runtime/library").JsonValue;
         }[];
@@ -79,13 +79,13 @@ export declare class HomebrewsController {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
+        usuarioId: number;
         nome: string;
         descricao: string | null;
         status: import("@prisma/client").$Enums.StatusPublicacao;
-        usuarioId: number;
-        dados: import("@prisma/client/runtime/library").JsonValue;
-        tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
         codigo: string;
+        tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
+        dados: import("@prisma/client/runtime/library").JsonValue;
         versao: string;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
     }>;
@@ -98,13 +98,13 @@ export declare class HomebrewsController {
         id: number;
         criadoEm: Date;
         atualizadoEm: Date;
+        usuarioId: number;
         nome: string;
         descricao: string | null;
         status: import("@prisma/client").$Enums.StatusPublicacao;
-        usuarioId: number;
-        dados: import("@prisma/client/runtime/library").JsonValue;
-        tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
         codigo: string;
+        tipo: import("@prisma/client").$Enums.TipoHomebrewConteudo;
+        dados: import("@prisma/client/runtime/library").JsonValue;
         versao: string;
         tags: import("@prisma/client/runtime/library").JsonValue | null;
     }>;

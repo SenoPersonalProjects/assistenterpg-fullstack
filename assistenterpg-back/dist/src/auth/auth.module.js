@@ -18,6 +18,9 @@ const local_strategy_1 = require("./local.strategy");
 const jwt_strategy_1 = require("./jwt.strategy");
 const roles_guard_1 = require("./guards/roles.guard");
 const admin_guard_1 = require("./guards/admin.guard");
+const prisma_module_1 = require("../prisma/prisma.module");
+const auth_token_service_1 = require("./auth-token.service");
+const auth_mail_service_1 = require("./auth-mail.service");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -26,6 +29,7 @@ exports.AuthModule = AuthModule = __decorate([
         imports: [
             config_1.ConfigModule,
             usuario_module_1.UsuarioModule,
+            prisma_module_1.PrismaModule,
             passport_1.PassportModule.register({ defaultStrategy: 'jwt' }),
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
@@ -44,7 +48,15 @@ exports.AuthModule = AuthModule = __decorate([
                 inject: [config_1.ConfigService],
             }),
         ],
-        providers: [auth_service_1.AuthService, local_strategy_1.LocalStrategy, jwt_strategy_1.JwtStrategy, roles_guard_1.RolesGuard, admin_guard_1.AdminGuard],
+        providers: [
+            auth_service_1.AuthService,
+            auth_token_service_1.AuthTokenService,
+            auth_mail_service_1.AuthMailService,
+            local_strategy_1.LocalStrategy,
+            jwt_strategy_1.JwtStrategy,
+            roles_guard_1.RolesGuard,
+            admin_guard_1.AdminGuard,
+        ],
         controllers: [auth_controller_1.AuthController],
         exports: [auth_service_1.AuthService, roles_guard_1.RolesGuard, admin_guard_1.AdminGuard],
     })

@@ -104,8 +104,8 @@ export declare class TecnicasAmaldicoadasController {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        codigo: string;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        codigo: string;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;
@@ -180,8 +180,8 @@ export declare class TecnicasAmaldicoadasController {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        codigo: string;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        codigo: string;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;
@@ -255,8 +255,8 @@ export declare class TecnicasAmaldicoadasController {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        codigo: string;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        codigo: string;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;
@@ -330,8 +330,8 @@ export declare class TecnicasAmaldicoadasController {
         atualizadoEm: Date;
         nome: string;
         descricao: string;
-        codigo: string;
         requisitos: import("@prisma/client/runtime/library").JsonValue | null;
+        codigo: string;
         ordem: number;
         criticoValor: number | null;
         criticoMultiplicador: number | null;

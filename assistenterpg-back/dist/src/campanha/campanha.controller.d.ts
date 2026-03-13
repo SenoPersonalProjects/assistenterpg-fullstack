@@ -22,8 +22,8 @@ export declare class CampanhaController {
         };
         dono: {
             id: number;
-            apelido: string;
             email: string;
+            apelido: string;
         };
     } & {
         id: number;
@@ -55,8 +55,8 @@ export declare class CampanhaController {
             };
         } & {
             id: number;
-            campanhaId: number;
             usuarioId: number;
+            campanhaId: number;
             papel: string;
             entrouEm: Date;
         })[];
@@ -88,13 +88,13 @@ export declare class CampanhaController {
     }): Promise<({
         usuario: {
             id: number;
-            apelido: string;
             email: string;
+            apelido: string;
         };
     } & {
         id: number;
-        campanhaId: number;
         usuarioId: number;
+        campanhaId: number;
         papel: string;
         entrouEm: Date;
     })[]>;
@@ -105,13 +105,13 @@ export declare class CampanhaController {
     }, dto: AddMembroDto): Promise<{
         usuario: {
             id: number;
-            apelido: string;
             email: string;
+            apelido: string;
         };
     } & {
         id: number;
-        campanhaId: number;
         usuarioId: number;
+        campanhaId: number;
         papel: string;
         entrouEm: Date;
     }>;
@@ -165,8 +165,8 @@ export declare class CampanhaController {
             criadoEm: Date;
             nome: string;
             descricao: string | null;
-            valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             criadoPorId: number;
         }[];
     }[]>;
@@ -234,8 +234,8 @@ export declare class CampanhaController {
             criadoEm: Date;
             nome: string;
             descricao: string | null;
-            valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             criadoPorId: number;
         }[];
     }>;
@@ -299,8 +299,8 @@ export declare class CampanhaController {
             criadoEm: Date;
             nome: string;
             descricao: string | null;
-            valor: number;
             campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             criadoPorId: number;
         }[];
     }>;
@@ -344,12 +344,12 @@ export declare class CampanhaController {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             sessaoId: number | null;
             cenaId: number | null;
-            personagemCampanhaId: number;
-            valor: number;
-            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
             ativo: boolean;
+            personagemCampanhaId: number;
             criadoPorId: number;
             desfeitoPorId: number | null;
             desfeitoEm: Date | null;
@@ -401,8 +401,8 @@ export declare class CampanhaController {
                 criadoEm: Date;
                 nome: string;
                 descricao: string | null;
-                valor: number;
                 campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+                valor: number;
                 criadoPorId: number;
             }[];
         };
@@ -427,12 +427,12 @@ export declare class CampanhaController {
             nome: string;
             descricao: string | null;
             campanhaId: number;
+            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+            valor: number;
             sessaoId: number | null;
             cenaId: number | null;
-            personagemCampanhaId: number;
-            valor: number;
-            campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
             ativo: boolean;
+            personagemCampanhaId: number;
             criadoPorId: number;
             desfeitoPorId: number | null;
             desfeitoEm: Date | null;
@@ -484,8 +484,8 @@ export declare class CampanhaController {
                 criadoEm: Date;
                 nome: string;
                 descricao: string | null;
-                valor: number;
                 campo: import("@prisma/client").$Enums.CampoModificadorPersonagemCampanha;
+                valor: number;
                 criadoPorId: number;
             }[];
         };
@@ -503,11 +503,11 @@ export declare class CampanhaController {
         id: number;
         criadoEm: Date;
         descricao: string | null;
+        tipo: string;
         campanhaId: number;
         personagemCampanhaId: number;
-        dados: import("@prisma/client/runtime/library").JsonValue | null;
-        tipo: string;
         criadoPorId: number | null;
+        dados: import("@prisma/client/runtime/library").JsonValue | null;
     })[]>;
     criarConvite(id: number, req: {
         user: {
@@ -518,9 +518,9 @@ export declare class CampanhaController {
         email: string;
         criadoEm: Date;
         status: string;
+        codigo: string;
         campanhaId: number;
         papel: string;
-        codigo: string;
         respondidoEm: Date | null;
     }>;
     listarConvitesPendentes(req: {
@@ -540,9 +540,9 @@ export declare class CampanhaController {
         email: string;
         criadoEm: Date;
         status: string;
+        codigo: string;
         campanhaId: number;
         papel: string;
-        codigo: string;
         respondidoEm: Date | null;
     })[]>;
     aceitarConvite(codigo: string, req: {
@@ -559,9 +559,9 @@ export declare class CampanhaController {
         email: string;
         criadoEm: Date;
         status: string;
+        codigo: string;
         campanhaId: number;
         papel: string;
-        codigo: string;
         respondidoEm: Date | null;
     }>;
 }

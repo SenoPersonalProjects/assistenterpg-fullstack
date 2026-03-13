@@ -5,6 +5,12 @@ export declare class CredenciaisInvalidasException extends BaseException {
 export declare class TokenInvalidoException extends BaseException {
     constructor(motivo?: string);
 }
+export declare class AuthTokenInvalidoOuExpiradoException extends BaseException {
+    constructor();
+}
+export declare class AuthEmailNaoVerificadoException extends BaseException {
+    constructor();
+}
 export declare class UsuarioTokenNaoEncontradoException extends BaseException {
     constructor(usuarioId: number);
 }

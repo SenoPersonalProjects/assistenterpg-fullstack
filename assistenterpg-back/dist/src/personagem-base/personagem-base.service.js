@@ -590,7 +590,8 @@ let PersonagemBaseService = class PersonagemBaseService {
             orderBy: { nome: 'asc' },
         });
         return tecnicas
-            .filter((tecnica) => (0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(tecnica.requisitos, grausMap))
+            .filter((tecnica) => (0, regras_tecnicas_nao_inatas_1.atendeRequisitoBaseTecnicaNaoInata)(tecnica.codigo, grausMap) &&
+            (0, regras_tecnicas_nao_inatas_1.atendeRequisitosGraus)(tecnica.requisitos, grausMap))
             .map((tecnica) => this.filtrarTecnicaPorGraus(tecnica, grausMap));
     }
     async buscarTecnicaInataAtivaPorGraus(tecnicaInataId, graus, prisma) {
@@ -700,27 +701,6 @@ let PersonagemBaseService = class PersonagemBaseService {
                 habilidadeId: ht.habilidadeId,
                 habilidade: mapHabilidade(ht.habilidade),
             })));
-        }
-        if (tecnicaInataId) {
-            const tecnicaInata = await prisma.tecnicaAmaldicoada.findUnique({
-                where: { id: tecnicaInataId },
-                select: {
-                    id: true,
-                    nome: true,
-                    tipo: true,
-                },
-            });
-            if (tecnicaInata) {
-                habilidades.push({
-                    habilidadeId: tecnicaInata.id,
-                    habilidade: {
-                        nome: tecnicaInata.nome,
-                        tipo: tecnicaInata.tipo,
-                        mecanicasEspeciais: null,
-                        efeitosGrau: [],
-                    },
-                });
-            }
         }
         if (estudouEscolaTecnica) {
             const escolaTecnica = await prisma.habilidade.findUnique({

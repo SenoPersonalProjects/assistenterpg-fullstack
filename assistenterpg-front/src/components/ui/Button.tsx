@@ -3,7 +3,7 @@
 
 import React from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -32,6 +32,7 @@ export function Button({
     secondary:
       'bg-app-surface text-app-fg hover:bg-app-secondary-hover border border-app-border',
     ghost: 'bg-transparent text-app-primary hover:bg-app-surface',
+    destructive: 'bg-app-danger text-app-fg hover:bg-app-danger-hover',
   };
 
   return (

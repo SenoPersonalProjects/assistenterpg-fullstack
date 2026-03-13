@@ -15,23 +15,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
-const usuario_service_1 = require("../usuario/usuario.service");
 const register_dto_1 = require("./dto/register.dto");
 const login_dto_1 = require("./dto/login.dto");
+const forgot_password_dto_1 = require("./dto/forgot-password.dto");
+const reset_password_dto_1 = require("./dto/reset-password.dto");
+const verify_email_dto_1 = require("./dto/verify-email.dto");
+const resend_verification_email_dto_1 = require("./dto/resend-verification-email.dto");
 let AuthController = class AuthController {
     authService;
-    usuarioService;
-    constructor(authService, usuarioService) {
+    constructor(authService) {
         this.authService = authService;
-        this.usuarioService = usuarioService;
     }
     async register(dto) {
-        const usuario = await this.usuarioService.criarUsuario(dto.apelido, dto.email, dto.senha);
-        return usuario;
+        return this.authService.register(dto);
     }
     async login(dto) {
         const usuario = await this.authService.validarUsuario(dto.email, dto.senha);
         return this.authService.login(usuario);
+    }
+    async forgotPassword(dto) {
+        return this.authService.solicitarRecuperacaoSenha(dto.email);
+    }
+    async resetPassword(dto) {
+        return this.authService.redefinirSenha(dto.token, dto.novaSenha);
+    }
+    async verifyEmail(dto) {
+        return this.authService.verificarEmail(dto.token);
+    }
+    async resendVerificationEmail(dto) {
+        return this.authService.reenviarVerificacaoEmail(dto.email);
     }
 };
 exports.AuthController = AuthController;
@@ -49,9 +61,36 @@ __decorate([
     __metadata("design:paramtypes", [login_dto_1.LoginDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('forgot-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [forgot_password_dto_1.ForgotPasswordDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "forgotPassword", null);
+__decorate([
+    (0, common_1.Post)('reset-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [reset_password_dto_1.ResetPasswordDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPassword", null);
+__decorate([
+    (0, common_1.Post)('verify-email'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [verify_email_dto_1.VerifyEmailDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyEmail", null);
+__decorate([
+    (0, common_1.Post)('resend-verification-email'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [resend_verification_email_dto_1.ResendVerificationEmailDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resendVerificationEmail", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService,
-        usuario_service_1.UsuarioService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

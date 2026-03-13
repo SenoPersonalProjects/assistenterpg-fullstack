@@ -151,8 +151,8 @@ export declare class PersonagemBaseService {
                 atualizadoEm: Date;
                 nome: string;
                 descricao: string;
-                codigo: string;
                 requisitos: Prisma.JsonValue | null;
+                codigo: string;
                 ordem: number;
                 criticoValor: number | null;
                 criticoMultiplicador: number | null;
@@ -187,11 +187,11 @@ export declare class PersonagemBaseService {
             atualizadoEm: Date;
             nome: string;
             descricao: string;
-            tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
-            codigo: string;
             fonte: import("@prisma/client").$Enums.TipoFonte;
             suplementoId: number | null;
             requisitos: Prisma.JsonValue | null;
+            codigo: string;
+            tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
             hereditaria: boolean;
             linkExterno: string | null;
         })[];
@@ -237,8 +237,8 @@ export declare class PersonagemBaseService {
                 atualizadoEm: Date;
                 nome: string;
                 descricao: string;
-                codigo: string;
                 requisitos: Prisma.JsonValue | null;
+                codigo: string;
                 ordem: number;
                 criticoValor: number | null;
                 criticoMultiplicador: number | null;
@@ -273,11 +273,11 @@ export declare class PersonagemBaseService {
             atualizadoEm: Date;
             nome: string;
             descricao: string;
-            tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
-            codigo: string;
             fonte: import("@prisma/client").$Enums.TipoFonte;
             suplementoId: number | null;
             requisitos: Prisma.JsonValue | null;
+            codigo: string;
+            tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
             hereditaria: boolean;
             linkExterno: string | null;
         }) | null;

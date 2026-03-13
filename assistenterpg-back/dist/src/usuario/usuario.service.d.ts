@@ -8,35 +8,49 @@ export declare class UsuarioService {
     private tratarErroPrisma;
     criarUsuario(apelido: string, email: string, senha: string): Promise<{
         id: number;
-        apelido: string;
         email: string;
-        criadoEm: Date;
+        apelido: string;
+        emailVerificadoEm: Date | null;
         role: import("@prisma/client").$Enums.RoleUsuario;
+        criadoEm: Date;
     }>;
     buscarPorEmail(email: string): Promise<{
         id: number;
-        apelido: string;
         email: string;
+        apelido: string;
         senhaHash: string;
+        emailVerificadoEm: Date | null;
+        role: import("@prisma/client").$Enums.RoleUsuario;
         criadoEm: Date;
         atualizadoEm: Date;
-        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
+    buscarPorEmailOpcional(email: string): Promise<{
+        id: number;
+        email: string;
+        apelido: string;
+        senhaHash: string;
+        emailVerificadoEm: Date | null;
+        role: import("@prisma/client").$Enums.RoleUsuario;
+        criadoEm: Date;
+        atualizadoEm: Date;
+    } | null>;
     buscarPorId(id: number): Promise<{
         id: number;
-        apelido: string;
         email: string;
+        apelido: string;
         senhaHash: string;
+        emailVerificadoEm: Date | null;
+        role: import("@prisma/client").$Enums.RoleUsuario;
         criadoEm: Date;
         atualizadoEm: Date;
-        role: import("@prisma/client").$Enums.RoleUsuario;
     }>;
     buscarPorApelido(apelido: string): Promise<{
         id: number;
-        apelido: string;
         email: string;
-        criadoEm: Date;
+        apelido: string;
+        emailVerificadoEm: Date | null;
         role: import("@prisma/client").$Enums.RoleUsuario;
+        criadoEm: Date;
     }>;
     obterEstatisticas(usuarioId: number): Promise<{
         campanhas: number;
@@ -44,64 +58,60 @@ export declare class UsuarioService {
         artigosLidos: number;
     }>;
     obterPreferencias(usuarioId: number): Promise<{
-        id: number;
-        criadoEm: Date;
-        atualizadoEm: Date;
-        usuarioId: number;
         notificacoesEmail: boolean;
         notificacoesPush: boolean;
         notificacoesConvites: boolean;
         notificacoesAtualizacoes: boolean;
         idioma: string;
+        id: number;
+        criadoEm: Date;
+        atualizadoEm: Date;
+        usuarioId: number;
     }>;
     atualizarPreferencias(usuarioId: number, dto: AtualizarPreferenciasDto): Promise<{
-        id: number;
-        criadoEm: Date;
-        atualizadoEm: Date;
-        usuarioId: number;
         notificacoesEmail: boolean;
         notificacoesPush: boolean;
         notificacoesConvites: boolean;
         notificacoesAtualizacoes: boolean;
         idioma: string;
+        id: number;
+        criadoEm: Date;
+        atualizadoEm: Date;
+        usuarioId: number;
     }>;
     alterarSenha(usuarioId: number, dto: AlterarSenhaDto): Promise<{
         mensagem: string;
+    }>;
+    atualizarSenhaHash(usuarioId: number, senhaHash: string): Promise<void>;
+    marcarEmailComoVerificado(usuarioId: number): Promise<{
+        id: number;
+        email: string;
+        emailVerificadoEm: Date | null;
     }>;
     exportarDados(usuarioId: number): Promise<{
         exportadoEm: string;
         usuario: {
             id: number;
-            apelido: string;
             email: string;
-            criadoEm: Date;
+            apelido: string;
+            emailVerificadoEm: Date | null;
             role: import("@prisma/client").$Enums.RoleUsuario;
+            criadoEm: Date;
         } | null;
         personagens: ({
-            origem: {
-                id: number;
-                nome: string;
-                descricao: string | null;
-                requisitosTexto: string | null;
-                requerGrandeCla: boolean;
-                requerTecnicaHeriditaria: boolean;
-                bloqueiaTecnicaHeriditaria: boolean;
-                fonte: import("@prisma/client").$Enums.TipoFonte;
-                suplementoId: number | null;
-            };
             classe: {
                 id: number;
                 nome: string;
                 descricao: string | null;
+                periciasLivresBase: number;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
-                periciasLivresBase: number;
             };
             trilha: {
                 id: number;
                 nome: string;
-                descricao: string | null;
                 classeId: number;
+                descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: Prisma.JsonValue | null;
@@ -109,8 +119,8 @@ export declare class UsuarioService {
             caminho: {
                 id: number;
                 nome: string;
-                descricao: string | null;
                 trilhaId: number;
+                descricao: string | null;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
             } | null;
@@ -118,9 +128,20 @@ export declare class UsuarioService {
                 id: number;
                 nome: string;
                 descricao: string | null;
-                grandeCla: boolean;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
+                grandeCla: boolean;
+            };
+            origem: {
+                id: number;
+                nome: string;
+                descricao: string | null;
+                fonte: import("@prisma/client").$Enums.TipoFonte;
+                suplementoId: number | null;
+                requisitosTexto: string | null;
+                requerGrandeCla: boolean;
+                requerTecnicaHeriditaria: boolean;
+                bloqueiaTecnicaHeriditaria: boolean;
             };
             tecnicaInata: {
                 id: number;
@@ -128,11 +149,11 @@ export declare class UsuarioService {
                 atualizadoEm: Date;
                 nome: string;
                 descricao: string;
-                tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
-                codigo: string;
                 fonte: import("@prisma/client").$Enums.TipoFonte;
                 suplementoId: number | null;
                 requisitos: Prisma.JsonValue | null;
+                codigo: string;
+                tipo: import("@prisma/client").$Enums.TipoTecnicaAmaldicoada;
                 hereditaria: boolean;
                 linkExterno: string | null;
             } | null;
@@ -151,8 +172,8 @@ export declare class UsuarioService {
             intelecto: number;
             presenca: number;
             vigor: number;
-            tecnicaInataId: number | null;
             estudouEscolaTecnica: boolean;
+            tecnicaInataId: number | null;
             passivasAtributosAtivos: Prisma.JsonValue | null;
             passivasAtributosConfig: Prisma.JsonValue | null;
             proficienciasExtrasCodigos: Prisma.JsonValue | null;
@@ -191,8 +212,8 @@ export declare class UsuarioService {
                 };
             } & {
                 id: number;
-                campanhaId: number;
                 usuarioId: number;
+                campanhaId: number;
                 papel: string;
                 entrouEm: Date;
             })[];
@@ -206,15 +227,15 @@ export declare class UsuarioService {
             status: string;
         })[];
         preferencias: {
-            id: number;
-            criadoEm: Date;
-            atualizadoEm: Date;
-            usuarioId: number;
             notificacoesEmail: boolean;
             notificacoesPush: boolean;
             notificacoesConvites: boolean;
             notificacoesAtualizacoes: boolean;
             idioma: string;
+            id: number;
+            criadoEm: Date;
+            atualizadoEm: Date;
+            usuarioId: number;
         } | null;
     }>;
     excluirConta(usuarioId: number, senha: string): Promise<{
