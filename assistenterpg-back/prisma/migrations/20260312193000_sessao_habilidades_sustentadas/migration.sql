@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS `PersonagemSessaoHabilidadeSustentada` (
   `nomeHabilidade` VARCHAR(191) NOT NULL,
   `nomeVariacao` VARCHAR(191) NULL,
   `custoSustentacaoEA` INTEGER NOT NULL DEFAULT 1,
+  `custoSustentacaoPE` INTEGER NOT NULL DEFAULT 0,
   `ativadaNaRodada` INTEGER NOT NULL DEFAULT 1,
   `ultimaCobrancaRodada` INTEGER NOT NULL DEFAULT 1,
   `ativa` BOOLEAN NOT NULL DEFAULT true,

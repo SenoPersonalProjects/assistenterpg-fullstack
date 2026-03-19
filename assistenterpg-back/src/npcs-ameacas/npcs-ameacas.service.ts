@@ -253,9 +253,18 @@ export class NpcsAmeacasService {
       vontade: npcAmeaca.vontade,
       luta: npcAmeaca.luta,
       jujutsu: npcAmeaca.jujutsu,
-      percepcaoDados: this.resolverDadosPericiaPrincipal('PERCEPCAO', npcAmeaca),
-      iniciativaDados: this.resolverDadosPericiaPrincipal('INICIATIVA', npcAmeaca),
-      fortitudeDados: this.resolverDadosPericiaPrincipal('FORTITUDE', npcAmeaca),
+      percepcaoDados: this.resolverDadosPericiaPrincipal(
+        'PERCEPCAO',
+        npcAmeaca,
+      ),
+      iniciativaDados: this.resolverDadosPericiaPrincipal(
+        'INICIATIVA',
+        npcAmeaca,
+      ),
+      fortitudeDados: this.resolverDadosPericiaPrincipal(
+        'FORTITUDE',
+        npcAmeaca,
+      ),
       reflexosDados: this.resolverDadosPericiaPrincipal('REFLEXOS', npcAmeaca),
       vontadeDados: this.resolverDadosPericiaPrincipal('VONTADE', npcAmeaca),
       lutaDados: this.resolverDadosPericiaPrincipal('LUTA', npcAmeaca),
@@ -381,8 +390,11 @@ export class NpcsAmeacasService {
           pontosVida: dto.pontosVida,
           machucado: dto.machucado ?? undefined,
           deslocamentoMetros: dto.deslocamentoMetros,
-          periciasEspeciais: this.normalizarJsonParaPersistir(periciasEspeciais),
-          resistencias: this.normalizarJsonParaPersistir(dto.resistencias ?? []),
+          periciasEspeciais:
+            this.normalizarJsonParaPersistir(periciasEspeciais),
+          resistencias: this.normalizarJsonParaPersistir(
+            dto.resistencias ?? [],
+          ),
           vulnerabilidades: this.normalizarJsonParaPersistir(
             dto.vulnerabilidades ?? [],
           ),
@@ -442,10 +454,14 @@ export class NpcsAmeacasService {
       if (dto.vontade !== undefined) data.vontade = dto.vontade;
       if (dto.luta !== undefined) data.luta = dto.luta;
       if (dto.jujutsu !== undefined) data.jujutsu = dto.jujutsu;
-      if (dto.percepcaoDados !== undefined) data.percepcaoDados = dto.percepcaoDados;
-      if (dto.iniciativaDados !== undefined) data.iniciativaDados = dto.iniciativaDados;
-      if (dto.fortitudeDados !== undefined) data.fortitudeDados = dto.fortitudeDados;
-      if (dto.reflexosDados !== undefined) data.reflexosDados = dto.reflexosDados;
+      if (dto.percepcaoDados !== undefined)
+        data.percepcaoDados = dto.percepcaoDados;
+      if (dto.iniciativaDados !== undefined)
+        data.iniciativaDados = dto.iniciativaDados;
+      if (dto.fortitudeDados !== undefined)
+        data.fortitudeDados = dto.fortitudeDados;
+      if (dto.reflexosDados !== undefined)
+        data.reflexosDados = dto.reflexosDados;
       if (dto.vontadeDados !== undefined) data.vontadeDados = dto.vontadeDados;
       if (dto.lutaDados !== undefined) data.lutaDados = dto.lutaDados;
       if (dto.jujutsuDados !== undefined) data.jujutsuDados = dto.jujutsuDados;
@@ -470,9 +486,8 @@ export class NpcsAmeacasService {
           atributosAtualizados,
         );
 
-        data.periciasEspeciais = this.normalizarJsonParaPersistir(
-          periciasEspeciais,
-        );
+        data.periciasEspeciais =
+          this.normalizarJsonParaPersistir(periciasEspeciais);
       }
 
       if (dto.resistencias !== undefined) {

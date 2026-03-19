@@ -1,6 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { CampanhaService } from './campanha.service';
+import { CampanhaMapper } from './campanha.mapper';
+import { CampanhaPersistence } from './campanha.persistence';
+import { CampanhaAccessService } from './campanha.access.service';
+import { CampanhaContextoService } from './campanha.contexto.service';
+import { CampanhaPersonagensService } from './campanha.personagens.service';
+import { CampanhaModificadoresService } from './campanha.modificadores.service';
+import { CampanhaConvitesService } from './campanha.convites.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaApenasDonoException,
@@ -136,6 +143,13 @@ describe('CampanhaService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CampanhaService,
+        CampanhaMapper,
+        CampanhaPersistence,
+        CampanhaAccessService,
+        CampanhaContextoService,
+        CampanhaPersonagensService,
+        CampanhaModificadoresService,
+        CampanhaConvitesService,
         {
           provide: PrismaService,
           useValue: prisma,
@@ -479,7 +493,9 @@ describe('CampanhaService', () => {
         { usuarioId: 4, papel: 'JOGADOR' },
       ],
     });
-    prisma.personagemCampanha.findMany.mockResolvedValue([{ personagemBaseId: 30 }]);
+    prisma.personagemCampanha.findMany.mockResolvedValue([
+      { personagemBaseId: 30 },
+    ]);
     prisma.personagemBase.findMany.mockResolvedValue([
       {
         id: 31,
@@ -490,10 +506,8 @@ describe('CampanhaService', () => {
       },
     ]);
 
-    const resultado = await service.listarPersonagensBaseDisponiveisParaAssociacao(
-      7,
-      3,
-    );
+    const resultado =
+      await service.listarPersonagensBaseDisponiveisParaAssociacao(7, 3);
 
     expect(prisma.personagemBase.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -11,7 +11,11 @@ import type {
   NpcAmeacaResumo,
   NpcSessaoCampanha,
 } from '@/lib/types';
-import type { NpcEditavel } from '@/components/campanha/sessao/types';
+import type {
+  AjustesRecursosNpc,
+  CampoAjusteRecursoNpc,
+  NpcEditavel,
+} from '@/components/campanha/sessao/types';
 import { NpcSessionCard } from '@/components/campanha/sessao/NpcSessionCard';
 
 type SessionNpcsPanelProps = {
@@ -19,8 +23,11 @@ type SessionNpcsPanelProps = {
   podeControlarSessao: boolean;
   sessaoEncerrada: boolean;
   npcsDisponiveis: NpcAmeacaResumo[];
+  iniciativaPorNpcSessao: Map<number, number>;
   edicaoNpcs: Record<number, NpcEditavel>;
+  ajustesRecursosNpc: Record<number, AjustesRecursosNpc>;
   salvandoNpcId: number | null;
+  campoRecursoPendente: `${number}:${CampoAjusteRecursoNpc}` | null;
   removendoNpcId: number | null;
   erro?: string | null;
   onAbrirAdicionar: () => void;
@@ -28,6 +35,20 @@ type SessionNpcsPanelProps = {
     npc: NpcSessaoCampanha,
     campo: keyof NpcEditavel,
     valor: string,
+  ) => void;
+  onAtualizarAjustePersonalizado: (
+    npc: NpcSessaoCampanha,
+    campo: CampoAjusteRecursoNpc,
+    valor: string,
+  ) => void;
+  onAplicarDeltaRecurso: (
+    npc: NpcSessaoCampanha,
+    campo: CampoAjusteRecursoNpc,
+    delta: number,
+  ) => void;
+  onAplicarAjustePersonalizado: (
+    npc: NpcSessaoCampanha,
+    campo: CampoAjusteRecursoNpc,
   ) => void;
   onSalvarNpc: (npc: NpcSessaoCampanha) => void;
   onSolicitarRemoverNpc: (npc: NpcSessaoCampanha) => void;
@@ -44,40 +65,45 @@ export function SessionNpcsPanel({
   podeControlarSessao,
   sessaoEncerrada,
   npcsDisponiveis,
+  iniciativaPorNpcSessao,
   edicaoNpcs,
+  ajustesRecursosNpc,
   salvandoNpcId,
+  campoRecursoPendente,
   removendoNpcId,
   erro,
   onAbrirAdicionar,
   onAtualizarCampo,
+  onAtualizarAjustePersonalizado,
+  onAplicarDeltaRecurso,
+  onAplicarAjustePersonalizado,
   onSalvarNpc,
   onSolicitarRemoverNpc,
   renderPainelCondicoes,
 }: SessionNpcsPanelProps) {
   return (
-    <>
-      <SessionPanel
-        title="Aliados ou ameacas na cena"
-        subtitle="Mestre adiciona e ajusta aliados ou ameacas por cena. Jogadores visualizam em modo leitura."
-        right={
-          podeControlarSessao ? (
-            <Button
-              size="sm"
-              onClick={onAbrirAdicionar}
-              disabled={sessaoEncerrada || npcsDisponiveis.length === 0}
-            >
-              <Icon name="add" className="mr-1.5 h-3.5 w-3.5" />
-              Adicionar
-            </Button>
-          ) : undefined
-        }
-      />
-
+    <SessionPanel
+      title="Aliados ou ameacas na cena"
+      subtitle="Mestre adiciona e ajusta aliados ou ameacas por cena. Jogadores visualizam em modo leitura."
+      right={
+        podeControlarSessao ? (
+          <Button
+            size="sm"
+            onClick={onAbrirAdicionar}
+            disabled={sessaoEncerrada || npcsDisponiveis.length === 0}
+          >
+            <Icon name="add" className="mr-1.5 h-3.5 w-3.5" />
+            Adicionar
+          </Button>
+        ) : undefined
+      }
+    >
       {erro ? <ErrorAlert message={erro} /> : null}
 
       {npcs.length === 0 ? (
         <EmptyState
           variant="card"
+          size="sm"
           icon="curse"
           title="Sem aliados ou ameacas nesta cena"
           description="O mestre pode adicionar aliados ou ameacas para esta cena."
@@ -87,18 +113,34 @@ export function SessionNpcsPanel({
           <NpcSessionCard
             key={npc.npcSessaoId}
             npc={npc}
+            iniciativaValor={iniciativaPorNpcSessao.get(npc.npcSessaoId) ?? null}
             podeControlarSessao={podeControlarSessao}
             sessaoEncerrada={sessaoEncerrada}
             draft={edicaoNpcs[npc.npcSessaoId]}
+            ajustesRecursos={ajustesRecursosNpc[npc.npcSessaoId] ?? { pv: '0', san: '0', ea: '0' }}
+            campoRecursoPendente={
+              campoRecursoPendente?.startsWith(`${npc.npcSessaoId}:`)
+                ? (campoRecursoPendente.split(':')[1] as CampoAjusteRecursoNpc)
+                : null
+            }
             salvando={salvandoNpcId === npc.npcSessaoId}
             removendo={removendoNpcId === npc.npcSessaoId}
             onAtualizarCampo={onAtualizarCampo}
+            onAtualizarAjustePersonalizado={(campo, valor) =>
+              onAtualizarAjustePersonalizado(npc, campo, valor)
+            }
+            onAplicarDeltaRecurso={(campo, delta) =>
+              onAplicarDeltaRecurso(npc, campo, delta)
+            }
+            onAplicarAjustePersonalizado={(campo) =>
+              onAplicarAjustePersonalizado(npc, campo)
+            }
             onSalvar={() => onSalvarNpc(npc)}
             onSolicitarRemover={() => onSolicitarRemoverNpc(npc)}
             renderPainelCondicoes={renderPainelCondicoes}
           />
         ))
       )}
-    </>
+    </SessionPanel>
   );
 }

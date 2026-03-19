@@ -6,6 +6,8 @@ import {
   CampanhaApenasMestreException,
   CampanhaNaoEncontradaException,
   CampanhaPersonagemEdicaoNegadaException,
+  PersonagemCampanhaNaoEncontradoException,
+  PersonagemSessaoNaoEncontradoException,
   NpcSessaoNaoEncontradoException,
   SessaoEventoDesfazerNaoPermitidoException,
   SessaoOrdemIniciativaInvalidaException,
@@ -17,10 +19,12 @@ import {
 import { NpcAmeacaNaoEncontradaException } from 'src/common/exceptions/npc-ameaca.exception';
 import { CreateSessaoCampanhaDto } from './dto/create-sessao-campanha.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
+import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
 import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
+import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import {
@@ -85,9 +89,14 @@ type SnapshotNpcSessao = {
   fichaTipo: TipoFichaNpcAmeaca;
   tipo: TipoNpcAmeaca;
   vd: number;
+  iniciativaValor: number | null;
   defesa: number;
   pontosVidaAtual: number;
   pontosVidaMax: number;
+  sanAtual: number | null;
+  sanMax: number | null;
+  eaAtual: number | null;
+  eaMax: number | null;
   machucado: number | null;
   deslocamentoMetros: number;
   passivasGuia: Prisma.JsonValue | null;
@@ -108,6 +117,7 @@ type ParticipanteIniciativa = {
   nomeJogador: string | null;
   nomePersonagem: string;
   podeEditar: boolean;
+  iniciativaValor: number | null;
 };
 
 type OrdemIniciativaEvento = {
@@ -543,6 +553,8 @@ export class SessaoService {
                 eaMax: true,
                 sanAtual: true,
                 sanMax: true,
+                turnosMorrendo: true, // ← adicionar
+                turnosEnlouquecendo: true, // ← adicionar
                 tecnicaInata: {
                   include: {
                     habilidades: {
@@ -708,9 +720,13 @@ export class SessaoService {
       throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
     }
 
-    const personagensOrdenados = sessao.personagens;
     const cenaAtualId = sessao.cenas[0]?.id ?? null;
-    const npcsCenaAtual = sessao.npcs.filter((npc) => npc.cenaId === cenaAtualId);
+    const personagensOrdenados = sessao.personagens.filter(
+      (personagem) => personagem.cenaId === cenaAtualId,
+    );
+    const npcsCenaAtual = sessao.npcs.filter(
+      (npc) => npc.cenaId === cenaAtualId,
+    );
     const participantesIniciativaPadrao = this.montarParticipantesIniciativa(
       personagensOrdenados,
       npcsCenaAtual,
@@ -727,7 +743,10 @@ export class SessaoService {
     );
     const totalParticipantesIniciativa = participantesIniciativa.length;
     const valorIniciativaBase = Math.max(20, totalParticipantesIniciativa);
-    const obterValorIniciativa = (indice: number) => valorIniciativaBase - indice;
+    const obterValorIniciativa = (
+      indice: number,
+      participante?: ParticipanteIniciativa | null,
+    ) => participante?.iniciativaValor ?? valorIniciativaBase - indice;
     const controleTurnosAtivo = sessao.cenaAtualTipo !== 'LIVRE';
     const indiceTurno = controleTurnosAtivo
       ? this.clampIndiceTurno(
@@ -758,7 +777,8 @@ export class SessaoService {
     >();
     for (const sustentacao of sessao.habilidadesSustentadas) {
       const listaAtual =
-        sustentacoesPorPersonagemSessao.get(sustentacao.personagemSessaoId) ?? [];
+        sustentacoesPorPersonagemSessao.get(sustentacao.personagemSessaoId) ??
+        [];
       listaAtual.push({
         id: sustentacao.id,
         habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
@@ -771,11 +791,13 @@ export class SessaoService {
         ultimaCobrancaRodada: sustentacao.ultimaCobrancaRodada,
         criadaEm: sustentacao.criadoEm,
       });
-      sustentacoesPorPersonagemSessao.set(sustentacao.personagemSessaoId, listaAtual);
+      sustentacoesPorPersonagemSessao.set(
+        sustentacao.personagemSessaoId,
+        listaAtual,
+      );
     }
-    const tecnicasNaoInatasCatalogo = await this.listarTecnicasNaoInatasCatalogo(
-      this.prisma,
-    );
+    const tecnicasNaoInatasCatalogo =
+      await this.listarTecnicasNaoInatasCatalogo(this.prisma);
 
     return {
       id: sessao.id,
@@ -801,7 +823,9 @@ export class SessaoService {
             nomeJogador: personagemTurnoAtual.nomeJogador,
             nomePersonagem: personagemTurnoAtual.nomePersonagem,
             valorIniciativa:
-              indiceTurno === null ? null : obterValorIniciativa(indiceTurno),
+              indiceTurno === null
+                ? null
+                : obterValorIniciativa(indiceTurno, personagemTurnoAtual),
           }
         : null,
       iniciativa: {
@@ -815,7 +839,7 @@ export class SessaoService {
           nomeJogador: participante.nomeJogador,
           nomePersonagem: participante.nomePersonagem,
           podeEditar: participante.podeEditar,
-          valorIniciativa: obterValorIniciativa(indice),
+          valorIniciativa: obterValorIniciativa(indice, participante),
         })),
       },
       permissoes: {
@@ -833,7 +857,9 @@ export class SessaoService {
         );
         const sustentacoesAtivas =
           sustentacoesPorPersonagemSessao.get(personagem.id) ?? [];
-        const condicoesAtivas = this.mapearCondicoesAtivasSessao(personagem.condicoes);
+        const condicoesAtivas = this.mapearCondicoesAtivasSessao(
+          personagem.condicoes,
+        );
 
         return {
           personagemSessaoId: personagem.id,
@@ -845,7 +871,8 @@ export class SessaoService {
           podeEditar,
           visibilidade,
           turnosMorrendo: personagem.personagemCampanha.turnosMorrendo,
-          turnosEnlouquecendo: personagem.personagemCampanha.turnosEnlouquecendo,
+          turnosEnlouquecendo:
+            personagem.personagemCampanha.turnosEnlouquecendo,
           recursos:
             visibilidade === 'completa'
               ? {
@@ -859,7 +886,8 @@ export class SessaoService {
                   sanMax: personagem.personagemCampanha.sanMax,
                 }
               : null,
-          tecnicaInata: visibilidade === 'completa' ? tecnicas.tecnicaInata : null,
+          tecnicaInata:
+            visibilidade === 'completa' ? tecnicas.tecnicaInata : null,
           tecnicasNaoInatas:
             visibilidade === 'completa' ? tecnicas.tecnicasNaoInatas : [],
           sustentacoesAtivas:
@@ -868,23 +896,27 @@ export class SessaoService {
         };
       }),
       npcs: npcsCenaAtual.map((npc) => ({
-          npcSessaoId: npc.id,
-          npcAmeacaId: npc.npcAmeacaId,
-          nome: npc.nomeExibicao,
-          fichaTipo: npc.fichaTipo,
-          tipo: npc.tipo,
-          vd: npc.vd,
-          defesa: npc.defesa,
-          pontosVidaAtual: npc.pontosVidaAtual,
-          pontosVidaMax: npc.pontosVidaMax,
-          machucado: npc.machucado,
-          deslocamentoMetros: npc.deslocamentoMetros,
-          notasCena: npc.notasCena,
-          passivas: this.mapearListaObjeto(npc.passivasGuia),
-          acoes: this.mapearListaObjeto(npc.acoesGuia),
-          condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
-          podeEditar: acesso.ehMestre,
-        })),
+        npcSessaoId: npc.id,
+        npcAmeacaId: npc.npcAmeacaId,
+        nome: npc.nomeExibicao,
+        fichaTipo: npc.fichaTipo,
+        tipo: npc.tipo,
+        vd: npc.vd,
+        defesa: npc.defesa,
+        pontosVidaAtual: npc.pontosVidaAtual,
+        pontosVidaMax: npc.pontosVidaMax,
+        sanAtual: npc.sanAtual,
+        sanMax: npc.sanMax,
+        eaAtual: npc.eaAtual,
+        eaMax: npc.eaMax,
+        machucado: npc.machucado,
+        deslocamentoMetros: npc.deslocamentoMetros,
+        notasCena: npc.notasCena,
+        passivas: this.mapearListaObjeto(npc.passivasGuia),
+        acoes: this.mapearListaObjeto(npc.acoesGuia),
+        condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
+        podeEditar: acesso.ehMestre,
+      })),
       iniciadoEm: sessao.iniciadoEm,
       encerradoEm: sessao.encerradoEm,
     };
@@ -1009,7 +1041,11 @@ export class SessaoService {
     usuarioId: number,
     query: ListarEventosSessaoDto,
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(campanhaId, sessaoId, usuarioId);
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
     const limit = query.limit ?? 80;
     const incluirChat = query.incluirChat === true;
 
@@ -1085,7 +1121,11 @@ export class SessaoService {
       });
 
       if (!evento) {
-        throw new SessaoEventoNaoEncontradoException(eventoId, sessaoId, campanhaId);
+        throw new SessaoEventoNaoEncontradoException(
+          eventoId,
+          sessaoId,
+          campanhaId,
+        );
       }
 
       if (!TIPOS_EVENTO_REVERSIVEIS.has(evento.tipoEvento)) {
@@ -1104,10 +1144,8 @@ export class SessaoService {
         );
       }
 
-      const ultimoEventoReversivel = await this.obterUltimoEventoReversivelDisponivel(
-        tx,
-        sessaoId,
-      );
+      const ultimoEventoReversivel =
+        await this.obterUltimoEventoReversivelDisponivel(tx, sessaoId);
 
       if (!ultimoEventoReversivel || ultimoEventoReversivel.id !== eventoId) {
         throw new SessaoEventoDesfazerNaoPermitidoException(
@@ -1194,13 +1232,14 @@ export class SessaoService {
           }
 
           const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-          const participantesPadrao = await this.carregarParticipantesIniciativa(
-            tx,
-            sessaoId,
-            cenaAtual.id,
-            acesso.ehMestre,
-            usuarioId,
-          );
+          const participantesPadrao =
+            await this.carregarParticipantesIniciativa(
+              tx,
+              sessaoId,
+              cenaAtual.id,
+              acesso.ehMestre,
+              usuarioId,
+            );
           const ordemRestaurada = this.aplicarOrdemIniciativaPersistida(
             participantesPadrao,
             ordemEvento.ordemAnterior,
@@ -1241,13 +1280,22 @@ export class SessaoService {
           break;
         }
         case 'CENA_ATUALIZADA': {
-          const cenaAnteriorId = this.lerInteiroRegistro(dadosEvento, 'cenaAnteriorId');
-          const tipoAnterior = this.lerTextoRegistro(dadosEvento, 'tipoAnterior');
+          const cenaAnteriorId = this.lerInteiroRegistro(
+            dadosEvento,
+            'cenaAnteriorId',
+          );
+          const tipoAnterior = this.lerTextoRegistro(
+            dadosEvento,
+            'tipoAnterior',
+          );
           const nomeAnterior = this.lerTextoOpcionalRegistro(
             dadosEvento,
             'nomeAnterior',
           );
-          const rodadaAnterior = this.lerInteiroRegistro(dadosEvento, 'rodadaAnterior');
+          const rodadaAnterior = this.lerInteiroRegistro(
+            dadosEvento,
+            'rodadaAnterior',
+          );
           const indiceTurnoAnterior = this.lerInteiroRegistro(
             dadosEvento,
             'indiceTurnoAnterior',
@@ -1320,7 +1368,10 @@ export class SessaoService {
           break;
         }
         case 'NPC_ADICIONADO': {
-          const npcSessaoId = this.lerInteiroRegistro(dadosEvento, 'npcSessaoId');
+          const npcSessaoId = this.lerInteiroRegistro(
+            dadosEvento,
+            'npcSessaoId',
+          );
           if (npcSessaoId === null) {
             throw new SessaoEventoDesfazerNaoPermitidoException(
               eventoId,
@@ -1366,8 +1417,14 @@ export class SessaoService {
           break;
         }
         case 'NPC_ATUALIZADO': {
-          const npcSessaoId = this.lerInteiroRegistro(dadosEvento, 'npcSessaoId');
-          const anterior = this.lerRegistroOpcionalRegistro(dadosEvento, 'anterior');
+          const npcSessaoId = this.lerInteiroRegistro(
+            dadosEvento,
+            'npcSessaoId',
+          );
+          const anterior = this.lerRegistroOpcionalRegistro(
+            dadosEvento,
+            'anterior',
+          );
 
           if (npcSessaoId === null || !anterior) {
             throw new SessaoEventoDesfazerNaoPermitidoException(
@@ -1554,7 +1611,10 @@ export class SessaoService {
             dadosEvento,
             'condicaoSessaoId',
           );
-          const snapshot = this.lerSnapshotCondicaoRegistro(dadosEvento, 'snapshot');
+          const snapshot = this.lerSnapshotCondicaoRegistro(
+            dadosEvento,
+            'snapshot',
+          );
           if (condicaoSessaoId === null || !snapshot) {
             throw new SessaoEventoDesfazerNaoPermitidoException(
               eventoId,
@@ -1635,7 +1695,12 @@ export class SessaoService {
     sessaoId: number,
     usuarioId: number,
   ) {
-    await this.aplicarAjusteTurnoSessao(campanhaId, sessaoId, usuarioId, 'VOLTAR');
+    await this.aplicarAjusteTurnoSessao(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'VOLTAR',
+    );
 
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
@@ -1645,7 +1710,12 @@ export class SessaoService {
     sessaoId: number,
     usuarioId: number,
   ) {
-    await this.aplicarAjusteTurnoSessao(campanhaId, sessaoId, usuarioId, 'PULAR');
+    await this.aplicarAjusteTurnoSessao(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'PULAR',
+    );
 
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
@@ -1681,7 +1751,10 @@ export class SessaoService {
         return;
       }
 
-      const ordemPersistida = await this.obterOrdemIniciativaPersistida(tx, sessaoId);
+      const ordemPersistida = await this.obterOrdemIniciativaPersistida(
+        tx,
+        sessaoId,
+      );
       const ordemAtual = this.aplicarOrdemIniciativaPersistida(
         participantesPadrao,
         ordemPersistida,
@@ -1708,18 +1781,23 @@ export class SessaoService {
       const tokenTurnoAnterior = ordemAtual[indiceAnterior]?.token ?? null;
       const indiceTurnoNovoInformado =
         typeof dto.indiceTurnoAtual === 'number'
-          ? this.clampIndiceTurno(dto.indiceTurnoAtual, ordemNovaNormalizada.length)
-          : null;
-      const indiceTurnoNovo =
-        tokenTurnoAnterior
           ? this.clampIndiceTurno(
-              ordemNovaNormalizada.findIndex(
-                (participante) => participante.token === tokenTurnoAnterior,
-              ),
+              dto.indiceTurnoAtual,
               ordemNovaNormalizada.length,
             )
-          : indiceTurnoNovoInformado ??
-            this.clampIndiceTurno(sessao.indiceTurnoAtual, ordemNovaNormalizada.length);
+          : null;
+      const indiceTurnoNovo = tokenTurnoAnterior
+        ? this.clampIndiceTurno(
+            ordemNovaNormalizada.findIndex(
+              (participante) => participante.token === tokenTurnoAnterior,
+            ),
+            ordemNovaNormalizada.length,
+          )
+        : (indiceTurnoNovoInformado ??
+          this.clampIndiceTurno(
+            sessao.indiceTurnoAtual,
+            ordemNovaNormalizada.length,
+          ));
 
       await tx.sessao.update({
         where: { id: sessaoId },
@@ -1823,6 +1901,255 @@ export class SessaoService {
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
+  async adicionarPersonagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AdicionarPersonagemSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      const personagemCampanha = await tx.personagemCampanha.findFirst({
+        where: {
+          id: dto.personagemCampanhaId,
+          campanhaId,
+        },
+        select: {
+          id: true,
+          donoId: true,
+        },
+      });
+
+      if (!personagemCampanha) {
+        throw new PersonagemCampanhaNaoEncontradoException(
+          dto.personagemCampanhaId,
+          campanhaId,
+        );
+      }
+
+      if (!acesso.ehMestre && personagemCampanha.donoId !== usuarioId) {
+        throw new CampanhaPersonagemEdicaoNegadaException(
+          campanhaId,
+          personagemCampanha.id,
+          usuarioId,
+        );
+      }
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const personagemSessaoAtual = await tx.personagemSessao.findFirst({
+        where: {
+          sessaoId,
+          personagemCampanhaId: personagemCampanha.id,
+        },
+      });
+
+      const iniciativaValor =
+        dto.iniciativaValor !== undefined ? dto.iniciativaValor : null;
+
+      if (personagemSessaoAtual) {
+        await tx.personagemSessao.update({
+          where: {
+            id: personagemSessaoAtual.id,
+          },
+          data: {
+            cenaId: cenaAtual.id,
+            iniciativaValor:
+              iniciativaValor ?? personagemSessaoAtual.iniciativaValor ?? null,
+          },
+        });
+      } else {
+        await tx.personagemSessao.create({
+          data: {
+            sessaoId,
+            cenaId: cenaAtual.id,
+            personagemCampanhaId: personagemCampanha.id,
+            iniciativaValor,
+          },
+        });
+      }
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async removerPersonagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    usuarioId: number,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      const personagemSessao = await tx.personagemSessao.findFirst({
+        where: {
+          id: personagemSessaoId,
+          sessaoId,
+        },
+        include: {
+          personagemCampanha: {
+            select: {
+              id: true,
+              donoId: true,
+            },
+          },
+        },
+      });
+
+      if (!personagemSessao) {
+        throw new PersonagemSessaoNaoEncontradoException(
+          personagemSessaoId,
+          sessaoId,
+          campanhaId,
+        );
+      }
+
+      if (
+        !acesso.ehMestre &&
+        personagemSessao.personagemCampanha.donoId !== usuarioId
+      ) {
+        throw new CampanhaPersonagemEdicaoNegadaException(
+          campanhaId,
+          personagemSessao.personagemCampanha.id,
+          usuarioId,
+        );
+      }
+
+      await tx.personagemSessao.update({
+        where: {
+          id: personagemSessaoId,
+        },
+        data: {
+          cenaId: null,
+          iniciativaValor: null,
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async atualizarValorIniciativaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarValorIniciativaSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      if (dto.tipoParticipante === 'NPC') {
+        this.assertMestre(acesso, 'editar iniciativa do NPC');
+
+        const npc = await tx.npcAmeacaSessao.findFirst({
+          where: {
+            id: dto.id,
+            sessaoId,
+          },
+          select: { id: true },
+        });
+
+        if (!npc) {
+          throw new NpcSessaoNaoEncontradoException(
+            dto.id,
+            sessaoId,
+            campanhaId,
+          );
+        }
+
+        await tx.npcAmeacaSessao.update({
+          where: { id: dto.id },
+          data: {
+            iniciativaValor:
+              dto.valorIniciativa !== undefined ? dto.valorIniciativa : null,
+          },
+        });
+        return;
+      }
+
+      const personagemSessao = await tx.personagemSessao.findFirst({
+        where: {
+          id: dto.id,
+          sessaoId,
+        },
+        include: {
+          personagemCampanha: {
+            select: {
+              id: true,
+              donoId: true,
+            },
+          },
+        },
+      });
+
+      if (!personagemSessao) {
+        throw new PersonagemSessaoNaoEncontradoException(
+          dto.id,
+          sessaoId,
+          campanhaId,
+        );
+      }
+
+      if (
+        !acesso.ehMestre &&
+        personagemSessao.personagemCampanha.donoId !== usuarioId
+      ) {
+        throw new CampanhaPersonagemEdicaoNegadaException(
+          campanhaId,
+          personagemSessao.personagemCampanha.id,
+          usuarioId,
+        );
+      }
+
+      await tx.personagemSessao.update({
+        where: { id: dto.id },
+        data: {
+          iniciativaValor:
+            dto.valorIniciativa !== undefined ? dto.valorIniciativa : null,
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
   async adicionarNpcSessao(
     campanhaId: number,
     sessaoId: number,
@@ -1863,6 +2190,18 @@ export class SessaoService {
         0,
         pontosVidaMax,
       );
+      const sanidade = this.resolverRecursoOpcional(
+        dto.sanAtual,
+        dto.sanMax,
+        null,
+        null,
+      );
+      const energiaAmaldicoada = this.resolverRecursoOpcional(
+        dto.eaAtual,
+        dto.eaMax,
+        null,
+        null,
+      );
       const nomeExibicao = dto.nomeExibicao?.trim() || npcBase.nome;
       const notasCena = dto.notasCena?.trim() || null;
 
@@ -1875,12 +2214,19 @@ export class SessaoService {
           fichaTipo: npcBase.fichaTipo,
           tipo: npcBase.tipo,
           vd: dto.vd ?? npcBase.vd,
+          iniciativaValor:
+            dto.iniciativaValor === undefined ? null : dto.iniciativaValor,
           defesa: dto.defesa ?? npcBase.defesa,
           pontosVidaAtual,
           pontosVidaMax,
+          sanAtual: sanidade.atual,
+          sanMax: sanidade.max,
+          eaAtual: energiaAmaldicoada.atual,
+          eaMax: energiaAmaldicoada.max,
           machucado:
             dto.machucado === undefined ? npcBase.machucado : dto.machucado,
-          deslocamentoMetros: dto.deslocamentoMetros ?? npcBase.deslocamentoMetros,
+          deslocamentoMetros:
+            dto.deslocamentoMetros ?? npcBase.deslocamentoMetros,
           passivasGuia: this.jsonParaPersistencia(npcBase.passivas),
           acoesGuia: this.jsonParaPersistencia(npcBase.acoes),
           notasCena,
@@ -1950,6 +2296,18 @@ export class SessaoService {
         0,
         pontosVidaMax,
       );
+      const sanidade = this.resolverRecursoOpcional(
+        dto.sanAtual,
+        dto.sanMax,
+        npcSessaoAtual.sanAtual,
+        npcSessaoAtual.sanMax,
+      );
+      const energiaAmaldicoada = this.resolverRecursoOpcional(
+        dto.eaAtual,
+        dto.eaMax,
+        npcSessaoAtual.eaAtual,
+        npcSessaoAtual.eaMax,
+      );
 
       const data: Prisma.NpcAmeacaSessaoUpdateInput = {
         pontosVidaMax,
@@ -1957,11 +2315,23 @@ export class SessaoService {
       };
 
       if (dto.nomeExibicao !== undefined) {
-        data.nomeExibicao = dto.nomeExibicao.trim() || npcSessaoAtual.nomeExibicao;
+        data.nomeExibicao =
+          dto.nomeExibicao.trim() || npcSessaoAtual.nomeExibicao;
       }
       if (dto.vd !== undefined) data.vd = dto.vd;
+      if (dto.iniciativaValor !== undefined) {
+        data.iniciativaValor = dto.iniciativaValor;
+      }
       if (dto.defesa !== undefined) data.defesa = dto.defesa;
       if (dto.machucado !== undefined) data.machucado = dto.machucado;
+      if (dto.sanAtual !== undefined || dto.sanMax !== undefined) {
+        data.sanAtual = sanidade.atual;
+        data.sanMax = sanidade.max;
+      }
+      if (dto.eaAtual !== undefined || dto.eaMax !== undefined) {
+        data.eaAtual = energiaAmaldicoada.atual;
+        data.eaMax = energiaAmaldicoada.max;
+      }
       if (dto.deslocamentoMetros !== undefined) {
         data.deslocamentoMetros = dto.deslocamentoMetros;
       }
@@ -2203,9 +2573,8 @@ export class SessaoService {
         );
       }
 
-      const tecnicasNaoInatasCatalogo = await this.listarTecnicasNaoInatasCatalogo(
-        tx,
-      );
+      const tecnicasNaoInatasCatalogo =
+        await this.listarTecnicasNaoInatasCatalogo(tx);
       const tecnicasDisponiveis = this.resolverTecnicasSessaoPersonagem(
         personagemSessao.personagemCampanha,
         tecnicasNaoInatasCatalogo,
@@ -2230,13 +2599,18 @@ export class SessaoService {
 
       const custo = this.resolverCustoUsoHabilidade(
         habilidade,
-        this.montarMapaGrausPersonagemSessao(personagemSessao.personagemCampanha),
+        this.montarMapaGrausPersonagemSessao(
+          personagemSessao.personagemCampanha,
+        ),
         dto.variacaoHabilidadeId,
         dto.acumulos ?? 0,
       );
 
       const recursosAtuais = personagemSessao.personagemCampanha;
-      if (recursosAtuais.eaAtual < custo.custoEA || recursosAtuais.peAtual < custo.custoPE) {
+      if (
+        recursosAtuais.eaAtual < custo.custoEA ||
+        recursosAtuais.peAtual < custo.custoPE
+      ) {
         throw new BusinessException(
           'Recursos insuficientes para usar esta habilidade',
           'SESSAO_RECURSO_INSUFICIENTE',
@@ -2311,7 +2685,8 @@ export class SessaoService {
 
       if (
         custo.isSustentada &&
-        ((custo.custoSustentacaoEA ?? 0) > 0 || (custo.custoSustentacaoPE ?? 0) > 0)
+        ((custo.custoSustentacaoEA ?? 0) > 0 ||
+          (custo.custoSustentacaoPE ?? 0) > 0)
       ) {
         await tx.personagemSessaoHabilidadeSustentada.create({
           data: {
@@ -2360,7 +2735,8 @@ export class SessaoService {
             resumoEscalonamento: custo.resumoEscalonamento,
             usoBaseSemEscalonamento: custo.isUsoBaseSemEscalonamento,
             turnoReferencia,
-            limitePeEaPorTurno: limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
+            limitePeEaPorTurno:
+              limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
             gastoPeEaNoTurnoAntesUso: turnoReferencia
               ? gastoPeEaNoTurnoAntesUso
               : null,
@@ -2495,6 +2871,26 @@ export class SessaoService {
               observacao: dto.observacao?.trim() || null,
             },
           });
+
+      const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+      if (condicao.id === mapaSistema.mortoId) {
+        await this.desativarCondicaoAtivaSessaoTx(tx, {
+          sessaoId,
+          personagemSessaoId: alvo.personagemSessaoId,
+          npcSessaoId: alvo.npcSessaoId,
+          condicaoId: mapaSistema.morrendoId,
+          motivoRemocao: 'Substituida por estado morto.',
+        });
+      }
+      if (condicao.id === mapaSistema.insanoId) {
+        await this.desativarCondicaoAtivaSessaoTx(tx, {
+          sessaoId,
+          personagemSessaoId: alvo.personagemSessaoId,
+          npcSessaoId: alvo.npcSessaoId,
+          condicaoId: mapaSistema.enlouquecendoId,
+          motivoRemocao: 'Substituida por estado insano.',
+        });
+      }
 
       await tx.eventoSessao.create({
         data: {
@@ -2696,23 +3092,24 @@ export class SessaoService {
         );
       }
 
-      const sustentacao = await tx.personagemSessaoHabilidadeSustentada.findFirst({
-        where: {
-          id: sustentacaoId,
-          sessaoId,
-          personagemSessaoId,
-          ativa: true,
-        },
-        select: {
-          id: true,
-          nomeHabilidade: true,
-          nomeVariacao: true,
-          habilidadeTecnicaId: true,
-          variacaoHabilidadeId: true,
-          sessaoId: true,
-          personagemSessaoId: true,
-        },
-      });
+      const sustentacao =
+        await tx.personagemSessaoHabilidadeSustentada.findFirst({
+          where: {
+            id: sustentacaoId,
+            sessaoId,
+            personagemSessaoId,
+            ativa: true,
+          },
+          select: {
+            id: true,
+            nomeHabilidade: true,
+            nomeVariacao: true,
+            habilidadeTecnicaId: true,
+            variacaoHabilidadeId: true,
+            sessaoId: true,
+            personagemSessaoId: true,
+          },
+        });
 
       if (!sustentacao) {
         throw new BusinessException(
@@ -2961,7 +3358,8 @@ export class SessaoService {
         const totalQuantidade = quantidade * acumulos;
         const totalBonusFixo = bonusFixo * acumulos;
         const partes: string[] = [];
-        if (totalQuantidade > 0 && dado) partes.push(`${totalQuantidade}${dado}`);
+        if (totalQuantidade > 0 && dado)
+          partes.push(`${totalQuantidade}${dado}`);
         if (totalBonusFixo > 0) partes.push(`+${totalBonusFixo}`);
         if (partes.length === 0) return null;
         return `${tipoEscalonamento === 'CURA' ? 'Cura' : 'Dano'} escalonado: ${partes.join(' ')}`;
@@ -3006,7 +3404,9 @@ export class SessaoService {
         : 0;
 
     const variacoes = (habilidade.variacoes ?? [])
-      .filter((variacao) => atendeRequisitosGraus(variacao.requisitos, grausMap))
+      .filter((variacao) =>
+        atendeRequisitosGraus(variacao.requisitos, grausMap),
+      )
       .sort((a, b) => a.ordem - b.ordem)
       .map((variacao): VariacaoTecnicaSessaoResumo => {
         const variacaoEscalonavel =
@@ -3118,8 +3518,13 @@ export class SessaoService {
     }
 
     const habilidades = (tecnica.habilidades ?? [])
-      .map((habilidade) => this.mapearHabilidadeTecnicaResumo(habilidade, grausMap))
-      .filter((habilidade): habilidade is HabilidadeTecnicaSessaoResumo => !!habilidade)
+      .map((habilidade) =>
+        this.mapearHabilidadeTecnicaResumo(habilidade, grausMap),
+      )
+      .filter(
+        (habilidade): habilidade is HabilidadeTecnicaSessaoResumo =>
+          !!habilidade,
+      )
       .sort((a, b) => a.ordem - b.ordem);
 
     return {
@@ -3165,7 +3570,10 @@ export class SessaoService {
     const grausMap = this.montarMapaGrausPersonagemSessao(personagemCampanha);
 
     const tecnicaInata = personagemCampanha.tecnicaInata
-      ? this.filtrarTecnicaPorGrausSessao(personagemCampanha.tecnicaInata, grausMap)
+      ? this.filtrarTecnicaPorGrausSessao(
+          personagemCampanha.tecnicaInata,
+          grausMap,
+        )
       : null;
 
     const mapaTecnicas = new Map<number, TecnicaSessaoRaw>();
@@ -3177,7 +3585,8 @@ export class SessaoService {
 
     // Compatibilidade com dados antigos que so possuem relacoes salvas.
     const tecnicasCampanha = personagemCampanha.tecnicasAprendidas ?? [];
-    const tecnicasBase = personagemCampanha.personagemBase?.tecnicasAprendidas ?? [];
+    const tecnicasBase =
+      personagemCampanha.personagemBase?.tecnicasAprendidas ?? [];
     for (const relacao of [...tecnicasCampanha, ...tecnicasBase]) {
       const tecnica = relacao?.tecnica;
       if (!tecnica || tecnica.tipo !== 'NAO_INATA') continue;
@@ -3229,7 +3638,9 @@ export class SessaoService {
   ): CustoHabilidadeResolvido {
     const variacaoSelecionada =
       typeof variacaoHabilidadeId === 'number'
-        ? habilidade.variacoes.find((variacao) => variacao.id === variacaoHabilidadeId)
+        ? habilidade.variacoes.find(
+            (variacao) => variacao.id === variacaoHabilidadeId,
+          )
         : null;
 
     if (typeof variacaoHabilidadeId === 'number' && !variacaoSelecionada) {
@@ -3245,7 +3656,9 @@ export class SessaoService {
 
     const acumulosNormalizados = Math.max(
       0,
-      Math.trunc(Number.isFinite(acumulosSolicitados) ? acumulosSolicitados : 0),
+      Math.trunc(
+        Number.isFinite(acumulosSolicitados) ? acumulosSolicitados : 0,
+      ),
     );
 
     const baseEA = this.normalizarCustoPositivo(habilidade.custoEA, 0);
@@ -3262,12 +3675,18 @@ export class SessaoService {
     let escalonamentoTipo = habilidade.escalonamentoTipo;
     let escalonamentoEfeito = habilidade.escalonamentoEfeito;
     let escalonamentoDano = habilidade.escalonamentoDano;
-    let grauTipoGrauCodigo = habilidade.grauTipoGrauCodigo;
+    const grauTipoGrauCodigo = habilidade.grauTipoGrauCodigo;
 
     if (variacaoSelecionada) {
       if (variacaoSelecionada.substituiCustos) {
-        custoEA = this.normalizarCustoPositivo(variacaoSelecionada.custoEA, custoEA);
-        custoPE = this.normalizarCustoPositivo(variacaoSelecionada.custoPE, custoPE);
+        custoEA = this.normalizarCustoPositivo(
+          variacaoSelecionada.custoEA,
+          custoEA,
+        );
+        custoPE = this.normalizarCustoPositivo(
+          variacaoSelecionada.custoPE,
+          custoPE,
+        );
       } else {
         custoEA += this.normalizarCustoPositivo(variacaoSelecionada.custoEA, 0);
         custoPE += this.normalizarCustoPositivo(variacaoSelecionada.custoPE, 0);
@@ -3349,7 +3768,10 @@ export class SessaoService {
       }
       custoEA += custoEscalonamentoEA * acumulosNormalizados;
 
-      custoEscalonamentoPE = this.normalizarCustoPositivo(escalonamentoCustoPE, 0);
+      custoEscalonamentoPE = this.normalizarCustoPositivo(
+        escalonamentoCustoPE,
+        0,
+      );
       if (custoEscalonamentoPE > 0) {
         custoPE += custoEscalonamentoPE * acumulosNormalizados;
       }
@@ -3450,7 +3872,10 @@ export class SessaoService {
     let gasto = 0;
     for (const evento of eventos) {
       const dados = this.extrairRegistro(evento.dados);
-      const turnoEvento = this.lerTextoOpcionalRegistro(dados, 'turnoReferencia');
+      const turnoEvento = this.lerTextoOpcionalRegistro(
+        dados,
+        'turnoReferencia',
+      );
       if (turnoEvento !== turnoReferencia) continue;
       if (this.eventoJaFoiDesfeito(evento.dados)) continue;
 
@@ -3477,7 +3902,9 @@ export class SessaoService {
     const gastoAtual = Math.max(
       0,
       Math.trunc(
-        Number.isFinite(gastoPeEaNoTurnoAntesUso) ? gastoPeEaNoTurnoAntesUso : 0,
+        Number.isFinite(gastoPeEaNoTurnoAntesUso)
+          ? gastoPeEaNoTurnoAntesUso
+          : 0,
       ),
     );
     const custoUso = Math.max(
@@ -3531,6 +3958,35 @@ export class SessaoService {
     if (valor < min) return min;
     if (valor > max) return max;
     return valor;
+  }
+
+  private resolverRecursoOpcional(
+    atualDto: number | null | undefined,
+    maxDto: number | null | undefined,
+    atualBase: number | null,
+    maxBase: number | null,
+  ): { atual: number | null; max: number | null } {
+    if (atualDto === null || maxDto === null) {
+      return { atual: null, max: null };
+    }
+
+    const max = maxDto ?? maxBase;
+    const atualBruto = atualDto ?? atualBase;
+
+    if (max === null || max === undefined) {
+      if (typeof atualBruto !== 'number') {
+        return { atual: null, max: null };
+      }
+      const atual = Math.max(0, atualBruto);
+      return { atual, max: atual };
+    }
+
+    const atual =
+      typeof atualBruto === 'number'
+        ? this.clampNumero(atualBruto, 0, max)
+        : max;
+
+    return { atual, max };
   }
 
   private clampIndiceTurno(indice: number, totalPersonagens: number): number {
@@ -3591,13 +4047,19 @@ export class SessaoService {
   private lerOrdemIniciativaEvento(
     registro: Record<string, unknown>,
   ): OrdemIniciativaEvento | null {
-    const ordemAnterior = this.lerListaTokensRegistro(registro, 'ordemAnterior');
+    const ordemAnterior = this.lerListaTokensRegistro(
+      registro,
+      'ordemAnterior',
+    );
     const ordemAtual = this.lerListaTokensRegistro(registro, 'ordemAtual');
     const indiceTurnoAnterior = this.lerInteiroRegistro(
       registro,
       'indiceTurnoAnterior',
     );
-    const indiceTurnoNovo = this.lerInteiroRegistro(registro, 'indiceTurnoNovo');
+    const indiceTurnoNovo = this.lerInteiroRegistro(
+      registro,
+      'indiceTurnoNovo',
+    );
 
     if (
       !ordemAnterior ||
@@ -3619,6 +4081,7 @@ export class SessaoService {
   private montarParticipantesIniciativa(
     personagens: Array<{
       id: number;
+      iniciativaValor: number | null;
       personagemCampanha: {
         id: number;
         nome: string;
@@ -3631,6 +4094,7 @@ export class SessaoService {
     npcs: Array<{
       id: number;
       nomeExibicao: string;
+      iniciativaValor: number | null;
     }>,
     ehMestre: boolean,
     usuarioId: number,
@@ -3638,7 +4102,8 @@ export class SessaoService {
     const participantesPersonagens: ParticipanteIniciativa[] = personagens.map(
       (personagem) => {
         const token = this.criarTokenParticipante('PERSONAGEM', personagem.id);
-        const podeEditar = ehMestre || personagem.personagemCampanha.donoId === usuarioId;
+        const podeEditar =
+          ehMestre || personagem.personagemCampanha.donoId === usuarioId;
 
         return {
           tipoParticipante: 'PERSONAGEM',
@@ -3650,6 +4115,7 @@ export class SessaoService {
           nomeJogador: personagem.personagemCampanha.dono.apelido,
           nomePersonagem: personagem.personagemCampanha.nome,
           podeEditar,
+          iniciativaValor: personagem.iniciativaValor ?? null,
         };
       },
     );
@@ -3664,6 +4130,7 @@ export class SessaoService {
       nomeJogador: null,
       nomePersonagem: npc.nomeExibicao,
       podeEditar: ehMestre,
+      iniciativaValor: npc.iniciativaValor ?? null,
     }));
 
     return [...participantesPersonagens, ...participantesNpcs];
@@ -3678,7 +4145,10 @@ export class SessaoService {
     }
 
     const porToken = new Map(
-      participantesPadrao.map((participante) => [participante.token, participante]),
+      participantesPadrao.map((participante) => [
+        participante.token,
+        participante,
+      ]),
     );
     const tokensUsados = new Set<string>();
     const ordenados: ParticipanteIniciativa[] = [];
@@ -3704,9 +4174,14 @@ export class SessaoService {
     sessaoId: number,
     campanhaId: number,
   ): ParticipanteIniciativa[] {
-    const tokensAtuais = participantesAtuais.map((participante) => participante.token);
+    const tokensAtuais = participantesAtuais.map(
+      (participante) => participante.token,
+    );
     const mapaAtuais = new Map(
-      participantesAtuais.map((participante) => [participante.token, participante]),
+      participantesAtuais.map((participante) => [
+        participante.token,
+        participante,
+      ]),
     );
     const tokensRecebidosUnicos = Array.from(new Set(tokensRecebidos));
 
@@ -3763,10 +4238,11 @@ export class SessaoService {
   ): Promise<ParticipanteIniciativa[]> {
     const [personagens, npcs] = await Promise.all([
       tx.personagemSessao.findMany({
-        where: { sessaoId },
+        where: { sessaoId, cenaId: cenaAtualId },
         orderBy: { id: 'asc' },
         select: {
           id: true,
+          iniciativaValor: true,
           personagemCampanha: {
             select: {
               id: true,
@@ -3792,6 +4268,7 @@ export class SessaoService {
         select: {
           id: true,
           nomeExibicao: true,
+          iniciativaValor: true,
         },
       }),
     ]);
@@ -3811,7 +4288,14 @@ export class SessaoService {
     acao: 'AVANCAR' | 'VOLTAR' | 'PULAR',
   ): Promise<void> {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, acao === 'VOLTAR' ? 'voltar turno' : acao === 'PULAR' ? 'pular turno' : 'avancar turno');
+    this.assertMestre(
+      acesso,
+      acao === 'VOLTAR'
+        ? 'voltar turno'
+        : acao === 'PULAR'
+          ? 'pular turno'
+          : 'avancar turno',
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3837,7 +4321,10 @@ export class SessaoService {
         acesso.ehMestre,
         usuarioId,
       );
-      const ordemPersistida = await this.obterOrdemIniciativaPersistida(tx, sessaoId);
+      const ordemPersistida = await this.obterOrdemIniciativaPersistida(
+        tx,
+        sessaoId,
+      );
       const participantes = this.aplicarOrdemIniciativaPersistida(
         participantesPadrao,
         ordemPersistida,
@@ -3876,38 +4363,39 @@ export class SessaoService {
       });
 
       if (rodadaNova > sessao.rodadaAtual) {
-        const sustentacoesAtivas = await tx.personagemSessaoHabilidadeSustentada.findMany({
-          where: {
-            sessaoId,
-            ativa: true,
-          },
-          orderBy: {
-            id: 'asc',
-          },
-          select: {
-            id: true,
-            sessaoId: true,
-            personagemSessaoId: true,
-            nomeHabilidade: true,
-            nomeVariacao: true,
-            custoSustentacaoEA: true,
-            custoSustentacaoPE: true,
-            ultimaCobrancaRodada: true,
-            habilidadeTecnicaId: true,
-            variacaoHabilidadeId: true,
-            personagemSessao: {
-              select: {
-                personagemCampanha: {
-                  select: {
-                    id: true,
-                    eaAtual: true,
-                    peAtual: true,
+        const sustentacoesAtivas =
+          await tx.personagemSessaoHabilidadeSustentada.findMany({
+            where: {
+              sessaoId,
+              ativa: true,
+            },
+            orderBy: {
+              id: 'asc',
+            },
+            select: {
+              id: true,
+              sessaoId: true,
+              personagemSessaoId: true,
+              nomeHabilidade: true,
+              nomeVariacao: true,
+              custoSustentacaoEA: true,
+              custoSustentacaoPE: true,
+              ultimaCobrancaRodada: true,
+              habilidadeTecnicaId: true,
+              variacaoHabilidadeId: true,
+              personagemSessao: {
+                select: {
+                  personagemCampanha: {
+                    select: {
+                      id: true,
+                      eaAtual: true,
+                      peAtual: true,
+                    },
                   },
                 },
               },
             },
-          },
-        });
+          });
 
         const eaAtualPorPersonagemCampanha = new Map<number, number>();
         const peAtualPorPersonagemCampanha = new Map<number, number>();
@@ -4145,7 +4633,9 @@ export class SessaoService {
     restanteDuracao: number | null;
     duracaoTurnos: number | null;
   } {
-    const modo = this.normalizarTextoComparacao(duracaoModo) || CONDICAO_DURACAO_MODOS.ATE_REMOVER;
+    const modo =
+      this.normalizarTextoComparacao(duracaoModo) ||
+      CONDICAO_DURACAO_MODOS.ATE_REMOVER;
     if (
       modo !== CONDICAO_DURACAO_MODOS.ATE_REMOVER &&
       modo !== CONDICAO_DURACAO_MODOS.RODADAS &&
@@ -4263,7 +4753,9 @@ export class SessaoService {
     };
   }
 
-  private async sincronizarCondicoesAutomaticasSessao(sessaoId: number): Promise<void> {
+  private async sincronizarCondicoesAutomaticasSessao(
+    sessaoId: number,
+  ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
     });
@@ -4295,12 +4787,17 @@ export class SessaoService {
 
     const porNomeNormalizado = new Map<string, number>();
     for (const condicao of condicoes) {
-      porNomeNormalizado.set(this.normalizarTextoComparacao(condicao.nome), condicao.id);
+      porNomeNormalizado.set(
+        this.normalizarTextoComparacao(condicao.nome),
+        condicao.id,
+      );
     }
 
     const resolverPorAliases = (aliases: string[]): number | null => {
       for (const alias of aliases) {
-        const condicaoId = porNomeNormalizado.get(this.normalizarTextoComparacao(alias));
+        const condicaoId = porNomeNormalizado.get(
+          this.normalizarTextoComparacao(alias),
+        );
         if (condicaoId) return condicaoId;
       }
       return null;
@@ -4394,6 +4891,41 @@ export class SessaoService {
     }
   }
 
+  private async desativarCondicaoAtivaSessaoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      personagemSessaoId: number | null;
+      npcSessaoId: number | null;
+      condicaoId: number | null;
+      motivoRemocao: string;
+    },
+  ): Promise<void> {
+    if (!args.condicaoId) return;
+
+    const existente = await tx.condicaoPersonagemSessao.findFirst({
+      where: {
+        sessaoId: args.sessaoId,
+        condicaoId: args.condicaoId,
+        personagemSessaoId: args.personagemSessaoId,
+        npcSessaoId: args.npcSessaoId,
+        ativo: true,
+      },
+      orderBy: { id: 'desc' },
+    });
+
+    if (!existente) return;
+
+    await tx.condicaoPersonagemSessao.update({
+      where: { id: existente.id },
+      data: {
+        ativo: false,
+        removidaEm: new Date(),
+        motivoRemocao: args.motivoRemocao,
+      },
+    });
+  }
+
   private async sincronizarCondicoesAutomaticasSessaoTx(
     tx: Prisma.TransactionClient,
     sessaoId: number,
@@ -4427,6 +4959,7 @@ export class SessaoService {
             cenaId: true,
             pontosVidaAtual: true,
             pontosVidaMax: true,
+            sanAtual: true,
           },
         },
       },
@@ -4435,6 +4968,47 @@ export class SessaoService {
     if (!sessao) return;
 
     const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+    const condicoesBloqueantes = [
+      mapaSistema.mortoId,
+      mapaSistema.insanoId,
+    ].filter((id): id is number => typeof id === 'number');
+    const bloqueios =
+      condicoesBloqueantes.length > 0
+        ? await tx.condicaoPersonagemSessao.findMany({
+            where: {
+              sessaoId,
+              ativo: true,
+              condicaoId: { in: condicoesBloqueantes },
+            },
+            select: {
+              condicaoId: true,
+              personagemSessaoId: true,
+              npcSessaoId: true,
+            },
+          })
+        : [];
+    const personagensMortos = new Set<number>();
+    const personagensInsanos = new Set<number>();
+    const npcsMortos = new Set<number>();
+    const npcsInsanos = new Set<number>();
+    for (const condicao of bloqueios) {
+      if (condicao.personagemSessaoId) {
+        if (condicao.condicaoId === mapaSistema.mortoId) {
+          personagensMortos.add(condicao.personagemSessaoId);
+        }
+        if (condicao.condicaoId === mapaSistema.insanoId) {
+          personagensInsanos.add(condicao.personagemSessaoId);
+        }
+      }
+      if (condicao.npcSessaoId) {
+        if (condicao.condicaoId === mapaSistema.mortoId) {
+          npcsMortos.add(condicao.npcSessaoId);
+        }
+        if (condicao.condicaoId === mapaSistema.insanoId) {
+          npcsInsanos.add(condicao.npcSessaoId);
+        }
+      }
+    }
     const cenas = Array.isArray(sessao.cenas) ? sessao.cenas : [];
     const personagens = Array.isArray(sessao.personagens)
       ? sessao.personagens
@@ -4446,12 +5020,34 @@ export class SessaoService {
       const pvAtual = personagem.personagemCampanha.pvAtual;
       const pvMax = Math.max(1, personagem.personagemCampanha.pvMax);
       const sanAtual = personagem.personagemCampanha.sanAtual;
+      const morto = personagensMortos.has(personagem.id);
+      const insano = personagensInsanos.has(personagem.id);
       const machucado = pvAtual > 0 && pvAtual <= Math.floor(pvMax / 2);
-      const morrendo = pvAtual <= 0;
+      const morrendo = pvAtual <= 0 && !morto;
       const caido = pvAtual <= 0;
-      const enlouquecendo = sanAtual <= 0;
+      const enlouquecendo = sanAtual <= 0 && !insano;
       const cenaId = personagem.cenaId ?? cenaAtualId;
       if (!cenaId) continue;
+
+      if (morto) {
+        await this.desativarCondicaoAtivaSessaoTx(tx, {
+          sessaoId,
+          personagemSessaoId: personagem.id,
+          npcSessaoId: null,
+          condicaoId: mapaSistema.morrendoId,
+          motivoRemocao: 'Substituida por estado morto.',
+        });
+      }
+
+      if (insano) {
+        await this.desativarCondicaoAtivaSessaoTx(tx, {
+          sessaoId,
+          personagemSessaoId: personagem.id,
+          npcSessaoId: null,
+          condicaoId: mapaSistema.enlouquecendoId,
+          motivoRemocao: 'Substituida por estado insano.',
+        });
+      }
 
       await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
         sessaoId,
@@ -4505,11 +5101,35 @@ export class SessaoService {
     for (const npc of npcs) {
       const pvAtual = npc.pontosVidaAtual;
       const pvMax = Math.max(1, npc.pontosVidaMax);
+      const morto = npcsMortos.has(npc.id);
+      const insano = npcsInsanos.has(npc.id);
       const machucado = pvAtual > 0 && pvAtual <= Math.floor(pvMax / 2);
-      const morrendo = pvAtual <= 0;
+      const morrendo = pvAtual <= 0 && !morto;
       const caido = pvAtual <= 0;
+      const enlouquecendo =
+        typeof npc.sanAtual === 'number' && npc.sanAtual <= 0 && !insano;
       const cenaId = npc.cenaId ?? cenaAtualId;
       if (!cenaId) continue;
+
+      if (morto) {
+        await this.desativarCondicaoAtivaSessaoTx(tx, {
+          sessaoId,
+          personagemSessaoId: null,
+          npcSessaoId: npc.id,
+          condicaoId: mapaSistema.morrendoId,
+          motivoRemocao: 'Substituida por estado morto.',
+        });
+      }
+
+      if (insano) {
+        await this.desativarCondicaoAtivaSessaoTx(tx, {
+          sessaoId,
+          personagemSessaoId: null,
+          npcSessaoId: npc.id,
+          condicaoId: mapaSistema.enlouquecendoId,
+          motivoRemocao: 'Substituida por estado insano.',
+        });
+      }
 
       await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
         sessaoId,
@@ -4546,6 +5166,20 @@ export class SessaoService {
         ativa: caido,
         origemDescricao: 'Automatica por PV <= 0.',
       });
+
+      if (mapaSistema.enlouquecendoId && typeof npc.sanAtual === 'number') {
+        await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+          sessaoId,
+          cenaId,
+          rodadaAtual: sessao.rodadaAtual,
+          personagemSessaoId: null,
+          npcSessaoId: npc.id,
+          condicaoId: mapaSistema.enlouquecendoId,
+          chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO,
+          ativa: enlouquecendo,
+          origemDescricao: 'Automatica por SAN <= 0.',
+        });
+      }
     }
   }
 
@@ -4559,8 +5193,13 @@ export class SessaoService {
       participanteTurnoNovo: ParticipanteIniciativa | null;
     },
   ): Promise<void> {
-    const { sessaoId, cenaId, rodadaAnterior, rodadaNova, participanteTurnoNovo } =
-      args;
+    const {
+      sessaoId,
+      cenaId,
+      rodadaAnterior,
+      rodadaNova,
+      participanteTurnoNovo,
+    } = args;
     if (!participanteTurnoNovo) return;
 
     await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
@@ -4649,7 +5288,9 @@ export class SessaoService {
               restanteDuracao: expirada ? 0 : restanteNovo,
               ativo: !expirada,
               removidaEm: expirada ? new Date() : null,
-              motivoRemocao: expirada ? 'Duracao em turnos do alvo encerrada.' : null,
+              motivoRemocao: expirada
+                ? 'Duracao em turnos do alvo encerrada.'
+                : null,
             },
           });
 
@@ -4731,6 +5372,13 @@ export class SessaoService {
                 ativa: true,
                 origemDescricao: 'Automatica por exceder turnos morrendo.',
               });
+              await this.desativarCondicaoAtivaSessaoTx(tx, {
+                sessaoId,
+                personagemSessaoId: personagem.id,
+                npcSessaoId: null,
+                condicaoId: mapaSistema.morrendoId,
+                motivoRemocao: 'Substituida por estado morto.',
+              });
             }
 
             if (
@@ -4748,6 +5396,13 @@ export class SessaoService {
                 chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.INSANO,
                 ativa: true,
                 origemDescricao: 'Automatica por exceder turnos enlouquecendo.',
+              });
+              await this.desativarCondicaoAtivaSessaoTx(tx, {
+                sessaoId,
+                personagemSessaoId: personagem.id,
+                npcSessaoId: null,
+                condicaoId: mapaSistema.enlouquecendoId,
+                motivoRemocao: 'Substituida por estado insano.',
               });
             }
           }
@@ -4779,7 +5434,9 @@ export class SessaoService {
               restanteDuracao: expirada ? 0 : restanteNovo,
               ativo: !expirada,
               removidaEm: expirada ? new Date() : null,
-              motivoRemocao: expirada ? 'Duracao em turnos do alvo encerrada.' : null,
+              motivoRemocao: expirada
+                ? 'Duracao em turnos do alvo encerrada.'
+                : null,
             },
           });
 
@@ -4804,7 +5461,9 @@ export class SessaoService {
     }
   }
 
-  private mapearListaObjeto(valor: Prisma.JsonValue | null): Prisma.JsonObject[] {
+  private mapearListaObjeto(
+    valor: Prisma.JsonValue | null,
+  ): Prisma.JsonObject[] {
     if (!Array.isArray(valor)) return [];
     return valor.filter(
       (item): item is Prisma.JsonObject =>
@@ -4850,7 +5509,9 @@ export class SessaoService {
     return registro.desfeito === true;
   }
 
-  private extrairRegistro(dados: Prisma.JsonValue | null): Record<string, unknown> {
+  private extrairRegistro(
+    dados: Prisma.JsonValue | null,
+  ): Record<string, unknown> {
     if (!dados || typeof dados !== 'object' || Array.isArray(dados)) {
       return {};
     }
@@ -4923,12 +5584,21 @@ export class SessaoService {
     const fichaTipo = this.normalizarTipoFichaNpcAmeaca(
       this.lerTextoRegistro(bruto, 'fichaTipo'),
     );
-    const tipo = this.normalizarTipoNpcAmeaca(this.lerTextoRegistro(bruto, 'tipo'));
+    const tipo = this.normalizarTipoNpcAmeaca(
+      this.lerTextoRegistro(bruto, 'tipo'),
+    );
     const vd = this.lerInteiroRegistro(bruto, 'vd');
+    const iniciativaValor = this.lerInteiroOpcionalRegistro(
+      bruto,
+      'iniciativaValor',
+    );
     const defesa = this.lerInteiroRegistro(bruto, 'defesa');
     const pontosVidaAtual = this.lerInteiroRegistro(bruto, 'pontosVidaAtual');
     const pontosVidaMax = this.lerInteiroRegistro(bruto, 'pontosVidaMax');
-    const deslocamentoMetros = this.lerInteiroRegistro(bruto, 'deslocamentoMetros');
+    const deslocamentoMetros = this.lerInteiroRegistro(
+      bruto,
+      'deslocamentoMetros',
+    );
 
     if (
       !nomeExibicao ||
@@ -4944,6 +5614,10 @@ export class SessaoService {
     }
 
     const machucado = this.lerInteiroOpcionalRegistro(bruto, 'machucado');
+    const sanAtual = this.lerInteiroOpcionalRegistro(bruto, 'sanAtual');
+    const sanMax = this.lerInteiroOpcionalRegistro(bruto, 'sanMax');
+    const eaAtual = this.lerInteiroOpcionalRegistro(bruto, 'eaAtual');
+    const eaMax = this.lerInteiroOpcionalRegistro(bruto, 'eaMax');
     const npcAmeacaId = this.lerInteiroOpcionalRegistro(bruto, 'npcAmeacaId');
     const cenaId = this.lerInteiroOpcionalRegistro(bruto, 'cenaId');
     const notasCena = this.lerTextoOpcionalRegistro(bruto, 'notasCena');
@@ -4954,9 +5628,14 @@ export class SessaoService {
       fichaTipo,
       tipo,
       vd,
+      iniciativaValor,
       defesa,
       pontosVidaAtual,
       pontosVidaMax,
+      sanAtual,
+      sanMax,
+      eaAtual,
+      eaMax,
       machucado,
       deslocamentoMetros,
       passivasGuia: (bruto.passivasGuia ?? null) as Prisma.JsonValue | null,
@@ -5014,7 +5693,10 @@ export class SessaoService {
     return {
       id,
       sessaoId: this.lerInteiroOpcionalRegistro(bruto, 'sessaoId'),
-      personagemSessaoId: this.lerInteiroOpcionalRegistro(bruto, 'personagemSessaoId'),
+      personagemSessaoId: this.lerInteiroOpcionalRegistro(
+        bruto,
+        'personagemSessaoId',
+      ),
       npcSessaoId: this.lerInteiroOpcionalRegistro(bruto, 'npcSessaoId'),
       condicaoId,
       cenaId,
@@ -5022,7 +5704,10 @@ export class SessaoService {
       duracaoTurnos: this.lerInteiroOpcionalRegistro(bruto, 'duracaoTurnos'),
       duracaoModo,
       duracaoValor: this.lerInteiroOpcionalRegistro(bruto, 'duracaoValor'),
-      restanteDuracao: this.lerInteiroOpcionalRegistro(bruto, 'restanteDuracao'),
+      restanteDuracao: this.lerInteiroOpcionalRegistro(
+        bruto,
+        'restanteDuracao',
+      ),
       ativo: bruto.ativo === true,
       automatica: bruto.automatica === true,
       chaveAutomacao: this.lerTextoOpcionalRegistro(bruto, 'chaveAutomacao'),
@@ -5072,9 +5757,14 @@ export class SessaoService {
     fichaTipo: TipoFichaNpcAmeaca;
     tipo: TipoNpcAmeaca;
     vd: number;
+    iniciativaValor: number | null;
     defesa: number;
     pontosVidaAtual: number;
     pontosVidaMax: number;
+    sanAtual: number | null;
+    sanMax: number | null;
+    eaAtual: number | null;
+    eaMax: number | null;
     machucado: number | null;
     deslocamentoMetros: number;
     passivasGuia: Prisma.JsonValue | null;
@@ -5088,9 +5778,14 @@ export class SessaoService {
       fichaTipo: npc.fichaTipo,
       tipo: npc.tipo,
       vd: npc.vd,
+      iniciativaValor: npc.iniciativaValor ?? null,
       defesa: npc.defesa,
       pontosVidaAtual: npc.pontosVidaAtual,
       pontosVidaMax: npc.pontosVidaMax,
+      sanAtual: npc.sanAtual,
+      sanMax: npc.sanMax,
+      eaAtual: npc.eaAtual,
+      eaMax: npc.eaMax,
       machucado: npc.machucado,
       deslocamentoMetros: npc.deslocamentoMetros,
       passivasGuia: npc.passivasGuia,
@@ -5109,9 +5804,14 @@ export class SessaoService {
     return {
       nomeExibicao: dados.nomeExibicao,
       vd: dados.vd,
+      iniciativaValor: dados.iniciativaValor,
       defesa: dados.defesa,
       pontosVidaAtual: dados.pontosVidaAtual,
       pontosVidaMax: dados.pontosVidaMax,
+      sanAtual: dados.sanAtual,
+      sanMax: dados.sanMax,
+      eaAtual: dados.eaAtual,
+      eaMax: dados.eaMax,
       machucado: dados.machucado,
       deslocamentoMetros: dados.deslocamentoMetros,
       notasCena: dados.notasCena,
@@ -5264,7 +5964,10 @@ export class SessaoService {
       case 'NPC_REMOCAO_DESFEITA':
         return 'Alteracao de aliado ou ameaca desfeita';
       case 'HABILIDADE_USADA': {
-        const habilidade = this.lerTextoOpcionalRegistro(dados, 'habilidadeNome');
+        const habilidade = this.lerTextoOpcionalRegistro(
+          dados,
+          'habilidadeNome',
+        );
         const variacao = this.lerTextoOpcionalRegistro(dados, 'variacaoNome');
         const resumoEscalonamento = this.lerTextoOpcionalRegistro(
           dados,
@@ -5273,7 +5976,10 @@ export class SessaoService {
         return `Habilidade usada${habilidade ? `: ${habilidade}` : ''}${variacao ? ` (${variacao})` : ''}${resumoEscalonamento ? ` | ${resumoEscalonamento}` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_COBRADA': {
-        const habilidade = this.lerTextoOpcionalRegistro(dados, 'habilidadeNome');
+        const habilidade = this.lerTextoOpcionalRegistro(
+          dados,
+          'habilidadeNome',
+        );
         const custoEA = this.lerInteiroRegistro(dados, 'custoEA');
         const custoPE = this.lerInteiroRegistro(dados, 'custoPE');
         const partesCusto: string[] = [];
@@ -5282,17 +5988,29 @@ export class SessaoService {
         return `Sustentacao cobrada${habilidade ? `: ${habilidade}` : ''}${partesCusto.length > 0 ? ` (${partesCusto.join(' | ')})` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_ENCERRADA': {
-        const habilidade = this.lerTextoOpcionalRegistro(dados, 'habilidadeNome');
-        const motivoSistema = this.lerTextoOpcionalRegistro(dados, 'motivoSistema');
+        const habilidade = this.lerTextoOpcionalRegistro(
+          dados,
+          'habilidadeNome',
+        );
+        const motivoSistema = this.lerTextoOpcionalRegistro(
+          dados,
+          'motivoSistema',
+        );
         return `Sustentacao encerrada${habilidade ? `: ${habilidade}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
       }
       case 'CONDICAO_APLICADA': {
-        const condicaoNome = this.lerTextoOpcionalRegistro(dados, 'condicaoNome');
+        const condicaoNome = this.lerTextoOpcionalRegistro(
+          dados,
+          'condicaoNome',
+        );
         const alvoNome = this.lerTextoOpcionalRegistro(dados, 'alvoNome');
         return `Condicao aplicada${condicaoNome ? `: ${condicaoNome}` : ''}${alvoNome ? ` em ${alvoNome}` : ''}`;
       }
       case 'CONDICAO_REMOVIDA': {
-        const condicaoNome = this.lerTextoOpcionalRegistro(dados, 'condicaoNome');
+        const condicaoNome = this.lerTextoOpcionalRegistro(
+          dados,
+          'condicaoNome',
+        );
         const alvoNome = this.lerTextoOpcionalRegistro(dados, 'alvoNome');
         return `Condicao removida${condicaoNome ? `: ${condicaoNome}` : ''}${alvoNome ? ` de ${alvoNome}` : ''}`;
       }

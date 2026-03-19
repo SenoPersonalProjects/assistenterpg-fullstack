@@ -473,71 +473,71 @@ export class PersonagemBaseMapper {
         }>;
       }>;
     }): TecnicaDetalhadaMapeada => ({
-        id: tecnica.id,
-        codigo: tecnica.codigo,
-        nome: tecnica.nome,
-        descricao: tecnica.descricao,
-        tipo: tecnica.tipo,
-        hereditaria: tecnica.hereditaria,
-        linkExterno: tecnica.linkExterno,
-        requisitos: tecnica.requisitos,
-        fonte: tecnica.fonte,
-        suplementoId: tecnica.suplementoId,
-        habilidades: (tecnica.habilidades ?? [])
-          .filter((habilidade) =>
-            atendeRequisitosGraus(habilidade.requisitos, grausMap),
-          )
-          .map((habilidade) => ({
-            id: habilidade.id,
-            tecnicaId: habilidade.tecnicaId,
-            codigo: habilidade.codigo,
-            nome: habilidade.nome,
-            descricao: habilidade.descricao,
-            requisitos: habilidade.requisitos,
-            execucao: habilidade.execucao,
-            area: habilidade.area,
-            alcance: habilidade.alcance,
-            alvo: habilidade.alvo,
-            duracao: habilidade.duracao,
-            custoPE: habilidade.custoPE,
-            custoEA: habilidade.custoEA,
-            danoFlat: habilidade.danoFlat,
-            danoFlatTipo: habilidade.danoFlatTipo,
-            efeito: habilidade.efeito,
-            ordem: habilidade.ordem,
-            variacoes: (habilidade.variacoes ?? [])
-              .filter((variacao) =>
-                atendeRequisitosGraus(variacao.requisitos, grausMap),
-              )
-              .map((variacao) => ({
-                id: variacao.id,
-                habilidadeTecnicaId: variacao.habilidadeTecnicaId,
-                nome: variacao.nome,
-                descricao: variacao.descricao,
-                substituiCustos: variacao.substituiCustos,
-                custoPE: variacao.custoPE,
-                custoEA: variacao.custoEA,
-                execucao: variacao.execucao,
-                area: variacao.area,
-                alcance: variacao.alcance,
-                alvo: variacao.alvo,
-                duracao: variacao.duracao,
-                resistencia: variacao.resistencia,
-                dtResistencia: variacao.dtResistencia,
-                criticoValor: variacao.criticoValor,
-                criticoMultiplicador: variacao.criticoMultiplicador,
-                danoFlat: variacao.danoFlat,
-                danoFlatTipo: variacao.danoFlatTipo,
-                dadosDano: variacao.dadosDano,
-                escalonaPorGrau: variacao.escalonaPorGrau,
-                escalonamentoCustoEA: variacao.escalonamentoCustoEA,
-                escalonamentoDano: variacao.escalonamentoDano,
-                efeitoAdicional: variacao.efeitoAdicional,
-                requisitos: variacao.requisitos,
-                ordem: variacao.ordem,
-              })),
-          })),
-      });
+      id: tecnica.id,
+      codigo: tecnica.codigo,
+      nome: tecnica.nome,
+      descricao: tecnica.descricao,
+      tipo: tecnica.tipo,
+      hereditaria: tecnica.hereditaria,
+      linkExterno: tecnica.linkExterno,
+      requisitos: tecnica.requisitos,
+      fonte: tecnica.fonte,
+      suplementoId: tecnica.suplementoId,
+      habilidades: (tecnica.habilidades ?? [])
+        .filter((habilidade) =>
+          atendeRequisitosGraus(habilidade.requisitos, grausMap),
+        )
+        .map((habilidade) => ({
+          id: habilidade.id,
+          tecnicaId: habilidade.tecnicaId,
+          codigo: habilidade.codigo,
+          nome: habilidade.nome,
+          descricao: habilidade.descricao,
+          requisitos: habilidade.requisitos,
+          execucao: habilidade.execucao,
+          area: habilidade.area,
+          alcance: habilidade.alcance,
+          alvo: habilidade.alvo,
+          duracao: habilidade.duracao,
+          custoPE: habilidade.custoPE,
+          custoEA: habilidade.custoEA,
+          danoFlat: habilidade.danoFlat,
+          danoFlatTipo: habilidade.danoFlatTipo,
+          efeito: habilidade.efeito,
+          ordem: habilidade.ordem,
+          variacoes: (habilidade.variacoes ?? [])
+            .filter((variacao) =>
+              atendeRequisitosGraus(variacao.requisitos, grausMap),
+            )
+            .map((variacao) => ({
+              id: variacao.id,
+              habilidadeTecnicaId: variacao.habilidadeTecnicaId,
+              nome: variacao.nome,
+              descricao: variacao.descricao,
+              substituiCustos: variacao.substituiCustos,
+              custoPE: variacao.custoPE,
+              custoEA: variacao.custoEA,
+              execucao: variacao.execucao,
+              area: variacao.area,
+              alcance: variacao.alcance,
+              alvo: variacao.alvo,
+              duracao: variacao.duracao,
+              resistencia: variacao.resistencia,
+              dtResistencia: variacao.dtResistencia,
+              criticoValor: variacao.criticoValor,
+              criticoMultiplicador: variacao.criticoMultiplicador,
+              danoFlat: variacao.danoFlat,
+              danoFlatTipo: variacao.danoFlatTipo,
+              dadosDano: variacao.dadosDano,
+              escalonaPorGrau: variacao.escalonaPorGrau,
+              escalonamentoCustoEA: variacao.escalonamentoCustoEA,
+              escalonamentoDano: variacao.escalonamentoDano,
+              efeitoAdicional: variacao.efeitoAdicional,
+              requisitos: variacao.requisitos,
+              ordem: variacao.ordem,
+            })),
+        })),
+    });
 
     const tecnicasNaoInatasCatalogo = await prisma.tecnicaAmaldicoada.findMany({
       where: {
@@ -558,16 +558,19 @@ export class PersonagemBaseMapper {
       },
     });
 
-    const tecnicasNaoInatas: TecnicaDetalhadaMapeada[] = tecnicasNaoInatasCatalogo
-      .filter(
-        (tecnica) =>
-          atendeRequisitoBaseTecnicaNaoInata(tecnica.codigo, grausMap) &&
-          atendeRequisitosGraus(tecnica.requisitos, grausMap),
-      )
-      .map(mapTecnicaDetalhada);
+    const tecnicasNaoInatas: TecnicaDetalhadaMapeada[] =
+      tecnicasNaoInatasCatalogo
+        .filter(
+          (tecnica) =>
+            atendeRequisitoBaseTecnicaNaoInata(tecnica.codigo, grausMap) &&
+            atendeRequisitosGraus(tecnica.requisitos, grausMap),
+        )
+        .map(mapTecnicaDetalhada);
 
     const tecnicaInataDetalhada: TecnicaDetalhadaMapeada | null =
-      personagem.tecnicaInata ? mapTecnicaDetalhada(personagem.tecnicaInata) : null;
+      personagem.tecnicaInata
+        ? mapTecnicaDetalhada(personagem.tecnicaInata)
+        : null;
 
     return {
       id: personagem.id,

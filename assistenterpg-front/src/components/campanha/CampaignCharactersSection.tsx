@@ -14,6 +14,7 @@ import type {
 } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -29,10 +30,6 @@ type Props = {
 
 function chaveDismissSugestao(campanhaId: number): string {
   return `assistenterpg:campanha:${campanhaId}:sugestao-personagem-dismissed`;
-}
-
-function formatarRecursos(personagem: PersonagemCampanhaResumo): string {
-  return `PV ${personagem.recursos.pvAtual}/${personagem.recursos.pvMax} | PE ${personagem.recursos.peAtual}/${personagem.recursos.peMax} | EA ${personagem.recursos.eaAtual}/${personagem.recursos.eaMax} | SAN ${personagem.recursos.sanAtual}/${personagem.recursos.sanMax}`;
 }
 
 export function CampaignCharactersSection({
@@ -220,14 +217,21 @@ export function CampaignCharactersSection({
   return (
     <section className="space-y-4">
       <div className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-app-fg">
-          Associar personagem-base
-        </h3>
-        <p className="text-sm text-app-muted">
-          Jogadores e observadores podem ter apenas 1 personagem por campanha.
-          Mestres podem associar varios personagens. A ficha da campanha pode
-          receber modificadores sem alterar a ficha-base.
-        </p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+            <Icon name="id" className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-app-fg">
+              Associar personagem-base
+            </h3>
+            <p className="text-sm text-app-muted">
+              Jogadores e observadores podem ter apenas 1 personagem por campanha.
+              Mestres podem associar vários personagens. A ficha da campanha pode
+              receber modificadores sem alterar a ficha-base.
+            </p>
+          </div>
+        </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <div className="md:w-[340px]">
             <Select
@@ -256,17 +260,17 @@ export function CampaignCharactersSection({
           </Button>
         </div>
         {limiteUsuarioAtingido && (
-          <p className="text-sm text-app-muted">
-            Voce ja possui um personagem associado nesta campanha.
+          <p className="text-xs text-app-muted">
+            Você já possui um personagem associado nesta campanha.
           </p>
         )}
         {erro && (
-          <p className="text-sm text-app-danger">
+          <p className="text-xs text-app-danger">
             {erro}
           </p>
         )}
         {sucesso && (
-          <p className="text-sm text-app-success">
+          <p className="text-xs text-app-success">
             {sucesso}
           </p>
         )}
@@ -282,17 +286,18 @@ export function CampaignCharactersSection({
           variant="card"
           icon="characters"
           title="Nenhum personagem associado"
-          description="Associe um personagem-base para comecar a jogar nesta campanha."
+          description="Associe um personagem-base para começar a jogar nesta campanha."
+          size="sm"
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {personagensCampanha.map((personagem) => {
             const podeEditar = usuarioEhMestre || personagem.donoId === usuarioId;
             return (
-              <Card key={personagem.id} className="space-y-2">
+              <Card key={personagem.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="text-base font-semibold text-app-fg">
+                  <div className="min-w-0">
+                    <h4 className="truncate text-base font-semibold text-app-fg">
                       {personagem.nome}
                     </h4>
                     <p className="text-xs text-app-muted">
@@ -300,20 +305,48 @@ export function CampaignCharactersSection({
                       {personagem.personagemBase.nome}
                     </p>
                   </div>
-                  <span className="rounded border border-app-border px-2 py-1 text-xs text-app-muted">
+                  <Badge color="gray" size="sm">
                     Nv {personagem.nivel}
-                  </span>
+                  </Badge>
                 </div>
-                <p className="text-sm text-app-muted">{formatarRecursos(personagem)}</p>
-                <p className="text-xs text-app-muted">
-                  Defesa {personagem.defesa.total} | Esquiva {personagem.atributos.esquiva}
-                  {' '}| Bloqueio {personagem.atributos.bloqueio}
-                </p>
-                <p className="text-xs text-app-muted">
-                  Modificadores ativos: {personagem.modificadoresAtivos.length}
-                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  <Badge color="red" size="sm">
+                    PV {personagem.recursos.pvAtual}/{personagem.recursos.pvMax}
+                  </Badge>
+                  <Badge color="blue" size="sm">
+                    PE {personagem.recursos.peAtual}/{personagem.recursos.peMax}
+                  </Badge>
+                  <Badge color="orange" size="sm">
+                    EA {personagem.recursos.eaAtual}/{personagem.recursos.eaMax}
+                  </Badge>
+                  <Badge color="purple" size="sm">
+                    SAN {personagem.recursos.sanAtual}/{personagem.recursos.sanMax}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Badge color="gray" size="sm">
+                    DEF {personagem.defesa.total}
+                  </Badge>
+                  <Badge color="gray" size="sm">
+                    ESQ {personagem.atributos.esquiva}
+                  </Badge>
+                  <Badge color="gray" size="sm">
+                    BLQ {personagem.atributos.bloqueio}
+                  </Badge>
+                  <Badge
+                    color={personagem.modificadoresAtivos.length ? 'purple' : 'gray'}
+                    size="sm"
+                    className="gap-1"
+                  >
+                    <Icon name="sparkles" className="h-3 w-3" />
+                    Mods {personagem.modificadoresAtivos.length}
+                  </Badge>
+                </div>
+
                 {podeEditar && (
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -355,8 +388,8 @@ export function CampaignCharactersSection({
       >
         <div className="space-y-4">
           <p className="text-sm text-app-muted">
-            Voce ainda nao associou seu personagem nesta campanha. Isso nao e
-            obrigatorio, mas ajuda a liberar a ficha resumida na sessao e o
+            Você ainda não associou seu personagem nesta campanha. Isso não é
+            obrigatório, mas ajuda a liberar a ficha resumida na sessão e o
             controle dos recursos.
           </p>
           <Select
@@ -373,7 +406,7 @@ export function CampaignCharactersSection({
           </Select>
           <div className="flex items-center justify-end gap-2">
             <Button variant="secondary" onClick={handleDispensarSugestao}>
-              Agora nao
+              Agora não
             </Button>
             <Button
               onClick={() => void handleAssociarPersonagem()}

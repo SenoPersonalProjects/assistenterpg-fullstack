@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { CharacterSessionCard } from '@/components/campanha/sessao/CharacterSessionCard';
 import { SessionTechniqueBlock } from '@/components/campanha/sessao/SessionTechniqueBlock';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
@@ -28,6 +30,10 @@ type SessionCharactersPanelProps = {
   campoRecursoPendente: `${number}:${CampoAjusteRecurso}` | null;
   salvandoCardId: number | null;
   sessaoEncerrada: boolean;
+  podeControlarSessao: boolean;
+  removendoPersonagemSessaoId: number | null;
+  onSolicitarRemoverPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
+  onAbrirAdicionarPersonagem: () => void;
   acaoHabilidadePendente: string | null;
   mostrarSomenteSustentadas: Record<number, boolean>;
   onToggleMostrarSomenteSustentadas: (personagemSessaoId: number, checked: boolean) => void;
@@ -84,6 +90,10 @@ export function SessionCharactersPanel({
   campoRecursoPendente,
   salvandoCardId,
   sessaoEncerrada,
+  podeControlarSessao,
+  removendoPersonagemSessaoId,
+  onSolicitarRemoverPersonagem,
+  onAbrirAdicionarPersonagem,
   acaoHabilidadePendente,
   mostrarSomenteSustentadas,
   onToggleMostrarSomenteSustentadas,
@@ -137,16 +147,28 @@ export function SessionCharactersPanel({
   };
 
   return (
-    <>
-      <SessionPanel
-        title="Personagens da sessao"
-        subtitle="Jogadores editam apenas sua ficha. O mestre pode editar todas."
-      />
+    <SessionPanel
+      title="Personagens da sessao"
+      subtitle="Jogadores editam apenas sua ficha. O mestre pode editar todas."
+      right={
+        podeControlarSessao ? (
+          <Button
+            size="sm"
+            onClick={onAbrirAdicionarPersonagem}
+            disabled={sessaoEncerrada}
+          >
+            <Icon name="add" className="mr-1.5 h-3.5 w-3.5" />
+            Adicionar personagem
+          </Button>
+        ) : undefined
+      }
+    >
       {erro ? <ErrorAlert message={erro} /> : null}
 
       {cards.length === 0 ? (
         <EmptyState
           variant="card"
+          size="sm"
           icon="characters"
           title="Sem personagens na sessao"
           description="Associe personagens na campanha para aparecerem no lobby."
@@ -216,6 +238,7 @@ export function SessionCharactersPanel({
               campoRecursoPendenteCard={campoRecursoPendenteCard}
               sessaoEncerrada={sessaoEncerrada}
               salvandoCardId={salvandoCardId}
+              removendo={removendoPersonagemSessaoId === card.personagemSessaoId}
               acaoHabilidadePendente={acaoHabilidadePendente}
               onAlternarExpandido={() => onAlternarExpandido(card.personagemSessaoId)}
               onAtualizarAjusteRecursoPersonalizado={(campo, valor) =>
@@ -229,6 +252,7 @@ export function SessionCharactersPanel({
               }
               onAbrirEdicaoPersonagem={() => onAbrirEdicaoPersonagem(card)}
               onAbrirFichaCompleta={() => onAbrirFichaCompleta(card)}
+              onSolicitarRemover={() => onSolicitarRemoverPersonagem(card)}
               renderPainelCondicoes={renderPainelCondicoes}
               renderTecnica={(tecnica) =>
                 renderTecnica(card, sustentacoesAtivasPorHabilidade, tecnica)
@@ -241,7 +265,7 @@ export function SessionCharactersPanel({
           );
         })
       )}
-    </>
+    </SessionPanel>
   );
 }
 

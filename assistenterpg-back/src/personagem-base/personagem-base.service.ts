@@ -855,7 +855,6 @@ export class PersonagemBaseService {
       classeId,
       trilhaId,
       caminhoId,
-      tecnicaInataId,
       estudouEscolaTecnica,
       poderesGenericos,
     } = params;
@@ -1324,27 +1323,26 @@ export class PersonagemBaseService {
       tiposGrau,
       tecnicasNaoInatas,
       tecnicaInata,
-    ] =
-      await Promise.all([
-        this.prisma.pericia.findMany(),
-        this.prisma.proficiencia.findMany({
-          where: { codigo: { in: estado.profsFinais } },
-        }),
-        this.prisma.tipoGrau.findMany({
-          where: {
-            codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
-          },
-        }),
-        this.listarTecnicasNaoInatasAtivasPorGraus(
-          estado.grausFinais,
-          this.prisma,
-        ),
-        this.buscarTecnicaInataAtivaPorGraus(
-          estado.dtoNormalizado.tecnicaInataId,
-          estado.grausFinais,
-          this.prisma,
-        ),
-      ]);
+    ] = await Promise.all([
+      this.prisma.pericia.findMany(),
+      this.prisma.proficiencia.findMany({
+        where: { codigo: { in: estado.profsFinais } },
+      }),
+      this.prisma.tipoGrau.findMany({
+        where: {
+          codigo: { in: estado.grausFinais.map((g) => g.tipoGrauCodigo) },
+        },
+      }),
+      this.listarTecnicasNaoInatasAtivasPorGraus(
+        estado.grausFinais,
+        this.prisma,
+      ),
+      this.buscarTecnicaInataAtivaPorGraus(
+        estado.dtoNormalizado.tecnicaInataId,
+        estado.grausFinais,
+        this.prisma,
+      ),
+    ]);
 
     const resistenciasTipos =
       codigosResistencia.length > 0

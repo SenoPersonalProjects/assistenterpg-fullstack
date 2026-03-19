@@ -30,6 +30,11 @@ PREPARE stmt_var FROM @sql_var;
 EXECUTE stmt_var;
 DEALLOCATE PREPARE stmt_var;
 
+SET @has_table_sess :=
+  (SELECT COUNT(*)
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA = DATABASE()
+     AND TABLE_NAME = 'PersonagemSessaoHabilidadeSustentada');
 SET @has_col_sess :=
   (SELECT COUNT(*)
    FROM INFORMATION_SCHEMA.COLUMNS
@@ -37,7 +42,7 @@ SET @has_col_sess :=
      AND TABLE_NAME = 'PersonagemSessaoHabilidadeSustentada'
      AND COLUMN_NAME = 'custoSustentacaoPE');
 SET @sql_sess := IF(
-  @has_col_sess = 0,
+  @has_table_sess = 1 AND @has_col_sess = 0,
   'ALTER TABLE `PersonagemSessaoHabilidadeSustentada` ADD COLUMN `custoSustentacaoPE` INTEGER NOT NULL DEFAULT 0',
   'SELECT 1'
 );

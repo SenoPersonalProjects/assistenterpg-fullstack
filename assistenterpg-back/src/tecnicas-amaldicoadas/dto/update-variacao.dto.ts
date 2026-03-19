@@ -93,7 +93,7 @@ export class UpdateVariacaoHabilidadeDto {
   danoFlatTipo?: TipoDano;
 
   @IsOptional()
-  dadosDano?: Prisma.InputJsonValue;
+  dadosDano?: Prisma.JsonValue;
 
   @IsOptional()
   @IsBoolean()
@@ -114,17 +114,17 @@ export class UpdateVariacaoHabilidadeDto {
   escalonamentoTipo?: TipoEscalonamentoHabilidade;
 
   @IsOptional()
-  escalonamentoEfeito?: Prisma.InputJsonValue;
+  escalonamentoEfeito?: Prisma.JsonValue;
 
   @IsOptional()
-  escalonamentoDano?: Prisma.InputJsonValue;
+  escalonamentoDano?: Prisma.JsonValue;
 
   @IsOptional()
   @IsString()
   efeitoAdicional?: string;
 
   @IsOptional()
-  requisitos?: Prisma.InputJsonValue;
+  requisitos?: Prisma.JsonValue;
 
   @IsOptional()
   @IsInt()

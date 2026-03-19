@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import nodemailer, { type Transporter } from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 type EmailAuthMode = 'console' | 'smtp' | 'ethereal';
 
@@ -27,7 +28,7 @@ type EnviarVerificacaoInput = {
 @Injectable()
 export class AuthMailService {
   private readonly logger = new Logger(AuthMailService.name);
-  private transporter: Transporter | null = null;
+  private transporter: Transporter<SMTPTransport.SentMessageInfo> | null = null;
 
   async enviarRecuperacaoSenha(input: EnviarRecuperacaoInput) {
     const assunto = 'AssistenteRPG - Recuperacao de senha';
@@ -136,7 +137,7 @@ export class AuthMailService {
     return 'ethereal';
   }
 
-  private async getTransporter(): Promise<Transporter | null> {
+  private async getTransporter(): Promise<Transporter<SMTPTransport.SentMessageInfo> | null> {
     if (this.transporter) {
       return this.transporter;
     }

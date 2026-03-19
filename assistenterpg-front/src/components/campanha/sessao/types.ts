@@ -1,13 +1,16 @@
 import type { CondicaoAtivaSessaoCampanha, DuracaoCondicaoSessaoModo } from '@/lib/types';
 
 export type NpcEditavel = {
-  vd: string;
   defesa: string;
-  pontosVidaAtual: string;
   pontosVidaMax: string;
-  deslocamentoMetros: string;
+  sanMax: string;
+  eaMax: string;
+  machucado: string;
   notasCena: string;
 };
+
+export type CampoAjusteRecursoNpc = 'pv' | 'san' | 'ea';
+export type AjustesRecursosNpc = Record<CampoAjusteRecursoNpc, string>;
 
 export type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 

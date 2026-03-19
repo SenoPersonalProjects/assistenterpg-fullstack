@@ -163,6 +163,10 @@ export type NpcSessaoCampanha = {
   defesa: number;
   pontosVidaAtual: number;
   pontosVidaMax: number;
+  sanAtual: number | null;
+  sanMax: number | null;
+  eaAtual: number | null;
+  eaMax: number | null;
   machucado: number | null;
   deslocamentoMetros: number;
   notasCena: string | null;
@@ -197,9 +201,14 @@ export type AdicionarNpcSessaoCampanhaPayload = {
   npcAmeacaId: number;
   nomeExibicao?: string;
   vd?: number;
+  iniciativaValor?: number | null;
   defesa?: number;
   pontosVidaMax?: number;
   pontosVidaAtual?: number;
+  sanMax?: number | null;
+  sanAtual?: number | null;
+  eaMax?: number | null;
+  eaAtual?: number | null;
   machucado?: number | null;
   deslocamentoMetros?: number;
   notasCena?: string;

@@ -7,6 +7,16 @@ export function parseRecurso(valor: string, fallback: number): number {
   return Math.trunc(numero);
 }
 
+export function parseRecursoOpcional(
+  valor: string,
+  fallback: number | null,
+): number | null {
+  if (!valor || valor.trim() === '') return null;
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return fallback;
+  return Math.trunc(numero);
+}
+
 export function parseInteiroComSinal(valor: string): number | null {
   const numero = Number(valor);
   if (!Number.isFinite(numero)) return null;

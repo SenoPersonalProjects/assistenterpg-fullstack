@@ -462,7 +462,9 @@ describe('SessaoService', () => {
     jest
       .spyOn(service as any, 'aplicarOrdemIniciativaPersistida')
       .mockReturnValue(participantes);
-    jest.spyOn(service, 'buscarDetalheSessao').mockResolvedValue({ id: 21 } as never);
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 } as never);
 
     const tx = {
       sessao: {
@@ -527,12 +529,14 @@ describe('SessaoService', () => {
         peAtual: 6,
       },
     });
-    expect(tx.personagemSessaoHabilidadeSustentada.update).toHaveBeenCalledWith({
-      where: { id: 1001 },
-      data: {
-        ultimaCobrancaRodada: 4,
+    expect(tx.personagemSessaoHabilidadeSustentada.update).toHaveBeenCalledWith(
+      {
+        where: { id: 1001 },
+        data: {
+          ultimaCobrancaRodada: 4,
+        },
       },
-    });
+    );
 
     const tiposEvento = tx.eventoSessao.create.mock.calls.map(
       ([call]) => call.data.tipoEvento,
@@ -594,7 +598,9 @@ describe('SessaoService', () => {
     jest
       .spyOn(service as any, 'aplicarOrdemIniciativaPersistida')
       .mockReturnValue(participantes);
-    jest.spyOn(service, 'buscarDetalheSessao').mockResolvedValue({ id: 21 } as never);
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 } as never);
 
     const tx = {
       sessao: {
@@ -716,7 +722,9 @@ describe('SessaoService', () => {
     jest
       .spyOn(service as any, 'aplicarOrdemIniciativaPersistida')
       .mockReturnValue(participantes);
-    jest.spyOn(service, 'buscarDetalheSessao').mockResolvedValue({ id: 21 } as never);
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 } as never);
 
     const tx = {
       sessao: {
@@ -831,9 +839,7 @@ describe('SessaoService', () => {
       },
     );
 
-    expect(descricao).toBe(
-      'Sustentacao cobrada: Disparo Concentrado (PE -2)',
-    );
+    expect(descricao).toBe('Sustentacao cobrada: Disparo Concentrado (PE -2)');
   });
 
   it('deve descrever cobranca de sustentacao na timeline sem sufixo de custo quando EA/PE forem 0', () => {

@@ -27,14 +27,16 @@ type EventoSessaoAtualizada = {
     | 'TURNO_AVANCADO'
     | 'TURNO_RECUADO'
     | 'TURNO_PULADO'
-  | 'ORDEM_INICIATIVA_ATUALIZADA'
-  | 'NPC_ATUALIZADO'
-  | 'SESSAO_ENCERRADA'
-  | 'SESSAO_EVENTO_DESFEITO'
-  | 'HABILIDADE_USADA'
-  | 'HABILIDADE_SUSTENTADA_ENCERRADA'
-  | 'CONDICAO_APLICADA'
-  | 'CONDICAO_REMOVIDA';
+    | 'ORDEM_INICIATIVA_ATUALIZADA'
+    | 'INICIATIVA_VALOR_ATUALIZADO'
+    | 'NPC_ATUALIZADO'
+    | 'PERSONAGEM_ATUALIZADO'
+    | 'SESSAO_ENCERRADA'
+    | 'SESSAO_EVENTO_DESFEITO'
+    | 'HABILIDADE_USADA'
+    | 'HABILIDADE_SUSTENTADA_ENCERRADA'
+    | 'CONDICAO_APLICADA'
+    | 'CONDICAO_REMOVIDA';
   em: string;
 };
 
@@ -92,7 +94,7 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const payload = this.jwtService.verify<{ sub: number }>(token);
-      client.data.usuarioId = payload.sub;
+      this.definirUsuarioId(client, payload.sub);
     } catch {
       this.logger.warn(`Socket desconectado por token invalido: ${client.id}`);
       client.disconnect(true);
@@ -110,9 +112,13 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const campanhaId = Number(body?.campanhaId);
     const sessaoId = Number(body?.sessaoId);
-    const usuarioId = client.data.usuarioId;
+    const usuarioId = this.obterUsuarioId(client);
 
-    if (!usuarioId || !Number.isInteger(campanhaId) || !Number.isInteger(sessaoId)) {
+    if (
+      !usuarioId ||
+      !Number.isInteger(campanhaId) ||
+      !Number.isInteger(sessaoId)
+    ) {
       client.emit('sessao:erro', {
         code: 'JOIN_INVALIDO',
       });
@@ -120,10 +126,20 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      await this.sessaoService.validarAcessoSessao(campanhaId, sessaoId, usuarioId);
+      await this.sessaoService.validarAcessoSessao(
+        campanhaId,
+        sessaoId,
+        usuarioId,
+      );
       const chaveSala = this.chaveSala(campanhaId, sessaoId);
       await client.join(chaveSala);
-      this.registrarPresenca(chaveSala, campanhaId, sessaoId, usuarioId, client.id);
+      this.registrarPresenca(
+        chaveSala,
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        client.id,
+      );
       client.emit('sessao:joined', { campanhaId, sessaoId });
       this.emitirPresencaPorChave(chaveSala);
       return { ok: true };
@@ -149,7 +165,9 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
       em: new Date().toISOString(),
     };
 
-    this.server.to(this.chaveSala(campanhaId, sessaoId)).emit('sessao:atualizada', payload);
+    this.server
+      .to(this.chaveSala(campanhaId, sessaoId))
+      .emit('sessao:atualizada', payload);
   }
 
   private chaveSala(campanhaId: number, sessaoId: number): string {
@@ -185,7 +203,7 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private removerPresencaSocket(client: SocketAutenticado): void {
     const socketId = client.id;
-    const usuarioId = client.data.usuarioId;
+    const usuarioId = this.obterUsuarioId(client);
     const salasSocket = this.salasPorSocket.get(socketId);
 
     if (!salasSocket || !usuarioId) {
@@ -236,20 +254,36 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(chaveSala).emit('sessao:presenca', payload);
   }
 
+  private obterUsuarioId(client: Socket): number | undefined {
+    const data = client.data as { usuarioId?: unknown };
+    return typeof data.usuarioId === 'number' ? data.usuarioId : undefined;
+  }
+
+  private definirUsuarioId(client: Socket, usuarioId: number): void {
+    const data = client.data as { usuarioId?: number };
+    data.usuarioId = usuarioId;
+  }
+
   private extrairToken(client: SocketAutenticado): string | null {
     const authHeader = client.handshake.headers.authorization;
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       return authHeader.slice(7).trim();
     }
 
-    const authToken = client.handshake.auth?.token;
+    const authPayload = client.handshake.auth as
+      | { token?: unknown }
+      | undefined;
+    const authToken = authPayload?.token;
     if (typeof authToken === 'string' && authToken.trim() !== '') {
       return authToken.startsWith('Bearer ')
         ? authToken.slice(7).trim()
         : authToken.trim();
     }
 
-    const queryToken = client.handshake.query?.token;
+    const queryPayload = client.handshake.query as
+      | { token?: unknown }
+      | undefined;
+    const queryToken = queryPayload?.token;
     if (typeof queryToken === 'string' && queryToken.trim() !== '') {
       return queryToken.startsWith('Bearer ')
         ? queryToken.slice(7).trim()

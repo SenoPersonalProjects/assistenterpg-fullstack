@@ -430,6 +430,45 @@ export async function apiAtualizarOrdemIniciativaSessaoCampanha(
   return data;
 }
 
+export async function apiAtualizarValorIniciativaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: {
+    tipoParticipante: 'PERSONAGEM' | 'NPC';
+    id: number;
+    valorIniciativa?: number | null;
+  },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/iniciativa/valor`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAdicionarPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: { personagemCampanhaId: number; iniciativaValor?: number | null },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiRemoverPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemSessaoId: number,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.delete(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}`,
+  );
+  return data;
+}
+
 export async function apiAdicionarNpcSessaoCampanha(
   campanhaId: number,
   sessaoId: number,

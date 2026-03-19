@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/context/ToastContext';
 import { extrairMensagemErro, traduzirErro } from '@/lib/api/error-handler';
@@ -71,23 +71,25 @@ export function CampaignForm({ onSubmit }: Props) {
   }
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <Input
-          label="Nome da campanha"
-          value={nome}
-          onChange={e => setNome(e.target.value)}
-          error={nomeErro ?? undefined}
-        />
-        <Input
-          label="Descrição"
-          value={descricao}
-          onChange={e => setDescricao(e.target.value)}
-        />
-        <Button type="submit" disabled={creating}>
-          {creating ? 'Criando...' : 'Criar campanha'}
-        </Button>
-      </form>
-    </Card>
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <Input
+        label="Nome da campanha"
+        placeholder="Ex.: Caçada em Shibuya"
+        value={nome}
+        onChange={e => setNome(e.target.value)}
+        error={nomeErro ?? undefined}
+      />
+      <Textarea
+        label="Descrição (opcional)"
+        placeholder="Fale sobre a premissa, tom da campanha e objetivos."
+        value={descricao}
+        onChange={e => setDescricao(e.target.value)}
+        rows={3}
+        helperText="Essa descrição aparece no resumo e na pré-visualização."
+      />
+      <Button type="submit" disabled={creating}>
+        {creating ? 'Criando...' : 'Criar campanha'}
+      </Button>
+    </form>
   );
 }

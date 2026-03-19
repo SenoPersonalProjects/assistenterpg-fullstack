@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { EventoSessaoTimeline } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
@@ -29,9 +30,13 @@ export function TimelinePanel({
     <div className="max-h-[420px] overflow-y-auto rounded border border-app-border p-2 space-y-2">
       {erro ? <ErrorAlert message={erro} /> : null}
       {eventosSessao.length === 0 ? (
-        <p className="text-xs text-app-muted">
-          Nenhum evento operacional registrado ainda.
-        </p>
+        <EmptyState
+          variant="plain"
+          size="sm"
+          icon="list"
+          title="Sem eventos"
+          description="Nenhum evento operacional registrado ainda."
+        />
       ) : (
         eventosSessao.map((evento) => (
           <div

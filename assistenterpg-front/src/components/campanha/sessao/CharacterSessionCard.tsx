@@ -31,6 +31,7 @@ type CharacterSessionCardProps = {
   campoRecursoPendenteCard: CampoAjusteRecursoCard | null;
   sessaoEncerrada: boolean;
   salvandoCardId: number | null;
+  removendo: boolean;
   acaoHabilidadePendente: string | null;
   onAlternarExpandido: () => void;
   onAtualizarAjusteRecursoPersonalizado: (
@@ -41,6 +42,7 @@ type CharacterSessionCardProps = {
   onAplicarAjustePersonalizado: (campo: CampoAjusteRecursoCard) => void;
   onAbrirEdicaoPersonagem: () => void;
   onAbrirFichaCompleta: () => void;
+  onSolicitarRemover: () => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -206,6 +208,7 @@ export function CharacterSessionCard({
   campoRecursoPendenteCard,
   sessaoEncerrada,
   salvandoCardId,
+  removendo,
   acaoHabilidadePendente,
   onAlternarExpandido,
   onAtualizarAjusteRecursoPersonalizado,
@@ -213,6 +216,7 @@ export function CharacterSessionCard({
   onAplicarAjustePersonalizado,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
+  onSolicitarRemover,
   renderPainelCondicoes,
   renderTecnica,
   onEncerrarSustentacao,
@@ -293,6 +297,24 @@ export function CharacterSessionCard({
   const statusMental = recursos
     ? resolverStatusMental(recursos, card.condicoesAtivas, limiteEnlouquecendo)
     : null;
+  const statusFisicoColor =
+    statusFisico === 'Morto'
+      ? 'red'
+      : statusFisico === 'Morrendo'
+        ? 'orange'
+        : statusFisico === 'Machucado'
+          ? 'yellow'
+          : 'green';
+  const statusMentalColor =
+    statusMental === 'Louco'
+      ? 'red'
+      : statusMental === 'Enlouquecendo'
+        ? 'orange'
+        : statusMental === 'Ruim'
+          ? 'yellow'
+          : 'green';
+  const condicoesColor = totalCondicoesAtivasCard > 0 ? 'yellow' : 'gray';
+  const sustentacoesColor = totalSustentacoesAtivasCard > 0 ? 'blue' : 'gray';
 
   return (
     <Card className="session-panel space-y-3">
@@ -332,13 +354,50 @@ export function CharacterSessionCard({
 
       {!recursos ? (
         <div className="space-y-2">
-          <Badge size="sm" color="gray">
+          <Badge
+            size="sm"
+            color="gray"
+            title="Recursos completos indisponiveis. Acompanhe iniciativa e informacoes basicas."
+          >
             Somente leitura
           </Badge>
-          <p className="text-xs text-app-muted">
-            Recursos completos indisponiveis para este personagem no momento.
-            Voce ainda pode acompanhar a iniciativa e informacoes basicas.
+          <p className="text-[11px] text-app-muted">
+            Dados completos indisponiveis no momento.
           </p>
+        </div>
+      ) : null}
+
+      {recursos ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge size="sm" color={condicoesColor}>
+            Condicoes {totalCondicoesAtivasCard}
+          </Badge>
+          <Badge size="sm" color={sustentacoesColor}>
+            Sustentacoes {totalSustentacoesAtivasCard}
+          </Badge>
+          {statusFisico ? (
+            <Badge size="sm" color={statusFisicoColor}>
+              Fisico: {statusFisico}
+            </Badge>
+          ) : null}
+          {statusMental ? (
+            <Badge size="sm" color={statusMentalColor}>
+              Mental: {statusMental}
+            </Badge>
+          ) : null}
+        </div>
+      ) : null}
+
+      {recursos && card.podeEditar ? (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onSolicitarRemover}
+            disabled={sessaoEncerrada || removendo}
+          >
+            {removendo ? 'Removendo...' : 'Remover da cena'}
+          </Button>
         </div>
       ) : null}
 
@@ -630,27 +689,6 @@ export function CharacterSessionCard({
         </div>
       ) : null}
 
-      {recursos && !cardRecursosExpandido ? (
-        <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
-          <div className="session-chip-row">
-            <span className="session-chip">
-              INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
-            </span>
-            <span className="session-chip">
-              Condicoes {totalCondicoesAtivasCard}
-            </span>
-            <span className="session-chip">
-              Sustentacoes {totalSustentacoesAtivasCard}
-            </span>
-            {statusFisico ? (
-              <span className="session-chip">Fisico: {statusFisico}</span>
-            ) : null}
-            {statusMental ? (
-              <span className="session-chip">Mental: {statusMental}</span>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </Card>
   );
 }

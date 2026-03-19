@@ -35,12 +35,21 @@ export class AplicarCondicaoSessaoDto {
   @IsIn(DURACAO_MODOS)
   duracaoModo?: DuracaoCondicaoModo;
 
-  @ValidateIf((dto: AplicarCondicaoSessaoDto) =>
-    dto.duracaoModo === 'RODADAS' || dto.duracaoModo === 'TURNOS_ALVO',
+  @ValidateIf(
+    (dto: AplicarCondicaoSessaoDto) =>
+      dto.duracaoModo === 'RODADAS' || dto.duracaoModo === 'TURNOS_ALVO',
   )
-  @Transform(({ value }) =>
-    typeof value === 'string' && value.trim().length > 0 ? Number(value) : value,
-  )
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === undefined || value === null) return value;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim();
+      if (normalized.length === 0) return value;
+      const numero = Number(normalized);
+      return Number.isNaN(numero) ? value : numero;
+    }
+    return value;
+  })
   @IsInt()
   @Min(1)
   duracaoValor?: number;

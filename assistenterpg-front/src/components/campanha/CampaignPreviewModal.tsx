@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import type { CampanhaResumo } from '@/lib/api';
 import { Badge } from '@/components/ui/Badge';

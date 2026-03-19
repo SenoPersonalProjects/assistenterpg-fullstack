@@ -711,9 +711,14 @@ model NpcAmeacaSessao {
   fichaTipo          TipoFichaNpcAmeaca @default(AMEACA)
   tipo               TipoNpcAmeaca
   vd                 Int                @default(0)
+  iniciativaValor    Int?
   defesa             Int                @default(10)
   pontosVidaAtual    Int                @default(1)
   pontosVidaMax      Int                @default(1)
+  sanAtual           Int?
+  sanMax             Int?
+  eaAtual            Int?
+  eaMax              Int?
   machucado          Int?
   deslocamentoMetros Int                @default(6)
   passivasGuia       Json?
@@ -738,6 +743,7 @@ model PersonagemSessao {
   sessaoId             Int
   cenaId               Int?
   personagemCampanhaId Int
+  iniciativaValor      Int?
 
   sessao             Sessao             @relation("PersonagensDaSessao", fields: [sessaoId], references: [id])
   cena               Cena?              @relation("PersonagensDaCena", fields: [cenaId], references: [id])

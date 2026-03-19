@@ -100,32 +100,39 @@ export function CampaignSessionsSection({
     <section className="space-y-4">
       {usuarioEhMestre && (
         <div className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-app-fg">
-            Iniciar nova sessao
-          </h3>
-          <p className="text-sm text-app-muted">
-            Crie uma sessao para abrir o lobby da campanha com chat e cards dos
-            personagens.
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+              <Icon name="scroll" className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-app-fg">
+                Iniciar nova sessão
+              </h3>
+              <p className="text-sm text-app-muted">
+                Crie uma sessão para abrir o lobby da campanha com chat e cards dos
+                personagens.
+              </p>
+            </div>
+          </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-end">
             <div className="flex-1">
               <Input
-                label="Titulo da sessao (opcional)"
-                placeholder="Ex.: Sessao 4 - Distrito de Shibuya"
+                label="Título da sessão (opcional)"
+                placeholder="Ex.: Sessão 4 - Distrito de Shibuya"
                 value={tituloNovaSessao}
                 onChange={(event) => setTituloNovaSessao(event.target.value)}
                 maxLength={120}
               />
             </div>
             <Button onClick={handleCriarSessao} disabled={criando || loading}>
-              {criando ? 'Iniciando...' : 'Iniciar sessao'}
+              {criando ? 'Iniciando...' : 'Iniciar sessão'}
             </Button>
           </div>
         </div>
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-app-fg">Sessoes da campanha</h3>
+        <h3 className="text-sm font-semibold text-app-fg">Sessões da campanha</h3>
         <Button
           variant="ghost"
           size="sm"
@@ -146,33 +153,39 @@ export function CampaignSessionsSection({
       {loading ? (
         <p className="text-sm text-app-muted flex items-center gap-2">
           <Icon name="spinner" className="w-4 h-4" />
-          Carregando sessoes...
+          Carregando sessões...
         </p>
       ) : sessoes.length === 0 ? (
         <EmptyState
           variant="card"
           icon="campaign"
-          title="Nenhuma sessao iniciada"
-          description="Quando uma sessao for iniciada, o lobby aparecera aqui."
+          title="Nenhuma sessão iniciada"
+          description="Quando uma sessão for iniciada, o lobby aparecera aqui."
+          size="sm"
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {sessoes.map((sessao) => (
             <Card key={sessao.id} className="space-y-3">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h4 className="text-base font-semibold text-app-fg">
+                <div className="min-w-0">
+                  <h4 className="truncate text-base font-semibold text-app-fg">
                     {sessao.titulo}
                   </h4>
                   <p className="text-xs text-app-muted">
                     Iniciada em {formatarDataHora(sessao.iniciadoEm)}
                   </p>
                 </div>
-                <Badge color={corStatusSessao(sessao.status)}>{sessao.status}</Badge>
+                <Badge color={corStatusSessao(sessao.status)} size="sm">
+                  {sessao.status}
+                </Badge>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge color={sessao.cenaAtualTipo === 'COMBATE' ? 'red' : 'blue'}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  color={sessao.cenaAtualTipo === 'COMBATE' ? 'red' : 'blue'}
+                  size="sm"
+                >
                   {labelCena(sessao.cenaAtualTipo)}
                 </Badge>
                 {sessao.cenaAtualNome && (
@@ -180,43 +193,40 @@ export function CampaignSessionsSection({
                     {sessao.cenaAtualNome}
                   </span>
                 )}
+                <Badge color="gray" size="sm">
+                  {sessao.controleTurnosAtivo && sessao.rodadaAtual !== null
+                    ? `Rodada ${sessao.rodadaAtual}`
+                    : 'Cena livre'}
+                </Badge>
               </div>
 
-              {sessao.controleTurnosAtivo && sessao.rodadaAtual !== null ? (
-                <p className="text-xs text-app-muted">
-                  Rodada atual: {sessao.rodadaAtual}
-                </p>
-              ) : (
-                <p className="text-xs text-app-muted">
-                  Cena livre: sem contagem de rodada/turno.
-                </p>
-              )}
+              <div className="flex items-center gap-2 text-xs text-app-muted">
+                <Icon name="characters" className="h-4 w-4" />
+                {sessao.totalPersonagens} personagem(ns) na sessão
+              </div>
 
-              <p className="text-xs text-app-muted">
-                {sessao.totalPersonagens} personagem(ns) na sessao
-              </p>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  router.push(`/campanhas/${campanhaId}/sessoes/${sessao.id}`)
-                }
-              >
-                Entrar no lobby
-              </Button>
-              {usuarioEhMestre && sessao.status !== 'ENCERRADA' ? (
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
-                  variant="secondary"
                   size="sm"
-                  onClick={() => void handleEncerrarSessao(sessao.id)}
-                  disabled={encerrandoSessaoId === sessao.id}
+                  onClick={() =>
+                    router.push(`/campanhas/${campanhaId}/sessoes/${sessao.id}`)
+                  }
                 >
-                  {encerrandoSessaoId === sessao.id
-                    ? 'Encerrando...'
-                    : 'Encerrar sessao'}
+                  Entrar no lobby
                 </Button>
-              ) : null}
+                {usuarioEhMestre && sessao.status !== 'ENCERRADA' ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void handleEncerrarSessao(sessao.id)}
+                    disabled={encerrandoSessaoId === sessao.id}
+                  >
+                    {encerrandoSessaoId === sessao.id
+                      ? 'Encerrando...'
+                      : 'Encerrar sessão'}
+                  </Button>
+                ) : null}
+              </div>
             </Card>
           ))}
         </div>

@@ -44,16 +44,25 @@ export class AuthService {
       dto.senha,
     );
 
-    await this.enviarEmailVerificacao(usuario.id, usuario.email, usuario.apelido);
+    await this.enviarEmailVerificacao(
+      usuario.id,
+      usuario.email,
+      usuario.apelido,
+    );
 
     return usuario;
   }
 
-  async validarUsuario(email: string, senha: string): Promise<UsuarioAutenticavel> {
+  async validarUsuario(
+    email: string,
+    senha: string,
+  ): Promise<UsuarioAutenticavel> {
     let usuario: Awaited<ReturnType<UsuarioService['buscarPorEmail']>>;
 
     try {
-      usuario = await this.usuarioService.buscarPorEmail(this.normalizarEmail(email));
+      usuario = await this.usuarioService.buscarPorEmail(
+        this.normalizarEmail(email),
+      );
     } catch {
       throw new CredenciaisInvalidasException();
     }
@@ -96,7 +105,8 @@ export class AuthService {
 
   async solicitarRecuperacaoSenha(email: string) {
     const emailNormalizado = this.normalizarEmail(email);
-    const usuario = await this.usuarioService.buscarPorEmailOpcional(emailNormalizado);
+    const usuario =
+      await this.usuarioService.buscarPorEmailOpcional(emailNormalizado);
 
     if (!usuario) {
       return { mensagem: MENSAGEM_RECUPERACAO };
@@ -113,10 +123,7 @@ export class AuthService {
       this.obterResetTokenTtlMinutos(),
     );
 
-    const linkRecuperacao = this.montarLinkFront(
-      '/auth/reset-password',
-      token,
-    );
+    const linkRecuperacao = this.montarLinkFront('/auth/reset-password', token);
 
     try {
       await this.authMailService.enviarRecuperacaoSenha({
@@ -161,7 +168,9 @@ export class AuthService {
       TipoTokenAuth.VERIFICACAO_EMAIL,
     );
 
-    await this.usuarioService.marcarEmailComoVerificado(tokenConsumido.usuarioId);
+    await this.usuarioService.marcarEmailComoVerificado(
+      tokenConsumido.usuarioId,
+    );
 
     await this.authTokenService.invalidarTokensAtivos(
       tokenConsumido.usuarioId,
@@ -173,13 +182,18 @@ export class AuthService {
 
   async reenviarVerificacaoEmail(email: string) {
     const emailNormalizado = this.normalizarEmail(email);
-    const usuario = await this.usuarioService.buscarPorEmailOpcional(emailNormalizado);
+    const usuario =
+      await this.usuarioService.buscarPorEmailOpcional(emailNormalizado);
 
     if (!usuario || usuario.emailVerificadoEm) {
       return { mensagem: MENSAGEM_REENVIO_VERIFICACAO };
     }
 
-    await this.enviarEmailVerificacao(usuario.id, usuario.email, usuario.apelido);
+    await this.enviarEmailVerificacao(
+      usuario.id,
+      usuario.email,
+      usuario.apelido,
+    );
 
     return { mensagem: MENSAGEM_REENVIO_VERIFICACAO };
   }

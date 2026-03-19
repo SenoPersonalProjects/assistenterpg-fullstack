@@ -20,6 +20,8 @@ import { TipoHomebrewConteudo, StatusPublicacao } from '@/lib/types/homebrew-enu
 import { extrairMensagemErro } from '@/lib/api/error-handler';
 import { HomebrewCard } from '@/components/homebrew/HomebrewCard';
 import { HomebrewPreviewModal } from '@/components/homebrew/HomebrewPreviewModal';
+import { getHomebrewTipoConfig } from '@/components/homebrew/homebrewUi';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -29,6 +31,12 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Card } from '@/components/ui/Card';
+
+const STATUS_LABEL: Record<StatusPublicacao, string> = {
+  RASCUNHO: 'Rascunho',
+  PUBLICADO: 'Publicado',
+  ARQUIVADO: 'Arquivado',
+};
 
 export default function HomebrewsPage() {
   const router = useRouter();
@@ -49,6 +57,7 @@ export default function HomebrewsPage() {
   // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalHomebrews, setTotalHomebrews] = useState(0);
   const limite = 12;
 
   // Filtros
@@ -75,23 +84,65 @@ export default function HomebrewsPage() {
     [],
   );
 
-  const carregarHomebrews = useCallback(async (nomeBusca: string) => {
+  const resumoStatus = useMemo(
+    () =>
+      homebrews.reduce(
+        (acc, homebrew) => {
+          acc.total += 1;
+          if (homebrew.status === 'RASCUNHO') acc.rascunhos += 1;
+          if (homebrew.status === 'PUBLICADO') acc.publicados += 1;
+          if (homebrew.status === 'ARQUIVADO') acc.arquivados += 1;
+          return acc;
+        },
+        { total: 0, rascunhos: 0, publicados: 0, arquivados: 0 },
+      ),
+    [homebrews],
+  );
+
+  const filtrosAtivos = useMemo(() => {
+    const filtros: string[] = [];
+    const nomeTrim = filtroNome.trim();
+    if (nomeTrim.length > 0) {
+      filtros.push(`Nome: ${nomeTrim}`);
+    }
+    if (filtroTipo !== 'TODOS') {
+      filtros.push(`Tipo: ${getHomebrewTipoConfig(filtroTipo).label}`);
+    }
+    if (filtroStatus !== 'TODOS') {
+      filtros.push(`Status: ${STATUS_LABEL[filtroStatus]}`);
+    }
+    return filtros;
+  }, [filtroNome, filtroStatus, filtroTipo]);
+
+  const carregarHomebrews = useCallback(async (
+    nomeBusca: string,
+    overrides?: {
+      pagina?: number;
+      tipo?: TipoHomebrewConteudo | 'TODOS';
+      status?: StatusPublicacao | 'TODOS';
+    },
+  ) => {
     try {
       setLoading(true);
       setErro(null);
 
+      const pagina = overrides?.pagina ?? paginaAtual;
+      const tipo = overrides?.tipo ?? filtroTipo;
+      const status = overrides?.status ?? filtroStatus;
+
       const filtros: Omit<FiltrarHomebrewsDto, 'usuarioId'> = {
-        pagina: paginaAtual,
+        pagina,
         limite,
       };
 
       if (nomeBusca) filtros.nome = nomeBusca;
-      if (filtroTipo !== 'TODOS') filtros.tipo = filtroTipo;
-      if (filtroStatus !== 'TODOS') filtros.status = filtroStatus;
+      if (tipo !== 'TODOS') filtros.tipo = tipo;
+      if (status !== 'TODOS') filtros.status = status;
 
       const result = await apiGetMeusHomebrews(filtros);
       setHomebrews(result.items);
       setTotalPaginas(result.totalPages);
+      setTotalHomebrews(result.total);
     } catch (error) {
       const mensagem = extrairMensagemErro(error);
       setErro(mensagem);
@@ -118,7 +169,15 @@ export default function HomebrewsPage() {
 
   function handleBuscar() {
     setPaginaAtual(1);
-    carregarHomebrews(filtroNome);
+    carregarHomebrews(filtroNome, { pagina: 1 });
+  }
+
+  function handleLimparFiltros() {
+    setFiltroNome('');
+    setFiltroTipo('TODOS');
+    setFiltroStatus('TODOS');
+    setPaginaAtual(1);
+    carregarHomebrews('', { pagina: 1, tipo: 'TODOS', status: 'TODOS' });
   }
 
   async function handlePublicar(homebrew: HomebrewResumo) {
@@ -254,30 +313,75 @@ export default function HomebrewsPage() {
           {/* Erro */}
           {erro && <ErrorAlert message={erro} />}
 
+          <section>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Card className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-primary/10 text-app-primary">
+                  <Icon name="sparkles" className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-app-muted">Total de homebrews</p>
+                  <p className="text-lg font-semibold text-app-fg">{totalHomebrews}</p>
+                </div>
+              </Card>
+              <Card className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-warning/10 text-app-warning">
+                  <Icon name="edit" className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-app-muted">Rascunhos (página)</p>
+                  <p className="text-lg font-semibold text-app-fg">{resumoStatus.rascunhos}</p>
+                </div>
+              </Card>
+              <Card className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-success/10 text-app-success">
+                  <Icon name="check" className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-app-muted">Publicados (página)</p>
+                  <p className="text-lg font-semibold text-app-fg">{resumoStatus.publicados}</p>
+                </div>
+              </Card>
+              <Card className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-secondary/10 text-app-secondary">
+                  <Icon name="archive" className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-app-muted">Arquivados (página)</p>
+                  <p className="text-lg font-semibold text-app-fg">{resumoStatus.arquivados}</p>
+                </div>
+              </Card>
+            </div>
+            <p className="text-xs text-app-muted mt-2">
+              Resumo da página atual • {homebrews.length} homebrews carregados
+            </p>
+          </section>
+
           {/* Filtros */}
           <Card>
             <div className="flex flex-col md:flex-row gap-4">
               {/* Busca */}
               <div className="flex-1">
                 <Input
+                  icon="search"
                   placeholder="Buscar por nome..."
                   value={filtroNome}
                   onChange={(e) => setFiltroNome(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
                 />
               </div>
 
               {/* Tipo */}
-                <Select
-                  value={filtroTipo}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (valoresTipoFiltro.includes(value as TipoHomebrewConteudo | 'TODOS')) {
-                      setFiltroTipo(value as TipoHomebrewConteudo | 'TODOS');
-                    }
-                  }}
-                  className="md:w-48"
-                >
+              <Select
+                value={filtroTipo}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (valoresTipoFiltro.includes(value as TipoHomebrewConteudo | 'TODOS')) {
+                    setFiltroTipo(value as TipoHomebrewConteudo | 'TODOS');
+                  }
+                }}
+                className="md:w-48"
+              >
                 <option value="TODOS">Todos os tipos</option>
                 <option value={TipoHomebrewConteudo.CLA}>Clã</option>
                 <option value={TipoHomebrewConteudo.TRILHA}>Trilha</option>
@@ -289,16 +393,16 @@ export default function HomebrewsPage() {
               </Select>
 
               {/* Status */}
-                <Select
-                  value={filtroStatus}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (valoresStatusFiltro.includes(value as StatusPublicacao | 'TODOS')) {
-                      setFiltroStatus(value as StatusPublicacao | 'TODOS');
-                    }
-                  }}
-                  className="md:w-48"
-                >
+              <Select
+                value={filtroStatus}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (valoresStatusFiltro.includes(value as StatusPublicacao | 'TODOS')) {
+                    setFiltroStatus(value as StatusPublicacao | 'TODOS');
+                  }
+                }}
+                className="md:w-48"
+              >
                 <option value="TODOS">Todos os status</option>
                 <option value={StatusPublicacao.RASCUNHO}>Rascunho</option>
                 <option value={StatusPublicacao.PUBLICADO}>Publicado</option>
@@ -313,6 +417,26 @@ export default function HomebrewsPage() {
             </div>
           </Card>
 
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {filtrosAtivos.length > 0 ? (
+                filtrosAtivos.map((filtro) => (
+                  <Badge key={filtro} color="gray" size="sm">
+                    {filtro}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-xs text-app-muted">Nenhum filtro aplicado</span>
+              )}
+            </div>
+            {filtrosAtivos.length > 0 && (
+              <Button variant="ghost" size="xs" onClick={handleLimparFiltros}>
+                <Icon name="close" className="w-3 h-3 mr-1" />
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+
           {/* Lista de homebrews */}
           {homebrews.length === 0 ? (
             <EmptyState
@@ -324,11 +448,20 @@ export default function HomebrewsPage() {
                   ? 'Tente ajustar os filtros de busca.'
                   : 'Comece criando seu primeiro conteúdo personalizado!'
               }
-              actionLabel="Criar Homebrew"
-              onAction={() => router.push('/homebrews/novo')}
+              actionLabel={
+                filtrosAtivos.length > 0 ? 'Limpar filtros' : 'Criar Homebrew'
+              }
+              onAction={
+                filtrosAtivos.length > 0
+                  ? handleLimparFiltros
+                  : () => router.push('/homebrews/novo')
+              }
             />
           ) : (
             <>
+              <p className="text-xs text-app-muted">
+                Mostrando {homebrews.length} de {totalHomebrews} homebrews
+              </p>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {homebrews.map((h) => (
                   <HomebrewCard

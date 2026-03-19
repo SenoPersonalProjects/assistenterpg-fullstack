@@ -14,6 +14,7 @@ import {
   TipoDano,
   TipoEscalonamentoHabilidade,
 } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 export class CreateVariacaoHabilidadeDto {
   @IsNotEmpty()
@@ -98,7 +99,7 @@ export class CreateVariacaoHabilidadeDto {
   danoFlatTipo?: TipoDano;
 
   @IsOptional()
-  dadosDano?: any;
+  dadosDano?: Prisma.JsonValue;
 
   @IsOptional()
   @IsBoolean()
@@ -119,17 +120,17 @@ export class CreateVariacaoHabilidadeDto {
   escalonamentoTipo?: TipoEscalonamentoHabilidade;
 
   @IsOptional()
-  escalonamentoEfeito?: any;
+  escalonamentoEfeito?: Prisma.JsonValue;
 
   @IsOptional()
-  escalonamentoDano?: any;
+  escalonamentoDano?: Prisma.JsonValue;
 
   @IsOptional()
   @IsString()
   efeitoAdicional?: string;
 
   @IsOptional()
-  requisitos?: any;
+  requisitos?: Prisma.JsonValue;
 
   @IsOptional()
   @IsInt()

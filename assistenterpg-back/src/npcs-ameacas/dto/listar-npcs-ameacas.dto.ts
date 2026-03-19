@@ -1,5 +1,9 @@
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { TamanhoNpcAmeaca, TipoFichaNpcAmeaca, TipoNpcAmeaca } from '@prisma/client';
+import {
+  TamanhoNpcAmeaca,
+  TipoFichaNpcAmeaca,
+  TipoNpcAmeaca,
+} from '@prisma/client';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 
 export class ListarNpcsAmeacasDto extends PaginationQueryDto {

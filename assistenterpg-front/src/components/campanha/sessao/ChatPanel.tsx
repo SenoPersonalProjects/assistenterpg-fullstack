@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { MensagemChatSessao } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
@@ -173,9 +174,14 @@ export function ChatPanel({
       ) : null}
       <div ref={scrollRef} className="session-chat__scroll" onScroll={handleScroll}>
         {chat.length === 0 ? (
-          <p className="session-chat__empty">
-            Nenhuma mensagem ainda. Inicie a conversa da sessao.
-          </p>
+          <EmptyState
+            variant="plain"
+            size="sm"
+            icon="chat"
+            title="Sem mensagens"
+            description="Inicie a conversa da sessao."
+            className="text-center"
+          />
         ) : (
           mensagensRenderizadas
         )}

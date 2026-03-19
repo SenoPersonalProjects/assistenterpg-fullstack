@@ -16,6 +16,10 @@ import {
   apiAdminGetCondicoes,
   apiGetSessaoCampanha,
   apiGetMeusNpcsAmeacas,
+  apiListarPersonagensCampanha,
+  apiAdicionarPersonagemSessaoCampanha,
+  apiRemoverPersonagemSessaoCampanha,
+  apiAtualizarValorIniciativaSessaoCampanha,
   apiListarChatSessaoCampanha,
   apiListarEventosSessaoCampanha,
   extrairMensagemErro,
@@ -48,12 +52,16 @@ import { SessionMasterControls } from '@/components/campanha/sessao/SessionMaste
 import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { AddNpcModal } from '@/components/campanha/sessao/modals/AddNpcModal';
+import { AddPersonagemModal } from '@/components/campanha/sessao/modals/AddPersonagemModal';
 import { ConfirmEndSessionModal } from '@/components/campanha/sessao/modals/ConfirmEndSessionModal';
 import { ConfirmNpcRemovalModal } from '@/components/campanha/sessao/modals/ConfirmNpcRemovalModal';
 import { CondicoesModal } from '@/components/campanha/sessao/modals/CondicoesModal';
 import { EventoDetalheModal } from '@/components/campanha/sessao/modals/EventoDetalheModal';
+import { InitiativeValueModal } from '@/components/campanha/sessao/modals/InitiativeValueModal';
 import {
   type AlvoCondicoesModal,
+  type AjustesRecursosNpc,
+  type CampoAjusteRecursoNpc,
   type NpcEditavel,
 } from '@/components/campanha/sessao/types';
 import {
@@ -66,6 +74,7 @@ import {
   calcularIndiceProximoTurno,
   COOLDOWN_USO_HABILIDADE_MS,
   OPCOES_DURACAO_CONDICAO,
+  parseInteiroComSinal,
 } from '@/lib/campanha/sessao-utils';
 import { useSessaoLayout } from '@/hooks/useSessaoLayout';
 import { useSessaoRealtime } from '@/hooks/useSessaoRealtime';
@@ -95,6 +104,12 @@ const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'COMBATE', label: 'Combate' },
   { value: 'OUTRA', label: 'Outra' },
 ];
+
+const AJUSTE_RECURSO_NPC_PADRAO: AjustesRecursosNpc = {
+  pv: '0',
+  san: '0',
+  ea: '0',
+};
 
 function formatarDadosEventoParaExibicao(dados: unknown): string {
   if (dados === null || typeof dados === 'undefined') {
@@ -142,11 +157,11 @@ function labelParticipanteIniciativa(
 
 function montarEdicaoNpcBase(npc: NpcSessaoCampanha): NpcEditavel {
   return {
-    vd: String(npc.vd),
     defesa: String(npc.defesa),
-    pontosVidaAtual: String(npc.pontosVidaAtual),
     pontosVidaMax: String(npc.pontosVidaMax),
-    deslocamentoMetros: String(npc.deslocamentoMetros),
+    sanMax: npc.sanMax === null ? '' : String(npc.sanMax),
+    eaMax: npc.eaMax === null ? '' : String(npc.eaMax),
+    machucado: npc.machucado === null ? '' : String(npc.machucado),
     notasCena: npc.notasCena ?? '',
   };
 }
@@ -185,11 +200,35 @@ export default function SessaoCampanhaPage() {
     Record<number, boolean>
   >({});
   const [edicaoNpcs, setEdicaoNpcs] = useState<Record<number, NpcEditavel>>({});
+  const [ajustesRecursosNpc, setAjustesRecursosNpc] = useState<
+    Record<number, AjustesRecursosNpc>
+  >({});
   const [catalogoCondicoes, setCatalogoCondicoes] = useState<CondicaoCatalogo[]>([]);
   const [npcsDisponiveis, setNpcsDisponiveis] = useState<NpcAmeacaResumo[]>([]);
   const [npcSelecionadoId, setNpcSelecionadoId] = useState('');
   const [nomeNpcCustomizado, setNomeNpcCustomizado] = useState('');
+  const [npcSanAtual, setNpcSanAtual] = useState('');
+  const [npcSanMax, setNpcSanMax] = useState('');
+  const [npcEaAtual, setNpcEaAtual] = useState('');
+  const [npcEaMax, setNpcEaMax] = useState('');
+  const [npcIniciativaValor, setNpcIniciativaValor] = useState('');
   const [modalAdicionarNpcAberto, setModalAdicionarNpcAberto] = useState(false);
+  const [modalAdicionarPersonagemAberto, setModalAdicionarPersonagemAberto] =
+    useState(false);
+  const [personagensDisponiveis, setPersonagensDisponiveis] = useState<
+    PersonagemCampanhaResumo[]
+  >([]);
+  const [carregandoPersonagensDisponiveis, setCarregandoPersonagensDisponiveis] =
+    useState(false);
+  const [adicionandoPersonagem, setAdicionandoPersonagem] = useState(false);
+  const [personagemSelecionadoId, setPersonagemSelecionadoId] = useState('');
+  const [personagemIniciativaValor, setPersonagemIniciativaValor] = useState('');
+  const [removendoPersonagemSessaoId, setRemovendoPersonagemSessaoId] =
+    useState<number | null>(null);
+  const [modalIniciativaAberto, setModalIniciativaAberto] =
+    useState<ParticipanteIniciativaSessaoCampanha | null>(null);
+  const [valorIniciativaEdicao, setValorIniciativaEdicao] = useState('');
+  const [salvandoIniciativa, setSalvandoIniciativa] = useState(false);
   const [modalCondicoesAberto, setModalCondicoesAberto] =
     useState<AlvoCondicoesModal | null>(null);
   const [buscaCondicoesModal, setBuscaCondicoesModal] = useState('');
@@ -218,6 +257,8 @@ export default function SessaoCampanhaPage() {
     Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null
   >(null);
 
+  const shellRef = useRef<HTMLElement | null>(null);
+  const operationalBarRef = useRef<HTMLElement | null>(null);
   const chatRef = useRef<MensagemChatSessao[]>([]);
   const fimChatRef = useRef<HTMLDivElement | null>(null);
   const sincronizandoTempoRealRef = useRef(false);
@@ -228,12 +269,31 @@ export default function SessaoCampanhaPage() {
     [ajustesRecursosPorCard],
   );
 
+  const obterAjustesRecursosNpc = useCallback(
+    (npcSessaoId: number): AjustesRecursosNpc =>
+      ajustesRecursosNpc[npcSessaoId] ?? AJUSTE_RECURSO_NPC_PADRAO,
+    [ajustesRecursosNpc],
+  );
+
   const atualizarAjusteRecursoCard = useCallback(
     (personagemCampanhaId: number, campo: CampoAjusteRecurso, valor: string) => {
       setAjustesRecursosPorCard((estadoAtual) => ({
         ...estadoAtual,
         [personagemCampanhaId]: {
           ...(estadoAtual[personagemCampanhaId] ?? AJUSTE_RECURSO_PADRAO),
+          [campo]: valor,
+        },
+      }));
+    },
+    [],
+  );
+
+  const atualizarAjusteRecursoNpc = useCallback(
+    (npcSessaoId: number, campo: CampoAjusteRecursoNpc, valor: string) => {
+      setAjustesRecursosNpc((estadoAtual) => ({
+        ...estadoAtual,
+        [npcSessaoId]: {
+          ...(estadoAtual[npcSessaoId] ?? AJUSTE_RECURSO_NPC_PADRAO),
           [campo]: valor,
         },
       }));
@@ -257,6 +317,38 @@ export default function SessaoCampanhaPage() {
   useEffect(() => {
     chatRef.current = chat;
   }, [chat]);
+
+  useEffect(() => {
+    if (!modalAdicionarPersonagemAberto) return;
+    void carregarPersonagensDisponiveis();
+  }, [carregarPersonagensDisponiveis, modalAdicionarPersonagemAberto]);
+
+  useEffect(() => {
+    const shell = shellRef.current;
+    const bar = operationalBarRef.current;
+    if (!shell || !bar) return;
+
+    const atualizarOffset = () => {
+      const rect = bar.getBoundingClientRect();
+      const gap = 12;
+      const altura = Math.max(0, Math.ceil(rect.height + gap));
+      shell.style.setProperty('--session-panel-sticky-offset', `${altura}px`);
+    };
+
+    atualizarOffset();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(atualizarOffset);
+      resizeObserver.observe(bar);
+    }
+    window.addEventListener('resize', atualizarOffset);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', atualizarOffset);
+    };
+  }, []);
 
   const { mostrarSomenteSustentadas, setMostrarSomenteSustentadas } =
     useSessaoFiltroSustentadas({
@@ -307,6 +399,26 @@ export default function SessaoCampanhaPage() {
     },
     [setAjustesRecursosPorCard, setCenaNome, setCenaTipo, setEdicaoNpcs],
   );
+
+  const carregarPersonagensDisponiveis = useCallback(async () => {
+    if (!idsValidos || !usuario) return;
+
+    setCarregandoPersonagensDisponiveis(true);
+    setErroCards(null);
+    try {
+      const personagens = await apiListarPersonagensCampanha(campanhaId);
+      const idsEmCena = new Set(
+        (detalhe?.cards ?? []).map((card) => card.personagemCampanhaId),
+      );
+      setPersonagensDisponiveis(
+        personagens.filter((personagem) => !idsEmCena.has(personagem.id)),
+      );
+    } catch (error) {
+      setErroCards(extrairMensagemErro(error));
+    } finally {
+      setCarregandoPersonagensDisponiveis(false);
+    }
+  }, [campanhaId, detalhe?.cards, idsValidos, setErroCards, usuario]);
 
   const anexarMensagensNoChat = useCallback((mensagensNovas: MensagemChatSessao[]) => {
     if (mensagensNovas.length === 0) return;
@@ -370,6 +482,200 @@ export default function SessaoCampanhaPage() {
       setLoading(false);
     }
   }, [campanhaId, idsValidos, sessaoId, sincronizarEstadosDerivados, usuario]);
+
+  const handleAdicionarPersonagemNaCena = useCallback(async () => {
+    if (!idsValidos || !usuario) return;
+    const personagemId = Number(personagemSelecionadoId);
+    if (!Number.isInteger(personagemId) || personagemId <= 0) {
+      setErroCards('Selecione um personagem valido.');
+      return;
+    }
+    const iniciativaTexto = personagemIniciativaValor.trim();
+    if (!iniciativaTexto) {
+      setErroCards('Informe a iniciativa do personagem.');
+      return;
+    }
+    const iniciativaValor = parseInteiroComSinal(iniciativaTexto);
+    if (iniciativaValor === null) {
+      setErroCards('Informe um valor inteiro valido para iniciativa.');
+      return;
+    }
+
+    setAdicionandoPersonagem(true);
+    setErroCards(null);
+    try {
+      const atualizado = await apiAdicionarPersonagemSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        {
+          personagemCampanhaId: personagemId,
+          iniciativaValor,
+        },
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+      setModalAdicionarPersonagemAberto(false);
+      setPersonagemSelecionadoId('');
+      setPersonagemIniciativaValor('');
+      showToast('Personagem adicionado na cena.', 'success');
+    } catch (error) {
+      setErroCards(extrairMensagemErro(error));
+    } finally {
+      setAdicionandoPersonagem(false);
+    }
+  }, [
+    campanhaId,
+    idsValidos,
+    personagemIniciativaValor,
+    personagemSelecionadoId,
+    sessaoId,
+    setErroCards,
+    showToast,
+    sincronizarEstadosDerivados,
+    usuario,
+  ]);
+
+  const handleConfirmarAdicionarNpc = useCallback(() => {
+    const npcId = Number(npcSelecionadoId);
+    if (!Number.isInteger(npcId) || npcId <= 0) {
+      setErroNpcs('Selecione um NPC valido.');
+      return;
+    }
+    const iniciativaTexto = npcIniciativaValor.trim();
+    if (!iniciativaTexto) {
+      setErroNpcs('Informe a iniciativa do NPC.');
+      return;
+    }
+    const iniciativaValor = parseInteiroComSinal(iniciativaTexto);
+    if (iniciativaValor === null) {
+      setErroNpcs('Informe um valor inteiro valido para iniciativa.');
+      return;
+    }
+
+    void handleAdicionarNpcNaCena(npcId, nomeNpcCustomizado, {
+      sanAtual: npcSanAtual,
+      sanMax: npcSanMax,
+      eaAtual: npcEaAtual,
+      eaMax: npcEaMax,
+      iniciativaValor,
+    });
+  }, [
+    handleAdicionarNpcNaCena,
+    npcEaAtual,
+    npcEaMax,
+    npcIniciativaValor,
+    npcSanAtual,
+    npcSanMax,
+    npcSelecionadoId,
+    nomeNpcCustomizado,
+    setErroNpcs,
+  ]);
+
+  const handleRemoverPersonagemDaCena = useCallback(
+    async (card: SessaoCampanhaDetalhe['cards'][number]) => {
+      if (!idsValidos || !usuario) return;
+      setRemovendoPersonagemSessaoId(card.personagemSessaoId);
+      setErroCards(null);
+      try {
+        const atualizado = await apiRemoverPersonagemSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          card.personagemSessaoId,
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast('Personagem removido da cena.', 'warning');
+      } catch (error) {
+        setErroCards(extrairMensagemErro(error));
+      } finally {
+        setRemovendoPersonagemSessaoId(null);
+      }
+    },
+    [
+      campanhaId,
+      idsValidos,
+      sessaoId,
+      setErroCards,
+      showToast,
+      sincronizarEstadosDerivados,
+      usuario,
+    ],
+  );
+
+  const solicitarRemoverPersonagem = useCallback(
+    (card: SessaoCampanhaDetalhe['cards'][number]) => {
+      confirm({
+        title: 'Remover personagem da cena?',
+        description: `Remover ${textoSeguro(card.nomePersonagem)} da cena atual?`,
+        confirmLabel: 'Remover',
+        cancelLabel: 'Manter',
+        variant: 'warning',
+        onConfirm: () => handleRemoverPersonagemDaCena(card),
+      });
+    },
+    [confirm, handleRemoverPersonagemDaCena],
+  );
+
+  const abrirEdicaoIniciativa = useCallback(
+    (participante: ParticipanteIniciativaSessaoCampanha) => {
+      setModalIniciativaAberto(participante);
+      setValorIniciativaEdicao(String(participante.valorIniciativa ?? ''));
+    },
+    [],
+  );
+
+  const handleSalvarValorIniciativa = useCallback(async () => {
+    if (!modalIniciativaAberto) return;
+    const valorTexto = valorIniciativaEdicao.trim();
+    if (!valorTexto) {
+      setErroIniciativa('Informe um valor inteiro de iniciativa.');
+      return;
+    }
+    const valor = parseInteiroComSinal(valorTexto);
+    if (valor === null) {
+      setErroIniciativa('Informe um valor inteiro valido para iniciativa.');
+      return;
+    }
+
+    const idParticipante =
+      modalIniciativaAberto.tipoParticipante === 'NPC'
+        ? modalIniciativaAberto.npcSessaoId
+        : modalIniciativaAberto.personagemSessaoId;
+
+    if (!idParticipante) {
+      setErroIniciativa('Participante invalido.');
+      return;
+    }
+
+    setSalvandoIniciativa(true);
+    setErroIniciativa(null);
+    try {
+      const atualizado = await apiAtualizarValorIniciativaSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        {
+          tipoParticipante: modalIniciativaAberto.tipoParticipante,
+          id: idParticipante,
+          valorIniciativa: valor,
+        },
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+      setModalIniciativaAberto(null);
+    } catch (error) {
+      setErroIniciativa(extrairMensagemErro(error));
+    } finally {
+      setSalvandoIniciativa(false);
+    }
+  }, [
+    campanhaId,
+    modalIniciativaAberto,
+    sessaoId,
+    setDetalhe,
+    setErroIniciativa,
+    sincronizarEstadosDerivados,
+    valorIniciativaEdicao,
+  ]);
 
   const podeControlarSessao = Boolean(detalhe?.permissoes.ehMestre);
   const sessaoEncerrada = detalhe?.status === 'ENCERRADA';
@@ -477,22 +783,38 @@ export default function SessaoCampanhaPage() {
       obterAjustesRecursosCard,
     });
 
-  const { adicionandoNpc, salvandoNpcId, removendoNpcId, handleAdicionarNpcNaCena, handleSalvarNpc, handleRemoverNpc } =
-    useSessaoNpc({
-      campanhaId,
-      sessaoId,
-      edicaoNpcs,
-      setDetalhe: (atualizado) => setDetalhe(atualizado),
-      sincronizarEstadosDerivados,
-      setErro: setErroNpcs,
-      showToast,
-      onNpcAdicionado: () => {
-        setNomeNpcCustomizado('');
-        setModalAdicionarNpcAberto(false);
-      },
-      onRemocaoConfirmada: () => setNpcRemocaoConfirmacao(null),
-      textoSeguro,
-    });
+  const {
+    adicionandoNpc,
+    salvandoNpcId,
+    campoRecursoPendente: campoRecursoNpcPendente,
+    removendoNpcId,
+    handleAdicionarNpcNaCena,
+    handleSalvarNpc,
+    handleAplicarDeltaRecursoNpc,
+    handleAplicarAjustePersonalizadoRecursoNpc,
+    handleRemoverNpc,
+  } = useSessaoNpc({
+    campanhaId,
+    sessaoId,
+    sessaoEncerrada,
+    edicaoNpcs,
+    obterAjustesRecursosNpc,
+    setDetalhe: (atualizado) => setDetalhe(atualizado),
+    sincronizarEstadosDerivados,
+    setErro: setErroNpcs,
+    showToast,
+    onNpcAdicionado: () => {
+      setNomeNpcCustomizado('');
+      setNpcSanAtual('');
+      setNpcSanMax('');
+      setNpcEaAtual('');
+      setNpcEaMax('');
+      setNpcIniciativaValor('');
+      setModalAdicionarNpcAberto(false);
+    },
+    onRemocaoConfirmada: () => setNpcRemocaoConfirmacao(null),
+    textoSeguro,
+  });
 
   const { enviandoMensagem, handleEnviarMensagem } = useSessaoChat({
     campanhaId,
@@ -696,6 +1018,15 @@ export default function SessaoCampanhaPage() {
     }
     return mapa;
   }, [iniciativaOrdem]);
+  const iniciativaPorNpcSessao = useMemo(() => {
+    const mapa = new Map<number, number>();
+    for (const participante of iniciativaOrdem) {
+      if (participante.tipoParticipante !== 'NPC') continue;
+      if (typeof participante.npcSessaoId !== 'number') continue;
+      mapa.set(participante.npcSessaoId, participante.valorIniciativa);
+    }
+    return mapa;
+  }, [iniciativaOrdem]);
   const gridSessaoClassName = useMemo(() => {
     if (colunaEsquerdaRecolhida && colunaDireitaRecolhida) {
       return 'grid gap-4 xl:grid-cols-1';
@@ -753,7 +1084,13 @@ export default function SessaoCampanhaPage() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (isTypingElement(event.target)) return;
-      if (modalAdicionarNpcAberto || modalCondicoesAberto || eventoDetalheModal) {
+      if (
+        modalAdicionarNpcAberto ||
+        modalAdicionarPersonagemAberto ||
+        modalIniciativaAberto ||
+        modalCondicoesAberto ||
+        eventoDetalheModal
+      ) {
         return;
       }
       if (Boolean(acaoTurnoPendente)) return;
@@ -868,6 +1205,10 @@ export default function SessaoCampanhaPage() {
       campoRecursoPendente={campoRecursoPendente}
       salvandoCardId={salvandoCardId}
       sessaoEncerrada={sessaoEncerrada}
+      podeControlarSessao={podeControlarSessao}
+      removendoPersonagemSessaoId={removendoPersonagemSessaoId}
+      onSolicitarRemoverPersonagem={solicitarRemoverPersonagem}
+      onAbrirAdicionarPersonagem={() => setModalAdicionarPersonagemAberto(true)}
       acaoHabilidadePendente={acaoHabilidadePendente}
       mostrarSomenteSustentadas={mostrarSomenteSustentadas}
       onToggleMostrarSomenteSustentadas={atualizarFiltroSustentadas}
@@ -991,7 +1332,7 @@ export default function SessaoCampanhaPage() {
   }
 
   return (
-    <main className="session-page-shell min-h-screen p-4 md:p-6">
+    <main ref={shellRef} className="session-page-shell min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-[1600px] space-y-4">
         <header className="session-hero flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-1">
@@ -1015,6 +1356,7 @@ export default function SessaoCampanhaPage() {
         </header>
 
         <SessionOperationalBar
+          ref={operationalBarRef}
           cenaLabel={labelCena(detalhe.cenaAtual.tipo)}
           cenaNome={detalhe.cenaAtual.nome}
           rodadaAtual={detalhe.rodadaAtual}
@@ -1023,6 +1365,7 @@ export default function SessaoCampanhaPage() {
           sessaoEncerrada={sessaoEncerrada}
           realtimeAtivo={socketConectado}
           controleTurnosAtivo={detalhe.controleTurnosAtivo}
+          combateAtivo={detalhe.cenaAtual.tipo === 'COMBATE'}
           podeControlarSessao={podeControlarSessao}
           totalParticipantesOnline={totalParticipantesOnline}
           totalParticipantes={participantes.length}
@@ -1094,12 +1437,24 @@ export default function SessaoCampanhaPage() {
               podeControlarSessao={podeControlarSessao}
               sessaoEncerrada={sessaoEncerrada}
               npcsDisponiveis={npcsDisponiveis}
+              iniciativaPorNpcSessao={iniciativaPorNpcSessao}
               edicaoNpcs={edicaoNpcs}
+              ajustesRecursosNpc={ajustesRecursosNpc}
               salvandoNpcId={salvandoNpcId}
+              campoRecursoPendente={campoRecursoNpcPendente}
               removendoNpcId={removendoNpcId}
               erro={erroNpcs}
               onAbrirAdicionar={() => setModalAdicionarNpcAberto(true)}
               onAtualizarCampo={atualizarCampoEdicaoNpc}
+              onAtualizarAjustePersonalizado={(npc, campo, valor) =>
+                atualizarAjusteRecursoNpc(npc.npcSessaoId, campo, valor)
+              }
+              onAplicarDeltaRecurso={(npc, campo, delta) =>
+                void handleAplicarDeltaRecursoNpc(npc, campo, delta)
+              }
+              onAplicarAjustePersonalizado={(npc, campo) =>
+                void handleAplicarAjustePersonalizadoRecursoNpc(npc, campo)
+              }
               onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
               onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
               renderPainelCondicoes={renderPainelCondicoes}
@@ -1116,10 +1471,13 @@ export default function SessaoCampanhaPage() {
               iniciativaOrdem={iniciativaOrdem}
               iniciativaIndiceAtual={iniciativaIndiceAtual}
               podeControlarSessao={podeControlarSessao}
+              acaoTurnoPendente={acaoTurnoPendente}
               reordenandoIniciativa={reordenandoIniciativa}
               indiceIniciativaArrastado={indiceIniciativaArrastado}
               indiceIniciativaHover={indiceIniciativaHover}
               erro={erroIniciativa}
+              onAvancarTurno={() => void handleControleTurno('AVANCAR')}
+              onVoltarTurno={() => void handleControleTurno('VOLTAR')}
               onSetIndiceIniciativaArrastado={setIndiceIniciativaArrastado}
               onSetIndiceIniciativaHover={setIndiceIniciativaHover}
               onDropIniciativa={(indiceDestino) =>
@@ -1128,6 +1486,7 @@ export default function SessaoCampanhaPage() {
               onMoverIniciativa={(indice, direcao) =>
                 void handleMoverIniciativa(indice, direcao)
               }
+              onEditarIniciativa={abrirEdicaoIniciativa}
               labelParticipanteIniciativa={labelParticipanteIniciativa}
             />
 
@@ -1198,9 +1557,7 @@ export default function SessaoCampanhaPage() {
         <AddNpcModal
           isOpen={modalAdicionarNpcAberto}
           onClose={() => setModalAdicionarNpcAberto(false)}
-          onConfirm={() =>
-            void handleAdicionarNpcNaCena(Number(npcSelecionadoId), nomeNpcCustomizado)
-          }
+          onConfirm={handleConfirmarAdicionarNpc}
           adicionando={adicionandoNpc}
           sessaoEncerrada={sessaoEncerrada}
           npcsDisponiveis={npcsDisponiveis}
@@ -1208,6 +1565,44 @@ export default function SessaoCampanhaPage() {
           onNpcSelecionadoChange={setNpcSelecionadoId}
           nomeNpcCustomizado={nomeNpcCustomizado}
           onNomeNpcCustomizadoChange={setNomeNpcCustomizado}
+          iniciativaValor={npcIniciativaValor}
+          onIniciativaValorChange={setNpcIniciativaValor}
+          sanAtual={npcSanAtual}
+          sanMax={npcSanMax}
+          eaAtual={npcEaAtual}
+          eaMax={npcEaMax}
+          onSanAtualChange={setNpcSanAtual}
+          onSanMaxChange={setNpcSanMax}
+          onEaAtualChange={setNpcEaAtual}
+          onEaMaxChange={setNpcEaMax}
+        />
+
+        <AddPersonagemModal
+          isOpen={modalAdicionarPersonagemAberto}
+          onClose={() => setModalAdicionarPersonagemAberto(false)}
+          onConfirm={() => void handleAdicionarPersonagemNaCena()}
+          adicionando={adicionandoPersonagem}
+          sessaoEncerrada={sessaoEncerrada}
+          personagensDisponiveis={personagensDisponiveis}
+          personagemSelecionadoId={personagemSelecionadoId}
+          onPersonagemSelecionadoChange={setPersonagemSelecionadoId}
+          iniciativaValor={personagemIniciativaValor}
+          onIniciativaValorChange={setPersonagemIniciativaValor}
+          carregando={carregandoPersonagensDisponiveis}
+        />
+
+        <InitiativeValueModal
+          isOpen={Boolean(modalIniciativaAberto)}
+          onClose={() => setModalIniciativaAberto(null)}
+          onConfirm={() => void handleSalvarValorIniciativa()}
+          salvando={salvandoIniciativa}
+          nomeParticipante={
+            modalIniciativaAberto
+              ? labelParticipanteIniciativa(modalIniciativaAberto)
+              : 'Participante'
+          }
+          valor={valorIniciativaEdicao}
+          onValorChange={setValorIniciativaEdicao}
         />
 
         <ConfirmEndSessionModal

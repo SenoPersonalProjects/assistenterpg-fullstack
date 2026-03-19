@@ -34,6 +34,13 @@ export class AdicionarNpcSessaoDto {
   vd?: number;
 
   @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(-999)
+  @Max(999)
+  iniciativaValor?: number | null;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
@@ -53,6 +60,34 @@ export class AdicionarNpcSessaoDto {
   @Min(0)
   @Max(99999)
   pontosVidaAtual?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  sanAtual?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  sanMax?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  eaAtual?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  eaMax?: number | null;
 
   @IsOptional()
   @Transform(({ value }) => toNullableInt(value))

@@ -37,9 +37,7 @@ function normalizarRequisitoGrau(value: unknown): RequisitoGrau | null {
   if (!isRecord(value)) return null;
 
   const tipoGrauCodigo =
-    typeof value.tipoGrauCodigo === 'string'
-      ? value.tipoGrauCodigo.trim()
-      : '';
+    typeof value.tipoGrauCodigo === 'string' ? value.tipoGrauCodigo.trim() : '';
 
   const valorMinimoRaw =
     value.valorMinimo !== undefined ? value.valorMinimo : value.valor;
@@ -110,7 +108,8 @@ export function atendeRequisitoBaseTecnicaNaoInata(
   grausMap: Map<string, number>,
 ): boolean {
   const codigoNormalizado = normalizarCodigo(tecnicaCodigo);
-  const tipoGrauCodigo = REQUISITO_BASE_POR_TECNICA_NAO_INATA[codigoNormalizado];
+  const tipoGrauCodigo =
+    REQUISITO_BASE_POR_TECNICA_NAO_INATA[codigoNormalizado];
   if (!tipoGrauCodigo) return true;
 
   return (grausMap.get(tipoGrauCodigo) ?? 0) >= 1;

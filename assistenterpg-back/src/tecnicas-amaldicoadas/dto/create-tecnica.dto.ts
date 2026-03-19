@@ -12,6 +12,7 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { TipoTecnicaAmaldicoada, TipoFonte } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 export class CreateTecnicaDto {
   @IsNotEmpty()
@@ -63,5 +64,5 @@ export class CreateTecnicaDto {
   suplementoId?: number;
 
   @IsOptional()
-  requisitos?: any; // JSON
+  requisitos?: Prisma.JsonValue; // JSON
 }

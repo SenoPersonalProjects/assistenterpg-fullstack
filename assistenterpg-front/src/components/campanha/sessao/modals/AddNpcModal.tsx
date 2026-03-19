@@ -19,6 +19,16 @@ type AddNpcModalProps = {
   onNpcSelecionadoChange: (value: string) => void;
   nomeNpcCustomizado: string;
   onNomeNpcCustomizadoChange: (value: string) => void;
+  iniciativaValor: string;
+  onIniciativaValorChange: (value: string) => void;
+  sanAtual: string;
+  sanMax: string;
+  eaAtual: string;
+  eaMax: string;
+  onSanAtualChange: (value: string) => void;
+  onSanMaxChange: (value: string) => void;
+  onEaAtualChange: (value: string) => void;
+  onEaMaxChange: (value: string) => void;
 };
 
 export function AddNpcModal({
@@ -32,6 +42,16 @@ export function AddNpcModal({
   onNpcSelecionadoChange,
   nomeNpcCustomizado,
   onNomeNpcCustomizadoChange,
+  iniciativaValor,
+  onIniciativaValorChange,
+  sanAtual,
+  sanMax,
+  eaAtual,
+  eaMax,
+  onSanAtualChange,
+  onSanMaxChange,
+  onEaAtualChange,
+  onEaMaxChange,
 }: AddNpcModalProps) {
   return (
     <Modal
@@ -50,7 +70,8 @@ export function AddNpcModal({
               adicionando ||
               sessaoEncerrada ||
               npcsDisponiveis.length === 0 ||
-              !npcSelecionadoId
+              !npcSelecionadoId ||
+              !iniciativaValor.trim()
             }
           >
             {adicionando ? 'Adicionando...' : 'Adicionar na cena'}
@@ -79,6 +100,51 @@ export function AddNpcModal({
           onChange={(event) => onNomeNpcCustomizadoChange(event.target.value)}
           placeholder="Ex.: Taro (ferido)"
         />
+        <Input
+          type="number"
+          label="Iniciativa (inteiro)"
+          value={iniciativaValor}
+          onChange={(event) => onIniciativaValorChange(event.target.value)}
+          placeholder="Ex.: 18"
+        />
+        <div className="rounded border border-app-border bg-app-surface p-3 space-y-2">
+          <p className="text-xs font-semibold text-app-fg">
+            Recursos opcionais (SAN / EA)
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="number"
+              label="SAN atual"
+              value={sanAtual}
+              onChange={(event) => onSanAtualChange(event.target.value)}
+              placeholder="Ex.: 12"
+            />
+            <Input
+              type="number"
+              label="SAN max"
+              value={sanMax}
+              onChange={(event) => onSanMaxChange(event.target.value)}
+              placeholder="Ex.: 20"
+            />
+            <Input
+              type="number"
+              label="EA atual"
+              value={eaAtual}
+              onChange={(event) => onEaAtualChange(event.target.value)}
+              placeholder="Ex.: 4"
+            />
+            <Input
+              type="number"
+              label="EA max"
+              value={eaMax}
+              onChange={(event) => onEaMaxChange(event.target.value)}
+              placeholder="Ex.: 8"
+            />
+          </div>
+          <p className="text-[11px] text-app-muted">
+            Deixe em branco para nao considerar SAN/EA neste NPC.
+          </p>
+        </div>
         <p className="text-xs text-app-muted">
           Dica: use o nome em cena para diferenciar aliados ou ameacas iguais na mesma rodada.
         </p>

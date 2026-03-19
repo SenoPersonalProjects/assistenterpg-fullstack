@@ -264,9 +264,9 @@ export default function CampanhaDetalhePage() {
 
         {/* ✅ Resumo principal (mantendo seu CampaignHeader para consistência) */}
         <CampaignHeader
-          nome={campanha.nome}
           donoApelido={campanha.dono.apelido}
           criadoEm={dataCriacao}
+          totalMembros={campanha._count.membros}
           totalPersonagens={campanha._count.personagens}
           totalSessoes={campanha._count.sessoes}
           status={campanha.status}
@@ -274,7 +274,7 @@ export default function CampanhaDetalhePage() {
 
         {/* ✅ Descrição em card, com estado vazio elegante */}
         <section className="space-y-2">
-          <SectionTitle>Descrição</SectionTitle>
+          <SectionTitle icon="info">Descrição</SectionTitle>
           {campanha.descricao ? (
             <Card>
               <p className="text-sm text-app-muted leading-relaxed">
@@ -291,7 +291,7 @@ export default function CampanhaDetalhePage() {
 
         {/* ✅ Membros */}
         <section>
-          <SectionTitle>Membros da campanha</SectionTitle>
+          <SectionTitle icon="characters">Membros da campanha</SectionTitle>
           <CampaignMembersSection
             membros={campanha.membros}
             donoId={campanha.donoId}
@@ -299,7 +299,7 @@ export default function CampanhaDetalhePage() {
         </section>
 
         <section>
-          <SectionTitle>Personagens da campanha</SectionTitle>
+          <SectionTitle icon="id">Personagens da campanha</SectionTitle>
           <CampaignCharactersSection
             campanhaId={campanha.id}
             usuarioId={usuario?.id ?? 0}
@@ -312,11 +312,18 @@ export default function CampanhaDetalhePage() {
         {usuario?.id === campanha.donoId && (
           <section>
             <div className="rounded-lg border border-app-border bg-app-surface p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Icon name="add" className="w-5 h-5 text-app-primary" />
-                <h2 className="text-lg font-semibold text-app-fg">
-                  Convidar jogador
-                </h2>
+              <div className="flex items-start gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+                  <Icon name="add" className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-app-fg">
+                    Convidar membros
+                  </h2>
+                  <p className="text-sm text-app-muted">
+                    Envie convites para jogadores ou observadores entrarem na campanha.
+                  </p>
+                </div>
               </div>
               <InviteMemberForm onInvite={handleInvite} />
             </div>
@@ -325,7 +332,7 @@ export default function CampanhaDetalhePage() {
 
         {/* ✅ Sessões */}
         <section>
-          <SectionTitle>Sessões</SectionTitle>
+          <SectionTitle icon="scroll">Sessões</SectionTitle>
           <CampaignSessionsSection
             campanhaId={campanha.id}
             usuarioEhMestre={Boolean(usuarioEhMestre)}

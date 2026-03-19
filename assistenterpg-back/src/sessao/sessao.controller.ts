@@ -22,11 +22,13 @@ import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
 import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { DesfazerEventoSessaoDto } from './dto/desfazer-evento-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
+import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { EncerrarSustentacaoSessaoDto } from './dto/encerrar-sustentacao-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import { RemoverCondicaoSessaoDto } from './dto/remover-condicao-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
+import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas/:campanhaId/sessoes')
@@ -110,7 +112,11 @@ export class SessaoController {
       dto.mensagem,
     );
 
-    this.sessaoGateway.emitirSessaoAtualizada(campanhaId, sessaoId, 'CHAT_NOVA');
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'CHAT_NOVA',
+    );
 
     return resultado;
   }
@@ -304,6 +310,29 @@ export class SessaoController {
     return resultado;
   }
 
+  @Patch(':sessaoId/iniciativa/valor')
+  async atualizarValorIniciativaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarValorIniciativaSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarValorIniciativaSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'INICIATIVA_VALOR_ATUALIZADO',
+    );
+
+    return resultado;
+  }
+
   @Post(':sessaoId/encerrar')
   async encerrarSessaoCampanha(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
@@ -343,6 +372,52 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       'CENA_ATUALIZADA',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/personagens')
+  async adicionarPersonagemSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AdicionarPersonagemSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.adicionarPersonagemSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'PERSONAGEM_ATUALIZADO',
+    );
+
+    return resultado;
+  }
+
+  @Delete(':sessaoId/personagens/:personagemSessaoId')
+  async removerPersonagemSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    const resultado = await this.sessaoService.removerPersonagemSessao(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'PERSONAGEM_ATUALIZADO',
     );
 
     return resultado;

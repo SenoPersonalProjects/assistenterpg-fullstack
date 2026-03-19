@@ -192,6 +192,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CAMPANHA_PERSONAGEM_EDICAO_NEGADA:
     "Você não tem permissão para editar esta ficha de campanha.",
   PERSONAGEM_CAMPANHA_NOT_FOUND: "Personagem da campanha não encontrado",
+  PERSONAGEM_SESSAO_NOT_FOUND: "Personagem da sessão não encontrado.",
   CAMPANHA_MODIFICADOR_NOT_FOUND:
     "Modificador da ficha de campanha não encontrado",
   CAMPANHA_MODIFICADOR_JA_DESFEITO: "Este modificador já foi desfeito",

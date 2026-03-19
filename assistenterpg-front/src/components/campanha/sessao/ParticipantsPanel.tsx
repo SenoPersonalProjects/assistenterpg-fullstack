@@ -1,5 +1,6 @@
 'use client';
 
+import { EmptyState } from '@/components/ui/EmptyState';
 import { labelPapelParticipante, textoSeguro } from '@/lib/campanha/sessao-formatters';
 
 type ParticipanteItem = {
@@ -20,9 +21,13 @@ export function ParticipantsPanel({
 }: ParticipantsPanelProps) {
   if (participantes.length === 0) {
     return (
-      <p className="text-xs text-app-muted">
-        Nenhum participante carregado para esta campanha.
-      </p>
+      <EmptyState
+        variant="plain"
+        size="sm"
+        icon="characters"
+        title="Sem participantes"
+        description="Nenhum participante carregado para esta campanha."
+      />
     );
   }
 

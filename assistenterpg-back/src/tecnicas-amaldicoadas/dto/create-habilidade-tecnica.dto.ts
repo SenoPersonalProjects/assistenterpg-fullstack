@@ -14,6 +14,7 @@ import {
   TipoDano,
   TipoEscalonamentoHabilidade,
 } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 export class CreateHabilidadeTecnicaDto {
   @IsNotEmpty()
@@ -34,7 +35,7 @@ export class CreateHabilidadeTecnicaDto {
   descricao: string;
 
   @IsOptional()
-  requisitos?: any;
+  requisitos?: Prisma.JsonValue;
 
   @IsNotEmpty()
   @IsEnum(TipoExecucao)
@@ -85,7 +86,7 @@ export class CreateHabilidadeTecnicaDto {
   custoSustentacaoPE?: number;
 
   @IsOptional()
-  testesExigidos?: any;
+  testesExigidos?: Prisma.JsonValue;
 
   @IsOptional()
   @IsInt()
@@ -104,7 +105,7 @@ export class CreateHabilidadeTecnicaDto {
   danoFlatTipo?: TipoDano;
 
   @IsOptional()
-  dadosDano?: any;
+  dadosDano?: Prisma.JsonValue;
 
   @IsOptional()
   @IsBoolean()
@@ -129,10 +130,10 @@ export class CreateHabilidadeTecnicaDto {
   escalonamentoTipo?: TipoEscalonamentoHabilidade;
 
   @IsOptional()
-  escalonamentoEfeito?: any;
+  escalonamentoEfeito?: Prisma.JsonValue;
 
   @IsOptional()
-  escalonamentoDano?: any;
+  escalonamentoDano?: Prisma.JsonValue;
 
   @IsNotEmpty()
   @IsString()

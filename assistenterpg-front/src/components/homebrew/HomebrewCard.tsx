@@ -33,10 +33,11 @@ export function HomebrewCard({
   const podePublicar = homebrew.status === 'RASCUNHO';
   const podeArquivar = homebrew.status === 'PUBLICADO';
   const podeEditar = homebrew.status !== 'ARQUIVADO';
+  const atualizadoEm = new Date(homebrew.atualizadoEm).toLocaleDateString('pt-BR');
 
   return (
     <Card
-      className="flex flex-col h-full cursor-pointer hover:border-app-primary/50 transition-colors"
+      className="flex flex-col h-full cursor-pointer hover:border-app-primary/50 transition hover:shadow-md"
       role="button"
       tabIndex={0}
       aria-label={`Abrir homebrew ${homebrew.nome}`}
@@ -110,9 +111,14 @@ export function HomebrewCard({
         )}
 
         {/* Autor e versão */}
-        <div className="flex items-center justify-between text-xs text-app-muted pt-2 border-t border-app-border">
-          <span>Por {homebrew.usuarioApelido ?? 'Desconhecido'}</span>
-          <span>v{homebrew.versao}</span>
+        <div className="pt-2 border-t border-app-border text-xs text-app-muted space-y-1">
+          <div className="flex items-center justify-between">
+            <span>Por {homebrew.usuarioApelido ?? 'Desconhecido'}</span>
+            <span>Atualizado em {atualizadoEm}</span>
+          </div>
+          <div className="flex items-center justify-end text-[10px] uppercase tracking-wide text-app-muted/70">
+            v{homebrew.versao}
+          </div>
         </div>
       </div>
 

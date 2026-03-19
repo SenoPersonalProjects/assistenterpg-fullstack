@@ -189,7 +189,11 @@ export class CampanhaPersonagemEdicaoNegadaException extends BusinessException {
 }
 
 export class CampanhaPersonagemDesassociacaoNegadaException extends BusinessException {
-  constructor(campanhaId: number, personagemCampanhaId: number, sessaoId?: number) {
+  constructor(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    sessaoId?: number,
+  ) {
     super(
       'Nao e possivel desassociar personagem que ja participou de sessao',
       'CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA',
@@ -292,6 +296,25 @@ export class NpcSessaoNaoEncontradoException extends BaseException {
       'NPC_SESSAO_NOT_FOUND',
       {
         npcSessaoId,
+        sessaoId,
+        campanhaId,
+      },
+    );
+  }
+}
+
+export class PersonagemSessaoNaoEncontradoException extends BaseException {
+  constructor(
+    personagemSessaoId?: number,
+    sessaoId?: number,
+    campanhaId?: number,
+  ) {
+    super(
+      'Personagem da sessao nao encontrado',
+      HttpStatus.NOT_FOUND,
+      'PERSONAGEM_SESSAO_NOT_FOUND',
+      {
+        personagemSessaoId,
         sessaoId,
         campanhaId,
       },

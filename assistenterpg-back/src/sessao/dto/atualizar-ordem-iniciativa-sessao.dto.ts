@@ -34,4 +34,3 @@ export class AtualizarOrdemIniciativaSessaoDto {
   @Min(0, { message: 'indiceTurnoAtual nao pode ser negativo' })
   indiceTurnoAtual?: number;
 }
-

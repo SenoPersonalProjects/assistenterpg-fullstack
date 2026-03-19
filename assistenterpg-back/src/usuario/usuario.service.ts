@@ -284,45 +284,47 @@ export class UsuarioService {
 
   async exportarDados(usuarioId: number) {
     try {
-      const [usuario, personagens, campanhas, preferencias] = await Promise.all([
-        this.prisma.usuario.findUnique({
-          where: { id: usuarioId },
-          select: {
-            id: true,
-            apelido: true,
-            email: true,
-            role: true,
-            emailVerificadoEm: true,
-            criadoEm: true,
-          },
-        }),
-        this.prisma.personagemBase.findMany({
-          where: { donoId: usuarioId },
-          include: {
-            classe: true,
-            origem: true,
-            cla: true,
-            trilha: true,
-            caminho: true,
-            tecnicaInata: true,
-          },
-        }),
-        this.prisma.campanha.findMany({
-          where: {
-            OR: [{ donoId: usuarioId }, { membros: { some: { usuarioId } } }],
-          },
-          include: {
-            membros: {
-              include: {
-                usuario: { select: { apelido: true } },
+      const [usuario, personagens, campanhas, preferencias] = await Promise.all(
+        [
+          this.prisma.usuario.findUnique({
+            where: { id: usuarioId },
+            select: {
+              id: true,
+              apelido: true,
+              email: true,
+              role: true,
+              emailVerificadoEm: true,
+              criadoEm: true,
+            },
+          }),
+          this.prisma.personagemBase.findMany({
+            where: { donoId: usuarioId },
+            include: {
+              classe: true,
+              origem: true,
+              cla: true,
+              trilha: true,
+              caminho: true,
+              tecnicaInata: true,
+            },
+          }),
+          this.prisma.campanha.findMany({
+            where: {
+              OR: [{ donoId: usuarioId }, { membros: { some: { usuarioId } } }],
+            },
+            include: {
+              membros: {
+                include: {
+                  usuario: { select: { apelido: true } },
+                },
               },
             },
-          },
-        }),
-        this.prisma.preferenciaUsuario.findUnique({
-          where: { usuarioId },
-        }),
-      ]);
+          }),
+          this.prisma.preferenciaUsuario.findUnique({
+            where: { usuarioId },
+          }),
+        ],
+      );
 
       return {
         exportadoEm: new Date().toISOString(),

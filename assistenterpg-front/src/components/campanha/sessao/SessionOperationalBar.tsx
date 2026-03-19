@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -19,6 +19,7 @@ type SessionOperationalBarProps = {
   sessaoEncerrada: boolean;
   realtimeAtivo: boolean;
   controleTurnosAtivo: boolean;
+  combateAtivo?: boolean;
   podeControlarSessao: boolean;
   totalParticipantesOnline?: number;
   totalParticipantes?: number;
@@ -30,29 +31,41 @@ type SessionOperationalBarProps = {
   className?: string;
 };
 
-export function SessionOperationalBar({
-  cenaLabel,
-  cenaNome,
-  rodadaAtual,
-  turnoAtualLabel,
-  proximoTurnoLabel,
-  sessaoEncerrada,
-  realtimeAtivo,
-  controleTurnosAtivo,
-  podeControlarSessao,
-  totalParticipantesOnline,
-  totalParticipantes,
-  erro,
-  acaoTurnoPendente,
-  onAvancarTurno,
-  onPularTurno,
-  onVoltarTurno,
-  className = '',
-}: SessionOperationalBarProps) {
+export const SessionOperationalBar = forwardRef<
+  HTMLElement,
+  SessionOperationalBarProps
+>(function SessionOperationalBar(
+  {
+    cenaLabel,
+    cenaNome,
+    rodadaAtual,
+    turnoAtualLabel,
+    proximoTurnoLabel,
+    sessaoEncerrada,
+    realtimeAtivo,
+    controleTurnosAtivo,
+    combateAtivo = false,
+    podeControlarSessao,
+    totalParticipantesOnline,
+    totalParticipantes,
+    erro,
+    acaoTurnoPendente,
+    onAvancarTurno,
+    onPularTurno,
+    onVoltarTurno,
+    className = '',
+  },
+  ref,
+) {
   const [atalhosAbertos, setAtalhosAbertos] = useState(false);
 
   return (
-    <section className={`session-operational-bar ${className}`}>
+    <section
+      ref={ref}
+      className={`session-operational-bar${
+        combateAtivo ? ' session-operational-bar--combat' : ''
+      } ${className}`}
+    >
       {erro ? (
         <ErrorAlert message={erro} className="session-operational-bar__error" />
       ) : null}
@@ -105,6 +118,12 @@ export function SessionOperationalBar({
       </div>
 
       <div className="session-operational-bar__meta">
+        {combateAtivo ? (
+          <Badge color="orange" size="sm">
+            <Icon name="swords" className="mr-1 h-3.5 w-3.5" />
+            Combate ativo
+          </Badge>
+        ) : null}
         <Badge color={sessaoEncerrada ? 'gray' : 'green'} size="sm">
           {sessaoEncerrada ? 'Sessao encerrada' : 'Sessao ativa'}
         </Badge>
@@ -188,7 +207,9 @@ export function SessionOperationalBar({
       </Modal>
     </section>
   );
-}
+});
+
+SessionOperationalBar.displayName = 'SessionOperationalBar';
 
 export type { AcaoControleTurno };
 

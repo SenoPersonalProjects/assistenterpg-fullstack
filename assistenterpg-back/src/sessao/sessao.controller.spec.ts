@@ -189,7 +189,9 @@ describe('SessaoController', () => {
   });
 
   it('deve emitir evento ao atualizar ordem de iniciativa', async () => {
-    sessaoServiceMock.atualizarOrdemIniciativaSessao.mockResolvedValue({ id: 12 });
+    sessaoServiceMock.atualizarOrdemIniciativaSessao.mockResolvedValue({
+      id: 12,
+    });
 
     await controller.atualizarOrdemIniciativaSessao(
       7,
@@ -204,18 +206,15 @@ describe('SessaoController', () => {
       },
     );
 
-    expect(sessaoServiceMock.atualizarOrdemIniciativaSessao).toHaveBeenCalledWith(
-      7,
-      12,
-      3,
-      {
-        ordem: [
-          { tipoParticipante: 'PERSONAGEM', id: 20 },
-          { tipoParticipante: 'NPC', id: 44 },
-        ],
-        indiceTurnoAtual: 1,
-      },
-    );
+    expect(
+      sessaoServiceMock.atualizarOrdemIniciativaSessao,
+    ).toHaveBeenCalledWith(7, 12, 3, {
+      ordem: [
+        { tipoParticipante: 'PERSONAGEM', id: 20 },
+        { tipoParticipante: 'NPC', id: 44 },
+      ],
+      indiceTurnoAtual: 1,
+    });
     expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
       7,
       12,

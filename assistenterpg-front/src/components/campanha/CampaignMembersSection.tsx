@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import { Card } from '@/components/ui/Card';
-import { SectionTitle } from '@/components/ui/SectionTitle';
 import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 type Membro = {
   id: number;
@@ -18,45 +18,60 @@ type Props = {
 
 export function CampaignMembersSection({ membros, donoId }: Props) {
   return (
-    <section>
-      <SectionTitle>Membros</SectionTitle>
-      <Card>
-        {membros.length === 0 ? (
-          <p className="text-sm text-app-muted">
-            Nenhum membro cadastrado ainda.
-          </p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {membros.map((m) => {
-              const isOwner = m.usuarioId === donoId;
-              const papel = isOwner ? 'MESTRE' : m.papel;
-              const corPapel =
-                papel === 'MESTRE'
-                  ? 'purple'
-                  : papel === 'JOGADOR'
-                  ? 'blue'
-                  : 'gray';
+    <Card className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+          Total: {membros.length} membro(s)
+        </p>
+      </div>
 
-              return (
-                <li
-                  key={m.id}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-app-fg">{m.usuario.apelido}</span>
+      {membros.length === 0 ? (
+        <EmptyState
+          variant="plain"
+          icon="characters"
+          title="Nenhum membro ainda"
+          description="Convide jogadores ou observadores para participarem da campanha."
+          size="sm"
+        />
+      ) : (
+        <ul className="divide-y divide-app-border/70 text-sm">
+          {membros.map((m) => {
+            const isOwner = m.usuarioId === donoId;
+            const papel = isOwner ? 'MESTRE' : m.papel;
+            const corPapel =
+              papel === 'MESTRE'
+                ? 'purple'
+                : papel === 'JOGADOR'
+                ? 'blue'
+                : 'gray';
+            const inicial = (m.usuario.apelido || '?').slice(0, 1).toUpperCase();
+
+            return (
+              <li
+                key={m.id}
+                className="flex items-center justify-between gap-3 py-2"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-app-primary/10 text-xs font-semibold text-app-primary">
+                    {inicial}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-app-fg">
+                      {m.usuario.apelido}
+                    </p>
                     {isOwner && (
-                      <span className="text-xs text-app-muted">
-                        Dono da campanha
-                      </span>
+                      <p className="text-xs text-app-muted">Dono da campanha</p>
                     )}
                   </div>
-                  <Badge color={corPapel}>{papel}</Badge>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
-    </section>
+                </div>
+                <Badge color={corPapel} size="sm">
+                  {papel}
+                </Badge>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }

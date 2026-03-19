@@ -315,6 +315,7 @@ body {
     radial-gradient(900px 480px at 105% -8%, rgba(37, 99, 235, 0.09), transparent 64%),
     radial-gradient(820px 420px at -10% 8%, rgba(124, 58, 237, 0.08), transparent 66%),
     var(--bg);
+  --session-panel-sticky-offset: 6.2rem;
 }
 
 .dark .session-page-shell {
@@ -345,6 +346,13 @@ body {
   box-shadow: 0 18px 44px -40px rgba(15, 23, 42, 0.72);
 }
 
+.session-panel-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+}
+
 .dark .session-panel {
   box-shadow: 0 22px 48px -42px rgba(2, 6, 23, 0.96);
 }
@@ -353,8 +361,30 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0;
+}
+
+.session-panel-head--sticky {
+  position: sticky;
+  top: var(--session-panel-sticky-offset, 0.5rem);
+  z-index: 6;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--bg-surface) 92%, transparent),
+      color-mix(in srgb, var(--bg-surface) 60%, transparent) 70%,
+      transparent
+    );
+  backdrop-filter: blur(6px);
+}
+
+.session-panel-body {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .session-panel-title {
@@ -369,6 +399,12 @@ body {
   color: var(--fg-muted);
   font-size: 0.74rem;
   line-height: 1.32;
+}
+
+@media (max-width: 768px) {
+  .session-page-shell {
+    --session-panel-sticky-offset: 8.2rem;
+  }
 }
 
 .session-chip-row {
@@ -541,10 +577,24 @@ body {
   backdrop-filter: blur(8px);
 }
 
+.session-operational-bar--combat {
+  border-color: color-mix(in srgb, var(--warning) 40%, var(--border-subtle));
+  background:
+    linear-gradient(155deg, rgba(249, 115, 22, 0.16), rgba(255, 237, 213, 0.32));
+  box-shadow: 0 18px 38px -30px rgba(217, 119, 6, 0.45);
+}
+
 .dark .session-operational-bar {
   background:
     linear-gradient(155deg, rgba(17, 25, 40, 0.93), rgba(12, 18, 34, 0.82));
   box-shadow: 0 18px 40px -32px rgba(2, 6, 23, 0.96);
+}
+
+.dark .session-operational-bar--combat {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border-subtle));
+  background:
+    linear-gradient(155deg, rgba(234, 88, 12, 0.22), rgba(30, 41, 59, 0.72));
+  box-shadow: 0 20px 42px -32px rgba(234, 88, 12, 0.5);
 }
 
 .session-operational-bar__error {
