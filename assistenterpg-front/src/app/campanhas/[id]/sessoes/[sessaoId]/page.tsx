@@ -319,11 +319,6 @@ export default function SessaoCampanhaPage() {
   }, [chat]);
 
   useEffect(() => {
-    if (!modalAdicionarPersonagemAberto) return;
-    void carregarPersonagensDisponiveis();
-  }, [carregarPersonagensDisponiveis, modalAdicionarPersonagemAberto]);
-
-  useEffect(() => {
     const shell = shellRef.current;
     const bar = operationalBarRef.current;
     if (!shell || !bar) return;
@@ -419,6 +414,11 @@ export default function SessaoCampanhaPage() {
       setCarregandoPersonagensDisponiveis(false);
     }
   }, [campanhaId, detalhe?.cards, idsValidos, setErroCards, usuario]);
+
+  useEffect(() => {
+    if (!modalAdicionarPersonagemAberto) return;
+    void carregarPersonagensDisponiveis();
+  }, [carregarPersonagensDisponiveis, modalAdicionarPersonagemAberto]);
 
   const anexarMensagensNoChat = useCallback((mensagensNovas: MensagemChatSessao[]) => {
     if (mensagensNovas.length === 0) return;
