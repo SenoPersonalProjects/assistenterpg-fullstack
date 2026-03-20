@@ -16,7 +16,24 @@ export async function seedHabilidadesEfeitosGrau(prisma: PrismaClient) {
   const get = createLookupCache(prisma);
 
   for (const item of habilidadesEfeitosGrauSeed) {
-    const habilidadeId = await get.habilidadeId(item.habilidadeNome);
+    let habilidadeId: number | null = null;
+    try {
+      habilidadeId = await get.habilidadeId(item.habilidadeNome);
+    } catch (error) {
+      if (item.habilidadeNome === 'Escola T\u00c3\u00a9cnica') {
+        const alternativa = await prisma.habilidade.findUnique({
+          where: { nome: 'Escola T\u00e9cnica' },
+          select: { id: true },
+        });
+        habilidadeId = alternativa?.id ?? null;
+      }
+      if (!habilidadeId) {
+        console.warn(
+          `[seed] Habilidade nao encontrada para efeito de grau: "${item.habilidadeNome}"`,
+        );
+        continue;
+      }
+    }
 
     // valida que o TipoGrau existe (o helper lança erro se não existir)
     await get.tipoGrauCodigo(item.tipoGrauCodigo);

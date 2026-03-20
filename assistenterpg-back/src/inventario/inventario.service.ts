@@ -16,6 +16,7 @@ import {
   PreviewAdicionarItemResponse,
   ResumoInventarioCompleto,
 } from './engine/inventario.types';
+import { calcularBloqueioEsquiva } from '../personagem-base/regras-criacao/regras-derivados';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -208,6 +209,18 @@ export class InventarioService {
       select: {
         forca: true,
         espacosInventarioBase: true,
+        defesaBase: true,
+        defesaEquipamento: true,
+        defesa: true,
+        esquiva: true,
+        bloqueio: true,
+        pericias: {
+          select: {
+            grauTreinamento: true,
+            bonusExtra: true,
+            pericia: { select: { codigo: true } },
+          },
+        },
       },
     });
 
@@ -234,16 +247,85 @@ export class InventarioService {
       resistenciasMap.set(rd.tipoReducao, rd.valor);
     });
 
-    // ✅ 7. Atualizar PersonagemBase (SEM bloqueio/esquiva)
+    // ✅ 7. Recalcular bloqueio/esquiva com pericias + defesa total atualizada
+    const defesaBase = personagem.defesaBase ?? 10;
+    const defesaEquipamentoAntes = personagem.defesaEquipamento ?? 0;
+    const esquivaAntes = personagem.esquiva ?? 0;
+    const bloqueioAntes = personagem.bloqueio ?? 0;
+    const defesaEquipamentoNovo = statsEquipados.defesaTotal;
+    const defesaTotalNova = defesaBase + defesaEquipamentoNovo;
+
+    const periciasMap = new Map<
+      string,
+      { grauTreinamento: number; bonusExtra: number }
+    >();
+    personagem.pericias.forEach((pericia) => {
+      periciasMap.set(pericia.pericia.codigo, {
+        grauTreinamento: pericia.grauTreinamento,
+        bonusExtra: pericia.bonusExtra,
+      });
+    });
+
+    const { bloqueio: bloqueioBaseNovo, esquiva: esquivaBaseNova } =
+      calcularBloqueioEsquiva({
+        defesa: defesaTotalNova,
+        periciasMap,
+      });
+
+    // ✅ 8. Atualizar PersonagemBase (agora inclui esquiva/bloqueio)
     await db.personagemBase.update({
       where: { id: personagemBaseId },
       data: {
         espacosInventarioExtra: espacosExtraDeItens,
         espacosOcupados,
         sobrecarregado,
-        defesaEquipamento: statsEquipados.defesaTotal, // ✅ Apenas defesa dos equipamentos
+        defesaEquipamento: defesaEquipamentoNovo, // ✅ Apenas defesa dos equipamentos
+        defesa: defesaTotalNova,
+        esquiva: esquivaBaseNova,
+        bloqueio: bloqueioBaseNovo,
       },
     });
+
+    // ✅ 8.5. Sincronizar personagens da campanha preservando modificadores
+    const deltaDefesaEquipamento = defesaEquipamentoNovo - defesaEquipamentoAntes;
+    const deltaEsquiva = esquivaBaseNova - esquivaAntes;
+    const deltaBloqueio = bloqueioBaseNovo - bloqueioAntes;
+
+    if (
+      deltaDefesaEquipamento !== 0 ||
+      deltaEsquiva !== 0 ||
+      deltaBloqueio !== 0
+    ) {
+      const personagensCampanha = await db.personagemCampanha.findMany({
+        where: { personagemBaseId },
+        select: {
+          id: true,
+          defesaEquipamento: true,
+          esquiva: true,
+          bloqueio: true,
+        },
+      });
+
+      for (const personagemCampanha of personagensCampanha) {
+        const defesaEquipamentoAtualizada = Math.max(
+          0,
+          (personagemCampanha.defesaEquipamento ?? 0) + deltaDefesaEquipamento,
+        );
+        const esquivaAtualizada =
+          (personagemCampanha.esquiva ?? 0) + deltaEsquiva;
+        const bloqueioAtualizado =
+          (personagemCampanha.bloqueio ?? 0) + deltaBloqueio;
+
+        await db.personagemCampanha.update({
+          where: { id: personagemCampanha.id },
+          data: {
+            defesaEquipamento: defesaEquipamentoAtualizada,
+            esquiva: esquivaAtualizada,
+            bloqueio: bloqueioAtualizado,
+          },
+        });
+      }
+    }
 
     // ✅ 8. Rebuild resistências (deleteMany + createMany)
     await db.personagemBaseResistencia.deleteMany({

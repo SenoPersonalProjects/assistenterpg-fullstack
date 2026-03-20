@@ -4,7 +4,10 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import type { DiceRollPayload } from '@/lib/campanha/sessao-dice';
-import { formatarExpressaoDice } from '@/lib/campanha/sessao-dice';
+import {
+  formatarExpressaoDice,
+  type DiceOperador,
+} from '@/lib/campanha/sessao-dice';
 
 type DiceMessageCardProps = {
   payload: DiceRollPayload;
@@ -16,17 +19,54 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
     payload.aplicarModificadorPorDado,
   );
 
+  const normalizarOperador = (
+    operador: DiceOperador | undefined,
+    modificador: number,
+  ) => {
+    if (!operador && modificador < 0) {
+      return { operador: '-' as DiceOperador, modificador: Math.abs(modificador) };
+    }
+    return { operador: (operador ?? '+') as DiceOperador, modificador };
+  };
+
+  const aplicarOperador = (
+    valor: number,
+    operador: DiceOperador,
+    modificador: number,
+  ) => {
+    switch (operador) {
+      case '+':
+        return valor + modificador;
+      case '-':
+        return valor - modificador;
+      case '*':
+        return valor * modificador;
+      case '/':
+        if (modificador === 0) return valor;
+        return Math.trunc(valor / modificador);
+      default:
+        return valor + modificador;
+    }
+  };
+
+  const normalizado = normalizarOperador(payload.operador, payload.modificador);
+
   const valoresExibidos = useMemo(() => {
     if (payload.aplicarModificadorPorDado) {
-      return payload.rolagens.map((valor) => valor + payload.modificador);
+      return payload.rolagens.map((valor) =>
+        aplicarOperador(valor, normalizado.operador, normalizado.modificador),
+      );
     }
     return payload.rolagens;
-  }, [payload]);
+  }, [payload, normalizado]);
 
-  const total = useMemo(
-    () => payload.rolagens.reduce((acc, valor) => acc + valor, 0) + payload.modificador,
-    [payload],
-  );
+  const total = useMemo(() => {
+    if (payload.aplicarModificadorPorDado) {
+      return valoresExibidos.reduce((acc, valor) => acc + valor, 0);
+    }
+    const base = payload.rolagens.reduce((acc, valor) => acc + valor, 0);
+    return aplicarOperador(base, normalizado.operador, normalizado.modificador);
+  }, [payload, normalizado, valoresExibidos]);
 
   const { min, max } = useMemo(() => {
     if (valoresExibidos.length === 0) return { min: 0, max: 0 };
@@ -42,11 +82,13 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
   const expressaoExibida = expression ?? formatarExpressaoDice(payload);
   const label = payload.label?.trim();
   const modificadorTexto =
-    payload.modificador === 0
+    normalizado.modificador === 0 && normalizado.operador === '+'
       ? null
-      : payload.modificador > 0
-        ? `+${payload.modificador}`
-        : String(payload.modificador);
+      : normalizado.operador === '+'
+        ? `+${normalizado.modificador}`
+        : normalizado.operador === '-'
+          ? `-${normalizado.modificador}`
+          : `${normalizado.operador}${normalizado.modificador}`;
 
   return (
     <div className="session-dice">

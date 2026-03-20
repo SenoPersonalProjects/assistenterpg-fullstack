@@ -195,6 +195,7 @@ export async function resolverPassivasAtributos(
     throw new PassivasNaoElegiveisException(escolhidos, elegiveis);
   }
 
+  const escolhasInformadas = escolhidos.length > 0;
   const needsChoice = elegiveis.length > 2 && escolhidos.length !== 2;
 
   if (needsChoice) {
@@ -211,7 +212,11 @@ export async function resolverPassivasAtributos(
     };
   }
 
-  const ativos = elegiveis.length <= 2 ? elegiveis : escolhidos;
+  const ativos = escolhasInformadas
+    ? escolhidos
+    : elegiveis.length <= 2
+      ? elegiveis
+      : escolhidos;
 
   const filtros: Array<{ atributo: AtributoPassiva; nivel: 1 | 2 }> = [];
   for (const a of ativos) {

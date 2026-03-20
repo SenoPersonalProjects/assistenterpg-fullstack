@@ -2845,6 +2845,34 @@ export class SessaoService {
         dto.acumulos ?? 0,
       );
 
+      if (custo.isSustentada) {
+        const sustentacaoExistente =
+          await tx.personagemSessaoHabilidadeSustentada.findFirst({
+            where: {
+              sessaoId,
+              personagemSessaoId,
+              habilidadeTecnicaId: habilidade.id,
+              variacaoHabilidadeId: custo.variacaoHabilidadeId ?? null,
+              ativa: true,
+            },
+            select: { id: true },
+          });
+
+        if (sustentacaoExistente) {
+          throw new BusinessException(
+            'Habilidade j\u00e1 sustentada nesta sess\u00e3o',
+            'SESSAO_SUSTENTACAO_DUPLICADA',
+            {
+              campanhaId,
+              sessaoId,
+              personagemSessaoId,
+              habilidadeTecnicaId: habilidade.id,
+              variacaoHabilidadeId: custo.variacaoHabilidadeId,
+            },
+          );
+        }
+      }
+
       const recursosAtuais = personagemSessao.personagemCampanha;
       if (
         recursosAtuais.eaAtual < custo.custoEA ||

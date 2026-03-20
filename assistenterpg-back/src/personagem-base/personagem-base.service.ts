@@ -990,19 +990,40 @@ export class PersonagemBaseService {
 
     // Escola TÃ©cnica como habilidade (se estudou)
     if (estudouEscolaTecnica) {
-      const escolaTecnica = await prisma.habilidade.findUnique({
-        where: { nome: 'Escola TÃ©cnica' },
+      const escolaTecnica = await prisma.habilidade.findFirst({
+        where: {
+          OR: [{ nome: 'Escola T\u00c3\u00a9cnica' }, { nome: 'Escola T\u00e9cnica' }],
+        },
         include: { efeitosGrau: true },
       });
 
       if (escolaTecnica) {
+        const possuiEfeitoTecnica =
+          escolaTecnica.efeitosGrau?.some(
+            (efeito) => efeito.tipoGrauCodigo === 'TECNICA_AMALDICOADA',
+          ) ?? false;
+        const escolaComEfeito = possuiEfeitoTecnica
+          ? escolaTecnica
+          : {
+              ...escolaTecnica,
+              efeitosGrau: [
+                ...(escolaTecnica.efeitosGrau ?? []),
+                {
+                  tipoGrauCodigo: 'TECNICA_AMALDICOADA',
+                  valor: 1,
+                  escalonamentoPorNivel: null,
+                },
+              ],
+            };
+
         habilidades.push({
           habilidadeId: escolaTecnica.id,
-          habilidade: mapHabilidade(escolaTecnica),
+          habilidade: mapHabilidade(
+            escolaComEfeito as typeof escolaTecnica,
+          ),
         });
       }
     }
-
     // Poderes genÃ©ricos selecionados (via instÃ¢ncias) - permite repetiÃ§Ã£o
     if (poderesGenericos && poderesGenericos.length > 0) {
       const idsUnicos = Array.from(
