@@ -241,9 +241,7 @@ export class AuthMailService {
 
     if (!response.ok) {
       const body = await response.text();
-      throw new Error(
-        `[AUTH_EMAIL][resend] Erro ${response.status}: ${body}`,
-      );
+      throw new Error(`[AUTH_EMAIL][resend] Erro ${response.status}: ${body}`);
     }
   }
 

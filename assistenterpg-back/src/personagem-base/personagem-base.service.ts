@@ -992,7 +992,10 @@ export class PersonagemBaseService {
     if (estudouEscolaTecnica) {
       const escolaTecnica = await prisma.habilidade.findFirst({
         where: {
-          OR: [{ nome: 'Escola T\u00c3\u00a9cnica' }, { nome: 'Escola T\u00e9cnica' }],
+          OR: [
+            { nome: 'Escola T\u00c3\u00a9cnica' },
+            { nome: 'Escola T\u00e9cnica' },
+          ],
         },
         include: { efeitosGrau: true },
       });
@@ -1018,9 +1021,7 @@ export class PersonagemBaseService {
 
         habilidades.push({
           habilidadeId: escolaTecnica.id,
-          habilidade: mapHabilidade(
-            escolaComEfeito as typeof escolaTecnica,
-          ),
+          habilidade: mapHabilidade(escolaComEfeito as typeof escolaTecnica),
         });
       }
     }

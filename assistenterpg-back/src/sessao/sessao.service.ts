@@ -1070,7 +1070,10 @@ export class SessaoService {
           if (!npc.npcAmeaca || !atributosNpc) return 0;
           const valor = npc.npcAmeaca[campoDados];
           if (typeof valor === 'number') return valor;
-          const atributo = this.obterAtributoNpcPorBase(atributosNpc, atributoBase);
+          const atributo = this.obterAtributoNpcPorBase(
+            atributosNpc,
+            atributoBase,
+          );
           return this.calcularDadosPadraoPericia(atributo);
         };
 
@@ -5836,9 +5839,13 @@ export class SessaoService {
       const bonusTotal = bonusEquipamento + bonusModificacoes;
       if (bonusTotal === 0) continue;
 
-      const mapaPersonagem = resultado.get(item.personagemCampanhaId) ?? new Map();
+      const mapaPersonagem =
+        resultado.get(item.personagemCampanhaId) ?? new Map<string, number>();
       for (const codigo of codigos) {
-        mapaPersonagem.set(codigo, (mapaPersonagem.get(codigo) ?? 0) + bonusTotal);
+        mapaPersonagem.set(
+          codigo,
+          (mapaPersonagem.get(codigo) ?? 0) + bonusTotal,
+        );
       }
       resultado.set(item.personagemCampanhaId, mapaPersonagem);
     }

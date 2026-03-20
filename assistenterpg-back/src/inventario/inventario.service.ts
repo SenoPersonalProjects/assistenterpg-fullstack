@@ -74,6 +74,28 @@ type ModificacaoCalculoEntity = Prisma.ModificacaoEquipamentoGetPayload<{
   select: typeof modificacaoCalculoSelect;
 }>;
 
+const personagemInventarioSelect =
+  Prisma.validator<Prisma.PersonagemBaseSelect>()({
+    forca: true,
+    espacosInventarioBase: true,
+    defesaBase: true,
+    defesaEquipamento: true,
+    defesaOutros: true,
+    esquiva: true,
+    bloqueio: true,
+    pericias: {
+      select: {
+        grauTreinamento: true,
+        bonusExtra: true,
+        pericia: { select: { codigo: true } },
+      },
+    },
+  });
+
+type PersonagemInventarioPayload = Prisma.PersonagemBaseGetPayload<{
+  select: typeof personagemInventarioSelect;
+}>;
+
 @Injectable()
 export class InventarioService {
   constructor(
@@ -204,25 +226,10 @@ export class InventarioService {
     const db = prisma || this.prisma;
 
     const itens = await this.carregarItensInventario(personagemBaseId, db);
-    const personagem = await db.personagemBase.findUnique({
+    const personagem = (await db.personagemBase.findUnique({
       where: { id: personagemBaseId },
-      select: {
-        forca: true,
-        espacosInventarioBase: true,
-        defesaBase: true,
-        defesaEquipamento: true,
-        defesa: true,
-        esquiva: true,
-        bloqueio: true,
-        pericias: {
-          select: {
-            grauTreinamento: true,
-            bonusExtra: true,
-            pericia: { select: { codigo: true } },
-          },
-        },
-      },
-    });
+      select: personagemInventarioSelect,
+    })) as PersonagemInventarioPayload | null;
 
     if (!personagem) return;
 
@@ -250,10 +257,11 @@ export class InventarioService {
     // ✅ 7. Recalcular bloqueio/esquiva com pericias + defesa total atualizada
     const defesaBase = personagem.defesaBase ?? 10;
     const defesaEquipamentoAntes = personagem.defesaEquipamento ?? 0;
+    const defesaOutros = personagem.defesaOutros ?? 0;
     const esquivaAntes = personagem.esquiva ?? 0;
     const bloqueioAntes = personagem.bloqueio ?? 0;
     const defesaEquipamentoNovo = statsEquipados.defesaTotal;
-    const defesaTotalNova = defesaBase + defesaEquipamentoNovo;
+    const defesaTotalNova = defesaBase + defesaEquipamentoNovo + defesaOutros;
 
     const periciasMap = new Map<
       string,
@@ -280,14 +288,14 @@ export class InventarioService {
         espacosOcupados,
         sobrecarregado,
         defesaEquipamento: defesaEquipamentoNovo, // ✅ Apenas defesa dos equipamentos
-        defesa: defesaTotalNova,
         esquiva: esquivaBaseNova,
         bloqueio: bloqueioBaseNovo,
       },
     });
 
     // ✅ 8.5. Sincronizar personagens da campanha preservando modificadores
-    const deltaDefesaEquipamento = defesaEquipamentoNovo - defesaEquipamentoAntes;
+    const deltaDefesaEquipamento =
+      defesaEquipamentoNovo - defesaEquipamentoAntes;
     const deltaEsquiva = esquivaBaseNova - esquivaAntes;
     const deltaBloqueio = bloqueioBaseNovo - bloqueioAntes;
 
