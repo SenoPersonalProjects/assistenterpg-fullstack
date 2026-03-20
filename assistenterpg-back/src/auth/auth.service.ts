@@ -48,6 +48,7 @@ export class AuthService {
       usuario.id,
       usuario.email,
       usuario.apelido,
+      { async: true },
     );
 
     return usuario;
@@ -125,19 +126,19 @@ export class AuthService {
 
     const linkRecuperacao = this.montarLinkFront('/auth/reset-password', token);
 
-    try {
-      await this.authMailService.enviarRecuperacaoSenha({
+    void this.authMailService
+      .enviarRecuperacaoSenha({
         email: usuario.email,
         apelido: usuario.apelido,
         linkRecuperacao,
         expiraEm,
+      })
+      .catch((error) => {
+        this.logger.error(
+          `Falha ao enviar email de recuperacao para usuarioId=${usuario.id}`,
+          error instanceof Error ? error.stack : undefined,
+        );
       });
-    } catch (error) {
-      this.logger.error(
-        `Falha ao enviar email de recuperacao para usuarioId=${usuario.id}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-    }
 
     return { mensagem: MENSAGEM_RECUPERACAO };
   }
@@ -202,6 +203,7 @@ export class AuthService {
     usuarioId: number,
     email: string,
     apelido: string,
+    options?: { async?: boolean },
   ) {
     await this.authTokenService.invalidarTokensAtivos(
       usuarioId,
@@ -216,13 +218,25 @@ export class AuthService {
 
     const linkVerificacao = this.montarLinkFront('/auth/verify-email', token);
 
-    try {
-      await this.authMailService.enviarVerificacaoEmail({
-        email,
-        apelido,
-        linkVerificacao,
-        expiraEm,
+    const envio = this.authMailService.enviarVerificacaoEmail({
+      email,
+      apelido,
+      linkVerificacao,
+      expiraEm,
+    });
+
+    if (options?.async) {
+      void envio.catch((error) => {
+        this.logger.error(
+          `Falha ao enviar email de verificacao para usuarioId=${usuarioId}`,
+          error instanceof Error ? error.stack : undefined,
+        );
       });
+      return;
+    }
+
+    try {
+      await envio;
     } catch (error) {
       this.logger.error(
         `Falha ao enviar email de verificacao para usuarioId=${usuarioId}`,

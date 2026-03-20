@@ -121,6 +121,13 @@ Scripts relevantes:
 - `JWT_SECRET` (obrigatorio em producao)
 - `NODE_ENV`
 - `DATABASE_URL` (obrigatorio para Prisma)
+- `FRONTEND_URL` (base para links de email, padrao `http://localhost:3001`)
+- `AUTH_EMAIL_MODE` (`ethereal|smtp|console|resend`)
+- `AUTH_EMAIL_FROM` (remetente exibido nos emails)
+- `AUTH_EMAIL_FROM_NAME` (nome exibido no remetente)
+- `RESEND_API_KEY` (obrigatorio quando `AUTH_EMAIL_MODE=resend`)
+- `AUTH_SMTP_HOST`, `AUTH_SMTP_PORT`, `AUTH_SMTP_SECURE`, `AUTH_SMTP_USER`, `AUTH_SMTP_PASS` (SMTP)
+- `AUTH_RESET_TOKEN_TTL_MINUTES`, `AUTH_VERIFY_TOKEN_TTL_MINUTES`
 - `PRISMA_PREBUILD_AUTO_GENERATE` (`false` desliga tentativa automatica de `prisma generate` no prebuild)
 
 ### Frontend
@@ -299,13 +306,17 @@ Detalhamento:
 - tokens de auth por email:
   - recuperacao de senha e verificacao de email usam tokens de uso unico (`auth_tokens` no banco)
   - codigos: `AUTH_TOKEN_INVALIDO_OU_EXPIRADO` para link invalido/usado/expirado
-  - envio de email:
-    - `AUTH_EMAIL_MODE=ethereal` (padrao gratuito para testes, gera preview URL no log)
-    - `AUTH_EMAIL_MODE=smtp` (envio real, depende do provedor SMTP configurado)
-    - sem dominio proprio:
-      - use uma conta real (ex.: Gmail) em `AUTH_SMTP_USER`
-      - use senha de app em `AUTH_SMTP_PASS`
-      - deixe `AUTH_EMAIL_FROM` vazio para usar automaticamente o `AUTH_SMTP_USER` como remetente
+- envio de email:
+  - `AUTH_EMAIL_MODE=ethereal` (padrao gratuito para testes, gera preview URL no log)
+  - `AUTH_EMAIL_MODE=smtp` (envio real, depende do provedor SMTP configurado)
+  - `AUTH_EMAIL_MODE=resend` (envio via HTTP usando `RESEND_API_KEY`)
+  - `AUTH_EMAIL_MODE=console` (nao envia, apenas loga no console)
+  - sem dominio proprio:
+    - use uma conta real (ex.: Gmail) em `AUTH_SMTP_USER`
+    - use senha de app em `AUTH_SMTP_PASS`
+    - deixe `AUTH_EMAIL_FROM` vazio para usar automaticamente o `AUTH_SMTP_USER` como remetente
+  - Resend:
+    - defina `RESEND_API_KEY` e `AUTH_EMAIL_FROM` (ex.: `onboarding@resend.dev` para testes)
 
 Integracao frontend:
 

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import nodemailer, { type Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
-type EmailAuthMode = 'console' | 'smtp' | 'ethereal';
+type EmailAuthMode = 'console' | 'smtp' | 'ethereal' | 'resend';
 
 type EnviarEmailInput = {
   para: string;
@@ -108,6 +108,11 @@ export class AuthMailService {
       return;
     }
 
+    if (modo === 'resend') {
+      await this.enviarEmailResend(input);
+      return;
+    }
+
     const transporter = await this.getTransporter();
     if (!transporter) {
       this.logger.warn(
@@ -134,6 +139,7 @@ export class AuthMailService {
     const modo = (process.env.AUTH_EMAIL_MODE ?? 'ethereal').toLowerCase();
     if (modo === 'smtp') return 'smtp';
     if (modo === 'console') return 'console';
+    if (modo === 'resend') return 'resend';
     return 'ethereal';
   }
 
@@ -190,16 +196,55 @@ export class AuthMailService {
     return this.transporter;
   }
 
-  private getRemetenteFormatado() {
+  private getRemetenteFormatado(modo?: EmailAuthMode) {
     const fromConfigurado = (process.env.AUTH_EMAIL_FROM ?? '').trim();
     const usuarioSmtp = (process.env.AUTH_SMTP_USER ?? '').trim();
+    const remetenteResendPadrao = 'onboarding@resend.dev';
+    const usarResendPadrao =
+      modo === 'resend' && !fromConfigurado && !usuarioSmtp;
     const email =
       fromConfigurado &&
       !fromConfigurado.toLowerCase().endsWith('@assistenterpg.local')
         ? fromConfigurado
-        : usuarioSmtp || fromConfigurado || 'no-reply@localhost.local';
+        : usarResendPadrao
+          ? remetenteResendPadrao
+          : usuarioSmtp || fromConfigurado || 'no-reply@localhost.local';
     const nome = process.env.AUTH_EMAIL_FROM_NAME ?? 'AssistenteRPG';
     return `"${nome}" <${email}>`;
+  }
+
+  private async enviarEmailResend(input: EnviarEmailInput) {
+    const apiKey = (process.env.RESEND_API_KEY ?? '').trim();
+    if (!apiKey) {
+      this.logger.warn(
+        '[AUTH_EMAIL][resend] RESEND_API_KEY ausente. Email nao enviado.',
+      );
+      return;
+    }
+
+    const remetente = this.getRemetenteFormatado('resend');
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: remetente,
+        to: input.para,
+        subject: input.assunto,
+        text: input.texto,
+        html: input.html,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(
+        `[AUTH_EMAIL][resend] Erro ${response.status}: ${body}`,
+      );
+    }
   }
 
   private formatarDataHora(data: Date) {
