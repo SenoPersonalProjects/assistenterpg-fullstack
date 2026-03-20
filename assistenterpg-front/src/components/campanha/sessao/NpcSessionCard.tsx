@@ -209,9 +209,11 @@ export function NpcSessionCard({
       icon: 'status',
       count: npc.condicoesAtivas.length,
     },
-    ...(podeAjustar
-      ? [{ id: 'AJUSTES', label: 'Ajustes', icon: 'tools' }]
-      : []),
+  ];
+  if (podeAjustar) {
+    tabs.push({ id: 'AJUSTES', label: 'Ajustes', icon: 'tools' });
+  }
+  tabs.push(
     {
       id: 'PASSIVAS',
       label: 'Passivas',
@@ -219,7 +221,7 @@ export function NpcSessionCard({
       count: npc.passivas.length,
     },
     { id: 'ACOES', label: 'Acoes', icon: 'sword', count: npc.acoes.length },
-  ];
+  );
 
   const totalAcoes = npc.acoes.length;
   const totalAcoesComCusto = npc.acoes.filter(

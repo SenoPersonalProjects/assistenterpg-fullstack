@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import type { ReactNode } from 'react';
-import { SessionTabs } from '@/components/campanha/sessao/SessionTabs';
+import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
 
 export type SessionSidebarTabId = 'chat' | 'eventos' | 'participantes' | 'rolagens';
 
@@ -26,19 +26,19 @@ export function SessionSidebarTabs({
   mostrarEventos = true,
   children,
 }: SessionSidebarTabsProps) {
-  const tabs = [
+  const tabs: SessionTabItem[] = [
     { id: 'chat', label: 'Chat', icon: 'chat', count: totalChat },
     { id: 'rolagens', label: 'Rolagens', icon: 'dice', count: totalRolagens },
-    ...(mostrarEventos
-      ? [{ id: 'eventos', label: 'Eventos', icon: 'list', count: totalEventos }]
-      : []),
-    {
-      id: 'participantes',
-      label: 'Participantes',
-      icon: 'characters',
-      count: totalParticipantes,
-    },
   ];
+  if (mostrarEventos) {
+    tabs.push({ id: 'eventos', label: 'Eventos', icon: 'list', count: totalEventos });
+  }
+  tabs.push({
+    id: 'participantes',
+    label: 'Participantes',
+    icon: 'characters',
+    count: totalParticipantes,
+  });
 
   return (
     <div className="space-y-2">

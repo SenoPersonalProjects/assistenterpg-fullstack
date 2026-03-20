@@ -94,6 +94,8 @@ export function SessionCharacterDetailsTabs({
   renderPainelCondicoes,
   mostrarAcoesResumo = true,
 }: SessionCharacterDetailsTabsProps) {
+  const [mostrarSomentePericiasBonificadas, setMostrarSomentePericiasBonificadas] =
+    useState(false);
   const recursos = card.recursos;
   if (!recursos) return null;
 
@@ -148,8 +150,6 @@ export function SessionCharacterDetailsTabs({
       montarChaveSustentacaoAtiva(habilidadeTecnicaId, variacaoHabilidadeId),
     ) ?? 0;
 
-  const [mostrarSomentePericiasBonificadas, setMostrarSomentePericiasBonificadas] =
-    useState(false);
   const periciasOrdenadas = [...(card.pericias ?? [])].sort((a, b) =>
     a.nome.localeCompare(b.nome, 'pt-BR'),
   );
