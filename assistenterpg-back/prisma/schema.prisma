@@ -1003,6 +1003,7 @@ model OrigemPericia {
 model Habilidade {
   id        Int     @id @default(autoincrement())
   nome      String  @unique
+  codigo    String? @unique
   descricao String? @db.Text
   tipo      String
   origem    String?

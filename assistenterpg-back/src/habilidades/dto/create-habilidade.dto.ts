@@ -40,6 +40,11 @@ export class EfeitoGrauDto {
 
 // DTO principal (SEM hereditaria e clasHereditariosIds)
 export class CreateHabilidadeDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(60, { message: 'Codigo deve ter no maximo 60 caracteres' })
+  codigo?: string;
+
   @IsString()
   @IsNotEmpty()
   @MinLength(3, { message: 'Nome deve ter no minimo 3 caracteres' })

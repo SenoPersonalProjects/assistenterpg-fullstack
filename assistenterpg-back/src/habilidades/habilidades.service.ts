@@ -11,6 +11,7 @@ import { FilterHabilidadeDto } from './dto/filter-habilidade.dto';
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
   HabilidadeNaoEncontradaException,
+  HabilidadeCodigoDuplicadoException,
   HabilidadeNomeDuplicadoException,
   TipoGrauNaoEncontradoException,
   HabilidadeEmUsoException,
@@ -84,6 +85,16 @@ export class HabilidadesService {
    * CREATE - Criar nova habilidade
    */
   async create(createDto: CreateHabilidadeDto) {
+    if (createDto.codigo) {
+      const existenteCodigo = await this.prisma.habilidade.findUnique({
+        where: { codigo: createDto.codigo },
+      });
+
+      if (existenteCodigo) {
+        throw new HabilidadeCodigoDuplicadoException(createDto.codigo);
+      }
+    }
+
     // Verificar se nome já existe
     const existente = await this.prisma.habilidade.findUnique({
       where: { nome: createDto.nome },
@@ -121,6 +132,7 @@ export class HabilidadesService {
 
     const habilidade = await this.prisma.habilidade.create({
       data: {
+        ...(createDto.codigo && { codigo: createDto.codigo }),
         nome: createDto.nome,
         descricao: createDto.descricao,
         tipo: createDto.tipo,
@@ -291,6 +303,20 @@ export class HabilidadesService {
       }
     }
 
+    // Verificar codigo duplicado (se mudou)
+    if (updateDto.codigo) {
+      const duplicadoCodigo = await this.prisma.habilidade.findFirst({
+        where: {
+          codigo: updateDto.codigo,
+          NOT: { id },
+        },
+      });
+
+      if (duplicadoCodigo) {
+        throw new HabilidadeCodigoDuplicadoException(updateDto.codigo);
+      }
+    }
+
     // Validar tipos de grau (se fornecidos)
     if (updateDto.efeitosGrau?.length) {
       const tiposGrau = await this.prisma.tipoGrau.findMany({
@@ -323,6 +349,7 @@ export class HabilidadesService {
     const habilidade = await this.prisma.habilidade.update({
       where: { id },
       data: {
+        ...(updateDto.codigo !== undefined && { codigo: updateDto.codigo }),
         ...(updateDto.nome && { nome: updateDto.nome }),
         ...(updateDto.descricao !== undefined && {
           descricao: updateDto.descricao,

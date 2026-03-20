@@ -42,6 +42,7 @@ export type SeedTecnicaInata = {
 
 export type SeedHabilidade = {
   nome: string;
+  codigo?: string;
   tipo: string;
   
   // ✅ MANTIDO: origem define o CONTEXTO (GERAL, FICHA, SESSAO, etc.)
@@ -213,7 +214,8 @@ export type SeedHabilidadeClasseVinculo = {
 // HABILIDADES: EFEITOS/MECÂNICAS
 // =======================
 export type SeedHabilidadeEfeitoGrau = {
-  habilidadeNome: string;
+  habilidadeCodigo?: string;
+  habilidadeNome?: string;
   tipoGrauCodigo: string;
   valor: number;
   escalonamentoPorNivel?: SeedJson | null;

@@ -13,6 +13,10 @@ import {
   ErroAtualizacaoPersonagemException,
   AtributoChaveEaInvalidoException,
 } from 'src/common/exceptions/personagem.exception';
+import {
+  HABILIDADE_ESCOLA_TECNICA_CODIGO,
+  HABILIDADE_ESCOLA_TECNICA_NOME,
+} from 'src/common/constants/habilidades';
 
 import {
   CreatePersonagemBaseDto,
@@ -993,8 +997,9 @@ export class PersonagemBaseService {
       const escolaTecnica = await prisma.habilidade.findFirst({
         where: {
           OR: [
+            { codigo: HABILIDADE_ESCOLA_TECNICA_CODIGO },
+            { nome: HABILIDADE_ESCOLA_TECNICA_NOME },
             { nome: 'Escola T\u00c3\u00a9cnica' },
-            { nome: 'Escola T\u00e9cnica' },
           ],
         },
         include: { efeitosGrau: true },

@@ -45,7 +45,8 @@ export async function requireByCodigo<T extends { id: number; codigo: string }>(
     | 'proficiencia'
     | 'tipoGrau'
     | 'resistenciaTipo'
-    | 'passivaAtributo',
+    | 'passivaAtributo'
+    | 'habilidade',
   codigo: string,
 ): Promise<T> {
   const row = await (prisma as any)[model].findUnique({ where: { codigo } });
@@ -101,6 +102,18 @@ export function createLookupCache(prisma: PrismaClient) {
       const k = key('habilidade', 'nome', nome);
       if (cacheNum.has(k)) return cacheNum.get(k)!;
       const row = await requireByNome<{ id: number }>(prisma, 'habilidade', nome);
+      cacheNum.set(k, row.id);
+      return row.id;
+    },
+
+    async habilidadeCodigo(codigo: string) {
+      const k = key('habilidade', 'codigo', codigo);
+      if (cacheNum.has(k)) return cacheNum.get(k)!;
+      const row = await requireByCodigo<{ id: number; codigo: string }>(
+        prisma,
+        'habilidade',
+        codigo,
+      );
       cacheNum.set(k, row.id);
       return row.id;
     },

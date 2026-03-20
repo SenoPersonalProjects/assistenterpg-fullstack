@@ -5,13 +5,13 @@ import { BaseException } from './base.exception';
 import { BusinessException } from './business.exception';
 
 // ============================================================================
-// HABILIDADE - EXCEÇÕES
+// HABILIDADE - EXCECOES
 // ============================================================================
 
 export class HabilidadeNaoEncontradaException extends BaseException {
   constructor(identificador?: string | number) {
     super(
-      'Habilidade não encontrada',
+      'Habilidade nao encontrada',
       HttpStatus.NOT_FOUND,
       'HABILIDADE_NOT_FOUND',
       { identificador },
@@ -22,9 +22,19 @@ export class HabilidadeNaoEncontradaException extends BaseException {
 export class HabilidadeNomeDuplicadoException extends BusinessException {
   constructor(nome: string) {
     super(
-      `Habilidade com nome "${nome}" já existe`,
+      `Habilidade com nome "${nome}" ja existe`,
       'HABILIDADE_NOME_DUPLICADO',
       { nome },
+    );
+  }
+}
+
+export class HabilidadeCodigoDuplicadoException extends BusinessException {
+  constructor(codigo: string) {
+    super(
+      `Habilidade com codigo "${codigo}" ja existe`,
+      'HABILIDADE_CODIGO_DUPLICADO',
+      { codigo },
     );
   }
 }
@@ -32,7 +42,7 @@ export class HabilidadeNomeDuplicadoException extends BusinessException {
 export class TipoGrauNaoEncontradoException extends BaseException {
   constructor(codigosInvalidos: string[]) {
     super(
-      `Tipos de grau não encontrados: ${codigosInvalidos.join(', ')}`,
+      `Tipos de grau nao encontrados: ${codigosInvalidos.join(', ')}`,
       HttpStatus.NOT_FOUND,
       'TIPO_GRAU_NOT_FOUND',
       { codigosInvalidos },
@@ -53,7 +63,7 @@ export class HabilidadeEmUsoException extends BusinessException {
     },
   ) {
     super(
-      `Habilidade está sendo usada por ${totalUsos} entidade(s). Remova as referências primeiro.`,
+      `Habilidade esta sendo usada por ${totalUsos} entidade(s). Remova as referencias primeiro.`,
       'HABILIDADE_EM_USO',
       { habilidadeId, totalUsos, detalhesUso },
     );
