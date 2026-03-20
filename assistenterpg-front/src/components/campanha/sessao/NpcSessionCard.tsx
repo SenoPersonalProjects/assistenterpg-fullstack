@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Textarea } from '@/components/ui/Textarea';
-import { SessionTabs } from '@/components/campanha/sessao/SessionTabs';
+import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
 import type { CondicaoAtivaSessaoCampanha, NpcSessaoCampanha } from '@/lib/types';
 import type {
   AjustesRecursosNpc,
@@ -194,7 +194,7 @@ export function NpcSessionCard({
 
   const totalPericiasNpc =
     (npc.pericias?.length ?? 0) + (npc.periciasEspeciais?.length ?? 0);
-  const tabs = [
+  const tabs: SessionTabItem[] = [
     { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
     { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
     {
@@ -219,7 +219,7 @@ export function NpcSessionCard({
       count: npc.passivas.length,
     },
     { id: 'ACOES', label: 'Acoes', icon: 'sword', count: npc.acoes.length },
-  ] as const;
+  ];
 
   const totalAcoes = npc.acoes.length;
   const totalAcoesComCusto = npc.acoes.filter(
