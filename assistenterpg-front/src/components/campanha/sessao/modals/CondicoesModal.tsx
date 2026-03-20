@@ -57,6 +57,10 @@ export function CondicoesModal({
   chaveAcaoAplicar,
   chaveAcaoRemover,
 }: CondicoesModalProps) {
+  const condicaoSelecionada = condicoesFiltradas.find(
+    (condicao) => String(condicao.id) === formCondicao.condicaoId,
+  );
+
   return (
     <Modal
       isOpen={Boolean(modalCondicoes)}
@@ -121,7 +125,7 @@ export function CondicoesModal({
                       <p className="text-xs font-semibold text-app-fg">
                         {textoSeguro(condicao.nome)}
                       </p>
-                      <p className="text-[11px] text-app-muted line-clamp-2">
+                      <p className="session-text-xxs text-app-muted line-clamp-2">
                         {textoSeguro(condicao.descricao)}
                       </p>
                     </button>
@@ -132,8 +136,28 @@ export function CondicoesModal({
           </div>
 
           <div className="space-y-3">
-            <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
-              <p className="text-xs font-semibold text-app-fg">Parametros de aplicacao</p>
+            <div className="rounded border border-app-border bg-app-surface p-3 space-y-2">
+              <p className="text-xs font-semibold text-app-fg">
+                Condicao selecionada
+              </p>
+              {condicaoSelecionada ? (
+                <>
+                  <p className="text-sm font-semibold text-app-fg">
+                    {textoSeguro(condicaoSelecionada.nome)}
+                  </p>
+                  <p className="text-xs text-app-muted">
+                    {textoSeguro(condicaoSelecionada.descricao)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-app-muted">
+                  Selecione uma condicao no catalogo ao lado.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded border border-app-border bg-app-bg p-3 space-y-2">
+              <p className="text-xs font-semibold text-app-fg">Aplicar condicao</p>
               <Select
                 label="Modo de duracao"
                 value={formCondicao.duracaoModo}
@@ -162,16 +186,16 @@ export function CondicoesModal({
               />
             </div>
 
-            <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
+            <div className="rounded border border-app-border bg-app-bg p-3 space-y-2">
+              <p className="text-xs font-semibold text-app-fg">
+                Condicoes ativas ({condicoesAtivas.length})
+              </p>
               <Input
                 label="Motivo para remocao (opcional)"
                 value={formCondicao.motivoRemocao}
                 onChange={(event) => onAtualizarCampo('motivoRemocao', event.target.value)}
                 placeholder="Ex.: Curado, efeito encerrado..."
               />
-              <p className="text-[11px] text-app-muted">
-                Condicoes ativas neste alvo ({condicoesAtivas.length})
-              </p>
               <div className="max-h-[220px] overflow-y-auto space-y-1.5">
                 {condicoesAtivas.length === 0 ? (
                   <p className="text-xs text-app-muted">
@@ -200,7 +224,7 @@ export function CondicoesModal({
                             {acaoCondicaoPendente === chaveRemover ? 'Removendo...' : 'Remover'}
                           </Button>
                         </div>
-                        <p className="text-[11px] text-app-muted">
+                        <p className="session-text-xxs text-app-muted">
                           {descreverDuracaoCondicao(
                             condicao.duracaoModo,
                             condicao.duracaoValor,

@@ -14,6 +14,9 @@ type ConfirmDialogProps = {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'danger' | 'warning' | 'info';
+  confirmDisabled?: boolean;
+  confirmLoading?: boolean;
+  confirmClassName?: string;
   children?: React.ReactNode;
 };
 
@@ -26,6 +29,9 @@ export function ConfirmDialog({
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
   variant = 'danger',
+  confirmDisabled = false,
+  confirmLoading = false,
+  confirmClassName = '',
   children,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -143,12 +149,14 @@ export function ConfirmDialog({
             variant={config.buttonVariant}
             size="md"
             onClick={() => {
+              if (confirmDisabled || confirmLoading) return;
               onConfirm();
               onClose();
             }}
-            className={`min-w-[100px] ${config.buttonClass}`}
+            className={`min-w-[100px] ${config.buttonClass} ${confirmClassName}`}
+            disabled={confirmDisabled || confirmLoading}
           >
-            {confirmLabel}
+            {confirmLoading ? 'Processando...' : confirmLabel}
           </Button>
         </div>
       </div>

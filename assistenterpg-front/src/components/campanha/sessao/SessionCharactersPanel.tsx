@@ -7,7 +7,6 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { CharacterSessionCard } from '@/components/campanha/sessao/CharacterSessionCard';
-import { SessionTechniqueBlock } from '@/components/campanha/sessao/SessionTechniqueBlock';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import type {
@@ -73,13 +72,6 @@ type SessionCharactersPanelProps = {
   erro?: string | null;
 };
 
-function montarChaveSustentacaoAtiva(
-  habilidadeTecnicaId: number,
-  variacaoHabilidadeId?: number | null,
-): string {
-  return `${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
-}
-
 export function SessionCharactersPanel({
   cards,
   iniciativaPorPersonagemSessao,
@@ -114,42 +106,11 @@ export function SessionCharactersPanel({
   renderPainelCondicoes,
   erro,
 }: SessionCharactersPanelProps) {
-  const renderTecnica = (
-    card: SessaoCampanhaDetalhe['cards'][number],
-    sustentacoesAtivasPorHabilidade: Map<string, number>,
-    tecnica: NonNullable<SessaoCampanhaDetalhe['cards'][number]['tecnicaInata']>,
-  ) => {
-    const mostrarSomenteSustentadasAtivas = Boolean(
-      mostrarSomenteSustentadas[card.personagemSessaoId],
-    );
-    const obterQtdSustentacaoAtiva = (
-      habilidadeTecnicaId: number,
-      variacaoHabilidadeId?: number | null,
-    ) =>
-      sustentacoesAtivasPorHabilidade.get(
-        montarChaveSustentacaoAtiva(habilidadeTecnicaId, variacaoHabilidadeId),
-      ) ?? 0;
-
-    return (
-      <SessionTechniqueBlock
-        key={`tecnica-${tecnica.id}`}
-        card={card}
-        tecnica={tecnica}
-        mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}
-        obterQtdSustentacaoAtiva={obterQtdSustentacaoAtiva}
-        acumulosHabilidade={acumulosHabilidade}
-        onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
-        sessaoEncerrada={sessaoEncerrada}
-        acaoHabilidadePendente={acaoHabilidadePendente}
-        onUsarHabilidade={onUsarHabilidade}
-      />
-    );
-  };
-
   return (
     <SessionPanel
       title="Personagens da sessao"
       subtitle="Jogadores editam apenas sua ficha. O mestre pode editar todas."
+      tone="main"
       right={
         podeControlarSessao ? (
           <Button
@@ -167,7 +128,7 @@ export function SessionCharactersPanel({
 
       {cards.length === 0 ? (
         <EmptyState
-          variant="card"
+          variant="session"
           size="sm"
           icon="characters"
           title="Sem personagens na sessao"
@@ -191,17 +152,6 @@ export function SessionCharactersPanel({
             (card.tecnicaInata ? 1 : 0) + card.tecnicasNaoInatas.length;
           const totalCondicoesAtivasCard = card.condicoesAtivas.length;
           const totalSustentacoesAtivasCard = card.sustentacoesAtivas.length;
-          const sustentacoesAtivasPorHabilidade = new Map<string, number>();
-          for (const sustentacao of card.sustentacoesAtivas) {
-            const chave = montarChaveSustentacaoAtiva(
-              sustentacao.habilidadeTecnicaId,
-              sustentacao.variacaoHabilidadeId,
-            );
-            sustentacoesAtivasPorHabilidade.set(
-              chave,
-              (sustentacoesAtivasPorHabilidade.get(chave) ?? 0) + 1,
-            );
-          }
 
           return (
             <CharacterSessionCard
@@ -254,9 +204,9 @@ export function SessionCharactersPanel({
               onAbrirFichaCompleta={() => onAbrirFichaCompleta(card)}
               onSolicitarRemover={() => onSolicitarRemoverPersonagem(card)}
               renderPainelCondicoes={renderPainelCondicoes}
-              renderTecnica={(tecnica) =>
-                renderTecnica(card, sustentacoesAtivasPorHabilidade, tecnica)
-              }
+              acumulosHabilidade={acumulosHabilidade}
+              onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
+              onUsarHabilidade={onUsarHabilidade}
               onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
                 void onEncerrarSustentacao(personagemSessaoId, sustentacaoId)
               }

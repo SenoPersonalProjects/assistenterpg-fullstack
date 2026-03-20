@@ -1,4 +1,10 @@
-export type AbaDetalheCard = 'RESUMO' | 'TECNICAS' | 'SUSTENTACOES' | 'CONDICOES';
+export type AbaDetalheCard =
+  | 'RESUMO'
+  | 'ATRIBUTOS'
+  | 'PERICIAS'
+  | 'TECNICAS'
+  | 'SUSTENTACOES'
+  | 'CONDICOES';
 
 export type PreferenciasSessaoLobby = {
   abasDetalheCard: Record<number, AbaDetalheCard>;
@@ -9,6 +15,8 @@ export type PreferenciasSessaoLobby = {
 const PREFS_STORAGE_PREFIX = 'assistenterpg:sessao:lobby:preferencias:v1';
 const ABAS_VALIDAS = new Set<AbaDetalheCard>([
   'RESUMO',
+  'ATRIBUTOS',
+  'PERICIAS',
   'TECNICAS',
   'SUSTENTACOES',
   'CONDICOES',

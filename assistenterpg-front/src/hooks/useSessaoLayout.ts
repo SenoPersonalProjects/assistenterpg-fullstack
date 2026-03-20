@@ -27,9 +27,7 @@ export function useSessaoLayout({
   campanhaId,
   sessaoId,
 }: UseSessaoLayoutParams): UseSessaoLayoutReturn {
-  const [, setLayoutVersion] = useState(0);
-
-  const layoutAtual = (() => {
+  const [layoutAtual, setLayoutAtual] = useState(() => {
     if (!idsValidos || typeof usuarioId !== 'number') {
       return {
         colunaEsquerdaRecolhida: false,
@@ -39,7 +37,7 @@ export function useSessaoLayout({
     }
 
     return carregarLayoutSessaoLobby(usuarioId, campanhaId, sessaoId);
-  })();
+  });
 
   const salvarLayout = useCallback(
     (proximo: Partial<{
@@ -49,14 +47,15 @@ export function useSessaoLayout({
     }>) => {
       if (!idsValidos || typeof usuarioId !== 'number') return;
 
-      const layoutBase = carregarLayoutSessaoLobby(usuarioId, campanhaId, sessaoId);
-      const layoutFinal = { ...layoutBase, ...proximo };
-      salvarLayoutSessaoLobby(usuarioId, campanhaId, sessaoId, {
-        colunaEsquerdaRecolhida: layoutFinal.colunaEsquerdaRecolhida,
-        colunaDireitaRecolhida: layoutFinal.colunaDireitaRecolhida,
-        abaDireitaAtiva: layoutFinal.abaDireitaAtiva,
+      setLayoutAtual((anterior) => {
+        const layoutFinal = { ...anterior, ...proximo };
+        salvarLayoutSessaoLobby(usuarioId, campanhaId, sessaoId, {
+          colunaEsquerdaRecolhida: layoutFinal.colunaEsquerdaRecolhida,
+          colunaDireitaRecolhida: layoutFinal.colunaDireitaRecolhida,
+          abaDireitaAtiva: layoutFinal.abaDireitaAtiva,
+        });
+        return layoutFinal;
       });
-      setLayoutVersion((versao) => versao + 1);
     },
     [campanhaId, idsValidos, sessaoId, usuarioId],
   );

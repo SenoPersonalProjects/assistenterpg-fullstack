@@ -16,6 +16,7 @@ type UseSessaoRealtimeParams = {
 
 type UseSessaoRealtimeReturn = {
   socketConectado: boolean;
+  realtimeStatus: 'online' | 'reconnecting' | 'polling';
   onlineUsuarioIds: number[];
 };
 
@@ -27,6 +28,9 @@ export function useSessaoRealtime({
   sincronizarTempoReal,
 }: UseSessaoRealtimeParams): UseSessaoRealtimeReturn {
   const [socketConectado, setSocketConectado] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<
+    'online' | 'reconnecting' | 'polling'
+  >('polling');
   const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
 
   useEffect(() => {
@@ -53,6 +57,7 @@ export function useSessaoRealtime({
 
     const handleConnect = () => {
       setSocketConectado(true);
+      setRealtimeStatus('online');
       setOnlineUsuarioIds((anterior) =>
         anterior.includes(usuarioId) ? anterior : [...anterior, usuarioId],
       );
@@ -61,16 +66,19 @@ export function useSessaoRealtime({
 
     const handleDisconnect = () => {
       setSocketConectado(false);
+      setRealtimeStatus('reconnecting');
       setOnlineUsuarioIds([]);
     };
 
     const handleConnectError = () => {
       setSocketConectado(false);
+      setRealtimeStatus('reconnecting');
       setOnlineUsuarioIds([]);
     };
 
     const handleSessaoErro = () => {
       setSocketConectado(false);
+      setRealtimeStatus('reconnecting');
       setOnlineUsuarioIds([]);
     };
 
@@ -110,9 +118,10 @@ export function useSessaoRealtime({
       socket.off('sessao:atualizada', handleSessaoAtualizada);
       socket.disconnect();
       setSocketConectado(false);
+      setRealtimeStatus('polling');
       setOnlineUsuarioIds([]);
     };
   }, [campanhaId, idsValidos, sessaoId, sincronizarTempoReal, usuarioId]);
 
-  return { socketConectado, onlineUsuarioIds };
+  return { socketConectado, realtimeStatus, onlineUsuarioIds };
 }

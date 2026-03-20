@@ -59,7 +59,6 @@ import {
   ShieldAlert,
   Newspaper,
   Box,
-  Clock,
   Calculator,
   ChevronDown,
   ChevronUp,
@@ -529,7 +528,7 @@ export function Icon({ name, className, title, ...rest }: Props) {
 
     // ✅ Spinners/Loading
     case 'spinner':
-      return <Clock {...props} className={`${className} animate-spin`} />;
+      return <Loader2 {...props} className={`${className} animate-spin`} />;
     case 'loading':
       return <Loader2 {...props} className={`${className} animate-spin`} />;
 

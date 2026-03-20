@@ -52,6 +52,7 @@ export function SessionMasterControls({
       <SessionPanel
         title="Controle da sessao"
         subtitle="Apenas o mestre pode trocar cena e controlar turnos."
+        tone="control"
       >
         <p className="text-sm text-app-muted">
           Apenas o mestre pode trocar cena e controlar turnos.
@@ -64,72 +65,105 @@ export function SessionMasterControls({
     <SessionPanel
       title="Controle do mestre"
       subtitle="Ajustes de cena, turnos e encerramento da sessao."
+      tone="control"
     >
       {erroCena ? <ErrorAlert message={erroCena} /> : null}
       {erroTurnos ? <ErrorAlert message={erroTurnos} /> : null}
       {erroEncerramento ? <ErrorAlert message={erroEncerramento} /> : null}
-      <Select
-        label="Tipo de cena"
-        value={cenaTipo}
-        onChange={(event) => onCenaTipoChange(event.target.value as TipoCenaSessaoCampanha)}
-        options={opcoesCena}
-        disabled={sessaoEncerrada}
-      />
-      <Input
-        label="Nome da cena (opcional)"
-        value={cenaNome}
-        onChange={(event) => onCenaNomeChange(event.target.value)}
-        maxLength={120}
-        disabled={sessaoEncerrada}
-      />
-      <div className="flex items-center gap-2">
-        <Button onClick={onAtualizarCena} disabled={atualizandoCena || sessaoEncerrada}>
-          {atualizandoCena ? 'Atualizando...' : 'Atualizar cena'}
-        </Button>
-        {controleTurnosAtivo ? (
-          <>
+
+      <div className="session-master-group">
+        <div className="session-master-group__head">Cena</div>
+        <div className="session-master-group__body">
+          <Select
+            label="Tipo de cena"
+            value={cenaTipo}
+            onChange={(event) =>
+              onCenaTipoChange(event.target.value as TipoCenaSessaoCampanha)
+            }
+            options={opcoesCena}
+            disabled={sessaoEncerrada}
+          />
+          <Input
+            label="Nome da cena (opcional)"
+            value={cenaNome}
+            onChange={(event) => onCenaNomeChange(event.target.value)}
+            maxLength={120}
+            disabled={sessaoEncerrada}
+          />
+          <div className="flex items-center gap-2">
             <Button
-              variant="secondary"
-              onClick={() => onControleTurno('VOLTAR')}
-              disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+              onClick={onAtualizarCena}
+              disabled={atualizandoCena || sessaoEncerrada}
             >
-              {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar turno'}
+              {atualizandoCena ? 'Atualizando...' : 'Atualizar cena'}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => onControleTurno('PULAR')}
-              disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
-            >
-              {acaoTurnoPendente === 'PULAR' ? 'Pulando...' : 'Pular turno'}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => onControleTurno('AVANCAR')}
-              disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
-            >
-              {acaoTurnoPendente === 'AVANCAR' ? 'Avancando...' : 'Avancar turno'}
-            </Button>
-          </>
-        ) : null}
-        <Button
-          variant="destructive"
-          onClick={onSolicitarEncerrarSessao}
-          disabled={encerrandoSessao || sessaoEncerrada}
-        >
-          {encerrandoSessao
-            ? 'Encerrando...'
-            : sessaoEncerrada
-              ? 'Sessao encerrada'
-              : 'Encerrar sessao'}
-        </Button>
+          </div>
+        </div>
       </div>
-      {controleTurnosAtivo ? (
-        <p className="text-xs text-app-muted">
-          Atalhos: <span className="font-semibold">.</span> avancar |{' '}
-          <span className="font-semibold">Shift + ,</span> voltar |{' '}
-          <span className="font-semibold">Shift + /</span> pular.
-        </p>
-      ) : null}
+
+      <div className="session-master-group">
+        <div className="session-master-group__head">Turnos</div>
+        <div className="session-master-group__body">
+          {controleTurnosAtivo ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onControleTurno('VOLTAR')}
+                  disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                >
+                  {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar turno'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onControleTurno('PULAR')}
+                  disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                >
+                  {acaoTurnoPendente === 'PULAR' ? 'Pulando...' : 'Pular turno'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onControleTurno('AVANCAR')}
+                  disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                >
+                  {acaoTurnoPendente === 'AVANCAR'
+                    ? 'Avancando...'
+                    : 'Avancar turno'}
+                </Button>
+              </div>
+              <p className="text-xs text-app-muted">
+                Atalhos: <span className="font-semibold">.</span> avancar |{' '}
+                <span className="font-semibold">Shift + ,</span> voltar |{' '}
+                <span className="font-semibold">Shift + /</span> pular.
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-app-muted">
+              Controle de turnos desativado para esta sessao.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="session-master-group session-master-group--danger">
+        <div className="session-master-group__head">Encerramento</div>
+        <div className="session-master-group__body">
+          <Button
+            variant="destructive"
+            onClick={onSolicitarEncerrarSessao}
+            disabled={encerrandoSessao || sessaoEncerrada}
+          >
+            {encerrandoSessao
+              ? 'Encerrando...'
+              : sessaoEncerrada
+                ? 'Sessao encerrada'
+                : 'Encerrar sessao'}
+          </Button>
+        </div>
+      </div>
     </SessionPanel>
   );
 }

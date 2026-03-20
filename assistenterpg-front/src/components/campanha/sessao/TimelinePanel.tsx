@@ -31,7 +31,7 @@ export function TimelinePanel({
       {erro ? <ErrorAlert message={erro} /> : null}
       {eventosSessao.length === 0 ? (
         <EmptyState
-          variant="plain"
+          variant="session"
           size="sm"
           icon="list"
           title="Sem eventos"
@@ -53,11 +53,11 @@ export function TimelinePanel({
                 </span>
               ) : null}
             </div>
-            <p className="text-[11px] text-app-muted">
+            <p className="session-text-xxs text-app-muted">
               {textoSeguro(evento.tipoEvento)}
               {typeof evento.cenaId === 'number' ? ` | Cena #${evento.cenaId}` : ''}
             </p>
-            <p className="text-[11px] text-app-muted">
+            <p className="session-text-xxs text-app-muted">
               {formatarDataHora(evento.criadoEm)}
               {evento.autor?.apelido ? ` por ${textoSeguro(evento.autor.apelido)}` : ''}
             </p>

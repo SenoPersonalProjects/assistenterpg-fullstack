@@ -51,6 +51,8 @@ import { SessionInitiativePanel } from '@/components/campanha/sessao/SessionInit
 import { SessionMasterControls } from '@/components/campanha/sessao/SessionMasterControls';
 import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
+import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
+import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
 import { AddNpcModal } from '@/components/campanha/sessao/modals/AddNpcModal';
 import { AddPersonagemModal } from '@/components/campanha/sessao/modals/AddPersonagemModal';
 import { ConfirmEndSessionModal } from '@/components/campanha/sessao/modals/ConfirmEndSessionModal';
@@ -76,6 +78,7 @@ import {
   OPCOES_DURACAO_CONDICAO,
   parseInteiroComSinal,
 } from '@/lib/campanha/sessao-utils';
+import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
 import { useSessaoLayout } from '@/hooks/useSessaoLayout';
 import { useSessaoRealtime } from '@/hooks/useSessaoRealtime';
 import { useSessaoCena } from '@/hooks/useSessaoCena';
@@ -91,11 +94,13 @@ import {
   useSessaoRecursos,
 } from '@/hooks/useSessaoRecursos';
 import { useSessaoChat } from '@/hooks/useSessaoChat';
+import { useSessaoRolagem } from '@/hooks/useSessaoRolagem';
 import { useSessaoEncerramento } from '@/hooks/useSessaoEncerramento';
 import { useSessaoEventos } from '@/hooks/useSessaoEventos';
 import { useSessaoPreferencias } from '@/hooks/useSessaoPreferencias';
 import { useSessaoFiltroSustentadas } from '@/hooks/useSessaoFiltroSustentadas';
 import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
+import { ehMensagemDice } from '@/lib/campanha/sessao-dice';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -191,6 +196,7 @@ export default function SessaoCampanhaPage() {
   const [chat, setChat] = useState<MensagemChatSessao[]>([]);
   const [eventosSessao, setEventosSessao] = useState<EventoSessaoTimeline[]>([]);
   const [mensagem, setMensagem] = useState('');
+  const [mensagemRolagem, setMensagemRolagem] = useState('');
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
   const [cenaNome, setCenaNome] = useState('');
   const [ajustesRecursosPorCard, setAjustesRecursosPorCard] = useState<
@@ -242,6 +248,7 @@ export default function SessaoCampanhaPage() {
   const [erroIniciativa, setErroIniciativa] = useState<string | null>(null);
   const [erroEncerramento, setErroEncerramento] = useState<string | null>(null);
   const [erroChat, setErroChat] = useState<string | null>(null);
+  const [erroRolagens, setErroRolagens] = useState<string | null>(null);
   const [erroNpcs, setErroNpcs] = useState<string | null>(null);
   const [erroCondicoes, setErroCondicoes] = useState<string | null>(null);
   const [erroEventos, setErroEventos] = useState<string | null>(null);
@@ -253,6 +260,7 @@ export default function SessaoCampanhaPage() {
     useState(false);
   const [npcRemocaoConfirmacao, setNpcRemocaoConfirmacao] =
     useState<NpcSessaoCampanha | null>(null);
+  const [escudoAberto, setEscudoAberto] = useState(true);
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
     Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null
   >(null);
@@ -405,20 +413,44 @@ export default function SessaoCampanhaPage() {
       const idsEmCena = new Set(
         (detalhe?.cards ?? []).map((card) => card.personagemCampanhaId),
       );
+      const filtrados = personagens.filter(
+        (personagem) => !idsEmCena.has(personagem.id),
+      );
+      const podeVerTodos = Boolean(detalhe?.permissoes.ehMestre);
       setPersonagensDisponiveis(
-        personagens.filter((personagem) => !idsEmCena.has(personagem.id)),
+        podeVerTodos
+          ? filtrados
+          : filtrados.filter((personagem) => personagem.donoId === usuario.id),
       );
     } catch (error) {
       setErroCards(extrairMensagemErro(error));
     } finally {
       setCarregandoPersonagensDisponiveis(false);
     }
-  }, [campanhaId, detalhe?.cards, idsValidos, setErroCards, usuario]);
+  }, [
+    campanhaId,
+    detalhe?.cards,
+    detalhe?.permissoes.ehMestre,
+    idsValidos,
+    setErroCards,
+    usuario,
+  ]);
 
   useEffect(() => {
     if (!modalAdicionarPersonagemAberto) return;
     void carregarPersonagensDisponiveis();
   }, [carregarPersonagensDisponiveis, modalAdicionarPersonagemAberto]);
+
+  useEffect(() => {
+    if (!modalAdicionarPersonagemAberto) return;
+    if (personagemSelecionadoId) return;
+    if (personagensDisponiveis.length === 0) return;
+    setPersonagemSelecionadoId(String(personagensDisponiveis[0].id));
+  }, [
+    modalAdicionarPersonagemAberto,
+    personagemSelecionadoId,
+    personagensDisponiveis,
+  ]);
 
   const anexarMensagensNoChat = useCallback((mensagensNovas: MensagemChatSessao[]) => {
     if (mensagensNovas.length === 0) return;
@@ -438,14 +470,16 @@ export default function SessaoCampanhaPage() {
       const afterId = chatRef.current.length
         ? chatRef.current[chatRef.current.length - 1].id
         : undefined;
-      const [detalheAtual, mensagensNovas, eventos] = await Promise.all([
+      const [detalheAtual, mensagensNovas] = await Promise.all([
         apiGetSessaoCampanha(campanhaId, sessaoId),
         apiListarChatSessaoCampanha(campanhaId, sessaoId, afterId),
-        apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
-          limit: 80,
-          incluirChat: false,
-        }),
       ]);
+      const eventos = detalheAtual.permissoes.ehMestre
+        ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+            limit: 80,
+            incluirChat: false,
+          })
+        : [];
 
       setDetalhe(detalheAtual);
       sincronizarEstadosDerivados(detalheAtual);
@@ -464,14 +498,16 @@ export default function SessaoCampanhaPage() {
     setLoading(true);
     setErroGlobal(null);
     try {
-      const [detalheSessao, chatInicial, eventos] = await Promise.all([
+      const [detalheSessao, chatInicial] = await Promise.all([
         apiGetSessaoCampanha(campanhaId, sessaoId),
         apiListarChatSessaoCampanha(campanhaId, sessaoId),
-        apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
-          limit: 80,
-          incluirChat: false,
-        }),
       ]);
+      const eventos = detalheSessao.permissoes.ehMestre
+        ? await apiListarEventosSessaoCampanha(campanhaId, sessaoId, {
+            limit: 80,
+            incluirChat: false,
+          })
+        : [];
       setDetalhe(detalheSessao);
       sincronizarEstadosDerivados(detalheSessao);
       setChat(chatInicial);
@@ -533,42 +569,6 @@ export default function SessaoCampanhaPage() {
     showToast,
     sincronizarEstadosDerivados,
     usuario,
-  ]);
-
-  const handleConfirmarAdicionarNpc = useCallback(() => {
-    const npcId = Number(npcSelecionadoId);
-    if (!Number.isInteger(npcId) || npcId <= 0) {
-      setErroNpcs('Selecione um NPC valido.');
-      return;
-    }
-    const iniciativaTexto = npcIniciativaValor.trim();
-    if (!iniciativaTexto) {
-      setErroNpcs('Informe a iniciativa do NPC.');
-      return;
-    }
-    const iniciativaValor = parseInteiroComSinal(iniciativaTexto);
-    if (iniciativaValor === null) {
-      setErroNpcs('Informe um valor inteiro valido para iniciativa.');
-      return;
-    }
-
-    void handleAdicionarNpcNaCena(npcId, nomeNpcCustomizado, {
-      sanAtual: npcSanAtual,
-      sanMax: npcSanMax,
-      eaAtual: npcEaAtual,
-      eaMax: npcEaMax,
-      iniciativaValor,
-    });
-  }, [
-    handleAdicionarNpcNaCena,
-    npcEaAtual,
-    npcEaMax,
-    npcIniciativaValor,
-    npcSanAtual,
-    npcSanMax,
-    npcSelecionadoId,
-    nomeNpcCustomizado,
-    setErroNpcs,
   ]);
 
   const handleRemoverPersonagemDaCena = useCallback(
@@ -694,7 +694,13 @@ export default function SessaoCampanhaPage() {
     sessaoId,
   });
 
-  const { socketConectado, onlineUsuarioIds } = useSessaoRealtime({
+  useEffect(() => {
+    if (!podeControlarSessao && abaPainelDireitoAtiva === 'eventos') {
+      setAbaPainelDireitoAtiva('chat');
+    }
+  }, [abaPainelDireitoAtiva, podeControlarSessao, setAbaPainelDireitoAtiva]);
+
+  const { socketConectado, realtimeStatus, onlineUsuarioIds } = useSessaoRealtime({
     idsValidos,
     usuarioId: usuario?.id,
     campanhaId,
@@ -724,6 +730,7 @@ export default function SessaoCampanhaPage() {
 
   const {
     reordenandoIniciativa,
+    sucessoReordenacao,
     indiceIniciativaArrastado,
     indiceIniciativaHover,
     setIndiceIniciativaArrastado,
@@ -816,6 +823,42 @@ export default function SessaoCampanhaPage() {
     textoSeguro,
   });
 
+  const handleConfirmarAdicionarNpc = useCallback(() => {
+    const npcId = Number(npcSelecionadoId);
+    if (!Number.isInteger(npcId) || npcId <= 0) {
+      setErroNpcs('Selecione um NPC valido.');
+      return;
+    }
+    const iniciativaTexto = npcIniciativaValor.trim();
+    if (!iniciativaTexto) {
+      setErroNpcs('Informe a iniciativa do NPC.');
+      return;
+    }
+    const iniciativaValor = parseInteiroComSinal(iniciativaTexto);
+    if (iniciativaValor === null) {
+      setErroNpcs('Informe um valor inteiro valido para iniciativa.');
+      return;
+    }
+
+    void handleAdicionarNpcNaCena(npcId, nomeNpcCustomizado, {
+      sanAtual: npcSanAtual,
+      sanMax: npcSanMax,
+      eaAtual: npcEaAtual,
+      eaMax: npcEaMax,
+      iniciativaValor,
+    });
+  }, [
+    handleAdicionarNpcNaCena,
+    npcEaAtual,
+    npcEaMax,
+    npcIniciativaValor,
+    npcSanAtual,
+    npcSanMax,
+    npcSelecionadoId,
+    nomeNpcCustomizado,
+    setErroNpcs,
+  ]);
+
   const { enviandoMensagem, handleEnviarMensagem } = useSessaoChat({
     campanhaId,
     sessaoId,
@@ -823,6 +866,15 @@ export default function SessaoCampanhaPage() {
     setMensagem,
     setChat: (atualizar) => setChat(atualizar),
     setErro: setErroChat,
+  });
+
+  const { enviandoRolagem, handleEnviarRolagem } = useSessaoRolagem({
+    campanhaId,
+    sessaoId,
+    mensagem: mensagemRolagem,
+    setMensagem: setMensagemRolagem,
+    setChat: (atualizar) => setChat(atualizar),
+    setErro: setErroRolagens,
   });
 
   const { encerrandoSessao, handleEncerrarSessao } = useSessaoEncerramento({
@@ -974,8 +1026,23 @@ export default function SessaoCampanhaPage() {
     () => detalhe?.participantes ?? [],
     [detalhe?.participantes],
   );
-  const cards = detalhe?.cards ?? [];
-  const npcs = detalhe?.npcs ?? [];
+  const cards = useMemo(() => detalhe?.cards ?? [], [detalhe?.cards]);
+  const npcs = useMemo(() => detalhe?.npcs ?? [], [detalhe?.npcs]);
+  const rolagens = useMemo(
+    () => chat.filter((mensagemChat) => ehMensagemDice(mensagemChat.mensagem)),
+    [chat],
+  );
+  const chatSemRolagens = useMemo(
+    () => chat.filter((mensagemChat) => !ehMensagemDice(mensagemChat.mensagem)),
+    [chat],
+  );
+  const handleMensagemRolagemChange = useCallback(
+    (valor: string) => {
+      setMensagemRolagem(valor);
+      if (erroRolagens) setErroRolagens(null);
+    },
+    [erroRolagens],
+  );
   const iniciativaOrdem = useMemo(
     () => detalhe?.iniciativa.ordem ?? [],
     [detalhe?.iniciativa.ordem],
@@ -1027,6 +1094,40 @@ export default function SessaoCampanhaPage() {
     }
     return mapa;
   }, [iniciativaOrdem]);
+  const meuCard = useMemo(
+    () => cards.find((card) => card.donoId === usuario?.id) ?? null,
+    [cards, usuario?.id],
+  );
+  const iniciativaMeuCard = meuCard
+    ? iniciativaPorPersonagemSessao.get(meuCard.personagemSessaoId) ?? null
+    : null;
+  const ajustesMeuCard = meuCard
+    ? obterAjustesRecursosCard(meuCard.personagemCampanhaId)
+    : AJUSTE_RECURSO_PADRAO;
+  const campoRecursoPendenteMeuCard =
+    meuCard && campoRecursoPendente?.startsWith(`${meuCard.personagemCampanhaId}:`)
+      ? (campoRecursoPendente.split(':')[1] as CampoAjusteRecurso)
+      : null;
+  const cardRecursosExpandidoMeuCard = meuCard
+    ? Boolean(cardsRecursosExpandidos[meuCard.personagemSessaoId])
+    : false;
+  const abaDetalheMeuCard = meuCard
+    ? abasDetalheCard[meuCard.personagemSessaoId] ?? 'RESUMO'
+    : 'RESUMO';
+  const totalTecnicasMeuCard = meuCard
+    ? (meuCard.tecnicaInata ? 1 : 0) + meuCard.tecnicasNaoInatas.length
+    : 0;
+  const totalCondicoesMeuCard = meuCard ? meuCard.condicoesAtivas.length : 0;
+  const totalSustentacoesMeuCard = meuCard ? meuCard.sustentacoesAtivas.length : 0;
+  const mostrarSomenteSustentadasMeuCard = meuCard
+    ? Boolean(mostrarSomenteSustentadas[meuCard.personagemSessaoId])
+    : false;
+  const tecnicaInataAbertaMeuCard = meuCard
+    ? tecnicasInatasAbertas[meuCard.personagemSessaoId] ?? true
+    : true;
+  const tecnicasNaoInatasAbertasMeuCard = meuCard
+    ? Boolean(tecnicasNaoInatasAbertas[meuCard.personagemSessaoId])
+    : false;
   const gridSessaoClassName = useMemo(() => {
     if (colunaEsquerdaRecolhida && colunaDireitaRecolhida) {
       return 'grid gap-4 xl:grid-cols-1';
@@ -1364,6 +1465,7 @@ export default function SessaoCampanhaPage() {
           proximoTurnoLabel={proximoTurnoLabel}
           sessaoEncerrada={sessaoEncerrada}
           realtimeAtivo={socketConectado}
+          realtimeStatus={realtimeStatus}
           controleTurnosAtivo={detalhe.controleTurnosAtivo}
           combateAtivo={detalhe.cenaAtual.tipo === 'COMBATE'}
           podeControlarSessao={podeControlarSessao}
@@ -1416,49 +1518,146 @@ export default function SessaoCampanhaPage() {
               >
                 <Icon name="chevron-left" className="h-3.5 w-3.5" />
               </button>
-            {podeControlarSessao ? (
-              <SessionPanel
-                title="Escudo do Mestre"
-                subtitle="Guias rapidos com regras operacionais da mesa."
-                right={
-                  <span className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface p-2">
-                    <Icon name="shield" className="h-4 w-4 text-app-fg" />
-                  </span>
-                }
-              >
-                <MestreShieldGuide />
-              </SessionPanel>
-            ) : (
-              renderCardsSessao()
-            )}
 
-            <SessionNpcsPanel
-              npcs={npcs}
-              podeControlarSessao={podeControlarSessao}
-              sessaoEncerrada={sessaoEncerrada}
-              npcsDisponiveis={npcsDisponiveis}
-              iniciativaPorNpcSessao={iniciativaPorNpcSessao}
-              edicaoNpcs={edicaoNpcs}
-              ajustesRecursosNpc={ajustesRecursosNpc}
-              salvandoNpcId={salvandoNpcId}
-              campoRecursoPendente={campoRecursoNpcPendente}
-              removendoNpcId={removendoNpcId}
-              erro={erroNpcs}
-              onAbrirAdicionar={() => setModalAdicionarNpcAberto(true)}
-              onAtualizarCampo={atualizarCampoEdicaoNpc}
-              onAtualizarAjustePersonalizado={(npc, campo, valor) =>
-                atualizarAjusteRecursoNpc(npc.npcSessaoId, campo, valor)
-              }
-              onAplicarDeltaRecurso={(npc, campo, delta) =>
-                void handleAplicarDeltaRecursoNpc(npc, campo, delta)
-              }
-              onAplicarAjustePersonalizado={(npc, campo) =>
-                void handleAplicarAjustePersonalizadoRecursoNpc(npc, campo)
-              }
-              onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
-              onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
-              renderPainelCondicoes={renderPainelCondicoes}
-            />
+              {podeControlarSessao ? (
+                <>
+                  <SessionPanel
+                    title="Escudo do Mestre"
+                    subtitle="Guias rapidos com regras operacionais da mesa."
+                    tone="control"
+                    right={
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface p-2">
+                          <Icon name="shield" className="h-4 w-4 text-app-fg" />
+                        </span>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() => setEscudoAberto((aberto) => !aberto)}
+                          title={escudoAberto ? 'Recolher escudo' : 'Expandir escudo'}
+                        >
+                          <Icon
+                            name={escudoAberto ? 'chevron-up' : 'chevron-down'}
+                            className="h-3.5 w-3.5"
+                          />
+                        </Button>
+                      </div>
+                    }
+                  >
+                    {escudoAberto ? <MestreShieldGuide /> : null}
+                  </SessionPanel>
+
+                  <SessionNpcsPanel
+                    npcs={npcs}
+                    podeControlarSessao={podeControlarSessao}
+                    sessaoEncerrada={sessaoEncerrada}
+                    npcsDisponiveis={npcsDisponiveis}
+                    iniciativaPorNpcSessao={iniciativaPorNpcSessao}
+                    edicaoNpcs={edicaoNpcs}
+                    ajustesRecursosNpc={ajustesRecursosNpc}
+                    salvandoNpcId={salvandoNpcId}
+                    campoRecursoPendente={campoRecursoNpcPendente}
+                    removendoNpcId={removendoNpcId}
+                    erro={erroNpcs}
+                    onAbrirAdicionar={() => setModalAdicionarNpcAberto(true)}
+                    onAtualizarCampo={atualizarCampoEdicaoNpc}
+                    onAtualizarAjustePersonalizado={(npc, campo, valor) =>
+                      atualizarAjusteRecursoNpc(npc.npcSessaoId, campo, valor)
+                    }
+                    onAplicarDeltaRecurso={(npc, campo, delta) =>
+                      void handleAplicarDeltaRecursoNpc(npc, campo, delta)
+                    }
+                    onAplicarAjustePersonalizado={(npc, campo) =>
+                      void handleAplicarAjustePersonalizadoRecursoNpc(npc, campo)
+                    }
+                    onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
+                    onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
+                    renderPainelCondicoes={renderPainelCondicoes}
+                  />
+                </>
+              ) : (
+                <SessionPlayerSummaryPanel
+                  card={meuCard}
+                  iniciativaValor={iniciativaMeuCard}
+                  cardRecursosExpandido={cardRecursosExpandidoMeuCard}
+                  abaDetalheCard={abaDetalheMeuCard}
+                  totalCondicoesAtivasCard={totalCondicoesMeuCard}
+                  totalTecnicasCard={totalTecnicasMeuCard}
+                  totalSustentacoesAtivasCard={totalSustentacoesMeuCard}
+                  mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasMeuCard}
+                  tecnicaInataAberta={tecnicaInataAbertaMeuCard}
+                  tecnicasNaoInatasAbertas={tecnicasNaoInatasAbertasMeuCard}
+                  sessaoEncerrada={sessaoEncerrada}
+                  ajustesRecursos={ajustesMeuCard}
+                  campoRecursoPendente={campoRecursoPendenteMeuCard}
+                  salvandoCardId={salvandoCardId}
+                  podeAdicionar={!sessaoEncerrada}
+                  onAbrirAdicionar={() => setModalAdicionarPersonagemAberto(true)}
+                  onAlternarExpandido={() => {
+                    if (!meuCard) return;
+                    alternarCardExpandido(meuCard.personagemSessaoId);
+                  }}
+                  onAtualizarAbaDetalheCard={(aba) => {
+                    if (!meuCard) return;
+                    atualizarAbaDetalheCard(meuCard.personagemSessaoId, aba);
+                  }}
+                  onToggleMostrarSomenteSustentadas={(checked) => {
+                    if (!meuCard) return;
+                    atualizarFiltroSustentadas(meuCard.personagemSessaoId, checked);
+                  }}
+                  onToggleTecnicaInata={(aberto) => {
+                    if (!meuCard) return;
+                    atualizarTecnicasInatasAbertas(meuCard.personagemSessaoId, aberto);
+                  }}
+                  onToggleTecnicasNaoInatas={(aberto) => {
+                    if (!meuCard) return;
+                    atualizarTecnicasNaoInatasAbertas(
+                      meuCard.personagemSessaoId,
+                      aberto,
+                    );
+                  }}
+                  acaoHabilidadePendente={acaoHabilidadePendente}
+                  acumulosHabilidade={acumulosHabilidade}
+                  onAtualizarAcumulosHabilidade={atualizarAcumuloHabilidade}
+                  onUsarHabilidade={(personagemSessaoId, habilidadeTecnicaId, variacaoId, acumulos) =>
+                    void handleUsarHabilidade(
+                      personagemSessaoId,
+                      habilidadeTecnicaId,
+                      variacaoId,
+                      acumulos,
+                    )
+                  }
+                  onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
+                    void handleEncerrarSustentacao(personagemSessaoId, sustentacaoId)
+                  }
+                  formatarCustos={formatarCustos}
+                  renderPainelCondicoes={renderPainelCondicoes}
+                  onAbrirFichaCompleta={() => {
+                    if (!meuCard) return;
+                    handleAbrirFichaCompleta(meuCard);
+                  }}
+                  onSolicitarRemover={() => {
+                    if (!meuCard) return;
+                    solicitarRemoverPersonagem(meuCard);
+                  }}
+                  onAtualizarAjusteRecurso={(campo, valor) => {
+                    if (!meuCard) return;
+                    atualizarAjusteRecursoCard(
+                      meuCard.personagemCampanhaId,
+                      campo,
+                      valor,
+                    );
+                  }}
+                  onAplicarDeltaRecurso={(campo, delta) => {
+                    if (!meuCard) return;
+                    void handleAplicarDeltaRecursoCard(meuCard, campo, delta);
+                  }}
+                  onAplicarAjustePersonalizado={(campo) => {
+                    if (!meuCard) return;
+                    void handleAplicarAjustePersonalizadoRecursoCard(meuCard, campo);
+                  }}
+                />
+              )}
             </section>
           ) : null}
 
@@ -1473,6 +1672,7 @@ export default function SessaoCampanhaPage() {
               podeControlarSessao={podeControlarSessao}
               acaoTurnoPendente={acaoTurnoPendente}
               reordenandoIniciativa={reordenandoIniciativa}
+              sucessoReordenacao={sucessoReordenacao}
               indiceIniciativaArrastado={indiceIniciativaArrastado}
               indiceIniciativaHover={indiceIniciativaHover}
               erro={erroIniciativa}
@@ -1490,27 +1690,37 @@ export default function SessaoCampanhaPage() {
               labelParticipanteIniciativa={labelParticipanteIniciativa}
             />
 
-            <SessionMasterControls
-              podeControlarSessao={podeControlarSessao}
-              sessaoEncerrada={sessaoEncerrada}
-              controleTurnosAtivo={detalhe.controleTurnosAtivo}
-              cenaTipo={cenaTipo}
-              cenaNome={cenaNome}
-              opcoesCena={OPCOES_CENA}
-              atualizandoCena={atualizandoCena}
-              acaoTurnoPendente={acaoTurnoPendente}
-              encerrandoSessao={encerrandoSessao}
-              erroCena={erroCena}
-              erroTurnos={erroTurnos}
-              erroEncerramento={erroEncerramento}
-              onCenaTipoChange={setCenaTipo}
-              onCenaNomeChange={setCenaNome}
-              onAtualizarCena={() => void handleAtualizarCena(cenaTipo, cenaNome)}
-              onControleTurno={(acao) => void handleControleTurno(acao)}
-              onSolicitarEncerrarSessao={() =>
-                setConfirmarEncerrarSessaoAberto(true)
-              }
-            />
+            {podeControlarSessao ? (
+              <SessionMasterControls
+                podeControlarSessao={podeControlarSessao}
+                sessaoEncerrada={sessaoEncerrada}
+                controleTurnosAtivo={detalhe.controleTurnosAtivo}
+                cenaTipo={cenaTipo}
+                cenaNome={cenaNome}
+                opcoesCena={OPCOES_CENA}
+                atualizandoCena={atualizandoCena}
+                acaoTurnoPendente={acaoTurnoPendente}
+                encerrandoSessao={encerrandoSessao}
+                erroCena={erroCena}
+                erroTurnos={erroTurnos}
+                erroEncerramento={erroEncerramento}
+                onCenaTipoChange={setCenaTipo}
+                onCenaNomeChange={setCenaNome}
+                onAtualizarCena={() =>
+                  void handleAtualizarCena(cenaTipo, cenaNome)
+                }
+                onControleTurno={(acao) => void handleControleTurno(acao)}
+                onSolicitarEncerrarSessao={() =>
+                  setConfirmarEncerrarSessaoAberto(true)
+                }
+              />
+            ) : (
+              <SessionSceneRosterPanel
+                cards={cards}
+                npcs={npcs}
+                iniciativaOrdem={iniciativaOrdem}
+              />
+            )}
           </section>
 
           {!colunaDireitaRecolhida ? (
@@ -1523,33 +1733,39 @@ export default function SessaoCampanhaPage() {
               >
                 <Icon name="chevron-left" className="h-3.5 w-3.5" />
               </button>
-            <SessionSidebarPanel
-              activeTab={abaPainelDireitoAtiva}
-              onChangeTab={setAbaPainelDireitoAtiva}
-              chat={chat}
-              eventosSessao={eventosSessao}
-              participantes={participantes}
-              onlineSet={onlineSet}
-              sessaoEncerrada={sessaoEncerrada}
-              podeControlarSessao={podeControlarSessao}
-              desfazendoEventoId={desfazendoEventoId}
-              erroEventos={erroEventos}
-              erroChat={erroChat}
-              enviandoMensagem={enviandoMensagem}
-              mensagem={mensagem}
-              usuarioId={usuario?.id ?? null}
-              fimChatRef={fimChatRef}
-              onMensagemChange={setMensagem}
-              onEnviarMensagem={() => void handleEnviarMensagem()}
-              onAbrirDetalhes={(evento) => {
-                setEventoDetalheModal(evento);
-                setMotivoDesfazerEventoModal('');
-              }}
-              onDesfazerEvento={(evento) =>
-                solicitarDesfazerEvento(evento, undefined, 'lista')
-              }
-              realtimeAtivo={socketConectado}
-            />
+              <SessionSidebarPanel
+                activeTab={abaPainelDireitoAtiva}
+                onChangeTab={setAbaPainelDireitoAtiva}
+                chat={chatSemRolagens}
+                rolagens={rolagens}
+                eventosSessao={eventosSessao}
+                participantes={participantes}
+                onlineSet={onlineSet}
+                sessaoEncerrada={sessaoEncerrada}
+                podeControlarSessao={podeControlarSessao}
+                desfazendoEventoId={desfazendoEventoId}
+                erroEventos={erroEventos}
+                erroChat={erroChat}
+                erroRolagens={erroRolagens}
+                enviandoMensagem={enviandoMensagem}
+                enviandoRolagem={enviandoRolagem}
+                mensagem={mensagem}
+                mensagemRolagem={mensagemRolagem}
+                usuarioId={usuario?.id ?? null}
+                fimChatRef={fimChatRef}
+                onMensagemChange={setMensagem}
+                onEnviarMensagem={() => void handleEnviarMensagem()}
+                onMensagemRolagemChange={handleMensagemRolagemChange}
+                onEnviarRolagem={() => void handleEnviarRolagem()}
+                onAbrirDetalhes={(evento) => {
+                  setEventoDetalheModal(evento);
+                  setMotivoDesfazerEventoModal('');
+                }}
+                onDesfazerEvento={(evento) =>
+                  solicitarDesfazerEvento(evento, undefined, 'lista')
+                }
+                realtimeStatus={realtimeStatus}
+              />
             </section>
           ) : null}
         </div>
@@ -1589,6 +1805,7 @@ export default function SessaoCampanhaPage() {
           iniciativaValor={personagemIniciativaValor}
           onIniciativaValorChange={setPersonagemIniciativaValor}
           carregando={carregandoPersonagensDisponiveis}
+          erro={erroCards}
         />
 
         <InitiativeValueModal

@@ -18,6 +18,7 @@ type SessionInitiativePanelProps = {
   podeControlarSessao: boolean;
   acaoTurnoPendente?: AcaoControleTurno | null;
   reordenandoIniciativa: boolean;
+  sucessoReordenacao?: boolean;
   indiceIniciativaArrastado: number | null;
   indiceIniciativaHover: number | null;
   erro?: string | null;
@@ -42,13 +43,11 @@ export function SessionInitiativePanel({
   iniciativaOrdem,
   iniciativaIndiceAtual,
   podeControlarSessao,
-  acaoTurnoPendente,
   reordenandoIniciativa,
+  sucessoReordenacao,
   indiceIniciativaArrastado,
   indiceIniciativaHover,
   erro,
-  onAvancarTurno,
-  onVoltarTurno,
   onSetIndiceIniciativaArrastado,
   onSetIndiceIniciativaHover,
   onDropIniciativa,
@@ -78,56 +77,34 @@ export function SessionInitiativePanel({
   const proximoResumo = proximoParticipante
     ? labelParticipanteIniciativa(proximoParticipante)
     : '—';
-  const podeControlarTurnos =
-    podeControlarSessao &&
-    controleTurnosAtivo &&
-    typeof onAvancarTurno === 'function' &&
-    typeof onVoltarTurno === 'function';
-  const turnosDisabled = sessaoEncerrada || Boolean(acaoTurnoPendente);
   const rightContent = (
-    <div className="flex flex-col items-end gap-2">
-      {podeControlarTurnos ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="min-w-[110px]"
-            onClick={onVoltarTurno}
-            disabled={turnosDisabled}
-          >
-            <Icon name="chevron-left" className="mr-1 h-3.5 w-3.5" />
-            {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Anterior'}
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            className="min-w-[110px]"
-            onClick={onAvancarTurno}
-            disabled={turnosDisabled}
-          >
-            <Icon name="chevron-right" className="mr-1 h-3.5 w-3.5" />
-            {acaoTurnoPendente === 'AVANCAR' ? 'Avancando...' : 'Proximo'}
-          </Button>
-        </div>
-      ) : null}
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge color={controleTurnosAtivo ? 'green' : 'gray'} size="sm">
-          {controleTurnosAtivo ? 'Turnos ativos' : 'Turnos livres'}
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="session-panel-meta">
+        {controleTurnosAtivo ? 'Turnos ativos' : 'Turnos livres'}
+      </span>
+      {reordenandoIniciativa ? (
+        <Badge color="yellow" size="sm" title="Reordenando iniciativa">
+          <Icon name="shuffle" className="mr-1 h-3.5 w-3.5" />
+          Reordenando
         </Badge>
-        {reordenandoIniciativa ? (
-          <Badge color="yellow" size="sm" title="Reordenando iniciativa">
-            <Icon name="shuffle" className="mr-1 h-3.5 w-3.5" />
-            Reordenando
-          </Badge>
-        ) : null}
-      </div>
+      ) : null}
+      {sucessoReordenacao ? (
+        <Badge color="green" size="sm">
+          Ordem atualizada
+        </Badge>
+      ) : null}
     </div>
   );
 
   return (
     <SessionPanel
       title="Ordem de iniciativa"
-      subtitle="Arraste ou use as setas para reordenar participantes."
+      subtitle={
+        podeControlarSessao
+          ? 'Arraste ou use as setas para reordenar participantes.'
+          : 'Acompanhe a ordem da cena em tempo real.'
+      }
+      tone="main"
       right={rightContent}
     >
       {erro ? <ErrorAlert message={erro} /> : null}
@@ -147,7 +124,7 @@ export function SessionInitiativePanel({
         )}
 
         {mostrarAjudaReordenacao ? (
-          <details className="text-[11px] text-app-muted">
+          <details className="session-text-xxs text-app-muted">
             <summary className="cursor-pointer">Como funciona a reordenacao</summary>
             <p className="mt-1">
               Ao mover na ordem, a INI fica 1 ponto acima ou abaixo do vizinho.
@@ -157,7 +134,7 @@ export function SessionInitiativePanel({
 
         {iniciativaOrdem.length === 0 ? (
           <EmptyState
-            variant="plain"
+            variant="session"
             size="sm"
             icon="target"
             title="Iniciativa vazia"
@@ -181,6 +158,7 @@ export function SessionInitiativePanel({
                 indiceIniciativaArrastado !== null &&
                 indiceIniciativaArrastado !== indice;
               const arrastando = indiceIniciativaArrastado === indice;
+              const reordenando = reordenandoIniciativa;
               const nomeParticipante = labelParticipanteIniciativa(participante);
 
               return (
@@ -215,7 +193,9 @@ export function SessionInitiativePanel({
                     emTurno ? ' session-iniciativa-linha--turno' : ''
                   }${proximo ? ' session-iniciativa-linha--proximo' : ''}${
                     hoverAtivo ? ' session-iniciativa-linha--hover' : ''
-                  }${arrastando ? ' session-iniciativa-linha--dragging' : ''}`}
+                  }${arrastando ? ' session-iniciativa-linha--dragging' : ''}${
+                    reordenando ? ' session-iniciativa-linha--reordenando' : ''
+                  }`}
                 >
                   <div className="min-w-0 flex items-center gap-2">
                     <span className="session-iniciativa-handle">

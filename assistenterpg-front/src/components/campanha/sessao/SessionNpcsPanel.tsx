@@ -57,6 +57,7 @@ type SessionNpcsPanelProps = {
     alvoId: number,
     nomeAlvo: string,
     condicoesAtivas: CondicaoAtivaSessaoCampanha[],
+    modo?: 'inline' | 'accordion',
   ) => ReactNode;
 };
 
@@ -85,6 +86,7 @@ export function SessionNpcsPanel({
     <SessionPanel
       title="Aliados ou ameacas na cena"
       subtitle="Mestre adiciona e ajusta aliados ou ameacas por cena. Jogadores visualizam em modo leitura."
+      tone="aside"
       right={
         podeControlarSessao ? (
           <Button
@@ -102,7 +104,7 @@ export function SessionNpcsPanel({
 
       {npcs.length === 0 ? (
         <EmptyState
-          variant="card"
+          variant="session"
           size="sm"
           icon="curse"
           title="Sem aliados ou ameacas nesta cena"

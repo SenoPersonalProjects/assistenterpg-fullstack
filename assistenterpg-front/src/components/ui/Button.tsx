@@ -18,21 +18,24 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'inline-flex items-center justify-center rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center rounded-lg font-medium transition-[transform,box-shadow,background-color,border-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed';
 
   const sizeClasses: Record<ButtonSize, string> = {
-    xs: 'px-1.5 py-0.5 text-xs leading-tight',
-    sm: 'px-2 py-1 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-5 py-3 text-base',
+    xs: 'min-h-[1.75rem] px-2 py-0.5 text-xs leading-tight',
+    sm: 'min-h-[2rem] px-2.5 py-1 text-xs',
+    md: 'min-h-[2.5rem] px-4 py-2 text-sm',
+    lg: 'min-h-[2.75rem] px-5 py-3 text-base',
   };
 
   const variantClasses: Record<ButtonVariant, string> = {
-    primary: 'bg-app-primary text-app-fg hover:bg-app-primary-hover',
+    primary:
+      'bg-app-primary text-app-fg shadow-sm hover:bg-app-primary-hover hover:shadow',
     secondary:
       'bg-app-surface text-app-fg hover:bg-app-secondary-hover border border-app-border',
-    ghost: 'bg-transparent text-app-primary hover:bg-app-surface',
-    destructive: 'bg-app-danger text-app-fg hover:bg-app-danger-hover',
+    ghost:
+      'bg-transparent text-app-primary hover:bg-app-surface border border-transparent hover:border-app-border',
+    destructive:
+      'bg-app-danger text-app-fg shadow-sm hover:bg-app-danger-hover hover:shadow',
   };
 
   return (

@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 type ConfirmEndSessionModalProps = {
   isOpen: boolean;
@@ -19,29 +18,17 @@ export function ConfirmEndSessionModal({
   sessaoEncerrada,
 }: ConfirmEndSessionModalProps) {
   return (
-    <Modal
+    <ConfirmDialog
       isOpen={isOpen}
       onClose={onClose}
+      onConfirm={onConfirm}
       title="Encerrar sessao"
-      size="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={encerrandoSessao}>
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-            disabled={encerrandoSessao || sessaoEncerrada}
-          >
-            {encerrandoSessao ? 'Encerrando...' : 'Encerrar sessao'}
-          </Button>
-        </>
-      }
-    >
-      <p className="text-sm text-app-fg">
-        Encerrar a sessao vai bloquear operacoes de combate e atualizacoes de cena.
-      </p>
-    </Modal>
+      description="Encerrar a sessao vai bloquear operacoes de combate e atualizacoes de cena."
+      confirmLabel="Encerrar sessao"
+      cancelLabel="Cancelar"
+      variant="danger"
+      confirmDisabled={sessaoEncerrada}
+      confirmLoading={encerrandoSessao}
+    />
   );
 }

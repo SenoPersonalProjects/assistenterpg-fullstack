@@ -40,17 +40,20 @@ export function InitiativeValueModal({
         </>
       }
     >
-      <div className="space-y-3">
-        <p className="text-xs text-app-muted">
-          Ajuste a iniciativa de <strong className="text-app-fg">{nomeParticipante}</strong>.
+      <div className="space-y-4">
+        <p className="text-sm text-app-muted">
+          Ajuste a iniciativa de{' '}
+          <strong className="text-app-fg">{nomeParticipante}</strong>.
         </p>
-        <Input
-          type="number"
-          label="Iniciativa (inteiro)"
-          value={valor}
-          onChange={(event) => onValorChange(event.target.value)}
-          placeholder="Ex.: 12"
-        />
+        <div className="rounded border border-app-border bg-app-surface p-3">
+          <Input
+            type="number"
+            label="Iniciativa (inteiro)"
+            value={valor}
+            onChange={(event) => onValorChange(event.target.value)}
+            placeholder="Ex.: 12"
+          />
+        </div>
       </div>
     </Modal>
   );

@@ -45,7 +45,7 @@ export function EventoDetalheModal({
           </Button>
           {podeDesfazer && evento ? (
             <Button
-              variant="secondary"
+              variant="destructive"
               onClick={() => onDesfazerEvento(evento, motivoDesfazer)}
               disabled={sessaoEncerrada || Boolean(desfazendoEventoId)}
             >
@@ -56,38 +56,45 @@ export function EventoDetalheModal({
       }
     >
       {evento ? (
-        <div className="space-y-3">
-          <div className="rounded border border-app-border bg-app-bg p-2 space-y-1">
-            <p className="text-xs font-semibold text-app-fg">{textoSeguro(evento.descricao)}</p>
-            <p className="text-[11px] text-app-muted">
+        <div className="space-y-4">
+          <div className="rounded border border-app-border bg-app-surface p-3 space-y-1">
+            <p className="text-sm font-semibold text-app-fg">
+              {textoSeguro(evento.descricao)}
+            </p>
+            <p className="text-xs text-app-muted">
               Tipo: {textoSeguro(evento.tipoEvento)}
               {typeof evento.cenaId === 'number' ? ` | Cena #${evento.cenaId}` : ''}
             </p>
-            <p className="text-[11px] text-app-muted">
+            <p className="text-xs text-app-muted">
               {formatarDataHora(evento.criadoEm)}
               {evento.autor?.apelido ? ` por ${textoSeguro(evento.autor.apelido)}` : ''}
             </p>
             {evento.desfeito ? (
-              <p className="text-[11px] text-app-muted">Evento marcado como desfeito.</p>
+              <p className="text-xs text-app-muted">Evento marcado como desfeito.</p>
             ) : null}
           </div>
 
           {podeDesfazer ? (
-            <Input
-              label="Motivo para desfazer (opcional)"
-              value={motivoDesfazer}
-              onChange={(event) => onMotivoDesfazerChange(event.target.value)}
-              placeholder="Ex.: acao aplicada por engano"
-              disabled={sessaoEncerrada || Boolean(desfazendoEventoId)}
-            />
+            <div className="rounded border border-app-border bg-app-bg p-3 space-y-2">
+              <p className="text-xs font-semibold text-app-fg">Desfazer evento</p>
+              <Input
+                label="Motivo para desfazer (opcional)"
+                value={motivoDesfazer}
+                onChange={(event) => onMotivoDesfazerChange(event.target.value)}
+                placeholder="Ex.: acao aplicada por engano"
+                disabled={sessaoEncerrada || Boolean(desfazendoEventoId)}
+              />
+            </div>
           ) : null}
 
-          <div className="rounded border border-app-border bg-app-bg p-2 space-y-2">
-            <p className="text-xs font-semibold text-app-fg">Dados brutos</p>
-            <pre className="max-h-[320px] overflow-auto rounded border border-app-border bg-app-surface p-2 text-[11px] text-app-muted whitespace-pre-wrap break-words">
+          <details className="rounded border border-app-border bg-app-bg p-3">
+            <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+              Dados tecnicos
+            </summary>
+            <pre className="mt-2 max-h-[320px] overflow-auto rounded border border-app-border bg-app-surface p-2 text-[11px] text-app-muted whitespace-pre-wrap break-words">
               {dadosEventoDetalhe}
             </pre>
-          </div>
+          </details>
         </div>
       ) : null}
     </Modal>

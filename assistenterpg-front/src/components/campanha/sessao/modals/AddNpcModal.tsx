@@ -74,44 +74,58 @@ export function AddNpcModal({
               !iniciativaValor.trim()
             }
           >
-            {adicionando ? 'Adicionando...' : 'Adicionar na cena'}
+            {adicionando ? 'Adicionando...' : 'Adicionar NPC'}
           </Button>
         </>
       }
     >
-      <div className="space-y-3">
-        <Select
-          label="Ficha disponivel"
-          value={npcSelecionadoId}
-          onChange={(event) => onNpcSelecionadoChange(event.target.value)}
-        >
-          {npcsDisponiveis.length === 0 ? (
-            <option value="">Nenhuma ficha encontrada</option>
-          ) : null}
-          {npcsDisponiveis.map((npcDisponivel) => (
-            <option key={npcDisponivel.id} value={String(npcDisponivel.id)}>
-              {textoSeguro(npcDisponivel.nome)} ({labelTipoNpc(npcDisponivel.tipo)})
-            </option>
-          ))}
-        </Select>
-        <Input
-          label="Nome em cena (opcional)"
-          value={nomeNpcCustomizado}
-          onChange={(event) => onNomeNpcCustomizadoChange(event.target.value)}
-          placeholder="Ex.: Taro (ferido)"
-        />
-        <Input
-          type="number"
-          label="Iniciativa (inteiro)"
-          value={iniciativaValor}
-          onChange={(event) => onIniciativaValorChange(event.target.value)}
-          placeholder="Ex.: 18"
-        />
-        <div className="rounded border border-app-border bg-app-surface p-3 space-y-2">
-          <p className="text-xs font-semibold text-app-fg">
-            Recursos opcionais (SAN / EA)
+      <div className="space-y-4">
+        <p className="text-sm text-app-muted">
+          Escolha a ficha e defina a iniciativa para inserir o NPC na cena.
+        </p>
+
+        <div className="rounded border border-app-border bg-app-surface p-3 space-y-3">
+          <Select
+            label="Ficha disponivel"
+            value={npcSelecionadoId}
+            onChange={(event) => onNpcSelecionadoChange(event.target.value)}
+          >
+            {npcsDisponiveis.length === 0 ? (
+              <option value="">Nenhuma ficha encontrada</option>
+            ) : null}
+            {npcsDisponiveis.map((npcDisponivel) => (
+              <option key={npcDisponivel.id} value={String(npcDisponivel.id)}>
+                {textoSeguro(npcDisponivel.nome)} ({labelTipoNpc(npcDisponivel.tipo)})
+              </option>
+            ))}
+          </Select>
+          <Input
+            label="Nome em cena (opcional)"
+            value={nomeNpcCustomizado}
+            onChange={(event) => onNomeNpcCustomizadoChange(event.target.value)}
+            placeholder="Ex.: Taro (ferido)"
+          />
+          <p className="text-xs text-app-muted">
+            Use o nome em cena para diferenciar aliados ou ameacas iguais.
           </p>
-          <div className="grid grid-cols-2 gap-2">
+        </div>
+
+        <div className="rounded border border-app-border bg-app-bg p-3 space-y-2">
+          <p className="text-xs font-semibold text-app-fg">Iniciativa</p>
+          <Input
+            type="number"
+            label="Valor inteiro"
+            value={iniciativaValor}
+            onChange={(event) => onIniciativaValorChange(event.target.value)}
+            placeholder="Ex.: 18"
+          />
+        </div>
+
+        <details className="rounded border border-app-border bg-app-surface p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+            Recursos opcionais (SAN / EA)
+          </summary>
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <Input
               type="number"
               label="SAN atual"
@@ -141,13 +155,10 @@ export function AddNpcModal({
               placeholder="Ex.: 8"
             />
           </div>
-          <p className="text-[11px] text-app-muted">
+          <p className="mt-2 text-[11px] text-app-muted">
             Deixe em branco para nao considerar SAN/EA neste NPC.
           </p>
-        </div>
-        <p className="text-xs text-app-muted">
-          Dica: use o nome em cena para diferenciar aliados ou ameacas iguais na mesma rodada.
-        </p>
+        </details>
       </div>
     </Modal>
   );

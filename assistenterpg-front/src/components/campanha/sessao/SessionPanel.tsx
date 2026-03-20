@@ -7,6 +7,7 @@ type SessionPanelProps = {
   title: ReactNode;
   subtitle?: ReactNode;
   right?: ReactNode;
+  tone?: 'main' | 'control' | 'aside';
   className?: string;
   bodyClassName?: string;
   headerClassName?: string;
@@ -18,6 +19,7 @@ export function SessionPanel({
   title,
   subtitle,
   right,
+  tone = 'main',
   className = '',
   bodyClassName = '',
   headerClassName = '',
@@ -34,7 +36,9 @@ export function SessionPanel({
   const bodyClasses = ['session-panel-body', bodyClassName].filter(Boolean).join(' ');
 
   return (
-    <Card className={`session-panel session-panel-frame ${className}`}>
+    <Card
+      className={`session-panel session-panel-frame session-panel--${tone} ${className}`}
+    >
       <div className={headerClasses}>
         <div className="min-w-0">
           <h2 className="session-panel-title">{title}</h2>

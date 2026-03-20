@@ -1,10 +1,10 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { RefObject } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Modal } from '@/components/ui/Modal';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
 import type { MensagemChatSessao } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
@@ -12,10 +12,10 @@ import { parseDiceMessageGroup } from '@/lib/campanha/sessao-dice';
 import { formatarDataHora } from '@/lib/utils/formatters';
 
 const LIMIAR_AGRUPAMENTO_MS = 5 * 60 * 1000;
-const ALTURA_MAX_TEXTAREA = 180;
-const LIMITE_MENSAGEM_CHAT = 100;
+const ALTURA_MAX_TEXTAREA = 120;
+const LIMITE_MENSAGEM_ROLAGEM = 60;
 
-type ChatPanelProps = {
+type DiceChatPanelProps = {
   chat: MensagemChatSessao[];
   mensagem: string;
   enviandoMensagem: boolean;
@@ -24,10 +24,9 @@ type ChatPanelProps = {
   erro?: string | null;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
-  fimChatRef: RefObject<HTMLDivElement | null>;
 };
 
-export function ChatPanel({
+export function DiceChatPanel({
   chat,
   mensagem,
   enviandoMensagem,
@@ -36,13 +35,14 @@ export function ChatPanel({
   erro,
   onMensagemChange,
   onEnviarMensagem,
-  fimChatRef,
-}: ChatPanelProps) {
+}: DiceChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const enviandoRef = useRef(false);
   const [autoScrollAtivo, setAutoScrollAtivo] = useState(true);
   const [sucessoEnvio, setSucessoEnvio] = useState(false);
+  const [ajudaAberta, setAjudaAberta] = useState(false);
+  const fimListaRef = useRef<HTMLDivElement | null>(null);
 
   const podeEnviar =
     !sessaoEncerrada && !enviandoMensagem && mensagem.trim().length > 0;
@@ -51,9 +51,9 @@ export function ChatPanel({
     typeof usuarioId === 'number' &&
     ultimaMensagem?.autor.usuarioId === usuarioId;
   const mostrarPular = !autoScrollAtivo && chat.length > 0;
-  const limiteAviso = Math.floor(LIMITE_MENSAGEM_CHAT * 0.8);
+  const limiteAviso = Math.floor(LIMITE_MENSAGEM_ROLAGEM * 0.8);
   const contadorClasse =
-    mensagem.length >= LIMITE_MENSAGEM_CHAT
+    mensagem.length >= LIMITE_MENSAGEM_ROLAGEM
       ? 'session-chat__counter session-chat__counter--danger'
       : mensagem.length >= limiteAviso
         ? 'session-chat__counter session-chat__counter--warn'
@@ -138,7 +138,6 @@ export function ChatPanel({
         const mostrarCabecalho = !anterior || !mesmoAutor || !dentroDoAgrupamento;
         const ehMinhaMensagem =
           typeof usuarioId === 'number' && item.autor.usuarioId === usuarioId;
-
         const diceGroup = parseDiceMessageGroup(item.mensagem);
         const bubbleClassName = `session-chat__bubble${
           diceGroup ? ' session-chat__bubble--dice' : ''
@@ -184,17 +183,25 @@ export function ChatPanel({
   return (
     <div className="session-chat">
       {erro ? <ErrorAlert message={erro} /> : null}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="session-chat__hint">
+          Sintaxe: XdY ou X#dY. Suporta d6 e multiplas rolagens (ex.: d20 2d6+3).
+        </p>
+        <Button type="button" size="xs" variant="ghost" onClick={() => setAjudaAberta(true)}>
+          Ajuda
+        </Button>
+      </div>
       {sucessoEnvio ? (
         <p className="session-chat__hint session-chat__hint--success">
-          Mensagem enviada.
+          Rolagem enviada.
         </p>
       ) : null}
       {enviandoMensagem ? (
-        <p className="session-chat__hint">Enviando mensagem...</p>
+        <p className="session-chat__hint">Enviando rolagem...</p>
       ) : null}
       {sessaoEncerrada ? (
         <p className="session-chat__hint">
-          Sessao encerrada. O chat esta em modo leitura.
+          Sessao encerrada. O chat de rolagens esta em modo leitura.
         </p>
       ) : null}
       <div ref={scrollRef} className="session-chat__scroll" onScroll={handleScroll}>
@@ -202,15 +209,15 @@ export function ChatPanel({
           <EmptyState
             variant="session"
             size="sm"
-            icon="chat"
-            title="Sem mensagens"
-            description="Inicie a conversa da sessao."
+            icon="dice"
+            title="Sem rolagens"
+            description="Envie a primeira rolagem de dados."
             className="text-left"
           />
         ) : (
           mensagensRenderizadas
         )}
-        <div ref={fimChatRef} />
+        <div ref={fimListaRef} />
       </div>
 
       {mostrarPular ? (
@@ -222,15 +229,15 @@ export function ChatPanel({
       ) : null}
 
       <div className="session-chat__input-row">
-        <label className="text-sm font-medium text-app-fg">Mensagem</label>
+        <label className="text-sm font-medium text-app-fg">Rolagem</label>
         <textarea
           ref={textareaRef}
           value={mensagem}
           onChange={(event) => onMensagemChange(event.target.value)}
-          maxLength={LIMITE_MENSAGEM_CHAT}
+          maxLength={LIMITE_MENSAGEM_ROLAGEM}
           disabled={sessaoEncerrada || enviandoMensagem}
-          rows={2}
-          placeholder="Digite uma mensagem... (Enter envia, Shift+Enter quebra linha)"
+          rows={1}
+          placeholder="Ex.: 2d6+3 ou 4#d8-1"
           className="session-chat__input"
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
@@ -239,20 +246,59 @@ export function ChatPanel({
             }
           }}
         />
-      <div className="session-chat__footer">
-        <div className="session-chat__footer-meta">
-          <span className="session-chat__hint">
-            Enter envia • Shift+Enter quebra linha
-          </span>
-          <span className={contadorClasse}>
-            {mensagem.length}/{LIMITE_MENSAGEM_CHAT}
-          </span>
+        <div className="session-chat__footer">
+          <div className="session-chat__footer-meta">
+            <span className="session-chat__hint">Enter envia</span>
+            <span className={contadorClasse}>
+              {mensagem.length}/{LIMITE_MENSAGEM_ROLAGEM}
+            </span>
+          </div>
+          <Button onClick={handleEnviar} disabled={!podeEnviar}>
+            {enviandoMensagem ? 'Enviando...' : 'Rolar'}
+          </Button>
         </div>
-        <Button onClick={handleEnviar} disabled={!podeEnviar}>
-          {enviandoMensagem ? 'Enviando...' : 'Enviar'}
-        </Button>
       </div>
-      </div>
+
+      <Modal
+        isOpen={ajudaAberta}
+        onClose={() => setAjudaAberta(false)}
+        title="Ajuda de rolagens"
+        size="md"
+      >
+        <div className="space-y-4 text-sm text-app-fg">
+          <div className="space-y-2">
+            <p className="font-semibold text-app-fg">Sintaxe basica</p>
+            <p>Use XdY para rolar X dados com Y faces.</p>
+            <p>Use # antes do d para mostrar apenas valores individuais.</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-semibold text-app-fg">Modificadores</p>
+            <p>Use + ou - para somar no total (ou em cada dado com #).</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-semibold text-app-fg">Separadores</p>
+            <p>Separe multiplas rolagens com espaco, virgula, ponto-e-virgula ou |.</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-semibold text-app-fg">Labels (opcional)</p>
+            <p>Use nome:expressao para identificar rolagens (sem espacos no nome).</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="font-semibold text-app-fg">Exemplos</p>
+            <div className="grid gap-2 rounded-lg border border-app-border bg-app-surface/80 p-3 text-xs text-app-fg">
+              <span><strong>d20</strong> (atalho de 1d20)</span>
+              <span><strong>2d6+3</strong> (soma total +3)</span>
+              <span><strong>4#d8-1</strong> (mostra cada dado -1)</span>
+              <span><strong>Ataque:d20+5 Defesa:d20+2</strong></span>
+              <span><strong>d6 | d6 | d6</strong></span>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

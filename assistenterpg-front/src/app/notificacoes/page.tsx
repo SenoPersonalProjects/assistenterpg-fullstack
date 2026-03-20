@@ -81,11 +81,9 @@ export default function NotificacoesPage() {
 
     try {
       await apiAceitarConvite(codigo);
-      setConvites((prev) => {
-        const proximo = prev.filter((convite) => convite.codigo !== codigo);
-        apiNotificarConvitesPendentesAtualizados(proximo.length);
-        return proximo;
-      });
+      const proximo = convites.filter((convite) => convite.codigo !== codigo);
+      setConvites(proximo);
+      apiNotificarConvitesPendentesAtualizados(proximo.length);
       setMensagemAcao('Convite aceito com sucesso.');
     } catch (error) {
       setErroAcao(`Nao foi possivel aceitar o convite. ${mensagemErroConvites(error)}`);
@@ -101,11 +99,9 @@ export default function NotificacoesPage() {
 
     try {
       await apiRecusarConvite(codigo);
-      setConvites((prev) => {
-        const proximo = prev.filter((convite) => convite.codigo !== codigo);
-        apiNotificarConvitesPendentesAtualizados(proximo.length);
-        return proximo;
-      });
+      const proximo = convites.filter((convite) => convite.codigo !== codigo);
+      setConvites(proximo);
+      apiNotificarConvitesPendentesAtualizados(proximo.length);
       setMensagemAcao('Convite recusado com sucesso.');
     } catch (error) {
       setErroAcao(`Nao foi possivel recusar o convite. ${mensagemErroConvites(error)}`);

@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { NpcSessaoCampanha } from '@/lib/types';
 
 type ConfirmNpcRemovalModalProps = {
@@ -24,29 +23,19 @@ export function ConfirmNpcRemovalModal({
   const removendo = Boolean(npc && removendoNpcId === npc.npcSessaoId);
 
   return (
-    <Modal
+    <ConfirmDialog
       isOpen={Boolean(npc)}
       onClose={onClose}
+      onConfirm={() => (npc ? onConfirm(npc.npcSessaoId) : undefined)}
       title="Remover aliado ou ameaca"
-      size="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose} disabled={removendo}>
-            Cancelar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => (npc ? onConfirm(npc.npcSessaoId) : undefined)}
-            disabled={removendo || sessaoEncerrada}
-          >
-            {removendo ? 'Removendo...' : 'Remover'}
-          </Button>
-        </>
+      description={
+        npc ? `Remover "${textoSeguro(npc.nome)}" da cena atual?` : 'Remover da cena?'
       }
-    >
-      <p className="text-sm text-app-fg">
-        Remover &quot;{textoSeguro(npc?.nome ?? '')}&quot; da cena atual?
-      </p>
-    </Modal>
+      confirmLabel="Remover"
+      cancelLabel="Cancelar"
+      variant="danger"
+      confirmDisabled={sessaoEncerrada}
+      confirmLoading={removendo}
+    />
   );
 }

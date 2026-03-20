@@ -11,7 +11,7 @@ type EmptyStateProps = {
   className?: string;
   actionLabel?: string;
   onAction?: () => void;
-  variant?: 'plain' | 'card';
+  variant?: 'plain' | 'card' | 'session';
   icon?: IconName;
   size?: 'sm' | 'md';
   children?: ReactNode;
@@ -29,10 +29,16 @@ export function EmptyState({
   children,
 }: EmptyStateProps) {
   const isCard = variant === 'card';
+  const isSession = variant === 'session';
   const isSmall = size === 'sm';
 
   const wrapperClasses = [
-    isCard
+    isSession
+      ? [
+          'rounded-lg border border-app-border bg-app-surface text-left',
+          isSmall ? 'p-3' : 'p-4',
+        ].join(' ')
+      : isCard
       ? [
           'rounded-lg border border-app-border bg-app-surface text-center shadow-sm',
           isSmall ? 'p-4 max-w-none mx-0' : 'p-8 max-w-md mx-auto',
@@ -45,7 +51,12 @@ export function EmptyState({
     .filter(Boolean)
     .join(' ');
 
-  const iconWrapClasses = isCard
+  const iconWrapClasses = isSession
+    ? [
+        'flex items-center justify-center rounded-md bg-app-primary/10',
+        isSmall ? 'mb-2 h-8 w-8' : 'mb-3 h-9 w-9',
+      ].join(' ')
+    : isCard
     ? [
         'mx-auto flex items-center justify-center rounded-full bg-app-primary/10',
         isSmall ? 'mb-3 h-10 w-10' : 'mb-6 h-16 w-16',
@@ -54,18 +65,18 @@ export function EmptyState({
       ? 'mb-2'
       : 'mb-4';
   const iconClasses = [
-    isSmall ? 'h-5 w-5' : isCard ? 'h-8 w-8' : 'h-6 w-6',
-    'text-app-primary',
+    isSmall ? 'h-4 w-4' : isCard ? 'h-8 w-8' : 'h-6 w-6',
+    isSession ? 'text-app-muted' : 'text-app-primary',
   ].join(' ');
   const titleClasses = [
-    isSmall ? 'text-sm font-semibold mb-1' : 'text-xl font-bold mb-3',
+    isSmall ? 'text-sm font-semibold mb-1' : 'text-lg font-semibold mb-2',
     'text-app-fg',
   ].join(' ');
   const descriptionClasses = [
-    isSmall ? 'text-xs mb-3' : 'text-base mb-6',
+    isSmall ? 'text-xs mb-2' : 'text-sm mb-4',
     'text-app-muted leading-relaxed',
   ].join(' ');
-  const contentClasses = isSmall ? 'mb-3' : 'mb-6';
+  const contentClasses = isSmall ? 'mb-2' : 'mb-4';
 
   return (
     <div className={wrapperClasses}>

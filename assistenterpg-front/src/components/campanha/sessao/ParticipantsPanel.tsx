@@ -22,7 +22,7 @@ export function ParticipantsPanel({
   if (participantes.length === 0) {
     return (
       <EmptyState
-        variant="plain"
+        variant="session"
         size="sm"
         icon="characters"
         title="Sem participantes"
@@ -46,15 +46,15 @@ export function ParticipantsPanel({
                 {textoSeguro(participante.apelido)}
                 {participante.ehDono ? ' (Dono)' : ''}
               </p>
-              <p className="text-[11px] text-app-muted">
+              <p className="session-text-xxs text-app-muted">
                 {labelPapelParticipante(participante.papel)}
               </p>
             </div>
             <span
               className={
                 online
-                  ? 'text-[11px] font-medium text-emerald-300'
-                  : 'text-[11px] font-medium text-app-muted'
+                  ? 'session-text-xxs font-medium text-emerald-300'
+                  : 'session-text-xxs font-medium text-app-muted'
               }
             >
               {online ? 'Online' : 'Offline'}

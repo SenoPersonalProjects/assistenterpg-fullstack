@@ -123,7 +123,12 @@ export function SessionCharacterResourceCard({
 
       <div className="session-resource-list">
         {linhas.map((linha) => (
-          <div key={linha.key} className="session-resource-row">
+          <div
+            key={linha.key}
+            className={`session-resource-row${
+              acaoPendenteCampo === linha.key ? ' session-resource-row--pending' : ''
+            }`}
+          >
             <div className="session-resource-row__meta">
               <span className="session-resource-row__label">{linha.label}</span>
               <span className="session-resource-row__value">

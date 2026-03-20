@@ -1,4 +1,4 @@
-﻿export type SessaoLayoutRightTab = 'chat' | 'eventos' | 'participantes';
+﻿export type SessaoLayoutRightTab = 'chat' | 'eventos' | 'participantes' | 'rolagens';
 
 export type SessaoLayoutPreferencias = {
   colunaEsquerdaRecolhida: boolean;
@@ -19,7 +19,7 @@ function ehInteiroPositivo(valor: unknown): valor is number {
 }
 
 function ehAbaDireitaValida(valor: unknown): valor is SessaoLayoutRightTab {
-  return valor === 'chat' || valor === 'eventos' || valor === 'participantes';
+  return valor === 'chat' || valor === 'eventos' || valor === 'participantes' || valor === 'rolagens';
 }
 
 function criarStorageKey(
@@ -94,4 +94,5 @@ export function salvarLayoutSessaoLobby(
     // ignore storage errors
   }
 }
+
 

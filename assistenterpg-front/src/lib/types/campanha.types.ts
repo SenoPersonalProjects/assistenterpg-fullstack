@@ -2,6 +2,7 @@
 import type {
   NpcAmeacaAcao,
   NpcAmeacaPassiva,
+  NpcAmeacaPericiaEspecial,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
 } from './npc-ameaca.types';
@@ -153,6 +154,32 @@ export type TipoCenaSessaoCampanha =
   | 'COMBATE'
   | 'OUTRA';
 
+export type AtributosSessaoCampanha = {
+  agilidade: number;
+  forca: number;
+  intelecto: number;
+  presenca: number;
+  vigor: number;
+};
+
+export type PericiaSessaoCampanha = {
+  codigo: string;
+  nome: string;
+  atributoBase: string;
+  bonusTreinamento: number;
+  bonusEquipamento: number;
+  bonusOutros: number;
+  bonusTotal: number;
+};
+
+export type NpcPericiaSessaoCampanha = {
+  codigo: string;
+  nome: string;
+  atributoBase?: string;
+  dados: number;
+  bonus?: number | null;
+};
+
 export type NpcSessaoCampanha = {
   npcSessaoId: number;
   npcAmeacaId: number | null;
@@ -170,6 +197,9 @@ export type NpcSessaoCampanha = {
   machucado: number | null;
   deslocamentoMetros: number;
   notasCena: string | null;
+  atributos: AtributosSessaoCampanha | null;
+  pericias: NpcPericiaSessaoCampanha[];
+  periciasEspeciais: NpcAmeacaPericiaEspecial[];
   passivas: NpcAmeacaPassiva[];
   acoes: NpcAmeacaAcao[];
   condicoesAtivas: CondicaoAtivaSessaoCampanha[];
@@ -408,6 +438,8 @@ export type SessaoCampanhaDetalhe = {
     tecnicaInata: TecnicaSessaoCampanha | null;
     tecnicasNaoInatas: TecnicaSessaoCampanha[];
     sustentacoesAtivas: SustentacaoAtivaSessaoCampanha[];
+    atributos: AtributosSessaoCampanha | null;
+    pericias: PericiaSessaoCampanha[];
     condicoesAtivas: CondicaoAtivaSessaoCampanha[];
   }>;
   npcs: NpcSessaoCampanha[];

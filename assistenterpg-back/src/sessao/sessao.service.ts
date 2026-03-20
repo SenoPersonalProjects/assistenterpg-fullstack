@@ -594,6 +594,24 @@ export class SessaoService {
                 },
                 personagemBase: {
                   select: {
+                    agilidade: true,
+                    forca: true,
+                    intelecto: true,
+                    presenca: true,
+                    vigor: true,
+                    pericias: {
+                      select: {
+                        grauTreinamento: true,
+                        bonusExtra: true,
+                        pericia: {
+                          select: {
+                            codigo: true,
+                            nome: true,
+                            atributoBase: true,
+                          },
+                        },
+                      },
+                    },
                     grausAprimoramento: {
                       include: {
                         tipoGrau: {
@@ -663,6 +681,30 @@ export class SessaoService {
             id: 'asc',
           },
           include: {
+            npcAmeaca: {
+              select: {
+                agilidade: true,
+                forca: true,
+                intelecto: true,
+                presenca: true,
+                vigor: true,
+                percepcao: true,
+                iniciativa: true,
+                fortitude: true,
+                reflexos: true,
+                vontade: true,
+                luta: true,
+                jujutsu: true,
+                percepcaoDados: true,
+                iniciativaDados: true,
+                fortitudeDados: true,
+                reflexosDados: true,
+                vontadeDados: true,
+                lutaDados: true,
+                jujutsuDados: true,
+                periciasEspeciais: true,
+              },
+            },
             condicoes: {
               where: {
                 ativo: true,
@@ -799,6 +841,39 @@ export class SessaoService {
     const tecnicasNaoInatasCatalogo =
       await this.listarTecnicasNaoInatasCatalogo(this.prisma);
 
+    const personagemCampanhaIds = personagensOrdenados.map(
+      (personagem) => personagem.personagemCampanha.id,
+    );
+    const catalogoPericias =
+      personagemCampanhaIds.length > 0
+        ? await this.prisma.pericia.findMany({
+            select: {
+              codigo: true,
+              nome: true,
+              atributoBase: true,
+            },
+          })
+        : [];
+    const mapaPericiaPorCodigo = new Map(
+      catalogoPericias.map((pericia) => [pericia.codigo, pericia] as const),
+    );
+    const mapaPericiaPorBusca = new Map<string, string>();
+    for (const pericia of catalogoPericias) {
+      mapaPericiaPorBusca.set(
+        this.normalizarBuscaPericia(pericia.codigo),
+        pericia.codigo,
+      );
+      mapaPericiaPorBusca.set(
+        this.normalizarBuscaPericia(pericia.nome),
+        pericia.codigo,
+      );
+    }
+    const bonusEquipamentoPorPersonagem =
+      await this.calcularBonusEquipamentoPericias(
+        personagemCampanhaIds,
+        mapaPericiaPorBusca,
+      );
+
     return {
       id: sessao.id,
       campanhaId: sessao.campanhaId,
@@ -860,6 +935,86 @@ export class SessaoService {
         const condicoesAtivas = this.mapearCondicoesAtivasSessao(
           personagem.condicoes,
         );
+        const bonusEquipamento =
+          bonusEquipamentoPorPersonagem.get(personagem.personagemCampanha.id) ??
+          new Map<string, number>();
+        const periciasBase =
+          personagem.personagemCampanha.personagemBase?.pericias ?? [];
+        const mapaPericias = new Map<
+          string,
+          {
+            codigo: string;
+            nome: string;
+            atributoBase: string;
+            bonusTreinamento: number;
+            bonusEquipamento: number;
+            bonusOutros: number;
+          }
+        >();
+
+        for (const pericia of periciasBase) {
+          if (!pericia.pericia?.codigo) continue;
+          mapaPericias.set(pericia.pericia.codigo, {
+            codigo: pericia.pericia.codigo,
+            nome: pericia.pericia.nome,
+            atributoBase: pericia.pericia.atributoBase,
+            bonusTreinamento: (pericia.grauTreinamento ?? 0) * 5,
+            bonusEquipamento: 0,
+            bonusOutros: pericia.bonusExtra ?? 0,
+          });
+        }
+
+        for (const [codigo, bonus] of bonusEquipamento.entries()) {
+          const existente = mapaPericias.get(codigo);
+          if (existente) {
+            existente.bonusEquipamento += bonus;
+            continue;
+          }
+          const periciaCatalogo = mapaPericiaPorCodigo.get(codigo);
+          if (!periciaCatalogo) continue;
+          mapaPericias.set(codigo, {
+            codigo,
+            nome: periciaCatalogo.nome,
+            atributoBase: periciaCatalogo.atributoBase,
+            bonusTreinamento: 0,
+            bonusEquipamento: bonus,
+            bonusOutros: 0,
+          });
+        }
+
+        const periciasSessao = Array.from(mapaPericias.values())
+          .map((pericia) => ({
+            codigo: pericia.codigo,
+            nome: pericia.nome,
+            atributoBase: pericia.atributoBase,
+            bonusTreinamento: pericia.bonusTreinamento,
+            bonusEquipamento: pericia.bonusEquipamento,
+            bonusOutros: pericia.bonusOutros,
+            bonusTotal:
+              pericia.bonusTreinamento +
+              pericia.bonusEquipamento +
+              pericia.bonusOutros,
+          }))
+          .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+        const atributosPersonagem = personagem.personagemCampanha.personagemBase
+          ? {
+              agilidade: Number(
+                personagem.personagemCampanha.personagemBase.agilidade ?? 0,
+              ),
+              forca: Number(
+                personagem.personagemCampanha.personagemBase.forca ?? 0,
+              ),
+              intelecto: Number(
+                personagem.personagemCampanha.personagemBase.intelecto ?? 0,
+              ),
+              presenca: Number(
+                personagem.personagemCampanha.personagemBase.presenca ?? 0,
+              ),
+              vigor: Number(
+                personagem.personagemCampanha.personagemBase.vigor ?? 0,
+              ),
+            }
+          : null;
 
         return {
           personagemSessaoId: personagem.id,
@@ -892,31 +1047,115 @@ export class SessaoService {
             visibilidade === 'completa' ? tecnicas.tecnicasNaoInatas : [],
           sustentacoesAtivas:
             visibilidade === 'completa' ? sustentacoesAtivas : [],
+          atributos: visibilidade === 'completa' ? atributosPersonagem : null,
+          pericias: visibilidade === 'completa' ? periciasSessao : [],
           condicoesAtivas,
         };
       }),
-      npcs: npcsCenaAtual.map((npc) => ({
-        npcSessaoId: npc.id,
-        npcAmeacaId: npc.npcAmeacaId,
-        nome: npc.nomeExibicao,
-        fichaTipo: npc.fichaTipo,
-        tipo: npc.tipo,
-        vd: npc.vd,
-        defesa: npc.defesa,
-        pontosVidaAtual: npc.pontosVidaAtual,
-        pontosVidaMax: npc.pontosVidaMax,
-        sanAtual: npc.sanAtual,
-        sanMax: npc.sanMax,
-        eaAtual: npc.eaAtual,
-        eaMax: npc.eaMax,
-        machucado: npc.machucado,
-        deslocamentoMetros: npc.deslocamentoMetros,
-        notasCena: npc.notasCena,
-        passivas: this.mapearListaObjeto(npc.passivasGuia),
-        acoes: this.mapearListaObjeto(npc.acoesGuia),
-        condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
-        podeEditar: acesso.ehMestre,
-      })),
+      npcs: npcsCenaAtual.map((npc) => {
+        const atributosNpc = npc.npcAmeaca
+          ? this.montarAtributosNpc(npc.npcAmeaca)
+          : null;
+        const resolverDadosPericiaNpc = (
+          campoDados:
+            | 'percepcaoDados'
+            | 'iniciativaDados'
+            | 'fortitudeDados'
+            | 'reflexosDados'
+            | 'vontadeDados'
+            | 'lutaDados'
+            | 'jujutsuDados',
+          atributoBase: 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG',
+        ) => {
+          if (!npc.npcAmeaca || !atributosNpc) return 0;
+          const valor = npc.npcAmeaca[campoDados];
+          if (typeof valor === 'number') return valor;
+          const atributo = this.obterAtributoNpcPorBase(atributosNpc, atributoBase);
+          return this.calcularDadosPadraoPericia(atributo);
+        };
+
+        const periciasNpc = npc.npcAmeaca
+          ? [
+              {
+                codigo: 'PERCEPCAO',
+                nome: 'Percepcao',
+                atributoBase: 'PRE',
+                dados: resolverDadosPericiaNpc('percepcaoDados', 'PRE'),
+                bonus: npc.npcAmeaca.percepcao,
+              },
+              {
+                codigo: 'INICIATIVA',
+                nome: 'Iniciativa',
+                atributoBase: 'AGI',
+                dados: resolverDadosPericiaNpc('iniciativaDados', 'AGI'),
+                bonus: npc.npcAmeaca.iniciativa,
+              },
+              {
+                codigo: 'FORTITUDE',
+                nome: 'Fortitude',
+                atributoBase: 'VIG',
+                dados: resolverDadosPericiaNpc('fortitudeDados', 'VIG'),
+                bonus: npc.npcAmeaca.fortitude,
+              },
+              {
+                codigo: 'REFLEXOS',
+                nome: 'Reflexos',
+                atributoBase: 'AGI',
+                dados: resolverDadosPericiaNpc('reflexosDados', 'AGI'),
+                bonus: npc.npcAmeaca.reflexos,
+              },
+              {
+                codigo: 'VONTADE',
+                nome: 'Vontade',
+                atributoBase: 'PRE',
+                dados: resolverDadosPericiaNpc('vontadeDados', 'PRE'),
+                bonus: npc.npcAmeaca.vontade,
+              },
+              {
+                codigo: 'LUTA',
+                nome: 'Luta',
+                atributoBase: 'FOR',
+                dados: resolverDadosPericiaNpc('lutaDados', 'FOR'),
+                bonus: npc.npcAmeaca.luta,
+              },
+              {
+                codigo: 'JUJUTSU',
+                nome: 'Jujutsu',
+                atributoBase: 'INT',
+                dados: resolverDadosPericiaNpc('jujutsuDados', 'INT'),
+                bonus: npc.npcAmeaca.jujutsu,
+              },
+            ]
+          : [];
+
+        return {
+          npcSessaoId: npc.id,
+          npcAmeacaId: npc.npcAmeacaId,
+          nome: npc.nomeExibicao,
+          fichaTipo: npc.fichaTipo,
+          tipo: npc.tipo,
+          vd: npc.vd,
+          defesa: npc.defesa,
+          pontosVidaAtual: npc.pontosVidaAtual,
+          pontosVidaMax: npc.pontosVidaMax,
+          sanAtual: npc.sanAtual,
+          sanMax: npc.sanMax,
+          eaAtual: npc.eaAtual,
+          eaMax: npc.eaMax,
+          machucado: npc.machucado,
+          deslocamentoMetros: npc.deslocamentoMetros,
+          notasCena: npc.notasCena,
+          atributos: atributosNpc,
+          pericias: periciasNpc,
+          periciasEspeciais: npc.npcAmeaca
+            ? this.mapearListaObjeto(npc.npcAmeaca.periciasEspeciais)
+            : [],
+          passivas: this.mapearListaObjeto(npc.passivasGuia),
+          acoes: this.mapearListaObjeto(npc.acoesGuia),
+          condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
+          podeEditar: acesso.ehMestre,
+        };
+      }),
       iniciadoEm: sessao.iniciadoEm,
       encerradoEm: sessao.encerradoEm,
     };
@@ -5469,6 +5708,155 @@ export class SessaoService {
       (item): item is Prisma.JsonObject =>
         !!item && typeof item === 'object' && !Array.isArray(item),
     );
+  }
+
+  private normalizarBuscaPericia(valor: string): string {
+    return valor
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  private extrairCodigosPericiaBonificada(
+    valor: string | null | undefined,
+    mapaPorBusca: Map<string, string>,
+  ): string[] {
+    if (!valor) return [];
+    const bruto = valor.trim();
+    if (!bruto) return [];
+
+    const partes = bruto
+      .split(/\s*(?:\/|,|;|\bou\b|\be\b)\s*/i)
+      .map((parte) => parte.trim())
+      .filter((parte) => parte.length > 0);
+
+    const codigos = new Set<string>();
+    const candidatos = partes.length > 0 ? partes : [bruto];
+
+    for (const candidato of candidatos) {
+      const normalizado = this.normalizarBuscaPericia(candidato);
+      const codigo = mapaPorBusca.get(normalizado);
+      if (codigo) codigos.add(codigo);
+    }
+
+    if (codigos.size === 0) {
+      const codigoDireto = mapaPorBusca.get(this.normalizarBuscaPericia(bruto));
+      if (codigoDireto) codigos.add(codigoDireto);
+    }
+
+    return Array.from(codigos);
+  }
+
+  private async calcularBonusEquipamentoPericias(
+    personagemCampanhaIds: number[],
+    mapaPorBusca: Map<string, string>,
+  ): Promise<Map<number, Map<string, number>>> {
+    const resultado = new Map<number, Map<string, number>>();
+    if (personagemCampanhaIds.length === 0) return resultado;
+
+    const itensEquipados = await this.prisma.inventarioItemCampanha.findMany({
+      where: {
+        personagemCampanhaId: { in: personagemCampanhaIds },
+        equipado: true,
+      },
+      select: {
+        personagemCampanhaId: true,
+        quantidade: true,
+        equipamento: {
+          select: {
+            periciaBonificada: true,
+            bonusPericia: true,
+          },
+        },
+        modificacoes: {
+          select: {
+            modificacao: {
+              select: {
+                efeitosMecanicos: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    for (const item of itensEquipados) {
+      const codigos = this.extrairCodigosPericiaBonificada(
+        item.equipamento.periciaBonificada,
+        mapaPorBusca,
+      );
+      if (codigos.length === 0) continue;
+
+      const quantidade = Math.max(1, item.quantidade ?? 1);
+      const bonusEquipamento =
+        (item.equipamento.bonusPericia ?? 0) * quantidade;
+
+      let bonusModificacoes = 0;
+      for (const mod of item.modificacoes) {
+        const efeitos = mod.modificacao.efeitosMecanicos;
+        if (!efeitos || typeof efeitos !== 'object' || Array.isArray(efeitos)) {
+          continue;
+        }
+        const bonusPericia = (efeitos as Record<string, unknown>).bonusPericia;
+        if (typeof bonusPericia === 'number') {
+          bonusModificacoes += bonusPericia;
+        }
+      }
+      bonusModificacoes *= quantidade;
+
+      const bonusTotal = bonusEquipamento + bonusModificacoes;
+      if (bonusTotal === 0) continue;
+
+      const mapaPersonagem = resultado.get(item.personagemCampanhaId) ?? new Map();
+      for (const codigo of codigos) {
+        mapaPersonagem.set(codigo, (mapaPersonagem.get(codigo) ?? 0) + bonusTotal);
+      }
+      resultado.set(item.personagemCampanhaId, mapaPersonagem);
+    }
+
+    return resultado;
+  }
+
+  private montarAtributosNpc(origem: {
+    agilidade?: number | null;
+    forca?: number | null;
+    intelecto?: number | null;
+    presenca?: number | null;
+    vigor?: number | null;
+  }) {
+    return {
+      agilidade: Number(origem.agilidade ?? 0),
+      forca: Number(origem.forca ?? 0),
+      intelecto: Number(origem.intelecto ?? 0),
+      presenca: Number(origem.presenca ?? 0),
+      vigor: Number(origem.vigor ?? 0),
+    };
+  }
+
+  private obterAtributoNpcPorBase(
+    atributos: ReturnType<SessaoService['montarAtributosNpc']>,
+    atributoBase: 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG',
+  ): number {
+    switch (atributoBase) {
+      case 'AGI':
+        return atributos.agilidade;
+      case 'FOR':
+        return atributos.forca;
+      case 'INT':
+        return atributos.intelecto;
+      case 'PRE':
+        return atributos.presenca;
+      case 'VIG':
+        return atributos.vigor;
+      default:
+        return 0;
+    }
+  }
+
+  private calcularDadosPadraoPericia(atributo: number): number {
+    if (atributo > 0) return atributo;
+    return 2 + Math.abs(atributo);
   }
 
   private jsonParaPersistencia(

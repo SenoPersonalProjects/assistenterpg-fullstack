@@ -18,6 +18,7 @@ type SessionOperationalBarProps = {
   proximoTurnoLabel?: string | null;
   sessaoEncerrada: boolean;
   realtimeAtivo: boolean;
+  realtimeStatus?: 'online' | 'reconnecting' | 'polling';
   controleTurnosAtivo: boolean;
   combateAtivo?: boolean;
   podeControlarSessao: boolean;
@@ -43,6 +44,7 @@ export const SessionOperationalBar = forwardRef<
     proximoTurnoLabel,
     sessaoEncerrada,
     realtimeAtivo,
+    realtimeStatus,
     controleTurnosAtivo,
     combateAtivo = false,
     podeControlarSessao,
@@ -58,6 +60,20 @@ export const SessionOperationalBar = forwardRef<
   ref,
 ) {
   const [atalhosAbertos, setAtalhosAbertos] = useState(false);
+  const statusTempoReal =
+    realtimeStatus ?? (realtimeAtivo ? 'online' : 'polling');
+  const labelTempoReal =
+    statusTempoReal === 'online'
+      ? 'Conectado'
+      : statusTempoReal === 'reconnecting'
+        ? 'Reconectando'
+        : 'Atualizacao periodica';
+  const classeTempoReal =
+    statusTempoReal === 'online'
+      ? 'text-app-success'
+      : statusTempoReal === 'reconnecting'
+        ? 'text-app-warning'
+        : '';
 
   return (
     <section
@@ -69,52 +85,91 @@ export const SessionOperationalBar = forwardRef<
       {erro ? (
         <ErrorAlert message={erro} className="session-operational-bar__error" />
       ) : null}
-      <div className="session-operational-bar__stats">
-        {controleTurnosAtivo ? (
-          <>
+      <div className="session-operational-bar__grid">
+        <div className="session-operational-bar__zone session-operational-bar__zone--focus">
+          {controleTurnosAtivo ? (
             <div className="session-operational-bar__block session-operational-bar__block--turno">
               <span className="session-operational-bar__label">Turno atual</span>
               <span className="session-operational-bar__value">
                 {turnoAtualLabel ?? 'Sem turno definido'}
               </span>
             </div>
-            <div className="session-operational-bar__block">
-              <span className="session-operational-bar__label">Cena</span>
-              <span className="session-operational-bar__value">
-                {cenaLabel}
-                {cenaNome ? ` — ${cenaNome}` : ''}
-              </span>
-            </div>
-            <div className="session-operational-bar__block">
-              <span className="session-operational-bar__label">Rodada</span>
-              <span className="session-operational-bar__value">
-                {rodadaAtual ?? 1}
-              </span>
-            </div>
-            <div className="session-operational-bar__block session-operational-bar__block--proximo">
-              <span className="session-operational-bar__label">Proximo turno</span>
-              <span className="session-operational-bar__value">
-                {proximoTurnoLabel ?? '—'}
-              </span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="session-operational-bar__block">
-              <span className="session-operational-bar__label">Cena</span>
-              <span className="session-operational-bar__value">
-                {cenaLabel}
-                {cenaNome ? ` — ${cenaNome}` : ''}
-              </span>
-            </div>
+          ) : (
             <div className="session-operational-bar__block session-operational-bar__block--modo">
               <span className="session-operational-bar__label">Controle de turnos</span>
               <span className="session-operational-bar__value">
                 Sem controle de turnos
               </span>
             </div>
-          </>
-        )}
+          )}
+
+          {podeControlarSessao && controleTurnosAtivo ? (
+            <div className="session-operational-bar__actions">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onVoltarTurno}
+                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+              >
+                <Icon name="chevron-left" className="mr-1 h-3.5 w-3.5" />
+                {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar'}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onPularTurno}
+                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+              >
+                <Icon name="skip-forward" className="mr-1 h-3.5 w-3.5" />
+                {acaoTurnoPendente === 'PULAR' ? 'Pulando...' : 'Pular'}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={onAvancarTurno}
+                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+              >
+                <Icon name="forward" className="mr-1 h-3.5 w-3.5" />
+                {acaoTurnoPendente === 'AVANCAR' ? 'Avancando...' : 'Avancar'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAtalhosAbertos(true)}
+                title="Ver atalhos"
+              >
+                <Icon name="info" className="mr-1 h-3.5 w-3.5" />
+                Atalhos
+              </Button>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="session-operational-bar__zone session-operational-bar__zone--context">
+          <div className="session-operational-bar__block">
+            <span className="session-operational-bar__label">Cena</span>
+            <span className="session-operational-bar__value">
+              {cenaLabel}
+              {cenaNome ? ` — ${cenaNome}` : ''}
+            </span>
+          </div>
+          {controleTurnosAtivo ? (
+            <>
+              <div className="session-operational-bar__block">
+                <span className="session-operational-bar__label">Rodada</span>
+                <span className="session-operational-bar__value">
+                  {rodadaAtual ?? 1}
+                </span>
+              </div>
+              <div className="session-operational-bar__block session-operational-bar__block--proximo">
+                <span className="session-operational-bar__label">Proximo turno</span>
+                <span className="session-operational-bar__value">
+                  {proximoTurnoLabel ?? '—'}
+                </span>
+              </div>
+            </>
+          ) : null}
+        </div>
       </div>
 
       <div className="session-operational-bar__meta">
@@ -124,12 +179,20 @@ export const SessionOperationalBar = forwardRef<
             Combate ativo
           </Badge>
         ) : null}
-        <Badge color={sessaoEncerrada ? 'gray' : 'green'} size="sm">
+        <span
+          className={`session-operational-bar__meta-text${
+            sessaoEncerrada ? ' text-app-danger' : ''
+          }`}
+        >
           {sessaoEncerrada ? 'Sessao encerrada' : 'Sessao ativa'}
-        </Badge>
-        <Badge color={realtimeAtivo ? 'cyan' : 'yellow'} size="sm">
-          {realtimeAtivo ? 'Tempo real' : 'Sincronizacao periodica'}
-        </Badge>
+        </span>
+        <span className={`session-operational-bar__meta-text ${classeTempoReal}`}>
+          <Icon
+            name={statusTempoReal === 'online' ? 'bolt' : 'refresh'}
+            className="mr-1 h-3.5 w-3.5"
+          />
+          {labelTempoReal}
+        </span>
         {typeof totalParticipantesOnline === 'number' &&
         typeof totalParticipantes === 'number' ? (
           <span className="session-operational-bar__meta-text">
@@ -137,47 +200,6 @@ export const SessionOperationalBar = forwardRef<
           </span>
         ) : null}
       </div>
-
-      {podeControlarSessao && controleTurnosAtivo ? (
-        <div className="session-operational-bar__actions">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onVoltarTurno}
-            disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
-          >
-            <Icon name="chevron-left" className="mr-1 h-3.5 w-3.5" />
-            {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar'}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onPularTurno}
-            disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
-          >
-            <Icon name="skip-forward" className="mr-1 h-3.5 w-3.5" />
-            {acaoTurnoPendente === 'PULAR' ? 'Pulando...' : 'Pular'}
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onAvancarTurno}
-            disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
-          >
-            <Icon name="forward" className="mr-1 h-3.5 w-3.5" />
-            {acaoTurnoPendente === 'AVANCAR' ? 'Avancando...' : 'Avancar'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setAtalhosAbertos(true)}
-            title="Ver atalhos"
-          >
-            <Icon name="info" className="mr-1 h-3.5 w-3.5" />
-            Atalhos
-          </Button>
-        </div>
-      ) : null}
 
       <Modal
         isOpen={atalhosAbertos}

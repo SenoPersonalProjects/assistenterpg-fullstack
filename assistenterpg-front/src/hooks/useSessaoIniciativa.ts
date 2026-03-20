@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiAtualizarOrdemIniciativaSessaoCampanha, extrairMensagemErro } from '@/lib/api';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
 import { montarPayloadOrdemIniciativa } from '@/lib/campanha/sessao-utils';
@@ -16,6 +16,7 @@ type UseSessaoIniciativaParams = {
 
 type UseSessaoIniciativaReturn = {
   reordenandoIniciativa: boolean;
+  sucessoReordenacao: boolean;
   indiceIniciativaArrastado: number | null;
   indiceIniciativaHover: number | null;
   setIndiceIniciativaArrastado: (indice: number | null) => void;
@@ -35,12 +36,33 @@ export function useSessaoIniciativa({
   setErro,
 }: UseSessaoIniciativaParams): UseSessaoIniciativaReturn {
   const [reordenandoIniciativa, setReordenandoIniciativa] = useState(false);
+  const [sucessoReordenacao, setSucessoReordenacao] = useState(false);
   const [indiceIniciativaArrastado, setIndiceIniciativaArrastado] = useState<
     number | null
   >(null);
   const [indiceIniciativaHover, setIndiceIniciativaHover] = useState<number | null>(
     null,
   );
+  const timeoutSucessoRef = useRef<number | null>(null);
+
+  const exibirSucessoReordenacao = useCallback(() => {
+    setSucessoReordenacao(true);
+    if (timeoutSucessoRef.current) {
+      window.clearTimeout(timeoutSucessoRef.current);
+    }
+    timeoutSucessoRef.current = window.setTimeout(() => {
+      setSucessoReordenacao(false);
+      timeoutSucessoRef.current = null;
+    }, 1800);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutSucessoRef.current) {
+        window.clearTimeout(timeoutSucessoRef.current);
+      }
+    };
+  }, []);
 
   const handleMoverIniciativa = useCallback(
     async (indiceAtual: number, direcao: 'SUBIR' | 'DESCER') => {
@@ -77,6 +99,7 @@ export function useSessaoIniciativa({
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
+        exibirSucessoReordenacao();
       } catch (error) {
         setErro(extrairMensagemErro(error));
       } finally {
@@ -86,6 +109,7 @@ export function useSessaoIniciativa({
     [
       campanhaId,
       detalhe,
+      exibirSucessoReordenacao,
       podeControlarSessao,
       reordenandoIniciativa,
       sessaoEncerrada,
@@ -139,6 +163,7 @@ export function useSessaoIniciativa({
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
+        exibirSucessoReordenacao();
       } catch (error) {
         setErro(extrairMensagemErro(error));
       } finally {
@@ -150,6 +175,7 @@ export function useSessaoIniciativa({
     [
       campanhaId,
       detalhe,
+      exibirSucessoReordenacao,
       indiceIniciativaArrastado,
       podeControlarSessao,
       reordenandoIniciativa,
@@ -163,6 +189,7 @@ export function useSessaoIniciativa({
 
   return {
     reordenandoIniciativa,
+    sucessoReordenacao,
     indiceIniciativaArrastado,
     indiceIniciativaHover,
     setIndiceIniciativaArrastado,
