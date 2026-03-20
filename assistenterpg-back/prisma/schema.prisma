@@ -1407,7 +1407,6 @@ model CompendioArtigo {
   @@index([ordem])
   @@index([ativo])
   @@index([destaque])
-  @@fulltext([titulo, resumo, palavrasChave])
   @@map("compendio_artigos")
 }
 
