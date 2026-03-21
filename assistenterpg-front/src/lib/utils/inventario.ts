@@ -307,6 +307,13 @@ function detectarTipoBase(equipamento: EquipamentoCatalogo): string | null {
     return 'FERRAMENTA_AMALDICOADA';
   }
 
+  if (
+    tipo === 'ITEM_OPERACIONAL' &&
+    (equipamento.tipoArma || equipamento.proficienciaArma || equipamento.alcance)
+  ) {
+    return 'ARMA';
+  }
+
   return null;
 }
 

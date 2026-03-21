@@ -7,6 +7,7 @@ import {
   TipoEquipamento,
   TipoDano,
   TipoReducaoDano,
+  TipoArma,
   AlcanceArma,
   EmpunhaduraArma,
   ProficienciaArma,
@@ -64,6 +65,7 @@ interface EquipamentoComArmaData {
   categoria: CategoriaEquipamento;
   espacos: number;
   proficienciaArma?: ProficienciaArma;
+  tipoArma?: TipoArma;
   alcance?: AlcanceArma;
   agil?: boolean;
   tipoUso: TipoUsoEquipamento; // ✅ ADICIONAR
@@ -162,6 +164,40 @@ const armasSimplesMaldadas: EquipamentoComArmaData[] = [
       danos: [
         { empunhadura: EmpunhaduraArma.LEVE, tipoDano: TipoDano.PERFURANTE, rolagem: '1d4', valorFlat: 0 },
         { empunhadura: EmpunhaduraArma.LEVE, tipoDano: TipoDano.ENERGIA_AMALDICOADA, rolagem: '1d4', valorFlat: 0 },
+      ],
+    },
+  },
+  {
+    codigo: 'SOQUEIRA_AMALDICOADA_SIMPLES',
+    nome: 'Soqueira Amaldiçoada',
+    descricao:
+      'Uma soqueira com maldição simples imbuída. Acrescenta +1d6 de dano em energia amaldiçoada e permite exorcizar espíritos amaldiçoados.',
+    tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
+    categoria: CategoriaEquipamento.CATEGORIA_4, // ✅ CORRETO (SOQUEIRA: 0 → 4)
+    espacos: 1,
+    proficienciaArma: ProficienciaArma.SIMPLES,
+    tipoArma: TipoArma.CORPO_A_CORPO,
+    alcance: AlcanceArma.ADJACENTE,
+    agil: true,
+    tipoUso: TipoUsoEquipamento.GERAL,
+    armaAmaldicoada: {
+      tipoBase: 'SOQUEIRA',
+      proficienciaRequerida: false,
+      efeito: '+1d6 energia amaldiçoada. Exorciza espíritos amaldiçoados.',
+      empunhaduras: [EmpunhaduraArma.LEVE],
+      danos: [
+        {
+          empunhadura: EmpunhaduraArma.LEVE,
+          tipoDano: TipoDano.IMPACTO,
+          rolagem: '1d4',
+          valorFlat: 1,
+        },
+        {
+          empunhadura: EmpunhaduraArma.LEVE,
+          tipoDano: TipoDano.ENERGIA_AMALDICOADA,
+          rolagem: '1d6',
+          valorFlat: 0,
+        },
       ],
     },
   },

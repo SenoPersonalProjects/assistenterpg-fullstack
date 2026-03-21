@@ -6,6 +6,10 @@ import {
   TipoAcessorio,
   TipoExplosivo,
   TipoAmaldicoado,
+  TipoArma,
+  ProficienciaArma,
+  EmpunhaduraArma,
+  AlcanceArma,
   TipoUsoEquipamento,
   CategoriaEquipamento,
   TipoFonte, // ✅ NOVO
@@ -54,6 +58,11 @@ interface EquipamentoOperacionalSeed {
   bonusPericia?: number;
   efeito?: string;
   tipoUso?: TipoUsoEquipamento;
+  tipoArma?: TipoArma;
+  proficienciaArma?: ProficienciaArma;
+  empunhaduras?: EmpunhaduraArma[];
+  alcance?: AlcanceArma;
+  agil?: boolean;
 }
 
 interface EquipamentoAmaldicoadoSeed {
@@ -437,6 +446,11 @@ export const itensOperacionaisSeed: EquipamentoOperacionalSeed[] = [
     tipo: TipoEquipamento.ITEM_OPERACIONAL,
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
+    tipoArma: TipoArma.CORPO_A_CORPO,
+    proficienciaArma: ProficienciaArma.SIMPLES,
+    empunhaduras: [EmpunhaduraArma.LEVE],
+    alcance: AlcanceArma.ADJACENTE,
+    agil: true,
     efeito: 'Desarmado +1 dano (letal)',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
