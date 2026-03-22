@@ -35,6 +35,14 @@ export class PreviewItensInventarioDto {
   @IsInt()
   forca: number;
 
+  @IsOptional()
+  @IsInt()
+  intelecto?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  somarIntelecto?: boolean;
+
   @IsInt()
   prestigioBase: number;
 

@@ -2,6 +2,7 @@ export type AbaDetalheCard =
   | 'RESUMO'
   | 'ATRIBUTOS'
   | 'PERICIAS'
+  | 'INVENTARIO'
   | 'TECNICAS'
   | 'SUSTENTACOES'
   | 'CONDICOES';
@@ -17,6 +18,7 @@ const ABAS_VALIDAS = new Set<AbaDetalheCard>([
   'RESUMO',
   'ATRIBUTOS',
   'PERICIAS',
+  'INVENTARIO',
   'TECNICAS',
   'SUSTENTACOES',
   'CONDICOES',

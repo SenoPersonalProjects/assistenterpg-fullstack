@@ -677,6 +677,7 @@ model Sessao {
   indiceTurnoAtual Int       @default(0)
   cenaAtualTipo    String    @default("LIVRE")
   cenaAtualNome    String?
+  limitesCategoriaInventarioAtivo Boolean @default(false)
   iniciadoEm       DateTime  @default(now())
   encerradoEm      DateTime?
 

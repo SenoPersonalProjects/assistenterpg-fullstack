@@ -6,6 +6,8 @@ const LABEL_CENA: Record<TipoCenaSessaoCampanha, string> = {
   INVESTIGACAO: 'Investigacao',
   FURTIVIDADE: 'Furtividade',
   COMBATE: 'Combate',
+  PERSEGUICAO: 'Perseguicao',
+  BASE: 'Base',
   OUTRA: 'Outra',
 };
 

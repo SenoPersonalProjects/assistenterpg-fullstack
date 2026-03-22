@@ -379,7 +379,11 @@ export async function apiGetSessaoCampanha(
 export async function apiAtualizarCenaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
-  payload: { tipo: TipoCenaSessaoCampanha; nome?: string },
+  payload: {
+    tipo: TipoCenaSessaoCampanha;
+    nome?: string;
+    limitesCategoriaAtivo?: boolean;
+  },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.patch(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/cena`,

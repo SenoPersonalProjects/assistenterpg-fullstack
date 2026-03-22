@@ -377,7 +377,8 @@ export class SessaoService {
     });
 
     return sessoes.map((sessao) => {
-      const controleTurnosAtivo = sessao.cenaAtualTipo !== 'LIVRE';
+      const controleTurnosAtivo =
+        !['LIVRE', 'BASE'].includes(sessao.cenaAtualTipo);
 
       return {
         id: sessao.id,
@@ -789,7 +790,8 @@ export class SessaoService {
       indice: number,
       participante?: ParticipanteIniciativa | null,
     ) => participante?.iniciativaValor ?? valorIniciativaBase - indice;
-    const controleTurnosAtivo = sessao.cenaAtualTipo !== 'LIVRE';
+    const controleTurnosAtivo =
+      !['LIVRE', 'BASE'].includes(sessao.cenaAtualTipo);
     const indiceTurno = controleTurnosAtivo
       ? this.clampIndiceTurno(
           sessao.indiceTurnoAtual,
@@ -886,6 +888,7 @@ export class SessaoService {
         tipo: sessao.cenaAtualTipo,
         nome: sessao.cenaAtualNome,
         controleTurnosAtivo,
+        limitesCategoriaAtivo: sessao.limitesCategoriaInventarioAtivo ?? false,
       },
       controleTurnosAtivo,
       turnoAtual: personagemTurnoAtual
@@ -2089,9 +2092,16 @@ export class SessaoService {
 
       const cenaAnterior = await this.obterCenaAtualSessaoTx(tx, sessaoId);
       const nomeNovaCena = dto.nome?.trim() || null;
-      const rodadaNova = dto.tipo === 'LIVRE' ? 1 : sessao.rodadaAtual;
-      const indiceTurnoNovo =
-        dto.tipo === 'LIVRE' ? 0 : sessao.indiceTurnoAtual;
+      const turnosDesativados = ['LIVRE', 'BASE'].includes(dto.tipo);
+      const rodadaNova = turnosDesativados ? 1 : sessao.rodadaAtual;
+      const indiceTurnoNovo = turnosDesativados
+        ? 0
+        : sessao.indiceTurnoAtual;
+      const limitesCategoriaAtual =
+        sessao.limitesCategoriaInventarioAtivo ?? false;
+      const limitesCategoriaAtivo =
+        dto.limitesCategoriaAtivo ??
+        (dto.tipo === 'BASE' ? true : limitesCategoriaAtual);
 
       const cena = await tx.cena.create({
         data: {
@@ -2115,6 +2125,7 @@ export class SessaoService {
           cenaAtualNome: nomeNovaCena,
           rodadaAtual: rodadaNova,
           indiceTurnoAtual: indiceTurnoNovo,
+          limitesCategoriaInventarioAtivo: limitesCategoriaAtivo,
         },
       });
 
@@ -6455,6 +6466,8 @@ export class SessaoService {
       INVESTIGACAO: 'Investigacao',
       FURTIVIDADE: 'Furtividade',
       COMBATE: 'Combate',
+      PERSEGUICAO: 'Perseguicao',
+      BASE: 'Base',
       OUTRA: 'Outra',
     };
     return labels[tipo] ?? tipo;

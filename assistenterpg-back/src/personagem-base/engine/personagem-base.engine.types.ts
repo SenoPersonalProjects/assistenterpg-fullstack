@@ -47,6 +47,7 @@ export type ModDerivados = {
   limitePeEaExtra: number;
   defesaExtra: number;
   espacosInventarioExtra: number;
+  inventarioSomarIntelecto: boolean;
 };
 
 export type EngineParams = {

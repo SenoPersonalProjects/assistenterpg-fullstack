@@ -11,6 +11,11 @@ import {
 import { AplicarModificadorPersonagemCampanhaDto } from './dto/aplicar-modificador-personagem-campanha.dto';
 import { AtualizarRecursosPersonagemCampanhaDto } from './dto/atualizar-recursos-personagem-campanha.dto';
 import {
+  AdicionarItemInventarioCampanhaDto,
+  AtualizarItemInventarioCampanhaDto,
+  AplicarModificacaoInventarioCampanhaDto,
+} from './dto/inventario-campanha.dto';
+import {
   FiltrosListarModificadoresCampanha,
   PapelCampanha,
 } from './engine/campanha.engine.types';
@@ -18,6 +23,7 @@ import { CampanhaAccessService } from './campanha.access.service';
 import { CampanhaPersonagensService } from './campanha.personagens.service';
 import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
+import { CampanhaInventarioService } from './campanha.inventario.service';
 
 @Injectable()
 export class CampanhaService {
@@ -27,6 +33,7 @@ export class CampanhaService {
     private readonly personagensService: CampanhaPersonagensService,
     private readonly modificadoresService: CampanhaModificadoresService,
     private readonly convitesService: CampanhaConvitesService,
+    private readonly inventarioService: CampanhaInventarioService,
   ) {}
 
   async criarCampanha(
@@ -317,6 +324,94 @@ export class CampanhaService {
       campanhaId,
       personagemCampanhaId,
       usuarioId,
+    );
+  }
+
+  async buscarInventarioPersonagemCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    return this.inventarioService.buscarInventarioCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+    );
+  }
+
+  async adicionarItemInventarioCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: AdicionarItemInventarioCampanhaDto,
+  ) {
+    return this.inventarioService.adicionarItemCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      dto,
+    );
+  }
+
+  async atualizarItemInventarioCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    itemId: number,
+    dto: AtualizarItemInventarioCampanhaDto,
+  ) {
+    return this.inventarioService.atualizarItemCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      itemId,
+      dto,
+    );
+  }
+
+  async removerItemInventarioCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    itemId: number,
+  ) {
+    return this.inventarioService.removerItemCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      itemId,
+    );
+  }
+
+  async aplicarModificacaoInventarioCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    itemId: number,
+    dto: AplicarModificacaoInventarioCampanhaDto,
+  ) {
+    return this.inventarioService.aplicarModificacaoCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      itemId,
+      dto,
+    );
+  }
+
+  async removerModificacaoInventarioCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    itemId: number,
+    modificacaoId: number,
+  ) {
+    return this.inventarioService.removerModificacaoCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      itemId,
+      modificacaoId,
     );
   }
 

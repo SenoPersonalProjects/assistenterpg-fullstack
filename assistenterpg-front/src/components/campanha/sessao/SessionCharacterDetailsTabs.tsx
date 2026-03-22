@@ -5,14 +5,16 @@ import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { SessionTabs } from '@/components/campanha/sessao/SessionTabs';
+import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
 import { SessionTechniqueBlock } from '@/components/campanha/sessao/SessionTechniqueBlock';
+import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/SessionCharacterInventoryTab';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 
 type SessionCharacterDetailsTabsProps = {
   card: SessaoCampanhaDetalhe['cards'][number];
+  campanhaId: number;
   iniciativaValor: number | null;
   abaDetalheCard: AbaDetalheCard;
   totalCondicoesAtivasCard: number;
@@ -39,6 +41,7 @@ type SessionCharacterDetailsTabsProps = {
   onAbrirFichaCompleta?: () => void;
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
+  limitesCategoriaAtivo?: boolean;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -70,6 +73,7 @@ function formatarBonus(valor: number): string {
 
 export function SessionCharacterDetailsTabs({
   card,
+  campanhaId,
   iniciativaValor,
   abaDetalheCard,
   totalCondicoesAtivasCard,
@@ -91,6 +95,7 @@ export function SessionCharacterDetailsTabs({
   onAbrirFichaCompleta,
   onEncerrarSustentacao,
   formatarCustos,
+  limitesCategoriaAtivo,
   renderPainelCondicoes,
   mostrarAcoesResumo = true,
 }: SessionCharacterDetailsTabsProps) {
@@ -165,37 +170,44 @@ export function SessionCharacterDetailsTabs({
     { codigo: 'VIG', label: 'Vigor', valor: atributos?.vigor },
   ];
 
+  const tabs: SessionTabItem[] = [
+    { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
+    { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
+    {
+      id: 'PERICIAS',
+      label: 'Pericias',
+      icon: 'skills',
+      count: periciasOrdenadas.length,
+    },
+  ];
+  if (card.podeEditar) {
+    tabs.push({ id: 'INVENTARIO', label: 'Inventario', icon: 'inventory' });
+  }
+  tabs.push(
+    {
+      id: 'TECNICAS',
+      label: 'Tecnicas',
+      icon: 'technique',
+      count: totalTecnicasCard,
+    },
+    {
+      id: 'SUSTENTACOES',
+      label: 'Sustentacoes',
+      icon: 'energy',
+      count: totalSustentacoesAtivasCard,
+    },
+    {
+      id: 'CONDICOES',
+      label: 'Condicoes',
+      icon: 'status',
+      count: totalCondicoesAtivasCard,
+    },
+  );
+
   return (
     <div className="space-y-2">
       <SessionTabs
-        tabs={[
-          { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
-          { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
-          {
-            id: 'PERICIAS',
-            label: 'Pericias',
-            icon: 'skills',
-            count: periciasOrdenadas.length,
-          },
-          {
-            id: 'TECNICAS',
-            label: 'Tecnicas',
-            icon: 'technique',
-            count: totalTecnicasCard,
-          },
-          {
-            id: 'SUSTENTACOES',
-            label: 'Sustentacoes',
-            icon: 'energy',
-            count: totalSustentacoesAtivasCard,
-          },
-          {
-            id: 'CONDICOES',
-            label: 'Condicoes',
-            icon: 'status',
-            count: totalCondicoesAtivasCard,
-          },
-        ]}
+        tabs={tabs}
         activeId={abaDetalheCard}
         onChange={(tabId) => onAtualizarAbaDetalheCard(tabId as AbaDetalheCard)}
       />
@@ -398,6 +410,16 @@ export function SessionCharacterDetailsTabs({
             )}
           </div>
         )
+      ) : null}
+
+      {abaDetalheCard === 'INVENTARIO' && card.podeEditar ? (
+        <SessionCharacterInventoryTab
+          campanhaId={campanhaId}
+          personagemCampanhaId={card.personagemCampanhaId}
+          podeEditar={card.podeEditar}
+          ativo={abaDetalheCard === 'INVENTARIO'}
+          limitesCategoriaAtivo={limitesCategoriaAtivo}
+        />
       ) : null}
 
       {abaDetalheCard === 'CONDICOES'

@@ -15,6 +15,7 @@ import type {
 } from '@/hooks/useSessaoRecursos';
 
 type SessionPlayerSummaryPanelProps = {
+  campanhaId: number;
   card: SessaoCampanhaDetalhe['cards'][number] | null;
   iniciativaValor: number | null;
   cardRecursosExpandido: boolean;
@@ -47,6 +48,7 @@ type SessionPlayerSummaryPanelProps = {
   ) => void;
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
+  limitesCategoriaAtivo?: boolean;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -62,6 +64,7 @@ type SessionPlayerSummaryPanelProps = {
 };
 
 export function SessionPlayerSummaryPanel({
+  campanhaId,
   card,
   iniciativaValor,
   cardRecursosExpandido,
@@ -89,6 +92,7 @@ export function SessionPlayerSummaryPanel({
   onUsarHabilidade,
   onEncerrarSustentacao,
   formatarCustos,
+  limitesCategoriaAtivo,
   renderPainelCondicoes,
   onAbrirFichaCompleta,
   onSolicitarRemover,
@@ -158,6 +162,7 @@ export function SessionPlayerSummaryPanel({
           {cardRecursosExpandido ? (
             <SessionCharacterDetailsTabs
               card={card}
+              campanhaId={campanhaId}
               iniciativaValor={iniciativaValor}
               abaDetalheCard={abaDetalheCard}
               totalCondicoesAtivasCard={totalCondicoesAtivasCard}
@@ -179,6 +184,7 @@ export function SessionPlayerSummaryPanel({
               formatarCustos={formatarCustos}
               renderPainelCondicoes={renderPainelCondicoes}
               mostrarAcoesResumo={false}
+              limitesCategoriaAtivo={limitesCategoriaAtivo}
             />
           ) : null}
         </div>

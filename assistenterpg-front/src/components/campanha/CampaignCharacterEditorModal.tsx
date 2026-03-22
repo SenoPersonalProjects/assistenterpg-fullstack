@@ -22,6 +22,7 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
+import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/SessionCharacterInventoryTab';
 
 type Props = {
   isOpen: boolean;
@@ -437,6 +438,24 @@ export function CampaignCharacterEditorModal({
             <Button onClick={handleSalvarRecursos} disabled={savingRecursos}>
               {savingRecursos ? 'Salvando...' : 'Salvar recursos'}
             </Button>
+          </section>
+
+          <section className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-app-fg">
+              Inventario da campanha
+            </h3>
+            {personagemId ? (
+              <SessionCharacterInventoryTab
+                campanhaId={campanhaId}
+                personagemCampanhaId={personagemId}
+                podeEditar={true}
+                ativo={isOpen}
+              />
+            ) : (
+              <p className="text-xs text-app-muted">
+                Selecione um personagem para visualizar o inventario.
+              </p>
+            )}
           </section>
 
           <section className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">

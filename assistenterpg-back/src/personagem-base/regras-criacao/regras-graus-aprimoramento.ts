@@ -44,6 +44,10 @@ export interface MecanicasEspeciaisHabilidade {
   acoes?: Record<string, string>;
   itens?: Record<string, number>;
   escolhas?: Record<string, boolean>;
+  inventario?: {
+    espacosExtra?: number;
+    somarIntelecto?: boolean;
+  };
 }
 
 /**

@@ -107,6 +107,8 @@ const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'INVESTIGACAO', label: 'Investigacao' },
   { value: 'FURTIVIDADE', label: 'Furtividade' },
   { value: 'COMBATE', label: 'Combate' },
+  { value: 'PERSEGUICAO', label: 'Perseguicao' },
+  { value: 'BASE', label: 'Base' },
   { value: 'OUTRA', label: 'Outra' },
 ];
 
@@ -199,6 +201,7 @@ export default function SessaoCampanhaPage() {
   const [mensagemRolagem, setMensagemRolagem] = useState('');
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
   const [cenaNome, setCenaNome] = useState('');
+  const [limitesCategoriaAtivo, setLimitesCategoriaAtivo] = useState(false);
   const [ajustesRecursosPorCard, setAjustesRecursosPorCard] = useState<
     Record<number, AjustesRecursos>
   >({});
@@ -379,6 +382,7 @@ export default function SessaoCampanhaPage() {
     (proximoDetalhe: SessaoCampanhaDetalhe) => {
       setCenaTipo(proximoDetalhe.cenaAtual.tipo as TipoCenaSessaoCampanha);
       setCenaNome(proximoDetalhe.cenaAtual.nome ?? '');
+      setLimitesCategoriaAtivo(Boolean(proximoDetalhe.cenaAtual.limitesCategoriaAtivo));
 
       setAjustesRecursosPorCard((estadoAtual) => {
         const proximoEstado = { ...estadoAtual };
@@ -400,7 +404,13 @@ export default function SessaoCampanhaPage() {
         return proximoEstado;
       });
     },
-    [setAjustesRecursosPorCard, setCenaNome, setCenaTipo, setEdicaoNpcs],
+    [
+      setAjustesRecursosPorCard,
+      setCenaNome,
+      setCenaTipo,
+      setEdicaoNpcs,
+      setLimitesCategoriaAtivo,
+    ],
   );
 
   const carregarPersonagensDisponiveis = useCallback(async () => {
@@ -717,6 +727,16 @@ export default function SessaoCampanhaPage() {
     setErro: setErroCena,
     showToast,
   });
+
+  const handleCenaTipoChange = useCallback(
+    (tipo: TipoCenaSessaoCampanha) => {
+      setCenaTipo(tipo);
+      if (tipo === 'BASE') {
+        setLimitesCategoriaAtivo(true);
+      }
+    },
+    [setCenaTipo, setLimitesCategoriaAtivo],
+  );
 
   const { acaoTurnoPendente, handleControleTurno } = useSessaoTurnos({
     campanhaId,
@@ -1297,6 +1317,7 @@ export default function SessaoCampanhaPage() {
 
   const renderCardsSessao = () => (
     <SessionCharactersPanel
+      campanhaId={campanhaId}
       cards={cards}
       iniciativaPorPersonagemSessao={iniciativaPorPersonagemSessao}
       cardsRecursosExpandidos={cardsRecursosExpandidos}
@@ -1341,6 +1362,7 @@ export default function SessaoCampanhaPage() {
       onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
       onAbrirFichaCompleta={handleAbrirFichaCompleta}
       renderPainelCondicoes={renderPainelCondicoes}
+      limitesCategoriaAtivo={limitesCategoriaAtivo}
       erro={erroCards}
     />
   );
@@ -1577,6 +1599,7 @@ export default function SessaoCampanhaPage() {
                 </>
               ) : (
                 <SessionPlayerSummaryPanel
+                  campanhaId={campanhaId}
                   card={meuCard}
                   iniciativaValor={iniciativaMeuCard}
                   cardRecursosExpandido={cardRecursosExpandidoMeuCard}
@@ -1631,6 +1654,7 @@ export default function SessaoCampanhaPage() {
                     void handleEncerrarSustentacao(personagemSessaoId, sustentacaoId)
                   }
                   formatarCustos={formatarCustos}
+                  limitesCategoriaAtivo={limitesCategoriaAtivo}
                   renderPainelCondicoes={renderPainelCondicoes}
                   onAbrirFichaCompleta={() => {
                     if (!meuCard) return;
@@ -1704,15 +1728,21 @@ export default function SessaoCampanhaPage() {
                 erroCena={erroCena}
                 erroTurnos={erroTurnos}
                 erroEncerramento={erroEncerramento}
-                onCenaTipoChange={setCenaTipo}
+                limitesCategoriaAtivo={limitesCategoriaAtivo}
+                onCenaTipoChange={handleCenaTipoChange}
                 onCenaNomeChange={setCenaNome}
                 onAtualizarCena={() =>
-                  void handleAtualizarCena(cenaTipo, cenaNome)
+                  void handleAtualizarCena(
+                    cenaTipo,
+                    cenaNome,
+                    limitesCategoriaAtivo,
+                  )
                 }
                 onControleTurno={(acao) => void handleControleTurno(acao)}
                 onSolicitarEncerrarSessao={() =>
                   setConfirmarEncerrarSessaoAberto(true)
                 }
+                onToggleLimitesCategoria={setLimitesCategoriaAtivo}
               />
             ) : (
               <SessionSceneRosterPanel

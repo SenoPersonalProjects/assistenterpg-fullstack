@@ -20,6 +20,7 @@ export * from './suplementos';
 export * from './equipamentos';
 export * from './modificacoes';
 export * from './inventario';
+export * from './inventario-campanha';
 export * from './pagination';
 export * from './suplemento-conteudos';
 export * from './npcs-ameacas';

@@ -13,6 +13,10 @@ import {
   atendeRequisitosGraus,
   montarMapaGraus,
 } from './regras-criacao/regras-tecnicas-nao-inatas';
+import {
+  calcularAtributoBaseInventario,
+  calcularEspacosInventarioBase,
+} from '../inventario/utils/inventario-capacidade';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
@@ -133,6 +137,19 @@ type InventarioItemMapeado = {
   };
   modificacoes: InventarioModificacaoMapeada[];
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getInventarioSomarIntelectoFromMecanicas(
+  mecanicas: Prisma.JsonValue | null,
+): boolean {
+  if (!isRecord(mecanicas)) return false;
+  const inventario = mecanicas.inventario;
+  if (!isRecord(inventario)) return false;
+  return inventario.somarIntelecto === true;
+}
 
 type ResistenciasMapeadas = Array<{
   codigo: string;
@@ -382,12 +399,27 @@ export class PersonagemBaseMapper {
       })
       .filter((g): g is GrauAprimoramentoAjustado => g !== null);
 
+    const inventarioSomarIntelecto =
+      (personagem.habilidadesBase ?? []).some((h) =>
+        getInventarioSomarIntelectoFromMecanicas(h.habilidade.mecanicasEspeciais),
+      ) ||
+      (personagem.poderesGenericos ?? []).some((p) =>
+        getInventarioSomarIntelectoFromMecanicas(p.habilidade.mecanicasEspeciais),
+      );
+    const atributoInventarioBase = calcularAtributoBaseInventario({
+      forca: personagem.forca,
+      intelecto: personagem.intelecto,
+      somarIntelecto: inventarioSomarIntelecto,
+    });
+    const espacosInventarioBaseFallback =
+      calcularEspacosInventarioBase(atributoInventarioBase);
+    const espacosBase =
+      personagem.espacosInventarioBase ?? espacosInventarioBaseFallback;
+    const espacosExtra = personagem.espacosInventarioExtra ?? 0;
     const espacosInventario = {
-      base: personagem.espacosInventarioBase ?? personagem.forca * 5,
-      extra: personagem.espacosInventarioExtra ?? 0,
-      total:
-        (personagem.espacosInventarioBase ?? personagem.forca * 5) +
-        (personagem.espacosInventarioExtra ?? 0),
+      base: espacosBase,
+      extra: espacosExtra,
+      total: espacosBase + espacosExtra,
     };
 
     const itensInventario = await this.mapItensInventario(

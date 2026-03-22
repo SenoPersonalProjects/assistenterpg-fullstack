@@ -9,6 +9,6 @@ import { PrismaModule } from '../prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [InventarioController],
   providers: [InventarioService, InventarioEngine, InventarioMapper],
-  exports: [InventarioService], // ← Para usar em outros módulos se necessário
+  exports: [InventarioService, InventarioEngine, InventarioMapper], // ← Para usar em outros módulos se necessário
 })
 export class InventarioModule {}

@@ -297,6 +297,24 @@ export type InventarioCompletoDto = {
   statsEquipados: StatsEquipadosDto;
 };
 
+export type InventarioCampanhaCompletoDto = {
+  personagemCampanhaId: number;
+  espacos: {
+    espacosTotal: number;
+    espacosOcupados: number;
+    espacosDisponiveis: number;
+    sobrecarregado: boolean;
+  };
+  itens: ItemInventarioDto[];
+  statsEquipados: StatsEquipadosDto;
+  limitesCategoria: {
+    grauAtual: string;
+    limitesPorCategoria: Record<string, number>;
+    itensPorCategoria: Record<string, number>;
+    excedentes: string[];
+  };
+};
+
 /* ============================================================================ */
 /* FILTROS E PAYLOADS */
 /* ============================================================================ */
@@ -339,6 +357,15 @@ export type AdicionarItemDto = {
   ignorarLimitesGrauXama?: boolean;
 };
 
+export type AdicionarItemInventarioCampanhaDto = {
+  equipamentoId: number;
+  quantidade?: number;
+  equipado?: boolean;
+  nomeCustomizado?: string;
+  notas?: string;
+  modificacoes?: number[];
+};
+
 export type PreviewItemDto = {
   personagemBaseId: number;
   equipamentoId: number;
@@ -354,8 +381,19 @@ export type AtualizarItemDto = {
   notas?: string;
 };
 
+export type AtualizarItemInventarioCampanhaDto = {
+  quantidade?: number;
+  equipado?: boolean;
+  nomeCustomizado?: string;
+  notas?: string;
+};
+
 export type AplicarModificacaoDto = {
   itemId: number;
+  modificacaoId: number;
+};
+
+export type AplicarModificacaoInventarioCampanhaDto = {
   modificacaoId: number;
 };
 

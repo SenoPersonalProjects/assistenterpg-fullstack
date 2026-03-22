@@ -16,6 +16,7 @@ import type {
 import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
 
 type SessionCharactersPanelProps = {
+  campanhaId: number;
   cards: SessaoCampanhaDetalhe['cards'];
   iniciativaPorPersonagemSessao: Map<number, number>;
   cardsRecursosExpandidos: Record<number, boolean>;
@@ -69,10 +70,12 @@ type SessionCharactersPanelProps = {
     condicoesAtivas: SessaoCampanhaDetalhe['cards'][number]['condicoesAtivas'],
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
+  limitesCategoriaAtivo?: boolean;
   erro?: string | null;
 };
 
 export function SessionCharactersPanel({
+  campanhaId,
   cards,
   iniciativaPorPersonagemSessao,
   cardsRecursosExpandidos,
@@ -104,6 +107,7 @@ export function SessionCharactersPanel({
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
   renderPainelCondicoes,
+  limitesCategoriaAtivo,
   erro,
 }: SessionCharactersPanelProps) {
   return (
@@ -156,6 +160,7 @@ export function SessionCharactersPanel({
           return (
             <CharacterSessionCard
               key={card.personagemSessaoId}
+              campanhaId={campanhaId}
               card={card}
               iniciativaValor={iniciativaValor ?? null}
               cardRecursosExpandido={cardRecursosExpandido}
@@ -211,6 +216,7 @@ export function SessionCharactersPanel({
                 void onEncerrarSustentacao(personagemSessaoId, sustentacaoId)
               }
               formatarCustos={formatarCustos}
+              limitesCategoriaAtivo={limitesCategoriaAtivo}
             />
           );
         })

@@ -23,6 +23,11 @@ import { VincularPersonagemCampanhaDto } from './dto/vincular-personagem-campanh
 import { AtualizarRecursosPersonagemCampanhaDto } from './dto/atualizar-recursos-personagem-campanha.dto';
 import { AplicarModificadorPersonagemCampanhaDto } from './dto/aplicar-modificador-personagem-campanha.dto';
 import { DesfazerModificadorPersonagemCampanhaDto } from './dto/desfazer-modificador-personagem-campanha.dto';
+import {
+  AdicionarItemInventarioCampanhaDto,
+  AtualizarItemInventarioCampanhaDto,
+  AplicarModificacaoInventarioCampanhaDto,
+} from './dto/inventario-campanha.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas')
@@ -224,6 +229,104 @@ export class CampanhaController {
       id,
       personagemCampanhaId,
       req.user.id,
+    );
+  }
+
+  // ----- Inventário de campanha -----
+
+  @Get(':id/personagens/:personagemCampanhaId/inventario')
+  async buscarInventarioPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.buscarInventarioPersonagemCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
+  @Post(':id/personagens/:personagemCampanhaId/inventario')
+  async adicionarItemInventarioCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AdicionarItemInventarioCampanhaDto,
+  ) {
+    return this.campanhaService.adicionarItemInventarioCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      dto,
+    );
+  }
+
+  @Patch(':id/personagens/:personagemCampanhaId/inventario/:itemId')
+  async atualizarItemInventarioCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarItemInventarioCampanhaDto,
+  ) {
+    return this.campanhaService.atualizarItemInventarioCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      itemId,
+      dto,
+    );
+  }
+
+  @Delete(':id/personagens/:personagemCampanhaId/inventario/:itemId')
+  async removerItemInventarioCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.removerItemInventarioCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      itemId,
+    );
+  }
+
+  @Post(':id/personagens/:personagemCampanhaId/inventario/:itemId/modificacoes')
+  async aplicarModificacaoInventarioCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AplicarModificacaoInventarioCampanhaDto,
+  ) {
+    return this.campanhaService.aplicarModificacaoInventarioCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      itemId,
+      dto,
+    );
+  }
+
+  @Delete(
+    ':id/personagens/:personagemCampanhaId/inventario/:itemId/modificacoes/:modificacaoId',
+  )
+  async removerModificacaoInventarioCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Param('modificacaoId', ParseIntPipe) modificacaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.removerModificacaoInventarioCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      itemId,
+      modificacaoId,
     );
   }
 

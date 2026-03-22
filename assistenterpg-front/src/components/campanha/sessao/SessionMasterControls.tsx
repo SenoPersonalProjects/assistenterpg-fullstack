@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import type { TipoCenaSessaoCampanha } from '@/lib/types';
 import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
@@ -15,6 +16,7 @@ type SessionMasterControlsProps = {
   cenaTipo: TipoCenaSessaoCampanha;
   cenaNome: string;
   opcoesCena: Array<{ value: TipoCenaSessaoCampanha; label: string }>;
+  limitesCategoriaAtivo: boolean;
   atualizandoCena: boolean;
   acaoTurnoPendente: AcaoControleTurno | null;
   encerrandoSessao: boolean;
@@ -24,6 +26,7 @@ type SessionMasterControlsProps = {
   onCenaTipoChange: (tipo: TipoCenaSessaoCampanha) => void;
   onCenaNomeChange: (nome: string) => void;
   onAtualizarCena: () => void;
+  onToggleLimitesCategoria: (ativo: boolean) => void;
   onControleTurno: (acao: AcaoControleTurno) => void;
   onSolicitarEncerrarSessao: () => void;
 };
@@ -35,6 +38,7 @@ export function SessionMasterControls({
   cenaTipo,
   cenaNome,
   opcoesCena,
+  limitesCategoriaAtivo,
   atualizandoCena,
   acaoTurnoPendente,
   encerrandoSessao,
@@ -44,6 +48,7 @@ export function SessionMasterControls({
   onCenaTipoChange,
   onCenaNomeChange,
   onAtualizarCena,
+  onToggleLimitesCategoria,
   onControleTurno,
   onSolicitarEncerrarSessao,
 }: SessionMasterControlsProps) {
@@ -90,6 +95,16 @@ export function SessionMasterControls({
             maxLength={120}
             disabled={sessaoEncerrada}
           />
+          <label className="flex items-center gap-2 rounded border border-app-border bg-app-surface px-3 py-2 text-xs text-app-muted">
+            <Checkbox
+              checked={limitesCategoriaAtivo}
+              onChange={(event) => onToggleLimitesCategoria(event.target.checked)}
+              disabled={sessaoEncerrada}
+            />
+            <span>
+              Aplicar limites por categoria de item (Grau do feiticeiro)
+            </span>
+          </label>
           <div className="flex items-center gap-2">
             <Button
               onClick={onAtualizarCena}

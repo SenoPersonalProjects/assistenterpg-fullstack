@@ -1,10 +1,12 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 const TIPOS_CENA = [
   'LIVRE',
   'INVESTIGACAO',
   'FURTIVIDADE',
   'COMBATE',
+  'PERSEGUICAO',
+  'BASE',
   'OUTRA',
 ] as const;
 
@@ -20,4 +22,8 @@ export class AtualizarCenaSessaoDto {
   @IsString({ message: 'nome deve ser texto' })
   @MaxLength(120, { message: 'nome deve ter no maximo 120 caracteres' })
   nome?: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'limitesCategoriaAtivo deve ser booleano' })
+  limitesCategoriaAtivo?: boolean;
 }

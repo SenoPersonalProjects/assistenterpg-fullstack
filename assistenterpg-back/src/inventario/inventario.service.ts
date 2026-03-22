@@ -17,6 +17,10 @@ import {
   ResumoInventarioCompleto,
 } from './engine/inventario.types';
 import { calcularBloqueioEsquiva } from '../personagem-base/regras-criacao/regras-derivados';
+import {
+  calcularAtributoBaseInventario,
+  calcularEspacosInventarioBase,
+} from './utils/inventario-capacidade';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -685,7 +689,12 @@ export class InventarioService {
         };
       });
 
-      const espacosBase = forca * 5;
+      const atributoInventarioBase = calcularAtributoBaseInventario({
+        forca,
+        intelecto: dto.intelecto,
+        somarIntelecto: dto.somarIntelecto,
+      });
+      const espacosBase = calcularEspacosInventarioBase(atributoInventarioBase);
       const itensParaCalculoEspacosExtras: ItemInventarioComDados[] =
         itensCalculados.map((item) => ({
           id: 0,

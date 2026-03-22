@@ -59,6 +59,7 @@ type ModDerivados = {
   limitePeEaExtra: number;
   defesaExtra: number;
   espacosInventarioExtra: number;
+  inventarioSomarIntelecto: boolean;
 };
 
 type ResumoInventario = {
@@ -172,6 +173,15 @@ export class PersonagemBaseService {
     if (!value) return null;
     const current = value[key];
     return typeof current === 'number' ? current : null;
+  }
+
+  private getBooleanField(
+    value: Record<string, unknown> | null | undefined,
+    key: string,
+  ): boolean | null {
+    if (!value) return null;
+    const current = value[key];
+    return typeof current === 'boolean' ? current : null;
   }
 
   private extrairItensPreviewInventario(value: unknown): unknown[] {
@@ -706,6 +716,7 @@ export class PersonagemBaseService {
 
   private async validarItensInventarioNoPreview(
     dto: CreatePersonagemBaseDto,
+    inventarioSomarIntelecto?: boolean,
   ): Promise<{
     itensValidados: unknown[];
     errosItens: ErroItemPreview[];
@@ -726,6 +737,8 @@ export class PersonagemBaseService {
       const previewInventario =
         (await this.inventarioService.previewItensInventario({
           forca: dto.forca,
+          intelecto: dto.intelecto,
+          somarIntelecto: inventarioSomarIntelecto,
           prestigioBase: dto.prestigioBase ?? 0,
           itens: itensPreview,
         })) as unknown;
@@ -745,6 +758,8 @@ export class PersonagemBaseService {
           const previewItem =
             (await this.inventarioService.previewItensInventario({
               forca: dto.forca,
+              intelecto: dto.intelecto,
+              somarIntelecto: inventarioSomarIntelecto,
               prestigioBase: dto.prestigioBase ?? 0,
               itens: [
                 {
@@ -1071,6 +1086,7 @@ export class PersonagemBaseService {
       limitePeEaExtra: 0,
       defesaExtra: 0,
       espacosInventarioExtra: 0,
+      inventarioSomarIntelecto: false,
     };
 
     for (const h of habilidades) {
@@ -1089,6 +1105,7 @@ export class PersonagemBaseService {
       );
       const defesaBonus = this.getNumberField(defesa, 'bonus');
       const espacosExtra = this.getNumberField(inventario, 'espacosExtra');
+      const somarIntelecto = this.getBooleanField(inventario, 'somarIntelecto');
 
       if (pvPorNivel !== null) {
         mods.pvPorNivelExtra += pvPorNivel;
@@ -1113,6 +1130,10 @@ export class PersonagemBaseService {
 
       if (espacosExtra !== null) {
         mods.espacosInventarioExtra += espacosExtra;
+      }
+
+      if (somarIntelecto === true) {
+        mods.inventarioSomarIntelecto = true;
       }
     }
 
@@ -1415,8 +1436,15 @@ export class PersonagemBaseService {
     });
 
     // âœ… VALIDAR ITENS (se houver) usando preview do InventarioService
+    const inventarioSomarIntelecto = this.calcularModificadoresDerivadosPorHabilidades(
+      estado.habilidades,
+      dtoPreview.nivel,
+    ).inventarioSomarIntelecto;
     const { itensValidados, errosItens } =
-      await this.validarItensInventarioNoPreview(dto);
+      await this.validarItensInventarioNoPreview(
+        dtoPreview,
+        inventarioSomarIntelecto,
+      );
 
     return {
       ...estado.dtoNormalizado,

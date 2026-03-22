@@ -47,6 +47,12 @@ export const habilidadesMecanicasEspeciaisSeed: SeedHabilidadeMecanicasEspeciais
       },
     },
   },
+  {
+    habilidadeNome: 'Inventário Otimizado',
+    mecanicasEspeciais: {
+      inventario: { somarIntelecto: true },
+    },
+  },
 ];
 
 export async function seedHabilidadesMecanicasEspeciais(prisma: PrismaClient) {

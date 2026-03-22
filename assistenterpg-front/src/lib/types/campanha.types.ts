@@ -152,6 +152,8 @@ export type TipoCenaSessaoCampanha =
   | 'INVESTIGACAO'
   | 'FURTIVIDADE'
   | 'COMBATE'
+  | 'PERSEGUICAO'
+  | 'BASE'
   | 'OUTRA';
 
 export type AtributosSessaoCampanha = {
@@ -398,6 +400,7 @@ export type SessaoCampanhaDetalhe = {
     tipo: TipoCenaSessaoCampanha | string;
     nome: string | null;
     controleTurnosAtivo: boolean;
+    limitesCategoriaAtivo?: boolean;
   };
   turnoAtual: TurnoAtualSessaoCampanha | null;
   iniciativa: {

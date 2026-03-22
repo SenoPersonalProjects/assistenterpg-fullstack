@@ -16,6 +16,7 @@ import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 export type CampoAjusteRecursoCard = 'pv' | 'pe' | 'ea' | 'san';
 
 type CharacterSessionCardProps = {
+  campanhaId: number;
   card: SessaoCampanhaDetalhe['cards'][number];
   iniciativaValor: number | null;
   cardRecursosExpandido: boolean;
@@ -66,9 +67,11 @@ type CharacterSessionCardProps = {
     sustentacaoId: number,
   ) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
+  limitesCategoriaAtivo?: boolean;
 };
 
 export function CharacterSessionCard({
+  campanhaId,
   card,
   iniciativaValor,
   cardRecursosExpandido,
@@ -102,6 +105,7 @@ export function CharacterSessionCard({
   onUsarHabilidade,
   onEncerrarSustentacao,
   formatarCustos,
+  limitesCategoriaAtivo,
 }: CharacterSessionCardProps) {
   const recursos = card.recursos;
   const acaoHabilidadeCard =
@@ -250,6 +254,7 @@ export function CharacterSessionCard({
       {recursos && cardRecursosExpandido ? (
         <SessionCharacterDetailsTabs
           card={card}
+          campanhaId={campanhaId}
           iniciativaValor={iniciativaValor ?? null}
           abaDetalheCard={abaDetalheCard}
           totalCondicoesAtivasCard={totalCondicoesAtivasCard}
@@ -272,6 +277,7 @@ export function CharacterSessionCard({
           onEncerrarSustentacao={onEncerrarSustentacao}
           formatarCustos={formatarCustos}
           renderPainelCondicoes={renderPainelCondicoes}
+          limitesCategoriaAtivo={limitesCategoriaAtivo}
         />
       ) : null}
 

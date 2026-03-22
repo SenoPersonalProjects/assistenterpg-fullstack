@@ -14,7 +14,11 @@ type UseSessaoCenaParams = {
 
 type UseSessaoCenaReturn = {
   atualizandoCena: boolean;
-  handleAtualizarCena: (cenaTipo: TipoCenaSessaoCampanha, cenaNome: string) => Promise<void>;
+  handleAtualizarCena: (
+    cenaTipo: TipoCenaSessaoCampanha,
+    cenaNome: string,
+    limitesCategoriaAtivo?: boolean,
+  ) => Promise<void>;
 };
 
 export function useSessaoCena({
@@ -29,7 +33,11 @@ export function useSessaoCena({
   const [atualizandoCena, setAtualizandoCena] = useState(false);
 
   const handleAtualizarCena = useCallback(
-    async (cenaTipo: TipoCenaSessaoCampanha, cenaNome: string) => {
+    async (
+      cenaTipo: TipoCenaSessaoCampanha,
+      cenaNome: string,
+      limitesCategoriaAtivo?: boolean,
+    ) => {
       if (!detalhe) return;
 
       setAtualizandoCena(true);
@@ -38,6 +46,7 @@ export function useSessaoCena({
         const atualizado = await apiAtualizarCenaSessaoCampanha(campanhaId, sessaoId, {
           tipo: cenaTipo,
           nome: cenaNome.trim() || undefined,
+          limitesCategoriaAtivo,
         });
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);

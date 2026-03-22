@@ -11,6 +11,7 @@ import {
 import { PersonagemBaseNaoEncontradoException } from 'src/common/exceptions/personagem.exception';
 import { AtualizarRecursosPersonagemCampanhaDto } from './dto/atualizar-recursos-personagem-campanha.dto';
 import { CampanhaAccessService } from './campanha.access.service';
+import { CampanhaInventarioService } from './campanha.inventario.service';
 import {
   CampanhaMapper,
   PERSONAGEM_CAMPANHA_DETALHE_SELECT,
@@ -23,6 +24,7 @@ export class CampanhaPersonagensService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accessService: CampanhaAccessService,
+    private readonly inventarioService: CampanhaInventarioService,
     private readonly mapper: CampanhaMapper,
     private readonly persistence: CampanhaPersistence,
   ) {}
@@ -313,8 +315,43 @@ export class CampanhaPersonagensService {
         },
       });
 
+      const itensInventarioBase = await tx.inventarioItemBase.findMany({
+        where: { personagemBaseId: personagemBase.id },
+        include: {
+          modificacoes: true,
+        },
+      });
+
+      for (const itemBase of itensInventarioBase) {
+        const itemCriado = await tx.inventarioItemCampanha.create({
+          data: {
+            personagemCampanhaId: personagemCriado.id,
+            equipamentoId: itemBase.equipamentoId,
+            quantidade: itemBase.quantidade,
+            equipado: itemBase.equipado,
+            categoriaCalculada: itemBase.categoriaCalculada,
+            nomeCustomizado: itemBase.nomeCustomizado,
+            notas: itemBase.notas,
+          },
+          select: { id: true },
+        });
+
+        if (itemBase.modificacoes.length > 0) {
+          await tx.inventarioItemCampanhaModificacao.createMany({
+            data: itemBase.modificacoes.map((mod) => ({
+              itemId: itemCriado.id,
+              modificacaoId: mod.modificacaoId,
+            })),
+          });
+        }
+      }
+
       return personagemCriado.id;
     });
+
+    await this.inventarioService.recalcularEstadoInventarioCampanha(
+      personagemCampanhaId,
+    );
 
     const personagemCampanha =
       await this.persistence.buscarPersonagemCampanhaDetalhe(

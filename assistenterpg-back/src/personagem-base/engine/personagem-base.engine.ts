@@ -46,6 +46,11 @@ import {
 } from '../regras-criacao/regras-derivados';
 
 import {
+  calcularAtributoBaseInventario,
+  calcularEspacosInventarioBase,
+} from 'src/inventario/utils/inventario-capacidade';
+
+import {
   EngineParams,
   EngineResult,
   HabilidadeComEfeitos,
@@ -112,6 +117,15 @@ function getNumberField(
   return typeof current === 'number' ? current : null;
 }
 
+function getBooleanField(
+  value: Record<string, unknown> | null | undefined,
+  key: string,
+): boolean | null {
+  if (!value) return null;
+  const current = value[key];
+  return typeof current === 'boolean' ? current : null;
+}
+
 // ✅ REFATORADO: Usar exceção customizada
 function validarAtributoChaveEa(
   valor: unknown,
@@ -173,17 +187,18 @@ function getLegacyInt2Config(value: unknown): PassivaIntelectoConfigDto | null {
   return null;
 }
 
-function calcularModificadoresDerivadosPorHabilidadesLocal(
-  habilidades: HabilidadeComEfeitos,
-  nivel: number,
-): ModDerivados {
-  const mods: ModDerivados = {
-    pvPorNivelExtra: 0,
-    peBaseExtra: 0,
-    limitePeEaExtra: 0,
-    defesaExtra: 0,
-    espacosInventarioExtra: 0,
-  };
+  function calcularModificadoresDerivadosPorHabilidadesLocal(
+    habilidades: HabilidadeComEfeitos,
+    nivel: number,
+  ): ModDerivados {
+    const mods: ModDerivados = {
+      pvPorNivelExtra: 0,
+      peBaseExtra: 0,
+      limitePeEaExtra: 0,
+      defesaExtra: 0,
+      espacosInventarioExtra: 0,
+      inventarioSomarIntelecto: false,
+    };
 
   for (const h of habilidades) {
     const mecanicas = isRecord(h.habilidade.mecanicasEspeciais)
@@ -199,8 +214,9 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
       recursos,
       'limitePePorTurnoBonus',
     );
-    const defesaBonus = getNumberField(defesa, 'bonus');
-    const espacosExtra = getNumberField(inventario, 'espacosExtra');
+      const defesaBonus = getNumberField(defesa, 'bonus');
+      const espacosExtra = getNumberField(inventario, 'espacosExtra');
+      const somarIntelecto = getBooleanField(inventario, 'somarIntelecto');
 
     if (pvPorNivel !== null) {
       mods.pvPorNivelExtra += pvPorNivel;
@@ -223,13 +239,17 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
       mods.defesaExtra += defesaBonus;
     }
 
-    if (espacosExtra !== null) {
-      mods.espacosInventarioExtra += espacosExtra;
-    }
-  }
+      if (espacosExtra !== null) {
+        mods.espacosInventarioExtra += espacosExtra;
+      }
 
-  return mods;
-}
+      if (somarIntelecto === true) {
+        mods.inventarioSomarIntelecto = true;
+      }
+    }
+
+    return mods;
+  }
 
 function toEscalonamentoPorNivel(
   value: Prisma.JsonValue | null,
@@ -627,7 +647,14 @@ export async function calcularEstadoFinalPersonagemBase(
   derivadosFinais.esquiva = esquiva;
 
   // Calcular espaços de inventário
-  const espacosInventarioBase = dtoNormalizado.forca * 5;
+  const atributoInventarioBase = calcularAtributoBaseInventario({
+    forca: dtoNormalizado.forca,
+    intelecto: dtoNormalizado.intelecto,
+    somarIntelecto: mods.inventarioSomarIntelecto,
+  });
+  const espacosInventarioBase = calcularEspacosInventarioBase(
+    atributoInventarioBase,
+  );
   const espacosInventarioExtra = mods.espacosInventarioExtra;
   const espacosInventarioTotal = espacosInventarioBase + espacosInventarioExtra;
 
