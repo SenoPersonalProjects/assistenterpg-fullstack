@@ -229,7 +229,7 @@ export async function calcularAtributosDerivados(
   const defesa = 10 + agilidade;
   const deslocamento = 9 + efeitosPassivas.deslocamento;
   const limitePeEaPorTurno = limitePeEa;
-  const reacoesBasePorTurno = 2 + efeitosPassivas.reacoes;
+  const reacoesBasePorTurno = 1 + efeitosPassivas.reacoes;
   const turnosMorrendo = 3 + efeitosPassivas.rodadasMorrendo;
   const turnosEnlouquecendo = 3 + efeitosPassivas.rodadasEnlouquecendo;
 

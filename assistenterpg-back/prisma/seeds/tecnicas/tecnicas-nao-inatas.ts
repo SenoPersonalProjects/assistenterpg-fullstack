@@ -90,10 +90,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         duracao: 'Sustentado',
         custoEA: 2,
         efeito:
-          'Concede 1d6 de dano adicional. Acumulavel ate +4 acumulos conforme grau de aprimoramento, com +1 EA por acumulo. Sustentacao de revestimentos custa 1 EA/turno por revestimento ativo.',
+          'Concede 1d6 de dano adicional OU +3 no teste de ataque. Acumulavel ate +4 acumulos conforme grau de aprimoramento, com +1 EA por acumulo. Sustentacao de revestimentos custa 1 EA/turno por revestimento ativo.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
-        escalonamentoCustoEA: 2,
+        escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
           quantidade: 1,
@@ -109,13 +109,14 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         variacoes: [
           {
             nome: 'Revestimento Momentaneo',
-            descricao: 'Aplica o revestimento em um unico ataque.',
+            descricao:
+              'Aplica o revestimento em um unico ataque, escolhendo dano ou teste.',
             substituiCustos: true,
             custoEA: 1,
             execucao: TipoExecucao.AO_ATACAR,
             duracao: 'Instantanea',
             efeitoAdicional:
-              'O efeito e aplicado somente no ataque que ativou a variacao.',
+              'O efeito escolhido e aplicado somente no ataque que ativou a variacao.',
             ordem: 10,
           },
           {
@@ -124,7 +125,8 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               'Reveste municao de arma de fogo/disparo para permitir ferir maldicoes.',
             substituiCustos: true,
             custoEA: 2,
-            efeitoAdicional: 'Custo dobrado (2 EA por d6).',
+            efeitoAdicional:
+              'Custo dobrado (2 EA por acumulo). Mantem a escolha entre dano ou teste.',
             ordem: 20,
           },
         ],
@@ -175,15 +177,13 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         custoEA: 1,
         custoPE: 1,
         efeito:
-          'Concede +3m de deslocamento por rodada e +2 em testes de ataque. Cada acumulo adicional concede +3m. Acumulavel ate 5 vezes conforme grau de aprimoramento.',
+          'Concede +3m de deslocamento por rodada e +1 reacao especial. Cada acumulo adicional concede +3m de deslocamento e +1 reacao especial. Acumulavel ate 5 vezes conforme grau de aprimoramento.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
-        escalonamentoTipo: TipoEscalonamentoHabilidade.NUMERICO,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
-          label: 'Deslocamento',
-          incremento: 3,
-          unidade: 'm',
+          descricaoPorAcumulo: '+3m deslocamento e +1 reacao especial',
         },
         ordem: 30,
       },
