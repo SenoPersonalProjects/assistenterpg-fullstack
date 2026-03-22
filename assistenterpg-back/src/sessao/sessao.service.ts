@@ -4063,12 +4063,18 @@ export class SessaoService {
       variacaoSelecionada === null && acumulosNormalizados === 0;
 
     const isSustentada = this.duracaoEhSustentada(duracao);
-    const custoSustentacaoEANormalizado = isSustentada
+    const custoSustentacaoDefinido =
+      typeof custoSustentacaoEA === 'number' ||
+      typeof custoSustentacaoPE === 'number';
+    let custoSustentacaoEANormalizado = isSustentada
       ? this.normalizarCustoPositivo(custoSustentacaoEA, 0)
       : null;
-    const custoSustentacaoPENormalizado = isSustentada
+    let custoSustentacaoPENormalizado = isSustentada
       ? this.normalizarCustoPositivo(custoSustentacaoPE, 0)
       : null;
+    if (isSustentada && !custoSustentacaoDefinido) {
+      custoSustentacaoEANormalizado = 1;
+    }
     if (isSustentada) {
       const eaSustentacao = custoSustentacaoEANormalizado ?? 0;
       const peSustentacao = custoSustentacaoPENormalizado ?? 0;
