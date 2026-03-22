@@ -18,6 +18,16 @@ type PreviewItensInventarioOptions = {
   cacheTtlMs?: number;
 };
 
+type PreviewItensInventarioRequest = Omit<PreviewItensInventarioPayload, 'itens'> & {
+  itens: Array<{
+    equipamentoId: number;
+    quantidade: number;
+    equipado: boolean;
+    modificacoes?: number[];
+    nomeCustomizado?: string;
+  }>;
+};
+
 type PreviewItensInventarioCacheEntry = {
   data: PreviewItensInventarioResponse;
   expiresAt: number;
@@ -67,11 +77,24 @@ export async function apiPreviewItensInventario(
   payload: PreviewItensInventarioPayload,
   options: PreviewItensInventarioOptions = {},
 ): Promise<PreviewItensInventarioResponse> {
+  const payloadSanitizado: PreviewItensInventarioRequest = {
+    ...payload,
+    itens: payload.itens.map((item) => ({
+      equipamentoId: item.equipamentoId,
+      quantidade: item.quantidade,
+      equipado: item.equipado,
+      modificacoes: (item as { modificacoes?: number[] }).modificacoes
+        ? (item as { modificacoes?: number[] }).modificacoes
+        : (item as { modificacoesIds?: number[] }).modificacoesIds ?? [],
+      nomeCustomizado: item.nomeCustomizado ?? undefined,
+    })),
+  };
+
   const key = previewItensInventarioCacheKey(payload);
   const ttlMs = options.cacheTtlMs ?? PREVIEW_ITENS_INVENTARIO_CACHE_TTL_MS;
 
   if (!key) {
-    const { data } = await apiClient.post('/inventario/preview', payload);
+    const { data } = await apiClient.post('/inventario/preview', payloadSanitizado);
     return data;
   }
 
@@ -91,7 +114,7 @@ export async function apiPreviewItensInventario(
   }
 
   const request = apiClient
-    .post('/inventario/preview', payload)
+    .post('/inventario/preview', payloadSanitizado)
     .then(({ data }) => {
       previewItensInventarioCache.set(key, {
         data,

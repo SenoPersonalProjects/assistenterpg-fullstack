@@ -20,6 +20,7 @@ type PreviewPayload = {
     equipamentoId: number;
     quantidade: number;
     equipado: boolean;
+    modificacoes?: number[];
     nomeCustomizado?: string;
   }>;
 };
@@ -47,6 +48,7 @@ function construirPayloadPreview(
       equipamentoId: Number(item.equipamentoId),
       quantidade: Number(item.quantidade),
       equipado: Boolean(item.equipado),
+      modificacoes: item.modificacoesIds ?? [],
       nomeCustomizado: item.nomeCustomizado || undefined,
     })),
   };

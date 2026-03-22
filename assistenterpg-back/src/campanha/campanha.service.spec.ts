@@ -8,6 +8,7 @@ import { CampanhaContextoService } from './campanha.contexto.service';
 import { CampanhaPersonagensService } from './campanha.personagens.service';
 import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
+import { CampanhaInventarioService } from './campanha.inventario.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaApenasDonoException,
@@ -150,6 +151,12 @@ describe('CampanhaService', () => {
         CampanhaPersonagensService,
         CampanhaModificadoresService,
         CampanhaConvitesService,
+        {
+          provide: CampanhaInventarioService,
+          useValue: {
+            recalcularEstadoInventarioCampanha: jest.fn(),
+          },
+        },
         {
           provide: PrismaService,
           useValue: prisma,
@@ -432,6 +439,15 @@ describe('CampanhaService', () => {
       personagemCampanha: {
         findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({ id: 501 }),
+      },
+      inventarioItemBase: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      inventarioItemCampanha: {
+        create: jest.fn().mockResolvedValue({ id: 701 }),
+      },
+      inventarioItemCampanhaModificacao: {
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       personagemCampanhaResistencia: {
         createMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -753,6 +769,15 @@ describe('CampanhaService', () => {
       personagemCampanha: {
         findFirst: jest.fn(),
         create: jest.fn().mockResolvedValue({ id: 900 }),
+      },
+      inventarioItemBase: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      inventarioItemCampanha: {
+        create: jest.fn().mockResolvedValue({ id: 702 }),
+      },
+      inventarioItemCampanhaModificacao: {
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       personagemCampanhaResistencia: {
         createMany: jest.fn().mockResolvedValue({ count: 0 }),

@@ -32,6 +32,7 @@ import {
   atendeRequisitosGraus,
   montarMapaGraus,
 } from './regras-criacao/regras-tecnicas-nao-inatas';
+import { calcularBloqueioEsquiva } from './regras-criacao/regras-derivados';
 
 // Engine
 import { calcularEstadoFinalPersonagemBase } from './engine/personagem-base.engine';
@@ -79,6 +80,48 @@ type PersonagemDetalhadoComInventario = PersonagemDetalhadoMapeado & {
 type ErroItemPreview = {
   equipamentoId: number;
   erro: string;
+};
+
+type PreviewInventarioItem = {
+  equipamentoId: number;
+  quantidade: number;
+  equipado: boolean;
+  categoriaCalculada: string;
+  espacosCalculados: number;
+  nomeCustomizado?: string | null;
+  modificacoes?: Array<{
+    id: number;
+    nome: string;
+    codigo?: string;
+    tipo?: string;
+    descricao?: string | null;
+    incrementoEspacos: number;
+    efeitosMecanicos?: Prisma.JsonValue | null;
+  }>;
+  equipamento: {
+    id: number;
+    nome: string;
+    codigo: string;
+    tipo: string;
+    categoria: string;
+    espacos: number;
+    descricao?: string | null;
+    efeito?: string | null;
+    bonusDefesa?: number | null;
+  };
+};
+
+type PreviewInventarioResponse = {
+  itens: PreviewInventarioItem[];
+  espacosBase: number;
+  espacosExtra: number;
+  espacosTotal: number;
+  espacosOcupados: number;
+  sobrecarregado: boolean;
+  grauXama?: {
+    limitesPorCategoria?: Record<string, number>;
+  };
+  itensPorCategoria?: Record<string, number>;
 };
 
 const tecnicaComHabilidadesInclude =
@@ -188,6 +231,37 @@ export class PersonagemBaseService {
     if (!this.isRecord(value)) return [];
     const itens = value.itens;
     return Array.isArray(itens) ? itens : [];
+  }
+
+  private extrairNumeroJson(
+    value: Prisma.JsonValue | null | undefined,
+    key: string,
+  ): number | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const raw = (value as Record<string, unknown>)[key];
+    return typeof raw === 'number' ? raw : null;
+  }
+
+  private calcularDefesaEquipamentoPreview(
+    itens: PreviewInventarioItem[],
+  ): number {
+    return itens.reduce((total, item) => {
+      if (!item.equipado) return total;
+      const bonusBase = item.equipamento?.bonusDefesa ?? 0;
+      let bonusMods = 0;
+      if (Array.isArray(item.modificacoes)) {
+        for (const mod of item.modificacoes) {
+          const bonusDefesa = this.extrairNumeroJson(
+            mod.efeitosMecanicos ?? null,
+            'bonusDefesa',
+          );
+          if (typeof bonusDefesa === 'number') {
+            bonusMods += bonusDefesa;
+          }
+        }
+      }
+      return total + (bonusBase + bonusMods) * item.quantidade;
+    }, 0);
   }
 
   private removerItensInventarioDoDto(
@@ -720,9 +794,23 @@ export class PersonagemBaseService {
   ): Promise<{
     itensValidados: unknown[];
     errosItens: ErroItemPreview[];
+    previewInventario: PreviewInventarioResponse | null;
   }> {
     if (!dto.itensInventario?.length) {
-      return { itensValidados: [], errosItens: [] };
+      const previewInventario =
+        (await this.inventarioService.previewItensInventario({
+          forca: dto.forca,
+          intelecto: dto.intelecto,
+          somarIntelecto: inventarioSomarIntelecto,
+          prestigioBase: dto.prestigioBase ?? 0,
+          itens: [],
+        })) as PreviewInventarioResponse;
+
+      return {
+        itensValidados: [],
+        errosItens: [],
+        previewInventario,
+      };
     }
 
     const itensPreview = dto.itensInventario.map((item) => ({
@@ -741,17 +829,19 @@ export class PersonagemBaseService {
           somarIntelecto: inventarioSomarIntelecto,
           prestigioBase: dto.prestigioBase ?? 0,
           itens: itensPreview,
-        })) as unknown;
+        })) as PreviewInventarioResponse;
       const itensValidados =
         this.extrairItensPreviewInventario(previewInventario);
 
       return {
         itensValidados,
         errosItens: [],
+        previewInventario,
       };
     } catch {
       const itensValidados: unknown[] = [];
       const errosItens: ErroItemPreview[] = [];
+      const itensValidosPayload: typeof itensPreview = [];
 
       for (const item of dto.itensInventario) {
         try {
@@ -770,12 +860,19 @@ export class PersonagemBaseService {
                   nomeCustomizado: item.nomeCustomizado,
                 },
               ],
-            })) as unknown;
+            })) as PreviewInventarioResponse;
 
           const itensPreviewItem =
             this.extrairItensPreviewInventario(previewItem);
           if (itensPreviewItem[0]) {
             itensValidados.push(itensPreviewItem[0]);
+            itensValidosPayload.push({
+              equipamentoId: item.equipamentoId,
+              quantidade: item.quantidade,
+              equipado: item.equipado ?? false,
+              modificacoes: item.modificacoesIds ?? [],
+              nomeCustomizado: item.nomeCustomizado,
+            });
           }
         } catch (error: unknown) {
           const erro =
@@ -789,7 +886,23 @@ export class PersonagemBaseService {
         }
       }
 
-      return { itensValidados, errosItens };
+      let previewInventario: PreviewInventarioResponse | null = null;
+      if (itensValidosPayload.length > 0) {
+        try {
+          previewInventario =
+            (await this.inventarioService.previewItensInventario({
+              forca: dto.forca,
+              intelecto: dto.intelecto,
+              somarIntelecto: inventarioSomarIntelecto,
+              prestigioBase: dto.prestigioBase ?? 0,
+              itens: itensValidosPayload,
+            })) as PreviewInventarioResponse;
+        } catch {
+          previewInventario = null;
+        }
+      }
+
+      return { itensValidados, errosItens, previewInventario };
     }
   }
 
@@ -1440,11 +1553,77 @@ export class PersonagemBaseService {
       estado.habilidades,
       dtoPreview.nivel,
     ).inventarioSomarIntelecto;
-    const { itensValidados, errosItens } =
+    const { itensValidados, errosItens, previewInventario } =
       await this.validarItensInventarioNoPreview(
         dtoPreview,
         inventarioSomarIntelecto,
       );
+
+    const previewInventarioItens = previewInventario?.itens ?? [];
+    const defesaEquipamentoPreview =
+      previewInventarioItens.length > 0
+        ? this.calcularDefesaEquipamentoPreview(previewInventarioItens)
+        : 0;
+
+    const atributosDerivadosPreview = {
+      ...estado.derivadosFinais,
+      defesaEquipamento: defesaEquipamentoPreview,
+      defesaTotal: (estado.derivadosFinais.defesaBase ?? 0) + defesaEquipamentoPreview,
+    };
+
+    const { bloqueio, esquiva } = calcularBloqueioEsquiva({
+      defesa: atributosDerivadosPreview.defesaTotal,
+      periciasMap: estado.periciasMapCodigo,
+    });
+
+    atributosDerivadosPreview.bloqueio = bloqueio;
+    atributosDerivadosPreview.esquiva = esquiva;
+
+    const itensInventarioPreview = (previewInventarioItens.length
+      ? previewInventarioItens
+      : (itensValidados as PreviewInventarioItem[])
+    ).map((item) => ({
+      equipamentoId: item.equipamentoId,
+      equipamento: {
+        id: item.equipamento.id,
+        nome: item.equipamento.nome,
+        tipo: item.equipamento.tipo,
+        espacos: item.equipamento.espacos,
+        descricao: item.equipamento.descricao ?? item.equipamento.efeito ?? null,
+      },
+      quantidade: item.quantidade,
+      equipado: item.equipado,
+      modificacoesIds: Array.isArray(item.modificacoes)
+        ? item.modificacoes.map((mod) => mod.id)
+        : [],
+      modificacoes: Array.isArray(item.modificacoes)
+        ? item.modificacoes.map((mod) => ({
+            id: mod.id,
+            nome: mod.nome,
+            incrementoEspacos: mod.incrementoEspacos ?? 0,
+          }))
+        : [],
+      espacosPorUnidade: item.espacosCalculados,
+      espacosTotal: item.espacosCalculados * item.quantidade,
+      nomeCustomizado: item.nomeCustomizado ?? null,
+      notas: null,
+      categoriaCalculada: item.categoriaCalculada,
+    }));
+
+    const espacosInventarioPreview = previewInventario
+      ? {
+          base: previewInventario.espacosBase,
+          extra: previewInventario.espacosExtra,
+          total: previewInventario.espacosTotal,
+          ocupados: previewInventario.espacosOcupados,
+          restantes:
+            previewInventario.espacosTotal - previewInventario.espacosOcupados,
+          sobrecarregado: previewInventario.sobrecarregado,
+          limitesPorCategoria:
+            previewInventario.grauXama?.limitesPorCategoria ?? {},
+          itensPorCategoria: previewInventario.itensPorCategoria ?? {},
+        }
+      : undefined;
 
     return {
       ...estado.dtoNormalizado,
@@ -1482,19 +1661,19 @@ export class PersonagemBaseService {
       habilidadesAtivas: habilidadesNomes,
       bonusHabilidades: estado.bonusHabilidades,
 
-      atributosDerivados: estado.derivadosFinais,
+      atributosDerivados: atributosDerivadosPreview,
       tecnicasNaoInatas,
       tecnicaInata,
 
       grausLivresInfo: estado.grausLivresInfo,
       periciasLivresInfo: estado.periciasLivresInfo,
 
-      espacosInventario: estado.espacosInventario,
+      espacosInventario: espacosInventarioPreview,
 
       resistencias: resistenciasComNomes,
 
       // âœ… Itens validados
-      itensInventario: itensValidados,
+      itensInventario: itensInventarioPreview,
       errosItens: errosItens.length > 0 ? errosItens : undefined,
     };
   }

@@ -14,7 +14,7 @@ import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
   // calcularEspacosExtraDeItens
   filtrarModificacoesCompativeis,
-  normalizarCategoria,
+  calcularCategoriaFinal,
   validarPodeVestir,
   type CategoriaEquipamento,
   type ItemInventarioParaVestir,
@@ -144,6 +144,7 @@ export function PersonagemBaseStepInventario(props: Props) {
             equipamentoId: item.equipamentoId,
             quantidade: item.quantidade,
             equipado: item.equipado,
+            modificacoes: item.modificacoesIds ?? [],
             nomeCustomizado: item.nomeCustomizado || undefined,
           })),
         };
@@ -203,7 +204,10 @@ export function PersonagemBaseStepInventario(props: Props) {
     props.itensInventario.forEach((item) => {
       const equip = equipamentoPorId.get(item.equipamentoId);
       if (equip) {
-        const cat = normalizarCategoria(equip.categoria);
+        const cat = calcularCategoriaFinal(
+          equip.categoria,
+          item.modificacoesIds?.length ?? 0,
+        );
         contagem[cat] = (contagem[cat] || 0) + item.quantidade;
       }
     });
@@ -220,7 +224,10 @@ export function PersonagemBaseStepInventario(props: Props) {
       itens = itens.filter(({ item }) => {
         const equip = equipamentoPorId.get(item.equipamentoId);
         if (!equip) return false;
-        const cat = normalizarCategoria(equip.categoria);
+        const cat = calcularCategoriaFinal(
+          equip.categoria,
+          item.modificacoesIds?.length ?? 0,
+        );
         return cat === filtroCategoria;
       });
     }
@@ -501,7 +508,10 @@ export function PersonagemBaseStepInventario(props: Props) {
     setErroValidacao(null);
 
     try {
-      const categoria = normalizarCategoria(equipamentoSelecionado.categoria);
+      const categoria = calcularCategoriaFinal(
+        equipamentoSelecionado.categoria,
+        modificacoesSelecionadas.length,
+      );
       const limiteCategoria = grauXama.limitesPorCategoria[categoria] ?? Infinity;
       const itensAtuaisNaCategoria = itensPorCategoria[categoria] || 0;
 

@@ -352,7 +352,7 @@ export default function ConfiguracoesPage() {
             <ConfigSection title="Sobre o Sistema" icon="info">
               <div className="space-y-2 text-sm text-app-muted">
                 <p>
-                  <strong className="text-app-fg">Versão:</strong> 1.0.0 (Beta)
+                  <strong className="text-app-fg">Versão:</strong> 1.2.0 (Beta)
                 </p>
                 <p>
                   <strong className="text-app-fg">Sistema:</strong> Jujutsu Kaisen RPG - Assistente Digital

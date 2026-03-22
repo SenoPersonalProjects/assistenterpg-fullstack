@@ -1,0 +1,31 @@
+import { PrismaService } from '../prisma/prisma.service';
+import { ExportarTecnicasJsonDto } from './dto/exportar-tecnicas-json.dto';
+import { ImportarTecnicasJsonDto } from './dto/importar-tecnicas-json.dto';
+import { ImportacaoTecnicasResumo, RegistroJson } from './engine/tecnicas-amaldicoadas.engine.types';
+import { TecnicasAmaldicoadasCrudService } from './tecnicas-amaldicoadas.crud.service';
+import { TecnicasAmaldicoadasHabilidadesService } from './tecnicas-amaldicoadas.habilidades.service';
+import { TecnicasAmaldicoadasVariacoesService } from './tecnicas-amaldicoadas.variacoes.service';
+export declare class TecnicasAmaldicoadasImportExportService {
+    private readonly prisma;
+    private readonly crudService;
+    private readonly habilidadesService;
+    private readonly variacoesService;
+    constructor(prisma: PrismaService, crudService: TecnicasAmaldicoadasCrudService, habilidadesService: TecnicasAmaldicoadasHabilidadesService, variacoesService: TecnicasAmaldicoadasVariacoesService);
+    private garantirObjeto;
+    private lerStringObrigatoria;
+    private lerStringOpcional;
+    private lerNumeroOpcional;
+    private lerInteiroOpcional;
+    private lerBooleanOpcional;
+    private lerJsonOpcional;
+    private lerArrayStringsOpcional;
+    private lerEnumObrigatorio;
+    private lerEnumOpcional;
+    private parseVariacaoImport;
+    private parseHabilidadeImport;
+    private parseTecnicaImport;
+    private mapTecnicaExportJson;
+    getGuiaImportacaoJson(): RegistroJson;
+    exportarTecnicasJson(query: ExportarTecnicasJsonDto): Promise<RegistroJson>;
+    importarTecnicasJson(dto: ImportarTecnicasJsonDto): Promise<ImportacaoTecnicasResumo>;
+}

@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { InfoTile } from '@/components/ui/InfoTile';
 import { formatarGrauXama, type GrauXama } from '@/lib/utils/prestigio';
-import { normalizarCategoria, isCategoriaBloquada } from '@/lib/utils/inventario';
+import { calcularCategoriaFinal, isCategoriaBloquada } from '@/lib/utils/inventario';
 import type { ItemInventarioPayload, EquipamentoCatalogo } from '@/lib/api';
 
 type Props = {
@@ -30,7 +30,10 @@ export function InventarioGrauXama({ grauXama, itensInventario, equipamentos }: 
     itensInventario.forEach((item) => {
       const equip = equipamentos.find((e) => e.id === item.equipamentoId);
       if (equip) {
-        const cat = normalizarCategoria(equip.categoria);
+        const cat = calcularCategoriaFinal(
+          equip.categoria,
+          item.modificacoesIds?.length ?? 0,
+        );
         contagem[cat] = (contagem[cat] || 0) + item.quantidade;
       }
     });

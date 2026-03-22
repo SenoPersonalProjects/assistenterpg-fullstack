@@ -64,8 +64,12 @@ const inventarioItemComDadosInclude =
 const modificacaoPreviewSelect =
   Prisma.validator<Prisma.ModificacaoEquipamentoSelect>()({
     id: true,
+    codigo: true,
     nome: true,
+    descricao: true,
+    tipo: true,
     incrementoEspacos: true,
+    efeitosMecanicos: true,
   });
 
 const modificacaoCalculoSelect =
@@ -673,8 +677,12 @@ export class InventarioService {
           nomeCustomizado: item.nomeCustomizado,
           modificacoes: modsDoItem.map((m) => ({
             id: m.id,
+            codigo: m.codigo,
             nome: m.nome,
+            descricao: m.descricao,
+            tipo: m.tipo,
             incrementoEspacos: m.incrementoEspacos || 0,
+            efeitosMecanicos: m.efeitosMecanicos ?? null,
           })),
           equipamento: {
             id: equipamento.id,
@@ -684,6 +692,10 @@ export class InventarioService {
             categoria: equipamento.categoria,
             espacos: equipamento.espacos,
             complexidadeMaldicao: equipamento.complexidadeMaldicao,
+            bonusDefesa: equipamento.bonusDefesa ?? 0,
+            penalidadeCarga: equipamento.penalidadeCarga ?? 0,
+            tipoAcessorio: equipamento.tipoAcessorio ?? null,
+            descricao: equipamento.descricao ?? null,
             efeito: equipamento.efeito,
           },
         };

@@ -522,22 +522,26 @@ export function PersonagemBaseStepRevisao({
     previewCalculado?.passivasAtributosAtivos ?? preview.passivasAtributosAtivos ?? [];
 
   // Usa dados calculados pelo backend para o resumo de inventário.
-  const inventarioInfo = useMemo(() => {
-    const itens = previewCalculado?.itensInventario ?? [];
-    const espacosTotalCalculado = toFiniteNumber(previewCalculado?.espacosInventario?.total);
-    const espacosTotalFallback = Math.max(0, toSafeNumber(preview.forca) * 5);
-    const espacosTotal = espacosTotalCalculado ?? espacosTotalFallback;
-    const espacosOcupadosCalculado = toFiniteNumber(previewCalculado?.espacosInventario?.ocupados);
-    const espacosOcupadosFallback = itens.reduce(
-      (sum, item) => sum + toSafeNumber(item.espacosTotal),
-      0,
+  const inventarioInfo = (() => {
+    if (!previewCalculado?.espacosInventario || !previewCalculado?.itensInventario) {
+      return null;
+    }
+
+    const itens = previewCalculado.itensInventario;
+    const espacosTotal = toFiniteNumber(previewCalculado.espacosInventario.total);
+    const espacosOcupados = toFiniteNumber(previewCalculado.espacosInventario.ocupados);
+    if (espacosTotal === null || espacosOcupados === null) {
+      return null;
+    }
+
+    const espacosRestantesCalculado = toFiniteNumber(
+      previewCalculado.espacosInventario.restantes,
     );
-    const espacosOcupados = espacosOcupadosCalculado ?? espacosOcupadosFallback;
-    const espacosRestantesCalculado = toFiniteNumber(previewCalculado?.espacosInventario?.restantes);
-    const espacosRestantes = espacosRestantesCalculado ?? espacosTotal - espacosOcupados;
+    const espacosRestantes =
+      espacosRestantesCalculado ?? espacosTotal - espacosOcupados;
     const totalItens = itens.reduce((sum, item) => sum + toSafeNumber(item.quantidade), 0);
     const sobrecarregado =
-      typeof previewCalculado?.espacosInventario?.sobrecarregado === 'boolean'
+      typeof previewCalculado.espacosInventario.sobrecarregado === 'boolean'
         ? previewCalculado.espacosInventario.sobrecarregado
         : espacosOcupados > espacosTotal;
 
@@ -548,10 +552,10 @@ export function PersonagemBaseStepRevisao({
       espacosRestantes,
       totalItens,
       sobrecarregado,
-      limitesPorCategoria: previewCalculado?.espacosInventario?.limitesPorCategoria ?? null,
-      itensPorCategoria: previewCalculado?.espacosInventario?.itensPorCategoria ?? null,
+      limitesPorCategoria: previewCalculado.espacosInventario.limitesPorCategoria ?? null,
+      itensPorCategoria: previewCalculado.espacosInventario.itensPorCategoria ?? null,
     };
-  }, [previewCalculado?.itensInventario, previewCalculado?.espacosInventario, preview.forca]);
+  })();
 
   const getIconeTipo = (
     tipo: string,
@@ -998,7 +1002,11 @@ export function PersonagemBaseStepRevisao({
         right={<Icon name="briefcase" className="h-5 w-5 text-app-muted" />}
         contentClassName="space-y-3"
       >
-        <div className="grid gap-2.5 sm:grid-cols-2">
+        {!inventarioInfo ? (
+          <ErrorAlert message="Prévia do inventário indisponível. Volte ao passo Inventário e tente novamente." />
+        ) : (
+          <>
+            <div className="grid gap-2.5 sm:grid-cols-2">
           <InfoTile
             label="Capacidade de carga"
             value={`${inventarioInfo.espacosOcupados} / ${inventarioInfo.espacosTotal}`}
@@ -1130,6 +1138,8 @@ export function PersonagemBaseStepRevisao({
               </div>
             )}
           </div>
+        )}
+          </>
         )}
       </SectionCard>
 

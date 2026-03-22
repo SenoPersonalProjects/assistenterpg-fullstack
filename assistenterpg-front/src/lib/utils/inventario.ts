@@ -124,6 +124,8 @@ export const ICONES_CATEGORIA_GRAU: Record<string, IconName> = {
 /* HELPERS DE CATEGORIA */
 /* ============================================================================ */
 
+const ORDEM_CATEGORIAS_GRAU = ['0', '4', '3', '2', '1', 'ESPECIAL'] as const;
+
 /**
  * Normaliza categoria do backend para formato esperado
  */
@@ -153,6 +155,32 @@ export function normalizarCategoria(categoria: unknown): string {
 
   console.warn('[normalizarCategoria] Categoria desconhecida:', categoria);
   return '0';
+}
+
+/**
+ * Calcula a categoria final considerando a quantidade de modificações.
+ * Progressão: 0 → 4 → 3 → 2 → 1 → ESPECIAL
+ */
+export function calcularCategoriaFinal(
+  categoriaOriginal: unknown,
+  quantidadeModificacoes: number,
+): string {
+  const base = normalizarCategoria(categoriaOriginal);
+  const indexBase = ORDEM_CATEGORIAS_GRAU.indexOf(
+    base as (typeof ORDEM_CATEGORIAS_GRAU)[number],
+  );
+
+  if (indexBase < 0) {
+    return '0';
+  }
+
+  const incremento = Math.max(0, Math.trunc(quantidadeModificacoes || 0));
+  const indexFinal = Math.min(
+    indexBase + incremento,
+    ORDEM_CATEGORIAS_GRAU.length - 1,
+  );
+
+  return ORDEM_CATEGORIAS_GRAU[indexFinal];
 }
 
 /* ============================================================================ */

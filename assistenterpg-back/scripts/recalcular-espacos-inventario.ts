@@ -1,4 +1,8 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { InventarioEngine } from '../src/inventario/engine/inventario.engine';
+import { InventarioMapper } from '../src/inventario/inventario.mapper';
+import { CampanhaInventarioService } from '../src/campanha/campanha.inventario.service';
 import {
   calcularAtributoBaseInventario,
   calcularEspacosInventarioBase,
@@ -18,9 +22,20 @@ function getInventarioSomarIntelectoFromMecanicas(
 }
 
 async function main() {
-  const prisma = new PrismaClient();
+  const prisma = new PrismaService();
 
   try {
+    await prisma.onModuleInit();
+
+    const engine = new InventarioEngine();
+    const mapper = new InventarioMapper(engine);
+    const campanhaInventario = new CampanhaInventarioService(
+      prisma,
+      {} as any,
+      engine,
+      mapper,
+    );
+
     const personagens = await prisma.personagemBase.findMany({
       select: {
         id: true,
@@ -40,6 +55,7 @@ async function main() {
     });
 
     let atualizados = 0;
+    const mapaEspacosBase = new Map<number, number>();
 
     for (const personagem of personagens) {
       const somarIntelecto =
@@ -63,6 +79,8 @@ async function main() {
         atributoInventarioBase,
       );
 
+      mapaEspacosBase.set(personagem.id, novoEspacosBase);
+
       const espacosBaseAtual = personagem.espacosInventarioBase ?? null;
       const espacosExtra = personagem.espacosInventarioExtra ?? 0;
       const espacosOcupados = personagem.espacosOcupados ?? 0;
@@ -84,9 +102,46 @@ async function main() {
       }
     }
 
-    console.log(`\nConcluido. Personagens atualizados: ${atualizados}`);
+    console.log(`\nConcluido (base). Personagens atualizados: ${atualizados}`);
+
+    const personagensCampanha = await prisma.personagemCampanha.findMany({
+      select: {
+        id: true,
+        nome: true,
+        personagemBaseId: true,
+        espacosInventarioBase: true,
+      },
+    });
+
+    let atualizadosCampanha = 0;
+
+    for (const personagem of personagensCampanha) {
+      const novoEspacosBase = mapaEspacosBase.get(
+        personagem.personagemBaseId,
+      );
+      if (novoEspacosBase === undefined) continue;
+
+      if (personagem.espacosInventarioBase !== novoEspacosBase) {
+        await prisma.personagemCampanha.update({
+          where: { id: personagem.id },
+          data: { espacosInventarioBase: novoEspacosBase },
+        });
+        atualizadosCampanha += 1;
+        console.log(
+          `[OK] ${personagem.nome} (#${personagem.id}) espacosInventarioBase (campanha): ${personagem.espacosInventarioBase ?? 'null'} -> ${novoEspacosBase}`,
+        );
+      }
+
+      await campanhaInventario.recalcularEstadoInventarioCampanha(
+        personagem.id,
+      );
+    }
+
+    console.log(
+      `\nConcluido (campanha). Personagens atualizados: ${atualizadosCampanha}`,
+    );
   } finally {
-    await prisma.$disconnect();
+    await prisma.onModuleDestroy();
   }
 }
 

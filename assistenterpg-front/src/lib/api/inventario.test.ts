@@ -39,6 +39,20 @@ const payload = {
   ],
 };
 
+const payloadSanitizado = {
+  forca: 2,
+  prestigioBase: 0,
+  itens: [
+    {
+      equipamentoId: 1,
+      quantidade: 1,
+      equipado: false,
+      modificacoes: [],
+      nomeCustomizado: undefined,
+    },
+  ],
+};
+
 function buildPreviewResponse(suffix: string) {
   return {
     itens: [
@@ -92,7 +106,10 @@ describe('inventario api preview cache and dedupe', () => {
     const p2 = apiPreviewItensInventario(payload);
 
     expect(mockedApiClient.post).toHaveBeenCalledTimes(1);
-    expect(mockedApiClient.post).toHaveBeenCalledWith('/inventario/preview', payload);
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/inventario/preview',
+      payloadSanitizado,
+    );
 
     resolver({ data: buildPreviewResponse('A') });
 

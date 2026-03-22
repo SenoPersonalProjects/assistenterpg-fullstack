@@ -1,0 +1,2917 @@
+import { Prisma } from '@prisma/client';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateSessaoCampanhaDto } from './dto/create-sessao-campanha.dto';
+import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
+import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.dto';
+import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
+import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
+import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
+import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
+import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
+import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
+type EventoChatMapeado = {
+    id: number;
+    criadoEm: Date;
+    mensagem: string;
+    autor: {
+        usuarioId: number | null;
+        apelido: string;
+        personagemNome: string | null;
+    };
+};
+type EventoSessaoMapeado = {
+    id: number;
+    sessaoId: number;
+    cenaId: number | null;
+    criadoEm: Date;
+    tipoEvento: string;
+    descricao: string;
+    desfeito: boolean;
+    podeDesfazer: boolean;
+    dados: Prisma.JsonValue | null;
+    autor: {
+        usuarioId: number | null;
+        apelido: string;
+        personagemNome: string | null;
+    } | null;
+};
+type TipoParticipanteIniciativa = 'PERSONAGEM' | 'NPC';
+type VariacaoTecnicaSessaoResumo = {
+    id: number;
+    habilidadeTecnicaId: number;
+    nome: string;
+    descricao: string;
+    substituiCustos: boolean;
+    custoPE: number | null;
+    custoEA: number | null;
+    custoSustentacaoEA: number | null;
+    custoSustentacaoPE: number | null;
+    execucao: string | null;
+    area: string | null;
+    alcance: string | null;
+    alvo: string | null;
+    duracao: string | null;
+    resistencia: string | null;
+    dtResistencia: string | null;
+    danoFlat: number | null;
+    danoFlatTipo: string | null;
+    efeitoAdicional: string | null;
+    escalonaPorGrau: boolean | null;
+    grauTipoGrauCodigo: string | null;
+    acumulosMaximos: number;
+    escalonamentoCustoEA: number | null;
+    escalonamentoCustoPE: number | null;
+    escalonamentoTipo: string | null;
+    escalonamentoEfeito: Prisma.JsonValue | null;
+    escalonamentoDano: Prisma.JsonValue | null;
+    requisitos: Prisma.JsonValue | null;
+    ordem: number;
+};
+type HabilidadeTecnicaSessaoResumo = {
+    id: number;
+    tecnicaId: number;
+    codigo: string;
+    nome: string;
+    descricao: string;
+    requisitos: Prisma.JsonValue | null;
+    execucao: string;
+    area: string | null;
+    alcance: string | null;
+    alvo: string | null;
+    duracao: string | null;
+    custoPE: number;
+    custoEA: number;
+    custoSustentacaoEA: number | null;
+    custoSustentacaoPE: number | null;
+    escalonaPorGrau: boolean;
+    grauTipoGrauCodigo: string | null;
+    acumulosMaximos: number;
+    escalonamentoCustoEA: number;
+    escalonamentoCustoPE: number;
+    escalonamentoTipo: string;
+    escalonamentoEfeito: Prisma.JsonValue | null;
+    escalonamentoDano: Prisma.JsonValue | null;
+    danoFlat: number | null;
+    danoFlatTipo: string | null;
+    efeito: string;
+    ordem: number;
+    variacoes: VariacaoTecnicaSessaoResumo[];
+};
+type TecnicaSessaoResumo = {
+    id: number;
+    codigo: string;
+    nome: string;
+    descricao: string;
+    tipo: string;
+    habilidades: HabilidadeTecnicaSessaoResumo[];
+};
+type CondicaoAtivaSessaoResumo = {
+    id: number;
+    condicaoId: number;
+    nome: string;
+    descricao: string;
+    automatica: boolean;
+    chaveAutomacao: string | null;
+    duracaoModo: string;
+    duracaoValor: number | null;
+    restanteDuracao: number | null;
+    contadorTurnos: number;
+    origemDescricao: string | null;
+    observacao: string | null;
+    turnoAplicacao: number;
+};
+export declare class SessaoService {
+    private readonly prisma;
+    constructor(prisma: PrismaService);
+    listarSessoesCampanha(campanhaId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtualTipo: string;
+        cenaAtualNome: string | null;
+        controleTurnosAtivo: boolean;
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+        totalPersonagens: number;
+        totalEventos: number;
+    }[]>;
+    criarSessaoCampanha(campanhaId: number, usuarioId: number, dto: CreateSessaoCampanhaDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    encerrarSessaoCampanha(campanhaId: number, sessaoId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    buscarDetalheSessao(campanhaId: number, sessaoId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    listarChatSessao(campanhaId: number, sessaoId: number, usuarioId: number, afterId?: number): Promise<EventoChatMapeado[]>;
+    enviarMensagemChatSessao(campanhaId: number, sessaoId: number, usuarioId: number, mensagem: string): Promise<EventoChatMapeado>;
+    listarEventosSessao(campanhaId: number, sessaoId: number, usuarioId: number, query: ListarEventosSessaoDto): Promise<EventoSessaoMapeado[]>;
+    desfazerEventoSessao(campanhaId: number, sessaoId: number, eventoId: number, usuarioId: number, motivo?: string): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    avancarTurnoSessao(campanhaId: number, sessaoId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    voltarTurnoSessao(campanhaId: number, sessaoId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    pularTurnoSessao(campanhaId: number, sessaoId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    atualizarOrdemIniciativaSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: AtualizarOrdemIniciativaSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    atualizarCenaSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: AtualizarCenaSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    adicionarPersonagemSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: AdicionarPersonagemSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    removerPersonagemSessao(campanhaId: number, sessaoId: number, personagemSessaoId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    atualizarValorIniciativaSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: AtualizarValorIniciativaSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    adicionarNpcSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: AdicionarNpcSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    atualizarNpcSessao(campanhaId: number, sessaoId: number, npcSessaoId: number, usuarioId: number, dto: AtualizarNpcSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    removerNpcSessao(campanhaId: number, sessaoId: number, npcSessaoId: number, usuarioId: number): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    usarHabilidadeSessao(campanhaId: number, sessaoId: number, personagemSessaoId: number, usuarioId: number, dto: UsarHabilidadeSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    aplicarCondicaoSessao(campanhaId: number, sessaoId: number, usuarioId: number, dto: AplicarCondicaoSessaoDto): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    removerCondicaoSessao(campanhaId: number, sessaoId: number, condicaoSessaoId: number, usuarioId: number, motivo?: string): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    encerrarSustentacaoHabilidadeSessao(campanhaId: number, sessaoId: number, personagemSessaoId: number, sustentacaoId: number, usuarioId: number, motivo?: string): Promise<{
+        id: number;
+        campanhaId: number;
+        titulo: string;
+        status: string;
+        rodadaAtual: number | null;
+        indiceTurnoAtual: number | null;
+        cenaAtual: {
+            id: number;
+            tipo: string;
+            nome: string | null;
+            controleTurnosAtivo: boolean;
+            limitesCategoriaAtivo: boolean;
+        };
+        controleTurnosAtivo: boolean;
+        turnoAtual: {
+            tipoParticipante: TipoParticipanteIniciativa;
+            personagemSessaoId: number | null;
+            npcSessaoId: number | null;
+            personagemCampanhaId: number | null;
+            donoId: number | null;
+            nomeJogador: string | null;
+            nomePersonagem: string;
+            valorIniciativa: number | null;
+        } | null;
+        iniciativa: {
+            indiceAtual: number | null;
+            ordem: {
+                tipoParticipante: TipoParticipanteIniciativa;
+                personagemSessaoId: number | null;
+                npcSessaoId: number | null;
+                personagemCampanhaId: number | null;
+                donoId: number | null;
+                nomeJogador: string | null;
+                nomePersonagem: string;
+                podeEditar: boolean;
+                valorIniciativa: number;
+            }[];
+        };
+        permissoes: {
+            ehMestre: boolean;
+            podeEditarTodos: boolean;
+        };
+        participantes: {
+            usuarioId: number;
+            apelido: string;
+            papel: string;
+            ehDono: boolean;
+        }[];
+        cards: {
+            personagemSessaoId: number;
+            personagemCampanhaId: number;
+            personagemBaseId: number;
+            donoId: number;
+            nomeJogador: string;
+            nomePersonagem: string;
+            podeEditar: boolean;
+            visibilidade: string;
+            turnosMorrendo: number;
+            turnosEnlouquecendo: number;
+            recursos: {
+                pvAtual: number;
+                pvMax: number;
+                peAtual: number;
+                peMax: number;
+                eaAtual: number;
+                eaMax: number;
+                sanAtual: number;
+                sanMax: number;
+            } | null;
+            tecnicaInata: TecnicaSessaoResumo | null;
+            tecnicasNaoInatas: TecnicaSessaoResumo[];
+            sustentacoesAtivas: {
+                id: number;
+                habilidadeTecnicaId: number;
+                variacaoHabilidadeId: number | null;
+                nomeHabilidade: string;
+                nomeVariacao: string | null;
+                custoSustentacaoEA: number;
+                custoSustentacaoPE: number;
+                ativadaNaRodada: number;
+                ultimaCobrancaRodada: number;
+                criadaEm: Date;
+            }[];
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                bonusTreinamento: number;
+                bonusEquipamento: number;
+                bonusOutros: number;
+                bonusTotal: number;
+            }[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+        }[];
+        npcs: {
+            npcSessaoId: number;
+            npcAmeacaId: number | null;
+            nome: string;
+            fichaTipo: import("@prisma/client").$Enums.TipoFichaNpcAmeaca;
+            tipo: import("@prisma/client").$Enums.TipoNpcAmeaca;
+            vd: number;
+            defesa: number;
+            pontosVidaAtual: number;
+            pontosVidaMax: number;
+            sanAtual: number | null;
+            sanMax: number | null;
+            eaAtual: number | null;
+            eaMax: number | null;
+            machucado: number | null;
+            deslocamentoMetros: number;
+            notasCena: string | null;
+            atributos: {
+                agilidade: number;
+                forca: number;
+                intelecto: number;
+                presenca: number;
+                vigor: number;
+            } | null;
+            pericias: {
+                codigo: string;
+                nome: string;
+                atributoBase: string;
+                dados: number;
+                bonus: number;
+            }[];
+            periciasEspeciais: Prisma.JsonObject[];
+            passivas: Prisma.JsonObject[];
+            acoes: Prisma.JsonObject[];
+            condicoesAtivas: CondicaoAtivaSessaoResumo[];
+            podeEditar: boolean;
+        }[];
+        iniciadoEm: Date;
+        encerradoEm: Date | null;
+    }>;
+    validarAcessoSessao(campanhaId: number, sessaoId: number, usuarioId: number): Promise<void>;
+    private obterAcessoCampanha;
+    private obterSessaoComAcesso;
+    private obterCenaAtualSessaoTx;
+    private assertMestre;
+    private normalizarTextoComparacao;
+    private duracaoEhSustentada;
+    private normalizarCustoPositivo;
+    private normalizarTipoEscalonamento;
+    private resolverEfeitoEscalonamento;
+    private montarResumoEscalonamento;
+    private mapearHabilidadeTecnicaResumo;
+    private filtrarTecnicaPorGrausSessao;
+    private listarTecnicasNaoInatasCatalogo;
+    private resolverTecnicasSessaoPersonagem;
+    private buscarHabilidadeTecnicaDisponivel;
+    private resolverCustoUsoHabilidade;
+    private montarMapaGrausPersonagemSessao;
+    private montarReferenciaTurnoAtualSessao;
+    private calcularGastoPeEaNoTurnoAtual;
+    private deveBloquearPorLimitePeEaTurno;
+    private mapearParticipantesCampanha;
+    private clampNumero;
+    private resolverRecursoOpcional;
+    private clampIndiceTurno;
+    private criarTokenParticipante;
+    private lerTokenParticipante;
+    private lerListaTokensRegistro;
+    private lerOrdemIniciativaEvento;
+    private montarParticipantesIniciativa;
+    private aplicarOrdemIniciativaPersistida;
+    private validarEOrdenarIniciativaPorTokens;
+    private obterOrdemIniciativaPersistida;
+    private carregarParticipantesIniciativa;
+    private aplicarAjusteTurnoSessao;
+    private mapearCondicoesAtivasSessao;
+    private snapshotCondicaoSessao;
+    private resolverDuracaoCondicao;
+    private resolverAlvoCondicaoSessaoTx;
+    private sincronizarCondicoesAutomaticasSessao;
+    private obterMapaCondicoesSistemaTx;
+    private sincronizarCondicaoAutomaticaAlvoTx;
+    private desativarCondicaoAtivaSessaoTx;
+    private sincronizarCondicoesAutomaticasSessaoTx;
+    private processarCondicoesNoAvancoTurnoTx;
+    private mapearListaObjeto;
+    private normalizarBuscaPericia;
+    private extrairCodigosPericiaBonificada;
+    private calcularBonusEquipamentoPericias;
+    private montarAtributosNpc;
+    private obterAtributoNpcPorBase;
+    private calcularDadosPadraoPericia;
+    private jsonParaPersistencia;
+    private obterUltimoEventoReversivelDisponivel;
+    private eventoJaFoiDesfeito;
+    private extrairRegistro;
+    private lerInteiroRegistro;
+    private lerInteiroOpcionalRegistro;
+    private lerTextoRegistro;
+    private lerTextoOpcionalRegistro;
+    private lerRegistroOpcionalRegistro;
+    private lerSnapshotNpcRegistro;
+    private lerSnapshotCondicaoRegistro;
+    private montarUpdateCondicaoPorSnapshot;
+    private snapshotNpcSessao;
+    private montarUpdateNpcPorSnapshot;
+    private normalizarTipoFichaNpcAmeaca;
+    private normalizarTipoNpcAmeaca;
+    private marcarEventoComoDesfeitoTx;
+    private mapearEventoSessao;
+    private descreverEventoSessao;
+    private labelTipoCena;
+    private mapearEventoChat;
+}
+export {};

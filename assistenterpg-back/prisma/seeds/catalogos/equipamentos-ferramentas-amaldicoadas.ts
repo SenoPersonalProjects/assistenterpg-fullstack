@@ -921,14 +921,14 @@ const protecoesSimplesMaldadas: EquipamentoComProtecaoData[] = [
     codigo: 'PROTECAO_PESADA_AMALDICOADA_SIMPLES',
     nome: 'Proteção Pesada Amaldiçoada',
     descricao:
-      'Equipamento de forças especiais com maldição simples. RD 2 física + 5 RD energia amaldiçoada. +5 DEF. Penalidade -5 perícias carga.',
+      'Equipamento de forças especiais com maldição simples. RD 2 física + 5 RD energia amaldiçoada. +10 DEF. Penalidade -5 perícias carga.',
     tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
     categoria: CategoriaEquipamento.CATEGORIA_2,
     espacos: 5,
     tipoUso: TipoUsoEquipamento.VESTIVEL,
     protecaoAmaldicoada: {
       tipoBase: 'PROTECAO_PESADA',
-      bonusDefesa: 5,
+      bonusDefesa: 10,
       penalidadeCarga: -5,
       proficienciaRequerida: false,
       efeito: 'RD 2 dano físico + RD 5 energia amaldiçoada. Penalidade -5 perícias carga.',

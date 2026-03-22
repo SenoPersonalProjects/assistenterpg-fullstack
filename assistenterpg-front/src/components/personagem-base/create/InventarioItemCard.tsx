@@ -6,7 +6,11 @@ import { useMemo } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { getIconeTipo, CATEGORIA_GRAU_LABELS, normalizarCategoria } from '@/lib/utils/inventario';
+import {
+  getIconeTipo,
+  CATEGORIA_GRAU_LABELS,
+  calcularCategoriaFinal,
+} from '@/lib/utils/inventario';
 import type { ItemInventarioPayload, EquipamentoCatalogo, ModificacaoCatalogo } from '@/lib/api';
 
 type Props = {
@@ -44,7 +48,10 @@ export function InventarioItemCard({
   const espacosTotal = espacosPorUnidade * item.quantidade;
 
   // ✅ Normalizar categoria
-  const categoriaFinal = normalizarCategoria(equipamento.categoria);
+  const categoriaFinal = calcularCategoriaFinal(
+    equipamento.categoria,
+    modsAplicadas.length,
+  );
 
   // ✅ Obter label da categoria
   const categoriaLabel = CATEGORIA_GRAU_LABELS[categoriaFinal] || {

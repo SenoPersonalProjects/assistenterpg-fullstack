@@ -1,6 +1,4 @@
-const DICE_MARKER_PREFIX = '[[dice:v1|';
 const DICE_MARKER_REGEX = /\[\[dice:v1\|([^\]]+)\]\]/;
-const DICE_MARKER_V2_PREFIX = '[[dice:v2|';
 const DICE_MARKER_V2_REGEX = /\[\[dice:v2\|([^\]]+)\]\]/;
 const DICE_MARKER_V3_PREFIX = '[[dice:v3|';
 const DICE_MARKER_V3_REGEX = /\[\[dice:v3\|([^\]]+)\]\]/;

@@ -1,0 +1,1 @@
+{"version":3,"file":"pericia.exception.js","sourceRoot":"","sources":["../../../src/common/exceptions/pericia.exception.ts"],"names":[],"mappings":";;;AAEA,2CAA4C;AAC5C,qDAAiD;AAMjD,MAAa,6BAA8B,SAAQ,8BAAa;IAC9D,YAAY,aAA+B;QACzC,KAAK,CAAC,wBAAwB,EAAE,mBAAU,CAAC,SAAS,EAAE,mBAAmB,EAAE;YACzE,aAAa;SACd,CAAC,CAAC;IACL,CAAC;CACF;AAND,sEAMC"}

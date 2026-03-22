@@ -1,0 +1,35 @@
+import { TipoExecucao, AreaEfeito, TipoDano, TipoEscalonamentoHabilidade } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+export declare class CreateHabilidadeTecnicaDto {
+    tecnicaId: number;
+    codigo: string;
+    nome: string;
+    descricao: string;
+    requisitos?: Prisma.JsonValue;
+    execucao: TipoExecucao;
+    area?: AreaEfeito;
+    alcance?: string;
+    alvo?: string;
+    duracao?: string;
+    resistencia?: string;
+    dtResistencia?: string;
+    custoPE?: number;
+    custoEA?: number;
+    custoSustentacaoEA?: number;
+    custoSustentacaoPE?: number;
+    testesExigidos?: Prisma.JsonValue;
+    criticoValor?: number;
+    criticoMultiplicador?: number;
+    danoFlat?: number;
+    danoFlatTipo?: TipoDano;
+    dadosDano?: Prisma.JsonValue;
+    escalonaPorGrau?: boolean;
+    grauTipoGrauCodigo?: string;
+    escalonamentoCustoEA?: number;
+    escalonamentoCustoPE?: number;
+    escalonamentoTipo?: TipoEscalonamentoHabilidade;
+    escalonamentoEfeito?: Prisma.JsonValue;
+    escalonamentoDano?: Prisma.JsonValue;
+    efeito: string;
+    ordem?: number;
+}

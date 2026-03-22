@@ -1,0 +1,31 @@
+import { TipoExecucao, AreaEfeito, TipoDano } from '@prisma/client';
+import { DadoDanoDto, EscalonamentoDanoDto } from './shared-tecnica.dto';
+import { VariacaoHabilidadeDto } from './variacao-habilidade.dto';
+export declare class HabilidadeTecnicaDto {
+    codigo: string;
+    nome: string;
+    descricao: string;
+    requisitos?: any;
+    execucao: TipoExecucao;
+    area?: AreaEfeito;
+    alcance?: string;
+    alvo?: string;
+    duracao?: string;
+    resistencia?: string;
+    dtResistencia?: string;
+    custoPE: number;
+    custoEA: number;
+    testesExigidos?: string[];
+    criticoValor?: number;
+    criticoMultiplicador?: number;
+    danoFlat?: number;
+    danoFlatTipo?: TipoDano;
+    dadosDano?: DadoDanoDto[];
+    escalonaPorGrau?: boolean;
+    grauTipoGrauCodigo?: string;
+    escalonamentoCustoEA?: number;
+    escalonamentoDano?: EscalonamentoDanoDto;
+    efeito: string;
+    variacoes?: VariacaoHabilidadeDto[];
+    ordem?: number;
+}

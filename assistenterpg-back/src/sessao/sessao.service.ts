@@ -2977,7 +2977,7 @@ export class SessaoService {
             variacaoHabilidadeId: custo.variacaoHabilidadeId,
             nomeHabilidade: habilidade.nome,
             nomeVariacao: custo.nomeVariacao,
-            custoSustentacaoEA: custo.custoSustentacaoEA ?? 1,
+            custoSustentacaoEA: custo.custoSustentacaoEA ?? 0,
             custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
             ativadaNaRodada: sessao.rodadaAtual,
             ultimaCobrancaRodada: sessao.rodadaAtual,
@@ -3566,6 +3566,7 @@ export class SessaoService {
     const normalizado = this.normalizarTextoComparacao(duracao);
     return (
       normalizado.includes('SUSTENTAD') ||
+      normalizado.includes('SUSTENTAC') ||
       normalizado.includes('SUSTAIN') ||
       normalizado.includes('CONCENTRACAO')
     );
@@ -4063,11 +4064,27 @@ export class SessaoService {
 
     const isSustentada = this.duracaoEhSustentada(duracao);
     const custoSustentacaoEANormalizado = isSustentada
-      ? this.normalizarCustoPositivo(custoSustentacaoEA, 1)
+      ? this.normalizarCustoPositivo(custoSustentacaoEA, 0)
       : null;
     const custoSustentacaoPENormalizado = isSustentada
       ? this.normalizarCustoPositivo(custoSustentacaoPE, 0)
       : null;
+    if (isSustentada) {
+      const eaSustentacao = custoSustentacaoEANormalizado ?? 0;
+      const peSustentacao = custoSustentacaoPENormalizado ?? 0;
+      if (eaSustentacao <= 0 && peSustentacao <= 0) {
+        throw new BusinessException(
+          'Habilidade sustentada sem custo de sustentacao valido',
+          'SESSAO_SUSTENTACAO_SEM_CUSTO',
+          {
+            habilidadeTecnicaId: habilidade.id,
+            variacaoHabilidadeId: variacaoSelecionada?.id ?? null,
+            custoSustentacaoEA: custoSustentacaoEA ?? null,
+            custoSustentacaoPE: custoSustentacaoPE ?? null,
+          },
+        );
+      }
+    }
     const tipoEscalonamentoNormalizado = this.normalizarTipoEscalonamento(
       escalonamentoTipo,
       escalonamentoDano,
