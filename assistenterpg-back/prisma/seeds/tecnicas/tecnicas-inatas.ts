@@ -106,6 +106,40 @@ function corrigirMojibakeSeedJson(
   return value;
 }
 
+function duracaoEhSustentada(duracao?: string | null): boolean {
+  if (!duracao) return false;
+  const normalizado = duracao.toUpperCase();
+  return (
+    normalizado.includes('SUSTENTAD') ||
+    normalizado.includes('SUSTENTAC') ||
+    normalizado.includes('SUSTAIN') ||
+    normalizado.includes('CONCENTRACAO')
+  );
+}
+
+function resolverCustoSustentacaoPadrao(
+  duracao: string | null | undefined,
+  custoSustentacaoEA?: number | null,
+  custoSustentacaoPE?: number | null,
+): { custoSustentacaoEA: number | null; custoSustentacaoPE: number | null } {
+  if (!duracaoEhSustentada(duracao)) {
+    return {
+      custoSustentacaoEA: custoSustentacaoEA ?? null,
+      custoSustentacaoPE: custoSustentacaoPE ?? null,
+    };
+  }
+  const temCustoDefinido =
+    typeof custoSustentacaoEA === 'number' ||
+    typeof custoSustentacaoPE === 'number';
+  if (!temCustoDefinido) {
+    return { custoSustentacaoEA: 1, custoSustentacaoPE: null };
+  }
+  return {
+    custoSustentacaoEA: custoSustentacaoEA ?? null,
+    custoSustentacaoPE: custoSustentacaoPE ?? null,
+  };
+}
+
 export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   // ========================================
   // âœ… TÃ‰CNICAS HEREDITÃRIAS
@@ -1303,6 +1337,13 @@ function mapHabilidadeDataInata(
   tecnicaId: number,
   habilidade: SeedHabilidadeTecnicaInata,
 ) {
+  const duracaoCorrigida =
+    corrigirMojibakeSeedTexto(habilidade.duracao) ?? null;
+  const custosSustentacao = resolverCustoSustentacaoPadrao(
+    duracaoCorrigida,
+    habilidade.custoSustentacaoEA,
+    habilidade.custoSustentacaoPE,
+  );
   return {
     tecnicaId,
     codigo: habilidade.codigo,
@@ -1314,13 +1355,13 @@ function mapHabilidadeDataInata(
     area: habilidade.area ?? null,
     alcance: corrigirMojibakeSeedTexto(habilidade.alcance) ?? null,
     alvo: corrigirMojibakeSeedTexto(habilidade.alvo) ?? null,
-    duracao: corrigirMojibakeSeedTexto(habilidade.duracao) ?? null,
+    duracao: duracaoCorrigida,
     resistencia: corrigirMojibakeSeedTexto(habilidade.resistencia) ?? null,
     dtResistencia: corrigirMojibakeSeedTexto(habilidade.dtResistencia) ?? null,
     custoPE: habilidade.custoPE ?? 0,
     custoEA: habilidade.custoEA ?? 0,
-    custoSustentacaoEA: habilidade.custoSustentacaoEA ?? null,
-    custoSustentacaoPE: habilidade.custoSustentacaoPE ?? null,
+    custoSustentacaoEA: custosSustentacao.custoSustentacaoEA,
+    custoSustentacaoPE: custosSustentacao.custoSustentacaoPE,
     testesExigidos: jsonOrNull(corrigirMojibakeSeedJson(habilidade.testesExigidos)),
     efeito: corrigirMojibakeSeedTexto(habilidade.efeito) ?? habilidade.efeito,
     escalonaPorGrau: habilidade.escalonaPorGrau ?? false,
@@ -1344,6 +1385,13 @@ function mapVariacaoDataInata(
   habilidadeTecnicaId: number,
   variacao: SeedVariacaoTecnicaInata,
 ) {
+  const duracaoCorrigida =
+    corrigirMojibakeSeedTexto(variacao.duracao) ?? null;
+  const custosSustentacao = resolverCustoSustentacaoPadrao(
+    duracaoCorrigida,
+    variacao.custoSustentacaoEA,
+    variacao.custoSustentacaoPE,
+  );
   return {
     habilidadeTecnicaId,
     nome: corrigirMojibakeSeedTexto(variacao.nome) ?? variacao.nome,
@@ -1351,13 +1399,13 @@ function mapVariacaoDataInata(
     substituiCustos: variacao.substituiCustos ?? false,
     custoPE: variacao.custoPE ?? null,
     custoEA: variacao.custoEA ?? null,
-    custoSustentacaoEA: variacao.custoSustentacaoEA ?? null,
-    custoSustentacaoPE: variacao.custoSustentacaoPE ?? null,
+    custoSustentacaoEA: custosSustentacao.custoSustentacaoEA,
+    custoSustentacaoPE: custosSustentacao.custoSustentacaoPE,
     execucao: variacao.execucao ?? null,
     area: variacao.area ?? null,
     alcance: corrigirMojibakeSeedTexto(variacao.alcance) ?? null,
     alvo: corrigirMojibakeSeedTexto(variacao.alvo) ?? null,
-    duracao: corrigirMojibakeSeedTexto(variacao.duracao) ?? null,
+    duracao: duracaoCorrigida,
     resistencia: corrigirMojibakeSeedTexto(variacao.resistencia) ?? null,
     dtResistencia: corrigirMojibakeSeedTexto(variacao.dtResistencia) ?? null,
     escalonaPorGrau: variacao.escalonaPorGrau ?? null,

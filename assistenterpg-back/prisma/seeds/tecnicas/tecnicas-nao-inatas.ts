@@ -9,6 +9,40 @@ import {
 } from '@prisma/client';
 import { jsonOrNull } from '../_helpers';
 
+function duracaoEhSustentada(duracao?: string | null): boolean {
+  if (!duracao) return false;
+  const normalizado = duracao.toUpperCase();
+  return (
+    normalizado.includes('SUSTENTAD') ||
+    normalizado.includes('SUSTENTAC') ||
+    normalizado.includes('SUSTAIN') ||
+    normalizado.includes('CONCENTRACAO')
+  );
+}
+
+function resolverCustoSustentacaoPadrao(
+  duracao: string | null | undefined,
+  custoSustentacaoEA?: number | null,
+  custoSustentacaoPE?: number | null,
+): { custoSustentacaoEA: number | null; custoSustentacaoPE: number | null } {
+  if (!duracaoEhSustentada(duracao)) {
+    return {
+      custoSustentacaoEA: custoSustentacaoEA ?? null,
+      custoSustentacaoPE: custoSustentacaoPE ?? null,
+    };
+  }
+  const temCustoDefinido =
+    typeof custoSustentacaoEA === 'number' ||
+    typeof custoSustentacaoPE === 'number';
+  if (!temCustoDefinido) {
+    return { custoSustentacaoEA: 1, custoSustentacaoPE: null };
+  }
+  return {
+    custoSustentacaoEA: custoSustentacaoEA ?? null,
+    custoSustentacaoPE: custoSustentacaoPE ?? null,
+  };
+}
+
 type SeedVariacaoTecnica = {
   nome: string;
   descricao: string;
@@ -913,6 +947,11 @@ function mapHabilidadeData(
   habilidade: SeedHabilidadeTecnica,
 )
 {
+  const custosSustentacao = resolverCustoSustentacaoPadrao(
+    habilidade.duracao ?? null,
+    habilidade.custoSustentacaoEA,
+    habilidade.custoSustentacaoPE,
+  );
   return {
     tecnicaId,
     codigo: habilidade.codigo,
@@ -926,8 +965,8 @@ function mapHabilidadeData(
     duracao: habilidade.duracao ?? null,
     custoPE: habilidade.custoPE ?? 0,
     custoEA: habilidade.custoEA ?? 0,
-    custoSustentacaoEA: habilidade.custoSustentacaoEA ?? null,
-    custoSustentacaoPE: habilidade.custoSustentacaoPE ?? null,
+    custoSustentacaoEA: custosSustentacao.custoSustentacaoEA,
+    custoSustentacaoPE: custosSustentacao.custoSustentacaoPE,
     efeito: habilidade.efeito,
     escalonaPorGrau: habilidade.escalonaPorGrau ?? false,
     grauTipoGrauCodigo: habilidade.grauTipoGrauCodigo ?? null,
@@ -947,6 +986,11 @@ function mapVariacaoData(
   variacao: SeedVariacaoTecnica,
 )
 {
+  const custosSustentacao = resolverCustoSustentacaoPadrao(
+    variacao.duracao ?? null,
+    variacao.custoSustentacaoEA,
+    variacao.custoSustentacaoPE,
+  );
   return {
     habilidadeTecnicaId,
     nome: variacao.nome,
@@ -954,8 +998,8 @@ function mapVariacaoData(
     substituiCustos: variacao.substituiCustos ?? false,
     custoPE: variacao.custoPE ?? null,
     custoEA: variacao.custoEA ?? null,
-    custoSustentacaoEA: variacao.custoSustentacaoEA ?? null,
-    custoSustentacaoPE: variacao.custoSustentacaoPE ?? null,
+    custoSustentacaoEA: custosSustentacao.custoSustentacaoEA,
+    custoSustentacaoPE: custosSustentacao.custoSustentacaoPE,
     execucao: variacao.execucao ?? null,
     area: variacao.area ?? null,
     alcance: variacao.alcance ?? null,

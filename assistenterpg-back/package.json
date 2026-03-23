@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "prisma db seed",
     "recalc:inventario": "ts-node scripts/recalcular-espacos-inventario.ts",
+    "fix:sustentacao": "ts-node scripts/fixar-custos-sustentacao.ts",
     "seed:tecnicas:inatas": "ts-node prisma/seeds/tecnicas/seed-tecnicas-inatas.ts",
     "seed:compendio": "ts-node prisma/seeds/compendio/seed-compendio.ts",
     "prebuild": "node scripts/check-prisma-client.js",
