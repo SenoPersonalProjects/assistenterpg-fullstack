@@ -1,11 +1,11 @@
 ﻿'use client';
 
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import type React from 'react';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
-import {
-  formatarCustos,
-  resolverCustoExibicaoSessao as resolverCustoExibicao,
-} from '@/lib/campanha/sessao-habilidades';
+import { resolverCustoExibicaoSessao as resolverCustoExibicao } from '@/lib/campanha/sessao-habilidades';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 
 type SessionTechniqueBlockProps = {
@@ -50,6 +50,68 @@ function parseAcumulos(valor: string | undefined, maximo: number): number {
   return Math.max(0, Math.min(maximo, Math.trunc(numero)));
 }
 
+type MetaItem = {
+  label: string;
+  value: string;
+};
+
+function montarMetadadosHabilidade({
+  execucao,
+  alcance,
+  alvo,
+  duracao,
+}: {
+  execucao?: string | null;
+  alcance?: string | null;
+  alvo?: string | null;
+  duracao?: string | null;
+}): MetaItem[] {
+  const itens: MetaItem[] = [];
+  if (execucao) itens.push({ label: 'Execucao', value: textoSeguro(execucao) });
+  if (alcance) itens.push({ label: 'Alcance', value: textoSeguro(alcance) });
+  if (alvo) itens.push({ label: 'Alvo', value: textoSeguro(alvo) });
+  if (duracao) itens.push({ label: 'Duracao', value: textoSeguro(duracao) });
+  return itens;
+}
+
+function renderCustoBadges({
+  prefix,
+  custoEA,
+  custoPE,
+  color = 'gray',
+  variant = 'soft',
+}: {
+  prefix?: string;
+  custoEA: number;
+  custoPE: number;
+  color?: 'gray' | 'green' | 'red' | 'blue' | 'yellow' | 'purple' | 'orange' | 'cyan';
+  variant?: 'soft' | 'outline' | 'solid';
+}) {
+  const badges: React.ReactNode[] = [];
+  if (custoEA > 0) {
+    badges.push(
+      <Badge key={`${prefix ?? ''}-ea`} size="sm" color={color} variant={variant}>
+        {prefix ? `${prefix} ` : ''}EA {custoEA}
+      </Badge>,
+    );
+  }
+  if (custoPE > 0) {
+    badges.push(
+      <Badge key={`${prefix ?? ''}-pe`} size="sm" color={color} variant={variant}>
+        {prefix ? `${prefix} ` : ''}PE {custoPE}
+      </Badge>,
+    );
+  }
+  if (badges.length === 0) {
+    badges.push(
+      <Badge key={`${prefix ?? ''}-zero`} size="sm" color="gray" variant={variant}>
+        {prefix ? `${prefix} ` : ''}Sem custo
+      </Badge>,
+    );
+  }
+  return badges;
+}
+
 type AcumulosControlProps = {
   valor: number;
   maximo: number;
@@ -70,12 +132,18 @@ function AcumulosControl({
   const clamp = (numero: number) => Math.max(0, Math.min(maximo, numero));
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded border border-app-border bg-app-bg px-2 py-1 text-[11px]">
-      <span className="text-app-muted">Acumulos</span>
-      <div className="flex items-center gap-1">
+    <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-semibold text-app-fg">Acumulos</p>
+          <p className="text-[10px] text-app-muted">Maximo {maximo}</p>
+        </div>
+        <span className="text-sm font-semibold text-app-fg">{valor}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
-          className="h-7 w-7 rounded border border-app-border bg-app-surface text-xs text-app-fg disabled:opacity-50"
+          className="h-8 w-8 rounded border border-app-border bg-app-surface text-sm text-app-fg disabled:opacity-50"
           onClick={() => onChange(clamp(valor - 1))}
           disabled={disabled || valor <= 0}
           title="Diminuir acumulos"
@@ -92,11 +160,11 @@ function AcumulosControl({
             onChange(clamp(Number.isFinite(numero) ? numero : 0));
           }}
           disabled={disabled}
-          className="h-7 w-14 rounded border border-app-border bg-app-surface px-2 text-center text-[11px] text-app-fg"
+          className="h-8 w-16 rounded border border-app-border bg-app-surface px-2 text-center text-xs text-app-fg"
         />
         <button
           type="button"
-          className="h-7 w-7 rounded border border-app-border bg-app-surface text-xs text-app-fg disabled:opacity-50"
+          className="h-8 w-8 rounded border border-app-border bg-app-surface text-sm text-app-fg disabled:opacity-50"
           onClick={() => onChange(clamp(valor + 1))}
           disabled={disabled || valor >= maximo}
           title="Aumentar acumulos"
@@ -104,17 +172,14 @@ function AcumulosControl({
           +
         </button>
       </div>
-      <div className="flex flex-wrap items-center gap-1 text-[10px] text-app-muted">
-        <span className="rounded border border-app-border px-1.5 py-0.5">
-          max {maximo}
-        </span>
-        <span className="rounded border border-app-border px-1.5 py-0.5">
+      <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-app-muted">
+        <Badge size="sm" color="gray" variant="outline">
           +EA {custoEA}/acumulo
-        </span>
+        </Badge>
         {custoPE > 0 ? (
-          <span className="rounded border border-app-border px-1.5 py-0.5">
+          <Badge size="sm" color="gray" variant="outline">
             +PE {custoPE}/acumulo
-          </span>
+          </Badge>
         ) : null}
       </div>
     </div>
@@ -143,24 +208,44 @@ export function SessionTechniqueBlock({
     : tecnica.habilidades;
 
   return (
-    <div className="space-y-2 rounded border border-app-border p-2">
-      <div>
-        <p className="text-xs font-semibold text-app-fg">{textoSeguro(tecnica.nome)}</p>
-        <p className="text-[11px] text-app-muted">
-          {textoSeguro(tecnica.codigo)} | {textoSeguro(tecnica.tipo)}
-        </p>
+    <div className="space-y-3 rounded border border-app-border bg-app-surface/30 p-3">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-app-fg">
+              {textoSeguro(tecnica.nome)}
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge size="sm" color="gray" variant="outline">
+                {textoSeguro(tecnica.codigo)}
+              </Badge>
+              <Badge size="sm" color="blue" variant="outline">
+                {textoSeguro(tecnica.tipo)}
+              </Badge>
+            </div>
+          </div>
+        </div>
         {tecnica.descricao ? (
-          <p className="text-[11px] text-app-muted">{textoSeguro(tecnica.descricao)}</p>
+          <p className="text-xs text-app-muted leading-relaxed">
+            {textoSeguro(tecnica.descricao)}
+          </p>
         ) : null}
       </div>
+
       {habilidadesVisiveis.length === 0 ? (
-        <p className="text-[11px] text-app-muted">
-          {mostrarSomenteSustentadasAtivas
-            ? 'Nenhuma habilidade com sustentacao ativa nesta tecnica.'
-            : 'Nenhuma habilidade liberada com os graus atuais.'}
-        </p>
+        <EmptyState
+          variant="session"
+          size="sm"
+          icon="info"
+          title="Sem habilidades visiveis"
+          description={
+            mostrarSomenteSustentadasAtivas
+              ? 'Nenhuma habilidade desta tecnica esta atualmente sustentada.'
+              : 'Nenhuma habilidade desta tecnica esta liberada pelos graus atuais.'
+          }
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {habilidadesVisiveis.map((habilidade) => {
             const custoBase = resolverCustoExibicao(habilidade);
             const chaveAcumuloBase = montarChaveAcumuloHabilidade(
@@ -196,6 +281,12 @@ export function SessionTechniqueBlock({
               );
             const habilidadeAberta =
               mostrarSomenteSustentadasAtivas || possuiSustentacaoAtiva;
+            const metaBase = montarMetadadosHabilidade({
+              execucao: habilidade.execucao,
+              alcance: habilidade.alcance,
+              alvo: habilidade.alvo,
+              duracao: custoBase.duracao ?? habilidade.duracao ?? null,
+            });
 
             return (
               <details
@@ -203,42 +294,57 @@ export function SessionTechniqueBlock({
                 className="rounded border border-app-border bg-app-surface"
                 open={habilidadeAberta}
               >
-                <summary className="cursor-pointer px-2 py-1.5">
+                <summary className="cursor-pointer px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-app-fg">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-app-fg">
                         {textoSeguro(habilidade.nome)}
-                      </span>
-                      <span className="text-[10px] text-app-muted">
-                        {formatarCustos(custoBase.custoEA, custoBase.custoPE)}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {renderCustoBadges({
+                          custoEA: custoBase.custoEA,
+                          custoPE: custoBase.custoPE,
+                          color: 'blue',
+                          variant: 'soft',
+                        })}
                         {custoBase.sustentada
-                          ? ` | Sustentacao ${formatarCustos(
-                              custoBase.custoSustentacaoEA ?? 0,
-                              custoBase.custoSustentacaoPE ?? 0,
-                            )}/rodada`
-                          : ''}
-                      </span>
+                          ? renderCustoBadges({
+                              prefix: 'Sust.',
+                              custoEA: custoBase.custoSustentacaoEA ?? 0,
+                              custoPE: custoBase.custoSustentacaoPE ?? 0,
+                              color: 'cyan',
+                              variant: 'outline',
+                            })
+                          : null}
+                      </div>
                     </div>
                     {qtdSustentacaoBaseAtiva > 0 ? (
-                      <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
-                        Sustentada ativa x{qtdSustentacaoBaseAtiva}
-                      </span>
+                      <Badge size="sm" color="green">
+                        Sustentada x{qtdSustentacaoBaseAtiva}
+                      </Badge>
                     ) : null}
                   </div>
                 </summary>
-                <div className="space-y-1.5 border-t border-app-border px-2 py-1.5">
-                  <p className="text-[11px] text-app-muted">
-                    {textoSeguro(habilidade.execucao)}
-                    {habilidade.alcance
-                      ? ` | Alcance: ${textoSeguro(habilidade.alcance)}`
-                      : ''}
-                    {habilidade.alvo
-                      ? ` | Alvo: ${textoSeguro(habilidade.alvo)}`
-                      : ''}
-                    {custoBase.duracao
-                      ? ` | Duracao: ${textoSeguro(custoBase.duracao)}`
-                      : ''}
+                <div className="space-y-2 border-t border-app-border/70 px-3 py-2">
+                  <p className="text-xs text-app-fg leading-relaxed">
+                    {textoSeguro(habilidade.efeito)}
                   </p>
+                  {metaBase.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {metaBase.map((item) => (
+                        <Badge
+                          key={`${habilidade.id}-${item.label}`}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <span className="text-[10px] font-semibold uppercase text-app-muted">
+                            {item.label}
+                          </span>{' '}
+                          {item.value}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
                   {custoBase.escalonavel ? (
                     <AcumulosControl
                       valor={acumulosBase}
@@ -254,10 +360,16 @@ export function SessionTechniqueBlock({
                       }
                     />
                   ) : null}
-                  <p className="text-[11px] text-app-muted whitespace-pre-wrap">
-                    {textoSeguro(habilidade.efeito)}
-                  </p>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app-border/60 pt-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {renderCustoBadges({
+                        prefix: 'Total',
+                        custoEA: custoBaseTotalEA,
+                        custoPE: custoBaseTotalPE,
+                        color: 'orange',
+                        variant: 'solid',
+                      })}
+                    </div>
                     {card.podeEditar ? (
                       <Button
                         size="sm"
@@ -273,154 +385,182 @@ export function SessionTechniqueBlock({
                         disabled={
                           sessaoEncerrada || acaoHabilidadePendente === chaveBase
                         }
-                        title={`Custo: ${formatarCustos(
-                          custoBaseTotalEA,
-                          custoBaseTotalPE,
-                        )}`}
                       >
                         {acaoHabilidadePendente === chaveBase
                           ? 'Aplicando...'
                           : 'Usar base'}
                       </Button>
                     ) : null}
-
-                    {variacoesVisiveis.map((variacao) => {
-                    const custoVariacao = resolverCustoExibicao(habilidade, variacao);
-                    const execucaoVariacao = variacao.execucao ?? habilidade.execucao;
-                    const alcanceVariacao = variacao.alcance ?? habilidade.alcance;
-                    const alvoVariacao = variacao.alvo ?? habilidade.alvo;
-                    const duracaoVariacao = variacao.duracao ?? custoVariacao.duracao;
-                    const chaveAcumuloVariacao = montarChaveAcumuloHabilidade(
-                      card.personagemSessaoId,
-                      habilidade.id,
-                      variacao.id,
-                    );
-                    const acumulosVariacao = custoVariacao.escalonavel
-                      ? parseAcumulos(
-                          acumulosHabilidade[chaveAcumuloVariacao],
-                          custoVariacao.acumulosMaximos,
-                        )
-                      : 0;
-                    const custoVariacaoTotalEA =
-                      custoVariacao.custoEA +
-                      custoVariacao.escalonamentoCustoEA * acumulosVariacao;
-                    const custoVariacaoTotalPE =
-                      custoVariacao.custoPE +
-                      custoVariacao.escalonamentoCustoPE * acumulosVariacao;
-                    const chaveVariacao = montarChaveUsoHabilidade(
-                      card.personagemSessaoId,
-                      habilidade.id,
-                      variacao.id,
-                    );
-                    const qtdSustentacaoVariacaoAtiva = obterQtdSustentacaoAtiva(
-                      habilidade.id,
-                      variacao.id,
-                    );
-                    const variacaoAberta =
-                      mostrarSomenteSustentadasAtivas ||
-                      qtdSustentacaoVariacaoAtiva > 0;
-
-                    return (
-                      <details
-                        key={`variacao-${variacao.id}`}
-                        className="w-full rounded border border-app-border bg-app-bg"
-                        open={variacaoAberta}
-                      >
-                        <summary className="cursor-pointer px-2 py-1.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex flex-col">
-                              <span className="text-[11px] font-semibold text-app-fg">
-                                {textoSeguro(variacao.nome)}
-                              </span>
-                              <span className="text-[10px] text-app-muted">
-                                {formatarCustos(
-                                  custoVariacao.custoEA,
-                                  custoVariacao.custoPE,
-                                )}
-                                {custoVariacao.sustentada
-                                  ? ` | Sustentacao ${formatarCustos(
-                                      custoVariacao.custoSustentacaoEA ?? 0,
-                                      custoVariacao.custoSustentacaoPE ?? 0,
-                                    )}/rodada`
-                                  : ''}
-                              </span>
-                            </div>
-                            {qtdSustentacaoVariacaoAtiva > 0 ? (
-                              <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
-                                Ativa x{qtdSustentacaoVariacaoAtiva}
-                              </span>
-                            ) : null}
-                          </div>
-                        </summary>
-                        <div className="space-y-1 border-t border-app-border px-2 py-1.5">
-                          <p className="text-[11px] text-app-muted">
-                            {textoSeguro(variacao.descricao)}
-                          </p>
-                          <p className="text-[11px] text-app-muted">
-                            {textoSeguro(execucaoVariacao)}
-                            {alcanceVariacao
-                              ? ` | Alcance: ${textoSeguro(alcanceVariacao)}`
-                              : ''}
-                            {alvoVariacao
-                              ? ` | Alvo: ${textoSeguro(alvoVariacao)}`
-                              : ''}
-                            {duracaoVariacao
-                              ? ` | Duracao: ${textoSeguro(duracaoVariacao)}`
-                              : ''}
-                          </p>
-                          {variacao.efeitoAdicional ? (
-                            <p className="text-[11px] text-app-muted whitespace-pre-wrap">
-                              {textoSeguro(variacao.efeitoAdicional)}
-                            </p>
-                          ) : null}
-
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {custoVariacao.escalonavel ? (
-                              <AcumulosControl
-                                valor={acumulosVariacao}
-                                maximo={custoVariacao.acumulosMaximos}
-                                disabled={!card.podeEditar || sessaoEncerrada}
-                                custoEA={custoVariacao.escalonamentoCustoEA}
-                                custoPE={custoVariacao.escalonamentoCustoPE}
-                                onChange={(valor) =>
-                                  onAtualizarAcumulosHabilidade(
-                                    chaveAcumuloVariacao,
-                                    String(valor),
-                                  )
-                                }
-                              />
-                            ) : null}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                void onUsarHabilidade(
-                                  card.personagemSessaoId,
-                                  habilidade.id,
-                                  variacao.id,
-                                  acumulosVariacao,
-                                )
-                              }
-                              disabled={
-                                !card.podeEditar ||
-                                sessaoEncerrada ||
-                                acaoHabilidadePendente === chaveVariacao
-                              }
-                              title={`Custo total: ${formatarCustos(
-                                custoVariacaoTotalEA,
-                                custoVariacaoTotalPE,
-                              )}`}
-                            >
-                              {acaoHabilidadePendente === chaveVariacao
-                                ? 'Aplicando...'
-                                : 'Usar variacao'}
-                            </Button>
-                          </div>
-                        </div>
-                      </details>
-                    );
-                  })}
                   </div>
+
+                  {variacoesVisiveis.length > 0 ? (
+                    <div className="space-y-2 border-l border-app-border/60 pl-3">
+                      {variacoesVisiveis.map((variacao) => {
+                        const custoVariacao = resolverCustoExibicao(
+                          habilidade,
+                          variacao,
+                        );
+                        const execucaoVariacao =
+                          variacao.execucao ?? habilidade.execucao;
+                        const alcanceVariacao =
+                          variacao.alcance ?? habilidade.alcance;
+                        const alvoVariacao = variacao.alvo ?? habilidade.alvo;
+                        const duracaoVariacao =
+                          variacao.duracao ?? custoVariacao.duracao;
+                        const chaveAcumuloVariacao = montarChaveAcumuloHabilidade(
+                          card.personagemSessaoId,
+                          habilidade.id,
+                          variacao.id,
+                        );
+                        const acumulosVariacao = custoVariacao.escalonavel
+                          ? parseAcumulos(
+                              acumulosHabilidade[chaveAcumuloVariacao],
+                              custoVariacao.acumulosMaximos,
+                            )
+                          : 0;
+                        const custoVariacaoTotalEA =
+                          custoVariacao.custoEA +
+                          custoVariacao.escalonamentoCustoEA * acumulosVariacao;
+                        const custoVariacaoTotalPE =
+                          custoVariacao.custoPE +
+                          custoVariacao.escalonamentoCustoPE * acumulosVariacao;
+                        const chaveVariacao = montarChaveUsoHabilidade(
+                          card.personagemSessaoId,
+                          habilidade.id,
+                          variacao.id,
+                        );
+                        const qtdSustentacaoVariacaoAtiva =
+                          obterQtdSustentacaoAtiva(habilidade.id, variacao.id);
+                        const variacaoAberta =
+                          mostrarSomenteSustentadasAtivas ||
+                          qtdSustentacaoVariacaoAtiva > 0;
+                        const metaVariacao = montarMetadadosHabilidade({
+                          execucao: execucaoVariacao,
+                          alcance: alcanceVariacao,
+                          alvo: alvoVariacao,
+                          duracao: duracaoVariacao ?? null,
+                        });
+
+                        return (
+                          <details
+                            key={`variacao-${variacao.id}`}
+                            className="rounded border border-app-border bg-app-bg/70"
+                            open={variacaoAberta}
+                          >
+                            <summary className="cursor-pointer px-2 py-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-app-fg">
+                                    {textoSeguro(variacao.nome)}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {renderCustoBadges({
+                                      custoEA: custoVariacao.custoEA,
+                                      custoPE: custoVariacao.custoPE,
+                                      color: 'purple',
+                                      variant: 'soft',
+                                    })}
+                                    {custoVariacao.sustentada
+                                      ? renderCustoBadges({
+                                          prefix: 'Sust.',
+                                          custoEA:
+                                            custoVariacao.custoSustentacaoEA ??
+                                            0,
+                                          custoPE:
+                                            custoVariacao.custoSustentacaoPE ??
+                                            0,
+                                          color: 'cyan',
+                                          variant: 'outline',
+                                        })
+                                      : null}
+                                  </div>
+                                </div>
+                                {qtdSustentacaoVariacaoAtiva > 0 ? (
+                                  <Badge size="sm" color="green">
+                                    Sustentada x{qtdSustentacaoVariacaoAtiva}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                            </summary>
+                            <div className="space-y-2 border-t border-app-border/70 px-2 py-2">
+                              <p className="text-xs text-app-fg leading-relaxed">
+                                {textoSeguro(variacao.descricao)}
+                              </p>
+                              {variacao.efeitoAdicional ? (
+                                <p className="text-[11px] text-app-muted whitespace-pre-wrap">
+                                  {textoSeguro(variacao.efeitoAdicional)}
+                                </p>
+                              ) : null}
+                              {metaVariacao.length > 0 ? (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {metaVariacao.map((item) => (
+                                    <Badge
+                                      key={`${variacao.id}-${item.label}`}
+                                      size="sm"
+                                      color="gray"
+                                      variant="outline"
+                                    >
+                                      <span className="text-[10px] font-semibold uppercase text-app-muted">
+                                        {item.label}
+                                      </span>{' '}
+                                      {item.value}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {custoVariacao.escalonavel ? (
+                                <AcumulosControl
+                                  valor={acumulosVariacao}
+                                  maximo={custoVariacao.acumulosMaximos}
+                                  disabled={!card.podeEditar || sessaoEncerrada}
+                                  custoEA={custoVariacao.escalonamentoCustoEA}
+                                  custoPE={custoVariacao.escalonamentoCustoPE}
+                                  onChange={(valor) =>
+                                    onAtualizarAcumulosHabilidade(
+                                      chaveAcumuloVariacao,
+                                      String(valor),
+                                    )
+                                  }
+                                />
+                              ) : null}
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app-border/60 pt-2">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {renderCustoBadges({
+                                    prefix: 'Total',
+                                    custoEA: custoVariacaoTotalEA,
+                                    custoPE: custoVariacaoTotalPE,
+                                    color: 'orange',
+                                    variant: 'solid',
+                                  })}
+                                </div>
+                                <Button
+                                  size="xs"
+                                  variant="secondary"
+                                  onClick={() =>
+                                    void onUsarHabilidade(
+                                      card.personagemSessaoId,
+                                      habilidade.id,
+                                      variacao.id,
+                                      acumulosVariacao,
+                                    )
+                                  }
+                                  disabled={
+                                    !card.podeEditar ||
+                                    sessaoEncerrada ||
+                                    acaoHabilidadePendente === chaveVariacao
+                                  }
+                                >
+                                  {acaoHabilidadePendente === chaveVariacao
+                                    ? 'Aplicando...'
+                                    : 'Usar variacao'}
+                                </Button>
+                              </div>
+                            </div>
+                          </details>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
               </details>
             );
