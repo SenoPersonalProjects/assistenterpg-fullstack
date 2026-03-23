@@ -3,10 +3,12 @@
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Icon } from '@/components/ui/Icon';
 import type React from 'react';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
 import { resolverCustoExibicaoSessao as resolverCustoExibicao } from '@/lib/campanha/sessao-habilidades';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
+import { TIPO_EXECUCAO_LABELS, TipoExecucao } from '@/lib/types/homebrew-enums';
 
 type SessionTechniqueBlockProps = {
   card: SessaoCampanhaDetalhe['cards'][number];
@@ -67,11 +69,19 @@ function montarMetadadosHabilidade({
   duracao?: string | null;
 }): MetaItem[] {
   const itens: MetaItem[] = [];
-  if (execucao) itens.push({ label: 'Execucao', value: textoSeguro(execucao) });
+  if (execucao)
+    itens.push({ label: 'Execucao', value: formatExecucao(execucao) });
   if (alcance) itens.push({ label: 'Alcance', value: textoSeguro(alcance) });
   if (alvo) itens.push({ label: 'Alvo', value: textoSeguro(alvo) });
   if (duracao) itens.push({ label: 'Duracao', value: textoSeguro(duracao) });
   return itens;
+}
+
+function formatExecucao(value: string | null | undefined): string {
+  if (!value) return '';
+  const key = value as TipoExecucao;
+  const label = TIPO_EXECUCAO_LABELS[key] ?? value;
+  return textoSeguro(label);
 }
 
 function renderCustoBadges({
@@ -291,11 +301,11 @@ export function SessionTechniqueBlock({
             return (
               <details
                 key={`habilidade-${habilidade.id}`}
-                className="rounded border border-app-border bg-app-surface"
+                className="group rounded border border-app-border bg-app-surface"
                 open={habilidadeAberta}
               >
-                <summary className="cursor-pointer px-3 py-2">
-                  <div className="flex items-center justify-between gap-2">
+                <summary className="list-none cursor-pointer px-3 py-2 [&::-webkit-details-marker]:hidden">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-app-fg">
                         {textoSeguro(habilidade.nome)}
@@ -318,11 +328,17 @@ export function SessionTechniqueBlock({
                           : null}
                       </div>
                     </div>
-                    {qtdSustentacaoBaseAtiva > 0 ? (
-                      <Badge size="sm" color="green">
-                        Sustentada x{qtdSustentacaoBaseAtiva}
-                      </Badge>
-                    ) : null}
+                    <div className="flex items-center gap-2">
+                      {qtdSustentacaoBaseAtiva > 0 ? (
+                        <Badge size="sm" color="green" variant="solid">
+                          Sustentada x{qtdSustentacaoBaseAtiva}
+                        </Badge>
+                      ) : null}
+                      <Icon
+                        name="chevron-down"
+                        className="h-4 w-4 text-app-muted transition-transform group-open:rotate-180"
+                      />
+                    </div>
                   </div>
                 </summary>
                 <div className="space-y-2 border-t border-app-border/70 px-3 py-2">
@@ -338,9 +354,11 @@ export function SessionTechniqueBlock({
                           variant="outline"
                         >
                           <span className="text-[10px] font-semibold uppercase text-app-muted">
-                            {item.label}
-                          </span>{' '}
-                          {item.value}
+                            {item.label}:
+                          </span>
+                          <span className="ml-1 text-[10px] text-app-fg">
+                            {item.value}
+                          </span>
                         </Badge>
                       ))}
                     </div>
@@ -444,11 +462,11 @@ export function SessionTechniqueBlock({
                         return (
                           <details
                             key={`variacao-${variacao.id}`}
-                            className="rounded border border-app-border bg-app-bg/70"
+                            className="group rounded border border-app-border bg-app-bg/70"
                             open={variacaoAberta}
                           >
-                            <summary className="cursor-pointer px-2 py-2">
-                              <div className="flex items-center justify-between gap-2">
+                            <summary className="list-none cursor-pointer px-2 py-2 [&::-webkit-details-marker]:hidden">
+                              <div className="flex items-start justify-between gap-2">
                                 <div className="space-y-1">
                                   <p className="text-xs font-semibold text-app-fg">
                                     {textoSeguro(variacao.nome)}
@@ -475,11 +493,17 @@ export function SessionTechniqueBlock({
                                       : null}
                                   </div>
                                 </div>
-                                {qtdSustentacaoVariacaoAtiva > 0 ? (
-                                  <Badge size="sm" color="green">
-                                    Sustentada x{qtdSustentacaoVariacaoAtiva}
-                                  </Badge>
-                                ) : null}
+                                <div className="flex items-center gap-2">
+                                  {qtdSustentacaoVariacaoAtiva > 0 ? (
+                                    <Badge size="sm" color="green" variant="solid">
+                                      Sustentada x{qtdSustentacaoVariacaoAtiva}
+                                    </Badge>
+                                  ) : null}
+                                  <Icon
+                                    name="chevron-down"
+                                    className="h-4 w-4 text-app-muted transition-transform group-open:rotate-180"
+                                  />
+                                </div>
                               </div>
                             </summary>
                             <div className="space-y-2 border-t border-app-border/70 px-2 py-2">
@@ -501,9 +525,11 @@ export function SessionTechniqueBlock({
                                       variant="outline"
                                     >
                                       <span className="text-[10px] font-semibold uppercase text-app-muted">
-                                        {item.label}
-                                      </span>{' '}
-                                      {item.value}
+                                        {item.label}:
+                                      </span>
+                                      <span className="ml-1 text-[10px] text-app-fg">
+                                        {item.value}
+                                      </span>
                                     </Badge>
                                   ))}
                                 </div>
