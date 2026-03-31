@@ -109,6 +109,10 @@ export default function SuplementosPage() {
     setModalAberto(true);
   }
 
+  function handleOpen(suplemento: SuplementoCatalogo) {
+    router.push(`/suplementos/${suplemento.codigo}`);
+  }
+
   function handleDelete(suplemento: SuplementoCatalogo) {
     confirm({
       title: 'Deletar Suplemento',
@@ -267,6 +271,7 @@ export default function SuplementosPage() {
               <SuplementoCard
                 key={s.id}
                 suplemento={s}
+                onOpen={() => handleOpen(s)}
                 onAtivar={() => handleAtivar(s)}
                 onDesativar={() => handleDesativar(s)}
                 onEdit={isAdmin ? () => handleEdit(s) : undefined}

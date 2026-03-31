@@ -10,7 +10,7 @@ import {
   apiCreatePersonagemBase,
   apiGetTodosEquipamentos,
   apiGetTodasModificacoes,
-  apiGetMeusSuplementosAtivos,
+  apiGetSuplementos,
   extrairMensagemErro,
   traduzirErro,
   ClasseCatalogo,
@@ -180,7 +180,7 @@ export default function NovoPersonagemBasePage() {
             apiGetCatalogosBasicos(),
             apiGetTodosEquipamentos({ limitePorPagina: 100 }),
             apiGetTodasModificacoes({ limitePorPagina: 100 }),
-            apiGetMeusSuplementosAtivos(),
+            apiGetSuplementos({ status: 'PUBLICADO' }),
             carregarHomebrewsAcessiveis(),
           ]);
 
