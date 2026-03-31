@@ -80,7 +80,7 @@ export default function SuplementoDetalhePage() {
         apiGetCatalogosBasicos(),
         apiAdminGetTrilhas(),
         apiAdminGetHabilidades({ tipo: 'PODER_GENERICO', suplementoId, pagina: 1, limite: 200 }),
-        apiAdminGetEquipamentos({ suplementoId, pagina: 1, limite: 200 }),
+        apiAdminGetEquipamentos({ suplementoId, pagina: 1, limite: 100 }),
         apiAdminGetTecnicasAmaldicoadas({ suplementoId }),
         apiGetTodasModificacoes({ suplementoId, limitePorPagina: 100 }),
       ]);
