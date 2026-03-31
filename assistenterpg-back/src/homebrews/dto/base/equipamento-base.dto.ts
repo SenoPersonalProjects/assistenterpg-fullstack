@@ -1,6 +1,6 @@
 // src/homebrews/dto/equipamentos/base/equipamento-base.dto.ts
 
-import { IsNotEmpty, IsEnum, IsInt, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsEnum, IsOptional, IsNumber, Min } from 'class-validator';
 import {
   CategoriaEquipamento,
   TipoUsoEquipamento,
@@ -20,7 +20,8 @@ export class EquipamentoBaseDto {
   categoria: CategoriaEquipamento;
 
   @IsNotEmpty()
-  @IsInt()
+  @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 })
+  @Min(0)
   espacos: number;
 
   @IsOptional()

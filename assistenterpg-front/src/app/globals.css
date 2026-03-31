@@ -2047,3 +2047,81 @@ body {
     align-items: flex-start;
   }
 }
+
+.session-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.session-notes__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.session-notes__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.session-notes__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.session-notes__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.7rem;
+  background: var(--bg);
+  padding: 0.6rem;
+}
+
+.session-notes__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  border-radius: 0.7rem;
+  padding: 0.6rem 0.7rem;
+  box-shadow: 0 8px 18px -18px rgba(15, 23, 42, 0.6);
+}
+
+.session-notes__card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.session-notes__card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.session-notes__title {
+  font-size: var(--session-text-sm);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.session-notes__meta {
+  font-size: var(--session-text-xxs);
+  color: var(--fg-muted);
+}
+
+.session-notes__content {
+  font-size: var(--session-text-xs);
+  color: var(--fg);
+  white-space: pre-line;
+}

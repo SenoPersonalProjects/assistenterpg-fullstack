@@ -23,6 +23,7 @@ type NavItem = {
 const baseNavItems: NavItem[] = [
   { href: '/home', label: 'Inicio', icon: 'home' },
   { href: '/campanhas', label: 'Campanhas', icon: 'campaign' },
+  { href: '/anotacoes', label: 'Anotacoes', icon: 'scroll' },
   { href: '/personagens-base', label: 'Personagens', icon: 'characters' },
   { href: '/npcs-ameacas', label: 'NPC', icon: 'curse' },
   { href: '/homebrews', label: 'Homebrews', icon: 'sparkles' },

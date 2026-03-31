@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsEnum,
   IsInt,
+  IsNumber,
   Min,
   IsBoolean,
   IsArray,
@@ -75,7 +76,7 @@ export class CriarEquipamentoDto {
   categoria?: CategoriaEquipamento;
 
   @IsOptional()
-  @IsInt()
+  @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 2 })
   @Min(0)
   espacos?: number;
 

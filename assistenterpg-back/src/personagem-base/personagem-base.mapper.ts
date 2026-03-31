@@ -151,6 +151,15 @@ function getInventarioSomarIntelectoFromMecanicas(
   return inventario.somarIntelecto === true;
 }
 
+function getInventarioReduzirItensLevesFromMecanicas(
+  mecanicas: Prisma.JsonValue | null,
+): boolean {
+  if (!isRecord(mecanicas)) return false;
+  const inventario = mecanicas.inventario;
+  if (!isRecord(inventario)) return false;
+  return inventario.reduzirItensLeves === true;
+}
+
 type ResistenciasMapeadas = Array<{
   codigo: string;
   nome: string;
@@ -401,18 +410,34 @@ export class PersonagemBaseMapper {
 
     const inventarioSomarIntelecto =
       (personagem.habilidadesBase ?? []).some((h) =>
-        getInventarioSomarIntelectoFromMecanicas(h.habilidade.mecanicasEspeciais),
+        getInventarioSomarIntelectoFromMecanicas(
+          h.habilidade.mecanicasEspeciais,
+        ),
       ) ||
       (personagem.poderesGenericos ?? []).some((p) =>
-        getInventarioSomarIntelectoFromMecanicas(p.habilidade.mecanicasEspeciais),
+        getInventarioSomarIntelectoFromMecanicas(
+          p.habilidade.mecanicasEspeciais,
+        ),
+      );
+    const inventarioReduzirItensLeves =
+      (personagem.habilidadesBase ?? []).some((h) =>
+        getInventarioReduzirItensLevesFromMecanicas(
+          h.habilidade.mecanicasEspeciais,
+        ),
+      ) ||
+      (personagem.poderesGenericos ?? []).some((p) =>
+        getInventarioReduzirItensLevesFromMecanicas(
+          p.habilidade.mecanicasEspeciais,
+        ),
       );
     const atributoInventarioBase = calcularAtributoBaseInventario({
       forca: personagem.forca,
       intelecto: personagem.intelecto,
       somarIntelecto: inventarioSomarIntelecto,
     });
-    const espacosInventarioBaseFallback =
-      calcularEspacosInventarioBase(atributoInventarioBase);
+    const espacosInventarioBaseFallback = calcularEspacosInventarioBase(
+      atributoInventarioBase,
+    );
     const espacosBase =
       personagem.espacosInventarioBase ?? espacosInventarioBaseFallback;
     const espacosExtra = personagem.espacosInventarioExtra ?? 0;
@@ -425,6 +450,7 @@ export class PersonagemBaseMapper {
     const itensInventario = await this.mapItensInventario(
       personagem.id,
       prisma,
+      inventarioReduzirItensLeves,
     );
     const espacosOcupados = itensInventario.reduce((total, item) => {
       return total + item.espacosCalculados * item.quantidade;
@@ -765,6 +791,7 @@ export class PersonagemBaseMapper {
   private async mapItensInventario(
     personagemBaseId: number,
     prisma: PrismaLike,
+    reduzirItensLeves = false,
   ): Promise<InventarioItemMapeado[]> {
     try {
       const itens: InventarioItemDetalhadoEntity[] =
@@ -780,7 +807,12 @@ export class PersonagemBaseMapper {
         const equipamento = item.equipamento;
         if (!equipamento) continue;
 
-        let espacosPorUnidade = equipamento.espacos;
+        let espacosPorUnidade =
+          reduzirItensLeves &&
+          equipamento.espacos > 0 &&
+          equipamento.espacos <= 0.5
+            ? equipamento.espacos / 2
+            : equipamento.espacos;
 
         const modsAplicadas: InventarioModificacaoMapeada[] = (
           item.modificacoes ?? []

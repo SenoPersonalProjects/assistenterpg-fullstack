@@ -1,4 +1,11 @@
-import { IsInt, IsOptional, IsString, IsBoolean, IsArray, Min } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsArray,
+  Min,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 function parseIntComFallback(value: unknown, fallback: number): unknown {

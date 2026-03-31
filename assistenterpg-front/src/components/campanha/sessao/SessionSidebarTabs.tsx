@@ -3,7 +3,12 @@
 import type { ReactNode } from 'react';
 import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
 
-export type SessionSidebarTabId = 'chat' | 'eventos' | 'participantes' | 'rolagens';
+export type SessionSidebarTabId =
+  | 'chat'
+  | 'rolagens'
+  | 'anotacoes'
+  | 'eventos'
+  | 'participantes';
 
 type SessionSidebarTabsProps = {
   activeTab: SessionSidebarTabId;
@@ -12,6 +17,7 @@ type SessionSidebarTabsProps = {
   totalEventos: number;
   totalParticipantes: number;
   totalRolagens: number;
+  totalAnotacoes?: number;
   mostrarEventos?: boolean;
   children: ReactNode;
 };
@@ -23,12 +29,19 @@ export function SessionSidebarTabs({
   totalEventos,
   totalParticipantes,
   totalRolagens,
+  totalAnotacoes,
   mostrarEventos = true,
   children,
 }: SessionSidebarTabsProps) {
   const tabs: SessionTabItem[] = [
     { id: 'chat', label: 'Chat', icon: 'chat', count: totalChat },
     { id: 'rolagens', label: 'Rolagens', icon: 'dice', count: totalRolagens },
+    {
+      id: 'anotacoes',
+      label: 'Anotacoes',
+      icon: 'scroll',
+      count: totalAnotacoes,
+    },
   ];
   if (mostrarEventos) {
     tabs.push({ id: 'eventos', label: 'Eventos', icon: 'list', count: totalEventos });

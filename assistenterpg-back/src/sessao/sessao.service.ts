@@ -377,8 +377,9 @@ export class SessaoService {
     });
 
     return sessoes.map((sessao) => {
-      const controleTurnosAtivo =
-        !['LIVRE', 'BASE'].includes(sessao.cenaAtualTipo);
+      const controleTurnosAtivo = !['LIVRE', 'BASE'].includes(
+        sessao.cenaAtualTipo,
+      );
 
       return {
         id: sessao.id,
@@ -790,8 +791,9 @@ export class SessaoService {
       indice: number,
       participante?: ParticipanteIniciativa | null,
     ) => participante?.iniciativaValor ?? valorIniciativaBase - indice;
-    const controleTurnosAtivo =
-      !['LIVRE', 'BASE'].includes(sessao.cenaAtualTipo);
+    const controleTurnosAtivo = !['LIVRE', 'BASE'].includes(
+      sessao.cenaAtualTipo,
+    );
     const indiceTurno = controleTurnosAtivo
       ? this.clampIndiceTurno(
           sessao.indiceTurnoAtual,
@@ -2094,9 +2096,7 @@ export class SessaoService {
       const nomeNovaCena = dto.nome?.trim() || null;
       const turnosDesativados = ['LIVRE', 'BASE'].includes(dto.tipo);
       const rodadaNova = turnosDesativados ? 1 : sessao.rodadaAtual;
-      const indiceTurnoNovo = turnosDesativados
-        ? 0
-        : sessao.indiceTurnoAtual;
+      const indiceTurnoNovo = turnosDesativados ? 0 : sessao.indiceTurnoAtual;
       const limitesCategoriaAtual =
         sessao.limitesCategoriaInventarioAtivo ?? false;
       const limitesCategoriaAtivo =
@@ -4069,7 +4069,7 @@ export class SessaoService {
     let custoSustentacaoEANormalizado = isSustentada
       ? this.normalizarCustoPositivo(custoSustentacaoEA, 0)
       : null;
-    let custoSustentacaoPENormalizado = isSustentada
+    const custoSustentacaoPENormalizado = isSustentada
       ? this.normalizarCustoPositivo(custoSustentacaoPE, 0)
       : null;
     if (isSustentada && !custoSustentacaoDefinido) {

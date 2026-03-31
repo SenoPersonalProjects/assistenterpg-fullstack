@@ -15,3 +15,4 @@ export * from './homebrew-enums';
 export * from './suplemento.types';
 export * from './suplemento-conteudo.types';
 export * from './npc-ameaca.types';
+export * from './anotacao.types';

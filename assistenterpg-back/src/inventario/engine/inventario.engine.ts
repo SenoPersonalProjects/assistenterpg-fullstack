@@ -48,6 +48,17 @@ function extrairNumeroJson(value: unknown, key: string): number | undefined {
  */
 @Injectable()
 export class InventarioEngine {
+  private ajustarEspacosBase(item: ItemInventarioComDados): number {
+    const base = item.equipamento.espacos;
+    if (!item.reduzirItensLeves) return base;
+
+    if (base > 0 && base <= 0.5) {
+      return base / 2;
+    }
+
+    return base;
+  }
+
   /**
    * ✅ NOVO: Calcula a categoria final baseado na quantidade de modificações
    * Progressão: CATEGORIA_0 → CATEGORIA_4 → CATEGORIA_3 → CATEGORIA_2 → CATEGORIA_1 → ESPECIAL
@@ -78,7 +89,7 @@ export class InventarioEngine {
    * Calcula espaços ocupados por um item (com modificações)
    */
   calcularEspacosItem(item: ItemInventarioComDados): number {
-    const espacosBase = item.equipamento.espacos;
+    const espacosBase = this.ajustarEspacosBase(item);
 
     const incrementoModificacoes = item.modificacoes.reduce(
       (total, mod) => total + (mod.modificacao.incrementoEspacos || 0),
@@ -95,7 +106,7 @@ export class InventarioEngine {
    * Calcula espaço unitário (por unidade) sem quantidade
    */
   calcularEspacoUnitario(item: ItemInventarioComDados): number {
-    const espacosBase = item.equipamento.espacos;
+    const espacosBase = this.ajustarEspacosBase(item);
 
     const incrementoModificacoes = item.modificacoes.reduce(
       (total, mod) => total + (mod.modificacao.incrementoEspacos || 0),

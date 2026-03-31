@@ -33,6 +33,7 @@ import type {
 
 import { getGrauXamaPorPrestigio, getNivelPrestigioCla } from '@/lib/utils/prestigio';
 import { getNomeGrau } from '@/lib/utils/pericias';
+import { normalizarCategoria } from '@/lib/utils/inventario';
 import { useAuth } from '@/context/AuthContext';
 
 import { AtributosDerivadosCard } from '../../sections/AtributosDerivadosCard';
@@ -545,6 +546,26 @@ export function PersonagemBaseStepRevisao({
         ? previewCalculado.espacosInventario.sobrecarregado
         : espacosOcupados > espacosTotal;
 
+    const limitesRaw = previewCalculado.espacosInventario.limitesPorCategoria ?? null;
+    const itensRaw = previewCalculado.espacosInventario.itensPorCategoria ?? null;
+
+    const limitesPorCategoria = limitesRaw
+      ? Object.entries(limitesRaw).reduce<Record<string, number>>((acc, [categoria, limite]) => {
+          const key = normalizarCategoria(categoria);
+          const valor = toSafeNumber(limite, 0);
+          acc[key] = Math.max(acc[key] ?? 0, valor);
+          return acc;
+        }, {})
+      : null;
+
+    const itensPorCategoria = itensRaw
+      ? Object.entries(itensRaw).reduce<Record<string, number>>((acc, [categoria, quantidade]) => {
+          const key = normalizarCategoria(categoria);
+          acc[key] = (acc[key] ?? 0) + toSafeNumber(quantidade, 0);
+          return acc;
+        }, {})
+      : null;
+
     return {
       itens,
       espacosTotal,
@@ -552,8 +573,8 @@ export function PersonagemBaseStepRevisao({
       espacosRestantes,
       totalItens,
       sobrecarregado,
-      limitesPorCategoria: previewCalculado.espacosInventario.limitesPorCategoria ?? null,
-      itensPorCategoria: previewCalculado.espacosInventario.itensPorCategoria ?? null,
+      limitesPorCategoria,
+      itensPorCategoria,
     };
   })();
 

@@ -47,6 +47,7 @@ export interface MecanicasEspeciaisHabilidade {
   inventario?: {
     espacosExtra?: number;
     somarIntelecto?: boolean;
+    reduzirItensLeves?: boolean;
   };
 }
 

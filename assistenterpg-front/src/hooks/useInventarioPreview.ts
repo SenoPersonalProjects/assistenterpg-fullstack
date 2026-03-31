@@ -4,6 +4,9 @@ import type { ItemInventarioPayload } from '@/lib/api';
 
 type UseInventarioPreviewParams = {
   forca: number;
+  intelecto?: number;
+  somarIntelecto?: boolean;
+  reduzirItensLeves?: boolean;
   prestigioBase: number;
 };
 
@@ -15,6 +18,9 @@ type UseInventarioPreviewReturn = {
 
 type PreviewPayload = {
   forca: number;
+  intelecto?: number;
+  somarIntelecto?: boolean;
+  reduzirItensLeves?: boolean;
   prestigioBase: number;
   itens: Array<{
     equipamentoId: number;
@@ -39,10 +45,16 @@ function sanitizarItensInventario(itens: ItemInventarioPayload[]): ItemInventari
 function construirPayloadPreview(
   itens: ItemInventarioPayload[],
   forca: number,
+  intelecto: number | undefined,
+  somarIntelecto: boolean | undefined,
+  reduzirItensLeves: boolean | undefined,
   prestigioBase: number,
 ): PreviewPayload {
   return {
     forca: Number(forca),
+    intelecto: typeof intelecto === 'number' ? Number(intelecto) : undefined,
+    somarIntelecto,
+    reduzirItensLeves,
     prestigioBase: Number(prestigioBase),
     itens: itens.map((item) => ({
       equipamentoId: Number(item.equipamentoId),
@@ -56,6 +68,9 @@ function construirPayloadPreview(
 
 export function useInventarioPreview({
   forca,
+  intelecto,
+  somarIntelecto,
+  reduzirItensLeves,
   prestigioBase,
 }: UseInventarioPreviewParams): UseInventarioPreviewReturn {
   const [carregando, setCarregando] = useState(false);
@@ -81,7 +96,14 @@ export function useInventarioPreview({
       }
 
       const itensSanitizados = sanitizarItensInventario(itens);
-      const payload = construirPayloadPreview(itensSanitizados, forca, prestigioBase);
+      const payload = construirPayloadPreview(
+        itensSanitizados,
+        forca,
+        intelecto,
+        somarIntelecto,
+        reduzirItensLeves,
+        prestigioBase,
+      );
       const payloadHash = JSON.stringify(payload);
 
       if (
@@ -138,7 +160,7 @@ export function useInventarioPreview({
 
       return request;
     },
-    [forca, prestigioBase],
+    [forca, intelecto, somarIntelecto, reduzirItensLeves, prestigioBase],
   );
 
   return {

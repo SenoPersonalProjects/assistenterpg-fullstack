@@ -104,6 +104,49 @@ type PersonagemInventarioPayload = Prisma.PersonagemBaseGetPayload<{
   select: typeof personagemInventarioSelect;
 }>;
 
+function normalizarCategoriaGrau(valor: unknown): string {
+  if (valor === null || valor === undefined) return '0';
+  if (typeof valor === 'number') return String(valor);
+  if (typeof valor !== 'string') {
+    if (typeof valor === 'object' && valor !== null && !Array.isArray(valor)) {
+      const registro = valor as Record<string, unknown>;
+      const candidato =
+        typeof registro.codigo === 'string'
+          ? registro.codigo
+          : typeof registro.categoria === 'string'
+            ? registro.categoria
+            : typeof registro.value === 'string'
+              ? registro.value
+              : typeof registro.value === 'number'
+                ? String(registro.value)
+                : null;
+
+      if (candidato) {
+        return normalizarCategoriaGrau(candidato);
+      }
+    }
+
+    return '0';
+  }
+
+  const texto = valor;
+
+  if (texto === 'ESPECIAL' || texto === 'CATEGORIA_ESPECIAL') {
+    return 'ESPECIAL';
+  }
+
+  const match = texto.match(/CATEGORIA_(\d+|ESPECIAL)/i);
+  if (match && match[1]) {
+    return match[1].toUpperCase();
+  }
+
+  if (/^\d+$/.test(texto)) {
+    return texto;
+  }
+
+  return '0';
+}
+
 @Injectable()
 export class InventarioService {
   constructor(
@@ -121,6 +164,74 @@ export class InventarioService {
     ) {
       handlePrismaError(error);
     }
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private getBooleanField(
+    value: Record<string, unknown> | null | undefined,
+    key: string,
+  ): boolean | null {
+    if (!value) return null;
+    const current = value[key];
+    return typeof current === 'boolean' ? current : null;
+  }
+
+  private getInventarioFlag(
+    mecanicas: Prisma.JsonValue | null,
+    flag: 'reduzirItensLeves' | 'somarIntelecto',
+  ): boolean {
+    if (!this.isRecord(mecanicas)) return false;
+    const inventario = mecanicas.inventario;
+    if (!this.isRecord(inventario)) return false;
+    return this.getBooleanField(inventario, flag) === true;
+  }
+
+  private async obterFlagsInventario(
+    personagemBaseId: number,
+    prisma?: PrismaLike,
+  ): Promise<{ reduzirItensLeves: boolean }> {
+    const db = prisma || this.prisma;
+
+    const [habilidades, poderes] = await Promise.all([
+      db.habilidadePersonagemBase.findMany({
+        where: { personagemBaseId },
+        select: { habilidade: { select: { mecanicasEspeciais: true } } },
+      }),
+      db.poderGenericoPersonagemBase.findMany({
+        where: { personagemBaseId },
+        select: { habilidade: { select: { mecanicasEspeciais: true } } },
+      }),
+    ]);
+
+    const reduzirItensLeves =
+      habilidades.some((h) =>
+        this.getInventarioFlag(
+          h.habilidade.mecanicasEspeciais,
+          'reduzirItensLeves',
+        ),
+      ) ||
+      poderes.some((p) =>
+        this.getInventarioFlag(
+          p.habilidade.mecanicasEspeciais,
+          'reduzirItensLeves',
+        ),
+      );
+
+    return { reduzirItensLeves };
+  }
+
+  private ajustarEspacosBaseItem(
+    espacosBase: number,
+    reduzirItensLeves?: boolean,
+  ): number {
+    if (reduzirItensLeves && espacosBase > 0 && espacosBase <= 0.5) {
+      return espacosBase / 2;
+    }
+
+    return espacosBase;
   }
 
   /**
@@ -180,7 +291,15 @@ export class InventarioService {
       orderBy: [{ equipado: 'desc' }, { equipamento: { nome: 'asc' } }],
     });
 
-    return itens;
+    const { reduzirItensLeves } = await this.obterFlagsInventario(
+      personagemBaseId,
+      db,
+    );
+
+    return itens.map((item) => ({
+      ...item,
+      reduzirItensLeves,
+    }));
   }
 
   /**
@@ -623,6 +742,7 @@ export class InventarioService {
   async previewItensInventario(dto: PreviewItensInventarioDto): Promise<any> {
     try {
       const { forca, prestigioBase, itens } = dto;
+      const reduzirItensLeves = dto.reduzirItensLeves === true;
 
       const equipamentosIds = [...new Set(itens.map((i) => i.equipamentoId))];
       const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
@@ -661,7 +781,10 @@ export class InventarioService {
           modsDoItem.length,
         );
 
-        const espacosBaseItem = equipamento.espacos;
+        const espacosBaseItem = this.ajustarEspacosBaseItem(
+          equipamento.espacos,
+          reduzirItensLeves,
+        );
         const incrementoMods = modsDoItem.reduce(
           (total, m) => total + (m.incrementoEspacos || 0),
           0,
@@ -716,6 +839,7 @@ export class InventarioService {
           nomeCustomizado: item.nomeCustomizado ?? null,
           notas: null,
           categoriaCalculada: item.categoriaCalculada,
+          reduzirItensLeves,
           equipamento: {
             id: item.equipamento.id,
             codigo: item.equipamento.codigo,
@@ -744,16 +868,16 @@ export class InventarioService {
       const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioBase);
 
       const itensPorCategoria: Record<string, number> = {
-        CATEGORIA_0: 0,
-        CATEGORIA_4: 0,
-        CATEGORIA_3: 0,
-        CATEGORIA_2: 0,
-        CATEGORIA_1: 0,
+        '0': 0,
+        '4': 0,
+        '3': 0,
+        '2': 0,
+        '1': 0,
         ESPECIAL: 0,
       };
 
       itensCalculados.forEach((item) => {
-        const cat = item.categoriaCalculada;
+        const cat = normalizarCategoriaGrau(item.categoriaCalculada);
         itensPorCategoria[cat] =
           (itensPorCategoria[cat] || 0) + item.quantidade;
       });
@@ -871,7 +995,14 @@ export class InventarioService {
       );
 
       // 5. Calcular espaços que o item vai ocupar
-      const espacosBaseItem = equipamento.espacos;
+      const { reduzirItensLeves } = await this.obterFlagsInventario(
+        dto.personagemBaseId,
+        db,
+      );
+      const espacosBaseItem = this.ajustarEspacosBaseItem(
+        equipamento.espacos,
+        reduzirItensLeves,
+      );
       const incrementoMods = modificacoesValidas.reduce(
         (total, m) => total + (m.incrementoEspacos || 0),
         0,
@@ -972,6 +1103,9 @@ export class InventarioService {
         dto.quantidade !== undefined &&
         dto.quantidade !== itemExiste.quantidade
       ) {
+        const { reduzirItensLeves } = await this.obterFlagsInventario(
+          itemExiste.personagemBaseId,
+        );
         const itensAtuais = await this.carregarItensInventario(
           itemExiste.personagemBaseId,
         );
@@ -987,7 +1121,10 @@ export class InventarioService {
           espacosBase + espacosExtra - espacosSemEsteItem;
 
         // Calcular espaços do item com nova quantidade
-        const espacosBaseItem = itemExiste.equipamento.espacos;
+        const espacosBaseItem = this.ajustarEspacosBaseItem(
+          itemExiste.equipamento.espacos,
+          reduzirItensLeves,
+        );
         const incrementoMods = itemExiste.modificacoes.reduce(
           (total, m) => total + (m.modificacao.incrementoEspacos || 0),
           0,
@@ -1195,7 +1332,13 @@ export class InventarioService {
       );
 
       // Recalcular espaços
-      const espacosBaseItem = item.equipamento.espacos;
+      const { reduzirItensLeves } = await this.obterFlagsInventario(
+        item.personagemBaseId,
+      );
+      const espacosBaseItem = this.ajustarEspacosBaseItem(
+        item.equipamento.espacos,
+        reduzirItensLeves,
+      );
       const incrementoModsNovo =
         item.modificacoes.reduce(
           (total, m) => total + (m.modificacao.incrementoEspacos || 0),
@@ -1297,7 +1440,13 @@ export class InventarioService {
       );
 
       // Recalcular espaços
-      const espacosBaseItem = item.equipamento.espacos;
+      const { reduzirItensLeves } = await this.obterFlagsInventario(
+        item.personagemBaseId,
+      );
+      const espacosBaseItem = this.ajustarEspacosBaseItem(
+        item.equipamento.espacos,
+        reduzirItensLeves,
+      );
       const incrementoModsNovo = item.modificacoes
         .filter((m) => m.modificacao.id !== dto.modificacaoId)
         .reduce(

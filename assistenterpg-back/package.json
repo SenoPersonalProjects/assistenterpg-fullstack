@@ -21,7 +21,9 @@
     "seed": "prisma db seed",
     "recalc:inventario": "ts-node scripts/recalcular-espacos-inventario.ts",
     "fix:sustentacao": "ts-node scripts/fixar-custos-sustentacao.ts",
+    "seed:modificacoes-aplicaveis": "ts-node prisma/seeds/relacoes/equipamentos-modificacoes-aplicaveis.ts",
     "seed:tecnicas:inatas": "ts-node prisma/seeds/tecnicas/seed-tecnicas-inatas.ts",
+    "seed:sobrevivendo": "ts-node prisma/seeds/suplementos/seed-sobrevivendo-ao-jujutsu.ts",
     "seed:compendio": "ts-node prisma/seeds/compendio/seed-compendio.ts",
     "prebuild": "node scripts/check-prisma-client.js",
     "prisma:generate:safe": "PRISMA_PREBUILD_AUTO_GENERATE=true node scripts/check-prisma-client.js"

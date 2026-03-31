@@ -38,6 +38,9 @@ import { InventarioAlertaVestir } from '../InventarioAlertaVestir';
 
 type Props = {
   forca: number;
+  intelecto?: number;
+  somarIntelecto?: boolean;
+  reduzirItensLeves?: boolean;
   prestigioBase: number;
   equipamentos: EquipamentoCatalogo[];
   modificacoes: ModificacaoCatalogo[];
@@ -51,6 +54,9 @@ const LIMITE_RENDER_ITENS_INICIAL = 80;
 export function PersonagemBaseStepInventario(props: Props) {
   const { sincronizarInventario, carregando: carregandoSincronizacao } = useInventarioPreview({
     forca: props.forca,
+    intelecto: props.intelecto,
+    somarIntelecto: props.somarIntelecto,
+    reduzirItensLeves: props.reduzirItensLeves,
     prestigioBase: props.prestigioBase,
   });
 
@@ -123,10 +129,14 @@ export function PersonagemBaseStepInventario(props: Props) {
   useEffect(() => {
     if (props.itensInventario.length === 0) {
       // Caso vazio: calcular espaços base manualmente
+      const base =
+        props.somarIntelecto && typeof props.intelecto === 'number'
+          ? (props.forca + props.intelecto) * 5
+          : props.forca * 5;
       setPreviewInventario({
-        espacosBase: props.forca * 5,
+        espacosBase: base,
         espacosExtra: 0,
-        espacosTotal: props.forca * 5,
+        espacosTotal: base,
         espacosOcupados: 0,
         sobrecarregado: false,
       });
@@ -139,6 +149,9 @@ export function PersonagemBaseStepInventario(props: Props) {
       try {
         const payload = {
           forca: props.forca,
+          intelecto: props.intelecto,
+          somarIntelecto: props.somarIntelecto,
+          reduzirItensLeves: props.reduzirItensLeves,
           prestigioBase: props.prestigioBase,
           itens: props.itensInventario.map((item) => ({
             equipamentoId: item.equipamentoId,
@@ -163,10 +176,14 @@ export function PersonagemBaseStepInventario(props: Props) {
       } catch {
         if (!isCancelled) {
           // Fallback
+          const base =
+            props.somarIntelecto && typeof props.intelecto === 'number'
+              ? (props.forca + props.intelecto) * 5
+              : props.forca * 5;
           setPreviewInventario({
-            espacosBase: props.forca * 5,
+            espacosBase: base,
             espacosExtra: 0,
-            espacosTotal: props.forca * 5,
+            espacosTotal: base,
             espacosOcupados: 0,
             sobrecarregado: false,
           });
@@ -179,7 +196,14 @@ export function PersonagemBaseStepInventario(props: Props) {
     return () => {
       isCancelled = true;
     };
-  }, [props.itensInventario, props.forca, props.prestigioBase]);
+  }, [
+    props.itensInventario,
+    props.forca,
+    props.intelecto,
+    props.somarIntelecto,
+    props.reduzirItensLeves,
+    props.prestigioBase,
+  ]);
 
   // Usar preview do backend
   const espacosBase = previewInventario?.espacosBase ?? props.forca * 5;
@@ -529,6 +553,9 @@ export function PersonagemBaseStepInventario(props: Props) {
 
       // Preview simplificado (backend calculará ao sincronizar)
       let espacosPorUnidade = equipamentoSelecionado.espacos;
+      if (props.reduzirItensLeves && espacosPorUnidade > 0 && espacosPorUnidade <= 0.5) {
+        espacosPorUnidade = espacosPorUnidade / 2;
+      }
       modificacoesSelecionadas.forEach((mod) => {
         espacosPorUnidade += mod.incrementoEspacos;
       });
@@ -576,6 +603,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     ignorarLimites,
     espacosOcupados,
     espacosTotal,
+    props.reduzirItensLeves,
   ]);
 
   const avancarStep = useCallback(() => {

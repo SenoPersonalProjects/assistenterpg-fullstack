@@ -421,6 +421,9 @@ export type PreviewAdicionarItemResponse = {
 
 export type PreviewItensInventarioPayload = {
   forca: number;
+  intelecto?: number;
+  somarIntelecto?: boolean;
+  reduzirItensLeves?: boolean;
   prestigioBase: number;
   itens: ItemInventarioPayload[];
 };

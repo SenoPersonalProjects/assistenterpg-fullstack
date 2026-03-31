@@ -43,6 +43,10 @@ export class PreviewItensInventarioDto {
   @IsBoolean()
   somarIntelecto?: boolean;
 
+  @IsOptional()
+  @IsBoolean()
+  reduzirItensLeves?: boolean;
+
   @IsInt()
   prestigioBase: number;
 

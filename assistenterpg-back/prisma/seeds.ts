@@ -27,6 +27,7 @@ import { seedFerramentasAmaldicoadas } from './seeds/catalogos/equipamentos-ferr
 // =======================
 import { seedModificacoes } from './seeds/catalogos/modificacoes';
 import { seedXamaGraus } from './seeds/catalogos/graus-xama';
+import { seedEquipamentosModificacoesAplicaveis } from './seeds/relacoes/equipamentos-modificacoes-aplicaveis';
 
 // =======================
 // Técnicas Amaldiçoadas (✅ NOVO)
@@ -102,6 +103,9 @@ async function main() {
   
   // 4. Modificações (podem referenciar equipamentos)
   await seedModificacoes(prisma);
+
+  // 5. Vinculos de modificacoes aplicaveis por equipamento
+  await seedEquipamentosModificacoesAplicaveis(prisma);
   
   console.log('✅ Equipamentos, modificações e graus concluídos!\n');
 
@@ -194,3 +198,4 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
+

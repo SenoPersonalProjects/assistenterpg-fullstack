@@ -171,6 +171,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   INVENTARIO_MODIFICACAO_NAO_APLICADA:
     "Essa modificação não está aplicada no item",
 
+  // ANOTACOES
+  ANOTACAO_NOT_FOUND: "Anotacao nao encontrada",
+  ANOTACAO_SEM_PERMISSAO: "Voce nao tem permissao para esta anotacao",
+  ANOTACAO_CAMPANHA_SESSAO_INVALIDA:
+    "Campanha e sessao informadas nao correspondem",
   // ALIASES LEGADOS (mantidos por compatibilidade)
   ITEM_INVENTARIO_NOT_FOUND: "Item do inventário não encontrado",
   ESPACOS_INSUFICIENTES: "Espaço insuficiente no inventário",
@@ -537,6 +542,8 @@ export function formatarErroComContexto(
 
   return `${mensagemBase} (${partes.join(" | ")})`;
 }
+
+
 
 
 

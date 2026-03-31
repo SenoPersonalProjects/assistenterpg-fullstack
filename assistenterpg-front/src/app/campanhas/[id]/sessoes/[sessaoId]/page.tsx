@@ -1771,6 +1771,8 @@ export default function SessaoCampanhaPage() {
                 eventosSessao={eventosSessao}
                 participantes={participantes}
                 onlineSet={onlineSet}
+                campanhaId={campanhaId}
+                sessaoId={sessaoId}
                 sessaoEncerrada={sessaoEncerrada}
                 podeControlarSessao={podeControlarSessao}
                 desfazendoEventoId={desfazendoEventoId}

@@ -46,6 +46,16 @@ function isJsonObject(value: unknown): value is Prisma.JsonObject {
 
 type EscolhaPericias = { tipo: 'PERICIAS'; quantidade?: number };
 
+type PericiasFixasConfig = {
+  periciasFixas?: string[];
+  bonusTreinado?: number;
+};
+
+type PericiasTreinadasConfig = {
+  periciasTreinadas?: string[];
+  bonusSeJaTreinado?: number;
+};
+
 // Extrai com segurança mec.escolha quando for do tipo PERICIAS
 function getEscolhaPericias(
   mec: Prisma.JsonValue | null,
@@ -84,6 +94,50 @@ function hasEscolhaTipoGrau(mec: Prisma.JsonValue | null): boolean {
   if (!isJsonObject(mec)) return false;
   const escolha = mec.escolha;
   return isJsonObject(escolha) && escolha.tipo === 'TIPO_GRAU';
+}
+
+function getPericiasFixasConfig(
+  mec: Prisma.JsonValue | null,
+): PericiasFixasConfig | null {
+  if (!isJsonObject(mec)) return null;
+
+  const periciasFixasRaw = mec.periciasFixas;
+  const periciasFixas = Array.isArray(periciasFixasRaw)
+    ? periciasFixasRaw.filter((p) => typeof p === 'string')
+    : null;
+
+  const bonusTreinadoRaw = mec.bonusTreinado;
+  const bonusTreinado =
+    typeof bonusTreinadoRaw === 'number' ? bonusTreinadoRaw : undefined;
+
+  if (!periciasFixas || periciasFixas.length === 0) return null;
+
+  return {
+    periciasFixas,
+    bonusTreinado,
+  };
+}
+
+function getPericiasTreinadasConfig(
+  mec: Prisma.JsonValue | null,
+): PericiasTreinadasConfig | null {
+  if (!isJsonObject(mec)) return null;
+
+  const periciasTreinadasRaw = mec.periciasTreinadas;
+  const periciasTreinadas = Array.isArray(periciasTreinadasRaw)
+    ? periciasTreinadasRaw.filter((p) => typeof p === 'string')
+    : null;
+
+  const bonusSeJaTreinadoRaw = mec.bonusSeJaTreinado;
+  const bonusSeJaTreinado =
+    typeof bonusSeJaTreinadoRaw === 'number' ? bonusSeJaTreinadoRaw : undefined;
+
+  if (!periciasTreinadas || periciasTreinadas.length === 0) return null;
+
+  return {
+    periciasTreinadas,
+    bonusSeJaTreinado,
+  };
 }
 
 function getTipoGrauCodigo(config: unknown): string | null {
@@ -126,67 +180,105 @@ export async function aplicarEfeitosPoderesEmPericias(
     if (!poderDb) continue;
 
     const escolhaMec = getEscolhaPericias(poderDb.mecanicasEspeciais);
-    if (!escolhaMec) continue;
+    if (escolhaMec) {
+      const qtd =
+        typeof escolhaMec.quantidade === 'number' ? escolhaMec.quantidade : 2;
+      const codigos = getStringArrayFromConfig(inst.config, 'periciasCodigos');
 
-    const qtd =
-      typeof escolhaMec.quantidade === 'number' ? escolhaMec.quantidade : 2;
-    const codigos = getStringArrayFromConfig(inst.config, 'periciasCodigos');
-
-    if (!codigos) {
-      throw new PoderGenericoConfigInvalidaException(
-        poderDb.nome,
-        'periciasCodigos',
-        'deve ser array de strings',
-      );
-    }
-
-    const unicos = Array.from(new Set(codigos));
-    if (unicos.length !== codigos.length) {
-      throw new PoderGenericoConfigInvalidaException(
-        poderDb.nome,
-        'periciasCodigos',
-        'não permite perícias repetidas na mesma escolha',
-      );
-    }
-
-    if (codigos.length !== qtd) {
-      throw new PoderGenericoConfigInvalidaException(
-        poderDb.nome,
-        'periciasCodigos',
-        `exige escolher exatamente ${qtd} perícias`,
-        { quantidadeEsperada: qtd, quantidadeRecebida: codigos.length },
-      );
-    }
-
-    for (const codigo of codigos) {
-      const pericia = periciasMap.get(codigo);
-      if (!pericia) {
+      if (!codigos) {
         throw new PoderGenericoConfigInvalidaException(
           poderDb.nome,
           'periciasCodigos',
-          `perícia "${codigo}" não existe no sistema`,
+          'deve ser array de strings',
         );
       }
 
-      const proximo = pericia.grauTreinamento + 1;
-
-      if (proximo > maxPermitido) {
-        throw new PoderGenericoPericiaNivelException(
+      const unicos = Array.from(new Set(codigos));
+      if (unicos.length !== codigos.length) {
+        throw new PoderGenericoConfigInvalidaException(
           poderDb.nome,
-          codigo,
-          nivel,
+          'periciasCodigos',
+          'não permite perícias repetidas na mesma escolha',
         );
       }
 
-      if (proximo > 4) {
-        throw new PoderGenericoPericiaMaximaException(poderDb.nome, codigo);
+      if (codigos.length !== qtd) {
+        throw new PoderGenericoConfigInvalidaException(
+          poderDb.nome,
+          'periciasCodigos',
+          `exige escolher exatamente ${qtd} perícias`,
+          { quantidadeEsperada: qtd, quantidadeRecebida: codigos.length },
+        );
       }
 
-      pericia.grauTreinamento = proximo;
+      for (const codigo of codigos) {
+        const pericia = periciasMap.get(codigo);
+        if (!pericia) {
+          throw new PoderGenericoConfigInvalidaException(
+            poderDb.nome,
+            'periciasCodigos',
+            `perícia "${codigo}" não existe no sistema`,
+          );
+        }
+
+        const proximo = pericia.grauTreinamento + 1;
+
+        if (proximo > maxPermitido) {
+          throw new PoderGenericoPericiaNivelException(
+            poderDb.nome,
+            codigo,
+            nivel,
+          );
+        }
+
+        if (proximo > 4) {
+          throw new PoderGenericoPericiaMaximaException(poderDb.nome, codigo);
+        }
+
+        pericia.grauTreinamento = proximo;
+      }
+    }
+    const treinadasConfig = getPericiasTreinadasConfig(
+      poderDb.mecanicasEspeciais,
+    );
+    const fixasConfig = getPericiasFixasConfig(poderDb.mecanicasEspeciais);
+
+    const config = treinadasConfig
+      ? {
+          pericias: treinadasConfig.periciasTreinadas ?? [],
+          bonus: treinadasConfig.bonusSeJaTreinado,
+          field: 'periciasTreinadas',
+        }
+      : fixasConfig
+        ? {
+            pericias: fixasConfig.periciasFixas ?? [],
+            bonus: fixasConfig.bonusTreinado,
+            field: 'periciasFixas',
+          }
+        : null;
+
+    if (config) {
+      const bonusTreinado = typeof config.bonus === 'number' ? config.bonus : 2;
+
+      for (const codigo of config.pericias) {
+        const pericia = periciasMap.get(codigo);
+        if (!pericia) {
+          throw new PoderGenericoConfigInvalidaException(
+            poderDb.nome,
+            config.field,
+            `perícia "${codigo}" não existe no sistema`,
+          );
+        }
+
+        if (pericia.grauTreinamento <= 0) {
+          pericia.grauTreinamento = 1;
+        } else {
+          pericia.bonusExtra += bonusTreinado;
+        }
+      }
     }
   }
 }
-
 /**
  * ✅ CORRIGIDO: Apenas valida, NÃO soma bônus aos graus livres
  * O bônus será calculado dinamicamente em aplicarRegrasDeGraus

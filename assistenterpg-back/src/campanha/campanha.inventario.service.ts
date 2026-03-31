@@ -72,6 +72,73 @@ export class CampanhaInventarioService {
     }
   }
 
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private getBooleanField(
+    value: Record<string, unknown> | null | undefined,
+    key: string,
+  ): boolean | null {
+    if (!value) return null;
+    const current = value[key];
+    return typeof current === 'boolean' ? current : null;
+  }
+
+  private getInventarioFlag(
+    mecanicas: Prisma.JsonValue | null,
+    flag: 'reduzirItensLeves' | 'somarIntelecto',
+  ): boolean {
+    if (!this.isRecord(mecanicas)) return false;
+    const inventario = mecanicas.inventario;
+    if (!this.isRecord(inventario)) return false;
+    return this.getBooleanField(inventario, flag) === true;
+  }
+
+  private async obterReducaoItensLeves(
+    personagemBaseId: number,
+    prisma?: PrismaLike,
+  ): Promise<boolean> {
+    const db = prisma ?? this.prisma;
+
+    const [habilidades, poderes] = await Promise.all([
+      db.habilidadePersonagemBase.findMany({
+        where: { personagemBaseId },
+        select: { habilidade: { select: { mecanicasEspeciais: true } } },
+      }),
+      db.poderGenericoPersonagemBase.findMany({
+        where: { personagemBaseId },
+        select: { habilidade: { select: { mecanicasEspeciais: true } } },
+      }),
+    ]);
+
+    return (
+      habilidades.some((h) =>
+        this.getInventarioFlag(
+          h.habilidade.mecanicasEspeciais,
+          'reduzirItensLeves',
+        ),
+      ) ||
+      poderes.some((p) =>
+        this.getInventarioFlag(
+          p.habilidade.mecanicasEspeciais,
+          'reduzirItensLeves',
+        ),
+      )
+    );
+  }
+
+  private ajustarEspacosBaseItem(
+    espacosBase: number,
+    reduzirItensLeves?: boolean,
+  ): number {
+    if (reduzirItensLeves && espacosBase > 0 && espacosBase <= 0.5) {
+      return espacosBase / 2;
+    }
+
+    return espacosBase;
+  }
+
   private async validarPermissao(
     campanhaId: number,
     personagemCampanhaId: number,
@@ -117,7 +184,19 @@ export class CampanhaInventarioService {
       orderBy: [{ equipado: 'desc' }, { equipamento: { nome: 'asc' } }],
     });
 
-    return itens;
+    const personagem = await db.personagemCampanha.findUnique({
+      where: { id: personagemCampanhaId },
+      select: { personagemBaseId: true },
+    });
+
+    const reduzirItensLeves = personagem?.personagemBaseId
+      ? await this.obterReducaoItensLeves(personagem.personagemBaseId, db)
+      : false;
+
+    return itens.map((item) => ({
+      ...item,
+      reduzirItensLeves,
+    }));
   }
 
   private async calcularEspacosPersonagemCampanha(
@@ -181,9 +260,7 @@ export class CampanhaInventarioService {
   private async obterPericiasPersonagemBase(
     personagemBaseId: number,
     prisma?: PrismaLike,
-  ): Promise<
-    Map<string, { grauTreinamento: number; bonusExtra: number }>
-  > {
+  ): Promise<Map<string, { grauTreinamento: number; bonusExtra: number }>> {
     const db = prisma ?? this.prisma;
     const pericias = await db.personagemBase.findUnique({
       where: { id: personagemBaseId },
@@ -349,10 +426,7 @@ export class CampanhaInventarioService {
       db,
     );
     const { espacosBase, espacosExtra } =
-      await this.calcularEspacosPersonagemCampanha(
-        personagemCampanhaId,
-        db,
-      );
+      await this.calcularEspacosPersonagemCampanha(personagemCampanhaId, db);
 
     const espacosOcupados = this.engine.calcularEspacosOcupados(itens);
     const capacidadeTotal = espacosBase + espacosExtra;
@@ -378,14 +452,10 @@ export class CampanhaInventarioService {
   ) {
     await this.validarPermissao(campanhaId, personagemCampanhaId, usuarioId);
 
-    const itens = await this.carregarItensInventarioCampanha(
-      personagemCampanhaId,
-    );
-    const {
-      espacosBase,
-      espacosExtra,
-      prestigioGeral,
-    } = await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
+    const itens =
+      await this.carregarItensInventarioCampanha(personagemCampanhaId);
+    const { espacosBase, espacosExtra, prestigioGeral } =
+      await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
     const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioGeral);
 
     const resultadoEspacos = this.engine.calcularResultadoEspacos(
@@ -485,7 +555,15 @@ export class CampanhaInventarioService {
         modificacoesValidas.length,
       );
 
-      const espacosBaseItem = equipamento.espacos;
+      const { personagemBaseId } =
+        await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
+      const reduzirItensLeves = personagemBaseId
+        ? await this.obterReducaoItensLeves(personagemBaseId)
+        : false;
+      const espacosBaseItem = this.ajustarEspacosBaseItem(
+        equipamento.espacos,
+        reduzirItensLeves,
+      );
       const incrementoMods = modificacoesValidas.reduce(
         (total, m) => total + (m.incrementoEspacos || 0),
         0,
@@ -564,7 +642,10 @@ export class CampanhaInventarioService {
         },
       });
 
-      if (!itemExiste || itemExiste.personagemCampanhaId !== personagemCampanhaId) {
+      if (
+        !itemExiste ||
+        itemExiste.personagemCampanhaId !== personagemCampanhaId
+      ) {
         throw new InventarioItemNaoEncontradoException(itemId);
       }
 
@@ -572,9 +653,13 @@ export class CampanhaInventarioService {
         dto.quantidade !== undefined &&
         dto.quantidade !== itemExiste.quantidade
       ) {
-        const itensAtuais = await this.carregarItensInventarioCampanha(
-          personagemCampanhaId,
-        );
+        const { personagemBaseId } =
+          await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
+        const reduzirItensLeves = personagemBaseId
+          ? await this.obterReducaoItensLeves(personagemBaseId)
+          : false;
+        const itensAtuais =
+          await this.carregarItensInventarioCampanha(personagemCampanhaId);
         const { espacosBase, espacosExtra } =
           await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
 
@@ -585,7 +670,10 @@ export class CampanhaInventarioService {
         const espacosDisponiveis =
           espacosBase + espacosExtra - espacosSemEsteItem;
 
-        const espacosBaseItem = itemExiste.equipamento.espacos;
+        const espacosBaseItem = this.ajustarEspacosBaseItem(
+          itemExiste.equipamento.espacos,
+          reduzirItensLeves,
+        );
         const incrementoMods = itemExiste.modificacoes.reduce(
           (total, m) => total + (m.modificacao.incrementoEspacos || 0),
           0,
@@ -783,10 +871,11 @@ export class CampanhaInventarioService {
 
       await this.atualizarEstadoInventarioCampanha(personagemCampanhaId);
 
-      const itemAtualizado = await this.prisma.inventarioItemCampanha.findUnique({
-        where: { id: itemId },
-        include: inventarioItemCampanhaComDadosInclude,
-      });
+      const itemAtualizado =
+        await this.prisma.inventarioItemCampanha.findUnique({
+          where: { id: itemId },
+          include: inventarioItemCampanhaComDadosInclude,
+        });
 
       if (!itemAtualizado) {
         throw new InventarioItemNaoEncontradoException(itemId);
@@ -861,10 +950,11 @@ export class CampanhaInventarioService {
 
       await this.atualizarEstadoInventarioCampanha(personagemCampanhaId);
 
-      const itemAtualizado = await this.prisma.inventarioItemCampanha.findUnique({
-        where: { id: itemId },
-        include: inventarioItemCampanhaComDadosInclude,
-      });
+      const itemAtualizado =
+        await this.prisma.inventarioItemCampanha.findUnique({
+          where: { id: itemId },
+          include: inventarioItemCampanhaComDadosInclude,
+        });
 
       if (!itemAtualizado) {
         throw new InventarioItemNaoEncontradoException(itemId);

@@ -13,6 +13,7 @@ export interface ItemInventarioComDados {
   nomeCustomizado?: string | null;
   notas?: string | null;
   categoriaCalculada?: string | null; // ✅ NOVO
+  reduzirItensLeves?: boolean; // ✅ NOVO: Inventário Organizado (0.5 → 0.25)
 
   equipamento: {
     id: number;

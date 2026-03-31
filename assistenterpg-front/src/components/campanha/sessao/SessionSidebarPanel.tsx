@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { RefObject } from 'react';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { Icon } from '@/components/ui/Icon';
@@ -11,6 +12,7 @@ import { ParticipantsPanel } from '@/components/campanha/sessao/ParticipantsPane
 import { TimelinePanel } from '@/components/campanha/sessao/TimelinePanel';
 import { ChatPanel } from '@/components/campanha/sessao/ChatPanel';
 import { DiceChatPanel } from '@/components/campanha/sessao/DiceChatPanel';
+import { SessionNotesPanel } from '@/components/campanha/sessao/SessionNotesPanel';
 import type {
   EventoSessaoTimeline,
   MensagemChatSessao,
@@ -25,6 +27,8 @@ type SessionSidebarPanelProps = {
   eventosSessao: EventoSessaoTimeline[];
   participantes: SessaoCampanhaDetalhe['participantes'];
   onlineSet: Set<number>;
+  campanhaId: number;
+  sessaoId: number;
   sessaoEncerrada: boolean;
   podeControlarSessao: boolean;
   desfazendoEventoId: number | null;
@@ -54,6 +58,8 @@ export function SessionSidebarPanel({
   eventosSessao,
   participantes,
   onlineSet,
+  campanhaId,
+  sessaoId,
   sessaoEncerrada,
   podeControlarSessao,
   desfazendoEventoId,
@@ -90,14 +96,15 @@ export function SessionSidebarPanel({
   const mostrarEventos = podeControlarSessao;
   const tabAtiva =
     !mostrarEventos && activeTab === 'eventos' ? 'chat' : activeTab;
+  const [totalAnotacoes, setTotalAnotacoes] = useState(0);
 
   return (
     <SessionPanel
       title="Painel lateral"
       subtitle={
         mostrarEventos
-          ? 'Chat, rolagens, eventos e participantes da sessao.'
-          : 'Chat, rolagens e participantes da sessao.'
+          ? 'Chat, rolagens, anotacoes, eventos e participantes da sessao.'
+          : 'Chat, rolagens, anotacoes e participantes da sessao.'
       }
       tone="aside"
       right={
@@ -115,6 +122,7 @@ export function SessionSidebarPanel({
         onChange={onChangeTab}
         totalChat={chat.length}
         totalRolagens={rolagens.length}
+        totalAnotacoes={totalAnotacoes}
         totalEventos={eventosSessao.length}
         totalParticipantes={participantes.length}
         mostrarEventos={mostrarEventos}
@@ -159,6 +167,14 @@ export function SessionSidebarPanel({
             erro={erroRolagens}
             onMensagemChange={onMensagemRolagemChange}
             onEnviarMensagem={onEnviarRolagem}
+          />
+        ) : null}
+
+        {tabAtiva === 'anotacoes' ? (
+          <SessionNotesPanel
+            campanhaId={campanhaId}
+            sessaoId={sessaoId}
+            onCountChange={setTotalAnotacoes}
           />
         ) : null}
       </SessionSidebarTabs>

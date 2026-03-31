@@ -187,18 +187,19 @@ function getLegacyInt2Config(value: unknown): PassivaIntelectoConfigDto | null {
   return null;
 }
 
-  function calcularModificadoresDerivadosPorHabilidadesLocal(
-    habilidades: HabilidadeComEfeitos,
-    nivel: number,
-  ): ModDerivados {
-    const mods: ModDerivados = {
-      pvPorNivelExtra: 0,
-      peBaseExtra: 0,
-      limitePeEaExtra: 0,
-      defesaExtra: 0,
-      espacosInventarioExtra: 0,
-      inventarioSomarIntelecto: false,
-    };
+function calcularModificadoresDerivadosPorHabilidadesLocal(
+  habilidades: HabilidadeComEfeitos,
+  nivel: number,
+): ModDerivados {
+  const mods: ModDerivados = {
+    pvPorNivelExtra: 0,
+    peBaseExtra: 0,
+    limitePeEaExtra: 0,
+    defesaExtra: 0,
+    espacosInventarioExtra: 0,
+    inventarioSomarIntelecto: false,
+    inventarioReduzirItensLeves: false,
+  };
 
   for (const h of habilidades) {
     const mecanicas = isRecord(h.habilidade.mecanicasEspeciais)
@@ -214,9 +215,10 @@ function getLegacyInt2Config(value: unknown): PassivaIntelectoConfigDto | null {
       recursos,
       'limitePePorTurnoBonus',
     );
-      const defesaBonus = getNumberField(defesa, 'bonus');
-      const espacosExtra = getNumberField(inventario, 'espacosExtra');
-      const somarIntelecto = getBooleanField(inventario, 'somarIntelecto');
+    const defesaBonus = getNumberField(defesa, 'bonus');
+    const espacosExtra = getNumberField(inventario, 'espacosExtra');
+    const somarIntelecto = getBooleanField(inventario, 'somarIntelecto');
+    const reduzirItensLeves = getBooleanField(inventario, 'reduzirItensLeves');
 
     if (pvPorNivel !== null) {
       mods.pvPorNivelExtra += pvPorNivel;
@@ -239,17 +241,21 @@ function getLegacyInt2Config(value: unknown): PassivaIntelectoConfigDto | null {
       mods.defesaExtra += defesaBonus;
     }
 
-      if (espacosExtra !== null) {
-        mods.espacosInventarioExtra += espacosExtra;
-      }
-
-      if (somarIntelecto === true) {
-        mods.inventarioSomarIntelecto = true;
-      }
+    if (espacosExtra !== null) {
+      mods.espacosInventarioExtra += espacosExtra;
     }
 
-    return mods;
+    if (somarIntelecto === true) {
+      mods.inventarioSomarIntelecto = true;
+    }
+
+    if (reduzirItensLeves === true) {
+      mods.inventarioReduzirItensLeves = true;
+    }
   }
+
+  return mods;
+}
 
 function toEscalonamentoPorNivel(
   value: Prisma.JsonValue | null,

@@ -48,6 +48,7 @@ export type ModDerivados = {
   defesaExtra: number;
   espacosInventarioExtra: number;
   inventarioSomarIntelecto: boolean;
+  inventarioReduzirItensLeves: boolean;
 };
 
 export type EngineParams = {

@@ -335,6 +335,7 @@ model Usuario {
   npcsAmeacas                              NpcAmeaca[]
   preferencias                             PreferenciaUsuario?
   tokensAuth                               AuthToken[]
+  anotacoes                               Anotacao[]
 
   // ✅ NOVO: Relações com suplementos e homebrews
   suplementosAtivos UsuarioSuplemento[]
@@ -373,6 +374,7 @@ model Campanha {
   modificadoresPersonagens PersonagemCampanhaModificador[]
   sessoes                  Sessao[]
   convites                 ConviteCampanha[]
+  anotacoes               Anotacao[]
 
   @@index([donoId])
   @@index([donoId, criadoEm])
@@ -440,9 +442,9 @@ model PersonagemBase {
 
   atributoChaveEa AtributoBaseEA @default(INT)
 
-  espacosInventarioBase  Int     @default(0)
-  espacosInventarioExtra Int     @default(0)
-  espacosOcupados        Int     @default(0)
+  espacosInventarioBase  Float   @default(0)
+  espacosInventarioExtra Float   @default(0)
+  espacosOcupados        Float   @default(0)
   sobrecarregado         Boolean @default(false)
 
   periciasClasseEscolhidasCodigos Json?
@@ -587,9 +589,9 @@ model PersonagemCampanha {
   turnosMorrendo      Int @default(3)
   turnosEnlouquecendo Int @default(3)
 
-  espacosInventarioBase  Int     @default(0)
-  espacosInventarioExtra Int     @default(0)
-  espacosOcupados        Int     @default(0)
+  espacosInventarioBase  Float   @default(0)
+  espacosInventarioExtra Float   @default(0)
+  espacosOcupados        Float   @default(0)
   sobrecarregado         Boolean @default(false)
 
   tecnicaInataId Int?
@@ -688,6 +690,7 @@ model Sessao {
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
   condicoes              CondicaoPersonagemSessao[]
   eventos                EventoSessao[]
+  anotacoes              Anotacao[]
 
   @@index([campanhaId, iniciadoEm])
 }
@@ -1441,7 +1444,7 @@ model EquipamentoCatalogo {
   descricao String?              @db.Text
   tipo      TipoEquipamento
   categoria CategoriaEquipamento @default(CATEGORIA_0)
-  espacos   Int                  @default(1)
+  espacos   Float                @default(1)
 
   // ✅ NOVO: Fonte e suplemento
   fonte        TipoFonte   @default(SISTEMA_BASE)
@@ -1701,7 +1704,7 @@ model InventarioItemBase {
   quantidade Int     @default(1)
   equipado   Boolean @default(false)
 
-  espacosCalculados  Int                  @default(1)
+  espacosCalculados  Float                @default(1)
   categoriaCalculada CategoriaEquipamento @default(CATEGORIA_0)
 
   modificacoes InventarioItemBaseModificacao[]
@@ -2117,4 +2120,24 @@ model Homebrew {
   @@index([usuarioId, criadoEm])
   @@index([status, criadoEm])
   @@map("homebrews")
+}
+
+model Anotacao {
+  id         Int      @id @default(autoincrement())
+  usuarioId  Int
+  titulo     String   @db.VarChar(120)
+  conteudo   String   @db.Text
+  campanhaId Int?
+  sessaoId   Int?
+  criadoEm   DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  campanha Campanha? @relation(fields: [campanhaId], references: [id], onDelete: SetNull)
+  sessao   Sessao?   @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId, criadoEm])
+  @@index([campanhaId])
+  @@index([sessaoId])
+  @@map("anotacoes")
 }

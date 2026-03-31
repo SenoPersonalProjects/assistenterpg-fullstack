@@ -61,6 +61,7 @@ type ModDerivados = {
   defesaExtra: number;
   espacosInventarioExtra: number;
   inventarioSomarIntelecto: boolean;
+  inventarioReduzirItensLeves: boolean;
 };
 
 type ResumoInventario = {
@@ -237,7 +238,8 @@ export class PersonagemBaseService {
     value: Prisma.JsonValue | null | undefined,
     key: string,
   ): number | null {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      return null;
     const raw = (value as Record<string, unknown>)[key];
     return typeof raw === 'number' ? raw : null;
   }
@@ -791,6 +793,7 @@ export class PersonagemBaseService {
   private async validarItensInventarioNoPreview(
     dto: CreatePersonagemBaseDto,
     inventarioSomarIntelecto?: boolean,
+    inventarioReduzirItensLeves?: boolean,
   ): Promise<{
     itensValidados: unknown[];
     errosItens: ErroItemPreview[];
@@ -802,6 +805,7 @@ export class PersonagemBaseService {
           forca: dto.forca,
           intelecto: dto.intelecto,
           somarIntelecto: inventarioSomarIntelecto,
+          reduzirItensLeves: inventarioReduzirItensLeves,
           prestigioBase: dto.prestigioBase ?? 0,
           itens: [],
         })) as PreviewInventarioResponse;
@@ -827,6 +831,7 @@ export class PersonagemBaseService {
           forca: dto.forca,
           intelecto: dto.intelecto,
           somarIntelecto: inventarioSomarIntelecto,
+          reduzirItensLeves: inventarioReduzirItensLeves,
           prestigioBase: dto.prestigioBase ?? 0,
           itens: itensPreview,
         })) as PreviewInventarioResponse;
@@ -850,6 +855,7 @@ export class PersonagemBaseService {
               forca: dto.forca,
               intelecto: dto.intelecto,
               somarIntelecto: inventarioSomarIntelecto,
+              reduzirItensLeves: inventarioReduzirItensLeves,
               prestigioBase: dto.prestigioBase ?? 0,
               itens: [
                 {
@@ -1200,6 +1206,7 @@ export class PersonagemBaseService {
       defesaExtra: 0,
       espacosInventarioExtra: 0,
       inventarioSomarIntelecto: false,
+      inventarioReduzirItensLeves: false,
     };
 
     for (const h of habilidades) {
@@ -1219,6 +1226,10 @@ export class PersonagemBaseService {
       const defesaBonus = this.getNumberField(defesa, 'bonus');
       const espacosExtra = this.getNumberField(inventario, 'espacosExtra');
       const somarIntelecto = this.getBooleanField(inventario, 'somarIntelecto');
+      const reduzirItensLeves = this.getBooleanField(
+        inventario,
+        'reduzirItensLeves',
+      );
 
       if (pvPorNivel !== null) {
         mods.pvPorNivelExtra += pvPorNivel;
@@ -1247,6 +1258,10 @@ export class PersonagemBaseService {
 
       if (somarIntelecto === true) {
         mods.inventarioSomarIntelecto = true;
+      }
+
+      if (reduzirItensLeves === true) {
+        mods.inventarioReduzirItensLeves = true;
       }
     }
 
@@ -1549,14 +1564,15 @@ export class PersonagemBaseService {
     });
 
     // âœ… VALIDAR ITENS (se houver) usando preview do InventarioService
-    const inventarioSomarIntelecto = this.calcularModificadoresDerivadosPorHabilidades(
+    const inventarioMods = this.calcularModificadoresDerivadosPorHabilidades(
       estado.habilidades,
       dtoPreview.nivel,
-    ).inventarioSomarIntelecto;
+    );
     const { itensValidados, errosItens, previewInventario } =
       await this.validarItensInventarioNoPreview(
         dtoPreview,
-        inventarioSomarIntelecto,
+        inventarioMods.inventarioSomarIntelecto,
+        inventarioMods.inventarioReduzirItensLeves,
       );
 
     const previewInventarioItens = previewInventario?.itens ?? [];
@@ -1568,7 +1584,8 @@ export class PersonagemBaseService {
     const atributosDerivadosPreview = {
       ...estado.derivadosFinais,
       defesaEquipamento: defesaEquipamentoPreview,
-      defesaTotal: (estado.derivadosFinais.defesaBase ?? 0) + defesaEquipamentoPreview,
+      defesaTotal:
+        (estado.derivadosFinais.defesaBase ?? 0) + defesaEquipamentoPreview,
     };
 
     const { bloqueio, esquiva } = calcularBloqueioEsquiva({
@@ -1579,9 +1596,10 @@ export class PersonagemBaseService {
     atributosDerivadosPreview.bloqueio = bloqueio;
     atributosDerivadosPreview.esquiva = esquiva;
 
-    const itensInventarioPreview = (previewInventarioItens.length
-      ? previewInventarioItens
-      : (itensValidados as PreviewInventarioItem[])
+    const itensInventarioPreview = (
+      previewInventarioItens.length
+        ? previewInventarioItens
+        : (itensValidados as PreviewInventarioItem[])
     ).map((item) => ({
       equipamentoId: item.equipamentoId,
       equipamento: {
@@ -1589,7 +1607,8 @@ export class PersonagemBaseService {
         nome: item.equipamento.nome,
         tipo: item.equipamento.tipo,
         espacos: item.equipamento.espacos,
-        descricao: item.equipamento.descricao ?? item.equipamento.efeito ?? null,
+        descricao:
+          item.equipamento.descricao ?? item.equipamento.efeito ?? null,
       },
       quantidade: item.quantidade,
       equipado: item.equipado,
