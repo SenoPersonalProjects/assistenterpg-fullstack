@@ -5,10 +5,10 @@ import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
+import { STORAGE_ANIMACAO_ROLAGEM_KEY } from '@/lib/constants/rolagem';
 import type { DiceRollPayload } from '@/lib/campanha/sessao-dice';
 
 const ANIMACAO_PADRAO_MS = 900;
-const STORAGE_ANIMACAO_KEY = 'assistenterpg.session.roll.animacao';
 
 type SessionPericiaRollModalProps = {
   isOpen: boolean;
@@ -38,7 +38,7 @@ export function SessionPericiaRollModal({
   const [mostrandoResultado, setMostrandoResultado] = useState(false);
   const [animacaoAtiva, setAnimacaoAtiva] = useState(() => {
     if (typeof window === 'undefined') return true;
-    const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_KEY);
+    const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_ROLAGEM_KEY);
     return armazenado !== 'off';
   });
 
@@ -67,7 +67,7 @@ export function SessionPericiaRollModal({
     setAnimacaoAtiva(checked);
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(
-      STORAGE_ANIMACAO_KEY,
+      STORAGE_ANIMACAO_ROLAGEM_KEY,
       checked ? 'on' : 'off',
     );
   };

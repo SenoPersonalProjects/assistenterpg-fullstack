@@ -26,6 +26,7 @@ import {
   apiExcluirConta,
 } from '@/lib/api';
 import { extrairMensagemErro, traduzirErro } from '@/lib/api/error-handler';
+import { STORAGE_ANIMACAO_ROLAGEM_KEY } from '@/lib/constants/rolagem';
 
 type ErroApiBasico = {
   status?: number;
@@ -50,6 +51,11 @@ export default function ConfiguracoesPage() {
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [erroGlobal, setErroGlobal] = useState<string | null>(null);
+  const [animacaoRolagemAtiva, setAnimacaoRolagemAtiva] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_ROLAGEM_KEY);
+    return armazenado !== 'off';
+  });
   
   const [modalSenhaOpen, setModalSenhaOpen] = useState(false);
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false);
@@ -139,6 +145,15 @@ export default function ConfiguracoesPage() {
       setErroGlobal(mensagem);
       showToast(mensagem, 'error');
     }
+  };
+
+  const handleToggleAnimacaoRolagem = (checked: boolean) => {
+    setAnimacaoRolagemAtiva(checked);
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      STORAGE_ANIMACAO_ROLAGEM_KEY,
+      checked ? 'on' : 'off',
+    );
   };
 
   const handleExcluirConta = async (senha: string) => {
@@ -278,6 +293,22 @@ export default function ConfiguracoesPage() {
                 <p className="text-xs text-app-muted">
                   Idioma da interface do sistema (em breve)
                 </p>
+
+                <div className="rounded-lg border border-app-border bg-app-surface p-3">
+                  <p className="text-sm font-medium text-app-fg">
+                    Animacoes de rolagem
+                  </p>
+                  <p className="text-xs text-app-muted mt-1">
+                    Controla a animacao detalhada no modal de rolagens da sessao.
+                  </p>
+                  <div className="mt-3">
+                    <Checkbox
+                      label="Ativar animacao detalhada"
+                      checked={animacaoRolagemAtiva}
+                      onChange={(e) => handleToggleAnimacaoRolagem(e.target.checked)}
+                    />
+                  </div>
+                </div>
               </div>
             </ConfigSection>
 
