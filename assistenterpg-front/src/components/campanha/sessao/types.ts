@@ -29,3 +29,13 @@ export type AlvoCondicoesModal = {
   nomeAlvo: string;
   condicoesAtivas: CondicaoAtivaSessaoCampanha[];
 };
+
+export type RolagemPericiaSessaoPayload = {
+  alvoTipo: 'PERSONAGEM' | 'NPC';
+  alvoNome: string;
+  periciaNome: string;
+  atributoBase?: string | null;
+  dados: number;
+  bonus: number;
+  keepMode: 'SUM' | 'HIGHEST' | 'LOWEST';
+};

@@ -14,6 +14,7 @@ import type {
   CampoAjusteRecurso,
 } from '@/hooks/useSessaoRecursos';
 import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
+import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
 
 type SessionCharactersPanelProps = {
   campanhaId: number;
@@ -69,6 +70,7 @@ type SessionCharactersPanelProps = {
     personagemCampanhaId: number,
     payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
   ) => void;
+  onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onAbrirEdicaoPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onAbrirFichaCompleta: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   renderPainelCondicoes: (
@@ -114,6 +116,7 @@ export function SessionCharactersPanel({
   onAplicarAjustePersonalizadoRecursoCard,
   onSelecionarNucleo,
   onSacrificarNucleo,
+  onRolarPericia,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
   renderPainelCondicoes,
@@ -233,6 +236,7 @@ export function SessionCharactersPanel({
               }
               formatarCustos={formatarCustos}
               limitesCategoriaAtivo={limitesCategoriaAtivo}
+              onRolarPericia={onRolarPericia}
             />
           );
         })

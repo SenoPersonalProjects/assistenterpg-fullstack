@@ -19,6 +19,7 @@ import {
   apiListarPersonagensCampanha,
   apiAdicionarPersonagemSessaoCampanha,
   apiAtualizarNucleoPersonagemCampanha,
+  apiEnviarMensagemChatSessaoCampanha,
   apiRemoverPersonagemSessaoCampanha,
   apiSacrificarNucleoPersonagemCampanha,
   apiAtualizarValorIniciativaSessaoCampanha,
@@ -63,11 +64,13 @@ import { ConfirmNpcRemovalModal } from '@/components/campanha/sessao/modals/Conf
 import { CondicoesModal } from '@/components/campanha/sessao/modals/CondicoesModal';
 import { EventoDetalheModal } from '@/components/campanha/sessao/modals/EventoDetalheModal';
 import { InitiativeValueModal } from '@/components/campanha/sessao/modals/InitiativeValueModal';
+import { SessionPericiaRollModal } from '@/components/campanha/sessao/modals/SessionPericiaRollModal';
 import {
   type AlvoCondicoesModal,
   type AjustesRecursosNpc,
   type CampoAjusteRecursoNpc,
   type NpcEditavel,
+  type RolagemPericiaSessaoPayload,
 } from '@/components/campanha/sessao/types';
 import {
   descreverDuracaoCondicao,
@@ -103,7 +106,13 @@ import { useSessaoEventos } from '@/hooks/useSessaoEventos';
 import { useSessaoPreferencias } from '@/hooks/useSessaoPreferencias';
 import { useSessaoFiltroSustentadas } from '@/hooks/useSessaoFiltroSustentadas';
 import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
-import { ehMensagemDice } from '@/lib/campanha/sessao-dice';
+import {
+  construirMensagemDice,
+  ehMensagemDice,
+  rolarDados,
+  type DiceRollPayload,
+  validarComprimentoMensagemDice,
+} from '@/lib/campanha/sessao-dice';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -119,6 +128,17 @@ const AJUSTE_RECURSO_NPC_PADRAO: AjustesRecursosNpc = {
   pv: '0',
   san: '0',
   ea: '0',
+};
+
+type PericiaRollModalState = {
+  aberto: boolean;
+  titulo: string;
+  subtitulo?: string;
+  payload: DiceRollPayload | null;
+  expression?: string;
+  enviando: boolean;
+  enviado: boolean;
+  erro: string | null;
 };
 
 function formatarDadosEventoParaExibicao(dados: unknown): string {
@@ -270,6 +290,18 @@ export default function SessaoCampanhaPage() {
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
     Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null
   >(null);
+  const [periciaRollModal, setPericiaRollModal] = useState<PericiaRollModalState>(
+    {
+      aberto: false,
+      titulo: '',
+      subtitulo: undefined,
+      payload: null,
+      expression: undefined,
+      enviando: false,
+      enviado: false,
+      erro: null,
+    },
+  );
 
   const shellRef = useRef<HTMLElement | null>(null);
   const operationalBarRef = useRef<HTMLElement | null>(null);
@@ -900,6 +932,65 @@ export default function SessaoCampanhaPage() {
     setErro: setErroRolagens,
   });
 
+  const handleRolarPericia = useCallback(
+    async (payload: RolagemPericiaSessaoPayload) => {
+      if (sessaoEncerrada) {
+        showToast({ type: 'warning', message: 'Sessao encerrada. Rolagens bloqueadas.' });
+        return;
+      }
+      const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
+      const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+      const dicePayload = rolarDados({
+        quantidade: payload.dados,
+        faces: 20,
+        modificador: payload.bonus,
+        aplicarModificadorPorDado: false,
+        label,
+        keepMode: payload.keepMode,
+      });
+      const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
+      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
+      if (erroTamanho) {
+        setErroRolagens(erroTamanho);
+        return;
+      }
+
+      setPericiaRollModal({
+        aberto: true,
+        titulo: payload.periciaNome,
+        subtitulo: payload.atributoBase
+          ? `${payload.alvoNome} · ${payload.atributoBase}`
+          : payload.alvoNome,
+        payload: dicePayload,
+        expression,
+        enviando: true,
+        enviado: false,
+        erro: null,
+      });
+      try {
+        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
+          mensagem: mensagemEnvio,
+        });
+        setChat((anterior) => [...anterior, enviada]);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: true,
+        }));
+      } catch (error) {
+        const mensagemErro = extrairMensagemErro(error);
+        setErroRolagens(mensagemErro);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: mensagemErro,
+        }));
+      }
+    },
+    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+  );
+
   const { encerrandoSessao, handleEncerrarSessao } = useSessaoEncerramento({
     campanhaId,
     sessaoId,
@@ -1465,6 +1556,7 @@ export default function SessaoCampanhaPage() {
       onSacrificarNucleo={handleSacrificarNucleo}
       onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
       onAbrirFichaCompleta={handleAbrirFichaCompleta}
+      onRolarPericia={handleRolarPericia}
       renderPainelCondicoes={renderPainelCondicoes}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
       erro={erroCards}
@@ -1660,6 +1752,7 @@ export default function SessaoCampanhaPage() {
                     }
                     onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
                     onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
+                    onRolarPericia={handleRolarPericia}
                     renderPainelCondicoes={renderPainelCondicoes}
                   />
                 </>
@@ -1748,6 +1841,7 @@ export default function SessaoCampanhaPage() {
                   }}
                   onSelecionarNucleo={handleSelecionarNucleo}
                   onSacrificarNucleo={handleSacrificarNucleo}
+                  onRolarPericia={handleRolarPericia}
                 />
               )}
             </section>
@@ -2027,6 +2121,20 @@ export default function SessaoCampanhaPage() {
           }}
           onClose={() => setPersonagemEmEdicao(null)}
           onPersonagemAtualizado={handlePersonagemAtualizadoNoModal}
+        />
+
+        <SessionPericiaRollModal
+          isOpen={periciaRollModal.aberto}
+          titulo={periciaRollModal.titulo}
+          subtitulo={periciaRollModal.subtitulo}
+          payload={periciaRollModal.payload}
+          expression={periciaRollModal.expression}
+          enviando={periciaRollModal.enviando}
+          enviado={periciaRollModal.enviado}
+          erro={periciaRollModal.erro}
+          onClose={() =>
+            setPericiaRollModal((estado) => ({ ...estado, aberto: false }))
+          }
         />
 
         <ConfirmDialog

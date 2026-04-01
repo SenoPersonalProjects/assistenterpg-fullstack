@@ -197,6 +197,50 @@ export function getNomeAtributo(codigo: AtributoBaseCodigo): string {
   }
 }
 
+export function resolverValorAtributoBase(
+  atributos:
+    | {
+        agilidade: number;
+        forca: number;
+        intelecto: number;
+        presenca: number;
+        vigor: number;
+      }
+    | null
+    | undefined,
+  codigo: AtributoBaseCodigo,
+): number | null {
+  if (!atributos) return null;
+  switch (codigo) {
+    case 'AGI':
+      return atributos.agilidade;
+    case 'FOR':
+      return atributos.forca;
+    case 'INT':
+      return atributos.intelecto;
+    case 'PRE':
+      return atributos.presenca;
+    case 'VIG':
+      return atributos.vigor;
+  }
+}
+
+export function calcularDadosPericiaPorAtributo(atributo: number): {
+  dados: number;
+  keepMode: 'HIGHEST' | 'LOWEST';
+} {
+  if (!Number.isFinite(atributo)) {
+    return { dados: 1, keepMode: 'HIGHEST' };
+  }
+  if (atributo > 0) {
+    return { dados: Math.max(1, Math.trunc(atributo)), keepMode: 'HIGHEST' };
+  }
+  return {
+    dados: 2 + Math.abs(Math.trunc(atributo)),
+    keepMode: 'LOWEST',
+  };
+}
+
 /**
  * Ordena perícias alfabeticamente
  */

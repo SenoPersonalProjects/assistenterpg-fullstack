@@ -17,6 +17,7 @@ import type {
   AjustesRecursos,
   CampoAjusteRecurso,
 } from '@/hooks/useSessaoRecursos';
+import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
 
 type SessionPlayerSummaryPanelProps = {
   campanhaId: number;
@@ -73,6 +74,7 @@ type SessionPlayerSummaryPanelProps = {
     personagemCampanhaId: number,
     payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
   ) => void;
+  onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
 };
 
 export function SessionPlayerSummaryPanel({
@@ -113,6 +115,7 @@ export function SessionPlayerSummaryPanel({
   onAplicarAjustePersonalizado,
   onSelecionarNucleo,
   onSacrificarNucleo,
+  onRolarPericia,
 }: SessionPlayerSummaryPanelProps) {
   return (
     <SessionPanel
@@ -205,6 +208,7 @@ export function SessionPlayerSummaryPanel({
               renderPainelCondicoes={renderPainelCondicoes}
               mostrarAcoesResumo={false}
               limitesCategoriaAtivo={limitesCategoriaAtivo}
+              onRolarPericia={onRolarPericia}
             />
           ) : null}
         </div>

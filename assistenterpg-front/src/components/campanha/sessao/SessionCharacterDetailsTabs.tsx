@@ -8,9 +8,16 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
 import { SessionTechniqueBlock } from '@/components/campanha/sessao/SessionTechniqueBlock';
 import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/SessionCharacterInventoryTab';
+import { Icon } from '@/components/ui/Icon';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
+import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import {
+  calcularDadosPericiaPorAtributo,
+  resolverValorAtributoBase,
+  type AtributoBaseCodigo,
+} from '@/lib/utils/pericias';
 
 type SessionCharacterDetailsTabsProps = {
   card: SessaoCampanhaDetalhe['cards'][number];
@@ -42,6 +49,7 @@ type SessionCharacterDetailsTabsProps = {
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
+  onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -96,6 +104,7 @@ export function SessionCharacterDetailsTabs({
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
+  onRolarPericia,
   renderPainelCondicoes,
   mostrarAcoesResumo = true,
 }: SessionCharacterDetailsTabsProps) {
@@ -169,6 +178,23 @@ export function SessionCharacterDetailsTabs({
     { codigo: 'PRE', label: 'Presenca', valor: atributos?.presenca },
     { codigo: 'VIG', label: 'Vigor', valor: atributos?.vigor },
   ];
+
+  const handleRolarPericia = (pericia: (typeof periciasOrdenadas)[number]) => {
+    if (!card.atributos) return;
+    const atributoCodigo = pericia.atributoBase as AtributoBaseCodigo;
+    const valorAtributo =
+      resolverValorAtributoBase(card.atributos, atributoCodigo) ?? 0;
+    const { dados, keepMode } = calcularDadosPericiaPorAtributo(valorAtributo);
+    onRolarPericia({
+      alvoTipo: 'PERSONAGEM',
+      alvoNome: card.nomePersonagem,
+      periciaNome: pericia.nome,
+      atributoBase: pericia.atributoBase,
+      dados,
+      bonus: pericia.bonusTotal,
+      keepMode,
+    });
+  };
 
   const tabs: SessionTabItem[] = [
     { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
@@ -373,9 +399,22 @@ export function SessionCharacterDetailsTabs({
                             {pericia.atributoBase}
                           </span>
                         </div>
-                        <span className="session-pericia-card__total">
-                          {totalLabel}
-                        </span>
+                        <div className="session-pericia-card__actions">
+                          <span className="session-pericia-card__total">
+                            {totalLabel}
+                          </span>
+                          {card.podeEditar ? (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              className="session-pericia-card__roll"
+                              onClick={() => handleRolarPericia(pericia)}
+                              title={`Rolar ${pericia.nome}`}
+                            >
+                              <Icon name="dice" className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
                       <div className="session-pericia-card__breakdown">
                         <span className="session-pericia-breakdown__item">

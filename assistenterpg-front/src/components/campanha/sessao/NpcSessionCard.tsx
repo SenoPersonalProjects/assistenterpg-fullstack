@@ -16,7 +16,13 @@ import type {
   CampoAjusteRecursoNpc,
   NpcEditavel,
 } from '@/components/campanha/sessao/types';
+import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
 import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
+import {
+  calcularDadosPericiaPorAtributo,
+  resolverValorAtributoBase,
+  type AtributoBaseCodigo,
+} from '@/lib/utils/pericias';
 
 type LinhaRecursoNpc = {
   key: CampoAjusteRecursoNpc;
@@ -109,6 +115,7 @@ type NpcSessionCardProps = {
     condicoesAtivas: CondicaoAtivaSessaoCampanha[],
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
+  onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
 };
 
 type AbaDetalheNpc =
@@ -137,6 +144,7 @@ export function NpcSessionCard({
   onSalvar,
   onSolicitarRemover,
   renderPainelCondicoes,
+  onRolarPericia,
 }: NpcSessionCardProps) {
   const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaca';
   const linhasRecursos: LinhaRecursoNpc[] = [
@@ -472,6 +480,34 @@ export function NpcSessionCard({
       return `${dadosTexto}d20 ${bonus > 0 ? '+' : ''}${bonus}`;
     };
 
+    const resolverDadosNpc = (
+      pericia: NpcSessaoCampanha['pericias'][number],
+    ) => {
+      if (npc.atributos && pericia.atributoBase) {
+        const atributoCodigo = pericia.atributoBase as AtributoBaseCodigo;
+        const valorAtributo =
+          resolverValorAtributoBase(npc.atributos, atributoCodigo) ?? 0;
+        const { dados, keepMode } = calcularDadosPericiaPorAtributo(valorAtributo);
+        return { dados, keepMode };
+      }
+      return { dados: pericia.dados, keepMode: 'HIGHEST' as const };
+    };
+
+    const handleRolarPericiaNpc = (
+      pericia: NpcSessaoCampanha['pericias'][number],
+    ) => {
+      const { dados, keepMode } = resolverDadosNpc(pericia);
+      onRolarPericia({
+        alvoTipo: 'NPC',
+        alvoNome: npc.nome,
+        periciaNome: pericia.nome,
+        atributoBase: pericia.atributoBase,
+        dados,
+        bonus: pericia.bonus ?? 0,
+        keepMode,
+      });
+    };
+
     return (
       <div className="session-npc-pericias">
         <div className="session-npc-section__header">
@@ -504,6 +540,17 @@ export function NpcSessionCard({
                       <span className="session-npc-pericia-card__attr">
                         {pericia.atributoBase}
                       </span>
+                    ) : null}
+                    {podeControlarSessao ? (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="session-npc-pericia-card__roll-btn"
+                        onClick={() => handleRolarPericiaNpc(pericia)}
+                        title={`Rolar ${pericia.nome}`}
+                      >
+                        <Icon name="dice" className="h-3.5 w-3.5" />
+                      </Button>
                     ) : null}
                   </div>
                   <div className="session-npc-pericia-card__roll">
@@ -546,9 +593,22 @@ export function NpcSessionCard({
                         </span>
                       ) : null}
                     </div>
-                    <span className="session-npc-pericia-card__roll-value">
-                      {formatarRolagem(pericia.dados, pericia.bonus)}
-                    </span>
+                    <div className="session-npc-pericia-card__actions">
+                      <span className="session-npc-pericia-card__roll-value">
+                        {formatarRolagem(pericia.dados, pericia.bonus)}
+                      </span>
+                      {podeControlarSessao ? (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          className="session-npc-pericia-card__roll-btn"
+                          onClick={() => handleRolarPericiaNpc(pericia)}
+                          title={`Rolar ${pericia.nome}`}
+                        >
+                          <Icon name="dice" className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                   {pericia.descricao ? (
                     <p className="session-npc-pericia-especial-card__desc">

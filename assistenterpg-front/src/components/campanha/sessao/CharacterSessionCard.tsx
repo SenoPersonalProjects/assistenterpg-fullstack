@@ -16,6 +16,7 @@ import {
   resolverStatusMental,
 } from '@/lib/campanha/sessao-status';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
+import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
 
 export type CampoAjusteRecursoCard = 'pv' | 'pe' | 'ea' | 'san';
 
@@ -80,6 +81,7 @@ type CharacterSessionCardProps = {
   ) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
+  onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
 };
 
 export function CharacterSessionCard({
@@ -120,6 +122,7 @@ export function CharacterSessionCard({
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
+  onRolarPericia,
 }: CharacterSessionCardProps) {
   const recursos = card.recursos;
   const acaoHabilidadeCard =
@@ -303,6 +306,7 @@ export function CharacterSessionCard({
           formatarCustos={formatarCustos}
           renderPainelCondicoes={renderPainelCondicoes}
           limitesCategoriaAtivo={limitesCategoriaAtivo}
+          onRolarPericia={onRolarPericia}
         />
       ) : null}
 

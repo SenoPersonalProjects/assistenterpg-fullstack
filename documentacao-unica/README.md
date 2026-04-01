@@ -433,6 +433,9 @@ Controller com `AuthGuard('jwt')` no nivel de classe (`Auth: JWT`):
   - query opcional: `limit` (1..200), `incluirChat` (`true|false`)
 - `POST /campanhas/:id/sessoes/:sessaoId/eventos/:eventoId/desfazer`
   - body opcional: [`DesfazerEventoSessaoDto`](../assistenterpg-back/src/sessao/dto/desfazer-evento-sessao.dto.ts)
+- rolagens de pericia (UI da sessao):
+  - pericias podem ser roladas com regra de maior/menor para d20 multiplos
+  - o chat recebe marcador `dice:v4` com `keepMode` (`HIGHEST|LOWEST|SUM`)
 - `POST /campanhas/:id/sessoes/:sessaoId/npcs`
   - body: [`AdicionarNpcSessaoDto`](../assistenterpg-back/src/sessao/dto/adicionar-npc-sessao.dto.ts)
 - `PATCH /campanhas/:id/sessoes/:sessaoId/npcs/:npcSessaoId`
