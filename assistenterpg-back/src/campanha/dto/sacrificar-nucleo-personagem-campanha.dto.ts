@@ -8,7 +8,8 @@ export class SacrificarNucleoPersonagemCampanhaDto {
   modo!: (typeof MODOS_VALIDOS)[number];
 
   @IsOptional()
-  @IsIn(NUCLEOS_VALIDOS, { message: 'nucleo deve ser EQUILIBRIO, PODER ou IMPULSO' })
+  @IsIn(NUCLEOS_VALIDOS, {
+    message: 'nucleo deve ser EQUILIBRIO, PODER ou IMPULSO',
+  })
   nucleo?: (typeof NUCLEOS_VALIDOS)[number];
 }
-

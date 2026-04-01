@@ -33,9 +33,7 @@ import {
   montarMapaGraus,
 } from './regras-criacao/regras-tecnicas-nao-inatas';
 import { calcularBloqueioEsquiva } from './regras-criacao/regras-derivados';
-import {
-  extrairPericiasAtributoBaseOverride,
-} from './regras-criacao/regras-poderes-efeitos';
+import { extrairPericiasAtributoBaseOverride } from './regras-criacao/regras-poderes-efeitos';
 
 // Engine
 import { calcularEstadoFinalPersonagemBase } from './engine/personagem-base.engine';
@@ -264,7 +262,7 @@ export class PersonagemBaseService {
     if (!value) return null;
     const current = value[key];
     if (!Array.isArray(current)) return null;
-    const valid = current.filter((item) => typeof item === 'string') as string[];
+    const valid = current.filter((item) => typeof item === 'string');
     return valid.length > 0 ? valid : [];
   }
 
@@ -958,7 +956,8 @@ export class PersonagemBaseService {
               somarIntelecto: inventarioSomarIntelecto,
               reduzirItensLeves: inventarioReduzirItensLeves,
               reduzirCategoriaEm: inventarioReduzirCategoriaEm,
-              reduzirCategoriaExcetoTipos: inventarioReduzirCategoriaExcetoTipos,
+              reduzirCategoriaExcetoTipos:
+                inventarioReduzirCategoriaExcetoTipos,
               prestigioBase: dto.prestigioBase ?? 0,
               itens: [
                 {
@@ -1006,7 +1005,8 @@ export class PersonagemBaseService {
               prestigioBase: dto.prestigioBase ?? 0,
               reduzirItensLeves: inventarioReduzirItensLeves,
               reduzirCategoriaEm: inventarioReduzirCategoriaEm,
-              reduzirCategoriaExcetoTipos: inventarioReduzirCategoriaExcetoTipos,
+              reduzirCategoriaExcetoTipos:
+                inventarioReduzirCategoriaExcetoTipos,
               itens: itensValidosPayload,
             })) as PreviewInventarioResponse;
         } catch {
@@ -1412,7 +1412,10 @@ export class PersonagemBaseService {
 
       if (excetoTipos && excetoTipos.length > 0) {
         mods.inventarioReduzirCategoriaExcetoTipos = Array.from(
-          new Set([...mods.inventarioReduzirCategoriaExcetoTipos, ...excetoTipos]),
+          new Set([
+            ...mods.inventarioReduzirCategoriaExcetoTipos,
+            ...excetoTipos,
+          ]),
         );
       }
 
@@ -1696,8 +1699,9 @@ export class PersonagemBaseService {
     const mapaPericiasPorCodigo = new Map(
       todasPericias.map((p) => [p.codigo, p] as const),
     );
-    const periciasAtributoBaseOverride =
-      extrairPericiasAtributoBaseOverride(estado.habilidades);
+    const periciasAtributoBaseOverride = extrairPericiasAtributoBaseOverride(
+      estado.habilidades,
+    );
 
     const periciasDetalhadas = Array.from(
       estado.periciasMapCodigo.entries(),
@@ -2136,13 +2140,11 @@ export class PersonagemBaseService {
         ),
         habilidadesConfig: this.jsonToHabilidadesConfigArray(
           personagem.habilidadesConfig,
-        ).map(
-          (cfg: any, index: number) => ({
-            index,
-            habilidadeId: cfg.habilidadeId,
-            habilidadeNome: habilidadesMap.get(cfg.habilidadeId),
-          }),
-        ),
+        ).map((cfg, index: number) => ({
+          index,
+          habilidadeId: cfg.habilidadeId,
+          habilidadeNome: habilidadesMap.get(cfg.habilidadeId),
+        })),
         passivas: (personagem.passivas ?? []).map((p, index: number) => ({
           index,
           passivaId: p.id,

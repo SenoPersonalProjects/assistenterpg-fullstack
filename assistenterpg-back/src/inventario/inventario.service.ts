@@ -172,9 +172,7 @@ const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
   CategoriaEquipamento.ESPECIAL,
 ];
 
-function normalizarCategoriaEquipamento(
-  valor: unknown,
-): CategoriaEquipamento {
+function normalizarCategoriaEquipamento(valor: unknown): CategoriaEquipamento {
   if (typeof valor === 'string') {
     if (ORDEM_CATEGORIAS.includes(valor as CategoriaEquipamento)) {
       return valor as CategoriaEquipamento;
@@ -949,8 +947,7 @@ export class InventarioService {
       const { forca, prestigioBase, itens } = dto;
       const reduzirItensLeves = dto.reduzirItensLeves === true;
       const reduzirCategoriaEm = dto.reduzirCategoriaEm ?? 0;
-      const reduzirCategoriaExcetoTipos =
-        dto.reduzirCategoriaExcetoTipos ?? [];
+      const reduzirCategoriaExcetoTipos = dto.reduzirCategoriaExcetoTipos ?? [];
 
       const equipamentosIds = [...new Set(itens.map((i) => i.equipamentoId))];
       const equipamentos = await this.prisma.equipamentoCatalogo.findMany({

@@ -95,7 +95,10 @@ type PoderGenericoNormalizado = {
   habilidadeId: number;
   config: Prisma.JsonValue;
 };
-type HabilidadeConfigEntrada = { habilidadeId: number; config?: Prisma.JsonValue };
+type HabilidadeConfigEntrada = {
+  habilidadeId: number;
+  config?: Prisma.JsonValue;
+};
 type HabilidadeConfigNormalizada = {
   habilidadeId: number;
   config: Prisma.JsonValue;
@@ -143,7 +146,7 @@ function getStringArrayField(
   if (!value) return null;
   const current = value[key];
   if (!Array.isArray(current)) return null;
-  const valid = current.filter((item) => typeof item === 'string') as string[];
+  const valid = current.filter((item) => typeof item === 'string');
   return valid.length > 0 ? valid : [];
 }
 
@@ -339,7 +342,10 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
 
     if (excetoTipos && excetoTipos.length > 0) {
       mods.inventarioReduzirCategoriaExcetoTipos = Array.from(
-        new Set([...mods.inventarioReduzirCategoriaExcetoTipos, ...excetoTipos]),
+        new Set([
+          ...mods.inventarioReduzirCategoriaExcetoTipos,
+          ...excetoTipos,
+        ]),
       );
     }
 
@@ -570,23 +576,22 @@ export async function calcularEstadoFinalPersonagemBase(
     dtoNormalizado.atributoChaveEa = atributoChaveEaOverride;
   }
 
-  const pvBarrasTotal =
-    extrairPvBarrasTotalDeHabilidades(habilidades) ?? 1;
+  const pvBarrasTotal = extrairPvBarrasTotalDeHabilidades(habilidades) ?? 1;
 
-    const habilidadesParaPersistir = habilidades
-      .filter((h) => h.habilidade?.tipo !== 'PODER_GENERICO')
-      .map((h) => ({ habilidadeId: h.habilidadeId }));
-    const habilidadesParaGraus = normalizarHabilidadesParaGraus(habilidades);
+  const habilidadesParaPersistir = habilidades
+    .filter((h) => h.habilidade?.tipo !== 'PODER_GENERICO')
+    .map((h) => ({ habilidadeId: h.habilidadeId }));
+  const habilidadesParaGraus = normalizarHabilidadesParaGraus(habilidades);
 
-    const prestigioClaBaseHabilidade = extrairPrestigioClaBase(habilidades);
-    if (
-      prestigioClaBaseHabilidade !== null &&
-      dtoNormalizado.prestigioClaBase == null
-    ) {
-      dtoNormalizado.prestigioClaBase = prestigioClaBaseHabilidade;
-    }
+  const prestigioClaBaseHabilidade = extrairPrestigioClaBase(habilidades);
+  if (
+    prestigioClaBaseHabilidade !== null &&
+    dtoNormalizado.prestigioClaBase == null
+  ) {
+    dtoNormalizado.prestigioClaBase = prestigioClaBaseHabilidade;
+  }
 
-    aplicarBonusPericiasDeHabilidades(habilidades, periciasMapCodigo);
+  aplicarBonusPericiasDeHabilidades(habilidades, periciasMapCodigo);
 
   const periciasCatalogoMap = new Map(
     todasPericias.map((p) => [p.codigo, p] as const),
@@ -728,16 +733,16 @@ export async function calcularEstadoFinalPersonagemBase(
   const mods = calcMods(habilidades, dtoNormalizado.nivel);
 
   // 11) RESISTÊNCIAS E EQUIPAMENTOS
-    const resistenciasDeHabilidades = extrairResistenciasDeHabilidades(
-      habilidades,
-      {
-        agilidade: dtoNormalizado.agilidade,
-        forca: dtoNormalizado.forca,
-        intelecto: dtoNormalizado.intelecto,
-        presenca: dtoNormalizado.presenca,
-        vigor: dtoNormalizado.vigor,
-      },
-    );
+  const resistenciasDeHabilidades = extrairResistenciasDeHabilidades(
+    habilidades,
+    {
+      agilidade: dtoNormalizado.agilidade,
+      forca: dtoNormalizado.forca,
+      intelecto: dtoNormalizado.intelecto,
+      presenca: dtoNormalizado.presenca,
+      vigor: dtoNormalizado.vigor,
+    },
+  );
 
   let defesaEquipamento = 0;
   const resistenciasDeEquipamentos = new Map<string, number>();
@@ -781,29 +786,29 @@ export async function calcularEstadoFinalPersonagemBase(
     );
   }
 
-    // Derivados finais (agora com defesa separada)
-    const defesaBase = derivadosBase.defesa + mods.defesaExtra;
-    const sanBase =
-      derivadosBase.sanMaximo + mods.sanPorNivelExtra * dtoNormalizado.nivel;
-    const sanMultiplicador =
-      typeof mods.sanMultiplicador === 'number' && mods.sanMultiplicador > 0
-        ? mods.sanMultiplicador
-        : 1;
-    const sanFinal = Math.floor(sanBase * sanMultiplicador);
+  // Derivados finais (agora com defesa separada)
+  const defesaBase = derivadosBase.defesa + mods.defesaExtra;
+  const sanBase =
+    derivadosBase.sanMaximo + mods.sanPorNivelExtra * dtoNormalizado.nivel;
+  const sanMultiplicador =
+    typeof mods.sanMultiplicador === 'number' && mods.sanMultiplicador > 0
+      ? mods.sanMultiplicador
+      : 1;
+  const sanFinal = Math.floor(sanBase * sanMultiplicador);
 
-    const derivadosFinais = {
-      ...derivadosBase,
-      pvMaximo:
-        derivadosBase.pvMaximo +
-        mods.pvPorNivelExtra * dtoNormalizado.nivel +
-        mods.pvExtra,
-      peMaximo: derivadosBase.peMaximo + mods.peBaseExtra,
-      sanMaximo: sanFinal,
-      limitePeEaPorTurno: derivadosBase.limitePeEaPorTurno + mods.limitePeEaExtra,
-      defesaBase,
-      defesaEquipamento,
-      defesaTotal: defesaBase + defesaEquipamento,
-    };
+  const derivadosFinais = {
+    ...derivadosBase,
+    pvMaximo:
+      derivadosBase.pvMaximo +
+      mods.pvPorNivelExtra * dtoNormalizado.nivel +
+      mods.pvExtra,
+    peMaximo: derivadosBase.peMaximo + mods.peBaseExtra,
+    sanMaximo: sanFinal,
+    limitePeEaPorTurno: derivadosBase.limitePeEaPorTurno + mods.limitePeEaExtra,
+    defesaBase,
+    defesaEquipamento,
+    defesaTotal: defesaBase + defesaEquipamento,
+  };
 
   // Recalcular bloqueio e esquiva com perícias finais
   const { bloqueio, esquiva } = calcularBloqueioEsquiva({
@@ -900,4 +905,3 @@ export async function calcularEstadoFinalPersonagemBase(
     },
   };
 }
-

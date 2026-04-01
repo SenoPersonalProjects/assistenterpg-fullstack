@@ -249,8 +249,7 @@ export class CampanhaPersonagensService {
         pvBarrasTotal,
         pvBarrasRestantes,
       );
-      const nucleosDisponiveis =
-        pvBarrasTotal > 1 ? nucleosPadrao() : [];
+      const nucleosDisponiveis = pvBarrasTotal > 1 ? nucleosPadrao() : [];
       const nucleoAmaldicoadoAtivo =
         pvBarrasTotal > 1 ? nucleosDisponiveis[0] : null;
 
@@ -629,18 +628,17 @@ export class CampanhaPersonagensService {
       contexto.personagem.nucleosDisponiveis,
     );
     const nucleoAtivo =
-      (contexto.personagem.nucleoAmaldicoadoAtivo as
-        | NucleoAmaldicoadoCodigo
-        | null) ?? nucleosDisponiveis[0] ?? 'EQUILIBRIO';
+      (contexto.personagem
+        .nucleoAmaldicoadoAtivo as NucleoAmaldicoadoCodigo | null) ??
+      nucleosDisponiveis[0] ??
+      'EQUILIBRIO';
 
     const modo = dto.modo;
     const nucleoAlvo =
       modo === 'OUTRO' ? dto.nucleo : (nucleoAtivo as string | undefined);
 
     if (!nucleoAlvo) {
-      throw new PersonagemCampanhaNucleoInvalidoException(
-        String(nucleoAlvo),
-      );
+      throw new PersonagemCampanhaNucleoInvalidoException(String(nucleoAlvo));
     }
 
     if (!nucleosDisponiveis.includes(nucleoAlvo as NucleoAmaldicoadoCodigo)) {
@@ -670,8 +668,7 @@ export class CampanhaPersonagensService {
       );
     }
 
-    const novoNucleoAtivo =
-      modo === 'ATUAL' ? novosNucleos[0] : nucleoAtivo;
+    const novoNucleoAtivo = modo === 'ATUAL' ? novosNucleos[0] : nucleoAtivo;
 
     const infoAtualizado = calcularPvBarraMaximos(
       contexto.personagem.pvMax,

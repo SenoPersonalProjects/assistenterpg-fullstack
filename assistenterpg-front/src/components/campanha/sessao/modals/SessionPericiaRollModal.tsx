@@ -37,12 +37,15 @@ export function SessionPericiaRollModal({
 
   useEffect(() => {
     if (!isOpen || !payload) {
-      setMostrandoResultado(false);
-      return;
+      const reset = window.setTimeout(() => setMostrandoResultado(false), 0);
+      return () => window.clearTimeout(reset);
     }
-    setMostrandoResultado(false);
+    const reset = window.setTimeout(() => setMostrandoResultado(false), 0);
     const timer = window.setTimeout(() => setMostrandoResultado(true), duracaoMs);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(reset);
+      window.clearTimeout(timer);
+    };
   }, [isOpen, payload, duracaoMs]);
 
   return (

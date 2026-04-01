@@ -12,7 +12,10 @@ import {
   ProficienciaNaoEncontradaException,
 } from 'src/common/exceptions/personagem.exception';
 
-type PrismaLike = Pick<PrismaService, 'habilidade' | 'proficiencia' | 'pericia'>;
+type PrismaLike = Pick<
+  PrismaService,
+  'habilidade' | 'proficiencia' | 'pericia'
+>;
 
 type PoderGenericoInstanciaInput = {
   habilidadeId: number;
@@ -267,21 +270,14 @@ export function aplicarEscolhasPericiasDeHabilidades(params: {
   periciasMap: Map<string, PericiaState>;
   periciasCatalogo: Map<string, { codigo: string; atributoBase: string }>;
 }): void {
-  const {
-    habilidades,
-    habilidadesConfig,
-    periciasMap,
-    periciasCatalogo,
-  } = params;
+  const { habilidades, habilidadesConfig, periciasMap, periciasCatalogo } =
+    params;
   if (!habilidades || habilidades.length === 0) return;
 
   const configPorHabilidade = new Map<number, PericiasEscolhaConfig>();
   for (const inst of habilidadesConfig ?? []) {
     const config = isJsonObject(inst.config) ? inst.config : {};
-    configPorHabilidade.set(
-      inst.habilidadeId,
-      config as PericiasEscolhaConfig,
-    );
+    configPorHabilidade.set(inst.habilidadeId, config as PericiasEscolhaConfig);
   }
 
   for (const hab of habilidades) {
@@ -543,9 +539,7 @@ export async function aplicarEfeitosPoderesEmPericias(
       const treinadasEscolha = isJsonObject(poderDb.mecanicasEspeciais)
         ? poderDb.mecanicasEspeciais.periciasTreinadasEscolha
         : null;
-      const bonusSeJaTreinadoEscolha = isJsonObject(
-        poderDb.mecanicasEspeciais,
-      )
+      const bonusSeJaTreinadoEscolha = isJsonObject(poderDb.mecanicasEspeciais)
         ? poderDb.mecanicasEspeciais.bonusSeJaTreinadoEscolha
         : null;
 

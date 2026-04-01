@@ -32,9 +32,7 @@ import {
   atendeRequisitosGraus,
   montarMapaGraus,
 } from 'src/personagem-base/regras-criacao/regras-tecnicas-nao-inatas';
-import {
-  extrairPericiasAtributoBaseOverride,
-} from 'src/personagem-base/regras-criacao/regras-poderes-efeitos';
+import { extrairPericiasAtributoBaseOverride } from 'src/personagem-base/regras-criacao/regras-poderes-efeitos';
 import { BusinessException } from 'src/common/exceptions/business.exception';
 import {
   calcularPvBarraMaximos,
@@ -975,10 +973,12 @@ export class SessaoService {
         const periciasBase =
           personagem.personagemCampanha.personagemBase?.pericias ?? [];
         const habilidadesParaOverride = [
-          ...(personagem.personagemCampanha.personagemBase?.habilidadesBase ??
-            []).map((h) => ({ habilidade: h.habilidade })),
-          ...(personagem.personagemCampanha.personagemBase?.poderesGenericos ??
-            []).map((p) => ({ habilidade: p.habilidade })),
+          ...(
+            personagem.personagemCampanha.personagemBase?.habilidadesBase ?? []
+          ).map((h) => ({ habilidade: h.habilidade })),
+          ...(
+            personagem.personagemCampanha.personagemBase?.poderesGenericos ?? []
+          ).map((p) => ({ habilidade: p.habilidade })),
         ];
         const periciasAtributoBaseOverride =
           extrairPericiasAtributoBaseOverride(habilidadesParaOverride);
@@ -1090,7 +1090,8 @@ export class SessaoService {
                     personagem.personagemCampanha.pvBarrasRestantes,
                   pvBarraMaxAtual: infoPv.pvBarraMaxAtual,
                   nucleoAtivo:
-                    personagem.personagemCampanha.nucleoAmaldicoadoAtivo ?? null,
+                    personagem.personagemCampanha.nucleoAmaldicoadoAtivo ??
+                    null,
                   nucleosDisponiveis: normalizarNucleosDisponiveis(
                     personagem.personagemCampanha.nucleosDisponiveis,
                   ),

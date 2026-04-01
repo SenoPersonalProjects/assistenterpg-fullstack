@@ -155,7 +155,9 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
                   <span className="session-dice__roll-picked">Selecionado</span>
                 ) : null}
                 {mostrarFinalPorDado ? (
-                  <span className="session-dice__roll-final">-> {final}</span>
+                  <span className="session-dice__roll-final">
+                    -{'>'} {final}
+                  </span>
                 ) : null}
               </span>
             );

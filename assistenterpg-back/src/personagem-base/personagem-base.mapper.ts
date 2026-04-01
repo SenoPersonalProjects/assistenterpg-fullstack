@@ -97,9 +97,7 @@ const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
   CategoriaEquipamento.ESPECIAL,
 ];
 
-function isCategoriaEquipamento(
-  value: unknown,
-): value is CategoriaEquipamento {
+function isCategoriaEquipamento(value: unknown): value is CategoriaEquipamento {
   return (
     typeof value === 'string' &&
     ORDEM_CATEGORIAS.includes(value as CategoriaEquipamento)
@@ -701,10 +699,12 @@ export class PersonagemBaseMapper {
         habilidade: p.habilidade,
       })),
     ];
-    const periciasAtributoBaseOverride =
-      extrairPericiasAtributoBaseOverride(habilidadesParaOverride);
-    const atributoChaveEaOverride =
-      extrairAtributoChaveEaDeHabilidades(habilidadesParaOverride);
+    const periciasAtributoBaseOverride = extrairPericiasAtributoBaseOverride(
+      habilidadesParaOverride,
+    );
+    const atributoChaveEaOverride = extrairAtributoChaveEaDeHabilidades(
+      habilidadesParaOverride,
+    );
 
     return {
       id: personagem.id,
@@ -840,24 +840,24 @@ export class PersonagemBaseMapper {
         efeitos: p.passiva.efeitos,
       })),
 
-        atributosDerivados: {
-          pvMaximo: personagem.pvMaximo,
-          pvBarrasTotal: personagem.pvBarrasTotal ?? 1,
-          peMaximo: personagem.peMaximo,
-          eaMaximo: personagem.eaMaximo,
-          sanMaximo: personagem.sanMaximo,
-          defesaBase: personagem.defesaBase ?? 10,
-          defesaEquipamento: personagem.defesaEquipamento ?? 0,
-          defesaTotal:
-            (personagem.defesaBase ?? 10) + (personagem.defesaEquipamento ?? 0),
-          deslocamento: personagem.deslocamento,
-          limitePeEaPorTurno: personagem.limitePeEaPorTurno,
-          reacoesBasePorTurno: personagem.reacoesBasePorTurno,
-          turnosMorrendo: personagem.turnosMorrendo,
-          turnosEnlouquecendo: personagem.turnosEnlouquecendo,
-          bloqueio: personagem.bloqueio ?? 0,
-          esquiva: personagem.esquiva ?? 0,
-        },
+      atributosDerivados: {
+        pvMaximo: personagem.pvMaximo,
+        pvBarrasTotal: personagem.pvBarrasTotal ?? 1,
+        peMaximo: personagem.peMaximo,
+        eaMaximo: personagem.eaMaximo,
+        sanMaximo: personagem.sanMaximo,
+        defesaBase: personagem.defesaBase ?? 10,
+        defesaEquipamento: personagem.defesaEquipamento ?? 0,
+        defesaTotal:
+          (personagem.defesaBase ?? 10) + (personagem.defesaEquipamento ?? 0),
+        deslocamento: personagem.deslocamento,
+        limitePeEaPorTurno: personagem.limitePeEaPorTurno,
+        reacoesBasePorTurno: personagem.reacoesBasePorTurno,
+        turnosMorrendo: personagem.turnosMorrendo,
+        turnosEnlouquecendo: personagem.turnosEnlouquecendo,
+        bloqueio: personagem.bloqueio ?? 0,
+        esquiva: personagem.esquiva ?? 0,
+      },
 
       resistencias,
       tecnicasNaoInatas,

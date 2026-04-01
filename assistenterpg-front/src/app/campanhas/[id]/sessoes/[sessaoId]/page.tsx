@@ -935,7 +935,7 @@ export default function SessaoCampanhaPage() {
   const handleRolarPericia = useCallback(
     async (payload: RolagemPericiaSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast({ type: 'warning', message: 'Sessao encerrada. Rolagens bloqueadas.' });
+        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
       const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
