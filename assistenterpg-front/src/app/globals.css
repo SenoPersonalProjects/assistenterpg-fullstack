@@ -1855,7 +1855,21 @@ body {
 
 .session-chat__bubble--dice {
   border-color: color-mix(in srgb, var(--info) 35%, var(--border-subtle));
-  background: color-mix(in srgb, var(--info) 6%, var(--bg-surface));
+  background: color-mix(in srgb, var(--info) 10%, var(--bg-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info) 18%, transparent);
+  position: relative;
+}
+
+.session-chat__bubble--dice::before {
+  content: '';
+  position: absolute;
+  left: 0.4rem;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--info), transparent);
+  opacity: 0.7;
 }
 
 .session-chat__dice-list {
@@ -1881,14 +1895,14 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-  font-size: var(--session-text-xxs);
+  font-size: var(--session-text-xs);
   color: var(--fg-muted);
 }
 
 .session-dice__badge {
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   border: 1px solid var(--border-subtle);
   background: var(--bg);
   padding: 0.08rem 0.4rem;
@@ -1901,15 +1915,18 @@ body {
   background: color-mix(in srgb, var(--primary) 12%, var(--bg));
   color: var(--fg);
   border-radius: 9999px;
-  padding: 0.08rem 0.45rem;
-  font-size: 0.6rem;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
 .session-dice__expr {
-  font-size: var(--session-text-xs);
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: var(--fg);
+  padding: 0.1rem 0.55rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg));
 }
 
 .session-dice__tag {
@@ -1941,17 +1958,28 @@ body {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.4rem;
+  padding: 0.2rem 0;
+}
+
+.session-dice__summary--crit .session-dice__total {
+  color: var(--success);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.session-dice__summary--fumble .session-dice__total {
+  color: var(--danger);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
 .session-dice__summary-label {
-  font-size: var(--session-text-xxs);
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--fg-muted);
 }
 
 .session-dice__total {
-  font-size: 1.05rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--fg);
 }
@@ -1985,8 +2013,8 @@ body {
 .session-dice__roll {
   border: 1px solid var(--border-subtle);
   background: var(--bg);
-  border-radius: 0.55rem;
-  padding: 0.15rem 0.45rem;
+  border-radius: 0.6rem;
+  padding: 0.2rem 0.55rem;
   font-size: var(--session-text-xs);
   font-weight: 600;
   color: var(--fg);
@@ -1998,8 +2026,8 @@ body {
 }
 
 .session-dice__roll-raw {
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 .session-dice__roll-final {
@@ -2020,12 +2048,14 @@ body {
 }
 
 .session-dice__roll--picked {
-  border-color: color-mix(in srgb, var(--primary) 55%, var(--border-subtle));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 65%, var(--border-subtle));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent),
+    0 6px 14px -10px color-mix(in srgb, var(--primary) 70%, transparent);
+  background: color-mix(in srgb, var(--primary) 14%, var(--bg));
 }
 
 .session-dice__roll-picked {
-  font-size: 0.55rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--primary);
@@ -2081,8 +2111,42 @@ body {
   gap: 0.4rem;
 }
 
+.session-roll-modal__expr {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--fg);
+  padding: 0.15rem 0.55rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--primary) 10%, var(--bg));
+}
+
 .session-roll-modal__placeholder {
   font-size: var(--session-text-xs);
+  color: var(--fg-muted);
+}
+
+.session-roll-modal__empty {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  border: 1px dashed var(--border-subtle);
+  color: var(--fg-muted);
+  background: color-mix(in srgb, var(--primary) 4%, var(--bg));
+}
+
+.session-roll-modal__empty-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.session-roll-modal__empty-subtitle {
+  font-size: 0.7rem;
   color: var(--fg-muted);
 }
 
@@ -2094,6 +2158,25 @@ body {
   border-radius: 1rem;
   padding: 1.35rem;
   background: color-mix(in srgb, var(--primary) 7%, var(--bg));
+}
+
+.session-roll-modal__anim-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.session-roll-modal__anim-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.session-roll-modal__anim-expr {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--fg-muted);
 }
 
 .session-roll-modal__dice-track {
@@ -2136,20 +2219,40 @@ body {
 
 .session-roll-modal__status {
   min-height: 1.1rem;
-  font-size: var(--session-text-xxs);
+  font-size: 0.72rem;
   font-weight: 600;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .session-roll-modal__status-ok {
   color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
 }
 
 .session-roll-modal__status-warn {
   color: var(--warning);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
 }
 
 .session-roll-modal__status-error {
   color: var(--danger);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
 @keyframes session-roll-spin {

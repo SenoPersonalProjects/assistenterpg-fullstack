@@ -87,27 +87,44 @@ export function SessionPericiaRollModal({
             {subtitulo ? (
               <p className="session-roll-modal__subtitle">{subtitulo}</p>
             ) : null}
+            {expression ? (
+              <span className="session-roll-modal__expr">{expression}</span>
+            ) : null}
           </div>
           <div className="session-roll-modal__head-actions">
+            <Checkbox
+              checked={animacaoAtiva}
+              onChange={(event) => handleToggleAnimacao(event.target.checked)}
+              label={animacaoAtiva ? 'Modo animado' : 'Modo rapido'}
+              className="session-roll-modal__toggle"
+            />
             <span className="session-roll-modal__badge">
               <Icon name="dice" className="h-4 w-4" />
               Rolagem
             </span>
-            <Checkbox
-              checked={animacaoAtiva}
-              onChange={(event) => handleToggleAnimacao(event.target.checked)}
-              label="Animacao detalhada"
-              className="session-roll-modal__toggle"
-            />
           </div>
         </div>
 
         {!payload ? (
-          <p className="session-roll-modal__placeholder">
-            Nenhuma rolagem disponivel.
-          </p>
+          <div className="session-roll-modal__empty">
+            <Icon name="dice" className="h-5 w-5" />
+            <div>
+              <p className="session-roll-modal__empty-title">
+                Nenhuma rolagem disponivel
+              </p>
+              <p className="session-roll-modal__empty-subtitle">
+                Faça uma rolagem para ver o resultado aqui.
+              </p>
+            </div>
+          </div>
         ) : !mostrandoResultado ? (
           <div className="session-roll-modal__anim">
+            <div className="session-roll-modal__anim-meta">
+              <span className="session-roll-modal__anim-title">{titulo}</span>
+              {expression ? (
+                <span className="session-roll-modal__anim-expr">{expression}</span>
+              ) : null}
+            </div>
             <div className="session-roll-modal__dice-track">
               <span className="session-roll-modal__dice session-roll-modal__dice--a">
                 <Icon name="dice" className="h-6 w-6" />
@@ -120,7 +137,7 @@ export function SessionPericiaRollModal({
               </span>
             </div>
             <p className="session-roll-modal__anim-text">
-              {animacaoAtiva ? 'Rolando dados...' : 'Calculando resultado...'}
+              {animacaoAtiva ? 'Rolando teste...' : 'Preparando resultado...'}
             </p>
           </div>
         ) : (
@@ -129,11 +146,20 @@ export function SessionPericiaRollModal({
 
         <div className="session-roll-modal__status">
           {erro ? (
-            <span className="session-roll-modal__status-error">{erro}</span>
+            <span className="session-roll-modal__status-error">
+              <Icon name="close" className="h-3.5 w-3.5" />
+              Falha ao enviar resultado
+            </span>
           ) : enviado ? (
-            <span className="session-roll-modal__status-ok">Enviado ao chat</span>
+            <span className="session-roll-modal__status-ok">
+              <Icon name="check" className="h-3.5 w-3.5" />
+              Resultado enviado ao chat
+            </span>
           ) : enviando ? (
-            <span className="session-roll-modal__status-warn">Enviando...</span>
+            <span className="session-roll-modal__status-warn">
+              <Icon name="info" className="h-3.5 w-3.5" />
+              Enviando ao chat...
+            </span>
           ) : null}
         </div>
       </div>
