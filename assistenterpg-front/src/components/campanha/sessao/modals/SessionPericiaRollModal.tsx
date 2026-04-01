@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
 import type { DiceRollPayload } from '@/lib/campanha/sessao-dice';
 
 const ANIMACAO_PADRAO_MS = 900;
+const STORAGE_ANIMACAO_KEY = 'assistenterpg.session.roll.animacao';
 
 type SessionPericiaRollModalProps = {
   isOpen: boolean;
@@ -34,6 +36,16 @@ export function SessionPericiaRollModal({
   duracaoMs = ANIMACAO_PADRAO_MS,
 }: SessionPericiaRollModalProps) {
   const [mostrandoResultado, setMostrandoResultado] = useState(false);
+  const [animacaoAtiva, setAnimacaoAtiva] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_KEY);
+    return armazenado !== 'off';
+  });
+
+  const duracaoAnimacao = useMemo(() => {
+    if (!animacaoAtiva) return 0;
+    return duracaoMs;
+  }, [animacaoAtiva, duracaoMs]);
 
   useEffect(() => {
     if (!isOpen || !payload) {
@@ -41,12 +53,24 @@ export function SessionPericiaRollModal({
       return () => window.clearTimeout(reset);
     }
     const reset = window.setTimeout(() => setMostrandoResultado(false), 0);
-    const timer = window.setTimeout(() => setMostrandoResultado(true), duracaoMs);
+    const timer = window.setTimeout(
+      () => setMostrandoResultado(true),
+      duracaoAnimacao,
+    );
     return () => {
       window.clearTimeout(reset);
       window.clearTimeout(timer);
     };
-  }, [isOpen, payload, duracaoMs]);
+  }, [isOpen, payload, duracaoAnimacao]);
+
+  const handleToggleAnimacao = (checked: boolean) => {
+    setAnimacaoAtiva(checked);
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      STORAGE_ANIMACAO_KEY,
+      checked ? 'on' : 'off',
+    );
+  };
 
   return (
     <Modal
@@ -64,10 +88,18 @@ export function SessionPericiaRollModal({
               <p className="session-roll-modal__subtitle">{subtitulo}</p>
             ) : null}
           </div>
-          <span className="session-roll-modal__badge">
-            <Icon name="dice" className="h-4 w-4" />
-            Rolagem
-          </span>
+          <div className="session-roll-modal__head-actions">
+            <span className="session-roll-modal__badge">
+              <Icon name="dice" className="h-4 w-4" />
+              Rolagem
+            </span>
+            <Checkbox
+              checked={animacaoAtiva}
+              onChange={(event) => handleToggleAnimacao(event.target.checked)}
+              label="Animacao detalhada"
+              className="session-roll-modal__toggle"
+            />
+          </div>
         </div>
 
         {!payload ? (
@@ -76,10 +108,20 @@ export function SessionPericiaRollModal({
           </p>
         ) : !mostrandoResultado ? (
           <div className="session-roll-modal__anim">
-            <div className="session-roll-modal__dice">
-              <Icon name="dice" className="h-10 w-10" />
+            <div className="session-roll-modal__dice-track">
+              <span className="session-roll-modal__dice session-roll-modal__dice--a">
+                <Icon name="dice" className="h-6 w-6" />
+              </span>
+              <span className="session-roll-modal__dice session-roll-modal__dice--b">
+                <Icon name="dice" className="h-6 w-6" />
+              </span>
+              <span className="session-roll-modal__dice session-roll-modal__dice--c">
+                <Icon name="dice" className="h-6 w-6" />
+              </span>
             </div>
-            <p className="session-roll-modal__anim-text">Rolando dados...</p>
+            <p className="session-roll-modal__anim-text">
+              {animacaoAtiva ? 'Rolando dados...' : 'Calculando resultado...'}
+            </p>
           </div>
         ) : (
           <DiceMessageCard payload={payload} expression={expression} />

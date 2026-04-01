@@ -5,7 +5,7 @@ const DICE_MARKER_V3_REGEX = /\[\[dice:v3\|([^\]]+)\]\]/;
 const DICE_MARKER_V4_PREFIX = '[[dice:v4|';
 const DICE_MARKER_V4_REGEX = /\[\[dice:v4\|([^\]]+)\]\]/;
 
-const LIMITE_MENSAGEM_CHAT = 100;
+const LIMITE_MENSAGEM_CHAT_DICE = 800;
 const LIMITE_DADOS = 30;
 const LIMITE_FACES = 1000;
 const LIMITE_MODIFICADOR = 10000;
@@ -580,7 +580,7 @@ export function construirMensagemDiceMultipla(payloads: DiceRollPayload[]): {
 }
 
 export function validarComprimentoMensagemDice(mensagem: string): string | null {
-  if (mensagem.length > LIMITE_MENSAGEM_CHAT) {
+  if (mensagem.length > LIMITE_MENSAGEM_CHAT_DICE) {
     return 'Rolagem grande demais para o chat. Reduza a quantidade de dados.';
   }
   return null;
@@ -681,4 +681,4 @@ export function ehMensagemDice(texto: string): boolean {
   );
 }
 
-export const LIMITE_MENSAGEM_CHAT_DICE = LIMITE_MENSAGEM_CHAT;
+export { LIMITE_MENSAGEM_CHAT_DICE };

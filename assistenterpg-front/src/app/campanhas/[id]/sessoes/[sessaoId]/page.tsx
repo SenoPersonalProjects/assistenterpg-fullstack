@@ -949,12 +949,6 @@ export default function SessaoCampanhaPage() {
         keepMode: payload.keepMode,
       });
       const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
-      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
-      if (erroTamanho) {
-        setErroRolagens(erroTamanho);
-        return;
-      }
-
       setPericiaRollModal({
         aberto: true,
         titulo: payload.periciaNome,
@@ -963,11 +957,23 @@ export default function SessaoCampanhaPage() {
           : payload.alvoNome,
         payload: dicePayload,
         expression,
-        enviando: true,
+        enviando: false,
         enviado: false,
         erro: null,
       });
+      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
+      if (erroTamanho) {
+        setErroRolagens(erroTamanho);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: erroTamanho,
+        }));
+        return;
+      }
       try {
+        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
         const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
           mensagem: mensagemEnvio,
         });
