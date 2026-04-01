@@ -26,6 +26,7 @@ import type {
   ModificacaoCatalogo,
 } from '@/lib/types';
 import {
+  calcularCategoriaFinal,
   filtrarModificacoesCompativeis,
   getIconeTipo,
 } from '@/lib/utils/inventario';
@@ -366,7 +367,11 @@ export function SessionCharacterInventoryTab({
                       x{item.quantidade}
                     </Badge>
                     <Badge size="sm" color="gray">
-                      {item.categoriaCalculada ?? item.equipamento.categoria}
+                      {item.categoriaCalculada ??
+                        calcularCategoriaFinal(
+                          item.equipamento.categoria,
+                          item.modificacoes?.length ?? 0,
+                        )}
                     </Badge>
                     {item.equipado ? (
                       <Badge size="sm" color="green">

@@ -409,9 +409,27 @@ export function CampaignCharacterEditorModal({
             <h3 className="text-sm font-semibold text-app-fg">
               Recursos atuais da campanha
             </h3>
+            {personagem.recursos.pvBarrasTotal &&
+            personagem.recursos.pvBarrasTotal > 1 ? (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-app-muted">
+                <span>
+                  PV por nucleo: {personagem.recursos.pvBarraMaxAtual ?? personagem.recursos.pvMax}
+                </span>
+                <span>Total: {personagem.recursos.pvMax}</span>
+                <span>
+                  Nucleos: {personagem.recursos.pvBarrasRestantes ?? personagem.recursos.pvBarrasTotal}/
+                  {personagem.recursos.pvBarrasTotal}
+                </span>
+              </div>
+            ) : null}
             <div className="grid gap-3 md:grid-cols-4">
               <Input
-                label={`PV Atual (max ${personagem.recursos.pvMax})`}
+                label={`PV Atual (max ${
+                  personagem.recursos.pvBarrasTotal &&
+                  personagem.recursos.pvBarrasTotal > 1
+                    ? personagem.recursos.pvBarraMaxAtual ?? personagem.recursos.pvMax
+                    : personagem.recursos.pvMax
+                })`}
                 type="number"
                 value={pvAtual}
                 onChange={(e) => setPvAtual(e.target.value)}

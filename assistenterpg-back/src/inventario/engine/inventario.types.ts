@@ -23,6 +23,7 @@ export interface ItemInventarioComDados {
     categoria: string;
     espacos: number;
     complexidadeMaldicao: string;
+    tipoArma?: string | null;
 
     // Campos específicos
     bonusDefesa?: number | null;

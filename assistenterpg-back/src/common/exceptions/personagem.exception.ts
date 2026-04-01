@@ -652,6 +652,31 @@ export class PoderGenericoPericiaNivelException extends BusinessException {
   }
 }
 
+export class HabilidadeRequerEscolhaException extends BusinessException {
+  constructor(habilidadeNome: string) {
+    super(
+      `"${habilidadeNome}" exige uma escolha (config) mas nenhuma foi enviada`,
+      'HABILIDADE_REQUIRES_CHOICE',
+      { habilidade: habilidadeNome },
+    );
+  }
+}
+
+export class HabilidadeConfigInvalidaException extends BusinessException {
+  constructor(
+    habilidadeNome: string,
+    campo: string,
+    mensagem: string,
+    extraDetails?: Record<string, any>,
+  ) {
+    super(`"${habilidadeNome}": ${mensagem}`, 'HABILIDADE_CONFIG_INVALID', {
+      habilidade: habilidadeNome,
+      campo,
+      ...extraDetails,
+    });
+  }
+}
+
 export class ProficienciaNaoEncontradaException extends BusinessException {
   constructor(proficienciaCodigo: string) {
     super(

@@ -32,6 +32,7 @@ export type AtributosDerivados = {
   peMaximo: number;
   eaMaximo: number;
   sanMaximo: number;
+  pvBarrasTotal?: number;
 
   // Defesa
   defesaBase: number;
@@ -70,6 +71,11 @@ export type PassivasAtributoConfigFront = {
 };
 
 export type PoderGenericoInstanciaPayload = {
+  habilidadeId: number;
+  config?: Record<string, unknown>;
+};
+
+export type HabilidadeConfigPayload = {
   habilidadeId: number;
   config?: Record<string, unknown>;
 };
@@ -213,6 +219,7 @@ export type PersonagemBasePreview = {
   alinhamentoId?: number | null;
   background?: string | null;
   atributoChaveEa: AtributoChaveEA;
+  creditoCategoriaBonus?: number;
 
   passivasNeedsChoice?: boolean;
   passivasElegiveis?: AtributoBaseCodigo[];
@@ -371,6 +378,7 @@ export type CreatePersonagemBasePayload = {
   grausTreinamento?: GrauTreinamento[];
 
   poderesGenericos?: PoderGenericoInstanciaPayload[];
+  habilidadesConfig?: HabilidadeConfigPayload[];
 
   poderesGenericosSelecionadosIds?: number[];
 
@@ -415,6 +423,7 @@ export type PersonagemBaseDetalhe = {
   alinhamentoId: number | null;
   background: string | null;
   atributoChaveEa: AtributoChaveEA;
+  creditoCategoriaBonus?: number;
 
   atributosDerivados: AtributosDerivados;
 
@@ -476,6 +485,8 @@ export type PersonagemBaseDetalhe = {
     nome: string;
     config?: Record<string, unknown>;
   }>;
+
+  habilidadesConfig?: HabilidadeConfigPayload[];
 
   poderesGenericosSelecionadosIds?: number[];
 

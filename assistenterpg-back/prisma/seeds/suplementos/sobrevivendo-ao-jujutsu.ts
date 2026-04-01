@@ -24,6 +24,34 @@ import { createLookupCache, jsonOrNull } from '../_helpers';
 const SUPLEMENTO_CODIGO = 'SOBREVIVENDO_AO_JUJUTSU';
 const SUPLEMENTO_NOME = 'Sobrevivendo ao Jujutsu';
 const PREFIXO = '[Suplemento: Sobrevivendo ao Jujutsu] ';
+const PERICIAS_EXCETO_LUTA_PONTARIA = [
+  'ACROBACIA',
+  'ADESTRAMENTO',
+  'ARTES',
+  'ATLETISMO',
+  'ATUALIDADES',
+  'CIENCIAS',
+  'CRIME',
+  'DIPLOMACIA',
+  'ENGANACAO',
+  'FORTITUDE',
+  'FURTIVIDADE',
+  'INICIATIVA',
+  'INTIMIDACAO',
+  'INTUICAO',
+  'INVESTIGACAO',
+  'MEDICINA',
+  'JUJUTSU',
+  'PERCEPCAO',
+  'PROFISSAO',
+  'REFLEXOS',
+  'RELIGIAO',
+  'TATICA',
+  'TECNOLOGIA',
+  'SOBREVIVENCIA',
+  'VONTADE',
+  'PILOTAGEM',
+];
 
 const DESCRICAO_SUPLEMENTO =
   'Conteudo adaptado do suplemento "Sobrevivendo ao Horror" para o sistema de Jujutsu.';
@@ -47,6 +75,28 @@ function toCategoria(
     default:
       return CategoriaEquipamento.CATEGORIA_0;
   }
+}
+
+const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
+  CategoriaEquipamento.CATEGORIA_0,
+  CategoriaEquipamento.CATEGORIA_4,
+  CategoriaEquipamento.CATEGORIA_3,
+  CategoriaEquipamento.CATEGORIA_2,
+  CategoriaEquipamento.CATEGORIA_1,
+  CategoriaEquipamento.ESPECIAL,
+];
+
+function subirCategoria(
+  categoria: CategoriaEquipamento,
+  passos = 1,
+): CategoriaEquipamento {
+  const indice = ORDEM_CATEGORIAS.indexOf(categoria);
+  if (indice < 0) return CategoriaEquipamento.CATEGORIA_0;
+  const indiceFinal = Math.min(
+    indice + passos,
+    ORDEM_CATEGORIAS.length - 1,
+  );
+  return ORDEM_CATEGORIAS[indiceFinal];
 }
 
 type OrigemSuplemento = {
@@ -73,7 +123,15 @@ type TrilhaSuplemento = {
   nome: string;
   descricao: string;
   requisitos?: Prisma.InputJsonValue | null;
-  habilidades: Array<{ nome: string; descricao: string; nivel: number }>;
+  caminhos?: Array<{ nome: string; descricao?: string | null }>;
+  habilidades: Array<{
+    nome: string;
+    descricao: string;
+    nivel: number;
+    codigo?: string;
+    caminho?: string;
+    mecanicasEspeciais?: Prisma.InputJsonValue | null;
+  }>;
 };
 
 type EquipamentoArmaSeed = {
@@ -181,6 +239,10 @@ const origensSuplemento: OrigemSuplemento[] = [
       descricao:
         PREFIXO +
         'Voce entende as intencoes de animais e pode usar Adestramento para mudar a atitude deles. Alem disso, possui um companheiro animal que concede +2 em uma pericia escolhida (aprovada pelo mestre). No nivel 7 ele concede o bonus de um aliado do tipo escolhido, e no nivel 14 concede a habilidade desse aliado. Se o companheiro morrer, voce perde 10 de Sanidade permanentemente e fica perturbado ate o fim da cena.',
+      mecanicasEspeciais: {
+        escolha: { tipo: 'PERICIAS', quantidade: 1 },
+        periciasBonusEscolha: 2,
+      },
     },
   },
   {
@@ -256,13 +318,14 @@ const origensSuplemento: OrigemSuplemento[] = [
       { codigo: 'ATUALIDADES', tipo: 'FIXA' },
       { codigo: 'DIPLOMACIA', tipo: 'FIXA' },
     ],
-    habilidade: {
-      nome: 'Conexoes (Diplomata)',
-      descricao:
-        PREFIXO +
-        'Recebe +2 em Diplomacia. Alem disso, se puder contatar um NPC capaz de auxiliar, pode gastar 10 minutos e 2 PE para substituir um teste de pericia relacionado ao conhecimento desse NPC por um teste de Diplomacia.',
+      habilidade: {
+        nome: 'Conexoes (Diplomata)',
+        descricao:
+          PREFIXO +
+          'Recebe +2 em Diplomacia. Alem disso, se puder contatar um NPC capaz de auxiliar, pode gastar 10 minutos e 2 PE para substituir um teste de pericia relacionado ao conhecimento desse NPC por um teste de Diplomacia.',
+        mecanicasEspeciais: { periciasBonus: { DIPLOMACIA: 2 } },
+      },
     },
-  },
   {
     nome: 'Explorador',
     descricao:
@@ -288,13 +351,22 @@ const origensSuplemento: OrigemSuplemento[] = [
       { codigo: 'ATLETISMO', tipo: 'FIXA' },
       { codigo: 'FORTITUDE', tipo: 'FIXA' },
     ],
-    habilidade: {
-      nome: 'Mutacao (Experimento)',
-      descricao:
-        PREFIXO +
-        'Voce recebe resistencia a dano 2 e +2 em uma pericia a escolha baseada em Forca, Agilidade ou Vigor. Entretanto sofre -1d20 em Diplomacia.',
+      habilidade: {
+        nome: 'Mutacao (Experimento)',
+        descricao:
+          PREFIXO +
+          'Voce recebe resistencia a dano 2 e +2 em uma pericia a escolha baseada em Forca, Agilidade ou Vigor. Entretanto sofre -1d20 em Diplomacia.',
+        mecanicasEspeciais: {
+          resistencias: { DANO: 2 },
+          escolha: {
+            tipo: 'PERICIAS',
+            quantidade: 1,
+            atributosBasePermitidos: ['FOR', 'AGI', 'VIG'],
+          },
+          periciasBonusEscolha: 2,
+        },
+      },
     },
-  },
   {
     nome: 'Fanatico por Maldicoes',
     descricao:
@@ -400,13 +472,14 @@ const origensSuplemento: OrigemSuplemento[] = [
       { codigo: 'ATLETISMO', tipo: 'FIXA' },
       { codigo: 'FORTITUDE', tipo: 'FIXA' },
     ],
-    habilidade: {
-      nome: 'Folego de Nadador (Mergulhador)',
-      descricao:
-        PREFIXO +
-        'Voce recebe +5 PV e pode prender a respiracao por rodadas iguais ao dobro do seu Vigor. Ao passar em testes de Atletismo para natacao, avanca deslocamento normal.',
+      habilidade: {
+        nome: 'Folego de Nadador (Mergulhador)',
+        descricao:
+          PREFIXO +
+          'Voce recebe +5 PV e pode prender a respiracao por rodadas iguais ao dobro do seu Vigor. Ao passar em testes de Atletismo para natacao, avanca deslocamento normal.',
+        mecanicasEspeciais: { pvExtra: 5 },
+      },
     },
-  },
   {
     nome: 'Motorista',
     descricao:
@@ -449,13 +522,14 @@ const origensSuplemento: OrigemSuplemento[] = [
       { codigo: 'VONTADE', tipo: 'FIXA' },
       { codigo: 'PROFISSAO', tipo: 'ESCOLHA', grupoEscolha: 1 },
     ],
-    habilidade: {
-      nome: 'Luta ou Fuga (Profetizado)',
-      descricao:
-        PREFIXO +
-        'Voce recebe +2 em Vontade. Quando uma referencia direta a sua premonicao aparece, voce recebe +2 PE temporarios ate o fim da cena.',
+      habilidade: {
+        nome: 'Luta ou Fuga (Profetizado)',
+        descricao:
+          PREFIXO +
+          'Voce recebe +2 em Vontade. Quando uma referencia direta a sua premonicao aparece, voce recebe +2 PE temporarios ate o fim da cena.',
+        mecanicasEspeciais: { periciasBonus: { VONTADE: 2 } },
+      },
     },
-  },
   {
     nome: 'Psicologo',
     descricao:
@@ -557,6 +631,13 @@ const poderesSuplemento: PoderSuplemento[] = [
     descricao:
       PREFIXO +
       'Escolha uma pericia (exceto Luta e Pontaria). Quando faz um teste dessa pericia, rola +1d20. Pre-requisito: treinado na pericia escolhida.',
+    mecanicasEspeciais: {
+      escolha: {
+        tipo: 'PERICIAS',
+        quantidade: 1,
+        periciasPermitidas: PERICIAS_EXCETO_LUTA_PONTARIA,
+      },
+    },
   },
   {
     nome: 'Inventario Organizado',
@@ -604,7 +685,16 @@ const poderesSuplemento: PoderSuplemento[] = [
       PREFIXO +
       'Voce recebe treinamento em Adestramento ou, se ja for treinado, recebe +2. Possui um animal de estimacao que concede +2 em duas pericias (exceto Luta ou Pontaria) aprovadas pelo mestre. Pre-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
-    mecanicasEspeciais: { periciasTreinadas: ['ADESTRAMENTO'], bonusSeJaTreinado: 2 },
+    mecanicasEspeciais: {
+      periciasTreinadas: ['ADESTRAMENTO'],
+      bonusSeJaTreinado: 2,
+      escolha: {
+        tipo: 'PERICIAS',
+        quantidade: 2,
+        periciasPermitidas: PERICIAS_EXCETO_LUTA_PONTARIA,
+      },
+      periciasBonusEscolha: 2,
+    },
   },
   {
     nome: 'Palavras de Devocao',
@@ -673,6 +763,10 @@ const poderesSuplemento: PoderSuplemento[] = [
       PREFIXO +
       'Voce pode usar Intelecto no lugar de Presenca como atributo-chave de Vontade e para calcular seus PE. Pre-requisito: Int 3.',
     requisitos: { atributos: { intelecto: 3 } },
+    mecanicasEspeciais: {
+      recursos: { atributoChaveEa: 'INT' },
+      periciasAtributoBase: { VONTADE: 'INT' },
+    },
   },
   {
     nome: 'Rato de Computador',
@@ -744,7 +838,7 @@ const poderesSuplemento: PoderSuplemento[] = [
       PREFIXO +
       'Voce recebe +1 PV por nivel e +2 em Fortitude. Pre-requisito: Vig 2.',
     requisitos: { atributos: { vigor: 2 } },
-    mecanicasEspeciais: { pvPorNivel: 1 },
+    mecanicasEspeciais: { pvPorNivel: 1, periciasBonus: { FORTITUDE: 2 } },
   },
   {
     nome: 'Vontade Inabalavel',
@@ -752,7 +846,10 @@ const poderesSuplemento: PoderSuplemento[] = [
       PREFIXO +
       'Voce recebe +1 PE a cada 2 niveis e +2 em Vontade. Pre-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
-    mecanicasEspeciais: { recursos: { pePorNivelImpar: 1 } },
+    mecanicasEspeciais: {
+      recursos: { pePorNivelImpar: 1 },
+      periciasBonus: { VONTADE: 2 },
+    },
   },
 ];
 
@@ -1014,6 +1111,188 @@ const trilhasSuplemento: TrilhaSuplemento[] = [
         descricao:
           PREFIXO +
           'Pode gastar uma acao de movimento e 5 PE para remover todas as condicoes de medo ou mentais de uma pessoa adjacente (inclusive voce).',
+      },
+    ],
+  },
+  {
+    classe: 'Combatente',
+    nome: 'Corpo Amaldicoado Independente',
+    descricao:
+      PREFIXO +
+      'Seu corpo possui tres nucleos internos de energia amaldicoada, permitindo alternar estilos de combate. Recomendado definir desde o nivel 1. Requisito: sem tecnica amaldicoada.',
+    requisitos: { semTecnicaInata: true },
+    habilidades: [
+      {
+        nome: 'Blefe Mortal (Corpo Amaldicoado Independente)',
+        codigo: 'SUP_CORPO_AMALDICOADO_BLEFE_MORTAL',
+        nivel: 2,
+        descricao:
+          PREFIXO +
+          'Sua vida e dividida em tres nucleos. Ao cair morrendo por perder um nucleo, pode sacrificar o nucleo atual (ou 3 PE para sacrificar outro) e se levantar sozinho, perdendo os bonus do nucleo sacrificado. Um nucleo perdido retorna apenas apos 1 dia de descanso ou ao fim da missao.',
+        mecanicasEspeciais: { recursos: { pvBarrasTotal: 3 } },
+      },
+      {
+        nome: 'Nucleos Amaldicoados (Corpo Amaldicoado Independente)',
+        codigo: 'SUP_CORPO_AMALDICOADO_NUCLEOS',
+        nivel: 2,
+        descricao:
+          PREFIXO +
+          'Como acao de movimento, pode alternar o nucleo ativo: Equilibrio (+2 Defesa e +2 ataque), Poder (+1 dado de dano corpo a corpo, +5 manobras, ignora 2 RD; sustentado 1 EA/rodada), Impulso (+3m deslocamento e +5 Iniciativa). Apenas um nucleo ativo por vez.',
+        mecanicasEspeciais: { pvPorNivel: 2 },
+      },
+      {
+        nome: 'Adaptatividade (Corpo Amaldicoado Independente)',
+        codigo: 'SUP_CORPO_AMALDICOADO_ADAPTATIVIDADE',
+        nivel: 8,
+        descricao:
+          PREFIXO +
+          '1x por rodada, ao sofrer dano, pode gastar 2 PE para ativar imediatamente um nucleo diferente como reacao e receber um efeito adicional conforme o nucleo.',
+      },
+      {
+        nome: 'Despertar dos Nucleos (Corpo Amaldicoado Independente)',
+        codigo: 'SUP_CORPO_AMALDICOADO_DESPERTAR',
+        nivel: 13,
+        descricao:
+          PREFIXO +
+          'Ao ativar um nucleo, pode gastar 2 PE para receber um bonus extra ate o inicio do proximo turno (defesa/impacto/deslocamento).',
+      },
+      {
+        nome: 'Ainda Bem que Eu Nao Sou Humano (Corpo Amaldicoado Independente)',
+        codigo: 'SUP_CORPO_AMALDICOADO_ESTABILIDADE',
+        nivel: 20,
+        descricao:
+          PREFIXO +
+          'Pode manter dois nucleos ativos (4 EA, sustentando 1 PE/rodada; se incluir Poder, sustento vira 1 PE e 1 EA). Enquanto com dois nucleos, recebe +2 Defesa, +2 ataque, +2 dano corpo a corpo e RD 2.',
+        mecanicasEspeciais: { pvExtra: 30 },
+      },
+    ],
+  },
+  {
+    classe: 'Especialista',
+    nome: 'Receptaculo',
+    descricao:
+      PREFIXO +
+      'Uma entidade poderosa habita seu corpo. Voce deve escolher o caminho da Supressao ou Convergencia. Requisito: sem tecnica amaldicoada.',
+    requisitos: { semTecnicaInata: true },
+    caminhos: [
+      {
+        nome: 'Supressao',
+        descricao:
+          PREFIXO + 'Voce luta para manter a entidade sob controle, arrancando poder a forca.',
+      },
+      {
+        nome: 'Convergencia',
+        descricao:
+          PREFIXO +
+          'Voce coexistem em harmonia ou neutralidade, cooperando com a entidade.',
+      },
+    ],
+    habilidades: [
+      {
+        nome: 'Destino do Receptaculo',
+        codigo: 'SUP_RECEPTACULO_DESTINO',
+        nivel: 2,
+        descricao:
+          PREFIXO +
+          'Recebe +1 grau em Tecnica Amaldicoada. Recebe +5 em Intimidacao e -5 em Diplomacia. Escolha o caminho da Supressao ou Convergencia.',
+        mecanicasEspeciais: { periciasBonus: { INTIMIDACAO: 5, DIPLOMACIA: -5 } },
+      },
+      {
+        nome: 'Poder Roubado (Receptaculo - Supressao)',
+        codigo: 'SUP_RECEPTACULO_SUPRESSAO_8',
+        nivel: 8,
+        caminho: 'Supressao',
+        descricao:
+          PREFIXO +
+          '1x por rodada, ao acertar ataque ou conjurar tecnica, pode gastar 2 PE para usurpar poder e escolher um efeito. Depois, sofre 1d6 de dano mental.',
+      },
+      {
+        nome: 'Concessao Desesperada (Receptaculo - Supressao)',
+        codigo: 'SUP_RECEPTACULO_SUPRESSAO_13',
+        nivel: 13,
+        caminho: 'Supressao',
+        descricao:
+          PREFIXO +
+          'Pode entrar em Manifestacao Parcial ou Completa por 3 rodadas com custos elevados, ganhando bonus e risco de perder o controle.',
+      },
+      {
+        nome: 'Dominio Interno (Receptaculo - Supressao)',
+        codigo: 'SUP_RECEPTACULO_SUPRESSAO_20',
+        nivel: 20,
+        caminho: 'Supressao',
+        descricao:
+          PREFIXO +
+          'Manifestacoes ficam mais estaveis; tecnica da entidade fica gravada na alma. Reduz risco de perder o controle.',
+      },
+      {
+        nome: 'Poder Concedido (Receptaculo - Convergencia)',
+        codigo: 'SUP_RECEPTACULO_CONVERGENCIA_8',
+        nivel: 8,
+        caminho: 'Convergencia',
+        descricao:
+          PREFIXO +
+          'Ao conjurar tecnica, pode gastar 1 PE para receber ajuda da entidade e escolher um efeito. Favores permitem escolher dois efeitos.',
+      },
+      {
+        nome: 'Concessao Assistida (Receptaculo - Convergencia)',
+        codigo: 'SUP_RECEPTACULO_CONVERGENCIA_13',
+        nivel: 13,
+        caminho: 'Convergencia',
+        descricao:
+          PREFIXO +
+          'Pode entrar em Manifestacao Parcial ou Completa por 3 rodadas com custos elevados, ganhando bonus e risco de Alquebrado.',
+      },
+      {
+        nome: 'Uniao Interna (Receptaculo - Convergencia)',
+        codigo: 'SUP_RECEPTACULO_CONVERGENCIA_20',
+        nivel: 20,
+        caminho: 'Convergencia',
+        descricao:
+          PREFIXO +
+          'Manifestacoes ficam mais estaveis e voce recebe RD 5 contra energia amaldicoada passivamente.',
+        mecanicasEspeciais: { resistencias: { ENERGIA_AMALDICOADA: 5 } },
+      },
+    ],
+  },
+  {
+    classe: 'Sentinela',
+    nome: 'Amaldicoado',
+    descricao:
+      PREFIXO +
+      'Uma maldicao vinculada acompanha voce. Trilhas narrativas focadas em manifestacoes e instabilidade.',
+    requisitos: { semTecnicaInata: true },
+    habilidades: [
+      {
+        nome: 'Presenca Amaldicoada',
+        codigo: 'SUP_AMALDICOADO_PRESENCA',
+        nivel: 2,
+        descricao:
+          PREFIXO +
+          'Quando sofre dano ou em situacoes de perigo, o mestre pode pedir um teste de manifestacao da maldicao (1d6) com efeitos variaveis.',
+      },
+      {
+        nome: 'Ligacao Inata',
+        codigo: 'SUP_AMALDICOADO_LIGACAO',
+        nivel: 8,
+        descricao:
+          PREFIXO +
+          'Pode permitir que a maldicao interfira em sua tecnica, ganhando efeitos em troca de risco de instabilidade.',
+      },
+      {
+        nome: 'Conexao Sincera',
+        codigo: 'SUP_AMALDICOADO_CONEXAO',
+        nivel: 13,
+        descricao:
+          PREFIXO +
+          'Pode invocar a maldicao por algumas rodadas, recebendo bonus e podendo comandar acoes dela. Ao fim, teste de instabilidade.',
+      },
+      {
+        nome: 'Vinculo Puro',
+        codigo: 'SUP_AMALDICOADO_VINCULO',
+        nivel: 20,
+        descricao:
+          PREFIXO +
+          'Pode manifestar a maldicao completamente por 3 rodadas, recebendo bonus e acesso a uma ficha completa do espirito.',
       },
     ],
   },
@@ -1942,25 +2221,65 @@ async function seedTrilhas(prisma: PrismaClient, suplementoId: number) {
       },
     });
 
+    const caminhosMap = new Map<string, number>();
+    if (trilha.caminhos?.length) {
+      for (const caminho of trilha.caminhos) {
+        const caminhoRow = await prisma.caminho.upsert({
+          where: { nome: caminho.nome },
+          update: {
+            descricao: caminho.descricao ?? null,
+            trilhaId: trilhaRow.id,
+            fonte: TipoFonte.SUPLEMENTO,
+            suplementoId,
+          },
+          create: {
+            nome: caminho.nome,
+            descricao: caminho.descricao ?? null,
+            trilhaId: trilhaRow.id,
+            fonte: TipoFonte.SUPLEMENTO,
+            suplementoId,
+          },
+        });
+
+        caminhosMap.set(caminho.nome, caminhoRow.id);
+      }
+    }
+
     for (const habilidade of trilha.habilidades) {
+      const dataHabilidadeBase = {
+        tipo: 'TRILHA',
+        descricao: habilidade.descricao,
+        hereditaria: false,
+        fonte: TipoFonte.SUPLEMENTO,
+        suplementoId,
+      };
+      const dataHabilidadeUpdate = {
+        ...dataHabilidadeBase,
+        ...(habilidade.codigo ? { codigo: habilidade.codigo } : {}),
+        ...(habilidade.mecanicasEspeciais !== undefined
+          ? {
+              mecanicasEspeciais: jsonOrNull(habilidade.mecanicasEspeciais ?? null),
+            }
+          : {}),
+      };
+      const dataHabilidadeCreate = {
+        ...dataHabilidadeBase,
+        codigo: habilidade.codigo ?? null,
+        mecanicasEspeciais: jsonOrNull(habilidade.mecanicasEspeciais ?? null),
+      };
+
       const habilidadeRow = await prisma.habilidade.upsert({
         where: { nome: habilidade.nome },
-        update: {
-          tipo: 'TRILHA',
-          descricao: habilidade.descricao,
-          hereditaria: false,
-          fonte: TipoFonte.SUPLEMENTO,
-          suplementoId,
-        },
+        update: dataHabilidadeUpdate,
         create: {
           nome: habilidade.nome,
-          tipo: 'TRILHA',
-          descricao: habilidade.descricao,
-          hereditaria: false,
-          fonte: TipoFonte.SUPLEMENTO,
-          suplementoId,
+          ...dataHabilidadeCreate,
         },
       });
+
+      const caminhoId = habilidade.caminho
+        ? caminhosMap.get(habilidade.caminho) ?? null
+        : null;
 
       await prisma.habilidadeTrilha.upsert({
         where: {
@@ -1970,12 +2289,12 @@ async function seedTrilhas(prisma: PrismaClient, suplementoId: number) {
             nivelConcedido: habilidade.nivel,
           },
         },
-        update: { caminhoId: null },
+        update: { caminhoId },
         create: {
           trilhaId: trilhaRow.id,
           habilidadeId: habilidadeRow.id,
           nivelConcedido: habilidade.nivel,
-          caminhoId: null,
+          caminhoId,
         },
       });
     }
@@ -2057,6 +2376,112 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
 
     for (let ordem = 0; ordem < arma.danos.length; ordem++) {
       const dano = arma.danos[ordem];
+      await prisma.equipamentoDano.create({
+        data: {
+          equipamentoId: equipamento.id,
+          empunhadura: dano.empunhadura ?? null,
+          tipoDano: dano.tipoDano,
+          rolagem: dano.rolagem,
+          valorFlat: dano.valorFlat ?? 0,
+          ordem,
+        },
+      });
+    }
+  }
+
+  for (const arma of armasSuplemento) {
+    const codigo = `${arma.codigo}_AMALDICOADA_SIMPLES`;
+    const nome = resolverNome(`${arma.nome} Amaldicoada`);
+    const empunhadurasJson = arma.empunhaduras?.length
+      ? JSON.stringify(arma.empunhaduras)
+      : undefined;
+    const categoria = subirCategoria(arma.categoria, 1);
+
+    const equipamento = await prisma.equipamentoCatalogo.upsert({
+      where: { codigo },
+      update: {
+        codigo,
+        nome,
+        descricao:
+          PREFIXO +
+          `Versao amaldicoada simples de ${arma.nome}. Acrescenta +1d6 de dano de energia amaldicoada e permite exorcizar espiritos amaldicoados.`,
+        tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
+        categoria,
+        espacos: arma.espacos,
+        proficienciaArma: arma.proficienciaArma,
+        empunhaduras: empunhadurasJson,
+        tipoArma: arma.tipoArma,
+        subtipoDistancia: arma.subtipoDistancia ?? null,
+        agil: arma.agil,
+        criticoValor: arma.criticoValor,
+        criticoMultiplicador: arma.criticoMultiplicador,
+        alcance: arma.alcance,
+        tipoMunicaoCodigo: arma.tipoMunicaoCodigo ?? null,
+        habilidadeEspecial: arma.habilidadeEspecial ?? null,
+        tipoUso: TipoUsoEquipamento.GERAL,
+        tipoAmaldicoado: null,
+        complexidadeMaldicao: ComplexidadeMaldicao.SIMPLES,
+        fonte: TipoFonte.SUPLEMENTO,
+        suplementoId,
+      },
+      create: {
+        codigo,
+        nome,
+        descricao:
+          PREFIXO +
+          `Versao amaldicoada simples de ${arma.nome}. Acrescenta +1d6 de dano de energia amaldicoada e permite exorcizar espiritos amaldicoados.`,
+        tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
+        categoria,
+        espacos: arma.espacos,
+        proficienciaArma: arma.proficienciaArma,
+        empunhaduras: empunhadurasJson,
+        tipoArma: arma.tipoArma,
+        subtipoDistancia: arma.subtipoDistancia ?? null,
+        agil: arma.agil,
+        criticoValor: arma.criticoValor,
+        criticoMultiplicador: arma.criticoMultiplicador,
+        alcance: arma.alcance,
+        tipoMunicaoCodigo: arma.tipoMunicaoCodigo ?? null,
+        habilidadeEspecial: arma.habilidadeEspecial ?? null,
+        tipoUso: TipoUsoEquipamento.GERAL,
+        tipoAmaldicoado: null,
+        complexidadeMaldicao: ComplexidadeMaldicao.SIMPLES,
+        fonte: TipoFonte.SUPLEMENTO,
+        suplementoId,
+      },
+    });
+
+    await prisma.armaAmaldicoada.upsert({
+      where: { equipamentoId: equipamento.id },
+      update: {
+        tipoBase: arma.codigo,
+        proficienciaRequerida: false,
+        efeito: '+1d6 energia amaldicoada. Exorciza espiritos amaldicoados.',
+      },
+      create: {
+        equipamentoId: equipamento.id,
+        tipoBase: arma.codigo,
+        proficienciaRequerida: false,
+        efeito: '+1d6 energia amaldicoada. Exorciza espiritos amaldicoados.',
+      },
+    });
+
+    const danosComEnergia = arma.danos.flatMap((dano) => [
+      dano,
+      {
+        empunhadura: dano.empunhadura,
+        tipoDano: TipoDano.ENERGIA_AMALDICOADA,
+        rolagem: '1d6',
+        valorFlat: 0,
+      },
+    ]);
+
+    await prisma.equipamentoDano.deleteMany({
+      where: { equipamentoId: equipamento.id },
+    });
+
+    for (let ordem = 0; ordem < danosComEnergia.length; ordem++) {
+      const dano = danosComEnergia[ordem];
       await prisma.equipamentoDano.create({
         data: {
           equipamentoId: equipamento.id,

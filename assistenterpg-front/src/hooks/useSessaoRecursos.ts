@@ -76,10 +76,11 @@ export function useSessaoRecursos({
         eaAtual: card.recursos.eaAtual,
         sanAtual: card.recursos.sanAtual,
       };
+      const pvMaxAtual = card.recursos.pvBarraMaxAtual ?? card.recursos.pvMax;
 
       switch (campo) {
         case 'pv':
-          base.pvAtual = clampEntre(base.pvAtual + delta, 0, card.recursos.pvMax);
+          base.pvAtual = clampEntre(base.pvAtual + delta, 0, pvMaxAtual);
           break;
         case 'pe':
           base.peAtual = clampEntre(base.peAtual + delta, 0, card.recursos.peMax);

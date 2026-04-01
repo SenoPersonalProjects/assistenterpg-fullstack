@@ -73,6 +73,8 @@ type PoderGenericoConfig = Record<string, unknown> & {
 type MecanicasEscolha = {
   tipo?: string;
   quantidade?: number;
+  periciasPermitidas?: string[];
+  atributosBasePermitidos?: AtributoBaseCodigo[];
 };
 
 type MecanicasEspeciais = {
@@ -92,6 +94,24 @@ function toStringArray(value: unknown): string[] {
     .filter((item) => item !== '');
 }
 
+function normalizeAtributoBase(value: unknown): AtributoBaseCodigo | null {
+  if (typeof value !== 'string') return null;
+  const key = value.trim().toUpperCase();
+  const map: Record<string, AtributoBaseCodigo> = {
+    AGI: 'AGI',
+    AGILIDADE: 'AGI',
+    FOR: 'FOR',
+    FORCA: 'FOR',
+    INT: 'INT',
+    INTELECTO: 'INT',
+    PRE: 'PRE',
+    PRESENCA: 'PRE',
+    VIG: 'VIG',
+    VIGOR: 'VIG',
+  };
+  return map[key] ?? null;
+}
+
 function parseMecanicasEspeciais(value: unknown): MecanicasEspeciais | undefined {
   const record = asRecord(value);
   if (!record) return undefined;
@@ -101,6 +121,10 @@ function parseMecanicasEspeciais(value: unknown): MecanicasEspeciais | undefined
     ? {
         tipo: typeof escolhaRaw.tipo === 'string' ? escolhaRaw.tipo : undefined,
         quantidade: typeof escolhaRaw.quantidade === 'number' ? escolhaRaw.quantidade : undefined,
+        periciasPermitidas: toStringArray(escolhaRaw.periciasPermitidas),
+        atributosBasePermitidos: toStringArray(escolhaRaw.atributosBasePermitidos)
+          .map((attr) => normalizeAtributoBase(attr))
+          .filter((attr): attr is AtributoBaseCodigo => !!attr),
       }
     : undefined;
 
@@ -448,11 +472,28 @@ export function PersonagemBaseStepPoderes({
             codigo: p.codigo,
             nome: p.nome,
             grauTreinamento: grau,
+            atributoBase: p.atributoBase,
           };
         })
         .filter((p) => p.grauTreinamento < 4),
     [todasPericias, mapaGrausPreview],
   );
+
+  const periciasCatalogoBase = useMemo(
+    () =>
+      todasPericias.map((p) => ({
+        codigo: p.codigo,
+        nome: p.nome,
+        atributoBase: p.atributoBase,
+      })),
+    [todasPericias],
+  );
+
+  const nomePericiaPorCodigo = useMemo(() => {
+    const map = new Map<string, string>();
+    periciasCatalogoBase.forEach((p) => map.set(p.codigo, p.nome));
+    return map;
+  }, [periciasCatalogoBase]);
 
   const poderesFiltrados = useMemo(() => {
     if (!termoBuscaDeferred.trim()) return poderes;
@@ -572,12 +613,9 @@ export function PersonagemBaseStepPoderes({
         {/* 3. Lista de poderes */}
         <div className="space-y-2">
           {poderesRenderizados.map((poder) => {
-            const mecanicas = poder.mecanicasEspeciais as
-              | {
-                  repetivel?: boolean;
-                  escolha?: { tipo: string; quantidade?: number };
-                }
-              | undefined;
+            const mecanicas = parseMecanicasEspeciais(poder.mecanicasEspeciais);
+            const mecanicasRaw = asRecord(poder.mecanicasEspeciais);
+            const escolhaUsaTreino = Array.isArray(mecanicasRaw?.progressao);
 
             const repetivel = mecanicas?.repetivel === true;
             const escolha = mecanicas?.escolha;
@@ -606,6 +644,21 @@ export function PersonagemBaseStepPoderes({
             const podeRemoverInstancia = instanciasDestePoder.length > 0 && !!removePoderGenericoInstancia;
 
             const configAb = configAberta[poder.id] ?? false;
+
+            const escolhasPorInstancia = instanciasDestePoder
+              .map(({ inst, indexGlobal }) => {
+                const config = asRecord(inst.config);
+                const periciasCodigos = toStringArray(config?.periciasCodigos);
+                if (periciasCodigos.length === 0) return null;
+                const nomes = periciasCodigos.map((codigo) => {
+                  const nome = nomePericiaPorCodigo.get(codigo);
+                  return nome ?? codigo;
+                });
+                return { indexGlobal, nomes };
+              })
+              .filter(
+                (item): item is { indexGlobal: number; nomes: string[] } => !!item,
+              );
 
             return (
               <div
@@ -637,6 +690,19 @@ export function PersonagemBaseStepPoderes({
                         <p className="text-xs text-app-muted mt-1 leading-relaxed line-clamp-2">
                           {poder.descricao}
                         </p>
+                      )}
+
+                      {escolhasPorInstancia.length > 0 && (
+                        <div className="mt-2 space-y-1 text-[11px] text-app-muted">
+                          {escolhasPorInstancia.map((item, index) => (
+                            <div key={`${poder.id}-escolha-${item.indexGlobal}`}>
+                              {escolhasPorInstancia.length > 1
+                                ? `Instancia ${index + 1}: `
+                                : 'Escolhas: '}
+                              <span className="text-app-fg">{item.nomes.join(', ')}</span>
+                            </div>
+                          ))}
+                        </div>
                       )}
 
                       {!validacao.atende && validacao.motivoNaoAtende && (
@@ -725,6 +791,22 @@ export function PersonagemBaseStepPoderes({
                                 valores.push('');
                               }
 
+                              const baseOpcoes = escolhaUsaTreino
+                                ? periciasElegiveisTreino
+                                : periciasCatalogoBase;
+
+                              let opcoesBase = baseOpcoes;
+                              if (escolha.periciasPermitidas?.length) {
+                                opcoesBase = opcoesBase.filter((p) =>
+                                  escolha.periciasPermitidas?.includes(p.codigo),
+                                );
+                              }
+                              if (escolha.atributosBasePermitidos?.length) {
+                                opcoesBase = opcoesBase.filter((p) =>
+                                  escolha.atributosBasePermitidos?.includes(p.atributoBase),
+                                );
+                              }
+
                               return (
                                 <div
                                   key={indexGlobal}
@@ -736,9 +818,7 @@ export function PersonagemBaseStepPoderes({
 
                                   {valores.map((valorAtual: string, idxPericia: number) => {
                                     const usados = new Set(valores.filter((v, i) => v && i !== idxPericia));
-                                    const opcoes = periciasElegiveisTreino.filter(
-                                      (p) => !usados.has(p.codigo),
-                                    );
+                                    const opcoes = opcoesBase.filter((p) => !usados.has(p.codigo));
 
                                     return (
                                       <select
@@ -760,7 +840,7 @@ export function PersonagemBaseStepPoderes({
                                         <option value="">Perícia {idxPericia + 1}...</option>
                                         {opcoes.map((p) => (
                                           <option key={p.codigo} value={p.codigo}>
-                                            {p.nome} (grau {p.grauTreinamento})
+                                            {p.nome}
                                           </option>
                                         ))}
                                       </select>

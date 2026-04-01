@@ -312,6 +312,7 @@ export function PersonagemBaseWizard(props: Props) {
 
       poderesGenericos: iv.poderesGenericos ?? [],
       poderesGenericosSelecionadosIds: iv.poderesGenericosSelecionadosIds ?? [],
+      habilidadesConfig: iv.habilidadesConfig ?? [],
       passivasAtributosAtivos: iv.passivasAtributosAtivos ?? [],
     };
   }, [mode, editInitialValues]);
@@ -380,6 +381,8 @@ export function PersonagemBaseWizard(props: Props) {
     addPoderGenericoInstancia,
     removePoderGenericoInstancia,
     updatePoderGenericoInstancia,
+    habilidadesConfig,
+    updateHabilidadeConfig,
 
     passivasAtributosAtivos,
     togglePassivaAtributo,
@@ -437,6 +440,10 @@ export function PersonagemBaseWizard(props: Props) {
             ? passivasAtributosAtivos
             : undefined,
         poderesGenericos: poderesGenericosSanitizados,
+        habilidadesConfig:
+          habilidadesConfig && habilidadesConfig.length > 0
+            ? habilidadesConfig
+            : undefined,
         periciasLivresExtras,
         itensInventario: itensInventarioSanitizados,
       } as CreatePersonagemBasePayload;
@@ -461,6 +468,7 @@ export function PersonagemBaseWizard(props: Props) {
     passivasAtributosConfig,
     passivasAtributosAtivos,
     poderesGenericos,
+    habilidadesConfig,
     periciasLivresExtras,
     itensInventario,
   ]);
@@ -724,10 +732,13 @@ export function PersonagemBaseWizard(props: Props) {
               <PersonagemBaseStepClasseOrigem
                 classes={classes}
                 origens={origens}
+                todasPericias={pericias}
                 classeId={classeId}
                 origemId={origemId}
                 periciasClasseEscolhidasCodigos={periciasClasseEscolhidasCodigos}
                 periciasOrigemEscolhidasCodigos={periciasOrigemEscolhidasCodigos}
+                habilidadesConfig={habilidadesConfig}
+                onAtualizarHabilidadeConfig={updateHabilidadeConfig}
                 onChangeClasseId={setClasseId}
                 onChangeOrigemId={setOrigemId}
                 onChangePericiasClasse={setPericiasClasseEscolhidasCodigos}
@@ -766,6 +777,7 @@ export function PersonagemBaseWizard(props: Props) {
                 caminhos={caminhos}
                 trilhaId={trilhaId}
                 caminhoId={caminhoId}
+                tecnicaInataId={tecnicaInataId}
                 onChangeTrilhaId={setTrilhaId}
                 onChangeCaminhoId={setCaminhoId}
               />
@@ -942,6 +954,7 @@ export function PersonagemBaseWizard(props: Props) {
                 modificacoes={modificacoes}
                 itensInventario={itensInventario}
                 onChangeItensInventario={setItensInventario}
+                creditoCategoriaBonus={previewGlobal?.creditoCategoriaBonus}
               />
             </>
           )}

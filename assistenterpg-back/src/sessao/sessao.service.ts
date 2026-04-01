@@ -32,7 +32,14 @@ import {
   atendeRequisitosGraus,
   montarMapaGraus,
 } from 'src/personagem-base/regras-criacao/regras-tecnicas-nao-inatas';
+import {
+  extrairPericiasAtributoBaseOverride,
+} from 'src/personagem-base/regras-criacao/regras-poderes-efeitos';
 import { BusinessException } from 'src/common/exceptions/business.exception';
+import {
+  calcularPvBarraMaximos,
+  normalizarNucleosDisponiveis,
+} from 'src/common/utils/pv-barras';
 
 type AcessoCampanha = {
   campanha: {
@@ -549,6 +556,10 @@ export class SessaoService {
                 donoId: true,
                 pvAtual: true,
                 pvMax: true,
+                pvBarrasTotal: true,
+                pvBarrasRestantes: true,
+                nucleoAmaldicoadoAtivo: true,
+                nucleosDisponiveis: true,
                 peAtual: true,
                 peMax: true,
                 eaAtual: true,
@@ -610,6 +621,24 @@ export class SessaoService {
                             codigo: true,
                             nome: true,
                             atributoBase: true,
+                          },
+                        },
+                      },
+                    },
+                    habilidadesBase: {
+                      select: {
+                        habilidade: {
+                          select: {
+                            mecanicasEspeciais: true,
+                          },
+                        },
+                      },
+                    },
+                    poderesGenericos: {
+                      select: {
+                        habilidade: {
+                          select: {
+                            mecanicasEspeciais: true,
                           },
                         },
                       },
@@ -945,6 +974,14 @@ export class SessaoService {
           new Map<string, number>();
         const periciasBase =
           personagem.personagemCampanha.personagemBase?.pericias ?? [];
+        const habilidadesParaOverride = [
+          ...(personagem.personagemCampanha.personagemBase?.habilidadesBase ??
+            []).map((h) => ({ habilidade: h.habilidade })),
+          ...(personagem.personagemCampanha.personagemBase?.poderesGenericos ??
+            []).map((p) => ({ habilidade: p.habilidade })),
+        ];
+        const periciasAtributoBaseOverride =
+          extrairPericiasAtributoBaseOverride(habilidadesParaOverride);
         const mapaPericias = new Map<
           string,
           {
@@ -962,7 +999,9 @@ export class SessaoService {
           mapaPericias.set(pericia.pericia.codigo, {
             codigo: pericia.pericia.codigo,
             nome: pericia.pericia.nome,
-            atributoBase: pericia.pericia.atributoBase,
+            atributoBase:
+              periciasAtributoBaseOverride[pericia.pericia.codigo] ??
+              pericia.pericia.atributoBase,
             bonusTreinamento: (pericia.grauTreinamento ?? 0) * 5,
             bonusEquipamento: 0,
             bonusOutros: pericia.bonusExtra ?? 0,
@@ -980,7 +1019,9 @@ export class SessaoService {
           mapaPericias.set(codigo, {
             codigo,
             nome: periciaCatalogo.nome,
-            atributoBase: periciaCatalogo.atributoBase,
+            atributoBase:
+              periciasAtributoBaseOverride[codigo] ??
+              periciaCatalogo.atributoBase,
             bonusTreinamento: 0,
             bonusEquipamento: bonus,
             bonusOutros: 0,
@@ -1021,6 +1062,12 @@ export class SessaoService {
             }
           : null;
 
+        const infoPv = calcularPvBarraMaximos(
+          personagem.personagemCampanha.pvMax,
+          personagem.personagemCampanha.pvBarrasTotal,
+          personagem.personagemCampanha.pvBarrasRestantes,
+        );
+
         return {
           personagemSessaoId: personagem.id,
           personagemCampanhaId: personagem.personagemCampanha.id,
@@ -1038,6 +1085,15 @@ export class SessaoService {
               ? {
                   pvAtual: personagem.personagemCampanha.pvAtual,
                   pvMax: personagem.personagemCampanha.pvMax,
+                  pvBarrasTotal: personagem.personagemCampanha.pvBarrasTotal,
+                  pvBarrasRestantes:
+                    personagem.personagemCampanha.pvBarrasRestantes,
+                  pvBarraMaxAtual: infoPv.pvBarraMaxAtual,
+                  nucleoAtivo:
+                    personagem.personagemCampanha.nucleoAmaldicoadoAtivo ?? null,
+                  nucleosDisponiveis: normalizarNucleosDisponiveis(
+                    personagem.personagemCampanha.nucleosDisponiveis,
+                  ),
                   peAtual: personagem.personagemCampanha.peAtual,
                   peMax: personagem.personagemCampanha.peMax,
                   eaAtual: personagem.personagemCampanha.eaAtual,
@@ -5252,6 +5308,8 @@ export class SessaoService {
               select: {
                 pvAtual: true,
                 pvMax: true,
+                pvBarrasTotal: true,
+                pvBarrasRestantes: true,
                 sanAtual: true,
               },
             },
@@ -5323,10 +5381,16 @@ export class SessaoService {
     for (const personagem of personagens) {
       const pvAtual = personagem.personagemCampanha.pvAtual;
       const pvMax = Math.max(1, personagem.personagemCampanha.pvMax);
+      const infoPv = calcularPvBarraMaximos(
+        pvMax,
+        personagem.personagemCampanha.pvBarrasTotal,
+        personagem.personagemCampanha.pvBarrasRestantes,
+      );
       const sanAtual = personagem.personagemCampanha.sanAtual;
       const morto = personagensMortos.has(personagem.id);
       const insano = personagensInsanos.has(personagem.id);
-      const machucado = pvAtual > 0 && pvAtual <= Math.floor(pvMax / 2);
+      const machucado =
+        pvAtual > 0 && pvAtual <= Math.floor(infoPv.pvBarraMaxAtual / 2);
       const morrendo = pvAtual <= 0 && !morto;
       const caido = pvAtual <= 0;
       const enlouquecendo = sanAtual <= 0 && !insano;

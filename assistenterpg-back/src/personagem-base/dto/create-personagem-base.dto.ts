@@ -66,6 +66,14 @@ export class PoderGenericoInstanciaDto {
   config?: any; // depois a gente tipa por poder
 }
 
+export class HabilidadeConfigDto {
+  @IsInt()
+  habilidadeId: number;
+
+  @IsOptional()
+  config?: any; // config livre por habilidade (ex.: escolhas de perícia)
+}
+
 export class PassivaIntelectoConfigDto {
   // Perícias extras (Intelecto I: 0–1, Intelecto II: 0–2 no total)
   @IsOptional()
@@ -236,6 +244,13 @@ export class CreatePersonagemBaseDto {
   @ValidateNested({ each: true })
   @Type(() => PoderGenericoInstanciaDto)
   poderesGenericos?: PoderGenericoInstanciaDto[];
+
+  // ✅ NOVO: Configurações de escolhas das habilidades (origem/trilha/etc)
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HabilidadeConfigDto)
+  habilidadesConfig?: HabilidadeConfigDto[];
 
   // ✅ NOVO: Passivas de atributos selecionadas
   @IsOptional()

@@ -15,6 +15,87 @@ export type NivelPrestigioCla = {
   descricao: string;
 };
 
+const ORDEM_GRAUS_XAMA: GrauXama[] = [
+  {
+    grau: 'ESPECIAL',
+    nome: 'Especial',
+    limiteCredito: 'ILIMITADO',
+    limitesPorCategoria: {
+      '0': 999,
+      '4': 5,
+      '3': 4,
+      '2': 4,
+      '1': 3,
+      ESPECIAL: 3,
+    },
+  },
+  {
+    grau: 'GRAU_1',
+    nome: 'Grau 1',
+    limiteCredito: 'ALTO',
+    limitesPorCategoria: {
+      '0': 999,
+      '4': 5,
+      '3': 4,
+      '2': 3,
+      '1': 2,
+      ESPECIAL: 2,
+    },
+  },
+  {
+    grau: 'SEMI_1',
+    nome: 'Semi-1',
+    limiteCredito: 'MEDIO',
+    limitesPorCategoria: {
+      '0': 999,
+      '4': 4,
+      '3': 2,
+      '2': 2,
+      '1': 1,
+      ESPECIAL: 1,
+    },
+  },
+  {
+    grau: 'GRAU_2',
+    nome: 'Grau 2',
+    limiteCredito: 'MEDIO',
+    limitesPorCategoria: {
+      '0': 999,
+      '4': 4,
+      '3': 2,
+      '2': 2,
+      '1': 1,
+      ESPECIAL: 0,
+    },
+  },
+  {
+    grau: 'GRAU_3',
+    nome: 'Grau 3',
+    limiteCredito: 'MEDIO',
+    limitesPorCategoria: {
+      '0': 999,
+      '4': 3,
+      '3': 1,
+      '2': 1,
+      '1': 0,
+      ESPECIAL: 0,
+    },
+  },
+  {
+    grau: 'GRAU_4',
+    nome: 'Grau 4',
+    limiteCredito: 'BAIXO',
+    limitesPorCategoria: {
+      '0': 999,
+      '4': 2,
+      '3': 0,
+      '2': 0,
+      '1': 0,
+      ESPECIAL: 0,
+    },
+  },
+];
+
 /**
  * ✅ SINCRONIZADO COM BACKEND (prisma/seeds/catalogos/graus-xama.ts)
  * ✅ CORRIGIDO: Incluído categoria '0' (CATEGORIA_0) - sempre ilimitada
@@ -24,92 +105,25 @@ export type NivelPrestigioCla = {
  * Após persistir, sempre usar dados do backend.
  */
 export function getGrauXamaPorPrestigio(prestigio: number): GrauXama {
-  const ordemGraus: GrauXama[] = [
-    {
-      grau: 'ESPECIAL',
-      nome: 'Especial',
-      limiteCredito: 'ILIMITADO',
-      limitesPorCategoria: {
-        '0': 999,
-        '4': 5,
-        '3': 4,
-        '2': 4,
-        '1': 3,
-        'ESPECIAL': 3,
-      },
-    },
-    {
-      grau: 'GRAU_1',
-      nome: 'Grau 1',
-      limiteCredito: 'ALTO',
-      limitesPorCategoria: {
-        '0': 999,
-        '4': 5,
-        '3': 4,
-        '2': 3,
-        '1': 2,
-        'ESPECIAL': 2,
-      },
-    },
-    {
-      grau: 'SEMI_1',
-      nome: 'Semi-1',
-      limiteCredito: 'MÉDIO',
-      limitesPorCategoria: {
-        '0': 999,
-        '4': 4,
-        '3': 2,
-        '2': 2,
-        '1': 1,
-        'ESPECIAL': 1,
-      },
-    },
-    {
-      grau: 'GRAU_2',
-      nome: 'Grau 2',
-      limiteCredito: 'MÉDIO',
-      limitesPorCategoria: {
-        '0': 999,
-        '4': 4,
-        '3': 2,
-        '2': 2,
-        '1': 1,
-        'ESPECIAL': 0,
-      },
-    },
-    {
-      grau: 'GRAU_3',
-      nome: 'Grau 3',
-      limiteCredito: 'MÉDIO',
-      limitesPorCategoria: {
-        '0': 999,
-        '4': 3,
-        '3': 1,
-        '2': 1,
-        '1': 0,
-        'ESPECIAL': 0,
-      },
-    },
-    {
-      grau: 'GRAU_4',
-      nome: 'Grau 4',
-      limiteCredito: 'BAIXO',
-      limitesPorCategoria: {
-        '0': 999,
-        '4': 2,
-        '3': 0,
-        '2': 0,
-        '1': 0,
-        'ESPECIAL': 0,
-      },
-    },
-  ];
-
   // Encontrar o grau elegível (maior prestígio que o personagem possui)
   return (
-    ordemGraus.find((g) => prestigio >= getPrestigioMinimoPorGrau(g.grau)) ||
-    ordemGraus[ordemGraus.length - 1] // Fallback para GRAU_4
+    ORDEM_GRAUS_XAMA.find((g) => prestigio >= getPrestigioMinimoPorGrau(g.grau)) ||
+    ORDEM_GRAUS_XAMA[ORDEM_GRAUS_XAMA.length - 1] // Fallback para GRAU_4
   );
+}
+
+export function getLimiteCreditoComBonus(
+  grau: string,
+  bonus: number,
+): string {
+  const bonusNormalizado = Math.max(0, Math.floor(bonus || 0));
+  const indiceBase = ORDEM_GRAUS_XAMA.findIndex((g) => g.grau === grau);
+  if (indiceBase < 0) {
+    return ORDEM_GRAUS_XAMA[ORDEM_GRAUS_XAMA.length - 1].limiteCredito;
+  }
+
+  const indiceFinal = Math.max(0, indiceBase - bonusNormalizado);
+  return ORDEM_GRAUS_XAMA[indiceFinal]?.limiteCredito ?? ORDEM_GRAUS_XAMA[indiceBase].limiteCredito;
 }
 
 /**

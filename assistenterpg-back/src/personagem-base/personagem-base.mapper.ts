@@ -17,6 +17,10 @@ import {
   calcularAtributoBaseInventario,
   calcularEspacosInventarioBase,
 } from '../inventario/utils/inventario-capacidade';
+import {
+  extrairAtributoChaveEaDeHabilidades,
+  extrairPericiasAtributoBaseOverride,
+} from './regras-criacao/regras-poderes-efeitos';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
@@ -83,6 +87,43 @@ const inventarioItemDetalhadoInclude =
       },
     },
   });
+
+const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
+  CategoriaEquipamento.CATEGORIA_0,
+  CategoriaEquipamento.CATEGORIA_4,
+  CategoriaEquipamento.CATEGORIA_3,
+  CategoriaEquipamento.CATEGORIA_2,
+  CategoriaEquipamento.CATEGORIA_1,
+  CategoriaEquipamento.ESPECIAL,
+];
+
+function isCategoriaEquipamento(
+  value: unknown,
+): value is CategoriaEquipamento {
+  return (
+    typeof value === 'string' &&
+    ORDEM_CATEGORIAS.includes(value as CategoriaEquipamento)
+  );
+}
+
+function calcularCategoriaFinal(
+  categoriaOriginal: CategoriaEquipamento,
+  quantidadeModificacoes: number,
+): CategoriaEquipamento {
+  if (!isCategoriaEquipamento(categoriaOriginal)) {
+    return CategoriaEquipamento.CATEGORIA_0;
+  }
+
+  const indexOriginal = ORDEM_CATEGORIAS.indexOf(categoriaOriginal);
+  if (indexOriginal === -1) return CategoriaEquipamento.CATEGORIA_0;
+
+  const indexFinal = Math.min(
+    indexOriginal + quantidadeModificacoes,
+    ORDEM_CATEGORIAS.length - 1,
+  );
+
+  return ORDEM_CATEGORIAS[indexFinal];
+}
 
 export type PersonagemBaseResumoEntity = Prisma.PersonagemBaseGetPayload<{
   include: { cla: true; classe: true };
@@ -158,6 +199,16 @@ function getInventarioReduzirItensLevesFromMecanicas(
   const inventario = mecanicas.inventario;
   if (!isRecord(inventario)) return false;
   return inventario.reduzirItensLeves === true;
+}
+
+function getCreditoCategoriaBonusFromMecanicas(
+  mecanicas: Prisma.JsonValue | null,
+): number {
+  if (!isRecord(mecanicas)) return 0;
+  const economia = mecanicas.economia;
+  if (!isRecord(economia)) return 0;
+  const bonus = economia.creditoCategoriaBonus;
+  return typeof bonus === 'number' ? bonus : 0;
 }
 
 type ResistenciasMapeadas = Array<{
@@ -245,6 +296,7 @@ export type PersonagemDetalhadoMapeado = {
   idade: number | null;
   prestigioBase: number | null;
   prestigioClaBase: number | null;
+  creditoCategoriaBonus?: number;
   alinhamentoId: number | null;
   background: string | null;
   atributoChaveEa: PersonagemBaseDetalhadoEntity['atributoChaveEa'];
@@ -293,6 +345,7 @@ export type PersonagemDetalhadoMapeado = {
     nome: string;
     config: Prisma.JsonValue;
   }>;
+  habilidadesConfig?: Prisma.JsonValue | null;
   poderesGenericosSelecionadosIds: number[];
   passivasAtributosAtivos: string[];
   passivasAtributosConfig: Prisma.JsonValue | null;
@@ -311,6 +364,7 @@ export type PersonagemDetalhadoMapeado = {
     peMaximo: number;
     eaMaximo: number;
     sanMaximo: number;
+    pvBarrasTotal?: number;
     defesaBase: number;
     defesaEquipamento: number;
     defesaTotal: number;
@@ -630,6 +684,28 @@ export class PersonagemBaseMapper {
         ? mapTecnicaDetalhada(personagem.tecnicaInata)
         : null;
 
+    const creditoCategoriaBonus = [
+      ...(personagem.habilidadesBase ?? []).map((h) => h.habilidade),
+      ...(personagem.poderesGenericos ?? []).map((p) => p.habilidade),
+    ].reduce(
+      (acc, hab) =>
+        acc + getCreditoCategoriaBonusFromMecanicas(hab.mecanicasEspeciais),
+      0,
+    );
+
+    const habilidadesParaOverride = [
+      ...(personagem.habilidadesBase ?? []).map((h) => ({
+        habilidade: h.habilidade,
+      })),
+      ...(personagem.poderesGenericos ?? []).map((p) => ({
+        habilidade: p.habilidade,
+      })),
+    ];
+    const periciasAtributoBaseOverride =
+      extrairPericiasAtributoBaseOverride(habilidadesParaOverride);
+    const atributoChaveEaOverride =
+      extrairAtributoChaveEaDeHabilidades(habilidadesParaOverride);
+
     return {
       id: personagem.id,
       nome: personagem.nome,
@@ -653,9 +729,10 @@ export class PersonagemBaseMapper {
       idade: personagem.idade,
       prestigioBase: personagem.prestigioBase,
       prestigioClaBase: personagem.prestigioClaBase,
+      creditoCategoriaBonus,
       alinhamentoId: personagem.alinhamentoId,
       background: personagem.background,
-      atributoChaveEa: personagem.atributoChaveEa,
+      atributoChaveEa: atributoChaveEaOverride ?? personagem.atributoChaveEa,
 
       proficienciasExtrasCodigos: this.jsonToStringArray(
         personagem.proficienciasExtrasCodigos,
@@ -695,7 +772,9 @@ export class PersonagemBaseMapper {
         id: p.pericia.id,
         codigo: p.pericia.codigo,
         nome: p.pericia.nome,
-        atributoBase: p.pericia.atributoBase,
+        atributoBase:
+          periciasAtributoBaseOverride[p.pericia.codigo] ??
+          p.pericia.atributoBase,
         somenteTreinada: p.pericia.somenteTreinada,
         penalizaPorCarga: p.pericia.penalizaPorCarga,
         precisaKit: p.pericia.precisaKit,
@@ -737,6 +816,8 @@ export class PersonagemBaseMapper {
         config: p.config ?? {},
       })),
 
+      habilidadesConfig: personagem.habilidadesConfig ?? null,
+
       poderesGenericosSelecionadosIds: (personagem.poderesGenericos ?? []).map(
         (p) => p.habilidadeId,
       ),
@@ -759,23 +840,24 @@ export class PersonagemBaseMapper {
         efeitos: p.passiva.efeitos,
       })),
 
-      atributosDerivados: {
-        pvMaximo: personagem.pvMaximo,
-        peMaximo: personagem.peMaximo,
-        eaMaximo: personagem.eaMaximo,
-        sanMaximo: personagem.sanMaximo,
-        defesaBase: personagem.defesaBase ?? 10,
-        defesaEquipamento: personagem.defesaEquipamento ?? 0,
-        defesaTotal:
-          (personagem.defesaBase ?? 10) + (personagem.defesaEquipamento ?? 0),
-        deslocamento: personagem.deslocamento,
-        limitePeEaPorTurno: personagem.limitePeEaPorTurno,
-        reacoesBasePorTurno: personagem.reacoesBasePorTurno,
-        turnosMorrendo: personagem.turnosMorrendo,
-        turnosEnlouquecendo: personagem.turnosEnlouquecendo,
-        bloqueio: personagem.bloqueio ?? 0,
-        esquiva: personagem.esquiva ?? 0,
-      },
+        atributosDerivados: {
+          pvMaximo: personagem.pvMaximo,
+          pvBarrasTotal: personagem.pvBarrasTotal ?? 1,
+          peMaximo: personagem.peMaximo,
+          eaMaximo: personagem.eaMaximo,
+          sanMaximo: personagem.sanMaximo,
+          defesaBase: personagem.defesaBase ?? 10,
+          defesaEquipamento: personagem.defesaEquipamento ?? 0,
+          defesaTotal:
+            (personagem.defesaBase ?? 10) + (personagem.defesaEquipamento ?? 0),
+          deslocamento: personagem.deslocamento,
+          limitePeEaPorTurno: personagem.limitePeEaPorTurno,
+          reacoesBasePorTurno: personagem.reacoesBasePorTurno,
+          turnosMorrendo: personagem.turnosMorrendo,
+          turnosEnlouquecendo: personagem.turnosEnlouquecendo,
+          bloqueio: personagem.bloqueio ?? 0,
+          esquiva: personagem.esquiva ?? 0,
+        },
 
       resistencias,
       tecnicasNaoInatas,
@@ -856,7 +938,10 @@ export class PersonagemBaseMapper {
           quantidade: item.quantidade,
           equipado: item.equipado,
           espacosCalculados: espacosPorUnidade,
-          categoriaCalculada: equipamento.categoria.toString(),
+          categoriaCalculada: (
+            item.categoriaCalculada ??
+            calcularCategoriaFinal(equipamento.categoria, modsAplicadas.length)
+          ).toString(),
           nomeCustomizado: item.nomeCustomizado,
           notas: item.notas,
           equipamento: {

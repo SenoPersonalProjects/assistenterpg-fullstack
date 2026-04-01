@@ -31,7 +31,11 @@ import type {
   ModificacaoCatalogo,
 } from '@/lib/api';
 
-import { getGrauXamaPorPrestigio, getNivelPrestigioCla } from '@/lib/utils/prestigio';
+import {
+  getGrauXamaPorPrestigio,
+  getLimiteCreditoComBonus,
+  getNivelPrestigioCla,
+} from '@/lib/utils/prestigio';
 import { getNomeGrau } from '@/lib/utils/pericias';
 import { normalizarCategoria } from '@/lib/utils/inventario';
 import { useAuth } from '@/context/AuthContext';
@@ -510,6 +514,8 @@ export function PersonagemBaseStepRevisao({
   const habilidadesClasse = classe?.habilidadesIniciais ?? [];
 
   const grauXama = getGrauXamaPorPrestigio(preview.prestigioBase ?? 0);
+  const creditoBonus = previewCalculado?.creditoCategoriaBonus ?? 0;
+  const limiteCredito = getLimiteCreditoComBonus(grauXama.grau, creditoBonus);
   const nivelPrestigioCla =
     preview.prestigioClaBase != null ? getNivelPrestigioCla(preview.prestigioClaBase) : null;
 
@@ -708,6 +714,25 @@ export function PersonagemBaseStepRevisao({
     }
 
     return items.length > 0 ? items : null;
+  };
+
+  const extrairPericiasConfig = (config: unknown) => {
+    const configRecord = asRecord(config);
+    if (!configRecord || !Array.isArray(configRecord.periciasCodigos)) return [];
+    return configRecord.periciasCodigos
+      .map((codigo) => {
+        const codigoStr = String(codigo);
+        const pericia = todasPericias.find((p) => p.codigo === codigoStr);
+        return pericia ? { codigo: codigoStr, nome: pericia.nome } : { codigo: codigoStr, nome: codigoStr };
+      })
+      .filter((p) => p.codigo);
+  };
+
+  const extrairTipoGrauConfig = (config: unknown) => {
+    const configRecord = asRecord(config);
+    if (!configRecord || typeof configRecord.tipoGrauCodigo !== 'string') return null;
+    const codigo = configRecord.tipoGrauCodigo;
+    return codigo;
   };
 
   const temErrosInventario =
@@ -957,7 +982,7 @@ export function PersonagemBaseStepRevisao({
             </Badge>
           }
         />
-        <InfoTile label="Limite de crédito" value={grauXama.limiteCredito} />
+        <InfoTile label="Limite de crédito" value={limiteCredito} />
 
         {preview.prestigioClaBase != null ? (
           <InfoTile
@@ -1393,6 +1418,8 @@ export function PersonagemBaseStepRevisao({
         >
           {poderesPreview.map((instancia: PoderGenericoPreview, idx: number) => {
             const configFormatada = formatarConfigPoder(instancia.config);
+            const periciasConfig = extrairPericiasConfig(instancia.config);
+            const tipoGrauConfig = extrairTipoGrauConfig(instancia.config);
 
             return (
               <div
@@ -1408,6 +1435,34 @@ export function PersonagemBaseStepRevisao({
                     <p className="text-[10px] text-app-muted mt-1 line-clamp-2">
                       {instancia.descricao}
                     </p>
+                  )}
+                  {(periciasConfig.length > 0 || tipoGrauConfig) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {periciasConfig.map((pericia) => (
+                        <Badge key={`pericia-${pericia.codigo}`} size="sm" color="blue">
+                          {pericia.nome}
+                        </Badge>
+                      ))}
+                      {tipoGrauConfig && (
+                        <Badge size="sm" color="purple">
+                          Grau: {tipoGrauConfig}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  {(periciasConfig.length > 0 || tipoGrauConfig) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {periciasConfig.map((pericia) => (
+                        <Badge key={`pericia-${pericia.codigo}`} size="sm" color="blue">
+                          {pericia.nome}
+                        </Badge>
+                      ))}
+                      {tipoGrauConfig && (
+                        <Badge size="sm" color="purple">
+                          Grau: {tipoGrauConfig}
+                        </Badge>
+                      )}
+                    </div>
                   )}
                   {configFormatada && (
                     <ul className="mt-1.5 space-y-0.5 text-[10px] text-app-muted">

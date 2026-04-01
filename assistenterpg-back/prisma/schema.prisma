@@ -456,6 +456,9 @@ model PersonagemBase {
   eaMaximo  Int @default(0)
   sanMaximo Int @default(0)
 
+  // ✅ NOVO: Barras de PV (Corpo Amaldiçoado Independente)
+  pvBarrasTotal Int @default(1)
+
   // ✅ NOVO: Separar defesa base e bônus de equipamento
   defesaBase        Int @default(10)
   defesaEquipamento Int @default(0)
@@ -485,6 +488,9 @@ model PersonagemBase {
   habilidadesBase     HabilidadePersonagemBase[]
   poderesGenericos    PoderGenericoPersonagemBase[]
   tecnicasAprendidas  PersonagemBaseTecnica[]
+
+  // ✅ NOVO: Configurações de escolhas das habilidades (ex.: perícias por habilidade)
+  habilidadesConfig Json?
 
   @@index([donoId])
   @@index([donoId, nome])
@@ -567,6 +573,12 @@ model PersonagemCampanha {
   eaAtual  Int
   sanMax   Int
   sanAtual Int
+
+  // ✅ NOVO: Barras de PV e núcleos (Corpo Amaldiçoado Independente)
+  pvBarrasTotal      Int    @default(1)
+  pvBarrasRestantes  Int    @default(1)
+  nucleoAmaldicoadoAtivo String?
+  nucleosDisponiveis Json?
 
   limitePeEaPorTurno Int
 

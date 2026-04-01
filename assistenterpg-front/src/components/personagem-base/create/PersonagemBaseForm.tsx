@@ -74,6 +74,11 @@ export type InitialValues = {
   
   // ✅ FORMATO NOVO: array de instâncias com config
   poderesGenericos?: PoderGenericoInstanciaPayload[];
+
+  habilidadesConfig?: {
+    habilidadeId: number;
+    config?: Record<string, unknown>;
+  }[];
   
   // ✅ fonte da verdade (novo)
   passivasAtributosAtivos?: AtributoBaseCodigo[];
@@ -310,6 +315,7 @@ export function PersonagemBaseForm(props: Props) {
           classeId={classeId}
           trilhaId={trilhaId}
           caminhoId={caminhoId}
+          tecnicaInataId={tecnicaInataId}
           onChangeClaId={setClaId}
           onChangeOrigemId={setOrigemId}
           onChangeClasseId={setClasseId}

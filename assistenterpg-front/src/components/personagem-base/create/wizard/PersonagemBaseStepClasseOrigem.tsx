@@ -1,7 +1,8 @@
 // components/personagem-base/create/wizard/PersonagemBaseStepClasseOrigem.tsx
 'use client';
 
-import type { ClasseCatalogo, OrigemCatalogo } from '@/lib/api';
+import type { ClasseCatalogo, OrigemCatalogo, PericiaCatalogo } from '@/lib/api';
+import type { AtributoBaseCodigo } from '@/lib/types/common.types';
 import { SelectModal, type SelectModalOption } from '@/components/ui/SelectModal';
 import { Select } from '@/components/ui/Select';
 import { Icon } from '@/components/ui/Icon';
@@ -10,10 +11,16 @@ import { Alert } from '@/components/ui/Alert';
 type Props = {
   classes: ClasseCatalogo[];
   origens: OrigemCatalogo[];
+  todasPericias: PericiaCatalogo[];
   classeId: string;
   origemId: string;
   periciasClasseEscolhidasCodigos: string[];
   periciasOrigemEscolhidasCodigos: string[];
+  habilidadesConfig: Array<{ habilidadeId: number; config?: Record<string, unknown> }>;
+  onAtualizarHabilidadeConfig: (
+    habilidadeId: number,
+    config: Record<string, unknown>,
+  ) => void;
   onChangeClasseId: (v: string) => void;
   onChangeOrigemId: (v: string) => void;
   onChangePericiasClasse: (codigos: string[]) => void;
@@ -23,10 +30,13 @@ type Props = {
 export function PersonagemBaseStepClasseOrigem({
   classes,
   origens,
+  todasPericias,
   classeId,
   origemId,
   periciasClasseEscolhidasCodigos,
   periciasOrigemEscolhidasCodigos,
+  habilidadesConfig,
+  onAtualizarHabilidadeConfig,
   onChangeClasseId,
   onChangeOrigemId,
   onChangePericiasClasse,
@@ -41,6 +51,139 @@ export function PersonagemBaseStepClasseOrigem({
     [];
 
   const habilidadesClasse = classeSelecionada?.habilidadesIniciais ?? [];
+
+  const escolhasPericiaOrigem = habilidadesOrigem.filter((h) =>
+    getEscolhaPericias(h.mecanicasEspeciais),
+  );
+  const escolhasPericiaClasse = habilidadesClasse.filter((h) =>
+    getEscolhaPericias(h.mecanicasEspeciais),
+  );
+
+  const obterConfigHabilidade = (habilidadeId: number): string[] => {
+    const config = habilidadesConfig?.find((h) => h.habilidadeId === habilidadeId)?.config;
+    if (!config || typeof config !== 'object') return [];
+    const pericias = (config as { periciasCodigos?: string[] }).periciasCodigos ?? [];
+    return pericias.filter((c) => typeof c === 'string');
+  };
+
+  const atualizarConfigHabilidade = (habilidadeId: number, pericias: string[]) => {
+    onAtualizarHabilidadeConfig(habilidadeId, { periciasCodigos: pericias });
+  };
+
+  const normalizarAtributo = (valor: unknown): AtributoBaseCodigo | null => {
+    if (typeof valor !== 'string') return null;
+    const chave = valor.trim().toUpperCase();
+    const mapa: Record<string, AtributoBaseCodigo> = {
+      AGI: 'AGI',
+      AGILIDADE: 'AGI',
+      FOR: 'FOR',
+      FORCA: 'FOR',
+      INT: 'INT',
+      INTELECTO: 'INT',
+      PRE: 'PRE',
+      PRESENCA: 'PRE',
+      VIG: 'VIG',
+      VIGOR: 'VIG',
+    };
+    return mapa[chave] ?? null;
+  };
+
+  const getEscolhaPericias = (
+    mecanicas: unknown,
+  ): { quantidade: number; periciasPermitidas?: string[]; atributosBasePermitidos?: AtributoBaseCodigo[] } | null => {
+    if (!mecanicas || typeof mecanicas !== 'object') return null;
+    const escolha = (mecanicas as Record<string, unknown>).escolha;
+    if (!escolha || typeof escolha !== 'object') return null;
+    if ((escolha as Record<string, unknown>).tipo !== 'PERICIAS') return null;
+
+    const quantidade =
+      typeof (escolha as Record<string, unknown>).quantidade === 'number'
+        ? (escolha as Record<string, unknown>).quantidade as number
+        : 1;
+
+    const periciasPermitidasRaw = (escolha as Record<string, unknown>).periciasPermitidas;
+    const periciasPermitidas = Array.isArray(periciasPermitidasRaw)
+      ? periciasPermitidasRaw.filter((p) => typeof p === 'string') as string[]
+      : undefined;
+
+    const atributosBaseRaw = (escolha as Record<string, unknown>).atributosBasePermitidos;
+    const atributosBasePermitidos = Array.isArray(atributosBaseRaw)
+      ? atributosBaseRaw
+          .map((a) => normalizarAtributo(a))
+          .filter((a): a is AtributoBaseCodigo => !!a)
+      : undefined;
+
+    return {
+      quantidade,
+      periciasPermitidas,
+      atributosBasePermitidos,
+    };
+  };
+
+  const renderEscolhaPericia = (habilidade: { id: number; nome: string; descricao?: string | null; mecanicasEspeciais?: unknown }) => {
+    const escolha = getEscolhaPericias(habilidade.mecanicasEspeciais);
+    if (!escolha) return null;
+
+    const periciasDisponiveis = (todasPericias ?? []).filter((p) => {
+      if (escolha.periciasPermitidas && !escolha.periciasPermitidas.includes(p.codigo)) return false;
+      if (escolha.atributosBasePermitidos && !escolha.atributosBasePermitidos.includes(p.atributoBase)) return false;
+      return true;
+    });
+
+    const escolhidas = obterConfigHabilidade(habilidade.id);
+    const limite = escolha.quantidade;
+
+    const togglePericia = (codigo: string) => {
+      if (escolhidas.includes(codigo)) {
+        atualizarConfigHabilidade(
+          habilidade.id,
+          escolhidas.filter((c) => c !== codigo),
+        );
+        return;
+      }
+      if (escolhidas.length >= limite) return;
+      atualizarConfigHabilidade(habilidade.id, [...escolhidas, codigo]);
+    };
+
+    return (
+      <div className="rounded border border-app-border bg-app-surface p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-app-fg">
+            Escolha de perícia — {habilidade.nome}
+          </p>
+          <span className="text-[11px] text-app-muted">
+            {escolhidas.length}/{limite}
+          </span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {periciasDisponiveis.map((pericia) => {
+            const checked = escolhidas.includes(pericia.codigo);
+            const disabled = !checked && escolhidas.length >= limite;
+            return (
+              <label
+                key={`${habilidade.id}-${pericia.codigo}`}
+                className={`flex items-center gap-2 rounded border px-2 py-1 text-xs transition-colors ${
+                  checked
+                    ? 'border-app-primary/50 bg-app-primary/10 text-app-primary'
+                    : 'border-app-border bg-app-surface text-app-muted hover:text-app-fg'
+                } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => togglePericia(pericia.codigo)}
+                  className="accent-app-primary"
+                />
+                <span className="text-app-fg">{pericia.nome}</span>
+                <span className="text-[10px] text-app-muted">{pericia.atributoBase}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const periciasOrigem = origemSelecionada?.pericias ?? [];
   const periciasOrigemFixas =
@@ -524,6 +667,21 @@ export function PersonagemBaseStepClasseOrigem({
                 </div>
               )}
 
+              {escolhasPericiaOrigem.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-app-fg mb-2">
+                    Escolhas de perÃ­cia
+                  </p>
+                  <div className="space-y-2">
+                    {escolhasPericiaOrigem.map((hab) => (
+                      <div key={`origem-escolha-${hab.id}`}>
+                        {renderEscolhaPericia(hab)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {gruposEscolhaOrigem.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-xs text-app-muted">
@@ -648,6 +806,21 @@ export function PersonagemBaseStepClasseOrigem({
                     Habilidades iniciais
                   </p>
                   {renderHabilidades(habilidadesClasse)}
+                </div>
+              )}
+
+              {escolhasPericiaClasse.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-app-fg mb-2">
+                    Escolhas de perÃ­cia
+                  </p>
+                  <div className="space-y-2">
+                    {escolhasPericiaClasse.map((hab) => (
+                      <div key={`classe-escolha-${hab.id}`}>
+                        {renderEscolhaPericia(hab)}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

@@ -1,6 +1,7 @@
 // components/personagem-base/PersonagemBaseMainSelectors.tsx
 'use client';
 
+import { useState } from 'react';
 import { Select } from '@/components/ui/Select';
 import type {
   ClasseCatalogo,
@@ -22,6 +23,7 @@ type Props = {
   classeId: string;
   trilhaId: string;
   caminhoId: string;
+  tecnicaInataId?: string;
 
   onChangeClaId: (v: string) => void;
   onChangeOrigemId: (v: string) => void;
@@ -41,12 +43,15 @@ export function PersonagemBaseMainSelectors({
   classeId,
   trilhaId,
   caminhoId,
+  tecnicaInataId,
   onChangeClaId,
   onChangeOrigemId,
   onChangeClasseId,
   onChangeTrilhaId,
   onChangeCaminhoId,
 }: Props) {
+  const [erroTrilha, setErroTrilha] = useState<string | null>(null);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <Select
@@ -85,7 +90,21 @@ export function PersonagemBaseMainSelectors({
       <Select
         label="Trilha"
         value={trilhaId}
-        onChange={(e) => onChangeTrilhaId(e.target.value)}
+        onChange={(e) => {
+          const valor = e.target.value;
+          const trilha = trilhas.find((t) => String(t.id) === String(valor));
+          const semTecnicaInata = Boolean(
+            (trilha?.requisitos as { semTecnicaInata?: boolean } | undefined)
+              ?.semTecnicaInata,
+          );
+          if (trilha && semTecnicaInata && tecnicaInataId) {
+            setErroTrilha('Essa trilha exige personagem sem tecnica amaldiçoada.');
+            return;
+          }
+          setErroTrilha(null);
+          onChangeTrilhaId(valor);
+        }}
+        error={erroTrilha ?? undefined}
         options={[
           { value: '', label: 'Selecione uma trilha' },
           ...trilhas.map((t) => ({

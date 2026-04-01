@@ -36,6 +36,10 @@ import { validarPoderesGenericos } from '../regras-criacao/regras-poderes';
 import {
   aplicarEfeitosPoderesEmGraus,
   aplicarEfeitosPoderesEmPericias,
+  aplicarBonusPericiasDeHabilidades,
+  aplicarEscolhasPericiasDeHabilidades,
+  extrairAtributoChaveEaDeHabilidades,
+  extrairPvBarrasTotalDeHabilidades,
   extrairProficienciasDeHabilidades,
   extrairResistenciasDeHabilidades,
 } from '../regras-criacao/regras-poderes-efeitos';
@@ -91,8 +95,14 @@ type PoderGenericoNormalizado = {
   habilidadeId: number;
   config: Prisma.JsonValue;
 };
+type HabilidadeConfigEntrada = { habilidadeId: number; config?: Prisma.JsonValue };
+type HabilidadeConfigNormalizada = {
+  habilidadeId: number;
+  config: Prisma.JsonValue;
+};
 type DtoNormalizado = CreatePersonagemBaseDto & {
   poderesGenericos?: PoderGenericoNormalizado[];
+  habilidadesConfig?: HabilidadeConfigNormalizada[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -126,6 +136,17 @@ function getBooleanField(
   return typeof current === 'boolean' ? current : null;
 }
 
+function getStringArrayField(
+  value: Record<string, unknown> | null | undefined,
+  key: string,
+): string[] | null {
+  if (!value) return null;
+  const current = value[key];
+  if (!Array.isArray(current)) return null;
+  const valid = current.filter((item) => typeof item === 'string') as string[];
+  return valid.length > 0 ? valid : [];
+}
+
 // ✅ REFATORADO: Usar exceção customizada
 function validarAtributoChaveEa(
   valor: unknown,
@@ -145,10 +166,36 @@ function normalizePoderesGenericos(
   }));
 }
 
+function normalizeHabilidadesConfig(
+  habilidades: HabilidadeConfigEntrada[] | undefined,
+): HabilidadeConfigNormalizada[] {
+  return (habilidades ?? []).map((inst) => ({
+    habilidadeId: inst.habilidadeId,
+    config: inst.config ?? {},
+  }));
+}
+
 function limparUndefinedDeepJson<T>(value: T | undefined): T | undefined {
   if (value === undefined) return undefined;
   const normalized: unknown = JSON.parse(JSON.stringify(value));
   return normalized as T;
+}
+
+function extrairPrestigioClaBase(
+  habilidades: HabilidadeComEfeitos,
+): number | null {
+  let valor: number | null = null;
+
+  for (const hab of habilidades) {
+    const mecanicas = hab.habilidade.mecanicasEspeciais;
+    if (!isRecord(mecanicas)) continue;
+
+    if (typeof mecanicas.prestigioClaBase === 'number') {
+      valor = mecanicas.prestigioClaBase;
+    }
+  }
+
+  return valor;
 }
 
 function getLegacyInt2Config(value: unknown): PassivaIntelectoConfigDto | null {
@@ -193,12 +240,18 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
 ): ModDerivados {
   const mods: ModDerivados = {
     pvPorNivelExtra: 0,
+    pvExtra: 0,
     peBaseExtra: 0,
     limitePeEaExtra: 0,
     defesaExtra: 0,
+    sanPorNivelExtra: 0,
+    sanMultiplicador: 1,
     espacosInventarioExtra: 0,
     inventarioSomarIntelecto: false,
     inventarioReduzirItensLeves: false,
+    inventarioReduzirCategoriaEm: 0,
+    inventarioReduzirCategoriaExcetoTipos: [],
+    creditoCategoriaBonus: 0,
   };
 
   for (const h of habilidades) {
@@ -208,7 +261,12 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
     const recursos = getNestedRecord(mecanicas, 'recursos');
     const defesa = getNestedRecord(mecanicas, 'defesa');
     const inventario = getNestedRecord(mecanicas, 'inventario');
+    const itens = getNestedRecord(mecanicas, 'itens');
+    const economia = getNestedRecord(mecanicas, 'economia');
+    const sanidade = getNestedRecord(mecanicas, 'sanidade');
     const pvPorNivel = getNumberField(mecanicas, 'pvPorNivel');
+    const pvExtra = getNumberField(mecanicas, 'pvExtra');
+    const sanPorNivel = getNumberField(mecanicas, 'sanPorNivel');
     const peBase = getNumberField(recursos, 'peBase');
     const pePorNivelImpar = getNumberField(recursos, 'pePorNivelImpar');
     const limitePePorTurnoBonus = getNumberField(
@@ -219,9 +277,24 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
     const espacosExtra = getNumberField(inventario, 'espacosExtra');
     const somarIntelecto = getBooleanField(inventario, 'somarIntelecto');
     const reduzirItensLeves = getBooleanField(inventario, 'reduzirItensLeves');
+    const reduzirCategoriaEm = getNumberField(itens, 'reduzCategoriaEm');
+    const excetoTipos = getStringArrayField(itens, 'excetoTipos');
+    const creditoCategoriaBonus = getNumberField(
+      economia,
+      'creditoCategoriaBonus',
+    );
+    const sanMultiplicador = getNumberField(sanidade, 'multiplicadorInicial');
 
     if (pvPorNivel !== null) {
       mods.pvPorNivelExtra += pvPorNivel;
+    }
+
+    if (pvExtra !== null) {
+      mods.pvExtra += pvExtra;
+    }
+
+    if (sanPorNivel !== null) {
+      mods.sanPorNivelExtra += sanPorNivel;
     }
 
     if (peBase !== null) {
@@ -241,6 +314,10 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
       mods.defesaExtra += defesaBonus;
     }
 
+    if (sanMultiplicador !== null && sanMultiplicador > 0) {
+      mods.sanMultiplicador *= sanMultiplicador;
+    }
+
     if (espacosExtra !== null) {
       mods.espacosInventarioExtra += espacosExtra;
     }
@@ -251,6 +328,26 @@ function calcularModificadoresDerivadosPorHabilidadesLocal(
 
     if (reduzirItensLeves === true) {
       mods.inventarioReduzirItensLeves = true;
+    }
+
+    if (typeof reduzirCategoriaEm === 'number' && reduzirCategoriaEm > 0) {
+      mods.inventarioReduzirCategoriaEm = Math.max(
+        mods.inventarioReduzirCategoriaEm,
+        reduzirCategoriaEm,
+      );
+    }
+
+    if (excetoTipos && excetoTipos.length > 0) {
+      mods.inventarioReduzirCategoriaExcetoTipos = Array.from(
+        new Set([...mods.inventarioReduzirCategoriaExcetoTipos, ...excetoTipos]),
+      );
+    }
+
+    if (
+      typeof creditoCategoriaBonus === 'number' &&
+      creditoCategoriaBonus > 0
+    ) {
+      mods.creditoCategoriaBonus += creditoCategoriaBonus;
     }
   }
 
@@ -316,6 +413,16 @@ export async function calcularEstadoFinalPersonagemBase(
   const poderesGenericosNormalizados = normalizePoderesGenericos(
     dtoIn.poderesGenericos,
   );
+  const habilidadesConfigNormalizadas = normalizeHabilidadesConfig(
+    dtoIn.habilidadesConfig,
+  );
+  const habilidadesConfigEfetivo = [
+    ...poderesGenericosNormalizados.map((inst) => ({
+      habilidadeId: inst.habilidadeId,
+      config: inst.config ?? {},
+    })),
+    ...habilidadesConfigNormalizadas,
+  ];
   const passivasAtributosConfigLimpo = limparUndefinedDeepJson(
     dtoIn.passivasAtributosConfig,
   );
@@ -323,6 +430,7 @@ export async function calcularEstadoFinalPersonagemBase(
   const dtoNormalizado: DtoNormalizado = {
     ...dtoIn,
     poderesGenericos: poderesGenericosNormalizados,
+    habilidadesConfig: habilidadesConfigNormalizadas,
     passivasAtributosConfig: passivasAtributosConfigLimpo,
   };
 
@@ -434,21 +542,11 @@ export async function calcularEstadoFinalPersonagemBase(
   );
 
   aplicarGrausTreinamento(dtoNormalizado.grausTreinamento, periciasMapCodigo);
-
-  const periciasComCodigo = Array.from(periciasMapCodigo.entries()).map(
+  let periciasComCodigo = Array.from(periciasMapCodigo.entries()).map(
     ([codigo, p]) => ({
       codigo,
       grauTreinamento: p.grauTreinamento,
     }),
-  );
-
-  // 4.1) Validar trilha/caminho com perícias finais
-  await validarTrilhaECaminho(
-    dtoNormalizado.classeId,
-    dtoNormalizado.trilhaId,
-    dtoNormalizado.caminhoId,
-    periciasComCodigo,
-    prisma,
   );
 
   // 5) Habilidades
@@ -466,10 +564,56 @@ export async function calcularEstadoFinalPersonagemBase(
     prisma,
   );
 
-  const habilidadesParaPersistir = habilidades
-    .filter((h) => h.habilidade?.tipo !== 'PODER_GENERICO')
-    .map((h) => ({ habilidadeId: h.habilidadeId }));
-  const habilidadesParaGraus = normalizarHabilidadesParaGraus(habilidades);
+  const atributoChaveEaOverride =
+    extrairAtributoChaveEaDeHabilidades(habilidades);
+  if (atributoChaveEaOverride) {
+    dtoNormalizado.atributoChaveEa = atributoChaveEaOverride;
+  }
+
+  const pvBarrasTotal =
+    extrairPvBarrasTotalDeHabilidades(habilidades) ?? 1;
+
+    const habilidadesParaPersistir = habilidades
+      .filter((h) => h.habilidade?.tipo !== 'PODER_GENERICO')
+      .map((h) => ({ habilidadeId: h.habilidadeId }));
+    const habilidadesParaGraus = normalizarHabilidadesParaGraus(habilidades);
+
+    const prestigioClaBaseHabilidade = extrairPrestigioClaBase(habilidades);
+    if (
+      prestigioClaBaseHabilidade !== null &&
+      dtoNormalizado.prestigioClaBase == null
+    ) {
+      dtoNormalizado.prestigioClaBase = prestigioClaBaseHabilidade;
+    }
+
+    aplicarBonusPericiasDeHabilidades(habilidades, periciasMapCodigo);
+
+  const periciasCatalogoMap = new Map(
+    todasPericias.map((p) => [p.codigo, p] as const),
+  );
+
+  aplicarEscolhasPericiasDeHabilidades({
+    habilidades,
+    habilidadesConfig: habilidadesConfigEfetivo,
+    periciasMap: periciasMapCodigo,
+    periciasCatalogo: periciasCatalogoMap,
+  });
+
+  periciasComCodigo = Array.from(periciasMapCodigo.entries()).map(
+    ([codigo, p]) => ({
+      codigo,
+      grauTreinamento: p.grauTreinamento,
+    }),
+  );
+
+  await validarTrilhaECaminho(
+    dtoNormalizado.classeId,
+    dtoNormalizado.trilhaId,
+    dtoNormalizado.caminhoId,
+    periciasComCodigo,
+    dtoNormalizado.tecnicaInataId,
+    prisma,
+  );
 
   // 5.1) Profs de habilidades
   const profsDeHabilidades = await extrairProficienciasDeHabilidades(
@@ -584,8 +728,16 @@ export async function calcularEstadoFinalPersonagemBase(
   const mods = calcMods(habilidades, dtoNormalizado.nivel);
 
   // 11) RESISTÊNCIAS E EQUIPAMENTOS
-  const resistenciasDeHabilidades =
-    extrairResistenciasDeHabilidades(habilidades);
+    const resistenciasDeHabilidades = extrairResistenciasDeHabilidades(
+      habilidades,
+      {
+        agilidade: dtoNormalizado.agilidade,
+        forca: dtoNormalizado.forca,
+        intelecto: dtoNormalizado.intelecto,
+        presenca: dtoNormalizado.presenca,
+        vigor: dtoNormalizado.vigor,
+      },
+    );
 
   let defesaEquipamento = 0;
   const resistenciasDeEquipamentos = new Map<string, number>();
@@ -629,19 +781,29 @@ export async function calcularEstadoFinalPersonagemBase(
     );
   }
 
-  // Derivados finais (agora com defesa separada)
-  const defesaBase = derivadosBase.defesa + mods.defesaExtra;
+    // Derivados finais (agora com defesa separada)
+    const defesaBase = derivadosBase.defesa + mods.defesaExtra;
+    const sanBase =
+      derivadosBase.sanMaximo + mods.sanPorNivelExtra * dtoNormalizado.nivel;
+    const sanMultiplicador =
+      typeof mods.sanMultiplicador === 'number' && mods.sanMultiplicador > 0
+        ? mods.sanMultiplicador
+        : 1;
+    const sanFinal = Math.floor(sanBase * sanMultiplicador);
 
-  const derivadosFinais = {
-    ...derivadosBase,
-    pvMaximo:
-      derivadosBase.pvMaximo + mods.pvPorNivelExtra * dtoNormalizado.nivel,
-    peMaximo: derivadosBase.peMaximo + mods.peBaseExtra,
-    limitePeEaPorTurno: derivadosBase.limitePeEaPorTurno + mods.limitePeEaExtra,
-    defesaBase,
-    defesaEquipamento,
-    defesaTotal: defesaBase + defesaEquipamento,
-  };
+    const derivadosFinais = {
+      ...derivadosBase,
+      pvMaximo:
+        derivadosBase.pvMaximo +
+        mods.pvPorNivelExtra * dtoNormalizado.nivel +
+        mods.pvExtra,
+      peMaximo: derivadosBase.peMaximo + mods.peBaseExtra,
+      sanMaximo: sanFinal,
+      limitePeEaPorTurno: derivadosBase.limitePeEaPorTurno + mods.limitePeEaExtra,
+      defesaBase,
+      defesaEquipamento,
+      defesaTotal: defesaBase + defesaEquipamento,
+    };
 
   // Recalcular bloqueio e esquiva com perícias finais
   const { bloqueio, esquiva } = calcularBloqueioEsquiva({
@@ -705,6 +867,7 @@ export async function calcularEstadoFinalPersonagemBase(
     grausTreinamento: dtoNormalizado.grausTreinamento,
 
     derivadosFinais,
+    pvBarrasTotal,
 
     espacosInventario: {
       base: espacosInventarioBase,
@@ -737,3 +900,4 @@ export async function calcularEstadoFinalPersonagemBase(
     },
   };
 }
+

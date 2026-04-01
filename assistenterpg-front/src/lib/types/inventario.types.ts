@@ -424,6 +424,8 @@ export type PreviewItensInventarioPayload = {
   intelecto?: number;
   somarIntelecto?: boolean;
   reduzirItensLeves?: boolean;
+  reduzirCategoriaEm?: number;
+  reduzirCategoriaExcetoTipos?: string[];
   prestigioBase: number;
   itens: ItemInventarioPayload[];
 };

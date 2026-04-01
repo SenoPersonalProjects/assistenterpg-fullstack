@@ -220,6 +220,44 @@ export class CampanhaModificadorNaoEncontradoException extends BaseException {
   }
 }
 
+export class PersonagemCampanhaNucleoInvalidoException extends BusinessException {
+  constructor(nucleo: string) {
+    super('Nucleo amaldicoado invalido', 'CAMPANHA_NUCLEO_INVALIDO', {
+      nucleo,
+    });
+  }
+}
+
+export class PersonagemCampanhaNucleoIndisponivelException extends BusinessException {
+  constructor(nucleo: string) {
+    super(
+      'Nucleo amaldicoado nao disponivel para este personagem',
+      'CAMPANHA_NUCLEO_INDISPONIVEL',
+      { nucleo },
+    );
+  }
+}
+
+export class PersonagemCampanhaNucleoSacrificioIndisponivelException extends BusinessException {
+  constructor(motivo: string) {
+    super(
+      'Nao e possivel sacrificar nucleo neste momento',
+      'CAMPANHA_NUCLEO_SACRIFICIO_INVALIDO',
+      { motivo },
+    );
+  }
+}
+
+export class PersonagemCampanhaNucleoCustoInsuficienteException extends BusinessException {
+  constructor(custo: number, atual: number) {
+    super(
+      'PE insuficiente para sacrificar outro nucleo',
+      'CAMPANHA_NUCLEO_PE_INSUFICIENTE',
+      { custo, atual },
+    );
+  }
+}
+
 export class CampanhaModificadorJaDesfeitoException extends BusinessException {
   constructor(modificadorId: number, personagemCampanhaId: number) {
     super(

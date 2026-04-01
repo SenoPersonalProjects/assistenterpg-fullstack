@@ -1,20 +1,27 @@
 // src/personagem-base/regras-criacao/regras-poderes-efeitos.ts
 
-import { Prisma } from '@prisma/client';
+import { Prisma, AtributoBaseEA } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   PoderesGenericosNaoEncontradosException,
   PoderGenericoConfigInvalidaException,
   PoderGenericoPericiaMaximaException,
   PoderGenericoPericiaNivelException,
+  HabilidadeRequerEscolhaException,
+  HabilidadeConfigInvalidaException,
   ProficienciaNaoEncontradaException,
 } from 'src/common/exceptions/personagem.exception';
 
-type PrismaLike = Pick<PrismaService, 'habilidade' | 'proficiencia'>;
+type PrismaLike = Pick<PrismaService, 'habilidade' | 'proficiencia' | 'pericia'>;
 
 type PoderGenericoInstanciaInput = {
   habilidadeId: number;
   config?: unknown;
+};
+
+type HabilidadeConfigInstanciaInput = {
+  habilidadeId: number;
+  config?: Prisma.JsonValue;
 };
 
 type PericiaState = {
@@ -22,6 +29,16 @@ type PericiaState = {
   periciaId: number;
   bonusExtra: number;
 };
+
+type AtributosBasicos = {
+  agilidade: number;
+  forca: number;
+  intelecto: number;
+  presenca: number;
+  vigor: number;
+};
+
+type AtributoBaseCodigo = 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG';
 
 type PoderDb = {
   id: number;
@@ -44,7 +61,12 @@ function isJsonObject(value: unknown): value is Prisma.JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-type EscolhaPericias = { tipo: 'PERICIAS'; quantidade?: number };
+type EscolhaPericias = {
+  tipo: 'PERICIAS';
+  quantidade?: number;
+  periciasPermitidas?: string[];
+  atributosBasePermitidos?: AtributoBaseCodigo[];
+};
 
 type PericiasFixasConfig = {
   periciasFixas?: string[];
@@ -54,6 +76,10 @@ type PericiasFixasConfig = {
 type PericiasTreinadasConfig = {
   periciasTreinadas?: string[];
   bonusSeJaTreinado?: number;
+};
+
+type PericiasEscolhaConfig = {
+  periciasCodigos?: string[];
 };
 
 // Extrai com segurança mec.escolha quando for do tipo PERICIAS
@@ -66,10 +92,25 @@ function getEscolhaPericias(
   if (!isJsonObject(escolha)) return null;
 
   if (escolha.tipo !== 'PERICIAS') return null;
+
+  const periciasPermitidasRaw = escolha.periciasPermitidas;
+  const periciasPermitidas = Array.isArray(periciasPermitidasRaw)
+    ? periciasPermitidasRaw.filter((p) => typeof p === 'string')
+    : undefined;
+
+  const atributosBaseRaw = escolha.atributosBasePermitidos;
+  const atributosBasePermitidos = Array.isArray(atributosBaseRaw)
+    ? atributosBaseRaw
+        .map((attr) => normalizeAtributoBaseCodigo(attr))
+        .filter((attr): attr is AtributoBaseCodigo => !!attr)
+    : undefined;
+
   return {
     tipo: 'PERICIAS',
     quantidade:
       typeof escolha.quantidade === 'number' ? escolha.quantidade : undefined,
+    periciasPermitidas,
+    atributosBasePermitidos,
   };
 }
 
@@ -148,6 +189,225 @@ function getTipoGrauCodigo(config: unknown): string | null {
   return codigo;
 }
 
+function resolverValorResistencia(
+  valor: unknown,
+  atributos?: AtributosBasicos,
+): number | null {
+  if (typeof valor === 'number') return valor;
+  if (!atributos || typeof valor !== 'string') return null;
+
+  const chave = valor.trim().toUpperCase();
+  const mapa: Record<string, number | undefined> = {
+    AGI: atributos.agilidade,
+    AGILIDADE: atributos.agilidade,
+    FOR: atributos.forca,
+    FORCA: atributos.forca,
+    INT: atributos.intelecto,
+    INTELECTO: atributos.intelecto,
+    PRE: atributos.presenca,
+    PRESENCA: atributos.presenca,
+    VIG: atributos.vigor,
+    VIGOR: atributos.vigor,
+  };
+
+  const resultado = mapa[chave];
+  return typeof resultado === 'number' ? resultado : null;
+}
+
+function normalizeAtributoBaseCodigo(
+  valor: unknown,
+): AtributoBaseCodigo | null {
+  if (typeof valor !== 'string') return null;
+  const chave = valor.trim().toUpperCase();
+  const mapa: Record<string, AtributoBaseCodigo> = {
+    AGI: 'AGI',
+    AGILIDADE: 'AGI',
+    FOR: 'FOR',
+    FORCA: 'FOR',
+    INT: 'INT',
+    INTELECTO: 'INT',
+    PRE: 'PRE',
+    PRESENCA: 'PRE',
+    VIG: 'VIG',
+    VIGOR: 'VIG',
+  };
+  return mapa[chave] ?? null;
+}
+
+export function aplicarBonusPericiasDeHabilidades(
+  habilidades: Array<{
+    habilidade: { mecanicasEspeciais?: Prisma.JsonValue | null };
+  }>,
+  periciasMap: Map<string, PericiaState>,
+): void {
+  for (const hab of habilidades) {
+    const mecanicas = hab.habilidade.mecanicasEspeciais;
+    if (!isJsonObject(mecanicas)) continue;
+
+    const periciasBonus = mecanicas.periciasBonus;
+    if (!isJsonObject(periciasBonus)) continue;
+
+    for (const [codigo, bonus] of Object.entries(periciasBonus)) {
+      if (typeof bonus !== 'number' || bonus === 0) continue;
+      const pericia = periciasMap.get(codigo);
+      if (!pericia) continue;
+      pericia.bonusExtra += bonus;
+    }
+  }
+}
+
+export function aplicarEscolhasPericiasDeHabilidades(params: {
+  habilidades: Array<{
+    habilidade: {
+      nome: string;
+      mecanicasEspeciais?: Prisma.JsonValue | null;
+    };
+  }>;
+  habilidadesConfig: HabilidadeConfigInstanciaInput[] | undefined;
+  periciasMap: Map<string, PericiaState>;
+  periciasCatalogo: Map<string, { codigo: string; atributoBase: string }>;
+}): void {
+  const {
+    habilidades,
+    habilidadesConfig,
+    periciasMap,
+    periciasCatalogo,
+  } = params;
+  if (!habilidades || habilidades.length === 0) return;
+
+  const configPorHabilidade = new Map<number, PericiasEscolhaConfig>();
+  for (const inst of habilidadesConfig ?? []) {
+    const config = isJsonObject(inst.config) ? inst.config : {};
+    configPorHabilidade.set(
+      inst.habilidadeId,
+      config as PericiasEscolhaConfig,
+    );
+  }
+
+  for (const hab of habilidades) {
+    const mecanicas = hab.habilidade.mecanicasEspeciais ?? null;
+    const escolhaMec = getEscolhaPericias(mecanicas);
+    if (!escolhaMec) continue;
+
+    const config = configPorHabilidade.get(
+      (hab as { habilidadeId?: number }).habilidadeId ?? -1,
+    );
+    if (!config) {
+      throw new HabilidadeRequerEscolhaException(hab.habilidade.nome);
+    }
+
+    const qtd =
+      typeof escolhaMec.quantidade === 'number' ? escolhaMec.quantidade : 1;
+    const codigos = getStringArrayFromConfig(config, 'periciasCodigos');
+
+    if (!codigos) {
+      throw new HabilidadeConfigInvalidaException(
+        hab.habilidade.nome,
+        'periciasCodigos',
+        'deve ser array de strings',
+      );
+    }
+
+    const unicos = Array.from(new Set(codigos));
+    if (unicos.length !== codigos.length) {
+      throw new HabilidadeConfigInvalidaException(
+        hab.habilidade.nome,
+        'periciasCodigos',
+        'nao permite pericias repetidas na mesma escolha',
+      );
+    }
+
+    if (codigos.length !== qtd) {
+      throw new HabilidadeConfigInvalidaException(
+        hab.habilidade.nome,
+        'periciasCodigos',
+        `exige escolher exatamente ${qtd} pericias`,
+        { quantidadeEsperada: qtd, quantidadeRecebida: codigos.length },
+      );
+    }
+
+    for (const codigo of codigos) {
+      const pericia = periciasMap.get(codigo);
+      if (!pericia) {
+        throw new HabilidadeConfigInvalidaException(
+          hab.habilidade.nome,
+          'periciasCodigos',
+          `pericia "${codigo}" nao existe no sistema`,
+        );
+      }
+
+      if (
+        escolhaMec.periciasPermitidas &&
+        !escolhaMec.periciasPermitidas.includes(codigo)
+      ) {
+        throw new HabilidadeConfigInvalidaException(
+          hab.habilidade.nome,
+          'periciasCodigos',
+          `pericia "${codigo}" nao esta permitida`,
+          { permitido: escolhaMec.periciasPermitidas },
+        );
+      }
+
+      if (escolhaMec.atributosBasePermitidos?.length) {
+        const periciaCatalogo = periciasCatalogo.get(codigo);
+        const atributo = normalizeAtributoBaseCodigo(
+          periciaCatalogo?.atributoBase,
+        );
+        if (!atributo) {
+          throw new HabilidadeConfigInvalidaException(
+            hab.habilidade.nome,
+            'periciasCodigos',
+            `pericia "${codigo}" nao possui atributo base valido`,
+          );
+        }
+        if (!escolhaMec.atributosBasePermitidos.includes(atributo)) {
+          throw new HabilidadeConfigInvalidaException(
+            hab.habilidade.nome,
+            'periciasCodigos',
+            `pericia "${codigo}" nao possui atributo base permitido`,
+            {
+              atributoBase: atributo,
+              permitido: escolhaMec.atributosBasePermitidos,
+            },
+          );
+        }
+      }
+    }
+
+    const bonusEscolha = isJsonObject(mecanicas)
+      ? mecanicas.periciasBonusEscolha
+      : null;
+    const treinadasEscolha = isJsonObject(mecanicas)
+      ? mecanicas.periciasTreinadasEscolha
+      : null;
+    const bonusSeJaTreinadoEscolha = isJsonObject(mecanicas)
+      ? mecanicas.bonusSeJaTreinadoEscolha
+      : null;
+
+    for (const codigo of codigos) {
+      const pericia = periciasMap.get(codigo);
+      if (!pericia) continue;
+
+      if (typeof bonusEscolha === 'number' && bonusEscolha !== 0) {
+        pericia.bonusExtra += bonusEscolha;
+      }
+
+      if (treinadasEscolha === true) {
+        const bonusTreinado =
+          typeof bonusSeJaTreinadoEscolha === 'number'
+            ? bonusSeJaTreinadoEscolha
+            : 2;
+
+        if (pericia.grauTreinamento <= 0) {
+          pericia.grauTreinamento = 1;
+        } else {
+          pericia.bonusExtra += bonusTreinado;
+        }
+      }
+    }
+  }
+}
+
 export async function aplicarEfeitosPoderesEmPericias(
   params: {
     nivel: number;
@@ -165,6 +425,13 @@ export async function aplicarEfeitosPoderesEmPericias(
     where: { id: { in: idsUnicos }, tipo: 'PODER_GENERICO' },
     select: { id: true, nome: true, mecanicasEspeciais: true },
   })) as PoderDb[];
+
+  const periciasCatalogo = await prisma.pericia.findMany({
+    select: { codigo: true, atributoBase: true },
+  });
+  const periciasCatalogoMap = new Map(
+    periciasCatalogo.map((p) => [p.codigo, p] as const),
+  );
 
   if (poderesDb.length !== idsUnicos.length) {
     throw new PoderesGenericosNaoEncontradosException();
@@ -221,6 +488,38 @@ export async function aplicarEfeitosPoderesEmPericias(
           );
         }
 
+        if (
+          escolhaMec.periciasPermitidas &&
+          !escolhaMec.periciasPermitidas.includes(codigo)
+        ) {
+          throw new PoderGenericoConfigInvalidaException(
+            poderDb.nome,
+            'periciasCodigos',
+            `perÃ­cia "${codigo}" nÃ£o estÃ¡ permitida`,
+          );
+        }
+
+        if (escolhaMec.atributosBasePermitidos?.length) {
+          const periciaCatalogo = periciasCatalogoMap.get(codigo);
+          const atributo = normalizeAtributoBaseCodigo(
+            periciaCatalogo?.atributoBase,
+          );
+          if (!atributo) {
+            throw new PoderGenericoConfigInvalidaException(
+              poderDb.nome,
+              'periciasCodigos',
+              `perÃ­cia "${codigo}" nÃ£o possui atributo base vÃ¡lido`,
+            );
+          }
+          if (!escolhaMec.atributosBasePermitidos.includes(atributo)) {
+            throw new PoderGenericoConfigInvalidaException(
+              poderDb.nome,
+              'periciasCodigos',
+              `perÃ­cia "${codigo}" nÃ£o possui atributo base permitido`,
+            );
+          }
+        }
+
         const proximo = pericia.grauTreinamento + 1;
 
         if (proximo > maxPermitido) {
@@ -236,6 +535,40 @@ export async function aplicarEfeitosPoderesEmPericias(
         }
 
         pericia.grauTreinamento = proximo;
+      }
+
+      const bonusEscolha = isJsonObject(poderDb.mecanicasEspeciais)
+        ? poderDb.mecanicasEspeciais.periciasBonusEscolha
+        : null;
+      const treinadasEscolha = isJsonObject(poderDb.mecanicasEspeciais)
+        ? poderDb.mecanicasEspeciais.periciasTreinadasEscolha
+        : null;
+      const bonusSeJaTreinadoEscolha = isJsonObject(
+        poderDb.mecanicasEspeciais,
+      )
+        ? poderDb.mecanicasEspeciais.bonusSeJaTreinadoEscolha
+        : null;
+
+      for (const codigo of codigos) {
+        const pericia = periciasMap.get(codigo);
+        if (!pericia) continue;
+
+        if (typeof bonusEscolha === 'number' && bonusEscolha !== 0) {
+          pericia.bonusExtra += bonusEscolha;
+        }
+
+        if (treinadasEscolha === true) {
+          const bonusTreinado =
+            typeof bonusSeJaTreinadoEscolha === 'number'
+              ? bonusSeJaTreinadoEscolha
+              : 2;
+
+          if (pericia.grauTreinamento <= 0) {
+            pericia.grauTreinamento = 1;
+          } else {
+            pericia.bonusExtra += bonusTreinado;
+          }
+        }
       }
     }
     const treinadasConfig = getPericiasTreinadasConfig(
@@ -434,6 +767,7 @@ export function extrairResistenciasDeHabilidades(
   habilidades: Array<{
     habilidade: { mecanicasEspeciais?: Prisma.JsonValue | null; nome?: string };
   }>,
+  atributos?: AtributosBasicos,
 ): Map<string, number> {
   const resistencias = new Map<string, number>();
 
@@ -447,12 +781,101 @@ export function extrairResistenciasDeHabilidades(
 
     // ✅ Formato esperado: { "BALISTICO": 2, "ENERGIA_AMALDICOADA": 5, "DANO": 1 }
     for (const [codigo, valor] of Object.entries(resistenciasObj)) {
-      if (typeof valor === 'number' && valor > 0) {
+      const valorResolvido = resolverValorResistencia(valor, atributos);
+      if (typeof valorResolvido === 'number' && valorResolvido > 0) {
         const atual = resistencias.get(codigo) || 0;
-        resistencias.set(codigo, atual + valor);
+        resistencias.set(codigo, atual + valorResolvido);
       }
     }
   }
 
   return resistencias;
+}
+
+/**
+ * ✅ NOVO: Extrai override do atributo-chave de EA/PE a partir das habilidades
+ *
+ * Espera mecanicasEspeciais.recursos.atributoChaveEa = "INT" | "PRE"
+ */
+export function extrairAtributoChaveEaDeHabilidades(
+  habilidades: Array<{
+    habilidade: { mecanicasEspeciais?: Prisma.JsonValue | null; nome?: string };
+  }>,
+): AtributoBaseEA | null {
+  let override: AtributoBaseEA | null = null;
+
+  for (const hab of habilidades) {
+    const mecanicas = hab.habilidade.mecanicasEspeciais;
+    if (!isJsonObject(mecanicas)) continue;
+    const recursos = mecanicas.recursos;
+    if (!isJsonObject(recursos)) continue;
+
+    const atributoRaw = recursos.atributoChaveEa;
+    const atributo = normalizeAtributoBaseCodigo(atributoRaw);
+    if (atributo === 'INT' || atributo === 'PRE') {
+      override = atributo as AtributoBaseEA;
+    }
+  }
+
+  return override;
+}
+
+/**
+ * ✅ NOVO: Extrai overrides do atributo-base das pericias
+ *
+ * Espera mecanicasEspeciais.periciasAtributoBase = { VONTADE: "INT", ... }
+ */
+export function extrairPericiasAtributoBaseOverride(
+  habilidades: Array<{
+    habilidade: { mecanicasEspeciais?: Prisma.JsonValue | null; nome?: string };
+  }>,
+): Record<string, AtributoBaseCodigo> {
+  const overrides: Record<string, AtributoBaseCodigo> = {};
+
+  for (const hab of habilidades) {
+    const mecanicas = hab.habilidade.mecanicasEspeciais;
+    if (!isJsonObject(mecanicas)) continue;
+
+    const periciasOverride = mecanicas.periciasAtributoBase;
+    if (!isJsonObject(periciasOverride)) continue;
+
+    for (const [codigo, atributoRaw] of Object.entries(periciasOverride)) {
+      const atributo = normalizeAtributoBaseCodigo(atributoRaw);
+      if (!atributo) continue;
+      const codigoNormalizado = codigo.trim().toUpperCase();
+      if (!codigoNormalizado) continue;
+      overrides[codigoNormalizado] = atributo;
+    }
+  }
+
+  return overrides;
+}
+
+/**
+ * ✅ NOVO: Extrai quantidade de barras de PV
+ *
+ * Espera mecanicasEspeciais.recursos.pvBarrasTotal = number
+ */
+export function extrairPvBarrasTotalDeHabilidades(
+  habilidades: Array<{
+    habilidade: { mecanicasEspeciais?: Prisma.JsonValue | null; nome?: string };
+  }>,
+): number | null {
+  let total: number | null = null;
+
+  for (const hab of habilidades) {
+    const mecanicas = hab.habilidade.mecanicasEspeciais;
+    if (!isJsonObject(mecanicas)) continue;
+    const recursos = mecanicas.recursos;
+    if (!isJsonObject(recursos)) continue;
+
+    const valorRaw = recursos.pvBarrasTotal;
+    if (typeof valorRaw !== 'number' || !Number.isFinite(valorRaw)) continue;
+    const valor = Math.trunc(valorRaw);
+    if (valor >= 2) {
+      total = total === null ? valor : Math.max(total, valor);
+    }
+  }
+
+  return total;
 }

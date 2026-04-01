@@ -41,6 +41,9 @@ type Props = {
   intelecto?: number;
   somarIntelecto?: boolean;
   reduzirItensLeves?: boolean;
+  reduzirCategoriaEm?: number;
+  reduzirCategoriaExcetoTipos?: string[];
+  creditoCategoriaBonus?: number;
   prestigioBase: number;
   equipamentos: EquipamentoCatalogo[];
   modificacoes: ModificacaoCatalogo[];
@@ -57,6 +60,8 @@ export function PersonagemBaseStepInventario(props: Props) {
     intelecto: props.intelecto,
     somarIntelecto: props.somarIntelecto,
     reduzirItensLeves: props.reduzirItensLeves,
+    reduzirCategoriaEm: props.reduzirCategoriaEm,
+    reduzirCategoriaExcetoTipos: props.reduzirCategoriaExcetoTipos,
     prestigioBase: props.prestigioBase,
   });
 
@@ -763,6 +768,7 @@ export function PersonagemBaseStepInventario(props: Props) {
               grauXama={grauXama}
               itensInventario={props.itensInventario}
               equipamentos={equipamentos}
+              creditoCategoriaBonus={props.creditoCategoriaBonus}
             />
 
             {/* Capacidade de Carga */}

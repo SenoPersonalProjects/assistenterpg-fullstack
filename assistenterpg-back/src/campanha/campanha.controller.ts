@@ -20,6 +20,7 @@ import { AddMembroDto } from './dto/add-membro.dto';
 import { CreateConviteDto } from './dto/create-convite.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { VincularPersonagemCampanhaDto } from './dto/vincular-personagem-campanha.dto';
+import { AtualizarNucleoPersonagemCampanhaDto } from './dto/atualizar-nucleo-personagem-campanha.dto';
 import { AtualizarRecursosPersonagemCampanhaDto } from './dto/atualizar-recursos-personagem-campanha.dto';
 import { AplicarModificadorPersonagemCampanhaDto } from './dto/aplicar-modificador-personagem-campanha.dto';
 import { DesfazerModificadorPersonagemCampanhaDto } from './dto/desfazer-modificador-personagem-campanha.dto';
@@ -28,6 +29,7 @@ import {
   AtualizarItemInventarioCampanhaDto,
   AplicarModificacaoInventarioCampanhaDto,
 } from './dto/inventario-campanha.dto';
+import { SacrificarNucleoPersonagemCampanhaDto } from './dto/sacrificar-nucleo-personagem-campanha.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas')
@@ -140,6 +142,36 @@ export class CampanhaController {
     @Body() dto: AtualizarRecursosPersonagemCampanhaDto,
   ) {
     return this.campanhaService.atualizarRecursosPersonagemCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      dto,
+    );
+  }
+
+  @Patch(':id/personagens/:personagemCampanhaId/nucleo')
+  async atualizarNucleoPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarNucleoPersonagemCampanhaDto,
+  ) {
+    return this.campanhaService.atualizarNucleoPersonagemCampanha(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      dto,
+    );
+  }
+
+  @Post(':id/personagens/:personagemCampanhaId/nucleos/sacrificar')
+  async sacrificarNucleoPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: SacrificarNucleoPersonagemCampanhaDto,
+  ) {
+    return this.campanhaService.sacrificarNucleoPersonagemCampanha(
       id,
       personagemCampanhaId,
       req.user.id,

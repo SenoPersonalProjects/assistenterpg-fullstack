@@ -2,7 +2,12 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ComplexidadeMaldicao, Prisma, TipoEquipamento } from '@prisma/client';
+import {
+  CategoriaEquipamento,
+  ComplexidadeMaldicao,
+  Prisma,
+  TipoEquipamento,
+} from '@prisma/client';
 import { InventarioEngine } from './engine/inventario.engine';
 import { InventarioMapper } from './inventario.mapper';
 import { AdicionarItemDto } from './dto/adicionar-item.dto';
@@ -104,6 +109,17 @@ type PersonagemInventarioPayload = Prisma.PersonagemBaseGetPayload<{
   select: typeof personagemInventarioSelect;
 }>;
 
+type ItemCategoriaRef = {
+  categoriaCalculada?: string | null;
+  espacosCalculados?: number;
+  quantidade?: number;
+  equipamento: {
+    tipo: TipoEquipamento;
+    categoria: string;
+    tipoArma?: string | null;
+  };
+};
+
 function normalizarCategoriaGrau(valor: unknown): string {
   if (valor === null || valor === undefined) return '0';
   if (typeof valor === 'number') return String(valor);
@@ -145,6 +161,46 @@ function normalizarCategoriaGrau(valor: unknown): string {
   }
 
   return '0';
+}
+
+const ORDEM_CATEGORIAS: CategoriaEquipamento[] = [
+  CategoriaEquipamento.CATEGORIA_0,
+  CategoriaEquipamento.CATEGORIA_4,
+  CategoriaEquipamento.CATEGORIA_3,
+  CategoriaEquipamento.CATEGORIA_2,
+  CategoriaEquipamento.CATEGORIA_1,
+  CategoriaEquipamento.ESPECIAL,
+];
+
+function normalizarCategoriaEquipamento(
+  valor: unknown,
+): CategoriaEquipamento {
+  if (typeof valor === 'string') {
+    if (ORDEM_CATEGORIAS.includes(valor as CategoriaEquipamento)) {
+      return valor as CategoriaEquipamento;
+    }
+
+    if (valor === 'ESPECIAL' || valor === 'CATEGORIA_ESPECIAL') {
+      return CategoriaEquipamento.ESPECIAL;
+    }
+
+    const match = valor.match(/CATEGORIA_(\d+)/i);
+    if (match && match[1]) {
+      const candidato = `CATEGORIA_${match[1]}`.toUpperCase();
+      if (ORDEM_CATEGORIAS.includes(candidato as CategoriaEquipamento)) {
+        return candidato as CategoriaEquipamento;
+      }
+    }
+
+    if (/^\d+$/.test(valor)) {
+      const candidato = `CATEGORIA_${valor}`;
+      if (ORDEM_CATEGORIAS.includes(candidato as CategoriaEquipamento)) {
+        return candidato as CategoriaEquipamento;
+      }
+    }
+  }
+
+  return CategoriaEquipamento.CATEGORIA_0;
 }
 
 @Injectable()
@@ -189,10 +245,130 @@ export class InventarioService {
     return this.getBooleanField(inventario, flag) === true;
   }
 
+  private getInventarioReducaoCategoria(mecanicas: Prisma.JsonValue | null): {
+    reduzirCategoriaEm: number;
+    excetoTipos: string[];
+  } {
+    if (!this.isRecord(mecanicas)) {
+      return { reduzirCategoriaEm: 0, excetoTipos: [] };
+    }
+
+    const itens = mecanicas.itens;
+    if (!this.isRecord(itens)) {
+      return { reduzirCategoriaEm: 0, excetoTipos: [] };
+    }
+
+    const reduzirCategoriaEm =
+      typeof itens.reduzCategoriaEm === 'number' ? itens.reduzCategoriaEm : 0;
+
+    const excetoTipos = Array.isArray(itens.excetoTipos)
+      ? itens.excetoTipos.filter((t) => typeof t === 'string')
+      : [];
+
+    return {
+      reduzirCategoriaEm,
+      excetoTipos,
+    };
+  }
+
+  private isItemElegivelReducaoCategoria(
+    item: ItemCategoriaRef,
+    excetoTipos: Set<string>,
+  ): boolean {
+    const tipo = item.equipamento.tipo;
+    const tipoTexto = String(tipo).toUpperCase();
+
+    if (excetoTipos.has(tipoTexto)) return false;
+
+    if (excetoTipos.has('ARMA')) {
+      if (tipo === TipoEquipamento.ARMA) return false;
+      if (item.equipamento.tipoArma) return false;
+    }
+
+    return true;
+  }
+
+  private selecionarItemReducaoCategoria<T extends ItemCategoriaRef>(
+    itens: T[],
+    reduzirCategoriaEm: number,
+    excetoTipos: string[],
+  ): number | null {
+    if (!reduzirCategoriaEm || reduzirCategoriaEm <= 0) return null;
+
+    const excetoSet = new Set(excetoTipos.map((t) => t.toUpperCase()));
+    let escolhido: number | null = null;
+    let melhorIndice = -1;
+    let melhorQuantidade = -1;
+    let melhorEspacos = -1;
+
+    itens.forEach((item, index) => {
+      if (!this.isItemElegivelReducaoCategoria(item, excetoSet)) return;
+
+      const categoriaAtual = normalizarCategoriaEquipamento(
+        item.categoriaCalculada ?? item.equipamento.categoria,
+      );
+      const indiceCategoria = ORDEM_CATEGORIAS.indexOf(categoriaAtual);
+      if (indiceCategoria <= 0) return;
+
+      const quantidade = item.quantidade ?? 1;
+      const espacos = item.espacosCalculados ?? 0;
+
+      if (
+        indiceCategoria > melhorIndice ||
+        (indiceCategoria === melhorIndice && quantidade > melhorQuantidade) ||
+        (indiceCategoria === melhorIndice &&
+          quantidade === melhorQuantidade &&
+          espacos > melhorEspacos)
+      ) {
+        melhorIndice = indiceCategoria;
+        melhorQuantidade = quantidade;
+        melhorEspacos = espacos;
+        escolhido = index;
+      }
+    });
+
+    return escolhido;
+  }
+
+  private aplicarReducaoCategoriaEmItensRaw<T extends ItemCategoriaRef>(
+    itens: T[],
+    reduzirCategoriaEm: number,
+    excetoTipos: string[],
+  ): T[] {
+    const indice = this.selecionarItemReducaoCategoria(
+      itens,
+      reduzirCategoriaEm,
+      excetoTipos,
+    );
+
+    if (indice === null) return itens;
+
+    const item = itens[indice];
+    const categoriaAtual = normalizarCategoriaEquipamento(
+      item.categoriaCalculada ?? item.equipamento.categoria,
+    );
+    const indiceAtual = ORDEM_CATEGORIAS.indexOf(categoriaAtual);
+    if (indiceAtual <= 0) return itens;
+
+    const indiceFinal = Math.max(0, indiceAtual - reduzirCategoriaEm);
+    const novaCategoria = ORDEM_CATEGORIAS[indiceFinal];
+
+    const atualizado = {
+      ...item,
+      categoriaCalculada: novaCategoria,
+    };
+
+    return itens.map((atual, idx) => (idx === indice ? atualizado : atual));
+  }
+
   private async obterFlagsInventario(
     personagemBaseId: number,
     prisma?: PrismaLike,
-  ): Promise<{ reduzirItensLeves: boolean }> {
+  ): Promise<{
+    reduzirItensLeves: boolean;
+    reduzirCategoriaEm: number;
+    reduzirCategoriaExcetoTipos: string[];
+  }> {
     const db = prisma || this.prisma;
 
     const [habilidades, poderes] = await Promise.all([
@@ -220,7 +396,29 @@ export class InventarioService {
         ),
       );
 
-    return { reduzirItensLeves };
+    let reduzirCategoriaEm = 0;
+    const excetoTipos = new Set<string>();
+
+    const fontes = [
+      ...habilidades.map((h) => h.habilidade.mecanicasEspeciais),
+      ...poderes.map((p) => p.habilidade.mecanicasEspeciais),
+    ];
+
+    fontes.forEach((mecanicas) => {
+      const config = this.getInventarioReducaoCategoria(mecanicas);
+      if (config.reduzirCategoriaEm > reduzirCategoriaEm) {
+        reduzirCategoriaEm = config.reduzirCategoriaEm;
+      }
+      config.excetoTipos.forEach((tipo) =>
+        excetoTipos.add(String(tipo).toUpperCase()),
+      );
+    });
+
+    return {
+      reduzirItensLeves,
+      reduzirCategoriaEm,
+      reduzirCategoriaExcetoTipos: Array.from(excetoTipos),
+    };
   }
 
   private ajustarEspacosBaseItem(
@@ -291,15 +489,22 @@ export class InventarioService {
       orderBy: [{ equipado: 'desc' }, { equipamento: { nome: 'asc' } }],
     });
 
-    const { reduzirItensLeves } = await this.obterFlagsInventario(
-      personagemBaseId,
-      db,
-    );
+    const {
+      reduzirItensLeves,
+      reduzirCategoriaEm,
+      reduzirCategoriaExcetoTipos,
+    } = await this.obterFlagsInventario(personagemBaseId, db);
 
-    return itens.map((item) => ({
+    const itensComFlags = itens.map((item) => ({
       ...item,
       reduzirItensLeves,
     }));
+
+    return this.aplicarReducaoCategoriaEmItensRaw(
+      itensComFlags,
+      reduzirCategoriaEm,
+      reduzirCategoriaExcetoTipos,
+    );
   }
 
   /**
@@ -743,6 +948,9 @@ export class InventarioService {
     try {
       const { forca, prestigioBase, itens } = dto;
       const reduzirItensLeves = dto.reduzirItensLeves === true;
+      const reduzirCategoriaEm = dto.reduzirCategoriaEm ?? 0;
+      const reduzirCategoriaExcetoTipos =
+        dto.reduzirCategoriaExcetoTipos ?? [];
 
       const equipamentosIds = [...new Set(itens.map((i) => i.equipamentoId))];
       const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
@@ -815,6 +1023,7 @@ export class InventarioService {
             categoria: equipamento.categoria,
             espacos: equipamento.espacos,
             complexidadeMaldicao: equipamento.complexidadeMaldicao,
+            tipoArma: equipamento.tipoArma ?? null,
             bonusDefesa: equipamento.bonusDefesa ?? 0,
             penalidadeCarga: equipamento.penalidadeCarga ?? 0,
             tipoAcessorio: equipamento.tipoAcessorio ?? null,
@@ -824,6 +1033,12 @@ export class InventarioService {
         };
       });
 
+      const itensCalculadosAjustados = this.aplicarReducaoCategoriaEmItensRaw(
+        itensCalculados,
+        reduzirCategoriaEm,
+        reduzirCategoriaExcetoTipos,
+      );
+
       const atributoInventarioBase = calcularAtributoBaseInventario({
         forca,
         intelecto: dto.intelecto,
@@ -831,7 +1046,7 @@ export class InventarioService {
       });
       const espacosBase = calcularEspacosInventarioBase(atributoInventarioBase);
       const itensParaCalculoEspacosExtras: ItemInventarioComDados[] =
-        itensCalculados.map((item) => ({
+        itensCalculadosAjustados.map((item) => ({
           id: 0,
           equipamentoId: item.equipamentoId,
           quantidade: item.quantidade,
@@ -849,6 +1064,7 @@ export class InventarioService {
             espacos: item.equipamento.espacos,
             complexidadeMaldicao: item.equipamento.complexidadeMaldicao,
             efeito: item.equipamento.efeito ?? null,
+            tipoArma: item.equipamento.tipoArma ?? null,
           },
           modificacoes: [],
         }));
@@ -858,7 +1074,7 @@ export class InventarioService {
       );
       const espacosTotal = espacosBase + espacosExtra;
 
-      const espacosOcupados = itensCalculados.reduce((total, item) => {
+      const espacosOcupados = itensCalculadosAjustados.reduce((total, item) => {
         return total + item.espacosCalculados * item.quantidade;
       }, 0);
 
@@ -876,14 +1092,14 @@ export class InventarioService {
         ESPECIAL: 0,
       };
 
-      itensCalculados.forEach((item) => {
+      itensCalculadosAjustados.forEach((item) => {
         const cat = normalizarCategoriaGrau(item.categoriaCalculada);
         itensPorCategoria[cat] =
           (itensPorCategoria[cat] || 0) + item.quantidade;
       });
 
       return {
-        itens: itensCalculados,
+        itens: itensCalculadosAjustados,
         espacosBase,
         espacosExtra,
         espacosTotal,

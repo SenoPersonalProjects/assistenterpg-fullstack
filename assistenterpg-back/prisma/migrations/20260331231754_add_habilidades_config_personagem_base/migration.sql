@@ -1,0 +1,1 @@
+-- Add habilidadesConfig to PersonagemBase\nALTER TABLE PersonagemBase ADD COLUMN habilidadesConfig JSON NULL;

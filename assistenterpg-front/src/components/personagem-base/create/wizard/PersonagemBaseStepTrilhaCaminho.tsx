@@ -1,6 +1,7 @@
 // components/personagem-base/create/wizard/PersonagemBaseStepTrilhaCaminho.tsx
 'use client';
 
+import { useState } from 'react';
 import type { TrilhaCatalogo, CaminhoCatalogo } from '@/lib/api';
 import { SelectModal, type SelectModalOption } from '@/components/ui/SelectModal';
 import { Icon } from '@/components/ui/Icon';
@@ -12,6 +13,7 @@ type Props = {
   caminhos: CaminhoCatalogo[];
   trilhaId: string;
   caminhoId: string;
+  tecnicaInataId?: string;
   onChangeTrilhaId: (v: string) => void;
   onChangeCaminhoId: (v: string) => void;
 };
@@ -21,9 +23,11 @@ export function PersonagemBaseStepTrilhaCaminho({
   caminhos,
   trilhaId,
   caminhoId,
+  tecnicaInataId,
   onChangeTrilhaId,
   onChangeCaminhoId,
 }: Props) {
+  const [erroTrilha, setErroTrilha] = useState<string | null>(null);
   const trilhaSelecionada = trilhas.find((t) => String(t.id) === trilhaId);
 
   // Mapa de bônus por trilha
@@ -47,12 +51,22 @@ export function PersonagemBaseStepTrilhaCaminho({
   // ✅ Preparar opções para SelectModal - TRILHA
   const trilhasOptions: SelectModalOption<TrilhaCatalogo>[] = trilhas.map((trilha) => {
     const bonus = bonusTrilha[trilha.nome];
+    const semTecnicaInata = Boolean(
+      (trilha.requisitos as { semTecnicaInata?: boolean } | undefined)?.semTecnicaInata,
+    );
+    const bloqueadaPorTecnica = semTecnicaInata && Boolean(tecnicaInataId);
+    const badges = [
+      { text: 'Nível 2+', color: 'blue' as const },
+      ...(bloqueadaPorTecnica
+        ? [{ text: 'Requer sem técnica', color: 'red' as const }]
+        : []),
+    ];
     
     return {
       value: trilha.id,
       label: trilha.nome,
       description: trilha.descricao,
-      badges: [{ text: 'Nível 2+', color: 'blue' as const }],
+      badges,
       details: bonus ? (
         <div className="text-xs space-y-2">
           <div className="flex items-start gap-2 text-app-success">
@@ -89,9 +103,24 @@ export function PersonagemBaseStepTrilhaCaminho({
             label="Trilha (Nível 2+)"
             value={trilhaId}
             options={trilhasOptions}
-            onChange={(v) => onChangeTrilhaId(String(v))}
+            onChange={(v) => {
+              const trilha = trilhas.find((item) => String(item.id) === String(v));
+              const semTecnicaInata = Boolean(
+                (trilha?.requisitos as { semTecnicaInata?: boolean } | undefined)
+                  ?.semTecnicaInata,
+              );
+              if (trilha && semTecnicaInata && tecnicaInataId) {
+                setErroTrilha(
+                  'Essa trilha exige personagem sem técnica amaldiçoada.',
+                );
+                return;
+              }
+              setErroTrilha(null);
+              onChangeTrilhaId(String(v));
+            }}
             placeholder="Nenhuma trilha"
             helperText="Especialização principal (disponível a partir do nível 2)"
+            error={erroTrilha ?? undefined}
           />
 
           {trilhaSelecionada && bonusData && (

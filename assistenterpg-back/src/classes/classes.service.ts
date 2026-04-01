@@ -167,6 +167,9 @@ export class ClassesService {
       nome: trilha.nome,
       descricao: trilha.descricao,
       classeId: trilha.classeId,
+      requisitos: trilha.requisitos,
+      fonte: trilha.fonte,
+      suplementoId: trilha.suplementoId,
     }));
   }
 

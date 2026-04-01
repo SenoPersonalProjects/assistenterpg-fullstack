@@ -6,7 +6,7 @@ import {
 } from './campanha.engine.types';
 
 export function lerCampoNumerico(
-  personagem: Record<string, number | null>,
+  personagem: Record<string, unknown>,
   campo: CampoPersonagemCampanhaNumerico | CampoRecursoAtual,
 ): number {
   const valor = personagem[campo];

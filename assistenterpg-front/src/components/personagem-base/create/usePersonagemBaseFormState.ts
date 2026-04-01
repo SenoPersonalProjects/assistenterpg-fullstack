@@ -44,6 +44,11 @@ type InitialValues = {
   poderesGenericosSelecionadosIds?: number[];
   poderesGenericos?: PoderGenericoInstanciaPayload[];
 
+  habilidadesConfig?: {
+    habilidadeId: number;
+    config?: Record<string, unknown>;
+  }[];
+
   passivasAtributosAtivos?: AtributoBaseCodigo[];
 
   itensInventario?: ItemInventarioPayload[];
@@ -104,6 +109,10 @@ export function usePersonagemBaseFormState({
   // ==================== PODERES GENÉRICOS (INSTÂNCIAS) ====================
   const [poderesGenericos, setPoderesGenericos] = useState<
     PoderGenericoInstanciaPayload[]
+  >([]);
+
+  const [habilidadesConfig, setHabilidadesConfig] = useState<
+    Array<{ habilidadeId: number; config?: Record<string, unknown> }>
   >([]);
 
   // ==================== PASSIVAS (POR ATRIBUTO) ====================
@@ -183,6 +192,10 @@ export function usePersonagemBaseFormState({
         }
 
         setPassivasAtributosAtivos(iv.passivasAtributosAtivos ?? []);
+
+        if (iv.habilidadesConfig && iv.habilidadesConfig.length > 0) {
+          setHabilidadesConfig(iv.habilidadesConfig);
+        }
 
         if (iv.itensInventario && iv.itensInventario.length > 0) {
           setItensInventario(iv.itensInventario);
@@ -322,6 +335,21 @@ export function usePersonagemBaseFormState({
     []
   );
 
+  const updateHabilidadeConfig = useCallback(
+    (habilidadeId: number, config: Record<string, unknown>) => {
+      setHabilidadesConfig((prev) => {
+        const idx = prev.findIndex((h) => h.habilidadeId === habilidadeId);
+        if (idx === -1) {
+          return [...prev, { habilidadeId, config }];
+        }
+        return prev.map((h, i) =>
+          i === idx ? { ...h, config } : h,
+        );
+      });
+    },
+    [],
+  );
+
   const togglePassivaAtributo = useCallback((atributo: AtributoBaseCodigo) => {
     setPassivasAtributosAtivos((prev) => {
       const jaTem = prev.includes(atributo);
@@ -443,6 +471,8 @@ export function usePersonagemBaseFormState({
       periciasLivresExtras: undefined,
 
       poderesGenericos: poderesGenericos.length > 0 ? poderesGenericos : undefined,
+      habilidadesConfig:
+        habilidadesConfig.length > 0 ? habilidadesConfig : undefined,
       poderesGenericosSelecionadosIds: undefined,
 
       passivasAtributosAtivos:
@@ -478,6 +508,7 @@ export function usePersonagemBaseFormState({
     periciasOrigemEscolhidasCodigos,
     periciasLivresCodigos,
     poderesGenericos,
+    habilidadesConfig,
     passivasAtributosAtivos,
     itensInventario,
     validarInventario,
@@ -520,6 +551,7 @@ export function usePersonagemBaseFormState({
     setPericiasLivresCodigos([]);
 
     setPoderesGenericos([]);
+    setHabilidadesConfig([]);
     setPassivasAtributosAtivos([]);
 
     setItensInventario([]);
@@ -604,6 +636,9 @@ export function usePersonagemBaseFormState({
     addPoderGenericoInstancia,
     removePoderGenericoInstancia,
     updatePoderGenericoInstancia,
+    habilidadesConfig,
+    setHabilidadesConfig,
+    updateHabilidadeConfig,
 
     // passivas
     passivasAtributosAtivos,

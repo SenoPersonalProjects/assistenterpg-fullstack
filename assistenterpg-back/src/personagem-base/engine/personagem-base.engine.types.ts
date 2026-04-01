@@ -43,12 +43,18 @@ export type HabilidadeComEfeitos = Array<{
 
 export type ModDerivados = {
   pvPorNivelExtra: number;
+  pvExtra: number;
   peBaseExtra: number;
   limitePeEaExtra: number;
   defesaExtra: number;
+  sanPorNivelExtra: number;
+  sanMultiplicador: number;
   espacosInventarioExtra: number;
   inventarioSomarIntelecto: boolean;
   inventarioReduzirItensLeves: boolean;
+  inventarioReduzirCategoriaEm: number;
+  inventarioReduzirCategoriaExcetoTipos: string[];
+  creditoCategoriaBonus: number;
 };
 
 export type EngineParams = {
@@ -128,6 +134,9 @@ export type EngineResult = {
     bloqueio: number;
     esquiva: number;
   };
+
+  // ✅ NOVO: Barras de PV (Corpo Amaldiçoado Independente)
+  pvBarrasTotal: number;
 
   // Espaços de inventário
   espacosInventario: {

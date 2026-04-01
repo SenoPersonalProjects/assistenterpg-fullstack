@@ -15,6 +15,7 @@ type PrismaLike = PrismaService | Prisma.TransactionClient;
 type RequisitoPericiaTrilha = { codigo: string; treinada: boolean };
 type RequisitosTrilha = {
   pericias?: RequisitoPericiaTrilha[];
+  semTecnicaInata?: boolean;
 };
 
 /**
@@ -24,9 +25,18 @@ type RequisitosTrilha = {
 export function validarRequisitosTrilha(
   requisitos: {
     pericias?: Array<{ codigo: string; treinada: boolean }>;
+    semTecnicaInata?: boolean;
   } | null,
   periciasPersonagem: Array<{ codigo: string; grauTreinamento: number }>,
+  tecnicaInataId?: number | null,
 ): { valido: boolean; mensagemErro?: string } {
+  if (requisitos?.semTecnicaInata && tecnicaInataId) {
+    return {
+      valido: false,
+      mensagemErro: 'A trilha exige personagem sem tecnica amaldiçoada.',
+    };
+  }
+
   if (!requisitos?.pericias) {
     return { valido: true };
   }
@@ -55,6 +65,7 @@ export async function validarTrilhaECaminho(
   periciasPersonagem:
     | Array<{ codigo: string; grauTreinamento: number }>
     | undefined,
+  tecnicaInataId: number | null | undefined,
   prisma: PrismaLike,
 ): Promise<void> {
   if (trilhaId) {
@@ -74,6 +85,7 @@ export async function validarTrilhaECaminho(
       const validacao = validarRequisitosTrilha(
         trilha.requisitos as RequisitosTrilha,
         periciasPersonagem,
+        tecnicaInataId,
       );
 
       if (!validacao.valido) {

@@ -18,7 +18,9 @@ import {
   apiGetMeusNpcsAmeacas,
   apiListarPersonagensCampanha,
   apiAdicionarPersonagemSessaoCampanha,
+  apiAtualizarNucleoPersonagemCampanha,
   apiRemoverPersonagemSessaoCampanha,
+  apiSacrificarNucleoPersonagemCampanha,
   apiAtualizarValorIniciativaSessaoCampanha,
   apiListarChatSessaoCampanha,
   apiListarEventosSessaoCampanha,
@@ -29,6 +31,7 @@ import type {
   CondicaoCatalogo,
   EventoSessaoTimeline,
   MensagemChatSessao,
+  NucleoAmaldicoadoCodigo,
   NpcAmeacaResumo,
   NpcSessaoCampanha,
   ParticipanteIniciativaSessaoCampanha,
@@ -978,6 +981,105 @@ export default function SessaoCampanhaPage() {
     [confirm, handleRemoverCondicao],
   );
 
+  const handlePersonagemAtualizadoNoModal = useCallback(
+    (personagem: PersonagemCampanhaResumo) => {
+      setDetalhe((anterior) => {
+        if (!anterior) return anterior;
+
+        return {
+          ...anterior,
+          cards: anterior.cards.map((card) => {
+            if (card.personagemCampanhaId !== personagem.id || !card.recursos) {
+              return card;
+            }
+
+            return {
+              ...card,
+              recursos: {
+                pvAtual: personagem.recursos.pvAtual,
+                pvMax: personagem.recursos.pvMax,
+                pvBarrasTotal: personagem.recursos.pvBarrasTotal,
+                pvBarrasRestantes: personagem.recursos.pvBarrasRestantes,
+                pvBarraMaxAtual: personagem.recursos.pvBarraMaxAtual,
+                nucleoAtivo: personagem.recursos.nucleoAtivo,
+                nucleosDisponiveis: personagem.recursos.nucleosDisponiveis,
+                peAtual: personagem.recursos.peAtual,
+                peMax: personagem.recursos.peMax,
+                eaAtual: personagem.recursos.eaAtual,
+                eaMax: personagem.recursos.eaMax,
+                sanAtual: personagem.recursos.sanAtual,
+                sanMax: personagem.recursos.sanMax,
+              },
+            };
+          }),
+        };
+      });
+
+      setAjustesRecursosPorCard((anterior) => ({
+        ...anterior,
+        [personagem.id]: {
+          ...AJUSTE_RECURSO_PADRAO,
+        },
+      }));
+
+      void sincronizarTempoReal();
+    },
+    [setAjustesRecursosPorCard, setDetalhe, sincronizarTempoReal],
+  );
+
+  const handleSelecionarNucleo = useCallback(
+    async (personagemCampanhaId: number, nucleo: NucleoAmaldicoadoCodigo) => {
+      if (sessaoEncerrada) return;
+      setErroCards(null);
+      try {
+        const atualizado = await apiAtualizarNucleoPersonagemCampanha(
+          campanhaId,
+          personagemCampanhaId,
+          { nucleo },
+        );
+        handlePersonagemAtualizadoNoModal(atualizado);
+      } catch (error) {
+        setErroCards(
+          extrairMensagemErro(error) || 'Nao foi possivel atualizar o nucleo.',
+        );
+      }
+    },
+    [
+      campanhaId,
+      sessaoEncerrada,
+      handlePersonagemAtualizadoNoModal,
+      setErroCards,
+    ],
+  );
+
+  const handleSacrificarNucleo = useCallback(
+    async (
+      personagemCampanhaId: number,
+      payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
+    ) => {
+      if (sessaoEncerrada) return;
+      setErroCards(null);
+      try {
+        const atualizado = await apiSacrificarNucleoPersonagemCampanha(
+          campanhaId,
+          personagemCampanhaId,
+          payload,
+        );
+        handlePersonagemAtualizadoNoModal(atualizado);
+      } catch (error) {
+        setErroCards(
+          extrairMensagemErro(error) || 'Nao foi possivel sacrificar o nucleo.',
+        );
+      }
+    },
+    [
+      campanhaId,
+      sessaoEncerrada,
+      handlePersonagemAtualizadoNoModal,
+      setErroCards,
+    ],
+  );
+
   useEffect(() => {
     if (!authLoading && !usuario) {
       router.push('/auth/login');
@@ -1359,6 +1461,8 @@ export default function SessaoCampanhaPage() {
       onAplicarAjustePersonalizadoRecursoCard={(card, campo) =>
         void handleAplicarAjustePersonalizadoRecursoCard(card, campo)
       }
+      onSelecionarNucleo={handleSelecionarNucleo}
+      onSacrificarNucleo={handleSacrificarNucleo}
       onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
       onAbrirFichaCompleta={handleAbrirFichaCompleta}
       renderPainelCondicoes={renderPainelCondicoes}
@@ -1383,44 +1487,6 @@ export default function SessaoCampanhaPage() {
       nome: card.nomePersonagem,
       recursos: card.recursos,
     });
-  }
-
-  function handlePersonagemAtualizadoNoModal(personagem: PersonagemCampanhaResumo) {
-    setDetalhe((anterior) => {
-      if (!anterior) return anterior;
-
-      return {
-        ...anterior,
-        cards: anterior.cards.map((card) => {
-          if (card.personagemCampanhaId !== personagem.id || !card.recursos) {
-            return card;
-          }
-
-          return {
-            ...card,
-            recursos: {
-              pvAtual: personagem.recursos.pvAtual,
-              pvMax: personagem.recursos.pvMax,
-              peAtual: personagem.recursos.peAtual,
-              peMax: personagem.recursos.peMax,
-              eaAtual: personagem.recursos.eaAtual,
-              eaMax: personagem.recursos.eaMax,
-              sanAtual: personagem.recursos.sanAtual,
-              sanMax: personagem.recursos.sanMax,
-            },
-          };
-        }),
-      };
-    });
-
-    setAjustesRecursosPorCard((anterior) => ({
-      ...anterior,
-      [personagem.id]: {
-        ...AJUSTE_RECURSO_PADRAO,
-      },
-    }));
-
-    void sincronizarTempoReal();
   }
 
   if (authLoading || loading) {
@@ -1680,6 +1746,8 @@ export default function SessaoCampanhaPage() {
                     if (!meuCard) return;
                     void handleAplicarAjustePersonalizadoRecursoCard(meuCard, campo);
                   }}
+                  onSelecionarNucleo={handleSelecionarNucleo}
+                  onSacrificarNucleo={handleSacrificarNucleo}
                 />
               )}
             </section>

@@ -47,6 +47,15 @@ export class PreviewItensInventarioDto {
   @IsBoolean()
   reduzirItensLeves?: boolean;
 
+  @IsOptional()
+  @IsInt()
+  reduzirCategoriaEm?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  reduzirCategoriaExcetoTipos?: string[];
+
   @IsInt()
   prestigioBase: number;
 

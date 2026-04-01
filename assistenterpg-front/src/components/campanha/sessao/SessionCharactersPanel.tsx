@@ -7,7 +7,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { CharacterSessionCard } from '@/components/campanha/sessao/CharacterSessionCard';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import type { NucleoAmaldicoadoCodigo, SessaoCampanhaDetalhe } from '@/lib/types';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import type {
   AjustesRecursos,
@@ -61,6 +61,14 @@ type SessionCharactersPanelProps = {
     card: SessaoCampanhaDetalhe['cards'][number],
     campo: CampoAjusteRecurso,
   ) => void;
+  onSelecionarNucleo: (
+    personagemCampanhaId: number,
+    nucleo: NucleoAmaldicoadoCodigo,
+  ) => void;
+  onSacrificarNucleo: (
+    personagemCampanhaId: number,
+    payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
+  ) => void;
   onAbrirEdicaoPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onAbrirFichaCompleta: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   renderPainelCondicoes: (
@@ -104,6 +112,8 @@ export function SessionCharactersPanel({
   onEncerrarSustentacao,
   onAplicarDeltaRecursoCard,
   onAplicarAjustePersonalizadoRecursoCard,
+  onSelecionarNucleo,
+  onSacrificarNucleo,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
   renderPainelCondicoes,
@@ -204,6 +214,12 @@ export function SessionCharactersPanel({
               }
               onAplicarAjustePersonalizado={(campo) =>
                 void onAplicarAjustePersonalizadoRecursoCard(card, campo)
+              }
+              onSelecionarNucleo={(personagemCampanhaId, nucleo) =>
+                onSelecionarNucleo(personagemCampanhaId, nucleo)
+              }
+              onSacrificarNucleo={(personagemCampanhaId, payload) =>
+                onSacrificarNucleo(personagemCampanhaId, payload)
               }
               onAbrirEdicaoPersonagem={() => onAbrirEdicaoPersonagem(card)}
               onAbrirFichaCompleta={() => onAbrirFichaCompleta(card)}

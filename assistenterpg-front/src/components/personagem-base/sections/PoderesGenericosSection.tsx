@@ -52,18 +52,16 @@ function ConfigDisplay({
     return (
       <div className="mt-2 space-y-1">
         <p className="text-xs font-medium text-app-muted">Perícias escolhidas:</p>
-        <ul className="space-y-0.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {codigos.map((codigo: string) => {
             const nome = periciasMap?.get(codigo)?.nome ?? codigo;
             return (
-              <li key={codigo} className="flex items-center gap-2 text-xs text-app-fg">
-                <Icon name="check" className="h-3 w-3 text-app-success" />
-                <span>{nome}</span>
-                <span className="text-app-muted">({codigo})</span>
-              </li>
+              <Badge key={codigo} color="blue" size="sm">
+                {nome}
+              </Badge>
             );
           })}
-        </ul>
+        </div>
       </div>
     );
   }

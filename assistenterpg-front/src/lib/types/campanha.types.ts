@@ -52,6 +52,8 @@ export type CampoModificadorPersonagemCampanha =
   | 'PRESTIGIO_GERAL'
   | 'PRESTIGIO_CLA';
 
+export type NucleoAmaldicoadoCodigo = 'EQUILIBRIO' | 'PODER' | 'IMPULSO';
+
 export type ModificadorPersonagemCampanha = {
   id: number;
   campanhaId: number;
@@ -94,6 +96,11 @@ export type PersonagemCampanhaResumo = {
   recursos: {
     pvAtual: number;
     pvMax: number;
+    pvBarrasTotal?: number;
+    pvBarrasRestantes?: number;
+    pvBarraMaxAtual?: number;
+    nucleoAtivo?: NucleoAmaldicoadoCodigo | null;
+    nucleosDisponiveis?: NucleoAmaldicoadoCodigo[];
     peAtual: number;
     peMax: number;
     eaAtual: number;
@@ -431,6 +438,11 @@ export type SessaoCampanhaDetalhe = {
     recursos: {
       pvAtual: number;
       pvMax: number;
+      pvBarrasTotal?: number;
+      pvBarrasRestantes?: number;
+      pvBarraMaxAtual?: number;
+      nucleoAtivo?: NucleoAmaldicoadoCodigo | null;
+      nucleosDisponiveis?: NucleoAmaldicoadoCodigo[];
       peAtual: number;
       peMax: number;
       eaAtual: number;

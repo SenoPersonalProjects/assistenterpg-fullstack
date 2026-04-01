@@ -16,6 +16,7 @@ type ResistenciaSimplificada = {
 
 type AtributosDerivados = {
   pvMaximo: number;
+  pvBarrasTotal?: number;
   peMaximo: number;
   eaMaximo: number;
   sanMaximo: number;
@@ -72,11 +73,27 @@ export function AtributosDerivadosCard({ derivados }: Props) {
   const defesaFinal = derivados.defesaTotal ?? derivados.defesa;
   const defesaBase = derivados.defesaBase ?? derivados.defesa;
   const defesaEquip = derivados.defesaEquipamento ?? 0;
+  const pvBarrasTotal = derivados.pvBarrasTotal ?? 1;
+  const pvBarraBase = Math.floor(derivados.pvMaximo / pvBarrasTotal);
+  const pvBarraUltima =
+    derivados.pvMaximo - pvBarraBase * (pvBarrasTotal - 1);
+  const pvFooter =
+    pvBarrasTotal > 1
+      ? `Barras: ${pvBarrasTotal} • PV por nucleo: ${pvBarraBase}${
+          pvBarraUltima !== pvBarraBase ? ` (ultima ${pvBarraUltima})` : ''
+        }`
+      : undefined;
 
   return (
     <SectionCard title="Atributos derivados" right={<Icon name="chart" className="h-5 w-5 text-app-muted" />}>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        <Tile icon="heart" label="PV Máximo" value={derivados.pvMaximo} valueClassName="text-app-danger" />
+        <Tile
+          icon="heart"
+          label="PV Máximo"
+          value={derivados.pvMaximo}
+          valueClassName="text-app-danger"
+          footer={pvFooter}
+        />
         <Tile icon="bolt" label="PE Máximo" value={derivados.peMaximo} valueClassName="text-app-info" />
         <Tile icon="sparkles" label="EA Máximo" value={derivados.eaMaximo} valueClassName="text-app-secondary" />
         <Tile icon="skills" label="SAN Máximo" value={derivados.sanMaximo} valueClassName="text-app-success" />

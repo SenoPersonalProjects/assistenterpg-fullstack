@@ -1,6 +1,10 @@
 // src/campanha/campanha.mapper.ts
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  calcularPvBarraMaximos,
+  normalizarNucleosDisponiveis,
+} from 'src/common/utils/pv-barras';
 
 export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
   Prisma.validator<Prisma.PersonagemCampanhaSelect>()({
@@ -12,6 +16,10 @@ export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
     nivel: true,
     pvMax: true,
     pvAtual: true,
+    pvBarrasTotal: true,
+    pvBarrasRestantes: true,
+    nucleoAmaldicoadoAtivo: true,
+    nucleosDisponiveis: true,
     peMax: true,
     peAtual: true,
     eaMax: true,
@@ -70,6 +78,12 @@ export class CampanhaMapper {
   mapearPersonagemCampanhaResposta(
     personagem: PersonagemCampanhaDetalhePayload,
   ) {
+    const infoPv = calcularPvBarraMaximos(
+      personagem.pvMax,
+      personagem.pvBarrasTotal,
+      personagem.pvBarrasRestantes,
+    );
+
     return {
       id: personagem.id,
       campanhaId: personagem.campanhaId,
@@ -80,6 +94,13 @@ export class CampanhaMapper {
       recursos: {
         pvAtual: personagem.pvAtual,
         pvMax: personagem.pvMax,
+        pvBarrasTotal: personagem.pvBarrasTotal,
+        pvBarrasRestantes: personagem.pvBarrasRestantes,
+        pvBarraMaxAtual: infoPv.pvBarraMaxAtual,
+        nucleoAtivo: personagem.nucleoAmaldicoadoAtivo ?? null,
+        nucleosDisponiveis: normalizarNucleosDisponiveis(
+          personagem.nucleosDisponiveis,
+        ),
         peAtual: personagem.peAtual,
         peMax: personagem.peMax,
         eaAtual: personagem.eaAtual,

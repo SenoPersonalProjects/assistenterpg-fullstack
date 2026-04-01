@@ -199,6 +199,20 @@ Contrato de erro validado em teste de integracao:
   - pericia de treino obrigatoria
   - limite de grau maximo ao aplicar bonus
 
+## PV em Barras (Blefe Mortal / Corpo Amaldicoado Independente)
+
+- `atributosDerivados.pvBarrasTotal`:
+  - Numero total de barras de PV (default `1`).
+  - Quando `>= 2`, o PV atual representa **apenas a barra ativa**.
+- `PersonagemCampanha` (campanha/sessao):
+  - `pvBarrasTotal`, `pvBarrasRestantes`
+  - `nucleoAmaldicoadoAtivo`, `nucleosDisponiveis`
+  - `pvBarraMaxAtual` (calculado)
+- Regra de calculo:
+  - `pvBarraMaxBase = floor(pvMax / pvBarrasTotal)`
+  - ultima barra recebe o restante
+  - `pvAtual` e clamp sempre usam `pvBarraMaxAtual`
+
 ## Pericias
 
 - pericias de origem e classe com grupos de escolha validam cardinalidade (1 por grupo)
@@ -236,6 +250,54 @@ Contrato de erro validado em teste de integracao:
   - graus
   - pre-requisito de outros poderes
 - valida `config` quando poder exige `escolha`
+
+## Config de habilidades (habilidadesConfig)
+
+- campo opcional no DTO para registrar escolhas de habilidades/origens/trilhas
+- formato:
+  - `[{ habilidadeId: number, config: { periciasCodigos?: string[] } }]`
+- usado quando `mecanicasEspeciais.escolha.tipo = "PERICIAS"`
+- deve respeitar a quantidade exigida e regras de permissao (pericias/atributos base)
+
+## Mecanicas especiais (habilidades/origens)
+
+- `mecanicasEspeciais.escolha`:
+  - `{ tipo: "PERICIAS", quantidade?: number, periciasPermitidas?: string[], atributosBasePermitidos?: string[] }`
+  - quando presente, exige `habilidadesConfig` com `periciasCodigos`
+- `mecanicasEspeciais.periciasBonusEscolha`:
+  - bonus fixo aplicado em cada pericia escolhida
+- `mecanicasEspeciais.periciasTreinadasEscolha`:
+  - se `true`, pericia escolhida vira treinada (ou recebe bonus)
+- `mecanicasEspeciais.bonusSeJaTreinadoEscolha`:
+  - bonus aplicado quando a pericia ja era treinada
+- `mecanicasEspeciais.periciasBonus`:
+  - objeto `{"CODIGO_PERICIA": bonus}` (pode ser negativo)
+  - soma no `bonusExtra` da pericia durante o recalculo do estado
+- `mecanicasEspeciais.periciasAtributoBase`:
+  - objeto `{"CODIGO_PERICIA": "AGI|FOR|INT|PRE|VIG"}`
+  - sobrescreve o atributo-base da pericia no preview/detalhe/sessao
+- `mecanicasEspeciais.resistencias`:
+  - aceita numero fixo ou atributo (ex.: `"MENTAL": "INTELECTO"`)
+  - atributos aceitos: `FOR/AGI/INT/PRE/VIG` (ou nomes completos)
+- `mecanicasEspeciais.recursos.atributoChaveEa`:
+  - `"INT"` ou `"PRE"`
+  - sobrescreve o atributo-chave usado no calculo de EA/PE
+- `mecanicasEspeciais.pvExtra`:
+  - bonus fixo em PV maximo
+- `mecanicasEspeciais.sanPorNivel`:
+  - bonus por nivel aplicado ao SAN maximo
+- `mecanicasEspeciais.sanidade.multiplicadorInicial`:
+  - multiplicador aplicado ao SAN maximo final (ex.: `0.5`)
+- `mecanicasEspeciais.prestigioClaBase`:
+  - se `prestigioClaBase` nao vier no DTO, a habilidade define o valor base
+- `mecanicasEspeciais.itens.reduzCategoriaEm`:
+  - reduz em `N` etapas a categoria de **um** item (ex.: origem Engenheiro)
+  - ordem de categorias: `0 -> 4 -> 3 -> 2 -> 1 -> ESPECIAL`
+- `mecanicasEspeciais.itens.excetoTipos`:
+  - lista de tipos de equipamento que **nao** podem receber a reducao (ex.: `['ARMA']`)
+- `mecanicasEspeciais.economia.creditoCategoriaBonus`:
+  - bonus aplicado ao limite de credito (ex.: origem Magnata)
+  - cada ponto sobe um nivel na tabela de credito
 
 ## Origem, cla, tecnica, trilha e caminho
 

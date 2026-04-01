@@ -9,12 +9,14 @@ import {
   CampanhaApenasDonoException,
 } from 'src/common/exceptions/campanha.exception';
 import { AplicarModificadorPersonagemCampanhaDto } from './dto/aplicar-modificador-personagem-campanha.dto';
+import { AtualizarNucleoPersonagemCampanhaDto } from './dto/atualizar-nucleo-personagem-campanha.dto';
 import { AtualizarRecursosPersonagemCampanhaDto } from './dto/atualizar-recursos-personagem-campanha.dto';
 import {
   AdicionarItemInventarioCampanhaDto,
   AtualizarItemInventarioCampanhaDto,
   AplicarModificacaoInventarioCampanhaDto,
 } from './dto/inventario-campanha.dto';
+import { SacrificarNucleoPersonagemCampanhaDto } from './dto/sacrificar-nucleo-personagem-campanha.dto';
 import {
   FiltrosListarModificadoresCampanha,
   PapelCampanha,
@@ -262,6 +264,34 @@ export class CampanhaService {
     dto: AtualizarRecursosPersonagemCampanhaDto,
   ) {
     return this.personagensService.atualizarRecursosPersonagemCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      dto,
+    );
+  }
+
+  async atualizarNucleoPersonagemCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: AtualizarNucleoPersonagemCampanhaDto,
+  ) {
+    return this.personagensService.atualizarNucleoPersonagemCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      dto,
+    );
+  }
+
+  async sacrificarNucleoPersonagemCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: SacrificarNucleoPersonagemCampanhaDto,
+  ) {
+    return this.personagensService.sacrificarNucleoPersonagemCampanha(
       campanhaId,
       personagemCampanhaId,
       usuarioId,

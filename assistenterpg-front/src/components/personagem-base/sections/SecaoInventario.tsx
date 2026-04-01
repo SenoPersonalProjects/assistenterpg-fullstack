@@ -25,6 +25,7 @@ import {
   contarItensVestiveis,
   LIMITES_VESTIR,
   CATEGORIA_GRAU_LABELS,
+  calcularCategoriaFinal,
   normalizarCategoria,
 } from '@/lib/utils/inventario';
 
@@ -75,7 +76,9 @@ export function SecaoInventario({
     };
 
     itensInventario.forEach((item) => {
-      const categoriaRaw = item.categoriaCalculada || item.equipamento?.categoria || '0';
+      const categoriaRaw =
+        item.categoriaCalculada ??
+        calcularCategoriaFinal(item.equipamento?.categoria, item.modificacoes?.length ?? 0);
       const categoria = normalizarCategoria(categoriaRaw);
       contagem[categoria] = (contagem[categoria] || 0) + item.quantidade;
     });
@@ -407,7 +410,9 @@ export function SecaoInventario({
                 const espacosTotal = espacosPorUnidade * item.quantidade;
                 const modsAplicadas = item.modificacoes || [];
 
-                const categoriaRaw = item.categoriaCalculada || equip.categoria || '0';
+                const categoriaRaw =
+                  item.categoriaCalculada ??
+                  calcularCategoriaFinal(equip.categoria, modsAplicadas.length);
                 const categoriaFinal = normalizarCategoria(categoriaRaw);
                 
                 const categoriaLabel = CATEGORIA_GRAU_LABELS[categoriaFinal] || {
@@ -415,8 +420,8 @@ export function SecaoInventario({
                   cor: 'text-app-muted',
                 };
                 
-                const categoriaAlterada = item.categoriaCalculada && 
-                  normalizarCategoria(item.categoriaCalculada) !== normalizarCategoria(equip.categoria);
+                const categoriaAlterada =
+                  normalizarCategoria(categoriaRaw) !== normalizarCategoria(equip.categoria);
 
                 return (
                   <div

@@ -7,6 +7,8 @@ type UseInventarioPreviewParams = {
   intelecto?: number;
   somarIntelecto?: boolean;
   reduzirItensLeves?: boolean;
+  reduzirCategoriaEm?: number;
+  reduzirCategoriaExcetoTipos?: string[];
   prestigioBase: number;
 };
 
@@ -21,6 +23,8 @@ type PreviewPayload = {
   intelecto?: number;
   somarIntelecto?: boolean;
   reduzirItensLeves?: boolean;
+  reduzirCategoriaEm?: number;
+  reduzirCategoriaExcetoTipos?: string[];
   prestigioBase: number;
   itens: Array<{
     equipamentoId: number;
@@ -48,6 +52,8 @@ function construirPayloadPreview(
   intelecto: number | undefined,
   somarIntelecto: boolean | undefined,
   reduzirItensLeves: boolean | undefined,
+  reduzirCategoriaEm: number | undefined,
+  reduzirCategoriaExcetoTipos: string[] | undefined,
   prestigioBase: number,
 ): PreviewPayload {
   return {
@@ -55,6 +61,8 @@ function construirPayloadPreview(
     intelecto: typeof intelecto === 'number' ? Number(intelecto) : undefined,
     somarIntelecto,
     reduzirItensLeves,
+    reduzirCategoriaEm,
+    reduzirCategoriaExcetoTipos,
     prestigioBase: Number(prestigioBase),
     itens: itens.map((item) => ({
       equipamentoId: Number(item.equipamentoId),
@@ -71,6 +79,8 @@ export function useInventarioPreview({
   intelecto,
   somarIntelecto,
   reduzirItensLeves,
+  reduzirCategoriaEm,
+  reduzirCategoriaExcetoTipos,
   prestigioBase,
 }: UseInventarioPreviewParams): UseInventarioPreviewReturn {
   const [carregando, setCarregando] = useState(false);
@@ -102,6 +112,8 @@ export function useInventarioPreview({
         intelecto,
         somarIntelecto,
         reduzirItensLeves,
+        reduzirCategoriaEm,
+        reduzirCategoriaExcetoTipos,
         prestigioBase,
       );
       const payloadHash = JSON.stringify(payload);
@@ -160,7 +172,15 @@ export function useInventarioPreview({
 
       return request;
     },
-    [forca, intelecto, somarIntelecto, reduzirItensLeves, prestigioBase],
+    [
+      forca,
+      intelecto,
+      somarIntelecto,
+      reduzirItensLeves,
+      reduzirCategoriaEm,
+      reduzirCategoriaExcetoTipos,
+      prestigioBase,
+    ],
   );
 
   return {

@@ -6,10 +6,15 @@ import {
   CampanhaPersonagemDesassociacaoNegadaException,
   CampanhaPersonagemEdicaoNegadaException,
   CampanhaPersonagemLimiteUsuarioException,
+  PersonagemCampanhaNucleoCustoInsuficienteException,
+  PersonagemCampanhaNucleoIndisponivelException,
+  PersonagemCampanhaNucleoInvalidoException,
+  PersonagemCampanhaNucleoSacrificioIndisponivelException,
   PersonagemCampanhaNaoEncontradoException,
 } from 'src/common/exceptions/campanha.exception';
 import { PersonagemBaseNaoEncontradoException } from 'src/common/exceptions/personagem.exception';
 import { AtualizarRecursosPersonagemCampanhaDto } from './dto/atualizar-recursos-personagem-campanha.dto';
+import { AtualizarNucleoPersonagemCampanhaDto } from './dto/atualizar-nucleo-personagem-campanha.dto';
 import { CampanhaAccessService } from './campanha.access.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import {
@@ -18,6 +23,14 @@ import {
 } from './campanha.mapper';
 import { CampanhaPersistence } from './campanha.persistence';
 import { clamp, isUniqueConstraintViolation } from './engine/campanha.engine';
+import { SacrificarNucleoPersonagemCampanhaDto } from './dto/sacrificar-nucleo-personagem-campanha.dto';
+import {
+  calcularPvBarraMaximos,
+  normalizarNucleosDisponiveis,
+  normalizarPvBarrasTotal,
+  nucleosPadrao,
+  type NucleoAmaldicoadoCodigo,
+} from 'src/common/utils/pv-barras';
 
 @Injectable()
 export class CampanhaPersonagensService {
@@ -123,6 +136,7 @@ export class CampanhaPersonagensService {
         trilhaId: true,
         caminhoId: true,
         pvMaximo: true,
+        pvBarrasTotal: true,
         peMaximo: true,
         eaMaximo: true,
         sanMaximo: true,
@@ -226,6 +240,20 @@ export class CampanhaPersonagensService {
         }
       }
 
+      const pvBarrasTotal = normalizarPvBarrasTotal(
+        personagemBase.pvBarrasTotal,
+      );
+      const pvBarrasRestantes = pvBarrasTotal;
+      const { pvBarraMaxAtual } = calcularPvBarraMaximos(
+        personagemBase.pvMaximo,
+        pvBarrasTotal,
+        pvBarrasRestantes,
+      );
+      const nucleosDisponiveis =
+        pvBarrasTotal > 1 ? nucleosPadrao() : [];
+      const nucleoAmaldicoadoAtivo =
+        pvBarrasTotal > 1 ? nucleosDisponiveis[0] : null;
+
       let personagemCriado: { id: number };
       try {
         personagemCriado = await tx.personagemCampanha.create({
@@ -241,13 +269,17 @@ export class CampanhaPersonagensService {
             trilhaId: personagemBase.trilhaId,
             caminhoId: personagemBase.caminhoId,
             pvMax: personagemBase.pvMaximo,
-            pvAtual: personagemBase.pvMaximo,
+            pvAtual: pvBarraMaxAtual,
             peMax: personagemBase.peMaximo,
             peAtual: personagemBase.peMaximo,
             eaMax: personagemBase.eaMaximo,
             eaAtual: personagemBase.eaMaximo,
             sanMax: personagemBase.sanMaximo,
             sanAtual: personagemBase.sanMaximo,
+            pvBarrasTotal,
+            pvBarrasRestantes,
+            nucleoAmaldicoadoAtivo,
+            nucleosDisponiveis,
             limitePeEaPorTurno: personagemBase.limitePeEaPorTurno,
             prestigioGeral: personagemBase.prestigioBase,
             prestigioCla: personagemBase.prestigioClaBase,
@@ -450,6 +482,12 @@ export class CampanhaPersonagensService {
         true,
       );
 
+    const infoPv = calcularPvBarraMaximos(
+      contexto.personagem.pvMax,
+      contexto.personagem.pvBarrasTotal,
+      contexto.personagem.pvBarrasRestantes,
+    );
+
     const antes = {
       pvAtual: contexto.personagem.pvAtual,
       peAtual: contexto.personagem.peAtual,
@@ -461,7 +499,7 @@ export class CampanhaPersonagensService {
       pvAtual:
         dto.pvAtual == null
           ? contexto.personagem.pvAtual
-          : clamp(dto.pvAtual, 0, contexto.personagem.pvMax),
+          : clamp(dto.pvAtual, 0, infoPv.pvBarraMaxAtual),
       peAtual:
         dto.peAtual == null
           ? contexto.personagem.peAtual
@@ -503,6 +541,157 @@ export class CampanhaPersonagensService {
       });
 
       return personagem;
+    });
+
+    return this.mapper.mapearPersonagemCampanhaResposta(atualizado);
+  }
+
+  async atualizarNucleoPersonagemCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: AtualizarNucleoPersonagemCampanhaDto,
+  ) {
+    const contexto =
+      await this.accessService.obterPersonagemCampanhaComPermissao(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+        true,
+      );
+
+    const pvBarrasTotal = normalizarPvBarrasTotal(
+      contexto.personagem.pvBarrasTotal,
+    );
+    if (pvBarrasTotal <= 1) {
+      throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
+        'Personagem nao possui multiplos nucleos.',
+      );
+    }
+
+    const nucleo = dto.nucleo as NucleoAmaldicoadoCodigo;
+    const nucleosDisponiveis = normalizarNucleosDisponiveis(
+      contexto.personagem.nucleosDisponiveis,
+    );
+
+    if (!nucleosDisponiveis.includes(nucleo)) {
+      throw new PersonagemCampanhaNucleoIndisponivelException(nucleo);
+    }
+
+    const atualizado = await this.prisma.personagemCampanha.update({
+      where: { id: personagemCampanhaId },
+      data: { nucleoAmaldicoadoAtivo: nucleo },
+      select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+    });
+
+    return this.mapper.mapearPersonagemCampanhaResposta(atualizado);
+  }
+
+  async sacrificarNucleoPersonagemCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: SacrificarNucleoPersonagemCampanhaDto,
+  ) {
+    const contexto =
+      await this.accessService.obterPersonagemCampanhaComPermissao(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+        true,
+      );
+
+    const infoPv = calcularPvBarraMaximos(
+      contexto.personagem.pvMax,
+      contexto.personagem.pvBarrasTotal,
+      contexto.personagem.pvBarrasRestantes,
+    );
+
+    if (infoPv.pvBarrasTotal <= 1) {
+      throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
+        'Personagem nao possui multiplas barras de PV.',
+      );
+    }
+
+    if (contexto.personagem.pvAtual > 0) {
+      throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
+        'PV atual deve estar zerado para sacrificar um nucleo.',
+      );
+    }
+
+    if (infoPv.pvBarrasRestantes <= 1) {
+      throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
+        'Nao ha nucleos restantes para sacrificar.',
+      );
+    }
+
+    const nucleosDisponiveis = normalizarNucleosDisponiveis(
+      contexto.personagem.nucleosDisponiveis,
+    );
+    const nucleoAtivo =
+      (contexto.personagem.nucleoAmaldicoadoAtivo as
+        | NucleoAmaldicoadoCodigo
+        | null) ?? nucleosDisponiveis[0] ?? 'EQUILIBRIO';
+
+    const modo = dto.modo;
+    const nucleoAlvo =
+      modo === 'OUTRO' ? dto.nucleo : (nucleoAtivo as string | undefined);
+
+    if (!nucleoAlvo) {
+      throw new PersonagemCampanhaNucleoInvalidoException(
+        String(nucleoAlvo),
+      );
+    }
+
+    if (!nucleosDisponiveis.includes(nucleoAlvo as NucleoAmaldicoadoCodigo)) {
+      throw new PersonagemCampanhaNucleoIndisponivelException(nucleoAlvo);
+    }
+
+    if (modo === 'OUTRO' && nucleoAlvo === nucleoAtivo) {
+      throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
+        'Escolha um nucleo diferente do ativo.',
+      );
+    }
+
+    if (modo === 'OUTRO' && contexto.personagem.peAtual < 3) {
+      throw new PersonagemCampanhaNucleoCustoInsuficienteException(
+        3,
+        contexto.personagem.peAtual,
+      );
+    }
+
+    const novosNucleos = nucleosDisponiveis.filter(
+      (codigo) => codigo !== nucleoAlvo,
+    );
+
+    if (novosNucleos.length < 1) {
+      throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
+        'Nao ha outro nucleo disponivel apos o sacrificio.',
+      );
+    }
+
+    const novoNucleoAtivo =
+      modo === 'ATUAL' ? novosNucleos[0] : nucleoAtivo;
+
+    const infoAtualizado = calcularPvBarraMaximos(
+      contexto.personagem.pvMax,
+      infoPv.pvBarrasTotal,
+      infoPv.pvBarrasRestantes - 1,
+    );
+
+    const atualizado = await this.prisma.personagemCampanha.update({
+      where: { id: personagemCampanhaId },
+      data: {
+        pvBarrasRestantes: infoAtualizado.pvBarrasRestantes,
+        pvAtual: infoAtualizado.pvBarraMaxAtual,
+        nucleoAmaldicoadoAtivo: novoNucleoAtivo,
+        nucleosDisponiveis: novosNucleos,
+        peAtual:
+          modo === 'OUTRO'
+            ? Math.max(0, contexto.personagem.peAtual - 3)
+            : contexto.personagem.peAtual,
+      },
+      select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
     });
 
     return this.mapper.mapearPersonagemCampanhaResposta(atualizado);

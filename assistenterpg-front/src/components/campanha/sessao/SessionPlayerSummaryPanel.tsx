@@ -7,7 +7,11 @@ import { SessionCharacterDetailsTabs } from '@/components/campanha/sessao/Sessio
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
+import type {
+  CondicaoAtivaSessaoCampanha,
+  NucleoAmaldicoadoCodigo,
+  SessaoCampanhaDetalhe,
+} from '@/lib/types';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import type {
   AjustesRecursos,
@@ -61,6 +65,14 @@ type SessionPlayerSummaryPanelProps = {
   onAtualizarAjusteRecurso: (campo: CampoAjusteRecurso, valor: string) => void;
   onAplicarDeltaRecurso: (campo: CampoAjusteRecurso, delta: number) => void;
   onAplicarAjustePersonalizado: (campo: CampoAjusteRecurso) => void;
+  onSelecionarNucleo: (
+    personagemCampanhaId: number,
+    nucleo: NucleoAmaldicoadoCodigo,
+  ) => void;
+  onSacrificarNucleo: (
+    personagemCampanhaId: number,
+    payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
+  ) => void;
 };
 
 export function SessionPlayerSummaryPanel({
@@ -99,6 +111,8 @@ export function SessionPlayerSummaryPanel({
   onAtualizarAjusteRecurso,
   onAplicarDeltaRecurso,
   onAplicarAjustePersonalizado,
+  onSelecionarNucleo,
+  onSacrificarNucleo,
 }: SessionPlayerSummaryPanelProps) {
   return (
     <SessionPanel
@@ -138,6 +152,12 @@ export function SessionPlayerSummaryPanel({
             onAtualizarAjustePersonalizado={onAtualizarAjusteRecurso}
             onAplicarAjustePersonalizado={onAplicarAjustePersonalizado}
             onAplicarAjusteRapido={onAplicarDeltaRecurso}
+            onSelecionarNucleo={(nucleo) =>
+              onSelecionarNucleo(card.personagemCampanhaId, nucleo)
+            }
+            onSacrificarNucleo={(payload) =>
+              onSacrificarNucleo(card.personagemCampanhaId, payload)
+            }
             acaoPendenteCampo={campoRecursoPendente}
             desabilitado={sessaoEncerrada || salvandoCardId === card.personagemCampanhaId}
           />

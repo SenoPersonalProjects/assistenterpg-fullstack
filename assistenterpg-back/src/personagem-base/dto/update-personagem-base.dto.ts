@@ -17,6 +17,7 @@ import {
   GrauAprimoramentoDto,
   GrauTreinamentoDto,
   PoderGenericoInstanciaDto,
+  HabilidadeConfigDto,
   PassivasAtributoConfigDto,
   ItemInventarioDto,
 } from './create-personagem-base.dto';
@@ -138,6 +139,12 @@ export class UpdatePersonagemBaseDto {
   @ValidateNested({ each: true })
   @Type(() => PoderGenericoInstanciaDto)
   poderesGenericos?: PoderGenericoInstanciaDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HabilidadeConfigDto)
+  habilidadesConfig?: HabilidadeConfigDto[];
 
   @IsOptional()
   @IsArray()

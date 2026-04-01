@@ -4,6 +4,7 @@ import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 type RecursosStatus = {
   pvAtual: number;
   pvMax: number;
+  pvBarraMaxAtual?: number;
   sanAtual: number;
   sanMax: number;
 };
@@ -83,7 +84,9 @@ export function resolverStatusFisico(
     return 'Machucado';
   }
 
-  if (recursos.pvMax > 0 && recursos.pvAtual <= recursos.pvMax / 2) {
+  const pvMaxAtual = recursos.pvBarraMaxAtual ?? recursos.pvMax;
+
+  if (pvMaxAtual > 0 && recursos.pvAtual <= pvMaxAtual / 2) {
     return 'Machucado';
   }
 

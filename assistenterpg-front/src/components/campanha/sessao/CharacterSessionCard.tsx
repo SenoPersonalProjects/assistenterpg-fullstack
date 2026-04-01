@@ -1,7 +1,11 @@
 ﻿'use client';
 
 import type { ReactNode } from 'react';
-import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
+import type {
+  CondicaoAtivaSessaoCampanha,
+  NucleoAmaldicoadoCodigo,
+  SessaoCampanhaDetalhe,
+} from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -44,6 +48,14 @@ type CharacterSessionCardProps = {
   ) => void;
   onAplicarDeltaRecurso: (campo: CampoAjusteRecursoCard, delta: number) => void;
   onAplicarAjustePersonalizado: (campo: CampoAjusteRecursoCard) => void;
+  onSelecionarNucleo: (
+    personagemCampanhaId: number,
+    nucleo: NucleoAmaldicoadoCodigo,
+  ) => void;
+  onSacrificarNucleo: (
+    personagemCampanhaId: number,
+    payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
+  ) => void;
   onAbrirEdicaoPersonagem: () => void;
   onAbrirFichaCompleta: () => void;
   onSolicitarRemover: () => void;
@@ -96,6 +108,8 @@ export function CharacterSessionCard({
   onAtualizarAjusteRecursoPersonalizado,
   onAplicarDeltaRecurso,
   onAplicarAjustePersonalizado,
+  onSelecionarNucleo,
+  onSacrificarNucleo,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
   onSolicitarRemover,
@@ -179,6 +193,11 @@ export function CharacterSessionCard({
           recursos={{
             pvAtual: recursos.pvAtual,
             pvMax: recursos.pvMax,
+            pvBarrasTotal: recursos.pvBarrasTotal,
+            pvBarrasRestantes: recursos.pvBarrasRestantes,
+            pvBarraMaxAtual: recursos.pvBarraMaxAtual,
+            nucleoAtivo: recursos.nucleoAtivo,
+            nucleosDisponiveis: recursos.nucleosDisponiveis,
             sanAtual: recursos.sanAtual,
             sanMax: recursos.sanMax,
             eaAtual: recursos.eaAtual,
@@ -186,6 +205,12 @@ export function CharacterSessionCard({
             peAtual: recursos.peAtual,
             peMax: recursos.peMax,
           }}
+          onSelecionarNucleo={(nucleo) =>
+            onSelecionarNucleo(card.personagemCampanhaId, nucleo)
+          }
+          onSacrificarNucleo={(payload) =>
+            onSacrificarNucleo(card.personagemCampanhaId, payload)
+          }
         />
       ) : (
         <div>

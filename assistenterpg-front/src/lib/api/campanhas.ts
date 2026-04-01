@@ -266,6 +266,30 @@ export async function apiAtualizarRecursosPersonagemCampanha(
   return data;
 }
 
+export async function apiAtualizarNucleoPersonagemCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  payload: { nucleo: 'EQUILIBRIO' | 'PODER' | 'IMPULSO' },
+): Promise<PersonagemCampanhaResumo> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/nucleo`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiSacrificarNucleoPersonagemCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: 'EQUILIBRIO' | 'PODER' | 'IMPULSO' },
+): Promise<PersonagemCampanhaResumo> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/nucleos/sacrificar`,
+    payload,
+  );
+  return data;
+}
+
 export async function apiListarModificadoresPersonagemCampanha(
   campanhaId: number,
   personagemCampanhaId: number,

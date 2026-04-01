@@ -1,11 +1,20 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
+import type { NucleoAmaldicoadoCodigo } from '@/lib/types/campanha.types';
 
 type RecursosResumo = {
   pvAtual: number;
   pvMax: number;
+  pvBarrasTotal?: number;
+  pvBarrasRestantes?: number;
+  pvBarraMaxAtual?: number;
+  nucleoAtivo?: NucleoAmaldicoadoCodigo | null;
+  nucleosDisponiveis?: NucleoAmaldicoadoCodigo[];
   sanAtual: number;
   sanMax: number;
   eaAtual: number;
@@ -26,6 +35,11 @@ type SessionCharacterResourceCardProps = {
   onAtualizarAjustePersonalizado?: (campo: LinhaRecurso['key'], valor: string) => void;
   onAplicarAjustePersonalizado?: (campo: LinhaRecurso['key']) => void;
   onAplicarAjusteRapido?: (campo: LinhaRecurso['key'], delta: number) => void;
+  onSelecionarNucleo?: (nucleo: NucleoAmaldicoadoCodigo) => void;
+  onSacrificarNucleo?: (payload: {
+    modo: 'ATUAL' | 'OUTRO';
+    nucleo?: NucleoAmaldicoadoCodigo;
+  }) => void;
   acaoPendenteCampo?: LinhaRecurso['key'] | null;
   desabilitado?: boolean;
   className?: string;
@@ -45,6 +59,12 @@ function clampPercentual(atual: number, maximo: number): number {
   return Math.max(0, Math.min(100, percentual));
 }
 
+const NUCLEO_LABELS: Record<NucleoAmaldicoadoCodigo, string> = {
+  EQUILIBRIO: 'Equilibrio',
+  PODER: 'Poder',
+  IMPULSO: 'Impulso',
+};
+
 export function SessionCharacterResourceCard({
   nomePersonagem,
   nomeJogador,
@@ -57,16 +77,46 @@ export function SessionCharacterResourceCard({
   onAtualizarAjustePersonalizado,
   onAplicarAjustePersonalizado,
   onAplicarAjusteRapido,
+  onSelecionarNucleo,
+  onSacrificarNucleo,
   acaoPendenteCampo = null,
   desabilitado = false,
   className = '',
 }: SessionCharacterResourceCardProps) {
+  const [modalSacrificioAberto, setModalSacrificioAberto] = useState(false);
+  const [modoSacrificio, setModoSacrificio] = useState<'ATUAL' | 'OUTRO'>('ATUAL');
+  const [nucleoSacrificio, setNucleoSacrificio] =
+    useState<NucleoAmaldicoadoCodigo | null>(null);
+
+  const pvBarrasTotal = recursos.pvBarrasTotal ?? 1;
+  const pvBarrasRestantes = recursos.pvBarrasRestantes ?? pvBarrasTotal;
+  const pvBarraMaxAtual = recursos.pvBarraMaxAtual ?? recursos.pvMax;
+  const temBarras = pvBarrasTotal > 1;
+  const nucleosDisponiveis = useMemo(
+    () => recursos.nucleosDisponiveis ?? [],
+    [recursos.nucleosDisponiveis],
+  );
+  const nucleoAtivo =
+    recursos.nucleoAtivo ?? nucleosDisponiveis[0] ?? null;
+
+  const nucleosParaSacrificio = useMemo(
+    () =>
+      nucleosDisponiveis.filter((nucleo) => nucleo !== nucleoAtivo),
+    [nucleosDisponiveis, nucleoAtivo],
+  );
+
+  const podeSacrificar =
+    podeAjustar &&
+    recursos.pvAtual <= 0 &&
+    pvBarrasRestantes > 1 &&
+    nucleosDisponiveis.length > 0;
+
   const linhas: LinhaRecurso[] = [
     {
       key: 'pv',
       label: 'Vida',
       atual: recursos.pvAtual,
-      maximo: recursos.pvMax,
+      maximo: temBarras ? pvBarraMaxAtual : recursos.pvMax,
       tone: 'pv',
     },
     {
@@ -141,6 +191,53 @@ export function SessionCharacterResourceCard({
                 style={{ width: `${clampPercentual(linha.atual, linha.maximo)}%` }}
               />
             </div>
+            {linha.key === 'pv' && temBarras ? (
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-app-muted">
+                  <span>PV por nucleo: {pvBarraMaxAtual}</span>
+                  <span>Total: {recursos.pvMax}</span>
+                  <span>
+                    Nucleos: {pvBarrasRestantes}/{pvBarrasTotal}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {nucleosDisponiveis.length > 0 ? (
+                    nucleosDisponiveis.map((nucleo) => (
+                      <Button
+                        key={nucleo}
+                        size="xs"
+                        variant={nucleo === nucleoAtivo ? 'secondary' : 'ghost'}
+                        onClick={() => onSelecionarNucleo?.(nucleo)}
+                        disabled={
+                          desabilitado ||
+                          !podeAjustar ||
+                          !onSelecionarNucleo ||
+                          nucleo === nucleoAtivo
+                        }
+                      >
+                        {NUCLEO_LABELS[nucleo]}
+                      </Button>
+                    ))
+                  ) : (
+                    <Badge size="sm">Nucleos indisponiveis</Badge>
+                  )}
+                  {podeSacrificar && onSacrificarNucleo ? (
+                    <Button
+                      size="xs"
+                      variant="destructive"
+                      onClick={() => {
+                        setModoSacrificio('ATUAL');
+                        setNucleoSacrificio(nucleosParaSacrificio[0] ?? null);
+                        setModalSacrificioAberto(true);
+                      }}
+                      disabled={desabilitado}
+                    >
+                      Sacrificar nucleo
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
             {podeAjustar ? (
               <div className="session-resource-actions">
                 <div className="session-resource-actions__quick">
@@ -203,6 +300,86 @@ export function SessionCharacterResourceCard({
           </div>
         ))}
       </div>
+
+      {temBarras ? (
+        <Modal
+          isOpen={modalSacrificioAberto}
+          onClose={() => setModalSacrificioAberto(false)}
+          title="Sacrificar nucleo"
+          size="sm"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setModalSacrificioAberto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  onSacrificarNucleo?.({
+                    modo: modoSacrificio,
+                    nucleo:
+                      modoSacrificio === 'OUTRO'
+                        ? nucleoSacrificio ?? undefined
+                        : undefined,
+                  });
+                  setModalSacrificioAberto(false);
+                }}
+                disabled={
+                  desabilitado ||
+                  (modoSacrificio === 'OUTRO' && !nucleoSacrificio)
+                }
+              >
+                Confirmar sacrificio
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-3 text-sm text-app-fg">
+            <p className="text-xs text-app-muted">
+              Sacrificar um nucleo restaura seu PV para a barra atual.
+            </p>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="modo-sacrificio"
+                  value="ATUAL"
+                  checked={modoSacrificio === 'ATUAL'}
+                  onChange={() => setModoSacrificio('ATUAL')}
+                />
+                Sacrificar nucleo atual
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="modo-sacrificio"
+                  value="OUTRO"
+                  checked={modoSacrificio === 'OUTRO'}
+                  onChange={() => setModoSacrificio('OUTRO')}
+                />
+                Sacrificar outro nucleo (3 PE)
+              </label>
+            </div>
+            {modoSacrificio === 'OUTRO' ? (
+              <div className="space-y-2">
+                <p className="text-xs text-app-muted">Escolha o nucleo a perder:</p>
+                <div className="flex flex-wrap gap-2">
+                  {nucleosParaSacrificio.map((nucleo) => (
+                    <Button
+                      key={nucleo}
+                      size="xs"
+                      variant={nucleoSacrificio === nucleo ? 'secondary' : 'ghost'}
+                      onClick={() => setNucleoSacrificio(nucleo)}
+                    >
+                      {NUCLEO_LABELS[nucleo]}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

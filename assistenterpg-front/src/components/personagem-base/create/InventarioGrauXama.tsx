@@ -5,7 +5,11 @@
 import { useMemo } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { InfoTile } from '@/components/ui/InfoTile';
-import { formatarGrauXama, type GrauXama } from '@/lib/utils/prestigio';
+import {
+  formatarGrauXama,
+  getLimiteCreditoComBonus,
+  type GrauXama,
+} from '@/lib/utils/prestigio';
 import { calcularCategoriaFinal, isCategoriaBloquada } from '@/lib/utils/inventario';
 import type { ItemInventarioPayload, EquipamentoCatalogo } from '@/lib/api';
 
@@ -13,9 +17,19 @@ type Props = {
   grauXama: GrauXama;
   itensInventario: ItemInventarioPayload[]; // ✅ MUDOU
   equipamentos: EquipamentoCatalogo[];
+  creditoCategoriaBonus?: number;
 };
 
-export function InventarioGrauXama({ grauXama, itensInventario, equipamentos }: Props) {
+export function InventarioGrauXama({
+  grauXama,
+  itensInventario,
+  equipamentos,
+  creditoCategoriaBonus = 0,
+}: Props) {
+  const limiteCredito = getLimiteCreditoComBonus(
+    grauXama.grau,
+    creditoCategoriaBonus,
+  );
   // ✅ NOVO: Contar itens por categoria manualmente
   const itensPorCategoria = useMemo(() => {
     const contagem: Record<string, number> = {
@@ -55,7 +69,7 @@ export function InventarioGrauXama({ grauXama, itensInventario, equipamentos }: 
             label="Grau"
             value={<span className="text-app-success">{formatarGrauXama(grauXama.grau)}</span>}
           />
-          <InfoTile label="Limite Crédito" value={grauXama.limiteCredito} />
+          <InfoTile label="Limite Credito" value={limiteCredito} />
         </div>
 
         {/* ✅ COMPACTO: Grid 3 colunas em mobile, 6 em desktop, padding reduzido */}
@@ -113,3 +127,4 @@ export function InventarioGrauXama({ grauXama, itensInventario, equipamentos }: 
     </div>
   );
 }
+

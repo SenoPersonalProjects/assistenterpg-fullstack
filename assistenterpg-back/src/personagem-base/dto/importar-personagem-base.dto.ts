@@ -38,6 +38,20 @@ export class ReferenciaPoderGenericoDto {
   habilidadeNome?: string;
 }
 
+export class ReferenciaHabilidadeConfigDto {
+  @IsInt()
+  @Min(0)
+  index: number;
+
+  @IsOptional()
+  @IsInt()
+  habilidadeId?: number;
+
+  @IsOptional()
+  @IsString()
+  habilidadeNome?: string;
+}
+
 export class ReferenciaPassivaDto {
   @IsInt()
   @Min(0)
@@ -143,6 +157,12 @@ export class ReferenciasImportacaoPersonagemDto {
   @ValidateNested({ each: true })
   @Type(() => ReferenciaPoderGenericoDto)
   poderesGenericos?: ReferenciaPoderGenericoDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ReferenciaHabilidadeConfigDto)
+  habilidadesConfig?: ReferenciaHabilidadeConfigDto[];
 
   @IsOptional()
   @IsArray()

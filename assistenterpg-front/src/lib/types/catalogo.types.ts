@@ -152,6 +152,7 @@ export type TrilhaCatalogo = {
   nome: string;
   descricao: string | null;
   classeId: number;
+  requisitos?: unknown;
   fonte?: TipoFonte;
   suplementoId?: number | null;
 };
