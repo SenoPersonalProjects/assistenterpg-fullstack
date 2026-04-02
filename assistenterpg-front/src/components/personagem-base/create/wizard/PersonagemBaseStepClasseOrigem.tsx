@@ -46,9 +46,26 @@ export function PersonagemBaseStepClasseOrigem({
   const classeSelecionada = classes.find((c) => String(c.id) === classeId);
 
   const normalizarHabilidades = (
-    habilidades: Array<{ id: number; nome: string; descricao: string | null } | null | undefined>,
-  ): Array<{ id: number; nome: string; descricao: string | null }> => {
-    const mapa = new Map<number, { id: number; nome: string; descricao: string | null }>();
+    habilidades: Array<
+      | {
+          id: number;
+          nome: string;
+          descricao: string | null;
+          mecanicasEspeciais?: unknown;
+        }
+      | null
+      | undefined
+    >,
+  ): Array<{
+    id: number;
+    nome: string;
+    descricao: string | null;
+    mecanicasEspeciais?: unknown;
+  }> => {
+    const mapa = new Map<
+      number,
+      { id: number; nome: string; descricao: string | null; mecanicasEspeciais?: unknown }
+    >();
     for (const habilidade of habilidades) {
       if (!habilidade) continue;
       if (!mapa.has(habilidade.id)) {

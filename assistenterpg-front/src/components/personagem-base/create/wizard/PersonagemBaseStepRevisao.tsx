@@ -510,9 +510,14 @@ export function PersonagemBaseStepRevisao({
       : 'Nenhuma habilidade cadastrada';
 
   const normalizarHabilidades = (
-    habilidades: Array<{ id: number; nome: string; descricao: string | null } | null | undefined>,
-  ): Array<{ id: number; nome: string; descricao: string | null }> => {
-    const mapa = new Map<number, { id: number; nome: string; descricao: string | null }>();
+    habilidades: Array<
+      { id: number; nome: string; descricao: string | null; tipo?: string } | null | undefined
+    >,
+  ): Array<{ id: number; nome: string; descricao: string | null; tipo?: string }> => {
+    const mapa = new Map<
+      number,
+      { id: number; nome: string; descricao: string | null; tipo?: string }
+    >();
     for (const habilidade of habilidades) {
       if (!habilidade) continue;
       if (!mapa.has(habilidade.id)) {
