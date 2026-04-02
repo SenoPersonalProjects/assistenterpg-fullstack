@@ -45,12 +45,27 @@ export function PersonagemBaseStepClasseOrigem({
   const origemSelecionada = origens.find((o) => String(o.id) === origemId);
   const classeSelecionada = classes.find((c) => String(c.id) === classeId);
 
-  const habilidadesOrigem =
-    origemSelecionada?.habilidadesIniciais ??
-    origemSelecionada?.habilidadesOrigem?.map((r) => r.habilidade) ??
-    [];
+  const normalizarHabilidades = (
+    habilidades: Array<{ id: number; nome: string; descricao: string | null } | null | undefined>,
+  ): Array<{ id: number; nome: string; descricao: string | null }> => {
+    const mapa = new Map<number, { id: number; nome: string; descricao: string | null }>();
+    for (const habilidade of habilidades) {
+      if (!habilidade) continue;
+      if (!mapa.has(habilidade.id)) {
+        mapa.set(habilidade.id, habilidade);
+      }
+    }
+    return Array.from(mapa.values());
+  };
 
-  const habilidadesClasse = classeSelecionada?.habilidadesIniciais ?? [];
+  const habilidadesOrigem = normalizarHabilidades([
+    ...(origemSelecionada?.habilidadesIniciais ?? []),
+    ...(origemSelecionada?.habilidadesOrigem?.map((r) => r.habilidade) ?? []),
+  ]);
+
+  const habilidadesClasse = normalizarHabilidades(
+    classeSelecionada?.habilidadesIniciais ?? [],
+  );
 
   const escolhasPericiaOrigem = habilidadesOrigem.filter((h) =>
     getEscolhaPericias(h.mecanicasEspeciais),
@@ -378,10 +393,10 @@ export function PersonagemBaseStepClasseOrigem({
     const periciasFixas = todasPericias.filter((p) => p.tipo === 'FIXA');
     const periciasEscolha = todasPericias.filter((p) => p.tipo === 'ESCOLHA');
     
-    const habilidades = [
+    const habilidades = normalizarHabilidades([
       ...(origem.habilidadesIniciais ?? []),
       ...(origem.habilidadesOrigem?.map((r) => r.habilidade) ?? []),
-    ];
+    ]);
 
     return {
       value: origem.id,

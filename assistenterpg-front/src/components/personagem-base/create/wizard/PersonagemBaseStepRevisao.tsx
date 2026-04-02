@@ -509,9 +509,26 @@ export function PersonagemBaseStepRevisao({
           .join(', ')
       : 'Nenhuma habilidade cadastrada';
 
-  const habilidadesOrigem =
-    origem?.habilidadesIniciais ?? origem?.habilidadesOrigem?.map((r) => r.habilidade) ?? [];
-  const habilidadesClasse = classe?.habilidadesIniciais ?? [];
+  const normalizarHabilidades = (
+    habilidades: Array<{ id: number; nome: string; descricao: string | null } | null | undefined>,
+  ): Array<{ id: number; nome: string; descricao: string | null }> => {
+    const mapa = new Map<number, { id: number; nome: string; descricao: string | null }>();
+    for (const habilidade of habilidades) {
+      if (!habilidade) continue;
+      if (!mapa.has(habilidade.id)) {
+        mapa.set(habilidade.id, habilidade);
+      }
+    }
+    return Array.from(mapa.values());
+  };
+
+  const habilidadesOrigem = normalizarHabilidades([
+    ...(origem?.habilidadesIniciais ?? []),
+    ...(origem?.habilidadesOrigem?.map((r) => r.habilidade) ?? []),
+  ]);
+  const habilidadesClasse = normalizarHabilidades(
+    classe?.habilidadesIniciais ?? [],
+  );
 
   const grauXama = getGrauXamaPorPrestigio(preview.prestigioBase ?? 0);
   const creditoBonus = previewCalculado?.creditoCategoriaBonus ?? 0;
