@@ -84,13 +84,6 @@ export function PersonagemBaseStepClasseOrigem({
     classeSelecionada?.habilidadesIniciais ?? [],
   );
 
-  const escolhasPericiaOrigem = habilidadesOrigem.filter((h) =>
-    getEscolhaPericias(h.mecanicasEspeciais),
-  );
-  const escolhasPericiaClasse = habilidadesClasse.filter((h) =>
-    getEscolhaPericias(h.mecanicasEspeciais),
-  );
-
   const obterConfigHabilidade = (habilidadeId: number): string[] => {
     const config = habilidadesConfig?.find((h) => h.habilidadeId === habilidadeId)?.config;
     if (!config || typeof config !== 'object') return [];
@@ -120,9 +113,9 @@ export function PersonagemBaseStepClasseOrigem({
     return mapa[chave] ?? null;
   };
 
-  const getEscolhaPericias = (
+  function getEscolhaPericias(
     mecanicas: unknown,
-  ): { quantidade: number; periciasPermitidas?: string[]; atributosBasePermitidos?: AtributoBaseCodigo[] } | null => {
+  ): { quantidade: number; periciasPermitidas?: string[]; atributosBasePermitidos?: AtributoBaseCodigo[] } | null {
     if (!mecanicas || typeof mecanicas !== 'object') return null;
     const escolha = (mecanicas as Record<string, unknown>).escolha;
     if (!escolha || typeof escolha !== 'object') return null;
@@ -150,7 +143,14 @@ export function PersonagemBaseStepClasseOrigem({
       periciasPermitidas,
       atributosBasePermitidos,
     };
-  };
+  }
+
+  const escolhasPericiaOrigem = habilidadesOrigem.filter((h) =>
+    getEscolhaPericias(h.mecanicasEspeciais),
+  );
+  const escolhasPericiaClasse = habilidadesClasse.filter((h) =>
+    getEscolhaPericias(h.mecanicasEspeciais),
+  );
 
   const renderEscolhaPericia = (habilidade: { id: number; nome: string; descricao?: string | null; mecanicasEspeciais?: unknown }) => {
     const escolha = getEscolhaPericias(habilidade.mecanicasEspeciais);
