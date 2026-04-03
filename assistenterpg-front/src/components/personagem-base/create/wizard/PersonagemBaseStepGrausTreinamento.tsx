@@ -55,6 +55,7 @@ type Props = {
   todasPericias: PericiaCatalogo[];
   poderesGenericos: PoderGenericoInstanciaPayload[];
   passivasAtributosConfig?: PassivasAtributoConfigFront;
+  habilidadesConfig?: CreatePersonagemBasePayload['habilidadesConfig'];
 };
 
 type Validacao = { valido: boolean; mensagem?: string };
@@ -131,6 +132,7 @@ export function PersonagemBaseStepGrausTreinamento({
   todasPericias,
   poderesGenericos,
   passivasAtributosConfig,
+  habilidadesConfig,
 }: Props) {
   const { token } = useAuth();
   const [previewBase, setPreviewBase] = useState<PersonagemBasePreview | null>(null);
@@ -160,6 +162,15 @@ export function PersonagemBaseStepGrausTreinamento({
         config: inst.config ?? {},
       })),
     [poderesGenericos],
+  );
+
+  const habilidadesConfigNormalizadas = useMemo(
+    () =>
+      (habilidadesConfig ?? []).map((inst) => ({
+        ...inst,
+        config: inst.config ?? {},
+      })),
+    [habilidadesConfig],
   );
 
   const payloadBase = useMemo<CreatePersonagemBasePayload | null>(() => {
@@ -204,7 +215,14 @@ export function PersonagemBaseStepGrausTreinamento({
       grausTreinamento: [],
       proficienciasCodigos: [],
 
-      poderesGenericos: poderesGenericosNormalizados.length > 0 ? poderesGenericosNormalizados : undefined,
+      poderesGenericos:
+        poderesGenericosNormalizados.length > 0
+          ? poderesGenericosNormalizados
+          : undefined,
+      habilidadesConfig:
+        habilidadesConfigNormalizadas.length > 0
+          ? habilidadesConfigNormalizadas
+          : undefined,
       passivasAtributosConfig: configSanitizado,
     };
 
@@ -235,6 +253,7 @@ export function PersonagemBaseStepGrausTreinamento({
     periciasLivresCodigos,
     graus,
     poderesGenericosNormalizados,
+    habilidadesConfigNormalizadas,
     passivasAtributosConfig,
   ]);
 
@@ -281,7 +300,14 @@ export function PersonagemBaseStepGrausTreinamento({
       grausTreinamento: grausTreinamentoSanitizados,
       proficienciasCodigos: [],
 
-      poderesGenericos: poderesGenericosNormalizados.length > 0 ? poderesGenericosNormalizados : undefined,
+      poderesGenericos:
+        poderesGenericosNormalizados.length > 0
+          ? poderesGenericosNormalizados
+          : undefined,
+      habilidadesConfig:
+        habilidadesConfigNormalizadas.length > 0
+          ? habilidadesConfigNormalizadas
+          : undefined,
       passivasAtributosConfig: configSanitizado,
     };
 
@@ -313,6 +339,7 @@ export function PersonagemBaseStepGrausTreinamento({
     graus,
     grausTreinamentoAtual,
     poderesGenericosNormalizados,
+    habilidadesConfigNormalizadas,
     passivasAtributosConfig,
   ]);
 

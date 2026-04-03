@@ -215,8 +215,8 @@ export async function calcularAtributosDerivados(
 
   const peMaximo =
     valores.peInicial +
-    presenca +
-    (nivel - 1) * (valores.pePorNivel + presenca) +
+    atributoEa +
+    (nivel - 1) * (valores.pePorNivel + atributoEa) +
     efeitosPassivas.peExtra;
 
   const eaMaximo =

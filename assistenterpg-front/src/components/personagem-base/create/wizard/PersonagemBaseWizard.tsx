@@ -940,6 +940,7 @@ export function PersonagemBaseWizard(props: Props) {
                 todasPericias={pericias}
                 poderesGenericos={poderesGenericos}
                 passivasAtributosConfig={passivasAtributosConfig}
+                habilidadesConfig={habilidadesConfig}
               />
             </>
           )}

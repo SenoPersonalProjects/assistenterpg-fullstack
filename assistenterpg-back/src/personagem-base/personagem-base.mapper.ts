@@ -20,6 +20,7 @@ import {
 import {
   extrairAtributoChaveEaDeHabilidades,
   extrairPericiasAtributoBaseOverride,
+  extrairResistenciasDeHabilidades,
 } from './regras-criacao/regras-poderes-efeitos';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
@@ -179,6 +180,15 @@ type InventarioItemMapeado = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function extrairNumeroJson(
+  value: Prisma.JsonValue | null | undefined,
+  key: string,
+): number | null {
+  if (!isRecord(value)) return null;
+  const raw = value[key];
+  return typeof raw === 'number' ? raw : null;
 }
 
 function getInventarioSomarIntelectoFromMecanicas(
@@ -509,14 +519,62 @@ export class PersonagemBaseMapper {
     }, 0);
     const sobrecarregado = espacosOcupados > espacosInventario.total;
 
-    const resistencias: ResistenciasMapeadas = (
-      personagem.resistencias ?? []
-    ).map((r) => ({
-      codigo: r.resistenciaTipo.codigo,
-      nome: r.resistenciaTipo.nome,
-      descricao: r.resistenciaTipo.descricao,
-      valor: r.valor,
-    }));
+    const habilidadesResistencias = [
+      ...(personagem.habilidadesBase ?? []).map((h) => ({
+        habilidade: h.habilidade,
+      })),
+      ...(personagem.poderesGenericos ?? []).map((p) => ({
+        habilidade: p.habilidade,
+      })),
+    ];
+
+    const resistenciasDeHabilidades = extrairResistenciasDeHabilidades(
+      habilidadesResistencias,
+      {
+        agilidade: personagem.agilidade,
+        forca: personagem.forca,
+        intelecto: personagem.intelecto,
+        presenca: personagem.presenca,
+        vigor: personagem.vigor,
+      },
+    );
+
+    const resistenciasDeEquipamentos =
+      await this.calcularResistenciasEquipamentos(personagem.id, prisma);
+
+    const resistenciasMap = new Map<string, number>();
+    for (const [codigo, valor] of resistenciasDeHabilidades.entries()) {
+      resistenciasMap.set(codigo, (resistenciasMap.get(codigo) ?? 0) + valor);
+    }
+    for (const [codigo, valor] of resistenciasDeEquipamentos.entries()) {
+      resistenciasMap.set(codigo, (resistenciasMap.get(codigo) ?? 0) + valor);
+    }
+
+    const resistenciasCodigos = Array.from(resistenciasMap.entries())
+      .filter(([, valor]) => typeof valor === 'number' && valor > 0)
+      .map(([codigo]) => codigo);
+
+    const resistenciasTipos = resistenciasCodigos.length
+      ? await prisma.resistenciaTipo.findMany({
+          where: { codigo: { in: resistenciasCodigos } },
+          select: { codigo: true, nome: true, descricao: true },
+        })
+      : [];
+    const resistenciaTipoMap = new Map(
+      resistenciasTipos.map((r) => [r.codigo, r] as const),
+    );
+
+    const resistencias: ResistenciasMapeadas = resistenciasCodigos
+      .map((codigo) => {
+        const info = resistenciaTipoMap.get(codigo);
+        return {
+          codigo,
+          nome: info?.nome ?? codigo,
+          descricao: info?.descricao ?? null,
+          valor: resistenciasMap.get(codigo) ?? 0,
+        };
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
     const grausMap = montarMapaGraus(
       grausAprimoramentoAjustados.map((g) => ({
@@ -868,6 +926,60 @@ export class PersonagemBaseMapper {
       sobrecarregado,
       itensInventario,
     };
+  }
+
+  private async calcularResistenciasEquipamentos(
+    personagemBaseId: number,
+    prisma: PrismaLike,
+  ): Promise<Map<string, number>> {
+    const itens = await prisma.inventarioItemBase.findMany({
+      where: { personagemBaseId, equipado: true },
+      include: {
+        equipamento: {
+          include: {
+            reducesDano: true,
+          },
+        },
+        modificacoes: {
+          include: {
+            modificacao: true,
+          },
+        },
+      },
+    });
+
+    const resistencias = new Map<string, number>();
+
+    for (const item of itens) {
+      const reducoes = item.equipamento?.reducesDano ?? [];
+      if (reducoes.length === 0) continue;
+
+      for (const rd of reducoes) {
+        const atual = resistencias.get(rd.tipoReducao) ?? 0;
+        resistencias.set(
+          rd.tipoReducao,
+          atual + rd.valor * item.quantidade,
+        );
+      }
+
+      for (const modJunction of item.modificacoes ?? []) {
+        const rdAdicional = extrairNumeroJson(
+          modJunction.modificacao?.efeitosMecanicos ?? null,
+          'rdAdicional',
+        );
+        if (typeof rdAdicional !== 'number') continue;
+
+        for (const rd of reducoes) {
+          const atual = resistencias.get(rd.tipoReducao) ?? 0;
+          resistencias.set(
+            rd.tipoReducao,
+            atual + rdAdicional * item.quantidade,
+          );
+        }
+      }
+    }
+
+    return resistencias;
   }
 
   private async mapItensInventario(
