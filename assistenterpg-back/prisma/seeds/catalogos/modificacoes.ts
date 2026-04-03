@@ -1,7 +1,13 @@
 // prisma/seeds/catalogos/modificacoes.ts
 
 import { Prisma, type PrismaClient } from '@prisma/client';
-import { TipoModificacao, TipoFonte, TipoEquipamento, TipoProtecao } from '@prisma/client';
+import {
+  TipoModificacao,
+  TipoFonte,
+  TipoEquipamento,
+  TipoProtecao,
+  ProficienciaProtecao,
+} from '@prisma/client';
 
 // ============================================================
 // TIPOS
@@ -21,6 +27,9 @@ type RestricoesModificacao = {
   
   // ✅ NOVO: Restrição explícita para excluir escudos
   excluiEscudos?: boolean;
+
+  // ✅ NOVO: Proficiências permitidas para proteção
+  proficienciasProtecao?: ProficienciaProtecao[];
 
   // Conflitos
   codigosIncompativeis?: string[];
@@ -258,9 +267,7 @@ const modificacoesProtecao: ModificacaoData[] = [
       tiposEquipamento: [TipoEquipamento.PROTECAO],
       tiposProtecao: [TipoProtecao.VESTIVEL],
       excluiEscudos: true,
-      outros: {
-        proficienciaProtecao: 'PESADA', // Para referência
-      },
+      proficienciasProtecao: [ProficienciaProtecao.PESADA],
     },
     efeitosMecanicos: {
       bonusResistenciaArea: 5,
@@ -279,9 +286,7 @@ const modificacoesProtecao: ModificacaoData[] = [
       tiposEquipamento: [TipoEquipamento.PROTECAO],
       tiposProtecao: [TipoProtecao.VESTIVEL],
       excluiEscudos: true,
-      outros: {
-        proficienciaProtecao: 'PESADA',
-      },
+      proficienciasProtecao: [ProficienciaProtecao.PESADA],
     },
     efeitosMecanicos: {
       rdAdicional: 5,
@@ -301,9 +306,7 @@ const modificacoesProtecao: ModificacaoData[] = [
       tiposProtecao: [TipoProtecao.VESTIVEL],
       excluiEscudos: true,
       codigosIncompativeis: ['MOD_REFORCADA'],
-      outros: {
-        proficienciaProtecao: 'LEVE',
-      },
+      proficienciasProtecao: [ProficienciaProtecao.LEVE],
     },
     efeitosMecanicos: {
       reducaoEspacos: 1,

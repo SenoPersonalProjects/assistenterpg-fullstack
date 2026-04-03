@@ -57,6 +57,7 @@ const inventarioItemComDadosInclude =
           orderBy: { ordem: 'asc' },
         },
         reducesDano: true,
+        protecaoAmaldicoada: true,
       },
     },
     modificacoes: {
@@ -950,8 +951,12 @@ export class InventarioService {
       const reduzirCategoriaExcetoTipos = dto.reduzirCategoriaExcetoTipos ?? [];
 
       const equipamentosIds = [...new Set(itens.map((i) => i.equipamentoId))];
-      const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
+    const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
         where: { id: { in: equipamentosIds } },
+        include: {
+          reducesDano: true,
+          protecaoAmaldicoada: true,
+        },
       });
 
       const modificacoesIds = [
@@ -1026,6 +1031,13 @@ export class InventarioService {
             tipoAcessorio: equipamento.tipoAcessorio ?? null,
             descricao: equipamento.descricao ?? null,
             efeito: equipamento.efeito,
+            reducesDano: equipamento.reducesDano ?? [],
+            protecaoAmaldicoada: equipamento.protecaoAmaldicoada
+              ? {
+                  bonusDefesa: equipamento.protecaoAmaldicoada.bonusDefesa,
+                  penalidadeCarga: equipamento.protecaoAmaldicoada.penalidadeCarga,
+                }
+              : null,
           },
         };
       });
@@ -1095,6 +1107,45 @@ export class InventarioService {
           (itensPorCategoria[cat] || 0) + item.quantidade;
       });
 
+      const itensParaStats: ItemInventarioComDados[] =
+        itensCalculadosAjustados.map((item) => ({
+          id: 0,
+          equipamentoId: item.equipamentoId,
+          quantidade: item.quantidade,
+          equipado: item.equipado,
+          nomeCustomizado: item.nomeCustomizado ?? null,
+          notas: null,
+          categoriaCalculada: item.categoriaCalculada,
+          reduzirItensLeves,
+          equipamento: {
+            id: item.equipamento.id,
+            codigo: item.equipamento.codigo,
+            nome: item.equipamento.nome,
+            tipo: item.equipamento.tipo,
+            categoria: item.equipamento.categoria,
+            espacos: item.equipamento.espacos,
+            complexidadeMaldicao: item.equipamento.complexidadeMaldicao,
+            efeito: item.equipamento.efeito ?? null,
+            tipoArma: item.equipamento.tipoArma ?? null,
+            bonusDefesa: item.equipamento.bonusDefesa ?? 0,
+            penalidadeCarga: item.equipamento.penalidadeCarga ?? 0,
+            reducesDano: item.equipamento.reducesDano ?? [],
+            protecaoAmaldicoada: item.equipamento.protecaoAmaldicoada ?? null,
+          },
+          modificacoes: item.modificacoes.map((mod) => ({
+            modificacao: {
+              id: mod.id,
+              codigo: mod.codigo,
+              nome: mod.nome,
+              descricao: mod.descricao ?? null,
+              incrementoEspacos: mod.incrementoEspacos ?? 0,
+              efeitosMecanicos: mod.efeitosMecanicos ?? null,
+            },
+          })),
+        }));
+
+      const statsEquipados = this.engine.calcularStatsEquipados(itensParaStats);
+
       return {
         itens: itensCalculadosAjustados,
         espacosBase,
@@ -1107,6 +1158,7 @@ export class InventarioService {
           limitesPorCategoria: limitesGrauXama,
         },
         itensPorCategoria,
+        statsEquipados,
       };
     } catch (error: unknown) {
       this.tratarErroPrisma(error);

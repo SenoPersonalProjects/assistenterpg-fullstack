@@ -198,12 +198,18 @@ export class InventarioEngine {
     let defesaTotal = 0;
 
     itensEquipados.forEach((item) => {
-      // Defesa base do equipamento
+      // Defesa base do equipamento (proteções)
       if (
         item.equipamento.tipo === TipoEquipamento.PROTECAO &&
         item.equipamento.bonusDefesa
       ) {
         defesaTotal += item.equipamento.bonusDefesa * item.quantidade;
+      }
+
+      // Defesa de proteção amaldiçoada (ferramentas)
+      if (item.equipamento.protecaoAmaldicoada?.bonusDefesa) {
+        defesaTotal +=
+          item.equipamento.protecaoAmaldicoada.bonusDefesa * item.quantidade;
       }
 
       // ✅ NOVO: Defesa das modificações (bonusDefesa em efeitosMecanicos)
@@ -310,6 +316,10 @@ export class InventarioEngine {
         item.equipamento.penalidadeCarga
       ) {
         penalidadeCarga += item.equipamento.penalidadeCarga;
+      }
+
+      if (item.equipamento.protecaoAmaldicoada?.penalidadeCarga) {
+        penalidadeCarga += item.equipamento.protecaoAmaldicoada.penalidadeCarga;
       }
     });
 

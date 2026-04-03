@@ -30,6 +30,10 @@ export interface ItemInventarioComDados {
     penalidadeCarga?: number | null;
     tipoAcessorio?: string | null; // ✅ NOVO (para detectar VESTIMENTA)
     efeito?: string | null; // ✅ NOVO (para detectar Mochila)
+    protecaoAmaldicoada?: {
+      bonusDefesa: number;
+      penalidadeCarga: number;
+    } | null;
 
     danos?: Array<{
       empunhadura: string | null;

@@ -385,15 +385,22 @@ export function PersonagemBaseStepInventario(props: Props) {
 
   const modificacoesCompativeis = useMemo(() => {
     if (!equipamentoSelecionado) return [];
-    return filtrarModificacoesCompativeis(modificacoes, equipamentoSelecionado);
-  }, [modificacoes, equipamentoSelecionado]);
+    return filtrarModificacoesCompativeis(
+      modificacoes,
+      equipamentoSelecionado,
+      modificacoesSelecionadas,
+    );
+  }, [modificacoes, equipamentoSelecionado, modificacoesSelecionadas]);
 
   const modificacoesCompativeisEdicao = useMemo(() => {
     if (!itemEditando) return [];
     const equip = equipamentoPorId.get(itemEditando.equipamentoId);
     if (!equip) return [];
-    return filtrarModificacoesCompativeis(modificacoes, equip);
-  }, [modificacoes, itemEditando, equipamentoPorId]);
+    const selecionadas = modificacoes.filter((mod) =>
+      modificacoesEditando.includes(mod.id),
+    );
+    return filtrarModificacoesCompativeis(modificacoes, equip, selecionadas);
+  }, [modificacoes, itemEditando, equipamentoPorId, modificacoesEditando]);
 
   // Handler para validar ao marcar "equipado"
   const handleEquipadoChange = useCallback(

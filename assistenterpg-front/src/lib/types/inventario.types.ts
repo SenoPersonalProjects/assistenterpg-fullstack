@@ -183,6 +183,14 @@ export type ModificacaoCatalogo = {
   requisitos?: unknown;
   fonte?: TipoFonte;
   suplementoId?: number | null;
+  restricoes?: {
+    tiposEquipamento?: string[];
+    tiposProtecao?: string[];
+    proficienciasProtecao?: string[];
+    excluiEscudos?: boolean;
+    codigosIncompativeis?: string[];
+    codigosRequeridos?: string[];
+  } | null;
 };
 
 export type ModificacaoDisponivelDto = {

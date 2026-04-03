@@ -116,6 +116,14 @@ type PreviewInventarioItem = {
     descricao?: string | null;
     efeito?: string | null;
     bonusDefesa?: number | null;
+    reducesDano?: Array<{
+      tipoReducao: string;
+      valor: number;
+    }> | null;
+    protecaoAmaldicoada?: {
+      bonusDefesa: number;
+      penalidadeCarga: number;
+    } | null;
   };
 };
 
@@ -130,6 +138,10 @@ type PreviewInventarioResponse = {
     limitesPorCategoria?: Record<string, number>;
   };
   itensPorCategoria?: Record<string, number>;
+  statsEquipados?: {
+    defesaTotal: number;
+    reducoesDano: Array<{ tipoReducao: string; valor: number }>;
+  };
 };
 
 const tecnicaComHabilidadesInclude =
@@ -1659,7 +1671,6 @@ export class PersonagemBaseService {
     const resistenciasArray = Array.from(
       estado.resistenciasFinais.entries(),
     ).map(([codigo, valor]) => ({ codigo, valor }));
-    const codigosResistencia = resistenciasArray.map((r) => r.codigo);
 
     const [
       todasPericias,
@@ -1688,14 +1699,6 @@ export class PersonagemBaseService {
       ),
     ]);
 
-    const resistenciasTipos =
-      codigosResistencia.length > 0
-        ? await this.prisma.resistenciaTipo.findMany({
-            where: { codigo: { in: codigosResistencia } },
-            select: { codigo: true, nome: true, descricao: true },
-          })
-        : [];
-
     const mapaPericiasPorCodigo = new Map(
       todasPericias.map((p) => [p.codigo, p] as const),
     );
@@ -1722,18 +1725,7 @@ export class PersonagemBaseService {
       tiposGrau.map((t) => [t.codigo, t.nome] as const),
     );
     const habilidadesNomes = estado.habilidades.map((h) => h.habilidade.nome);
-    const mapaResistenciasTipo = new Map(
-      resistenciasTipos.map((tipo) => [tipo.codigo, tipo] as const),
-    );
-    const resistenciasComNomes = resistenciasArray.map((r) => {
-      const tipo = mapaResistenciasTipo.get(r.codigo);
-      return {
-        codigo: r.codigo,
-        nome: tipo?.nome ?? r.codigo,
-        descricao: tipo?.descricao ?? null,
-        valor: r.valor,
-      };
-    });
+
 
     // âœ… VALIDAR ITENS (se houver) usando preview do InventarioService
     const inventarioMods = this.calcularModificadoresDerivadosPorHabilidades(
@@ -1750,10 +1742,47 @@ export class PersonagemBaseService {
       );
 
     const previewInventarioItens = previewInventario?.itens ?? [];
+    const statsEquipadosPreview = previewInventario?.statsEquipados ?? null;
     const defesaEquipamentoPreview =
-      previewInventarioItens.length > 0
+      statsEquipadosPreview?.defesaTotal ??
+      (previewInventarioItens.length > 0
         ? this.calcularDefesaEquipamentoPreview(previewInventarioItens)
-        : 0;
+        : 0);
+
+    const resistenciasMap = new Map<string, number>();
+    for (const r of resistenciasArray) {
+      resistenciasMap.set(r.codigo, (resistenciasMap.get(r.codigo) ?? 0) + r.valor);
+    }
+    if (statsEquipadosPreview?.reducoesDano?.length) {
+      for (const rd of statsEquipadosPreview.reducoesDano) {
+        resistenciasMap.set(
+          rd.tipoReducao,
+          (resistenciasMap.get(rd.tipoReducao) ?? 0) + rd.valor,
+        );
+      }
+    }
+
+    const codigosResistencia = Array.from(resistenciasMap.keys());
+    const resistenciasTipos =
+      codigosResistencia.length > 0
+        ? await this.prisma.resistenciaTipo.findMany({
+            where: { codigo: { in: codigosResistencia } },
+            select: { codigo: true, nome: true, descricao: true },
+          })
+        : [];
+
+    const mapaResistenciasTipo = new Map(
+      resistenciasTipos.map((tipo) => [tipo.codigo, tipo] as const),
+    );
+    const resistenciasComNomes = codigosResistencia.map((codigo) => {
+      const tipo = mapaResistenciasTipo.get(codigo);
+      return {
+        codigo,
+        nome: tipo?.nome ?? codigo,
+        descricao: tipo?.descricao ?? null,
+        valor: resistenciasMap.get(codigo) ?? 0,
+      };
+    });
 
     const atributosDerivadosPreview = {
       ...estado.derivadosFinais,
@@ -2510,3 +2539,4 @@ export class PersonagemBaseService {
     return porAtributo;
   }
 }
+

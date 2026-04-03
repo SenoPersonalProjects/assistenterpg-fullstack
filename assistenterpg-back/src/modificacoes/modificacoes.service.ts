@@ -685,6 +685,27 @@ export class ModificacoesService {
       }
     }
 
+    // ✅ 10b. Validar proficiências de proteção
+    if (
+      restricoes.proficienciasProtecao?.length &&
+      equipamento.proficienciaProtecao
+    ) {
+      if (
+        !restricoes.proficienciasProtecao.includes(
+          equipamento.proficienciaProtecao,
+        )
+      ) {
+        erros.push(
+          `Requer proficiência: ${restricoes.proficienciasProtecao.join(', ')}`,
+        );
+      }
+    } else if (restricoes.outros?.proficienciaProtecao) {
+      const prof = restricoes.outros.proficienciaProtecao;
+      if (equipamento.proficienciaProtecao !== prof) {
+        erros.push(`Requer proficiência: ${prof}`);
+      }
+    }
+
     // ✅ 11. Validar alcances
     if (restricoes.alcancesPermitidos?.length && equipamento.alcance) {
       if (!restricoes.alcancesPermitidos.includes(equipamento.alcance)) {

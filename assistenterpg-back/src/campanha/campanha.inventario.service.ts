@@ -35,6 +35,7 @@ const inventarioItemCampanhaComDadosInclude =
           orderBy: { ordem: 'asc' },
         },
         reducesDano: true,
+        protecaoAmaldicoada: true,
       },
     },
     modificacoes: {

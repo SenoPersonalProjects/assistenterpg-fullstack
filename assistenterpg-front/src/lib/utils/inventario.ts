@@ -766,13 +766,59 @@ function verificarTipoCompativel(tipoMod: string, equipamento: EquipamentoCatalo
 export function filtrarModificacoesCompativeis(
   modificacoes: ModificacaoCatalogo[],
   equipamento: EquipamentoCatalogo | null | undefined,
+  modificacoesSelecionadas: ModificacaoCatalogo[] = [],
 ): ModificacaoCatalogo[] {
   if (!Array.isArray(modificacoes) || modificacoes.length === 0) return [];
   if (!equipamento) return [];
 
+  const codigosSelecionados = new Set(
+    modificacoesSelecionadas.map((mod) => mod.codigo),
+  );
+
   return modificacoes.filter((mod) => {
     const tipoCompativel = verificarTipoCompativel(mod.tipo, equipamento);
     if (!tipoCompativel) return false;
+
+    if (codigosSelecionados.has(mod.codigo)) {
+      return true;
+    }
+
+    const restricoes = mod.restricoes ?? null;
+
+    if (restricoes?.excluiEscudos && equipamento.proficienciaProtecao === 'ESCUDO') {
+      return false;
+    }
+
+    if (restricoes?.tiposProtecao?.length) {
+      if (!equipamento.tipoProtecao) return false;
+      if (!restricoes.tiposProtecao.includes(equipamento.tipoProtecao)) return false;
+    }
+
+    const profProtecao =
+      restricoes?.proficienciasProtecao ??
+      ((restricoes as { outros?: { proficienciaProtecao?: string } } | null)
+        ?.outros?.proficienciaProtecao
+        ? [
+            (restricoes as { outros?: { proficienciaProtecao?: string } }).outros
+              ?.proficienciaProtecao as string,
+          ]
+        : []);
+    if (profProtecao && profProtecao.length > 0) {
+      if (!equipamento.proficienciaProtecao) return false;
+      if (!profProtecao.includes(equipamento.proficienciaProtecao)) return false;
+    }
+
+    if (restricoes?.codigosIncompativeis?.length) {
+      for (const codigo of restricoes.codigosIncompativeis) {
+        if (codigosSelecionados.has(codigo)) return false;
+      }
+    }
+
+    if (restricoes?.codigosRequeridos?.length) {
+      for (const codigo of restricoes.codigosRequeridos) {
+        if (!codigosSelecionados.has(codigo)) return false;
+      }
+    }
 
     if (mod.apenasAmaldicoadas) {
       const complexidadeEquip = equipamento.complexidadeMaldicao || 'NENHUMA';

@@ -13,6 +13,12 @@ type FiltrarTodasModificacoesDto = Omit<FiltrarModificacoesDto, 'pagina' | 'limi
 type RawRestricoesModificacao = {
   apenasAmaldicoados?: boolean;
   complexidadeMinima?: string | null;
+  tiposEquipamento?: string[];
+  tiposProtecao?: string[];
+  proficienciasProtecao?: string[];
+  excluiEscudos?: boolean;
+  codigosIncompativeis?: string[];
+  codigosRequeridos?: string[];
 };
 
 type RawModificacao = Partial<ModificacaoCatalogo> & {
@@ -63,6 +69,7 @@ export async function apiGetModificacoes(
     requisitos: mod.requisitos,
     fonte: mod.fonte,
     suplementoId: mod.suplementoId ?? null,
+    restricoes: mod.restricoes ?? null,
   }));
 
   return { ...normalized, items };
@@ -122,6 +129,7 @@ export async function apiGetModificacaoDetalhada(id: number): Promise<Modificaca
     requisitos: data.requisitos,
     fonte: data.fonte,
     suplementoId: data.suplementoId ?? null,
+    restricoes: data.restricoes ?? null,
   };
 }
 
@@ -144,5 +152,6 @@ export async function apiGetModificacoesCompativeis(
     requisitos: mod.requisitos,
     fonte: mod.fonte,
     suplementoId: mod.suplementoId ?? null,
+    restricoes: mod.restricoes ?? null,
   }));
 }

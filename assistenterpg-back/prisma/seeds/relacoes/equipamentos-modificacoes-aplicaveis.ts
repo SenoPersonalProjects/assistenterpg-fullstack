@@ -23,6 +23,12 @@ type ModificacaoLite = {
 type RestricoesModificacao = {
   apenasAmaldicoadas?: boolean;
   requerComplexidade?: string;
+  tiposProtecao?: string[];
+  proficienciasProtecao?: string[];
+  excluiEscudos?: boolean;
+  outros?: {
+    proficienciaProtecao?: string;
+  };
 };
 
 const ordemComplexidade: Record<string, number> = {
@@ -45,8 +51,35 @@ function extrairRestricoes(mod: ModificacaoLite): RestricoesModificacao {
     typeof mod.restricoes.requerComplexidade === 'string'
       ? mod.restricoes.requerComplexidade
       : undefined;
+  const tiposProtecao = Array.isArray(mod.restricoes.tiposProtecao)
+    ? mod.restricoes.tiposProtecao.filter((t: unknown) => typeof t === 'string')
+    : undefined;
+  const proficienciasProtecao = Array.isArray(mod.restricoes.proficienciasProtecao)
+    ? mod.restricoes.proficienciasProtecao.filter(
+        (t: unknown) => typeof t === 'string',
+      )
+    : undefined;
+  const excluiEscudos =
+    typeof mod.restricoes.excluiEscudos === 'boolean'
+      ? mod.restricoes.excluiEscudos
+      : undefined;
+  const outros = isJsonObject(mod.restricoes.outros)
+    ? {
+        proficienciaProtecao:
+          typeof mod.restricoes.outros.proficienciaProtecao === 'string'
+            ? mod.restricoes.outros.proficienciaProtecao
+            : undefined,
+      }
+    : undefined;
 
-  return { apenasAmaldicoadas, requerComplexidade };
+  return {
+    apenasAmaldicoadas,
+    requerComplexidade,
+    tiposProtecao,
+    proficienciasProtecao,
+    excluiEscudos,
+    outros,
+  };
 }
 
 function detectarTipoBase(equipamento: EquipamentoLite): string | null {
@@ -122,7 +155,14 @@ function isModificacaoCompativel(
 ): boolean {
   if (!verificarTipoCompativel(modificacao.tipo, equipamento)) return false;
 
-  const { apenasAmaldicoadas, requerComplexidade } = extrairRestricoes(
+  const {
+    apenasAmaldicoadas,
+    requerComplexidade,
+    tiposProtecao,
+    proficienciasProtecao,
+    excluiEscudos,
+    outros,
+  } = extrairRestricoes(
     modificacao,
   );
 
@@ -135,6 +175,26 @@ function isModificacaoCompativel(
     const complexidadeRequerida =
       ordemComplexidade[requerComplexidade] ?? 0;
     if (complexidadeEquip < complexidadeRequerida) return false;
+  }
+
+  if (excluiEscudos && equipamento.proficienciaProtecao === 'ESCUDO') {
+    return false;
+  }
+
+  if (Array.isArray(tiposProtecao) && tiposProtecao.length > 0) {
+    if (!equipamento.tipoProtecao) return false;
+    if (!tiposProtecao.includes(equipamento.tipoProtecao)) return false;
+  }
+
+  if (Array.isArray(proficienciasProtecao) && proficienciasProtecao.length > 0) {
+    if (!equipamento.proficienciaProtecao) return false;
+    if (!proficienciasProtecao.includes(equipamento.proficienciaProtecao)) {
+      return false;
+    }
+  } else if (outros?.proficienciaProtecao) {
+    if (equipamento.proficienciaProtecao !== outros.proficienciaProtecao) {
+      return false;
+    }
   }
 
   return true;

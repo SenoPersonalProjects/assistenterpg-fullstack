@@ -272,18 +272,34 @@ export function SessionCharacterInventoryTab({
 
   const modificacoesCompativeisAdicionar = useMemo(() => {
     if (!equipamentoSelecionado) return [];
+    const selecionadas = modificacoesCompatAdicionar.filter((mod) =>
+      modificacoesAdicionar.includes(mod.id),
+    );
     return filtrarModificacoesCompativeis(
       modificacoesCompatAdicionar,
       equipamentoSelecionado,
+      selecionadas,
     );
-  }, [equipamentoSelecionado, modificacoesCompatAdicionar]);
+  }, [equipamentoSelecionado, modificacoesCompatAdicionar, modificacoesAdicionar]);
 
   const modificacoesCompativeisEdicao = useMemo(() => {
     if (!modalEditarItem) return [];
     const equip = equipamentosPorId.get(modalEditarItem.equipamentoId);
     if (!equip) return [];
-    return filtrarModificacoesCompativeis(modificacoesCompatEditando, equip);
-  }, [equipamentosPorId, modalEditarItem, modificacoesCompatEditando]);
+    const selecionadas = modificacoesCompatEditando.filter((mod) =>
+      modificacoesEditando.includes(mod.id),
+    );
+    return filtrarModificacoesCompativeis(
+      modificacoesCompatEditando,
+      equip,
+      selecionadas,
+    );
+  }, [
+    equipamentosPorId,
+    modalEditarItem,
+    modificacoesCompatEditando,
+    modificacoesEditando,
+  ]);
 
   return (
     <div className="space-y-2">
