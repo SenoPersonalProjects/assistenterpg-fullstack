@@ -92,8 +92,8 @@ export const clasSeed: SeedCla[] = [
   {
     nome: 'Ram',
     descricao:
-      'Descendentes ligados ao elemento fogo, dominando técnicas pirotécnicas devastadoras que consomem grandes quantidades de energia amaldiçoada.',
-    grandeCla: false,
+      'Descendentes de um espírito amaldiçoado conhecido do país de Kakyn. A família real :).',
+    grandeCla: true,
   },
   {
     nome: 'Haganezuka',

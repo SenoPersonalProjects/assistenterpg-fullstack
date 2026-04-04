@@ -702,8 +702,8 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
     codigo: 'SURTO_TEMPORAL',
     nome: 'Surto Temporal',
     descricao: 'ManipulaÃ§Ã£o limitada do tempo.',
-    hereditaria: false,
-    clasHereditarios: [],
+    hereditaria: true,
+    clasHereditarios: ['Ram'],
   },
   {
     codigo: 'NEVOA_LILAS',
