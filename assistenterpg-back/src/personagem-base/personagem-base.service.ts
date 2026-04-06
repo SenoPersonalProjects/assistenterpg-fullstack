@@ -4,10 +4,10 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, AtributoBaseEA } from '@prisma/client';
 
-// âœ… IMPORTAR InventarioService
+// ✅ IMPORTAR InventarioService
 import { InventarioService } from '../inventario/inventario.service';
 
-// âœ… IMPORTAR EXCEÃ‡Ã•ES CUSTOMIZADAS
+// ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
   PersonagemBaseNaoEncontradoException,
   ErroAtualizacaoPersonagemException,
@@ -166,7 +166,7 @@ export class PersonagemBaseService {
     private readonly prisma: PrismaService,
     private readonly mapper: PersonagemBaseMapper,
     private readonly persistence: PersonagemBasePersistence,
-    // âœ… INJETAR InventarioService
+    // ✅ INJETAR InventarioService
     private readonly inventarioService: InventarioService,
   ) {}
 
@@ -1091,7 +1091,7 @@ export class PersonagemBaseService {
 
   // ==================== HOOKS DO ENGINE ====================
 
-  /** âœ… Busca habilidades do personagem */
+  /** ✅ Busca habilidades do personagem */
   private async buscarHabilidadesPersonagem(
     params: {
       nivel: number;
@@ -1153,7 +1153,7 @@ export class PersonagemBaseService {
       })),
     );
 
-    // Recurso de classe (nÃ­vel 1)
+    // Recurso de classe (nível 1)
     const recursoClasse = await prisma.habilidadeClasse.findFirst({
       where: {
         classeId,
@@ -1174,7 +1174,7 @@ export class PersonagemBaseService {
       });
     }
 
-    // Habilidades da classe (por nÃ­vel, excluindo recurso jÃ¡ adicionado)
+    // Habilidades da classe (por nível, excluindo recurso já adicionado)
     const habilidadesClasse = await prisma.habilidadeClasse.findMany({
       where: {
         classeId,
@@ -1195,7 +1195,7 @@ export class PersonagemBaseService {
       })),
     );
 
-    // Habilidades da trilha (por nÃ­vel, sem caminho especÃ­fico)
+    // Habilidades da trilha (por nível, sem caminho específico)
     if (trilhaId) {
       const habilidadesTrilha = await prisma.habilidadeTrilha.findMany({
         where: {
@@ -1218,7 +1218,7 @@ export class PersonagemBaseService {
       );
     }
 
-    // Habilidades do caminho (por nÃ­vel)
+    // Habilidades do caminho (por nível)
     if (caminhoId) {
       const habilidadesCaminho = await prisma.habilidadeTrilha.findMany({
         where: {
@@ -1244,7 +1244,7 @@ export class PersonagemBaseService {
     // Tecnica inata e tratada separadamente do catalogo de habilidades.
     // Nao deve entrar em habilidadesBase para evitar colisao de ID entre tabelas.
 
-    // Escola TÃ©cnica como habilidade (se estudou)
+    // Escola Técnica como habilidade (se estudou)
     if (estudouEscolaTecnica) {
       const escolaTecnica = await prisma.habilidade.findFirst({
         where: {
@@ -1282,7 +1282,7 @@ export class PersonagemBaseService {
         });
       }
     }
-    // Poderes genÃ©ricos selecionados (via instÃ¢ncias) - permite repetiÃ§Ã£o
+    // Poderes genéricos selecionados (via instâncias) - permite repetição
     if (poderesGenericos && poderesGenericos.length > 0) {
       const idsUnicos = Array.from(
         new Set(poderesGenericos.map((p) => p.habilidadeId)),
@@ -1312,7 +1312,7 @@ export class PersonagemBaseService {
     return habilidades;
   }
 
-  /** âœ… Calcula modificadores de derivados por habilidades */
+  /** ✅ Calcula modificadores de derivados por habilidades */
   private calcularModificadoresDerivadosPorHabilidades(
     habilidades: HabilidadeComEfeitos,
     nivel: number,
@@ -1611,7 +1611,7 @@ export class PersonagemBaseService {
     return dtoCompleto;
   }
 
-  // ==================== INVENTÃRIO (SIMPLIFICADO) ====================
+  // ==================== INVENTÁRIO (SIMPLIFICADO) ====================
   private async calcularResumoInventario(
     personagemBaseId: number,
   ): Promise<ResumoInventario | null> {
@@ -1649,7 +1649,7 @@ export class PersonagemBaseService {
         quantidadeItens,
       };
     } catch (error) {
-      console.error('[SERVICE] Erro ao calcular resumo de inventÃ¡rio:', error);
+      console.error('[SERVICE] Erro ao calcular resumo de inventário:', error);
       return null;
     }
   }
@@ -1726,7 +1726,7 @@ export class PersonagemBaseService {
     );
     const habilidadesNomes = estado.habilidades.map((h) => h.habilidade.nome);
 
-    // âœ… VALIDAR ITENS (se houver) usando preview do InventarioService
+    // ✅ VALIDAR ITENS (se houver) usando preview do InventarioService
     const inventarioMods = this.calcularModificadoresDerivadosPorHabilidades(
       estado.habilidades,
       dtoPreview.nivel,
@@ -1899,7 +1899,7 @@ export class PersonagemBaseService {
 
       resistencias: resistenciasComNomes,
 
-      // âœ… Itens validados
+      // ✅ Itens validados
       itensInventario: itensInventarioPreview,
       errosItens: errosItens.length > 0 ? errosItens : undefined,
     };
@@ -1921,7 +1921,7 @@ export class PersonagemBaseService {
       pvBarrasTotal: estado.pvBarrasTotal,
       espacosInventarioBase: estado.espacosInventario.base,
       espacosInventarioExtra: estado.espacosInventario.extra,
-      // âœ… Inicializar campos de inventÃ¡rio
+      // ✅ Inicializar campos de inventário
       espacosOcupados: 0,
       sobrecarregado: false,
     });
@@ -1946,7 +1946,7 @@ export class PersonagemBaseService {
         tx,
       );
 
-      // âœ… ADICIONAR itens via InventarioService (COM validaÃ§Ã£o de Grau XamÃ£)
+      // ✅ ADICIONAR itens via InventarioService (COM validação de Grau Xamã)
       if (dto.itensInventario && dto.itensInventario.length > 0) {
         for (const item of dto.itensInventario) {
           await this.inventarioService.adicionarItem(
@@ -1959,11 +1959,11 @@ export class PersonagemBaseService {
               modificacoes: item.modificacoesIds ?? [],
               nomeCustomizado: item.nomeCustomizado,
               notas: item.notas,
-              // âœ… NÃƒO ignorar limites (preview jÃ¡ validou se o usuÃ¡rio permitiu)
+              // ✅ NÃO ignorar limites (preview já validou se o usuário permitiu)
             },
             {
-              tx, // âœ… PASSAR TRANSAÃ‡ÃƒO
-              skipOwnershipCheck: true, // âœ… SKIP VALIDAÃ‡ÃƒO DE OWNERSHIP (personagem sendo criado)
+              tx, // ✅ PASSAR TRANSAÇÃO
+              skipOwnershipCheck: true, // ✅ SKIP VALIDAÇÃO DE OWNERSHIP (personagem sendo criado)
             },
           );
         }
@@ -2328,9 +2328,9 @@ export class PersonagemBaseService {
         tx,
       );
 
-      // âœ… INVENTÃRIO: Delegar COMPLETAMENTE para InventarioService
-      // O service jÃ¡ possui atualizarEstadoInventario() que recalcula tudo
-      // Apenas atualizamos espacosInventarioBase/Extra aqui (forÃ§a mudou?)
+      // ✅ INVENTÁRIO: Delegar COMPLETAMENTE para InventarioService
+      // O service já possui atualizarEstadoInventario() que recalcula tudo
+      // Apenas atualizamos espacosInventarioBase/Extra aqui (força mudou?)
 
       await this.sincronizarItensInventarioNoUpdate(
         donoId,
@@ -2401,7 +2401,7 @@ export class PersonagemBaseService {
     return { sucesso: true };
   }
 
-  // ==================== MÃ‰TODOS AUXILIARES ====================
+  // ==================== MÉTODOS AUXILIARES ====================
 
   consultarInfoGrausTreinamento(
     nivel: number,

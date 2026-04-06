@@ -9,7 +9,7 @@ export function validateHomebrewTecnicaCustom(dados: HomebrewTecnicaDto): void {
 
   if (!habilidades || habilidades.length === 0) {
     throw new ValidationException(
-      'T�cnica deve ter pelo menos 1 habilidade',
+      'Técnica deve ter pelo menos 1 habilidade',
       'habilidades',
       { minimoHabilidades: 1, recebido: 0 },
       'MIN_ABILITIES_REQUIRED',
@@ -42,7 +42,7 @@ export function validateHomebrewTecnicaCustom(dados: HomebrewTecnicaDto): void {
       );
 
       throw new ValidationException(
-        `Habilidade "${habilidade.nome || index}": Nomes de varia��es devem ser �nicos`,
+        `Habilidade "${habilidade.nome || index}": Nomes de variações devem ser únicos`,
         `habilidades[${index}].variacoes`,
         { duplicados },
         'DUPLICATE_VARIATION_NAMES',

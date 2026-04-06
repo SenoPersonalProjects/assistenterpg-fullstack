@@ -81,13 +81,13 @@ function hasValue(value: unknown): boolean {
 }
 
 const TIPO_LABELS: Record<TipoHomebrewConteudo, string> = {
-  CLA: 'ClÃ£',
+  CLA: 'Clã',
   ORIGEM: 'Origem',
   TRILHA: 'Trilha',
   CAMINHO: 'Caminho',
   EQUIPAMENTO: 'Equipamento',
-  PODER_GENERICO: 'Poder GenÃ©rico',
-  TECNICA_AMALDICOADA: 'TÃ©cnica AmaldiÃ§oada',
+  PODER_GENERICO: 'Poder Genérico',
+  TECNICA_AMALDICOADA: 'Técnica Amaldiçoada',
 };
 
 const TIPO_ICONS: Record<TipoHomebrewConteudo, string> = {
@@ -161,7 +161,7 @@ export default function HomebrewDetalhePage() {
     return (
       <div className="min-h-screen bg-app-bg p-6">
         <div className="max-w-4xl mx-auto space-y-4">
-          <ErrorAlert message={erro ?? 'Homebrew nÃ£o encontrado'} />
+          <ErrorAlert message={erro ?? 'Homebrew não encontrado'} />
           <Button variant="secondary" onClick={() => router.push('/homebrews')}>
             <Icon name="back" className="w-4 h-4 mr-2" />
             Voltar para homebrews
@@ -190,7 +190,7 @@ export default function HomebrewDetalhePage() {
                 </Badge>
               </div>
               <p className="text-sm text-app-muted">
-                {TIPO_LABELS[homebrew.tipo]} â€¢ v{homebrew.versao}
+                {TIPO_LABELS[homebrew.tipo]} • v{homebrew.versao}
               </p>
               {homebrew.descricao && (
                 <p className="text-sm text-app-muted mt-2 leading-relaxed">{homebrew.descricao}</p>
@@ -223,13 +223,13 @@ export default function HomebrewDetalhePage() {
           </div>
         )}
 
-        {/* InformaÃ§Ãµes gerais */}
+        {/* Informações gerais */}
         <Card>
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg mb-3">InformaÃ§Ãµes gerais</h2>
+            <h2 className="text-lg font-semibold text-app-fg mb-3">Informações gerais</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <InfoTile label="Tipo" value={TIPO_LABELS[homebrew.tipo]} />
-              <InfoTile label="VersÃ£o" value={homebrew.versao} />
+              <InfoTile label="Versão" value={homebrew.versao} />
               <InfoTile label="Criado por" value={homebrew.usuarioApelido ?? 'Desconhecido'} />
               <InfoTile
                 label="Criado em"
@@ -239,7 +239,7 @@ export default function HomebrewDetalhePage() {
           </div>
         </Card>
 
-        {/* Dados especÃ­ficos */}
+        {/* Dados específicos */}
         <RenderDadosEspecificos tipo={homebrew.tipo} dados={homebrew.dados} />
 
         {/* JSON Debug */}
@@ -263,7 +263,7 @@ export default function HomebrewDetalhePage() {
 }
 
 // ============================================================================
-// COMPONENTE AUXILIAR: Renderizar dados especÃ­ficos por tipo
+// COMPONENTE AUXILIAR: Renderizar dados específicos por tipo
 // ============================================================================
 
 type RenderProps = {
@@ -276,7 +276,7 @@ function RenderDadosEspecificos({ tipo, dados }: RenderProps) {
   if (Object.keys(dadosNormalizados).length === 0) {
     return (
       <Card>
-        <p className="text-sm text-app-muted italic">Nenhum dado especÃ­fico cadastrado.</p>
+        <p className="text-sm text-app-muted italic">Nenhum dado específico cadastrado.</p>
       </Card>
     );
   }
@@ -284,7 +284,7 @@ function RenderDadosEspecificos({ tipo, dados }: RenderProps) {
   return (
     <Card>
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-app-fg">Dados especÃ­ficos</h2>
+        <h2 className="text-lg font-semibold text-app-fg">Dados específicos</h2>
 
         {tipo === 'CLA' && <RenderCla dados={dadosNormalizados} />}
         {tipo === 'ORIGEM' && <RenderOrigem dados={dadosNormalizados} />}
@@ -299,18 +299,18 @@ function RenderDadosEspecificos({ tipo, dados }: RenderProps) {
 }
 
 // ============================================================================
-// RENDERIZADORES ESPECÃFICOS (BASEADOS NOS DTOS)
+// RENDERIZADORES ESPECÍFICOS (BASEADOS NOS DTOS)
 // ============================================================================
 
 function RenderCla({ dados }: { dados: HomebrewDados }) {
   return (
     <div className="space-y-3 text-sm">
       {hasValue(dados.tecnicaInataId) && (
-        <InfoTile label="ID da TÃ©cnica Inata" value={String(dados.tecnicaInataId)} />
+        <InfoTile label="ID da Técnica Inata" value={String(dados.tecnicaInataId)} />
       )}
       {hasValue(dados.caracteristicas) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">CaracterÃ­sticas</p>
+          <p className="text-xs font-medium text-app-muted mb-2">Características</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-48">
             {JSON.stringify(dados.caracteristicas, null, 2)}
           </pre>
@@ -335,7 +335,7 @@ function RenderOrigem({ dados }: { dados: HomebrewDados }) {
     <div className="space-y-3 text-sm">
       {hasValue(dados.pericias) && Array.isArray(dados.pericias) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">PerÃ­cias</p>
+          <p className="text-xs font-medium text-app-muted mb-2">Perícias</p>
           <div className="flex flex-wrap gap-2">
             {dados.pericias.map((p: string, idx: number) => (
               <Badge key={idx} color="blue" size="sm">
@@ -362,11 +362,11 @@ function RenderTrilha({ dados }: { dados: HomebrewDados }) {
     <div className="space-y-3 text-sm">
       {hasValue(dados.classeId) && <InfoTile label="ID da Classe" value={String(dados.classeId)} />}
       {hasValue(dados.nivelRequisito) && (
-        <InfoTile label="NÃ­vel de Requisito" value={String(dados.nivelRequisito)} />
+        <InfoTile label="Nível de Requisito" value={String(dados.nivelRequisito)} />
       )}
       {hasValue(dados.habilidades) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">Habilidades por NÃ­vel</p>
+          <p className="text-xs font-medium text-app-muted mb-2">Habilidades por Nível</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3 overflow-auto max-h-64">
             {JSON.stringify(dados.habilidades, null, 2)}
           </pre>
@@ -408,13 +408,13 @@ function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
     <div className="space-y-4 text-sm">
       {/* Campos base */}
       {categoria && <InfoTile label="Categoria" value={categoria} />}
-      {dados.espacos != null && <InfoTile label="EspaÃ§os" value={String(dados.espacos)} />}
-      {hasValue(dados.descricao) && <InfoTile label="DescriÃ§Ã£o" value={dados.descricao} />}
+      {dados.espacos != null && <InfoTile label="Espaços" value={String(dados.espacos)} />}
+      {hasValue(dados.descricao) && <InfoTile label="Descrição" value={dados.descricao} />}
 
       {/* ARMA */}
       {categoria === 'ARMA' && hasValue(dados.proficienciaArma) && (
         <>
-          <InfoTile label="ProficiÃªncia" value={dados.proficienciaArma} />
+          <InfoTile label="Proficiência" value={dados.proficienciaArma} />
           {Array.isArray(dados.empunhaduras) && (
             <InfoTile label="Empunhaduras" value={dados.empunhaduras.join(', ')} />
           )}
@@ -429,24 +429,24 @@ function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
             </div>
           )}
           {dados.criticoValor != null && (
-            <InfoTile label="CrÃ­tico" value={`${dados.criticoValor}x (${dados.criticoMultiplicador})`} />
+            <InfoTile label="Crítico" value={`${dados.criticoValor}x (${dados.criticoMultiplicador})`} />
           )}
-          {dados.agil != null && <InfoTile label="Ãgil" value={dados.agil ? 'Sim' : 'NÃ£o'} />}
+          {dados.agil != null && <InfoTile label="Ágil" value={dados.agil ? 'Sim' : 'Não'} />}
         </>
       )}
 
-      {/* PROTEÃ‡ÃƒO */}
+      {/* PROTEÇÃO */}
       {categoria === 'PROTECAO' && hasValue(dados.proficienciaProtecao) && (
         <>
-          <InfoTile label="ProficiÃªncia" value={dados.proficienciaProtecao} />
+          <InfoTile label="Proficiência" value={dados.proficienciaProtecao} />
           {hasValue(dados.tipoProtecao) && <InfoTile label="Tipo" value={dados.tipoProtecao} />}
-          {dados.bonusDefesa != null && <InfoTile label="BÃ´nus Defesa" value={String(dados.bonusDefesa)} />}
+          {dados.bonusDefesa != null && <InfoTile label="Bônus Defesa" value={String(dados.bonusDefesa)} />}
           {dados.penalidadeCarga != null && (
             <InfoTile label="Penalidade de Carga" value={String(dados.penalidadeCarga)} />
           )}
           {Array.isArray(dados.reducoesDano) && dados.reducoesDano.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">ReduÃ§Ãµes de Dano</p>
+              <p className="text-xs font-medium text-app-muted mb-2">Reduções de Dano</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.reducoesDano, null, 2)}
               </pre>
@@ -455,21 +455,21 @@ function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
         </>
       )}
 
-      {/* ACESSÃ“RIO */}
+      {/* ACESSÓRIO */}
       {categoria === 'ACESSORIO' && hasValue(dados.tipoAcessorio) && (
         <>
-          <InfoTile label="Tipo de AcessÃ³rio" value={dados.tipoAcessorio} />
-          {dados.bonusPE != null && <InfoTile label="BÃ´nus PE" value={String(dados.bonusPE)} />}
-          {dados.bonusPV != null && <InfoTile label="BÃ´nus PV" value={String(dados.bonusPV)} />}
+          <InfoTile label="Tipo de Acessório" value={dados.tipoAcessorio} />
+          {dados.bonusPE != null && <InfoTile label="Bônus PE" value={String(dados.bonusPE)} />}
+          {dados.bonusPV != null && <InfoTile label="Bônus PV" value={String(dados.bonusPV)} />}
         </>
       )}
 
-      {/* MUNIÃ‡ÃƒO */}
+      {/* MUNIÇÃO */}
       {categoria === 'MUNICAO' && (
         <>
-          {hasValue(dados.duracaoCenas) && <InfoTile label="DuraÃ§Ã£o (cenas)" value={dados.duracaoCenas} />}
+          {hasValue(dados.duracaoCenas) && <InfoTile label="Duração (cenas)" value={dados.duracaoCenas} />}
           {dados.recuperavel != null && (
-            <InfoTile label="RecuperÃ¡vel" value={dados.recuperavel ? 'Sim' : 'NÃ£o'} />
+            <InfoTile label="Recuperável" value={dados.recuperavel ? 'Sim' : 'Não'} />
           )}
         </>
       )}
@@ -482,13 +482,13 @@ function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
         </>
       )}
 
-      {/* FERRAMENTA AMALDIÃ‡OADA */}
+      {/* FERRAMENTA AMALDIÇOADA */}
       {categoria === 'FERRAMENTA_AMALDICOADA' && hasValue(dados.tipoAmaldicoado) && (
         <>
-          <InfoTile label="Tipo AmaldiÃ§oado" value={dados.tipoAmaldicoado} />
+          <InfoTile label="Tipo Amaldiçoado" value={dados.tipoAmaldicoado} />
           {hasValue(dados.armaAmaldicoada) && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">Arma AmaldiÃ§oada</p>
+              <p className="text-xs font-medium text-app-muted mb-2">Arma Amaldiçoada</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.armaAmaldicoada, null, 2)}
               </pre>
@@ -496,7 +496,7 @@ function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
           )}
           {hasValue(dados.protecaoAmaldicoada) && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">ProteÃ§Ã£o AmaldiÃ§oada</p>
+              <p className="text-xs font-medium text-app-muted mb-2">Proteção Amaldiçoada</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.protecaoAmaldicoada, null, 2)}
               </pre>
@@ -504,7 +504,7 @@ function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
           )}
           {hasValue(dados.artefatoAmaldicoado) && (
             <div>
-              <p className="text-xs font-medium text-app-muted mb-2">Artefato AmaldiÃ§oado</p>
+              <p className="text-xs font-medium text-app-muted mb-2">Artefato Amaldiçoado</p>
               <pre className="text-xs bg-app-base border border-app-border rounded p-3">
                 {JSON.stringify(dados.artefatoAmaldicoado, null, 2)}
               </pre>
@@ -518,7 +518,7 @@ function RenderEquipamento({ dados }: { dados: HomebrewDados }) {
         <InfoTile label="Efeito" value={dados.efeito} />
       )}
 
-      {/* ITEM AMALDIÃ‡OADO */}
+      {/* ITEM AMALDIÇOADO */}
       {categoria === 'ITEM_AMALDICOADO' && (
         <>
           {hasValue(dados.tipoAmaldicoado) && <InfoTile label="Tipo" value={dados.tipoAmaldicoado} />}
@@ -545,7 +545,7 @@ function RenderPoderGenerico({ dados }: { dados: HomebrewDados }) {
       {hasValue(dados.efeitos) && <InfoTile label="Efeitos" value={dados.efeitos} />}
       {hasValue(dados.mecanicas) && (
         <div>
-          <p className="text-xs font-medium text-app-muted mb-2">MecÃ¢nicas Especiais</p>
+          <p className="text-xs font-medium text-app-muted mb-2">Mecânicas Especiais</p>
           <pre className="text-xs bg-app-base border border-app-border rounded p-3">
             {typeof dados.mecanicas === 'string'
               ? dados.mecanicas
@@ -569,7 +569,7 @@ function RenderTecnicaAmaldicoada({ dados }: { dados: HomebrewDados }) {
     <div className="space-y-4 text-sm">
       {/* Campos base */}
       {hasValue(dados.tipo) && <InfoTile label="Tipo" value={dados.tipo} />}
-      {hasValue(dados.descricao) && <InfoTile label="DescriÃ§Ã£o" value={dados.descricao} />}
+      {hasValue(dados.descricao) && <InfoTile label="Descrição" value={dados.descricao} />}
 
       {/* Habilidades */}
       {habilidades.length > 0 && (
@@ -581,7 +581,7 @@ function RenderTecnicaAmaldicoada({ dados }: { dados: HomebrewDados }) {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="font-semibold text-app-fg">{hab.nome}</p>
-                    <p className="text-xs text-app-muted">CÃ³digo: {hab.codigo}</p>
+                    <p className="text-xs text-app-muted">Código: {hab.codigo}</p>
                   </div>
                   <Badge color="purple" size="sm">
                     {hab.execucao}
@@ -594,9 +594,9 @@ function RenderTecnicaAmaldicoada({ dados }: { dados: HomebrewDados }) {
                   <InfoTile label="Custo PE" value={String(hab.custoPE)} />
                   <InfoTile label="Custo EA" value={String(hab.custoEA)} />
                   {hab.alcance && <InfoTile label="Alcance" value={hab.alcance} />}
-                  {hab.area && <InfoTile label="Ãrea" value={hab.area} />}
-                  {hab.duracao && <InfoTile label="DuraÃ§Ã£o" value={hab.duracao} />}
-                  {hab.resistencia && <InfoTile label="ResistÃªncia" value={hab.resistencia} />}
+                  {hab.area && <InfoTile label="Área" value={hab.area} />}
+                  {hab.duracao && <InfoTile label="Duração" value={hab.duracao} />}
+                  {hab.resistencia && <InfoTile label="Resistência" value={hab.resistencia} />}
                 </div>
 
                 {hab.efeito && (

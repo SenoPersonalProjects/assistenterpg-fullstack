@@ -702,7 +702,7 @@ export function PersonagemBaseStepClasseOrigem({
               {escolhasPericiaOrigem.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-app-fg mb-2">
-                    Escolhas de perÃ­cia
+                    Escolhas de perícia
                   </p>
                   <div className="space-y-2">
                     {escolhasPericiaOrigem.map((hab) => (
@@ -844,7 +844,7 @@ export function PersonagemBaseStepClasseOrigem({
               {escolhasPericiaClasse.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-app-fg mb-2">
-                    Escolhas de perÃ­cia
+                    Escolhas de perícia
                   </p>
                   <div className="space-y-2">
                     {escolhasPericiaClasse.map((hab) => (

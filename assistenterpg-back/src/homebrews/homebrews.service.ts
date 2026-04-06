@@ -278,7 +278,7 @@ export class HomebrewsService {
       });
 
       this.logger.log(
-        `Homebrew criado: ${homebrew.codigo} por usu�rio ${usuarioId}`,
+        `Homebrew criado: ${homebrew.codigo} por usuário ${usuarioId}`,
       );
 
       return this.mapDetalhado(homebrew);
@@ -402,7 +402,7 @@ export class HomebrewsService {
       });
 
       this.logger.log(
-        `Homebrew deletado: ${homebrew.codigo} por usu�rio ${usuarioId}`,
+        `Homebrew deletado: ${homebrew.codigo} por usuário ${usuarioId}`,
       );
     } catch (error: unknown) {
       this.tratarErroPrisma(error);

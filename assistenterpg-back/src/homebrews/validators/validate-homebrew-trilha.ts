@@ -33,7 +33,7 @@ export function validateHomebrewTrilhaCustom(dados: HomebrewTrilhaDto): void {
       const nivelDuplicado = niveisOrdenados[i];
 
       throw new ValidationException(
-        'Habilidades devem ter n�veis �nicos',
+        'Habilidades devem ter níveis únicos',
         'habilidades.nivel',
         {
           nivelDuplicado,

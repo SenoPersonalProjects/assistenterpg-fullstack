@@ -126,15 +126,15 @@ export class PersonagemBasePersistence {
   ): Promise<PersonagemCriadoEntity> {
     const { donoId, dataBase, estado } = params;
 
-    // âœ… SANITIZAR dataBase: mapear nomes DTO â†’ model e remover campos invÃ¡lidos
+    // ✅ SANITIZAR dataBase: mapear nomes DTO → model e remover campos inválidos
     const dataSanitizado = sanitizarDataBase(dataBase);
-    // âœ… NOVO: Buscar cÃ³digos de resistÃªncias para criar relaÃ§Ãµes
+    // ✅ NOVO: Buscar códigos de resistências para criar relações
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
       estado.resistenciasFinais,
       prisma,
     );
 
-    // âœ… NOVO: Preparar itens do inventÃ¡rio
+    // ✅ NOVO: Preparar itens do inventário
     const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
       estado.dtoNormalizado.itensInventario ?? [],
     );
@@ -221,14 +221,14 @@ export class PersonagemBasePersistence {
             }
           : undefined,
 
-        // âœ… NOVO: Criar resistÃªncias
+        // ✅ NOVO: Criar resistências
         resistencias: resistenciasParaCriar.length
           ? {
               create: resistenciasParaCriar,
             }
           : undefined,
 
-        // âœ… CORRIGIDO: Criar itens do inventÃ¡rio com nome correto
+        // ✅ CORRIGIDO: Criar itens do inventário com nome correto
         inventarioItens: itensInventarioParaCriar.length
           ? {
               create: itensInventarioParaCriar,
@@ -270,15 +270,15 @@ export class PersonagemBasePersistence {
   ) {
     const { id, dataUpdateBase, estado } = params;
 
-    // âœ… CORRIGIDO: Usar dataUpdateBase (nÃ£o dataBase)
+    // ✅ CORRIGIDO: Usar dataUpdateBase (não dataBase)
     const dataUpdateSanitizado = sanitizarDataBase(dataUpdateBase);
-    // âœ… NOVO: Preparar resistÃªncias
+    // ✅ NOVO: Preparar resistências
     const resistenciasParaCriar = await this.prepararResistenciasParaCriacao(
       estado.resistenciasFinais,
       prisma,
     );
 
-    // âœ… NOVO: Preparar itens do inventÃ¡rio
+    // ✅ NOVO: Preparar itens do inventário
     const itensInventarioParaCriar = this.prepararItensInventarioParaCriacao(
       estado.dtoNormalizado.itensInventario ?? [],
     );
@@ -289,7 +289,7 @@ export class PersonagemBasePersistence {
       data: dataUpdateSanitizado as Prisma.PersonagemBaseUpdateInput,
     });
 
-    // 2) rebuild relaÃ§Ãµes
+    // 2) rebuild relações
     await prisma.personagemBase.update({
       where: { id },
       data: {
@@ -368,7 +368,7 @@ export class PersonagemBasePersistence {
             : {}),
         },
 
-        // âœ… NOVO: Rebuild resistÃªncias
+        // ✅ NOVO: Rebuild resistências
         resistencias: {
           deleteMany: {},
           ...(resistenciasParaCriar.length
@@ -378,7 +378,7 @@ export class PersonagemBasePersistence {
             : {}),
         },
 
-        // âœ… CORRIGIDO: Rebuild inventÃ¡rio
+        // ✅ CORRIGIDO: Rebuild inventário
         inventarioItens: {
           deleteMany: {},
           ...(itensInventarioParaCriar.length
@@ -434,8 +434,8 @@ export class PersonagemBasePersistence {
   }
 
   /**
-   * âœ… CORRIGIDO: Prepara resistÃªncias para criaÃ§Ã£o no banco
-   * Converte Map<codigo, valor> â†’ Array de objetos no formato correto para nested create
+   * ✅ CORRIGIDO: Prepara resistências para criação no banco
+   * Converte Map<codigo, valor> → Array de objetos no formato correto para nested create
    */
   private async prepararResistenciasParaCriacao(
     resistenciasFinais: Map<string, number>,
@@ -450,7 +450,7 @@ export class PersonagemBasePersistence {
       return [];
     }
 
-    // Filtrar apenas resistÃªncias com valor > 0
+    // Filtrar apenas resistências com valor > 0
     const resistenciasValidas = Array.from(resistenciasFinais.entries()).filter(
       ([, valor]) => valor > 0,
     );
@@ -459,7 +459,7 @@ export class PersonagemBasePersistence {
       return [];
     }
 
-    // Validar que todos os cÃ³digos existem no banco
+    // Validar que todos os códigos existem no banco
     const codigos = resistenciasValidas.map(([codigo]) => codigo);
     const resistenciasTipo = await prisma.resistenciaTipo.findMany({
       where: { codigo: { in: codigos } },
@@ -468,7 +468,7 @@ export class PersonagemBasePersistence {
 
     const codigosValidos = new Set(resistenciasTipo.map((r) => r.codigo));
 
-    // âœ… FORMATO CORRETO: { valor, resistenciaTipo: { connect: { codigo } } }
+    // ✅ FORMATO CORRETO: { valor, resistenciaTipo: { connect: { codigo } } }
     return resistenciasValidas
       .filter(([codigo]) => codigosValidos.has(codigo))
       .map(([codigo, valor]) => ({
@@ -478,8 +478,8 @@ export class PersonagemBasePersistence {
   }
 
   /**
-   * âœ… NOVA FUNÃ‡ÃƒO: Prepara itens do inventÃ¡rio para criaÃ§Ã£o no Prisma
-   * Converte array de ItemInventarioPayload â†’ formato correto para nested create
+   * ✅ NOVA FUNÇÃO: Prepara itens do inventário para criação no Prisma
+   * Converte array de ItemInventarioPayload → formato correto para nested create
    */
   private prepararItensInventarioParaCriacao(
     itensInventario: Array<{

@@ -74,7 +74,7 @@ export async function seedHabilidadesEfeitosGrau(prisma: PrismaClient) {
       continue;
     }
 
-    // valida que o TipoGrau existe (o helper lanÃ§a erro se nÃ£o existir)
+    // valida que o TipoGrau existe (o helper lança erro se não existir)
     await get.tipoGrauCodigo(item.tipoGrauCodigo);
 
     await prisma.habilidadeEfeitoGrau.create({

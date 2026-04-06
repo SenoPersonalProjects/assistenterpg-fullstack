@@ -1,4 +1,4 @@
-// components/ui/EmptyState.tsx - VERSÃƒO FINAL
+// components/ui/EmptyState.tsx - VERSÃO FINAL
 'use client';
 
 import { Button } from './Button';
@@ -89,10 +89,10 @@ export function EmptyState({
       {title && <h3 className={titleClasses}>{title}</h3>}
       <p className={descriptionClasses}>{description}</p>
 
-      {/* ConteÃºdo adicional */}
+      {/* Conteúdo adicional */}
       {children && <div className={contentClasses}>{children}</div>}
 
-      {/* BotÃ£o de aÃ§Ã£o */}
+      {/* Botão de ação */}
       {actionLabel && onAction && (
         <Button size="sm" variant="primary" onClick={onAction}>
           {actionLabel}

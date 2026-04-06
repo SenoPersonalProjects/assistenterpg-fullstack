@@ -142,7 +142,7 @@ function resolverCustoSustentacaoPadrao(
 
 export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   // ========================================
-  // âœ… TÃ‰CNICAS HEREDITÃRIAS
+  // ✅ TÉCNICAS HEREDITÁRIAS
   // ========================================
   {
     codigo: 'CHAMAS_DESASTRE',
@@ -154,7 +154,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'COPIAR',
     nome: 'Copiar',
-    descricao: 'Permite copiar tÃ©cnicas de outros feiticeiros.',
+    descricao: 'Permite copiar técnicas de outros feiticeiros.',
     hereditaria: true,
     clasHereditarios: ['Okkotsu', 'Gojo'],
   },
@@ -167,21 +167,21 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   },
   {
     codigo: 'FABRICACAO_AMALDICOADA',
-    nome: 'FabricaÃ§Ã£o AmaldiÃ§oada',
-    descricao: 'Cria ferramentas amaldiÃ§oadas.',
+    nome: 'Fabricação Amaldiçoada',
+    descricao: 'Cria ferramentas amaldiçoadas.',
     hereditaria: true,
     clasHereditarios: ['Haganezuka'],
   },
   {
     codigo: 'FALA_AMALDICOADA',
-    nome: 'Fala AmaldiÃ§oada',
+    nome: 'Fala Amaldiçoada',
     descricao: 'Comandos verbais que afetam a realidade.',
     hereditaria: true,
     clasHereditarios: ['Inumaki'],
   },
   {
     codigo: 'FURIA_AGNI',
-    nome: 'FÃºria de Agni',
+    nome: 'Fúria de Agni',
     descricao: 'Controle sobre chamas divinas.',
     hereditaria: true,
     clasHereditarios: ['Ram'],
@@ -195,43 +195,43 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   },
   {
     codigo: 'INFINITO',
-    nome: 'Infinito',
-    descricao: 'ManipulaÃ§Ã£o do espaÃ§o atravÃ©s do conceito de infinito.',
+    nome: 'Ilimitado',
+    descricao: 'Manipulação do espaço através do conceito de infinito.',
     hereditaria: true,
     clasHereditarios: ['Gojo', 'Okkotsu'],
   },
   {
     codigo: 'MANIPULACAO_SANGUE',
-    nome: 'ManipulaÃ§Ã£o de Sangue',
-    descricao: 'Controle total sobre o prÃ³prio sangue e sangue alheio.',
+    nome: 'Manipulação de Sangue',
+    descricao: 'Controle total sobre o próprio sangue e sangue alheio.',
     hereditaria: true,
     clasHereditarios: ['Kamo'],
   },
   {
     codigo: 'MANIPULACAO_CEU',
-    nome: 'ManipulaÃ§Ã£o do CÃ©u',
-    descricao: 'Controle sobre fenÃ´menos celestiais.',
+    nome: 'Manipulação do Céu',
+    descricao: 'Controle sobre fenômenos celestiais.',
     hereditaria: true,
     clasHereditarios: ['Fujiwara'],
   },
   {
     codigo: 'OCEANO_DESASTROSO',
     nome: 'Oceano Desastroso',
-    descricao: 'Cria e controla massas de Ã¡gua destrutivas.',
+    descricao: 'Cria e controla massas de água destrutivas.',
     hereditaria: true,
     clasHereditarios: ['Kamo'],
   },
   {
     codigo: 'PLANTAS_DESASTRE',
     nome: 'Plantas do Desastre',
-    descricao: 'Controle sobre plantas amaldiÃ§oadas.',
+    descricao: 'Controle sobre plantas amaldiçoadas.',
     hereditaria: true,
     clasHereditarios: ['Zenin'],
   },
   {
     codigo: 'SANTUARIO',
-    nome: 'SantuÃ¡rio',
-    descricao: 'ExpansÃ£o de DomÃ­nio destrutiva.',
+    nome: 'Santuário',
+    descricao: 'Expansão de Domínio destrutiva.',
     hereditaria: true,
     clasHereditarios: ['Ryomen', 'Itadori'],
     requisitos: {
@@ -528,33 +528,33 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   },
   {
     codigo: 'BONECA_PALHA',
-    nome: 'TÃ©cnica da Boneca de Palha',
-    descricao: 'Transfere dano atravÃ©s de bonecos de palha.',
+    nome: 'Técnica da Boneca de Palha',
+    descricao: 'Transfere dano através de bonecos de palha.',
     hereditaria: true,
     clasHereditarios: ['Kugisaki'],
   },
   {
     codigo: 'PROJECAO',
-    nome: 'TÃ©cnica de ProjeÃ§Ã£o',
-    descricao: 'Manipula o movimento atravÃ©s de projeÃ§Ãµes.',
+    nome: 'Técnica de Projeção',
+    descricao: 'Manipula o movimento através de projeções.',
     hereditaria: true,
     clasHereditarios: ['Zenin'],
   },
   {
     codigo: 'TRANSFIGURACAO_OCIOSA',
-    nome: 'TransfiguraÃ§Ã£o Ociosa',
+    nome: 'Transfiguração Ociosa',
     descricao: 'Altera a forma da alma e corpo.',
     hereditaria: true,
     clasHereditarios: ['Kamo'],
   },
 
   // ========================================
-  // âœ… TÃ‰CNICAS NÃƒO HEREDITÃRIAS
+  // ✅ TÉCNICAS NÃO HEREDITÁRIAS
   // ========================================
   {
     codigo: 'AMPLIFICACAO_SOM',
-    nome: 'AmplificaÃ§Ã£o Sonora',
-    descricao: 'Usa o corpo do usuÃ¡rio como um dispositivo de amplificaÃ§Ã£o de som, amplificando as melodias que ele toca com algum instrumento e lanÃ§ando-as em ondas de energia amaldiÃ§oada.',
+    nome: 'Amplificação Sonora',
+    descricao: 'Usa o corpo do usuário como um dispositivo de amplificação de som, amplificando as melodias que ele toca com algum instrumento e lançando-as em ondas de energia amaldiçoada.',
     hereditaria: false,
     clasHereditarios: [],
   },
@@ -574,77 +574,77 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   },
   {
     codigo: 'DADIVA_LAVOISIER',
-    nome: 'DÃ¡diva de Lavoisier',
-    descricao: 'ManipulaÃ§Ã£o de matÃ©ria atravÃ©s de reaÃ§Ãµes quÃ­micas.',
+    nome: 'Dádiva de Lavoisier',
+    descricao: 'Manipulação de matéria através de reações químicas.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'DESCARGA_EA',
-    nome: 'Descarga de Energia AmaldiÃ§oada',
-    descricao: 'Libera rajadas de energia amaldiÃ§oada.',
+    nome: 'Descarga de Energia Amaldiçoada',
+    descricao: 'Libera rajadas de energia amaldiçoada.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'ENCANTAMENTO_INVERSO',
     nome: 'Encantamento do Inverso',
-    descricao: 'Inverte propriedades de tÃ©cnicas.',
+    descricao: 'Inverte propriedades de técnicas.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'EA_ELETRIFICADA',
-    nome: 'Energia AmaldiÃ§oada Eletrificada',
-    descricao: 'Energia amaldiÃ§oada com propriedades elÃ©tricas.',
+    nome: 'Energia Amaldiçoada Eletrificada',
+    descricao: 'Energia amaldiçoada com propriedades elétricas.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'ENVENENAMENTO',
     nome: 'Envenenamento',
-    descricao: 'Cria e controla venenos amaldiÃ§oados.',
+    descricao: 'Cria e controla venenos amaldiçoados.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'FORMACAO_GELO',
-    nome: 'FormaÃ§Ã£o de Gelo',
+    nome: 'Formação de Gelo',
     descricao: 'Cria e manipula gelo.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'FURIA_ESTELAR',
-    nome: 'FÃºria Estelar',
-    descricao: 'Energia cÃ³smica destrutiva.',
+    nome: 'Fúria Estelar',
+    descricao: 'Energia cósmica destrutiva.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'IMORTALIDADE',
     nome: 'Imortalidade',
-    descricao: 'RegeneraÃ§Ã£o e ressurreiÃ§Ã£o.',
+    descricao: 'Regeneração e ressurreição.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'MANIPULACAO_FANTOCHES',
-    nome: 'ManipulaÃ§Ã£o de Fantoches',
-    descricao: 'Controla fantoches amaldiÃ§oados.',
+    nome: 'Manipulação de Fantoches',
+    descricao: 'Controla fantoches amaldiçoados.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'MANIPULACAO_MALDICAO',
-    nome: 'ManipulaÃ§Ã£o de MaldiÃ§Ã£o',
-    descricao: 'Controle direto sobre maldiÃ§Ãµes.',
+    nome: 'Manipulação de Maldição',
+    descricao: 'Controle direto sobre maldições.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'MANIPULACAO_TERRA',
-    nome: 'ManipulaÃ§Ã£o de Terra',
+    nome: 'Manipulação de Terra',
     descricao: 'Controle sobre terra e rochas.',
     hereditaria: false,
     clasHereditarios: [],
@@ -652,42 +652,42 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'MILAGRES',
     nome: 'Milagres',
-    descricao: 'Efeitos miraculosos imprevisÃ­veis.',
+    descricao: 'Efeitos miraculosos imprevisíveis.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'NULIFICACAO_ESCADA_JACO',
-    nome: 'NulificaÃ§Ã£o: Escada de JacÃ³',
-    descricao: 'Anula tÃ©cnicas inimigas.',
+    nome: 'Nulificação: Escada de Jacó',
+    descricao: 'Anula técnicas inimigas.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'OLHAR_PARALISANTE',
     nome: 'Olhar Paralisante',
-    descricao: 'Paralisa alvos atravÃ©s do olhar.',
+    descricao: 'Paralisa alvos através do olhar.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'ORQUIDEA_SARKICA',
-    nome: 'OrquÃ­dea SÃ¡rkica',
-    descricao: 'ManipulaÃ§Ã£o de carne e ossos.',
+    nome: 'Orquídea Sárkica',
+    descricao: 'Manipulação de carne e ossos.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'PUNHOS_MISSEIS',
-    nome: 'Punhos de MÃ­sseis',
+    nome: 'Punhos de Mísseis',
     descricao: 'Ataques perfurantes explosivos.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'SEM_TECNICA',
-    nome: 'Sem TÃ©cnica AmaldiÃ§oada',
-    descricao: 'NÃ£o possui tÃ©cnica amaldiÃ§oada inata.',
+    nome: 'Sem Técnica Amaldiçoada',
+    descricao: 'Não possui técnica amaldiçoada inata.',
     hereditaria: false,
     clasHereditarios: [],
   },
@@ -701,35 +701,35 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'SURTO_TEMPORAL',
     nome: 'Surto Temporal',
-    descricao: 'ManipulaÃ§Ã£o limitada do tempo.',
+    descricao: 'Manipulação limitada do tempo.',
     hereditaria: true,
     clasHereditarios: ['Ram'],
   },
   {
     codigo: 'NEVOA_LILAS',
-    nome: 'TÃ©cnica da NÃ©voa LilÃ¡s',
-    descricao: 'NÃ©voa que causa confusÃ£o e dano.',
+    nome: 'Técnica da Névoa Lilás',
+    descricao: 'Névoa que causa confusão e dano.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'CLONAGEM',
-    nome: 'TÃ©cnica de Clonagem',
-    descricao: 'Cria clones temporÃ¡rios.',
+    nome: 'Técnica de Clonagem',
+    descricao: 'Cria clones temporários.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'APOSTADOR_NATO',
-    nome: 'TÃ©cnica do Apostador Nato',
+    nome: 'Técnica do Apostador Nato',
     descricao: 'Habilidades baseadas em sorte e apostas.',
     hereditaria: false,
     clasHereditarios: [],
   },
   {
     codigo: 'TRANSFERENCIA_ESPACIAL',
-    nome: 'TransferÃªncia Espacial',
-    descricao: 'Teletransporte de curta distÃ¢ncia.',
+    nome: 'Transferência Espacial',
+    descricao: 'Teletransporte de curta distância.',
     hereditaria: false,
     clasHereditarios: [],
   },
@@ -743,7 +743,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'BOOGIE_WOOGIE',
     nome: 'Troca: Boogie Woogie',
-    descricao: 'Troca posiÃ§Ãµes de dois alvos.',
+    descricao: 'Troca posições de dois alvos.',
     hereditaria: false,
     clasHereditarios: [],
   },
@@ -1505,12 +1505,12 @@ async function seedHabilidadesDaTecnicaInata(
 }
 
 export async function seedTecnicasInatas(prisma: PrismaClient) {
-  console.log('ðŸ”¥ Cadastrando tÃ©cnicas amaldiÃ§oadas inatas...');
+  console.log('Cadastrando técnicas amaldiçoadas inatas...');
 
   const get = createLookupCache(prisma);
 
   for (const tec of tecnicasInatasSeed) {
-    // 1) Cria/atualiza a tÃ©cnica
+    // 1) Cria/atualiza a técnica
     const tecnica = await prisma.tecnicaAmaldicoada.upsert({
       where: { codigo: tec.codigo },
       update: {
@@ -1523,7 +1523,7 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
         linkExterno: tec.linkExterno ?? null,
         requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
         
-        // âœ… NOVO: Fonte e suplemento
+        // ✅ NOVO: Fonte e suplemento
         fonte: TipoFonte.SISTEMA_BASE,
         suplementoId: null,
       },
@@ -1538,7 +1538,7 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
         linkExterno: tec.linkExterno ?? null,
         requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
         
-        // âœ… NOVO: Fonte e suplemento
+        // ✅ NOVO: Fonte e suplemento
         fonte: TipoFonte.SISTEMA_BASE,
         suplementoId: null,
       },
@@ -1546,15 +1546,15 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
     });
 
     console.log(
-      `  âœ… ${tecnica.nome} (${tec.hereditaria ? 'HereditÃ¡ria' : 'NÃ£o HereditÃ¡ria'})`,
+      `  ✅ ${tecnica.nome} (${tec.hereditaria ? 'Hereditária' : 'Não Hereditária'})`,
     );
 
     if (Array.isArray(tec.habilidades)) {
       await seedHabilidadesDaTecnicaInata(prisma, tecnica.id, tec.habilidades);
-      console.log(`    âœ¨ Habilidades inatas: ${tec.habilidades.length}`);
+      console.log(`    ✨ Habilidades inatas: ${tec.habilidades.length}`);
     }
 
-    // 2) VÃ­nculo com clÃ£s (somente se for hereditÃ¡ria)
+    // 2) Vínculo com clãs (somente se for hereditária)
     if (tecnica.hereditaria && tec.clasHereditarios.length > 0) {
       for (const claNome of tec.clasHereditarios) {
         const claId = await get.claId(claNome);
@@ -1567,12 +1567,10 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
           create: { tecnicaId: tecnica.id, claId },
         });
 
-        console.log(`    ðŸ”— Vinculada ao clÃ£: ${claNome}`);
+        console.log(`    Vinculada ao clã: ${claNome}`);
       }
     }
   }
 
-  console.log(`âœ… ${tecnicasInatasSeed.length} tÃ©cnicas inatas cadastradas!\n`);
+  console.log(`✅ ${tecnicasInatasSeed.length} técnicas inatas cadastradas!\n`);
 }
-
-

@@ -19,7 +19,7 @@ function validarFerramentaAmaldicoada(dados: Record<string, unknown>): void {
 
   if (!temArma && !temProtecao && !temArtefato) {
     throw new ValidationException(
-      'Ferramenta amaldi�oada deve ter arma, protecao ou artefato configurado',
+      'Ferramenta amaldiçoada deve ter arma, protecao ou artefato configurado',
       'tipoAmaldicoado',
       {
         camposEsperados: [
@@ -34,7 +34,7 @@ function validarFerramentaAmaldicoada(dados: Record<string, unknown>): void {
 
   if (tipoAmaldicoado === TipoAmaldicoado.ITEM) {
     throw new ValidationException(
-      'Ferramenta amaldi�oada nao suporta tipo ITEM',
+      'Ferramenta amaldiçoada nao suporta tipo ITEM',
       'tipoAmaldicoado',
       {
         tipoRecebido: tipoAmaldicoado,
@@ -84,7 +84,7 @@ function validarItemAmaldicoado(dados: Record<string, unknown>): void {
     tipoAmaldicoado !== TipoAmaldicoado.ITEM
   ) {
     throw new ValidationException(
-      'Item amaldi�oado aceita apenas tipoAmaldicoado=ITEM',
+      'Item amaldiçoado aceita apenas tipoAmaldicoado=ITEM',
       'tipoAmaldicoado',
       { tipoRecebido: tipoAmaldicoado, tipoEsperado: TipoAmaldicoado.ITEM },
       'INVALID_AMALDICOADO_TYPE',

@@ -491,7 +491,7 @@ export async function aplicarEfeitosPoderesEmPericias(
           throw new PoderGenericoConfigInvalidaException(
             poderDb.nome,
             'periciasCodigos',
-            `perÃ­cia "${codigo}" nÃ£o estÃ¡ permitida`,
+            `perícia "${codigo}" não está permitida`,
           );
         }
 
@@ -504,14 +504,14 @@ export async function aplicarEfeitosPoderesEmPericias(
             throw new PoderGenericoConfigInvalidaException(
               poderDb.nome,
               'periciasCodigos',
-              `perÃ­cia "${codigo}" nÃ£o possui atributo base vÃ¡lido`,
+              `perícia "${codigo}" não possui atributo base válido`,
             );
           }
           if (!escolhaMec.atributosBasePermitidos.includes(atributo)) {
             throw new PoderGenericoConfigInvalidaException(
               poderDb.nome,
               'periciasCodigos',
-              `perÃ­cia "${codigo}" nÃ£o possui atributo base permitido`,
+              `perícia "${codigo}" não possui atributo base permitido`,
             );
           }
         }

@@ -134,7 +134,7 @@ function splitCapitulosStandalone(texto: string): Array<{ cap: number; titulo: s
   const lines = texto.split(/\r?\n/);
 
   // Heurística: capítulo é linha como "10. REGRAS GERAIS" (título em CAIXA ALTA).
-  const capRe = /^(\d{1,2})\.\s+([A-ZÁÂÃÉÍÓÔÕÚÇ0-9][A-ZÁÂÃÉÍÓÔÕÚÇ0-9\s\-]+)$/;
+  const capRe = /^(\d{1,2})\.\s+([A-ZÁÂÉÍÓÔÕÚÇ0-9][A-ZÁÂÉÍÓÔÕÚÇ0-9\s\-]+)$/;
 
   const indices: Array<{ idx: number; cap: number; titulo: string }> = [];
   for (let i = 0; i < lines.length; i++) {
