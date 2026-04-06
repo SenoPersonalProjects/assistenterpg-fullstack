@@ -296,14 +296,14 @@ export default function ConfiguracoesPage() {
 
                 <div className="rounded-lg border border-app-border bg-app-surface p-3">
                   <p className="text-sm font-medium text-app-fg">
-                    Animacoes de rolagem
+                    Animacao 3D de rolagem
                   </p>
                   <p className="text-xs text-app-muted mt-1">
-                    Controla a animacao detalhada no modal de rolagens da sessao.
+                    Controla a animacao 3D no modal de rolagens da sessao.
                   </p>
                   <div className="mt-3">
                     <Checkbox
-                      label="Ativar animacao detalhada"
+                      label="Ativar animacao 3D"
                       checked={animacaoRolagemAtiva}
                       onChange={(e) => handleToggleAnimacaoRolagem(e.target.checked)}
                     />

@@ -5,7 +5,9 @@ import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
+import { DiceScene } from '@/components/campanha/sessao/dice/DiceScene';
 import { STORAGE_ANIMACAO_ROLAGEM_KEY } from '@/lib/constants/rolagem';
+import { calcularResultadoDice } from '@/lib/campanha/sessao-dice';
 import type { DiceRollPayload } from '@/lib/campanha/sessao-dice';
 
 const ANIMACAO_PADRAO_MS = 900;
@@ -46,6 +48,26 @@ export function SessionPericiaRollModal({
     if (!animacaoAtiva) return 0;
     return duracaoMs;
   }, [animacaoAtiva, duracaoMs]);
+
+  const resultadoCalculado = useMemo(() => {
+    if (!payload) return null;
+    return calcularResultadoDice(payload);
+  }, [payload]);
+
+  const valorDado = useMemo(() => {
+    if (!payload || !resultadoCalculado) return null;
+    if (resultadoCalculado.keepMode !== 'SUM') {
+      const indice = resultadoCalculado.indiceEscolhido ?? 0;
+      return (
+        resultadoCalculado.rolagensBase[indice] ??
+        payload.rolagens[0] ??
+        null
+      );
+    }
+    return payload.rolagens[0] ?? null;
+  }, [payload, resultadoCalculado]);
+
+  const facesExibidas = payload?.faces ?? 20;
 
   useEffect(() => {
     if (!isOpen || !payload) {
@@ -105,44 +127,43 @@ export function SessionPericiaRollModal({
           </div>
         </div>
 
-        {!payload ? (
-          <div className="session-roll-modal__empty">
-            <Icon name="dice" className="h-5 w-5" />
-            <div>
-              <p className="session-roll-modal__empty-title">
-                Nenhuma rolagem disponivel
-              </p>
-              <p className="session-roll-modal__empty-subtitle">
-                Faça uma rolagem para ver o resultado aqui.
-              </p>
-            </div>
+        <div className="session-roll-modal__viewer">
+          <div className="session-roll-modal__dice-card">
+            <DiceScene
+              faces={facesExibidas}
+              isRolling={Boolean(payload) && animacaoAtiva && !mostrandoResultado}
+              result={mostrandoResultado ? valorDado : null}
+              reducedMotion={!animacaoAtiva}
+            />
+            {!mostrandoResultado && payload ? (
+              <div className="session-roll-modal__dice-overlay">
+                <span className="session-roll-modal__dice-label">{titulo}</span>
+                {expression ? (
+                  <span className="session-roll-modal__dice-expr">{expression}</span>
+                ) : null}
+                <span className="session-roll-modal__dice-status">
+                  {animacaoAtiva ? 'Rolando teste...' : 'Preparando resultado...'}
+                </span>
+              </div>
+            ) : null}
           </div>
-        ) : !mostrandoResultado ? (
-          <div className="session-roll-modal__anim">
-            <div className="session-roll-modal__anim-meta">
-              <span className="session-roll-modal__anim-title">{titulo}</span>
-              {expression ? (
-                <span className="session-roll-modal__anim-expr">{expression}</span>
-              ) : null}
+
+          {!payload ? (
+            <div className="session-roll-modal__empty">
+              <Icon name="dice" className="h-5 w-5" />
+              <div>
+                <p className="session-roll-modal__empty-title">
+                  Nenhuma rolagem disponivel
+                </p>
+                <p className="session-roll-modal__empty-subtitle">
+                  Faca uma rolagem para ver o resultado aqui.
+                </p>
+              </div>
             </div>
-            <div className="session-roll-modal__dice-track">
-              <span className="session-roll-modal__dice session-roll-modal__dice--a">
-                <Icon name="dice" className="h-6 w-6" />
-              </span>
-              <span className="session-roll-modal__dice session-roll-modal__dice--b">
-                <Icon name="dice" className="h-6 w-6" />
-              </span>
-              <span className="session-roll-modal__dice session-roll-modal__dice--c">
-                <Icon name="dice" className="h-6 w-6" />
-              </span>
-            </div>
-            <p className="session-roll-modal__anim-text">
-              {animacaoAtiva ? 'Rolando teste...' : 'Preparando resultado...'}
-            </p>
-          </div>
-        ) : (
-          <DiceMessageCard payload={payload} expression={expression} />
-        )}
+          ) : mostrandoResultado ? (
+            <DiceMessageCard payload={payload} expression={expression} />
+          ) : null}
+        </div>
 
         <div className="session-roll-modal__status">
           {erro ? (
@@ -166,4 +187,3 @@ export function SessionPericiaRollModal({
     </Modal>
   );
 }
-
