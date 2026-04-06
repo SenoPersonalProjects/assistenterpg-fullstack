@@ -2223,6 +2223,82 @@ body {
   color: var(--fg-muted);
 }
 
+.session-roll-modal__crit {
+  border-radius: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--primary) 6%, var(--bg));
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.session-roll-modal__crit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.session-roll-modal__crit-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.session-roll-modal__crit-subtitle {
+  font-size: 0.65rem;
+  color: var(--fg-muted);
+}
+
+.session-roll-modal__crit-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+}
+
+.session-roll-modal__crit-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.session-roll-modal__crit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.65rem;
+  color: var(--fg-muted);
+}
+
+.session-roll-modal__crit-input {
+  width: 3.1rem;
+  height: 1.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--fg);
+  padding: 0 0.35rem;
+  font-size: 0.65rem;
+  text-align: center;
+}
+
+.session-roll-modal__crit-toggle {
+  font-size: 0.65rem;
+  color: var(--fg-muted);
+}
+
+.session-roll-modal__crit-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 @media (max-width: 640px) {
   .session-roll-modal__dice-card {
     min-height: 220px;

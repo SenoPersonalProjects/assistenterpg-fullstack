@@ -22,7 +22,7 @@ describe('CampanhaController', () => {
     aplicarModificadorPersonagemCampanha: jest.fn(),
     desfazerModificadorPersonagemCampanha: jest.fn(),
     listarHistoricoPersonagemCampanha: jest.fn(),
-    criarConvitePorEmail: jest.fn(),
+    criarConvite: jest.fn(),
     listarConvitesPendentesPorUsuario: jest.fn(),
     aceitarConvite: jest.fn(),
     recusarConvite: jest.fn(),
@@ -49,17 +49,17 @@ describe('CampanhaController', () => {
   });
 
   it('deve encaminhar criacao de convite para o service', async () => {
-    campanhaServiceMock.criarConvitePorEmail.mockResolvedValue({ id: 1 });
+    campanhaServiceMock.criarConvite.mockResolvedValue({ id: 1 });
 
     const req = { user: { id: 33 } };
     const dto = { email: 'jogador@teste.com', papel: 'JOGADOR' as const };
 
     await controller.criarConvite(9, req, dto);
 
-    expect(campanhaServiceMock.criarConvitePorEmail).toHaveBeenCalledWith(
+    expect(campanhaServiceMock.criarConvite).toHaveBeenCalledWith(
       9,
       33,
-      'jogador@teste.com',
+      { email: 'jogador@teste.com', apelido: undefined },
       'JOGADOR',
     );
   });

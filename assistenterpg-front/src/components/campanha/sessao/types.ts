@@ -39,3 +39,49 @@ export type RolagemPericiaSessaoPayload = {
   bonus: number;
   keepMode: 'SUM' | 'HIGHEST' | 'LOWEST';
 };
+
+export type DadoDanoTecnicaPayload = {
+  quantidade: number;
+  dado: string;
+  tipo: string;
+};
+
+export type EscalonamentoDanoTecnicaPayload = {
+  quantidade: number;
+  dado: string;
+  tipo: string;
+};
+
+export type HabilidadeDanoConfigPayload = {
+  dadosDano?: DadoDanoTecnicaPayload[] | null;
+  danoFlat?: number | null;
+  danoFlatTipo?: string | null;
+  escalonamentoDano?: EscalonamentoDanoTecnicaPayload | null;
+  acumulos?: number;
+};
+
+export type HabilidadeRollContext = {
+  habilidadeNome: string;
+  variacaoNome?: string | null;
+  criticoValor?: number | null;
+  criticoMultiplicador?: number | null;
+  dano?: HabilidadeDanoConfigPayload | null;
+};
+
+export type RolagemTesteHabilidadeSessaoPayload = {
+  alvoTipo: 'PERSONAGEM' | 'NPC';
+  alvoNome: string;
+  periciaNome: string;
+  atributoBase?: string | null;
+  dados: number;
+  bonus: number;
+  keepMode: 'SUM' | 'HIGHEST' | 'LOWEST';
+  habilidade: HabilidadeRollContext;
+};
+
+export type RolagemDanoHabilidadeSessaoPayload = {
+  alvoTipo: 'PERSONAGEM' | 'NPC';
+  alvoNome: string;
+  habilidade: HabilidadeRollContext;
+  aplicarCritico?: boolean;
+};

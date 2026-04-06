@@ -69,8 +69,11 @@ import {
   type AlvoCondicoesModal,
   type AjustesRecursosNpc,
   type CampoAjusteRecursoNpc,
+  type HabilidadeRollContext,
   type NpcEditavel,
+  type RolagemDanoHabilidadeSessaoPayload,
   type RolagemPericiaSessaoPayload,
+  type RolagemTesteHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
 import {
   descreverDuracaoCondicao,
@@ -107,6 +110,7 @@ import { useSessaoPreferencias } from '@/hooks/useSessaoPreferencias';
 import { useSessaoFiltroSustentadas } from '@/hooks/useSessaoFiltroSustentadas';
 import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
 import {
+  construirMensagemDiceMultipla,
   construirMensagemDice,
   ehMensagemDice,
   rolarDados,
@@ -134,6 +138,9 @@ type PericiaRollModalState = {
   aberto: boolean;
   titulo: string;
   subtitulo?: string;
+  alvoTipo?: 'PERSONAGEM' | 'NPC';
+  alvoNome?: string;
+  habilidadeContext?: HabilidadeRollContext | null;
   payload: DiceRollPayload | null;
   expression?: string;
   enviando: boolean;
@@ -295,6 +302,9 @@ export default function SessaoCampanhaPage() {
       aberto: false,
       titulo: '',
       subtitulo: undefined,
+      alvoTipo: undefined,
+      alvoNome: undefined,
+      habilidadeContext: null,
       payload: null,
       expression: undefined,
       enviando: false,
@@ -955,6 +965,9 @@ export default function SessaoCampanhaPage() {
         subtitulo: payload.atributoBase
           ? `${payload.alvoNome} · ${payload.atributoBase}`
           : payload.alvoNome,
+        alvoTipo: payload.alvoTipo,
+        alvoNome: payload.alvoNome,
+        habilidadeContext: null,
         payload: dicePayload,
         expression,
         enviando: false,
@@ -992,6 +1005,221 @@ export default function SessaoCampanhaPage() {
           enviado: false,
           erro: mensagemErro,
         }));
+      }
+    },
+    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+  );
+
+  const handleRolarTesteHabilidade = useCallback(
+    async (payload: RolagemTesteHabilidadeSessaoPayload) => {
+      if (sessaoEncerrada) {
+        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
+        return;
+      }
+      const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
+      const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+      const dicePayload = rolarDados({
+        quantidade: payload.dados,
+        faces: 20,
+        modificador: payload.bonus,
+        aplicarModificadorPorDado: false,
+        label,
+        keepMode: payload.keepMode,
+      });
+      const habilidadeLabel = payload.habilidade.variacaoNome
+        ? `${payload.habilidade.habilidadeNome} · ${payload.habilidade.variacaoNome}`
+        : payload.habilidade.habilidadeNome;
+      const subtitulo = payload.atributoBase
+        ? `${payload.alvoNome} · ${habilidadeLabel} · ${payload.atributoBase}`
+        : `${payload.alvoNome} · ${habilidadeLabel}`;
+      const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
+      setPericiaRollModal({
+        aberto: true,
+        titulo: payload.periciaNome,
+        subtitulo,
+        alvoTipo: payload.alvoTipo,
+        alvoNome: payload.alvoNome,
+        habilidadeContext: payload.habilidade,
+        payload: dicePayload,
+        expression,
+        enviando: false,
+        enviado: false,
+        erro: null,
+      });
+      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
+      if (erroTamanho) {
+        setErroRolagens(erroTamanho);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: erroTamanho,
+        }));
+        return;
+      }
+      try {
+        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
+        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
+          mensagem: mensagemEnvio,
+        });
+        setChat((anterior) => [...anterior, enviada]);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: true,
+        }));
+      } catch (error) {
+        const mensagemErro = extrairMensagemErro(error);
+        setErroRolagens(mensagemErro);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: mensagemErro,
+        }));
+      }
+    },
+    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+  );
+
+  const handleRolarDanoHabilidade = useCallback(
+    async (payload: RolagemDanoHabilidadeSessaoPayload) => {
+      if (sessaoEncerrada) {
+        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
+        return;
+      }
+
+      const dano = payload.habilidade.dano;
+      if (!dano) {
+        showToast('Habilidade sem dano configurado.', 'warning');
+        return;
+      }
+
+      const acumulos = Math.max(1, Math.trunc(dano.acumulos ?? 1));
+      const aplicarCritico = Boolean(payload.aplicarCritico);
+      const criticoMultiplicador = Number.isFinite(payload.habilidade.criticoMultiplicador)
+        ? Math.max(2, Math.trunc(payload.habilidade.criticoMultiplicador as number))
+        : 2;
+
+      const parseFaces = (dado: string): number | null => {
+        const match = dado.match(/(\d+)/);
+        if (!match?.[1]) return null;
+        const faces = Number(match[1]);
+        if (!Number.isFinite(faces) || faces <= 0) return null;
+        return Math.trunc(faces);
+      };
+
+      const mapaDados = new Map<
+        string,
+        { quantidade: number; faces: number; tipo: string }
+      >();
+      const adicionarDado = (quantidade: number, dado: string, tipo: string) => {
+        if (!Number.isFinite(quantidade) || quantidade <= 0) return;
+        const faces = parseFaces(dado);
+        if (!faces) return;
+        const key = `${tipo ?? ''}::${faces}`;
+        const atual = mapaDados.get(key);
+        if (atual) {
+          atual.quantidade += quantidade;
+        } else {
+          mapaDados.set(key, { quantidade, faces, tipo });
+        }
+      };
+
+      const dadosBase = Array.isArray(dano.dadosDano) ? dano.dadosDano : [];
+      for (const entrada of dadosBase) {
+        const quantidade = Number(entrada?.quantidade ?? 0);
+        const dado = String(entrada?.dado ?? '');
+        const tipo = String(entrada?.tipo ?? '');
+        adicionarDado(quantidade, dado, tipo);
+      }
+
+      if (dano.escalonamentoDano && acumulos > 1) {
+        const quantidade = Number(dano.escalonamentoDano.quantidade ?? 0);
+        const dado = String(dano.escalonamentoDano.dado ?? '');
+        const tipo = String(dano.escalonamentoDano.tipo ?? '');
+        const total = quantidade * (acumulos - 1);
+        adicionarDado(total, dado, tipo);
+      }
+
+      const listaDados = Array.from(mapaDados.values()).map((item) => ({
+        ...item,
+        quantidade:
+          aplicarCritico && criticoMultiplicador > 1
+            ? item.quantidade * criticoMultiplicador
+            : item.quantidade,
+      }));
+
+      const payloads: DiceRollPayload[] = [];
+      for (const item of listaDados) {
+        const tipoBase =
+          item.tipo?.trim() || String(dano.danoFlatTipo ?? '').trim() || 'Dano';
+        const labelBase = aplicarCritico
+          ? `${tipoBase} (Critico x${criticoMultiplicador})`
+          : tipoBase;
+        const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+        payloads.push(
+          rolarDados({
+            quantidade: item.quantidade,
+            faces: item.faces,
+            modificador: 0,
+            aplicarModificadorPorDado: false,
+            label,
+          }),
+        );
+      }
+
+      const danoFlat =
+        Number.isFinite(dano.danoFlat) && dano.danoFlat !== null
+          ? Math.trunc(dano.danoFlat as number)
+          : 0;
+      if (danoFlat !== 0) {
+        if (payloads.length > 0) {
+          const primeiro = payloads[0];
+          payloads[0] = {
+            ...primeiro,
+            modificador: (primeiro.modificador ?? 0) + danoFlat,
+          };
+        } else {
+          const tipoBase = String(dano.danoFlatTipo ?? '').trim() || 'Dano';
+          const labelBase = aplicarCritico
+            ? `${tipoBase} (Critico x${criticoMultiplicador})`
+            : tipoBase;
+          const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+          payloads.push(
+            rolarDados({
+              quantidade: 1,
+              faces: 1,
+              modificador: danoFlat - 1,
+              aplicarModificadorPorDado: false,
+              label,
+            }),
+          );
+        }
+      }
+
+      if (payloads.length === 0) {
+        showToast('Nao foi possivel montar a rolagem de dano.', 'warning');
+        return;
+      }
+
+      const { mensagem: mensagemEnvio } = construirMensagemDiceMultipla(payloads);
+      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
+      if (erroTamanho) {
+        setErroRolagens(erroTamanho);
+        showToast(erroTamanho, 'warning');
+        return;
+      }
+
+      try {
+        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
+          mensagem: mensagemEnvio,
+        });
+        setChat((anterior) => [...anterior, enviada]);
+      } catch (error) {
+        const mensagemErro = extrairMensagemErro(error);
+        setErroRolagens(mensagemErro);
+        showToast(mensagemErro, 'error');
       }
     },
     [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
@@ -1563,6 +1791,8 @@ export default function SessaoCampanhaPage() {
       onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
       onAbrirFichaCompleta={handleAbrirFichaCompleta}
       onRolarPericia={handleRolarPericia}
+      onRolarTesteHabilidade={handleRolarTesteHabilidade}
+      onRolarDanoHabilidade={handleRolarDanoHabilidade}
       renderPainelCondicoes={renderPainelCondicoes}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
       erro={erroCards}
@@ -1846,9 +2076,11 @@ export default function SessaoCampanhaPage() {
                     void handleAplicarAjustePersonalizadoRecursoCard(meuCard, campo);
                   }}
                   onSelecionarNucleo={handleSelecionarNucleo}
-                  onSacrificarNucleo={handleSacrificarNucleo}
-                  onRolarPericia={handleRolarPericia}
-                />
+                    onSacrificarNucleo={handleSacrificarNucleo}
+                    onRolarPericia={handleRolarPericia}
+                    onRolarTesteHabilidade={handleRolarTesteHabilidade}
+                    onRolarDanoHabilidade={handleRolarDanoHabilidade}
+                  />
               )}
             </section>
           ) : null}
@@ -2133,11 +2365,15 @@ export default function SessaoCampanhaPage() {
           isOpen={periciaRollModal.aberto}
           titulo={periciaRollModal.titulo}
           subtitulo={periciaRollModal.subtitulo}
+          alvoNome={periciaRollModal.alvoNome}
+          alvoTipo={periciaRollModal.alvoTipo}
+          habilidadeContext={periciaRollModal.habilidadeContext}
           payload={periciaRollModal.payload}
           expression={periciaRollModal.expression}
           enviando={periciaRollModal.enviando}
           enviado={periciaRollModal.enviado}
           erro={periciaRollModal.erro}
+          onRolarDano={handleRolarDanoHabilidade}
           onClose={() =>
             setPericiaRollModal((estado) => ({ ...estado, aberto: false }))
           }

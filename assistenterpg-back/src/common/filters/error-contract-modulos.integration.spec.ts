@@ -627,7 +627,7 @@ describe('ErrorContractModules (integration)', () => {
     assertValidationErrorContract(asBody(response.body), {
       path: '/condicoes',
       method: 'POST',
-      messageIncludes: 'Descrição',
+      messageIncludes: 'Descricao',
     });
   });
 });

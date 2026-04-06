@@ -327,8 +327,11 @@ export type VariacaoHabilidadeSessaoCampanha = {
   duracao: string | null;
   resistencia: string | null;
   dtResistencia: string | null;
+  criticoValor: number | null;
+  criticoMultiplicador: number | null;
   danoFlat: number | null;
   danoFlatTipo: string | null;
+  dadosDano: unknown;
   efeitoAdicional: string | null;
   escalonaPorGrau: boolean | null;
   grauTipoGrauCodigo: string | null;
@@ -354,6 +357,10 @@ export type HabilidadeTecnicaSessaoCampanha = {
   alcance: string | null;
   alvo: string | null;
   duracao: string | null;
+  testesExigidos: unknown;
+  criticoValor: number | null;
+  criticoMultiplicador: number | null;
+  dadosDano: unknown;
   custoPE: number;
   custoEA: number;
   custoSustentacaoEA: number | null;

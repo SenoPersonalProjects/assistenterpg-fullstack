@@ -17,7 +17,11 @@ import type {
   AjustesRecursos,
   CampoAjusteRecurso,
 } from '@/hooks/useSessaoRecursos';
-import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import type {
+  RolagemDanoHabilidadeSessaoPayload,
+  RolagemPericiaSessaoPayload,
+  RolagemTesteHabilidadeSessaoPayload,
+} from '@/components/campanha/sessao/types';
 
 type SessionPlayerSummaryPanelProps = {
   campanhaId: number;
@@ -75,6 +79,8 @@ type SessionPlayerSummaryPanelProps = {
     payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
   ) => void;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
+  onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
 };
 
 export function SessionPlayerSummaryPanel({
@@ -116,6 +122,8 @@ export function SessionPlayerSummaryPanel({
   onSelecionarNucleo,
   onSacrificarNucleo,
   onRolarPericia,
+  onRolarTesteHabilidade,
+  onRolarDanoHabilidade,
 }: SessionPlayerSummaryPanelProps) {
   return (
     <SessionPanel
@@ -206,10 +214,12 @@ export function SessionPlayerSummaryPanel({
               onEncerrarSustentacao={onEncerrarSustentacao}
               formatarCustos={formatarCustos}
               renderPainelCondicoes={renderPainelCondicoes}
-              mostrarAcoesResumo={false}
-              limitesCategoriaAtivo={limitesCategoriaAtivo}
-              onRolarPericia={onRolarPericia}
-            />
+                mostrarAcoesResumo={false}
+                limitesCategoriaAtivo={limitesCategoriaAtivo}
+                onRolarPericia={onRolarPericia}
+                onRolarTesteHabilidade={onRolarTesteHabilidade}
+                onRolarDanoHabilidade={onRolarDanoHabilidade}
+              />
           ) : null}
         </div>
       ) : (

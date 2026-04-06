@@ -4,11 +4,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { Button } from '@/components/ui/Button';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
 import { DiceScene } from '@/components/campanha/sessao/dice/DiceScene';
 import { STORAGE_ANIMACAO_ROLAGEM_KEY } from '@/lib/constants/rolagem';
 import { calcularResultadoDice } from '@/lib/campanha/sessao-dice';
 import type { DiceRollPayload } from '@/lib/campanha/sessao-dice';
+import type {
+  HabilidadeRollContext,
+  RolagemDanoHabilidadeSessaoPayload,
+} from '@/components/campanha/sessao/types';
 
 const ANIMACAO_PADRAO_MS = 900;
 
@@ -17,12 +22,16 @@ type SessionPericiaRollModalProps = {
   onClose: () => void;
   titulo: string;
   subtitulo?: string;
+  alvoNome?: string;
+  alvoTipo?: 'PERSONAGEM' | 'NPC';
+  habilidadeContext?: HabilidadeRollContext | null;
   payload: DiceRollPayload | null;
   expression?: string;
   enviando?: boolean;
   enviado?: boolean;
   erro?: string | null;
   duracaoMs?: number;
+  onRolarDano?: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
 };
 
 export function SessionPericiaRollModal({
@@ -30,19 +39,33 @@ export function SessionPericiaRollModal({
   onClose,
   titulo,
   subtitulo,
+  alvoNome,
+  alvoTipo,
+  habilidadeContext = null,
   payload,
   expression,
   enviando = false,
   enviado = false,
   erro = null,
   duracaoMs = ANIMACAO_PADRAO_MS,
+  onRolarDano,
 }: SessionPericiaRollModalProps) {
   const [mostrandoResultado, setMostrandoResultado] = useState(false);
+  const [criticoValor, setCriticoValor] = useState(() => {
+    const base = habilidadeContext?.criticoValor;
+    return Number.isFinite(base) ? Math.trunc(base as number) : 20;
+  });
+  const [aplicarCritico, setAplicarCritico] = useState(false);
   const [animacaoAtiva, setAnimacaoAtiva] = useState(() => {
     if (typeof window === 'undefined') return true;
     const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_ROLAGEM_KEY);
     return armazenado !== 'off';
   });
+
+  const criticoMultiplicador = useMemo(() => {
+    const base = habilidadeContext?.criticoMultiplicador;
+    return Number.isFinite(base) && Number(base) > 1 ? Math.trunc(base as number) : 2;
+  }, [habilidadeContext?.criticoMultiplicador]);
 
   const duracaoAnimacao = useMemo(() => {
     if (!animacaoAtiva) return 0;
@@ -68,6 +91,13 @@ export function SessionPericiaRollModal({
   }, [payload, resultadoCalculado]);
 
   const facesExibidas = payload?.faces ?? 20;
+  const danoDisponivel = Boolean(habilidadeContext?.dano);
+  const podeRolarDano =
+    Boolean(onRolarDano) &&
+    Boolean(habilidadeContext) &&
+    Boolean(alvoNome) &&
+    Boolean(alvoTipo) &&
+    danoDisponivel;
 
   useEffect(() => {
     if (!isOpen || !payload) {
@@ -85,6 +115,23 @@ export function SessionPericiaRollModal({
     };
   }, [isOpen, payload, duracaoAnimacao]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const base = habilidadeContext?.criticoValor;
+    const valorInicial = Number.isFinite(base) ? Math.trunc(base as number) : 20;
+    setCriticoValor(valorInicial);
+    setAplicarCritico(false);
+  }, [habilidadeContext?.criticoValor, isOpen]);
+
+  useEffect(() => {
+    if (!mostrandoResultado || !habilidadeContext) return;
+    if (!valorDado || !Number.isFinite(criticoValor)) {
+      setAplicarCritico(false);
+      return;
+    }
+    setAplicarCritico(valorDado >= criticoValor);
+  }, [mostrandoResultado, valorDado, criticoValor, habilidadeContext]);
+
   const handleToggleAnimacao = (checked: boolean) => {
     setAnimacaoAtiva(checked);
     if (typeof window === 'undefined') return;
@@ -92,6 +139,18 @@ export function SessionPericiaRollModal({
       STORAGE_ANIMACAO_ROLAGEM_KEY,
       checked ? 'on' : 'off',
     );
+  };
+
+  const handleRolarDano = () => {
+    if (!podeRolarDano || !habilidadeContext || !alvoNome || !alvoTipo || !onRolarDano) {
+      return;
+    }
+    onRolarDano({
+      alvoNome,
+      alvoTipo,
+      habilidade: habilidadeContext,
+      aplicarCritico: aplicarCritico ? true : undefined,
+    });
   };
 
   return (
@@ -161,7 +220,67 @@ export function SessionPericiaRollModal({
               </div>
             </div>
           ) : mostrandoResultado ? (
-            <DiceMessageCard payload={payload} expression={expression} />
+            <div className="space-y-3">
+              <DiceMessageCard payload={payload} expression={expression} />
+              {habilidadeContext ? (
+                <div className="session-roll-modal__crit">
+                  <div className="session-roll-modal__crit-header">
+                    <div>
+                      <p className="session-roll-modal__crit-title">
+                        Critico da habilidade
+                      </p>
+                      <p className="session-roll-modal__crit-subtitle">
+                        Multiplicador x{criticoMultiplicador} (dados apenas)
+                      </p>
+                    </div>
+                    {aplicarCritico ? (
+                      <span className="session-roll-modal__crit-badge">
+                        Critico ativo
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="session-roll-modal__crit-controls">
+                    <label className="session-roll-modal__crit-label">
+                      Crita em
+                      <input
+                        type="number"
+                        min={1}
+                        max={30}
+                        value={criticoValor}
+                        onChange={(event) => {
+                          const valor = Number(event.target.value);
+                          if (!Number.isFinite(valor)) {
+                            setCriticoValor(20);
+                            return;
+                          }
+                          setCriticoValor(Math.max(1, Math.trunc(valor)));
+                        }}
+                        className="session-roll-modal__crit-input"
+                      />
+                    </label>
+                    <Checkbox
+                      checked={aplicarCritico}
+                      onChange={(event) => setAplicarCritico(event.target.checked)}
+                      label="Aplicar critico"
+                      className="session-roll-modal__crit-toggle"
+                    />
+                  </div>
+                  {podeRolarDano ? (
+                    <div className="session-roll-modal__crit-actions">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={handleRolarDano}
+                        disabled={enviando}
+                      >
+                        <Icon name="sparkles" className="h-4 w-4" />
+                        Rolar dano/efeito
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </div>
 

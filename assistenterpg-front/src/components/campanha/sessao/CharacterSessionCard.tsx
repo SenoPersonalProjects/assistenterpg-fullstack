@@ -16,7 +16,11 @@ import {
   resolverStatusMental,
 } from '@/lib/campanha/sessao-status';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
-import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import type {
+  RolagemDanoHabilidadeSessaoPayload,
+  RolagemPericiaSessaoPayload,
+  RolagemTesteHabilidadeSessaoPayload,
+} from '@/components/campanha/sessao/types';
 
 export type CampoAjusteRecursoCard = 'pv' | 'pe' | 'ea' | 'san';
 
@@ -82,6 +86,8 @@ type CharacterSessionCardProps = {
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
+  onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
 };
 
 export function CharacterSessionCard({
@@ -123,6 +129,8 @@ export function CharacterSessionCard({
   formatarCustos,
   limitesCategoriaAtivo,
   onRolarPericia,
+  onRolarTesteHabilidade,
+  onRolarDanoHabilidade,
 }: CharacterSessionCardProps) {
   const recursos = card.recursos;
   const acaoHabilidadeCard =
@@ -304,10 +312,12 @@ export function CharacterSessionCard({
           onAbrirFichaCompleta={onAbrirFichaCompleta}
           onEncerrarSustentacao={onEncerrarSustentacao}
           formatarCustos={formatarCustos}
-          renderPainelCondicoes={renderPainelCondicoes}
-          limitesCategoriaAtivo={limitesCategoriaAtivo}
-          onRolarPericia={onRolarPericia}
-        />
+            renderPainelCondicoes={renderPainelCondicoes}
+            limitesCategoriaAtivo={limitesCategoriaAtivo}
+            onRolarPericia={onRolarPericia}
+            onRolarTesteHabilidade={onRolarTesteHabilidade}
+            onRolarDanoHabilidade={onRolarDanoHabilidade}
+          />
       ) : null}
 
     </Card>

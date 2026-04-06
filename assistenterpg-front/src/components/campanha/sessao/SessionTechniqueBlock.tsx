@@ -6,9 +6,19 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import type React from 'react';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
-import { resolverCustoExibicaoSessao as resolverCustoExibicao } from '@/lib/campanha/sessao-habilidades';
+import {
+  normalizarDadosDano,
+  normalizarEscalonamentoDano,
+  resolverCustoExibicaoSessao as resolverCustoExibicao,
+  resolverTesteHabilidade,
+} from '@/lib/campanha/sessao-habilidades';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { TIPO_EXECUCAO_LABELS, TipoExecucao } from '@/lib/types/homebrew-enums';
+import type {
+  HabilidadeRollContext,
+  RolagemDanoHabilidadeSessaoPayload,
+  RolagemTesteHabilidadeSessaoPayload,
+} from '@/components/campanha/sessao/types';
 
 type SessionTechniqueBlockProps = {
   card: SessaoCampanhaDetalhe['cards'][number];
@@ -28,6 +38,8 @@ type SessionTechniqueBlockProps = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
   ) => void;
+  onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
+  onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
 };
 
 function montarChaveUsoHabilidade(
@@ -210,6 +222,8 @@ export function SessionTechniqueBlock({
   sessaoEncerrada,
   acaoHabilidadePendente,
   onUsarHabilidade,
+  onRolarTesteHabilidade,
+  onRolarDanoHabilidade,
 }: SessionTechniqueBlockProps) {
   const habilidadesVisiveis = mostrarSomenteSustentadasAtivas
     ? tecnica.habilidades.filter((habilidade) => {
@@ -285,6 +299,37 @@ export function SessionTechniqueBlock({
               card.personagemSessaoId,
               habilidade.id,
             );
+            const testesBaseResolvidos = resolverTesteHabilidade(
+              habilidade.testesExigidos,
+              card.pericias ?? [],
+              card.atributos,
+            );
+            const dadosDanoBase = normalizarDadosDano(habilidade.dadosDano);
+            const escalonamentoDanoBase = normalizarEscalonamentoDano(
+              habilidade.escalonamentoDano,
+            );
+            const danoFlatBase =
+              typeof habilidade.danoFlat === 'number' ? habilidade.danoFlat : null;
+            const danoBaseDisponivel =
+              dadosDanoBase.length > 0 || (danoFlatBase ?? 0) > 0;
+            const acumulosBaseAplicados = custoBase.escalonavel
+              ? Math.max(1, acumulosBase)
+              : 1;
+            const habilidadeContextBase: HabilidadeRollContext = {
+              habilidadeNome: habilidade.nome,
+              variacaoNome: null,
+              criticoValor: habilidade.criticoValor,
+              criticoMultiplicador: habilidade.criticoMultiplicador,
+              dano: danoBaseDisponivel
+                ? {
+                    dadosDano: dadosDanoBase,
+                    danoFlat: danoFlatBase,
+                    danoFlatTipo: habilidade.danoFlatTipo,
+                    escalonamentoDano: escalonamentoDanoBase,
+                    acumulos: acumulosBaseAplicados,
+                  }
+                : null,
+            };
             const qtdSustentacaoBaseAtiva = obterQtdSustentacaoAtiva(habilidade.id);
             const variacoesVisiveis = mostrarSomenteSustentadasAtivas
               ? habilidade.variacoes.filter(
@@ -387,6 +432,51 @@ export function SessionTechniqueBlock({
                       }
                     />
                   ) : null}
+                  {card.podeEditar && (testesBaseResolvidos || danoBaseDisponivel) ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {testesBaseResolvidos ? (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() =>
+                            onRolarTesteHabilidade({
+                              alvoTipo: 'PERSONAGEM',
+                              alvoNome: card.nomePersonagem,
+                              periciaNome: testesBaseResolvidos.periciaNomeExibida,
+                              atributoBase: testesBaseResolvidos.atributoBase,
+                              dados: testesBaseResolvidos.dados,
+                              bonus: testesBaseResolvidos.bonus,
+                              keepMode: testesBaseResolvidos.keepMode,
+                              habilidade: habilidadeContextBase,
+                            })
+                          }
+                          disabled={sessaoEncerrada}
+                          title="Rolar teste da habilidade"
+                        >
+                          <Icon name="dice" className="h-3 w-3" />
+                          Rolar teste
+                        </Button>
+                      ) : null}
+                      {danoBaseDisponivel ? (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() =>
+                            onRolarDanoHabilidade({
+                              alvoTipo: 'PERSONAGEM',
+                              alvoNome: card.nomePersonagem,
+                              habilidade: habilidadeContextBase,
+                            })
+                          }
+                          disabled={sessaoEncerrada}
+                          title="Rolar dano/efeito da habilidade"
+                        >
+                          <Icon name="sparkles" className="h-3 w-3" />
+                          Rolar dano/efeito
+                        </Button>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app-border/60 pt-2">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {renderCustoBadges({
@@ -456,6 +546,47 @@ export function SessionTechniqueBlock({
                         const custoVariacaoTotalPE =
                           custoVariacao.custoPE +
                           custoVariacao.escalonamentoCustoPE * acumulosVariacao;
+                        const testesVariacaoResolvidos = resolverTesteHabilidade(
+                          habilidade.testesExigidos,
+                          card.pericias ?? [],
+                          card.atributos,
+                        );
+                        const dadosDanoVariacao = normalizarDadosDano(
+                          variacao.dadosDano ?? habilidade.dadosDano,
+                        );
+                        const escalonamentoDanoVariacao = normalizarEscalonamentoDano(
+                          variacao.escalonamentoDano ?? habilidade.escalonamentoDano,
+                        );
+                        const danoFlatVariacao =
+                          typeof variacao.danoFlat === 'number'
+                            ? variacao.danoFlat
+                            : habilidade.danoFlat;
+                        const danoVariacaoDisponivel =
+                          dadosDanoVariacao.length > 0 ||
+                          (danoFlatVariacao ?? 0) > 0;
+                        const acumulosVariacaoAplicados = custoVariacao.escalonavel
+                          ? Math.max(1, acumulosVariacao)
+                          : 1;
+                        const habilidadeContextVariacao: HabilidadeRollContext = {
+                          habilidadeNome: habilidade.nome,
+                          variacaoNome: variacao.nome,
+                          criticoValor:
+                            variacao.criticoValor ?? habilidade.criticoValor ?? null,
+                          criticoMultiplicador:
+                            variacao.criticoMultiplicador ??
+                            habilidade.criticoMultiplicador ??
+                            null,
+                          dano: danoVariacaoDisponivel
+                            ? {
+                                dadosDano: dadosDanoVariacao,
+                                danoFlat: danoFlatVariacao,
+                                danoFlatTipo:
+                                  variacao.danoFlatTipo ?? habilidade.danoFlatTipo,
+                                escalonamentoDano: escalonamentoDanoVariacao,
+                                acumulos: acumulosVariacaoAplicados,
+                              }
+                            : null,
+                        };
                         const chaveVariacao = montarChaveUsoHabilidade(
                           card.personagemSessaoId,
                           habilidade.id,
@@ -562,6 +693,54 @@ export function SessionTechniqueBlock({
                                     )
                                   }
                                 />
+                              ) : null}
+                              {card.podeEditar &&
+                              (testesVariacaoResolvidos || danoVariacaoDisponivel) ? (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {testesVariacaoResolvidos ? (
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        onRolarTesteHabilidade({
+                                          alvoTipo: 'PERSONAGEM',
+                                          alvoNome: card.nomePersonagem,
+                                          periciaNome:
+                                            testesVariacaoResolvidos.periciaNomeExibida,
+                                          atributoBase:
+                                            testesVariacaoResolvidos.atributoBase,
+                                          dados: testesVariacaoResolvidos.dados,
+                                          bonus: testesVariacaoResolvidos.bonus,
+                                          keepMode: testesVariacaoResolvidos.keepMode,
+                                          habilidade: habilidadeContextVariacao,
+                                        })
+                                      }
+                                      disabled={sessaoEncerrada}
+                                      title="Rolar teste da habilidade"
+                                    >
+                                      <Icon name="dice" className="h-3 w-3" />
+                                      Rolar teste
+                                    </Button>
+                                  ) : null}
+                                  {danoVariacaoDisponivel ? (
+                                    <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        onRolarDanoHabilidade({
+                                          alvoTipo: 'PERSONAGEM',
+                                          alvoNome: card.nomePersonagem,
+                                          habilidade: habilidadeContextVariacao,
+                                        })
+                                      }
+                                      disabled={sessaoEncerrada}
+                                      title="Rolar dano/efeito da habilidade"
+                                    >
+                                      <Icon name="sparkles" className="h-3 w-3" />
+                                      Rolar dano/efeito
+                                    </Button>
+                                  ) : null}
+                                </div>
                               ) : null}
                               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-app-border/60 pt-2">
                                 <div className="flex flex-wrap items-center gap-1.5">

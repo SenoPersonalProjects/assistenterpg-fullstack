@@ -149,8 +149,11 @@ type VariacaoTecnicaSessaoResumo = {
   duracao: string | null;
   resistencia: string | null;
   dtResistencia: string | null;
+  criticoValor: number | null;
+  criticoMultiplicador: number | null;
   danoFlat: number | null;
   danoFlatTipo: string | null;
+  dadosDano: Prisma.JsonValue | null;
   efeitoAdicional: string | null;
   escalonaPorGrau: boolean | null;
   grauTipoGrauCodigo: string | null;
@@ -176,6 +179,10 @@ type HabilidadeTecnicaSessaoResumo = {
   alcance: string | null;
   alvo: string | null;
   duracao: string | null;
+  testesExigidos: Prisma.JsonValue | null;
+  criticoValor: number | null;
+  criticoMultiplicador: number | null;
+  dadosDano: Prisma.JsonValue | null;
   custoPE: number;
   custoEA: number;
   custoSustentacaoEA: number | null;
@@ -260,8 +267,11 @@ type VariacaoTecnicaSessaoRaw = {
   duracao: string | null;
   resistencia: string | null;
   dtResistencia: string | null;
+  criticoValor: number | null;
+  criticoMultiplicador: number | null;
   danoFlat: number | null;
   danoFlatTipo: string | null;
+  dadosDano: Prisma.JsonValue | null;
   efeitoAdicional: string | null;
   escalonaPorGrau: boolean | null;
   escalonamentoCustoEA: number | null;
@@ -285,6 +295,10 @@ type HabilidadeTecnicaSessaoRaw = {
   alcance: string | null;
   alvo: string | null;
   duracao: string | null;
+  testesExigidos: Prisma.JsonValue | null;
+  criticoValor: number | null;
+  criticoMultiplicador: number | null;
+  dadosDano: Prisma.JsonValue | null;
   custoPE: number;
   custoEA: number;
   custoSustentacaoEA: number | null;
@@ -3776,30 +3790,33 @@ export class SessaoService {
           variacao.escalonamentoDano,
         );
 
-        return {
-          id: variacao.id,
-          habilidadeTecnicaId: variacao.habilidadeTecnicaId,
-          nome: variacao.nome,
-          descricao: variacao.descricao,
-          substituiCustos: variacao.substituiCustos,
-          custoPE: variacao.custoPE,
-          custoEA: variacao.custoEA,
-          custoSustentacaoEA: variacao.custoSustentacaoEA,
-          custoSustentacaoPE: variacao.custoSustentacaoPE,
-          execucao: variacao.execucao,
-          area: variacao.area,
-          alcance: variacao.alcance,
-          alvo: variacao.alvo,
-          duracao: variacao.duracao,
-          resistencia: variacao.resistencia,
-          dtResistencia: variacao.dtResistencia,
-          danoFlat: variacao.danoFlat,
-          danoFlatTipo: variacao.danoFlatTipo,
-          efeitoAdicional: variacao.efeitoAdicional,
-          escalonaPorGrau: variacao.escalonaPorGrau,
-          grauTipoGrauCodigo: tipoGrauEscalonamento,
-          acumulosMaximos: acumulosMaximosVariacaoEfetivo,
-          escalonamentoCustoEA: variacao.escalonamentoCustoEA,
+          return {
+            id: variacao.id,
+            habilidadeTecnicaId: variacao.habilidadeTecnicaId,
+            nome: variacao.nome,
+            descricao: variacao.descricao,
+            substituiCustos: variacao.substituiCustos,
+            custoPE: variacao.custoPE,
+            custoEA: variacao.custoEA,
+            custoSustentacaoEA: variacao.custoSustentacaoEA,
+            custoSustentacaoPE: variacao.custoSustentacaoPE,
+            execucao: variacao.execucao,
+            area: variacao.area,
+            alcance: variacao.alcance,
+            alvo: variacao.alvo,
+            duracao: variacao.duracao,
+            resistencia: variacao.resistencia,
+            dtResistencia: variacao.dtResistencia,
+            criticoValor: variacao.criticoValor,
+            criticoMultiplicador: variacao.criticoMultiplicador,
+            danoFlat: variacao.danoFlat,
+            danoFlatTipo: variacao.danoFlatTipo,
+            dadosDano: variacao.dadosDano,
+            efeitoAdicional: variacao.efeitoAdicional,
+            escalonaPorGrau: variacao.escalonaPorGrau,
+            grauTipoGrauCodigo: tipoGrauEscalonamento,
+            acumulosMaximos: acumulosMaximosVariacaoEfetivo,
+            escalonamentoCustoEA: variacao.escalonamentoCustoEA,
           escalonamentoCustoPE: variacao.escalonamentoCustoPE,
           escalonamentoTipo: tipoEscalonamentoVariacao,
           escalonamentoEfeito: efeitoEscalonamentoVariacao,
@@ -3818,23 +3835,27 @@ export class SessaoService {
       habilidade.escalonamentoDano,
     );
 
-    return {
-      id: habilidade.id,
-      tecnicaId: habilidade.tecnicaId,
-      codigo: habilidade.codigo,
-      nome: habilidade.nome,
-      descricao: habilidade.descricao,
-      requisitos: habilidade.requisitos,
-      execucao: habilidade.execucao,
-      area: habilidade.area,
-      alcance: habilidade.alcance,
-      alvo: habilidade.alvo,
-      duracao: habilidade.duracao,
-      custoPE: habilidade.custoPE,
-      custoEA: habilidade.custoEA,
-      custoSustentacaoEA: habilidade.custoSustentacaoEA,
-      custoSustentacaoPE: habilidade.custoSustentacaoPE,
-      escalonaPorGrau: habilidade.escalonaPorGrau,
+      return {
+        id: habilidade.id,
+        tecnicaId: habilidade.tecnicaId,
+        codigo: habilidade.codigo,
+        nome: habilidade.nome,
+        descricao: habilidade.descricao,
+        requisitos: habilidade.requisitos,
+        execucao: habilidade.execucao,
+        area: habilidade.area,
+        alcance: habilidade.alcance,
+        alvo: habilidade.alvo,
+        duracao: habilidade.duracao,
+        testesExigidos: habilidade.testesExigidos,
+        criticoValor: habilidade.criticoValor,
+        criticoMultiplicador: habilidade.criticoMultiplicador,
+        dadosDano: habilidade.dadosDano,
+        custoPE: habilidade.custoPE,
+        custoEA: habilidade.custoEA,
+        custoSustentacaoEA: habilidade.custoSustentacaoEA,
+        custoSustentacaoPE: habilidade.custoSustentacaoPE,
+        escalonaPorGrau: habilidade.escalonaPorGrau,
       grauTipoGrauCodigo: tipoGrauEscalonamento,
       acumulosMaximos: acumulosMaximosHabilidadeEfetivo,
       escalonamentoCustoEA: habilidade.escalonamentoCustoEA,

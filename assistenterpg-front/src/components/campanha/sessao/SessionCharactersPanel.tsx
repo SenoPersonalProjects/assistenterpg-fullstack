@@ -14,7 +14,11 @@ import type {
   CampoAjusteRecurso,
 } from '@/hooks/useSessaoRecursos';
 import { formatarCustos } from '@/lib/campanha/sessao-habilidades';
-import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import type {
+  RolagemDanoHabilidadeSessaoPayload,
+  RolagemPericiaSessaoPayload,
+  RolagemTesteHabilidadeSessaoPayload,
+} from '@/components/campanha/sessao/types';
 
 type SessionCharactersPanelProps = {
   campanhaId: number;
@@ -71,6 +75,8 @@ type SessionCharactersPanelProps = {
     payload: { modo: 'ATUAL' | 'OUTRO'; nucleo?: NucleoAmaldicoadoCodigo },
   ) => void;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
+  onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
   onAbrirEdicaoPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onAbrirFichaCompleta: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   renderPainelCondicoes: (
@@ -117,6 +123,8 @@ export function SessionCharactersPanel({
   onSelecionarNucleo,
   onSacrificarNucleo,
   onRolarPericia,
+  onRolarTesteHabilidade,
+  onRolarDanoHabilidade,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
   renderPainelCondicoes,
@@ -237,6 +245,8 @@ export function SessionCharactersPanel({
               formatarCustos={formatarCustos}
               limitesCategoriaAtivo={limitesCategoriaAtivo}
               onRolarPericia={onRolarPericia}
+              onRolarTesteHabilidade={onRolarTesteHabilidade}
+              onRolarDanoHabilidade={onRolarDanoHabilidade}
             />
           );
         })

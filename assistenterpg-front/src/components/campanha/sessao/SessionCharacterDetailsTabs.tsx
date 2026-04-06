@@ -12,7 +12,11 @@ import { Icon } from '@/components/ui/Icon';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
-import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import type {
+  RolagemDanoHabilidadeSessaoPayload,
+  RolagemPericiaSessaoPayload,
+  RolagemTesteHabilidadeSessaoPayload,
+} from '@/components/campanha/sessao/types';
 import {
   calcularDadosPericiaPorAtributo,
   resolverValorAtributoBase,
@@ -50,6 +54,8 @@ type SessionCharacterDetailsTabsProps = {
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
+  onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -105,6 +111,8 @@ export function SessionCharacterDetailsTabs({
   formatarCustos,
   limitesCategoriaAtivo,
   onRolarPericia,
+  onRolarTesteHabilidade,
+  onRolarDanoHabilidade,
   renderPainelCondicoes,
   mostrarAcoesResumo = true,
 }: SessionCharacterDetailsTabsProps) {
@@ -536,6 +544,8 @@ export function SessionCharacterDetailsTabs({
                   sessaoEncerrada={sessaoEncerrada}
                   acaoHabilidadePendente={acaoHabilidadePendente}
                   onUsarHabilidade={onUsarHabilidade}
+                  onRolarTesteHabilidade={onRolarTesteHabilidade}
+                  onRolarDanoHabilidade={onRolarDanoHabilidade}
                 />
               ) : (
                 <p className="session-text-xxs text-app-muted">
@@ -559,18 +569,20 @@ export function SessionCharacterDetailsTabs({
             <div className="mt-2 space-y-2">
               {card.tecnicasNaoInatas.length > 0 ? (
                 card.tecnicasNaoInatas.map((tecnica) => (
-                  <SessionTechniqueBlock
-                    key={`tecnica-${tecnica.id}`}
-                    card={card}
-                    tecnica={tecnica}
-                    mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}
-                    obterQtdSustentacaoAtiva={obterQtdSustentacaoAtiva}
-                    acumulosHabilidade={acumulosHabilidade}
-                    onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
-                    sessaoEncerrada={sessaoEncerrada}
-                    acaoHabilidadePendente={acaoHabilidadePendente}
-                    onUsarHabilidade={onUsarHabilidade}
-                  />
+                    <SessionTechniqueBlock
+                      key={`tecnica-${tecnica.id}`}
+                      card={card}
+                      tecnica={tecnica}
+                      mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}
+                      obterQtdSustentacaoAtiva={obterQtdSustentacaoAtiva}
+                      acumulosHabilidade={acumulosHabilidade}
+                      onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
+                      sessaoEncerrada={sessaoEncerrada}
+                      acaoHabilidadePendente={acaoHabilidadePendente}
+                      onUsarHabilidade={onUsarHabilidade}
+                      onRolarTesteHabilidade={onRolarTesteHabilidade}
+                      onRolarDanoHabilidade={onRolarDanoHabilidade}
+                    />
                 ))
               ) : (
                 <p className="session-text-xxs text-app-muted">
