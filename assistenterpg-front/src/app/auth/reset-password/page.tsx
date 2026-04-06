@@ -17,6 +17,8 @@ export default function ResetPasswordPage() {
 
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -75,20 +77,28 @@ export default function ResetPasswordPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <Input
           label="Nova senha"
-          type="password"
+          type={mostrarSenha ? 'text' : 'password'}
           value={novaSenha}
           onChange={(e) => setNovaSenha(e.target.value)}
           minLength={6}
           required
+          rightIcon={mostrarSenha ? 'eyeOff' : 'eye'}
+          rightIconLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+          onRightIconClick={() => setMostrarSenha((v) => !v)}
         />
 
         <Input
           label="Confirmar nova senha"
-          type="password"
+          type={mostrarConfirmacao ? 'text' : 'password'}
           value={confirmacao}
           onChange={(e) => setConfirmacao(e.target.value)}
           minLength={6}
           required
+          rightIcon={mostrarConfirmacao ? 'eyeOff' : 'eye'}
+          rightIconLabel={
+            mostrarConfirmacao ? 'Ocultar confirmacao' : 'Mostrar confirmacao'
+          }
+          onRightIconClick={() => setMostrarConfirmacao((v) => !v)}
         />
 
         {mensagem ? (

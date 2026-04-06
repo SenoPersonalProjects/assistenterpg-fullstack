@@ -225,6 +225,7 @@ export type CondicaoAtivaSessaoCampanha = {
   condicaoId: number;
   nome: string;
   descricao: string;
+  icone?: string | null;
   automatica: boolean;
   chaveAutomacao: string | null;
   duracaoModo: DuracaoCondicaoSessaoModo | string;

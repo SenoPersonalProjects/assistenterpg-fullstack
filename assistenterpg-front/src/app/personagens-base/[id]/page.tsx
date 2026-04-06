@@ -20,12 +20,15 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { Icon } from '@/components/ui/Icon';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 import { TabbedSection } from '@/components/ui/TabbedSection';
 import type { Tab } from '@/components/ui/TabbedSection';
 
 import { PersonagemBaseWizard } from '@/components/personagem-base/create/wizard/PersonagemBaseWizard';
 import { usePersonagemBaseDetalhe } from '@/components/personagem-base/sections/usePersonagemBaseDetalhe';
 import type { InitialValues } from '@/components/personagem-base/create/PersonagemBaseForm';
+import { PersonagemBaseStepInventario } from '@/components/personagem-base/create/wizard/PersonagemBaseStepInventario';
+import type { ItemInventarioPayload } from '@/lib/types';
 
 import { SecaoInfoBasicas } from '@/components/personagem-base/sections/SecaoInfoBasicas';
 import { SecaoOrigemClasse } from '@/components/personagem-base/sections/SecaoOrigemClasse';
@@ -135,6 +138,11 @@ export default function PersonagemBaseDetalhePage() {
   const [modoEdicao, setModoEdicao] = useState(false);
   const [erroLocal, setErroLocal] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [modalInventarioAberto, setModalInventarioAberto] = useState(false);
+  const [itensInventarioEdicao, setItensInventarioEdicao] = useState<
+    ItemInventarioPayload[]
+  >([]);
+  const [salvandoInventario, setSalvandoInventario] = useState(false);
 
   const alinhamento = useMemo(
     () => catalogos.alinhamentos.find((a) => a.id === personagem?.alinhamentoId),
@@ -255,6 +263,29 @@ export default function PersonagemBaseDetalhePage() {
       setErroLocal(mensagem);
     } finally {
       setExportando(false);
+    }
+  }
+
+  function abrirModalInventario() {
+    if (!personagem) return;
+    setItensInventarioEdicao(personagem.itensInventario ?? []);
+    setModalInventarioAberto(true);
+  }
+
+  async function handleSalvarInventario() {
+    if (!personagem) return;
+    try {
+      setErroLocal(null);
+      setSalvandoInventario(true);
+      await apiUpdatePersonagemBase(personagem.id, {
+        itensInventario: itensInventarioEdicao,
+      });
+      await refresh();
+      setModalInventarioAberto(false);
+    } catch (e) {
+      setErroLocal(mensagemErroOperacaoPersonagem(e, 'atualizar'));
+    } finally {
+      setSalvandoInventario(false);
     }
   }
 
@@ -399,6 +430,10 @@ export default function PersonagemBaseDetalhePage() {
                   <Icon name="download" className="w-4 h-4 mr-2" />
                   {exportando ? 'Exportando...' : 'Exportar JSON'}
                 </Button>
+                <Button variant="secondary" size="sm" onClick={abrirModalInventario}>
+                  <Icon name="briefcase" className="w-4 h-4 mr-2" />
+                  Editar inventario
+                </Button>
                 <Button variant="primary" size="sm" onClick={() => setModoEdicao(true)}>
                   <Icon name="edit" className="w-4 h-4 mr-2" />
                   Editar
@@ -445,6 +480,49 @@ export default function PersonagemBaseDetalhePage() {
           </ul>
         </div>
       </ConfirmDialog>
+
+      <Modal
+        isOpen={modalInventarioAberto}
+        onClose={() => setModalInventarioAberto(false)}
+        title="Editar inventario"
+        size="xl"
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => setModalInventarioAberto(false)}
+              disabled={salvandoInventario}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleSalvarInventario}
+              disabled={salvandoInventario}
+            >
+              {salvandoInventario ? (
+                <>
+                  <Icon name="loading" className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Salvar inventario'
+              )}
+            </Button>
+          </>
+        }
+      >
+        <PersonagemBaseStepInventario
+          forca={personagem.forca}
+          intelecto={personagem.intelecto}
+          prestigioBase={personagem.prestigioBase}
+          creditoCategoriaBonus={personagem.creditoCategoriaBonus}
+          equipamentos={catalogos.equipamentos}
+          modificacoes={catalogos.modificacoes}
+          itensInventario={itensInventarioEdicao}
+          onChangeItensInventario={setItensInventarioEdicao}
+        />
+      </Modal>
     </>
   );
 }

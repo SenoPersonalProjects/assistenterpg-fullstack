@@ -1,6 +1,50 @@
 import type { PrismaClient } from '@prisma/client';
 import type { SeedCondicao } from '../_types';
 
+const CONDICOES_ICONES: Record<string, string> = {
+  Abalado: 'warning',
+  Agarrado: 'link',
+  Alquebrado: 'bolt',
+  Apavorado: 'error',
+  Asfixiado: 'volume-off',
+  Atordoado: 'status',
+  Caido: 'minimize',
+  Cego: 'eyeOff',
+  Confuso: 'shuffle',
+  Debilitado: 'fail',
+  Desprevenido: 'warning',
+  Doente: 'beaker',
+  'Em Chamas': 'fire',
+  Enjoado: 'status',
+  Enlouquecendo: 'spirit',
+  Enredado: 'link',
+  Envenenado: 'beaker',
+  Esmorecido: 'fail',
+  Exausto: 'minus',
+  Fascinado: 'sparkles',
+  Fatigado: 'minus',
+  Fraco: 'minus',
+  Frustrado: 'error',
+  Imovel: 'lock',
+  Inconsciente: 'moon',
+  Indefeso: 'shield-defense',
+  Lento: 'minimize',
+  Machucado: 'heart',
+  Morrendo: 'warning',
+  Ofuscado: 'sun',
+  Paralisado: 'lock',
+  Pasmo: 'status',
+  Perturbado: 'spirit',
+  Petrificado: 'stop',
+  Sangrando: 'heart',
+  Silenciado: 'volume-off',
+  Surdo: 'volume-off',
+  Surpreendido: 'warning',
+  Vulneravel: 'target',
+  Insano: 'spirit',
+  Morto: 'error',
+};
+
 export const condicoesSeed: SeedCondicao[] = [
   {
     nome: 'Abalado',
@@ -204,10 +248,11 @@ export async function seedCondicoes(prisma: PrismaClient) {
   console.log('Cadastrando condicoes...');
 
   for (const data of condicoesSeed) {
+    const icone = data.icone ?? CONDICOES_ICONES[data.nome] ?? 'status';
     await prisma.condicao.upsert({
       where: { nome: data.nome },
-      update: { descricao: data.descricao },
-      create: data,
+      update: { descricao: data.descricao, icone },
+      create: { ...data, icone },
     });
   }
 }

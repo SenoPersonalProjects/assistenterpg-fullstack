@@ -46,10 +46,14 @@ function montarChaveAcumuloHabilidade(
   return `acumulo:${personagemSessaoId}:${habilidadeTecnicaId}:${variacaoHabilidadeId ?? 'base'}`;
 }
 
-function parseAcumulos(valor: string | undefined, maximo: number): number {
+function parseAcumulos(
+  valor: string | undefined,
+  maximo: number,
+  minimo = 1,
+): number {
   const numero = Number(valor);
-  if (!Number.isFinite(numero)) return 0;
-  return Math.max(0, Math.min(maximo, Math.trunc(numero)));
+  if (!Number.isFinite(numero)) return minimo;
+  return Math.max(minimo, Math.min(maximo, Math.trunc(numero)));
 }
 
 type MetaItem = {
@@ -139,7 +143,7 @@ function AcumulosControl({
   custoPE,
   onChange,
 }: AcumulosControlProps) {
-  const clamp = (numero: number) => Math.max(0, Math.min(maximo, numero));
+  const clamp = (numero: number) => Math.max(1, Math.min(maximo, numero));
 
   return (
     <div className="rounded border border-app-border bg-app-bg/80 p-2 space-y-2">
@@ -155,19 +159,19 @@ function AcumulosControl({
           type="button"
           className="h-8 w-8 rounded border border-app-border bg-app-surface text-sm text-app-fg disabled:opacity-50"
           onClick={() => onChange(clamp(valor - 1))}
-          disabled={disabled || valor <= 0}
+          disabled={disabled || valor <= 1}
           title="Diminuir acumulos"
         >
           -
         </button>
         <input
           type="number"
-          min={0}
+          min={1}
           max={maximo}
           value={valor}
           onChange={(event) => {
             const numero = Number(event.target.value);
-            onChange(clamp(Number.isFinite(numero) ? numero : 0));
+            onChange(clamp(Number.isFinite(numero) ? numero : 1));
           }}
           disabled={disabled}
           className="h-8 w-16 rounded border border-app-border bg-app-surface px-2 text-center text-xs text-app-fg"
@@ -262,10 +266,15 @@ export function SessionTechniqueBlock({
               card.personagemSessaoId,
               habilidade.id,
             );
+            const maxAcumulosBase = Math.max(
+              1,
+              Math.min(custoBase.acumulosMaximos, 5),
+            );
             const acumulosBase = custoBase.escalonavel
               ? parseAcumulos(
                   acumulosHabilidade[chaveAcumuloBase],
-                  custoBase.acumulosMaximos,
+                  maxAcumulosBase,
+                  1,
                 )
               : 0;
             const custoBaseTotalEA =
@@ -366,7 +375,7 @@ export function SessionTechniqueBlock({
                   {custoBase.escalonavel ? (
                     <AcumulosControl
                       valor={acumulosBase}
-                      maximo={custoBase.acumulosMaximos}
+                      maximo={maxAcumulosBase}
                       disabled={!card.podeEditar || sessaoEncerrada}
                       custoEA={custoBase.escalonamentoCustoEA}
                       custoPE={custoBase.escalonamentoCustoPE}
@@ -430,10 +439,15 @@ export function SessionTechniqueBlock({
                           habilidade.id,
                           variacao.id,
                         );
+                        const maxAcumulosVariacao = Math.max(
+                          1,
+                          Math.min(custoVariacao.acumulosMaximos, 5),
+                        );
                         const acumulosVariacao = custoVariacao.escalonavel
                           ? parseAcumulos(
                               acumulosHabilidade[chaveAcumuloVariacao],
-                              custoVariacao.acumulosMaximos,
+                              maxAcumulosVariacao,
+                              1,
                             )
                           : 0;
                         const custoVariacaoTotalEA =
@@ -537,7 +551,7 @@ export function SessionTechniqueBlock({
                               {custoVariacao.escalonavel ? (
                                 <AcumulosControl
                                   valor={acumulosVariacao}
-                                  maximo={custoVariacao.acumulosMaximos}
+                                  maximo={maxAcumulosVariacao}
                                   disabled={!card.podeEditar || sessaoEncerrada}
                                   custoEA={custoVariacao.escalonamentoCustoEA}
                                   custoPE={custoVariacao.escalonamentoCustoPE}

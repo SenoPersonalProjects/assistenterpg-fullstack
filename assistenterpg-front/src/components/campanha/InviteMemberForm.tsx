@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 
 type Props = {
-  onInvite: (data: { email: string; papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' }) => Promise<void>;
+  onInvite: (data: { email?: string; apelido?: string; papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' }) => Promise<void>;
 };
 
 const PAPEL_OPTIONS = [
@@ -17,7 +17,7 @@ const PAPEL_OPTIONS = [
 ];
 
 export function InviteMemberForm({ onInvite }: Props) {
-  const [email, setEmail] = useState('');
+  const [destino, setDestino] = useState('');
   const [papel, setPapel] = useState<'MESTRE' | 'JOGADOR' | 'OBSERVADOR'>('JOGADOR');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -28,16 +28,21 @@ export function InviteMemberForm({ onInvite }: Props) {
     setErro(null);
     setSucesso(null);
 
-    if (!email.trim()) {
-      setErro('Informe um e-mail');
+    if (!destino.trim()) {
+      setErro('Informe um email ou usuario');
       return;
     }
 
     setLoading(true);
     try {
-      await onInvite({ email: email.trim(), papel });
+      const destinoLimpo = destino.trim();
+      await onInvite(
+        destinoLimpo.includes('@')
+          ? { email: destinoLimpo, papel }
+          : { apelido: destinoLimpo, papel },
+      );
       setSucesso('Convite enviado');
-      setEmail('');
+      setDestino('');
     } catch (error) {
       const mensagem =
         error instanceof Error && error.message
@@ -52,11 +57,10 @@ export function InviteMemberForm({ onInvite }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <Input
-        label="E-mail do convidado"
-        type="email"
-        placeholder="ex.: jogador@dominio.com"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
+        label="Email ou usuario do convidado"
+        placeholder="ex.: jogador@dominio.com ou apelido"
+        value={destino}
+        onChange={e => setDestino(e.target.value)}
       />
       <Select
         label="Papel na campanha"

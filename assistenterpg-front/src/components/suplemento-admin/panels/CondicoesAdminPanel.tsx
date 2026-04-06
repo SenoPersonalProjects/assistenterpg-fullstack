@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
@@ -26,12 +26,14 @@ import {
 type CondicaoFormState = {
   nome: string;
   descricao: string;
+  icone: string;
 };
 
 function buildFormState(item?: CondicaoCatalogo | null): CondicaoFormState {
   return {
     nome: item?.nome ?? '',
     descricao: item?.descricao ?? '',
+    icone: item?.icone ?? '',
   };
 }
 
@@ -68,12 +70,15 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
     const next: Record<string, string> = {};
     const nome = form.nome.trim();
     const descricao = form.descricao.trim();
+    const icone = form.icone.trim();
 
     if (!nome) next.nome = 'Nome e obrigatorio.';
     else if (nome.length < 3) next.nome = 'Nome deve ter no minimo 3 caracteres.';
 
     if (!descricao) next.descricao = 'Descricao e obrigatoria.';
     else if (descricao.length < 10) next.descricao = 'Descricao deve ter no minimo 10 caracteres.';
+
+    if (icone.length > 50) next.icone = 'Icone deve ter no maximo 50 caracteres.';
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -85,6 +90,7 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
     const payload: CreateCondicaoPayload = {
       nome: form.nome.trim(),
       descricao: form.descricao.trim(),
+      icone: form.icone.trim() || null,
     };
 
     try {
@@ -136,6 +142,24 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
           onChange={(e) => setField('nome', e.target.value)}
           error={errors.nome}
         />
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <Input
+            label="Icone (opcional)"
+            value={form.icone}
+            onChange={(e) => setField('icone', e.target.value)}
+            error={errors.icone}
+            placeholder="Ex.: warning, fire, shield"
+          />
+          <div className="flex items-center gap-2 rounded border border-app-border bg-app-surface px-3 py-2 text-xs text-app-muted">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-app-border bg-app-bg">
+              <Icon
+                name={(form.icone.trim() || 'status') as IconName}
+                className="h-4 w-4 text-app-fg"
+              />
+            </span>
+            Preview
+          </div>
+        </div>
         <Textarea
           label="Descricao *"
           rows={5}
@@ -242,6 +266,7 @@ export function CondicoesAdminPanel() {
               <thead>
                 <tr className="border-b border-app-border text-left text-app-muted">
                   <th className="py-2 pr-2">ID</th>
+                  <th className="py-2 pr-2">Icone</th>
                   <th className="py-2 pr-2">Nome</th>
                   <th className="py-2 pr-2">Uso em sessoes</th>
                   <th className="py-2 pr-2">Descricao</th>
@@ -256,6 +281,14 @@ export function CondicoesAdminPanel() {
                   return (
                     <tr key={item.id} className="border-b border-app-border/60">
                       <td className="py-3 pr-2 text-app-muted">#{item.id}</td>
+                      <td className="py-3 pr-2">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-app-border bg-app-bg">
+                          <Icon
+                            name={(item.icone || 'status') as IconName}
+                            className="h-4 w-4 text-app-fg"
+                          />
+                        </span>
+                      </td>
                       <td className="py-3 pr-2 text-app-fg font-medium">{item.nome}</td>
                       <td className="py-3 pr-2">
                         <Badge size="sm" color={bloqueada ? 'yellow' : 'green'}>

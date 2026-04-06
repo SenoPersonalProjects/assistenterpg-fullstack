@@ -231,6 +231,7 @@ type CondicaoAtivaSessaoResumo = {
   condicaoId: number;
   nome: string;
   descricao: string;
+  icone: string | null;
   automatica: boolean;
   chaveAutomacao: string | null;
   duracaoModo: string;
@@ -699,6 +700,7 @@ export class SessaoService {
                   select: {
                     nome: true,
                     descricao: true,
+                    icone: true,
                   },
                 },
               },
@@ -757,6 +759,7 @@ export class SessaoService {
                   select: {
                     nome: true,
                     descricao: true,
+                    icone: true,
                   },
                 },
               },
@@ -3741,6 +3744,9 @@ export class SessaoService {
       habilidade.escalonaPorGrau && tipoGrauEscalonamento
         ? Math.max(0, grausMap.get(tipoGrauEscalonamento) ?? 0)
         : 0;
+    const acumulosMaximosHabilidadeEfetivo = habilidade.escalonaPorGrau
+      ? Math.min(Math.max(1, acumulosMaximosHabilidade), 5)
+      : 0;
 
     const variacoes = (habilidade.variacoes ?? [])
       .filter((variacao) =>
@@ -3757,6 +3763,9 @@ export class SessaoService {
           variacaoEscalonavel && tipoGrauEscalonamento
             ? Math.max(0, grausMap.get(tipoGrauEscalonamento) ?? 0)
             : 0;
+        const acumulosMaximosVariacaoEfetivo = variacaoEscalonavel
+          ? Math.min(Math.max(1, acumulosMaximosVariacao), 5)
+          : 0;
 
         const tipoEscalonamentoVariacao = this.normalizarTipoEscalonamento(
           variacao.escalonamentoTipo,
@@ -3789,7 +3798,7 @@ export class SessaoService {
           efeitoAdicional: variacao.efeitoAdicional,
           escalonaPorGrau: variacao.escalonaPorGrau,
           grauTipoGrauCodigo: tipoGrauEscalonamento,
-          acumulosMaximos: acumulosMaximosVariacao,
+          acumulosMaximos: acumulosMaximosVariacaoEfetivo,
           escalonamentoCustoEA: variacao.escalonamentoCustoEA,
           escalonamentoCustoPE: variacao.escalonamentoCustoPE,
           escalonamentoTipo: tipoEscalonamentoVariacao,
@@ -3827,7 +3836,7 @@ export class SessaoService {
       custoSustentacaoPE: habilidade.custoSustentacaoPE,
       escalonaPorGrau: habilidade.escalonaPorGrau,
       grauTipoGrauCodigo: tipoGrauEscalonamento,
-      acumulosMaximos: acumulosMaximosHabilidade,
+      acumulosMaximos: acumulosMaximosHabilidadeEfetivo,
       escalonamentoCustoEA: habilidade.escalonamentoCustoEA,
       escalonamentoCustoPE: habilidade.escalonamentoCustoPE,
       escalonamentoTipo: tipoEscalonamentoHabilidade,
@@ -3993,12 +4002,10 @@ export class SessaoService {
       );
     }
 
-    const acumulosNormalizados = Math.max(
-      0,
-      Math.trunc(
-        Number.isFinite(acumulosSolicitados) ? acumulosSolicitados : 0,
-      ),
-    );
+    const acumulosInformados = Number.isFinite(acumulosSolicitados)
+      ? Math.trunc(acumulosSolicitados)
+      : 0;
+    let acumulosNormalizados = Math.max(0, acumulosInformados);
 
     const baseEA = this.normalizarCustoPositivo(habilidade.custoEA, 0);
     const basePE = this.normalizarCustoPositivo(habilidade.custoPE, 0);
@@ -4066,6 +4073,13 @@ export class SessaoService {
       podeEscalonar && tipoGrauEscalonamento
         ? Math.max(0, grausMap.get(tipoGrauEscalonamento) ?? 0)
         : 0;
+    const acumulosMaximosEfetivo = podeEscalonar
+      ? Math.min(Math.max(1, acumulosMaximos), 5)
+      : 0;
+
+    if (podeEscalonar && acumulosNormalizados === 0) {
+      acumulosNormalizados = 1;
+    }
 
     if (acumulosNormalizados > 0 && !podeEscalonar) {
       throw new BusinessException(
@@ -4079,7 +4093,7 @@ export class SessaoService {
       );
     }
 
-    if (acumulosNormalizados > acumulosMaximos) {
+    if (acumulosNormalizados > acumulosMaximosEfetivo) {
       throw new BusinessException(
         'Quantidade de acumulos excede o grau de aprimoramento permitido',
         'SESSAO_ACUMULO_EXCEDE_GRAU',
@@ -4087,7 +4101,7 @@ export class SessaoService {
           habilidadeTecnicaId: habilidade.id,
           variacaoHabilidadeId: variacaoSelecionada?.id ?? null,
           acumulosSolicitados: acumulosNormalizados,
-          acumulosMaximos,
+          acumulosMaximos: acumulosMaximosEfetivo,
           tipoGrauCodigo: tipoGrauEscalonamento,
         },
       );
@@ -4173,7 +4187,7 @@ export class SessaoService {
       custoSustentacaoPE: custoSustentacaoPENormalizado,
       acumulosSolicitados: acumulosNormalizados,
       acumulosAplicados: acumulosNormalizados,
-      acumulosMaximos,
+      acumulosMaximos: acumulosMaximosEfetivo,
       custoEscalonamentoEA,
       custoEscalonamentoPE,
       custoEscalonamentoTotalEA: custoEscalonamentoEA * acumulosNormalizados,
@@ -4919,6 +4933,7 @@ export class SessaoService {
       condicao: {
         nome: string;
         descricao: string;
+        icone: string | null;
       };
     }>,
   ): CondicaoAtivaSessaoResumo[] {
@@ -4927,6 +4942,7 @@ export class SessaoService {
       condicaoId: condicaoAtiva.condicaoId,
       nome: condicaoAtiva.condicao.nome,
       descricao: condicaoAtiva.condicao.descricao,
+      icone: condicaoAtiva.condicao.icone ?? null,
       automatica: condicaoAtiva.automatica,
       chaveAutomacao: condicaoAtiva.chaveAutomacao,
       duracaoModo: condicaoAtiva.duracaoModo,

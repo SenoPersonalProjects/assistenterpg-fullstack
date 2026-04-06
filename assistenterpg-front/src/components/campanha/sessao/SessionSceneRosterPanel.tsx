@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { Badge } from '@/components/ui/Badge';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
 import type {
@@ -257,7 +258,13 @@ export function SessionSceneRosterPanel({
                 <div className="session-roster-item__condicoes">
                   {item.condicoes.map((condicao) => (
                     <Badge key={condicao.id} size="sm" color="yellow">
-                      {condicao.nome}
+                      <span className="inline-flex items-center gap-1">
+                        <Icon
+                          name={(condicao.icone || 'status') as IconName}
+                          className="h-3 w-3"
+                        />
+                        {condicao.nome}
+                      </span>
                     </Badge>
                   ))}
                 </div>

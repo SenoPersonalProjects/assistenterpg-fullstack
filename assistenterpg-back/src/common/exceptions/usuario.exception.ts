@@ -61,3 +61,13 @@ export class UsuarioApelidoNaoEncontradoException extends BaseException {
     );
   }
 }
+
+export class UsuarioApelidoDuplicadoException extends BusinessException {
+  constructor(apelido: string) {
+    super(
+      'Mais de um usuario usa esse apelido. Informe o email.',
+      'USUARIO_APELIDO_DUPLICADO',
+      { apelido },
+    );
+  }
+}

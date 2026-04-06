@@ -370,10 +370,16 @@ export class CampanhaController {
     @Request() req: { user: { id: number } },
     @Body() dto: CreateConviteDto,
   ) {
-    return this.campanhaService.criarConvitePorEmail(
+    const email = dto.email?.trim();
+    const apelido = dto.apelido?.trim();
+    if (!email && !apelido) {
+      throw new BadRequestException('Informe email ou apelido para o convite.');
+    }
+
+    return this.campanhaService.criarConvite(
       id,
       req.user.id,
-      dto.email,
+      { email, apelido },
       dto.papel,
     );
   }

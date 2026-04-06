@@ -13,6 +13,7 @@ export function RegisterForm() {
   const [apelido, setApelido] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -50,11 +51,14 @@ export function RegisterForm() {
       />
       <Input
         label="Senha"
-        type="password"
+        type={mostrarSenha ? 'text' : 'password'}
         value={senha}
         onChange={(e) => setSenha(e.target.value)}
         minLength={6}
         required
+        rightIcon={mostrarSenha ? 'eyeOff' : 'eye'}
+        rightIconLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+        onRightIconClick={() => setMostrarSenha((valor) => !valor)}
       />
       <Button type="submit" disabled={submitting}>
         {submitting ? 'Criando...' : 'Criar conta'}

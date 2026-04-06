@@ -16,6 +16,9 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [mostrarSenhaAtual, setMostrarSenhaAtual] = useState(false);
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -93,30 +96,41 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              type="password"
+              type={mostrarSenhaAtual ? 'text' : 'password'}
               label="Senha Atual"
               value={senhaAtual}
               onChange={(e) => setSenhaAtual(e.target.value)}
               placeholder="Digite sua senha atual"
               disabled={loading}
+              rightIcon={mostrarSenhaAtual ? 'eyeOff' : 'eye'}
+              rightIconLabel={mostrarSenhaAtual ? 'Ocultar senha' : 'Mostrar senha'}
+              onRightIconClick={() => setMostrarSenhaAtual((v) => !v)}
             />
 
             <Input
-              type="password"
+              type={mostrarNovaSenha ? 'text' : 'password'}
               label="Nova Senha"
               value={novaSenha}
               onChange={(e) => setNovaSenha(e.target.value)}
               placeholder="Digite a nova senha"
               disabled={loading}
+              rightIcon={mostrarNovaSenha ? 'eyeOff' : 'eye'}
+              rightIconLabel={mostrarNovaSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              onRightIconClick={() => setMostrarNovaSenha((v) => !v)}
             />
 
             <Input
-              type="password"
+              type={mostrarConfirmacao ? 'text' : 'password'}
               label="Confirmar Nova Senha"
               value={confirmarSenha}
               onChange={(e) => setConfirmarSenha(e.target.value)}
               placeholder="Confirme a nova senha"
               disabled={loading}
+              rightIcon={mostrarConfirmacao ? 'eyeOff' : 'eye'}
+              rightIconLabel={
+                mostrarConfirmacao ? 'Ocultar confirmacao' : 'Mostrar confirmacao'
+              }
+              onRightIconClick={() => setMostrarConfirmacao((v) => !v)}
             />
 
             {erro && (

@@ -808,6 +808,7 @@ model Condicao {
   id        Int    @id @default(autoincrement())
   nome      String @unique
   descricao String @db.Text
+  icone     String?
 
   condicoesPersonagemSessao CondicaoPersonagemSessao[]
 }

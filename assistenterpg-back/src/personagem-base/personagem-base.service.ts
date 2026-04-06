@@ -1726,7 +1726,6 @@ export class PersonagemBaseService {
     );
     const habilidadesNomes = estado.habilidades.map((h) => h.habilidade.nome);
 
-
     // âœ… VALIDAR ITENS (se houver) usando preview do InventarioService
     const inventarioMods = this.calcularModificadoresDerivadosPorHabilidades(
       estado.habilidades,
@@ -1751,7 +1750,10 @@ export class PersonagemBaseService {
 
     const resistenciasMap = new Map<string, number>();
     for (const r of resistenciasArray) {
-      resistenciasMap.set(r.codigo, (resistenciasMap.get(r.codigo) ?? 0) + r.valor);
+      resistenciasMap.set(
+        r.codigo,
+        (resistenciasMap.get(r.codigo) ?? 0) + r.valor,
+      );
     }
     if (statsEquipadosPreview?.reducoesDano?.length) {
       for (const rd of statsEquipadosPreview.reducoesDano) {
@@ -2539,4 +2541,3 @@ export class PersonagemBaseService {
     return porAtributo;
   }
 }
-

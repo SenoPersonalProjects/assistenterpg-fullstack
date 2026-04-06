@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useAuth } from '@/context/AuthContext';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
 
@@ -11,6 +12,8 @@ export function LoginForm() {
   const { login, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [lembrar, setLembrar] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,7 +23,7 @@ export function LoginForm() {
     setSubmitting(true);
 
     try {
-      await login(email, senha);
+      await login(email, senha, lembrar);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
@@ -42,11 +45,21 @@ export function LoginForm() {
       />
       <Input
         label="Senha"
-        type="password"
+        type={mostrarSenha ? 'text' : 'password'}
         value={senha}
         onChange={(e) => setSenha(e.target.value)}
         required
+        rightIcon={mostrarSenha ? 'eyeOff' : 'eye'}
+        rightIconLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+        onRightIconClick={() => setMostrarSenha((valor) => !valor)}
       />
+      <label className="flex items-center gap-2 text-xs text-app-muted">
+        <Checkbox
+          checked={lembrar}
+          onChange={(e) => setLembrar(e.target.checked)}
+        />
+        Lembrar de mim
+      </label>
       {erro && <p className="text-sm text-red-600">{erro}</p>}
 
       <div className="flex items-center justify-between text-sm">

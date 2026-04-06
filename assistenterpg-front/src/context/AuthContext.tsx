@@ -25,7 +25,7 @@ type AuthContextType = {
   usuario: Usuario | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, senha: string) => Promise<void>;
+  login: (email: string, senha: string, rememberMe?: boolean) => Promise<void>;
   register: (apelido: string, email: string, senha: string) => Promise<void>;
   logout: () => void;
 };
@@ -87,11 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (email: string, senha: string) => {
+    async (email: string, senha: string, rememberMe = true) => {
       setLoading(true);
       try {
         const resp: LoginResponse = await apiLogin(email, senha);
-        saveToken(resp.access_token);
+        saveToken(resp.access_token, rememberMe);
         setToken(resp.access_token);
         setUsuario(resp.usuario);
         router.push('/home');

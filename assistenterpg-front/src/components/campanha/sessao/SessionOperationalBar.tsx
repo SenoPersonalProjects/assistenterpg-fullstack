@@ -110,9 +110,12 @@ export const SessionOperationalBar = forwardRef<
                 size="sm"
                 onClick={onVoltarTurno}
                 disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+                title="Reverter turno"
               >
-                <Icon name="chevron-left" className="mr-1 h-3.5 w-3.5" />
-                {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar'}
+                <Icon name="rotate-ccw" className="mr-1 h-3.5 w-3.5" />
+                {acaoTurnoPendente === 'VOLTAR'
+                  ? 'Revertendo...'
+                  : 'Reverter turno'}
               </Button>
               <Button
                 variant="secondary"

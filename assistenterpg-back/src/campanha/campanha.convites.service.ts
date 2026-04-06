@@ -14,6 +14,10 @@ import {
   UsuarioNaoEncontradoException,
 } from 'src/common/exceptions/campanha.exception';
 import {
+  UsuarioApelidoDuplicadoException,
+  UsuarioApelidoNaoEncontradoException,
+} from 'src/common/exceptions/usuario.exception';
+import {
   gerarCodigoConvite,
   isUniqueConstraintViolation,
   normalizarEmail,
@@ -26,6 +30,53 @@ import {
 @Injectable()
 export class CampanhaConvitesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async criarConvite(
+    campanhaId: number,
+    donoId: number,
+    dados: { email?: string; apelido?: string },
+    papel: PapelCampanha,
+  ) {
+    const emailInformado = dados.email?.trim();
+    if (emailInformado) {
+      return this.criarConvitePorEmail(
+        campanhaId,
+        donoId,
+        emailInformado,
+        papel,
+      );
+    }
+
+    const apelidoInformado = dados.apelido?.trim();
+    if (!apelidoInformado) {
+      throw new UsuarioApelidoNaoEncontradoException(''); // fallback para erro de validacao
+    }
+
+    const usuarios = await this.prisma.usuario.findMany({
+      where: {
+        apelido: {
+          equals: apelidoInformado,
+        },
+      },
+      select: { id: true, email: true },
+      take: 2,
+    });
+
+    if (usuarios.length === 0) {
+      throw new UsuarioApelidoNaoEncontradoException(apelidoInformado);
+    }
+
+    if (usuarios.length > 1) {
+      throw new UsuarioApelidoDuplicadoException(apelidoInformado);
+    }
+
+    return this.criarConvitePorEmail(
+      campanhaId,
+      donoId,
+      usuarios[0].email,
+      papel,
+    );
+  }
 
   async criarConvitePorEmail(
     campanhaId: number,

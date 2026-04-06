@@ -15,6 +15,7 @@ type Props = {
 export function ModalExcluirConta({ isOpen, onClose, onConfirm }: Props) {
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -92,12 +93,15 @@ export function ModalExcluirConta({ isOpen, onClose, onConfirm }: Props) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              type="password"
+              type={mostrarSenha ? 'text' : 'password'}
               label="Digite sua senha"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               placeholder="Sua senha"
               disabled={loading}
+              rightIcon={mostrarSenha ? 'eyeOff' : 'eye'}
+              rightIconLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              onRightIconClick={() => setMostrarSenha((v) => !v)}
             />
 
             <Input

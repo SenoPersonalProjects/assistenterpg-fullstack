@@ -459,6 +459,15 @@ export class CampanhaService {
     );
   }
 
+  async criarConvite(
+    campanhaId: number,
+    donoId: number,
+    dados: { email?: string; apelido?: string },
+    papel: PapelCampanha,
+  ) {
+    return this.convitesService.criarConvite(campanhaId, donoId, dados, papel);
+  }
+
   async listarConvitesPendentesPorUsuario(usuarioId: number) {
     return this.convitesService.listarConvitesPendentesPorUsuario(usuarioId);
   }

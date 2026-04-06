@@ -178,6 +178,7 @@ export type CondicaoCatalogo = {
   id: number;
   nome: string;
   descricao: string;
+  icone?: string | null;
   _count?: {
     condicoesPersonagemSessao: number;
   };
@@ -186,6 +187,7 @@ export type CondicaoCatalogo = {
 export type CreateCondicaoPayload = {
   nome: string;
   descricao: string;
+  icone?: string | null;
 };
 
 export type UpdateCondicaoPayload = Partial<CreateCondicaoPayload>;

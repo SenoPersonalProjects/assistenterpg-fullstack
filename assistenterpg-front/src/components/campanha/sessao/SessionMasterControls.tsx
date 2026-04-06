@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -128,7 +129,10 @@ export function SessionMasterControls({
                   onClick={() => onControleTurno('VOLTAR')}
                   disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
                 >
-                  {acaoTurnoPendente === 'VOLTAR' ? 'Voltando...' : 'Voltar turno'}
+                  <Icon name="rotate-ccw" className="mr-1 h-3.5 w-3.5" />
+                  {acaoTurnoPendente === 'VOLTAR'
+                    ? 'Revertendo...'
+                    : 'Reverter turno'}
                 </Button>
                 <Button
                   variant="ghost"

@@ -33,6 +33,7 @@ export class CondicoesService {
       data: {
         nome: createDto.nome,
         descricao: createDto.descricao,
+        icone: createDto.icone ?? null,
       },
     });
   }
@@ -103,6 +104,7 @@ export class CondicoesService {
         ...(updateDto.descricao !== undefined && {
           descricao: updateDto.descricao,
         }),
+        ...(updateDto.icone !== undefined && { icone: updateDto.icone }),
       },
     });
   }

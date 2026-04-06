@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import type {
   CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
@@ -65,7 +66,15 @@ export function SessionConditionsPanel({
               className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-app-fg">{condicao.nome}</p>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full border border-app-border bg-app-bg">
+                    <Icon
+                      name={(condicao.icone || 'status') as IconName}
+                      className="h-3.5 w-3.5 text-app-muted"
+                    />
+                  </span>
+                  <p className="text-xs font-semibold text-app-fg">{condicao.nome}</p>
+                </div>
                 <span className="text-[10px] text-app-muted">
                   {condicao.automatica ? 'Automatica' : 'Manual'}
                 </span>

@@ -174,7 +174,8 @@ export default function CampanhaDetalhePage() {
   }, [id, authLoading, usuario, router]);
 
   async function handleInvite(data: {
-    email: string;
+    email?: string;
+    apelido?: string;
     papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR';
   }) {
     if (!campanha) {

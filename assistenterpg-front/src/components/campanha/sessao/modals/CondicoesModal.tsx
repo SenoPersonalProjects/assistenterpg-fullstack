@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import type {
   CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
@@ -111,6 +112,7 @@ export function CondicoesModal({
               ) : (
                 condicoesFiltradas.map((condicao) => {
                   const selecionada = formCondicao.condicaoId === String(condicao.id);
+                  const icone = (condicao.icone || 'status') as IconName;
                   return (
                     <button
                       key={condicao.id}
@@ -122,9 +124,14 @@ export function CondicoesModal({
                           : 'w-full rounded border border-app-border bg-app-surface px-2 py-1.5 text-left hover:border-cyan-400/50'
                       }
                     >
-                      <p className="text-xs font-semibold text-app-fg">
-                        {textoSeguro(condicao.nome)}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-app-border bg-app-bg">
+                          <Icon name={icone} className="h-3.5 w-3.5 text-app-muted" />
+                        </span>
+                        <p className="text-xs font-semibold text-app-fg">
+                          {textoSeguro(condicao.nome)}
+                        </p>
+                      </div>
                       <p className="session-text-xxs text-app-muted line-clamp-2">
                         {textoSeguro(condicao.descricao)}
                       </p>
@@ -142,9 +149,17 @@ export function CondicoesModal({
               </p>
               {condicaoSelecionada ? (
                 <>
-                  <p className="text-sm font-semibold text-app-fg">
-                    {textoSeguro(condicaoSelecionada.nome)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-app-border bg-app-bg">
+                      <Icon
+                        name={(condicaoSelecionada.icone || 'status') as IconName}
+                        className="h-4 w-4 text-app-fg"
+                      />
+                    </span>
+                    <p className="text-sm font-semibold text-app-fg">
+                      {textoSeguro(condicaoSelecionada.nome)}
+                    </p>
+                  </div>
                   <p className="text-xs text-app-muted">
                     {textoSeguro(condicaoSelecionada.descricao)}
                   </p>
@@ -204,15 +219,21 @@ export function CondicoesModal({
                 ) : (
                   condicoesAtivas.map((condicao) => {
                     const chaveRemover = chaveAcaoRemover(condicao.id);
+                    const icone = (condicao.icone || 'status') as IconName;
                     return (
                       <div
                         key={`modal-condicao-ativa-${condicao.id}`}
                         className="rounded border border-app-border bg-app-surface px-2 py-1.5 space-y-1"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-semibold text-app-fg">
-                            {textoSeguro(condicao.nome)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-app-border bg-app-bg">
+                        <Icon name={icone} className="h-3.5 w-3.5 text-app-muted" />
+                            </span>
+                            <p className="text-xs font-semibold text-app-fg">
+                              {textoSeguro(condicao.nome)}
+                            </p>
+                          </div>
                           <Button
                             size="xs"
                             variant="secondary"

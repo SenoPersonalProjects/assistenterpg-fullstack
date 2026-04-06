@@ -956,10 +956,7 @@ export class PersonagemBaseMapper {
 
       for (const rd of reducoes) {
         const atual = resistencias.get(rd.tipoReducao) ?? 0;
-        resistencias.set(
-          rd.tipoReducao,
-          atual + rd.valor * item.quantidade,
-        );
+        resistencias.set(rd.tipoReducao, atual + rd.valor * item.quantidade);
       }
 
       for (const modJunction of item.modificacoes ?? []) {

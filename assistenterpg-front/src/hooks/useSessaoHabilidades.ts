@@ -3,6 +3,7 @@ import {
   apiEncerrarSustentacaoHabilidadeSessaoCampanha,
   apiUsarHabilidadeSessaoCampanha,
   extrairMensagemErro,
+  formatarErroComContexto,
 } from '@/lib/api';
 import type { SessaoCampanhaDetalhe } from '@/lib/types';
 import { calcularRestanteCooldown } from '@/lib/campanha/sessao-utils';
@@ -93,16 +94,27 @@ export function useSessaoHabilidades({
           {
             habilidadeTecnicaId,
             variacaoHabilidadeId,
-            acumulos:
-              typeof acumulos === 'number' && Number.isFinite(acumulos)
-                ? Math.max(0, Math.trunc(acumulos))
-                : undefined,
+            acumulos: (() => {
+              if (typeof acumulos !== 'number' || !Number.isFinite(acumulos)) {
+                return undefined;
+              }
+              const normalizado = Math.trunc(acumulos);
+              if (normalizado <= 0) return undefined;
+              return Math.max(1, normalizado);
+            })(),
           },
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        const mensagem = extrairMensagemErro(error);
+        setErro(
+          formatarErroComContexto(mensagem, error, {
+            incluirCode: true,
+            incluirStatus: true,
+            incluirRequestId: true,
+          }),
+        );
       } finally {
         setAcaoHabilidadePendente(null);
       }
@@ -136,7 +148,14 @@ export function useSessaoHabilidades({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        const mensagem = extrairMensagemErro(error);
+        setErro(
+          formatarErroComContexto(mensagem, error, {
+            incluirCode: true,
+            incluirStatus: true,
+            incluirRequestId: true,
+          }),
+        );
       } finally {
         setAcaoHabilidadePendente(null);
       }

@@ -182,7 +182,7 @@ export async function apiGetCampanhaById<T = unknown>(
 
 export async function apiCriarConvite(
   campanhaId: number,
-  payload: { email: string; papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' },
+  payload: { email?: string; apelido?: string; papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' },
 ): Promise<ConviteCampanha> {
   const { data } = await apiClient.post(`/campanhas/${campanhaId}/convites`, payload);
   return data;

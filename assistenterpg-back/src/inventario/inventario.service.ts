@@ -951,7 +951,7 @@ export class InventarioService {
       const reduzirCategoriaExcetoTipos = dto.reduzirCategoriaExcetoTipos ?? [];
 
       const equipamentosIds = [...new Set(itens.map((i) => i.equipamentoId))];
-    const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
+      const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
         where: { id: { in: equipamentosIds } },
         include: {
           reducesDano: true,
@@ -1035,7 +1035,8 @@ export class InventarioService {
             protecaoAmaldicoada: equipamento.protecaoAmaldicoada
               ? {
                   bonusDefesa: equipamento.protecaoAmaldicoada.bonusDefesa,
-                  penalidadeCarga: equipamento.protecaoAmaldicoada.penalidadeCarga,
+                  penalidadeCarga:
+                    equipamento.protecaoAmaldicoada.penalidadeCarga,
                 }
               : null,
           },

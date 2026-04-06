@@ -25,6 +25,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   USUARIO_EMAIL_DUPLICADO: "Este email já está em uso",
   USUARIO_EMAIL_NOT_FOUND: "Email não encontrado",
   USUARIO_APELIDO_NOT_FOUND: "Usuário não encontrado",
+  USUARIO_APELIDO_DUPLICADO:
+    "Mais de um usuário usa esse apelido. Use o email para convidar.",
   USUARIO_SENHA_INCORRETA: "Senha incorreta",
 
   // PERSONAGEM BASE
@@ -205,6 +207,24 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CENA_SESSAO_NOT_FOUND: "Cena da sessao nao encontrada.",
   SESSAO_TURNO_INDISPONIVEL:
     "Cena livre não possui contagem de rodada/turno.",
+  SESSAO_ENCERRADA: "Sessao encerrada. Nao e possivel executar esta acao.",
+  SESSAO_PERSONAGEM_NOT_FOUND: "Personagem da sessao nao encontrado.",
+  SESSAO_HABILIDADE_NAO_DISPONIVEL:
+    "Habilidade nao esta disponivel para este personagem.",
+  SESSAO_VARIACAO_HABILIDADE_NOT_FOUND:
+    "Variacao da habilidade nao encontrada.",
+  SESSAO_HABILIDADE_SEM_ESCALONAMENTO:
+    "Essa habilidade nao permite acumulos.",
+  SESSAO_ACUMULO_EXCEDE_GRAU:
+    "Quantidade de acumulos excede o grau permitido.",
+  SESSAO_SUSTENTACAO_DUPLICADA:
+    "Essa habilidade ja esta sustentada.",
+  SESSAO_SUSTENTACAO_SEM_CUSTO:
+    "Habilidade sustentada sem custo nao pode ser encerrada.",
+  SESSAO_RECURSO_INSUFICIENTE:
+    "Recursos insuficientes para usar a habilidade.",
+  SESSAO_LIMITE_PEEA_EXCEDIDO:
+    "Limite de PE/EA por turno excedido.",
   NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",
   CONVITE_NOT_FOUND: "Convite não encontrado",
   CONVITE_INVALIDO: "Convite inválido ou já utilizado",
