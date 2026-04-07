@@ -16,7 +16,10 @@ import type {
   CampoAjusteRecursoNpc,
   NpcEditavel,
 } from '@/components/campanha/sessao/types';
-import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import type {
+  RolagemExpressaoSessaoPayload,
+  RolagemPericiaSessaoPayload,
+} from '@/components/campanha/sessao/types';
 import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
 import {
   calcularDadosPericiaPorAtributo,
@@ -88,6 +91,12 @@ function montarMetadadosAcao(
   return { primario, resistencia, rolagem };
 }
 
+function extrairExpressaoDice(texto?: string | null): string | null {
+  if (!texto) return null;
+  const match = texto.match(/(\d+)?#?d\d+(?:[+\-*/]\d+)?/i);
+  return match?.[0] ?? null;
+}
+
 type NpcSessionCardProps = {
   npc: NpcSessaoCampanha;
   iniciativaValor: number | null;
@@ -116,6 +125,7 @@ type NpcSessionCardProps = {
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
 };
 
 type AbaDetalheNpc =
@@ -145,6 +155,7 @@ export function NpcSessionCard({
   onSolicitarRemover,
   renderPainelCondicoes,
   onRolarPericia,
+  onRolarExpressao,
 }: NpcSessionCardProps) {
   const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaca';
   const linhasRecursos: LinhaRecursoNpc[] = [
@@ -364,6 +375,9 @@ export function NpcSessionCard({
               typeof acao.custoPE === 'number' ? acao.custoPE : null;
             const custoEA =
               typeof acao.custoEA === 'number' ? acao.custoEA : null;
+            const expressaoTeste = extrairExpressaoDice(acao.teste);
+            const expressaoDano = extrairExpressaoDice(acao.dano);
+            const podeRolarAcao = podeControlarSessao;
 
             return (
               <div
@@ -402,6 +416,50 @@ export function NpcSessionCard({
                 {renderGrupoMetadados(primario)}
                 {renderGrupoMetadados(resistencia, 'session-npc-meta-group--muted')}
                 {renderGrupoMetadados(rolagem, 'session-npc-meta-group--strong')}
+                {podeRolarAcao && (expressaoTeste || expressaoDano) ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {expressaoTeste ? (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() =>
+                          onRolarExpressao({
+                            alvoTipo: 'NPC',
+                            alvoNome: npc.nome,
+                            titulo: `${acao.nome} · Teste`,
+                            subtitulo: npc.nome,
+                            expressao: expressaoTeste,
+                          })
+                        }
+                        disabled={sessaoEncerrada}
+                        title={`Rolar teste: ${acao.nome}`}
+                      >
+                        <Icon name="dice" className="h-3 w-3" />
+                        Rolar teste
+                      </Button>
+                    ) : null}
+                    {expressaoDano ? (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() =>
+                          onRolarExpressao({
+                            alvoTipo: 'NPC',
+                            alvoNome: npc.nome,
+                            titulo: `${acao.nome} · Dano`,
+                            subtitulo: npc.nome,
+                            expressao: expressaoDano,
+                          })
+                        }
+                        disabled={sessaoEncerrada}
+                        title={`Rolar dano: ${acao.nome}`}
+                      >
+                        <Icon name="sparkles" className="h-3 w-3" />
+                        Rolar dano
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             );
           })}

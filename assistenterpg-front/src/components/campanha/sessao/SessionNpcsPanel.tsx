@@ -16,7 +16,10 @@ import type {
   CampoAjusteRecursoNpc,
   NpcEditavel,
 } from '@/components/campanha/sessao/types';
-import type { RolagemPericiaSessaoPayload } from '@/components/campanha/sessao/types';
+import type {
+  RolagemExpressaoSessaoPayload,
+  RolagemPericiaSessaoPayload,
+} from '@/components/campanha/sessao/types';
 import { NpcSessionCard } from '@/components/campanha/sessao/NpcSessionCard';
 
 type SessionNpcsPanelProps = {
@@ -61,6 +64,7 @@ type SessionNpcsPanelProps = {
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
 };
 
 export function SessionNpcsPanel({
@@ -84,6 +88,7 @@ export function SessionNpcsPanel({
   onSolicitarRemoverNpc,
   renderPainelCondicoes,
   onRolarPericia,
+  onRolarExpressao,
 }: SessionNpcsPanelProps) {
   return (
     <SessionPanel
@@ -144,6 +149,7 @@ export function SessionNpcsPanel({
             onSolicitarRemover={() => onSolicitarRemoverNpc(npc)}
             renderPainelCondicoes={renderPainelCondicoes}
             onRolarPericia={onRolarPericia}
+            onRolarExpressao={onRolarExpressao}
           />
         ))
       )}

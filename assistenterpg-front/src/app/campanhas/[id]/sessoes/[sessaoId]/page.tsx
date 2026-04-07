@@ -72,6 +72,7 @@ import {
   type HabilidadeRollContext,
   type NpcEditavel,
   type RolagemDanoHabilidadeSessaoPayload,
+  type RolagemExpressaoSessaoPayload,
   type RolagemPericiaSessaoPayload,
   type RolagemTesteHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
@@ -113,6 +114,7 @@ import {
   construirMensagemDiceMultipla,
   construirMensagemDice,
   ehMensagemDice,
+  parseDiceExpression,
   rolarDados,
   type DiceRollPayload,
   validarComprimentoMensagemDice,
@@ -965,6 +967,76 @@ export default function SessaoCampanhaPage() {
         subtitulo: payload.atributoBase
           ? `${payload.alvoNome} · ${payload.atributoBase}`
           : payload.alvoNome,
+        alvoTipo: payload.alvoTipo,
+        alvoNome: payload.alvoNome,
+        habilidadeContext: null,
+        payload: dicePayload,
+        expression,
+        enviando: false,
+        enviado: false,
+        erro: null,
+      });
+      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
+      if (erroTamanho) {
+        setErroRolagens(erroTamanho);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: erroTamanho,
+        }));
+        return;
+      }
+      try {
+        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
+        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
+          mensagem: mensagemEnvio,
+        });
+        setChat((anterior) => [...anterior, enviada]);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: true,
+        }));
+      } catch (error) {
+        const mensagemErro = extrairMensagemErro(error);
+        setErroRolagens(mensagemErro);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: mensagemErro,
+        }));
+      }
+    },
+    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+  );
+
+  const handleRolarExpressao = useCallback(
+    async (payload: RolagemExpressaoSessaoPayload) => {
+      if (sessaoEncerrada) {
+        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
+        return;
+      }
+      const resultado = parseDiceExpression(payload.expressao);
+      if (resultado.erro || !resultado.expression) {
+        showToast(
+          resultado.erro ?? 'Expressao de rolagem invalida.',
+          'warning',
+        );
+        return;
+      }
+      const labelBase = `${payload.alvoNome} · ${payload.titulo}`.trim();
+      const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+      const dicePayload = rolarDados({
+        ...resultado.expression,
+        label,
+      });
+      const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
+      setPericiaRollModal({
+        aberto: true,
+        titulo: payload.titulo,
+        subtitulo: payload.subtitulo ?? payload.alvoNome,
         alvoTipo: payload.alvoTipo,
         alvoNome: payload.alvoNome,
         habilidadeContext: null,
@@ -1989,6 +2061,7 @@ export default function SessaoCampanhaPage() {
                     onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
                     onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
                     onRolarPericia={handleRolarPericia}
+                    onRolarExpressao={handleRolarExpressao}
                     renderPainelCondicoes={renderPainelCondicoes}
                   />
                 </>

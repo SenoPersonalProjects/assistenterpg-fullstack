@@ -85,3 +85,11 @@ export type RolagemDanoHabilidadeSessaoPayload = {
   habilidade: HabilidadeRollContext;
   aplicarCritico?: boolean;
 };
+
+export type RolagemExpressaoSessaoPayload = {
+  alvoTipo: 'PERSONAGEM' | 'NPC';
+  alvoNome: string;
+  titulo: string;
+  subtitulo?: string;
+  expressao: string;
+};

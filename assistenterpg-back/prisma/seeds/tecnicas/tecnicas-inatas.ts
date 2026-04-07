@@ -3,6 +3,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import {
   AreaEfeito,
+  TipoDano,
   TipoEscalonamentoHabilidade,
   TipoExecucao,
   TipoFonte,
@@ -34,6 +35,11 @@ type SeedVariacaoTecnicaInata = {
   escalonamentoTipo?: TipoEscalonamentoHabilidade | null;
   escalonamentoEfeito?: Prisma.InputJsonValue | null;
   escalonamentoDano?: Prisma.InputJsonValue | null;
+  dadosDano?: Prisma.InputJsonValue | null;
+  danoFlat?: number | null;
+  danoFlatTipo?: TipoDano | null;
+  criticoValor?: number | null;
+  criticoMultiplicador?: number | null;
   ordem: number;
 };
 
@@ -62,6 +68,11 @@ type SeedHabilidadeTecnicaInata = {
   escalonamentoTipo?: TipoEscalonamentoHabilidade;
   escalonamentoEfeito?: Prisma.InputJsonValue | null;
   escalonamentoDano?: Prisma.InputJsonValue | null;
+  dadosDano?: Prisma.InputJsonValue | null;
+  danoFlat?: number | null;
+  danoFlatTipo?: TipoDano | null;
+  criticoValor?: number | null;
+  criticoMultiplicador?: number | null;
   variacoes?: SeedVariacaoTecnicaInata[];
   ordem: number;
 };
@@ -253,8 +264,15 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         duracao: 'Instantaneo',
         resistencia: 'Reacao',
         custoEA: 1,
+        testesExigidos: ['Pontaria com Jujutsu'],
         efeito:
           'Conta como disparo (Pontaria com Jujutsu). Causa 1 + 1d4 de dano de corte amaldicoado e crita no 20 natural. Se o alvo for eliminado ou perder membro, o dano pode seguir para o proximo alvo da linha.',
+        dadosDano: [
+          { quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+        ],
+        danoFlat: 1,
+        danoFlatTipo: TipoDano.CORTANTE,
+        criticoValor: 20,
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -263,6 +281,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           porAcumulo: '+1 + 1d4 de dano de corte amaldicoado',
           observacao: 'Acumula com o grau de aprimoramento em Tecnica Amaldicoada.',
         },
+        escalonamentoDano: { quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' },
         ordem: 10,
         variacoes: [
           {
@@ -271,6 +290,12 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             substituiCustos: false,
             custoEA: 1,
             custoPE: 1,
+            dadosDano: [
+              { quantidade: 2, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+            ],
+            danoFlat: 2,
+            danoFlatTipo: TipoDano.CORTANTE,
+            criticoValor: 19,
             escalonaPorGrau: true,
             escalonamentoCustoEA: 1,
             escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
@@ -279,6 +304,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               porAcumulo: '+2d4 por +1 EA',
               criticoNatural: 19,
             },
+            escalonamentoDano: { quantidade: 2, dado: 'd4', tipo: 'Corte Amaldiçoado' },
             efeitoAdicional:
               'Dano maximo de referencia informado: 52 (4 EA e 1 PE totais).',
             ordem: 10,
@@ -290,6 +316,12 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             substituiCustos: false,
             custoEA: 2,
             custoPE: 2,
+            dadosDano: [
+              { quantidade: 3, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+            ],
+            danoFlat: 3,
+            danoFlatTipo: TipoDano.CORTANTE,
+            criticoValor: 18,
             escalonaPorGrau: true,
             escalonamentoCustoEA: 1,
             escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
@@ -298,6 +330,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               porAcumulo: '+3d4 por +1 EA',
               criticoNatural: 18,
             },
+            escalonamentoDano: { quantidade: 3, dado: 'd4', tipo: 'Corte Amaldiçoado' },
             efeitoAdicional:
               'Dano maximo de referencia informado: 78 (5 EA e 2 PE totais).',
             ordem: 20,
@@ -317,8 +350,14 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         resistencia: 'Reflexos reduz metade',
         custoEA: 3,
         custoPE: 1,
+        testesExigidos: ['Pontaria com Jujutsu'],
         efeito:
           'Exige teste de Pontaria com Jujutsu contra Defesa base dos alvos. Causa 3 + 3d4 de dano de corte amaldicoado em todos os afetados.',
+        dadosDano: [
+          { quantidade: 3, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+        ],
+        danoFlat: 3,
+        danoFlatTipo: TipoDano.CORTANTE,
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -326,6 +365,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoEfeito: {
           porAcumulo: '+1d4 de dano por +1 EA',
         },
+        escalonamentoDano: { quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' },
         ordem: 20,
         variacoes: [
           {
@@ -334,6 +374,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             substituiCustos: false,
             custoEA: 2,
             custoPE: 1,
+            dadosDano: [
+              { quantidade: 3, dado: 'd8', tipo: 'Corte Amaldiçoado' },
+            ],
+            danoFlat: 3,
+            danoFlatTipo: TipoDano.CORTANTE,
             escalonaPorGrau: true,
             escalonamentoCustoEA: 1,
             escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
@@ -341,6 +386,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               base: '3 + 3d8 de dano',
               porAcumulo: '+1d8 por +1 EA',
             },
+            escalonamentoDano: { quantidade: 1, dado: 'd8', tipo: 'Corte Amaldiçoado' },
             ordem: 10,
           },
           {
@@ -349,6 +395,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             substituiCustos: false,
             custoEA: 3,
             custoPE: 2,
+            dadosDano: [
+              { quantidade: 4, dado: 'd12', tipo: 'Corte Amaldiçoado' },
+            ],
+            danoFlat: 4,
+            danoFlatTipo: TipoDano.CORTANTE,
             escalonaPorGrau: true,
             escalonamentoCustoEA: 1,
             escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
@@ -356,6 +407,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               base: '4 + 4d12 de dano',
               porAcumulo: '+1d12 por +1 EA',
             },
+            escalonamentoDano: { quantidade: 1, dado: 'd12', tipo: 'Corte Amaldiçoado' },
             ordem: 20,
           },
         ],
@@ -1377,6 +1429,11 @@ function mapHabilidadeDataInata(
     escalonamentoDano: jsonOrNull(
       corrigirMojibakeSeedJson(habilidade.escalonamentoDano),
     ),
+    dadosDano: jsonOrNull(corrigirMojibakeSeedJson(habilidade.dadosDano)),
+    danoFlat: habilidade.danoFlat ?? null,
+    danoFlatTipo: habilidade.danoFlatTipo ?? null,
+    criticoValor: habilidade.criticoValor ?? null,
+    criticoMultiplicador: habilidade.criticoMultiplicador ?? null,
     ordem: habilidade.ordem,
   };
 }
@@ -1418,6 +1475,11 @@ function mapVariacaoDataInata(
     escalonamentoDano: jsonOrNull(
       corrigirMojibakeSeedJson(variacao.escalonamentoDano),
     ),
+    dadosDano: jsonOrNull(corrigirMojibakeSeedJson(variacao.dadosDano)),
+    danoFlat: variacao.danoFlat ?? null,
+    danoFlatTipo: variacao.danoFlatTipo ?? null,
+    criticoValor: variacao.criticoValor ?? null,
+    criticoMultiplicador: variacao.criticoMultiplicador ?? null,
     efeitoAdicional: corrigirMojibakeSeedTexto(variacao.efeitoAdicional) ?? null,
     requisitos: jsonOrNull(corrigirMojibakeSeedJson(variacao.requisitos)),
     ordem: variacao.ordem,

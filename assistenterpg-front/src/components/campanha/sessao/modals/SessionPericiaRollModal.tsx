@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -15,7 +15,7 @@ import type {
   RolagemDanoHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
 
-const ANIMACAO_PADRAO_MS = 900;
+const ANIMACAO_PADRAO_MS = 800;
 
 type SessionPericiaRollModalProps = {
   isOpen: boolean;
@@ -99,21 +99,31 @@ export function SessionPericiaRollModal({
     Boolean(alvoTipo) &&
     danoDisponivel;
 
+  const handleRollComplete = useCallback(() => {
+    if (!payload || !animacaoAtiva) return;
+    setMostrandoResultado(true);
+  }, [payload, animacaoAtiva]);
+
   useEffect(() => {
     if (!isOpen || !payload) {
       const reset = window.setTimeout(() => setMostrandoResultado(false), 0);
       return () => window.clearTimeout(reset);
     }
-    const reset = window.setTimeout(() => setMostrandoResultado(false), 0);
+
+    setMostrandoResultado(false);
+
+    if (!animacaoAtiva) {
+      const instant = window.setTimeout(() => setMostrandoResultado(true), 0);
+      return () => window.clearTimeout(instant);
+    }
+
     const timer = window.setTimeout(
       () => setMostrandoResultado(true),
-      duracaoAnimacao,
+      duracaoAnimacao + 150,
     );
-    return () => {
-      window.clearTimeout(reset);
-      window.clearTimeout(timer);
-    };
-  }, [isOpen, payload, duracaoAnimacao]);
+
+    return () => window.clearTimeout(timer);
+  }, [isOpen, payload, animacaoAtiva, duracaoAnimacao]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -192,6 +202,7 @@ export function SessionPericiaRollModal({
               faces={facesExibidas}
               isRolling={Boolean(payload) && animacaoAtiva && !mostrandoResultado}
               result={mostrandoResultado ? valorDado : null}
+              onRollComplete={handleRollComplete}
               reducedMotion={!animacaoAtiva}
             />
             {!mostrandoResultado && payload ? (

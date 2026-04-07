@@ -283,7 +283,7 @@ export function DiceScene({
 
       if (rollingRef.current) {
         const elapsed = (Date.now() - rollStartRef.current) / 1000;
-        const duration = reducedMotion ? 0.01 : 1.8;
+        const duration = reducedMotion ? 0.01 : 0.8;
         if (elapsed < duration) {
           const progress = elapsed / duration;
           const speed = Math.max(0.015, (1 - progress) * 0.3);
