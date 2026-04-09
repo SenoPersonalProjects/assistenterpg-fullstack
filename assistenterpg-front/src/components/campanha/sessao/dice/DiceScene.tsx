@@ -7,6 +7,7 @@ type DiceSceneProps = {
   faces: number;
   isRolling: boolean;
   result: number | null;
+  highlight?: 'crit' | 'fumble' | null;
   onRollComplete?: () => void;
   reducedMotion?: boolean;
   rollDurationMs?: number;
@@ -22,6 +23,7 @@ type DiceSceneState = {
   settleStartQuaternion?: THREE.Quaternion;
   spinVelocity?: THREE.Vector3;
   displayFace?: FaceInfo | null;
+  accentLight?: THREE.PointLight;
   cleanup?: () => void;
 };
 
@@ -409,10 +411,47 @@ function getDieRadius(faces: number) {
   }
 }
 
+function setMeshAccent(
+  mesh: THREE.Mesh,
+  faces: number,
+  accent: 'crit' | 'fumble' | null,
+  pulse: number,
+) {
+  const material = mesh.material;
+  const defaultEmissive = getDieColor(faces).emissive;
+  const emissiveIntensity =
+    accent === 'crit'
+      ? 0.3 + pulse * 0.9
+      : accent === 'fumble'
+        ? 0.24 + pulse * 0.6
+        : 0.3;
+
+  const applyToMaterial = (item: THREE.Material) => {
+    const phong = item as THREE.MeshPhongMaterial;
+    if (!('emissive' in phong)) return;
+    if (accent === 'crit') {
+      phong.emissive.setHex(0x8a5b00);
+    } else if (accent === 'fumble') {
+      phong.emissive.setHex(0x5a1020);
+    } else {
+      phong.emissive.setHex(defaultEmissive);
+    }
+    phong.emissiveIntensity = emissiveIntensity;
+  };
+
+  if (Array.isArray(material)) {
+    material.forEach(applyToMaterial);
+    return;
+  }
+
+  applyToMaterial(material);
+}
+
 export function DiceScene({
   faces,
   isRolling,
   result,
+  highlight = null,
   onRollComplete,
   reducedMotion = false,
   rollDurationMs = 800,
@@ -424,6 +463,11 @@ export function DiceScene({
   const rollStartRef = useRef(0);
   const hasResultRef = useRef(false);
   const bobTimeRef = useRef(0);
+  const highlightRef = useRef<'crit' | 'fumble' | null>(highlight);
+
+  useEffect(() => {
+    highlightRef.current = highlight;
+  }, [highlight]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -456,6 +500,9 @@ export function DiceScene({
     const point = new THREE.PointLight(0xffd700, 0.5, 12);
     point.position.set(-2, 3, 2);
     scene.add(point);
+    const accentLight = new THREE.PointLight(0xffffff, 0, 10);
+    accentLight.position.set(0, 0.6, 2.4);
+    scene.add(accentLight);
 
     const geometry = createDieGeometry(faces);
     const { main, emissive } = getDieColor(faces);
@@ -487,6 +534,7 @@ export function DiceScene({
       camera,
       mesh,
       spinVelocity: new THREE.Vector3(0.24, 0.2, 0.16),
+      accentLight,
     };
 
     const animate = () => {
@@ -494,6 +542,8 @@ export function DiceScene({
       const { mesh: currentMesh, plane, renderer: currentRenderer, scene: currentScene, camera: currentCamera } = stateRef.current;
       if (!currentMesh || !currentRenderer || !currentScene || !currentCamera) return;
       const resetScale = () => currentMesh.scale.setScalar(1);
+      const accent = highlightRef.current;
+      const accentLightRef = stateRef.current.accentLight;
 
       if (rollingRef.current) {
         const elapsed = (performance.now() - rollStartRef.current) / 1000;
@@ -515,6 +565,8 @@ export function DiceScene({
             Math.sin(progress * Math.PI) * 0.16 +
             Math.sin(progress * Math.PI * 4) * (1 - progress) * 0.028;
           resetScale();
+          setMeshAccent(currentMesh, faces, null, 0);
+          if (accentLightRef) accentLightRef.intensity = 0;
           if (plane) {
             (plane.material as THREE.MeshBasicMaterial).opacity = 0;
           }
@@ -553,6 +605,19 @@ export function DiceScene({
             Math.sin(settleProgress * Math.PI) *
             0.045;
           currentMesh.scale.setScalar(1 + punch);
+          const glowPulse = THREE.MathUtils.smoothstep(settleProgress, 0.2, 0.8);
+          setMeshAccent(currentMesh, faces, accent, glowPulse);
+          if (accentLightRef) {
+            if (accent === 'crit') {
+              accentLightRef.color.setHex(0xfbbf24);
+              accentLightRef.intensity = glowPulse * 1.15;
+            } else if (accent === 'fumble') {
+              accentLightRef.color.setHex(0xf43f5e);
+              accentLightRef.intensity = glowPulse * 0.75;
+            } else {
+              accentLightRef.intensity = 0;
+            }
+          }
 
           if (plane) {
             (plane.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.smoothstep(
@@ -583,6 +648,19 @@ export function DiceScene({
         bobTimeRef.current += 0.012;
         currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.025;
         currentMesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+        const pulse = accent ? 0.55 + (Math.sin(bobTimeRef.current * 2.2) + 1) * 0.17 : 0;
+        setMeshAccent(currentMesh, faces, accent, pulse);
+        if (accentLightRef) {
+          if (accent === 'crit') {
+            accentLightRef.color.setHex(0xfbbf24);
+            accentLightRef.intensity = 0.5 + pulse * 0.7;
+          } else if (accent === 'fumble') {
+            accentLightRef.color.setHex(0xf43f5e);
+            accentLightRef.intensity = 0.35 + pulse * 0.45;
+          } else {
+            accentLightRef.intensity = 0;
+          }
+        }
         if (plane) {
           (plane.material as THREE.MeshBasicMaterial).opacity = 1;
         }
@@ -592,6 +670,8 @@ export function DiceScene({
         bobTimeRef.current += 0.012;
         currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.05;
         resetScale();
+        setMeshAccent(currentMesh, faces, null, 0);
+        if (accentLightRef) accentLightRef.intensity = 0;
       }
 
       currentRenderer.render(currentScene, currentCamera);

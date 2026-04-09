@@ -1,4 +1,4 @@
-// app/configuracoes/page.tsx
+﻿// app/configuracoes/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -87,7 +87,7 @@ export default function ConfiguracoesPage() {
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
       setErroGlobal(mensagem);
       showToast(mensagem, 'error');
-      console.error('Erro ao carregar preferências:', error);
+      console.error('Erro ao carregar preferÃªncias:', error);
     } finally {
       setCarregando(false);
     }
@@ -110,7 +110,7 @@ export default function ConfiguracoesPage() {
         notificacoesAtualizacoes: notificacoes.atualizacoes,
         idioma,
       });
-      showToast('Preferências salvas com sucesso!', 'success');
+      showToast('PreferÃªncias salvas com sucesso!', 'success');
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
@@ -138,7 +138,7 @@ export default function ConfiguracoesPage() {
     try {
       setErroGlobal(null);
       await apiExportarDados();
-      showToast('Exportação iniciada com sucesso.', 'success');
+      showToast('ExportaÃ§Ã£o iniciada com sucesso.', 'success');
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
@@ -160,7 +160,7 @@ export default function ConfiguracoesPage() {
     try {
       setErroGlobal(null);
       await apiExcluirConta(senha);
-      showToast('Conta excluída com sucesso.', 'success');
+      showToast('Conta excluÃ­da com sucesso.', 'success');
       logout();
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
@@ -170,11 +170,11 @@ export default function ConfiguracoesPage() {
     }
   };
 
-  // ✅ Logout com ConfirmDialog
+  // âœ… Logout com ConfirmDialog
   const handleLogout = () => {
     confirm({
       title: 'Tem certeza que deseja sair?',
-      description: 'Você será desconectado e precisará fazer login novamente.',
+      description: 'VocÃª serÃ¡ desconectado e precisarÃ¡ fazer login novamente.',
       confirmLabel: 'Sim, sair',
       cancelLabel: 'Cancelar',
       variant: 'warning',
@@ -203,9 +203,9 @@ export default function ConfiguracoesPage() {
             <div>
               <h1 className="text-3xl font-bold text-app-fg flex items-center gap-2">
                 <Icon name="settings" className="w-8 h-8" />
-                Configurações
+                ConfiguraÃ§Ãµes
               </h1>
-              <p className="text-app-muted mt-1">Gerencie suas preferências e conta</p>
+              <p className="text-app-muted mt-1">Gerencie suas preferÃªncias e conta</p>
             </div>
             <Link href="/">
               <Button variant="ghost" size="sm">
@@ -219,12 +219,12 @@ export default function ConfiguracoesPage() {
 
           {erroGlobal && <ErrorAlert message={erroGlobal} />}
 
-            {/* Seção: Perfil */}
+            {/* SeÃ§Ã£o: Perfil */}
             <ConfigSection title="Perfil" icon="user">
               <div className="space-y-4">
                 <Input
                   type="text"
-                  label="Nome de usuário"
+                  label="Nome de usuÃ¡rio"
                   value={usuario?.apelido || ''}
                   disabled
                   className="bg-app-bg"
@@ -238,7 +238,7 @@ export default function ConfiguracoesPage() {
                 />
                 <Input
                   type="text"
-                  label="ID do usuário"
+                  label="ID do usuÃ¡rio"
                   value={usuario?.id || ''}
                   disabled
                   className="bg-app-bg font-mono text-sm"
@@ -249,8 +249,8 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* Seção: Aparência */}
-            <ConfigSection title="Aparência" icon="paint">
+            {/* SeÃ§Ã£o: AparÃªncia */}
+            <ConfigSection title="AparÃªncia" icon="paint">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-app-fg mb-2">
@@ -286,9 +286,9 @@ export default function ConfiguracoesPage() {
                   value={idioma}
                   onChange={(e) => setIdioma(e.target.value)}
                 >
-                  <option value="pt-BR">🇧🇷 Português (Brasil)</option>
-                  <option value="en-US">🇺🇸 English (US)</option>
-                  <option value="es-ES">🇪🇸 Español</option>
+                  <option value="pt-BR">ðŸ‡§ðŸ‡· PortuguÃªs (Brasil)</option>
+                  <option value="en-US">ðŸ‡ºðŸ‡¸ English (US)</option>
+                  <option value="es-ES">ðŸ‡ªðŸ‡¸ EspaÃ±ol</option>
                 </Select>
                 <p className="text-xs text-app-muted">
                   Idioma da interface do sistema (em breve)
@@ -312,18 +312,18 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* Seção: Notificações */}
-            <ConfigSection title="Notificações" icon="bell">
+            {/* SeÃ§Ã£o: NotificaÃ§Ãµes */}
+            <ConfigSection title="NotificaÃ§Ãµes" icon="bell">
               <div className="space-y-3">
                 <Checkbox
-                  label="Notificações por email"
+                  label="NotificaÃ§Ãµes por email"
                   checked={notificacoes.email}
                   onChange={(e) =>
                     setNotificacoes({ ...notificacoes, email: e.target.checked })
                   }
                 />
                 <Checkbox
-                  label="Notificações push no navegador"
+                  label="NotificaÃ§Ãµes push no navegador"
                   checked={notificacoes.push}
                   onChange={(e) =>
                     setNotificacoes({ ...notificacoes, push: e.target.checked })
@@ -337,7 +337,7 @@ export default function ConfiguracoesPage() {
                   }
                 />
                 <Checkbox
-                  label="Avisos sobre atualizações do sistema"
+                  label="Avisos sobre atualizaÃ§Ãµes do sistema"
                   checked={notificacoes.atualizacoes}
                   onChange={(e) =>
                     setNotificacoes({ ...notificacoes, atualizacoes: e.target.checked })
@@ -346,8 +346,8 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* Seção: Privacidade e Segurança */}
-            <ConfigSection title="Privacidade e Segurança" icon="lock">
+            {/* SeÃ§Ã£o: Privacidade e SeguranÃ§a */}
+            <ConfigSection title="Privacidade e SeguranÃ§a" icon="lock">
               <div className="space-y-3">
                 <Button
                   variant="secondary"
@@ -361,8 +361,8 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* Seção: Dados e Exportação */}
-            <ConfigSection title="Dados e Exportação" icon="archive">
+            {/* SeÃ§Ã£o: Dados e ExportaÃ§Ã£o */}
+            <ConfigSection title="Dados e ExportaÃ§Ã£o" icon="archive">
               <div className="space-y-3">
                 <Button
                   variant="secondary"
@@ -374,16 +374,16 @@ export default function ConfiguracoesPage() {
                   Exportar meus dados (JSON)
                 </Button>
                 <Alert>
-                  Seus dados serão baixados em formato JSON
+                  Seus dados serÃ£o baixados em formato JSON
                 </Alert>
               </div>
             </ConfigSection>
 
-            {/* Seção: Sobre */}
+            {/* SeÃ§Ã£o: Sobre */}
             <ConfigSection title="Sobre o Sistema" icon="info">
               <div className="space-y-2 text-sm text-app-muted">
                 <p>
-                  <strong className="text-app-fg">Versão:</strong> 1.2.0 (Beta)
+                  <strong className="text-app-fg">Versão:</strong> 1.3.0 (Beta)
                 </p>
                 <p>
                   <strong className="text-app-fg">Sistema:</strong> Jujutsu Kaisen RPG - Assistente Digital
@@ -403,7 +403,7 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* Botão de Salvar */}
+            {/* BotÃ£o de Salvar */}
             <div className="flex justify-end">
               <Button
                 variant="primary"
@@ -411,7 +411,7 @@ export default function ConfiguracoesPage() {
                 disabled={salvando}
               >
                 <Icon name="check" className="w-4 h-4 mr-2" />
-                {salvando ? 'Salvando...' : 'Salvar Preferências'}
+                {salvando ? 'Salvando...' : 'Salvar PreferÃªncias'}
               </Button>
             </div>
 
@@ -437,7 +437,7 @@ export default function ConfiguracoesPage() {
                   Excluir conta permanentemente
                 </Button>
                 <Alert variant="error">
-                  <strong>Atenção:</strong> Esta ação não pode ser desfeita.
+                  <strong>AtenÃ§Ã£o:</strong> Esta aÃ§Ã£o nÃ£o pode ser desfeita.
                 </Alert>
               </div>
             </ConfigSection>
@@ -445,7 +445,7 @@ export default function ConfiguracoesPage() {
         </div>
       </main>
 
-      {/* ✅ Modal de confirmação reutilizável */}
+      {/* âœ… Modal de confirmaÃ§Ã£o reutilizÃ¡vel */}
       <ConfirmDialog
         isOpen={isOpen}
         onClose={handleClose}
@@ -457,7 +457,7 @@ export default function ConfiguracoesPage() {
         variant={options?.variant}
       />
 
-      {/* Modais específicos (mantidos porque precisam de input) */}
+      {/* Modais especÃ­ficos (mantidos porque precisam de input) */}
       <ModalAlterarSenha
         isOpen={modalSenhaOpen}
         onClose={() => setModalSenhaOpen(false)}
@@ -472,3 +472,4 @@ export default function ConfiguracoesPage() {
     </>
   );
 }
+

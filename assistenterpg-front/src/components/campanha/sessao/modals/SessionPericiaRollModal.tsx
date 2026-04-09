@@ -115,6 +115,12 @@ export function SessionPericiaRollModal({
   }, [payloadAtual, resultadoCalculado]);
 
   const facesExibidas = payloadAtual?.faces ?? 20;
+  const destaqueNatural = useMemo(() => {
+    if (!mostrandoResultado || valorDado === null) return null;
+    if (valorDado === facesExibidas) return 'crit';
+    if (valorDado === 1) return 'fumble';
+    return null;
+  }, [facesExibidas, mostrandoResultado, valorDado]);
   const danoDisponivel = Boolean(habilidadeContext?.dano);
   const podeRolarDano =
     Boolean(onRolarDano) &&
@@ -284,11 +290,20 @@ export function SessionPericiaRollModal({
               </Button>
             </div>
           ) : null}
-          <div className="session-roll-modal__dice-card">
+          <div
+            className={`session-roll-modal__dice-card${
+              destaqueNatural === 'crit'
+                ? ' session-roll-modal__dice-card--crit'
+                : destaqueNatural === 'fumble'
+                  ? ' session-roll-modal__dice-card--fumble'
+                  : ''
+            }`}
+          >
             <DiceScene
               faces={facesExibidas}
               isRolling={Boolean(payloadAtual) && animarEsteIndice && !mostrandoResultado}
               result={payloadAtual ? valorDado : null}
+              highlight={destaqueNatural}
               onRollComplete={handleRollComplete}
               reducedMotion={!animacaoAtiva}
               rollDurationMs={duracaoAnimacao}
