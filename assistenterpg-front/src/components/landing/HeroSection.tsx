@@ -12,7 +12,7 @@ import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 const stats = [
   { value: '50+', label: 'Técnicas inatas' },
   { value: '100+', label: 'Equipamentos e relíquias' },
-  { value: 'Sem fim', label: 'Combates possíveis' },
+  { value: '2', label: 'Suplementos oficiais' },
 ];
 
 export function HeroSection() {
