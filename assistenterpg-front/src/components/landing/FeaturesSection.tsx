@@ -59,7 +59,7 @@ export function FeaturesSection() {
 
         <div className="landing-features">
           {features.map((feature) => (
-            <div key={feature.title} className="landing-feature">
+            <div key={feature.title} className="landing-feature landing-card-pop">
               <div className="landing-feature__icon">
                 <Icon name={feature.icon} className="h-5 w-5" />
               </div>

@@ -31,7 +31,7 @@ export function AboutSection() {
           </div>
 
           <div className="landing-about__media">
-            <div className="landing-about__image">
+            <div className="landing-about__image landing-card-pop">
               <Image
                 src={landingImages.about}
                 alt="Equipe de protagonistas"
@@ -42,7 +42,7 @@ export function AboutSection() {
             </div>
             <div className="landing-about__stats">
               {stats.map((item) => (
-                <div key={item.label} className="landing-about__stat">
+                <div key={item.label} className="landing-about__stat landing-card-pop">
                   <Icon name={item.icon} className="h-5 w-5 text-app-primary" />
                   <div>
                     <p>{item.value}</p>

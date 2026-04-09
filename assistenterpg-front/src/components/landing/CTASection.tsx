@@ -11,8 +11,8 @@ export function CTASection() {
     <section id="cta" className="landing-cta">
       <div className="landing-cta__media">
         <Image
-          src={landingImages.simboloEscola}
-          alt="S?mbolo da escola"
+          src={landingImages.logoJjkJapones}
+          alt="Logo de Jujutsu Kaisen"
           fill
           sizes="480px"
           className="object-contain"
@@ -20,7 +20,7 @@ export function CTASection() {
       </div>
 
       <div className="landing-cta__content">
-        <div className="landing-cta__badge">
+        <div className="landing-cta__badge landing-float">
           <Icon name="rank" className="h-5 w-5" />
         </div>
         <h2>
@@ -32,7 +32,7 @@ export function CTASection() {
           fluida e todo mundo acompanha.
         </p>
         <Link href="/auth/register">
-          <Button size="lg" className="landing-cta__button">
+          <Button size="lg" className="landing-cta__button landing-pulse">
             Come?ar agora
             <Icon name="forward" className="h-5 w-5" />
           </Button>

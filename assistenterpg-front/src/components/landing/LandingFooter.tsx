@@ -10,8 +10,8 @@ export function LandingFooter() {
         <div className="landing-footer__brand">
           <div className="landing-footer__logo">
             <Image
-              src={landingImages.logoJjkJapones}
-              alt="Jujutsu Kaisen"
+              src={landingImages.simboloEscola}
+              alt="S?mbolo da escola"
               fill
               sizes="56px"
               className="object-contain"

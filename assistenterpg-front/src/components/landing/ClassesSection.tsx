@@ -68,7 +68,7 @@ export function ClassesSection() {
               key={item.id}
               size="sm"
               variant={activeClass.id === item.id ? 'primary' : 'secondary'}
-              className="landing-classes__tab"
+              className="landing-classes__tab landing-card-pop"
               onClick={() => setActiveClass(item)}
             >
               {item.name}
@@ -77,7 +77,7 @@ export function ClassesSection() {
         </div>
 
         <div className="landing-classes__content">
-          <div className="landing-classes__media">
+          <div className="landing-classes__media landing-card-pop">
             <Image
               src={activeClass.image}
               alt={activeClass.name}

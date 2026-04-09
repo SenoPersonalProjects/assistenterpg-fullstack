@@ -26,8 +26,18 @@ export function HeroSection() {
         <div className="landing-hero__overlay" />
       </div>
 
+      <div className="landing-hero__watermark">
+        <Image
+          src={landingImages.logoJjkJapones}
+          alt="Logo de Jujutsu Kaisen"
+          fill
+          sizes="320px"
+          className="object-contain"
+        />
+      </div>
+
       <div className="landing-hero__content">
-        <div className="landing-hero__badge">
+        <div className="landing-hero__badge landing-float">
           <Icon name="sparkles" className="h-4 w-4" />
           Sistema completo de Jujutsu Kaisen RPG
         </div>
@@ -45,7 +55,7 @@ export function HeroSection() {
 
         <div className="landing-hero__actions">
           <Link href="/auth/register">
-            <Button size="lg" className="landing-hero__primary">
+            <Button size="lg" className="landing-hero__primary landing-pulse">
               <Icon name="add" className="h-5 w-5" />
               Criar conta gr?tis
             </Button>
@@ -60,22 +70,12 @@ export function HeroSection() {
 
         <div className="landing-hero__stats">
           {stats.map((item) => (
-            <div key={item.label} className="landing-hero__stat">
+            <div key={item.label} className="landing-hero__stat landing-card-pop">
               <span>{item.value}</span>
               <p>{item.label}</p>
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="landing-hero__logo">
-        <Image
-          src={landingImages.logoJjkJapones}
-          alt="Logo em japon?s"
-          fill
-          sizes="120px"
-          className="object-contain"
-        />
       </div>
     </section>
   );

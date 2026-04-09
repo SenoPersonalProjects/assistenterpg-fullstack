@@ -33,8 +33,8 @@ export function LandingNavbar() {
         <a href="#hero" className="landing-navbar__brand" aria-label="Voltar ao in?cio">
           <div className="landing-navbar__logo">
             <Image
-              src={landingImages.logoJjkJapones}
-              alt="Jujutsu Kaisen"
+              src={landingImages.simboloEscola}
+              alt="S?mbolo da escola"
               fill
               sizes="40px"
               className="object-contain"
