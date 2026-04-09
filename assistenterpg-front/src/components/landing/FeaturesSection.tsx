@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -12,25 +12,25 @@ const features: Array<{ icon: IconName; title: string; description: string }> = 
     icon: 'characters',
     title: 'Personagens completos',
     description:
-      'Monte fichas com atributos, trilhas, tecnicas, poderes, derivados e escolhas guiadas pelo sistema.',
+      'Monte fichas com atributos, trilhas, técnicas, poderes, derivados e escolhas guiadas pelo sistema.',
   },
   {
     icon: 'campaign',
-    title: 'Campanhas e sessoes',
+    title: 'Campanhas e sessões',
     description:
-      'Gerencie membros, personagens vinculados, iniciativa, turnos, chat da mesa e eventos da sessao.',
+      'Gerencie membros, personagens vinculados, iniciativa, turnos, chat da mesa e eventos da sessão.',
   },
   {
     icon: 'rules',
-    title: 'Compendio consultavel',
+    title: 'Compêndio consultável',
     description:
-      'Acesse as regras, classes, tecnicas e conteudo estruturado sem precisar sair do site.',
+      'Acesse as regras, classes, técnicas e conteúdo estruturado sem precisar sair do site.',
   },
   {
     icon: 'book',
     title: 'Suplementos e homebrews',
     description:
-      'Ative conteudos extras, publique material proprio e expanda a sua experiência sem quebrar a base do sistema.',
+      'Ative conteúdos extras, publique material próprio e expanda a sua experiência sem quebrar a base do sistema.',
   },
 ];
 
@@ -51,7 +51,7 @@ export function FeaturesSection() {
             <div className="landing-features-layout__image">
               <Image
                 src={landingImages.featuresSchool}
-                alt="Escola tecnica Jujutsu"
+                alt="Escola técnica Jujutsu"
                 fill
                 sizes="(max-width: 1024px) 100vw, 42vw"
                 className="landing-features-layout__image-file"
@@ -61,11 +61,11 @@ export function FeaturesSection() {
             <motion.div className="landing-features-layout__copy" variants={landingFadeUp}>
               <span className="landing-section__eyebrow">Recursos</span>
               <h2 className="landing-section__title">
-                O site cobre o ciclo inteiro da mesa, da criacao ao controle da sessao.
+                O site cobre o ciclo inteiro da mesa, da criação ao controle da sessão.
               </h2>
               <p className="landing-section__description">
-                Nao e so uma vitrine de fichas. O sistema foi construido para criar personagens,
-                consultar regras, administrar campanhas, usar ameacas e conduzir a partida em tempo real.
+                Não é só uma vitrine de fichas. O sistema foi construído para criar personagens,
+                consultar regras, administrar campanhas, usar ameaças e conduzir a partida em tempo real.
               </p>
             </motion.div>
           </motion.div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -22,7 +22,7 @@ export function VillainsSection() {
           <motion.div className="landing-villains__media" variants={landingScaleIn}>
             <Image
               src={landingImages.villains}
-              alt="Maldicoes de desastre reunidas"
+              alt="Maldições de desastre reunidas"
               fill
               sizes="(max-width: 1024px) 100vw, 52vw"
               className="landing-villains__image"
@@ -31,12 +31,12 @@ export function VillainsSection() {
           </motion.div>
 
           <motion.div className="landing-villains__copy" variants={landingFadeUp}>
-            <span className="landing-section__eyebrow">Ameacas</span>
+            <span className="landing-section__eyebrow">Ameaças</span>
             <h2 className="landing-section__title">
-              Ameacas, maldições e NPCs também recebem atenção: o sistema facilita o gerenciamento deles de forma intuitiva
+              Ameaças, maldições e NPCs também recebem atenção: o sistema facilita o gerenciamento deles de forma intuitiva.
             </h2>
             <p className="landing-section__description">
-              O sistema ajuda a consultar criaturas, organizar confrontos e levar para a sessao antagonistas 
+              O sistema ajuda a consultar criaturas, organizar confrontos e levar para a sessão antagonistas
               que realmente sustentam a narrativa, lidando com os detalhes complicados por você.
             </p>
           </motion.div>

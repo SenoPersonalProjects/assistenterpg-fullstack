@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
@@ -22,32 +22,32 @@ const classes: LandingClass[] = [
   {
     id: 'combatente',
     name: 'Combatente',
-    subtitle: 'Confronto direto e pressao ofensiva',
+    subtitle: 'Confronto direto e pressão ofensiva',
     description:
       'Especialista em combate corpo a corpo, usa energia de forma agressiva para amplificar golpes e manter a linha de frente sob controle.',
     image: landingImages.classCombatente,
     imagePosition: '50% 20%',
-    traits: ['Ataque Especial', 'Aniquilador e Guerreiro', 'Pressao corpo a corpo'],
+    traits: ['Ataque Especial', 'Aniquilador e Guerreiro', 'Pressão corpo a corpo'],
   },
   {
     id: 'sentinela',
     name: 'Sentinela',
-    subtitle: 'Controle de campo e combate tatico',
+    subtitle: 'Controle de campo e combate tático',
     description:
-      'Atua em media e longa distancia, organiza a luta e controla o campo para responder com precisao ao que acontece na cena.',
+      'Atua em média e longa distância, organiza a luta e controla o campo para responder com precisão ao que acontece na cena.',
     image: landingImages.classSentinela,
     imagePosition: '50% 24%',
-    traits: ['Aprimorado', 'Atirador de Elite e Conduite', 'Leitura tatica'],
+    traits: ['Aprimorado', 'Atirador de Elite e Conduíte', 'Leitura tática'],
   },
   {
     id: 'especialista',
     name: 'Especialista',
-    subtitle: 'Versatilidade, suporte e pericias',
+    subtitle: 'Versatilidade, suporte e perícias',
     description:
-      'Classe mais flexivel do sistema, normalmente com os aspectos mais fora da curva, trilhas focadas em curas, barreiras, truques de Jujutsu, itens e solucoes criativas.',
+      'Classe mais flexível do sistema, normalmente com os aspectos mais fora da curva, trilhas focadas em curas, barreiras, truques de Jujutsu, itens e soluções criativas.',
     image: landingImages.classEspecialista,
     imagePosition: '48% 18%',
-    traits: ['Perito', 'Medico de Campo e Tecnico', 'Barreiras e suporte'],
+    traits: ['Perito', 'Médico de Campo e Técnico', 'Barreiras e suporte'],
   },
 ];
 
@@ -70,10 +70,10 @@ export function ClassesSection() {
             Classes
           </motion.span>
           <motion.h2 className="landing-section__title" variants={landingFadeUp}>
-            Tres classes definem como seu personagem entra em cena e sustenta a campanha.
+            Três classes definem como seu personagem entra em cena e sustenta a campanha.
           </motion.h2>
           <motion.p className="landing-section__description" variants={landingFadeUp}>
-            Combatente, Sentinela e Especialista mudam a leitura do combate, das pericias e da
+            Combatente, Sentinela e Especialista mudam a leitura do combate, das perícias e da
             forma como o Jujutsu aparece na mesa.
           </motion.p>
         </motion.div>

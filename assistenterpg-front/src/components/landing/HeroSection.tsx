@@ -10,9 +10,9 @@ import { landingImages } from './landingAssets';
 import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
 const stats = [
-  { value: '50+', label: 'Tecnicas inatas' },
-  { value: '100+', label: 'Equipamentos e reliquias' },
-  { value: 'Sem fim', label: 'Combates possiveis' },
+  { value: '50+', label: 'Técnicas inatas' },
+  { value: '100+', label: 'Equipamentos e relíquias' },
+  { value: 'Sem fim', label: 'Combates possíveis' },
 ];
 
 export function HeroSection() {
@@ -58,19 +58,19 @@ export function HeroSection() {
           </motion.div>
 
           <motion.h1 className="landing-hero__title" variants={landingFadeUp}>
-            Libere sua energia amaldicoada sem se preocupar com detalhes.
+            Libere sua energia amaldiçoada sem se preocupar com detalhes.
           </motion.h1>
 
           <motion.p className="landing-hero__description" variants={landingFadeUp}>
-            Monte personagens, tecnicas, inventario e sessoes em um fluxo que parece parte do
-            proprio universo de Jujutsu Kaisen. Deixe o sistema cuidar das regras e foque na diversao.
+            Monte personagens, técnicas, inventário e sessões em um fluxo que parece parte do
+            próprio universo de Jujutsu Kaisen. Deixe o sistema cuidar das regras e foque na diversão.
           </motion.p>
 
           <motion.div className="landing-hero__actions" variants={landingFadeUp}>
             <Link href="/auth/register">
               <Button size="lg" className="landing-hero__primary">
                 <Icon name="add" className="h-5 w-5" />
-                Comecar agora
+                Começar agora
               </Button>
             </Link>
             <Link href="/auth/login">
@@ -126,9 +126,9 @@ export function HeroSection() {
           </div>
 
           <div className="landing-hero__caption">
-            <span className="landing-hero__caption-label">Ritmo cinematografico</span>
+            <span className="landing-hero__caption-label">Ritmo cinematográfico</span>
             <p>
-              Todos os conceitos principais de Jujutsu reunidos no sistema em uma experiencia mais viva para o
+              Todos os conceitos principais de Jujutsu reunidos no sistema em uma experiência mais viva para o
               mestre e para o grupo.
             </p>
           </div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -8,9 +8,9 @@ import { LandingSectionDivider } from './LandingSectionDivider';
 import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
 const stats = [
-  { icon: 'rules', value: 'Compendio vivo', label: 'Regras, tecnicas e consultas em um so lugar' },
-  { icon: 'campaign', value: 'Sessao fluida', label: 'Cena, iniciativa, chat e rolagens conectados' },
-  { icon: 'inventory', value: 'Ficha completa', label: 'Derivados, inventario e recursos sem improviso' },
+  { icon: 'rules', value: 'Compêndio vivo', label: 'Regras, técnicas e consultas em um só lugar' },
+  { icon: 'campaign', value: 'Sessão fluida', label: 'Cena, iniciativa, chat e rolagens conectados' },
+  { icon: 'inventory', value: 'Ficha completa', label: 'Derivados, inventário e recursos sem improviso' },
 ] as const;
 
 export function AboutSection() {
@@ -29,15 +29,15 @@ export function AboutSection() {
           <motion.div className="landing-about__text" variants={landingFadeUp}>
             <span className="landing-section__eyebrow">Sobre o sistema</span>
             <h2 className="landing-section__title">
-              Um assistente para campanhas que precisam de organizacao sem perder o clima da cena.
+              Um assistente para campanhas que precisam de organização sem perder o clima da cena.
             </h2>
             <p className="landing-section__description">
-              O Assistente RPG junta o que a mesa realmente usa durante a campanha: criacao de
-              personagem, tecnicas, inventario, compendio, ameaças, campanhas e sessoes com chat e
+              O Assistente RPG junta o que a mesa realmente usa durante a campanha: criação de
+              personagem, técnicas, inventário, compêndio, ameaças, campanhas e sessões com chat e
               rolagem integrada.
             </p>
             <p className="landing-section__description">
-              Em vez de espalhar informacao em varias abas, o fluxo do sistema centraliza o 
+              Em vez de espalhar informação em várias abas, o fluxo do sistema centraliza o
               máximo de coisas relevantes para o mestre e os jogadores.
             </p>
           </motion.div>

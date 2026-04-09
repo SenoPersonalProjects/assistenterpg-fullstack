@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -44,13 +44,13 @@ export function CTASection() {
 
           <motion.p variants={landingFadeUp}>
             Crie sua conta, organize fichas, conduza cenas intensas e transforme a mesa em algo
-            de outro nível desde a primeira sessao.
+            de outro nível desde a primeira sessão.
           </motion.p>
 
           <motion.div variants={landingFadeUp}>
             <Link href="/auth/register">
               <Button size="lg" className="landing-cta__button">
-                Comecar agora
+                Começar agora
                 <Icon name="forward" className="h-5 w-5" />
               </Button>
             </Link>

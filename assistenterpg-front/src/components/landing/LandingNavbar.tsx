@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -9,11 +9,11 @@ import { Icon } from '@/components/ui/Icon';
 import { landingImages } from './landingAssets';
 
 const links = [
-  { label: 'Inicio', href: '#hero' },
+  { label: 'Início', href: '#hero' },
   { label: 'Sobre', href: '#about' },
   { label: 'Recursos', href: '#features' },
   { label: 'Classes', href: '#classes' },
-  { label: 'Ameacas', href: '#villains' },
+  { label: 'Ameaças', href: '#villains' },
 ] as const;
 
 export function LandingNavbar() {
@@ -33,11 +33,11 @@ export function LandingNavbar() {
   return (
     <nav className={`landing-navbar ${scrolled ? 'landing-navbar--scrolled' : ''}`}>
       <div className="landing-navbar__content">
-        <a href="#hero" className="landing-navbar__brand" aria-label="Voltar ao inicio">
+        <a href="#hero" className="landing-navbar__brand" aria-label="Voltar ao início">
           <div className="landing-navbar__logo">
             <Image
               src={landingImages.simboloEscola}
-              alt="Simbolo da escola"
+              alt="Símbolo da escola"
               fill
               sizes="44px"
               className="object-contain"
@@ -57,7 +57,7 @@ export function LandingNavbar() {
           ))}
           <Link href="/auth/register">
             <Button size="sm" className="landing-navbar__cta">
-              Comecar agora
+              Começar agora
             </Button>
           </Link>
         </div>
@@ -93,7 +93,7 @@ export function LandingNavbar() {
             ))}
             <Link href="/auth/register" onClick={() => setMenuAberto(false)}>
               <Button size="sm" className="landing-navbar__mobile-cta">
-                Comecar agora
+                Começar agora
               </Button>
             </Link>
           </motion.div>
