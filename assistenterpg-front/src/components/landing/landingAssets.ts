@@ -1,19 +1,25 @@
 import gojoArt from '../../../imagens/gojo art.jpg';
-import sukunaArt from '../../../imagens/sukuna art.jpg';
-import sukunaArtAlt from '../../../imagens/sukuna art 2.jpg';
 import chosoArt from '../../../imagens/choso art.jpg';
 import mahitoArt from '../../../imagens/mahito art.jpg';
 import logoJjkJapones from '../../../imagens/outras/logo jjk em japones.png';
 import simboloEscola from '../../../imagens/outras/simbolo da escola.png';
-import trupeJujutsu from '../../../imagens/outras/trupe do jujutsu.png';
+import escolaTecnicaJujutsu from '../../../imagens/novos/escola tecnica jujutsu.png';
+import hollowPurpleGif from '../../../imagens/novos/hollow purple.gif';
+import maldicoesDesastres from '../../../imagens/novos/maldicoes desastres.png';
+import malevolentShrineGif from '../../../imagens/novos/malevolent shrine.gif';
+import trioGojoJovem from '../../../imagens/novos/trio do gojo jovem.png';
 
 export const landingImages = {
-  hero: gojoArt,
-  about: trupeJujutsu,
-  featuresLeft: mahitoArt,
-  featuresRight: chosoArt,
-  classesPrimary: sukunaArtAlt,
-  classesSecondary: sukunaArt,
+  heroGif: hollowPurpleGif,
+  heroWatermark: simboloEscola,
+  aboutYouth: trioGojoJovem,
+  featuresSchool: escolaTecnicaJujutsu,
+  villains: maldicoesDesastres,
+  ctaGif: malevolentShrineGif,
+  classFeiticeiro: gojoArt,
+  classUsuario: mahitoArt,
+  classEspirito: maldicoesDesastres,
+  classCelestial: chosoArt,
   logoJjkJapones,
   simboloEscola,
-};
+} as const;

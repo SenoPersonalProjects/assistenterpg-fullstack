@@ -11,33 +11,35 @@ export function LandingFooter() {
           <div className="landing-footer__logo">
             <Image
               src={landingImages.simboloEscola}
-              alt="Símbolo da escola"
+              alt="Simbolo da escola"
               fill
               sizes="56px"
               className="object-contain"
             />
           </div>
           <div>
-            <div className="text-sm font-semibold text-app-fg">Assistente RPG</div>
-            <div className="text-xs text-app-muted">Jujutsu Kaisen System</div>
+            <div className="landing-footer__brand-title">Assistente RPG</div>
+            <div className="landing-footer__brand-subtitle">Jujutsu Kaisen Standalone</div>
           </div>
         </div>
 
         <div className="landing-footer__links">
-          <a href="#hero">Início</a>
+          <a href="#hero">Inicio</a>
           <a href="#about">Sobre</a>
           <a href="#features">Recursos</a>
+          <a href="#classes">Classes</a>
+          <a href="#villains">Ameacas</a>
           <Link href="/auth/login">Login</Link>
         </div>
 
         <div className="landing-footer__cta">
           <Icon name="sparkles" className="h-4 w-4" />
-          <span>Feito por fãs, para fãs.</span>
+          <span>Feito por fas, para fas.</span>
         </div>
       </div>
 
       <p className="landing-footer__disclaimer">
-        Não possuo os direitos das imagens utilizadas. Projeto sem fins lucrativos.
+        Nao possuo os direitos das imagens utilizadas. Projeto sem fins lucrativos.
       </p>
     </footer>
   );

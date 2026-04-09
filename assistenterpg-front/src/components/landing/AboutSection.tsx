@@ -1,58 +1,72 @@
+'use client';
+
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Icon } from '@/components/ui/Icon';
 import { landingImages } from './landingAssets';
+import { LandingSectionDivider } from './LandingSectionDivider';
+import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
 const stats = [
-  { icon: 'swords', value: '50+', label: 'Técnicas amaldiçoadas' },
-  { icon: 'characters', value: '100+', label: 'Jogadores ativos' },
-  { icon: 'book', value: '200+', label: 'Páginas de conteúdo' },
-  { icon: 'sparkles', value: '∞', label: 'Possibilidades' },
+  { icon: 'swords', value: '50+', label: 'Tecnicas amaldicoadas prontas' },
+  { icon: 'characters', value: 'Mesa viva', label: 'Fluxo pensado para mestre e jogadores' },
+  { icon: 'book', value: 'Campanha', label: 'Tudo fica no mesmo lugar, sem atrito' },
 ] as const;
 
 export function AboutSection() {
   return (
     <section id="about" className="landing-section">
       <div className="landing-section__content">
-        <div className="landing-about">
-          <div className="landing-about__text">
+        <LandingSectionDivider />
+
+        <motion.div
+          className="landing-about"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.22 }}
+          variants={landingStagger}
+        >
+          <motion.div className="landing-about__text" variants={landingFadeUp}>
             <span className="landing-section__eyebrow">Sobre o sistema</span>
             <h2 className="landing-section__title">
-              Seu guia para o mundo dos
-              <span className="landing-section__title-accent"> feiticeiros Jujutsu</span>
+              Um assistente para mesas que querem peso visual, ritmo e memoria.
             </h2>
             <p className="landing-section__description">
-              Um assistente completo para organizar mesas de RPG inspiradas em Jujutsu Kaisen. Tudo
-              pronto para você construir personagens, evoluir técnicas e conduzir sessões com ritmo.
+              O sistema foi montado para organizar o caos da campanha sem matar a atmosfera. Fichas,
+              tecnicas, itens e sessoes continuam acessiveis enquanto a mesa mantem o impacto de uma
+              cena forte.
             </p>
             <p className="landing-section__description">
-              Do planejamento à rolagem, o fluxo fica leve e visual. Compartilhe campanhas, crie
-              inventários e mantenha as regras acessíveis para todo o grupo.
+              Em vez de parecer uma ferramenta fria, a landing passa a vender o que a mesa sente:
+              tensao, estilo e energia amaldicoada em estado puro.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="landing-about__media">
-            <div className="landing-about__image landing-card-pop">
+          <motion.div className="landing-about__media" variants={landingScaleIn}>
+            <div className="landing-about__image">
               <Image
-                src={landingImages.about}
-                alt="Equipe de protagonistas"
+                src={landingImages.aboutYouth}
+                alt="Trio jovem de feiticeiros"
                 fill
-                sizes="(max-width: 768px) 100vw, 40vw"
-                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 48vw"
+                className="landing-about__image-file"
               />
+              <div className="landing-about__image-overlay" />
             </div>
-            <div className="landing-about__stats">
+
+            <motion.div className="landing-about__stats" variants={landingStagger}>
               {stats.map((item) => (
-                <div key={item.label} className="landing-about__stat landing-card-pop">
+                <motion.div key={item.label} className="landing-about__stat" variants={landingScaleIn}>
                   <Icon name={item.icon} className="h-5 w-5 text-app-primary" />
                   <div>
                     <p>{item.value}</p>
                     <span>{item.label}</span>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
-          </div>
-        </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

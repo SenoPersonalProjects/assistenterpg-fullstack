@@ -1,43 +1,32 @@
+'use client';
+
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { landingImages } from './landingAssets';
+import { LandingSectionDivider } from './LandingSectionDivider';
+import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
 const features: Array<{ icon: IconName; title: string; description: string }> = [
   {
     icon: 'energy',
-    title: 'Energia amaldiçoada',
-    description:
-      'Controle custos, reforços e liberações de energia para manter o combate equilibrado.',
+    title: 'Energia amaldicoada',
+    description: 'Custos, reforcos e efeitos ficam claros sem quebrar o clima da cena.',
   },
   {
     icon: 'technique',
-    title: 'Técnicas inatas',
-    description:
-      'Catálogo completo e pronto para evoluir habilidades com variações e requisitos claros.',
+    title: 'Tecnicas inatas',
+    description: 'Catalogos e variacoes prontos para dar profundidade sem virar bagunca.',
   },
   {
     icon: 'domain',
-    title: 'Expansão de domínio',
-    description:
-      'Regras épicas para a técnica suprema dos feiticeiros, com efeitos narrativos marcantes.',
+    title: 'Expansao de dominio',
+    description: 'Momentos de climax ganham peso com recursos que valorizam o confronto.',
   },
   {
     icon: 'aim',
-    title: 'Combate estratégico',
-    description:
-      'Iniciativa, reações e rolagens calibradas para criar momentos de tensão.',
-  },
-  {
-    icon: 'shield-defense',
-    title: 'Votos e restrições',
-    description:
-      'Defina limitações que fortalecem seu personagem e sustentam o drama da mesa.',
-  },
-  {
-    icon: 'rank',
-    title: 'Progressão de grau',
-    description:
-      'Evolua de Grau 4 até Grau Especial com missões, conquistas e recompensas.',
+    title: 'Combate com ritmo',
+    description: 'Rolagens, iniciativa e decisoes funcionam com leitura rapida e presenca visual.',
   },
 ];
 
@@ -45,48 +34,50 @@ export function FeaturesSection() {
   return (
     <section id="features" className="landing-section landing-section--alt">
       <div className="landing-section__content">
-        <div className="landing-section__header">
-          <span className="landing-section__eyebrow">Recursos</span>
-          <h2 className="landing-section__title">
-            Tudo o que um
-            <span className="landing-section__title-accent"> feiticeiro precisa</span>
-          </h2>
-          <p className="landing-section__description">
-            Mecânicas profundas, ferramentas visuais e rolagens prontas para apoiar campanhas de
-            qualquer tamanho.
-          </p>
-        </div>
+        <LandingSectionDivider />
 
-        <div className="landing-features">
-          {features.map((feature) => (
-            <div key={feature.title} className="landing-feature landing-card-pop">
-              <div className="landing-feature__icon">
-                <Icon name={feature.icon} className="h-5 w-5" />
-              </div>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
+        <motion.div
+          className="landing-features-layout"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={landingStagger}
+        >
+          <motion.div className="landing-features-layout__media" variants={landingScaleIn}>
+            <div className="landing-features-layout__image">
+              <Image
+                src={landingImages.featuresSchool}
+                alt="Escola tecnica Jujutsu"
+                fill
+                sizes="(max-width: 1024px) 100vw, 42vw"
+                className="landing-features-layout__image-file"
+              />
+              <div className="landing-features-layout__image-overlay" />
             </div>
-          ))}
-        </div>
-      </div>
+            <motion.div className="landing-features-layout__copy" variants={landingFadeUp}>
+              <span className="landing-section__eyebrow">Recursos</span>
+              <h2 className="landing-section__title">
+                Estrutura suficiente para sustentar uma campanha sem matar a atmosfera.
+              </h2>
+              <p className="landing-section__description">
+                O mundo de Jujutsu pede impacto visual e clareza mecanica. Aqui, os dois convivem
+                no mesmo espaco.
+              </p>
+            </motion.div>
+          </motion.div>
 
-      <div className="landing-feature__decor landing-feature__decor--left">
-        <Image
-          src={landingImages.featuresLeft}
-          alt=""
-          fill
-          sizes="240px"
-          className="object-cover"
-        />
-      </div>
-      <div className="landing-feature__decor landing-feature__decor--right">
-        <Image
-          src={landingImages.featuresRight}
-          alt=""
-          fill
-          sizes="240px"
-          className="object-cover"
-        />
+          <motion.div className="landing-features" variants={landingStagger}>
+            {features.map((feature) => (
+              <motion.div key={feature.title} className="landing-feature" variants={landingScaleIn}>
+                <div className="landing-feature__icon">
+                  <Icon name={feature.icon} className="h-5 w-5" />
+                </div>
+                <h3>{feature.title}</h3>
+                <p>{feature.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );
