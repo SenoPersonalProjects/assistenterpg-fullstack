@@ -8,9 +8,9 @@ import { LandingSectionDivider } from './LandingSectionDivider';
 import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
 const stats = [
-  { icon: 'swords', value: '50+', label: 'Tecnicas amaldicoadas prontas' },
-  { icon: 'characters', value: 'Mesa viva', label: 'Fluxo pensado para mestre e jogadores' },
-  { icon: 'book', value: 'Campanha', label: 'Tudo fica no mesmo lugar, sem atrito' },
+  { icon: 'rules', value: 'Compendio vivo', label: 'Regras, tecnicas e consultas em um so lugar' },
+  { icon: 'campaign', value: 'Sessao fluida', label: 'Cena, iniciativa, chat e rolagens conectados' },
+  { icon: 'inventory', value: 'Ficha completa', label: 'Derivados, inventario e recursos sem improviso' },
 ] as const;
 
 export function AboutSection() {
@@ -29,16 +29,16 @@ export function AboutSection() {
           <motion.div className="landing-about__text" variants={landingFadeUp}>
             <span className="landing-section__eyebrow">Sobre o sistema</span>
             <h2 className="landing-section__title">
-              Um assistente para mesas que querem peso visual, ritmo e memoria.
+              Um assistente para campanhas que precisam de organizacao sem perder o clima da cena.
             </h2>
             <p className="landing-section__description">
-              O sistema foi montado para organizar o caos da campanha sem matar a atmosfera. Fichas,
-              tecnicas, itens e sessoes continuam acessiveis enquanto a mesa mantem o impacto de uma
-              cena forte.
+              O Assistente RPG junta o que a mesa realmente usa durante a campanha: criacao de
+              personagem, tecnicas, inventario, compendio, ameacas, campanhas e sessoes com chat e
+              rolagem integrada.
             </p>
             <p className="landing-section__description">
-              Em vez de parecer uma ferramenta fria, a landing passa a vender o que a mesa sente:
-              tensao, estilo e energia amaldicoada em estado puro.
+              Em vez de espalhar informacao em varias abas, o fluxo do sistema centraliza preparacao,
+              consulta e conducao da partida para mestre e jogadores.
             </p>
           </motion.div>
 

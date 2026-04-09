@@ -10,40 +10,31 @@ import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
 const classes = [
   {
-    id: 'feiticeiro',
-    name: 'Feiticeiro Jujutsu',
-    subtitle: 'Manipulador de energia amaldicoada',
+    id: 'combatente',
+    name: 'Combatente',
+    subtitle: 'Confronto direto e pressao ofensiva',
     description:
-      'Combina tecnica, dominio e presenca em combate para decidir o ritmo da cena com precisao.',
+      'Especialista em combate corpo a corpo, usa PE e EA de forma agressiva para amplificar golpes e manter a linha de frente sob controle.',
     image: landingImages.classFeiticeiro,
-    traits: ['Tecnica inata', 'Expansao de dominio', 'Reforco de energia'],
+    traits: ['Ataque Especial', 'Aniquilador e Guerreiro', 'Pressao corpo a corpo'],
   },
   {
-    id: 'usuario',
-    name: 'Usuario de maldicoes',
-    subtitle: 'Mestre das artes proibidas',
+    id: 'sentinela',
+    name: 'Sentinela',
+    subtitle: 'Controle de campo e combate tatico',
     description:
-      'Segue um caminho mais sombrio, usando pactos, transgressao e brutalidade para romper limites.',
-    image: landingImages.classUsuario,
-    traits: ['Pactos sombrios', 'Tecnicas proibidas', 'Manipulacao'],
-  },
-  {
-    id: 'espirito',
-    name: 'Espirito amaldicoado',
-    subtitle: 'Nascido do medo humano',
-    description:
-      'Uma presenca hostil moldada por emocoes negativas, feita para transformar o cenario em ameaca.',
-    image: landingImages.classEspirito,
-    traits: ['Poder inato', 'Regeneracao', 'Dominio natural'],
-  },
-  {
-    id: 'celestial',
-    name: 'Corpo celestial',
-    subtitle: 'Recipiente de potencia extrema',
-    description:
-      'Fisico, resistencia e explosao de poder viram o centro da experiencia para quem quer presenca total.',
+      'Atua em media e longa distancia, organiza a luta e manipula o grau das tecnicas para responder com precisao ao que acontece na cena.',
     image: landingImages.classCelestial,
-    traits: ['Fisico superior', 'Resistencia a energia', 'Potencial oculto'],
+    traits: ['Aprimorado', 'Atirador de Elite e Conduite', 'Leitura tatica'],
+  },
+  {
+    id: 'especialista',
+    name: 'Especialista',
+    subtitle: 'Versatilidade, suporte e pericias',
+    description:
+      'Classe mais flexivel do sistema, focada em curas, barreiras, truques de Jujutsu, itens e solucoes criativas fora do confronto bruto.',
+    image: landingImages.aboutYouth,
+    traits: ['Perito', 'Medico de Campo e Tecnico', 'Barreiras e suporte'],
   },
 ];
 
@@ -66,10 +57,10 @@ export function ClassesSection() {
             Classes
           </motion.span>
           <motion.h2 className="landing-section__title" variants={landingFadeUp}>
-            Escolha o caminho que define a presenca do seu personagem na mesa.
+            Tres classes definem como seu personagem entra em cena e sustenta a campanha.
           </motion.h2>
           <motion.p className="landing-section__description" variants={landingFadeUp}>
-            Cada rota muda o tom do combate, da narrativa e da forma como a energia aparece em cena.
+            Combatente, Sentinela e Especialista mudam a leitura do combate, das pericias e da forma como o Jujutsu aparece na mesa.
           </motion.p>
         </motion.div>
 

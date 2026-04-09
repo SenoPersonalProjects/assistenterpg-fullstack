@@ -9,24 +9,28 @@ import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
 const features: Array<{ icon: IconName; title: string; description: string }> = [
   {
-    icon: 'energy',
-    title: 'Energia amaldicoada',
-    description: 'Custos, reforcos e efeitos ficam claros sem quebrar o clima da cena.',
+    icon: 'characters',
+    title: 'Personagens completos',
+    description:
+      'Monte fichas com atributos, trilhas, tecnicas, poderes, derivados e escolhas guiadas pelo sistema.',
   },
   {
-    icon: 'technique',
-    title: 'Tecnicas inatas',
-    description: 'Catalogos e variacoes prontos para dar profundidade sem virar bagunca.',
+    icon: 'campaign',
+    title: 'Campanhas e sessoes',
+    description:
+      'Gerencie membros, personagens vinculados, iniciativa, turnos, chat da mesa e eventos da sessao.',
   },
   {
-    icon: 'domain',
-    title: 'Expansao de dominio',
-    description: 'Momentos de climax ganham peso com recursos que valorizam o confronto.',
+    icon: 'rules',
+    title: 'Compendio consultavel',
+    description:
+      'Acesse regras, classes, tecnicas e conteudo estruturado sem sair do ritmo da campanha.',
   },
   {
-    icon: 'aim',
-    title: 'Combate com ritmo',
-    description: 'Rolagens, iniciativa e decisoes funcionam com leitura rapida e presenca visual.',
+    icon: 'book',
+    title: 'Suplementos e homebrews',
+    description:
+      'Ative conteudos extras, publique material proprio e expanda a mesa sem quebrar a base do sistema.',
   },
 ];
 
@@ -57,11 +61,11 @@ export function FeaturesSection() {
             <motion.div className="landing-features-layout__copy" variants={landingFadeUp}>
               <span className="landing-section__eyebrow">Recursos</span>
               <h2 className="landing-section__title">
-                Estrutura suficiente para sustentar uma campanha sem matar a atmosfera.
+                O site cobre o ciclo inteiro da mesa, da criacao ao controle da sessao.
               </h2>
               <p className="landing-section__description">
-                O mundo de Jujutsu pede impacto visual e clareza mecanica. Aqui, os dois convivem
-                no mesmo espaco.
+                Nao e so uma vitrine de fichas. O sistema foi construido para criar personagens,
+                consultar regras, administrar campanhas, usar ameacas e conduzir a partida em tempo real.
               </p>
             </motion.div>
           </motion.div>

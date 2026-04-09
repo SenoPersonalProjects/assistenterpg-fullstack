@@ -33,11 +33,11 @@ export function VillainsSection() {
           <motion.div className="landing-villains__copy" variants={landingFadeUp}>
             <span className="landing-section__eyebrow">Ameacas</span>
             <h2 className="landing-section__title">
-              O mundo nao espera por herois. Ele produz maldicoes cada vez maiores.
+              Ameacas, maldicoes e NPCs nao ficam soltos: eles entram na mesa com contexto.
             </h2>
             <p className="landing-section__description">
-              A campanha cresce quando a presenca dos antagonistas tambem cresce. Calamidades,
-              atrocidades e confrontos brutais pedem uma apresentacao a altura do perigo.
+              Do compendio para a campanha, o sistema ajuda a consultar criaturas, organizar
+              confrontos e levar para a sessao antagonistas que realmente sustentam a narrativa.
             </p>
           </motion.div>
         </motion.div>
