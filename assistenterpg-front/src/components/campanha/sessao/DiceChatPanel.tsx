@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
@@ -22,6 +23,8 @@ type DiceChatPanelProps = {
   sessaoEncerrada: boolean;
   usuarioId?: number | null;
   erro?: string | null;
+  animacaoModalAtiva: boolean;
+  onToggleAnimacaoModal: (ativo: boolean) => void;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
 };
@@ -33,6 +36,8 @@ export function DiceChatPanel({
   sessaoEncerrada,
   usuarioId,
   erro,
+  animacaoModalAtiva,
+  onToggleAnimacaoModal,
   onMensagemChange,
   onEnviarMensagem,
 }: DiceChatPanelProps) {
@@ -187,9 +192,16 @@ export function DiceChatPanel({
         <p className="session-chat__hint">
           Sintaxe: XdY ou X#dY. Suporta d6 e multiplas rolagens (ex.: d20 2d6+3).
         </p>
-        <Button type="button" size="xs" variant="ghost" onClick={() => setAjudaAberta(true)}>
-          Ajuda
-        </Button>
+        <div className="flex items-center gap-3">
+          <Checkbox
+            checked={animacaoModalAtiva}
+            onChange={(event) => onToggleAnimacaoModal(event.target.checked)}
+            label="Abrir rolagem animada"
+          />
+          <Button type="button" size="xs" variant="ghost" onClick={() => setAjudaAberta(true)}>
+            Ajuda
+          </Button>
+        </div>
       </div>
       {sucessoEnvio ? (
         <p className="session-chat__hint session-chat__hint--success">

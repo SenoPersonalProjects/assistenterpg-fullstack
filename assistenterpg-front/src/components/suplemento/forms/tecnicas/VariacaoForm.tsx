@@ -52,6 +52,7 @@ export function VariacaoForm({
   const [alcanceCustomMode, setAlcanceCustomMode] = useState(false);
   const [duracaoCustomMode, setDuracaoCustomMode] = useState(false);
   const dadosDano: DadoDanoTecnica[] = variacao.dadosDano ?? [];
+  const dadosDanoDatalistId = `dados-dano-opcoes-variacao-${index}`;
   const alcanceParsed = parseAlcancePreset(variacao.alcance);
   const duracaoParsed = parseDuracaoPreset(variacao.duracao);
   const alcanceSelectValue: AlcancePresetValue | 'MANTER_ORIGINAL' = alcanceCustomMode
@@ -390,6 +391,7 @@ export function VariacaoForm({
               value={variacao.criticoValor ?? ''}
               onChange={(e) => onChange({ criticoValor: e.target.value ? Number(e.target.value) : undefined })}
               placeholder="Manter original"
+              helperText="Se vazio, mantém o valor da habilidade base."
             />
 
             <Input
@@ -400,6 +402,7 @@ export function VariacaoForm({
               value={variacao.criticoMultiplicador ?? ''}
               onChange={(e) => onChange({ criticoMultiplicador: e.target.value ? Number(e.target.value) : undefined })}
               placeholder="Manter original"
+              helperText="Se vazio, mantém o multiplicador da habilidade base."
             />
           </div>
 
@@ -412,6 +415,7 @@ export function VariacaoForm({
               value={variacao.danoFlat ?? ''}
               onChange={(e) => onChange({ danoFlat: e.target.value ? Number(e.target.value) : undefined })}
               placeholder="Manter original"
+              helperText="Soma fixa aplicada ao dano (não multiplica no crítico)."
             />
 
             <Select
@@ -439,6 +443,15 @@ export function VariacaoForm({
                 Adicionar dado
               </Button>
             </div>
+
+            <datalist id={dadosDanoDatalistId}>
+              <option value="d4" />
+              <option value="d6" />
+              <option value="d8" />
+              <option value="d10" />
+              <option value="d12" />
+              <option value="d20" />
+            </datalist>
 
             {dadosDano.length === 0 && (
               <p className="text-xs text-app-muted italic">Mantém danos originais</p>
@@ -474,6 +487,8 @@ export function VariacaoForm({
                     value={dado.dado}
                     onChange={(e) => updateDadoDano(dadoIdx, 'dado', e.target.value)}
                     placeholder="d6"
+                    list={dadosDanoDatalistId}
+                    helperText="Ex.: d4, d6, d8, d10, d12, d20."
                     required
                   />
 
@@ -545,6 +560,8 @@ export function VariacaoForm({
                         })
                       }
                       placeholder="d6"
+                      list={dadosDanoDatalistId}
+                      helperText="Ex.: d4, d6, d8, d10, d12, d20."
                     />
 
                     <Select

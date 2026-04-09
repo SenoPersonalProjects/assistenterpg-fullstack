@@ -40,6 +40,8 @@ type SessionSidebarPanelProps = {
   mensagem: string;
   mensagemRolagem: string;
   usuarioId?: number | null;
+  animacaoModalAtiva: boolean;
+  onToggleAnimacaoModal: (ativo: boolean) => void;
   fimChatRef: RefObject<HTMLDivElement | null>;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
@@ -71,6 +73,8 @@ export function SessionSidebarPanel({
   mensagem,
   mensagemRolagem,
   usuarioId,
+  animacaoModalAtiva,
+  onToggleAnimacaoModal,
   fimChatRef,
   onMensagemChange,
   onEnviarMensagem,
@@ -165,6 +169,8 @@ export function SessionSidebarPanel({
             sessaoEncerrada={sessaoEncerrada}
             usuarioId={usuarioId}
             erro={erroRolagens}
+            animacaoModalAtiva={animacaoModalAtiva}
+            onToggleAnimacaoModal={onToggleAnimacaoModal}
             onMensagemChange={onMensagemRolagemChange}
             onEnviarMensagem={onEnviarRolagem}
           />

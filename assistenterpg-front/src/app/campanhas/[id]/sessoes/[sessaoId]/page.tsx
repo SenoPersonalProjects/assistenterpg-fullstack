@@ -110,6 +110,7 @@ import { useSessaoEventos } from '@/hooks/useSessaoEventos';
 import { useSessaoPreferencias } from '@/hooks/useSessaoPreferencias';
 import { useSessaoFiltroSustentadas } from '@/hooks/useSessaoFiltroSustentadas';
 import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
+import { STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY } from '@/lib/constants/rolagem';
 import {
   construirMensagemDiceMultipla,
   construirMensagemDice,
@@ -144,7 +145,9 @@ type PericiaRollModalState = {
   alvoNome?: string;
   habilidadeContext?: HabilidadeRollContext | null;
   payload: DiceRollPayload | null;
+  payloads?: DiceRollPayload[];
   expression?: string;
+  expressions?: string[];
   enviando: boolean;
   enviado: boolean;
   erro: string | null;
@@ -288,6 +291,11 @@ export default function SessaoCampanhaPage() {
   const [erroCondicoes, setErroCondicoes] = useState<string | null>(null);
   const [erroEventos, setErroEventos] = useState<string | null>(null);
   const [erroCards, setErroCards] = useState<string | null>(null);
+  const [animacaoRolagemChatAtiva, setAnimacaoRolagemChatAtiva] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY);
+    return armazenado === 'on';
+  });
   const [acumulosHabilidade, setAcumulosHabilidade] = useState<Record<string, string>>(
     {},
   );
@@ -935,6 +943,46 @@ export default function SessaoCampanhaPage() {
     setErro: setErroChat,
   });
 
+  const handleToggleAnimacaoRolagemChat = useCallback((ativo: boolean) => {
+    setAnimacaoRolagemChatAtiva(ativo);
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY,
+      ativo ? 'on' : 'off',
+    );
+  }, []);
+
+  const abrirModalRolagemChat = useCallback(
+    (payloads: DiceRollPayload[], expressions: string[]) => {
+      const primeiroPayload = payloads[0] ?? null;
+      setPericiaRollModal({
+        aberto: true,
+        titulo: primeiroPayload?.label ?? 'Rolagem livre',
+        subtitulo: 'Chat de rolagens',
+        alvoTipo: undefined,
+        alvoNome: undefined,
+        habilidadeContext: null,
+        payload: primeiroPayload,
+        payloads,
+        expression: expressions[0],
+        expressions,
+        enviando: false,
+        enviado: false,
+        erro: null,
+      });
+    },
+    [],
+  );
+
+  const atualizarModalRolagemChat = useCallback(
+    (patch: { enviando?: boolean; enviado?: boolean; erro?: string | null }) => {
+      setPericiaRollModal((estado) =>
+        estado.aberto ? { ...estado, ...patch } : estado,
+      );
+    },
+    [],
+  );
+
   const { enviandoRolagem, handleEnviarRolagem } = useSessaoRolagem({
     campanhaId,
     sessaoId,
@@ -942,6 +990,9 @@ export default function SessaoCampanhaPage() {
     setMensagem: setMensagemRolagem,
     setChat: (atualizar) => setChat(atualizar),
     setErro: setErroRolagens,
+    animacaoModalAtiva: animacaoRolagemChatAtiva,
+    onAbrirModalAnimado: abrirModalRolagemChat,
+    onAtualizarModalAnimado: atualizarModalRolagemChat,
   });
 
   const handleRolarPericia = useCallback(
@@ -2257,6 +2308,8 @@ export default function SessaoCampanhaPage() {
                 mensagem={mensagem}
                 mensagemRolagem={mensagemRolagem}
                 usuarioId={usuario?.id ?? null}
+                animacaoModalAtiva={animacaoRolagemChatAtiva}
+                onToggleAnimacaoModal={handleToggleAnimacaoRolagemChat}
                 fimChatRef={fimChatRef}
                 onMensagemChange={setMensagem}
                 onEnviarMensagem={() => void handleEnviarMensagem()}
@@ -2442,7 +2495,9 @@ export default function SessaoCampanhaPage() {
           alvoTipo={periciaRollModal.alvoTipo}
           habilidadeContext={periciaRollModal.habilidadeContext}
           payload={periciaRollModal.payload}
+          payloads={periciaRollModal.payloads}
           expression={periciaRollModal.expression}
+          expressions={periciaRollModal.expressions}
           enviando={periciaRollModal.enviando}
           enviado={periciaRollModal.enviado}
           erro={periciaRollModal.erro}

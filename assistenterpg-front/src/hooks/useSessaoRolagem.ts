@@ -7,6 +7,7 @@ import {
   parseDiceInput,
   rolarDados,
   validarComprimentoMensagemDice,
+  type DiceRollPayload,
 } from '@/lib/campanha/sessao-dice';
 
 type UseSessaoRolagemParams = {
@@ -16,6 +17,16 @@ type UseSessaoRolagemParams = {
   setMensagem: (valor: string) => void;
   setChat: (updater: (anterior: MensagemChatSessao[]) => MensagemChatSessao[]) => void;
   setErro: (mensagem: string | null) => void;
+  animacaoModalAtiva?: boolean;
+  onAbrirModalAnimado?: (
+    payloads: DiceRollPayload[],
+    expressions: string[],
+  ) => void;
+  onAtualizarModalAnimado?: (patch: {
+    enviando?: boolean;
+    enviado?: boolean;
+    erro?: string | null;
+  }) => void;
 };
 
 type UseSessaoRolagemReturn = {
@@ -30,6 +41,9 @@ export function useSessaoRolagem({
   setMensagem,
   setChat,
   setErro,
+  animacaoModalAtiva = false,
+  onAbrirModalAnimado,
+  onAtualizarModalAnimado,
 }: UseSessaoRolagemParams): UseSessaoRolagemReturn {
   const [enviandoRolagem, setEnviandoRolagem] = useState(false);
 
@@ -48,26 +62,54 @@ export function useSessaoRolagem({
       payloads.length > 1
         ? construirMensagemDiceMultipla(payloads)
         : construirMensagemDice(payloads[0]);
+    const expressions = payloads.map((payload) => construirMensagemDice(payload).expression);
+
+    if (animacaoModalAtiva && onAbrirModalAnimado) {
+      onAbrirModalAnimado(payloads, expressions);
+    }
     const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
     if (erroTamanho) {
       setErro(erroTamanho);
+      if (animacaoModalAtiva && onAtualizarModalAnimado) {
+        onAtualizarModalAnimado({ enviando: false, enviado: false, erro: erroTamanho });
+      }
       return;
     }
 
     setEnviandoRolagem(true);
     setErro(null);
+    if (animacaoModalAtiva && onAtualizarModalAnimado) {
+      onAtualizarModalAnimado({ enviando: true, enviado: false, erro: null });
+    }
     try {
       const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
         mensagem: mensagemEnvio,
       });
       setChat((anterior) => [...anterior, enviada]);
       setMensagem('');
+      if (animacaoModalAtiva && onAtualizarModalAnimado) {
+        onAtualizarModalAnimado({ enviando: false, enviado: true, erro: null });
+      }
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      const mensagemErro = extrairMensagemErro(error);
+      setErro(mensagemErro);
+      if (animacaoModalAtiva && onAtualizarModalAnimado) {
+        onAtualizarModalAnimado({ enviando: false, enviado: false, erro: mensagemErro });
+      }
     } finally {
       setEnviandoRolagem(false);
     }
-  }, [campanhaId, mensagem, sessaoId, setChat, setErro, setMensagem]);
+  }, [
+    animacaoModalAtiva,
+    campanhaId,
+    mensagem,
+    onAbrirModalAnimado,
+    onAtualizarModalAnimado,
+    sessaoId,
+    setChat,
+    setErro,
+    setMensagem,
+  ]);
 
   return { enviandoRolagem, handleEnviarRolagem };
 }

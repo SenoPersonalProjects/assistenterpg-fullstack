@@ -9,6 +9,7 @@ type DiceSceneProps = {
   result: number | null;
   onRollComplete?: () => void;
   reducedMotion?: boolean;
+  rollDurationMs?: number;
 };
 
 type DiceSceneState = {
@@ -18,6 +19,11 @@ type DiceSceneState = {
   mesh?: THREE.Mesh;
   plane?: THREE.Mesh | undefined;
   cleanup?: () => void;
+};
+
+type FaceInfo = {
+  center: THREE.Vector3;
+  normal: THREE.Vector3;
 };
 
 function createD10Geometry() {
@@ -158,9 +164,68 @@ function makeD6Materials(faces: number, value: number | null) {
   );
 }
 
-function makeFrontPlane(value: number, radius: number) {
+function getFrontFace(geometry: THREE.BufferGeometry): FaceInfo | null {
+  const cached = geometry.userData.frontFace as FaceInfo | undefined;
+  if (cached) return cached;
+
+  const position = geometry.getAttribute('position');
+  if (!position) return null;
+
+  const index = geometry.getIndex();
+  const indices = index ? Array.from(index.array as Iterable<number>) : null;
+  const count = indices ? indices.length : position.count;
+
+  const vA = new THREE.Vector3();
+  const vB = new THREE.Vector3();
+  const vC = new THREE.Vector3();
+  const normal = new THREE.Vector3();
+
+  let best: FaceInfo | null = null;
+
+  for (let i = 0; i < count; i += 3) {
+    const iA = indices ? indices[i] : i;
+    const iB = indices ? indices[i + 1] : i + 1;
+    const iC = indices ? indices[i + 2] : i + 2;
+
+    vA.fromBufferAttribute(position, iA);
+    vB.fromBufferAttribute(position, iB);
+    vC.fromBufferAttribute(position, iC);
+
+    normal
+      .subVectors(vB, vA)
+      .cross(vC.clone().sub(vA))
+      .normalize();
+
+    const center = new THREE.Vector3()
+      .addVectors(vA, vB)
+      .add(vC)
+      .multiplyScalar(1 / 3);
+
+    if (!best || normal.z > best.normal.z) {
+      best = {
+        center: center.clone(),
+        normal: normal.clone(),
+      };
+    }
+  }
+
+  if (!best) return null;
+
+  if (best.normal.z < 0) {
+    best.normal.multiplyScalar(-1);
+  }
+
+  geometry.userData.frontFace = {
+    center: best.center.clone(),
+    normal: best.normal.clone(),
+  };
+
+  return geometry.userData.frontFace as FaceInfo;
+}
+
+function makeFrontPlane(value: number, radius: number, face: FaceInfo | null) {
   const texture = makeNumberTexture(value);
-  const size = radius * 1.1;
+  const size = radius * 0.8;
   const geometry = new THREE.PlaneGeometry(size, size);
   const material = new THREE.MeshBasicMaterial({
     map: texture,
@@ -170,7 +235,13 @@ function makeFrontPlane(value: number, radius: number) {
     side: THREE.FrontSide,
   });
   const plane = new THREE.Mesh(geometry, material);
-  plane.position.set(0, 0, radius * 0.82);
+  if (face) {
+    const offset = face.normal.clone().multiplyScalar(0.02);
+    plane.position.copy(face.center).add(offset);
+    plane.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), face.normal);
+  } else {
+    plane.position.set(0, 0, radius * 0.82);
+  }
   plane.renderOrder = 10;
   return plane;
 }
@@ -206,6 +277,7 @@ export function DiceScene({
   result,
   onRollComplete,
   reducedMotion = false,
+  rollDurationMs = 800,
 }: DiceSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const stateRef = useRef<DiceSceneState>({});
@@ -283,7 +355,9 @@ export function DiceScene({
 
       if (rollingRef.current) {
         const elapsed = (Date.now() - rollStartRef.current) / 1000;
-        const duration = reducedMotion ? 0.01 : 0.8;
+        const duration = reducedMotion
+          ? 0.01
+          : Math.max(0.12, rollDurationMs / 1000);
         if (elapsed < duration) {
           const progress = elapsed / duration;
           const speed = Math.max(0.015, (1 - progress) * 0.3);
@@ -291,7 +365,7 @@ export function DiceScene({
           currentMesh.rotation.y += speed * (2 + Math.cos(elapsed * 3));
           currentMesh.rotation.z += speed * 1.5;
           currentMesh.position.y =
-            Math.abs(Math.sin(elapsed * 6)) * (1 - progress) * 1.2;
+            Math.abs(Math.sin(elapsed * 6)) * (1 - progress) * 0.6;
         } else {
           rollingRef.current = false;
           currentMesh.position.y = 0;
@@ -301,8 +375,8 @@ export function DiceScene({
         currentMesh.rotation.x += (0 - currentMesh.rotation.x) * 0.06;
         currentMesh.rotation.y += (0 - currentMesh.rotation.y) * 0.06;
         currentMesh.rotation.z += (0 - currentMesh.rotation.z) * 0.06;
-        bobTimeRef.current += 0.018;
-        currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.07;
+        bobTimeRef.current += 0.014;
+        currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.03;
         if (plane) {
           const dist =
             Math.abs(currentMesh.rotation.x) +
@@ -314,7 +388,7 @@ export function DiceScene({
         currentMesh.rotation.y += 0.004;
         currentMesh.rotation.x += 0.001;
         bobTimeRef.current += 0.012;
-        currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.06;
+        currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.05;
       }
 
       renderer.render(scene, camera);
@@ -354,7 +428,7 @@ export function DiceScene({
     return () => {
       stateRef.current.cleanup?.();
     };
-  }, [faces, onRollComplete, reducedMotion]);
+  }, [faces, onRollComplete, reducedMotion, rollDurationMs]);
 
   useEffect(() => {
     if (!isRolling) return;
@@ -383,6 +457,8 @@ export function DiceScene({
     if (!mesh) return;
 
     if (faces === 6) {
+      mesh.rotation.set(0, 0, 0);
+      mesh.position.y = 0;
       mesh.material = makeD6Materials(faces, result);
       return;
     }
@@ -392,7 +468,10 @@ export function DiceScene({
       stateRef.current.plane = undefined;
     }
 
-    const plane = makeFrontPlane(result, getDieRadius(faces));
+    mesh.rotation.set(0, 0, 0);
+    mesh.position.y = 0;
+    const frontFace = getFrontFace(mesh.geometry as THREE.BufferGeometry);
+    const plane = makeFrontPlane(result, getDieRadius(faces), frontFace);
     (plane.material as THREE.Material).opacity = 0;
     mesh.add(plane);
     stateRef.current.plane = plane;

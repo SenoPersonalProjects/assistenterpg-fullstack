@@ -174,6 +174,9 @@ const DURACAO_PRESET_OPTIONS: Array<{ value: DuracaoPresetValue; label: string }
   { value: 'PERSONALIZADA', label: 'Personalizada (texto livre)' },
 ];
 
+const DADOS_DANO_OPCOES = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'] as const;
+const DADOS_DANO_DATALIST_ID = 'dados-dano-opcoes-admin';
+
 function normalizeLookup(value: string): string {
   return value
     .normalize('NFD')
@@ -972,18 +975,21 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             type="number"
             value={form.criticoValor}
             onChange={(e) => setField('criticoValor', e.target.value)}
+            helperText="Se vazio, usa 20 como padrão."
           />
           <Input
             label="Critico multiplicador"
             type="number"
             value={form.criticoMultiplicador}
             onChange={(e) => setField('criticoMultiplicador', e.target.value)}
+            helperText="Se vazio, usa 2 como padrão."
           />
           <Input
             label="Dano flat"
             type="number"
             value={form.danoFlat}
             onChange={(e) => setField('danoFlat', e.target.value)}
+            helperText="Soma fixa aplicada ao dano (não multiplica no critico)."
           />
         </div>
 
@@ -1092,7 +1098,8 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
               label=""
               value={form.testesExigidosInput}
               onChange={(e) => setField('testesExigidosInput', e.target.value)}
-              placeholder="Ex: Acrobacia DC 15"
+              placeholder="Ex: Pontaria com Jujutsu"
+              helperText="Use “com”, “e”, “/” ou “,” para combinar perícias."
             />
             <Button type="button" variant="secondary" onClick={addTesteExigido}>
               <Icon name="add" className="w-4 h-4 mr-1" />
@@ -1122,6 +1129,12 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
           )}
         </div>
 
+        <datalist id={DADOS_DANO_DATALIST_ID}>
+          {DADOS_DANO_OPCOES.map((dado) => (
+            <option key={dado} value={dado} />
+          ))}
+        </datalist>
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-app-fg">Dados de dano</label>
@@ -1146,6 +1159,8 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
                     value={item.dado}
                     onChange={(e) => updateDadoDano(index, { dado: e.target.value })}
                     placeholder="d6"
+                    list={DADOS_DANO_DATALIST_ID}
+                    helperText="Ex.: d4, d6, d8, d10, d12, d20."
                   />
                   <Select
                     label="Tipo"
@@ -1191,6 +1206,8 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
                 value={form.escalonamentoDanoDado}
                 onChange={(e) => setField('escalonamentoDanoDado', e.target.value)}
                 placeholder="d6"
+                list={DADOS_DANO_DATALIST_ID}
+                helperText="Ex.: d4, d6, d8, d10, d12, d20."
               />
               <Select
                 label="Tipo"
@@ -1571,18 +1588,21 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             type="number"
             value={form.criticoValor}
             onChange={(e) => setField('criticoValor', e.target.value)}
+            helperText="Se vazio, usa o valor da habilidade base."
           />
           <Input
             label="Critico multiplicador"
             type="number"
             value={form.criticoMultiplicador}
             onChange={(e) => setField('criticoMultiplicador', e.target.value)}
+            helperText="Se vazio, usa o multiplicador da habilidade base."
           />
           <Input
             label="Dano flat"
             type="number"
             value={form.danoFlat}
             onChange={(e) => setField('danoFlat', e.target.value)}
+            helperText="Soma fixa aplicada ao dano (não multiplica no critico)."
           />
         </div>
 
@@ -1681,6 +1701,13 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             />
           )}
         </div>
+
+        <datalist id={DADOS_DANO_DATALIST_ID}>
+          {DADOS_DANO_OPCOES.map((dado) => (
+            <option key={dado} value={dado} />
+          ))}
+        </datalist>
+
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-app-fg">Dados de dano</label>
@@ -1705,6 +1732,8 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
                     value={item.dado}
                     onChange={(e) => updateDadoDano(index, { dado: e.target.value })}
                     placeholder="d6"
+                    list={DADOS_DANO_DATALIST_ID}
+                    helperText="Ex.: d4, d6, d8, d10, d12, d20."
                   />
                   <Select
                     label="Tipo"
@@ -1750,6 +1779,8 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
                 value={form.escalonamentoDanoDado}
                 onChange={(e) => setField('escalonamentoDanoDado', e.target.value)}
                 placeholder="d6"
+                list={DADOS_DANO_DATALIST_ID}
+                helperText="Ex.: d4, d6, d8, d10, d12, d20."
               />
               <Select
                 label="Tipo"

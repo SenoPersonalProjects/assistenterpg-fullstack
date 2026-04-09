@@ -53,7 +53,9 @@ export function HabilidadeForm({
   const [collapsed, setCollapsed] = useState(false);
   const [alcanceCustomMode, setAlcanceCustomMode] = useState(false);
   const [duracaoCustomMode, setDuracaoCustomMode] = useState(false);
+  const [testesExigidosInput, setTestesExigidosInput] = useState('');
   const dadosDano: DadoDanoTecnica[] = habilidade.dadosDano ?? [];
+  const testesExigidos = habilidade.testesExigidos ?? [];
   const alcanceParsed = parseAlcancePreset(habilidade.alcance);
   const duracaoParsed = parseDuracaoPreset(habilidade.duracao);
   const alcanceSelectValue: AlcancePresetValue = alcanceCustomMode
@@ -94,6 +96,25 @@ export function HabilidadeForm({
     onChange({ dadosDano: dadosDano.filter((_, i) => i !== dadoIndex) });
   }
 
+  function addTesteExigido() {
+    const novoTeste = testesExigidosInput.trim();
+    if (!novoTeste) return;
+
+    if (testesExigidos.includes(novoTeste)) {
+      setTestesExigidosInput('');
+      return;
+    }
+
+    onChange({ testesExigidos: [...testesExigidos, novoTeste] });
+    setTestesExigidosInput('');
+  }
+
+  function removeTesteExigido(indexToRemove: number) {
+    onChange({
+      testesExigidos: testesExigidos.filter((_, index) => index !== indexToRemove),
+    });
+  }
+
   function handleAlcancePresetChange(nextValue: AlcancePresetValue) {
     if (nextValue === 'PERSONALIZADO') {
       setAlcanceCustomMode(true);
@@ -121,6 +142,7 @@ export function HabilidadeForm({
   }
 
   const nomeExibido = habilidade.nome || `Habilidade #${index + 1}`;
+  const dadosDanoDatalistId = `dados-dano-opcoes-${index}`;
 
   return (
     <div className="border border-app-border rounded-lg bg-app-card overflow-hidden">
@@ -335,6 +357,46 @@ export function HabilidadeForm({
             />
           </div>
 
+          {/* Testes exigidos */}
+          <div className="space-y-2">
+            <div className="flex flex-col gap-2 md:flex-row md:items-end">
+              <Input
+                label="Testes exigidos"
+                value={testesExigidosInput}
+                onChange={(e) => setTestesExigidosInput(e.target.value)}
+                placeholder="Ex: Pontaria com Jujutsu"
+                helperText="Use “com”, “e”, “/” ou “,” para combinar perícias (ex.: “Pontaria com Jujutsu”)."
+              />
+              <Button type="button" variant="secondary" onClick={addTesteExigido}>
+                <Icon name="add" className="w-4 h-4 mr-1" />
+                Adicionar
+              </Button>
+            </div>
+
+            {testesExigidos.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {testesExigidos.map((teste, testeIndex) => (
+                  <span
+                    key={`${teste}-${testeIndex}`}
+                    className="inline-flex items-center gap-1 rounded border border-app-border px-2 py-1 text-xs text-app-fg"
+                  >
+                    {teste}
+                    <button
+                      type="button"
+                      className="text-app-danger"
+                      onClick={() => removeTesteExigido(testeIndex)}
+                      title="Remover teste"
+                    >
+                      <Icon name="close" className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-app-muted">Nenhum teste cadastrado.</p>
+            )}
+          </div>
+
           {/* Custos */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Input
@@ -368,6 +430,7 @@ export function HabilidadeForm({
               value={habilidade.criticoValor ?? ''}
               onChange={(e) => onChange({ criticoValor: e.target.value ? Number(e.target.value) : undefined })}
               placeholder="19"
+              helperText="Se vazio, usa 20 como padrão."
             />
 
             <Input
@@ -378,6 +441,7 @@ export function HabilidadeForm({
               value={habilidade.criticoMultiplicador ?? ''}
               onChange={(e) => onChange({ criticoMultiplicador: e.target.value ? Number(e.target.value) : undefined })}
               placeholder="2"
+              helperText="Se vazio, usa 2 como padrão."
             />
           </div>
 
@@ -390,6 +454,7 @@ export function HabilidadeForm({
               value={habilidade.danoFlat ?? ''}
               onChange={(e) => onChange({ danoFlat: e.target.value ? Number(e.target.value) : undefined })}
               placeholder="0"
+              helperText="Soma fixa aplicada ao dano (não multiplica no crítico)."
             />
 
             <Select
@@ -415,6 +480,15 @@ export function HabilidadeForm({
                 Adicionar dado
               </Button>
             </div>
+
+            <datalist id={dadosDanoDatalistId}>
+              <option value="d4" />
+              <option value="d6" />
+              <option value="d8" />
+              <option value="d10" />
+              <option value="d12" />
+              <option value="d20" />
+            </datalist>
 
             {dadosDano.map((dado, dadoIdx) => (
               <div key={dadoIdx} className="p-3 border border-app-border rounded-lg bg-app-muted-surface">
@@ -446,6 +520,8 @@ export function HabilidadeForm({
                     value={dado.dado}
                     onChange={(e) => updateDadoDano(dadoIdx, 'dado', e.target.value)}
                     placeholder="d6"
+                    list={dadosDanoDatalistId}
+                    helperText="Ex.: d4, d6, d8, d10, d12, d20."
                     required
                   />
 
@@ -524,6 +600,8 @@ export function HabilidadeForm({
                         })
                       }
                       placeholder="d6"
+                      list={dadosDanoDatalistId}
+                      helperText="Ex.: d4, d6, d8, d10, d12, d20."
                     />
 
                     <Select

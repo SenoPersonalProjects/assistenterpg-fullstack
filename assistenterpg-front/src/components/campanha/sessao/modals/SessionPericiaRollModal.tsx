@@ -15,7 +15,7 @@ import type {
   RolagemDanoHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
 
-const ANIMACAO_PADRAO_MS = 800;
+const ANIMACAO_PADRAO_MS = 500;
 
 type SessionPericiaRollModalProps = {
   isOpen: boolean;
@@ -26,7 +26,9 @@ type SessionPericiaRollModalProps = {
   alvoTipo?: 'PERSONAGEM' | 'NPC';
   habilidadeContext?: HabilidadeRollContext | null;
   payload: DiceRollPayload | null;
+  payloads?: DiceRollPayload[];
   expression?: string;
+  expressions?: string[];
   enviando?: boolean;
   enviado?: boolean;
   erro?: string | null;
@@ -43,7 +45,9 @@ export function SessionPericiaRollModal({
   alvoTipo,
   habilidadeContext = null,
   payload,
+  payloads,
   expression,
+  expressions,
   enviando = false,
   enviado = false,
   erro = null,
@@ -51,6 +55,8 @@ export function SessionPericiaRollModal({
   onRolarDano,
 }: SessionPericiaRollModalProps) {
   const [mostrandoResultado, setMostrandoResultado] = useState(false);
+  const [indiceAtual, setIndiceAtual] = useState(0);
+  const [indicesAnimados, setIndicesAnimados] = useState<number[]>([]);
   const [criticoValor, setCriticoValor] = useState(() => {
     const base = habilidadeContext?.criticoValor;
     return Number.isFinite(base) ? Math.trunc(base as number) : 20;
@@ -72,25 +78,43 @@ export function SessionPericiaRollModal({
     return duracaoMs;
   }, [animacaoAtiva, duracaoMs]);
 
+  const payloadList = useMemo(
+    () => (payloads && payloads.length > 0 ? payloads : payload ? [payload] : []),
+    [payload, payloads],
+  );
+
+  const expressionList = useMemo(() => {
+    if (expressions && expressions.length > 0) return expressions;
+    if (expression) return [expression];
+    return [];
+  }, [expression, expressions]);
+
+  const payloadAtual = payloadList[indiceAtual] ?? null;
+  const expressionAtual = expressionList[indiceAtual];
+  const podeNavegar = payloadList.length > 1;
+  const animarEsteIndice = animacaoAtiva && !indicesAnimados.includes(indiceAtual);
+  const tituloExibido =
+    titulo === 'Rolagem livre' && payloadAtual?.label ? payloadAtual.label : titulo;
+
   const resultadoCalculado = useMemo(() => {
-    if (!payload) return null;
-    return calcularResultadoDice(payload);
-  }, [payload]);
+    if (!payloadAtual) return null;
+    return calcularResultadoDice(payloadAtual);
+  }, [payloadAtual]);
 
   const valorDado = useMemo(() => {
-    if (!payload || !resultadoCalculado) return null;
+    if (!payloadAtual || !resultadoCalculado) return null;
     if (resultadoCalculado.keepMode !== 'SUM') {
       const indice = resultadoCalculado.indiceEscolhido ?? 0;
       return (
         resultadoCalculado.rolagensBase[indice] ??
-        payload.rolagens[0] ??
+        payloadAtual.rolagens[0] ??
         null
       );
     }
-    return payload.rolagens[0] ?? null;
-  }, [payload, resultadoCalculado]);
+    return payloadAtual.rolagens[0] ?? null;
+  }, [payloadAtual, resultadoCalculado]);
 
-  const facesExibidas = payload?.faces ?? 20;
+  const facesExibidas = payloadAtual?.faces ?? 20;
   const danoDisponivel = Boolean(habilidadeContext?.dano);
   const podeRolarDano =
     Boolean(onRolarDano) &&
@@ -100,30 +124,47 @@ export function SessionPericiaRollModal({
     danoDisponivel;
 
   const handleRollComplete = useCallback(() => {
-    if (!payload || !animacaoAtiva) return;
+    if (!payloadAtual || !animacaoAtiva) return;
+    setIndicesAnimados((prev) =>
+      prev.includes(indiceAtual) ? prev : [...prev, indiceAtual],
+    );
     setMostrandoResultado(true);
-  }, [payload, animacaoAtiva]);
+  }, [animacaoAtiva, indiceAtual, payloadAtual]);
 
   useEffect(() => {
-    if (!isOpen || !payload) {
-      const reset = window.setTimeout(() => setMostrandoResultado(false), 0);
+    if (!isOpen || payloadList.length === 0) {
+      const reset = window.setTimeout(() => {
+        setMostrandoResultado(false);
+        setIndiceAtual(0);
+        setIndicesAnimados([]);
+      }, 0);
       return () => window.clearTimeout(reset);
     }
 
     setMostrandoResultado(false);
 
-    if (!animacaoAtiva) {
-      const instant = window.setTimeout(() => setMostrandoResultado(true), 0);
+    if (!animarEsteIndice) {
+      const instant = window.setTimeout(() => {
+        setIndicesAnimados((prev) =>
+          prev.includes(indiceAtual) ? prev : [...prev, indiceAtual],
+        );
+        setMostrandoResultado(true);
+      }, 0);
       return () => window.clearTimeout(instant);
     }
 
-    const timer = window.setTimeout(
-      () => setMostrandoResultado(true),
-      duracaoAnimacao + 150,
-    );
+    const fallback = window.setTimeout(() => {
+      setMostrandoResultado((current) => (current ? current : true));
+    }, Math.max(duracaoAnimacao + 300, 900));
 
-    return () => window.clearTimeout(timer);
-  }, [isOpen, payload, animacaoAtiva, duracaoAnimacao]);
+    return () => window.clearTimeout(fallback);
+  }, [animarEsteIndice, duracaoAnimacao, isOpen, payloadList.length]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setIndiceAtual(0);
+    setIndicesAnimados([]);
+  }, [isOpen, payloadList]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -141,6 +182,18 @@ export function SessionPericiaRollModal({
     }
     setAplicarCritico(valorDado >= criticoValor);
   }, [mostrandoResultado, valorDado, criticoValor, habilidadeContext]);
+
+  const handleProximaRolagem = () => {
+    if (indiceAtual >= payloadList.length - 1) return;
+    setIndiceAtual((prev) => Math.min(prev + 1, payloadList.length - 1));
+    setMostrandoResultado(false);
+  };
+
+  const handleRolagemAnterior = () => {
+    if (indiceAtual <= 0) return;
+    setIndiceAtual((prev) => Math.max(prev - 1, 0));
+    setMostrandoResultado(false);
+  };
 
   const handleToggleAnimacao = (checked: boolean) => {
     setAnimacaoAtiva(checked);
@@ -174,12 +227,19 @@ export function SessionPericiaRollModal({
       <div className="session-roll-modal">
         <div className="session-roll-modal__head">
           <div>
-            <p className="session-roll-modal__title">{titulo}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="session-roll-modal__title">{tituloExibido}</p>
+              {podeNavegar ? (
+                <span className="session-roll-modal__badge">
+                  Rolagem {indiceAtual + 1}/{payloadList.length}
+                </span>
+              ) : null}
+            </div>
             {subtitulo ? (
               <p className="session-roll-modal__subtitle">{subtitulo}</p>
             ) : null}
-            {expression ? (
-              <span className="session-roll-modal__expr">{expression}</span>
+            {expressionAtual ? (
+              <span className="session-roll-modal__expr">{expressionAtual}</span>
             ) : null}
           </div>
           <div className="session-roll-modal__head-actions">
@@ -197,28 +257,58 @@ export function SessionPericiaRollModal({
         </div>
 
         <div className="session-roll-modal__viewer">
+          {podeNavegar ? (
+            <div className="flex items-center justify-between gap-3 text-xs text-app-muted">
+              <Button
+                type="button"
+                size="xs"
+                variant="secondary"
+                onClick={handleRolagemAnterior}
+                disabled={indiceAtual === 0}
+              >
+                <Icon name="chevron-left" className="h-3.5 w-3.5 mr-1" />
+                Anterior
+              </Button>
+              <span>
+                Rolagem {indiceAtual + 1} de {payloadList.length}
+              </span>
+              <Button
+                type="button"
+                size="xs"
+                variant="secondary"
+                onClick={handleProximaRolagem}
+                disabled={indiceAtual >= payloadList.length - 1}
+              >
+                Próxima
+                <Icon name="chevron-right" className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          ) : null}
           <div className="session-roll-modal__dice-card">
             <DiceScene
               faces={facesExibidas}
-              isRolling={Boolean(payload) && animacaoAtiva && !mostrandoResultado}
+              isRolling={Boolean(payloadAtual) && animarEsteIndice && !mostrandoResultado}
               result={mostrandoResultado ? valorDado : null}
               onRollComplete={handleRollComplete}
               reducedMotion={!animacaoAtiva}
+              rollDurationMs={duracaoAnimacao}
             />
-            {!mostrandoResultado && payload ? (
+            {!mostrandoResultado && payloadAtual ? (
               <div className="session-roll-modal__dice-overlay">
-                <span className="session-roll-modal__dice-label">{titulo}</span>
-                {expression ? (
-                  <span className="session-roll-modal__dice-expr">{expression}</span>
+                <span className="session-roll-modal__dice-label">{tituloExibido}</span>
+                {expressionAtual ? (
+                  <span className="session-roll-modal__dice-expr">{expressionAtual}</span>
                 ) : null}
                 <span className="session-roll-modal__dice-status">
-                  {animacaoAtiva ? 'Rolando teste...' : 'Preparando resultado...'}
+                  {animarEsteIndice
+                    ? 'Rolando teste...'
+                    : 'Preparando resultado...'}
                 </span>
               </div>
             ) : null}
           </div>
 
-          {!payload ? (
+          {!payloadAtual ? (
             <div className="session-roll-modal__empty">
               <Icon name="dice" className="h-5 w-5" />
               <div>
@@ -232,7 +322,7 @@ export function SessionPericiaRollModal({
             </div>
           ) : mostrandoResultado ? (
             <div className="space-y-3">
-              <DiceMessageCard payload={payload} expression={expression} />
+              <DiceMessageCard payload={payloadAtual} expression={expressionAtual} />
               {habilidadeContext ? (
                 <div className="session-roll-modal__crit">
                   <div className="session-roll-modal__crit-header">
