@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
@@ -15,7 +15,7 @@ import type {
   RolagemDanoHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
 
-const ANIMACAO_PADRAO_MS = 500;
+const ANIMACAO_PADRAO_MS = 650;
 
 type SessionPericiaRollModalProps = {
   isOpen: boolean;
@@ -155,10 +155,10 @@ export function SessionPericiaRollModal({
 
     const fallback = window.setTimeout(() => {
       setMostrandoResultado((current) => (current ? current : true));
-    }, Math.max(duracaoAnimacao + 300, 900));
+    }, Math.max(duracaoAnimacao + 220, 900));
 
     return () => window.clearTimeout(fallback);
-  }, [animarEsteIndice, duracaoAnimacao, isOpen, payloadList.length]);
+  }, [animarEsteIndice, duracaoAnimacao, indiceAtual, isOpen, payloadList.length]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -220,7 +220,7 @@ export function SessionPericiaRollModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Rolagem de pericia"
+      title="Rolagem de perícia"
       size="md"
       footer={null}
     >
@@ -246,7 +246,7 @@ export function SessionPericiaRollModal({
             <Checkbox
               checked={animacaoAtiva}
               onChange={(event) => handleToggleAnimacao(event.target.checked)}
-              label={animacaoAtiva ? 'Modo animado' : 'Modo rapido'}
+              label={animacaoAtiva ? 'Modo animado' : 'Modo rápido'}
               className="session-roll-modal__toggle"
             />
             <span className="session-roll-modal__badge">
@@ -288,7 +288,7 @@ export function SessionPericiaRollModal({
             <DiceScene
               faces={facesExibidas}
               isRolling={Boolean(payloadAtual) && animarEsteIndice && !mostrandoResultado}
-              result={mostrandoResultado ? valorDado : null}
+              result={payloadAtual ? valorDado : null}
               onRollComplete={handleRollComplete}
               reducedMotion={!animacaoAtiva}
               rollDurationMs={duracaoAnimacao}
@@ -313,10 +313,10 @@ export function SessionPericiaRollModal({
               <Icon name="dice" className="h-5 w-5" />
               <div>
                 <p className="session-roll-modal__empty-title">
-                  Nenhuma rolagem disponivel
+                  Nenhuma rolagem disponível
                 </p>
                 <p className="session-roll-modal__empty-subtitle">
-                  Faca uma rolagem para ver o resultado aqui.
+                  Faça uma rolagem para ver o resultado aqui.
                 </p>
               </div>
             </div>
@@ -328,7 +328,7 @@ export function SessionPericiaRollModal({
                   <div className="session-roll-modal__crit-header">
                     <div>
                       <p className="session-roll-modal__crit-title">
-                        Critico da habilidade
+                        Crítico da habilidade
                       </p>
                       <p className="session-roll-modal__crit-subtitle">
                         Multiplicador x{criticoMultiplicador} (dados apenas)
@@ -336,7 +336,7 @@ export function SessionPericiaRollModal({
                     </div>
                     {aplicarCritico ? (
                       <span className="session-roll-modal__crit-badge">
-                        Critico ativo
+                        Crítico ativo
                       </span>
                     ) : null}
                   </div>
@@ -362,7 +362,7 @@ export function SessionPericiaRollModal({
                     <Checkbox
                       checked={aplicarCritico}
                       onChange={(event) => setAplicarCritico(event.target.checked)}
-                      label="Aplicar critico"
+                      label="Aplicar crítico"
                       className="session-roll-modal__crit-toggle"
                     />
                   </div>
