@@ -117,7 +117,7 @@ function getDieColor(faces: number) {
   }
 }
 
-function makeNumberTexture(value: number) {
+function makeNumberTexture(value: number, options?: { withBadge?: boolean }) {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -129,20 +129,22 @@ function makeNumberTexture(value: number) {
 
   ctx.clearRect(0, 0, size, size);
 
-  const gradient = ctx.createRadialGradient(
-    size / 2,
-    size / 2,
-    10,
-    size / 2,
-    size / 2,
-    size / 2 - 8,
-  );
-  gradient.addColorStop(0, 'rgba(255,255,255,0.30)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0.04)');
-  ctx.beginPath();
-  ctx.arc(size / 2, size / 2, size / 2 - 8, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
-  ctx.fill();
+  if (options?.withBadge !== false) {
+    const gradient = ctx.createRadialGradient(
+      size / 2,
+      size / 2,
+      10,
+      size / 2,
+      size / 2,
+      size / 2 - 8,
+    );
+    gradient.addColorStop(0, 'rgba(255,255,255,0.30)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0.04)');
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 8, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+  }
 
   const label = String(value);
   const fontSize = label.length >= 3 ? 180 : label.length === 2 ? 220 : 260;
@@ -173,7 +175,7 @@ function makeD6Materials(faces: number, value: number | null) {
     return Array.from({ length: 6 }, () => base());
   }
 
-  const texture = makeNumberTexture(value);
+  const texture = makeNumberTexture(value, { withBadge: false });
   return Array.from({ length: 6 }, (_, index) =>
     index === 4
       ? new THREE.MeshPhongMaterial({

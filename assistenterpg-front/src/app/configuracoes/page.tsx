@@ -1,4 +1,4 @@
-﻿// app/configuracoes/page.tsx
+// app/configuracoes/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -87,7 +87,7 @@ export default function ConfiguracoesPage() {
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
       setErroGlobal(mensagem);
       showToast(mensagem, 'error');
-      console.error('Erro ao carregar preferÃªncias:', error);
+      console.error('Erro ao carregar preferências:', error);
     } finally {
       setCarregando(false);
     }
@@ -110,7 +110,7 @@ export default function ConfiguracoesPage() {
         notificacoesAtualizacoes: notificacoes.atualizacoes,
         idioma,
       });
-      showToast('PreferÃªncias salvas com sucesso!', 'success');
+      showToast('Preferências salvas com sucesso!', 'success');
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
@@ -138,7 +138,7 @@ export default function ConfiguracoesPage() {
     try {
       setErroGlobal(null);
       await apiExportarDados();
-      showToast('ExportaÃ§Ã£o iniciada com sucesso.', 'success');
+      showToast('Exportação iniciada com sucesso.', 'success');
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
@@ -160,7 +160,7 @@ export default function ConfiguracoesPage() {
     try {
       setErroGlobal(null);
       await apiExcluirConta(senha);
-      showToast('Conta excluÃ­da com sucesso.', 'success');
+      showToast('Conta excluída com sucesso.', 'success');
       logout();
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
@@ -174,7 +174,7 @@ export default function ConfiguracoesPage() {
   const handleLogout = () => {
     confirm({
       title: 'Tem certeza que deseja sair?',
-      description: 'VocÃª serÃ¡ desconectado e precisarÃ¡ fazer login novamente.',
+      description: 'Você será desconectado e precisará fazer login novamente.',
       confirmLabel: 'Sim, sair',
       cancelLabel: 'Cancelar',
       variant: 'warning',
@@ -203,9 +203,9 @@ export default function ConfiguracoesPage() {
             <div>
               <h1 className="text-3xl font-bold text-app-fg flex items-center gap-2">
                 <Icon name="settings" className="w-8 h-8" />
-                ConfiguraÃ§Ãµes
+                Configurações
               </h1>
-              <p className="text-app-muted mt-1">Gerencie suas preferÃªncias e conta</p>
+              <p className="text-app-muted mt-1">Gerencie suas preferências e conta</p>
             </div>
             <Link href="/">
               <Button variant="ghost" size="sm">
@@ -219,12 +219,12 @@ export default function ConfiguracoesPage() {
 
           {erroGlobal && <ErrorAlert message={erroGlobal} />}
 
-            {/* SeÃ§Ã£o: Perfil */}
+            {/* Seção: Perfil */}
             <ConfigSection title="Perfil" icon="user">
               <div className="space-y-4">
                 <Input
                   type="text"
-                  label="Nome de usuÃ¡rio"
+                  label="Nome de usuário"
                   value={usuario?.apelido || ''}
                   disabled
                   className="bg-app-bg"
@@ -238,7 +238,7 @@ export default function ConfiguracoesPage() {
                 />
                 <Input
                   type="text"
-                  label="ID do usuÃ¡rio"
+                  label="ID do usuário"
                   value={usuario?.id || ''}
                   disabled
                   className="bg-app-bg font-mono text-sm"
@@ -249,8 +249,8 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* SeÃ§Ã£o: AparÃªncia */}
-            <ConfigSection title="AparÃªncia" icon="paint">
+            {/* Seção: Aparência */}
+            <ConfigSection title="Aparência" icon="paint">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-app-fg mb-2">
@@ -296,14 +296,14 @@ export default function ConfiguracoesPage() {
 
                 <div className="rounded-lg border border-app-border bg-app-surface p-3">
                   <p className="text-sm font-medium text-app-fg">
-                    Animacao 3D de rolagem
+                    Animação 3D de rolagem
                   </p>
                   <p className="text-xs text-app-muted mt-1">
-                    Controla a animacao 3D no modal de rolagens da sessao.
+                    Controla a animação 3D no modal de rolagens da sessão.
                   </p>
                   <div className="mt-3">
                     <Checkbox
-                      label="Ativar animacao 3D"
+                      label="Ativar animação 3D"
                       checked={animacaoRolagemAtiva}
                       onChange={(e) => handleToggleAnimacaoRolagem(e.target.checked)}
                     />
@@ -312,18 +312,18 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* SeÃ§Ã£o: NotificaÃ§Ãµes */}
-            <ConfigSection title="NotificaÃ§Ãµes" icon="bell">
+            {/* Seção: Notificações */}
+            <ConfigSection title="Notificações" icon="bell">
               <div className="space-y-3">
                 <Checkbox
-                  label="NotificaÃ§Ãµes por email"
+                  label="Notificações por email"
                   checked={notificacoes.email}
                   onChange={(e) =>
                     setNotificacoes({ ...notificacoes, email: e.target.checked })
                   }
                 />
                 <Checkbox
-                  label="NotificaÃ§Ãµes push no navegador"
+                  label="Notificações push no navegador"
                   checked={notificacoes.push}
                   onChange={(e) =>
                     setNotificacoes({ ...notificacoes, push: e.target.checked })
@@ -337,7 +337,7 @@ export default function ConfiguracoesPage() {
                   }
                 />
                 <Checkbox
-                  label="Avisos sobre atualizaÃ§Ãµes do sistema"
+                  label="Avisos sobre atualizações do sistema"
                   checked={notificacoes.atualizacoes}
                   onChange={(e) =>
                     setNotificacoes({ ...notificacoes, atualizacoes: e.target.checked })
@@ -346,8 +346,8 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* SeÃ§Ã£o: Privacidade e SeguranÃ§a */}
-            <ConfigSection title="Privacidade e SeguranÃ§a" icon="lock">
+            {/* Seção: Privacidade e Segurança */}
+            <ConfigSection title="Privacidade e Segurança" icon="lock">
               <div className="space-y-3">
                 <Button
                   variant="secondary"
@@ -361,8 +361,8 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* SeÃ§Ã£o: Dados e ExportaÃ§Ã£o */}
-            <ConfigSection title="Dados e ExportaÃ§Ã£o" icon="archive">
+            {/* Seção: Dados e Exportação */}
+            <ConfigSection title="Dados e Exportação" icon="archive">
               <div className="space-y-3">
                 <Button
                   variant="secondary"
@@ -374,12 +374,12 @@ export default function ConfiguracoesPage() {
                   Exportar meus dados (JSON)
                 </Button>
                 <Alert>
-                  Seus dados serÃ£o baixados em formato JSON
+                  Seus dados serão baixados em formato JSON
                 </Alert>
               </div>
             </ConfigSection>
 
-            {/* SeÃ§Ã£o: Sobre */}
+            {/* Seção: Sobre */}
             <ConfigSection title="Sobre o Sistema" icon="info">
               <div className="space-y-2 text-sm text-app-muted">
                 <p>
@@ -403,7 +403,7 @@ export default function ConfiguracoesPage() {
               </div>
             </ConfigSection>
 
-            {/* BotÃ£o de Salvar */}
+            {/* Botão de Salvar */}
             <div className="flex justify-end">
               <Button
                 variant="primary"
@@ -411,7 +411,7 @@ export default function ConfiguracoesPage() {
                 disabled={salvando}
               >
                 <Icon name="check" className="w-4 h-4 mr-2" />
-                {salvando ? 'Salvando...' : 'Salvar PreferÃªncias'}
+                {salvando ? 'Salvando...' : 'Salvar Preferências'}
               </Button>
             </div>
 
@@ -437,7 +437,7 @@ export default function ConfiguracoesPage() {
                   Excluir conta permanentemente
                 </Button>
                 <Alert variant="error">
-                  <strong>AtenÃ§Ã£o:</strong> Esta aÃ§Ã£o nÃ£o pode ser desfeita.
+                  <strong>Atenção:</strong> Esta ação não pode ser desfeita.
                 </Alert>
               </div>
             </ConfigSection>
@@ -457,7 +457,7 @@ export default function ConfiguracoesPage() {
         variant={options?.variant}
       />
 
-      {/* Modais especÃ­ficos (mantidos porque precisam de input) */}
+      {/* Modais específicos (mantidos porque precisam de input) */}
       <ModalAlterarSenha
         isOpen={modalSenhaOpen}
         onClose={() => setModalSenhaOpen(false)}

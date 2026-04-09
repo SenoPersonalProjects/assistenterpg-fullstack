@@ -115,6 +115,7 @@ import {
   construirMensagemDiceMultipla,
   construirMensagemDice,
   ehMensagemDice,
+  formatarExpressaoDice,
   parseDiceExpression,
   rolarDados,
   type DiceRollPayload,
@@ -1327,22 +1328,59 @@ export default function SessaoCampanhaPage() {
       }
 
       const { mensagem: mensagemEnvio } = construirMensagemDiceMultipla(payloads);
+      const habilidadeLabel = payload.habilidade.variacaoNome
+        ? `${payload.habilidade.habilidadeNome} · ${payload.habilidade.variacaoNome}`
+        : payload.habilidade.habilidadeNome;
+      const expressions = payloads.map((item) =>
+        item.label ? `${item.label}: ${formatarExpressaoDice(item)}` : formatarExpressaoDice(item),
+      );
+      setPericiaRollModal({
+        aberto: true,
+        titulo: 'Dano/efeito',
+        subtitulo: `${payload.alvoNome} · ${habilidadeLabel}`,
+        alvoTipo: payload.alvoTipo,
+        alvoNome: payload.alvoNome,
+        habilidadeContext: null,
+        payload: payloads[0] ?? null,
+        payloads,
+        expression: expressions[0],
+        expressions,
+        enviando: false,
+        enviado: false,
+        erro: null,
+      });
       const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
       if (erroTamanho) {
         setErroRolagens(erroTamanho);
-        showToast(erroTamanho, 'warning');
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: erroTamanho,
+        }));
         return;
       }
 
       try {
+        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
         const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
           mensagem: mensagemEnvio,
         });
         setChat((anterior) => [...anterior, enviada]);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: true,
+        }));
       } catch (error) {
         const mensagemErro = extrairMensagemErro(error);
         setErroRolagens(mensagemErro);
-        showToast(mensagemErro, 'error');
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: mensagemErro,
+        }));
       }
     },
     [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
