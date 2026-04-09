@@ -411,6 +411,25 @@ function getDieRadius(faces: number) {
   }
 }
 
+function getHighlightProfile(faces: number) {
+  switch (faces) {
+    case 20:
+      return { critMesh: 1.2, critLight: 1.25, fumbleMesh: 1.08, fumbleLight: 1.12 };
+    case 12:
+      return { critMesh: 1.08, critLight: 1.12, fumbleMesh: 1.02, fumbleLight: 1.05 };
+    case 10:
+      return { critMesh: 1.02, critLight: 1.06, fumbleMesh: 0.98, fumbleLight: 1.02 };
+    case 8:
+      return { critMesh: 0.98, critLight: 1.02, fumbleMesh: 0.94, fumbleLight: 0.98 };
+    case 6:
+      return { critMesh: 0.95, critLight: 0.98, fumbleMesh: 0.92, fumbleLight: 0.95 };
+    case 4:
+      return { critMesh: 0.92, critLight: 0.95, fumbleMesh: 0.88, fumbleLight: 0.92 };
+    default:
+      return { critMesh: 1, critLight: 1, fumbleMesh: 1, fumbleLight: 1 };
+  }
+}
+
 function setMeshAccent(
   mesh: THREE.Mesh,
   faces: number,
@@ -419,11 +438,12 @@ function setMeshAccent(
 ) {
   const material = mesh.material;
   const defaultEmissive = getDieColor(faces).emissive;
+  const profile = getHighlightProfile(faces);
   const emissiveIntensity =
     accent === 'crit'
-      ? 0.3 + pulse * 0.9
+      ? 0.3 + pulse * 0.9 * profile.critMesh
       : accent === 'fumble'
-        ? 0.24 + pulse * 0.6
+        ? 0.24 + pulse * 0.6 * profile.fumbleMesh
         : 0.3;
 
   const applyToMaterial = (item: THREE.Material) => {
@@ -549,6 +569,7 @@ export function DiceScene({
         const elapsed = (performance.now() - rollStartRef.current) / 1000;
         const duration = reducedMotion ? 0.01 : Math.max(0.16, rollDurationMs / 1000);
         const settleAt = duration * 0.72;
+        const profile = getHighlightProfile(faces);
 
         if (elapsed < settleAt) {
           const progress = elapsed / settleAt;
@@ -610,10 +631,10 @@ export function DiceScene({
           if (accentLightRef) {
             if (accent === 'crit') {
               accentLightRef.color.setHex(0xfbbf24);
-              accentLightRef.intensity = glowPulse * 1.15;
+              accentLightRef.intensity = glowPulse * 1.15 * profile.critLight;
             } else if (accent === 'fumble') {
               accentLightRef.color.setHex(0xf43f5e);
-              accentLightRef.intensity = glowPulse * 0.75;
+              accentLightRef.intensity = glowPulse * 0.75 * profile.fumbleLight;
             } else {
               accentLightRef.intensity = 0;
             }
@@ -649,14 +670,15 @@ export function DiceScene({
         currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.025;
         currentMesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
         const pulse = accent ? 0.55 + (Math.sin(bobTimeRef.current * 2.2) + 1) * 0.17 : 0;
+        const profile = getHighlightProfile(faces);
         setMeshAccent(currentMesh, faces, accent, pulse);
         if (accentLightRef) {
           if (accent === 'crit') {
             accentLightRef.color.setHex(0xfbbf24);
-            accentLightRef.intensity = 0.5 + pulse * 0.7;
+            accentLightRef.intensity = (0.5 + pulse * 0.7) * profile.critLight;
           } else if (accent === 'fumble') {
             accentLightRef.color.setHex(0xf43f5e);
-            accentLightRef.intensity = 0.35 + pulse * 0.45;
+            accentLightRef.intensity = (0.35 + pulse * 0.45) * profile.fumbleLight;
           } else {
             accentLightRef.intensity = 0;
           }
