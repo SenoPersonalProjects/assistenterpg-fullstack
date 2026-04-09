@@ -25,7 +25,7 @@ export function CTASection() {
         </div>
         <h2>
           Pronto para a sua
-          <span> primeira miss?o</span>?
+          <span> primeira missão</span>?
         </h2>
         <p>
           Crie sua conta e organize campanhas, fichas e rolagens em poucos minutos. A mesa fica mais
@@ -33,7 +33,7 @@ export function CTASection() {
         </p>
         <Link href="/auth/register">
           <Button size="lg" className="landing-cta__button landing-pulse">
-            Come?ar agora
+            Começar agora
             <Icon name="forward" className="h-5 w-5" />
           </Button>
         </Link>
