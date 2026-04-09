@@ -1,38 +1,44 @@
-// components/landing/LandingFooter.tsx - CORRIGIDO
-
 import Link from 'next/link';
+import Image from 'next/image';
 import { Icon } from '@/components/ui/Icon';
+import { landingImages } from './landingAssets';
 
 export function LandingFooter() {
   return (
-    <footer className="py-12 px-4 border-t border-app-border bg-app-surface">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-cta flex items-center justify-center">
-              <Icon name="sparkles" className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="text-lg font-bold text-app-fg">Assistente RPG</div>
-              <div className="text-xs text-app-muted">Jujutsu Kaisen System</div>
-            </div>
+    <footer className="landing-footer">
+      <div className="landing-footer__content">
+        <div className="landing-footer__brand">
+          <div className="landing-footer__logo">
+            <Image
+              src={landingImages.logoJjkJapones}
+              alt="Jujutsu Kaisen"
+              fill
+              sizes="56px"
+              className="object-contain"
+            />
           </div>
-
-          {/* Links */}
-          <div className="flex gap-8 text-sm text-app-muted">
-            <Link href="/auth/login" className="hover:text-app-fg transition-colors">
-              Login
-            </Link>
-            <Link href="/auth/register" className="hover:text-app-fg transition-colors">
-              Registrar
-            </Link>
+          <div>
+            <div className="text-sm font-semibold text-app-fg">Assistente RPG</div>
+            <div className="text-xs text-app-muted">Jujutsu Kaisen System</div>
           </div>
+        </div>
 
-          {/* Copyright */}
-          <div className="text-sm text-app-muted">Â© 2026 Assistente RPG. Todos os direitos reservados.</div>
+        <div className="landing-footer__links">
+          <a href="#hero">Início</a>
+          <a href="#about">Sobre</a>
+          <a href="#features">Recursos</a>
+          <Link href="/auth/login">Login</Link>
+        </div>
+
+        <div className="landing-footer__cta">
+          <Icon name="sparkles" className="h-4 w-4" />
+          <span>Feito por fãs, para fãs.</span>
         </div>
       </div>
+
+      <p className="landing-footer__disclaimer">
+        Não possuo os direitos das imagens utilizadas. Projeto sem fins lucrativos.
+      </p>
     </footer>
   );
 }

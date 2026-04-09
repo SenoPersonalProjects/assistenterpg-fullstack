@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
+import { Modal } from '@/components/ui/Modal';
 
 type SessionNotesPanelProps = {
   campanhaId: number;
@@ -34,6 +35,8 @@ export function SessionNotesPanel({
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [formAberto, setFormAberto] = useState(false);
+  const [busca, setBusca] = useState('');
   const [titulo, setTitulo] = useState('');
   const [conteudo, setConteudo] = useState('');
 
@@ -64,6 +67,14 @@ export function SessionNotesPanel({
     setTitulo('');
     setConteudo('');
     setEditandoId(null);
+    setFormAberto(false);
+  }
+
+  function abrirFormularioNovaNota() {
+    setEditandoId(null);
+    setTitulo('');
+    setConteudo('');
+    setFormAberto(true);
   }
 
   async function handleSalvar() {
@@ -117,6 +128,7 @@ export function SessionNotesPanel({
     setEditandoId(nota.id);
     setTitulo(nota.titulo);
     setConteudo(nota.conteudo);
+    setFormAberto(true);
   }
 
   async function handleExcluir(nota: AnotacaoResumo) {
@@ -135,6 +147,18 @@ export function SessionNotesPanel({
     }
   }
 
+  const buscaNormalizada = busca.trim().toLowerCase();
+  const notasFiltradas = buscaNormalizada
+    ? notas.filter((nota) => {
+        const tituloNormalizado = nota.titulo.toLowerCase();
+        const conteudoNormalizado = nota.conteudo.toLowerCase();
+        return (
+          tituloNormalizado.includes(buscaNormalizada) ||
+          conteudoNormalizado.includes(buscaNormalizada)
+        );
+      })
+    : notas;
+
   return (
     <div className="session-notes">
       <div className="session-notes__header">
@@ -147,31 +171,58 @@ export function SessionNotesPanel({
         </Badge>
       </div>
 
-      {erro ? <ErrorAlert message={erro} /> : null}
-
-      <div className="session-notes__form">
-        <Input
-          label="Titulo"
-          value={titulo}
-          onChange={(event) => setTitulo(event.target.value)}
-        />
-        <Textarea
-          label="Conteudo"
-          value={conteudo}
-          onChange={(event) => setConteudo(event.target.value)}
-          rows={4}
-        />
-        <div className="session-notes__actions">
-          <Button size="sm" onClick={handleSalvar} disabled={salvando}>
-            {salvando ? 'Salvando...' : editandoId ? 'Salvar nota' : 'Adicionar nota'}
-          </Button>
-          {editandoId ? (
-            <Button size="sm" variant="ghost" onClick={limparFormulario}>
-              Cancelar
+      <div className="session-notes__toolbar">
+        <div className="session-notes__search">
+          <Input
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+            placeholder="Buscar por titulo ou conteudo"
+            aria-label="Buscar anotacoes"
+          />
+          {busca ? (
+            <Button size="xs" variant="ghost" onClick={() => setBusca('')}>
+              Limpar
             </Button>
           ) : null}
         </div>
+        <Button size="sm" className="session-notes__add-btn" onClick={abrirFormularioNovaNota}>
+          <Icon name="plus" className="h-4 w-4" />
+          Adicionar nota
+        </Button>
       </div>
+
+      {erro ? <ErrorAlert message={erro} /> : null}
+
+      <Modal
+        isOpen={formAberto}
+        onClose={limparFormulario}
+        title={editandoId ? 'Editar nota' : 'Nova nota'}
+        size="md"
+        footer={
+          <>
+            <Button size="sm" variant="ghost" onClick={limparFormulario}>
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleSalvar} disabled={salvando}>
+              {salvando ? 'Salvando...' : editandoId ? 'Salvar nota' : 'Adicionar nota'}
+            </Button>
+          </>
+        }
+      >
+        <div className="session-notes__form">
+          <Input
+            label="Titulo"
+            value={titulo}
+            onChange={(event) => setTitulo(event.target.value)}
+          />
+          <Textarea
+            label="Conteudo"
+            value={conteudo}
+            onChange={(event) => setConteudo(event.target.value)}
+            rows={6}
+          />
+        </div>
+      </Modal>
 
       {loading ? (
         <p className="session-text-xs text-app-muted">Carregando anotacoes...</p>
@@ -184,9 +235,18 @@ export function SessionNotesPanel({
           description="Crie notas pessoais desta sessao."
           className="text-left"
         />
+      ) : notasFiltradas.length === 0 ? (
+        <EmptyState
+          variant="session"
+          size="sm"
+          icon="scroll"
+          title="Nenhuma anotacao encontrada"
+          description="Tente buscar por outro termo ou limpe o filtro."
+          className="text-left"
+        />
       ) : (
         <div className="session-notes__list">
-          {notas.map((nota) => (
+          {notasFiltradas.map((nota) => (
             <div key={nota.id} className="session-notes__card">
               <div className="session-notes__card-head">
                 <div>

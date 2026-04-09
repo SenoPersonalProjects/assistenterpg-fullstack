@@ -1,86 +1,93 @@
-// components/landing/FeaturesSection.tsx - CORRIGIDO
-
+import Image from 'next/image';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { landingImages } from './landingAssets';
 
 const features: Array<{ icon: IconName; title: string; description: string }> = [
   {
-    icon: 'user',
-    title: 'Cria√ß√£o de Personagens',
+    icon: 'energy',
+    title: 'Energia amaldiÁoada',
     description:
-      'Sistema completo com atributos, per√≠cias, classes, origens, cl√£s e t√©cnicas inatas.',
+      'Controle custos, reforÁos e liberaÁıes de energia para manter o combate equilibrado.',
   },
   {
-    icon: 'briefcase',
-    title: 'Invent√°rio Inteligente',
+    icon: 'technique',
+    title: 'TÈcnicas inatas',
     description:
-      'Gerenciamento autom√°tico de espa√ßos, categorias de Grau Xam√£ e modifica√ß√µes de equipamentos.',
+      'Cat·logo completo e pronto para evoluir habilidades com variaÁıes e requisitos claros.',
   },
   {
-    icon: 'sparkles',
-    title: 'T√©cnicas Inatas',
+    icon: 'domain',
+    title: 'Expans„o de domÌnio',
     description:
-      'Cat√°logo completo com Infinito, Dez Sombras, Manipula√ß√£o de Sangue e muito mais.',
+      'Regras Èpicas para a tÈcnica suprema dos feiticeiros, com efeitos narrativos marcantes.',
   },
   {
-    icon: 'shield',
-    title: 'Equipamentos Amaldi√ßoados',
+    icon: 'aim',
+    title: 'Combate estratÈgico',
     description:
-      'Armas, prote√ß√µes e artefatos com modifica√ß√µes e c√°lculos autom√°ticos de stats.',
+      'Iniciativa, reaÁıes e rolagens calibradas para criar momentos de tens„o.',
   },
   {
-    icon: 'characters',
-    title: 'Campanhas Multiplayer',
-    description: 'Crie campanhas, convide amigos e gerencie personagens do grupo.',
+    icon: 'shield-defense',
+    title: 'Votos e restriÁıes',
+    description:
+      'Defina limitaÁıes que fortalecem seu personagem e sustentam o drama da mesa.',
   },
   {
-    icon: 'eye',
-    title: 'Preview em Tempo Real',
+    icon: 'rank',
+    title: 'Progress„o de grau',
     description:
-      'Veja todos os c√°lculos de atributos derivados, per√≠cias e espa√ßos instantaneamente.',
+      'Evolua de Grau 4 atÈ Grau Especial com missıes, conquistas e recompensas.',
   },
 ];
 
 export function FeaturesSection() {
   return (
-    <section className="py-24 px-4 relative">
-      <div className="max-w-6xl mx-auto">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-app-fg mb-4">
-            Tudo que voc√™ precisa para jogar
+    <section id="features" className="landing-section landing-section--alt">
+      <div className="landing-section__content">
+        <div className="landing-section__header">
+          <span className="landing-section__eyebrow">Recursos</span>
+          <h2 className="landing-section__title">
+            Tudo o que um
+            <span className="landing-section__title-accent"> feiticeiro precisa</span>
           </h2>
-          <p className="text-xl text-app-muted max-w-2xl mx-auto">
-            Ferramentas completas para mestres e jogadores do sistema Jujutsu Kaisen RPG.
+          <p className="landing-section__description">
+            Mec‚nicas profundas, ferramentas visuais e rolagens prontas para apoiar campanhas de
+            qualquer tamanho.
           </p>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, idx) => (
-            <FeatureCard key={idx} {...feature} />
+        <div className="landing-features">
+          {features.map((feature) => (
+            <div key={feature.title} className="landing-feature">
+              <div className="landing-feature__icon">
+                <Icon name={feature.icon} className="h-5 w-5" />
+              </div>
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+            </div>
           ))}
         </div>
       </div>
-    </section>
-  );
-}
 
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: IconName;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="group p-6 rounded-2xl bg-app-card border border-app-border hover:border-app-secondary hover:shadow-lg transition-all duration-300">
-      <div className="w-12 h-12 rounded-xl bg-gradient-cta flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-        <Icon name={icon} className="w-6 h-6 text-white" />
+      <div className="landing-feature__decor landing-feature__decor--left">
+        <Image
+          src={landingImages.featuresLeft}
+          alt=""
+          fill
+          sizes="240px"
+          className="object-cover"
+        />
       </div>
-      <h3 className="text-xl font-semibold text-app-fg mb-2">{title}</h3>
-      <p className="text-app-muted leading-relaxed">{description}</p>
-    </div>
+      <div className="landing-feature__decor landing-feature__decor--right">
+        <Image
+          src={landingImages.featuresRight}
+          alt=""
+          fill
+          sizes="240px"
+          className="object-cover"
+        />
+      </div>
+    </section>
   );
 }
