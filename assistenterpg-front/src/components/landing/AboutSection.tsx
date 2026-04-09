@@ -33,12 +33,12 @@ export function AboutSection() {
             </h2>
             <p className="landing-section__description">
               O Assistente RPG junta o que a mesa realmente usa durante a campanha: criacao de
-              personagem, tecnicas, inventario, compendio, ameacas, campanhas e sessoes com chat e
+              personagem, tecnicas, inventario, compendio, ameaças, campanhas e sessoes com chat e
               rolagem integrada.
             </p>
             <p className="landing-section__description">
-              Em vez de espalhar informacao em varias abas, o fluxo do sistema centraliza preparacao,
-              consulta e conducao da partida para mestre e jogadores.
+              Em vez de espalhar informacao em varias abas, o fluxo do sistema centraliza o 
+              máximo de coisas relevantes para o mestre e os jogadores.
             </p>
           </motion.div>
 

@@ -8,14 +8,25 @@ import { landingImages } from './landingAssets';
 import { LandingSectionDivider } from './LandingSectionDivider';
 import { landingFadeUp, landingScaleIn, landingStagger } from './landingMotion';
 
-const classes = [
+type LandingClass = {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  image: (typeof landingImages)[keyof typeof landingImages];
+  imagePosition: string;
+  traits: string[];
+};
+
+const classes: LandingClass[] = [
   {
     id: 'combatente',
     name: 'Combatente',
     subtitle: 'Confronto direto e pressao ofensiva',
     description:
-      'Especialista em combate corpo a corpo, usa PE e EA de forma agressiva para amplificar golpes e manter a linha de frente sob controle.',
-    image: landingImages.classFeiticeiro,
+      'Especialista em combate corpo a corpo, usa energia de forma agressiva para amplificar golpes e manter a linha de frente sob controle.',
+    image: landingImages.classCombatente,
+    imagePosition: '50% 20%',
     traits: ['Ataque Especial', 'Aniquilador e Guerreiro', 'Pressao corpo a corpo'],
   },
   {
@@ -23,8 +34,9 @@ const classes = [
     name: 'Sentinela',
     subtitle: 'Controle de campo e combate tatico',
     description:
-      'Atua em media e longa distancia, organiza a luta e manipula o grau das tecnicas para responder com precisao ao que acontece na cena.',
-    image: landingImages.classCelestial,
+      'Atua em media e longa distancia, organiza a luta e controla o campo para responder com precisao ao que acontece na cena.',
+    image: landingImages.classSentinela,
+    imagePosition: '50% 24%',
     traits: ['Aprimorado', 'Atirador de Elite e Conduite', 'Leitura tatica'],
   },
   {
@@ -32,8 +44,9 @@ const classes = [
     name: 'Especialista',
     subtitle: 'Versatilidade, suporte e pericias',
     description:
-      'Classe mais flexivel do sistema, focada em curas, barreiras, truques de Jujutsu, itens e solucoes criativas fora do confronto bruto.',
-    image: landingImages.aboutYouth,
+      'Classe mais flexivel do sistema, normalmente com os aspectos mais fora da curva, trilhas focadas em curas, barreiras, truques de Jujutsu, itens e solucoes criativas.',
+    image: landingImages.classEspecialista,
+    imagePosition: '48% 18%',
     traits: ['Perito', 'Medico de Campo e Tecnico', 'Barreiras e suporte'],
   },
 ];
@@ -60,7 +73,8 @@ export function ClassesSection() {
             Tres classes definem como seu personagem entra em cena e sustenta a campanha.
           </motion.h2>
           <motion.p className="landing-section__description" variants={landingFadeUp}>
-            Combatente, Sentinela e Especialista mudam a leitura do combate, das pericias e da forma como o Jujutsu aparece na mesa.
+            Combatente, Sentinela e Especialista mudam a leitura do combate, das pericias e da
+            forma como o Jujutsu aparece na mesa.
           </motion.p>
         </motion.div>
 
@@ -101,6 +115,7 @@ export function ClassesSection() {
                 fill
                 sizes="(max-width: 1024px) 100vw, 44vw"
                 className="landing-classes__media-image"
+                style={{ objectPosition: activeClass.imagePosition }}
               />
               <div className="landing-classes__media-overlay" />
             </motion.div>

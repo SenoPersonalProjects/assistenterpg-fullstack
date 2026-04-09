@@ -1,5 +1,6 @@
-'use client';
+﻿'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -16,6 +17,12 @@ const stats = [
 
 export function HeroSection() {
   const reducedMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  const shouldAnimate = mounted && !reducedMotion;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <section id="hero" className="landing-hero">
@@ -24,8 +31,8 @@ export function HeroSection() {
 
       <motion.div
         className="landing-hero__symbol"
-        initial={reducedMotion ? false : { opacity: 0, scale: 0.94 }}
-        animate={reducedMotion ? undefined : { opacity: 1, scale: 1 }}
+        initial={false}
+        animate={shouldAnimate ? { opacity: 1, scale: 1 } : undefined}
         transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
       >
         <Image
@@ -47,16 +54,16 @@ export function HeroSection() {
         <div className="landing-hero__copy">
           <motion.div className="landing-hero__badge" variants={landingScaleIn}>
             <Icon name="sparkles" className="h-4 w-4" />
-            Campanhas Jujutsu com atmosfera real de anime
+            Campanhas para o sistema de RPG de Jujutsu Kaisen
           </motion.div>
 
           <motion.h1 className="landing-hero__title" variants={landingFadeUp}>
-            A sua mesa entra em campo quando a energia amaldicoada toma a tela.
+            Libere sua energia amaldicoada sem se preocupar com detalhes.
           </motion.h1>
 
           <motion.p className="landing-hero__description" variants={landingFadeUp}>
             Monte personagens, tecnicas, inventario e sessoes em um fluxo que parece parte do
-            proprio universo de Jujutsu Kaisen. Menos cara de painel, mais clima de confronto.
+            proprio universo de Jujutsu Kaisen. Deixe o sistema cuidar das regras e foque na diversao.
           </motion.p>
 
           <motion.div className="landing-hero__actions" variants={landingFadeUp}>
@@ -88,21 +95,21 @@ export function HeroSection() {
           className="landing-hero__visual"
           variants={landingScaleIn}
           animate={
-            reducedMotion
-              ? undefined
-              : {
+            shouldAnimate
+              ? {
                   y: [0, -8, 0],
                   rotate: [0, -0.6, 0.4, 0],
                 }
+              : undefined
           }
           transition={
-            reducedMotion
-              ? undefined
-              : {
+            shouldAnimate
+              ? {
                   duration: 5.2,
                   repeat: Number.POSITIVE_INFINITY,
                   ease: 'easeInOut',
                 }
+              : undefined
           }
         >
           <div className="landing-hero__frame">
@@ -121,7 +128,7 @@ export function HeroSection() {
           <div className="landing-hero__caption">
             <span className="landing-hero__caption-label">Ritmo cinematografico</span>
             <p>
-              Rolagens, tecnica, dominio e narrativa reunidos em uma experiencia mais viva para o
+              Todos os conceitos principais de Jujutsu reunidos no sistema em uma experiencia mais viva para o
               mestre e para o grupo.
             </p>
           </div>

@@ -33,11 +33,11 @@ export function VillainsSection() {
           <motion.div className="landing-villains__copy" variants={landingFadeUp}>
             <span className="landing-section__eyebrow">Ameacas</span>
             <h2 className="landing-section__title">
-              Ameacas, maldicoes e NPCs nao ficam soltos: eles entram na mesa com contexto.
+              Ameacas, maldições e NPCs também recebem atenção: o sistema facilita o gerenciamento deles de forma intuitiva
             </h2>
             <p className="landing-section__description">
-              Do compendio para a campanha, o sistema ajuda a consultar criaturas, organizar
-              confrontos e levar para a sessao antagonistas que realmente sustentam a narrativa.
+              O sistema ajuda a consultar criaturas, organizar confrontos e levar para a sessao antagonistas 
+              que realmente sustentam a narrativa, lidando com os detalhes complicados por você.
             </p>
           </motion.div>
         </motion.div>

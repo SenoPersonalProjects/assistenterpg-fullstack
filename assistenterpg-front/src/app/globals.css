@@ -3355,7 +3355,8 @@ body {
 }
 
 .landing-classes__media {
-  min-height: 460px;
+  min-height: 430px;
+  aspect-ratio: 4 / 3;
 }
 
 .landing-classes__media-overlay {
@@ -3677,7 +3678,7 @@ body {
   .landing-classes__media,
   .landing-villains__media,
   .landing-features-layout__image {
-    min-height: 320px;
+    min-height: 300px;
   }
 
   .landing-hero__actions,

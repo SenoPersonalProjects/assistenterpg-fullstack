@@ -39,12 +39,12 @@ export function CTASection() {
           </motion.div>
 
           <motion.h2 variants={landingFadeUp}>
-            Entre na campanha com o peso de uma expansao de dominio.
+            Libere sua expansão de domínio e jogue campanhas memoráveis!
           </motion.h2>
 
           <motion.p variants={landingFadeUp}>
             Crie sua conta, organize fichas, conduza cenas intensas e transforme a mesa em algo
-            memoravel desde a primeira sessao.
+            de outro nível desde a primeira sessao.
           </motion.p>
 
           <motion.div variants={landingFadeUp}>

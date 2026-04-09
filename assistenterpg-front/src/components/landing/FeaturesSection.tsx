@@ -24,13 +24,13 @@ const features: Array<{ icon: IconName; title: string; description: string }> = 
     icon: 'rules',
     title: 'Compendio consultavel',
     description:
-      'Acesse regras, classes, tecnicas e conteudo estruturado sem sair do ritmo da campanha.',
+      'Acesse as regras, classes, tecnicas e conteudo estruturado sem precisar sair do site.',
   },
   {
     icon: 'book',
     title: 'Suplementos e homebrews',
     description:
-      'Ative conteudos extras, publique material proprio e expanda a mesa sem quebrar a base do sistema.',
+      'Ative conteudos extras, publique material proprio e expanda a sua experiência sem quebrar a base do sistema.',
   },
 ];
 
