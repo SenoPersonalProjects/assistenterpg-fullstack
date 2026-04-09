@@ -7,9 +7,9 @@ import { Icon } from '@/components/ui/Icon';
 import { landingImages } from './landingAssets';
 
 const stats = [
-  { value: '50+', label: 'Técnicas inatas' },
+  { value: '50+', label: 'T?cnicas inatas' },
   { value: '100+', label: 'Equipamentos' },
-  { value: '8', label: 'Combinações' },
+  { value: '?', label: 'Combina??es' },
 ];
 
 export function HeroSection() {
@@ -18,7 +18,7 @@ export function HeroSection() {
       <div className="landing-hero__media">
         <Image
           src={landingImages.hero}
-          alt="Ilustração de feiticeiro Jujutsu"
+          alt="Ilustra??o de feiticeiro Jujutsu"
           fill
           priority
           className="landing-hero__image"
@@ -34,11 +34,11 @@ export function HeroSection() {
 
         <div className="landing-hero__headline">
           <h1 className="text-4xl md:text-6xl font-black text-app-fg leading-tight">
-            Monte campanhas épicas com
+            Monte campanhas ?picas com
             <span className="landing-hero__accent"> tudo organizado</span>
           </h1>
           <p className="text-base md:text-lg text-app-muted">
-            Controle personagens, técnicas, inventário e sessões em um painel feito para mestres e
+            Controle personagens, t?cnicas, invent?rio e sess?es em um painel feito para mestres e
             jogadores mergulharem no universo de Jujutsu Kaisen.
           </p>
         </div>
@@ -47,13 +47,13 @@ export function HeroSection() {
           <Link href="/auth/register">
             <Button size="lg" className="landing-hero__primary">
               <Icon name="add" className="h-5 w-5" />
-              Criar conta grátis
+              Criar conta gr?tis
             </Button>
           </Link>
           <Link href="/auth/login">
             <Button size="lg" variant="secondary" className="landing-hero__secondary">
               <Icon name="forward" className="h-5 w-5" />
-              Já tenho conta
+              J? tenho conta
             </Button>
           </Link>
         </div>
@@ -71,7 +71,7 @@ export function HeroSection() {
       <div className="landing-hero__logo">
         <Image
           src={landingImages.logoJjkJapones}
-          alt="Logo em japonês"
+          alt="Logo em japon?s"
           fill
           sizes="120px"
           className="object-contain"

@@ -24,7 +24,7 @@ export function LandingFooter() {
         </div>
 
         <div className="landing-footer__links">
-          <a href="#hero">Início</a>
+          <a href="#hero">In?cio</a>
           <a href="#about">Sobre</a>
           <a href="#features">Recursos</a>
           <Link href="/auth/login">Login</Link>
@@ -32,12 +32,12 @@ export function LandingFooter() {
 
         <div className="landing-footer__cta">
           <Icon name="sparkles" className="h-4 w-4" />
-          <span>Feito por fãs, para fãs.</span>
+          <span>Feito por f?s, para f?s.</span>
         </div>
       </div>
 
       <p className="landing-footer__disclaimer">
-        Não possuo os direitos das imagens utilizadas. Projeto sem fins lucrativos.
+        N?o possuo os direitos das imagens utilizadas. Projeto sem fins lucrativos.
       </p>
     </footer>
   );

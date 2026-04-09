@@ -186,7 +186,7 @@ export function SessionNotesPanel({
           ) : null}
         </div>
         <Button size="sm" className="session-notes__add-btn" onClick={abrirFormularioNovaNota}>
-          <Icon name="plus" className="h-4 w-4" />
+          <Icon name="add" className="h-4 w-4" />
           Adicionar nota
         </Button>
       </div>

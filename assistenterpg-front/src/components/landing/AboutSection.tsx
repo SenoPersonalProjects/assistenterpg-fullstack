@@ -3,10 +3,10 @@ import { Icon } from '@/components/ui/Icon';
 import { landingImages } from './landingAssets';
 
 const stats = [
-  { icon: 'swords', value: '50+', label: 'Técnicas amaldiçoadas' },
+  { icon: 'swords', value: '50+', label: 'T?cnicas amaldi?oadas' },
   { icon: 'characters', value: '100+', label: 'Jogadores ativos' },
-  { icon: 'book', value: '200+', label: 'Páginas de conteúdo' },
-  { icon: 'sparkles', value: '8', label: 'Possibilidades' },
+  { icon: 'book', value: '200+', label: 'P?ginas de conte?do' },
+  { icon: 'sparkles', value: '?', label: 'Possibilidades' },
 ] as const;
 
 export function AboutSection() {
@@ -22,11 +22,11 @@ export function AboutSection() {
             </h2>
             <p className="landing-section__description">
               Um assistente completo para organizar mesas de RPG inspiradas em Jujutsu Kaisen. Tudo
-              pronto para você construir personagens, evoluir técnicas e conduzir sessões com ritmo.
+              pronto para voc? construir personagens, evoluir t?cnicas e conduzir sess?es com ritmo.
             </p>
             <p className="landing-section__description">
-              Do planejamento à rolagem, o fluxo fica leve e visual. Compartilhe campanhas, crie
-              inventários e mantenha as regras acessíveis para todo o grupo.
+              Do planejamento ? rolagem, o fluxo fica leve e visual. Compartilhe campanhas, crie
+              invent?rios e mantenha as regras acess?veis para todo o grupo.
             </p>
           </div>
 

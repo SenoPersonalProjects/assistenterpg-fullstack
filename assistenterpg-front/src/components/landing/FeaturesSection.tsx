@@ -5,39 +5,39 @@ import { landingImages } from './landingAssets';
 const features: Array<{ icon: IconName; title: string; description: string }> = [
   {
     icon: 'energy',
-    title: 'Energia amaldiçoada',
+    title: 'Energia amaldi?oada',
     description:
-      'Controle custos, reforços e liberações de energia para manter o combate equilibrado.',
+      'Controle custos, refor?os e libera??es de energia para manter o combate equilibrado.',
   },
   {
     icon: 'technique',
-    title: 'Técnicas inatas',
+    title: 'T?cnicas inatas',
     description:
-      'Catálogo completo e pronto para evoluir habilidades com variações e requisitos claros.',
+      'Cat?logo completo e pronto para evoluir habilidades com varia??es e requisitos claros.',
   },
   {
     icon: 'domain',
-    title: 'Expansão de domínio',
+    title: 'Expans?o de dom?nio',
     description:
-      'Regras épicas para a técnica suprema dos feiticeiros, com efeitos narrativos marcantes.',
+      'Regras ?picas para a t?cnica suprema dos feiticeiros, com efeitos narrativos marcantes.',
   },
   {
     icon: 'aim',
-    title: 'Combate estratégico',
+    title: 'Combate estrat?gico',
     description:
-      'Iniciativa, reações e rolagens calibradas para criar momentos de tensão.',
+      'Iniciativa, rea??es e rolagens calibradas para criar momentos de tens?o.',
   },
   {
     icon: 'shield-defense',
-    title: 'Votos e restrições',
+    title: 'Votos e restri??es',
     description:
-      'Defina limitações que fortalecem seu personagem e sustentam o drama da mesa.',
+      'Defina limita??es que fortalecem seu personagem e sustentam o drama da mesa.',
   },
   {
     icon: 'rank',
-    title: 'Progressão de grau',
+    title: 'Progress?o de grau',
     description:
-      'Evolua de Grau 4 até Grau Especial com missões, conquistas e recompensas.',
+      'Evolua de Grau 4 at? Grau Especial com miss?es, conquistas e recompensas.',
   },
 ];
 
@@ -52,7 +52,7 @@ export function FeaturesSection() {
             <span className="landing-section__title-accent"> feiticeiro precisa</span>
           </h2>
           <p className="landing-section__description">
-            Mecânicas profundas, ferramentas visuais e rolagens prontas para apoiar campanhas de
+            Mec?nicas profundas, ferramentas visuais e rolagens prontas para apoiar campanhas de
             qualquer tamanho.
           </p>
         </div>

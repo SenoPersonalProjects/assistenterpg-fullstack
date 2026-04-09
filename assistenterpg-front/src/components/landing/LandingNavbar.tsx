@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { landingImages } from './landingAssets';
 
 const links = [
-  { label: 'Início', href: '#hero' },
+  { label: 'In?cio', href: '#hero' },
   { label: 'Sobre', href: '#about' },
   { label: 'Recursos', href: '#features' },
   { label: 'Classes', href: '#classes' },
@@ -30,7 +30,7 @@ export function LandingNavbar() {
   return (
     <nav className={`landing-navbar ${scrolled ? 'landing-navbar--scrolled' : ''}`}>
       <div className="landing-navbar__content">
-        <a href="#hero" className="landing-navbar__brand" aria-label="Voltar ao início">
+        <a href="#hero" className="landing-navbar__brand" aria-label="Voltar ao in?cio">
           <div className="landing-navbar__logo">
             <Image
               src={landingImages.logoJjkJapones}
@@ -54,7 +54,7 @@ export function LandingNavbar() {
           ))}
           <Link href="/auth/register">
             <Button size="sm" className="landing-navbar__cta">
-              Começar agora
+              Come?ar agora
             </Button>
           </Link>
         </div>
@@ -83,7 +83,7 @@ export function LandingNavbar() {
           ))}
           <Link href="/auth/register" onClick={() => setMenuAberto(false)}>
             <Button size="sm" className="landing-navbar__mobile-cta">
-              Começar agora
+              Come?ar agora
             </Button>
           </Link>
         </div>

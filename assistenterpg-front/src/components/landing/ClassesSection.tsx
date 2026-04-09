@@ -9,42 +9,38 @@ const classes = [
   {
     id: 'feiticeiro',
     name: 'Feiticeiro Jujutsu',
-    subtitle: 'Manipulador de energia amaldiçoada',
+    subtitle: 'Manipulador de energia amaldi?oada',
     description:
-      'Especialistas treinados em técnicas hereditárias. Equilibram domínio, combate físico e
-      refinamento de energia amaldiçoada.',
+      'Especialistas treinados em t?cnicas heredit?rias. Equilibram dom?nio, combate f?sico e refinamento de energia amaldi?oada.',
     image: landingImages.classesPrimary,
-    traits: ['Técnica inata', 'Expansão de domínio', 'Reforço de energia'],
+    traits: ['T?cnica inata', 'Expans?o de dom?nio', 'Refor?o de energia'],
   },
   {
     id: 'usuario',
-    name: 'Usuário de maldições',
+    name: 'Usu?rio de maldi??es',
     subtitle: 'Mestre das artes proibidas',
     description:
-      'Humanos que avançaram pelo caminho das sombras, usando técnicas proibidas e pactos com
-      espíritos malditos.',
+      'Humanos que avan?aram pelo caminho das sombras, usando t?cnicas proibidas e pactos com esp?ritos malditos.',
     image: landingImages.classesSecondary,
-    traits: ['Pactos sombrios', 'Técnicas proibidas', 'Manipulação'],
+    traits: ['Pactos sombrios', 'T?cnicas proibidas', 'Manipula??o'],
   },
   {
     id: 'espirito',
-    name: 'Espírito amaldiçoado',
+    name: 'Esp?rito amaldi?oado',
     subtitle: 'Nascido do medo humano',
     description:
-      'Criaturas formadas por emoções negativas. Cada espírito possui habilidades únicas ligadas ao
-      medo que o originou.',
+      'Criaturas formadas por emo??es negativas. Cada esp?rito possui habilidades ?nicas ligadas ao medo que o originou.',
     image: landingImages.featuresLeft,
-    traits: ['Poder inato', 'Regeneração', 'Domínio natural'],
+    traits: ['Poder inato', 'Regenera??o', 'Dom?nio natural'],
   },
   {
     id: 'celestial',
     name: 'Corpo celestial',
     subtitle: 'Recipiente do poder supremo',
     description:
-      'Indivíduos com condições raras que ampliam força física e resistência espiritual em níveis
-      extraordinários.',
+      'Indiv?duos com condi??es raras que ampliam for?a f?sica e resist?ncia espiritual em n?veis extraordin?rios.',
     image: landingImages.featuresRight,
-    traits: ['Físico superior', 'Resistência à energia', 'Potencial oculto'],
+    traits: ['F?sico superior', 'Resist?ncia ? energia', 'Potencial oculto'],
   },
 ];
 
@@ -61,8 +57,8 @@ export function ClassesSection() {
             <span className="landing-section__title-accent"> caminho</span>
           </h2>
           <p className="landing-section__description">
-            Cada classe traz uma experiência distinta de jogo com mecânicas próprias e estilos
-            narrativos específicos.
+            Cada classe traz uma experi?ncia distinta de jogo com mec?nicas pr?prias e estilos
+            narrativos espec?ficos.
           </p>
         </div>
 

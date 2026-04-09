@@ -9,7 +9,7 @@ import { LandingFooter } from '@/components/landing/LandingFooter';
 export const metadata = {
   title: 'Assistente RPG - Sistema Jujutsu Kaisen',
   description:
-    'Assistente completo para criação de personagens, gerenciamento de inventário e campanhas do sistema Jujutsu Kaisen RPG Standalone.',
+    'Assistente completo para cria??o de personagens, gerenciamento de invent?rio e campanhas do sistema Jujutsu Kaisen RPG Standalone.',
 };
 
 export default function LandingPage() {

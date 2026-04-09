@@ -12,7 +12,7 @@ export function CTASection() {
       <div className="landing-cta__media">
         <Image
           src={landingImages.simboloEscola}
-          alt="Símbolo da escola"
+          alt="S?mbolo da escola"
           fill
           sizes="480px"
           className="object-contain"
@@ -25,7 +25,7 @@ export function CTASection() {
         </div>
         <h2>
           Pronto para a sua
-          <span> primeira missão</span>?
+          <span> primeira miss?o</span>?
         </h2>
         <p>
           Crie sua conta e organize campanhas, fichas e rolagens em poucos minutos. A mesa fica mais
@@ -33,7 +33,7 @@ export function CTASection() {
         </p>
         <Link href="/auth/register">
           <Button size="lg" className="landing-cta__button">
-            Começar agora
+            Come?ar agora
             <Icon name="forward" className="h-5 w-5" />
           </Button>
         </Link>
