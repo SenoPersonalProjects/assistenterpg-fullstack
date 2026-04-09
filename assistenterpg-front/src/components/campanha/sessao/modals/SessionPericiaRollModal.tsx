@@ -15,7 +15,7 @@ import type {
   RolagemDanoHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
 
-const ANIMACAO_PADRAO_MS = 650;
+const ANIMACAO_PADRAO_MS = 1500;
 
 type SessionPericiaRollModalProps = {
   isOpen: boolean;

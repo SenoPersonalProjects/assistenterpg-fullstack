@@ -493,19 +493,28 @@ export function DiceScene({
       animRef.current = requestAnimationFrame(animate);
       const { mesh: currentMesh, plane, renderer: currentRenderer, scene: currentScene, camera: currentCamera } = stateRef.current;
       if (!currentMesh || !currentRenderer || !currentScene || !currentCamera) return;
+      const resetScale = () => currentMesh.scale.setScalar(1);
 
       if (rollingRef.current) {
         const elapsed = (performance.now() - rollStartRef.current) / 1000;
         const duration = reducedMotion ? 0.01 : Math.max(0.16, rollDurationMs / 1000);
-        const settleAt = duration * 0.58;
+        const settleAt = duration * 0.72;
 
         if (elapsed < settleAt) {
           const progress = elapsed / settleAt;
-          const intensity = 1 - progress * 0.45;
-          currentMesh.rotation.x += (stateRef.current.spinVelocity?.x ?? 0.22) * intensity;
+          const easedProgress = Math.pow(progress, 1.18);
+          const intensity = THREE.MathUtils.lerp(1.16, 0.22, easedProgress);
+          const wobble = 1 + Math.sin(progress * Math.PI * 2.4) * 0.08;
+          currentMesh.rotation.x += (stateRef.current.spinVelocity?.x ?? 0.22) * intensity * wobble;
           currentMesh.rotation.y += (stateRef.current.spinVelocity?.y ?? 0.18) * intensity;
-          currentMesh.rotation.z += (stateRef.current.spinVelocity?.z ?? 0.14) * intensity;
-          currentMesh.position.y = Math.sin(progress * Math.PI) * 0.18;
+          currentMesh.rotation.z +=
+            (stateRef.current.spinVelocity?.z ?? 0.14) *
+            intensity *
+            (0.92 + Math.cos(progress * Math.PI * 1.8) * 0.06);
+          currentMesh.position.y =
+            Math.sin(progress * Math.PI) * 0.16 +
+            Math.sin(progress * Math.PI * 4) * (1 - progress) * 0.028;
+          resetScale();
           if (plane) {
             (plane.material as THREE.MeshBasicMaterial).opacity = 0;
           }
@@ -516,8 +525,11 @@ export function DiceScene({
 
           const settleDuration = Math.max(duration - settleAt, 0.08);
           const settleProgress = THREE.MathUtils.clamp((elapsed - settleAt) / settleDuration, 0, 1);
-          const eased = 1 - Math.pow(1 - settleProgress, 3);
-          const bounce = Math.sin(settleProgress * Math.PI) * (1 - settleProgress) * 0.09;
+          const eased = THREE.MathUtils.smootherstep(settleProgress, 0, 1);
+          const bounce =
+            Math.sin(settleProgress * Math.PI) *
+            Math.pow(1 - settleProgress, 1.35) *
+            0.05;
 
           if (stateRef.current.targetQuaternion) {
             currentMesh.quaternion.slerpQuaternions(
@@ -525,13 +537,27 @@ export function DiceScene({
               stateRef.current.targetQuaternion,
               eased,
             );
+            const snapAngle =
+              Math.sin(settleProgress * Math.PI * 2.1) *
+              Math.pow(1 - settleProgress, 2.2) *
+              0.06;
+            const snapQuaternion = new THREE.Quaternion().setFromAxisAngle(
+              new THREE.Vector3(0, 0, 1),
+              snapAngle,
+            );
+            currentMesh.quaternion.multiply(snapQuaternion);
           }
           currentMesh.position.y = bounce;
+          const punch =
+            THREE.MathUtils.smoothstep(settleProgress, 0.08, 0.42) *
+            Math.sin(settleProgress * Math.PI) *
+            0.045;
+          currentMesh.scale.setScalar(1 + punch);
 
           if (plane) {
             (plane.material as THREE.MeshBasicMaterial).opacity = THREE.MathUtils.smoothstep(
               settleProgress,
-              0.35,
+              0.28,
               0.9,
             );
           }
@@ -540,6 +566,7 @@ export function DiceScene({
             rollingRef.current = false;
             stateRef.current.settleStartQuaternion = undefined;
             currentMesh.position.y = 0;
+            resetScale();
             if (stateRef.current.targetQuaternion) {
               currentMesh.quaternion.copy(stateRef.current.targetQuaternion);
             }
@@ -555,6 +582,7 @@ export function DiceScene({
         }
         bobTimeRef.current += 0.012;
         currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.025;
+        currentMesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
         if (plane) {
           (plane.material as THREE.MeshBasicMaterial).opacity = 1;
         }
@@ -563,6 +591,7 @@ export function DiceScene({
         currentMesh.rotation.x += 0.001;
         bobTimeRef.current += 0.012;
         currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.05;
+        resetScale();
       }
 
       currentRenderer.render(currentScene, currentCamera);
@@ -657,15 +686,16 @@ export function DiceScene({
     bobTimeRef.current = 0;
     stateRef.current.settleStartQuaternion = undefined;
     stateRef.current.spinVelocity = new THREE.Vector3(
-      0.18 + Math.random() * 0.06,
-      0.16 + Math.random() * 0.05,
-      0.1 + Math.random() * 0.05,
+      0.2 + Math.random() * 0.05,
+      0.17 + Math.random() * 0.04,
+      0.115 + Math.random() * 0.04,
     );
 
     const { mesh, plane } = stateRef.current;
     if (!mesh) return;
 
     mesh.position.y = 0;
+    mesh.scale.setScalar(1);
 
     if (faces === 6) {
       mesh.material = makeD6Materials(faces, null);
