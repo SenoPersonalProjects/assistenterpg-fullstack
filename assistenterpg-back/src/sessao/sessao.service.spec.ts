@@ -290,6 +290,12 @@ describe('SessaoService', () => {
       variacoes: [],
     };
 
+    const custoBase = (service as any).resolverCustoUsoHabilidade(
+      habilidade,
+      new Map([['TECNICA_AMALDICOADA', 3]]),
+      undefined,
+      1,
+    );
     const custo = (service as any).resolverCustoUsoHabilidade(
       habilidade,
       new Map([['TECNICA_AMALDICOADA', 3]]),
@@ -297,7 +303,10 @@ describe('SessaoService', () => {
       2,
     );
 
-    expect(custo.custoEA).toBe(4);
+    expect(custoBase.custoEA).toBe(2);
+    expect(custoBase.acumulosAplicados).toBe(1);
+    expect(custoBase.isUsoBaseSemEscalonamento).toBe(true);
+    expect(custo.custoEA).toBe(3);
     expect(custo.acumulosAplicados).toBe(2);
     expect(custo.acumulosMaximos).toBe(3);
     expect(custo.isUsoBaseSemEscalonamento).toBe(false);

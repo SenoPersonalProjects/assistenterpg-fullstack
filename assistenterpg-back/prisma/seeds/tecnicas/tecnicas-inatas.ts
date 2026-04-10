@@ -746,9 +746,551 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'SETE_CAMINHOS_MUNDANOS',
     nome: 'Sete Caminhos Mundanos',
-    descricao: 'Sete modos de combate diferentes.',
+    descricao:
+      'Roleta amaldiçoada que concede um dos Caminhos Mundanos durante a cena.',
     hereditaria: false,
     clasHereditarios: [],
+    requisitos: {
+      roleta:
+        'Ao ativar a técnica, o usuário recebe aleatoriamente 1 Caminho Mundano que permanece até o fim da cena.',
+      primeiroUso:
+        'Na primeira roleta da cena, o usuário pode excluir 1 caminho indesejado e duplicar 1 caminho desejado na roleta.',
+      novoGiro:
+        'Para roletar novamente, precisa esperar ao menos 1 rodada e pagar 2 EA e 2 PE.',
+      trocaDeCaminho:
+        'Sempre remove o caminho atualmente ativo antes do novo giro, podendo reintroduzir caminhos removidos ao alterar a duplicação.',
+      estadoAtual:
+        'Atualização atual contempla Belianorr, Indivar, Saadnar, Grandier, Moxtar e Vazark.',
+    },
+    habilidades: [
+      {
+        codigo: 'INATA_SETE_CAMINHOS_ROLETA',
+        nome: 'Roleta dos Caminhos',
+        descricao:
+          'Gira a roleta amaldiçoada e define qual Caminho Mundano ficará ativo na cena.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Cena',
+        custoEA: 1,
+        custoPE: 1,
+        efeito:
+          'Ativa aleatoriamente 1 Caminho Mundano. O primeiro giro da cena pode excluir 1 caminho e duplicar outro. Para girar novamente, aguarde 1 rodada e pague 2 EA e 2 PE, removendo obrigatoriamente o caminho atual da roleta.',
+        ordem: 10,
+        variacoes: [
+          {
+            nome: 'Belianorr (Preguiça)',
+            descricao:
+              'Correntes amaldiçoadas revestem o corpo do usuário e drenam a determinação do alvo.',
+            efeitoAdicional:
+              'Personalidade: sonolento e sem determinação. Correntes: espaço 1, 1d8 x2 de impacto contra alvos comuns e exorciza maldições. Concede +2 em testes para derrubar e desarmar enquanto este Caminho estiver ativo.',
+            requisitos: { caminhoAtivo: 'BELIANORR' },
+            ordem: 10,
+          },
+          {
+            nome: 'Indivar (Inveja)',
+            descricao:
+              'Um terceiro olho se abre e busca apropriar-se de aspectos admiráveis de outras criaturas.',
+            efeitoAdicional:
+              'Desejo de Indivar: rouba fragmentos da identidade amaldiçoada em vez de copiar técnicas. Olhar de Indivar: percebe instintivamente o aspecto mais admirável de cada alvo observado.',
+            requisitos: { caminhoAtivo: 'INDIVAR' },
+            ordem: 20,
+          },
+          {
+            nome: 'Saadnar (Gula)',
+            descricao:
+              'Seis orbes negros orbitam o usuário e representam a fome de devorar energia, condições e existência.',
+            efeitoAdicional:
+              'Ao entrar no Caminho, recebe 6 orbes. Sem orbes, o usuário sai de Saadnar. Orbes da Fome: 1d4 x2 de impacto e exorciza maldições.',
+            requisitos: { caminhoAtivo: 'SAADNAR' },
+            ordem: 30,
+          },
+          {
+            nome: 'Grandier (Avareza)',
+            descricao:
+              'Uma algema dourada prende o usuário ao Crânio do Contador e impõe as leis da posse.',
+            efeitoAdicional:
+              'Crânio do Contador: cajado amaldiçoado feito de crânio humano e coluna vertebral, adornado com ouro e preso ao pulso esquerdo do usuário.',
+            requisitos: { caminhoAtivo: 'GRANDIER' },
+            ordem: 40,
+          },
+          {
+            nome: 'Moxtar (Orgulho)',
+            descricao:
+              'Fragmentos do corpo divino de Moxtar descem sobre o usuário e alimentam sua arrogância.',
+            efeitoAdicional:
+              'Enquanto Moxtar estiver ativo, o usuário tende a recusar ajuda, ignorar conselhos e correr riscos para provar superioridade.',
+            requisitos: { caminhoAtivo: 'MOXTAR' },
+            ordem: 50,
+          },
+          {
+            nome: 'Vazark (Raiva)',
+            descricao:
+              'O usuário é invadido pela mente livre e insana de Vazark, trocando razão por impulso destrutivo.',
+            efeitoAdicional:
+              'Patas de Vazark: espaço 2, 3d6 + Força de dano cortante, crítico 20 x3. Enquanto ativo, o usuário deve atacar um alvo em sua rodada sempre que possível.',
+            requisitos: { caminhoAtivo: 'VAZARK' },
+            ordem: 60,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_SETE_BELIANORR_CORRENTES',
+        nome: 'Correntes de Belianorr',
+        descricao:
+          'Usa as correntes de Belianorr como arma amaldiçoada para ataque corpo a corpo.',
+        execucao: TipoExecucao.AO_ATACAR,
+        alcance: 'Corpo a corpo',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        testesExigidos: ['Luta'],
+        dadosDano: [{ quantidade: 1, dado: 'd8', tipo: 'IMPACTO' }],
+        criticoValor: 20,
+        criticoMultiplicador: 2,
+        efeito:
+          'Requer Belianorr ativo. As correntes exorcizam maldições e concedem +2 em testes para derrubar e desarmar.',
+        requisitos: { caminhoAtivo: 'BELIANORR' },
+        ordem: 20,
+      },
+      {
+        codigo: 'INATA_SETE_BELIANORR_PERTURBACAO',
+        nome: 'Belianorr - Perturbação',
+        descricao:
+          'Cada golpe acertado com as correntes deixa uma Marca que sela a força de vontade do alvo.',
+        execucao: TipoExecucao.AO_ATACAR,
+        alcance: 'Corpo a corpo',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        resistencia: 'Vontade',
+        custoEA: 1,
+        efeito:
+          'Cada golpe corpo a corpo que acertar com as correntes deixa 1 Marca na parte atingida. Cada Marca isolada não causa efeito por si só, mas pode ser ativada depois. O alvo pode gastar 1 ação padrão para fazer teste de Vontade e remover as Marcas.',
+        requisitos: { caminhoAtivo: 'BELIANORR' },
+        ordem: 30,
+      },
+      {
+        codigo: 'INATA_SETE_BELIANORR_INEVITAVEL',
+        nome: 'Belianorr - Inevitável',
+        descricao:
+          'Puxa até você um alvo marcado pelas correntes de Belianorr.',
+        execucao: TipoExecucao.ACAO_MOVIMENTO,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        resistencia: 'Fortitude anula',
+        custoEA: 2,
+        efeito:
+          'Escolhe 1 ser que carregue ao menos 1 Marca e o puxa até você. Cada Marca no alvo concede +2 na DT desta habilidade.',
+        requisitos: { caminhoAtivo: 'BELIANORR', marcasMinimas: 1 },
+        ordem: 40,
+      },
+      {
+        codigo: 'INATA_SETE_BELIANORR_ATIVAR_MARCAS',
+        nome: 'Belianorr - Ativar Marcas',
+        descricao:
+          'Ativa as Marcas acumuladas para impor lentidão, fraqueza ou debilitação.',
+        execucao: TipoExecucao.ACAO_MOVIMENTO,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        resistencia: 'Fortitude',
+        custoEA: 1,
+        efeito:
+          'Custa 1 EA por Marca ativada. 1 Marca: Fortitude DT de técnicas +4; falha deixa LENTO. 2 Marcas: Fortitude DT de técnicas +6; falha deixa LENTO e FRACO, sucesso deixa apenas LENTO. 3 Marcas: Fortitude DT de técnicas +8; falha deixa DEBILITADO, sucesso deixa FRACO.',
+        requisitos: { caminhoAtivo: 'BELIANORR', consomeMarcas: true },
+        ordem: 50,
+      },
+      {
+        codigo: 'INATA_SETE_INDIVAR_APROPRIACAO',
+        nome: 'Indivar - Apropriação Profana',
+        descricao:
+          'Copia ou rouba propriedades amaldiçoadas de um alvo observado.',
+        execucao: TipoExecucao.ACAO_MOVIMENTO,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Cena',
+        resistencia: 'Vontade evita',
+        custoEA: 2,
+        custoPE: 2,
+        efeito:
+          'Escolha 1 propriedade do alvo: 1 bônus de perícia, 1 tipo de resistência, 1 tipo de dano, 1 valor de atributo ou 1 grau de aprimoramento conhecido. Vontade evita a cópia.',
+        requisitos: { caminhoAtivo: 'INDIVAR' },
+        ordem: 60,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao:
+              'Copia mais propriedades do mesmo alvo.',
+            substituiCustos: false,
+            custoEA: 1,
+            efeitoAdicional:
+              'Consegue copiar 1 + grau de aprimoramento em Técnica Amaldiçoada propriedades do alvo.',
+            ordem: 10,
+          },
+          {
+            nome: 'Máxima',
+            descricao:
+              'Rouba a propriedade em vez de apenas copiá-la.',
+            substituiCustos: false,
+            custoEA: 2,
+            custoPE: 1,
+            efeitoAdicional:
+              'Rouba 1 única propriedade do alvo até o fim da cena, impedindo o alvo de usá-la enquanto durar o efeito.',
+            ordem: 20,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_SETE_INDIVAR_EU_TAMBEM',
+        nome: 'Indivar - Eu Também Consigo',
+        descricao:
+          'Refaz um teste após ver outra criatura ter sucesso em situação equivalente.',
+        execucao: TipoExecucao.REACAO,
+        alcance: 'Visão do usuário',
+        alvo: 'Você',
+        duracao: 'Instantâneo',
+        custoEA: 3,
+        efeito:
+          'Quando outra pessoa ou criatura realiza o mesmo teste que você na mesma rodada e obtém sucesso, você pode refazer o teste imediatamente. Não vale para testes contra, salvo pela variação Superior.',
+        requisitos: { caminhoAtivo: 'INDIVAR' },
+        ordem: 70,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao:
+              'Expande a apropriação para testes contra.',
+            substituiCustos: false,
+            custoEA: 1,
+            custoPE: 1,
+            efeitoAdicional:
+              'Também pode ser usada em testes contra.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_SETE_SAADNAR_ORBES',
+        nome: 'Saadnar - Orbes da Fome',
+        descricao:
+          'Dispara um orbe básico de Saadnar contra um alvo próximo.',
+        execucao: TipoExecucao.AO_ATACAR,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        testesExigidos: ['Pontaria com Jujutsu'],
+        dadosDano: [{ quantidade: 1, dado: 'd4', tipo: 'IMPACTO' }],
+        criticoValor: 20,
+        criticoMultiplicador: 2,
+        efeito:
+          'Requer Saadnar ativo e ao menos 1 orbe disponível. Os orbes exorcizam maldições.',
+        requisitos: { caminhoAtivo: 'SAADNAR', recurso: 'ORBES' },
+        ordem: 80,
+      },
+      {
+        codigo: 'INATA_SETE_SAADNAR_CONSUMIR',
+        nome: 'Saadnar - Consumir',
+        descricao:
+          'Sacrifica 1 orbe para absorver energia amaldiçoada de um ataque.',
+        execucao: TipoExecucao.REACAO,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Instantâneo',
+        custoEA: 3,
+        custoPE: 2,
+        efeito:
+          'Gasta 1 orbe para transformar até 20 do dano recebido em RD contra aquele ataque. Pode acumular +5 RD por EA extra gasto, até o limite do seu grau em Técnica Amaldiçoada.',
+        requisitos: { caminhoAtivo: 'SAADNAR', recurso: 'ORBES' },
+        ordem: 90,
+        variacoes: [
+          {
+            nome: 'Absorver Ambiente',
+            descricao:
+              'Converte 1 orbe em vida temporária até o fim da cena.',
+            substituiCustos: true,
+            execucao: TipoExecucao.ACAO_PADRAO,
+            alcance: 'Pessoal',
+            alvo: 'Você',
+            duracao: 'Instantâneo',
+            custoEA: 4,
+            custoPE: 2,
+            dadosDano: [{ quantidade: 2, dado: 'd8', tipo: 'ENERGIA_AMALDICOADA' }],
+            efeitoAdicional:
+              'Em vez de RD, recebe 2d8 de vida temporária até o fim da cena. Pode acumular +1d8 de vida temporária por EA extra gasto, até o limite do grau em Técnica Amaldiçoada.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_SETE_SAADNAR_DEVORAR',
+        nome: 'Saadnar - Devorar',
+        descricao:
+          'Dispara 1 ou mais orbes em direção a um alvo para causar dano.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        custoEA: 2,
+        testesExigidos: ['Pontaria com Jujutsu'],
+        dadosDano: [{ quantidade: 1, dado: 'd4', tipo: 'IMPACTO' }],
+        criticoValor: 20,
+        criticoMultiplicador: 2,
+        efeito:
+          'Controla 1 orbe e o dispara contra o alvo; o orbe some após atingir. Pode acumular orbes para cada +1 EA gasto adicional.',
+        requisitos: { caminhoAtivo: 'SAADNAR', recurso: 'ORBES' },
+        ordem: 100,
+      },
+      {
+        codigo: 'INATA_SETE_SAADNAR_INGERIR',
+        nome: 'Saadnar - Ingerir',
+        descricao:
+          'Usa 1 orbe para consumir uma condição negativa de um alvo.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        custoEA: 2,
+        efeito:
+          'Gasta 1 orbe para que ele viaje até o alvo e consuma 1 condição negativa, exceto MORRENDO, MACHUCADO, LOUCO ou ENLOUQUECENDO. Pode acumular orbes para cada +1 EA extra gasto.',
+        requisitos: { caminhoAtivo: 'SAADNAR', recurso: 'ORBES' },
+        ordem: 110,
+      },
+      {
+        codigo: 'INATA_SETE_GRANDIER_POSSE',
+        nome: 'Grandier - Posse',
+        descricao:
+          'Reafirma o direito absoluto do usuário sobre um item que empunha.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Instantâneo',
+        custoEA: 2,
+        custoPE: 1,
+        efeito:
+          'Escolha 1 item empunhado. Você fica imune à manobra desarmar com esse item e recebe +2 em testes ligados ao uso dele. Ex.: armas concedem +2 em Luta.',
+        requisitos: { caminhoAtivo: 'GRANDIER' },
+        ordem: 120,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao:
+              'Transforma a familiaridade com o item em superioridade técnica.',
+            substituiCustos: false,
+            custoEA: 1,
+            efeitoAdicional:
+              'Além dos efeitos base, recebe +1 dado em testes usando o item escolhido.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_SETE_GRANDIER_APEGO',
+        nome: 'Grandier - Apego',
+        descricao:
+          'Materializa um objeto de avareza e força o alvo a mantê-lo nas mãos.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        resistencia: 'Vontade anula',
+        custoEA: 3,
+        custoPE: 1,
+        efeito:
+          'Materializa um objeto de avareza que ocupa as duas mãos do alvo e o obriga a mantê-lo por 1d2+1 rodadas.',
+        requisitos: { caminhoAtivo: 'GRANDIER' },
+        ordem: 130,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao:
+              'Faz o alvo apegar-se ao objeto por ainda mais tempo.',
+            substituiCustos: false,
+            efeitoAdicional:
+              'Some o valor do Grau de Aprimoramento em Técnica Amaldiçoada ao número de rodadas do efeito.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_SETE_GRANDIER_CIRCULO',
+        nome: 'Grandier - Círculo do Penhor',
+        descricao:
+          'Crava o cajado no solo e transforma a área em uma penhora amaldiçoada.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Curto',
+        alvo: 'Aliados e inimigos na área',
+        duracao: 'Sustentado',
+        resistencia: 'Vontade anula (apenas inimigos)',
+        custoEA: 3,
+        custoPE: 2,
+        custoSustentacaoEA: 1,
+        efeito:
+          'Requer Grau de Aprimoramento em Técnica de Barreira 1. Enquanto sustentar, o usuário não pode sair do ponto inicial. Aliados reduzem em 1 EA o custo de técnicas amaldiçoadas (mínimo 1). Inimigos ficam ALQUEBRADOS.',
+        requisitos: {
+          caminhoAtivo: 'GRANDIER',
+          grauMinimo: { codigo: 'TECNICA_BARREIRA', valor: 1 },
+        },
+        ordem: 140,
+      },
+      {
+        codigo: 'INATA_SETE_MOXTAR_PARTES',
+        nome: 'Moxtar - Partes do Divino',
+        descricao:
+          'Recebe partes sagradas e grotescas do corpo de Moxtar.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Sustentado',
+        custoEA: 3,
+        custoPE: 2,
+        custoSustentacaoEA: 1,
+        efeito:
+          'Escolha 1 parte de Moxtar para manifestar até o fim da cena: Auréola de Carne, Asas de Carne ou Cauda de Moxtar. Esta habilidade pode ser usada novamente até que todas as partes tenham sido manifestadas.',
+        requisitos: { caminhoAtivo: 'MOXTAR' },
+        ordem: 150,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao:
+              'Sustenta duas partes simultaneamente.',
+            substituiCustos: false,
+            custoEA: 2,
+            efeitoAdicional:
+              'Pode manter até 2 partes de Moxtar ativas ao mesmo tempo.',
+            ordem: 10,
+          },
+          {
+            nome: 'Máxima',
+            descricao:
+              'Manifesta as três partes do divino de uma só vez.',
+            substituiCustos: false,
+            custoEA: 5,
+            efeitoAdicional:
+              'Ativa as três partes instantaneamente.',
+            ordem: 20,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_SETE_MOXTAR_AUREOLA',
+        nome: 'Moxtar - Auréola de Carne',
+        descricao:
+          'Desafia o alvo em uma prova escolhida por ele e converte a vitória em submissão ou devoção.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        resistencia: 'Varia',
+        custoEA: 2,
+        custoPE: 1,
+        efeito:
+          'Requer a parte Auréola de Carne ativa. O alvo escolhe a atividade ou desafio. Se vencer, escolha 1 benefício: Devoção Roubada (2d6 PE e EA temporários enquanto sustentar a parte), Orgulho Quebrado (+2 contra o alvo e você vai para frente dele na iniciativa) ou Convicção Superior (alvo fica CAÍDO, perde a próxima ação de movimento e sofre -2 contra você enquanto sustentar a parte).',
+        requisitos: { caminhoAtivo: 'MOXTAR', parteAtiva: 'AUREOLA_DE_CARNE' },
+        ordem: 160,
+      },
+      {
+        codigo: 'INATA_SETE_MOXTAR_ASAS',
+        nome: 'Moxtar - Asas de Carne',
+        descricao:
+          'As asas deformadas de Moxtar defendem o usuário e sustentam seu voo.',
+        execucao: TipoExecucao.REACAO,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Instantâneo',
+        custoPE: 2,
+        efeito:
+          'Requer a parte Asas de Carne ativa. Enquanto a parte estiver ativa, você recebe deslocamento de voo. As asas têm 30 PV e 5 RD. Ao usar esta habilidade, recebe RD 10 contra o ataque, mas o dano absorvido é transferido para as asas sem aplicar essa RD a elas.',
+        requisitos: { caminhoAtivo: 'MOXTAR', parteAtiva: 'ASAS_DE_CARNE' },
+        ordem: 170,
+      },
+      {
+        codigo: 'INATA_SETE_MOXTAR_CAUDA',
+        nome: 'Moxtar - Cauda de Moxtar',
+        descricao:
+          'Usa a cauda divina para golpear em conjunto com o ataque principal.',
+        execucao: TipoExecucao.AO_ATACAR,
+        alcance: 'Corpo a corpo',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        custoPE: 2,
+        testesExigidos: ['Luta'],
+        dadosDano: [{ quantidade: 1, dado: 'd6', tipo: 'IMPACTO' }],
+        criticoValor: 20,
+        criticoMultiplicador: 2,
+        efeito:
+          'Requer a parte Cauda de Moxtar ativa. A cauda funciona como mão extra, concede +4 em manobras de combate e +2 em Acrobacia. Ao usar a habilidade, o golpe causa 1d6 + Força de dano de impacto e pode receber revestimento de energia amaldiçoada.',
+        requisitos: { caminhoAtivo: 'MOXTAR', parteAtiva: 'CAUDA_DE_MOXTAR' },
+        ordem: 180,
+      },
+      {
+        codigo: 'INATA_SETE_VAZARK_PATAS',
+        nome: 'Vazark - Patas da Besta',
+        descricao:
+          'As enormes manoplas de carne viva de Vazark dilaceram o alvo em combate direto.',
+        execucao: TipoExecucao.AO_ATACAR,
+        alcance: 'Corpo a corpo',
+        alvo: '1 ser',
+        duracao: 'Instantâneo',
+        testesExigidos: ['Luta'],
+        dadosDano: [{ quantidade: 3, dado: 'd6', tipo: 'CORTANTE' }],
+        criticoValor: 20,
+        criticoMultiplicador: 3,
+        efeito:
+          'Requer Vazark ativo. As patas ocupam espaço 2 e substituem as mãos enquanto este Caminho estiver ativo.',
+        requisitos: { caminhoAtivo: 'VAZARK' },
+        ordem: 190,
+      },
+      {
+        codigo: 'INATA_SETE_VAZARK_VINCULO',
+        nome: 'Vazark - Vínculo da Besta',
+        descricao:
+          'Abraça a ferocidade de Vazark para lutar sem contenção.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Pessoal',
+        alvo: 'Você',
+        duracao: 'Sustentado',
+        custoEA: 2,
+        custoPE: 1,
+        custoSustentacaoEA: 1,
+        efeito:
+          'Enquanto ativo, recebe +2 em ataques corpo a corpo, +2 em rolagens de dano corpo a corpo e resistência 5 contra Balístico, Corte, Impacto e Perfuração.',
+        requisitos: { caminhoAtivo: 'VAZARK' },
+        ordem: 200,
+      },
+      {
+        codigo: 'INATA_SETE_VAZARK_RUGIDO',
+        nome: 'Vazark - Rugido de Vazark',
+        descricao:
+          'Libera um rugido que inflama a raiva de todos que o escutam.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Médio',
+        alvo: 'Seres ao alcance',
+        duracao: '1d3 rodadas',
+        resistencia: 'Vontade anula',
+        custoEA: 3,
+        custoPE: 1,
+        efeito:
+          'Quem falhar recebe +5 em testes de Luta e Pontaria, mas sofre -5 na Defesa enquanto durar o efeito.',
+        requisitos: { caminhoAtivo: 'VAZARK' },
+        ordem: 210,
+      },
+      {
+        codigo: 'INATA_SETE_VAZARK_DESAFIO',
+        nome: 'Vazark - Desafio Bestial',
+        descricao:
+          'Instiga 1 alvo a entrar num confronto direto e brutal com você.',
+        execucao: TipoExecucao.AO_ATACAR,
+        alcance: 'Curto',
+        alvo: '1 ser',
+        duracao: '1d3 rodadas',
+        resistencia: 'Vontade',
+        custoEA: 3,
+        custoPE: 1,
+        efeito:
+          'Você e o alvo devem usar tudo que têm para entrar em alcance corpo a corpo e se atacar mutuamente. A única reação especial permitida entre vocês é Contra-ataque. Ambos recebem +1 dado de dano e +5 nos testes de ataque um contra o outro, inclusive no primeiro ataque.',
+        requisitos: { caminhoAtivo: 'VAZARK' },
+        ordem: 220,
+      },
+    ],
   },
   {
     codigo: 'SURTO_TEMPORAL',

@@ -200,11 +200,11 @@ function AcumulosControl({
       </div>
       <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-app-muted">
         <Badge size="sm" color="gray" variant="outline">
-          +EA {custoEA}/acumulo
+          +EA {custoEA}/acumulo extra
         </Badge>
         {custoPE > 0 ? (
           <Badge size="sm" color="gray" variant="outline">
-            +PE {custoPE}/acumulo
+            +PE {custoPE}/acumulo extra
           </Badge>
         ) : null}
       </div>
@@ -291,10 +291,11 @@ export function SessionTechniqueBlock({
                   1,
                 )
               : 0;
+            const acumulosBaseExtras = Math.max(0, acumulosBase - 1);
             const custoBaseTotalEA =
-              custoBase.custoEA + custoBase.escalonamentoCustoEA * acumulosBase;
+              custoBase.custoEA + custoBase.escalonamentoCustoEA * acumulosBaseExtras;
             const custoBaseTotalPE =
-              custoBase.custoPE + custoBase.escalonamentoCustoPE * acumulosBase;
+              custoBase.custoPE + custoBase.escalonamentoCustoPE * acumulosBaseExtras;
             const chaveBase = montarChaveUsoHabilidade(
               card.personagemSessaoId,
               habilidade.id,
@@ -540,12 +541,13 @@ export function SessionTechniqueBlock({
                               1,
                             )
                           : 0;
+                        const acumulosVariacaoExtras = Math.max(0, acumulosVariacao - 1);
                         const custoVariacaoTotalEA =
                           custoVariacao.custoEA +
-                          custoVariacao.escalonamentoCustoEA * acumulosVariacao;
+                          custoVariacao.escalonamentoCustoEA * acumulosVariacaoExtras;
                         const custoVariacaoTotalPE =
                           custoVariacao.custoPE +
-                          custoVariacao.escalonamentoCustoPE * acumulosVariacao;
+                          custoVariacao.escalonamentoCustoPE * acumulosVariacaoExtras;
                         const testesVariacaoResolvidos = resolverTesteHabilidade(
                           habilidade.testesExigidos,
                           card.pericias ?? [],

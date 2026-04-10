@@ -4128,9 +4128,10 @@ export class SessaoService {
       );
     }
 
+    const acumulosExtras = Math.max(0, acumulosNormalizados - 1);
     let custoEscalonamentoEA = 0;
     let custoEscalonamentoPE = 0;
-    if (acumulosNormalizados > 0) {
+    if (acumulosExtras > 0) {
       const fallbackEscalonamentoEA =
         tipoGrauEscalonamento === 'TECNICA_REVERSA' ? 2 : 1;
       custoEscalonamentoEA = this.normalizarCustoPositivo(
@@ -4140,19 +4141,19 @@ export class SessaoService {
       if (custoEscalonamentoEA <= 0) {
         custoEscalonamentoEA = fallbackEscalonamentoEA;
       }
-      custoEA += custoEscalonamentoEA * acumulosNormalizados;
+      custoEA += custoEscalonamentoEA * acumulosExtras;
 
       custoEscalonamentoPE = this.normalizarCustoPositivo(
         escalonamentoCustoPE,
         0,
       );
       if (custoEscalonamentoPE > 0) {
-        custoPE += custoEscalonamentoPE * acumulosNormalizados;
+        custoPE += custoEscalonamentoPE * acumulosExtras;
       }
     }
 
     const isUsoBaseSemEscalonamento =
-      variacaoSelecionada === null && acumulosNormalizados === 0;
+      variacaoSelecionada === null && acumulosExtras === 0;
 
     const isSustentada = this.duracaoEhSustentada(duracao);
     const custoSustentacaoDefinido =
@@ -4194,7 +4195,7 @@ export class SessaoService {
     const resumoEscalonamento = this.montarResumoEscalonamento(
       tipoEscalonamentoNormalizado,
       efeitoEscalonamentoNormalizado,
-      acumulosNormalizados,
+      acumulosExtras,
     );
 
     return {
@@ -4211,8 +4212,8 @@ export class SessaoService {
       acumulosMaximos: acumulosMaximosEfetivo,
       custoEscalonamentoEA,
       custoEscalonamentoPE,
-      custoEscalonamentoTotalEA: custoEscalonamentoEA * acumulosNormalizados,
-      custoEscalonamentoTotalPE: custoEscalonamentoPE * acumulosNormalizados,
+      custoEscalonamentoTotalEA: custoEscalonamentoEA * acumulosExtras,
+      custoEscalonamentoTotalPE: custoEscalonamentoPE * acumulosExtras,
       escalonamentoTipo: tipoEscalonamentoNormalizado,
       escalonamentoEfeito: efeitoEscalonamentoNormalizado,
       resumoEscalonamento,
