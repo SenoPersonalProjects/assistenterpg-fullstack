@@ -34,6 +34,7 @@ import {
   CriarItemSessaoCampanhaDto,
   CriarTemplateItemSessaoCampanhaDto,
   RevelarItemSessaoCampanhaDto,
+  SolicitarTransferenciaItemSessaoCampanhaDto,
 } from './dto/itens-sessao-campanha.dto';
 
 @Injectable()
@@ -459,6 +460,16 @@ export class CampanhaService {
     return this.itensSessaoService.listarItens(campanhaId, usuarioId);
   }
 
+  async listarTransferenciasItensSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+  ) {
+    return this.itensSessaoService.listarTransferenciasPendentes(
+      campanhaId,
+      usuarioId,
+    );
+  }
+
   async listarTemplatesItensSessaoCampanha(campanhaId: number, usuarioId: number) {
     return this.itensSessaoService.listarTemplates(campanhaId, usuarioId);
   }
@@ -532,6 +543,44 @@ export class CampanhaService {
     dto: RevelarItemSessaoCampanhaDto,
   ) {
     return this.itensSessaoService.revelarItem(campanhaId, usuarioId, itemId, dto);
+  }
+
+  async solicitarTransferenciaItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    itemId: number,
+    dto: SolicitarTransferenciaItemSessaoCampanhaDto,
+  ) {
+    return this.itensSessaoService.solicitarTransferencia(
+      campanhaId,
+      usuarioId,
+      itemId,
+      dto,
+    );
+  }
+
+  async aceitarTransferenciaItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    transferenciaId: number,
+  ) {
+    return this.itensSessaoService.aceitarTransferencia(
+      campanhaId,
+      usuarioId,
+      transferenciaId,
+    );
+  }
+
+  async recusarTransferenciaItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    transferenciaId: number,
+  ) {
+    return this.itensSessaoService.recusarTransferencia(
+      campanhaId,
+      usuarioId,
+      transferenciaId,
+    );
   }
 
   async criarConvitePorEmail(

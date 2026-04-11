@@ -28,6 +28,7 @@ type SessionSidebarPanelProps = {
   eventosSessao: EventoSessaoTimeline[];
   participantes: SessaoCampanhaDetalhe['participantes'];
   personagens: SessaoCampanhaDetalhe['cards'];
+  npcs: SessaoCampanhaDetalhe['npcs'];
   onlineSet: Set<number>;
   campanhaId: number;
   sessaoId: number;
@@ -63,6 +64,7 @@ export function SessionSidebarPanel({
   eventosSessao,
   participantes,
   personagens,
+  npcs,
   onlineSet,
   campanhaId,
   sessaoId,
@@ -197,6 +199,8 @@ export function SessionSidebarPanel({
             sessaoId={sessaoId}
             cenaId={cenaId}
             personagens={personagens}
+            npcs={npcs}
+            usuarioId={usuarioId}
             onCountChange={setTotalItens}
           />
         ) : null}

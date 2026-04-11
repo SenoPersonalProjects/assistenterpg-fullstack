@@ -471,6 +471,12 @@ export type SessaoCampanhaDetalhe = {
 };
 
 export type TipoItemSessao = 'DOCUMENTO' | 'PISTA' | 'GERAL';
+export type StatusTransferenciaItemSessao =
+  | 'PENDENTE'
+  | 'ACEITA'
+  | 'RECUSADA'
+  | 'CANCELADA';
+export type DestinoTransferenciaItemSessao = 'PERSONAGEM' | 'NPC';
 
 export type CategoriaEquipamentoCodigo =
   | 'CATEGORIA_0'
@@ -496,6 +502,7 @@ export type ItemSessaoCampanhaDto = {
   criadoEm: string;
   atualizadoEm: string;
   criadoPor?: { id: number; apelido: string | null };
+  transferenciaPendente?: TransferenciaItemSessaoCampanhaDto | null;
   portador: {
     id: number;
     nome: string;
@@ -506,6 +513,47 @@ export type ItemSessaoCampanhaDto = {
     podeEditar: boolean;
     podeAtribuir: boolean;
     podeRevelar: boolean;
+    podeTransferir?: boolean;
+  };
+};
+
+export type TransferenciaItemSessaoCampanhaDto = {
+  id: number;
+  campanhaId: number;
+  itemId: number;
+  solicitanteId: number;
+  portadorAnteriorId: number | null;
+  destinoTipo: DestinoTransferenciaItemSessao;
+  destinoPersonagemCampanhaId: number | null;
+  destinoNpcSessaoId: number | null;
+  status: StatusTransferenciaItemSessao;
+  criadaEm: string;
+  respondidaEm: string | null;
+  item: {
+    id: number;
+    nome: string;
+    peso: number;
+    personagemCampanhaId: number | null;
+  };
+  solicitante: { id: number; apelido: string | null };
+  portadorAnterior: {
+    id: number;
+    nome: string;
+    donoId: number | null;
+  } | null;
+  destinoPersonagem: {
+    id: number;
+    nome: string;
+    donoId: number | null;
+    ehMeu: boolean;
+  } | null;
+  destinoNpc: {
+    id: number;
+    nome: string;
+  } | null;
+  permissoes?: {
+    podeResponder: boolean;
+    podeResponderComoMestre: boolean;
   };
 };
 
@@ -530,6 +578,7 @@ export type ItensSessaoCampanhaResponse = {
     podeCriarItem: boolean;
   };
   itens: ItemSessaoCampanhaDto[];
+  transferenciasPendentes?: TransferenciaItemSessaoCampanhaDto[];
 };
 
 export type CriarItemSessaoCampanhaPayload = {

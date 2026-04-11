@@ -1,6 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   CategoriaEquipamento,
+  DestinoTransferenciaItemSessao,
+  StatusTransferenciaItemSessao,
   TipoItemSessaoCampanha,
 } from '@prisma/client';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
@@ -140,6 +142,115 @@ describe('CampanhaItensSessaoService', () => {
     expect(resultado.permissoes).toMatchObject({
       podeAtribuir: true,
       podeRevelar: true,
+    });
+  });
+
+  it('marca item proprio como transferivel quando nao ha pendencia', () => {
+    const servico = criarServico();
+
+    const resultado = servico.mapearItem(
+      {
+        id: 2,
+        campanhaId: 10,
+        sessaoId: null,
+        cenaId: null,
+        personagemCampanhaId: 77,
+        nome: 'Chave antiga',
+        descricao: 'Ferrugem demais.',
+        descricaoRevelada: true,
+        tipo: TipoItemSessaoCampanha.GERAL,
+        categoria: CategoriaEquipamento.CATEGORIA_0,
+        peso: 1,
+        criadoEm: new Date('2026-04-10T00:00:00.000Z'),
+        atualizadoEm: new Date('2026-04-10T00:00:00.000Z'),
+        criadoPorId: 42,
+        criadoPor: { id: 42, apelido: 'Jogador' },
+        personagemCampanha: {
+          id: 77,
+          nome: 'Iori',
+          donoId: 42,
+          personagemBase: { nome: 'Iori base' },
+        },
+        transferencias: [],
+      },
+      { ehMestre: false },
+      42,
+    );
+
+    expect(resultado.permissoes).toMatchObject({
+      podeTransferir: true,
+    });
+  });
+
+  it('bloqueia nova transferencia quando item ja tem pendencia', () => {
+    const servico = criarServico();
+
+    const resultado = servico.mapearItem(
+      {
+        id: 2,
+        campanhaId: 10,
+        sessaoId: null,
+        cenaId: null,
+        personagemCampanhaId: 77,
+        nome: 'Chave antiga',
+        descricao: 'Ferrugem demais.',
+        descricaoRevelada: true,
+        tipo: TipoItemSessaoCampanha.GERAL,
+        categoria: CategoriaEquipamento.CATEGORIA_0,
+        peso: 1,
+        criadoEm: new Date('2026-04-10T00:00:00.000Z'),
+        atualizadoEm: new Date('2026-04-10T00:00:00.000Z'),
+        criadoPorId: 42,
+        criadoPor: { id: 42, apelido: 'Jogador' },
+        personagemCampanha: {
+          id: 77,
+          nome: 'Iori',
+          donoId: 42,
+          personagemBase: { nome: 'Iori base' },
+        },
+        transferencias: [
+          {
+            id: 9,
+            campanhaId: 10,
+            itemId: 2,
+            solicitanteId: 42,
+            portadorAnteriorId: 77,
+            destinoTipo: DestinoTransferenciaItemSessao.PERSONAGEM,
+            destinoPersonagemCampanhaId: 88,
+            destinoNpcSessaoId: null,
+            status: StatusTransferenciaItemSessao.PENDENTE,
+            criadaEm: new Date('2026-04-10T00:00:00.000Z'),
+            respondidaEm: null,
+            item: {
+              id: 2,
+              nome: 'Chave antiga',
+              peso: 1,
+              personagemCampanhaId: 77,
+            },
+            solicitante: { id: 42, apelido: 'Jogador' },
+            portadorAnterior: {
+              id: 77,
+              nome: 'Iori',
+              donoId: 42,
+              personagemBase: { nome: 'Iori base' },
+            },
+            destinoPersonagemCampanha: {
+              id: 88,
+              nome: 'Maki',
+              donoId: 43,
+              personagemBase: { nome: 'Maki base' },
+            },
+            destinoNpcSessao: null,
+          },
+        ],
+      },
+      { ehMestre: false },
+      42,
+    );
+
+    expect(resultado.transferenciaPendente).toMatchObject({ id: 9 });
+    expect(resultado.permissoes).toMatchObject({
+      podeTransferir: false,
     });
   });
 });

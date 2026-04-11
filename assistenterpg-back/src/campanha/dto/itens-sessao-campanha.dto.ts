@@ -7,7 +7,11 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CategoriaEquipamento, TipoItemSessaoCampanha } from '@prisma/client';
+import {
+  CategoriaEquipamento,
+  DestinoTransferenciaItemSessao,
+  TipoItemSessaoCampanha,
+} from '@prisma/client';
 
 export class CriarTemplateItemSessaoCampanhaDto {
   @IsString()
@@ -105,4 +109,19 @@ export class AtribuirItemSessaoCampanhaDto {
 export class RevelarItemSessaoCampanhaDto {
   @IsBoolean()
   descricaoRevelada: boolean;
+}
+
+export class SolicitarTransferenciaItemSessaoCampanhaDto {
+  @IsEnum(DestinoTransferenciaItemSessao)
+  destinoTipo: DestinoTransferenciaItemSessao;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  destinoPersonagemCampanhaId?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  destinoNpcSessaoId?: number | null;
 }

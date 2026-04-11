@@ -30,13 +30,32 @@ export function ToastContainer() {
         <div
           key={toast.id}
           className={`
-            flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg
+            flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg
             animate-slide-in-right
             ${TOAST_STYLES[toast.type]}
           `}
         >
           <Icon name={TOAST_ICONS[toast.type]} className="w-5 h-5 flex-shrink-0" />
-          <p className="flex-1 text-sm font-medium">{toast.message}</p>
+          <div className="flex-1 space-y-2">
+            <p className="text-sm font-medium">{toast.message}</p>
+            {toast.actions?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {toast.actions.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    onClick={() => {
+                      void action.onClick();
+                      removeToast(toast.id);
+                    }}
+                    className="rounded border border-white/40 px-2 py-1 text-xs font-semibold transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/70"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
           <button
             onClick={() => removeToast(toast.id)}
             className="hover:opacity-80 transition-opacity"

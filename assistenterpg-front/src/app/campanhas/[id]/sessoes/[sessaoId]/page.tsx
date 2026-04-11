@@ -2333,6 +2333,7 @@ export default function SessaoCampanhaPage() {
                 eventosSessao={eventosSessao}
                 participantes={participantes}
                 personagens={detalhe.cards}
+                npcs={npcs}
                 onlineSet={onlineSet}
                 campanhaId={campanhaId}
                 sessaoId={sessaoId}

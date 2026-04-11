@@ -37,6 +37,7 @@ import {
   CriarItemSessaoCampanhaDto,
   CriarTemplateItemSessaoCampanhaDto,
   RevelarItemSessaoCampanhaDto,
+  SolicitarTransferenciaItemSessaoCampanhaDto,
 } from './dto/itens-sessao-campanha.dto';
 
 @UseGuards(AuthGuard('jwt'))
@@ -389,6 +390,43 @@ export class CampanhaController {
     return this.campanhaService.criarItemSessaoCampanha(id, req.user.id, dto);
   }
 
+  @Get(':id/itens-sessao/transferencias/pendentes')
+  async listarTransferenciasItensSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarTransferenciasItensSessaoCampanha(
+      id,
+      req.user.id,
+    );
+  }
+
+  @Post(':id/itens-sessao/transferencias/:transferenciaId/aceitar')
+  async aceitarTransferenciaItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('transferenciaId', ParseIntPipe) transferenciaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.aceitarTransferenciaItemSessaoCampanha(
+      id,
+      req.user.id,
+      transferenciaId,
+    );
+  }
+
+  @Post(':id/itens-sessao/transferencias/:transferenciaId/recusar')
+  async recusarTransferenciaItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('transferenciaId', ParseIntPipe) transferenciaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.recusarTransferenciaItemSessaoCampanha(
+      id,
+      req.user.id,
+      transferenciaId,
+    );
+  }
+
   @Get(':id/itens-sessao/templates')
   async listarTemplatesItensSessaoCampanha(
     @Param('id', ParseIntPipe) id: number,
@@ -481,6 +519,21 @@ export class CampanhaController {
     @Body() dto: RevelarItemSessaoCampanhaDto,
   ) {
     return this.campanhaService.revelarItemSessaoCampanha(
+      id,
+      req.user.id,
+      itemId,
+      dto,
+    );
+  }
+
+  @Post(':id/itens-sessao/:itemId/transferencias')
+  async solicitarTransferenciaItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: SolicitarTransferenciaItemSessaoCampanhaDto,
+  ) {
+    return this.campanhaService.solicitarTransferenciaItemSessaoCampanha(
       id,
       req.user.id,
       itemId,

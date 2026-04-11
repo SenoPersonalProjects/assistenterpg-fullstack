@@ -22,6 +22,7 @@ import type {
   SessaoCampanhaResumo,
   TemplateItemSessaoCampanhaDto,
   TipoCenaSessaoCampanha,
+  TransferenciaItemSessaoCampanhaDto,
 } from '@/lib/types';
 
 export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
@@ -709,6 +710,55 @@ export async function apiRevelarItemSessaoCampanha(
   const { data } = await apiClient.patch(
     `/campanhas/${campanhaId}/itens-sessao/${itemId}/revelacao`,
     payload,
+  );
+  return data;
+}
+
+export async function apiListarTransferenciasItensSessaoCampanha(
+  campanhaId: number,
+): Promise<TransferenciaItemSessaoCampanhaDto[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/itens-sessao/transferencias/pendentes`,
+  );
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiSolicitarTransferenciaItemSessaoCampanha(
+  campanhaId: number,
+  itemId: number,
+  payload:
+    | {
+        destinoTipo: 'PERSONAGEM';
+        destinoPersonagemCampanhaId: number;
+      }
+    | {
+        destinoTipo: 'NPC';
+        destinoNpcSessaoId: number;
+      },
+): Promise<TransferenciaItemSessaoCampanhaDto> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/itens-sessao/${itemId}/transferencias`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAceitarTransferenciaItemSessaoCampanha(
+  campanhaId: number,
+  transferenciaId: number,
+): Promise<TransferenciaItemSessaoCampanhaDto> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/itens-sessao/transferencias/${transferenciaId}/aceitar`,
+  );
+  return data;
+}
+
+export async function apiRecusarTransferenciaItemSessaoCampanha(
+  campanhaId: number,
+  transferenciaId: number,
+): Promise<TransferenciaItemSessaoCampanhaDto> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/itens-sessao/transferencias/${transferenciaId}/recusar`,
   );
   return data;
 }
