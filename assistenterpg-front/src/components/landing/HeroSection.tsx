@@ -1,6 +1,5 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
@@ -17,12 +16,7 @@ const stats = [
 
 export function HeroSection() {
   const reducedMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
-  const shouldAnimate = mounted && !reducedMotion;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const shouldAnimate = !reducedMotion;
 
   return (
     <section id="hero" className="landing-hero">

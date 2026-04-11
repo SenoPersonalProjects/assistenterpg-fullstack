@@ -29,6 +29,8 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
+import { NotePaperCard } from '@/components/anotacoes/NotePaperCard';
 
 const LIMITE_PAGINA = 20;
 
@@ -58,6 +60,8 @@ export default function AnotacoesPage() {
   const [formSessaoId, setFormSessaoId] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [modalFormularioAberto, setModalFormularioAberto] = useState(false);
+  const [notaVisualizada, setNotaVisualizada] = useState<AnotacaoResumo | null>(null);
 
   const campanhaFiltroSelecionada = filtroCampanhaId
     ? Number(filtroCampanhaId)
@@ -176,6 +180,18 @@ export default function AnotacoesPage() {
     setEditandoId(null);
   }
 
+  function abrirModalCriacao() {
+    limparFormulario();
+    setNotaVisualizada(null);
+    setModalFormularioAberto(true);
+  }
+
+  function fecharModalFormulario() {
+    if (salvando) return;
+    setModalFormularioAberto(false);
+    limparFormulario();
+  }
+
   async function handleSalvarNota() {
     const titulo = formTitulo.trim();
     const conteudo = formConteudo.trim();
@@ -205,6 +221,8 @@ export default function AnotacoesPage() {
         showToast('Anotacao criada.', 'success');
       }
 
+      setModalFormularioAberto(false);
+      setNotaVisualizada(null);
       limparFormulario();
       await carregarNotas(1);
       setPaginaAtual(1);
@@ -216,11 +234,13 @@ export default function AnotacoesPage() {
   }
 
   function handleEditar(nota: AnotacaoResumo) {
+    setNotaVisualizada(null);
     setEditandoId(nota.id);
     setFormTitulo(nota.titulo);
     setFormConteudo(nota.conteudo);
     setFormCampanhaId(nota.campanha?.id ? String(nota.campanha.id) : '');
     setFormSessaoId(nota.sessao?.id ? String(nota.sessao.id) : '');
+    setModalFormularioAberto(true);
   }
 
   function handleExcluir(nota: AnotacaoResumo) {
@@ -234,6 +254,8 @@ export default function AnotacoesPage() {
         try {
           await apiExcluirAnotacao(nota.id);
           setNotas((prev) => prev.filter((item) => item.id !== nota.id));
+          setTotalNotas((prev) => Math.max(0, prev - 1));
+          setNotaVisualizada((atual) => (atual?.id === nota.id ? null : atual));
           showToast('Anotacao removida.', 'success');
         } catch (error) {
           showToast(extrairMensagemErro(error), 'error');
@@ -263,23 +285,29 @@ export default function AnotacoesPage() {
   return (
     <>
       <main className="min-h-screen bg-app-bg p-6">
-        <div className="max-w-5xl mx-auto space-y-6">
-          <header className="flex items-center justify-between">
+        <div className="mx-auto max-w-5xl space-y-6">
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name="scroll" className="w-6 h-6 text-app-primary" />
+                <Icon name="scroll" className="h-6 w-6 text-app-primary" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-app-fg">Minhas anotacoes</h1>
-                <p className="text-sm text-app-muted mt-0.5">
-                  Registre ideas, planos e lembretes de campanha.
+                <p className="mt-0.5 text-sm text-app-muted">
+                  Registre ideias, planos e lembretes de campanha.
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => router.push('/home')}>
-              <Icon name="back" className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={abrirModalCriacao}>
+                <Icon name="add" className="mr-2 h-4 w-4" />
+                Criar anotacao
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/home')}>
+                <Icon name="back" className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+            </div>
           </header>
 
           {erro ? <ErrorAlert message={erro} /> : null}
@@ -335,70 +363,17 @@ export default function AnotacoesPage() {
             </div>
           </Card>
 
-          <Card className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Icon name="edit" className="h-4 w-4 text-app-muted" />
-              <p className="text-sm font-semibold text-app-fg">
-                {editandoId ? 'Editar anotacao' : 'Nova anotacao'}
-              </p>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <Input
-                label="Titulo"
-                value={formTitulo}
-                onChange={(event) => setFormTitulo(event.target.value)}
-              />
-              <div className="grid gap-3 md:grid-cols-2">
-                <Select
-                  label="Campanha (opcional)"
-                  value={formCampanhaId}
-                  onChange={(event) => setFormCampanhaId(event.target.value)}
-                >
-                  <option value="">Nenhuma</option>
-                  {campanhas.map((campanha) => (
-                    <option key={campanha.id} value={campanha.id}>
-                      {campanha.nome}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  label="Sessao (opcional)"
-                  value={formSessaoId}
-                  onChange={(event) => setFormSessaoId(event.target.value)}
-                  disabled={!campanhaFormSelecionada}
-                >
-                  <option value="">Nenhuma</option>
-                  {sessoesForm.map((sessao) => (
-                    <option key={sessao.id} value={sessao.id}>
-                      {sessao.titulo}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-            <Textarea
-              label="Conteudo"
-              value={formConteudo}
-              onChange={(event) => setFormConteudo(event.target.value)}
-              rows={5}
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleSalvarNota} disabled={salvando}>
-                {salvando ? 'Salvando...' : editandoId ? 'Salvar alteracoes' : 'Criar anotacao'}
-              </Button>
-              {editandoId ? (
-                <Button variant="ghost" onClick={limparFormulario}>
-                  Cancelar edicao
-                </Button>
-              ) : null}
-            </div>
-          </Card>
-
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-app-muted">
                 {totalNotas} anotacao{totalNotas === 1 ? '' : 'es'} encontrada
               </p>
+              {notas.length > 0 ? (
+                <Button size="sm" variant="secondary" onClick={abrirModalCriacao}>
+                  <Icon name="add" className="mr-2 h-4 w-4" />
+                  Nova anotacao
+                </Button>
+              ) : null}
             </div>
 
             {notas.length === 0 ? (
@@ -407,47 +382,19 @@ export default function AnotacoesPage() {
                 icon="scroll"
                 title="Nenhuma anotacao encontrada"
                 description="Crie uma anotacao para comecar."
+                actionLabel="Criar anotacao"
+                onAction={abrirModalCriacao}
               />
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {notas.map((nota) => (
-                  <Card key={nota.id} className="space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-app-fg">{nota.titulo}</p>
-                        <p className="text-xs text-app-muted">
-                          {formatarDataHora(nota.criadoEm)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="xs" variant="ghost" onClick={() => handleEditar(nota)}>
-                          Editar
-                        </Button>
-                        <Button
-                          size="xs"
-                          variant="destructive"
-                          onClick={() => handleExcluir(nota)}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {nota.campanha ? (
-                        <Badge size="sm" color="gray">
-                          Campanha: {nota.campanha.nome}
-                        </Badge>
-                      ) : null}
-                      {nota.sessao ? (
-                        <Badge size="sm" color="blue">
-                          Sessao: {nota.sessao.titulo}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-sm text-app-muted whitespace-pre-line">
-                      {nota.conteudo}
-                    </p>
-                  </Card>
+                  <NotePaperCard
+                    key={nota.id}
+                    nota={nota}
+                    onOpen={setNotaVisualizada}
+                    onEdit={handleEditar}
+                    onDelete={handleExcluir}
+                  />
                 ))}
               </div>
             )}
@@ -464,7 +411,7 @@ export default function AnotacoesPage() {
                     void carregarNotas(next);
                   }}
                 >
-                  <Icon name="chevron-left" className="w-4 h-4" />
+                  <Icon name="chevron-left" className="h-4 w-4" />
                 </Button>
                 <span className="text-sm text-app-muted">
                   Pagina {paginaAtual} de {totalPaginas}
@@ -479,13 +426,125 @@ export default function AnotacoesPage() {
                     void carregarNotas(next);
                   }}
                 >
-                  <Icon name="chevron-right" className="w-4 h-4" />
+                  <Icon name="chevron-right" className="h-4 w-4" />
                 </Button>
               </div>
             ) : null}
           </section>
         </div>
       </main>
+
+      <Modal
+        isOpen={modalFormularioAberto}
+        onClose={fecharModalFormulario}
+        title={editandoId ? 'Editar anotacao' : 'Criar anotacao'}
+        size="xl"
+        footer={
+          <>
+            <Button variant="ghost" onClick={fecharModalFormulario} disabled={salvando}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSalvarNota} disabled={salvando}>
+              {salvando ? 'Salvando...' : editandoId ? 'Salvar alteracoes' : 'Criar anotacao'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input
+              label="Titulo"
+              value={formTitulo}
+              onChange={(event) => setFormTitulo(event.target.value)}
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              <Select
+                label="Campanha (opcional)"
+                value={formCampanhaId}
+                onChange={(event) => setFormCampanhaId(event.target.value)}
+              >
+                <option value="">Nenhuma</option>
+                {campanhas.map((campanha) => (
+                  <option key={campanha.id} value={campanha.id}>
+                    {campanha.nome}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                label="Sessao (opcional)"
+                value={formSessaoId}
+                onChange={(event) => setFormSessaoId(event.target.value)}
+                disabled={!campanhaFormSelecionada}
+              >
+                <option value="">Nenhuma</option>
+                {sessoesForm.map((sessao) => (
+                  <option key={sessao.id} value={sessao.id}>
+                    {sessao.titulo}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+          <Textarea
+            label="Conteudo"
+            value={formConteudo}
+            onChange={(event) => setFormConteudo(event.target.value)}
+            rows={8}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(notaVisualizada)}
+        onClose={() => setNotaVisualizada(null)}
+        title={notaVisualizada?.titulo ?? 'Anotacao'}
+        size="lg"
+        footer={
+          notaVisualizada ? (
+            <>
+              <Button variant="ghost" onClick={() => setNotaVisualizada(null)}>
+                Fechar
+              </Button>
+              <Button variant="secondary" onClick={() => handleEditar(notaVisualizada)}>
+                <Icon name="edit" className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+              <Button variant="destructive" onClick={() => handleExcluir(notaVisualizada)}>
+                <Icon name="delete" className="mr-2 h-4 w-4" />
+                Excluir
+              </Button>
+            </>
+          ) : null
+        }
+      >
+        {notaVisualizada ? (
+          <article className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge size="sm" color="gray">
+                Criada em {formatarDataHora(notaVisualizada.criadoEm)}
+              </Badge>
+              {notaVisualizada.atualizadoEm !== notaVisualizada.criadoEm ? (
+                <Badge size="sm" color="blue">
+                  Atualizada em {formatarDataHora(notaVisualizada.atualizadoEm)}
+                </Badge>
+              ) : null}
+              {notaVisualizada.campanha ? (
+                <Badge size="sm" color="gray">
+                  Campanha: {notaVisualizada.campanha.nome}
+                </Badge>
+              ) : null}
+              {notaVisualizada.sessao ? (
+                <Badge size="sm" color="blue">
+                  Sessao: {notaVisualizada.sessao.titulo}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="rounded-xl border border-app-border bg-app-card p-4 text-sm leading-relaxed text-app-fg whitespace-pre-line">
+              {notaVisualizada.conteudo}
+            </div>
+          </article>
+        ) : null}
+      </Modal>
 
       <ConfirmDialog
         isOpen={isOpen}

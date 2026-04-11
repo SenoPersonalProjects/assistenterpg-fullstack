@@ -242,7 +242,7 @@ export default function PersonagemBaseDetalhePage() {
         personagem.fontesConteudo ?? FONTES_CONTEUDO_INICIAIS,
       ),
     );
-  }, [personagem?.id, personagem?.fontesConteudo]);
+  }, [personagem]);
 
   useEffect(() => {
     let cancelado = false;

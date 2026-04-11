@@ -147,7 +147,9 @@ export function SessionPericiaRollModal({
       return () => window.clearTimeout(reset);
     }
 
-    setMostrandoResultado(false);
+    const clearResultado = window.setTimeout(() => {
+      setMostrandoResultado(false);
+    }, 0);
 
     if (!animarEsteIndice) {
       const instant = window.setTimeout(() => {
@@ -156,37 +158,52 @@ export function SessionPericiaRollModal({
         );
         setMostrandoResultado(true);
       }, 0);
-      return () => window.clearTimeout(instant);
+      return () => {
+        window.clearTimeout(clearResultado);
+        window.clearTimeout(instant);
+      };
     }
 
     const fallback = window.setTimeout(() => {
       setMostrandoResultado((current) => (current ? current : true));
     }, Math.max(duracaoAnimacao + 220, 900));
 
-    return () => window.clearTimeout(fallback);
+    return () => {
+      window.clearTimeout(clearResultado);
+      window.clearTimeout(fallback);
+    };
   }, [animarEsteIndice, duracaoAnimacao, indiceAtual, isOpen, payloadList.length]);
 
   useEffect(() => {
     if (!isOpen) return;
-    setIndiceAtual(0);
-    setIndicesAnimados([]);
+    const reset = window.setTimeout(() => {
+      setIndiceAtual(0);
+      setIndicesAnimados([]);
+    }, 0);
+    return () => window.clearTimeout(reset);
   }, [isOpen, payloadList]);
 
   useEffect(() => {
     if (!isOpen) return;
-    const base = habilidadeContext?.criticoValor;
-    const valorInicial = Number.isFinite(base) ? Math.trunc(base as number) : 20;
-    setCriticoValor(valorInicial);
-    setAplicarCritico(false);
+    const reset = window.setTimeout(() => {
+      const base = habilidadeContext?.criticoValor;
+      const valorInicial = Number.isFinite(base) ? Math.trunc(base as number) : 20;
+      setCriticoValor(valorInicial);
+      setAplicarCritico(false);
+    }, 0);
+    return () => window.clearTimeout(reset);
   }, [habilidadeContext?.criticoValor, isOpen]);
 
   useEffect(() => {
     if (!mostrandoResultado || !habilidadeContext) return;
-    if (!valorDado || !Number.isFinite(criticoValor)) {
-      setAplicarCritico(false);
-      return;
-    }
-    setAplicarCritico(valorDado >= criticoValor);
+    const syncCritico = window.setTimeout(() => {
+      if (!valorDado || !Number.isFinite(criticoValor)) {
+        setAplicarCritico(false);
+        return;
+      }
+      setAplicarCritico(valorDado >= criticoValor);
+    }, 0);
+    return () => window.clearTimeout(syncCritico);
   }, [mostrandoResultado, valorDado, criticoValor, habilidadeContext]);
 
   const handleProximaRolagem = () => {
