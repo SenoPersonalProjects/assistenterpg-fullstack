@@ -1,4 +1,4 @@
-﻿-- AlterTable
+-- AlterTable
 ALTER TABLE `PersonagemBase` ADD COLUMN `fontesConteudo` JSON NULL;
 
 -- AlterTable
