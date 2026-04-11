@@ -7,8 +7,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Badge } from '@/components/ui/Badge';
-import { formatarIncrementoEspacos, calcularEspacosExtraDeItens, podeSerVestido } from '@/lib/utils/inventario';
-import type { ItemInventarioPayload, ModificacaoCatalogo, EquipamentoCatalogo } from '@/lib/api';
+import { formatarIncrementoEspacos, calcularEspacosExtraDeItens, podeSerVestido, equipamentoUsaPericiaPersonalizada } from '@/lib/utils/inventario';
+import type { ItemInventarioPayload, ModificacaoCatalogo, EquipamentoCatalogo, PericiaCatalogo } from '@/lib/api';
 
 type Props = {
   item: ItemInventarioPayload; // ✅ MUDOU
@@ -16,12 +16,15 @@ type Props = {
   modificacoesIds: number[]; // ✅ MUDOU: Array de IDs
   modificacoesCompativeis: ModificacaoCatalogo[];
   equipamentos: EquipamentoCatalogo[];
+  periciasElegiveis: PericiaCatalogo[];
   nomeCustomizado: string;
+  periciaPersonalizada: string;
   equipado: boolean;
   onQuantidadeChange: (qtd: number) => void;
   onToggleModificacao: (modId: number, checked: boolean) => void; // ✅ MUDOU: Recebe ID
   onNomeCustomizadoChange: (nome: string) => void;
   onEquipadoChange: (equipado: boolean) => void;
+  onPericiaPersonalizadaChange: (codigo: string) => void;
 };
 
 export function InventarioModalEditar({
@@ -30,12 +33,15 @@ export function InventarioModalEditar({
   modificacoesIds, // ✅ MUDOU
   modificacoesCompativeis,
   equipamentos,
+  periciasElegiveis,
   nomeCustomizado,
+  periciaPersonalizada,
   equipado,
   onQuantidadeChange,
   onToggleModificacao,
   onNomeCustomizadoChange,
   onEquipadoChange,
+  onPericiaPersonalizadaChange,
 }: Props) {
   // ✅ NOVO: Buscar equipamento pelo ID
   const equipamento = useMemo(() => {
@@ -123,6 +129,29 @@ export function InventarioModalEditar({
             )}
           </div>
         </div>
+
+        {equipamentoUsaPericiaPersonalizada(equipamento) && (
+          <div>
+            <label className="block text-sm font-semibold text-app-fg mb-2">
+              Pericia beneficiada
+            </label>
+            <select
+              value={periciaPersonalizada}
+              onChange={(e) => onPericiaPersonalizadaChange(e.target.value)}
+              className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-primary"
+            >
+              <option value="">Selecione uma pericia</option>
+              {periciasElegiveis.map((pericia) => (
+                <option key={pericia.codigo} value={pericia.codigo}>
+                  {pericia.nome}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-app-muted">
+              Este item concede +2 na pericia escolhida.
+            </p>
+          </div>
+        )}
 
         {/* Quantidade */}
         <div>

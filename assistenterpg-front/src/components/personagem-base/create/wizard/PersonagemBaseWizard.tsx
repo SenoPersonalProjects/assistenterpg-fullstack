@@ -221,6 +221,7 @@ function sanitizarItensInventario(
     modificacoesIds: item.modificacoesIds || [],
     nomeCustomizado: item.nomeCustomizado || null,
     notas: item.notas || null,
+    estado: item.estado ?? undefined,
   }));
 
   return itensSanitizados;
@@ -593,7 +594,7 @@ export function PersonagemBaseWizard(props: Props) {
   }
 
   function handleNext() {
-    if (loadingStep) return;
+    if (loadingStep || submitting || !canNext) return;
     setLoadingStep(true);
     setStep((s) => Math.min(MAX_STEP, s + 1));
   }
@@ -611,11 +612,23 @@ export function PersonagemBaseWizard(props: Props) {
   }, [loadingStep]);
 
   function handlePrev() {
+    if (loadingStep || submitting) return;
     if (step === 1) {
       if (mode === 'edit') (props as EditProps).onCancel?.();
       return;
     }
     setStep((s) => Math.max(1, s - 1));
+  }
+
+  function handleBreadcrumbClick(targetStep: number) {
+    if (targetStep === step - 1) {
+      handlePrev();
+      return;
+    }
+
+    if (targetStep === step + 1) {
+      handleNext();
+    }
   }
 
   const canNext = useMemo(() => {
@@ -663,24 +676,39 @@ export function PersonagemBaseWizard(props: Props) {
 
             {visibleSteps.map(({ index, label }) => {
               const isActive = step === index;
+              const isPrevious = index === step - 1;
+              const isNext = index === step + 1;
+              const isClickable = isPrevious || isNext;
               return (
-                <div
+                <button
                   key={index}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-w-fit ${isActive
+                  type="button"
+                  onClick={() => handleBreadcrumbClick(index)}
+                  disabled={!isClickable || loadingStep || submitting || (isNext && !canNext)}
+                  aria-current={isActive ? 'step' : undefined}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all whitespace-nowrap min-w-fit ${
+                    isActive
                       ? 'bg-app-primary/10 text-app-primary border border-app-primary/30 shadow-sm'
-                      : 'text-app-muted hover:text-app-fg hover:bg-app-border/50'
-                    }`}
+                      : isClickable
+                        ? 'text-app-fg hover:bg-app-border/50 cursor-pointer'
+                        : 'text-app-muted/70 cursor-default opacity-75'
+                  }`}
                 >
                   <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${isActive ? 'bg-app-primary text-white' : 'bg-app-border/50 text-app-muted'
-                      }`}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                      isActive
+                        ? 'bg-app-primary text-white'
+                        : isClickable
+                          ? 'bg-app-border text-app-fg'
+                          : 'bg-app-border/50 text-app-muted'
+                    }`}
                   >
                     {index}
                   </span>
                   <span className={`text-sm font-medium ${isActive ? '' : 'font-normal'}`}>
                     {label}
                   </span>
-                </div>
+                </button>
               );
             })}
 
@@ -951,6 +979,7 @@ export function PersonagemBaseWizard(props: Props) {
               <PersonagemBaseStepInventario
                 forca={forca}
                 prestigioBase={prestigioBase}
+                pericias={pericias}
                 equipamentos={equipamentos}
                 modificacoes={modificacoes}
                 itensInventario={itensInventario}

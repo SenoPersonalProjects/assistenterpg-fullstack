@@ -110,6 +110,12 @@ export class PassivasAtributoConfigDto {
   INT_II?: PassivaIntelectoConfigDto;
 }
 
+export class ItemInventarioEstadoDto {
+  @IsOptional()
+  @IsString()
+  periciaCodigo?: string | null;
+}
+
 export class ItemInventarioDto {
   @IsInt()
   @IsNotEmpty()
@@ -136,6 +142,23 @@ export class ItemInventarioDto {
   @IsOptional()
   @IsString()
   notas?: string | null;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ItemInventarioEstadoDto)
+  estado?: ItemInventarioEstadoDto;
+}
+
+export class FontesConteudoDto {
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  suplementoIds?: number[] = [];
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  homebrewIds?: number[] = [];
 }
 
 export class CreatePersonagemBaseDto {
@@ -290,4 +313,9 @@ export class CreatePersonagemBaseDto {
   @ValidateNested({ each: true })
   @Type(() => ItemInventarioDto)
   itensInventario?: ItemInventarioDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FontesConteudoDto)
+  fontesConteudo?: FontesConteudoDto;
 }

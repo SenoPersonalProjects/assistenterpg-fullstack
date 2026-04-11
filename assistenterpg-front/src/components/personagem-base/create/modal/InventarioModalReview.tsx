@@ -15,6 +15,7 @@ import {
   formatarPercentualCarga,
   getCorBarraProgresso,
   calcularEspacosExtraDeItens,
+  equipamentoUsaPericiaPersonalizada,
   validarCategoriaNaoExcedeEspecial,
   validarPodeVestir,
   podeSerVestido,
@@ -26,16 +27,19 @@ import type {
   EquipamentoCatalogo,
   ModificacaoCatalogo,
   PreviewAdicionarItemResponse,
-  ItemInventarioPayload, // ✅ MUDOU: ItemInventarioDto → ItemInventarioPayload
+  ItemInventarioPayload,
+  PericiaCatalogo, // ✅ MUDOU: ItemInventarioDto → ItemInventarioPayload
 } from '@/lib/api';
 
 type Props = {
   equipamento: EquipamentoCatalogo;
+  periciasElegiveis: PericiaCatalogo[];
   modificacoesSelecionadas: ModificacaoCatalogo[];
   quantidade: number;
   equipado: boolean;
   ignorarLimites: boolean;
   nomeCustomizado: string;
+  periciaPersonalizada: string;
   preview: PreviewAdicionarItemResponse | null;
   carregandoPreview: boolean;
   erroValidacao: string | null;
@@ -47,15 +51,18 @@ type Props = {
   onEquipadoChange: (equipado: boolean) => void;
   onIgnorarLimitesChange: (ignorar: boolean) => void;
   onNomeCustomizadoChange: (nome: string) => void;
+  onPericiaPersonalizadaChange: (codigo: string) => void;
 };
 
 export function InventarioModalReview({
   equipamento,
+  periciasElegiveis,
   modificacoesSelecionadas,
   quantidade,
   equipado,
   ignorarLimites,
   nomeCustomizado,
+  periciaPersonalizada,
   preview,
   carregandoPreview,
   erroValidacao,
@@ -67,6 +74,7 @@ export function InventarioModalReview({
   onEquipadoChange,
   onIgnorarLimitesChange,
   onNomeCustomizadoChange,
+  onPericiaPersonalizadaChange,
 }: Props) {
   // ✅ Verificar se equipamento pode ser vestido (considera tipoUso)
   const podeVestir = useMemo(() => podeSerVestido(equipamento), [equipamento]);
@@ -75,6 +83,11 @@ export function InventarioModalReview({
   const validacoes = useMemo(() => {
     const erros: string[] = [];
     const avisos: string[] = [];
+    const usaPericiaPersonalizada = equipamentoUsaPericiaPersonalizada(equipamento);
+
+    if (usaPericiaPersonalizada && !periciaPersonalizada) {
+      erros.push('Selecione a pericia beneficiada por este item personalizado.');
+    }
 
     // 1. Validar categoria não excede ESPECIAL
     if (modificacoesSelecionadas.length > 0) {
@@ -134,6 +147,7 @@ export function InventarioModalReview({
     itensInventario,
     equipamentos,
     podeVestir,
+    periciaPersonalizada,
   ]);
 
   // ✅ Calcular totais de vestir (para indicador visual)

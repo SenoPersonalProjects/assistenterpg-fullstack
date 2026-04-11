@@ -25,6 +25,9 @@ type PreviewItensInventarioRequest = Omit<PreviewItensInventarioPayload, 'itens'
     equipado: boolean;
     modificacoes?: number[];
     nomeCustomizado?: string;
+    estado?: {
+      periciaCodigo?: string | null;
+    };
   }>;
 };
 
@@ -87,6 +90,7 @@ export async function apiPreviewItensInventario(
         ? (item as { modificacoes?: number[] }).modificacoes
         : (item as { modificacoesIds?: number[] }).modificacoesIds ?? [],
       nomeCustomizado: item.nomeCustomizado ?? undefined,
+      estado: item.estado ?? undefined,
     })),
   };
 

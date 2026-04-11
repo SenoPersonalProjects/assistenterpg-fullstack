@@ -13,6 +13,7 @@ import { TimelinePanel } from '@/components/campanha/sessao/TimelinePanel';
 import { ChatPanel } from '@/components/campanha/sessao/ChatPanel';
 import { DiceChatPanel } from '@/components/campanha/sessao/DiceChatPanel';
 import { SessionNotesPanel } from '@/components/campanha/sessao/SessionNotesPanel';
+import { SessionItemsPanel } from '@/components/campanha/sessao/SessionItemsPanel';
 import type {
   EventoSessaoTimeline,
   MensagemChatSessao,
@@ -26,9 +27,11 @@ type SessionSidebarPanelProps = {
   rolagens: MensagemChatSessao[];
   eventosSessao: EventoSessaoTimeline[];
   participantes: SessaoCampanhaDetalhe['participantes'];
+  personagens: SessaoCampanhaDetalhe['cards'];
   onlineSet: Set<number>;
   campanhaId: number;
   sessaoId: number;
+  cenaId: number | null;
   sessaoEncerrada: boolean;
   podeControlarSessao: boolean;
   desfazendoEventoId: number | null;
@@ -59,9 +62,11 @@ export function SessionSidebarPanel({
   rolagens,
   eventosSessao,
   participantes,
+  personagens,
   onlineSet,
   campanhaId,
   sessaoId,
+  cenaId,
   sessaoEncerrada,
   podeControlarSessao,
   desfazendoEventoId,
@@ -101,6 +106,7 @@ export function SessionSidebarPanel({
   const tabAtiva =
     !mostrarEventos && activeTab === 'eventos' ? 'chat' : activeTab;
   const [totalAnotacoes, setTotalAnotacoes] = useState(0);
+  const [totalItens, setTotalItens] = useState(0);
 
   return (
     <SessionPanel
@@ -127,6 +133,7 @@ export function SessionSidebarPanel({
         totalChat={chat.length}
         totalRolagens={rolagens.length}
         totalAnotacoes={totalAnotacoes}
+        totalItens={totalItens}
         totalEventos={eventosSessao.length}
         totalParticipantes={participantes.length}
         mostrarEventos={mostrarEventos}
@@ -181,6 +188,16 @@ export function SessionSidebarPanel({
             campanhaId={campanhaId}
             sessaoId={sessaoId}
             onCountChange={setTotalAnotacoes}
+          />
+        ) : null}
+
+        {tabAtiva === 'itens' ? (
+          <SessionItemsPanel
+            campanhaId={campanhaId}
+            sessaoId={sessaoId}
+            cenaId={cenaId}
+            personagens={personagens}
+            onCountChange={setTotalItens}
           />
         ) : null}
       </SessionSidebarTabs>

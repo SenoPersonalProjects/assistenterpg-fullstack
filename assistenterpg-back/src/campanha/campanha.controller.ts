@@ -30,6 +30,14 @@ import {
   AplicarModificacaoInventarioCampanhaDto,
 } from './dto/inventario-campanha.dto';
 import { SacrificarNucleoPersonagemCampanhaDto } from './dto/sacrificar-nucleo-personagem-campanha.dto';
+import {
+  AtribuirItemSessaoCampanhaDto,
+  AtualizarItemSessaoCampanhaDto,
+  AtualizarTemplateItemSessaoCampanhaDto,
+  CriarItemSessaoCampanhaDto,
+  CriarTemplateItemSessaoCampanhaDto,
+  RevelarItemSessaoCampanhaDto,
+} from './dto/itens-sessao-campanha.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas')
@@ -359,6 +367,124 @@ export class CampanhaController {
       req.user.id,
       itemId,
       modificacaoId,
+    );
+  }
+
+  // ----- Itens de sessao da campanha -----
+
+  @Get(':id/itens-sessao')
+  async listarItensSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarItensSessaoCampanha(id, req.user.id);
+  }
+
+  @Post(':id/itens-sessao')
+  async criarItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarItemSessaoCampanhaDto,
+  ) {
+    return this.campanhaService.criarItemSessaoCampanha(id, req.user.id, dto);
+  }
+
+  @Get(':id/itens-sessao/templates')
+  async listarTemplatesItensSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarTemplatesItensSessaoCampanha(
+      id,
+      req.user.id,
+    );
+  }
+
+  @Post(':id/itens-sessao/templates')
+  async criarTemplateItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarTemplateItemSessaoCampanhaDto,
+  ) {
+    return this.campanhaService.criarTemplateItemSessaoCampanha(
+      id,
+      req.user.id,
+      dto,
+    );
+  }
+
+  @Patch(':id/itens-sessao/templates/:templateId')
+  async atualizarTemplateItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('templateId', ParseIntPipe) templateId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarTemplateItemSessaoCampanhaDto,
+  ) {
+    return this.campanhaService.atualizarTemplateItemSessaoCampanha(
+      id,
+      req.user.id,
+      templateId,
+      dto,
+    );
+  }
+
+  @Post(':id/itens-sessao/templates/:templateId/instanciar')
+  async instanciarTemplateItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('templateId', ParseIntPipe) templateId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: Partial<CriarItemSessaoCampanhaDto>,
+  ) {
+    return this.campanhaService.instanciarTemplateItemSessaoCampanha(
+      id,
+      req.user.id,
+      templateId,
+      dto,
+    );
+  }
+
+  @Patch(':id/itens-sessao/:itemId')
+  async atualizarItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarItemSessaoCampanhaDto,
+  ) {
+    return this.campanhaService.atualizarItemSessaoCampanha(
+      id,
+      req.user.id,
+      itemId,
+      dto,
+    );
+  }
+
+  @Patch(':id/itens-sessao/:itemId/atribuicao')
+  async atribuirItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtribuirItemSessaoCampanhaDto,
+  ) {
+    return this.campanhaService.atribuirItemSessaoCampanha(
+      id,
+      req.user.id,
+      itemId,
+      dto,
+    );
+  }
+
+  @Patch(':id/itens-sessao/:itemId/revelacao')
+  async revelarItemSessaoCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: RevelarItemSessaoCampanhaDto,
+  ) {
+    return this.campanhaService.revelarItemSessaoCampanha(
+      id,
+      req.user.id,
+      itemId,
+      dto,
     );
   }
 

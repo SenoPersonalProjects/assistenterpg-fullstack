@@ -1,5 +1,6 @@
 // src/campanha/campanha.personagens.service.ts
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaPersonagemAssociacaoNegadaException,
@@ -363,6 +364,10 @@ export class CampanhaPersonagensService {
             categoriaCalculada: itemBase.categoriaCalculada,
             nomeCustomizado: itemBase.nomeCustomizado,
             notas: itemBase.notas,
+            estado:
+              itemBase.estado !== undefined && itemBase.estado !== null
+                ? (itemBase.estado as Prisma.InputJsonValue)
+                : undefined,
           },
           select: { id: true },
         });

@@ -13,9 +13,14 @@ import type {
   AtualizarNpcSessaoCampanhaPayload,
   CampoModificadorPersonagemCampanha,
   EventoSessaoTimeline,
+  CriarItemSessaoCampanhaPayload,
+  CriarTemplateItemSessaoCampanhaPayload,
+  ItemSessaoCampanhaDto,
+  ItensSessaoCampanhaResponse,
   MensagemChatSessao,
   SessaoCampanhaDetalhe,
   SessaoCampanhaResumo,
+  TemplateItemSessaoCampanhaDto,
   TipoCenaSessaoCampanha,
 } from '@/lib/types';
 
@@ -650,6 +655,104 @@ export async function apiEnviarMensagemChatSessaoCampanha(
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/chat`,
     payload,
+  );
+  return data;
+}
+
+export async function apiListarItensSessaoCampanha(
+  campanhaId: number,
+): Promise<ItensSessaoCampanhaResponse> {
+  const { data } = await apiClient.get(`/campanhas/${campanhaId}/itens-sessao`);
+  return data;
+}
+
+export async function apiCriarItemSessaoCampanha(
+  campanhaId: number,
+  payload: CriarItemSessaoCampanhaPayload,
+): Promise<ItemSessaoCampanhaDto> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/itens-sessao`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAtualizarItemSessaoCampanha(
+  campanhaId: number,
+  itemId: number,
+  payload: Partial<CriarItemSessaoCampanhaPayload>,
+): Promise<ItemSessaoCampanhaDto> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/itens-sessao/${itemId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAtribuirItemSessaoCampanha(
+  campanhaId: number,
+  itemId: number,
+  payload: { personagemCampanhaId?: number | null },
+): Promise<ItemSessaoCampanhaDto> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/itens-sessao/${itemId}/atribuicao`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiRevelarItemSessaoCampanha(
+  campanhaId: number,
+  itemId: number,
+  payload: { descricaoRevelada: boolean },
+): Promise<ItemSessaoCampanhaDto> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/itens-sessao/${itemId}/revelacao`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiListarTemplatesItensSessaoCampanha(
+  campanhaId: number,
+): Promise<TemplateItemSessaoCampanhaDto[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/itens-sessao/templates`,
+  );
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiCriarTemplateItemSessaoCampanha(
+  campanhaId: number,
+  payload: CriarTemplateItemSessaoCampanhaPayload,
+): Promise<TemplateItemSessaoCampanhaDto> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/itens-sessao/templates`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAtualizarTemplateItemSessaoCampanha(
+  campanhaId: number,
+  templateId: number,
+  payload: Partial<CriarTemplateItemSessaoCampanhaPayload>,
+): Promise<TemplateItemSessaoCampanhaDto> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/itens-sessao/templates/${templateId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiInstanciarTemplateItemSessaoCampanha(
+  campanhaId: number,
+  templateId: number,
+  payload?: Partial<CriarItemSessaoCampanhaPayload>,
+): Promise<ItemSessaoCampanhaDto> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/itens-sessao/templates/${templateId}/instanciar`,
+    payload ?? {},
   );
   return data;
 }

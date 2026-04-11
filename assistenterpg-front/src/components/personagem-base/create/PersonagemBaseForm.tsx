@@ -19,7 +19,7 @@ import type {
   GrauTreinamento,
   PoderGenericoInstanciaPayload,
   PassivasAtributoConfigFront,
-  ItemInventarioDto, // ✅ ADICIONAR
+  ItemInventarioPayload,
 } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -70,7 +70,7 @@ export type InitialValues = {
   grausTreinamento?: GrauTreinamento[];
   
   // ✅ NOVO: inventário
-  itensInventario?: ItemInventarioDto[];
+  itensInventario?: ItemInventarioPayload[];
   
   // ✅ FORMATO NOVO: array de instâncias com config
   poderesGenericos?: PoderGenericoInstanciaPayload[];

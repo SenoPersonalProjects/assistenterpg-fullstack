@@ -118,6 +118,14 @@ export type ItemInventarioPayload = {
   modificacoesIds?: number[];
   nomeCustomizado?: string | null;
   notas?: string | null;
+  estado?: {
+    periciaCodigo?: string | null;
+  };
+};
+
+export type FontesConteudoPayload = {
+  suplementoIds: number[];
+  homebrewIds: number[];
 };
 
 /* ============================================================================ */
@@ -389,6 +397,7 @@ export type CreatePersonagemBasePayload = {
   passivasAtributoIds?: number[];
 
   itensInventario?: ItemInventarioPayload[];
+  fontesConteudo?: FontesConteudoPayload;
 };
 
 export type UpdatePersonagemBasePayload = Partial<CreatePersonagemBasePayload>;
@@ -511,6 +520,7 @@ export type PersonagemBaseDetalhe = {
   sobrecarregado: boolean;
 
   itensInventario?: ItemInventarioDto[]; // Importado de inventario.types.ts
+  fontesConteudo?: FontesConteudoPayload;
 
   resistencias?: ResistenciaSimplificadaDto[];
   resistenciasDetalhadas?: Record<string, ResistenciaDetalhadaDto>;

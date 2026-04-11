@@ -23,6 +23,10 @@ export class ModificacaoItemDto {
   incrementoEspacos: number;
 }
 
+export class ItemInventarioEstadoDto {
+  periciaCodigo?: string | null;
+}
+
 export class ItemInventarioDto {
   id: number;
   equipamentoId: number;
@@ -37,6 +41,7 @@ export class ItemInventarioDto {
 
   nomeCustomizado?: string | null;
   notas?: string | null;
+  estado?: ItemInventarioEstadoDto | null;
 
   modificacoes: ModificacaoItemDto[];
 }

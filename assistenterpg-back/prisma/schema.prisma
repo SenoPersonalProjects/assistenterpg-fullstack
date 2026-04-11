@@ -127,6 +127,12 @@ enum TipoAcessorio {
   VESTIMENTA
 }
 
+enum TipoItemSessaoCampanha {
+  DOCUMENTO
+  PISTA
+  GERAL
+}
+
 enum TipoExplosivo {
   GRANADA_ATORDOAMENTO
   GRANADA_FRAGMENTACAO
@@ -336,6 +342,8 @@ model Usuario {
   preferencias                             PreferenciaUsuario?
   tokensAuth                               AuthToken[]
   anotacoes                               Anotacao[]
+  itensSessaoCriados                       ItemSessaoCampanha[]         @relation("ItemSessaoCriadoPor")
+  templatesItensSessaoCriados              TemplateItemSessaoCampanha[] @relation("TemplateItemSessaoCriadoPor")
 
   // ✅ NOVO: Relações com suplementos e homebrews
   suplementosAtivos UsuarioSuplemento[]
@@ -375,6 +383,8 @@ model Campanha {
   sessoes                  Sessao[]
   convites                 ConviteCampanha[]
   anotacoes               Anotacao[]
+  itensSessao             ItemSessaoCampanha[]
+  templatesItensSessao    TemplateItemSessaoCampanha[]
 
   @@index([donoId])
   @@index([donoId, criadoEm])
@@ -491,6 +501,7 @@ model PersonagemBase {
 
   // ✅ NOVO: Configurações de escolhas das habilidades (ex.: perícias por habilidade)
   habilidadesConfig Json?
+  fontesConteudo    Json?
 
   @@index([donoId])
   @@index([donoId, nome])
@@ -621,6 +632,7 @@ model PersonagemCampanha {
   personagensSessao   PersonagemSessao[]
   habilidadesCampanha HabilidadePersonagemCampanha[]
   inventarioItens     InventarioItemCampanha[]          @relation("InventarioCampanha")
+  itensSessao         ItemSessaoCampanha[]
   grausAprimoramento  GrauPersonagemCampanha[]
   poderesGenericos    PoderGenericoPersonagemCampanha[]
   tecnicasAprendidas  PersonagemCampanhaTecnica[]
@@ -703,6 +715,7 @@ model Sessao {
   condicoes              CondicaoPersonagemSessao[]
   eventos                EventoSessao[]
   anotacoes              Anotacao[]
+  itensSessao            ItemSessaoCampanha[]
 
   @@index([campanhaId, iniciadoEm])
 }
@@ -716,6 +729,7 @@ model Cena {
   npcs        NpcAmeacaSessao[]
   condicoes   CondicaoPersonagemSessao[]
   eventos     EventoSessao[]
+  itensSessao ItemSessaoCampanha[]
 }
 
 model NpcAmeacaSessao {
@@ -1724,6 +1738,7 @@ model InventarioItemBase {
 
   nomeCustomizado String?
   notas           String? @db.Text
+  estado          Json?
 
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
@@ -1787,6 +1802,58 @@ model InventarioItemCampanhaModificacao {
 
   @@unique([itemId, modificacaoId])
   @@map("inventario_item_campanha_modificacao")
+}
+
+model TemplateItemSessaoCampanha {
+  id                Int                  @id @default(autoincrement())
+  campanhaId        Int
+  criadoPorId       Int
+  nome              String
+  descricao         String?              @db.Text
+  tipo              TipoItemSessaoCampanha
+  categoria         CategoriaEquipamento @default(CATEGORIA_0)
+  peso              Float                @default(0)
+  descricaoRevelada Boolean              @default(false)
+  criadoEm          DateTime             @default(now())
+  atualizadoEm      DateTime             @updatedAt
+
+  campanha  Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  criadoPor Usuario  @relation("TemplateItemSessaoCriadoPor", fields: [criadoPorId], references: [id], onDelete: Cascade)
+
+  @@index([campanhaId])
+  @@index([criadoPorId])
+  @@map("template_item_sessao_campanha")
+}
+
+model ItemSessaoCampanha {
+  id                   Int                  @id @default(autoincrement())
+  campanhaId           Int
+  sessaoId             Int?
+  cenaId               Int?
+  personagemCampanhaId Int?
+  criadoPorId          Int
+  nome                 String
+  descricao            String?              @db.Text
+  tipo                 TipoItemSessaoCampanha
+  categoria            CategoriaEquipamento @default(CATEGORIA_0)
+  peso                 Float                @default(0)
+  descricaoRevelada    Boolean              @default(false)
+  criadoEm             DateTime             @default(now())
+  atualizadoEm         DateTime             @updatedAt
+
+  campanha           Campanha            @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  sessao             Sessao?             @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+  cena               Cena?               @relation(fields: [cenaId], references: [id], onDelete: SetNull)
+  personagemCampanha PersonagemCampanha? @relation(fields: [personagemCampanhaId], references: [id], onDelete: SetNull)
+  criadoPor          Usuario             @relation("ItemSessaoCriadoPor", fields: [criadoPorId], references: [id], onDelete: Cascade)
+
+  @@index([campanhaId])
+  @@index([sessaoId])
+  @@index([cenaId])
+  @@index([personagemCampanhaId])
+  @@index([criadoPorId])
+  @@index([campanhaId, personagemCampanhaId])
+  @@map("item_sessao_campanha")
 }
 
 // ========================================

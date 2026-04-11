@@ -12,6 +12,7 @@ import { CampanhaPersonagensService } from './campanha.personagens.service';
 import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
+import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
 
 @Module({
   imports: [PrismaModule, InventarioModule],
@@ -25,6 +26,7 @@ import { CampanhaInventarioService } from './campanha.inventario.service';
     CampanhaModificadoresService,
     CampanhaConvitesService,
     CampanhaInventarioService,
+    CampanhaItensSessaoService,
   ],
   controllers: [CampanhaController],
 })

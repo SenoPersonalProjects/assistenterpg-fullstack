@@ -5916,6 +5916,33 @@ export class SessaoService {
     return Array.from(codigos);
   }
 
+  private extrairCodigosPericiaItemEquipado(
+    equipamentoCodigo: string | null | undefined,
+    periciaBonificada: string | null | undefined,
+    estado: Prisma.JsonValue | null | undefined,
+    mapaPorBusca: Map<string, string>,
+  ): string[] {
+    const usaPericiaPersonalizada =
+      equipamentoCodigo === 'UTENSILIO_PERSONALIZADO' ||
+      equipamentoCodigo === 'VESTIMENTA_PERSONALIZADA';
+
+    if (
+      usaPericiaPersonalizada &&
+      estado &&
+      typeof estado === 'object' &&
+      !Array.isArray(estado) &&
+      typeof (estado as Record<string, unknown>).periciaCodigo === 'string'
+    ) {
+      const codigo = (estado as Record<string, unknown>).periciaCodigo
+        ?.toString()
+        .trim()
+        .toUpperCase();
+      if (codigo) return [codigo];
+    }
+
+    return this.extrairCodigosPericiaBonificada(periciaBonificada, mapaPorBusca);
+  }
+
   private async calcularBonusEquipamentoPericias(
     personagemCampanhaIds: number[],
     mapaPorBusca: Map<string, string>,
@@ -5931,8 +5958,10 @@ export class SessaoService {
       select: {
         personagemCampanhaId: true,
         quantidade: true,
+        estado: true,
         equipamento: {
           select: {
+            codigo: true,
             periciaBonificada: true,
             bonusPericia: true,
           },
@@ -5950,8 +5979,10 @@ export class SessaoService {
     });
 
     for (const item of itensEquipados) {
-      const codigos = this.extrairCodigosPericiaBonificada(
+      const codigos = this.extrairCodigosPericiaItemEquipado(
+        item.equipamento.codigo,
         item.equipamento.periciaBonificada,
+        item.estado,
         mapaPorBusca,
       );
       if (codigos.length === 0) continue;

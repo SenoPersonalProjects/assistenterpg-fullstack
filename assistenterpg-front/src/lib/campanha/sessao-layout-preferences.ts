@@ -2,6 +2,7 @@ export type SessaoLayoutRightTab =
   | 'chat'
   | 'rolagens'
   | 'anotacoes'
+  | 'itens'
   | 'eventos'
   | 'participantes';
 
@@ -28,6 +29,7 @@ function ehAbaDireitaValida(valor: unknown): valor is SessaoLayoutRightTab {
     valor === 'chat' ||
     valor === 'rolagens' ||
     valor === 'anotacoes' ||
+    valor === 'itens' ||
     valor === 'eventos' ||
     valor === 'participantes'
   );

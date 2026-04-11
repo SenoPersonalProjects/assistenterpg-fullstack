@@ -1,6 +1,7 @@
 // src/inventario/dto/atualizar-item.dto.ts
 import { IsInt, IsOptional, IsString, IsBoolean, Min } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { ItemInventarioEstadoDto } from '../../personagem-base/dto/create-personagem-base.dto';
 
 function parseIntSemFallback(value: unknown): unknown {
   if (value === undefined || value === null || value === '') return undefined;
@@ -57,4 +58,8 @@ export class AtualizarItemDto {
   @IsOptional()
   @IsString()
   notas?: string;
+
+  @IsOptional()
+  @Type(() => ItemInventarioEstadoDto)
+  estado?: ItemInventarioEstadoDto;
 }

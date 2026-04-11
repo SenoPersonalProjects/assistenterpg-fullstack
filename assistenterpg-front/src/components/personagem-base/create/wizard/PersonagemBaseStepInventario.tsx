@@ -8,6 +8,7 @@ import type {
   EquipamentoCatalogo,
   ModificacaoCatalogo,
   PreviewAdicionarItemResponse,
+  PericiaCatalogo,
 } from '@/lib/api';
 import { apiPreviewItensInventario } from '@/lib/api';
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
@@ -16,6 +17,8 @@ import {
   filtrarModificacoesCompativeis,
   calcularCategoriaFinal,
   validarPodeVestir,
+  equipamentoUsaPericiaPersonalizada,
+  listarPericiasElegiveisItemPersonalizado,
   type CategoriaEquipamento,
   type ItemInventarioParaVestir,
 } from '@/lib/utils/inventario';
@@ -47,6 +50,7 @@ type Props = {
   prestigioBase: number;
   equipamentos: EquipamentoCatalogo[];
   modificacoes: ModificacaoCatalogo[];
+  pericias: PericiaCatalogo[];
   itensInventario: ItemInventarioPayload[];
   onChangeItensInventario: (itens: ItemInventarioPayload[]) => void;
 };
@@ -93,6 +97,7 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [quantidade, setQuantidade] = useState(1);
   const [equipado, setEquipado] = useState(false);
   const [nomeCustomizado, setNomeCustomizado] = useState('');
+  const [periciaPersonalizada, setPericiaPersonalizada] = useState<string>('');
   const [modificacoesSelecionadas, setModificacoesSelecionadas] = useState<ModificacaoCatalogo[]>(
     [],
   );
@@ -108,6 +113,7 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [modificacoesEditando, setModificacoesEditando] = useState<number[]>([]);
   const [nomeCustomizadoEditando, setNomeCustomizadoEditando] = useState('');
   const [equipadoEditando, setEquipadoEditando] = useState(false);
+  const [periciaPersonalizadaEditando, setPericiaPersonalizadaEditando] = useState('');
 
   // ConfirmDialog
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -128,6 +134,28 @@ export function PersonagemBaseStepInventario(props: Props) {
     }
     return mapa;
   }, [equipamentos]);
+
+  const periciasElegiveisPersonalizacao = useMemo(
+    () => listarPericiasElegiveisItemPersonalizado(props.pericias),
+    [props.pericias],
+  );
+
+  const exigePericiaPersonalizadaEdicao = useMemo(() => {
+    if (!itemEditando) return false;
+    return equipamentoUsaPericiaPersonalizada(
+      equipamentoPorId.get(itemEditando.equipamentoId),
+    );
+  }, [equipamentoPorId, itemEditando]);
+
+  const podeSalvarEdicaoItem = useMemo(() => {
+    if (carregandoSincronizacao) return false;
+    if (!exigePericiaPersonalizadaEdicao) return true;
+    return periciaPersonalizadaEditando.trim().length > 0;
+  }, [
+    carregandoSincronizacao,
+    exigePericiaPersonalizadaEdicao,
+    periciaPersonalizadaEditando,
+  ]);
 
 
   // Sincronizar com backend sempre que itens mudarem
@@ -164,6 +192,7 @@ export function PersonagemBaseStepInventario(props: Props) {
             equipado: item.equipado,
             modificacoes: item.modificacoesIds ?? [],
             nomeCustomizado: item.nomeCustomizado || undefined,
+            estado: item.estado ?? undefined,
           })),
         };
 
@@ -517,6 +546,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     setQuantidade(1);
     setEquipado(false);
     setNomeCustomizado('');
+    setPericiaPersonalizada('');
     setModificacoesSelecionadas([]);
     setErroValidacao(null);
     setIgnorarLimites(false);
@@ -534,6 +564,8 @@ export function PersonagemBaseStepInventario(props: Props) {
     setNomeCustomizado('');
     setNomeCustomizadoEditando('');
     setEquipadoEditando(false);
+    setPericiaPersonalizada('');
+    setPericiaPersonalizadaEditando('');
   }, []);
 
   // Preview simplificado (backend calculará tudo ao adicionar)
@@ -661,6 +693,11 @@ export function PersonagemBaseStepInventario(props: Props) {
       modificacoesIds: modificacoesSelecionadas.map((mod) => mod.id),
       nomeCustomizado: nomeCustomizado.trim() || null,
       notas: null,
+      estado:
+        equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) &&
+        periciaPersonalizada
+          ? { periciaCodigo: periciaPersonalizada }
+          : undefined,
     };
 
     const itensAtualizados = await sincronizarInventario([...props.itensInventario, novoItem]);
@@ -672,6 +709,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     equipado,
     nomeCustomizado,
     modificacoesSelecionadas,
+    periciaPersonalizada,
     props,
     fecharModal,
     sincronizarInventario,
@@ -685,6 +723,7 @@ export function PersonagemBaseStepInventario(props: Props) {
       setModificacoesEditando(item.modificacoesIds || []);
       setNomeCustomizadoEditando(item.nomeCustomizado || '');
       setEquipadoEditando(item.equipado);
+      setPericiaPersonalizadaEditando(item.estado?.periciaCodigo ?? '');
       setStepAtual('editar-item');
       setModalAberto(true);
     },
@@ -701,6 +740,12 @@ export function PersonagemBaseStepInventario(props: Props) {
       modificacoesIds: modificacoesEditando,
       nomeCustomizado: nomeCustomizadoEditando.trim() || null,
       notas: itemEditando.notas || null,
+      estado:
+        equipamentoUsaPericiaPersonalizada(
+          equipamentoPorId.get(itemEditando.equipamentoId),
+        ) && periciaPersonalizadaEditando
+          ? { periciaCodigo: periciaPersonalizadaEditando }
+          : undefined,
     };
 
     const novosItens = [...props.itensInventario];
@@ -716,6 +761,8 @@ export function PersonagemBaseStepInventario(props: Props) {
     modificacoesEditando,
     nomeCustomizadoEditando,
     equipadoEditando,
+    periciaPersonalizadaEditando,
+    equipamentoPorId,
     props,
     fecharModal,
     sincronizarInventario,
@@ -879,6 +926,7 @@ export function PersonagemBaseStepInventario(props: Props) {
                         item={item}
                         equipamento={equip}
                         modificacoes={modificacoes}
+                        pericias={props.pericias}
                         onEdit={() => abrirEdicaoItem(item, indexOriginal)}
                         onDuplicate={() => duplicarItem(item)}
                         onRemove={() => removerItem(indexOriginal)}
@@ -1003,11 +1051,13 @@ export function PersonagemBaseStepInventario(props: Props) {
               {stepAtual === 'review' && equipamentoSelecionado && (
                 <InventarioModalReview
                   equipamento={equipamentoSelecionado}
+                  periciasElegiveis={periciasElegiveisPersonalizacao}
                   modificacoesSelecionadas={modificacoesSelecionadas}
                   quantidade={quantidade}
                   equipado={equipado}
                   ignorarLimites={ignorarLimites}
                   nomeCustomizado={nomeCustomizado}
+                  periciaPersonalizada={periciaPersonalizada}
                   preview={preview}
                   carregandoPreview={carregandoPreview}
                   erroValidacao={erroValidacao}
@@ -1019,22 +1069,26 @@ export function PersonagemBaseStepInventario(props: Props) {
                   onEquipadoChange={handleEquipadoChange}
                   onIgnorarLimitesChange={setIgnorarLimites}
                   onNomeCustomizadoChange={setNomeCustomizado}
+                  onPericiaPersonalizadaChange={setPericiaPersonalizada}
                 />
               )}
 
               {stepAtual === 'editar-item' && itemEditando && (
                 <InventarioModalEditar
                   item={itemEditando}
+                  periciasElegiveis={periciasElegiveisPersonalizacao}
                   quantidade={quantidadeEditando}
                   modificacoesIds={modificacoesEditando}
                   modificacoesCompativeis={modificacoesCompativeisEdicao}
                   equipamentos={equipamentos}
                   nomeCustomizado={nomeCustomizadoEditando}
                   equipado={equipadoEditando}
+                  periciaPersonalizada={periciaPersonalizadaEditando}
                   onQuantidadeChange={setQuantidadeEditando}
                   onToggleModificacao={handleToggleModificacaoEdicao}
                   onNomeCustomizadoChange={setNomeCustomizadoEditando}
                   onEquipadoChange={handleEquipadoEditandoChange}
+                  onPericiaPersonalizadaChange={setPericiaPersonalizadaEditando}
                 />
               )}
             </div>
@@ -1086,7 +1140,7 @@ export function PersonagemBaseStepInventario(props: Props) {
                   onClick={confirmarEdicaoItem}
                   variant="primary"
                   className="flex-1"
-                  disabled={carregandoSincronizacao}
+                  disabled={!podeSalvarEdicaoItem}
                 >
                   <Icon name="check" className="w-4 h-4 mr-1" />
                   {carregandoSincronizacao ? 'Calculando...' : 'Salvar Edição'}

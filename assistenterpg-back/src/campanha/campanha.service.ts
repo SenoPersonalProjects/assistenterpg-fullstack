@@ -26,6 +26,15 @@ import { CampanhaPersonagensService } from './campanha.personagens.service';
 import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
+import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
+import {
+  AtribuirItemSessaoCampanhaDto,
+  AtualizarItemSessaoCampanhaDto,
+  AtualizarTemplateItemSessaoCampanhaDto,
+  CriarItemSessaoCampanhaDto,
+  CriarTemplateItemSessaoCampanhaDto,
+  RevelarItemSessaoCampanhaDto,
+} from './dto/itens-sessao-campanha.dto';
 
 @Injectable()
 export class CampanhaService {
@@ -36,6 +45,7 @@ export class CampanhaService {
     private readonly modificadoresService: CampanhaModificadoresService,
     private readonly convitesService: CampanhaConvitesService,
     private readonly inventarioService: CampanhaInventarioService,
+    private readonly itensSessaoService: CampanhaItensSessaoService,
   ) {}
 
   async criarCampanha(
@@ -443,6 +453,85 @@ export class CampanhaService {
       itemId,
       modificacaoId,
     );
+  }
+
+  async listarItensSessaoCampanha(campanhaId: number, usuarioId: number) {
+    return this.itensSessaoService.listarItens(campanhaId, usuarioId);
+  }
+
+  async listarTemplatesItensSessaoCampanha(campanhaId: number, usuarioId: number) {
+    return this.itensSessaoService.listarTemplates(campanhaId, usuarioId);
+  }
+
+  async criarTemplateItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    dto: CriarTemplateItemSessaoCampanhaDto,
+  ) {
+    return this.itensSessaoService.criarTemplate(campanhaId, usuarioId, dto);
+  }
+
+  async atualizarTemplateItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    templateId: number,
+    dto: AtualizarTemplateItemSessaoCampanhaDto,
+  ) {
+    return this.itensSessaoService.atualizarTemplate(
+      campanhaId,
+      usuarioId,
+      templateId,
+      dto,
+    );
+  }
+
+  async instanciarTemplateItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    templateId: number,
+    dto: Partial<CriarItemSessaoCampanhaDto>,
+  ) {
+    return this.itensSessaoService.instanciarTemplate(
+      campanhaId,
+      usuarioId,
+      templateId,
+      dto,
+    );
+  }
+
+  async criarItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    dto: CriarItemSessaoCampanhaDto,
+  ) {
+    return this.itensSessaoService.criarItem(campanhaId, usuarioId, dto);
+  }
+
+  async atualizarItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    itemId: number,
+    dto: AtualizarItemSessaoCampanhaDto,
+  ) {
+    return this.itensSessaoService.atualizarItem(campanhaId, usuarioId, itemId, dto);
+  }
+
+  async atribuirItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    itemId: number,
+    dto: AtribuirItemSessaoCampanhaDto,
+  ) {
+    return this.itensSessaoService.atribuirItem(campanhaId, usuarioId, itemId, dto);
+  }
+
+  async revelarItemSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+    itemId: number,
+    dto: RevelarItemSessaoCampanhaDto,
+  ) {
+    return this.itensSessaoService.revelarItem(campanhaId, usuarioId, itemId, dto);
   }
 
   async criarConvitePorEmail(

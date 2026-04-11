@@ -165,6 +165,7 @@ type InventarioItemMapeado = {
   categoriaCalculada: string;
   nomeCustomizado: string | null;
   notas: string | null;
+  estado: Prisma.JsonValue | null;
   equipamento: {
     id: number;
     codigo: string;
@@ -354,6 +355,7 @@ export type PersonagemDetalhadoMapeado = {
     config: Prisma.JsonValue;
   }>;
   habilidadesConfig?: Prisma.JsonValue | null;
+  fontesConteudo?: Prisma.JsonValue | null;
   poderesGenericosSelecionadosIds: number[];
   passivasAtributosAtivos: string[];
   passivasAtributosConfig: Prisma.JsonValue | null;
@@ -875,6 +877,7 @@ export class PersonagemBaseMapper {
       })),
 
       habilidadesConfig: personagem.habilidadesConfig ?? null,
+      fontesConteudo: personagem.fontesConteudo ?? null,
 
       poderesGenericosSelecionadosIds: (personagem.poderesGenericos ?? []).map(
         (p) => p.habilidadeId,
@@ -1053,6 +1056,7 @@ export class PersonagemBaseMapper {
           ).toString(),
           nomeCustomizado: item.nomeCustomizado,
           notas: item.notas,
+          estado: item.estado ?? null,
           equipamento: {
             id: equipamento.id,
             codigo: equipamento.codigo,

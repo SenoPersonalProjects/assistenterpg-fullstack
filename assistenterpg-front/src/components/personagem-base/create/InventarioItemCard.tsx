@@ -10,13 +10,20 @@ import {
   getIconeTipo,
   CATEGORIA_GRAU_LABELS,
   calcularCategoriaFinal,
+  equipamentoUsaPericiaPersonalizada,
 } from '@/lib/utils/inventario';
-import type { ItemInventarioPayload, EquipamentoCatalogo, ModificacaoCatalogo } from '@/lib/api';
+import type {
+  ItemInventarioPayload,
+  EquipamentoCatalogo,
+  ModificacaoCatalogo,
+  PericiaCatalogo,
+} from '@/lib/api';
 
 type Props = {
-  item: ItemInventarioPayload; // ✅ MUDOU
+  item: ItemInventarioPayload; // ??? MUDOU
   equipamento: EquipamentoCatalogo;
-  modificacoes: ModificacaoCatalogo[]; // ✅ ADICIONAR: Catálogo completo
+  modificacoes: ModificacaoCatalogo[]; // ??? ADICIONAR: Cat??logo completo
+  pericias?: PericiaCatalogo[];
   onEdit: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -25,7 +32,8 @@ type Props = {
 export function InventarioItemCard({
   item,
   equipamento,
-  modificacoes, // ✅ ADICIONAR
+  modificacoes, // ??? ADICIONAR
+  pericias = [],
   onEdit,
   onDuplicate,
   onRemove,
@@ -63,6 +71,12 @@ export function InventarioItemCard({
   const temNomeCustomizado = !!item.nomeCustomizado;
   const nomeExibido = item.nomeCustomizado || equipamento.nome;
   const nomeOriginal = equipamento.nome;
+  const periciaPersonalizada = useMemo(() => {
+    if (!equipamentoUsaPericiaPersonalizada(equipamento)) return null;
+    const codigo = item.estado?.periciaCodigo?.trim().toUpperCase();
+    if (!codigo) return null;
+    return pericias.find((pericia) => pericia.codigo === codigo) ?? null;
+  }, [equipamento, item.estado?.periciaCodigo, pericias]);
 
   return (
     <div className="p-3 rounded border border-app-border bg-app-surface text-sm hover:bg-app-primary/5 hover:border-app-primary/30 transition-all duration-200">
@@ -134,6 +148,12 @@ export function InventarioItemCard({
                   )}
                 </Badge>
               ))}
+            {periciaPersonalizada ? (
+              <Badge color="yellow" size="sm">
+                <Icon name="sparkles" className="w-3 h-3 inline mr-1" />
+                +2 {periciaPersonalizada.nome}
+              </Badge>
+            ) : null}
           </div>
         </div>
 

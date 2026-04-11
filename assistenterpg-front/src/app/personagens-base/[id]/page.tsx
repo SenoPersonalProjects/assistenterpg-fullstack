@@ -1,21 +1,25 @@
 // app/personagens-base/[id]/page.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 import {
   apiDeletePersonagemBase,
   apiExportarPersonagemBase,
+  apiGetSuplementos,
   apiUpdatePersonagemBase,
   extrairMensagemErro,
   traduzirErro,
   type UpdatePersonagemBasePayload,
+  type SuplementoCatalogo,
 } from '@/lib/api';
+import { apiGetHomebrews, apiGetMeusHomebrews, type HomebrewResumo } from '@/lib/api/homebrews';
 
 import { useConfirm } from '@/hooks/useConfirm';
 import { useToast } from '@/context/ToastContext';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { Icon } from '@/components/ui/Icon';
@@ -28,12 +32,21 @@ import { PersonagemBaseWizard } from '@/components/personagem-base/create/wizard
 import { usePersonagemBaseDetalhe } from '@/components/personagem-base/sections/usePersonagemBaseDetalhe';
 import type { InitialValues } from '@/components/personagem-base/create/PersonagemBaseForm';
 import { PersonagemBaseStepInventario } from '@/components/personagem-base/create/wizard/PersonagemBaseStepInventario';
-import type { ItemInventarioPayload } from '@/lib/types';
+import type { ItemInventarioDto, ItemInventarioPayload } from '@/lib/types';
 
 import { SecaoInfoBasicas } from '@/components/personagem-base/sections/SecaoInfoBasicas';
 import { SecaoOrigemClasse } from '@/components/personagem-base/sections/SecaoOrigemClasse';
 import { SecaoPoderes } from '@/components/personagem-base/sections/SecaoPoderes';
 import { SecaoInventario } from '@/components/personagem-base/sections/SecaoInventario';
+import { FontesConteudoModal } from '@/components/personagem-base/create/modal/FontesConteudoModal';
+import {
+  FONTES_CONTEUDO_INICIAIS,
+  criarChaveFontesConteudo,
+  filtrarListaPorFontes,
+  itemPertenceAsFontesSelecionadas,
+  normalizarFontesConteudoSelecionadas,
+  type FontesConteudoSelecionadas,
+} from '@/lib/utils/fontes-conteudo';
 
 function nomeArquivoExportacao(nomePersonagem: string): string {
   const base = nomePersonagem
@@ -60,6 +73,60 @@ function baixarJsonArquivo(conteudo: unknown, arquivo: string) {
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
+}
+
+async function carregarHomebrewsAcessiveis(): Promise<HomebrewResumo[]> {
+  async function carregarTodasPaginas(
+    callback: (pagina: number) => Promise<{ items: HomebrewResumo[]; totalPages: number }>,
+  ): Promise<HomebrewResumo[]> {
+    const primeiraPagina = await callback(1);
+    const itens = [...(primeiraPagina.items ?? [])];
+    const totalPaginas = Math.max(1, primeiraPagina.totalPages || 1);
+
+    if (totalPaginas <= 1) return itens;
+
+    const paginasRestantes = await Promise.all(
+      Array.from({ length: totalPaginas - 1 }, (_, index) =>
+        callback(index + 2),
+      ),
+    );
+
+    for (const pagina of paginasRestantes) {
+      itens.push(...(pagina.items ?? []));
+    }
+
+    return itens;
+  }
+
+  const [homebrewsPublicas, minhasHomebrews] = await Promise.all([
+    carregarTodasPaginas((pagina) =>
+      apiGetHomebrews({ apenasPublicados: true, pagina, limite: 100 }),
+    ),
+    carregarTodasPaginas((pagina) => apiGetMeusHomebrews({ pagina, limite: 100 })),
+  ]);
+
+  const porId = new Map<number, HomebrewResumo>();
+  for (const homebrew of [...minhasHomebrews, ...homebrewsPublicas]) {
+    if (homebrew.status === 'ARQUIVADO') continue;
+    porId.set(homebrew.id, homebrew);
+  }
+
+  return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+function sanitizarSelecaoComAcesso(
+  selecao: FontesConteudoSelecionadas,
+  suplementosAcessiveis: SuplementoCatalogo[],
+  homebrewsAcessiveis: HomebrewResumo[],
+): FontesConteudoSelecionadas {
+  const normalizada = normalizarFontesConteudoSelecionadas(selecao);
+  const suplementoIdsValidos = new Set(suplementosAcessiveis.map((item) => item.id));
+  const homebrewIdsValidos = new Set(homebrewsAcessiveis.map((item) => item.id));
+
+  return {
+    suplementoIds: normalizada.suplementoIds.filter((id) => suplementoIdsValidos.has(id)),
+    homebrewIds: normalizada.homebrewIds.filter((id) => homebrewIdsValidos.has(id)),
+  };
 }
 
 function mensagemErroExportacao(error: unknown): string {
@@ -115,6 +182,20 @@ function mensagemErroOperacaoPersonagem(
   return base;
 }
 
+function normalizarItemInventarioParaPayload(
+  item: ItemInventarioDto,
+): ItemInventarioPayload {
+  return {
+    equipamentoId: item.equipamentoId,
+    quantidade: item.quantidade,
+    equipado: item.equipado,
+    modificacoesIds: item.modificacoes.map((modificacao) => modificacao.id),
+    nomeCustomizado: item.nomeCustomizado ?? null,
+    notas: item.notas ?? null,
+    estado: item.estado ?? undefined,
+  };
+}
+
 export default function PersonagemBaseDetalhePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -143,6 +224,52 @@ export default function PersonagemBaseDetalhePage() {
     ItemInventarioPayload[]
   >([]);
   const [salvandoInventario, setSalvandoInventario] = useState(false);
+  const [fontesSelecionadas, setFontesSelecionadas] =
+    useState<FontesConteudoSelecionadas>(FONTES_CONTEUDO_INICIAIS);
+  const [fontesModalOpen, setFontesModalOpen] = useState(false);
+  const [fontesModalVersion, setFontesModalVersion] = useState(0);
+  const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
+  const [homebrews, setHomebrews] = useState<HomebrewResumo[]>([]);
+  const [impactoFontesPendente, setImpactoFontesPendente] = useState<{
+    selecao: FontesConteudoSelecionadas;
+    impactos: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    if (!personagem) return;
+    setFontesSelecionadas(
+      normalizarFontesConteudoSelecionadas(
+        personagem.fontesConteudo ?? FONTES_CONTEUDO_INICIAIS,
+      ),
+    );
+  }, [personagem?.id, personagem?.fontesConteudo]);
+
+  useEffect(() => {
+    let cancelado = false;
+
+    async function carregarFontesDisponiveis() {
+      try {
+        const [suplementosAtivos, homebrewsAcessiveis] = await Promise.all([
+          apiGetSuplementos({ status: 'PUBLICADO' }),
+          carregarHomebrewsAcessiveis(),
+        ]);
+        if (cancelado) return;
+        setSuplementos(suplementosAtivos);
+        setHomebrews(homebrewsAcessiveis);
+      } catch {
+        if (!cancelado) {
+          setSuplementos([]);
+          setHomebrews([]);
+        }
+      }
+    }
+
+    void carregarFontesDisponiveis();
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   const alinhamento = useMemo(
     () => catalogos.alinhamentos.find((a) => a.id === personagem?.alinhamentoId),
@@ -172,15 +299,63 @@ export default function PersonagemBaseDetalhePage() {
     [classeCatalogo],
   );
 
+  const classesFiltradas = useMemo(
+    () => filtrarListaPorFontes(catalogos.classes, fontesSelecionadas),
+    [catalogos.classes, fontesSelecionadas],
+  );
+  const clasFiltrados = useMemo(
+    () => filtrarListaPorFontes(catalogos.clas, fontesSelecionadas),
+    [catalogos.clas, fontesSelecionadas],
+  );
+  const origensFiltradas = useMemo(
+    () => filtrarListaPorFontes(catalogos.origens, fontesSelecionadas),
+    [catalogos.origens, fontesSelecionadas],
+  );
+  const tecnicasInatasFiltradas = useMemo(
+    () => filtrarListaPorFontes(catalogos.tecnicasInatas, fontesSelecionadas),
+    [catalogos.tecnicasInatas, fontesSelecionadas],
+  );
+  const equipamentosFiltrados = useMemo(
+    () => filtrarListaPorFontes(catalogos.equipamentos, fontesSelecionadas),
+    [catalogos.equipamentos, fontesSelecionadas],
+  );
+  const modificacoesFiltradas = useMemo(
+    () => filtrarListaPorFontes(catalogos.modificacoes, fontesSelecionadas),
+    [catalogos.modificacoes, fontesSelecionadas],
+  );
+  const chaveFontesWizard = useMemo(
+    () => criarChaveFontesConteudo(fontesSelecionadas),
+    [fontesSelecionadas],
+  );
+  const resumoFontes = useMemo(
+    () => ({
+      suplementos: fontesSelecionadas.suplementoIds.length,
+      homebrews: fontesSelecionadas.homebrewIds.length,
+    }),
+    [fontesSelecionadas],
+  );
+
   const initialValues: InitialValues | null = useMemo(() => {
     if (!personagem) return null;
+
+    const manterIdObrigatorio = <T extends { id: number }>(id: number, lista: T[]) =>
+      lista.length === 0 || lista.some((item) => item.id === id) ? id : 0;
+    const manterIdOpcional = <T extends { id: number }>(
+      id: number | null,
+      lista: T[],
+    ) =>
+      !id || lista.length === 0 || lista.some((item) => item.id === id)
+        ? id
+        : null;
+    const equipamentosPermitidos = new Set(equipamentosFiltrados.map((item) => item.id));
+    const modificacoesPermitidas = new Set(modificacoesFiltradas.map((item) => item.id));
 
     return {
       nome: personagem.nome,
       nivel: personagem.nivel,
-      claId: personagem.claId,
-      origemId: personagem.origemId,
-      classeId: personagem.classeId,
+      claId: manterIdObrigatorio(personagem.claId, clasFiltrados),
+      origemId: manterIdObrigatorio(personagem.origemId, origensFiltradas),
+      classeId: manterIdObrigatorio(personagem.classeId, classesFiltradas),
       trilhaId: personagem.trilhaId,
       caminhoId: personagem.caminhoId,
       agilidade: personagem.agilidade,
@@ -189,7 +364,7 @@ export default function PersonagemBaseDetalhePage() {
       presenca: personagem.presenca,
       vigor: personagem.vigor,
       estudouEscolaTecnica: personagem.estudouEscolaTecnica,
-      tecnicaInataId: personagem.tecnicaInataId,
+      tecnicaInataId: manterIdOpcional(personagem.tecnicaInataId, tecnicasInatasFiltradas),
       proficienciasCodigos: personagem.proficiencias.map((p) => p.codigo),
       grausAprimoramento: personagem.grausAprimoramento.map((g) => ({
         tipoGrauCodigo: g.tipoGrauCodigo,
@@ -211,20 +386,121 @@ export default function PersonagemBaseDetalhePage() {
       })),
       passivasAtributosAtivos: personagem.passivasAtributosAtivos ?? [],
       passivasAtributosConfig: personagem.passivasAtributosConfig ?? {},
-      itensInventario: personagem.itensInventario ?? [],
+      itensInventario: (personagem.itensInventario ?? [])
+        .filter((item) => equipamentosPermitidos.has(item.equipamentoId))
+        .map(normalizarItemInventarioParaPayload)
+        .map((item) => ({
+          ...item,
+          modificacoesIds: (item.modificacoesIds ?? []).filter((modId) =>
+            modificacoesPermitidas.has(modId),
+          ),
+        })),
     };
-  }, [personagem]);
+  }, [
+    personagem,
+    clasFiltrados,
+    origensFiltradas,
+    classesFiltradas,
+    tecnicasInatasFiltradas,
+    equipamentosFiltrados,
+    modificacoesFiltradas,
+  ]);
 
   async function handleUpdate(data: UpdatePersonagemBasePayload) {
     if (!personagem) return;
     try {
       setErroLocal(null);
-      await apiUpdatePersonagemBase(personagem.id, data);
+      await apiUpdatePersonagemBase(personagem.id, {
+        ...data,
+        fontesConteudo: fontesSelecionadas,
+      });
       await refresh();
       setModoEdicao(false);
     } catch (e) {
       setErroLocal(mensagemErroOperacaoPersonagem(e, 'atualizar'));
     }
+  }
+
+  async function carregarTrilhasFiltradas(classeId: number) {
+    const trilhas = await carregarTrilhasDaClasse(classeId);
+    return filtrarListaPorFontes(trilhas, fontesSelecionadas);
+  }
+
+  async function carregarCaminhosFiltrados(trilhaId: number) {
+    const caminhos = await carregarCaminhosDaTrilha(trilhaId);
+    return filtrarListaPorFontes(caminhos, fontesSelecionadas);
+  }
+
+  function analisarImpactoFontes(selecao: FontesConteudoSelecionadas): string[] {
+    if (!personagem) return [];
+
+    const impactos: string[] = [];
+    const adicionarImpacto = <T extends { id: number; nome?: string }>(
+      rotulo: string,
+      idAtual: number | null | undefined,
+      catalogo: T[],
+    ) => {
+      if (!idAtual) return;
+      const item = catalogo.find((entrada) => entrada.id === idAtual);
+      if (!item) return;
+      if (!itemPertenceAsFontesSelecionadas(item, selecao)) {
+        impactos.push(`${rotulo}: ${item.nome ?? `#${item.id}`}`);
+      }
+    };
+
+    adicionarImpacto('Classe', personagem.classeId, catalogos.classes);
+    adicionarImpacto('Cla', personagem.claId, catalogos.clas);
+    adicionarImpacto('Origem', personagem.origemId, catalogos.origens);
+    adicionarImpacto(
+      'Tecnica inata',
+      personagem.tecnicaInataId,
+      catalogos.tecnicasInatas,
+    );
+
+    const equipamentosPorId = new Map(catalogos.equipamentos.map((item) => [item.id, item]));
+    const modificacoesPorId = new Map(catalogos.modificacoes.map((item) => [item.id, item]));
+
+    for (const item of personagem.itensInventario ?? []) {
+      const equipamento = equipamentosPorId.get(item.equipamentoId);
+      if (equipamento && !itemPertenceAsFontesSelecionadas(equipamento, selecao)) {
+        impactos.push(`Item: ${item.nomeCustomizado || equipamento.nome}`);
+      }
+
+      for (const modificacao of item.modificacoes ?? []) {
+        const modCatalogo = modificacoesPorId.get(modificacao.id);
+        if (modCatalogo && !itemPertenceAsFontesSelecionadas(modCatalogo, selecao)) {
+          impactos.push(
+            `Modificacao em ${item.nomeCustomizado || equipamento?.nome || 'item'}: ${
+              modCatalogo.nome
+            }`,
+          );
+        }
+      }
+    }
+
+    return impactos;
+  }
+
+  function confirmarAplicacaoFontes(selecao: FontesConteudoSelecionadas) {
+    setFontesSelecionadas(selecao);
+    setImpactoFontesPendente(null);
+  }
+
+  function handleAplicarFontes(selecao: FontesConteudoSelecionadas) {
+    const selecaoSanitizada = sanitizarSelecaoComAcesso(selecao, suplementos, homebrews);
+    const impactos = analisarImpactoFontes(selecaoSanitizada);
+
+    if (impactos.length > 0) {
+      setImpactoFontesPendente({ selecao: selecaoSanitizada, impactos });
+      return;
+    }
+
+    confirmarAplicacaoFontes(selecaoSanitizada);
+  }
+
+  function abrirModalFontes() {
+    setFontesModalVersion((version) => version + 1);
+    setFontesModalOpen(true);
   }
 
   function handleDeleteClick() {
@@ -268,7 +544,9 @@ export default function PersonagemBaseDetalhePage() {
 
   function abrirModalInventario() {
     if (!personagem) return;
-    setItensInventarioEdicao(personagem.itensInventario ?? []);
+    setItensInventarioEdicao(
+      (personagem.itensInventario ?? []).map(normalizarItemInventarioParaPayload),
+    );
     setModalInventarioAberto(true);
   }
 
@@ -391,26 +669,56 @@ export default function PersonagemBaseDetalhePage() {
 
           {(erro || erroLocal) && <ErrorAlert message={erro ?? erroLocal ?? ''} />}
 
+          {modoEdicao ? (
+            <section className="rounded-lg border border-app-border bg-app-surface p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-app-fg">
+                    Fontes habilitadas para esta ficha
+                  </p>
+                  <p className="text-xs text-app-muted">
+                    Sistema base (fixo) + {resumoFontes.suplementos} suplemento(s) +{' '}
+                    {resumoFontes.homebrews} homebrew(s)
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Badge color="green" size="sm">
+                    Base
+                  </Badge>
+                  <Button variant="secondary" size="sm" onClick={abrirModalFontes}>
+                    <Icon name="settings" className="w-4 h-4 mr-2" />
+                    Gerenciar fontes
+                  </Button>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-app-muted">
+                Remover fontes pode limpar escolhas, itens ou modificacoes que vieram delas ao salvar.
+              </p>
+            </section>
+          ) : null}
+
           {!modoEdicao ? (
             <TabbedSection tabs={tabs} defaultTabId="info" />
           ) : (
             <PersonagemBaseWizard
+              key={`edit-${personagem.id}-${chaveFontesWizard}`}
               mode="edit"
               initialValues={initialValues}
               onSubmitEdit={handleUpdate}
               onCancel={() => setModoEdicao(false)}
-              classes={catalogos.classes}
-              clas={catalogos.clas}
-              origens={catalogos.origens}
+              classes={classesFiltradas}
+              clas={clasFiltrados}
+              origens={origensFiltradas}
               proficiencias={catalogos.proficiencias}
               tiposGrau={catalogos.tiposGrau}
-              tecnicasInatas={catalogos.tecnicasInatas}
+              tecnicasInatas={tecnicasInatasFiltradas}
               alinhamentos={catalogos.alinhamentos}
               pericias={catalogos.pericias}
-              equipamentos={catalogos.equipamentos}
-              modificacoes={catalogos.modificacoes}
-              carregarTrilhasDaClasse={carregarTrilhasDaClasse}
-              carregarCaminhosDaTrilha={carregarCaminhosDaTrilha}
+              equipamentos={equipamentosFiltrados}
+              modificacoes={modificacoesFiltradas}
+              carregarTrilhasDaClasse={carregarTrilhasFiltradas}
+              carregarCaminhosDaTrilha={carregarCaminhosFiltrados}
             />
           )}
 
@@ -481,6 +789,47 @@ export default function PersonagemBaseDetalhePage() {
         </div>
       </ConfirmDialog>
 
+      <FontesConteudoModal
+        key={fontesModalVersion}
+        isOpen={fontesModalOpen}
+        onClose={() => setFontesModalOpen(false)}
+        onConfirm={handleAplicarFontes}
+        suplementos={suplementos}
+        homebrews={homebrews}
+        selecaoAtual={fontesSelecionadas}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(impactoFontesPendente)}
+        onClose={() => setImpactoFontesPendente(null)}
+        onConfirm={() => {
+          if (impactoFontesPendente) {
+            confirmarAplicacaoFontes(impactoFontesPendente.selecao);
+          }
+        }}
+        title="Remover fontes usadas pela ficha?"
+        description="Alguns conteudos atuais nao ficarao disponiveis com a nova selecao de fontes. Ao salvar a ficha, eles deverao ser removidos ou substituidos."
+        confirmLabel="Aplicar mesmo assim"
+        cancelLabel="Voltar"
+        variant="danger"
+      >
+        <div className="rounded border border-app-danger/40 bg-app-danger/5 p-3">
+          <p className="text-xs font-semibold text-app-danger mb-2">
+            Impacto estimado
+          </p>
+          <ul className="space-y-1 text-xs text-app-danger/90">
+            {(impactoFontesPendente?.impactos ?? []).slice(0, 12).map((impacto) => (
+              <li key={impacto}>- {impacto}</li>
+            ))}
+            {(impactoFontesPendente?.impactos.length ?? 0) > 12 ? (
+              <li>
+                - Mais {(impactoFontesPendente?.impactos.length ?? 0) - 12} item(ns)
+              </li>
+            ) : null}
+          </ul>
+        </div>
+      </ConfirmDialog>
+
       <Modal
         isOpen={modalInventarioAberto}
         onClose={() => setModalInventarioAberto(false)}
@@ -517,8 +866,9 @@ export default function PersonagemBaseDetalhePage() {
           intelecto={personagem.intelecto}
           prestigioBase={personagem.prestigioBase}
           creditoCategoriaBonus={personagem.creditoCategoriaBonus}
-          equipamentos={catalogos.equipamentos}
-          modificacoes={catalogos.modificacoes}
+          pericias={catalogos.pericias}
+          equipamentos={equipamentosFiltrados}
+          modificacoes={modificacoesFiltradas}
           itensInventario={itensInventarioEdicao}
           onChangeItensInventario={setItensInventarioEdicao}
         />

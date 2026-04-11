@@ -6,7 +6,8 @@ import {
   IsArray,
   Min,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { ItemInventarioEstadoDto } from '../../personagem-base/dto/create-personagem-base.dto';
 
 function parseIntComFallback(value: unknown, fallback: number): unknown {
   if (value === undefined || value === null || value === '') return fallback;
@@ -74,6 +75,10 @@ export class AdicionarItemInventarioCampanhaDto {
   @IsOptional()
   @IsString()
   notas?: string | null;
+
+  @IsOptional()
+  @Type(() => ItemInventarioEstadoDto)
+  estado?: ItemInventarioEstadoDto;
 }
 
 export class AtualizarItemInventarioCampanhaDto {
@@ -101,6 +106,10 @@ export class AtualizarItemInventarioCampanhaDto {
   @IsOptional()
   @IsString()
   notas?: string | null;
+
+  @IsOptional()
+  @Type(() => ItemInventarioEstadoDto)
+  estado?: ItemInventarioEstadoDto;
 }
 
 export class AplicarModificacaoInventarioCampanhaDto {

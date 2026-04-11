@@ -12,6 +12,7 @@ import {
   apiAdicionarItemInventarioCampanha,
   apiAplicarModificacaoInventarioCampanha,
   apiAtualizarItemInventarioCampanha,
+  apiGetCatalogosBasicos,
   apiGetInventarioCampanhaCompleto,
   apiGetModificacoesCompativeis,
   apiGetTodosEquipamentos,
@@ -24,11 +25,14 @@ import type {
   InventarioCampanhaCompletoDto,
   ItemInventarioDto,
   ModificacaoCatalogo,
+  PericiaCatalogo,
 } from '@/lib/types';
 import {
   calcularCategoriaFinal,
   filtrarModificacoesCompativeis,
   getIconeTipo,
+  equipamentoUsaPericiaPersonalizada,
+  listarPericiasElegiveisItemPersonalizado,
 } from '@/lib/utils/inventario';
 
 type SessionCharacterInventoryTabProps = {
@@ -62,6 +66,7 @@ export function SessionCharacterInventoryTab({
   const [quantidadeAdicionar, setQuantidadeAdicionar] = useState(1);
   const [equipadoAdicionar, setEquipadoAdicionar] = useState(false);
   const [nomeCustomizadoAdicionar, setNomeCustomizadoAdicionar] = useState('');
+  const [periciaPersonalizadaAdicionar, setPericiaPersonalizadaAdicionar] = useState('');
   const [modificacoesAdicionar, setModificacoesAdicionar] = useState<number[]>([]);
   const [modificacoesCompatAdicionar, setModificacoesCompatAdicionar] =
     useState<ModificacaoCatalogo[]>([]);
@@ -72,11 +77,13 @@ export function SessionCharacterInventoryTab({
   const [quantidadeEditando, setQuantidadeEditando] = useState(1);
   const [equipadoEditando, setEquipadoEditando] = useState(false);
   const [nomeCustomizadoEditando, setNomeCustomizadoEditando] = useState('');
+  const [periciaPersonalizadaEditando, setPericiaPersonalizadaEditando] = useState('');
   const [modificacoesEditando, setModificacoesEditando] = useState<number[]>([]);
   const [modificacoesCompatEditando, setModificacoesCompatEditando] =
     useState<ModificacaoCatalogo[]>([]);
 
   const [equipamentos, setEquipamentos] = useState<EquipamentoCatalogo[]>([]);
+  const [pericias, setPericias] = useState<PericiaCatalogo[]>([]);
   const [carregandoCatalogos, setCarregandoCatalogos] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
@@ -103,17 +110,21 @@ export function SessionCharacterInventoryTab({
   }, [ativo, inventario, carregarInventario]);
 
   const carregarCatalogos = useCallback(async () => {
-    if (equipamentos.length > 0) return;
+    if (equipamentos.length > 0 && pericias.length > 0) return;
     setCarregandoCatalogos(true);
     try {
-      const lista = await apiGetTodosEquipamentos();
+      const [lista, catalogosBasicos] = await Promise.all([
+        apiGetTodosEquipamentos(),
+        apiGetCatalogosBasicos(),
+      ]);
       setEquipamentos(lista);
+      setPericias(catalogosBasicos.pericias);
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {
       setCarregandoCatalogos(false);
     }
-  }, [equipamentos.length]);
+  }, [equipamentos.length, pericias.length]);
 
   const equipamentosFiltrados = useMemo(() => {
     if (!buscaEquipamento.trim()) return equipamentos;
@@ -126,6 +137,17 @@ export function SessionCharacterInventoryTab({
   }, [buscaEquipamento, equipamentos]);
 
   const resumoEspacos = inventario?.espacos;
+  const periciasElegiveisAdicionar = useMemo(
+    () =>
+      equipamentoSelecionado
+        ? listarPericiasElegiveisItemPersonalizado(pericias)
+        : pericias,
+    [equipamentoSelecionado, pericias],
+  );
+  const periciasElegiveisEdicao = useMemo(() => {
+    if (!modalEditarItem) return pericias;
+    return listarPericiasElegiveisItemPersonalizado(pericias);
+  }, [modalEditarItem, pericias]);
   const excedentesCategoria =
     limitesCategoriaAtivo && inventario?.limitesCategoria?.excedentes?.length
       ? inventario.limitesCategoria.excedentes
@@ -138,6 +160,7 @@ export function SessionCharacterInventoryTab({
     setQuantidadeAdicionar(1);
     setEquipadoAdicionar(false);
     setNomeCustomizadoAdicionar('');
+    setPericiaPersonalizadaAdicionar('');
     setModificacoesAdicionar([]);
     setModificacoesCompatAdicionar([]);
     setModalAdicionarAberto(true);
@@ -172,6 +195,9 @@ export function SessionCharacterInventoryTab({
         equipado: equipadoAdicionar,
         nomeCustomizado: nomeCustomizadoAdicionar.trim() || undefined,
         modificacoes: modificacoesAdicionar,
+        estado: periciaPersonalizadaAdicionar
+          ? { periciaCodigo: periciaPersonalizadaAdicionar }
+          : undefined,
       });
       await carregarInventario();
       setModalAdicionarAberto(false);
@@ -187,6 +213,7 @@ export function SessionCharacterInventoryTab({
     setQuantidadeEditando(item.quantidade);
     setEquipadoEditando(item.equipado);
     setNomeCustomizadoEditando(item.nomeCustomizado ?? '');
+    setPericiaPersonalizadaEditando(item.estado?.periciaCodigo ?? '');
     setModificacoesEditando(item.modificacoes.map((mod) => mod.id));
     void carregarCatalogos();
     try {
@@ -210,6 +237,9 @@ export function SessionCharacterInventoryTab({
           quantidade: quantidadeEditando,
           equipado: equipadoEditando,
           nomeCustomizado: nomeCustomizadoEditando.trim() || undefined,
+          estado: periciaPersonalizadaEditando
+            ? { periciaCodigo: periciaPersonalizadaEditando }
+            : undefined,
         },
       );
 
@@ -300,6 +330,31 @@ export function SessionCharacterInventoryTab({
     modificacoesCompatEditando,
     modificacoesEditando,
   ]);
+
+  const exigePericiaPersonalizadaAdicionar = useMemo(
+    () =>
+      equipamentoSelecionado
+        ? equipamentoUsaPericiaPersonalizada(equipamentoSelecionado)
+        : false,
+    [equipamentoSelecionado],
+  );
+
+  const exigePericiaPersonalizadaEdicao = useMemo(() => {
+    if (!modalEditarItem) return false;
+    return equipamentoUsaPericiaPersonalizada(
+      equipamentosPorId.get(modalEditarItem.equipamentoId),
+    );
+  }, [equipamentosPorId, modalEditarItem]);
+
+  const podeSalvarItemAdicionado =
+    !salvando &&
+    (!exigePericiaPersonalizadaAdicionar ||
+      periciaPersonalizadaAdicionar.trim().length > 0);
+
+  const podeSalvarEdicaoItem =
+    !salvando &&
+    (!exigePericiaPersonalizadaEdicao ||
+      periciaPersonalizadaEditando.trim().length > 0);
 
   return (
     <div className="space-y-2">
@@ -399,6 +454,17 @@ export function SessionCharacterInventoryTab({
                         {item.modificacoes.length} mod.
                       </Badge>
                     ) : null}
+                    {equipamentoUsaPericiaPersonalizada(item.equipamento) &&
+                    item.estado?.periciaCodigo ? (
+                      <Badge size="sm" color="yellow">
+                        +2{' '}
+                        {pericias.find(
+                          (pericia) =>
+                            pericia.codigo ===
+                            item.estado?.periciaCodigo?.trim().toUpperCase(),
+                        )?.nome ?? item.estado.periciaCodigo}
+                      </Badge>
+                    ) : null}
                   </div>
                 </div>
                 {podeEditar ? (
@@ -473,7 +539,9 @@ export function SessionCharacterInventoryTab({
                   modificacoesIds={modificacoesAdicionar}
                   modificacoesCompativeis={modificacoesCompativeisAdicionar}
                   equipamentos={equipamentos}
+                  periciasElegiveis={periciasElegiveisAdicionar}
                   nomeCustomizado={nomeCustomizadoAdicionar}
+                  periciaPersonalizada={periciaPersonalizadaAdicionar}
                   equipado={equipadoAdicionar}
                   onQuantidadeChange={setQuantidadeAdicionar}
                   onToggleModificacao={(modId, checked) =>
@@ -485,6 +553,7 @@ export function SessionCharacterInventoryTab({
                   }
                   onNomeCustomizadoChange={setNomeCustomizadoAdicionar}
                   onEquipadoChange={setEquipadoAdicionar}
+                  onPericiaPersonalizadaChange={setPericiaPersonalizadaAdicionar}
                 />
               ) : null}
               <div className="flex items-center justify-between gap-2">
@@ -498,7 +567,10 @@ export function SessionCharacterInventoryTab({
                   <Button variant="ghost" onClick={fecharModalAdicionar}>
                     Cancelar
                   </Button>
-                  <Button onClick={() => void salvarItemAdicionado()} disabled={salvando}>
+                  <Button
+                    onClick={() => void salvarItemAdicionado()}
+                    disabled={!podeSalvarItemAdicionado}
+                  >
                     {salvando ? 'Adicionando...' : 'Adicionar item'}
                   </Button>
                 </div>
@@ -528,7 +600,9 @@ export function SessionCharacterInventoryTab({
               modificacoesIds={modificacoesEditando}
               modificacoesCompativeis={modificacoesCompativeisEdicao}
               equipamentos={equipamentos}
+              periciasElegiveis={periciasElegiveisEdicao}
               nomeCustomizado={nomeCustomizadoEditando}
+              periciaPersonalizada={periciaPersonalizadaEditando}
               equipado={equipadoEditando}
               onQuantidadeChange={setQuantidadeEditando}
               onToggleModificacao={(modId, checked) =>
@@ -538,12 +612,16 @@ export function SessionCharacterInventoryTab({
               }
               onNomeCustomizadoChange={setNomeCustomizadoEditando}
               onEquipadoChange={setEquipadoEditando}
+              onPericiaPersonalizadaChange={setPericiaPersonalizadaEditando}
             />
             <div className="flex items-center justify-end gap-2">
               <Button variant="ghost" onClick={() => setModalEditarItem(null)}>
                 Cancelar
               </Button>
-              <Button onClick={() => void salvarEdicaoItem()} disabled={salvando}>
+              <Button
+                onClick={() => void salvarEdicaoItem()}
+                disabled={!podeSalvarEdicaoItem}
+              >
                 {salvando ? 'Salvando...' : 'Salvar'}
               </Button>
             </div>

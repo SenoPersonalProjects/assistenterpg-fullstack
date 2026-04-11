@@ -12,6 +12,7 @@ export interface ItemInventarioComDados {
   equipado: boolean;
   nomeCustomizado?: string | null;
   notas?: string | null;
+  estado?: Prisma.JsonValue | null;
   categoriaCalculada?: string | null; // ✅ NOVO
   reduzirItensLeves?: boolean; // ✅ NOVO: Inventário Organizado (0.5 → 0.25)
 

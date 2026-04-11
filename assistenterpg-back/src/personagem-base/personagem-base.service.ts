@@ -21,6 +21,7 @@ import {
 import {
   CreatePersonagemBaseDto,
   ItemInventarioDto,
+  FontesConteudoDto,
 } from './dto/create-personagem-base.dto';
 import { UpdatePersonagemBaseDto } from './dto/update-personagem-base.dto';
 import { ImportarPersonagemBaseDto } from './dto/importar-personagem-base.dto';
@@ -184,6 +185,30 @@ export class PersonagemBaseService {
   ): string[] {
     if (!Array.isArray(value)) return [];
     return value.filter((v) => typeof v === 'string');
+  }
+
+  private jsonToFontesConteudo(
+    value: Prisma.JsonValue | null | undefined,
+  ): FontesConteudoDto | undefined {
+    if (!this.isRecord(value)) return undefined;
+
+    const suplementoIds = Array.isArray(value.suplementoIds)
+      ? value.suplementoIds.filter(
+          (item): item is number =>
+            typeof item === 'number' && Number.isInteger(item) && item > 0,
+        )
+      : [];
+    const homebrewIds = Array.isArray(value.homebrewIds)
+      ? value.homebrewIds.filter(
+          (item): item is number =>
+            typeof item === 'number' && Number.isInteger(item) && item > 0,
+        )
+      : [];
+
+    return {
+      suplementoIds,
+      homebrewIds,
+    };
   }
 
   private jsonToHabilidadesConfigArray(
@@ -368,6 +393,7 @@ export class PersonagemBaseService {
           modificacoes: item.modificacoesIds ?? [],
           nomeCustomizado: item.nomeCustomizado,
           notas: item.notas,
+          estado: item.estado,
         },
         {
           tx,
@@ -1465,6 +1491,7 @@ export class PersonagemBaseService {
   private montarDtoCompletoParaUpdate(
     existe: PersonagemBaseDetalhadoEntity,
     dto: UpdatePersonagemBaseDto,
+    itensInventarioExistentes: CreatePersonagemBaseDto['itensInventario'] = [],
   ): CreatePersonagemBaseDto {
     const patch = dto;
 
@@ -1511,6 +1538,11 @@ export class PersonagemBaseService {
       patch.habilidadesConfig !== undefined
         ? patch.habilidadesConfig
         : this.jsonToHabilidadesConfigArray(existe.habilidadesConfig);
+
+    const fontesConteudoFinal =
+      patch.fontesConteudo !== undefined
+        ? patch.fontesConteudo
+        : this.jsonToFontesConteudo(existe.fontesConteudo);
 
     const profsExtrasFinal =
       patch.proficienciasCodigos !== undefined
@@ -1606,6 +1638,11 @@ export class PersonagemBaseService {
       periciasLivresCodigos: periciasLivresFinal ?? [],
 
       periciasLivresExtras: 0,
+      itensInventario:
+        patch.itensInventario !== undefined
+          ? patch.itensInventario
+          : itensInventarioExistentes,
+      fontesConteudo: fontesConteudoFinal,
     };
 
     return dtoCompleto;
@@ -1924,6 +1961,10 @@ export class PersonagemBaseService {
       // ✅ Inicializar campos de inventário
       espacosOcupados: 0,
       sobrecarregado: false,
+      fontesConteudo:
+        dto.fontesConteudo !== undefined
+          ? (dto.fontesConteudo as Prisma.InputJsonValue)
+          : undefined,
     });
 
     const personagem = await this.prisma.$transaction(async (tx) => {
@@ -1959,6 +2000,7 @@ export class PersonagemBaseService {
               modificacoes: item.modificacoesIds ?? [],
               nomeCustomizado: item.nomeCustomizado,
               notas: item.notas,
+              estado: item.estado,
               // ✅ NÃO ignorar limites (preview já validou se o usuário permitiu)
             },
             {
@@ -2127,7 +2169,12 @@ export class PersonagemBaseService {
         modificacoesIds: (item.modificacoes ?? []).map((mod) => mod.id),
         nomeCustomizado: item.nomeCustomizado ?? null,
         notas: item.notas ?? null,
+        estado:
+          item.estado && typeof item.estado === 'object' && !Array.isArray(item.estado)
+            ? (item.estado as Record<string, unknown>)
+            : undefined,
       })),
+      fontesConteudo: this.jsonToFontesConteudo(personagem.fontesConteudo),
     };
 
     return {
@@ -2223,7 +2270,57 @@ export class PersonagemBaseService {
 
     if (!existe) throw new PersonagemBaseNaoEncontradoException(id);
 
-    const dtoCompleto = this.montarDtoCompletoParaUpdate(existe, dto);
+    const itensInventarioExistentes =
+      dto.itensInventario !== undefined
+        ? []
+        : await this.prisma.inventarioItemBase.findMany({
+            where: { personagemBaseId: id },
+            select: {
+              equipamentoId: true,
+              quantidade: true,
+              equipado: true,
+              nomeCustomizado: true,
+              notas: true,
+              estado: true,
+              modificacoes: {
+                select: {
+                  modificacaoId: true,
+                },
+              },
+            },
+            orderBy: { id: 'asc' },
+          });
+
+    const dtoCompleto = this.montarDtoCompletoParaUpdate(
+      existe,
+      dto,
+      dto.itensInventario !== undefined
+        ? []
+        : itensInventarioExistentes.map((item) => ({
+            equipamentoId: item.equipamentoId,
+            quantidade: item.quantidade,
+            equipado: item.equipado,
+            modificacoesIds: item.modificacoes.map((mod) => mod.modificacaoId),
+            nomeCustomizado: item.nomeCustomizado ?? null,
+            notas: item.notas ?? null,
+            estado:
+              item.estado &&
+              typeof item.estado === 'object' &&
+              !Array.isArray(item.estado)
+                ? {
+                    periciaCodigo:
+                      typeof (item.estado as { periciaCodigo?: unknown })
+                        .periciaCodigo === 'string'
+                        ? (
+                            item.estado as {
+                              periciaCodigo?: string | null;
+                            }
+                          ).periciaCodigo ?? null
+                        : null,
+                  }
+                : undefined,
+          })),
+    );
 
     await validarTrilhaECaminho(
       dtoCompleto.classeId,
@@ -2313,6 +2410,10 @@ export class PersonagemBaseService {
           estado.dtoNormalizado.periciasOrigemEscolhidasCodigos ?? [],
         periciasLivresCodigos:
           estado.dtoNormalizado.periciasLivresCodigos ?? [],
+        fontesConteudo:
+          dtoCompleto.fontesConteudo !== undefined
+            ? (dtoCompleto.fontesConteudo as Prisma.InputJsonValue)
+            : undefined,
       });
 
       const resultado = await this.persistence.atualizarRebuildComEstado(

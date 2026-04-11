@@ -2332,9 +2332,11 @@ export default function SessaoCampanhaPage() {
                 rolagens={rolagens}
                 eventosSessao={eventosSessao}
                 participantes={participantes}
+                personagens={detalhe.cards}
                 onlineSet={onlineSet}
                 campanhaId={campanhaId}
                 sessaoId={sessaoId}
+                cenaId={detalhe.cenaAtual.id}
                 sessaoEncerrada={sessaoEncerrada}
                 podeControlarSessao={podeControlarSessao}
                 desfazendoEventoId={desfazendoEventoId}

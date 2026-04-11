@@ -230,6 +230,9 @@ export type ItemInventarioDto = {
 
   nomeCustomizado: string | null;
   notas: string | null;
+  estado?: {
+    periciaCodigo?: string | null;
+  } | null;
 
   equipamento: EquipamentoResumoDto;
 
@@ -362,6 +365,9 @@ export type AdicionarItemDto = {
   nomeCustomizado?: string;
   notas?: string;
   modificacoes?: number[];
+  estado?: {
+    periciaCodigo?: string | null;
+  };
   ignorarLimitesGrauXama?: boolean;
 };
 
@@ -372,6 +378,9 @@ export type AdicionarItemInventarioCampanhaDto = {
   nomeCustomizado?: string;
   notas?: string;
   modificacoes?: number[];
+  estado?: {
+    periciaCodigo?: string | null;
+  };
 };
 
 export type PreviewItemDto = {
@@ -387,6 +396,9 @@ export type AtualizarItemDto = {
   equipado?: boolean;
   nomeCustomizado?: string;
   notas?: string;
+  estado?: {
+    periciaCodigo?: string | null;
+  };
 };
 
 export type AtualizarItemInventarioCampanhaDto = {
@@ -394,6 +406,9 @@ export type AtualizarItemInventarioCampanhaDto = {
   equipado?: boolean;
   nomeCustomizado?: string;
   notas?: string;
+  estado?: {
+    periciaCodigo?: string | null;
+  };
 };
 
 export type AplicarModificacaoDto = {

@@ -8,7 +8,8 @@ import type {
   ItemInventarioDto,
   EquipamentoCatalogo,
   ModificacaoCatalogo,
-} from '@/lib/types'; // ✅ ATUALIZADO
+  PericiaCatalogo,
+} from '@/lib/types';
 
 type EquipamentoComIncremento = EquipamentoCatalogo & {
   incrementoEspacos?: number | null;
@@ -27,6 +28,14 @@ export const TIPOS_VESTIVEIS = ['PROTECAO', 'ACESSORIO'] as const;
  * Subtipo de acessório que é vestimenta
  */
 export const SUBTIPO_VESTIMENTA = 'VESTIMENTA' as const;
+export const CODIGOS_ITENS_PERSONALIZADOS = [
+  'UTENSILIO_PERSONALIZADO',
+  'VESTIMENTA_PERSONALIZADA',
+] as const;
+export const CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO = [
+  'LUTA',
+  'PONTARIA',
+] as const;
 
 /**
  * Limites do sistema de vestir
@@ -193,6 +202,28 @@ export function getIconeTipo(tipo: string): IconName {
 
 export function getIconeCategoria(categoria: string): IconName {
   return ICONES_CATEGORIA_GRAU[categoria] || 'briefcase';
+}
+
+export function equipamentoUsaPericiaPersonalizada(
+  equipamento: Pick<EquipamentoCatalogo, 'codigo'> | null | undefined,
+): boolean {
+  if (!equipamento?.codigo) return false;
+  return CODIGOS_ITENS_PERSONALIZADOS.includes(
+    equipamento.codigo as (typeof CODIGOS_ITENS_PERSONALIZADOS)[number],
+  );
+}
+
+export function listarPericiasElegiveisItemPersonalizado(
+  pericias: PericiaCatalogo[],
+): PericiaCatalogo[] {
+  return [...pericias]
+    .filter(
+      (pericia) =>
+        !CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO.includes(
+          pericia.codigo as (typeof CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO)[number],
+        ),
+    )
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 
 /* ============================================================================ */

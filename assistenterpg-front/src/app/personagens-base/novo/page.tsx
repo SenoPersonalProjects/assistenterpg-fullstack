@@ -289,7 +289,13 @@ export default function NovoPersonagemBasePage() {
 
   async function handleCreate(data: CreatePersonagemBasePayload) {
     try {
-      const novo = await apiCreatePersonagemBase(data);
+      const novo = await apiCreatePersonagemBase({
+        ...data,
+        fontesConteudo: {
+          suplementoIds: [...fontesSelecionadas.suplementoIds],
+          homebrewIds: [...fontesSelecionadas.homebrewIds],
+        },
+      });
       router.push(`/personagens-base/${novo.id}`);
     } catch (error) {
       throw new Error(mensagemErroNovoPersonagem(error, 'criar'));

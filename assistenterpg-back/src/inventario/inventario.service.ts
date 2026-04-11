@@ -48,6 +48,14 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
 // ✅ Type helper para Prisma client ou transação
 type PrismaLike = PrismaService | Prisma.TransactionClient;
+const CODIGOS_EQUIPAMENTOS_PERICIA_PERSONALIZADA = new Set([
+  'UTENSILIO_PERSONALIZADO',
+  'VESTIMENTA_PERSONALIZADA',
+]);
+const CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO = new Set([
+  'LUTA',
+  'PONTARIA',
+]);
 
 const inventarioItemComDadosInclude =
   Prisma.validator<Prisma.InventarioItemBaseInclude>()({
@@ -209,6 +217,53 @@ export class InventarioService {
     private readonly engine: InventarioEngine,
     private readonly mapper: InventarioMapper,
   ) {}
+
+  private extrairPericiaCodigoDoEstado(estado: unknown): string | null {
+    if (!estado || typeof estado !== 'object' || Array.isArray(estado)) {
+      return null;
+    }
+
+    const periciaCodigo = (estado as { periciaCodigo?: unknown }).periciaCodigo;
+    if (typeof periciaCodigo !== 'string') return null;
+
+    const codigoNormalizado = periciaCodigo.trim().toUpperCase();
+    return codigoNormalizado.length > 0 ? codigoNormalizado : null;
+  }
+
+  private async validarEstadoItemPersonalizado(
+    db: PrismaLike,
+    equipamento: { codigo: string },
+    estado: unknown,
+  ): Promise<void> {
+    if (!CODIGOS_EQUIPAMENTOS_PERICIA_PERSONALIZADA.has(equipamento.codigo)) {
+      return;
+    }
+
+    const periciaCodigo = this.extrairPericiaCodigoDoEstado(estado);
+
+    if (!periciaCodigo) {
+      throw new Error(
+        'Itens personalizados exigem a seleção de uma perícia beneficiada.',
+      );
+    }
+
+    if (
+      CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO.has(periciaCodigo)
+    ) {
+      throw new Error(
+        'Itens personalizados não podem beneficiar Luta ou Pontaria.',
+      );
+    }
+
+    const periciaExiste = await db.pericia.findUnique({
+      where: { codigo: periciaCodigo },
+      select: { codigo: true },
+    });
+
+    if (!periciaExiste) {
+      throw new Error('A perícia escolhida para o item personalizado é inválida.');
+    }
+  }
 
   // ==================== HELPERS PRIVADOS ====================
 
@@ -1219,6 +1274,8 @@ export class InventarioService {
         );
       }
 
+      await this.validarEstadoItemPersonalizado(db, equipamento, dto.estado);
+
       // 3. Validar modificações (se houver)
       let modificacoesValidas: ModificacaoCalculoEntity[] = [];
       if (dto.modificacoes && dto.modificacoes.length > 0) {
@@ -1308,6 +1365,10 @@ export class InventarioService {
           espacosCalculados: espacosUnitario,
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
+          estado:
+            dto.estado !== undefined
+              ? (dto.estado as Prisma.InputJsonValue)
+              : undefined,
         },
         include: inventarioItemComDadosInclude,
       });
@@ -1452,6 +1513,12 @@ export class InventarioService {
         );
       }
 
+      await this.validarEstadoItemPersonalizado(
+        this.prisma,
+        itemExiste.equipamento,
+        dto.estado ?? itemExiste.estado,
+      );
+
       // Atualizar
       const itemAtualizado = await this.prisma.inventarioItemBase.update({
         where: { id: itemId },
@@ -1460,6 +1527,10 @@ export class InventarioService {
           equipado: dto.equipado,
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
+          estado:
+            dto.estado !== undefined
+              ? (dto.estado as Prisma.InputJsonValue)
+              : undefined,
         },
         include: inventarioItemComDadosInclude,
       });

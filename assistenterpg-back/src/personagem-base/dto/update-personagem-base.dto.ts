@@ -20,6 +20,7 @@ import {
   HabilidadeConfigDto,
   PassivasAtributoConfigDto,
   ItemInventarioDto,
+  FontesConteudoDto,
 } from './create-personagem-base.dto';
 
 export type AtributoBaseEACodigo = AtributoBaseEA;
@@ -185,4 +186,9 @@ export class UpdatePersonagemBaseDto {
   @ValidateNested({ each: true })
   @Type(() => ItemInventarioDto)
   itensInventario?: ItemInventarioDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FontesConteudoDto)
+  fontesConteudo?: FontesConteudoDto;
 }

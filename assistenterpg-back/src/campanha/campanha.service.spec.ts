@@ -9,6 +9,7 @@ import { CampanhaPersonagensService } from './campanha.personagens.service';
 import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
+import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaApenasDonoException,
@@ -156,6 +157,10 @@ describe('CampanhaService', () => {
           useValue: {
             recalcularEstadoInventarioCampanha: jest.fn(),
           },
+        },
+        {
+          provide: CampanhaItensSessaoService,
+          useValue: {},
         },
         {
           provide: PrismaService,

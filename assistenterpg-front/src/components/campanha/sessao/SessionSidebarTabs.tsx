@@ -7,6 +7,7 @@ export type SessionSidebarTabId =
   | 'chat'
   | 'rolagens'
   | 'anotacoes'
+  | 'itens'
   | 'eventos'
   | 'participantes';
 
@@ -18,6 +19,7 @@ type SessionSidebarTabsProps = {
   totalParticipantes: number;
   totalRolagens: number;
   totalAnotacoes?: number;
+  totalItens?: number;
   mostrarEventos?: boolean;
   children: ReactNode;
 };
@@ -30,6 +32,7 @@ export function SessionSidebarTabs({
   totalParticipantes,
   totalRolagens,
   totalAnotacoes,
+  totalItens,
   mostrarEventos = true,
   children,
 }: SessionSidebarTabsProps) {
@@ -41,6 +44,12 @@ export function SessionSidebarTabs({
       label: 'Anotacoes',
       icon: 'scroll',
       count: totalAnotacoes,
+    },
+    {
+      id: 'itens',
+      label: 'Itens',
+      icon: 'inventory',
+      count: totalItens,
     },
   ];
   if (mostrarEventos) {

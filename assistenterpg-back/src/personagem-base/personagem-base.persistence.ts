@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { EngineResult } from './engine/personagem-base.engine.types';
+import type { ItemInventarioEstadoDto } from './dto/create-personagem-base.dto';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 
@@ -88,6 +89,28 @@ function toNullableInputJson(
   value: Prisma.JsonValue,
 ): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
   return value === null ? Prisma.JsonNull : (value as Prisma.InputJsonValue);
+}
+
+function normalizarEstadoInventarioParaJson(
+  estado:
+    | Prisma.JsonValue
+    | ItemInventarioEstadoDto
+    | null
+    | undefined,
+): Prisma.JsonValue | undefined {
+  if (estado === undefined) return undefined;
+  if (estado === null) return null;
+
+  if (typeof estado === 'object' && !Array.isArray(estado)) {
+    return {
+      periciaCodigo:
+        'periciaCodigo' in estado
+          ? (estado.periciaCodigo ?? null)
+          : null,
+    };
+  }
+
+  return estado;
 }
 
 @Injectable()
@@ -489,6 +512,7 @@ export class PersonagemBasePersistence {
       modificacoesIds?: number[];
       nomeCustomizado?: string | null;
       notas?: string | null;
+      estado?: Prisma.JsonValue | ItemInventarioEstadoDto | null;
     }>,
   ): Array<{
     equipamento: { connect: { id: number } };
@@ -496,6 +520,7 @@ export class PersonagemBasePersistence {
     equipado: boolean;
     nomeCustomizado?: string | null;
     notas?: string | null;
+    estado?: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput;
     modificacoes?: {
       create: Array<{
         modificacao: { connect: { id: number } };
@@ -506,20 +531,28 @@ export class PersonagemBasePersistence {
       return [];
     }
 
-    return itensInventario.map((item) => ({
-      equipamento: { connect: { id: item.equipamentoId } },
-      quantidade: item.quantidade,
-      equipado: item.equipado ?? false,
-      nomeCustomizado: item.nomeCustomizado || null,
-      notas: item.notas || null,
-      modificacoes:
-        item.modificacoesIds && item.modificacoesIds.length > 0
-          ? {
-              create: item.modificacoesIds.map((modId) => ({
-                modificacao: { connect: { id: modId } },
-              })),
-            }
-          : undefined,
-    }));
+    return itensInventario.map((item) => {
+      const estadoJson = normalizarEstadoInventarioParaJson(item.estado);
+
+      return {
+        equipamento: { connect: { id: item.equipamentoId } },
+        quantidade: item.quantidade,
+        equipado: item.equipado ?? false,
+        nomeCustomizado: item.nomeCustomizado || null,
+        notas: item.notas || null,
+        estado:
+          estadoJson === undefined
+            ? undefined
+            : toNullableInputJson(estadoJson),
+        modificacoes:
+          item.modificacoesIds && item.modificacoesIds.length > 0
+            ? {
+                create: item.modificacoesIds.map((modId) => ({
+                  modificacao: { connect: { id: modId } },
+                })),
+              }
+            : undefined,
+      };
+    });
   }
 }

@@ -470,6 +470,85 @@ export type SessaoCampanhaDetalhe = {
   encerradoEm: string | null;
 };
 
+export type TipoItemSessao = 'DOCUMENTO' | 'PISTA' | 'GERAL';
+
+export type CategoriaEquipamentoCodigo =
+  | 'CATEGORIA_0'
+  | 'CATEGORIA_4'
+  | 'CATEGORIA_3'
+  | 'CATEGORIA_2'
+  | 'CATEGORIA_1'
+  | 'ESPECIAL';
+
+export type ItemSessaoCampanhaDto = {
+  id: number;
+  campanhaId: number;
+  sessaoId: number | null;
+  cenaId: number | null;
+  personagemCampanhaId: number | null;
+  nome: string;
+  descricao: string | null;
+  descricaoOculta?: boolean;
+  tipo: TipoItemSessao;
+  categoria: CategoriaEquipamentoCodigo;
+  peso: number;
+  descricaoRevelada: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+  criadoPor?: { id: number; apelido: string | null };
+  portador: {
+    id: number;
+    nome: string;
+    donoId: number | null;
+    ehMeu: boolean;
+  } | null;
+  permissoes?: {
+    podeEditar: boolean;
+    podeAtribuir: boolean;
+    podeRevelar: boolean;
+  };
+};
+
+export type TemplateItemSessaoCampanhaDto = {
+  id: number;
+  campanhaId: number;
+  nome: string;
+  descricao: string | null;
+  tipo: TipoItemSessao;
+  categoria: CategoriaEquipamentoCodigo;
+  peso: number;
+  descricaoRevelada: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
+  criadoPor?: { id: number; apelido: string | null };
+};
+
+export type ItensSessaoCampanhaResponse = {
+  permissoes: {
+    ehMestre: boolean;
+    podeGerenciarTemplates: boolean;
+    podeCriarItem: boolean;
+  };
+  itens: ItemSessaoCampanhaDto[];
+};
+
+export type CriarItemSessaoCampanhaPayload = {
+  nome: string;
+  descricao?: string | null;
+  tipo: TipoItemSessao;
+  categoria?: CategoriaEquipamentoCodigo;
+  peso?: number;
+  descricaoRevelada?: boolean;
+  sessaoId?: number | null;
+  cenaId?: number | null;
+  personagemCampanhaId?: number | null;
+};
+
+export type CriarTemplateItemSessaoCampanhaPayload = Omit<
+  CriarItemSessaoCampanhaPayload,
+  'sessaoId' | 'cenaId' | 'personagemCampanhaId'
+>;
+
 export type MensagemChatSessao = {
   id: number;
   criadoEm: string;
