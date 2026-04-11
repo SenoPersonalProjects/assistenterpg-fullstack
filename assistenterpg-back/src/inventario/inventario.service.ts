@@ -1,6 +1,6 @@
 // src/inventario/inventario.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CategoriaEquipamento,
@@ -242,7 +242,7 @@ export class InventarioService {
     const periciaCodigo = this.extrairPericiaCodigoDoEstado(estado);
 
     if (!periciaCodigo) {
-      throw new Error(
+      throw new BadRequestException(
         'Itens personalizados exigem a seleção de uma perícia beneficiada.',
       );
     }
@@ -250,7 +250,7 @@ export class InventarioService {
     if (
       CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO.has(periciaCodigo)
     ) {
-      throw new Error(
+      throw new BadRequestException(
         'Itens personalizados não podem beneficiar Luta ou Pontaria.',
       );
     }
@@ -261,7 +261,9 @@ export class InventarioService {
     });
 
     if (!periciaExiste) {
-      throw new Error('A perícia escolhida para o item personalizado é inválida.');
+      throw new BadRequestException(
+        'A perícia escolhida para o item personalizado é inválida.',
+      );
     }
   }
 

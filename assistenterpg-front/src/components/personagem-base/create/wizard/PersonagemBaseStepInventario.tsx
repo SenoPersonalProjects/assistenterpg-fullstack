@@ -140,6 +140,28 @@ export function PersonagemBaseStepInventario(props: Props) {
     [props.pericias],
   );
 
+  const exigePericiaPersonalizadaAdicionar = useMemo(
+    () =>
+      equipamentoSelecionado
+        ? equipamentoUsaPericiaPersonalizada(equipamentoSelecionado)
+        : false,
+    [equipamentoSelecionado],
+  );
+
+  const podeSalvarAdicaoItem = useMemo(() => {
+    if (carregandoPreview || erroValidacao !== null || carregandoSincronizacao) {
+      return false;
+    }
+    if (!exigePericiaPersonalizadaAdicionar) return true;
+    return periciaPersonalizada.trim().length > 0;
+  }, [
+    carregandoPreview,
+    erroValidacao,
+    carregandoSincronizacao,
+    exigePericiaPersonalizadaAdicionar,
+    periciaPersonalizada,
+  ]);
+
   const exigePericiaPersonalizadaEdicao = useMemo(() => {
     if (!itemEditando) return false;
     return equipamentoUsaPericiaPersonalizada(
@@ -685,6 +707,13 @@ export function PersonagemBaseStepInventario(props: Props) {
 
   const confirmarAdicao = useCallback(async () => {
     if (!equipamentoSelecionado) return;
+    if (
+      equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) &&
+      !periciaPersonalizada.trim()
+    ) {
+      setErroValidacao('Selecione a perícia beneficiada por este item personalizado.');
+      return;
+    }
 
     const novoItem: ItemInventarioPayload = {
       equipamentoId: equipamentoSelecionado.id,
@@ -1126,9 +1155,7 @@ export function PersonagemBaseStepInventario(props: Props) {
                   onClick={confirmarAdicao}
                   variant="primary"
                   className="flex-1"
-                  disabled={
-                    carregandoPreview || erroValidacao !== null || carregandoSincronizacao
-                  }
+                  disabled={!podeSalvarAdicaoItem}
                 >
                   <Icon name="check" className="w-4 h-4 mr-1" />
                   {carregandoSincronizacao ? 'Calculando...' : 'Adicionar Item'}

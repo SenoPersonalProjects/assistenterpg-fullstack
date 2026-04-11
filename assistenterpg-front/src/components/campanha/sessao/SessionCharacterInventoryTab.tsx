@@ -195,7 +195,9 @@ export function SessionCharacterInventoryTab({
         equipado: equipadoAdicionar,
         nomeCustomizado: nomeCustomizadoAdicionar.trim() || undefined,
         modificacoes: modificacoesAdicionar,
-        estado: periciaPersonalizadaAdicionar
+        estado:
+          equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) &&
+          periciaPersonalizadaAdicionar
           ? { periciaCodigo: periciaPersonalizadaAdicionar }
           : undefined,
       });
@@ -237,7 +239,9 @@ export function SessionCharacterInventoryTab({
           quantidade: quantidadeEditando,
           equipado: equipadoEditando,
           nomeCustomizado: nomeCustomizadoEditando.trim() || undefined,
-          estado: periciaPersonalizadaEditando
+          estado:
+            equipamentoUsaPericiaPersonalizada(modalEditarItem.equipamento) &&
+            periciaPersonalizadaEditando
             ? { periciaCodigo: periciaPersonalizadaEditando }
             : undefined,
         },

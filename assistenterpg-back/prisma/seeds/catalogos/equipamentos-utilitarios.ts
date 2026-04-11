@@ -174,9 +174,9 @@ export const acessoriosSeed: EquipamentoAcessorioSeed[] = [
   },
   {
     codigo: 'UTENSILIO_PERSONALIZADO',
-    nome: 'Utens?lio Personalizado',
+    nome: 'Utensílio Personalizado',
     descricao:
-      'Um utens?lio adaptado ? especialidade do usu?rio. Escolha uma per?cia eleg?vel para receber +2 quando este item for configurado no invent?rio.',
+      'Um utensílio adaptado à especialidade do usuário. Escolha uma perícia elegível para receber +2 quando este item for configurado no inventário.',
     tipo: TipoEquipamento.ACESSORIO,
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
@@ -217,13 +217,13 @@ export const acessoriosSeed: EquipamentoAcessorioSeed[] = [
     codigo: 'VESTIMENTA_PERSONALIZADA',
     nome: 'Vestimenta Personalizada',
     descricao:
-      'Uma vestimenta ajustada para refor?ar uma especialidade espec?fica. Escolha uma per?cia eleg?vel para receber +2 quando este item for configurado no invent?rio.',
+      'Uma vestimenta ajustada para reforçar uma especialidade específica. Escolha uma perícia elegível para receber +2 quando este item for configurado no inventário.',
     tipo: TipoEquipamento.ACESSORIO,
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     tipoAcessorio: TipoAcessorio.VESTIMENTA,
     bonusPericia: 2,
-    efeito: 'Pode usar at? 2 vestimentas ao mesmo tempo',
+    efeito: 'Pode usar até 2 vestimentas ao mesmo tempo',
     tipoUso: TipoUsoEquipamento.VESTIVEL,
   },
   {
