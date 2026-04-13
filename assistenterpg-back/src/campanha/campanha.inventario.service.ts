@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma, TipoEquipamento } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CampanhaAccessService } from './campanha.access.service';
@@ -24,16 +24,12 @@ import type {
   AtualizarItemInventarioCampanhaDto,
   AplicarModificacaoInventarioCampanhaDto,
 } from './dto/inventario-campanha.dto';
+import {
+  equipamentoUsaPericiaPersonalizada,
+  validarENormalizarEstadoItemPersonalizado,
+} from '../inventario/utils/item-personalizado';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
-const CODIGOS_EQUIPAMENTOS_PERICIA_PERSONALIZADA = new Set([
-  'UTENSILIO_PERSONALIZADO',
-  'VESTIMENTA_PERSONALIZADA',
-]);
-const CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO = new Set([
-  'LUTA',
-  'PONTARIA',
-]);
 
 const inventarioItemCampanhaComDadosInclude =
   Prisma.validator<Prisma.InventarioItemCampanhaInclude>()({
@@ -72,53 +68,12 @@ export class CampanhaInventarioService {
     private readonly mapper: InventarioMapper,
   ) {}
 
-  private extrairPericiaCodigoDoEstado(estado: unknown): string | null {
-    if (!estado || typeof estado !== 'object' || Array.isArray(estado)) {
-      return null;
-    }
-
-    const periciaCodigo = (estado as { periciaCodigo?: unknown }).periciaCodigo;
-    if (typeof periciaCodigo !== 'string') return null;
-
-    const codigoNormalizado = periciaCodigo.trim().toUpperCase();
-    return codigoNormalizado.length > 0 ? codigoNormalizado : null;
-  }
-
   private async validarEstadoItemPersonalizado(
     db: PrismaLike,
     equipamento: { codigo: string },
     estado: unknown,
-  ): Promise<void> {
-    if (!CODIGOS_EQUIPAMENTOS_PERICIA_PERSONALIZADA.has(equipamento.codigo)) {
-      return;
-    }
-
-    const periciaCodigo = this.extrairPericiaCodigoDoEstado(estado);
-
-    if (!periciaCodigo) {
-      throw new BadRequestException(
-        'Itens personalizados exigem a seleção de uma perícia beneficiada.',
-      );
-    }
-
-    if (
-      CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO.has(periciaCodigo)
-    ) {
-      throw new BadRequestException(
-        'Itens personalizados não podem beneficiar Luta ou Pontaria.',
-      );
-    }
-
-    const periciaExiste = await db.pericia.findUnique({
-      where: { codigo: periciaCodigo },
-      select: { codigo: true },
-    });
-
-    if (!periciaExiste) {
-      throw new BadRequestException(
-        'A perícia escolhida para o item personalizado é inválida.',
-      );
-    }
+  ): Promise<unknown> {
+    return validarENormalizarEstadoItemPersonalizado(db, equipamento, estado);
   }
 
   private tratarErroPrisma(error: unknown): void {
@@ -573,7 +528,7 @@ export class CampanhaInventarioService {
         );
       }
 
-      await this.validarEstadoItemPersonalizado(
+      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
         this.prisma,
         equipamento,
         dto.estado,
@@ -658,8 +613,8 @@ export class CampanhaInventarioService {
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
           estado:
-            dto.estado !== undefined
-              ? (dto.estado as Prisma.InputJsonValue)
+            estadoNormalizado !== undefined
+              ? (estadoNormalizado as Prisma.InputJsonValue)
               : undefined,
         },
         include: inventarioItemCampanhaComDadosInclude,
@@ -800,11 +755,14 @@ export class CampanhaInventarioService {
         );
       }
 
-      await this.validarEstadoItemPersonalizado(
+      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
         this.prisma,
         itemExiste.equipamento,
         dto.estado ?? itemExiste.estado,
       );
+      const deveAtualizarEstado =
+        dto.estado !== undefined ||
+        equipamentoUsaPericiaPersonalizada(itemExiste.equipamento);
 
       const itemAtualizado = await this.prisma.inventarioItemCampanha.update({
         where: { id: itemId },
@@ -813,10 +771,9 @@ export class CampanhaInventarioService {
           equipado: dto.equipado,
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
-          estado:
-            dto.estado !== undefined
-              ? (dto.estado as Prisma.InputJsonValue)
-              : undefined,
+          estado: deveAtualizarEstado
+            ? (estadoNormalizado as Prisma.InputJsonValue)
+            : undefined,
         },
         include: inventarioItemCampanhaComDadosInclude,
       });

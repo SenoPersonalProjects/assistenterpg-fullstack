@@ -8,6 +8,7 @@ type EquipamentoLite = {
   proficienciaArma: string | null;
   proficienciaProtecao: string | null;
   tipoProtecao: string | null;
+  tipoAcessorio?: string | null;
   alcance: string | null;
   complexidadeMaldicao: string | null;
   armaAmaldicoada?: { id: number } | null;
@@ -24,6 +25,7 @@ type RestricoesModificacao = {
   apenasAmaldicoadas?: boolean;
   requerComplexidade?: string;
   tiposProtecao?: string[];
+  tiposAcessorio?: string[];
   proficienciasProtecao?: string[];
   excluiEscudos?: boolean;
   outros?: {
@@ -54,7 +56,14 @@ function extrairRestricoes(mod: ModificacaoLite): RestricoesModificacao {
   const tiposProtecao = Array.isArray(mod.restricoes.tiposProtecao)
     ? mod.restricoes.tiposProtecao.filter((t: unknown) => typeof t === 'string')
     : undefined;
-  const proficienciasProtecao = Array.isArray(mod.restricoes.proficienciasProtecao)
+  const tiposAcessorio = Array.isArray(mod.restricoes.tiposAcessorio)
+    ? mod.restricoes.tiposAcessorio.filter(
+        (t: unknown) => typeof t === 'string',
+      )
+    : undefined;
+  const proficienciasProtecao = Array.isArray(
+    mod.restricoes.proficienciasProtecao,
+  )
     ? mod.restricoes.proficienciasProtecao.filter(
         (t: unknown) => typeof t === 'string',
       )
@@ -76,6 +85,7 @@ function extrairRestricoes(mod: ModificacaoLite): RestricoesModificacao {
     apenasAmaldicoadas,
     requerComplexidade,
     tiposProtecao,
+    tiposAcessorio,
     proficienciasProtecao,
     excluiEscudos,
     outros,
@@ -111,7 +121,9 @@ function detectarTipoBase(equipamento: EquipamentoLite): string | null {
 
   if (
     tipo === 'ITEM_OPERACIONAL' &&
-    (equipamento.tipoArma || equipamento.proficienciaArma || equipamento.alcance)
+    (equipamento.tipoArma ||
+      equipamento.proficienciaArma ||
+      equipamento.alcance)
   ) {
     return 'ARMA';
   }
@@ -133,7 +145,8 @@ function verificarTipoCompativel(
     case 'CORPO_A_CORPO_E_DISPARO':
       if (tipoBase === 'ARMA') {
         if (tipoArma === 'CORPO_A_CORPO') return true;
-        if (tipoArma === 'A_DISTANCIA' && subtipoDistancia !== 'FOGO') return true;
+        if (tipoArma === 'A_DISTANCIA' && subtipoDistancia !== 'FOGO')
+          return true;
       }
       return false;
     case 'ARMA_FOGO':
@@ -149,7 +162,7 @@ function verificarTipoCompativel(
   }
 }
 
-function isModificacaoCompativel(
+export function isModificacaoCompativel(
   modificacao: ModificacaoLite,
   equipamento: EquipamentoLite,
 ): boolean {
@@ -159,12 +172,11 @@ function isModificacaoCompativel(
     apenasAmaldicoadas,
     requerComplexidade,
     tiposProtecao,
+    tiposAcessorio,
     proficienciasProtecao,
     excluiEscudos,
     outros,
-  } = extrairRestricoes(
-    modificacao,
-  );
+  } = extrairRestricoes(modificacao);
 
   const complexidadeEquip =
     ordemComplexidade[equipamento.complexidadeMaldicao ?? 'NENHUMA'] ?? 0;
@@ -172,8 +184,7 @@ function isModificacaoCompativel(
   if (apenasAmaldicoadas && complexidadeEquip <= 0) return false;
 
   if (requerComplexidade) {
-    const complexidadeRequerida =
-      ordemComplexidade[requerComplexidade] ?? 0;
+    const complexidadeRequerida = ordemComplexidade[requerComplexidade] ?? 0;
     if (complexidadeEquip < complexidadeRequerida) return false;
   }
 
@@ -186,7 +197,15 @@ function isModificacaoCompativel(
     if (!tiposProtecao.includes(equipamento.tipoProtecao)) return false;
   }
 
-  if (Array.isArray(proficienciasProtecao) && proficienciasProtecao.length > 0) {
+  if (Array.isArray(tiposAcessorio) && tiposAcessorio.length > 0) {
+    if (!equipamento.tipoAcessorio) return false;
+    if (!tiposAcessorio.includes(equipamento.tipoAcessorio)) return false;
+  }
+
+  if (
+    Array.isArray(proficienciasProtecao) &&
+    proficienciasProtecao.length > 0
+  ) {
     if (!equipamento.proficienciaProtecao) return false;
     if (!proficienciasProtecao.includes(equipamento.proficienciaProtecao)) {
       return false;
@@ -216,6 +235,7 @@ export async function seedEquipamentosModificacoesAplicaveis(
       proficienciaArma: true,
       proficienciaProtecao: true,
       tipoProtecao: true,
+      tipoAcessorio: true,
       alcance: true,
       complexidadeMaldicao: true,
       armaAmaldicoada: { select: { id: true } },

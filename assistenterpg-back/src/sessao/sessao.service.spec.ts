@@ -19,6 +19,7 @@ describe('SessaoService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    delete (prisma as any).inventarioItemCampanha;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -862,5 +863,46 @@ describe('SessaoService', () => {
     );
 
     expect(descricao).toBe('Sustentacao cobrada: Barreira Simples');
+  });
+
+  it('deve aplicar bonus de item personalizado na pericia escolhida com modificacoes', async () => {
+    (prisma as any).inventarioItemCampanha = {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          personagemCampanhaId: 77,
+          quantidade: 1,
+          estado: { periciaCodigo: 'percepcao' },
+          equipamento: {
+            codigo: 'UTENSILIO_PERSONALIZADO',
+            periciaBonificada: null,
+            bonusPericia: 2,
+          },
+          modificacoes: [
+            {
+              modificacao: {
+                efeitosMecanicos: { bonusPericia: 5 },
+              },
+            },
+          ],
+        },
+      ]),
+    };
+
+    const resultado = await (service as any).calcularBonusEquipamentoPericias(
+      [77],
+      new Map<string, string>([['percepcao', 'PERCEPCAO']]),
+    );
+
+    expect(
+      (prisma as any).inventarioItemCampanha.findMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          personagemCampanhaId: { in: [77] },
+          equipado: true,
+        },
+      }),
+    );
+    expect(resultado.get(77)?.get('PERCEPCAO')).toBe(7);
   });
 });

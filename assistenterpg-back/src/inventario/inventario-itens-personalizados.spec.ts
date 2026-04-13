@@ -1,21 +1,22 @@
 import { BadRequestException } from '@nestjs/common';
 import { InventarioService } from './inventario.service';
 import { CampanhaInventarioService } from '../campanha/campanha.inventario.service';
+import { isModificacaoCompativel } from '../../prisma/seeds/relacoes/equipamentos-modificacoes-aplicaveis';
 
 type ValidadorItemPersonalizado = {
   validarEstadoItemPersonalizado(
     db: { pericia: { findUnique: jest.Mock } },
     equipamento: { codigo: string },
     estado: unknown,
-  ): Promise<void>;
+  ): Promise<unknown>;
 };
 
 function criarDb(periciaExiste = true) {
   return {
     pericia: {
-      findUnique: jest.fn().mockResolvedValue(
-        periciaExiste ? { codigo: 'PERCEPCAO' } : null,
-      ),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue(periciaExiste ? { codigo: 'PERCEPCAO' } : null),
     },
   };
 }
@@ -93,16 +94,28 @@ describe('itens personalizados de inventario', () => {
       const servico = criarServico();
       const db = criarDb();
 
+      const estadoNormalizado = await servico.validarEstadoItemPersonalizado(
+        db,
+        { codigo: 'UTENSILIO_PERSONALIZADO' },
+        { periciaCodigo: 'percepcao' },
+      );
+
+      expect(estadoNormalizado).toEqual({ periciaCodigo: 'PERCEPCAO' });
+
       await expect(
         servico.validarEstadoItemPersonalizado(
           db,
-          { codigo: 'UTENSILIO_PERSONALIZADO' },
-          { periciaCodigo: 'percepcao' },
+          { codigo: 'VESTIMENTA_PERSONALIZADA' },
+          { periciaCodigo: '  reflexos ', origem: 'teste' },
         ),
-      ).resolves.toBeUndefined();
+      ).resolves.toEqual({ periciaCodigo: 'REFLEXOS', origem: 'teste' });
 
       expect(db.pericia.findUnique).toHaveBeenCalledWith({
         where: { codigo: 'PERCEPCAO' },
+        select: { codigo: true },
+      });
+      expect(db.pericia.findUnique).toHaveBeenCalledWith({
+        where: { codigo: 'REFLEXOS' },
         select: { codigo: true },
       });
     },
@@ -123,4 +136,80 @@ describe('itens personalizados de inventario', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     },
   );
+
+  it('mantem utensilio e vestimenta personalizados compativeis com modificacoes de acessorio', () => {
+    const modificacaoAcessorio = {
+      id: 10,
+      tipo: 'ACESSORIO',
+      restricoes: null,
+    };
+
+    expect(
+      isModificacaoCompativel(modificacaoAcessorio, {
+        id: 20,
+        tipo: 'ACESSORIO',
+        tipoAcessorio: 'UTENSILIO',
+        tipoArma: null,
+        subtipoDistancia: null,
+        proficienciaArma: null,
+        proficienciaProtecao: null,
+        tipoProtecao: null,
+        alcance: null,
+        complexidadeMaldicao: 'NENHUMA',
+      }),
+    ).toBe(true);
+
+    expect(
+      isModificacaoCompativel(modificacaoAcessorio, {
+        id: 21,
+        tipo: 'ACESSORIO',
+        tipoAcessorio: 'VESTIMENTA',
+        tipoArma: null,
+        subtipoDistancia: null,
+        proficienciaArma: null,
+        proficienciaProtecao: null,
+        tipoProtecao: null,
+        alcance: null,
+        complexidadeMaldicao: 'NENHUMA',
+      }),
+    ).toBe(true);
+  });
+
+  it('respeita restricoes especificas de tipo de acessorio nas modificacoes', () => {
+    const modificacaoVestimenta = {
+      id: 11,
+      tipo: 'ACESSORIO',
+      restricoes: { tiposAcessorio: ['VESTIMENTA'] },
+    };
+
+    expect(
+      isModificacaoCompativel(modificacaoVestimenta, {
+        id: 22,
+        tipo: 'ACESSORIO',
+        tipoAcessorio: 'VESTIMENTA',
+        tipoArma: null,
+        subtipoDistancia: null,
+        proficienciaArma: null,
+        proficienciaProtecao: null,
+        tipoProtecao: null,
+        alcance: null,
+        complexidadeMaldicao: 'NENHUMA',
+      }),
+    ).toBe(true);
+
+    expect(
+      isModificacaoCompativel(modificacaoVestimenta, {
+        id: 23,
+        tipo: 'ACESSORIO',
+        tipoAcessorio: 'UTENSILIO',
+        tipoArma: null,
+        subtipoDistancia: null,
+        proficienciaArma: null,
+        proficienciaProtecao: null,
+        tipoProtecao: null,
+        alcance: null,
+        complexidadeMaldicao: 'NENHUMA',
+      }),
+    ).toBe(false);
+  });
 });

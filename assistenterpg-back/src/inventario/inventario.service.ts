@@ -1,6 +1,6 @@
 // src/inventario/inventario.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
 
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CategoriaEquipamento,
@@ -26,6 +26,10 @@ import {
   calcularAtributoBaseInventario,
   calcularEspacosInventarioBase,
 } from './utils/inventario-capacidade';
+import {
+  equipamentoUsaPericiaPersonalizada,
+  validarENormalizarEstadoItemPersonalizado,
+} from './utils/item-personalizado';
 
 // ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
@@ -48,14 +52,6 @@ import { handlePrismaError } from 'src/common/exceptions/database.exception';
 
 // ✅ Type helper para Prisma client ou transação
 type PrismaLike = PrismaService | Prisma.TransactionClient;
-const CODIGOS_EQUIPAMENTOS_PERICIA_PERSONALIZADA = new Set([
-  'UTENSILIO_PERSONALIZADO',
-  'VESTIMENTA_PERSONALIZADA',
-]);
-const CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO = new Set([
-  'LUTA',
-  'PONTARIA',
-]);
 
 const inventarioItemComDadosInclude =
   Prisma.validator<Prisma.InventarioItemBaseInclude>()({
@@ -218,53 +214,12 @@ export class InventarioService {
     private readonly mapper: InventarioMapper,
   ) {}
 
-  private extrairPericiaCodigoDoEstado(estado: unknown): string | null {
-    if (!estado || typeof estado !== 'object' || Array.isArray(estado)) {
-      return null;
-    }
-
-    const periciaCodigo = (estado as { periciaCodigo?: unknown }).periciaCodigo;
-    if (typeof periciaCodigo !== 'string') return null;
-
-    const codigoNormalizado = periciaCodigo.trim().toUpperCase();
-    return codigoNormalizado.length > 0 ? codigoNormalizado : null;
-  }
-
   private async validarEstadoItemPersonalizado(
     db: PrismaLike,
     equipamento: { codigo: string },
     estado: unknown,
-  ): Promise<void> {
-    if (!CODIGOS_EQUIPAMENTOS_PERICIA_PERSONALIZADA.has(equipamento.codigo)) {
-      return;
-    }
-
-    const periciaCodigo = this.extrairPericiaCodigoDoEstado(estado);
-
-    if (!periciaCodigo) {
-      throw new BadRequestException(
-        'Itens personalizados exigem a seleção de uma perícia beneficiada.',
-      );
-    }
-
-    if (
-      CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO.has(periciaCodigo)
-    ) {
-      throw new BadRequestException(
-        'Itens personalizados não podem beneficiar Luta ou Pontaria.',
-      );
-    }
-
-    const periciaExiste = await db.pericia.findUnique({
-      where: { codigo: periciaCodigo },
-      select: { codigo: true },
-    });
-
-    if (!periciaExiste) {
-      throw new BadRequestException(
-        'A perícia escolhida para o item personalizado é inválida.',
-      );
-    }
+  ): Promise<unknown> {
+    return validarENormalizarEstadoItemPersonalizado(db, equipamento, estado);
   }
 
   // ==================== HELPERS PRIVADOS ====================
@@ -1276,7 +1231,11 @@ export class InventarioService {
         );
       }
 
-      await this.validarEstadoItemPersonalizado(db, equipamento, dto.estado);
+      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
+        db,
+        equipamento,
+        dto.estado,
+      );
 
       // 3. Validar modificações (se houver)
       let modificacoesValidas: ModificacaoCalculoEntity[] = [];
@@ -1368,8 +1327,8 @@ export class InventarioService {
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
           estado:
-            dto.estado !== undefined
-              ? (dto.estado as Prisma.InputJsonValue)
+            estadoNormalizado !== undefined
+              ? (estadoNormalizado as Prisma.InputJsonValue)
               : undefined,
         },
         include: inventarioItemComDadosInclude,
@@ -1515,11 +1474,14 @@ export class InventarioService {
         );
       }
 
-      await this.validarEstadoItemPersonalizado(
+      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
         this.prisma,
         itemExiste.equipamento,
         dto.estado ?? itemExiste.estado,
       );
+      const deveAtualizarEstado =
+        dto.estado !== undefined ||
+        equipamentoUsaPericiaPersonalizada(itemExiste.equipamento);
 
       // Atualizar
       const itemAtualizado = await this.prisma.inventarioItemBase.update({
@@ -1529,10 +1491,9 @@ export class InventarioService {
           equipado: dto.equipado,
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
-          estado:
-            dto.estado !== undefined
-              ? (dto.estado as Prisma.InputJsonValue)
-              : undefined,
+          estado: deveAtualizarEstado
+            ? (estadoNormalizado as Prisma.InputJsonValue)
+            : undefined,
         },
         include: inventarioItemComDadosInclude,
       });
