@@ -206,10 +206,25 @@ export function aplicarRegrasDeGraus(
     .map(([tipoGrauCodigo, valor]) => ({ tipoGrauCodigo, valor }));
 }
 
+export function subtrairBonusGrausDeAprimoramento(
+  grausPersistidos: GrauLivre[],
+  bonusGraus: Map<string, number>,
+): GrauLivre[] {
+  return (grausPersistidos ?? [])
+    .map((grau) => ({
+      tipoGrauCodigo: grau.tipoGrauCodigo,
+      valor: Math.max(
+        0,
+        (grau.valor ?? 0) - (bonusGraus.get(grau.tipoGrauCodigo) ?? 0),
+      ),
+    }))
+    .filter((grau) => grau.valor > 0);
+}
+
 /**
  * ✅ Calcula bônus de graus concedidos por habilidades do personagem
  */
-function calcularBonusDeHabilidades(
+export function calcularBonusDeHabilidades(
   habilidades: HabilidadePersonagem[],
   nivelPersonagem: number,
 ): Map<string, number> {

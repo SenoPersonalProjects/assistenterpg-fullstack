@@ -111,6 +111,63 @@ describe('PersonagemBaseService', () => {
     expect(adicionarItemMock).not.toHaveBeenCalled();
   });
 
+  it('deve reconstruir graus livres removendo bonus fixo de habilidades no update parcial', async () => {
+    const prismaMock = {
+      habilidadePersonagemBase: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            habilidadeId: 10,
+            habilidade: {
+              nome: 'Escolha do Mestre de Barreiras',
+              efeitosGrau: [
+                {
+                  tipoGrauCodigo: 'TECNICA_BARREIRA',
+                  valor: 1,
+                  escalonamentoPorNivel: null,
+                },
+              ],
+              mecanicasEspeciais: null,
+            },
+          },
+        ]),
+      },
+      poderGenericoPersonagemBase: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    } as unknown as PrismaService;
+
+    const existe = {
+      id: 1,
+      grausAprimoramento: [
+        {
+          valor: 3,
+          tipoGrau: { codigo: 'TECNICA_AMALDICOADA' },
+        },
+        {
+          valor: 1,
+          tipoGrau: { codigo: 'TECNICA_BARREIRA' },
+        },
+      ],
+    };
+
+    const grausLivres = await (
+      service as unknown as {
+        montarGrausAprimoramentoLivresExistentes: (
+          existe: unknown,
+          nivel: number,
+          prisma: PrismaService,
+        ) => Promise<unknown>;
+      }
+    ).montarGrausAprimoramentoLivresExistentes(existe, 16, prismaMock);
+
+    expect(grausLivres).toEqual([
+      {
+        tipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        valor: 3,
+      },
+    ]);
+  });
+
   it('deve recriar itens do inventario via InventarioService quando receber lista no update', async () => {
     const itens = [
       {

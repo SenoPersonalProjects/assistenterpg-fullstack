@@ -35,6 +35,12 @@ import {
 } from './regras-criacao/regras-tecnicas-nao-inatas';
 import { calcularBloqueioEsquiva } from './regras-criacao/regras-derivados';
 import { extrairPericiasAtributoBaseOverride } from './regras-criacao/regras-poderes-efeitos';
+import {
+  calcularBonusDeHabilidades,
+  calcularBonusGrausDePoderesGenericos,
+  HabilidadePersonagem,
+  subtrairBonusGrausDeAprimoramento,
+} from './regras-criacao/regras-graus-aprimoramento';
 
 // Engine
 import { calcularEstadoFinalPersonagemBase } from './engine/personagem-base.engine';
@@ -1488,10 +1494,75 @@ export class PersonagemBaseService {
     });
   }
 
+  private async montarGrausAprimoramentoLivresExistentes(
+    existe: PersonagemBaseDetalhadoEntity,
+    nivel: number,
+    prisma: PrismaLike,
+  ): Promise<CreatePersonagemBaseDto['grausAprimoramento']> {
+    const grausPersistidos = (existe.grausAprimoramento ?? []).map((grau) => ({
+      tipoGrauCodigo: grau.tipoGrau.codigo,
+      valor: grau.valor,
+    }));
+
+    if (grausPersistidos.length === 0) return [];
+
+    const [habilidadesBase, poderesGenericos] = await Promise.all([
+      prisma.habilidadePersonagemBase.findMany({
+        where: { personagemBaseId: existe.id },
+        include: {
+          habilidade: {
+            include: {
+              efeitosGrau: true,
+            },
+          },
+        },
+      }),
+      prisma.poderGenericoPersonagemBase.findMany({
+        where: { personagemBaseId: existe.id },
+        include: {
+          habilidade: {
+            include: {
+              efeitosGrau: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const habilidadesParaGraus: HabilidadePersonagem[] = [
+      ...habilidadesBase.map((instancia) => ({
+        habilidadeId: instancia.habilidadeId,
+        habilidade:
+          instancia.habilidade as unknown as HabilidadePersonagem['habilidade'],
+      })),
+      ...poderesGenericos.map((instancia) => ({
+        habilidadeId: instancia.habilidadeId,
+        habilidade:
+          instancia.habilidade as unknown as HabilidadePersonagem['habilidade'],
+      })),
+    ];
+
+    const bonusGraus = calcularBonusDeHabilidades(habilidadesParaGraus, nivel);
+    const bonusPoderes = calcularBonusGrausDePoderesGenericos(
+      poderesGenericos.map((poder) => ({
+        habilidadeId: poder.habilidadeId,
+        config: poder.config ?? undefined,
+      })),
+      habilidadesParaGraus,
+    );
+
+    for (const [codigo, bonus] of bonusPoderes.entries()) {
+      bonusGraus.set(codigo, (bonusGraus.get(codigo) ?? 0) + bonus);
+    }
+
+    return subtrairBonusGrausDeAprimoramento(grausPersistidos, bonusGraus);
+  }
+
   private montarDtoCompletoParaUpdate(
     existe: PersonagemBaseDetalhadoEntity,
     dto: UpdatePersonagemBaseDto,
     itensInventarioExistentes: CreatePersonagemBaseDto['itensInventario'] = [],
+    grausAprimoramentoLivresExistentes?: CreatePersonagemBaseDto['grausAprimoramento'],
   ): CreatePersonagemBaseDto {
     const patch = dto;
 
@@ -1552,10 +1623,11 @@ export class PersonagemBaseService {
     const grausAprimoramentoFinal =
       patch.grausAprimoramento !== undefined
         ? patch.grausAprimoramento
-        : (existe.grausAprimoramento ?? []).map((g) => ({
+        : (grausAprimoramentoLivresExistentes ??
+          (existe.grausAprimoramento ?? []).map((g) => ({
             tipoGrauCodigo: g.tipoGrau.codigo,
             valor: g.valor,
-          }));
+          })));
 
     const grausTreinamentoFinal =
       patch.grausTreinamento !== undefined
@@ -2170,7 +2242,9 @@ export class PersonagemBaseService {
         nomeCustomizado: item.nomeCustomizado ?? null,
         notas: item.notas ?? null,
         estado:
-          item.estado && typeof item.estado === 'object' && !Array.isArray(item.estado)
+          item.estado &&
+          typeof item.estado === 'object' &&
+          !Array.isArray(item.estado)
             ? (item.estado as Record<string, unknown>)
             : undefined,
       })),
@@ -2291,6 +2365,15 @@ export class PersonagemBaseService {
             orderBy: { id: 'asc' },
           });
 
+    const grausAprimoramentoLivresExistentes =
+      dto.grausAprimoramento !== undefined
+        ? undefined
+        : await this.montarGrausAprimoramentoLivresExistentes(
+            existe,
+            dto.nivel ?? existe.nivel,
+            this.prisma,
+          );
+
     const dtoCompleto = this.montarDtoCompletoParaUpdate(
       existe,
       dto,
@@ -2311,15 +2394,16 @@ export class PersonagemBaseService {
                     periciaCodigo:
                       typeof (item.estado as { periciaCodigo?: unknown })
                         .periciaCodigo === 'string'
-                        ? (
+                        ? ((
                             item.estado as {
                               periciaCodigo?: string | null;
                             }
-                          ).periciaCodigo ?? null
+                          ).periciaCodigo ?? null)
                         : null,
                   }
                 : undefined,
           })),
+      grausAprimoramentoLivresExistentes,
     );
 
     await validarTrilhaECaminho(
