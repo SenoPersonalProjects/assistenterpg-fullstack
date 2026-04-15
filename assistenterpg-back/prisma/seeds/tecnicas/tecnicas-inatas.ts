@@ -78,6 +78,7 @@ type SeedHabilidadeTecnicaInata = {
 };
 
 type SeedTecnicaInataComHabilidades = SeedTecnicaInata & {
+  codigosLegados?: string[];
   habilidades?: SeedHabilidadeTecnicaInata[];
 };
 
@@ -110,8 +111,9 @@ function corrigirMojibakeSeedJson(
     ) as Prisma.InputJsonValue;
   }
   if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, Prisma.InputJsonValue>)
-      .map(([key, item]) => [key, corrigirMojibakeSeedJson(item)]);
+    const entries = Object.entries(
+      value as Record<string, Prisma.InputJsonValue>,
+    ).map(([key, item]) => [key, corrigirMojibakeSeedJson(item)]);
     return Object.fromEntries(entries) as Prisma.InputJsonValue;
   }
   return value;
@@ -205,11 +207,509 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
     clasHereditarios: ['Itadori'],
   },
   {
-    codigo: 'INFINITO',
+    codigo: 'ILIMITADO',
     nome: 'Ilimitado',
-    descricao: 'Manipulação do espaço através do conceito de infinito.',
+    descricao: 'Manipulacao do espaco atraves do conceito de infinito.',
     hereditaria: true,
     clasHereditarios: ['Gojo', 'Okkotsu'],
+    codigosLegados: ['INFINITO'],
+    requisitos: {
+      observacao:
+        'Tecnica inata baseada em manipulacao espacial, Lapso Azul, Reversao Vermelho, Vazio Roxo e Expansao de Dominio.',
+      recursoOpcional:
+        'Alguns efeitos citam os 6 Olhos; quando o usuario nao possuir esse recurso, aplique as penalidades descritas no efeito.',
+    },
+    habilidades: [
+      {
+        codigo: 'INATA_ILIMITADO_MUGEN',
+        nome: 'Mugen',
+        descricao:
+          'Invoca um campo paradoxal que desacelera tudo que entra no alcance do usuario.',
+        execucao: TipoExecucao.REACAO,
+        alcance: 'Pessoal',
+        alvo: 'Voce',
+        duracao: 'Instantaneo',
+        custoEA: 3,
+        custoPE: 2,
+        efeito:
+          'Voce pode gastar sua reacao para anular um dano que sofreria de um ataque ou tecnica, contanto que esse ataque precise viajar o espaco para te atingir. O espaco infinito gerado torna o usuario inatingivel contra esse efeito especifico.',
+        ordem: 10,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao:
+              'Mantem o campo infinito ativo para barrar ataques fisicos e tecnicas Jujutsu.',
+            substituiCustos: true,
+            custoEA: 4,
+            custoPE: 0,
+            custoSustentacaoEA: 2,
+            execucao: TipoExecucao.ACAO_PADRAO,
+            alcance: 'Pessoal',
+            alvo: 'Voce',
+            duracao: 'Sustentado',
+            efeitoAdicional:
+              'Enquanto sustentado, voce fica inatingivel por ataques fisicos e tecnicas Jujutsu, exceto expansao de dominio, extensao de dominio e excecoes especificas no uso de tecnicas Jujutsu.',
+            ordem: 10,
+          },
+          {
+            nome: 'Maxima',
+            descricao:
+              'Condensa o infinito ao redor do usuario em alcance corpo a corpo.',
+            substituiCustos: true,
+            custoEA: 4,
+            custoPE: 2,
+            custoSustentacaoEA: 2,
+            execucao: TipoExecucao.ACAO_PADRAO,
+            alcance: 'Corpo a corpo (1,5m)',
+            alvo: 'Voce',
+            duracao: 'Sustentado',
+            efeitoAdicional:
+              'Enquanto sustentado, funciona em alcance corpo a corpo, impedindo qualquer coisa de chegar a 1,5m de voce. Aumenta a efetividade do Mugen contra extensoes de dominio e tecnicas Jujutsu, mas nao impede o acerto garantido de uma expansao de dominio.',
+            ordem: 20,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS',
+        nome: 'Esferas do Lapso da Tecnica Amaldicoada: Azul',
+        descricao:
+          'Cria e sustenta uma esfera condensada de Azul, representando espaco negativo.',
+        execucao: TipoExecucao.ACAO_MOVIMENTO,
+        alcance: 'Curto',
+        alvo: '1 esfera do Azul',
+        duracao: 'Sustentado',
+        custoEA: 1,
+        custoSustentacaoEA: 1,
+        efeito:
+          'Cria e sustenta a esfera do Azul condensado. Uma vez por turno, voce pode mover a esfera como acao livre dentro do alcance curto. Apos usar uma das variacoes possiveis da esfera, ela desaparece, exceto quando o efeito disser o contrario.',
+        ordem: 20,
+        variacoes: [
+          {
+            nome: 'Liberacao Superior',
+            descricao:
+              'Cria multiplas esferas de Azul para controle espacial avancado.',
+            substituiCustos: false,
+            custoEA: 2,
+            requisitos: {
+              graus: [
+                { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 },
+              ],
+            },
+            efeitoAdicional:
+              'Pode criar mais de uma esfera, ate o valor do atributo de calculo de energia amaldicoada (INT). O custo efetivo e 1 EA por esfera + 2 EA. Voce pode mover todas juntas para o mesmo lugar como acao livre, ou individualmente; cada esfera movida separadamente custa uma acao livre, e a partir da segunda tambem custa uma acao de movimento.',
+            ordem: 10,
+          },
+          {
+            nome: 'Liberacao Maxima',
+            descricao:
+              'Cria uma unica esfera massiva do Azul com tamanho 2x2 quadrados.',
+            substituiCustos: true,
+            custoEA: 3,
+            custoPE: 2,
+            requisitos: {
+              graus: [
+                { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 },
+              ],
+            },
+            efeitoAdicional:
+              'Cria uma esfera massiva de 2x2 quadrados (3x3m). Muda o funcionamento das tecnicas que consomem a esfera conforme a Liberacao Maxima de cada uma.',
+            ordem: 20,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_ILIMITADO_AZUL_PERSEGUIR',
+        nome: 'Azul - Perseguir',
+        descricao:
+          'Usa uma esfera do Azul para perseguir um alvo e puxar violentamente materia em sua direcao.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        alcance: 'Curto',
+        alvo: 'Ser ou objeto',
+        duracao: 'Instantaneo',
+        resistencia: 'Reflexos anula',
+        custoEA: 1,
+        requisitos: {
+          requerSustentacao: 'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS',
+        },
+        testesExigidos: ['Pontaria com Jujutsu'],
+        dadosDano: [{ quantidade: 1, dado: 'd6', tipo: 'ENERGIA_AMALDICOADA' }],
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoCustoEA: 1,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+        escalonamentoEfeito: {
+          porAcumulo: '+1d6 de dano de Energia Amaldicoada por +1 EA',
+        },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd6',
+          tipo: 'ENERGIA_AMALDICOADA',
+        },
+        efeito:
+          'Cria um vacuo onde o proprio mundo e forcado a corrigir o espaco negativo. A esfera persegue um alvo no alcance da tecnica, causando 1d6 de dano de Energia Amaldicoada e deixando-o FRACO por 1 rodada. A resistencia anula a condicao. O custo e 1 EA por esfera usada.',
+        ordem: 30,
+        variacoes: [
+          {
+            nome: 'Com Liberacao Maxima',
+            descricao: 'A esfera massiva puxa e esmaga tudo em uma linha reta.',
+            substituiCustos: true,
+            custoEA: 3,
+            execucao: TipoExecucao.ACAO_COMPLETA,
+            area: AreaEfeito.LINHA,
+            alcance: 'Curto, linha de 3m de largura',
+            alvo: 'Seres na reta',
+            duracao: 'Instantaneo',
+            resistencia: 'Fortitude',
+            requisitos: { requerVariacao: 'Liberacao Maxima' },
+            danoFlat: 4,
+            danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
+            dadosDano: [
+              { quantidade: 2, dado: 'd6', tipo: 'ENERGIA_AMALDICOADA' },
+            ],
+            escalonaPorGrau: true,
+            escalonamentoCustoEA: 1,
+            escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+            escalonamentoDano: {
+              quantidade: 1,
+              dado: 'd6',
+              tipo: 'ENERGIA_AMALDICOADA',
+            },
+            efeitoAdicional:
+              'A massa puxa e esmaga tudo para dentro de si, causando 4 + 2d6 de dano a todos os seres e objetos pegos e deixando-os DEBILITADOS por 1 rodada; resistencia reduz para FRACOS. A esfera nao desaparece apos o efeito, torna 6m ao redor TERRENO DIFICIL, nao pode ser movida como as outras e vira OBJETO ESTACIONARIO. Para desaparecer, basta parar de sustentar. Requisito para Vazio Roxo Irrestrito.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_ILIMITADO_AZUL_ATRAIR',
+        nome: 'Azul - Atrair',
+        descricao:
+          'Faz a esfera do Azul atrair tudo ao redor do ponto onde foi posicionada.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        area: AreaEfeito.ESFERA,
+        alcance: 'Ponto da esfera em alcance curto',
+        alvo: 'Seres ou objetos na area',
+        duracao: 'Instantaneo',
+        resistencia: 'Reflexos',
+        custoEA: 4,
+        requisitos: {
+          requerSustentacao: 'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS',
+        },
+        dadosDano: [{ quantidade: 2, dado: 'd6', tipo: 'ENERGIA_AMALDICOADA' }],
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoCustoEA: 1,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+        escalonamentoEfeito: {
+          porAcumulo: '+1d6 de dano de Energia Amaldicoada por +1 EA',
+        },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd6',
+          tipo: 'ENERGIA_AMALDICOADA',
+        },
+        efeito:
+          'Atrai tudo dentro de um circulo de 6m de raio ao redor da esfera, causando 2d6 de dano em todos os seres e objetos na area e deixando-os ENREDADOS por 1 rodada. A resistencia evita a condicao.',
+        ordem: 40,
+        variacoes: [
+          {
+            nome: 'Com Liberacao Maxima',
+            descricao:
+              'A massa maxima do Azul puxa e esmaga tudo dentro da area.',
+            substituiCustos: true,
+            custoEA: 5,
+            execucao: TipoExecucao.ACAO_PADRAO,
+            area: AreaEfeito.ESFERA,
+            alcance: 'Ponto da esfera em alcance curto',
+            alvo: 'Seres ou objetos na area',
+            duracao: 'Instantaneo',
+            resistencia: 'Fortitude',
+            requisitos: { requerVariacao: 'Liberacao Maxima' },
+            danoFlat: 4,
+            danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
+            dadosDano: [
+              { quantidade: 4, dado: 'd6', tipo: 'ENERGIA_AMALDICOADA' },
+            ],
+            escalonaPorGrau: true,
+            escalonamentoCustoEA: 1,
+            escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+            escalonamentoDano: {
+              quantidade: 1,
+              dado: 'd6',
+              tipo: 'ENERGIA_AMALDICOADA',
+            },
+            efeitoAdicional:
+              'A massa puxa e esmaga tudo em um raio de 6m, causando 4 + 4d6 de dano e deixando os alvos ENREDADOS por 2 rodadas; a resistencia evita a condicao. A esfera nao desaparece apos o efeito, torna 6m ao redor TERRENO DIFICIL, pode ser movida como as outras e vira OBJETO ESTACIONARIO. Para desaparecer, basta parar de sustentar. Requisito para Vazio Roxo Irrestrito.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_ILIMITADO_AZUL_ATRACAO_LEVE',
+        nome: 'Azul - Atracao Leve',
+        descricao:
+          'Usa a esfera do Azul para prender alvos sem causar dano direto.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        area: AreaEfeito.ESFERA,
+        alcance: 'Ponto da esfera em alcance curto',
+        alvo: 'Seres ou objetos na area',
+        duracao: 'Instantaneo',
+        resistencia: 'Reflexos',
+        dtResistencia: 'DT de tecnicas + 5',
+        custoEA: 3,
+        requisitos: {
+          requerSustentacao: 'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS',
+        },
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoCustoEA: 1,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.REGRAS,
+        escalonamentoEfeito: {
+          porAcumulo: '+1d6 na DT para evitar a condicao por +1 EA',
+        },
+        efeito:
+          'Atrai tudo dentro de um circulo de 6m de raio sem causar dano, deixando os alvos ENREDADOS por 1d3 rodadas. A resistencia evita a condicao. Pode adicionar +1d6 na DT para evitar a condicao para cada +1 EA gasto, ate o limite do Grau de Aprimoramento em Tecnica Amaldicoada.',
+        ordem: 50,
+      },
+      {
+        codigo: 'INATA_ILIMITADO_PUNHO_AZUL',
+        nome: 'Variacao do Lapso: Punho Azul (Ao-Ken)',
+        descricao:
+          'Aplica o conceito de espaco negativo milimetricamente a frente dos punhos.',
+        execucao: TipoExecucao.AO_ATACAR,
+        alcance: 'Toque',
+        alvo: '1 ser atingido',
+        duracao: 'Instantaneo',
+        custoEA: 1,
+        requisitos: { requerHabilidade: 'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS' },
+        testesExigidos: ['Luta'],
+        dadosDano: [{ quantidade: 1, dado: 'd6', tipo: 'Tipo do ataque' }],
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoCustoEA: 1,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+        escalonamentoEfeito: {
+          porAcumulo: '+1d6 de dano do tipo do ataque por +1 EA',
+        },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd6',
+          tipo: 'Tipo do ataque',
+        },
+        efeito:
+          'O vacuo criado puxa o alvo violentamente em direcao ao golpe no momento do impacto, adicionando +1d6 de dano do tipo do seu ataque. O ataque recebe a propriedade Impacto: se acertar, voce pode fazer a manobra Derrubar como acao livre usando seu teste de ataque como teste da manobra.',
+        ordem: 60,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao: 'Intensifica a atracao para garantir precisao letal.',
+            substituiCustos: true,
+            custoEA: 2,
+            dadosDano: [{ quantidade: 2, dado: 'd6', tipo: 'Tipo do ataque' }],
+            efeitoAdicional:
+              'O vacuo impede que o inimigo se esquive corretamente. Voce recebe +2 no teste de ataque e muda o bonus para +2d6 de dano do tipo do seu ataque.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_ILIMITADO_VERMELHO',
+        nome: 'Reversao de Tecnica Amaldicoada: Vermelho',
+        descricao:
+          'Reverte o Azul com energia reversa, criando uma forca repulsiva extremamente poderosa.',
+        execucao: TipoExecucao.ACAO_PADRAO,
+        area: AreaEfeito.LINHA,
+        alcance: 'Linha reta de 18m',
+        alvo: 'Seres na linha reta',
+        duracao: 'Instantaneo',
+        resistencia: 'Fortitude reduz metade',
+        custoEA: 4,
+        requisitos: {
+          graus: [{ tipoGrauCodigo: 'TECNICA_REVERSA', valorMinimo: 1 }],
+          requerTecnicaNaoInata: 'NAOINATA_TECNICA_REVERSA',
+        },
+        testesExigidos: ['Pontaria com Jujutsu'],
+        danoFlat: 4,
+        danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
+        dadosDano: [{ quantidade: 2, dado: 'd6', tipo: 'ENERGIA_AMALDICOADA' }],
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoCustoEA: 1,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+        escalonamentoEfeito: {
+          porAcumulo: '+1d6 de dano de Energia Amaldicoada por +1 EA',
+        },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd6',
+          tipo: 'ENERGIA_AMALDICOADA',
+        },
+        efeito:
+          'Apenas o primeiro ser na reta recebe o dano completo; os demais recebem metade. Alvos acertados recebem 4 + 2d6 de dano de Energia Amaldicoada e sao empurrados pelo deslocamento restante do raio. Se colidirem com objeto estacionario, recebem 1d6 de dano por quadrado deslocado, ate 6d6. Fortitude evita ser empurrado.',
+        ordem: 70,
+        variacoes: [
+          {
+            nome: 'Liberacao Superior',
+            descricao:
+              'Amplifica o Vermelho para uma repulsao ainda mais devastadora.',
+            substituiCustos: true,
+            custoEA: 6,
+            custoPE: 2,
+            danoFlat: 4,
+            danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
+            dadosDano: [
+              { quantidade: 4, dado: 'd6', tipo: 'ENERGIA_AMALDICOADA' },
+            ],
+            efeitoAdicional:
+              'Amplifica o dano para 4 + 4d6 e remove o limite de dano de colisao com objeto estacionario. Falhar no teste de resistencia tambem deixa o alvo CAIDO e DESPREVENIDO por 1 rodada.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_ILIMITADO_VAZIO_ROXO',
+        nome: 'Convergencia de Tecnica Amaldicoada: Vazio Roxo',
+        descricao:
+          'Combina Azul e Vermelho em uma massa imaginaria que oblitera tudo em linha reta.',
+        execucao: TipoExecucao.RITUAL_ETAPAS,
+        area: AreaEfeito.LINHA,
+        alcance: 'Longo',
+        alvo: 'Linha reta de 3m de largura',
+        duracao: 'Instantaneo',
+        resistencia: 'Reflexos',
+        custoEA: 8,
+        custoPE: 2,
+        requisitos: {
+          graus: [
+            { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 3 },
+            { tipoGrauCodigo: 'TECNICA_REVERSA', valorMinimo: 1 },
+          ],
+          requerHabilidades: [
+            'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS',
+            'INATA_ILIMITADO_VERMELHO',
+          ],
+        },
+        testesExigidos: ['Pontaria com Jujutsu'],
+        danoFlat: 10,
+        danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
+        dadosDano: [
+          { quantidade: 6, dado: 'd12', tipo: 'ENERGIA_AMALDICOADA' },
+        ],
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoCustoEA: 1,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+        escalonamentoEfeito: {
+          porAcumulo: '+1d12 de dano de Energia Amaldicoada por +1 EA',
+        },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd12',
+          tipo: 'ENERGIA_AMALDICOADA',
+        },
+        efeito:
+          'Exige 2 acoes padroes. Causa 6d12 + 10 de dano em uma linha reta de 3m de largura. Apos usar o Vazio Roxo sem possuir os 6 Olhos, o usuario fica FATIGADO ate o fim da cena. Se ficar inconsciente por usar a tecnica, fica FATIGADO ate o proximo descanso confortavel.',
+        ordem: 80,
+        variacoes: [
+          {
+            nome: 'Superior',
+            descricao: 'Aumenta a intensidade e a espessura do Vazio Roxo.',
+            substituiCustos: true,
+            custoEA: 10,
+            custoPE: 4,
+            danoFlat: 10,
+            danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
+            dadosDano: [
+              { quantidade: 10, dado: 'd12', tipo: 'ENERGIA_AMALDICOADA' },
+            ],
+            escalonaPorGrau: true,
+            escalonamentoCustoEA: 1,
+            escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+            escalonamentoDano: {
+              quantidade: 1,
+              dado: 'd12',
+              tipo: 'ENERGIA_AMALDICOADA',
+            },
+            efeitoAdicional:
+              'Adiciona mais 1 quadrado na espessura da linha reta, +4d12 de dano e +5 no teste. E acumulativo ate o limite do Grau de Aprimoramento em Tecnica Amaldicoada. Sem possuir os 6 Olhos, usar esta versao deixa o usuario EXAUSTO ate o fim da cena.',
+            ordem: 10,
+          },
+        ],
+      },
+      {
+        codigo: 'INATA_ILIMITADO_VAZIO_ROXO_IRRESTRITO',
+        nome: 'Variacao: Vazio Roxo Irrestrito',
+        descricao:
+          'Ritual de detonacao remota que colide um Azul maximo ativo com um Vermelho superior.',
+        execucao: TipoExecucao.RITUAL_ETAPAS,
+        area: AreaEfeito.ESFERA,
+        alcance: 'Explosao de 12m de raio',
+        alvo: 'Seres e objetos na area',
+        duracao: 'Instantaneo',
+        resistencia: 'Reflexos reduz metade',
+        dtResistencia: 'DT de tecnicas + 5',
+        custoEA: 3,
+        custoPE: 1,
+        requisitos: {
+          graus: [
+            { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 3 },
+            { tipoGrauCodigo: 'TECNICA_REVERSA', valorMinimo: 1 },
+          ],
+          requerHabilidades: [
+            'INATA_ILIMITADO_AZUL_PERSEGUIR',
+            'INATA_ILIMITADO_AZUL_ATRAIR',
+            'INATA_ILIMITADO_VERMELHO',
+          ],
+          ritual:
+            'Acao 1: lancar uma variacao com Liberacao Maxima do Azul. Acao 2: lancar a Liberacao Superior do Vermelho atingindo a Esfera Maxima do Azul. Acao 3: detonar a colisao como acao livre por 3 EA e 1 PE.',
+        },
+        danoFlat: 12,
+        danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
+        dadosDano: [
+          { quantidade: 7, dado: 'd12', tipo: 'ENERGIA_AMALDICOADA' },
+        ],
+        escalonaPorGrau: true,
+        grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+        escalonamentoCustoEA: 2,
+        escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
+        escalonamentoEfeito: {
+          porAcumulo: '+1d12 de dano de Energia Amaldicoada por +2 EA',
+        },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd12',
+          tipo: 'ENERGIA_AMALDICOADA',
+        },
+        efeito:
+          'O custo total e o custo do Azul + custo do Vermelho + 3 EA e 1 PE do encantamento final. Detona a colisao entre um Azul e um Vermelho ativos para criar uma explosao omnidirecional de 12m de raio, causando 7d12 + 12 de dano. O usuario recebe metade do dano total por padrao; se passar no teste de Reflexos, tambem reduz esse dano pela metade. Seres que falham recebem dano total e ficam DEBILITADOS; se passarem, recebem metade e ficam FRACOS.',
+        ordem: 90,
+      },
+      {
+        codigo: 'INATA_ILIMITADO_EXPANSAO_VAZIO_INFINITO',
+        nome: 'Expansao de Dominio: Vazio Infinito',
+        descricao:
+          'Dominio letal e restritivo que forca os alvos a processarem informacao infinita.',
+        execucao: TipoExecucao.ACAO_COMPLETA,
+        area: AreaEfeito.ESFERA,
+        alcance: 'Raio de 10m (barreira fechada)',
+        alvo: 'Todos os seres dentro da area, exceto o usuario e quem ele estiver tocando fisicamente',
+        duracao: 'Sustentado',
+        resistencia:
+          'Sem resistencia inicial; defesa apenas por tecnica anti-barreira no momento da ativacao',
+        custoEA: 16,
+        custoPE: 4,
+        custoSustentacaoEA: 2,
+        requisitos: {
+          mudra:
+            'O dedo medio da mao direita cruza sobre o indicador (Dedo de Indra).',
+          tipoDominio: 'Letal / Restritivo',
+        },
+        dadosDano: [{ quantidade: 2, dado: 'd8', tipo: 'MENTAL' }],
+        efeito:
+          'O ambiente e substituido por um vacuo negro e branco preenchido por linhas de luz que representam o fluxo de informacao do universo. Como acerto garantido, inimigos dentro do dominio ficam ATORDOADOS e IMOVEIS, sem acoes, reacoes ou movimento. No inicio de cada turno de um inimigo dentro do dominio, ele sofre 2d8 de dano Mental/Sanidade; se for uma maldicao ou inimigo sem SANIDADE, recebe 2d6 de dano Jujutsu.',
+        ordem: 100,
+      },
+    ],
   },
   {
     codigo: 'MANIPULACAO_SANGUE',
@@ -255,8 +755,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_SANTUARIO_DESMANTELAR_UNICO',
         nome: 'Desmantelar Unico',
-        descricao:
-          'Dispara um corte amaldicoado em linha reta contra um alvo.',
+        descricao: 'Dispara um corte amaldicoado em linha reta contra um alvo.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.LINHA,
         alcance: 'Curto (linha de 1m de largura)',
@@ -267,9 +766,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         testesExigidos: ['Pontaria com Jujutsu'],
         efeito:
           'Conta como disparo (Pontaria com Jujutsu). Causa 1 + 1d4 de dano de corte amaldicoado e crita no 20 natural. Se o alvo for eliminado ou perder membro, o dano pode seguir para o proximo alvo da linha.',
-        dadosDano: [
-          { quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' },
-        ],
+        dadosDano: [{ quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' }],
         danoFlat: 1,
         danoFlatTipo: TipoDano.CORTANTE,
         criticoValor: 20,
@@ -279,9 +776,14 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
           porAcumulo: '+1 + 1d4 de dano de corte amaldicoado',
-          observacao: 'Acumula com o grau de aprimoramento em Tecnica Amaldicoada.',
+          observacao:
+            'Acumula com o grau de aprimoramento em Tecnica Amaldicoada.',
         },
-        escalonamentoDano: { quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd4',
+          tipo: 'Corte Amaldiçoado',
+        },
         ordem: 10,
         variacoes: [
           {
@@ -304,7 +806,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               porAcumulo: '+2d4 por +1 EA',
               criticoNatural: 19,
             },
-            escalonamentoDano: { quantidade: 2, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+            escalonamentoDano: {
+              quantidade: 2,
+              dado: 'd4',
+              tipo: 'Corte Amaldiçoado',
+            },
             efeitoAdicional:
               'Dano maximo de referencia informado: 52 (4 EA e 1 PE totais).',
             ordem: 10,
@@ -330,7 +836,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               porAcumulo: '+3d4 por +1 EA',
               criticoNatural: 18,
             },
-            escalonamentoDano: { quantidade: 3, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+            escalonamentoDano: {
+              quantidade: 3,
+              dado: 'd4',
+              tipo: 'Corte Amaldiçoado',
+            },
             efeitoAdicional:
               'Dano maximo de referencia informado: 78 (5 EA e 2 PE totais).',
             ordem: 20,
@@ -353,9 +863,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         testesExigidos: ['Pontaria com Jujutsu'],
         efeito:
           'Exige teste de Pontaria com Jujutsu contra Defesa base dos alvos. Causa 3 + 3d4 de dano de corte amaldicoado em todos os afetados.',
-        dadosDano: [
-          { quantidade: 3, dado: 'd4', tipo: 'Corte Amaldiçoado' },
-        ],
+        dadosDano: [{ quantidade: 3, dado: 'd4', tipo: 'Corte Amaldiçoado' }],
         danoFlat: 3,
         danoFlatTipo: TipoDano.CORTANTE,
         escalonaPorGrau: true,
@@ -365,7 +873,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoEfeito: {
           porAcumulo: '+1d4 de dano por +1 EA',
         },
-        escalonamentoDano: { quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' },
+        escalonamentoDano: {
+          quantidade: 1,
+          dado: 'd4',
+          tipo: 'Corte Amaldiçoado',
+        },
         ordem: 20,
         variacoes: [
           {
@@ -386,7 +898,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               base: '3 + 3d8 de dano',
               porAcumulo: '+1d8 por +1 EA',
             },
-            escalonamentoDano: { quantidade: 1, dado: 'd8', tipo: 'Corte Amaldiçoado' },
+            escalonamentoDano: {
+              quantidade: 1,
+              dado: 'd8',
+              tipo: 'Corte Amaldiçoado',
+            },
             ordem: 10,
           },
           {
@@ -407,7 +923,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               base: '4 + 4d12 de dano',
               porAcumulo: '+1d12 por +1 EA',
             },
-            escalonamentoDano: { quantidade: 1, dado: 'd12', tipo: 'Corte Amaldiçoado' },
+            escalonamentoDano: {
+              quantidade: 1,
+              dado: 'd12',
+              tipo: 'Corte Amaldiçoado',
+            },
             ordem: 20,
           },
         ],
@@ -606,7 +1126,8 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'AMPLIFICACAO_SOM',
     nome: 'Amplificação Sonora',
-    descricao: 'Usa o corpo do usuário como um dispositivo de amplificação de som, amplificando as melodias que ele toca com algum instrumento e lançando-as em ondas de energia amaldiçoada.',
+    descricao:
+      'Usa o corpo do usuário como um dispositivo de amplificação de som, amplificando as melodias que ele toca com algum instrumento e lançando-as em ondas de energia amaldiçoada.',
     hereditaria: false,
     clasHereditarios: [],
   },
@@ -919,8 +1440,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Superior',
-            descricao:
-              'Copia mais propriedades do mesmo alvo.',
+            descricao: 'Copia mais propriedades do mesmo alvo.',
             substituiCustos: false,
             custoEA: 1,
             efeitoAdicional:
@@ -929,8 +1449,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           },
           {
             nome: 'Máxima',
-            descricao:
-              'Rouba a propriedade em vez de apenas copiá-la.',
+            descricao: 'Rouba a propriedade em vez de apenas copiá-la.',
             substituiCustos: false,
             custoEA: 2,
             custoPE: 1,
@@ -957,13 +1476,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Superior',
-            descricao:
-              'Expande a apropriação para testes contra.',
+            descricao: 'Expande a apropriação para testes contra.',
             substituiCustos: false,
             custoEA: 1,
             custoPE: 1,
-            efeitoAdicional:
-              'Também pode ser usada em testes contra.',
+            efeitoAdicional: 'Também pode ser usada em testes contra.',
             ordem: 10,
           },
         ],
@@ -971,8 +1488,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_SETE_SAADNAR_ORBES',
         nome: 'Saadnar - Orbes da Fome',
-        descricao:
-          'Dispara um orbe básico de Saadnar contra um alvo próximo.',
+        descricao: 'Dispara um orbe básico de Saadnar contra um alvo próximo.',
         execucao: TipoExecucao.AO_ATACAR,
         alcance: 'Curto',
         alvo: '1 ser',
@@ -1004,8 +1520,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Absorver Ambiente',
-            descricao:
-              'Converte 1 orbe em vida temporária até o fim da cena.',
+            descricao: 'Converte 1 orbe em vida temporária até o fim da cena.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_PADRAO,
             alcance: 'Pessoal',
@@ -1013,7 +1528,9 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             duracao: 'Instantâneo',
             custoEA: 4,
             custoPE: 2,
-            dadosDano: [{ quantidade: 2, dado: 'd8', tipo: 'ENERGIA_AMALDICOADA' }],
+            dadosDano: [
+              { quantidade: 2, dado: 'd8', tipo: 'ENERGIA_AMALDICOADA' },
+            ],
             efeitoAdicional:
               'Em vez de RD, recebe 2d8 de vida temporária até o fim da cena. Pode acumular +1d8 de vida temporária por EA extra gasto, até o limite do grau em Técnica Amaldiçoada.',
             ordem: 10,
@@ -1042,8 +1559,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_SETE_SAADNAR_INGERIR',
         nome: 'Saadnar - Ingerir',
-        descricao:
-          'Usa 1 orbe para consumir uma condição negativa de um alvo.',
+        descricao: 'Usa 1 orbe para consumir uma condição negativa de um alvo.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: '1 ser',
@@ -1101,8 +1617,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Superior',
-            descricao:
-              'Faz o alvo apegar-se ao objeto por ainda mais tempo.',
+            descricao: 'Faz o alvo apegar-se ao objeto por ainda mais tempo.',
             substituiCustos: false,
             efeitoAdicional:
               'Some o valor do Grau de Aprimoramento em Técnica Amaldiçoada ao número de rodadas do efeito.',
@@ -1134,8 +1649,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_SETE_MOXTAR_PARTES',
         nome: 'Moxtar - Partes do Divino',
-        descricao:
-          'Recebe partes sagradas e grotescas do corpo de Moxtar.',
+        descricao: 'Recebe partes sagradas e grotescas do corpo de Moxtar.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
         alvo: 'Você',
@@ -1150,8 +1664,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Superior',
-            descricao:
-              'Sustenta duas partes simultaneamente.',
+            descricao: 'Sustenta duas partes simultaneamente.',
             substituiCustos: false,
             custoEA: 2,
             efeitoAdicional:
@@ -1160,12 +1673,10 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           },
           {
             nome: 'Máxima',
-            descricao:
-              'Manifesta as três partes do divino de uma só vez.',
+            descricao: 'Manifesta as três partes do divino de uma só vez.',
             substituiCustos: false,
             custoEA: 5,
-            efeitoAdicional:
-              'Ativa as três partes instantaneamente.',
+            efeitoAdicional: 'Ativa as três partes instantaneamente.',
             ordem: 20,
           },
         ],
@@ -1242,8 +1753,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_SETE_VAZARK_VINCULO',
         nome: 'Vazark - Vínculo da Besta',
-        descricao:
-          'Abraça a ferocidade de Vazark para lutar sem contenção.',
+        descricao: 'Abraça a ferocidade de Vazark para lutar sem contenção.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
         alvo: 'Você',
@@ -1406,8 +1916,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         duracao: 'Instantaneo',
         resistencia: 'Reflexos evita',
         custoEA: 2,
-        efeito:
-          'O alvo fica ENREDADO por 1 rodada.',
+        efeito: 'O alvo fica ENREDADO por 1 rodada.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -1447,8 +1956,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         duracao: '1 rodada',
         resistencia: 'Vontade',
         custoEA: 2,
-        efeito:
-          'O alvo fica DESPREVENIDO e sofre -1d20 em Percepcao.',
+        efeito: 'O alvo fica DESPREVENIDO e sofre -1d20 em Percepcao.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -1512,16 +2020,14 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_IMAGENS_CALAR',
         nome: 'Traco Impositivo: Calar',
-        descricao:
-          'Costuras e selos visuais bloqueiam a fala e foco do alvo.',
+        descricao: 'Costuras e selos visuais bloqueiam a fala e foco do alvo.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: '1 ser',
         duracao: 'Instantaneo',
         resistencia: 'Fortitude anula',
         custoEA: 3,
-        efeito:
-          'O alvo fica SILENCIADO por 1 rodada.',
+        efeito: 'O alvo fica SILENCIADO por 1 rodada.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -1558,8 +2064,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_IMAGENS_CHAMAS_PINTADAS',
         nome: 'Traco Impositivo: Chamas Pintadas',
-        descricao:
-          'Pinceladas de combustao se espalham violentamente.',
+        descricao: 'Pinceladas de combustao se espalham violentamente.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: '1 ser',
@@ -1573,11 +2078,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
-          opcoes: [
-            '+1d6 de dano',
-            '+1 rodada de duracao',
-            '+2 na DT',
-          ],
+          opcoes: ['+1d6 de dano', '+1 rodada de duracao', '+2 na DT'],
           porAcumulo: '+1 EA',
         },
         ordem: 70,
@@ -1608,8 +2109,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_IMAGENS_MARE_ILUSTRADA',
         nome: 'Traco Impositivo: Mare Ilustrada',
-        descricao:
-          'Massas de agua ilustradas colidem contra os alvos.',
+        descricao: 'Massas de agua ilustradas colidem contra os alvos.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.LINHA,
         alcance: 'Curto',
@@ -1617,8 +2117,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         duracao: 'Instantaneo',
         resistencia: 'Fortitude',
         custoEA: 3,
-        efeito:
-          'Causa 2d6 de dano de impacto. Falha deixa CAIDO.',
+        efeito: 'Causa 2d6 de dano de impacto. Falha deixa CAIDO.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -1654,16 +2153,14 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_IMAGENS_LAMINAS_VENTO',
         nome: 'Traco Impositivo: Laminas do Vento',
-        descricao:
-          'Pinceladas cortantes riscam o ar e abrem cortes profundos.',
+        descricao: 'Pinceladas cortantes riscam o ar e abrem cortes profundos.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: '1 ser',
         duracao: 'Instantaneo',
         resistencia: 'Fortitude reduz metade',
         custoEA: 3,
-        efeito:
-          'Causa 2d6 de dano cortante. Falha deixa SANGRANDO.',
+        efeito: 'Causa 2d6 de dano cortante. Falha deixa SANGRANDO.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -1822,8 +2319,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_PROPORCAO_RAZAO_FORCADA',
         nome: 'Razao Forcada',
-        descricao:
-          'Marca um ponto fraco no alvo na proporcao 7:3.',
+        descricao: 'Marca um ponto fraco no alvo na proporcao 7:3.',
         execucao: TipoExecucao.ACAO_LIVRE,
         alcance: 'Visao do usuario (alcance curto)',
         alvo: '1 ser',
@@ -1835,16 +2331,14 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Variacao - Objeto',
-            descricao:
-              'Aplica a marcacao em objeto, com margem de ameaca +2.',
+            descricao: 'Aplica a marcacao em objeto, com margem de ameaca +2.',
             substituiCustos: true,
             alvo: '1 objeto',
             ordem: 10,
           },
           {
             nome: 'Superior',
-            descricao:
-              'Cria pontos fracos mais faceis de acertar.',
+            descricao: 'Cria pontos fracos mais faceis de acertar.',
             substituiCustos: false,
             custoEA: 1,
             custoPE: 1,
@@ -1905,8 +2399,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           },
           {
             nome: 'Maxima',
-            descricao:
-              'Adiciona dano extra progressivo ao golpe preciso.',
+            descricao: 'Adiciona dano extra progressivo ao golpe preciso.',
             substituiCustos: false,
             custoEA: 2,
             custoPE: 2,
@@ -1917,8 +2410,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             escalonamentoEfeito: {
               porAcumulo: '+1 dado de dano',
             },
-            efeitoAdicional:
-              'Inclui efeitos da variacao Superior.',
+            efeitoAdicional: 'Inclui efeitos da variacao Superior.',
             ordem: 20,
           },
         ],
@@ -1956,7 +2448,9 @@ function mapHabilidadeDataInata(
     custoEA: habilidade.custoEA ?? 0,
     custoSustentacaoEA: custosSustentacao.custoSustentacaoEA,
     custoSustentacaoPE: custosSustentacao.custoSustentacaoPE,
-    testesExigidos: jsonOrNull(corrigirMojibakeSeedJson(habilidade.testesExigidos)),
+    testesExigidos: jsonOrNull(
+      corrigirMojibakeSeedJson(habilidade.testesExigidos),
+    ),
     efeito: corrigirMojibakeSeedTexto(habilidade.efeito) ?? habilidade.efeito,
     escalonaPorGrau: habilidade.escalonaPorGrau ?? false,
     grauTipoGrauCodigo: habilidade.grauTipoGrauCodigo ?? null,
@@ -1984,8 +2478,7 @@ function mapVariacaoDataInata(
   habilidadeTecnicaId: number,
   variacao: SeedVariacaoTecnicaInata,
 ) {
-  const duracaoCorrigida =
-    corrigirMojibakeSeedTexto(variacao.duracao) ?? null;
+  const duracaoCorrigida = corrigirMojibakeSeedTexto(variacao.duracao) ?? null;
   const custosSustentacao = resolverCustoSustentacaoPadrao(
     duracaoCorrigida,
     variacao.custoSustentacaoEA,
@@ -1994,7 +2487,8 @@ function mapVariacaoDataInata(
   return {
     habilidadeTecnicaId,
     nome: corrigirMojibakeSeedTexto(variacao.nome) ?? variacao.nome,
-    descricao: corrigirMojibakeSeedTexto(variacao.descricao) ?? variacao.descricao,
+    descricao:
+      corrigirMojibakeSeedTexto(variacao.descricao) ?? variacao.descricao,
     substituiCustos: variacao.substituiCustos ?? false,
     custoPE: variacao.custoPE ?? null,
     custoEA: variacao.custoEA ?? null,
@@ -2022,7 +2516,8 @@ function mapVariacaoDataInata(
     danoFlatTipo: variacao.danoFlatTipo ?? null,
     criticoValor: variacao.criticoValor ?? null,
     criticoMultiplicador: variacao.criticoMultiplicador ?? null,
-    efeitoAdicional: corrigirMojibakeSeedTexto(variacao.efeitoAdicional) ?? null,
+    efeitoAdicional:
+      corrigirMojibakeSeedTexto(variacao.efeitoAdicional) ?? null,
     requisitos: jsonOrNull(corrigirMojibakeSeedJson(variacao.requisitos)),
     ordem: variacao.ordem,
   };
@@ -2115,39 +2610,38 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
 
   for (const tec of tecnicasInatasSeed) {
     // 1) Cria/atualiza a técnica
-    const tecnica = await prisma.tecnicaAmaldicoada.upsert({
-      where: { codigo: tec.codigo },
-      update: {
-        nome: corrigirMojibakeSeedTexto(tec.nome) ?? tec.nome,
-        descricao:
-          corrigirMojibakeSeedTexto(tec.descricao) ??
-          'Tecnica Amaldicoada Inata',
-        tipo: TipoTecnicaAmaldicoada.INATA,
-        hereditaria: tec.hereditaria,
-        linkExterno: tec.linkExterno ?? null,
-        requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
-        
-        // ✅ NOVO: Fonte e suplemento
-        fonte: TipoFonte.SISTEMA_BASE,
-        suplementoId: null,
+    const tecnicaData = {
+      codigo: tec.codigo,
+      nome: corrigirMojibakeSeedTexto(tec.nome) ?? tec.nome,
+      descricao:
+        corrigirMojibakeSeedTexto(tec.descricao) ?? 'Tecnica Amaldicoada Inata',
+      tipo: TipoTecnicaAmaldicoada.INATA,
+      hereditaria: tec.hereditaria,
+      linkExterno: tec.linkExterno ?? null,
+      requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
+
+      // Mantem compatibilidade com codigos antigos sem trocar o id da tecnica.
+      fonte: TipoFonte.SISTEMA_BASE,
+      suplementoId: null,
+    };
+
+    const tecnicaExistente = await prisma.tecnicaAmaldicoada.findFirst({
+      where: {
+        codigo: { in: [tec.codigo, ...(tec.codigosLegados ?? [])] },
       },
-      create: {
-        codigo: tec.codigo,
-        nome: corrigirMojibakeSeedTexto(tec.nome) ?? tec.nome,
-        descricao:
-          corrigirMojibakeSeedTexto(tec.descricao) ??
-          'Tecnica Amaldicoada Inata',
-        tipo: TipoTecnicaAmaldicoada.INATA,
-        hereditaria: tec.hereditaria,
-        linkExterno: tec.linkExterno ?? null,
-        requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
-        
-        // ✅ NOVO: Fonte e suplemento
-        fonte: TipoFonte.SISTEMA_BASE,
-        suplementoId: null,
-      },
-      select: { id: true, hereditaria: true, nome: true },
+      select: { id: true },
     });
+
+    const tecnica = tecnicaExistente
+      ? await prisma.tecnicaAmaldicoada.update({
+          where: { id: tecnicaExistente.id },
+          data: tecnicaData,
+          select: { id: true, hereditaria: true, nome: true },
+        })
+      : await prisma.tecnicaAmaldicoada.create({
+          data: tecnicaData,
+          select: { id: true, hereditaria: true, nome: true },
+        });
 
     console.log(
       `  ✅ ${tecnica.nome} (${tec.hereditaria ? 'Hereditária' : 'Não Hereditária'})`,
