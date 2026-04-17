@@ -63,4 +63,41 @@ export class AplicarCondicaoSessaoDto {
   @IsString()
   @MaxLength(2000)
   observacao?: string;
+
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === undefined || value === null) return value;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim();
+      if (normalized.length === 0) return value;
+      const numero = Number(normalized);
+      return Number.isNaN(numero) ? value : numero;
+    }
+    return value;
+  })
+  @IsInt()
+  @Min(1)
+  acumulos?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  fonteCodigo?: string;
+
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === undefined || value === null) return value;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim();
+      if (normalized.length === 0) return value;
+      const numero = Number(normalized);
+      return Number.isNaN(numero) ? value : numero;
+    }
+    return value;
+  })
+  @IsInt()
+  @Min(1)
+  limiteFonte?: number;
 }

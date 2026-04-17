@@ -232,6 +232,9 @@ export type CondicaoAtivaSessaoCampanha = {
   duracaoValor: number | null;
   restanteDuracao: number | null;
   contadorTurnos: number;
+  acumulos: number;
+  fonteCodigo: string | null;
+  limiteFonte: number | null;
   origemDescricao: string | null;
   observacao: string | null;
   turnoAplicacao: number;
@@ -267,6 +270,9 @@ export type AplicarCondicaoSessaoCampanhaPayload = {
   duracaoValor?: number;
   origemDescricao?: string;
   observacao?: string;
+  acumulos?: number;
+  fonteCodigo?: string;
+  limiteFonte?: number;
 };
 
 export type SessaoCampanhaResumo = {
@@ -397,6 +403,7 @@ export type SustentacaoAtivaSessaoCampanha = {
   nomeVariacao: string | null;
   custoSustentacaoEA: number;
   custoSustentacaoPE: number;
+  acumulos: number;
   ativadaNaRodada: number;
   ultimaCobrancaRodada: number;
   criadaEm: string;

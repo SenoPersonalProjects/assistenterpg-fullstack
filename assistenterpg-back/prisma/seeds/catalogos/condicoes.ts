@@ -28,6 +28,7 @@ const CONDICOES_ICONES: Record<string, string> = {
   Imovel: 'lock',
   Inconsciente: 'moon',
   Indefeso: 'shield-defense',
+  'Cura Acelerada': 'heart',
   Lento: 'minimize',
   Machucado: 'heart',
   Morrendo: 'warning',
@@ -36,6 +37,7 @@ const CONDICOES_ICONES: Record<string, string> = {
   Pasmo: 'status',
   Perturbado: 'spirit',
   Petrificado: 'stop',
+  'Producao Acelerada': 'bolt',
   Sangrando: 'heart',
   Silenciado: 'volume-off',
   Surdo: 'volume-off',
@@ -172,6 +174,11 @@ export const condicoesSeed: SeedCondicao[] = [
       'E considerado desprevenido, sofre -10 na Defesa, falha automaticamente em Reflexos e pode sofrer golpe de misericordia.',
   },
   {
+    nome: 'Cura Acelerada',
+    descricao:
+      'No inicio de cada turno do alvo, recupera PV igual ao valor atual de acumulos desta condicao. Nao possui limite global; limites podem ser definidos por fonte.',
+  },
+  {
     nome: 'Lento',
     descricao:
       'Todas as formas de deslocamento ficam pela metade; nao pode correr ou investir. Condicao de paralisia.',
@@ -207,6 +214,11 @@ export const condicoesSeed: SeedCondicao[] = [
   {
     nome: 'Petrificado',
     descricao: 'Fica Inconsciente e recebe resistencia a dano 10.',
+  },
+  {
+    nome: 'Producao Acelerada',
+    descricao:
+      'No inicio de cada turno do alvo, recupera EA igual ao valor atual de acumulos desta condicao. Pela fonte Kokusen, acumula ate Producao Acelerada 5.',
   },
   {
     nome: 'Sangrando',

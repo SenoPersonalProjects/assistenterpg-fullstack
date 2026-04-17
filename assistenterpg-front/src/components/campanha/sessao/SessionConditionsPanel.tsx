@@ -28,6 +28,13 @@ type SessionConditionsPanelProps = {
   erro?: string | null;
 };
 
+function formatarNomeCondicao(condicao: CondicaoAtivaSessaoCampanha): string {
+  const acumulos = Math.max(1, Math.trunc(condicao.acumulos ?? 1));
+  return acumulos > 1
+    ? `${textoSeguro(condicao.nome)} ${acumulos}`
+    : textoSeguro(condicao.nome);
+}
+
 export function SessionConditionsPanel({
   condicoesAtivas,
   catalogoCondicoes,
@@ -73,7 +80,9 @@ export function SessionConditionsPanel({
                       className="h-3.5 w-3.5 text-app-muted"
                     />
                   </span>
-                  <p className="text-xs font-semibold text-app-fg">{condicao.nome}</p>
+                  <p className="text-xs font-semibold text-app-fg">
+                    {formatarNomeCondicao(condicao)}
+                  </p>
                 </div>
                 <span className="text-[10px] text-app-muted">
                   {condicao.automatica ? 'Automatica' : 'Manual'}
@@ -89,6 +98,14 @@ export function SessionConditionsPanel({
               {condicao.origemDescricao ? (
                 <p className="text-[11px] text-app-muted">
                   Origem: {condicao.origemDescricao}
+                </p>
+              ) : null}
+              {condicao.fonteCodigo || condicao.limiteFonte ? (
+                <p className="text-[11px] text-app-muted">
+                  {condicao.fonteCodigo
+                    ? `Fonte: ${condicao.fonteCodigo}`
+                    : 'Fonte livre'}
+                  {condicao.limiteFonte ? ` | limite ${condicao.limiteFonte}` : ''}
                 </p>
               ) : null}
               {condicao.observacao ? (

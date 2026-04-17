@@ -15,7 +15,8 @@ export type EventoSessaoAtualizadaTipo =
   | 'SESSAO_ENCERRADA'
   | 'SESSAO_EVENTO_DESFEITO'
   | 'HABILIDADE_USADA'
-  | 'HABILIDADE_SUSTENTADA_ENCERRADA';
+  | 'HABILIDADE_SUSTENTADA_ENCERRADA'
+  | 'CONDICAO_RECUPERACAO_AUTOMATICA';
 
 export type EventoSessaoAtualizada = {
   campanhaId: number;

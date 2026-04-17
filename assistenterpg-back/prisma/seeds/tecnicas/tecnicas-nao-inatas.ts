@@ -230,9 +230,10 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         alcance: 'Corpo-a-corpo',
         alvo: '1 ser',
         duracao: 'Instantaneo',
+        custoEA: 1,
         custoPE: 2,
         efeito:
-          'Se o ataque gerar critico natural, adiciona +2 dados de dano, aumenta multiplicador de critico em +1 passo e recupera 1 EA. O custo deve ser pago antes da rolagem.',
+          'Voce precisa usar a habilidade e gastar os pontos antes de saber se o ataque vai gerar critico natural. Se acertar um critico natural no ataque corpo a corpo, ativa o Fulgor Negro: adiciona +2 dados de dano que nao entram no critico, aumenta o multiplicador de critico em +1 passo e recebe Producao Acelerada 1 ate o fim da cena. Cada Kokusen adicional aumenta essa Producao Acelerada em +1, ate o limite 5 pela fonte Kokusen.',
         ordem: 40,
       },
       {

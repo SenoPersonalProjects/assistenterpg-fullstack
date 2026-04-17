@@ -814,6 +814,7 @@ model PersonagemSessaoHabilidadeSustentada {
   nomeVariacao           String?
   custoSustentacaoEA     Int       @default(1)
   custoSustentacaoPE     Int       @default(0)
+  acumulos               Int       @default(1)
   ativadaNaRodada        Int       @default(1)
   ultimaCobrancaRodada   Int       @default(1)
   ativa                  Boolean   @default(true)
@@ -862,6 +863,9 @@ model CondicaoPersonagemSessao {
   automatica      Boolean   @default(false)
   chaveAutomacao  String?
   contadorTurnos  Int       @default(0)
+  acumulos        Int       @default(1)
+  fonteCodigo     String?
+  limiteFonte     Int?
   origemDescricao String?   @db.Text
   observacao      String?   @db.Text
   removidaEm      DateTime?

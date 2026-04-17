@@ -98,17 +98,24 @@ export function montarPayloadOrdemIniciativa(
 type ValidacaoCondicao = {
   condicaoId: number | null;
   duracaoValor: number | null;
+  acumulos: number | null;
+  limiteFonte: number | null;
   erro: string | null;
 };
 
 export function validarAplicacaoCondicao(
-  form: Pick<FormCondicaoSessao, 'condicaoId' | 'duracaoModo' | 'duracaoValor'>,
+  form: Pick<
+    FormCondicaoSessao,
+    'condicaoId' | 'duracaoModo' | 'duracaoValor' | 'acumulos' | 'limiteFonte'
+  >,
 ): ValidacaoCondicao {
   const condicaoId = parseInteiroPositivo(form.condicaoId);
   if (!condicaoId) {
     return {
       condicaoId: null,
       duracaoValor: null,
+      acumulos: null,
+      limiteFonte: null,
       erro: 'Selecione uma condicao valida para aplicar.',
     };
   }
@@ -122,13 +129,42 @@ export function validarAplicacaoCondicao(
     return {
       condicaoId,
       duracaoValor: null,
+      acumulos: null,
+      limiteFonte: null,
       erro: 'Informe uma duracao numerica maior que zero.',
+    };
+  }
+
+  const acumulos = parseInteiroPositivo(form.acumulos || '1');
+  if (!acumulos) {
+    return {
+      condicaoId,
+      duracaoValor: duracaoValor ?? null,
+      acumulos: null,
+      limiteFonte: null,
+      erro: 'Informe uma quantidade de acumulos maior que zero.',
+    };
+  }
+
+  const limiteFonte =
+    form.limiteFonte.trim().length > 0
+      ? parseInteiroPositivo(form.limiteFonte)
+      : null;
+  if (form.limiteFonte.trim().length > 0 && !limiteFonte) {
+    return {
+      condicaoId,
+      duracaoValor: duracaoValor ?? null,
+      acumulos,
+      limiteFonte: null,
+      erro: 'Informe um limite de fonte maior que zero.',
     };
   }
 
   return {
     condicaoId,
     duracaoValor: duracaoValor ?? null,
+    acumulos,
+    limiteFonte,
     erro: null,
   };
 }

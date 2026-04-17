@@ -18,6 +18,9 @@ export type FormCondicaoSessao = {
   condicaoId: string;
   duracaoModo: DuracaoCondicaoSessaoModo;
   duracaoValor: string;
+  acumulos: string;
+  fonteCodigo: string;
+  limiteFonte: string;
   origemDescricao: string;
   observacao: string;
   motivoRemocao: string;

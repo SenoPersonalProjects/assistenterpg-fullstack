@@ -38,6 +38,13 @@ type CondicoesModalProps = {
   chaveAcaoRemover: (condicaoSessaoId: number) => string;
 };
 
+function formatarNomeCondicao(condicao: CondicaoAtivaSessaoCampanha): string {
+  const acumulos = Math.max(1, Math.trunc(condicao.acumulos ?? 1));
+  return acumulos > 1
+    ? `${textoSeguro(condicao.nome)} ${acumulos}`
+    : textoSeguro(condicao.nome);
+}
+
 export function CondicoesModal({
   modalCondicoes,
   busca,
@@ -188,6 +195,28 @@ export function CondicoesModal({
                 disabled={campoDuracaoDesabilitado}
               />
               <Input
+                label="Acumulos / valor atual"
+                type="number"
+                min={1}
+                value={formCondicao.acumulos}
+                onChange={(event) => onAtualizarCampo('acumulos', event.target.value)}
+                placeholder="Ex.: 1, 2, 5..."
+              />
+              <Input
+                label="Fonte (opcional)"
+                value={formCondicao.fonteCodigo}
+                onChange={(event) => onAtualizarCampo('fonteCodigo', event.target.value)}
+                placeholder="Ex.: KOKUSEN"
+              />
+              <Input
+                label="Limite da fonte (opcional)"
+                type="number"
+                min={1}
+                value={formCondicao.limiteFonte}
+                onChange={(event) => onAtualizarCampo('limiteFonte', event.target.value)}
+                placeholder="Ex.: 5"
+              />
+              <Input
                 label="Origem (opcional)"
                 value={formCondicao.origemDescricao}
                 onChange={(event) => onAtualizarCampo('origemDescricao', event.target.value)}
@@ -231,7 +260,7 @@ export function CondicoesModal({
                         <Icon name={icone} className="h-3.5 w-3.5 text-app-muted" />
                             </span>
                             <p className="text-xs font-semibold text-app-fg">
-                              {textoSeguro(condicao.nome)}
+                              {formatarNomeCondicao(condicao)}
                             </p>
                           </div>
                           <Button
@@ -252,6 +281,16 @@ export function CondicoesModal({
                             condicao.restanteDuracao,
                           )}
                         </p>
+                        {condicao.fonteCodigo || condicao.limiteFonte ? (
+                          <p className="session-text-xxs text-app-muted">
+                            {condicao.fonteCodigo
+                              ? `Fonte: ${condicao.fonteCodigo}`
+                              : 'Fonte livre'}
+                            {condicao.limiteFonte
+                              ? ` | limite ${condicao.limiteFonte}`
+                              : ''}
+                          </p>
+                        ) : null}
                       </div>
                     );
                   })

@@ -442,7 +442,7 @@ export const habilidadesPoderesGenericosSeed = [
     origem: 'GERAL',
     hereditaria: false,
     descricao:
-      'Depois que acerta um primeiro Kokusen, todos os acertos críticos (mesmo não naturais) se tornam Kokusen, drenando 4 PE e restaurando 2 EA.',
+      'Depois que acerta um primeiro Kokusen, todos os acertos críticos (mesmo não naturais) se tornam Kokusen, drenando 4 PE e 1 EA.',
     requisitos: {
       poderesPreRequisitos: ['Gênio do Kokusen'],
       atributos: { forca: 3, agilidade: 3, alternativa: true },

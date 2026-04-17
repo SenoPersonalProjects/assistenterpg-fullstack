@@ -263,7 +263,9 @@ export function SessionSceneRosterPanel({
                           name={(condicao.icone || 'status') as IconName}
                           className="h-3 w-3"
                         />
-                        {condicao.nome}
+                        {condicao.acumulos && condicao.acumulos > 1
+                          ? `${condicao.nome} ${condicao.acumulos}`
+                          : condicao.nome}
                       </span>
                     </Badge>
                   ))}

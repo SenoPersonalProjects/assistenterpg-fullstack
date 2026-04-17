@@ -807,17 +807,22 @@ Fenômeno que amplifica o golpe quando a energia amaldiçoada é aplicada dentro
 
 - Execução: no ataque corpo a corpo
 - Duração: instantânea
-- Custo: **2 PE**
-- Efeito: se acertar um **crítico** no ataque em que ativou o Kokusen, você:
+- Custo: **2 PE + 1 EA**
+- Efeito: se acertar um **crítico natural** no ataque em que ativou o Kokusen, você:
   - adiciona **+2 dados de dano** (ex.: 1d6 vira 3d6),
   - aumenta o multiplicador de crítico em **+1 passo** (ex.: 19×2 vira 19×3),
-  - recupera **1 EA**.
-Você precisa gastar os PE **antes** de saber se vai acertar o crítico.
+  - recebe **Produção Acelerada 1** até o fim da cena, acumulando por Kokusen até **Produção Acelerada 5**.
+Você precisa gastar os PE e EA **antes** de saber se vai acertar o crítico natural.
 
 ## Poder genérico: Gênio do Kokusen
 
 Todos os acertos críticos naturais se tornam Kokusen, drenando automaticamente 3 PE ao acertar.
-Pré‑requisito: Treinado em Jujutsu e grau 2 em Técnica Amaldiçoada.`,
+Pré-requisito: Treinado em Jujutsu e grau 2 em Técnica Amaldiçoada.
+
+## Poder genérico: Lutador Focado
+
+Depois que acerta um primeiro Kokusen, todos os acertos críticos, mesmo não naturais, se tornam Kokusen, drenando 4 PE e 1 EA.
+Pré-requisito: Gênio do Kokusen e Força ou Agilidade 3+.`,
               tags: ['jujutsu', 'intermediario', 'energia-amaldicoada'],
               palavrasChave: 'kokusen fulgor negro critico pe ea',
               nivelDificuldade: 'intermediario',

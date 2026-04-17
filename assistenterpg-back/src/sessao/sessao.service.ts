@@ -248,6 +248,9 @@ type CondicaoAtivaSessaoResumo = {
   origemDescricao: string | null;
   observacao: string | null;
   turnoAplicacao: number;
+  acumulos: number;
+  fonteCodigo: string | null;
+  limiteFonte: number | null;
 };
 
 type VariacaoTecnicaSessaoRaw = {
@@ -375,6 +378,9 @@ const CONDICAO_AUTOMACAO_CHAVES = {
   INSANO: 'INSANO',
   MORTO: 'MORTO',
 } as const;
+
+const FONTE_KOKUSEN = 'KOKUSEN';
+const LIMITE_PRODUCAO_KOKUSEN = 5;
 
 @Injectable()
 export class SessaoService {
@@ -708,6 +714,9 @@ export class SessaoService {
                 automatica: true,
                 chaveAutomacao: true,
                 contadorTurnos: true,
+                acumulos: true,
+                fonteCodigo: true,
+                limiteFonte: true,
                 origemDescricao: true,
                 observacao: true,
                 condicao: {
@@ -767,6 +776,9 @@ export class SessaoService {
                 automatica: true,
                 chaveAutomacao: true,
                 contadorTurnos: true,
+                acumulos: true,
+                fonteCodigo: true,
+                limiteFonte: true,
                 origemDescricao: true,
                 observacao: true,
                 condicao: {
@@ -796,6 +808,7 @@ export class SessaoService {
             nomeVariacao: true,
             custoSustentacaoEA: true,
             custoSustentacaoPE: true,
+            acumulos: true,
             ativadaNaRodada: true,
             ultimaCobrancaRodada: true,
             criadoEm: true,
@@ -860,6 +873,7 @@ export class SessaoService {
         nomeVariacao: string | null;
         custoSustentacaoEA: number;
         custoSustentacaoPE: number;
+        acumulos: number;
         ativadaNaRodada: number;
         ultimaCobrancaRodada: number;
         criadaEm: Date;
@@ -877,6 +891,7 @@ export class SessaoService {
         nomeVariacao: sustentacao.nomeVariacao,
         custoSustentacaoEA: sustentacao.custoSustentacaoEA,
         custoSustentacaoPE: sustentacao.custoSustentacaoPE,
+        acumulos: sustentacao.acumulos,
         ativadaNaRodada: sustentacao.ativadaNaRodada,
         ultimaCobrancaRodada: sustentacao.ultimaCobrancaRodada,
         criadaEm: sustentacao.criadoEm,
@@ -2947,17 +2962,16 @@ export class SessaoService {
           });
 
         if (sustentacaoExistente) {
-          throw new BusinessException(
-            'Habilidade j\u00e1 sustentada nesta sess\u00e3o',
-            'SESSAO_SUSTENTACAO_DUPLICADA',
-            {
-              campanhaId,
-              sessaoId,
-              personagemSessaoId,
-              habilidadeTecnicaId: habilidade.id,
-              variacaoHabilidadeId: custo.variacaoHabilidadeId,
+          await tx.personagemSessaoHabilidadeSustentada.update({
+            where: { id: sustentacaoExistente.id },
+            data: {
+              ativa: false,
+              desativadaEm: new Date(),
+              desativadaPorUsuarioId: usuarioId,
+              motivoDesativacao:
+                'Substituida por nova ativacao com configuracao atualizada.',
             },
-          );
+          });
         }
       }
 
@@ -3053,6 +3067,7 @@ export class SessaoService {
             nomeVariacao: custo.nomeVariacao,
             custoSustentacaoEA: custo.custoSustentacaoEA ?? 0,
             custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
+            acumulos: Math.max(1, custo.acumulosAplicados || 1),
             ativadaNaRodada: sessao.rodadaAtual,
             ultimaCobrancaRodada: sessao.rodadaAtual,
             criadaPorUsuarioId: usuarioId,
@@ -3160,6 +3175,15 @@ export class SessaoService {
         dto.duracaoValor,
       );
       const cenaAtualId = sessao.cenas[0]?.id ?? alvo.cenaId;
+      const fonteCodigo = this.normalizarFonteCondicao(dto.fonteCodigo);
+      const limiteFonte =
+        fonteCodigo === FONTE_KOKUSEN
+          ? LIMITE_PRODUCAO_KOKUSEN
+          : this.normalizarInteiroPositivoOpcional(dto.limiteFonte);
+      const acumulos = this.normalizarAcumulosCondicao(
+        dto.acumulos,
+        limiteFonte,
+      );
 
       if (!cenaAtualId) {
         throw new BusinessException(
@@ -3202,6 +3226,9 @@ export class SessaoService {
               automatica: false,
               chaveAutomacao: null,
               contadorTurnos: 0,
+              acumulos,
+              fonteCodigo,
+              limiteFonte,
               origemDescricao: dto.origemDescricao?.trim() || null,
               observacao: dto.observacao?.trim() || null,
               removidaEm: null,
@@ -3222,6 +3249,9 @@ export class SessaoService {
               restanteDuracao: duracao.restanteDuracao,
               ativo: true,
               automatica: false,
+              acumulos,
+              fonteCodigo,
+              limiteFonte,
               origemDescricao: dto.origemDescricao?.trim() || null,
               observacao: dto.observacao?.trim() || null,
             },
@@ -3264,6 +3294,9 @@ export class SessaoService {
             duracaoModo: duracao.duracaoModo,
             duracaoValor: duracao.duracaoValor,
             restanteDuracao: duracao.restanteDuracao,
+            acumulos,
+            fonteCodigo,
+            limiteFonte,
             origemDescricao: dto.origemDescricao?.trim() || null,
             observacao: dto.observacao?.trim() || null,
             modoOperacao: existente ? 'ATUALIZADA' : 'CRIADA',
@@ -3461,6 +3494,7 @@ export class SessaoService {
             nomeVariacao: true,
             habilidadeTecnicaId: true,
             variacaoHabilidadeId: true,
+            acumulos: true,
             sessaoId: true,
             personagemSessaoId: true,
           },
@@ -3502,6 +3536,7 @@ export class SessaoService {
             habilidadeNome: sustentacao.nomeHabilidade,
             variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
             variacaoNome: sustentacao.nomeVariacao,
+            acumulos: sustentacao.acumulos,
             encerradaPorId: usuarioId,
             motivo: motivoLimpo,
             motivoSistema: null,
@@ -4777,6 +4812,7 @@ export class SessaoService {
               nomeVariacao: true,
               custoSustentacaoEA: true,
               custoSustentacaoPE: true,
+              acumulos: true,
               ultimaCobrancaRodada: true,
               habilidadeTecnicaId: true,
               variacaoHabilidadeId: true,
@@ -4854,6 +4890,7 @@ export class SessaoService {
                   variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
                   habilidadeNome: sustentacao.nomeHabilidade,
                   variacaoNome: sustentacao.nomeVariacao,
+                  acumulos: sustentacao.acumulos,
                   custoEA: custoSustentacaoEA,
                   custoPE: custoSustentacaoPE,
                   rodada: rodadaNova,
@@ -4889,6 +4926,7 @@ export class SessaoService {
                   variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
                   habilidadeNome: sustentacao.nomeHabilidade,
                   variacaoNome: sustentacao.nomeVariacao,
+                  acumulos: sustentacao.acumulos,
                   encerradaPorId: null,
                   motivo: null,
                   motivoSistema,
@@ -4950,6 +4988,9 @@ export class SessaoService {
       automatica: boolean;
       chaveAutomacao: string | null;
       contadorTurnos: number;
+      acumulos: number;
+      fonteCodigo: string | null;
+      limiteFonte: number | null;
       origemDescricao: string | null;
       observacao: string | null;
       condicao: {
@@ -4971,6 +5012,9 @@ export class SessaoService {
       duracaoValor: condicaoAtiva.duracaoValor,
       restanteDuracao: condicaoAtiva.restanteDuracao,
       contadorTurnos: condicaoAtiva.contadorTurnos,
+      acumulos: condicaoAtiva.acumulos,
+      fonteCodigo: condicaoAtiva.fonteCodigo,
+      limiteFonte: condicaoAtiva.limiteFonte,
       origemDescricao: condicaoAtiva.origemDescricao,
       observacao: condicaoAtiva.observacao,
       turnoAplicacao: condicaoAtiva.turnoAplicacao,
@@ -4993,6 +5037,9 @@ export class SessaoService {
     automatica: boolean;
     chaveAutomacao: string | null;
     contadorTurnos: number;
+    acumulos: number;
+    fonteCodigo: string | null;
+    limiteFonte: number | null;
     origemDescricao: string | null;
     observacao: string | null;
     removidaEm?: Date | null;
@@ -5014,6 +5061,9 @@ export class SessaoService {
       automatica: condicao.automatica,
       chaveAutomacao: condicao.chaveAutomacao,
       contadorTurnos: condicao.contadorTurnos,
+      acumulos: condicao.acumulos,
+      fonteCodigo: condicao.fonteCodigo,
+      limiteFonte: condicao.limiteFonte,
       origemDescricao: condicao.origemDescricao,
       observacao: condicao.observacao,
       removidaEm: condicao.removidaEm
@@ -5073,6 +5123,28 @@ export class SessaoService {
       restanteDuracao: valor,
       duracaoTurnos: valor,
     };
+  }
+
+  private normalizarInteiroPositivoOpcional(valor: unknown): number | null {
+    if (typeof valor !== 'number' || !Number.isFinite(valor)) return null;
+    const inteiro = Math.trunc(valor);
+    return inteiro > 0 ? inteiro : null;
+  }
+
+  private normalizarFonteCondicao(valor: string | undefined): string | null {
+    const limpo = valor?.trim();
+    if (!limpo) return null;
+    return this.normalizarTextoComparacao(limpo);
+  }
+
+  private normalizarAcumulosCondicao(
+    valor: unknown,
+    limiteFonte: number | null,
+  ): number {
+    const base =
+      typeof valor === 'number' && Number.isFinite(valor) ? Math.trunc(valor) : 1;
+    const normalizado = Math.max(1, base);
+    return limiteFonte ? Math.min(normalizado, limiteFonte) : normalizado;
   }
 
   private async resolverAlvoCondicaoSessaoTx(
@@ -5174,6 +5246,8 @@ export class SessaoService {
         enlouquecendoId: null,
         insanoId: null,
         mortoId: null,
+        producaoAceleradaId: null,
+        curaAceleradaId: null,
       };
     }
 
@@ -5209,6 +5283,8 @@ export class SessaoService {
       enlouquecendoId: resolverPorAliases(['ENLOUQUECENDO']),
       insanoId: resolverPorAliases(['INSANO', 'LOUCO', 'ENLOUQUECIDO']),
       mortoId: resolverPorAliases(['MORTO', 'MORTA', 'MORTE']),
+      producaoAceleradaId: resolverPorAliases(['PRODUCAO ACELERADA']),
+      curaAceleradaId: resolverPorAliases(['CURA ACELERADA']),
     };
   }
 
@@ -5730,6 +5806,11 @@ export class SessaoService {
             cenaId: true,
             personagemCampanha: {
               select: {
+                id: true,
+                pvAtual: true,
+                pvMax: true,
+                eaAtual: true,
+                eaMax: true,
                 turnosMorrendo: true,
                 turnosEnlouquecendo: true,
               },
@@ -5738,6 +5819,14 @@ export class SessaoService {
         });
 
         if (personagem) {
+          await this.processarCondicoesAceleradasPersonagemTurnoTx(tx, {
+            sessaoId,
+            cenaId: personagem.cenaId ?? cenaId,
+            personagemSessaoId: personagem.id,
+            personagemCampanha: personagem.personagemCampanha,
+          });
+          await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
+
           const condicoesAutomaticas = await condicaoSessaoDelegate.findMany({
             where: {
               sessaoId,
@@ -5864,7 +5953,196 @@ export class SessaoService {
             });
           }
         }
+
+        await this.processarCondicoesAceleradasNpcTurnoTx(tx, {
+          sessaoId,
+          cenaId,
+          npcSessaoId,
+        });
+        await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
       }
+    }
+  }
+
+  private async processarCondicoesAceleradasPersonagemTurnoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      personagemSessaoId: number;
+      personagemCampanha: {
+        id: number;
+        pvAtual: number;
+        pvMax: number;
+        eaAtual: number;
+        eaMax: number;
+      };
+    },
+  ): Promise<void> {
+    const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+    const idsCondicoes = [
+      mapaSistema.producaoAceleradaId,
+      mapaSistema.curaAceleradaId,
+    ].filter((id): id is number => typeof id === 'number');
+    if (idsCondicoes.length === 0) return;
+
+    const condicoes = await tx.condicaoPersonagemSessao.findMany({
+      where: {
+        sessaoId: args.sessaoId,
+        personagemSessaoId: args.personagemSessaoId,
+        ativo: true,
+        condicaoId: { in: idsCondicoes },
+      },
+      include: { condicao: { select: { nome: true } } },
+      orderBy: { id: 'asc' },
+    });
+    if (condicoes.length === 0) return;
+
+    let eaAtual = args.personagemCampanha.eaAtual;
+    let pvAtual = args.personagemCampanha.pvAtual;
+
+    for (const condicao of condicoes) {
+      const isProducao = condicao.condicaoId === mapaSistema.producaoAceleradaId;
+      const isCura = condicao.condicaoId === mapaSistema.curaAceleradaId;
+      if (!isProducao && !isCura) continue;
+
+      const recurso = isProducao ? 'EA' : 'PV';
+      const antes = isProducao ? eaAtual : pvAtual;
+      const maximo = isProducao
+        ? args.personagemCampanha.eaMax
+        : args.personagemCampanha.pvMax;
+      const acumulos = Math.max(1, condicao.acumulos ?? 1);
+      const depois = Math.min(maximo, antes + acumulos);
+      const recuperado = Math.max(0, depois - antes);
+      if (recuperado <= 0) continue;
+
+      if (isProducao) {
+        eaAtual = depois;
+      } else {
+        pvAtual = depois;
+      }
+
+      await tx.personagemCampanha.update({
+        where: { id: args.personagemCampanha.id },
+        data: isProducao ? { eaAtual } : { pvAtual },
+      });
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId: args.sessaoId,
+          cenaId: args.cenaId,
+          personagemAtorId: args.personagemSessaoId,
+          tipoEvento: 'CONDICAO_RECUPERACAO_AUTOMATICA',
+          dados: this.jsonParaPersistencia({
+            condicaoSessaoId: condicao.id,
+            condicaoId: condicao.condicaoId,
+            condicaoNome: condicao.condicao.nome,
+            alvoTipo: 'PERSONAGEM',
+            personagemSessaoId: args.personagemSessaoId,
+            recurso,
+            acumulos,
+            fonteCodigo: condicao.fonteCodigo,
+            limiteFonte: condicao.limiteFonte,
+            valorRecuperado: recuperado,
+            valorAntes: antes,
+            valorDepois: depois,
+            valorMaximo: maximo,
+          }),
+        },
+      });
+    }
+  }
+
+  private async processarCondicoesAceleradasNpcTurnoTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      npcSessaoId: number;
+    },
+  ): Promise<void> {
+    const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+    const idsCondicoes = [
+      mapaSistema.producaoAceleradaId,
+      mapaSistema.curaAceleradaId,
+    ].filter((id): id is number => typeof id === 'number');
+    if (idsCondicoes.length === 0) return;
+
+    const npc = await tx.npcAmeacaSessao.findFirst({
+      where: { id: args.npcSessaoId, sessaoId: args.sessaoId },
+      select: {
+        id: true,
+        pontosVidaAtual: true,
+        pontosVidaMax: true,
+        eaAtual: true,
+        eaMax: true,
+      },
+    });
+    if (!npc) return;
+
+    const condicoes = await tx.condicaoPersonagemSessao.findMany({
+      where: {
+        sessaoId: args.sessaoId,
+        npcSessaoId: args.npcSessaoId,
+        ativo: true,
+        condicaoId: { in: idsCondicoes },
+      },
+      include: { condicao: { select: { nome: true } } },
+      orderBy: { id: 'asc' },
+    });
+    if (condicoes.length === 0) return;
+
+    let eaAtual = npc.eaAtual;
+    let pvAtual = npc.pontosVidaAtual;
+
+    for (const condicao of condicoes) {
+      const isProducao = condicao.condicaoId === mapaSistema.producaoAceleradaId;
+      const isCura = condicao.condicaoId === mapaSistema.curaAceleradaId;
+      if (!isProducao && !isCura) continue;
+      if (isProducao && (eaAtual === null || npc.eaMax === null)) continue;
+
+      const recurso = isProducao ? 'EA' : 'PV';
+      const antes = isProducao ? (eaAtual ?? 0) : pvAtual;
+      const maximo = isProducao ? (npc.eaMax ?? 0) : npc.pontosVidaMax;
+      const acumulos = Math.max(1, condicao.acumulos ?? 1);
+      const depois = Math.min(maximo, antes + acumulos);
+      const recuperado = Math.max(0, depois - antes);
+      if (recuperado <= 0) continue;
+
+      if (isProducao) {
+        eaAtual = depois;
+      } else {
+        pvAtual = depois;
+      }
+
+      await tx.npcAmeacaSessao.update({
+        where: { id: npc.id },
+        data: isProducao ? { eaAtual } : { pontosVidaAtual: pvAtual },
+      });
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId: args.sessaoId,
+          cenaId: args.cenaId,
+          personagemAtorId: null,
+          tipoEvento: 'CONDICAO_RECUPERACAO_AUTOMATICA',
+          dados: this.jsonParaPersistencia({
+            condicaoSessaoId: condicao.id,
+            condicaoId: condicao.condicaoId,
+            condicaoNome: condicao.condicao.nome,
+            alvoTipo: 'NPC',
+            npcSessaoId: args.npcSessaoId,
+            recurso,
+            acumulos,
+            fonteCodigo: condicao.fonteCodigo,
+            limiteFonte: condicao.limiteFonte,
+            valorRecuperado: recuperado,
+            valorAntes: antes,
+            valorDepois: depois,
+            valorMaximo: maximo,
+          }),
+        },
+      });
     }
   }
 
@@ -6255,6 +6533,9 @@ export class SessaoService {
     automatica: boolean;
     chaveAutomacao: string | null;
     contadorTurnos: number;
+    acumulos: number;
+    fonteCodigo: string | null;
+    limiteFonte: number | null;
     origemDescricao: string | null;
     observacao: string | null;
     removidaEm: string | null;
@@ -6303,6 +6584,9 @@ export class SessaoService {
       automatica: bruto.automatica === true,
       chaveAutomacao: this.lerTextoOpcionalRegistro(bruto, 'chaveAutomacao'),
       contadorTurnos,
+      acumulos: this.lerInteiroOpcionalRegistro(bruto, 'acumulos') ?? 1,
+      fonteCodigo: this.lerTextoOpcionalRegistro(bruto, 'fonteCodigo'),
+      limiteFonte: this.lerInteiroOpcionalRegistro(bruto, 'limiteFonte'),
       origemDescricao: this.lerTextoOpcionalRegistro(bruto, 'origemDescricao'),
       observacao: this.lerTextoOpcionalRegistro(bruto, 'observacao'),
       removidaEm: this.lerTextoOpcionalRegistro(bruto, 'removidaEm'),
@@ -6335,6 +6619,9 @@ export class SessaoService {
       automatica: snapshot.automatica,
       chaveAutomacao: snapshot.chaveAutomacao,
       contadorTurnos: snapshot.contadorTurnos,
+      acumulos: snapshot.acumulos,
+      fonteCodigo: snapshot.fonteCodigo,
+      limiteFonte: snapshot.limiteFonte,
       origemDescricao: snapshot.origemDescricao,
       observacao: snapshot.observacao,
       removidaEm: snapshot.removidaEm ? new Date(snapshot.removidaEm) : null,
@@ -6564,19 +6851,23 @@ export class SessaoService {
           dados,
           'resumoEscalonamento',
         );
-        return `Habilidade usada${habilidade ? `: ${habilidade}` : ''}${variacao ? ` (${variacao})` : ''}${resumoEscalonamento ? ` | ${resumoEscalonamento}` : ''}`;
+        const acumulos = this.lerInteiroRegistro(dados, 'acumulosAplicados');
+        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        return `Habilidade usada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${variacao ? ` (${variacao})` : ''}${resumoEscalonamento ? ` | ${resumoEscalonamento}` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_COBRADA': {
         const habilidade = this.lerTextoOpcionalRegistro(
           dados,
           'habilidadeNome',
         );
+        const acumulos = this.lerInteiroRegistro(dados, 'acumulos');
         const custoEA = this.lerInteiroRegistro(dados, 'custoEA');
         const custoPE = this.lerInteiroRegistro(dados, 'custoPE');
         const partesCusto: string[] = [];
         if (custoEA !== null && custoEA > 0) partesCusto.push(`EA -${custoEA}`);
         if (custoPE !== null && custoPE > 0) partesCusto.push(`PE -${custoPE}`);
-        return `Sustentacao cobrada${habilidade ? `: ${habilidade}` : ''}${partesCusto.length > 0 ? ` (${partesCusto.join(' | ')})` : ''}`;
+        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        return `Sustentacao cobrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${partesCusto.length > 0 ? ` (${partesCusto.join(' | ')})` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_ENCERRADA': {
         const habilidade = this.lerTextoOpcionalRegistro(
@@ -6587,7 +6878,9 @@ export class SessaoService {
           dados,
           'motivoSistema',
         );
-        return `Sustentacao encerrada${habilidade ? `: ${habilidade}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
+        const acumulos = this.lerInteiroRegistro(dados, 'acumulos');
+        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        return `Sustentacao encerrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
       }
       case 'CONDICAO_APLICADA': {
         const condicaoNome = this.lerTextoOpcionalRegistro(
@@ -6595,7 +6888,9 @@ export class SessaoService {
           'condicaoNome',
         );
         const alvoNome = this.lerTextoOpcionalRegistro(dados, 'alvoNome');
-        return `Condicao aplicada${condicaoNome ? `: ${condicaoNome}` : ''}${alvoNome ? ` em ${alvoNome}` : ''}`;
+        const acumulos = this.lerInteiroRegistro(dados, 'acumulos');
+        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        return `Condicao aplicada${condicaoNome ? `: ${condicaoNome}${sufixoAcumulos}` : ''}${alvoNome ? ` em ${alvoNome}` : ''}`;
       }
       case 'CONDICAO_REMOVIDA': {
         const condicaoNome = this.lerTextoOpcionalRegistro(
@@ -6607,6 +6902,12 @@ export class SessaoService {
       }
       case 'CONDICAO_EXPIRADA':
         return 'Condicao expirada automaticamente';
+      case 'CONDICAO_RECUPERACAO_AUTOMATICA': {
+        const condicaoNome = this.lerTextoOpcionalRegistro(dados, 'condicaoNome');
+        const recurso = this.lerTextoOpcionalRegistro(dados, 'recurso');
+        const recuperado = this.lerInteiroRegistro(dados, 'valorRecuperado');
+        return `Recuperacao automatica${condicaoNome ? `: ${condicaoNome}` : ''}${recurso && recuperado !== null ? ` (+${recuperado} ${recurso})` : ''}`;
+      }
       case 'CONDICAO_APLICACAO_DESFEITA':
       case 'CONDICAO_REMOCAO_DESFEITA':
         return 'Alteracao de condicao desfeita';

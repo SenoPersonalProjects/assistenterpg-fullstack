@@ -83,6 +83,8 @@ describe('sessao-utils', () => {
       condicaoId: '',
       duracaoModo: 'ATE_REMOVER',
       duracaoValor: '1',
+      acumulos: '1',
+      limiteFonte: '',
     });
 
     expect(resultado.erro).toBe('Selecione uma condicao valida para aplicar.');
@@ -95,6 +97,8 @@ describe('sessao-utils', () => {
       condicaoId: '10',
       duracaoModo: 'RODADAS',
       duracaoValor: '0',
+      acumulos: '1',
+      limiteFonte: '',
     });
 
     expect(resultado.erro).toBe('Informe uma duracao numerica maior que zero.');
@@ -107,6 +111,8 @@ describe('sessao-utils', () => {
       condicaoId: '8',
       duracaoModo: 'TURNOS_ALVO',
       duracaoValor: '3',
+      acumulos: '2',
+      limiteFonte: '5',
     });
 
     expect(resultado.erro).toBeNull();
@@ -119,6 +125,8 @@ describe('sessao-utils', () => {
       condicaoId: '7',
       duracaoModo: 'ATE_REMOVER',
       duracaoValor: '0',
+      acumulos: '1',
+      limiteFonte: '',
     });
 
     expect(resultado.erro).toBeNull();
