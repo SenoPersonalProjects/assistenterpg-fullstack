@@ -45,6 +45,7 @@ import { seedHabilidadesOrigem } from './seeds/habilidades/hab-origem';
 import { seedHabilidadesPoderesGenericos } from './seeds/habilidades/hab-poderes-genericos';
 import { seedHabilidadesRecursosClasse } from './seeds/habilidades/hab-recursos-classe';
 import { seedHabilidadesTrilha } from './seeds/habilidades/hab-trilha';
+import { seedAmeacasSagami } from './seeds/npcs-ameacas/sagami';
 
 // =======================
 // Personagem (catálogo)
@@ -143,6 +144,7 @@ async function main() {
   await seedHabilidadeEscolaTecnica(prisma);
   await seedHabilidadesRecursosClasse(prisma);
   await seedHabilidadesPoderesGenericos(prisma);
+  await seedAmeacasSagami(prisma);
   console.log('✅ Habilidades concluídas!\n');
 
   // ============================================================
@@ -198,4 +200,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-

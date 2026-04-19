@@ -11,6 +11,10 @@ import {
 } from '@prisma/client';
 import type { SeedTecnicaInata } from '../_types';
 import { createLookupCache, jsonOrNull } from '../_helpers';
+import {
+  SURTO_TEMPORAL_HABILIDADES,
+  TRIBUNAL_JULGAMENTO_HABILIDADES,
+} from './tecnicas-inatas-surto-tribunal';
 
 type SeedVariacaoTecnicaInata = {
   nome: string;
@@ -1805,9 +1809,12 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'SURTO_TEMPORAL',
     nome: 'Surto Temporal',
-    descricao: 'Manipulação limitada do tempo.',
+    descricao:
+      'Manipulação limitada do tempo por revestimento, lapso temporal, reversão e fixação de eventos.',
     hereditaria: true,
     clasHereditarios: ['Ram'],
+    habilidades:
+      SURTO_TEMPORAL_HABILIDADES as unknown as SeedHabilidadeTecnicaInata[],
   },
   {
     codigo: 'NEVOA_LILAS',
@@ -1840,9 +1847,12 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'TRIBUNAL_JULGAMENTO',
     nome: 'Tribunal de Julgamento',
-    descricao: 'Julga e pune alvos.',
+    descricao:
+      'Técnica inata que manifesta ferramentas judiciais, Judgeman, barreiras restritivas, contratos e sentenças.',
     hereditaria: false,
     clasHereditarios: [],
+    habilidades:
+      TRIBUNAL_JULGAMENTO_HABILIDADES as unknown as SeedHabilidadeTecnicaInata[],
   },
   {
     codigo: 'BOOGIE_WOOGIE',
