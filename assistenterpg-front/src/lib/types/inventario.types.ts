@@ -38,12 +38,12 @@ export type EquipamentoCatalogo = {
   requisitos?: unknown;
   proficienciaArma?: string | null;
   proficienciaProtecao?: string | null;
+  tipoProtecao?: string | null;
   alcance?: string | null;
   tipoAcessorio?: string | null;
 
   tipoArma?: string | null;
   subtipoDistancia?: string | null;
-  tipoProtecao?: string | null;
 
   tipoUso?: string | null;
   tipoAmaldicoado?: string | null;
@@ -67,6 +67,7 @@ export type EquipamentoResumoDto = {
   complexidadeMaldicao: string;
   proficienciaArma?: string | null;
   proficienciaProtecao?: string | null;
+  tipoProtecao?: string | null;
   alcance?: string | null;
   tipoAcessorio?: string | null;
 

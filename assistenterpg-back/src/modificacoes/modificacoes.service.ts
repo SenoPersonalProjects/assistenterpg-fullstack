@@ -608,11 +608,15 @@ export class ModificacoesService {
       erros.push('Modificação não aplicável a escudos');
     }
 
-    // ✅ 3. Validar tipo de proteção
-    if (restricoes.tiposProtecao?.length && equipamento.tipoProtecao) {
-      if (!restricoes.tiposProtecao.includes(equipamento.tipoProtecao)) {
+    // 3. Validar tipo de protecao
+    if (restricoes.tiposProtecao?.length) {
+      if (!equipamento.tipoProtecao) {
         erros.push(
-          `Modificação só aplicável a proteções: ${restricoes.tiposProtecao.join(', ')}`,
+          `Modificacao so aplicavel a protecoes: ${restricoes.tiposProtecao.join(', ')}`,
+        );
+      } else if (!restricoes.tiposProtecao.includes(equipamento.tipoProtecao)) {
+        erros.push(
+          `Modificacao so aplicavel a protecoes: ${restricoes.tiposProtecao.join(', ')}`,
         );
       }
     }
@@ -685,24 +689,25 @@ export class ModificacoesService {
       }
     }
 
-    // ✅ 10b. Validar proficiências de proteção
-    if (
-      restricoes.proficienciasProtecao?.length &&
-      equipamento.proficienciaProtecao
-    ) {
-      if (
+    // 10b. Validar proficiencias de protecao
+    if (restricoes.proficienciasProtecao?.length) {
+      if (!equipamento.proficienciaProtecao) {
+        erros.push(
+          `Requer proficiencia: ${restricoes.proficienciasProtecao.join(', ')}`,
+        );
+      } else if (
         !restricoes.proficienciasProtecao.includes(
           equipamento.proficienciaProtecao,
         )
       ) {
         erros.push(
-          `Requer proficiência: ${restricoes.proficienciasProtecao.join(', ')}`,
+          `Requer proficiencia: ${restricoes.proficienciasProtecao.join(', ')}`,
         );
       }
     } else if (restricoes.outros?.proficienciaProtecao) {
       const prof = restricoes.outros.proficienciaProtecao;
       if (equipamento.proficienciaProtecao !== prof) {
-        erros.push(`Requer proficiência: ${prof}`);
+        erros.push(`Requer proficiencia: ${prof}`);
       }
     }
 

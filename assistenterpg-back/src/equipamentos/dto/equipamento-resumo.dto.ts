@@ -13,6 +13,7 @@ export class EquipamentoResumoDto {
   complexidadeMaldicao: string;
   proficienciaArma?: string | null;
   proficienciaProtecao?: string | null;
+  tipoProtecao?: string | null;
   alcance?: string | null;
   tipoAcessorio?: string | null;
 
