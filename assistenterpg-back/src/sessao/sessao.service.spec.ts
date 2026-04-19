@@ -885,12 +885,32 @@ describe('SessaoService', () => {
             },
           ],
         },
+        {
+          personagemCampanhaId: 77,
+          quantidade: 1,
+          estado: { periciaCodigo: 'medicina' },
+          equipamento: {
+            codigo: 'KIT_PERICIA_PERSONALIZADO',
+            periciaBonificada: null,
+            bonusPericia: 0,
+          },
+          modificacoes: [
+            {
+              modificacao: {
+                efeitosMecanicos: { bonusPericia: 3 },
+              },
+            },
+          ],
+        },
       ]),
     };
 
     const resultado = await (service as any).calcularBonusEquipamentoPericias(
       [77],
-      new Map<string, string>([['percepcao', 'PERCEPCAO']]),
+      new Map<string, string>([
+        ['percepcao', 'PERCEPCAO'],
+        ['medicina', 'MEDICINA'],
+      ]),
     );
 
     expect(
@@ -904,5 +924,6 @@ describe('SessaoService', () => {
       }),
     );
     expect(resultado.get(77)?.get('PERCEPCAO')).toBe(7);
+    expect(resultado.get(77)?.get('MEDICINA')).toBe(3);
   });
 });

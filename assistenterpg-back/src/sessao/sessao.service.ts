@@ -38,6 +38,7 @@ import {
   calcularPvBarraMaximos,
   normalizarNucleosDisponiveis,
 } from 'src/common/utils/pv-barras';
+import { equipamentoUsaPericiaPersonalizada } from 'src/inventario/utils/item-personalizado';
 
 type AcessoCampanha = {
   campanha: {
@@ -6200,9 +6201,9 @@ export class SessaoService {
     estado: Prisma.JsonValue | null | undefined,
     mapaPorBusca: Map<string, string>,
   ): string[] {
-    const usaPericiaPersonalizada =
-      equipamentoCodigo === 'UTENSILIO_PERSONALIZADO' ||
-      equipamentoCodigo === 'VESTIMENTA_PERSONALIZADA';
+    const usaPericiaPersonalizada = equipamentoUsaPericiaPersonalizada({
+      codigo: equipamentoCodigo,
+    });
 
     if (
       usaPericiaPersonalizada &&

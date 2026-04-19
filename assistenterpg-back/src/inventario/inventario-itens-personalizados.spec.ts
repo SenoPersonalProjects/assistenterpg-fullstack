@@ -45,18 +45,20 @@ describe('itens personalizados de inventario', () => {
   ];
 
   it.each(casos)(
-    '$nome exige pericia escolhida para utensilio/vestimenta personalizados',
+    '$nome exige pericia escolhida para item personalizado',
     async ({ criarServico }) => {
       const servico = criarServico();
       const db = criarDb();
 
-      await expect(
-        servico.validarEstadoItemPersonalizado(
-          db,
-          { codigo: 'UTENSILIO_PERSONALIZADO' },
-          {},
-        ),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      for (const codigo of [
+        'KIT_PERICIA_PERSONALIZADO',
+        'UTENSILIO_PERSONALIZADO',
+        'VESTIMENTA_PERSONALIZADA',
+      ]) {
+        await expect(
+          servico.validarEstadoItemPersonalizado(db, { codigo }, {}),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      }
 
       expect(db.pericia.findUnique).not.toHaveBeenCalled();
     },
@@ -71,7 +73,7 @@ describe('itens personalizados de inventario', () => {
       await expect(
         servico.validarEstadoItemPersonalizado(
           db,
-          { codigo: 'VESTIMENTA_PERSONALIZADA' },
+          { codigo: 'KIT_PERICIA_PERSONALIZADO' },
           { periciaCodigo: 'luta' },
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
@@ -80,6 +82,14 @@ describe('itens personalizados de inventario', () => {
         servico.validarEstadoItemPersonalizado(
           db,
           { codigo: 'UTENSILIO_PERSONALIZADO' },
+          { periciaCodigo: 'PONTARIA' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      await expect(
+        servico.validarEstadoItemPersonalizado(
+          db,
+          { codigo: 'VESTIMENTA_PERSONALIZADA' },
           { periciaCodigo: 'PONTARIA' },
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
@@ -96,7 +106,7 @@ describe('itens personalizados de inventario', () => {
 
       const estadoNormalizado = await servico.validarEstadoItemPersonalizado(
         db,
-        { codigo: 'UTENSILIO_PERSONALIZADO' },
+        { codigo: 'KIT_PERICIA_PERSONALIZADO' },
         { periciaCodigo: 'percepcao' },
       );
 
@@ -105,10 +115,18 @@ describe('itens personalizados de inventario', () => {
       await expect(
         servico.validarEstadoItemPersonalizado(
           db,
-          { codigo: 'VESTIMENTA_PERSONALIZADA' },
+          { codigo: 'UTENSILIO_PERSONALIZADO' },
           { periciaCodigo: '  reflexos ', origem: 'teste' },
         ),
       ).resolves.toEqual({ periciaCodigo: 'REFLEXOS', origem: 'teste' });
+
+      await expect(
+        servico.validarEstadoItemPersonalizado(
+          db,
+          { codigo: 'VESTIMENTA_PERSONALIZADA' },
+          { periciaCodigo: 'medicina' },
+        ),
+      ).resolves.toEqual({ periciaCodigo: 'MEDICINA' });
 
       expect(db.pericia.findUnique).toHaveBeenCalledWith({
         where: { codigo: 'PERCEPCAO' },
@@ -116,6 +134,10 @@ describe('itens personalizados de inventario', () => {
       });
       expect(db.pericia.findUnique).toHaveBeenCalledWith({
         where: { codigo: 'REFLEXOS' },
+        select: { codigo: true },
+      });
+      expect(db.pericia.findUnique).toHaveBeenCalledWith({
+        where: { codigo: 'MEDICINA' },
         select: { codigo: true },
       });
     },
@@ -130,19 +152,34 @@ describe('itens personalizados de inventario', () => {
       await expect(
         servico.validarEstadoItemPersonalizado(
           db,
-          { codigo: 'VESTIMENTA_PERSONALIZADA' },
+          { codigo: 'KIT_PERICIA_PERSONALIZADO' },
           { periciaCodigo: 'INEXISTENTE' },
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
     },
   );
 
-  it('mantem utensilio e vestimenta personalizados compativeis com modificacoes de acessorio', () => {
+  it('mantem kits, utensilios e vestimentas personalizados compativeis com modificacoes de acessorio', () => {
     const modificacaoAcessorio = {
       id: 10,
       tipo: 'ACESSORIO',
       restricoes: null,
     };
+
+    expect(
+      isModificacaoCompativel(modificacaoAcessorio, {
+        id: 19,
+        tipo: 'ACESSORIO',
+        tipoAcessorio: 'KIT_PERICIA',
+        tipoArma: null,
+        subtipoDistancia: null,
+        proficienciaArma: null,
+        proficienciaProtecao: null,
+        tipoProtecao: null,
+        alcance: null,
+        complexidadeMaldicao: 'NENHUMA',
+      }),
+    ).toBe(true);
 
     expect(
       isModificacaoCompativel(modificacaoAcessorio, {
