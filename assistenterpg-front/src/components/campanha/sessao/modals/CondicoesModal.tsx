@@ -13,6 +13,7 @@ import type {
 } from '@/lib/types';
 import {
   descreverDuracaoCondicao,
+  formatarNomeCondicaoComAcumulos,
   textoSeguro,
 } from '@/lib/campanha/sessao-formatters';
 import type { AlvoCondicoesModal, FormCondicaoSessao } from '@/components/campanha/sessao/types';
@@ -37,13 +38,6 @@ type CondicoesModalProps = {
   chaveAcaoAplicar: string | null;
   chaveAcaoRemover: (condicaoSessaoId: number) => string;
 };
-
-function formatarNomeCondicao(condicao: CondicaoAtivaSessaoCampanha): string {
-  const acumulos = Math.max(1, Math.trunc(condicao.acumulos ?? 1));
-  return acumulos > 1
-    ? `${textoSeguro(condicao.nome)} ${acumulos}`
-    : textoSeguro(condicao.nome);
-}
 
 export function CondicoesModal({
   modalCondicoes,
@@ -260,7 +254,7 @@ export function CondicoesModal({
                         <Icon name={icone} className="h-3.5 w-3.5 text-app-muted" />
                             </span>
                             <p className="text-xs font-semibold text-app-fg">
-                              {formatarNomeCondicao(condicao)}
+                              {formatarNomeCondicaoComAcumulos(condicao)}
                             </p>
                           </div>
                           <Button

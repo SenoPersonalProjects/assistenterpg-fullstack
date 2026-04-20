@@ -363,6 +363,188 @@ describe('SessaoService', () => {
     }
   });
 
+  it('deve recuperar EA por Produção Acelerada usando acumulos', async () => {
+    const tx = {
+      condicao: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 10, nome: 'Produção Acelerada' },
+          { id: 11, nome: 'Producao Acelerada' },
+          { id: 12, nome: 'Cura Acelerada' },
+        ]),
+      },
+      condicaoPersonagemSessao: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 501,
+            condicaoId: 10,
+            acumulos: 2,
+            fonteCodigo: null,
+            limiteFonte: null,
+            condicao: { nome: 'Produção Acelerada' },
+          },
+        ]),
+      },
+      personagemCampanha: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
+
+    await (service as any).processarCondicoesAceleradasPersonagemTurnoTx(tx, {
+      sessaoId: 21,
+      cenaId: 31,
+      personagemSessaoId: 41,
+      personagemCampanha: {
+        id: 51,
+        pvAtual: 20,
+        pvMax: 30,
+        eaAtual: 3,
+        eaMax: 8,
+      },
+    });
+
+    expect(tx.personagemCampanha.update).toHaveBeenCalledWith({
+      where: { id: 51 },
+      data: { eaAtual: 5 },
+    });
+    expect(tx.eventoSessao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tipoEvento: 'CONDICAO_RECUPERACAO_AUTOMATICA',
+          dados: expect.objectContaining({
+            recurso: 'EA',
+            acumulos: 2,
+            valorRecuperado: 2,
+            valorAntes: 3,
+            valorDepois: 5,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('deve recuperar PV por Cura Acelerada usando acumulos sem exceder o maximo', async () => {
+    const tx = {
+      condicao: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 10, nome: 'Produção Acelerada' },
+          { id: 12, nome: 'Cura Acelerada' },
+        ]),
+      },
+      condicaoPersonagemSessao: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 502,
+            condicaoId: 12,
+            acumulos: 3,
+            fonteCodigo: null,
+            limiteFonte: null,
+            condicao: { nome: 'Cura Acelerada' },
+          },
+        ]),
+      },
+      personagemCampanha: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
+
+    await (service as any).processarCondicoesAceleradasPersonagemTurnoTx(tx, {
+      sessaoId: 21,
+      cenaId: 31,
+      personagemSessaoId: 41,
+      personagemCampanha: {
+        id: 51,
+        pvAtual: 28,
+        pvMax: 30,
+        eaAtual: 3,
+        eaMax: 8,
+      },
+    });
+
+    expect(tx.personagemCampanha.update).toHaveBeenCalledWith({
+      where: { id: 51 },
+      data: { pvAtual: 30 },
+    });
+    expect(tx.eventoSessao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dados: expect.objectContaining({
+            recurso: 'PV',
+            acumulos: 3,
+            valorRecuperado: 2,
+            valorAntes: 28,
+            valorDepois: 30,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('deve recuperar EA de NPC com alias legado Producao Acelerada', async () => {
+    const tx = {
+      condicao: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 11, nome: 'Producao Acelerada' },
+          { id: 12, nome: 'Cura Acelerada' },
+        ]),
+      },
+      npcAmeacaSessao: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 61,
+          pontosVidaAtual: 10,
+          pontosVidaMax: 20,
+          eaAtual: 1,
+          eaMax: 4,
+        }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      condicaoPersonagemSessao: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 503,
+            condicaoId: 11,
+            acumulos: 5,
+            fonteCodigo: null,
+            limiteFonte: null,
+            condicao: { nome: 'Producao Acelerada' },
+          },
+        ]),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
+
+    await (service as any).processarCondicoesAceleradasNpcTurnoTx(tx, {
+      sessaoId: 21,
+      cenaId: 31,
+      npcSessaoId: 61,
+    });
+
+    expect(tx.npcAmeacaSessao.update).toHaveBeenCalledWith({
+      where: { id: 61 },
+      data: { eaAtual: 4 },
+    });
+    expect(tx.eventoSessao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dados: expect.objectContaining({
+            recurso: 'EA',
+            acumulos: 5,
+            valorRecuperado: 3,
+            valorAntes: 1,
+            valorDepois: 4,
+          }),
+        }),
+      }),
+    );
+  });
+
   it('deve considerar uso base no somatorio de limite por turno', async () => {
     const tx = {
       eventoSessao: {

@@ -626,7 +626,8 @@ export function SessionCharacterDetailsTabs({
                     <div>
                       <p className="text-xs font-semibold text-app-fg">
                         {sustentacao.nomeHabilidade}
-                        {sustentacao.acumulos && sustentacao.acumulos > 1
+                        {sustentacao.acumulos &&
+                        (sustentacao.acumulos > 1 || sustentacao.permiteAcumulos)
                           ? ` ${sustentacao.acumulos}`
                           : ''}
                         {sustentacao.nomeVariacao

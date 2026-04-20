@@ -37,7 +37,7 @@ const CONDICOES_ICONES: Record<string, string> = {
   Pasmo: 'status',
   Perturbado: 'spirit',
   Petrificado: 'stop',
-  'Producao Acelerada': 'bolt',
+  'Produção Acelerada': 'bolt',
   Sangrando: 'heart',
   Silenciado: 'volume-off',
   Surdo: 'volume-off',
@@ -216,9 +216,9 @@ export const condicoesSeed: SeedCondicao[] = [
     descricao: 'Fica Inconsciente e recebe resistencia a dano 10.',
   },
   {
-    nome: 'Producao Acelerada',
+    nome: 'Produção Acelerada',
     descricao:
-      'No inicio de cada turno do alvo, recupera EA igual ao valor atual de acumulos desta condicao. Pela fonte Kokusen, acumula ate Producao Acelerada 5.',
+      'No inicio de cada turno do alvo, recupera EA igual ao valor atual de acumulos desta condicao. Pela fonte Kokusen, acumula ate Produção Acelerada 5.',
   },
   {
     nome: 'Sangrando',
@@ -258,6 +258,17 @@ export const condicoesSeed: SeedCondicao[] = [
 
 export async function seedCondicoes(prisma: PrismaClient) {
   console.log('Cadastrando condicoes...');
+
+  const producaoAceleradaCanonica = await prisma.condicao.findUnique({
+    where: { nome: 'Produção Acelerada' },
+    select: { id: true },
+  });
+  if (!producaoAceleradaCanonica) {
+    await prisma.condicao.updateMany({
+      where: { nome: 'Producao Acelerada' },
+      data: { nome: 'Produção Acelerada' },
+    });
+  }
 
   for (const data of condicoesSeed) {
     const icone = data.icone ?? CONDICOES_ICONES[data.nome] ?? 'status';

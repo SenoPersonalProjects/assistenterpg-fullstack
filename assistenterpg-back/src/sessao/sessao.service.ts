@@ -813,6 +813,16 @@ export class SessaoService {
             ativadaNaRodada: true,
             ultimaCobrancaRodada: true,
             criadoEm: true,
+            habilidadeTecnica: {
+              select: {
+                escalonaPorGrau: true,
+              },
+            },
+            variacaoHabilidade: {
+              select: {
+                escalonaPorGrau: true,
+              },
+            },
           },
         },
       },
@@ -875,6 +885,7 @@ export class SessaoService {
         custoSustentacaoEA: number;
         custoSustentacaoPE: number;
         acumulos: number;
+        permiteAcumulos: boolean;
         ativadaNaRodada: number;
         ultimaCobrancaRodada: number;
         criadaEm: Date;
@@ -893,6 +904,7 @@ export class SessaoService {
         custoSustentacaoEA: sustentacao.custoSustentacaoEA,
         custoSustentacaoPE: sustentacao.custoSustentacaoPE,
         acumulos: sustentacao.acumulos,
+        permiteAcumulos: this.sustentacaoPermiteAcumulos(sustentacao),
         ativadaNaRodada: sustentacao.ativadaNaRodada,
         ultimaCobrancaRodada: sustentacao.ultimaCobrancaRodada,
         criadaEm: sustentacao.criadoEm,
@@ -3682,6 +3694,21 @@ export class SessaoService {
     );
   }
 
+  private sustentacaoPermiteAcumulos(sustentacao: {
+    habilidadeTecnica: {
+      escalonaPorGrau: boolean | null;
+    };
+    variacaoHabilidade: {
+      escalonaPorGrau: boolean | null;
+    } | null;
+  }): boolean {
+    const escalonaPorGrau =
+      sustentacao.variacaoHabilidade?.escalonaPorGrau ??
+      sustentacao.habilidadeTecnica.escalonaPorGrau ??
+      false;
+    return Boolean(escalonaPorGrau);
+  }
+
   private normalizarCustoPositivo(
     valor: number | null | undefined,
     fallback: number,
@@ -5248,7 +5275,9 @@ export class SessaoService {
         insanoId: null,
         mortoId: null,
         producaoAceleradaId: null,
+        producaoAceleradaIds: [],
         curaAceleradaId: null,
+        curaAceleradaIds: [],
       };
     }
 
@@ -5259,23 +5288,40 @@ export class SessaoService {
       },
     });
 
-    const porNomeNormalizado = new Map<string, number>();
+    const porNomeNormalizado = new Map<string, number[]>();
     for (const condicao of condicoes) {
-      porNomeNormalizado.set(
-        this.normalizarTextoComparacao(condicao.nome),
-        condicao.id,
-      );
+      const chave = this.normalizarTextoComparacao(condicao.nome);
+      const ids = porNomeNormalizado.get(chave) ?? [];
+      ids.push(condicao.id);
+      porNomeNormalizado.set(chave, ids);
     }
 
-    const resolverPorAliases = (aliases: string[]): number | null => {
+    const resolverIdsPorAliases = (aliases: string[]): number[] => {
+      const idsResolvidos: number[] = [];
+      const idsVistos = new Set<number>();
       for (const alias of aliases) {
-        const condicaoId = porNomeNormalizado.get(
+        const ids = porNomeNormalizado.get(
           this.normalizarTextoComparacao(alias),
         );
-        if (condicaoId) return condicaoId;
+        if (!ids) continue;
+        for (const condicaoId of ids) {
+          if (idsVistos.has(condicaoId)) continue;
+          idsVistos.add(condicaoId);
+          idsResolvidos.push(condicaoId);
+        }
       }
-      return null;
+      return idsResolvidos;
     };
+
+    const resolverPorAliases = (aliases: string[]): number | null => {
+      return resolverIdsPorAliases(aliases)[0] ?? null;
+    };
+
+    const producaoAceleradaIds = resolverIdsPorAliases([
+      'PRODUÇÃO ACELERADA',
+      'PRODUCAO ACELERADA',
+    ]);
+    const curaAceleradaIds = resolverIdsPorAliases(['CURA ACELERADA']);
 
     return {
       machucadoId: resolverPorAliases(['MACHUCADO']),
@@ -5284,8 +5330,10 @@ export class SessaoService {
       enlouquecendoId: resolverPorAliases(['ENLOUQUECENDO']),
       insanoId: resolverPorAliases(['INSANO', 'LOUCO', 'ENLOUQUECIDO']),
       mortoId: resolverPorAliases(['MORTO', 'MORTA', 'MORTE']),
-      producaoAceleradaId: resolverPorAliases(['PRODUCAO ACELERADA']),
-      curaAceleradaId: resolverPorAliases(['CURA ACELERADA']),
+      producaoAceleradaId: producaoAceleradaIds[0] ?? null,
+      producaoAceleradaIds,
+      curaAceleradaId: curaAceleradaIds[0] ?? null,
+      curaAceleradaIds,
     };
   }
 
@@ -5749,6 +5797,39 @@ export class SessaoService {
     if (participanteTurnoNovo.tipoParticipante === 'PERSONAGEM') {
       const personagemSessaoId = participanteTurnoNovo.personagemSessaoId;
       if (personagemSessaoId) {
+        const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+        const personagem = await tx.personagemSessao.findFirst({
+          where: {
+            id: personagemSessaoId,
+            sessaoId,
+          },
+          select: {
+            id: true,
+            cenaId: true,
+            personagemCampanha: {
+              select: {
+                id: true,
+                pvAtual: true,
+                pvMax: true,
+                eaAtual: true,
+                eaMax: true,
+                turnosMorrendo: true,
+                turnosEnlouquecendo: true,
+              },
+            },
+          },
+        });
+
+        if (personagem) {
+          await this.processarCondicoesAceleradasPersonagemTurnoTx(tx, {
+            sessaoId,
+            cenaId: personagem.cenaId ?? cenaId,
+            personagemSessaoId: personagem.id,
+            personagemCampanha: personagem.personagemCampanha,
+          });
+          await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
+        }
+
         const condicoesPorTurno = await condicaoSessaoDelegate.findMany({
           where: {
             sessaoId,
@@ -5796,38 +5877,7 @@ export class SessaoService {
           }
         }
 
-        const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
-        const personagem = await tx.personagemSessao.findFirst({
-          where: {
-            id: personagemSessaoId,
-            sessaoId,
-          },
-          select: {
-            id: true,
-            cenaId: true,
-            personagemCampanha: {
-              select: {
-                id: true,
-                pvAtual: true,
-                pvMax: true,
-                eaAtual: true,
-                eaMax: true,
-                turnosMorrendo: true,
-                turnosEnlouquecendo: true,
-              },
-            },
-          },
-        });
-
         if (personagem) {
-          await this.processarCondicoesAceleradasPersonagemTurnoTx(tx, {
-            sessaoId,
-            cenaId: personagem.cenaId ?? cenaId,
-            personagemSessaoId: personagem.id,
-            personagemCampanha: personagem.personagemCampanha,
-          });
-          await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
-
           const condicoesAutomaticas = await condicaoSessaoDelegate.findMany({
             where: {
               sessaoId,
@@ -5908,6 +5958,13 @@ export class SessaoService {
     } else if (participanteTurnoNovo.tipoParticipante === 'NPC') {
       const npcSessaoId = participanteTurnoNovo.npcSessaoId;
       if (npcSessaoId) {
+        await this.processarCondicoesAceleradasNpcTurnoTx(tx, {
+          sessaoId,
+          cenaId,
+          npcSessaoId,
+        });
+        await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
+
         const condicoesPorTurno = await condicaoSessaoDelegate.findMany({
           where: {
             sessaoId,
@@ -5954,13 +6011,6 @@ export class SessaoService {
             });
           }
         }
-
-        await this.processarCondicoesAceleradasNpcTurnoTx(tx, {
-          sessaoId,
-          cenaId,
-          npcSessaoId,
-        });
-        await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
       }
     }
   }
@@ -5981,10 +6031,9 @@ export class SessaoService {
     },
   ): Promise<void> {
     const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
-    const idsCondicoes = [
-      mapaSistema.producaoAceleradaId,
-      mapaSistema.curaAceleradaId,
-    ].filter((id): id is number => typeof id === 'number');
+    const idsProducao = new Set(mapaSistema.producaoAceleradaIds);
+    const idsCura = new Set(mapaSistema.curaAceleradaIds);
+    const idsCondicoes = Array.from(new Set([...idsProducao, ...idsCura]));
     if (idsCondicoes.length === 0) return;
 
     const condicoes = await tx.condicaoPersonagemSessao.findMany({
@@ -6003,8 +6052,8 @@ export class SessaoService {
     let pvAtual = args.personagemCampanha.pvAtual;
 
     for (const condicao of condicoes) {
-      const isProducao = condicao.condicaoId === mapaSistema.producaoAceleradaId;
-      const isCura = condicao.condicaoId === mapaSistema.curaAceleradaId;
+      const isProducao = idsProducao.has(condicao.condicaoId);
+      const isCura = idsCura.has(condicao.condicaoId);
       if (!isProducao && !isCura) continue;
 
       const recurso = isProducao ? 'EA' : 'PV';
@@ -6063,10 +6112,9 @@ export class SessaoService {
     },
   ): Promise<void> {
     const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
-    const idsCondicoes = [
-      mapaSistema.producaoAceleradaId,
-      mapaSistema.curaAceleradaId,
-    ].filter((id): id is number => typeof id === 'number');
+    const idsProducao = new Set(mapaSistema.producaoAceleradaIds);
+    const idsCura = new Set(mapaSistema.curaAceleradaIds);
+    const idsCondicoes = Array.from(new Set([...idsProducao, ...idsCura]));
     if (idsCondicoes.length === 0) return;
 
     const npc = await tx.npcAmeacaSessao.findFirst({
@@ -6097,8 +6145,8 @@ export class SessaoService {
     let pvAtual = npc.pontosVidaAtual;
 
     for (const condicao of condicoes) {
-      const isProducao = condicao.condicaoId === mapaSistema.producaoAceleradaId;
-      const isCura = condicao.condicaoId === mapaSistema.curaAceleradaId;
+      const isProducao = idsProducao.has(condicao.condicaoId);
+      const isCura = idsCura.has(condicao.condicaoId);
       if (!isProducao && !isCura) continue;
       if (isProducao && (eaAtual === null || npc.eaMax === null)) continue;
 
@@ -6853,7 +6901,11 @@ export class SessaoService {
           'resumoEscalonamento',
         );
         const acumulos = this.lerInteiroRegistro(dados, 'acumulosAplicados');
-        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        const acumulosMaximos = this.lerInteiroRegistro(dados, 'acumulosMaximos');
+        const sufixoAcumulos =
+          acumulos !== null && (acumulos > 1 || (acumulosMaximos ?? 0) > 1)
+            ? ` ${acumulos}`
+            : '';
         return `Habilidade usada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${variacao ? ` (${variacao})` : ''}${resumoEscalonamento ? ` | ${resumoEscalonamento}` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_COBRADA': {

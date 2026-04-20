@@ -16,6 +16,7 @@ import {
   resolverStatusFisico,
   resolverStatusMental,
 } from '@/lib/campanha/sessao-status';
+import { formatarNomeCondicaoComAcumulos } from '@/lib/campanha/sessao-formatters';
 
 type RosterItem = {
   id: string;
@@ -263,9 +264,7 @@ export function SessionSceneRosterPanel({
                           name={(condicao.icone || 'status') as IconName}
                           className="h-3 w-3"
                         />
-                        {condicao.acumulos && condicao.acumulos > 1
-                          ? `${condicao.nome} ${condicao.acumulos}`
-                          : condicao.nome}
+                        {formatarNomeCondicaoComAcumulos(condicao)}
                       </span>
                     </Badge>
                   ))}

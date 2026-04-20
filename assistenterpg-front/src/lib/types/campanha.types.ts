@@ -404,6 +404,7 @@ export type SustentacaoAtivaSessaoCampanha = {
   custoSustentacaoEA: number;
   custoSustentacaoPE: number;
   acumulos: number;
+  permiteAcumulos?: boolean;
   ativadaNaRodada: number;
   ultimaCobrancaRodada: number;
   criadaEm: string;

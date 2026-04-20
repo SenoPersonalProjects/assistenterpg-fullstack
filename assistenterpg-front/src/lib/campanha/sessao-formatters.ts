@@ -1,5 +1,5 @@
 import type { DuracaoCondicaoSessaoModo, TipoCenaSessaoCampanha } from '@/lib/types';
-import { corrigirMojibakeTexto } from '@/lib/utils/encoding';
+import { corrigirMojibakeTexto } from '../utils/encoding';
 
 const LABEL_CENA: Record<TipoCenaSessaoCampanha, string> = {
   LIVRE: 'Cena livre',
@@ -28,6 +28,33 @@ export function labelPapelParticipante(papel: string): string {
 export function textoSeguro(value: string | null | undefined): string {
   if (!value) return '';
   return corrigirMojibakeTexto(value);
+}
+
+function normalizarTextoComparacao(value: string | null | undefined): string {
+  return textoSeguro(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+}
+
+export function condicaoExibeAcumuloMinimo(nome: string | null | undefined): boolean {
+  const normalizado = normalizarTextoComparacao(nome);
+  return (
+    normalizado === 'CURA ACELERADA' ||
+    normalizado === 'PRODUCAO ACELERADA'
+  );
+}
+
+export function formatarNomeCondicaoComAcumulos(condicao: {
+  nome: string | null | undefined;
+  acumulos?: number | null;
+}): string {
+  const nome = textoSeguro(condicao.nome);
+  const acumulos = Math.max(1, Math.trunc(condicao.acumulos ?? 1));
+  return acumulos > 1 || condicaoExibeAcumuloMinimo(nome)
+    ? `${nome} ${acumulos}`
+    : nome;
 }
 
 export function descreverDuracaoCondicao(
