@@ -195,6 +195,7 @@ export type NpcSessaoCampanha = {
   nome: string;
   fichaTipo: TipoFichaNpcAmeaca;
   tipo: TipoNpcAmeaca;
+  tamanho?: string | null;
   vd: number;
   defesa: number;
   pontosVidaAtual: number;
@@ -257,8 +258,40 @@ export type AdicionarNpcSessaoCampanhaPayload = {
   notasCena?: string;
 };
 
+export type AdicionarNpcSimplesSessaoCampanhaPayload = {
+  nome: string;
+  fichaTipo?: TipoFichaNpcAmeaca;
+  tipo?: TipoNpcAmeaca;
+  tamanho?: string;
+  vd?: number;
+  iniciativaValor?: number | null;
+  defesa: number;
+  pontosVidaMax: number;
+  pontosVidaAtual?: number;
+  sanMax?: number | null;
+  sanAtual?: number | null;
+  eaMax?: number | null;
+  eaAtual?: number | null;
+  machucado?: number | null;
+  deslocamentoMetros?: number;
+  agilidade?: number | null;
+  forca?: number | null;
+  intelecto?: number | null;
+  presenca?: number | null;
+  vigor?: number | null;
+  percepcao?: number | null;
+  iniciativa?: number | null;
+  fortitude?: number | null;
+  reflexos?: number | null;
+  vontade?: number | null;
+  luta?: number | null;
+  jujutsu?: number | null;
+  notasCena?: string;
+};
+
 export type AtualizarNpcSessaoCampanhaPayload = Partial<
-  Omit<AdicionarNpcSessaoCampanhaPayload, 'npcAmeacaId'>
+  Omit<AdicionarNpcSessaoCampanhaPayload, 'npcAmeacaId'> &
+    AdicionarNpcSimplesSessaoCampanhaPayload
 >;
 
 export type AplicarCondicaoSessaoCampanhaPayload = {

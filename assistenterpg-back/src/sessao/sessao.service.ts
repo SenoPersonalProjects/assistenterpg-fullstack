@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, TipoFichaNpcAmeaca, TipoNpcAmeaca } from '@prisma/client';
+import {
+  Prisma,
+  TamanhoNpcAmeaca,
+  TipoFichaNpcAmeaca,
+  TipoNpcAmeaca,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CampanhaAcessoNegadoException,
@@ -21,6 +26,7 @@ import { CreateSessaoCampanhaDto } from './dto/create-sessao-campanha.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
+import { AdicionarNpcSimplesSessaoDto } from './dto/adicionar-npc-simples-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
 import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
@@ -738,6 +744,7 @@ export class SessaoService {
           include: {
             npcAmeaca: {
               select: {
+                tamanho: true,
                 agilidade: true,
                 forca: true,
                 intelecto: true,
@@ -1162,9 +1169,9 @@ export class SessaoService {
       npcs: npcsCenaAtual.map((npc) => {
         const atributosNpc = npc.npcAmeaca
           ? this.montarAtributosNpc(npc.npcAmeaca)
-          : null;
+          : this.montarAtributosNpcSessao(npc);
         const resolverDadosPericiaNpc = (
-          campoDados:
+          campoDadosBase:
             | 'percepcaoDados'
             | 'iniciativaDados'
             | 'fortitudeDados'
@@ -1172,10 +1179,20 @@ export class SessaoService {
             | 'vontadeDados'
             | 'lutaDados'
             | 'jujutsuDados',
+          campoBonusSessao:
+            | 'percepcao'
+            | 'iniciativa'
+            | 'fortitude'
+            | 'reflexos'
+            | 'vontade'
+            | 'luta'
+            | 'jujutsu',
           atributoBase: 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG',
         ) => {
-          if (!npc.npcAmeaca || !atributosNpc) return 0;
-          const valor = npc.npcAmeaca[campoDados];
+          if (!atributosNpc) return 0;
+          const valor = npc.npcAmeaca
+            ? npc.npcAmeaca[campoDadosBase]
+            : npc[campoBonusSessao];
           if (typeof valor === 'number') return valor;
           const atributo = this.obterAtributoNpcPorBase(
             atributosNpc,
@@ -1190,53 +1207,153 @@ export class SessaoService {
                 codigo: 'PERCEPCAO',
                 nome: 'Percepcao',
                 atributoBase: 'PRE',
-                dados: resolverDadosPericiaNpc('percepcaoDados', 'PRE'),
-                bonus: npc.npcAmeaca.percepcao,
+                dados: resolverDadosPericiaNpc(
+                  'percepcaoDados',
+                  'percepcao',
+                  'PRE',
+                ),
+                bonus: npc.npcAmeaca?.percepcao ?? npc.percepcao,
               },
               {
                 codigo: 'INICIATIVA',
                 nome: 'Iniciativa',
                 atributoBase: 'AGI',
-                dados: resolverDadosPericiaNpc('iniciativaDados', 'AGI'),
-                bonus: npc.npcAmeaca.iniciativa,
+                dados: resolverDadosPericiaNpc(
+                  'iniciativaDados',
+                  'iniciativa',
+                  'AGI',
+                ),
+                bonus: npc.npcAmeaca?.iniciativa ?? npc.iniciativa,
               },
               {
                 codigo: 'FORTITUDE',
                 nome: 'Fortitude',
                 atributoBase: 'VIG',
-                dados: resolverDadosPericiaNpc('fortitudeDados', 'VIG'),
-                bonus: npc.npcAmeaca.fortitude,
+                dados: resolverDadosPericiaNpc(
+                  'fortitudeDados',
+                  'fortitude',
+                  'VIG',
+                ),
+                bonus: npc.npcAmeaca?.fortitude ?? npc.fortitude,
               },
               {
                 codigo: 'REFLEXOS',
                 nome: 'Reflexos',
                 atributoBase: 'AGI',
-                dados: resolverDadosPericiaNpc('reflexosDados', 'AGI'),
-                bonus: npc.npcAmeaca.reflexos,
+                dados: resolverDadosPericiaNpc(
+                  'reflexosDados',
+                  'reflexos',
+                  'AGI',
+                ),
+                bonus: npc.npcAmeaca?.reflexos ?? npc.reflexos,
               },
               {
                 codigo: 'VONTADE',
                 nome: 'Vontade',
                 atributoBase: 'PRE',
-                dados: resolverDadosPericiaNpc('vontadeDados', 'PRE'),
-                bonus: npc.npcAmeaca.vontade,
+                dados: resolverDadosPericiaNpc(
+                  'vontadeDados',
+                  'vontade',
+                  'PRE',
+                ),
+                bonus: npc.npcAmeaca?.vontade ?? npc.vontade,
               },
               {
                 codigo: 'LUTA',
                 nome: 'Luta',
                 atributoBase: 'FOR',
-                dados: resolverDadosPericiaNpc('lutaDados', 'FOR'),
-                bonus: npc.npcAmeaca.luta,
+                dados: resolverDadosPericiaNpc('lutaDados', 'luta', 'FOR'),
+                bonus: npc.npcAmeaca?.luta ?? npc.luta,
               },
               {
                 codigo: 'JUJUTSU',
                 nome: 'Jujutsu',
                 atributoBase: 'INT',
-                dados: resolverDadosPericiaNpc('jujutsuDados', 'INT'),
-                bonus: npc.npcAmeaca.jujutsu,
+                dados: resolverDadosPericiaNpc(
+                  'jujutsuDados',
+                  'jujutsu',
+                  'INT',
+                ),
+                bonus: npc.npcAmeaca?.jujutsu ?? npc.jujutsu,
               },
             ]
-          : [];
+          : npc.npcAmeacaId === null && atributosNpc
+            ? [
+                {
+                  codigo: 'PERCEPCAO',
+                  nome: 'Percepcao',
+                  atributoBase: 'PRE',
+                  dados: resolverDadosPericiaNpc(
+                    'percepcaoDados',
+                    'percepcao',
+                    'PRE',
+                  ),
+                  bonus: npc.percepcao,
+                },
+                {
+                  codigo: 'INICIATIVA',
+                  nome: 'Iniciativa',
+                  atributoBase: 'AGI',
+                  dados: resolverDadosPericiaNpc(
+                    'iniciativaDados',
+                    'iniciativa',
+                    'AGI',
+                  ),
+                  bonus: npc.iniciativa,
+                },
+                {
+                  codigo: 'FORTITUDE',
+                  nome: 'Fortitude',
+                  atributoBase: 'VIG',
+                  dados: resolverDadosPericiaNpc(
+                    'fortitudeDados',
+                    'fortitude',
+                    'VIG',
+                  ),
+                  bonus: npc.fortitude,
+                },
+                {
+                  codigo: 'REFLEXOS',
+                  nome: 'Reflexos',
+                  atributoBase: 'AGI',
+                  dados: resolverDadosPericiaNpc(
+                    'reflexosDados',
+                    'reflexos',
+                    'AGI',
+                  ),
+                  bonus: npc.reflexos,
+                },
+                {
+                  codigo: 'VONTADE',
+                  nome: 'Vontade',
+                  atributoBase: 'PRE',
+                  dados: resolverDadosPericiaNpc(
+                    'vontadeDados',
+                    'vontade',
+                    'PRE',
+                  ),
+                  bonus: npc.vontade,
+                },
+                {
+                  codigo: 'LUTA',
+                  nome: 'Luta',
+                  atributoBase: 'FOR',
+                  dados: resolverDadosPericiaNpc('lutaDados', 'luta', 'FOR'),
+                  bonus: npc.luta,
+                },
+                {
+                  codigo: 'JUJUTSU',
+                  nome: 'Jujutsu',
+                  atributoBase: 'INT',
+                  dados: resolverDadosPericiaNpc(
+                    'jujutsuDados',
+                    'jujutsu',
+                    'INT',
+                  ),
+                  bonus: npc.jujutsu,
+                },
+              ]
+            : [];
 
         return {
           npcSessaoId: npc.id,
@@ -1244,6 +1361,7 @@ export class SessaoService {
           nome: npc.nomeExibicao,
           fichaTipo: npc.fichaTipo,
           tipo: npc.tipo,
+          tamanho: npc.npcAmeaca?.tamanho ?? npc.tamanho ?? 'MEDIO',
           vd: npc.vd,
           defesa: npc.defesa,
           pontosVidaAtual: npc.pontosVidaAtual,
@@ -2607,6 +2725,107 @@ export class SessaoService {
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
+  async adicionarNpcSimplesSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AdicionarNpcSimplesSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'adicionar NPC simples na cena');
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const pontosVidaMax = dto.pontosVidaMax;
+      const pontosVidaAtual = this.clampNumero(
+        dto.pontosVidaAtual ?? pontosVidaMax,
+        0,
+        pontosVidaMax,
+      );
+      const sanidade = this.resolverRecursoOpcional(
+        dto.sanAtual,
+        dto.sanMax,
+        null,
+        null,
+      );
+      const energiaAmaldicoada = this.resolverRecursoOpcional(
+        dto.eaAtual,
+        dto.eaMax,
+        null,
+        null,
+      );
+
+      const npcSessao = await tx.npcAmeacaSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          npcAmeacaId: null,
+          nomeExibicao: dto.nome.trim(),
+          fichaTipo: dto.fichaTipo ?? TipoFichaNpcAmeaca.NPC,
+          tipo: dto.tipo ?? TipoNpcAmeaca.OUTRO,
+          tamanho: dto.tamanho ?? TamanhoNpcAmeaca.MEDIO,
+          vd: dto.vd ?? 0,
+          iniciativaValor:
+            dto.iniciativaValor === undefined ? null : dto.iniciativaValor,
+          defesa: dto.defesa,
+          pontosVidaAtual,
+          pontosVidaMax,
+          sanAtual: sanidade.atual,
+          sanMax: sanidade.max,
+          eaAtual: energiaAmaldicoada.atual,
+          eaMax: energiaAmaldicoada.max,
+          machucado: dto.machucado ?? null,
+          deslocamentoMetros: dto.deslocamentoMetros ?? 6,
+          agilidade: dto.agilidade ?? null,
+          forca: dto.forca ?? null,
+          intelecto: dto.intelecto ?? null,
+          presenca: dto.presenca ?? null,
+          vigor: dto.vigor ?? null,
+          percepcao: dto.percepcao ?? null,
+          iniciativa: dto.iniciativa ?? null,
+          fortitude: dto.fortitude ?? null,
+          reflexos: dto.reflexos ?? null,
+          vontade: dto.vontade ?? null,
+          luta: dto.luta ?? null,
+          jujutsu: dto.jujutsu ?? null,
+          passivasGuia: Prisma.JsonNull,
+          acoesGuia: Prisma.JsonNull,
+          notasCena: dto.notasCena?.trim() || null,
+        },
+      });
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'NPC_ADICIONADO',
+          dados: {
+            npcSessaoId: npcSessao.id,
+            npcAmeacaId: null,
+            nome: npcSessao.nomeExibicao,
+            snapshot: this.snapshotNpcSessao(npcSessao),
+            adicionadoPorId: usuarioId,
+            origem: 'NPC_SIMPLES',
+          },
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
   async atualizarNpcSessao(
     campanhaId: number,
     sessaoId: number,
@@ -2674,6 +2893,9 @@ export class SessaoService {
           dto.nomeExibicao.trim() || npcSessaoAtual.nomeExibicao;
       }
       if (dto.vd !== undefined) data.vd = dto.vd;
+      if (dto.fichaTipo !== undefined) data.fichaTipo = dto.fichaTipo;
+      if (dto.tipo !== undefined) data.tipo = dto.tipo;
+      if (dto.tamanho !== undefined) data.tamanho = dto.tamanho;
       if (dto.iniciativaValor !== undefined) {
         data.iniciativaValor = dto.iniciativaValor;
       }
@@ -2690,6 +2912,18 @@ export class SessaoService {
       if (dto.deslocamentoMetros !== undefined) {
         data.deslocamentoMetros = dto.deslocamentoMetros;
       }
+      if (dto.agilidade !== undefined) data.agilidade = dto.agilidade;
+      if (dto.forca !== undefined) data.forca = dto.forca;
+      if (dto.intelecto !== undefined) data.intelecto = dto.intelecto;
+      if (dto.presenca !== undefined) data.presenca = dto.presenca;
+      if (dto.vigor !== undefined) data.vigor = dto.vigor;
+      if (dto.percepcao !== undefined) data.percepcao = dto.percepcao;
+      if (dto.iniciativa !== undefined) data.iniciativa = dto.iniciativa;
+      if (dto.fortitude !== undefined) data.fortitude = dto.fortitude;
+      if (dto.reflexos !== undefined) data.reflexos = dto.reflexos;
+      if (dto.vontade !== undefined) data.vontade = dto.vontade;
+      if (dto.luta !== undefined) data.luta = dto.luta;
+      if (dto.jujutsu !== undefined) data.jujutsu = dto.jujutsu;
       if (dto.notasCena !== undefined) {
         data.notasCena = dto.notasCena.trim() || null;
       }
@@ -6362,6 +6596,20 @@ export class SessaoService {
       presenca: Number(origem.presenca ?? 0),
       vigor: Number(origem.vigor ?? 0),
     };
+  }
+
+  private montarAtributosNpcSessao(origem: {
+    npcAmeacaId: number | null;
+    agilidade?: number | null;
+    forca?: number | null;
+    intelecto?: number | null;
+    presenca?: number | null;
+    vigor?: number | null;
+  }) {
+    if (origem.npcAmeacaId !== null) {
+      return null;
+    }
+    return this.montarAtributosNpc(origem);
   }
 
   private obterAtributoNpcPorBase(

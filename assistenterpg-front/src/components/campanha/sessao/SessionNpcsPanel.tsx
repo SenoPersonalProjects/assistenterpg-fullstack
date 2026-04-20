@@ -35,6 +35,7 @@ type SessionNpcsPanelProps = {
   removendoNpcId: number | null;
   erro?: string | null;
   onAbrirAdicionar: () => void;
+  onAbrirAdicionarNpcSimples: () => void;
   onAtualizarCampo: (
     npc: NpcSessaoCampanha,
     campo: keyof NpcEditavel,
@@ -80,6 +81,7 @@ export function SessionNpcsPanel({
   removendoNpcId,
   erro,
   onAbrirAdicionar,
+  onAbrirAdicionarNpcSimples,
   onAtualizarCampo,
   onAtualizarAjustePersonalizado,
   onAplicarDeltaRecurso,
@@ -97,14 +99,25 @@ export function SessionNpcsPanel({
       tone="aside"
       right={
         podeControlarSessao ? (
-          <Button
-            size="sm"
-            onClick={onAbrirAdicionar}
-            disabled={sessaoEncerrada || npcsDisponiveis.length === 0}
-          >
-            <Icon name="add" className="mr-1.5 h-3.5 w-3.5" />
-            Adicionar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onAbrirAdicionarNpcSimples}
+              disabled={sessaoEncerrada}
+            >
+              <Icon name="add" className="mr-1.5 h-3.5 w-3.5" />
+              NPC simples
+            </Button>
+            <Button
+              size="sm"
+              onClick={onAbrirAdicionar}
+              disabled={sessaoEncerrada || npcsDisponiveis.length === 0}
+            >
+              <Icon name="add" className="mr-1.5 h-3.5 w-3.5" />
+              Da lista
+            </Button>
+          </div>
         ) : undefined
       }
     >

@@ -55,8 +55,23 @@ const modificacaoCalculoSelect =
     incrementoEspacos: true,
   });
 
+const itemSessaoInventarioInclude =
+  Prisma.validator<Prisma.ItemSessaoCampanhaInclude>()({
+    personagemCampanha: {
+      select: {
+        id: true,
+        nome: true,
+        donoId: true,
+      },
+    },
+  });
+
 type ModificacaoCalculoEntity = Prisma.ModificacaoEquipamentoGetPayload<{
   select: typeof modificacaoCalculoSelect;
+}>;
+
+type ItemSessaoInventarioEntity = Prisma.ItemSessaoCampanhaGetPayload<{
+  include: typeof itemSessaoInventarioInclude;
 }>;
 
 @Injectable()
@@ -212,6 +227,55 @@ export class CampanhaInventarioService {
     }));
   }
 
+  private async carregarItensSessaoInventarioCampanha(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    prisma?: PrismaLike,
+  ): Promise<ItemSessaoInventarioEntity[]> {
+    const db = prisma ?? this.prisma;
+
+    return db.itemSessaoCampanha.findMany({
+      where: {
+        campanhaId,
+        personagemCampanhaId,
+      },
+      include: itemSessaoInventarioInclude,
+      orderBy: [{ atualizadoEm: 'desc' }, { nome: 'asc' }],
+    });
+  }
+
+  private calcularEspacosOcupadosItensSessao(
+    itensSessao: Array<{ peso: number }>,
+  ): number {
+    return itensSessao.reduce((total, item) => total + Number(item.peso || 0), 0);
+  }
+
+  private mapearItemSessaoInventario(item: ItemSessaoInventarioEntity) {
+    const descricaoDisponivel = item.descricaoRevelada ? item.descricao : null;
+
+    return {
+      id: item.id,
+      campanhaId: item.campanhaId,
+      sessaoId: item.sessaoId,
+      cenaId: item.cenaId,
+      personagemCampanhaId: item.personagemCampanhaId,
+      nome: item.nome,
+      descricao: descricaoDisponivel,
+      descricaoOculta: !item.descricaoRevelada && !!item.descricao,
+      tipo: item.tipo,
+      categoria: item.categoria,
+      peso: Number(item.peso),
+      descricaoRevelada: item.descricaoRevelada,
+      portadorAtual: item.personagemCampanha
+        ? {
+            id: item.personagemCampanha.id,
+            nome: item.personagemCampanha.nome,
+            donoId: item.personagemCampanha.donoId,
+          }
+        : null,
+    };
+  }
+
   private async calcularEspacosPersonagemCampanha(
     personagemCampanhaId: number,
     prisma?: PrismaLike,
@@ -306,7 +370,18 @@ export class CampanhaInventarioService {
     prisma?: PrismaLike,
   ): Promise<void> {
     const db = prisma ?? this.prisma;
+    const personagemCampanha = await db.personagemCampanha.findUnique({
+      where: { id: personagemCampanhaId },
+      select: { campanhaId: true },
+    });
+    if (!personagemCampanha) return;
+
     const itens = await this.carregarItensInventarioCampanha(
+      personagemCampanhaId,
+      db,
+    );
+    const itensSessao = await this.carregarItensSessaoInventarioCampanha(
+      personagemCampanha.campanhaId,
       personagemCampanhaId,
       db,
     );
@@ -318,7 +393,9 @@ export class CampanhaInventarioService {
     if (!personagem.personagemBaseId) return;
 
     const espacosExtraDeItens = this.engine.calcularEspacosExtraDeItens(itens);
-    const espacosOcupados = this.engine.calcularEspacosOcupados(itens);
+    const espacosOcupados =
+      this.engine.calcularEspacosOcupados(itens) +
+      this.calcularEspacosOcupadosItensSessao(itensSessao);
     const espacosTotal = personagem.espacosBase + espacosExtraDeItens;
     const sobrecarregado = espacosOcupados > espacosTotal;
 
@@ -429,6 +506,7 @@ export class CampanhaInventarioService {
   }
 
   private async validarLimite2xCapacidade(
+    campanhaId: number,
     personagemCampanhaId: number,
     espacosAdicionais: number,
     prisma?: PrismaLike,
@@ -440,8 +518,15 @@ export class CampanhaInventarioService {
     );
     const { espacosBase, espacosExtra } =
       await this.calcularEspacosPersonagemCampanha(personagemCampanhaId, db);
+    const itensSessao = await this.carregarItensSessaoInventarioCampanha(
+      campanhaId,
+      personagemCampanhaId,
+      db,
+    );
 
-    const espacosOcupados = this.engine.calcularEspacosOcupados(itens);
+    const espacosOcupados =
+      this.engine.calcularEspacosOcupados(itens) +
+      this.calcularEspacosOcupadosItensSessao(itensSessao);
     const capacidadeTotal = espacosBase + espacosExtra;
     const limiteMaximo = capacidadeTotal * 2;
     const espacosAposAdicao = espacosOcupados + espacosAdicionais;
@@ -467,6 +552,10 @@ export class CampanhaInventarioService {
 
     const itens =
       await this.carregarItensInventarioCampanha(personagemCampanhaId);
+    const itensSessao = await this.carregarItensSessaoInventarioCampanha(
+      campanhaId,
+      personagemCampanhaId,
+    );
     const { espacosBase, espacosExtra, prestigioGeral } =
       await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
     const limitesGrauXama = await this.buscarLimitesGrauXama(prestigioGeral);
@@ -476,6 +565,16 @@ export class CampanhaInventarioService {
       espacosBase,
       espacosExtra,
     );
+    const espacosOcupadosItensSessao =
+      this.calcularEspacosOcupadosItensSessao(itensSessao);
+    const espacosOcupadosTotal =
+      resultadoEspacos.espacosOcupados + espacosOcupadosItensSessao;
+    const espacosResultado = {
+      ...resultadoEspacos,
+      espacosOcupados: espacosOcupadosTotal,
+      espacosDisponiveis: resultadoEspacos.espacosTotal - espacosOcupadosTotal,
+      sobrecarregado: espacosOcupadosTotal > resultadoEspacos.espacosTotal,
+    };
 
     const statsEquipados = this.engine.calcularStatsEquipados(itens);
 
@@ -496,8 +595,9 @@ export class CampanhaInventarioService {
 
     return {
       personagemCampanhaId,
-      espacos: resultadoEspacos,
+      espacos: espacosResultado,
       itens: itens.map((item) => this.mapper.mapItem(item)),
+      itensSessao: itensSessao.map((item) => this.mapearItemSessaoInventario(item)),
       statsEquipados: this.mapper.mapStatsEquipados(statsEquipados),
       limitesCategoria: {
         grauAtual: validacaoGrau.grauAtual,
@@ -591,6 +691,7 @@ export class CampanhaInventarioService {
       const espacosTotaisItem = espacosUnitario * (dto.quantidade || 1);
 
       await this.validarLimite2xCapacidade(
+        campanhaId,
         personagemCampanhaId,
         espacosTotaisItem,
       );
@@ -683,15 +784,22 @@ export class CampanhaInventarioService {
           : false;
         const itensAtuais =
           await this.carregarItensInventarioCampanha(personagemCampanhaId);
+        const itensSessao =
+          await this.carregarItensSessaoInventarioCampanha(
+            campanhaId,
+            personagemCampanhaId,
+          );
         const { espacosBase, espacosExtra } =
           await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
 
         const espacosSemEsteItem = itensAtuais
           .filter((i) => i.id !== itemId)
           .reduce((total, i) => total + this.engine.calcularEspacosItem(i), 0);
+        const espacosItensSessao =
+          this.calcularEspacosOcupadosItensSessao(itensSessao);
 
         const espacosDisponiveis =
-          espacosBase + espacosExtra - espacosSemEsteItem;
+          espacosBase + espacosExtra - espacosSemEsteItem - espacosItensSessao;
 
         const espacosBaseItem = this.ajustarEspacosBaseItem(
           itemExiste.equipamento.espacos,
@@ -706,11 +814,12 @@ export class CampanhaInventarioService {
 
         const capacidadeTotal = espacosBase + espacosExtra;
         const limiteMaximo = capacidadeTotal * 2;
-        const espacosTotaisApos = espacosSemEsteItem + espacosNovaQuantidade;
+        const espacosTotaisApos =
+          espacosSemEsteItem + espacosItensSessao + espacosNovaQuantidade;
 
         if (espacosTotaisApos > limiteMaximo) {
           throw new InventarioCapacidadeExcedidaException({
-            espacosOcupados: espacosSemEsteItem,
+            espacosOcupados: espacosSemEsteItem + espacosItensSessao,
             espacosAdicionais: espacosNovaQuantidade,
             espacosAposAdicao: espacosTotaisApos,
             capacidadeNormal: capacidadeTotal,

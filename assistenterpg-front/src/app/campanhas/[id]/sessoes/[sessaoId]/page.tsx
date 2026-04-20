@@ -58,6 +58,7 @@ import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel'
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
 import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
 import { AddNpcModal } from '@/components/campanha/sessao/modals/AddNpcModal';
+import { AddSimpleNpcModal } from '@/components/campanha/sessao/modals/AddSimpleNpcModal';
 import { AddPersonagemModal } from '@/components/campanha/sessao/modals/AddPersonagemModal';
 import { ConfirmEndSessionModal } from '@/components/campanha/sessao/modals/ConfirmEndSessionModal';
 import { ConfirmNpcRemovalModal } from '@/components/campanha/sessao/modals/ConfirmNpcRemovalModal';
@@ -200,11 +201,55 @@ function labelParticipanteIniciativa(
 
 function montarEdicaoNpcBase(npc: NpcSessaoCampanha): NpcEditavel {
   return {
+    fichaTipo: npc.fichaTipo,
+    tipo: npc.tipo,
+    tamanho: npc.tamanho ?? 'MEDIO',
     defesa: String(npc.defesa),
     pontosVidaMax: String(npc.pontosVidaMax),
     sanMax: npc.sanMax === null ? '' : String(npc.sanMax),
     eaMax: npc.eaMax === null ? '' : String(npc.eaMax),
     machucado: npc.machucado === null ? '' : String(npc.machucado),
+    agilidade:
+      npc.atributos?.agilidade === undefined || npc.atributos === null
+        ? ''
+        : String(npc.atributos.agilidade),
+    forca:
+      npc.atributos?.forca === undefined || npc.atributos === null
+        ? ''
+        : String(npc.atributos.forca),
+    intelecto:
+      npc.atributos?.intelecto === undefined || npc.atributos === null
+        ? ''
+        : String(npc.atributos.intelecto),
+    presenca:
+      npc.atributos?.presenca === undefined || npc.atributos === null
+        ? ''
+        : String(npc.atributos.presenca),
+    vigor:
+      npc.atributos?.vigor === undefined || npc.atributos === null
+        ? ''
+        : String(npc.atributos.vigor),
+    percepcao: String(
+      npc.pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ?? '',
+    ),
+    iniciativa: String(
+      npc.pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ?? '',
+    ),
+    fortitude: String(
+      npc.pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ?? '',
+    ),
+    reflexos: String(
+      npc.pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ?? '',
+    ),
+    vontade: String(
+      npc.pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ?? '',
+    ),
+    luta: String(
+      npc.pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ?? '',
+    ),
+    jujutsu: String(
+      npc.pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ?? '',
+    ),
     notasCena: npc.notasCena ?? '',
   };
 }
@@ -258,6 +303,39 @@ export default function SessaoCampanhaPage() {
   const [npcEaMax, setNpcEaMax] = useState('');
   const [npcIniciativaValor, setNpcIniciativaValor] = useState('');
   const [modalAdicionarNpcAberto, setModalAdicionarNpcAberto] = useState(false);
+  const [modalAdicionarNpcSimplesAberto, setModalAdicionarNpcSimplesAberto] =
+    useState(false);
+  const [npcSimplesNome, setNpcSimplesNome] = useState('');
+  const [npcSimplesDefesa, setNpcSimplesDefesa] = useState('');
+  const [npcSimplesPvMax, setNpcSimplesPvMax] = useState('');
+  const [npcSimplesIniciativaValor, setNpcSimplesIniciativaValor] = useState('');
+  const [npcSimplesSanAtual, setNpcSimplesSanAtual] = useState('');
+  const [npcSimplesSanMax, setNpcSimplesSanMax] = useState('');
+  const [npcSimplesEaAtual, setNpcSimplesEaAtual] = useState('');
+  const [npcSimplesEaMax, setNpcSimplesEaMax] = useState('');
+  const [npcSimplesFichaTipo, setNpcSimplesFichaTipo] = useState<'NPC' | 'AMEACA'>(
+    'NPC',
+  );
+  const [npcSimplesTipo, setNpcSimplesTipo] = useState<
+    'OUTRO' | 'HUMANO' | 'FEITICEIRO' | 'MALDICAO' | 'ANIMAL' | 'HIBRIDO'
+  >('OUTRO');
+  const [npcSimplesTamanho, setNpcSimplesTamanho] = useState('MEDIO');
+  const [npcSimplesAtributos, setNpcSimplesAtributos] = useState({
+    agilidade: '',
+    forca: '',
+    intelecto: '',
+    presenca: '',
+    vigor: '',
+  });
+  const [npcSimplesPericias, setNpcSimplesPericias] = useState({
+    percepcao: '',
+    iniciativa: '',
+    fortitude: '',
+    reflexos: '',
+    vontade: '',
+    luta: '',
+    jujutsu: '',
+  });
   const [modalAdicionarPersonagemAberto, setModalAdicionarPersonagemAberto] =
     useState(false);
   const [personagensDisponiveis, setPersonagensDisponiveis] = useState<
@@ -866,11 +944,42 @@ export default function SessaoCampanhaPage() {
       obterAjustesRecursosCard,
     });
 
+  const resetarFormularioNpcSimples = useCallback(() => {
+    setNpcSimplesNome('');
+    setNpcSimplesDefesa('');
+    setNpcSimplesPvMax('');
+    setNpcSimplesIniciativaValor('');
+    setNpcSimplesSanAtual('');
+    setNpcSimplesSanMax('');
+    setNpcSimplesEaAtual('');
+    setNpcSimplesEaMax('');
+    setNpcSimplesFichaTipo('NPC');
+    setNpcSimplesTipo('OUTRO');
+    setNpcSimplesTamanho('MEDIO');
+    setNpcSimplesAtributos({
+      agilidade: '',
+      forca: '',
+      intelecto: '',
+      presenca: '',
+      vigor: '',
+    });
+    setNpcSimplesPericias({
+      percepcao: '',
+      iniciativa: '',
+      fortitude: '',
+      reflexos: '',
+      vontade: '',
+      luta: '',
+      jujutsu: '',
+    });
+  }, []);
+
   const {
     adicionandoNpc,
     salvandoNpcId,
     campoRecursoPendente: campoRecursoNpcPendente,
     removendoNpcId,
+    handleAdicionarNpcSimplesNaCena,
     handleAdicionarNpcNaCena,
     handleSalvarNpc,
     handleAplicarDeltaRecursoNpc,
@@ -894,6 +1003,8 @@ export default function SessaoCampanhaPage() {
       setNpcEaMax('');
       setNpcIniciativaValor('');
       setModalAdicionarNpcAberto(false);
+      setModalAdicionarNpcSimplesAberto(false);
+      resetarFormularioNpcSimples();
     },
     onRemocaoConfirmada: () => setNpcRemocaoConfirmacao(null),
     textoSeguro,
@@ -932,6 +1043,64 @@ export default function SessaoCampanhaPage() {
     npcSanMax,
     npcSelecionadoId,
     nomeNpcCustomizado,
+    setErroNpcs,
+  ]);
+
+  const handleConfirmarAdicionarNpcSimples = useCallback(() => {
+    const defesa = parseInteiroComSinal(npcSimplesDefesa.trim());
+    if (!npcSimplesNome.trim()) {
+      setErroNpcs('Informe o nome do NPC simples.');
+      return;
+    }
+    if (defesa === null) {
+      setErroNpcs('Informe uma defesa valida para o NPC simples.');
+      return;
+    }
+    const pontosVidaMax = parseInteiroComSinal(npcSimplesPvMax.trim());
+    if (pontosVidaMax === null || pontosVidaMax <= 0) {
+      setErroNpcs('Informe um PV maximo valido para o NPC simples.');
+      return;
+    }
+
+    const iniciativaValorTexto = npcSimplesIniciativaValor.trim();
+    const iniciativaValor = iniciativaValorTexto
+      ? parseInteiroComSinal(iniciativaValorTexto)
+      : null;
+    if (iniciativaValorTexto && iniciativaValor === null) {
+      setErroNpcs('Informe um valor inteiro valido para iniciativa.');
+      return;
+    }
+
+    void handleAdicionarNpcSimplesNaCena({
+      nome: npcSimplesNome,
+      defesa,
+      pontosVidaMax,
+      fichaTipo: npcSimplesFichaTipo,
+      tipo: npcSimplesTipo,
+      tamanho: npcSimplesTamanho,
+      iniciativaValor,
+      sanAtual: npcSimplesSanAtual,
+      sanMax: npcSimplesSanMax,
+      eaAtual: npcSimplesEaAtual,
+      eaMax: npcSimplesEaMax,
+      ...npcSimplesAtributos,
+      ...npcSimplesPericias,
+    });
+  }, [
+    handleAdicionarNpcSimplesNaCena,
+    npcSimplesAtributos,
+    npcSimplesDefesa,
+    npcSimplesEaAtual,
+    npcSimplesEaMax,
+    npcSimplesFichaTipo,
+    npcSimplesIniciativaValor,
+    npcSimplesNome,
+    npcSimplesPericias,
+    npcSimplesPvMax,
+    npcSimplesSanAtual,
+    npcSimplesSanMax,
+    npcSimplesTamanho,
+    npcSimplesTipo,
     setErroNpcs,
   ]);
 
@@ -1795,6 +1964,7 @@ export default function SessaoCampanhaPage() {
       if (isTypingElement(event.target)) return;
       if (
         modalAdicionarNpcAberto ||
+        modalAdicionarNpcSimplesAberto ||
         modalAdicionarPersonagemAberto ||
         modalIniciativaAberto ||
         modalCondicoesAberto ||
@@ -1829,6 +1999,7 @@ export default function SessaoCampanhaPage() {
     eventoDetalheModal,
     idsValidos,
     modalAdicionarNpcAberto,
+    modalAdicionarNpcSimplesAberto,
     modalCondicoesAberto,
     podeControlarSessao,
     sessaoEncerrada,
@@ -2137,6 +2308,9 @@ export default function SessaoCampanhaPage() {
                     removendoNpcId={removendoNpcId}
                     erro={erroNpcs}
                     onAbrirAdicionar={() => setModalAdicionarNpcAberto(true)}
+                    onAbrirAdicionarNpcSimples={() =>
+                      setModalAdicionarNpcSimplesAberto(true)
+                    }
                     onAtualizarCampo={atualizarCampoEdicaoNpc}
                     onAtualizarAjustePersonalizado={(npc, campo, valor) =>
                       atualizarAjusteRecursoNpc(npc.npcSessaoId, campo, valor)
@@ -2390,6 +2564,50 @@ export default function SessaoCampanhaPage() {
           onSanMaxChange={setNpcSanMax}
           onEaAtualChange={setNpcEaAtual}
           onEaMaxChange={setNpcEaMax}
+        />
+
+        <AddSimpleNpcModal
+          isOpen={modalAdicionarNpcSimplesAberto}
+          onClose={() => setModalAdicionarNpcSimplesAberto(false)}
+          onConfirm={handleConfirmarAdicionarNpcSimples}
+          adicionando={adicionandoNpc}
+          sessaoEncerrada={sessaoEncerrada}
+          nome={npcSimplesNome}
+          onNomeChange={setNpcSimplesNome}
+          defesa={npcSimplesDefesa}
+          onDefesaChange={setNpcSimplesDefesa}
+          pontosVidaMax={npcSimplesPvMax}
+          onPontosVidaMaxChange={setNpcSimplesPvMax}
+          iniciativaValor={npcSimplesIniciativaValor}
+          onIniciativaValorChange={setNpcSimplesIniciativaValor}
+          sanAtual={npcSimplesSanAtual}
+          sanMax={npcSimplesSanMax}
+          eaAtual={npcSimplesEaAtual}
+          eaMax={npcSimplesEaMax}
+          onSanAtualChange={setNpcSimplesSanAtual}
+          onSanMaxChange={setNpcSimplesSanMax}
+          onEaAtualChange={setNpcSimplesEaAtual}
+          onEaMaxChange={setNpcSimplesEaMax}
+          fichaTipo={npcSimplesFichaTipo}
+          onFichaTipoChange={setNpcSimplesFichaTipo}
+          tipo={npcSimplesTipo}
+          onTipoChange={setNpcSimplesTipo}
+          tamanho={npcSimplesTamanho}
+          onTamanhoChange={setNpcSimplesTamanho}
+          atributos={npcSimplesAtributos}
+          onAtributoChange={(campo, valor) =>
+            setNpcSimplesAtributos((estadoAtual) => ({
+              ...estadoAtual,
+              [campo]: valor,
+            }))
+          }
+          pericias={npcSimplesPericias}
+          onPericiaChange={(campo, valor) =>
+            setNpcSimplesPericias((estadoAtual) => ({
+              ...estadoAtual,
+              [campo]: valor,
+            }))
+          }
         />
 
         <AddPersonagemModal

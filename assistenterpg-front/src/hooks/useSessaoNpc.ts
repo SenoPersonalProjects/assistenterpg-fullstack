@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
+  apiAdicionarNpcSimplesSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
@@ -49,6 +50,34 @@ type UseSessaoNpcReturn = {
       iniciativaValor?: number | null;
     },
   ) => Promise<void>;
+  handleAdicionarNpcSimplesNaCena: (payload: {
+    nome: string;
+    defesa: number;
+    pontosVidaMax: number;
+    pontosVidaAtual?: number;
+    fichaTipo?: NpcSessaoCampanha['fichaTipo'];
+    tipo?: NpcSessaoCampanha['tipo'];
+    tamanho?: string;
+    vd?: number;
+    iniciativaValor?: number | null;
+    sanAtual?: string;
+    sanMax?: string;
+    eaAtual?: string;
+    eaMax?: string;
+    agilidade?: string;
+    forca?: string;
+    intelecto?: string;
+    presenca?: string;
+    vigor?: string;
+    percepcao?: string;
+    iniciativa?: string;
+    fortitude?: string;
+    reflexos?: string;
+    vontade?: string;
+    luta?: string;
+    jujutsu?: string;
+    notasCena?: string;
+  }) => Promise<void>;
   handleSalvarNpc: (npc: NpcSessaoCampanha) => Promise<void>;
   handleAplicarDeltaRecursoNpc: (
     npc: NpcSessaoCampanha,
@@ -174,6 +203,98 @@ export function useSessaoNpc({
     ],
   );
 
+  const handleAdicionarNpcSimplesNaCena = useCallback(
+    async (payload: {
+      nome: string;
+      defesa: number;
+      pontosVidaMax: number;
+      pontosVidaAtual?: number;
+      fichaTipo?: NpcSessaoCampanha['fichaTipo'];
+      tipo?: NpcSessaoCampanha['tipo'];
+      tamanho?: string;
+      vd?: number;
+      iniciativaValor?: number | null;
+      sanAtual?: string;
+      sanMax?: string;
+      eaAtual?: string;
+      eaMax?: string;
+      agilidade?: string;
+      forca?: string;
+      intelecto?: string;
+      presenca?: string;
+      vigor?: string;
+      percepcao?: string;
+      iniciativa?: string;
+      fortitude?: string;
+      reflexos?: string;
+      vontade?: string;
+      luta?: string;
+      jujutsu?: string;
+      notasCena?: string;
+    }) => {
+      setAdicionandoNpc(true);
+      setErro(null);
+      try {
+        const sanAtual = parseRecursoOpcional(payload.sanAtual ?? '', null);
+        const sanMax = parseRecursoOpcional(payload.sanMax ?? '', null);
+        const eaAtual = parseRecursoOpcional(payload.eaAtual ?? '', null);
+        const eaMax = parseRecursoOpcional(payload.eaMax ?? '', null);
+        const parseOpcional = (value?: string) =>
+          value?.trim() ? Number(value) : undefined;
+
+        const atualizado = await apiAdicionarNpcSimplesSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          {
+            nome: payload.nome.trim(),
+            defesa: payload.defesa,
+            pontosVidaMax: payload.pontosVidaMax,
+            pontosVidaAtual: payload.pontosVidaAtual,
+            fichaTipo: payload.fichaTipo,
+            tipo: payload.tipo,
+            tamanho: payload.tamanho,
+            vd: payload.vd,
+            iniciativaValor: payload.iniciativaValor,
+            sanAtual: sanAtual ?? undefined,
+            sanMax: sanMax ?? undefined,
+            eaAtual: eaAtual ?? undefined,
+            eaMax: eaMax ?? undefined,
+            agilidade: parseOpcional(payload.agilidade),
+            forca: parseOpcional(payload.forca),
+            intelecto: parseOpcional(payload.intelecto),
+            presenca: parseOpcional(payload.presenca),
+            vigor: parseOpcional(payload.vigor),
+            percepcao: parseOpcional(payload.percepcao),
+            iniciativa: parseOpcional(payload.iniciativa),
+            fortitude: parseOpcional(payload.fortitude),
+            reflexos: parseOpcional(payload.reflexos),
+            vontade: parseOpcional(payload.vontade),
+            luta: parseOpcional(payload.luta),
+            jujutsu: parseOpcional(payload.jujutsu),
+            notasCena: payload.notasCena?.trim() || undefined,
+          },
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        onNpcAdicionado?.();
+        showToast('NPC simples adicionado na cena.', 'success');
+      } catch (error) {
+        setErro(extrairMensagemErro(error));
+      } finally {
+        setAdicionandoNpc(false);
+      }
+    },
+    [
+      campanhaId,
+      onNpcAdicionado,
+      sessaoId,
+      setDetalhe,
+      setErro,
+      showToast,
+      sincronizarEstadosDerivados,
+    ],
+  );
+
   const handleSalvarNpc = useCallback(
     async (npc: NpcSessaoCampanha) => {
       const draft = edicaoNpcs[npc.npcSessaoId];
@@ -187,11 +308,63 @@ export function useSessaoNpc({
           sessaoId,
           npc.npcSessaoId,
           {
+            fichaTipo: draft.fichaTipo as NpcSessaoCampanha['fichaTipo'],
+            tipo: draft.tipo as NpcSessaoCampanha['tipo'],
+            tamanho: draft.tamanho || undefined,
             defesa: parseRecurso(draft.defesa, npc.defesa),
             pontosVidaMax: parseRecurso(draft.pontosVidaMax, npc.pontosVidaMax),
             sanMax: parseRecursoOpcional(draft.sanMax, npc.sanMax),
             eaMax: parseRecursoOpcional(draft.eaMax, npc.eaMax),
             machucado: parseRecursoOpcional(draft.machucado, npc.machucado),
+            agilidade: parseRecursoOpcional(
+              draft.agilidade,
+              npc.atributos?.agilidade ?? null,
+            ),
+            forca: parseRecursoOpcional(draft.forca, npc.atributos?.forca ?? null),
+            intelecto: parseRecursoOpcional(
+              draft.intelecto,
+              npc.atributos?.intelecto ?? null,
+            ),
+            presenca: parseRecursoOpcional(
+              draft.presenca,
+              npc.atributos?.presenca ?? null,
+            ),
+            vigor: parseRecursoOpcional(draft.vigor, npc.atributos?.vigor ?? null),
+            percepcao: parseRecursoOpcional(
+              draft.percepcao,
+              npc.pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ??
+                null,
+            ),
+            iniciativa: parseRecursoOpcional(
+              draft.iniciativa,
+              npc.pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ??
+                null,
+            ),
+            fortitude: parseRecursoOpcional(
+              draft.fortitude,
+              npc.pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ??
+                null,
+            ),
+            reflexos: parseRecursoOpcional(
+              draft.reflexos,
+              npc.pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ??
+                null,
+            ),
+            vontade: parseRecursoOpcional(
+              draft.vontade,
+              npc.pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ??
+                null,
+            ),
+            luta: parseRecursoOpcional(
+              draft.luta,
+              npc.pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ??
+                null,
+            ),
+            jujutsu: parseRecursoOpcional(
+              draft.jujutsu,
+              npc.pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ??
+                null,
+            ),
             notasCena: draft.notasCena,
           },
         );
@@ -313,6 +486,7 @@ export function useSessaoNpc({
     campoRecursoPendente,
     removendoNpcId,
     handleAdicionarNpcNaCena,
+    handleAdicionarNpcSimplesNaCena,
     handleSalvarNpc,
     handleAplicarDeltaRecursoNpc,
     handleAplicarAjustePersonalizadoRecursoNpc,

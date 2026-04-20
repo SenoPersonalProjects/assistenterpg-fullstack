@@ -19,6 +19,7 @@ import { EnviarChatSessaoDto } from './dto/enviar-chat-sessao.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
+import { AdicionarNpcSimplesSessaoDto } from './dto/adicionar-npc-simples-sessao.dto';
 import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { DesfazerEventoSessaoDto } from './dto/desfazer-evento-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
@@ -431,6 +432,29 @@ export class SessaoController {
     @Body() dto: AdicionarNpcSessaoDto,
   ) {
     const resultado = await this.sessaoService.adicionarNpcSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/npcs-simples')
+  async adicionarNpcSimplesSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AdicionarNpcSimplesSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.adicionarNpcSimplesSessao(
       campanhaId,
       sessaoId,
       req.user.id,

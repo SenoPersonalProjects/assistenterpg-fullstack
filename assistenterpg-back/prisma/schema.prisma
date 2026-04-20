@@ -757,6 +757,7 @@ model NpcAmeacaSessao {
   nomeExibicao       String
   fichaTipo          TipoFichaNpcAmeaca @default(AMEACA)
   tipo               TipoNpcAmeaca
+  tamanho            TamanhoNpcAmeaca?  @default(MEDIO)
   vd                 Int                @default(0)
   iniciativaValor    Int?
   defesa             Int                @default(10)
@@ -767,6 +768,18 @@ model NpcAmeacaSessao {
   eaAtual            Int?
   eaMax              Int?
   machucado          Int?
+  agilidade          Int?
+  forca              Int?
+  intelecto          Int?
+  presenca           Int?
+  vigor              Int?
+  percepcao          Int?
+  iniciativa         Int?
+  fortitude          Int?
+  reflexos           Int?
+  vontade            Int?
+  luta               Int?
+  jujutsu            Int?
   deslocamentoMetros Int                @default(6)
   passivasGuia       Json?
   acoesGuia          Json?

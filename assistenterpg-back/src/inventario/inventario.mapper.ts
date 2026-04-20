@@ -117,6 +117,7 @@ export class InventarioMapper {
       sobrecarregado: resultadoEspacos.sobrecarregado,
 
       itens: itens.map((item) => this.mapItem(item)),
+      itensSessao: [],
 
       // ✅ NOVO: Incluir stats equipados
       statsEquipados: this.mapStatsEquipados(statsEquipados),

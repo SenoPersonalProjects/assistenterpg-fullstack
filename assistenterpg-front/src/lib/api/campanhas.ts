@@ -10,6 +10,7 @@ import type {
   PersonagemCampanhaResumo,
   AplicarCondicaoSessaoCampanhaPayload,
   AdicionarNpcSessaoCampanhaPayload,
+  AdicionarNpcSimplesSessaoCampanhaPayload,
   AtualizarNpcSessaoCampanhaPayload,
   CampoModificadorPersonagemCampanha,
   EventoSessaoTimeline,
@@ -510,6 +511,18 @@ export async function apiAdicionarNpcSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAdicionarNpcSimplesSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: AdicionarNpcSimplesSessaoCampanhaPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs-simples`,
     payload,
   );
   return data;

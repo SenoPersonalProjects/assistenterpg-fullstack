@@ -657,21 +657,27 @@ export class CampanhaItensSessaoService {
       throw new BadRequestException('Portador informado nao pertence a campanha.');
     }
 
-    const somaItensSessao = await this.prisma.itemSessaoCampanha.aggregate({
-      where: {
-        personagemCampanhaId,
-        ...(itemIdIgnorado ? { id: { not: itemIdIgnorado } } : {}),
-      },
-      _sum: { peso: true },
-    });
+    let pesoIgnorado = 0;
+    if (itemIdIgnorado) {
+      const itemIgnorado = await this.prisma.itemSessaoCampanha.findFirst({
+        where: {
+          id: itemIdIgnorado,
+          campanhaId,
+          personagemCampanhaId,
+        },
+        select: { peso: true },
+      });
+      pesoIgnorado = Number(itemIgnorado?.peso ?? 0);
+    }
 
     const capacidade =
       Number(personagem.espacosInventarioBase ?? 0) +
       Number(personagem.espacosInventarioExtra ?? 0);
     const limite = capacidade * 2;
-    const ocupado =
-      Number(personagem.espacosOcupados ?? 0) +
-      Number(somaItensSessao._sum.peso ?? 0);
+    const ocupado = Math.max(
+      0,
+      Number(personagem.espacosOcupados ?? 0) - pesoIgnorado,
+    );
     const pesoFinal = ocupado + Number(pesoItem ?? 0);
 
     if (pesoFinal > limite) {

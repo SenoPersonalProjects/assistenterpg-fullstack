@@ -46,6 +46,21 @@ export class ItemInventarioDto {
   modificacoes: ModificacaoItemDto[];
 }
 
+export class ItemSessaoInventarioDto {
+  id: number;
+  campanhaId: number;
+  sessaoId: number | null;
+  cenaId: number | null;
+  personagemCampanhaId: number | null;
+  nome: string;
+  descricao: string | null;
+  descricaoOculta?: boolean;
+  tipo: string;
+  categoria: CategoriaEquipamento;
+  peso: number;
+  descricaoRevelada: boolean;
+}
+
 /**
  * ✅ NOVO: Stats dos itens equipados
  */
@@ -75,6 +90,7 @@ export class InventarioCompletoDto {
 
   // Itens
   itens: ItemInventarioDto[];
+  itensSessao: ItemSessaoInventarioDto[];
 
   // ✅ NOVO: Stats equipados (calculados no backend)
   statsEquipados: StatsEquipadosDto;

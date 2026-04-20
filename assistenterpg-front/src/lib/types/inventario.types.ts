@@ -318,6 +318,25 @@ export type InventarioCampanhaCompletoDto = {
     sobrecarregado: boolean;
   };
   itens: ItemInventarioDto[];
+  itensSessao: Array<{
+    id: number;
+    campanhaId: number;
+    sessaoId: number | null;
+    cenaId: number | null;
+    personagemCampanhaId: number | null;
+    nome: string;
+    descricao: string | null;
+    descricaoOculta?: boolean;
+    tipo: string;
+    categoria: string;
+    peso: number;
+    descricaoRevelada: boolean;
+    portadorAtual?: {
+      id: number;
+      nome: string;
+      donoId: number | null;
+    } | null;
+  }>;
   statsEquipados: StatsEquipadosDto;
   limitesCategoria: {
     grauAtual: string;

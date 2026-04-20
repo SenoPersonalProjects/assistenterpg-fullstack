@@ -1,12 +1,18 @@
-import { OmitType, PartialType } from '@nestjs/mapped-types';
-import { Transform } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 import {
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
   TamanhoNpcAmeaca,
 } from '@prisma/client';
-import { AdicionarNpcSessaoDto } from './adicionar-npc-sessao.dto';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 function toNullableInt(value: unknown): unknown {
   if (value === null || value === undefined || value === '') {
@@ -15,9 +21,11 @@ function toNullableInt(value: unknown): unknown {
   return Number(value);
 }
 
-export class AtualizarNpcSessaoDto extends PartialType(
-  OmitType(AdicionarNpcSessaoDto, ['npcAmeacaId'] as const),
-) {
+export class AdicionarNpcSimplesSessaoDto {
+  @IsString()
+  @MaxLength(120)
+  nome!: string;
+
   @IsOptional()
   @IsEnum(TipoFichaNpcAmeaca)
   fichaTipo?: TipoFichaNpcAmeaca;
@@ -29,6 +37,81 @@ export class AtualizarNpcSessaoDto extends PartialType(
   @IsOptional()
   @IsEnum(TamanhoNpcAmeaca)
   tamanho?: TamanhoNpcAmeaca;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(999)
+  vd?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(-999)
+  @Max(999)
+  iniciativaValor?: number | null;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(500)
+  defesa!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(99999)
+  pontosVidaMax!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  pontosVidaAtual?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  sanAtual?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  sanMax?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  eaAtual?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  eaMax?: number | null;
+
+  @IsOptional()
+  @Transform(({ value }) => toNullableInt(value))
+  @IsInt()
+  @Min(0)
+  @Max(99999)
+  machucado?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(500)
+  deslocamentoMetros?: number;
 
   @IsOptional()
   @Transform(({ value }) => toNullableInt(value))
@@ -113,4 +196,9 @@ export class AtualizarNpcSessaoDto extends PartialType(
   @Min(-99)
   @Max(99)
   jujutsu?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notasCena?: string;
 }

@@ -137,6 +137,7 @@ export function SessionCharacterInventoryTab({
   }, [buscaEquipamento, equipamentos]);
 
   const resumoEspacos = inventario?.espacos;
+  const itensSessao = inventario?.itensSessao ?? [];
   const periciasElegiveisAdicionar = useMemo(
     () =>
       equipamentoSelecionado
@@ -411,7 +412,9 @@ export function SessionCharacterInventoryTab({
 
       {carregando ? (
         <p className="text-xs text-app-muted">Carregando inventario...</p>
-      ) : inventario && inventario.itens.length === 0 ? (
+      ) : inventario &&
+        inventario.itens.length === 0 &&
+        itensSessao.length === 0 ? (
         <EmptyState
           variant="session"
           size="sm"
@@ -493,6 +496,65 @@ export function SessionCharacterInventoryTab({
               </div>
             </div>
           ))}
+
+          {itensSessao.length > 0 ? (
+            <div className="space-y-2">
+              <div className="pt-2">
+                <p className="text-xs font-semibold text-app-fg">
+                  Itens de sessao
+                </p>
+                <p className="session-text-xxs text-app-muted">
+                  Itens encontrados na campanha e atualmente associados a esta
+                  ficha.
+                </p>
+              </div>
+              {itensSessao.map((item) => (
+                <div
+                  key={`sessao-${item.id}`}
+                  className="rounded border border-dashed border-app-border bg-app-surface px-3 py-2"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Icon
+                        name="inventory"
+                        className="h-4 w-4 text-app-muted"
+                      />
+                      <p className="text-sm font-semibold text-app-fg">
+                        {item.nome}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge size="sm" color="gray">
+                        {item.tipo}
+                      </Badge>
+                      <Badge size="sm" color="gray">
+                        {item.categoria}
+                      </Badge>
+                      <Badge size="sm" color="blue">
+                        Peso {item.peso}
+                      </Badge>
+                      <Badge
+                        size="sm"
+                        color={item.descricaoRevelada ? 'green' : 'yellow'}
+                      >
+                        {item.descricaoRevelada
+                          ? 'Descricao revelada'
+                          : 'Descricao oculta'}
+                      </Badge>
+                      {item.portadorAtual ? (
+                        <Badge size="sm" color="gray">
+                          Portador: {item.portadorAtual.nome}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    {item.descricao ? (
+                      <p className="text-xs text-app-muted">{item.descricao}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
 

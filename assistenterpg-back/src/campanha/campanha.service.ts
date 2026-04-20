@@ -515,7 +515,13 @@ export class CampanhaService {
     usuarioId: number,
     dto: CriarItemSessaoCampanhaDto,
   ) {
-    return this.itensSessaoService.criarItem(campanhaId, usuarioId, dto);
+    const item = await this.itensSessaoService.criarItem(campanhaId, usuarioId, dto);
+    if (item.personagemCampanhaId) {
+      await this.inventarioService.recalcularEstadoInventarioCampanha(
+        item.personagemCampanhaId,
+      );
+    }
+    return item;
   }
 
   async atualizarItemSessaoCampanha(
@@ -524,7 +530,25 @@ export class CampanhaService {
     itemId: number,
     dto: AtualizarItemSessaoCampanhaDto,
   ) {
-    return this.itensSessaoService.atualizarItem(campanhaId, usuarioId, itemId, dto);
+    const anterior = await this.prisma.itemSessaoCampanha.findFirst({
+      where: { id: itemId, campanhaId },
+      select: { personagemCampanhaId: true },
+    });
+    const item = await this.itensSessaoService.atualizarItem(
+      campanhaId,
+      usuarioId,
+      itemId,
+      dto,
+    );
+    const ids = new Set<number>();
+    if (anterior?.personagemCampanhaId) ids.add(anterior.personagemCampanhaId);
+    if (item.personagemCampanhaId) ids.add(item.personagemCampanhaId);
+    await Promise.all(
+      [...ids].map((id) =>
+        this.inventarioService.recalcularEstadoInventarioCampanha(id),
+      ),
+    );
+    return item;
   }
 
   async atribuirItemSessaoCampanha(
@@ -533,7 +557,25 @@ export class CampanhaService {
     itemId: number,
     dto: AtribuirItemSessaoCampanhaDto,
   ) {
-    return this.itensSessaoService.atribuirItem(campanhaId, usuarioId, itemId, dto);
+    const anterior = await this.prisma.itemSessaoCampanha.findFirst({
+      where: { id: itemId, campanhaId },
+      select: { personagemCampanhaId: true },
+    });
+    const item = await this.itensSessaoService.atribuirItem(
+      campanhaId,
+      usuarioId,
+      itemId,
+      dto,
+    );
+    const ids = new Set<number>();
+    if (anterior?.personagemCampanhaId) ids.add(anterior.personagemCampanhaId);
+    if (item.personagemCampanhaId) ids.add(item.personagemCampanhaId);
+    await Promise.all(
+      [...ids].map((id) =>
+        this.inventarioService.recalcularEstadoInventarioCampanha(id),
+      ),
+    );
+    return item;
   }
 
   async revelarItemSessaoCampanha(
@@ -564,11 +606,29 @@ export class CampanhaService {
     usuarioId: number,
     transferenciaId: number,
   ) {
-    return this.itensSessaoService.aceitarTransferencia(
+    const transferencia = await this.prisma.transferenciaItemSessaoCampanha.findFirst({
+      where: { id: transferenciaId, campanhaId },
+      select: {
+        portadorAnteriorId: true,
+        destinoPersonagemCampanhaId: true,
+      },
+    });
+    const resultado = await this.itensSessaoService.aceitarTransferencia(
       campanhaId,
       usuarioId,
       transferenciaId,
     );
+    const ids = new Set<number>();
+    if (transferencia?.portadorAnteriorId) ids.add(transferencia.portadorAnteriorId);
+    if (transferencia?.destinoPersonagemCampanhaId) {
+      ids.add(transferencia.destinoPersonagemCampanhaId);
+    }
+    await Promise.all(
+      [...ids].map((id) =>
+        this.inventarioService.recalcularEstadoInventarioCampanha(id),
+      ),
+    );
+    return resultado;
   }
 
   async recusarTransferenciaItemSessaoCampanha(

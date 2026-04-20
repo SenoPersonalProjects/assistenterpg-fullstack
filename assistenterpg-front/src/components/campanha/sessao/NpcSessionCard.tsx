@@ -203,10 +203,46 @@ export function NpcSessionCard({
     return valorDraft !== baseTexto;
   };
   const camposAlterados = {
+    fichaTipo: mudouCampo(draft?.fichaTipo, npc.fichaTipo),
+    tipo: mudouCampo(draft?.tipo, npc.tipo),
+    tamanho: mudouCampo(draft?.tamanho, npc.tamanho ?? 'MEDIO'),
     defesa: mudouCampo(draft?.defesa, npc.defesa),
     pontosVidaMax: mudouCampo(draft?.pontosVidaMax, npc.pontosVidaMax),
     sanMax: mudouCampo(draft?.sanMax, npc.sanMax),
     eaMax: mudouCampo(draft?.eaMax, npc.eaMax),
+    agilidade: mudouCampo(draft?.agilidade, npc.atributos?.agilidade ?? ''),
+    forca: mudouCampo(draft?.forca, npc.atributos?.forca ?? ''),
+    intelecto: mudouCampo(draft?.intelecto, npc.atributos?.intelecto ?? ''),
+    presenca: mudouCampo(draft?.presenca, npc.atributos?.presenca ?? ''),
+    vigor: mudouCampo(draft?.vigor, npc.atributos?.vigor ?? ''),
+    percepcao: mudouCampo(
+      draft?.percepcao,
+      npc.pericias.find((pericia) => pericia.codigo === 'PERCEPCAO')?.bonus ?? '',
+    ),
+    iniciativa: mudouCampo(
+      draft?.iniciativa,
+      npc.pericias.find((pericia) => pericia.codigo === 'INICIATIVA')?.bonus ?? '',
+    ),
+    fortitude: mudouCampo(
+      draft?.fortitude,
+      npc.pericias.find((pericia) => pericia.codigo === 'FORTITUDE')?.bonus ?? '',
+    ),
+    reflexos: mudouCampo(
+      draft?.reflexos,
+      npc.pericias.find((pericia) => pericia.codigo === 'REFLEXOS')?.bonus ?? '',
+    ),
+    vontade: mudouCampo(
+      draft?.vontade,
+      npc.pericias.find((pericia) => pericia.codigo === 'VONTADE')?.bonus ?? '',
+    ),
+    luta: mudouCampo(
+      draft?.luta,
+      npc.pericias.find((pericia) => pericia.codigo === 'LUTA')?.bonus ?? '',
+    ),
+    jujutsu: mudouCampo(
+      draft?.jujutsu,
+      npc.pericias.find((pericia) => pericia.codigo === 'JUJUTSU')?.bonus ?? '',
+    ),
     notasCena: mudouCampo(draft?.notasCena, npc.notasCena ?? ''),
   };
   const possuiAlteracoes = Object.values(camposAlterados).some(Boolean);
@@ -910,6 +946,40 @@ export function NpcSessionCard({
                     </div>
 
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                      {npc.npcAmeacaId === null ? (
+                        <>
+                          <Input
+                            label="Ficha"
+                            value={draft?.fichaTipo ?? npc.fichaTipo}
+                            className={
+                              camposAlterados.fichaTipo ? 'session-input--dirty' : ''
+                            }
+                            onChange={(event) =>
+                              onAtualizarCampo(npc, 'fichaTipo', event.target.value)
+                            }
+                          />
+                          <Input
+                            label="Tipo"
+                            value={draft?.tipo ?? npc.tipo}
+                            className={
+                              camposAlterados.tipo ? 'session-input--dirty' : ''
+                            }
+                            onChange={(event) =>
+                              onAtualizarCampo(npc, 'tipo', event.target.value)
+                            }
+                          />
+                          <Input
+                            label="Tamanho"
+                            value={draft?.tamanho ?? npc.tamanho ?? 'MEDIO'}
+                            className={
+                              camposAlterados.tamanho ? 'session-input--dirty' : ''
+                            }
+                            onChange={(event) =>
+                              onAtualizarCampo(npc, 'tamanho', event.target.value)
+                            }
+                          />
+                        </>
+                      ) : null}
                       <Input
                         type="number"
                         label="Defesa"
@@ -953,6 +1023,80 @@ export function NpcSessionCard({
                       />
                     </div>
                   </div>
+
+                  {npc.npcAmeacaId === null ? (
+                    <>
+                      <div className="session-npc-ajustes__group">
+                        <div className="space-y-1">
+                          <p className="session-npc-ajustes__group-title">
+                            Atributos opcionais
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+                          {(
+                            [
+                              ['agilidade', 'AGI'],
+                              ['forca', 'FOR'],
+                              ['intelecto', 'INT'],
+                              ['presenca', 'PRE'],
+                              ['vigor', 'VIG'],
+                            ] as const
+                          ).map(([campo, label]) => (
+                            <Input
+                              key={campo}
+                              type="number"
+                              label={label}
+                              value={draft?.[campo] ?? ''}
+                              className={
+                                camposAlterados[campo]
+                                  ? 'session-input--dirty'
+                                  : ''
+                              }
+                              onChange={(event) =>
+                                onAtualizarCampo(npc, campo, event.target.value)
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="session-npc-ajustes__group">
+                        <div className="space-y-1">
+                          <p className="session-npc-ajustes__group-title">
+                            Pericias opcionais
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                          {(
+                            [
+                              ['percepcao', 'Percepcao'],
+                              ['iniciativa', 'Iniciativa'],
+                              ['fortitude', 'Fortitude'],
+                              ['reflexos', 'Reflexos'],
+                              ['vontade', 'Vontade'],
+                              ['luta', 'Luta'],
+                              ['jujutsu', 'Jujutsu'],
+                            ] as const
+                          ).map(([campo, label]) => (
+                            <Input
+                              key={campo}
+                              type="number"
+                              label={label}
+                              value={draft?.[campo] ?? ''}
+                              className={
+                                camposAlterados[campo]
+                                  ? 'session-input--dirty'
+                                  : ''
+                              }
+                              onChange={(event) =>
+                                onAtualizarCampo(npc, campo, event.target.value)
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
 
                   <div className="session-npc-ajustes__group">
                     <div className="space-y-1">
