@@ -14,7 +14,7 @@ import {
   type UpdatePersonagemBasePayload,
   type SuplementoCatalogo,
 } from '@/lib/api';
-import { apiGetHomebrews, apiGetMeusHomebrews, type HomebrewResumo } from '@/lib/api/homebrews';
+import { apiGetMeusHomebrews, type HomebrewResumo } from '@/lib/api/homebrews';
 
 import { useConfirm } from '@/hooks/useConfirm';
 import { useToast } from '@/context/ToastContext';
@@ -98,16 +98,17 @@ async function carregarHomebrewsAcessiveis(): Promise<HomebrewResumo[]> {
     return itens;
   }
 
-  const [homebrewsPublicas, minhasHomebrews] = await Promise.all([
-    carregarTodasPaginas((pagina) =>
-      apiGetHomebrews({ apenasPublicados: true, pagina, limite: 100 }),
-    ),
-    carregarTodasPaginas((pagina) => apiGetMeusHomebrews({ pagina, limite: 100 })),
-  ]);
+  const minhasHomebrewsPublicadas = await carregarTodasPaginas((pagina) =>
+    apiGetMeusHomebrews({
+      status: 'PUBLICADO' as HomebrewResumo['status'],
+      pagina,
+      limite: 100,
+    }),
+  );
 
   const porId = new Map<number, HomebrewResumo>();
-  for (const homebrew of [...minhasHomebrews, ...homebrewsPublicas]) {
-    if (homebrew.status === 'ARQUIVADO') continue;
+  for (const homebrew of minhasHomebrewsPublicadas) {
+    if (homebrew.status !== 'PUBLICADO') continue;
     porId.set(homebrew.id, homebrew);
   }
 
