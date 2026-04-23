@@ -190,7 +190,7 @@ export function DiceChatPanel({
       {erro ? <ErrorAlert message={erro} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="session-chat__hint">
-          Sintaxe: XdY ou X#dY. Suporta d6 e multiplas rolagens (ex.: d20 2d6+3).
+          Sintaxe: XdY ou X#dY. Espacos em operadores sao ignorados (ex.: d20 + 5).
         </p>
         <div className="flex items-center gap-3">
           <Checkbox
@@ -281,12 +281,15 @@ export function DiceChatPanel({
           <div className="space-y-2">
             <p className="font-semibold text-app-fg">Sintaxe basica</p>
             <p>Use XdY para rolar X dados com Y faces.</p>
-            <p>Use # antes do d para mostrar apenas valores individuais.</p>
+            <p>
+              Use # antes do d para aplicar o modificador em cada dado, mostrar
+              valores individuais e destacar o melhor resultado.
+            </p>
           </div>
 
           <div className="space-y-2">
             <p className="font-semibold text-app-fg">Modificadores</p>
-            <p>Use + ou - para somar no total (ou em cada dado com #).</p>
+            <p>Use +, -, * ou / no total; com #, o modificador vale para cada dado.</p>
           </div>
 
           <div className="space-y-2">
@@ -304,7 +307,8 @@ export function DiceChatPanel({
             <div className="grid gap-2 rounded-lg border border-app-border bg-app-surface/80 p-3 text-xs text-app-fg">
               <span><strong>d20</strong> (atalho de 1d20)</span>
               <span><strong>2d6+3</strong> (soma total +3)</span>
-              <span><strong>4#d8-1</strong> (mostra cada dado -1)</span>
+              <span><strong>4#d8-1</strong> (cada dado -1; destaca o melhor)</span>
+              <span><strong>1d6 + 3</strong> (espacos sao aceitos)</span>
               <span><strong>Ataque:d20+5 Defesa:d20+2</strong></span>
               <span><strong>d6 | d6 | d6</strong></span>
             </div>

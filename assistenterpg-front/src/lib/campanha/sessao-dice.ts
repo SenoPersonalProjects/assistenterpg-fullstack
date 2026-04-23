@@ -114,6 +114,18 @@ function normalizarKeepMode(keepMode?: DiceKeepMode): DiceKeepMode {
   return 'SUM';
 }
 
+function normalizarEntradaDice(input: string): string {
+  return input
+    .trim()
+    .replace(/\s*([:=])\s*/g, '$1')
+    .replace(/\s*([+\-*/])\s*(?=\d)/g, '$1');
+}
+
+function resolverKeepModeResultado(payload: DiceRollPayload): DiceKeepMode {
+  const keepMode = normalizarKeepMode(payload.keepMode);
+  if (!payload.aplicarModificadorPorDado) return keepMode;
+  return keepMode === 'LOWEST' ? 'LOWEST' : 'HIGHEST';
+}
 
 function gerarNumeroSeguro(maximo: number): number {
   if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
@@ -219,7 +231,7 @@ export function parseDiceExpression(input: string): DiceParseResult {
 }
 
 export function parseDiceInput(input: string): DiceParseGroupResult {
-  const entrada = input.trim();
+  const entrada = normalizarEntradaDice(input);
   if (!entrada) {
     return { expressions: null, erro: 'Informe uma rolagem para continuar.' };
   }
@@ -288,7 +300,7 @@ export function rolarDados(expression: DiceExpression): DiceRollPayload {
 }
 
 export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
-  const keepMode = normalizarKeepMode(payload.keepMode);
+  const keepMode = resolverKeepModeResultado(payload);
   const normalizado = normalizarOperadorModificador(
     payload.operador,
     payload.modificador,
@@ -345,8 +357,9 @@ export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
 
   let indiceEscolhido = 0;
   for (let i = 1; i < rolagensBase.length; i += 1) {
-    const atual = rolagensBase[i] ?? 0;
-    const escolhido = rolagensBase[indiceEscolhido] ?? 0;
+    const atual = rolagensFinais[i] ?? rolagensBase[i] ?? 0;
+    const escolhido =
+      rolagensFinais[indiceEscolhido] ?? rolagensBase[indiceEscolhido] ?? 0;
     if (keepMode === 'HIGHEST') {
       if (atual > escolhido) indiceEscolhido = i;
     } else if (atual < escolhido) {

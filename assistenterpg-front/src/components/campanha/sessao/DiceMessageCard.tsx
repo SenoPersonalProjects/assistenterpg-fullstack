@@ -71,8 +71,8 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
     keepMode !== 'SUM' && indiceEscolhido !== null && indiceEscolhido !== undefined;
   const labelTotal = usarSelecionado
     ? keepMode === 'HIGHEST'
-      ? 'Maior resultado'
-      : 'Menor resultado'
+      ? 'Melhor resultado'
+      : 'Pior resultado'
     : 'Total';
   const resumoClassName = `session-dice__summary${
     temNaturalMax ? ' session-dice__summary--crit' : ''
@@ -99,7 +99,7 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
       <div className={resumoClassName}>
         {payload.aplicarModificadorPorDado ? (
           <>
-            <span className="session-dice__summary-label">Valores individuais</span>
+            <span className="session-dice__summary-label">{labelTotal}</span>
             {modificadorTexto ? (
               <span className="session-dice__modifier">
                 {modificadorTexto} por dado
