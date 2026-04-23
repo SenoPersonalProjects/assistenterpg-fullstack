@@ -46,6 +46,7 @@ import { seedHabilidadesPoderesGenericos } from './seeds/habilidades/hab-poderes
 import { seedHabilidadesRecursosClasse } from './seeds/habilidades/hab-recursos-classe';
 import { seedHabilidadesTrilha } from './seeds/habilidades/hab-trilha';
 import { seedAmeacasSagami } from './seeds/npcs-ameacas/sagami';
+import { seedSobrevivendoAoJujutsu } from './seeds/suplementos/sobrevivendo-ao-jujutsu';
 
 // =======================
 // Personagem (catálogo)
@@ -162,6 +163,11 @@ async function main() {
   await seedHabilidadesEfeitosGrau(prisma);
   await seedHabilidadesMecanicasEspeciais(prisma);
   console.log('✅ Pós-processamentos concluídos!\n');
+
+  console.log('[Extra] Cadastrando suplementos oficiais...');
+  await seedSobrevivendoAoJujutsu(prisma);
+  await seedEquipamentosModificacoesAplicaveis(prisma);
+  console.log('Suplementos oficiais concluidos!\n');
 
   // ============================================================
   // RESUMO FINAL

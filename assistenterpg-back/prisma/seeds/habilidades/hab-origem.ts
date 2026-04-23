@@ -339,8 +339,12 @@ export async function seedHabilidadesOrigem(prisma: PrismaClient) {
   // ✅ mesmo padrão: apaga só os vínculos cujo lado "habilidade" é do tipo ORIGEM
   await prisma.habilidadeOrigem.deleteMany({
     where: {
+      origem: {
+        fonte: TipoFonte.SISTEMA_BASE,
+      },
       habilidade: {
         tipo: 'ORIGEM',
+        fonte: TipoFonte.SISTEMA_BASE,
       },
     },
   });
