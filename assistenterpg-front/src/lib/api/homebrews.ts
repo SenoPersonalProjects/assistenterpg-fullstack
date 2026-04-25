@@ -68,6 +68,28 @@ export type HomebrewDetalhado = HomebrewResumo & {
   dados: JsonValue; // JSON - estrutura varia por tipo
 };
 
+export type HomebrewGrupoResumo = {
+  id: number;
+  nome: string;
+  descricao?: string | null;
+  quantidadeItens: number;
+  homebrewIds: number[];
+  criadoEm?: string;
+  atualizadoEm?: string;
+};
+
+export type HomebrewGrupoDetalhe = HomebrewGrupoResumo & {
+  homebrews: HomebrewResumo[];
+};
+
+export type CreateHomebrewGrupoDto = {
+  nome: string;
+  descricao?: string;
+  homebrewIds?: number[];
+};
+
+export type UpdateHomebrewGrupoDto = Partial<CreateHomebrewGrupoDto>;
+
 /**
  * Filtros para listagem
  */
@@ -270,6 +292,47 @@ export async function apiPublicarHomebrew(id: number): Promise<HomebrewResumo> {
  */
 export async function apiArquivarHomebrew(id: number): Promise<HomebrewResumo> {
   const { data } = await apiClient.patch(`/homebrews/${id}/arquivar`);
+  return data;
+}
+
+export async function apiListarGruposHomebrew(): Promise<HomebrewGrupoResumo[]> {
+  const { data } = await apiClient.get('/homebrews/grupos');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiGetGrupoHomebrew(
+  id: number,
+): Promise<HomebrewGrupoDetalhe> {
+  const { data } = await apiClient.get(`/homebrews/grupos/${id}`);
+  return data;
+}
+
+export async function apiCreateGrupoHomebrew(
+  payload: CreateHomebrewGrupoDto,
+): Promise<HomebrewGrupoDetalhe> {
+  const { data } = await apiClient.post('/homebrews/grupos', payload);
+  return data;
+}
+
+export async function apiUpdateGrupoHomebrew(
+  id: number,
+  payload: UpdateHomebrewGrupoDto,
+): Promise<HomebrewGrupoDetalhe> {
+  const { data } = await apiClient.patch(`/homebrews/grupos/${id}`, payload);
+  return data;
+}
+
+export async function apiDeleteGrupoHomebrew(id: number): Promise<void> {
+  await apiClient.delete(`/homebrews/grupos/${id}`);
+}
+
+export async function apiExportarHomebrew(id: number): Promise<unknown> {
+  const { data } = await apiClient.get(`/homebrews/${id}/exportar`);
+  return data;
+}
+
+export async function apiExportarGrupoHomebrew(id: number): Promise<unknown> {
+  const { data } = await apiClient.get(`/homebrews/grupos/${id}/exportar`);
   return data;
 }
 

@@ -666,3 +666,44 @@ export type EventoSessaoTimeline = {
     personagemNome: string | null;
   } | null;
 };
+
+export type SessaoRelatorioContadores = {
+  danoRecebido: number;
+  rolagensFeitas: number;
+  habilidadesUsadas: number;
+  entradasMachucado: number;
+  entradasPerturbado: number;
+  entradasMorrendo: number;
+  entradasEnlouquecendo: number;
+};
+
+export type SessaoRelatorioPersonagem = {
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  donoId: number;
+  nomePersonagem: string;
+  nomeJogador: string;
+  totaisSessao: SessaoRelatorioContadores;
+  totaisCombate: SessaoRelatorioContadores;
+  statusFinal: {
+    terminouVivo: boolean;
+    pvAtual: number;
+    pvMax: number;
+    sanAtual: number;
+    sanMax: number;
+    morto: boolean;
+  };
+};
+
+export type SessaoCampanhaRelatorio = {
+  sessaoId: number;
+  campanhaId: number;
+  tituloSessao: string;
+  geradoEm: string;
+  iniciadoEm: string;
+  encerradoEm: string | null;
+  personagens: SessaoRelatorioPersonagem[];
+  permissoes: {
+    ehMestre: boolean;
+  };
+};

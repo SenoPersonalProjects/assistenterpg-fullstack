@@ -6,8 +6,19 @@ import { NpcAmeacaNaoEncontradaException } from 'src/common/exceptions/npc-ameac
 import { CreateNpcAmeacaDto } from './dto/create-npc-ameaca.dto';
 import { ListarNpcsAmeacasDto } from './dto/listar-npcs-ameacas.dto';
 import { UpdateNpcAmeacaDto } from './dto/update-npc-ameaca.dto';
+import { CreateNpcAmeacaGrupoDto } from './dto/create-npc-ameaca-grupo.dto';
+import { UpdateNpcAmeacaGrupoDto } from './dto/update-npc-ameaca-grupo.dto';
 
 type NpcAmeacaModel = Prisma.NpcAmeacaGetPayload<Record<string, never>>;
+type NpcAmeacaGrupoModel = Prisma.NpcAmeacaGrupoGetPayload<{
+  include: {
+    itens: {
+      include: {
+        npcAmeaca: true;
+      };
+    };
+  };
+}>;
 
 type PericiaCatalogo = {
   codigo: string;
@@ -536,5 +547,218 @@ export class NpcsAmeacasService {
       this.tratarErroPrisma(error);
       throw error;
     }
+  }
+
+  async listarGrupos(usuarioId: number) {
+    try {
+      const grupos = await this.prisma.npcAmeacaGrupo.findMany({
+        where: { usuarioId },
+        include: {
+          itens: {
+            include: { npcAmeaca: true },
+            orderBy: { npcAmeaca: { nome: 'asc' } },
+          },
+        },
+        orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+      });
+
+      return grupos.map((grupo) => this.mapearGrupo(grupo));
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async buscarGrupoPorId(usuarioId: number, grupoId: number) {
+    try {
+      const grupo = await this.prisma.npcAmeacaGrupo.findFirst({
+        where: { id: grupoId, usuarioId },
+        include: {
+          itens: {
+            include: { npcAmeaca: true },
+            orderBy: { npcAmeaca: { nome: 'asc' } },
+          },
+        },
+      });
+
+      if (!grupo) {
+        throw new NpcAmeacaNaoEncontradaException(grupoId);
+      }
+
+      return this.mapearGrupo(grupo);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async criarGrupo(usuarioId: number, dto: CreateNpcAmeacaGrupoDto) {
+    try {
+      const npcAmeacaIds = [...new Set(dto.npcAmeacaIds ?? [])];
+      await this.validarPertencimentoNpcs(usuarioId, npcAmeacaIds);
+
+      const grupo = await this.prisma.npcAmeacaGrupo.create({
+        data: {
+          usuarioId,
+          nome: dto.nome.trim(),
+          descricao: this.normalizarTexto(dto.descricao) ?? null,
+          itens: {
+            create: npcAmeacaIds.map((npcAmeacaId) => ({ npcAmeacaId })),
+          },
+        },
+        include: {
+          itens: {
+            include: { npcAmeaca: true },
+            orderBy: { npcAmeaca: { nome: 'asc' } },
+          },
+        },
+      });
+
+      return this.mapearGrupo(grupo);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async atualizarGrupo(
+    usuarioId: number,
+    grupoId: number,
+    dto: UpdateNpcAmeacaGrupoDto,
+  ) {
+    try {
+      await this.assertGrupoExiste(usuarioId, grupoId);
+
+      const npcAmeacaIds =
+        dto.npcAmeacaIds !== undefined ? [...new Set(dto.npcAmeacaIds)] : null;
+      if (npcAmeacaIds) {
+        await this.validarPertencimentoNpcs(usuarioId, npcAmeacaIds);
+      }
+
+      const grupo = await this.prisma.$transaction(async (tx) => {
+        if (npcAmeacaIds) {
+          await tx.npcAmeacaGrupoItem.deleteMany({ where: { grupoId } });
+          if (npcAmeacaIds.length > 0) {
+            await tx.npcAmeacaGrupoItem.createMany({
+              data: npcAmeacaIds.map((npcAmeacaId) => ({
+                grupoId,
+                npcAmeacaId,
+              })),
+            });
+          }
+        }
+
+        return tx.npcAmeacaGrupo.update({
+          where: { id: grupoId },
+          data: {
+            ...(dto.nome !== undefined ? { nome: dto.nome.trim() } : {}),
+            ...(dto.descricao !== undefined
+              ? { descricao: this.normalizarTexto(dto.descricao) ?? null }
+              : {}),
+          },
+          include: {
+            itens: {
+              include: { npcAmeaca: true },
+              orderBy: { npcAmeaca: { nome: 'asc' } },
+            },
+          },
+        });
+      });
+
+      return this.mapearGrupo(grupo);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async removerGrupo(usuarioId: number, grupoId: number) {
+    try {
+      await this.assertGrupoExiste(usuarioId, grupoId);
+      await this.prisma.npcAmeacaGrupo.delete({ where: { id: grupoId } });
+      return { id: grupoId, message: 'Grupo removido com sucesso.' };
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async exportarNpcAmeaca(usuarioId: number, id: number) {
+    const npc = await this.buscarPorId(usuarioId, id);
+    return {
+      exportType: 'npc-ameaca',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      item: npc,
+    };
+  }
+
+  async exportarGrupo(usuarioId: number, grupoId: number) {
+    const grupo = await this.prisma.npcAmeacaGrupo.findFirst({
+      where: { id: grupoId, usuarioId },
+      include: {
+        itens: {
+          include: { npcAmeaca: true },
+          orderBy: { npcAmeaca: { nome: 'asc' } },
+        },
+      },
+    });
+
+    if (!grupo) {
+      throw new NpcAmeacaNaoEncontradaException(grupoId);
+    }
+
+    return {
+      exportType: 'npc-ameaca-group',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      group: {
+        id: grupo.id,
+        nome: grupo.nome,
+        descricao: grupo.descricao ?? null,
+      },
+      items: grupo.itens.map(({ npcAmeaca }) => this.mapearDetalhe(npcAmeaca)),
+    };
+  }
+
+  private async validarPertencimentoNpcs(
+    usuarioId: number,
+    npcAmeacaIds: number[],
+  ) {
+    if (npcAmeacaIds.length === 0) return;
+    const total = await this.prisma.npcAmeaca.count({
+      where: {
+        donoId: usuarioId,
+        id: { in: npcAmeacaIds },
+      },
+    });
+    if (total !== npcAmeacaIds.length) {
+      throw new BadRequestException(
+        'Um ou mais NPCs/ameacas informados nao pertencem ao usuario.',
+      );
+    }
+  }
+
+  private async assertGrupoExiste(usuarioId: number, grupoId: number) {
+    const grupo = await this.prisma.npcAmeacaGrupo.findFirst({
+      where: { id: grupoId, usuarioId },
+      select: { id: true },
+    });
+
+    if (!grupo) {
+      throw new NpcAmeacaNaoEncontradaException(grupoId);
+    }
+  }
+
+  private mapearGrupo(grupo: NpcAmeacaGrupoModel) {
+    return {
+      id: grupo.id,
+      nome: grupo.nome,
+      descricao: grupo.descricao ?? null,
+      criadoEm: grupo.criadoEm,
+      atualizadoEm: grupo.atualizadoEm,
+      quantidadeItens: grupo.itens.length,
+      itens: grupo.itens.map(({ npcAmeaca }) => this.mapearResumo(npcAmeaca)),
+    };
   }
 }

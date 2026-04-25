@@ -30,6 +30,7 @@ import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import { RemoverCondicaoSessaoDto } from './dto/remover-condicao-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
 import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.dto';
+import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas/:campanhaId/sessoes')
@@ -99,6 +100,19 @@ export class SessaoController {
     );
   }
 
+  @Get(':sessaoId/relatorio')
+  async buscarRelatorioSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.sessaoService.buscarRelatorioSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+    );
+  }
+
   @Post(':sessaoId/chat')
   async enviarMensagemChatSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
@@ -142,6 +156,31 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       'HABILIDADE_USADA',
+    );
+
+    return resultado;
+  }
+
+  @Patch(':sessaoId/personagens/:personagemSessaoId/recursos')
+  async atualizarRecursosPersonagemSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarRecursosPersonagemSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarRecursosPersonagemSessao(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'RECURSO_AJUSTADO',
     );
 
     return resultado;

@@ -126,6 +126,7 @@ export type ItemInventarioPayload = {
 export type FontesConteudoPayload = {
   suplementoIds: number[];
   homebrewIds: number[];
+  homebrewGrupoIds: number[];
 };
 
 /* ============================================================================ */

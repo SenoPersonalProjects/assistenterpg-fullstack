@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Header,
   Post,
   Body,
   Patch,
@@ -18,6 +19,8 @@ import { HomebrewsService } from './homebrews.service';
 import { CreateHomebrewDto } from './dto/create-homebrew.dto';
 import { UpdateHomebrewDto } from './dto/update-homebrew.dto';
 import { FiltrarHomebrewsDto } from './dto/filtrar-homebrews.dto';
+import { CreateHomebrewGrupoDto } from './dto/create-homebrew-grupo.dto';
+import { UpdateHomebrewGrupoDto } from './dto/update-homebrew-grupo.dto';
 
 type UsuarioAutenticado = {
   id: number;
@@ -61,6 +64,53 @@ export class HomebrewsController {
     return this.homebrewsService.buscarPorCodigo(codigo, usuarioId, isAdmin);
   }
 
+  @Get('grupos')
+  listarGrupos(@Request() req: AuthenticatedRequest) {
+    return this.homebrewsService.listarGrupos(req.user.id);
+  }
+
+  @Get('grupos/:id')
+  buscarGrupoPorId(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.homebrewsService.buscarGrupoPorId(id, req.user.id);
+  }
+
+  @Post('grupos')
+  criarGrupo(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: CreateHomebrewGrupoDto,
+  ) {
+    return this.homebrewsService.criarGrupo(req.user.id, dto);
+  }
+
+  @Patch('grupos/:id')
+  atualizarGrupo(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: UpdateHomebrewGrupoDto,
+  ) {
+    return this.homebrewsService.atualizarGrupo(id, req.user.id, dto);
+  }
+
+  @Delete('grupos/:id')
+  removerGrupo(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.homebrewsService.removerGrupo(id, req.user.id);
+  }
+
+  @Get('grupos/:id/exportar')
+  @Header('Content-Type', 'application/json')
+  exportarGrupo(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.homebrewsService.exportarGrupo(id, req.user.id);
+  }
+
   @Get()
   listar(
     @Query() filtros: FiltrarHomebrewsDto,
@@ -68,6 +118,16 @@ export class HomebrewsController {
   ) {
     const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.listar(filtros, usuarioId, isAdmin);
+  }
+
+  @Get(':id/exportar')
+  @Header('Content-Type', 'application/json')
+  exportarHomebrew(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
+    return this.homebrewsService.exportarHomebrew(id, usuarioId, isAdmin);
   }
 
   @Get(':id')

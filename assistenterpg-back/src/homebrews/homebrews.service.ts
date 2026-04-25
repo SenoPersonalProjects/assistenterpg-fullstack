@@ -7,6 +7,8 @@ import { FiltrarHomebrewsDto } from './dto/filtrar-homebrews.dto';
 import { HomebrewDetalhadoDto } from './dto/homebrew-detalhado.dto';
 import { HomebrewTecnicaDto } from './dto/tecnicas/criar-homebrew-tecnica.dto';
 import { HomebrewTrilhaDto } from './dto/trilhas/criar-homebrew-trilha.dto';
+import { CreateHomebrewGrupoDto } from './dto/create-homebrew-grupo.dto';
+import { UpdateHomebrewGrupoDto } from './dto/update-homebrew-grupo.dto';
 
 import {
   HomebrewNaoEncontradoException,
@@ -43,6 +45,33 @@ type HomebrewPermissaoPayload = Pick<
   HomebrewDetalhadoPayload,
   'id' | 'usuarioId' | 'status'
 >;
+
+const homebrewGrupoInclude = {
+  itens: {
+    include: {
+      homebrew: {
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          tipo: true,
+          status: true,
+          versao: true,
+          atualizadoEm: true,
+        },
+      },
+    },
+    orderBy: {
+      homebrew: {
+        nome: 'asc',
+      },
+    },
+  },
+} satisfies Prisma.HomebrewGrupoInclude;
+
+type HomebrewGrupoPayload = Prisma.HomebrewGrupoGetPayload<{
+  include: typeof homebrewGrupoInclude;
+}>;
 
 @Injectable()
 export class HomebrewsService {
@@ -498,6 +527,216 @@ export class HomebrewsService {
     return this.listar({ ...filtros, usuarioId }, usuarioId, false);
   }
 
+  async listarGrupos(usuarioId: number) {
+    try {
+      const grupos = await this.prisma.homebrewGrupo.findMany({
+        where: { usuarioId },
+        include: homebrewGrupoInclude,
+        orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+      });
+
+      return grupos.map((grupo) => this.mapearGrupo(grupo));
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async buscarGrupoPorId(grupoId: number, usuarioId: number) {
+    try {
+      const grupo = await this.prisma.homebrewGrupo.findFirst({
+        where: { id: grupoId, usuarioId },
+        include: homebrewGrupoInclude,
+      });
+
+      if (!grupo) {
+        throw new HomebrewNaoEncontradoException(grupoId);
+      }
+
+      return this.mapearGrupo(grupo);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async criarGrupo(usuarioId: number, dto: CreateHomebrewGrupoDto) {
+    try {
+      const nome = dto.nome.trim();
+      const descricao = dto.descricao?.trim() || null;
+      const homebrewIds = [...new Set(dto.homebrewIds ?? [])];
+
+      await this.validarPertencimentoHomebrews(usuarioId, homebrewIds);
+
+      const grupo = await this.prisma.homebrewGrupo.create({
+        data: {
+          usuarioId,
+          nome,
+          descricao,
+          itens: {
+            create: homebrewIds.map((homebrewId) => ({ homebrewId })),
+          },
+        },
+        include: homebrewGrupoInclude,
+      });
+
+      return this.mapearGrupo(grupo);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async atualizarGrupo(
+    grupoId: number,
+    usuarioId: number,
+    dto: UpdateHomebrewGrupoDto,
+  ) {
+    try {
+      await this.assertGrupoExiste(grupoId, usuarioId);
+
+      const homebrewIds =
+        dto.homebrewIds !== undefined ? [...new Set(dto.homebrewIds)] : null;
+      if (homebrewIds) {
+        await this.validarPertencimentoHomebrews(usuarioId, homebrewIds);
+      }
+
+      const grupo = await this.prisma.$transaction(async (tx) => {
+        if (homebrewIds) {
+          await tx.homebrewGrupoItem.deleteMany({ where: { grupoId } });
+          if (homebrewIds.length > 0) {
+            await tx.homebrewGrupoItem.createMany({
+              data: homebrewIds.map((homebrewId) => ({ grupoId, homebrewId })),
+            });
+          }
+        }
+
+        return tx.homebrewGrupo.update({
+          where: { id: grupoId },
+          data: {
+            ...(dto.nome !== undefined ? { nome: dto.nome.trim() } : {}),
+            ...(dto.descricao !== undefined
+              ? { descricao: dto.descricao?.trim() || null }
+              : {}),
+          },
+          include: homebrewGrupoInclude,
+        });
+      });
+
+      return this.mapearGrupo(grupo);
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async removerGrupo(grupoId: number, usuarioId: number) {
+    try {
+      await this.assertGrupoExiste(grupoId, usuarioId);
+      await this.prisma.homebrewGrupo.delete({ where: { id: grupoId } });
+      return { id: grupoId, message: 'Grupo removido com sucesso.' };
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
+  }
+
+  async exportarHomebrew(
+    id: number,
+    usuarioId?: number,
+    isAdmin: boolean = false,
+  ) {
+    const homebrew = await this.buscarPorId(id, usuarioId, isAdmin);
+    return {
+      exportType: 'homebrew',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      item: {
+        codigo: homebrew.codigo,
+        nome: homebrew.nome,
+        descricao: homebrew.descricao ?? null,
+        tipo: homebrew.tipo,
+        status: homebrew.status,
+        versao: homebrew.versao,
+        tags: homebrew.tags ?? [],
+        dados: homebrew.dados,
+      },
+    };
+  }
+
+  async exportarGrupo(grupoId: number, usuarioId: number) {
+    const grupo = await this.prisma.homebrewGrupo.findFirst({
+      where: { id: grupoId, usuarioId },
+      include: {
+        itens: {
+          include: {
+            homebrew: true,
+          },
+          orderBy: {
+            homebrew: {
+              nome: 'asc',
+            },
+          },
+        },
+      },
+    });
+    if (!grupo) {
+      throw new HomebrewNaoEncontradoException(grupoId);
+    }
+    return {
+      exportType: 'homebrew-group',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      group: {
+        id: grupo.id,
+        nome: grupo.nome,
+        descricao: grupo.descricao ?? null,
+      },
+      items: grupo.itens.map(({ homebrew }) => ({
+        codigo: homebrew.codigo,
+        nome: homebrew.nome,
+        descricao: homebrew.descricao ?? null,
+        tipo: homebrew.tipo,
+        status: homebrew.status,
+        versao: homebrew.versao,
+        tags: this.mapearTags(homebrew.tags),
+        dados: homebrew.dados,
+      })),
+    };
+  }
+
+  private async validarPertencimentoHomebrews(
+    usuarioId: number,
+    homebrewIds: number[],
+  ): Promise<void> {
+    if (homebrewIds.length === 0) return;
+
+    const total = await this.prisma.homebrew.count({
+      where: {
+        usuarioId,
+        id: { in: homebrewIds },
+      },
+    });
+
+    if (total !== homebrewIds.length) {
+      throw new HomebrewSemPermissaoException(
+        'agrupar',
+        'um ou mais homebrews',
+      );
+    }
+  }
+
+  private async assertGrupoExiste(grupoId: number, usuarioId: number) {
+    const grupo = await this.prisma.homebrewGrupo.findFirst({
+      where: { id: grupoId, usuarioId },
+      select: { id: true },
+    });
+
+    if (!grupo) {
+      throw new HomebrewNaoEncontradoException(grupoId);
+    }
+  }
+
   private gerarCodigo(usuarioId: number): string {
     const timestamp = Date.now();
     return `USER_${usuarioId}_HB_${timestamp}`;
@@ -576,6 +815,26 @@ export class HomebrewsService {
       usuarioApelido: homebrew.usuario.apelido,
       criadoEm: homebrew.criadoEm,
       atualizadoEm: homebrew.atualizadoEm,
+    };
+  }
+
+  private mapearGrupo(grupo: HomebrewGrupoPayload) {
+    return {
+      id: grupo.id,
+      nome: grupo.nome,
+      descricao: grupo.descricao ?? null,
+      criadoEm: grupo.criadoEm,
+      atualizadoEm: grupo.atualizadoEm,
+      quantidadeItens: grupo.itens.length,
+      itens: grupo.itens.map(({ homebrew }) => ({
+        id: homebrew.id,
+        codigo: homebrew.codigo,
+        nome: homebrew.nome,
+        tipo: homebrew.tipo,
+        status: homebrew.status,
+        versao: homebrew.versao,
+        atualizadoEm: homebrew.atualizadoEm,
+      })),
     };
   }
 }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
-import type { HomebrewResumo } from '@/lib/api/homebrews';
+import type { HomebrewGrupoResumo, HomebrewResumo } from '@/lib/api/homebrews';
 import type { SuplementoCatalogo } from '@/lib/api/suplementos';
 import {
   type FontesConteudoSelecionadas,
@@ -22,6 +22,7 @@ type FontesConteudoModalProps = {
   onConfirm: (selecao: FontesConteudoSelecionadas) => void;
   suplementos: SuplementoCatalogo[];
   homebrews: HomebrewResumo[];
+  gruposHomebrew: HomebrewGrupoResumo[];
   selecaoAtual: FontesConteudoSelecionadas;
 };
 
@@ -35,6 +36,7 @@ export function FontesConteudoModal({
   onConfirm,
   suplementos,
   homebrews,
+  gruposHomebrew,
   selecaoAtual,
 }: FontesConteudoModalProps) {
   const selecaoInicial = normalizarFontesConteudoSelecionadas(selecaoAtual);
@@ -46,10 +48,15 @@ export function FontesConteudoModal({
   const [homebrewIdsSelecionados, setHomebrewIdsSelecionados] = useState<number[]>(
     selecaoInicial.homebrewIds,
   );
+  const [homebrewGrupoIdsSelecionados, setHomebrewGrupoIdsSelecionados] = useState<number[]>(
+    selecaoInicial.homebrewGrupoIds,
+  );
 
   const buscaNormalizada = busca.trim().toLowerCase();
   const totalSelecionados =
-    suplementoIdsSelecionados.length + homebrewIdsSelecionados.length;
+    suplementoIdsSelecionados.length +
+    homebrewIdsSelecionados.length +
+    homebrewGrupoIdsSelecionados.length;
   const possuiBusca = buscaNormalizada.length > 0;
 
   const suplementosFiltrados = useMemo(() => {
@@ -77,8 +84,20 @@ export function FontesConteudoModal({
     });
   }, [homebrews, buscaNormalizada]);
 
+  const gruposFiltrados = useMemo(() => {
+    const ordenados = ordenarPorNome(gruposHomebrew);
+    if (!buscaNormalizada) return ordenados;
+
+    return ordenados.filter((grupo) => {
+      return (
+        grupo.nome.toLowerCase().includes(buscaNormalizada) ||
+        (grupo.descricao ?? '').toLowerCase().includes(buscaNormalizada)
+      );
+    });
+  }, [gruposHomebrew, buscaNormalizada]);
+
   const resumoSelecao = totalSelecionados
-    ? `${suplementoIdsSelecionados.length} suplemento(s) • ${homebrewIdsSelecionados.length} homebrew(s)`
+    ? `${suplementoIdsSelecionados.length} suplemento(s) • ${homebrewGrupoIdsSelecionados.length} grupo(s) • ${homebrewIdsSelecionados.length} homebrew(s)`
     : 'Nenhuma fonte adicional selecionada';
 
   function toggleSuplemento(suplementoId: number, checked: boolean) {
@@ -95,11 +114,19 @@ export function FontesConteudoModal({
     });
   }
 
+  function toggleGrupoHomebrew(grupoId: number, checked: boolean) {
+    setHomebrewGrupoIdsSelecionados((atual) => {
+      if (checked) return [...new Set([...atual, grupoId])];
+      return atual.filter((id) => id !== grupoId);
+    });
+  }
+
   function handleConfirmar() {
     onConfirm(
       normalizarFontesConteudoSelecionadas({
         suplementoIds: suplementoIdsSelecionados,
         homebrewIds: homebrewIdsSelecionados,
+        homebrewGrupoIds: homebrewGrupoIdsSelecionados,
       }),
     );
     onClose();
@@ -172,7 +199,7 @@ export function FontesConteudoModal({
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-3">
           <section className="rounded-lg border border-app-border bg-app-card p-3">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="flex items-start gap-2">
@@ -231,6 +258,79 @@ export function FontesConteudoModal({
                                 </Badge>
                               ) : null}
                             </div>
+                          </div>
+                        }
+                        className="w-full items-start"
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-app-border bg-app-card p-3">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md bg-app-primary/10 text-app-primary">
+                  <Icon name="list" className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-app-fg">
+                    Grupos de homebrew
+                  </h3>
+                  <p className="text-xs text-app-muted">
+                    Pacotes privados que expandem varias homebrews publicadas.
+                  </p>
+                </div>
+              </div>
+              <Badge color="blue" size="sm">
+                {homebrewGrupoIdsSelecionados.length} selecionado(s)
+              </Badge>
+            </div>
+
+            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+              {gruposFiltrados.length === 0 ? (
+                <p className="text-xs text-app-muted">
+                  {possuiBusca
+                    ? 'Nenhum grupo corresponde a busca atual.'
+                    : 'Nenhum grupo disponivel no momento.'}
+                </p>
+              ) : (
+                gruposFiltrados.map((grupo) => {
+                  const checked = homebrewGrupoIdsSelecionados.includes(grupo.id);
+                  return (
+                    <div
+                      key={grupo.id}
+                      className={`rounded-md border p-3 transition-colors ${
+                        checked
+                          ? 'border-app-primary/50 bg-app-primary/10 shadow-sm'
+                          : 'border-app-border bg-app-surface hover:border-app-primary/30 hover:bg-app-primary/5'
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onChange={(event) =>
+                          toggleGrupoHomebrew(grupo.id, event.target.checked)
+                        }
+                        label={
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-app-fg">
+                              {grupo.nome}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-app-muted">
+                              <Badge color="blue" size="sm">
+                                {grupo.quantidadeItens} item(ns)
+                              </Badge>
+                              {checked ? (
+                                <Badge color="green" size="sm">
+                                  Ativo na criacao
+                                </Badge>
+                              ) : null}
+                            </div>
+                            {grupo.descricao ? (
+                              <p className="text-xs text-app-muted">{grupo.descricao}</p>
+                            ) : null}
                           </div>
                         }
                         className="w-full items-start"
@@ -318,4 +418,3 @@ export function FontesConteudoModal({
     </Modal>
   );
 }
-

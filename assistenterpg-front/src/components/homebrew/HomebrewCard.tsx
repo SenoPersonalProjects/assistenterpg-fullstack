@@ -15,6 +15,7 @@ type HomebrewCardProps = {
   onPublicar: () => void;
   onArquivar: () => void;
   onDelete: () => void;
+  onExport?: () => void;
   processando?: boolean;
   isOwner?: boolean;
 };
@@ -26,6 +27,7 @@ export function HomebrewCard({
   onPublicar,
   onArquivar,
   onDelete,
+  onExport,
   processando = false,
   isOwner = true,
 }: HomebrewCardProps) {
@@ -144,6 +146,19 @@ export function HomebrewCard({
 
           {/* Botões de ação (publicar/arquivar) */}
           <div className="flex gap-2">
+            {onExport ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onExport();
+                }}
+                disabled={processando}
+              >
+                <Icon name="download" className="w-4 h-4" />
+              </Button>
+            ) : null}
             {podePublicar && (
               <Button
                 variant="primary"

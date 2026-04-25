@@ -14,9 +14,11 @@ import { ChatPanel } from '@/components/campanha/sessao/ChatPanel';
 import { DiceChatPanel } from '@/components/campanha/sessao/DiceChatPanel';
 import { SessionNotesPanel } from '@/components/campanha/sessao/SessionNotesPanel';
 import { SessionItemsPanel } from '@/components/campanha/sessao/SessionItemsPanel';
+import { SessionReportPanel } from '@/components/campanha/sessao/SessionReportPanel';
 import type {
   EventoSessaoTimeline,
   MensagemChatSessao,
+  SessaoCampanhaRelatorio,
   SessaoCampanhaDetalhe,
 } from '@/lib/types';
 
@@ -34,6 +36,9 @@ type SessionSidebarPanelProps = {
   sessaoId: number;
   cenaId: number | null;
   sessaoEncerrada: boolean;
+  relatorioSessao: SessaoCampanhaRelatorio | null;
+  loadingRelatorio?: boolean;
+  erroRelatorio?: string | null;
   podeControlarSessao: boolean;
   desfazendoEventoId: number | null;
   erroEventos?: string | null;
@@ -70,6 +75,9 @@ export function SessionSidebarPanel({
   sessaoId,
   cenaId,
   sessaoEncerrada,
+  relatorioSessao,
+  loadingRelatorio = false,
+  erroRelatorio,
   podeControlarSessao,
   desfazendoEventoId,
   erroEventos,
@@ -136,6 +144,8 @@ export function SessionSidebarPanel({
         totalRolagens={rolagens.length}
         totalAnotacoes={totalAnotacoes}
         totalItens={totalItens}
+        totalRelatorio={relatorioSessao?.personagens.length ?? 0}
+        mostrarRelatorio={sessaoEncerrada}
         totalEventos={eventosSessao.length}
         totalParticipantes={participantes.length}
         mostrarEventos={mostrarEventos}
@@ -202,6 +212,14 @@ export function SessionSidebarPanel({
             npcs={npcs}
             usuarioId={usuarioId}
             onCountChange={setTotalItens}
+          />
+        ) : null}
+
+        {tabAtiva === 'relatorio' && sessaoEncerrada ? (
+          <SessionReportPanel
+            relatorio={relatorioSessao}
+            loading={loadingRelatorio}
+            erro={erroRelatorio}
           />
         ) : null}
       </SessionSidebarTabs>

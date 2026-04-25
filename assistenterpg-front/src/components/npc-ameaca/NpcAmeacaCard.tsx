@@ -17,6 +17,7 @@ type NpcAmeacaCardProps = {
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onExport?: () => void;
   deleting?: boolean;
 };
 
@@ -25,6 +26,7 @@ export function NpcAmeacaCard({
   onView,
   onEdit,
   onDelete,
+  onExport,
   deleting = false,
 }: NpcAmeacaCardProps) {
   return (
@@ -61,6 +63,12 @@ export function NpcAmeacaCard({
       </div>
 
       <div className="flex items-center justify-end gap-2">
+        {onExport ? (
+          <Button type="button" variant="secondary" size="sm" onClick={onExport}>
+            <Icon name="download" className="w-4 h-4 mr-1" />
+            JSON
+          </Button>
+        ) : null}
         <Button type="button" variant="secondary" size="sm" onClick={onView}>
           <Icon name="eye" className="w-4 h-4 mr-1" />
           Ver

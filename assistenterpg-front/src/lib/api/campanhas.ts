@@ -20,6 +20,7 @@ import type {
   ItensSessaoCampanhaResponse,
   MensagemChatSessao,
   SessaoCampanhaDetalhe,
+  SessaoCampanhaRelatorio,
   SessaoCampanhaResumo,
   TemplateItemSessaoCampanhaDto,
   TipoCenaSessaoCampanha,
@@ -403,6 +404,34 @@ export async function apiGetSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.get(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}`,
+  );
+  return data;
+}
+
+export async function apiGetRelatorioSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+): Promise<SessaoCampanhaRelatorio> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/relatorio`,
+  );
+  return data;
+}
+
+export async function apiAtualizarRecursosPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemSessaoId: number,
+  payload: Partial<{
+    pvAtual: number;
+    peAtual: number;
+    eaAtual: number;
+    sanAtual: number;
+  }>,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/recursos`,
+    payload,
   );
   return data;
 }

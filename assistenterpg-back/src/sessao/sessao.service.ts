@@ -32,6 +32,7 @@ import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
 import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import {
   atendeRequisitoBaseTecnicaNaoInata,
@@ -379,6 +380,7 @@ const CONDICAO_DURACAO_MODOS = {
 
 const CONDICAO_AUTOMACAO_CHAVES = {
   MACHUCADO: 'MACHUCADO',
+  PERTURBADO: 'PERTURBADO',
   MORRENDO: 'MORRENDO',
   CAIDO: 'CAIDO',
   ENLOUQUECENDO: 'ENLOUQUECENDO',
@@ -546,6 +548,8 @@ export class SessaoService {
           },
         },
       });
+
+      await this.gerarSnapshotRelatorioSessaoTx(tx, campanhaId, sessaoId);
     });
 
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
@@ -1425,6 +1429,430 @@ export class SessaoService {
     });
 
     return eventos.map((evento) => this.mapearEventoChat(evento));
+  }
+
+  async buscarRelatorioSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+  ) {
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+
+    const sessao = await this.prisma.sessao.findUnique({
+      where: { id: sessaoId },
+      select: { id: true, campanhaId: true, status: true, relatorio: true },
+    });
+
+    if (!sessao || sessao.campanhaId !== campanhaId) {
+      throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+    }
+
+    if (sessao.status !== 'ENCERRADA') {
+      throw new BusinessException(
+        'O relatorio so fica disponivel para sessoes encerradas.',
+        'SESSAO_RELATORIO_INDISPONIVEL',
+      );
+    }
+
+    let relatorio = sessao.relatorio;
+    if (!relatorio) {
+      relatorio = await this.prisma.$transaction((tx) =>
+        this.gerarSnapshotRelatorioSessaoTx(tx, campanhaId, sessaoId),
+      );
+    }
+
+    const payload = this.extrairRegistro(relatorio.dadosJson) as Record<
+      string,
+      unknown
+    >;
+    const personagens = Array.isArray(payload.personagens)
+      ? payload.personagens.filter(
+          (item): item is Record<string, unknown> =>
+            typeof item === 'object' && item !== null && !Array.isArray(item),
+        )
+      : [];
+
+    const personagensFiltrados = acesso.ehMestre
+      ? personagens
+      : personagens.filter((personagem) => {
+          const donoId = this.lerInteiroRegistro(personagem, 'donoId');
+          return donoId === usuarioId;
+        });
+
+    return {
+      ...(payload as Record<string, unknown>),
+      personagens: personagensFiltrados,
+      permissoes: {
+        ehMestre: acesso.ehMestre,
+      },
+    };
+  }
+
+  private async gerarSnapshotRelatorioSessaoTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+  ) {
+    const sessao = await tx.sessao.findUnique({
+      where: { id: sessaoId },
+      select: {
+        id: true,
+        campanhaId: true,
+        titulo: true,
+        status: true,
+        iniciadoEm: true,
+        encerradoEm: true,
+        personagens: {
+          orderBy: { id: 'asc' },
+          select: {
+            id: true,
+            personagemCampanhaId: true,
+            personagemCampanha: {
+              select: {
+                id: true,
+                nome: true,
+                donoId: true,
+                pvAtual: true,
+                pvMax: true,
+                sanAtual: true,
+                sanMax: true,
+                dono: {
+                  select: {
+                    id: true,
+                    apelido: true,
+                  },
+                },
+              },
+            },
+            condicoes: {
+              where: { ativo: true },
+              select: {
+                condicao: {
+                  select: {
+                    nome: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        eventos: {
+          orderBy: [{ id: 'asc' }],
+          select: {
+            id: true,
+            cenaId: true,
+            criadoEm: true,
+            tipoEvento: true,
+            personagemAtorId: true,
+            personagemAlvoId: true,
+            dados: true,
+          },
+        },
+      },
+    });
+
+    if (!sessao || sessao.campanhaId !== campanhaId) {
+      throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+    }
+
+    const personagensOriginais = new Map(
+      sessao.personagens.map((personagem) => [personagem.id, personagem]),
+    );
+
+    const personagensIndex = new Map(
+      sessao.personagens.map((personagem) => [
+        personagem.id,
+        {
+          personagemSessaoId: personagem.id,
+          personagemCampanhaId: personagem.personagemCampanhaId,
+          donoId: personagem.personagemCampanha.donoId,
+          nomePersonagem: personagem.personagemCampanha.nome,
+          nomeJogador: personagem.personagemCampanha.dono.apelido,
+          totaisSessao: this.criarContadoresRelatorio(),
+          totaisCombate: this.criarContadoresRelatorio(),
+          statusFinal: {
+            terminouVivo: false,
+            pvAtual: personagem.personagemCampanha.pvAtual,
+            pvMax: personagem.personagemCampanha.pvMax,
+            sanAtual: personagem.personagemCampanha.sanAtual,
+            sanMax: personagem.personagemCampanha.sanMax,
+            morto: false,
+          },
+        },
+      ]),
+    );
+
+    const tiposCenaPorId = new Map<number, string>();
+    for (const evento of sessao.eventos) {
+      if (evento.cenaId !== null && !tiposCenaPorId.has(evento.cenaId)) {
+        tiposCenaPorId.set(evento.cenaId, 'LIVRE');
+      }
+
+      if (evento.tipoEvento !== 'CENA_ATUALIZADA') continue;
+      const dados = this.extrairRegistro(evento.dados);
+      const cenaNovaId =
+        this.lerInteiroOpcionalRegistro(dados, 'cenaNovaId') ?? evento.cenaId;
+      const tipoNovo = this.lerTextoRegistro(dados, 'tipoNovo') ?? 'LIVRE';
+      if (cenaNovaId !== null) {
+        tiposCenaPorId.set(cenaNovaId, tipoNovo);
+      }
+    }
+
+    for (const evento of sessao.eventos) {
+      const dados = this.extrairRegistro(evento.dados);
+      const emCombate =
+        evento.cenaId !== null &&
+        (tiposCenaPorId.get(evento.cenaId) ?? 'LIVRE') === 'COMBATE';
+
+      if (evento.tipoEvento === 'CHAT') {
+        const ator = personagensIndex.get(evento.personagemAtorId ?? -1);
+        if (!ator) continue;
+        const quantidadeRolagens = this.contarRolagensChatEvento(dados);
+        if (quantidadeRolagens <= 0) continue;
+        ator.totaisSessao.rolagensFeitas += quantidadeRolagens;
+        if (emCombate) ator.totaisCombate.rolagensFeitas += quantidadeRolagens;
+        continue;
+      }
+
+      if (evento.tipoEvento === 'HABILIDADE_USADA') {
+        const ator = personagensIndex.get(evento.personagemAtorId ?? -1);
+        if (!ator) continue;
+        ator.totaisSessao.habilidadesUsadas += 1;
+        if (emCombate) ator.totaisCombate.habilidadesUsadas += 1;
+        continue;
+      }
+
+      if (evento.tipoEvento === 'RECURSO_AJUSTADO') {
+        const personagemSessaoId =
+          this.lerInteiroOpcionalRegistro(dados, 'personagemSessaoId') ??
+          evento.personagemAtorId;
+        const ator = personagensIndex.get(personagemSessaoId ?? -1);
+        if (!ator) continue;
+        const campo = this.lerTextoRegistro(dados, 'campo');
+        const delta = this.lerInteiroOpcionalRegistro(dados, 'delta');
+        if (campo === 'pvAtual' && delta !== null && delta < 0) {
+          const dano = Math.abs(delta);
+          ator.totaisSessao.danoRecebido += dano;
+          if (emCombate) ator.totaisCombate.danoRecebido += dano;
+        }
+        continue;
+      }
+
+      if (evento.tipoEvento !== 'CONDICAO_APLICADA') continue;
+
+      const personagemSessaoId = this.lerInteiroOpcionalRegistro(
+        dados,
+        'personagemSessaoId',
+      );
+      const alvo = personagensIndex.get(personagemSessaoId ?? -1);
+      if (!alvo) continue;
+
+      const modoOperacao = this.lerTextoRegistro(dados, 'modoOperacao');
+      if (modoOperacao === 'ATUALIZADA') continue;
+
+      const condicaoNome = this.normalizarTextoComparacao(
+        this.lerTextoRegistro(dados, 'condicaoNome'),
+      );
+      if (condicaoNome === 'MACHUCADO') {
+        alvo.totaisSessao.entradasMachucado += 1;
+        if (emCombate) alvo.totaisCombate.entradasMachucado += 1;
+      } else if (condicaoNome === 'PERTURBADO') {
+        alvo.totaisSessao.entradasPerturbado += 1;
+        if (emCombate) alvo.totaisCombate.entradasPerturbado += 1;
+      } else if (condicaoNome === 'MORRENDO') {
+        alvo.totaisSessao.entradasMorrendo += 1;
+        if (emCombate) alvo.totaisCombate.entradasMorrendo += 1;
+      } else if (condicaoNome === 'ENLOUQUECENDO') {
+        alvo.totaisSessao.entradasEnlouquecendo += 1;
+        if (emCombate) alvo.totaisCombate.entradasEnlouquecendo += 1;
+      }
+    }
+
+    const personagens = Array.from(personagensIndex.values()).map((personagem) => {
+      const original = personagensOriginais.get(personagem.personagemSessaoId);
+      const morto =
+        original?.condicoes.some(
+          (condicao) =>
+            this.normalizarTextoComparacao(condicao.condicao.nome) === 'MORTO',
+        ) ?? false;
+
+      return {
+        ...personagem,
+        statusFinal: {
+          ...personagem.statusFinal,
+          morto,
+          terminouVivo: personagem.statusFinal.pvAtual > 0 && !morto,
+        },
+      };
+    });
+
+    const payload = {
+      sessaoId: sessao.id,
+      campanhaId: sessao.campanhaId,
+      tituloSessao: sessao.titulo,
+      geradoEm: new Date().toISOString(),
+      iniciadoEm: sessao.iniciadoEm.toISOString(),
+      encerradoEm: sessao.encerradoEm?.toISOString() ?? null,
+      personagens,
+    };
+
+    return tx.sessaoRelatorio.upsert({
+      where: { sessaoId },
+      update: {
+        dadosJson: this.jsonParaPersistencia(payload),
+        geradoEm: new Date(),
+      },
+      create: {
+        sessaoId,
+        dadosJson: this.jsonParaPersistencia(payload),
+      },
+    });
+  }
+
+  async atualizarRecursosPersonagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    usuarioId: number,
+    dto: AtualizarRecursosPersonagemSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const personagemSessao = await tx.personagemSessao.findFirst({
+        where: {
+          id: personagemSessaoId,
+          sessaoId,
+        },
+        include: {
+          personagemCampanha: {
+            select: {
+              id: true,
+              campanhaId: true,
+              donoId: true,
+              nome: true,
+              pvAtual: true,
+              pvMax: true,
+              pvBarrasTotal: true,
+              pvBarrasRestantes: true,
+              peAtual: true,
+              peMax: true,
+              eaAtual: true,
+              eaMax: true,
+              sanAtual: true,
+              sanMax: true,
+            },
+          },
+        },
+      });
+
+      if (
+        !personagemSessao ||
+        personagemSessao.personagemCampanha.campanhaId !== campanhaId
+      ) {
+        throw new PersonagemCampanhaNaoEncontradoException(
+          personagemSessaoId,
+          campanhaId,
+        );
+      }
+
+      if (
+        !acesso.ehMestre &&
+        personagemSessao.personagemCampanha.donoId !== usuarioId
+      ) {
+        throw new CampanhaPersonagemEdicaoNegadaException(
+          campanhaId,
+          personagemSessao.personagemCampanha.id,
+          usuarioId,
+        );
+      }
+
+      const infoPv = calcularPvBarraMaximos(
+        personagemSessao.personagemCampanha.pvMax,
+        personagemSessao.personagemCampanha.pvBarrasTotal,
+        personagemSessao.personagemCampanha.pvBarrasRestantes,
+      );
+
+      const antes = {
+        pvAtual: personagemSessao.personagemCampanha.pvAtual,
+        peAtual: personagemSessao.personagemCampanha.peAtual,
+        eaAtual: personagemSessao.personagemCampanha.eaAtual,
+        sanAtual: personagemSessao.personagemCampanha.sanAtual,
+      };
+
+      const depois = {
+        pvAtual:
+          dto.pvAtual == null
+            ? antes.pvAtual
+            : this.clampNumero(dto.pvAtual, 0, infoPv.pvBarraMaxAtual),
+        peAtual:
+          dto.peAtual == null
+            ? antes.peAtual
+            : this.clampNumero(
+                dto.peAtual,
+                0,
+                personagemSessao.personagemCampanha.peMax,
+              ),
+        eaAtual:
+          dto.eaAtual == null
+            ? antes.eaAtual
+            : this.clampNumero(
+                dto.eaAtual,
+                0,
+                personagemSessao.personagemCampanha.eaMax,
+              ),
+        sanAtual:
+          dto.sanAtual == null
+            ? antes.sanAtual
+            : this.clampNumero(
+                dto.sanAtual,
+                0,
+                personagemSessao.personagemCampanha.sanMax,
+              ),
+      };
+
+      await tx.personagemCampanha.update({
+        where: { id: personagemSessao.personagemCampanha.id },
+        data: depois,
+      });
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const campos: Array<keyof typeof antes> = [
+        'pvAtual',
+        'peAtual',
+        'eaAtual',
+        'sanAtual',
+      ];
+      for (const campo of campos) {
+        if (antes[campo] === depois[campo]) continue;
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId,
+            cenaId: personagemSessao.cenaId ?? cenaAtual.id,
+            personagemAtorId: personagemSessao.id,
+            tipoEvento: 'RECURSO_AJUSTADO',
+            dados: this.jsonParaPersistencia({
+              campo,
+              valorAntes: antes[campo],
+              valorDepois: depois[campo],
+              delta: depois[campo] - antes[campo],
+              personagemSessaoId: personagemSessao.id,
+              personagemCampanhaId: personagemSessao.personagemCampanha.id,
+              personagemNome: personagemSessao.personagemCampanha.nome,
+              ajustadoPorId: usuarioId,
+            }),
+          },
+        });
+      }
+
+      await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
 
   async enviarMensagemChatSessao(
@@ -5503,6 +5931,7 @@ export class SessaoService {
     if (!condicaoDelegate?.findMany) {
       return {
         machucadoId: null,
+        perturbadoId: null,
         morrendoId: null,
         caidoId: null,
         enlouquecendoId: null,
@@ -5559,6 +5988,7 @@ export class SessaoService {
 
     return {
       machucadoId: resolverPorAliases(['MACHUCADO']),
+      perturbadoId: resolverPorAliases(['PERTURBADO']),
       morrendoId: resolverPorAliases(['MORRENDO']),
       caidoId: resolverPorAliases(['CAIDO']),
       enlouquecendoId: resolverPorAliases(['ENLOUQUECENDO']),
@@ -5583,6 +6013,7 @@ export class SessaoService {
       chaveAutomacao: string;
       ativa: boolean;
       origemDescricao: string;
+      alvoNome?: string | null;
     },
   ): Promise<void> {
     if (!args.condicaoId) return;
@@ -5603,7 +6034,7 @@ export class SessaoService {
     if (args.ativa) {
       if (existente) {
         if (!existente.ativo) {
-          await tx.condicaoPersonagemSessao.update({
+          const reativada = await tx.condicaoPersonagemSessao.update({
             where: { id: existente.id },
             data: {
               ativo: true,
@@ -5613,11 +6044,39 @@ export class SessaoService {
               turnoAplicacao: args.rodadaAtual,
             },
           });
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId: args.sessaoId,
+              cenaId: args.cenaId,
+              personagemAtorId: args.personagemSessaoId,
+              tipoEvento: 'CONDICAO_APLICADA',
+              dados: this.jsonParaPersistencia({
+                condicaoSessaoId: reativada.id,
+                condicaoId: args.condicaoId,
+                condicaoNome: await this.buscarNomeCondicaoTx(
+                  tx,
+                  args.condicaoId,
+                ),
+                alvoTipo: args.personagemSessaoId ? 'PERSONAGEM' : 'NPC',
+                personagemSessaoId: args.personagemSessaoId,
+                npcSessaoId: args.npcSessaoId,
+                alvoNome: args.alvoNome ?? null,
+                duracaoModo: reativada.duracaoModo,
+                duracaoValor: reativada.duracaoValor,
+                restanteDuracao: reativada.restanteDuracao,
+                acumulos: reativada.acumulos,
+                origemDescricao: args.origemDescricao,
+                modoOperacao: 'REATIVADA',
+                automatica: true,
+                chaveAutomacao: args.chaveAutomacao,
+              }),
+            },
+          });
         }
         return;
       }
 
-      await tx.condicaoPersonagemSessao.create({
+      const criada = await tx.condicaoPersonagemSessao.create({
         data: {
           sessaoId: args.sessaoId,
           personagemSessaoId: args.personagemSessaoId,
@@ -5634,16 +6093,62 @@ export class SessaoService {
           observacao: null,
         },
       });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId: args.sessaoId,
+          cenaId: args.cenaId,
+          personagemAtorId: args.personagemSessaoId,
+          tipoEvento: 'CONDICAO_APLICADA',
+          dados: this.jsonParaPersistencia({
+            condicaoSessaoId: criada.id,
+            condicaoId: args.condicaoId,
+            condicaoNome: await this.buscarNomeCondicaoTx(tx, args.condicaoId),
+            alvoTipo: args.personagemSessaoId ? 'PERSONAGEM' : 'NPC',
+            personagemSessaoId: args.personagemSessaoId,
+            npcSessaoId: args.npcSessaoId,
+            alvoNome: args.alvoNome ?? null,
+            duracaoModo: criada.duracaoModo,
+            duracaoValor: criada.duracaoValor,
+            restanteDuracao: criada.restanteDuracao,
+            acumulos: criada.acumulos,
+            origemDescricao: args.origemDescricao,
+            modoOperacao: 'CRIADA',
+            automatica: true,
+            chaveAutomacao: args.chaveAutomacao,
+          }),
+        },
+      });
       return;
     }
 
     if (existente?.ativo) {
+      const snapshot = this.snapshotCondicaoSessao(existente);
       await tx.condicaoPersonagemSessao.update({
         where: { id: existente.id },
         data: {
           ativo: false,
           removidaEm: new Date(),
           motivoRemocao: 'Condicao automatica removida por mudanca de estado.',
+        },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId: args.sessaoId,
+          cenaId: args.cenaId,
+          personagemAtorId: args.personagemSessaoId,
+          tipoEvento: 'CONDICAO_REMOVIDA',
+          dados: this.jsonParaPersistencia({
+            condicaoSessaoId: existente.id,
+            condicaoId: args.condicaoId,
+            condicaoNome: await this.buscarNomeCondicaoTx(tx, args.condicaoId),
+            personagemSessaoId: args.personagemSessaoId,
+            npcSessaoId: args.npcSessaoId,
+            alvoNome: args.alvoNome ?? null,
+            motivo: 'Condicao automatica removida por mudanca de estado.',
+            snapshot,
+            automatica: true,
+            chaveAutomacao: args.chaveAutomacao,
+          }),
         },
       });
     }
@@ -5709,6 +6214,8 @@ export class SessaoService {
                 pvBarrasTotal: true,
                 pvBarrasRestantes: true,
                 sanAtual: true,
+                sanMax: true,
+                nome: true,
               },
             },
           },
@@ -5716,10 +6223,12 @@ export class SessaoService {
         npcs: {
           select: {
             id: true,
+            nomeExibicao: true,
             cenaId: true,
             pontosVidaAtual: true,
             pontosVidaMax: true,
             sanAtual: true,
+            sanMax: true,
           },
         },
       },
@@ -5789,6 +6298,10 @@ export class SessaoService {
       const insano = personagensInsanos.has(personagem.id);
       const machucado =
         pvAtual > 0 && pvAtual <= Math.floor(infoPv.pvBarraMaxAtual / 2);
+      const perturbado =
+        sanAtual > 0 &&
+        sanAtual <= Math.floor(personagem.personagemCampanha.sanMax / 2) &&
+        !insano;
       const morrendo = pvAtual <= 0 && !morto;
       const caido = pvAtual <= 0;
       const enlouquecendo = sanAtual <= 0 && !insano;
@@ -5825,6 +6338,20 @@ export class SessaoService {
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MACHUCADO,
         ativa: machucado,
         origemDescricao: 'Automatica por PV <= metade.',
+        alvoNome: personagem.personagemCampanha.nome,
+      });
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: personagem.id,
+        npcSessaoId: null,
+        condicaoId: mapaSistema.perturbadoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.PERTURBADO,
+        ativa: perturbado,
+        origemDescricao: 'Automatica por SAN <= metade.',
+        alvoNome: personagem.personagemCampanha.nome,
       });
 
       await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
@@ -5837,6 +6364,7 @@ export class SessaoService {
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORRENDO,
         ativa: morrendo,
         origemDescricao: 'Automatica por PV <= 0.',
+        alvoNome: personagem.personagemCampanha.nome,
       });
 
       await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
@@ -5849,6 +6377,7 @@ export class SessaoService {
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.CAIDO,
         ativa: caido,
         origemDescricao: 'Automatica por PV <= 0.',
+        alvoNome: personagem.personagemCampanha.nome,
       });
 
       await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
@@ -5861,6 +6390,7 @@ export class SessaoService {
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO,
         ativa: enlouquecendo,
         origemDescricao: 'Automatica por SAN <= 0.',
+        alvoNome: personagem.personagemCampanha.nome,
       });
     }
 
@@ -5870,6 +6400,12 @@ export class SessaoService {
       const morto = npcsMortos.has(npc.id);
       const insano = npcsInsanos.has(npc.id);
       const machucado = pvAtual > 0 && pvAtual <= Math.floor(pvMax / 2);
+      const perturbado =
+        typeof npc.sanAtual === 'number' &&
+        typeof npc.sanMax === 'number' &&
+        npc.sanAtual > 0 &&
+        npc.sanAtual <= Math.floor(npc.sanMax / 2) &&
+        !insano;
       const morrendo = pvAtual <= 0 && !morto;
       const caido = pvAtual <= 0;
       const enlouquecendo =
@@ -5907,6 +6443,20 @@ export class SessaoService {
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MACHUCADO,
         ativa: machucado,
         origemDescricao: 'Automatica por PV <= metade.',
+        alvoNome: npc.nomeExibicao,
+      });
+
+      await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
+        sessaoId,
+        cenaId,
+        rodadaAtual: sessao.rodadaAtual,
+        personagemSessaoId: null,
+        npcSessaoId: npc.id,
+        condicaoId: mapaSistema.perturbadoId,
+        chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.PERTURBADO,
+        ativa: perturbado,
+        origemDescricao: 'Automatica por SAN <= metade.',
+        alvoNome: npc.nomeExibicao,
       });
 
       await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
@@ -5919,6 +6469,7 @@ export class SessaoService {
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORRENDO,
         ativa: morrendo,
         origemDescricao: 'Automatica por PV <= 0.',
+        alvoNome: npc.nomeExibicao,
       });
 
       await this.sincronizarCondicaoAutomaticaAlvoTx(tx, {
@@ -5931,6 +6482,7 @@ export class SessaoService {
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.CAIDO,
         ativa: caido,
         origemDescricao: 'Automatica por PV <= 0.',
+        alvoNome: npc.nomeExibicao,
       });
 
       if (mapaSistema.enlouquecendoId && typeof npc.sanAtual === 'number') {
@@ -5944,6 +6496,7 @@ export class SessaoService {
           chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO,
           ativa: enlouquecendo,
           origemDescricao: 'Automatica por SAN <= 0.',
+          alvoNome: npc.nomeExibicao,
         });
       }
     }
@@ -7209,6 +7762,13 @@ export class SessaoService {
         const recuperado = this.lerInteiroRegistro(dados, 'valorRecuperado');
         return `Recuperacao automatica${condicaoNome ? `: ${condicaoNome}` : ''}${recurso && recuperado !== null ? ` (+${recuperado} ${recurso})` : ''}`;
       }
+      case 'RECURSO_AJUSTADO': {
+        const campo = this.lerTextoOpcionalRegistro(dados, 'campo');
+        const valorAntes = this.lerInteiroOpcionalRegistro(dados, 'valorAntes');
+        const valorDepois = this.lerInteiroOpcionalRegistro(dados, 'valorDepois');
+        const delta = this.lerInteiroOpcionalRegistro(dados, 'delta');
+        return `Recurso ajustado${campo ? `: ${campo}` : ''}${valorAntes !== null && valorDepois !== null ? ` (${valorAntes} -> ${valorDepois})` : ''}${delta !== null ? ` [${delta >= 0 ? '+' : ''}${delta}]` : ''}`;
+      }
       case 'CONDICAO_APLICACAO_DESFEITA':
       case 'CONDICAO_REMOCAO_DESFEITA':
         return 'Alteracao de condicao desfeita';
@@ -7230,6 +7790,50 @@ export class SessaoService {
       OUTRA: 'Outra',
     };
     return labels[tipo] ?? tipo;
+  }
+
+  private criarContadoresRelatorio() {
+    return {
+      danoRecebido: 0,
+      rolagensFeitas: 0,
+      habilidadesUsadas: 0,
+      entradasMachucado: 0,
+      entradasPerturbado: 0,
+      entradasMorrendo: 0,
+      entradasEnlouquecendo: 0,
+    };
+  }
+
+  private contarRolagensChatEvento(dados: Record<string, unknown>): number {
+    const mensagem = this.lerTextoRegistro(dados, 'mensagem');
+    if (!mensagem) return 0;
+
+    const regex = /\[\[dice:v\d\|([^\]]*)\]\]/g;
+    let total = 0;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(mensagem)) !== null) {
+      const bruto = (match[1] ?? '').trim();
+      if (!bruto) {
+        total += 1;
+        continue;
+      }
+      total += bruto
+        .split('~')
+        .map((item) => item.trim())
+        .filter(Boolean).length;
+    }
+    return total;
+  }
+
+  private async buscarNomeCondicaoTx(
+    tx: Prisma.TransactionClient,
+    condicaoId: number,
+  ): Promise<string | null> {
+    const condicao = await tx.condicao.findUnique({
+      where: { id: condicaoId },
+      select: { nome: true },
+    });
+    return condicao?.nome ?? null;
   }
 
   private mapearEventoChat(

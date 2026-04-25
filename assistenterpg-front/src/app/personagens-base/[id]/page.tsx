@@ -14,7 +14,12 @@ import {
   type UpdatePersonagemBasePayload,
   type SuplementoCatalogo,
 } from '@/lib/api';
-import { apiGetMeusHomebrews, type HomebrewResumo } from '@/lib/api/homebrews';
+import {
+  apiGetMeusHomebrews,
+  apiListarGruposHomebrew,
+  type HomebrewGrupoResumo,
+  type HomebrewResumo,
+} from '@/lib/api/homebrews';
 
 import { useConfirm } from '@/hooks/useConfirm';
 import { useToast } from '@/context/ToastContext';
@@ -119,14 +124,34 @@ function sanitizarSelecaoComAcesso(
   selecao: FontesConteudoSelecionadas,
   suplementosAcessiveis: SuplementoCatalogo[],
   homebrewsAcessiveis: HomebrewResumo[],
+  gruposHomebrew: HomebrewGrupoResumo[],
 ): FontesConteudoSelecionadas {
   const normalizada = normalizarFontesConteudoSelecionadas(selecao);
   const suplementoIdsValidos = new Set(suplementosAcessiveis.map((item) => item.id));
   const homebrewIdsValidos = new Set(homebrewsAcessiveis.map((item) => item.id));
+  const gruposValidos = new Map(gruposHomebrew.map((grupo) => [grupo.id, grupo]));
+
+  const homebrewIds = new Set(
+    normalizada.homebrewIds.filter((id) => homebrewIdsValidos.has(id)),
+  );
+  const homebrewGrupoIds = normalizada.homebrewGrupoIds.filter((id) =>
+    gruposValidos.has(id),
+  );
+
+  for (const grupoId of homebrewGrupoIds) {
+    const grupo = gruposValidos.get(grupoId);
+    if (!grupo) continue;
+    for (const homebrewId of grupo.homebrewIds) {
+      if (homebrewIdsValidos.has(homebrewId)) {
+        homebrewIds.add(homebrewId);
+      }
+    }
+  }
 
   return {
     suplementoIds: normalizada.suplementoIds.filter((id) => suplementoIdsValidos.has(id)),
-    homebrewIds: normalizada.homebrewIds.filter((id) => homebrewIdsValidos.has(id)),
+    homebrewIds: [...homebrewIds].sort((a, b) => a - b),
+    homebrewGrupoIds,
   };
 }
 
@@ -231,6 +256,7 @@ export default function PersonagemBaseDetalhePage() {
   const [fontesModalVersion, setFontesModalVersion] = useState(0);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [homebrews, setHomebrews] = useState<HomebrewResumo[]>([]);
+  const [gruposHomebrew, setGruposHomebrew] = useState<HomebrewGrupoResumo[]>([]);
   const [impactoFontesPendente, setImpactoFontesPendente] = useState<{
     selecao: FontesConteudoSelecionadas;
     impactos: string[];
@@ -250,17 +276,20 @@ export default function PersonagemBaseDetalhePage() {
 
     async function carregarFontesDisponiveis() {
       try {
-        const [suplementosAtivos, homebrewsAcessiveis] = await Promise.all([
+        const [suplementosAtivos, homebrewsAcessiveis, gruposAcessiveis] = await Promise.all([
           apiGetSuplementos({ status: 'PUBLICADO' }),
           carregarHomebrewsAcessiveis(),
+          apiListarGruposHomebrew(),
         ]);
         if (cancelado) return;
         setSuplementos(suplementosAtivos);
         setHomebrews(homebrewsAcessiveis);
+        setGruposHomebrew(gruposAcessiveis);
       } catch {
         if (!cancelado) {
           setSuplementos([]);
           setHomebrews([]);
+          setGruposHomebrew([]);
         }
       }
     }
@@ -332,6 +361,7 @@ export default function PersonagemBaseDetalhePage() {
     () => ({
       suplementos: fontesSelecionadas.suplementoIds.length,
       homebrews: fontesSelecionadas.homebrewIds.length,
+      gruposHomebrew: fontesSelecionadas.homebrewGrupoIds.length,
     }),
     [fontesSelecionadas],
   );
@@ -488,7 +518,12 @@ export default function PersonagemBaseDetalhePage() {
   }
 
   function handleAplicarFontes(selecao: FontesConteudoSelecionadas) {
-    const selecaoSanitizada = sanitizarSelecaoComAcesso(selecao, suplementos, homebrews);
+    const selecaoSanitizada = sanitizarSelecaoComAcesso(
+      selecao,
+      suplementos,
+      homebrews,
+      gruposHomebrew,
+    );
     const impactos = analisarImpactoFontes(selecaoSanitizada);
 
     if (impactos.length > 0) {
@@ -797,6 +832,7 @@ export default function PersonagemBaseDetalhePage() {
         onConfirm={handleAplicarFontes}
         suplementos={suplementos}
         homebrews={homebrews}
+        gruposHomebrew={gruposHomebrew}
         selecaoAtual={fontesSelecionadas}
       />
 

@@ -362,6 +362,8 @@ model Usuario {
   // ✅ NOVO: Relações com suplementos e homebrews
   suplementosAtivos UsuarioSuplemento[]
   homebrews         Homebrew[]
+  gruposHomebrew    HomebrewGrupo[]
+  gruposNpcAmeaca   NpcAmeacaGrupo[]
 }
 
 model AuthToken {
@@ -570,8 +572,9 @@ model NpcAmeaca {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  dono             Usuario           @relation(fields: [donoId], references: [id], onDelete: Cascade)
+  dono             Usuario              @relation(fields: [donoId], references: [id], onDelete: Cascade)
   instanciasSessao NpcAmeacaSessao[]
+  grupos           NpcAmeacaGrupoItem[]
 
   @@index([donoId])
   @@index([donoId, nome])
@@ -733,6 +736,7 @@ model Sessao {
   eventos                EventoSessao[]
   anotacoes              Anotacao[]
   itensSessao            ItemSessaoCampanha[]
+  relatorio              SessaoRelatorio?
 
   @@index([campanhaId, iniciadoEm])
 }
@@ -910,6 +914,17 @@ model EventoSessao {
   cena           Cena?             @relation(fields: [cenaId], references: [id])
   personagemAtor PersonagemSessao? @relation("EventosComoAtor", fields: [personagemAtorId], references: [id])
   personagemAlvo PersonagemSessao? @relation("EventosComoAlvo", fields: [personagemAlvoId], references: [id])
+}
+
+model SessaoRelatorio {
+  id        Int      @id @default(autoincrement())
+  sessaoId  Int      @unique
+  dadosJson Json
+  geradoEm  DateTime @default(now())
+
+  sessao Sessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  @@index([geradoEm])
 }
 
 // ========================================
@@ -2259,8 +2274,9 @@ model Homebrew {
   tags   Json? // ["Customizado", "Homebrew", "Experimental"]
   versao String @default("1.0.0")
 
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  criadoEm     DateTime            @default(now())
+  atualizadoEm DateTime            @updatedAt
+  grupos       HomebrewGrupoItem[]
 
   @@unique([usuarioId, codigo])
   @@index([usuarioId])
@@ -2269,6 +2285,64 @@ model Homebrew {
   @@index([usuarioId, criadoEm])
   @@index([status, criadoEm])
   @@map("homebrews")
+}
+
+model HomebrewGrupo {
+  id           Int      @id @default(autoincrement())
+  usuarioId    Int
+  nome         String
+  descricao    String?  @db.Text
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  usuario Usuario             @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  itens   HomebrewGrupoItem[]
+
+  @@index([usuarioId])
+  @@index([usuarioId, nome])
+  @@map("homebrew_grupos")
+}
+
+model HomebrewGrupoItem {
+  id         Int @id @default(autoincrement())
+  grupoId    Int
+  homebrewId Int
+
+  grupo    HomebrewGrupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  homebrew Homebrew      @relation(fields: [homebrewId], references: [id], onDelete: Cascade)
+
+  @@unique([grupoId, homebrewId])
+  @@index([homebrewId])
+  @@map("homebrew_grupo_itens")
+}
+
+model NpcAmeacaGrupo {
+  id           Int      @id @default(autoincrement())
+  usuarioId    Int
+  nome         String
+  descricao    String?  @db.Text
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  usuario Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  itens   NpcAmeacaGrupoItem[]
+
+  @@index([usuarioId])
+  @@index([usuarioId, nome])
+  @@map("npc_ameaca_grupos")
+}
+
+model NpcAmeacaGrupoItem {
+  id          Int @id @default(autoincrement())
+  grupoId     Int
+  npcAmeacaId Int
+
+  grupo     NpcAmeacaGrupo @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  npcAmeaca NpcAmeaca      @relation(fields: [npcAmeacaId], references: [id], onDelete: Cascade)
+
+  @@unique([grupoId, npcAmeacaId])
+  @@index([npcAmeacaId])
+  @@map("npc_ameaca_grupo_itens")
 }
 
 model Anotacao {

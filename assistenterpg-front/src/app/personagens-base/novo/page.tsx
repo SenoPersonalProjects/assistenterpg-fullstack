@@ -28,7 +28,12 @@ import {
   ModificacaoCatalogo,
   SuplementoCatalogo,
 } from '@/lib/api';
-import { apiGetMeusHomebrews, type HomebrewResumo } from '@/lib/api/homebrews';
+import {
+  apiGetMeusHomebrews,
+  apiListarGruposHomebrew,
+  type HomebrewGrupoResumo,
+  type HomebrewResumo,
+} from '@/lib/api/homebrews';
 import { useAuth } from '@/context/AuthContext';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -124,14 +129,34 @@ function sanitizarSelecaoComAcesso(
   selecao: FontesConteudoSelecionadas,
   suplementosAcessiveis: SuplementoCatalogo[],
   homebrewsAcessiveis: HomebrewResumo[],
+  gruposHomebrew: HomebrewGrupoResumo[],
 ): FontesConteudoSelecionadas {
   const normalizada = normalizarFontesConteudoSelecionadas(selecao);
   const suplementoIdsValidos = new Set(suplementosAcessiveis.map((item) => item.id));
   const homebrewIdsValidos = new Set(homebrewsAcessiveis.map((item) => item.id));
+  const gruposValidos = new Map(gruposHomebrew.map((grupo) => [grupo.id, grupo]));
+
+  const homebrewIds = new Set(
+    normalizada.homebrewIds.filter((id) => homebrewIdsValidos.has(id)),
+  );
+  const homebrewGrupoIds = normalizada.homebrewGrupoIds.filter((id) =>
+    gruposValidos.has(id),
+  );
+
+  for (const grupoId of homebrewGrupoIds) {
+    const grupo = gruposValidos.get(grupoId);
+    if (!grupo) continue;
+    for (const homebrewId of grupo.homebrewIds) {
+      if (homebrewIdsValidos.has(homebrewId)) {
+        homebrewIds.add(homebrewId);
+      }
+    }
+  }
 
   return {
     suplementoIds: normalizada.suplementoIds.filter((id) => suplementoIdsValidos.has(id)),
-    homebrewIds: normalizada.homebrewIds.filter((id) => homebrewIdsValidos.has(id)),
+    homebrewIds: [...homebrewIds].sort((a, b) => a - b),
+    homebrewGrupoIds,
   };
 }
 
@@ -151,6 +176,7 @@ export default function NovoPersonagemBasePage() {
   const [modificacoes, setModificacoes] = useState<ModificacaoCatalogo[]>([]);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [homebrews, setHomebrews] = useState<HomebrewResumo[]>([]);
+  const [gruposHomebrew, setGruposHomebrew] = useState<HomebrewGrupoResumo[]>([]);
   const [fontesSelecionadas, setFontesSelecionadas] =
     useState<FontesConteudoSelecionadas>(FONTES_CONTEUDO_INICIAIS);
   const [fontesModalOpen, setFontesModalOpen] = useState(false);
@@ -177,12 +203,14 @@ export default function NovoPersonagemBasePage() {
             modificacoesCompletas,
             suplementosAtivos,
             homebrewsAcessiveis,
+            gruposAcessiveis,
           ] = await Promise.all([
             apiGetCatalogosBasicos(),
             apiGetTodosEquipamentos({ limitePorPagina: 100 }),
             apiGetTodasModificacoes({ limitePorPagina: 100 }),
             apiGetSuplementos({ status: 'PUBLICADO' }),
             carregarHomebrewsAcessiveis(),
+            apiListarGruposHomebrew(),
           ]);
 
           setClasses(catalogosBasicos.classes);
@@ -197,6 +225,7 @@ export default function NovoPersonagemBasePage() {
           setModificacoes(modificacoesCompletas);
           setSuplementos(suplementosAtivos);
           setHomebrews(homebrewsAcessiveis);
+          setGruposHomebrew(gruposAcessiveis);
 
           const selecaoSalva = usuarioId ? carregarFontesConteudoSalvas(usuarioId) : null;
 
@@ -204,6 +233,7 @@ export default function NovoPersonagemBasePage() {
             selecaoSalva ?? FONTES_CONTEUDO_INICIAIS,
             suplementosAtivos,
             homebrewsAcessiveis,
+            gruposAcessiveis,
           );
 
           setFontesSelecionadas(selecaoInicial);
@@ -270,12 +300,18 @@ export default function NovoPersonagemBasePage() {
   const resumoFontes = useMemo(() => {
     return {
       suplementos: fontesSelecionadas.suplementoIds.length,
+      gruposHomebrew: fontesSelecionadas.homebrewGrupoIds.length,
       homebrews: fontesSelecionadas.homebrewIds.length,
     };
   }, [fontesSelecionadas]);
 
   function handleAplicarFontes(selecao: FontesConteudoSelecionadas) {
-    const selecaoSanitizada = sanitizarSelecaoComAcesso(selecao, suplementos, homebrews);
+    const selecaoSanitizada = sanitizarSelecaoComAcesso(
+      selecao,
+      suplementos,
+      homebrews,
+      gruposHomebrew,
+    );
     setFontesSelecionadas(selecaoSanitizada);
 
     if (typeof usuario?.id === 'number' && usuario.id > 0) {
@@ -295,6 +331,7 @@ export default function NovoPersonagemBasePage() {
         fontesConteudo: {
           suplementoIds: [...fontesSelecionadas.suplementoIds],
           homebrewIds: [...fontesSelecionadas.homebrewIds],
+          homebrewGrupoIds: [...fontesSelecionadas.homebrewGrupoIds],
         },
       });
       router.push(`/personagens-base/${novo.id}`);
@@ -338,7 +375,8 @@ export default function NovoPersonagemBasePage() {
               </p>
               <p className="text-xs text-app-muted">
                 Sistema base (fixo) + {resumoFontes.suplementos} suplemento(s) +{' '}
-                {resumoFontes.homebrews} homebrew(s)
+                {resumoFontes.gruposHomebrew} grupo(s) + {resumoFontes.homebrews}{' '}
+                homebrew(s)
               </p>
             </div>
 
@@ -382,6 +420,7 @@ export default function NovoPersonagemBasePage() {
         onConfirm={handleAplicarFontes}
         suplementos={suplementos}
         homebrews={homebrews}
+        gruposHomebrew={gruposHomebrew}
         selecaoAtual={fontesSelecionadas}
       />
     </main>

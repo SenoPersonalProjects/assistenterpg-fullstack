@@ -3,6 +3,7 @@ import { TipoFonte } from '@/lib/types';
 export type FontesConteudoSelecionadas = {
   suplementoIds: number[];
   homebrewIds: number[];
+  homebrewGrupoIds: number[];
 };
 
 const FONTES_CONTEUDO_STORAGE_PREFIX = 'assistenterpg:personagem-base:fontes:v1';
@@ -10,6 +11,7 @@ const FONTES_CONTEUDO_STORAGE_PREFIX = 'assistenterpg:personagem-base:fontes:v1'
 export const FONTES_CONTEUDO_INICIAIS: FontesConteudoSelecionadas = {
   suplementoIds: [],
   homebrewIds: [],
+  homebrewGrupoIds: [],
 };
 
 type ItemComFonte = {
@@ -70,6 +72,7 @@ export function normalizarFontesConteudoSelecionadas(
   return {
     suplementoIds: normalizarIds(fontes.suplementoIds),
     homebrewIds: normalizarIds(fontes.homebrewIds),
+    homebrewGrupoIds: normalizarIds(fontes.homebrewGrupoIds),
   };
 }
 

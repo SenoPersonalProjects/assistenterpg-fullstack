@@ -3,6 +3,7 @@ export type SessaoLayoutRightTab =
   | 'rolagens'
   | 'anotacoes'
   | 'itens'
+  | 'relatorio'
   | 'eventos'
   | 'participantes';
 
@@ -30,6 +31,7 @@ function ehAbaDireitaValida(valor: unknown): valor is SessaoLayoutRightTab {
     valor === 'rolagens' ||
     valor === 'anotacoes' ||
     valor === 'itens' ||
+    valor === 'relatorio' ||
     valor === 'eventos' ||
     valor === 'participantes'
   );

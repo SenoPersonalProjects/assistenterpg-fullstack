@@ -8,6 +8,7 @@ export type SessionSidebarTabId =
   | 'rolagens'
   | 'anotacoes'
   | 'itens'
+  | 'relatorio'
   | 'eventos'
   | 'participantes';
 
@@ -20,6 +21,8 @@ type SessionSidebarTabsProps = {
   totalRolagens: number;
   totalAnotacoes?: number;
   totalItens?: number;
+  totalRelatorio?: number;
+  mostrarRelatorio?: boolean;
   mostrarEventos?: boolean;
   children: ReactNode;
 };
@@ -33,6 +36,8 @@ export function SessionSidebarTabs({
   totalRolagens,
   totalAnotacoes,
   totalItens,
+  totalRelatorio,
+  mostrarRelatorio = false,
   mostrarEventos = true,
   children,
 }: SessionSidebarTabsProps) {
@@ -52,6 +57,14 @@ export function SessionSidebarTabs({
       count: totalItens,
     },
   ];
+  if (mostrarRelatorio) {
+    tabs.push({
+      id: 'relatorio',
+      label: 'Relatorio',
+      icon: 'scroll',
+      count: totalRelatorio,
+    });
+  }
   if (mostrarEventos) {
     tabs.push({ id: 'eventos', label: 'Eventos', icon: 'list', count: totalEventos });
   }

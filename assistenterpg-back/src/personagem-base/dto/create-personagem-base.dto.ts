@@ -159,6 +159,11 @@ export class FontesConteudoDto {
   @IsArray()
   @IsInt({ each: true })
   homebrewIds?: number[] = [];
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  homebrewGrupoIds?: number[] = [];
 }
 
 export class CreatePersonagemBaseDto {

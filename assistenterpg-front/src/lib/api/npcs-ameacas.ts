@@ -19,6 +19,28 @@ export type ListarNpcsAmeacasQuery = {
   tamanho?: TamanhoNpcAmeaca;
 };
 
+export type NpcAmeacaGrupoResumo = {
+  id: number;
+  nome: string;
+  descricao?: string | null;
+  quantidadeItens: number;
+  npcAmeacaIds: number[];
+  criadoEm?: string;
+  atualizadoEm?: string;
+};
+
+export type NpcAmeacaGrupoDetalhe = NpcAmeacaGrupoResumo & {
+  npcsAmeacas: NpcAmeacaResumo[];
+};
+
+export type CreateNpcAmeacaGrupoDto = {
+  nome: string;
+  descricao?: string;
+  npcAmeacaIds?: number[];
+};
+
+export type UpdateNpcAmeacaGrupoDto = Partial<CreateNpcAmeacaGrupoDto>;
+
 function montarQueryString(query: ListarNpcsAmeacasQuery = {}): string {
   const params = new URLSearchParams();
 
@@ -65,5 +87,46 @@ export async function apiDeleteNpcAmeaca(
   id: number,
 ): Promise<{ message: string; id: number }> {
   const { data } = await apiClient.delete(`/npcs-ameacas/${id}`);
+  return data;
+}
+
+export async function apiListarGruposNpcAmeaca(): Promise<NpcAmeacaGrupoResumo[]> {
+  const { data } = await apiClient.get('/npcs-ameacas/grupos');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiGetGrupoNpcAmeaca(
+  id: number,
+): Promise<NpcAmeacaGrupoDetalhe> {
+  const { data } = await apiClient.get(`/npcs-ameacas/grupos/${id}`);
+  return data;
+}
+
+export async function apiCreateGrupoNpcAmeaca(
+  payload: CreateNpcAmeacaGrupoDto,
+): Promise<NpcAmeacaGrupoDetalhe> {
+  const { data } = await apiClient.post('/npcs-ameacas/grupos', payload);
+  return data;
+}
+
+export async function apiUpdateGrupoNpcAmeaca(
+  id: number,
+  payload: UpdateNpcAmeacaGrupoDto,
+): Promise<NpcAmeacaGrupoDetalhe> {
+  const { data } = await apiClient.patch(`/npcs-ameacas/grupos/${id}`, payload);
+  return data;
+}
+
+export async function apiDeleteGrupoNpcAmeaca(id: number): Promise<void> {
+  await apiClient.delete(`/npcs-ameacas/grupos/${id}`);
+}
+
+export async function apiExportarNpcAmeaca(id: number): Promise<unknown> {
+  const { data } = await apiClient.get(`/npcs-ameacas/${id}/exportar`);
+  return data;
+}
+
+export async function apiExportarGrupoNpcAmeaca(id: number): Promise<unknown> {
+  const { data } = await apiClient.get(`/npcs-ameacas/grupos/${id}/exportar`);
   return data;
 }

@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
-  apiAtualizarRecursosPersonagemCampanha,
+  apiAtualizarRecursosPersonagemSessaoCampanha,
   apiGetSessaoCampanha,
   extrairMensagemErro,
 } from '@/lib/api';
@@ -118,9 +118,10 @@ export function useSessaoRecursos({
       setCampoRecursoPendente(chaveCampo);
       setErro(null);
       try {
-        await apiAtualizarRecursosPersonagemCampanha(
+        await apiAtualizarRecursosPersonagemSessaoCampanha(
           campanhaId,
-          card.personagemCampanhaId,
+          sessaoId,
+          card.personagemSessaoId,
           payload,
         );
         const atualizado = await apiGetSessaoCampanha(campanhaId, sessaoId);

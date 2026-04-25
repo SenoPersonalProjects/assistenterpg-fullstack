@@ -36,7 +36,8 @@ type EventoSessaoAtualizada = {
     | 'HABILIDADE_USADA'
     | 'HABILIDADE_SUSTENTADA_ENCERRADA'
     | 'CONDICAO_APLICADA'
-    | 'CONDICAO_REMOVIDA';
+    | 'CONDICAO_REMOVIDA'
+    | 'RECURSO_AJUSTADO';
   em: string;
 };
 

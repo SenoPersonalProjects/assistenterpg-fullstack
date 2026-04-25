@@ -14,6 +14,7 @@ import { useConfirm } from '@/hooks/useConfirm';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import {
   apiAdminGetCondicoes,
+  apiGetRelatorioSessaoCampanha,
   apiGetSessaoCampanha,
   apiGetMeusNpcsAmeacas,
   apiListarPersonagensCampanha,
@@ -38,6 +39,7 @@ import type {
   ParticipanteIniciativaSessaoCampanha,
   PersonagemCampanhaResumo,
   SessaoCampanhaDetalhe,
+  SessaoCampanhaRelatorio,
   TipoCenaSessaoCampanha,
 } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
@@ -278,6 +280,9 @@ export default function SessaoCampanhaPage() {
   const [detalhe, setDetalhe] = useState<SessaoCampanhaDetalhe | null>(null);
   const [chat, setChat] = useState<MensagemChatSessao[]>([]);
   const [eventosSessao, setEventosSessao] = useState<EventoSessaoTimeline[]>([]);
+  const [relatorioSessao, setRelatorioSessao] = useState<SessaoCampanhaRelatorio | null>(null);
+  const [loadingRelatorio, setLoadingRelatorio] = useState(false);
+  const [erroRelatorio, setErroRelatorio] = useState<string | null>(null);
   const [mensagem, setMensagem] = useState('');
   const [mensagemRolagem, setMensagemRolagem] = useState('');
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
@@ -843,6 +848,48 @@ export default function SessaoCampanhaPage() {
       setAbaPainelDireitoAtiva('chat');
     }
   }, [abaPainelDireitoAtiva, podeControlarSessao, setAbaPainelDireitoAtiva]);
+
+  useEffect(() => {
+    if (!idsValidos || !sessaoEncerrada) {
+      setRelatorioSessao(null);
+      setErroRelatorio(null);
+      setLoadingRelatorio(false);
+      if (abaPainelDireitoAtiva === 'relatorio') {
+        setAbaPainelDireitoAtiva('chat');
+      }
+      return;
+    }
+
+    let cancelado = false;
+    setLoadingRelatorio(true);
+    setErroRelatorio(null);
+
+    void apiGetRelatorioSessaoCampanha(campanhaId, sessaoId)
+      .then((relatorio) => {
+        if (cancelado) return;
+        setRelatorioSessao(relatorio);
+      })
+      .catch((error) => {
+        if (cancelado) return;
+        setErroRelatorio(extrairMensagemErro(error));
+      })
+      .finally(() => {
+        if (!cancelado) {
+          setLoadingRelatorio(false);
+        }
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [
+    abaPainelDireitoAtiva,
+    campanhaId,
+    idsValidos,
+    sessaoEncerrada,
+    sessaoId,
+    setAbaPainelDireitoAtiva,
+  ]);
 
   const { socketConectado, realtimeStatus, onlineUsuarioIds } = useSessaoRealtime({
     idsValidos,
@@ -2513,6 +2560,9 @@ export default function SessaoCampanhaPage() {
                 sessaoId={sessaoId}
                 cenaId={detalhe.cenaAtual.id}
                 sessaoEncerrada={sessaoEncerrada}
+                relatorioSessao={relatorioSessao}
+                loadingRelatorio={loadingRelatorio}
+                erroRelatorio={erroRelatorio}
                 podeControlarSessao={podeControlarSessao}
                 desfazendoEventoId={desfazendoEventoId}
                 erroEventos={erroEventos}

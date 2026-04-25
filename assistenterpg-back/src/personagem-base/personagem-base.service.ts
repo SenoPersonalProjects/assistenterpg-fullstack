@@ -210,10 +210,17 @@ export class PersonagemBaseService {
             typeof item === 'number' && Number.isInteger(item) && item > 0,
         )
       : [];
+    const homebrewGrupoIds = Array.isArray(value.homebrewGrupoIds)
+      ? value.homebrewGrupoIds.filter(
+          (item): item is number =>
+            typeof item === 'number' && Number.isInteger(item) && item > 0,
+        )
+      : [];
 
     return {
       suplementoIds,
       homebrewIds,
+      homebrewGrupoIds,
     };
   }
 
