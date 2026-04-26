@@ -10,7 +10,12 @@ import type {
   PreviewAdicionarItemResponse,
   PericiaCatalogo,
 } from '@/lib/api';
-import { apiPreviewItensInventario } from '@/lib/api';
+import {
+  apiCreateEquipamentoHomebrewInline,
+  apiGetMeusEquipamentosHomebrew,
+  apiPreviewItensInventario,
+  extrairMensagemErro,
+} from '@/lib/api';
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
   // calcularEspacosExtraDeItens
@@ -29,6 +34,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
 import { InventarioGrauXama } from '../InventarioGrauXama';
 import { InventarioCapacidadeCarga } from '../InventarioCapacidadeCarga';
 import { InventarioItemCard } from '../InventarioItemCard';
@@ -38,6 +44,9 @@ import { InventarioModalModificacoes } from '../modal/InventarioModalModificacoe
 import { InventarioModalReview } from '../modal/InventarioModalReview';
 import { InventarioModalEditar } from '../modal/InventarioModalEditar';
 import { InventarioAlertaVestir } from '../InventarioAlertaVestir';
+import { HomebrewForm } from '@/components/suplemento/HomebrewForm';
+import { TipoHomebrewConteudo } from '@/lib/types/homebrew-enums';
+import type { CreateHomebrewDto } from '@/lib/api/homebrews';
 
 type Props = {
   forca: number;
@@ -70,7 +79,19 @@ export function PersonagemBaseStepInventario(props: Props) {
   });
 
   // Estados básicos
-  const equipamentos = props.equipamentos;
+  const [equipamentosHomebrew, setEquipamentosHomebrew] = useState<EquipamentoCatalogo[]>([]);
+  const [modalCriarEquipamentoAberto, setModalCriarEquipamentoAberto] = useState(false);
+  const [erroCriarEquipamento, setErroCriarEquipamento] = useState<string | null>(null);
+  const equipamentos = useMemo(() => {
+    const mapa = new Map<number, EquipamentoCatalogo>();
+    for (const equip of props.equipamentos) {
+      mapa.set(equip.id, equip);
+    }
+    for (const equip of equipamentosHomebrew) {
+      mapa.set(equip.id, equip);
+    }
+    return Array.from(mapa.values());
+  }, [equipamentosHomebrew, props.equipamentos]);
   const modificacoes = props.modificacoes;
 
   // Estado para armazenar preview do backend (espaços calculados)
@@ -120,6 +141,24 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [itemToRemove, setItemToRemove] = useState<number | null>(null);
   const termoBuscaItemDeferred = useDeferredValue(buscaItem);
   const termoBuscaEquipamentoDeferred = useDeferredValue(buscaEquipamento);
+
+  useEffect(() => {
+    let ativo = true;
+    apiGetMeusEquipamentosHomebrew()
+      .then((lista) => {
+        if (ativo) {
+          setEquipamentosHomebrew(lista);
+        }
+      })
+      .catch(() => {
+        if (ativo) {
+          setEquipamentosHomebrew([]);
+        }
+      });
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   const grauXama = useMemo(
     () => getGrauXamaPorPrestigio(props.prestigioBase),
@@ -341,6 +380,7 @@ export function PersonagemBaseStepInventario(props: Props) {
   // Categorização
   const equipamentosPorCategoria = useMemo(() => {
     const categorizado: Record<CategoriaEquipamento, EquipamentoCatalogo[]> = {
+      HOMEBREW: [],
       ARMAS: [],
       MUNICOES: [],
       PROTECOES: [],
@@ -356,6 +396,11 @@ export function PersonagemBaseStepInventario(props: Props) {
     if (!Array.isArray(equipamentos)) return categorizado;
 
     equipamentos.forEach((equip) => {
+      if (equip.fonte === 'HOMEBREW') {
+        categorizado.HOMEBREW.push(equip);
+        return;
+      }
+
       const tipo = equip.tipo;
       const equipDetalhes = equip as EquipamentoCatalogo;
       const complexidade = equipDetalhes.complexidadeMaldicao;
@@ -589,6 +634,33 @@ export function PersonagemBaseStepInventario(props: Props) {
     setPericiaPersonalizada('');
     setPericiaPersonalizadaEditando('');
   }, []);
+
+  const handleCriarEquipamentoHomebrew = useCallback(
+    async (payload: CreateHomebrewDto) => {
+      setErroCriarEquipamento(null);
+      try {
+        const resultado = await apiCreateEquipamentoHomebrewInline({
+          ...payload,
+          tipo: TipoHomebrewConteudo.EQUIPAMENTO,
+        });
+
+        setEquipamentosHomebrew((atual) => {
+          const mapa = new Map(atual.map((item) => [item.id, item] as const));
+          mapa.set(resultado.equipamento.id, resultado.equipamento);
+          return Array.from(mapa.values());
+        });
+        setEquipamentoSelecionado(resultado.equipamento);
+        setCategoriaAtiva('HOMEBREW');
+        setModalCriarEquipamentoAberto(false);
+        setModalAberto(true);
+        setStepAtual('review');
+      } catch (error) {
+        setErroCriarEquipamento(extrairMensagemErro(error));
+        throw error;
+      }
+    },
+    [],
+  );
 
   // Preview simplificado (backend calculará tudo ao adicionar)
   const buscarPreviewBackend = useCallback(async () => {
@@ -882,15 +954,28 @@ export function PersonagemBaseStepInventario(props: Props) {
                     ` de ${props.itensInventario.length}`}
                   )
                 </h3>
-                <Button
-                  onClick={abrirModal}
-                  variant="primary"
-                  size="sm"
-                  disabled={carregandoSincronizacao}
-                >
-                  <Icon name="add" className="w-4 h-4 mr-1" />
-                  Adicionar
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => {
+                      setErroCriarEquipamento(null);
+                      setModalCriarEquipamentoAberto(true);
+                    }}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    <Icon name="sparkles" className="w-4 h-4 mr-1" />
+                    Criar equipamento próprio
+                  </Button>
+                  <Button
+                    onClick={abrirModal}
+                    variant="primary"
+                    size="sm"
+                    disabled={carregandoSincronizacao}
+                  >
+                    <Icon name="add" className="w-4 h-4 mr-1" />
+                    Adicionar
+                  </Button>
+                </div>
               </div>
 
               {/* Filtros */}
@@ -1139,15 +1224,30 @@ export function PersonagemBaseStepInventario(props: Props) {
               </Button>
 
               {stepAtual !== 'review' && stepAtual !== 'editar-item' && (
-                <Button
-                  onClick={avancarStep}
-                  variant="primary"
-                  className="flex-1"
-                  disabled={stepAtual === 'equipamento' && !equipamentoSelecionado}
-                >
-                  Continuar
-                  <Icon name="forward" className="w-4 h-4 ml-1" />
-                </Button>
+                <>
+                  {stepAtual === 'equipamento' && (
+                    <Button
+                      onClick={() => {
+                        setErroCriarEquipamento(null);
+                        setModalCriarEquipamentoAberto(true);
+                      }}
+                      variant="secondary"
+                      className="flex-1"
+                    >
+                      <Icon name="sparkles" className="w-4 h-4 mr-1" />
+                      Criar equipamento próprio
+                    </Button>
+                  )}
+                  <Button
+                    onClick={avancarStep}
+                    variant="primary"
+                    className="flex-1"
+                    disabled={stepAtual === 'equipamento' && !equipamentoSelecionado}
+                  >
+                    Continuar
+                    <Icon name="forward" className="w-4 h-4 ml-1" />
+                  </Button>
+                </>
               )}
 
               {stepAtual === 'review' && (
@@ -1177,6 +1277,29 @@ export function PersonagemBaseStepInventario(props: Props) {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={modalCriarEquipamentoAberto}
+        onClose={() => setModalCriarEquipamentoAberto(false)}
+        title="Criar equipamento próprio"
+        size="xl"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-app-muted">
+            Crie um equipamento homebrew reutilizável e já o deixe pronto para entrar neste inventário.
+          </p>
+          {erroCriarEquipamento && (
+            <div className="rounded-lg border border-app-danger/30 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
+              {erroCriarEquipamento}
+            </div>
+          )}
+          <HomebrewForm
+            initialValues={{ tipo: TipoHomebrewConteudo.EQUIPAMENTO }}
+            onCancel={() => setModalCriarEquipamentoAberto(false)}
+            onSubmit={handleCriarEquipamentoHomebrew}
+          />
+        </div>
+      </Modal>
 
       {/* ConfirmDialog */}
       <ConfirmDialog

@@ -127,6 +127,7 @@ export class CampanhaController {
       id,
       req.user.id,
       dto.personagemBaseId,
+      dto.sincronizarTecnicaInata ?? false,
     );
   }
 

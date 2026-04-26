@@ -4,6 +4,7 @@ import { CampanhaService } from './campanha.service';
 import { CampanhaController } from './campanha.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { InventarioModule } from '../inventario/inventario.module';
+import { TecnicasAmaldicoadasModule } from '../tecnicas-amaldicoadas/tecnicas-amaldicoadas.module';
 import { CampanhaMapper } from './campanha.mapper';
 import { CampanhaPersistence } from './campanha.persistence';
 import { CampanhaAccessService } from './campanha.access.service';
@@ -15,7 +16,7 @@ import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
 
 @Module({
-  imports: [PrismaModule, InventarioModule],
+  imports: [PrismaModule, InventarioModule, TecnicasAmaldicoadasModule],
   providers: [
     CampanhaService,
     CampanhaMapper,

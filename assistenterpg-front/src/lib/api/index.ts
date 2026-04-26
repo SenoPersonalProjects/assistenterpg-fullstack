@@ -25,3 +25,4 @@ export * from './pagination';
 export * from './suplemento-conteudos';
 export * from './npcs-ameacas';
 export * from './anotacoes';
+export * from './homebrews';

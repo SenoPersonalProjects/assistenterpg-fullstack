@@ -248,11 +248,13 @@ export class CampanhaService {
     campanhaId: number,
     solicitanteId: number,
     personagemBaseId: number,
+    sincronizarTecnicaInata = false,
   ) {
     return this.personagensService.vincularPersonagemBase(
       campanhaId,
       solicitanteId,
       personagemBaseId,
+      sincronizarTecnicaInata,
     );
   }
 

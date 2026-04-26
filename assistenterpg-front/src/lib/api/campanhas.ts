@@ -231,7 +231,10 @@ export async function apiListarPersonagensBaseDisponiveisCampanha(
 
 export async function apiVincularPersonagemCampanha(
   campanhaId: number,
-  payload: { personagemBaseId: number },
+  payload: {
+    personagemBaseId: number;
+    sincronizarTecnicaInata?: boolean;
+  },
 ): Promise<PersonagemCampanhaResumo> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/personagens`,

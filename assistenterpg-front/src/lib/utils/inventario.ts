@@ -53,6 +53,7 @@ export const CATEGORIAS_LABELS: Record<
   string,
   { nome: string; icon: IconName; cor: string }
 > = {
+  HOMEBREW: { nome: 'Homebrew', icon: 'sparkles', cor: 'text-amber-500' },
   ARMAS: { nome: 'Armas', icon: 'bolt', cor: 'text-red-500' },
   MUNICOES: { nome: 'Munições', icon: 'target', cor: 'text-orange-500' },
   PROTECOES: { nome: 'Proteções', icon: 'shield', cor: 'text-blue-500' },
@@ -882,6 +883,7 @@ export function filtrarModificacoesCompativeis(
 /* ============================================================================ */
 
 export type CategoriaEquipamento =
+  | 'HOMEBREW'
   | 'ARMAS'
   | 'MUNICOES'
   | 'PROTECOES'

@@ -204,6 +204,7 @@ export type VariacaoHabilidadeTecnicaResumoCatalogo = {
 export type HabilidadeTecnicaResumoCatalogo = {
   id: number;
   tecnicaId: number;
+  habilitada?: boolean;
   codigo: string;
   nome: string;
   descricao: string;

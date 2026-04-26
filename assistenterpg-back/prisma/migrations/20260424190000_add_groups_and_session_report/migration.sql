@@ -1,4 +1,4 @@
-﻿CREATE TABLE `homebrew_grupos` (
+CREATE TABLE `homebrew_grupos` (
   `id` INTEGER NOT NULL AUTO_INCREMENT,
   `usuarioId` INTEGER NOT NULL,
   `nome` VARCHAR(191) NOT NULL,

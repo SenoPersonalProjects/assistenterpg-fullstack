@@ -10,6 +10,7 @@ import { TecnicasAmaldicoadasHabilidadesService } from './tecnicas-amaldicoadas.
 import { TecnicasAmaldicoadasVariacoesService } from './tecnicas-amaldicoadas.variacoes.service';
 import { TecnicasAmaldicoadasValidationsService } from './tecnicas-amaldicoadas.validations.service';
 import { TecnicasAmaldicoadasClasService } from './tecnicas-amaldicoadas.clas.service';
+import { TecnicaInataPropriaService } from './tecnica-inata-propria.service';
 
 @Module({
   imports: [PrismaModule],
@@ -24,7 +25,8 @@ import { TecnicasAmaldicoadasClasService } from './tecnicas-amaldicoadas.clas.se
     TecnicasAmaldicoadasVariacoesService,
     TecnicasAmaldicoadasValidationsService,
     TecnicasAmaldicoadasClasService,
+    TecnicaInataPropriaService,
   ],
-  exports: [TecnicasAmaldicoadasService], // ← Exporta para uso em outros módulos
+  exports: [TecnicasAmaldicoadasService, TecnicaInataPropriaService], // ← Exporta para uso em outros módulos
 })
 export class TecnicasAmaldicoadasModule {}

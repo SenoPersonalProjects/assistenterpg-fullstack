@@ -297,6 +297,7 @@ type VariacaoTecnicaSessaoRaw = {
 type HabilidadeTecnicaSessaoRaw = {
   id: number;
   tecnicaId: number;
+  habilitada?: boolean;
   codigo: string;
   nome: string;
   descricao: string;
@@ -351,6 +352,7 @@ type GrauSessaoRaw = {
 
 type PersonagemCampanhaTecnicasSessaoRaw = {
   tecnicaInata: TecnicaSessaoRaw | null;
+  tecnicaInataPropria?: TecnicaSessaoRaw | null;
   tecnicasAprendidas: RelacaoTecnicaSessaoRaw[];
   grausAprimoramento: GrauSessaoRaw[];
   personagemBase?: {
@@ -599,6 +601,18 @@ export class SessaoService {
                 turnosMorrendo: true, // ← adicionar
                 turnosEnlouquecendo: true, // ← adicionar
                 tecnicaInata: {
+                  include: {
+                    habilidades: {
+                      include: {
+                        variacoes: {
+                          orderBy: { ordem: 'asc' },
+                        },
+                      },
+                      orderBy: { ordem: 'asc' },
+                    },
+                  },
+                },
+                tecnicaInataPropria: {
                   include: {
                     habilidades: {
                       include: {
@@ -3508,6 +3522,18 @@ export class SessaoService {
                   },
                 },
               },
+              tecnicaInataPropria: {
+                include: {
+                  habilidades: {
+                    include: {
+                      variacoes: {
+                        orderBy: { ordem: 'asc' },
+                      },
+                    },
+                    orderBy: { ordem: 'asc' },
+                  },
+                },
+              },
               tecnicasAprendidas: {
                 include: {
                   tecnica: {
@@ -4612,6 +4638,7 @@ export class SessaoService {
     }
 
     const habilidades = (tecnica.habilidades ?? [])
+      .filter((habilidade) => habilidade.habilitada !== false)
       .map((habilidade) =>
         this.mapearHabilidadeTecnicaResumo(habilidade, grausMap),
       )
@@ -4663,9 +4690,12 @@ export class SessaoService {
   } {
     const grausMap = this.montarMapaGrausPersonagemSessao(personagemCampanha);
 
-    const tecnicaInata = personagemCampanha.tecnicaInata
+    const tecnicaInataOrigem =
+      personagemCampanha.tecnicaInataPropria ?? personagemCampanha.tecnicaInata;
+
+    const tecnicaInata = tecnicaInataOrigem
       ? this.filtrarTecnicaPorGrausSessao(
-          personagemCampanha.tecnicaInata,
+          tecnicaInataOrigem,
           grausMap,
         )
       : null;

@@ -1,9 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
+import { Textarea } from '@/components/ui/Textarea';
 import { PoderesGenericosSection } from '@/components/personagem-base/sections/PoderesGenericosSection';
 import { TrainingGradesSection } from '@/components/personagem-base/sections/TrainingGradesSection';
 import {
@@ -17,6 +23,13 @@ import type {
   PericiaCatalogo,
   TecnicaAmaldicoadaCatalogo,
 } from '@/lib/api';
+import {
+  apiAtualizarHabilidadeTecnicaInataPropria,
+  apiAtualizarVariacaoTecnicaInataPropria,
+  apiCriarHabilidadeTecnicaInataPropria,
+  apiCriarVariacaoTecnicaInataPropria,
+  extrairMensagemErro,
+} from '@/lib/api';
 
 type Habilidade = {
   id: number;
@@ -29,9 +42,38 @@ type SecaoPoderesProps = {
   personagem: PersonagemBaseDetalhe;
   periciasMap: Map<string, { nome: string }>;
   tiposGrauMap: Map<string, string>;
+  personagemId?: number;
+  onTecnicaAtualizada?: () => Promise<void> | void;
 };
 
 type TecnicaHabilidade = NonNullable<TecnicaAmaldicoadaCatalogo['habilidades']>[number];
+type TecnicaVariacao = NonNullable<TecnicaHabilidade['variacoes']>[number];
+
+type HabilidadeFormState = {
+  codigo: string;
+  nome: string;
+  descricao: string;
+  execucao: string;
+  alcance: string;
+  alvo: string;
+  duracao: string;
+  custoEA: string;
+  custoPE: string;
+  efeito: string;
+  ordem: string;
+  requisitos: string;
+  habilitada: boolean;
+};
+
+type VariacaoFormState = {
+  nome: string;
+  descricao: string;
+  custoEA: string;
+  custoPE: string;
+  efeitoAdicional: string;
+  ordem: string;
+  requisitos: string;
+};
 
 const HABILITY_TYPES = {
   RECURSO_CLASSE: 'Recurso de Classe',
@@ -89,10 +131,295 @@ function formatRequisitos(value: unknown): string[] {
   return linhas;
 }
 
+function formatJsonTextarea(value: unknown): string {
+  if (value == null) return '';
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return '';
+  }
+}
+
+function parseJsonTextarea(value: string): unknown | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return JSON.parse(trimmed);
+}
+
+function createHabilidadeFormState(
+  habilidade?: TecnicaHabilidade | null,
+): HabilidadeFormState {
+  return {
+    codigo: habilidade?.codigo ?? '',
+    nome: habilidade?.nome ?? '',
+    descricao: habilidade?.descricao ?? '',
+    execucao: habilidade?.execucao ?? 'ACAO_PADRAO',
+    alcance: habilidade?.alcance ?? '',
+    alvo: habilidade?.alvo ?? '',
+    duracao: habilidade?.duracao ?? '',
+    custoEA: String(habilidade?.custoEA ?? 0),
+    custoPE: String(habilidade?.custoPE ?? 0),
+    efeito: habilidade?.efeito ?? '',
+    ordem: String(habilidade?.ordem ?? 10),
+    requisitos: formatJsonTextarea(habilidade?.requisitos),
+    habilitada: habilidade?.habilitada ?? true,
+  };
+}
+
+function createVariacaoFormState(
+  variacao?: TecnicaVariacao | null,
+): VariacaoFormState {
+  return {
+    nome: variacao?.nome ?? '',
+    descricao: variacao?.descricao ?? '',
+    custoEA:
+      variacao?.custoEA == null ? '' : String(variacao.custoEA),
+    custoPE:
+      variacao?.custoPE == null ? '' : String(variacao.custoPE),
+    efeitoAdicional: variacao?.efeitoAdicional ?? '',
+    ordem: String(variacao?.ordem ?? 10),
+    requisitos: formatJsonTextarea(variacao?.requisitos),
+  };
+}
+
+function HabilidadeTecnicaFormModal({
+  isOpen,
+  onClose,
+  title,
+  value,
+  onChange,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  value: HabilidadeFormState;
+  onChange: (next: HabilidadeFormState) => void;
+  onSubmit: () => Promise<void>;
+}) {
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    try {
+      setErro(null);
+      setSalvando(true);
+      await onSubmit();
+      onClose();
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
+      <div className="space-y-4">
+        {erro && (
+          <div className="rounded-lg border border-app-danger/30 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
+            {erro}
+          </div>
+        )}
+        <div className="grid gap-3 md:grid-cols-2">
+          <Input
+            label="Código"
+            value={value.codigo}
+            onChange={(e) => onChange({ ...value, codigo: e.target.value })}
+            placeholder="Opcional"
+          />
+          <Input
+            label="Execução"
+            value={value.execucao}
+            onChange={(e) => onChange({ ...value, execucao: e.target.value })}
+          />
+          <Input
+            label="Nome"
+            value={value.nome}
+            onChange={(e) => onChange({ ...value, nome: e.target.value })}
+          />
+          <Input
+            label="Ordem"
+            type="number"
+            value={value.ordem}
+            onChange={(e) => onChange({ ...value, ordem: e.target.value })}
+          />
+          <Input
+            label="Alcance"
+            value={value.alcance}
+            onChange={(e) => onChange({ ...value, alcance: e.target.value })}
+          />
+          <Input
+            label="Alvo"
+            value={value.alvo}
+            onChange={(e) => onChange({ ...value, alvo: e.target.value })}
+          />
+          <Input
+            label="Duração"
+            value={value.duracao}
+            onChange={(e) => onChange({ ...value, duracao: e.target.value })}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Custo EA"
+              type="number"
+              value={value.custoEA}
+              onChange={(e) => onChange({ ...value, custoEA: e.target.value })}
+            />
+            <Input
+              label="Custo PE"
+              type="number"
+              value={value.custoPE}
+              onChange={(e) => onChange({ ...value, custoPE: e.target.value })}
+            />
+          </div>
+        </div>
+        <Textarea
+          label="Descrição"
+          value={value.descricao}
+          onChange={(e) => onChange({ ...value, descricao: e.target.value })}
+          rows={3}
+        />
+        <Textarea
+          label="Efeito"
+          value={value.efeito}
+          onChange={(e) => onChange({ ...value, efeito: e.target.value })}
+          rows={4}
+        />
+        <Textarea
+          label="Requisitos (JSON)"
+          value={value.requisitos}
+          onChange={(e) => onChange({ ...value, requisitos: e.target.value })}
+          rows={4}
+          placeholder='Ex: {"graus":[{"valorMinimo":1,"tipoGrauCodigo":"TECNICA_AMALDICOADA"}]}'
+        />
+        <Checkbox
+          checked={value.habilitada}
+          onChange={(e) => onChange({ ...value, habilitada: e.target.checked })}
+          label="Habilidade habilitada na técnica própria"
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose} disabled={salvando}>
+            Cancelar
+          </Button>
+          <Button onClick={() => void handleSubmit()} disabled={salvando || !value.nome.trim()}>
+            {salvando ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function VariacaoTecnicaFormModal({
+  isOpen,
+  onClose,
+  title,
+  value,
+  onChange,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  value: VariacaoFormState;
+  onChange: (next: VariacaoFormState) => void;
+  onSubmit: () => Promise<void>;
+}) {
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    try {
+      setErro(null);
+      setSalvando(true);
+      await onSubmit();
+      onClose();
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
+      <div className="space-y-4">
+        {erro && (
+          <div className="rounded-lg border border-app-danger/30 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
+            {erro}
+          </div>
+        )}
+        <div className="grid gap-3 md:grid-cols-2">
+          <Input
+            label="Nome"
+            value={value.nome}
+            onChange={(e) => onChange({ ...value, nome: e.target.value })}
+          />
+          <Input
+            label="Ordem"
+            type="number"
+            value={value.ordem}
+            onChange={(e) => onChange({ ...value, ordem: e.target.value })}
+          />
+          <Input
+            label="Custo EA"
+            type="number"
+            value={value.custoEA}
+            onChange={(e) => onChange({ ...value, custoEA: e.target.value })}
+          />
+          <Input
+            label="Custo PE"
+            type="number"
+            value={value.custoPE}
+            onChange={(e) => onChange({ ...value, custoPE: e.target.value })}
+          />
+        </div>
+        <Textarea
+          label="Descrição"
+          value={value.descricao}
+          onChange={(e) => onChange({ ...value, descricao: e.target.value })}
+          rows={3}
+        />
+        <Textarea
+          label="Efeito adicional"
+          value={value.efeitoAdicional}
+          onChange={(e) => onChange({ ...value, efeitoAdicional: e.target.value })}
+          rows={4}
+        />
+        <Textarea
+          label="Requisitos (JSON)"
+          value={value.requisitos}
+          onChange={(e) => onChange({ ...value, requisitos: e.target.value })}
+          rows={4}
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose} disabled={salvando}>
+            Cancelar
+          </Button>
+          <Button onClick={() => void handleSubmit()} disabled={salvando || !value.nome.trim()}>
+            {salvando ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function HabilidadesTecnicaList({
   habilidadesTecnica,
+  editavel = false,
+  onToggleHabilitada,
+  onEditarHabilidade,
+  onNovaVariacao,
+  onEditarVariacao,
 }: {
   habilidadesTecnica: TecnicaHabilidade[];
+  editavel?: boolean;
+  onToggleHabilitada?: (habilidade: TecnicaHabilidade, habilitada: boolean) => void;
+  onEditarHabilidade?: (habilidade: TecnicaHabilidade) => void;
+  onNovaVariacao?: (habilidade: TecnicaHabilidade) => void;
+  onEditarVariacao?: (habilidade: TecnicaHabilidade, variacao: TecnicaVariacao) => void;
 }) {
   if (habilidadesTecnica.length === 0) {
     return (
@@ -118,21 +445,53 @@ function HabilidadesTecnicaList({
               <summary className="list-none cursor-pointer">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-app-fg">
+                    <p className={`text-sm font-semibold ${habilidade.habilitada === false ? 'text-app-muted line-through' : 'text-app-fg'}`}>
                       {habilidade.nome}
                     </p>
                     <p className="mt-1 text-xs text-app-muted">
                       {habilidade.descricao}
                     </p>
                   </div>
-                  <Icon
-                    name="chevron-down"
-                    className="mt-0.5 h-4 w-4 text-app-muted transition-transform group-open:rotate-180"
-                  />
+                  <div className="flex items-center gap-2">
+                    {habilidade.habilitada === false && (
+                      <Badge color="gray" size="sm">
+                        Desabilitada
+                      </Badge>
+                    )}
+                    <Icon
+                      name="chevron-down"
+                      className="mt-0.5 h-4 w-4 text-app-muted transition-transform group-open:rotate-180"
+                    />
+                  </div>
                 </div>
               </summary>
 
               <div className="mt-3 space-y-3">
+                {editavel && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Checkbox
+                      checked={habilidade.habilitada !== false}
+                      onChange={(event) =>
+                        onToggleHabilitada?.(habilidade, event.target.checked)
+                      }
+                      label="Habilitada"
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onEditarHabilidade?.(habilidade)}
+                    >
+                      Editar habilidade
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onNovaVariacao?.(habilidade)}
+                    >
+                      Nova variação
+                    </Button>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {formatExecucao(habilidade.execucao) && (
                     <Badge color="purple" size="sm">
@@ -213,6 +572,19 @@ function HabilidadesTecnicaList({
                                 {variacao.efeitoAdicional}
                               </p>
                             )}
+                            {editavel && (
+                              <div className="mt-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    onEditarVariacao?.(habilidade, variacao)
+                                  }
+                                >
+                                  Editar variação
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ))}
                     </div>
@@ -230,6 +602,8 @@ export function SecaoPoderes({
   personagem,
   periciasMap,
   tiposGrauMap,
+  personagemId,
+  onTecnicaAtualizada,
 }: SecaoPoderesProps) {
   const habilidades = personagem.habilidades ?? [];
 
@@ -257,6 +631,125 @@ export function SecaoPoderes({
   const tecnicasNaoInatasOrdenadas = [...(personagem.tecnicasNaoInatas ?? [])]
     .sort((a, b) => a.nome.localeCompare(b.nome));
   const tecnicaInata = personagem.tecnicaInata;
+  const tecnicaEditavel = Boolean(personagemId && tecnicaInata);
+  const [modalHabilidadeAberto, setModalHabilidadeAberto] = useState(false);
+  const [habilidadeEditando, setHabilidadeEditando] =
+    useState<TecnicaHabilidade | null>(null);
+  const [formHabilidade, setFormHabilidade] = useState<HabilidadeFormState>(
+    createHabilidadeFormState(),
+  );
+  const [modalVariacaoAberto, setModalVariacaoAberto] = useState(false);
+  const [habilidadeVariacaoPai, setHabilidadeVariacaoPai] =
+    useState<TecnicaHabilidade | null>(null);
+  const [variacaoEditando, setVariacaoEditando] =
+    useState<TecnicaVariacao | null>(null);
+  const [formVariacao, setFormVariacao] = useState<VariacaoFormState>(
+    createVariacaoFormState(),
+  );
+
+  async function refreshTecnica() {
+    if (onTecnicaAtualizada) {
+      await onTecnicaAtualizada();
+    }
+  }
+
+  async function toggleHabilitada(
+    habilidade: TecnicaHabilidade,
+    habilitada: boolean,
+  ) {
+    if (!personagemId) return;
+    await apiAtualizarHabilidadeTecnicaInataPropria(personagemId, habilidade.id, {
+      habilitada,
+    });
+    await refreshTecnica();
+  }
+
+  function abrirNovaHabilidade() {
+    setHabilidadeEditando(null);
+    setFormHabilidade(createHabilidadeFormState());
+    setModalHabilidadeAberto(true);
+  }
+
+  function abrirEditarHabilidade(habilidade: TecnicaHabilidade) {
+    setHabilidadeEditando(habilidade);
+    setFormHabilidade(createHabilidadeFormState(habilidade));
+    setModalHabilidadeAberto(true);
+  }
+
+  function abrirNovaVariacao(habilidade: TecnicaHabilidade) {
+    setHabilidadeVariacaoPai(habilidade);
+    setVariacaoEditando(null);
+    setFormVariacao(createVariacaoFormState());
+    setModalVariacaoAberto(true);
+  }
+
+  function abrirEditarVariacao(
+    habilidade: TecnicaHabilidade,
+    variacao: TecnicaVariacao,
+  ) {
+    setHabilidadeVariacaoPai(habilidade);
+    setVariacaoEditando(variacao);
+    setFormVariacao(createVariacaoFormState(variacao));
+    setModalVariacaoAberto(true);
+  }
+
+  async function salvarHabilidade() {
+    if (!personagemId) return;
+    const payload = {
+      codigo: formHabilidade.codigo || undefined,
+      nome: formHabilidade.nome,
+      descricao: formHabilidade.descricao,
+      execucao: formHabilidade.execucao,
+      alcance: formHabilidade.alcance || null,
+      alvo: formHabilidade.alvo || null,
+      duracao: formHabilidade.duracao || null,
+      custoEA: Number(formHabilidade.custoEA || 0),
+      custoPE: Number(formHabilidade.custoPE || 0),
+      efeito: formHabilidade.efeito,
+      ordem: Number(formHabilidade.ordem || 10),
+      requisitos: parseJsonTextarea(formHabilidade.requisitos),
+      habilitada: formHabilidade.habilitada,
+    };
+
+    if (habilidadeEditando) {
+      await apiAtualizarHabilidadeTecnicaInataPropria(
+        personagemId,
+        habilidadeEditando.id,
+        payload,
+      );
+    } else {
+      await apiCriarHabilidadeTecnicaInataPropria(personagemId, payload);
+    }
+    await refreshTecnica();
+  }
+
+  async function salvarVariacao() {
+    if (!personagemId || !habilidadeVariacaoPai) return;
+    const payload = {
+      nome: formVariacao.nome,
+      descricao: formVariacao.descricao,
+      custoEA: formVariacao.custoEA ? Number(formVariacao.custoEA) : null,
+      custoPE: formVariacao.custoPE ? Number(formVariacao.custoPE) : null,
+      efeitoAdicional: formVariacao.efeitoAdicional || null,
+      ordem: Number(formVariacao.ordem || 10),
+      requisitos: parseJsonTextarea(formVariacao.requisitos),
+    };
+
+    if (variacaoEditando) {
+      await apiAtualizarVariacaoTecnicaInataPropria(
+        personagemId,
+        variacaoEditando.id,
+        payload,
+      );
+    } else {
+      await apiCriarVariacaoTecnicaInataPropria(
+        personagemId,
+        habilidadeVariacaoPai.id,
+        payload,
+      );
+    }
+    await refreshTecnica();
+  }
 
   return (
     <div className="space-y-6">
@@ -298,11 +791,24 @@ export function SecaoPoderes({
                       ? 'habilidade'
                       : 'habilidades'}
                   </Badge>
+                  {tecnicaEditavel && (
+                    <Button variant="secondary" size="sm" onClick={abrirNovaHabilidade}>
+                      <Icon name="add" className="h-4 w-4 mr-1" />
+                      Nova habilidade
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
             <HabilidadesTecnicaList
               habilidadesTecnica={tecnicaInata.habilidades ?? []}
+              editavel={tecnicaEditavel}
+              onToggleHabilitada={(habilidade, habilitada) => {
+                void toggleHabilitada(habilidade, habilitada);
+              }}
+              onEditarHabilidade={abrirEditarHabilidade}
+              onNovaVariacao={abrirNovaVariacao}
+              onEditarVariacao={abrirEditarVariacao}
             />
           </div>
         )}
@@ -449,6 +955,32 @@ export function SecaoPoderes({
           skillsMap={periciasMapCompleto}
         />
       </div>
+
+      <HabilidadeTecnicaFormModal
+        isOpen={modalHabilidadeAberto}
+        onClose={() => setModalHabilidadeAberto(false)}
+        title={
+          habilidadeEditando
+            ? 'Editar habilidade da técnica própria'
+            : 'Nova habilidade da técnica própria'
+        }
+        value={formHabilidade}
+        onChange={setFormHabilidade}
+        onSubmit={salvarHabilidade}
+      />
+
+      <VariacaoTecnicaFormModal
+        isOpen={modalVariacaoAberto}
+        onClose={() => setModalVariacaoAberto(false)}
+        title={
+          variacaoEditando
+            ? 'Editar variação da técnica própria'
+            : 'Nova variação da técnica própria'
+        }
+        value={formVariacao}
+        onChange={setFormVariacao}
+        onSubmit={salvarVariacao}
+      />
     </div>
   );
 }

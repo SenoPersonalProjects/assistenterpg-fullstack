@@ -663,6 +663,8 @@ export default function PersonagemBaseDetalhePage() {
           personagem={personagem}
           periciasMap={periciasMap}
           tiposGrauMap={tiposGrauMap}
+          personagemId={personagem.id}
+          onTecnicaAtualizada={refresh}
         />
       ),
     },

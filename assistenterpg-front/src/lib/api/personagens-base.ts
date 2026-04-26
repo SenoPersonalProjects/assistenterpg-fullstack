@@ -13,6 +13,7 @@ import type {
   UpdatePersonagemBasePayload,
   InfoGrausTreinamento,
   PericiaElegivelTreinamento,
+  TecnicaAmaldicoadaCatalogo,
 } from '@/lib/types';
 
 type MeusPersonagensQuery = {
@@ -171,6 +172,65 @@ export async function apiUpdatePersonagemBase(
   const { data } = await apiClient.patch(`/personagens-base/${id}`, payload);
   apiInvalidatePersonagemBaseCache(id);
   apiInvalidatePersonagemBasePreviewCache();
+  return data;
+}
+
+export async function apiGetTecnicaInataPropriaPersonagemBase(
+  id: number,
+): Promise<TecnicaAmaldicoadaCatalogo | null> {
+  const { data } = await apiClient.get(`/personagens-base/${id}/tecnica-inata-propria`);
+  apiInvalidatePersonagemBaseCache(id);
+  return data;
+}
+
+export async function apiCriarHabilidadeTecnicaInataPropria(
+  id: number,
+  payload: Record<string, unknown>,
+): Promise<TecnicaAmaldicoadaCatalogo | null> {
+  const { data } = await apiClient.post(
+    `/personagens-base/${id}/tecnica-inata-propria/habilidades`,
+    payload,
+  );
+  apiInvalidatePersonagemBaseCache(id);
+  return data;
+}
+
+export async function apiAtualizarHabilidadeTecnicaInataPropria(
+  id: number,
+  habilidadeId: number,
+  payload: Record<string, unknown>,
+): Promise<TecnicaAmaldicoadaCatalogo | null> {
+  const { data } = await apiClient.patch(
+    `/personagens-base/${id}/tecnica-inata-propria/habilidades/${habilidadeId}`,
+    payload,
+  );
+  apiInvalidatePersonagemBaseCache(id);
+  return data;
+}
+
+export async function apiCriarVariacaoTecnicaInataPropria(
+  id: number,
+  habilidadeId: number,
+  payload: Record<string, unknown>,
+): Promise<TecnicaAmaldicoadaCatalogo | null> {
+  const { data } = await apiClient.post(
+    `/personagens-base/${id}/tecnica-inata-propria/habilidades/${habilidadeId}/variacoes`,
+    payload,
+  );
+  apiInvalidatePersonagemBaseCache(id);
+  return data;
+}
+
+export async function apiAtualizarVariacaoTecnicaInataPropria(
+  id: number,
+  variacaoId: number,
+  payload: Record<string, unknown>,
+): Promise<TecnicaAmaldicoadaCatalogo | null> {
+  const { data } = await apiClient.patch(
+    `/personagens-base/${id}/tecnica-inata-propria/variacoes/${variacaoId}`,
+    payload,
+  );
+  apiInvalidatePersonagemBaseCache(id);
   return data;
 }
 

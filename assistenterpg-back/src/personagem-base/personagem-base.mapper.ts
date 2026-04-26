@@ -44,6 +44,18 @@ export const personagemBaseDetalhadoInclude =
         },
       },
     },
+    tecnicaInataPropria: {
+      include: {
+        habilidades: {
+          include: {
+            variacoes: {
+              orderBy: { ordem: 'asc' },
+            },
+          },
+          orderBy: { ordem: 'asc' },
+        },
+      },
+    },
     alinhamento: true,
     proficiencias: { include: { proficiencia: true } },
     grausAprimoramento: {
@@ -241,6 +253,7 @@ type TecnicaDetalhadaMapeada = {
   habilidades: Array<{
     id: number;
     tecnicaId: number;
+    habilitada?: boolean;
     codigo: string;
     nome: string;
     descricao: string;
@@ -599,6 +612,7 @@ export class PersonagemBaseMapper {
       habilidades: Array<{
         id: number;
         tecnicaId: number;
+        habilitada?: boolean;
         codigo: string;
         nome: string;
         descricao: string;
@@ -660,6 +674,7 @@ export class PersonagemBaseMapper {
         .map((habilidade) => ({
           id: habilidade.id,
           tecnicaId: habilidade.tecnicaId,
+          habilitada: habilidade.habilitada ?? true,
           codigo: habilidade.codigo,
           nome: habilidade.nome,
           descricao: habilidade.descricao,
@@ -738,8 +753,11 @@ export class PersonagemBaseMapper {
         .map(mapTecnicaDetalhada);
 
     const tecnicaInataDetalhada: TecnicaDetalhadaMapeada | null =
-      personagem.tecnicaInata
-        ? mapTecnicaDetalhada(personagem.tecnicaInata)
+      personagem.tecnicaInataPropria ?? personagem.tecnicaInata
+        ? mapTecnicaDetalhada(
+            (personagem.tecnicaInataPropria ??
+              personagem.tecnicaInata)!,
+          )
         : null;
 
     const creditoCategoriaBonus = [

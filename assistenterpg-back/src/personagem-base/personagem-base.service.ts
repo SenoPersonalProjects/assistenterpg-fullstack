@@ -2,7 +2,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, AtributoBaseEA } from '@prisma/client';
+import {
+  Prisma,
+  AtributoBaseEA,
+  TipoExecucao,
+  AreaEfeito,
+  TipoDano,
+  TipoEscalonamentoHabilidade,
+} from '@prisma/client';
 
 // ✅ IMPORTAR InventarioService
 import { InventarioService } from '../inventario/inventario.service';
@@ -55,6 +62,7 @@ import {
 } from './personagem-base.mapper';
 import { PersonagemBasePersistence } from './personagem-base.persistence';
 import { PaginatedResult } from 'src/common/dto/pagination-query.dto';
+import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 type PoderGenericoComConfig = {
@@ -175,6 +183,7 @@ export class PersonagemBaseService {
     private readonly persistence: PersonagemBasePersistence,
     // ✅ INJETAR InventarioService
     private readonly inventarioService: InventarioService,
+    private readonly tecnicaInataPropriaService: TecnicaInataPropriaService,
   ) {}
 
   // ==================== HELPERS GERAIS ====================
@@ -257,6 +266,30 @@ export class PersonagemBaseService {
     passivas: Array<{ passivaId: number }>,
   ): number[] {
     return (passivas ?? []).map((p) => p.passivaId);
+  }
+
+  private async removerTecnicaInataPropria(
+    tecnicaId: number | null | undefined,
+    prismaLike: PrismaLike,
+  ): Promise<void> {
+    if (!tecnicaId) return;
+
+    await prismaLike.variacaoHabilidade.deleteMany({
+      where: {
+        habilidadeTecnica: {
+          tecnicaId,
+        },
+      },
+    });
+    await prismaLike.habilidadeTecnica.deleteMany({
+      where: { tecnicaId },
+    });
+    await prismaLike.tecnicaCla.deleteMany({
+      where: { tecnicaId },
+    });
+    await prismaLike.tecnicaAmaldicoada.delete({
+      where: { id: tecnicaId },
+    });
   }
 
   private getPoderesFromRelacao(
@@ -886,7 +919,7 @@ export class PersonagemBaseService {
         return found?.id ?? null;
       },
       buscarPorNome: async (nome) => {
-        const found = await this.prisma.tecnicaAmaldicoada.findUnique({
+        const found = await this.prisma.tecnicaAmaldicoada.findFirst({
           where: { nome },
           select: { id: true },
         });
@@ -2090,6 +2123,21 @@ export class PersonagemBaseService {
         }
       }
 
+      if (estado.dtoNormalizado.tecnicaInataId) {
+        const tecnicaInataPropriaId =
+          await this.tecnicaInataPropriaService.clonarTecnicaInata({
+            usuarioId: donoId,
+            tecnicaBaseId: estado.dtoNormalizado.tecnicaInataId,
+            personagemBaseId: personagemCriado.id,
+            prisma: tx,
+          });
+
+        await tx.personagemBase.update({
+          where: { id: personagemCriado.id },
+          data: { tecnicaInataPropriaId },
+        });
+      }
+
       return personagemCriado;
     });
 
@@ -2150,6 +2198,15 @@ export class PersonagemBaseService {
     id: number,
     incluirInventario = false,
   ): Promise<PersonagemDetalhadoComInventario> {
+    const acesso = await this.prisma.personagemBase.findFirst({
+      where: { id, donoId },
+      select: { id: true },
+    });
+
+    if (!acesso) throw new PersonagemBaseNaoEncontradoException(id);
+
+    await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(id);
+
     const personagem = await this.prisma.personagemBase.findFirst({
       where: { id, donoId },
       include: personagemBaseDetalhadoInclude,
@@ -2531,6 +2588,41 @@ export class PersonagemBaseService {
         tx,
       );
 
+      const tecnicaInataAnteriorId = existe.tecnicaInataId ?? null;
+      const tecnicaInataNovaId = estado.dtoNormalizado.tecnicaInataId ?? null;
+      const tecnicaInataPropriaAnteriorId =
+        existe.tecnicaInataPropriaId ?? null;
+
+      if (!tecnicaInataNovaId) {
+        if (tecnicaInataPropriaAnteriorId) {
+          await tx.personagemBase.update({
+            where: { id },
+            data: { tecnicaInataPropriaId: null },
+          });
+          await this.removerTecnicaInataPropria(tecnicaInataPropriaAnteriorId, tx);
+        }
+      } else if (
+        tecnicaInataAnteriorId !== tecnicaInataNovaId ||
+        !tecnicaInataPropriaAnteriorId
+      ) {
+        const novaTecnicaInataPropriaId =
+          await this.tecnicaInataPropriaService.clonarTecnicaInata({
+            usuarioId: donoId,
+            tecnicaBaseId: tecnicaInataNovaId,
+            personagemBaseId: id,
+            prisma: tx,
+          });
+
+        await tx.personagemBase.update({
+          where: { id },
+          data: { tecnicaInataPropriaId: novaTecnicaInataPropriaId },
+        });
+
+        if (tecnicaInataPropriaAnteriorId) {
+          await this.removerTecnicaInataPropria(tecnicaInataPropriaAnteriorId, tx);
+        }
+      }
+
       return resultado;
     });
 
@@ -2538,12 +2630,643 @@ export class PersonagemBaseService {
       throw new ErroAtualizacaoPersonagemException();
     }
 
+    await this.tecnicaInataPropriaService.sincronizarCampanhasComTecnicaBase(
+      id,
+      this.prisma,
+    );
+
     return this.mapper.mapResumo(atualizado);
+  }
+
+  private async obterTecnicaInataPropriaOuFalhar(
+    donoId: number,
+    personagemBaseId: number,
+    prismaLike: PrismaLike = this.prisma,
+  ) {
+    const personagem = await prismaLike.personagemBase.findFirst({
+      where: { id: personagemBaseId, donoId },
+      select: {
+        id: true,
+        tecnicaInataId: true,
+        tecnicaInataPropriaId: true,
+      },
+    });
+
+    if (!personagem) {
+      throw new PersonagemBaseNaoEncontradoException(personagemBaseId);
+    }
+
+    const tecnicaInataPropriaId =
+      await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(
+        personagem.id,
+        prismaLike,
+      );
+
+    if (!tecnicaInataPropriaId) {
+      throw new BadRequestException(
+        'Este personagem nao possui tecnica inata propria para editar.',
+      );
+    }
+
+    return {
+      personagemId: personagem.id,
+      tecnicaInataPropriaId,
+    };
+  }
+
+  async buscarTecnicaInataPropria(donoId: number, personagemBaseId: number) {
+    const personagem = await this.buscarPorId(donoId, personagemBaseId, false);
+    return personagem.tecnicaInata;
+  }
+
+  async criarHabilidadeTecnicaInataPropria(
+    donoId: number,
+    personagemBaseId: number,
+    payload: Record<string, unknown>,
+  ) {
+    const resultado = await this.prisma.$transaction(async (tx) => {
+      const { tecnicaInataPropriaId } =
+        await this.obterTecnicaInataPropriaOuFalhar(
+          donoId,
+          personagemBaseId,
+          tx,
+        );
+
+      const ordemMaxima = await tx.habilidadeTecnica.aggregate({
+        where: { tecnicaId: tecnicaInataPropriaId },
+        _max: { ordem: true },
+      });
+
+      await tx.habilidadeTecnica.create({
+        data: {
+          tecnicaId: tecnicaInataPropriaId,
+          codigo:
+            typeof payload.codigo === 'string' && payload.codigo.trim().length > 0
+              ? payload.codigo.trim()
+              : `PB_HAB_${personagemBaseId}_${Date.now()}`,
+          nome: String(payload.nome ?? 'Nova habilidade'),
+          descricao: String(payload.descricao ?? ''),
+          requisitos:
+            payload.requisitos !== undefined
+              ? (payload.requisitos as Prisma.InputJsonValue)
+              : undefined,
+          execucao: String(payload.execucao ?? 'ACAO_PADRAO') as TipoExecucao,
+          area:
+            typeof payload.area === 'string' && payload.area.trim().length > 0
+              ? (payload.area.trim() as AreaEfeito)
+              : null,
+          alcance:
+            typeof payload.alcance === 'string' &&
+            payload.alcance.trim().length > 0
+              ? payload.alcance.trim()
+              : null,
+          alvo:
+            typeof payload.alvo === 'string' && payload.alvo.trim().length > 0
+              ? payload.alvo.trim()
+              : null,
+          duracao:
+            typeof payload.duracao === 'string' &&
+            payload.duracao.trim().length > 0
+              ? payload.duracao.trim()
+              : null,
+          resistencia:
+            typeof payload.resistencia === 'string' &&
+            payload.resistencia.trim().length > 0
+              ? payload.resistencia.trim()
+              : null,
+          dtResistencia:
+            typeof payload.dtResistencia === 'string' &&
+            payload.dtResistencia.trim().length > 0
+              ? payload.dtResistencia.trim()
+              : null,
+          custoPE: Number(payload.custoPE ?? 0),
+          custoEA: Number(payload.custoEA ?? 0),
+          custoSustentacaoEA:
+            payload.custoSustentacaoEA == null
+              ? null
+              : Number(payload.custoSustentacaoEA),
+          custoSustentacaoPE:
+            payload.custoSustentacaoPE == null
+              ? null
+              : Number(payload.custoSustentacaoPE),
+          testesExigidos:
+            payload.testesExigidos !== undefined
+              ? (payload.testesExigidos as Prisma.InputJsonValue)
+              : undefined,
+          criticoValor:
+            payload.criticoValor == null ? null : Number(payload.criticoValor),
+          criticoMultiplicador:
+            payload.criticoMultiplicador == null
+              ? null
+              : Number(payload.criticoMultiplicador),
+          danoFlat: payload.danoFlat == null ? null : Number(payload.danoFlat),
+          danoFlatTipo:
+            typeof payload.danoFlatTipo === 'string' &&
+            payload.danoFlatTipo.trim().length > 0
+              ? (payload.danoFlatTipo.trim() as TipoDano)
+              : null,
+          dadosDano:
+            payload.dadosDano !== undefined
+              ? (payload.dadosDano as Prisma.InputJsonValue)
+              : undefined,
+          escalonaPorGrau: Boolean(payload.escalonaPorGrau ?? false),
+          grauTipoGrauCodigo:
+            typeof payload.grauTipoGrauCodigo === 'string' &&
+            payload.grauTipoGrauCodigo.trim().length > 0
+              ? payload.grauTipoGrauCodigo.trim()
+              : null,
+          escalonamentoCustoEA: Number(payload.escalonamentoCustoEA ?? 0),
+          escalonamentoCustoPE: Number(payload.escalonamentoCustoPE ?? 0),
+          escalonamentoTipo: String(
+            payload.escalonamentoTipo ?? 'OUTRO',
+          ) as TipoEscalonamentoHabilidade,
+          escalonamentoEfeito:
+            payload.escalonamentoEfeito !== undefined
+              ? (payload.escalonamentoEfeito as Prisma.InputJsonValue)
+              : undefined,
+          escalonamentoDano:
+            payload.escalonamentoDano !== undefined
+              ? (payload.escalonamentoDano as Prisma.InputJsonValue)
+              : undefined,
+          efeito: String(payload.efeito ?? ''),
+          ordem: Number(payload.ordem ?? (ordemMaxima._max.ordem ?? 0) + 10),
+          habilitada:
+            payload.habilitada === undefined ? true : Boolean(payload.habilitada),
+        },
+      });
+
+      await this.tecnicaInataPropriaService.sincronizarCampanhasComTecnicaBase(
+        personagemBaseId,
+        tx,
+      );
+    });
+
+    return this.buscarTecnicaInataPropria(donoId, personagemBaseId);
+  }
+
+  async atualizarHabilidadeTecnicaInataPropria(
+    donoId: number,
+    personagemBaseId: number,
+    habilidadeId: number,
+    payload: Record<string, unknown>,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const { tecnicaInataPropriaId } =
+        await this.obterTecnicaInataPropriaOuFalhar(
+          donoId,
+          personagemBaseId,
+          tx,
+        );
+
+      const habilidade = await tx.habilidadeTecnica.findFirst({
+        where: {
+          id: habilidadeId,
+          tecnicaId: tecnicaInataPropriaId,
+        },
+        select: { id: true },
+      });
+
+      if (!habilidade) {
+        throw new BadRequestException('Habilidade da tecnica propria nao encontrada.');
+      }
+
+      await tx.habilidadeTecnica.update({
+        where: { id: habilidadeId },
+        data: this.limparUndefined({
+          codigo:
+            typeof payload.codigo === 'string' ? payload.codigo.trim() : undefined,
+          nome:
+            typeof payload.nome === 'string' ? payload.nome : undefined,
+          descricao:
+            typeof payload.descricao === 'string' ? payload.descricao : undefined,
+          requisitos:
+            payload.requisitos !== undefined
+              ? (payload.requisitos as Prisma.InputJsonValue)
+              : undefined,
+          execucao:
+            typeof payload.execucao === 'string'
+              ? (payload.execucao as TipoExecucao)
+              : undefined,
+          area:
+            typeof payload.area === 'string'
+              ? (payload.area as AreaEfeito)
+              : undefined,
+          alcance:
+            typeof payload.alcance === 'string' ? payload.alcance : undefined,
+          alvo:
+            typeof payload.alvo === 'string' ? payload.alvo : undefined,
+          duracao:
+            typeof payload.duracao === 'string' ? payload.duracao : undefined,
+          resistencia:
+            typeof payload.resistencia === 'string'
+              ? payload.resistencia
+              : undefined,
+          dtResistencia:
+            typeof payload.dtResistencia === 'string'
+              ? payload.dtResistencia
+              : undefined,
+          custoPE:
+            payload.custoPE !== undefined ? Number(payload.custoPE) : undefined,
+          custoEA:
+            payload.custoEA !== undefined ? Number(payload.custoEA) : undefined,
+          custoSustentacaoEA:
+            payload.custoSustentacaoEA !== undefined
+              ? payload.custoSustentacaoEA == null
+                ? null
+                : Number(payload.custoSustentacaoEA)
+              : undefined,
+          custoSustentacaoPE:
+            payload.custoSustentacaoPE !== undefined
+              ? payload.custoSustentacaoPE == null
+                ? null
+                : Number(payload.custoSustentacaoPE)
+              : undefined,
+          testesExigidos:
+            payload.testesExigidos !== undefined
+              ? (payload.testesExigidos as Prisma.InputJsonValue)
+              : undefined,
+          criticoValor:
+            payload.criticoValor !== undefined
+              ? payload.criticoValor == null
+                ? null
+                : Number(payload.criticoValor)
+              : undefined,
+          criticoMultiplicador:
+            payload.criticoMultiplicador !== undefined
+              ? payload.criticoMultiplicador == null
+                ? null
+                : Number(payload.criticoMultiplicador)
+              : undefined,
+          danoFlat:
+            payload.danoFlat !== undefined
+              ? payload.danoFlat == null
+                ? null
+                : Number(payload.danoFlat)
+              : undefined,
+          danoFlatTipo:
+            typeof payload.danoFlatTipo === 'string'
+              ? (payload.danoFlatTipo as TipoDano)
+              : undefined,
+          dadosDano:
+            payload.dadosDano !== undefined
+              ? (payload.dadosDano as Prisma.InputJsonValue)
+              : undefined,
+          escalonaPorGrau:
+            payload.escalonaPorGrau !== undefined
+              ? Boolean(payload.escalonaPorGrau)
+              : undefined,
+          grauTipoGrauCodigo:
+            typeof payload.grauTipoGrauCodigo === 'string'
+              ? payload.grauTipoGrauCodigo
+              : undefined,
+          escalonamentoCustoEA:
+            payload.escalonamentoCustoEA !== undefined
+              ? Number(payload.escalonamentoCustoEA)
+              : undefined,
+          escalonamentoCustoPE:
+            payload.escalonamentoCustoPE !== undefined
+              ? Number(payload.escalonamentoCustoPE)
+              : undefined,
+          escalonamentoTipo:
+            typeof payload.escalonamentoTipo === 'string'
+              ? (payload.escalonamentoTipo as TipoEscalonamentoHabilidade)
+              : undefined,
+          escalonamentoEfeito:
+            payload.escalonamentoEfeito !== undefined
+              ? (payload.escalonamentoEfeito as Prisma.InputJsonValue)
+              : undefined,
+          escalonamentoDano:
+            payload.escalonamentoDano !== undefined
+              ? (payload.escalonamentoDano as Prisma.InputJsonValue)
+              : undefined,
+          efeito:
+            typeof payload.efeito === 'string' ? payload.efeito : undefined,
+          ordem:
+            payload.ordem !== undefined ? Number(payload.ordem) : undefined,
+          habilitada:
+            payload.habilitada !== undefined
+              ? Boolean(payload.habilitada)
+              : undefined,
+        }),
+      });
+
+      await this.tecnicaInataPropriaService.sincronizarCampanhasComTecnicaBase(
+        personagemBaseId,
+        tx,
+      );
+    });
+
+    return this.buscarTecnicaInataPropria(donoId, personagemBaseId);
+  }
+
+  async criarVariacaoTecnicaInataPropria(
+    donoId: number,
+    personagemBaseId: number,
+    habilidadeId: number,
+    payload: Record<string, unknown>,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const { tecnicaInataPropriaId } =
+        await this.obterTecnicaInataPropriaOuFalhar(
+          donoId,
+          personagemBaseId,
+          tx,
+        );
+
+      const habilidade = await tx.habilidadeTecnica.findFirst({
+        where: {
+          id: habilidadeId,
+          tecnicaId: tecnicaInataPropriaId,
+        },
+        include: {
+          variacoes: {
+            select: { ordem: true },
+            orderBy: { ordem: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      if (!habilidade) {
+        throw new BadRequestException('Habilidade da tecnica propria nao encontrada.');
+      }
+
+      await tx.variacaoHabilidade.create({
+        data: {
+          habilidadeTecnicaId: habilidadeId,
+          nome: String(payload.nome ?? 'Nova variacao'),
+          descricao: String(payload.descricao ?? ''),
+          substituiCustos:
+            payload.substituiCustos === undefined
+              ? false
+              : Boolean(payload.substituiCustos),
+          custoPE:
+            payload.custoPE == null ? null : Number(payload.custoPE),
+          custoEA:
+            payload.custoEA == null ? null : Number(payload.custoEA),
+          custoSustentacaoEA:
+            payload.custoSustentacaoEA == null
+              ? null
+              : Number(payload.custoSustentacaoEA),
+          custoSustentacaoPE:
+            payload.custoSustentacaoPE == null
+              ? null
+              : Number(payload.custoSustentacaoPE),
+          execucao:
+            typeof payload.execucao === 'string'
+              ? (payload.execucao as TipoExecucao)
+              : null,
+          area:
+            typeof payload.area === 'string'
+              ? (payload.area as AreaEfeito)
+              : null,
+          alcance:
+            typeof payload.alcance === 'string' ? payload.alcance : null,
+          alvo: typeof payload.alvo === 'string' ? payload.alvo : null,
+          duracao:
+            typeof payload.duracao === 'string' ? payload.duracao : null,
+          resistencia:
+            typeof payload.resistencia === 'string'
+              ? payload.resistencia
+              : null,
+          dtResistencia:
+            typeof payload.dtResistencia === 'string'
+              ? payload.dtResistencia
+              : null,
+          criticoValor:
+            payload.criticoValor == null ? null : Number(payload.criticoValor),
+          criticoMultiplicador:
+            payload.criticoMultiplicador == null
+              ? null
+              : Number(payload.criticoMultiplicador),
+          danoFlat:
+            payload.danoFlat == null ? null : Number(payload.danoFlat),
+          danoFlatTipo:
+            typeof payload.danoFlatTipo === 'string'
+              ? (payload.danoFlatTipo as TipoDano)
+              : null,
+          dadosDano:
+            payload.dadosDano !== undefined
+              ? (payload.dadosDano as Prisma.InputJsonValue)
+              : undefined,
+          escalonaPorGrau:
+            payload.escalonaPorGrau == null
+              ? null
+              : Boolean(payload.escalonaPorGrau),
+          escalonamentoCustoEA:
+            payload.escalonamentoCustoEA == null
+              ? null
+              : Number(payload.escalonamentoCustoEA),
+          escalonamentoCustoPE:
+            payload.escalonamentoCustoPE == null
+              ? null
+              : Number(payload.escalonamentoCustoPE),
+          escalonamentoTipo:
+            typeof payload.escalonamentoTipo === 'string'
+              ? (payload.escalonamentoTipo as TipoEscalonamentoHabilidade)
+              : null,
+          escalonamentoEfeito:
+            payload.escalonamentoEfeito !== undefined
+              ? (payload.escalonamentoEfeito as Prisma.InputJsonValue)
+              : undefined,
+          escalonamentoDano:
+            payload.escalonamentoDano !== undefined
+              ? (payload.escalonamentoDano as Prisma.InputJsonValue)
+              : undefined,
+          efeitoAdicional:
+            typeof payload.efeitoAdicional === 'string'
+              ? payload.efeitoAdicional
+              : null,
+          requisitos:
+            payload.requisitos !== undefined
+              ? (payload.requisitos as Prisma.InputJsonValue)
+              : undefined,
+          ordem: Number(payload.ordem ?? (habilidade.variacoes[0]?.ordem ?? 0) + 10),
+        },
+      });
+
+      await this.tecnicaInataPropriaService.sincronizarCampanhasComTecnicaBase(
+        personagemBaseId,
+        tx,
+      );
+    });
+
+    return this.buscarTecnicaInataPropria(donoId, personagemBaseId);
+  }
+
+  async atualizarVariacaoTecnicaInataPropria(
+    donoId: number,
+    personagemBaseId: number,
+    variacaoId: number,
+    payload: Record<string, unknown>,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const { tecnicaInataPropriaId } =
+        await this.obterTecnicaInataPropriaOuFalhar(
+          donoId,
+          personagemBaseId,
+          tx,
+        );
+
+      const variacao = await tx.variacaoHabilidade.findFirst({
+        where: {
+          id: variacaoId,
+          habilidadeTecnica: {
+            tecnicaId: tecnicaInataPropriaId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!variacao) {
+        throw new BadRequestException('Variacao da tecnica propria nao encontrada.');
+      }
+
+      await tx.variacaoHabilidade.update({
+        where: { id: variacaoId },
+        data: this.limparUndefined({
+          nome: typeof payload.nome === 'string' ? payload.nome : undefined,
+          descricao:
+            typeof payload.descricao === 'string' ? payload.descricao : undefined,
+          substituiCustos:
+            payload.substituiCustos !== undefined
+              ? Boolean(payload.substituiCustos)
+              : undefined,
+          custoPE:
+            payload.custoPE !== undefined
+              ? payload.custoPE == null
+                ? null
+                : Number(payload.custoPE)
+              : undefined,
+          custoEA:
+            payload.custoEA !== undefined
+              ? payload.custoEA == null
+                ? null
+                : Number(payload.custoEA)
+              : undefined,
+          custoSustentacaoEA:
+            payload.custoSustentacaoEA !== undefined
+              ? payload.custoSustentacaoEA == null
+                ? null
+                : Number(payload.custoSustentacaoEA)
+              : undefined,
+          custoSustentacaoPE:
+            payload.custoSustentacaoPE !== undefined
+              ? payload.custoSustentacaoPE == null
+                ? null
+                : Number(payload.custoSustentacaoPE)
+              : undefined,
+          execucao:
+            typeof payload.execucao === 'string'
+              ? (payload.execucao as TipoExecucao)
+              : undefined,
+          area:
+            typeof payload.area === 'string'
+              ? (payload.area as AreaEfeito)
+              : undefined,
+          alcance:
+            typeof payload.alcance === 'string' ? payload.alcance : undefined,
+          alvo: typeof payload.alvo === 'string' ? payload.alvo : undefined,
+          duracao:
+            typeof payload.duracao === 'string' ? payload.duracao : undefined,
+          resistencia:
+            typeof payload.resistencia === 'string'
+              ? payload.resistencia
+              : undefined,
+          dtResistencia:
+            typeof payload.dtResistencia === 'string'
+              ? payload.dtResistencia
+              : undefined,
+          criticoValor:
+            payload.criticoValor !== undefined
+              ? payload.criticoValor == null
+                ? null
+                : Number(payload.criticoValor)
+              : undefined,
+          criticoMultiplicador:
+            payload.criticoMultiplicador !== undefined
+              ? payload.criticoMultiplicador == null
+                ? null
+                : Number(payload.criticoMultiplicador)
+              : undefined,
+          danoFlat:
+            payload.danoFlat !== undefined
+              ? payload.danoFlat == null
+                ? null
+                : Number(payload.danoFlat)
+              : undefined,
+          danoFlatTipo:
+            typeof payload.danoFlatTipo === 'string'
+              ? (payload.danoFlatTipo as TipoDano)
+              : undefined,
+          dadosDano:
+            payload.dadosDano !== undefined
+              ? (payload.dadosDano as Prisma.InputJsonValue)
+              : undefined,
+          escalonaPorGrau:
+            payload.escalonaPorGrau !== undefined
+              ? payload.escalonaPorGrau == null
+                ? null
+                : Boolean(payload.escalonaPorGrau)
+              : undefined,
+          escalonamentoCustoEA:
+            payload.escalonamentoCustoEA !== undefined
+              ? payload.escalonamentoCustoEA == null
+                ? null
+                : Number(payload.escalonamentoCustoEA)
+              : undefined,
+          escalonamentoCustoPE:
+            payload.escalonamentoCustoPE !== undefined
+              ? payload.escalonamentoCustoPE == null
+                ? null
+                : Number(payload.escalonamentoCustoPE)
+              : undefined,
+          escalonamentoTipo:
+            typeof payload.escalonamentoTipo === 'string'
+              ? (payload.escalonamentoTipo as TipoEscalonamentoHabilidade)
+              : undefined,
+          escalonamentoEfeito:
+            payload.escalonamentoEfeito !== undefined
+              ? (payload.escalonamentoEfeito as Prisma.InputJsonValue)
+              : undefined,
+          escalonamentoDano:
+            payload.escalonamentoDano !== undefined
+              ? (payload.escalonamentoDano as Prisma.InputJsonValue)
+              : undefined,
+          efeitoAdicional:
+            typeof payload.efeitoAdicional === 'string'
+              ? payload.efeitoAdicional
+              : undefined,
+          requisitos:
+            payload.requisitos !== undefined
+              ? (payload.requisitos as Prisma.InputJsonValue)
+              : undefined,
+          ordem:
+            payload.ordem !== undefined ? Number(payload.ordem) : undefined,
+        }),
+      });
+
+      await this.tecnicaInataPropriaService.sincronizarCampanhasComTecnicaBase(
+        personagemBaseId,
+        tx,
+      );
+    });
+
+    return this.buscarTecnicaInataPropria(donoId, personagemBaseId);
   }
 
   async remover(donoId: number, id: number) {
     const existe = await this.prisma.personagemBase.findFirst({
       where: { id, donoId },
+      select: {
+        id: true,
+        tecnicaInataPropriaId: true,
+        personagensCampanha: {
+          select: {
+            tecnicaInataPropriaId: true,
+          },
+        },
+      },
     });
 
     if (!existe) throw new PersonagemBaseNaoEncontradoException(id);
@@ -2589,6 +3312,17 @@ export class PersonagemBaseService {
     });
 
     await this.prisma.personagemBase.delete({ where: { id } });
+
+    for (const personagemCampanha of existe.personagensCampanha) {
+      await this.tecnicaInataPropriaService.removerTecnicaClonada(
+        personagemCampanha.tecnicaInataPropriaId,
+        this.prisma,
+      );
+    }
+    await this.tecnicaInataPropriaService.removerTecnicaClonada(
+      existe.tecnicaInataPropriaId,
+      this.prisma,
+    );
 
     return { sucesso: true };
   }

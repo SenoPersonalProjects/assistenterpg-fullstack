@@ -20,6 +20,7 @@ import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { CampaignCharacterEditorModal } from './CampaignCharacterEditorModal';
+import { Checkbox } from '@/components/ui/Checkbox';
 
 type Props = {
   campanhaId: number;
@@ -45,6 +46,7 @@ export function CampaignCharactersSection({
     PersonagemBaseDisponivelCampanha[]
   >([]);
   const [personagemBaseSelecionado, setPersonagemBaseSelecionado] = useState('');
+  const [sincronizarTecnicaInata, setSincronizarTecnicaInata] = useState(false);
   const [loading, setLoading] = useState(true);
   const [associando, setAssociando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -168,8 +170,10 @@ export function CampaignCharactersSection({
     try {
       await apiVincularPersonagemCampanha(campanhaId, {
         personagemBaseId: Number(personagemBaseSelecionado),
+        sincronizarTecnicaInata,
       });
       setPersonagemBaseSelecionado('');
+      setSincronizarTecnicaInata(false);
       setSucesso('Personagem associado com sucesso na campanha.');
       setSugestaoAberta(false);
       if (typeof window !== 'undefined') {
@@ -259,6 +263,14 @@ export function CampaignCharactersSection({
             {associando ? 'Associando...' : 'Associar personagem'}
           </Button>
         </div>
+        <Checkbox
+          checked={sincronizarTecnicaInata}
+          onChange={(event) => setSincronizarTecnicaInata(event.target.checked)}
+          label="Sincronizar técnica inata da campanha com futuras mudanças da ficha base"
+        />
+        <p className="text-xs text-app-muted">
+          Se desmarcado, a campanha recebe uma cópia congelada da técnica no momento da associação.
+        </p>
         {limiteUsuarioAtingido && (
           <p className="text-xs text-app-muted">
             Você já possui um personagem associado nesta campanha.
@@ -404,6 +416,11 @@ export function CampaignCharactersSection({
               </option>
             ))}
           </Select>
+          <Checkbox
+            checked={sincronizarTecnicaInata}
+            onChange={(event) => setSincronizarTecnicaInata(event.target.checked)}
+            label="Acompanhar mudanças futuras da técnica inata"
+          />
           <div className="flex items-center justify-end gap-2">
             <Button variant="secondary" onClick={handleDispensarSugestao}>
               Agora não

@@ -89,6 +89,11 @@ export function InventarioModalEquipamento({
                       </div>
 
                       <div className="flex gap-2 mt-2 flex-wrap">
+                        {equip.fonte === 'HOMEBREW' && (
+                          <Badge color="orange" size="sm">
+                            Homebrew
+                          </Badge>
+                        )}
                         <Badge color="purple" size="sm">
                           {equip.tipo}
                         </Badge>

@@ -43,6 +43,11 @@ export async function apiGetEquipamentos(
   return normalizeListResult<EquipamentoCatalogo>(data);
 }
 
+export async function apiGetMeusEquipamentosHomebrew(): Promise<EquipamentoCatalogo[]> {
+  const { data } = await apiClient.get('/equipamentos/meus-homebrew');
+  return Array.isArray(data) ? data : [];
+}
+
 export async function apiGetTodosEquipamentos(
   filtros?: FiltrarTodosEquipamentosDto,
 ): Promise<EquipamentoCatalogo[]> {

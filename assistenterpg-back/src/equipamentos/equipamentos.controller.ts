@@ -13,6 +13,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { EquipamentosService } from './equipamentos.service';
 import { FiltrarEquipamentosDto } from './dto/filtrar-equipamentos.dto';
@@ -33,6 +34,12 @@ export class EquipamentosController {
   @Get()
   async listar(@Query() filtros: FiltrarEquipamentosDto) {
     return this.equipamentosService.listar(filtros);
+  }
+
+  @Get('meus-homebrew')
+  @UseGuards(JwtAuthGuard)
+  async listarMeusHomebrew(@Request() req: { user: { id: number } }) {
+    return this.equipamentosService.listarMeusHomebrew(req.user.id);
   }
 
   /**

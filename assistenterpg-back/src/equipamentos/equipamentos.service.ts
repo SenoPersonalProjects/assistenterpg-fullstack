@@ -144,7 +144,9 @@ export class EquipamentosService {
       limite = 20,
     } = filtros;
 
-    const where: Prisma.EquipamentoCatalogoWhereInput = {};
+    const where: Prisma.EquipamentoCatalogoWhereInput = {
+      usuarioId: null,
+    };
 
     if (tipo) where.tipo = tipo;
     if (fontes?.length) where.fonte = { in: fontes };
@@ -200,6 +202,18 @@ export class EquipamentosService {
         totalPaginas: Math.ceil(total / limite),
       },
     };
+  }
+
+  async listarMeusHomebrew(usuarioId: number) {
+    const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
+      where: {
+        usuarioId,
+      },
+      orderBy: [{ nome: 'asc' }, { id: 'asc' }],
+      select: equipamentoResumoSelect,
+    });
+
+    return equipamentos.map((eq) => this.mapResumo(eq));
   }
 
   async buscarPorId(id: number): Promise<EquipamentoDetalhadoDto> {

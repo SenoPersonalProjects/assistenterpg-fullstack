@@ -148,6 +148,18 @@ export class HomebrewsController {
     return this.homebrewsService.criar(createHomebrewDto, usuarioId);
   }
 
+  @Post('equipamentos-inline')
+  criarEquipamentoInline(
+    @Body() createHomebrewDto: CreateHomebrewDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    const { usuarioId } = this.getUserContext(req);
+    return this.homebrewsService.criarEquipamentoInline(
+      createHomebrewDto,
+      usuarioId,
+    );
+  }
+
   @Patch(':id')
   atualizar(
     @Param('id', ParseIntPipe) id: number,

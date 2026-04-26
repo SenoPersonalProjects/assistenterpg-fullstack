@@ -32,6 +32,7 @@ import {
   nucleosPadrao,
   type NucleoAmaldicoadoCodigo,
 } from 'src/common/utils/pv-barras';
+import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
 
 @Injectable()
 export class CampanhaPersonagensService {
@@ -41,6 +42,7 @@ export class CampanhaPersonagensService {
     private readonly inventarioService: CampanhaInventarioService,
     private readonly mapper: CampanhaMapper,
     private readonly persistence: CampanhaPersistence,
+    private readonly tecnicaInataPropriaService: TecnicaInataPropriaService,
   ) {}
 
   async listarPersonagensCampanha(campanhaId: number, usuarioId: number) {
@@ -118,6 +120,7 @@ export class CampanhaPersonagensService {
     campanhaId: number,
     solicitanteId: number,
     personagemBaseId: number,
+    sincronizarTecnicaInata = false,
   ) {
     const acesso = await this.accessService.garantirAcesso(
       campanhaId,
@@ -157,6 +160,7 @@ export class CampanhaPersonagensService {
         espacosOcupados: true,
         sobrecarregado: true,
         tecnicaInataId: true,
+        tecnicaInataPropriaId: true,
         resistencias: {
           select: {
             resistenciaTipoId: true,
@@ -244,6 +248,11 @@ export class CampanhaPersonagensService {
       const pvBarrasTotal = normalizarPvBarrasTotal(
         personagemBase.pvBarrasTotal,
       );
+      const tecnicaInataPropriaBaseId =
+        await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(
+          personagemBase.id,
+          tx,
+        );
       const pvBarrasRestantes = pvBarrasTotal;
       const { pvBarraMaxAtual } = calcularPvBarraMaximos(
         personagemBase.pvMaximo,
@@ -296,6 +305,7 @@ export class CampanhaPersonagensService {
             espacosOcupados: personagemBase.espacosOcupados,
             sobrecarregado: personagemBase.sobrecarregado,
             tecnicaInataId: personagemBase.tecnicaInataId,
+            tecnicaInataSincronizaBase: sincronizarTecnicaInata,
           },
           select: {
             id: true,
@@ -330,6 +340,21 @@ export class CampanhaPersonagensService {
             resistenciaTipoId: resistencia.resistenciaTipoId,
             valor: resistencia.valor,
           })),
+        });
+      }
+
+      if (tecnicaInataPropriaBaseId) {
+        const tecnicaInataPropriaId =
+          await this.tecnicaInataPropriaService.clonarTecnicaInata({
+            usuarioId: personagemBase.donoId,
+            tecnicaBaseId: tecnicaInataPropriaBaseId,
+            personagemCampanhaId: personagemCriado.id,
+            prisma: tx,
+          });
+
+        await tx.personagemCampanha.update({
+          where: { id: personagemCriado.id },
+          data: { tecnicaInataPropriaId },
         });
       }
 
@@ -421,6 +446,7 @@ export class CampanhaPersonagensService {
         campanhaId: true,
         personagemBaseId: true,
         donoId: true,
+        tecnicaInataPropriaId: true,
       },
     });
 
@@ -458,10 +484,17 @@ export class CampanhaPersonagensService {
       );
     }
 
-    await this.prisma.personagemCampanha.delete({
-      where: {
-        id: personagemCampanhaId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.personagemCampanha.delete({
+        where: {
+          id: personagemCampanhaId,
+        },
+      });
+
+      await this.tecnicaInataPropriaService.removerTecnicaClonada(
+        personagem.tecnicaInataPropriaId,
+        tx,
+      );
     });
 
     return {

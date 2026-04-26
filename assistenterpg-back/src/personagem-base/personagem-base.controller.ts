@@ -135,6 +135,72 @@ export class PersonagemBaseController {
     return this.personagemBaseService.atualizar(req.user.id, id, dto);
   }
 
+  @Get(':id/tecnica-inata-propria')
+  async buscarTecnicaInataPropria(
+    @Request() req: { user: { id: number } },
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.personagemBaseService.buscarTecnicaInataPropria(req.user.id, id);
+  }
+
+  @Post(':id/tecnica-inata-propria/habilidades')
+  async criarHabilidadeTecnicaInataPropria(
+    @Request() req: { user: { id: number } },
+    @Param('id', ParseIntPipe) id: number,
+    @Body() payload: Record<string, unknown>,
+  ) {
+    return this.personagemBaseService.criarHabilidadeTecnicaInataPropria(
+      req.user.id,
+      id,
+      payload,
+    );
+  }
+
+  @Patch(':id/tecnica-inata-propria/habilidades/:habilidadeId')
+  async atualizarHabilidadeTecnicaInataPropria(
+    @Request() req: { user: { id: number } },
+    @Param('id', ParseIntPipe) id: number,
+    @Param('habilidadeId', ParseIntPipe) habilidadeId: number,
+    @Body() payload: Record<string, unknown>,
+  ) {
+    return this.personagemBaseService.atualizarHabilidadeTecnicaInataPropria(
+      req.user.id,
+      id,
+      habilidadeId,
+      payload,
+    );
+  }
+
+  @Post(':id/tecnica-inata-propria/habilidades/:habilidadeId/variacoes')
+  async criarVariacaoTecnicaInataPropria(
+    @Request() req: { user: { id: number } },
+    @Param('id', ParseIntPipe) id: number,
+    @Param('habilidadeId', ParseIntPipe) habilidadeId: number,
+    @Body() payload: Record<string, unknown>,
+  ) {
+    return this.personagemBaseService.criarVariacaoTecnicaInataPropria(
+      req.user.id,
+      id,
+      habilidadeId,
+      payload,
+    );
+  }
+
+  @Patch(':id/tecnica-inata-propria/variacoes/:variacaoId')
+  async atualizarVariacaoTecnicaInataPropria(
+    @Request() req: { user: { id: number } },
+    @Param('id', ParseIntPipe) id: number,
+    @Param('variacaoId', ParseIntPipe) variacaoId: number,
+    @Body() payload: Record<string, unknown>,
+  ) {
+    return this.personagemBaseService.atualizarVariacaoTecnicaInataPropria(
+      req.user.id,
+      id,
+      variacaoId,
+      payload,
+    );
+  }
+
   @Delete(':id')
   async remover(
     @Request() req: { user: { id: number } },

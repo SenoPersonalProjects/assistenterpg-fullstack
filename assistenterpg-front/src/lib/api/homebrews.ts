@@ -2,6 +2,7 @@
 
 import { apiClient } from "./axios-client";
 import { normalizeListResult, type ListResult } from "./pagination";
+import type { EquipamentoCatalogo } from '@/lib/types';
 
 // ============================================================================
 // ✅ IMPORTS DE ENUMS (sincronizados)
@@ -258,6 +259,13 @@ export async function apiCreateHomebrew(
   payload: CreateHomebrewDto,
 ): Promise<HomebrewDetalhado> {
   const { data } = await apiClient.post("/homebrews", payload);
+  return data;
+}
+
+export async function apiCreateEquipamentoHomebrewInline(
+  payload: CreateHomebrewDto,
+): Promise<{ homebrew: HomebrewDetalhado; equipamento: EquipamentoCatalogo }> {
+  const { data } = await apiClient.post('/homebrews/equipamentos-inline', payload);
   return data;
 }
 

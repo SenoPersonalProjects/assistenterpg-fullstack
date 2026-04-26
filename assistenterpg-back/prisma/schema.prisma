@@ -364,6 +364,8 @@ model Usuario {
   homebrews         Homebrew[]
   gruposHomebrew    HomebrewGrupo[]
   gruposNpcAmeaca   NpcAmeacaGrupo[]
+  equipamentosHomebrew        EquipamentoCatalogo[] @relation("EquipamentosHomebrewDoUsuario")
+  tecnicasAmaldicoadasProprias TecnicaAmaldicoada[] @relation("TecnicasAmaldicoadasPropriasDoUsuario")
 }
 
 model AuthToken {
@@ -448,6 +450,8 @@ model PersonagemBase {
 
   tecnicaInataId Int?
   tecnicaInata   TecnicaAmaldicoada? @relation("TecnicaInataPersonagemBase", fields: [tecnicaInataId], references: [id])
+  tecnicaInataPropriaId Int? @unique
+  tecnicaInataPropria   TecnicaAmaldicoada? @relation("TecnicaInataPropriaPersonagemBase", fields: [tecnicaInataPropriaId], references: [id])
 
   passivas                PersonagemBasePassiva[]
   passivasAtributosAtivos Json?
@@ -637,6 +641,9 @@ model PersonagemCampanha {
 
   tecnicaInataId Int?
   tecnicaInata   TecnicaAmaldicoada? @relation("TecnicaInataPersonagemCampanha", fields: [tecnicaInataId], references: [id])
+  tecnicaInataPropriaId Int? @unique
+  tecnicaInataPropria   TecnicaAmaldicoada? @relation("TecnicaInataPropriaPersonagemCampanha", fields: [tecnicaInataPropriaId], references: [id])
+  tecnicaInataSincronizaBase Boolean @default(false)
 
   campanha       Campanha       @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   personagemBase PersonagemBase @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
@@ -1524,9 +1531,13 @@ model EquipamentoCatalogo {
   espacos   Float                @default(1)
 
   // ✅ NOVO: Fonte e suplemento
-  fonte        TipoFonte   @default(SISTEMA_BASE)
-  suplementoId Int?
-  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte           TipoFonte   @default(SISTEMA_BASE)
+  suplementoId    Int?
+  suplemento      Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  usuarioId       Int?
+  usuario         Usuario?    @relation("EquipamentosHomebrewDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  homebrewOrigemId Int?
+  homebrewOrigem  Homebrew?   @relation("EquipamentoCatalogoHomebrewOrigem", fields: [homebrewOrigemId], references: [id], onDelete: SetNull)
 
   proficienciaArma ProficienciaArma?
   empunhaduras     Json?
@@ -1587,6 +1598,8 @@ model EquipamentoCatalogo {
   @@index([tipoAmaldicoado])
   @@index([fonte])
   @@index([suplementoId])
+  @@index([usuarioId])
+  @@index([homebrewOrigemId])
   @@map("equipamento_catalogo")
 }
 
@@ -1947,7 +1960,7 @@ model TransferenciaItemSessaoCampanha {
 model TecnicaAmaldicoada {
   id        Int    @id @default(autoincrement())
   codigo    String @unique
-  nome      String @unique
+  nome      String
   descricao String @db.Text
 
   tipo TipoTecnicaAmaldicoada
@@ -1963,9 +1976,14 @@ model TecnicaAmaldicoada {
   requisitos Json? // Ex: { "nivel": 5, "atributo": "INT >= 3" }
 
   // ✅ NOVO: Fonte e suplemento
-  fonte        TipoFonte   @default(SISTEMA_BASE)
-  suplementoId Int?
-  suplemento   Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  fonte         TipoFonte   @default(SISTEMA_BASE)
+  suplementoId  Int?
+  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  usuarioId     Int?
+  usuario       Usuario?    @relation("TecnicasAmaldicoadasPropriasDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  tecnicaBaseId Int?
+  tecnicaBase   TecnicaAmaldicoada? @relation("TecnicaAmaldicoadaBaseInstancias", fields: [tecnicaBaseId], references: [id], onDelete: SetNull)
+  instanciasProprias TecnicaAmaldicoada[] @relation("TecnicaAmaldicoadaBaseInstancias")
 
   // ✅ Habilidades da técnica
   habilidades HabilidadeTecnica[]
@@ -1973,6 +1991,8 @@ model TecnicaAmaldicoada {
   // ✅ Personagens que possuem essa técnica inata
   personagensBaseComInata     PersonagemBase[]     @relation("TecnicaInataPersonagemBase")
   personagensCampanhaComInata PersonagemCampanha[] @relation("TecnicaInataPersonagemCampanha")
+  personagemBaseProprio       PersonagemBase?      @relation("TecnicaInataPropriaPersonagemBase")
+  personagemCampanhaProprio   PersonagemCampanha?  @relation("TecnicaInataPropriaPersonagemCampanha")
 
   // ✅ Personagens que aprenderam técnicas não-inatas
   personagensBaseAprendeu     PersonagemBaseTecnica[]
@@ -1985,6 +2005,8 @@ model TecnicaAmaldicoada {
   @@index([hereditaria])
   @@index([fonte])
   @@index([suplementoId])
+  @@index([usuarioId])
+  @@index([tecnicaBaseId])
   @@map("tecnica_amaldicoada")
 }
 
@@ -2012,6 +2034,10 @@ model HabilidadeTecnica {
   id        Int                @id @default(autoincrement())
   tecnicaId Int
   tecnica   TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
+  habilidadeBaseId Int?
+  habilidadeBase   HabilidadeTecnica? @relation("HabilidadeTecnicaBaseInstancias", fields: [habilidadeBaseId], references: [id], onDelete: SetNull)
+  instanciasProprias HabilidadeTecnica[] @relation("HabilidadeTecnicaBaseInstancias")
+  habilitada Boolean @default(true)
 
   codigo    String @unique
   nome      String
@@ -2079,6 +2105,7 @@ model HabilidadeTecnica {
   @@index([tecnicaId])
   @@index([ordem])
   @@index([grauTipoGrauCodigo])
+  @@index([habilidadeBaseId])
   @@map("habilidade_tecnica")
 }
 
@@ -2090,6 +2117,9 @@ model VariacaoHabilidade {
   id                  Int               @id @default(autoincrement())
   habilidadeTecnicaId Int
   habilidadeTecnica   HabilidadeTecnica @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
+  variacaoBaseId Int?
+  variacaoBase   VariacaoHabilidade? @relation("VariacaoHabilidadeBaseInstancias", fields: [variacaoBaseId], references: [id], onDelete: SetNull)
+  instanciasProprias VariacaoHabilidade[] @relation("VariacaoHabilidadeBaseInstancias")
 
   nome      String // Ex: "Liberação Superior", "Liberação Máxima"
   descricao String @db.Text
@@ -2146,6 +2176,7 @@ model VariacaoHabilidade {
 
   @@index([habilidadeTecnicaId])
   @@index([ordem])
+  @@index([variacaoBaseId])
   @@map("variacao_habilidade")
 }
 
@@ -2277,6 +2308,7 @@ model Homebrew {
   criadoEm     DateTime            @default(now())
   atualizadoEm DateTime            @updatedAt
   grupos       HomebrewGrupoItem[]
+  equipamentosMaterializados EquipamentoCatalogo[] @relation("EquipamentoCatalogoHomebrewOrigem")
 
   @@unique([usuarioId, codigo])
   @@index([usuarioId])
