@@ -39,7 +39,7 @@ export function HomebrewCard({
 
   return (
     <Card
-      className="flex flex-col h-full cursor-pointer hover:border-app-primary/50 transition hover:shadow-md"
+      className="library-item-card flex h-full cursor-pointer flex-col transition hover:-translate-y-0.5 hover:border-app-secondary/50"
       role="button"
       tabIndex={0}
       aria-label={`Abrir homebrew ${homebrew.nome}`}
@@ -52,19 +52,15 @@ export function HomebrewCard({
       }}
     >
       {/* Header com tipo e ícone */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-2">
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-lg`}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5"
             style={{
-              backgroundColor: `var(--color-${tipoConfig.color}-bg, rgba(59, 130, 246, 0.1))`,
+              color: `var(--color-${tipoConfig.color}, #c4b5fd)`,
             }}
           >
-            <Icon
-              name={tipoConfig.icon}
-              className="w-5 h-5"
-              style={{ color: `var(--color-${tipoConfig.color}, #3b82f6)` }}
-            />
+            <Icon name={tipoConfig.icon} className="h-5 w-5" />
           </div>
           <div>
             <Badge color={tipoConfig.color} size="sm">
@@ -83,7 +79,7 @@ export function HomebrewCard({
       <div className="flex-1 space-y-3">
         {/* Título */}
         <div>
-          <h3 className="text-lg font-semibold text-app-fg line-clamp-2 mb-1">
+          <h3 className="mb-1 line-clamp-2 text-lg font-semibold text-app-fg">
             {homebrew.nome}
           </h3>
           <p className="text-xs text-app-muted font-mono">{homebrew.codigo}</p>
@@ -113,7 +109,7 @@ export function HomebrewCard({
         )}
 
         {/* Autor e versão */}
-        <div className="pt-2 border-t border-app-border text-xs text-app-muted space-y-1">
+        <div className="space-y-1 border-t border-white/6 pt-2 text-xs text-app-muted">
           <div className="flex items-center justify-between">
             <span>Por {homebrew.usuarioApelido ?? 'Desconhecido'}</span>
             <span>Atualizado em {atualizadoEm}</span>
@@ -126,23 +122,23 @@ export function HomebrewCard({
 
       {/* Ações */}
       {isOwner && (
-        <div className="mt-4 pt-4 border-t border-app-border space-y-2">
+        <div className="mt-4 space-y-2 border-t border-white/6 pt-4">
           {/* Botão de editar */}
           {podeEditar && (
             <Button
               variant="secondary"
               size="sm"
-              className="w-full"
+              className="w-full library-ghost-button"
               onClick={(event) => {
                 event.stopPropagation();
                 onEdit();
               }}
               disabled={processando}
             >
-              <Icon name="edit" className="w-4 h-4 mr-2" />
-              Editar
-            </Button>
-          )}
+                <Icon name="edit" className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+            )}
 
           {/* Botões de ação (publicar/arquivar) */}
           <div className="flex gap-2">
@@ -156,8 +152,8 @@ export function HomebrewCard({
                 }}
                 disabled={processando}
               >
-                <Icon name="download" className="w-4 h-4" />
-              </Button>
+                  <Icon name="download" className="h-4 w-4" />
+                </Button>
             ) : null}
             {podePublicar && (
               <Button
@@ -172,12 +168,12 @@ export function HomebrewCard({
               >
                 {processando ? (
                   <>
-                    <Icon name="loading" className="w-4 h-4 mr-2 animate-spin" />
+                    <Icon name="loading" className="mr-2 h-4 w-4 animate-spin" />
                     Publicando...
                   </>
                 ) : (
                   <>
-                    <Icon name="check" className="w-4 h-4 mr-2" />
+                    <Icon name="check" className="mr-2 h-4 w-4" />
                     Publicar
                   </>
                 )}
@@ -197,12 +193,12 @@ export function HomebrewCard({
               >
                 {processando ? (
                   <>
-                    <Icon name="loading" className="w-4 h-4 mr-2 animate-spin" />
+                    <Icon name="loading" className="mr-2 h-4 w-4 animate-spin" />
                     Arquivando...
                   </>
                 ) : (
                   <>
-                    <Icon name="archive" className="w-4 h-4 mr-2" />
+                    <Icon name="archive" className="mr-2 h-4 w-4" />
                     Arquivar
                   </>
                 )}
@@ -220,7 +216,7 @@ export function HomebrewCard({
               }}
               disabled={processando}
             >
-              <Icon name="delete" className="w-4 h-4" />
+              <Icon name="delete" className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -228,17 +224,17 @@ export function HomebrewCard({
 
       {/* Se não é dono, mostrar apenas visualizar */}
       {!isOwner && (
-        <div className="mt-4 pt-4 border-t border-app-border">
+        <div className="mt-4 border-t border-white/6 pt-4">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full"
+            className="w-full library-ghost-button"
             onClick={(event) => {
               event.stopPropagation();
               onView();
             }}
           >
-            <Icon name="eye" className="w-4 h-4 mr-2" />
+            <Icon name="eye" className="mr-2 h-4 w-4" />
             Visualizar
           </Button>
         </div>

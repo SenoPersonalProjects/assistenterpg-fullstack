@@ -26,14 +26,14 @@ import type {
   TipoNpcAmeaca,
 } from '@/lib/types';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { JsonImportModal } from '@/components/import-export/JsonImportModal';
+import { LibraryPageHeader } from '@/components/library/LibraryPageHeader';
+import { LibrarySectionHeader } from '@/components/library/LibrarySectionHeader';
+import { LibraryStatsBar } from '@/components/library/LibraryStatsBar';
 import { NpcAmeacaCard } from '@/components/npc-ameaca/NpcAmeacaCard';
-import { NpcAmeacaPageHeader } from '@/components/npc-ameaca/NpcAmeacaPageHeader';
 import { NpcAmeacaPreviewModal } from '@/components/npc-ameaca/NpcAmeacaPreviewModal';
 import { fichaTipoOptions, tipoNpcOptions } from '@/components/npc-ameaca/npcAmeacaUi';
-import { JsonImportModal } from '@/components/import-export/JsonImportModal';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -117,6 +117,20 @@ export default function NpcsAmeacasPage() {
     return todosNpcs.filter((npc) => ids.has(npc.id));
   }, [filtroGrupoId, grupos, lista, todosNpcs]);
 
+  const resumoTipos = useMemo(
+    () =>
+      lista.reduce(
+        (acc, item) => {
+          acc.total += 1;
+          if (item.fichaTipo === 'NPC') acc.npcs += 1;
+          if (item.fichaTipo === 'AMEACA') acc.ameacas += 1;
+          return acc;
+        },
+        { total: 0, npcs: 0, ameacas: 0 },
+      ),
+    [lista],
+  );
+
   const filtrosAtivos = useMemo(() => {
     const filtros: string[] = [];
     if (filtroNome.trim()) filtros.push(`Nome: ${filtroNome.trim()}`);
@@ -197,7 +211,7 @@ export default function NpcsAmeacasPage() {
   function handleDelete(item: NpcAmeacaResumo) {
     confirm({
       title: `Excluir "${item.nome}"?`,
-      description: 'Esta ação é irreversível.',
+      description: 'Esta acao e irreversivel.',
       confirmLabel: 'Excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
@@ -313,9 +327,7 @@ export default function NpcsAmeacasPage() {
 
   async function handleImportarJson(payload: Record<string, unknown>) {
     try {
-      const resultado = await apiImportarNpcAmeacaJson(
-        payload as ImportarNpcAmeacaJsonPayload,
-      );
+      const resultado = await apiImportarNpcAmeacaJson(payload as ImportarNpcAmeacaJsonPayload);
       await Promise.all([carregar(), carregarComplementos()]);
 
       if (resultado.importType === 'npc-ameaca-group') {
@@ -324,10 +336,7 @@ export default function NpcsAmeacasPage() {
           'success',
         );
       } else {
-        showToast(
-          `Ficha "${resultado.item?.nome ?? 'importada'}" importada com sucesso.`,
-          'success',
-        );
+        showToast(`Ficha "${resultado.item?.nome ?? 'importada'}" importada com sucesso.`, 'success');
       }
     } catch (error) {
       throw new Error(extrairMensagemErro(error));
@@ -380,7 +389,7 @@ export default function NpcsAmeacasPage() {
   function handleExcluirGrupo(grupo: NpcAmeacaGrupoResumo) {
     confirm({
       title: `Excluir grupo "${grupo.nome}"?`,
-      description: 'As fichas continuam existindo; apenas o grupo será removido.',
+      description: 'As fichas continuam existindo; apenas o grupo sera removido.',
       confirmLabel: 'Excluir grupo',
       cancelLabel: 'Cancelar',
       variant: 'danger',
@@ -404,7 +413,7 @@ export default function NpcsAmeacasPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="npc-page-shell min-h-screen p-6">
+      <div className="library-page-shell min-h-screen p-6">
         <Loading message="Carregando fichas..." className="text-app-fg" />
       </div>
     );
@@ -414,27 +423,26 @@ export default function NpcsAmeacasPage() {
 
   return (
     <>
-      <main className="npc-page-shell min-h-screen p-6">
+      <main className="library-page-shell min-h-screen p-6">
         <div className="mx-auto max-w-7xl space-y-6">
-          <NpcAmeacaPageHeader
-            title="NPC"
-            description="Gerencie fichas, organize grupos privados e importe/exporte em JSON."
-            badge={
-              <Badge color="blue">
-                {totalItens} {totalItens === 1 ? 'ficha' : 'fichas'}
-              </Badge>
-            }
+          <LibraryPageHeader
+            icon="curse"
+            title="NPCs e Ameacas"
+            description="Gerencie fichas, organize grupos privados e importe ou exporte em JSON."
             actions={
               <>
-                <Button variant="ghost" onClick={() => router.push('/home')}>
-                  <Icon name="back" className="mr-2 h-4 w-4" />
-                  Voltar
-                </Button>
-                <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setModalImportacaoAberto(true)}
+                  className="library-ghost-button"
+                >
                   <Icon name="upload" className="mr-2 h-4 w-4" />
                   Importar JSON
                 </Button>
-                <Button onClick={() => router.push('/npcs-ameacas/novo')}>
+                <Button
+                  onClick={() => router.push('/npcs-ameacas/novo')}
+                  className="library-primary-button"
+                >
                   <Icon name="add" className="mr-2 h-4 w-4" />
                   Novo NPC
                 </Button>
@@ -442,19 +450,34 @@ export default function NpcsAmeacasPage() {
             }
           />
 
-          {erro && <ErrorAlert message={erro} />}
+          {erro ? <ErrorAlert message={erro} /> : null}
 
-          <Card className="npc-panel space-y-4">
-            <div className="grid gap-3 md:grid-cols-5">
+          <LibraryStatsBar
+            items={[
+              { label: 'Total', value: totalItens },
+              { label: 'Aliados na pagina', value: resumoTipos.npcs, tone: 'success' },
+              { label: 'Ameacas na pagina', value: resumoTipos.ameacas, tone: 'warning' },
+              { label: 'Grupos', value: grupos.length, tone: 'muted' },
+            ]}
+            trailingText={`${lista.length} fichas carregadas nesta pagina`}
+          />
+
+          <div className="library-filters-panel">
+            <div className="flex flex-col gap-4 md:flex-row">
               <Input
                 value={filtroNome}
                 onChange={(e) => setFiltroNome(e.target.value)}
                 placeholder="Buscar por nome..."
-                className="md:col-span-2"
+                className="flex-1"
                 icon="search"
+                onKeyDown={(e) => e.key === 'Enter' && handleAplicarFiltros()}
               />
 
-              <Select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value as TipoNpcAmeaca | 'TODOS')}>
+              <Select
+                value={filtroTipo}
+                onChange={(e) => setFiltroTipo(e.target.value as TipoNpcAmeaca | 'TODOS')}
+                className="md:w-48"
+              >
                 <option value="TODOS">Todos os tipos</option>
                 {tipoNpcOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -466,8 +489,9 @@ export default function NpcsAmeacasPage() {
               <Select
                 value={filtroFicha}
                 onChange={(e) => setFiltroFicha(e.target.value as TipoFichaNpcAmeaca | 'TODOS')}
+                className="md:w-48"
               >
-                <option value="TODOS">Aliados ou ameaças</option>
+                <option value="TODOS">Aliados ou ameacas</option>
                 {fichaTipoOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     Somente {option.label.toLowerCase()}
@@ -481,6 +505,7 @@ export default function NpcsAmeacasPage() {
                   const value = e.target.value;
                   setFiltroGrupoId(value === 'TODOS' ? 'TODOS' : Number(value));
                 }}
+                className="md:w-56"
               >
                 <option value="TODOS">Todos os grupos</option>
                 {grupos.map((grupo) => (
@@ -489,105 +514,107 @@ export default function NpcsAmeacasPage() {
                   </option>
                 ))}
               </Select>
+
+              <Button onClick={handleAplicarFiltros} className="library-primary-button">
+                <Icon name="search" className="mr-2 h-4 w-4" />
+                Buscar
+              </Button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                {filtrosAtivos.length > 0 ? (
-                  filtrosAtivos.map((filtro) => (
-                    <Badge key={filtro} color="gray" size="sm">
-                      {filtro}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-xs text-app-muted">Nenhum filtro aplicado</span>
-                )}
+            {filtrosAtivos.length > 0 ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/6 pt-3">
+                {filtrosAtivos.map((filtro) => (
+                  <span key={filtro} className="library-filter-chip">
+                    {filtro}
+                  </span>
+                ))}
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleLimparFiltros}
+                  className="!border-transparent !text-app-muted hover:!bg-white/5"
+                >
+                  <Icon name="close" className="mr-1 h-3 w-3" />
+                  Limpar filtros
+                </Button>
               </div>
+            ) : null}
+          </div>
 
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
-                  <Icon name="upload" className="mr-2 h-4 w-4" />
-                  Importar JSON
-                </Button>
-                <Button variant="ghost" onClick={abrirModalNovoGrupo}>
-                  <Icon name="folder" className="mr-2 h-4 w-4" />
-                  Novo grupo
-                </Button>
-                <Button variant="secondary" onClick={handleLimparFiltros}>
-                  <Icon name="close" className="mr-2 h-4 w-4" />
-                  Limpar
-                </Button>
-                <Button variant="secondary" onClick={handleAplicarFiltros}>
-                  <Icon name="search" className="mr-2 h-4 w-4" />
-                  Filtrar
-                </Button>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-app-fg">Grupos de NPCs/Ameaças</h2>
-                <p className="text-sm text-app-muted">
-                  Monte pacotes privados de fichas para exportar e reaproveitar.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
-                  <Icon name="upload" className="mr-2 h-4 w-4" />
-                  Importar JSON
-                </Button>
-                <Button variant="secondary" onClick={abrirModalNovoGrupo}>
-                  <Icon name="add" className="mr-2 h-4 w-4" />
-                  Novo grupo
-                </Button>
-              </div>
-            </div>
+          <section className="space-y-3">
+            <LibrarySectionHeader
+              title="Grupos"
+              description="Pacotes privados de fichas para exportar e reaproveitar."
+              actions={
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setModalImportacaoAberto(true)}
+                    className="library-ghost-button"
+                  >
+                    <Icon name="upload" className="mr-2 h-4 w-4" />
+                    Importar JSON
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={abrirModalNovoGrupo}
+                    className="library-ghost-button"
+                  >
+                    <Icon name="add" className="mr-2 h-4 w-4" />
+                    Novo grupo
+                  </Button>
+                </>
+              }
+            />
 
             {grupos.length === 0 ? (
+              <div className="library-panel rounded-2xl border border-dashed border-white/8 px-4 py-10">
                 <EmptyState
                   variant="plain"
-                icon="folder"
-                title="Nenhum grupo criado"
-                description="Crie grupos para organizar suas fichas em pacotes reutilizáveis."
-                actionLabel="Criar grupo"
-                onAction={abrirModalNovoGrupo}
-              />
+                  icon="folder"
+                  title="Nenhum grupo criado"
+                  description="Crie grupos para organizar suas fichas em pacotes reutilizaveis."
+                  actionLabel="Criar grupo"
+                  onAction={abrirModalNovoGrupo}
+                />
+              </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="library-group-rail no-scrollbar">
                 {grupos.map((grupo) => (
-                  <Card key={grupo.id} className="space-y-3">
+                  <div key={grupo.id} className="library-group-card space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="truncate text-base font-semibold text-app-fg">{grupo.nome}</h3>
                         <p className="mt-1 line-clamp-2 text-sm text-app-muted">
-                          {grupo.descricao || 'Sem descrição.'}
+                          {grupo.descricao || 'Sem descricao.'}
                         </p>
                       </div>
-                      <Badge color="blue" size="sm">
-                        {grupo.quantidadeItens}
-                      </Badge>
+                      <span className="library-filter-chip !px-2.5 !py-1">{grupo.quantidadeItens}</span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {grupo.npcAmeacaIds.slice(0, 4).map((npcId) => {
+                    <div className="flex flex-wrap gap-1.5">
+                      {grupo.npcAmeacaIds.slice(0, 3).map((npcId) => {
                         const npc = todosNpcs.find((item) => item.id === npcId);
                         return (
-                          <Badge key={npcId} color="gray" size="sm">
+                          <span key={npcId} className="library-mini-chip">
                             {npc?.nome ?? `#${npcId}`}
-                          </Badge>
+                          </span>
                         );
                       })}
-                      {grupo.npcAmeacaIds.length > 4 ? (
-                        <Badge color="gray" size="sm">
-                          +{grupo.npcAmeacaIds.length - 4}
-                        </Badge>
+                      {grupo.npcAmeacaIds.length > 3 ? (
+                        <span className="library-mini-chip">
+                          +{grupo.npcAmeacaIds.length - 3}
+                        </span>
                       ) : null}
                     </div>
 
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => setFiltroGrupoId(grupo.id)}>
+                    <div className="flex flex-wrap items-center gap-2 border-t border-white/6 pt-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setFiltroGrupoId(grupo.id)}
+                        className="library-ghost-button"
+                      >
                         <Icon name="filter" className="mr-1 h-4 w-4" />
                         Filtrar
                       </Button>
@@ -596,6 +623,7 @@ export default function NpcsAmeacasPage() {
                         size="sm"
                         onClick={() => void handleExportarGrupo(grupo)}
                         disabled={processandoGrupoId === grupo.id}
+                        className="library-ghost-button"
                       >
                         <Icon name="download" className="mr-1 h-4 w-4" />
                         JSON
@@ -605,6 +633,7 @@ export default function NpcsAmeacasPage() {
                         size="sm"
                         onClick={() => abrirModalEditarGrupo(grupo)}
                         disabled={processandoGrupoId === grupo.id}
+                        className="library-ghost-button"
                       >
                         <Icon name="edit" className="mr-1 h-4 w-4" />
                         Editar
@@ -612,75 +641,94 @@ export default function NpcsAmeacasPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-app-danger hover:bg-app-danger/10"
+                        className="ml-auto text-app-danger hover:bg-app-danger/10"
                         onClick={() => handleExcluirGrupo(grupo)}
                         disabled={processandoGrupoId === grupo.id}
                       >
-                        <Icon name="delete" className="mr-1 h-4 w-4" />
-                        Excluir
+                        <Icon name="delete" className="h-4 w-4" />
                       </Button>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             )}
-          </Card>
+          </section>
 
-          {listaExibida.length === 0 ? (
-            <EmptyState
-              variant="card"
-              icon="curse"
-              title="Nenhuma ficha encontrada"
-              description="Crie sua primeira ficha de aliado ou ameaça."
-              actionLabel="Criar ficha"
-              onAction={() => router.push('/npcs-ameacas/novo')}
+          <section className="space-y-3">
+            <LibrarySectionHeader
+              title="Fichas"
+              meta={
+                <span className="text-xs text-app-muted/70">
+                  {filtroGrupoId === 'TODOS'
+                    ? `${listaExibida.length} de ${totalItens}`
+                    : `${listaExibida.length} no grupo selecionado`}
+                </span>
+              }
             />
-          ) : (
-            <>
-              <p className="text-xs text-app-muted">
-                {filtroGrupoId === 'TODOS'
-                  ? `Mostrando ${listaExibida.length} de ${totalItens} fichas`
-                  : `Mostrando ${listaExibida.length} fichas do grupo selecionado`}
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {listaExibida.map((item) => (
-                  <NpcAmeacaCard
-                    key={item.id}
-                    npcAmeaca={item}
-                    onView={() => void handleOpenPreview(item)}
-                    onEdit={() => router.push(`/npcs-ameacas/${item.id}/editar`)}
-                    onDelete={() => handleDelete(item)}
-                    onExport={() => void handleExportarNpc(item)}
-                    deleting={deletingId === item.id}
-                  />
-                ))}
-              </div>
-            </>
-          )}
 
-          {filtroGrupoId === 'TODOS' && totalPages > 1 ? (
-            <div className="flex items-center justify-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              >
-                <Icon name="chevron-left" className="h-4 w-4" />
-              </Button>
-              <span className="px-3 text-sm text-app-muted">
-                Página {page} de {totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={page === totalPages}
-                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-              >
-                <Icon name="chevron-right" className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : null}
+            {listaExibida.length === 0 ? (
+              <div className="library-panel rounded-2xl border border-dashed border-white/8 px-4 py-14">
+                <EmptyState
+                  variant="plain"
+                  icon="curse"
+                  title="Nenhuma ficha encontrada"
+                  description={
+                    filtrosAtivos.length > 0
+                      ? 'Tente ajustar os filtros de busca.'
+                      : 'Crie sua primeira ficha de aliado ou ameaca.'
+                  }
+                  actionLabel={filtrosAtivos.length > 0 ? 'Limpar filtros' : 'Criar ficha'}
+                  onAction={
+                    filtrosAtivos.length > 0
+                      ? handleLimparFiltros
+                      : () => router.push('/npcs-ameacas/novo')
+                  }
+                />
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {listaExibida.map((item) => (
+                    <NpcAmeacaCard
+                      key={item.id}
+                      npcAmeaca={item}
+                      onView={() => void handleOpenPreview(item)}
+                      onEdit={() => router.push(`/npcs-ameacas/${item.id}/editar`)}
+                      onDelete={() => handleDelete(item)}
+                      onExport={() => void handleExportarNpc(item)}
+                      deleting={deletingId === item.id}
+                    />
+                  ))}
+                </div>
+
+                {filtroGrupoId === 'TODOS' && totalPages > 1 ? (
+                  <div className="library-pagination pt-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                      className="library-ghost-button"
+                    >
+                      <Icon name="chevron-left" className="h-4 w-4" />
+                    </Button>
+                    <span className="px-4 text-sm text-app-muted">
+                      Pagina {page} de {totalPages}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={page === totalPages}
+                      onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                      className="library-ghost-button"
+                    >
+                      <Icon name="chevron-right" className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </section>
         </div>
       </main>
 
@@ -709,11 +757,11 @@ export default function NpcsAmeacasPage() {
       <JsonImportModal
         isOpen={modalImportacaoAberto}
         onClose={() => setModalImportacaoAberto(false)}
-        title="Importar NPC/Ameaça via JSON"
+        title="Importar NPC/Ameaca via JSON"
         acceptedExportTypes={['npc-ameaca', 'npc-ameaca-group']}
         typeLabels={{
-          'npc-ameaca': 'NPC/Ameaça',
-          'npc-ameaca-group': 'Grupo de NPCs/Ameaças',
+          'npc-ameaca': 'NPC/Ameaca',
+          'npc-ameaca-group': 'Grupo de NPCs/Ameacas',
         }}
         onImport={handleImportarJson}
       />
@@ -723,7 +771,7 @@ export default function NpcsAmeacasPage() {
         onClose={() => {
           if (!salvandoGrupo) setModalGrupoAberto(false);
         }}
-        title={grupoEditando ? 'Editar grupo de NPCs/Ameaças' : 'Novo grupo de NPCs/Ameaças'}
+        title={grupoEditando ? 'Editar grupo de NPCs/Ameacas' : 'Novo grupo de NPCs/Ameacas'}
         size="lg"
         footer={
           <>
@@ -741,10 +789,10 @@ export default function NpcsAmeacasPage() {
             label="Nome do grupo"
             value={grupoNome}
             onChange={(e) => setGrupoNome(e.target.value)}
-            placeholder="Ex.: Inimigos da missão"
+            placeholder="Ex.: Inimigos da missao"
           />
           <Input
-            label="Descrição"
+            label="Descricao"
             value={grupoDescricao}
             onChange={(e) => setGrupoDescricao(e.target.value)}
             placeholder="Opcional"
@@ -753,14 +801,14 @@ export default function NpcsAmeacasPage() {
           <div className="space-y-3">
             <div>
               <h3 className="text-sm font-semibold text-app-fg">Fichas do grupo</h3>
-              <p className="text-xs text-app-muted">Selecione quais NPCs/Ameaças entram neste pacote.</p>
+              <p className="text-xs text-app-muted">Selecione quais NPCs/Ameacas entram neste pacote.</p>
             </div>
 
             {todosNpcs.length === 0 ? (
               <EmptyState
                 variant="plain"
                 icon="curse"
-                title="Nenhuma ficha disponível"
+                title="Nenhuma ficha disponivel"
                 description="Crie fichas antes de montar grupos."
               />
             ) : (
@@ -773,7 +821,7 @@ export default function NpcsAmeacasPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-app-fg">{npc.nome}</p>
                       <p className="text-xs text-app-muted">
-                        {npc.fichaTipo} • {npc.tipo}
+                        {npc.fichaTipo} - {npc.tipo}
                       </p>
                     </div>
                     <Checkbox
