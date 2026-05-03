@@ -11,11 +11,15 @@ import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
 import { InventarioValidacaoFeedback } from '../InventarioValidacaoFeedback';
 import {
+  CODIGO_MOD_FUNCAO_ADICIONAL,
   getIconeTipo,
   formatarPercentualCarga,
   getCorBarraProgresso,
   calcularEspacosExtraDeItens,
+  contarModificacoesEfetivasItem,
   equipamentoUsaPericiaPersonalizada,
+  extrairFuncoesAdicionaisPericias,
+  listarPericiasElegiveisFuncaoAdicional,
   validarCategoriaNaoExcedeEspecial,
   validarPodeVestir,
   podeSerVestido,
@@ -40,6 +44,7 @@ type Props = {
   ignorarLimites: boolean;
   nomeCustomizado: string;
   periciaPersonalizada: string;
+  funcoesAdicionaisPericias: string[];
   preview: PreviewAdicionarItemResponse | null;
   carregandoPreview: boolean;
   erroValidacao: string | null;
@@ -52,6 +57,7 @@ type Props = {
   onIgnorarLimitesChange: (ignorar: boolean) => void;
   onNomeCustomizadoChange: (nome: string) => void;
   onPericiaPersonalizadaChange: (codigo: string) => void;
+  onFuncoesAdicionaisPericiasChange: (codigos: string[]) => void;
 };
 
 export function InventarioModalReview({
@@ -63,6 +69,7 @@ export function InventarioModalReview({
   ignorarLimites,
   nomeCustomizado,
   periciaPersonalizada,
+  funcoesAdicionaisPericias,
   preview,
   carregandoPreview,
   erroValidacao,
@@ -75,6 +82,7 @@ export function InventarioModalReview({
   onIgnorarLimitesChange,
   onNomeCustomizadoChange,
   onPericiaPersonalizadaChange,
+  onFuncoesAdicionaisPericiasChange,
 }: Props) {
   // ✅ Verificar se equipamento pode ser vestido (considera tipoUso)
   const podeVestir = useMemo(() => podeSerVestido(equipamento), [equipamento]);
@@ -84,9 +92,16 @@ export function InventarioModalReview({
     const erros: string[] = [];
     const avisos: string[] = [];
     const usaPericiaPersonalizada = equipamentoUsaPericiaPersonalizada(equipamento);
+    const funcaoAdicionalAtiva = modificacoesSelecionadas.some(
+      (mod) => mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+    );
 
     if (usaPericiaPersonalizada && !periciaPersonalizada) {
       erros.push('Selecione a pericia beneficiada por este item personalizado.');
+    }
+
+    if (funcaoAdicionalAtiva && funcoesAdicionaisPericias.length === 0) {
+      erros.push('Selecione ao menos uma pericia extra para Funcao Adicional.');
     }
 
     // 1. Validar categoria não excede ESPECIAL
@@ -148,6 +163,7 @@ export function InventarioModalReview({
     equipamentos,
     podeVestir,
     periciaPersonalizada,
+    funcoesAdicionaisPericias,
   ]);
 
   // ✅ Calcular totais de vestir (para indicador visual)
@@ -187,19 +203,50 @@ export function InventarioModalReview({
     };
   }, [equipado, equipamento, quantidade, itensInventario, equipamentos, podeVestir]);
 
-  if (carregandoPreview) {
-    return (
-      <div className="text-center py-8">
-        <Icon name="spinner" className="w-6 h-6 mx-auto mb-2 text-app-muted animate-spin" />
-        <p className="text-app-muted">Validando adição...</p>
-      </div>
-    );
-  }
-
   const espacosExtraItem = calcularEspacosExtraDeItens(
     [{ equipamentoId: equipamento.id, quantidade: 1 }],
     equipamentos,
   );
+  const periciasElegiveisFuncaoAdicional = useMemo(
+    () =>
+      listarPericiasElegiveisFuncaoAdicional({
+        pericias: periciasElegiveis,
+        periciaPrincipalCodigo: periciaPersonalizada,
+        periciaBaseBonificada: equipamento.periciaBonificada ?? null,
+        periciasSelecionadas: funcoesAdicionaisPericias,
+      }),
+    [
+      equipamento.periciaBonificada,
+      funcoesAdicionaisPericias,
+      periciaPersonalizada,
+      periciasElegiveis,
+    ],
+  );
+  const funcaoAdicionalAtiva = modificacoesSelecionadas.some(
+    (mod) => mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+  );
+  const funcoesAdicionaisNomes = useMemo(
+    () =>
+      extrairFuncoesAdicionaisPericias({
+        funcoesAdicionaisPericias,
+      }).map(
+        (codigo) =>
+          periciasElegiveis.find((pericia) => pericia.codigo === codigo)?.nome ?? codigo,
+      ),
+    [funcoesAdicionaisPericias, periciasElegiveis],
+  );
+
+  if (carregandoPreview) {
+    return (
+      <div className="text-center py-8">
+        <Icon name="spinner" className="w-6 h-6 mx-auto mb-2 text-app-muted animate-spin" />
+        <p className="text-app-muted">Validando adi??o...</p>
+      </div>
+    );
+  }
+
+
+
 
   return (
     <div className="space-y-4">
@@ -220,7 +267,11 @@ export function InventarioModalReview({
               {modificacoesSelecionadas.length > 0 && (
                 <Badge color="purple" size="sm">
                   <Icon name="sparkles" className="w-3 h-3 inline mr-1" />
-                  {modificacoesSelecionadas.length} mod(s)
+                  {contarModificacoesEfetivasItem({
+                    modificacoesIds: modificacoesSelecionadas.map((mod) => mod.id),
+                    modificacoesCatalogo: modificacoesSelecionadas,
+                    estado: { funcoesAdicionaisPericias },
+                  })} mod(s)
                 </Badge>
               )}
               {espacosExtraItem > 0 && (
@@ -329,6 +380,60 @@ export function InventarioModalReview({
               Este item concede +2 na perícia escolhida. Modificações aplicadas
               podem ajustar esse bônus ou adicionar novos efeitos.
             </p>
+          </div>
+        )}
+
+        {funcaoAdicionalAtiva && (
+          <div>
+            <label className="block text-sm font-semibold text-app-fg mb-2">
+              Funcoes Adicionais
+            </label>
+            <div className="space-y-2 rounded-lg border border-app-border bg-app-bg p-3">
+              {funcoesAdicionaisNomes.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {funcoesAdicionaisPericias.map((codigo, index) => (
+                    <Badge key={`${codigo}-${index}`} color="yellow" size="sm" className="gap-1">
+                      +2 {funcoesAdicionaisNomes[index] ?? codigo}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onFuncoesAdicionaisPericiasChange(
+                            funcoesAdicionaisPericias.filter((_, itemIndex) => itemIndex !== index),
+                          )
+                        }
+                        className="ml-1 text-current/80 hover:text-current"
+                      >
+                        <Icon name="close" className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-app-muted">
+                  Escolha pelo menos uma pericia extra para esta modificacao.
+                </p>
+              )}
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const codigo = e.target.value;
+                  if (!codigo) return;
+                  onFuncoesAdicionaisPericiasChange([
+                    ...funcoesAdicionaisPericias,
+                    codigo,
+                  ]);
+                  e.target.value = '';
+                }}
+                className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-primary"
+              >
+                <option value="">Adicionar pericia extra</option>
+                {periciasElegiveisFuncaoAdicional.map((pericia) => (
+                  <option key={pericia.codigo} value={pericia.codigo}>
+                    {pericia.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
 

@@ -7,7 +7,14 @@ import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Badge } from '@/components/ui/Badge';
-import { formatarIncrementoEspacos, calcularEspacosExtraDeItens, podeSerVestido, equipamentoUsaPericiaPersonalizada } from '@/lib/utils/inventario';
+import {
+  calcularEspacosExtraDeItens,
+  equipamentoUsaPericiaPersonalizada,
+  formatarIncrementoEspacos,
+  itemTemFuncaoAdicional,
+  listarPericiasElegiveisFuncaoAdicional,
+  podeSerVestido,
+} from '@/lib/utils/inventario';
 import type { ItemInventarioPayload, ModificacaoCatalogo, EquipamentoCatalogo, PericiaCatalogo } from '@/lib/api';
 
 type Props = {
@@ -19,12 +26,14 @@ type Props = {
   periciasElegiveis: PericiaCatalogo[];
   nomeCustomizado: string;
   periciaPersonalizada: string;
+  funcoesAdicionaisPericias: string[];
   equipado: boolean;
   onQuantidadeChange: (qtd: number) => void;
   onToggleModificacao: (modId: number, checked: boolean) => void; // ✅ MUDOU: Recebe ID
   onNomeCustomizadoChange: (nome: string) => void;
   onEquipadoChange: (equipado: boolean) => void;
   onPericiaPersonalizadaChange: (codigo: string) => void;
+  onFuncoesAdicionaisPericiasChange: (codigos: string[]) => void;
 };
 
 export function InventarioModalEditar({
@@ -36,12 +45,14 @@ export function InventarioModalEditar({
   periciasElegiveis,
   nomeCustomizado,
   periciaPersonalizada,
+  funcoesAdicionaisPericias,
   equipado,
   onQuantidadeChange,
   onToggleModificacao,
   onNomeCustomizadoChange,
   onEquipadoChange,
   onPericiaPersonalizadaChange,
+  onFuncoesAdicionaisPericiasChange,
 }: Props) {
   // ✅ NOVO: Buscar equipamento pelo ID
   const equipamento = useMemo(() => {
@@ -51,6 +62,25 @@ export function InventarioModalEditar({
   const podeVestir = useMemo(
     () => (equipamento ? podeSerVestido(equipamento) : false),
     [equipamento],
+  );
+  const funcaoAdicionalAtiva = useMemo(
+    () => itemTemFuncaoAdicional(modificacoesIds, modificacoesCompativeis),
+    [modificacoesIds, modificacoesCompativeis],
+  );
+  const periciasElegiveisFuncaoAdicional = useMemo(
+    () =>
+      listarPericiasElegiveisFuncaoAdicional({
+        pericias: periciasElegiveis,
+        periciaPrincipalCodigo: periciaPersonalizada,
+        periciaBaseBonificada: equipamento?.periciaBonificada ?? null,
+        periciasSelecionadas: funcoesAdicionaisPericias,
+      }),
+    [
+      equipamento?.periciaBonificada,
+      funcoesAdicionaisPericias,
+      periciaPersonalizada,
+      periciasElegiveis,
+    ],
   );
 
   if (!equipamento) {
@@ -150,6 +180,72 @@ export function InventarioModalEditar({
             <p className="mt-1 text-xs text-app-muted">
               Este item concede +2 na pericia escolhida.
             </p>
+          </div>
+        )}
+
+        {funcaoAdicionalAtiva && (
+          <div>
+            <label className="block text-sm font-semibold text-app-fg mb-2">
+              Funcoes Adicionais
+            </label>
+            <div className="space-y-2 rounded-lg border border-app-border bg-app-bg p-3">
+              {funcoesAdicionaisPericias.length === 0 ? (
+                <p className="text-xs text-app-muted">
+                  Escolha ao menos uma pericia extra para receber +2.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {funcoesAdicionaisPericias.map((codigo) => {
+                    const pericia =
+                      periciasElegiveis.find((itemPericia) => itemPericia.codigo === codigo)
+                        ?.nome ?? codigo;
+                    return (
+                      <Badge key={codigo} color="yellow" size="sm" className="gap-1">
+                        +2 {pericia}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onFuncoesAdicionaisPericiasChange(
+                              funcoesAdicionaisPericias.filter((itemCodigo) => itemCodigo !== codigo),
+                            )
+                          }
+                          className="ml-1 text-current/80 hover:text-current"
+                          title={`Remover ${pericia}`}
+                        >
+                          <Icon name="close" className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    const codigo = e.target.value;
+                    if (!codigo) return;
+                    onFuncoesAdicionaisPericiasChange([
+                      ...funcoesAdicionaisPericias,
+                      codigo,
+                    ]);
+                    e.target.value = '';
+                  }}
+                  className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-primary"
+                >
+                  <option value="">Adicionar pericia extra</option>
+                  {periciasElegiveisFuncaoAdicional.map((pericia) => (
+                    <option key={pericia.codigo} value={pericia.codigo}>
+                      {pericia.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-app-muted">
+                Cada instancia concede +2 a uma pericia diferente. Luta e Pontaria nao sao validas.
+              </p>
+            </div>
           </div>
         )}
 

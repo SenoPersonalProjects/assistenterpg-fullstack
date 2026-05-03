@@ -114,6 +114,11 @@ export class ItemInventarioEstadoDto {
   @IsOptional()
   @IsString()
   periciaCodigo?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  funcoesAdicionaisPericias?: string[];
 }
 
 export class ItemInventarioDto {

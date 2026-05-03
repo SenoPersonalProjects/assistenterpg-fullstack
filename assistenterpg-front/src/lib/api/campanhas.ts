@@ -260,6 +260,17 @@ export async function apiDesassociarPersonagemCampanha(
   return data;
 }
 
+export async function apiAtualizarPersonagemCampanhaDaFichaBase(
+  campanhaId: number,
+  personagemCampanhaId: number,
+): Promise<PersonagemCampanhaResumo> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/atualizar-da-ficha-base`,
+  );
+  apiInvalidateCampanhaDetalheCache(campanhaId);
+  return data;
+}
+
 export async function apiAtualizarRecursosPersonagemCampanha(
   campanhaId: number,
   personagemCampanhaId: number,

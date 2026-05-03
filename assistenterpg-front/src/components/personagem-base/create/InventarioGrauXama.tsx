@@ -10,7 +10,11 @@ import {
   getLimiteCreditoComBonus,
   type GrauXama,
 } from '@/lib/utils/prestigio';
-import { calcularCategoriaFinal, isCategoriaBloquada } from '@/lib/utils/inventario';
+import {
+  calcularCategoriaFinal,
+  contarModificacoesEfetivasItem,
+  isCategoriaBloquada,
+} from '@/lib/utils/inventario';
 import type { ItemInventarioPayload, EquipamentoCatalogo } from '@/lib/api';
 
 type Props = {
@@ -46,7 +50,11 @@ export function InventarioGrauXama({
       if (equip) {
         const cat = calcularCategoriaFinal(
           equip.categoria,
-          item.modificacoesIds?.length ?? 0,
+          contarModificacoesEfetivasItem({
+            modificacoesIds: item.modificacoesIds,
+            modificacoesCatalogo: [],
+            estado: item.estado,
+          }),
         );
         contagem[cat] = (contagem[cat] || 0) + item.quantidade;
       }
@@ -127,4 +135,3 @@ export function InventarioGrauXama({
     </div>
   );
 }
-

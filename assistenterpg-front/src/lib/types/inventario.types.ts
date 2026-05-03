@@ -41,6 +41,8 @@ export type EquipamentoCatalogo = {
   tipoProtecao?: string | null;
   alcance?: string | null;
   tipoAcessorio?: string | null;
+  periciaBonificada?: string | null;
+  bonusPericia?: number | null;
 
   tipoArma?: string | null;
   subtipoDistancia?: string | null;
@@ -70,6 +72,8 @@ export type EquipamentoResumoDto = {
   tipoProtecao?: string | null;
   alcance?: string | null;
   tipoAcessorio?: string | null;
+  periciaBonificada?: string | null;
+  bonusPericia?: number | null;
 
   tipoArma?: string | null;
   subtipoDistancia?: string | null;
@@ -233,6 +237,7 @@ export type ItemInventarioDto = {
   notas: string | null;
   estado?: {
     periciaCodigo?: string | null;
+    funcoesAdicionaisPericias?: string[];
   } | null;
 
   equipamento: EquipamentoResumoDto;
@@ -387,6 +392,7 @@ export type AdicionarItemDto = {
   modificacoes?: number[];
   estado?: {
     periciaCodigo?: string | null;
+    funcoesAdicionaisPericias?: string[];
   };
   ignorarLimitesGrauXama?: boolean;
 };
@@ -400,6 +406,7 @@ export type AdicionarItemInventarioCampanhaDto = {
   modificacoes?: number[];
   estado?: {
     periciaCodigo?: string | null;
+    funcoesAdicionaisPericias?: string[];
   };
 };
 
@@ -418,6 +425,7 @@ export type AtualizarItemDto = {
   notas?: string;
   estado?: {
     periciaCodigo?: string | null;
+    funcoesAdicionaisPericias?: string[];
   };
 };
 
@@ -428,6 +436,7 @@ export type AtualizarItemInventarioCampanhaDto = {
   notas?: string;
   estado?: {
     periciaCodigo?: string | null;
+    funcoesAdicionaisPericias?: string[];
   };
 };
 

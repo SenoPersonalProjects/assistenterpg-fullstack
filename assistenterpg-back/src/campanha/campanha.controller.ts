@@ -144,6 +144,19 @@ export class CampanhaController {
     );
   }
 
+  @Post(':id/personagens/:personagemCampanhaId/atualizar-da-ficha-base')
+  async atualizarPersonagemDaFichaBase(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.atualizarPersonagemDaFichaBase(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
   @Patch(':id/personagens/:personagemCampanhaId/recursos')
   async atualizarRecursosPersonagemCampanha(
     @Param('id', ParseIntPipe) id: number,

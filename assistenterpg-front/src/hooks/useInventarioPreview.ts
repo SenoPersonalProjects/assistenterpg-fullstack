@@ -32,6 +32,10 @@ type PreviewPayload = {
     equipado: boolean;
     modificacoes?: number[];
     nomeCustomizado?: string;
+    estado?: {
+      periciaCodigo?: string | null;
+      funcoesAdicionaisPericias?: string[];
+    };
   }>;
 };
 
@@ -43,6 +47,15 @@ function sanitizarItensInventario(itens: ItemInventarioPayload[]): ItemInventari
     modificacoesIds: item.modificacoesIds || [],
     nomeCustomizado: item.nomeCustomizado || null,
     notas: item.notas || null,
+    estado: item.estado
+      ? {
+          periciaCodigo: item.estado.periciaCodigo ?? null,
+          funcoesAdicionaisPericias:
+            item.estado.funcoesAdicionaisPericias?.map((codigo) =>
+              codigo.trim().toUpperCase(),
+            ) ?? [],
+        }
+      : undefined,
   }));
 }
 
@@ -70,6 +83,7 @@ function construirPayloadPreview(
       equipado: Boolean(item.equipado),
       modificacoes: item.modificacoesIds ?? [],
       nomeCustomizado: item.nomeCustomizado || undefined,
+      estado: item.estado ?? undefined,
     })),
   };
 }

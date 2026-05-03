@@ -16,6 +16,8 @@ export class EquipamentoResumoDto {
   tipoProtecao?: string | null;
   alcance?: string | null;
   tipoAcessorio?: string | null;
+  periciaBonificada?: string | null;
+  bonusPericia?: number | null;
 
   // ✅ Campos para diferenciar tipo de arma
   tipoArma?: string | null;

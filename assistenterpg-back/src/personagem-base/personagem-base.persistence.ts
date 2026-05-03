@@ -102,11 +102,29 @@ function normalizarEstadoInventarioParaJson(
   if (estado === null) return null;
 
   if (typeof estado === 'object' && !Array.isArray(estado)) {
+    let funcoesAdicionaisPericias: string[] | undefined;
+    if (Array.isArray(estado.funcoesAdicionaisPericias)) {
+      funcoesAdicionaisPericias = [];
+      for (const codigo of estado.funcoesAdicionaisPericias) {
+        if (typeof codigo !== 'string') continue;
+        const normalizado = codigo.trim().toUpperCase();
+        if (normalizado.length > 0) {
+          funcoesAdicionaisPericias.push(normalizado);
+        }
+      }
+      if (funcoesAdicionaisPericias.length === 0) {
+        funcoesAdicionaisPericias = undefined;
+      }
+    }
+
     return {
       periciaCodigo:
         'periciaCodigo' in estado
           ? (estado.periciaCodigo ?? null)
           : null,
+      ...(funcoesAdicionaisPericias
+        ? { funcoesAdicionaisPericias }
+        : {}),
     };
   }
 

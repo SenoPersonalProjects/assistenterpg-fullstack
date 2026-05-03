@@ -610,11 +610,19 @@ export class ModificacoesService {
 
     // 3. Validar tipo de protecao
     if (restricoes.tiposProtecao?.length) {
-      if (!equipamento.tipoProtecao) {
+      const tipoProtecaoEfetivo =
+        equipamento.tipoProtecao ??
+        (equipamento.tipo === 'PROTECAO'
+          ? equipamento.proficienciaProtecao === ProficienciaProtecao.ESCUDO
+            ? 'EMPUNHAVEL'
+            : 'VESTIVEL'
+          : null);
+
+      if (!tipoProtecaoEfetivo) {
         erros.push(
           `Modificacao so aplicavel a protecoes: ${restricoes.tiposProtecao.join(', ')}`,
         );
-      } else if (!restricoes.tiposProtecao.includes(equipamento.tipoProtecao)) {
+      } else if (!restricoes.tiposProtecao.includes(tipoProtecaoEfetivo)) {
         erros.push(
           `Modificacao so aplicavel a protecoes: ${restricoes.tiposProtecao.join(', ')}`,
         );

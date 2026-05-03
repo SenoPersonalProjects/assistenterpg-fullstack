@@ -37,6 +37,7 @@ export const CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO = [
   'LUTA',
   'PONTARIA',
 ] as const;
+export const CODIGO_MOD_FUNCAO_ADICIONAL = 'MOD_FUNCAO_ADICIONAL' as const;
 
 /**
  * Limites do sistema de vestir
@@ -226,6 +227,93 @@ export function listarPericiasElegiveisItemPersonalizado(
         ),
     )
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+export function extrairFuncoesAdicionaisPericias(
+  estado:
+    | {
+        funcoesAdicionaisPericias?: string[] | null;
+      }
+    | null
+    | undefined,
+): string[] {
+  if (!Array.isArray(estado?.funcoesAdicionaisPericias)) return [];
+  return estado.funcoesAdicionaisPericias
+    .filter((codigo): codigo is string => typeof codigo === 'string')
+    .map((codigo) => codigo.trim().toUpperCase())
+    .filter((codigo) => codigo.length > 0);
+}
+
+export function contarInstanciasFuncaoAdicional(
+  estado:
+    | {
+        funcoesAdicionaisPericias?: string[] | null;
+      }
+    | null
+    | undefined,
+): number {
+  return extrairFuncoesAdicionaisPericias(estado).length;
+}
+
+export function itemTemFuncaoAdicional(
+  modificacoesIds: number[] | undefined,
+  modificacoes: ModificacaoCatalogo[],
+): boolean {
+  if (!Array.isArray(modificacoesIds) || modificacoesIds.length === 0) return false;
+  return modificacoes.some(
+    (mod) =>
+      modificacoesIds.includes(mod.id) && mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+  );
+}
+
+export function contarModificacoesEfetivasItem(params: {
+  modificacoesIds?: number[];
+  modificacoesCatalogo: ModificacaoCatalogo[];
+  estado?: {
+    funcoesAdicionaisPericias?: string[] | null;
+  } | null;
+}): number {
+  const totalBase = params.modificacoesIds?.length ?? 0;
+  if (totalBase === 0) return 0;
+  const possuiFuncaoAdicional =
+    itemTemFuncaoAdicional(params.modificacoesIds, params.modificacoesCatalogo) ||
+    extrairFuncoesAdicionaisPericias(params.estado).length > 0;
+  if (!possuiFuncaoAdicional) {
+    return totalBase;
+  }
+
+  const totalFuncoes = contarInstanciasFuncaoAdicional(params.estado);
+  if (totalFuncoes <= 1) return totalBase;
+  return totalBase + (totalFuncoes - 1);
+}
+
+export function listarPericiasElegiveisFuncaoAdicional(params: {
+  pericias: PericiaCatalogo[];
+  periciaPrincipalCodigo?: string | null;
+  periciaBaseBonificada?: string | null;
+  periciasSelecionadas?: string[];
+}): PericiaCatalogo[] {
+  const periciaPrincipal =
+    typeof params.periciaPrincipalCodigo === 'string'
+      ? params.periciaPrincipalCodigo.trim().toUpperCase()
+      : null;
+  const periciaBase =
+    typeof params.periciaBaseBonificada === 'string'
+      ? params.periciaBaseBonificada.trim().toUpperCase()
+      : null;
+  const selecionadas = new Set(
+    (params.periciasSelecionadas ?? [])
+      .filter((codigo): codigo is string => typeof codigo === 'string')
+      .map((codigo) => codigo.trim().toUpperCase())
+      .filter((codigo) => codigo.length > 0),
+  );
+
+  return listarPericiasElegiveisItemPersonalizado(params.pericias).filter(
+    (pericia) =>
+      pericia.codigo !== periciaPrincipal &&
+      pericia.codigo !== periciaBase &&
+      !selecionadas.has(pericia.codigo),
+  );
 }
 
 /* ============================================================================ */
@@ -823,8 +911,15 @@ export function filtrarModificacoesCompativeis(
     }
 
     if (restricoes?.tiposProtecao?.length) {
-      if (!equipamento.tipoProtecao) return false;
-      if (!restricoes.tiposProtecao.includes(equipamento.tipoProtecao)) return false;
+      const tipoProtecaoEfetivo =
+        equipamento.tipoProtecao ??
+        (equipamento.tipo === 'PROTECAO'
+          ? equipamento.proficienciaProtecao === 'ESCUDO'
+            ? 'EMPUNHAVEL'
+            : 'VESTIVEL'
+          : null);
+      if (!tipoProtecaoEfetivo) return false;
+      if (!restricoes.tiposProtecao.includes(tipoProtecaoEfetivo)) return false;
     }
 
     const profProtecao =

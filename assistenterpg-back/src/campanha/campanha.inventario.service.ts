@@ -25,6 +25,8 @@ import type {
   AplicarModificacaoInventarioCampanhaDto,
 } from './dto/inventario-campanha.dto';
 import {
+  CODIGO_MOD_FUNCAO_ADICIONAL,
+  contarInstanciasFuncaoAdicional,
   equipamentoUsaPericiaPersonalizada,
   validarENormalizarEstadoItemPersonalizado,
 } from '../inventario/utils/item-personalizado';
@@ -52,6 +54,7 @@ const inventarioItemCampanhaComDadosInclude =
 const modificacaoCalculoSelect =
   Prisma.validator<Prisma.ModificacaoEquipamentoSelect>()({
     id: true,
+    codigo: true,
     incrementoEspacos: true,
   });
 
@@ -85,10 +88,29 @@ export class CampanhaInventarioService {
 
   private async validarEstadoItemPersonalizado(
     db: PrismaLike,
-    equipamento: { codigo: string },
+    equipamento: { codigo: string; periciaBonificada?: string | null },
     estado: unknown,
+    modificacoes: Array<{ codigo: string | null | undefined }> = [],
   ): Promise<unknown> {
-    return validarENormalizarEstadoItemPersonalizado(db, equipamento, estado);
+    return validarENormalizarEstadoItemPersonalizado(db, equipamento, estado, {
+      modificacoes,
+      periciaBaseBonificada: equipamento.periciaBonificada,
+    });
+  }
+
+  private contarModificacoesEfetivas(params: {
+    modificacoes: Array<{ codigo: string | null | undefined }>;
+    estado?: unknown;
+  }): number {
+    const totalBase = params.modificacoes.length;
+    const possuiFuncaoAdicional = params.modificacoes.some(
+      (mod) => mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+    );
+    if (!possuiFuncaoAdicional) return totalBase;
+
+    const totalFuncoesAdicionais = contarInstanciasFuncaoAdicional(params.estado);
+    if (totalFuncoesAdicionais <= 1) return totalBase;
+    return totalBase + (totalFuncoesAdicionais - 1);
   }
 
   private tratarErroPrisma(error: unknown): void {
@@ -628,12 +650,6 @@ export class CampanhaInventarioService {
         );
       }
 
-      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
-        this.prisma,
-        equipamento,
-        dto.estado,
-      );
-
       let modificacoesValidas: ModificacaoCalculoEntity[] = [];
       if (dto.modificacoes && dto.modificacoes.length > 0) {
         modificacoesValidas = await this.prisma.modificacaoEquipamento.findMany(
@@ -669,9 +685,20 @@ export class CampanhaInventarioService {
         }
       }
 
+      const estadoNormalizado = await this.validarEstadoItemPersonalizado(
+        this.prisma,
+        equipamento,
+        dto.estado,
+        modificacoesValidas,
+      );
+
+      const totalModificacoesEfetivas = this.contarModificacoesEfetivas({
+        modificacoes: modificacoesValidas,
+        estado: estadoNormalizado,
+      });
       const categoriaCalculada = this.engine.calcularCategoriaFinal(
         equipamento.categoria,
-        modificacoesValidas.length,
+        totalModificacoesEfetivas,
       );
 
       const { personagemBaseId } =
@@ -868,10 +895,22 @@ export class CampanhaInventarioService {
         this.prisma,
         itemExiste.equipamento,
         dto.estado ?? itemExiste.estado,
+        itemExiste.modificacoes.map((mod) => mod.modificacao),
       );
       const deveAtualizarEstado =
         dto.estado !== undefined ||
-        equipamentoUsaPericiaPersonalizada(itemExiste.equipamento);
+        equipamentoUsaPericiaPersonalizada(itemExiste.equipamento) ||
+        itemExiste.modificacoes.some(
+          (mod) => mod.modificacao.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+        );
+      const totalModificacoesEfetivas = this.contarModificacoesEfetivas({
+        modificacoes: itemExiste.modificacoes.map((mod) => mod.modificacao),
+        estado: estadoNormalizado,
+      });
+      const categoriaCalculada = this.engine.calcularCategoriaFinal(
+        itemExiste.equipamento.categoria,
+        totalModificacoesEfetivas,
+      );
 
       const itemAtualizado = await this.prisma.inventarioItemCampanha.update({
         where: { id: itemId },
@@ -880,6 +919,7 @@ export class CampanhaInventarioService {
           equipado: dto.equipado,
           nomeCustomizado: dto.nomeCustomizado,
           notas: dto.notas,
+          categoriaCalculada,
           estado: deveAtualizarEstado
             ? (estadoNormalizado as Prisma.InputJsonValue)
             : undefined,
@@ -1002,7 +1042,13 @@ export class CampanhaInventarioService {
         },
       });
 
-      const novaQuantidadeModificacoes = item.modificacoes.length + 1;
+      const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
+        modificacoes: [
+          ...item.modificacoes.map((m) => m.modificacao),
+          modificacao,
+        ],
+        estado: item.estado,
+      });
       const categoriaCalculada = this.engine.calcularCategoriaFinal(
         item.equipamento.categoria,
         novaQuantidadeModificacoes,
@@ -1072,6 +1118,22 @@ export class CampanhaInventarioService {
         );
       }
 
+      const modificacaoRemovida = item.modificacoes.find(
+        (m) => m.modificacao.id === modificacaoId,
+      )?.modificacao;
+      const limparEstadoFuncaoAdicional =
+        modificacaoRemovida?.codigo === CODIGO_MOD_FUNCAO_ADICIONAL;
+      const estadoAtualizado =
+        limparEstadoFuncaoAdicional &&
+        item.estado &&
+        typeof item.estado === 'object' &&
+        !Array.isArray(item.estado)
+          ? ({
+              ...(item.estado as Record<string, unknown>),
+              funcoesAdicionaisPericias: [],
+            } as Prisma.InputJsonValue)
+          : undefined;
+
       await this.prisma.inventarioItemCampanhaModificacao.delete({
         where: {
           itemId_modificacaoId: {
@@ -1081,7 +1143,12 @@ export class CampanhaInventarioService {
         },
       });
 
-      const novaQuantidadeModificacoes = item.modificacoes.length - 1;
+      const novaQuantidadeModificacoes = this.contarModificacoesEfetivas({
+        modificacoes: item.modificacoes
+          .filter((m) => m.modificacao.id !== modificacaoId)
+          .map((m) => m.modificacao),
+        estado: limparEstadoFuncaoAdicional ? estadoAtualizado : item.estado,
+      });
       const categoriaCalculada = this.engine.calcularCategoriaFinal(
         item.equipamento.categoria,
         novaQuantidadeModificacoes,
@@ -1089,7 +1156,10 @@ export class CampanhaInventarioService {
 
       await this.prisma.inventarioItemCampanha.update({
         where: { id: itemId },
-        data: { categoriaCalculada },
+        data: {
+          categoriaCalculada,
+          ...(limparEstadoFuncaoAdicional ? { estado: estadoAtualizado } : {}),
+        },
       });
 
       await this.atualizarEstadoInventarioCampanha(personagemCampanhaId);

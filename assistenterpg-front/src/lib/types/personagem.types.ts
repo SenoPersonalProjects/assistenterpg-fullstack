@@ -120,6 +120,7 @@ export type ItemInventarioPayload = {
   notas?: string | null;
   estado?: {
     periciaCodigo?: string | null;
+    funcoesAdicionaisPericias?: string[];
   };
 };
 

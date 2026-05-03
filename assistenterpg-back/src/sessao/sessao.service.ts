@@ -45,7 +45,10 @@ import {
   calcularPvBarraMaximos,
   normalizarNucleosDisponiveis,
 } from 'src/common/utils/pv-barras';
-import { equipamentoUsaPericiaPersonalizada } from 'src/inventario/utils/item-personalizado';
+import {
+  CODIGO_MOD_FUNCAO_ADICIONAL,
+  equipamentoUsaPericiaPersonalizada,
+} from 'src/inventario/utils/item-personalizado';
 
 type AcessoCampanha = {
   campanha: {
@@ -7087,6 +7090,25 @@ export class SessaoService {
     return this.extrairCodigosPericiaBonificada(periciaBonificada, mapaPorBusca);
   }
 
+  private extrairCodigosFuncaoAdicionalItemEquipado(
+    estado: Prisma.JsonValue | null | undefined,
+    mapaPorBusca: Map<string, string>,
+  ): string[] {
+    if (!estado || typeof estado !== 'object' || Array.isArray(estado)) {
+      return [];
+    }
+
+    const raw = (estado as Record<string, unknown>).funcoesAdicionaisPericias;
+    if (!Array.isArray(raw)) return [];
+
+    return raw
+      .map((codigo) =>
+        typeof codigo === 'string' ? codigo.trim().toUpperCase() : null,
+      )
+      .filter((codigo): codigo is string => Boolean(codigo))
+      .map((codigo) => mapaPorBusca.get(this.normalizarBuscaPericia(codigo)) ?? codigo);
+  }
+
   private async calcularBonusEquipamentoPericias(
     personagemCampanhaIds: number[],
     mapaPorBusca: Map<string, string>,
@@ -7114,6 +7136,7 @@ export class SessaoService {
           select: {
             modificacao: {
               select: {
+                codigo: true,
                 efeitosMecanicos: true,
               },
             },
@@ -7129,37 +7152,63 @@ export class SessaoService {
         item.estado,
         mapaPorBusca,
       );
-      if (codigos.length === 0) continue;
 
       const quantidade = Math.max(1, item.quantidade ?? 1);
       const bonusEquipamento =
         (item.equipamento.bonusPericia ?? 0) * quantidade;
 
       let bonusModificacoes = 0;
+      const bonusExtrasPorCodigo = new Map<string, number>();
       for (const mod of item.modificacoes) {
         const efeitos = mod.modificacao.efeitosMecanicos;
         if (!efeitos || typeof efeitos !== 'object' || Array.isArray(efeitos)) {
           continue;
         }
         const bonusPericia = (efeitos as Record<string, unknown>).bonusPericia;
+        if (
+          mod.modificacao.codigo === CODIGO_MOD_FUNCAO_ADICIONAL &&
+          typeof bonusPericia === 'number'
+        ) {
+          for (const codigo of this.extrairCodigosFuncaoAdicionalItemEquipado(
+            item.estado,
+            mapaPorBusca,
+          )) {
+            bonusExtrasPorCodigo.set(
+              codigo,
+              (bonusExtrasPorCodigo.get(codigo) ?? 0) + bonusPericia * quantidade,
+            );
+          }
+          continue;
+        }
         if (typeof bonusPericia === 'number') {
           bonusModificacoes += bonusPericia;
         }
       }
       bonusModificacoes *= quantidade;
 
-      const bonusTotal = bonusEquipamento + bonusModificacoes;
-      if (bonusTotal === 0) continue;
-
       const mapaPersonagem =
         resultado.get(item.personagemCampanhaId) ?? new Map<string, number>();
-      for (const codigo of codigos) {
+
+      const bonusTotal = bonusEquipamento + bonusModificacoes;
+      if (bonusTotal !== 0) {
+        for (const codigo of codigos) {
+          mapaPersonagem.set(
+            codigo,
+            (mapaPersonagem.get(codigo) ?? 0) + bonusTotal,
+          );
+        }
+      }
+
+      for (const [codigo, bonusExtra] of bonusExtrasPorCodigo.entries()) {
         mapaPersonagem.set(
           codigo,
-          (mapaPersonagem.get(codigo) ?? 0) + bonusTotal,
+          (mapaPersonagem.get(codigo) ?? 0) + bonusExtra,
         );
       }
-      resultado.set(item.personagemCampanhaId, mapaPersonagem);
+
+      if (mapaPersonagem.size > 0) {
+        resultado.set(item.personagemCampanhaId, mapaPersonagem);
+      }
     }
 
     return resultado;

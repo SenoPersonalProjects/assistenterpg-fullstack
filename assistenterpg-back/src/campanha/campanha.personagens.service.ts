@@ -4,7 +4,6 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaPersonagemAssociacaoNegadaException,
-  CampanhaPersonagemDesassociacaoNegadaException,
   CampanhaPersonagemEdicaoNegadaException,
   CampanhaPersonagemLimiteUsuarioException,
   PersonagemCampanhaNucleoCustoInsuficienteException,
@@ -44,6 +43,104 @@ export class CampanhaPersonagensService {
     private readonly persistence: CampanhaPersistence,
     private readonly tecnicaInataPropriaService: TecnicaInataPropriaService,
   ) {}
+
+  private async buscarSnapshotPersonagemBase(
+    personagemBaseId: number,
+    prisma: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    return prisma.personagemBase.findUnique({
+      where: { id: personagemBaseId },
+      select: {
+        id: true,
+        donoId: true,
+        nome: true,
+        nivel: true,
+        claId: true,
+        origemId: true,
+        classeId: true,
+        trilhaId: true,
+        caminhoId: true,
+        pvMaximo: true,
+        pvBarrasTotal: true,
+        peMaximo: true,
+        eaMaximo: true,
+        sanMaximo: true,
+        limitePeEaPorTurno: true,
+        prestigioBase: true,
+        prestigioClaBase: true,
+        defesaBase: true,
+        defesaEquipamento: true,
+        defesaOutros: true,
+        esquiva: true,
+        bloqueio: true,
+        deslocamento: true,
+        turnosMorrendo: true,
+        turnosEnlouquecendo: true,
+        espacosInventarioBase: true,
+        espacosInventarioExtra: true,
+        espacosOcupados: true,
+        sobrecarregado: true,
+        tecnicaInataId: true,
+        tecnicaInataPropriaId: true,
+        resistencias: {
+          select: {
+            resistenciaTipoId: true,
+            valor: true,
+          },
+        },
+      },
+    });
+  }
+
+  private async limparRelacionamentosPersonagemCampanha(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    personagemCampanhaId: number,
+  ): Promise<void> {
+    const personagensSessao = await tx.personagemSessao.findMany({
+      where: { personagemCampanhaId },
+      select: { id: true },
+    });
+    const personagensSessaoIds = personagensSessao.map((item) => item.id);
+
+    await tx.transferenciaItemSessaoCampanha.deleteMany({
+      where: {
+        campanhaId,
+        OR: [
+          { portadorAnteriorId: personagemCampanhaId },
+          { destinoPersonagemCampanhaId: personagemCampanhaId },
+        ],
+      },
+    });
+
+    await tx.itemSessaoCampanha.updateMany({
+      where: { campanhaId, personagemCampanhaId },
+      data: { personagemCampanhaId: null },
+    });
+
+    if (personagensSessaoIds.length > 0) {
+      await tx.eventoSessao.deleteMany({
+        where: {
+          OR: [
+            { personagemAtorId: { in: personagensSessaoIds } },
+            { personagemAlvoId: { in: personagensSessaoIds } },
+          ],
+        },
+      });
+
+      await tx.condicaoPersonagemSessao.deleteMany({
+        where: { personagemSessaoId: { in: personagensSessaoIds } },
+      });
+
+      await tx.personagemSessaoHabilidadeSustentada.deleteMany({
+        where: { personagemSessaoId: { in: personagensSessaoIds } },
+      });
+
+      await tx.personagemSessao.deleteMany({
+        where: { id: { in: personagensSessaoIds } },
+      });
+    }
+  }
 
   async listarPersonagensCampanha(campanhaId: number, usuarioId: number) {
     await this.accessService.garantirAcesso(campanhaId, usuarioId);
@@ -466,25 +563,13 @@ export class CampanhaPersonagensService {
       );
     }
 
-    const participacaoEmSessao = await this.prisma.personagemSessao.findFirst({
-      where: {
-        personagemCampanhaId,
-      },
-      select: {
-        id: true,
-        sessaoId: true,
-      },
-    });
-
-    if (participacaoEmSessao) {
-      throw new CampanhaPersonagemDesassociacaoNegadaException(
+    await this.prisma.$transaction(async (tx) => {
+      await this.limparRelacionamentosPersonagemCampanha(
+        tx,
         campanhaId,
         personagemCampanhaId,
-        participacaoEmSessao.sessaoId,
       );
-    }
 
-    await this.prisma.$transaction(async (tx) => {
       await tx.personagemCampanha.delete({
         where: {
           id: personagemCampanhaId,
@@ -503,6 +588,145 @@ export class CampanhaPersonagensService {
       personagemBaseId: personagem.personagemBaseId,
       message: 'Personagem desassociado com sucesso',
     };
+  }
+
+  async atualizarPersonagemDaFichaBase(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    const contexto =
+      await this.accessService.obterPersonagemCampanhaComPermissao(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+        true,
+      );
+
+    const personagemBase = await this.buscarSnapshotPersonagemBase(
+      contexto.personagem.personagemBaseId,
+    );
+
+    if (!personagemBase) {
+      throw new PersonagemBaseNaoEncontradoException(
+        contexto.personagem.personagemBaseId,
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const tecnicaInataPropriaBaseId =
+        await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(
+          personagemBase.id,
+          tx,
+        );
+
+      const tecnicaAnteriorId = contexto.personagem.tecnicaInataPropriaId;
+      let tecnicaInataPropriaId: number | null = null;
+
+      if (tecnicaInataPropriaBaseId) {
+        tecnicaInataPropriaId =
+          await this.tecnicaInataPropriaService.clonarTecnicaInata({
+            usuarioId: personagemBase.donoId,
+            tecnicaBaseId: tecnicaInataPropriaBaseId,
+            personagemCampanhaId,
+            prisma: tx,
+          });
+      }
+
+      await tx.personagemCampanha.update({
+        where: { id: personagemCampanhaId },
+        data: {
+          nome: personagemBase.nome,
+          nivel: personagemBase.nivel,
+          claId: personagemBase.claId,
+          origemId: personagemBase.origemId,
+          classeId: personagemBase.classeId,
+          trilhaId: personagemBase.trilhaId,
+          caminhoId: personagemBase.caminhoId,
+          pvMax: personagemBase.pvMaximo,
+          peMax: personagemBase.peMaximo,
+          eaMax: personagemBase.eaMaximo,
+          sanMax: personagemBase.sanMaximo,
+          limitePeEaPorTurno: personagemBase.limitePeEaPorTurno,
+          prestigioGeral: personagemBase.prestigioBase,
+          prestigioCla: personagemBase.prestigioClaBase,
+          defesaBase: personagemBase.defesaBase,
+          defesaEquipamento: personagemBase.defesaEquipamento,
+          defesaOutros: personagemBase.defesaOutros,
+          esquiva: personagemBase.esquiva,
+          bloqueio: personagemBase.bloqueio,
+          deslocamento: personagemBase.deslocamento,
+          turnosMorrendo: personagemBase.turnosMorrendo,
+          turnosEnlouquecendo: personagemBase.turnosEnlouquecendo,
+          espacosInventarioBase: personagemBase.espacosInventarioBase,
+          espacosInventarioExtra: personagemBase.espacosInventarioExtra,
+          tecnicaInataId: personagemBase.tecnicaInataId,
+          tecnicaInataPropriaId,
+        },
+      });
+
+      if (tecnicaAnteriorId) {
+        await this.tecnicaInataPropriaService.removerTecnicaClonada(
+          tecnicaAnteriorId,
+          tx,
+        );
+      }
+
+      await tx.personagemCampanhaResistencia.deleteMany({
+        where: { personagemCampanhaId },
+      });
+
+      if (personagemBase.resistencias.length > 0) {
+        await tx.personagemCampanhaResistencia.createMany({
+          data: personagemBase.resistencias.map((resistencia) => ({
+            personagemCampanhaId,
+            resistenciaTipoId: resistencia.resistenciaTipoId,
+            valor: resistencia.valor,
+          })),
+        });
+      }
+
+      await tx.personagemCampanhaHistorico.create({
+        data: {
+          personagemCampanhaId,
+          campanhaId,
+          criadoPorId: usuarioId,
+          tipo: 'ATUALIZACAO_DA_FICHA_BASE',
+          descricao: 'Ficha da campanha atualizada a partir do personagem-base',
+          dados: {
+            personagemBaseId: personagemBase.id,
+          },
+        },
+      });
+    });
+
+    await this.inventarioService.recalcularEstadoInventarioCampanha(
+      personagemCampanhaId,
+    );
+
+    const atualizado =
+      await this.persistence.buscarPersonagemCampanhaDetalhe(
+        personagemCampanhaId,
+      );
+
+    if (!atualizado) {
+      throw new PersonagemCampanhaNaoEncontradoException(
+        personagemCampanhaId,
+        campanhaId,
+      );
+    }
+
+    return this.mapper.mapearPersonagemCampanhaResposta(atualizado);
+  }
+
+  async removerTecnicaInataClonada(
+    tecnicaInataPropriaId: number | null | undefined,
+    prisma: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    await this.tecnicaInataPropriaService.removerTecnicaClonada(
+      tecnicaInataPropriaId,
+      prisma,
+    );
   }
 
   async atualizarRecursosPersonagemCampanha(

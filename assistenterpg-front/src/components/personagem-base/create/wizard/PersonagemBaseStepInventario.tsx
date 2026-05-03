@@ -19,13 +19,15 @@ import {
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
   // calcularEspacosExtraDeItens
-  filtrarModificacoesCompativeis,
   calcularCategoriaFinal,
-  validarPodeVestir,
+  CODIGO_MOD_FUNCAO_ADICIONAL,
+  contarModificacoesEfetivasItem,
   equipamentoUsaPericiaPersonalizada,
+  filtrarModificacoesCompativeis,
   listarPericiasElegiveisItemPersonalizado,
   type CategoriaEquipamento,
   type ItemInventarioParaVestir,
+  validarPodeVestir,
 } from '@/lib/utils/inventario';
 import { useInventarioPreview } from '@/hooks/useInventarioPreview';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -119,6 +121,7 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [equipado, setEquipado] = useState(false);
   const [nomeCustomizado, setNomeCustomizado] = useState('');
   const [periciaPersonalizada, setPericiaPersonalizada] = useState<string>('');
+  const [funcoesAdicionaisPericias, setFuncoesAdicionaisPericias] = useState<string[]>([]);
   const [modificacoesSelecionadas, setModificacoesSelecionadas] = useState<ModificacaoCatalogo[]>(
     [],
   );
@@ -135,6 +138,7 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [nomeCustomizadoEditando, setNomeCustomizadoEditando] = useState('');
   const [equipadoEditando, setEquipadoEditando] = useState(false);
   const [periciaPersonalizadaEditando, setPericiaPersonalizadaEditando] = useState('');
+  const [funcoesAdicionaisPericiasEditando, setFuncoesAdicionaisPericiasEditando] = useState<string[]>([]);
 
   // ConfirmDialog
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -325,14 +329,18 @@ export function PersonagemBaseStepInventario(props: Props) {
       if (equip) {
         const cat = calcularCategoriaFinal(
           equip.categoria,
-          item.modificacoesIds?.length ?? 0,
+          contarModificacoesEfetivasItem({
+            modificacoesIds: item.modificacoesIds,
+            modificacoesCatalogo: modificacoes,
+            estado: item.estado,
+          }),
         );
         contagem[cat] = (contagem[cat] || 0) + item.quantidade;
       }
     });
 
     return contagem;
-  }, [props.itensInventario, equipamentoPorId]);
+  }, [props.itensInventario, equipamentoPorId, modificacoes]);
 
   // Itens filtrados (categoria + busca)
   const itensFiltrados = useMemo(() => {
@@ -345,7 +353,11 @@ export function PersonagemBaseStepInventario(props: Props) {
         if (!equip) return false;
         const cat = calcularCategoriaFinal(
           equip.categoria,
-          item.modificacoesIds?.length ?? 0,
+          contarModificacoesEfetivasItem({
+            modificacoesIds: item.modificacoesIds,
+            modificacoesCatalogo: modificacoes,
+            estado: item.estado,
+          }),
         );
         return cat === filtroCategoria;
       });
@@ -366,7 +378,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     }
 
     return itens;
-  }, [props.itensInventario, filtroCategoria, termoBuscaItemDeferred, equipamentoPorId]);
+  }, [props.itensInventario, filtroCategoria, termoBuscaItemDeferred, equipamentoPorId, modificacoes]);
 
   useEffect(() => {
     setLimiteRenderItens(LIMITE_RENDER_ITENS_INICIAL);
@@ -614,6 +626,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     setEquipado(false);
     setNomeCustomizado('');
     setPericiaPersonalizada('');
+    setFuncoesAdicionaisPericias([]);
     setModificacoesSelecionadas([]);
     setErroValidacao(null);
     setIgnorarLimites(false);
@@ -633,6 +646,8 @@ export function PersonagemBaseStepInventario(props: Props) {
     setEquipadoEditando(false);
     setPericiaPersonalizada('');
     setPericiaPersonalizadaEditando('');
+    setFuncoesAdicionaisPericias([]);
+    setFuncoesAdicionaisPericiasEditando([]);
   }, []);
 
   const handleCriarEquipamentoHomebrew = useCallback(
@@ -786,6 +801,15 @@ export function PersonagemBaseStepInventario(props: Props) {
       setErroValidacao('Selecione a perícia beneficiada por este item personalizado.');
       return;
     }
+    if (
+      modificacoesSelecionadas.some(
+        (mod) => mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+      ) &&
+      funcoesAdicionaisPericias.length === 0
+    ) {
+      setErroValidacao('Selecione ao menos uma pericia extra para Funcao Adicional.');
+      return;
+    }
 
     const novoItem: ItemInventarioPayload = {
       equipamentoId: equipamentoSelecionado.id,
@@ -795,9 +819,17 @@ export function PersonagemBaseStepInventario(props: Props) {
       nomeCustomizado: nomeCustomizado.trim() || null,
       notas: null,
       estado:
-        equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) &&
-        periciaPersonalizada
-          ? { periciaCodigo: periciaPersonalizada }
+        equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) ||
+        funcoesAdicionaisPericias.length > 0
+          ? {
+              ...(equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) &&
+              periciaPersonalizada
+                ? { periciaCodigo: periciaPersonalizada }
+                : {}),
+              ...(funcoesAdicionaisPericias.length > 0
+                ? { funcoesAdicionaisPericias }
+                : {}),
+            }
           : undefined,
     };
 
@@ -811,6 +843,7 @@ export function PersonagemBaseStepInventario(props: Props) {
     nomeCustomizado,
     modificacoesSelecionadas,
     periciaPersonalizada,
+    funcoesAdicionaisPericias,
     props,
     fecharModal,
     sincronizarInventario,
@@ -825,6 +858,9 @@ export function PersonagemBaseStepInventario(props: Props) {
       setNomeCustomizadoEditando(item.nomeCustomizado || '');
       setEquipadoEditando(item.equipado);
       setPericiaPersonalizadaEditando(item.estado?.periciaCodigo ?? '');
+      setFuncoesAdicionaisPericiasEditando(
+        item.estado?.funcoesAdicionaisPericias ?? [],
+      );
       setStepAtual('editar-item');
       setModalAberto(true);
     },
@@ -833,6 +869,16 @@ export function PersonagemBaseStepInventario(props: Props) {
 
   const confirmarEdicaoItem = useCallback(async () => {
     if (!itemEditando || indiceItemEditando === null) return;
+    if (
+      modificacoesEditando.some((modId) => {
+        const mod = modificacoes.find((itemMod) => itemMod.id === modId);
+        return mod?.codigo === CODIGO_MOD_FUNCAO_ADICIONAL;
+      }) &&
+      funcoesAdicionaisPericiasEditando.length === 0
+    ) {
+      setErroValidacao('Selecione ao menos uma pericia extra para Funcao Adicional.');
+      return;
+    }
 
     const itemAtualizado: ItemInventarioPayload = {
       equipamentoId: itemEditando.equipamentoId,
@@ -844,8 +890,17 @@ export function PersonagemBaseStepInventario(props: Props) {
       estado:
         equipamentoUsaPericiaPersonalizada(
           equipamentoPorId.get(itemEditando.equipamentoId),
-        ) && periciaPersonalizadaEditando
-          ? { periciaCodigo: periciaPersonalizadaEditando }
+        ) || funcoesAdicionaisPericiasEditando.length > 0
+          ? {
+              ...(equipamentoUsaPericiaPersonalizada(
+                equipamentoPorId.get(itemEditando.equipamentoId),
+              ) && periciaPersonalizadaEditando
+                ? { periciaCodigo: periciaPersonalizadaEditando }
+                : {}),
+              ...(funcoesAdicionaisPericiasEditando.length > 0
+                ? { funcoesAdicionaisPericias: funcoesAdicionaisPericiasEditando }
+                : {}),
+            }
           : undefined,
     };
 
@@ -863,7 +918,9 @@ export function PersonagemBaseStepInventario(props: Props) {
     nomeCustomizadoEditando,
     equipadoEditando,
     periciaPersonalizadaEditando,
+    funcoesAdicionaisPericiasEditando,
     equipamentoPorId,
+    modificacoes,
     props,
     fecharModal,
     sincronizarInventario,
@@ -899,6 +956,9 @@ export function PersonagemBaseStepInventario(props: Props) {
         return [...atual, mod];
       }
 
+      if (mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL) {
+        setFuncoesAdicionaisPericias([]);
+      }
       return atual.filter((item) => item.id !== mod.id);
     });
   }, []);
@@ -910,9 +970,13 @@ export function PersonagemBaseStepInventario(props: Props) {
         return [...atual, modId];
       }
 
+      const mod = modificacoes.find((itemMod) => itemMod.id === modId);
+      if (mod?.codigo === CODIGO_MOD_FUNCAO_ADICIONAL) {
+        setFuncoesAdicionaisPericiasEditando([]);
+      }
       return atual.filter((id) => id !== modId);
     });
-  }, []);
+  }, [modificacoes]);
 
   return (
     <>
@@ -1172,6 +1236,7 @@ export function PersonagemBaseStepInventario(props: Props) {
                   ignorarLimites={ignorarLimites}
                   nomeCustomizado={nomeCustomizado}
                   periciaPersonalizada={periciaPersonalizada}
+                  funcoesAdicionaisPericias={funcoesAdicionaisPericias}
                   preview={preview}
                   carregandoPreview={carregandoPreview}
                   erroValidacao={erroValidacao}
@@ -1184,6 +1249,7 @@ export function PersonagemBaseStepInventario(props: Props) {
                   onIgnorarLimitesChange={setIgnorarLimites}
                   onNomeCustomizadoChange={setNomeCustomizado}
                   onPericiaPersonalizadaChange={setPericiaPersonalizada}
+                  onFuncoesAdicionaisPericiasChange={setFuncoesAdicionaisPericias}
                 />
               )}
 
@@ -1198,11 +1264,13 @@ export function PersonagemBaseStepInventario(props: Props) {
                   nomeCustomizado={nomeCustomizadoEditando}
                   equipado={equipadoEditando}
                   periciaPersonalizada={periciaPersonalizadaEditando}
+                  funcoesAdicionaisPericias={funcoesAdicionaisPericiasEditando}
                   onQuantidadeChange={setQuantidadeEditando}
                   onToggleModificacao={handleToggleModificacaoEdicao}
                   onNomeCustomizadoChange={setNomeCustomizadoEditando}
                   onEquipadoChange={handleEquipadoEditandoChange}
                   onPericiaPersonalizadaChange={setPericiaPersonalizadaEditando}
+                  onFuncoesAdicionaisPericiasChange={setFuncoesAdicionaisPericiasEditando}
                 />
               )}
             </div>

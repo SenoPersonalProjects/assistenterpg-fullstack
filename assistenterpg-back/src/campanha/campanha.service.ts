@@ -174,8 +174,141 @@ export class CampanhaService {
       throw new CampanhaApenasDonoException('excluir a campanha');
     }
 
-    await this.prisma.campanha.delete({
-      where: { id: campanhaId },
+    await this.prisma.$transaction(async (tx) => {
+      const personagensCampanha = await tx.personagemCampanha.findMany({
+        where: { campanhaId },
+        select: {
+          id: true,
+          tecnicaInataPropriaId: true,
+        },
+      });
+      const personagemCampanhaIds = personagensCampanha.map(
+        (personagem) => personagem.id,
+      );
+
+      const personagensSessao = await tx.personagemSessao.findMany({
+        where: {
+          sessao: { campanhaId },
+        },
+        select: { id: true },
+      });
+      const personagemSessaoIds = personagensSessao.map(
+        (personagem) => personagem.id,
+      );
+
+      await tx.transferenciaItemSessaoCampanha.deleteMany({
+        where: { campanhaId },
+      });
+      await tx.itemSessaoCampanha.deleteMany({
+        where: { campanhaId },
+      });
+
+      if (personagemSessaoIds.length > 0) {
+        await tx.eventoSessao.deleteMany({
+          where: {
+            OR: [
+              { personagemAtorId: { in: personagemSessaoIds } },
+              { personagemAlvoId: { in: personagemSessaoIds } },
+            ],
+          },
+        });
+        await tx.condicaoPersonagemSessao.deleteMany({
+          where: { personagemSessaoId: { in: personagemSessaoIds } },
+        });
+        await tx.personagemSessaoHabilidadeSustentada.deleteMany({
+          where: { personagemSessaoId: { in: personagemSessaoIds } },
+        });
+      }
+
+      await tx.condicaoPersonagemSessao.deleteMany({
+        where: {
+          sessao: { campanhaId },
+          npcSessaoId: { not: null },
+        },
+      });
+      await tx.eventoSessao.deleteMany({
+        where: { sessao: { campanhaId } },
+      });
+      await tx.personagemSessao.deleteMany({
+        where: { sessao: { campanhaId } },
+      });
+      await tx.npcAmeacaSessao.deleteMany({
+        where: { sessao: { campanhaId } },
+      });
+      await tx.sessaoRelatorio.deleteMany({
+        where: { sessao: { campanhaId } },
+      });
+      await tx.cena.deleteMany({
+        where: { sessao: { campanhaId } },
+      });
+      await tx.sessao.deleteMany({
+        where: { campanhaId },
+      });
+
+      if (personagemCampanhaIds.length > 0) {
+        await tx.inventarioItemCampanhaModificacao.deleteMany({
+          where: {
+            item: {
+              personagemCampanhaId: { in: personagemCampanhaIds },
+            },
+          },
+        });
+        await tx.inventarioItemCampanha.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+        await tx.personagemCampanhaHistorico.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+        await tx.personagemCampanhaModificador.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+        await tx.personagemCampanhaResistencia.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+        await tx.habilidadePersonagemCampanha.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+        await tx.poderGenericoPersonagemCampanha.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+        await tx.grauPersonagemCampanha.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+        await tx.personagemCampanhaTecnica.deleteMany({
+          where: {
+            personagemCampanhaId: { in: personagemCampanhaIds },
+          },
+        });
+      }
+
+      await tx.personagemCampanha.deleteMany({
+        where: { campanhaId },
+      });
+
+      for (const personagem of personagensCampanha) {
+        await this.personagensService.removerTecnicaInataClonada(
+          personagem.tecnicaInataPropriaId,
+          tx,
+        );
+      }
+
+      await tx.campanha.delete({
+        where: { id: campanhaId },
+      });
     });
 
     return {
@@ -455,6 +588,18 @@ export class CampanhaService {
       usuarioId,
       itemId,
       modificacaoId,
+    );
+  }
+
+  async atualizarPersonagemDaFichaBase(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    return this.personagensService.atualizarPersonagemDaFichaBase(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
     );
   }
 

@@ -27,6 +27,7 @@ type PreviewItensInventarioRequest = Omit<PreviewItensInventarioPayload, 'itens'
     nomeCustomizado?: string;
     estado?: {
       periciaCodigo?: string | null;
+      funcoesAdicionaisPericias?: string[];
     };
   }>;
 };

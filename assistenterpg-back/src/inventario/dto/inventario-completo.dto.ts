@@ -25,6 +25,7 @@ export class ModificacaoItemDto {
 
 export class ItemInventarioEstadoDto {
   periciaCodigo?: string | null;
+  funcoesAdicionaisPericias?: string[];
 }
 
 export class ItemInventarioDto {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  apiAtualizarPersonagemCampanhaDaFichaBase,
   apiDesassociarPersonagemCampanha,
   apiListarPersonagensBaseDisponiveisCampanha,
   apiListarPersonagensCampanha,
@@ -55,6 +56,9 @@ export function CampaignCharactersSection({
     useState<PersonagemCampanhaResumo | null>(null);
   const [personagemRemocao, setPersonagemRemocao] =
     useState<PersonagemCampanhaResumo | null>(null);
+  const [atualizandoPersonagemId, setAtualizandoPersonagemId] = useState<number | null>(
+    null,
+  );
   const [removendoPersonagemId, setRemovendoPersonagemId] = useState<number | null>(
     null,
   );
@@ -218,6 +222,26 @@ export function CampaignCharactersSection({
     }
   }
 
+  async function handleAtualizarDaFichaBase(personagem: PersonagemCampanhaResumo) {
+    setErro(null);
+    setSucesso(null);
+    setAtualizandoPersonagemId(personagem.id);
+    try {
+      const atualizado = await apiAtualizarPersonagemCampanhaDaFichaBase(
+        campanhaId,
+        personagem.id,
+      );
+      setPersonagensCampanha((atual) =>
+        atual.map((item) => (item.id === atualizado.id ? atualizado : item)),
+      );
+      setSucesso(`"${personagem.nome}" foi atualizado a partir da ficha base.`);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setAtualizandoPersonagemId(null);
+    }
+  }
+
   return (
     <section className="space-y-4">
       <div className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
@@ -367,6 +391,16 @@ export function CampaignCharactersSection({
                       Editar ficha da campanha
                     </Button>
                     <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleAtualizarDaFichaBase(personagem)}
+                      disabled={atualizandoPersonagemId === personagem.id}
+                    >
+                      {atualizandoPersonagemId === personagem.id
+                        ? 'Atualizando...'
+                        : 'Atualizar da ficha base'}
+                    </Button>
+                    <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => handleSolicitarDesassociar(personagem)}
@@ -449,6 +483,11 @@ export function CampaignCharactersSection({
           </p>
           <p className="text-xs text-app-muted">
             Isso remove a ficha da campanha e libera o personagem-base para nova associacao.
+          </p>
+          <p className="text-xs text-app-muted">
+            Se a ideia for apenas puxar mudancas da ficha base sem perder itens,
+            modificadores narrativos e estado da campanha, use a opcao
+            &quot;Atualizar da ficha base&quot;.
           </p>
           <div className="flex items-center justify-end gap-2">
             <Button

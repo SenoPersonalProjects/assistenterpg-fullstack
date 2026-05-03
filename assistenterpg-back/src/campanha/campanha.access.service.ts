@@ -61,7 +61,9 @@ export class CampanhaAccessService {
       select: {
         id: true,
         campanhaId: true,
+        personagemBaseId: true,
         donoId: true,
+        tecnicaInataPropriaId: true,
         pvMax: true,
         pvAtual: true,
         pvBarrasTotal: true,

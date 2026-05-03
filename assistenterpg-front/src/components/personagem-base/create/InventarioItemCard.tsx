@@ -10,7 +10,9 @@ import {
   getIconeTipo,
   CATEGORIA_GRAU_LABELS,
   calcularCategoriaFinal,
+  contarModificacoesEfetivasItem,
   equipamentoUsaPericiaPersonalizada,
+  extrairFuncoesAdicionaisPericias,
 } from '@/lib/utils/inventario';
 import type {
   ItemInventarioPayload,
@@ -58,7 +60,11 @@ export function InventarioItemCard({
   // ✅ Normalizar categoria
   const categoriaFinal = calcularCategoriaFinal(
     equipamento.categoria,
-    modsAplicadas.length,
+    contarModificacoesEfetivasItem({
+      modificacoesIds: item.modificacoesIds,
+      modificacoesCatalogo: modificacoes,
+      estado: item.estado,
+    }),
   );
 
   // ✅ Obter label da categoria
@@ -77,6 +83,10 @@ export function InventarioItemCard({
     if (!codigo) return null;
     return pericias.find((pericia) => pericia.codigo === codigo) ?? null;
   }, [equipamento, item.estado?.periciaCodigo, pericias]);
+  const funcoesAdicionais = useMemo(() => {
+    return extrairFuncoesAdicionaisPericias(item.estado)
+      .map((codigo) => pericias.find((pericia) => pericia.codigo === codigo)?.nome ?? codigo);
+  }, [item.estado, pericias]);
 
   return (
     <div className="p-3 rounded border border-app-border bg-app-surface text-sm hover:bg-app-primary/5 hover:border-app-primary/30 transition-all duration-200">
@@ -154,6 +164,12 @@ export function InventarioItemCard({
                 +2 {periciaPersonalizada.nome}
               </Badge>
             ) : null}
+            {funcoesAdicionais.map((pericia) => (
+              <Badge key={pericia} color="yellow" size="sm">
+                <Icon name="sparkles" className="w-3 h-3 inline mr-1" />
+                +2 {pericia}
+              </Badge>
+            ))}
           </div>
         </div>
 

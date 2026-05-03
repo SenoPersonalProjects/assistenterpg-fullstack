@@ -29,7 +29,10 @@ import type {
 } from '@/lib/types';
 import {
   calcularCategoriaFinal,
+  CODIGO_MOD_FUNCAO_ADICIONAL,
+  contarModificacoesEfetivasItem,
   filtrarModificacoesCompativeis,
+  extrairFuncoesAdicionaisPericias,
   getIconeTipo,
   equipamentoUsaPericiaPersonalizada,
   listarPericiasElegiveisItemPersonalizado,
@@ -67,6 +70,7 @@ export function SessionCharacterInventoryTab({
   const [equipadoAdicionar, setEquipadoAdicionar] = useState(false);
   const [nomeCustomizadoAdicionar, setNomeCustomizadoAdicionar] = useState('');
   const [periciaPersonalizadaAdicionar, setPericiaPersonalizadaAdicionar] = useState('');
+  const [funcoesAdicionaisPericiasAdicionar, setFuncoesAdicionaisPericiasAdicionar] = useState<string[]>([]);
   const [modificacoesAdicionar, setModificacoesAdicionar] = useState<number[]>([]);
   const [modificacoesCompatAdicionar, setModificacoesCompatAdicionar] =
     useState<ModificacaoCatalogo[]>([]);
@@ -78,6 +82,7 @@ export function SessionCharacterInventoryTab({
   const [equipadoEditando, setEquipadoEditando] = useState(false);
   const [nomeCustomizadoEditando, setNomeCustomizadoEditando] = useState('');
   const [periciaPersonalizadaEditando, setPericiaPersonalizadaEditando] = useState('');
+  const [funcoesAdicionaisPericiasEditando, setFuncoesAdicionaisPericiasEditando] = useState<string[]>([]);
   const [modificacoesEditando, setModificacoesEditando] = useState<number[]>([]);
   const [modificacoesCompatEditando, setModificacoesCompatEditando] =
     useState<ModificacaoCatalogo[]>([]);
@@ -162,6 +167,7 @@ export function SessionCharacterInventoryTab({
     setEquipadoAdicionar(false);
     setNomeCustomizadoAdicionar('');
     setPericiaPersonalizadaAdicionar('');
+    setFuncoesAdicionaisPericiasAdicionar([]);
     setModificacoesAdicionar([]);
     setModificacoesCompatAdicionar([]);
     setModalAdicionarAberto(true);
@@ -197,9 +203,17 @@ export function SessionCharacterInventoryTab({
         nomeCustomizado: nomeCustomizadoAdicionar.trim() || undefined,
         modificacoes: modificacoesAdicionar,
         estado:
-          equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) &&
-          periciaPersonalizadaAdicionar
-          ? { periciaCodigo: periciaPersonalizadaAdicionar }
+          equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) ||
+          funcoesAdicionaisPericiasAdicionar.length > 0
+          ? {
+              ...(equipamentoUsaPericiaPersonalizada(equipamentoSelecionado) &&
+              periciaPersonalizadaAdicionar
+                ? { periciaCodigo: periciaPersonalizadaAdicionar }
+                : {}),
+              ...(funcoesAdicionaisPericiasAdicionar.length > 0
+                ? { funcoesAdicionaisPericias: funcoesAdicionaisPericiasAdicionar }
+                : {}),
+            }
           : undefined,
       });
       await carregarInventario();
@@ -217,6 +231,9 @@ export function SessionCharacterInventoryTab({
     setEquipadoEditando(item.equipado);
     setNomeCustomizadoEditando(item.nomeCustomizado ?? '');
     setPericiaPersonalizadaEditando(item.estado?.periciaCodigo ?? '');
+    setFuncoesAdicionaisPericiasEditando(
+      item.estado?.funcoesAdicionaisPericias ?? [],
+    );
     setModificacoesEditando(item.modificacoes.map((mod) => mod.id));
     void carregarCatalogos();
     try {
@@ -241,9 +258,17 @@ export function SessionCharacterInventoryTab({
           equipado: equipadoEditando,
           nomeCustomizado: nomeCustomizadoEditando.trim() || undefined,
           estado:
-            equipamentoUsaPericiaPersonalizada(modalEditarItem.equipamento) &&
-            periciaPersonalizadaEditando
-            ? { periciaCodigo: periciaPersonalizadaEditando }
+            equipamentoUsaPericiaPersonalizada(modalEditarItem.equipamento) ||
+            funcoesAdicionaisPericiasEditando.length > 0
+            ? {
+                ...(equipamentoUsaPericiaPersonalizada(modalEditarItem.equipamento) &&
+                periciaPersonalizadaEditando
+                  ? { periciaCodigo: periciaPersonalizadaEditando }
+                  : {}),
+                ...(funcoesAdicionaisPericiasEditando.length > 0
+                  ? { funcoesAdicionaisPericias: funcoesAdicionaisPericiasEditando }
+                  : {}),
+              }
             : undefined,
         },
       );
@@ -350,16 +375,38 @@ export function SessionCharacterInventoryTab({
       equipamentosPorId.get(modalEditarItem.equipamentoId),
     );
   }, [equipamentosPorId, modalEditarItem]);
+  const exigeFuncaoAdicionalAdicionar = useMemo(
+    () =>
+      modificacoesCompatAdicionar.some(
+        (mod) =>
+          modificacoesAdicionar.includes(mod.id) &&
+          mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+      ),
+    [modificacoesAdicionar, modificacoesCompatAdicionar],
+  );
+  const exigeFuncaoAdicionalEdicao = useMemo(
+    () =>
+      modificacoesCompatEditando.some(
+        (mod) =>
+          modificacoesEditando.includes(mod.id) &&
+          mod.codigo === CODIGO_MOD_FUNCAO_ADICIONAL,
+      ),
+    [modificacoesCompatEditando, modificacoesEditando],
+  );
 
   const podeSalvarItemAdicionado =
     !salvando &&
     (!exigePericiaPersonalizadaAdicionar ||
-      periciaPersonalizadaAdicionar.trim().length > 0);
+      periciaPersonalizadaAdicionar.trim().length > 0) &&
+    (!exigeFuncaoAdicionalAdicionar ||
+      funcoesAdicionaisPericiasAdicionar.length > 0);
 
   const podeSalvarEdicaoItem =
     !salvando &&
     (!exigePericiaPersonalizadaEdicao ||
-      periciaPersonalizadaEditando.trim().length > 0);
+      periciaPersonalizadaEditando.trim().length > 0) &&
+    (!exigeFuncaoAdicionalEdicao ||
+      funcoesAdicionaisPericiasEditando.length > 0);
 
   return (
     <div className="space-y-2">
@@ -448,7 +495,11 @@ export function SessionCharacterInventoryTab({
                       {item.categoriaCalculada ??
                         calcularCategoriaFinal(
                           item.equipamento.categoria,
-                          item.modificacoes?.length ?? 0,
+                          contarModificacoesEfetivasItem({
+                            modificacoesIds: item.modificacoes.map((mod) => mod.id),
+                            modificacoesCatalogo: item.modificacoes,
+                            estado: item.estado,
+                          }),
                         )}
                     </Badge>
                     {item.equipado ? (
@@ -458,7 +509,11 @@ export function SessionCharacterInventoryTab({
                     ) : null}
                     {item.modificacoes.length > 0 ? (
                       <Badge size="sm" color="blue">
-                        {item.modificacoes.length} mod.
+                        {contarModificacoesEfetivasItem({
+                          modificacoesIds: item.modificacoes.map((mod) => mod.id),
+                          modificacoesCatalogo: item.modificacoes,
+                          estado: item.estado,
+                        })} mod.
                       </Badge>
                     ) : null}
                     {equipamentoUsaPericiaPersonalizada(item.equipamento) &&
@@ -472,6 +527,11 @@ export function SessionCharacterInventoryTab({
                         )?.nome ?? item.estado.periciaCodigo}
                       </Badge>
                     ) : null}
+                    {extrairFuncoesAdicionaisPericias(item.estado).map((codigo) => (
+                      <Badge key={codigo} size="sm" color="yellow">
+                        +2 {pericias.find((pericia) => pericia.codigo === codigo)?.nome ?? codigo}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
                 {podeEditar ? (
@@ -608,6 +668,7 @@ export function SessionCharacterInventoryTab({
                   periciasElegiveis={periciasElegiveisAdicionar}
                   nomeCustomizado={nomeCustomizadoAdicionar}
                   periciaPersonalizada={periciaPersonalizadaAdicionar}
+                  funcoesAdicionaisPericias={funcoesAdicionaisPericiasAdicionar}
                   equipado={equipadoAdicionar}
                   onQuantidadeChange={setQuantidadeAdicionar}
                   onToggleModificacao={(modId, checked) =>
@@ -620,6 +681,7 @@ export function SessionCharacterInventoryTab({
                   onNomeCustomizadoChange={setNomeCustomizadoAdicionar}
                   onEquipadoChange={setEquipadoAdicionar}
                   onPericiaPersonalizadaChange={setPericiaPersonalizadaAdicionar}
+                  onFuncoesAdicionaisPericiasChange={setFuncoesAdicionaisPericiasAdicionar}
                 />
               ) : null}
               <div className="flex items-center justify-between gap-2">
@@ -669,6 +731,7 @@ export function SessionCharacterInventoryTab({
               periciasElegiveis={periciasElegiveisEdicao}
               nomeCustomizado={nomeCustomizadoEditando}
               periciaPersonalizada={periciaPersonalizadaEditando}
+              funcoesAdicionaisPericias={funcoesAdicionaisPericiasEditando}
               equipado={equipadoEditando}
               onQuantidadeChange={setQuantidadeEditando}
               onToggleModificacao={(modId, checked) =>
@@ -679,6 +742,7 @@ export function SessionCharacterInventoryTab({
               onNomeCustomizadoChange={setNomeCustomizadoEditando}
               onEquipadoChange={setEquipadoEditando}
               onPericiaPersonalizadaChange={setPericiaPersonalizadaEditando}
+              onFuncoesAdicionaisPericiasChange={setFuncoesAdicionaisPericiasEditando}
             />
             <div className="flex items-center justify-end gap-2">
               <Button variant="ghost" onClick={() => setModalEditarItem(null)}>

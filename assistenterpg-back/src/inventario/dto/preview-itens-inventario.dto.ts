@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsBoolean,
   IsString,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -29,6 +30,10 @@ export class ItemPreviewDto {
   @IsOptional()
   @IsString()
   nomeCustomizado?: string | null;
+
+  @IsOptional()
+  @IsObject()
+  estado?: Record<string, unknown> | null;
 }
 
 export class PreviewItensInventarioDto {
