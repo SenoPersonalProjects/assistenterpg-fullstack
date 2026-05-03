@@ -91,6 +91,35 @@ export type CreateHomebrewGrupoDto = {
 
 export type UpdateHomebrewGrupoDto = Partial<CreateHomebrewGrupoDto>;
 
+export type ImportarHomebrewJsonPayload = {
+  exportType: 'homebrew' | 'homebrew-group';
+  schemaVersion: number;
+  exportedAt?: string;
+  item?: Record<string, unknown>;
+  group?: Record<string, unknown>;
+  items?: Record<string, unknown>[];
+};
+
+export type ImportacaoHomebrewResultado = {
+  importType: 'homebrew' | 'homebrew-group';
+  importedCount: number;
+  ids: number[];
+  item?: {
+    id: number;
+    nome: string;
+    codigo: string;
+  };
+  group?: {
+    id: number;
+    nome: string;
+  };
+  items?: Array<{
+    id: number;
+    nome: string;
+    codigo: string;
+  }>;
+};
+
 /**
  * Filtros para listagem
  */
@@ -210,6 +239,58 @@ function buildHomebrewsQuery(filtros?: HomebrewsListFilters): string {
   return params.toString();
 }
 
+type HomebrewGrupoApiItem = {
+  id: number;
+  codigo?: string;
+  nome: string;
+  descricao?: string | null;
+  tipo?: TipoHomebrewConteudo;
+  status?: StatusPublicacao;
+  versao?: string;
+  atualizadoEm?: string;
+};
+
+type HomebrewGrupoApiResponse = {
+  id: number;
+  nome: string;
+  descricao?: string | null;
+  criadoEm?: string;
+  atualizadoEm?: string;
+  quantidadeItens?: number;
+  itens?: HomebrewGrupoApiItem[];
+};
+
+function mapearGrupoHomebrew(
+  grupo: HomebrewGrupoApiResponse,
+): HomebrewGrupoDetalhe {
+  const homebrews = Array.isArray(grupo.itens)
+    ? grupo.itens.map((item) => ({
+        id: item.id,
+        codigo: item.codigo ?? `HB_${item.id}`,
+        nome: item.nome,
+        descricao: item.descricao ?? undefined,
+        tipo: item.tipo ?? TipoHomebrewConteudo.PODER_GENERICO,
+        status: item.status ?? StatusPublicacao.RASCUNHO,
+        tags: [],
+        versao: item.versao ?? '1.0.0',
+        criadoEm: grupo.criadoEm ?? new Date().toISOString(),
+        atualizadoEm: item.atualizadoEm ?? grupo.atualizadoEm ?? new Date().toISOString(),
+        usuarioId: 0,
+      }))
+    : [];
+
+  return {
+    id: grupo.id,
+    nome: grupo.nome,
+    descricao: grupo.descricao ?? null,
+    criadoEm: grupo.criadoEm,
+    atualizadoEm: grupo.atualizadoEm,
+    quantidadeItens: grupo.quantidadeItens ?? homebrews.length,
+    homebrewIds: homebrews.map((item) => item.id),
+    homebrews,
+  };
+}
+
 /**
  * Contrato: `GET /homebrews` aceita apenas paginação em PT-BR (`pagina`, `limite`) na matriz de contrato.
  * Exemplo final de query: `nome=katana&status=PUBLICADO&apenasPublicados=true&pagina=1&limite=12`
@@ -305,21 +386,23 @@ export async function apiArquivarHomebrew(id: number): Promise<HomebrewResumo> {
 
 export async function apiListarGruposHomebrew(): Promise<HomebrewGrupoResumo[]> {
   const { data } = await apiClient.get('/homebrews/grupos');
-  return Array.isArray(data) ? data : [];
+  return Array.isArray(data)
+    ? data.map((grupo) => mapearGrupoHomebrew(grupo as HomebrewGrupoApiResponse))
+    : [];
 }
 
 export async function apiGetGrupoHomebrew(
   id: number,
 ): Promise<HomebrewGrupoDetalhe> {
   const { data } = await apiClient.get(`/homebrews/grupos/${id}`);
-  return data;
+  return mapearGrupoHomebrew(data as HomebrewGrupoApiResponse);
 }
 
 export async function apiCreateGrupoHomebrew(
   payload: CreateHomebrewGrupoDto,
 ): Promise<HomebrewGrupoDetalhe> {
   const { data } = await apiClient.post('/homebrews/grupos', payload);
-  return data;
+  return mapearGrupoHomebrew(data as HomebrewGrupoApiResponse);
 }
 
 export async function apiUpdateGrupoHomebrew(
@@ -327,7 +410,7 @@ export async function apiUpdateGrupoHomebrew(
   payload: UpdateHomebrewGrupoDto,
 ): Promise<HomebrewGrupoDetalhe> {
   const { data } = await apiClient.patch(`/homebrews/grupos/${id}`, payload);
-  return data;
+  return mapearGrupoHomebrew(data as HomebrewGrupoApiResponse);
 }
 
 export async function apiDeleteGrupoHomebrew(id: number): Promise<void> {
@@ -341,6 +424,13 @@ export async function apiExportarHomebrew(id: number): Promise<unknown> {
 
 export async function apiExportarGrupoHomebrew(id: number): Promise<unknown> {
   const { data } = await apiClient.get(`/homebrews/grupos/${id}/exportar`);
+  return data;
+}
+
+export async function apiImportarHomebrewJson(
+  payload: ImportarHomebrewJsonPayload,
+): Promise<ImportacaoHomebrewResultado> {
+  const { data } = await apiClient.post('/homebrews/importar', payload);
   return data;
 }
 

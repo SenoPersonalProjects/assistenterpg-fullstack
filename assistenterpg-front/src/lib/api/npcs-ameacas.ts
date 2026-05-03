@@ -41,6 +41,33 @@ export type CreateNpcAmeacaGrupoDto = {
 
 export type UpdateNpcAmeacaGrupoDto = Partial<CreateNpcAmeacaGrupoDto>;
 
+export type ImportarNpcAmeacaJsonPayload = {
+  exportType: 'npc-ameaca' | 'npc-ameaca-group';
+  schemaVersion: number;
+  exportedAt?: string;
+  item?: Record<string, unknown>;
+  group?: Record<string, unknown>;
+  items?: Record<string, unknown>[];
+};
+
+export type ImportacaoNpcAmeacaResultado = {
+  importType: 'npc-ameaca' | 'npc-ameaca-group';
+  importedCount: number;
+  ids: number[];
+  item?: {
+    id: number;
+    nome: string;
+  };
+  group?: {
+    id: number;
+    nome: string;
+  };
+  items?: Array<{
+    id: number;
+    nome: string;
+  }>;
+};
+
 function montarQueryString(query: ListarNpcsAmeacasQuery = {}): string {
   const params = new URLSearchParams();
 
@@ -52,6 +79,32 @@ function montarQueryString(query: ListarNpcsAmeacasQuery = {}): string {
   if (query.tamanho) params.set('tamanho', query.tamanho);
 
   return params.toString();
+}
+
+type NpcAmeacaGrupoApiResponse = {
+  id: number;
+  nome: string;
+  descricao?: string | null;
+  criadoEm?: string;
+  atualizadoEm?: string;
+  quantidadeItens?: number;
+  itens?: NpcAmeacaResumo[];
+};
+
+function mapearGrupoNpcAmeaca(
+  grupo: NpcAmeacaGrupoApiResponse,
+): NpcAmeacaGrupoDetalhe {
+  const npcsAmeacas = Array.isArray(grupo.itens) ? grupo.itens : [];
+  return {
+    id: grupo.id,
+    nome: grupo.nome,
+    descricao: grupo.descricao ?? null,
+    criadoEm: grupo.criadoEm,
+    atualizadoEm: grupo.atualizadoEm,
+    quantidadeItens: grupo.quantidadeItens ?? npcsAmeacas.length,
+    npcAmeacaIds: npcsAmeacas.map((item) => item.id),
+    npcsAmeacas,
+  };
 }
 
 export async function apiGetMeusNpcsAmeacas(
@@ -92,21 +145,23 @@ export async function apiDeleteNpcAmeaca(
 
 export async function apiListarGruposNpcAmeaca(): Promise<NpcAmeacaGrupoResumo[]> {
   const { data } = await apiClient.get('/npcs-ameacas/grupos');
-  return Array.isArray(data) ? data : [];
+  return Array.isArray(data)
+    ? data.map((grupo) => mapearGrupoNpcAmeaca(grupo as NpcAmeacaGrupoApiResponse))
+    : [];
 }
 
 export async function apiGetGrupoNpcAmeaca(
   id: number,
 ): Promise<NpcAmeacaGrupoDetalhe> {
   const { data } = await apiClient.get(`/npcs-ameacas/grupos/${id}`);
-  return data;
+  return mapearGrupoNpcAmeaca(data as NpcAmeacaGrupoApiResponse);
 }
 
 export async function apiCreateGrupoNpcAmeaca(
   payload: CreateNpcAmeacaGrupoDto,
 ): Promise<NpcAmeacaGrupoDetalhe> {
   const { data } = await apiClient.post('/npcs-ameacas/grupos', payload);
-  return data;
+  return mapearGrupoNpcAmeaca(data as NpcAmeacaGrupoApiResponse);
 }
 
 export async function apiUpdateGrupoNpcAmeaca(
@@ -114,7 +169,7 @@ export async function apiUpdateGrupoNpcAmeaca(
   payload: UpdateNpcAmeacaGrupoDto,
 ): Promise<NpcAmeacaGrupoDetalhe> {
   const { data } = await apiClient.patch(`/npcs-ameacas/grupos/${id}`, payload);
-  return data;
+  return mapearGrupoNpcAmeaca(data as NpcAmeacaGrupoApiResponse);
 }
 
 export async function apiDeleteGrupoNpcAmeaca(id: number): Promise<void> {
@@ -128,5 +183,12 @@ export async function apiExportarNpcAmeaca(id: number): Promise<unknown> {
 
 export async function apiExportarGrupoNpcAmeaca(id: number): Promise<unknown> {
   const { data } = await apiClient.get(`/npcs-ameacas/grupos/${id}/exportar`);
+  return data;
+}
+
+export async function apiImportarNpcAmeacaJson(
+  payload: ImportarNpcAmeacaJsonPayload,
+): Promise<ImportacaoNpcAmeacaResultado> {
+  const { data } = await apiClient.post('/npcs-ameacas/importar', payload);
   return data;
 }

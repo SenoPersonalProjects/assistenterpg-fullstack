@@ -14,6 +14,7 @@ import { HomebrewTecnicaDto } from './dto/tecnicas/criar-homebrew-tecnica.dto';
 import { HomebrewTrilhaDto } from './dto/trilhas/criar-homebrew-trilha.dto';
 import { CreateHomebrewGrupoDto } from './dto/create-homebrew-grupo.dto';
 import { UpdateHomebrewGrupoDto } from './dto/update-homebrew-grupo.dto';
+import { ImportarHomebrewJsonDto } from './dto/importar-homebrew-json.dto';
 
 import {
   HomebrewNaoEncontradoException,
@@ -78,6 +79,17 @@ type HomebrewGrupoPayload = Prisma.HomebrewGrupoGetPayload<{
   include: typeof homebrewGrupoInclude;
 }>;
 
+type HomebrewImportItem = {
+  codigo?: string;
+  nome: string;
+  descricao?: string | null;
+  tipo: TipoHomebrewConteudo;
+  status?: StatusPublicacao;
+  versao?: string;
+  tags?: string[];
+  dados: unknown;
+};
+
 @Injectable()
 export class HomebrewsService {
   private readonly logger = new Logger(HomebrewsService.name);
@@ -139,6 +151,136 @@ export class HomebrewsService {
     }
 
     return tags.filter((tag): tag is string => typeof tag === 'string');
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private gerarCodigoImportacao(
+    usuarioId: number,
+    codigoBase?: string | null,
+  ): string {
+    const baseNormalizada = (codigoBase ?? 'IMPORTADO')
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40);
+
+    const base = baseNormalizada.length > 0 ? baseNormalizada : 'IMPORTADO';
+    return `IMP_${usuarioId}_${base}_${Date.now()}_${Math.floor(
+      Math.random() * 10000,
+    )}`;
+  }
+
+  private async resolverCodigoImportacao(
+    usuarioId: number,
+    codigoPreferencial?: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string> {
+    const codigo = codigoPreferencial?.trim();
+    if (codigo) {
+      const client = tx ?? this.prisma;
+      const existente = await client.homebrew.findFirst({
+        where: { codigo },
+        select: { id: true },
+      });
+      if (!existente) {
+        return codigo;
+      }
+    }
+
+    return this.gerarCodigoImportacao(usuarioId, codigoPreferencial);
+  }
+
+  private normalizarItemImportado(
+    rawItem: unknown,
+    contexto: string,
+  ): HomebrewImportItem {
+    if (!this.isRecord(rawItem)) {
+      throw new BadRequestException(
+        `${contexto}: item inválido. O JSON precisa conter um objeto.`,
+      );
+    }
+
+    const nome = typeof rawItem.nome === 'string' ? rawItem.nome.trim() : '';
+    if (!nome) {
+      throw new BadRequestException(`${contexto}: item sem nome válido.`);
+    }
+
+    const tipo = rawItem.tipo;
+    if (
+      typeof tipo !== 'string' ||
+      !Object.values(TipoHomebrewConteudo).includes(tipo as TipoHomebrewConteudo)
+    ) {
+      throw new BadRequestException(
+        `${contexto}: tipo de homebrew inválido ou ausente.`,
+      );
+    }
+
+    if (!('dados' in rawItem)) {
+      throw new BadRequestException(`${contexto}: item sem campo "dados".`);
+    }
+
+    const tags = Array.isArray(rawItem.tags)
+      ? rawItem.tags.filter((tag): tag is string => typeof tag === 'string')
+      : [];
+
+    const status =
+      typeof rawItem.status === 'string' &&
+      Object.values(StatusPublicacao).includes(rawItem.status as StatusPublicacao)
+        ? (rawItem.status as StatusPublicacao)
+        : StatusPublicacao.RASCUNHO;
+
+    return {
+      codigo:
+        typeof rawItem.codigo === 'string' && rawItem.codigo.trim().length > 0
+          ? rawItem.codigo.trim()
+          : undefined,
+      nome,
+      descricao:
+        typeof rawItem.descricao === 'string' ? rawItem.descricao.trim() : null,
+      tipo: tipo as TipoHomebrewConteudo,
+      status,
+      versao:
+        typeof rawItem.versao === 'string' && rawItem.versao.trim().length > 0
+          ? rawItem.versao.trim()
+          : '1.0.0',
+      tags,
+      dados: rawItem.dados,
+    };
+  }
+
+  private async persistirHomebrewImportado(
+    usuarioId: number,
+    item: HomebrewImportItem,
+    tx?: Prisma.TransactionClient,
+  ): Promise<HomebrewDetalhadoDto> {
+    await validateHomebrewDados(item.tipo, item.dados);
+    this.validarDadosCustomizados(item.tipo, item.dados);
+
+    const client = tx ?? this.prisma;
+    const codigo = await this.resolverCodigoImportacao(
+      usuarioId,
+      item.codigo,
+      tx,
+    );
+    const homebrew = await client.homebrew.create({
+      data: {
+        codigo,
+        nome: item.nome,
+        descricao: item.descricao ?? null,
+        tipo: item.tipo,
+        status: item.status ?? StatusPublicacao.RASCUNHO,
+        dados: this.normalizarJsonParaPersistir(item.dados),
+        tags: this.normalizarJsonParaPersistir(item.tags ?? []),
+        versao: item.versao ?? '1.0.0',
+        usuarioId,
+      },
+      include: homebrewDetalhadoInclude,
+    });
+
+    return this.mapDetalhado(homebrew);
   }
 
   private gerarCodigoEquipamentoHomebrew(homebrewId: number): string {
@@ -1029,6 +1171,116 @@ export class HomebrewsService {
         dados: homebrew.dados,
       })),
     };
+  }
+
+  async importarHomebrewJson(
+    usuarioId: number,
+    dto: ImportarHomebrewJsonDto,
+  ) {
+    try {
+      if (dto.schemaVersion !== 1) {
+        throw new BadRequestException(
+          'schemaVersion inválido. Apenas arquivos versão 1 são suportados.',
+        );
+      }
+
+      if (dto.exportType === 'homebrew') {
+        const item = this.normalizarItemImportado(dto.item, 'Homebrew');
+        const criado = await this.persistirHomebrewImportado(usuarioId, item);
+        return {
+          importType: 'homebrew',
+          importedCount: 1,
+          ids: [criado.id],
+          item: {
+            id: criado.id,
+            nome: criado.nome,
+            codigo: criado.codigo,
+          },
+        };
+      }
+
+      if (dto.exportType === 'homebrew-group') {
+        if (!this.isRecord(dto.group)) {
+          throw new BadRequestException(
+            'JSON de grupo inválido: campo "group" ausente ou inválido.',
+          );
+        }
+
+        if (!Array.isArray(dto.items) || dto.items.length === 0) {
+          throw new BadRequestException(
+            'JSON de grupo inválido: campo "items" ausente ou vazio.',
+          );
+        }
+
+        const nomeGrupo =
+          typeof dto.group.nome === 'string' ? dto.group.nome.trim() : '';
+        if (!nomeGrupo) {
+          throw new BadRequestException(
+            'JSON de grupo inválido: grupo sem nome válido.',
+          );
+        }
+
+        const descricaoGrupo =
+          typeof dto.group.descricao === 'string'
+            ? dto.group.descricao.trim()
+            : null;
+
+        const itens = dto.items.map((item, index) =>
+          this.normalizarItemImportado(item, `Homebrew ${index + 1}`),
+        );
+
+        const resultado = await this.prisma.$transaction(async (tx) => {
+          const importados: HomebrewDetalhadoDto[] = [];
+          for (const item of itens) {
+            importados.push(
+              await this.persistirHomebrewImportado(usuarioId, item, tx),
+            );
+          }
+
+          const grupo = await tx.homebrewGrupo.create({
+            data: {
+              usuarioId,
+              nome: nomeGrupo,
+              descricao: descricaoGrupo,
+              itens: {
+                create: importados.map((homebrew) => ({
+                  homebrewId: homebrew.id,
+                })),
+              },
+            },
+          });
+
+          return { grupo, importados };
+        });
+
+        return {
+          importType: 'homebrew-group',
+          importedCount: resultado.importados.length,
+          ids: resultado.importados.map((item) => item.id),
+          group: {
+            id: resultado.grupo.id,
+            nome: resultado.grupo.nome,
+          },
+          items: resultado.importados.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            codigo: item.codigo,
+          })),
+        };
+      }
+
+      throw new BadRequestException(
+        'exportType inválido. Use "homebrew" ou "homebrew-group".',
+      );
+    } catch (error: unknown) {
+      const mensagens = this.extrairMensagensValidacao(error);
+      if (mensagens && mensagens.length > 0) {
+        throw new BadRequestException(mensagens[0]);
+      }
+
+      this.tratarErroPrisma(error);
+      throw error;
+    }
   }
 
   async criarEquipamentoInline(

@@ -21,6 +21,7 @@ import { UpdateHomebrewDto } from './dto/update-homebrew.dto';
 import { FiltrarHomebrewsDto } from './dto/filtrar-homebrews.dto';
 import { CreateHomebrewGrupoDto } from './dto/create-homebrew-grupo.dto';
 import { UpdateHomebrewGrupoDto } from './dto/update-homebrew-grupo.dto';
+import { ImportarHomebrewJsonDto } from './dto/importar-homebrew-json.dto';
 
 type UsuarioAutenticado = {
   id: number;
@@ -128,6 +129,14 @@ export class HomebrewsController {
   ) {
     const { usuarioId, isAdmin } = this.getUserContext(req);
     return this.homebrewsService.exportarHomebrew(id, usuarioId, isAdmin);
+  }
+
+  @Post('importar')
+  importarHomebrewJson(
+    @Request() req: AuthenticatedRequest,
+    @Body() dto: ImportarHomebrewJsonDto,
+  ) {
+    return this.homebrewsService.importarHomebrewJson(req.user.id, dto);
   }
 
   @Get(':id')

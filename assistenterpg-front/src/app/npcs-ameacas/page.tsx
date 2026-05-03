@@ -13,8 +13,10 @@ import {
   apiExportarNpcAmeaca,
   apiGetMeusNpcsAmeacas,
   apiGetNpcAmeaca,
+  apiImportarNpcAmeacaJson,
   apiListarGruposNpcAmeaca,
   apiUpdateGrupoNpcAmeaca,
+  type ImportarNpcAmeacaJsonPayload,
   type NpcAmeacaGrupoResumo,
 } from '@/lib/api/npcs-ameacas';
 import type {
@@ -28,6 +30,7 @@ import { NpcAmeacaCard } from '@/components/npc-ameaca/NpcAmeacaCard';
 import { NpcAmeacaPageHeader } from '@/components/npc-ameaca/NpcAmeacaPageHeader';
 import { NpcAmeacaPreviewModal } from '@/components/npc-ameaca/NpcAmeacaPreviewModal';
 import { fichaTipoOptions, tipoNpcOptions } from '@/components/npc-ameaca/npcAmeacaUi';
+import { JsonImportModal } from '@/components/import-export/JsonImportModal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -99,6 +102,7 @@ export default function NpcsAmeacasPage() {
   const filtroNomeRef = useRef(filtroNome);
 
   const [modalGrupoAberto, setModalGrupoAberto] = useState(false);
+  const [modalImportacaoAberto, setModalImportacaoAberto] = useState(false);
   const [grupoEditando, setGrupoEditando] = useState<NpcAmeacaGrupoResumo | null>(null);
   const [grupoNome, setGrupoNome] = useState('');
   const [grupoDescricao, setGrupoDescricao] = useState('');
@@ -307,6 +311,29 @@ export default function NpcsAmeacasPage() {
     }
   }
 
+  async function handleImportarJson(payload: Record<string, unknown>) {
+    try {
+      const resultado = await apiImportarNpcAmeacaJson(
+        payload as ImportarNpcAmeacaJsonPayload,
+      );
+      await Promise.all([carregar(), carregarComplementos()]);
+
+      if (resultado.importType === 'npc-ameaca-group') {
+        showToast(
+          `Grupo "${resultado.group?.nome ?? 'importado'}" importado com ${resultado.importedCount} ficha(s).`,
+          'success',
+        );
+      } else {
+        showToast(
+          `Ficha "${resultado.item?.nome ?? 'importada'}" importada com sucesso.`,
+          'success',
+        );
+      }
+    } catch (error) {
+      throw new Error(extrairMensagemErro(error));
+    }
+  }
+
   function abrirModalNovoGrupo() {
     setGrupoEditando(null);
     setGrupoNome('');
@@ -391,7 +418,7 @@ export default function NpcsAmeacasPage() {
         <div className="mx-auto max-w-7xl space-y-6">
           <NpcAmeacaPageHeader
             title="NPC"
-            description="Gerencie fichas, organize grupos privados e exporte em JSON."
+            description="Gerencie fichas, organize grupos privados e importe/exporte em JSON."
             badge={
               <Badge color="blue">
                 {totalItens} {totalItens === 1 ? 'ficha' : 'fichas'}
@@ -402,6 +429,10 @@ export default function NpcsAmeacasPage() {
                 <Button variant="ghost" onClick={() => router.push('/home')}>
                   <Icon name="back" className="mr-2 h-4 w-4" />
                   Voltar
+                </Button>
+                <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
+                  <Icon name="upload" className="mr-2 h-4 w-4" />
+                  Importar JSON
                 </Button>
                 <Button onClick={() => router.push('/npcs-ameacas/novo')}>
                   <Icon name="add" className="mr-2 h-4 w-4" />
@@ -474,6 +505,10 @@ export default function NpcsAmeacasPage() {
               </div>
 
               <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
+                  <Icon name="upload" className="mr-2 h-4 w-4" />
+                  Importar JSON
+                </Button>
                 <Button variant="ghost" onClick={abrirModalNovoGrupo}>
                   <Icon name="folder" className="mr-2 h-4 w-4" />
                   Novo grupo
@@ -498,10 +533,16 @@ export default function NpcsAmeacasPage() {
                   Monte pacotes privados de fichas para exportar e reaproveitar.
                 </p>
               </div>
-              <Button variant="secondary" onClick={abrirModalNovoGrupo}>
-                <Icon name="add" className="mr-2 h-4 w-4" />
-                Novo grupo
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
+                  <Icon name="upload" className="mr-2 h-4 w-4" />
+                  Importar JSON
+                </Button>
+                <Button variant="secondary" onClick={abrirModalNovoGrupo}>
+                  <Icon name="add" className="mr-2 h-4 w-4" />
+                  Novo grupo
+                </Button>
+              </div>
             </div>
 
             {grupos.length === 0 ? (
@@ -663,6 +704,18 @@ export default function NpcsAmeacasPage() {
         error={previewErro}
         onOpenFull={handlePreviewOpenFull}
         onEdit={handlePreviewEdit}
+      />
+
+      <JsonImportModal
+        isOpen={modalImportacaoAberto}
+        onClose={() => setModalImportacaoAberto(false)}
+        title="Importar NPC/Ameaça via JSON"
+        acceptedExportTypes={['npc-ameaca', 'npc-ameaca-group']}
+        typeLabels={{
+          'npc-ameaca': 'NPC/Ameaça',
+          'npc-ameaca-group': 'Grupo de NPCs/Ameaças',
+        }}
+        onImport={handleImportarJson}
       />
 
       <Modal

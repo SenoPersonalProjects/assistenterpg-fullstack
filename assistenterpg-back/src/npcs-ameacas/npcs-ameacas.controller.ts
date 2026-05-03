@@ -15,6 +15,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { CreateNpcAmeacaDto } from './dto/create-npc-ameaca.dto';
 import { CreateNpcAmeacaGrupoDto } from './dto/create-npc-ameaca-grupo.dto';
+import { ImportarNpcAmeacaJsonDto } from './dto/importar-npc-ameaca-json.dto';
 import { ListarNpcsAmeacasDto } from './dto/listar-npcs-ameacas.dto';
 import { UpdateNpcAmeacaDto } from './dto/update-npc-ameaca.dto';
 import { UpdateNpcAmeacaGrupoDto } from './dto/update-npc-ameaca-grupo.dto';
@@ -95,6 +96,14 @@ export class NpcsAmeacasController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     return this.npcsAmeacasService.exportarNpcAmeaca(req.user.id, id);
+  }
+
+  @Post('importar')
+  importarJson(
+    @Request() req: { user: { id: number } },
+    @Body() dto: ImportarNpcAmeacaJsonDto,
+  ) {
+    return this.npcsAmeacasService.importarNpcAmeacaJson(req.user.id, dto);
   }
 
   @Get(':id')

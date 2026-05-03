@@ -4,6 +4,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 import { NpcAmeacaNaoEncontradaException } from 'src/common/exceptions/npc-ameaca.exception';
 import { CreateNpcAmeacaDto } from './dto/create-npc-ameaca.dto';
+import { ImportarNpcAmeacaJsonDto } from './dto/importar-npc-ameaca-json.dto';
 import { ListarNpcsAmeacasDto } from './dto/listar-npcs-ameacas.dto';
 import { UpdateNpcAmeacaDto } from './dto/update-npc-ameaca.dto';
 import { CreateNpcAmeacaGrupoDto } from './dto/create-npc-ameaca-grupo.dto';
@@ -19,6 +20,9 @@ type NpcAmeacaGrupoModel = Prisma.NpcAmeacaGrupoGetPayload<{
     };
   };
 }>;
+type NpcAmeacaDetalheMapeado = ReturnType<
+  NpcsAmeacasService['mapearDetalhe']
+>;
 
 type PericiaCatalogo = {
   codigo: string;
@@ -92,6 +96,117 @@ export class NpcsAmeacasService {
     if (valor === null) return null;
     const limpo = valor.trim();
     return limpo.length > 0 ? limpo : null;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private asString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : undefined;
+  }
+
+  private asNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : undefined;
+  }
+
+  private asStringArray(value: unknown): string[] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+
+  private asObjectArray(
+    value: unknown,
+  ): Array<Record<string, unknown>> | undefined {
+    if (!Array.isArray(value)) return undefined;
+    return value.filter(
+      (item): item is Record<string, unknown> =>
+        !!item && typeof item === 'object' && !Array.isArray(item),
+    );
+  }
+
+  private normalizarNpcImportado(
+    rawItem: unknown,
+    contexto: string,
+  ): CreateNpcAmeacaDto {
+    if (!this.isRecord(rawItem)) {
+      throw new BadRequestException(
+        `${contexto}: item inválido. O JSON precisa conter um objeto.`,
+      );
+    }
+
+    const nome = this.asString(rawItem.nome);
+    if (!nome) {
+      throw new BadRequestException(`${contexto}: item sem nome válido.`);
+    }
+
+    const tipo = rawItem.tipo;
+    if (typeof tipo !== 'string') {
+      throw new BadRequestException(`${contexto}: tipo inválido ou ausente.`);
+    }
+
+    const defesa = this.asNumber(rawItem.defesa);
+    const pontosVida = this.asNumber(rawItem.pontosVida);
+    if (defesa === undefined || pontosVida === undefined) {
+      throw new BadRequestException(
+        `${contexto}: defesa e pontosVida são obrigatórios.`,
+      );
+    }
+
+    return {
+      nome,
+      descricao: this.asString(rawItem.descricao),
+      fichaTipo:
+        typeof rawItem.fichaTipo === 'string'
+          ? (rawItem.fichaTipo as CreateNpcAmeacaDto['fichaTipo'])
+          : undefined,
+      tipo: tipo as CreateNpcAmeacaDto['tipo'],
+      tamanho:
+        typeof rawItem.tamanho === 'string'
+          ? (rawItem.tamanho as CreateNpcAmeacaDto['tamanho'])
+          : undefined,
+      vd: this.asNumber(rawItem.vd),
+      agilidade: this.asNumber(rawItem.agilidade),
+      forca: this.asNumber(rawItem.forca),
+      intelecto: this.asNumber(rawItem.intelecto),
+      presenca: this.asNumber(rawItem.presenca),
+      vigor: this.asNumber(rawItem.vigor),
+      percepcao: this.asNumber(rawItem.percepcao),
+      iniciativa: this.asNumber(rawItem.iniciativa),
+      fortitude: this.asNumber(rawItem.fortitude),
+      reflexos: this.asNumber(rawItem.reflexos),
+      vontade: this.asNumber(rawItem.vontade),
+      luta: this.asNumber(rawItem.luta),
+      jujutsu: this.asNumber(rawItem.jujutsu),
+      percepcaoDados: this.asNumber(rawItem.percepcaoDados),
+      iniciativaDados: this.asNumber(rawItem.iniciativaDados),
+      fortitudeDados: this.asNumber(rawItem.fortitudeDados),
+      reflexosDados: this.asNumber(rawItem.reflexosDados),
+      vontadeDados: this.asNumber(rawItem.vontadeDados),
+      lutaDados: this.asNumber(rawItem.lutaDados),
+      jujutsuDados: this.asNumber(rawItem.jujutsuDados),
+      defesa,
+      pontosVida,
+      machucado:
+        rawItem.machucado === null ? null : this.asNumber(rawItem.machucado),
+      deslocamentoMetros: this.asNumber(rawItem.deslocamentoMetros),
+      periciasEspeciais: this.asObjectArray(rawItem.periciasEspeciais) as
+        | CreateNpcAmeacaDto['periciasEspeciais']
+        | undefined,
+      resistencias: this.asStringArray(rawItem.resistencias),
+      vulnerabilidades: this.asStringArray(rawItem.vulnerabilidades),
+      passivas: this.asObjectArray(rawItem.passivas) as
+        | CreateNpcAmeacaDto['passivas']
+        | undefined,
+      acoes: this.asObjectArray(rawItem.acoes) as
+        | CreateNpcAmeacaDto['acoes']
+        | undefined,
+      usoTatico: this.asString(rawItem.usoTatico),
+    };
   }
 
   private normalizarJsonParaPersistir(
@@ -306,6 +421,68 @@ export class NpcsAmeacasService {
     return npcAmeaca;
   }
 
+  private async criarRegistro(
+    usuarioId: number,
+    dto: CreateNpcAmeacaDto,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const atributos = this.montarAtributosNpc(dto);
+    const periciasEspeciais = await this.normalizarPericiasEspeciais(
+      (dto.periciasEspeciais as PericiaEspecialEntrada[] | undefined) ?? [],
+      atributos,
+    );
+
+    const client = tx ?? this.prisma;
+    const npcAmeaca = await client.npcAmeaca.create({
+      data: {
+        dono: {
+          connect: {
+            id: usuarioId,
+          },
+        },
+        nome: dto.nome.trim(),
+        descricao: this.normalizarTexto(dto.descricao) ?? null,
+        fichaTipo: dto.fichaTipo ?? TipoFichaNpcAmeaca.AMEACA,
+        tipo: dto.tipo,
+        tamanho: dto.tamanho,
+        vd: dto.vd,
+        agilidade: dto.agilidade,
+        forca: dto.forca,
+        intelecto: dto.intelecto,
+        presenca: dto.presenca,
+        vigor: dto.vigor,
+        percepcao: dto.percepcao,
+        iniciativa: dto.iniciativa,
+        fortitude: dto.fortitude,
+        reflexos: dto.reflexos,
+        vontade: dto.vontade,
+        luta: dto.luta,
+        jujutsu: dto.jujutsu,
+        percepcaoDados: dto.percepcaoDados,
+        iniciativaDados: dto.iniciativaDados,
+        fortitudeDados: dto.fortitudeDados,
+        reflexosDados: dto.reflexosDados,
+        vontadeDados: dto.vontadeDados,
+        lutaDados: dto.lutaDados,
+        jujutsuDados: dto.jujutsuDados,
+        defesa: dto.defesa,
+        pontosVida: dto.pontosVida,
+        machucado: dto.machucado ?? undefined,
+        deslocamentoMetros: dto.deslocamentoMetros,
+        periciasEspeciais: this.normalizarJsonParaPersistir(periciasEspeciais),
+        resistencias: this.normalizarJsonParaPersistir(dto.resistencias ?? []),
+        vulnerabilidades: this.normalizarJsonParaPersistir(
+          dto.vulnerabilidades ?? [],
+        ),
+        passivas: this.normalizarJsonParaPersistir(dto.passivas ?? []),
+        acoes: this.normalizarJsonParaPersistir(dto.acoes ?? []),
+        usoTatico: this.normalizarTexto(dto.usoTatico) ?? null,
+      },
+    });
+
+    return this.mapearDetalhe(npcAmeaca);
+  }
+
   async listarDoUsuario(usuarioId: number, filtros: ListarNpcsAmeacasDto) {
     try {
       const page = Math.max(1, filtros.page ?? 1);
@@ -359,63 +536,7 @@ export class NpcsAmeacasService {
 
   async criar(usuarioId: number, dto: CreateNpcAmeacaDto) {
     try {
-      const atributos = this.montarAtributosNpc(dto);
-      const periciasEspeciais = await this.normalizarPericiasEspeciais(
-        (dto.periciasEspeciais as PericiaEspecialEntrada[] | undefined) ?? [],
-        atributos,
-      );
-
-      const npcAmeaca = await this.prisma.npcAmeaca.create({
-        data: {
-          dono: {
-            connect: {
-              id: usuarioId,
-            },
-          },
-          nome: dto.nome.trim(),
-          descricao: this.normalizarTexto(dto.descricao) ?? null,
-          fichaTipo: dto.fichaTipo ?? TipoFichaNpcAmeaca.AMEACA,
-          tipo: dto.tipo,
-          tamanho: dto.tamanho,
-          vd: dto.vd,
-          agilidade: dto.agilidade,
-          forca: dto.forca,
-          intelecto: dto.intelecto,
-          presenca: dto.presenca,
-          vigor: dto.vigor,
-          percepcao: dto.percepcao,
-          iniciativa: dto.iniciativa,
-          fortitude: dto.fortitude,
-          reflexos: dto.reflexos,
-          vontade: dto.vontade,
-          luta: dto.luta,
-          jujutsu: dto.jujutsu,
-          percepcaoDados: dto.percepcaoDados,
-          iniciativaDados: dto.iniciativaDados,
-          fortitudeDados: dto.fortitudeDados,
-          reflexosDados: dto.reflexosDados,
-          vontadeDados: dto.vontadeDados,
-          lutaDados: dto.lutaDados,
-          jujutsuDados: dto.jujutsuDados,
-          defesa: dto.defesa,
-          pontosVida: dto.pontosVida,
-          machucado: dto.machucado ?? undefined,
-          deslocamentoMetros: dto.deslocamentoMetros,
-          periciasEspeciais:
-            this.normalizarJsonParaPersistir(periciasEspeciais),
-          resistencias: this.normalizarJsonParaPersistir(
-            dto.resistencias ?? [],
-          ),
-          vulnerabilidades: this.normalizarJsonParaPersistir(
-            dto.vulnerabilidades ?? [],
-          ),
-          passivas: this.normalizarJsonParaPersistir(dto.passivas ?? []),
-          acoes: this.normalizarJsonParaPersistir(dto.acoes ?? []),
-          usoTatico: this.normalizarTexto(dto.usoTatico) ?? null,
-        },
-      });
-
-      return this.mapearDetalhe(npcAmeaca);
+      return this.criarRegistro(usuarioId, dto);
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;
@@ -719,6 +840,102 @@ export class NpcsAmeacasService {
       },
       items: grupo.itens.map(({ npcAmeaca }) => this.mapearDetalhe(npcAmeaca)),
     };
+  }
+
+  async importarNpcAmeacaJson(
+    usuarioId: number,
+    dto: ImportarNpcAmeacaJsonDto,
+  ) {
+    try {
+      if (dto.schemaVersion !== 1) {
+        throw new BadRequestException(
+          'schemaVersion inválido. Apenas arquivos versão 1 são suportados.',
+        );
+      }
+
+      if (dto.exportType === 'npc-ameaca') {
+        const item = this.normalizarNpcImportado(dto.item, 'NPC/Ameaça');
+        const criado = await this.criarRegistro(usuarioId, item);
+        return {
+          importType: 'npc-ameaca',
+          importedCount: 1,
+          ids: [criado.id],
+          item: {
+            id: criado.id,
+            nome: criado.nome,
+          },
+        };
+      }
+
+      if (dto.exportType === 'npc-ameaca-group') {
+        if (!this.isRecord(dto.group)) {
+          throw new BadRequestException(
+            'JSON de grupo inválido: campo "group" ausente ou inválido.',
+          );
+        }
+
+        if (!Array.isArray(dto.items) || dto.items.length === 0) {
+          throw new BadRequestException(
+            'JSON de grupo inválido: campo "items" ausente ou vazio.',
+          );
+        }
+
+        const nomeGrupo = this.asString(dto.group.nome);
+        if (!nomeGrupo) {
+          throw new BadRequestException(
+            'JSON de grupo inválido: grupo sem nome válido.',
+          );
+        }
+
+        const descricaoGrupo = this.asString(dto.group.descricao) ?? null;
+        const itens = dto.items.map((item, index) =>
+          this.normalizarNpcImportado(item, `NPC/Ameaça ${index + 1}`),
+        );
+
+        const resultado = await this.prisma.$transaction(async (tx) => {
+          const importados: NpcAmeacaDetalheMapeado[] = [];
+          for (const item of itens) {
+            importados.push(await this.criarRegistro(usuarioId, item, tx));
+          }
+
+          const grupo = await tx.npcAmeacaGrupo.create({
+            data: {
+              usuarioId,
+              nome: nomeGrupo,
+              descricao: descricaoGrupo,
+              itens: {
+                create: importados.map((npc) => ({
+                  npcAmeacaId: npc.id,
+                })),
+              },
+            },
+          });
+
+          return { grupo, importados };
+        });
+
+        return {
+          importType: 'npc-ameaca-group',
+          importedCount: resultado.importados.length,
+          ids: resultado.importados.map((item) => item.id),
+          group: {
+            id: resultado.grupo.id,
+            nome: resultado.grupo.nome,
+          },
+          items: resultado.importados.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+          })),
+        };
+      }
+
+      throw new BadRequestException(
+        'exportType inválido. Use "npc-ameaca" ou "npc-ameaca-group".',
+      );
+    } catch (error: unknown) {
+      this.tratarErroPrisma(error);
+      throw error;
+    }
   }
 
   private async validarPertencimentoNpcs(

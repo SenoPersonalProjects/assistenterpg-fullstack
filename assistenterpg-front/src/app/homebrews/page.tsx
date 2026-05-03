@@ -14,12 +14,14 @@ import {
   apiExportarHomebrew,
   apiGetHomebrew,
   apiGetMeusHomebrews,
+  apiImportarHomebrewJson,
   apiListarGruposHomebrew,
   apiPublicarHomebrew,
   apiUpdateGrupoHomebrew,
   type FiltrarHomebrewsDto,
   type HomebrewDetalhado,
   type HomebrewGrupoResumo,
+  type ImportarHomebrewJsonPayload,
   type HomebrewResumo,
 } from '@/lib/api/homebrews';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
@@ -27,6 +29,7 @@ import { StatusPublicacao, TipoHomebrewConteudo } from '@/lib/types/homebrew-enu
 import { HomebrewCard } from '@/components/homebrew/HomebrewCard';
 import { HomebrewPreviewModal } from '@/components/homebrew/HomebrewPreviewModal';
 import { getHomebrewTipoConfig } from '@/components/homebrew/homebrewUi';
+import { JsonImportModal } from '@/components/import-export/JsonImportModal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -106,6 +109,7 @@ export default function HomebrewsPage() {
   const filtroNomeRef = useRef(filtroNome);
 
   const [modalGrupoAberto, setModalGrupoAberto] = useState(false);
+  const [modalImportacaoAberto, setModalImportacaoAberto] = useState(false);
   const [grupoEditando, setGrupoEditando] = useState<HomebrewGrupoResumo | null>(null);
   const [grupoNome, setGrupoNome] = useState('');
   const [grupoDescricao, setGrupoDescricao] = useState('');
@@ -396,6 +400,32 @@ export default function HomebrewsPage() {
     }
   }
 
+  async function handleImportarJson(payload: Record<string, unknown>) {
+    try {
+      const resultado = await apiImportarHomebrewJson(
+        payload as ImportarHomebrewJsonPayload,
+      );
+      await Promise.all([
+        carregarHomebrews(filtroNomeRef.current, { pagina: paginaAtual }),
+        carregarComplementos(),
+      ]);
+
+      if (resultado.importType === 'homebrew-group') {
+        showToast(
+          `Grupo "${resultado.group?.nome ?? 'importado'}" importado com ${resultado.importedCount} homebrew(s).`,
+          'success',
+        );
+      } else {
+        showToast(
+          `Homebrew "${resultado.item?.nome ?? 'importado'}" importado com sucesso.`,
+          'success',
+        );
+      }
+    } catch (error) {
+      throw new Error(extrairMensagemErro(error));
+    }
+  }
+
   function abrirModalNovoGrupo() {
     setGrupoEditando(null);
     setGrupoNome('');
@@ -486,15 +516,21 @@ export default function HomebrewsPage() {
               <div>
                 <h1 className="text-3xl font-bold text-app-fg">Meus Homebrews</h1>
                 <p className="mt-0.5 text-sm text-app-muted">
-                  Crie conteúdo personalizado, agrupe pacotes e exporte em JSON.
+                  Crie conteúdo personalizado, agrupe pacotes e importe/exporte em JSON.
                 </p>
               </div>
             </div>
 
-            <Button onClick={() => router.push('/homebrews/novo')}>
-              <Icon name="add" className="mr-2 h-4 w-4" />
-              Criar Homebrew
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
+                <Icon name="upload" className="mr-2 h-4 w-4" />
+                Importar JSON
+              </Button>
+              <Button onClick={() => router.push('/homebrews/novo')}>
+                <Icon name="add" className="mr-2 h-4 w-4" />
+                Criar Homebrew
+              </Button>
+            </div>
           </header>
 
           {erro && <ErrorAlert message={erro} />}
@@ -643,10 +679,16 @@ export default function HomebrewsPage() {
                     Organize seus homebrews em pacotes privados para exportar e reutilizar nas fichas.
                   </p>
                 </div>
-                <Button variant="secondary" onClick={abrirModalNovoGrupo}>
-                  <Icon name="add" className="mr-2 h-4 w-4" />
-                  Novo grupo
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => setModalImportacaoAberto(true)}>
+                    <Icon name="upload" className="mr-2 h-4 w-4" />
+                    Importar JSON
+                  </Button>
+                  <Button variant="secondary" onClick={abrirModalNovoGrupo}>
+                    <Icon name="add" className="mr-2 h-4 w-4" />
+                    Novo grupo
+                  </Button>
+                </div>
               </div>
 
               {grupos.length === 0 ? (
@@ -817,6 +859,18 @@ export default function HomebrewsPage() {
         canEdit={Boolean(previewResumo && usuario && previewResumo.usuarioId === usuario.id)}
         onOpenFull={handlePreviewOpenFull}
         onEdit={handlePreviewEdit}
+      />
+
+      <JsonImportModal
+        isOpen={modalImportacaoAberto}
+        onClose={() => setModalImportacaoAberto(false)}
+        title="Importar homebrew via JSON"
+        acceptedExportTypes={['homebrew', 'homebrew-group']}
+        typeLabels={{
+          homebrew: 'Homebrew',
+          'homebrew-group': 'Grupo de homebrews',
+        }}
+        onImport={handleImportarJson}
       />
 
       <Modal
