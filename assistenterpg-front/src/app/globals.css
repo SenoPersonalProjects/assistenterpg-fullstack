@@ -318,10 +318,10 @@ body {
   --library-bg: var(--bg);
   --library-panel: var(--bg-surface);
   --library-border: var(--border-subtle);
-  --library-accent: var(--secondary);
-  --library-accent-hover: var(--secondary-hover);
-  --library-accent-soft: color-mix(in srgb, var(--secondary) 14%, transparent);
-  --library-accent-border: color-mix(in srgb, var(--secondary) 32%, transparent);
+  --library-accent: var(--primary);
+  --library-accent-hover: var(--primary-hover);
+  --library-accent-soft: color-mix(in srgb, var(--primary) 14%, transparent);
+  --library-accent-border: color-mix(in srgb, var(--primary) 32%, transparent);
   --library-muted-strong: color-mix(in srgb, var(--fg) 65%, var(--fg-muted));
   --library-muted: var(--fg-muted);
   --library-muted-soft: color-mix(in srgb, var(--fg-muted) 72%, var(--bg-surface));
