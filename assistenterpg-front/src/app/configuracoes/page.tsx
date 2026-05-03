@@ -37,7 +37,7 @@ type ErroApiBasico = {
 export default function ConfiguracoesPage() {
   const { usuario, token, logout } = useAuth();
   const { showToast } = useToast();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
 
   const [notificacoes, setNotificacoes] = useState({
@@ -256,11 +256,11 @@ export default function ConfiguracoesPage() {
                   <label className="block text-sm font-medium text-app-fg mb-2">
                     Tema
                   </label>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-3 md:flex-row">
                     <Button
                       variant={theme === 'light' ? 'primary' : 'secondary'}
                       size="sm"
-                      onClick={() => theme === 'dark' && toggleTheme()}
+                      onClick={() => setTheme('light')}
                       className="flex-1"
                     >
                       <Icon name="sun" className="w-4 h-4 mr-2" />
@@ -269,15 +269,27 @@ export default function ConfiguracoesPage() {
                     <Button
                       variant={theme === 'dark' ? 'primary' : 'secondary'}
                       size="sm"
-                      onClick={() => theme === 'light' && toggleTheme()}
+                      onClick={() => setTheme('dark')}
                       className="flex-1"
                     >
                       <Icon name="moon" className="w-4 h-4 mr-2" />
                       Escuro
                     </Button>
+                    <Button
+                      variant={theme === 'jujutsu' ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => setTheme('jujutsu')}
+                      className="flex-1"
+                    >
+                      <Icon name="sparkles" className="w-4 h-4 mr-2" />
+                      Jujutsu
+                    </Button>
                   </div>
                   <p className="text-xs text-app-muted mt-2">
-                    Tema atual: <strong>{theme === 'dark' ? 'Escuro' : 'Claro'}</strong>
+                    Tema atual:{' '}
+                    <strong>
+                      {theme === 'dark' ? 'Escuro' : theme === 'light' ? 'Claro' : 'Jujutsu'}
+                    </strong>
                   </p>
                 </div>
 

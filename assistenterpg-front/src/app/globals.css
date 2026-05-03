@@ -78,6 +78,42 @@
   --orange-hover: #f97316;
 }
 
+/* Tema JUJUTSU */
+.theme-jujutsu {
+  --bg: #0d0d0f;
+  --bg-surface: #111113;
+
+  --bg-card: #111113;
+  --bg-muted: #17171c;
+  --bg-alert: #121218;
+
+  --border-subtle: #1e1e24;
+
+  --fg: #f5f7ff;
+  --fg-muted: #9ca3af;
+
+  --primary: #7c5cfc;
+  --primary-hover: #6d4ee8;
+
+  --secondary: #7c5cfc;
+  --secondary-hover: #6d4ee8;
+
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+
+  --success: #10b981;
+  --success-hover: #059669;
+
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+
+  --info: #22d3ee;
+  --info-hover: #06b6d4;
+
+  --orange: #fb923c;
+  --orange-hover: #f97316;
+}
+
 /* Mapeia tokens para nomes que o Tailwind entende */
 @theme inline {
   --color-app-bg: var(--bg);
@@ -279,22 +315,22 @@ body {
 /* ========================================================================= */
 
 :root {
-  --library-bg: #0d0d0f;
-  --library-panel: #111113;
-  --library-border: #1e1e24;
-  --library-accent: #7c5cfc;
-  --library-accent-hover: #6d4ee8;
-  --library-accent-soft: rgba(124, 92, 252, 0.14);
-  --library-accent-border: rgba(124, 92, 252, 0.3);
-  --library-muted-strong: #9ca3af;
-  --library-muted: #6b7280;
-  --library-muted-soft: #4b5563;
+  --library-bg: var(--bg);
+  --library-panel: var(--bg-surface);
+  --library-border: var(--border-subtle);
+  --library-accent: var(--secondary);
+  --library-accent-hover: var(--secondary-hover);
+  --library-accent-soft: color-mix(in srgb, var(--secondary) 14%, transparent);
+  --library-accent-border: color-mix(in srgb, var(--secondary) 32%, transparent);
+  --library-muted-strong: color-mix(in srgb, var(--fg) 65%, var(--fg-muted));
+  --library-muted: var(--fg-muted);
+  --library-muted-soft: color-mix(in srgb, var(--fg-muted) 72%, var(--bg-surface));
 }
 
 .library-page-shell {
   background:
-    radial-gradient(980px 420px at 100% -12%, rgba(124, 92, 252, 0.12), transparent 58%),
-    radial-gradient(760px 340px at -6% 10%, rgba(124, 92, 252, 0.08), transparent 60%),
+    radial-gradient(980px 420px at 100% -12%, color-mix(in srgb, var(--library-accent) 12%, transparent), transparent 58%),
+    radial-gradient(760px 340px at -6% 10%, color-mix(in srgb, var(--library-accent) 8%, transparent), transparent 60%),
     var(--library-bg);
 }
 
@@ -315,14 +351,14 @@ body {
   border-radius: 0.9rem;
   border: 1px solid var(--library-accent-border);
   background: var(--library-accent-soft);
-  color: #c4b5fd;
+  color: color-mix(in srgb, var(--library-accent) 70%, white);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .library-panel {
   border: 1px solid var(--library-border);
   background: var(--library-panel);
-  box-shadow: 0 24px 48px -42px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 24px 48px -42px rgba(15, 23, 42, 0.35);
 }
 
 .library-stats-bar {
@@ -398,7 +434,7 @@ body {
   background: var(--library-accent-soft);
   padding: 0.25rem 0.65rem;
   font-size: 0.75rem;
-  color: #c4b5fd;
+  color: color-mix(in srgb, var(--library-accent) 78%, white);
 }
 
 .library-group-rail {
@@ -416,7 +452,7 @@ body {
   border-radius: 1rem;
   background: var(--library-panel);
   padding: 1rem;
-  box-shadow: 0 18px 32px -28px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 18px 32px -28px rgba(15, 23, 42, 0.3);
 }
 
 .library-mini-chip {
@@ -433,7 +469,7 @@ body {
   border: 1px solid var(--library-border);
   border-radius: 1rem;
   background: var(--library-panel);
-  box-shadow: 0 20px 40px -34px rgba(0, 0, 0, 0.82);
+  box-shadow: 0 20px 40px -34px rgba(15, 23, 42, 0.34);
 }
 
 .library-pagination {

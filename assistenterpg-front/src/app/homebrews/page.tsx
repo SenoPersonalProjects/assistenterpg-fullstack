@@ -615,7 +615,7 @@ export default function HomebrewsPage() {
             </div>
 
             {filtrosAtivos.length > 0 ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/6 pt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-app-border/60 pt-3">
                 {filtrosAtivos.map((filtro) => (
                   <span key={filtro} className="library-filter-chip">
                     {filtro}
@@ -625,7 +625,7 @@ export default function HomebrewsPage() {
                   variant="ghost"
                   size="xs"
                   onClick={handleLimparFiltros}
-                  className="!border-transparent !text-app-muted hover:!bg-white/5"
+                  className="!border-transparent !text-app-muted hover:!bg-app-muted-surface/70"
                 >
                   <Icon name="close" className="mr-1 h-3 w-3" />
                   Limpar filtros
@@ -661,7 +661,7 @@ export default function HomebrewsPage() {
             />
 
             {grupos.length === 0 ? (
-              <div className="library-panel rounded-2xl border border-dashed border-white/8 px-4 py-10">
+              <div className="library-panel rounded-2xl border border-dashed border-app-border/60 px-4 py-10">
                 <EmptyState
                   variant="plain"
                   icon="folder"
@@ -703,7 +703,7 @@ export default function HomebrewsPage() {
                       ) : null}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 border-t border-white/6 pt-3">
+                    <div className="flex flex-wrap items-center gap-2 border-t border-app-border/60 pt-3">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -762,7 +762,7 @@ export default function HomebrewsPage() {
             />
 
             {homebrewsExibidos.length === 0 ? (
-              <div className="library-panel rounded-2xl border border-dashed border-white/8 px-4 py-14">
+              <div className="library-panel rounded-2xl border border-dashed border-app-border/60 px-4 py-14">
                 <EmptyState
                   variant="plain"
                   icon="sparkles"

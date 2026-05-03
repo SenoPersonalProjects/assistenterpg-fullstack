@@ -55,7 +55,7 @@ export function HomebrewCard({
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-2">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-app-border/60 bg-app-muted-surface/70"
             style={{
               color: `var(--color-${tipoConfig.color}, #c4b5fd)`,
             }}
@@ -109,7 +109,7 @@ export function HomebrewCard({
         )}
 
         {/* Autor e versão */}
-        <div className="space-y-1 border-t border-white/6 pt-2 text-xs text-app-muted">
+        <div className="space-y-1 border-t border-app-border/60 pt-2 text-xs text-app-muted">
           <div className="flex items-center justify-between">
             <span>Por {homebrew.usuarioApelido ?? 'Desconhecido'}</span>
             <span>Atualizado em {atualizadoEm}</span>
@@ -122,7 +122,7 @@ export function HomebrewCard({
 
       {/* Ações */}
       {isOwner && (
-        <div className="mt-4 space-y-2 border-t border-white/6 pt-4">
+        <div className="mt-4 space-y-2 border-t border-app-border/60 pt-4">
           {/* Botão de editar */}
           {podeEditar && (
             <Button
@@ -224,7 +224,7 @@ export function HomebrewCard({
 
       {/* Se não é dono, mostrar apenas visualizar */}
       {!isOwner && (
-        <div className="mt-4 border-t border-white/6 pt-4">
+        <div className="mt-4 border-t border-app-border/60 pt-4">
           <Button
             variant="ghost"
             size="sm"
