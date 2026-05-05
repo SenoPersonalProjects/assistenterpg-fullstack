@@ -1,6 +1,7 @@
 // src/components/suplemento/forms/equipamentos/ArmaFields.tsx
 'use client';
 
+import { useEffect } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -32,6 +33,37 @@ type Props = {
 export function ArmaFields({ dados, onChange }: Props) {
   const danos: DadosDanoArma[] = dados.danos ?? [];
   const empunhaduras: EmpunhaduraArma[] = dados.empunhaduras ?? [];
+
+  useEffect(() => {
+    const defaults: Partial<HomebrewFormDados> = {};
+
+    if (dados.agil == null) {
+      defaults.agil = false;
+    }
+    if (dados.criticoValor == null) {
+      defaults.criticoValor = 20;
+    }
+    if (dados.criticoMultiplicador == null) {
+      defaults.criticoMultiplicador = 2;
+    }
+    if (!Array.isArray(dados.danos)) {
+      defaults.danos = [];
+    }
+    if (!Array.isArray(dados.empunhaduras)) {
+      defaults.empunhaduras = [];
+    }
+
+    if (Object.keys(defaults).length > 0) {
+      onChange(defaults);
+    }
+  }, [
+    dados.agil,
+    dados.criticoMultiplicador,
+    dados.criticoValor,
+    dados.danos,
+    dados.empunhaduras,
+    onChange,
+  ]);
 
   function addDano() {
     const novoDano: DadosDanoArma = {

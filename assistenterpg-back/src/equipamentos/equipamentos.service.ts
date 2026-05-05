@@ -65,6 +65,11 @@ const equipamentoResumoSelect =
         tipoBase: true,
       },
     },
+    homebrewOrigem: {
+      select: {
+        status: true,
+      },
+    },
   });
 
 const equipamentoDetalhadoInclude =
@@ -210,6 +215,9 @@ export class EquipamentosService {
     const equipamentos = await this.prisma.equipamentoCatalogo.findMany({
       where: {
         usuarioId,
+        homebrewOrigemId: {
+          not: null,
+        },
       },
       orderBy: [{ nome: 'asc' }, { id: 'asc' }],
       select: equipamentoResumoSelect,
@@ -505,6 +513,7 @@ export class EquipamentosService {
       armaAmaldicoada: equipamento.armaAmaldicoada ?? null,
       protecaoAmaldicoada: equipamento.protecaoAmaldicoada ?? null,
       artefatoAmaldicoado: equipamento.artefatoAmaldicoado ?? null,
+      homebrewOrigemStatus: equipamento.homebrewOrigem?.status ?? null,
     };
   }
 

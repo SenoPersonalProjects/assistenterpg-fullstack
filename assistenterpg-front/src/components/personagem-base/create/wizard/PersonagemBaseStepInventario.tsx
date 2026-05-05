@@ -409,7 +409,9 @@ export function PersonagemBaseStepInventario(props: Props) {
 
     equipamentos.forEach((equip) => {
       if (equip.fonte === 'HOMEBREW') {
-        categorizado.HOMEBREW.push(equip);
+        if (equip.homebrewOrigemStatus === 'PUBLICADO') {
+          categorizado.HOMEBREW.push(equip);
+        }
         return;
       }
 

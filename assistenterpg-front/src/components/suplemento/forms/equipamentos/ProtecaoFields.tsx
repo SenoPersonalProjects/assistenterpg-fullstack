@@ -2,6 +2,7 @@
 
 'use client';
 
+import { useEffect } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
@@ -24,6 +25,24 @@ type Props = {
 
 export function ProtecaoFields({ dados, onChange }: Props) {
   const reducoesDano: DadosReducaoDano[] = dados.reducoesDano ?? [];
+
+  useEffect(() => {
+    const defaults: Partial<HomebrewFormDados> = {};
+
+    if (dados.bonusDefesa == null) {
+      defaults.bonusDefesa = 0;
+    }
+    if (dados.penalidadeCarga == null) {
+      defaults.penalidadeCarga = 0;
+    }
+    if (!Array.isArray(dados.reducoesDano)) {
+      defaults.reducoesDano = [];
+    }
+
+    if (Object.keys(defaults).length > 0) {
+      onChange(defaults);
+    }
+  }, [dados.bonusDefesa, dados.penalidadeCarga, dados.reducoesDano, onChange]);
 
   function addReducao() {
     const novaReducao: DadosReducaoDano = {

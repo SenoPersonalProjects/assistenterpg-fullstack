@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
   Prisma,
   StatusPublicacao,
+  TipoAmaldicoado,
+  TipoEquipamento,
   TipoFonte,
   TipoHomebrewConteudo,
 } from '@prisma/client';
@@ -357,222 +359,54 @@ export class HomebrewsService {
       );
     }
 
-    const dados =
-      homebrew.dados && typeof homebrew.dados === 'object' && !Array.isArray(homebrew.dados)
-        ? (homebrew.dados as Record<string, unknown>)
-        : {};
+    const payload = this.construirPayloadEquipamentoMaterializado(
+      homebrew,
+      usuarioId,
+    );
 
-    const equipamento = await prismaTx.equipamentoCatalogo.create({
-      data: {
-        codigo: this.gerarCodigoEquipamentoHomebrew(homebrew.id),
-        nome: homebrew.nome,
-        descricao: homebrew.descricao ?? null,
-        tipo: String(dados.tipo ?? 'ITEM_OPERACIONAL') as never,
-        categoria: String(dados.categoria ?? 'CATEGORIA_0') as never,
-        espacos:
-          typeof dados.espacos === 'number' ? dados.espacos : 1,
-        fonte: TipoFonte.HOMEBREW,
+    const equipamentoExistente = await prismaTx.equipamentoCatalogo.findFirst({
+      where: {
         usuarioId,
         homebrewOrigemId: homebrew.id,
-        complexidadeMaldicao: String(
-          dados.complexidadeMaldicao ?? 'NENHUMA',
-        ) as never,
-        tipoUso:
-          typeof dados.tipoUso === 'string' ? (dados.tipoUso as never) : null,
-        tipoAmaldicoado:
-          typeof dados.tipoAmaldicoado === 'string'
-            ? (dados.tipoAmaldicoado as never)
-            : null,
-        efeito: typeof dados.efeito === 'string' ? dados.efeito : null,
-        efeitoMaldicao:
-          typeof dados.efeitoMaldicao === 'string'
-            ? dados.efeitoMaldicao
-            : null,
-        requerFerramentasAmaldicoadas:
-          dados.requerFerramentasAmaldicoadas === true,
-        proficienciaArma:
-          typeof dados.proficienciaArma === 'string'
-            ? (dados.proficienciaArma as never)
-            : null,
-        empunhaduras: Array.isArray(dados.empunhaduras)
-          ? (dados.empunhaduras as Prisma.InputJsonValue)
-          : undefined,
-        tipoArma:
-          typeof dados.tipoArma === 'string' ? (dados.tipoArma as never) : null,
-        subtipoDistancia:
-          typeof dados.subtipoDistancia === 'string'
-            ? (dados.subtipoDistancia as never)
-            : null,
-        agil: dados.agil === true,
-        criticoValor:
-          typeof dados.criticoValor === 'number' ? dados.criticoValor : null,
-        criticoMultiplicador:
-          typeof dados.criticoMultiplicador === 'number'
-            ? dados.criticoMultiplicador
-            : null,
-        alcance:
-          typeof dados.alcance === 'string' ? (dados.alcance as never) : null,
-        tipoMunicaoCodigo:
-          typeof dados.tipoMunicaoCodigo === 'string'
-            ? dados.tipoMunicaoCodigo
-            : null,
-        habilidadeEspecial:
-          typeof dados.habilidadeEspecial === 'string'
-            ? dados.habilidadeEspecial
-            : null,
-        proficienciaProtecao:
-          typeof dados.proficienciaProtecao === 'string'
-            ? (dados.proficienciaProtecao as never)
-            : null,
-        tipoProtecao:
-          typeof dados.tipoProtecao === 'string'
-            ? (dados.tipoProtecao as never)
-            : null,
-        bonusDefesa:
-          typeof dados.bonusDefesa === 'number' ? dados.bonusDefesa : 0,
-        penalidadeCarga:
-          typeof dados.penalidadeCarga === 'number'
-            ? dados.penalidadeCarga
-            : 0,
-        duracaoCenas:
-          typeof dados.duracaoCenas === 'number' ? dados.duracaoCenas : null,
-        recuperavel: dados.recuperavel === true,
-        tipoAcessorio:
-          typeof dados.tipoAcessorio === 'string'
-            ? (dados.tipoAcessorio as never)
-            : null,
-        periciaBonificada:
-          typeof dados.periciaBonificada === 'string'
-            ? dados.periciaBonificada
-            : null,
-        bonusPericia:
-          typeof dados.bonusPericia === 'number' ? dados.bonusPericia : 0,
-        requereEmpunhar: dados.requereEmpunhar === true,
-        maxVestimentas:
-          typeof dados.maxVestimentas === 'number' ? dados.maxVestimentas : 0,
-        tipoExplosivo:
-          typeof dados.tipoExplosivo === 'string'
-            ? (dados.tipoExplosivo as never)
-            : null,
-        danos: Array.isArray(dados.danos)
-          ? {
-              create: dados.danos.map((dano, index) => {
-                const item = dano as Record<string, unknown>;
-                return {
-                  empunhadura:
-                    typeof item.empunhadura === 'string'
-                      ? (item.empunhadura as never)
-                      : null,
-                  tipoDano: String(item.tipoDano) as never,
-                  rolagem: String(item.rolagem ?? '1d6'),
-                  valorFlat:
-                    typeof item.valorFlat === 'number' ? item.valorFlat : 0,
-                  ordem: index,
-                };
-              }),
-            }
-          : undefined,
-        reducesDano: Array.isArray(dados.reducoesDano)
-          ? {
-              create: dados.reducoesDano.map((reducao) => {
-                const item = reducao as Record<string, unknown>;
-                return {
-                  tipoReducao: String(item.tipoReducao) as never,
-                  valor: typeof item.valor === 'number' ? item.valor : 0,
-                };
-              }),
-            }
-          : undefined,
-        armaAmaldicoada:
-          dados.armaAmaldicoada &&
-          typeof dados.armaAmaldicoada === 'object' &&
-          !Array.isArray(dados.armaAmaldicoada)
-            ? {
-                create: {
-                  tipoBase: String(
-                    (dados.armaAmaldicoada as Record<string, unknown>).tipoBase ??
-                      'ARMA',
-                  ),
-                  proficienciaRequerida:
-                    (dados.armaAmaldicoada as Record<string, unknown>)
-                      .proficienciaRequerida === true,
-                  efeito:
-                    typeof (dados.armaAmaldicoada as Record<string, unknown>).efeito ===
-                    'string'
-                      ? ((dados.armaAmaldicoada as Record<string, unknown>)
-                          .efeito as string)
-                      : null,
-                },
-              }
-            : undefined,
-        protecaoAmaldicoada:
-          dados.protecaoAmaldicoada &&
-          typeof dados.protecaoAmaldicoada === 'object' &&
-          !Array.isArray(dados.protecaoAmaldicoada)
-            ? {
-                create: {
-                  tipoBase: String(
-                    (dados.protecaoAmaldicoada as Record<string, unknown>)
-                      .tipoBase ?? 'PROTECAO',
-                  ),
-                  bonusDefesa:
-                    typeof (dados.protecaoAmaldicoada as Record<string, unknown>)
-                      .bonusDefesa === 'number'
-                      ? ((dados.protecaoAmaldicoada as Record<string, unknown>)
-                          .bonusDefesa as number)
-                      : 0,
-                  penalidadeCarga:
-                    typeof (dados.protecaoAmaldicoada as Record<string, unknown>)
-                      .penalidadeCarga === 'number'
-                      ? ((dados.protecaoAmaldicoada as Record<string, unknown>)
-                          .penalidadeCarga as number)
-                      : 0,
-                  proficienciaRequerida:
-                    (dados.protecaoAmaldicoada as Record<string, unknown>)
-                      .proficienciaRequerida === true,
-                  efeito:
-                    typeof (dados.protecaoAmaldicoada as Record<string, unknown>).efeito ===
-                    'string'
-                      ? ((dados.protecaoAmaldicoada as Record<string, unknown>)
-                          .efeito as string)
-                      : null,
-                },
-              }
-            : undefined,
-        artefatoAmaldicoado:
-          dados.artefatoAmaldicoado &&
-          typeof dados.artefatoAmaldicoado === 'object' &&
-          !Array.isArray(dados.artefatoAmaldicoado)
-            ? {
-                create: {
-                  tipoBase: String(
-                    (dados.artefatoAmaldicoado as Record<string, unknown>)
-                      .tipoBase ?? 'ARTEFATO',
-                  ),
-                  proficienciaRequerida:
-                    (dados.artefatoAmaldicoado as Record<string, unknown>)
-                      .proficienciaRequerida === true,
-                  efeito:
-                    typeof (dados.artefatoAmaldicoado as Record<string, unknown>).efeito ===
-                    'string'
-                      ? ((dados.artefatoAmaldicoado as Record<string, unknown>)
-                          .efeito as string)
-                      : null,
-                  custoUso:
-                    typeof (dados.artefatoAmaldicoado as Record<string, unknown>)
-                      .custoUso === 'string'
-                      ? ((dados.artefatoAmaldicoado as Record<string, unknown>)
-                          .custoUso as string)
-                      : null,
-                  manutencao:
-                    typeof (dados.artefatoAmaldicoado as Record<string, unknown>)
-                      .manutencao === 'string'
-                      ? ((dados.artefatoAmaldicoado as Record<string, unknown>)
-                          .manutencao as string)
-                      : null,
-                },
-              }
-            : undefined,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const equipamentoId = equipamentoExistente?.id;
+
+    if (equipamentoId) {
+      await prismaTx.equipamentoDano.deleteMany({
+        where: { equipamentoId },
+      });
+      await prismaTx.equipamentoReducaoDano.deleteMany({
+        where: { equipamentoId },
+      });
+      await prismaTx.armaAmaldicoada.deleteMany({
+        where: { equipamentoId },
+      });
+      await prismaTx.protecaoAmaldicoada.deleteMany({
+        where: { equipamentoId },
+      });
+      await prismaTx.artefatoAmaldicoado.deleteMany({
+        where: { equipamentoId },
+      });
+
+      await prismaTx.equipamentoCatalogo.update({
+        where: { id: equipamentoId },
+        data: payload as Prisma.EquipamentoCatalogoUncheckedUpdateInput,
+      });
+    } else {
+      await prismaTx.equipamentoCatalogo.create({
+        data: payload,
+      });
+    }
+
+    const equipamento = await prismaTx.equipamentoCatalogo.findFirstOrThrow({
+      where: {
+        usuarioId,
+        homebrewOrigemId: homebrew.id,
       },
       select: {
         id: true,
@@ -601,6 +435,238 @@ export class HomebrewsService {
     return {
       homebrew: this.mapDetalhado(homebrew),
       equipamento: this.mapearEquipamentoHomebrewResumo(equipamento),
+    };
+  }
+
+  private construirPayloadEquipamentoMaterializado(
+    homebrew: Prisma.HomebrewGetPayload<{ include: typeof homebrewDetalhadoInclude }>,
+    usuarioId: number,
+  ): Prisma.EquipamentoCatalogoUncheckedCreateInput {
+    const dados = this.isRecord(homebrew.dados)
+      ? (homebrew.dados as Record<string, unknown>)
+      : {};
+
+    const armaAmaldicoada = this.isRecord(dados.armaAmaldicoada)
+      ? (dados.armaAmaldicoada as Record<string, unknown>)
+      : null;
+    const protecaoAmaldicoada = this.isRecord(dados.protecaoAmaldicoada)
+      ? (dados.protecaoAmaldicoada as Record<string, unknown>)
+      : null;
+    const artefatoAmaldicoado = this.isRecord(dados.artefatoAmaldicoado)
+      ? (dados.artefatoAmaldicoado as Record<string, unknown>)
+      : null;
+
+    const dadosArmaBase =
+      armaAmaldicoada && this.isRecord(armaAmaldicoada.dadosArma)
+        ? (armaAmaldicoada.dadosArma as Record<string, unknown>)
+        : null;
+    const dadosProtecaoBase =
+      protecaoAmaldicoada && this.isRecord(protecaoAmaldicoada.dadosProtecao)
+        ? (protecaoAmaldicoada.dadosProtecao as Record<string, unknown>)
+        : null;
+
+    let dadosEfetivos: Record<string, unknown> = dados;
+
+    if (
+      dados.tipo === TipoEquipamento.FERRAMENTA_AMALDICOADA &&
+      dados.tipoAmaldicoado === TipoAmaldicoado.ARMA &&
+      dadosArmaBase
+    ) {
+      dadosEfetivos = dadosArmaBase;
+    } else if (
+      dados.tipo === TipoEquipamento.FERRAMENTA_AMALDICOADA &&
+      dados.tipoAmaldicoado === TipoAmaldicoado.PROTECAO &&
+      dadosProtecaoBase
+    ) {
+      dadosEfetivos = dadosProtecaoBase;
+    }
+
+    return {
+      codigo: this.gerarCodigoEquipamentoHomebrew(homebrew.id),
+      nome: homebrew.nome,
+      descricao: homebrew.descricao ?? null,
+      tipo: String(dados.tipo ?? 'ITEM_OPERACIONAL') as never,
+      categoria: String(dados.categoria ?? 'CATEGORIA_0') as never,
+      espacos: typeof dados.espacos === 'number' ? dados.espacos : 1,
+      fonte: TipoFonte.HOMEBREW,
+      usuarioId,
+      homebrewOrigemId: homebrew.id,
+      complexidadeMaldicao: String(
+        dados.complexidadeMaldicao ?? 'NENHUMA',
+      ) as never,
+      tipoUso:
+        typeof dados.tipoUso === 'string' ? (dados.tipoUso as never) : null,
+      tipoAmaldicoado:
+        typeof dados.tipoAmaldicoado === 'string'
+          ? (dados.tipoAmaldicoado as never)
+          : null,
+      efeito: typeof dados.efeito === 'string' ? dados.efeito : null,
+      efeitoMaldicao:
+        typeof dados.efeitoMaldicao === 'string' ? dados.efeitoMaldicao : null,
+      requerFerramentasAmaldicoadas:
+        dados.requerFerramentasAmaldicoadas === true,
+      proficienciaArma:
+        typeof dadosEfetivos.proficienciaArma === 'string'
+          ? (dadosEfetivos.proficienciaArma as never)
+          : null,
+      empunhaduras: Array.isArray(dadosEfetivos.empunhaduras)
+        ? (dadosEfetivos.empunhaduras as Prisma.InputJsonValue)
+        : undefined,
+      tipoArma:
+        typeof dadosEfetivos.tipoArma === 'string'
+          ? (dadosEfetivos.tipoArma as never)
+          : null,
+      subtipoDistancia:
+        typeof dadosEfetivos.subtipoDistancia === 'string'
+          ? (dadosEfetivos.subtipoDistancia as never)
+          : null,
+      agil: dadosEfetivos.agil === true,
+      criticoValor:
+        typeof dadosEfetivos.criticoValor === 'number'
+          ? (dadosEfetivos.criticoValor as number)
+          : null,
+      criticoMultiplicador:
+        typeof dadosEfetivos.criticoMultiplicador === 'number'
+          ? (dadosEfetivos.criticoMultiplicador as number)
+          : null,
+      alcance:
+        typeof dadosEfetivos.alcance === 'string'
+          ? (dadosEfetivos.alcance as never)
+          : null,
+      tipoMunicaoCodigo:
+        typeof dadosEfetivos.tipoMunicaoCodigo === 'string'
+          ? (dadosEfetivos.tipoMunicaoCodigo as string)
+          : null,
+      habilidadeEspecial:
+        typeof dadosEfetivos.habilidadeEspecial === 'string'
+          ? (dadosEfetivos.habilidadeEspecial as string)
+          : null,
+      proficienciaProtecao:
+        typeof dadosEfetivos.proficienciaProtecao === 'string'
+          ? (dadosEfetivos.proficienciaProtecao as never)
+          : null,
+      tipoProtecao:
+        typeof dadosEfetivos.tipoProtecao === 'string'
+          ? (dadosEfetivos.tipoProtecao as never)
+          : null,
+      bonusDefesa:
+        typeof dadosEfetivos.bonusDefesa === 'number'
+          ? (dadosEfetivos.bonusDefesa as number)
+          : 0,
+      penalidadeCarga:
+        typeof dadosEfetivos.penalidadeCarga === 'number'
+          ? (dadosEfetivos.penalidadeCarga as number)
+          : 0,
+      duracaoCenas:
+        typeof dadosEfetivos.duracaoCenas === 'number'
+          ? (dadosEfetivos.duracaoCenas as number)
+          : null,
+      recuperavel: dadosEfetivos.recuperavel === true,
+      tipoAcessorio:
+        typeof dadosEfetivos.tipoAcessorio === 'string'
+          ? (dadosEfetivos.tipoAcessorio as never)
+          : null,
+      periciaBonificada:
+        typeof dadosEfetivos.periciaBonificada === 'string'
+          ? (dadosEfetivos.periciaBonificada as string)
+          : null,
+      bonusPericia:
+        typeof dadosEfetivos.bonusPericia === 'number'
+          ? (dadosEfetivos.bonusPericia as number)
+          : 0,
+      requereEmpunhar: dadosEfetivos.requereEmpunhar === true,
+      maxVestimentas:
+        typeof dadosEfetivos.maxVestimentas === 'number'
+          ? (dadosEfetivos.maxVestimentas as number)
+          : 0,
+      tipoExplosivo:
+        typeof dadosEfetivos.tipoExplosivo === 'string'
+          ? (dadosEfetivos.tipoExplosivo as never)
+          : null,
+      danos: Array.isArray(dadosEfetivos.danos)
+        ? {
+            create: dadosEfetivos.danos.map((dano, index) => {
+              const item = dano as Record<string, unknown>;
+              return {
+                empunhadura:
+                  typeof item.empunhadura === 'string'
+                    ? (item.empunhadura as never)
+                    : null,
+                tipoDano: String(item.tipoDano) as never,
+                rolagem: String(item.rolagem ?? '1d6'),
+                valorFlat:
+                  typeof item.valorFlat === 'number' ? item.valorFlat : 0,
+                ordem: index,
+              };
+            }),
+          }
+        : undefined,
+      reducesDano: Array.isArray(dadosEfetivos.reducoesDano)
+        ? {
+            create: dadosEfetivos.reducoesDano.map((reducao) => {
+              const item = reducao as Record<string, unknown>;
+              return {
+                tipoReducao: String(item.tipoReducao) as never,
+                valor: typeof item.valor === 'number' ? item.valor : 0,
+              };
+            }),
+          }
+        : undefined,
+      armaAmaldicoada: armaAmaldicoada
+        ? {
+            create: {
+              tipoBase: String(armaAmaldicoada.tipoBase ?? 'ARMA'),
+              proficienciaRequerida:
+                armaAmaldicoada.proficienciaRequerida === true,
+              efeito:
+                typeof armaAmaldicoada.efeito === 'string'
+                  ? (armaAmaldicoada.efeito as string)
+                  : null,
+            },
+          }
+        : undefined,
+      protecaoAmaldicoada: protecaoAmaldicoada
+        ? {
+            create: {
+              tipoBase: String(protecaoAmaldicoada.tipoBase ?? 'PROTECAO'),
+              bonusDefesa:
+                typeof dadosProtecaoBase?.bonusDefesa === 'number'
+                  ? (dadosProtecaoBase.bonusDefesa as number)
+                  : 0,
+              penalidadeCarga:
+                typeof dadosProtecaoBase?.penalidadeCarga === 'number'
+                  ? (dadosProtecaoBase.penalidadeCarga as number)
+                  : 0,
+              proficienciaRequerida:
+                protecaoAmaldicoada.proficienciaRequerida === true,
+              efeito:
+                typeof protecaoAmaldicoada.efeito === 'string'
+                  ? (protecaoAmaldicoada.efeito as string)
+                  : null,
+            },
+          }
+        : undefined,
+      artefatoAmaldicoado: artefatoAmaldicoado
+        ? {
+            create: {
+              tipoBase: String(artefatoAmaldicoado.tipoBase ?? 'ARTEFATO'),
+              proficienciaRequerida:
+                artefatoAmaldicoado.proficienciaRequerida === true,
+              efeito:
+                typeof artefatoAmaldicoado.efeito === 'string'
+                  ? (artefatoAmaldicoado.efeito as string)
+                  : null,
+              custoUso:
+                typeof artefatoAmaldicoado.custoUso === 'string'
+                  ? (artefatoAmaldicoado.custoUso as string)
+                  : null,
+              manutencao:
+                typeof artefatoAmaldicoado.manutencao === 'string'
+                  ? (artefatoAmaldicoado.manutencao as string)
+                  : null,
+            },
+          }
+        : undefined,
     };
   }
 
@@ -757,21 +823,30 @@ export class HomebrewsService {
         ? createHomebrewDto.tags
         : [];
 
-      const data: Prisma.HomebrewUncheckedCreateInput = {
-        codigo,
-        nome: createHomebrewDto.nome,
-        descricao: createHomebrewDto.descricao ?? null,
-        tipo: createHomebrewDto.tipo,
-        status: createHomebrewDto.status ?? StatusPublicacao.RASCUNHO,
-        dados: this.normalizarJsonParaPersistir(createHomebrewDto.dados),
-        tags: this.normalizarJsonParaPersistir(tags),
-        versao: createHomebrewDto.versao ?? '1.0.0',
-        usuarioId,
-      };
+      const homebrew = await this.prisma.$transaction(async (tx) => {
+        const criado = await tx.homebrew.create({
+          data: {
+            codigo,
+            nome: createHomebrewDto.nome,
+            descricao: createHomebrewDto.descricao ?? null,
+            tipo: createHomebrewDto.tipo,
+            status: createHomebrewDto.status ?? StatusPublicacao.RASCUNHO,
+            dados: this.normalizarJsonParaPersistir(createHomebrewDto.dados),
+            tags: this.normalizarJsonParaPersistir(tags),
+            versao: createHomebrewDto.versao ?? '1.0.0',
+            usuarioId,
+          },
+          include: homebrewDetalhadoInclude,
+        });
 
-      const homebrew = await this.prisma.homebrew.create({
-        data,
-        include: homebrewDetalhadoInclude,
+        if (
+          criado.tipo === TipoHomebrewConteudo.EQUIPAMENTO &&
+          criado.status === StatusPublicacao.PUBLICADO
+        ) {
+          await this.materializarEquipamentoDeHomebrew(criado.id, usuarioId, tx);
+        }
+
+        return criado;
       });
 
       this.logger.log(
@@ -854,10 +929,25 @@ export class HomebrewsService {
         dadosAtualizacao.versao = this.incrementarVersao(homebrew.versao);
       }
 
-      const atualizado = await this.prisma.homebrew.update({
-        where: { id },
-        data: dadosAtualizacao,
-        include: homebrewDetalhadoInclude,
+      const atualizado = await this.prisma.$transaction(async (tx) => {
+        const homebrewAtualizado = await tx.homebrew.update({
+          where: { id },
+          data: dadosAtualizacao,
+          include: homebrewDetalhadoInclude,
+        });
+
+        if (
+          homebrewAtualizado.tipo === TipoHomebrewConteudo.EQUIPAMENTO &&
+          homebrewAtualizado.status === StatusPublicacao.PUBLICADO
+        ) {
+          await this.materializarEquipamentoDeHomebrew(
+            homebrewAtualizado.id,
+            usuarioId,
+            tx,
+          );
+        }
+
+        return homebrewAtualizado;
       });
 
       this.logger.log(
@@ -929,17 +1019,29 @@ export class HomebrewsService {
         throw new HomebrewJaPublicadoException(id);
       }
 
-      const atualizado = await this.prisma.homebrew.update({
-        where: { id },
-        data: { status: StatusPublicacao.PUBLICADO },
-        include: {
-          usuario: {
-            select: {
-              id: true,
-              apelido: true,
+      const atualizado = await this.prisma.$transaction(async (tx) => {
+        const homebrewPublicado = await tx.homebrew.update({
+          where: { id },
+          data: { status: StatusPublicacao.PUBLICADO },
+          include: {
+            usuario: {
+              select: {
+                id: true,
+                apelido: true,
+              },
             },
           },
-        },
+        });
+
+        if (homebrewPublicado.tipo === TipoHomebrewConteudo.EQUIPAMENTO) {
+          await this.materializarEquipamentoDeHomebrew(
+            homebrewPublicado.id,
+            usuarioId,
+            tx,
+          );
+        }
+
+        return homebrewPublicado;
       });
 
       this.logger.log(`Homebrew publicado: ${atualizado.codigo}`);

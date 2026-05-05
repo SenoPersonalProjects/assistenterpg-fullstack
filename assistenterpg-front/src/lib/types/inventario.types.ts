@@ -4,7 +4,7 @@
  */
 
 import type { ItemInventarioPayload } from './personagem.types';
-import type { TipoFonte } from './homebrew-enums';
+import type { StatusPublicacao, TipoFonte } from './homebrew-enums';
 
 /* ============================================================================ */
 /* EQUIPAMENTOS */
@@ -54,6 +54,7 @@ export type EquipamentoCatalogo = {
   armaAmaldicoada?: unknown;
   protecaoAmaldicoada?: unknown;
   artefatoAmaldicoado?: unknown;
+  homebrewOrigemStatus?: StatusPublicacao | null;
 };
 
 export type EquipamentoResumoDto = {
@@ -97,6 +98,8 @@ export type EquipamentoResumoDto = {
     id: number;
     tipoBase: string;
   } | null;
+
+  homebrewOrigemStatus?: StatusPublicacao | null;
 };
 
 export type EquipamentoDetalhadoDto = {
