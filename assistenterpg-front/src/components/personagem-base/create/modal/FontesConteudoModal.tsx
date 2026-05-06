@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo, useState } from 'react';
 
@@ -26,6 +26,8 @@ type FontesConteudoModalProps = {
   selecaoAtual: FontesConteudoSelecionadas;
 };
 
+type ModoVisualizacaoHomebrew = 'TUDO' | 'GRUPOS' | 'INDIVIDUAIS';
+
 function ordenarPorNome<T extends { nome: string }>(lista: T[]): T[] {
   return [...lista].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 }
@@ -42,6 +44,8 @@ export function FontesConteudoModal({
   const selecaoInicial = normalizarFontesConteudoSelecionadas(selecaoAtual);
 
   const [busca, setBusca] = useState('');
+  const [modoVisualizacaoHomebrew, setModoVisualizacaoHomebrew] =
+    useState<ModoVisualizacaoHomebrew>('TUDO');
   const [suplementoIdsSelecionados, setSuplementoIdsSelecionados] = useState<number[]>(
     selecaoInicial.suplementoIds,
   );
@@ -58,6 +62,10 @@ export function FontesConteudoModal({
     homebrewIdsSelecionados.length +
     homebrewGrupoIdsSelecionados.length;
   const possuiBusca = buscaNormalizada.length > 0;
+  const exibirGrupos =
+    modoVisualizacaoHomebrew === 'TUDO' || modoVisualizacaoHomebrew === 'GRUPOS';
+  const exibirHomebrews =
+    modoVisualizacaoHomebrew === 'TUDO' || modoVisualizacaoHomebrew === 'INDIVIDUAIS';
 
   const suplementosFiltrados = useMemo(() => {
     const ordenados = ordenarPorNome(suplementos);
@@ -97,7 +105,7 @@ export function FontesConteudoModal({
   }, [gruposHomebrew, buscaNormalizada]);
 
   const resumoSelecao = totalSelecionados
-    ? `${suplementoIdsSelecionados.length} suplemento(s) • ${homebrewGrupoIdsSelecionados.length} grupo(s) • ${homebrewIdsSelecionados.length} homebrew(s)`
+    ? `${suplementoIdsSelecionados.length} suplemento(s) - ${homebrewGrupoIdsSelecionados.length} grupo(s) - ${homebrewIdsSelecionados.length} homebrew(s)`
     : 'Nenhuma fonte adicional selecionada';
 
   function toggleSuplemento(suplementoId: number, checked: boolean) {
@@ -136,7 +144,7 @@ export function FontesConteudoModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Fontes de conteúdo da criação"
+      title="Fontes de conteudo da ficha"
       size="xl"
       footer={
         <>
@@ -144,10 +152,10 @@ export function FontesConteudoModal({
             Cancelar
           </Button>
           <Button onClick={handleConfirmar}>
-            <Icon name="check" className="w-4 h-4 mr-2" />
+            <Icon name="check" className="mr-2 h-4 w-4" />
             {totalSelecionados > 0
-              ? `Aplicar seleção (${totalSelecionados})`
-              : 'Aplicar seleção'}
+              ? `Aplicar selecao (${totalSelecionados})`
+              : 'Aplicar selecao'}
           </Button>
         </>
       }
@@ -155,8 +163,7 @@ export function FontesConteudoModal({
       <div className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm text-app-muted">
-            Escolha quais suplementos e homebrews ficam disponíveis durante a
-            criação do personagem.
+            Escolha quais suplementos e homebrews ficam disponiveis para esta ficha.
           </p>
           <div className="rounded-lg border border-app-border bg-app-card p-3">
             <div className="flex items-center justify-between gap-3">
@@ -166,9 +173,7 @@ export function FontesConteudoModal({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-app-fg">Sistema base</p>
-                  <p className="text-xs text-app-muted">
-                    Sempre incluído na criação.
-                  </p>
+                  <p className="text-xs text-app-muted">Sempre incluido na ficha.</p>
                 </div>
               </div>
               <Badge color="green" size="sm">
@@ -199,7 +204,35 @@ export function FontesConteudoModal({
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium text-app-muted">Exibir homebrews:</span>
+          {(
+            [
+              { value: 'TUDO', label: 'Tudo' },
+              { value: 'GRUPOS', label: 'So grupos' },
+              { value: 'INDIVIDUAIS', label: 'So individuais' },
+            ] as const
+          ).map((opcao) => {
+            const ativo = modoVisualizacaoHomebrew === opcao.value;
+            return (
+              <Button
+                key={opcao.value}
+                type="button"
+                size="xs"
+                variant={ativo ? 'primary' : 'secondary'}
+                onClick={() => setModoVisualizacaoHomebrew(opcao.value)}
+              >
+                {opcao.label}
+              </Button>
+            );
+          })}
+        </div>
+
+        <div
+          className={`grid gap-4 ${
+            exibirGrupos && exibirHomebrews ? 'xl:grid-cols-3' : 'xl:grid-cols-2'
+          }`}
+        >
           <section className="rounded-lg border border-app-border bg-app-card p-3">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="flex items-start gap-2">
@@ -207,11 +240,9 @@ export function FontesConteudoModal({
                   <Icon name="book" className="h-3.5 w-3.5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-app-fg">
-                    Suplementos oficiais
-                  </h3>
+                  <h3 className="text-sm font-semibold text-app-fg">Suplementos oficiais</h3>
                   <p className="text-xs text-app-muted">
-                    Conteúdo publicado e validado no catálogo.
+                    Conteudo publicado e validado no catalogo.
                   </p>
                 </div>
               </div>
@@ -224,8 +255,8 @@ export function FontesConteudoModal({
               {suplementosFiltrados.length === 0 ? (
                 <p className="text-xs text-app-muted">
                   {possuiBusca
-                    ? 'Nenhum suplemento corresponde à busca atual.'
-                    : 'Nenhum suplemento disponível no momento.'}
+                    ? 'Nenhum suplemento corresponde a busca atual.'
+                    : 'Nenhum suplemento disponivel no momento.'}
                 </p>
               ) : (
                 suplementosFiltrados.map((suplemento) => {
@@ -244,9 +275,7 @@ export function FontesConteudoModal({
                         onChange={(event) => toggleSuplemento(suplemento.id, event.target.checked)}
                         label={
                           <div className="space-y-1">
-                            <p className="text-sm font-semibold text-app-fg">
-                              {suplemento.nome}
-                            </p>
+                            <p className="text-sm font-semibold text-app-fg">{suplemento.nome}</p>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-app-muted">
                               <span>{suplemento.codigo}</span>
                               <Badge color="gray" size="sm">
@@ -254,7 +283,7 @@ export function FontesConteudoModal({
                               </Badge>
                               {checked ? (
                                 <Badge color="green" size="sm">
-                                  Incluído
+                                  Incluido
                                 </Badge>
                               ) : null}
                             </div>
@@ -269,150 +298,147 @@ export function FontesConteudoModal({
             </div>
           </section>
 
-          <section className="rounded-lg border border-app-border bg-app-card p-3">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2">
-                <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md bg-app-primary/10 text-app-primary">
-                  <Icon name="list" className="h-3.5 w-3.5" />
+          {exibirGrupos ? (
+            <section className="rounded-lg border border-app-border bg-app-card p-3">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md bg-app-primary/10 text-app-primary">
+                    <Icon name="list" className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-app-fg">Grupos de homebrew</h3>
+                    <p className="text-xs text-app-muted">
+                      Pacotes privados. Ao habilitar um grupo, as homebrews publicadas dele entram nas fontes da ficha.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-app-fg">
-                    Grupos de homebrew
-                  </h3>
-                  <p className="text-xs text-app-muted">
-                    Pacotes privados que expandem varias homebrews publicadas.
-                  </p>
-                </div>
+                <Badge color="blue" size="sm">
+                  {homebrewGrupoIdsSelecionados.length} selecionado(s)
+                </Badge>
               </div>
-              <Badge color="blue" size="sm">
-                {homebrewGrupoIdsSelecionados.length} selecionado(s)
-              </Badge>
-            </div>
 
-            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-              {gruposFiltrados.length === 0 ? (
-                <p className="text-xs text-app-muted">
-                  {possuiBusca
-                    ? 'Nenhum grupo corresponde a busca atual.'
-                    : 'Nenhum grupo disponivel no momento.'}
-                </p>
-              ) : (
-                gruposFiltrados.map((grupo) => {
-                  const checked = homebrewGrupoIdsSelecionados.includes(grupo.id);
-                  return (
-                    <div
-                      key={grupo.id}
-                      className={`rounded-md border p-3 transition-colors ${
-                        checked
-                          ? 'border-app-primary/50 bg-app-primary/10 shadow-sm'
-                          : 'border-app-border bg-app-surface hover:border-app-primary/30 hover:bg-app-primary/5'
-                      }`}
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onChange={(event) =>
-                          toggleGrupoHomebrew(grupo.id, event.target.checked)
-                        }
-                        label={
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-app-fg">
-                              {grupo.nome}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-app-muted">
-                              <Badge color="blue" size="sm">
-                                {grupo.quantidadeItens} item(ns)
-                              </Badge>
-                              {checked ? (
-                                <Badge color="green" size="sm">
-                                  Ativo na criacao
-                                </Badge>
-                              ) : null}
-                            </div>
-                            {grupo.descricao ? (
-                              <p className="text-xs text-app-muted">{grupo.descricao}</p>
-                            ) : null}
-                          </div>
-                        }
-                        className="w-full items-start"
-                      />
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-app-border bg-app-card p-3">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2">
-                <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md bg-app-secondary/15 text-app-secondary">
-                  <Icon name="sparkles" className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-app-fg">
-                    Homebrews disponíveis
-                  </h3>
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {gruposFiltrados.length === 0 ? (
                   <p className="text-xs text-app-muted">
-                    Conteúdo personalizado acessível na sua conta.
+                    {possuiBusca
+                      ? 'Nenhum grupo corresponde a busca atual.'
+                      : 'Nenhum grupo disponivel no momento.'}
                   </p>
-                </div>
-              </div>
-              <Badge color="purple" size="sm">
-                {homebrewIdsSelecionados.length} selecionado(s)
-              </Badge>
-            </div>
-
-            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-              {homebrewsFiltrados.length === 0 ? (
-                <p className="text-xs text-app-muted">
-                  {possuiBusca
-                    ? 'Nenhuma homebrew corresponde à busca atual.'
-                    : 'Nenhuma homebrew disponível no momento.'}
-                </p>
-              ) : (
-                homebrewsFiltrados.map((homebrew) => {
-                  const checked = homebrewIdsSelecionados.includes(homebrew.id);
-                  return (
-                    <div
-                      key={homebrew.id}
-                      className={`rounded-md border p-3 transition-colors ${
-                        checked
-                          ? 'border-app-secondary/50 bg-app-secondary/15 shadow-sm'
-                          : 'border-app-border bg-app-surface hover:border-app-secondary/40 hover:bg-app-secondary/10'
-                      }`}
-                    >
-                      <Checkbox
-                        checked={checked}
-                        onChange={(event) => toggleHomebrew(homebrew.id, event.target.checked)}
-                        label={
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-app-fg">{homebrew.nome}</p>
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-app-muted">
-                              <Badge color="purple" size="sm">
-                                {homebrew.tipo}
-                              </Badge>
-                              <span>{homebrew.codigo}</span>
-                              {checked ? (
-                                <Badge color="green" size="sm">
-                                  Ativo na criação
+                ) : (
+                  gruposFiltrados.map((grupo) => {
+                    const checked = homebrewGrupoIdsSelecionados.includes(grupo.id);
+                    return (
+                      <div
+                        key={grupo.id}
+                        className={`rounded-md border p-3 transition-colors ${
+                          checked
+                            ? 'border-app-primary/50 bg-app-primary/10 shadow-sm'
+                            : 'border-app-border bg-app-surface hover:border-app-primary/30 hover:bg-app-primary/5'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onChange={(event) =>
+                            toggleGrupoHomebrew(grupo.id, event.target.checked)
+                          }
+                          label={
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold text-app-fg">{grupo.nome}</p>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-app-muted">
+                                <Badge color="blue" size="sm">
+                                  {grupo.quantidadeItens} item(ns)
                                 </Badge>
+                                {checked ? (
+                                  <Badge color="green" size="sm">
+                                    Grupo ativo
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              {grupo.descricao ? (
+                                <p className="text-xs text-app-muted">{grupo.descricao}</p>
                               ) : null}
                             </div>
-                          </div>
-                        }
-                        className="w-full items-start"
-                      />
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
+                          }
+                          className="w-full items-start"
+                        />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          {exibirHomebrews ? (
+            <section className="rounded-lg border border-app-border bg-app-card p-3">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-2">
+                  <div className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-md bg-app-secondary/15 text-app-secondary">
+                    <Icon name="sparkles" className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-app-fg">Homebrews disponiveis</h3>
+                    <p className="text-xs text-app-muted">
+                      Habilite itens individualmente. Equipamentos homebrew so aparecem no inventario depois disso.
+                    </p>
+                  </div>
+                </div>
+                <Badge color="purple" size="sm">
+                  {homebrewIdsSelecionados.length} selecionado(s)
+                </Badge>
+              </div>
+
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {homebrewsFiltrados.length === 0 ? (
+                  <p className="text-xs text-app-muted">
+                    {possuiBusca
+                      ? 'Nenhuma homebrew corresponde a busca atual.'
+                      : 'Nenhuma homebrew disponivel no momento.'}
+                  </p>
+                ) : (
+                  homebrewsFiltrados.map((homebrew) => {
+                    const checked = homebrewIdsSelecionados.includes(homebrew.id);
+                    return (
+                      <div
+                        key={homebrew.id}
+                        className={`rounded-md border p-3 transition-colors ${
+                          checked
+                            ? 'border-app-secondary/50 bg-app-secondary/15 shadow-sm'
+                            : 'border-app-border bg-app-surface hover:border-app-secondary/40 hover:bg-app-secondary/10'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onChange={(event) => toggleHomebrew(homebrew.id, event.target.checked)}
+                          label={
+                            <div className="space-y-1">
+                              <p className="text-sm font-semibold text-app-fg">{homebrew.nome}</p>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-app-muted">
+                                <Badge color="purple" size="sm">
+                                  {homebrew.tipo}
+                                </Badge>
+                                <span>{homebrew.codigo}</span>
+                                {checked ? (
+                                  <Badge color="green" size="sm">
+                                    Fonte ativa
+                                  </Badge>
+                                ) : null}
+                              </div>
+                            </div>
+                          }
+                          className="w-full items-start"
+                        />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </section>
+          ) : null}
         </div>
 
         <div className="rounded-lg border border-app-border bg-app-surface p-3 text-xs text-app-muted">
-          O sistema base continua ativo. As seleções acima apenas ampliam ou filtram o conteúdo
-          disponível na criação.
+          O sistema base continua ativo. Suplementos e homebrews apenas liberam conteudo para a ficha. No caso de equipamentos homebrew, eles so aparecem na categoria Homebrew do inventario depois que a fonte estiver habilitada aqui.
         </div>
       </div>
     </Modal>

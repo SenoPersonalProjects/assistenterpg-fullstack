@@ -65,6 +65,7 @@ const equipamentoResumoSelect =
         tipoBase: true,
       },
     },
+    homebrewOrigemId: true,
     homebrewOrigem: {
       select: {
         status: true,
@@ -513,6 +514,7 @@ export class EquipamentosService {
       armaAmaldicoada: equipamento.armaAmaldicoada ?? null,
       protecaoAmaldicoada: equipamento.protecaoAmaldicoada ?? null,
       artefatoAmaldicoado: equipamento.artefatoAmaldicoado ?? null,
+      homebrewId: equipamento.homebrewOrigemId ?? null,
       homebrewOrigemStatus: equipamento.homebrewOrigem?.status ?? null,
     };
   }

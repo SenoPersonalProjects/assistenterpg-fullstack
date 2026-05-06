@@ -12,10 +12,10 @@ import type {
 } from '@/lib/api';
 import {
   apiCreateEquipamentoHomebrewInline,
-  apiGetMeusEquipamentosHomebrew,
   apiPreviewItensInventario,
   extrairMensagemErro,
 } from '@/lib/api';
+import { useToast } from '@/context/ToastContext';
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
   // calcularEspacosExtraDeItens
@@ -70,6 +70,7 @@ type ModalStep = 'categoria' | 'equipamento' | 'modificacoes' | 'review' | 'edit
 const LIMITE_RENDER_ITENS_INICIAL = 80;
 
 export function PersonagemBaseStepInventario(props: Props) {
+  const { showToast } = useToast();
   const { sincronizarInventario, carregando: carregandoSincronizacao } = useInventarioPreview({
     forca: props.forca,
     intelecto: props.intelecto,
@@ -81,19 +82,9 @@ export function PersonagemBaseStepInventario(props: Props) {
   });
 
   // Estados básicos
-  const [equipamentosHomebrew, setEquipamentosHomebrew] = useState<EquipamentoCatalogo[]>([]);
   const [modalCriarEquipamentoAberto, setModalCriarEquipamentoAberto] = useState(false);
   const [erroCriarEquipamento, setErroCriarEquipamento] = useState<string | null>(null);
-  const equipamentos = useMemo(() => {
-    const mapa = new Map<number, EquipamentoCatalogo>();
-    for (const equip of props.equipamentos) {
-      mapa.set(equip.id, equip);
-    }
-    for (const equip of equipamentosHomebrew) {
-      mapa.set(equip.id, equip);
-    }
-    return Array.from(mapa.values());
-  }, [equipamentosHomebrew, props.equipamentos]);
+  const equipamentos = useMemo(() => props.equipamentos, [props.equipamentos]);
   const modificacoes = props.modificacoes;
 
   // Estado para armazenar preview do backend (espaços calculados)
@@ -145,24 +136,6 @@ export function PersonagemBaseStepInventario(props: Props) {
   const [itemToRemove, setItemToRemove] = useState<number | null>(null);
   const termoBuscaItemDeferred = useDeferredValue(buscaItem);
   const termoBuscaEquipamentoDeferred = useDeferredValue(buscaEquipamento);
-
-  useEffect(() => {
-    let ativo = true;
-    apiGetMeusEquipamentosHomebrew()
-      .then((lista) => {
-        if (ativo) {
-          setEquipamentosHomebrew(lista);
-        }
-      })
-      .catch(() => {
-        if (ativo) {
-          setEquipamentosHomebrew([]);
-        }
-      });
-    return () => {
-      ativo = false;
-    };
-  }, []);
 
   const grauXama = useMemo(
     () => getGrauXamaPorPrestigio(props.prestigioBase),
@@ -656,27 +629,21 @@ export function PersonagemBaseStepInventario(props: Props) {
     async (payload: CreateHomebrewDto) => {
       setErroCriarEquipamento(null);
       try {
-        const resultado = await apiCreateEquipamentoHomebrewInline({
+        await apiCreateEquipamentoHomebrewInline({
           ...payload,
           tipo: TipoHomebrewConteudo.EQUIPAMENTO,
         });
-
-        setEquipamentosHomebrew((atual) => {
-          const mapa = new Map(atual.map((item) => [item.id, item] as const));
-          mapa.set(resultado.equipamento.id, resultado.equipamento);
-          return Array.from(mapa.values());
-        });
-        setEquipamentoSelecionado(resultado.equipamento);
-        setCategoriaAtiva('HOMEBREW');
         setModalCriarEquipamentoAberto(false);
-        setModalAberto(true);
-        setStepAtual('review');
+        showToast(
+          'Equipamento homebrew criado. Agora habilite essa homebrew nas Fontes da ficha para ela aparecer na categoria Homebrew do inventario.',
+          'success',
+        );
       } catch (error) {
         setErroCriarEquipamento(extrairMensagemErro(error));
         throw error;
       }
     },
-    [],
+    [showToast],
   );
 
   // Preview simplificado (backend calculará tudo ao adicionar)

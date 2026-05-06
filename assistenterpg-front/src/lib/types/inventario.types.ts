@@ -54,6 +54,7 @@ export type EquipamentoCatalogo = {
   armaAmaldicoada?: unknown;
   protecaoAmaldicoada?: unknown;
   artefatoAmaldicoado?: unknown;
+  homebrewId?: number | null;
   homebrewOrigemStatus?: StatusPublicacao | null;
 };
 
@@ -99,6 +100,7 @@ export type EquipamentoResumoDto = {
     tipoBase: string;
   } | null;
 
+  homebrewId?: number | null;
   homebrewOrigemStatus?: StatusPublicacao | null;
 };
 

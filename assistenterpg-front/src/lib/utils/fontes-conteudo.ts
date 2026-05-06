@@ -18,6 +18,7 @@ type ItemComFonte = {
   fonte?: TipoFonte | null;
   suplementoId?: number | null;
   homebrewId?: number | null;
+  homebrewOrigemId?: number | null;
   [key: string]: unknown;
 };
 
@@ -53,6 +54,9 @@ function extrairFonte(item: ItemComFonte): TipoFonte {
 function extrairHomebrewId(item: ItemComFonte): number | null {
   const idDireto = toOptionalPositiveInt(item.homebrewId);
   if (idDireto !== null) return idDireto;
+
+  const origemId = toOptionalPositiveInt(item.homebrewOrigemId);
+  if (origemId !== null) return origemId;
 
   const fonteRefId = toOptionalPositiveInt((item as { fonteRefId?: unknown }).fonteRefId);
   if (fonteRefId !== null) return fonteRefId;
@@ -95,8 +99,7 @@ export function itemPertenceAsFontesSelecionadas(
 
     const homebrewId = extrairHomebrewId(item);
 
-    // Fallback para fase de transicao: alguns payloads ainda nao expoem homebrewId.
-    if (homebrewId === null) return true;
+    if (homebrewId === null) return false;
 
     return selecao.homebrewIds.includes(homebrewId);
   }

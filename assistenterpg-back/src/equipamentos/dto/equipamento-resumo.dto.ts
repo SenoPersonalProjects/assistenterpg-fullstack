@@ -45,5 +45,6 @@ export class EquipamentoResumoDto {
     tipoBase: string;
   } | null;
 
+  homebrewId?: number | null;
   homebrewOrigemStatus?: string | null;
 }
