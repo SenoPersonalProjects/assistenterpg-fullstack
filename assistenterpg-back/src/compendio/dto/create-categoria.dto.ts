@@ -35,6 +35,10 @@ export class CreateCategoriaDto {
 
   @IsOptional()
   @IsInt()
+  livroId?: number;
+
+  @IsOptional()
+  @IsInt()
   ordem?: number;
 
   @IsOptional()

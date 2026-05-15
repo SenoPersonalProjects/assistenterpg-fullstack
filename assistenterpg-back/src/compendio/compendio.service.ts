@@ -1,7 +1,5 @@
-// src/compendio/compendio.service.ts - REFATORADO COM EXCEÇÕES CUSTOMIZADAS
-// ✅ CORRIGIDO - Remove TODOS os 'select' conflitantes com 'include'
-
 import { Injectable } from '@nestjs/common';
+import { StatusPublicacao } from '@prisma/client';
 import { PaginatedResult } from 'src/common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoriaDto } from './dto/create-categoria.dto';
@@ -10,23 +8,121 @@ import { CreateSubcategoriaDto } from './dto/create-subcategoria.dto';
 import { UpdateSubcategoriaDto } from './dto/update-subcategoria.dto';
 import { CreateArtigoDto } from './dto/create-artigo.dto';
 import { UpdateArtigoDto } from './dto/update-artigo.dto';
-
-// ✅ IMPORTAR EXCEÇÕES CUSTOMIZADAS
 import {
-  CompendioCategoriaException,
-  CompendioCategoriaDuplicadaException,
-  CompendioCategoriaComSubcategoriasException,
-  CompendioSubcategoriaException,
-  CompendioSubcategoriaDuplicadaException,
-  CompendioSubcategoriaComArtigosException,
-  CompendioArtigoException,
   CompendioArtigoDuplicadoException,
+  CompendioArtigoException,
   CompendioBuscaInvalidaException,
+  CompendioCategoriaComSubcategoriasException,
+  CompendioCategoriaDuplicadaException,
+  CompendioCategoriaException,
+  CompendioSubcategoriaComArtigosException,
+  CompendioSubcategoriaDuplicadaException,
+  CompendioSubcategoriaException,
 } from 'src/common/exceptions/compendio.exception';
+
+const LIVRO_PRINCIPAL_CODIGO = 'livro-principal';
 
 @Injectable()
 export class CompendioService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // ==================== INCLUDES ====================
+
+  private artigoInclude() {
+    return {
+      subcategoria: {
+        include: {
+          categoria: {
+            include: {
+              livro: true,
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private subcategoriaInclude(apenasAtivos = true) {
+    return {
+      categoria: {
+        include: {
+          livro: true,
+        },
+      },
+      artigos: {
+        where: apenasAtivos ? { ativo: true } : undefined,
+        orderBy: { ordem: 'asc' as const },
+        include: this.artigoInclude(),
+      },
+    };
+  }
+
+  private categoriaInclude(apenasAtivos = true) {
+    return {
+      livro: true,
+      subcategorias: {
+        where: apenasAtivos ? { ativo: true } : undefined,
+        orderBy: { ordem: 'asc' as const },
+        include: this.subcategoriaInclude(apenasAtivos),
+      },
+    };
+  }
+
+  private livroInclude(apenasAtivos = true) {
+    return {
+      suplemento: true,
+      categorias: {
+        where: apenasAtivos ? { ativo: true } : undefined,
+        orderBy: { ordem: 'asc' as const },
+        include: this.categoriaInclude(apenasAtivos),
+      },
+    };
+  }
+
+  private async livroPrincipalId(): Promise<number> {
+    const livro = await this.prisma.compendioLivro.upsert({
+      where: { codigo: LIVRO_PRINCIPAL_CODIGO },
+      update: {},
+      create: {
+        codigo: LIVRO_PRINCIPAL_CODIGO,
+        titulo: 'Livro Principal',
+        descricao: 'Regras principais do sistema Jujutsu Kaisen RPG.',
+        icone: 'rules',
+        cor: '#7c5cfc',
+        ordem: 1,
+        status: StatusPublicacao.PUBLICADO,
+      },
+      select: { id: true },
+    });
+
+    return livro.id;
+  }
+
+  // ==================== LIVROS ====================
+
+  async listarLivros(todos = false) {
+    return this.prisma.compendioLivro.findMany({
+      where: todos ? undefined : { status: StatusPublicacao.PUBLICADO },
+      orderBy: { ordem: 'asc' },
+      include: this.livroInclude(true),
+    });
+  }
+
+  async buscarLivroPorCodigo(codigo: string, todos = false) {
+    const livro = await this.prisma.compendioLivro.findFirst({
+      where: {
+        codigo,
+        ...(todos ? {} : { status: StatusPublicacao.PUBLICADO }),
+      },
+      include: this.livroInclude(true),
+    });
+
+    if (!livro) {
+      throw new CompendioCategoriaException(codigo);
+    }
+
+    return livro;
+  }
 
   // ==================== CATEGORIAS ====================
 
@@ -35,23 +131,30 @@ export class CompendioService {
     page?: number,
     limit?: number,
   ): Promise<any[] | PaginatedResult<any>> {
-    const where = apenasAtivas ? { ativo: true } : undefined;
+    return this.listarCategoriasDoLivro(
+      LIVRO_PRINCIPAL_CODIGO,
+      apenasAtivas,
+      page,
+      limit,
+    );
+  }
 
-    const include = {
-      subcategorias: {
-        where: apenasAtivas ? { ativo: true } : undefined,
-        orderBy: { ordem: 'asc' as const },
-        include: {
-          categoria: true,
-        },
-      },
+  async listarCategoriasDoLivro(
+    livroCodigo: string,
+    apenasAtivas = true,
+    page?: number,
+    limit?: number,
+  ): Promise<any[] | PaginatedResult<any>> {
+    const where = {
+      livro: { codigo: livroCodigo },
+      ...(apenasAtivas && { ativo: true }),
     };
 
     if (!page || !limit) {
       return this.prisma.compendioCategoria.findMany({
         where,
         orderBy: { ordem: 'asc' },
-        include,
+        include: this.categoriaInclude(apenasAtivas),
       });
     }
 
@@ -61,7 +164,7 @@ export class CompendioService {
       this.prisma.compendioCategoria.findMany({
         where,
         orderBy: { ordem: 'asc' },
-        include,
+        include: this.categoriaInclude(apenasAtivas),
         skip,
         take: limit,
       }),
@@ -78,36 +181,59 @@ export class CompendioService {
   }
 
   async buscarCategoriaPorCodigo(codigo: string) {
-    const categoria = await this.prisma.compendioCategoria.findUnique({
-      where: { codigo },
-      include: {
-        subcategorias: {
-          where: { ativo: true },
-          orderBy: { ordem: 'asc' },
-          include: {
-            categoria: true, // ✅ REMOVIDO 'select'
-          },
+    return this.buscarCategoriaDoLivroPorCodigo(
+      LIVRO_PRINCIPAL_CODIGO,
+      codigo,
+    );
+  }
+
+  async buscarCategoriaDoLivroPorCodigo(
+    livroCodigo: string,
+    categoriaCodigo: string,
+  ) {
+    const categoria = await this.prisma.compendioCategoria.findFirst({
+      where: {
+        codigo: categoriaCodigo,
+        livro: {
+          codigo: livroCodigo,
+          status: StatusPublicacao.PUBLICADO,
         },
       },
+      include: this.categoriaInclude(true),
     });
 
     if (!categoria) {
-      throw new CompendioCategoriaException(codigo);
+      throw new CompendioCategoriaException(categoriaCodigo);
     }
 
     return categoria;
   }
 
   async criarCategoria(dto: CreateCategoriaDto) {
-    const existe = await this.prisma.compendioCategoria.findUnique({
-      where: { codigo: dto.codigo },
+    const livroId = dto.livroId ?? (await this.livroPrincipalId());
+    const livro = await this.prisma.compendioLivro.findUnique({
+      where: { id: livroId },
+    });
+
+    if (!livro) {
+      throw new CompendioCategoriaException(livroId);
+    }
+
+    const existe = await this.prisma.compendioCategoria.findFirst({
+      where: { codigo: dto.codigo, livroId },
     });
 
     if (existe) {
       throw new CompendioCategoriaDuplicadaException(dto.codigo);
     }
 
-    return this.prisma.compendioCategoria.create({ data: dto });
+    return this.prisma.compendioCategoria.create({
+      data: {
+        ...dto,
+        livroId,
+      },
+      include: this.categoriaInclude(false),
+    });
   }
 
   async atualizarCategoria(id: number, dto: UpdateCategoriaDto) {
@@ -119,9 +245,20 @@ export class CompendioService {
       throw new CompendioCategoriaException(id);
     }
 
-    if (dto.codigo && dto.codigo !== existe.codigo) {
-      const outraComCodigo = await this.prisma.compendioCategoria.findUnique({
-        where: { codigo: dto.codigo },
+    const livroId = dto.livroId ?? existe.livroId;
+    if (dto.livroId) {
+      const livro = await this.prisma.compendioLivro.findUnique({
+        where: { id: dto.livroId },
+      });
+
+      if (!livro) {
+        throw new CompendioCategoriaException(dto.livroId);
+      }
+    }
+
+    if (dto.codigo && (dto.codigo !== existe.codigo || livroId !== existe.livroId)) {
+      const outraComCodigo = await this.prisma.compendioCategoria.findFirst({
+        where: { codigo: dto.codigo, livroId },
       });
 
       if (outraComCodigo) {
@@ -129,7 +266,11 @@ export class CompendioService {
       }
     }
 
-    return this.prisma.compendioCategoria.update({ where: { id }, data: dto });
+    return this.prisma.compendioCategoria.update({
+      where: { id },
+      data: dto,
+      include: this.categoriaInclude(false),
+    });
   }
 
   async removerCategoria(id: number) {
@@ -166,22 +307,11 @@ export class CompendioService {
       ...(apenasAtivas && { ativo: true }),
     };
 
-    const include = {
-      categoria: true,
-      artigos: {
-        where: apenasAtivas ? { ativo: true } : undefined,
-        orderBy: { ordem: 'asc' as const },
-        include: {
-          subcategoria: true,
-        },
-      },
-    };
-
     if (!page || !limit) {
       return this.prisma.compendioSubcategoria.findMany({
         where,
         orderBy: { ordem: 'asc' },
-        include,
+        include: this.subcategoriaInclude(apenasAtivas),
       });
     }
 
@@ -191,7 +321,7 @@ export class CompendioService {
       this.prisma.compendioSubcategoria.findMany({
         where,
         orderBy: { ordem: 'asc' },
-        include,
+        include: this.subcategoriaInclude(apenasAtivas),
         skip,
         take: limit,
       }),
@@ -208,22 +338,47 @@ export class CompendioService {
   }
 
   async buscarSubcategoriaPorCodigo(codigo: string) {
-    const subcategoria = await this.prisma.compendioSubcategoria.findUnique({
-      where: { codigo },
-      include: {
-        categoria: true, // ✅ SIMPLES
-        artigos: {
-          where: { ativo: true },
-          orderBy: { ordem: 'asc' },
-          include: {
-            subcategoria: true,
+    const subcategoria = await this.prisma.compendioSubcategoria.findFirst({
+      where: {
+        codigo,
+        categoria: {
+          livro: {
+            codigo: LIVRO_PRINCIPAL_CODIGO,
+            status: StatusPublicacao.PUBLICADO,
           },
         },
       },
+      include: this.subcategoriaInclude(true),
     });
 
     if (!subcategoria) {
       throw new CompendioSubcategoriaException(codigo);
+    }
+
+    return subcategoria;
+  }
+
+  async buscarSubcategoriaDoLivroPorCodigo(
+    livroCodigo: string,
+    categoriaCodigo: string,
+    subcategoriaCodigo: string,
+  ) {
+    const subcategoria = await this.prisma.compendioSubcategoria.findFirst({
+      where: {
+        codigo: subcategoriaCodigo,
+        categoria: {
+          codigo: categoriaCodigo,
+          livro: {
+            codigo: livroCodigo,
+            status: StatusPublicacao.PUBLICADO,
+          },
+        },
+      },
+      include: this.subcategoriaInclude(true),
+    });
+
+    if (!subcategoria) {
+      throw new CompendioSubcategoriaException(subcategoriaCodigo);
     }
 
     return subcategoria;
@@ -238,8 +393,8 @@ export class CompendioService {
       throw new CompendioCategoriaException(dto.categoriaId);
     }
 
-    const existe = await this.prisma.compendioSubcategoria.findUnique({
-      where: { codigo: dto.codigo },
+    const existe = await this.prisma.compendioSubcategoria.findFirst({
+      where: { codigo: dto.codigo, categoriaId: dto.categoriaId },
     });
 
     if (existe) {
@@ -248,7 +403,7 @@ export class CompendioService {
 
     return this.prisma.compendioSubcategoria.create({
       data: dto,
-      include: { categoria: true },
+      include: this.subcategoriaInclude(false),
     });
   }
 
@@ -261,12 +416,24 @@ export class CompendioService {
       throw new CompendioSubcategoriaException(id);
     }
 
-    if (dto.codigo && dto.codigo !== existe.codigo) {
-      const outraComCodigo = await this.prisma.compendioSubcategoria.findUnique(
-        {
-          where: { codigo: dto.codigo },
-        },
-      );
+    const categoriaId = dto.categoriaId ?? existe.categoriaId;
+    if (dto.categoriaId) {
+      const categoria = await this.prisma.compendioCategoria.findUnique({
+        where: { id: dto.categoriaId },
+      });
+
+      if (!categoria) {
+        throw new CompendioCategoriaException(dto.categoriaId);
+      }
+    }
+
+    if (
+      dto.codigo &&
+      (dto.codigo !== existe.codigo || categoriaId !== existe.categoriaId)
+    ) {
+      const outraComCodigo = await this.prisma.compendioSubcategoria.findFirst({
+        where: { codigo: dto.codigo, categoriaId },
+      });
 
       if (outraComCodigo) {
         throw new CompendioSubcategoriaDuplicadaException(dto.codigo);
@@ -276,7 +443,7 @@ export class CompendioService {
     return this.prisma.compendioSubcategoria.update({
       where: { id },
       data: dto,
-      include: { categoria: true },
+      include: this.subcategoriaInclude(false),
     });
   }
 
@@ -314,19 +481,11 @@ export class CompendioService {
       ...(apenasAtivos && { ativo: true }),
     };
 
-    const include = {
-      subcategoria: {
-        include: {
-          categoria: true,
-        },
-      },
-    };
-
     if (!page || !limit) {
       return this.prisma.compendioArtigo.findMany({
         where,
         orderBy: { ordem: 'asc' },
-        include,
+        include: this.artigoInclude(),
       });
     }
 
@@ -336,7 +495,7 @@ export class CompendioService {
       this.prisma.compendioArtigo.findMany({
         where,
         orderBy: { ordem: 'asc' },
-        include,
+        include: this.artigoInclude(),
         skip,
         take: limit,
       }),
@@ -353,19 +512,53 @@ export class CompendioService {
   }
 
   async buscarArtigoPorCodigo(codigo: string) {
-    const artigo = await this.prisma.compendioArtigo.findUnique({
-      where: { codigo },
-      include: {
+    const artigo = await this.prisma.compendioArtigo.findFirst({
+      where: {
+        codigo,
         subcategoria: {
-          include: {
-            categoria: true,
+          categoria: {
+            livro: {
+              codigo: LIVRO_PRINCIPAL_CODIGO,
+              status: StatusPublicacao.PUBLICADO,
+            },
           },
         },
       },
+      include: this.artigoInclude(),
     });
 
     if (!artigo) {
       throw new CompendioArtigoException(codigo);
+    }
+
+    return artigo;
+  }
+
+  async buscarArtigoDoLivroPorCodigo(
+    livroCodigo: string,
+    categoriaCodigo: string,
+    subcategoriaCodigo: string,
+    artigoCodigo: string,
+  ) {
+    const artigo = await this.prisma.compendioArtigo.findFirst({
+      where: {
+        codigo: artigoCodigo,
+        subcategoria: {
+          codigo: subcategoriaCodigo,
+          categoria: {
+            codigo: categoriaCodigo,
+            livro: {
+              codigo: livroCodigo,
+              status: StatusPublicacao.PUBLICADO,
+            },
+          },
+        },
+      },
+      include: this.artigoInclude(),
+    });
+
+    if (!artigo) {
+      throw new CompendioArtigoException(artigoCodigo);
     }
 
     return artigo;
@@ -380,8 +573,8 @@ export class CompendioService {
       throw new CompendioSubcategoriaException(dto.subcategoriaId);
     }
 
-    const existe = await this.prisma.compendioArtigo.findUnique({
-      where: { codigo: dto.codigo },
+    const existe = await this.prisma.compendioArtigo.findFirst({
+      where: { codigo: dto.codigo, subcategoriaId: dto.subcategoriaId },
     });
 
     if (existe) {
@@ -390,11 +583,7 @@ export class CompendioService {
 
     return this.prisma.compendioArtigo.create({
       data: dto,
-      include: {
-        subcategoria: {
-          include: { categoria: true },
-        },
-      },
+      include: this.artigoInclude(),
     });
   }
 
@@ -407,9 +596,23 @@ export class CompendioService {
       throw new CompendioArtigoException(id);
     }
 
-    if (dto.codigo && dto.codigo !== existe.codigo) {
-      const outroComCodigo = await this.prisma.compendioArtigo.findUnique({
-        where: { codigo: dto.codigo },
+    const subcategoriaId = dto.subcategoriaId ?? existe.subcategoriaId;
+    if (dto.subcategoriaId) {
+      const subcategoria = await this.prisma.compendioSubcategoria.findUnique({
+        where: { id: dto.subcategoriaId },
+      });
+
+      if (!subcategoria) {
+        throw new CompendioSubcategoriaException(dto.subcategoriaId);
+      }
+    }
+
+    if (
+      dto.codigo &&
+      (dto.codigo !== existe.codigo || subcategoriaId !== existe.subcategoriaId)
+    ) {
+      const outroComCodigo = await this.prisma.compendioArtigo.findFirst({
+        where: { codigo: dto.codigo, subcategoriaId },
       });
 
       if (outroComCodigo) {
@@ -420,11 +623,7 @@ export class CompendioService {
     return this.prisma.compendioArtigo.update({
       where: { id },
       data: dto,
-      include: {
-        subcategoria: {
-          include: { categoria: true },
-        },
-      },
+      include: this.artigoInclude(),
     });
   }
 
@@ -441,9 +640,9 @@ export class CompendioService {
     return { sucesso: true };
   }
 
-  // ==================== BUSCA ====================
+  // ==================== BUSCA & DESTAQUES ====================
 
-  async buscar(query: string) {
+  async buscar(query: string, livroCodigo?: string) {
     const queryTrimmed = query?.trim() || '';
 
     if (queryTrimmed.length < 3) {
@@ -455,6 +654,14 @@ export class CompendioService {
     return this.prisma.compendioArtigo.findMany({
       where: {
         ativo: true,
+        subcategoria: {
+          categoria: {
+            livro: {
+              status: StatusPublicacao.PUBLICADO,
+              ...(livroCodigo ? { codigo: livroCodigo } : {}),
+            },
+          },
+        },
         OR: [
           { titulo: { contains: q } },
           { resumo: { contains: q } },
@@ -462,33 +669,28 @@ export class CompendioService {
           { conteudo: { contains: q } },
         ],
       },
-      include: {
-        subcategoria: {
-          include: {
-            categoria: true,
-          },
-        },
-      },
+      include: this.artigoInclude(),
+      orderBy: { ordem: 'asc' },
       take: 20,
     });
   }
 
-  // ==================== DESTAQUES ====================
-
-  async listarDestaques() {
+  async listarDestaques(livroCodigo?: string) {
     return this.prisma.compendioArtigo.findMany({
       where: {
         ativo: true,
         destaque: true,
-      },
-      orderBy: { ordem: 'asc' },
-      include: {
         subcategoria: {
-          include: {
-            categoria: true,
+          categoria: {
+            livro: {
+              status: StatusPublicacao.PUBLICADO,
+              ...(livroCodigo ? { codigo: livroCodigo } : {}),
+            },
           },
         },
       },
+      orderBy: { ordem: 'asc' },
+      include: this.artigoInclude(),
       take: 6,
     });
   }

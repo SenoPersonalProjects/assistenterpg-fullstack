@@ -1428,21 +1428,48 @@ model PersonagemBasePassiva {
 // ✅ COMPÊNDIO
 // ========================================
 
+model CompendioLivro {
+  id           Int              @id @default(autoincrement())
+  codigo       String           @unique @db.VarChar(100)
+  titulo       String           @db.VarChar(200)
+  descricao    String?          @db.Text
+  icone        String?          @db.VarChar(50)
+  cor          String?          @db.VarChar(20)
+  ordem        Int              @default(0)
+  status       StatusPublicacao @default(PUBLICADO)
+  suplementoId Int?             @map("suplemento_id")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  suplemento Suplemento?           @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  categorias CompendioCategoria[]
+
+  @@index([ordem])
+  @@index([status])
+  @@index([suplementoId])
+  @@map("compendio_livros")
+}
+
 model CompendioCategoria {
   id        Int     @id @default(autoincrement())
-  codigo    String  @unique @db.VarChar(100)
+  codigo    String  @db.VarChar(100)
   nome      String  @db.VarChar(200)
   descricao String? @db.Text
   icone     String? @db.VarChar(50)
   cor       String? @db.VarChar(20)
+  livroId   Int     @map("livro_id")
   ordem     Int     @default(0)
   ativo     Boolean @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
+  livro         CompendioLivro          @relation(fields: [livroId], references: [id], onDelete: Cascade)
   subcategorias CompendioSubcategoria[]
 
+  @@unique([livroId, codigo])
+  @@index([livroId])
   @@index([ordem])
   @@index([ativo])
   @@map("compendio_categorias")
@@ -1450,7 +1477,7 @@ model CompendioCategoria {
 
 model CompendioSubcategoria {
   id          Int     @id @default(autoincrement())
-  codigo      String  @unique @db.VarChar(100)
+  codigo      String  @db.VarChar(100)
   nome        String  @db.VarChar(200)
   descricao   String? @db.Text
   categoriaId Int     @map("categoria_id")
@@ -1463,6 +1490,7 @@ model CompendioSubcategoria {
   categoria CompendioCategoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
   artigos   CompendioArtigo[]
 
+  @@unique([categoriaId, codigo])
   @@index([categoriaId])
   @@index([ordem])
   @@index([ativo])
@@ -1471,7 +1499,7 @@ model CompendioSubcategoria {
 
 model CompendioArtigo {
   id             Int     @id @default(autoincrement())
-  codigo         String  @unique @db.VarChar(100)
+  codigo         String  @db.VarChar(100)
   titulo         String  @db.VarChar(300)
   resumo         String? @db.Text
   conteudo       String  @db.Text
@@ -1492,6 +1520,7 @@ model CompendioArtigo {
 
   subcategoria CompendioSubcategoria @relation(fields: [subcategoriaId], references: [id], onDelete: Cascade)
 
+  @@unique([subcategoriaId, codigo])
   @@index([subcategoriaId])
   @@index([ordem])
   @@index([ativo])
@@ -2244,7 +2273,8 @@ model Suplemento {
   equipamentos EquipamentoCatalogo[]
   habilidades  Habilidade[]
   tecnicas     TecnicaAmaldicoada[]
-  modificacoes ModificacaoEquipamento[]
+  modificacoes      ModificacaoEquipamento[]
+  compendioLivros   CompendioLivro[]
 
   // ✅ Usuários que ativaram este suplemento
   usuariosAtivos UsuarioSuplemento[]

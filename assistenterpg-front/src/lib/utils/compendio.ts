@@ -1,13 +1,21 @@
-// lib/api/compendio.ts
-/**
- * API do Compendio (regras, artigos, categorias)
- */
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-/* ============================================================================ */
-/* TIPOS (ALINHADOS COM SERVICE) */
-/* ============================================================================ */
+export type CompendioStatusPublicacao = 'RASCUNHO' | 'PUBLICADO' | 'ARQUIVADO';
+
+export interface CompendioLivro {
+  id: number;
+  codigo: string;
+  titulo: string;
+  descricao: string | null;
+  icone: string | null;
+  cor: string | null;
+  ordem: number;
+  status: CompendioStatusPublicacao;
+  suplementoId: number | null;
+  criadoEm: string;
+  atualizadoEm: string;
+  categorias: CompendioCategoria[];
+}
 
 export interface CompendioCategoria {
   id: number;
@@ -16,11 +24,13 @@ export interface CompendioCategoria {
   descricao: string | null;
   icone: string | null;
   cor: string | null;
+  livroId: number;
   ordem: number;
   ativo: boolean;
   criadoEm: string;
   atualizadoEm: string;
-  subcategorias: Array<CompendioSubcategoriaComArtigo[]>;
+  livro?: Omit<CompendioLivro, 'categorias'>;
+  subcategorias: CompendioSubcategoriaComArtigo[];
 }
 
 export interface CompendioSubcategoria {
@@ -33,13 +43,7 @@ export interface CompendioSubcategoria {
   ativo: boolean;
   criadoEm: string;
   atualizadoEm: string;
-  categoria: {
-    id: number;
-    codigo: string;
-    nome: string;
-    icone: string | null;
-    cor: string | null;
-  };
+  categoria: CompendioCategoria;
 }
 
 export interface CompendioSubcategoriaComArtigo extends CompendioSubcategoria {
@@ -65,10 +69,6 @@ export interface CompendioArtigoCompleto extends CompendioArtigoResumido {
   subcategoria: CompendioSubcategoria;
 }
 
-/* ============================================================================ */
-/* HELPER DE ERRO */
-/* ============================================================================ */
-
 type ApiErrorBody = {
   message?: string | string[];
   [key: string]: unknown;
@@ -92,7 +92,6 @@ function errorMessage(error: unknown): string {
 }
 
 function logCompendioWarning(context: string, error: unknown): void {
-  // Keep compendio pages renderable when API is temporarily unavailable.
   console.warn(`[compendio] ${context}: ${errorMessage(error)}`);
 }
 
@@ -111,225 +110,273 @@ async function parseApiError(
   return { message: fallback, body };
 }
 
-/* ============================================================================ */
-/* FUNCOES DA API */
-/* ============================================================================ */
+async function fetchJson<T>(
+  path: string,
+  fallbackMessage: string,
+  init?: RequestInit,
+): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, init);
 
-/**
- * Lista todas as categorias com subcategorias (cache: 5min)
- */
-export async function apiListarCategorias(): Promise<CompendioCategoria[]> {
+  if (!res.ok) {
+    const { message, body } = await parseApiError(res, fallbackMessage);
+    throw new ApiError(message, res.status, body);
+  }
+
+  return res.json();
+}
+
+function isNotFound(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 404;
+}
+
+export async function apiListarLivros(): Promise<CompendioLivro[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/compendio/categorias`, {
+    return await fetchJson<CompendioLivro[]>('/compendio/livros', 'Falha ao carregar livros', {
       cache: 'default',
       next: { revalidate: 300 },
     });
+  } catch (error) {
+    logCompendioWarning('Falha ao carregar livros; usando lista vazia', error);
+    return [];
+  }
+}
 
-    if (!res.ok) {
-      const { message, body } = await parseApiError(
-        res,
-        'Falha ao carregar categorias',
-      );
-      throw new ApiError(message, res.status, body);
-    }
+export async function apiBuscarLivroPorCodigo(
+  livroCodigo: string,
+): Promise<CompendioLivro | null> {
+  try {
+    return await fetchJson<CompendioLivro>(
+      `/compendio/livros/${livroCodigo}`,
+      `Livro "${livroCodigo}" nao encontrado`,
+      {
+        cache: 'default',
+        next: { revalidate: 300 },
+      },
+    );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    logCompendioWarning(`Falha ao buscar livro "${livroCodigo}"; retornando nulo`, error);
+    return null;
+  }
+}
 
-    return res.json();
+export async function apiBuscarCategoriaDoLivroPorCodigo(
+  livroCodigo: string,
+  categoriaCodigo: string,
+): Promise<CompendioCategoria | null> {
+  try {
+    return await fetchJson<CompendioCategoria>(
+      `/compendio/livros/${livroCodigo}/categorias/${categoriaCodigo}`,
+      `Categoria "${categoriaCodigo}" nao encontrada`,
+      {
+        cache: 'default',
+        next: { revalidate: 60 },
+      },
+    );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    logCompendioWarning(
+      `Falha ao buscar categoria "${categoriaCodigo}" do livro "${livroCodigo}"; retornando nulo`,
+      error,
+    );
+    return null;
+  }
+}
+
+export async function apiBuscarSubcategoriaDoLivroPorCodigo(
+  livroCodigo: string,
+  categoriaCodigo: string,
+  subcategoriaCodigo: string,
+): Promise<CompendioSubcategoriaComArtigo | null> {
+  try {
+    return await fetchJson<CompendioSubcategoriaComArtigo>(
+      `/compendio/livros/${livroCodigo}/categorias/${categoriaCodigo}/subcategorias/${subcategoriaCodigo}`,
+      `Subcategoria "${subcategoriaCodigo}" nao encontrada`,
+      {
+        cache: 'default',
+        next: { revalidate: 60 },
+      },
+    );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    logCompendioWarning(
+      `Falha ao buscar subcategoria "${subcategoriaCodigo}" do livro "${livroCodigo}"; retornando nulo`,
+      error,
+    );
+    return null;
+  }
+}
+
+export async function apiBuscarArtigoDoLivroPorCodigo(
+  livroCodigo: string,
+  categoriaCodigo: string,
+  subcategoriaCodigo: string,
+  artigoCodigo: string,
+): Promise<CompendioArtigoCompleto | null> {
+  try {
+    return await fetchJson<CompendioArtigoCompleto>(
+      `/compendio/livros/${livroCodigo}/categorias/${categoriaCodigo}/subcategorias/${subcategoriaCodigo}/artigos/${artigoCodigo}`,
+      `Artigo "${artigoCodigo}" nao encontrado`,
+      {
+        cache: 'default',
+        next: { revalidate: 600 },
+      },
+    );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    logCompendioWarning(
+      `Falha ao buscar artigo "${artigoCodigo}" do livro "${livroCodigo}"; retornando nulo`,
+      error,
+    );
+    return null;
+  }
+}
+
+export async function apiListarCategorias(): Promise<CompendioCategoria[]> {
+  try {
+    return await fetchJson<CompendioCategoria[]>(
+      '/compendio/categorias',
+      'Falha ao carregar categorias',
+      {
+        cache: 'default',
+        next: { revalidate: 300 },
+      },
+    );
   } catch (error) {
     logCompendioWarning('Falha ao carregar categorias; usando lista vazia', error);
     return [];
   }
 }
 
-/**
- * Busca categoria especifica por codigo (cache: 1min)
- */
 export async function apiBuscarCategoriaPorCodigo(
   codigo: string,
 ): Promise<CompendioCategoria | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/compendio/categorias/codigo/${codigo}`, {
-      cache: 'default',
-      next: { revalidate: 60 },
-    });
-
-    if (!res.ok) {
-      if (res.status === 404) return null;
-
-      const { message, body } = await parseApiError(
-        res,
-        `Categoria "${codigo}" nao encontrada`,
-      );
-      throw new ApiError(message, res.status, body);
-    }
-
-    return res.json();
-  } catch (error) {
-    logCompendioWarning(
-      `Falha ao buscar categoria "${codigo}"; retornando nulo`,
-      error,
+    return await fetchJson<CompendioCategoria>(
+      `/compendio/categorias/codigo/${codigo}`,
+      `Categoria "${codigo}" nao encontrada`,
+      {
+        cache: 'default',
+        next: { revalidate: 60 },
+      },
     );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    logCompendioWarning(`Falha ao buscar categoria "${codigo}"; retornando nulo`, error);
     return null;
   }
 }
 
-/**
- * Lista subcategorias de uma categoria (cache: 5min)
- */
 export async function apiListarSubcategorias(
   categoriaId: number,
 ): Promise<CompendioSubcategoriaComArtigo[]> {
-  const res = await fetch(`${API_BASE_URL}/compendio/categorias/${categoriaId}/subcategorias`, {
-    cache: 'default',
-    next: { revalidate: 300 },
-  });
-
-  if (!res.ok) {
-    const { message, body } = await parseApiError(
-      res,
-      'Falha ao carregar subcategorias',
-    );
-    throw new ApiError(message, res.status, body);
-  }
-
-  return res.json();
+  return fetchJson<CompendioSubcategoriaComArtigo[]>(
+    `/compendio/categorias/${categoriaId}/subcategorias`,
+    'Falha ao carregar subcategorias',
+    {
+      cache: 'default',
+      next: { revalidate: 300 },
+    },
+  );
 }
 
-/**
- * Busca subcategoria por codigo (cache: 1min)
- */
 export async function apiBuscarSubcategoriaPorCodigo(
   codigo: string,
 ): Promise<CompendioSubcategoriaComArtigo | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/compendio/subcategorias/codigo/${codigo}`, {
-      cache: 'default',
-      next: { revalidate: 60 },
-    });
-
-    if (!res.ok) {
-      if (res.status === 404) return null;
-
-      const { message, body } = await parseApiError(
-        res,
-        `Subcategoria "${codigo}" nao encontrada`,
-      );
-      throw new ApiError(message, res.status, body);
-    }
-
-    return res.json();
-  } catch (error) {
-    logCompendioWarning(
-      `Falha ao buscar subcategoria "${codigo}"; retornando nulo`,
-      error,
+    return await fetchJson<CompendioSubcategoriaComArtigo>(
+      `/compendio/subcategorias/codigo/${codigo}`,
+      `Subcategoria "${codigo}" nao encontrada`,
+      {
+        cache: 'default',
+        next: { revalidate: 60 },
+      },
     );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    logCompendioWarning(`Falha ao buscar subcategoria "${codigo}"; retornando nulo`, error);
     return null;
   }
 }
 
-/**
- * Busca artigo completo por codigo (cache: 10min)
- */
 export async function apiBuscarArtigoPorCodigo(
   codigo: string,
 ): Promise<CompendioArtigoCompleto | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/compendio/artigos/codigo/${codigo}`, {
-      cache: 'default',
-      next: { revalidate: 600 },
-    });
-
-    if (!res.ok) {
-      if (res.status === 404) return null;
-
-      const { message, body } = await parseApiError(
-        res,
-        `Artigo "${codigo}" nao encontrado`,
-      );
-      throw new ApiError(message, res.status, body);
-    }
-
-    return res.json();
-  } catch (error) {
-    logCompendioWarning(
-      `Falha ao buscar artigo "${codigo}"; retornando nulo`,
-      error,
+    return await fetchJson<CompendioArtigoCompleto>(
+      `/compendio/artigos/codigo/${codigo}`,
+      `Artigo "${codigo}" nao encontrado`,
+      {
+        cache: 'default',
+        next: { revalidate: 600 },
+      },
     );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    logCompendioWarning(`Falha ao buscar artigo "${codigo}"; retornando nulo`, error);
     return null;
   }
 }
 
-/**
- * Lista artigos em destaque (cache: 5min)
- */
-export async function apiListarDestaques(): Promise<CompendioArtigoCompleto[]> {
+export async function apiListarDestaques(
+  livroCodigo?: string,
+): Promise<CompendioArtigoCompleto[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/compendio/destaques`, {
-      cache: 'default',
-      next: { revalidate: 300 },
-    });
-
-    if (!res.ok) {
-      const { message, body } = await parseApiError(
-        res,
-        'Falha ao carregar destaques',
-      );
-      throw new ApiError(message, res.status, body);
-    }
-
-    return res.json();
+    const params = livroCodigo ? `?livroCodigo=${encodeURIComponent(livroCodigo)}` : '';
+    return await fetchJson<CompendioArtigoCompleto[]>(
+      `/compendio/destaques${params}`,
+      'Falha ao carregar destaques',
+      {
+        cache: 'default',
+        next: { revalidate: 300 },
+      },
+    );
   } catch (error) {
     logCompendioWarning('Falha ao carregar destaques; usando lista vazia', error);
     return [];
   }
 }
 
-/**
- * Busca artigos por termo (no cache)
- */
-export async function apiBuscarCompendio(query: string): Promise<CompendioArtigoCompleto[]> {
+export async function apiBuscarCompendio(
+  query: string,
+  livroCodigo?: string,
+): Promise<CompendioArtigoCompleto[]> {
   if (!query || query.trim().length < 3) {
     return [];
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/compendio/buscar?q=${encodeURIComponent(query)}`, {
-      cache: 'no-store',
-    });
+    const params = new URLSearchParams({ q: query });
+    if (livroCodigo) params.set('livroCodigo', livroCodigo);
 
-    if (!res.ok) {
-      const { message, body } = await parseApiError(res, 'Falha na busca');
-      throw new ApiError(message, res.status, body);
-    }
-
-    return res.json();
+    return await fetchJson<CompendioArtigoCompleto[]>(
+      `/compendio/buscar?${params.toString()}`,
+      'Falha na busca',
+      { cache: 'no-store' },
+    );
   } catch (error) {
     logCompendioWarning('Falha na busca do compendio; usando lista vazia', error);
     return [];
   }
 }
 
-/**
- * Lista TODOS os artigos (admin/seed - cache longo)
- */
 export async function apiListarTodosArtigos(): Promise<CompendioArtigoCompleto[]> {
-  const res = await fetch(`${API_BASE_URL}/compendio/artigos?todas=true`, {
-    cache: 'default',
-    next: { revalidate: 3600 },
-  });
-
-  if (!res.ok) {
-    const { message, body } = await parseApiError(res, 'Falha ao carregar artigos');
-    throw new ApiError(message, res.status, body);
-  }
-
-  return res.json();
+  return fetchJson<CompendioArtigoCompleto[]>(
+    '/compendio/artigos?todas=true',
+    'Falha ao carregar artigos',
+    {
+      cache: 'default',
+      next: { revalidate: 3600 },
+    },
+  );
 }
 
-/* ============================================================================ */
-/* HELPER OBJECT (compatibilidade) */
-/* ============================================================================ */
-
 export const compendioApi = {
+  listarLivros: apiListarLivros,
+  buscarLivroPorCodigo: apiBuscarLivroPorCodigo,
+  buscarCategoriaDoLivroPorCodigo: apiBuscarCategoriaDoLivroPorCodigo,
+  buscarSubcategoriaDoLivroPorCodigo: apiBuscarSubcategoriaDoLivroPorCodigo,
+  buscarArtigoDoLivroPorCodigo: apiBuscarArtigoDoLivroPorCodigo,
   listarCategorias: apiListarCategorias,
   buscarCategoriaPorCodigo: apiBuscarCategoriaPorCodigo,
   listarSubcategorias: apiListarSubcategorias,

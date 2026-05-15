@@ -13,9 +13,15 @@ interface ArtigoCardProps {
   artigo: Artigo;
   categoriaCodigo: string;
   subcategoriaCodigo: string;
+  livroCodigo?: string;
 }
 
-export function ArtigoCard({ artigo, categoriaCodigo, subcategoriaCodigo }: ArtigoCardProps) {
+export function ArtigoCard({
+  artigo,
+  categoriaCodigo,
+  subcategoriaCodigo,
+  livroCodigo,
+}: ArtigoCardProps) {
   const nivelCores = {
     iniciante: 'green',
     intermediario: 'yellow',
@@ -23,7 +29,13 @@ export function ArtigoCard({ artigo, categoriaCodigo, subcategoriaCodigo }: Arti
   } as const;
 
   return (
-    <Link href={`/compendio/${categoriaCodigo}/${subcategoriaCodigo}/${artigo.codigo}`}>
+    <Link
+      href={
+        livroCodigo
+          ? `/compendio/livros/${livroCodigo}/${categoriaCodigo}/${subcategoriaCodigo}/${artigo.codigo}`
+          : `/compendio/${categoriaCodigo}/${subcategoriaCodigo}/${artigo.codigo}`
+      }
+    >
       <Card className="hover:border-app-primary transition-colors cursor-pointer h-full">
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3 className="font-semibold text-app-fg flex-1">{artigo.titulo}</h3>

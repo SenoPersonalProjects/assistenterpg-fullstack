@@ -26,6 +26,65 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 export class CompendioController {
   constructor(private readonly compendioService: CompendioService) {}
 
+  // ==================== LIVROS ====================
+
+  @Get('livros')
+  async listarLivros(@Query('todos') todos?: string) {
+    return this.compendioService.listarLivros(todos === 'true');
+  }
+
+  @Get('livros/:livroCodigo')
+  async buscarLivroPorCodigo(
+    @Param('livroCodigo') livroCodigo: string,
+    @Query('todos') todos?: string,
+  ) {
+    return this.compendioService.buscarLivroPorCodigo(
+      livroCodigo,
+      todos === 'true',
+    );
+  }
+
+  @Get('livros/:livroCodigo/categorias/:categoriaCodigo')
+  async buscarCategoriaDoLivroPorCodigo(
+    @Param('livroCodigo') livroCodigo: string,
+    @Param('categoriaCodigo') categoriaCodigo: string,
+  ) {
+    return this.compendioService.buscarCategoriaDoLivroPorCodigo(
+      livroCodigo,
+      categoriaCodigo,
+    );
+  }
+
+  @Get('livros/:livroCodigo/categorias/:categoriaCodigo/subcategorias/:subcategoriaCodigo')
+  async buscarSubcategoriaDoLivroPorCodigo(
+    @Param('livroCodigo') livroCodigo: string,
+    @Param('categoriaCodigo') categoriaCodigo: string,
+    @Param('subcategoriaCodigo') subcategoriaCodigo: string,
+  ) {
+    return this.compendioService.buscarSubcategoriaDoLivroPorCodigo(
+      livroCodigo,
+      categoriaCodigo,
+      subcategoriaCodigo,
+    );
+  }
+
+  @Get(
+    'livros/:livroCodigo/categorias/:categoriaCodigo/subcategorias/:subcategoriaCodigo/artigos/:artigoCodigo',
+  )
+  async buscarArtigoDoLivroPorCodigo(
+    @Param('livroCodigo') livroCodigo: string,
+    @Param('categoriaCodigo') categoriaCodigo: string,
+    @Param('subcategoriaCodigo') subcategoriaCodigo: string,
+    @Param('artigoCodigo') artigoCodigo: string,
+  ) {
+    return this.compendioService.buscarArtigoDoLivroPorCodigo(
+      livroCodigo,
+      categoriaCodigo,
+      subcategoriaCodigo,
+      artigoCodigo,
+    );
+  }
+
   // ==================== CATEGORIAS ====================
 
   @Get('categorias')
@@ -157,12 +216,15 @@ export class CompendioController {
   // ==================== BUSCA & DESTAQUES ====================
 
   @Get('buscar')
-  async buscar(@Query('q') query: string) {
-    return this.compendioService.buscar(query);
+  async buscar(
+    @Query('q') query: string,
+    @Query('livroCodigo') livroCodigo?: string,
+  ) {
+    return this.compendioService.buscar(query, livroCodigo);
   }
 
   @Get('destaques')
-  async listarDestaques() {
-    return this.compendioService.listarDestaques();
+  async listarDestaques(@Query('livroCodigo') livroCodigo?: string) {
+    return this.compendioService.listarDestaques(livroCodigo);
   }
 }

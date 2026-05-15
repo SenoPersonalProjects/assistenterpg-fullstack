@@ -47,6 +47,7 @@ import { seedHabilidadesRecursosClasse } from './seeds/habilidades/hab-recursos-
 import { seedHabilidadesTrilha } from './seeds/habilidades/hab-trilha';
 import { seedAmeacasSagami } from './seeds/npcs-ameacas/sagami';
 import { seedSobrevivendoAoJujutsu } from './seeds/suplementos/sobrevivendo-ao-jujutsu';
+import { seedCompendioLivros } from './seeds/compendio/livros';
 
 // =======================
 // Personagem (catálogo)
@@ -167,6 +168,7 @@ async function main() {
   console.log('[Extra] Cadastrando suplementos oficiais...');
   await seedSobrevivendoAoJujutsu(prisma);
   await seedEquipamentosModificacoesAplicaveis(prisma);
+  await seedCompendioLivros(prisma);
   console.log('Suplementos oficiais concluidos!\n');
 
   // ============================================================

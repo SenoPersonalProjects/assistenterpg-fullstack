@@ -1,10 +1,13 @@
 import {
+  apiBuscarArtigoDoLivroPorCodigo,
   apiBuscarArtigoPorCodigo,
   apiBuscarCategoriaPorCodigo,
   apiBuscarCompendio,
+  apiBuscarLivroPorCodigo,
   apiBuscarSubcategoriaPorCodigo,
   apiListarCategorias,
   apiListarDestaques,
+  apiListarLivros,
 } from './compendio';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,6 +33,15 @@ describe('compendio api fallbacks', () => {
     const categorias = await apiListarCategorias();
 
     expect(categorias).toEqual([]);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns empty books on network failure', async () => {
+    fetchMock.mockRejectedValue(new Error('network down'));
+
+    const livros = await apiListarLivros();
+
+    expect(livros).toEqual([]);
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -73,6 +85,52 @@ describe('compendio api fallbacks', () => {
     expect(artigo).toBeNull();
   });
 
+  it('returns null when book by code is not found', async () => {
+    fetchMock.mockResolvedValue(new Response('not found', { status: 404 }));
+
+    const livro = await apiBuscarLivroPorCodigo('livro-inexistente');
+
+    expect(livro).toBeNull();
+  });
+
+  it('uses scoped book article route', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 1,
+          codigo: 'atributos',
+          titulo: 'Atributos',
+          resumo: null,
+          ordem: 1,
+          destaque: false,
+          ativo: true,
+          conteudo: '# Atributos',
+          tags: [],
+          palavrasChave: null,
+          nivelDificuldade: null,
+          artigosRelacionados: null,
+          subcategoria: {},
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+
+    await apiBuscarArtigoDoLivroPorCodigo(
+      'livro-principal',
+      'regras-basicas',
+      'fundamentos',
+      'atributos',
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/livros/livro-principal/categorias/regras-basicas/subcategorias/fundamentos/artigos/atributos',
+      expect.any(Object),
+    );
+  });
+
   it('does not call fetch for short compendio search terms', async () => {
     const resultados = await apiBuscarCompendio('ab');
 
@@ -87,5 +145,21 @@ describe('compendio api fallbacks', () => {
 
     expect(resultados).toEqual([]);
     expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes book code to compendio search when provided', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await apiBuscarCompendio('energia', 'livro-principal');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/buscar?q=energia&livroCodigo=livro-principal',
+      { cache: 'no-store' },
+    );
   });
 });
