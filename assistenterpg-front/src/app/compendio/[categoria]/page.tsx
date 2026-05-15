@@ -6,6 +6,7 @@ import { SubcategoriaCard } from '@/components/compendio/SubcategoriaCard';
 import { CompendioLayout } from '@/components/compendio/CompendioLayout';
 import { EmptyState } from '@/components/ui/EmptyState'; // ✅ Genérico
 import { CompendioGrid } from '@/components/compendio/CompendioGrid';
+import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 type Props = {
   params: Promise<{ categoria: string }>;
@@ -40,17 +41,18 @@ export default async function CategoriaPage({ params }: Props) {
   const totalArtigos = subcategorias.reduce((acc, sub) => {
     return acc + (sub.artigos?.length || 0);
   }, 0);
+  const categoriaNome = stripCompendioDisplayNumber(categoriaData.nome);
 
   return (
     <CompendioLayout
-      title={categoriaData.nome}
+      title={categoriaNome}
       subtitle={categoriaData.descricao || undefined}
       backHref="/compendio"
       backLabel="Todas as Categorias"
       icon="rules"
       breadcrumbs={[
         { label: 'Compêndio', href: '/compendio' },
-        { label: categoriaData.nome, href: `/compendio/${categoriaData.codigo}` }
+        { label: categoriaNome, href: `/compendio/${categoriaData.codigo}` }
       ]}
       stats={[
         { label: 'Subcategorias', value: totalSubcategorias },
@@ -71,7 +73,7 @@ export default async function CategoriaPage({ params }: Props) {
       ) : (
         <CompendioGrid 
           title={`Subcategorias (${totalSubcategorias})`}
-          description={`Explore tópicos sobre ${categoriaData.nome.toLowerCase()}`}
+          description={`Explore tópicos sobre ${categoriaNome.toLowerCase()}`}
         >
           {subcategorias.map((subcategoria) => (
             <SubcategoriaCard

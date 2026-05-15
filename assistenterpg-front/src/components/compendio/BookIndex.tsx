@@ -8,6 +8,10 @@ import {
   getCompendioBookCounts,
   getFirstCompendioArticleHref,
 } from '@/lib/utils/compendio-books';
+import {
+  shouldCollapseSubcategoria,
+  stripCompendioDisplayNumber,
+} from '@/lib/utils/compendio-display';
 
 type BookIndexProps = {
   livro: CompendioLivro;
@@ -63,17 +67,19 @@ export function BookIndex({ livro }: BookIndexProps) {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        {livro.categorias.map((categoria, categoriaIndex) => (
+        {livro.categorias.map((categoria) => (
           <article
             key={categoria.id}
             className="rounded-lg border border-app-border bg-app-surface p-5 shadow-sm"
           >
             <div className="mb-4 flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-app-primary/10 text-sm font-semibold text-app-primary">
-                {categoriaIndex + 1}
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+                <Icon name="book" className="h-4 w-4" />
               </span>
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-app-fg">{categoria.nome}</h2>
+                <h2 className="text-lg font-semibold text-app-fg">
+                  {stripCompendioDisplayNumber(categoria.nome)}
+                </h2>
                 {categoria.descricao ? (
                   <p className="mt-1 line-clamp-2 text-sm leading-6 text-app-muted">
                     {categoria.descricao}
@@ -83,33 +89,64 @@ export function BookIndex({ livro }: BookIndexProps) {
             </div>
 
             <div className="space-y-4">
-              {categoria.subcategorias.map((subcategoria) => (
-                <div key={subcategoria.id} className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                    {subcategoria.nome}
-                  </p>
-                  <div className="grid gap-1.5">
-                    {subcategoria.artigos.map((artigo) => (
-                      <Link
-                        key={artigo.id}
-                        href={getCompendioArticleHref(
-                          livro.codigo,
-                          categoria.codigo,
-                          subcategoria.codigo,
-                          artigo.codigo,
-                        )}
-                        className="group flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg"
-                      >
-                        <span className="line-clamp-1">{artigo.titulo}</span>
-                        <Icon
-                          name="chevron-right"
-                          className="h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                        />
-                      </Link>
-                    ))}
+              {categoria.subcategorias.map((subcategoria) => {
+                const collapsed = shouldCollapseSubcategoria(subcategoria);
+
+                if (collapsed) {
+                  const artigo = subcategoria.artigos[0];
+
+                  return (
+                    <Link
+                      key={subcategoria.id}
+                      href={getCompendioArticleHref(
+                        livro.codigo,
+                        categoria.codigo,
+                        subcategoria.codigo,
+                        artigo.codigo,
+                      )}
+                      className="group flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg"
+                    >
+                      <span className="line-clamp-1">
+                        {stripCompendioDisplayNumber(artigo.titulo)}
+                      </span>
+                      <Icon
+                        name="chevron-right"
+                        className="h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                      />
+                    </Link>
+                  );
+                }
+
+                return (
+                  <div key={subcategoria.id} className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+                      {stripCompendioDisplayNumber(subcategoria.nome)}
+                    </p>
+                    <div className="grid gap-1.5">
+                      {subcategoria.artigos.map((artigo) => (
+                        <Link
+                          key={artigo.id}
+                          href={getCompendioArticleHref(
+                            livro.codigo,
+                            categoria.codigo,
+                            subcategoria.codigo,
+                            artigo.codigo,
+                          )}
+                          className="group flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg"
+                        >
+                          <span className="line-clamp-1">
+                            {stripCompendioDisplayNumber(artigo.titulo)}
+                          </span>
+                          <Icon
+                            name="chevron-right"
+                            className="h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                          />
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </article>
         ))}

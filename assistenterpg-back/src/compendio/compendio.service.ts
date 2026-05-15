@@ -21,6 +21,7 @@ import {
 } from 'src/common/exceptions/compendio.exception';
 
 const LIVRO_PRINCIPAL_CODIGO = 'livro-principal';
+const COMPENDIO_SEED_EXPORT_VERSION = 1;
 
 @Injectable()
 export class CompendioService {
@@ -124,6 +125,84 @@ export class CompendioService {
     return livro;
   }
 
+  async exportarSeedCompendio() {
+    const livros = await this.prisma.compendioLivro.findMany({
+      orderBy: { ordem: 'asc' },
+      include: {
+        suplemento: {
+          select: {
+            codigo: true,
+          },
+        },
+        categorias: {
+          orderBy: { ordem: 'asc' },
+          include: {
+            subcategorias: {
+              orderBy: { ordem: 'asc' },
+              include: {
+                artigos: {
+                  orderBy: { ordem: 'asc' },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      version: COMPENDIO_SEED_EXPORT_VERSION,
+      source: 'database' as const,
+      exportedAt: new Date().toISOString(),
+      livros: livros.map((livro) => ({
+        codigo: livro.codigo,
+        titulo: livro.titulo,
+        descricao: livro.descricao ?? '',
+        icone: livro.icone ?? 'book',
+        cor: livro.cor ?? '#7c5cfc',
+        ordem: livro.ordem,
+        status: livro.status,
+        suplementoCodigo: livro.suplemento?.codigo,
+        categorias: livro.categorias.map((categoria) => ({
+          codigo: categoria.codigo,
+          nome: categoria.nome,
+          descricao: categoria.descricao ?? undefined,
+          icone: categoria.icone ?? undefined,
+          cor: categoria.cor ?? undefined,
+          ordem: categoria.ordem,
+          ativo: categoria.ativo,
+          subcategorias: categoria.subcategorias.map((subcategoria) => ({
+            codigo: subcategoria.codigo,
+            nome: subcategoria.nome,
+            descricao: subcategoria.descricao ?? undefined,
+            ordem: subcategoria.ordem,
+            ativo: subcategoria.ativo,
+            artigos: subcategoria.artigos.map((artigo) => ({
+              codigo: artigo.codigo,
+              titulo: artigo.titulo,
+              resumo: artigo.resumo ?? '',
+              conteudo: artigo.conteudo,
+              ordem: artigo.ordem,
+              tags: Array.isArray(artigo.tags) ? artigo.tags : [],
+              palavrasChave: artigo.palavrasChave ?? undefined,
+              nivelDificuldade:
+                (artigo.nivelDificuldade as
+                  | 'iniciante'
+                  | 'intermediario'
+                  | 'avancado'
+                  | null) ?? 'iniciante',
+              artigosRelacionados: Array.isArray(artigo.artigosRelacionados)
+                ? artigo.artigosRelacionados
+                : [],
+              ativo: artigo.ativo,
+              destaque: artigo.destaque,
+            })),
+          })),
+        })),
+      })),
+    };
+  }
+
   // ==================== CATEGORIAS ====================
 
   async listarCategorias(
@@ -181,10 +260,7 @@ export class CompendioService {
   }
 
   async buscarCategoriaPorCodigo(codigo: string) {
-    return this.buscarCategoriaDoLivroPorCodigo(
-      LIVRO_PRINCIPAL_CODIGO,
-      codigo,
-    );
+    return this.buscarCategoriaDoLivroPorCodigo(LIVRO_PRINCIPAL_CODIGO, codigo);
   }
 
   async buscarCategoriaDoLivroPorCodigo(
@@ -256,7 +332,10 @@ export class CompendioService {
       }
     }
 
-    if (dto.codigo && (dto.codigo !== existe.codigo || livroId !== existe.livroId)) {
+    if (
+      dto.codigo &&
+      (dto.codigo !== existe.codigo || livroId !== existe.livroId)
+    ) {
       const outraComCodigo = await this.prisma.compendioCategoria.findFirst({
         where: { codigo: dto.codigo, livroId },
       });

@@ -1,5 +1,6 @@
 import { apiListarDestaques, apiListarLivros } from '@/lib/utils/compendio';
 import { ArtigoCard } from '@/components/compendio/ArtigoCard';
+import { CompendioAdminExportButton } from '@/components/compendio/CompendioAdminExportButton';
 import { BookCard } from '@/components/compendio/BookCard';
 import { CompendioSearch } from '@/components/compendio/CompendioSearch';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -35,13 +36,16 @@ export default async function CompendioPage() {
             </div>
           </div>
 
-          <Link
-            href="/home"
-            className="inline-flex min-h-9 items-center justify-center rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-medium text-app-muted transition-colors hover:text-app-fg"
-          >
-            <Icon name="back" className="mr-2 h-4 w-4" />
-            Voltar
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <CompendioAdminExportButton />
+            <Link
+              href="/home"
+              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-medium text-app-muted transition-colors hover:text-app-fg"
+            >
+              <Icon name="back" className="mr-2 h-4 w-4" />
+              Voltar
+            </Link>
+          </div>
         </header>
 
         <section className="library-panel rounded-lg p-4">

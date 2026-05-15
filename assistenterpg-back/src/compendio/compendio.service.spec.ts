@@ -133,4 +133,90 @@ describe('CompendioService', () => {
       }),
     );
   });
+
+  it('exports current compendium seed from database rows', async () => {
+    prisma.compendioLivro.findMany.mockResolvedValue([
+      {
+        codigo: 'livro-principal',
+        titulo: 'Livro Principal',
+        descricao: 'Regras principais',
+        icone: 'rules',
+        cor: '#7c5cfc',
+        ordem: 1,
+        status: StatusPublicacao.PUBLICADO,
+        suplemento: null,
+        categorias: [
+          {
+            codigo: 'regras-basicas',
+            nome: 'Regras Basicas',
+            descricao: null,
+            icone: 'dice',
+            cor: '#22d3ee',
+            ordem: 1,
+            ativo: true,
+            subcategorias: [
+              {
+                codigo: 'atributos',
+                nome: 'Atributos',
+                descricao: null,
+                ordem: 1,
+                ativo: true,
+                artigos: [
+                  {
+                    codigo: 'atributos',
+                    titulo: 'Atributos',
+                    resumo: 'Resumo',
+                    conteudo: '# Atributos',
+                    ordem: 1,
+                    tags: ['livro-principal'],
+                    palavrasChave: 'atributos',
+                    nivelDificuldade: 'iniciante',
+                    artigosRelacionados: [],
+                    ativo: true,
+                    destaque: true,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const result = await service.exportarSeedCompendio();
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        version: 1,
+        source: 'database',
+        exportedAt: expect.any(String),
+        livros: [
+          expect.objectContaining({
+            codigo: 'livro-principal',
+            categorias: [
+              expect.objectContaining({
+                codigo: 'regras-basicas',
+                subcategorias: [
+                  expect.objectContaining({
+                    codigo: 'atributos',
+                    artigos: [
+                      expect.objectContaining({
+                        codigo: 'atributos',
+                        conteudo: '# Atributos',
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(prisma.compendioLivro.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { ordem: 'asc' },
+      }),
+    );
+  });
 });

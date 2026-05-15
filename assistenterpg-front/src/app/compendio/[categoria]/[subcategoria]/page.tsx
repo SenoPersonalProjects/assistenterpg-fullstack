@@ -7,6 +7,7 @@ import { ArtigoCard } from '@/components/compendio/ArtigoCard';
 import { CompendioLayout } from '@/components/compendio/CompendioLayout';
 import { EmptyState } from '@/components/ui/EmptyState'; // ✅ Genérico
 import { CompendioGrid } from '@/components/compendio/CompendioGrid';
+import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 type Props = {
   params: Promise<{ categoria: string; subcategoria: string }>;
@@ -41,11 +42,14 @@ export default async function SubcategoriaPage({ params }: Props) {
   const artigos = subcategoriaData.artigos || [];
   const totalArtigos = artigos.length;
   const artigosDestaque = artigos.filter((a: CompendioArtigoResumido) => a.destaque).length;
-  const categoriaNome = subcategoriaData.categoria?.nome || 'Categoria';
+  const categoriaNome = stripCompendioDisplayNumber(
+    subcategoriaData.categoria?.nome || 'Categoria',
+  );
+  const subcategoriaNome = stripCompendioDisplayNumber(subcategoriaData.nome);
 
   return (
     <CompendioLayout
-      title={subcategoriaData.nome}
+      title={subcategoriaNome}
       subtitle={subcategoriaData.descricao || undefined}
       backHref={`/compendio/${codigoCategoria}`}
       backLabel="Voltar à Categoria"
@@ -53,7 +57,7 @@ export default async function SubcategoriaPage({ params }: Props) {
       breadcrumbs={[
         { label: 'Compêndio', href: '/compendio' },
         { label: categoriaNome, href: `/compendio/${codigoCategoria}` },
-        { label: subcategoriaData.nome, href: `/compendio/${codigoCategoria}/${subcategoriaData.codigo}` },
+        { label: subcategoriaNome, href: `/compendio/${codigoCategoria}/${subcategoriaData.codigo}` },
       ]}
       stats={[
         { label: 'Artigos', value: totalArtigos },

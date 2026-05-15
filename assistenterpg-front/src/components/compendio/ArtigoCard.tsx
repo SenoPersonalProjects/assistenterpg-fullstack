@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { CompendioArtigoCompleto, CompendioArtigoResumido } from '@/lib/utils/compendio';
+import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 type Artigo = CompendioArtigoResumido &
   Partial<Pick<CompendioArtigoCompleto, 'tags' | 'nivelDificuldade'>>;
@@ -38,7 +39,9 @@ export function ArtigoCard({
     >
       <Card className="hover:border-app-primary transition-colors cursor-pointer h-full">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="font-semibold text-app-fg flex-1">{artigo.titulo}</h3>
+          <h3 className="font-semibold text-app-fg flex-1">
+            {stripCompendioDisplayNumber(artigo.titulo)}
+          </h3>
           {artigo.destaque && <Badge color="purple" size="sm">Destaque</Badge>}
         </div>
         

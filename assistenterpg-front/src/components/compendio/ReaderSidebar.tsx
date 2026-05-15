@@ -1,13 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import type { CompendioCategoria, CompendioLivro } from '@/lib/utils/compendio';
 import {
   getCompendioArticleHref,
   getCompendioBookHref,
 } from '@/lib/utils/compendio-books';
+import {
+  shouldCollapseSubcategoria,
+  stripCompendioDisplayNumber,
+} from '@/lib/utils/compendio-display';
 
 type ReaderSidebarProps = {
   livro: CompendioLivro;
@@ -65,19 +69,17 @@ export function ReaderSidebar({
     activeCategoriaCodigo ? [activeCategoriaCodigo] : [livro.categorias?.[0]?.codigo ?? ''],
   );
 
-  useEffect(() => {
-    if (!activeCategoriaCodigo) return;
-    setExpandedCategorias((prev) =>
-      prev.includes(activeCategoriaCodigo) ? prev : [...prev, activeCategoriaCodigo],
-    );
-  }, [activeCategoriaCodigo]);
-
   const categorias = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return (livro.categorias ?? []).filter((categoria) =>
       categoriaMatches(categoria, normalizedQuery),
     );
   }, [livro.categorias, query]);
+  const expandedCategoriaSet = useMemo(() => {
+    return new Set(
+      [activeCategoriaCodigo, ...expandedCategorias].filter(Boolean) as string[],
+    );
+  }, [activeCategoriaCodigo, expandedCategorias]);
 
   const toggleCategoria = (codigo: string) => {
     setExpandedCategorias((prev) =>
@@ -126,7 +128,7 @@ export function ReaderSidebar({
       <nav className="flex-1 overflow-y-auto p-3">
         <div className="space-y-1">
           {categorias.map((categoria) => {
-            const expanded = query.trim() || expandedCategorias.includes(categoria.codigo);
+            const expanded = query.trim() || expandedCategoriaSet.has(categoria.codigo);
             const activeCategoria = activeCategoriaCodigo === categoria.codigo;
 
             return (
@@ -141,7 +143,9 @@ export function ReaderSidebar({
                   }`}
                 >
                   <Icon name={iconName(categoria.icone)} className="h-4 w-4 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">{categoria.nome}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {stripCompendioDisplayNumber(categoria.nome)}
+                  </span>
                   <Icon
                     name="chevron-right"
                     className={`h-4 w-4 shrink-0 transition-transform ${
@@ -152,45 +156,76 @@ export function ReaderSidebar({
 
                 {expanded ? (
                   <div className="ml-5 mt-1 space-y-1 border-l border-app-border pl-3">
-                    {(categoria.subcategorias ?? []).map((subcategoria) => (
-                      <div key={subcategoria.id} className="space-y-0.5">
-                        <p
-                          className={`px-2 py-1 text-xs font-semibold ${
-                            activeSubcategoriaCodigo === subcategoria.codigo
-                              ? 'text-app-primary'
-                              : 'text-app-muted'
-                          }`}
-                        >
-                          {subcategoria.nome}
-                        </p>
+                    {(categoria.subcategorias ?? []).map((subcategoria) => {
+                      const collapsed = shouldCollapseSubcategoria(subcategoria);
 
-                        {(subcategoria.artigos ?? []).map((artigo) => {
-                          const href = getCompendioArticleHref(
-                            livro.codigo,
-                            categoria.codigo,
-                            subcategoria.codigo,
-                            artigo.codigo,
-                          );
-                          const active = activeArtigoCodigo === artigo.codigo;
+                      if (collapsed) {
+                        const artigo = subcategoria.artigos[0];
+                        const href = getCompendioArticleHref(
+                          livro.codigo,
+                          categoria.codigo,
+                          subcategoria.codigo,
+                          artigo.codigo,
+                        );
+                        const active = activeArtigoCodigo === artigo.codigo;
 
-                          return (
-                            <Link
-                              key={artigo.id}
-                              href={href}
-                              onClick={() => setMobileOpen(false)}
-                              aria-current={active ? 'page' : undefined}
-                              className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
-                                active
-                                  ? 'bg-app-primary/10 font-medium text-app-primary'
-                                  : 'text-app-muted hover:bg-app-bg hover:text-app-fg'
-                              }`}
-                            >
-                              {artigo.titulo}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ))}
+                        return (
+                          <Link
+                            key={subcategoria.id}
+                            href={href}
+                            onClick={() => setMobileOpen(false)}
+                            aria-current={active ? 'page' : undefined}
+                            className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
+                              active
+                                ? 'bg-app-primary/10 font-medium text-app-primary'
+                                : 'text-app-muted hover:bg-app-bg hover:text-app-fg'
+                            }`}
+                          >
+                            {stripCompendioDisplayNumber(artigo.titulo)}
+                          </Link>
+                        );
+                      }
+
+                      return (
+                        <div key={subcategoria.id} className="space-y-0.5">
+                          <p
+                            className={`px-2 py-1 text-xs font-semibold ${
+                              activeSubcategoriaCodigo === subcategoria.codigo
+                                ? 'text-app-primary'
+                                : 'text-app-muted'
+                            }`}
+                          >
+                            {stripCompendioDisplayNumber(subcategoria.nome)}
+                          </p>
+
+                          {(subcategoria.artigos ?? []).map((artigo) => {
+                            const href = getCompendioArticleHref(
+                              livro.codigo,
+                              categoria.codigo,
+                              subcategoria.codigo,
+                              artigo.codigo,
+                            );
+                            const active = activeArtigoCodigo === artigo.codigo;
+
+                            return (
+                              <Link
+                                key={artigo.id}
+                                href={href}
+                                onClick={() => setMobileOpen(false)}
+                                aria-current={active ? 'page' : undefined}
+                                className={`block rounded-md px-2 py-1.5 text-sm transition-colors ${
+                                  active
+                                    ? 'bg-app-primary/10 font-medium text-app-primary'
+                                    : 'text-app-muted hover:bg-app-bg hover:text-app-fg'
+                                }`}
+                              >
+                                {stripCompendioDisplayNumber(artigo.titulo)}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : null}
               </div>

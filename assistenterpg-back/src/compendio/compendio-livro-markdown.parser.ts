@@ -77,7 +77,7 @@ function normalizeMarkdown(markdown: string): string {
 }
 
 function unescapeMarkdown(text: string): string {
-  return text.replace(/\\([\\`*{}\[\]()#+\-.!_>])/g, '$1');
+  return text.replace(/\\([\\`*{}[\]()#+\-.!_>])/g, '$1');
 }
 
 function cleanHeadingTitle(line: string): string {
@@ -288,7 +288,9 @@ function createArticleChunks(params: {
       : params.titulo;
 
     return {
-      codigo: hasParts ? `${params.codigoBase}-parte-${parte}` : params.codigoBase,
+      codigo: hasParts
+        ? `${params.codigoBase}-parte-${parte}`
+        : params.codigoBase,
       titulo,
       resumo: createResumo(chunk, titulo),
       conteudo: chunk,
@@ -363,7 +365,10 @@ function parseCategory(
       }),
     );
   } else {
-    const preface = categoryLines.slice(0, sections[0].lineIndex).join('\n').trim();
+    const preface = categoryLines
+      .slice(0, sections[0].lineIndex)
+      .join('\n')
+      .trim();
     let subcategoryOrder = 1;
 
     if (hasNonHeadingContent(preface)) {
@@ -387,10 +392,16 @@ function parseCategory(
       const section = sections[index];
       const nextSection = sections[index + 1];
       const markdown = categoryLines
-        .slice(section.lineIndex, nextSection?.lineIndex ?? categoryLines.length)
+        .slice(
+          section.lineIndex,
+          nextSection?.lineIndex ?? categoryLines.length,
+        )
         .join('\n')
         .trim();
-      const sectionCodigo = slugifyCompendio(section.titulo, `secao-${index + 1}`);
+      const sectionCodigo = slugifyCompendio(
+        section.titulo,
+        `secao-${index + 1}`,
+      );
 
       subcategorias.push(
         createSubcategoria({
@@ -422,23 +433,33 @@ function parseCategory(
   };
 }
 
-function createIntroCategory(markdown: string): CategoriaSeed {
+function createIntroCategory(categorias: CategoriaSeed[]): CategoriaSeed {
   const codigo = 'apresentacao-e-sumario';
+  const summaryItems = categorias.map((categoria, index) => {
+    const firstSubcategoria = categoria.subcategorias[0];
+    const firstArtigo = firstSubcategoria?.artigos[0];
+    const href =
+      firstSubcategoria && firstArtigo
+        ? `/compendio/livros/livro-principal/${categoria.codigo}/${firstSubcategoria.codigo}/${firstArtigo.codigo}`
+        : `/compendio/livros/livro-principal`;
+
+    return `* [${index + 1}. ${categoria.nome}](${href})`;
+  });
 
   return {
     codigo,
     nome: 'Apresentacao e Sumario',
-    descricao: 'Capa, apresentacao e sumario resumido do livro revisado.',
+    descricao: 'Versao e sumario do livro principal revisado.',
     icone: 'book',
     cor: '#7c5cfc',
     ordem: 1,
     subcategorias: [
       createSubcategoria({
         codigo,
-        nome: 'Apresentacao e Sumario',
-        descricao: 'Informacoes iniciais do documento revisado.',
+        nome: 'Livro Principal v1.0',
+        descricao: 'Versao e sumario navegavel do livro principal.',
         ordem: 1,
-        markdown: markdown.trim(),
+        markdown: `# Livro Principal v1.0\n\n## Sumário\n\n${summaryItems.join('\n')}`,
         categoriaCodigo: codigo,
         categoriaNome: 'Apresentacao e Sumario',
         chapterNumber: 1,
@@ -460,11 +481,6 @@ export function parseLivroPrincipalMarkdown(markdown: string): LivroSeed {
   }
 
   const categorias: CategoriaSeed[] = [];
-  const introMarkdown = lines.slice(0, chapterHeadings[0].lineIndex).join('\n').trim();
-
-  if (introMarkdown) {
-    categorias.push(createIntroCategory(introMarkdown));
-  }
 
   for (let index = 0; index < chapterHeadings.length; index++) {
     const chapter = chapterHeadings[index];
@@ -475,9 +491,11 @@ export function parseLivroPrincipalMarkdown(markdown: string): LivroSeed {
     );
 
     categorias.push(
-      parseCategory(categoryLines, chapter, categorias.length + 1),
+      parseCategory(categoryLines, chapter, categorias.length + 2),
     );
   }
+
+  categorias.unshift(createIntroCategory(categorias));
 
   return {
     codigo: 'livro-principal',

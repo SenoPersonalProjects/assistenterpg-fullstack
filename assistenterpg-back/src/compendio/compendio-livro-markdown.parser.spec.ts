@@ -58,7 +58,7 @@ describe('parseLivroPrincipalMarkdown', () => {
     );
   });
 
-  it('preserves presentation text and markdown tables from the source', () => {
+  it('creates a v1.0 summary intro and preserves markdown tables from the source', () => {
     const livro = parseLivro();
     const artigos = getAllArticles(livro);
     const apresentacao = artigos.find(
@@ -66,10 +66,17 @@ describe('parseLivroPrincipalMarkdown', () => {
     );
     const pericias = artigos.find((artigo) => artigo.codigo === 'pericias');
 
+    expect(apresentacao?.titulo).toBe('Livro Principal v1.0');
+    expect(apresentacao?.conteudo).toContain('# Livro Principal v1.0');
+    expect(apresentacao?.conteudo).toContain('## Sumário');
     expect(apresentacao?.conteudo).toContain(
+      '/compendio/livros/livro-principal/introducao-ao-sistema-jujutsu-kaisen-rpg',
+    );
+    expect(apresentacao?.conteudo.match(/^\* \[\d+\./gm)).toHaveLength(14);
+    expect(apresentacao?.conteudo).not.toContain('Revisão conservadora');
+    expect(apresentacao?.conteudo).not.toContain(
       '**Jujutsu Kaisen RPG \\- Standalone**',
     );
-    expect(apresentacao?.conteudo).toContain('# **Sumário resumido**');
     expect(pericias?.conteudo).toContain(
       '| Perícia | Atributo Base | Somente Treinada? |',
     );

@@ -6,6 +6,7 @@ import { ArtigoContent } from '@/components/compendio/ArtigoContent';
 import { Badge } from '@/components/ui/Badge';
 import { CompendioLayout } from '@/components/compendio/CompendioLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 type Props = {
   params: Promise<{ categoria: string; subcategoria: string; artigo: string }>;
@@ -33,12 +34,17 @@ export default async function ArtigoPage({ params }: Props) {
     );
   }
 
-  const categoriaNome = artigoData.subcategoria?.categoria?.nome || 'Categoria';
-  const subcategoriaNome = artigoData.subcategoria?.nome || 'Subcategoria';
+  const categoriaNome = stripCompendioDisplayNumber(
+    artigoData.subcategoria?.categoria?.nome || 'Categoria',
+  );
+  const subcategoriaNome = stripCompendioDisplayNumber(
+    artigoData.subcategoria?.nome || 'Subcategoria',
+  );
+  const artigoTitulo = stripCompendioDisplayNumber(artigoData.titulo);
 
   return (
     <CompendioLayout
-      title={artigoData.titulo}
+      title={artigoTitulo}
       subtitle={`${subcategoriaNome} • ${categoriaNome}`}
       backHref={`/compendio/${codigoCategoria}/${codigoSubcategoria}`}
       backLabel="← Todos os artigos"
@@ -48,7 +54,7 @@ export default async function ArtigoPage({ params }: Props) {
         {/* Header */}
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-app-fg mb-4 leading-tight">
-            {artigoData.titulo}
+            {artigoTitulo}
           </h1>
           
           {artigoData.resumo && (
@@ -88,7 +94,7 @@ export default async function ArtigoPage({ params }: Props) {
         </header>
 
         {/* Conteúdo */}
-        <ArtigoContent conteudo={artigoData.conteudo} />
+        <ArtigoContent conteudo={artigoData.conteudo} titulo={artigoData.titulo} />
 
         {/* Artigos relacionados */}
         {artigoData.artigosRelacionados && artigoData.artigosRelacionados.length > 0 && (

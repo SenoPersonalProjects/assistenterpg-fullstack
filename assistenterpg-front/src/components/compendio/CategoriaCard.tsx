@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import type { CompendioCategoria as Categoria } from '@/lib/utils/compendio';
+import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 interface CategoriaCardProps {
   categoria: Categoria;
@@ -36,7 +37,9 @@ export function CategoriaCard({ categoria }: CategoriaCardProps) {
         <div className="flex items-start gap-3">
           <Icon name={iconName} className="h-6 w-6 text-app-primary flex-shrink-0" />
           <div className="flex-1">
-            <h3 className="font-semibold text-app-fg mb-1">{categoria.nome}</h3>
+            <h3 className="font-semibold text-app-fg mb-1">
+              {stripCompendioDisplayNumber(categoria.nome)}
+            </h3>
             {categoria.descricao && (
               <p className="text-sm text-app-muted line-clamp-2">{categoria.descricao}</p>
             )}

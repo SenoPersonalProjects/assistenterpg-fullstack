@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 import type { CompendioLivro } from '@/lib/utils/compendio';
 import { getAdjacentCompendioEntries } from '@/lib/utils/compendio-books';
+import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 type ReaderNavigationFooterProps = {
   livro: CompendioLivro;
@@ -38,7 +39,7 @@ export function ReaderNavigationFooter({
             <span className="min-w-0">
               <span className="block text-xs text-app-muted">Anterior</span>
               <span className="block truncate text-sm font-medium text-app-fg">
-                {prev.artigo.titulo}
+                {stripCompendioDisplayNumber(prev.artigo.titulo)}
               </span>
             </span>
           </Link>
@@ -54,7 +55,7 @@ export function ReaderNavigationFooter({
             <span className="min-w-0">
               <span className="block text-xs text-app-muted">Proximo</span>
               <span className="block truncate text-sm font-medium text-app-fg">
-                {next.artigo.titulo}
+                {stripCompendioDisplayNumber(next.artigo.titulo)}
               </span>
             </span>
             <Icon

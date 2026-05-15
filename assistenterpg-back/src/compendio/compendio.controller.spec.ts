@@ -32,6 +32,7 @@ describe('CompendioController', () => {
       'criarArtigo',
       'atualizarArtigo',
       'removerArtigo',
+      'exportarSeedCompendio',
     ] as const;
 
     for (const methodName of writeMethods) {

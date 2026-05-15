@@ -1,3 +1,5 @@
+import { getToken } from './auth';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export type CompendioStatusPublicacao = 'RASCUNHO' | 'PUBLICADO' | 'ARQUIVADO';
@@ -69,6 +71,62 @@ export interface CompendioArtigoCompleto extends CompendioArtigoResumido {
   subcategoria: CompendioSubcategoria;
 }
 
+export type UpdateCompendioArtigoPayload = {
+  titulo?: string;
+  resumo?: string;
+  conteudo?: string;
+  tags?: string[];
+  palavrasChave?: string;
+  nivelDificuldade?: 'iniciante' | 'intermediario' | 'avancado';
+  destaque?: boolean;
+  ativo?: boolean;
+};
+
+export type CompendioSeedExport = {
+  version: number;
+  source: 'database';
+  exportedAt: string;
+  livros: Array<{
+    codigo: string;
+    titulo: string;
+    descricao: string;
+    icone: string;
+    cor: string;
+    ordem: number;
+    status: CompendioStatusPublicacao;
+    suplementoCodigo?: string;
+    categorias: Array<{
+      codigo: string;
+      nome: string;
+      descricao?: string;
+      icone?: string;
+      cor?: string;
+      ordem: number;
+      ativo: boolean;
+      subcategorias: Array<{
+        codigo: string;
+        nome: string;
+        descricao?: string;
+        ordem: number;
+        ativo: boolean;
+        artigos: Array<{
+          codigo: string;
+          titulo: string;
+          resumo: string;
+          conteudo: string;
+          ordem: number;
+          tags: string[];
+          palavrasChave?: string;
+          nivelDificuldade?: 'iniciante' | 'intermediario' | 'avancado';
+          artigosRelacionados: string[];
+          ativo: boolean;
+          destaque: boolean;
+        }>;
+      }>;
+    }>;
+  }>;
+};
+
 type ApiErrorBody = {
   message?: string | string[];
   [key: string]: unknown;
@@ -110,12 +168,35 @@ async function parseApiError(
   return { message: fallback, body };
 }
 
+type FetchJsonInit = RequestInit & {
+  auth?: boolean;
+};
+
 async function fetchJson<T>(
   path: string,
   fallbackMessage: string,
-  init?: RequestInit,
+  init?: FetchJsonInit,
 ): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, init);
+  let requestInit: RequestInit | undefined = init;
+
+  if (init?.auth) {
+    const initSemAuth = { ...init };
+    delete initSemAuth.auth;
+    const { headers, ...rest } = initSemAuth;
+    const token = getToken();
+    const requestHeaders = new Headers(headers);
+
+    if (token) {
+      requestHeaders.set('Authorization', `Bearer ${token}`);
+    }
+
+    requestInit = {
+      ...rest,
+      headers: requestHeaders,
+    };
+  }
+
+  const res = await fetch(`${API_BASE_URL}${path}`, requestInit);
 
   if (!res.ok) {
     const { message, body } = await parseApiError(res, fallbackMessage);
@@ -149,8 +230,7 @@ export async function apiBuscarLivroPorCodigo(
       `/compendio/livros/${livroCodigo}`,
       `Livro "${livroCodigo}" nao encontrado`,
       {
-        cache: 'default',
-        next: { revalidate: 300 },
+        cache: 'no-store',
       },
     );
   } catch (error) {
@@ -218,8 +298,7 @@ export async function apiBuscarArtigoDoLivroPorCodigo(
       `/compendio/livros/${livroCodigo}/categorias/${categoriaCodigo}/subcategorias/${subcategoriaCodigo}/artigos/${artigoCodigo}`,
       `Artigo "${artigoCodigo}" nao encontrado`,
       {
-        cache: 'default',
-        next: { revalidate: 600 },
+        cache: 'no-store',
       },
     );
   } catch (error) {
@@ -371,6 +450,35 @@ export async function apiListarTodosArtigos(): Promise<CompendioArtigoCompleto[]
   );
 }
 
+export async function apiAdminAtualizarArtigo(
+  id: number,
+  payload: UpdateCompendioArtigoPayload,
+): Promise<CompendioArtigoCompleto> {
+  return fetchJson<CompendioArtigoCompleto>(
+    `/compendio/artigos/${id}`,
+    'Falha ao atualizar artigo',
+    {
+      method: 'PUT',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminExportarSeedCompendio(): Promise<CompendioSeedExport> {
+  return fetchJson<CompendioSeedExport>(
+    '/compendio/admin/exportar-seed',
+    'Falha ao exportar seed do compendio',
+    {
+      method: 'GET',
+      auth: true,
+      cache: 'no-store',
+    },
+  );
+}
+
 export const compendioApi = {
   listarLivros: apiListarLivros,
   buscarLivroPorCodigo: apiBuscarLivroPorCodigo,
@@ -385,4 +493,6 @@ export const compendioApi = {
   listarDestaques: apiListarDestaques,
   buscar: apiBuscarCompendio,
   listarTodosArtigos: apiListarTodosArtigos,
+  adminAtualizarArtigo: apiAdminAtualizarArtigo,
+  adminExportarSeedCompendio: apiAdminExportarSeedCompendio,
 };

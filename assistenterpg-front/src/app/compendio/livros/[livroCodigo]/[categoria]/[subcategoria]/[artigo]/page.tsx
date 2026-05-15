@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArtigoContent } from '@/components/compendio/ArtigoContent';
+import { CompendioArticleAdminActions } from '@/components/compendio/CompendioArticleAdminActions';
 import { ReaderNavigationFooter } from '@/components/compendio/ReaderNavigationFooter';
 import { ReaderShell } from '@/components/compendio/ReaderShell';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +11,7 @@ import {
   apiBuscarLivroPorCodigo,
 } from '@/lib/utils/compendio';
 import { getCompendioBookHref } from '@/lib/utils/compendio-books';
+import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 type Props = {
   params: Promise<{
@@ -61,8 +63,13 @@ export default async function CompendioLivroArtigoPage({ params }: Props) {
     );
   }
 
-  const categoriaNome = artigo.subcategoria?.categoria?.nome || 'Categoria';
-  const subcategoriaNome = artigo.subcategoria?.nome || 'Topico';
+  const categoriaNome = stripCompendioDisplayNumber(
+    artigo.subcategoria?.categoria?.nome || 'Categoria',
+  );
+  const subcategoriaNome = stripCompendioDisplayNumber(
+    artigo.subcategoria?.nome || 'Topico',
+  );
+  const artigoTitulo = stripCompendioDisplayNumber(artigo.titulo);
 
   return (
     <ReaderShell
@@ -90,15 +97,14 @@ export default async function CompendioLivroArtigoPage({ params }: Props) {
             <span>{subcategoriaNome}</span>
           </div>
 
-          <h1 className="text-3xl font-bold tracking-tight text-app-fg sm:text-4xl">
-            {artigo.titulo}
-          </h1>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h1 className="text-3xl font-bold tracking-tight text-app-fg sm:text-4xl">
+              {artigoTitulo}
+            </h1>
+            <CompendioArticleAdminActions artigo={artigo} />
+          </div>
 
           <div className="mt-5 h-1 w-24 rounded-full bg-app-primary" />
-
-          {artigo.resumo ? (
-            <p className="mt-7 text-lg leading-8 text-app-fg">{artigo.resumo}</p>
-          ) : null}
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             {artigo.nivelDificuldade ? (
@@ -118,7 +124,7 @@ export default async function CompendioLivroArtigoPage({ params }: Props) {
         </header>
 
         <section className="rounded-lg border border-app-border bg-app-surface p-5 sm:p-7">
-          <ArtigoContent conteudo={artigo.conteudo} />
+          <ArtigoContent conteudo={artigo.conteudo} titulo={artigo.titulo} />
         </section>
 
         <ReaderNavigationFooter

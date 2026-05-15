@@ -1,4 +1,6 @@
 import {
+  apiAdminAtualizarArtigo,
+  apiAdminExportarSeedCompendio,
   apiBuscarArtigoDoLivroPorCodigo,
   apiBuscarArtigoPorCodigo,
   apiBuscarCategoriaPorCodigo,
@@ -160,6 +162,87 @@ describe('compendio api fallbacks', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/compendio/buscar?q=energia&livroCodigo=livro-principal',
       { cache: 'no-store' },
+    );
+  });
+
+  it('updates compendio articles through the admin route', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 10,
+          codigo: 'poderes-especiais',
+          titulo: 'Poderes Especiais',
+          resumo: null,
+          ordem: 1,
+          destaque: false,
+          ativo: true,
+          conteudo: '# Poderes Especiais',
+          tags: [],
+          palavrasChave: null,
+          nivelDificuldade: null,
+          artigosRelacionados: null,
+          subcategoria: {},
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+
+    await apiAdminAtualizarArtigo(10, {
+      titulo: 'Poderes Especiais',
+      conteudo: '# Poderes Especiais',
+      ativo: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/artigos/10',
+      expect.objectContaining({
+        method: 'PUT',
+        cache: 'no-store',
+        body: JSON.stringify({
+          titulo: 'Poderes Especiais',
+          conteudo: '# Poderes Especiais',
+          ativo: true,
+        }),
+      }),
+    );
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.headers).toBeInstanceOf(Headers);
+    expect((init.headers as Headers).get('Content-Type')).toBe('application/json');
+  });
+
+  it('exports the compendium seed through the admin route', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          version: 1,
+          source: 'database',
+          exportedAt: '2026-05-15T15:30:00.000Z',
+          livros: [],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+
+    const seed = await apiAdminExportarSeedCompendio();
+
+    expect(seed).toEqual({
+      version: 1,
+      source: 'database',
+      exportedAt: '2026-05-15T15:30:00.000Z',
+      livros: [],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/admin/exportar-seed',
+      expect.objectContaining({
+        method: 'GET',
+        cache: 'no-store',
+      }),
     );
   });
 });

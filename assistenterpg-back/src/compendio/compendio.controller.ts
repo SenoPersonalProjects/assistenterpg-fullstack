@@ -44,6 +44,12 @@ export class CompendioController {
     );
   }
 
+  @Get('admin/exportar-seed')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async exportarSeedCompendio() {
+    return this.compendioService.exportarSeedCompendio();
+  }
+
   @Get('livros/:livroCodigo/categorias/:categoriaCodigo')
   async buscarCategoriaDoLivroPorCodigo(
     @Param('livroCodigo') livroCodigo: string,
@@ -55,7 +61,9 @@ export class CompendioController {
     );
   }
 
-  @Get('livros/:livroCodigo/categorias/:categoriaCodigo/subcategorias/:subcategoriaCodigo')
+  @Get(
+    'livros/:livroCodigo/categorias/:categoriaCodigo/subcategorias/:subcategoriaCodigo',
+  )
   async buscarSubcategoriaDoLivroPorCodigo(
     @Param('livroCodigo') livroCodigo: string,
     @Param('categoriaCodigo') categoriaCodigo: string,

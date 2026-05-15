@@ -3,12 +3,23 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { prepareCompendioMarkdownForDisplay } from '@/lib/utils/compendio-display';
 
 interface ArtigoContentProps {
   conteudo: string;
+  titulo?: string;
+  stripInitialHeading?: boolean;
 }
 
-export function ArtigoContent({ conteudo }: ArtigoContentProps) {
+export function ArtigoContent({
+  conteudo,
+  titulo,
+  stripInitialHeading = true,
+}: ArtigoContentProps) {
+  const markdown = stripInitialHeading
+    ? prepareCompendioMarkdownForDisplay(conteudo, titulo)
+    : prepareCompendioMarkdownForDisplay(conteudo);
+
   return (
     <div className="prose prose-invert max-w-none">
       <ReactMarkdown
@@ -21,6 +32,12 @@ export function ArtigoContent({ conteudo }: ArtigoContentProps) {
           ul: ({ ...props }) => <ul className="list-disc list-inside text-app-fg mb-4 space-y-1" {...props} />,
           ol: ({ ...props }) => <ol className="list-decimal list-inside text-app-fg mb-4 space-y-1" {...props} />,
           li: ({ ...props }) => <li className="text-app-fg" {...props} />,
+          a: ({ ...props }) => (
+            <a
+              className="font-medium text-app-primary underline-offset-4 hover:underline"
+              {...props}
+            />
+          ),
           strong: ({ ...props }) => <strong className="font-semibold text-app-primary" {...props} />,
           em: ({ ...props }) => <em className="italic text-app-muted" {...props} />,
           code: ({ ...props }) => (
@@ -46,7 +63,7 @@ export function ArtigoContent({ conteudo }: ArtigoContentProps) {
           ),
         }}
       >
-        {conteudo}
+        {markdown}
       </ReactMarkdown>
     </div>
   );
