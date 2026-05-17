@@ -3,7 +3,7 @@
 import React from 'react';
 import Lottie, { LottieComponentProps } from 'lottie-react';
 
-type LottiePlayerProps = Omit<LottieComponentProps, 'animationData'> & {
+type LottiePlayerProps = Omit<LottieComponentProps, 'animationData' | 'size'> & {
   src: object | string;
   size?: number | string;
 };

@@ -14,7 +14,8 @@ type BadgeColor =
   | 'orange'
   | 'cyan';
 type BadgeSize = 'xs' | 'sm' | 'md' | 'lg';
-type BadgeVariant = 'subtle' | 'outline' | 'solid';
+type BadgeVariant = 'subtle' | 'soft' | 'outline' | 'solid';
+type ResolvedBadgeVariant = Exclude<BadgeVariant, 'soft'>;
 
 type BadgeProps = {
   children: React.ReactNode;
@@ -44,7 +45,10 @@ export function Badge({
     lg: 'px-4 py-1.5 text-sm',
   };
 
-  const colors: Record<BadgeColor, Record<BadgeVariant, string>> = {
+  const resolvedVariant: ResolvedBadgeVariant =
+    variant === 'soft' ? 'subtle' : variant;
+
+  const colors: Record<BadgeColor, Record<ResolvedBadgeVariant, string>> = {
     gray: {
       solid: 'bg-app-muted text-app-fg border border-app-border',
       subtle: 'bg-app-surface text-app-muted border border-app-border',
@@ -90,7 +94,7 @@ export function Badge({
   return (
     <span
       className={`
-        ${base} ${sizes[size]} ${colors[color][variant]} ${className}
+        ${base} ${sizes[size]} ${colors[color][resolvedVariant]} ${className}
         hover:scale-105 active:scale-95
       `}
       title={title}

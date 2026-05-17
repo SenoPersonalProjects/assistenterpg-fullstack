@@ -220,7 +220,7 @@ body {
 }
 
 /* Utilitários de designer */
-.glass {
+@utility glass {
   background: rgba(var(--bg-surface-rgb, 255, 255, 255), 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -297,7 +297,8 @@ body {
 }
 
 @utility landing-hero__visual {
-  @apply relative perspective-1000;
+  @apply relative;
+  perspective: 1000px;
 }
 
 @utility landing-hero__frame {

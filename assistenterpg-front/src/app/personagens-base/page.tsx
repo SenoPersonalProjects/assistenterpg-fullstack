@@ -18,7 +18,9 @@ import {
 } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SectionTitle } from '@/components/ui/SectionTitle';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -371,4 +373,3 @@ export default function PersonagensBasePage() {
     </>
   );
 }
-

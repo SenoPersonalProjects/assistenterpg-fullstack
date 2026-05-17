@@ -4,6 +4,7 @@ import { CompendioAdminExportButton } from '@/components/compendio/CompendioAdmi
 import { BookCard } from '@/components/compendio/BookCard';
 import { CompendioSearch } from '@/components/compendio/CompendioSearch';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
 

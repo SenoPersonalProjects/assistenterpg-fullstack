@@ -16,12 +16,14 @@ import { extrairMensagemErro } from '@/lib/api/error-handler';
 import { SuplementoCard } from '@/components/suplemento/SuplementoCard';
 import { ModalSuplementoForm } from '@/components/suplemento/ModalSuplementoForm';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { SectionTitle } from '@/components/ui/SectionTitle';
 import { useConfirm } from '@/hooks/useConfirm';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 

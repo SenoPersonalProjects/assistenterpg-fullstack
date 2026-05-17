@@ -30,6 +30,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
+import { SectionTitle } from '@/components/ui/SectionTitle';
 import { NotePaperCard } from '@/components/anotacoes/NotePaperCard';
 
 const LIMITE_PAGINA = 20;
