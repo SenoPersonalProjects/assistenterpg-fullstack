@@ -358,3 +358,295 @@ body {
 @utility landing-feature__icon {
   @apply w-12 h-12 rounded-2xl bg-app-primary/10 flex items-center justify-center text-app-primary mb-6 shadow-inner;
 }
+
+@utility landing-navbar__content {
+  @apply mx-auto flex max-w-7xl items-center justify-between gap-4;
+}
+
+@utility landing-navbar__brand {
+  @apply flex min-w-0 items-center gap-3 text-app-fg;
+}
+
+@utility landing-navbar__logo {
+  @apply relative h-11 w-11 shrink-0 rounded-2xl border border-app-border/50 bg-app-surface/80 p-2 shadow-lg shadow-black/10;
+}
+
+@utility landing-navbar__brand-copy {
+  @apply hidden min-w-0 flex-col sm:flex;
+}
+
+@utility landing-navbar__brand-title {
+  @apply truncate text-sm font-black uppercase tracking-wide text-app-fg;
+}
+
+@utility landing-navbar__brand-subtitle {
+  @apply truncate text-xs font-semibold text-app-muted;
+}
+
+@utility landing-navbar__links {
+  @apply hidden items-center gap-6 md:flex;
+}
+
+@utility landing-navbar__link {
+  @apply text-sm font-bold text-app-muted transition-colors hover:text-app-primary;
+}
+
+@utility landing-navbar__toggle {
+  @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border border-app-border bg-app-surface text-app-fg md:hidden;
+}
+
+@utility landing-navbar__mobile {
+  @apply mx-auto mt-3 flex max-w-7xl flex-col gap-2 rounded-2xl border border-app-border bg-app-surface/95 p-3 shadow-2xl backdrop-blur-xl md:hidden;
+}
+
+@utility landing-navbar__mobile-link {
+  @apply rounded-xl px-3 py-2 text-sm font-bold text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg;
+}
+
+@utility landing-navbar__mobile-cta {
+  @apply mt-1 w-full font-black;
+}
+
+@utility landing-section__content {
+  @apply relative z-10 mx-auto w-full max-w-7xl;
+}
+
+@utility landing-section__content--cta {
+  @apply min-h-[34rem] py-24;
+}
+
+@utility landing-section__header {
+  @apply mx-auto mb-12 max-w-3xl text-center;
+}
+
+@utility landing-section--villains {
+  @apply overflow-hidden;
+}
+
+@utility landing-divider {
+  @apply mb-12 flex items-center justify-center gap-4;
+}
+
+@utility landing-divider__line {
+  @apply h-px w-24 bg-gradient-to-r from-transparent via-app-border to-transparent;
+}
+
+@utility landing-divider__icon {
+  @apply relative h-12 w-16 opacity-70;
+}
+
+@utility landing-hero__glow {
+  @apply pointer-events-none absolute -right-40 top-20 h-[28rem] w-[28rem] rounded-full bg-app-primary/20 blur-3xl;
+}
+
+@utility landing-hero__symbol {
+  @apply pointer-events-none absolute left-1/2 top-1/2 h-[42rem] w-[42rem] max-w-[110vw] -translate-x-1/2 -translate-y-1/2 opacity-[0.04];
+}
+
+@utility landing-hero__copy {
+  @apply max-w-3xl;
+}
+
+@utility landing-hero__gif {
+  @apply object-cover;
+}
+
+@utility landing-hero__frame-overlay {
+  @apply absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent;
+}
+
+@utility landing-about {
+  @apply grid items-center gap-12 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)];
+}
+
+@utility landing-about__text {
+  @apply space-y-5;
+}
+
+@utility landing-about__media {
+  @apply relative;
+}
+
+@utility landing-about__image {
+  @apply relative aspect-[16/11] overflow-hidden rounded-[2rem] border border-app-border/40 shadow-2xl shadow-black/20;
+}
+
+@utility landing-about__image-file {
+  @apply object-cover;
+}
+
+@utility landing-about__image-overlay {
+  @apply absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent;
+}
+
+@utility landing-about__stats {
+  @apply mt-4 grid gap-3 sm:grid-cols-3;
+}
+
+@utility landing-about__stat {
+  @apply flex items-start gap-3 rounded-2xl border border-app-border/40 bg-app-surface/60 p-4 backdrop-blur-md;
+
+  & p {
+    @apply text-sm font-black text-app-fg;
+  }
+
+  & span {
+    @apply mt-1 block text-xs font-semibold leading-relaxed text-app-muted;
+  }
+}
+
+@utility landing-features-layout__copy {
+  @apply space-y-4;
+}
+
+@utility landing-features-layout__image-file {
+  @apply object-cover;
+}
+
+@utility landing-features-layout__image-overlay {
+  @apply absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent;
+}
+
+@utility landing-classes__tabs {
+  @apply mx-auto mb-8 flex max-w-3xl flex-wrap justify-center gap-3;
+}
+
+@utility landing-classes__tab {
+  @apply min-w-32 font-black;
+}
+
+@utility landing-classes__content {
+  @apply grid overflow-hidden rounded-[2rem] border border-app-border/45 bg-app-surface/55 shadow-2xl shadow-black/10 backdrop-blur-md lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)];
+}
+
+@utility landing-classes__media {
+  @apply relative min-h-[24rem] overflow-hidden lg:min-h-[36rem];
+}
+
+@utility landing-classes__media-image {
+  @apply object-cover;
+}
+
+@utility landing-classes__media-overlay {
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-black/50;
+}
+
+@utility landing-classes__info {
+  @apply flex flex-col justify-center p-7 md:p-10;
+
+  & span {
+    @apply text-sm font-black uppercase tracking-[0.2em] text-app-primary;
+  }
+
+  & h3 {
+    @apply mt-3 text-4xl font-black text-app-fg md:text-5xl;
+  }
+
+  & p {
+    @apply mt-5 text-base font-medium leading-relaxed text-app-muted md:text-lg;
+  }
+}
+
+@utility landing-classes__traits {
+  @apply mt-8 flex flex-wrap gap-2;
+
+  & span {
+    @apply rounded-full border border-app-primary/25 bg-app-primary/10 px-3 py-1 text-xs font-black normal-case tracking-normal text-app-primary;
+  }
+}
+
+@utility landing-villains {
+  @apply grid items-center gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)];
+}
+
+@utility landing-villains__media {
+  @apply relative min-h-[24rem] overflow-hidden rounded-[2rem] border border-app-border/40 shadow-2xl shadow-black/20 lg:min-h-[34rem];
+}
+
+@utility landing-villains__image {
+  @apply object-cover;
+}
+
+@utility landing-villains__overlay {
+  @apply absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent;
+}
+
+@utility landing-villains__copy {
+  @apply space-y-5;
+}
+
+@utility landing-cta {
+  @apply relative overflow-hidden px-4 md:px-6;
+}
+
+@utility landing-cta__media {
+  @apply absolute inset-0;
+}
+
+@utility landing-cta__media-file {
+  @apply object-cover;
+}
+
+@utility landing-cta__overlay {
+  @apply absolute inset-0 bg-black/70;
+}
+
+@utility landing-cta__content {
+  @apply mx-auto flex max-w-3xl flex-col items-center text-center;
+
+  & h2 {
+    @apply mt-5 text-4xl font-black leading-tight text-white md:text-6xl;
+  }
+
+  & p {
+    @apply mt-6 text-lg font-medium leading-relaxed text-white/80;
+  }
+}
+
+@utility landing-cta__badge {
+  @apply flex h-16 w-16 items-center justify-center rounded-3xl border border-white/15 bg-white/10 text-white backdrop-blur-md;
+}
+
+@utility landing-cta__button {
+  @apply mt-10 gap-2 px-8 font-black shadow-2xl shadow-app-primary/30;
+}
+
+@utility landing-footer {
+  @apply border-t border-app-border/40 bg-app-surface px-4 py-10 md:px-6;
+}
+
+@utility landing-footer__content {
+  @apply mx-auto flex max-w-7xl flex-col gap-8 md:flex-row md:items-center md:justify-between;
+}
+
+@utility landing-footer__brand {
+  @apply flex items-center gap-4;
+}
+
+@utility landing-footer__logo {
+  @apply relative h-14 w-14 rounded-2xl border border-app-border bg-app-bg p-2;
+}
+
+@utility landing-footer__brand-title {
+  @apply text-lg font-black text-app-fg;
+}
+
+@utility landing-footer__brand-subtitle {
+  @apply text-sm font-semibold text-app-muted;
+}
+
+@utility landing-footer__links {
+  @apply flex flex-wrap gap-4 text-sm font-bold text-app-muted;
+
+  & a {
+    @apply transition-colors hover:text-app-primary;
+  }
+}
+
+@utility landing-footer__cta {
+  @apply inline-flex items-center gap-2 rounded-full border border-app-primary/20 bg-app-primary/10 px-4 py-2 text-sm font-black text-app-primary;
+}
+
+@utility landing-footer__disclaimer {
+  @apply mx-auto mt-8 max-w-7xl border-t border-app-border/30 pt-6 text-xs font-medium text-app-muted;
+}

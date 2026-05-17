@@ -911,13 +911,7 @@ export function filtrarModificacoesCompativeis(
     }
 
     if (restricoes?.tiposProtecao?.length) {
-      const tipoProtecaoEfetivo =
-        equipamento.tipoProtecao ??
-        (equipamento.tipo === 'PROTECAO'
-          ? equipamento.proficienciaProtecao === 'ESCUDO'
-            ? 'EMPUNHAVEL'
-            : 'VESTIVEL'
-          : null);
+      const tipoProtecaoEfetivo = equipamento.tipoProtecao ?? null;
       if (!tipoProtecaoEfetivo) return false;
       if (!restricoes.tiposProtecao.includes(tipoProtecaoEfetivo)) return false;
     }

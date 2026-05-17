@@ -198,6 +198,15 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Este usuário já possui um personagem associado nesta campanha.",
   CAMPANHA_PERSONAGEM_EDICAO_NEGADA:
     "Você não tem permissão para editar esta ficha de campanha.",
+  CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA:
+    "Voce nao tem permissao para remover este personagem da campanha.",
+  CAMPANHA_NUCLEO_INVALIDO: "Nucleo amaldicoado invalido.",
+  CAMPANHA_NUCLEO_INDISPONIVEL:
+    "Este nucleo amaldicoado nao esta disponivel nesta campanha.",
+  CAMPANHA_NUCLEO_SACRIFICIO_INVALIDO:
+    "Sacrificio invalido para este nucleo amaldicoado.",
+  CAMPANHA_NUCLEO_PE_INSUFICIENTE:
+    "PE insuficiente para ativar este nucleo amaldicoado.",
   PERSONAGEM_CAMPANHA_NOT_FOUND: "Personagem da campanha não encontrado",
   PERSONAGEM_SESSAO_NOT_FOUND: "Personagem da sessão não encontrado.",
   CAMPANHA_MODIFICADOR_NOT_FOUND:
@@ -205,9 +214,15 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CAMPANHA_MODIFICADOR_JA_DESFEITO: "Este modificador já foi desfeito",
   SESSAO_CAMPANHA_NOT_FOUND: "Sessão da campanha não encontrada.",
   CENA_SESSAO_NOT_FOUND: "Cena da sessao nao encontrada.",
+  NPC_SESSAO_NOT_FOUND: "NPC/Ameaca da sessao nao encontrado.",
   SESSAO_TURNO_INDISPONIVEL:
     "Cena livre não possui contagem de rodada/turno.",
   SESSAO_ENCERRADA: "Sessao encerrada. Nao e possivel executar esta acao.",
+  SESSAO_ORDEM_INICIATIVA_INVALIDA:
+    "Ordem de iniciativa invalida para esta sessao.",
+  SESSAO_EVENTO_NOT_FOUND: "Evento da sessao nao encontrado.",
+  SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO:
+    "Este evento da sessao nao pode ser desfeito.",
   SESSAO_PERSONAGEM_NOT_FOUND: "Personagem da sessao nao encontrado.",
   SESSAO_HABILIDADE_NAO_DISPONIVEL:
     "Habilidade nao esta disponivel para este personagem.",
@@ -228,6 +243,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",
   CONVITE_NOT_FOUND: "Convite não encontrado",
   CONVITE_INVALIDO: "Convite inválido ou já utilizado",
+  JOIN_INVALIDO: "Nao foi possivel entrar nesta sessao.",
   CONVITE_NAO_PERTENCE_USUARIO: "Este convite não pertence ao usuário logado",
   CONVITE_DUPLICADO_PENDENTE: "Ja existe convite pendente para este email nesta campanha",
   CONVITE_CODIGO_INDISPONIVEL: "Nao foi possivel gerar um codigo de convite. Tente novamente",
@@ -303,6 +319,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   HABILIDADE_NOT_FOUND: "Habilidade não encontrada",
   HABILIDADE_NOME_DUPLICADO: "Já existe uma habilidade com este nome",
   HABILIDADE_EM_USO: "Habilidade em uso e não pode ser removida",
+  HABILIDADE_CONFIG_INVALID: "Configuracao de habilidade invalida.",
+  HABILIDADE_REQUIRES_CHOICE: "Esta habilidade exige uma escolha.",
   TIPO_GRAU_NOT_FOUND: "Tipo de grau não encontrado",
   TIPO_GRAU_CODIGO_DUPLICADO: "Já existe tipo de grau com este código",
   TIPO_GRAU_EM_USO: "Tipo de grau em uso e não pode ser removido",
@@ -334,6 +352,20 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "suplementoId é obrigatório quando a fonte for SUPLEMENTO.",
   REFERENCIA_IMPORTACAO_INVALIDA:
     "Não foi possível resolver uma referência do arquivo importado.",
+  JSON_IMPORT_INVALIDO: "Arquivo JSON de importacao invalido.",
+  JSON_IMPORT_CAMPO_OBRIGATORIO:
+    "O arquivo importado possui campo obrigatorio ausente.",
+  JSON_IMPORT_CAMPO_INVALIDO:
+    "O arquivo importado possui campo invalido.",
+  JSON_IMPORT_ENUM_INVALIDO:
+    "O arquivo importado possui valor invalido para uma opcao.",
+  JSON_IMPORT_HABILIDADE_INVALIDA:
+    "O arquivo importado possui habilidade invalida.",
+  JSON_IMPORT_HABILIDADE_OUTRA_TECNICA:
+    "O arquivo importado referencia habilidade de outra tecnica.",
+  JSON_IMPORT_TECNICA_INVALIDA:
+    "O arquivo importado possui tecnica invalida.",
+  JSON_IMPORT_VAZIO: "O arquivo JSON de importacao esta vazio.",
   INTERNAL_ERROR: "Erro interno do servidor. Tente novamente.",
   NOT_FOUND: "Recurso não encontrado",
   NETWORK_ERROR: "Erro de conexão. Verifique sua internet.",
@@ -562,9 +594,4 @@ export function formatarErroComContexto(
 
   return `${mensagemBase} (${partes.join(" | ")})`;
 }
-
-
-
-
-
 
