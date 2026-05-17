@@ -51,12 +51,12 @@ export function LandingNavbar() {
 
         <div className="landing-navbar__links">
           {links.map((link) => (
-            <a key={link.href} href={link.href} className="landing-navbar__link">
+            <a key={link.href} href={link.href} className="landing-navbar__link font-bold hover:text-app-primary transition-colors">
               {link.label}
             </a>
           ))}
           <Link href="/auth/register">
-            <Button size="sm" className="landing-navbar__cta">
+            <Button size="sm" className="font-black px-6 shadow-lg shadow-app-primary/20">
               Começar agora
             </Button>
           </Link>

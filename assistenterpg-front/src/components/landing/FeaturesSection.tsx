@@ -72,11 +72,11 @@ export function FeaturesSection() {
 
           <motion.div className="landing-features" variants={landingStagger}>
             {features.map((feature) => (
-              <motion.div key={feature.title} className="landing-feature" variants={landingScaleIn}>
-                <div className="landing-feature__icon">
-                  <Icon name={feature.icon} className="h-5 w-5" />
+              <motion.div key={feature.title} className="landing-feature group" variants={landingScaleIn}>
+                <div className="landing-feature__icon group-hover:scale-110 transition-transform">
+                  <Icon name={feature.icon} className="h-6 w-6" />
                 </div>
-                <h3>{feature.title}</h3>
+                <h3 className="group-hover:text-app-primary transition-colors">{feature.title}</h3>
                 <p>{feature.description}</p>
               </motion.div>
             ))}

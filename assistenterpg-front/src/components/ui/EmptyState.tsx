@@ -1,9 +1,8 @@
-// components/ui/EmptyState.tsx - VERSÃO FINAL
-'use client';
-
 import { Button } from './Button';
 import { Icon, type IconName } from './Icon';
 import { ReactNode } from 'react';
+import { LottiePlayer } from './LottiePlayer';
+import { LOTTIE_ASSETS } from '@/lib/lottie-assets';
 
 type EmptyStateProps = {
   title?: string;
@@ -13,6 +12,7 @@ type EmptyStateProps = {
   onAction?: () => void;
   variant?: 'plain' | 'card' | 'session';
   icon?: IconName;
+  lottie?: keyof typeof LOTTIE_ASSETS;
   size?: 'sm' | 'md';
   children?: ReactNode;
 };
@@ -25,6 +25,7 @@ export function EmptyState({
   onAction,
   variant = 'plain',
   icon,
+  lottie,
   size = 'md',
   children,
 }: EmptyStateProps) {
@@ -35,66 +36,62 @@ export function EmptyState({
   const wrapperClasses = [
     isSession
       ? [
-          'rounded-lg border border-app-border bg-app-surface text-left',
-          isSmall ? 'p-3' : 'p-4',
+          'rounded-xl border border-app-border bg-app-surface text-left shadow-sm',
+          isSmall ? 'p-4' : 'p-6',
         ].join(' ')
       : isCard
       ? [
-          'rounded-lg border border-app-border bg-app-surface text-center shadow-sm',
-          isSmall ? 'p-4 max-w-none mx-0' : 'p-8 max-w-md mx-auto',
+          'rounded-2xl border border-app-border bg-app-surface text-center shadow-lg',
+          isSmall ? 'p-6 max-w-none mx-0' : 'p-12 max-w-md mx-auto',
         ].join(' ')
       : isSmall
-        ? 'p-3'
-        : 'p-6',
+        ? 'p-4'
+        : 'p-8',
     className,
   ]
     .filter(Boolean)
     .join(' ');
 
-  const iconWrapClasses = isSession
+  const mediaWrapClasses = isSession
     ? [
-        'flex items-center justify-center rounded-md bg-app-primary/10',
-        isSmall ? 'mb-2 h-8 w-8' : 'mb-3 h-9 w-9',
+        'flex items-center justify-center rounded-xl bg-app-primary/10',
+        isSmall ? 'mb-3 h-10 w-10' : 'mb-4 h-12 w-12',
       ].join(' ')
     : isCard
     ? [
-        'mx-auto flex items-center justify-center rounded-full bg-app-primary/10',
-        isSmall ? 'mb-3 h-10 w-10' : 'mb-6 h-16 w-16',
+        'mx-auto flex items-center justify-center rounded-full',
+        isSmall ? 'mb-4 h-16 w-16' : 'mb-8 h-24 w-24',
       ].join(' ')
     : isSmall
-      ? 'mb-2'
-      : 'mb-4';
-  const iconClasses = [
-    isSmall ? 'h-4 w-4' : isCard ? 'h-8 w-8' : 'h-6 w-6',
-    isSession ? 'text-app-muted' : 'text-app-primary',
-  ].join(' ');
-  const titleClasses = [
-    isSmall ? 'text-sm font-semibold mb-1' : 'text-lg font-semibold mb-2',
-    'text-app-fg',
-  ].join(' ');
-  const descriptionClasses = [
-    isSmall ? 'text-xs mb-2' : 'text-sm mb-4',
-    'text-app-muted leading-relaxed',
-  ].join(' ');
-  const contentClasses = isSmall ? 'mb-2' : 'mb-4';
+      ? 'mb-3'
+      : 'mb-6';
 
   return (
     <div className={wrapperClasses}>
-      {icon && (
-        <div className={iconWrapClasses}>
-          <Icon name={icon} className={iconClasses} />
+      {(icon || lottie) && (
+        <div className={mediaWrapClasses}>
+          {lottie ? (
+            <LottiePlayer 
+              src={LOTTIE_ASSETS[lottie]} 
+              size={isSmall ? 48 : 80}
+              loop 
+              autoplay 
+            />
+          ) : (
+            <Icon name={icon!} className={isSmall ? 'h-5 w-5' : isCard ? 'h-10 w-10' : 'h-8 w-8'} />
+          )}
         </div>
       )}
 
-      {title && <h3 className={titleClasses}>{title}</h3>}
-      <p className={descriptionClasses}>{description}</p>
+      {title && <h3 className="text-xl font-black text-app-fg tracking-tight mb-2">{title}</h3>}
+      <p className="text-app-muted font-medium leading-relaxed mb-6">{description}</p>
 
       {/* Conteúdo adicional */}
-      {children && <div className={contentClasses}>{children}</div>}
+      {children && <div className="mb-6">{children}</div>}
 
       {/* Botão de ação */}
       {actionLabel && onAction && (
-        <Button size="sm" variant="primary" onClick={onAction}>
+        <Button size="md" variant="primary" onClick={onAction} className="font-black px-8">
           {actionLabel}
         </Button>
       )}

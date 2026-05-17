@@ -242,7 +242,7 @@ export default function PersonagensBasePage() {
             {personagens.length === 0 ? (
               <EmptyState 
                 variant="card"
-                icon="characters"
+                lottie="GHOST_SEARCH"
                 title="A névoa está vazia"
                 description="Mermão, você ainda não manifestou nenhum personagem. Vamos tirar essa ideia da cabeça e colocar na ficha?"
               >

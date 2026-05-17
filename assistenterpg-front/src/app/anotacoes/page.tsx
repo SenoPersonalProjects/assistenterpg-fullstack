@@ -391,7 +391,7 @@ export default function AnotacoesPage() {
             {notas.length === 0 ? (
               <EmptyState
                 variant="card"
-                icon="scroll"
+                lottie="MAGIC_SPARKLES"
                 title="O mural está em silêncio"
                 description="Mermão, nenhuma nota por aqui. Que tal registrar aquele plano mirabolante que você acabou de ter?"
                 actionLabel="Começar Grimório"

@@ -62,14 +62,14 @@ export function HeroSection() {
 
           <motion.div className="landing-hero__actions" variants={landingFadeUp}>
             <Link href="/auth/register">
-              <Button size="lg" className="landing-hero__primary">
-                <Icon name="add" className="h-5 w-5" />
+              <Button size="lg" className="font-black px-8 shadow-xl shadow-app-primary/30">
+                <Icon name="add" className="h-5 w-5 mr-2" />
                 Começar agora
               </Button>
             </Link>
             <Link href="/auth/login">
-              <Button size="lg" variant="secondary" className="landing-hero__secondary">
-                <Icon name="forward" className="h-5 w-5" />
+              <Button size="lg" variant="secondary" className="font-black px-8">
+                <Icon name="forward" className="h-5 w-5 mr-2" />
                 Entrar na conta
               </Button>
             </Link>

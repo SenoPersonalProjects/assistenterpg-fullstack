@@ -46,7 +46,7 @@
 .dark {
   --bg: #0b1020;
   --bg-surface: #151a2c;
-  
+
   --primary-rgb: 37, 99, 235;
   --danger-rgb: 239, 68, 68;
 
@@ -85,7 +85,7 @@
 .theme-jujutsu {
   --bg: #0d0d0f;
   --bg-surface: #111113;
-  
+
   --primary-rgb: 124, 92, 252;
   --danger-rgb: 239, 68, 68;
 
@@ -124,7 +124,7 @@
 .theme-padrao {
   --bg: #414361;
   --bg-surface: #363852;
-  
+
   --primary-rgb: 127, 44, 203;
   --danger-rgb: 90, 0, 1;
 
@@ -243,4 +243,117 @@ body {
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+/* 🚀 Estilos de Landing Page (Migrados) 🚀 */
+@utility landing-shell {
+  @apply min-h-screen overflow-x-hidden bg-app-bg;
+}
+
+@utility landing-navbar {
+  @apply fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4;
+}
+
+@utility landing-navbar--scrolled {
+  @apply bg-app-surface/80 backdrop-blur-xl border-b border-app-border/50 py-3 shadow-lg shadow-black/5;
+}
+
+@utility landing-hero {
+  @apply relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden;
+}
+
+@utility landing-hero__backdrop {
+  @apply absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(var(--primary-rgb),0.15),transparent_70%)];
+}
+
+@utility landing-hero__content {
+  @apply relative z-10 container mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center;
+}
+
+@utility landing-hero__badge {
+  @apply inline-flex items-center gap-2 px-4 py-2 rounded-full bg-app-primary/10 border border-app-primary/20 text-app-primary text-xs font-black uppercase tracking-widest mb-6;
+}
+
+@utility landing-hero__title {
+  @apply text-5xl md:text-7xl font-black text-app-fg leading-[1.1] tracking-tighter mb-6;
+}
+
+@utility landing-hero__description {
+  @apply text-lg md:text-xl text-app-muted font-medium leading-relaxed max-w-xl mb-10;
+}
+
+@utility landing-hero__actions {
+  @apply flex flex-wrap gap-4 mb-12;
+}
+
+@utility landing-hero__stats {
+  @apply grid grid-cols-3 gap-8 border-t border-app-border/30 pt-8;
+}
+
+@utility landing-hero__stat {
+  @apply flex flex-col gap-1;
+  & span { @apply text-2xl font-black text-app-fg; }
+  & p { @apply text-xs font-bold text-app-muted uppercase tracking-wider; }
+}
+
+@utility landing-hero__visual {
+  @apply relative perspective-1000;
+}
+
+@utility landing-hero__frame {
+  @apply relative aspect-video rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-app-primary/20;
+}
+
+@utility landing-hero__caption {
+  @apply absolute -bottom-6 -right-6 max-w-xs p-6 glass rounded-2xl shadow-xl hidden md:block;
+}
+
+@utility landing-hero__caption-label {
+  @apply block text-xs font-black text-app-primary uppercase tracking-widest mb-2;
+}
+
+@utility landing-section {
+  @apply py-24 relative;
+}
+
+@utility landing-section--alt {
+  @apply bg-app-muted-surface/30;
+}
+
+@utility landing-section__eyebrow {
+  @apply block text-xs font-black text-app-primary uppercase tracking-[0.3em] mb-4;
+}
+
+@utility landing-section__title {
+  @apply text-4xl md:text-5xl font-black text-app-fg tracking-tight mb-6;
+}
+
+@utility landing-section__description {
+  @apply text-lg text-app-muted font-medium leading-relaxed;
+}
+
+@utility landing-features-layout {
+  @apply container mx-auto px-6 grid lg:grid-cols-5 gap-16 items-center;
+}
+
+@utility landing-features-layout__media {
+  @apply lg:col-span-2 space-y-8;
+}
+
+@utility landing-features-layout__image {
+  @apply relative aspect-square rounded-3xl overflow-hidden border border-app-border/40 shadow-2xl;
+}
+
+@utility landing-features {
+  @apply lg:col-span-3 grid sm:grid-cols-2 gap-6;
+}
+
+@utility landing-feature {
+  @apply p-8 glass rounded-3xl border border-app-border/40 transition-all duration-300 hover:translate-y-[-8px] hover:border-app-primary/30;
+  & h3 { @apply text-xl font-black text-app-fg mb-3; }
+  & p { @apply text-app-muted font-medium leading-relaxed; }
+}
+
+@utility landing-feature__icon {
+  @apply w-12 h-12 rounded-2xl bg-app-primary/10 flex items-center justify-center text-app-primary mb-6 shadow-inner;
 }

@@ -297,14 +297,14 @@ export default function CampanhasPage() {
               {totalCampanhas === 0 ? (
                 <EmptyState
                   variant="card"
-                  icon="campaign"
+                  lottie="EMPTY_BOX"
                   title="O vazio te espera"
                   description="Mermão, você ainda não criou nenhuma campanha. O que está esperando pra começar a sua própria história?"
                 />
               ) : campanhasFiltradas.length === 0 ? (
                 <EmptyState
                   variant="card"
-                  icon="search"
+                  lottie="GHOST_SEARCH"
                   title="Nada nessa frequência"
                   description="Tente ajustar sua busca mental. Não encontramos nada com esse nome."
                   actionLabel="Limpar filtro"
