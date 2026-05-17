@@ -182,85 +182,82 @@ export default function PersonagensBasePage() {
 
   return (
     <>
-      <main className="min-h-screen bg-app-bg p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header - Padrão home/campanhas */}
-          <header className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name="characters" className="w-6 h-6 text-app-primary" />
+      <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header - Premium */}
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-secondary/10 shadow-inner">
+                <Icon name="characters" className="w-8 h-8 text-app-secondary" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-app-fg">
-                  Meus personagens-base
-                </h1>
-                <p className="text-sm text-app-muted mt-0.5">
-                  ({totalItens}) Crie fichas reutilizáveis para suas campanhas
+                <h1 className="text-4xl font-black text-app-fg tracking-tight">Personagens</h1>
+                <p className="text-app-muted font-medium mt-0.5">
+                  ({totalItens}) Suas fichas imortais, prontas para qualquer mesa.
                 </p>
               </div>
             </div>
 
-            <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
+            <div className="flex flex-wrap items-center gap-3">
               <Button
-                variant="secondary"
+                variant="glass"
+                size="sm"
                 onClick={() => setImportModalOpen(true)}
-                className="flex-1 sm:flex-none"
+                className="font-bold"
               >
                 <Icon name="upload" className="w-4 h-4 mr-2" />
                 Importar JSON
               </Button>
               <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => router.push('/')}
-                className="flex-1 sm:flex-none"
-              >
-                <Icon name="back" className="w-4 h-4 mr-2" />
-                Voltar
-              </Button>
-              <Button 
                 variant="primary"
                 onClick={() => router.push('/personagens-base/novo')}
-                className="flex-1 sm:flex-none"
+                className="font-black bg-app-secondary hover:bg-app-secondary-hover shadow-lg shadow-app-secondary/30"
               >
                 <Icon name="add" className="w-4 h-4 mr-2" />
-                Novo personagem
+                Nova Manifestação
               </Button>
             </div>
           </header>
 
-          {/* Erro */}
           {erro && <ErrorAlert message={erro} />}
 
-          {/* Lista */}
-          <section>
-            <SectionTitle>
-              Personagens-base ({totalItens})
-            </SectionTitle>
+          {/* Lista e Filtros */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <SectionTitle icon="characters">
+                Suas Criações
+                <Badge color="purple" size="sm" variant="subtle" className="ml-3">
+                  {totalItens}
+                </Badge>
+              </SectionTitle>
 
-            {loading && personagens.length > 0 && (
-              <p className="mt-2 text-sm text-app-muted">Atualizando lista...</p>
-            )}
+              {loading && personagens.length > 0 && (
+                <div className="flex items-center gap-2 text-xs font-bold text-app-muted animate-pulse">
+                  <div className="w-2 h-2 bg-app-secondary rounded-full" />
+                  Sincronizando...
+                </div>
+              )}
+            </div>
              
             {personagens.length === 0 ? (
               <EmptyState 
                 variant="card"
                 icon="characters"
-                title="Nenhum personagem criado"
-                description="Crie seu primeiro personagem-base para usar em campanhas!"
+                title="A névoa está vazia"
+                description="Mermão, você ainda não manifestou nenhum personagem. Vamos tirar essa ideia da cabeça e colocar na ficha?"
               >
                 <Button 
                   variant="primary"
-                  size="sm"
+                  size="md"
                   onClick={() => router.push('/personagens-base/novo')}
-                  className="mt-4"
+                  className="mt-4 bg-app-secondary hover:bg-app-secondary-hover font-black"
                 >
                   <Icon name="add" className="w-4 h-4 mr-2" />
-                  Criar primeiro personagem
+                  Criar Primeiro Herói
                 </Button>
               </EmptyState>
             ) : (
-              <div className="grid gap-4 mt-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {personagens.map((p) => (
                   <PersonagemBaseListItem
                     key={p.id}
@@ -273,70 +270,62 @@ export default function PersonagensBasePage() {
             )}
 
             {totalPaginas > 1 && (
-              <div className="mt-6 flex flex-col gap-3 rounded-lg border border-app-border bg-app-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-app-muted">
-                  Pagina {pagina} de {totalPaginas}
+              <Card variant="flat" className="flex items-center justify-between px-6 py-4 mt-8">
+                <p className="text-sm font-bold text-app-muted">
+                  Página {pagina} de {totalPaginas}
                 </p>
-                <div className="flex w-full items-center gap-2 sm:w-auto">
+                <div className="flex items-center gap-2">
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
                     disabled={loading || pagina <= 1}
                     onClick={() => setPagina((prev) => Math.max(1, prev - 1))}
-                    className="flex-1 sm:flex-none"
                   >
                     Anterior
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
                     disabled={loading || pagina >= totalPaginas}
                     onClick={() =>
                       setPagina((prev) => Math.min(totalPaginas, prev + 1))
                     }
-                    className="flex-1 sm:flex-none"
                   >
-                    Proxima
+                    Próxima
                   </Button>
                 </div>
-              </div>
+              </Card>
             )}
           </section>
 
-          {/* Card de ajuda - só quando vazio */}
-          {personagens.length === 0 && (
-            <section>
-              <div className="rounded-lg border border-app-border bg-app-surface p-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-app-primary/10">
-                    <Icon name="info" className="h-6 w-6 text-app-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-app-fg mb-2">
-                      O que são personagens-base?
-                    </h3>
-                    <p className="text-sm text-app-muted leading-relaxed mb-4">
-                      São fichas reutilizáveis que você cria uma vez e usa em várias campanhas.
-                    </p>
-                    <ul className="space-y-2.5 text-sm text-app-muted">
-                      <li className="flex items-start gap-2.5">
-                        <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Defina atributos, classe, clã e técnica inata</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Escolha perícias e distribua pontos de aprimoramento</span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Reutilize em qualquer campanha sem recriar</span>
-                      </li>
-                    </ul>
-                  </div>
+          {/* Guia Rápido */}
+          <Card variant="glass" className="!p-8">
+            <div className="flex items-start gap-6">
+              <div className="hidden sm:flex h-16 w-16 items-center justify-center rounded-2xl bg-app-secondary/10 text-app-secondary shadow-inner">
+                <Icon name="info" className="h-8 w-8" />
+              </div>
+              <div className="flex-1 space-y-4">
+                <h3 className="text-2xl font-black text-app-fg">
+                  O que são personagens-base?
+                </h3>
+                <p className="text-app-muted font-medium leading-relaxed max-w-2xl">
+                  São modelos espirituais que você cria uma vez e pode manifestar em qualquer campanha. Pense neles como sua biblioteca de heróis (ou vilões, quem sou eu pra julgar?).
+                </p>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {[
+                    { title: 'Manifestação', text: 'Atributos, clã e técnica inata definidos.' },
+                    { title: 'Evolução', text: 'Perícias e pontos de aprimoramento.' },
+                    { title: 'Reutilização', text: 'Mantenha seus conceitos em várias mesas.' },
+                  ].map((item) => (
+                    <div key={item.title} className="space-y-1">
+                      <p className="text-sm font-black text-app-secondary uppercase tracking-widest">{item.title}</p>
+                      <p className="text-xs text-app-muted font-medium leading-tight">{item.text}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </section>
-          )}
+            </div>
+          </Card>
         </div>
       </main>
 

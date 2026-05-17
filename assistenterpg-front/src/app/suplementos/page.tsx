@@ -175,31 +175,31 @@ export default function SuplementosPage() {
   if (!usuario) return null;
 
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="book" className="w-6 h-6 text-app-primary" />
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-primary/10 shadow-inner">
+              <Icon name="book" className="w-8 h-8 text-app-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-app-fg">
-                Suplementos Oficiais
+              <h1 className="text-4xl font-black text-app-fg tracking-tight">
+                Expansões de Realidade
               </h1>
-              <p className="text-sm text-app-muted mt-0.5">
+              <p className="text-app-muted font-medium mt-0.5 max-w-md">
                 {isAdmin
-                  ? 'Gerenciar suplementos do sistema'
-                  : 'Ative ou desative suplementos para expandir seu jogo'}
+                  ? 'Controle o fluxo de conhecimento do sistema.'
+                  : 'Ative novos horizontes para expandir sua jornada espiritual.'}
               </p>
             </div>
           </div>
 
           {/* Botão Admin */}
           {isAdmin && (
-            <Button variant="primary" onClick={handleNovo}>
+            <Button variant="primary" onClick={handleNovo} className="font-black shadow-lg shadow-app-primary/20">
               <Icon name="add" className="w-5 h-5 mr-2" />
-              Novo Suplemento
+              Manifestar Suplemento
             </Button>
           )}
         </header>
@@ -207,121 +207,106 @@ export default function SuplementosPage() {
         {/* Erro */}
         {erro && <ErrorAlert message={erro} />}
 
-        {/* Filtros */}
-        <Card>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+        {/* Filtros Premium */}
+        <Card variant="glass" className="!p-6">
+          <div className="flex flex-col md:flex-row items-end gap-4">
+            <div className="flex-1 w-full">
               <Input
-                placeholder="Buscar suplementos..."
+                label="Qual o nome da obra?"
+                placeholder="Ex: Sobrevivendo ao Jujutsu..."
                 value={filtroNome}
                 onChange={(e) => setFiltroNome(e.target.value)}
+                icon="search"
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant={filtroStatus === 'TODOS' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setFiltroStatus('TODOS')}
-              >
-                Todos
-              </Button>
-              <Button
-                variant={filtroStatus === 'ATIVOS' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setFiltroStatus('ATIVOS')}
-              >
-                Ativos
-              </Button>
-              <Button
-                variant={filtroStatus === 'INATIVOS' ? 'primary' : 'secondary'}
-                size="sm"
-                onClick={() => setFiltroStatus('INATIVOS')}
-              >
-                Inativos
-              </Button>
+            <div className="flex bg-app-muted-surface p-1 rounded-xl border border-app-border/40">
+              {[
+                { id: 'TODOS', label: 'Tudo' },
+                { id: 'ATIVOS', label: 'Ativos' },
+                { id: 'INATIVOS', label: 'Inativos' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setFiltroStatus(tab.id as any)}
+                  className={`
+                    px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all
+                    ${filtroStatus === tab.id 
+                      ? 'bg-app-surface text-app-primary shadow-sm' 
+                      : 'text-app-muted hover:text-app-fg'}
+                  `}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
         </Card>
 
         {/* Lista de suplementos */}
-        {suplementosFiltrados.length === 0 ? (
-          <EmptyState
-            variant="card"
-            icon="book"
-            title="Nenhum suplemento encontrado"
-            description={
-              filtroNome || filtroStatus !== 'TODOS'
-                ? 'Tente ajustar os filtros de busca.'
-                : 'Não há suplementos disponíveis no momento.'
-            }
-            actionLabel={isAdmin ? 'Criar Suplemento' : undefined}
-            onAction={isAdmin ? handleNovo : undefined}
-          >
-            {isAdmin && (
-              <div className="flex items-center justify-center gap-2 text-app-muted text-sm">
-                <Icon name="add" className="w-4 h-4" />
-                <span>Clique no botão abaixo para criar o primeiro suplemento</span>
-              </div>
-            )}
-          </EmptyState>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {suplementosFiltrados.map((s) => (
-              <SuplementoCard
-                key={s.id}
-                suplemento={s}
-                onOpen={() => handleOpen(s)}
-                onAtivar={() => handleAtivar(s)}
-                onDesativar={() => handleDesativar(s)}
-                onEdit={isAdmin ? () => handleEdit(s) : undefined}
-                onDelete={isAdmin ? () => handleDelete(s) : undefined}
-                processando={processando === s.id}
-                isAdmin={isAdmin}
-              />
-            ))}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <SectionTitle icon="book">
+              Obras Disponíveis
+              <Badge color="blue" size="sm" variant="subtle" className="ml-3">
+                {suplementosFiltrados.length}
+              </Badge>
+            </SectionTitle>
           </div>
-        )}
+
+          {suplementosFiltrados.length === 0 ? (
+            <EmptyState
+              variant="card"
+              icon="book"
+              title="A estante está vazia"
+              description="Mermão, nada foi encontrado nessa frequência. Tenta mudar o nome ou o filtro de status."
+              actionLabel={isAdmin ? 'Manifestar Nova Obra' : undefined}
+              onAction={isAdmin ? handleNovo : undefined}
+            />
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {suplementosFiltrados.map((s) => (
+                <SuplementoCard
+                  key={s.id}
+                  suplemento={s}
+                  onOpen={() => handleOpen(s)}
+                  onAtivar={() => handleAtivar(s)}
+                  onDesativar={() => handleDesativar(s)}
+                  onEdit={isAdmin ? () => handleEdit(s) : undefined}
+                  onDelete={isAdmin ? () => handleDelete(s) : undefined}
+                  processando={processando === s.id}
+                  isAdmin={isAdmin}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Card de ajuda */}
-        <Card>
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="info" className="h-6 w-6 text-app-primary" />
+        <Card variant="glass" className="!p-8">
+          <div className="flex items-start gap-6">
+            <div className="hidden sm:flex h-16 w-16 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
+              <Icon name="info" className="h-8 w-8" />
             </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-app-fg mb-2">
+            <div className="flex-1 space-y-4">
+              <h3 className="text-2xl font-black text-app-fg">
                 O que são Suplementos?
               </h3>
-              <p className="text-sm text-app-muted leading-relaxed mb-4">
-                Suplementos são expansões oficiais que adicionam novos conteúdos ao sistema
-                Jujutsu Kaisen RPG: clãs, classes, trilhas, equipamentos e muito mais.
+              <p className="text-app-muted font-medium leading-relaxed max-w-2xl">
+                Expansões oficiais que injetam novos conceitos no seu mundo: clãs raros, técnicas proibidas e relíquias amaldiçoadas. Ative-os para ver o sistema se expandir diante dos seus olhos.
               </p>
-              <ul className="space-y-2.5">
-                <li className="flex items-start gap-2.5 text-sm text-app-muted">
-                  <Icon
-                    name="check"
-                    className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5"
-                  />
-                  <span>
-                    Ative suplementos para liberar novos conteúdos na criação de personagens
-                  </span>
-                </li>
-                <li className="flex items-start gap-2.5 text-sm text-app-muted">
-                  <Icon
-                    name="check"
-                    className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5"
-                  />
-                  <span>Desative quando quiser voltar ao sistema base</span>
-                </li>
-                <li className="flex items-start gap-2.5 text-sm text-app-muted">
-                  <Icon
-                    name="check"
-                    className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5"
-                  />
-                  <span>Todo conteúdo é balanceado e testado pela equipe</span>
-                </li>
-              </ul>
+              <div className="grid sm:grid-cols-3 gap-6">
+                {[
+                  { title: 'Expansão', text: 'Novos conteúdos liberados na hora.' },
+                  { title: 'Controle', text: 'Ative e desative quando quiser voltar ao básico.' },
+                  { title: 'Equilíbrio', text: 'Balanceado e testado pela nossa equipe.' },
+                ].map((item) => (
+                  <div key={item.title} className="space-y-1">
+                    <p className="text-sm font-black text-app-primary uppercase tracking-widest">{item.title}</p>
+                    <p className="text-xs text-app-muted font-medium">{item.text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </Card>

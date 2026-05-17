@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type Theme = 'light' | 'dark' | 'jujutsu';
+export type Theme = 'light' | 'dark' | 'jujutsu' | 'padrao';
 
 type ThemeContextType = {
   theme: Theme;
@@ -18,13 +18,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'dark';
     const stored = localStorage.getItem(THEME_KEY);
-    return stored === 'light' || stored === 'dark' || stored === 'jujutsu' ? stored : 'dark';
+    return stored === 'light' || stored === 'dark' || stored === 'jujutsu' || stored === 'padrao' ? stored : 'dark';
   });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    document.documentElement.classList.toggle('dark', theme === 'dark' || theme === 'jujutsu');
+    document.documentElement.classList.toggle('dark', theme === 'dark' || theme === 'jujutsu' || theme === 'padrao');
     document.documentElement.classList.toggle('theme-jujutsu', theme === 'jujutsu');
+    document.documentElement.classList.toggle('theme-padrao', theme === 'padrao');
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
@@ -33,6 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setTheme((prev) => {
       if (prev === 'light') return 'dark';
       if (prev === 'dark') return 'jujutsu';
+      if (prev === 'jujutsu') return 'padrao';
       return 'light';
     });
   };

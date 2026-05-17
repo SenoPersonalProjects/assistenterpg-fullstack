@@ -109,23 +109,34 @@ export function NavigationBar() {
   return (
     <nav
       className={`
-        sticky top-0 z-50 bg-app-surface border-b shadow-sm
-        ${isAdmin ? 'border-2 border-red-500/50' : 'border-app-border'}
+        sticky top-0 z-50 transition-all duration-300
+        ${
+          isAdmin
+            ? 'border-b-2 border-red-500/30 bg-app-surface/90 backdrop-blur-md shadow-lg shadow-red-500/5'
+            : 'border-b border-app-border bg-app-surface/80 backdrop-blur-xl shadow-sm'
+        }
       `}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/home" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
-              <span className="text-white font-bold text-xl">JK</span>
+          <Link href="/home" className="flex items-center gap-3 group">
+            <div className="relative w-10 h-10">
+              <div className="absolute inset-0 bg-gradient-to-br from-app-primary to-app-secondary rounded-xl blur-sm opacity-40 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative w-full h-full bg-gradient-to-br from-app-primary to-app-secondary rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                <span className="text-white font-black text-xl tracking-tighter">JK</span>
+              </div>
             </div>
             <div className="hidden sm:block">
-              <span className="text-lg font-bold text-app-fg">Assistente RPG</span>
-              <span className="block text-xs text-app-muted">Jujutsu Kaisen</span>
+              <span className="text-lg font-black text-app-fg tracking-tight block leading-tight">
+                Assistente <span className="text-app-primary">RPG</span>
+              </span>
+              <span className="block text-[10px] uppercase font-bold tracking-[0.2em] text-app-muted leading-none">
+                Jujutsu Kaisen
+              </span>
             </div>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1.5">
             {navItems.map((item) => {
               const itemIsActive = isActive(item.href);
 
@@ -135,28 +146,29 @@ export function NavigationBar() {
                   href={item.href}
                   title={item.label}
                   className={`
-                    group/nav flex items-center overflow-hidden rounded-lg py-2 text-sm font-medium
-                    transition-all duration-200
+                    group/nav relative flex items-center h-10 rounded-xl px-4 text-sm font-bold
+                    transition-all duration-300
                     ${
                       itemIsActive
-                        ? 'px-3 bg-app-primary/10 text-app-primary'
-                        : 'px-2.5 text-app-muted hover:text-app-fg hover:bg-app-bg hover:px-3 focus-visible:text-app-fg focus-visible:bg-app-bg focus-visible:px-3'
+                        ? 'text-app-primary bg-app-primary/10'
+                        : 'text-app-muted hover:text-app-fg hover:bg-app-muted-surface'
                     }
                   `}
                 >
-                  <Icon name={item.icon} className="w-5 h-5 shrink-0" />
+                  <Icon name={item.icon} className={`w-5 h-5 shrink-0 transition-transform duration-300 ${itemIsActive ? 'scale-110' : 'group-hover/nav:scale-110'}`} />
+                  
                   <span
                     className={`
-                      overflow-hidden whitespace-nowrap transition-all duration-200
-                      ${
-                        itemIsActive
-                          ? 'ml-2 max-w-[9rem] opacity-100'
-                          : 'ml-0 max-w-0 opacity-0 group-hover/nav:ml-2 group-hover/nav:max-w-[9rem] group-hover/nav:opacity-100 group-focus/nav:ml-2 group-focus/nav:max-w-[9rem] group-focus/nav:opacity-100'
-                      }
+                      ml-2 whitespace-nowrap overflow-hidden transition-all duration-300
+                      ${itemIsActive ? 'max-w-[10rem] opacity-100' : 'max-w-0 opacity-0 group-hover/nav:max-w-[10rem] group-hover/nav:opacity-100'}
                     `}
                   >
                     {item.label}
                   </span>
+
+                  {itemIsActive && (
+                    <div className="absolute bottom-1 left-4 right-4 h-0.5 bg-app-primary rounded-full shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]" />
+                  )}
                 </Link>
               );
             })}
@@ -166,16 +178,16 @@ export function NavigationBar() {
             <Link href="/configuracoes">
               <button
                 className={`
-                  p-2 rounded-lg transition-colors
+                  p-2.5 rounded-xl transition-all duration-200 active:scale-90
                   ${
                     pathname === '/configuracoes'
-                      ? 'bg-app-primary/10 text-app-primary'
-                      : 'text-app-muted hover:text-app-fg hover:bg-app-bg'
+                      ? 'bg-app-primary/10 text-app-primary shadow-inner'
+                      : 'text-app-muted hover:text-app-fg hover:bg-app-muted-surface'
                   }
                 `}
-                title="Configuracoes"
+                title="Configurações"
               >
-                <Icon name="settings" className="w-6 h-6" />
+                <Icon name="settings" className="w-5 h-5" />
               </button>
             </Link>
 
@@ -185,29 +197,34 @@ export function NavigationBar() {
               active={pathname === '/notificacoes'}
             />
 
+            <div className="w-px h-6 bg-app-border mx-1" />
+
             <UserMenu />
           </div>
         </div>
 
-        <div className="md:hidden flex items-center gap-1 pb-3 overflow-x-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`
-                flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium
-                whitespace-nowrap transition-colors
-                ${
-                  isActive(item.href)
-                    ? 'bg-app-primary/10 text-app-primary'
-                    : 'text-app-muted hover:text-app-fg hover:bg-app-bg'
-                }
-              `}
-            >
-              <Icon name={item.icon} className="w-4 h-4" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+        <div className="md:hidden flex items-center gap-1 pb-3 overflow-x-auto no-scrollbar">
+          {navItems.map((item) => {
+            const itemIsActive = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold
+                  whitespace-nowrap transition-all duration-200
+                  ${
+                    itemIsActive
+                      ? 'bg-app-primary text-white shadow-lg shadow-app-primary/30 scale-105'
+                      : 'bg-app-muted-surface text-app-muted'
+                  }
+                `}
+              >
+                <Icon name={item.icon} className="w-4 h-4" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </nav>

@@ -17,21 +17,23 @@ export function LibraryPageHeader({
   actions,
 }: LibraryPageHeaderProps) {
   return (
-    <header className="library-page-header">
-      <div className="flex min-w-0 items-start gap-4">
-        <div className="library-page-header__icon">
-          <Icon name={icon} className="h-5 w-5" />
+    <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-app-border/30">
+      <div className="flex items-start gap-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
+          <Icon name={icon} className="h-8 w-8" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-app-fg sm:text-3xl">
+          <h1 className="text-4xl font-black tracking-tight text-app-fg">
             {title}
           </h1>
-          <p className="mt-1 text-sm text-app-muted">{description}</p>
+          <p className="mt-1 text-base font-medium text-app-muted max-w-xl">
+            {description}
+          </p>
         </div>
       </div>
 
       {actions ? (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        <div className="flex flex-wrap items-center gap-3">{actions}</div>
       ) : null}
     </header>
   );

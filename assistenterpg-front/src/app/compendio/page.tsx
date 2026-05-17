@@ -15,40 +15,35 @@ export default async function CompendioPage() {
   const semConteudo = livros.length === 0 && destaques.length === 0;
 
   return (
-    <main className="library-page-shell min-h-screen p-6">
+    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
       <div className="mx-auto max-w-7xl space-y-8">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-4">
-            <div className="library-page-header__icon">
-              <Icon name="rules" className="h-5 w-5" />
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-app-border/30">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
+              <Icon name="rules" className="h-8 w-8" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                Biblioteca de regras
-              </p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight text-app-fg">
-                Compendio
+              <h1 className="text-4xl font-black tracking-tight text-app-fg">
+                Compêndio
               </h1>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-app-muted">
-                Escolha um livro oficial para consultar regras, suplementos e referencias
-                do sistema Jujutsu Kaisen RPG.
+              <p className="mt-1 text-base font-medium text-app-muted max-w-xl">
+                Onde as leis do mundo são escritas. Consulte regras, técnicas e suplementos.
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <CompendioAdminExportButton />
-            <Link
-              href="/home"
-              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-medium text-app-muted transition-colors hover:text-app-fg"
-            >
-              <Icon name="back" className="mr-2 h-4 w-4" />
-              Voltar
+            <Link href="/home">
+              <Button variant="ghost" size="sm" className="font-bold">
+                <Icon name="back" className="mr-2 h-4 w-4" />
+                Painel
+              </Button>
             </Link>
           </div>
         </header>
 
-        <section className="library-panel rounded-lg p-4">
+        <section className="bg-app-surface/50 backdrop-blur-sm border border-app-border/40 rounded-2xl p-6 shadow-xl shadow-black/5">
           <CompendioSearch />
         </section>
 

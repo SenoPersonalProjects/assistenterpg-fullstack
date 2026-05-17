@@ -190,238 +190,168 @@ export default function CampanhasPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-app-bg p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <header className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name="campaign" className="w-6 h-6 text-app-primary" />
+      <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-primary/10 shadow-inner">
+                <Icon name="campaign" className="w-8 h-8 text-app-primary" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-app-fg">Minhas campanhas</h1>
-                <p className="text-sm text-app-muted mt-0.5">
-                  Gerencie suas campanhas ativas, pausadas e encerradas.
+                <h1 className="text-4xl font-black text-app-fg tracking-tight">Campanhas</h1>
+                <p className="text-app-muted font-medium mt-0.5">
+                  Organize suas mesas e narre histórias lendárias.
                 </p>
               </div>
             </div>
 
-            <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
+            <Button variant="ghost" size="sm" onClick={() => router.push('/home')} className="font-bold">
               <Icon name="back" className="w-4 h-4 mr-2" />
-              Voltar
+              Painel Inicial
             </Button>
           </header>
 
           {erro && <ErrorAlert message={erro} />}
 
-          <section>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Card className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-primary/10 text-app-primary">
-                  <Icon name="campaign" className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-app-muted">Total de campanhas</p>
-                  <p className="text-lg font-semibold text-app-fg">{totalCampanhas}</p>
-                </div>
-              </Card>
-              <Card className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-success/10 text-app-success">
-                  <Icon name="check" className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-app-muted">Ativas (página)</p>
-                  <p className="text-lg font-semibold text-app-fg">{resumoStatus.ativas}</p>
-                </div>
-              </Card>
-              <Card className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-warning/10 text-app-warning">
-                  <Icon name="pause" className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-app-muted">Pausadas (página)</p>
-                  <p className="text-lg font-semibold text-app-fg">{resumoStatus.pausadas}</p>
+          {/* Estatísticas Rápidas */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Total', value: totalCampanhas, icon: 'campaign', color: 'blue' },
+              { label: 'Ativas', value: resumoStatus.ativas, icon: 'check', color: 'green' },
+              { label: 'Pausadas', value: resumoStatus.pausadas, icon: 'pause', color: 'yellow' },
+              { label: 'Encerradas', value: resumoStatus.encerradas, icon: 'fail', color: 'red' },
+            ].map((stat) => (
+              <Card key={stat.label} variant="glass" className="!p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-app-${stat.color}/10 text-app-${stat.color}`}>
+                    <Icon name={stat.icon as any} className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-app-muted leading-none mb-1">{stat.label}</p>
+                    <p className="text-xl font-black text-app-fg leading-none">{stat.value}</p>
+                  </div>
                 </div>
               </Card>
-              <Card className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-app-danger/10 text-app-danger">
-                  <Icon name="fail" className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-app-muted">Encerradas (página)</p>
-                  <p className="text-lg font-semibold text-app-fg">{resumoStatus.encerradas}</p>
-                </div>
-              </Card>
-            </div>
-            <p className="text-xs text-app-muted mt-2">
-              Resumo da página atual • {campanhas.length} campanhas carregadas
-            </p>
-          </section>
+            ))}
+          </div>
 
-          <section>
-            <div className="rounded-lg border border-app-border bg-app-surface p-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
-                  <Icon name="add" className="w-5 h-5" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Coluna da Esquerda: Criação e Filtros */}
+            <div className="lg:col-span-1 space-y-6">
+              <Card variant="default" className="!p-6 shadow-xl shadow-black/5">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-app-primary/10 rounded-xl">
+                    <Icon name="add" className="w-5 h-5 text-app-primary" />
+                  </div>
+                  <h2 className="text-xl font-black text-app-fg">Nova Jornada</h2>
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-app-fg">Criar nova campanha</h2>
-                  <p className="text-sm text-app-muted">
-                    Defina um nome e uma descrição para organizar sua próxima mesa.
-                  </p>
-                </div>
-              </div>
-              <div className="max-w-xl">
                 <CampaignForm onSubmit={handleCreate} />
-              </div>
-            </div>
-          </section>
+              </Card>
 
-          <section>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <SectionTitle icon="campaign">
-                <span>Campanhas</span>
-                <Badge color="gray" size="sm" className="ml-2">
-                  {filtroAtivo ? campanhasFiltradas.length : totalCampanhas}
-                </Badge>
-              </SectionTitle>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="min-w-[220px]">
+              <Card variant="glass" className="!p-6">
+                <h3 className="text-sm font-bold text-app-fg uppercase tracking-widest mb-4">Filtrar Pensamentos</h3>
+                <div className="space-y-4">
                   <Input
                     icon="search"
-                    placeholder="Buscar campanha..."
+                    placeholder="Nome da campanha..."
                     value={filtroNome}
                     onChange={(e) => setFiltroNome(e.target.value)}
                   />
+                  {filtroAtivo && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setFiltroNome('')}
+                      className="w-full"
+                    >
+                      <Icon name="close" className="w-4 h-4 mr-2" />
+                      Limpar Filtro
+                    </Button>
+                  )}
                 </div>
-                {filtroAtivo && (
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setFiltroNome('')}
-                  >
-                    <Icon name="close" className="w-3 h-3 mr-1" />
-                    Limpar
-                  </Button>
-                )}
-                {loading && campanhas.length > 0 && (
-                  <span className="text-xs text-app-muted">Atualizando...</span>
-                )}
+              </Card>
+            </div>
+
+            {/* Coluna da Direita: Lista de Campanhas */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center justify-between">
+                <SectionTitle icon="campaign">
+                  Mundo em Expansão
+                  <Badge color="gray" size="sm" variant="subtle" className="ml-3">
+                    {filtroAtivo ? campanhasFiltradas.length : totalCampanhas}
+                  </Badge>
+                </SectionTitle>
+                
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => void carregarDados(pagina)}
                   disabled={loading}
+                  className="font-bold"
                 >
-                  <Icon name="refresh" className="w-4 h-4 mr-1" />
-                  Atualizar
+                  <Icon name="refresh" className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  {loading ? 'Sincronizando...' : 'Atualizar'}
                 </Button>
               </div>
-            </div>
 
-            {filtroAtivo && (
-              <p className="text-xs text-app-muted mt-1">
-                Mostrando {campanhasFiltradas.length} de {campanhas.length} campanhas nesta página
-              </p>
-            )}
-
-            {totalCampanhas === 0 ? (
-              <div className="mt-4">
+              {totalCampanhas === 0 ? (
                 <EmptyState
                   variant="card"
                   icon="campaign"
-                  title="Nenhuma campanha criada"
-                  description="Crie sua primeira campanha usando o formulário acima!"
+                  title="O vazio te espera"
+                  description="Mermão, você ainda não criou nenhuma campanha. O que está esperando pra começar a sua própria história?"
                 />
-              </div>
-            ) : campanhasFiltradas.length === 0 ? (
-              <div className="mt-4">
+              ) : campanhasFiltradas.length === 0 ? (
                 <EmptyState
                   variant="card"
                   icon="search"
-                  title="Nenhuma campanha encontrada"
-                  description="Tente ajustar o termo de busca para encontrar sua campanha."
+                  title="Nada nessa frequência"
+                  description="Tente ajustar sua busca mental. Não encontramos nada com esse nome."
                   actionLabel="Limpar filtro"
                   onAction={() => setFiltroNome('')}
                 />
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-4">
-                {campanhasFiltradas.map((c) => (
-                  <CampaignCard
-                    key={c.id}
-                    campanha={c}
-                    onView={() => void handleOpenPreview(c)}
-                    onDelete={() => handleDeleteClick(c)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {totalPaginas > 1 && (
-              <div className="mt-6 flex items-center justify-between rounded-lg border border-app-border bg-app-surface px-4 py-3">
-                <p className="text-sm text-app-muted">
-                  Página {pagina} de {totalPaginas}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={loading || pagina <= 1}
-                    onClick={() => setPagina((prev) => Math.max(1, prev - 1))}
-                  >
-                    Anterior
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={loading || pagina >= totalPaginas}
-                    onClick={() =>
-                      setPagina((prev) => Math.min(totalPaginas, prev + 1))
-                    }
-                  >
-                    Próxima
-                  </Button>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {campanhasFiltradas.map((c) => (
+                    <CampaignCard
+                      key={c.id}
+                      campanha={c}
+                      onView={() => void handleOpenPreview(c)}
+                      onDelete={() => handleDeleteClick(c)}
+                    />
+                  ))}
                 </div>
-              </div>
-            )}
-          </section>
+              )}
 
-          {totalCampanhas === 0 && (
-            <section>
-              <div className="rounded-lg border border-app-border bg-app-surface p-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-app-primary/10">
-                    <Icon name="info" className="h-6 w-6 text-app-primary" />
+              {totalPaginas > 1 && (
+                <Card variant="flat" className="flex items-center justify-between px-6 py-4">
+                  <p className="text-sm font-bold text-app-muted">
+                    Plano {pagina} de {totalPaginas}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={loading || pagina <= 1}
+                      onClick={() => setPagina((prev) => Math.max(1, prev - 1))}
+                    >
+                      Anterior
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={loading || pagina >= totalPaginas}
+                      onClick={() =>
+                        setPagina((prev) => Math.min(totalPaginas, prev + 1))
+                      }
+                    >
+                      Próxima
+                    </Button>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-app-fg mb-2">Como funcionam as campanhas?</h3>
-                    <p className="text-sm text-app-muted leading-relaxed mb-4">
-                      Campanhas são a forma de organizar suas histórias e aventuras no sistema Jujutsu Kaisen RPG.
-                      Cada campanha tem seus próprios personagens, sessões e progresso.
-                    </p>
-                    <ul className="space-y-2.5">
-                      <li className="flex items-start gap-2.5 text-sm text-app-muted">
-                        <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Convide jogadores e gerencie membros da mesa</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-sm text-app-muted">
-                        <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Adicione personagens-base à campanha para jogar</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-sm text-app-muted">
-                        <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Registre sessões e acompanhe o progresso da história</span>
-                      </li>
-                      <li className="flex items-start gap-2.5 text-sm text-app-muted">
-                        <Icon name="check" className="w-5 h-5 text-app-success flex-shrink-0 mt-0.5" />
-                        <span>Controle o status: Ativa, Pausada ou Encerrada</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
+                </Card>
+              )}
+            </div>
+          </div>
         </div>
       </main>
 

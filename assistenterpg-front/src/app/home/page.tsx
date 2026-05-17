@@ -92,108 +92,100 @@ export default function HomePage() {
   if (!usuario) return null;
 
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header de Boas-vindas */}
-        <header>
-          <h1 className="text-4xl font-bold text-app-fg mb-2">
-            Bem-vindo, {usuario.apelido}!
-          </h1>
-          <p className="text-app-muted">
-            Aqui está um resumo das suas atividades no Assistente RPG
-          </p>
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-4xl md:text-5xl font-black text-app-fg tracking-tight">
+              E aí, <span className="text-gradient">{usuario.apelido}</span>! 🌿
+            </h1>
+            <p className="text-lg text-app-muted font-medium">
+              Sente a vibe. Suas aventuras estão esperando...
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Badge color="purple" variant="solid" size="lg" className="shadow-lg shadow-app-secondary/20">
+              Energia Amaldiçoada Estável
+            </Badge>
+          </div>
         </header>
 
         {/* Erro */}
         {erro && <ErrorAlert message={erro} />}
 
         {/* Cards de Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-app-muted text-sm mb-1">Campanhas Ativas</p>
-                <p className="text-3xl font-bold text-app-fg">{stats.campanhas}</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { label: 'Campanhas', value: stats.campanhas, icon: 'campaign', color: 'blue' },
+            { label: 'Personagens', value: stats.personagens, icon: 'characters', color: 'purple' },
+            { label: 'Homebrews', value: stats.homebrews, icon: 'sparkles', color: 'orange' },
+            { label: 'Consultas', value: stats.artigosLidos, icon: 'rules', color: 'green' },
+          ].map((stat) => (
+            <Card key={stat.label} variant="glass" className="relative overflow-hidden group">
+              <div className={`absolute -right-4 -top-4 w-24 h-24 bg-app-${stat.color}/10 rounded-full blur-2xl group-hover:bg-app-${stat.color}/20 transition-all duration-500`} />
+              <div className="relative flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-app-muted text-xs font-bold uppercase tracking-widest">{stat.label}</span>
+                  <Icon name={stat.icon as any} className={`w-5 h-5 text-app-${stat.color}`} />
+                </div>
+                <span className="text-3xl font-black text-app-fg tracking-tighter">{stat.value}</span>
               </div>
-              <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                <Icon name="campaign" className="w-6 h-6 text-blue-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-app-muted text-sm mb-1">Personagens Criados</p>
-                <p className="text-3xl font-bold text-app-fg">{stats.personagens}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                <Icon name="characters" className="w-6 h-6 text-purple-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-app-muted text-sm mb-1">Homebrews</p>
-                <p className="text-3xl font-bold text-app-fg">{stats.homebrews}</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                <Icon name="sparkles" className="w-6 h-6 text-orange-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-app-muted text-sm mb-1">Artigos Consultados</p>
-                <p className="text-3xl font-bold text-app-fg">{stats.artigosLidos}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center">
-                <Icon name="rules" className="w-6 h-6 text-green-500" />
-              </div>
-            </div>
-          </Card>
+            </Card>
+          ))}
         </div>
 
         {/* Grid de Conteúdo */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Campanhas Recentes */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-app-fg flex items-center gap-2">
-                <Icon name="campaign" className="w-5 h-5" />
-                Campanhas Recentes
+          <Card variant="default" className="flex flex-col gap-6 !p-6 shadow-xl shadow-black/5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black text-app-fg flex items-center gap-3">
+                <div className="p-2 bg-app-primary/10 rounded-xl">
+                  <Icon name="campaign" className="w-6 h-6 text-app-primary" />
+                </div>
+                Campanhas
               </h2>
               <Link href="/campanhas">
-                <Button variant="ghost" size="sm">Ver todas</Button>
+                <Button variant="ghost" size="sm" className="font-bold">Ver tudo</Button>
               </Link>
             </div>
 
             {campanhasRecentes.length === 0 ? (
-              <div className="text-center py-8">
-                <Icon name="campaign" className="w-12 h-12 mx-auto mb-3 text-app-muted" />
-                <p className="text-app-muted mb-4">Você ainda não participa de nenhuma campanha</p>
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-app-muted-surface/30 rounded-2xl border border-dashed border-app-border">
+                <div className="w-16 h-16 bg-app-surface rounded-full flex items-center justify-center mb-4 shadow-inner">
+                  <Icon name="campaign" className="w-8 h-8 text-app-muted" />
+                </div>
+                <p className="text-app-muted font-medium mb-6">Nenhuma campanha por aqui ainda, mermão.</p>
                 <Link href="/campanhas">
-                  <Button variant="primary" size="sm">Criar primeira campanha</Button>
+                  <Button variant="primary" className="shadow-lg shadow-app-primary/30">
+                    <Icon name="add" className="w-4 h-4 mr-2" />
+                    Iniciar Jornada
+                  </Button>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-4">
                 {campanhasRecentes.map((campanha) => (
                   <Link key={campanha.id} href={`/campanhas/${campanha.id}`}>
-                    <div className="p-4 bg-app-bg rounded-lg hover:bg-app-border/50 transition-colors cursor-pointer">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-app-fg">{campanha.nome}</h3>
-                        <Badge color="blue" size="sm">
-                          {campanha._count?.membros || 0} membros
-                        </Badge>
+                    <div className="group relative p-5 bg-app-surface/50 hover:bg-app-surface rounded-2xl border border-app-border transition-all duration-300 cursor-pointer overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-primary scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
+                      <div className="flex items-center justify-between relative z-10">
+                        <div className="space-y-1">
+                          <h3 className="font-bold text-app-fg group-hover:text-app-primary transition-colors text-lg">{campanha.nome}</h3>
+                          <p className="text-xs text-app-muted font-medium flex items-center gap-2">
+                             Status: <Badge color="blue" size="xs" variant="subtle">{campanha.status}</Badge>
+                          </p>
+                        </div>
+                        <div className="flex -space-x-2">
+                          {[...Array(Math.min(campanha._count?.membros || 0, 3))].map((_, i) => (
+                            <div key={i} className="w-8 h-8 rounded-full border-2 border-app-surface bg-app-muted-surface flex items-center justify-center text-[10px] font-bold text-app-muted">
+                              {i === 2 && (campanha._count?.membros || 0) > 3 ? `+${(campanha._count?.membros || 0) - 2}` : ''}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <p className="text-xs text-app-muted">
-                        Status: {campanha.status}
-                      </p>
                     </div>
                   </Link>
                 ))}
@@ -202,35 +194,45 @@ export default function HomePage() {
           </Card>
 
           {/* Personagens Recentes */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-app-fg flex items-center gap-2">
-                <Icon name="characters" className="w-5 h-5" />
-                Personagens Recentes
+          <Card variant="default" className="flex flex-col gap-6 !p-6 shadow-xl shadow-black/5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black text-app-fg flex items-center gap-3">
+                <div className="p-2 bg-app-secondary/10 rounded-xl">
+                  <Icon name="characters" className="w-6 h-6 text-app-secondary" />
+                </div>
+                Personagens
               </h2>
               <Link href="/personagens-base">
-                <Button variant="ghost" size="sm">Ver todos</Button>
+                <Button variant="ghost" size="sm" className="font-bold">Ver tudo</Button>
               </Link>
             </div>
 
             {personagensRecentes.length === 0 ? (
-              <div className="text-center py-8">
-                <Icon name="characters" className="w-12 h-12 mx-auto mb-3 text-app-muted" />
-                <p className="text-app-muted mb-4">Você ainda não criou nenhum personagem</p>
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-app-muted-surface/30 rounded-2xl border border-dashed border-app-border">
+                <div className="w-16 h-16 bg-app-surface rounded-full flex items-center justify-center mb-4 shadow-inner">
+                  <Icon name="characters" className="w-8 h-8 text-app-muted" />
+                </div>
+                <p className="text-app-muted font-medium mb-6">Seus heróis ainda estão na névoa.</p>
                 <Link href="/personagens-base/novo">
-                  <Button variant="primary" size="sm">Criar primeiro personagem</Button>
+                  <Button variant="primary" className="bg-app-secondary hover:bg-app-secondary-hover shadow-lg shadow-app-secondary/30">
+                    <Icon name="add" className="w-4 h-4 mr-2" />
+                    Manifestar Personagem
+                  </Button>
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-4">
                 {personagensRecentes.map((personagem) => (
                   <Link key={personagem.id} href={`/personagens-base/${personagem.id}`}>
-                    <div className="p-4 bg-app-bg rounded-lg hover:bg-app-border/50 transition-colors cursor-pointer">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-app-fg">{personagem.nome}</h3>
-                        <Badge color="purple" size="sm">Nv. {personagem.nivel}</Badge>
+                    <div className="group relative p-5 bg-app-surface/50 hover:bg-app-surface rounded-2xl border border-app-border transition-all duration-300 cursor-pointer overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-app-secondary scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
+                      <div className="flex items-center justify-between relative z-10">
+                        <div className="space-y-1">
+                          <h3 className="font-bold text-app-fg group-hover:text-app-secondary transition-colors text-lg">{personagem.nome}</h3>
+                          <p className="text-xs text-app-muted font-bold tracking-wide uppercase">{personagem.classe}</p>
+                        </div>
+                        <Badge color="purple" variant="solid" size="md" className="font-black">Nv. {personagem.nivel}</Badge>
                       </div>
-                      <p className="text-xs text-app-muted">{personagem.classe}</p>
                     </div>
                   </Link>
                 ))}
@@ -240,42 +242,28 @@ export default function HomePage() {
         </div>
 
         {/* Ações Rápidas */}
-        <Card className="p-6">
-          <h2 className="text-xl font-bold text-app-fg mb-4 flex items-center gap-2">
-            <Icon name="bolt" className="w-5 h-5" />
-            Ações Rápidas
+        <Card variant="glass" className="!p-8">
+          <h2 className="text-2xl font-black text-app-fg mb-6 flex items-center gap-3">
+            <Icon name="bolt" className="w-6 h-6 text-app-orange" />
+            Atalhos Mentais
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <Link href="/campanhas">
-              <Button variant="secondary" className="w-full justify-start">
-                <Icon name="add" className="w-4 h-4 mr-2" />
-                Nova Campanha
-              </Button>
-            </Link>
-            <Link href="/personagens-base/novo">
-              <Button variant="secondary" className="w-full justify-start">
-                <Icon name="add" className="w-4 h-4 mr-2" />
-                Novo Personagem
-              </Button>
-            </Link>
-            <Link href="/homebrews/novo">
-              <Button variant="secondary" className="w-full justify-start">
-                <Icon name="add" className="w-4 h-4 mr-2" />
-                Novo Homebrew
-              </Button>
-            </Link>
-            <Link href="/compendio">
-              <Button variant="secondary" className="w-full justify-start">
-                <Icon name="rules" className="w-4 h-4 mr-2" />
-                Consultar Regras
-              </Button>
-            </Link>
-            <Link href="/configuracoes">
-              <Button variant="secondary" className="w-full justify-start">
-                <Icon name="settings" className="w-4 h-4 mr-2" />
-                Configurações
-              </Button>
-            </Link>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { label: 'Nova Campanha', href: '/campanhas', icon: 'add' },
+              { label: 'Novo Personagem', href: '/personagens-base/novo', icon: 'add' },
+              { label: 'Novo Homebrew', href: '/homebrews/novo', icon: 'add' },
+              { label: 'Consultar Regras', href: '/compendio', icon: 'rules' },
+              { label: 'Configurações', href: '/configuracoes', icon: 'settings' },
+            ].map((acao) => (
+              <Link key={acao.label} href={acao.href}>
+                <Button variant="secondary" className="w-full !justify-start !p-4 h-auto rounded-2xl group hover:shadow-lg transition-all duration-300">
+                  <div className="p-2 bg-app-muted-surface rounded-xl mr-3 group-hover:bg-app-surface transition-colors">
+                    <Icon name={acao.icon as any} className="w-5 h-5 text-app-muted group-hover:text-app-primary" />
+                  </div>
+                  <span className="font-bold text-app-fg/80 group-hover:text-app-fg">{acao.label}</span>
+                </Button>
+              </Link>
+            ))}
           </div>
         </Card>
       </div>

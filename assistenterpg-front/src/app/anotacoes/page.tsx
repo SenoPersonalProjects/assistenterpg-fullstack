@@ -284,109 +284,121 @@ export default function AnotacoesPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-app-bg p-6">
-        <div className="mx-auto max-w-5xl space-y-6">
-          <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name="scroll" className="h-6 w-6 text-app-primary" />
+      <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+        <div className="mx-auto max-w-6xl space-y-8">
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-orange/10 shadow-inner">
+                <Icon name="scroll" className="w-8 h-8 text-app-orange" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-app-fg">Minhas anotacoes</h1>
-                <p className="mt-0.5 text-sm text-app-muted">
-                  Registre ideias, planos e lembretes de campanha.
+                <h1 className="text-4xl font-black text-app-fg tracking-tight">Grimório de Notas</h1>
+                <p className="text-app-muted font-medium mt-0.5">
+                  Não deixe o conhecimento se perder no vazio.
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={abrirModalCriacao}>
+            
+            <div className="flex items-center gap-3">
+              <Button onClick={abrirModalCriacao} className="font-black shadow-lg shadow-app-primary/20">
                 <Icon name="add" className="mr-2 h-4 w-4" />
-                Criar anotacao
+                Manifestar Ideia
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/home')}>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/home')} className="font-bold">
                 <Icon name="back" className="mr-2 h-4 w-4" />
-                Voltar
+                Painel
               </Button>
             </div>
           </header>
 
           {erro ? <ErrorAlert message={erro} /> : null}
 
-          <Card className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Icon name="filter" className="h-4 w-4 text-app-muted" />
-              <p className="text-sm font-semibold text-app-fg">Filtros</p>
+          <Card variant="glass" className="!p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-app-primary/10 rounded-xl">
+                <Icon name="filter" className="h-5 w-5 text-app-primary" />
+              </div>
+              <h2 className="text-xl font-black text-app-fg">Sintonizar Pensamentos</h2>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
+            
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-end">
               <Select
-                label="Campanha"
+                label="Qual a Campanha?"
                 value={filtroCampanhaId}
                 onChange={(event) => setFiltroCampanhaId(event.target.value)}
               >
-                <option value="">Todas as campanhas</option>
+                <option value="">Todas as realidades</option>
                 {campanhas.map((campanha) => (
                   <option key={campanha.id} value={campanha.id}>
                     {campanha.nome}
                   </option>
                 ))}
               </Select>
+              
               <Select
-                label="Sessao"
+                label="Qual a Sessão?"
                 value={filtroSessaoId}
                 onChange={(event) => setFiltroSessaoId(event.target.value)}
                 disabled={!campanhaFiltroSelecionada}
               >
-                <option value="">Todas as sessoes</option>
+                <option value="">Todos os momentos</option>
                 {sessoesFiltro.map((sessao) => (
                   <option key={sessao.id} value={sessao.id}>
                     {sessao.titulo}
                   </option>
                 ))}
               </Select>
+
+              <div className="flex gap-2">
+                <Button size="md" onClick={handleBuscar} className="flex-1 font-bold">
+                  Sintonizar
+                </Button>
+                {filtrosAtivos.length > 0 && (
+                  <Button size="md" variant="ghost" onClick={handleLimparFiltros} className="font-bold">
+                    Resetar
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={handleBuscar}>
-                Buscar
-              </Button>
-              <Button size="sm" variant="ghost" onClick={handleLimparFiltros}>
-                Limpar filtros
-              </Button>
-              {filtrosAtivos.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {filtrosAtivos.map((filtro) => (
-                    <Badge key={filtro} size="sm" color="gray">
-                      {filtro}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+
+            {filtrosAtivos.length > 0 && (
+              <div className="mt-6 flex flex-wrap gap-2 pt-4 border-t border-app-border/30">
+                {filtrosAtivos.map((filtro) => (
+                  <Badge key={filtro} size="sm" color="purple" variant="subtle" className="font-bold">
+                    {filtro}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </Card>
 
-          <section className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-app-muted">
-                {totalNotas} anotacao{totalNotas === 1 ? '' : 'es'} encontrada
-              </p>
-              {notas.length > 0 ? (
-                <Button size="sm" variant="secondary" onClick={abrirModalCriacao}>
-                  <Icon name="add" className="mr-2 h-4 w-4" />
-                  Nova anotacao
-                </Button>
-              ) : null}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <SectionTitle icon="scroll">
+                Fragmentos de Memória
+                <Badge color="gray" size="sm" variant="subtle" className="ml-3">
+                  {totalNotas}
+                </Badge>
+              </SectionTitle>
+
+              {loading && (
+                <div className="text-xs font-black text-app-muted animate-pulse uppercase tracking-widest">
+                  Canalizando...
+                </div>
+              )}
             </div>
 
             {notas.length === 0 ? (
               <EmptyState
                 variant="card"
                 icon="scroll"
-                title="Nenhuma anotacao encontrada"
-                description="Crie uma anotacao para comecar."
-                actionLabel="Criar anotacao"
+                title="O mural está em silêncio"
+                description="Mermão, nenhuma nota por aqui. Que tal registrar aquele plano mirabolante que você acabou de ter?"
+                actionLabel="Começar Grimório"
                 onAction={abrirModalCriacao}
               />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {notas.map((nota) => (
                   <NotePaperCard
                     key={nota.id}
@@ -400,7 +412,7 @@ export default function AnotacoesPage() {
             )}
 
             {totalPaginas > 1 ? (
-              <div className="flex items-center justify-center gap-2">
+              <Card variant="flat" className="flex items-center justify-center gap-6 py-4">
                 <Button
                   size="sm"
                   variant="secondary"
@@ -410,11 +422,12 @@ export default function AnotacoesPage() {
                     setPaginaAtual(next);
                     void carregarNotas(next);
                   }}
+                  className="rounded-full w-10 h-10 !p-0"
                 >
-                  <Icon name="chevron-left" className="h-4 w-4" />
+                  <Icon name="chevron-left" className="h-5 w-5" />
                 </Button>
-                <span className="text-sm text-app-muted">
-                  Pagina {paginaAtual} de {totalPaginas}
+                <span className="text-sm font-black text-app-fg uppercase tracking-widest">
+                  Plano {paginaAtual} / {totalPaginas}
                 </span>
                 <Button
                   size="sm"
@@ -425,10 +438,11 @@ export default function AnotacoesPage() {
                     setPaginaAtual(next);
                     void carregarNotas(next);
                   }}
+                  className="rounded-full w-10 h-10 !p-0"
                 >
-                  <Icon name="chevron-right" className="h-4 w-4" />
+                  <Icon name="chevron-right" className="h-5 w-5" />
                 </Button>
-              </div>
+              </Card>
             ) : null}
           </section>
         </div>

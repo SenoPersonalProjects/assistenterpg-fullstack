@@ -284,11 +284,26 @@ export default function ConfiguracoesPage() {
                       <Icon name="sparkles" className="w-4 h-4 mr-2" />
                       Jujutsu
                     </Button>
+                    <Button
+                      variant={theme === 'padrao' ? 'primary' : 'secondary'}
+                      size="sm"
+                      onClick={() => setTheme('padrao')}
+                      className="flex-1"
+                    >
+                      <Icon name="star" className="w-4 h-4 mr-2" />
+                      Padrão
+                    </Button>
                   </div>
                   <p className="text-xs text-app-muted mt-2">
                     Tema atual:{' '}
                     <strong>
-                      {theme === 'dark' ? 'Escuro' : theme === 'light' ? 'Claro' : 'Jujutsu'}
+                      {theme === 'dark'
+                        ? 'Escuro'
+                        : theme === 'light'
+                        ? 'Claro'
+                        : theme === 'jujutsu'
+                        ? 'Jujutsu'
+                        : 'Padrão'}
                     </strong>
                   </p>
                 </div>

@@ -16,17 +16,17 @@ export function LibrarySectionHeader({
   actions,
 }: LibrarySectionHeaderProps) {
   return (
-    <div className="library-section-head">
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 py-4 border-b border-app-border/20">
       <div className="min-w-0">
-        <p className="library-section-head__kicker">{title}</p>
+        <h2 className="text-2xl font-black text-app-fg tracking-tight">{title}</h2>
         {description ? (
-          <p className="mt-1 text-xs text-app-muted/70">{description}</p>
+          <p className="mt-1 text-sm font-medium text-app-muted">{description}</p>
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {meta}
-        {actions}
+      <div className="flex flex-wrap items-center gap-4">
+        {meta && <div className="text-xs font-bold text-app-muted uppercase tracking-widest">{meta}</div>}
+        {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
     </div>
   );
