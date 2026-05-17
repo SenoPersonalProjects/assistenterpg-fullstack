@@ -37,6 +37,26 @@ describe('compendio display helpers', () => {
     ).toBe(true);
   });
 
+  it('collapses any subcategory with a single article in navigation', () => {
+    expect(
+      shouldCollapseSubcategoria({
+        codigo: 'basico',
+        nome: 'BASICO',
+        artigos: [
+          {
+            id: 1,
+            codigo: 'introducao',
+            titulo: 'Introducao',
+            resumo: null,
+            ordem: 1,
+            destaque: false,
+            ativo: true,
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
   it('keeps subcategory labels when there are multiple articles', () => {
     expect(
       shouldCollapseSubcategoria({

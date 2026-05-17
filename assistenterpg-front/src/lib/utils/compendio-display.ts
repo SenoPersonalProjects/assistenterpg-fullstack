@@ -39,16 +39,7 @@ export function areCompendioLabelsEquivalent(a: string, b: string): boolean {
 export function shouldCollapseSubcategoria(
   subcategoria: Pick<CompendioSubcategoriaComArtigo, 'codigo' | 'nome' | 'artigos'>,
 ): boolean {
-  const artigo = subcategoria.artigos?.[0];
-
-  if (!artigo || subcategoria.artigos.length !== 1) {
-    return false;
-  }
-
-  return (
-    subcategoria.codigo === artigo.codigo ||
-    areCompendioLabelsEquivalent(subcategoria.nome, artigo.titulo)
-  );
+  return subcategoria.artigos?.length === 1 && Boolean(subcategoria.artigos[0]);
 }
 
 function splitHeadingLine(line: string): { hashes: string; title: string } | null {
