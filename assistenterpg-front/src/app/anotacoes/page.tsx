@@ -293,9 +293,9 @@ export default function AnotacoesPage() {
                 <Icon name="scroll" className="w-8 h-8 text-app-orange" />
               </div>
               <div>
-                <h1 className="text-4xl font-black text-app-fg tracking-tight">Grimório de Notas</h1>
+                <h1 className="text-4xl font-black text-app-fg tracking-tight">Notas</h1>
                 <p className="text-app-muted font-medium mt-0.5">
-                  Não deixe o conhecimento se perder no vazio.
+                  Não deixe de fazer anotações na sessão.
                 </p>
               </div>
             </div>
@@ -303,7 +303,7 @@ export default function AnotacoesPage() {
             <div className="flex items-center gap-3">
               <Button onClick={abrirModalCriacao} className="font-black shadow-lg shadow-app-primary/20">
                 <Icon name="add" className="mr-2 h-4 w-4" />
-                Manifestar Ideia
+                Criar anotação
               </Button>
               <Button variant="ghost" size="sm" onClick={() => router.push('/home')} className="font-bold">
                 <Icon name="back" className="mr-2 h-4 w-4" />
@@ -319,7 +319,7 @@ export default function AnotacoesPage() {
               <div className="p-2 bg-app-primary/10 rounded-xl">
                 <Icon name="filter" className="h-5 w-5 text-app-primary" />
               </div>
-              <h2 className="text-xl font-black text-app-fg">Sintonizar Pensamentos</h2>
+              <h2 className="text-xl font-black text-app-fg">Criar nota</h2>
             </div>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-end">
@@ -328,7 +328,7 @@ export default function AnotacoesPage() {
                 value={filtroCampanhaId}
                 onChange={(event) => setFiltroCampanhaId(event.target.value)}
               >
-                <option value="">Todas as realidades</option>
+                <option value="">Todas as campanhas</option>
                 {campanhas.map((campanha) => (
                   <option key={campanha.id} value={campanha.id}>
                     {campanha.nome}
@@ -342,7 +342,7 @@ export default function AnotacoesPage() {
                 onChange={(event) => setFiltroSessaoId(event.target.value)}
                 disabled={!campanhaFiltroSelecionada}
               >
-                <option value="">Todos os momentos</option>
+                <option value="">Todas as sessões</option>
                 {sessoesFiltro.map((sessao) => (
                   <option key={sessao.id} value={sessao.id}>
                     {sessao.titulo}
@@ -352,7 +352,7 @@ export default function AnotacoesPage() {
 
               <div className="flex gap-2">
                 <Button size="md" onClick={handleBuscar} className="flex-1 font-bold">
-                  Sintonizar
+                  Filtrar
                 </Button>
                 {filtrosAtivos.length > 0 && (
                   <Button size="md" variant="ghost" onClick={handleLimparFiltros} className="font-bold">
@@ -376,7 +376,7 @@ export default function AnotacoesPage() {
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <SectionTitle icon="scroll">
-                Fragmentos de Memória
+                Coleção de notas
                 <Badge color="gray" size="sm" variant="subtle" className="ml-3">
                   {totalNotas}
                 </Badge>
@@ -384,7 +384,7 @@ export default function AnotacoesPage() {
 
               {loading && (
                 <div className="text-xs font-black text-app-muted animate-pulse uppercase tracking-widest">
-                  Canalizando...
+                  Carregando...
                 </div>
               )}
             </div>
@@ -394,8 +394,8 @@ export default function AnotacoesPage() {
                 variant="card"
                 lottie="MAGIC_SPARKLES"
                 title="O mural está em silêncio"
-                description="Mermão, nenhuma nota por aqui. Que tal registrar aquele plano mirabolante que você acabou de ter?"
-                actionLabel="Começar Grimório"
+                description="Nenhuma nota encontrada. Por que não anota aquela teoria mirabolante que você teve na última sessão?"
+                actionLabel="Criar a primeira anotação"
                 onAction={abrirModalCriacao}
               />
             ) : (

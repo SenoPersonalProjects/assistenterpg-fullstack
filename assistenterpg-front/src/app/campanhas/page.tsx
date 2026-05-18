@@ -200,7 +200,7 @@ export default function CampanhasPage() {
               <div>
                 <h1 className="text-4xl font-black text-app-fg tracking-tight">Campanhas</h1>
                 <p className="text-app-muted font-medium mt-0.5">
-                  Organize suas mesas e narre histórias lendárias.
+                  Organize suas campanhas.
                 </p>
               </div>
             </div>
@@ -299,14 +299,14 @@ export default function CampanhasPage() {
                   variant="card"
                   lottie="EMPTY_BOX"
                   title="O vazio te espera"
-                  description="Mermão, você ainda não criou nenhuma campanha. O que está esperando pra começar a sua própria história?"
+                  description="Você ainda não tem nenhuma campanha. Por que não cria uma?"
                 />
               ) : campanhasFiltradas.length === 0 ? (
                 <EmptyState
                   variant="card"
                   lottie="GHOST_SEARCH"
-                  title="Nada nessa frequência"
-                  description="Tente ajustar sua busca mental. Não encontramos nada com esse nome."
+                  title="Nada encontrado"
+                  description="Tente ajustar sua busca. Não encontramos nada com esse nome."
                   actionLabel="Limpar filtro"
                   onAction={() => setFiltroNome('')}
                 />

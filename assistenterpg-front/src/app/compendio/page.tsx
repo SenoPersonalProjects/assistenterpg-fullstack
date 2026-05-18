@@ -28,7 +28,7 @@ export default async function CompendioPage() {
                 Compêndio
               </h1>
               <p className="mt-1 text-base font-medium text-app-muted max-w-xl">
-                Onde as leis do mundo são escritas. Consulte regras, técnicas e suplementos.
+                Consulte livros, regras, técnicas e suplementos do sistema.
               </p>
             </div>
           </div>
@@ -64,7 +64,7 @@ export default async function CompendioPage() {
                     Livros
                   </p>
                   <h2 className="text-xl font-semibold text-app-fg">
-                    Publicacoes oficiais
+                    Livros oficiais
                   </h2>
                 </div>
                 <span className="text-sm text-app-muted">{livros.length} livro(s)</span>

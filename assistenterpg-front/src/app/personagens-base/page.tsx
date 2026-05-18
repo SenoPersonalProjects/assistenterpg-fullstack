@@ -195,7 +195,7 @@ export default function PersonagensBasePage() {
               <div>
                 <h1 className="text-4xl font-black text-app-fg tracking-tight">Personagens</h1>
                 <p className="text-app-muted font-medium mt-0.5">
-                  ({totalItens}) Suas fichas imortais, prontas para qualquer mesa.
+                  ({totalItens}) Crie e gerencie fichas reutilizáveis para suas campanhas.
                 </p>
               </div>
             </div>
@@ -216,7 +216,7 @@ export default function PersonagensBasePage() {
                 className="font-black bg-app-secondary hover:bg-app-secondary-hover shadow-lg shadow-app-secondary/30"
               >
                 <Icon name="add" className="w-4 h-4 mr-2" />
-                Nova Manifestação
+                Novo personagem
               </Button>
             </div>
           </header>
@@ -227,7 +227,7 @@ export default function PersonagensBasePage() {
           <section className="space-y-6">
             <div className="flex items-center justify-between">
               <SectionTitle icon="characters">
-                Suas Criações
+                Personagens
                 <Badge color="purple" size="sm" variant="subtle" className="ml-3">
                   {totalItens}
                 </Badge>
@@ -236,7 +236,7 @@ export default function PersonagensBasePage() {
               {loading && personagens.length > 0 && (
                 <div className="flex items-center gap-2 text-xs font-bold text-app-muted animate-pulse">
                   <div className="w-2 h-2 bg-app-secondary rounded-full" />
-                  Sincronizando...
+                  Atualizando...
                 </div>
               )}
             </div>
@@ -245,8 +245,8 @@ export default function PersonagensBasePage() {
               <EmptyState 
                 variant="card"
                 lottie="GHOST_SEARCH"
-                title="A névoa está vazia"
-                description="Mermão, você ainda não manifestou nenhum personagem. Vamos tirar essa ideia da cabeça e colocar na ficha?"
+                title="Nenhum personagem criado"
+                description="Você ainda não criou nenhum personagem. Crie uma ficha para usar em campanhas."
               >
                 <Button 
                   variant="primary"
@@ -255,7 +255,7 @@ export default function PersonagensBasePage() {
                   className="mt-4 bg-app-secondary hover:bg-app-secondary-hover font-black"
                 >
                   <Icon name="add" className="w-4 h-4 mr-2" />
-                  Criar Primeiro Herói
+                  Criar primeiro personagem
                 </Button>
               </EmptyState>
             ) : (
@@ -311,13 +311,13 @@ export default function PersonagensBasePage() {
                   O que são personagens-base?
                 </h3>
                 <p className="text-app-muted font-medium leading-relaxed max-w-2xl">
-                  São modelos espirituais que você cria uma vez e pode manifestar em qualquer campanha. Pense neles como sua biblioteca de heróis (ou vilões, quem sou eu pra julgar?).
+                  São fichas reutilizáveis que você cria uma vez e pode usar em várias campanhas.
                 </p>
                 <div className="grid sm:grid-cols-3 gap-4">
                   {[
-                    { title: 'Manifestação', text: 'Atributos, clã e técnica inata definidos.' },
-                    { title: 'Evolução', text: 'Perícias e pontos de aprimoramento.' },
-                    { title: 'Reutilização', text: 'Mantenha seus conceitos em várias mesas.' },
+                    { title: 'Criação', text: 'Defina atributos, classe, clã e técnica inata.' },
+                    { title: 'Evolução', text: 'Distribua perícias e pontos de aprimoramento.' },
+                    { title: 'Reutilização', text: 'Use o mesmo personagem em várias mesas.' },
                   ].map((item) => (
                     <div key={item.title} className="space-y-1">
                       <p className="text-sm font-black text-app-secondary uppercase tracking-widest">{item.title}</p>

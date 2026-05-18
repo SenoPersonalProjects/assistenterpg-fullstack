@@ -50,11 +50,11 @@ export function NotePaperCard({ nota, onOpen, onEdit, onDelete }: NotePaperCardP
         </div>
 
         <p className="note-paper__content text-sm leading-relaxed text-app-muted font-medium italic opacity-80 line-clamp-4">
-          "{nota.conteudo}"
+          {nota.conteudo}
         </p>
 
         <div className="mt-6 flex items-center gap-2 text-xs font-black text-app-primary uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 duration-300">
-          Explorar Pensamento
+          Abrir anotação
           <Icon name="forward" className="h-4 w-4" />
         </div>
       </button>

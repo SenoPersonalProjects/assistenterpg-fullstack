@@ -187,12 +187,12 @@ export default function SuplementosPage() {
             </div>
             <div>
               <h1 className="text-4xl font-black text-app-fg tracking-tight">
-                Expansões de Realidade
+                Suplementos
               </h1>
               <p className="text-app-muted font-medium mt-0.5 max-w-md">
                 {isAdmin
-                  ? 'Controle o fluxo de conhecimento do sistema.'
-                  : 'Ative novos horizontes para expandir sua jornada espiritual.'}
+                  ? 'Gerencie os suplementos do sistema.'
+                  : 'Ative ou desative suplementos para expandir seu jogo.'}
               </p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function SuplementosPage() {
           {isAdmin && (
             <Button variant="primary" onClick={handleNovo} className="font-black shadow-lg shadow-app-primary/20">
               <Icon name="add" className="w-5 h-5 mr-2" />
-              Manifestar Suplemento
+              Novo suplemento
             </Button>
           )}
         </header>
@@ -214,7 +214,7 @@ export default function SuplementosPage() {
           <div className="flex flex-col md:flex-row items-end gap-4">
             <div className="flex-1 w-full">
               <Input
-                label="Qual o nome da obra?"
+                label="Nome do suplemento"
                 placeholder="Ex: Sobrevivendo ao Jujutsu..."
                 value={filtroNome}
                 onChange={(e) => setFiltroNome(e.target.value)}
@@ -224,7 +224,7 @@ export default function SuplementosPage() {
 
             <div className="flex bg-app-muted-surface p-1 rounded-xl border border-app-border/40">
               {[
-                { id: 'TODOS', label: 'Tudo' },
+                { id: 'TODOS', label: 'Todos' },
                 { id: 'ATIVOS', label: 'Ativos' },
                 { id: 'INATIVOS', label: 'Inativos' },
               ].map((tab) => (
@@ -249,7 +249,7 @@ export default function SuplementosPage() {
         <section className="space-y-6">
           <div className="flex items-center justify-between">
             <SectionTitle icon="book">
-              Obras Disponíveis
+              Suplementos disponíveis
               <Badge color="blue" size="sm" variant="subtle" className="ml-3">
                 {suplementosFiltrados.length}
               </Badge>
@@ -260,9 +260,9 @@ export default function SuplementosPage() {
             <EmptyState
               variant="card"
               icon="book"
-              title="A estante está vazia"
-              description="Mermão, nada foi encontrado nessa frequência. Tenta mudar o nome ou o filtro de status."
-              actionLabel={isAdmin ? 'Manifestar Nova Obra' : undefined}
+              title="Nenhum suplemento encontrado"
+              description="Nenhum suplemento encontrado. Tente mudar o nome ou o filtro de status."
+              actionLabel={isAdmin ? 'Criar suplemento' : undefined}
               onAction={isAdmin ? handleNovo : undefined}
             />
           ) : (
@@ -295,13 +295,13 @@ export default function SuplementosPage() {
                 O que são Suplementos?
               </h3>
               <p className="text-app-muted font-medium leading-relaxed max-w-2xl">
-                Expansões oficiais que injetam novos conceitos no seu mundo: clãs raros, técnicas proibidas e relíquias amaldiçoadas. Ative-os para ver o sistema se expandir diante dos seus olhos.
+                Suplementos são conteúdos oficiais que adicionam novas opções ao sistema Jujutsu Kaisen RPG: clãs, classes, trilhas, equipamentos e mais.
               </p>
               <div className="grid sm:grid-cols-3 gap-6">
                 {[
-                  { title: 'Expansão', text: 'Novos conteúdos liberados na hora.' },
-                  { title: 'Controle', text: 'Ative e desative quando quiser voltar ao básico.' },
-                  { title: 'Equilíbrio', text: 'Balanceado e testado pela nossa equipe.' },
+                  { title: 'Conteúdo', text: 'Novas opções para criação de personagens.' },
+                  { title: 'Controle', text: 'Ative e desative quando quiser.' },
+                  { title: 'Equilíbrio', text: 'Conteúdo revisado para funcionar com o sistema base.' },
                 ].map((item) => (
                   <div key={item.title} className="space-y-1">
                     <p className="text-sm font-black text-app-primary uppercase tracking-widest">{item.title}</p>

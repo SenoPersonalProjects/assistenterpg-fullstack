@@ -98,16 +98,16 @@ export default function HomePage() {
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-4xl md:text-5xl font-black text-app-fg tracking-tight">
-              E aí, <span className="text-gradient">{usuario.apelido}</span>! 🌿
+              E aí, <span className="text-gradient">{usuario.apelido}</span>!
             </h1>
             <p className="text-lg text-app-muted font-medium">
-              Sente a vibe. Suas aventuras estão esperando...
+              RPGzinho hoje?
             </p>
           </div>
           
           <div className="flex items-center gap-2">
             <Badge color="purple" variant="solid" size="lg" className="shadow-lg shadow-app-secondary/20">
-              Energia Amaldiçoada Estável
+              PlaceHolder
             </Badge>
           </div>
         </header>
@@ -245,7 +245,7 @@ export default function HomePage() {
         <Card variant="glass" className="!p-8">
           <h2 className="text-2xl font-black text-app-fg mb-6 flex items-center gap-3">
             <Icon name="bolt" className="w-6 h-6 text-app-orange" />
-            Atalhos Mentais
+            Atalhos
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {[
