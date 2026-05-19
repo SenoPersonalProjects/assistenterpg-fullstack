@@ -27,7 +27,7 @@ import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
 import { resolverListaPaginada } from '@/lib/utils/lista-paginada';
@@ -37,7 +37,6 @@ export default function CampanhasPage() {
   const { usuario, loading: authLoading } = useAuth();
   const { showToast } = useToast();
   const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
-
   const [campanhas, setCampanhas] = useState<CampanhaResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -75,6 +74,18 @@ export default function CampanhasPage() {
       ),
     [campanhas],
   );
+
+  const estatisticasRapidas: Array<{
+    label: string;
+    value: number;
+    icon: IconName;
+    color: 'blue' | 'green' | 'yellow' | 'red';
+  }> = [
+    { label: 'Total', value: totalCampanhas, icon: 'campaign', color: 'blue' },
+    { label: 'Ativas', value: resumoStatus.ativas, icon: 'check', color: 'green' },
+    { label: 'Pausadas', value: resumoStatus.pausadas, icon: 'pause', color: 'yellow' },
+    { label: 'Encerradas', value: resumoStatus.encerradas, icon: 'fail', color: 'red' },
+  ];
 
   const carregarDados = useCallback(async (paginaAtual: number) => {
     try {
@@ -215,16 +226,11 @@ export default function CampanhasPage() {
 
           {/* Estatísticas Rápidas */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Total', value: totalCampanhas, icon: 'campaign', color: 'blue' },
-              { label: 'Ativas', value: resumoStatus.ativas, icon: 'check', color: 'green' },
-              { label: 'Pausadas', value: resumoStatus.pausadas, icon: 'pause', color: 'yellow' },
-              { label: 'Encerradas', value: resumoStatus.encerradas, icon: 'fail', color: 'red' },
-            ].map((stat) => (
+            {estatisticasRapidas.map((stat) => (
               <Card key={stat.label} variant="glass" className="!p-4">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-app-${stat.color}/10 text-app-${stat.color}`}>
-                    <Icon name={stat.icon as any} className="h-5 w-5" />
+                    <Icon name={stat.icon} className="h-5 w-5" />
                   </div>
                   <div>
                     <p className="text-[10px] uppercase font-bold tracking-widest text-app-muted leading-none mb-1">{stat.label}</p>

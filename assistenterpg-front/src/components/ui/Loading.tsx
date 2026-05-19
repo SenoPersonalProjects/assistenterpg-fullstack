@@ -1,6 +1,4 @@
 import { Icon } from './Icon';
-import { LottiePlayer } from './LottiePlayer';
-import { LOTTIE_ASSETS } from '@/lib/lottie-assets';
 
 type LoadingSize = 'sm' | 'md' | 'lg';
 
@@ -17,10 +15,10 @@ const SIZE_CLASSES: Record<LoadingSize, string> = {
   lg: 'text-base',
 };
 
-const LOTTIE_SIZES: Record<LoadingSize, number> = {
-  sm: 24,
-  md: 40,
-  lg: 64,
+const ICON_SIZE_CLASSES: Record<LoadingSize, string> = {
+  sm: 'h-5 w-5',
+  md: 'h-8 w-8',
+  lg: 'h-12 w-12',
 };
 
 export function Loading({ 
@@ -29,14 +27,18 @@ export function Loading({
   size = 'md',
   variant = 'spinner'
 }: LoadingProps) {
+  const iconName = variant === 'dice' ? 'dice' : 'spinner';
+  const iconClassName = [
+    ICON_SIZE_CLASSES[size],
+    'text-app-primary',
+    variant === 'dice' ? 'animate-bounce' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <div className={`flex flex-col items-center justify-center gap-3 ${SIZE_CLASSES[size]} text-app-muted ${className}`}>
-      <LottiePlayer 
-        src={variant === 'dice' ? LOTTIE_ASSETS.LOADING_DICE : LOTTIE_ASSETS.LOADING_SPINNER}
-        size={LOTTIE_SIZES[size]}
-        loop
-        autoplay
-      />
+      <Icon name={iconName} className={iconClassName} />
       {message && <span className="font-bold tracking-tight animate-pulse">{message}</span>}
     </div>
   );

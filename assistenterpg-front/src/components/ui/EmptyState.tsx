@@ -1,8 +1,27 @@
 import { Button } from './Button';
 import { Icon, type IconName } from './Icon';
 import { ReactNode } from 'react';
-import { LottiePlayer } from './LottiePlayer';
-import { LOTTIE_ASSETS } from '@/lib/lottie-assets';
+
+type LegacyLottieAsset =
+  | 'LOADING_SPINNER'
+  | 'LOADING_DICE'
+  | 'SUCCESS_CHECK'
+  | 'MAGIC_SPARKLES'
+  | 'EMPTY_BOX'
+  | 'GHOST_SEARCH'
+  | 'DRAGON_EYE'
+  | 'FIRE_FLAME';
+
+const LOTTIE_ICON_MAP: Record<LegacyLottieAsset, IconName> = {
+  LOADING_SPINNER: 'spinner',
+  LOADING_DICE: 'dice',
+  SUCCESS_CHECK: 'success',
+  MAGIC_SPARKLES: 'sparkles',
+  EMPTY_BOX: 'inventory',
+  GHOST_SEARCH: 'search',
+  DRAGON_EYE: 'eye',
+  FIRE_FLAME: 'fire',
+};
 
 type EmptyStateProps = {
   title?: string;
@@ -12,7 +31,7 @@ type EmptyStateProps = {
   onAction?: () => void;
   variant?: 'plain' | 'card' | 'session';
   icon?: IconName;
-  lottie?: keyof typeof LOTTIE_ASSETS;
+  lottie?: LegacyLottieAsset;
   size?: 'sm' | 'md';
   children?: ReactNode;
 };
@@ -65,21 +84,17 @@ export function EmptyState({
     : isSmall
       ? 'mb-3'
       : 'mb-6';
+  const resolvedIcon = icon ?? (lottie ? LOTTIE_ICON_MAP[lottie] : undefined);
+  const iconClasses = [
+    isSmall ? 'h-5 w-5' : isCard ? 'h-10 w-10' : 'h-8 w-8',
+    'text-app-primary',
+  ].join(' ');
 
   return (
     <div className={wrapperClasses}>
-      {(icon || lottie) && (
+      {resolvedIcon && (
         <div className={mediaWrapClasses}>
-          {lottie ? (
-            <LottiePlayer 
-              src={LOTTIE_ASSETS[lottie]} 
-              size={isSmall ? 48 : 80}
-              loop 
-              autoplay 
-            />
-          ) : (
-            <Icon name={icon!} className={isSmall ? 'h-5 w-5' : isCard ? 'h-10 w-10' : 'h-8 w-8'} />
-          )}
+          <Icon name={resolvedIcon} className={iconClasses} />
         </div>
       )}
 

@@ -393,7 +393,7 @@ export default function AnotacoesPage() {
               <EmptyState
                 variant="card"
                 lottie="MAGIC_SPARKLES"
-                title="O mural está em silêncio"
+                title="A coleção está vazia"
                 description="Nenhuma nota encontrada. Por que não anota aquela teoria mirabolante que você teve na última sessão?"
                 actionLabel="Criar a primeira anotação"
                 onAction={abrirModalCriacao}

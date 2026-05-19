@@ -27,6 +27,14 @@ import { SectionTitle } from '@/components/ui/SectionTitle';
 import { useConfirm } from '@/hooks/useConfirm';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
+type FiltroStatus = 'TODOS' | 'ATIVOS' | 'INATIVOS';
+
+const STATUS_TABS: Array<{ id: FiltroStatus; label: string }> = [
+  { id: 'TODOS', label: 'Todos' },
+  { id: 'ATIVOS', label: 'Ativos' },
+  { id: 'INATIVOS', label: 'Inativos' },
+];
+
 export default function SuplementosPage() {
   const router = useRouter();
   const { usuario, loading: authLoading } = useAuth();
@@ -44,7 +52,7 @@ export default function SuplementosPage() {
 
   // Filtros
   const [filtroNome, setFiltroNome] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<'TODOS' | 'ATIVOS' | 'INATIVOS'>('TODOS');
+  const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('TODOS');
 
   const isAdmin = usuario?.role === 'ADMIN';
 
@@ -223,14 +231,10 @@ export default function SuplementosPage() {
             </div>
 
             <div className="flex bg-app-muted-surface p-1 rounded-xl border border-app-border/40">
-              {[
-                { id: 'TODOS', label: 'Todos' },
-                { id: 'ATIVOS', label: 'Ativos' },
-                { id: 'INATIVOS', label: 'Inativos' },
-              ].map((tab) => (
+              {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setFiltroStatus(tab.id as any)}
+                  onClick={() => setFiltroStatus(tab.id)}
                   className={`
                     px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all
                     ${filtroStatus === tab.id 

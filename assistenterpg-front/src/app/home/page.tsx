@@ -15,7 +15,7 @@ import { extrairMensagemErro } from '@/lib/api/error-handler';
 import type { CampanhaResumo, PersonagemBaseResumo } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import Link from 'next/link';
@@ -35,6 +35,28 @@ export default function HomePage() {
   const [personagensRecentes, setPersonagensRecentes] = useState<PersonagemBaseResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const statsCards: Array<{
+    label: string;
+    value: number;
+    icon: IconName;
+    color: 'blue' | 'purple' | 'orange' | 'green';
+  }> = [
+    { label: 'Campanhas', value: stats.campanhas, icon: 'campaign', color: 'blue' },
+    { label: 'Personagens', value: stats.personagens, icon: 'characters', color: 'purple' },
+    { label: 'Homebrews', value: stats.homebrews, icon: 'sparkles', color: 'orange' },
+    { label: 'Consultas', value: stats.artigosLidos, icon: 'rules', color: 'green' },
+  ];
+  const atalhos: Array<{
+    label: string;
+    href: string;
+    icon: IconName;
+  }> = [
+    { label: 'Nova Campanha', href: '/campanhas', icon: 'add' },
+    { label: 'Novo Personagem', href: '/personagens-base/novo', icon: 'add' },
+    { label: 'Novo Homebrew', href: '/homebrews/novo', icon: 'add' },
+    { label: 'Consultar Regras', href: '/compendio', icon: 'rules' },
+    { label: 'Configurações', href: '/configuracoes', icon: 'settings' },
+  ];
 
   useEffect(() => {
     if (!loading && !usuario) {
@@ -117,18 +139,13 @@ export default function HomePage() {
 
         {/* Cards de Estatísticas */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Campanhas', value: stats.campanhas, icon: 'campaign', color: 'blue' },
-            { label: 'Personagens', value: stats.personagens, icon: 'characters', color: 'purple' },
-            { label: 'Homebrews', value: stats.homebrews, icon: 'sparkles', color: 'orange' },
-            { label: 'Consultas', value: stats.artigosLidos, icon: 'rules', color: 'green' },
-          ].map((stat) => (
+          {statsCards.map((stat) => (
             <Card key={stat.label} variant="glass" className="relative overflow-hidden group">
               <div className={`absolute -right-4 -top-4 w-24 h-24 bg-app-${stat.color}/10 rounded-full blur-2xl group-hover:bg-app-${stat.color}/20 transition-all duration-500`} />
               <div className="relative flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <span className="text-app-muted text-xs font-bold uppercase tracking-widest">{stat.label}</span>
-                  <Icon name={stat.icon as any} className={`w-5 h-5 text-app-${stat.color}`} />
+                  <Icon name={stat.icon} className={`w-5 h-5 text-app-${stat.color}`} />
                 </div>
                 <span className="text-3xl font-black text-app-fg tracking-tighter">{stat.value}</span>
               </div>
@@ -248,17 +265,11 @@ export default function HomePage() {
             Atalhos
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[
-              { label: 'Nova Campanha', href: '/campanhas', icon: 'add' },
-              { label: 'Novo Personagem', href: '/personagens-base/novo', icon: 'add' },
-              { label: 'Novo Homebrew', href: '/homebrews/novo', icon: 'add' },
-              { label: 'Consultar Regras', href: '/compendio', icon: 'rules' },
-              { label: 'Configurações', href: '/configuracoes', icon: 'settings' },
-            ].map((acao) => (
+            {atalhos.map((acao) => (
               <Link key={acao.label} href={acao.href}>
                 <Button variant="secondary" className="w-full !justify-start !p-4 h-auto rounded-2xl group hover:shadow-lg transition-all duration-300">
                   <div className="p-2 bg-app-muted-surface rounded-xl mr-3 group-hover:bg-app-surface transition-colors">
-                    <Icon name={acao.icon as any} className="w-5 h-5 text-app-muted group-hover:text-app-primary" />
+                    <Icon name={acao.icon} className="w-5 h-5 text-app-muted group-hover:text-app-primary" />
                   </div>
                   <span className="font-bold text-app-fg/80 group-hover:text-app-fg">{acao.label}</span>
                 </Button>
