@@ -12,7 +12,7 @@ export function LandingFooter() {
           </div>
           <div>
             <div className="landing-footer__brand-title">Assistente RPG</div>
-            <div className="landing-footer__brand-subtitle">Jujutsu Kaisen Standalone</div>
+            <div className="landing-footer__brand-subtitle">Era Jujutsu</div>
           </div>
         </div>
 

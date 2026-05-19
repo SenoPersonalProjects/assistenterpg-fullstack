@@ -121,18 +121,19 @@ export function NavigationBar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/home" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10">
-              <div className="absolute inset-0 bg-gradient-to-br from-app-primary to-app-secondary rounded-xl blur-sm opacity-40 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative w-full h-full overflow-hidden rounded-xl bg-app-surface flex items-center justify-center shadow-lg ring-1 ring-app-primary/20 group-hover:scale-105 transition-transform duration-300">
-                <ThemedLogo size={40} priority className="h-full w-full" />
-              </div>
+            <div className="relative flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+              <ThemedLogo 
+                size={44} 
+                priority 
+                className="drop-shadow-[0_0_10px_rgba(var(--primary-rgb),0.6)] group-hover:drop-shadow-[0_0_15px_rgba(var(--primary-rgb),1)] transition-all duration-500" 
+              />
             </div>
             <div className="hidden sm:block">
               <span className="text-lg font-black text-app-fg tracking-tight block leading-tight">
                 Assistente <span className="text-app-primary">RPG</span>
               </span>
               <span className="block text-[10px] uppercase font-bold tracking-[0.2em] text-app-muted leading-none">
-                Jujutsu Kaisen
+                Era Jujutsu
               </span>
             </div>
           </Link>

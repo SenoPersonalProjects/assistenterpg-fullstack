@@ -498,7 +498,7 @@ export default function ConfiguracoesPage() {
                         </Card>
                         <Card variant="flat" className="bg-app-surface/30 p-4 border border-app-border/50">
                           <p className="text-[10px] font-black uppercase tracking-widest text-app-muted mb-1">Universo</p>
-                          <p className="text-lg font-black text-app-fg">Jujutsu Kaisen</p>
+                          <p className="text-lg font-black text-app-fg">Era Jujutsu</p>
                         </Card>
                         <Card variant="flat" className="bg-app-surface/30 p-4 border border-app-border/50">
                           <p className="text-[10px] font-black uppercase tracking-widest text-app-muted mb-1">Atualização</p>
@@ -517,7 +517,7 @@ export default function ConfiguracoesPage() {
                           Abrir compêndio
                         </Link>
                         <p className="max-w-xl text-xs leading-relaxed text-app-muted">
-                          Este assistente ajuda mestres e jogadores a organizar campanhas, personagens, regras e sessões no Jujutsu Kaisen RPG.
+                          Este assistente ajuda mestres e jogadores a organizar campanhas, personagens, regras e sessões no Era Jujutsu RPG.
                         </p>
                       </div>
                     </ConfigSection>

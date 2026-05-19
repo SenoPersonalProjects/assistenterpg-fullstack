@@ -10,9 +10,9 @@ import { ConditionalNav } from '@/components/layout/ConditionalNav';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 
 export const metadata: Metadata = {
-  title: 'Assistente RPG - Jujutsu Kaisen',
-  description: 'Sistema completo para gerenciar personagens e campanhas de Jujutsu Kaisen RPG',
-};
+  title: 'Assistente RPG - Era Jujutsu',
+  description: 'Sistema completo para gerenciar personagens e campanhas de Era Jujutsu RPG',
+  icons: {
 
 export default function RootLayout({
   children,
