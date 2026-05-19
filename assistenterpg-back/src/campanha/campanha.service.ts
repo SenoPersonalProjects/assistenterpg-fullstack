@@ -1,6 +1,7 @@
 // src/campanha/campanha.service.ts
 
 import { Injectable } from '@nestjs/common';
+import { StatusAmizade } from '@prisma/client';
 import { PaginatedResult } from 'src/common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -27,6 +28,8 @@ import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
+import { PresencaService } from 'src/amizades/presenca.service';
+import { normalizarEmail } from './engine/campanha.engine';
 import {
   AtribuirItemSessaoCampanhaDto,
   AtualizarItemSessaoCampanhaDto,
@@ -47,6 +50,7 @@ export class CampanhaService {
     private readonly convitesService: CampanhaConvitesService,
     private readonly inventarioService: CampanhaInventarioService,
     private readonly itensSessaoService: CampanhaItensSessaoService,
+    private readonly presencaService: PresencaService,
   ) {}
 
   async criarCampanha(
@@ -617,7 +621,10 @@ export class CampanhaService {
     );
   }
 
-  async listarTemplatesItensSessaoCampanha(campanhaId: number, usuarioId: number) {
+  async listarTemplatesItensSessaoCampanha(
+    campanhaId: number,
+    usuarioId: number,
+  ) {
     return this.itensSessaoService.listarTemplates(campanhaId, usuarioId);
   }
 
@@ -662,7 +669,11 @@ export class CampanhaService {
     usuarioId: number,
     dto: CriarItemSessaoCampanhaDto,
   ) {
-    const item = await this.itensSessaoService.criarItem(campanhaId, usuarioId, dto);
+    const item = await this.itensSessaoService.criarItem(
+      campanhaId,
+      usuarioId,
+      dto,
+    );
     if (item.personagemCampanhaId) {
       await this.inventarioService.recalcularEstadoInventarioCampanha(
         item.personagemCampanhaId,
@@ -731,7 +742,12 @@ export class CampanhaService {
     itemId: number,
     dto: RevelarItemSessaoCampanhaDto,
   ) {
-    return this.itensSessaoService.revelarItem(campanhaId, usuarioId, itemId, dto);
+    return this.itensSessaoService.revelarItem(
+      campanhaId,
+      usuarioId,
+      itemId,
+      dto,
+    );
   }
 
   async solicitarTransferenciaItemSessaoCampanha(
@@ -753,20 +769,22 @@ export class CampanhaService {
     usuarioId: number,
     transferenciaId: number,
   ) {
-    const transferencia = await this.prisma.transferenciaItemSessaoCampanha.findFirst({
-      where: { id: transferenciaId, campanhaId },
-      select: {
-        portadorAnteriorId: true,
-        destinoPersonagemCampanhaId: true,
-      },
-    });
+    const transferencia =
+      await this.prisma.transferenciaItemSessaoCampanha.findFirst({
+        where: { id: transferenciaId, campanhaId },
+        select: {
+          portadorAnteriorId: true,
+          destinoPersonagemCampanhaId: true,
+        },
+      });
     const resultado = await this.itensSessaoService.aceitarTransferencia(
       campanhaId,
       usuarioId,
       transferenciaId,
     );
     const ids = new Set<number>();
-    if (transferencia?.portadorAnteriorId) ids.add(transferencia.portadorAnteriorId);
+    if (transferencia?.portadorAnteriorId)
+      ids.add(transferencia.portadorAnteriorId);
     if (transferencia?.destinoPersonagemCampanhaId) {
       ids.add(transferencia.destinoPersonagemCampanhaId);
     }
@@ -807,10 +825,68 @@ export class CampanhaService {
   async criarConvite(
     campanhaId: number,
     donoId: number,
-    dados: { email?: string; apelido?: string },
+    dados: { email?: string; apelido?: string; usuarioId?: number },
     papel: PapelCampanha,
   ) {
     return this.convitesService.criarConvite(campanhaId, donoId, dados, papel);
+  }
+
+  async listarAmigosConvidaveis(campanhaId: number, donoId: number) {
+    const campanha = await this.prisma.campanha.findUnique({
+      where: { id: campanhaId },
+      select: {
+        donoId: true,
+        membros: { select: { usuarioId: true } },
+        convites: {
+          where: { status: 'PENDENTE' },
+          select: { email: true },
+        },
+      },
+    });
+
+    if (!campanha) {
+      throw new CampanhaNaoEncontradaException(campanhaId);
+    }
+
+    if (campanha.donoId !== donoId) {
+      throw new CampanhaApenasDonoException('listar amigos convidaveis');
+    }
+
+    const amizades = await this.prisma.amizade.findMany({
+      where: {
+        status: StatusAmizade.ACEITA,
+        OR: [{ usuarioAId: donoId }, { usuarioBId: donoId }],
+      },
+      include: {
+        usuarioA: { select: { id: true, apelido: true, email: true } },
+        usuarioB: { select: { id: true, apelido: true, email: true } },
+      },
+    });
+
+    const membrosIds = new Set([
+      campanha.donoId,
+      ...campanha.membros.map((membro) => membro.usuarioId),
+    ]);
+    const emailsComConvitePendente = new Set(
+      campanha.convites.map((convite) => normalizarEmail(convite.email)),
+    );
+
+    return amizades
+      .map((amizade) => {
+        const amigo =
+          amizade.usuarioAId === donoId ? amizade.usuarioB : amizade.usuarioA;
+
+        return {
+          id: amigo.id,
+          apelido: amigo.apelido,
+          online: this.presencaService.estaOnline(amigo.id),
+          jaMembro: membrosIds.has(amigo.id),
+          convitePendente: emailsComConvitePendente.has(
+            normalizarEmail(amigo.email),
+          ),
+        };
+      })
+      .sort((a, b) => a.apelido.localeCompare(b.apelido, 'pt-BR'));
   }
 
   async listarConvitesPendentesPorUsuario(usuarioId: number) {

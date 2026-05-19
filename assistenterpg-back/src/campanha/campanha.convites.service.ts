@@ -1,7 +1,8 @@
 // src/campanha/campanha.convites.service.ts
 import { Injectable } from '@nestjs/common';
-import type { MembroCampanha } from '@prisma/client';
+import { StatusAmizade, type MembroCampanha } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AmizadeNaoEncontradaException } from 'src/common/exceptions/amizade.exception';
 import {
   CampanhaApenasDonoException,
   CampanhaNaoEncontradaException,
@@ -31,12 +32,51 @@ import {
 export class CampanhaConvitesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private normalizarParAmizade(usuarioId: number, outroUsuarioId: number) {
+    return {
+      usuarioAId: Math.min(usuarioId, outroUsuarioId),
+      usuarioBId: Math.max(usuarioId, outroUsuarioId),
+    };
+  }
+
   async criarConvite(
     campanhaId: number,
     donoId: number,
-    dados: { email?: string; apelido?: string },
+    dados: { email?: string; apelido?: string; usuarioId?: number },
     papel: PapelCampanha,
   ) {
+    if (dados.usuarioId) {
+      const amizade = await this.prisma.amizade.findUnique({
+        where: {
+          usuarioAId_usuarioBId: this.normalizarParAmizade(
+            donoId,
+            dados.usuarioId,
+          ),
+        },
+        select: { status: true },
+      });
+
+      if (!amizade || amizade.status !== StatusAmizade.ACEITA) {
+        throw new AmizadeNaoEncontradaException(dados.usuarioId);
+      }
+
+      const usuario = await this.prisma.usuario.findUnique({
+        where: { id: dados.usuarioId },
+        select: { email: true },
+      });
+
+      if (!usuario) {
+        throw new UsuarioNaoEncontradoException(dados.usuarioId);
+      }
+
+      return this.criarConvitePorEmail(
+        campanhaId,
+        donoId,
+        usuario.email,
+        papel,
+      );
+    }
+
     const emailInformado = dados.email?.trim();
     if (emailInformado) {
       return this.criarConvitePorEmail(

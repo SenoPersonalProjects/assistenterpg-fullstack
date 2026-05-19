@@ -20,9 +20,7 @@ type NpcAmeacaGrupoModel = Prisma.NpcAmeacaGrupoGetPayload<{
     };
   };
 }>;
-type NpcAmeacaDetalheMapeado = ReturnType<
-  NpcsAmeacasService['mapearDetalhe']
->;
+type NpcAmeacaDetalheMapeado = ReturnType<NpcsAmeacasService['mapearDetalhe']>;
 
 type PericiaCatalogo = {
   codigo: string;

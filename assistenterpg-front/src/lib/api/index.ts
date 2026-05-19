@@ -26,3 +26,4 @@ export * from './suplemento-conteudos';
 export * from './npcs-ameacas';
 export * from './anotacoes';
 export * from './homebrews';
+export * from './amizades';

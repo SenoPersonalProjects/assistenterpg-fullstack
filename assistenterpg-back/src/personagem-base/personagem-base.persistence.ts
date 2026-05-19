@@ -92,11 +92,7 @@ function toNullableInputJson(
 }
 
 function normalizarEstadoInventarioParaJson(
-  estado:
-    | Prisma.JsonValue
-    | ItemInventarioEstadoDto
-    | null
-    | undefined,
+  estado: Prisma.JsonValue | ItemInventarioEstadoDto | null | undefined,
 ): Prisma.JsonValue | undefined {
   if (estado === undefined) return undefined;
   if (estado === null) return null;
@@ -119,12 +115,8 @@ function normalizarEstadoInventarioParaJson(
 
     return {
       periciaCodigo:
-        'periciaCodigo' in estado
-          ? (estado.periciaCodigo ?? null)
-          : null,
-      ...(funcoesAdicionaisPericias
-        ? { funcoesAdicionaisPericias }
-        : {}),
+        'periciaCodigo' in estado ? (estado.periciaCodigo ?? null) : null,
+      ...(funcoesAdicionaisPericias ? { funcoesAdicionaisPericias } : {}),
     };
   }
 

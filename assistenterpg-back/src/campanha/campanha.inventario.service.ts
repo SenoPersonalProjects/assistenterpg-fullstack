@@ -108,7 +108,9 @@ export class CampanhaInventarioService {
     );
     if (!possuiFuncaoAdicional) return totalBase;
 
-    const totalFuncoesAdicionais = contarInstanciasFuncaoAdicional(params.estado);
+    const totalFuncoesAdicionais = contarInstanciasFuncaoAdicional(
+      params.estado,
+    );
     if (totalFuncoesAdicionais <= 1) return totalBase;
     return totalBase + (totalFuncoesAdicionais - 1);
   }
@@ -269,7 +271,10 @@ export class CampanhaInventarioService {
   private calcularEspacosOcupadosItensSessao(
     itensSessao: Array<{ peso: number }>,
   ): number {
-    return itensSessao.reduce((total, item) => total + Number(item.peso || 0), 0);
+    return itensSessao.reduce(
+      (total, item) => total + Number(item.peso || 0),
+      0,
+    );
   }
 
   private mapearItemSessaoInventario(item: ItemSessaoInventarioEntity) {
@@ -619,7 +624,9 @@ export class CampanhaInventarioService {
       personagemCampanhaId,
       espacos: espacosResultado,
       itens: itens.map((item) => this.mapper.mapItem(item)),
-      itensSessao: itensSessao.map((item) => this.mapearItemSessaoInventario(item)),
+      itensSessao: itensSessao.map((item) =>
+        this.mapearItemSessaoInventario(item),
+      ),
       statsEquipados: this.mapper.mapStatsEquipados(statsEquipados),
       limitesCategoria: {
         grauAtual: validacaoGrau.grauAtual,
@@ -811,11 +818,10 @@ export class CampanhaInventarioService {
           : false;
         const itensAtuais =
           await this.carregarItensInventarioCampanha(personagemCampanhaId);
-        const itensSessao =
-          await this.carregarItensSessaoInventarioCampanha(
-            campanhaId,
-            personagemCampanhaId,
-          );
+        const itensSessao = await this.carregarItensSessaoInventarioCampanha(
+          campanhaId,
+          personagemCampanhaId,
+        );
         const { espacosBase, espacosExtra } =
           await this.calcularEspacosPersonagemCampanha(personagemCampanhaId);
 

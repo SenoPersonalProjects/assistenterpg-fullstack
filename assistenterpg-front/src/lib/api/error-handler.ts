@@ -247,6 +247,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CONVITE_NAO_PERTENCE_USUARIO: "Este convite não pertence ao usuário logado",
   CONVITE_DUPLICADO_PENDENTE: "Ja existe convite pendente para este email nesta campanha",
   CONVITE_CODIGO_INDISPONIVEL: "Nao foi possivel gerar um codigo de convite. Tente novamente",
+  AMIZADE_NOT_FOUND: "Amizade nao encontrada",
+  AMIZADE_SOLICITACAO_NOT_FOUND: "Solicitacao de amizade nao encontrada",
+  AMIZADE_SELF: "Voce nao pode adicionar a si mesmo",
+  AMIZADE_JA_EXISTE: "Este usuario ja esta na sua lista de amigos",
+  AMIZADE_SOLICITACAO_DUPLICADA:
+    "Ja existe uma solicitacao de amizade pendente com este usuario",
+  AMIZADE_ACAO_NEGADA:
+    "Voce nao pode realizar esta acao nesta solicitacao de amizade",
   // MODIFICAÇÕES
   MODIFICACAO_NOT_FOUND: "Modificação não encontrada",
   MODIFICACAO_CODIGO_DUPLICADO: "Já existe uma modificação com este código",
@@ -594,4 +602,3 @@ export function formatarErroComContexto(
 
   return `${mensagemBase} (${partes.join(" | ")})`;
 }
-

@@ -26,6 +26,7 @@ import { HomebrewsModule } from './homebrews/homebrews.module';
 import { SessaoModule } from './sessao/sessao.module';
 import { NpcsAmeacasModule } from './npcs-ameacas/npcs-ameacas.module';
 import { AnotacoesModule } from './anotacoes/anotacoes.module';
+import { AmizadesModule } from './amizades/amizades.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { AnotacoesModule } from './anotacoes/anotacoes.module';
     SessaoModule,
     NpcsAmeacasModule,
     AnotacoesModule,
+    AmizadesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

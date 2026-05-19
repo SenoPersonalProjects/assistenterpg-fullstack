@@ -151,8 +151,13 @@ describe('SessaoService', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
           campanhaId: 7,
+          titulo: 'Sessao teste',
           status: 'LOBBY',
+          iniciadoEm: new Date('2026-05-19T10:00:00.000Z'),
+          encerradoEm: new Date('2026-05-19T11:00:00.000Z'),
           cenas: [{ id: 81 }],
+          personagens: [],
+          eventos: [],
         }),
         update: jest.fn().mockResolvedValue({
           id: 21,
@@ -161,6 +166,9 @@ describe('SessaoService', () => {
       },
       eventoSessao: {
         create: jest.fn().mockResolvedValue({ id: 301 }),
+      },
+      sessaoRelatorio: {
+        upsert: jest.fn().mockResolvedValue({ id: 1 }),
       },
     };
 

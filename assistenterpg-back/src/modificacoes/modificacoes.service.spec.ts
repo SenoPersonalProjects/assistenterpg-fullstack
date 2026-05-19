@@ -55,7 +55,7 @@ describe('ModificacoesService', () => {
       expect(resultado.erros).toEqual([]);
     });
 
-    it('rejeita escudos e equipamentos sem tipoProtecao quando a modificacao exige protecao vestivel', () => {
+    it('rejeita escudos e aceita protecao vestivel inferida quando tipoProtecao nao vier preenchido', () => {
       const escudo = service.validarRestricoes(
         {
           id: 2,
@@ -87,7 +87,7 @@ describe('ModificacoesService', () => {
       );
 
       expect(escudo.valido).toBe(false);
-      expect(semTipoProtecao.valido).toBe(false);
+      expect(semTipoProtecao.valido).toBe(true);
     });
   });
 });

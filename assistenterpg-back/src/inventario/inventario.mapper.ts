@@ -55,7 +55,9 @@ export class InventarioMapper {
       nomeCustomizado: item.nomeCustomizado || null,
       notas: item.notas || null,
       estado:
-        item.estado && typeof item.estado === 'object' && !Array.isArray(item.estado)
+        item.estado &&
+        typeof item.estado === 'object' &&
+        !Array.isArray(item.estado)
           ? (item.estado as Record<string, unknown>)
           : null,
 

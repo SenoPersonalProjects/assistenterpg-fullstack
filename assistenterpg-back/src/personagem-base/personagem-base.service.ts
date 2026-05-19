@@ -311,6 +311,10 @@ export class PersonagemBaseService {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
+  private stringOuPadrao(value: unknown, padrao: string): string {
+    return typeof value === 'string' ? value : padrao;
+  }
+
   private getNestedRecord(
     value: Record<string, unknown> | null | undefined,
     key: string,
@@ -2205,7 +2209,9 @@ export class PersonagemBaseService {
 
     if (!acesso) throw new PersonagemBaseNaoEncontradoException(id);
 
-    await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(id);
+    await this.tecnicaInataPropriaService.garantirTecnicaPropriaPersonagemBase(
+      id,
+    );
 
     const personagem = await this.prisma.personagemBase.findFirst({
       where: { id, donoId },
@@ -2599,7 +2605,10 @@ export class PersonagemBaseService {
             where: { id },
             data: { tecnicaInataPropriaId: null },
           });
-          await this.removerTecnicaInataPropria(tecnicaInataPropriaAnteriorId, tx);
+          await this.removerTecnicaInataPropria(
+            tecnicaInataPropriaAnteriorId,
+            tx,
+          );
         }
       } else if (
         tecnicaInataAnteriorId !== tecnicaInataNovaId ||
@@ -2619,7 +2628,10 @@ export class PersonagemBaseService {
         });
 
         if (tecnicaInataPropriaAnteriorId) {
-          await this.removerTecnicaInataPropria(tecnicaInataPropriaAnteriorId, tx);
+          await this.removerTecnicaInataPropria(
+            tecnicaInataPropriaAnteriorId,
+            tx,
+          );
         }
       }
 
@@ -2684,7 +2696,7 @@ export class PersonagemBaseService {
     personagemBaseId: number,
     payload: Record<string, unknown>,
   ) {
-    const resultado = await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       const { tecnicaInataPropriaId } =
         await this.obterTecnicaInataPropriaOuFalhar(
           donoId,
@@ -2701,16 +2713,20 @@ export class PersonagemBaseService {
         data: {
           tecnicaId: tecnicaInataPropriaId,
           codigo:
-            typeof payload.codigo === 'string' && payload.codigo.trim().length > 0
+            typeof payload.codigo === 'string' &&
+            payload.codigo.trim().length > 0
               ? payload.codigo.trim()
               : `PB_HAB_${personagemBaseId}_${Date.now()}`,
-          nome: String(payload.nome ?? 'Nova habilidade'),
-          descricao: String(payload.descricao ?? ''),
+          nome: this.stringOuPadrao(payload.nome, 'Nova habilidade'),
+          descricao: this.stringOuPadrao(payload.descricao, ''),
           requisitos:
             payload.requisitos !== undefined
               ? (payload.requisitos as Prisma.InputJsonValue)
               : undefined,
-          execucao: String(payload.execucao ?? 'ACAO_PADRAO') as TipoExecucao,
+          execucao: this.stringOuPadrao(
+            payload.execucao,
+            'ACAO_PADRAO',
+          ) as TipoExecucao,
           area:
             typeof payload.area === 'string' && payload.area.trim().length > 0
               ? (payload.area.trim() as AreaEfeito)
@@ -2777,8 +2793,9 @@ export class PersonagemBaseService {
               : null,
           escalonamentoCustoEA: Number(payload.escalonamentoCustoEA ?? 0),
           escalonamentoCustoPE: Number(payload.escalonamentoCustoPE ?? 0),
-          escalonamentoTipo: String(
-            payload.escalonamentoTipo ?? 'OUTRO',
+          escalonamentoTipo: this.stringOuPadrao(
+            payload.escalonamentoTipo,
+            'OUTRO',
           ) as TipoEscalonamentoHabilidade,
           escalonamentoEfeito:
             payload.escalonamentoEfeito !== undefined
@@ -2788,10 +2805,12 @@ export class PersonagemBaseService {
             payload.escalonamentoDano !== undefined
               ? (payload.escalonamentoDano as Prisma.InputJsonValue)
               : undefined,
-          efeito: String(payload.efeito ?? ''),
+          efeito: this.stringOuPadrao(payload.efeito, ''),
           ordem: Number(payload.ordem ?? (ordemMaxima._max.ordem ?? 0) + 10),
           habilitada:
-            payload.habilitada === undefined ? true : Boolean(payload.habilitada),
+            payload.habilitada === undefined
+              ? true
+              : Boolean(payload.habilitada),
         },
       });
 
@@ -2827,18 +2846,23 @@ export class PersonagemBaseService {
       });
 
       if (!habilidade) {
-        throw new BadRequestException('Habilidade da tecnica propria nao encontrada.');
+        throw new BadRequestException(
+          'Habilidade da tecnica propria nao encontrada.',
+        );
       }
 
       await tx.habilidadeTecnica.update({
         where: { id: habilidadeId },
         data: this.limparUndefined({
           codigo:
-            typeof payload.codigo === 'string' ? payload.codigo.trim() : undefined,
-          nome:
-            typeof payload.nome === 'string' ? payload.nome : undefined,
+            typeof payload.codigo === 'string'
+              ? payload.codigo.trim()
+              : undefined,
+          nome: typeof payload.nome === 'string' ? payload.nome : undefined,
           descricao:
-            typeof payload.descricao === 'string' ? payload.descricao : undefined,
+            typeof payload.descricao === 'string'
+              ? payload.descricao
+              : undefined,
           requisitos:
             payload.requisitos !== undefined
               ? (payload.requisitos as Prisma.InputJsonValue)
@@ -2853,8 +2877,7 @@ export class PersonagemBaseService {
               : undefined,
           alcance:
             typeof payload.alcance === 'string' ? payload.alcance : undefined,
-          alvo:
-            typeof payload.alvo === 'string' ? payload.alvo : undefined,
+          alvo: typeof payload.alvo === 'string' ? payload.alvo : undefined,
           duracao:
             typeof payload.duracao === 'string' ? payload.duracao : undefined,
           resistencia:
@@ -2988,22 +3011,22 @@ export class PersonagemBaseService {
       });
 
       if (!habilidade) {
-        throw new BadRequestException('Habilidade da tecnica propria nao encontrada.');
+        throw new BadRequestException(
+          'Habilidade da tecnica propria nao encontrada.',
+        );
       }
 
       await tx.variacaoHabilidade.create({
         data: {
           habilidadeTecnicaId: habilidadeId,
-          nome: String(payload.nome ?? 'Nova variacao'),
-          descricao: String(payload.descricao ?? ''),
+          nome: this.stringOuPadrao(payload.nome, 'Nova variacao'),
+          descricao: this.stringOuPadrao(payload.descricao, ''),
           substituiCustos:
             payload.substituiCustos === undefined
               ? false
               : Boolean(payload.substituiCustos),
-          custoPE:
-            payload.custoPE == null ? null : Number(payload.custoPE),
-          custoEA:
-            payload.custoEA == null ? null : Number(payload.custoEA),
+          custoPE: payload.custoPE == null ? null : Number(payload.custoPE),
+          custoEA: payload.custoEA == null ? null : Number(payload.custoEA),
           custoSustentacaoEA:
             payload.custoSustentacaoEA == null
               ? null
@@ -3020,11 +3043,9 @@ export class PersonagemBaseService {
             typeof payload.area === 'string'
               ? (payload.area as AreaEfeito)
               : null,
-          alcance:
-            typeof payload.alcance === 'string' ? payload.alcance : null,
+          alcance: typeof payload.alcance === 'string' ? payload.alcance : null,
           alvo: typeof payload.alvo === 'string' ? payload.alvo : null,
-          duracao:
-            typeof payload.duracao === 'string' ? payload.duracao : null,
+          duracao: typeof payload.duracao === 'string' ? payload.duracao : null,
           resistencia:
             typeof payload.resistencia === 'string'
               ? payload.resistencia
@@ -3039,8 +3060,7 @@ export class PersonagemBaseService {
             payload.criticoMultiplicador == null
               ? null
               : Number(payload.criticoMultiplicador),
-          danoFlat:
-            payload.danoFlat == null ? null : Number(payload.danoFlat),
+          danoFlat: payload.danoFlat == null ? null : Number(payload.danoFlat),
           danoFlatTipo:
             typeof payload.danoFlatTipo === 'string'
               ? (payload.danoFlatTipo as TipoDano)
@@ -3081,7 +3101,9 @@ export class PersonagemBaseService {
             payload.requisitos !== undefined
               ? (payload.requisitos as Prisma.InputJsonValue)
               : undefined,
-          ordem: Number(payload.ordem ?? (habilidade.variacoes[0]?.ordem ?? 0) + 10),
+          ordem: Number(
+            payload.ordem ?? (habilidade.variacoes[0]?.ordem ?? 0) + 10,
+          ),
         },
       });
 
@@ -3119,7 +3141,9 @@ export class PersonagemBaseService {
       });
 
       if (!variacao) {
-        throw new BadRequestException('Variacao da tecnica propria nao encontrada.');
+        throw new BadRequestException(
+          'Variacao da tecnica propria nao encontrada.',
+        );
       }
 
       await tx.variacaoHabilidade.update({
@@ -3127,7 +3151,9 @@ export class PersonagemBaseService {
         data: this.limparUndefined({
           nome: typeof payload.nome === 'string' ? payload.nome : undefined,
           descricao:
-            typeof payload.descricao === 'string' ? payload.descricao : undefined,
+            typeof payload.descricao === 'string'
+              ? payload.descricao
+              : undefined,
           substituiCustos:
             payload.substituiCustos !== undefined
               ? Boolean(payload.substituiCustos)

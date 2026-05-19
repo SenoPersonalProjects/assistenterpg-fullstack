@@ -32,10 +32,14 @@ type DadosItemSessaoNormalizados = {
   descricaoRevelada?: boolean;
 };
 
-type AcessoCampanha = Awaited<ReturnType<CampanhaAccessService['garantirAcesso']>>;
+type AcessoCampanha = Awaited<
+  ReturnType<CampanhaAccessService['garantirAcesso']>
+>;
 
 const transferenciaItemSessaoInclude = {
-  item: { select: { id: true, nome: true, peso: true, personagemCampanhaId: true } },
+  item: {
+    select: { id: true, nome: true, peso: true, personagemCampanhaId: true },
+  },
   solicitante: { select: { id: true, apelido: true } },
   portadorAnterior: {
     select: {
@@ -93,7 +97,10 @@ export class CampanhaItensSessaoService {
   ) {}
 
   async listarItens(campanhaId: number, usuarioId: number) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     const [itens, transferenciasPendentes] = await Promise.all([
       this.prisma.itemSessaoCampanha.findMany({
         where: { campanhaId },
@@ -115,12 +122,22 @@ export class CampanhaItensSessaoService {
   }
 
   async listarTransferenciasPendentes(campanhaId: number, usuarioId: number) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
-    return this.listarTransferenciasPendentesInterno(campanhaId, acesso, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
+    return this.listarTransferenciasPendentesInterno(
+      campanhaId,
+      acesso,
+      usuarioId,
+    );
   }
 
   async listarTemplates(campanhaId: number, usuarioId: number) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     this.assertMestre(acesso, 'listar templates de itens de sessao');
 
     return this.prisma.templateItemSessaoCampanha.findMany({
@@ -135,7 +152,10 @@ export class CampanhaItensSessaoService {
     usuarioId: number,
     dto: CriarTemplateItemSessaoCampanhaDto,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     this.assertMestre(acesso, 'criar templates de itens de sessao');
     const dados = this.normalizarDadosItem(dto);
 
@@ -156,7 +176,10 @@ export class CampanhaItensSessaoService {
     templateId: number,
     dto: AtualizarTemplateItemSessaoCampanhaDto,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     this.assertMestre(acesso, 'editar templates de itens de sessao');
     const atual = await this.obterTemplate(campanhaId, templateId);
     const dados = this.normalizarDadosItem({ ...atual, ...dto });
@@ -178,7 +201,10 @@ export class CampanhaItensSessaoService {
     templateId: number,
     dto: Partial<CriarItemSessaoCampanhaDto> = {},
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     this.assertMestre(acesso, 'instanciar templates de itens de sessao');
     const template = await this.obterTemplate(campanhaId, templateId);
 
@@ -214,9 +240,12 @@ export class CampanhaItensSessaoService {
     usuarioId: number,
     dto: CriarItemSessaoCampanhaDto,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     const dados = this.normalizarDadosItem(dto);
-    await this.validarPermissoesCamposMestreEmCriacao(acesso, dto);
+    this.validarPermissoesCamposMestreEmCriacao(acesso, dto);
     await this.validarReferenciasEscopoCampanha(campanhaId, dto);
 
     const personagemCampanhaId = acesso.ehMestre
@@ -257,19 +286,28 @@ export class CampanhaItensSessaoService {
     itemId: number,
     dto: AtualizarItemSessaoCampanhaDto,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     const atual = await this.obterItem(campanhaId, itemId);
 
     if (!acesso.ehMestre && atual.criadoPorId !== usuarioId) {
-      throw new ForbiddenException('Apenas o mestre ou criador pode editar este item.');
+      throw new ForbiddenException(
+        'Apenas o mestre ou criador pode editar este item.',
+      );
     }
 
-    await this.validarPermissoesCamposMestre(acesso, dto);
+    this.validarPermissoesCamposMestre(acesso, dto);
     await this.validarReferenciasEscopoCampanha(campanhaId, dto);
 
     const dados = this.normalizarDadosItem({ ...atual, ...dto });
     const proximoPortador = acesso.ehMestre
-      ? this.valorNullable(dto, 'personagemCampanhaId', atual.personagemCampanhaId)
+      ? this.valorNullable(
+          dto,
+          'personagemCampanhaId',
+          atual.personagemCampanhaId,
+        )
       : atual.personagemCampanhaId;
 
     if (proximoPortador) {
@@ -306,7 +344,10 @@ export class CampanhaItensSessaoService {
     itemId: number,
     dto: AtribuirItemSessaoCampanhaDto,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     this.assertMestre(acesso, 'atribuir itens de sessao');
     const item = await this.obterItem(campanhaId, itemId);
     await this.validarReferenciasEscopoCampanha(campanhaId, dto);
@@ -320,7 +361,11 @@ export class CampanhaItensSessaoService {
       );
     }
 
-    await this.cancelarTransferenciasPendentesItem(campanhaId, itemId, usuarioId);
+    await this.cancelarTransferenciasPendentesItem(
+      campanhaId,
+      itemId,
+      usuarioId,
+    );
 
     return this.prisma.itemSessaoCampanha.update({
       where: { id: itemId },
@@ -335,7 +380,10 @@ export class CampanhaItensSessaoService {
     itemId: number,
     dto: RevelarItemSessaoCampanhaDto,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     this.assertMestre(acesso, 'revelar ou ocultar itens de sessao');
     await this.obterItem(campanhaId, itemId);
 
@@ -352,15 +400,22 @@ export class CampanhaItensSessaoService {
     itemId: number,
     dto: SolicitarTransferenciaItemSessaoCampanhaDto,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     const item = await this.obterItemComPortador(campanhaId, itemId);
 
     if (!item.personagemCampanhaId || !item.personagemCampanha) {
-      throw new BadRequestException('Apenas itens com portador podem ser transferidos.');
+      throw new BadRequestException(
+        'Apenas itens com portador podem ser transferidos.',
+      );
     }
 
     if (!acesso.ehMestre && item.personagemCampanha.donoId !== usuarioId) {
-      throw new ForbiddenException('Voce so pode transferir itens dos seus personagens.');
+      throw new ForbiddenException(
+        'Voce so pode transferir itens dos seus personagens.',
+      );
     }
 
     await this.assertSemTransferenciaPendente(itemId);
@@ -398,7 +453,10 @@ export class CampanhaItensSessaoService {
     if (!dto.destinoNpcSessaoId) {
       throw new BadRequestException('Informe o NPC de destino.');
     }
-    await this.validarNpcSessaoEscopoCampanha(campanhaId, dto.destinoNpcSessaoId);
+    await this.validarNpcSessaoEscopoCampanha(
+      campanhaId,
+      dto.destinoNpcSessaoId,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       const transferencia = await tx.transferenciaItemSessaoCampanha.create({
@@ -425,7 +483,12 @@ export class CampanhaItensSessaoService {
     usuarioId: number,
     transferenciaId: number,
   ) {
-    return this.responderTransferencia(campanhaId, usuarioId, transferenciaId, true);
+    return this.responderTransferencia(
+      campanhaId,
+      usuarioId,
+      transferenciaId,
+      true,
+    );
   }
 
   async recusarTransferencia(
@@ -433,7 +496,12 @@ export class CampanhaItensSessaoService {
     usuarioId: number,
     transferenciaId: number,
   ) {
-    return this.responderTransferencia(campanhaId, usuarioId, transferenciaId, false);
+    return this.responderTransferencia(
+      campanhaId,
+      usuarioId,
+      transferenciaId,
+      false,
+    );
   }
 
   private async responderTransferencia(
@@ -442,20 +510,37 @@ export class CampanhaItensSessaoService {
     transferenciaId: number,
     aceitar: boolean,
   ) {
-    const acesso = await this.accessService.garantirAcesso(campanhaId, usuarioId);
+    const acesso = await this.accessService.garantirAcesso(
+      campanhaId,
+      usuarioId,
+    );
     const transferencia = await this.obterTransferenciaPendente(
       campanhaId,
       transferenciaId,
     );
 
-    this.validarPermissaoResponderTransferencia(transferencia, acesso, usuarioId);
+    this.validarPermissaoResponderTransferencia(
+      transferencia,
+      acesso,
+      usuarioId,
+    );
 
-    if (aceitar && transferencia.destinoTipo === DestinoTransferenciaItemSessao.PERSONAGEM) {
+    if (
+      aceitar &&
+      transferencia.destinoTipo === DestinoTransferenciaItemSessao.PERSONAGEM
+    ) {
       if (!transferencia.destinoPersonagemCampanhaId) {
-        throw new BadRequestException('Transferencia sem personagem de destino.');
+        throw new BadRequestException(
+          'Transferencia sem personagem de destino.',
+        );
       }
-      if (transferencia.item.personagemCampanhaId !== transferencia.portadorAnteriorId) {
-        throw new BadRequestException('O item mudou de portador durante a transferencia.');
+      if (
+        transferencia.item.personagemCampanhaId !==
+        transferencia.portadorAnteriorId
+      ) {
+        throw new BadRequestException(
+          'O item mudou de portador durante a transferencia.',
+        );
       }
       await this.validarCapacidadePortadorSessao(
         campanhaId,
@@ -466,7 +551,10 @@ export class CampanhaItensSessaoService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      if (aceitar && transferencia.destinoTipo === DestinoTransferenciaItemSessao.PERSONAGEM) {
+      if (
+        aceitar &&
+        transferencia.destinoTipo === DestinoTransferenciaItemSessao.PERSONAGEM
+      ) {
         await tx.itemSessaoCampanha.update({
           where: { id: transferencia.itemId },
           data: {
@@ -475,7 +563,10 @@ export class CampanhaItensSessaoService {
         });
       }
 
-      if (!aceitar && transferencia.destinoTipo === DestinoTransferenciaItemSessao.NPC) {
+      if (
+        !aceitar &&
+        transferencia.destinoTipo === DestinoTransferenciaItemSessao.NPC
+      ) {
         await tx.itemSessaoCampanha.update({
           where: { id: transferencia.itemId },
           data: { personagemCampanhaId: transferencia.portadorAnteriorId },
@@ -522,9 +613,7 @@ export class CampanhaItensSessaoService {
     }
 
     const categoria =
-      tipo === 'GERAL'
-        ? entrada.categoria
-        : CategoriaEquipamento.CATEGORIA_0;
+      tipo === 'GERAL' ? entrada.categoria : CategoriaEquipamento.CATEGORIA_0;
 
     if (tipo === 'GERAL' && !categoria) {
       throw new BadRequestException('Itens gerais exigem categoria valida.');
@@ -543,7 +632,7 @@ export class CampanhaItensSessaoService {
     };
   }
 
-  private async validarPermissoesCamposMestreEmCriacao(
+  private validarPermissoesCamposMestreEmCriacao(
     acesso: AcessoCampanha,
     dto: Partial<CriarItemSessaoCampanhaDto>,
   ) {
@@ -559,7 +648,7 @@ export class CampanhaItensSessaoService {
     }
   }
 
-  private async validarPermissoesCamposMestre(
+  private validarPermissoesCamposMestre(
     acesso: AcessoCampanha,
     dto: Partial<CriarItemSessaoCampanhaDto>,
   ) {
@@ -585,7 +674,10 @@ export class CampanhaItensSessaoService {
         where: { id: dto.sessaoId, campanhaId },
         select: { id: true },
       });
-      if (!sessao) throw new BadRequestException('Sessao informada nao pertence a campanha.');
+      if (!sessao)
+        throw new BadRequestException(
+          'Sessao informada nao pertence a campanha.',
+        );
     }
 
     if (dto.cenaId) {
@@ -593,7 +685,10 @@ export class CampanhaItensSessaoService {
         where: { id: dto.cenaId, sessao: { campanhaId } },
         select: { id: true },
       });
-      if (!cena) throw new BadRequestException('Cena informada nao pertence a campanha.');
+      if (!cena)
+        throw new BadRequestException(
+          'Cena informada nao pertence a campanha.',
+        );
     }
 
     if (dto.personagemCampanhaId) {
@@ -602,7 +697,9 @@ export class CampanhaItensSessaoService {
         select: { id: true },
       });
       if (!personagem) {
-        throw new BadRequestException('Portador informado nao pertence a campanha.');
+        throw new BadRequestException(
+          'Portador informado nao pertence a campanha.',
+        );
       }
     }
   }
@@ -626,14 +723,18 @@ export class CampanhaItensSessaoService {
     personagemCampanhaId?: number | null,
   ) {
     if (!personagemCampanhaId) {
-      throw new BadRequestException('Jogadores precisam escolher um personagem proprio para receber o item.');
+      throw new BadRequestException(
+        'Jogadores precisam escolher um personagem proprio para receber o item.',
+      );
     }
     const personagem = await this.prisma.personagemCampanha.findFirst({
       where: { id: personagemCampanhaId, campanhaId, donoId: usuarioId },
       select: { id: true },
     });
     if (!personagem) {
-      throw new ForbiddenException('Voce so pode criar itens para seus proprios personagens.');
+      throw new ForbiddenException(
+        'Voce so pode criar itens para seus proprios personagens.',
+      );
     }
     return personagem.id;
   }
@@ -654,7 +755,9 @@ export class CampanhaItensSessaoService {
       },
     });
     if (!personagem) {
-      throw new BadRequestException('Portador informado nao pertence a campanha.');
+      throw new BadRequestException(
+        'Portador informado nao pertence a campanha.',
+      );
     }
 
     let pesoIgnorado = 0;
@@ -692,11 +795,12 @@ export class CampanhaItensSessaoService {
     acesso: AcessoCampanha,
     usuarioId: number,
   ) {
-    const transferencias = await this.prisma.transferenciaItemSessaoCampanha.findMany({
-      where: { campanhaId, status: StatusTransferenciaItemSessao.PENDENTE },
-      include: transferenciaItemSessaoInclude,
-      orderBy: [{ criadaEm: 'desc' }, { id: 'desc' }],
-    });
+    const transferencias =
+      await this.prisma.transferenciaItemSessaoCampanha.findMany({
+        where: { campanhaId, status: StatusTransferenciaItemSessao.PENDENTE },
+        include: transferenciaItemSessaoInclude,
+        orderBy: [{ criadaEm: 'desc' }, { id: 'desc' }],
+      });
 
     return transferencias
       .filter(
@@ -750,14 +854,15 @@ export class CampanhaItensSessaoService {
     campanhaId: number,
     transferenciaId: number,
   ) {
-    const transferencia = await this.prisma.transferenciaItemSessaoCampanha.findFirst({
-      where: {
-        id: transferenciaId,
-        campanhaId,
-        status: StatusTransferenciaItemSessao.PENDENTE,
-      },
-      include: transferenciaItemSessaoInclude,
-    });
+    const transferencia =
+      await this.prisma.transferenciaItemSessaoCampanha.findFirst({
+        where: {
+          id: transferenciaId,
+          campanhaId,
+          status: StatusTransferenciaItemSessao.PENDENTE,
+        },
+        include: transferenciaItemSessaoInclude,
+      });
     if (!transferencia) {
       throw new NotFoundException('Transferencia pendente nao encontrada.');
     }
@@ -776,17 +881,22 @@ export class CampanhaItensSessaoService {
       transferencia.destinoPersonagemCampanha?.donoId === usuarioId;
 
     if (!destinoEhMeu) {
-      throw new ForbiddenException('Voce nao pode responder esta transferencia.');
+      throw new ForbiddenException(
+        'Voce nao pode responder esta transferencia.',
+      );
     }
   }
 
   private async assertSemTransferenciaPendente(itemId: number) {
-    const pendente = await this.prisma.transferenciaItemSessaoCampanha.findFirst({
-      where: { itemId, status: StatusTransferenciaItemSessao.PENDENTE },
-      select: { id: true },
-    });
+    const pendente =
+      await this.prisma.transferenciaItemSessaoCampanha.findFirst({
+        where: { itemId, status: StatusTransferenciaItemSessao.PENDENTE },
+        select: { id: true },
+      });
     if (pendente) {
-      throw new BadRequestException('Este item ja possui uma transferencia pendente.');
+      throw new BadRequestException(
+        'Este item ja possui uma transferencia pendente.',
+      );
     }
   }
 
@@ -796,7 +906,11 @@ export class CampanhaItensSessaoService {
     usuarioId: number,
   ) {
     await this.prisma.transferenciaItemSessaoCampanha.updateMany({
-      where: { campanhaId, itemId, status: StatusTransferenciaItemSessao.PENDENTE },
+      where: {
+        campanhaId,
+        itemId,
+        status: StatusTransferenciaItemSessao.PENDENTE,
+      },
       data: {
         status: StatusTransferenciaItemSessao.CANCELADA,
         respondidaPorId: usuarioId,
@@ -822,9 +936,10 @@ export class CampanhaItensSessaoService {
   }
 
   private nomePersonagem(
-    personagem:
-      | { nome: string | null; personagemBase?: { nome: string } | null }
-      | null,
+    personagem: {
+      nome: string | null;
+      personagemBase?: { nome: string } | null;
+    } | null,
   ) {
     return personagem?.nome || personagem?.personagemBase?.nome || 'Personagem';
   }

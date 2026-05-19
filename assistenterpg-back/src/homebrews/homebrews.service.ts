@@ -159,6 +159,10 @@ export class HomebrewsService {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
+  private stringOuPadrao(value: unknown, padrao: string): string {
+    return typeof value === 'string' ? value : padrao;
+  }
+
   private gerarCodigoImportacao(
     usuarioId: number,
     codigoBase?: string | null,
@@ -213,7 +217,9 @@ export class HomebrewsService {
     const tipo = rawItem.tipo;
     if (
       typeof tipo !== 'string' ||
-      !Object.values(TipoHomebrewConteudo).includes(tipo as TipoHomebrewConteudo)
+      !Object.values(TipoHomebrewConteudo).includes(
+        tipo as TipoHomebrewConteudo,
+      )
     ) {
       throw new BadRequestException(
         `${contexto}: tipo de homebrew inválido ou ausente.`,
@@ -230,7 +236,9 @@ export class HomebrewsService {
 
     const status =
       typeof rawItem.status === 'string' &&
-      Object.values(StatusPublicacao).includes(rawItem.status as StatusPublicacao)
+      Object.values(StatusPublicacao).includes(
+        rawItem.status as StatusPublicacao,
+      )
         ? (rawItem.status as StatusPublicacao)
         : StatusPublicacao.RASCUNHO;
 
@@ -439,7 +447,9 @@ export class HomebrewsService {
   }
 
   private construirPayloadEquipamentoMaterializado(
-    homebrew: Prisma.HomebrewGetPayload<{ include: typeof homebrewDetalhadoInclude }>,
+    homebrew: Prisma.HomebrewGetPayload<{
+      include: typeof homebrewDetalhadoInclude;
+    }>,
     usuarioId: number,
   ): Prisma.EquipamentoCatalogoUncheckedCreateInput {
     const dados = this.isRecord(homebrew.dados)
@@ -447,22 +457,22 @@ export class HomebrewsService {
       : {};
 
     const armaAmaldicoada = this.isRecord(dados.armaAmaldicoada)
-      ? (dados.armaAmaldicoada as Record<string, unknown>)
+      ? dados.armaAmaldicoada
       : null;
     const protecaoAmaldicoada = this.isRecord(dados.protecaoAmaldicoada)
-      ? (dados.protecaoAmaldicoada as Record<string, unknown>)
+      ? dados.protecaoAmaldicoada
       : null;
     const artefatoAmaldicoado = this.isRecord(dados.artefatoAmaldicoado)
-      ? (dados.artefatoAmaldicoado as Record<string, unknown>)
+      ? dados.artefatoAmaldicoado
       : null;
 
     const dadosArmaBase =
       armaAmaldicoada && this.isRecord(armaAmaldicoada.dadosArma)
-        ? (armaAmaldicoada.dadosArma as Record<string, unknown>)
+        ? armaAmaldicoada.dadosArma
         : null;
     const dadosProtecaoBase =
       protecaoAmaldicoada && this.isRecord(protecaoAmaldicoada.dadosProtecao)
-        ? (protecaoAmaldicoada.dadosProtecao as Record<string, unknown>)
+        ? protecaoAmaldicoada.dadosProtecao
         : null;
 
     let dadosEfetivos: Record<string, unknown> = dados;
@@ -485,14 +495,15 @@ export class HomebrewsService {
       codigo: this.gerarCodigoEquipamentoHomebrew(homebrew.id),
       nome: homebrew.nome,
       descricao: homebrew.descricao ?? null,
-      tipo: String(dados.tipo ?? 'ITEM_OPERACIONAL') as never,
-      categoria: String(dados.categoria ?? 'CATEGORIA_0') as never,
+      tipo: this.stringOuPadrao(dados.tipo, 'ITEM_OPERACIONAL') as never,
+      categoria: this.stringOuPadrao(dados.categoria, 'CATEGORIA_0') as never,
       espacos: typeof dados.espacos === 'number' ? dados.espacos : 1,
       fonte: TipoFonte.HOMEBREW,
       usuarioId,
       homebrewOrigemId: homebrew.id,
-      complexidadeMaldicao: String(
-        dados.complexidadeMaldicao ?? 'NENHUMA',
+      complexidadeMaldicao: this.stringOuPadrao(
+        dados.complexidadeMaldicao,
+        'NENHUMA',
       ) as never,
       tipoUso:
         typeof dados.tipoUso === 'string' ? (dados.tipoUso as never) : null,
@@ -523,11 +534,11 @@ export class HomebrewsService {
       agil: dadosEfetivos.agil === true,
       criticoValor:
         typeof dadosEfetivos.criticoValor === 'number'
-          ? (dadosEfetivos.criticoValor as number)
+          ? dadosEfetivos.criticoValor
           : null,
       criticoMultiplicador:
         typeof dadosEfetivos.criticoMultiplicador === 'number'
-          ? (dadosEfetivos.criticoMultiplicador as number)
+          ? dadosEfetivos.criticoMultiplicador
           : null,
       alcance:
         typeof dadosEfetivos.alcance === 'string'
@@ -535,11 +546,11 @@ export class HomebrewsService {
           : null,
       tipoMunicaoCodigo:
         typeof dadosEfetivos.tipoMunicaoCodigo === 'string'
-          ? (dadosEfetivos.tipoMunicaoCodigo as string)
+          ? dadosEfetivos.tipoMunicaoCodigo
           : null,
       habilidadeEspecial:
         typeof dadosEfetivos.habilidadeEspecial === 'string'
-          ? (dadosEfetivos.habilidadeEspecial as string)
+          ? dadosEfetivos.habilidadeEspecial
           : null,
       proficienciaProtecao:
         typeof dadosEfetivos.proficienciaProtecao === 'string'
@@ -551,15 +562,15 @@ export class HomebrewsService {
           : null,
       bonusDefesa:
         typeof dadosEfetivos.bonusDefesa === 'number'
-          ? (dadosEfetivos.bonusDefesa as number)
+          ? dadosEfetivos.bonusDefesa
           : 0,
       penalidadeCarga:
         typeof dadosEfetivos.penalidadeCarga === 'number'
-          ? (dadosEfetivos.penalidadeCarga as number)
+          ? dadosEfetivos.penalidadeCarga
           : 0,
       duracaoCenas:
         typeof dadosEfetivos.duracaoCenas === 'number'
-          ? (dadosEfetivos.duracaoCenas as number)
+          ? dadosEfetivos.duracaoCenas
           : null,
       recuperavel: dadosEfetivos.recuperavel === true,
       tipoAcessorio:
@@ -568,16 +579,16 @@ export class HomebrewsService {
           : null,
       periciaBonificada:
         typeof dadosEfetivos.periciaBonificada === 'string'
-          ? (dadosEfetivos.periciaBonificada as string)
+          ? dadosEfetivos.periciaBonificada
           : null,
       bonusPericia:
         typeof dadosEfetivos.bonusPericia === 'number'
-          ? (dadosEfetivos.bonusPericia as number)
+          ? dadosEfetivos.bonusPericia
           : 0,
       requereEmpunhar: dadosEfetivos.requereEmpunhar === true,
       maxVestimentas:
         typeof dadosEfetivos.maxVestimentas === 'number'
-          ? (dadosEfetivos.maxVestimentas as number)
+          ? dadosEfetivos.maxVestimentas
           : 0,
       tipoExplosivo:
         typeof dadosEfetivos.tipoExplosivo === 'string'
@@ -593,7 +604,7 @@ export class HomebrewsService {
                     ? (item.empunhadura as never)
                     : null,
                 tipoDano: String(item.tipoDano) as never,
-                rolagem: String(item.rolagem ?? '1d6'),
+                rolagem: this.stringOuPadrao(item.rolagem, '1d6'),
                 valorFlat:
                   typeof item.valorFlat === 'number' ? item.valorFlat : 0,
                 ordem: index,
@@ -615,12 +626,12 @@ export class HomebrewsService {
       armaAmaldicoada: armaAmaldicoada
         ? {
             create: {
-              tipoBase: String(armaAmaldicoada.tipoBase ?? 'ARMA'),
+              tipoBase: this.stringOuPadrao(armaAmaldicoada.tipoBase, 'ARMA'),
               proficienciaRequerida:
                 armaAmaldicoada.proficienciaRequerida === true,
               efeito:
                 typeof armaAmaldicoada.efeito === 'string'
-                  ? (armaAmaldicoada.efeito as string)
+                  ? armaAmaldicoada.efeito
                   : null,
             },
           }
@@ -628,20 +639,23 @@ export class HomebrewsService {
       protecaoAmaldicoada: protecaoAmaldicoada
         ? {
             create: {
-              tipoBase: String(protecaoAmaldicoada.tipoBase ?? 'PROTECAO'),
+              tipoBase: this.stringOuPadrao(
+                protecaoAmaldicoada.tipoBase,
+                'PROTECAO',
+              ),
               bonusDefesa:
                 typeof dadosProtecaoBase?.bonusDefesa === 'number'
-                  ? (dadosProtecaoBase.bonusDefesa as number)
+                  ? dadosProtecaoBase.bonusDefesa
                   : 0,
               penalidadeCarga:
                 typeof dadosProtecaoBase?.penalidadeCarga === 'number'
-                  ? (dadosProtecaoBase.penalidadeCarga as number)
+                  ? dadosProtecaoBase.penalidadeCarga
                   : 0,
               proficienciaRequerida:
                 protecaoAmaldicoada.proficienciaRequerida === true,
               efeito:
                 typeof protecaoAmaldicoada.efeito === 'string'
-                  ? (protecaoAmaldicoada.efeito as string)
+                  ? protecaoAmaldicoada.efeito
                   : null,
             },
           }
@@ -649,20 +663,23 @@ export class HomebrewsService {
       artefatoAmaldicoado: artefatoAmaldicoado
         ? {
             create: {
-              tipoBase: String(artefatoAmaldicoado.tipoBase ?? 'ARTEFATO'),
+              tipoBase: this.stringOuPadrao(
+                artefatoAmaldicoado.tipoBase,
+                'ARTEFATO',
+              ),
               proficienciaRequerida:
                 artefatoAmaldicoado.proficienciaRequerida === true,
               efeito:
                 typeof artefatoAmaldicoado.efeito === 'string'
-                  ? (artefatoAmaldicoado.efeito as string)
+                  ? artefatoAmaldicoado.efeito
                   : null,
               custoUso:
                 typeof artefatoAmaldicoado.custoUso === 'string'
-                  ? (artefatoAmaldicoado.custoUso as string)
+                  ? artefatoAmaldicoado.custoUso
                   : null,
               manutencao:
                 typeof artefatoAmaldicoado.manutencao === 'string'
-                  ? (artefatoAmaldicoado.manutencao as string)
+                  ? artefatoAmaldicoado.manutencao
                   : null,
             },
           }
@@ -843,7 +860,11 @@ export class HomebrewsService {
           criado.tipo === TipoHomebrewConteudo.EQUIPAMENTO &&
           criado.status === StatusPublicacao.PUBLICADO
         ) {
-          await this.materializarEquipamentoDeHomebrew(criado.id, usuarioId, tx);
+          await this.materializarEquipamentoDeHomebrew(
+            criado.id,
+            usuarioId,
+            tx,
+          );
         }
 
         return criado;
@@ -1217,6 +1238,7 @@ export class HomebrewsService {
     isAdmin: boolean = false,
   ) {
     const homebrew = await this.buscarPorId(id, usuarioId, isAdmin);
+    const dadosExportacao: unknown = homebrew.dados;
     return {
       exportType: 'homebrew',
       schemaVersion: 1,
@@ -1229,7 +1251,7 @@ export class HomebrewsService {
         status: homebrew.status,
         versao: homebrew.versao,
         tags: homebrew.tags ?? [],
-        dados: homebrew.dados,
+        dados: dadosExportacao,
       },
     };
   }
@@ -1275,10 +1297,7 @@ export class HomebrewsService {
     };
   }
 
-  async importarHomebrewJson(
-    usuarioId: number,
-    dto: ImportarHomebrewJsonDto,
-  ) {
+  async importarHomebrewJson(usuarioId: number, dto: ImportarHomebrewJsonDto) {
     try {
       if (dto.schemaVersion !== 1) {
         throw new BadRequestException(

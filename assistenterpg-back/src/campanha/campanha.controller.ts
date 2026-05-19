@@ -89,6 +89,14 @@ export class CampanhaController {
     return this.campanhaService.listarMembros(id, req.user.id);
   }
 
+  @Get(':id/amigos-convidaveis')
+  async listarAmigosConvidaveis(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarAmigosConvidaveis(id, req.user.id);
+  }
+
   @Post(':id/membros')
   async adicionarMembro(
     @Param('id', ParseIntPipe) id: number,
@@ -565,14 +573,17 @@ export class CampanhaController {
   ) {
     const email = dto.email?.trim();
     const apelido = dto.apelido?.trim();
-    if (!email && !apelido) {
-      throw new BadRequestException('Informe email ou apelido para o convite.');
+    const usuarioId = dto.usuarioId;
+    if (!email && !apelido && !usuarioId) {
+      throw new BadRequestException(
+        'Informe email, apelido ou usuario para o convite.',
+      );
     }
 
     return this.campanhaService.criarConvite(
       id,
       req.user.id,
-      { email, apelido },
+      { email, apelido, usuarioId },
       dto.papel,
     );
   }

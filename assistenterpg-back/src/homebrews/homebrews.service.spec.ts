@@ -55,7 +55,11 @@ describe('HomebrewsService', () => {
       },
     ]);
 
-    const resultado = await service.listar({ apenasPublicados: true }, 7, false);
+    const resultado = await service.listar(
+      { apenasPublicados: true },
+      7,
+      false,
+    );
 
     expect(prisma.homebrew.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -86,7 +90,9 @@ describe('HomebrewsService', () => {
       },
     ]);
 
-    const resultado = await service.meus(22, { status: StatusPublicacao.PUBLICADO });
+    const resultado = await service.meus(22, {
+      status: StatusPublicacao.PUBLICADO,
+    });
 
     expect(prisma.homebrew.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

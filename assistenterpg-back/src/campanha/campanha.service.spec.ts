@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { StatusAmizade } from '@prisma/client';
 
 import { CampanhaService } from './campanha.service';
 import { CampanhaMapper } from './campanha.mapper';
@@ -10,16 +11,18 @@ import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
+import { PresencaService } from 'src/amizades/presenca.service';
+import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CampanhaApenasDonoException,
-  CampanhaPersonagemDesassociacaoNegadaException,
   CampanhaPersonagemAssociacaoNegadaException,
   CampanhaPersonagemLimiteUsuarioException,
   ConviteCodigoIndisponivelException,
   ConvitePendenteDuplicadoException,
   UsuarioJaMembroCampanhaException,
 } from 'src/common/exceptions/campanha.exception';
+import { AmizadeNaoEncontradaException } from 'src/common/exceptions/amizade.exception';
 
 type PrismaMock = {
   campanha: {
@@ -41,6 +44,10 @@ type PrismaMock = {
   membroCampanha: {
     findUnique: jest.Mock;
     create: jest.Mock;
+  };
+  amizade: {
+    findMany: jest.Mock;
+    findUnique: jest.Mock;
   };
   personagemBase: {
     findUnique: jest.Mock;
@@ -82,6 +89,7 @@ type PrismaMock = {
 describe('CampanhaService', () => {
   let service: CampanhaService;
   let prisma: PrismaMock;
+  let presenca: { estaOnline: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -104,6 +112,10 @@ describe('CampanhaService', () => {
       membroCampanha: {
         findUnique: jest.fn(),
         create: jest.fn(),
+      },
+      amizade: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
       },
       personagemBase: {
         findUnique: jest.fn(),
@@ -142,6 +154,8 @@ describe('CampanhaService', () => {
       $transaction: jest.fn(),
     };
 
+    presenca = { estaOnline: jest.fn().mockReturnValue(false) };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CampanhaService,
@@ -161,6 +175,20 @@ describe('CampanhaService', () => {
         {
           provide: CampanhaItensSessaoService,
           useValue: {},
+        },
+        {
+          provide: TecnicaInataPropriaService,
+          useValue: {
+            garantirTecnicaPropriaPersonagemBase: jest
+              .fn()
+              .mockResolvedValue(null),
+            clonarTecnicaInata: jest.fn(),
+            removerTecnicaClonada: jest.fn(),
+          },
+        },
+        {
+          provide: PresencaService,
+          useValue: presenca,
         },
         {
           provide: PrismaService,
@@ -201,6 +229,66 @@ describe('CampanhaService', () => {
 
     expect(convite.id).toBe(99);
     expect(prisma.conviteCampanha.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('deve criar convite usando usuarioId de amigo', async () => {
+    prisma.amizade.findUnique.mockResolvedValue({
+      id: 7,
+      status: StatusAmizade.ACEITA,
+    });
+    prisma.usuario.findUnique.mockResolvedValue({ email: 'amigo@teste.com' });
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 1,
+      donoId: 10,
+      dono: { id: 10, email: 'dono@teste.com' },
+      membros: [],
+    });
+    prisma.conviteCampanha.findMany.mockResolvedValue([]);
+    prisma.conviteCampanha.create.mockResolvedValue({
+      id: 77,
+      email: 'amigo@teste.com',
+    });
+
+    const convite = await service.criarConvite(
+      1,
+      10,
+      { usuarioId: 44 },
+      'JOGADOR',
+    );
+
+    expect(prisma.usuario.findUnique).toHaveBeenCalledWith({
+      where: { id: 44 },
+      select: { email: true },
+    });
+    expect(prisma.amizade.findUnique).toHaveBeenCalledWith({
+      where: {
+        usuarioAId_usuarioBId: {
+          usuarioAId: 10,
+          usuarioBId: 44,
+        },
+      },
+      select: { status: true },
+    });
+    expect(prisma.conviteCampanha.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        campanhaId: 1,
+        email: 'amigo@teste.com',
+        papel: 'JOGADOR',
+        status: 'PENDENTE',
+      }),
+    });
+    expect(convite.id).toBe(77);
+  });
+
+  it('deve bloquear convite por usuarioId quando nao for amigo aceito', async () => {
+    prisma.amizade.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.criarConvite(1, 10, { usuarioId: 44 }, 'JOGADOR'),
+    ).rejects.toBeInstanceOf(AmizadeNaoEncontradaException);
+
+    expect(prisma.usuario.findUnique).not.toHaveBeenCalled();
+    expect(prisma.conviteCampanha.create).not.toHaveBeenCalled();
   });
 
   it('deve falhar ao criar convite quando codigo unico nao pode ser gerado', async () => {
@@ -276,6 +364,67 @@ describe('CampanhaService', () => {
 
     expect(prisma.conviteCampanha.findMany).not.toHaveBeenCalled();
     expect(prisma.conviteCampanha.create).not.toHaveBeenCalled();
+  });
+
+  it('deve listar amigos convidaveis com membro e convite pendente', async () => {
+    presenca.estaOnline.mockImplementation(
+      (usuarioId: number) => usuarioId === 22,
+    );
+    prisma.campanha.findUnique.mockResolvedValue({
+      donoId: 10,
+      membros: [{ usuarioId: 33 }],
+      convites: [{ email: 'pendente@teste.com' }],
+    });
+    prisma.amizade.findMany.mockResolvedValue([
+      {
+        usuarioAId: 10,
+        usuarioBId: 22,
+        usuarioA: { id: 10, apelido: 'Dono', email: 'dono@teste.com' },
+        usuarioB: {
+          id: 22,
+          apelido: 'Amigo Online',
+          email: 'online@teste.com',
+        },
+      },
+      {
+        usuarioAId: 10,
+        usuarioBId: 33,
+        usuarioA: { id: 10, apelido: 'Dono', email: 'dono@teste.com' },
+        usuarioB: { id: 33, apelido: 'Ja Membro', email: 'membro@teste.com' },
+      },
+      {
+        usuarioAId: 10,
+        usuarioBId: 44,
+        usuarioA: { id: 10, apelido: 'Dono', email: 'dono@teste.com' },
+        usuarioB: { id: 44, apelido: 'Pendente', email: 'pendente@teste.com' },
+      },
+    ]);
+
+    const amigos = await service.listarAmigosConvidaveis(1, 10);
+
+    expect(amigos).toEqual([
+      {
+        id: 22,
+        apelido: 'Amigo Online',
+        online: true,
+        jaMembro: false,
+        convitePendente: false,
+      },
+      {
+        id: 33,
+        apelido: 'Ja Membro',
+        online: false,
+        jaMembro: true,
+        convitePendente: false,
+      },
+      {
+        id: 44,
+        apelido: 'Pendente',
+        online: false,
+        jaMembro: false,
+        convitePendente: true,
+      },
+    ]);
   });
 
   it('deve aceitar convite em transacao e atualizar status', async () => {
@@ -645,13 +794,29 @@ describe('CampanhaService', () => {
       campanhaId: 7,
       personagemBaseId: 42,
       donoId: 3,
+      tecnicaInataPropriaId: null,
     });
-    prisma.personagemSessao.findFirst.mockResolvedValue(null);
-    prisma.personagemCampanha.delete.mockResolvedValue({ id: 901 });
+    const tx = {
+      personagemSessao: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      transferenciaItemSessaoCampanha: {
+        deleteMany: jest.fn(),
+      },
+      itemSessaoCampanha: {
+        updateMany: jest.fn(),
+      },
+      personagemCampanha: {
+        delete: jest.fn().mockResolvedValue({ id: 901 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
 
     const resposta = await service.desassociarPersonagemCampanha(7, 901, 3);
 
-    expect(prisma.personagemCampanha.delete).toHaveBeenCalledWith({
+    expect(tx.personagemCampanha.delete).toHaveBeenCalledWith({
       where: { id: 901 },
     });
     expect(resposta).toEqual({
@@ -662,7 +827,7 @@ describe('CampanhaService', () => {
     });
   });
 
-  it('deve bloquear desassociacao quando personagem ja participou de sessao', async () => {
+  it('deve limpar vinculos de sessao ao desassociar personagem', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 1,
@@ -673,17 +838,62 @@ describe('CampanhaService', () => {
       campanhaId: 7,
       personagemBaseId: 42,
       donoId: 3,
+      tecnicaInataPropriaId: null,
     });
-    prisma.personagemSessao.findFirst.mockResolvedValue({
-      id: 15,
-      sessaoId: 33,
+    const tx = {
+      personagemSessao: {
+        findMany: jest.fn().mockResolvedValue([{ id: 15 }]),
+        deleteMany: jest.fn(),
+      },
+      transferenciaItemSessaoCampanha: {
+        deleteMany: jest.fn(),
+      },
+      itemSessaoCampanha: {
+        updateMany: jest.fn(),
+      },
+      eventoSessao: {
+        deleteMany: jest.fn(),
+      },
+      condicaoPersonagemSessao: {
+        deleteMany: jest.fn(),
+      },
+      personagemSessaoHabilidadeSustentada: {
+        deleteMany: jest.fn(),
+      },
+      personagemCampanha: {
+        delete: jest.fn().mockResolvedValue({ id: 901 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    const resposta = await service.desassociarPersonagemCampanha(7, 901, 3);
+
+    expect(tx.personagemSessao.findMany).toHaveBeenCalledWith({
+      where: { personagemCampanhaId: 901 },
+      select: { id: true },
     });
-
-    await expect(
-      service.desassociarPersonagemCampanha(7, 901, 3),
-    ).rejects.toBeInstanceOf(CampanhaPersonagemDesassociacaoNegadaException);
-
-    expect(prisma.personagemCampanha.delete).not.toHaveBeenCalled();
+    expect(tx.eventoSessao.deleteMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { personagemAtorId: { in: [15] } },
+          { personagemAlvoId: { in: [15] } },
+        ],
+      },
+    });
+    expect(tx.personagemSessao.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: [15] } },
+    });
+    expect(tx.personagemCampanha.delete).toHaveBeenCalledWith({
+      where: { id: 901 },
+    });
+    expect(resposta).toEqual({
+      id: 901,
+      campanhaId: 7,
+      personagemBaseId: 42,
+      message: 'Personagem desassociado com sucesso',
+    });
   });
 
   it('deve manter limite de 1 personagem por campanha para jogador', async () => {

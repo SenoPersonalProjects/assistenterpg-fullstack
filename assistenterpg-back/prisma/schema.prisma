@@ -62,6 +62,14 @@ enum GrauFeiticeiro {
   ESPECIAL
 }
 
+enum StatusAmizade {
+  PENDENTE
+  ACEITA
+  RECUSADA
+  CANCELADA
+  REMOVIDA
+}
+
 enum TipoEquipamento {
   ARMA
   MUNICAO
@@ -358,6 +366,10 @@ model Usuario {
   templatesItensSessaoCriados              TemplateItemSessaoCampanha[]           @relation("TemplateItemSessaoCriadoPor")
   transferenciasItensSessaoSolicitadas     TransferenciaItemSessaoCampanha[]      @relation("TransferenciaItemSessaoSolicitante")
   transferenciasItensSessaoRespondidas     TransferenciaItemSessaoCampanha[]      @relation("TransferenciaItemSessaoRespondidaPor")
+  amizadesComoUsuarioA                     Amizade[]                              @relation("AmizadeUsuarioA")
+  amizadesComoUsuarioB                     Amizade[]                              @relation("AmizadeUsuarioB")
+  solicitacoesAmizadeEnviadas              Amizade[]                              @relation("AmizadeSolicitante")
+  solicitacoesAmizadeRecebidas             Amizade[]                              @relation("AmizadeDestinatario")
 
   // ✅ NOVO: Relações com suplementos e homebrews
   suplementosAtivos UsuarioSuplemento[]
@@ -407,6 +419,30 @@ model Campanha {
 
   @@index([donoId])
   @@index([donoId, criadoEm])
+}
+
+model Amizade {
+  id             Int           @id @default(autoincrement())
+  usuarioAId     Int
+  usuarioBId     Int
+  solicitanteId  Int
+  destinatarioId Int
+  status         StatusAmizade @default(PENDENTE)
+  criadoEm       DateTime      @default(now())
+  respondidoEm   DateTime?
+  atualizadoEm   DateTime      @updatedAt
+
+  usuarioA     Usuario @relation("AmizadeUsuarioA", fields: [usuarioAId], references: [id], onDelete: Cascade)
+  usuarioB     Usuario @relation("AmizadeUsuarioB", fields: [usuarioBId], references: [id], onDelete: Cascade)
+  solicitante  Usuario @relation("AmizadeSolicitante", fields: [solicitanteId], references: [id], onDelete: Cascade)
+  destinatario Usuario @relation("AmizadeDestinatario", fields: [destinatarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioAId, usuarioBId])
+  @@index([solicitanteId, status])
+  @@index([destinatarioId, status])
+  @@index([usuarioAId, status])
+  @@index([usuarioBId, status])
+  @@map("amizades")
 }
 
 model MembroCampanha {

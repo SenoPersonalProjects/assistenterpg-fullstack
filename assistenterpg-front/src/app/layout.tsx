@@ -4,8 +4,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
-import { ToastProvider } from '@/context/ToastContext'; // ✅ NOVO
-import { ToastContainer } from '@/components/ui/Toast'; // ✅ NOVO
+import { ToastProvider } from '@/context/ToastContext';
+import { ToastContainer } from '@/components/ui/Toast';
+import { PresenceProvider } from '@/context/PresenceContext';
 import { ConditionalNav } from '@/components/layout/ConditionalNav';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 
@@ -78,11 +79,13 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <ThemeProvider>
           <AuthProvider>
-            <ToastProvider> {/* ✅ NOVO */}
-              <ConditionalNav />
-              <LayoutWrapper>{children}</LayoutWrapper>
-              <ToastContainer /> {/* ✅ NOVO */}
-            </ToastProvider>
+            <PresenceProvider>
+              <ToastProvider>
+                <ConditionalNav />
+                <LayoutWrapper>{children}</LayoutWrapper>
+                <ToastContainer />
+              </ToastProvider>
+            </PresenceProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

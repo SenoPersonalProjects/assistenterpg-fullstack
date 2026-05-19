@@ -239,7 +239,9 @@ export class InventarioService {
     );
     if (!possuiFuncaoAdicional) return totalBase;
 
-    const totalFuncoesAdicionais = contarInstanciasFuncaoAdicional(params.estado);
+    const totalFuncoesAdicionais = contarInstanciasFuncaoAdicional(
+      params.estado,
+    );
     if (totalFuncoesAdicionais <= 1) return totalBase;
     return totalBase + (totalFuncoesAdicionais - 1);
   }

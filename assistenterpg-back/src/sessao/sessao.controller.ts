@@ -169,13 +169,14 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AtualizarRecursosPersonagemSessaoDto,
   ) {
-    const resultado = await this.sessaoService.atualizarRecursosPersonagemSessao(
-      campanhaId,
-      sessaoId,
-      personagemSessaoId,
-      req.user.id,
-      dto,
-    );
+    const resultado =
+      await this.sessaoService.atualizarRecursosPersonagemSessao(
+        campanhaId,
+        sessaoId,
+        personagemSessaoId,
+        req.user.id,
+        dto,
+      );
 
     this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,

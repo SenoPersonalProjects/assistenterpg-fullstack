@@ -1482,10 +1482,7 @@ export class SessaoService {
       );
     }
 
-    const payload = this.extrairRegistro(relatorio.dadosJson) as Record<
-      string,
-      unknown
-    >;
+    const payload = this.extrairRegistro(relatorio.dadosJson);
     const personagens = Array.isArray(payload.personagens)
       ? payload.personagens.filter(
           (item): item is Record<string, unknown> =>
@@ -1501,7 +1498,7 @@ export class SessaoService {
         });
 
     return {
-      ...(payload as Record<string, unknown>),
+      ...payload,
       personagens: personagensFiltrados,
       permissoes: {
         ehMestre: acesso.ehMestre,
@@ -1689,23 +1686,28 @@ export class SessaoService {
       }
     }
 
-    const personagens = Array.from(personagensIndex.values()).map((personagem) => {
-      const original = personagensOriginais.get(personagem.personagemSessaoId);
-      const morto =
-        original?.condicoes.some(
-          (condicao) =>
-            this.normalizarTextoComparacao(condicao.condicao.nome) === 'MORTO',
-        ) ?? false;
+    const personagens = Array.from(personagensIndex.values()).map(
+      (personagem) => {
+        const original = personagensOriginais.get(
+          personagem.personagemSessaoId,
+        );
+        const morto =
+          original?.condicoes.some(
+            (condicao) =>
+              this.normalizarTextoComparacao(condicao.condicao.nome) ===
+              'MORTO',
+          ) ?? false;
 
-      return {
-        ...personagem,
-        statusFinal: {
-          ...personagem.statusFinal,
-          morto,
-          terminouVivo: personagem.statusFinal.pvAtual > 0 && !morto,
-        },
-      };
-    });
+        return {
+          ...personagem,
+          statusFinal: {
+            ...personagem.statusFinal,
+            morto,
+            terminouVivo: personagem.statusFinal.pvAtual > 0 && !morto,
+          },
+        };
+      },
+    );
 
     const payload = {
       sessaoId: sessao.id,
@@ -4544,33 +4546,33 @@ export class SessaoService {
           variacao.escalonamentoDano,
         );
 
-          return {
-            id: variacao.id,
-            habilidadeTecnicaId: variacao.habilidadeTecnicaId,
-            nome: variacao.nome,
-            descricao: variacao.descricao,
-            substituiCustos: variacao.substituiCustos,
-            custoPE: variacao.custoPE,
-            custoEA: variacao.custoEA,
-            custoSustentacaoEA: variacao.custoSustentacaoEA,
-            custoSustentacaoPE: variacao.custoSustentacaoPE,
-            execucao: variacao.execucao,
-            area: variacao.area,
-            alcance: variacao.alcance,
-            alvo: variacao.alvo,
-            duracao: variacao.duracao,
-            resistencia: variacao.resistencia,
-            dtResistencia: variacao.dtResistencia,
-            criticoValor: variacao.criticoValor,
-            criticoMultiplicador: variacao.criticoMultiplicador,
-            danoFlat: variacao.danoFlat,
-            danoFlatTipo: variacao.danoFlatTipo,
-            dadosDano: variacao.dadosDano,
-            efeitoAdicional: variacao.efeitoAdicional,
-            escalonaPorGrau: variacao.escalonaPorGrau,
-            grauTipoGrauCodigo: tipoGrauEscalonamento,
-            acumulosMaximos: acumulosMaximosVariacaoEfetivo,
-            escalonamentoCustoEA: variacao.escalonamentoCustoEA,
+        return {
+          id: variacao.id,
+          habilidadeTecnicaId: variacao.habilidadeTecnicaId,
+          nome: variacao.nome,
+          descricao: variacao.descricao,
+          substituiCustos: variacao.substituiCustos,
+          custoPE: variacao.custoPE,
+          custoEA: variacao.custoEA,
+          custoSustentacaoEA: variacao.custoSustentacaoEA,
+          custoSustentacaoPE: variacao.custoSustentacaoPE,
+          execucao: variacao.execucao,
+          area: variacao.area,
+          alcance: variacao.alcance,
+          alvo: variacao.alvo,
+          duracao: variacao.duracao,
+          resistencia: variacao.resistencia,
+          dtResistencia: variacao.dtResistencia,
+          criticoValor: variacao.criticoValor,
+          criticoMultiplicador: variacao.criticoMultiplicador,
+          danoFlat: variacao.danoFlat,
+          danoFlatTipo: variacao.danoFlatTipo,
+          dadosDano: variacao.dadosDano,
+          efeitoAdicional: variacao.efeitoAdicional,
+          escalonaPorGrau: variacao.escalonaPorGrau,
+          grauTipoGrauCodigo: tipoGrauEscalonamento,
+          acumulosMaximos: acumulosMaximosVariacaoEfetivo,
+          escalonamentoCustoEA: variacao.escalonamentoCustoEA,
           escalonamentoCustoPE: variacao.escalonamentoCustoPE,
           escalonamentoTipo: tipoEscalonamentoVariacao,
           escalonamentoEfeito: efeitoEscalonamentoVariacao,
@@ -4589,27 +4591,27 @@ export class SessaoService {
       habilidade.escalonamentoDano,
     );
 
-      return {
-        id: habilidade.id,
-        tecnicaId: habilidade.tecnicaId,
-        codigo: habilidade.codigo,
-        nome: habilidade.nome,
-        descricao: habilidade.descricao,
-        requisitos: habilidade.requisitos,
-        execucao: habilidade.execucao,
-        area: habilidade.area,
-        alcance: habilidade.alcance,
-        alvo: habilidade.alvo,
-        duracao: habilidade.duracao,
-        testesExigidos: habilidade.testesExigidos,
-        criticoValor: habilidade.criticoValor,
-        criticoMultiplicador: habilidade.criticoMultiplicador,
-        dadosDano: habilidade.dadosDano,
-        custoPE: habilidade.custoPE,
-        custoEA: habilidade.custoEA,
-        custoSustentacaoEA: habilidade.custoSustentacaoEA,
-        custoSustentacaoPE: habilidade.custoSustentacaoPE,
-        escalonaPorGrau: habilidade.escalonaPorGrau,
+    return {
+      id: habilidade.id,
+      tecnicaId: habilidade.tecnicaId,
+      codigo: habilidade.codigo,
+      nome: habilidade.nome,
+      descricao: habilidade.descricao,
+      requisitos: habilidade.requisitos,
+      execucao: habilidade.execucao,
+      area: habilidade.area,
+      alcance: habilidade.alcance,
+      alvo: habilidade.alvo,
+      duracao: habilidade.duracao,
+      testesExigidos: habilidade.testesExigidos,
+      criticoValor: habilidade.criticoValor,
+      criticoMultiplicador: habilidade.criticoMultiplicador,
+      dadosDano: habilidade.dadosDano,
+      custoPE: habilidade.custoPE,
+      custoEA: habilidade.custoEA,
+      custoSustentacaoEA: habilidade.custoSustentacaoEA,
+      custoSustentacaoPE: habilidade.custoSustentacaoPE,
+      escalonaPorGrau: habilidade.escalonaPorGrau,
       grauTipoGrauCodigo: tipoGrauEscalonamento,
       acumulosMaximos: acumulosMaximosHabilidadeEfetivo,
       escalonamentoCustoEA: habilidade.escalonamentoCustoEA,
@@ -4697,10 +4699,7 @@ export class SessaoService {
       personagemCampanha.tecnicaInataPropria ?? personagemCampanha.tecnicaInata;
 
     const tecnicaInata = tecnicaInataOrigem
-      ? this.filtrarTecnicaPorGrausSessao(
-          tecnicaInataOrigem,
-          grausMap,
-        )
+      ? this.filtrarTecnicaPorGrausSessao(tecnicaInataOrigem, grausMap)
       : null;
 
     const mapaTecnicas = new Map<number, TecnicaSessaoRaw>();
@@ -5865,7 +5864,9 @@ export class SessaoService {
     limiteFonte: number | null,
   ): number {
     const base =
-      typeof valor === 'number' && Number.isFinite(valor) ? Math.trunc(valor) : 1;
+      typeof valor === 'number' && Number.isFinite(valor)
+        ? Math.trunc(valor)
+        : 1;
     const normalizado = Math.max(1, base);
     return limiteFonte ? Math.min(normalizado, limiteFonte) : normalizado;
   }
@@ -7087,7 +7088,10 @@ export class SessaoService {
       if (codigo) return [codigo];
     }
 
-    return this.extrairCodigosPericiaBonificada(periciaBonificada, mapaPorBusca);
+    return this.extrairCodigosPericiaBonificada(
+      periciaBonificada,
+      mapaPorBusca,
+    );
   }
 
   private extrairCodigosFuncaoAdicionalItemEquipado(
@@ -7106,7 +7110,10 @@ export class SessaoService {
         typeof codigo === 'string' ? codigo.trim().toUpperCase() : null,
       )
       .filter((codigo): codigo is string => Boolean(codigo))
-      .map((codigo) => mapaPorBusca.get(this.normalizarBuscaPericia(codigo)) ?? codigo);
+      .map(
+        (codigo) =>
+          mapaPorBusca.get(this.normalizarBuscaPericia(codigo)) ?? codigo,
+      );
   }
 
   private async calcularBonusEquipamentoPericias(
@@ -7175,7 +7182,8 @@ export class SessaoService {
           )) {
             bonusExtrasPorCodigo.set(
               codigo,
-              (bonusExtrasPorCodigo.get(codigo) ?? 0) + bonusPericia * quantidade,
+              (bonusExtrasPorCodigo.get(codigo) ?? 0) +
+                bonusPericia * quantidade,
             );
           }
           continue;
@@ -7781,7 +7789,10 @@ export class SessaoService {
           'resumoEscalonamento',
         );
         const acumulos = this.lerInteiroRegistro(dados, 'acumulosAplicados');
-        const acumulosMaximos = this.lerInteiroRegistro(dados, 'acumulosMaximos');
+        const acumulosMaximos = this.lerInteiroRegistro(
+          dados,
+          'acumulosMaximos',
+        );
         const sufixoAcumulos =
           acumulos !== null && (acumulos > 1 || (acumulosMaximos ?? 0) > 1)
             ? ` ${acumulos}`
@@ -7799,7 +7810,8 @@ export class SessaoService {
         const partesCusto: string[] = [];
         if (custoEA !== null && custoEA > 0) partesCusto.push(`EA -${custoEA}`);
         if (custoPE !== null && custoPE > 0) partesCusto.push(`PE -${custoPE}`);
-        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        const sufixoAcumulos =
+          acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
         return `Sustentacao cobrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${partesCusto.length > 0 ? ` (${partesCusto.join(' | ')})` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_ENCERRADA': {
@@ -7812,7 +7824,8 @@ export class SessaoService {
           'motivoSistema',
         );
         const acumulos = this.lerInteiroRegistro(dados, 'acumulos');
-        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        const sufixoAcumulos =
+          acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
         return `Sustentacao encerrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
       }
       case 'CONDICAO_APLICADA': {
@@ -7822,7 +7835,8 @@ export class SessaoService {
         );
         const alvoNome = this.lerTextoOpcionalRegistro(dados, 'alvoNome');
         const acumulos = this.lerInteiroRegistro(dados, 'acumulos');
-        const sufixoAcumulos = acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
+        const sufixoAcumulos =
+          acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
         return `Condicao aplicada${condicaoNome ? `: ${condicaoNome}${sufixoAcumulos}` : ''}${alvoNome ? ` em ${alvoNome}` : ''}`;
       }
       case 'CONDICAO_REMOVIDA': {
@@ -7836,7 +7850,10 @@ export class SessaoService {
       case 'CONDICAO_EXPIRADA':
         return 'Condicao expirada automaticamente';
       case 'CONDICAO_RECUPERACAO_AUTOMATICA': {
-        const condicaoNome = this.lerTextoOpcionalRegistro(dados, 'condicaoNome');
+        const condicaoNome = this.lerTextoOpcionalRegistro(
+          dados,
+          'condicaoNome',
+        );
         const recurso = this.lerTextoOpcionalRegistro(dados, 'recurso');
         const recuperado = this.lerInteiroRegistro(dados, 'valorRecuperado');
         return `Recuperacao automatica${condicaoNome ? `: ${condicaoNome}` : ''}${recurso && recuperado !== null ? ` (+${recuperado} ${recurso})` : ''}`;
@@ -7844,7 +7861,10 @@ export class SessaoService {
       case 'RECURSO_AJUSTADO': {
         const campo = this.lerTextoOpcionalRegistro(dados, 'campo');
         const valorAntes = this.lerInteiroOpcionalRegistro(dados, 'valorAntes');
-        const valorDepois = this.lerInteiroOpcionalRegistro(dados, 'valorDepois');
+        const valorDepois = this.lerInteiroOpcionalRegistro(
+          dados,
+          'valorDepois',
+        );
         const delta = this.lerInteiroOpcionalRegistro(dados, 'delta');
         return `Recurso ajustado${campo ? `: ${campo}` : ''}${valorAntes !== null && valorDepois !== null ? ` (${valorAntes} -> ${valorDepois})` : ''}${delta !== null ? ` [${delta >= 0 ? '+' : ''}${delta}]` : ''}`;
       }

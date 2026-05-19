@@ -18,6 +18,7 @@ import { CampaignMembersSection } from '@/components/campanha/CampaignMembersSec
 import { CampaignCharactersSection } from '@/components/campanha/CampaignCharactersSection';
 import { CampaignSessionsSection } from '@/components/campanha/CampaignSessionsSection';
 import { InviteMemberForm } from '@/components/campanha/InviteMemberForm';
+import { InviteFriendsPanel } from '@/components/campanha/InviteFriendsPanel';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -175,6 +176,7 @@ export default function CampanhaDetalhePage() {
   async function handleInvite(data: {
     email?: string;
     apelido?: string;
+    usuarioId?: number;
     papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR';
   }) {
     if (!campanha) {
@@ -387,6 +389,18 @@ export default function CampanhaDetalhePage() {
                     </div>
                   </div>
                   <InviteMemberForm onInvite={handleInvite} />
+                  <div className="my-5 h-px bg-app-border" />
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-sm font-semibold text-app-fg">
+                        Convidar amigos
+                      </h4>
+                      <p className="text-xs text-app-muted">
+                        Envie convites para pessoas da sua lista de amigos.
+                      </p>
+                    </div>
+                    <InviteFriendsPanel campanhaId={campanha.id} />
+                  </div>
                 </div>
               </section>
             )}

@@ -19,6 +19,7 @@ import {
   apiAdicionarNpcSessaoCampanha,
   apiCriarSessaoCampanha,
   apiAplicarModificadorPersonagemCampanha,
+  apiCriarConvite,
   apiListarModificadoresPersonagemCampanha,
   apiDesassociarPersonagemCampanha,
   apiDeleteCampanha,
@@ -31,6 +32,7 @@ import {
   apiListarPersonagensCampanha,
   apiListarSessoesCampanha,
   apiListarConvitesPendentes,
+  apiListarAmigosConvidaveisCampanha,
   apiRemoverNpcSessaoCampanha,
   apiRecusarConvite,
   apiEnviarMensagemChatSessaoCampanha,
@@ -137,6 +139,36 @@ describe('campanhas api cache and dedupe', () => {
     await apiRecusarConvite('CODIGO2');
 
     expect(mockedApiClient.post).toHaveBeenCalledWith('/campanhas/convites/CODIGO2/recusar');
+  });
+
+  it('creates invite by friend user id', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 10, usuarioId: 44 },
+    });
+
+    const convite = await apiCriarConvite(7, {
+      usuarioId: 44,
+      papel: 'JOGADOR',
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/campanhas/7/convites', {
+      usuarioId: 44,
+      papel: 'JOGADOR',
+    });
+    expect(convite).toEqual({ id: 10, usuarioId: 44 });
+  });
+
+  it('lists inviteable friends for campaign', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 44, apelido: 'Maki', online: true }],
+    });
+
+    const amigos = await apiListarAmigosConvidaveisCampanha(7);
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/campanhas/7/amigos-convidaveis',
+    );
+    expect(amigos).toEqual([{ id: 44, apelido: 'Maki', online: true }]);
   });
 
   it('lists campaign characters', async () => {

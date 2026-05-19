@@ -14,9 +14,15 @@ import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
+import { AmizadesModule } from 'src/amizades/amizades.module';
 
 @Module({
-  imports: [PrismaModule, InventarioModule, TecnicasAmaldicoadasModule],
+  imports: [
+    PrismaModule,
+    InventarioModule,
+    TecnicasAmaldicoadasModule,
+    AmizadesModule,
+  ],
   providers: [
     CampanhaService,
     CampanhaMapper,

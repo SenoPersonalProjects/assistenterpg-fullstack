@@ -11,7 +11,9 @@ import { UserMenu } from './UserMenu';
 import { NotificationsButton } from './NotificationsButton';
 import { useAuth } from '@/context/AuthContext';
 import {
+  apiInscreverAtualizacaoAmizades,
   apiInscreverAtualizacaoConvitesPendentes,
+  apiListarSolicitacoesAmizade,
   apiListarConvitesPendentes,
 } from '@/lib/api';
 
@@ -24,6 +26,7 @@ type NavItem = {
 const baseNavItems: NavItem[] = [
   { href: '/home', label: 'Inicio', icon: 'home' },
   { href: '/campanhas', label: 'Campanhas', icon: 'campaign' },
+  { href: '/amigos', label: 'Amigos', icon: 'characters' },
   { href: '/anotacoes', label: 'Anotacoes', icon: 'scroll' },
   { href: '/personagens-base', label: 'Personagens', icon: 'characters' },
   { href: '/npcs-ameacas', label: 'NPC', icon: 'curse' },
@@ -62,9 +65,12 @@ export function NavigationBar() {
       }
 
       try {
-        const convites = await apiListarConvitesPendentes();
+        const [convites, solicitacoes] = await Promise.all([
+          apiListarConvitesPendentes(),
+          apiListarSolicitacoesAmizade(),
+        ]);
         if (active) {
-          setPendingNotifications(convites.length);
+          setPendingNotifications(convites.length + solicitacoes.recebidas.length);
         }
       } catch {
         if (active) {
@@ -75,14 +81,14 @@ export function NavigationBar() {
 
     void carregarNotificacoes();
 
-    const unsubscribe = apiInscreverAtualizacaoConvitesPendentes((total) => {
+    const unsubscribe = apiInscreverAtualizacaoConvitesPendentes(() => {
       if (!active || !userId) return;
 
-      if (typeof total === 'number') {
-        setPendingNotifications(total);
-        return;
-      }
+      void carregarNotificacoes();
+    });
 
+    const unsubscribeAmizades = apiInscreverAtualizacaoAmizades(() => {
+      if (!active || !userId) return;
       void carregarNotificacoes();
     });
 
@@ -95,6 +101,7 @@ export function NavigationBar() {
     return () => {
       active = false;
       unsubscribe();
+      unsubscribeAmizades();
 
       if (intervalId !== null) {
         window.clearInterval(intervalId);

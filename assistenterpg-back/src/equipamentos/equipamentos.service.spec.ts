@@ -27,7 +27,9 @@ describe('EquipamentosService', () => {
   });
 
   it('deve expor tipoProtecao no resumo de equipamentos', () => {
-    const resumo = (service as unknown as { mapResumo: (e: unknown) => unknown }).mapResumo({
+    const resumo = (
+      service as unknown as { mapResumo: (e: unknown) => unknown }
+    ).mapResumo({
       id: 1,
       codigo: 'PROTECAO_LEVE',
       nome: 'Protecao Leve',

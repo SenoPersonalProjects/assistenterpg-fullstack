@@ -140,7 +140,10 @@ export class PersonagemBaseController {
     @Request() req: { user: { id: number } },
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.personagemBaseService.buscarTecnicaInataPropria(req.user.id, id);
+    return this.personagemBaseService.buscarTecnicaInataPropria(
+      req.user.id,
+      id,
+    );
   }
 
   @Post(':id/tecnica-inata-propria/habilidades')

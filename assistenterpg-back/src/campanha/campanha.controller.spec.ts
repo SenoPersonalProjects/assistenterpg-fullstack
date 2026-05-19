@@ -12,6 +12,7 @@ describe('CampanhaController', () => {
     buscarPorIdParaUsuario: jest.fn(),
     excluirCampanha: jest.fn(),
     listarMembros: jest.fn(),
+    listarAmigosConvidaveis: jest.fn(),
     adicionarMembro: jest.fn(),
     listarPersonagensCampanha: jest.fn(),
     listarPersonagensBaseDisponiveisParaAssociacao: jest.fn(),
@@ -59,8 +60,35 @@ describe('CampanhaController', () => {
     expect(campanhaServiceMock.criarConvite).toHaveBeenCalledWith(
       9,
       33,
-      { email: 'jogador@teste.com', apelido: undefined },
+      { email: 'jogador@teste.com', apelido: undefined, usuarioId: undefined },
       'JOGADOR',
+    );
+  });
+
+  it('deve encaminhar criacao de convite por usuarioId para o service', async () => {
+    campanhaServiceMock.criarConvite.mockResolvedValue({ id: 1 });
+
+    const req = { user: { id: 33 } };
+    const dto = { usuarioId: 44, papel: 'JOGADOR' as const };
+
+    await controller.criarConvite(9, req, dto);
+
+    expect(campanhaServiceMock.criarConvite).toHaveBeenCalledWith(
+      9,
+      33,
+      { email: undefined, apelido: undefined, usuarioId: 44 },
+      'JOGADOR',
+    );
+  });
+
+  it('deve encaminhar listagem de amigos convidaveis para o service', async () => {
+    campanhaServiceMock.listarAmigosConvidaveis.mockResolvedValue([]);
+
+    await controller.listarAmigosConvidaveis(9, { user: { id: 33 } });
+
+    expect(campanhaServiceMock.listarAmigosConvidaveis).toHaveBeenCalledWith(
+      9,
+      33,
     );
   });
 
@@ -109,6 +137,7 @@ describe('CampanhaController', () => {
       7,
       3,
       42,
+      false,
     );
   });
 

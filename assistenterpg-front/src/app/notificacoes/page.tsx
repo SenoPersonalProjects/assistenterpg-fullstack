@@ -6,13 +6,18 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
   apiAceitarConvite,
+  apiAceitarSolicitacaoAmizade,
   apiListarConvitesPendentes,
+  apiListarSolicitacoesAmizade,
+  apiNotificarAmizadesAtualizadas,
   apiNotificarConvitesPendentesAtualizados,
+  apiRecusarSolicitacaoAmizade,
   apiRecusarConvite,
   ConviteCampanha,
   extrairMensagemErro,
   traduzirErro,
 } from '@/lib/api';
+import type { SolicitacaoAmizadeResumo } from '@/lib/types';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -44,11 +49,15 @@ export default function NotificacoesPage() {
   const { usuario, loading: authLoading } = useAuth();
 
   const [convites, setConvites] = useState<ConviteCampanha[]>([]);
+  const [solicitacoesAmizade, setSolicitacoesAmizade] = useState<
+    SolicitacaoAmizadeResumo[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [mensagemAcao, setMensagemAcao] = useState<string | null>(null);
   const [codigoEmAcao, setCodigoEmAcao] = useState<string | null>(null);
+  const [amizadeEmAcao, setAmizadeEmAcao] = useState<number | null>(null);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -62,8 +71,14 @@ export default function NotificacoesPage() {
       setErro(null);
       setErroAcao(null);
       try {
-        const data = await apiListarConvitesPendentes();
-        setConvites(data);
+        const [convitesData, amizadesData] = await Promise.all([
+          apiListarConvitesPendentes(),
+          apiListarSolicitacoesAmizade(),
+        ]);
+        setConvites(convitesData);
+        setSolicitacoesAmizade(amizadesData.recebidas);
+        apiNotificarConvitesPendentesAtualizados(convitesData.length);
+        apiNotificarAmizadesAtualizadas(amizadesData.recebidas.length);
       } catch (error) {
         setErro(`Erro ao carregar notificacoes. ${mensagemErroConvites(error)}`);
       } finally {
@@ -110,6 +125,46 @@ export default function NotificacoesPage() {
     }
   }
 
+  async function handleAceitarAmizade(id: number) {
+    setErroAcao(null);
+    setMensagemAcao(null);
+    setAmizadeEmAcao(id);
+
+    try {
+      await apiAceitarSolicitacaoAmizade(id);
+      const proximo = solicitacoesAmizade.filter(
+        (solicitacao) => solicitacao.id !== id,
+      );
+      setSolicitacoesAmizade(proximo);
+      apiNotificarAmizadesAtualizadas(proximo.length);
+      setMensagemAcao('Solicitação de amizade aceita.');
+    } catch (error) {
+      setErroAcao(`Nao foi possivel aceitar a solicitacao. ${mensagemErroConvites(error)}`);
+    } finally {
+      setAmizadeEmAcao(null);
+    }
+  }
+
+  async function handleRecusarAmizade(id: number) {
+    setErroAcao(null);
+    setMensagemAcao(null);
+    setAmizadeEmAcao(id);
+
+    try {
+      await apiRecusarSolicitacaoAmizade(id);
+      const proximo = solicitacoesAmizade.filter(
+        (solicitacao) => solicitacao.id !== id,
+      );
+      setSolicitacoesAmizade(proximo);
+      apiNotificarAmizadesAtualizadas(proximo.length);
+      setMensagemAcao('Solicitação de amizade recusada.');
+    } catch (error) {
+      setErroAcao(`Nao foi possivel recusar a solicitacao. ${mensagemErroConvites(error)}`);
+    } finally {
+      setAmizadeEmAcao(null);
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <Loading message="Carregando notificacoes..." className="p-6 text-app-fg" />
@@ -147,6 +202,65 @@ export default function NotificacoesPage() {
             {mensagemAcao}
           </p>
         )}
+
+        <section className="space-y-3">
+          <SectionTitle icon="characters">Solicitações de amizade</SectionTitle>
+
+          {solicitacoesAmizade.length === 0 ? (
+            <EmptyState
+              variant="plain"
+              icon="characters"
+              description="Nenhuma solicitação de amizade pendente."
+            />
+          ) : (
+            <div className="space-y-3">
+              {solicitacoesAmizade.map((solicitacao) => {
+                const data = new Date(solicitacao.criadoEm).toLocaleDateString('pt-BR');
+                const bloqueado = amizadeEmAcao === solicitacao.id;
+
+                return (
+                  <Card key={solicitacao.id} className="flex flex-col gap-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-app-muted uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                          <Icon name="characters" className="w-4 h-4" />
+                          Solicitação de amizade
+                        </p>
+                        <p className="font-semibold text-app-fg">
+                          {solicitacao.usuario.apelido}
+                        </p>
+                        <p className="text-xs text-app-muted">
+                          Solicitação em {data}
+                        </p>
+                      </div>
+
+                      <Badge color="purple" size="sm">
+                        Amizade
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      <Button
+                        size="sm"
+                        disabled={bloqueado}
+                        onClick={() => handleAceitarAmizade(solicitacao.id)}
+                      >
+                        {bloqueado ? 'Processando...' : 'Aceitar'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={bloqueado}
+                        onClick={() => handleRecusarAmizade(solicitacao.id)}
+                      >
+                        {bloqueado ? 'Processando...' : 'Recusar'}
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         <section className="space-y-3">
           <SectionTitle>Convites de campanha</SectionTitle>

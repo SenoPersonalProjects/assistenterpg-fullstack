@@ -25,7 +25,8 @@ export class TecnicaInataPropriaService {
 
     if (!personagem) return null;
     if (!personagem.tecnicaInataId) return null;
-    if (personagem.tecnicaInataPropriaId) return personagem.tecnicaInataPropriaId;
+    if (personagem.tecnicaInataPropriaId)
+      return personagem.tecnicaInataPropriaId;
 
     const tecnicaId = await this.clonarTecnicaInata({
       usuarioId: personagem.donoId,
@@ -104,7 +105,9 @@ export class TecnicaInataPropriaService {
           codigo: codigoHabilidade,
           nome: habilidadeBase.nome,
           descricao: habilidadeBase.descricao,
-          requisitos: habilidadeBase.requisitos as Prisma.InputJsonValue | undefined,
+          requisitos: habilidadeBase.requisitos as
+            | Prisma.InputJsonValue
+            | undefined,
           execucao: habilidadeBase.execucao,
           area: habilidadeBase.area,
           alcance: habilidadeBase.alcance,
@@ -116,19 +119,27 @@ export class TecnicaInataPropriaService {
           custoEA: habilidadeBase.custoEA,
           custoSustentacaoEA: habilidadeBase.custoSustentacaoEA,
           custoSustentacaoPE: habilidadeBase.custoSustentacaoPE,
-          testesExigidos: habilidadeBase.testesExigidos as Prisma.InputJsonValue | undefined,
+          testesExigidos: habilidadeBase.testesExigidos as
+            | Prisma.InputJsonValue
+            | undefined,
           criticoValor: habilidadeBase.criticoValor,
           criticoMultiplicador: habilidadeBase.criticoMultiplicador,
           danoFlat: habilidadeBase.danoFlat,
           danoFlatTipo: habilidadeBase.danoFlatTipo,
-          dadosDano: habilidadeBase.dadosDano as Prisma.InputJsonValue | undefined,
+          dadosDano: habilidadeBase.dadosDano as
+            | Prisma.InputJsonValue
+            | undefined,
           escalonaPorGrau: habilidadeBase.escalonaPorGrau,
           grauTipoGrauCodigo: habilidadeBase.grauTipoGrauCodigo,
           escalonamentoCustoEA: habilidadeBase.escalonamentoCustoEA,
           escalonamentoCustoPE: habilidadeBase.escalonamentoCustoPE,
           escalonamentoTipo: habilidadeBase.escalonamentoTipo,
-          escalonamentoEfeito: habilidadeBase.escalonamentoEfeito as Prisma.InputJsonValue | undefined,
-          escalonamentoDano: habilidadeBase.escalonamentoDano as Prisma.InputJsonValue | undefined,
+          escalonamentoEfeito: habilidadeBase.escalonamentoEfeito as
+            | Prisma.InputJsonValue
+            | undefined,
+          escalonamentoDano: habilidadeBase.escalonamentoDano as
+            | Prisma.InputJsonValue
+            | undefined,
           efeito: habilidadeBase.efeito,
           ordem: habilidadeBase.ordem,
         },
@@ -158,15 +169,23 @@ export class TecnicaInataPropriaService {
             criticoMultiplicador: variacaoBase.criticoMultiplicador,
             danoFlat: variacaoBase.danoFlat,
             danoFlatTipo: variacaoBase.danoFlatTipo,
-            dadosDano: variacaoBase.dadosDano as Prisma.InputJsonValue | undefined,
+            dadosDano: variacaoBase.dadosDano as
+              | Prisma.InputJsonValue
+              | undefined,
             escalonaPorGrau: variacaoBase.escalonaPorGrau,
             escalonamentoCustoEA: variacaoBase.escalonamentoCustoEA,
             escalonamentoCustoPE: variacaoBase.escalonamentoCustoPE,
             escalonamentoTipo: variacaoBase.escalonamentoTipo,
-            escalonamentoEfeito: variacaoBase.escalonamentoEfeito as Prisma.InputJsonValue | undefined,
-            escalonamentoDano: variacaoBase.escalonamentoDano as Prisma.InputJsonValue | undefined,
+            escalonamentoEfeito: variacaoBase.escalonamentoEfeito as
+              | Prisma.InputJsonValue
+              | undefined,
+            escalonamentoDano: variacaoBase.escalonamentoDano as
+              | Prisma.InputJsonValue
+              | undefined,
             efeitoAdicional: variacaoBase.efeitoAdicional,
-            requisitos: variacaoBase.requisitos as Prisma.InputJsonValue | undefined,
+            requisitos: variacaoBase.requisitos as
+              | Prisma.InputJsonValue
+              | undefined,
             ordem: variacaoBase.ordem,
           },
         });

@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PersonagemBaseMapper } from './personagem-base.mapper';
 import { PersonagemBasePersistence } from './personagem-base.persistence';
 import { InventarioService } from '../inventario/inventario.service';
+import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
 
 describe('PersonagemBaseService', () => {
   let service: PersonagemBaseService;
@@ -52,6 +53,15 @@ describe('PersonagemBaseService', () => {
         {
           provide: InventarioService,
           useValue: inventarioServiceMock,
+        },
+        {
+          provide: TecnicaInataPropriaService,
+          useValue: {
+            clonarTecnicaInata: jest.fn(),
+            garantirTecnicaPropriaPersonagemBase: jest.fn(),
+            removerTecnicaClonada: jest.fn(),
+            sincronizarCampanhasComTecnicaBase: jest.fn(),
+          },
         },
       ],
     }).compile();

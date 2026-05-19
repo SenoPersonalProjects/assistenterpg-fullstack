@@ -753,10 +753,9 @@ export class PersonagemBaseMapper {
         .map(mapTecnicaDetalhada);
 
     const tecnicaInataDetalhada: TecnicaDetalhadaMapeada | null =
-      personagem.tecnicaInataPropria ?? personagem.tecnicaInata
+      (personagem.tecnicaInataPropria ?? personagem.tecnicaInata)
         ? mapTecnicaDetalhada(
-            (personagem.tecnicaInataPropria ??
-              personagem.tecnicaInata)!,
+            (personagem.tecnicaInataPropria ?? personagem.tecnicaInata)!,
           )
         : null;
 

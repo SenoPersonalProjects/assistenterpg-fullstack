@@ -25,6 +25,7 @@ import type {
   TemplateItemSessaoCampanhaDto,
   TipoCenaSessaoCampanha,
   TransferenciaItemSessaoCampanhaDto,
+  AmigoConvidavelCampanha,
 } from '@/lib/types';
 
 export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
@@ -190,16 +191,29 @@ export async function apiGetCampanhaById<T = unknown>(
 
 export async function apiCriarConvite(
   campanhaId: number,
-  payload: { email?: string; apelido?: string; papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' },
+  payload: {
+    email?: string;
+    apelido?: string;
+    usuarioId?: number;
+    papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR';
+  },
 ): Promise<ConviteCampanha> {
   const { data } = await apiClient.post(`/campanhas/${campanhaId}/convites`, payload);
   return data;
 }
 
+export async function apiListarAmigosConvidaveisCampanha(
+  campanhaId: number,
+): Promise<AmigoConvidavelCampanha[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/amigos-convidaveis`,
+  );
+  return Array.isArray(data) ? data : [];
+}
+
 export async function apiListarConvitesPendentes(): Promise<ConviteCampanha[]> {
   const { data } = await apiClient.get('/campanhas/convites/pendentes');
   const convites = Array.isArray(data) ? data : [];
-  emitirAtualizacaoConvitesPendentes(convites.length);
   return convites;
 }
 
