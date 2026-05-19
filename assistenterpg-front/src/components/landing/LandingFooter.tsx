@@ -1,7 +1,6 @@
 ﻿import Link from 'next/link';
-import Image from 'next/image';
 import { Icon } from '@/components/ui/Icon';
-import { landingImages } from './landingAssets';
+import { ThemedLogo } from '@/components/ui/ThemedLogo';
 
 export function LandingFooter() {
   return (
@@ -9,13 +8,7 @@ export function LandingFooter() {
       <div className="landing-footer__content">
         <div className="landing-footer__brand">
           <div className="landing-footer__logo">
-            <Image
-              src={landingImages.simboloEscola}
-              alt="Símbolo da escola"
-              fill
-              sizes="56px"
-              className="object-contain"
-            />
+            <ThemedLogo size={56} className="h-full w-full" />
           </div>
           <div>
             <div className="landing-footer__brand-title">Assistente RPG</div>

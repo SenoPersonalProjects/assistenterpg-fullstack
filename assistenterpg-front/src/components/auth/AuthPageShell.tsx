@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
+import { ThemedLogo } from '@/components/ui/ThemedLogo';
 
 type AuthPageShellProps = {
   title: string;
@@ -24,8 +25,8 @@ export function AuthPageShell({
 
       <div className="relative z-10 w-full max-w-md animate-fade-in-up">
         <Link href="/" className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-cta flex items-center justify-center">
-            <Icon name="sparkles" className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 overflow-hidden rounded-xl bg-app-surface flex items-center justify-center shadow-lg ring-1 ring-app-primary/20">
+            <ThemedLogo size={48} priority className="h-full w-full" />
           </div>
           <span className="text-2xl font-bold text-app-fg">Assistente RPG</span>
         </Link>

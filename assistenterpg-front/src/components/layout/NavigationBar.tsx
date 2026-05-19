@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { IconName } from '@/components/ui/Icon';
+import { ThemedLogo } from '@/components/ui/ThemedLogo';
 import { UserMenu } from './UserMenu';
 import { NotificationsButton } from './NotificationsButton';
 import { useAuth } from '@/context/AuthContext';
@@ -122,8 +123,8 @@ export function NavigationBar() {
           <Link href="/home" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10">
               <div className="absolute inset-0 bg-gradient-to-br from-app-primary to-app-secondary rounded-xl blur-sm opacity-40 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative w-full h-full bg-gradient-to-br from-app-primary to-app-secondary rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-                <span className="text-white font-black text-xl tracking-tighter">JK</span>
+              <div className="relative w-full h-full overflow-hidden rounded-xl bg-app-surface flex items-center justify-center shadow-lg ring-1 ring-app-primary/20 group-hover:scale-105 transition-transform duration-300">
+                <ThemedLogo size={40} priority className="h-full w-full" />
               </div>
             </div>
             <div className="hidden sm:block">

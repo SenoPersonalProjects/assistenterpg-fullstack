@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
-import { landingImages } from './landingAssets';
+import { ThemedLogo } from '@/components/ui/ThemedLogo';
 
 const links = [
   { label: 'Início', href: '#hero' },
@@ -35,13 +34,7 @@ export function LandingNavbar() {
       <div className="landing-navbar__content">
         <a href="#hero" className="landing-navbar__brand" aria-label="Voltar ao início">
           <div className="landing-navbar__logo">
-            <Image
-              src={landingImages.simboloEscola}
-              alt="Símbolo da escola"
-              fill
-              sizes="44px"
-              className="object-contain"
-            />
+            <ThemedLogo size={44} priority className="h-full w-full" />
           </div>
           <div className="landing-navbar__brand-copy">
             <span className="landing-navbar__brand-title">Assistente RPG</span>
