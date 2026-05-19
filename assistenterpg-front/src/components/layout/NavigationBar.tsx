@@ -122,11 +122,7 @@ export function NavigationBar() {
         <div className="flex items-center justify-between h-16">
           <Link href="/home" className="flex items-center gap-3 group">
             <div className="relative flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-              <ThemedLogo 
-                size={44} 
-                priority 
-                className="drop-shadow-[0_0_10px_rgba(var(--primary-rgb),0.6)] group-hover:drop-shadow-[0_0_15px_rgba(var(--primary-rgb),1)] transition-all duration-500" 
-              />
+              <ThemedLogo size={44} priority />
             </div>
             <div className="hidden sm:block">
               <span className="text-lg font-black text-app-fg tracking-tight block leading-tight">

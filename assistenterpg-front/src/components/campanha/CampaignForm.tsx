@@ -46,7 +46,6 @@ export function CampaignForm({ onSubmit }: Props) {
 
       setNome('');
       setDescricao('');
-      showToast('Campanha criada com sucesso!', 'success');
     } catch (error: unknown) {
       const err = error as CampaignFormError;
       const status = Number(err.status || err.response?.status || err.body?.statusCode || 0);

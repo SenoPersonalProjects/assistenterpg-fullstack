@@ -13,8 +13,7 @@ import {
 } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { SectionTitle } from '@/components/ui/SectionTitle';
-import { CampaignHeader } from '@/components/campanha/CampaignHeader';
+import { Badge } from '@/components/ui/Badge';
 import { CampaignMembersSection } from '@/components/campanha/CampaignMembersSection';
 import { CampaignCharactersSection } from '@/components/campanha/CampaignCharactersSection';
 import { CampaignSessionsSection } from '@/components/campanha/CampaignSessionsSection';
@@ -234,122 +233,164 @@ export default function CampanhaDetalhePage() {
   const usuarioEhMestre =
     usuario?.id === campanha.donoId || papelDoUsuario === 'MESTRE';
 
+  const corStatus =
+    campanha.status === 'ATIVA'
+      ? 'green'
+      : campanha.status === 'PAUSADA'
+        ? 'yellow'
+        : 'red';
+
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* ✅ Header alinhado ao restante do app */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="campaign" className="w-6 h-6 text-app-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-app-fg">
-                {campanha.nome}
-              </h1>
-              <p className="text-sm text-app-muted mt-0.5">
-                Campanha criada por {campanha.dono.apelido} em {dataCriacao}.
-              </p>
-            </div>
+    <main className="min-h-screen bg-app-bg pb-12">
+      <div className="bg-app-surface border-b border-app-border pt-8 pb-12 mb-8 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="mb-6 flex justify-between items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/campanhas')}
+              className="text-app-muted hover:text-app-fg"
+            >
+              <Icon name="back" className="w-4 h-4 mr-2" />
+              Voltar para campanhas
+            </Button>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push('/campanhas')}
-          >
-            <Icon name="back" className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
-        </header>
-
-        {/* ✅ Resumo principal (mantendo seu CampaignHeader para consistência) */}
-        <CampaignHeader
-          donoApelido={campanha.dono.apelido}
-          criadoEm={dataCriacao}
-          totalMembros={campanha._count.membros}
-          totalPersonagens={campanha._count.personagens}
-          totalSessoes={campanha._count.sessoes}
-          status={campanha.status}
-        />
-
-        {/* ✅ Descrição em card, com estado vazio elegante */}
-        <section className="space-y-2">
-          <SectionTitle icon="info">Descrição</SectionTitle>
-          {campanha.descricao ? (
-            <Card>
-              <p className="text-sm text-app-muted leading-relaxed">
-                {campanha.descricao}
-              </p>
-            </Card>
-          ) : (
-            <EmptyState
-              description="Esta campanha ainda não possui uma descrição."
-              variant="plain"
-            />
-          )}
-        </section>
-
-        {/* ✅ Membros */}
-        <section>
-          <SectionTitle icon="characters">Membros da campanha</SectionTitle>
-          <CampaignMembersSection
-            membros={campanha.membros}
-            donoId={campanha.donoId}
-          />
-        </section>
-
-        <section>
-          <SectionTitle icon="id">Personagens da campanha</SectionTitle>
-          <CampaignCharactersSection
-            campanhaId={campanha.id}
-            usuarioId={usuario?.id ?? 0}
-            usuarioEhMestre={Boolean(usuarioEhMestre)}
-            onTotalPersonagensChange={handleTotalPersonagensChange}
-          />
-        </section>
-
-        {/* ✅ Convites (somente dono) */}
-        {usuario?.id === campanha.donoId && (
-          <section>
-            <div className="rounded-lg border border-app-border bg-app-surface p-6">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
-                  <Icon name="add" className="w-5 h-5" />
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-2xl bg-app-primary/10 border border-app-primary/20 shadow-inner">
+                <Icon name="campaign" className="w-12 h-12 sm:w-14 sm:h-14 text-app-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-app-fg tracking-tight">
+                    {campanha.nome}
+                  </h1>
+                  <Badge color={corStatus} size="lg" className="shadow-sm">
+                    {campanha.status}
+                  </Badge>
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-app-fg">
-                    Convidar membros
-                  </h2>
-                  <p className="text-sm text-app-muted">
-                    Envie convites para jogadores ou observadores entrarem na campanha.
-                  </p>
+                <div className="flex items-center gap-4 text-sm font-medium text-app-muted flex-wrap">
+                  <span className="flex items-center gap-1.5">
+                    <Icon name="id" className="w-4 h-4" />
+                    Mestre: <strong className="text-app-fg">{campanha.dono.apelido}</strong>
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-app-border"></span>
+                  <span>Criada em {dataCriacao}</span>
                 </div>
               </div>
-              <InviteMemberForm onInvite={handleInvite} />
             </div>
-          </section>
-        )}
 
-        {/* ✅ Sessões */}
-        <section>
-          <SectionTitle icon="scroll">Sessões</SectionTitle>
-          <CampaignSessionsSection
-            campanhaId={campanha.id}
-            usuarioEhMestre={Boolean(usuarioEhMestre)}
-            onTotalSessoesChange={handleTotalSessoesChange}
-          />
-        </section>
+            <div className="flex bg-app-bg/50 backdrop-blur-md rounded-xl border border-app-border/60 shadow-sm p-2">
+              <div className="px-5 py-2 text-center">
+                <p className="text-[10px] sm:text-xs text-app-muted font-bold uppercase tracking-widest mb-1">Membros</p>
+                <p className="text-xl sm:text-2xl font-bold text-app-fg">{campanha._count.membros}</p>
+              </div>
+              <div className="w-px bg-app-border/60 my-2"></div>
+              <div className="px-5 py-2 text-center">
+                <p className="text-[10px] sm:text-xs text-app-muted font-bold uppercase tracking-widest mb-1">Personagens</p>
+                <p className="text-xl sm:text-2xl font-bold text-app-fg">{campanha._count.personagens}</p>
+              </div>
+              <div className="w-px bg-app-border/60 my-2"></div>
+              <div className="px-5 py-2 text-center">
+                <p className="text-[10px] sm:text-xs text-app-muted font-bold uppercase tracking-widest mb-1">Sessões</p>
+                <p className="text-xl sm:text-2xl font-bold text-app-fg">{campanha._count.sessoes}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {/* ✅ Botão de voltar no final da página */}
-        <div className="pt-2">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/campanhas')}
-          >
-            <Icon name="back" className="w-4 h-4 mr-2" />
-            Voltar para campanhas
-          </Button>
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-10">
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-info/15 text-app-info">
+                  <Icon name="scroll" className="w-4 h-4" />
+                </div>
+                <h2 className="text-xl font-bold text-app-fg tracking-tight">Sessões da Campanha</h2>
+              </div>
+              <CampaignSessionsSection
+                campanhaId={campanha.id}
+                usuarioEhMestre={Boolean(usuarioEhMestre)}
+                onTotalSessoesChange={handleTotalSessoesChange}
+              />
+            </section>
+
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-secondary/15 text-app-secondary">
+                  <Icon name="id" className="w-4 h-4" />
+                </div>
+                <h2 className="text-xl font-bold text-app-fg tracking-tight">Personagens</h2>
+              </div>
+              <CampaignCharactersSection
+                campanhaId={campanha.id}
+                usuarioId={usuario?.id ?? 0}
+                usuarioEhMestre={Boolean(usuarioEhMestre)}
+                onTotalPersonagensChange={handleTotalPersonagensChange}
+              />
+            </section>
+          </div>
+
+          <div className="space-y-8">
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-fg/10 text-app-fg">
+                  <Icon name="info" className="w-4 h-4" />
+                </div>
+                <h2 className="text-lg font-bold text-app-fg tracking-tight">Sobre a Campanha</h2>
+              </div>
+              {campanha.descricao ? (
+                <Card className="bg-app-surface/60 border-app-border/50 shadow-sm hover:shadow transition-shadow duration-200">
+                  <p className="text-sm text-app-muted leading-relaxed whitespace-pre-wrap">
+                    {campanha.descricao}
+                  </p>
+                </Card>
+              ) : (
+                <EmptyState
+                  variant="plain"
+                  description="Esta campanha ainda não possui uma descrição."
+                  size="sm"
+                />
+              )}
+            </section>
+
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-fg/10 text-app-fg">
+                  <Icon name="characters" className="w-4 h-4" />
+                </div>
+                <h2 className="text-lg font-bold text-app-fg tracking-tight">Participantes</h2>
+              </div>
+              <CampaignMembersSection
+                membros={campanha.membros}
+                donoId={campanha.donoId}
+              />
+            </section>
+
+            {usuario?.id === campanha.donoId && (
+              <section>
+                <div className="rounded-xl border border-app-border bg-app-surface p-5 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+                      <Icon name="add" className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-app-fg tracking-tight">
+                        Convidar membros
+                      </h3>
+                      <p className="text-xs text-app-muted mt-0.5">
+                        Envie convites para o grupo.
+                      </p>
+                    </div>
+                  </div>
+                  <InviteMemberForm onInvite={handleInvite} />
+                </div>
+              </section>
+            )}
+          </div>
         </div>
       </div>
     </main>

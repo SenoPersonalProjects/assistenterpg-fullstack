@@ -535,7 +535,7 @@ body {
 }
 
 @utility landing-navbar__logo {
-  @apply relative h-11 w-11 shrink-0 rounded-2xl border border-app-border/50 bg-app-surface/80 p-2 shadow-lg shadow-black/10;
+  @apply relative h-12 w-12 shrink-0;
 }
 
 @utility landing-navbar__brand-copy {
@@ -791,7 +791,7 @@ body {
 }
 
 @utility landing-footer__logo {
-  @apply relative h-14 w-14 rounded-2xl border border-app-border bg-app-bg p-2;
+  @apply relative h-14 w-14 shrink-0;
 }
 
 @utility landing-footer__brand-title {
@@ -816,4 +816,40 @@ body {
 
 @utility landing-footer__disclaimer {
   @apply mx-auto mt-8 max-w-7xl border-t border-app-border/30 pt-6 text-xs font-medium text-app-muted;
+}
+
+.themed-logo {
+  display: inline-block;
+  flex-shrink: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  filter: drop-shadow(0 0 10px rgba(var(--primary-rgb), 0.55));
+  transform-origin: center;
+  transition:
+    filter 240ms ease,
+    transform 240ms ease;
+}
+
+.group:hover .themed-logo,
+.themed-logo:hover {
+  filter: drop-shadow(0 0 16px rgba(var(--primary-rgb), 0.9));
+  transform: scale(1.04);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .themed-logo {
+    animation: themed-logo-glow 4.5s ease-in-out infinite;
+  }
+}
+
+@keyframes themed-logo-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px rgba(var(--primary-rgb), 0.45));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 16px rgba(var(--primary-rgb), 0.75));
+  }
 }

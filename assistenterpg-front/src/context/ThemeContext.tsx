@@ -47,6 +47,12 @@ const THEME_LABELS: Record<Theme, string> = {
   'vermelho-dark': 'Vermelho escuro',
 };
 
+const LOGO_BY_PALETTE: Record<ThemePalette, string> = {
+  padrao: 'url("/images/logos/logo-padrao.png")',
+  roxo: 'url("/images/logos/logo-roxo.png")',
+  vermelho: 'url("/images/logos/logo-vermelho.png")',
+};
+
 function isTheme(value: string | null): value is Theme {
   return Boolean(value && value in THEME_LABELS);
 }
@@ -84,6 +90,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.dataset.theme = theme;
     root.dataset.themePalette = palette;
     root.dataset.themeMode = mode;
+    root.style.setProperty('--theme-logo-url', LOGO_BY_PALETTE[palette]);
     localStorage.setItem(THEME_KEY, theme);
   }, [mode, palette, theme]);
 

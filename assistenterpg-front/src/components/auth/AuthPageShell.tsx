@@ -25,7 +25,7 @@ export function AuthPageShell({
 
       <div className="relative z-10 w-full max-w-md animate-fade-in-up">
         <Link href="/" className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 overflow-hidden rounded-xl bg-app-surface flex items-center justify-center shadow-lg ring-1 ring-app-primary/20">
+          <div className="flex h-12 w-12 items-center justify-center">
             <ThemedLogo size={48} priority className="h-full w-full" />
           </div>
           <span className="text-2xl font-bold text-app-fg">Assistente RPG</span>
