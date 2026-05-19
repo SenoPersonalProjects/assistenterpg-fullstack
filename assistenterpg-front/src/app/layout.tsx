@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: 'Assistente RPG - Era Jujutsu',
   description: 'Sistema completo para gerenciar personagens e campanhas de Era Jujutsu RPG',
   icons: {
+    icon: '/favicon.ico',
+  },
+};
 
 export default function RootLayout({
   children,
