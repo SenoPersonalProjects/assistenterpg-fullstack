@@ -64,6 +64,7 @@ import {
   ChevronUp,
   ChevronRight,
   ChevronLeft,
+  Clock,
   Target,
   Loader2,
   
@@ -107,6 +108,7 @@ import {
   RotateCcw,
   Repeat,
   Shuffle,
+  Mail,
   Play,
   Pause,
   Square,
@@ -151,6 +153,8 @@ export const ICON_NAMES = [
   'chevron-up',
   'chevron-right',
   'chevron-left',
+  'clock',
+  'next',
   
   // Dados/Stats
   'chart',
@@ -193,6 +197,7 @@ export const ICON_NAMES = [
   
   // Social
   'chat',
+  'mail',
   
   // Temáticos
   'fire',
@@ -350,6 +355,10 @@ export function Icon({ name, className, title, ...rest }: Props) {
       return withTitle(ChevronRight);
     case 'chevron-left':
       return withTitle(ChevronLeft);
+    case 'clock':
+      return withTitle(Clock);
+    case 'next':
+      return withTitle(ChevronRight);
 
     // Stats
     case 'chart':
@@ -421,6 +430,8 @@ export function Icon({ name, className, title, ...rest }: Props) {
 
     case 'chat':
       return withTitle(MessageCircle);
+    case 'mail':
+      return withTitle(Mail);
 
     // Temáticos básicos
     case 'fire':

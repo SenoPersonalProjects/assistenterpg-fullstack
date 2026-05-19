@@ -3,9 +3,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { useTheme, type ThemeMode, type ThemePalette } from '@/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useConfirm } from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/Button';
 import { ConfigSection } from '@/components/configuracoes/ConfigSection';
@@ -16,8 +17,11 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { Alert } from '@/components/ui/Alert';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Card } from '@/components/ui/Card';
 import { ModalAlterarSenha } from '@/components/configuracoes/ModalAlterarSenha';
 import { ModalExcluirConta } from '@/components/configuracoes/ModalExcluirConta';
+import { AppearanceSelector } from '@/components/configuracoes/AppearanceSelector';
+import { SettingsSidebar, type SettingsTabId } from '@/components/configuracoes/SettingsSidebar';
 import {
   apiObterPreferencias,
   apiAtualizarPreferencias,
@@ -34,64 +38,13 @@ type ErroApiBasico = {
   body?: { statusCode?: number; code?: string };
 };
 
-type PaletteOption = {
-  value: ThemePalette;
-  label: string;
-  description: string;
-  icon: IconName;
-  swatches: string[];
-};
-
-const PALETTE_OPTIONS: PaletteOption[] = [
-  {
-    value: 'padrao',
-    label: 'Padrão',
-    description: 'Azul e neutro, bom para uso diário.',
-    icon: 'settings',
-    swatches: ['#2563eb', '#7c3aed', '#f9fafb', '#0b1020'],
-  },
-  {
-    value: 'roxo',
-    label: 'Roxo',
-    description: 'Roxo com contraste mais marcado.',
-    icon: 'sparkles',
-    swatches: ['#7c5cfc', '#9b4de0', '#f8f5ff', '#151126'],
-  },
-  {
-    value: 'vermelho',
-    label: 'Vermelho',
-    description: 'Vermelho como cor principal, com apoio azul.',
-    icon: 'fire',
-    swatches: ['#780000', '#c1121f', '#fdf0d5', '#003049', '#669bbc'],
-  },
-];
-
-const MODE_OPTIONS: Array<{
-  value: ThemeMode;
-  label: string;
-  icon: IconName;
-  description: string;
-}> = [
-  {
-    value: 'light',
-    label: 'Claro',
-    icon: 'sun',
-    description: 'Fundos claros e contraste suave.',
-  },
-  {
-    value: 'dark',
-    label: 'Escuro',
-    icon: 'moon',
-    description: 'Fundos escuros e menos brilho.',
-  },
-];
-
 export default function ConfiguracoesPage() {
   const { usuario, token, logout } = useAuth();
   const { showToast } = useToast();
-  const { palette, mode, themeLabel, setPalette, setMode } = useTheme();
+  const { palette, mode, setPalette, setMode } = useTheme();
   const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
 
+  const [activeTab, setActiveTab] = useState<SettingsTabId>('perfil');
   const [notificacoes, setNotificacoes] = useState({
     email: true,
     push: false,
@@ -111,6 +64,16 @@ export default function ConfiguracoesPage() {
 
   const [modalSenhaOpen, setModalSenhaOpen] = useState(false);
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false);
+  const notificacaoItems: Array<{
+    key: keyof typeof notificacoes;
+    label: string;
+    icon: IconName;
+  }> = [
+    { key: 'email', label: 'Notificações por email', icon: 'mail' },
+    { key: 'push', label: 'Notificações push no navegador', icon: 'bell' },
+    { key: 'convites', label: 'Convites para campanhas', icon: 'user' },
+    { key: 'atualizacoes', label: 'Novidades do sistema', icon: 'sparkles' },
+  ];
 
   const extrairStatusErro = (error: unknown): number => {
     const err = error as ErroApiBasico;
@@ -239,313 +202,329 @@ export default function ConfiguracoesPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-app-bg">
         <div className="text-center">
-          <Icon name="spinner" className="mx-auto mb-4 h-12 w-12 text-app-primary" />
-          <p className="text-app-fg">Carregando configurações...</p>
+          <Icon name="spinner" className="mx-auto mb-4 h-12 w-12 text-app-primary animate-spin" />
+          <p className="text-app-fg font-bold tracking-tight">Carregando configurações...</p>
         </div>
       </div>
     );
   }
 
+  const containerVariants: Variants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+    exit: { opacity: 0, x: -20, transition: { duration: 0.3, ease: 'easeIn' } },
+  };
+
   return (
     <>
-      <main className="min-h-screen bg-app-bg p-4 md:p-6">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <main className="min-h-screen bg-app-bg px-4 py-8 md:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          {/* Header */}
+          <header className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="flex items-center gap-2 text-3xl font-bold text-app-fg">
-                <Icon name="settings" className="h-8 w-8" />
-                Configurações
-              </h1>
-              <p className="mt-1 text-app-muted">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
+                  <Icon name="settings" className="h-6 w-6" />
+                </div>
+                <h1 className="text-gradient text-3xl font-black tracking-tighter md:text-4xl">
+                  Configurações
+                </h1>
+              </div>
+              <p className="max-w-md text-sm font-medium text-app-muted">
                 Ajuste preferências da conta, aparência e notificações.
               </p>
             </div>
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <Icon name="back" className="mr-2 h-4 w-4" />
-                Voltar
-              </Button>
-            </Link>
-          </div>
 
-          <div className="space-y-6">
-            {erroGlobal && <ErrorAlert message={erroGlobal} />}
-
-            <ConfigSection title="Perfil" icon="user">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Input
-                  type="text"
-                  label="Nome de usuário"
-                  value={usuario?.apelido || ''}
-                  disabled
-                  className="bg-app-bg"
-                />
-                <Input
-                  type="email"
-                  label="Email"
-                  value={usuario?.email || ''}
-                  disabled
-                  className="bg-app-bg"
-                />
-                <Input
-                  type="text"
-                  label="ID do usuário"
-                  value={usuario?.id || ''}
-                  disabled
-                  className="bg-app-bg font-mono text-sm"
-                />
-                <div className="flex items-end">
-                  <Alert>
-                    Para alterar seus dados de perfil, entre em contato com o suporte.
-                  </Alert>
-                </div>
-              </div>
-            </ConfigSection>
-
-            <ConfigSection title="Aparência" icon="paint">
-              <div className="space-y-5">
-                <div>
-                  <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-app-fg">Paleta</p>
-                      <p className="text-xs text-app-muted">
-                        Escolha a família de cores do site.
-                      </p>
-                    </div>
-                    <p className="text-xs text-app-muted">
-                      Tema atual: <strong className="text-app-fg">{themeLabel}</strong>
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {PALETTE_OPTIONS.map((option) => {
-                      const isActive = palette === option.value;
-
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setPalette(option.value)}
-                          className={[
-                            'rounded-xl border p-4 text-left transition-all',
-                            'bg-app-surface hover:border-app-primary hover:bg-app-primary/5',
-                            isActive
-                              ? 'border-app-primary ring-2 ring-app-primary/25'
-                              : 'border-app-border',
-                          ].join(' ')}
-                          aria-pressed={isActive}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              <Icon name={option.icon} className="h-5 w-5 text-app-primary" />
-                              <span className="font-semibold text-app-fg">{option.label}</span>
-                            </div>
-                            {isActive && <Icon name="check" className="h-4 w-4 text-app-primary" />}
-                          </div>
-                          <p className="mt-2 text-sm text-app-muted">{option.description}</p>
-                          <div className="mt-4 flex gap-1.5">
-                            {option.swatches.map((color) => (
-                              <span
-                                key={color}
-                                className="h-5 w-5 rounded-full border border-app-border"
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-3 text-sm font-semibold text-app-fg">Modo</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {MODE_OPTIONS.map((option) => {
-                      const isActive = mode === option.value;
-
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setMode(option.value)}
-                          className={[
-                            'flex items-center justify-between rounded-xl border p-4 text-left transition-all',
-                            'bg-app-surface hover:border-app-primary hover:bg-app-primary/5',
-                            isActive
-                              ? 'border-app-primary ring-2 ring-app-primary/25'
-                              : 'border-app-border',
-                          ].join(' ')}
-                          aria-pressed={isActive}
-                        >
-                          <span className="flex items-center gap-3">
-                            <Icon name={option.icon} className="h-5 w-5 text-app-primary" />
-                            <span>
-                              <span className="block font-semibold text-app-fg">{option.label}</span>
-                              <span className="block text-xs text-app-muted">{option.description}</span>
-                            </span>
-                          </span>
-                          {isActive && <Icon name="check" className="h-4 w-4 text-app-primary" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                  <div>
-                    <Select
-                      label="Idioma"
-                      value={idioma}
-                      onChange={(e) => setIdioma(e.target.value)}
-                    >
-                      <option value="pt-BR">Português (Brasil)</option>
-                      <option value="en-US">English (US)</option>
-                      <option value="es-ES">Español</option>
-                    </Select>
-                    <p className="mt-2 text-xs text-app-muted">
-                      Idioma da interface do sistema. Mais traduções entram depois.
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-app-border bg-app-surface p-4">
-                    <p className="text-sm font-semibold text-app-fg">
-                      Animação 3D de rolagem
-                    </p>
-                    <p className="mt-1 text-xs text-app-muted">
-                      Controla a animação 3D no modal de rolagens da sessão.
-                    </p>
-                    <div className="mt-3">
-                      <Checkbox
-                        label="Ativar animação 3D"
-                        checked={animacaoRolagemAtiva}
-                        onChange={(e) => handleToggleAnimacaoRolagem(e.target.checked)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </ConfigSection>
-
-            <ConfigSection title="Notificações" icon="bell">
-              <div className="grid gap-3 md:grid-cols-2">
-                <Checkbox
-                  label="Notificações por email"
-                  checked={notificacoes.email}
-                  onChange={(e) =>
-                    setNotificacoes({ ...notificacoes, email: e.target.checked })
-                  }
-                />
-                <Checkbox
-                  label="Notificações push no navegador"
-                  checked={notificacoes.push}
-                  onChange={(e) =>
-                    setNotificacoes({ ...notificacoes, push: e.target.checked })
-                  }
-                />
-                <Checkbox
-                  label="Alertas de convites para campanhas"
-                  checked={notificacoes.convites}
-                  onChange={(e) =>
-                    setNotificacoes({ ...notificacoes, convites: e.target.checked })
-                  }
-                />
-                <Checkbox
-                  label="Avisos sobre atualizações do sistema"
-                  checked={notificacoes.atualizacoes}
-                  onChange={(e) =>
-                    setNotificacoes({ ...notificacoes, atualizacoes: e.target.checked })
-                  }
-                />
-              </div>
-            </ConfigSection>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <ConfigSection title="Privacidade e segurança" icon="lock">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => setModalSenhaOpen(true)}
-                >
-                  <Icon name="edit" className="mr-2 h-4 w-4" />
-                  Alterar senha
-                </Button>
-              </ConfigSection>
-
-              <ConfigSection title="Dados e exportação" icon="archive">
-                <div className="space-y-3">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={handleExportarDados}
-                  >
-                    <Icon name="copy" className="mr-2 h-4 w-4" />
-                    Exportar meus dados (JSON)
-                  </Button>
-                  <Alert>Seus dados serão baixados em formato JSON.</Alert>
-                </div>
-              </ConfigSection>
-            </div>
-
-            <ConfigSection title="Sobre o sistema" icon="info">
-              <div className="grid gap-3 text-sm text-app-muted md:grid-cols-3">
-                <p>
-                  <strong className="text-app-fg">Versão:</strong> 1.3.0 (Beta)
-                </p>
-                <p>
-                  <strong className="text-app-fg">Sistema:</strong> Jujutsu Kaisen RPG
-                </p>
-                <p>
-                  <strong className="text-app-fg">Atualização:</strong> Janeiro 2026
-                </p>
-              </div>
-              <Link
-                href="/compendio"
-                className="mt-4 inline-flex items-center gap-1 text-app-primary hover:underline"
-              >
-                <Icon name="rules" className="h-4 w-4" />
-                Abrir compêndio
-              </Link>
-            </ConfigSection>
-
-            <div className="flex justify-end">
+            <div className="flex items-center gap-3">
               <Button
                 variant="primary"
+                size="sm"
                 onClick={handleSalvarPreferencias}
                 disabled={salvando}
+                className="font-black"
               >
                 <Icon name="check" className="mr-2 h-4 w-4" />
                 {salvando ? 'Salvando...' : 'Salvar preferências'}
               </Button>
-            </div>
-
-            <ConfigSection title="Zona de perigo" icon="warning" danger>
-              <div className="space-y-3">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="w-full justify-start"
-                >
+              <Link href="/">
+                <Button variant="secondary" size="sm" className="font-bold">
                   <Icon name="back" className="mr-2 h-4 w-4" />
-                  Sair da conta
+                  Voltar
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setModalExcluirOpen(true)}
-                  className="w-full justify-start text-app-danger hover:bg-app-danger/10"
-                >
-                  <Icon name="delete" className="mr-2 h-4 w-4" />
-                  Excluir conta permanentemente
-                </Button>
-                <Alert variant="error">
-                  <strong>Atenção:</strong> esta ação não pode ser desfeita.
-                </Alert>
+              </Link>
+            </div>
+          </header>
+
+          <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
+            {/* Sidebar */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-8 space-y-6">
+                <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+
+                <Card variant="flat" className="p-4 bg-app-danger/5 border border-app-danger/10">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-app-danger mb-3">Zona de perigo</h4>
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={handleLogout}
+                      className="w-full justify-start text-app-fg hover:bg-app-danger/10"
+                    >
+                      <Icon name="back" className="mr-2 h-3.5 w-3.5" />
+                      Sair da conta
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => setModalExcluirOpen(true)}
+                      className="w-full justify-start text-app-danger hover:bg-app-danger/10"
+                    >
+                      <Icon name="delete" className="mr-2 h-3.5 w-3.5" />
+                      Excluir conta
+                    </Button>
+                  </div>
+                </Card>
               </div>
-            </ConfigSection>
+            </aside>
+
+            {/* Mobile Nav */}
+            <nav className="flex gap-2 overflow-x-auto pb-4 lg:hidden scrollbar-none">
+              {[
+                { id: 'perfil', label: 'Perfil' },
+                { id: 'aparencia', label: 'Aparência' },
+                { id: 'notificacoes', label: 'Notificações' },
+                { id: 'seguranca', label: 'Segurança' },
+                { id: 'dados', label: 'Dados' },
+                { id: 'sobre', label: 'Sobre' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as SettingsTabId)}
+                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-app-primary text-white shadow-lg'
+                      : 'bg-app-surface text-app-muted border border-app-border'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Content Area */}
+            <div className="min-h-[600px] space-y-6">
+              {erroGlobal && <ErrorAlert message={erroGlobal} />}
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="space-y-8"
+                >
+                  {activeTab === 'perfil' && (
+                    <ConfigSection
+                      title="Perfil"
+                      icon="user"
+                      description="Seus dados de conta."
+                    >
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <Input
+                          type="text"
+                          label="Nome de usuário"
+                          value={usuario?.apelido || ''}
+                          disabled
+                          className="bg-app-bg/50 font-bold"
+                        />
+                        <Input
+                          type="email"
+                          label="Email"
+                          value={usuario?.email || ''}
+                          disabled
+                          className="bg-app-bg/50 font-bold"
+                        />
+                        <div className="md:col-span-2">
+                          <Input
+                            type="text"
+                            label="ID do usuário"
+                            value={usuario?.id || ''}
+                            disabled
+                            className="bg-app-bg/50 font-mono text-xs opacity-70"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Alert variant="info">
+                            Para alterar seus dados de perfil, entre em contato com o suporte.
+                          </Alert>
+                        </div>
+                      </div>
+                    </ConfigSection>
+                  )}
+
+                  {activeTab === 'aparencia' && (
+                    <ConfigSection
+                      title="Aparência e Interface"
+                      icon="paint"
+                      description="Personalize a aparência do site."
+                    >
+                      <AppearanceSelector
+                        palette={palette}
+                        mode={mode}
+                        onPaletteChange={setPalette}
+                        onModeChange={setMode}
+                      />
+
+                      <div className="grid gap-6 pt-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Select
+                            label="Idioma"
+                            value={idioma}
+                            onChange={(e) => setIdioma(e.target.value)}
+                            className="font-bold"
+                          >
+                            <option value="pt-BR">Português (Brasil)</option>
+                            <option value="en-US">English (US)</option>
+                            <option value="es-ES">Español</option>
+                          </Select>
+                          <p className="text-[11px] text-app-muted">
+                            As traduções estão sendo expandidas gradualmente.
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-app-border bg-app-surface/40 p-5">
+                          <h4 className="text-xs font-black uppercase tracking-widest text-app-primary mb-3">Imersão</h4>
+                          <Checkbox
+                            label="Animação 3D de rolagem"
+                            checked={animacaoRolagemAtiva}
+                            onChange={(e) => handleToggleAnimacaoRolagem(e.target.checked)}
+                          />
+                          <p className="mt-2 text-[11px] leading-relaxed text-app-muted">
+                            Ativa a renderização física dos dados nas sessões. Pode impactar performance em dispositivos antigos.
+                          </p>
+                        </div>
+                      </div>
+                    </ConfigSection>
+                  )}
+
+                  {activeTab === 'notificacoes' && (
+                    <ConfigSection
+                      title="Notificações"
+                      icon="bell"
+                      description="Controle quais avisos do sistema você quer receber."
+                    >
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {notificacaoItems.map((item) => (
+                          <div key={item.key} className="flex items-center justify-between rounded-xl border border-app-border bg-app-surface/40 p-4 transition-all hover:bg-app-surface/60">
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-lg bg-app-primary/10 p-2 text-app-primary">
+                                <Icon name={item.icon} className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-bold text-app-fg">{item.label}</span>
+                            </div>
+                            <Checkbox
+                              checked={notificacoes[item.key]}
+                              onChange={(e) =>
+                                setNotificacoes({ ...notificacoes, [item.key]: e.target.checked })
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </ConfigSection>
+                  )}
+
+                  {activeTab === 'seguranca' && (
+                    <ConfigSection
+                      title="Segurança"
+                      icon="lock"
+                      description="Gerencie o acesso à sua conta."
+                    >
+                      <div className="max-w-md space-y-4">
+                        <Button
+                          variant="secondary"
+                          onClick={() => setModalSenhaOpen(true)}
+                          className="w-full justify-between group"
+                        >
+                          <span className="flex items-center">
+                            <Icon name="edit" className="mr-3 h-4 w-4 text-app-primary" />
+                            Alterar senha de acesso
+                          </span>
+                          <Icon name="next" className="h-4 w-4 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
+                        </Button>
+                        <Alert>
+                          Recomendamos trocar sua senha periodicamente para manter sua conta segura.
+                        </Alert>
+                      </div>
+                    </ConfigSection>
+                  )}
+
+                  {activeTab === 'dados' && (
+                    <ConfigSection
+                      title="Arquivo e Exportação"
+                      icon="archive"
+                      description="Gerencie seus registros e dados acumulados."
+                    >
+                      <div className="max-w-md space-y-4">
+                        <Button
+                          variant="secondary"
+                          onClick={handleExportarDados}
+                          className="w-full justify-between group"
+                        >
+                          <span className="flex items-center">
+                            <Icon name="copy" className="mr-3 h-4 w-4 text-app-primary" />
+                            Exportar meus dados (JSON)
+                          </span>
+                          <Icon name="download" className="h-4 w-4 opacity-0 transition-all group-hover:translate-y-1 group-hover:opacity-100" />
+                        </Button>
+                        <Alert variant="info">
+                          Seus dados serão compilados em um arquivo JSON universal para backup ou migração.
+                        </Alert>
+                      </div>
+                    </ConfigSection>
+                  )}
+
+                  {activeTab === 'sobre' && (
+                    <ConfigSection
+                      title="Sobre o sistema"
+                      icon="info"
+                      description="Informações técnicas sobre o Assistente RPG."
+                    >
+                      <div className="grid gap-6 md:grid-cols-3">
+                        <Card variant="flat" className="bg-app-surface/30 p-4 border border-app-border/50">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-app-muted mb-1">Versão</p>
+                          <p className="text-lg font-black text-app-fg">1.3.0 <span className="text-xs text-app-primary">Beta</span></p>
+                        </Card>
+                        <Card variant="flat" className="bg-app-surface/30 p-4 border border-app-border/50">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-app-muted mb-1">Universo</p>
+                          <p className="text-lg font-black text-app-fg">Jujutsu Kaisen</p>
+                        </Card>
+                        <Card variant="flat" className="bg-app-surface/30 p-4 border border-app-border/50">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-app-muted mb-1">Atualização</p>
+                          <p className="text-lg font-black text-app-fg">Maio 2026</p>
+                        </Card>
+                      </div>
+
+                      <div className="flex flex-col gap-3 pt-4">
+                        <Link
+                          href="/compendio"
+                          className="group inline-flex items-center gap-2 text-sm font-black text-app-primary transition-all hover:translate-x-1"
+                        >
+                          <div className="rounded-lg bg-app-primary/10 p-2">
+                            <Icon name="rules" className="h-4 w-4" />
+                          </div>
+                          Abrir compêndio
+                        </Link>
+                        <p className="max-w-xl text-xs leading-relaxed text-app-muted">
+                          Este assistente ajuda mestres e jogadores a organizar campanhas, personagens, regras e sessões no Jujutsu Kaisen RPG.
+                        </p>
+                      </div>
+                    </ConfigSection>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </main>

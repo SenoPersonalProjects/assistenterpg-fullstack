@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import type { RefObject } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import {
   SessionSidebarTabs,
   type SessionSidebarTabId,
@@ -100,41 +101,32 @@ export function SessionSidebarPanel({
   realtimeStatus,
 }: SessionSidebarPanelProps) {
   const statusTempoReal = realtimeStatus ?? 'polling';
-  const labelTempoReal =
-    statusTempoReal === 'online'
-      ? 'Conectado'
-      : statusTempoReal === 'reconnecting'
-        ? 'Reconectando'
-        : 'Atualizacao periodica';
-  const classeTempoReal =
-    statusTempoReal === 'online'
-      ? 'text-app-success'
-      : statusTempoReal === 'reconnecting'
-        ? 'text-app-warning'
-        : '';
+  const statusConfig: Record<
+    'online' | 'reconnecting' | 'polling',
+    { label: string; color: string; icon: IconName }
+  > = {
+    online: { label: 'Conectado', color: 'text-app-success', icon: 'bolt' },
+    reconnecting: { label: 'Reconectando', color: 'text-app-warning', icon: 'refresh' },
+    polling: { label: 'Sincronizado', color: 'text-app-muted', icon: 'refresh' },
+  };
+  const statusAtual = statusConfig[statusTempoReal];
+
   const mostrarEventos = podeControlarSessao;
-  const tabAtiva =
-    !mostrarEventos && activeTab === 'eventos' ? 'chat' : activeTab;
+  const tabAtiva = !mostrarEventos && activeTab === 'eventos' ? 'chat' : activeTab;
+
   const [totalAnotacoes, setTotalAnotacoes] = useState(0);
   const [totalItens, setTotalItens] = useState(0);
 
   return (
     <SessionPanel
       title="Painel lateral"
-      subtitle={
-        mostrarEventos
-          ? 'Chat, rolagens, anotacoes, eventos e participantes da sessao.'
-          : 'Chat, rolagens, anotacoes e participantes da sessao.'
-      }
+      subtitle="Chat, rolagens, anotações, itens e participantes da sessão."
       tone="aside"
       right={
-        <span className={`session-panel-meta ${classeTempoReal}`}>
-          <Icon
-            name={statusTempoReal === 'online' ? 'bolt' : 'refresh'}
-            className="h-3.5 w-3.5"
-          />
-          {labelTempoReal}
-        </span>
+        <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${statusAtual.color}`}>
+          <Icon name={statusAtual.icon} className="h-3 w-3" />
+          {statusAtual.label}
+        </div>
       }
     >
       <SessionSidebarTabs
@@ -150,78 +142,90 @@ export function SessionSidebarPanel({
         totalParticipantes={participantes.length}
         mostrarEventos={mostrarEventos}
       >
-        {tabAtiva === 'participantes' ? (
-          <ParticipantsPanel participantes={participantes} onlineSet={onlineSet} />
-        ) : null}
+        <div className="mt-4">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tabAtiva}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {tabAtiva === 'participantes' && (
+                <ParticipantsPanel participantes={participantes} onlineSet={onlineSet} />
+              )}
 
-        {tabAtiva === 'eventos' && mostrarEventos ? (
-          <TimelinePanel
-            eventosSessao={eventosSessao}
-            sessaoEncerrada={sessaoEncerrada}
-            podeControlarSessao={podeControlarSessao}
-            desfazendoEventoId={desfazendoEventoId}
-            erro={erroEventos}
-            onAbrirDetalhes={onAbrirDetalhes}
-            onDesfazerEvento={onDesfazerEvento}
-          />
-        ) : null}
+              {tabAtiva === 'eventos' && mostrarEventos && (
+                <TimelinePanel
+                  eventosSessao={eventosSessao}
+                  sessaoEncerrada={sessaoEncerrada}
+                  podeControlarSessao={podeControlarSessao}
+                  desfazendoEventoId={desfazendoEventoId}
+                  erro={erroEventos}
+                  onAbrirDetalhes={onAbrirDetalhes}
+                  onDesfazerEvento={onDesfazerEvento}
+                />
+              )}
 
-        {tabAtiva === 'chat' ? (
-          <ChatPanel
-            chat={chat}
-            mensagem={mensagem}
-            enviandoMensagem={enviandoMensagem}
-            sessaoEncerrada={sessaoEncerrada}
-            usuarioId={usuarioId}
-            erro={erroChat}
-            onMensagemChange={onMensagemChange}
-            onEnviarMensagem={onEnviarMensagem}
-            fimChatRef={fimChatRef}
-          />
-        ) : null}
+              {tabAtiva === 'chat' && (
+                <ChatPanel
+                  chat={chat}
+                  mensagem={mensagem}
+                  enviandoMensagem={enviandoMensagem}
+                  sessaoEncerrada={sessaoEncerrada}
+                  usuarioId={usuarioId}
+                  erro={erroChat}
+                  onMensagemChange={onMensagemChange}
+                  onEnviarMensagem={onEnviarMensagem}
+                  fimChatRef={fimChatRef}
+                />
+              )}
 
-        {tabAtiva === 'rolagens' ? (
-          <DiceChatPanel
-            chat={rolagens}
-            mensagem={mensagemRolagem}
-            enviandoMensagem={enviandoRolagem}
-            sessaoEncerrada={sessaoEncerrada}
-            usuarioId={usuarioId}
-            erro={erroRolagens}
-            animacaoModalAtiva={animacaoModalAtiva}
-            onToggleAnimacaoModal={onToggleAnimacaoModal}
-            onMensagemChange={onMensagemRolagemChange}
-            onEnviarMensagem={onEnviarRolagem}
-          />
-        ) : null}
+              {tabAtiva === 'rolagens' && (
+                <DiceChatPanel
+                  chat={rolagens}
+                  mensagem={mensagemRolagem}
+                  enviandoMensagem={enviandoRolagem}
+                  sessaoEncerrada={sessaoEncerrada}
+                  usuarioId={usuarioId}
+                  erro={erroRolagens}
+                  animacaoModalAtiva={animacaoModalAtiva}
+                  onToggleAnimacaoModal={onToggleAnimacaoModal}
+                  onMensagemChange={onMensagemRolagemChange}
+                  onEnviarMensagem={onEnviarRolagem}
+                />
+              )}
 
-        {tabAtiva === 'anotacoes' ? (
-          <SessionNotesPanel
-            campanhaId={campanhaId}
-            sessaoId={sessaoId}
-            onCountChange={setTotalAnotacoes}
-          />
-        ) : null}
+              {tabAtiva === 'anotacoes' && (
+                <SessionNotesPanel
+                  campanhaId={campanhaId}
+                  sessaoId={sessaoId}
+                  onCountChange={setTotalAnotacoes}
+                />
+              )}
 
-        {tabAtiva === 'itens' ? (
-          <SessionItemsPanel
-            campanhaId={campanhaId}
-            sessaoId={sessaoId}
-            cenaId={cenaId}
-            personagens={personagens}
-            npcs={npcs}
-            usuarioId={usuarioId}
-            onCountChange={setTotalItens}
-          />
-        ) : null}
+              {tabAtiva === 'itens' && (
+                <SessionItemsPanel
+                  campanhaId={campanhaId}
+                  sessaoId={sessaoId}
+                  cenaId={cenaId}
+                  personagens={personagens}
+                  npcs={npcs}
+                  usuarioId={usuarioId}
+                  onCountChange={setTotalItens}
+                />
+              )}
 
-        {tabAtiva === 'relatorio' && sessaoEncerrada ? (
-          <SessionReportPanel
-            relatorio={relatorioSessao}
-            loading={loadingRelatorio}
-            erro={erroRelatorio}
-          />
-        ) : null}
+              {tabAtiva === 'relatorio' && sessaoEncerrada && (
+                <SessionReportPanel
+                  relatorio={relatorioSessao}
+                  loading={loadingRelatorio}
+                  erro={erroRelatorio}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </SessionSidebarTabs>
     </SessionPanel>
   );

@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -2228,25 +2229,44 @@ export default function SessaoCampanhaPage() {
   }
 
   return (
-    <main ref={shellRef} className="session-page-shell min-h-screen p-4 md:p-6">
-      <div className="mx-auto max-w-[1600px] space-y-4">
-        <header className="session-hero flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 space-y-1">
-            <h1 className="truncate text-2xl font-bold text-app-fg">{tituloSessao}</h1>
-            <p className="text-sm text-app-muted">
-              Sessao iniciada em {formatarDataHora(detalhe.iniciadoEm)}
-            </p>
-            {sessaoEncerrada ? (
-              <p className="text-xs text-app-muted">
-                Sessao encerrada em{' '}
-                {detalhe.encerradoEm ? formatarDataHora(detalhe.encerradoEm) : '-'}
-              </p>
-            ) : null}
+    <main ref={shellRef} className="session-page-shell min-h-screen bg-app-bg px-4 py-6 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1600px] space-y-6">
+        {/* Modern Header */}
+        <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
+                <Icon name="campaign" className="h-7 w-7" />
+              </div>
+              <div>
+                <h1 className="text-gradient text-3xl font-black tracking-tighter md:text-4xl">
+                  {tituloSessao}
+                </h1>
+                <div className="flex items-center gap-3 text-xs font-bold text-app-muted uppercase tracking-widest">
+                  <span className="flex items-center gap-1">
+                    <Icon name="clock" className="h-3 w-3" />
+                    Iniciada {formatarDataHora(detalhe.iniciadoEm)}
+                  </span>
+                  {sessaoEncerrada && (
+                    <span className="flex items-center gap-1 text-app-danger">
+                      <Icon name="close" className="h-3 w-3" />
+                      Encerrada
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>
-              <Icon name="back" className="w-4 h-4 mr-2" />
-              Voltar para campanha
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="font-black group"
+              onClick={() => router.push(`/campanhas/${campanhaId}`)}
+            >
+              <Icon name="back" className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              Painel da Campanha
             </Button>
           </div>
         </header>
@@ -2275,71 +2295,80 @@ export default function SessaoCampanhaPage() {
 
         {erroGlobal ? <ErrorAlert message={erroGlobal} /> : null}
 
-        {colunaEsquerdaRecolhida ? (
-          <button
-            type="button"
-            className="session-column-handle session-column-handle--left"
-            onClick={() => setColunaEsquerdaRecolhida(false)}
-            aria-label="Mostrar painel esquerdo"
-          >
-            <Icon name="chevron-right" className="h-3.5 w-3.5" />
-            <span className="session-column-handle__text">
-              Mostrar painel esquerdo
-            </span>
-          </button>
-        ) : null}
-        {colunaDireitaRecolhida ? (
-          <button
-            type="button"
-            className="session-column-handle session-column-handle--right"
-            onClick={() => setColunaDireitaRecolhida(false)}
-            aria-label="Mostrar painel lateral"
-          >
-            <Icon name="chevron-left" className="h-3.5 w-3.5" />
-            <span className="session-column-handle__text">
-              Mostrar painel lateral
-            </span>
-          </button>
-        ) : null}
+        {/* Collapsed Column Handles */}
+        <AnimatePresence>
+          {colunaEsquerdaRecolhida && (
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              type="button"
+              className="fixed left-4 top-1/2 z-40 -translate-y-1/2 rounded-full bg-app-primary p-3 text-white shadow-2xl shadow-app-primary/40 transition-transform hover:scale-110 active:scale-95 lg:left-6"
+              onClick={() => setColunaEsquerdaRecolhida(false)}
+              title="Mostrar painel esquerdo"
+            >
+              <Icon name="chevron-right" className="h-5 w-5" />
+            </motion.button>
+          )}
+          {colunaDireitaRecolhida && (
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              type="button"
+              className="fixed right-4 top-1/2 z-40 -translate-y-1/2 rounded-full bg-app-info p-3 text-white shadow-2xl shadow-app-info/40 transition-transform hover:scale-110 active:scale-95 lg:right-6"
+              onClick={() => setColunaDireitaRecolhida(false)}
+          title="Mostrar painel lateral"
+            >
+              <Icon name="chevron-left" className="h-5 w-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         <div className={gridSessaoClassName}>
           {!colunaEsquerdaRecolhida ? (
-            <section className="session-column space-y-3">
-              <button
-                type="button"
-                className="session-column-toggle session-column-toggle--left"
-                onClick={() => setColunaEsquerdaRecolhida(true)}
-                title="Ocultar painel esquerdo"
-              >
-                <Icon name="chevron-left" className="h-3.5 w-3.5" />
-              </button>
+            <section className="session-column space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-app-muted">Painel da sessão</span>
+                <button
+                  type="button"
+                  className="rounded-lg p-1 text-app-muted hover:bg-app-surface hover:text-app-fg"
+                  onClick={() => setColunaEsquerdaRecolhida(true)}
+                  title="Recolher"
+                >
+                  <Icon name="chevron-left" className="h-4 w-4" />
+                </button>
+              </div>
 
               {podeControlarSessao ? (
                 <>
                   <SessionPanel
                     title="Escudo do Mestre"
-                    subtitle="Guias rapidos com regras operacionais da mesa."
+                    subtitle="Guias rápidos e regras operacionais."
                     tone="control"
                     right={
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center rounded-full border border-app-border bg-app-surface p-2">
-                          <Icon name="shield" className="h-4 w-4 text-app-fg" />
-                        </span>
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          onClick={() => setEscudoAberto((aberto) => !aberto)}
-                          title={escudoAberto ? 'Recolher escudo' : 'Expandir escudo'}
-                        >
-                          <Icon
-                            name={escudoAberto ? 'chevron-up' : 'chevron-down'}
-                            className="h-3.5 w-3.5"
-                          />
-                        </Button>
-                      </div>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => setEscudoAberto((aberto) => !aberto)}
+                        className={`h-7 w-7 p-0 rounded-lg transition-transform ${escudoAberto ? 'rotate-180' : ''}`}
+                      >
+                        <Icon name="chevron-down" className="h-4 w-4" />
+                      </Button>
                     }
                   >
-                    {escudoAberto ? <MestreShieldGuide /> : null}
+                    <AnimatePresence>
+                      {escudoAberto && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <MestreShieldGuide />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </SessionPanel>
 
                   <SessionNpcsPanel

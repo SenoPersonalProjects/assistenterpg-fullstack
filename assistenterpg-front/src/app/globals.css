@@ -404,6 +404,14 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
+@utility scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* 🚀 Estilos de Landing Page (Migrados) 🚀 */
 @utility landing-shell {
   @apply min-h-screen overflow-x-hidden bg-app-bg;
