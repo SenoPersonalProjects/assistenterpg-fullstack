@@ -30,12 +30,15 @@ const themeInitScript = `
       'roxo-light': true,
       'roxo-dark': true,
       'vermelho-light': true,
-      'vermelho-dark': true
+      'vermelho-dark': true,
+      'verde-light': true,
+      'verde-dark': true
     };
     var logoByPalette = {
       padrao: 'url("/images/logos/logo-padrao.png")',
       roxo: 'url("/images/logos/logo-roxo.png")',
-      vermelho: 'url("/images/logos/logo-vermelho.png")'
+      vermelho: 'url("/images/logos/logo-vermelho.png")',
+      verde: 'url("/images/logos/logo-padrao.png")'
     };
     var theme = validThemes[stored] ? stored : defaultTheme;
 
@@ -52,6 +55,7 @@ const themeInitScript = `
       'theme-padrao',
       'theme-roxo',
       'theme-vermelho',
+      'theme-verde',
       'theme-light',
       'theme-dark',
       'theme-jujutsu'

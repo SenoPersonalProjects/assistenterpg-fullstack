@@ -16,9 +16,9 @@ const PALETTE_OPTIONS: PaletteOption[] = [
   {
     value: 'padrao',
     label: 'Padrão',
-    description: 'Azul e neutro, bom para uso diário.',
+    description: 'Azul de energia com base neutra.',
     icon: 'settings',
-    swatches: ['#2563eb', '#7c3aed', '#f9fafb', '#0b1020'],
+    swatches: ['#4fd6ff', '#0891b2', '#f9fafb', '#0b1020'],
   },
   {
     value: 'roxo',
@@ -33,6 +33,13 @@ const PALETTE_OPTIONS: PaletteOption[] = [
     description: 'Vermelho como cor principal, com apoio azul.',
     icon: 'fire',
     swatches: ['#780000', '#c1121f', '#fdf0d5', '#003049', '#669bbc'],
+  },
+  {
+    value: 'verde',
+    label: 'Verde',
+    description: 'Verde vibrante com apoio teal.',
+    icon: 'sparkles',
+    swatches: ['#16db65', '#119da4', '#313628', '#998650', '#e8e9eb'],
   },
 ];
 
@@ -78,7 +85,7 @@ export function AppearanceSelector({
           <p className="text-xs text-app-muted">Escolha as cores principais do site.</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {PALETTE_OPTIONS.map((option) => {
             const isActive = palette === option.value;
 

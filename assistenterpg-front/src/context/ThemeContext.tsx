@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type ThemePalette = 'padrao' | 'roxo' | 'vermelho';
+export type ThemePalette = 'padrao' | 'roxo' | 'vermelho' | 'verde';
 export type ThemeMode = 'light' | 'dark';
 export type Theme = `${ThemePalette}-${ThemeMode}`;
 export type LegacyTheme = 'light' | 'dark' | 'jujutsu' | 'padrao';
@@ -33,6 +33,7 @@ const THEME_CLASS_NAMES = [
   'theme-padrao',
   'theme-roxo',
   'theme-vermelho',
+  'theme-verde',
   'theme-light',
   'theme-dark',
   'theme-jujutsu',
@@ -45,12 +46,15 @@ const THEME_LABELS: Record<Theme, string> = {
   'roxo-dark': 'Roxo escuro',
   'vermelho-light': 'Vermelho claro',
   'vermelho-dark': 'Vermelho escuro',
+  'verde-light': 'Verde claro',
+  'verde-dark': 'Verde escuro',
 };
 
 const LOGO_BY_PALETTE: Record<ThemePalette, string> = {
   padrao: 'url("/images/logos/logo-padrao.png")',
   roxo: 'url("/images/logos/logo-roxo.png")',
   vermelho: 'url("/images/logos/logo-vermelho.png")',
+  verde: 'url("/images/logos/logo-padrao.png")',
 };
 
 function isTheme(value: string | null): value is Theme {
