@@ -51,6 +51,7 @@ import { PersonagemBaseStepInventario } from './PersonagemBaseStepInventario';
 import { PersonagemBaseStepRevisao } from './PersonagemBaseStepRevisao';
 
 import type { InitialValues as FormInitialValues } from '@/components/personagem-base/create/PersonagemBaseForm';
+import type { EquipamentoHomebrewInlineResultado } from '@/lib/api/homebrews';
 
 type BaseProps = {
   classes: ClasseCatalogo[];
@@ -65,6 +66,7 @@ type BaseProps = {
   modificacoes: ModificacaoCatalogo[];
   carregarTrilhasDaClasse: (classeId: number) => Promise<TrilhaCatalogo[]>;
   carregarCaminhosDaTrilha: (trilhaId: number) => Promise<CaminhoCatalogo[]>;
+  onEquipamentoHomebrewInlineCriado?: (resultado: EquipamentoHomebrewInlineResultado) => void;
 };
 
 type CreateProps = BaseProps & {
@@ -985,6 +987,7 @@ export function PersonagemBaseWizard(props: Props) {
                 itensInventario={itensInventario}
                 onChangeItensInventario={setItensInventario}
                 creditoCategoriaBonus={previewGlobal?.creditoCategoriaBonus}
+                onEquipamentoHomebrewInlineCriado={props.onEquipamentoHomebrewInlineCriado}
               />
             </>
           )}

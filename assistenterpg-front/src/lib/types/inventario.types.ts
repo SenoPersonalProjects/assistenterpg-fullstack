@@ -55,6 +55,7 @@ export type EquipamentoCatalogo = {
   protecaoAmaldicoada?: unknown;
   artefatoAmaldicoado?: unknown;
   homebrewId?: number | null;
+  homebrewOrigemId?: number | null;
   homebrewOrigemStatus?: StatusPublicacao | null;
 };
 
@@ -101,6 +102,7 @@ export type EquipamentoResumoDto = {
   } | null;
 
   homebrewId?: number | null;
+  homebrewOrigemId?: number | null;
   homebrewOrigemStatus?: StatusPublicacao | null;
 };
 

@@ -8,6 +8,7 @@ import {
   apiGetTrilhasDaClasse,
   apiGetCaminhosDaTrilha,
   apiCreatePersonagemBase,
+  apiGetMeusEquipamentosHomebrew,
   apiGetTodosEquipamentos,
   apiGetTodasModificacoes,
   apiGetSuplementos,
@@ -31,6 +32,7 @@ import {
 import {
   apiGetMeusHomebrews,
   apiListarGruposHomebrew,
+  type EquipamentoHomebrewInlineResultado,
   type HomebrewGrupoResumo,
   type HomebrewResumo,
 } from '@/lib/api/homebrews';
@@ -46,7 +48,6 @@ import {
   FONTES_CONTEUDO_INICIAIS,
   type FontesConteudoSelecionadas,
   carregarFontesConteudoSalvas,
-  criarChaveFontesConteudo,
   filtrarListaPorFontes,
   normalizarFontesConteudoSelecionadas,
   salvarFontesConteudo,
@@ -160,6 +161,33 @@ function sanitizarSelecaoComAcesso(
   };
 }
 
+function mesclarEquipamentosCatalogo(
+  atuais: EquipamentoCatalogo[],
+  novos: EquipamentoCatalogo[],
+): EquipamentoCatalogo[] {
+  const porId = new Map<number, EquipamentoCatalogo>();
+  for (const equipamento of atuais) {
+    porId.set(equipamento.id, equipamento);
+  }
+  for (const equipamento of novos) {
+    porId.set(equipamento.id, equipamento);
+  }
+  return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+function adicionarHomebrewFonte(
+  selecao: FontesConteudoSelecionadas,
+  homebrewId: number,
+): FontesConteudoSelecionadas {
+  const homebrewIds = new Set(selecao.homebrewIds);
+  homebrewIds.add(homebrewId);
+  return {
+    suplementoIds: [...selecao.suplementoIds],
+    homebrewGrupoIds: [...selecao.homebrewGrupoIds],
+    homebrewIds: [...homebrewIds].sort((a, b) => a - b),
+  };
+}
+
 export default function NovoPersonagemBasePage() {
   const router = useRouter();
   const { usuario, loading: authLoading } = useAuth();
@@ -179,6 +207,7 @@ export default function NovoPersonagemBasePage() {
   const [gruposHomebrew, setGruposHomebrew] = useState<HomebrewGrupoResumo[]>([]);
   const [fontesSelecionadas, setFontesSelecionadas] =
     useState<FontesConteudoSelecionadas>(FONTES_CONTEUDO_INICIAIS);
+  const [wizardKeyVersion, setWizardKeyVersion] = useState(0);
   const [fontesModalOpen, setFontesModalOpen] = useState(false);
   const [fontesModalVersion, setFontesModalVersion] = useState(0);
 
@@ -200,6 +229,7 @@ export default function NovoPersonagemBasePage() {
           const [
             catalogosBasicos,
             equipamentosCompletos,
+            equipamentosHomebrewUsuario,
             modificacoesCompletas,
             suplementosAtivos,
             homebrewsAcessiveis,
@@ -207,6 +237,7 @@ export default function NovoPersonagemBasePage() {
           ] = await Promise.all([
             apiGetCatalogosBasicos(),
             apiGetTodosEquipamentos({ limitePorPagina: 100 }),
+            apiGetMeusEquipamentosHomebrew().catch(() => []),
             apiGetTodasModificacoes({ limitePorPagina: 100 }),
             apiGetSuplementos({ status: 'PUBLICADO' }),
             carregarHomebrewsAcessiveis(),
@@ -221,7 +252,9 @@ export default function NovoPersonagemBasePage() {
           setTecnicasInatas(catalogosBasicos.tecnicasInatas);
           setAlinhamentos(catalogosBasicos.alinhamentos);
           setPericias(catalogosBasicos.pericias);
-          setEquipamentos(equipamentosCompletos);
+          setEquipamentos(
+            mesclarEquipamentosCatalogo(equipamentosCompletos, equipamentosHomebrewUsuario),
+          );
           setModificacoes(modificacoesCompletas);
           setSuplementos(suplementosAtivos);
           setHomebrews(homebrewsAcessiveis);
@@ -292,11 +325,6 @@ export default function NovoPersonagemBasePage() {
     [modificacoes, fontesSelecionadas],
   );
 
-  const chaveFontesWizard = useMemo(
-    () => criarChaveFontesConteudo(fontesSelecionadas),
-    [fontesSelecionadas],
-  );
-
   const resumoFontes = useMemo(() => {
     return {
       suplementos: fontesSelecionadas.suplementoIds.length,
@@ -313,10 +341,30 @@ export default function NovoPersonagemBasePage() {
       gruposHomebrew,
     );
     setFontesSelecionadas(selecaoSanitizada);
+    setWizardKeyVersion((version) => version + 1);
 
     if (typeof usuario?.id === 'number' && usuario.id > 0) {
       salvarFontesConteudo(usuario.id, selecaoSanitizada);
     }
+  }
+
+  function handleEquipamentoHomebrewInlineCriado({
+    homebrew,
+    equipamento,
+  }: EquipamentoHomebrewInlineResultado) {
+    setHomebrews((atuais) => {
+      const porId = new Map(atuais.map((item) => [item.id, item]));
+      porId.set(homebrew.id, homebrew);
+      return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    });
+    setEquipamentos((atuais) => mesclarEquipamentosCatalogo(atuais, [equipamento]));
+    setFontesSelecionadas((atual) => {
+      const proxima = adicionarHomebrewFonte(atual, homebrew.id);
+      if (typeof usuario?.id === 'number' && usuario.id > 0) {
+        salvarFontesConteudo(usuario.id, proxima);
+      }
+      return proxima;
+    });
   }
 
   function abrirModalFontes() {
@@ -396,7 +444,7 @@ export default function NovoPersonagemBasePage() {
         </section>
 
         <PersonagemBaseWizard
-          key={chaveFontesWizard}
+          key={`fontes-${wizardKeyVersion}`}
           classes={classesFiltradas}
           clas={clasFiltrados}
           origens={origensFiltradas}
@@ -410,6 +458,7 @@ export default function NovoPersonagemBasePage() {
           carregarTrilhasDaClasse={carregarTrilhasDaClasse}
           carregarCaminhosDaTrilha={carregarCaminhosDaTrilha}
           onSubmitCreate={handleCreate}
+          onEquipamentoHomebrewInlineCriado={handleEquipamentoHomebrewInlineCriado}
         />
       </div>
 

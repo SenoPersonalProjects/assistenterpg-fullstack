@@ -17,6 +17,7 @@ import {
 import {
   apiGetMeusHomebrews,
   apiListarGruposHomebrew,
+  type EquipamentoHomebrewInlineResultado,
   type HomebrewGrupoResumo,
   type HomebrewResumo,
 } from '@/lib/api/homebrews';
@@ -44,9 +45,9 @@ import { SecaoOrigemClasse } from '@/components/personagem-base/sections/SecaoOr
 import { SecaoPoderes } from '@/components/personagem-base/sections/SecaoPoderes';
 import { SecaoInventario } from '@/components/personagem-base/sections/SecaoInventario';
 import { FontesConteudoModal } from '@/components/personagem-base/create/modal/FontesConteudoModal';
+import { FontesInventarioHomebrewPanel } from '@/components/personagem-base/create/modal/FontesInventarioHomebrewPanel';
 import {
   FONTES_CONTEUDO_INICIAIS,
-  criarChaveFontesConteudo,
   filtrarListaPorFontes,
   itemPertenceAsFontesSelecionadas,
   normalizarFontesConteudoSelecionadas,
@@ -155,6 +156,19 @@ function sanitizarSelecaoComAcesso(
   };
 }
 
+function adicionarHomebrewFonte(
+  selecao: FontesConteudoSelecionadas,
+  homebrewId: number,
+): FontesConteudoSelecionadas {
+  const homebrewIds = new Set(selecao.homebrewIds);
+  homebrewIds.add(homebrewId);
+  return {
+    suplementoIds: [...selecao.suplementoIds],
+    homebrewGrupoIds: [...selecao.homebrewGrupoIds],
+    homebrewIds: [...homebrewIds].sort((a, b) => a - b),
+  };
+}
+
 function mensagemErroExportacao(error: unknown): string {
   const status = Number(
     (error as { status?: number })?.status ??
@@ -236,6 +250,7 @@ export default function PersonagemBaseDetalhePage() {
     loading,
     erro,
     refresh,
+    adicionarEquipamentoCatalogo,
     carregarTrilhasDaClasse,
     carregarCaminhosDaTrilha,
     periciasMap,
@@ -249,6 +264,9 @@ export default function PersonagemBaseDetalhePage() {
   const [itensInventarioEdicao, setItensInventarioEdicao] = useState<
     ItemInventarioPayload[]
   >([]);
+  const [fontesInventarioEdicao, setFontesInventarioEdicao] =
+    useState<FontesConteudoSelecionadas>(FONTES_CONTEUDO_INICIAIS);
+  const [editWizardKeyVersion, setEditWizardKeyVersion] = useState(0);
   const [salvandoInventario, setSalvandoInventario] = useState(false);
   const [fontesSelecionadas, setFontesSelecionadas] =
     useState<FontesConteudoSelecionadas>(FONTES_CONTEUDO_INICIAIS);
@@ -353,9 +371,9 @@ export default function PersonagemBaseDetalhePage() {
     () => filtrarListaPorFontes(catalogos.modificacoes, fontesSelecionadas),
     [catalogos.modificacoes, fontesSelecionadas],
   );
-  const chaveFontesWizard = useMemo(
-    () => criarChaveFontesConteudo(fontesSelecionadas),
-    [fontesSelecionadas],
+  const equipamentosInventarioEdicaoFiltrados = useMemo(
+    () => filtrarListaPorFontes(catalogos.equipamentos, fontesInventarioEdicao),
+    [catalogos.equipamentos, fontesInventarioEdicao],
   );
   const resumoFontes = useMemo(
     () => ({
@@ -514,6 +532,7 @@ export default function PersonagemBaseDetalhePage() {
 
   function confirmarAplicacaoFontes(selecao: FontesConteudoSelecionadas) {
     setFontesSelecionadas(selecao);
+    setEditWizardKeyVersion((version) => version + 1);
     setImpactoFontesPendente(null);
   }
 
@@ -583,7 +602,42 @@ export default function PersonagemBaseDetalhePage() {
     setItensInventarioEdicao(
       (personagem.itensInventario ?? []).map(normalizarItemInventarioParaPayload),
     );
+    setFontesInventarioEdicao(
+      normalizarFontesConteudoSelecionadas(
+        personagem.fontesConteudo ?? fontesSelecionadas,
+      ),
+    );
     setModalInventarioAberto(true);
+  }
+
+  function habilitarFonteInventarioHomebrew(homebrewId: number) {
+    setFontesInventarioEdicao((atual) => adicionarHomebrewFonte(atual, homebrewId));
+  }
+
+  function registrarEquipamentoHomebrewInline({
+    homebrew,
+    equipamento,
+  }: EquipamentoHomebrewInlineResultado) {
+    adicionarEquipamentoCatalogo(equipamento);
+    setHomebrews((atuais) => {
+      const porId = new Map(atuais.map((item) => [item.id, item]));
+      porId.set(homebrew.id, homebrew);
+      return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    });
+  }
+
+  function handleEquipamentoHomebrewInlineCriado(resultado: EquipamentoHomebrewInlineResultado) {
+    registrarEquipamentoHomebrewInline(resultado);
+    setFontesSelecionadas((atual) => adicionarHomebrewFonte(atual, resultado.homebrew.id));
+  }
+
+  function handleEquipamentoHomebrewInlineCriadoNoInventario(
+    resultado: EquipamentoHomebrewInlineResultado,
+  ) {
+    registrarEquipamentoHomebrewInline(resultado);
+    setFontesInventarioEdicao((atual) =>
+      adicionarHomebrewFonte(atual, resultado.homebrew.id),
+    );
   }
 
   async function handleSalvarInventario() {
@@ -593,8 +647,10 @@ export default function PersonagemBaseDetalhePage() {
       setSalvandoInventario(true);
       await apiUpdatePersonagemBase(personagem.id, {
         itensInventario: itensInventarioEdicao,
+        fontesConteudo: fontesInventarioEdicao,
       });
       await refresh();
+      setFontesSelecionadas(fontesInventarioEdicao);
       setModalInventarioAberto(false);
     } catch (e) {
       setErroLocal(mensagemErroOperacaoPersonagem(e, 'atualizar'));
@@ -740,7 +796,7 @@ export default function PersonagemBaseDetalhePage() {
             <TabbedSection tabs={tabs} defaultTabId="info" />
           ) : (
             <PersonagemBaseWizard
-              key={`edit-${personagem.id}-${chaveFontesWizard}`}
+              key={`edit-${personagem.id}-${editWizardKeyVersion}`}
               mode="edit"
               initialValues={initialValues}
               onSubmitEdit={handleUpdate}
@@ -757,6 +813,7 @@ export default function PersonagemBaseDetalhePage() {
               modificacoes={modificacoesFiltradas}
               carregarTrilhasDaClasse={carregarTrilhasFiltradas}
               carregarCaminhosDaTrilha={carregarCaminhosFiltrados}
+              onEquipamentoHomebrewInlineCriado={handleEquipamentoHomebrewInlineCriado}
             />
           )}
 
@@ -900,17 +957,28 @@ export default function PersonagemBaseDetalhePage() {
           </>
         }
       >
-        <PersonagemBaseStepInventario
-          forca={personagem.forca}
-          intelecto={personagem.intelecto}
-          prestigioBase={personagem.prestigioBase}
-          creditoCategoriaBonus={personagem.creditoCategoriaBonus}
-          pericias={catalogos.pericias}
-          equipamentos={equipamentosFiltrados}
-          modificacoes={modificacoesFiltradas}
-          itensInventario={itensInventarioEdicao}
-          onChangeItensInventario={setItensInventarioEdicao}
-        />
+        <div className="space-y-4">
+          <FontesInventarioHomebrewPanel
+            homebrews={homebrews}
+            selecaoAtual={fontesInventarioEdicao}
+            onHabilitarHomebrew={habilitarFonteInventarioHomebrew}
+          />
+
+          <PersonagemBaseStepInventario
+            forca={personagem.forca}
+            intelecto={personagem.intelecto}
+            prestigioBase={personagem.prestigioBase}
+            creditoCategoriaBonus={personagem.creditoCategoriaBonus}
+            pericias={catalogos.pericias}
+            equipamentos={equipamentosInventarioEdicaoFiltrados}
+            modificacoes={modificacoesFiltradas}
+            itensInventario={itensInventarioEdicao}
+            onChangeItensInventario={setItensInventarioEdicao}
+            onEquipamentoHomebrewInlineCriado={
+              handleEquipamentoHomebrewInlineCriadoNoInventario
+            }
+          />
+        </div>
       </Modal>
     </>
   );

@@ -120,6 +120,11 @@ export type ImportacaoHomebrewResultado = {
   }>;
 };
 
+export type EquipamentoHomebrewInlineResultado = {
+  homebrew: HomebrewDetalhado;
+  equipamento: EquipamentoCatalogo;
+};
+
 /**
  * Filtros para listagem
  */
@@ -345,7 +350,7 @@ export async function apiCreateHomebrew(
 
 export async function apiCreateEquipamentoHomebrewInline(
   payload: CreateHomebrewDto,
-): Promise<{ homebrew: HomebrewDetalhado; equipamento: EquipamentoCatalogo }> {
+): Promise<EquipamentoHomebrewInlineResultado> {
   const { data } = await apiClient.post('/homebrews/equipamentos-inline', payload);
   return data;
 }

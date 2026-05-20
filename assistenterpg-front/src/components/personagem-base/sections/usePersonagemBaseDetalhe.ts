@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 
 import {
   apiGetCatalogosBasicos,
+  apiGetMeusEquipamentosHomebrew,
   apiGetPassivasDisponiveis,
   apiGetPersonagemBase,
   apiGetTodosEquipamentos,
@@ -83,6 +84,20 @@ function cloneCatalogos(catalogos: Catalogos): Catalogos {
     equipamentos: [...catalogos.equipamentos],
     modificacoes: [...catalogos.modificacoes],
   };
+}
+
+function mesclarEquipamentosCatalogo(
+  base: EquipamentoCatalogo[],
+  adicionais: EquipamentoCatalogo[],
+): EquipamentoCatalogo[] {
+  const porId = new Map<number, EquipamentoCatalogo>();
+  for (const equipamento of base) {
+    porId.set(equipamento.id, equipamento);
+  }
+  for (const equipamento of adicionais) {
+    porId.set(equipamento.id, equipamento);
+  }
+  return [...porId.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 
 function mensagemErroCarregarDetalhe(error: unknown): string {
@@ -250,6 +265,7 @@ export type UsePersonagemBaseDetalheResult = {
   loading: boolean;
   erro: string | null;
   refresh: () => Promise<void>;
+  adicionarEquipamentoCatalogo: (equipamento: EquipamentoCatalogo) => void;
   carregarTrilhasDaClasse: (classeId: number) => Promise<TrilhaCatalogo[]>;
   carregarCaminhosDaTrilha: (trilhaId: number) => Promise<CaminhoCatalogo[]>;
   periciasMap: Map<string, { nome: string }>;
@@ -284,13 +300,20 @@ export function usePersonagemBaseDetalhe(
     setPassivasSelecionadasState([]);
 
     try {
-      const [detalhe, catalogosCompartilhados] = await Promise.all([
+      const [detalhe, catalogosCompartilhados, equipamentosHomebrewUsuario] = await Promise.all([
         apiGetPersonagemBase(numericId, true),
         carregarCatalogosCompartilhados(),
+        apiGetMeusEquipamentosHomebrew().catch(() => []),
       ]);
 
       setPersonagem(detalhe);
-      setCatalogos(catalogosCompartilhados);
+      setCatalogos({
+        ...catalogosCompartilhados,
+        equipamentos: mesclarEquipamentosCatalogo(
+          catalogosCompartilhados.equipamentos,
+          equipamentosHomebrewUsuario,
+        ),
+      });
 
       if (detalhe.passivasAtributoIds && detalhe.passivasAtributoIds.length > 0) {
         try {
@@ -308,6 +331,13 @@ export function usePersonagemBaseDetalhe(
       setLoading(false);
     }
   }, [numericId]);
+
+  const adicionarEquipamentoCatalogo = useCallback((equipamento: EquipamentoCatalogo) => {
+    setCatalogos((atual) => ({
+      ...atual,
+      equipamentos: mesclarEquipamentosCatalogo(atual.equipamentos, [equipamento]),
+    }));
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -370,6 +400,7 @@ export function usePersonagemBaseDetalhe(
     loading: authLoading || loading,
     erro,
     refresh,
+    adicionarEquipamentoCatalogo,
     carregarTrilhasDaClasse,
     carregarCaminhosDaTrilha,
     periciasMap,

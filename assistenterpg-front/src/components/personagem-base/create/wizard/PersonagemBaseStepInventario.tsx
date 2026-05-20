@@ -47,8 +47,8 @@ import { InventarioModalReview } from '../modal/InventarioModalReview';
 import { InventarioModalEditar } from '../modal/InventarioModalEditar';
 import { InventarioAlertaVestir } from '../InventarioAlertaVestir';
 import { HomebrewForm } from '@/components/suplemento/HomebrewForm';
-import { TipoHomebrewConteudo } from '@/lib/types/homebrew-enums';
-import type { CreateHomebrewDto } from '@/lib/api/homebrews';
+import { StatusPublicacao, TipoHomebrewConteudo } from '@/lib/types/homebrew-enums';
+import type { CreateHomebrewDto, EquipamentoHomebrewInlineResultado } from '@/lib/api/homebrews';
 
 type Props = {
   forca: number;
@@ -64,6 +64,7 @@ type Props = {
   pericias: PericiaCatalogo[];
   itensInventario: ItemInventarioPayload[];
   onChangeItensInventario: (itens: ItemInventarioPayload[]) => void;
+  onEquipamentoHomebrewInlineCriado?: (resultado: EquipamentoHomebrewInlineResultado) => void;
 };
 
 type ModalStep = 'categoria' | 'equipamento' | 'modificacoes' | 'review' | 'editar-item';
@@ -71,6 +72,7 @@ const LIMITE_RENDER_ITENS_INICIAL = 80;
 
 export function PersonagemBaseStepInventario(props: Props) {
   const { showToast } = useToast();
+  const { onEquipamentoHomebrewInlineCriado } = props;
   const { sincronizarInventario, carregando: carregandoSincronizacao } = useInventarioPreview({
     forca: props.forca,
     intelecto: props.intelecto,
@@ -629,21 +631,23 @@ export function PersonagemBaseStepInventario(props: Props) {
     async (payload: CreateHomebrewDto) => {
       setErroCriarEquipamento(null);
       try {
-        await apiCreateEquipamentoHomebrewInline({
+        const resultado = await apiCreateEquipamentoHomebrewInline({
           ...payload,
           tipo: TipoHomebrewConteudo.EQUIPAMENTO,
         });
+        onEquipamentoHomebrewInlineCriado?.(resultado);
         setModalCriarEquipamentoAberto(false);
-        showToast(
-          'Equipamento homebrew criado. Agora habilite essa homebrew nas Fontes da ficha para ela aparecer na categoria Homebrew do inventario.',
-          'success',
-        );
+        setCategoriaAtiva('HOMEBREW');
+        setBuscaEquipamento('');
+        setEquipamentoSelecionado(resultado.equipamento);
+        setStepAtual('equipamento');
+        showToast('Equipamento homebrew criado, habilitado e selecionado.', 'success');
       } catch (error) {
         setErroCriarEquipamento(extrairMensagemErro(error));
         throw error;
       }
     },
-    [showToast],
+    [onEquipamentoHomebrewInlineCriado, showToast],
   );
 
   // Preview simplificado (backend calculará tudo ao adicionar)
@@ -1331,7 +1335,10 @@ export function PersonagemBaseStepInventario(props: Props) {
             </div>
           )}
           <HomebrewForm
-            initialValues={{ tipo: TipoHomebrewConteudo.EQUIPAMENTO }}
+            initialValues={{
+              tipo: TipoHomebrewConteudo.EQUIPAMENTO,
+              status: StatusPublicacao.PUBLICADO,
+            }}
             onCancel={() => setModalCriarEquipamentoAberto(false)}
             onSubmit={handleCriarEquipamentoHomebrew}
           />

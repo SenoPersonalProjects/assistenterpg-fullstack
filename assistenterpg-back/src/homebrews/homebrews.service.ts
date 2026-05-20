@@ -307,6 +307,12 @@ export class HomebrewsService {
         tipo: true;
         fonte: true;
         suplementoId: true;
+        homebrewOrigemId: true;
+        homebrewOrigem: {
+          select: {
+            status: true;
+          };
+        };
         categoria: true;
         espacos: true;
         complexidadeMaldicao: true;
@@ -331,6 +337,9 @@ export class HomebrewsService {
       tipo: equipamento.tipo,
       fonte: equipamento.fonte,
       suplementoId: equipamento.suplementoId,
+      homebrewId: equipamento.homebrewOrigemId,
+      homebrewOrigemId: equipamento.homebrewOrigemId,
+      homebrewOrigemStatus: equipamento.homebrewOrigem?.status ?? null,
       categoria: equipamento.categoria,
       espacos: equipamento.espacos,
       complexidadeMaldicao: equipamento.complexidadeMaldicao,
@@ -424,6 +433,12 @@ export class HomebrewsService {
         tipo: true,
         fonte: true,
         suplementoId: true,
+        homebrewOrigemId: true,
+        homebrewOrigem: {
+          select: {
+            status: true,
+          },
+        },
         categoria: true,
         espacos: true,
         complexidadeMaldicao: true,
@@ -1434,7 +1449,7 @@ export class HomebrewsService {
           nome: createHomebrewDto.nome,
           descricao: createHomebrewDto.descricao ?? null,
           tipo: createHomebrewDto.tipo,
-          status: createHomebrewDto.status ?? StatusPublicacao.RASCUNHO,
+          status: StatusPublicacao.PUBLICADO,
           dados: this.normalizarJsonParaPersistir(createHomebrewDto.dados),
           tags: this.normalizarJsonParaPersistir(tags),
           versao: createHomebrewDto.versao ?? '1.0.0',
