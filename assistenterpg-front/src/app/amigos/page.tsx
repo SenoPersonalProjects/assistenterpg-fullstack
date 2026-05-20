@@ -2,6 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AddFriendForm } from '@/components/amigos/AddFriendForm';
+import { FriendCard } from '@/components/amigos/FriendCard';
+import { FriendRequestCard } from '@/components/amigos/FriendRequestCard';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Icon } from '@/components/ui/Icon';
+import { Loading } from '@/components/ui/Loading';
+import { SectionTitle } from '@/components/ui/SectionTitle';
 import { useAuth } from '@/context/AuthContext';
 import { usePresence } from '@/context/PresenceContext';
 import { useToast } from '@/context/ToastContext';
@@ -17,14 +28,6 @@ import {
   extrairMensagemErro,
 } from '@/lib/api';
 import type { AmigoResumo, SolicitacoesAmizade } from '@/lib/types';
-import { AddFriendForm } from '@/components/amigos/AddFriendForm';
-import { FriendCard } from '@/components/amigos/FriendCard';
-import { FriendRequestCard } from '@/components/amigos/FriendRequestCard';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { Icon } from '@/components/ui/Icon';
-import { Loading } from '@/components/ui/Loading';
 
 const SOLICITACOES_INICIAIS: SolicitacoesAmizade = {
   recebidas: [],
@@ -119,196 +122,214 @@ export default function AmigosPage() {
   if (!usuario) return null;
 
   const totalAmigos = amigosComPresenca.length;
-  const amigosOnline = amigosComPresenca.filter(a => a.online).length;
-  const solicitacoesPendentes = solicitacoes.recebidas.length;
+  const amigosOnline = amigosComPresenca.filter((amigo) => amigo.online).length;
+  const solicitacoesRecebidas = solicitacoes.recebidas.length;
+  const solicitacoesEnviadas = solicitacoes.enviadas.length;
 
   return (
-    <main className="min-h-screen bg-app-bg pb-12">
-      <div className="bg-app-surface border-b border-app-border pt-8 pb-12 mb-8 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="mb-6 flex justify-between items-center">
+    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-app-primary/20 bg-app-primary/10 text-app-primary shadow-sm">
+              <Icon name="characters" className="h-7 w-7" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-app-fg">
+                Amigos
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm text-app-muted">
+                Adicione amigos, veja quem está online e convide pessoas para suas campanhas.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
             <Button
+              type="button"
               variant="ghost"
               size="sm"
               onClick={() => router.push('/home')}
-              className="text-app-muted hover:text-app-fg"
             >
-              <Icon name="back" className="w-4 h-4 mr-2" />
-              Voltar
+              <Icon name="back" className="mr-2 h-4 w-4" />
+              Painel
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={carregar}>
+              <Icon name="refresh" className="mr-2 h-4 w-4" />
+              Atualizar
             </Button>
           </div>
+        </header>
 
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div className="flex items-center gap-6">
-              <div className="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-2xl bg-app-primary/10 border border-app-primary/20 shadow-inner">
-                <Icon name="characters" className="w-12 h-12 sm:w-14 sm:h-14 text-app-primary" />
-              </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-app-fg tracking-tight mb-2">
-                  Amigos
-                </h1>
-                <p className="text-sm font-medium text-app-muted max-w-md">
-                  Adicione amigos, veja quem está online e convide-os para participar das suas campanhas.
-                </p>
-              </div>
-            </div>
+        {erro && <ErrorAlert message={erro} />}
 
-            <div className="flex bg-app-bg/50 backdrop-blur-md rounded-xl border border-app-border/60 shadow-sm p-2">
-              <div className="px-5 py-2 text-center">
-                <p className="text-[10px] sm:text-xs text-app-muted font-bold uppercase tracking-widest mb-1">Amigos</p>
-                <p className="text-xl sm:text-2xl font-bold text-app-fg">{totalAmigos}</p>
-              </div>
-              <div className="w-px bg-app-border/60 my-2"></div>
-              <div className="px-5 py-2 text-center">
-                <p className="text-[10px] sm:text-xs text-app-muted font-bold uppercase tracking-widest mb-1">Online</p>
-                <p className="text-xl sm:text-2xl font-bold text-app-success">{amigosOnline}</p>
-              </div>
-              <div className="w-px bg-app-border/60 my-2"></div>
-              <div className="px-5 py-2 text-center">
-                <p className="text-[10px] sm:text-xs text-app-muted font-bold uppercase tracking-widest mb-1">Solicitações</p>
-                <p className="text-xl sm:text-2xl font-bold text-app-info">{solicitacoesPendentes}</p>
-              </div>
-            </div>
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card variant="glass" className="!p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
+              Amigos
+            </p>
+            <p className="mt-2 text-3xl font-black text-app-fg">{totalAmigos}</p>
+          </Card>
+          <Card variant="glass" className="!p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
+              Online
+            </p>
+            <p className="mt-2 text-3xl font-black text-app-success">
+              {amigosOnline}
+            </p>
+          </Card>
+          <Card variant="glass" className="!p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
+              Recebidas
+            </p>
+            <p className="mt-2 text-3xl font-black text-app-info">
+              {solicitacoesRecebidas}
+            </p>
+          </Card>
+          <Card variant="glass" className="!p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
+              Enviadas
+            </p>
+            <p className="mt-2 text-3xl font-black text-app-secondary">
+              {solicitacoesEnviadas}
+            </p>
+          </Card>
+        </section>
+
+        <Card variant="glass" className="!p-6">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <SectionTitle icon="add">Adicionar amigo</SectionTitle>
+            <Badge color="blue" size="sm">
+              Busca exata
+            </Badge>
           </div>
-        </div>
-      </div>
+          <AddFriendForm onSubmit={enviarSolicitacao} />
+        </Card>
 
-      <div className="max-w-7xl mx-auto px-6">
-        {erro && <ErrorAlert message={erro} className="mb-6" />}
+        <section className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <SectionTitle icon="characters">Amigos</SectionTitle>
+              <Badge color="gray" size="sm">
+                {totalAmigos}
+              </Badge>
+            </div>
+            {amigosOnline > 0 && (
+              <Badge color="green" size="sm">
+                {amigosOnline} online
+              </Badge>
+            )}
+          </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          <section className="lg:col-span-2 space-y-6">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-primary/15 text-app-primary">
-                <Icon name="characters" className="w-4 h-4" />
-              </div>
-              <h2 className="text-xl font-bold text-app-fg tracking-tight">Lista de Amigos</h2>
+          {amigosComPresenca.length === 0 ? (
+            <EmptyState
+              variant="card"
+              icon="characters"
+              title="Nenhum amigo adicionado"
+              description="Envie uma solicitação para começar a montar sua lista de amigos."
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {amigosComPresenca.map((amigo) => (
+                <FriendCard
+                  key={amigo.id}
+                  amigo={amigo}
+                  removing={acaoId === amigo.id}
+                  onRemove={(usuarioId) =>
+                    executarAcao(
+                      usuarioId,
+                      () => apiRemoverAmizade(usuarioId),
+                      'Amigo removido.',
+                    )
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <SectionTitle icon="bell">Solicitações recebidas</SectionTitle>
+              {solicitacoesRecebidas > 0 && (
+                <Badge color="cyan" size="sm">
+                  {solicitacoesRecebidas}
+                </Badge>
+              )}
             </div>
 
-            {amigosComPresenca.length === 0 ? (
+            {solicitacoes.recebidas.length === 0 ? (
               <EmptyState
-                variant="card"
-                icon="characters"
-                title="Nenhum amigo adicionado"
-                description="Envie uma solicitação para começar a montar sua lista de amigos."
+                variant="plain"
+                size="sm"
+                description="Nenhuma solicitação recebida."
               />
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                {amigosComPresenca.map((amigo) => (
-                  <FriendCard
-                    key={amigo.id}
-                    amigo={amigo}
-                    removing={acaoId === amigo.id}
-                    onRemove={(usuarioId) =>
+              <div className="space-y-3">
+                {solicitacoes.recebidas.map((solicitacao) => (
+                  <FriendRequestCard
+                    key={solicitacao.id}
+                    tipo="recebida"
+                    solicitacao={solicitacao}
+                    loading={acaoId === solicitacao.id}
+                    onAccept={(id) =>
                       executarAcao(
-                        usuarioId,
-                        () => apiRemoverAmizade(usuarioId),
-                        'Amigo removido.',
+                        id,
+                        () => apiAceitarSolicitacaoAmizade(id),
+                        'Solicitação aceita.',
+                      )
+                    }
+                    onReject={(id) =>
+                      executarAcao(
+                        id,
+                        () => apiRecusarSolicitacaoAmizade(id),
+                        'Solicitação recusada.',
                       )
                     }
                   />
                 ))}
               </div>
             )}
-          </section>
+          </div>
 
-          <aside className="space-y-8">
-            <section>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-secondary/15 text-app-secondary">
-                  <Icon name="add" className="w-4 h-4" />
-                </div>
-                <h2 className="text-lg font-bold text-app-fg tracking-tight">Adicionar Amigo</h2>
-              </div>
-              <div className="rounded-xl border border-app-border bg-app-surface p-5 shadow-sm">
-                <AddFriendForm onSubmit={enviarSolicitacao} />
-              </div>
-            </section>
-
-            <section>
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-info/15 text-app-info">
-                    <Icon name="bell" className="w-4 h-4" />
-                  </div>
-                  <h2 className="text-lg font-bold text-app-fg tracking-tight">Solicitações Recebidas</h2>
-                </div>
-                {solicitacoesPendentes > 0 && (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-app-info text-xs font-bold text-white">
-                    {solicitacoesPendentes}
-                  </span>
-                )}
-              </div>
-              
-              {solicitacoes.recebidas.length === 0 ? (
-                <EmptyState
-                  variant="plain"
-                  size="sm"
-                  description="Nenhuma solicitação recebida."
-                />
-              ) : (
-                <div className="space-y-3">
-                  {solicitacoes.recebidas.map((solicitacao) => (
-                    <FriendRequestCard
-                      key={solicitacao.id}
-                      tipo="recebida"
-                      solicitacao={solicitacao}
-                      loading={acaoId === solicitacao.id}
-                      onAccept={(id) =>
-                        executarAcao(
-                          id,
-                          () => apiAceitarSolicitacaoAmizade(id),
-                          'Solicitação aceita.',
-                        )
-                      }
-                      onReject={(id) =>
-                        executarAcao(
-                          id,
-                          () => apiRecusarSolicitacaoAmizade(id),
-                          'Solicitação recusada.',
-                        )
-                      }
-                    />
-                  ))}
-                </div>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <SectionTitle icon="mail">Solicitações enviadas</SectionTitle>
+              {solicitacoesEnviadas > 0 && (
+                <Badge color="purple" size="sm">
+                  {solicitacoesEnviadas}
+                </Badge>
               )}
-            </section>
+            </div>
 
-            <section>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-fg/10 text-app-fg">
-                  <Icon name="mail" className="w-4 h-4" />
-                </div>
-                <h2 className="text-lg font-bold text-app-fg tracking-tight">Solicitações Enviadas</h2>
+            {solicitacoes.enviadas.length === 0 ? (
+              <EmptyState
+                variant="plain"
+                size="sm"
+                description="Nenhuma solicitação enviada."
+              />
+            ) : (
+              <div className="space-y-3">
+                {solicitacoes.enviadas.map((solicitacao) => (
+                  <FriendRequestCard
+                    key={solicitacao.id}
+                    tipo="enviada"
+                    solicitacao={solicitacao}
+                    loading={acaoId === solicitacao.id}
+                    onCancel={(id) =>
+                      executarAcao(
+                        id,
+                        () => apiCancelarSolicitacaoAmizade(id),
+                        'Solicitação cancelada.',
+                      )
+                    }
+                  />
+                ))}
               </div>
-              {solicitacoes.enviadas.length === 0 ? (
-                <EmptyState
-                  variant="plain"
-                  size="sm"
-                  description="Nenhuma solicitação enviada."
-                />
-              ) : (
-                <div className="space-y-3">
-                  {solicitacoes.enviadas.map((solicitacao) => (
-                    <FriendRequestCard
-                      key={solicitacao.id}
-                      tipo="enviada"
-                      solicitacao={solicitacao}
-                      loading={acaoId === solicitacao.id}
-                      onCancel={(id) =>
-                        executarAcao(
-                          id,
-                          () => apiCancelarSolicitacaoAmizade(id),
-                          'Solicitação cancelada.',
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-          </aside>
-        </div>
+            )}
+          </div>
+        </section>
       </div>
     </main>
   );

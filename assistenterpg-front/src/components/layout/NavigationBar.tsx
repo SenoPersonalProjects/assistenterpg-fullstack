@@ -26,9 +26,8 @@ type NavItem = {
 const baseNavItems: NavItem[] = [
   { href: '/home', label: 'Inicio', icon: 'home' },
   { href: '/campanhas', label: 'Campanhas', icon: 'campaign' },
-  { href: '/amigos', label: 'Amigos', icon: 'characters' },
   { href: '/anotacoes', label: 'Anotacoes', icon: 'scroll' },
-  { href: '/personagens-base', label: 'Personagens', icon: 'characters' },
+  { href: '/personagens-base', label: 'Personagens', icon: 'character-gojo' },
   { href: '/npcs-ameacas', label: 'NPC', icon: 'curse' },
   { href: '/homebrews', label: 'Homebrews', icon: 'sparkles' },
   { href: '/suplementos', label: 'Suplementos', icon: 'book' },
@@ -180,6 +179,22 @@ export function NavigationBar() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link href="/amigos">
+              <button
+                className={`
+                  p-2.5 rounded-xl transition-all duration-200 active:scale-90
+                  ${
+                    pathname === '/amigos'
+                      ? 'bg-app-primary/10 text-app-primary shadow-inner'
+                      : 'text-app-muted hover:text-app-fg hover:bg-app-muted-surface'
+                  }
+                `}
+                title="Amigos"
+              >
+                <Icon name="characters" className="w-5 h-5" />
+              </button>
+            </Link>
+
             <Link href="/configuracoes">
               <button
                 className={`
@@ -200,6 +215,7 @@ export function NavigationBar() {
               pendingNotifications={pendingNotifications}
               showLabel={false}
               active={pathname === '/notificacoes'}
+              onPendingNotificationsChange={setPendingNotifications}
             />
 
             <div className="w-px h-6 bg-app-border mx-1" />

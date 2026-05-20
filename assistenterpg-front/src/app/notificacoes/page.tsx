@@ -1,329 +1,61 @@
-// app/notificacoes/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import {
-  apiAceitarConvite,
-  apiAceitarSolicitacaoAmizade,
-  apiListarConvitesPendentes,
-  apiListarSolicitacoesAmizade,
-  apiNotificarAmizadesAtualizadas,
-  apiNotificarConvitesPendentesAtualizados,
-  apiRecusarSolicitacaoAmizade,
-  apiRecusarConvite,
-  ConviteCampanha,
-  extrairMensagemErro,
-  traduzirErro,
-} from '@/lib/api';
-import type { SolicitacaoAmizadeResumo } from '@/lib/types';
-import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
+import { PendingNotificationsPanel } from '@/components/notificacoes/PendingNotificationsPanel';
 import { Button } from '@/components/ui/Button';
-import { SectionTitle } from '@/components/ui/SectionTitle';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { EmptyState } from '@/components/ui/EmptyState';
-
-function rotuloPapelConvite(papel: ConviteCampanha['papel']): string {
-  if (papel === 'MESTRE') return 'Mestre';
-  if (papel === 'OBSERVADOR') return 'Observador';
-  return 'Jogador';
-}
-
-function mensagemErroConvites(error: unknown): string {
-  const status = Number(
-    (error as { status?: number })?.status ??
-      (error as { response?: { status?: number } })?.response?.status ??
-      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
-      0,
-  );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  return traduzirErro(code, extrairMensagemErro(error), status);
-}
+import { useAuth } from '@/context/AuthContext';
 
 export default function NotificacoesPage() {
   const router = useRouter();
   const { usuario, loading: authLoading } = useAuth();
 
-  const [convites, setConvites] = useState<ConviteCampanha[]>([]);
-  const [solicitacoesAmizade, setSolicitacoesAmizade] = useState<
-    SolicitacaoAmizadeResumo[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-  const [erroAcao, setErroAcao] = useState<string | null>(null);
-  const [mensagemAcao, setMensagemAcao] = useState<string | null>(null);
-  const [codigoEmAcao, setCodigoEmAcao] = useState<string | null>(null);
-  const [amizadeEmAcao, setAmizadeEmAcao] = useState<number | null>(null);
-
   useEffect(() => {
     if (!authLoading && !usuario) {
       router.push('/auth/login');
-      return;
     }
-    if (authLoading || !usuario) return;
+  }, [authLoading, router, usuario]);
 
-    async function carregar() {
-      setLoading(true);
-      setErro(null);
-      setErroAcao(null);
-      try {
-        const [convitesData, amizadesData] = await Promise.all([
-          apiListarConvitesPendentes(),
-          apiListarSolicitacoesAmizade(),
-        ]);
-        setConvites(convitesData);
-        setSolicitacoesAmizade(amizadesData.recebidas);
-        apiNotificarConvitesPendentesAtualizados(convitesData.length);
-        apiNotificarAmizadesAtualizadas(amizadesData.recebidas.length);
-      } catch (error) {
-        setErro(`Erro ao carregar notificacoes. ${mensagemErroConvites(error)}`);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void carregar();
-  }, [authLoading, usuario, router]);
-
-  async function handleAceitar(codigo: string) {
-    setErroAcao(null);
-    setMensagemAcao(null);
-    setCodigoEmAcao(codigo);
-
-    try {
-      await apiAceitarConvite(codigo);
-      const proximo = convites.filter((convite) => convite.codigo !== codigo);
-      setConvites(proximo);
-      apiNotificarConvitesPendentesAtualizados(proximo.length);
-      setMensagemAcao('Convite aceito com sucesso.');
-    } catch (error) {
-      setErroAcao(`Nao foi possivel aceitar o convite. ${mensagemErroConvites(error)}`);
-    } finally {
-      setCodigoEmAcao(null);
-    }
-  }
-
-  async function handleRecusar(codigo: string) {
-    setErroAcao(null);
-    setMensagemAcao(null);
-    setCodigoEmAcao(codigo);
-
-    try {
-      await apiRecusarConvite(codigo);
-      const proximo = convites.filter((convite) => convite.codigo !== codigo);
-      setConvites(proximo);
-      apiNotificarConvitesPendentesAtualizados(proximo.length);
-      setMensagemAcao('Convite recusado com sucesso.');
-    } catch (error) {
-      setErroAcao(`Nao foi possivel recusar o convite. ${mensagemErroConvites(error)}`);
-    } finally {
-      setCodigoEmAcao(null);
-    }
-  }
-
-  async function handleAceitarAmizade(id: number) {
-    setErroAcao(null);
-    setMensagemAcao(null);
-    setAmizadeEmAcao(id);
-
-    try {
-      await apiAceitarSolicitacaoAmizade(id);
-      const proximo = solicitacoesAmizade.filter(
-        (solicitacao) => solicitacao.id !== id,
-      );
-      setSolicitacoesAmizade(proximo);
-      apiNotificarAmizadesAtualizadas(proximo.length);
-      setMensagemAcao('Solicitação de amizade aceita.');
-    } catch (error) {
-      setErroAcao(`Nao foi possivel aceitar a solicitacao. ${mensagemErroConvites(error)}`);
-    } finally {
-      setAmizadeEmAcao(null);
-    }
-  }
-
-  async function handleRecusarAmizade(id: number) {
-    setErroAcao(null);
-    setMensagemAcao(null);
-    setAmizadeEmAcao(id);
-
-    try {
-      await apiRecusarSolicitacaoAmizade(id);
-      const proximo = solicitacoesAmizade.filter(
-        (solicitacao) => solicitacao.id !== id,
-      );
-      setSolicitacoesAmizade(proximo);
-      apiNotificarAmizadesAtualizadas(proximo.length);
-      setMensagemAcao('Solicitação de amizade recusada.');
-    } catch (error) {
-      setErroAcao(`Nao foi possivel recusar a solicitacao. ${mensagemErroConvites(error)}`);
-    } finally {
-      setAmizadeEmAcao(null);
-    }
-  }
-
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
-      <Loading message="Carregando notificacoes..." className="p-6 text-app-fg" />
+      <Loading message="Carregando notificações..." className="p-6 text-app-fg" />
     );
   }
 
   if (!usuario) return null;
 
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="bell" className="w-6 h-6 text-app-primary" />
+    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+      <div className="mx-auto max-w-4xl space-y-8">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-app-primary/20 bg-app-primary/10 text-app-primary shadow-sm">
+              <Icon name="bell" className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-app-fg">Notificacoes</h1>
-              <p className="text-sm text-app-muted mt-0.5">
-                Veja convites pendentes e outras notificacoes da sua conta.
+              <h1 className="text-3xl font-black tracking-tight text-app-fg">
+                Notificações
+              </h1>
+              <p className="mt-1 text-sm text-app-muted">
+                Veja pedidos de amizade e convites de campanha pendentes.
               </p>
             </div>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={() => router.push('/home')}>
-            <Icon name="back" className="w-4 h-4 mr-2" />
-            Voltar
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/home')}
+          >
+            <Icon name="back" className="mr-2 h-4 w-4" />
+            Painel
           </Button>
         </header>
 
-        {erro && <ErrorAlert message={erro} />}
-        {erroAcao && <ErrorAlert message={erroAcao} />}
-        {mensagemAcao && (
-          <p className="text-sm text-app-success rounded-md border border-app-success/30 bg-app-success/10 px-3 py-2">
-            {mensagemAcao}
-          </p>
-        )}
-
-        <section className="space-y-3">
-          <SectionTitle icon="characters">Solicitações de amizade</SectionTitle>
-
-          {solicitacoesAmizade.length === 0 ? (
-            <EmptyState
-              variant="plain"
-              icon="characters"
-              description="Nenhuma solicitação de amizade pendente."
-            />
-          ) : (
-            <div className="space-y-3">
-              {solicitacoesAmizade.map((solicitacao) => {
-                const data = new Date(solicitacao.criadoEm).toLocaleDateString('pt-BR');
-                const bloqueado = amizadeEmAcao === solicitacao.id;
-
-                return (
-                  <Card key={solicitacao.id} className="flex flex-col gap-3 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs text-app-muted uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                          <Icon name="characters" className="w-4 h-4" />
-                          Solicitação de amizade
-                        </p>
-                        <p className="font-semibold text-app-fg">
-                          {solicitacao.usuario.apelido}
-                        </p>
-                        <p className="text-xs text-app-muted">
-                          Solicitação em {data}
-                        </p>
-                      </div>
-
-                      <Badge color="purple" size="sm">
-                        Amizade
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        disabled={bloqueado}
-                        onClick={() => handleAceitarAmizade(solicitacao.id)}
-                      >
-                        {bloqueado ? 'Processando...' : 'Aceitar'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={bloqueado}
-                        onClick={() => handleRecusarAmizade(solicitacao.id)}
-                      >
-                        {bloqueado ? 'Processando...' : 'Recusar'}
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section className="space-y-3">
-          <SectionTitle>Convites de campanha</SectionTitle>
-
-          {convites.length === 0 ? (
-            <EmptyState
-              variant="card"
-              icon="campaign"
-              title="Nenhum convite pendente"
-              description="Quando alguem te convidar para uma campanha, o convite vai aparecer aqui."
-            />
-          ) : (
-            <div className="space-y-3">
-              {convites.map((convite) => {
-                const data = new Date(convite.criadoEm).toLocaleDateString('pt-BR');
-                const bloqueado = codigoEmAcao === convite.codigo;
-
-                return (
-                  <Card key={convite.id} className="flex flex-col gap-3 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs text-app-muted uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                          <Icon name="campaign" className="w-4 h-4" />
-                          Convite de campanha
-                        </p>
-                        <p className="font-semibold text-app-fg">
-                          {convite.campanha?.nome ?? 'Campanha'}
-                        </p>
-                        <p className="text-xs text-app-muted">Convite em {data}</p>
-                        {convite.campanha?.dono && (
-                          <p className="text-xs text-app-muted">
-                            Dono: {convite.campanha.dono.apelido}
-                          </p>
-                        )}
-                      </div>
-
-                      <Badge color="blue" size="sm">
-                        {rotuloPapelConvite(convite.papel)}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        disabled={bloqueado}
-                        onClick={() => handleAceitar(convite.codigo)}
-                      >
-                        {bloqueado ? 'Processando...' : 'Aceitar'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={bloqueado}
-                        onClick={() => handleRecusar(convite.codigo)}
-                      >
-                        {bloqueado ? 'Processando...' : 'Recusar'}
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        <PendingNotificationsPanel feedback="inline" />
       </div>
     </main>
   );
