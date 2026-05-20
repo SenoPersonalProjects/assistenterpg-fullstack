@@ -201,7 +201,7 @@ export function CampaignSessionsSection({
               </div>
 
               <div className="flex items-center gap-2 text-xs text-app-muted">
-                <Icon name="characters" className="h-4 w-4" />
+                <Icon name="character-gojo" className="h-4 w-4" />
                 {sessao.totalPersonagens} personagem(ns) na sessão
               </div>
 

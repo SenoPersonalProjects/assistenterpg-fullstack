@@ -323,7 +323,7 @@ export default function CampanhaDetalhePage() {
             <section>
               <div className="flex items-center gap-3 mb-5">
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-app-secondary/15 text-app-secondary">
-                  <Icon name="id" className="w-4 h-4" />
+                  <Icon name="character-gojo" className="w-4 h-4" />
                 </div>
                 <h2 className="text-xl font-bold text-app-fg tracking-tight">Personagens</h2>
               </div>

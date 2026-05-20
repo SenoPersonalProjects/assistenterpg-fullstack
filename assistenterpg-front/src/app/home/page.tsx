@@ -42,7 +42,7 @@ export default function HomePage() {
     color: 'blue' | 'purple' | 'orange' | 'green';
   }> = [
     { label: 'Campanhas', value: stats.campanhas, icon: 'campaign', color: 'blue' },
-    { label: 'Personagens', value: stats.personagens, icon: 'characters', color: 'purple' },
+    { label: 'Personagens', value: stats.personagens, icon: 'character-gojo', color: 'purple' },
     { label: 'Homebrews', value: stats.homebrews, icon: 'sparkles', color: 'orange' },
     { label: 'Consultas', value: stats.artigosLidos, icon: 'rules', color: 'green' },
   ];
@@ -215,7 +215,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-black text-app-fg flex items-center gap-3">
                 <div className="p-2 bg-app-secondary/10 rounded-xl">
-                  <Icon name="characters" className="w-6 h-6 text-app-secondary" />
+                  <Icon name="character-gojo" className="w-6 h-6 text-app-secondary" />
                 </div>
                 Personagens
               </h2>
@@ -227,7 +227,7 @@ export default function HomePage() {
             {personagensRecentes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-app-muted-surface/30 rounded-2xl border border-dashed border-app-border">
                 <div className="w-16 h-16 bg-app-surface rounded-full flex items-center justify-center mb-4 shadow-inner">
-                  <Icon name="characters" className="w-8 h-8 text-app-muted" />
+                  <Icon name="character-gojo" className="w-8 h-8 text-app-muted" />
                 </div>
                 <p className="text-app-muted font-medium mb-6">Seus heróis ainda estão na névoa.</p>
                 <Link href="/personagens-base/novo">

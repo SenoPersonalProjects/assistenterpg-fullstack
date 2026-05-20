@@ -689,7 +689,7 @@ export default function PersonagemBaseDetalhePage() {
           <header className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name="characters" className="w-6 h-6 text-app-primary" />
+                <Icon name="character-gojo" className="w-6 h-6 text-app-primary" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-app-fg">{personagem.nome}</h1>

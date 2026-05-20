@@ -816,7 +816,7 @@ export function PersonagemBaseStepClasseOrigem({
       {/* Classe do Personagem */}
       <div>
         <h3 className="text-sm font-semibold text-app-fg mb-3 flex items-center gap-2">
-          <Icon name="characters" className="w-4 h-4 text-app-primary" />
+          <Icon name="character-gojo" className="w-4 h-4 text-app-primary" />
           Classe do personagem
         </h3>
 

@@ -52,7 +52,7 @@ export function CampaignHeader({
         </div>
         <div className="flex items-center gap-3 rounded-lg border border-app-border bg-app-surface p-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-app-secondary/10 text-app-secondary">
-            <Icon name="id" className="h-5 w-5" />
+            <Icon name="character-gojo" className="h-5 w-5" />
           </div>
           <div>
             <p className="text-xs text-app-muted">Personagens</p>

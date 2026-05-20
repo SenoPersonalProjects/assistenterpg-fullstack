@@ -13,7 +13,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const features: Array<{ icon: IconName; title: string; description: string }> = [
   {
-    icon: 'characters',
+    icon: 'character-gojo',
     title: 'Personagens completos',
     description:
       'Monte fichas com atributos, trilhas, técnicas, poderes, derivados e escolhas guiadas pelo sistema.',

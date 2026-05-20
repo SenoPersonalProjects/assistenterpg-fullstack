@@ -69,7 +69,7 @@ export function HabilidadesIniciaisSection({ origem, classe }: Props) {
 
         <div>
           <div className="mb-2 flex items-center gap-2">
-            <Icon name="characters" className="h-4 w-4 text-app-muted" />
+            <Icon name="class" className="h-4 w-4 text-app-muted" />
             <p className="text-sm font-semibold text-app-fg">Da classe</p>
           </div>
 

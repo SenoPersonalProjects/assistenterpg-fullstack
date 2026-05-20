@@ -143,7 +143,7 @@ export function SessionPlayerSummaryPanel({
         <EmptyState
           variant="session"
           size="sm"
-          icon="characters"
+          icon="character-gojo"
           title="Personagem nao encontrado"
           description="Adicione seu personagem para acompanhar a cena."
           actionLabel={podeAdicionar ? 'Adicionar meu personagem' : undefined}

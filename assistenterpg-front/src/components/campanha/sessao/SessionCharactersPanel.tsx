@@ -155,7 +155,7 @@ export function SessionCharactersPanel({
         <EmptyState
           variant="session"
           size="sm"
-          icon="characters"
+          icon="character-gojo"
           title="Sem personagens na sessao"
           description="Associe personagens na campanha para aparecerem no lobby."
         />

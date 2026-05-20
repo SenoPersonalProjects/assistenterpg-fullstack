@@ -190,7 +190,7 @@ export default function PersonagensBasePage() {
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-secondary/10 shadow-inner">
-                <Icon name="characters" className="w-8 h-8 text-app-secondary" />
+                <Icon name="character-gojo" className="w-8 h-8 text-app-secondary" />
               </div>
               <div>
                 <h1 className="text-4xl font-black text-app-fg tracking-tight">Personagens</h1>
@@ -226,7 +226,7 @@ export default function PersonagensBasePage() {
           {/* Lista e Filtros */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
-              <SectionTitle icon="characters">
+              <SectionTitle icon="character-gojo">
                 Personagens
                 <Badge color="purple" size="sm" variant="subtle" className="ml-3">
                   {totalItens}
@@ -244,7 +244,7 @@ export default function PersonagensBasePage() {
             {personagens.length === 0 ? (
               <EmptyState 
                 variant="card"
-                lottie="GHOST_SEARCH"
+                icon="character-gojo"
                 title="Nenhum personagem criado"
                 description="Você ainda não criou nenhum personagem. Crie uma ficha para usar em campanhas."
               >

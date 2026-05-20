@@ -320,7 +320,7 @@ export function CampaignCharactersSection({
       ) : personagensCampanha.length === 0 ? (
         <EmptyState
           variant="card"
-          icon="characters"
+          icon="character-gojo"
           title="Nenhum personagem associado"
           description="Associe um personagem-base para começar a jogar nesta campanha."
           size="sm"
