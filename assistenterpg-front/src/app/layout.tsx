@@ -38,7 +38,7 @@ const themeInitScript = `
       padrao: 'url("/images/logos/logo-padrao.png")',
       roxo: 'url("/images/logos/logo-roxo.png")',
       vermelho: 'url("/images/logos/logo-vermelho.png")',
-      verde: 'url("/images/logos/logo-padrao.png")'
+      verde: 'url("/images/logos/logo-verde.png")'
     };
     var theme = validThemes[stored] ? stored : defaultTheme;
 

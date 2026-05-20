@@ -54,7 +54,7 @@ const LOGO_BY_PALETTE: Record<ThemePalette, string> = {
   padrao: 'url("/images/logos/logo-padrao.png")',
   roxo: 'url("/images/logos/logo-roxo.png")',
   vermelho: 'url("/images/logos/logo-vermelho.png")',
-  verde: 'url("/images/logos/logo-padrao.png")',
+  verde: 'url("/images/logos/logo-verde.png")',
 };
 
 function isTheme(value: string | null): value is Theme {
