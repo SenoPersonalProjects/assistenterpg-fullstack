@@ -32,9 +32,9 @@ const PALETTE_OPTIONS: PaletteOption[] = [
   {
     value: 'vermelho',
     label: 'Vermelho',
-    description: 'Vermelho como cor principal, com apoio azul.',
+    description: 'Vermelho como cor principal, com apoio quente.',
     logoSrc: '/images/logos/logo-vermelho.png',
-    swatches: ['#780000', '#c1121f', '#fdf0d5', '#003049', '#669bbc'],
+    swatches: ['#780000', '#c1121f', '#ef233c', '#f43f5e', '#fdf0d5'],
   },
   {
     value: 'verde',
