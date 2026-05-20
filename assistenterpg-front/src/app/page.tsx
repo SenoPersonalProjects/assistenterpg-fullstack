@@ -8,9 +8,9 @@ import { CTASection } from '@/components/landing/CTASection';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 
 export const metadata = {
-  title: 'Assistente RPG - Era Jujutsu',
+  title: 'Assistente RPG - Maledicência RPG',
   description:
-    'Assistente completo para criação de personagens, gerenciamento de inventário e campanhas do sistema Era Jujutsu RPG Standalone.',
+    'Assistente completo para criação de personagens, gerenciamento de inventário e campanhas do sistema Maledicência RPG Standalone.',
 };
 
 export default function LandingPage() {

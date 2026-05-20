@@ -105,7 +105,7 @@ export function HeroSection() {
         <div className="landing-hero__copy perspective-1000">
           <div ref={badgeRef} className="landing-hero__badge">
             <Icon name="sparkles" className="h-4 w-4" />
-            Campanhas para o sistema de RPG de Era Jujutsu
+            Campanhas para o sistema de RPG de Maledicência RPG
           </div>
 
           <h1 ref={titleRef} className="landing-hero__title" style={{ transformOrigin: 'bottom center' }}>
@@ -114,7 +114,7 @@ export function HeroSection() {
 
           <p ref={descRef} className="landing-hero__description">
             Monte personagens, técnicas, inventário e sessões em um fluxo que parece parte do
-            próprio universo de Era Jujutsu. Deixe o sistema cuidar das regras e foque na diversão.
+            próprio universo de Maledicência RPG. Deixe o sistema cuidar das regras e foque na diversão.
           </p>
 
           <div ref={actionsRef} className="landing-hero__actions">
@@ -166,7 +166,7 @@ export function HeroSection() {
               Ritmo cinematográfico
             </span>
             <p>
-              Todos os conceitos principais de Era Jujutsu reunidos no sistema em uma experiência mais viva para o
+              Todos os conceitos principais de Maledicência RPG reunidos no sistema em uma experiência mais viva para o
               mestre e para o grupo.
             </p>
           </div>

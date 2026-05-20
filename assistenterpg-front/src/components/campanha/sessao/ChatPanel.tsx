@@ -173,7 +173,7 @@ export function ChatPanel({
   );
 
   return (
-    <div className="flex flex-col h-[600px] bg-app-bg/30 rounded-2xl border border-app-border/10">
+    <div className="relative flex h-[600px] flex-col rounded-2xl border border-app-border/10 bg-app-bg/30">
       {erro && <ErrorAlert message={erro} className="rounded-none border-0 border-b border-app-danger/20" />}
 
       <div

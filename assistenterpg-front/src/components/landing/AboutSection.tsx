@@ -21,7 +21,7 @@ export function AboutSection() {
   const container = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
   const statsRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useGSAP(() => {
@@ -87,15 +87,18 @@ export function AboutSection() {
 
           <div ref={mediaRef} className="landing-about__media group">
             <div className="landing-about__image overflow-hidden rounded-[2rem]">
-              <Image
+              <div
                 ref={imageRef}
-                src={landingImages.aboutYouth}
-                alt="Trio jovem de feiticeiros"
-                fill
-                sizes="(max-width: 1024px) 100vw, 48vw"
-                className="landing-about__image-file group-hover:scale-105 transition-transform duration-1000"
-                style={{ height: '115%', top: '-7.5%' }} // Extra height for parallax
-              />
+                className="absolute inset-x-0 -top-[7.5%] h-[115%] transition-transform duration-1000 group-hover:scale-105"
+              >
+                <Image
+                  src={landingImages.aboutYouth}
+                  alt="Trio jovem de feiticeiros"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 48vw"
+                  className="landing-about__image-file"
+                />
+              </div>
               <div className="landing-about__image-overlay group-hover:opacity-80 transition-opacity duration-700" />
             </div>
 

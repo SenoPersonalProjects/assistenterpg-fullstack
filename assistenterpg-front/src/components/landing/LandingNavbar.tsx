@@ -75,7 +75,7 @@ export function LandingNavbar() {
           </div>
           <div className="landing-navbar__brand-copy">
             <span className="landing-navbar__brand-title group-hover:text-app-primary transition-colors">Assistente RPG</span>
-            <span className="landing-navbar__brand-subtitle">Era Jujutsu</span>
+            <span className="landing-navbar__brand-subtitle">Maledicência RPG</span>
           </div>
         </a>
 

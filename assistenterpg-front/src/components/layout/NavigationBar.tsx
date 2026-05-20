@@ -135,7 +135,7 @@ export function NavigationBar() {
                 Assistente <span className="text-app-primary">RPG</span>
               </span>
               <span className="block text-[10px] uppercase font-bold tracking-[0.2em] text-app-muted leading-none">
-                Era Jujutsu
+                Maledicência RPG
               </span>
             </div>
           </Link>

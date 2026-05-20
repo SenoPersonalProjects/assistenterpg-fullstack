@@ -299,7 +299,7 @@ export default function SuplementosPage() {
                 O que são Suplementos?
               </h3>
               <p className="text-app-muted font-medium leading-relaxed max-w-2xl">
-                Suplementos são conteúdos oficiais que adicionam novas opções ao sistema Era Jujutsu RPG: clãs, classes, trilhas, equipamentos e mais.
+                Suplementos são conteúdos oficiais que adicionam novas opções ao sistema Maledicência RPG: clãs, classes, trilhas, equipamentos e mais.
               </p>
               <div className="grid sm:grid-cols-3 gap-6">
                 {[

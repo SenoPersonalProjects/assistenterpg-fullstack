@@ -15,7 +15,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 export function CTASection() {
   const container = useRef<HTMLElement>(null);
-  const bgRef = useRef<HTMLImageElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
@@ -50,16 +50,16 @@ export function CTASection() {
   return (
     <section ref={container} id="cta" className="landing-cta overflow-hidden">
       <div className="landing-cta__media">
-        <Image
-          ref={bgRef}
-          src={landingImages.ctaGif}
-          alt="Malevolent Shrine dominando o campo"
-          fill
-          unoptimized
-          sizes="100vw"
-          className="landing-cta__media-file"
-          style={{ height: '120%', top: '-10%' }}
-        />
+        <div ref={bgRef} className="absolute inset-x-0 -top-[10%] h-[120%]">
+          <Image
+            src={landingImages.ctaGif}
+            alt="Malevolent Shrine dominando o campo"
+            fill
+            unoptimized
+            sizes="100vw"
+            className="landing-cta__media-file"
+          />
+        </div>
       </div>
       <div className="landing-cta__overlay transition-opacity duration-1000 hover:bg-black/60" />
 

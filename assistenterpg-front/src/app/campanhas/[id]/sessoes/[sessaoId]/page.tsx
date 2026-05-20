@@ -55,7 +55,10 @@ import { SessionCharactersPanel } from '@/components/campanha/sessao/SessionChar
 import { SessionOperationalBar } from '@/components/campanha/sessao/SessionOperationalBar';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { SessionInitiativePanel } from '@/components/campanha/sessao/SessionInitiativePanel';
-import { SessionMasterControls } from '@/components/campanha/sessao/SessionMasterControls';
+import {
+  SessionSceneControlPanel,
+  SessionTableOperationsPanel,
+} from '@/components/campanha/sessao/SessionMasterControls';
 import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
@@ -1958,12 +1961,12 @@ export default function SessaoCampanhaPage() {
       return 'grid gap-4 xl:grid-cols-1';
     }
     if (colunaEsquerdaRecolhida) {
-      return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(360px,0.88fr)]';
+      return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(400px,0.9fr)]';
     }
     if (colunaDireitaRecolhida) {
       return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)]';
     }
-    return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)_minmax(350px,0.83fr)]';
+    return 'grid gap-4 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1.05fr)_minmax(400px,0.9fr)]';
   }, [colunaDireitaRecolhida, colunaEsquerdaRecolhida]);
   const condicoesFiltradasModal = useMemo(() => {
     if (!buscaCondicoesModal.trim()) return catalogoCondicoes;
@@ -2227,6 +2230,38 @@ export default function SessaoCampanhaPage() {
       </main>
     );
   }
+
+  const painelControleCena = (
+    <SessionSceneControlPanel
+      podeControlarSessao={podeControlarSessao}
+      sessaoEncerrada={sessaoEncerrada}
+      cenaTipo={cenaTipo}
+      cenaNome={cenaNome}
+      opcoesCena={OPCOES_CENA}
+      atualizandoCena={atualizandoCena}
+      erroCena={erroCena}
+      limitesCategoriaAtivo={limitesCategoriaAtivo}
+      onCenaTipoChange={handleCenaTipoChange}
+      onCenaNomeChange={setCenaNome}
+      onAtualizarCena={() =>
+        void handleAtualizarCena(cenaTipo, cenaNome, limitesCategoriaAtivo)
+      }
+      onToggleLimitesCategoria={setLimitesCategoriaAtivo}
+    />
+  );
+
+  const painelOperacoesMesa = (
+    <SessionTableOperationsPanel
+      sessaoEncerrada={sessaoEncerrada}
+      controleTurnosAtivo={detalhe.controleTurnosAtivo}
+      acaoTurnoPendente={acaoTurnoPendente}
+      encerrandoSessao={encerrandoSessao}
+      erroTurnos={erroTurnos}
+      erroEncerramento={erroEncerramento}
+      onControleTurno={(acao) => void handleControleTurno(acao)}
+      onSolicitarEncerrarSessao={() => setConfirmarEncerrarSessaoAberto(true)}
+    />
+  );
 
   return (
     <main ref={shellRef} className="session-page-shell min-h-screen bg-app-bg px-4 py-6 md:px-6 lg:px-8">
@@ -2527,35 +2562,10 @@ export default function SessaoCampanhaPage() {
             />
 
             {podeControlarSessao ? (
-              <SessionMasterControls
-                podeControlarSessao={podeControlarSessao}
-                sessaoEncerrada={sessaoEncerrada}
-                controleTurnosAtivo={detalhe.controleTurnosAtivo}
-                cenaTipo={cenaTipo}
-                cenaNome={cenaNome}
-                opcoesCena={OPCOES_CENA}
-                atualizandoCena={atualizandoCena}
-                acaoTurnoPendente={acaoTurnoPendente}
-                encerrandoSessao={encerrandoSessao}
-                erroCena={erroCena}
-                erroTurnos={erroTurnos}
-                erroEncerramento={erroEncerramento}
-                limitesCategoriaAtivo={limitesCategoriaAtivo}
-                onCenaTipoChange={handleCenaTipoChange}
-                onCenaNomeChange={setCenaNome}
-                onAtualizarCena={() =>
-                  void handleAtualizarCena(
-                    cenaTipo,
-                    cenaNome,
-                    limitesCategoriaAtivo,
-                  )
-                }
-                onControleTurno={(acao) => void handleControleTurno(acao)}
-                onSolicitarEncerrarSessao={() =>
-                  setConfirmarEncerrarSessaoAberto(true)
-                }
-                onToggleLimitesCategoria={setLimitesCategoriaAtivo}
-              />
+              <>
+                {painelControleCena}
+                {colunaDireitaRecolhida ? painelOperacoesMesa : null}
+              </>
             ) : (
               <SessionSceneRosterPanel
                 cards={cards}
@@ -2618,6 +2628,7 @@ export default function SessaoCampanhaPage() {
                 }
                 realtimeStatus={realtimeStatus}
               />
+              {podeControlarSessao ? painelOperacoesMesa : null}
             </section>
           ) : null}
         </div>

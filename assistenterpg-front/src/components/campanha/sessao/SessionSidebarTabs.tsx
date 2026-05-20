@@ -46,7 +46,7 @@ export function SessionSidebarTabs({
     { id: 'rolagens', label: 'Rolagens', icon: 'dice', count: totalRolagens },
     {
       id: 'anotacoes',
-      label: 'Anotacoes',
+      label: 'Anotações',
       icon: 'scroll',
       count: totalAnotacoes,
     },
@@ -60,7 +60,7 @@ export function SessionSidebarTabs({
   if (mostrarRelatorio) {
     tabs.push({
       id: 'relatorio',
-      label: 'Relatorio',
+      label: 'Relatório',
       icon: 'scroll',
       count: totalRelatorio,
     });

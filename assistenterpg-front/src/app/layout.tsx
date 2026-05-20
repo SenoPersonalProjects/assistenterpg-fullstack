@@ -11,8 +11,8 @@ import { ConditionalNav } from '@/components/layout/ConditionalNav';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 
 export const metadata: Metadata = {
-  title: 'Assistente RPG - Era Jujutsu',
-  description: 'Sistema completo para gerenciar personagens e campanhas de Era Jujutsu RPG',
+  title: 'Assistente RPG - Maledicência RPG',
+  description: 'Sistema completo para gerenciar personagens e campanhas de Maledicência RPG',
   icons: {
     icon: '/images/logos/logo-padrao.png',
   },

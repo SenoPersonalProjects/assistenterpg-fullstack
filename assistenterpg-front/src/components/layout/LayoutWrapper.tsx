@@ -19,7 +19,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-app-bg p-8">
-        <Loading variant="dice" size="lg" message="Sintonizando sua energia..." />
+        <Loading variant="dice" size="lg" message="Entoando encantamentos..." />
       </div>
     );
   }
