@@ -401,6 +401,167 @@
   --orange-hover: #f97316;
 }
 
+.theme-padrao.theme-superdark {
+  --bg: #010409;
+  --bg-surface: #030913;
+  --bg-surface-rgb: 3, 9, 19;
+
+  --primary-rgb: 79, 214, 255;
+  --danger-rgb: 239, 68, 68;
+
+  --bg-card: #050b16;
+  --bg-muted: #02060d;
+  --bg-alert: #04101d;
+
+  --border-subtle: #0f2233;
+
+  --fg: #f5fbff;
+  --fg-muted: #8fa2b8;
+
+  --primary: #4fd6ff;
+  --primary-hover: #7ee3ff;
+
+  --secondary: #7c3aed;
+  --secondary-hover: #9b8cff;
+
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+
+  --success: #22c55e;
+  --success-hover: #16a34a;
+
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+
+  --info: #22d3ee;
+  --info-hover: #06b6d4;
+
+  --orange: #fb923c;
+  --orange-hover: #f97316;
+}
+
+.theme-roxo.theme-superdark {
+  --bg: #030108;
+  --bg-surface: #080311;
+  --bg-surface-rgb: 8, 3, 17;
+
+  --primary-rgb: 124, 92, 252;
+  --danger-rgb: 239, 68, 68;
+
+  --bg-card: #0b0616;
+  --bg-muted: #05020b;
+  --bg-alert: #0d0618;
+
+  --border-subtle: #1d1233;
+
+  --fg: #fbf8ff;
+  --fg-muted: #b4a6d1;
+
+  --primary: #7c5cfc;
+  --primary-hover: #9b8cff;
+
+  --secondary: #9b4de0;
+  --secondary-hover: #b36cff;
+
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+
+  --success: #22c55e;
+  --success-hover: #16a34a;
+
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+
+  --info: #22d3ee;
+  --info-hover: #06b6d4;
+
+  --orange: #fb923c;
+  --orange-hover: #f97316;
+
+  --gradient-hero-from: #030108;
+  --gradient-hero-via: #080311;
+  --gradient-hero-to: #030108;
+  --overlay-subtle: rgba(124, 92, 252, 0.12);
+}
+
+.theme-vermelho.theme-superdark {
+  --bg: #050101;
+  --bg-surface: #0b0304;
+  --bg-surface-rgb: 11, 3, 4;
+
+  --primary-rgb: 193, 18, 31;
+  --danger-rgb: 255, 107, 107;
+
+  --bg-card: #100405;
+  --bg-muted: #070202;
+  --bg-alert: #120506;
+
+  --border-subtle: #271015;
+
+  --fg: #fff6e6;
+  --fg-muted: #d7b9a0;
+
+  --primary: #c1121f;
+  --primary-hover: #ef233c;
+
+  --secondary: #669bbc;
+  --secondary-hover: #8bb8d2;
+
+  --danger: #ff6b6b;
+  --danger-hover: #ef4444;
+
+  --success: #22c55e;
+  --success-hover: #16a34a;
+
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+
+  --info: #669bbc;
+  --info-hover: #8bb8d2;
+
+  --orange: #fb923c;
+  --orange-hover: #f97316;
+}
+
+.theme-verde.theme-superdark {
+  --bg: #010501;
+  --bg-surface: #040904;
+  --bg-surface-rgb: 4, 9, 4;
+
+  --primary-rgb: 22, 219, 101;
+  --danger-rgb: 255, 107, 107;
+
+  --bg-card: #071007;
+  --bg-muted: #030703;
+  --bg-alert: #071207;
+
+  --border-subtle: #142516;
+
+  --fg: #f4fff6;
+  --fg-muted: #a7bea9;
+
+  --primary: #16db65;
+  --primary-hover: #45f087;
+
+  --secondary: #119da4;
+  --secondary-hover: #35c4cb;
+
+  --danger: #ff6b6b;
+  --danger-hover: #ef4444;
+
+  --success: #16db65;
+  --success-hover: #45f087;
+
+  --warning: #b7a060;
+  --warning-hover: #998650;
+
+  --info: #119da4;
+  --info-hover: #35c4cb;
+
+  --orange: #fb923c;
+  --orange-hover: #f97316;
+}
+
 /* Mapeia tokens para nomes que o Tailwind entende */
 @theme inline {
   --color-app-bg: var(--bg);

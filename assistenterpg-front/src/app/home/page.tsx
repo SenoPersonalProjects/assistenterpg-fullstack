@@ -174,7 +174,7 @@ export default function HomePage() {
                 <div className="w-16 h-16 bg-app-surface rounded-full flex items-center justify-center mb-4 shadow-inner">
                   <Icon name="campaign" className="w-8 h-8 text-app-muted" />
                 </div>
-                <p className="text-app-muted font-medium mb-6">Nenhuma campanha por aqui ainda, mermão.</p>
+                <p className="text-app-muted font-medium mb-6">Nenhuma campanha por aqui ainda.</p>
                 <Link href="/campanhas">
                   <Button variant="primary" className="shadow-lg shadow-app-primary/30">
                     <Icon name="add" className="w-4 h-4 mr-2" />

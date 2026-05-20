@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export type ThemePalette = 'padrao' | 'roxo' | 'vermelho' | 'verde';
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark' | 'superdark';
 export type Theme = `${ThemePalette}-${ThemeMode}`;
 export type LegacyTheme = 'light' | 'dark' | 'jujutsu' | 'padrao';
 export type ThemeInput = Theme | LegacyTheme;
@@ -36,18 +36,23 @@ const THEME_CLASS_NAMES = [
   'theme-verde',
   'theme-light',
   'theme-dark',
+  'theme-superdark',
   'theme-jujutsu',
 ] as const;
 
 const THEME_LABELS: Record<Theme, string> = {
-  'padrao-light': 'Padrão claro',
-  'padrao-dark': 'Padrão escuro',
+  'padrao-light': 'Padrao claro',
+  'padrao-dark': 'Padrao escuro',
+  'padrao-superdark': 'Padrao superescuro',
   'roxo-light': 'Roxo claro',
   'roxo-dark': 'Roxo escuro',
+  'roxo-superdark': 'Roxo superescuro',
   'vermelho-light': 'Vermelho claro',
   'vermelho-dark': 'Vermelho escuro',
+  'vermelho-superdark': 'Vermelho superescuro',
   'verde-light': 'Verde claro',
   'verde-dark': 'Verde escuro',
+  'verde-superdark': 'Verde superescuro',
 };
 
 const LOGO_BY_PALETTE: Record<ThemePalette, string> = {
@@ -78,6 +83,12 @@ function splitTheme(theme: Theme): ThemeOption {
   };
 }
 
+function nextThemeMode(mode: ThemeMode): ThemeMode {
+  if (mode === 'light') return 'dark';
+  if (mode === 'dark') return 'superdark';
+  return 'light';
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === 'undefined') return DEFAULT_THEME;
@@ -89,7 +100,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return;
     const root = document.documentElement;
     root.classList.remove(...THEME_CLASS_NAMES);
-    root.classList.toggle('dark', mode === 'dark');
+    root.classList.toggle('dark', mode === 'dark' || mode === 'superdark');
     root.classList.add(`theme-${palette}`, `theme-${mode}`);
     root.dataset.theme = theme;
     root.dataset.themePalette = palette;
@@ -119,7 +130,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     setThemeState((currentTheme) => {
       const current = splitTheme(currentTheme);
-      return `${current.palette}-${current.mode === 'dark' ? 'light' : 'dark'}`;
+      return `${current.palette}-${nextThemeMode(current.mode)}`;
     });
   };
 

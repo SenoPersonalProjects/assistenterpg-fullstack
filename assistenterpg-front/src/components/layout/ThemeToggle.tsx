@@ -7,7 +7,9 @@ import { useTheme } from '@/context/ThemeContext';
 
 export function ThemeToggle() {
   const { mode, themeLabel, toggleTheme } = useTheme();
-  const proximoModo = mode === 'dark' ? 'claro' : 'escuro';
+  const proximoModo =
+    mode === 'light' ? 'escuro' : mode === 'dark' ? 'superescuro' : 'claro';
+  const iconName = mode === 'light' ? 'sun' : 'moon';
 
   return (
     <Button
@@ -16,7 +18,7 @@ export function ThemeToggle() {
       className="px-2 py-1 text-xs"
       title={`Alternar para modo ${proximoModo}`}
     >
-      <Icon name={mode === 'dark' ? 'moon' : 'sun'} className="mr-1 h-3.5 w-3.5" />
+      <Icon name={iconName} className="mr-1 h-3.5 w-3.5" />
       {themeLabel}
     </Button>
   );

@@ -27,12 +27,16 @@ const themeInitScript = `
     var validThemes = {
       'padrao-light': true,
       'padrao-dark': true,
+      'padrao-superdark': true,
       'roxo-light': true,
       'roxo-dark': true,
+      'roxo-superdark': true,
       'vermelho-light': true,
       'vermelho-dark': true,
+      'vermelho-superdark': true,
       'verde-light': true,
-      'verde-dark': true
+      'verde-dark': true,
+      'verde-superdark': true
     };
     var logoByPalette = {
       padrao: 'url("/images/logos/logo-padrao.png")',
@@ -58,9 +62,10 @@ const themeInitScript = `
       'theme-verde',
       'theme-light',
       'theme-dark',
+      'theme-superdark',
       'theme-jujutsu'
     );
-    root.classList.toggle('dark', mode === 'dark');
+    root.classList.toggle('dark', mode === 'dark' || mode === 'superdark');
     root.classList.add('theme-' + palette, 'theme-' + mode);
     root.dataset.theme = theme;
     root.dataset.themePalette = palette;
