@@ -104,8 +104,8 @@ export function HeroSection() {
       <div className="landing-hero__content">
         <div className="landing-hero__copy perspective-1000">
           <div ref={badgeRef} className="landing-hero__badge">
-            <Icon name="sparkles" className="h-4 w-4" />
-            Campanhas para o sistema de RPG de Maledicência RPG
+            <Icon name="scroll" className="h-4 w-4" />
+            <span>Maledicência RPG</span>
           </div>
 
           <h1 ref={titleRef} className="landing-hero__title" style={{ transformOrigin: 'bottom center' }}>

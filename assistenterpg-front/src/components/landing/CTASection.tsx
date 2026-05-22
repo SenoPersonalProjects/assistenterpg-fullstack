@@ -67,12 +67,14 @@ export function CTASection() {
         <LandingSectionDivider />
 
         <div ref={contentRef} className="landing-cta__content">
-          <div className="landing-cta__badge hover:scale-110 hover:rotate-12 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-            <Icon name="rank" className="h-5 w-5" />
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <span className="h-[2px] w-12 bg-app-primary opacity-80" />
+            <span className="text-app-primary font-black uppercase tracking-[0.3em] text-sm" style={{ textShadow: '0 0 10px rgba(var(--primary-rgb), 0.5)' }}>Comece agora</span>
+            <span className="h-[2px] w-12 bg-app-primary opacity-80" />
           </div>
 
           <h2 className="bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">
-            Libere sua expansão de domínio e jogue campanhas memoráveis!
+            Comece sua próxima campanha com tudo organizado.
           </h2>
 
           <p>

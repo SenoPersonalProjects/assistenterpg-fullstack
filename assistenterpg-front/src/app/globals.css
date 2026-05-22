@@ -1082,7 +1082,7 @@ body {
 }
 
 @utility landing-hero__badge {
-  @apply inline-flex items-center gap-2 px-4 py-2 rounded-full bg-app-primary/10 border border-app-primary/20 text-app-primary text-xs font-black uppercase tracking-widest mb-6;
+  @apply inline-flex items-center gap-2.5 px-5 py-1.5 bg-app-primary/10 border-l-2 border-r-2 border-app-primary/50 text-app-primary text-xs font-black uppercase tracking-[0.2em] mb-6 shadow-[0_0_20px_rgba(var(--primary-rgb),0.15)] backdrop-blur-sm;
 }
 
 @utility landing-hero__title {
@@ -1133,7 +1133,16 @@ body {
 }
 
 @utility landing-section__eyebrow {
-  @apply block text-xs font-black text-app-primary uppercase tracking-[0.3em] mb-4;
+  @apply inline-flex items-center gap-3 text-xs font-black text-app-primary uppercase tracking-[0.3em] mb-6;
+}
+
+.landing-section__eyebrow::before,
+.landing-section__eyebrow::after {
+  content: "";
+  height: 2px;
+  width: 1.5rem;
+  background-color: currentColor;
+  opacity: 0.5;
 }
 
 @utility landing-section__title {
