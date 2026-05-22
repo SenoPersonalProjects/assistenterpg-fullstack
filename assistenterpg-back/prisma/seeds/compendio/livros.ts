@@ -13,7 +13,7 @@ import {
 const LIVRO_PRINCIPAL_MARKDOWN_PATH = join(
   __dirname,
   'assets',
-  'Jujutsu_Kaisen_RPG_Standalone_REVISADO.docx.md',
+  'Maledicencia_RPG_1_1.docx.md',
 );
 
 const sobrevivendoAoJujutsu: LivroSeed = {

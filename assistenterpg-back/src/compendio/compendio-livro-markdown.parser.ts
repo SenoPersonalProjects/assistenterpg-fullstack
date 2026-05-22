@@ -318,7 +318,7 @@ function createSubcategoria(params: {
   const palavrasChave = createPalavrasChave(
     params.nome,
     params.categoriaNome,
-    'Jujutsu Kaisen RPG',
+    'Maledicencia RPG',
   );
 
   return {
@@ -456,10 +456,10 @@ function createIntroCategory(categorias: CategoriaSeed[]): CategoriaSeed {
     subcategorias: [
       createSubcategoria({
         codigo,
-        nome: 'Livro Principal v1.0',
+        nome: 'Livro Principal v1.1',
         descricao: 'Versao e sumario navegavel do livro principal.',
         ordem: 1,
-        markdown: `# Livro Principal v1.0\n\n## Sumário\n\n${summaryItems.join('\n')}`,
+        markdown: `# Livro Principal v1.1\n\n## Sumário\n\n${summaryItems.join('\n')}`,
         categoriaCodigo: codigo,
         categoriaNome: 'Apresentacao e Sumario',
         chapterNumber: 1,
@@ -500,7 +500,7 @@ export function parseLivroPrincipalMarkdown(markdown: string): LivroSeed {
   return {
     codigo: 'livro-principal',
     titulo: 'Livro Principal',
-    descricao: 'Regras principais revisadas do sistema Jujutsu Kaisen RPG.',
+    descricao: 'Regras principais revisadas do sistema Maledicencia RPG.',
     icone: 'rules',
     cor: '#7c5cfc',
     ordem: 1,
