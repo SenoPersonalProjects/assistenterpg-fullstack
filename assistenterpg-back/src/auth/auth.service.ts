@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { RoleUsuario, TipoTokenAuth } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import type { Request, Response } from 'express';
 import {
   AuthEmailNaoVerificadoException,
   CredenciaisInvalidasException,
@@ -10,6 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 import { UsuarioService } from '../usuario/usuario.service';
 import { AuthTokenService } from './auth-token.service';
 import { AuthMailService } from './auth-mail.service';
+import { AuthSessionService } from './auth-session.service';
 
 const MENSAGEM_RECUPERACAO =
   'Se o email existir, enviaremos as instrucoes de recuperacao.';
@@ -30,9 +31,9 @@ export class AuthService {
 
   constructor(
     private readonly usuarioService: UsuarioService,
-    private readonly jwtService: JwtService,
     private readonly authTokenService: AuthTokenService,
     private readonly authMailService: AuthMailService,
+    private readonly authSessionService: AuthSessionService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -82,18 +83,25 @@ export class AuthService {
     return usuarioSemSenha;
   }
 
-  async login(usuario: {
-    id: number;
-    email: string;
-    apelido: string;
-    role: RoleUsuario;
-    emailVerificadoEm?: Date | null;
-  }) {
-    const payload = { sub: usuario.id, email: usuario.email };
-    const token = await this.jwtService.signAsync(payload);
-
+  async login(
+    usuario: {
+      id: number;
+      email: string;
+      apelido: string;
+      role: RoleUsuario;
+      emailVerificadoEm?: Date | null;
+    },
+    rememberMe: boolean,
+    request: Request,
+    response: Response,
+  ) {
+    await this.authSessionService.criarSessao(
+      usuario,
+      rememberMe,
+      request,
+      response,
+    );
     return {
-      access_token: token,
       usuario: {
         id: usuario.id,
         email: usuario.email,

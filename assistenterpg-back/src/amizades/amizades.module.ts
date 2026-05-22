@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { resolveJwtSecret } from 'src/auth/auth-security.config';
+import { AuthSessionService } from 'src/auth/auth-session.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { AmizadesController } from './amizades.controller';
 import { AmizadesService } from './amizades.service';
@@ -13,22 +15,19 @@ import { PresencaService } from './presenca.service';
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const secret = configService.get<string>('JWT_SECRET');
-
-        if (!secret && configService.get<string>('NODE_ENV') === 'production') {
-          throw new Error('JWT_SECRET e obrigatorio em producao');
-        }
-
-        return {
-          secret: secret || 'dev-secret',
-        };
-      },
+      useFactory: (configService: ConfigService) => ({
+        secret: resolveJwtSecret(configService),
+      }),
       inject: [ConfigService],
     }),
   ],
   controllers: [AmizadesController],
-  providers: [AmizadesService, PresencaGateway, PresencaService],
+  providers: [
+    AmizadesService,
+    PresencaGateway,
+    PresencaService,
+    AuthSessionService,
+  ],
   exports: [AmizadesService, PresencaService],
 })
 export class AmizadesModule {}

@@ -1,42 +1,32 @@
-// src/lib/utils/auth.ts
-/**
- * Utilitários de autenticação (SPA + Bearer)
- * Estratégia oficial do front: token salvo no localStorage (lembrar) ou sessionStorage.
- */
+const LEGACY_TOKEN_KEY = 'assistenterpg_token';
+export const AUTH_HINT_COOKIE = 'assistenterpg_auth_hint';
+const AUTH_HINT_MAX_AGE = 60 * 60 * 24 * 7;
 
-const TOKEN_KEY = 'assistenterpg_token';
-
-/**
- * ✅ Salva token no localStorage
- */
-export function saveToken(token: string, persist = true) {
-  if (typeof window === 'undefined') return;
-
-  if (persist) {
-    localStorage.setItem(TOKEN_KEY, token);
-    sessionStorage.removeItem(TOKEN_KEY);
-    return;
-  }
-
-  sessionStorage.setItem(TOKEN_KEY, token);
-  localStorage.removeItem(TOKEN_KEY);
+function secureCookieFlag() {
+  return window.location.protocol === 'https:' ? '; Secure' : '';
 }
 
-/**
- * ✅ Busca token do localStorage
- */
-export function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-
-  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
-}
-
-/**
- * ✅ Limpa token do localStorage
- */
-export function clearToken() {
+export function setAuthHintCookie() {
   if (typeof window === 'undefined') return;
 
-  localStorage.removeItem(TOKEN_KEY);
-  sessionStorage.removeItem(TOKEN_KEY);
+  document.cookie = `${AUTH_HINT_COOKIE}=1; Path=/; SameSite=Lax; Max-Age=${AUTH_HINT_MAX_AGE}${secureCookieFlag()}`;
+}
+
+export function clearAuthHintCookie() {
+  if (typeof window === 'undefined') return;
+
+  document.cookie = `${AUTH_HINT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secureCookieFlag()}`;
+}
+
+export function clearLegacyAuthStorage() {
+  if (typeof window === 'undefined') return;
+
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+  document.cookie = `${LEGACY_TOKEN_KEY}=; Path=/; Max-Age=0; SameSite=Lax${secureCookieFlag()}`;
+}
+
+export function clearClientAuthMarkers() {
+  clearLegacyAuthStorage();
+  clearAuthHintCookie();
 }

@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
@@ -10,6 +11,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import {
+  AUTH_ACCESS_COOKIE,
+  isBearerFallbackEnabled,
+  parseCookieHeader,
+} from 'src/auth/auth-security.config';
+import { AuthSessionService } from 'src/auth/auth-session.service';
+import { createCorsOptions } from 'src/common/config/security.config';
 import { SessaoService } from './sessao.service';
 
 type SocketAutenticado = Socket & {
@@ -53,24 +61,9 @@ type EventoSessaoPresenca = {
   em: string;
 };
 
-function resolverCorsOrigins(): string[] | boolean {
-  const bruto = process.env.CORS_ORIGINS;
-  if (!bruto) return true;
-
-  const origens = bruto
-    .split(',')
-    .map((origem) => origem.trim())
-    .filter(Boolean);
-
-  return origens.length > 0 ? origens : true;
-}
-
 @WebSocketGateway({
   namespace: '/sessoes',
-  cors: {
-    origin: resolverCorsOrigins(),
-    credentials: true,
-  },
+  cors: createCorsOptions(),
 })
 export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(SessaoGateway.name);
@@ -84,9 +77,11 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly sessaoService: SessaoService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly authSessionService: AuthSessionService,
   ) {}
 
-  handleConnection(client: SocketAutenticado): void {
+  async handleConnection(client: SocketAutenticado): Promise<void> {
     const token = this.extrairToken(client);
     if (!token) {
       client.disconnect(true);
@@ -94,7 +89,15 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      const payload = this.jwtService.verify<{ sub: number }>(token);
+      const payload = this.jwtService.verify<{ sub: number; sid?: number }>(
+        token,
+      );
+      if (typeof payload.sid === 'number') {
+        await this.authSessionService.validarSessaoAccess(
+          payload.sid,
+          payload.sub,
+        );
+      }
       this.definirUsuarioId(client, payload.sub);
     } catch {
       this.logger.warn(`Socket desconectado por token invalido: ${client.id}`);
@@ -266,6 +269,14 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private extrairToken(client: SocketAutenticado): string | null {
+    const cookies = parseCookieHeader(client.handshake.headers.cookie);
+    const cookieToken = cookies[AUTH_ACCESS_COOKIE];
+    if (cookieToken) return cookieToken;
+
+    if (!isBearerFallbackEnabled(this.configService)) {
+      return null;
+    }
+
     const authHeader = client.handshake.headers.authorization;
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       return authHeader.slice(7).trim();

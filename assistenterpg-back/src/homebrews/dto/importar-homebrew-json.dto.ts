@@ -1,14 +1,17 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsInt,
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
 } from 'class-validator';
 
 export class ImportarHomebrewJsonDto {
   @IsString()
+  @MaxLength(64)
   exportType!: string;
 
   @IsInt()
@@ -17,6 +20,7 @@ export class ImportarHomebrewJsonDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(64)
   exportedAt?: string;
 
   @IsOptional()
@@ -29,5 +33,6 @@ export class ImportarHomebrewJsonDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(100)
   items?: Record<string, unknown>[];
 }

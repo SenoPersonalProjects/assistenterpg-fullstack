@@ -25,6 +25,7 @@ import {
   HomebrewSemPermissaoException,
 } from 'src/common/exceptions/homebrew.exception';
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
+import { ValidationException } from 'src/common/exceptions/validation.exception';
 
 import { validateHomebrewDados } from './validators/validate-homebrew-dados';
 import { validateHomebrewTecnicaCustom } from './validators/validate-homebrew-tecnica';
@@ -108,11 +109,15 @@ export class HomebrewsService {
   }
 
   private extrairMensagensValidacao(error: unknown): string[] | null {
+    if (!(error instanceof ValidationException)) {
+      return null;
+    }
+
     if (typeof error !== 'object' || error === null || !('response' in error)) {
       return null;
     }
 
-    const response = (error as { response?: unknown }).response;
+    const response = error.getResponse();
     if (
       typeof response !== 'object' ||
       response === null ||

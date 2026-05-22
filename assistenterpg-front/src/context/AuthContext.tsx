@@ -9,9 +9,25 @@ import {
   useEffect,
   useState,
 } from 'react';
-import { apiGetMe, apiLogin, apiRegister, LoginResponse } from '@/lib/api';
-import { clearToken, getToken, saveToken } from '@/lib/utils/auth';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  apiGetMe,
+  apiGetMeSilencioso,
+  apiLogin,
+  apiLogout,
+  apiRegister,
+  LoginResponse,
+} from '@/lib/api';
+import {
+  clearAuthClientState,
+  refreshAuthSession,
+} from '@/lib/api/axios-client';
+import {
+  clearLegacyAuthStorage,
+  setAuthHintCookie,
+} from '@/lib/utils/auth';
+
+const SESSION_ACTIVE_TOKEN = 'cookie-session';
 
 type Usuario = {
   id: number;
@@ -32,8 +48,26 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function normalizarUsuario(u: {
+  id: number;
+  apelido: string;
+  email: string;
+  role: string;
+  emailVerificado?: boolean;
+  emailVerificadoEm?: string | null;
+}): Usuario {
+  return {
+    id: u.id,
+    apelido: u.apelido,
+    email: u.email,
+    role: u.role,
+    emailVerificado: Boolean(u.emailVerificado ?? u.emailVerificadoEm),
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,35 +76,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let active = true;
 
     const bootstrapAuth = async () => {
-      const storedToken = getToken();
-
-      if (!storedToken) {
-        if (active) {
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (active) {
-        setToken(storedToken);
-      }
+      clearLegacyAuthStorage();
 
       try {
-        const u = await apiGetMe();
-        if (active) {
-          setUsuario({
-            id: u.id,
-            apelido: u.apelido,
-            email: u.email,
-            role: u.role,
-            emailVerificado: Boolean(u.emailVerificadoEm),
-          });
+        const u = await apiGetMeSilencioso();
+        if (!active) return;
+
+        setUsuario(normalizarUsuario(u));
+        setToken(SESSION_ACTIVE_TOKEN);
+        setAuthHintCookie();
+
+        if (pathname === '/' || pathname.startsWith('/auth')) {
+          router.replace('/home');
         }
       } catch {
-        clearToken();
-        if (active) {
-          setToken(null);
-          setUsuario(null);
+        try {
+          await refreshAuthSession();
+          const u = await apiGetMe();
+          if (!active) return;
+
+          setUsuario(normalizarUsuario(u));
+          setToken(SESSION_ACTIVE_TOKEN);
+          setAuthHintCookie();
+
+          if (pathname === '/' || pathname.startsWith('/auth')) {
+            router.replace('/home');
+          }
+        } catch {
+          clearAuthClientState();
+          if (active) {
+            setToken(null);
+            setUsuario(null);
+          }
         }
       } finally {
         if (active) {
@@ -84,16 +121,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [pathname, router]);
 
   const login = useCallback(
     async (email: string, senha: string, rememberMe = true) => {
       setLoading(true);
       try {
-        const resp: LoginResponse = await apiLogin(email, senha);
-        saveToken(resp.access_token, rememberMe);
-        setToken(resp.access_token);
-        setUsuario(resp.usuario);
+        const resp: LoginResponse = await apiLogin(email, senha, rememberMe);
+        setToken(SESSION_ACTIVE_TOKEN);
+        setUsuario(normalizarUsuario(resp.usuario));
+        setAuthHintCookie();
         router.push('/home');
       } finally {
         setLoading(false);
@@ -111,11 +148,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(() => {
-    clearToken();
-    setToken(null);
-    setUsuario(null);
-    setLoading(false);
-    router.push('/auth/login');
+    void apiLogout().finally(() => {
+      clearAuthClientState();
+      setToken(null);
+      setUsuario(null);
+      setLoading(false);
+      router.push('/auth/login');
+    });
   }, [router]);
 
   return (

@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { AUTH_PASSWORD_MIN_LENGTH } from '../auth-security.config';
 
 export class ResetPasswordDto {
   @IsString()
@@ -7,6 +8,6 @@ export class ResetPasswordDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  @MinLength(AUTH_PASSWORD_MIN_LENGTH)
   novaSenha: string;
 }

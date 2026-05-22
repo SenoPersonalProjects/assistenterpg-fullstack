@@ -3,11 +3,23 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import {
+  createCorsOptions,
+  createHelmetOptions,
+  isSwaggerEnabled,
+  resolveCorsOrigins,
+} from './common/config/security.config';
+
+type ExpressLikeApp = {
+  disable?: (setting: string) => void;
+};
 
 function isPortInUseError(error: unknown): boolean {
   return (
@@ -68,16 +80,15 @@ async function listenWithPortFallback(
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+  const enableSwagger = isSwaggerEnabled();
+  const corsOrigins = resolveCorsOrigins();
+  const corsOptions = createCorsOptions(corsOrigins);
 
-  const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3001')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
-  app.enableCors({
-    origin: corsOrigins,
-    credentials: true,
-  });
+  const httpInstance = app.getHttpAdapter().getInstance() as ExpressLikeApp;
+  httpInstance.disable?.('x-powered-by');
+  app.use(cookieParser());
+  app.enableCors(corsOptions);
+  app.use(helmet(createHelmetOptions(enableSwagger)));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -101,7 +112,6 @@ async function bootstrap() {
     ? preferredPortRaw
     : 3000;
 
-  const enableSwagger = process.env.SWAGGER_ENABLED !== 'false';
   const apiVersion = process.env.API_VERSION || 'v1';
 
   if (enableSwagger) {
@@ -137,8 +147,12 @@ async function bootstrap() {
   const activePort = await listenWithPortFallback(app, logger, preferredPort);
 
   logger.log(`Aplicacao rodando em: http://localhost:${activePort}`);
-  logger.log(`Swagger UI: http://localhost:${activePort}/docs`);
-  logger.log(`OpenAPI JSON: http://localhost:${activePort}/docs/openapi.json`);
+  if (enableSwagger) {
+    logger.log(`Swagger UI: http://localhost:${activePort}/docs`);
+    logger.log(
+      `OpenAPI JSON: http://localhost:${activePort}/docs/openapi.json`,
+    );
+  }
   logger.log(`CORS habilitado para: ${corsOrigins.join(', ')}`);
   logger.log('Sistema de tratamento de erros ativado.');
 }

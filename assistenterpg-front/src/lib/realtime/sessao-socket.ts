@@ -1,6 +1,5 @@
 import { io, type Socket } from 'socket.io-client';
-import { API_BASE_URL } from '@/lib/api/axios-client';
-import { getToken } from '@/lib/utils/auth';
+import { API_BASE_URL, refreshAuthSession } from '@/lib/api/axios-client';
 
 export type EventoSessaoAtualizadaTipo =
   | 'CHAT_NOVA'
@@ -33,15 +32,20 @@ export type EventoSessaoPresenca = {
 };
 
 export function conectarSocketSessao(): Socket {
-  const token = getToken();
-
-  return io(`${API_BASE_URL}/sessoes`, {
+  const socket = io(`${API_BASE_URL}/sessoes`, {
     transports: ['websocket', 'polling'],
-    auth: token ? { token: `Bearer ${token}` } : undefined,
+    withCredentials: true,
+    autoConnect: false,
     timeout: 10_000,
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
   });
+
+  void refreshAuthSession()
+    .catch(() => undefined)
+    .finally(() => socket.connect());
+
+  return socket;
 }

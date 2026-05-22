@@ -1,21 +1,22 @@
-// src/auth/auth.module.ts
-
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { UsuarioModule } from '../usuario/usuario.module';
-import { LocalStrategy } from './local.strategy';
-import { JwtStrategy } from './jwt.strategy';
-
-import { RolesGuard } from './guards/roles.guard';
-import { AdminGuard } from './guards/admin.guard';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { AuthTokenService } from './auth-token.service';
+import { UsuarioModule } from '../usuario/usuario.module';
+import { AuthController } from './auth.controller';
+import { resolveJwtSecret } from './auth-security.config';
 import { AuthMailService } from './auth-mail.service';
+import { AuthSessionService } from './auth-session.service';
+import { AuthTokenService } from './auth-token.service';
+import { AuthService } from './auth.service';
+import { AdminGuard } from './guards/admin.guard';
+import { CsrfGuard } from './guards/csrf.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { JwtStrategy } from './jwt.strategy';
+import { LocalStrategy } from './local.strategy';
 
 @Module({
   imports: [
@@ -23,35 +24,38 @@ import { AuthMailService } from './auth-mail.service';
     UsuarioModule,
     PrismaModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 20,
+      },
+    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => {
-        const secret = configService.get<string>('JWT_SECRET');
-
-        if (!secret && configService.get<string>('NODE_ENV') === 'production') {
-          throw new Error('JWT_SECRET é obrigatório em produção');
-        }
-
-        return {
-          secret: secret || 'dev-secret',
-          signOptions: {
-            expiresIn: 60 * 60 * 24 * 7,
-          },
-        };
-      },
+      useFactory: (configService: ConfigService) => ({
+        secret: resolveJwtSecret(configService),
+        signOptions: {
+          expiresIn: 60 * 60 * 24 * 7,
+        },
+      }),
       inject: [ConfigService],
     }),
   ],
   providers: [
     AuthService,
+    AuthSessionService,
     AuthTokenService,
     AuthMailService,
     LocalStrategy,
     JwtStrategy,
     RolesGuard,
     AdminGuard,
+    {
+      provide: APP_GUARD,
+      useClass: CsrfGuard,
+    },
   ],
   controllers: [AuthController],
-  exports: [AuthService, RolesGuard, AdminGuard],
+  exports: [AuthService, AuthSessionService, RolesGuard, AdminGuard],
 })
 export class AuthModule {}

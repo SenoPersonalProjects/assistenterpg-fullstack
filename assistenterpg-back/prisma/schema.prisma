@@ -361,6 +361,7 @@ model Usuario {
   npcsAmeacas                              NpcAmeaca[]
   preferencias                             PreferenciaUsuario?
   tokensAuth                               AuthToken[]
+  sessoesAutenticacao                      SessaoAutenticacao[]
   anotacoes                                Anotacao[]
   itensSessaoCriados                       ItemSessaoCampanha[]                   @relation("ItemSessaoCriadoPor")
   templatesItensSessaoCriados              TemplateItemSessaoCampanha[]           @relation("TemplateItemSessaoCriadoPor")
@@ -394,6 +395,27 @@ model AuthToken {
   @@index([usuarioId, tipo, usadoEm], map: "AuthToken_usuario_tipo_usado_idx")
   @@index([tipo, expiraEm], map: "AuthToken_tipo_expira_idx")
   @@map("auth_tokens")
+}
+
+model SessaoAutenticacao {
+  id               Int       @id @default(autoincrement())
+  usuarioId        Int
+  refreshTokenHash String    @unique
+  csrfTokenHash    String
+  userAgent        String?   @db.Text
+  ipHash           String?
+  expiraEm         DateTime
+  revogadaEm       DateTime?
+  ultimoUsoEm      DateTime?
+  criadoEm         DateTime  @default(now())
+  atualizadoEm     DateTime  @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, revogadaEm])
+  @@index([usuarioId, expiraEm])
+  @@index([expiraEm])
+  @@map("sessoes_autenticacao")
 }
 
 model Campanha {

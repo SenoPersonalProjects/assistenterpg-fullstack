@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
@@ -9,6 +10,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import {
+  AUTH_ACCESS_COOKIE,
+  isBearerFallbackEnabled,
+  parseCookieHeader,
+} from 'src/auth/auth-security.config';
+import { AuthSessionService } from 'src/auth/auth-session.service';
+import { createCorsOptions } from 'src/common/config/security.config';
 import { AmizadesService } from './amizades.service';
 import { PresencaService } from './presenca.service';
 
@@ -23,24 +31,9 @@ type EventoPresencaAmigos = {
   em: string;
 };
 
-function resolverCorsOrigins(): string[] | boolean {
-  const bruto = process.env.CORS_ORIGINS;
-  if (!bruto) return true;
-
-  const origens = bruto
-    .split(',')
-    .map((origem) => origem.trim())
-    .filter(Boolean);
-
-  return origens.length > 0 ? origens : true;
-}
-
 @WebSocketGateway({
   namespace: '/presenca',
-  cors: {
-    origin: resolverCorsOrigins(),
-    credentials: true,
-  },
+  cors: createCorsOptions(),
 })
 export class PresencaGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -54,6 +47,8 @@ export class PresencaGateway
     private readonly amizadesService: AmizadesService,
     private readonly presencaService: PresencaService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly authSessionService: AuthSessionService,
   ) {}
 
   async handleConnection(client: SocketAutenticado): Promise<void> {
@@ -64,7 +59,15 @@ export class PresencaGateway
     }
 
     try {
-      const payload = this.jwtService.verify<{ sub: number }>(token);
+      const payload = this.jwtService.verify<{ sub: number; sid?: number }>(
+        token,
+      );
+      if (typeof payload.sid === 'number') {
+        await this.authSessionService.validarSessaoAccess(
+          payload.sid,
+          payload.sub,
+        );
+      }
       this.definirUsuarioId(client, payload.sub);
       await client.join(this.salaUsuario(payload.sub));
 
@@ -137,6 +140,14 @@ export class PresencaGateway
   }
 
   private extrairToken(client: SocketAutenticado): string | null {
+    const cookies = parseCookieHeader(client.handshake.headers.cookie);
+    const cookieToken = cookies[AUTH_ACCESS_COOKIE];
+    if (cookieToken) return cookieToken;
+
+    if (!isBearerFallbackEnabled(this.configService)) {
+      return null;
+    }
+
     const authHeader = client.handshake.headers.authorization;
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       return authHeader.slice(7).trim();

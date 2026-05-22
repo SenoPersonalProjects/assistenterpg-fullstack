@@ -3,7 +3,9 @@ import { AmizadesService } from './amizades.service';
 import { PresencaService } from './presenca.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
+  AmizadeAcaoNaoPermitidaException,
   AmizadeJaExisteException,
+  AmizadeNaoEncontradaException,
   AmizadeSelfException,
   AmizadeSolicitacaoDuplicadaException,
 } from 'src/common/exceptions/amizade.exception';
@@ -82,6 +84,20 @@ describe('AmizadesService', () => {
     );
   });
 
+  it('resolve usuario sem expor email', async () => {
+    prisma.usuario.findMany.mockResolvedValue([{ id: 9, apelido: 'Maki' }]);
+
+    const usuario = await service.resolverUsuario('Maki');
+
+    expect(usuario).toEqual({ id: 9, apelido: 'Maki' });
+    expect(usuario).not.toHaveProperty('email');
+    expect(prisma.usuario.findMany).toHaveBeenCalledWith({
+      where: { apelido: { equals: 'Maki' } },
+      select: { id: true, apelido: true },
+      take: 2,
+    });
+  });
+
   it('bloqueia solicitacao pendente duplicada', async () => {
     prisma.usuario.findMany.mockResolvedValue([{ id: 9, apelido: 'Maki' }]);
     prisma.amizade.findUnique.mockResolvedValue({
@@ -130,6 +146,47 @@ describe('AmizadesService', () => {
     });
   });
 
+  it('bloqueia aceitar solicitacao destinada a outro usuario', async () => {
+    prisma.amizade.findUnique.mockResolvedValue({
+      id: 7,
+      destinatarioId: 99,
+      status: StatusAmizade.PENDENTE,
+    });
+
+    await expect(service.aceitarSolicitacao(4, 7)).rejects.toBeInstanceOf(
+      AmizadeAcaoNaoPermitidaException,
+    );
+
+    expect(prisma.amizade.update).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia cancelar solicitacao criada por outro usuario', async () => {
+    prisma.amizade.findUnique.mockResolvedValue({
+      id: 7,
+      solicitanteId: 99,
+      status: StatusAmizade.PENDENTE,
+    });
+
+    await expect(service.cancelarSolicitacao(4, 7)).rejects.toBeInstanceOf(
+      AmizadeAcaoNaoPermitidaException,
+    );
+
+    expect(prisma.amizade.update).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia remover relacao que nao e amizade aceita', async () => {
+    prisma.amizade.findUnique.mockResolvedValue({
+      id: 7,
+      status: StatusAmizade.PENDENTE,
+    });
+
+    await expect(service.removerAmizade(4, 9)).rejects.toBeInstanceOf(
+      AmizadeNaoEncontradaException,
+    );
+
+    expect(prisma.amizade.update).not.toHaveBeenCalled();
+  });
+
   it('lista amigos com status online vindo da presenca', async () => {
     presenca.registrarConexao(9, 'socket-1');
     prisma.amizade.findMany.mockResolvedValue([
@@ -158,5 +215,14 @@ describe('AmizadesService', () => {
         online: true,
       }),
     ]);
+  });
+
+  it('nao expoe presenca de usuario que nao e amigo aceito', async () => {
+    presenca.registrarConexao(99, 'socket-1');
+    prisma.amizade.findMany.mockResolvedValue([]);
+
+    const amigos = await service.listarAmigos(4);
+
+    expect(amigos).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { getToken } from './auth';
+import { ensureCsrfToken } from '../api/axios-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -183,11 +183,14 @@ async function fetchJson<T>(
     const initSemAuth = { ...init };
     delete initSemAuth.auth;
     const { headers, ...rest } = initSemAuth;
-    const token = getToken();
     const requestHeaders = new Headers(headers);
+    const method = (rest.method ?? 'GET').toUpperCase();
 
-    if (token) {
-      requestHeaders.set('Authorization', `Bearer ${token}`);
+    if (
+      typeof window !== 'undefined' &&
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+    ) {
+      requestHeaders.set('X-CSRF-Token', await ensureCsrfToken());
     }
 
     requestInit = {
@@ -196,7 +199,10 @@ async function fetchJson<T>(
     };
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, requestInit);
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...requestInit,
+    credentials: 'include',
+  });
 
   if (!res.ok) {
     const { message, body } = await parseApiError(res, fallbackMessage);

@@ -1,10 +1,7 @@
 // src/lib/api/auth.ts
-import { apiClient } from './axios-client';
-import type { LoginResponse } from '@/lib/types'; // ✅ ATUALIZADO
+import { apiClient, type AuthAxiosConfig } from './axios-client';
+import type { LoginResponse } from '@/lib/types';
 
-/**
- * ✅ Type de retorno de apiGetMe
- */
 export type UsuarioMe = {
   id: number;
   apelido: string;
@@ -17,9 +14,6 @@ export type ApiMensagemAuth = {
   mensagem: string;
 };
 
-/**
- * ✅ Registrar novo usuário
- */
 export async function apiRegister(apelido: string, email: string, senha: string) {
   const { data } = await apiClient.post('/auth/register', {
     apelido,
@@ -29,30 +23,34 @@ export async function apiRegister(apelido: string, email: string, senha: string)
   return data;
 }
 
-/**
- * ✅ Fazer login
- */
-export async function apiLogin(email: string, senha: string): Promise<LoginResponse> {
+export async function apiLogin(
+  email: string,
+  senha: string,
+  rememberMe = true,
+): Promise<LoginResponse> {
   const { data } = await apiClient.post<LoginResponse>('/auth/login', {
     email,
     senha,
+    rememberMe,
   });
   return data;
 }
 
-/**
- * Solicita recuperacao de senha por email.
- */
+export async function apiLogout(): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>('/auth/logout');
+  return data;
+}
+
 export async function apiForgotPassword(email: string): Promise<ApiMensagemAuth> {
-  const { data } = await apiClient.post<ApiMensagemAuth>('/auth/forgot-password', {
-    email,
-  });
+  const { data } = await apiClient.post<ApiMensagemAuth>(
+    '/auth/forgot-password',
+    {
+      email,
+    },
+  );
   return data;
 }
 
-/**
- * Redefine senha usando token de recuperacao.
- */
 export async function apiResetPassword(
   token: string,
   novaSenha: string,
@@ -64,9 +62,6 @@ export async function apiResetPassword(
   return data;
 }
 
-/**
- * Verifica email com token de conta nova.
- */
 export async function apiVerifyEmail(token: string): Promise<ApiMensagemAuth> {
   const { data } = await apiClient.post<ApiMensagemAuth>('/auth/verify-email', {
     token,
@@ -74,9 +69,6 @@ export async function apiVerifyEmail(token: string): Promise<ApiMensagemAuth> {
   return data;
 }
 
-/**
- * Reenvia email de verificacao.
- */
 export async function apiResendVerificationEmail(
   email: string,
 ): Promise<ApiMensagemAuth> {
@@ -89,10 +81,16 @@ export async function apiResendVerificationEmail(
   return data;
 }
 
-/**
- * ✅ Buscar dados do usuário logado
- */
 export async function apiGetMe(): Promise<UsuarioMe> {
   const { data } = await apiClient.get<UsuarioMe>('/usuarios/me');
+  return data;
+}
+
+export async function apiGetMeSilencioso(): Promise<UsuarioMe> {
+  const config: AuthAxiosConfig = {
+    _skipAuthRefresh: true,
+    _skipAuthRedirect: true,
+  };
+  const { data } = await apiClient.get<UsuarioMe>('/usuarios/me', config);
   return data;
 }

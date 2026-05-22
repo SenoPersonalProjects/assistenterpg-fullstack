@@ -161,7 +161,7 @@ describe('compendio api fallbacks', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3000/compendio/buscar?q=energia&livroCodigo=livro-principal',
-      { cache: 'no-store' },
+      { cache: 'no-store', credentials: 'include' },
     );
   });
 

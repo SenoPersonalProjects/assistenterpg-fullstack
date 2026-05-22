@@ -246,7 +246,7 @@ export default function ConfiguracoesPage() {
                 <Icon name="check" className="mr-2 h-4 w-4" />
                 {salvando ? 'Salvando...' : 'Salvar preferências'}
               </Button>
-              <Link href="/">
+              <Link href="/home">
                 <Button variant="secondary" size="sm" className="font-bold">
                   <Icon name="back" className="mr-2 h-4 w-4" />
                   Voltar
@@ -345,15 +345,6 @@ export default function ConfiguracoesPage() {
                           disabled
                           className="bg-app-bg/50 font-bold"
                         />
-                        <div className="md:col-span-2">
-                          <Input
-                            type="text"
-                            label="ID do usuário"
-                            value={usuario?.id || ''}
-                            disabled
-                            className="bg-app-bg/50 font-mono text-xs opacity-70"
-                          />
-                        </div>
                         <div className="md:col-span-2">
                           <Alert variant="info">
                             Para alterar seus dados de perfil, entre em contato com o suporte.
