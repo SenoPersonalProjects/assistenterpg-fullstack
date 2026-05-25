@@ -30,6 +30,9 @@ describe('buildSobrevivendoAoJujutsuLivro', () => {
   it('gera o livro publico do suplemento sem placeholders', () => {
     const livro = buildSobrevivendoAoJujutsuLivro();
     const artigos = getAllArticles();
+    const conteudoCompleto = artigos
+      .map((artigo) => artigo.conteudo)
+      .join('\n');
 
     expect(livro.codigo).toBe('sobrevivendo-ao-jujutsu');
     expect(livro.titulo).toBe('Sobrevivendo ao Jujutsu');
@@ -43,9 +46,8 @@ describe('buildSobrevivendoAoJujutsuLivro', () => {
       'artefatos-amaldicoados',
       'modificacoes',
     ]);
-    expect(artigos.map((artigo) => artigo.conteudo).join('\n')).not.toContain(
-      'O texto completo sera preenchido',
-    );
+    expect(conteudoCompleto).not.toContain('O texto completo sera preenchido');
+    expect(conteudoCompleto).not.toContain('```json');
   });
 
   it('inclui os textos integrais das tres trilhas novas no compendio', () => {
@@ -69,6 +71,32 @@ describe('buildSobrevivendoAoJujutsuLivro', () => {
     expect(amaldicoado?.conteudo).toContain('Maldicao Vinculada');
     expect(amaldicoado?.conteudo).toContain('Enigma Amaldicoado');
     expect(amaldicoado?.conteudo).toContain('Espirito Amaldicoado Manifesto');
+  });
+
+  it('renderiza requisitos e mecanicas estruturadas como texto legivel', () => {
+    const artigos = getAllArticles();
+    const parapsicologo = artigos.find(
+      (artigo) => artigo.codigo === 'parapsicologo',
+    );
+    const corpo = artigos.find(
+      (artigo) => artigo.codigo === 'corpo-amaldicoado-independente',
+    );
+    const parceiro = artigos.find((artigo) => artigo.codigo === 'parceiro');
+    const baioneta = artigos.find((artigo) => artigo.codigo === 'baioneta');
+
+    expect(parapsicologo?.conteudo).toContain(
+      'Requer Profissao treinada (psicologo).',
+    );
+    expect(corpo?.conteudo).toContain(
+      'Requer personagem sem tecnica amaldicoada.',
+    );
+    expect(corpo?.conteudo).toContain('PV dividido em 3 nucleos/barras.');
+    expect(corpo?.conteudo).toContain('Recebe +2 PV por nivel.');
+    expect(parceiro?.conteudo).toContain('Requer Diplomacia treinada.');
+    expect(parceiro?.conteudo).toContain('Requer nivel 6+.');
+    expect(baioneta?.conteudo).toContain('Proficiencia: Simples');
+    expect(baioneta?.conteudo).toContain('Tipo: Corpo a corpo');
+    expect(baioneta?.conteudo).toContain('1d4 Perfurante (Leve)');
   });
 
   it('mantem os artigos gerados dentro do limite do campo Text', () => {

@@ -491,8 +491,26 @@ function Invoke-RemoteUpdateValidation {
       throw "Ainda existem placeholders ativos no compendio remoto do Sobrevivendo ao Jujutsu: $placeholderCount."
     }
 
+    $jsonBlockResult = Invoke-NativeCommand `
+      -FilePath $MysqlExe `
+      -Arguments @(
+        "--defaults-extra-file=$RemoteDefaults",
+        '--comments',
+        "--database=$RemoteDatabase",
+        '--batch',
+        '--skip-column-names',
+        "--execute=SELECT COUNT(*) FROM compendio_artigos a JOIN compendio_subcategorias s ON s.id = a.subcategoria_id JOIN compendio_categorias c ON c.id = s.categoria_id JOIN compendio_livros l ON l.id = c.livro_id WHERE l.codigo = 'sobrevivendo-ao-jujutsu' AND a.ativo = 1 AND a.conteudo LIKE CONCAT('%', CHAR(96), CHAR(96), CHAR(96), 'json%');"
+      ) `
+      -Label 'validar blocos json do sobrevivendo'
+    $jsonBlockCount = [int]$jsonBlockResult.StdOut.Trim()
+
+    if ($jsonBlockCount -gt 0) {
+      throw "Ainda existem blocos JSON ativos no compendio remoto do Sobrevivendo ao Jujutsu: $jsonBlockCount."
+    }
+
     Write-Ok 'Trilhas novas do Sobrevivendo ao Jujutsu encontradas'
     Write-Ok 'Nenhum placeholder encontrado no compendio remoto do Sobrevivendo ao Jujutsu'
+    Write-Ok 'Nenhum bloco JSON encontrado no compendio remoto do Sobrevivendo ao Jujutsu'
   }
 }
 

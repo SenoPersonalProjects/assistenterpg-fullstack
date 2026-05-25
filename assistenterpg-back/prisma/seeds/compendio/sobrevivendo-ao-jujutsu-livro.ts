@@ -33,6 +33,8 @@ import {
 
 const TAGS_BASE = ['sobrevivendo', 'jujutsu', 'suplemento'];
 
+type JsonRecord = Record<string, unknown>;
+
 function stripPrefix(texto: string | null | undefined): string {
   return (texto ?? '')
     .replace(/^\[Suplemento: Sobrevivendo ao Jujutsu\]\s*/i, '')
@@ -48,9 +50,430 @@ function resumo(texto: string, fallback: string): string {
   return (plain || fallback).slice(0, 220).trim();
 }
 
-function prettyJson(value: Prisma.InputJsonValue | null | undefined): string {
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function asJsonRecord(value: unknown): JsonRecord | null {
+  return isRecord(value) ? (value as JsonRecord) : null;
+}
+
+function isJsonRecord(value: JsonRecord | null): value is JsonRecord {
+  return value !== null;
+}
+
+function asNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function toArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function sentenceCase(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+function labelFromCode(value: unknown, options?: { lower?: boolean }): string {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+
+  const labels: Record<string, string> = {
+    ACROBACIA: 'Acrobacia',
+    ADESTRAMENTO: 'Adestramento',
+    AGI: 'Agilidade',
+    AGILIDADE: 'Agilidade',
+    ARTES: 'Artes',
+    ATLETISMO: 'Atletismo',
+    ATUALIDADES: 'Atualidades',
+    CIENCIAS: 'Ciencias',
+    CORPO_A_CORPO: 'Corpo a corpo',
+    CRIME: 'Crime',
+    DIPLOMACIA: 'Diplomacia',
+    ENERGIA_AMALDICOADA: 'energia amaldicoada',
+    ENGANACAO: 'Enganacao',
+    FORTITUDE: 'Fortitude',
+    FOR: 'Forca',
+    FURTIVIDADE: 'Furtividade',
+    INICIATIVA: 'Iniciativa',
+    INT: 'Intelecto',
+    INTIMIDACAO: 'Intimidacao',
+    INTUICAO: 'Intuicao',
+    INVESTIGACAO: 'Investigacao',
+    JUJUTSU: 'Jujutsu',
+    LEVE: 'Leve',
+    LUTA: 'Luta',
+    MEDICINA: 'Medicina',
+    PERFURANTE: 'Perfurante',
+    PERCEPCAO: 'Percepcao',
+    PILOTAGEM: 'Pilotagem',
+    PONTARIA: 'Pontaria',
+    PRE: 'Presenca',
+    PROFISSAO: 'Profissao',
+    REFLEXOS: 'Reflexos',
+    RELIGIAO: 'Religiao',
+    SIMPLES: 'Simples',
+    SOBREVIVENCIA: 'Sobrevivencia',
+    TATICA: 'Tatica',
+    TECNOLOGIA: 'Tecnologia',
+    VIG: 'Vigor',
+    VONTADE: 'Vontade',
+  };
+
+  const normalized = raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+  const label =
+    labels[normalized] ??
+    normalized
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+  return options?.lower ? label.toLowerCase() : label;
+}
+
+function attributeLabel(value: string): string {
+  const labels: Record<string, string> = {
+    agilidade: 'Agilidade',
+    forca: 'Forca',
+    intelecto: 'Intelecto',
+    presenca: 'Presenca',
+    vigor: 'Vigor',
+  };
+  return labels[value] ?? labelFromCode(value);
+}
+
+function treinamentoLabel(grauMinimo: unknown): string {
+  switch (asNumber(grauMinimo) ?? 1) {
+    case 1:
+      return 'treinada';
+    case 2:
+      return 'graduada';
+    case 3:
+      return 'veterana';
+    case 4:
+      return 'expert';
+    default:
+      return `grau ${grauMinimo}+`;
+  }
+}
+
+function formatPericiaRequisito(pericia: JsonRecord): string | null {
+  const codigo = asString(pericia.codigo);
+  if (!codigo) return null;
+
+  const detalhe = asString(pericia.detalhe);
+  const grau = pericia.treinada === true ? 1 : (pericia.grauMinimo ?? 1);
+  const detalheTexto = detalhe ? ` (${detalhe})` : '';
+  return `${labelFromCode(codigo)} ${treinamentoLabel(grau)}${detalheTexto}`;
+}
+
+function formatInlineValue(value: unknown): string {
   if (value === null || value === undefined) return '';
-  return `\n\n\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
+  if (typeof value === 'boolean') return value ? 'sim' : 'nao';
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') return labelFromCode(value);
+  if (Array.isArray(value)) {
+    return value.map(formatInlineValue).filter(Boolean).join(', ');
+  }
+  const record = asJsonRecord(value);
+  if (record) {
+    return Object.entries(record)
+      .map(
+        ([key, nested]) =>
+          `${labelFromCode(key)}: ${formatInlineValue(nested)}`,
+      )
+      .filter((item) => !item.endsWith(': '))
+      .join('; ');
+  }
+  return String(value);
+}
+
+function formatGenericEntries(
+  value: JsonRecord,
+  ignoredKeys: Set<string>,
+): string[] {
+  return Object.entries(value)
+    .filter(([key]) => !ignoredKeys.has(key))
+    .map(([key, nested]) => {
+      const formatted = formatInlineValue(nested);
+      return formatted ? `${labelFromCode(key)}: ${formatted}.` : null;
+    })
+    .filter((item): item is string => Boolean(item));
+}
+
+function formatBulletSection(titulo: string, bullets: string[]): string {
+  if (bullets.length === 0) return '';
+  return `## ${titulo}\n\n${bullets.map((bullet) => `- ${bullet}`).join('\n')}\n`;
+}
+
+function formatRequisitos(
+  value: Prisma.InputJsonValue | null | undefined,
+): string[] {
+  const data = asJsonRecord(value);
+  if (!data) return [];
+
+  const bullets: string[] = [];
+  const handled = new Set<string>([
+    'semTecnicaInata',
+    'atributos',
+    'pericias',
+    'nivelMinimo',
+    'graus',
+  ]);
+
+  if (data.semTecnicaInata === true) {
+    bullets.push('Requer personagem sem tecnica amaldicoada.');
+  }
+
+  const atributos = asJsonRecord(data.atributos);
+  if (atributos) {
+    for (const [atributo, minimo] of Object.entries(atributos)) {
+      bullets.push(
+        `Requer ${attributeLabel(atributo)} ${formatInlineValue(minimo)}+.`,
+      );
+    }
+  }
+
+  const nivelMinimo = asNumber(data.nivelMinimo);
+  if (nivelMinimo !== null) {
+    bullets.push(`Requer nivel ${nivelMinimo}+.`);
+  }
+
+  const pericias = toArray(data.pericias)
+    .map(asJsonRecord)
+    .filter(isJsonRecord);
+  const alternativas = pericias.filter(
+    (pericia) => pericia.alternativa === true,
+  );
+  const obrigatorias = pericias.filter(
+    (pericia) => pericia.alternativa !== true,
+  );
+
+  if (alternativas.length > 1) {
+    const nomes = alternativas
+      .map((pericia) => asString(pericia.codigo))
+      .filter((codigo): codigo is string => Boolean(codigo))
+      .map((codigo) => labelFromCode(codigo));
+    const grau =
+      alternativas[0]?.treinada === true
+        ? 1
+        : (alternativas[0]?.grauMinimo ?? 1);
+    if (nomes.length > 0) {
+      bullets.push(`Requer ${nomes.join(' ou ')} ${treinamentoLabel(grau)}.`);
+    }
+  } else {
+    for (const pericia of alternativas) {
+      const texto = formatPericiaRequisito(pericia);
+      if (texto) bullets.push(`Requer ${texto}.`);
+    }
+  }
+
+  for (const pericia of obrigatorias) {
+    const texto = formatPericiaRequisito(pericia);
+    if (texto) bullets.push(`Requer ${texto}.`);
+  }
+
+  for (const grau of toArray(data.graus)
+    .map(asJsonRecord)
+    .filter(isJsonRecord)) {
+    const codigo = asString(grau.tipoGrauCodigo);
+    const minimo = asNumber(grau.valorMinimo);
+    if (codigo && minimo !== null) {
+      bullets.push(`Requer ${labelFromCode(codigo)} ${minimo}+.`);
+    }
+  }
+
+  return [...bullets, ...formatGenericEntries(data, handled)];
+}
+
+function formatChoice(value: unknown): string | null {
+  const data = asJsonRecord(value);
+  if (!data) return null;
+  const quantidade = asNumber(data.quantidade) ?? 1;
+  const tipo = asString(data.tipo);
+  const partes = [
+    `Escolha ${quantidade} ${tipo === 'PERICIAS' ? 'pericia' : 'opcao'}${quantidade > 1 ? 's' : ''}`,
+  ];
+
+  const periciasPermitidas = toArray(data.periciasPermitidas)
+    .map((item) => asString(item))
+    .filter((item): item is string => Boolean(item))
+    .map((item) => labelFromCode(item));
+  if (periciasPermitidas.length > 0) {
+    partes.push(`permitidas: ${periciasPermitidas.join(', ')}`);
+  }
+
+  const atributosPermitidos = toArray(data.atributosBasePermitidos)
+    .map((item) => asString(item))
+    .filter((item): item is string => Boolean(item))
+    .map((item) => labelFromCode(item));
+  if (atributosPermitidos.length > 0) {
+    partes.push(`atributos permitidos: ${atributosPermitidos.join(', ')}`);
+  }
+
+  return `${partes.join('; ')}.`;
+}
+
+function formatMecanicas(
+  value: Prisma.InputJsonValue | null | undefined,
+): string[] {
+  const data = asJsonRecord(value);
+  if (!data) return [];
+
+  const bullets: string[] = [];
+  const handled = new Set<string>([
+    'recursos',
+    'pvPorNivel',
+    'pvExtra',
+    'periciasBonus',
+    'periciasTreinadas',
+    'bonusSeJaTreinado',
+    'periciasBonusEscolha',
+    'escolha',
+    'inventario',
+    'periciasAtributoBase',
+    'resistencias',
+  ]);
+
+  const recursos = asJsonRecord(data.recursos);
+  if (recursos) {
+    const pvBarrasTotal = asNumber(recursos.pvBarrasTotal);
+    const peBase = asNumber(recursos.peBase);
+    const pePorNivelImpar = asNumber(recursos.pePorNivelImpar);
+
+    if (pvBarrasTotal !== null) {
+      bullets.push(`PV dividido em ${pvBarrasTotal} nucleos/barras.`);
+    }
+    if (peBase !== null) {
+      bullets.push(`Recebe +${peBase} PE.`);
+    }
+    if (pePorNivelImpar !== null) {
+      bullets.push(`Recebe +${pePorNivelImpar} PE a cada 2 niveis.`);
+    }
+
+    bullets.push(
+      ...formatGenericEntries(
+        recursos,
+        new Set(['pvBarrasTotal', 'peBase', 'pePorNivelImpar']),
+      ).map((item) => `Recurso: ${item}`),
+    );
+  }
+
+  const pvPorNivel = asNumber(data.pvPorNivel);
+  if (pvPorNivel !== null) {
+    bullets.push(`Recebe +${pvPorNivel} PV por nivel.`);
+  }
+
+  const pvExtra = asNumber(data.pvExtra);
+  if (pvExtra !== null) {
+    bullets.push(`Recebe +${pvExtra} PV.`);
+  }
+
+  const periciasBonus = asJsonRecord(data.periciasBonus);
+  if (periciasBonus) {
+    const bonuses = Object.entries(periciasBonus).map(
+      ([pericia, bonus]) =>
+        `${labelFromCode(pericia)} ${Number(bonus) >= 0 ? '+' : ''}${formatInlineValue(bonus)}`,
+    );
+    if (bonuses.length > 0) bullets.push(`${bonuses.join('; ')}.`);
+  }
+
+  const periciasTreinadas = toArray(data.periciasTreinadas)
+    .map((item) => asString(item))
+    .filter((item): item is string => Boolean(item))
+    .map((item) => labelFromCode(item));
+  if (periciasTreinadas.length > 0) {
+    bullets.push(`Recebe treinamento em ${periciasTreinadas.join(', ')}.`);
+  }
+
+  const bonusSeJaTreinado = asNumber(data.bonusSeJaTreinado);
+  if (bonusSeJaTreinado !== null) {
+    bullets.push(`Se ja for treinado, recebe +${bonusSeJaTreinado}.`);
+  }
+
+  const periciasBonusEscolha = asNumber(data.periciasBonusEscolha);
+  if (periciasBonusEscolha !== null) {
+    bullets.push(`Pericias escolhidas recebem +${periciasBonusEscolha}.`);
+  }
+
+  const escolha = formatChoice(data.escolha);
+  if (escolha) bullets.push(escolha);
+
+  const inventario = asJsonRecord(data.inventario);
+  if (inventario) {
+    if (inventario.somarIntelecto === true) {
+      bullets.push('Soma Intelecto ao limite de espacos do inventario.');
+    }
+    if (inventario.reduzirItensLeves === true) {
+      bullets.push('Itens muito leves ocupam menos espaco.');
+    }
+    bullets.push(
+      ...formatGenericEntries(
+        inventario,
+        new Set(['somarIntelecto', 'reduzirItensLeves']),
+      ).map((item) => `Inventario: ${item}`),
+    );
+  }
+
+  const periciasAtributoBase = asJsonRecord(data.periciasAtributoBase);
+  if (periciasAtributoBase) {
+    for (const [pericia, atributo] of Object.entries(periciasAtributoBase)) {
+      bullets.push(
+        `${labelFromCode(pericia)} passa a usar ${labelFromCode(atributo)} como atributo-base.`,
+      );
+    }
+  }
+
+  const resistencias = asJsonRecord(data.resistencias);
+  if (resistencias) {
+    for (const [tipo, valor] of Object.entries(resistencias)) {
+      bullets.push(
+        `Resistencia a ${labelFromCode(tipo, { lower: true })} ${formatInlineValue(valor)}.`,
+      );
+    }
+  }
+
+  return [...bullets, ...formatGenericEntries(data, handled)];
+}
+
+function formatRestricoes(
+  value: Prisma.InputJsonValue | null | undefined,
+): string[] {
+  const data = asJsonRecord(value);
+  if (!data) return [];
+
+  const bullets: string[] = [];
+  const handled = new Set<string>(['tiposEquipamento']);
+  const tiposEquipamento = toArray(data.tiposEquipamento)
+    .map((item) => asString(item))
+    .filter((item): item is string => Boolean(item))
+    .map((item) => labelFromCode(item));
+
+  if (tiposEquipamento.length > 0) {
+    bullets.push(`Aplica-se a: ${tiposEquipamento.join(', ')}.`);
+  }
+
+  return [...bullets, ...formatGenericEntries(data, handled)];
+}
+
+function formatEfeitosMecanicos(
+  value: Prisma.InputJsonValue | null | undefined,
+): string[] {
+  const data = asJsonRecord(value);
+  if (!data) return [];
+  if (typeof data.descricao === 'string') {
+    return [data.descricao];
+  }
+  return formatGenericEntries(data, new Set());
 }
 
 function categoriaLabel(categoria: CategoriaEquipamento): string {
@@ -149,7 +572,7 @@ ${pericias || '- Nenhuma pericia especifica.'}
 ### ${origem.habilidade.nome}
 
 ${stripPrefix(origem.habilidade.descricao)}
-${prettyJson(origem.habilidade.mecanicasEspeciais)}`;
+${formatBulletSection('Mecanicas', formatMecanicas(origem.habilidade.mecanicasEspeciais))}`;
 }
 
 function markdownPoder(poder: PoderSuplemento): string {
@@ -157,7 +580,8 @@ function markdownPoder(poder: PoderSuplemento): string {
 
 ${stripPrefix(poder.descricao)}
 
-${poder.requisitos ? `## Requisitos\n${prettyJson(poder.requisitos)}\n` : ''}${poder.mecanicasEspeciais ? `## Mecanicas\n${prettyJson(poder.mecanicasEspeciais)}\n` : ''}`;
+${formatBulletSection('Requisitos', formatRequisitos(poder.requisitos))}
+${formatBulletSection('Mecanicas', formatMecanicas(poder.mecanicasEspeciais))}`;
 }
 
 function markdownTrilha(trilha: TrilhaSuplemento): string {
@@ -175,7 +599,7 @@ function markdownTrilha(trilha: TrilhaSuplemento): string {
       (habilidade) => `## Nivel ${habilidade.nivel} - ${habilidade.nome}
 
 ${habilidade.caminho ? `**Caminho:** ${habilidade.caminho}\n\n` : ''}${stripPrefix(habilidade.descricao)}
-${prettyJson(habilidade.mecanicasEspeciais)}`,
+${formatBulletSection('Mecanicas', formatMecanicas(habilidade.mecanicasEspeciais))}`,
     )
     .join('\n\n');
 
@@ -185,7 +609,8 @@ ${prettyJson(habilidade.mecanicasEspeciais)}`,
 
 ${stripPrefix(trilha.descricao)}
 
-${trilha.requisitos ? `## Requisitos\n${prettyJson(trilha.requisitos)}\n` : ''}${caminhos}
+${formatBulletSection('Requisitos', formatRequisitos(trilha.requisitos))}
+${caminhos}
 
 ## Habilidades
 
@@ -195,8 +620,10 @@ ${habilidades}`;
 function markdownArma(equipamento: EquipamentoArmaSeed): string {
   const danos = equipamento.danos
     .map((dano) => {
-      const empunhadura = dano.empunhadura ? ` (${dano.empunhadura})` : '';
-      return `- ${dano.rolagem}${dano.valorFlat ? ` + ${dano.valorFlat}` : ''} ${dano.tipoDano}${empunhadura}`;
+      const empunhadura = dano.empunhadura
+        ? ` (${labelFromCode(dano.empunhadura)})`
+        : '';
+      return `- ${dano.rolagem}${dano.valorFlat ? ` + ${dano.valorFlat}` : ''} ${labelFromCode(dano.tipoDano)}${empunhadura}`;
     })
     .join('\n');
 
@@ -208,12 +635,12 @@ ${stripPrefix(equipamento.descricao)}
 
 - Categoria: ${categoriaLabel(equipamento.categoria)}
 - Espacos: ${equipamento.espacos}
-- Proficiencia: ${equipamento.proficienciaArma}
-- Tipo: ${equipamento.tipoArma}
-- Empunhaduras: ${equipamento.empunhaduras.join(', ')}
-- Alcance: ${equipamento.alcance}
+- Proficiencia: ${labelFromCode(equipamento.proficienciaArma)}
+- Tipo: ${labelFromCode(equipamento.tipoArma)}
+- Empunhaduras: ${equipamento.empunhaduras.map((item) => labelFromCode(item)).join(', ')}
+- Alcance: ${labelFromCode(equipamento.alcance)}
 - Critico: ${equipamento.criticoValor}/x${equipamento.criticoMultiplicador}
-${equipamento.tipoMunicaoCodigo ? `- Municao: ${equipamento.tipoMunicaoCodigo}` : ''}
+${equipamento.tipoMunicaoCodigo ? `- Municao: ${labelFromCode(equipamento.tipoMunicaoCodigo)}` : ''}
 
 ## Dano
 
@@ -231,10 +658,10 @@ ${stripPrefix(equipamento.descricao)}
 
 - Categoria: ${categoriaLabel(equipamento.categoria)}
 - Espacos: ${equipamento.espacos}
-- Tipo: ${equipamento.tipoAcessorio}
-${equipamento.periciaBonificada ? `- Pericia bonificada: ${equipamento.periciaBonificada}` : ''}
+- Tipo: ${labelFromCode(equipamento.tipoAcessorio)}
+${equipamento.periciaBonificada ? `- Pericia bonificada: ${labelFromCode(equipamento.periciaBonificada)}` : ''}
 ${equipamento.bonusPericia ? `- Bonus de pericia: +${equipamento.bonusPericia}` : ''}
-${equipamento.tipoUso ? `- Uso: ${equipamento.tipoUso}` : ''}
+${equipamento.tipoUso ? `- Uso: ${labelFromCode(equipamento.tipoUso)}` : ''}
 
 ${equipamento.efeito ? `## Efeito\n\n${equipamento.efeito}` : ''}`;
 }
@@ -250,7 +677,7 @@ ${stripPrefix(equipamento.descricao)}
 
 - Categoria: ${categoriaLabel(equipamento.categoria)}
 - Espacos: ${equipamento.espacos}
-${equipamento.tipoUso ? `- Uso: ${equipamento.tipoUso}` : ''}
+${equipamento.tipoUso ? `- Uso: ${labelFromCode(equipamento.tipoUso)}` : ''}
 
 ## Efeito
 
@@ -258,7 +685,7 @@ ${equipamento.efeito}
 
 ## Artefato
 
-- Tipo base: ${equipamento.artefato.tipoBase}
+- Tipo base: ${labelFromCode(equipamento.artefato.tipoBase)}
 - Proficiencia requerida: ${equipamento.artefato.proficienciaRequerida ? 'sim' : 'nao'}
 ${equipamento.artefato.custoUso ? `- Custo de uso: ${equipamento.artefato.custoUso}` : ''}
 ${equipamento.artefato.manutencao ? `- Manutencao: ${equipamento.artefato.manutencao}` : ''}
@@ -275,7 +702,8 @@ ${stripPrefix(modificacao.descricao)}
 - Tipo: ${modificacaoLabel(modificacao.tipo)}
 - Incremento de espacos: ${modificacao.incrementoEspacos}
 
-${modificacao.restricoes ? `## Restricoes\n${prettyJson(modificacao.restricoes)}\n` : ''}${modificacao.efeitosMecanicos ? `## Efeitos mecanicos\n${prettyJson(modificacao.efeitosMecanicos)}\n` : ''}`;
+${formatBulletSection('Restricoes', formatRestricoes(modificacao.restricoes))}
+${formatBulletSection('Efeitos mecanicos', formatEfeitosMecanicos(modificacao.efeitosMecanicos))}`;
 }
 
 function artigosPorItem<T>(
