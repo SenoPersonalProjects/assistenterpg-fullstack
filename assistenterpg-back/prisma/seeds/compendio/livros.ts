@@ -9,6 +9,7 @@ import {
   type LivroSeed,
   type SubcategoriaSeed,
 } from '../../../src/compendio/compendio-livro-markdown.parser';
+import { buildSobrevivendoAoJujutsuLivro } from './sobrevivendo-ao-jujutsu-livro';
 
 const LIVRO_PRINCIPAL_MARKDOWN_PATH = join(
   __dirname,
@@ -16,168 +17,13 @@ const LIVRO_PRINCIPAL_MARKDOWN_PATH = join(
   'Maledicencia_RPG_1_1.docx.md',
 );
 
-const sobrevivendoAoJujutsu: LivroSeed = {
-  codigo: 'sobrevivendo-ao-jujutsu',
-  titulo: 'Sobrevivendo ao Jujutsu',
-  descricao:
-    'Primeiro suplemento oficial, com origens, poderes, trilhas, equipamentos e modificacoes.',
-  icone: 'book',
-  cor: '#10b981',
-  ordem: 2,
-  suplementoCodigo: 'SOBREVIVENDO_AO_JUJUTSU',
-  categorias: [
-    {
-      codigo: 'origens',
-      nome: 'Origens',
-      descricao: 'Novos passados e ganchos de sobrevivencia.',
-      icone: 'story',
-      cor: '#10b981',
-      ordem: 1,
-      subcategorias: [
-        {
-          codigo: 'origens-do-suplemento',
-          nome: 'Origens do Suplemento',
-          descricao: 'Origens oficiais adicionadas por Sobrevivendo ao Jujutsu.',
-          ordem: 1,
-          artigos: [
-            {
-              codigo: 'visao-geral-das-origens',
-              titulo: 'Visao Geral das Origens',
-              resumo: 'Resumo das origens adicionadas pelo suplemento.',
-              conteudo:
-                '# Visao Geral das Origens\n\nSobrevivendo ao Jujutsu adiciona novas origens voltadas para personagens que encaram o sobrenatural a partir de profissoes, traumas, rotinas extremas e relacoes com maldicoes.\n\nO texto completo sera preenchido quando o material atualizado do suplemento for enviado.',
-              ordem: 1,
-              tags: ['sobrevivendo', 'origens'],
-              palavrasChave: 'sobrevivendo ao jujutsu origens suplemento',
-              destaque: true,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      codigo: 'poderes',
-      nome: 'Poderes',
-      descricao: 'Poderes genericos e opcoes de progressao.',
-      icone: 'sparkles',
-      cor: '#f59e0b',
-      ordem: 2,
-      subcategorias: [
-        {
-          codigo: 'poderes-genericos',
-          nome: 'Poderes Genericos',
-          descricao: 'Poderes oficiais adicionados pelo suplemento.',
-          ordem: 1,
-          artigos: [
-            {
-              codigo: 'visao-geral-dos-poderes',
-              titulo: 'Visao Geral dos Poderes',
-              resumo: 'Resumo dos poderes genericos do suplemento.',
-              conteudo:
-                '# Visao Geral dos Poderes\n\nEste capitulo agrupa poderes genericos associados a sobrevivencia, preparo, improviso e resistencia contra o sobrenatural.\n\nO texto completo sera preenchido quando o material atualizado do suplemento for enviado.',
-              ordem: 1,
-              tags: ['sobrevivendo', 'poderes'],
-              palavrasChave: 'sobrevivendo poderes genericos suplemento',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      codigo: 'trilhas',
-      nome: 'Trilhas',
-      descricao: 'Novas trilhas e caminhos.',
-      icone: 'training',
-      cor: '#22d3ee',
-      ordem: 3,
-      subcategorias: [
-        {
-          codigo: 'trilhas-do-suplemento',
-          nome: 'Trilhas do Suplemento',
-          descricao: 'Trilhas oficiais adicionadas pelo suplemento.',
-          ordem: 1,
-          artigos: [
-            {
-              codigo: 'visao-geral-das-trilhas',
-              titulo: 'Visao Geral das Trilhas',
-              resumo: 'Resumo das trilhas adicionadas pelo suplemento.',
-              conteudo:
-                '# Visao Geral das Trilhas\n\nAs trilhas deste suplemento ampliam papeis de sobrevivencia, suporte e especializacao para personagens de Jujutsu.\n\nO texto completo sera preenchido quando o material atualizado do suplemento for enviado.',
-              ordem: 1,
-              tags: ['sobrevivendo', 'trilhas'],
-              palavrasChave: 'sobrevivendo trilhas caminhos suplemento',
-            },
-          ],
-        },
-      ],
-    },
-    {
-      codigo: 'equipamentos',
-      nome: 'Equipamentos',
-      descricao: 'Itens, armas, artefatos e ferramentas.',
-      icone: 'inventory',
-      cor: '#a78bfa',
-      ordem: 4,
-      subcategorias: [
-        {
-          codigo: 'equipamentos-do-suplemento',
-          nome: 'Equipamentos do Suplemento',
-          descricao: 'Equipamentos oficiais adicionados pelo suplemento.',
-          ordem: 1,
-          artigos: [
-            {
-              codigo: 'visao-geral-dos-equipamentos',
-              titulo: 'Visao Geral dos Equipamentos',
-              resumo: 'Resumo dos equipamentos adicionados pelo suplemento.',
-              conteudo:
-                '# Visao Geral dos Equipamentos\n\nSobrevivendo ao Jujutsu adiciona opcoes mundanas e amaldicoadas para expedicoes, investigacoes, confrontos e preparacao.\n\nO texto completo sera preenchido quando o material atualizado do suplemento for enviado.',
-              ordem: 1,
-              tags: ['sobrevivendo', 'equipamentos'],
-              palavrasChave: 'sobrevivendo equipamentos itens armas suplemento',
-              destaque: true,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      codigo: 'modificacoes',
-      nome: 'Modificacoes',
-      descricao: 'Melhorias e ajustes de equipamentos.',
-      icone: 'tools',
-      cor: '#fb923c',
-      ordem: 5,
-      subcategorias: [
-        {
-          codigo: 'modificacoes-do-suplemento',
-          nome: 'Modificacoes do Suplemento',
-          descricao: 'Modificacoes oficiais adicionadas pelo suplemento.',
-          ordem: 1,
-          artigos: [
-            {
-              codigo: 'visao-geral-das-modificacoes',
-              titulo: 'Visao Geral das Modificacoes',
-              resumo: 'Resumo das modificacoes adicionadas pelo suplemento.',
-              conteudo:
-                '# Visao Geral das Modificacoes\n\nEste capitulo organiza modificacoes para adaptar equipamentos a cenas de risco, investigacao e combate contra ameacas sobrenaturais.\n\nO texto completo sera preenchido quando o material atualizado do suplemento for enviado.',
-              ordem: 1,
-              tags: ['sobrevivendo', 'modificacoes'],
-              palavrasChave: 'sobrevivendo modificacoes equipamentos suplemento',
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
-
 function carregarLivroPrincipal(): LivroSeed {
   const markdown = readFileSync(LIVRO_PRINCIPAL_MARKDOWN_PATH, 'utf8');
   return parseLivroPrincipalMarkdown(markdown);
 }
 
 function getLivros(): LivroSeed[] {
-  return [carregarLivroPrincipal(), sobrevivendoAoJujutsu];
+  return [carregarLivroPrincipal(), buildSobrevivendoAoJujutsuLivro()];
 }
 
 async function upsertCategoria(
@@ -423,7 +269,11 @@ export async function seedCompendioLivros(prisma: PrismaClient) {
     });
 
     for (const categoria of livro.categorias) {
-      const categoriaRow = await upsertCategoria(prisma, livroRow.id, categoria);
+      const categoriaRow = await upsertCategoria(
+        prisma,
+        livroRow.id,
+        categoria,
+      );
 
       for (const subcategoria of categoria.subcategorias) {
         const subcategoriaRow = await upsertSubcategoria(

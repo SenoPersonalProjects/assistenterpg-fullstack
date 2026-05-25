@@ -3689,6 +3689,10 @@ O sucesso custoso funciona de forma semelhante à ideia de forçar o teste: ele 
 
 O mestre não deve usar sucesso custoso para anular riscos importantes. A consequência precisa ser clara, relevante e proporcional à ação realizada.
 
+### **13.2.7. CONSUMIR COM CALMA**
+
+Dá a opção do jogador de utilizar os itens consumíveis com uma ação acima ao custo de receber o máximo do efeito daquele item. Por exemplo, concedendo o máximo da cura, ou um efeito pelo máximo de rodadas. Então, por exemplo, um cicatrizante que seria usado como ação de movimento, poderia ser usado como ação padrão para garantir a cura máxima dele.
+
 # **14.CONDIÇÕES**
 
 * Abalado.
