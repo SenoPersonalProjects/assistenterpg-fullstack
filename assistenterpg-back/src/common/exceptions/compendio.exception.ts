@@ -5,6 +5,27 @@ import { BaseException } from './base.exception';
 import { BusinessException } from './business.exception';
 import { ValidationException } from './validation.exception';
 
+export class CompendioLivroException extends BaseException {
+  constructor(identificador?: string | number) {
+    super(
+      'Livro do compendio nao encontrado',
+      HttpStatus.NOT_FOUND,
+      'COMPENDIO_LIVRO_NOT_FOUND',
+      { identificador },
+    );
+  }
+}
+
+export class CompendioLivroDuplicadoException extends BusinessException {
+  constructor(codigo: string) {
+    super(
+      `Livro do compendio com codigo "${codigo}" ja existe`,
+      'COMPENDIO_LIVRO_DUPLICADO',
+      { codigo },
+    );
+  }
+}
+
 // ============================================================================
 // COMPÊNDIO - CATEGORIAS
 // ============================================================================

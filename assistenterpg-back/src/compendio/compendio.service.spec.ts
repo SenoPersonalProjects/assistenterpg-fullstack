@@ -8,6 +8,8 @@ describe('CompendioService', () => {
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       upsert: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
     },
     compendioCategoria: {
       findMany: jest.fn(),
@@ -36,6 +38,10 @@ describe('CompendioService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    suplemento: {
+      findUnique: jest.fn(),
+    },
+    $transaction: jest.fn(),
   };
 
   let service: CompendioService;
@@ -218,5 +224,60 @@ describe('CompendioService', () => {
         orderBy: { ordem: 'asc' },
       }),
     );
+  });
+
+  it('creates draft books with generated code', async () => {
+    prisma.compendioLivro.findUnique.mockResolvedValue(null);
+    prisma.compendioLivro.create.mockResolvedValue({
+      id: 20,
+      codigo: 'novo-livro',
+    });
+
+    await service.criarLivro({ titulo: 'Novo Livro' });
+
+    expect(prisma.compendioLivro.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          codigo: 'novo-livro',
+          titulo: 'Novo Livro',
+          status: StatusPublicacao.RASCUNHO,
+        }),
+      }),
+    );
+  });
+
+  it('updates book publication status', async () => {
+    prisma.compendioLivro.findUnique.mockResolvedValue({
+      id: 20,
+      codigo: 'novo-livro',
+    });
+    prisma.compendioLivro.update.mockResolvedValue({
+      id: 20,
+      status: StatusPublicacao.PUBLICADO,
+    });
+
+    await service.atualizarLivro(20, { status: StatusPublicacao.PUBLICADO });
+
+    expect(prisma.compendioLivro.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 20 },
+        data: expect.objectContaining({
+          status: StatusPublicacao.PUBLICADO,
+        }),
+      }),
+    );
+  });
+
+  it('reorders compendium articles', async () => {
+    prisma.$transaction.mockResolvedValue([]);
+
+    await service.reordenar({ tipo: 'artigo', ids: [3, 1, 2] });
+
+    expect(prisma.compendioArtigo.update).toHaveBeenCalledTimes(3);
+    expect(prisma.compendioArtigo.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 3 },
+      data: { ordem: 1 },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

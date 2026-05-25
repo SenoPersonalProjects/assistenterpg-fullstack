@@ -72,14 +72,76 @@ export interface CompendioArtigoCompleto extends CompendioArtigoResumido {
 }
 
 export type UpdateCompendioArtigoPayload = {
+  codigo?: string;
   titulo?: string;
   resumo?: string;
   conteudo?: string;
+  subcategoriaId?: number;
+  ordem?: number;
   tags?: string[];
   palavrasChave?: string;
   nivelDificuldade?: 'iniciante' | 'intermediario' | 'avancado';
   destaque?: boolean;
   ativo?: boolean;
+};
+
+export type CreateCompendioLivroPayload = {
+  codigo?: string;
+  titulo: string;
+  descricao?: string;
+  icone?: string;
+  cor?: string;
+  ordem?: number;
+  status?: CompendioStatusPublicacao;
+  suplementoId?: number;
+};
+
+export type UpdateCompendioLivroPayload = Partial<CreateCompendioLivroPayload>;
+
+export type CreateCompendioCategoriaPayload = {
+  codigo?: string;
+  nome: string;
+  descricao?: string;
+  icone?: string;
+  cor?: string;
+  livroId: number;
+  ordem?: number;
+  ativo?: boolean;
+};
+
+export type UpdateCompendioCategoriaPayload =
+  Partial<CreateCompendioCategoriaPayload>;
+
+export type CreateCompendioSubcategoriaPayload = {
+  codigo?: string;
+  nome: string;
+  descricao?: string;
+  categoriaId: number;
+  ordem?: number;
+  ativo?: boolean;
+};
+
+export type UpdateCompendioSubcategoriaPayload =
+  Partial<CreateCompendioSubcategoriaPayload>;
+
+export type CreateCompendioArtigoPayload = {
+  codigo?: string;
+  titulo: string;
+  resumo?: string;
+  conteudo: string;
+  subcategoriaId: number;
+  ordem?: number;
+  tags?: string[];
+  palavrasChave?: string;
+  nivelDificuldade?: 'iniciante' | 'intermediario' | 'avancado';
+  artigosRelacionados?: string[];
+  ativo?: boolean;
+  destaque?: boolean;
+};
+
+export type ReorderCompendioPayload = {
+  tipo: 'livro' | 'categoria' | 'subcategoria' | 'artigo';
+  ids: number[];
 };
 
 export type CompendioSeedExport = {
@@ -456,6 +518,133 @@ export async function apiListarTodosArtigos(): Promise<CompendioArtigoCompleto[]
   );
 }
 
+export async function apiAdminListarLivros(): Promise<CompendioLivro[]> {
+  return fetchJson<CompendioLivro[]>(
+    '/compendio/admin/livros',
+    'Falha ao carregar livros do compendio',
+    {
+      method: 'GET',
+      auth: true,
+      cache: 'no-store',
+    },
+  );
+}
+
+export async function apiAdminCriarLivro(
+  payload: CreateCompendioLivroPayload,
+): Promise<CompendioLivro> {
+  return fetchJson<CompendioLivro>(
+    '/compendio/admin/livros',
+    'Falha ao criar livro',
+    {
+      method: 'POST',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminAtualizarLivro(
+  id: number,
+  payload: UpdateCompendioLivroPayload,
+): Promise<CompendioLivro> {
+  return fetchJson<CompendioLivro>(
+    `/compendio/admin/livros/${id}`,
+    'Falha ao atualizar livro',
+    {
+      method: 'PUT',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminCriarCategoria(
+  payload: CreateCompendioCategoriaPayload,
+): Promise<CompendioCategoria> {
+  return fetchJson<CompendioCategoria>(
+    '/compendio/categorias',
+    'Falha ao criar capitulo',
+    {
+      method: 'POST',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminAtualizarCategoria(
+  id: number,
+  payload: UpdateCompendioCategoriaPayload,
+): Promise<CompendioCategoria> {
+  return fetchJson<CompendioCategoria>(
+    `/compendio/categorias/${id}`,
+    'Falha ao atualizar capitulo',
+    {
+      method: 'PUT',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminCriarSubcategoria(
+  payload: CreateCompendioSubcategoriaPayload,
+): Promise<CompendioSubcategoriaComArtigo> {
+  return fetchJson<CompendioSubcategoriaComArtigo>(
+    '/compendio/subcategorias',
+    'Falha ao criar topico',
+    {
+      method: 'POST',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminAtualizarSubcategoria(
+  id: number,
+  payload: UpdateCompendioSubcategoriaPayload,
+): Promise<CompendioSubcategoriaComArtigo> {
+  return fetchJson<CompendioSubcategoriaComArtigo>(
+    `/compendio/subcategorias/${id}`,
+    'Falha ao atualizar topico',
+    {
+      method: 'PUT',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminCriarArtigo(
+  payload: CreateCompendioArtigoPayload,
+): Promise<CompendioArtigoCompleto> {
+  return fetchJson<CompendioArtigoCompleto>(
+    '/compendio/artigos',
+    'Falha ao criar artigo',
+    {
+      method: 'POST',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export async function apiAdminAtualizarArtigo(
   id: number,
   payload: UpdateCompendioArtigoPayload,
@@ -465,6 +654,22 @@ export async function apiAdminAtualizarArtigo(
     'Falha ao atualizar artigo',
     {
       method: 'PUT',
+      auth: true,
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function apiAdminReordenarCompendio(
+  payload: ReorderCompendioPayload,
+): Promise<{ sucesso: boolean }> {
+  return fetchJson<{ sucesso: boolean }>(
+    '/compendio/admin/reordenar',
+    'Falha ao reordenar compendio',
+    {
+      method: 'POST',
       auth: true,
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
@@ -499,6 +704,15 @@ export const compendioApi = {
   listarDestaques: apiListarDestaques,
   buscar: apiBuscarCompendio,
   listarTodosArtigos: apiListarTodosArtigos,
+  adminListarLivros: apiAdminListarLivros,
+  adminCriarLivro: apiAdminCriarLivro,
+  adminAtualizarLivro: apiAdminAtualizarLivro,
+  adminCriarCategoria: apiAdminCriarCategoria,
+  adminAtualizarCategoria: apiAdminAtualizarCategoria,
+  adminCriarSubcategoria: apiAdminCriarSubcategoria,
+  adminAtualizarSubcategoria: apiAdminAtualizarSubcategoria,
+  adminCriarArtigo: apiAdminCriarArtigo,
   adminAtualizarArtigo: apiAdminAtualizarArtigo,
+  adminReordenarCompendio: apiAdminReordenarCompendio,
   adminExportarSeedCompendio: apiAdminExportarSeedCompendio,
 };

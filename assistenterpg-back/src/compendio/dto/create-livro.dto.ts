@@ -1,23 +1,23 @@
-// src/compendio/dto/create-categoria.dto.ts
 import {
-  IsString,
+  IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
-  IsInt,
-  IsBoolean,
+  IsString,
   MaxLength,
 } from 'class-validator';
+import { StatusPublicacao } from '@prisma/client';
 
-export class CreateCategoriaDto {
-  @IsString()
+export class CreateLivroDto {
   @IsOptional()
+  @IsString()
   @MaxLength(100)
   codigo?: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  nome: string;
+  titulo: string;
 
   @IsOptional()
   @IsString()
@@ -35,13 +35,13 @@ export class CreateCategoriaDto {
 
   @IsOptional()
   @IsInt()
-  livroId?: number;
-
-  @IsOptional()
-  @IsInt()
   ordem?: number;
 
   @IsOptional()
-  @IsBoolean()
-  ativo?: boolean;
+  @IsEnum(StatusPublicacao)
+  status?: StatusPublicacao;
+
+  @IsOptional()
+  @IsInt()
+  suplementoId?: number;
 }

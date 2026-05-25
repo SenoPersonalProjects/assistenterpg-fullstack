@@ -1,6 +1,7 @@
 import { apiListarDestaques, apiListarLivros } from '@/lib/utils/compendio';
 import { ArtigoCard } from '@/components/compendio/ArtigoCard';
 import { CompendioAdminExportButton } from '@/components/compendio/CompendioAdminExportButton';
+import { CompendioAdminManageButton } from '@/components/compendio/CompendioAdminManageButton';
 import { BookCard } from '@/components/compendio/BookCard';
 import { CompendioSearch } from '@/components/compendio/CompendioSearch';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -34,6 +35,7 @@ export default async function CompendioPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <CompendioAdminManageButton />
             <CompendioAdminExportButton />
             <Link href="/home">
               <Button variant="ghost" size="sm" className="font-bold">

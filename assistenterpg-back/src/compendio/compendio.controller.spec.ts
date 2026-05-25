@@ -23,6 +23,10 @@ describe('CompendioController', () => {
 
   it('should require JWT+Admin on all write routes', () => {
     const writeMethods = [
+      'listarLivrosAdmin',
+      'criarLivro',
+      'atualizarLivro',
+      'reordenar',
       'criarCategoria',
       'atualizarCategoria',
       'removerCategoria',

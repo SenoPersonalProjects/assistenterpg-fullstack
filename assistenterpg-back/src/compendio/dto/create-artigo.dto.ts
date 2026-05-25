@@ -12,9 +12,9 @@ import {
 
 export class CreateArtigoDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(100)
-  codigo: string;
+  codigo?: string;
 
   @IsString()
   @IsNotEmpty()

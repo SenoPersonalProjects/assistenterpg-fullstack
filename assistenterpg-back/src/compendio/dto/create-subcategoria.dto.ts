@@ -10,9 +10,9 @@ import {
 
 export class CreateSubcategoriaDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(100)
-  codigo: string;
+  codigo?: string;
 
   @IsString()
   @IsNotEmpty()

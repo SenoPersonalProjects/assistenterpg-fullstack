@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArtigoContent } from '@/components/compendio/ArtigoContent';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -134,6 +135,13 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
         <Icon name="edit" className="mr-2 h-4 w-4" />
         Editar
       </Button>
+
+      <Link href={`/compendio/admin?artigo=${artigo.id}`}>
+        <Button type="button" variant="ghost" size="sm">
+          <Icon name="settings" className="mr-2 h-4 w-4" />
+          Editor completo
+        </Button>
+      </Link>
 
       <Modal
         isOpen={open}

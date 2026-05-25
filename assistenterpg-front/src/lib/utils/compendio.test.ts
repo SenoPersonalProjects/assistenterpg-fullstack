@@ -1,6 +1,13 @@
 import {
   apiAdminAtualizarArtigo,
+  apiAdminAtualizarLivro,
+  apiAdminCriarArtigo,
+  apiAdminCriarCategoria,
+  apiAdminCriarLivro,
+  apiAdminCriarSubcategoria,
   apiAdminExportarSeedCompendio,
+  apiAdminListarLivros,
+  apiAdminReordenarCompendio,
   apiBuscarArtigoDoLivroPorCodigo,
   apiBuscarArtigoPorCodigo,
   apiBuscarCategoriaPorCodigo,
@@ -211,6 +218,140 @@ describe('compendio api fallbacks', () => {
     const init = fetchMock.mock.calls[0][1] as RequestInit;
     expect(init.headers).toBeInstanceOf(Headers);
     expect((init.headers as Headers).get('Content-Type')).toBe('application/json');
+  });
+
+  it('lists all books through the admin route', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await apiAdminListarLivros();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/admin/livros',
+      expect.objectContaining({
+        method: 'GET',
+        cache: 'no-store',
+      }),
+    );
+  });
+
+  it('creates and updates compendium books through admin routes', async () => {
+    const livro = {
+      id: 1,
+      codigo: 'novo-livro',
+      titulo: 'Novo livro',
+      descricao: null,
+      icone: null,
+      cor: null,
+      ordem: 0,
+      status: 'RASCUNHO',
+      suplementoId: null,
+      criadoEm: '2026-05-24T00:00:00.000Z',
+      atualizadoEm: '2026-05-24T00:00:00.000Z',
+      categorias: [],
+    };
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(livro), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ...livro, status: 'PUBLICADO' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+    await apiAdminCriarLivro({ titulo: 'Novo livro', status: 'RASCUNHO' });
+    await apiAdminAtualizarLivro(1, { status: 'PUBLICADO' });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'http://localhost:3000/compendio/admin/livros',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ titulo: 'Novo livro', status: 'RASCUNHO' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://localhost:3000/compendio/admin/livros/1',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ status: 'PUBLICADO' }),
+      }),
+    );
+  });
+
+  it('creates compendium tree nodes through admin write routes', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 1 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 2 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ id: 3 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+    await apiAdminCriarCategoria({ nome: 'Capitulo', livroId: 1 });
+    await apiAdminCriarSubcategoria({ nome: 'Topico', categoriaId: 2 });
+    await apiAdminCriarArtigo({
+      titulo: 'Artigo',
+      conteudo: '# Artigo',
+      subcategoriaId: 3,
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'http://localhost:3000/compendio/categorias',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://localhost:3000/compendio/subcategorias',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      'http://localhost:3000/compendio/artigos',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('reorders compendium nodes through the admin route', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ sucesso: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await apiAdminReordenarCompendio({ tipo: 'artigo', ids: [3, 1, 2] });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/admin/reordenar',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ tipo: 'artigo', ids: [3, 1, 2] }),
+      }),
+    );
   });
 
   it('exports the compendium seed through the admin route', async () => {

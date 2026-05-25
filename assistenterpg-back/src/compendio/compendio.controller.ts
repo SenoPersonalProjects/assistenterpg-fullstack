@@ -12,6 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CompendioService } from './compendio.service';
+import { CreateLivroDto } from './dto/create-livro.dto';
+import { UpdateLivroDto } from './dto/update-livro.dto';
+import { ReorderCompendioDto } from './dto/reorder-compendio.dto';
 import { CreateCategoriaDto } from './dto/create-categoria.dto';
 import { UpdateCategoriaDto } from './dto/update-categoria.dto';
 import { CreateSubcategoriaDto } from './dto/create-subcategoria.dto';
@@ -29,19 +32,42 @@ export class CompendioController {
   // ==================== LIVROS ====================
 
   @Get('livros')
-  async listarLivros(@Query('todos') todos?: string) {
-    return this.compendioService.listarLivros(todos === 'true');
+  async listarLivros() {
+    return this.compendioService.listarLivros();
   }
 
   @Get('livros/:livroCodigo')
   async buscarLivroPorCodigo(
     @Param('livroCodigo') livroCodigo: string,
-    @Query('todos') todos?: string,
   ) {
-    return this.compendioService.buscarLivroPorCodigo(
-      livroCodigo,
-      todos === 'true',
-    );
+    return this.compendioService.buscarLivroPorCodigo(livroCodigo);
+  }
+
+  @Get('admin/livros')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async listarLivrosAdmin() {
+    return this.compendioService.listarLivrosAdmin();
+  }
+
+  @Post('admin/livros')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async criarLivro(@Body() dto: CreateLivroDto) {
+    return this.compendioService.criarLivro(dto);
+  }
+
+  @Put('admin/livros/:id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async atualizarLivro(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateLivroDto,
+  ) {
+    return this.compendioService.atualizarLivro(id, dto);
+  }
+
+  @Post('admin/reordenar')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async reordenar(@Body() dto: ReorderCompendioDto) {
+    return this.compendioService.reordenar(dto);
   }
 
   @Get('admin/exportar-seed')
@@ -97,12 +123,10 @@ export class CompendioController {
 
   @Get('categorias')
   async listarCategorias(
-    @Query('todas') todas?: string,
     @Query() paginacao?: PaginationQueryDto,
   ) {
-    const apenasAtivas = todas !== 'true';
     return this.compendioService.listarCategorias(
-      apenasAtivas,
+      true,
       paginacao?.page,
       paginacao?.limit,
     );
@@ -139,13 +163,11 @@ export class CompendioController {
   @Get('categorias/:categoriaId/subcategorias')
   async listarSubcategorias(
     @Param('categoriaId', ParseIntPipe) categoriaId: number,
-    @Query('todas') todas?: string,
     @Query() paginacao?: PaginationQueryDto,
   ) {
-    const apenasAtivas = todas !== 'true';
     return this.compendioService.listarSubcategorias(
       categoriaId,
-      apenasAtivas,
+      true,
       paginacao?.page,
       paginacao?.limit,
     );
@@ -183,13 +205,11 @@ export class CompendioController {
   async listarArtigos(
     @Query('subcategoriaId', new ParseIntPipe({ optional: true }))
     subcategoriaId?: number,
-    @Query('todas') todas?: string,
     @Query() paginacao?: PaginationQueryDto,
   ) {
-    const apenasAtivos = todas !== 'true';
     return this.compendioService.listarArtigos(
       subcategoriaId,
-      apenasAtivos,
+      true,
       paginacao?.page,
       paginacao?.limit,
     );
