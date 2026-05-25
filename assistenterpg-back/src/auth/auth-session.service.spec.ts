@@ -60,10 +60,10 @@ describe('AuthSessionService', () => {
     );
   });
 
-  function criarRequest(cookies: Record<string, string> = {}) {
+  function criarRequest(cookies: Record<string, string> = {}, ip = '127.0.0.1') {
     return {
       cookies,
-      ip: '127.0.0.1',
+      ip,
       get: jest.fn((header: string) =>
         header.toLowerCase() === 'user-agent' ? 'vitest' : undefined,
       ),
@@ -229,6 +229,36 @@ describe('AuthSessionService', () => {
     expect(jwtService.signAsync).toHaveBeenCalledWith(
       { sub: 1, email: 'usuario@example.com', sid: 12 },
       { expiresIn: 900 },
+    );
+  });
+
+  it('aceita duplicata recente mesmo quando proxy muda o IP observado', async () => {
+    const refreshToken = 'refresh-recente';
+    sessaoAutenticacao.findUnique.mockResolvedValue({
+      id: 10,
+      usuarioId: 1,
+      refreshTokenHash: hashSegredoSessao(refreshToken),
+      csrfTokenHash: hashSegredoSessao('csrf-atual'),
+      userAgent: 'vitest',
+      ipHash: hashSegredoSessao('127.0.0.1'),
+      expiraEm: new Date(Date.now() + 60_000),
+      revogadaEm: new Date(),
+      revogacaoMotivo: 'ROTACAO',
+      rotacionadaEm: new Date(),
+      usuario: { id: 1, email: 'usuario@example.com' },
+    });
+    sessaoAutenticacao.create.mockResolvedValue({ id: 12 });
+
+    await service.renovarSessao(
+      criarRequest({ [AUTH_REFRESH_COOKIE]: refreshToken }, '10.0.0.2'),
+      criarResponse().response,
+    );
+
+    expect(sessaoAutenticacao.updateMany).not.toHaveBeenCalled();
+    expect(sessaoAutenticacao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ usuarioId: 1 }),
+      }),
     );
   });
 

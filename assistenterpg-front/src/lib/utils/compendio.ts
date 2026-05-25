@@ -1,4 +1,8 @@
-import { ensureCsrfToken } from '../api/axios-client';
+import {
+  ensureCsrfToken,
+  refreshAuthSession,
+  resetCsrfToken,
+} from '../api/axios-client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -239,9 +243,9 @@ async function fetchJson<T>(
   fallbackMessage: string,
   init?: FetchJsonInit,
 ): Promise<T> {
-  let requestInit: RequestInit | undefined = init;
+  async function buildRequestInit(): Promise<RequestInit | undefined> {
+    if (!init?.auth) return init;
 
-  if (init?.auth) {
     const initSemAuth = { ...init };
     delete initSemAuth.auth;
     const { headers, ...rest } = initSemAuth;
@@ -255,16 +259,36 @@ async function fetchJson<T>(
       requestHeaders.set('X-CSRF-Token', await ensureCsrfToken());
     }
 
-    requestInit = {
+    return {
       ...rest,
       headers: requestHeaders,
     };
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...requestInit,
-    credentials: 'include',
-  });
+  async function execute(): Promise<Response> {
+    const requestInit = await buildRequestInit();
+    return fetch(`${API_BASE_URL}${path}`, {
+      ...requestInit,
+      credentials: 'include',
+    });
+  }
+
+  let res = await execute();
+
+  if (!res.ok && init?.auth && res.status === 401) {
+    await refreshAuthSession();
+    res = await execute();
+  }
+
+  if (!res.ok && init?.auth && res.status === 403) {
+    const { message } = await parseApiError(res, fallbackMessage);
+    if (message.toLowerCase().includes('csrf')) {
+      resetCsrfToken();
+      res = await execute();
+    } else {
+      throw new ApiError(message, res.status, null);
+    }
+  }
 
   if (!res.ok) {
     const { message, body } = await parseApiError(res, fallbackMessage);

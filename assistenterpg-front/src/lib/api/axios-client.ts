@@ -122,6 +122,11 @@ export function clearAuthClientState() {
   clearClientAuthMarkers();
 }
 
+export function resetCsrfToken() {
+  csrfToken = null;
+  csrfPromise = null;
+}
+
 export function markAuthSessionFresh() {
   lastAuthRefreshAt = Date.now();
   setAuthHintCookie();
@@ -146,6 +151,11 @@ export async function ensureCsrfToken(): Promise<string> {
     });
 
   return csrfPromise;
+}
+
+async function fetchFreshCsrfToken(): Promise<string> {
+  resetCsrfToken();
+  return ensureCsrfToken();
 }
 
 export async function refreshAuthSession(): Promise<void> {
@@ -247,6 +257,7 @@ function waitForExternalRefresh(): Promise<boolean> {
       if (event.data?.type === 'refresh-ok') {
         window.clearTimeout(timeout);
         channel.close();
+        resetCsrfToken();
         markAuthSessionFresh();
         resolve(true);
       }
@@ -282,10 +293,14 @@ async function refreshAuthSessionCoordinated(): Promise<void> {
 }
 
 async function performRefreshRequest(): Promise<void> {
-  const token = await ensureCsrfToken();
-  const response = await sessionClient.post<CsrfResponse>('/auth/refresh', null, {
-    headers: { [CSRF_HEADER]: token },
-  });
+  const token = await fetchFreshCsrfToken();
+  const response = await sessionClient.post<CsrfResponse>(
+    '/auth/refresh',
+    undefined,
+    {
+      headers: { [CSRF_HEADER]: token },
+    },
+  );
   csrfToken = response.data.csrfToken;
 }
 
@@ -334,7 +349,11 @@ function shouldAttemptCsrfRetry(error: AxiosError<ApiErrorBody>): boolean {
 
 function isRefreshAuthFailure(error: unknown): boolean {
   if (!axios.isAxiosError(error)) return false;
-  return error.response?.status === 401 || error.response?.status === 403;
+  return (
+    error.response?.status === 400 ||
+    error.response?.status === 401 ||
+    error.response?.status === 403
+  );
 }
 
 function setHeader(

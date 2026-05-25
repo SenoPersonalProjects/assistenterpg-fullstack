@@ -355,13 +355,9 @@ export class AuthSessionService {
       return false;
     }
 
-    if (sessao.ipHash && request.ip) {
-      return compararHashesSeguros(
-        sessao.ipHash,
-        hashSegredoSessao(request.ip),
-      );
-    }
-
+    // Em producao atras de proxies/CDNs, o IP observado pelo backend pode mudar
+    // entre chamadas quase simultaneas. A janela curta de rotacao + user-agent
+    // compativel e suficiente para tratar duplicatas legitimas sem derrubar o usuario.
     return true;
   }
 
