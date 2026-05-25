@@ -24,6 +24,11 @@ type UsuarioSessao = {
   email: string;
 };
 
+const REVOGACAO_ROTACAO = 'ROTACAO';
+const REVOGACAO_LOGOUT = 'LOGOUT';
+const REVOGACAO_REUSO_REFRESH = 'REUSO_REFRESH';
+const REFRESH_ROTACAO_GRACE_MS = 30_000;
+
 @Injectable()
 export class AuthSessionService {
   constructor(
@@ -79,10 +84,27 @@ export class AuthSessionService {
     }
 
     if (sessao.revogadaEm) {
-      await this.revogarTodasSessoesUsuario(sessao.usuarioId);
+      if (this.ehDuplicataBenignaDeRefresh(sessao, request)) {
+        return this.emitirNovaSessaoAposRefresh(sessao, request, response);
+      }
+
+      await this.revogarTodasSessoesUsuario(
+        sessao.usuarioId,
+        REVOGACAO_REUSO_REFRESH,
+      );
       throw new UnauthorizedException('Sessao expirada');
     }
 
+    return this.emitirNovaSessaoAposRefresh(sessao, request, response);
+  }
+
+  private async emitirNovaSessaoAposRefresh(
+    sessao: NonNullable<
+      Awaited<ReturnType<AuthSessionService['obterSessaoPorRefresh']>>
+    >,
+    request: Request,
+    response: Response,
+  ): Promise<{ csrfToken: string }> {
     const novoRefreshToken = gerarSegredoSessao();
     const novoCsrfToken = gerarSegredoSessao(32);
     const segundosRestantes = Math.max(
@@ -91,13 +113,18 @@ export class AuthSessionService {
     );
 
     const novaSessao = await this.prisma.$transaction(async (tx) => {
-      await tx.sessaoAutenticacao.update({
-        where: { id: sessao.id },
-        data: {
-          revogadaEm: new Date(),
-          ultimoUsoEm: new Date(),
-        },
-      });
+      if (!sessao.revogadaEm) {
+        const agora = new Date();
+        await tx.sessaoAutenticacao.update({
+          where: { id: sessao.id },
+          data: {
+            revogadaEm: agora,
+            revogacaoMotivo: REVOGACAO_ROTACAO,
+            rotacionadaEm: agora,
+            ultimoUsoEm: agora,
+          },
+        });
+      }
 
       return tx.sessaoAutenticacao.create({
         data: {
@@ -163,7 +190,10 @@ export class AuthSessionService {
           refreshTokenHash: hashSegredoSessao(refreshToken),
           revogadaEm: null,
         },
-        data: { revogadaEm: new Date() },
+        data: {
+          revogadaEm: new Date(),
+          revogacaoMotivo: REVOGACAO_LOGOUT,
+        },
       });
     }
 
@@ -197,16 +227,25 @@ export class AuthSessionService {
       return false;
     }
 
-    const sessao = await this.prisma.sessaoAutenticacao.findFirst({
+    const sessao = await this.prisma.sessaoAutenticacao.findUnique({
       where: {
         refreshTokenHash: hashSegredoSessao(refreshToken),
-        revogadaEm: null,
-        expiraEm: { gt: new Date() },
       },
-      select: { csrfTokenHash: true },
+      include: {
+        usuario: {
+          select: { id: true, email: true },
+        },
+      },
     });
 
     if (!sessao) return false;
+    const sessaoAtiva = !sessao.revogadaEm && sessao.expiraEm > new Date();
+    const duplicataRefresh =
+      this.ehRotaRefresh(request) &&
+      this.ehDuplicataBenignaDeRefresh(sessao, request);
+
+    if (!sessaoAtiva && !duplicataRefresh) return false;
+
     return compararHashesSeguros(
       sessao.csrfTokenHash,
       hashSegredoSessao(csrfHeader),
@@ -260,14 +299,75 @@ export class AuthSessionService {
     });
   }
 
-  private async revogarTodasSessoesUsuario(usuarioId: number): Promise<void> {
+  private async revogarTodasSessoesUsuario(
+    usuarioId: number,
+    motivo: string,
+  ): Promise<void> {
     await this.prisma.sessaoAutenticacao.updateMany({
       where: {
         usuarioId,
         revogadaEm: null,
       },
-      data: { revogadaEm: new Date() },
+      data: {
+        revogadaEm: new Date(),
+        revogacaoMotivo: motivo,
+      },
     });
+  }
+
+  private ehDuplicataBenignaDeRefresh(
+    sessao: {
+      revogadaEm: Date | null;
+      revogacaoMotivo?: string | null;
+      rotacionadaEm?: Date | null;
+      userAgent?: string | null;
+      ipHash?: string | null;
+      expiraEm: Date;
+    },
+    request: Request,
+  ): boolean {
+    if (
+      !sessao.revogadaEm ||
+      sessao.revogacaoMotivo !== REVOGACAO_ROTACAO ||
+      sessao.expiraEm <= new Date()
+    ) {
+      return false;
+    }
+
+    const rotacionadaEm = sessao.rotacionadaEm ?? sessao.revogadaEm;
+    if (Date.now() - rotacionadaEm.getTime() > REFRESH_ROTACAO_GRACE_MS) {
+      return false;
+    }
+
+    return this.contextoDaSessaoCompativel(sessao, request);
+  }
+
+  private contextoDaSessaoCompativel(
+    sessao: { userAgent?: string | null; ipHash?: string | null },
+    request: Request,
+  ): boolean {
+    const userAgentAtual = request.get('user-agent') ?? null;
+    if (
+      sessao.userAgent &&
+      userAgentAtual &&
+      sessao.userAgent !== userAgentAtual
+    ) {
+      return false;
+    }
+
+    if (sessao.ipHash && request.ip) {
+      return compararHashesSeguros(
+        sessao.ipHash,
+        hashSegredoSessao(request.ip),
+      );
+    }
+
+    return true;
+  }
+
+  private ehRotaRefresh(request: Request): boolean {
+    const path = request.path ?? request.originalUrl ?? request.url ?? '';
+    return path.includes('/auth/refresh');
   }
 
   private async assinarAccessToken(usuario: UsuarioSessao, sessaoId: number) {

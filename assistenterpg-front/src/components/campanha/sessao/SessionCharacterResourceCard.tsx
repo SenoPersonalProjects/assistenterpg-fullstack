@@ -60,7 +60,7 @@ function clampPercentual(atual: number, maximo: number): number {
 }
 
 const NUCLEO_LABELS: Record<NucleoAmaldicoadoCodigo, string> = {
-  EQUILIBRIO: 'Equilibrio',
+  EQUILIBRIO: 'Equilíbrio',
   PODER: 'Poder',
   IMPULSO: 'Impulso',
 };
@@ -194,10 +194,10 @@ export function SessionCharacterResourceCard({
             {linha.key === 'pv' && temBarras ? (
               <div className="mt-2 space-y-2">
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-app-muted">
-                  <span>PV por nucleo: {pvBarraMaxAtual}</span>
+                  <span>PV por núcleo: {pvBarraMaxAtual}</span>
                   <span>Total: {recursos.pvMax}</span>
                   <span>
-                    Nucleos: {pvBarrasRestantes}/{pvBarrasTotal}
+                    Núcleos: {pvBarrasRestantes}/{pvBarrasTotal}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -219,7 +219,7 @@ export function SessionCharacterResourceCard({
                       </Button>
                     ))
                   ) : (
-                    <Badge size="sm">Nucleos indisponiveis</Badge>
+                    <Badge size="sm">Núcleos indisponíveis</Badge>
                   )}
                   {podeSacrificar && onSacrificarNucleo ? (
                     <Button
@@ -232,7 +232,7 @@ export function SessionCharacterResourceCard({
                       }}
                       disabled={desabilitado}
                     >
-                      Sacrificar nucleo
+                      Sacrificar núcleo
                     </Button>
                   ) : null}
                 </div>
@@ -305,7 +305,7 @@ export function SessionCharacterResourceCard({
         <Modal
           isOpen={modalSacrificioAberto}
           onClose={() => setModalSacrificioAberto(false)}
-          title="Sacrificar nucleo"
+          title="Sacrificar núcleo"
           size="sm"
           footer={
             <>
@@ -336,7 +336,7 @@ export function SessionCharacterResourceCard({
         >
           <div className="space-y-3 text-sm text-app-fg">
             <p className="text-xs text-app-muted">
-              Sacrificar um nucleo restaura seu PV para a barra atual.
+              Sacrificar um núcleo restaura seu PV para a barra atual.
             </p>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm">
@@ -347,7 +347,7 @@ export function SessionCharacterResourceCard({
                   checked={modoSacrificio === 'ATUAL'}
                   onChange={() => setModoSacrificio('ATUAL')}
                 />
-                Sacrificar nucleo atual
+                Sacrificar núcleo atual
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -357,12 +357,12 @@ export function SessionCharacterResourceCard({
                   checked={modoSacrificio === 'OUTRO'}
                   onChange={() => setModoSacrificio('OUTRO')}
                 />
-                Sacrificar outro nucleo (3 PE)
+                Sacrificar outro núcleo (3 PE)
               </label>
             </div>
             {modoSacrificio === 'OUTRO' ? (
               <div className="space-y-2">
-                <p className="text-xs text-app-muted">Escolha o nucleo a perder:</p>
+                <p className="text-xs text-app-muted">Escolha o núcleo a perder:</p>
                 <div className="flex flex-wrap gap-2">
                   {nucleosParaSacrificio.map((nucleo) => (
                     <Button

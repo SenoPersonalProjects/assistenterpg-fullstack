@@ -158,7 +158,7 @@ export function DiceChatPanel({
             {mostrarCabecalho ? (
               <div className="session-chat__header">
                 <span className="session-chat__author">
-                  {ehMinhaMensagem ? 'Voce' : autorLabel}
+                  {ehMinhaMensagem ? 'Você' : autorLabel}
                 </span>
                 {personagemNome ? (
                   <span className="session-chat__meta">({personagemNome})</span>
@@ -190,7 +190,7 @@ export function DiceChatPanel({
       {erro ? <ErrorAlert message={erro} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="session-chat__hint">
-          Sintaxe: XdY ou X#dY. Espacos em operadores sao ignorados (ex.: d20 + 5).
+          Sintaxe: XdY ou X#dY. Espaços em operadores são ignorados (ex.: d20 + 5).
         </p>
         <div className="flex items-center gap-3">
           <Checkbox
@@ -213,7 +213,7 @@ export function DiceChatPanel({
       ) : null}
       {sessaoEncerrada ? (
         <p className="session-chat__hint">
-          Sessao encerrada. O chat de rolagens esta em modo leitura.
+          Sessão encerrada. O chat de rolagens está em modo leitura.
         </p>
       ) : null}
       <div ref={scrollRef} className="session-chat__scroll" onScroll={handleScroll}>
@@ -279,7 +279,7 @@ export function DiceChatPanel({
       >
         <div className="space-y-4 text-sm text-app-fg">
           <div className="space-y-2">
-            <p className="font-semibold text-app-fg">Sintaxe basica</p>
+            <p className="font-semibold text-app-fg">Sintaxe básica</p>
             <p>Use XdY para rolar X dados com Y faces.</p>
             <p>
               Use # antes do d para aplicar o modificador em cada dado, mostrar
@@ -294,7 +294,7 @@ export function DiceChatPanel({
 
           <div className="space-y-2">
             <p className="font-semibold text-app-fg">Separadores</p>
-            <p>Separe multiplas rolagens com espaco, virgula, ponto-e-virgula ou |.</p>
+            <p>Separe múltiplas rolagens com espaço, vírgula, ponto-e-vírgula ou |.</p>
           </div>
 
           <div className="space-y-2">

@@ -188,7 +188,7 @@ function LinhaAtributo({
           className="h-8 w-10 px-0"
           aria-label={`Diminuir ${label}`}
         >
-          <Icon name="minus" className="w-4 h-4" />
+          <span className="text-lg font-bold leading-none text-app-fg">-</span>
         </Button>
 
         <div
@@ -207,7 +207,7 @@ function LinhaAtributo({
           className="h-8 w-10 px-0"
           aria-label={`Aumentar ${label}`}
         >
-          <Icon name="add" className="w-4 h-4" />
+          <span className="text-lg font-bold leading-none text-app-fg">+</span>
         </Button>
       </div>
     </div>

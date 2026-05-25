@@ -27,3 +27,4 @@ export * from './npcs-ameacas';
 export * from './anotacoes';
 export * from './homebrews';
 export * from './amizades';
+export * from './chat-amigos';

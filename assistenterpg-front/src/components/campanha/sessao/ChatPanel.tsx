@@ -54,10 +54,10 @@ export function ChatPanel({
   const limiteAviso = Math.floor(LIMITE_MENSAGEM_CHAT * 0.8);
   const contadorClasse =
     mensagem.length >= LIMITE_MENSAGEM_CHAT
-      ? 'text-app-danger'
+      ? 'session-chat__counter session-chat__counter--danger'
       : mensagem.length >= limiteAviso
-        ? 'text-app-warning'
-        : 'text-app-muted';
+        ? 'session-chat__counter session-chat__counter--warn'
+        : 'session-chat__counter';
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -125,45 +125,42 @@ export function ChatPanel({
         const mostrarCabecalho = !anterior || !mesmoAutor || !dentroDoAgrupamento;
         const ehMinhaMensagem =
           typeof usuarioId === 'number' && item.autor.usuarioId === usuarioId;
-
         const diceGroup = parseDiceMessageGroup(item.mensagem);
+        const bubbleClassName = `session-chat__bubble${
+          diceGroup ? ' session-chat__bubble--dice' : ''
+        }`;
 
         return (
           <motion.div
             key={item.id}
             initial={{ opacity: 0, x: ehMinhaMensagem ? 10 : -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`flex flex-col ${ehMinhaMensagem ? 'items-end' : 'items-start'} ${
-              mostrarCabecalho ? 'mt-4' : 'mt-0.5'
-            }`}
+            className={`session-chat__message${
+              ehMinhaMensagem ? ' session-chat__message--self' : ''
+            }${!mostrarCabecalho ? ' session-chat__message--grouped' : ''}`}
           >
-            {mostrarCabecalho && (
-              <div className={`mb-1 flex items-center gap-2 px-1 text-[10px] font-black uppercase tracking-widest text-app-muted ${ehMinhaMensagem ? 'flex-row-reverse' : 'flex-row'}`}>
-                <span className={ehMinhaMensagem ? 'text-app-primary' : 'text-app-fg'}>
+            {mostrarCabecalho ? (
+              <div className="session-chat__header">
+                <span className="session-chat__author">
                   {ehMinhaMensagem ? 'Você' : autorLabel}
                 </span>
-                {personagemNome && (
-                  <span className="opacity-50">· {personagemNome}</span>
-                )}
-                <span className="text-[9px] opacity-40">{formatarDataHora(item.criadoEm)}</span>
+                {personagemNome ? (
+                  <span className="session-chat__meta">({personagemNome})</span>
+                ) : null}
+                <span className="session-chat__meta">
+                  {formatarDataHora(item.criadoEm)}
+                </span>
               </div>
-            )}
-
-            <div className={`relative max-w-[90%] rounded-2xl px-3 py-2 text-sm shadow-sm transition-all ${
-              diceGroup
-                ? 'bg-transparent p-0 shadow-none'
-                : ehMinhaMensagem
-                  ? 'rounded-tr-none bg-app-primary text-white'
-                  : 'rounded-tl-none bg-app-surface border border-app-border/10 text-app-fg'
-            }`}>
+            ) : null}
+            <div className={bubbleClassName}>
               {diceGroup ? (
-                <div className="flex flex-col gap-2 w-full">
+                <div className="session-chat__dice-list">
                   {diceGroup.payloads.map((payload, idx) => (
                     <DiceMessageCard key={`${item.id}-dice-${idx}`} payload={payload} />
                   ))}
                 </div>
               ) : (
-                <p className="leading-relaxed font-medium">{textoSeguro(item.mensagem)}</p>
+                <p className="session-chat__text">{textoSeguro(item.mensagem)}</p>
               )}
             </div>
           </motion.div>
@@ -173,25 +170,18 @@ export function ChatPanel({
   );
 
   return (
-    <div className="relative flex h-[600px] flex-col rounded-2xl border border-app-border/10 bg-app-bg/30">
-      {erro && <ErrorAlert message={erro} className="rounded-none border-0 border-b border-app-danger/20" />}
+    <div className="session-chat">
+      {erro ? <ErrorAlert message={erro} /> : null}
 
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-2 scrollbar-none space-y-1"
-        onScroll={handleScroll}
-      >
+      <div ref={scrollRef} className="session-chat__scroll" onScroll={handleScroll}>
         {chat.length === 0 ? (
-          <div className="flex h-full items-center justify-center opacity-40">
-            <EmptyState
-              variant="session"
-              size="sm"
-              icon="chat"
-              title="Sem mensagens"
-              description="Inicie a conversa da sessão."
-              className="text-center"
-            />
-          </div>
+          <EmptyState
+            variant="session"
+            size="sm"
+            icon="chat"
+            title="Sem mensagens"
+            description="Inicie a conversa da sessão."
+          />
         ) : (
           <>
             {mensagensRenderizadas}
@@ -201,64 +191,54 @@ export function ChatPanel({
       </div>
 
       <AnimatePresence>
-        {mostrarPular && (
+        {mostrarPular ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-32 left-1/2 z-30 -translate-x-1/2"
+            className="session-chat__jump"
           >
-            <Button
-              size="xs"
-              variant="secondary"
-              onClick={handlePularParaFim}
-              className="rounded-full font-black uppercase tracking-widest shadow-2xl ring-2 ring-app-primary/20"
-            >
+            <Button size="xs" variant="secondary" onClick={handlePularParaFim}>
               <Icon name="chevron-down" className="mr-1 h-3 w-3" />
               Novas mensagens
             </Button>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
 
-      <div className="p-3 bg-app-surface/40 backdrop-blur-md border-t border-app-border/10 rounded-b-2xl">
-        <div className="relative group">
-          <textarea
-            ref={textareaRef}
-            value={mensagem}
-            onChange={(event) => onMensagemChange(event.target.value)}
-            maxLength={LIMITE_MENSAGEM_CHAT}
-            disabled={sessaoEncerrada || enviandoMensagem}
-            rows={1}
-            placeholder={sessaoEncerrada ? "Sessão encerrada" : "Digite uma mensagem..."}
-            className="w-full resize-none rounded-xl border border-app-border/10 bg-app-bg/50 px-4 py-3 pr-12 text-sm font-medium transition-all focus:border-app-primary/50 focus:bg-app-bg focus:outline-none focus:ring-4 focus:ring-app-primary/10 disabled:opacity-50"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                handleEnviar();
-              }
-            }}
-          />
-          <button
-            onClick={handleEnviar}
-            disabled={!podeEnviar}
-            className={`absolute right-2 top-2 h-8 w-8 rounded-lg flex items-center justify-center transition-all ${
-              podeEnviar
-                ? 'bg-app-primary text-white shadow-lg shadow-app-primary/20 hover:scale-105 active:scale-95'
-                : 'bg-app-muted-surface text-app-muted opacity-50'
-            }`}
-          >
-            <Icon name={enviandoMensagem ? "spinner" : "forward"} className={`h-4 w-4 ${enviandoMensagem ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
-        <div className="mt-2 flex items-center justify-between px-1">
-          <span className="text-[9px] font-black uppercase tracking-widest text-app-muted opacity-60">
-            {sessaoEncerrada ? 'Leitura Apenas' : 'Shift+Enter para quebra'}
-          </span>
-          <span className={`text-[9px] font-black uppercase tracking-widest ${contadorClasse}`}>
-            {mensagem.length}/{LIMITE_MENSAGEM_CHAT}
-          </span>
+      <div className="session-chat__input-row">
+        <textarea
+          ref={textareaRef}
+          value={mensagem}
+          onChange={(event) => onMensagemChange(event.target.value)}
+          maxLength={LIMITE_MENSAGEM_CHAT}
+          disabled={sessaoEncerrada || enviandoMensagem}
+          rows={1}
+          placeholder={sessaoEncerrada ? 'Sessão encerrada' : 'Digite uma mensagem...'}
+          className="session-chat__input"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              handleEnviar();
+            }
+          }}
+        />
+        <div className="session-chat__footer">
+          <div className="session-chat__footer-meta">
+            <span className="session-chat__hint">
+              {sessaoEncerrada ? 'Modo leitura' : 'Shift+Enter para quebra'}
+            </span>
+            <span className={contadorClasse}>
+              {mensagem.length}/{LIMITE_MENSAGEM_CHAT}
+            </span>
+          </div>
+          <Button onClick={handleEnviar} disabled={!podeEnviar}>
+            <Icon
+              name={enviandoMensagem ? 'spinner' : 'forward'}
+              className={`mr-1.5 h-4 w-4 ${enviandoMensagem ? 'animate-spin' : ''}`}
+            />
+            {enviandoMensagem ? 'Enviando...' : 'Enviar'}
+          </Button>
         </div>
       </div>
     </div>

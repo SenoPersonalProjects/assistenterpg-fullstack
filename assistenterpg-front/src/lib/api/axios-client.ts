@@ -32,6 +32,22 @@ let isRedirectingToLogin = false;
 let csrfToken: string | null = null;
 let csrfPromise: Promise<string> | null = null;
 let refreshPromise: Promise<void> | null = null;
+let lastAuthRefreshAt = 0;
+
+const REFRESH_CHANNEL_NAME = 'assistenterpg_auth_refresh';
+const REFRESH_LOCK_KEY = 'assistenterpg_refresh_lock';
+const REFRESH_LOCK_TTL_MS = 10_000;
+const REFRESH_WAIT_MS = 3_000;
+
+type RefreshLock = {
+  owner: string;
+  expiresAt: number;
+};
+
+type RefreshBroadcastMessage = {
+  type: 'refresh-ok' | 'refresh-failed';
+  at: number;
+};
 
 type AuthRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -102,7 +118,17 @@ export function clearAuthClientState() {
   csrfToken = null;
   csrfPromise = null;
   refreshPromise = null;
+  lastAuthRefreshAt = 0;
   clearClientAuthMarkers();
+}
+
+export function markAuthSessionFresh() {
+  lastAuthRefreshAt = Date.now();
+  setAuthHintCookie();
+}
+
+export function getLastAuthRefreshAt() {
+  return lastAuthRefreshAt;
 }
 
 export async function ensureCsrfToken(): Promise<string> {
@@ -125,22 +151,142 @@ export async function ensureCsrfToken(): Promise<string> {
 export async function refreshAuthSession(): Promise<void> {
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = (async () => {
-    const token = await ensureCsrfToken();
-    const response = await sessionClient.post<CsrfResponse>(
-      '/auth/refresh',
-      null,
-      {
-        headers: { [CSRF_HEADER]: token },
-      },
-    );
-    csrfToken = response.data.csrfToken;
-    setAuthHintCookie();
-  })().finally(() => {
+  refreshPromise = refreshAuthSessionCoordinated().finally(() => {
     refreshPromise = null;
   });
 
   return refreshPromise;
+}
+
+function createRefreshChannel(): BroadcastChannel | null {
+  if (typeof window === 'undefined' || !('BroadcastChannel' in window)) {
+    return null;
+  }
+
+  return new BroadcastChannel(REFRESH_CHANNEL_NAME);
+}
+
+function broadcastRefresh(message: RefreshBroadcastMessage) {
+  const channel = createRefreshChannel();
+  if (!channel) return;
+
+  channel.postMessage(message);
+  channel.close();
+}
+
+function readRefreshLock(): RefreshLock | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(REFRESH_LOCK_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RefreshLock>;
+    if (
+      typeof parsed.owner !== 'string' ||
+      typeof parsed.expiresAt !== 'number'
+    ) {
+      return null;
+    }
+    return { owner: parsed.owner, expiresAt: parsed.expiresAt };
+  } catch {
+    return null;
+  }
+}
+
+function acquireRefreshLock(): string | null {
+  if (typeof window === 'undefined') return 'server';
+
+  const atual = readRefreshLock();
+  if (atual && atual.expiresAt > Date.now()) return null;
+
+  const owner =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`;
+  const lock: RefreshLock = {
+    owner,
+    expiresAt: Date.now() + REFRESH_LOCK_TTL_MS,
+  };
+
+  try {
+    window.localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify(lock));
+    return readRefreshLock()?.owner === owner ? owner : null;
+  } catch {
+    return owner;
+  }
+}
+
+function releaseRefreshLock(owner: string) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const atual = readRefreshLock();
+    if (atual?.owner === owner) {
+      window.localStorage.removeItem(REFRESH_LOCK_KEY);
+    }
+  } catch {
+    // Sem efeito: o lock expira sozinho.
+  }
+}
+
+function waitForExternalRefresh(): Promise<boolean> {
+  const channel = createRefreshChannel();
+  if (!channel) {
+    return new Promise((resolve) =>
+      window.setTimeout(() => resolve(false), REFRESH_WAIT_MS),
+    );
+  }
+
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(() => {
+      channel.close();
+      resolve(false);
+    }, REFRESH_WAIT_MS);
+
+    channel.onmessage = (event: MessageEvent<RefreshBroadcastMessage>) => {
+      if (event.data?.type === 'refresh-ok') {
+        window.clearTimeout(timeout);
+        channel.close();
+        markAuthSessionFresh();
+        resolve(true);
+      }
+
+      if (event.data?.type === 'refresh-failed') {
+        window.clearTimeout(timeout);
+        channel.close();
+        resolve(false);
+      }
+    };
+  });
+}
+
+async function refreshAuthSessionCoordinated(): Promise<void> {
+  const owner = acquireRefreshLock();
+
+  if (!owner) {
+    const refreshedByAnotherTab = await waitForExternalRefresh();
+    if (refreshedByAnotherTab) return;
+    return refreshAuthSessionCoordinated();
+  }
+
+  try {
+    await performRefreshRequest();
+    markAuthSessionFresh();
+    broadcastRefresh({ type: 'refresh-ok', at: Date.now() });
+  } catch (error) {
+    broadcastRefresh({ type: 'refresh-failed', at: Date.now() });
+    throw error;
+  } finally {
+    releaseRefreshLock(owner);
+  }
+}
+
+async function performRefreshRequest(): Promise<void> {
+  const token = await ensureCsrfToken();
+  const response = await sessionClient.post<CsrfResponse>('/auth/refresh', null, {
+    headers: { [CSRF_HEADER]: token },
+  });
+  csrfToken = response.data.csrfToken;
 }
 
 function normalizarPath(url?: string): string {
@@ -184,6 +330,11 @@ function shouldAttemptCsrfRetry(error: AxiosError<ApiErrorBody>): boolean {
     : String(message ?? '');
 
   return normalizedMessage.toLowerCase().includes('csrf');
+}
+
+function isRefreshAuthFailure(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  return error.response?.status === 401 || error.response?.status === 403;
 }
 
 function setHeader(
@@ -243,11 +394,14 @@ apiClient.interceptors.response.use(
         config._retry = true;
         await refreshAuthSession();
         return apiClient(config);
-      } catch {
-        clearAuthClientState();
-        if (!config._skipAuthRedirect) {
-          redirectToLogin();
+      } catch (refreshError) {
+        if (isRefreshAuthFailure(refreshError)) {
+          clearAuthClientState();
+          if (!config._skipAuthRedirect) {
+            redirectToLogin();
+          }
         }
+        throw refreshError;
       }
     }
 

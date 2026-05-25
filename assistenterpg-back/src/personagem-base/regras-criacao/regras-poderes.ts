@@ -93,6 +93,17 @@ function isStringArray(value: unknown): value is string[] {
   );
 }
 
+function nomeGrauTreinamento(grauMinimo: number): string {
+  if (grauMinimo <= 1) return 'treinada';
+  if (grauMinimo === 2) return 'graduada';
+  if (grauMinimo === 3) return 'veterana';
+  return 'expert';
+}
+
+function formatarRequisitoPericia(req: RequisitoPericia): string {
+  return `${req.codigo} ${nomeGrauTreinamento(req.grauMinimo)}`;
+}
+
 /**
  * ✅ Calcula quantos slots de poderes genéricos o personagem tem disponível
  * Níveis que concedem poderes: 3, 6, 9, 12, 15, 18
@@ -373,7 +384,11 @@ function validarPericias(
 
     if (!atendeuAlguma) {
       const opcoes = periciasReq.map((req) => req.codigo).join(' ou ');
-      throw new PoderGenericoRequisitoPericiaException(poderNome, opcoes);
+      const grau = nomeGrauTreinamento(periciasReq[0]?.grauMinimo ?? 1);
+      throw new PoderGenericoRequisitoPericiaException(
+        poderNome,
+        `${opcoes} ${grau}`,
+      );
     }
   } else {
     for (const req of periciasReq) {
@@ -381,7 +396,7 @@ function validarPericias(
       if (grauAtual < req.grauMinimo) {
         throw new PoderGenericoRequisitoPericiaException(
           poderNome,
-          `${req.codigo} (grau ${req.grauMinimo}+)`,
+          formatarRequisitoPericia(req),
         );
       }
     }

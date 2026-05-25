@@ -150,7 +150,7 @@ export function CharacterSessionCard({
   if (acaoHabilidadeCard) {
     mensagensStatus.push(
       acaoHabilidadeCard.startsWith('encerrar:')
-        ? 'Encerrando sustentacao...'
+        ? 'Encerrando sustentação...'
         : 'Aplicando habilidade...',
     );
   }
@@ -240,7 +240,7 @@ export function CharacterSessionCard({
             Somente leitura
           </Badge>
           <p className="session-text-xxs text-app-muted">
-            Dados completos indisponiveis no momento.
+            Dados completos indisponíveis no momento.
           </p>
         </div>
       ) : null}
@@ -248,14 +248,14 @@ export function CharacterSessionCard({
       {recursos ? (
         <div className="flex flex-wrap items-center gap-2">
           <Badge size="sm" color={condicoesColor}>
-            Condicoes {totalCondicoesAtivasCard}
+            Condições {totalCondicoesAtivasCard}
           </Badge>
           <Badge size="sm" color={sustentacoesColor}>
-            Sustentacoes {totalSustentacoesAtivasCard}
+            Sustentações {totalSustentacoesAtivasCard}
           </Badge>
           {statusFisico ? (
             <Badge size="sm" color={statusFisicoColor}>
-              Fisico: {statusFisico}
+              Físico: {statusFisico}
             </Badge>
           ) : null}
           {statusMental ? (
@@ -312,12 +312,12 @@ export function CharacterSessionCard({
           onAbrirFichaCompleta={onAbrirFichaCompleta}
           onEncerrarSustentacao={onEncerrarSustentacao}
           formatarCustos={formatarCustos}
-            renderPainelCondicoes={renderPainelCondicoes}
-            limitesCategoriaAtivo={limitesCategoriaAtivo}
-            onRolarPericia={onRolarPericia}
-            onRolarTesteHabilidade={onRolarTesteHabilidade}
-            onRolarDanoHabilidade={onRolarDanoHabilidade}
-          />
+          renderPainelCondicoes={renderPainelCondicoes}
+          limitesCategoriaAtivo={limitesCategoriaAtivo}
+          onRolarPericia={onRolarPericia}
+          onRolarTesteHabilidade={onRolarTesteHabilidade}
+          onRolarDanoHabilidade={onRolarDanoHabilidade}
+        />
       ) : null}
 
     </Card>

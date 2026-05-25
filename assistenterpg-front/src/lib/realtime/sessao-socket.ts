@@ -47,5 +47,19 @@ export function conectarSocketSessao(): Socket {
     .catch(() => undefined)
     .finally(() => socket.connect());
 
+  let tentouRefreshAposErro = false;
+  socket.on('connect', () => {
+    tentouRefreshAposErro = false;
+  });
+  socket.on('connect_error', () => {
+    if (tentouRefreshAposErro) return;
+    tentouRefreshAposErro = true;
+    void refreshAuthSession()
+      .then(() => {
+        if (!socket.connected) socket.connect();
+      })
+      .catch(() => undefined);
+  });
+
   return socket;
 }

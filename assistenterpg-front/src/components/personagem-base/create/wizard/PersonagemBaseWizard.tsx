@@ -1026,6 +1026,8 @@ export function PersonagemBaseWizard(props: Props) {
                 periciasOrigemEscolhidasCodigos={periciasOrigemEscolhidasCodigos}
                 periciasLivresCodigos={periciasLivresCodigos}
                 grausTreinamento={grausTreinamento}
+                habilidadesConfig={habilidadesConfig}
+                periciasLivresExtras={periciasLivresExtras}
                 todasPericias={pericias}
                 tiposGrau={tiposGrau}
                 passivasAtributosConfig={passivasAtributosConfig}

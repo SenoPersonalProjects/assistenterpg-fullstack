@@ -133,7 +133,7 @@ export function SessionCharactersPanel({
 }: SessionCharactersPanelProps) {
   return (
     <SessionPanel
-      title="Personagens da sessao"
+      title="Personagens da sessão"
       subtitle="Jogadores editam apenas sua ficha. O mestre pode editar todas."
       tone="main"
       right={
@@ -156,7 +156,7 @@ export function SessionCharactersPanel({
           variant="session"
           size="sm"
           icon="character-gojo"
-          title="Sem personagens na sessao"
+          title="Sem personagens na sessão"
           description="Associe personagens na campanha para aparecerem no lobby."
         />
       ) : (

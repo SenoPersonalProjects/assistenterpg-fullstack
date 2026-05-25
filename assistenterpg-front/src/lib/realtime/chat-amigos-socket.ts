@@ -1,13 +1,16 @@
 import { io, type Socket } from 'socket.io-client';
 import { API_BASE_URL, refreshAuthSession } from '@/lib/api/axios-client';
-
-export type EventoPresencaAmigos = {
-  onlineUsuarioIds: number[];
-  em: string;
+export type EventoChatLeitura = {
+  usuarioId: number;
+  amigoId: number;
+  conversaId: number | null;
+  lidaAteMensagemId: number | null;
 };
 
-export function conectarSocketPresenca(): Socket {
-  const socket = io(`${API_BASE_URL}/presenca`, {
+export type ChatAmigosSocket = Socket;
+
+export function conectarSocketChatAmigos(): ChatAmigosSocket {
+  const socket = io(`${API_BASE_URL}/chat-amigos`, {
     transports: ['websocket', 'polling'],
     withCredentials: true,
     autoConnect: false,
@@ -16,7 +19,7 @@ export function conectarSocketPresenca(): Socket {
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
-  });
+  }) as ChatAmigosSocket;
 
   void refreshAuthSession()
     .catch(() => undefined)
@@ -25,6 +28,7 @@ export function conectarSocketPresenca(): Socket {
   let tentouRefreshAposErro = false;
   socket.on('connect', () => {
     tentouRefreshAposErro = false;
+    socket.emit('chat:sync');
   });
   socket.on('connect_error', () => {
     if (tentouRefreshAposErro) return;

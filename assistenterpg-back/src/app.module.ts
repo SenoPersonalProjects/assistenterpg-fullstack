@@ -27,6 +27,7 @@ import { SessaoModule } from './sessao/sessao.module';
 import { NpcsAmeacasModule } from './npcs-ameacas/npcs-ameacas.module';
 import { AnotacoesModule } from './anotacoes/anotacoes.module';
 import { AmizadesModule } from './amizades/amizades.module';
+import { ChatAmigosModule } from './chat-amigos/chat-amigos.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { AmizadesModule } from './amizades/amizades.module';
     NpcsAmeacasModule,
     AnotacoesModule,
     AmizadesModule,
+    ChatAmigosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

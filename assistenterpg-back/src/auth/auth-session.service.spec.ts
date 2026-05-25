@@ -134,6 +134,8 @@ describe('AuthSessionService', () => {
       ipHash: hashSegredoSessao('127.0.0.1'),
       expiraEm: new Date(Date.now() + 60_000),
       revogadaEm: null,
+      revogacaoMotivo: null,
+      rotacionadaEm: null,
       usuario: { id: 1, email: 'usuario@example.com' },
     });
     sessaoAutenticacao.create.mockResolvedValue({ id: 11 });
@@ -147,6 +149,12 @@ describe('AuthSessionService', () => {
       where: { id: 10 },
       data: expect.objectContaining({ revogadaEm: expect.any(Date) }),
     });
+    expect(sessaoAutenticacao.update.mock.calls[0][0].data).toEqual(
+      expect.objectContaining({
+        revogacaoMotivo: 'ROTACAO',
+        rotacionadaEm: expect.any(Date),
+      }),
+    );
     expect(sessaoAutenticacao.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -168,6 +176,8 @@ describe('AuthSessionService', () => {
       usuarioId: 1,
       expiraEm: new Date(Date.now() + 60_000),
       revogadaEm: new Date(),
+      revogacaoMotivo: 'ROTACAO',
+      rotacionadaEm: new Date(Date.now() - 60_000),
       usuario: { id: 1, email: 'usuario@example.com' },
     });
 
@@ -180,13 +190,56 @@ describe('AuthSessionService', () => {
 
     expect(sessaoAutenticacao.updateMany).toHaveBeenCalledWith({
       where: { usuarioId: 1, revogadaEm: null },
-      data: { revogadaEm: expect.any(Date) },
+      data: {
+        revogadaEm: expect.any(Date),
+        revogacaoMotivo: 'REUSO_REFRESH',
+      },
     });
+  });
+
+  it('aceita duplicata recente de refresh rotacionado sem revogar sessoes', async () => {
+    const refreshToken = 'refresh-recente';
+    sessaoAutenticacao.findUnique.mockResolvedValue({
+      id: 10,
+      usuarioId: 1,
+      refreshTokenHash: hashSegredoSessao(refreshToken),
+      csrfTokenHash: hashSegredoSessao('csrf-atual'),
+      userAgent: 'vitest',
+      ipHash: hashSegredoSessao('127.0.0.1'),
+      expiraEm: new Date(Date.now() + 60_000),
+      revogadaEm: new Date(),
+      revogacaoMotivo: 'ROTACAO',
+      rotacionadaEm: new Date(),
+      usuario: { id: 1, email: 'usuario@example.com' },
+    });
+    sessaoAutenticacao.create.mockResolvedValue({ id: 12 });
+
+    await service.renovarSessao(
+      criarRequest({ [AUTH_REFRESH_COOKIE]: refreshToken }),
+      criarResponse().response,
+    );
+
+    expect(sessaoAutenticacao.updateMany).not.toHaveBeenCalled();
+    expect(sessaoAutenticacao.update).not.toHaveBeenCalled();
+    expect(sessaoAutenticacao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ usuarioId: 1 }),
+      }),
+    );
+    expect(jwtService.signAsync).toHaveBeenCalledWith(
+      { sub: 1, email: 'usuario@example.com', sid: 12 },
+      { expiresIn: 900 },
+    );
   });
 
   it('valida csrf pelo cookie, header e hash persistido', async () => {
     sessaoAutenticacao.findFirst.mockResolvedValue({
       csrfTokenHash: hashSegredoSessao('csrf-token'),
+    });
+    sessaoAutenticacao.findUnique.mockResolvedValue({
+      csrfTokenHash: hashSegredoSessao('csrf-token'),
+      expiraEm: new Date(Date.now() + 60_000),
+      revogadaEm: null,
     });
 
     await expect(

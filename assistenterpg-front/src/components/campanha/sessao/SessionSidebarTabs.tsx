@@ -81,6 +81,7 @@ export function SessionSidebarTabs({
         tabs={tabs}
         activeId={activeTab}
         onChange={(tabId) => onChange(tabId as SessionSidebarTabId)}
+        variant="icon-only"
       />
       {children}
     </div>

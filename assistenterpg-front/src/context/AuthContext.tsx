@@ -20,6 +20,8 @@ import {
 } from '@/lib/api';
 import {
   clearAuthClientState,
+  getLastAuthRefreshAt,
+  markAuthSessionFresh,
   refreshAuthSession,
 } from '@/lib/api/axios-client';
 import {
@@ -28,6 +30,7 @@ import {
 } from '@/lib/utils/auth';
 
 const SESSION_ACTIVE_TOKEN = 'cookie-session';
+const PROACTIVE_REFRESH_INTERVAL_MS = 12 * 60 * 1000;
 
 type Usuario = {
   id: number;
@@ -84,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUsuario(normalizarUsuario(u));
         setToken(SESSION_ACTIVE_TOKEN);
+        markAuthSessionFresh();
         setAuthHintCookie();
 
         if (pathname === '/' || pathname.startsWith('/auth')) {
@@ -97,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setUsuario(normalizarUsuario(u));
           setToken(SESSION_ACTIVE_TOKEN);
+          markAuthSessionFresh();
           setAuthHintCookie();
 
           if (pathname === '/' || pathname.startsWith('/auth')) {
@@ -123,6 +128,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
+  useEffect(() => {
+    if (!usuario) return;
+
+    let active = true;
+    let running = false;
+
+    const renovarSeNecessario = async (force = false) => {
+      if (!active || running) return;
+      const elapsed = Date.now() - getLastAuthRefreshAt();
+      if (!force && elapsed < PROACTIVE_REFRESH_INTERVAL_MS) return;
+
+      running = true;
+      try {
+        await refreshAuthSession();
+      } catch {
+        // Erros transitórios não derrubam a sessão; a próxima chamada à API decide.
+      } finally {
+        running = false;
+      }
+    };
+
+    const interval = window.setInterval(
+      () => void renovarSeNecessario(true),
+      PROACTIVE_REFRESH_INTERVAL_MS,
+    );
+    const handleFocus = () => void renovarSeNecessario(false);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void renovarSeNecessario(false);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [usuario]);
+
   const login = useCallback(
     async (email: string, senha: string, rememberMe = true) => {
       setLoading(true);
@@ -130,6 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const resp: LoginResponse = await apiLogin(email, senha, rememberMe);
         setToken(SESSION_ACTIVE_TOKEN);
         setUsuario(normalizarUsuario(resp.usuario));
+        markAuthSessionFresh();
         setAuthHintCookie();
         router.push('/home');
       } finally {

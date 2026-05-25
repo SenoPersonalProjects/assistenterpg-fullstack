@@ -1057,6 +1057,919 @@ body {
   min-width: 0;
 }
 
+.session-page-shell {
+  --session-surface: color-mix(in srgb, var(--bg-surface) 88%, var(--bg) 12%);
+  --session-card: color-mix(in srgb, var(--bg-card) 90%, var(--bg-surface) 10%);
+  --session-elevated: color-mix(in srgb, var(--bg-card) 84%, var(--primary) 6%);
+  --session-muted: color-mix(in srgb, var(--bg-muted) 78%, var(--bg-card) 22%);
+  --session-border: color-mix(in srgb, var(--border-subtle) 72%, var(--primary) 28%);
+  --session-bubble: color-mix(in srgb, var(--bg-card) 88%, var(--fg) 5%);
+  --session-bubble-self: color-mix(in srgb, var(--primary) 22%, var(--bg-card) 78%);
+  --session-shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+}
+
+.dark .session-page-shell,
+.theme-superdark .session-page-shell {
+  --session-surface: color-mix(in srgb, var(--bg-surface) 76%, var(--primary) 5%);
+  --session-card: color-mix(in srgb, var(--bg-card) 82%, var(--primary) 4%);
+  --session-elevated: color-mix(in srgb, var(--bg-card) 72%, var(--primary) 10%);
+  --session-muted: color-mix(in srgb, var(--bg-muted) 70%, var(--primary) 6%);
+  --session-border: color-mix(in srgb, var(--border-subtle) 58%, var(--primary) 42%);
+  --session-bubble: color-mix(in srgb, var(--bg-card) 72%, var(--fg) 8%);
+  --session-bubble-self: color-mix(in srgb, var(--primary) 28%, var(--bg-card) 72%);
+  --session-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+}
+
+.session-page-shell :where(
+  .session-panel,
+  .session-panel-body,
+  .session-panel-frame,
+  .session-resource-card,
+  .session-resource-row,
+  .session-chat,
+  .session-chat__scroll,
+  .session-dice,
+  .session-notes,
+  .session-roster,
+  .session-npc-section,
+  .session-pericia-card,
+  .session-roll-modal
+) {
+  min-width: 0;
+}
+
+.session-page-shell :where(
+  .session-chat__text,
+  .session-dice__expr,
+  .session-dice__label,
+  .session-dice__meta,
+  .session-notes__content,
+  .session-npc-acao__effect,
+  .session-npc-passiva__desc,
+  .session-pericia-card__name,
+  .session-resource-row__label,
+  .session-resource-row__value,
+  .session-roster-item__name,
+  .session-roll-modal__subtitle
+) {
+  overflow-wrap: anywhere;
+}
+
+.session-panel-frame,
+.session-panel {
+  border-color: var(--session-border);
+  background: var(--session-card);
+  box-shadow: var(--session-shadow);
+}
+
+.session-panel-body,
+.session-box {
+  background: var(--session-surface);
+}
+
+.session-column-toggle {
+  border-color: var(--session-border);
+  background: var(--session-elevated);
+}
+
+.session-tabs {
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+}
+
+.session-tabs--compact {
+  gap: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+
+.session-tabs--compact .session-tab {
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.6875rem;
+}
+
+.session-tabs--icon-only {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(2.35rem, 1fr));
+  gap: 0.45rem;
+  overflow: visible;
+  padding: 0.125rem;
+}
+
+.session-tabs--icon-only .session-tab {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.4rem;
+  padding: 0.45rem;
+  border-radius: 0.85rem;
+}
+
+.session-tabs--icon-only .session-tab__count {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.25rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid var(--session-border);
+  background: var(--session-elevated);
+  font-size: 0.625rem;
+}
+
+.session-tab {
+  min-width: 0;
+}
+
+.session-tab--active {
+  background: color-mix(in srgb, var(--primary) 15%, var(--session-elevated) 85%);
+}
+
+.session-chip,
+.session-iniciativa-linha,
+.session-box {
+  border-color: var(--session-border);
+}
+
+.session-resource-card {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--session-border);
+  border-radius: 1rem;
+  background: var(--session-card);
+  padding: 0.95rem;
+}
+
+.session-resource-card__head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.session-initiative-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--session-border);
+  background: var(--session-muted);
+  padding: 0.35rem 0.5rem;
+  color: var(--fg);
+  font-size: 0.75rem;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.session-resource-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.session-resource-row {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.9rem;
+  background: var(--session-surface);
+  padding: 0.75rem;
+}
+
+.session-resource-row--pending {
+  border-color: rgba(var(--primary-rgb), 0.55);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.session-resource-row__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.session-resource-row__label,
+.session-resource-row__value {
+  color: var(--fg);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.session-resource-row__value {
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.session-resource-track {
+  position: relative;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-muted) 78%, black 8%);
+}
+
+.session-resource-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 180ms ease;
+}
+
+.session-resource-fill--pv {
+  background: linear-gradient(90deg, var(--danger), color-mix(in srgb, var(--danger) 70%, white 30%));
+}
+
+.session-resource-fill--san {
+  background: linear-gradient(90deg, var(--info), color-mix(in srgb, var(--info) 70%, white 30%));
+}
+
+.session-resource-fill--ea {
+  background: linear-gradient(90deg, var(--primary), color-mix(in srgb, var(--primary) 70%, white 30%));
+}
+
+.session-resource-fill--pe {
+  background: linear-gradient(90deg, var(--warning), color-mix(in srgb, var(--warning) 70%, white 30%));
+}
+
+.session-resource-actions {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(12rem, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.session-resource-actions__quick,
+.session-resource-actions__custom {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.session-resource-actions__quick > button {
+  min-width: 2.35rem;
+}
+
+.session-resource-actions__custom {
+  justify-content: flex-end;
+}
+
+.session-resource-actions__input {
+  width: 5rem;
+  min-width: 0;
+  height: 2rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.7rem;
+  background: var(--session-elevated);
+  color: var(--fg);
+  padding: 0 0.55rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 750;
+  outline: none;
+}
+
+.session-resource-actions__input:focus {
+  border-color: rgba(var(--primary-rgb), 0.6);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12);
+}
+
+.session-atributos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.65rem;
+}
+
+.session-atributo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.85rem;
+  background: var(--session-surface);
+  padding: 0.7rem 0.75rem;
+}
+
+.session-atributo-card__meta {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.session-atributo-card__code {
+  color: var(--primary);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.session-atributo-card__label {
+  color: var(--fg-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.session-atributo-card__value {
+  color: var(--fg);
+  font-size: 1.15rem;
+  font-weight: 950;
+}
+
+.session-pericias-header,
+.session-npc-section__header {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.session-pericias-header__meta,
+.session-npc-section__header > div {
+  min-width: 0;
+}
+
+.session-pericias-header__title,
+.session-npc-section__title {
+  color: var(--fg);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.session-pericias-header__subtitle,
+.session-npc-section__subtitle {
+  color: var(--fg-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.session-pericias-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.session-pericias-list,
+.session-npc-pericias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.65rem;
+}
+
+.session-pericia-card,
+.session-npc-pericia-card,
+.session-npc-pericia-especial-card {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.85rem;
+  background: var(--session-surface);
+  padding: 0.75rem;
+}
+
+.session-pericia-card__head,
+.session-npc-pericia-card__head,
+.session-npc-pericia-especial-card__head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.session-pericia-card__meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.session-pericia-card__name,
+.session-npc-pericia-card__name,
+.session-npc-pericia-especial-card__title {
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.session-pericia-card__attr,
+.session-npc-pericia-card__attr {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+  padding: 0.1rem 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.session-pericia-card__actions,
+.session-npc-pericia-card__actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.session-pericia-card__total,
+.session-npc-pericia-card__roll-value {
+  color: var(--primary);
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.session-pericia-card__roll,
+.session-npc-pericia-card__roll-btn {
+  min-width: 2rem;
+}
+
+.session-pericia-card__breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.session-pericia-breakdown__item {
+  display: grid;
+  gap: 0.15rem;
+  border-radius: 0.65rem;
+  background: var(--session-muted);
+  padding: 0.45rem;
+}
+
+.session-pericia-breakdown__label {
+  color: var(--fg-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.session-pericia-breakdown__value {
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.session-chat__scroll {
+  border-color: var(--session-border);
+  background: var(--session-surface);
+}
+
+.session-chat__bubble {
+  border-color: var(--session-border);
+  background: var(--session-bubble);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+
+.session-chat__message--self .session-chat__bubble:not(.session-chat__bubble--dice) {
+  border-color: rgba(var(--primary-rgb), 0.42);
+  background: var(--session-bubble-self);
+}
+
+.session-chat__bubble--dice {
+  box-shadow: none;
+}
+
+.session-chat__input {
+  border-color: var(--session-border);
+  background: var(--session-elevated);
+}
+
+.session-dice {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid var(--session-border);
+  border-radius: 1rem;
+  background: var(--session-elevated);
+  padding: 0.85rem;
+}
+
+.session-dice__header,
+.session-dice__actions,
+.session-dice__summary {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.session-dice__header {
+  justify-content: space-between;
+}
+
+.session-dice__badge,
+.session-dice__tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.session-dice__badge {
+  background: rgba(var(--primary-rgb), 0.14);
+  color: var(--primary);
+}
+
+.session-dice__label,
+.session-dice__expr {
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.session-dice__expr {
+  color: var(--fg-muted);
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.session-dice__tag--crit {
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
+}
+
+.session-dice__tag--fumble {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  color: var(--danger);
+}
+
+.session-dice__summary {
+  justify-content: space-between;
+  border-radius: 0.85rem;
+  background: var(--session-surface);
+  padding: 0.65rem 0.75rem;
+}
+
+.session-dice__summary--crit {
+  border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
+}
+
+.session-dice__summary--fumble {
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.session-dice__summary-label,
+.session-dice__meta,
+.session-dice__modifier {
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.session-dice__total {
+  color: var(--fg);
+  font-size: 1.7rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.session-dice__rolls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: 0.45rem;
+}
+
+.session-dice__roll {
+  display: grid;
+  place-items: center;
+  gap: 0.15rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.8rem;
+  background: var(--session-surface);
+  padding: 0.5rem;
+  color: var(--fg);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.session-dice__roll--max {
+  border-color: color-mix(in srgb, var(--success) 55%, transparent);
+  color: var(--success);
+}
+
+.session-dice__roll--min {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  color: var(--danger);
+}
+
+.session-dice__roll--picked {
+  box-shadow: inset 0 -2px 0 currentColor;
+}
+
+.session-dice__roll-picked,
+.session-dice__roll-final {
+  color: var(--fg-muted);
+  font-size: 0.6rem;
+  font-weight: 750;
+}
+
+.session-notes {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.session-notes__header,
+.session-notes__toolbar,
+.session-notes__card-head {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.session-notes__search {
+  min-width: min(100%, 16rem);
+  flex: 1 1 16rem;
+}
+
+.session-notes__add-btn {
+  flex: 0 0 auto;
+}
+
+.session-notes__form,
+.session-notes__card,
+.session-npc-section,
+.session-npc-ajustes,
+.session-npc-pericias-block,
+.session-roll-modal__viewer,
+.session-roll-modal__crit,
+.session-roster-item {
+  border: 1px solid var(--session-border);
+  border-radius: 1rem;
+  background: var(--session-surface);
+  padding: 0.85rem;
+}
+
+.session-notes__list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.session-notes__title {
+  color: var(--fg);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.session-notes__meta,
+.session-notes__content {
+  color: var(--fg-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.session-notes__content {
+  color: var(--fg);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.session-notes__card-actions,
+.session-npc-acao__badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.session-npc-section,
+.session-npc-ajustes,
+.session-npc-pericias,
+.session-npc-passivas,
+.session-npc-acoes,
+.session-npc-pericia-especiais,
+.session-npc-info,
+.session-roster {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.session-npc-meta-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.session-npc-meta,
+.session-npc-info,
+.session-npc-passiva,
+.session-npc-acao,
+.session-npc-ajustes__group {
+  border: 1px solid var(--session-border);
+  border-radius: 0.85rem;
+  background: var(--session-muted);
+  padding: 0.7rem;
+}
+
+.session-npc-meta__label,
+.session-npc-ajustes__subtitle,
+.session-npc-ajustes__group-subtitle,
+.session-npc-info__hint,
+.session-npc-passiva__desc,
+.session-npc-acao__effect,
+.session-npc-pericia-card__roll-label,
+.session-npc-pericia-especial-card__desc {
+  color: var(--fg-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.session-npc-meta__value,
+.session-npc-ajustes__title,
+.session-npc-ajustes__group-title,
+.session-npc-info__title,
+.session-npc-passiva__title,
+.session-npc-acao__title,
+.session-npc-pericias-block__title {
+  color: var(--fg);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.session-npc-passiva__head,
+.session-npc-acao__header,
+.session-npc-pericias-block__head,
+.session-npc-ajustes__actions,
+.session-npc-ajustes__readonly-head,
+.session-roster-item__head,
+.session-roster-item__status,
+.session-roll-modal__head,
+.session-roll-modal__head-actions,
+.session-roll-modal__status,
+.session-roll-modal__crit-header,
+.session-roll-modal__crit-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.session-npc-pericias-block,
+.session-npc-ajustes__group {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.session-npc-pericia-card__roll,
+.session-npc-pericia-card__roll-value,
+.session-npc-pericia-card__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.session-roster-item__name {
+  color: var(--fg);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.session-roster-item__meta,
+.session-roster-item__player,
+.session-roster-item__condicoes {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.session-roll-modal {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.session-roll-modal__title,
+.session-roll-modal__crit-title,
+.session-roll-modal__empty-title {
+  color: var(--fg);
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.session-roll-modal__subtitle,
+.session-roll-modal__dice-status,
+.session-roll-modal__empty-subtitle,
+.session-roll-modal__crit-subtitle,
+.session-roll-modal__status,
+.session-roll-modal__crit-label {
+  color: var(--fg-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.session-roll-modal__expr,
+.session-roll-modal__badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(var(--primary-rgb), 0.12);
+  color: var(--primary);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.session-roll-modal__dice-card,
+.session-roll-modal__empty {
+  display: grid;
+  min-height: 12rem;
+  place-items: center;
+  border: 1px solid var(--session-border);
+  border-radius: 1rem;
+  background: var(--session-elevated);
+  padding: 1rem;
+}
+
+.session-roll-modal__dice-card--crit {
+  border-color: color-mix(in srgb, var(--success) 55%, transparent);
+}
+
+.session-roll-modal__dice-card--fumble {
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+}
+
+.session-roll-modal__dice-overlay,
+.session-roll-modal__crit-controls {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.session-roll-modal__crit-input {
+  width: 5rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.75rem;
+  background: var(--session-elevated);
+  color: var(--fg);
+  padding: 0.45rem;
+  text-align: center;
+}
+
+.session-turn-control {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--session-border);
+  border-radius: 1rem;
+  background: var(--session-surface);
+  padding: 0.9rem;
+}
+
+.session-turn-control__head,
+.session-turn-control__actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.session-turn-control__actions {
+  justify-content: flex-end;
+}
+
+.session-turn-control__button {
+  min-width: 2.8rem;
+}
+
+@media (max-width: 720px) {
+  .session-resource-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .session-resource-actions__custom {
+    justify-content: flex-start;
+  }
+
+  .session-pericia-card__breakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .session-tabs--compact .session-tab {
+    min-width: 2.4rem;
+  }
+}
+
 @utility landing-shell {
   @apply min-h-screen overflow-x-hidden bg-app-bg;
 }

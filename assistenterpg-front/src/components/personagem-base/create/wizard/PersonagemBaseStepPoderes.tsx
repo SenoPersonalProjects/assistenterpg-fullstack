@@ -14,6 +14,7 @@ import {
   type TipoGrauCatalogo,
   type PassivasAtributoConfigFront,
   type AtributoBaseCodigo,
+  type HabilidadeConfigPayload,
 } from '@/lib/api';
 import { validarRequisitosPoder, calcularSlotsPoderes } from '@/lib/utils/poderes';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -56,6 +57,8 @@ type Props = {
   periciasOrigemEscolhidasCodigos: string[];
   periciasLivresCodigos: string[];
   grausTreinamento: GrauTreinamento[];
+  habilidadesConfig?: HabilidadeConfigPayload[];
+  periciasLivresExtras?: number;
 
   todasPericias: PericiaCatalogo[];
   tiposGrau: TipoGrauCatalogo[];
@@ -171,6 +174,21 @@ function sanitizarGrausTreinamento(
   return sanitizados.length > 0 ? sanitizados : undefined;
 }
 
+function sanitizarHabilidadesConfig(
+  habilidadesConfig: HabilidadeConfigPayload[] | undefined,
+): HabilidadeConfigPayload[] | undefined {
+  if (!habilidadesConfig || habilidadesConfig.length === 0) return undefined;
+
+  const validas = habilidadesConfig
+    .map((inst) => ({
+      habilidadeId: inst.habilidadeId,
+      config: inst.config ?? {},
+    }))
+    .filter((inst) => Number.isFinite(inst.habilidadeId));
+
+  return validas.length > 0 ? validas : undefined;
+}
+
 function sanitizarPoderesGenericos(
   poderes: PoderGenericoInstanciaPayload[],
   catalogoPoderes?: PoderGenericoCatalogo[],
@@ -253,6 +271,8 @@ export function PersonagemBaseStepPoderes({
   periciasOrigemEscolhidasCodigos,
   periciasLivresCodigos,
   grausTreinamento,
+  habilidadesConfig,
+  periciasLivresExtras,
   todasPericias,
   tiposGrau,
   passivasAtributosConfig,
@@ -309,6 +329,7 @@ export function PersonagemBaseStepPoderes({
 
     const configSanitizado = sanitizarPassivasConfig(passivasAtributosConfig);
     const grausTreinamentoSanitizados = sanitizarGrausTreinamento(grausTreinamento);
+    const habilidadesConfigSanitizadas = sanitizarHabilidadesConfig(habilidadesConfig);
     const poderesGenericosSanitizados = sanitizarPoderesGenericos(
       poderesGenericosNormalizados,
       poderes,
@@ -344,6 +365,8 @@ export function PersonagemBaseStepPoderes({
       })),
       proficienciasCodigos: [],
       grausTreinamento: grausTreinamentoSanitizados,
+      habilidadesConfig: habilidadesConfigSanitizadas,
+      periciasLivresExtras,
       poderesGenericos: poderesGenericosSanitizados,
       passivasAtributosAtivos:
         passivasAtributosAtivos && passivasAtributosAtivos.length > 0
@@ -400,6 +423,8 @@ export function PersonagemBaseStepPoderes({
     alinhamentoId,
     background,
     grausTreinamento,
+    habilidadesConfig,
+    periciasLivresExtras,
     poderesGenericosNormalizados,
     poderes,
     passivasAtributosConfig,
@@ -414,6 +439,8 @@ export function PersonagemBaseStepPoderes({
       })) ?? [];
     return raw;
   }, [preview]);
+
+  const previewPendente = loadingPreview || !preview;
 
   const grausParaValidacao = useMemo(() => {
     const map: Record<string, number> = {};
@@ -626,17 +653,20 @@ export function PersonagemBaseStepPoderes({
 
             const selecionado = instanciasDestePoder.length > 0;
 
-            const validacao = validarRequisitosPoder(poder.requisitos, {
-              nivel,
-              pericias: periciasParaValidacao,
-              atributos: atributosParaValidacao,
-              graus: grausParaValidacao,
-              poderesSelecionados: poderesSelecionadosIds,
-              todosPoderes: poderes,
-            });
+            const validacao = previewPendente
+              ? { atende: false, motivoNaoAtende: undefined }
+              : validarRequisitosPoder(poder.requisitos, {
+                  nivel,
+                  pericias: periciasParaValidacao,
+                  atributos: atributosParaValidacao,
+                  graus: grausParaValidacao,
+                  poderesSelecionados: poderesSelecionadosIds,
+                  todosPoderes: poderes,
+                });
 
             const podeCriarInstancia =
               !semSlotsLivres &&
+              !previewPendente &&
               validacao.atende &&
               !!addPoderGenericoInstancia &&
               (repetivel || instanciasDestePoder.length === 0);
@@ -705,7 +735,16 @@ export function PersonagemBaseStepPoderes({
                         </div>
                       )}
 
-                      {!validacao.atende && validacao.motivoNaoAtende && (
+                      {semSlotsLivres && !selecionado && (
+                        <p className="text-xs text-app-danger mt-1">
+                          Limite de poderes atingido. Remova um poder para escolher outro.
+                        </p>
+                      )}
+
+                      {!semSlotsLivres &&
+                        !previewPendente &&
+                        !validacao.atende &&
+                        validacao.motivoNaoAtende && (
                         <p className="text-xs text-app-danger mt-1">
                           Requisitos: {validacao.motivoNaoAtende}
                         </p>
@@ -748,6 +787,8 @@ export function PersonagemBaseStepPoderes({
                         title={
                           semSlotsLivres
                             ? 'Sem slots disponíveis'
+                            : previewPendente
+                            ? 'Atualizando preview'
                             : !validacao.atende
                             ? 'Requisitos não atendidos'
                             : 'Adicionar instância'

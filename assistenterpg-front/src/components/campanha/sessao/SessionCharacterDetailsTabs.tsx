@@ -244,6 +244,7 @@ export function SessionCharacterDetailsTabs({
         tabs={tabs}
         activeId={abaDetalheCard}
         onChange={(tabId) => onAtualizarAbaDetalheCard(tabId as AbaDetalheCard)}
+        variant="compact"
       />
 
       {abaDetalheCard === 'RESUMO' ? (

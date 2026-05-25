@@ -188,43 +188,46 @@ export function SessionTableOperationsPanel({
             Turnos
           </h4>
 
-          <div className="rounded-2xl border border-app-border/40 bg-app-surface/50 p-4">
+          <div className="session-turn-control">
             {controleTurnosAtivo ? (
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="session-turn-control__head">
                   <span className="text-xs font-bold text-app-fg">
                     Controle de turnos ativo
                   </span>
-                  <div className="flex gap-2">
+                  <div className="session-turn-control__actions">
                     <Button
                       variant="ghost"
-                      size="xs"
+                      size="sm"
                       onClick={() => onControleTurno('VOLTAR')}
                       disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
-                      className="h-8 w-8 rounded-lg p-0 hover:bg-app-primary/10"
+                      className="session-turn-control__button"
                       title="Voltar turno"
                     >
-                      <Icon name="rotate-ccw" className="h-3.5 w-3.5" />
+                      <Icon name="rotate-ccw" className="h-4 w-4" />
+                      <span>Voltar</span>
                     </Button>
                     <Button
                       variant="ghost"
-                      size="xs"
+                      size="sm"
                       onClick={() => onControleTurno('PULAR')}
                       disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
-                      className="h-8 w-8 rounded-lg p-0 hover:bg-app-primary/10"
+                      className="session-turn-control__button"
                       title="Pular turno"
                     >
-                      <Icon name="skip-forward" className="h-3.5 w-3.5" />
+                      <Icon name="skip-forward" className="h-4 w-4" />
+                      <span>Pular</span>
                     </Button>
                     <Button
                       variant="ghost"
-                      size="xs"
+                      size="sm"
                       onClick={() => onControleTurno('AVANCAR')}
                       disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
-                      className="h-8 w-8 rounded-lg p-0 hover:bg-app-primary/10"
+                      className="session-turn-control__button"
                       title="Avançar turno"
                     >
-                      <Icon name="forward" className="h-3.5 w-3.5" />
+                      <Icon name="forward" className="h-4 w-4" />
+                      <span>Avançar</span>
                     </Button>
                   </div>
                 </div>

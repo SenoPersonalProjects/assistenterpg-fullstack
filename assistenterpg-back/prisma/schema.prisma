@@ -362,6 +362,10 @@ model Usuario {
   preferencias                             PreferenciaUsuario?
   tokensAuth                               AuthToken[]
   sessoesAutenticacao                      SessaoAutenticacao[]
+  conversasAmizadeComoUsuarioA             ConversaAmizade[]                     @relation("ConversaAmizadeUsuarioA")
+  conversasAmizadeComoUsuarioB             ConversaAmizade[]                     @relation("ConversaAmizadeUsuarioB")
+  mensagensAmizade                         MensagemAmizade[]                     @relation("MensagemAmizadeAutor")
+  leiturasConversasAmizade                 LeituraConversaAmizade[]
   anotacoes                                Anotacao[]
   itensSessaoCriados                       ItemSessaoCampanha[]                   @relation("ItemSessaoCriadoPor")
   templatesItensSessaoCriados              TemplateItemSessaoCampanha[]           @relation("TemplateItemSessaoCriadoPor")
@@ -406,6 +410,8 @@ model SessaoAutenticacao {
   ipHash           String?
   expiraEm         DateTime
   revogadaEm       DateTime?
+  revogacaoMotivo  String?
+  rotacionadaEm    DateTime?
   ultimoUsoEm      DateTime?
   criadoEm         DateTime  @default(now())
   atualizadoEm     DateTime  @updatedAt
@@ -414,8 +420,60 @@ model SessaoAutenticacao {
 
   @@index([usuarioId, revogadaEm])
   @@index([usuarioId, expiraEm])
+  @@index([usuarioId, revogacaoMotivo, rotacionadaEm])
   @@index([expiraEm])
   @@map("sessoes_autenticacao")
+}
+
+model ConversaAmizade {
+  id           Int      @id @default(autoincrement())
+  usuarioAId   Int
+  usuarioBId   Int
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  usuarioA  Usuario                  @relation("ConversaAmizadeUsuarioA", fields: [usuarioAId], references: [id], onDelete: Cascade)
+  usuarioB  Usuario                  @relation("ConversaAmizadeUsuarioB", fields: [usuarioBId], references: [id], onDelete: Cascade)
+  mensagens MensagemAmizade[]
+  leituras  LeituraConversaAmizade[]
+
+  @@unique([usuarioAId, usuarioBId])
+  @@index([usuarioAId, atualizadoEm])
+  @@index([usuarioBId, atualizadoEm])
+  @@map("conversas_amizade")
+}
+
+model MensagemAmizade {
+  id           Int       @id @default(autoincrement())
+  conversaId   Int
+  autorId      Int
+  conteudo     String    @db.Text
+  removidoEm   DateTime?
+  criadoEm     DateTime  @default(now())
+  atualizadoEm DateTime  @updatedAt
+
+  conversa ConversaAmizade @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  autor    Usuario         @relation("MensagemAmizadeAutor", fields: [autorId], references: [id], onDelete: Cascade)
+
+  @@index([conversaId, criadoEm])
+  @@index([autorId, criadoEm])
+  @@map("mensagens_amizade")
+}
+
+model LeituraConversaAmizade {
+  conversaId         Int
+  usuarioId          Int
+  lidaAteMensagemId  Int?
+  lidaEm             DateTime?
+  criadoEm           DateTime @default(now())
+  atualizadoEm       DateTime @updatedAt
+
+  conversa ConversaAmizade @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  usuario  Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([conversaId, usuarioId])
+  @@index([usuarioId, lidaEm])
+  @@map("leituras_conversas_amizade")
 }
 
 model Campanha {

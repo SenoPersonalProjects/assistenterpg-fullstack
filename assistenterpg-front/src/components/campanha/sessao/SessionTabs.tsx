@@ -15,6 +15,7 @@ type SessionTabsProps = {
   activeId: string;
   onChange: (tabId: string) => void;
   className?: string;
+  variant?: 'default' | 'compact' | 'icon-only';
 };
 
 export function SessionTabs({
@@ -22,9 +23,10 @@ export function SessionTabs({
   activeId,
   onChange,
   className = '',
+  variant = 'default',
 }: SessionTabsProps) {
   return (
-    <div className={`session-tabs ${className}`}>
+    <div className={`session-tabs session-tabs--${variant} ${className}`}>
       {tabs.map((tab) => {
         const ativo = tab.id === activeId;
         return (
@@ -33,6 +35,8 @@ export function SessionTabs({
             type="button"
             onClick={() => onChange(tab.id)}
             disabled={tab.disabled}
+            title={tab.label}
+            aria-label={tab.label}
             className={
               ativo
                 ? 'session-tab session-tab--active'
@@ -40,7 +44,11 @@ export function SessionTabs({
             }
           >
             {tab.icon ? <Icon name={tab.icon} className="h-3.5 w-3.5" /> : null}
-            <span>{tab.label}</span>
+            <span
+              className={variant === 'icon-only' ? 'sr-only' : undefined}
+            >
+              {tab.label}
+            </span>
             {typeof tab.count === 'number' ? (
               <span className="session-tab__count">{tab.count}</span>
             ) : null}

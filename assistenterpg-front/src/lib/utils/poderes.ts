@@ -19,6 +19,51 @@ type RequisitosPoder = {
   poderesPreRequisitos?: string[];
 };
 
+const NOMES_PERICIAS: Record<string, string> = {
+  ACROBACIA: 'Acrobacia',
+  ADESTRAMENTO: 'Adestramento',
+  ATLETISMO: 'Atletismo',
+  ATUALIDADES: 'Atualidades',
+  CIENCIAS: 'Ciências',
+  CRIME: 'Crime',
+  DIPLOMACIA: 'Diplomacia',
+  ENGANACAO: 'Enganação',
+  FORTITUDE: 'Fortitude',
+  FURTIVIDADE: 'Furtividade',
+  INICIATIVA: 'Iniciativa',
+  INTIMIDACAO: 'Intimidação',
+  INTUICAO: 'Intuição',
+  INVESTIGACAO: 'Investigação',
+  JUJUTSU: 'Jujutsu',
+  LUTA: 'Luta',
+  MEDICINA: 'Medicina',
+  PERCEPCAO: 'Percepção',
+  PILOTAGEM: 'Pilotagem',
+  PONTARIA: 'Pontaria',
+  PROFISSAO: 'Profissão',
+  REFLEXOS: 'Reflexos',
+  RELIGIAO: 'Religião',
+  SOBREVIVENCIA: 'Sobrevivência',
+  TATICA: 'Tática',
+  TECNOLOGIA: 'Tecnologia',
+  VONTADE: 'Vontade',
+};
+
+export function nomeGrauTreinamento(grauMinimo: number): string {
+  if (grauMinimo <= 1) return 'treinada';
+  if (grauMinimo === 2) return 'graduada';
+  if (grauMinimo === 3) return 'veterana';
+  return 'expert';
+}
+
+function formatarNomePericia(codigo: string): string {
+  return NOMES_PERICIAS[codigo] ?? codigo;
+}
+
+function formatarRequisitoPericia(req: RequisitoPericia): string {
+  return `${formatarNomePericia(req.codigo)} ${nomeGrauTreinamento(req.grauMinimo)}`;
+}
+
 /**
  * Calcula quantos slots de poderes genéricos o personagem tem
  */
@@ -119,10 +164,13 @@ function validarPericiasRequisito(
     });
 
     if (!atendeuAlguma) {
-      const opcoes = periciasReq.map((req) => req.codigo).join(' ou ');
+      const opcoes = periciasReq
+        .map((req) => formatarNomePericia(req.codigo))
+        .join(' ou ');
+      const grau = nomeGrauTreinamento(periciasReq[0].grauMinimo);
       return {
         atende: false,
-        motivoNaoAtende: `Requer ${opcoes} (grau ${periciasReq[0].grauMinimo}+)`,
+        motivoNaoAtende: `Requer ${opcoes} ${grau}`,
       };
     }
   } else {
@@ -133,7 +181,7 @@ function validarPericiasRequisito(
       if (grauAtual < req.grauMinimo) {
         return {
           atende: false,
-          motivoNaoAtende: `Requer ${req.codigo} (grau ${req.grauMinimo}+)`,
+          motivoNaoAtende: `Requer ${formatarRequisitoPericia(req)}`,
         };
       }
     }
