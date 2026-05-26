@@ -149,7 +149,7 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
         ),
       );
     } catch {
-      // A leitura sera sincronizada na proxima carga.
+      // A leitura sera sincronizada na próxima carga.
     }
   }, []);
 

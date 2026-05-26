@@ -81,7 +81,7 @@ export default function AnotacoesPage() {
     }
     if (sessaoFiltroSelecionada) {
       const sessao = sessoesFiltro.find((s) => s.id === sessaoFiltroSelecionada);
-      filtros.push(sessao ? `Sessao: ${sessao.titulo}` : `Sessao ${sessaoFiltroSelecionada}`);
+      filtros.push(sessao ? `Sessão: ${sessao.titulo}` : `Sessão ${sessaoFiltroSelecionada}`);
     }
     return filtros;
   }, [campanhaFiltroSelecionada, sessaoFiltroSelecionada, campanhas, sessoesFiltro]);
@@ -198,7 +198,7 @@ export default function AnotacoesPage() {
     const conteudo = formConteudo.trim();
 
     if (!titulo || !conteudo) {
-      showToast('Preencha titulo e conteudo.', 'warning');
+      showToast('Preencha titulo e conteúdo.', 'warning');
       return;
     }
 
@@ -211,7 +211,7 @@ export default function AnotacoesPage() {
           campanhaId: campanhaFormSelecionada ?? null,
           sessaoId: sessaoFormSelecionada ?? null,
         });
-        showToast('Anotacao atualizada.', 'success');
+        showToast('Anotação atualizada.', 'success');
       } else {
         await apiCriarAnotacao({
           titulo,
@@ -219,7 +219,7 @@ export default function AnotacoesPage() {
           campanhaId: campanhaFormSelecionada ?? null,
           sessaoId: sessaoFormSelecionada ?? null,
         });
-        showToast('Anotacao criada.', 'success');
+        showToast('Anotação criada.', 'success');
       }
 
       setModalFormularioAberto(false);
@@ -247,7 +247,7 @@ export default function AnotacoesPage() {
   function handleExcluir(nota: AnotacaoResumo) {
     confirm({
       title: `Excluir anotacao "${nota.titulo}"?`,
-      description: 'Esta acao e irreversivel.',
+      description: 'Esta ação e irreversivel.',
       confirmLabel: 'Excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
@@ -257,7 +257,7 @@ export default function AnotacoesPage() {
           setNotas((prev) => prev.filter((item) => item.id !== nota.id));
           setTotalNotas((prev) => Math.max(0, prev - 1));
           setNotaVisualizada((atual) => (atual?.id === nota.id ? null : atual));
-          showToast('Anotacao removida.', 'success');
+          showToast('Anotação removida.', 'success');
         } catch (error) {
           showToast(extrairMensagemErro(error), 'error');
         }
@@ -278,7 +278,7 @@ export default function AnotacoesPage() {
   }
 
   if (carregamentoInicial) {
-    return <Loading message="Carregando anotacoes..." className="p-6 text-app-fg" />;
+    return <Loading message="Carregando anotações..." className="p-6 text-app-fg" />;
   }
 
   if (!usuario) return null;
@@ -452,7 +452,7 @@ export default function AnotacoesPage() {
       <Modal
         isOpen={modalFormularioAberto}
         onClose={fecharModalFormulario}
-        title={editandoId ? 'Editar anotacao' : 'Criar anotacao'}
+        title={editandoId ? 'Editar anotação' : 'Criar anotação'}
         size="xl"
         footer={
           <>
@@ -460,7 +460,7 @@ export default function AnotacoesPage() {
               Cancelar
             </Button>
             <Button onClick={handleSalvarNota} disabled={salvando}>
-              {salvando ? 'Salvando...' : editandoId ? 'Salvar alteracoes' : 'Criar anotacao'}
+              {salvando ? 'Salvando...' : editandoId ? 'Salvar alterações' : 'Criar anotação'}
             </Button>
           </>
         }
@@ -486,7 +486,7 @@ export default function AnotacoesPage() {
                 ))}
               </Select>
               <Select
-                label="Sessao (opcional)"
+                label="Sessão (opcional)"
                 value={formSessaoId}
                 onChange={(event) => setFormSessaoId(event.target.value)}
                 disabled={!campanhaFormSelecionada}
@@ -501,7 +501,7 @@ export default function AnotacoesPage() {
             </div>
           </div>
           <Textarea
-            label="Conteudo"
+            label="Conteúdo"
             value={formConteudo}
             onChange={(event) => setFormConteudo(event.target.value)}
             rows={8}
@@ -512,7 +512,7 @@ export default function AnotacoesPage() {
       <Modal
         isOpen={Boolean(notaVisualizada)}
         onClose={() => setNotaVisualizada(null)}
-        title={notaVisualizada?.titulo ?? 'Anotacao'}
+        title={notaVisualizada?.titulo ?? 'Anotação'}
         size="lg"
         footer={
           notaVisualizada ? (
@@ -550,7 +550,7 @@ export default function AnotacoesPage() {
               ) : null}
               {notaVisualizada.sessao ? (
                 <Badge size="sm" color="blue">
-                  Sessao: {notaVisualizada.sessao.titulo}
+                  Sessão: {notaVisualizada.sessao.titulo}
                 </Badge>
               ) : null}
             </div>

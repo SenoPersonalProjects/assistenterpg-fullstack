@@ -204,7 +204,7 @@ export function PersonagemBaseStepClaTecnica({
             <div className="rounded border border-app-border bg-app-surface p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-app-fg">
-                  Pacote da tecnica selecionada
+                  Pacote da técnica selecionada
                 </p>
                 <span className="text-[11px] text-app-muted">
                   {habilidadesTecnicaSelecionada.length}{' '}
@@ -216,7 +216,7 @@ export function PersonagemBaseStepClaTecnica({
 
               {habilidadesTecnicaSelecionada.length === 0 ? (
                 <p className="text-[11px] text-app-muted">
-                  Esta tecnica ainda nao possui habilidades cadastradas.
+                  Esta técnica ainda não possui habilidades cadastradas.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -231,7 +231,7 @@ export function PersonagemBaseStepClaTecnica({
                       <p className="text-[11px] text-app-muted">
                         {habilidade.execucao}
                         {habilidade.alcance ? ` | Alcance: ${habilidade.alcance}` : ''}
-                        {habilidade.duracao ? ` | Duracao: ${habilidade.duracao}` : ''}
+                        {habilidade.duracao ? ` | Duração: ${habilidade.duracao}` : ''}
                       </p>
                       <p className="text-[11px] text-app-muted">
                         Custo: {formatarCustoEAePE(habilidade.custoEA, habilidade.custoPE)}

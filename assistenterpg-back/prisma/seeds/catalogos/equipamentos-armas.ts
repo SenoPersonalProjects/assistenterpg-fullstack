@@ -56,8 +56,8 @@ export const equipamentosArmasSeed: EquipamentoArmaSeed[] = [
   // ============================================================
   {
     codigo: 'FACA',
-    nome: 'Faca',
-    descricao: 'Uma lâmina afiada, como uma navalha, uma faca de churrasco ou uma faca militar. É uma arma ágil e pode ser arremessada.',
+    nome: 'Faça',
+    descricao: 'Uma lâmina afiada, como uma navalha, uma faça de churrasco ou uma faça militar. É uma arma ágil e pode ser arremessada.',
     tipo: TipoEquipamento.ARMA,
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
@@ -126,7 +126,7 @@ export const equipamentosArmasSeed: EquipamentoArmaSeed[] = [
   {
     codigo: 'PUNHAL',
     nome: 'Punhal',
-    descricao: 'Uma faca de lâmina longa e pontiaguda, usada por cultistas em seus rituais. É uma arma ágil.',
+    descricao: 'Uma faça de lâmina longa e pontiaguda, usada por cultistas em seus rituais. É uma arma ágil.',
     tipo: TipoEquipamento.ARMA,
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,

@@ -63,7 +63,7 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
     keepMode === 'SUM'
       ? rolagensBase.some((valor) => valor === 1)
       : valorEscolhido === 1;
-  const labelNaturalMax = faces === 20 ? 'Critico natural' : 'Maximo natural';
+  const labelNaturalMax = faces === 20 ? 'Crítico natural' : 'Máximo natural';
   const labelNaturalMin = faces === 20 ? 'Falha critica' : 'Minimo natural';
   const mostrarFinalPorDado =
     payload.aplicarModificadorPorDado || Boolean(modificadorTexto);

@@ -163,14 +163,14 @@ export function InventarioModalEditar({
         {equipamentoUsaPericiaPersonalizada(equipamento) && (
           <div>
             <label className="block text-sm font-semibold text-app-fg mb-2">
-              Pericia beneficiada
+              Perícia beneficiada
             </label>
             <select
               value={periciaPersonalizada}
               onChange={(e) => onPericiaPersonalizadaChange(e.target.value)}
               className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-primary"
             >
-              <option value="">Selecione uma pericia</option>
+              <option value="">Selecione uma perícia</option>
               {periciasElegiveis.map((pericia) => (
                 <option key={pericia.codigo} value={pericia.codigo}>
                   {pericia.nome}
@@ -178,7 +178,7 @@ export function InventarioModalEditar({
               ))}
             </select>
             <p className="mt-1 text-xs text-app-muted">
-              Este item concede +2 na pericia escolhida.
+              Este item concede +2 na perícia escolhida.
             </p>
           </div>
         )}
@@ -191,7 +191,7 @@ export function InventarioModalEditar({
             <div className="space-y-2 rounded-lg border border-app-border bg-app-bg p-3">
               {funcoesAdicionaisPericias.length === 0 ? (
                 <p className="text-xs text-app-muted">
-                  Escolha ao menos uma pericia extra para receber +2.
+                  Escolha ao menos uma perícia extra para receber +2.
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -234,7 +234,7 @@ export function InventarioModalEditar({
                   }}
                   className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-primary"
                 >
-                  <option value="">Adicionar pericia extra</option>
+                  <option value="">Adicionar perícia extra</option>
                   {periciasElegiveisFuncaoAdicional.map((pericia) => (
                     <option key={pericia.codigo} value={pericia.codigo}>
                       {pericia.nome}
@@ -243,7 +243,7 @@ export function InventarioModalEditar({
                 </select>
               </div>
               <p className="text-xs text-app-muted">
-                Cada instancia concede +2 a uma pericia diferente. Luta e Pontaria nao sao validas.
+                Cada instância concede +2 a uma perícia diferente. Luta e Pontaria não são válidas.
               </p>
             </div>
           </div>

@@ -111,7 +111,7 @@ function mensagemErroCarregarDetalhe(error: unknown): string {
   const base = traduzirErro(code, extrairMensagemErro(error), status);
 
   if (status === 404) {
-    return formatarErroComContexto('Personagem nao encontrado.', error, {
+    return formatarErroComContexto('Personagem não encontrado.', error, {
       incluirEndpoint: true,
       incluirRequestId: true,
     });
@@ -119,7 +119,7 @@ function mensagemErroCarregarDetalhe(error: unknown): string {
 
   if (status === 403) {
     return formatarErroComContexto(
-      'Voce nao tem permissao para acessar este personagem.',
+      'Você não tem permissão para acessar este personagem.',
       error,
       {
         incluirEndpoint: true,
@@ -129,7 +129,7 @@ function mensagemErroCarregarDetalhe(error: unknown): string {
   }
 
   if (status === 400 || status === 422) {
-    return formatarErroComContexto(`Nao foi possivel carregar este personagem. ${base}`, error, {
+    return formatarErroComContexto(`Não foi possível carregar este personagem. ${base}`, error, {
       incluirEndpoint: true,
       incluirRequestId: true,
     });
@@ -350,7 +350,7 @@ export function usePersonagemBaseDetalhe(
     }
   }, [authLoading, usuario, numericId, refresh, router]);
 
-  // Carregadores auxiliares usados no modo de edicao.
+  // Carregadores auxiliares usados no modo de edição.
   const carregarTrilhasDaClasse = useCallback(
     async (classeId: number): Promise<TrilhaCatalogo[]> => {
       const { apiGetTrilhasDaClasse } = await import('@/lib/api');

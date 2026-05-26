@@ -72,7 +72,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     await this.authSessionService.revogarSessao(request, response);
-    return { mensagem: 'Sessao encerrada.' };
+    return { mensagem: 'Sessão encerrada.' };
   }
 
   @Post('forgot-password')

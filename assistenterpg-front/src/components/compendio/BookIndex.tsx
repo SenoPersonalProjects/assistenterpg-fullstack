@@ -26,8 +26,8 @@ export function BookIndex({ livro }: BookIndexProps) {
       <EmptyState
         variant="card"
         icon="book"
-        title="Livro sem secoes"
-        description="Este livro ainda nao possui conteudo publicado."
+        title="Livro sem seções"
+        description="Este livro ainda não possui conteúdo publicado."
       />
     );
   }

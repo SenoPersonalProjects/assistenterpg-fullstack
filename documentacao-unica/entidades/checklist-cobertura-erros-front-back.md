@@ -1,22 +1,22 @@
-# Checklist de Cobertura de Erros (Back x Front)
+﻿# Checklist de Cobertura de Erros (Back x Front)
 
 Atualizado em: 2026-03-08
 
 ## Escopo
 
-Este checklist valida cobertura entre:
+Este checklist válida cobertura entre:
 
 - codigos de erro definidos/emitidos no backend
 - codigos mapeados em `assistenterpg-front/src/lib/api/error-handler.ts` (`ERROR_MESSAGES`)
 
-## Metodo de verificacao
+## Método de verificação
 
 - backend:
   - extraidos codigos em `assistenterpg-back/src/common/exceptions/*.ts`
-  - extraidos codigos explicitos `code: '...'` em `assistenterpg-back/src/**/*.ts` (exceto specs)
+  - extraidos codigos explícitos `code: '...'` em `assistenterpg-back/src/**/*.ts` (exceto specs)
   - filtros:
     - ignora codigos internos Prisma (`P2002`, `P2003`, `P2014`, `P2025`)
-    - ignora valores que nao sao codigos de erro (`INT_I`, `INT_II`)
+    - ignora valores que não são codigos de erro (`INT_I`, `INT_II`)
 - frontend:
   - extraidas chaves maiusculas em `ERROR_MESSAGES`
 
@@ -24,13 +24,13 @@ Este checklist valida cobertura entre:
 
 | Medida                                          | Valor  |
 | ----------------------------------------------- | ------ |
-| Total de codigos backend                        | `194`  |
-| Total de codigos no frontend (`ERROR_MESSAGES`) | `201`  |
-| Codigos backend sem mapeamento no frontend      | `0`    |
+| Total de códigos backend                        | `194`  |
+| Total de códigos no frontend (`ERROR_MESSAGES`) | `201`  |
+| Códigos backend sem mapeamento no frontend      | `0`    |
 | Cobertura de mapeamento (backend -> frontend)   | `100%` |
-| Codigos extras no frontend                      | `7`    |
+| Códigos extras no frontend                      | `7`    |
 
-## Codigos extras no frontend (intencionais)
+## Códigos extras no frontend (intencionais)
 
 | Codigo                       | Motivo                                      |
 | ---------------------------- | ------------------------------------------- |
@@ -39,28 +39,28 @@ Este checklist valida cobertura entre:
 | `ESPACOS_INSUFICIENTES`      | Alias legado/compatibilidade                |
 | `GRAU_XAMA_LIMITE_EXCEDIDO`  | Alias legado/compatibilidade                |
 | `TECNICA_NOME_DUPLICADO`     | Alias legado/compatibilidade                |
-| `NOT_FOUND`                  | Fallback generico por status                |
-| `NETWORK_ERROR`              | Erro de rede no client (nao vem do backend) |
+| `NOT_FOUND`                  | Fallback genérico por status                |
+| `NETWORK_ERROR`              | Erro de rede no client (não vem do backend) |
 
 ## Checklist operacional
 
-- [x] Todo codigo de erro de backend possui mensagem no frontend
-- [x] Codigos de validacao (`400`) estao mapeados
-- [x] Codigos de regra de negocio (`422`) estao mapeados
-- [x] Codigos de autorizacao/autenticacao (`401/403`) estao mapeados
-- [x] Codigos de banco (`DB_*`) estao mapeados
-- [x] Codigos novos adicionados na tratativa recente (`FONTE_SUPLEMENTO_OBRIGATORIA`, `SUPLEMENTO_ID_OBRIGATORIO`, `REFERENCIA_IMPORTACAO_INVALIDA`) estao mapeados
-- [x] Aliases legados mantidos para nao quebrar comportamento atual
+- [x] Todo código de erro de backend possui mensagem no frontend
+- [x] Códigos de validação (`400`) estão mapeados
+- [x] Códigos de regra de negócio (`422`) estão mapeados
+- [x] Códigos de autorização/autenticação (`401/403`) estão mapeados
+- [x] Códigos de banco (`DB_*`) estão mapeados
+- [x] Códigos novos adicionados na tratativa recente (`FONTE_SUPLEMENTO_OBRIGATORIA`, `SUPLEMENTO_ID_OBRIGATORIO`, `REFERENCIA_IMPORTACAO_INVALIDA`) estão mapeados
+- [x] Aliases legados mantidos para não quebrar comportamento atual
 
 ## Automacao implementada
 
 - script local:
   - `assistenterpg-front/scripts/check-error-code-coverage.mjs`
-  - execucao: `cd assistenterpg-front && npm run check:error-codes`
+  - execução: `cd assistenterpg-front && npm run check:error-codes`
 - CI (GitHub Actions):
   - `.github/workflows/error-code-coverage.yml`
-  - falha o job quando um codigo novo do backend nao tiver entrada em `ERROR_MESSAGES`
+  - falha o job quando um codigo novo do backend não tiver entrada em `ERROR_MESSAGES`
 
 ## Proxima melhoria opcional
 
-- adicionar este mesmo verificador como etapa obrigatoria junto do fluxo principal de testes/lint (caso exista outro workflow de CI consolidado).
+- adicionar este mesmo verificador como etapa obrigatória junto do fluxo principal de testes/lint (caso exista outro workflow de CI consolidado).

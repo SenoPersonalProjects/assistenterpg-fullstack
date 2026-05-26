@@ -225,7 +225,7 @@ export function useHomebrewForm({ initialValues }: Params = {}) {
 
       case TipoHomebrewConteudo.EQUIPAMENTO:
         if (!dados.tipo) {
-          erros.push("Tipo de equipamento e obrigatorio");
+          erros.push("Tipo de equipamento é obrigatório");
         }
         if (!dados.categoria) {
           erros.push("Categoria de equipamento é obrigatória");
@@ -285,9 +285,9 @@ export function useHomebrewForm({ initialValues }: Params = {}) {
 
         if (tipoEquipamento === TipoEquipamento.FERRAMENTA_AMALDICOADA) {
           if (!dados.tipoAmaldicoado)
-            erros.push("Tipo amaldicoado e obrigatorio");
+            erros.push("Tipo amaldiçoado é obrigatório");
           if (dados.tipoAmaldicoado === TipoAmaldicoado.ITEM) {
-            erros.push("Ferramenta amaldicoada nao aceita tipo ITEM");
+            erros.push("Ferramenta amaldiçoada não aceita tipo ITEM");
           }
 
           const temArma =
@@ -299,19 +299,19 @@ export function useHomebrewForm({ initialValues }: Params = {}) {
 
           if (!temArma && !temProtecao && !temArtefato) {
             erros.push(
-              "Ferramenta amaldicoada deve ter arma, protecao ou artefato configurado",
+              "Ferramenta amaldiçoada deve ter arma, proteção ou artefato configurado",
             );
           }
 
           if (dados.tipoAmaldicoado === TipoAmaldicoado.ARMA && !temArma) {
-            erros.push("Selecione os dados de arma amaldicoada");
+            erros.push("Selecione os dados de arma amaldiçoada");
           }
 
           if (
             dados.tipoAmaldicoado === TipoAmaldicoado.PROTECAO &&
             !temProtecao
           ) {
-            erros.push("Selecione os dados de protecao amaldicoada");
+            erros.push("Selecione os dados de proteção amaldiçoada");
           }
 
           if (
@@ -328,7 +328,7 @@ export function useHomebrewForm({ initialValues }: Params = {}) {
 
         if (tipoEquipamento === TipoEquipamento.ITEM_AMALDICOADO) {
           if (!dados.tipoAmaldicoado)
-            erros.push("Tipo amaldicoado e obrigatorio");
+            erros.push("Tipo amaldiçoado é obrigatório");
           if (
             dados.tipoAmaldicoado &&
             dados.tipoAmaldicoado !== TipoAmaldicoado.ITEM
@@ -336,7 +336,7 @@ export function useHomebrewForm({ initialValues }: Params = {}) {
             erros.push("Item amaldicoado aceita apenas tipo ITEM");
           }
           if (!dados.efeito?.trim())
-            erros.push("Efeito do item amaldicoado e obrigatorio");
+            erros.push("Efeito do item amaldiçoado é obrigatório");
         }
         break;
 

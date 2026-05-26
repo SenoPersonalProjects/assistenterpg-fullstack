@@ -123,7 +123,7 @@ export function SessionCharacterDetailsTabs({
 
   const resumoTecnica = card.tecnicaInata?.nome
     ? textoSeguro(card.tecnicaInata.nome)
-    : 'Sem tecnica inata';
+    : 'Sem técnica inata';
   const mapaSustentacoes = new Map<string, number>();
   for (const sustentacao of card.sustentacoesAtivas) {
     const chave = montarChaveSustentacaoAtiva(
@@ -209,7 +209,7 @@ export function SessionCharacterDetailsTabs({
     { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
     {
       id: 'PERICIAS',
-      label: 'Pericias',
+      label: 'Perícias',
       icon: 'skills',
       count: periciasOrdenadas.length,
     },
@@ -220,7 +220,7 @@ export function SessionCharacterDetailsTabs({
   tabs.push(
     {
       id: 'TECNICAS',
-      label: 'Tecnicas',
+      label: 'Técnicas',
       icon: 'technique',
       count: totalTecnicasCard,
     },
@@ -268,10 +268,10 @@ export function SessionCharacterDetailsTabs({
                   SAN {recursos.sanAtual}/{recursos.sanMax}
                 </span>
                 <span className="session-chip">
-                  Condicoes {totalCondicoesAtivasCard}
+                  Condições {totalCondicoesAtivasCard}
                 </span>
                 <span className="session-chip">
-                  Sustentacoes {totalSustentacoesAtivasCard}
+                  Sustentações {totalSustentacoesAtivasCard}
                 </span>
               </div>
             </div>
@@ -287,7 +287,7 @@ export function SessionCharacterDetailsTabs({
                   EA {recursos.eaAtual}/{recursos.eaMax}
                 </span>
                 <span className="session-chip">
-                  Tecnicas {totalTecnicasCard}
+                  Técnicas {totalTecnicasCard}
                 </span>
               </div>
               <p className="session-text-xxs text-app-muted">
@@ -337,8 +337,8 @@ export function SessionCharacterDetailsTabs({
             variant="session"
             size="sm"
             icon="strength"
-            title="Atributos indisponiveis"
-            description="Os atributos deste personagem nao estao disponiveis."
+            title="Atributos indisponíveis"
+            description="Os atributos deste personagem não estao disponíveis."
           />
         )
       ) : null}
@@ -349,18 +349,18 @@ export function SessionCharacterDetailsTabs({
             variant="session"
             size="sm"
             icon="skills"
-            title="Sem pericias"
-            description="Nenhuma pericia disponivel para este personagem."
+            title="Sem perícias"
+            description="Nenhuma perícia disponível para este personagem."
           />
         ) : (
           <div className="space-y-2">
             <div className="session-pericias-header">
               <div className="session-pericias-header__meta">
-                <p className="session-pericias-header__title">Pericias</p>
+                <p className="session-pericias-header__title">Perícias</p>
                 <p className="session-pericias-header__subtitle">
                   {mostrarSomentePericiasBonificadas
-                    ? 'Exibindo somente pericias com bonus positivo.'
-                    : 'Resumo dos bonus aplicados por treino, equipamento e outros.'}
+                    ? 'Exibindo somente perícias com bônus positivo.'
+                    : 'Resumo dos bônus aplicados por treino, equipamento e outros.'}
                 </p>
               </div>
               <div className="session-pericias-header__actions">
@@ -379,7 +379,7 @@ export function SessionCharacterDetailsTabs({
                 >
                   {mostrarSomentePericiasBonificadas
                     ? 'Mostrar todas'
-                    : 'Somente com bonus'}
+                    : 'Somente com bônus'}
                 </Button>
               </div>
             </div>
@@ -389,8 +389,8 @@ export function SessionCharacterDetailsTabs({
                 variant="session"
                 size="sm"
                 icon="skills"
-                title="Nenhuma pericia com bonus"
-                description="Nenhuma pericia com bonus positivo foi encontrada."
+                title="Nenhuma perícia com bônus"
+                description="Nenhuma perícia com bônus positivo foi encontrada."
               />
             ) : (
               <div className="session-pericias-list">
@@ -550,7 +550,7 @@ export function SessionCharacterDetailsTabs({
                 />
               ) : (
                 <p className="session-text-xxs text-app-muted">
-                  Personagem sem tecnica inata cadastrada.
+                  Personagem sem técnica inata cadastrada.
                 </p>
               )}
             </div>
@@ -564,7 +564,7 @@ export function SessionCharacterDetailsTabs({
             }
           >
             <summary className="cursor-pointer text-xs font-semibold text-app-fg">
-              Tecnicas nao inatas ({card.tecnicasNaoInatas.length} tecnica(s) |{' '}
+              Técnicas não inatas ({card.tecnicasNaoInatas.length} técnica(s) |{' '}
               {totalHabilidadesNaoInatas} habilidade(s))
             </summary>
             <div className="mt-2 space-y-2">
@@ -587,7 +587,7 @@ export function SessionCharacterDetailsTabs({
                 ))
               ) : (
                 <p className="session-text-xxs text-app-muted">
-                  Nenhuma tecnica nao inata disponivel no momento.
+                  Nenhuma técnica não inata disponível no momento.
                 </p>
               )}
             </div>

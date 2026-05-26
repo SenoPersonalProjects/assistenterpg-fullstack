@@ -45,7 +45,7 @@ describe('NpcsAmeacasService', () => {
     expect(service).toBeDefined();
   });
 
-  it('busca NPC/ameaca sempre escopado pelo dono autenticado', async () => {
+  it('busca NPC/ameaça sempre escopado pelo dono autenticado', async () => {
     prisma.npcAmeaca.findFirst.mockResolvedValue(null);
 
     await expect(service.buscarPorId(7, 42)).rejects.toBeInstanceOf(
@@ -60,7 +60,7 @@ describe('NpcsAmeacasService', () => {
     });
   });
 
-  it('nao atualiza NPC/ameaca de outro usuario', async () => {
+  it('não atualiza NPC/ameaça de outro usuário', async () => {
     prisma.npcAmeaca.findFirst.mockResolvedValue(null);
 
     await expect(
@@ -70,7 +70,7 @@ describe('NpcsAmeacasService', () => {
     expect(prisma.npcAmeaca.update).not.toHaveBeenCalled();
   });
 
-  it('nao remove NPC/ameaca de outro usuario', async () => {
+  it('não remove NPC/ameaça de outro usuário', async () => {
     prisma.npcAmeaca.findFirst.mockResolvedValue(null);
 
     await expect(service.remover(7, 42)).rejects.toBeInstanceOf(

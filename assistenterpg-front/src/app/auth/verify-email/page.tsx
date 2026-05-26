@@ -21,7 +21,7 @@ export default function VerifyEmailPage() {
     async function verificar() {
       if (!token) {
         if (ativo) {
-          setErro('Token de verificacao ausente.');
+          setErro('Token de verificação ausente.');
           setLoading(false);
         }
         return;
@@ -53,15 +53,15 @@ export default function VerifyEmailPage() {
   return (
     <AuthPageShell
       title="Verificar email"
-      subtitle="Estamos validando seu link de confirmacao"
+      subtitle="Estamos validando seu link de confirmação"
       footer={
         <p className="text-sm text-app-muted">
-          Nao recebeu email?{' '}
+          Não recebeu email?{' '}
           <Link
             href="/auth/resend-verification"
             className="text-app-secondary hover:text-app-secondary-hover font-semibold transition-colors"
           >
-            Reenviar verificacao
+            Reenviar verificação
           </Link>
         </p>
       }

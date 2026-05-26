@@ -44,7 +44,7 @@ describe('sessao-filtro-sustentadas', () => {
     delete (globalThis as { window?: { localStorage: LocalStorageMock } }).window;
   });
 
-  it('salva e carrega apenas flags validas/ativas', () => {
+  it('salva e carrega apenas flags válidas/ativas', () => {
     salvarFiltroSustentadasLobby(10, 20, 30, {
       1: true,
       2: false,
@@ -56,7 +56,7 @@ describe('sessao-filtro-sustentadas', () => {
   });
 
   it('retorna vazio quando storage esta corrompido', () => {
-    localStorageMock.setItem(storageKey(10, 20, 30), '{nao-json');
+    localStorageMock.setItem(storageKey(10, 20, 30), '{não-json');
     expect(carregarFiltroSustentadasLobby(10, 20, 30)).toEqual({});
   });
 

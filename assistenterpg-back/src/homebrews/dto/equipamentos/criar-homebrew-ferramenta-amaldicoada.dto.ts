@@ -55,7 +55,7 @@ export class ArtefatoAmaldicoadoDto {
 }
 
 /**
- * DTO para Arma Amaldicoada
+ * DTO para Arma Amaldiçoada
  */
 export class ArmaAmaldicoadaDto {
   @IsNotEmpty()
@@ -77,7 +77,7 @@ export class ArmaAmaldicoadaDto {
 }
 
 /**
- * DTO para Protecao Amaldicoada
+ * DTO para Proteção Amaldiçoada
  */
 export class ProtecaoAmaldicoadaDto {
   @IsNotEmpty()

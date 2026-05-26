@@ -63,7 +63,7 @@ export function descreverDuracaoCondicao(
   restanteDuracao: number | null,
 ): string {
   if (duracaoModo === 'ATE_REMOVER') {
-    return 'Duracao: ate remover';
+    return 'Duração: até remover';
   }
 
   const sufixo = duracaoModo === 'RODADAS' ? 'rodada(s)' : 'turno(s) do alvo';

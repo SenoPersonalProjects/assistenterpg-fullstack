@@ -36,7 +36,7 @@ export function EventoDetalheModal({
     <Modal
       isOpen={Boolean(evento)}
       onClose={onClose}
-      title="Detalhes do evento da sessao"
+      title="Detalhes do evento da sessão"
       size="lg"
       footer={
         <>
@@ -81,7 +81,7 @@ export function EventoDetalheModal({
                 label="Motivo para desfazer (opcional)"
                 value={motivoDesfazer}
                 onChange={(event) => onMotivoDesfazerChange(event.target.value)}
-                placeholder="Ex.: acao aplicada por engano"
+                placeholder="Ex.: ação aplicada por engano"
                 disabled={sessaoEncerrada || Boolean(desfazendoEventoId)}
               />
             </div>

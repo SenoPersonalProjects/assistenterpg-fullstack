@@ -213,71 +213,71 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   {
     codigo: 'ILIMITADO',
     nome: 'Ilimitado',
-    descricao: 'Manipulacao do espaco atraves do conceito de infinito.',
+    descricao: 'Manipulação do espaço através do conceito de infinito.',
     hereditaria: true,
     clasHereditarios: ['Gojo', 'Okkotsu'],
     codigosLegados: ['INFINITO'],
     requisitos: {
       observacao:
-        'Tecnica inata baseada em manipulacao espacial, Lapso Azul, Reversao Vermelho, Vazio Roxo e Expansao de Dominio.',
+        'Técnica inata baseada em manipulacao espacial, Lapso Azul, Reversao Vermelho, Vazio Roxo e Expansao de Domínio.',
       recursoOpcional:
-        'Alguns efeitos citam os 6 Olhos; quando o usuario nao possuir esse recurso, aplique as penalidades descritas no efeito.',
+        'Alguns efeitos citam os 6 Olhos; quando o usuário não possuir esse recurso, aplique as penalidades descritas no efeito.',
     },
     habilidades: [
       {
         codigo: 'INATA_ILIMITADO_MUGEN',
         nome: 'Mugen',
         descricao:
-          'Invoca um campo paradoxal que desacelera tudo que entra no alcance do usuario.',
+          'Invoca um campo paradoxal que desacelera tudo que entra no alcance do usuário.',
         execucao: TipoExecucao.REACAO,
         alcance: 'Pessoal',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Instantaneo',
         custoEA: 3,
         custoPE: 2,
         efeito:
-          'Voce pode gastar sua reacao para anular um dano que sofreria de um ataque ou tecnica, contanto que esse ataque precise viajar o espaco para te atingir. O espaco infinito gerado torna o usuario inatingivel contra esse efeito especifico.',
+          'Você pode gastar sua reação para anular um dano que sofreria de um ataque ou técnica, contanto que esse ataque precise viajar o espaço para te atingir. O espaço infinito gerado torna o usuário inatingível contra esse efeito específico.',
         ordem: 10,
         variacoes: [
           {
             nome: 'Superior',
             descricao:
-              'Mantem o campo infinito ativo para barrar ataques fisicos e tecnicas Jujutsu.',
+              'Mantém o campo infinito ativo para barrar ataques físicos e técnicas Jujutsu.',
             substituiCustos: true,
             custoEA: 4,
             custoPE: 0,
             custoSustentacaoEA: 2,
             execucao: TipoExecucao.ACAO_PADRAO,
             alcance: 'Pessoal',
-            alvo: 'Voce',
+            alvo: 'Você',
             duracao: 'Sustentado',
             efeitoAdicional:
-              'Enquanto sustentado, voce fica inatingivel por ataques fisicos e tecnicas Jujutsu, exceto expansao de dominio, extensao de dominio e excecoes especificas no uso de tecnicas Jujutsu.',
+              'Enquanto sustentado, você fica inatingível por ataques físicos e técnicas Jujutsu, exceto expansão de domínio, extensão de domínio e exceções específicas no uso de técnicas Jujutsu.',
             ordem: 10,
           },
           {
             nome: 'Maxima',
             descricao:
-              'Condensa o infinito ao redor do usuario em alcance corpo a corpo.',
+              'Condensa o infinito ao redor do usuário em alcance corpo a corpo.',
             substituiCustos: true,
             custoEA: 4,
             custoPE: 2,
             custoSustentacaoEA: 2,
             execucao: TipoExecucao.ACAO_PADRAO,
             alcance: 'Corpo a corpo (1,5m)',
-            alvo: 'Voce',
+            alvo: 'Você',
             duracao: 'Sustentado',
             efeitoAdicional:
-              'Enquanto sustentado, funciona em alcance corpo a corpo, impedindo qualquer coisa de chegar a 1,5m de voce. Aumenta a efetividade do Mugen contra extensoes de dominio e tecnicas Jujutsu, mas nao impede o acerto garantido de uma expansao de dominio.',
+              'Enquanto sustentado, funciona em alcance corpo a corpo, impedindo qualquer coisa de chegar a 1,5m de você. Aumenta a efetividade do Mugen contra extensões de domínio e técnicas Jujutsu, mas não impede o acerto garantido de uma expansão de domínio.',
             ordem: 20,
           },
         ],
       },
       {
         codigo: 'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS',
-        nome: 'Esferas do Lapso da Tecnica Amaldicoada: Azul',
+        nome: 'Esferas do Lapso da Técnica Amaldiçoada: Azul',
         descricao:
-          'Cria e sustenta uma esfera condensada de Azul, representando espaco negativo.',
+          'Cria e sustenta uma esfera condensada de Azul, representando espaço negativo.',
         execucao: TipoExecucao.ACAO_MOVIMENTO,
         alcance: 'Curto',
         alvo: '1 esfera do Azul',
@@ -285,13 +285,13 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         custoEA: 1,
         custoSustentacaoEA: 1,
         efeito:
-          'Cria e sustenta a esfera do Azul condensado. Uma vez por turno, voce pode mover a esfera como acao livre dentro do alcance curto. Apos usar uma das variacoes possiveis da esfera, ela desaparece, exceto quando o efeito disser o contrario.',
+          'Cria e sustenta a esfera do Azul condensado. Uma vez por turno, você pode mover a esfera como ação livre dentro do alcance curto. Apos usar uma das variações possiveis da esfera, ela desaparece, exceto quando o efeito disser o contrario.',
         ordem: 20,
         variacoes: [
           {
             nome: 'Liberacao Superior',
             descricao:
-              'Cria multiplas esferas de Azul para controle espacial avancado.',
+              'Cria múltiplas esferas de Azul para controle espacial avançado.',
             substituiCustos: false,
             custoEA: 2,
             requisitos: {
@@ -300,13 +300,13 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               ],
             },
             efeitoAdicional:
-              'Pode criar mais de uma esfera, ate o valor do atributo de calculo de energia amaldicoada (INT). O custo efetivo e 1 EA por esfera + 2 EA. Voce pode mover todas juntas para o mesmo lugar como acao livre, ou individualmente; cada esfera movida separadamente custa uma acao livre, e a partir da segunda tambem custa uma acao de movimento.',
+              'Pode criar mais de uma esfera, até o valor do atributo de cálculo de energia amaldiçoada (INT). O custo efetivo é 1 EA por esfera + 2 EA. Você pode mover todas juntas para o mesmo lugar como ação livre, ou individualmente; cada esfera movida separadamente custa uma ação livre, e a partir da segunda também custa uma ação de movimento.',
             ordem: 10,
           },
           {
             nome: 'Liberacao Maxima',
             descricao:
-              'Cria uma unica esfera massiva do Azul com tamanho 2x2 quadrados.',
+              'Cria uma única esfera massiva do Azul com tamanho 2x2 quadrados.',
             substituiCustos: true,
             custoEA: 3,
             custoPE: 2,
@@ -316,7 +316,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               ],
             },
             efeitoAdicional:
-              'Cria uma esfera massiva de 2x2 quadrados (3x3m). Muda o funcionamento das tecnicas que consomem a esfera conforme a Liberacao Maxima de cada uma.',
+              'Cria uma esfera massiva de 2x2 quadrados (3x3m). Muda o funcionamento das técnicas que consomem a esfera conforme a Liberacao Maxima de cada uma.',
             ordem: 20,
           },
         ],
@@ -325,7 +325,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         codigo: 'INATA_ILIMITADO_AZUL_PERSEGUIR',
         nome: 'Azul - Perseguir',
         descricao:
-          'Usa uma esfera do Azul para perseguir um alvo e puxar violentamente materia em sua direcao.',
+          'Usa uma esfera do Azul para perseguir um alvo e puxar violentamente materia em sua direção.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: 'Ser ou objeto',
@@ -342,7 +342,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
-          porAcumulo: '+1d6 de dano de Energia Amaldicoada por +1 EA',
+          porAcumulo: '+1d6 de dano de Energia Amaldiçoada por +1 EA',
         },
         escalonamentoDano: {
           quantidade: 1,
@@ -350,7 +350,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           tipo: 'ENERGIA_AMALDICOADA',
         },
         efeito:
-          'Cria um vacuo onde o proprio mundo e forcado a corrigir o espaco negativo. A esfera persegue um alvo no alcance da tecnica, causando 1d6 de dano de Energia Amaldicoada e deixando-o FRACO por 1 rodada. A resistencia anula a condicao. O custo e 1 EA por esfera usada.',
+          'Cria um vácuo onde o próprio mundo é forçado a corrigir o espaço negativo. A esfera persegue um alvo no alcance da técnica, causando 1d6 de dano de Energia Amaldiçoada e deixando-o FRACO por 1 rodada. A resistência anula a condição. O custo é 1 EA por esfera usada.',
         ordem: 30,
         variacoes: [
           {
@@ -379,7 +379,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               tipo: 'ENERGIA_AMALDICOADA',
             },
             efeitoAdicional:
-              'A massa puxa e esmaga tudo para dentro de si, causando 4 + 2d6 de dano a todos os seres e objetos pegos e deixando-os DEBILITADOS por 1 rodada; resistencia reduz para FRACOS. A esfera nao desaparece apos o efeito, torna 6m ao redor TERRENO DIFICIL, nao pode ser movida como as outras e vira OBJETO ESTACIONARIO. Para desaparecer, basta parar de sustentar. Requisito para Vazio Roxo Irrestrito.',
+              'A massa puxa e esmaga tudo para dentro de si, causando 4 + 2d6 de dano a todos os seres e objetos pegos e deixando-os DEBILITADOS por 1 rodada; resistência reduz para FRACOS. A esfera não desaparece após o efeito, torna 6m ao redor TERRENO DIFÍCIL, não pode ser movida como as outras e vira OBJETO ESTACIONÁRIO. Para desaparecer, basta parar de sustentar. Requisito para Vazio Roxo Irrestrito.',
             ordem: 10,
           },
         ],
@@ -392,7 +392,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.ESFERA,
         alcance: 'Ponto da esfera em alcance curto',
-        alvo: 'Seres ou objetos na area',
+        alvo: 'Seres ou objetos na área',
         duracao: 'Instantaneo',
         resistencia: 'Reflexos',
         custoEA: 4,
@@ -405,7 +405,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
-          porAcumulo: '+1d6 de dano de Energia Amaldicoada por +1 EA',
+          porAcumulo: '+1d6 de dano de Energia Amaldiçoada por +1 EA',
         },
         escalonamentoDano: {
           quantidade: 1,
@@ -413,19 +413,19 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           tipo: 'ENERGIA_AMALDICOADA',
         },
         efeito:
-          'Atrai tudo dentro de um circulo de 6m de raio ao redor da esfera, causando 2d6 de dano em todos os seres e objetos na area e deixando-os ENREDADOS por 1 rodada. A resistencia evita a condicao.',
+          'Atrai tudo dentro de um círculo de 6m de raio ao redor da esfera, causando 2d6 de dano em todos os seres e objetos na área e deixando-os ENREDADOS por 1 rodada. A resistência evita a condição.',
         ordem: 40,
         variacoes: [
           {
             nome: 'Com Liberacao Maxima',
             descricao:
-              'A massa maxima do Azul puxa e esmaga tudo dentro da area.',
+              'A massa máxima do Azul puxa e esmaga tudo dentro da área.',
             substituiCustos: true,
             custoEA: 5,
             execucao: TipoExecucao.ACAO_PADRAO,
             area: AreaEfeito.ESFERA,
             alcance: 'Ponto da esfera em alcance curto',
-            alvo: 'Seres ou objetos na area',
+            alvo: 'Seres ou objetos na área',
             duracao: 'Instantaneo',
             resistencia: 'Fortitude',
             requisitos: { requerVariacao: 'Liberacao Maxima' },
@@ -443,7 +443,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               tipo: 'ENERGIA_AMALDICOADA',
             },
             efeitoAdicional:
-              'A massa puxa e esmaga tudo em um raio de 6m, causando 4 + 4d6 de dano e deixando os alvos ENREDADOS por 2 rodadas; a resistencia evita a condicao. A esfera nao desaparece apos o efeito, torna 6m ao redor TERRENO DIFICIL, pode ser movida como as outras e vira OBJETO ESTACIONARIO. Para desaparecer, basta parar de sustentar. Requisito para Vazio Roxo Irrestrito.',
+              'A massa puxa e esmaga tudo em um raio de 6m, causando 4 + 4d6 de dano e deixando os alvos ENREDADOS por 2 rodadas; a resistência evita a condição. A esfera não desaparece após o efeito, torna 6m ao redor TERRENO DIFÍCIL, pode ser movida como as outras e vira OBJETO ESTACIONÁRIO. Para desaparecer, basta parar de sustentar. Requisito para Vazio Roxo Irrestrito.',
             ordem: 10,
           },
         ],
@@ -456,10 +456,10 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.ESFERA,
         alcance: 'Ponto da esfera em alcance curto',
-        alvo: 'Seres ou objetos na area',
+        alvo: 'Seres ou objetos na área',
         duracao: 'Instantaneo',
         resistencia: 'Reflexos',
-        dtResistencia: 'DT de tecnicas + 5',
+        dtResistencia: 'DT de técnicas + 5',
         custoEA: 3,
         requisitos: {
           requerSustentacao: 'INATA_ILIMITADO_LAPSO_AZUL_ESFERAS',
@@ -469,17 +469,17 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.REGRAS,
         escalonamentoEfeito: {
-          porAcumulo: '+1d6 na DT para evitar a condicao por +1 EA',
+          porAcumulo: '+1d6 na DT para evitar a condição por +1 EA',
         },
         efeito:
-          'Atrai tudo dentro de um circulo de 6m de raio sem causar dano, deixando os alvos ENREDADOS por 1d3 rodadas. A resistencia evita a condicao. Pode adicionar +1d6 na DT para evitar a condicao para cada +1 EA gasto, ate o limite do Grau de Aprimoramento em Tecnica Amaldicoada.',
+          'Atrai tudo dentro de um círculo de 6m de raio sem causar dano, deixando os alvos ENREDADOS por 1d3 rodadas. A resistência evita a condição. Pode adicionar +1d6 na DT para evitar a condição para cada +1 EA gasto, até o limite do Grau de Aprimoramento em Técnica Amaldiçoada.',
         ordem: 50,
       },
       {
         codigo: 'INATA_ILIMITADO_PUNHO_AZUL',
-        nome: 'Variacao do Lapso: Punho Azul (Ao-Ken)',
+        nome: 'Variação do Lapso: Punho Azul (Ao-Ken)',
         descricao:
-          'Aplica o conceito de espaco negativo milimetricamente a frente dos punhos.',
+          'Aplica o conceito de espaço negativo milimetricamente a frente dos punhos.',
         execucao: TipoExecucao.AO_ATACAR,
         alcance: 'Toque',
         alvo: '1 ser atingido',
@@ -501,24 +501,24 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           tipo: 'Tipo do ataque',
         },
         efeito:
-          'O vacuo criado puxa o alvo violentamente em direcao ao golpe no momento do impacto, adicionando +1d6 de dano do tipo do seu ataque. O ataque recebe a propriedade Impacto: se acertar, voce pode fazer a manobra Derrubar como acao livre usando seu teste de ataque como teste da manobra.',
+          'O vácuo criado puxa o alvo violentamente em direção ao golpe no momento do impacto, adicionando +1d6 de dano do tipo do seu ataque. O ataque recebe a propriedade Impacto: se acertar, você pode fazer a manobra Derrubar como ação livre usando seu teste de ataque como teste da manobra.',
         ordem: 60,
         variacoes: [
           {
             nome: 'Superior',
-            descricao: 'Intensifica a atracao para garantir precisao letal.',
+            descricao: 'Intensifica a atração para garantir precisão letal.',
             substituiCustos: true,
             custoEA: 2,
             dadosDano: [{ quantidade: 2, dado: 'd6', tipo: 'Tipo do ataque' }],
             efeitoAdicional:
-              'O vacuo impede que o inimigo se esquive corretamente. Voce recebe +2 no teste de ataque e muda o bonus para +2d6 de dano do tipo do seu ataque.',
+              'O vácuo impede que o inimigo se esquive corretamente. Você recebe +2 no teste de ataque e muda o bônus para +2d6 de dano do tipo do seu ataque.',
             ordem: 10,
           },
         ],
       },
       {
         codigo: 'INATA_ILIMITADO_VERMELHO',
-        nome: 'Reversao de Tecnica Amaldicoada: Vermelho',
+        nome: 'Reversao de Técnica Amaldiçoada: Vermelho',
         descricao:
           'Reverte o Azul com energia reversa, criando uma forca repulsiva extremamente poderosa.',
         execucao: TipoExecucao.ACAO_PADRAO,
@@ -541,7 +541,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
-          porAcumulo: '+1d6 de dano de Energia Amaldicoada por +1 EA',
+          porAcumulo: '+1d6 de dano de Energia Amaldiçoada por +1 EA',
         },
         escalonamentoDano: {
           quantidade: 1,
@@ -549,7 +549,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           tipo: 'ENERGIA_AMALDICOADA',
         },
         efeito:
-          'Apenas o primeiro ser na reta recebe o dano completo; os demais recebem metade. Alvos acertados recebem 4 + 2d6 de dano de Energia Amaldicoada e sao empurrados pelo deslocamento restante do raio. Se colidirem com objeto estacionario, recebem 1d6 de dano por quadrado deslocado, ate 6d6. Fortitude evita ser empurrado.',
+          'Apenas o primeiro ser na reta recebe o dano completo; os demais recebem metade. Alvos acertados recebem 4 + 2d6 de dano de Energia Amaldiçoada e são empurrados pelo deslocamento restante do raio. Se colidirem com objeto estacionário, recebem 1d6 de dano por quadrado deslocado, até 6d6. Fortitude evita ser empurrado.',
         ordem: 70,
         variacoes: [
           {
@@ -565,14 +565,14 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               { quantidade: 4, dado: 'd6', tipo: 'ENERGIA_AMALDICOADA' },
             ],
             efeitoAdicional:
-              'Amplifica o dano para 4 + 4d6 e remove o limite de dano de colisao com objeto estacionario. Falhar no teste de resistencia tambem deixa o alvo CAIDO e DESPREVENIDO por 1 rodada.',
+              'Amplifica o dano para 4 + 4d6 e remove o limite de dano de colisão com objeto estacionário. Falhar no teste de resistência também deixa o alvo CAIDO e DESPREVENIDO por 1 rodada.',
             ordem: 10,
           },
         ],
       },
       {
         codigo: 'INATA_ILIMITADO_VAZIO_ROXO',
-        nome: 'Convergencia de Tecnica Amaldicoada: Vazio Roxo',
+        nome: 'Convergencia de Técnica Amaldiçoada: Vazio Roxo',
         descricao:
           'Combina Azul e Vermelho em uma massa imaginaria que oblitera tudo em linha reta.',
         execucao: TipoExecucao.RITUAL_ETAPAS,
@@ -604,7 +604,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
-          porAcumulo: '+1d12 de dano de Energia Amaldicoada por +1 EA',
+          porAcumulo: '+1d12 de dano de Energia Amaldiçoada por +1 EA',
         },
         escalonamentoDano: {
           quantidade: 1,
@@ -612,7 +612,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           tipo: 'ENERGIA_AMALDICOADA',
         },
         efeito:
-          'Exige 2 acoes padroes. Causa 6d12 + 10 de dano em uma linha reta de 3m de largura. Apos usar o Vazio Roxo sem possuir os 6 Olhos, o usuario fica FATIGADO ate o fim da cena. Se ficar inconsciente por usar a tecnica, fica FATIGADO ate o proximo descanso confortavel.',
+          'Exige 2 ações padrões. Causa 6d12 + 10 de dano em uma linha reta de 3m de largura. Após usar o Vazio Roxo sem possuir os 6 Olhos, o usuário fica FATIGADO até o fim da cena. Se ficar inconsciente por usar a técnica, fica FATIGADO até o próximo descanso confortável.',
         ordem: 80,
         variacoes: [
           {
@@ -635,23 +635,23 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               tipo: 'ENERGIA_AMALDICOADA',
             },
             efeitoAdicional:
-              'Adiciona mais 1 quadrado na espessura da linha reta, +4d12 de dano e +5 no teste. E acumulativo ate o limite do Grau de Aprimoramento em Tecnica Amaldicoada. Sem possuir os 6 Olhos, usar esta versao deixa o usuario EXAUSTO ate o fim da cena.',
+              'Adiciona mais 1 quadrado na espessura da linha reta, +4d12 de dano e +5 no teste. E acumulativo até o limite do Grau de Aprimoramento em Técnica Amaldiçoada. Sem possuir os 6 Olhos, usar esta versao deixa o usuário EXAUSTO até o fim da cena.',
             ordem: 10,
           },
         ],
       },
       {
         codigo: 'INATA_ILIMITADO_VAZIO_ROXO_IRRESTRITO',
-        nome: 'Variacao: Vazio Roxo Irrestrito',
+        nome: 'Variação: Vazio Roxo Irrestrito',
         descricao:
           'Ritual de detonacao remota que colide um Azul maximo ativo com um Vermelho superior.',
         execucao: TipoExecucao.RITUAL_ETAPAS,
         area: AreaEfeito.ESFERA,
         alcance: 'Explosao de 12m de raio',
-        alvo: 'Seres e objetos na area',
+        alvo: 'Seres e objetos na área',
         duracao: 'Instantaneo',
         resistencia: 'Reflexos reduz metade',
-        dtResistencia: 'DT de tecnicas + 5',
+        dtResistencia: 'DT de técnicas + 5',
         custoEA: 3,
         custoPE: 1,
         requisitos: {
@@ -665,7 +665,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             'INATA_ILIMITADO_VERMELHO',
           ],
           ritual:
-            'Acao 1: lancar uma variacao com Liberacao Maxima do Azul. Acao 2: lancar a Liberacao Superior do Vermelho atingindo a Esfera Maxima do Azul. Acao 3: detonar a colisao como acao livre por 3 EA e 1 PE.',
+            'Ação 1: lancar uma variação com Liberacao Maxima do Azul. Ação 2: lancar a Liberacao Superior do Vermelho atingindo a Esfera Maxima do Azul. Ação 3: detonar a colisao como ação livre por 3 EA e 1 PE.',
         },
         danoFlat: 12,
         danoFlatTipo: TipoDano.ENERGIA_AMALDICOADA,
@@ -677,7 +677,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 2,
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
-          porAcumulo: '+1d12 de dano de Energia Amaldicoada por +2 EA',
+          porAcumulo: '+1d12 de dano de Energia Amaldiçoada por +2 EA',
         },
         escalonamentoDano: {
           quantidade: 1,
@@ -685,32 +685,32 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           tipo: 'ENERGIA_AMALDICOADA',
         },
         efeito:
-          'O custo total e o custo do Azul + custo do Vermelho + 3 EA e 1 PE do encantamento final. Detona a colisao entre um Azul e um Vermelho ativos para criar uma explosao omnidirecional de 12m de raio, causando 7d12 + 12 de dano. O usuario recebe metade do dano total por padrao; se passar no teste de Reflexos, tambem reduz esse dano pela metade. Seres que falham recebem dano total e ficam DEBILITADOS; se passarem, recebem metade e ficam FRACOS.',
+          'O custo total é o custo do Azul + custo do Vermelho + 3 EA e 1 PE do encantamento final. Detona a colisão entre um Azul e um Vermelho ativos para criar uma explosão omnidirecional de 12m de raio, causando 7d12 + 12 de dano. O usuário recebe metade do dano total por padrão; se passar no teste de Reflexos, também reduz esse dano pela metade. Seres que falham recebem dano total e ficam DEBILITADOS; se passarem, recebem metade e ficam FRACOS.',
         ordem: 90,
       },
       {
         codigo: 'INATA_ILIMITADO_EXPANSAO_VAZIO_INFINITO',
-        nome: 'Expansao de Dominio: Vazio Infinito',
+        nome: 'Expansao de Domínio: Vazio Infinito',
         descricao:
-          'Dominio letal e restritivo que forca os alvos a processarem informacao infinita.',
+          'Domínio letal e restritivo que forca os alvos a processarem informacao infinita.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         area: AreaEfeito.ESFERA,
         alcance: 'Raio de 10m (barreira fechada)',
-        alvo: 'Todos os seres dentro da area, exceto o usuario e quem ele estiver tocando fisicamente',
+        alvo: 'Todos os seres dentro da área, exceto o usuário e quem ele estiver tocando fisicamente',
         duracao: 'Sustentado',
         resistencia:
-          'Sem resistencia inicial; defesa apenas por tecnica anti-barreira no momento da ativacao',
+          'Sem resistência inicial; defesa apenas por técnica anti-barreira no momento da ativação',
         custoEA: 16,
         custoPE: 4,
         custoSustentacaoEA: 2,
         requisitos: {
           mudra:
-            'O dedo medio da mao direita cruza sobre o indicador (Dedo de Indra).',
+            'O dedo médio da mao direita cruza sobre o indicador (Dedo de Indra).',
           tipoDominio: 'Letal / Restritivo',
         },
         dadosDano: [{ quantidade: 2, dado: 'd8', tipo: 'MENTAL' }],
         efeito:
-          'O ambiente e substituido por um vacuo negro e branco preenchido por linhas de luz que representam o fluxo de informacao do universo. Como acerto garantido, inimigos dentro do dominio ficam ATORDOADOS e IMOVEIS, sem acoes, reacoes ou movimento. No inicio de cada turno de um inimigo dentro do dominio, ele sofre 2d8 de dano Mental/Sanidade; se for uma maldicao ou inimigo sem SANIDADE, recebe 2d6 de dano Jujutsu.',
+          'O ambiente é substituído por um vácuo negro e branco preenchido por linhas de luz que representam o fluxo de informação do universo. Como acerto garantido, inimigos dentro do domínio ficam ATORDOADOS e IMÓVEIS, sem ações, reações ou movimento. No início de cada turno de um inimigo dentro do domínio, ele sofre 2d8 de dano Mental/Sanidade; se for uma maldição ou inimigo sem SANIDADE, recebe 2d6 de dano Jujutsu.',
         ordem: 100,
       },
     ],
@@ -751,15 +751,15 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
     clasHereditarios: ['Ryomen', 'Itadori'],
     requisitos: {
       observacao:
-        'Tecnica inata focada em cortes amaldicoados (Desmantelar/Clivar) e chamada de fogo condicional.',
+        'Técnica inata focada em cortes amaldiçoados (Desmantelar/Clivar) e chamada de fogo condicional.',
       dominio:
-        'Expansao de Dominio: Santuario da Execucao Marcial, com acerto garantido de cortes.',
+        'Expansao de Domínio: Santuario da Execucao Marcial, com acerto garantido de cortes.',
     },
     habilidades: [
       {
         codigo: 'INATA_SANTUARIO_DESMANTELAR_UNICO',
         nome: 'Desmantelar Unico',
-        descricao: 'Dispara um corte amaldicoado em linha reta contra um alvo.',
+        descricao: 'Dispara um corte amaldiçoado em linha reta contra um alvo.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.LINHA,
         alcance: 'Curto (linha de 1m de largura)',
@@ -769,7 +769,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         custoEA: 1,
         testesExigidos: ['Pontaria com Jujutsu'],
         efeito:
-          'Conta como disparo (Pontaria com Jujutsu). Causa 1 + 1d4 de dano de corte amaldicoado e crita no 20 natural. Se o alvo for eliminado ou perder membro, o dano pode seguir para o proximo alvo da linha.',
+          'Conta como disparo (Pontaria com Jujutsu). Causa 1 + 1d4 de dano de corte amaldiçoado e crita no 20 natural. Se o alvo for eliminado ou perder membro, o dano pode seguir para o próximo alvo da linha.',
         dadosDano: [{ quantidade: 1, dado: 'd4', tipo: 'Corte Amaldiçoado' }],
         danoFlat: 1,
         danoFlatTipo: TipoDano.CORTANTE,
@@ -779,9 +779,9 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.DANO,
         escalonamentoEfeito: {
-          porAcumulo: '+1 + 1d4 de dano de corte amaldicoado',
+          porAcumulo: '+1 + 1d4 de dano de corte amaldiçoado',
           observacao:
-            'Acumula com o grau de aprimoramento em Tecnica Amaldicoada.',
+            'Acumula com o grau de aprimoramento em Técnica Amaldiçoada.',
         },
         escalonamentoDano: {
           quantidade: 1,
@@ -792,7 +792,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Superior',
-            descricao: 'Eleva o corte com maior precisao e dano.',
+    descricao: 'Eleva o corte com maior precisão e dano.',
             substituiCustos: false,
             custoEA: 1,
             custoPE: 1,
@@ -816,13 +816,13 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               tipo: 'Corte Amaldiçoado',
             },
             efeitoAdicional:
-              'Dano maximo de referencia informado: 52 (4 EA e 1 PE totais).',
+              'Dano máximo de referência informado: 52 (4 EA e 1 PE totais).',
             ordem: 10,
           },
           {
             nome: 'Maxima',
             descricao:
-              'Eleva ao limite da variacao, com multiplicacao de dano e maior faixa de critico.',
+              'Eleva ao limite da variação, com multiplicacao de dano e maior faixa de crítico.',
             substituiCustos: false,
             custoEA: 2,
             custoPE: 2,
@@ -846,7 +846,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               tipo: 'Corte Amaldiçoado',
             },
             efeitoAdicional:
-              'Dano maximo de referencia informado: 78 (5 EA e 2 PE totais).',
+              'Dano máximo de referência informado: 78 (5 EA e 2 PE totais).',
             ordem: 20,
           },
         ],
@@ -855,18 +855,18 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         codigo: 'INATA_SANTUARIO_BARRAGEM_DESMANTELAR',
         nome: 'Barragem de Desmantelar',
         descricao:
-          'Dispara uma rajada de cortes amaldicoados em area retangular.',
+          'Dispara uma rajada de cortes amaldiçoados em área retangular.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.CUBO,
         alcance: 'Curto (retangulo 4x4m)',
-        alvo: 'Seres na area',
+        alvo: 'Seres na área',
         duracao: 'Instantaneo',
         resistencia: 'Reflexos reduz metade',
         custoEA: 3,
         custoPE: 1,
         testesExigidos: ['Pontaria com Jujutsu'],
         efeito:
-          'Exige teste de Pontaria com Jujutsu contra Defesa base dos alvos. Causa 3 + 3d4 de dano de corte amaldicoado em todos os afetados.',
+          'Exige teste de Pontaria com Jujutsu contra Defesa base dos alvos. Causa 3 + 3d4 de dano de corte amaldiçoado em todos os afetados.',
         dadosDano: [{ quantidade: 3, dado: 'd4', tipo: 'Corte Amaldiçoado' }],
         danoFlat: 3,
         danoFlatTipo: TipoDano.CORTANTE,
@@ -886,7 +886,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Superior',
-            descricao: 'Versao elevada com dados maiores.',
+            descricao: 'Versão elevada com dados maiores.',
             substituiCustos: false,
             custoEA: 2,
             custoPE: 1,
@@ -911,7 +911,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           },
           {
             nome: 'Maxima',
-            descricao: 'Versao de saturacao total da barragem.',
+            descricao: 'Versão de saturação total da barragem.',
             substituiCustos: false,
             custoEA: 3,
             custoPE: 2,
@@ -948,15 +948,15 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         resistencia: 'Fortitude reduz metade',
         custoEA: 1,
         custoPE: 1,
-        testesExigidos: ['Percepcao com Jujutsu (analise previa)'],
+        testesExigidos: ['Percepção com Jujutsu (análise prévia)'],
         efeito:
-          'Base: 1d8 de dano de corte. Apos analise (DT 25 + nivel do alvo), pode adicionar dados ao custo de +1 EA por faixa de resistencia/fortitude/nivel descrita na tecnica.',
+          'Base: 1d8 de dano de corte. Após análise (DT 25 + nível do alvo), pode adicionar dados ao custo de +1 EA por faixa de resistência/fortitude/nível descrita na técnica.',
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
           porAcumuloEA:
-            '+1 dado para cada faixa elegivel (Resistencia, Fortitude e Niveis do alvo)',
+            '+1 dado para cada faixa elegível (Resistência, Fortitude e Níveis do alvo)',
           observacao:
-            'Toda tentativa sem analise previa reduz a DT em 5 (conforme texto enviado).',
+            'Toda tentativa sem análise prévia reduz a DT em 5 (conforme texto enviado).',
         },
         ordem: 30,
         variacoes: [
@@ -982,9 +982,9 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             ordem: 20,
           },
           {
-            nome: 'Variacao - Objeto Tocado',
+            nome: 'Variação - Objeto Tocado',
             descricao:
-              'Versao focada em objetos. Se for objeto amaldicoado/reforcado, requer analise previa.',
+              'Versão focada em objetos. Se for objeto amaldiçoado/reforçado, requer análise prévia.',
             substituiCustos: true,
             alvo: 'Objeto tocado',
             efeitoAdicional:
@@ -994,16 +994,16 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           {
             nome: 'Golpe Combinado',
             descricao:
-              'Permite executar ataque corpo a corpo basico junto com Clivar no mesmo movimento.',
+              'Permite executar ataque corpo a corpo básico junto com Clivar no mesmo movimento.',
             substituiCustos: false,
             efeitoAdicional:
-              'Se o ataque basico acertar, aplica o dano de Clivar escolhido sem analise previa, mas sem bonus extras de resistencia/fortitude/nivel/PV/RD.',
+              'Se o ataque básico acertar, aplica o dano de Clivar escolhido sem análise prévia, mas sem bônus extras de resistência/fortitude/nível/PV/RD.',
             ordem: 40,
           },
           {
             nome: 'Teia de Aranha',
             descricao:
-              'Variacao Superior orientada a destruir ambientes inorganicos.',
+              'Variação Superior orientada a destruir ambientes inorganicos.',
             substituiCustos: false,
             custoEA: 2,
             custoPE: 2,
@@ -1026,21 +1026,21 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         alcance: 'Longo (linha de 1m de largura)',
         alvo: '1 ser da linha',
         duracao: 'Instantaneo',
-        resistencia: 'Reacao / Reflexos para area secundaria',
+        resistencia: 'Reação / Reflexos para área secundária',
         custoEA: 4,
         custoPE: 2,
         requisitos: {
-          condicaoUso: 'So pode ser usada apos Desmantelar e Clivar.',
+          condiçãoUso: 'Só pode ser usada após Desmantelar e Clivar.',
           ritual:
-            'Clivar/Desmantelar -> manipular residuo (acao completa) -> disparar flecha (acao padrao).',
+            'Clivar/Desmantelar -> manipular resíduo (ação completa) -> disparar flecha (ação padrão).',
         },
         efeito:
-          'Causa 6d6 de dano de fogo no alvo principal e deixa seres em 3m do impacto EM CHAMAS (Reflexos evita condicao e reduz dano).',
+          'Causa 6d6 de dano de fogo no alvo principal e deixa seres em 3m do impacto EM CHAMAS (Reflexos evita condição e reduz dano).',
         ordem: 40,
         variacoes: [
           {
             nome: 'Superior',
-            descricao: 'Aumenta dano e raio de ignicao.',
+            descricao: 'Aumenta dano e raio de ignição.',
             substituiCustos: false,
             custoEA: 2,
             custoPE: 2,
@@ -1050,7 +1050,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           },
           {
             nome: 'Maxima',
-            descricao: 'Explosao massiva de fogo do Santuario.',
+            descricao: 'Explosão massiva de fogo do Santuário.',
             substituiCustos: false,
             custoEA: 4,
             custoPE: 2,
@@ -1062,9 +1062,9 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       },
       {
         codigo: 'INATA_SANTUARIO_EXPANSAO_DOMINIO',
-        nome: 'Expansao de Dominio: Santuario da Execucao Marcial',
+        nome: 'Expansao de Domínio: Santuario da Execucao Marcial',
         descricao:
-          'Dominio inato que integra Clivar e Desmantelar com acerto garantido em uma zona de execucao.',
+          'Domínio inato que integra Clivar e Desmantelar com acerto garantido em uma zona de execucao.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         area: AreaEfeito.ESFERA,
         alcance: 'Raio de 12m',
@@ -1078,7 +1078,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
           mudra: 'Mudra da Execucao Marcial',
         },
         efeito:
-          'No inicio de cada turno/rodada, aplica automaticamente 6 + 6d4 (Desmantelar) e 1d8 + 1d8 a cada 2 niveis do alvo (Clivar). Objetos e estruturas sao triturados por cortes recorrentes.',
+          'No início de cada turno/rodada, aplica automaticamente 6 + 6d4 (Desmantelar) e 1d8 + 1d8 a cada 2 níveis do alvo (Clivar). Objetos e estruturas são triturados por cortes recorrentes.',
         ordem: 50,
         variacoes: [
           {
@@ -1087,15 +1087,15 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               'Desativa ataque automatico para controle manual ofensivo total.',
             substituiCustos: true,
             efeitoAdicional:
-              'Enquanto ativo: +1 FOR, +1 AGI, +5 Jujutsu. Tecnicas do Santuario tornam-se impossiveis de esquivar (apenas bloquear/contra-atacar).',
+              'Enquanto ativo: +1 FOR, +1 AGI, +5 Jujutsu. Técnicas do Santuário tornam-se impossíveis de esquivar (apenas bloquear/contra-atacar).',
             ordem: 10,
           },
           {
             nome: 'Sinergia com Clivar/Desmantelar',
             descricao:
-              'No Modo de Comando, o dominio auxilia a leitura dos alvos para Clivar.',
+              'No Modo de Comando, o domínio auxilia a leitura dos alvos para Clivar.',
             efeitoAdicional:
-              'A DT da analise de Percepcao com Jujutsu para Clivar pode ser reduzida entre 5 e 10, a criterio da mesa.',
+              'A DT da análise de Percepção com Jujutsu para Clivar pode ser reduzida entre 5 e 10, a critério da mesa.',
             ordem: 20,
           },
         ],
@@ -1863,43 +1863,43 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   },
   {
     codigo: 'MANIPULACAO_IMAGENS',
-    nome: 'Manipulacao de Imagens',
+    nome: 'Manipulação de Imagens',
     descricao:
-      'O usuario impoe conceitos visuais a realidade por meio de representacoes artisticas.',
+      'O usuário impoe conceitos visuais a realidade por meio de representacoes artisticas.',
     hereditaria: false,
     clasHereditarios: [],
     requisitos: {
       funcionamento:
-        'O conceito visual imposto se manifesta como fenomeno real feito de Energia Amaldicoada.',
+        'O conceito visual imposto se manifesta como fenômeno real feito de Energia Amaldiçoada.',
       longevidade:
         'Se a obra for destruida, severamente danificada ou dissipada, os efeitos terminam.',
       materiais:
         'Cada obra exige materia-prima infundida com Energia Amaldicoada. Cada cena usa 1/2 material.',
       execucaoArtistica: {
         obraRapida: {
-          execucao: 'Acao padrao',
-          material: 'Material rapido (categoria 0, peso 1)',
+          execucao: 'Ação padrão',
+          material: 'Material rápido (categoria 0, peso 1)',
         },
         obraElaborada: {
-          execucao: 'Acao completa ou maior',
+          execucao: 'Ação completa ou maior',
           material: 'Material elaborado (categoria 4, peso 1)',
         },
       },
       proficienciaArtistica:
-        'Teste conjunto de Artes: DT 10 + custo de PE/EA da tecnica. Se for Obra Elaborada, +2 na DT. Falha: +1 PE de custo ou -1d4 SAN.',
+        'Teste conjunto de Artes: DT 10 + custo de PE/EA da técnica. Se for Obra Elaborada, +2 na DT. Falha: +1 PE de custo ou -1d4 SAN.',
     },
     habilidades: [
       {
         codigo: 'INATA_IMAGENS_INFUSAO',
         nome: 'Infusao',
         descricao:
-          'Prepara materiais para uso artistico, infundindo-os com energia amaldicoada.',
+          'Prepara materiais para uso artistico, infundindo-os com energia amaldiçoada.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alvo: 'Objeto ou conjunto de objetos',
         duracao: '2 cenas',
         custoEA: 1,
         efeito:
-          'Transforma os materiais em MATERIAL RAPIDO ou MATERIAL ELABORADO ate dissipar.',
+          'Transforma os materiais em MATERIAL RAPIDO ou MATERIAL ELABORADO até dissipar.',
         ordem: 10,
       },
       {
@@ -1932,7 +1932,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
-          opcoes: ['+1 rodada de duracao', '+2 na DT'],
+          opcoes: ['+1 rodada de duração', '+2 na DT'],
           porAcumulo: '+1 EA',
         },
         ordem: 30,
@@ -1943,7 +1943,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
               'Versao ampla com correntes detalhadas emergindo do ambiente.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
-            alcance: 'Medio',
+            alcance: 'Médio',
             area: AreaEfeito.ESFERA,
             alvo: 'Seres na area',
             duracao: 'Instantaneo',
@@ -1966,23 +1966,23 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         duracao: '1 rodada',
         resistencia: 'Vontade',
         custoEA: 2,
-        efeito: 'O alvo fica DESPREVENIDO e sofre -1d20 em Percepcao.',
+        efeito: 'O alvo fica DESPREVENIDO e sofre -1d20 em Percepção.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
-          opcoes: ['+1 rodada de duracao', '+2 na DT'],
+          opcoes: ['+1 rodada de duração', '+2 na DT'],
           porAcumulo: '+1 EA',
         },
         ordem: 40,
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Versao em area com multiplos olhos pintados.',
+            descricao: 'Versão em área com múltiplos olhos pintados.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
-            alcance: 'Medio',
+            alcance: 'Médio',
             area: AreaEfeito.ESFERA,
             alvo: 'Seres na area',
             duracao: '2 rodadas',
@@ -2003,26 +2003,26 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         area: AreaEfeito.LINHA,
         alcance: 'Curto',
         alvo: 'Area',
-        duracao: 'Ate o fim da cena',
+        duracao: 'Até o fim da cena',
         custoEA: 2,
         efeito:
-          'Linha de 3 quadrados vira TERRENO DIFICIL. Quem comeca turno na area sofre -1d20 em Reflexos ate o fim do turno.',
+          'Linha de 3 quadrados vira TERRENO DIFÍCIL. Quem começa turno na área sofre -1d20 em Reflexos até o fim do turno.',
         ordem: 50,
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Rasga a realidade em grande area sustentada.',
+            descricao: 'Rasga a realidade em grande área sustentada.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
-            alcance: 'Medio',
+            alcance: 'Médio',
             area: AreaEfeito.ESFERA,
-            alvo: 'Seres na area',
+            alvo: 'Seres na área',
             duracao: 'Sustentado',
             custoEA: 4,
             custoPE: 1,
             custoSustentacaoEA: 1,
             efeitoAdicional:
-              'Area vira TERRENO DIFICIL e aplica -2 Defesa. Se permanecer 2 turnos consecutivos, fica FRACO por 1d3 rodadas ao sair.',
+              'Area vira TERRENO DIFÍCIL e aplica -2 Defesa. Se permanecer 2 turnos consecutivos, fica FRACO por 1d3 rodadas ao sair.',
             ordem: 10,
           },
         ],
@@ -2043,18 +2043,18 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
-          opcoes: ['+1 rodada de duracao', '+2 na DT'],
+          opcoes: ['+1 rodada de duração', '+2 na DT'],
           porAcumulo: '+1 EA',
         },
         ordem: 60,
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Selamento refinado para ate 3 alvos.',
+            descricao: 'Selamento refinado para até 3 alvos.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
-            alcance: 'Medio',
-            alvo: 'Ate 3 seres',
+            alcance: 'Médio',
+            alvo: 'Até 3 seres',
             duracao: 'Instantaneo',
             resistencia: 'Fortitude parcial',
             custoEA: 5,
@@ -2062,7 +2062,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             escalonamentoCustoEA: 1,
             escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
             escalonamentoEfeito: {
-              opcoes: ['+1 rodada de duracao', '+2 na DT'],
+              opcoes: ['+1 rodada de duração', '+2 na DT'],
               porAcumulo: '+1 EA',
             },
             efeitoAdicional:
@@ -2074,7 +2074,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_IMAGENS_CHAMAS_PINTADAS',
         nome: 'Traco Impositivo: Chamas Pintadas',
-        descricao: 'Pinceladas de combustao se espalham violentamente.',
+        descricao: 'Pinceladas de combustão se espalham violentamente.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: '1 ser',
@@ -2088,19 +2088,19 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
-          opcoes: ['+1d6 de dano', '+1 rodada de duracao', '+2 na DT'],
+          opcoes: ['+1d6 de dano', '+1 rodada de duração', '+2 na DT'],
           porAcumulo: '+1 EA',
         },
         ordem: 70,
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Composicao de fogo em grande area.',
+            descricao: 'Composição de fogo em grande área.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
-            alcance: 'Medio',
+            alcance: 'Médio',
             area: AreaEfeito.ESFERA,
-            alvo: 'Seres na area',
+            alvo: 'Seres na área',
             duracao: 'Instantaneo',
             resistencia: 'Reflexos reduz metade',
             custoEA: 5,
@@ -2119,7 +2119,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       {
         codigo: 'INATA_IMAGENS_MARE_ILUSTRADA',
         nome: 'Traco Impositivo: Mare Ilustrada',
-        descricao: 'Massas de agua ilustradas colidem contra os alvos.',
+        descricao: 'Massas de água ilustradas colidem contra os alvos.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.LINHA,
         alcance: 'Curto',
@@ -2139,11 +2139,11 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Cone amplo de agua em choque.',
+            descricao: 'Cone amplo de água em choque.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
             area: AreaEfeito.CONE,
-            alcance: 'Medio',
+            alcance: 'Médio',
             alvo: 'Seres no cone de 6m',
             duracao: 'Instantaneo',
             resistencia: 'Fortitude reduz metade',
@@ -2182,7 +2182,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Cortes visuais atravessam uma linha de area.',
+            descricao: 'Cortes visuais atravessam uma linha de área.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
             area: AreaEfeito.LINHA,
@@ -2205,9 +2205,9 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       },
       {
         codigo: 'INATA_IMAGENS_ESPINHOS_SUPRESSAO',
-        nome: 'Traco Impositivo: Formacoes Litograficas - Espinhos de Supressao',
+        nome: 'Traço Impositivo: Formações Litográficas - Espinhos de Supressão',
         descricao:
-          'Formacoes rochosas surgem para perfurar e se desfazer em seguida.',
+          'Formações rochosas surgem para perfurar e se desfazer em seguida.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: '1 ser',
@@ -2216,7 +2216,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         custoEA: 4,
         custoPE: 1,
         efeito:
-          'Causa 3d6 de dano perfurante. Falha recebe +1d6 adicional. Nao altera terreno apos o impacto.',
+          'Causa 3d6 de dano perfurante. Falha recebe +1d6 adicional. Não altera terreno após o impacto.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -2228,12 +2228,12 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Sequencia ampla de estalactites e estalagmites.',
+            descricao: 'Sequência ampla de estalactites e estalagmites.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
-            alcance: 'Medio',
+            alcance: 'Médio',
             area: AreaEfeito.ESFERA,
-            alvo: 'Seres na area',
+            alvo: 'Seres na área',
             duracao: 'Instantaneo',
             resistencia: 'Fortitude reduz metade',
             custoEA: 6,
@@ -2246,69 +2246,69 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
       },
       {
         codigo: 'INATA_IMAGENS_ARQUITETURA_IMPOSITIVA',
-        nome: 'Traco Impositivo: Formacoes Litograficas - Arquitetura Impositiva',
+        nome: 'Traço Impositivo: Formações Litográficas - Arquitetura Impositiva',
         descricao:
-          'Formacoes rochosas para isolar espacos, criar cobertura e controlar terreno.',
+          'Formações rochosas para isolar espaços, criar cobertura e controlar terreno.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto',
         alvo: 'Area (2 quadrados adjacentes)',
         duracao: 'Cena',
         custoEA: 3,
         efeito:
-          'Cria cobertura leve ou bloqueia espaco como terreno dificil. Cada quadrado da formacao possui 30 PV e RD 5.',
+          'Cria cobertura leve ou bloqueia espaço como terreno difícil. Cada quadrado da formação possui 30 PV e RD 5.',
         ordem: 110,
         variacoes: [
           {
             nome: 'Obra Elaborada',
-            descricao: 'Composicao arquitetonica de multiplas formacoes.',
+            descricao: 'Composição arquitetônica de múltiplas formações.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_COMPLETA,
-            alcance: 'Medio',
-            alvo: 'Ate 3 formacoes de 2 quadrados',
+            alcance: 'Médio',
+            alvo: 'Até 3 formacoes de 2 quadrados',
             duracao: 'Cena',
             custoEA: 6,
             custoPE: 1,
             efeitoAdicional:
-              'Pode misturar parede de cobertura total, coluna/estalagmite de cobertura leve e barreira baixa de terreno dificil. Cada quadrado: 30 PV e RD 5.',
+              'Pode misturar parede de cobertura total, coluna/estalagmite de cobertura leve e barreira baixa de terreno difícil. Cada quadrado: 30 PV e RD 5.',
             ordem: 10,
           },
         ],
       },
       {
         codigo: 'INATA_IMAGENS_MAGNUM_OPUS',
-        nome: 'Tecnica Maxima: Magnum Opus',
+        nome: 'Técnica Maxima: Magnum Opus',
         descricao:
           'Declaracao estetica definitiva do artista, impondo multiplos conceitos visuais a realidade.',
         execucao: TipoExecucao.RITUAL_ETAPAS,
-        alcance: 'Medio',
+        alcance: 'Médio',
         area: AreaEfeito.ESFERA,
-        alvo: 'Seres na area',
+        alvo: 'Seres na área',
         duracao: 'Variavel',
         resistencia: 'Variavel',
         custoEA: 8,
         custoPE: 2,
         efeito:
-          'Escolha 2 efeitos-base (Devastacao Elemental, Supressao Total, Dominio Visual) e ate quantidade de modificadores igual ao grau em Tecnica Amaldicoada. Cada modificador adicional custa +1 EA.',
+          'Escolha 2 efeitos-base (Devastação Elemental, Supressão Total, Domínio Visual) e até quantidade de modificadores igual ao grau em Técnica Amaldiçoada. Cada modificador adicional custa +1 EA.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.REGRAS,
         escalonamentoEfeito: {
           efeitosBase: [
-            'Devastacao Elemental: 6 + 6d6 elemental (Reflexos metade)',
-            'Supressao Total: DEBILITADO + DESPREVENIDO por 1d4 rodadas (Reflexos reduz para FRACO + VULNERAVEL)',
-            'Dominio Visual: TERRENO DIFICIL e -2 Defesa por 1d4 rodadas (Fortitude evita)',
+            'Devastação Elemental: 6 + 6d6 elemental (Reflexos metade)',
+            'Supressão Total: DEBILITADO + DESPREVENIDO por 1d4 rodadas (Reflexos reduz para FRACO + VULNERÁVEL)',
+            'Domínio Visual: TERRENO DIFÍCIL e -2 Defesa por 1d4 rodadas (Fortitude evita)',
           ],
           modificadores: [
             'Torrente elemental (+2 dados de dano)',
             'Area ampliada (+6m)',
             'Persistente (+1 rodada)',
-            'Implacavel (Dominio Visual apenas reduz metade)',
+            'Implacavel (Domínio Visual apenas reduz metade)',
             'Assinatura Artistica (+3 DT)',
-            'Condicional (adiciona FRACO/OFUSCADO/LENTO pela mesma duracao)',
+        'Condicional (adiciona FRACO/OFUSCADO/LENTO pela mesma duração)',
           ],
           posUso:
-            'Fica FATIGADO ate o proximo descanso. Se usar novamente na mesma cena, fica EXAUSTO ate o fim do dia.',
+            'Fica FATIGADO até o próximo descanso. Se usar novamente na mesma cena, fica EXAUSTO até o fim do dia.',
         },
         ordem: 120,
       },
@@ -2316,39 +2316,39 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
   },
   {
     codigo: 'RAZAO_7_3',
-    nome: 'Tecnica de Razao 7:3',
+    nome: 'Técnica de Razão 7:3',
     descricao:
-      'Divide o alvo em dez linhas e cria ponto fraco forcado na proporcao 7:3.',
+      'Divide o alvo em dez linhas e cria ponto fraco forçado na proporção 7:3.',
     hereditaria: false,
     clasHereditarios: [],
     requisitos: {
       observacao:
-        'As linhas nao precisam corresponder ao comprimento real do alvo e podem ser aplicadas em seres e objetos.',
+        'As linhas não precisam corresponder ao comprimento real do alvo e podem ser aplicadas em seres e objetos.',
     },
     habilidades: [
       {
         codigo: 'INATA_PROPORCAO_RAZAO_FORCADA',
-        nome: 'Razao Forcada',
-        descricao: 'Marca um ponto fraco no alvo na proporcao 7:3.',
+        nome: 'Razão Forçada',
+        descricao: 'Marca um ponto fraco no alvo na proporção 7:3.',
         execucao: TipoExecucao.ACAO_LIVRE,
-        alcance: 'Visao do usuario (alcance curto)',
+        alcance: 'Visao do usuário (alcance curto)',
         alvo: '1 ser',
         duracao: 'Instantaneo',
         custoEA: 1,
         efeito:
-          'Aumenta a margem de ameaca do seu ataque em +1 contra o alvo marcado.',
+          'Aumenta a margem de ameaça do seu ataque em +1 contra o alvo marcado.',
         ordem: 10,
         variacoes: [
           {
-            nome: 'Variacao - Objeto',
-            descricao: 'Aplica a marcacao em objeto, com margem de ameaca +2.',
+            nome: 'Variação - Objeto',
+            descricao: 'Aplica a marcação em objeto, com margem de ameaça +2.',
             substituiCustos: true,
             alvo: '1 objeto',
             ordem: 10,
           },
           {
             nome: 'Superior',
-            descricao: 'Cria pontos fracos mais faceis de acertar.',
+            descricao: 'Cria pontos fracos mais fáceis de acertar.',
             substituiCustos: false,
             custoEA: 1,
             custoPE: 1,
@@ -2357,10 +2357,10 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             escalonamentoCustoPE: 1,
             escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
             escalonamentoEfeito: {
-              porAcumulo: '+1 margem de ameaca e +3 dano',
+              porAcumulo: '+1 margem de ameaça e +3 dano',
             },
             efeitoAdicional:
-              'Acumula conforme grau de aprimoramento em Tecnica Amaldicoada.',
+              'Acumula conforme grau de aprimoramento em Técnica Amaldiçoada.',
             ordem: 20,
           },
           {
@@ -2375,10 +2375,10 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             escalonamentoCustoPE: 1,
             escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
             escalonamentoEfeito: {
-              porAcumulo: '+1 margem de ameaca e +1 passo de dano',
+              porAcumulo: '+1 margem de ameaça e +1 passo de dano',
             },
             efeitoAdicional:
-              'Acumula conforme grau de aprimoramento em Tecnica Amaldicoada.',
+              'Acumula conforme grau de aprimoramento em Técnica Amaldiçoada.',
             ordem: 30,
           },
         ],
@@ -2387,24 +2387,24 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
         codigo: 'INATA_PROPORCAO_GOLPE_PRECISO',
         nome: 'Golpe Preciso',
         descricao:
-          'Ataca alvo marcado por Razao Forcada de forma concentrada no ponto 7:3.',
+          'Ataca alvo marcado por Razão Forçada de forma concentrada no ponto 7:3.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Alcance do ataque',
         alvo: '1 ser',
         duracao: 'Instantaneo',
         custoPE: 1,
         efeito:
-          'Permite aproveitar os bonus de critico da Razao Forcada no golpe.',
+          'Permite aproveitar os bônus de crítico da Razão Forçada no golpe.',
         ordem: 20,
         variacoes: [
           {
             nome: 'Superior',
-            descricao: 'Aprimora a precisao ofensiva.',
+            descricao: 'Aprimora a precisão ofensiva.',
             substituiCustos: false,
             custoEA: 1,
             custoPE: 1,
             efeitoAdicional:
-              'Concede +5 no ataque. Acumula com grau de aprimoramento em Tecnica Amaldicoada.',
+              'Concede +5 no ataque. Acumula com grau de aprimoramento em Técnica Amaldiçoada.',
             ordem: 10,
           },
           {
@@ -2420,7 +2420,7 @@ export const tecnicasInatasSeed: SeedTecnicaInataComHabilidades[] = [
             escalonamentoEfeito: {
               porAcumulo: '+1 dado de dano',
             },
-            efeitoAdicional: 'Inclui efeitos da variacao Superior.',
+            efeitoAdicional: 'Inclui efeitos da variação Superior.',
             ordem: 20,
           },
         ],
@@ -2624,13 +2624,13 @@ export async function seedTecnicasInatas(prisma: PrismaClient) {
       codigo: tec.codigo,
       nome: corrigirMojibakeSeedTexto(tec.nome) ?? tec.nome,
       descricao:
-        corrigirMojibakeSeedTexto(tec.descricao) ?? 'Tecnica Amaldicoada Inata',
+        corrigirMojibakeSeedTexto(tec.descricao) ?? 'Técnica Amaldiçoada Inata',
       tipo: TipoTecnicaAmaldicoada.INATA,
       hereditaria: tec.hereditaria,
       linkExterno: tec.linkExterno ?? null,
       requisitos: jsonOrNull(corrigirMojibakeSeedJson(tec.requisitos)),
 
-      // Mantem compatibilidade com codigos antigos sem trocar o id da tecnica.
+      // Mantem compatibilidade com codigos antigos sem trocar o id da técnica.
       fonte: TipoFonte.SISTEMA_BASE,
       suplementoId: null,
     };

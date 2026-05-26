@@ -235,7 +235,7 @@ export function CharacterSessionCard({
           <Badge
             size="sm"
             color="gray"
-            title="Recursos completos indisponiveis. Acompanhe iniciativa e informacoes basicas."
+            title="Recursos completos indisponíveis. Acompanhe iniciativa e informações básicas."
           >
             Somente leitura
           </Badge>

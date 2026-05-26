@@ -307,7 +307,7 @@ export function SessionCharacterInventoryTab({
   };
 
   const removerItem = async (item: ItemInventarioDto) => {
-    if (!window.confirm(`Remover ${item.equipamento.nome} do inventario?`)) {
+    if (!window.confirm(`Remover ${item.equipamento.nome} do inventário?`)) {
       return;
     }
     setSalvando(true);
@@ -433,7 +433,7 @@ export function SessionCharacterInventoryTab({
       {resumoEspacos ? (
         <div className="flex flex-wrap items-center gap-2">
           <Badge size="sm" color={resumoEspacos.sobrecarregado ? 'red' : 'gray'}>
-            Espacos {resumoEspacos.espacosOcupados}/{resumoEspacos.espacosTotal}
+            Espaços {resumoEspacos.espacosOcupados}/{resumoEspacos.espacosTotal}
           </Badge>
           {resumoEspacos.sobrecarregado ? (
             <Badge size="sm" color="red">
@@ -458,7 +458,7 @@ export function SessionCharacterInventoryTab({
       ) : null}
 
       {carregando ? (
-        <p className="text-xs text-app-muted">Carregando inventario...</p>
+        <p className="text-xs text-app-muted">Carregando inventário...</p>
       ) : inventario &&
         inventario.itens.length === 0 &&
         itensSessao.length === 0 ? (
@@ -598,8 +598,8 @@ export function SessionCharacterInventoryTab({
                         color={item.descricaoRevelada ? 'green' : 'yellow'}
                       >
                         {item.descricaoRevelada
-                          ? 'Descricao revelada'
-                          : 'Descricao oculta'}
+                          ? 'Descrição revelada'
+                          : 'Descrição oculta'}
                       </Badge>
                       {item.portadorAtual ? (
                         <Badge size="sm" color="gray">
@@ -621,7 +621,7 @@ export function SessionCharacterInventoryTab({
       <Modal
         isOpen={modalAdicionarAberto}
         onClose={fecharModalAdicionar}
-        title="Adicionar item ao inventario"
+        title="Adicionar item ao inventário"
         size="xl"
       >
         <div className="space-y-4">
@@ -711,7 +711,7 @@ export function SessionCharacterInventoryTab({
       <Modal
         isOpen={Boolean(modalEditarItem)}
         onClose={() => setModalEditarItem(null)}
-        title="Editar item do inventario"
+        title="Editar item do inventário"
         size="lg"
       >
         {modalEditarItem ? (

@@ -195,7 +195,7 @@ function labelParticipanteIniciativa(
   >,
 ): string {
   if (participante.tipoParticipante === 'NPC') {
-    return `${participante.nomePersonagem} (Aliado/Ameaca)`;
+    return `${participante.nomePersonagem} (Aliado/Ameaça)`;
   }
 
   if (participante.nomeJogador) {
@@ -796,7 +796,7 @@ export default function SessaoCampanhaPage() {
         : modalIniciativaAberto.personagemSessaoId;
 
     if (!idParticipante) {
-      setErroIniciativa('Participante invalido.');
+      setErroIniciativa('Participante inválido.');
       return;
     }
 
@@ -1109,7 +1109,7 @@ export default function SessaoCampanhaPage() {
     }
     const pontosVidaMax = parseInteiroComSinal(npcSimplesPvMax.trim());
     if (pontosVidaMax === null || pontosVidaMax <= 0) {
-      setErroNpcs('Informe um PV maximo valido para o NPC simples.');
+      setErroNpcs('Informe um PV máximo válido para o NPC simples.');
       return;
     }
 
@@ -1219,7 +1219,7 @@ export default function SessaoCampanhaPage() {
   const handleRolarPericia = useCallback(
     async (payload: RolagemPericiaSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
+        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
       const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
@@ -1287,13 +1287,13 @@ export default function SessaoCampanhaPage() {
   const handleRolarExpressao = useCallback(
     async (payload: RolagemExpressaoSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
+        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
       const resultado = parseDiceExpression(payload.expressao);
       if (resultado.erro || !resultado.expression) {
         showToast(
-          resultado.erro ?? 'Expressao de rolagem invalida.',
+          resultado.erro ?? 'Expressao de rolagem inválida.',
           'warning',
         );
         return;
@@ -1357,7 +1357,7 @@ export default function SessaoCampanhaPage() {
   const handleRolarTesteHabilidade = useCallback(
     async (payload: RolagemTesteHabilidadeSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
+        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
       const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
@@ -1429,7 +1429,7 @@ export default function SessaoCampanhaPage() {
   const handleRolarDanoHabilidade = useCallback(
     async (payload: RolagemDanoHabilidadeSessaoPayload) => {
       if (sessaoEncerrada) {
-        showToast('Sessao encerrada. Rolagens bloqueadas.', 'warning');
+        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
 
@@ -1543,7 +1543,7 @@ export default function SessaoCampanhaPage() {
       }
 
       if (payloads.length === 0) {
-        showToast('Nao foi possivel montar a rolagem de dano.', 'warning');
+        showToast('Não foi possível montar a rolagem de dano.', 'warning');
         return;
       }
 
@@ -1645,7 +1645,7 @@ export default function SessaoCampanhaPage() {
 
       confirm({
         title: 'Desfazer evento?',
-        description: `Voce esta prestes a desfazer: ${textoSeguro(evento.descricao)}.`,
+        description: `Você está prestes a desfazer: ${textoSeguro(evento.descricao)}.`,
         confirmLabel: 'Desfazer evento',
         cancelLabel: 'Manter',
         variant: 'warning',
@@ -1672,13 +1672,13 @@ export default function SessaoCampanhaPage() {
       }
 
       confirm({
-        title: 'Remover condicao?',
+        title: 'Remover condição?',
         description: `Remover "${textoSeguro(condicao.nome)}". ${descreverDuracaoCondicao(
           condicao.duracaoModo,
           condicao.duracaoValor,
           condicao.restanteDuracao,
         )}`,
-        confirmLabel: 'Remover condicao',
+        confirmLabel: 'Remover condição',
         cancelLabel: 'Manter',
         variant: 'warning',
         onConfirm: () => handleRemoverCondicao(alvoTipo, alvoId, condicao.id),
@@ -1746,7 +1746,7 @@ export default function SessaoCampanhaPage() {
         handlePersonagemAtualizadoNoModal(atualizado);
       } catch (error) {
         setErroCards(
-          extrairMensagemErro(error) || 'Nao foi possivel atualizar o nucleo.',
+          extrairMensagemErro(error) || 'Não foi possível atualizar o núcleo.',
         );
       }
     },
@@ -1774,7 +1774,7 @@ export default function SessaoCampanhaPage() {
         handlePersonagemAtualizadoNoModal(atualizado);
       } catch (error) {
         setErroCards(
-          extrairMensagemErro(error) || 'Nao foi possivel sacrificar o nucleo.',
+          extrairMensagemErro(error) || 'Não foi possível sacrificar o núcleo.',
         );
       }
     },
@@ -1793,7 +1793,7 @@ export default function SessaoCampanhaPage() {
     }
 
     if (!authLoading && usuario && !idsValidos) {
-      setErroGlobal('IDs de campanha/sessao invalidos.');
+      setErroGlobal('IDs de campanha/sessão inválidos.');
       setLoading(false);
       return;
     }
@@ -1897,7 +1897,7 @@ export default function SessaoCampanhaPage() {
   const onlineSet = useMemo(() => new Set(onlineUsuarioIds), [onlineUsuarioIds]);
 
   const tituloSessao = useMemo(() => {
-    if (!detalhe) return 'Sessao da campanha';
+    if (!detalhe) return 'Sessão da campanha';
     return detalhe.titulo;
   }, [detalhe]);
   const totalParticipantesOnline = useMemo(
@@ -2203,7 +2203,7 @@ export default function SessaoCampanhaPage() {
   if (authLoading || loading) {
     return (
       <Loading
-        message="Carregando sessao da campanha..."
+        message="Carregando sessão da campanha..."
         className="p-6 text-app-fg"
       />
     );
@@ -2218,8 +2218,8 @@ export default function SessaoCampanhaPage() {
             <EmptyState
               variant="card"
               icon="campaign"
-              title="Sessao nao encontrada"
-              description="Verifique o link da sessao ou volte para a campanha."
+              title="Sessão não encontrada"
+              description="Verifique o link da sessão ou volte para a campanha."
             />
           ) : null}
           <Button variant="ghost" onClick={() => router.push(`/campanhas/${campanhaId}`)}>

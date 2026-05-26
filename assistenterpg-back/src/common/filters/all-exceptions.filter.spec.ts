@@ -63,7 +63,7 @@ describe('AllExceptionsFilter', () => {
     const host = createHost(request, response);
 
     const exception: HttpException = new UnauthorizedException(
-      'Token invalido',
+      'Token inválido',
     );
 
     filter.catch(exception, host);
@@ -79,7 +79,7 @@ describe('AllExceptionsFilter', () => {
     expect(body.statusCode).toBe(HttpStatus.UNAUTHORIZED);
     expect(body.code).toBe('UNAUTHORIZED');
     expect(body.error).toBe('Unauthorized');
-    expect(body.message).toBe('Token invalido');
+    expect(body.message).toBe('Token inválido');
   });
 
   it('should return INTERNAL_ERROR for unknown exceptions', () => {

@@ -7,8 +7,8 @@ import { CreateTecnicaDto } from './create-tecnica.dto';
 describe('CreateTecnicaDto', () => {
   const basePayload = {
     codigo: 'TEC001',
-    nome: 'Tecnica de Teste',
-    descricao: 'Descricao valida para a tecnica',
+    nome: 'Técnica de Teste',
+    descricao: 'Descrição valida para a técnica',
     tipo: TipoTecnicaAmaldicoada.INATA,
   };
 

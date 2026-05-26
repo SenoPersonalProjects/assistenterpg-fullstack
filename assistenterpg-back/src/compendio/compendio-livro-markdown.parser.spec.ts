@@ -84,7 +84,7 @@ describe('parseLivroPrincipalMarkdown', () => {
     const secoes = livro.categorias
       .filter((categoria) => categoria.codigo !== 'apresentacao-e-sumario')
       .flatMap((categoria) => categoria.subcategorias)
-      .filter((subcategoria) => subcategoria.descricao?.startsWith('Secao '));
+      .filter((subcategoria) => subcategoria.descricao?.startsWith('Seção '));
     const regrasOpcionais = getAllArticles(livro).find(
       (artigo) => artigo.codigo === 'regras-opcionais',
     );

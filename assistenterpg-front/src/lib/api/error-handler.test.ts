@@ -38,8 +38,8 @@ describe('error-handler context helpers', () => {
       code: 'NOT_FOUND',
     };
 
-    const mensagem = formatarErroComContexto('Recurso nao encontrado.', error);
-    expect(mensagem).toBe('Recurso nao encontrado. (status 404 | code NOT_FOUND)');
+    const mensagem = formatarErroComContexto('Recurso não encontrado.', error);
+    expect(mensagem).toBe('Recurso não encontrado. (status 404 | code NOT_FOUND)');
   });
 
   it('formats message including endpoint and requestId when enabled', () => {

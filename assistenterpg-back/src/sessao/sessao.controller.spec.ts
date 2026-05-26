@@ -49,7 +49,7 @@ describe('SessaoController', () => {
     controller = module.get<SessaoController>(SessaoController);
   });
 
-  it('deve encaminhar criacao de sessao para o service', async () => {
+  it('deve encaminhar criação de sessão para o service', async () => {
     sessaoServiceMock.criarSessaoCampanha.mockResolvedValue({ id: 1 });
 
     await controller.criarSessaoCampanha(
@@ -81,7 +81,7 @@ describe('SessaoController', () => {
     );
   });
 
-  it('deve encaminhar listagem de eventos da sessao para o service', async () => {
+  it('deve encaminhar listagem de eventos da sessão para o service', async () => {
     sessaoServiceMock.listarEventosSessao.mockResolvedValue([]);
 
     await controller.listarEventosSessao(
@@ -99,7 +99,7 @@ describe('SessaoController', () => {
     );
   });
 
-  it('deve encaminhar encerramento de sessao para o service', async () => {
+  it('deve encaminhar encerramento de sessão para o service', async () => {
     sessaoServiceMock.encerrarSessaoCampanha.mockResolvedValue({ id: 12 });
 
     await controller.encerrarSessaoCampanha(7, 12, { user: { id: 3 } });
@@ -222,7 +222,7 @@ describe('SessaoController', () => {
     );
   });
 
-  it('deve desfazer evento da sessao e emitir notificacao realtime', async () => {
+  it('deve desfazer evento da sessão e emitir notificacao realtime', async () => {
     sessaoServiceMock.desfazerEventoSessao.mockResolvedValue({ id: 12 });
 
     await controller.desfazerEventoSessao(

@@ -5,7 +5,7 @@ import {
   parseDiceExpression,
 } from './sessao-dice';
 
-describe('sessao-dice parser', () => {
+describe('sessão-dice parser', () => {
   it('aceita espacos em operadores matematicos', () => {
     expect(parseDiceExpression('1d6 + 3').expression).toMatchObject({
       quantidade: 1,

@@ -37,9 +37,7 @@ export class CompendioController {
   }
 
   @Get('livros/:livroCodigo')
-  async buscarLivroPorCodigo(
-    @Param('livroCodigo') livroCodigo: string,
-  ) {
+  async buscarLivroPorCodigo(@Param('livroCodigo') livroCodigo: string) {
     return this.compendioService.buscarLivroPorCodigo(livroCodigo);
   }
 
@@ -122,9 +120,7 @@ export class CompendioController {
   // ==================== CATEGORIAS ====================
 
   @Get('categorias')
-  async listarCategorias(
-    @Query() paginacao?: PaginationQueryDto,
-  ) {
+  async listarCategorias(@Query() paginacao?: PaginationQueryDto) {
     return this.compendioService.listarCategorias(
       true,
       paginacao?.page,

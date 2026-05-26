@@ -81,7 +81,7 @@ const HABILITY_TYPES = {
   ORIGEM: 'Habilidades de Origem',
   TRILHA: 'Habilidades de Trilha',
   CAMINHO: 'Habilidades de Caminho',
-  INATA: 'Tecnica Inata',
+  INATA: 'Técnica Inata',
   OUTRO: 'Outras Habilidades',
 } as const;
 
@@ -119,7 +119,7 @@ function formatRequisitos(value: unknown): string[] {
     if (key === 'graus') continue;
 
     if (typeof raw === 'boolean') {
-      linhas.push(`${key}: ${raw ? 'sim' : 'nao'}`);
+      linhas.push(`${key}: ${raw ? 'sim' : 'não'}`);
       continue;
     }
 
@@ -754,15 +754,15 @@ export function SecaoPoderes({
   return (
     <div className="space-y-6">
       <SectionCard
-        title="Tecnica Inata"
+        title="Técnica Inata"
         right={<Icon name="technique" className="h-5 w-5 text-app-muted" />}
       >
         {!tecnicaInata ? (
           <EmptyState
             variant="card"
             icon="technique"
-            title="Sem tecnica inata"
-            description="Este personagem nao possui tecnica inata selecionada."
+            title="Sem técnica inata"
+            description="Este personagem não possui técnica inata selecionada."
           />
         ) : (
           <div className="rounded-lg border border-app-border bg-app-bg">
@@ -783,7 +783,7 @@ export function SecaoPoderes({
                     color={tecnicaInata.hereditaria ? 'purple' : 'blue'}
                     size="sm"
                   >
-                    {tecnicaInata.hereditaria ? 'Hereditaria' : 'Nao hereditaria'}
+                    {tecnicaInata.hereditaria ? 'Hereditaria' : 'Não hereditaria'}
                   </Badge>
                   <Badge color="gray" size="sm">
                     {(tecnicaInata.habilidades ?? []).length}{' '}
@@ -815,15 +815,15 @@ export function SecaoPoderes({
       </SectionCard>
 
       <SectionCard
-        title="Tecnicas Nao-Inatas"
+        title="Técnicas Não-Inatas"
         right={<Icon name="book" className="h-5 w-5 text-app-muted" />}
       >
         {tecnicasNaoInatasOrdenadas.length === 0 ? (
           <EmptyState
             variant="card"
             icon="book"
-            title="Sem tecnicas nao-inatas"
-            description="Nenhuma tecnica nao-inata cadastrada no sistema."
+            title="Sem técnicas não-inatas"
+            description="Nenhuma técnica não-inata cadastrada no sistema."
           />
         ) : (
           <div className="space-y-4">
@@ -864,7 +864,7 @@ export function SecaoPoderes({
       </SectionCard>
 
       <SectionCard
-        title="Habilidades & Tecnicas do Personagem"
+        title="Habilidades & Técnicas do Personagem"
         right={<Icon name="sparkles" className="h-5 w-5 text-app-muted" />}
       >
         {habilidades.length === 0 ? (
@@ -872,7 +872,7 @@ export function SecaoPoderes({
             variant="card"
             icon="sparkles"
             title="Sem habilidades"
-            description="Nenhuma habilidade ou tecnica foi atribuida ao personagem."
+            description="Nenhuma habilidade ou técnica foi atribuida ao personagem."
           />
         ) : (
           <div className="space-y-6">

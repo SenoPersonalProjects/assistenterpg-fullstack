@@ -615,7 +615,7 @@ export class InventarioService {
     // ✅ 5. Calcular stats dos equipamentos (defesa + RDs com modificações)
     const statsEquipados = this.engine.calcularStatsEquipados(itens);
 
-    // ✅ 6. Converter RDs para formato Map<codigo, valor>
+    // ✅ 6. Converter RDs para formato Map<código, valor>
     const resistenciasMap = new Map<string, number>();
     statsEquipados.reducoesDano.forEach((rd) => {
       resistenciasMap.set(rd.tipoReducao, rd.valor);
@@ -730,7 +730,7 @@ export class InventarioService {
 
   /**
    * ✅ Prepara resistências para criação no banco
-   * Converte Map<codigo, valor> → Array com resistenciaTipoId
+   * Converte Map<código, valor> → Array com resistenciaTipoId
    */
   private async prepararResistenciasParaCriacao(
     resistencias: Map<string, number>,
@@ -1257,7 +1257,7 @@ export class InventarioService {
           dto.equipamentoId,
         );
       }
-      // 3. Validar modifica??es (se houver)
+      // 3. Validar modificações (se houver)
       let modificacoesValidas: ModificacaoCalculoEntity[] = [];
       if (dto.modificacoes && dto.modificacoes.length > 0) {
         modificacoesValidas = await db.modificacaoEquipamento.findMany({
@@ -1298,7 +1298,7 @@ export class InventarioService {
         modificacoesValidas,
       );
 
-      // 4. Calcular categoria final baseado nas modifica??es
+      // 4. Calcular categoria final baseado nas modificações
       const totalModificacoesEfetivas = this.contarModificacoesEfetivas({
         modificacoes: modificacoesValidas,
         estado: estadoNormalizado,

@@ -14,7 +14,7 @@ export const habilidadeEscolaTecnicaSeed: SeedHabilidade = {
   codigo: HABILIDADE_ESCOLA_TECNICA_CODIGO,
   tipo: 'GERAL',
   descricao:
-    'Estudou em uma escola t\u00e9cnica de Jujutsu, ganhando treinamento formal em t\u00e9cnicas amaldi\u00e7oadas.',
+    'Estudou em uma escola técnica de Jujutsu, ganhando treinamento formal em técnicas amaldiçoadas.',
   hereditaria: false,
 };
 

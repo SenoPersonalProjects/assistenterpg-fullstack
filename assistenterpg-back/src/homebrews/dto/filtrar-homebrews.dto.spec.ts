@@ -15,7 +15,7 @@ describe('FiltrarHomebrewsDto', () => {
     expect(dto.apenasPublicados).toBe(false);
   });
 
-  it('deve rejeitar valor booleano invalido com implicit conversion habilitada', () => {
+  it('deve rejeitar valor booleano inválido com implicit conversion habilitada', () => {
     const dto = plainToInstance(
       FiltrarHomebrewsDto,
       { apenasPublicados: 'talvez' },

@@ -31,6 +31,6 @@ export class AtualizarOrdemIniciativaSessaoDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'indiceTurnoAtual deve ser inteiro' })
-  @Min(0, { message: 'indiceTurnoAtual nao pode ser negativo' })
+  @Min(0, { message: 'indiceTurnoAtual não pode ser negativo' })
   indiceTurnoAtual?: number;
 }

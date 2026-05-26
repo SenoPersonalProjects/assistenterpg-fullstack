@@ -28,7 +28,7 @@ export function PoderGenericoFormFields({ dados, onChange }: Props) {
             onChange({ requisitos: e.target.value });
           }
         }}
-        placeholder='Ex: { "nivel": 3, "atributo": "INT >= 3" }'
+        placeholder='Ex: { "nível": 3, "atributo": "INT >= 3" }'
         rows={3}
       />
 

@@ -26,12 +26,12 @@ type NavItem = {
 const baseNavItems: NavItem[] = [
   { href: '/home', label: 'Inicio', icon: 'home' },
   { href: '/campanhas', label: 'Campanhas', icon: 'campaign' },
-  { href: '/anotacoes', label: 'Anotacoes', icon: 'scroll' },
+  { href: '/anotacoes', label: 'Anotações', icon: 'scroll' },
   { href: '/personagens-base', label: 'Personagens', icon: 'character-gojo' },
   { href: '/npcs-ameacas', label: 'NPC', icon: 'curse' },
   { href: '/homebrews', label: 'Homebrews', icon: 'sparkles' },
   { href: '/suplementos', label: 'Suplementos', icon: 'book' },
-  { href: '/compendio', label: 'Compendio', icon: 'rules' },
+  { href: '/compendio', label: 'Compêndio', icon: 'rules' },
   // FUTURO: { href: '/marketplace', label: 'Marketplace', icon: 'store' },
 ];
 
@@ -44,7 +44,7 @@ export function NavigationBar() {
   const isAdmin = usuario?.role === 'ADMIN';
   const adminNavItem: NavItem = {
     href: '/suplementos/admin',
-    label: 'Admin Conteudo',
+    label: 'Admin Conteúdo',
     icon: 'settings',
   };
   const navItems: NavItem[] = isAdmin

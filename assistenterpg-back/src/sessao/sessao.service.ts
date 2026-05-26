@@ -445,7 +445,7 @@ export class SessaoService {
     dto: CreateSessaoCampanhaDto,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'iniciar sessao');
+    this.assertMestre(acesso, 'iniciar sessão');
 
     const titulo =
       dto.titulo?.trim() || `Sessao ${new Date().toLocaleDateString('pt-BR')}`;
@@ -510,7 +510,7 @@ export class SessaoService {
     usuarioId: number,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'encerrar sessao');
+    this.assertMestre(acesso, 'encerrar sessão');
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -1470,7 +1470,7 @@ export class SessaoService {
 
     if (sessao.status !== 'ENCERRADA') {
       throw new BusinessException(
-        'O relatorio so fica disponivel para sessoes encerradas.',
+        'O relatório só fica disponível para sessões encerradas.',
         'SESSAO_RELATORIO_INDISPONIVEL',
       );
     }
@@ -2009,7 +2009,7 @@ export class SessaoService {
     motivo?: string,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'desfazer evento da sessao');
+    this.assertMestre(acesso, 'desfazer evento da sessão');
 
     const motivoLimpo = motivo?.trim() || null;
 
@@ -2499,7 +2499,7 @@ export class SessaoService {
               data: {
                 ativo: false,
                 removidaEm: new Date(),
-                motivoRemocao: 'Aplicacao de condicao desfeita.',
+                motivoRemocao: 'Aplicação de condição desfeita.',
               },
             });
           }
@@ -3077,7 +3077,7 @@ export class SessaoService {
     dto: AdicionarNpcSessaoDto,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'adicionar NPC/Ameaca na cena');
+    this.assertMestre(acesso, 'adicionar NPC/Ameaça na cena');
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3281,7 +3281,7 @@ export class SessaoService {
     dto: AtualizarNpcSessaoDto,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'editar NPC/Ameaca da cena');
+    this.assertMestre(acesso, 'editar NPC/Ameaça da cena');
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3407,7 +3407,7 @@ export class SessaoService {
     usuarioId: number,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'remover NPC/Ameaca da cena');
+    this.assertMestre(acesso, 'remover NPC/Ameaça da cena');
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3489,7 +3489,7 @@ export class SessaoService {
 
       if (sessao.status === 'ENCERRADA') {
         throw new BusinessException(
-          'Sessao encerrada nao permite uso de habilidades',
+          'Sessão encerrada não permite uso de habilidades',
           'SESSAO_ENCERRADA',
           {
             campanhaId,
@@ -3600,7 +3600,7 @@ export class SessaoService {
 
       if (!personagemSessao) {
         throw new BusinessException(
-          'Personagem nao encontrado nesta sessao',
+          'Personagem não encontrado nesta sessão',
           'SESSAO_PERSONAGEM_NOT_FOUND',
           {
             campanhaId,
@@ -3634,7 +3634,7 @@ export class SessaoService {
 
       if (!habilidade) {
         throw new BusinessException(
-          'Habilidade nao disponivel para este personagem',
+          'Habilidade não disponível para este personagem',
           'SESSAO_HABILIDADE_NAO_DISPONIVEL',
           {
             campanhaId,
@@ -3675,7 +3675,7 @@ export class SessaoService {
               desativadaEm: new Date(),
               desativadaPorUsuarioId: usuarioId,
               motivoDesativacao:
-                'Substituida por nova ativacao com configuracao atualizada.',
+                'Substituída por nova ativação com configuração atualizada.',
             },
           });
         }
@@ -3727,7 +3727,7 @@ export class SessaoService {
         );
         if (bloqueadoPorLimiteTurno) {
           throw new BusinessException(
-            'Limite de PE/EA por turno excedido para esta acao',
+            'Limite de PE/EA por turno excedido para esta ação',
             'SESSAO_LIMITE_PEEA_EXCEDIDO',
             {
               campanhaId,
@@ -3833,7 +3833,7 @@ export class SessaoService {
     dto: AplicarCondicaoSessaoDto,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'aplicar condicao');
+    this.assertMestre(acesso, 'aplicar condição');
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3865,7 +3865,7 @@ export class SessaoService {
 
       if (!condicao) {
         throw new BusinessException(
-          'Condicao nao encontrada',
+          'Condicao não encontrada',
           'SESSAO_CONDICAO_NOT_FOUND',
           {
             campanhaId,
@@ -3893,7 +3893,7 @@ export class SessaoService {
 
       if (!cenaAtualId) {
         throw new BusinessException(
-          'Cena atual da sessao nao encontrada para aplicar condicao',
+          'Cena atual da sessão não encontrada para aplicar condição',
           'SESSAO_CENA_ATUAL_NOT_FOUND',
           {
             campanhaId,
@@ -4024,7 +4024,7 @@ export class SessaoService {
     motivo?: string,
   ) {
     const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'remover condicao');
+    this.assertMestre(acesso, 'remover condição');
     const motivoLimpo = motivo?.trim() || null;
 
     await this.prisma.$transaction(async (tx) => {
@@ -4072,7 +4072,7 @@ export class SessaoService {
 
       if (!condicaoSessao) {
         throw new BusinessException(
-          'Condicao ativa nao encontrada nesta sessao',
+          'Condição ativa não encontrada nesta sessão',
           'SESSAO_CONDICAO_ATIVA_NOT_FOUND',
           {
             campanhaId,
@@ -4165,7 +4165,7 @@ export class SessaoService {
 
       if (!personagemSessao) {
         throw new BusinessException(
-          'Personagem nao encontrado nesta sessao',
+          'Personagem não encontrado nesta sessão',
           'SESSAO_PERSONAGEM_NOT_FOUND',
           {
             campanhaId,
@@ -4208,7 +4208,7 @@ export class SessaoService {
 
       if (!sustentacao) {
         throw new BusinessException(
-          'Sustentacao ativa nao encontrada',
+          'Sustentação ativa não encontrada',
           'SESSAO_SUSTENTACAO_NOT_FOUND',
           {
             campanhaId,
@@ -4709,7 +4709,7 @@ export class SessaoService {
       mapaTecnicas.set(tecnicaCatalogo.id, tecnicaCatalogo);
     }
 
-    // Compatibilidade com dados antigos que so possuem relacoes salvas.
+    // Compatibilidade com dados antigos que só possuem relações salvas.
     const tecnicasCampanha = personagemCampanha.tecnicasAprendidas ?? [];
     const tecnicasBase =
       personagemCampanha.personagemBase?.tecnicasAprendidas ?? [];
@@ -4771,7 +4771,7 @@ export class SessaoService {
 
     if (typeof variacaoHabilidadeId === 'number' && !variacaoSelecionada) {
       throw new BusinessException(
-        'Variacao da habilidade nao encontrada',
+        'Variação da habilidade não encontrada',
         'SESSAO_VARIACAO_HABILIDADE_NOT_FOUND',
         {
           habilidadeTecnicaId: habilidade.id,
@@ -4861,7 +4861,7 @@ export class SessaoService {
 
     if (acumulosNormalizados > 0 && !podeEscalonar) {
       throw new BusinessException(
-        'Esta habilidade nao possui escalonamento por acumulos',
+        'Esta habilidade não possui escalonamento por acúmulos',
         'SESSAO_HABILIDADE_SEM_ESCALONAMENTO',
         {
           habilidadeTecnicaId: habilidade.id,
@@ -4873,7 +4873,7 @@ export class SessaoService {
 
     if (acumulosNormalizados > acumulosMaximosEfetivo) {
       throw new BusinessException(
-        'Quantidade de acumulos excede o grau de aprimoramento permitido',
+        'Quantidade de acúmulos excede o grau de aprimoramento permitido',
         'SESSAO_ACUMULO_EXCEDE_GRAU',
         {
           habilidadeTecnicaId: habilidade.id,
@@ -5813,7 +5813,7 @@ export class SessaoService {
       modo !== CONDICAO_DURACAO_MODOS.TURNOS_ALVO
     ) {
       throw new BusinessException(
-        'Modo de duracao de condicao invalido',
+        'Modo de duração de condição inválido',
         'SESSAO_CONDICAO_DURACAO_INVALIDA',
         { duracaoModo },
       );
@@ -5833,7 +5833,7 @@ export class SessaoService {
       : null;
     if (!valor) {
       throw new BusinessException(
-        'Duracao numerica da condicao e obrigatoria',
+        'Duração numérica da condição é obrigatória',
         'SESSAO_CONDICAO_DURACAO_VALOR_REQUIRED',
         { duracaoModo: modo },
       );
@@ -5900,7 +5900,7 @@ export class SessaoService {
 
       if (!personagem) {
         throw new BusinessException(
-          'Personagem da sessao nao encontrado para aplicar condicao',
+          'Personagem da sessão não encontrado para aplicar condição',
           'SESSAO_CONDICAO_ALVO_PERSONAGEM_NOT_FOUND',
           {
             sessaoId,
@@ -5931,7 +5931,7 @@ export class SessaoService {
 
     if (!npc) {
       throw new BusinessException(
-        'NPC/Ameaca da sessao nao encontrado para aplicar condicao',
+        'NPC/Ameaça da sessão não encontrado para aplicar condição',
         'SESSAO_CONDICAO_ALVO_NPC_NOT_FOUND',
         {
           sessaoId,
@@ -6162,7 +6162,7 @@ export class SessaoService {
         data: {
           ativo: false,
           removidaEm: new Date(),
-          motivoRemocao: 'Condicao automatica removida por mudanca de estado.',
+          motivoRemocao: 'Condição automática removida por mudança de estado.',
         },
       });
       await tx.eventoSessao.create({
@@ -6178,7 +6178,7 @@ export class SessaoService {
             personagemSessaoId: args.personagemSessaoId,
             npcSessaoId: args.npcSessaoId,
             alvoNome: args.alvoNome ?? null,
-            motivo: 'Condicao automatica removida por mudanca de estado.',
+            motivo: 'Condição automática removida por mudança de estado.',
             snapshot,
             automatica: true,
             chaveAutomacao: args.chaveAutomacao,
@@ -6371,7 +6371,7 @@ export class SessaoService {
         condicaoId: mapaSistema.machucadoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MACHUCADO,
         ativa: machucado,
-        origemDescricao: 'Automatica por PV <= metade.',
+        origemDescricao: 'Automática por PV <= metade.',
         alvoNome: personagem.personagemCampanha.nome,
       });
 
@@ -6384,7 +6384,7 @@ export class SessaoService {
         condicaoId: mapaSistema.perturbadoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.PERTURBADO,
         ativa: perturbado,
-        origemDescricao: 'Automatica por SAN <= metade.',
+        origemDescricao: 'Automática por SAN <= metade.',
         alvoNome: personagem.personagemCampanha.nome,
       });
 
@@ -6397,7 +6397,7 @@ export class SessaoService {
         condicaoId: mapaSistema.morrendoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORRENDO,
         ativa: morrendo,
-        origemDescricao: 'Automatica por PV <= 0.',
+        origemDescricao: 'Automática por PV <= 0.',
         alvoNome: personagem.personagemCampanha.nome,
       });
 
@@ -6410,7 +6410,7 @@ export class SessaoService {
         condicaoId: mapaSistema.caidoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.CAIDO,
         ativa: caido,
-        origemDescricao: 'Automatica por PV <= 0.',
+        origemDescricao: 'Automática por PV <= 0.',
         alvoNome: personagem.personagemCampanha.nome,
       });
 
@@ -6423,7 +6423,7 @@ export class SessaoService {
         condicaoId: mapaSistema.enlouquecendoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO,
         ativa: enlouquecendo,
-        origemDescricao: 'Automatica por SAN <= 0.',
+        origemDescricao: 'Automática por SAN <= 0.',
         alvoNome: personagem.personagemCampanha.nome,
       });
     }
@@ -6476,7 +6476,7 @@ export class SessaoService {
         condicaoId: mapaSistema.machucadoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MACHUCADO,
         ativa: machucado,
-        origemDescricao: 'Automatica por PV <= metade.',
+        origemDescricao: 'Automática por PV <= metade.',
         alvoNome: npc.nomeExibicao,
       });
 
@@ -6489,7 +6489,7 @@ export class SessaoService {
         condicaoId: mapaSistema.perturbadoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.PERTURBADO,
         ativa: perturbado,
-        origemDescricao: 'Automatica por SAN <= metade.',
+        origemDescricao: 'Automática por SAN <= metade.',
         alvoNome: npc.nomeExibicao,
       });
 
@@ -6502,7 +6502,7 @@ export class SessaoService {
         condicaoId: mapaSistema.morrendoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORRENDO,
         ativa: morrendo,
-        origemDescricao: 'Automatica por PV <= 0.',
+        origemDescricao: 'Automática por PV <= 0.',
         alvoNome: npc.nomeExibicao,
       });
 
@@ -6515,7 +6515,7 @@ export class SessaoService {
         condicaoId: mapaSistema.caidoId,
         chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.CAIDO,
         ativa: caido,
-        origemDescricao: 'Automatica por PV <= 0.',
+        origemDescricao: 'Automática por PV <= 0.',
         alvoNome: npc.nomeExibicao,
       });
 
@@ -6529,7 +6529,7 @@ export class SessaoService {
           condicaoId: mapaSistema.enlouquecendoId,
           chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.ENLOUQUECENDO,
           ativa: enlouquecendo,
-          origemDescricao: 'Automatica por SAN <= 0.',
+          origemDescricao: 'Automática por SAN <= 0.',
           alvoNome: npc.nomeExibicao,
         });
       }
@@ -6592,7 +6592,7 @@ export class SessaoService {
             restanteDuracao: expirada ? 0 : restanteNovo,
             ativo: !expirada,
             removidaEm: expirada ? new Date() : null,
-            motivoRemocao: expirada ? 'Duracao em rodadas encerrada.' : null,
+            motivoRemocao: expirada ? 'Duração em rodadas encerrada.' : null,
           },
         });
 
@@ -6675,7 +6675,7 @@ export class SessaoService {
               ativo: !expirada,
               removidaEm: expirada ? new Date() : null,
               motivoRemocao: expirada
-                ? 'Duracao em turnos do alvo encerrada.'
+                ? 'Duração em turnos do alvo encerrada.'
                 : null,
             },
           });
@@ -6738,7 +6738,7 @@ export class SessaoService {
                 condicaoId: mapaSistema.mortoId,
                 chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.MORTO,
                 ativa: true,
-                origemDescricao: 'Automatica por exceder turnos morrendo.',
+                origemDescricao: 'Automática por exceder turnos morrendo.',
               });
               await this.desativarCondicaoAtivaSessaoTx(tx, {
                 sessaoId,
@@ -6763,7 +6763,7 @@ export class SessaoService {
                 condicaoId: mapaSistema.insanoId,
                 chaveAutomacao: CONDICAO_AUTOMACAO_CHAVES.INSANO,
                 ativa: true,
-                origemDescricao: 'Automatica por exceder turnos enlouquecendo.',
+                origemDescricao: 'Automática por exceder turnos enlouquecendo.',
               });
               await this.desativarCondicaoAtivaSessaoTx(tx, {
                 sessaoId,
@@ -6810,7 +6810,7 @@ export class SessaoService {
               ativo: !expirada,
               removidaEm: expirada ? new Date() : null,
               motivoRemocao: expirada
-                ? 'Duracao em turnos do alvo encerrada.'
+                ? 'Duração em turnos do alvo encerrada.'
                 : null,
             },
           });
@@ -7536,7 +7536,7 @@ export class SessaoService {
   ): Prisma.CondicaoPersonagemSessaoUncheckedUpdateInput {
     if (!snapshot) {
       throw new BusinessException(
-        'Snapshot de condicao invalido',
+        'Snapshot de condição inválido',
         'SESSAO_CONDICAO_SNAPSHOT_INVALIDO',
       );
     }
@@ -7740,9 +7740,9 @@ export class SessaoService {
   ): string {
     switch (tipoEvento) {
       case 'SESSAO_INICIADA':
-        return 'Sessao iniciada';
+        return 'Sessão iniciada';
       case 'SESSAO_ENCERRADA':
-        return 'Sessao encerrada';
+        return 'Sessão encerrada';
       case 'CENA_ATUALIZADA': {
         const tipo = this.lerTextoRegistro(dados, 'tipoNovo');
         const nome = this.lerTextoOpcionalRegistro(dados, 'nomeNovo');
@@ -7752,7 +7752,7 @@ export class SessaoService {
         return 'Ultima troca de cena desfeita';
       case 'TURNO_AVANCADO': {
         const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
-        return `Turno avancado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
+        return `Turno avançado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
       }
       case 'TURNO_RECUADO': {
         const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
@@ -7769,15 +7769,15 @@ export class SessaoService {
       case 'ORDEM_INICIATIVA_DESFEITA':
         return 'Reordenacao de iniciativa desfeita';
       case 'NPC_ADICIONADO':
-        return `Aliado ou ameaca adicionado${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
+        return `Aliado ou ameaça adicionado${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
       case 'NPC_ATUALIZADO':
-        return 'Ficha de aliado ou ameaca atualizada';
+        return 'Ficha de aliado ou ameaça atualizada';
       case 'NPC_REMOVIDO':
-        return `Aliado ou ameaca removido${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
+        return `Aliado ou ameaça removido${this.lerTextoOpcionalRegistro(dados, 'nome') ? `: ${this.lerTextoOpcionalRegistro(dados, 'nome')}` : ''}`;
       case 'NPC_ADICAO_DESFEITA':
       case 'NPC_ATUALIZACAO_DESFEITA':
       case 'NPC_REMOCAO_DESFEITA':
-        return 'Alteracao de aliado ou ameaca desfeita';
+        return 'Alteracao de aliado ou ameaça desfeita';
       case 'HABILIDADE_USADA': {
         const habilidade = this.lerTextoOpcionalRegistro(
           dados,
@@ -7812,7 +7812,7 @@ export class SessaoService {
         if (custoPE !== null && custoPE > 0) partesCusto.push(`PE -${custoPE}`);
         const sufixoAcumulos =
           acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
-        return `Sustentacao cobrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${partesCusto.length > 0 ? ` (${partesCusto.join(' | ')})` : ''}`;
+        return `Sustentação cobrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${partesCusto.length > 0 ? ` (${partesCusto.join(' | ')})` : ''}`;
       }
       case 'HABILIDADE_SUSTENTADA_ENCERRADA': {
         const habilidade = this.lerTextoOpcionalRegistro(
@@ -7826,7 +7826,7 @@ export class SessaoService {
         const acumulos = this.lerInteiroRegistro(dados, 'acumulos');
         const sufixoAcumulos =
           acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
-        return `Sustentacao encerrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
+        return `Sustentação encerrada${habilidade ? `: ${habilidade}${sufixoAcumulos}` : ''}${motivoSistema ? ` (${motivoSistema})` : ''}`;
       }
       case 'CONDICAO_APLICADA': {
         const condicaoNome = this.lerTextoOpcionalRegistro(
@@ -7837,7 +7837,7 @@ export class SessaoService {
         const acumulos = this.lerInteiroRegistro(dados, 'acumulos');
         const sufixoAcumulos =
           acumulos !== null && acumulos > 1 ? ` ${acumulos}` : '';
-        return `Condicao aplicada${condicaoNome ? `: ${condicaoNome}${sufixoAcumulos}` : ''}${alvoNome ? ` em ${alvoNome}` : ''}`;
+        return `Condição aplicada${condicaoNome ? `: ${condicaoNome}${sufixoAcumulos}` : ''}${alvoNome ? ` em ${alvoNome}` : ''}`;
       }
       case 'CONDICAO_REMOVIDA': {
         const condicaoNome = this.lerTextoOpcionalRegistro(
@@ -7845,10 +7845,10 @@ export class SessaoService {
           'condicaoNome',
         );
         const alvoNome = this.lerTextoOpcionalRegistro(dados, 'alvoNome');
-        return `Condicao removida${condicaoNome ? `: ${condicaoNome}` : ''}${alvoNome ? ` de ${alvoNome}` : ''}`;
+        return `Condição removida${condicaoNome ? `: ${condicaoNome}` : ''}${alvoNome ? ` de ${alvoNome}` : ''}`;
       }
       case 'CONDICAO_EXPIRADA':
-        return 'Condicao expirada automaticamente';
+        return 'Condição expirada automaticamente';
       case 'CONDICAO_RECUPERACAO_AUTOMATICA': {
         const condicaoNome = this.lerTextoOpcionalRegistro(
           dados,
@@ -7856,7 +7856,7 @@ export class SessaoService {
         );
         const recurso = this.lerTextoOpcionalRegistro(dados, 'recurso');
         const recuperado = this.lerInteiroRegistro(dados, 'valorRecuperado');
-        return `Recuperacao automatica${condicaoNome ? `: ${condicaoNome}` : ''}${recurso && recuperado !== null ? ` (+${recuperado} ${recurso})` : ''}`;
+        return `Recuperação automática${condicaoNome ? `: ${condicaoNome}` : ''}${recurso && recuperado !== null ? ` (+${recuperado} ${recurso})` : ''}`;
       }
       case 'RECURSO_AJUSTADO': {
         const campo = this.lerTextoOpcionalRegistro(dados, 'campo');
@@ -7870,9 +7870,9 @@ export class SessaoService {
       }
       case 'CONDICAO_APLICACAO_DESFEITA':
       case 'CONDICAO_REMOCAO_DESFEITA':
-        return 'Alteracao de condicao desfeita';
+        return 'Alteração de condição desfeita';
       case 'CHAT':
-        return 'Mensagem no chat da sessao';
+        return 'Mensagem no chat da sessão';
       default:
         return tipoEvento;
     }

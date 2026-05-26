@@ -235,7 +235,7 @@ async function inativarItensRemovidos(
 }
 
 export async function seedCompendioLivros(prisma: PrismaClient) {
-  console.log('Cadastrando livros do compendio...');
+  console.log('Cadastrando livros do compêndio...');
 
   for (const livro of getLivros()) {
     const suplemento = livro.suplementoCodigo
@@ -291,5 +291,5 @@ export async function seedCompendioLivros(prisma: PrismaClient) {
     await inativarItensRemovidos(prisma, livroRow.id, livro);
   }
 
-  console.log('OK: livros do compendio cadastrados.');
+  console.log('OK: livros do compêndio cadastrados.');
 }

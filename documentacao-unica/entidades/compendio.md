@@ -1,23 +1,23 @@
-# Compendio (Categorias, Subcategorias e Artigos)
+﻿# Compendio (Categorias, Subcategorias e Artigos)
 
 Atualizado em: 2026-03-08
 
 ## Escopo
 
-Documento de contrato do modulo `compendio`, com base em:
+Documento de contrato do módulo `compendio`, com base em:
 
 - controller: `assistenterpg-back/src/compendio/compendio.controller.ts`
 - service: `assistenterpg-back/src/compendio/compendio.service.ts`
 - DTOs: `assistenterpg-back/src/compendio/dto/*.ts`
 - exceptions: `assistenterpg-back/src/common/exceptions/compendio.exception.ts`
 - schema: `assistenterpg-back/prisma/schema.prisma` (models `CompendioCategoria`, `CompendioSubcategoria`, `CompendioArtigo`)
-- integracao frontend:
+- integração frontend:
   - `assistenterpg-front/src/lib/api/compendio.ts`
   - `assistenterpg-front/src/lib/utils/compendio.ts`
 
 ## Matriz de autorizacao
 
-- leitura (`GET`): publica
+- leitura (`GET`): pública
 - escrita (`POST`, `PUT`, `DELETE`): `Auth: JWT+Admin`
 
 ## Endpoints
@@ -37,7 +37,7 @@ Documento de contrato do modulo `compendio`, com base em:
 
 - `POST /compendio/categorias` (`JWT+Admin`)
   - body `CreateCategoriaDto`:
-    - `codigo`, `nome` obrigatorios
+    - `codigo`, `nome` obrigatórios
     - `descricao?`, `icone?`, `cor?`, `ordem?`, `ativo?`
 
 - `PUT /compendio/categorias/:id` (`JWT+Admin`)
@@ -56,7 +56,7 @@ Documento de contrato do modulo `compendio`, com base em:
 
 - `POST /compendio/subcategorias` (`JWT+Admin`)
   - body `CreateSubcategoriaDto`:
-    - `codigo`, `nome`, `categoriaId` obrigatorios
+    - `codigo`, `nome`, `categoriaId` obrigatórios
     - `descricao?`, `ordem?`, `ativo?`
 
 - `PUT /compendio/subcategorias/:id` (`JWT+Admin`)
@@ -66,7 +66,7 @@ Documento de contrato do modulo `compendio`, com base em:
 
 - `GET /compendio/artigos`
   - query:
-    - `subcategoriaId?` (valida int; invalido gera 400)
+    - `subcategoriaId?` (válida int; inválido gera 400)
     - `todas=true` para incluir inativos
     - `page`/`limit` opcionais
 
@@ -74,7 +74,7 @@ Documento de contrato do modulo `compendio`, com base em:
 
 - `POST /compendio/artigos` (`JWT+Admin`)
   - body `CreateArtigoDto`:
-    - `codigo`, `titulo`, `conteudo`, `subcategoriaId` obrigatorios
+    - `codigo`, `titulo`, `conteudo`, `subcategoriaId` obrigatórios
     - `resumo?`, `ordem?`, `tags?`, `palavrasChave?`, `nivelDificuldade?`, `artigosRelacionados?`, `ativo?`, `destaque?`
 
 - `PUT /compendio/artigos/:id` (`JWT+Admin`)
@@ -84,17 +84,17 @@ Documento de contrato do modulo `compendio`, com base em:
 
 - `GET /compendio/buscar?q=...`
   - exige `q` com pelo menos 3 caracteres
-  - retorna no maximo 20 resultados
+  - retorna no máximo 20 resultados
 
 - `GET /compendio/destaques`
-  - retorna no maximo 6 artigos ativos e destacados
+  - retorna no máximo 6 artigos ativos e destacados
 
 ## Regras de negocio
 
-- codigos (`codigo`) de categoria/subcategoria/artigo sao unicos.
-- remocao e protegida por relacao:
-  - categoria nao pode ser removida se tiver subcategorias.
-  - subcategoria nao pode ser removida se tiver artigos.
+- codigos (`codigo`) de categoria/subcategoria/artigo são únicos.
+- remoção e protegida por relacao:
+  - categoria não pode ser removida se tiver subcategorias.
+  - subcategoria não pode ser removida se tiver artigos.
 - listagens usam ordenacao por `ordem` crescente.
 - leitura por codigo traz relacionamentos:
   - categoria -> subcategorias
@@ -120,11 +120,11 @@ Documento de contrato do modulo `compendio`, com base em:
 ## Contrato de erro validado em teste de integracao
 
 - `GET /compendio/artigos?subcategoriaId=abc` -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
-- `POST /compendio/artigos` com `subcategoriaId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: subcategoriaId`
+- `POST /compendio/artigos` com `subcategoriaId` inválido -> `400`, `code: VALIDATION_ERROR`, `field: subcategoriaId`
 
 ## Consistencia com schema
 
-- `CompendioCategoria.codigo`, `CompendioSubcategoria.codigo`, `CompendioArtigo.codigo` sao `@unique`.
+- `CompendioCategoria.codigo`, `CompendioSubcategoria.codigo`, `CompendioArtigo.codigo` são `@unique`.
 - relacoes com cascade:
   - categoria -> subcategoria (`onDelete: Cascade`)
   - subcategoria -> artigo (`onDelete: Cascade`)
@@ -140,4 +140,4 @@ Documento de contrato do modulo `compendio`, com base em:
 
 Comportamento relevante no front:
 
-- em indisponibilidade de API durante build/SSR, ha fallback seguro para listas vazias e retorno `null` em buscas por codigo.
+- em indisponibilidade de API durante build/SSR, há fallback seguro para listas vazias e retorno `null` em buscas por codigo.

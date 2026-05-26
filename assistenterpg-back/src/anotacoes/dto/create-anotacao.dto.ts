@@ -22,12 +22,12 @@ const parseOptionalNumber = ({
 export class CreateAnotacaoDto {
   @IsNotEmpty()
   @IsString()
-  @MaxLength(120, { message: 'Titulo deve ter no maximo 120 caracteres' })
+  @MaxLength(120, { message: 'Título deve ter no máximo 120 caracteres' })
   titulo: string;
 
   @IsNotEmpty()
   @IsString()
-  @MaxLength(5000, { message: 'Conteudo deve ter no maximo 5000 caracteres' })
+  @MaxLength(5000, { message: 'Conteúdo deve ter no máximo 5000 caracteres' })
   conteudo: string;
 
   @IsOptional()

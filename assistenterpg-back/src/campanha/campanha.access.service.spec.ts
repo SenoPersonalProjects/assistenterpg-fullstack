@@ -33,7 +33,7 @@ describe('CampanhaAccessService', () => {
     service = module.get(CampanhaAccessService);
   });
 
-  it('bloqueia acesso de usuario que nao e dono nem membro', async () => {
+  it('bloqueia acesso de usuário que não e dono nem membro', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 10,
       donoId: 1,
@@ -62,7 +62,7 @@ describe('CampanhaAccessService', () => {
     ).rejects.toBeInstanceOf(PersonagemCampanhaNaoEncontradoException);
   });
 
-  it('bloqueia edicao de personagem por membro que nao e mestre nem dono da ficha', async () => {
+  it('bloqueia edição de personagem por membro que não e mestre nem dono da ficha', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 10,
       donoId: 1,

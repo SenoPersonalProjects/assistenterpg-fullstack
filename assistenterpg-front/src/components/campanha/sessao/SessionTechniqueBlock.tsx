@@ -89,7 +89,7 @@ function montarMetadadosHabilidade({
     itens.push({ label: 'Execucao', value: formatExecucao(execucao) });
   if (alcance) itens.push({ label: 'Alcance', value: textoSeguro(alcance) });
   if (alvo) itens.push({ label: 'Alvo', value: textoSeguro(alvo) });
-  if (duracao) itens.push({ label: 'Duracao', value: textoSeguro(duracao) });
+  if (duracao) itens.push({ label: 'Duração', value: textoSeguro(duracao) });
   return itens;
 }
 
@@ -162,7 +162,7 @@ function AcumulosControl({
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-semibold text-app-fg">Acumulos</p>
-          <p className="text-[10px] text-app-muted">Maximo {maximo}</p>
+          <p className="text-[10px] text-app-muted">Máximo {maximo}</p>
         </div>
         <span className="text-sm font-semibold text-app-fg">{valor}</span>
       </div>
@@ -172,7 +172,7 @@ function AcumulosControl({
           className="h-8 w-8 rounded border border-app-border bg-app-surface text-sm text-app-fg disabled:opacity-50"
           onClick={() => onChange(clamp(valor - 1))}
           disabled={disabled || valor <= 1}
-          title="Diminuir acumulos"
+          title="Diminuir acúmulos"
         >
           -
         </button>
@@ -193,7 +193,7 @@ function AcumulosControl({
           className="h-8 w-8 rounded border border-app-border bg-app-surface text-sm text-app-fg disabled:opacity-50"
           onClick={() => onChange(clamp(valor + 1))}
           disabled={disabled || valor >= maximo}
-          title="Aumentar acumulos"
+          title="Aumentar acúmulos"
         >
           +
         </button>
@@ -265,11 +265,11 @@ export function SessionTechniqueBlock({
           variant="session"
           size="sm"
           icon="info"
-          title="Sem habilidades visiveis"
+          title="Sem habilidades visíveis"
           description={
             mostrarSomenteSustentadasAtivas
-              ? 'Nenhuma habilidade desta tecnica esta atualmente sustentada.'
-              : 'Nenhuma habilidade desta tecnica esta liberada pelos graus atuais.'
+              ? 'Nenhuma habilidade desta técnica esta atualmente sustentada.'
+              : 'Nenhuma habilidade desta técnica esta liberada pelos graus atuais.'
           }
         />
       ) : (
@@ -773,7 +773,7 @@ export function SessionTechniqueBlock({
                                 >
                                   {acaoHabilidadePendente === chaveVariacao
                                     ? 'Aplicando...'
-                                    : 'Usar variacao'}
+                                    : 'Usar variação'}
                                 </Button>
                               </div>
                             </div>

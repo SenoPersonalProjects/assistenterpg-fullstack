@@ -26,7 +26,7 @@ export class AtualizarCenaSessaoDto {
 
   @IsOptional()
   @IsString({ message: 'nome deve ser texto' })
-  @MaxLength(120, { message: 'nome deve ter no maximo 120 caracteres' })
+  @MaxLength(120, { message: 'nome deve ter no máximo 120 caracteres' })
   nome?: string;
 
   @IsOptional()

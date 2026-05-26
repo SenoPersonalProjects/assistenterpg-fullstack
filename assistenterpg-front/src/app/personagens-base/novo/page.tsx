@@ -65,18 +65,18 @@ function mensagemErroNovoPersonagem(error: unknown, contexto: 'catalogos' | 'cri
 
   if (status === 404) {
     return contexto === 'catalogos'
-      ? 'Algum catalogo necessario nao foi encontrado.'
-      : 'Nao foi possivel criar o personagem porque uma referencia nao foi encontrada.';
+      ? 'Algum catálogo necessário não foi encontrado.'
+      : 'Não foi possível criar o personagem porque uma referência não foi encontrada.';
   }
 
   if (status === 400 || status === 422) {
     return contexto === 'catalogos'
-      ? `Nao foi possivel carregar os catalogos para criacao. ${base}`
-      : `Nao foi possivel criar o personagem. ${base}`;
+      ? `Não foi possível carregar os catálogos para criação. ${base}`
+      : `Não foi possível criar o personagem. ${base}`;
   }
 
   if (status === 403) {
-    return 'Voce nao tem permissao para executar esta acao.';
+    return 'Você não tem permissão para executar esta ação.';
   }
 
   return base;
@@ -389,7 +389,7 @@ export default function NovoPersonagemBasePage() {
   }
 
   if (authLoading || loading) {
-    return <Loading message="Carregando dados para criacao..." className="p-6 text-app-fg" />;
+    return <Loading message="Carregando dados para criação..." className="p-6 text-app-fg" />;
   }
 
   if (!usuario) return null;
@@ -419,7 +419,7 @@ export default function NovoPersonagemBasePage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-app-fg">
-                Fontes habilitadas para esta criacao
+                Fontes habilitadas para esta criação
               </p>
               <p className="text-xs text-app-muted">
                 Sistema base (fixo) + {resumoFontes.suplementos} suplemento(s) +{' '}

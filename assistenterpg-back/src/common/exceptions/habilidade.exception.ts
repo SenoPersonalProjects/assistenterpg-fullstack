@@ -11,7 +11,7 @@ import { BusinessException } from './business.exception';
 export class HabilidadeNaoEncontradaException extends BaseException {
   constructor(identificador?: string | number) {
     super(
-      'Habilidade nao encontrada',
+      'Habilidade não encontrada',
       HttpStatus.NOT_FOUND,
       'HABILIDADE_NOT_FOUND',
       { identificador },
@@ -42,7 +42,7 @@ export class HabilidadeCodigoDuplicadoException extends BusinessException {
 export class TipoGrauNaoEncontradoException extends BaseException {
   constructor(codigosInvalidos: string[]) {
     super(
-      `Tipos de grau nao encontrados: ${codigosInvalidos.join(', ')}`,
+      `Tipos de grau não encontrados: ${codigosInvalidos.join(', ')}`,
       HttpStatus.NOT_FOUND,
       'TIPO_GRAU_NOT_FOUND',
       { codigosInvalidos },

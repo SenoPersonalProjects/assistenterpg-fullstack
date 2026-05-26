@@ -138,7 +138,7 @@ export class CampanhaItensSessaoService {
       campanhaId,
       usuarioId,
     );
-    this.assertMestre(acesso, 'listar templates de itens de sessao');
+    this.assertMestre(acesso, 'listar templates de itens de sessão');
 
     return this.prisma.templateItemSessaoCampanha.findMany({
       where: { campanhaId },
@@ -156,7 +156,7 @@ export class CampanhaItensSessaoService {
       campanhaId,
       usuarioId,
     );
-    this.assertMestre(acesso, 'criar templates de itens de sessao');
+    this.assertMestre(acesso, 'criar templates de itens de sessão');
     const dados = this.normalizarDadosItem(dto);
 
     return this.prisma.templateItemSessaoCampanha.create({
@@ -180,7 +180,7 @@ export class CampanhaItensSessaoService {
       campanhaId,
       usuarioId,
     );
-    this.assertMestre(acesso, 'editar templates de itens de sessao');
+    this.assertMestre(acesso, 'editar templates de itens de sessão');
     const atual = await this.obterTemplate(campanhaId, templateId);
     const dados = this.normalizarDadosItem({ ...atual, ...dto });
 
@@ -205,7 +205,7 @@ export class CampanhaItensSessaoService {
       campanhaId,
       usuarioId,
     );
-    this.assertMestre(acesso, 'instanciar templates de itens de sessao');
+    this.assertMestre(acesso, 'instanciar templates de itens de sessão');
     const template = await this.obterTemplate(campanhaId, templateId);
 
     await this.validarReferenciasEscopoCampanha(campanhaId, dto);
@@ -348,7 +348,7 @@ export class CampanhaItensSessaoService {
       campanhaId,
       usuarioId,
     );
-    this.assertMestre(acesso, 'atribuir itens de sessao');
+    this.assertMestre(acesso, 'atribuir itens de sessão');
     const item = await this.obterItem(campanhaId, itemId);
     await this.validarReferenciasEscopoCampanha(campanhaId, dto);
 
@@ -384,7 +384,7 @@ export class CampanhaItensSessaoService {
       campanhaId,
       usuarioId,
     );
-    this.assertMestre(acesso, 'revelar ou ocultar itens de sessao');
+    this.assertMestre(acesso, 'revelar ou ocultar itens de sessão');
     await this.obterItem(campanhaId, itemId);
 
     return this.prisma.itemSessaoCampanha.update({
@@ -414,7 +414,7 @@ export class CampanhaItensSessaoService {
 
     if (!acesso.ehMestre && item.personagemCampanha.donoId !== usuarioId) {
       throw new ForbiddenException(
-        'Voce so pode transferir itens dos seus personagens.',
+        'Você so pode transferir itens dos seus personagens.',
       );
     }
 
@@ -425,7 +425,7 @@ export class CampanhaItensSessaoService {
         throw new BadRequestException('Informe o personagem de destino.');
       }
       if (dto.destinoPersonagemCampanhaId === item.personagemCampanhaId) {
-        throw new BadRequestException('O item ja esta com este personagem.');
+        throw new BadRequestException('O item já esta com este personagem.');
       }
       await this.validarReferenciasEscopoCampanha(campanhaId, {
         personagemCampanhaId: dto.destinoPersonagemCampanhaId,
@@ -604,12 +604,12 @@ export class CampanhaItensSessaoService {
   ): DadosItemSessaoNormalizados {
     const nome = entrada.nome?.trim();
     if (!nome) {
-      throw new BadRequestException('Nome do item de sessao e obrigatorio.');
+      throw new BadRequestException('Nome do item de sessão é obrigatório.');
     }
 
     const tipo = entrada.tipo;
     if (!tipo) {
-      throw new BadRequestException('Tipo do item de sessao e obrigatorio.');
+      throw new BadRequestException('Tipo do item de sessão é obrigatório.');
     }
 
     const categoria =
@@ -643,7 +643,7 @@ export class CampanhaItensSessaoService {
       dto.descricaoRevelada !== undefined
     ) {
       throw new ForbiddenException(
-        'Apenas o mestre pode editar sessao, cena ou revelacao.',
+        'Apenas o mestre pode editar sessão, cena ou revelação.',
       );
     }
   }
@@ -660,7 +660,7 @@ export class CampanhaItensSessaoService {
       dto.descricaoRevelada !== undefined
     ) {
       throw new ForbiddenException(
-        'Apenas o mestre pode editar sessao, cena, portador ou revelacao.',
+        'Apenas o mestre pode editar sessão, cena, portador ou revelação.',
       );
     }
   }
@@ -676,7 +676,7 @@ export class CampanhaItensSessaoService {
       });
       if (!sessao)
         throw new BadRequestException(
-          'Sessao informada nao pertence a campanha.',
+          'Sessão informada não pertence a campanha.',
         );
     }
 
@@ -687,7 +687,7 @@ export class CampanhaItensSessaoService {
       });
       if (!cena)
         throw new BadRequestException(
-          'Cena informada nao pertence a campanha.',
+          'Cena informada não pertence a campanha.',
         );
     }
 
@@ -698,7 +698,7 @@ export class CampanhaItensSessaoService {
       });
       if (!personagem) {
         throw new BadRequestException(
-          'Portador informado nao pertence a campanha.',
+          'Portador informado não pertence a campanha.',
         );
       }
     }
@@ -713,7 +713,7 @@ export class CampanhaItensSessaoService {
       select: { id: true },
     });
     if (!npc) {
-      throw new BadRequestException('NPC de destino nao pertence a campanha.');
+      throw new BadRequestException('NPC de destino não pertence a campanha.');
     }
   }
 
@@ -724,7 +724,7 @@ export class CampanhaItensSessaoService {
   ) {
     if (!personagemCampanhaId) {
       throw new BadRequestException(
-        'Jogadores precisam escolher um personagem proprio para receber o item.',
+        'Jogadores precisam escolher um personagem próprio para receber o item.',
       );
     }
     const personagem = await this.prisma.personagemCampanha.findFirst({
@@ -733,7 +733,7 @@ export class CampanhaItensSessaoService {
     });
     if (!personagem) {
       throw new ForbiddenException(
-        'Voce so pode criar itens para seus proprios personagens.',
+        'Você so pode criar itens para seus proprios personagens.',
       );
     }
     return personagem.id;
@@ -756,7 +756,7 @@ export class CampanhaItensSessaoService {
     });
     if (!personagem) {
       throw new BadRequestException(
-        'Portador informado nao pertence a campanha.',
+        'Portador informado não pertence a campanha.',
       );
     }
 
@@ -820,7 +820,7 @@ export class CampanhaItensSessaoService {
       where: { id: templateId, campanhaId },
     });
     if (!template) {
-      throw new NotFoundException('Template de item de sessao nao encontrado.');
+      throw new NotFoundException('Template de item de sessão não encontrado.');
     }
     return template;
   }
@@ -830,7 +830,7 @@ export class CampanhaItensSessaoService {
       where: { id: itemId, campanhaId },
     });
     if (!item) {
-      throw new NotFoundException('Item de sessao nao encontrado.');
+      throw new NotFoundException('Item de sessão não encontrado.');
     }
     return item;
   }
@@ -845,7 +845,7 @@ export class CampanhaItensSessaoService {
       },
     });
     if (!item) {
-      throw new NotFoundException('Item de sessao nao encontrado.');
+      throw new NotFoundException('Item de sessão não encontrado.');
     }
     return item;
   }
@@ -864,7 +864,7 @@ export class CampanhaItensSessaoService {
         include: transferenciaItemSessaoInclude,
       });
     if (!transferencia) {
-      throw new NotFoundException('Transferencia pendente nao encontrada.');
+      throw new NotFoundException('Transferencia pendente não encontrada.');
     }
     return transferencia;
   }
@@ -882,7 +882,7 @@ export class CampanhaItensSessaoService {
 
     if (!destinoEhMeu) {
       throw new ForbiddenException(
-        'Voce nao pode responder esta transferencia.',
+        'Você não pode responder esta transferencia.',
       );
     }
   }
@@ -895,7 +895,7 @@ export class CampanhaItensSessaoService {
       });
     if (pendente) {
       throw new BadRequestException(
-        'Este item ja possui uma transferencia pendente.',
+        'Este item já possui uma transferencia pendente.',
       );
     }
   }

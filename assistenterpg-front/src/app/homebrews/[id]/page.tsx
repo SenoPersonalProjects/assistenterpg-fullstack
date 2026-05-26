@@ -120,7 +120,7 @@ export default function HomebrewDetalhePage() {
 
   const carregarHomebrew = useCallback(async () => {
     if (!homebrewIdValido) {
-      setErro('ID de homebrew invalido.');
+      setErro('ID de homebrew inválido.');
       setLoading(false);
       return;
     }

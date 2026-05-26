@@ -492,7 +492,7 @@ export class PersonagemBaseService {
     if (params.obrigatorio || houveTentativaResolucao) {
       throw new BadRequestException({
         code: 'REFERENCIA_IMPORTACAO_INVALIDA',
-        message: `Nao foi possivel resolver a referencia de ${params.label} na importacao.`,
+        message: `Não foi possível resolver a referência de ${params.label} na importação.`,
         details: { label: params.label },
       });
     }
@@ -1316,9 +1316,9 @@ export class PersonagemBaseService {
       );
     }
 
-    // Tecnica inata (persistida separadamente)
-    // Tecnica inata e tratada separadamente do catalogo de habilidades.
-    // Nao deve entrar em habilidadesBase para evitar colisao de ID entre tabelas.
+    // Técnica inata (persistida separadamente)
+    // Técnica inata e tratada separadamente do catalogo de habilidades.
+    // Não deve entrar em habilidadesBase para evitar colisao de ID entre tabelas.
 
     // Escola Técnica como habilidade (se estudou)
     if (estudouEscolaTecnica) {
@@ -1327,7 +1327,7 @@ export class PersonagemBaseService {
           OR: [
             { codigo: HABILIDADE_ESCOLA_TECNICA_CODIGO },
             { nome: HABILIDADE_ESCOLA_TECNICA_NOME },
-            { nome: 'Escola T\u00c3\u00a9cnica' },
+            { nome: 'Escola Técnica' },
           ],
         },
         include: { efeitosGrau: true },
@@ -2676,7 +2676,7 @@ export class PersonagemBaseService {
 
     if (!tecnicaInataPropriaId) {
       throw new BadRequestException(
-        'Este personagem nao possui tecnica inata propria para editar.',
+        'Este personagem não possui técnica inata própria para editar.',
       );
     }
 
@@ -2847,7 +2847,7 @@ export class PersonagemBaseService {
 
       if (!habilidade) {
         throw new BadRequestException(
-          'Habilidade da tecnica propria nao encontrada.',
+          'Habilidade da técnica própria não encontrada.',
         );
       }
 
@@ -3012,14 +3012,14 @@ export class PersonagemBaseService {
 
       if (!habilidade) {
         throw new BadRequestException(
-          'Habilidade da tecnica propria nao encontrada.',
+          'Habilidade da técnica própria não encontrada.',
         );
       }
 
       await tx.variacaoHabilidade.create({
         data: {
           habilidadeTecnicaId: habilidadeId,
-          nome: this.stringOuPadrao(payload.nome, 'Nova variacao'),
+          nome: this.stringOuPadrao(payload.nome, 'Nova variação'),
           descricao: this.stringOuPadrao(payload.descricao, ''),
           substituiCustos:
             payload.substituiCustos === undefined
@@ -3142,7 +3142,7 @@ export class PersonagemBaseService {
 
       if (!variacao) {
         throw new BadRequestException(
-          'Variacao da tecnica propria nao encontrada.',
+          'Variação da técnica própria não encontrada.',
         );
       }
 

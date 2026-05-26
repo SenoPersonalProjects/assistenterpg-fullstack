@@ -8,7 +8,7 @@ Atualizado em: 2026-03-08
 - `JWT`: exige autenticacao
 - `JWT+Admin`: exige autenticacao com role `ADMIN`
 
-## Matriz por modulo
+## Matriz por módulo
 
 - `auth`
   - `POST /auth/register`, `POST /auth/login`: Publica
@@ -23,7 +23,7 @@ Atualizado em: 2026-03-08
 - `homebrews`
   - principal: JWT (regras de dono/admin aplicadas em service)
 - `suplementos`
-  - leitura/ativacao: JWT
+  - leitura/ativação: JWT
   - create/update/delete: JWT+Admin
 - `compendio`
   - leitura: Publica
@@ -37,16 +37,16 @@ Atualizado em: 2026-03-08
 - `classes`, `clas`, `origens`, `trilhas`, `caminhos`, `habilidades`
   - leitura (`GET`): JWT
   - escrita (`POST/PATCH/DELETE`): JWT+Admin
-- `tecnicas-amaldicoadas` (tecnica/habilidade/variacao)
+- `tecnicas-amaldicoadas` (técnica/habilidade/variação)
   - leitura (`GET`): JWT
   - escrita (`POST/PATCH/DELETE`): JWT+Admin
 - `proficiencias`, `tipos-grau`, `condicoes`
   - leitura (`GET`): JWT
   - escrita (`POST/PATCH/DELETE`): JWT+Admin
-- `pericias`, `alinhamentos`
+- `perícias`, `alinhamentos`
   - leitura: JWT
 
-## Fontes de validacao
+## Fontes de validação
 
 - Controllers do backend (`assistenterpg-back/src/**/*controller.ts`)
 - Specs de metadata de guards:

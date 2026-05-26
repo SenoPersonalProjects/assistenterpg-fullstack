@@ -11,7 +11,7 @@ import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
 const labelParticipanteIniciativa = (turno: SessaoCampanhaDetalhe['turnoAtual']) => {
   if (!turno) return 'sem turno definido';
   if (turno.tipoParticipante === 'NPC') {
-    return `${turno.nomePersonagem} (Aliado/Ameaca)`;
+    return `${turno.nomePersonagem} (Aliado/Ameaça)`;
   }
   if (turno.nomeJogador) {
     return `${turno.nomePersonagem} (${turno.nomeJogador})`;

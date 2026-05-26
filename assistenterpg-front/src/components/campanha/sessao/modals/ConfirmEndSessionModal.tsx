@@ -22,9 +22,9 @@ export function ConfirmEndSessionModal({
       isOpen={isOpen}
       onClose={onClose}
       onConfirm={onConfirm}
-      title="Encerrar sessao"
-      description="Encerrar a sessao vai bloquear operacoes de combate e atualizacoes de cena."
-      confirmLabel="Encerrar sessao"
+      title="Encerrar sessão"
+      description="Encerrar a sessão vai bloquear operações de combate e atualizações de cena."
+      confirmLabel="Encerrar sessão"
       cancelLabel="Cancelar"
       variant="danger"
       confirmDisabled={sessaoEncerrada}

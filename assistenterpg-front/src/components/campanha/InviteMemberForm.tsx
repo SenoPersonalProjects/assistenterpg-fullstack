@@ -29,7 +29,7 @@ export function InviteMemberForm({ onInvite }: Props) {
     setSucesso(null);
 
     if (!destino.trim()) {
-      setErro('Informe um email ou usuario');
+      setErro('Informe um email ou usuário');
       return;
     }
 
@@ -57,8 +57,8 @@ export function InviteMemberForm({ onInvite }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <Input
-        label="Email ou usuario do convidado"
-        placeholder="ex.: jogador@dominio.com ou apelido"
+        label="Email ou usuário do convidado"
+        placeholder="ex.: jogador@domínio.com ou apelido"
         value={destino}
         onChange={e => setDestino(e.target.value)}
       />

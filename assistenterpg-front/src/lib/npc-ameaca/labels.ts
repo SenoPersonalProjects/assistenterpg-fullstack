@@ -11,13 +11,13 @@ export type NpcOption<T extends string> = {
 
 const FICHA_TIPO_LABEL: Record<TipoFichaNpcAmeaca, string> = {
   NPC: 'Aliado',
-  AMEACA: 'Ameaca',
+  AMEACA: 'Ameaça',
 };
 
 const TIPO_LABEL: Record<TipoNpcAmeaca, string> = {
   HUMANO: 'Humano',
   FEITICEIRO: 'Feiticeiro',
-  MALDICAO: 'Maldicao',
+  MALDICAO: 'Maldição',
   ANIMAL: 'Animal',
   HIBRIDO: 'Hibrido',
   OUTRO: 'Outro',
@@ -26,7 +26,7 @@ const TIPO_LABEL: Record<TipoNpcAmeaca, string> = {
 const TAMANHO_LABEL: Record<TamanhoNpcAmeaca, string> = {
   MINUSCULO: 'Minusculo',
   PEQUENO: 'Pequeno',
-  MEDIO: 'Medio',
+  MEDIO: 'Médio',
   GRANDE: 'Grande',
   ENORME: 'Enorme',
   COLOSSAL: 'Colossal',

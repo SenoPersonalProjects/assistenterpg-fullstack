@@ -45,7 +45,7 @@ describe('validarRequisitosPoder', () => {
     expect(resultado).toEqual({ atende: true });
   });
 
-  it('formata falha de requisito alternativo como treino de pericia', () => {
+  it('formata falha de requisito alternativo como treino de perícia', () => {
     const resultado = validarRequisitosPoder(
       {
         pericias: [

@@ -57,7 +57,7 @@ export function resolveJwtSecret(
 
   if (nodeEnv === 'production') {
     if (!secret) {
-      throw new Error('JWT_SECRET e obrigatorio em producao.');
+      throw new Error('JWT_SECRET é obrigatório em produção.');
     }
 
     if (secret === 'dev-secret' || secret.length < AUTH_JWT_SECRET_MIN_LENGTH) {
@@ -102,7 +102,7 @@ export function resolveAuthCookieOptions(
     (nodeEnv === 'production' && sameSite === 'none');
 
   if (sameSite === 'none' && !secure) {
-    throw new Error('AUTH_COOKIE_SECURE=true e obrigatorio com SameSite=None.');
+    throw new Error('AUTH_COOKIE_SECURE=true é obrigatório com SameSite=None.');
   }
 
   return {

@@ -58,7 +58,7 @@ const TIPO_OPTIONS: Array<{ value: DraftFilters['tipo']; label: string }> = [
   { value: 'MECANICA_ESPECIAL', label: 'Mecanica Especial' },
   { value: 'HABILIDADE_ORIGEM', label: 'Habilidade de Origem' },
   { value: 'HABILIDADE_TRILHA', label: 'Habilidade de Trilha' },
-  { value: 'ESCOLA_TECNICA', label: 'Escola Tecnica' },
+  { value: 'ESCOLA_TECNICA', label: 'Escola Técnica' },
 ];
 
 const FONTE_OPTIONS: Array<{ value: DraftFilters['fonte']; label: string }> = [
@@ -147,8 +147,8 @@ function SelecionarTecnicaModal({
 }: SelecionarTecnicaModalProps) {
   const isHabilidadeTecnica = cadastroTipo !== 'PODER_GENERICO';
   const confirmLabel = isHabilidadeTecnica
-    ? 'Abrir editor da tecnica'
-    : 'Abrir editor generico';
+    ? 'Abrir editor da técnica'
+    : 'Abrir editor genérico';
 
   return (
     <Modal
@@ -175,7 +175,7 @@ function SelecionarTecnicaModal({
         <Card>
           <p className="text-sm text-app-muted">
             Selecione o tipo de habilidade. Para tecnicas, o sistema abre o CRUD dedicado da
-            tecnica escolhida.
+            técnica escolhida.
           </p>
         </Card>
 
@@ -186,28 +186,28 @@ function SelecionarTecnicaModal({
             onChange={(e) => onChangeCadastroTipo(e.target.value as CadastroHabilidadeTipo)}
           >
             <option value="PODER_GENERICO">Poder Generico</option>
-            <option value="HABILIDADE_TECNICA_INATA">Habilidade de Tecnica Inata</option>
-            <option value="HABILIDADE_TECNICA_NAO_INATA">Habilidade de Tecnica Nao Inata</option>
+            <option value="HABILIDADE_TECNICA_INATA">Habilidade de Técnica Inata</option>
+            <option value="HABILIDADE_TECNICA_NAO_INATA">Habilidade de Técnica Não Inata</option>
           </Select>
 
           {!isHabilidadeTecnica ? (
             <Card>
               <p className="text-sm text-app-muted">
-                O editor de poder generico permite cadastrar habilidades independentes de tecnica.
+                O editor de poder genérico permite cadastrar habilidades independentes de técnica.
               </p>
             </Card>
           ) : loading ? (
-            <Loading message="Carregando tecnicas..." className="py-6 text-app-fg" />
+            <Loading message="Carregando técnicas..." className="py-6 text-app-fg" />
           ) : tecnicas.length === 0 ? (
             <EmptyState
               variant="card"
               icon="technique"
-              title="Nenhuma tecnica encontrada"
-              description="Cadastre a tecnica primeiro no modulo de tecnicas."
+              title="Nenhuma técnica encontrada"
+              description="Cadastre a técnica primeiro no modulo de técnicas."
             />
           ) : (
             <Select
-              label="Tecnica de destino"
+              label="Técnica de destino"
               value={selectedId}
               onChange={(e) => onChangeSelectedId(e.target.value)}
             >
@@ -225,11 +225,11 @@ function SelecionarTecnicaModal({
               label="Classificacao"
               value={
                 cadastroTipo === 'HABILIDADE_TECNICA_INATA'
-                  ? 'Tecnica Inata'
-                  : 'Tecnica Nao Inata'
+                  ? 'Técnica Inata'
+                  : 'Técnica Não Inata'
               }
               disabled
-              helperText="As habilidades serao cadastradas no CRUD da tecnica selecionada."
+              helperText="As habilidades serao cadastradas no CRUD da técnica selecionada."
             />
           )}
         </div>
@@ -400,7 +400,7 @@ export function HabilidadesAdminPanel() {
 
     const tecnica = tecnicasDisponiveis.find((item) => item.id === Number(tecnicaSelecionadaId));
     if (!tecnica) {
-      showToast('Selecione uma tecnica valida.', 'error');
+      showToast('Selecione uma técnica valida.', 'error');
       return;
     }
 
@@ -421,7 +421,7 @@ export function HabilidadesAdminPanel() {
           <div>
             <h2 className="text-xl font-semibold text-app-fg">Gerenciar Habilidades</h2>
             <p className="text-sm text-app-muted">
-              Cadastre poderes genericos ou habilidades associadas a tecnicas (inatas e nao inatas).
+              Cadastre poderes genéricos ou habilidades associadas a técnicas (inatas e não inatas).
             </p>
           </div>
           <div className="flex flex-wrap gap-2 justify-end">

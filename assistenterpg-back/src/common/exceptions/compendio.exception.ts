@@ -8,7 +8,7 @@ import { ValidationException } from './validation.exception';
 export class CompendioLivroException extends BaseException {
   constructor(identificador?: string | number) {
     super(
-      'Livro do compendio nao encontrado',
+      'Livro do compendio não encontrado',
       HttpStatus.NOT_FOUND,
       'COMPENDIO_LIVRO_NOT_FOUND',
       { identificador },
@@ -19,7 +19,7 @@ export class CompendioLivroException extends BaseException {
 export class CompendioLivroDuplicadoException extends BusinessException {
   constructor(codigo: string) {
     super(
-      `Livro do compendio com codigo "${codigo}" ja existe`,
+      `Livro do compêndio com código "${codigo}" já existe`,
       'COMPENDIO_LIVRO_DUPLICADO',
       { codigo },
     );

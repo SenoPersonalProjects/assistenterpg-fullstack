@@ -230,26 +230,26 @@ describe('campanhas api cache and dedupe', () => {
 
   it('lists campaign sessions', async () => {
     mockedApiClient.get.mockResolvedValueOnce({
-      data: [{ id: 1, titulo: 'Sessao 1' }],
+      data: [{ id: 1, titulo: 'Sessão 1' }],
     });
 
     const sessoes = await apiListarSessoesCampanha(44);
 
     expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/44/sessoes');
-    expect(sessoes).toEqual([{ id: 1, titulo: 'Sessao 1' }]);
+    expect(sessoes).toEqual([{ id: 1, titulo: 'Sessão 1' }]);
   });
 
   it('creates campaign session', async () => {
     mockedApiClient.post.mockResolvedValueOnce({
-      data: { id: 13, titulo: 'Sessao teste' },
+      data: { id: 13, titulo: 'Sessão teste' },
     });
 
-    const sessao = await apiCriarSessaoCampanha(44, { titulo: 'Sessao teste' });
+    const sessao = await apiCriarSessaoCampanha(44, { titulo: 'Sessão teste' });
 
     expect(mockedApiClient.post).toHaveBeenCalledWith('/campanhas/44/sessoes', {
-      titulo: 'Sessao teste',
+      titulo: 'Sessão teste',
     });
-    expect(sessao).toEqual({ id: 13, titulo: 'Sessao teste' });
+    expect(sessao).toEqual({ id: 13, titulo: 'Sessão teste' });
   });
 
   it('closes campaign session', async () => {
@@ -267,13 +267,13 @@ describe('campanhas api cache and dedupe', () => {
 
   it('gets campaign session details', async () => {
     mockedApiClient.get.mockResolvedValueOnce({
-      data: { id: 13, titulo: 'Sessao teste' },
+      data: { id: 13, titulo: 'Sessão teste' },
     });
 
     const sessao = await apiGetSessaoCampanha(44, 13);
 
     expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/44/sessoes/13');
-    expect(sessao).toEqual({ id: 13, titulo: 'Sessao teste' });
+    expect(sessao).toEqual({ id: 13, titulo: 'Sessão teste' });
   });
 
   it('updates session scene', async () => {

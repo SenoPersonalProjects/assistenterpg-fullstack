@@ -57,7 +57,7 @@ export function AddNpcModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Adicionar aliado ou ameaca na cena"
+      title="Adicionar aliado ou ameaça na cena"
       size="md"
       footer={
         <>
@@ -86,7 +86,7 @@ export function AddNpcModal({
 
         <div className="rounded border border-app-border bg-app-surface p-3 space-y-3">
           <Select
-            label="Ficha disponivel"
+            label="Ficha disponível"
             value={npcSelecionadoId}
             onChange={(event) => onNpcSelecionadoChange(event.target.value)}
           >
@@ -106,7 +106,7 @@ export function AddNpcModal({
             placeholder="Ex.: Taro (ferido)"
           />
           <p className="text-xs text-app-muted">
-            Use o nome em cena para diferenciar aliados ou ameacas iguais.
+            Use o nome em cena para diferenciar aliados ou ameaças iguais.
           </p>
         </div>
 
@@ -156,7 +156,7 @@ export function AddNpcModal({
             />
           </div>
           <p className="mt-2 text-[11px] text-app-muted">
-            Deixe em branco para nao considerar SAN/EA neste NPC.
+            Deixe em branco para não considerar SAN/EA neste NPC.
           </p>
         </details>
       </div>

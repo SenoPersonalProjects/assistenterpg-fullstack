@@ -154,7 +154,7 @@ describe('CompendioService', () => {
         categorias: [
           {
             codigo: 'regras-basicas',
-            nome: 'Regras Basicas',
+            nome: 'Regras Básicas',
             descricao: null,
             icone: 'dice',
             cor: '#22d3ee',

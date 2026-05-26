@@ -38,7 +38,7 @@ export function ClaFormFields({ dados, onChange }: Props) {
             onChange({ caracteristicas: e.target.value });
           }
         }}
-        placeholder='Ex: [{"nome": "Grande Clã", "descricao": "Pertence aos grandes clãs"}]'
+        placeholder='Ex: [{"nome": "Grande Clã", "descrição": "Pertence aos grandes clãs"}]'
         rows={5}
       />
 
@@ -57,7 +57,7 @@ export function ClaFormFields({ dados, onChange }: Props) {
             onChange({ requisitos: e.target.value });
           }
         }}
-        placeholder='Ex: { "nivel": 1, "origem": "Kyoto" }'
+        placeholder='Ex: { "nível": 1, "origem": "Kyoto" }'
         rows={3}
       />
 

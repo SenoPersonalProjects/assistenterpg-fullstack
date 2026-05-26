@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
 
     if (!token) {
-      setErro('Token de recuperacao ausente.');
+      setErro('Token de recuperação ausente.');
       return;
     }
 
@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
     }
 
     if (novaSenha !== confirmacao) {
-      setErro('As senhas nao coincidem.');
+      setErro('As senhas não coincidem.');
       return;
     }
 
@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
           required
           rightIcon={mostrarConfirmacao ? 'eyeOff' : 'eye'}
           rightIconLabel={
-            mostrarConfirmacao ? 'Ocultar confirmacao' : 'Mostrar confirmacao'
+            mostrarConfirmacao ? 'Ocultar confirmação' : 'Mostrar confirmação'
           }
           onRightIconClick={() => setMostrarConfirmacao((v) => !v)}
         />

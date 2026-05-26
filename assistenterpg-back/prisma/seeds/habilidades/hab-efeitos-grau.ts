@@ -67,7 +67,7 @@ export async function seedHabilidadesEfeitosGrau(prisma: PrismaClient) {
 
     if (!habilidadeId) {
       console.warn(
-        `[seed] Habilidade nao encontrada para efeito de grau: "${
+        `[seed] Habilidade não encontrada para efeito de grau: "${
           item.habilidadeCodigo ?? item.habilidadeNome ?? 'desconhecida'
         }"`,
       );

@@ -318,7 +318,7 @@ function createSubcategoria(params: {
   const palavrasChave = createPalavrasChave(
     params.nome,
     params.categoriaNome,
-    'Maledicencia RPG',
+    'Maledicência RPG',
   );
 
   return {
@@ -355,7 +355,7 @@ function parseCategory(
       createSubcategoria({
         codigo: 'conteudo',
         nome: chapter.titulo,
-        descricao: `Conteudo do capitulo ${chapter.numero}.`,
+        descricao: `Conteúdo do capítulo ${chapter.numero}.`,
         ordem: 1,
         markdown,
         categoriaCodigo: codigo,
@@ -375,8 +375,8 @@ function parseCategory(
       subcategorias.push(
         createSubcategoria({
           codigo: 'visao-geral',
-          nome: 'Visao geral',
-          descricao: `Abertura do capitulo ${chapter.numero}.`,
+          nome: 'Visão geral',
+          descricao: `Abertura do capítulo ${chapter.numero}.`,
           ordem: subcategoryOrder,
           markdown: preface,
           categoriaCodigo: codigo,
@@ -408,8 +408,8 @@ function parseCategory(
           codigo: sectionCodigo,
           nome: section.titulo,
           descricao: section.numero
-            ? `Secao ${section.numero} do capitulo ${chapter.numero}.`
-            : `Secao do capitulo ${chapter.numero}.`,
+            ? `Seção ${section.numero} do capítulo ${chapter.numero}.`
+            : `Seção do capítulo ${chapter.numero}.`,
           ordem: subcategoryOrder,
           markdown,
           categoriaCodigo: codigo,
@@ -425,7 +425,7 @@ function parseCategory(
   return {
     codigo,
     nome: chapter.titulo,
-    descricao: `Capitulo ${chapter.numero} do livro principal revisado.`,
+    descricao: `Capítulo ${chapter.numero} do livro principal revisado.`,
     icone: meta.icone,
     cor: meta.cor,
     ordem,
@@ -448,8 +448,8 @@ function createIntroCategory(categorias: CategoriaSeed[]): CategoriaSeed {
 
   return {
     codigo,
-    nome: 'Apresentacao e Sumario',
-    descricao: 'Versao e sumario do livro principal revisado.',
+    nome: 'Apresentação e Sumário',
+    descricao: 'Versão e sumário do livro principal revisado.',
     icone: 'book',
     cor: '#7c5cfc',
     ordem: 1,
@@ -457,11 +457,11 @@ function createIntroCategory(categorias: CategoriaSeed[]): CategoriaSeed {
       createSubcategoria({
         codigo,
         nome: 'Livro Principal v1.1',
-        descricao: 'Versao e sumario navegavel do livro principal.',
+        descricao: 'Versão e sumário navegável do livro principal.',
         ordem: 1,
         markdown: `# Livro Principal v1.1\n\n## Sumário\n\n${summaryItems.join('\n')}`,
         categoriaCodigo: codigo,
-        categoriaNome: 'Apresentacao e Sumario',
+        categoriaNome: 'Apresentação e Sumário',
         chapterNumber: 1,
         destaque: true,
       }),
@@ -476,7 +476,7 @@ export function parseLivroPrincipalMarkdown(markdown: string): LivroSeed {
 
   if (chapterHeadings.length !== 14) {
     throw new Error(
-      `Esperados 14 capitulos numerados no Markdown do livro principal, encontrados ${chapterHeadings.length}.`,
+      `Esperados 14 capítulos numerados no Markdown do livro principal, encontrados ${chapterHeadings.length}.`,
     );
   }
 
@@ -500,7 +500,7 @@ export function parseLivroPrincipalMarkdown(markdown: string): LivroSeed {
   return {
     codigo: 'livro-principal',
     titulo: 'Livro Principal',
-    descricao: 'Regras principais revisadas do sistema Maledicencia RPG.',
+    descricao: 'Regras principais revisadas do sistema Maledicência RPG.',
     icone: 'rules',
     cor: '#7c5cfc',
     ordem: 1,

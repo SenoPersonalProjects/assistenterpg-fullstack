@@ -170,13 +170,13 @@ function baixarJsonComoArquivo(conteudo: unknown, nomeArquivo: string): void {
 function parseImportPayload(raw: string): ImportarTecnicasJsonPayload {
   const parsed = JSON.parse(raw) as unknown;
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('JSON invalido: o arquivo deve ser um objeto.');
+    throw new Error('JSON inválido: o arquivo deve ser um objeto.');
   }
 
   const asRecord = parsed as Record<string, unknown>;
   const tecnicasRaw = asRecord.tecnicas;
   if (!Array.isArray(tecnicasRaw)) {
-    throw new Error('JSON invalido: campo "tecnicas" deve ser um array.');
+    throw new Error('JSON inválido: campo "técnicas" deve ser um array.');
   }
 
   return {
@@ -229,10 +229,10 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
   function validate(): boolean {
     const next: Record<string, string> = {};
 
-    if (!isEditing && !form.codigo.trim()) next.codigo = 'Codigo e obrigatorio.';
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
-    if (!form.descricao.trim()) next.descricao = 'Descricao e obrigatoria.';
-    if (!form.tipo) next.tipo = 'Tipo e obrigatorio.';
+    if (!isEditing && !form.codigo.trim()) next.codigo = 'Código é obrigatório.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
+    if (!form.descricao.trim()) next.descricao = 'Descrição é obrigatória.';
+    if (!form.tipo) next.tipo = 'Tipo é obrigatório.';
 
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
       next.suplementoId = 'Selecione um suplemento.';
@@ -268,7 +268,7 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
         };
 
         await apiAdminUpdateTecnicaAmaldicoada(tecnica.id, payload);
-        showToast('Tecnica atualizada com sucesso.', 'success');
+        showToast('Técnica atualizada com sucesso.', 'success');
       } else {
         const payload: CreateTecnicaPayload = {
           codigo: form.codigo.trim().toUpperCase(),
@@ -284,7 +284,7 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
         };
 
         await apiAdminCreateTecnicaAmaldicoada(payload);
-        showToast('Tecnica criada com sucesso.', 'success');
+        showToast('Técnica criada com sucesso.', 'success');
       }
 
       onClose(true);
@@ -299,7 +299,7 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
     <Modal
       isOpen={isOpen}
       onClose={() => onClose(false)}
-      title={isEditing ? 'Editar tecnica' : 'Nova tecnica'}
+      title={isEditing ? 'Editar técnica' : 'Nova técnica'}
       size="xl"
       footer={
         <>
@@ -322,12 +322,12 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
-            label="Codigo *"
+            label="Código *"
             value={form.codigo}
             onChange={(e) => setField('codigo', e.target.value.toUpperCase())}
             disabled={isEditing}
             error={errors.codigo}
-            helperText={isEditing ? 'Codigo nao pode ser alterado no update.' : undefined}
+            helperText={isEditing ? 'Código não pode ser alterado no update.' : undefined}
           />
           <Input
             label="Nome *"
@@ -356,7 +356,7 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
         </div>
 
         <Checkbox
-          label="Tecnica hereditaria"
+          label="Técnica hereditaria"
           checked={form.hereditaria}
           onChange={(e) => setField('hereditaria', e.target.checked)}
         />
@@ -370,7 +370,7 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
         />
 
         <Textarea
-          label="Descricao *"
+          label="Descrição *"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -452,7 +452,7 @@ function GuiaJsonModal({ isOpen, onClose, guia, loading, onReload }: GuiaJsonMod
           </Card>
 
           <Card>
-            <h3 className="text-sm font-semibold text-app-fg mb-2">Exemplo minimo</h3>
+            <h3 className="text-sm font-semibold text-app-fg mb-2">Exemplo mínimo</h3>
             <Textarea value={exemploMinimo} rows={12} readOnly />
           </Card>
 
@@ -466,7 +466,7 @@ function GuiaJsonModal({ isOpen, onClose, guia, loading, onReload }: GuiaJsonMod
           variant="card"
           icon="warning"
           title="Guia indisponivel"
-          description="Nao foi possivel carregar o formato JSON."
+          description="Não foi possível carregar o formato JSON."
         />
       )}
     </Modal>
@@ -505,7 +505,7 @@ function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
       setFileName(file.name);
       setError(null);
     } catch {
-      setError('Arquivo JSON invalido.');
+      setError('Arquivo JSON inválido.');
     }
   }
 
@@ -527,7 +527,7 @@ function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={() => onClose(false)}
-      title="Importar tecnicas via JSON"
+      title="Importar técnicas via JSON"
       size="xl"
       footer={
         <>
@@ -556,11 +556,11 @@ function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
         </Card>
 
         <Textarea
-          label="Conteudo JSON"
+          label="Conteúdo JSON"
           rows={16}
           value={jsonInput}
           onChange={(e) => setJsonInput(e.target.value)}
-          placeholder='Cole o JSON no formato { "tecnicas": [...] }'
+          placeholder='Cole o JSON no formato { "técnicas": [...] }'
         />
 
         {error ? <ErrorAlert message={error} /> : null}
@@ -638,7 +638,7 @@ export function TecnicasAdminPanel() {
         const safeBase = nomeBase ?? 'tecnicas-amaldicoadas';
         const fileName = `${safeBase}-${buildSafeTimestampForFile()}.json`;
         baixarJsonComoArquivo(data, fileName);
-        showToast(`JSON exportado com ${data.totalTecnicas} tecnica(s).`, 'success');
+        showToast(`JSON exportado com ${data.totalTecnicas} técnica(s).`, 'success');
       } catch (error) {
         showToast(extrairMensagemErro(error), 'error');
       }
@@ -689,7 +689,7 @@ export function TecnicasAdminPanel() {
           />
 
           <Input
-            label="Codigo"
+            label="Código"
             value={draftFilters.codigo}
             onChange={(e) =>
               setDraftFilters((prev) => ({
@@ -727,7 +727,7 @@ export function TecnicasAdminPanel() {
           >
             <option value="TODAS">Todas</option>
             <option value="SIM">Somente hereditarias</option>
-            <option value="NAO">Somente nao hereditarias</option>
+            <option value="NAO">Somente não hereditárias</option>
           </Select>
 
           <Select
@@ -805,7 +805,7 @@ export function TecnicasAdminPanel() {
             }}
           >
             <Icon name="add" className="w-4 h-4 mr-1" />
-            Nova tecnica
+            Nova técnica
           </Button>
         </div>
       </Card>
@@ -814,13 +814,13 @@ export function TecnicasAdminPanel() {
 
       <Card>
         {loading ? (
-          <Loading message="Carregando tecnicas..." className="py-8 text-app-fg" />
+          <Loading message="Carregando técnicas..." className="py-8 text-app-fg" />
         ) : items.length === 0 ? (
           <EmptyState
             variant="card"
             icon="technique"
-            title="Nenhuma tecnica encontrada"
-            description="Ajuste os filtros ou crie uma nova tecnica."
+            title="Nenhuma técnica encontrada"
+            description="Ajuste os filtros ou crie uma nova técnica."
           />
         ) : (
           <div className="space-y-4">
@@ -852,7 +852,7 @@ export function TecnicasAdminPanel() {
                         )}
                       </td>
                       <td className="py-3 pr-2 text-app-fg">{item.tipo}</td>
-                      <td className="py-3 pr-2 text-app-fg">{item.hereditaria ? 'Sim' : 'Nao'}</td>
+                      <td className="py-3 pr-2 text-app-fg">{item.hereditaria ? 'Sim' : 'Não'}</td>
                       <td className="py-3 pr-2">
                         <Badge size="sm" color={fonteBadgeColor(item.fonte)}>
                           {formatFonte(item.fonte)}

@@ -73,7 +73,7 @@ export function LoginForm() {
           href="/auth/resend-verification"
           className="text-app-muted hover:text-app-fg transition-colors"
         >
-          Reenviar verificacao
+          Reenviar verificação
         </Link>
       </div>
 

@@ -458,7 +458,7 @@ function criarPresetAkane(): FormState {
     pontosVida: '22',
     machucado: '11',
     deslocamentoMetros: '6',
-    vulnerabilidades: 'dano fisico',
+    vulnerabilidades: 'dano físico',
     periciasEspeciais: [
       { codigo: 'DIPLOMACIA', dados: '2', bonus: '6', descricao: '' },
       { codigo: 'INTUICAO', dados: '2', bonus: '4', descricao: '' },
@@ -468,7 +468,7 @@ function criarPresetAkane(): FormState {
       {
         nome: 'Amor distorcido',
         descricao:
-          'Não ataca o progenito; prioriza protegê-lo em qualquer conflito.',
+          'Não ataca o progenitor; prioriza protegê-lo em qualquer conflito.',
         gatilho: 'Ao escolher alvo',
         alcance: '',
         alvo: '',
@@ -512,7 +512,7 @@ function criarPresetAkane(): FormState {
         tipoExecucao: 'LIVRE',
         alcance: 'Curto',
         alvo: 'Aliado narrativo',
-        duracao: 'Ate o proximo ataque do alvo',
+        duracao: 'Até o proximo ataque do alvo',
         resistencia: '',
         dtResistencia: '',
         custoPE: '',
@@ -521,7 +521,7 @@ function criarPresetAkane(): FormState {
         dano: '',
         critico: '',
         efeito:
-          'Concede bonus narrativo ao progenito quando alguem ameaca Akane.',
+          'Concede bônus narrativo ao progenitor quando alguém ameaça Akane.',
         requisitos: '',
         descricao: '',
       },
@@ -575,8 +575,8 @@ function criarPresetTaro(): FormState {
       {
         nome: 'Raiva acumulada',
         descricao:
-          'Ao ver o progenito, precisa passar em Vontade DT 18 para manter controle.',
-        gatilho: 'Primeiro contato com o progenito',
+          'Ao ver o progenitor, precisa passar em Vontade DT 18 para manter controle.',
+        gatilho: 'Primeiro contato com o progenitor',
         alcance: '',
         alvo: '',
         duracao: '',
@@ -590,7 +590,7 @@ function criarPresetTaro(): FormState {
         gatilho: 'Condicional',
         alcance: '',
         alvo: '',
-        duracao: 'Ate fim da cena',
+        duracao: 'Até fim da cena',
         requisitos: '',
         efeitoGuia: '',
       },

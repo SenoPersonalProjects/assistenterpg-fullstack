@@ -303,7 +303,7 @@ export class HabilidadesService {
       }
     }
 
-    // Verificar codigo duplicado (se mudou)
+    // Verificar código duplicado (se mudou)
     if (updateDto.codigo) {
       const duplicadoCodigo = await this.prisma.habilidade.findFirst({
         where: {

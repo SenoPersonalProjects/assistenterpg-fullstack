@@ -76,7 +76,7 @@ export function AddPersonagemModal({
         </p>
 
         <Select
-          label="Personagem disponivel"
+          label="Personagem disponível"
           value={personagemSelecionadoId}
           onChange={(event) => onPersonagemSelecionadoChange(event.target.value)}
         >

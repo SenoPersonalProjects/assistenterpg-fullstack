@@ -51,7 +51,7 @@ function variacaoBase(
   return {
     id: 11,
     habilidadeTecnicaId: 1,
-    nome: 'Variacao Teste',
+    nome: 'Variação Teste',
     descricao: 'desc',
     substituiCustos: false,
     custoPE: 0,
@@ -82,14 +82,14 @@ function variacaoBase(
   };
 }
 
-describe('sessao-habilidades utils', () => {
+describe('sessão-habilidades utils', () => {
   it('formata custos EA + PE corretamente', () => {
     expect(formatarCustos(2, 3)).toBe('EA 2 | PE 3');
     expect(formatarCustos(1, 0)).toBe('EA 1');
     expect(formatarCustos(0, 0)).toBe('Sem custo');
   });
 
-  it('identifica duracao sustentada com variacoes de texto', () => {
+  it('identifica duracao sustentada com variações de texto', () => {
     expect(duracaoEhSustentada('Sustentada')).toBe(true);
     expect(duracaoEhSustentada('Concentração')).toBe(true);
     expect(duracaoEhSustentada('Instantanea')).toBe(false);

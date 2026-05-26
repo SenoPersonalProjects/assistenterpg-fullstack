@@ -42,7 +42,7 @@ const CONDICOES_ICONES: Record<string, string> = {
   Silenciado: 'volume-off',
   Surdo: 'volume-off',
   Surpreendido: 'warning',
-  Vulneravel: 'target',
+  Vulnerável: 'target',
   Insano: 'spirit',
   Morto: 'error',
 };
@@ -51,31 +51,31 @@ export const condicoesSeed: SeedCondicao[] = [
   {
     nome: 'Abalado',
     descricao:
-      'Sofre -1d20 em testes. Se ficar abalado novamente, em vez disso fica Apavorado. Condicao de medo.',
+      'Sofre -1d20 em testes. Se ficar abalado novamente, em vez disso fica Apavorado. Condição de medo.',
   },
   {
     nome: 'Agarrado',
     descricao:
-      'Fica desprevenido e imovel, sofre -1d20 em testes de ataque e so pode atacar com armas leves. Ataques a distancia contra alvos envolvidos em agarrar podem acertar o alvo errado (50%). Condicao de paralisia.',
+      'Fica desprevenido e imóvel, sofre -1d20 em testes de ataque e só pode atacar com armas leves. Ataques á distância contra alvos envolvidos em agarrar podem acertar o alvo errado (50%). Condição de paralisia.',
   },
   {
     nome: 'Alquebrado',
     descricao:
-      'O custo em pontos de esforco das habilidades e dos rituais aumenta em +1. Condicao mental.',
+      'O custo em pontos de esforço das habilidades e dos rituais aumenta em +1. Condição mental.',
   },
   {
     nome: 'Apavorado',
     descricao:
-      'Sofre -2d20 em testes de pericia e deve fugir da fonte do medo da maneira mais eficiente possivel. Condicao de medo.',
+      'Sofre -2d20 em testes de perícia e deve fugir da fonte do medo da maneira mais eficiente possível. Condição de medo.',
   },
   {
     nome: 'Asfixiado',
     descricao:
-      'Nao pode respirar. Pode prender a respiracao por Vigor rodadas; depois testa Fortitude por rodada (DT 5 +5 cumulativa). Se falhar, cai inconsciente e perde 1d6 PV por rodada ate respirar novamente ou morrer.',
+      'Não pode respirar. Pode prender a respiracao por Vigor rodadas; depois testa Fortitude por rodada (DT 5 +5 cumulativa). Se falhar, cai inconsciente e perde 1d6 PV por rodada até respirar novamente ou morrer.',
   },
   {
     nome: 'Atordoado',
-    descricao: 'Fica desprevenido e nao pode fazer acoes. Condicao mental.',
+    descricao: 'Fica desprevenido e não pode fazer ações. Condição mental.',
   },
   {
     nome: 'Caido',
@@ -85,17 +85,17 @@ export const condicoesSeed: SeedCondicao[] = [
   {
     nome: 'Cego',
     descricao:
-      'Fica desprevenido e lento, nao observa com Percepcao, sofre -2d20 em pericias de Forca/Agilidade e todos os alvos tem camuflagem total. Condicao de sentidos.',
+      'Fica desprevenido e lento, não observa com Percepção, sofre -2d20 em perícias de Força/Agilidade e todos os alvos têm camuflagem total. Condição de sentidos.',
   },
   {
     nome: 'Confuso',
     descricao:
-      'No inicio do turno, role 1d6 para comportamento aleatorio: mover aleatorio, nao agir, atacar o mais proximo, ou sair da condicao. Condicao mental.',
+    'No início do turno, role 1d6 para comportamento aleatório: mover aleatório, não agir, atacar o mais próximo, ou sair da condição. Condição mental.',
   },
   {
     nome: 'Debilitado',
     descricao:
-      'Sofre -2d20 em testes de Agilidade, Forca e Vigor. Se ficar Debilitado novamente, fica Inconsciente.',
+      'Sofre -2d20 em testes de Agilidade, Força e Vigor. Se ficar Debilitado novamente, fica Inconsciente.',
   },
   {
     nome: 'Desprevenido',
@@ -103,17 +103,17 @@ export const condicoesSeed: SeedCondicao[] = [
   },
   {
     nome: 'Doente',
-    descricao: 'Sob efeito de uma doenca.',
+    descricao: 'Sob efeito de uma doença.',
   },
   {
     nome: 'Em Chamas',
     descricao:
-      'No inicio dos turnos sofre 1d6 de dano de fogo ate apagar as chamas (acao padrao) ou por imersao em agua.',
+      'No início dos turnos sofre 1d6 de dano de fogo até apagar as chamas (ação padrão) ou por imersão em água.',
   },
   {
     nome: 'Enjoado',
     descricao:
-      'So pode realizar acao padrao ou de movimento por rodada (nao ambas).',
+      'Só pode realizar ação padrão ou de movimento por rodada (não ambas).',
   },
   {
     nome: 'Enlouquecendo',
@@ -123,65 +123,65 @@ export const condicoesSeed: SeedCondicao[] = [
   {
     nome: 'Enredado',
     descricao:
-      'Fica lento, vulneravel e sofre -1d20 em testes de ataque. Condicao de paralisia.',
+      'Fica lento, vulnerável e sofre -1d20 em testes de ataque. Condição de paralisia.',
   },
   {
     nome: 'Envenenado',
     descricao:
-      'Efeito varia por veneno: pode impor outra condicao ou dano recorrente; duracao definida pelo veneno (padrao: cena).',
+    'Efeito varia por veneno: pode impor outra condição ou dano recorrente; duração definida pelo veneno (padrão: cena).',
   },
   {
     nome: 'Esmorecido',
     descricao:
-      'Sofre -2d20 em testes de Intelecto e Presenca. Condicao mental.',
+      'Sofre -2d20 em testes de Intelecto e Presença. Condição mental.',
   },
   {
     nome: 'Exausto',
     descricao:
-      'Fica Debilitado, Lento e Vulneravel; se receber novamente, fica Inconsciente. Condicao de fadiga.',
+      'Fica Debilitado, Lento e Vulnerável; se receber novamente, fica Inconsciente. Condição de fadiga.',
   },
   {
     nome: 'Fascinado',
     descricao:
-      'A atencao fica presa no foco; sofre -2d20 em Percepcao e nao pode agir alem de observar o foco. Acao hostil quebra a condicao. Condicao mental.',
+      'A atenção fica presa no foco; sofre -2d20 em Percepção e não pode agir além de observar o foco. Ação hostil quebra a condição. Condição mental.',
   },
   {
     nome: 'Fatigado',
     descricao:
-      'Fica Fraco e Vulneravel; se receber novamente, vira Exausto. Condicao de fadiga.',
+      'Fica Fraco e Vulnerável; se receber novamente, vira Exausto. Condição de fadiga.',
   },
   {
     nome: 'Fraco',
     descricao:
-      'Sofre -1d20 em testes de Agilidade, Forca e Vigor; se receber novamente, vira Debilitado.',
+      'Sofre -1d20 em testes de Agilidade, Força e Vigor; se receber novamente, vira Debilitado.',
   },
   {
     nome: 'Frustrado',
     descricao:
-      'Sofre -1d20 em testes de Intelecto e Presenca; se receber novamente, vira Esmorecido. Condicao mental.',
+      'Sofre -1d20 em testes de Intelecto e Presença; se receber novamente, vira Esmorecido. Condição mental.',
   },
   {
     nome: 'Imovel',
-    descricao: 'Todas as formas de deslocamento vao para 0m. Condicao de paralisia.',
+    descricao: 'Todas as formas de deslocamento vão para 0m. Condição de paralisia.',
   },
   {
     nome: 'Inconsciente',
-    descricao: 'Fica indefeso e nao pode fazer acoes, incluindo reacoes.',
+    descricao: 'Fica indefeso e não pode fazer ações, incluindo reações.',
   },
   {
     nome: 'Indefeso',
     descricao:
-      'E considerado desprevenido, sofre -10 na Defesa, falha automaticamente em Reflexos e pode sofrer golpe de misericordia.',
+      'É considerado desprevenido, sofre -10 na Defesa, falha automaticamente em Reflexos e pode sofrer golpe de misericórdia.',
   },
   {
     nome: 'Cura Acelerada',
     descricao:
-      'No inicio de cada turno do alvo, recupera PV igual ao valor atual de acumulos desta condicao. Nao possui limite global; limites podem ser definidos por fonte.',
+    'No início de cada turno do alvo, recupera PV igual ao valor atual de acúmulos desta condição. Não possui limite global; limites podem ser definidos por fonte.',
   },
   {
     nome: 'Lento',
     descricao:
-      'Todas as formas de deslocamento ficam pela metade; nao pode correr ou investir. Condicao de paralisia.',
+      'Todas as formas de deslocamento ficam pela metade; não pode correr ou investir. Condição de paralisia.',
   },
   {
     nome: 'Machucado',
@@ -190,21 +190,21 @@ export const condicoesSeed: SeedCondicao[] = [
   {
     nome: 'Morrendo',
     descricao:
-      'Com 0 PV. Se iniciar 3 turnos Morrendo na mesma cena, morre. Pode ser encerrada com Medicina (DT 20 +5 por estabilizacao na cena) ou efeitos especificos.',
+      'Com 0 PV. Se iniciar 3 turnos Morrendo na mesma cena, morre. Pode ser encerrada com Medicina (DT 20 +5 por estabilização na cena) ou efeitos específicos.',
   },
   {
     nome: 'Ofuscado',
     descricao:
-      'Sofre -1d20 em testes de ataque e de Percepcao. Condicao de sentidos.',
+      'Sofre -1d20 em testes de ataque e de Percepção. Condição de sentidos.',
   },
   {
     nome: 'Paralisado',
     descricao:
-      'Fica imovel e indefeso e so pode realizar acoes puramente mentais. Condicao de paralisia.',
+      'Fica imóvel e indefeso e só pode realizar ações puramente mentais. Condição de paralisia.',
   },
   {
     nome: 'Pasmo',
-    descricao: 'Nao pode fazer acoes. Condicao mental.',
+    descricao: 'Não pode fazer ações. Condição mental.',
   },
   {
     nome: 'Perturbado',
@@ -213,35 +213,35 @@ export const condicoesSeed: SeedCondicao[] = [
   },
   {
     nome: 'Petrificado',
-    descricao: 'Fica Inconsciente e recebe resistencia a dano 10.',
+    descricao: 'Fica Inconsciente e recebe resistência a dano 10.',
   },
   {
     nome: 'Produção Acelerada',
     descricao:
-      'No inicio de cada turno do alvo, recupera EA igual ao valor atual de acumulos desta condicao. Pela fonte Kokusen, acumula ate Produção Acelerada 5.',
+    'No início de cada turno do alvo, recupera EA igual ao valor atual de acúmulos desta condição. Pela fonte Kokusen, acumula até Produção Acelerada 5.',
   },
   {
     nome: 'Sangrando',
     descricao:
-      'No inicio do turno testa Vigor (DT 20): se passar estabiliza; se falhar perde 1d6 PV e continua sangrando. Medicina (acao completa, DT 20) tambem estabiliza.',
+      'No início do turno testa Vigor (DT 20): se passar estabiliza; se falhar perde 1d6 PV e continua sangrando. Medicina (ação completa, DT 20) também estabiliza.',
   },
   {
     nome: 'Silenciado',
     descricao:
-      'Nao pode usar habilidades que exigem fala/encantamento. Pode usar subtracao nas tecnicas.',
+      'Não pode usar habilidades que exigem fala/encantamento. Pode usar subtração nas técnicas.',
   },
   {
     nome: 'Surdo',
     descricao:
-      'Nao faz testes de Percepcao para ouvir, sofre -2d20 em Iniciativa e e considerado ruim para rituais. Condicao de sentidos.',
+      'Não faz testes de Percepção para ouvir, sofre -2d20 em Iniciativa e é considerado ruim para rituais. Condição de sentidos.',
   },
   {
     nome: 'Surpreendido',
     descricao:
-      'Nao ciente dos inimigos; fica Desprevenido e nao pode agir.',
+      'Não ciente dos inimigos; fica Desprevenido e não pode agir.',
   },
   {
-    nome: 'Vulneravel',
+    nome: 'Vulnerável',
     descricao: 'Sofre -2 na Defesa.',
   },
   {
@@ -265,7 +265,7 @@ export async function seedCondicoes(prisma: PrismaClient) {
   });
   if (!producaoAceleradaCanonica) {
     await prisma.condicao.updateMany({
-      where: { nome: 'Producao Acelerada' },
+      where: { nome: 'Produção Acelerada' },
       data: { nome: 'Produção Acelerada' },
     });
   }

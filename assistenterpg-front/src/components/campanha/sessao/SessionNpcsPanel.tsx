@@ -94,8 +94,8 @@ export function SessionNpcsPanel({
 }: SessionNpcsPanelProps) {
   return (
     <SessionPanel
-      title="Aliados ou ameacas na cena"
-      subtitle="Mestre adiciona e ajusta aliados ou ameacas por cena. Jogadores visualizam em modo leitura."
+      title="Aliados ou ameaças na cena"
+      subtitle="Mestre adiciona e ajusta aliados ou ameaças por cena. Jogadores visualizam em modo leitura."
       tone="aside"
       right={
         podeControlarSessao ? (
@@ -128,8 +128,8 @@ export function SessionNpcsPanel({
           variant="session"
           size="sm"
           icon="curse"
-          title="Sem aliados ou ameacas nesta cena"
-          description="O mestre pode adicionar aliados ou ameacas para esta cena."
+          title="Sem aliados ou ameaças nesta cena"
+          description="O mestre pode adicionar aliados ou ameaças para esta cena."
         />
       ) : (
         npcs.map((npc) => (

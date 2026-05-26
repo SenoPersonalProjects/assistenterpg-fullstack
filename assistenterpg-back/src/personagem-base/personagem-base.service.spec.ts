@@ -69,7 +69,7 @@ describe('PersonagemBaseService', () => {
     service = module.get<PersonagemBaseService>(PersonagemBaseService);
   });
 
-  it('nao deve sincronizar inventario quando itensInventario nao for enviado', async () => {
+  it('não deve sincronizar inventario quando itensInventario não for enviado', async () => {
     await (
       service as unknown as {
         sincronizarItensInventarioNoUpdate: (
@@ -121,7 +121,7 @@ describe('PersonagemBaseService', () => {
     expect(adicionarItemMock).not.toHaveBeenCalled();
   });
 
-  it('deve reconstruir graus livres removendo bonus fixo de habilidades no update parcial', async () => {
+  it('deve reconstruir graus livres removendo bônus fixo de habilidades no update parcial', async () => {
     const prismaMock = {
       habilidadePersonagemBase: {
         findMany: jest.fn().mockResolvedValue([

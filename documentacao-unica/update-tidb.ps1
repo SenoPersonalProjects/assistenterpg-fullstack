@@ -3,16 +3,16 @@
   Atualiza o TiDB remoto sem apagar o banco.
 
 .DESCRIPTION
-  Fluxo nao destrutivo:
+  Fluxo não destrutivo:
   1. Le credenciais e comando TiDB do PRIVATE-OPS.md local.
-  2. Testa conexao remota.
+  2. Testa conexão remota.
   3. Opcionalmente cria backup remoto via mysqldump.
   4. Opcionalmente roda prisma migrate deploy no TiDB.
-  5. Roda seeds explicitamente permitidos contra o TiDB.
-  6. Valida tabelas, _prisma_migrations e, quando aplicavel, o seed do compendio.
+  5. Roda seeds explícitamente permitidos contra o TiDB.
+  6. Valida tabelas, _prisma_migrations e, quando aplicável, o seed do compendio.
 
-  O script nao versiona nem imprime senhas. Senhas de mysql/mysqldump usam
-  --defaults-extra-file temporario. Prisma recebe DATABASE_URL somente via
+  O script não versiona nem imprime senhas. Senhas de mysql/mysqldump usam
+  --defaults-extra-file temporário. Prisma recebe DATABASE_URL somente via
   variavel de ambiente do processo filho.
 #>
 
@@ -80,7 +80,7 @@ function Get-CodeBlockAfterHeading {
   }
 
   if ($headingIndex -lt 0) {
-    throw "Secao nao encontrada no PRIVATE-OPS.md: $HeadingRegex"
+    throw "Seção não encontrada no PRIVATE-OPS.md: $HeadingRegex"
   }
 
   $start = -1
@@ -92,7 +92,7 @@ function Get-CodeBlockAfterHeading {
   }
 
   if ($start -lt 0) {
-    throw "Bloco de codigo nao encontrado depois da secao: $HeadingRegex"
+    throw "Bloco de codigo não encontrado depois da seção: $HeadingRegex"
   }
 
   $block = New-Object System.Collections.Generic.List[string]
@@ -206,7 +206,7 @@ function Resolve-Tool {
   $tool = Get-Command $Name -ErrorAction SilentlyContinue
 
   if (-not $tool) {
-    throw "Ferramenta obrigatoria nao encontrada no PATH: $Name"
+    throw "Ferramenta obrigatória não encontrada no PATH: $Name"
   }
 
   return $tool.Source
@@ -235,7 +235,7 @@ function Assert-FileExists {
   )
 
   if (-not (Test-Path -LiteralPath $Path)) {
-    throw "$Label nao encontrado: $Path"
+    throw "$Label não encontrado: $Path"
   }
 }
 
@@ -357,6 +357,15 @@ function Get-SeedCommand {
         DestructiveRelations = $false
       }
     }
+    'técnicas-inatas' {
+      return [pscustomobject]@{
+        Name = 'técnicas-inatas'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:tecnicas:inatas')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
     'tecnicas-inatas' {
       return [pscustomobject]@{
         Name = 'tecnicas-inatas'
@@ -364,6 +373,51 @@ function Get-SeedCommand {
         Arguments = @('run', 'seed:tecnicas:inatas')
         ValidatesCompendio = $false
         DestructiveRelations = $false
+      }
+    }
+    'técnicas-nao-inatas' {
+      return [pscustomobject]@{
+        Name = 'técnicas-nao-inatas'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:tecnicas:nao-inatas')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
+    'tecnicas-nao-inatas' {
+      return [pscustomobject]@{
+        Name = 'tecnicas-nao-inatas'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:tecnicas:nao-inatas')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
+    'correcoes-texto' {
+      return [pscustomobject]@{
+        Name = 'correcoes-texto'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:correcoes-texto')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
+    'correções-texto' {
+      return [pscustomobject]@{
+        Name = 'correções-texto'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:correcoes-texto')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
+    'modificações-aplicaveis' {
+      return [pscustomobject]@{
+        Name = 'modificações-aplicaveis'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:modificacoes-aplicaveis')
+        ValidatesCompendio = $false
+        DestructiveRelations = $true
       }
     }
     'modificacoes-aplicaveis' {
@@ -377,7 +431,7 @@ function Get-SeedCommand {
     }
     'full' {
       if (-not $AllowFull) {
-        throw "Seed 'full' bloqueado. Use -AllowFullSeed e confirmacao 'ATUALIZAR <banco> FULL'."
+        throw "Seed 'full' bloqueado. Use -AllowFullSeed e confirmação 'ATUALIZAR <banco> FULL'."
       }
 
       return [pscustomobject]@{
@@ -389,7 +443,7 @@ function Get-SeedCommand {
       }
     }
     default {
-      throw "Seed nao permitido: $Seed. Permitidos: compendio, sobrevivendo, tecnicas-inatas, modificacoes-aplicaveis, full."
+      throw "Seed não permitido: $Seed. Permitidos: compendio, sobrevivendo, técnicas-inatas, tecnicas-nao-inatas, correcoes-texto, modificacoes-aplicaveis, full."
     }
   }
 }
@@ -418,7 +472,7 @@ function Invoke-RemoteUpdateValidation {
 
   $tableCount = [int]$tablesResult.StdOut.Trim()
   if ($tableCount -le 0) {
-    throw 'Validacao retornou zero tabelas no banco remoto.'
+    throw 'Validação retornou zero tabelas no banco remoto.'
   }
 
   $migrationsResult = Invoke-NativeCommand `
@@ -452,7 +506,7 @@ function Invoke-RemoteUpdateValidation {
     $regrasOpcionaisCount = [int]$compendioResult.StdOut.Trim()
 
     if ($regrasOpcionaisCount -le 0) {
-      throw "Artigo 'regras-opcionais' nao encontrado como ativo no TiDB."
+      throw "Artigo 'regras-opcionais' não encontrado como ativo no TiDB."
     }
 
     Write-Ok "Artigo 'regras-opcionais' ativo encontrado"
@@ -482,7 +536,7 @@ function Invoke-RemoteUpdateValidation {
         "--database=$RemoteDatabase",
         '--batch',
         '--skip-column-names',
-        "--execute=SELECT COUNT(*) FROM compendio_artigos a JOIN compendio_subcategorias s ON s.id = a.subcategoria_id JOIN compendio_categorias c ON c.id = s.categoria_id JOIN compendio_livros l ON l.id = c.livro_id WHERE l.codigo = 'sobrevivendo-ao-jujutsu' AND a.ativo = 1 AND a.conteudo LIKE '%O texto completo sera preenchido%';"
+        "--execute=SELECT COUNT(*) FROM compendio_artigos a JOIN compendio_subcategorias s ON s.id = a.subcategoria_id JOIN compendio_categorias c ON c.id = s.categoria_id JOIN compendio_livros l ON l.id = c.livro_id WHERE l.codigo = 'sobrevivendo-ao-jujutsu' AND a.ativo = 1 AND a.conteudo LIKE '%O texto completo será preenchido%';"
       ) `
       -Label 'validar placeholders do sobrevivendo'
     $placeholderCount = [int]$placeholderResult.StdOut.Trim()
@@ -546,7 +600,7 @@ try {
 
   Write-Ok 'Arquivos e ferramentas encontrados'
 
-  Write-Step 'Lendo configuracao privada'
+  Write-Step 'Lendo configuração privada'
 
   $opsLines = Get-Content -LiteralPath $opsPath -Encoding UTF8
   $tidbCommand = Get-OneLineCommandBlock -Lines $opsLines -HeadingRegex '(?i)^##\s+Acesso ao TiDB'
@@ -562,11 +616,11 @@ try {
   }
 
   if (-not $remote.User -or -not $remote.Host -or -not $remote.Port -or -not $remote.Database) {
-    throw 'Nao foi possivel extrair usuario/host/porta/banco do comando TiDB.'
+    throw 'Não foi possível extrair usuário/host/porta/banco do comando TiDB.'
   }
 
   if ($remote.Database -ne $RemoteDatabase) {
-    throw "PRIVATE-OPS.md aponta para banco remoto '$($remote.Database)', mas -RemoteDatabase esta como '$RemoteDatabase'."
+    throw "PRIVATE-OPS.md aponta para banco remoto '$($remote.Database)', mas -RemoteDatabase está como '$RemoteDatabase'."
   }
 
   if (-not $remote.SslMode) {
@@ -574,11 +628,11 @@ try {
   }
 
   if (-not $remote.SslCa) {
-    throw 'Nao foi possivel extrair --ssl-ca do comando TiDB.'
+    throw 'Não foi possível extrair --ssl-ca do comando TiDB.'
   }
 
   if (-not $tidbPassword) {
-    throw 'Senha TiDB nao encontrada no PRIVATE-OPS.md.'
+    throw 'Senha TiDB não encontrada no PRIVATE-OPS.md.'
   }
 
   Assert-FileExists -Path $remote.SslCa -Label 'Certificado SSL TiDB'
@@ -601,7 +655,7 @@ try {
   Write-Ok "Config lida. Alvo remoto: $(Get-SafeTargetDescription -Remote $remote -Database $RemoteDatabase)"
   Write-Ok "Seeds selecionados: $($normalizedSeeds -join ', ')"
 
-  Write-Step 'Criando arquivo temporario de credenciais MySQL'
+  Write-Step 'Criando arquivo temporário de credenciais MySQL'
 
   $tempRoot = [System.IO.Path]::GetTempPath()
   $tempDir = Join-Path $tempRoot ("update-tidb-" + [System.Guid]::NewGuid().ToString('N'))
@@ -617,17 +671,17 @@ try {
     -SslMode $remote.SslMode `
     -SslCa $remote.SslCa
 
-  Write-Ok 'Credenciais temporarias preparadas'
+  Write-Ok 'Credenciais temporárias preparadas'
 
   if (-not $SkipConnectionTest) {
-    Write-Step 'Testando conexao TiDB'
+    Write-Step 'Testando conexão TiDB'
     Invoke-NativeCommand `
       -FilePath $mysqlExe `
       -Arguments @("--defaults-extra-file=$remoteDefaults", '--comments', "--database=$RemoteDatabase", '--batch', '--skip-column-names', '--execute=SELECT 1;') `
       -Label 'teste TiDB remoto' | Out-Null
-    Write-Ok 'Conexao TiDB validada'
+    Write-Ok 'Conexão TiDB validada'
   } else {
-    Write-Warn 'Teste de conexao ignorado por -SkipConnectionTest'
+    Write-Warn 'Teste de conexão ignorado por -SkipConnectionTest'
   }
 
   $databaseUrl = New-PrismaMySqlUrl -Remote $remote -Password $tidbPassword -Database $RemoteDatabase
@@ -646,7 +700,7 @@ try {
   Write-Ok 'Prisma validado'
 
   if ($PreflightOnly) {
-    Write-Ok 'Preflight concluido. Nenhuma migration, seed ou backup foi executado.'
+    Write-Ok 'Preflight concluído. Nenhuma migration, seed ou backup foi executado.'
     return
   }
 
@@ -656,7 +710,7 @@ try {
       -RemoteDefaults $remoteDefaults `
       -RemoteDatabase $RemoteDatabase `
       -ValidatesCompendio $validatesCompendio
-    Write-Ok 'Validacao remota concluida. Nenhuma migration, seed ou backup foi executado.'
+    Write-Ok 'Validação remota concluida. Nenhuma migration, seed ou backup foi executado.'
     return
   }
 
@@ -666,18 +720,18 @@ try {
     "ATUALIZAR $RemoteDatabase"
   }
 
-  Write-Step 'Confirmacao de escrita'
-  Write-Warn "Esta operacao vai alterar dados no banco remoto: $(Get-SafeTargetDescription -Remote $remote -Database $RemoteDatabase)"
-  Write-Warn 'Nao sera executado DROP DATABASE.'
+  Write-Step 'Confirmação de escrita'
+  Write-Warn "Esta operação vai alterar dados no banco remoto: $(Get-SafeTargetDescription -Remote $remote -Database $RemoteDatabase)"
+  Write-Warn 'Não será executado DROP DATABASE.'
   if ([string]::IsNullOrWhiteSpace($ConfirmationText)) {
     $confirmation = Read-Host "Digite exatamente '$expectedConfirmation' para continuar"
   } else {
     $confirmation = $ConfirmationText
-    Write-Warn 'Confirmacao recebida por parametro.'
+    Write-Warn 'Confirmação recebida por parâmetro.'
   }
 
   if ($confirmation -cne $expectedConfirmation) {
-    throw 'Operacao cancelada: confirmacao nao confere.'
+    throw 'Operação cancelada: confirmação não confere.'
   }
 
   if ($BackupBefore) {
@@ -718,12 +772,12 @@ try {
       -Environment $prismaEnv | Out-Null
     Write-Ok 'Migrations aplicadas'
   } else {
-    Write-Warn 'Migrations nao executadas. Use -Migrate para aplicar migrations pendentes.'
+    Write-Warn 'Migrations não executadas. Use -Migrate para aplicar migrations pendentes.'
   }
 
   foreach ($seedCommand in $seedCommands) {
     if ($seedCommand.DestructiveRelations) {
-      Write-Warn "Seed '$($seedCommand.Name)' pode recriar relacoes/catalogos especificos. Use somente quando esperado."
+      Write-Warn "Seed '$($seedCommand.Name)' pode recriar relações/catálogos específicos. Use somente quando esperado."
     }
 
     $toolPath = if ($seedCommand.Tool -eq 'npm') { $npmExe } else { Resolve-Tool $seedCommand.Tool }
@@ -734,7 +788,7 @@ try {
       -Label "seed $($seedCommand.Name)" `
       -WorkingDirectory $backPath `
       -Environment $prismaEnv | Out-Null
-    Write-Ok "Seed '$($seedCommand.Name)' concluido"
+    Write-Ok "Seed '$($seedCommand.Name)' concluído"
   }
 
   Invoke-RemoteUpdateValidation `
@@ -748,10 +802,10 @@ try {
   if ($Migrate) {
     Write-Host 'Migrations: aplicadas'
   } else {
-    Write-Host 'Migrations: nao executadas'
+    Write-Host 'Migrations: não executadas'
   }
   Write-Host "Seeds: $($normalizedSeeds -join ', ')"
-  Write-Ok 'Update TiDB concluido sem recriar o banco'
+  Write-Ok 'Update TiDB concluído sem recriar o banco'
 } catch {
   Write-Fail $_.Exception.Message
   exit 1
@@ -763,7 +817,7 @@ try {
     if ($tempFull.StartsWith($tempRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
       Remove-Item -LiteralPath $tempFull -Recurse -Force -ErrorAction SilentlyContinue
     } else {
-      Write-Warn "Diretorio temporario fora de temp nao removido: $tempFull"
+      Write-Warn "Diretório temporário fora de temp não removido: $tempFull"
     }
   }
 }

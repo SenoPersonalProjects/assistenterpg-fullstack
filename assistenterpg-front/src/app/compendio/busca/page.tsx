@@ -26,7 +26,7 @@ export default async function BuscaPage({ searchParams }: Props) {
           variant="card"
           icon="search"
           title="Digite pelo menos 3 caracteres"
-          description="Use a barra de busca para encontrar artigos, regras e referencias do compendio."
+          description="Use a barra de busca para encontrar artigos, regras e referências do compêndio."
         />
       </CompendioLayout>
     );

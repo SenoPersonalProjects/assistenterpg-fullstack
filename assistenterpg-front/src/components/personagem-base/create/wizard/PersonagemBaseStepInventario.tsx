@@ -780,7 +780,7 @@ export function PersonagemBaseStepInventario(props: Props) {
       ) &&
       funcoesAdicionaisPericias.length === 0
     ) {
-      setErroValidacao('Selecione ao menos uma pericia extra para Funcao Adicional.');
+      setErroValidacao('Selecione ao menos uma perícia extra para Funcao Adicional.');
       return;
     }
 
@@ -849,7 +849,7 @@ export function PersonagemBaseStepInventario(props: Props) {
       }) &&
       funcoesAdicionaisPericiasEditando.length === 0
     ) {
-      setErroValidacao('Selecione ao menos uma pericia extra para Funcao Adicional.');
+      setErroValidacao('Selecione ao menos uma perícia extra para Funcao Adicional.');
       return;
     }
 

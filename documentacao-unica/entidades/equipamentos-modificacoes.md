@@ -1,10 +1,10 @@
-# Equipamentos e Modificacoes (Contrato Detalhado)
+﻿# Equipamentos e Modificações (Contrato Detalhado)
 
 Atualizado em: 2026-03-08
 
 ## Escopo
 
-Este documento cobre `equipamentos` e `modificacoes`, cruzando:
+Este documento cobre `equipamentos` e `modificações`, cruzando:
 
 - controllers:
   - `assistenterpg-back/src/equipamentos/equipamentos.controller.ts`
@@ -19,8 +19,8 @@ Este documento cobre `equipamentos` e `modificacoes`, cruzando:
   - `equipamento.exception.ts`
   - `modificacao.exception.ts`
 - schema:
-  - `assistenterpg-back/prisma/schema.prisma` (models de catalogo, modificacoes e inventario)
-- integracao frontend:
+  - `assistenterpg-back/prisma/schema.prisma` (models de catálogo, modificações e inventário)
+- integração frontend:
   - `assistenterpg-front/src/lib/api/equipamentos.ts`
   - `assistenterpg-front/src/lib/api/modificacoes.ts`
   - `assistenterpg-front/src/lib/api/suplemento-conteudos.ts`
@@ -28,7 +28,7 @@ Este documento cobre `equipamentos` e `modificacoes`, cruzando:
 ## Matriz de autorizacao
 
 - `equipamentos`
-  - leitura (`GET`): publica
+  - leitura (`GET`): pública
   - escrita (`POST`, `PUT`, `DELETE`): `JWT+Admin`
 - `modificacoes`
   - leitura (`GET`): `JWT`
@@ -57,11 +57,11 @@ Este documento cobre `equipamentos` e `modificacoes`, cruzando:
 - `proficienciaArma?`, `proficienciaProtecao?`
 - `alcance?`, `tipoAcessorio?`
 - `categoria?` (0..4)
-- `apenasAmaldicoados?` (parse robusto de boolean: `true/false/1/0/yes/no/on/off`; valor invalido retorna `400 VALIDATION_ERROR`, inclusive com `enableImplicitConversion` ativo)
+- `apenasAmaldicoados?` (parse robusto de boolean: `true/false/1/0/yes/no/on/off`; valor inválido retorna `400 VALIDATION_ERROR`, inclusive com `enableImplicitConversion` ativo)
 - `busca?`
 - `pagina?` (min 1), `limite?` (1..100)
 
-## Modificacoes (`/modificacoes`)
+## Modificações (`/modificacoes`)
 
 - `GET /modificacoes` (`JWT`)
   - filtros: `FiltrarModificacoesDto`
@@ -74,7 +74,7 @@ Este documento cobre `equipamentos` e `modificacoes`, cruzando:
   - body `UpdateModificacaoDto` (partial)
 - `DELETE /modificacoes/:id` (`JWT+Admin`)
 
-### Filtros de modificacoes
+### Filtros de modificações
 
 - `tipo?`, `fontes?` (csv), `suplementoId?`, `busca?`
 - `pagina?` (min 1), `limite?` (1..100)
@@ -96,7 +96,7 @@ Comuns opcionais:
 - `tipoUso?`, `tipoAmaldicoado?`, `efeito?`, `efeitoMaldicao?`
 - `requerFerramentasAmaldicoadas?`
 
-Campos especificos por tipo tambem sao aceitos (arma/protecao/acessorio/municao/explosivo).
+Campos específicos por tipo também são aceitos (arma/protecao/acessorio/municao/explosivo).
 
 ## `CreateModificacaoDto` (resumo)
 
@@ -114,7 +114,7 @@ Campos especificos por tipo tambem sao aceitos (arma/protecao/acessorio/municao/
 
 ## Equipamentos
 
-- listagem aplica filtros dinamicos + busca textual (`nome`, `descricao`, `codigo`).
+- listagem aplica filtros dinâmicos + busca textual (`nome`, `descricao`, `codigo`).
 - quando `apenasAmaldicoados=true`, inclui:
   - `ITEM_AMALDICOADO`
   - `FERRAMENTA_AMALDICOADA`
@@ -122,19 +122,19 @@ Campos especificos por tipo tambem sao aceitos (arma/protecao/acessorio/municao/
 - fonte/suplemento e validado no create/update:
   - suplemento informado exige `fonte=SUPLEMENTO`
   - `fonte=SUPLEMENTO` exige suplemento.
-- `DELETE` bloqueia se equipamento esta em uso em inventario base/campanha.
+- `DELETE` bloqueia se equipamento está em uso em inventário base/campanha.
 
-## Modificacoes
+## Modificações
 
-- codigo duplicado e bloqueado.
-- create/update validam existencia de `equipamentosCompativeisIds`.
-- `DELETE` bloqueia se modificacao estiver em uso em inventario.
+- codigo duplicado é bloqueado.
+- create/update validam existência de `equipamentosCompativeisIds`.
+- `DELETE` bloqueia se modificação estiver em uso em inventário.
 - `validarRestricoes` avalia compatibilidade por tipo, categoria, complexidade, proficiencia, alcance e conflitos de codigo.
 
 ## Pontos de atencao
 
-- em `buscarCompativeisComEquipamento`, a busca inicial agora considera vinculo explicito (`equipamentosApplicaveis`) ou ausencia de vinculo; a decisao final continua passando por `validarRestricoes`.
-- `GET /equipamentos` aceita filtro numerico de categoria `0..4`; categoria `ESPECIAL` nao possui filtro numerico dedicado nesse endpoint.
+- em `buscarCompativeisComEquipamento`, a busca inicial agora considera vinculo explícito (`equipamentosApplicaveis`) ou ausencia de vinculo; a decisao final continua passando por `validarRestricoes`.
+- `GET /equipamentos` aceita filtro numérico de categoria `0..4`; categoria `ESPECIAL` não possui filtro numérico dedicado nesse endpoint.
 
 ## Erros esperados (codigos)
 
@@ -154,16 +154,16 @@ Campos especificos por tipo tambem sao aceitos (arma/protecao/acessorio/municao/
 ## Contrato de erro validado em teste de integracao
 
 - `GET /equipamentos?apenasAmaldicoados=talvez` -> `400`, `code: VALIDATION_ERROR`, `field: apenasAmaldicoados`
-- `POST /equipamentos` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
-- `GET /equipamentos/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
+- `POST /equipamentos` com `suplementoId` inválido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+- `GET /equipamentos/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
 
 ## Consistencia com schema
 
 - `EquipamentoCatalogo.codigo` e `@unique`.
 - `ModificacaoEquipamento.codigo` e `@unique`.
-- relacao N:N de compatibilidade:
+- relação N:N de compatibilidade:
   - `EquipamentoModificacaoAplicavel` com `@@unique([equipamentoId, modificacaoId])`.
-- relacoes de inventario com modificacoes tambem sao unicas por item:
+- relações de inventário com modificações também são únicas por item:
   - `InventarioItemBaseModificacao @@unique([itemId, modificacaoId])`
   - `InventarioItemCampanhaModificacao @@unique([itemId, modificacaoId])`
 

@@ -153,12 +153,12 @@ type VariacaoFormState = {
 };
 
 const ALCANCE_PRESET_OPTIONS: Array<{ value: AlcancePresetValue; label: string }> = [
-  { value: 'NAO_DEFINIDO', label: 'Nao definido' },
+  { value: 'NAO_DEFINIDO', label: 'Não definido' },
   { value: 'PESSOAL', label: 'Pessoal' },
   { value: 'TOQUE', label: 'Toque' },
   { value: 'CORPO_A_CORPO', label: 'Corpo a corpo (1,5m)' },
   { value: 'CURTO', label: 'Curto (9m)' },
-  { value: 'MEDIO', label: 'Medio (18m)' },
+  { value: 'MEDIO', label: 'Médio (18m)' },
   { value: 'LONGO', label: 'Longo (36m)' },
   { value: 'EXTREMO', label: 'Extremo (90m)' },
   { value: 'ILIMITADO', label: 'Ilimitado' },
@@ -166,7 +166,7 @@ const ALCANCE_PRESET_OPTIONS: Array<{ value: AlcancePresetValue; label: string }
 ];
 
 const DURACAO_PRESET_OPTIONS: Array<{ value: DuracaoPresetValue; label: string }> = [
-  { value: 'NAO_DEFINIDA', label: 'Nao definida' },
+  { value: 'NAO_DEFINIDA', label: 'Não definida' },
   { value: 'INSTANTANEA', label: 'Instantanea' },
   { value: 'CENA', label: 'Cena' },
   { value: 'SUSTENTADA', label: 'Sustentada' },
@@ -682,34 +682,34 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!isEditing && !form.codigo.trim()) next.codigo = 'Codigo e obrigatorio.';
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
-    if (!form.descricao.trim()) next.descricao = 'Descricao e obrigatoria.';
-    if (!form.efeito.trim()) next.efeito = 'Efeito e obrigatorio.';
+    if (!isEditing && !form.codigo.trim()) next.codigo = 'Código é obrigatório.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
+    if (!form.descricao.trim()) next.descricao = 'Descrição é obrigatória.';
+    if (!form.efeito.trim()) next.efeito = 'Efeito é obrigatório.';
     if (form.alcancePreset === 'PERSONALIZADO' && !form.alcanceCustom.trim()) {
       next.alcanceCustom = 'Informe o alcance personalizado.';
     }
     if (form.duracaoPreset === 'PERSONALIZADA' && !form.duracaoCustom.trim()) {
-      next.duracaoCustom = 'Informe a duracao personalizada.';
+      next.duracaoCustom = 'Informe a duração personalizada.';
     }
 
     const custoPE = parseNumber(form.custoPE);
     const custoEA = parseNumber(form.custoEA);
     const custoSustentacaoEA = parseNumber(form.custoSustentacaoEA);
     const custoSustentacaoPE = parseNumber(form.custoSustentacaoPE);
-    if (custoPE === undefined || custoPE < 0) next.custoPE = 'Informe numero >= 0.';
-    if (custoEA === undefined || custoEA < 0) next.custoEA = 'Informe numero >= 0.';
+    if (custoPE === undefined || custoPE < 0) next.custoPE = 'Informe número >= 0.';
+    if (custoEA === undefined || custoEA < 0) next.custoEA = 'Informe número >= 0.';
     if (
       form.custoSustentacaoEA.trim() &&
       (custoSustentacaoEA === undefined || custoSustentacaoEA < 0)
     ) {
-      next.custoSustentacaoEA = 'Informe numero >= 0.';
+      next.custoSustentacaoEA = 'Informe número >= 0.';
     }
     if (
       form.custoSustentacaoPE.trim() &&
       (custoSustentacaoPE === undefined || custoSustentacaoPE < 0)
     ) {
-      next.custoSustentacaoPE = 'Informe numero >= 0.';
+      next.custoSustentacaoPE = 'Informe número >= 0.';
     }
 
     setErrors(next);
@@ -789,7 +789,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
     <Modal
       isOpen={isOpen}
       onClose={() => onClose(false)}
-      title={isEditing ? 'Editar habilidade da tecnica' : 'Nova habilidade da tecnica'}
+      title={isEditing ? 'Editar habilidade da técnica' : 'Nova habilidade da técnica'}
       size="lg"
       footer={
         <>
@@ -812,12 +812,12 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
-            label="Codigo *"
+            label="Código *"
             value={form.codigo}
             onChange={(e) => setField('codigo', e.target.value.toUpperCase())}
             disabled={isEditing}
             error={errors.codigo}
-            helperText={isEditing ? 'Codigo nao pode ser alterado no update.' : undefined}
+            helperText={isEditing ? 'Código não pode ser alterado no update.' : undefined}
           />
           <Input
             label="Nome *"
@@ -841,7 +841,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             value={form.area}
             onChange={(e) => setField('area', e.target.value as '' | AreaEfeito)}
           >
-            <option value="">Nao definida</option>
+            <option value="">Não definida</option>
             {(Object.entries(AREA_EFEITO_LABELS) as [AreaEfeito, string][]).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -872,16 +872,16 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             error={errors.custoEA}
           />
           <Input
-            label="Sustentacao EA/rodada"
+            label="Sustentação EA/rodada"
             type="number"
             min={0}
             value={form.custoSustentacaoEA}
             onChange={(e) => setField('custoSustentacaoEA', e.target.value)}
             error={errors.custoSustentacaoEA}
-            helperText="Vazio usa fallback padrao na sessao (1 EA/rodada)."
+            helperText="Vazio usa fallback padrão na sessão (1 EA/rodada)."
           />
           <Input
-            label="Sustentacao PE/rodada"
+            label="Sustentação PE/rodada"
             type="number"
             min={0}
             value={form.custoSustentacaoPE}
@@ -890,7 +890,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             helperText="Opcional. Sem valor = 0 PE/rodada."
           />
           <Input
-            label="Grau tipo (codigo)"
+            label="Grau tipo (código)"
             value={form.grauTipoGrauCodigo}
             onChange={(e) => setField('grauTipoGrauCodigo', e.target.value)}
           />
@@ -925,12 +925,12 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             ))}
           </Select>
           <Input
-            label="Resistencia"
+            label="Resistência"
             value={form.resistencia}
             onChange={(e) => setField('resistencia', e.target.value)}
           />
           <Input
-            label="DT resistencia"
+            label="DT resistência"
             value={form.dtResistencia}
             onChange={(e) => setField('dtResistencia', e.target.value)}
           />
@@ -962,7 +962,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
                 label="Duracao personalizada"
                 value={form.duracaoCustom}
                 onChange={(e) => setField('duracaoCustom', e.target.value)}
-                placeholder="Ex: 3 turnos, 1 hora, ate o fim da missao"
+                placeholder="Ex: 3 turnos, 1 hora, até o fim da missao"
                 error={errors.duracaoCustom}
               />
             ) : null}
@@ -971,14 +971,14 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Input
-            label="Critico valor"
+            label="Crítico valor"
             type="number"
             value={form.criticoValor}
             onChange={(e) => setField('criticoValor', e.target.value)}
             helperText="Se vazio, usa 20 como padrão."
           />
           <Input
-            label="Critico multiplicador"
+            label="Crítico multiplicador"
             type="number"
             value={form.criticoMultiplicador}
             onChange={(e) => setField('criticoMultiplicador', e.target.value)}
@@ -989,7 +989,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             type="number"
             value={form.danoFlat}
             onChange={(e) => setField('danoFlat', e.target.value)}
-            helperText="Soma fixa aplicada ao dano (não multiplica no critico)."
+            helperText="Soma fixa aplicada ao dano (não multiplica no crítico)."
           />
         </div>
 
@@ -998,7 +998,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
           value={form.danoFlatTipo}
           onChange={(e) => setField('danoFlatTipo', e.target.value as '' | TipoDano)}
         >
-          <option value="">Nao definido</option>
+          <option value="">Não definido</option>
           {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -1013,7 +1013,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
         />
 
         <Textarea
-          label="Descricao *"
+          label="Descrição *"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -1033,7 +1033,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             onChange={(e) => setField('requisitosModo', e.target.value as 'guiado' | 'json')}
           >
             <option value="guiado">Guiado (chave/valor)</option>
-            <option value="json">JSON/Texto avancado</option>
+            <option value="json">JSON/Texto avançado</option>
           </Select>
 
           {form.requisitosModo === 'guiado' ? (
@@ -1312,13 +1312,13 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
-    if (!form.descricao.trim()) next.descricao = 'Descricao e obrigatoria.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
+    if (!form.descricao.trim()) next.descricao = 'Descrição é obrigatória.';
     if (form.alcancePreset === 'PERSONALIZADO' && !form.alcanceCustom.trim()) {
       next.alcanceCustom = 'Informe o alcance personalizado.';
     }
     if (form.duracaoPreset === 'PERSONALIZADA' && !form.duracaoCustom.trim()) {
-      next.duracaoCustom = 'Informe a duracao personalizada.';
+      next.duracaoCustom = 'Informe a duração personalizada.';
     }
     const custoSustentacaoEA = parseNumber(form.custoSustentacaoEA);
     const custoSustentacaoPE = parseNumber(form.custoSustentacaoPE);
@@ -1326,13 +1326,13 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
       form.custoSustentacaoEA.trim() &&
       (custoSustentacaoEA === undefined || custoSustentacaoEA < 0)
     ) {
-      next.custoSustentacaoEA = 'Informe numero >= 0.';
+      next.custoSustentacaoEA = 'Informe número >= 0.';
     }
     if (
       form.custoSustentacaoPE.trim() &&
       (custoSustentacaoPE === undefined || custoSustentacaoPE < 0)
     ) {
-      next.custoSustentacaoPE = 'Informe numero >= 0.';
+      next.custoSustentacaoPE = 'Informe número >= 0.';
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -1386,14 +1386,14 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
       if (isEditing && variacao?.id) {
         const payload: UpdateVariacaoHabilidadeTecnicaPayload = basePayload;
         await apiAdminUpdateVariacaoDaHabilidadeTecnica(variacao.id, payload);
-        showToast('Variacao atualizada com sucesso.', 'success');
+        showToast('Variação atualizada com sucesso.', 'success');
       } else {
         const payload: CreateVariacaoHabilidadeTecnicaPayload = {
           habilidadeTecnicaId: habilidadeId,
           ...basePayload,
         };
         await apiAdminCreateVariacaoDaHabilidadeTecnica(payload);
-        showToast('Variacao criada com sucesso.', 'success');
+        showToast('Variação criada com sucesso.', 'success');
       }
 
       onClose(true);
@@ -1408,7 +1408,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
     <Modal
       isOpen={isOpen}
       onClose={() => onClose(false)}
-      title={isEditing ? 'Editar variacao' : 'Nova variacao'}
+      title={isEditing ? 'Editar variação' : 'Nova variação'}
       size="md"
       footer={
         <>
@@ -1436,7 +1436,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
           error={errors.nome}
         />
         <Textarea
-          label="Descricao *"
+          label="Descrição *"
           rows={3}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -1449,7 +1449,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             value={form.execucao}
             onChange={(e) => setField('execucao', e.target.value as '' | TipoExecucao)}
           >
-            <option value="">Nao definida</option>
+            <option value="">Não definida</option>
             {(Object.entries(TIPO_EXECUCAO_LABELS) as [TipoExecucao, string][]).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -1461,7 +1461,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             value={form.area}
             onChange={(e) => setField('area', e.target.value as '' | AreaEfeito)}
           >
-            <option value="">Nao definida</option>
+            <option value="">Não definida</option>
             {(Object.entries(AREA_EFEITO_LABELS) as [AreaEfeito, string][]).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -1499,12 +1499,12 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             ))}
           </Select>
           <Input
-            label="Resistencia"
+            label="Resistência"
             value={form.resistencia}
             onChange={(e) => setField('resistencia', e.target.value)}
           />
           <Input
-            label="DT resistencia"
+            label="DT resistência"
             value={form.dtResistencia}
             onChange={(e) => setField('dtResistencia', e.target.value)}
           />
@@ -1536,7 +1536,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
                 label="Duracao personalizada"
                 value={form.duracaoCustom}
                 onChange={(e) => setField('duracaoCustom', e.target.value)}
-                placeholder="Ex: 3 turnos, 1 hora, ate o fim da cena"
+                placeholder="Ex: 3 turnos, 1 hora, até o fim da cena"
                 error={errors.duracaoCustom}
               />
             ) : null}
@@ -1559,7 +1559,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             onChange={(e) => setField('custoEA', e.target.value)}
           />
           <Input
-            label="Sustentacao EA/rodada"
+            label="Sustentação EA/rodada"
             type="number"
             min={0}
             value={form.custoSustentacaoEA}
@@ -1568,7 +1568,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             helperText="Opcional. Vazio usa fallback da habilidade/base."
           />
           <Input
-            label="Sustentacao PE/rodada"
+            label="Sustentação PE/rodada"
             type="number"
             min={0}
             value={form.custoSustentacaoPE}
@@ -1584,14 +1584,14 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             onChange={(e) => setField('ordem', e.target.value)}
           />
           <Input
-            label="Critico valor"
+            label="Crítico valor"
             type="number"
             value={form.criticoValor}
             onChange={(e) => setField('criticoValor', e.target.value)}
             helperText="Se vazio, usa o valor da habilidade base."
           />
           <Input
-            label="Critico multiplicador"
+            label="Crítico multiplicador"
             type="number"
             value={form.criticoMultiplicador}
             onChange={(e) => setField('criticoMultiplicador', e.target.value)}
@@ -1602,7 +1602,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             type="number"
             value={form.danoFlat}
             onChange={(e) => setField('danoFlat', e.target.value)}
-            helperText="Soma fixa aplicada ao dano (não multiplica no critico)."
+            helperText="Soma fixa aplicada ao dano (não multiplica no crítico)."
           />
         </div>
 
@@ -1611,7 +1611,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
           value={form.danoFlatTipo}
           onChange={(e) => setField('danoFlatTipo', e.target.value as '' | TipoDano)}
         >
-          <option value="">Nao definido</option>
+          <option value="">Não definido</option>
           {(Object.entries(TIPO_DANO_LABELS) as [TipoDano, string][]).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -1643,7 +1643,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             onChange={(e) => setField('requisitosModo', e.target.value as 'guiado' | 'json')}
           >
             <option value="guiado">Guiado (chave/valor)</option>
-            <option value="json">JSON/Texto avancado</option>
+            <option value="json">JSON/Texto avançado</option>
           </Select>
 
           {form.requisitosModo === 'guiado' ? (
@@ -1844,11 +1844,11 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
   }, [isOpen, habilidadeId, carregarDados]);
 
   async function handleDelete(item: VariacaoHabilidadeTecnicaCatalogo) {
-    if (!window.confirm(`Remover variacao "${item.nome}"?`)) return;
+    if (!window.confirm(`Remover variação "${item.nome}"?`)) return;
 
     try {
       await apiAdminDeleteVariacaoDaHabilidadeTecnica(item.id);
-      showToast('Variacao removida com sucesso.', 'success');
+      showToast('Variação removida com sucesso.', 'success');
       await carregarDados();
       await onChanged();
     } catch (error) {
@@ -1861,7 +1861,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
       <Modal
         isOpen={isOpen}
         onClose={() => onClose(false)}
-        title={`Variacoes - ${habilidade?.nome ?? ''}`}
+        title={`Variações - ${habilidade?.nome ?? ''}`}
         size="lg"
         footer={<Button variant="secondary" onClick={() => onClose(false)}>Fechar</Button>}
       >
@@ -1877,9 +1877,9 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
           {erro && <ErrorAlert message={erro} />}
 
           {loading ? (
-            <Loading message="Carregando variacoes..." className="py-8 text-app-fg" />
+            <Loading message="Carregando variações..." className="py-8 text-app-fg" />
           ) : items.length === 0 ? (
-            <EmptyState variant="card" icon="sparkles" title="Nenhuma variacao cadastrada" description="Crie uma variacao para esta habilidade." />
+            <EmptyState variant="card" icon="sparkles" title="Nenhuma variação cadastrada" description="Crie uma variação para esta habilidade." />
           ) : (
             <Card>
               <div className="overflow-x-auto">
@@ -2023,7 +2023,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
           {loading ? (
             <Loading message="Carregando habilidades..." className="py-8 text-app-fg" />
           ) : habilidadesOrdenadas.length === 0 ? (
-            <EmptyState variant="card" icon="technique" title="Nenhuma habilidade cadastrada" description="Crie uma habilidade para esta tecnica." />
+            <EmptyState variant="card" icon="technique" title="Nenhuma habilidade cadastrada" description="Crie uma habilidade para esta técnica." />
           ) : (
             <Card>
               <div className="overflow-x-auto">

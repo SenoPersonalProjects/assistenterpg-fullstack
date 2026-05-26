@@ -47,8 +47,8 @@ export default async function CompendioLivroArtigoPage({ params }: Props) {
           <EmptyState
             variant="card"
             icon="document"
-            title="Secao nao encontrada"
-            description="A secao solicitada nao existe ou nao esta publicada."
+            title="Seção não encontrada"
+            description="A seção solicitada não existe ou não esta publicada."
           >
             <Link
               href={livro ? getCompendioBookHref(livro.codigo) : '/compendio'}

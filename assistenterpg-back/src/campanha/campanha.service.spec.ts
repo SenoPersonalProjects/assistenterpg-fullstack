@@ -200,7 +200,7 @@ describe('CampanhaService', () => {
     service = module.get<CampanhaService>(CampanhaService);
   });
 
-  it('deve criar convite apos colisao de codigo com retry', async () => {
+  it('deve criar convite após colisão de código com retry', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 1,
       donoId: 10,
@@ -280,7 +280,7 @@ describe('CampanhaService', () => {
     expect(convite.id).toBe(77);
   });
 
-  it('deve bloquear convite por usuarioId quando nao for amigo aceito', async () => {
+  it('deve bloquear convite por usuarioId quando não for amigo aceito', async () => {
     prisma.amizade.findUnique.mockResolvedValue(null);
 
     await expect(
@@ -291,7 +291,7 @@ describe('CampanhaService', () => {
     expect(prisma.conviteCampanha.create).not.toHaveBeenCalled();
   });
 
-  it('deve falhar ao criar convite quando codigo unico nao pode ser gerado', async () => {
+  it('deve falhar ao criar convite quando código unico não pode ser gerado', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 1,
       donoId: 10,
@@ -345,7 +345,7 @@ describe('CampanhaService', () => {
     expect(prisma.conviteCampanha.create).not.toHaveBeenCalled();
   });
 
-  it('deve bloquear convite para usuario que ja e membro', async () => {
+  it('deve bloquear convite para usuário que já e membro', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 1,
       donoId: 10,
@@ -390,7 +390,7 @@ describe('CampanhaService', () => {
         usuarioAId: 10,
         usuarioBId: 33,
         usuarioA: { id: 10, apelido: 'Dono', email: 'dono@teste.com' },
-        usuarioB: { id: 33, apelido: 'Ja Membro', email: 'membro@teste.com' },
+        usuarioB: { id: 33, apelido: 'Já Membro', email: 'membro@teste.com' },
       },
       {
         usuarioAId: 10,
@@ -412,7 +412,7 @@ describe('CampanhaService', () => {
       },
       {
         id: 33,
-        apelido: 'Ja Membro',
+        apelido: 'Já Membro',
         online: false,
         jaMembro: true,
         convitePendente: false,
@@ -654,7 +654,7 @@ describe('CampanhaService', () => {
     expect(personagem.recursos.eaMax).toBe(100);
   });
 
-  it('deve listar personagens-base disponiveis apenas do proprio usuario quando nao mestre', async () => {
+  it('deve listar personagens-base disponíveis apenas do próprio usuário quando não mestre', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 1,
@@ -698,7 +698,7 @@ describe('CampanhaService', () => {
     ]);
   });
 
-  it('deve listar personagens-base disponiveis de todos participantes para mestre', async () => {
+  it('deve listar personagens-base disponíveis de todos participantes para mestre', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 1,
@@ -736,7 +736,7 @@ describe('CampanhaService', () => {
     );
   });
 
-  it('deve impedir que jogador associe personagem-base de outro usuario', async () => {
+  it('deve impedir que jogador associe personagem-base de outro usuário', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 1,
@@ -783,7 +783,7 @@ describe('CampanhaService', () => {
     ).rejects.toBeInstanceOf(CampanhaPersonagemAssociacaoNegadaException);
   });
 
-  it('deve desassociar personagem de campanha quando usuario tem permissao', async () => {
+  it('deve desassociar personagem de campanha quando usuário tem permissão', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 1,
@@ -827,7 +827,7 @@ describe('CampanhaService', () => {
     });
   });
 
-  it('deve limpar vinculos de sessao ao desassociar personagem', async () => {
+  it('deve limpar vinculos de sessão ao desassociar personagem', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 1,
@@ -1082,7 +1082,7 @@ describe('CampanhaService', () => {
           personagemCampanhaId: 5,
           campo: 'EA_MAX',
           valor: -20,
-          nome: 'Maldicao',
+          nome: 'Maldição',
         }),
       },
       personagemCampanha: {
@@ -1135,7 +1135,7 @@ describe('CampanhaService', () => {
       7,
       5,
       3,
-      { campo: 'EA_MAX', valor: -20, nome: 'Maldicao' },
+      { campo: 'EA_MAX', valor: -20, nome: 'Maldição' },
     );
 
     expect(tx.personagemCampanha.update).toHaveBeenCalledWith(
@@ -1150,7 +1150,7 @@ describe('CampanhaService', () => {
     expect(resultado.personagem.recursos.eaAtual).toBe(80);
   });
 
-  it('deve aplicar modificador com contexto de sessao e cena validos', async () => {
+  it('deve aplicar modificador com contexto de sessão e cena válidos', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 1,
@@ -1272,7 +1272,7 @@ describe('CampanhaService', () => {
     );
   });
 
-  it('deve impedir criacao de convite por usuario que nao e dono', async () => {
+  it('deve impedir criação de convite por usuário que não e dono', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 1,
       donoId: 20,

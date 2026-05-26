@@ -826,7 +826,7 @@ export class CampanhaPersonagensService {
     );
     if (pvBarrasTotal <= 1) {
       throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
-        'Personagem nao possui multiplos nucleos.',
+        'Personagem não possui multiplos núcleos.',
       );
     }
 
@@ -870,19 +870,19 @@ export class CampanhaPersonagensService {
 
     if (infoPv.pvBarrasTotal <= 1) {
       throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
-        'Personagem nao possui multiplas barras de PV.',
+        'Personagem não possui multiplas barras de PV.',
       );
     }
 
     if (contexto.personagem.pvAtual > 0) {
       throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
-        'PV atual deve estar zerado para sacrificar um nucleo.',
+        'PV atual deve estar zerado para sacrificar um núcleo.',
       );
     }
 
     if (infoPv.pvBarrasRestantes <= 1) {
       throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
-        'Nao ha nucleos restantes para sacrificar.',
+        'Não há núcleos restantes para sacrificar.',
       );
     }
 
@@ -909,7 +909,7 @@ export class CampanhaPersonagensService {
 
     if (modo === 'OUTRO' && nucleoAlvo === nucleoAtivo) {
       throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
-        'Escolha um nucleo diferente do ativo.',
+        'Escolha um núcleo diferente do ativo.',
       );
     }
 
@@ -926,7 +926,7 @@ export class CampanhaPersonagensService {
 
     if (novosNucleos.length < 1) {
       throw new PersonagemCampanhaNucleoSacrificioIndisponivelException(
-        'Nao ha outro nucleo disponivel apos o sacrificio.',
+        'Não há outro núcleo disponível após o sacrifício.',
       );
     }
 

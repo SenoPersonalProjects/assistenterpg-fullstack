@@ -43,10 +43,10 @@ const CAMPOS_MODIFICADOR_OPTIONS: Array<{
   value: CampoModificadorPersonagemCampanha;
   label: string;
 }> = [
-  { value: 'PV_MAX', label: 'PV Maximo' },
-  { value: 'PE_MAX', label: 'PE Maximo' },
-  { value: 'EA_MAX', label: 'EA Maximo' },
-  { value: 'SAN_MAX', label: 'Sanidade Maxima' },
+  { value: 'PV_MAX', label: 'PV Máximo' },
+  { value: 'PE_MAX', label: 'PE Máximo' },
+  { value: 'EA_MAX', label: 'EA Máximo' },
+  { value: 'SAN_MAX', label: 'Sanidade Máxima' },
   { value: 'DEFESA_BASE', label: 'Defesa Base' },
   { value: 'DEFESA_EQUIPAMENTO', label: 'Defesa Equipamento' },
   { value: 'DEFESA_OUTROS', label: 'Defesa Outros' },
@@ -54,8 +54,8 @@ const CAMPOS_MODIFICADOR_OPTIONS: Array<{
   { value: 'BLOQUEIO', label: 'Bloqueio' },
   { value: 'DESLOCAMENTO', label: 'Deslocamento' },
   { value: 'LIMITE_PE_EA_POR_TURNO', label: 'Limite PE/EA por turno' },
-  { value: 'PRESTIGIO_GERAL', label: 'Prestigio Geral' },
-  { value: 'PRESTIGIO_CLA', label: 'Prestigio Cla' },
+  { value: 'PRESTIGIO_GERAL', label: 'Prestígio Geral' },
+  { value: 'PRESTIGIO_CLA', label: 'Prestígio Clã' },
 ];
 
 const LABEL_CAMPO_MODIFICADOR: Record<CampoModificadorPersonagemCampanha, string> =
@@ -471,7 +471,7 @@ export function CampaignCharacterEditorModal({
               />
             ) : (
               <p className="text-xs text-app-muted">
-                Selecione um personagem para visualizar o inventario.
+                Selecione um personagem para visualizar o inventário.
               </p>
             )}
           </section>
@@ -501,11 +501,11 @@ export function CampaignCharacterEditorModal({
                 label="Nome da fonte"
                 value={nomeModificador}
                 onChange={(e) => setNomeModificador(e.target.value)}
-                placeholder="Ex.: Maldicao ancestral"
+                placeholder="Ex.: Maldição ancestral"
               />
               <div className="md:col-span-2">
                 <Textarea
-                  label="Descricao (opcional)"
+                  label="Descrição (opcional)"
                   value={descricaoModificador}
                   onChange={(e) => setDescricaoModificador(e.target.value)}
                   rows={2}
@@ -578,7 +578,7 @@ export function CampaignCharacterEditorModal({
                             Contexto:{' '}
                             {modificador.sessaoId !== null
                               ? `Sessao #${modificador.sessaoId}`
-                              : 'Sessao nao informada'}
+                              : 'Sessão não informada'}
                             {modificador.cenaId !== null
                               ? ` - Cena #${modificador.cenaId}`
                               : ''}
@@ -671,7 +671,7 @@ export function CampaignCharacterEditorModal({
                           Contexto:{' '}
                           {contextoEvento.sessaoId !== null
                             ? `Sessao #${contextoEvento.sessaoId}`
-                            : 'Sessao nao informada'}
+                            : 'Sessão não informada'}
                           {contextoEvento.cenaId !== null
                             ? ` - Cena #${contextoEvento.cenaId}`
                             : ''}

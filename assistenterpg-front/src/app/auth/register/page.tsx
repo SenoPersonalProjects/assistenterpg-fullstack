@@ -23,10 +23,10 @@ export default function RegisterPage() {
       }
       afterContent={
         <>
-          <p className="text-xs text-app-muted mb-3">Ao criar conta, voce ganha:</p>
+          <p className="text-xs text-app-muted mb-3">Ao criar conta, você ganha:</p>
           <div className="space-y-2">
             {[
-              'Criacao ilimitada de personagens',
+              'Criação ilimitada de personagens',
               'Inventario completo',
               'Suporte a campanhas',
             ].map((benefit) => (

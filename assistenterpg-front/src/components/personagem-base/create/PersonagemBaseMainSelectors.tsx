@@ -98,7 +98,7 @@ export function PersonagemBaseMainSelectors({
               ?.semTecnicaInata,
           );
           if (trilha && semTecnicaInata && tecnicaInataId) {
-            setErroTrilha('Essa trilha exige personagem sem tecnica amaldiçoada.');
+            setErroTrilha('Essa trilha exige personagem sem técnica amaldiçoada.');
             return;
           }
           setErroTrilha(null);

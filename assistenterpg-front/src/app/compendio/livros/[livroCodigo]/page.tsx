@@ -20,16 +20,16 @@ export default async function CompendioLivroPage({ params }: Props) {
           <EmptyState
             variant="card"
             icon="book"
-            title="Livro nao encontrado"
-            description="O livro solicitado nao existe ou nao esta publicado."
-            actionLabel="Voltar ao compendio"
+            title="Livro não encontrado"
+            description="O livro solicitado não existe ou não esta publicado."
+            actionLabel="Voltar ao compêndio"
           >
             <Link
               href="/compendio"
               className="mt-4 inline-flex items-center justify-center rounded-lg border border-app-border px-3 py-2 text-sm text-app-muted hover:text-app-fg"
             >
               <Icon name="back" className="mr-2 h-4 w-4" />
-              Voltar ao compendio
+              Voltar ao compêndio
             </Link>
           </EmptyState>
         </div>

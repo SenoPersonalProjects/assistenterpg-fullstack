@@ -74,7 +74,9 @@ Seeds liberados no `update-tidb.ps1`:
 
 - `compendio`: seguro e idempotente, recomendado para atualização do livro principal.
 - `sobrevivendo`: seed do suplemento oficial.
-- `tecnicas-inatas`: seed focado de técnicas inatas.
+- `técnicas-inatas`: seed focado de técnicas inatas.
+- `tecnicas-nao-inatas`: seed focado de técnicas não inatas.
+- `correcoes-texto`: seed seguro para reaplicar textos corrigidos em catálogos, equipamentos e habilidades sem rodar o seed completo.
 - `modificacoes-aplicaveis`: recria relações de modificações aplicáveis; usar com atenção.
 - `full`: seed completo. Bloqueado por padrão.
 
@@ -114,7 +116,7 @@ Esse fluxo faz `DROP DATABASE`, cria o banco remoto novamente e importa um dump 
 - Para migration de schema sem seed: use `update-tidb.ps1 -Migrate -Seeds "" -BackupBefore`.
 - Para seed específico sem migration: use `update-tidb.ps1 -Seeds compendio -BackupBefore`.
 - Para ambiente totalmente divergente ou banco remoto quebrado: use `sync-tidb.ps1`.
-- Depois de qualquer update remoto, valide a aplicação apontando para o TiDB antes de considerar a publicação concluída.
+- Depois de qualquer update remoto, valide a aplicação apontando para o TiDB antes de considerar a públicação concluída.
 
 ## Segurança operacional
 

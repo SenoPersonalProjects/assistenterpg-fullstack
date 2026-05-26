@@ -31,7 +31,7 @@ export class AuthMailService {
   private transporter: Transporter<SMTPTransport.SentMessageInfo> | null = null;
 
   async enviarRecuperacaoSenha(input: EnviarRecuperacaoInput) {
-    const assunto = 'AssistenteRPG - Recuperacao de senha';
+    const assunto = 'AssistenteRPG - Recuperação de senha';
     const expiraEm = this.formatarDataHora(input.expiraEm);
 
     const texto = [
@@ -41,19 +41,19 @@ export class AuthMailService {
       `Use este link para redefinir: ${input.linkRecuperacao}`,
       `Este link expira em: ${expiraEm}.`,
       '',
-      'Se voce nao solicitou, ignore este email.',
+      'Se você não solicitou, ignore este email.',
     ].join('\n');
 
     const html = this.renderTemplate({
-      preHeader: 'Redefina sua senha com seguranca',
-      titulo: 'Recuperacao de senha',
+      preHeader: 'Redefina sua senha com segurança',
+      titulo: 'Recuperação de senha',
       saudacao: `Ola, ${input.apelido}.`,
       descricao:
-        'Recebemos um pedido para redefinir sua senha. Se foi voce, clique no botao abaixo.',
+        'Recebemos um pedido para redefinir sua senha. Se foi você, clique no botão abaixo.',
       ctaLabel: 'Redefinir senha',
       ctaUrl: input.linkRecuperacao,
       destaque: `Este link expira em ${expiraEm}.`,
-      observacao: 'Se voce nao solicitou esta alteracao, ignore este email.',
+      observacao: 'Se você não solicitou esta alteracao, ignore este email.',
     });
 
     await this.enviarEmail({
@@ -75,7 +75,7 @@ export class AuthMailService {
       `Confirme seu email pelo link: ${input.linkVerificacao}`,
       `Este link expira em: ${expiraEm}.`,
       '',
-      'Se voce nao criou esta conta, ignore este email.',
+      'Se você não criou esta conta, ignore este email.',
     ].join('\n');
 
     const html = this.renderTemplate({
@@ -83,11 +83,11 @@ export class AuthMailService {
       titulo: 'Verificacao de email',
       saudacao: `Ola, ${input.apelido}.`,
       descricao:
-        'Para concluir seu cadastro no AssistenteRPG, confirme seu email pelo botao abaixo.',
+        'Para concluir seu cadastro no AssistenteRPG, confirme seu email pelo botão abaixo.',
       ctaLabel: 'Verificar email',
       ctaUrl: input.linkVerificacao,
       destaque: `Este link expira em ${expiraEm}.`,
-      observacao: 'Se voce nao criou esta conta, ignore este email.',
+      observacao: 'Se você não criou esta conta, ignore este email.',
     });
 
     await this.enviarEmail({
@@ -116,7 +116,7 @@ export class AuthMailService {
     const transporter = await this.getTransporter();
     if (!transporter) {
       this.logger.warn(
-        '[AUTH_EMAIL] Provedor de email nao configurado corretamente. Email nao enviado.',
+        '[AUTH_EMAIL] Provedor de email não configurado corretamente. Email não enviado.',
       );
       return;
     }
@@ -217,7 +217,7 @@ export class AuthMailService {
     const apiKey = (process.env.RESEND_API_KEY ?? '').trim();
     if (!apiKey) {
       this.logger.warn(
-        '[AUTH_EMAIL][resend] RESEND_API_KEY ausente. Email nao enviado.',
+        '[AUTH_EMAIL][resend] RESEND_API_KEY ausente. Email não enviado.',
       );
       return;
     }
@@ -312,7 +312,7 @@ export class AuthMailService {
                 </tr>
                 <tr>
                   <td style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-                    Caso o botao nao funcione, copie e cole este link no navegador:<br />
+                    Caso o botão não funcione, copie e cole este link no navegador:<br />
                     <span style="word-break:break-all;color:#2563eb;">${this.escapeHtml(input.ctaUrl)}</span>
                   </td>
                 </tr>

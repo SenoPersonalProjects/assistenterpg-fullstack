@@ -27,7 +27,7 @@ describe('AuthTokenService', () => {
     service = new AuthTokenService(prisma as unknown as PrismaService);
   });
 
-  it('rejeita token inexistente, expirado ou ja usado', async () => {
+  it('rejeita token inexistente, expirado ou já usado', async () => {
     prisma.authToken.findFirst.mockResolvedValueOnce(null);
 
     await expect(

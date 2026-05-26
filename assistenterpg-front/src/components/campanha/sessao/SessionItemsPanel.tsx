@@ -462,7 +462,7 @@ export function SessionItemsPanel({
         );
       }
       setTransferenciaItem(null);
-      showToast('Solicitacao de transferencia enviada.', 'success');
+      showToast('Solicitação de transferencia enviada.', 'success');
       await carregar();
     } catch (error) {
       const mensagem = extrairMensagemErro(error);
@@ -501,9 +501,9 @@ export function SessionItemsPanel({
 
       <div className="rounded border border-app-border bg-app-surface px-3 py-2 text-xs text-app-muted">
         <p>
-          <strong className="text-app-fg">Item</strong> e uma instancia real da
-          campanha: pode ficar sem portador, ser entregue a alguem, mudar de maos
-          e ter a descricao revelada.
+                <strong className="text-app-fg">Item</strong> é uma instância real da
+          campanha: pode ficar sem portador, ser entregue a alguém, mudar de mãos
+          e ter a descrição revelada.
         </p>
         {ehMestre ? (
           <p className="mt-1">
@@ -652,8 +652,8 @@ export function SessionItemsPanel({
                   </div>
                   <p className="text-xs text-app-muted">
                     {item.descricaoOculta
-                      ? 'Descricao oculta pelo mestre.'
-                    : item.descricao || 'Sem descricao.'}
+                      ? 'Descrição oculta pelo mestre.'
+                    : item.descricao || 'Sem descrição.'}
                   </p>
                 </div>
                 {ehMestre || item.permissoes?.podeEditar || item.permissoes?.podeTransferir ? (
@@ -735,7 +735,7 @@ export function SessionItemsPanel({
                     </Badge>
                   </div>
                   <p className="text-app-muted">
-                    {template.descricao || 'Sem descricao.'}
+                    {template.descricao || 'Sem descrição.'}
                   </p>
                 </div>
                 <div className="flex flex-wrap justify-end gap-1">
@@ -830,7 +830,7 @@ export function SessionItemsPanel({
             onChange={(event) => setNome(event.target.value)}
           />
           <Textarea
-            label="Descricao"
+            label="Descrição"
             value={descricao}
             onChange={(event) => setDescricao(event.target.value)}
             rows={3}
@@ -903,7 +903,7 @@ export function SessionItemsPanel({
                 checked={vincularSessaoAtual}
                 onChange={(event) => setVincularSessaoAtual(event.target.checked)}
               />
-              Vincular a sessao/cena atual
+              Vincular à sessão/cena atual
             </label>
           ) : null}
         </div>
@@ -929,7 +929,7 @@ export function SessionItemsPanel({
               onClick={() => void handleSalvarEdicao()}
               disabled={salvandoEdicao}
             >
-              {salvandoEdicao ? 'Salvando...' : 'Salvar edicao'}
+              {salvandoEdicao ? 'Salvando...' : 'Salvar edição'}
             </Button>
           </>
         }
@@ -941,7 +941,7 @@ export function SessionItemsPanel({
             onChange={(event) => setNomeEdicao(event.target.value)}
           />
           <Textarea
-            label="Descricao"
+            label="Descrição"
             value={descricaoEdicao}
             onChange={(event) => setDescricaoEdicao(event.target.value)}
             rows={4}
@@ -1005,8 +1005,8 @@ export function SessionItemsPanel({
           ) : null}
           {edicao?.tipo === 'ITEM' && ehMestre ? (
             <div className="rounded border border-app-border bg-app-bg px-3 py-2 text-xs text-app-muted">
-              Vinculos atuais: sessao {edicao.item.sessaoId ?? 'nenhuma'}, cena{' '}
-              {edicao.item.cenaId ?? 'nenhuma'}. Atribuicao e revelacao continuam
+              Vínculos atuais: sessão {edicao.item.sessaoId ?? 'nenhuma'}, cena{' '}
+              {edicao.item.cenaId ?? 'nenhuma'}. Atribuição e revelação continuam
               nos controles do card.
             </div>
           ) : null}
@@ -1036,7 +1036,7 @@ export function SessionItemsPanel({
         <div className="space-y-3 text-sm">
           <p className="text-app-muted">
             {transferenciaItem
-              ? `Voce esta transferindo ${transferenciaItem.nome}. O destino precisa aceitar antes do item mudar de inventario.`
+              ? `Você está transferindo ${transferenciaItem.nome}. O destino precisa aceitar antes do item mudar de inventário.`
               : null}
           </p>
           <label className="text-xs text-app-muted">
@@ -1051,7 +1051,7 @@ export function SessionItemsPanel({
               className="mt-1 w-full rounded border border-app-border bg-app-bg px-2 py-2 text-sm text-app-fg"
             >
               <option value="PERSONAGEM">Personagem jogador</option>
-              <option value="NPC">NPC da sessao</option>
+              <option value="NPC">NPC da sessão</option>
             </select>
           </label>
           {destinoTransferenciaTipo === 'PERSONAGEM' ? (

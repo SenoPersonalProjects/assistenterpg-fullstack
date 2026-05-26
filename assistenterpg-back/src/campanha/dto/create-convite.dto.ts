@@ -14,13 +14,13 @@ type PapelCampanha = (typeof PAPEIS_CAMPANHA)[number];
 
 export class CreateConviteDto {
   @ValidateIf((dto: CreateConviteDto) => !dto.apelido && !dto.usuarioId)
-  @IsEmail({}, { message: 'Email invalido para convite' })
-  @IsNotEmpty({ message: 'Email e obrigatorio' })
+  @IsEmail({}, { message: 'Email inválido para convite' })
+  @IsNotEmpty({ message: 'Email é obrigatório' })
   email?: string;
 
   @ValidateIf((dto: CreateConviteDto) => !dto.email && !dto.usuarioId)
   @IsString()
-  @IsNotEmpty({ message: 'Apelido e obrigatorio' })
+  @IsNotEmpty({ message: 'Apelido é obrigatório' })
   apelido?: string;
 
   @IsOptional()

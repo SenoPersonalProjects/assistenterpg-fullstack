@@ -429,11 +429,11 @@ apiClient.interceptors.response.use(
 
     if (!error.response) {
       throw new ApiError(
-        'Erro de conexao',
+        'Erro de conexão',
         0,
         {
           statusCode: 0,
-          message: 'Erro de conexao',
+          message: 'Erro de conexão',
           error: 'NETWORK_ERROR',
           code: 'NETWORK_ERROR',
         },

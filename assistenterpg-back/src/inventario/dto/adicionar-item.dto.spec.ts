@@ -4,7 +4,7 @@ import { validateSync } from 'class-validator';
 import { AdicionarItemDto } from './adicionar-item.dto';
 
 describe('AdicionarItemDto', () => {
-  it('deve aplicar fallback padrao para quantidade e equipado quando ausentes', () => {
+  it('deve aplicar fallback padrão para quantidade e equipado quando ausentes', () => {
     const dto = plainToInstance(AdicionarItemDto, {
       personagemBaseId: 1,
       equipamentoId: 2,
@@ -18,7 +18,7 @@ describe('AdicionarItemDto', () => {
     expect(dto.ignorarLimitesGrauXama).toBe(false);
   });
 
-  it('deve converter strings booleanas validas para boolean', () => {
+  it('deve converter strings booleanas válidas para boolean', () => {
     const dto = plainToInstance(AdicionarItemDto, {
       personagemBaseId: 1,
       equipamentoId: 2,
@@ -33,7 +33,7 @@ describe('AdicionarItemDto', () => {
     expect(dto.ignorarLimitesGrauXama).toBe(false);
   });
 
-  it('deve rejeitar string booleana invalida', () => {
+  it('deve rejeitar string booleana inválida', () => {
     const dto = plainToInstance(AdicionarItemDto, {
       personagemBaseId: 1,
       equipamentoId: 2,

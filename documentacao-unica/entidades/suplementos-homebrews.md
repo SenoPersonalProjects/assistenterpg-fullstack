@@ -4,7 +4,7 @@ Atualizado em: 2026-03-09
 
 ## Escopo
 
-Este documento cobre os modulos `suplementos` e `homebrews`, cruzando:
+Este documento cobre os módulos `suplementos` e `homebrews`, cruzando:
 
 - controllers:
   - `assistenterpg-back/src/suplementos/suplementos.controller.ts`
@@ -39,8 +39,8 @@ Este documento cobre os modulos `suplementos` e `homebrews`, cruzando:
 ## Homebrews
 
 - todas as rotas exigem JWT.
-- permissoes por regra de negocio no service:
-  - leitura de homebrew nao publicado: apenas dono ou admin
+- permissões por regra de negocio no service:
+  - leitura de homebrew não publicado: apenas dono ou admin
   - editar/deletar/publicar/arquivar: apenas dono ou admin
 
 ## Endpoints
@@ -67,7 +67,7 @@ Admin:
 Filtros de listagem (`FiltrarSuplementosDto`):
 
 - `nome?`, `codigo?`, `status?`, `autor?`, `apenasAtivos?`
-- `apenasAtivos` aceita `true/false/1/0/yes/no/on/off`; valor invalido retorna `400 VALIDATION_ERROR` (com parse estrito no valor bruto da query)
+- `apenasAtivos` aceita `true/false/1/0/yes/no/on/off`; valor inválido retorna `400 VALIDATION_ERROR` (com parse estrito no valor bruto da query)
 
 ## Homebrews (`/homebrews`)
 
@@ -84,61 +84,61 @@ Filtros de listagem (`FiltrarSuplementosDto`):
 Filtros de listagem (`FiltrarHomebrewsDto`):
 
 - `nome?`, `tipo?`, `status?`, `usuarioId?`, `apenasPublicados?`, `pagina?`, `limite?`
-- `apenasPublicados` aceita `true/false/1/0/yes/no/on/off`; valor invalido retorna `400 VALIDATION_ERROR` (com parse estrito no valor bruto da query)
+- `apenasPublicados` aceita `true/false/1/0/yes/no/on/off`; valor inválido retorna `400 VALIDATION_ERROR` (com parse estrito no valor bruto da query)
 
 ## Payloads de escrita
 
 ## `CreateSuplementoDto`
 
-- `codigo`, `nome` obrigatorios
+- `codigo`, `nome` obrigatórios
 - `descricao?`, `versao?`, `status?`, `icone?`, `banner?`, `tags?`, `autor?`
 
 ## `CreateHomebrewDto`
 
 - base:
-  - `nome` (obrigatorio)
+  - `nome` (obrigatório)
   - `descricao?`
   - `status?` (default `RASCUNHO`)
   - `tags?`
   - `versao?`
-- especifico:
-  - `tipo` (`TipoHomebrewConteudo`) obrigatorio
-  - `dados` obrigatorio (estrutura varia pelo `tipo`)
+- específico:
+  - `tipo` (`TipoHomebrewConteudo`) obrigatório
+  - `dados` obrigatório (estrutura varia pelo `tipo`)
 
 ## Regras de negocio
 
 ## Suplementos
 
-- `codigo` unico.
-- ativacao do suplemento por usuario:
+- `codigo` único.
+- ativação do suplemento por usuário:
   - exige suplemento existente
   - exige `status=PUBLICADO`
-  - bloqueia ativacao duplicada para o mesmo usuario
-- desativacao exige que suplemento esteja ativo para o usuario.
-- exclusao de suplemento bloqueada se houver conteudo vinculado (cla/classes/trilhas/caminhos/origens/equipamentos/habilidades/tecnicas/modificacoes).
+  - bloqueia ativação duplicada para o mesmo usuário
+- desativação exige que suplemento esteja ativo para o usuário.
+- exclusão de suplemento bloqueada se houver conteúdo vinculado (cla/classes/trilhas/caminhos/origens/equipamentos/habilidades/técnicas/modificações).
 
 ## Homebrews
 
-- codigo e gerado no backend: `USER_<usuarioId>_HB_<timestamp>`.
-- validacao dos dados:
-  - validacao estrutural por tipo (`validateHomebrewDados`)
-  - validacao custom complementar por tipo (`validate-homebrew-*.ts`)
-  - para `tipo=EQUIPAMENTO`, `dados.tipo` e obrigatorio e define o DTO de validacao.
-  - `EQUIPAMENTO.GENERICO` e aceito e usa apenas campos base (`tipo`, `categoria`, `espacos`, `tipoUso?`, `efeito?`).
+- codigo é gerado no backend: `USER_<usuarioId>_HB_<timestamp>`.
+- validação dos dados:
+  - validação estrutural por tipo (`validateHomebrewDados`)
+  - validação custom complementar por tipo (`validate-homebrew-*.ts`)
+  - para `tipo=EQUIPAMENTO`, `dados.tipo` é obrigatório e define o DTO de validação.
+  - `EQUIPAMENTO.GENERICO` é aceito e usa apenas campos base (`tipo`, `categoria`, `espacos`, `tipoUso?`, `efeito?`).
   - `EQUIPAMENTO.FERRAMENTA_AMALDICOADA`:
-    - `tipoAmaldicoado` aceito: `ARMA`, `PROTECAO`, `ARTEFATO` (nao aceita `ITEM`).
+    - `tipoAmaldicoado` aceito: `ARMA`, `PROTECAO`, `ARTEFATO` (não aceita `ITEM`).
     - exige um subtipo correspondente (`armaAmaldicoada`, `protecaoAmaldicoada` ou `artefatoAmaldicoado`).
-    - em `armaAmaldicoada.dadosArma` e `protecaoAmaldicoada.dadosProtecao`, os campos base de equipamento nao sao exigidos (apenas os campos especificos).
+    - em `armaAmaldicoada.dadosArma` e `protecaoAmaldicoada.dadosProtecao`, os campos base de equipamento não são exigidos (apenas os campos específicos).
   - `EQUIPAMENTO.ITEM_AMALDICOADO` aceita apenas `tipoAmaldicoado=ITEM`.
-  - mensagens de erro de validacao de `dados` retornam caminhos detalhados (incluindo campos aninhados).
+  - mensagens de erro de validação de `dados` retornam caminhos detalhados (incluindo campos aninhados).
 - leitura:
-  - nao publicado so para dono/admin
-  - publicado pode ser lido por usuarios autenticados
+  - não publicado só para dono/admin
+  - publicado pode ser lido por usuários autenticados
 - update:
-  - se `dados` mudar, versao e incrementada automaticamente (patch semver)
-  - se `tipo` mudar (mesmo sem `dados` no patch), os `dados` persistidos sao revalidados com o novo tipo e a versao e incrementada.
+  - se `dados` mudar, versão é incrementada automaticamente (patch semver)
+  - se `tipo` mudar (mesmo sem `dados` no patch), os `dados` persistidos são revalidados com o novo tipo e a versão é incrementada.
 - publicar:
-  - bloqueia se ja estiver publicado
+  - bloqueia se já estiver publicado
 - arquivar:
   - troca status para `ARQUIVADO`
 
@@ -161,23 +161,23 @@ Filtros de listagem (`FiltrarHomebrewsDto`):
 
 - suplementos:
   - `GET /suplementos?apenasAtivos=talvez` -> `400`, `code: VALIDATION_ERROR`, `field: apenasAtivos`
-  - `POST /suplementos` com `icone` invalido -> `400`, `code: VALIDATION_ERROR`, `field: icone`
-  - `GET /suplementos/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
+  - `POST /suplementos` com `icone` inválido -> `400`, `code: VALIDATION_ERROR`, `field: icone`
+  - `GET /suplementos/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
 - homebrews:
   - `GET /homebrews?pagina=0` -> `400`, `code: VALIDATION_ERROR`, `field: pagina`
-  - `POST /homebrews` com `tipo` invalido -> `400`, `code: VALIDATION_ERROR`, `field: tipo`
-  - `GET /homebrews/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
+  - `POST /homebrews` com `tipo` inválido -> `400`, `code: VALIDATION_ERROR`, `field: tipo`
+  - `GET /homebrews/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR` (mensagem de `ParseIntPipe`)
 
 ## Consistencia com schema
 
 - `Suplemento.codigo` e `@unique`.
-- relacionamento usuario-suplemento:
+- relacionamento usuário-suplemento:
   - `UsuarioSuplemento` com `@@unique([usuarioId, suplementoId])`.
 - `Homebrew`:
-  - `dados` e `Json` obrigatorio
+  - `dados` e `Json` obrigatório
   - `status` usa enum `StatusPublicacao`
   - `tipo` usa enum `TipoHomebrewConteudo`
-  - unicidade por usuario/codigo: `@@unique([usuarioId, codigo])`
+  - unicidade por usuário/codigo: `@@unique([usuarioId, codigo])`
 
 ## Integracao frontend
 
@@ -185,7 +185,7 @@ Filtros de listagem (`FiltrarHomebrewsDto`):
   - `assistenterpg-front/src/lib/api/suplementos.ts`
 - homebrews:
   - `assistenterpg-front/src/lib/api/homebrews.ts`
-  - listagem em `assistenterpg-front/src/app/homebrews/page.tsx` com preview modal antes da navegacao completa
+  - listagem em `assistenterpg-front/src/app/homebrews/page.tsx` com preview modal antes da navegação completa
   - componentes de UI:
     - `assistenterpg-front/src/components/homebrew/HomebrewPreviewModal.tsx`
     - `assistenterpg-front/src/components/homebrew/homebrewUi.ts`
@@ -193,4 +193,4 @@ Filtros de listagem (`FiltrarHomebrewsDto`):
 
 Observacao de contrato front/back:
 
-- os clientes frontend ja usam `pagina/limite` (PT-BR) para listagem de homebrews, alinhado ao DTO do backend.
+- os clientes frontend já usam `pagina/limite` (PT-BR) para listagem de homebrews, alinhado ao DTO do backend.

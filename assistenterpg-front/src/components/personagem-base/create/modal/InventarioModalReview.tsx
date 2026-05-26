@@ -97,11 +97,11 @@ export function InventarioModalReview({
     );
 
     if (usaPericiaPersonalizada && !periciaPersonalizada) {
-      erros.push('Selecione a pericia beneficiada por este item personalizado.');
+      erros.push('Selecione a perícia beneficiada por este item personalizado.');
     }
 
     if (funcaoAdicionalAtiva && funcoesAdicionaisPericias.length === 0) {
-      erros.push('Selecione ao menos uma pericia extra para Funcao Adicional.');
+      erros.push('Selecione ao menos uma perícia extra para Funcao Adicional.');
     }
 
     // 1. Validar categoria não excede ESPECIAL
@@ -240,7 +240,7 @@ export function InventarioModalReview({
     return (
       <div className="text-center py-8">
         <Icon name="spinner" className="w-6 h-6 mx-auto mb-2 text-app-muted animate-spin" />
-        <p className="text-app-muted">Validando adi??o...</p>
+        <p className="text-app-muted">Validando adição...</p>
       </div>
     );
   }
@@ -410,7 +410,7 @@ export function InventarioModalReview({
                 </div>
               ) : (
                 <p className="text-xs text-app-muted">
-                  Escolha pelo menos uma pericia extra para esta modificacao.
+                  Escolha pelo menos uma perícia extra para esta modificação.
                 </p>
               )}
               <select
@@ -426,7 +426,7 @@ export function InventarioModalReview({
                 }}
                 className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-primary"
               >
-                <option value="">Adicionar pericia extra</option>
+                <option value="">Adicionar perícia extra</option>
                 {periciasElegiveisFuncaoAdicional.map((pericia) => (
                   <option key={pericia.codigo} value={pericia.codigo}>
                     {pericia.nome}

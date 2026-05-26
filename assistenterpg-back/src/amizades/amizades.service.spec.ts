@@ -46,7 +46,7 @@ describe('AmizadesService', () => {
     service = new AmizadesService(prisma as unknown as PrismaService, presenca);
   });
 
-  it('cria solicitacao de amizade com par normalizado', async () => {
+  it('cria solicitação de amizade com par normalizado', async () => {
     prisma.usuario.findMany.mockResolvedValue([{ id: 9, apelido: 'Maki' }]);
     prisma.amizade.findUnique.mockResolvedValue(null);
     prisma.amizade.create.mockResolvedValue({ id: 1 });
@@ -65,7 +65,7 @@ describe('AmizadesService', () => {
     });
   });
 
-  it('bloqueia solicitacao para si mesmo', async () => {
+  it('bloqueia solicitação para si mesmo', async () => {
     prisma.usuario.findMany.mockResolvedValue([{ id: 4, apelido: 'Maki' }]);
 
     await expect(service.criarSolicitacao(4, 'Maki')).rejects.toBeInstanceOf(
@@ -84,7 +84,7 @@ describe('AmizadesService', () => {
     );
   });
 
-  it('resolve usuario sem expor email', async () => {
+  it('resolve usuário sem expor email', async () => {
     prisma.usuario.findMany.mockResolvedValue([{ id: 9, apelido: 'Maki' }]);
 
     const usuario = await service.resolverUsuario('Maki');
@@ -98,7 +98,7 @@ describe('AmizadesService', () => {
     });
   });
 
-  it('bloqueia solicitacao pendente duplicada', async () => {
+  it('bloqueia solicitação pendente duplicada', async () => {
     prisma.usuario.findMany.mockResolvedValue([{ id: 9, apelido: 'Maki' }]);
     prisma.amizade.findUnique.mockResolvedValue({
       id: 1,
@@ -110,7 +110,7 @@ describe('AmizadesService', () => {
     );
   });
 
-  it('bloqueia amizade ja aceita', async () => {
+  it('bloqueia amizade já aceita', async () => {
     prisma.usuario.findMany.mockResolvedValue([{ id: 9, apelido: 'Maki' }]);
     prisma.amizade.findUnique.mockResolvedValue({
       id: 1,
@@ -122,7 +122,7 @@ describe('AmizadesService', () => {
     );
   });
 
-  it('aceita solicitacao pendente recebida', async () => {
+  it('aceita solicitação pendente recebida', async () => {
     prisma.amizade.findUnique.mockResolvedValue({
       id: 7,
       destinatarioId: 4,
@@ -146,7 +146,7 @@ describe('AmizadesService', () => {
     });
   });
 
-  it('bloqueia aceitar solicitacao destinada a outro usuario', async () => {
+  it('bloqueia aceitar solicitação destinada a outro usuário', async () => {
     prisma.amizade.findUnique.mockResolvedValue({
       id: 7,
       destinatarioId: 99,
@@ -160,7 +160,7 @@ describe('AmizadesService', () => {
     expect(prisma.amizade.update).not.toHaveBeenCalled();
   });
 
-  it('bloqueia cancelar solicitacao criada por outro usuario', async () => {
+  it('bloqueia cancelar solicitação criada por outro usuário', async () => {
     prisma.amizade.findUnique.mockResolvedValue({
       id: 7,
       solicitanteId: 99,
@@ -174,7 +174,7 @@ describe('AmizadesService', () => {
     expect(prisma.amizade.update).not.toHaveBeenCalled();
   });
 
-  it('bloqueia remover relacao que nao e amizade aceita', async () => {
+  it('bloqueia remover relacao que não e amizade aceita', async () => {
     prisma.amizade.findUnique.mockResolvedValue({
       id: 7,
       status: StatusAmizade.PENDENTE,
@@ -217,7 +217,7 @@ describe('AmizadesService', () => {
     ]);
   });
 
-  it('nao expoe presenca de usuario que nao e amigo aceito', async () => {
+  it('não expoe presenca de usuário que não e amigo aceito', async () => {
     presenca.registrarConexao(99, 'socket-1');
     prisma.amizade.findMany.mockResolvedValue([]);
 

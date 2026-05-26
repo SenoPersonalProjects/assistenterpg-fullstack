@@ -211,7 +211,7 @@ export default function NpcsAmeacasPage() {
   function handleDelete(item: NpcAmeacaResumo) {
     confirm({
       title: `Excluir "${item.nome}"?`,
-      description: 'Esta acao e irreversivel.',
+      description: 'Esta ação e irreversivel.',
       confirmLabel: 'Excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
@@ -427,7 +427,7 @@ export default function NpcsAmeacasPage() {
         <div className="mx-auto max-w-7xl space-y-6">
           <LibraryPageHeader
             icon="curse"
-            title="NPCs e Ameacas"
+            title="NPCs e Ameaças"
             description="Gerencie fichas, organize grupos privados e importe ou exporte em JSON."
             actions={
               <>
@@ -456,7 +456,7 @@ export default function NpcsAmeacasPage() {
             items={[
               { label: 'Total', value: totalItens },
               { label: 'Aliados na pagina', value: resumoTipos.npcs, tone: 'success' },
-              { label: 'Ameacas na pagina', value: resumoTipos.ameacas, tone: 'warning' },
+              { label: 'Ameaças na página', value: resumoTipos.ameacas, tone: 'warning' },
               { label: 'Grupos', value: grupos.length, tone: 'muted' },
             ]}
             trailingText={`${lista.length} fichas carregadas nesta pagina`}
@@ -491,7 +491,7 @@ export default function NpcsAmeacasPage() {
                 onChange={(e) => setFiltroFicha(e.target.value as TipoFichaNpcAmeaca | 'TODOS')}
                 className="md:w-48"
               >
-                <option value="TODOS">Aliados ou ameacas</option>
+                <option value="TODOS">Aliados ou ameaças</option>
                 {fichaTipoOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     Somente {option.label.toLowerCase()}
@@ -586,7 +586,7 @@ export default function NpcsAmeacasPage() {
                       <div className="min-w-0">
                         <h3 className="truncate text-base font-semibold text-app-fg">{grupo.nome}</h3>
                         <p className="mt-1 line-clamp-2 text-sm text-app-muted">
-                          {grupo.descricao || 'Sem descricao.'}
+                          {grupo.descricao || 'Sem descrição.'}
                         </p>
                       </div>
                       <span className="library-filter-chip !px-2.5 !py-1">{grupo.quantidadeItens}</span>
@@ -675,7 +675,7 @@ export default function NpcsAmeacasPage() {
                   description={
                     filtrosAtivos.length > 0
                       ? 'Tente ajustar os filtros de busca.'
-                      : 'Crie sua primeira ficha de aliado ou ameaca.'
+                      : 'Crie sua primeira ficha de aliado ou ameaça.'
                   }
                   actionLabel={filtrosAtivos.length > 0 ? 'Limpar filtros' : 'Criar ficha'}
                   onAction={
@@ -757,11 +757,11 @@ export default function NpcsAmeacasPage() {
       <JsonImportModal
         isOpen={modalImportacaoAberto}
         onClose={() => setModalImportacaoAberto(false)}
-        title="Importar NPC/Ameaca via JSON"
+        title="Importar NPC/Ameaça via JSON"
         acceptedExportTypes={['npc-ameaca', 'npc-ameaca-group']}
         typeLabels={{
-          'npc-ameaca': 'NPC/Ameaca',
-          'npc-ameaca-group': 'Grupo de NPCs/Ameacas',
+          'npc-ameaca': 'NPC/Ameaça',
+          'npc-ameaca-group': 'Grupo de NPCs/Ameaças',
         }}
         onImport={handleImportarJson}
       />
@@ -771,7 +771,7 @@ export default function NpcsAmeacasPage() {
         onClose={() => {
           if (!salvandoGrupo) setModalGrupoAberto(false);
         }}
-        title={grupoEditando ? 'Editar grupo de NPCs/Ameacas' : 'Novo grupo de NPCs/Ameacas'}
+        title={grupoEditando ? 'Editar grupo de NPCs/Ameaças' : 'Novo grupo de NPCs/Ameaças'}
         size="lg"
         footer={
           <>
@@ -792,7 +792,7 @@ export default function NpcsAmeacasPage() {
             placeholder="Ex.: Inimigos da missao"
           />
           <Input
-            label="Descricao"
+            label="Descrição"
             value={grupoDescricao}
             onChange={(e) => setGrupoDescricao(e.target.value)}
             placeholder="Opcional"
@@ -801,14 +801,14 @@ export default function NpcsAmeacasPage() {
           <div className="space-y-3">
             <div>
               <h3 className="text-sm font-semibold text-app-fg">Fichas do grupo</h3>
-              <p className="text-xs text-app-muted">Selecione quais NPCs/Ameacas entram neste pacote.</p>
+              <p className="text-xs text-app-muted">Selecione quais NPCs/Ameaças entram neste pacote.</p>
             </div>
 
             {todosNpcs.length === 0 ? (
               <EmptyState
                 variant="plain"
                 icon="curse"
-                title="Nenhuma ficha disponivel"
+                title="Nenhuma ficha disponível"
                 description="Crie fichas antes de montar grupos."
               />
             ) : (

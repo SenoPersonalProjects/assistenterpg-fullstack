@@ -208,7 +208,7 @@ export function SessionSceneRosterPanel({
   return (
     <SessionPanel
       title="Participantes na cena"
-      subtitle="Visao rapida de iniciativa, estados e condicoes."
+      subtitle="Visao rápida de iniciativa, estados e condicoes."
       tone="aside"
     >
       {itens.length === 0 ? (
@@ -217,7 +217,7 @@ export function SessionSceneRosterPanel({
           size="sm"
           icon="characters"
           title="Sem participantes"
-          description="Nao ha personagens ou NPCs visiveis nesta cena."
+          description="Não há personagens ou NPCs visíveis nesta cena."
         />
       ) : (
         <div className="session-roster">

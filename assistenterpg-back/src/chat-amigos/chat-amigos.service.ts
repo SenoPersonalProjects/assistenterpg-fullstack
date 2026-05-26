@@ -214,7 +214,7 @@ export class ChatAmigosService {
 
   private async garantirAmizadeAceita(usuarioId: number, amigoId: number) {
     if (usuarioId === amigoId) {
-      throw new BadRequestException('Nao e possivel conversar consigo mesmo.');
+      throw new BadRequestException('Não e possível conversar consigo mesmo.');
     }
 
     const amizade = await this.prisma.amizade.findUnique({
@@ -223,7 +223,7 @@ export class ChatAmigosService {
     });
 
     if (!amizade || amizade.status !== StatusAmizade.ACEITA) {
-      throw new ForbiddenException('Conversa disponivel apenas entre amigos.');
+      throw new ForbiddenException('Conversa disponível apenas entre amigos.');
     }
   }
 

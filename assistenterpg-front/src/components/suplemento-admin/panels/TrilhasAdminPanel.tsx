@@ -82,8 +82,8 @@ function TrilhaAdminFormModal({ isOpen, onClose, classes, suplementos, trilha }:
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.classeId.trim()) next.classeId = 'Classe e obrigatoria.';
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
+    if (!form.classeId.trim()) next.classeId = 'Classe é obrigatória.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
       next.suplementoId = 'Selecione um suplemento.';
     }
@@ -170,7 +170,7 @@ function TrilhaAdminFormModal({ isOpen, onClose, classes, suplementos, trilha }:
         />
 
         <Textarea
-          label="Descricao"
+          label="Descrição"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}

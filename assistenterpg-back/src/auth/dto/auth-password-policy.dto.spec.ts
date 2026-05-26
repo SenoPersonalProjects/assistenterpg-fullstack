@@ -7,8 +7,8 @@ import { AlterarSenhaDto } from 'src/usuario/dto/alterar-senha.dto';
 describe('politica minima de senha em DTOs de auth', () => {
   it('rejeita cadastro com senha menor que 8 caracteres', async () => {
     const dto = new RegisterDto();
-    dto.apelido = 'Usuario';
-    dto.email = 'usuario@example.com';
+    dto.apelido = 'Usuário';
+    dto.email = 'usuário@example.com';
     dto.senha = '1234567';
 
     const errors = await validate(dto);

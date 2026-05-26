@@ -85,7 +85,7 @@ export function InventarioModalModificacoes({
         <div className="p-4 bg-app-primary/10 rounded-lg border border-app-primary/30">
           <div className="flex items-center gap-2 text-app-fg">
             <Icon name="info" className="w-5 h-5 text-app-primary" />
-            <p className="text-sm font-semibold">Nenhuma modificacao compativel com este equipamento</p>
+            <p className="text-sm font-semibold">Nenhuma modificação compatível com este equipamento</p>
           </div>
         </div>
         <p className="text-xs text-app-muted text-center">
@@ -100,7 +100,7 @@ export function InventarioModalModificacoes({
       <div className="flex items-center justify-between p-3 bg-app-surface rounded-lg border border-app-border">
         <div className="flex items-center gap-2">
           <Icon name="sparkles" className="w-5 h-5 text-app-primary" />
-          <span className="text-sm font-semibold text-app-fg">Modificacoes Disponiveis</span>
+          <span className="text-sm font-semibold text-app-fg">Modificações disponíveis</span>
         </div>
         <Badge color="blue" size="md">
           {modificacoesSelecionadas.length} selecionada(s)
@@ -135,7 +135,7 @@ export function InventarioModalModificacoes({
               >
                 <label
                   className={`flex gap-3 p-4 ${!desabilitada ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                  title={desabilitada ? erro || 'Modificacao nao disponivel' : undefined}
+                  title={desabilitada ? erro || 'Modificacao não disponível' : undefined}
                 >
                   <Checkbox
                     checked={selecionada}
@@ -260,7 +260,7 @@ export function InventarioModalModificacoes({
         <p className="text-xs text-app-muted flex items-start gap-2">
           <Icon name="info" className="w-4 h-4 text-app-primary flex-shrink-0 mt-0.5" />
           <span>
-            Modificacoes podem alterar espacos, categoria e propriedades do equipamento. Clique em
+            Modificações podem alterar espaços, categoria e propriedades do equipamento. Clique em
             &quot;Ver detalhes&quot; para mais informacoes.
           </span>
         </p>

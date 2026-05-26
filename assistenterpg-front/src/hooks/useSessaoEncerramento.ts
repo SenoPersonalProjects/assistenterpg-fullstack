@@ -40,7 +40,7 @@ export function useSessaoEncerramento({
       setDetalhe(atualizado);
       sincronizarEstadosDerivados(atualizado);
       onEncerramentoConfirmado?.();
-      showToast('Sessao encerrada.', 'warning');
+      showToast('Sessão encerrada.', 'warning');
     } catch (error) {
       setErro(extrairMensagemErro(error));
     } finally {

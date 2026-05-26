@@ -18,7 +18,7 @@ export function resolveCorsOrigins(): string[] {
   }
 
   if (isProduction()) {
-    throw new Error('CORS_ORIGINS e obrigatorio em producao.');
+    throw new Error('CORS_ORIGINS é obrigatório em produção.');
   }
 
   return DEV_CORS_ORIGINS;

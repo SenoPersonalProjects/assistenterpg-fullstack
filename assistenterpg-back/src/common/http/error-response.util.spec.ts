@@ -43,7 +43,7 @@ describe('error-response.util', () => {
   });
 
   describe('normalizeHttpExceptionPayload', () => {
-    it('deve mapear erro de validacao para VALIDATION_ERROR', () => {
+    it('deve mapear erro de validação para VALIDATION_ERROR', () => {
       const payload = normalizeHttpExceptionPayload(
         HttpStatus.BAD_REQUEST,
         {
@@ -51,7 +51,7 @@ describe('error-response.util', () => {
           message: ['nome must be a string'],
           error: 'Bad Request',
         },
-        'Erro padrao',
+        'Erro padrão',
       );
 
       expect(payload.code).toBe('VALIDATION_ERROR');
@@ -71,7 +71,7 @@ describe('error-response.util', () => {
           message: ['each value in modificacoes must be an integer number'],
           error: 'Bad Request',
         },
-        'Erro padrao',
+        'Erro padrão',
       );
 
       expect(payload.code).toBe('VALIDATION_ERROR');
@@ -86,7 +86,7 @@ describe('error-response.util', () => {
           message: 'Validation failed (numeric string is expected)',
           error: 'Bad Request',
         },
-        'Erro padrao',
+        'Erro padrão',
       );
 
       expect(payload.code).toBe('VALIDATION_ERROR');
@@ -100,7 +100,7 @@ describe('error-response.util', () => {
       expect(payload.field).toBeUndefined();
     });
 
-    it('deve respeitar codigo explicito quando presente', () => {
+    it('deve respeitar código explicito quando presente', () => {
       const payload = normalizeHttpExceptionPayload(
         HttpStatus.CONFLICT,
         {
@@ -108,7 +108,7 @@ describe('error-response.util', () => {
           code: 'CAMPANHA_DUPLICADA',
           error: 'Conflict',
         },
-        'Erro padrao',
+        'Erro padrão',
       );
 
       expect(payload.code).toBe('CAMPANHA_DUPLICADA');
@@ -118,7 +118,7 @@ describe('error-response.util', () => {
 
     it('deve priorizar BaseException para code/details/field', () => {
       const exception = new BaseException(
-        'Campo invalido',
+        'Campo inválido',
         HttpStatus.UNPROCESSABLE_ENTITY,
         'CAMPANHA_ERRO_NEGOCIO',
         { detalhe: 1 },
@@ -128,7 +128,7 @@ describe('error-response.util', () => {
       const payload = normalizeHttpExceptionPayload(
         HttpStatus.UNPROCESSABLE_ENTITY,
         { message: 'Mensagem externa', code: 'OUTRO_CODIGO' },
-        'Erro padrao',
+        'Erro padrão',
         exception,
       );
 

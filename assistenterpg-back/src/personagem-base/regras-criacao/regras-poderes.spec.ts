@@ -30,8 +30,8 @@ const poderes: PoderGenericoInstanciaInput[] = [
   { habilidadeId: 1, config: {} },
 ];
 
-describe('validarPoderesGenericos - requisitos de pericia', () => {
-  it('aceita grauMinimo 1 quando a pericia esta treinada', async () => {
+describe('validarPoderesGenericos - requisitos de perícia', () => {
+  it('aceita grauMinimo 1 quando a perícia esta treinada', async () => {
     const prisma = criarPrismaMock({
       pericias: [{ codigo: 'LUTA', grauMinimo: 1 }],
     });
@@ -50,7 +50,7 @@ describe('validarPoderesGenericos - requisitos de pericia', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('aceita requisito alternativo quando uma das pericias esta treinada', async () => {
+  it('aceita requisito alternativo quando uma das perícias esta treinada', async () => {
     const prisma = criarPrismaMock({
       pericias: [
         { codigo: 'LUTA', grauMinimo: 1, alternativa: true },
@@ -72,7 +72,7 @@ describe('validarPoderesGenericos - requisitos de pericia', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('retorna requisito de treino na mensagem quando a pericia nao atende', async () => {
+  it('retorna requisito de treino na mensagem quando a perícia não atende', async () => {
     const prisma = criarPrismaMock({
       pericias: [{ codigo: 'LUTA', grauMinimo: 1 }],
     });

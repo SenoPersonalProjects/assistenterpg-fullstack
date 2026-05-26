@@ -39,6 +39,16 @@ type AbaSuplemento =
   | 'TECNICAS'
   | 'MODIFICACOES';
 
+const ABA_LABELS: Record<AbaSuplemento, string> = {
+  RESUMO: 'Resumo',
+  ORIGENS: 'Origens',
+  PODERES: 'Poderes',
+  TRILHAS: 'Trilhas',
+  EQUIPAMENTOS: 'Equipamentos',
+  TECNICAS: 'Técnicas',
+  MODIFICACOES: 'Modificações',
+};
+
 export default function SuplementoDetalhePage() {
   const router = useRouter();
   const params = useParams<{ codigo: string }>();
@@ -124,8 +134,8 @@ export default function SuplementoDetalhePage() {
       { label: 'Poderes', total: poderes.length },
       { label: 'Trilhas', total: trilhas.length },
       { label: 'Equipamentos', total: equipamentos.length },
-      { label: 'Tecnicas', total: tecnicas.length },
-      { label: 'Modificacoes', total: modificacoes.length },
+      { label: 'Técnicas', total: tecnicas.length },
+      { label: 'Modificações', total: modificacoes.length },
     ],
     [origens.length, poderes.length, trilhas.length, equipamentos.length, tecnicas.length, modificacoes.length],
   );
@@ -144,8 +154,8 @@ export default function SuplementoDetalhePage() {
         <EmptyState
           variant="card"
           icon="book"
-          title="Suplemento nao encontrado"
-          description="Nao foi possivel carregar os dados solicitados."
+          title="Suplemento não encontrado"
+          description="Não foi possível carregar os dados solicitados."
           actionLabel="Voltar"
           onAction={() => router.push('/suplementos')}
         />
@@ -215,7 +225,7 @@ export default function SuplementoDetalhePage() {
                 variant={abaAtiva === aba ? 'primary' : 'secondary'}
                 onClick={() => setAbaAtiva(aba)}
               >
-                {aba === 'RESUMO' ? 'Resumo' : aba.toLowerCase()}
+                {ABA_LABELS[aba]}
               </Button>
             ),
           )}
@@ -244,7 +254,7 @@ export default function SuplementoDetalhePage() {
                 size="sm"
                 icon="info"
                 title="Sem origens"
-                description="Nao ha origens associadas a este suplemento."
+                description="Não há origens associadas a este suplemento."
               />
             ) : (
               <div className="grid gap-2">
@@ -263,14 +273,14 @@ export default function SuplementoDetalhePage() {
 
         {abaAtiva === 'PODERES' ? (
           <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Poderes genericos</h2>
+            <h2 className="text-lg font-semibold text-app-fg">Poderes genéricos</h2>
             {poderes.length === 0 ? (
               <EmptyState
                 variant="session"
                 size="sm"
                 icon="info"
                 title="Sem poderes"
-                description="Nao ha poderes genericos associados a este suplemento."
+                description="Não há poderes genéricos associados a este suplemento."
               />
             ) : (
               <div className="grid gap-2">
@@ -296,7 +306,7 @@ export default function SuplementoDetalhePage() {
                 size="sm"
                 icon="info"
                 title="Sem trilhas"
-                description="Nao ha trilhas associadas a este suplemento."
+                description="Não há trilhas associadas a este suplemento."
               />
             ) : (
               <div className="grid gap-2">
@@ -322,7 +332,7 @@ export default function SuplementoDetalhePage() {
                 size="sm"
                 icon="info"
                 title="Sem equipamentos"
-                description="Nao ha equipamentos associados a este suplemento."
+                description="Não há equipamentos associados a este suplemento."
               />
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
@@ -354,8 +364,8 @@ export default function SuplementoDetalhePage() {
                 variant="session"
                 size="sm"
                 icon="info"
-                title="Sem tecnicas"
-                description="Nao ha tecnicas associadas a este suplemento."
+                title="Sem técnicas"
+                description="Não há técnicas associadas a este suplemento."
               />
             ) : (
               <div className="grid gap-2">
@@ -374,14 +384,14 @@ export default function SuplementoDetalhePage() {
 
         {abaAtiva === 'MODIFICACOES' ? (
           <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Modificacoes</h2>
+            <h2 className="text-lg font-semibold text-app-fg">Modificações</h2>
             {modificacoes.length === 0 ? (
               <EmptyState
                 variant="session"
                 size="sm"
                 icon="info"
-                title="Sem modificacoes"
-                description="Nao ha modificacoes associadas a este suplemento."
+                title="Sem modificações"
+                description="Não há modificações associadas a este suplemento."
               />
             ) : (
               <div className="grid gap-2">

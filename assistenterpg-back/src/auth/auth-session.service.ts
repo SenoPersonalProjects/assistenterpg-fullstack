@@ -80,7 +80,7 @@ export class AuthSessionService {
     const refreshToken = this.obterRefreshToken(request);
     const sessao = await this.obterSessaoPorRefresh(refreshToken);
     if (!sessao || sessao.expiraEm <= new Date()) {
-      throw new UnauthorizedException('Sessao expirada');
+      throw new UnauthorizedException('Sessão expirada');
     }
 
     if (sessao.revogadaEm) {
@@ -92,7 +92,7 @@ export class AuthSessionService {
         sessao.usuarioId,
         REVOGACAO_REUSO_REFRESH,
       );
-      throw new UnauthorizedException('Sessao expirada');
+      throw new UnauthorizedException('Sessão expirada');
     }
 
     return this.emitirNovaSessaoAposRefresh(sessao, request, response);
@@ -215,7 +215,7 @@ export class AuthSessionService {
     });
 
     if (!sessao) {
-      throw new UnauthorizedException('Sessao invalida');
+      throw new UnauthorizedException('Sessão inválida');
     }
   }
 
@@ -270,7 +270,7 @@ export class AuthSessionService {
   private obterRefreshToken(request: Request): string {
     const refreshToken = getCookieValue(request, AUTH_REFRESH_COOKIE);
     if (!refreshToken) {
-      throw new UnauthorizedException('Sessao expirada');
+      throw new UnauthorizedException('Sessão expirada');
     }
 
     return refreshToken;
@@ -280,7 +280,7 @@ export class AuthSessionService {
     const sessao = await this.obterSessaoPorRefresh(refreshToken);
 
     if (!sessao || sessao.revogadaEm || sessao.expiraEm <= new Date()) {
-      throw new UnauthorizedException('Sessao expirada');
+      throw new UnauthorizedException('Sessão expirada');
     }
 
     return sessao;
@@ -356,8 +356,8 @@ export class AuthSessionService {
     }
 
     // Em producao atras de proxies/CDNs, o IP observado pelo backend pode mudar
-    // entre chamadas quase simultaneas. A janela curta de rotacao + user-agent
-    // compativel e suficiente para tratar duplicatas legitimas sem derrubar o usuario.
+    // entre chamadas quase simultâneas. A janela curta de rotacao + user-agent
+    // compativel e suficiente para tratar duplicatas legitimas sem derrubar o usuário.
     return true;
   }
 

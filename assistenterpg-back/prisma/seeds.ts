@@ -115,10 +115,10 @@ async function main() {
   // ============================================================
   // 3️⃣ TÉCNICAS AMALDIÇOADAS (✅ NOVO)
   // ============================================================
-  console.log('🔥 [3/8] Cadastrando tecnicas amaldicoadas (inatas + nao-inatas)...');
+  console.log('🔥 [3/8] Cadastrando técnicas amaldiçoadas (inatas + não inatas)...');
   await seedTecnicasInatas(prisma);
   await seedTecnicasNaoInatas(prisma);
-  console.log('✅ Tecnicas amaldicoadas concluidas!\n');
+  console.log('✅ Técnicas amaldiçoadas concluídas!\n');
 
   // ============================================================
   // 4️⃣ TRILHAS E CAMINHOS
@@ -169,7 +169,7 @@ async function main() {
   await seedSobrevivendoAoJujutsu(prisma);
   await seedEquipamentosModificacoesAplicaveis(prisma);
   await seedCompendioLivros(prisma);
-  console.log('Suplementos oficiais concluidos!\n');
+  console.log('Suplementos oficiais concluídos!\n');
 
   // ============================================================
   // RESUMO FINAL
@@ -186,7 +186,7 @@ async function main() {
   console.log('   • Utilitários');
   console.log('   • Ferramentas Amaldiçoadas (40 itens)');
   console.log('✅ Modificações de equipamentos (21 modificações)');
-  console.log('✅ Tecnicas Amaldicoadas (inatas + nao-inatas basicas)');
+  console.log('✅ Técnicas Amaldiçoadas (inatas + não inatas básicas)');
   console.log('✅ Trilhas, caminhos e relações');
   console.log('✅ Habilidades e vínculos');
   console.log('✅ Pós-processamentos');

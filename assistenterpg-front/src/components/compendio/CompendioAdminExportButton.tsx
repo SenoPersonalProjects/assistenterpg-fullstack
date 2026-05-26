@@ -39,7 +39,7 @@ function downloadJson(filename: string, data: unknown): void {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return 'Nao foi possivel exportar o seed.';
+  return 'Não foi possível exportar o seed.';
 }
 
 export function CompendioAdminExportButton() {
@@ -57,7 +57,7 @@ export function CompendioAdminExportButton() {
       const seed = await apiAdminExportarSeedCompendio();
       const filename = `compendio-seed-${timestampForFile()}.json`;
       downloadJson(filename, seed);
-      showToast('Seed do compendio exportado.', 'success');
+      showToast('Seed do compêndio exportado.', 'success');
     } catch (error) {
       showToast(getErrorMessage(error), 'error');
     } finally {
@@ -68,7 +68,7 @@ export function CompendioAdminExportButton() {
   return (
     <Button type="button" variant="secondary" size="sm" onClick={exportSeed} disabled={loading}>
       <Icon name={loading ? 'spinner' : 'download'} className="mr-2 h-4 w-4" />
-      Exportar seed do compendio
+      Exportar seed do compêndio
     </Button>
   );
 }

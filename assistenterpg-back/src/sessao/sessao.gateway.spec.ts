@@ -4,7 +4,7 @@ import { SessaoGateway } from './sessao.gateway';
 import { SessaoService } from './sessao.service';
 
 describe('SessaoGateway', () => {
-  it('emite ACESSO_NEGADO quando o usuario tenta entrar em sessao sem permissao', async () => {
+  it('emite ACESSO_NEGADO quando o usuário tenta entrar em sessão sem permissão', async () => {
     const validarAcessoSessao = jest
       .fn()
       .mockRejectedValue(new Error('negado'));

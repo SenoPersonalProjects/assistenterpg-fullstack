@@ -53,7 +53,7 @@ export function useSessaoRolagem({
 
     const resultado = parseDiceInput(mensagemLimpa);
     if (resultado.erro || !resultado.expressions) {
-      setErro(resultado.erro ?? 'Rolagem invalida.');
+      setErro(resultado.erro ?? 'Rolagem inválida.');
       return;
     }
 

@@ -611,7 +611,7 @@ export function VariacaoForm({
                 onChange({ requisitos: e.target.value });
               }
             }}
-            placeholder='Ex: { "nivel": 10 }'
+            placeholder='Ex: { "nível": 10 }'
             rows={2}
           />
         </div>

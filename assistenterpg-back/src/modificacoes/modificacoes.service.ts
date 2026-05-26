@@ -608,7 +608,7 @@ export class ModificacoesService {
       erros.push('Modificação não aplicável a escudos');
     }
 
-    // 3. Validar tipo de protecao
+    // 3. Validar tipo de proteção
     if (restricoes.tiposProtecao?.length) {
       const tipoProtecaoEfetivo =
         equipamento.tipoProtecao ??
@@ -697,7 +697,7 @@ export class ModificacoesService {
       }
     }
 
-    // 10b. Validar proficiencias de protecao
+    // 10b. Validar proficiencias de proteção
     if (restricoes.proficienciasProtecao?.length) {
       if (!equipamento.proficienciaProtecao) {
         erros.push(

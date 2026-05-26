@@ -1,60 +1,83 @@
-# ============================================================================
-# GERAL
-# ============================================================================
+# Geral
 .DS_Store
-.env
-.env.local
-.env.*.local
+Thumbs.db
 *.log
 *.swp
 *.swo
 *~
 
-# ============================================================================
-# NODE
-# ============================================================================
+# Dependencias
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+*/node_modules/
 
-# ============================================================================
-# BACKEND (NestJS)
-# ============================================================================
-backend/dist/
-backend/.env
-backend/.env.local
-backend/.env.production
-backend/uploads/
-backend/temp/
+# Variaveis de ambiente e segredos
+.env
+.env.local
+.env.*.local
+assistenterpg-back/.env
+assistenterpg-back/.env.local
+assistenterpg-back/.env.development.local
+assistenterpg-back/.env.test.local
+assistenterpg-back/.env.production.local
+assistenterpg-front/.env
+assistenterpg-front/.env.local
+assistenterpg-front/.env.development.local
+assistenterpg-front/.env.test.local
+assistenterpg-front/.env.production.local
+documentacao-unica/PRIVATE-OPS.md
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa
+id_ed25519
 
-# ============================================================================
-# FRONTEND (Next.js)
-# ============================================================================
-frontend/.next/
-frontend/out/
-frontend/build/
-frontend/.env
-frontend/.env.local
-frontend/.env.production
+# Backend
+assistenterpg-back/dist/
+assistenterpg-back/dist-test/
+assistenterpg-back/build/
+assistenterpg-back/coverage/
+assistenterpg-back/.cache/
+assistenterpg-back/uploads/
+assistenterpg-back/temp/
+assistenterpg-back/temp-uploads/
+assistenterpg-back/generated/prisma/
+assistenterpg-back/node_modules/.prisma/
 
-# ============================================================================
+# Frontend
+assistenterpg-front/.next/
+assistenterpg-front/out/
+assistenterpg-front/build/
+assistenterpg-front/coverage/
+assistenterpg-front/evidence/
+assistenterpg-front/.vercel/
+assistenterpg-front/next-env.d.ts
+
+# Build/cache
+*.tsbuildinfo
+.turbo/
+.cache/
+
+# Dumps e backups locais
+*.sql
+*.dump
+*.backup
+*.bak
+*.old
+*.tmp
+*.temp
+backups/
+dump/
+dumps/
+
+# Migrations Prisma devem ser versionadas mesmo usando *.sql acima.
+!assistenterpg-back/prisma/migrations/
+!assistenterpg-back/prisma/migrations/**/
+!assistenterpg-back/prisma/migrations/**/migration.sql
+
 # IDEs
-# ============================================================================
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
-
-# ============================================================================
-# BUILD ARTIFACTS
-# ============================================================================
-*.tsbuildinfo
-.turbo/
-
-# ============================================================================
-# PRIVATE DOCS
-# ============================================================================
-documentacao-unica/PRIVATE-OPS.md

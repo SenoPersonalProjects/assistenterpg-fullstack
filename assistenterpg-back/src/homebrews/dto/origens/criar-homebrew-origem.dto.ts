@@ -4,7 +4,7 @@ import { IsNotEmpty, IsArray, IsOptional } from 'class-validator';
 
 /**
  * DTO para homebrews de ORIGEM
- * Estrutura: { pericias: string[], habilidades: any[] }
+ * Estrutura: { perícias: string[], habilidades: any[] }
  */
 export class HomebrewOrigemDto {
   @IsNotEmpty()

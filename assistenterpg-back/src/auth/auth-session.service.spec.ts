@@ -60,7 +60,10 @@ describe('AuthSessionService', () => {
     );
   });
 
-  function criarRequest(cookies: Record<string, string> = {}, ip = '127.0.0.1') {
+  function criarRequest(
+    cookies: Record<string, string> = {},
+    ip = '127.0.0.1',
+  ) {
     return {
       cookies,
       ip,
@@ -82,12 +85,12 @@ describe('AuthSessionService', () => {
     };
   }
 
-  it('cria sessao, armazena hashes e emite cookies HttpOnly para access/refresh', async () => {
+  it('cria sessão, armazena hashes e emite cookies HttpOnly para access/refresh', async () => {
     sessaoAutenticacao.create.mockResolvedValue({ id: 10 });
     const { response, cookieMock } = criarResponse();
 
     await service.criarSessao(
-      { id: 1, email: 'usuario@example.com' },
+      { id: 1, email: 'usuário@example.com' },
       true,
       criarRequest(),
       response,
@@ -123,7 +126,7 @@ describe('AuthSessionService', () => {
     );
   });
 
-  it('rotaciona refresh criando nova sessao e revogando a anterior', async () => {
+  it('rotaciona refresh criando nova sessão e revogando a anterior', async () => {
     const refreshToken = 'refresh-atual';
     sessaoAutenticacao.findUnique.mockResolvedValue({
       id: 10,
@@ -136,7 +139,7 @@ describe('AuthSessionService', () => {
       revogadaEm: null,
       revogacaoMotivo: null,
       rotacionadaEm: null,
-      usuario: { id: 1, email: 'usuario@example.com' },
+      usuario: { id: 1, email: 'usuário@example.com' },
     });
     sessaoAutenticacao.create.mockResolvedValue({ id: 11 });
 
@@ -165,12 +168,12 @@ describe('AuthSessionService', () => {
       }),
     );
     expect(jwtService.signAsync).toHaveBeenCalledWith(
-      { sub: 1, email: 'usuario@example.com', sid: 11 },
+      { sub: 1, email: 'usuário@example.com', sid: 11 },
       { expiresIn: 900 },
     );
   });
 
-  it('revoga sessoes ativas do usuario quando refresh antigo e reutilizado', async () => {
+  it('revoga sessões ativas do usuário quando refresh antigo e reutilizado', async () => {
     sessaoAutenticacao.findUnique.mockResolvedValue({
       id: 10,
       usuarioId: 1,
@@ -178,7 +181,7 @@ describe('AuthSessionService', () => {
       revogadaEm: new Date(),
       revogacaoMotivo: 'ROTACAO',
       rotacionadaEm: new Date(Date.now() - 60_000),
-      usuario: { id: 1, email: 'usuario@example.com' },
+      usuario: { id: 1, email: 'usuário@example.com' },
     });
 
     await expect(
@@ -197,7 +200,7 @@ describe('AuthSessionService', () => {
     });
   });
 
-  it('aceita duplicata recente de refresh rotacionado sem revogar sessoes', async () => {
+  it('aceita duplicata recente de refresh rotacionado sem revogar sessões', async () => {
     const refreshToken = 'refresh-recente';
     sessaoAutenticacao.findUnique.mockResolvedValue({
       id: 10,
@@ -210,7 +213,7 @@ describe('AuthSessionService', () => {
       revogadaEm: new Date(),
       revogacaoMotivo: 'ROTACAO',
       rotacionadaEm: new Date(),
-      usuario: { id: 1, email: 'usuario@example.com' },
+      usuario: { id: 1, email: 'usuário@example.com' },
     });
     sessaoAutenticacao.create.mockResolvedValue({ id: 12 });
 
@@ -227,7 +230,7 @@ describe('AuthSessionService', () => {
       }),
     );
     expect(jwtService.signAsync).toHaveBeenCalledWith(
-      { sub: 1, email: 'usuario@example.com', sid: 12 },
+      { sub: 1, email: 'usuário@example.com', sid: 12 },
       { expiresIn: 900 },
     );
   });
@@ -245,7 +248,7 @@ describe('AuthSessionService', () => {
       revogadaEm: new Date(),
       revogacaoMotivo: 'ROTACAO',
       rotacionadaEm: new Date(),
-      usuario: { id: 1, email: 'usuario@example.com' },
+      usuario: { id: 1, email: 'usuário@example.com' },
     });
     sessaoAutenticacao.create.mockResolvedValue({ id: 12 });
 

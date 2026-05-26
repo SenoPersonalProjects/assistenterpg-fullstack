@@ -89,7 +89,7 @@ export class CampanhaConvitesService {
 
     const apelidoInformado = dados.apelido?.trim();
     if (!apelidoInformado) {
-      throw new UsuarioApelidoNaoEncontradoException(''); // fallback para erro de validacao
+      throw new UsuarioApelidoNaoEncontradoException(''); // fallback para erro de validação
     }
 
     const usuarios = await this.prisma.usuario.findMany({

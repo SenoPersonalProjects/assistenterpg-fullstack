@@ -11,7 +11,7 @@ import { BusinessException } from './business.exception';
 export class CampanhaNaoEncontradaException extends BaseException {
   constructor(identificador?: string | number) {
     super(
-      'Campanha nao encontrada',
+      'Campanha não encontrada',
       HttpStatus.NOT_FOUND,
       'CAMPANHA_NOT_FOUND',
       {
@@ -23,7 +23,7 @@ export class CampanhaNaoEncontradaException extends BaseException {
 
 export class CampanhaAcessoNegadoException extends BusinessException {
   constructor(campanhaId?: number, usuarioId?: number) {
-    super('Voce nao tem acesso a esta campanha', 'CAMPANHA_ACESSO_NEGADO', {
+    super('Você não tem acesso a esta campanha', 'CAMPANHA_ACESSO_NEGADO', {
       campanhaId,
       usuarioId,
     });
@@ -52,7 +52,7 @@ export class CampanhaApenasMestreException extends BusinessException {
 
 export class UsuarioNaoEncontradoException extends BaseException {
   constructor(identificador?: string | number) {
-    super('Usuario nao encontrado', HttpStatus.NOT_FOUND, 'USUARIO_NOT_FOUND', {
+    super('Usuário não encontrado', HttpStatus.NOT_FOUND, 'USUARIO_NOT_FOUND', {
       identificador,
     });
   }
@@ -60,7 +60,7 @@ export class UsuarioNaoEncontradoException extends BaseException {
 
 export class UsuarioJaMembroCampanhaException extends BusinessException {
   constructor(usuarioId: number, campanhaId: number) {
-    super('Usuario ja e membro desta campanha', 'USUARIO_JA_MEMBRO', {
+    super('Usuário já e membro desta campanha', 'USUARIO_JA_MEMBRO', {
       usuarioId,
       campanhaId,
     });
@@ -73,7 +73,7 @@ export class UsuarioJaMembroCampanhaException extends BusinessException {
 
 export class ConviteNaoEncontradoException extends BaseException {
   constructor(codigo?: string) {
-    super('Convite nao encontrado', HttpStatus.NOT_FOUND, 'CONVITE_NOT_FOUND', {
+    super('Convite não encontrado', HttpStatus.NOT_FOUND, 'CONVITE_NOT_FOUND', {
       codigo,
     });
   }
@@ -81,7 +81,7 @@ export class ConviteNaoEncontradoException extends BaseException {
 
 export class ConviteInvalidoOuUtilizadoException extends BusinessException {
   constructor(codigo: string, status?: string) {
-    super('Convite invalido ou ja utilizado', 'CONVITE_INVALIDO', {
+    super('Convite inválido ou já utilizado', 'CONVITE_INVALIDO', {
       codigo,
       status,
     });
@@ -91,7 +91,7 @@ export class ConviteInvalidoOuUtilizadoException extends BusinessException {
 export class ConviteNaoPertenceUsuarioException extends BusinessException {
   constructor(conviteEmail: string, usuarioEmail: string) {
     super(
-      'Este convite nao pertence a este usuario',
+      'Este convite não pertence a este usuário',
       'CONVITE_NAO_PERTENCE_USUARIO',
       {
         conviteEmail,
@@ -104,7 +104,7 @@ export class ConviteNaoPertenceUsuarioException extends BusinessException {
 export class ConvitePendenteDuplicadoException extends BusinessException {
   constructor(campanhaId: number, email: string) {
     super(
-      'Ja existe convite pendente para este email nesta campanha',
+      'Já existe convite pendente para este email nesta campanha',
       'CONVITE_DUPLICADO_PENDENTE',
       {
         campanhaId,
@@ -117,7 +117,7 @@ export class ConvitePendenteDuplicadoException extends BusinessException {
 export class ConviteCodigoIndisponivelException extends BaseException {
   constructor(campanhaId: number, tentativas: number) {
     super(
-      'Nao foi possivel gerar codigo unico para convite',
+      'Não foi possível gerar código unico para convite',
       HttpStatus.INTERNAL_SERVER_ERROR,
       'CONVITE_CODIGO_INDISPONIVEL',
       { campanhaId, tentativas },
@@ -132,7 +132,7 @@ export class ConviteCodigoIndisponivelException extends BaseException {
 export class PersonagemCampanhaNaoEncontradoException extends BaseException {
   constructor(personagemCampanhaId?: number, campanhaId?: number) {
     super(
-      'Personagem da campanha nao encontrado',
+      'Personagem da campanha não encontrado',
       HttpStatus.NOT_FOUND,
       'PERSONAGEM_CAMPANHA_NOT_FOUND',
       {
@@ -146,7 +146,7 @@ export class PersonagemCampanhaNaoEncontradoException extends BaseException {
 export class CampanhaPersonagemAssociacaoNegadaException extends BusinessException {
   constructor(campanhaId: number, usuarioId: number, personagemBaseId: number) {
     super(
-      'Voce nao pode associar este personagem-base a esta campanha',
+      'Você não pode associar este personagem-base a esta campanha',
       'CAMPANHA_PERSONAGEM_ASSOCIACAO_NEGADA',
       {
         campanhaId,
@@ -160,7 +160,7 @@ export class CampanhaPersonagemAssociacaoNegadaException extends BusinessExcepti
 export class CampanhaPersonagemLimiteUsuarioException extends BusinessException {
   constructor(campanhaId: number, usuarioId: number) {
     super(
-      'Este usuario ja possui um personagem associado nesta campanha',
+      'Este usuário já possui um personagem associado nesta campanha',
       'CAMPANHA_PERSONAGEM_LIMITE_USUARIO',
       {
         campanhaId,
@@ -177,7 +177,7 @@ export class CampanhaPersonagemEdicaoNegadaException extends BusinessException {
     usuarioId: number,
   ) {
     super(
-      'Voce nao tem permissao para editar esta ficha de campanha',
+      'Você não tem permissão para editar esta ficha de campanha',
       'CAMPANHA_PERSONAGEM_EDICAO_NEGADA',
       {
         campanhaId,
@@ -195,7 +195,7 @@ export class CampanhaPersonagemDesassociacaoNegadaException extends BusinessExce
     sessaoId?: number,
   ) {
     super(
-      'Nao e possivel desassociar personagem que ja participou de sessao',
+      'Não é possível desassociar personagem que já participou de sessão',
       'CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA',
       {
         campanhaId,
@@ -209,7 +209,7 @@ export class CampanhaPersonagemDesassociacaoNegadaException extends BusinessExce
 export class CampanhaModificadorNaoEncontradoException extends BaseException {
   constructor(modificadorId: number, personagemCampanhaId: number) {
     super(
-      'Modificador da ficha de campanha nao encontrado',
+      'Modificador da ficha de campanha não encontrado',
       HttpStatus.NOT_FOUND,
       'CAMPANHA_MODIFICADOR_NOT_FOUND',
       {
@@ -222,7 +222,7 @@ export class CampanhaModificadorNaoEncontradoException extends BaseException {
 
 export class PersonagemCampanhaNucleoInvalidoException extends BusinessException {
   constructor(nucleo: string) {
-    super('Nucleo amaldicoado invalido', 'CAMPANHA_NUCLEO_INVALIDO', {
+    super('Núcleo amaldicoado inválido', 'CAMPANHA_NUCLEO_INVALIDO', {
       nucleo,
     });
   }
@@ -231,7 +231,7 @@ export class PersonagemCampanhaNucleoInvalidoException extends BusinessException
 export class PersonagemCampanhaNucleoIndisponivelException extends BusinessException {
   constructor(nucleo: string) {
     super(
-      'Nucleo amaldicoado nao disponivel para este personagem',
+      'Núcleo amaldicoado não disponível para este personagem',
       'CAMPANHA_NUCLEO_INDISPONIVEL',
       { nucleo },
     );
@@ -241,7 +241,7 @@ export class PersonagemCampanhaNucleoIndisponivelException extends BusinessExcep
 export class PersonagemCampanhaNucleoSacrificioIndisponivelException extends BusinessException {
   constructor(motivo: string) {
     super(
-      'Nao e possivel sacrificar nucleo neste momento',
+      'Não e possível sacrificar núcleo neste momento',
       'CAMPANHA_NUCLEO_SACRIFICIO_INVALIDO',
       { motivo },
     );
@@ -251,7 +251,7 @@ export class PersonagemCampanhaNucleoSacrificioIndisponivelException extends Bus
 export class PersonagemCampanhaNucleoCustoInsuficienteException extends BusinessException {
   constructor(custo: number, atual: number) {
     super(
-      'PE insuficiente para sacrificar outro nucleo',
+      'PE insuficiente para sacrificar outro núcleo',
       'CAMPANHA_NUCLEO_PE_INSUFICIENTE',
       { custo, atual },
     );
@@ -261,7 +261,7 @@ export class PersonagemCampanhaNucleoCustoInsuficienteException extends Business
 export class CampanhaModificadorJaDesfeitoException extends BusinessException {
   constructor(modificadorId: number, personagemCampanhaId: number) {
     super(
-      'Este modificador ja foi desfeito',
+      'Este modificador já foi desfeito',
       'CAMPANHA_MODIFICADOR_JA_DESFEITO',
       {
         modificadorId,
@@ -274,7 +274,7 @@ export class CampanhaModificadorJaDesfeitoException extends BusinessException {
 export class SessaoCampanhaNaoEncontradaException extends BaseException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(
-      'Sessao da campanha nao encontrada',
+      'Sessão da campanha não encontrada',
       HttpStatus.NOT_FOUND,
       'SESSAO_CAMPANHA_NOT_FOUND',
       {
@@ -288,7 +288,7 @@ export class SessaoCampanhaNaoEncontradaException extends BaseException {
 export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(
-      'Cena livre nao possui controle de turnos ou rodadas',
+      'Cena livre não possui controle de turnos ou rodadas',
       'SESSAO_TURNO_INDISPONIVEL',
       {
         sessaoId,
@@ -301,7 +301,7 @@ export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessExcepti
 export class SessaoOrdemIniciativaInvalidaException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(
-      'Ordem de iniciativa invalida para os participantes atuais da sessao',
+      'Ordem de iniciativa inválida para os participantes atuais da sessão',
       'SESSAO_ORDEM_INICIATIVA_INVALIDA',
       {
         sessaoId,
@@ -314,7 +314,7 @@ export class SessaoOrdemIniciativaInvalidaException extends BusinessException {
 export class CenaSessaoNaoEncontradaException extends BaseException {
   constructor(cenaId?: number, sessaoId?: number, campanhaId?: number) {
     super(
-      'Cena da sessao nao encontrada',
+      'Cena da sessão não encontrada',
       HttpStatus.NOT_FOUND,
       'CENA_SESSAO_NOT_FOUND',
       {
@@ -329,7 +329,7 @@ export class CenaSessaoNaoEncontradaException extends BaseException {
 export class NpcSessaoNaoEncontradoException extends BaseException {
   constructor(npcSessaoId?: number, sessaoId?: number, campanhaId?: number) {
     super(
-      'NPC/Ameaca da sessao nao encontrado',
+      'NPC/Ameaça da sessão não encontrado',
       HttpStatus.NOT_FOUND,
       'NPC_SESSAO_NOT_FOUND',
       {
@@ -348,7 +348,7 @@ export class PersonagemSessaoNaoEncontradoException extends BaseException {
     campanhaId?: number,
   ) {
     super(
-      'Personagem da sessao nao encontrado',
+      'Personagem da sessão não encontrado',
       HttpStatus.NOT_FOUND,
       'PERSONAGEM_SESSAO_NOT_FOUND',
       {
@@ -363,7 +363,7 @@ export class PersonagemSessaoNaoEncontradoException extends BaseException {
 export class SessaoEventoNaoEncontradoException extends BaseException {
   constructor(eventoId?: number, sessaoId?: number, campanhaId?: number) {
     super(
-      'Evento da sessao nao encontrado',
+      'Evento da sessão não encontrado',
       HttpStatus.NOT_FOUND,
       'SESSAO_EVENTO_NOT_FOUND',
       {
@@ -378,7 +378,7 @@ export class SessaoEventoNaoEncontradoException extends BaseException {
 export class SessaoEventoDesfazerNaoPermitidoException extends BusinessException {
   constructor(eventoId: number, sessaoId: number, tipoEvento?: string) {
     super(
-      'Este evento nao pode ser desfeito com seguranca',
+      'Este evento não pode ser desfeito com segurança',
       'SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO',
       {
         eventoId,

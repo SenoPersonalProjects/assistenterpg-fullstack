@@ -1,7 +1,7 @@
 import { validarRequisitosTrilha } from './regras-trilha';
 
 describe('validarRequisitosTrilha', () => {
-  it('aceita trilha semTecnicaInata quando personagem nao tem tecnica inata', () => {
+  it('aceita trilha semTecnicaInata quando personagem não tem técnica inata', () => {
     const resultado = validarRequisitosTrilha(
       { semTecnicaInata: true },
       [],
@@ -11,7 +11,7 @@ describe('validarRequisitosTrilha', () => {
     expect(resultado).toEqual({ valido: true });
   });
 
-  it('bloqueia trilha semTecnicaInata quando personagem tem tecnica inata', () => {
+  it('bloqueia trilha semTecnicaInata quando personagem tem técnica inata', () => {
     const resultado = validarRequisitosTrilha(
       { semTecnicaInata: true },
       [],
@@ -19,10 +19,10 @@ describe('validarRequisitosTrilha', () => {
     );
 
     expect(resultado.valido).toBe(false);
-    expect(resultado.mensagemErro).toContain('sem tecnica');
+    expect(resultado.mensagemErro).toContain('sem técnica');
   });
 
-  it('mantem validacao de pericia treinada', () => {
+  it('mantem validação de perícia treinada', () => {
     const resultado = validarRequisitosTrilha(
       { pericias: [{ codigo: 'MEDICINA', treinada: true }] },
       [{ codigo: 'MEDICINA', grauTreinamento: 1 }],

@@ -219,7 +219,7 @@ export function usePersonagemBaseFormState({
 
         setInitialized(true);
       } catch {
-        setErro('Nao foi possivel carregar os dados iniciais do personagem para edicao.');
+        setErro('Não foi possível carregar os dados iniciais do personagem para edição.');
         setInitialized(true);
       }
     })();
@@ -259,7 +259,7 @@ export function usePersonagemBaseFormState({
           setCaminhoId('');
         }
       } catch {
-        setErro('Nao foi possivel carregar as trilhas da classe selecionada.');
+        setErro('Não foi possível carregar as trilhas da classe selecionada.');
       }
     })();
   }, [classeId, carregarTrilhasDaClasse, initialized]);
@@ -288,7 +288,7 @@ export function usePersonagemBaseFormState({
           setCaminhoId('');
         }
       } catch {
-        setErro('Nao foi possivel carregar os caminhos da trilha selecionada.');
+        setErro('Não foi possível carregar os caminhos da trilha selecionada.');
       }
     })();
   }, [trilhaId, carregarCaminhosDaTrilha, initialized]);
@@ -479,7 +479,7 @@ export function usePersonagemBaseFormState({
         passivasAtributosAtivos.length > 0 ? passivasAtributosAtivos : undefined,
       passivasAtributoIds: undefined,
 
-      // O estado ja esta no formato esperado pelo endpoint.
+      // O estado já esta no formato esperado pelo endpoint.
       itensInventario: itensInventario.length > 0 ? itensInventario : undefined,
     };
   }, [

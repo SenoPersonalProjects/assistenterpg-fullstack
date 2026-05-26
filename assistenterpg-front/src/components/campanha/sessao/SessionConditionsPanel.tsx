@@ -46,7 +46,7 @@ export function SessionConditionsPanel({
   const condicaoSelecionada = formCondicao.condicaoId
     ? textoSeguro(
         catalogoCondicoes.find((item) => String(item.id) === formCondicao.condicaoId)
-          ?.nome ?? 'Condicao',
+          ?.nome ?? 'Condição',
       )
     : null;
   const aplicando = Boolean(chaveAcaoAplicar && acaoCondicaoPendente === chaveAcaoAplicar);
@@ -56,7 +56,7 @@ export function SessionConditionsPanel({
       {erro ? <ErrorAlert message={erro} /> : null}
       {condicoesAtivas.length === 0 ? (
         <p className="text-[11px] text-app-muted">
-          Nenhuma condicao ativa neste alvo.
+          Nenhuma condição ativa neste alvo.
         </p>
       ) : (
         condicoesAtivas.map((condicao) => {
@@ -79,7 +79,7 @@ export function SessionConditionsPanel({
                   </p>
                 </div>
                 <span className="text-[10px] text-app-muted">
-                  {condicao.automatica ? 'Automatica' : 'Manual'}
+                  {condicao.automatica ? 'Automática' : 'Manual'}
                 </span>
               </div>
               <p className="text-[11px] text-app-muted">
@@ -114,7 +114,7 @@ export function SessionConditionsPanel({
                 >
                   {acaoCondicaoPendente === chaveRemover
                     ? 'Removendo...'
-                    : 'Remover condicao'}
+                    : 'Remover condição'}
                 </Button>
               ) : null}
             </div>
@@ -155,7 +155,7 @@ export function SessionConditionsPanel({
     return (
       <div className="rounded border border-app-border p-2">
         <p className="text-xs font-semibold text-app-fg">
-          Condicoes da sessao ({condicoesAtivas.length})
+          Condições da sessão ({condicoesAtivas.length})
         </p>
         {conteudo}
       </div>
@@ -165,7 +165,7 @@ export function SessionConditionsPanel({
   return (
     <details className="rounded border border-app-border p-2">
       <summary className="cursor-pointer text-xs font-semibold text-app-fg">
-        Condicoes da sessao ({condicoesAtivas.length})
+        Condições da sessão ({condicoesAtivas.length})
       </summary>
       {conteudo}
     </details>

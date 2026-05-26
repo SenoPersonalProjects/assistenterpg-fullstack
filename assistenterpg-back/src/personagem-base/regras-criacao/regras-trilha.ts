@@ -33,7 +33,7 @@ export function validarRequisitosTrilha(
   if (requisitos?.semTecnicaInata && tecnicaInataId) {
     return {
       valido: false,
-      mensagemErro: 'A trilha exige personagem sem tecnica amaldiçoada.',
+      mensagemErro: 'A trilha exige personagem sem técnica amaldiçoada.',
     };
   }
 

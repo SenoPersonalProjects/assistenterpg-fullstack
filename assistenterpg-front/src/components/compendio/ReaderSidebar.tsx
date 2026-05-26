@@ -242,7 +242,7 @@ export function ReaderSidebar({
         type="button"
         onClick={() => setMobileOpen(true)}
         className="fixed left-4 top-20 z-40 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-app-border bg-app-surface text-app-fg shadow-lg lg:hidden"
-        aria-label="Abrir indice do compendio"
+        aria-label="Abrir índice do compêndio"
       >
         <Icon name="menu" className="h-5 w-5" />
       </button>

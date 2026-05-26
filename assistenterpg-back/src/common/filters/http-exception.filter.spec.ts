@@ -96,7 +96,7 @@ describe('HttpExceptionFilter', () => {
     const host = createHost(request, response);
 
     const exception = new BaseException(
-      'Item nao encontrado',
+      'Item não encontrado',
       HttpStatus.NOT_FOUND,
       'ITEM_INVENTARIO_NOT_FOUND',
       { itemId: 10 },
@@ -110,7 +110,7 @@ describe('HttpExceptionFilter', () => {
     const body = getJsonBody(response);
     expect(body.code).toBe('ITEM_INVENTARIO_NOT_FOUND');
     expect(body.error).toBe('Not Found');
-    expect(body.message).toBe('Item nao encontrado');
+    expect(body.message).toBe('Item não encontrado');
     expect(body.details).toEqual({ itemId: 10 });
     expect(body.field).toBe('itemId');
   });

@@ -128,7 +128,7 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
               disabled={loading}
               rightIcon={mostrarConfirmacao ? 'eyeOff' : 'eye'}
               rightIconLabel={
-                mostrarConfirmacao ? 'Ocultar confirmacao' : 'Mostrar confirmacao'
+                mostrarConfirmacao ? 'Ocultar confirmação' : 'Mostrar confirmação'
               }
               onRightIconClick={() => setMostrarConfirmacao((v) => !v)}
             />

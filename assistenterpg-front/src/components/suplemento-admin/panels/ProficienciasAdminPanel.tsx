@@ -76,10 +76,10 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.codigo.trim()) next.codigo = 'Codigo e obrigatorio.';
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
-    if (!form.tipo.trim()) next.tipo = 'Tipo e obrigatorio.';
-    if (!form.categoria.trim()) next.categoria = 'Categoria e obrigatoria.';
+    if (!form.codigo.trim()) next.codigo = 'Código é obrigatório.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
+    if (!form.tipo.trim()) next.tipo = 'Tipo é obrigatório.';
+    if (!form.categoria.trim()) next.categoria = 'Categoria é obrigatória.';
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -124,7 +124,7 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={() => onClose(false)}
-      title={isEditing ? 'Editar proficiencia' : 'Nova proficiencia'}
+      title={isEditing ? 'Editar proficiência' : 'Nova proficiência'}
       size="lg"
       footer={
         <>
@@ -147,7 +147,7 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
-            label="Codigo *"
+            label="Código *"
             value={form.codigo}
             onChange={(e) => setField('codigo', e.target.value)}
             error={errors.codigo}
@@ -177,7 +177,7 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
           />
         </div>
         <Textarea
-          label="Descricao"
+          label="Descrição"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -228,7 +228,7 @@ export function ProficienciasAdminPanel() {
   }, [carregarDados]);
 
   async function handleDelete(item: ProficienciaCatalogo) {
-    if (!window.confirm(`Excluir proficiencia "${item.nome}"?`)) return;
+    if (!window.confirm(`Excluir proficiência "${item.nome}"?`)) return;
 
     try {
       setDeletingId(item.id);
@@ -251,7 +251,7 @@ export function ProficienciasAdminPanel() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
-            placeholder="Nome, codigo, tipo..."
+            placeholder="Nome, código, tipo..."
           />
           <Button
             variant="primary"
@@ -261,7 +261,7 @@ export function ProficienciasAdminPanel() {
             }}
           >
             <Icon name="add" className="w-4 h-4 mr-1" />
-            Nova proficiencia
+            Nova proficiência
           </Button>
         </div>
       </Card>
@@ -270,13 +270,13 @@ export function ProficienciasAdminPanel() {
 
       <Card>
         {loading ? (
-          <Loading message="Carregando proficiencias..." className="py-8 text-app-fg" />
+          <Loading message="Carregando proficiências..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
           <EmptyState
             variant="card"
             icon="skills"
-            title="Nenhuma proficiencia encontrada"
-            description="Ajuste a busca ou crie uma nova proficiencia."
+            title="Nenhuma proficiência encontrada"
+            description="Ajuste a busca ou crie uma nova proficiência."
           />
         ) : (
           <div className="overflow-x-auto">

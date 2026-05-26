@@ -139,7 +139,7 @@ describe('SessaoService', () => {
     expect(tx.personagemSessao.findMany).not.toHaveBeenCalled();
   });
 
-  it('deve encerrar sessao quando usuario for mestre', async () => {
+  it('deve encerrar sessão quando usuário for mestre', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 10,
@@ -151,7 +151,7 @@ describe('SessaoService', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
           campanhaId: 7,
-          titulo: 'Sessao teste',
+          titulo: 'Sessão teste',
           status: 'LOBBY',
           iniciadoEm: new Date('2026-05-19T10:00:00.000Z'),
           encerradoEm: new Date('2026-05-19T11:00:00.000Z'),
@@ -202,7 +202,7 @@ describe('SessaoService', () => {
     expect(resultado).toEqual(detalheEncerrada);
   });
 
-  it('deve bloquear desfazer quando evento nao for o ultimo reversivel', async () => {
+  it('deve bloquear desfazer quando evento não for o ultimo reversivel', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
       donoId: 10,
@@ -271,7 +271,7 @@ describe('SessaoService', () => {
     expect(tx.eventoSessao.update).not.toHaveBeenCalled();
   });
 
-  it('deve aplicar acumulos no custo respeitando grau da tecnica', () => {
+  it('deve aplicar acúmulos no custo respeitando grau da técnica', () => {
     const habilidade = {
       id: 999,
       tecnicaId: 77,
@@ -279,7 +279,7 @@ describe('SessaoService', () => {
       nome: 'Revestimento Ofensivo',
       descricao: '',
       requisitos: null,
-      execucao: 'Acao padrao',
+      execucao: 'Ação padrão',
       area: null,
       alcance: 'Pessoal',
       alvo: 'Você',
@@ -321,7 +321,7 @@ describe('SessaoService', () => {
     expect(custo.isUsoBaseSemEscalonamento).toBe(false);
   });
 
-  it('deve bloquear acumulos acima do grau permitido', () => {
+  it('deve bloquear acúmulos acima do grau permitido', () => {
     const habilidade = {
       id: 1000,
       tecnicaId: 77,
@@ -329,7 +329,7 @@ describe('SessaoService', () => {
       nome: 'Revestimento Defensivo',
       descricao: '',
       requisitos: null,
-      execucao: 'Acao padrao',
+      execucao: 'Ação padrão',
       area: null,
       alcance: 'Pessoal',
       alvo: 'Você',
@@ -371,12 +371,12 @@ describe('SessaoService', () => {
     }
   });
 
-  it('deve recuperar EA por Produção Acelerada usando acumulos', async () => {
+  it('deve recuperar EA por Produção Acelerada usando acúmulos', async () => {
     const tx = {
       condicao: {
         findMany: jest.fn().mockResolvedValue([
           { id: 10, nome: 'Produção Acelerada' },
-          { id: 11, nome: 'Producao Acelerada' },
+          { id: 11, nome: 'Produção Acelerada' },
           { id: 12, nome: 'Cura Acelerada' },
         ]),
       },
@@ -433,7 +433,7 @@ describe('SessaoService', () => {
     );
   });
 
-  it('deve recuperar PV por Cura Acelerada usando acumulos sem exceder o maximo', async () => {
+  it('deve recuperar PV por Cura Acelerada usando acúmulos sem exceder o maximo', async () => {
     const tx = {
       condicao: {
         findMany: jest.fn().mockResolvedValue([
@@ -493,11 +493,11 @@ describe('SessaoService', () => {
     );
   });
 
-  it('deve recuperar EA de NPC com alias legado Producao Acelerada', async () => {
+  it('deve recuperar EA de NPC com alias legado Produção Acelerada', async () => {
     const tx = {
       condicao: {
         findMany: jest.fn().mockResolvedValue([
-          { id: 11, nome: 'Producao Acelerada' },
+          { id: 11, nome: 'Produção Acelerada' },
           { id: 12, nome: 'Cura Acelerada' },
         ]),
       },
@@ -519,7 +519,7 @@ describe('SessaoService', () => {
             acumulos: 5,
             fonteCodigo: null,
             limiteFonte: null,
-            condicao: { nome: 'Producao Acelerada' },
+            condicao: { nome: 'Produção Acelerada' },
           },
         ]),
       },
@@ -599,7 +599,7 @@ describe('SessaoService', () => {
     expect(bloqueado).toBe(false);
   });
 
-  it('deve bloquear novo uso quando ja houve gasto no turno, mesmo sendo uso base sem escalonamento', () => {
+  it('deve bloquear novo uso quando já houve gasto no turno, mesmo sendo uso base sem escalonamento', () => {
     const bloqueado = (service as any).deveBloquearPorLimitePeEaTurno(
       1,
       2,
@@ -610,7 +610,7 @@ describe('SessaoService', () => {
     expect(bloqueado).toBe(true);
   });
 
-  it('deve bloquear uso nao-base ao exceder limite por turno', () => {
+  it('deve bloquear uso não-base ao exceder limite por turno', () => {
     const bloqueado = (service as any).deveBloquearPorLimitePeEaTurno(
       5,
       4,
@@ -1010,7 +1010,7 @@ describe('SessaoService', () => {
     );
 
     expect(descricao).toBe(
-      'Sustentacao cobrada: Disparo Concentrado (EA -2 | PE -3)',
+      'Sustentação cobrada: Disparo Concentrado (EA -2 | PE -3)',
     );
   });
 
@@ -1025,7 +1025,7 @@ describe('SessaoService', () => {
     );
 
     expect(descricao).toBe(
-      'Sustentacao cobrada: Revestimento Defensivo (EA -1)',
+      'Sustentação cobrada: Revestimento Defensivo (EA -1)',
     );
   });
 
@@ -1039,7 +1039,7 @@ describe('SessaoService', () => {
       },
     );
 
-    expect(descricao).toBe('Sustentacao cobrada: Disparo Concentrado (PE -2)');
+    expect(descricao).toBe('Sustentação cobrada: Disparo Concentrado (PE -2)');
   });
 
   it('deve descrever cobranca de sustentacao na timeline sem sufixo de custo quando EA/PE forem 0', () => {
@@ -1052,10 +1052,10 @@ describe('SessaoService', () => {
       },
     );
 
-    expect(descricao).toBe('Sustentacao cobrada: Barreira Simples');
+    expect(descricao).toBe('Sustentação cobrada: Barreira Simples');
   });
 
-  it('deve aplicar bonus de item personalizado na pericia escolhida com modificacoes', async () => {
+  it('deve aplicar bônus de item personalizado na perícia escolhida com modificacoes', async () => {
     (prisma as any).inventarioItemCampanha = {
       findMany: jest.fn().mockResolvedValue([
         {

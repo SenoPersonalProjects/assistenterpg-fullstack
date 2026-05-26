@@ -90,35 +90,35 @@ function labelFromCode(value: unknown, options?: { lower?: boolean }): string {
     ARTES: 'Artes',
     ATLETISMO: 'Atletismo',
     ATUALIDADES: 'Atualidades',
-    CIENCIAS: 'Ciencias',
+    CIENCIAS: 'Ciências',
     CORPO_A_CORPO: 'Corpo a corpo',
     CRIME: 'Crime',
     DIPLOMACIA: 'Diplomacia',
-    ENERGIA_AMALDICOADA: 'energia amaldicoada',
-    ENGANACAO: 'Enganacao',
+    ENERGIA_AMALDICOADA: 'energia amaldiçoada',
+    ENGANACAO: 'Enganação',
     FORTITUDE: 'Fortitude',
-    FOR: 'Forca',
+    FOR: 'Força',
     FURTIVIDADE: 'Furtividade',
     INICIATIVA: 'Iniciativa',
     INT: 'Intelecto',
-    INTIMIDACAO: 'Intimidacao',
-    INTUICAO: 'Intuicao',
-    INVESTIGACAO: 'Investigacao',
+    INTIMIDACAO: 'Intimidação',
+    INTUICAO: 'Intuição',
+    INVESTIGACAO: 'Investigação',
     JUJUTSU: 'Jujutsu',
     LEVE: 'Leve',
     LUTA: 'Luta',
     MEDICINA: 'Medicina',
     PERFURANTE: 'Perfurante',
-    PERCEPCAO: 'Percepcao',
+    PERCEPCAO: 'Percepção',
     PILOTAGEM: 'Pilotagem',
     PONTARIA: 'Pontaria',
-    PRE: 'Presenca',
-    PROFISSAO: 'Profissao',
+    PRE: 'Presença',
+    PROFISSAO: 'Profissão',
     REFLEXOS: 'Reflexos',
-    RELIGIAO: 'Religiao',
+    RELIGIAO: 'Religião',
     SIMPLES: 'Simples',
-    SOBREVIVENCIA: 'Sobrevivencia',
-    TATICA: 'Tatica',
+    SOBREVIVENCIA: 'Sobrevivência',
+    TATICA: 'Tática',
     TECNOLOGIA: 'Tecnologia',
     VIG: 'Vigor',
     VONTADE: 'Vontade',
@@ -143,9 +143,9 @@ function labelFromCode(value: unknown, options?: { lower?: boolean }): string {
 function attributeLabel(value: string): string {
   const labels: Record<string, string> = {
     agilidade: 'Agilidade',
-    forca: 'Forca',
+    força: 'Força',
     intelecto: 'Intelecto',
-    presenca: 'Presenca',
+    presença: 'Presença',
     vigor: 'Vigor',
   };
   return labels[value] ?? labelFromCode(value);
@@ -178,7 +178,7 @@ function formatPericiaRequisito(pericia: JsonRecord): string | null {
 
 function formatInlineValue(value: unknown): string {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'boolean') return value ? 'sim' : 'nao';
+  if (typeof value === 'boolean') return value ? 'sim' : 'não';
   if (typeof value === 'number') return String(value);
   if (typeof value === 'string') return labelFromCode(value);
   if (Array.isArray(value)) {
@@ -231,7 +231,7 @@ function formatRequisitos(
   ]);
 
   if (data.semTecnicaInata === true) {
-    bullets.push('Requer personagem sem tecnica amaldicoada.');
+    bullets.push('Requer personagem sem técnica amaldiçoada.');
   }
 
   const atributos = asJsonRecord(data.atributos);
@@ -245,7 +245,7 @@ function formatRequisitos(
 
   const nivelMinimo = asNumber(data.nivelMinimo);
   if (nivelMinimo !== null) {
-    bullets.push(`Requer nivel ${nivelMinimo}+.`);
+    bullets.push(`Requer nível ${nivelMinimo}+.`);
   }
 
   const pericias = toArray(data.pericias)
@@ -301,7 +301,7 @@ function formatChoice(value: unknown): string | null {
   const quantidade = asNumber(data.quantidade) ?? 1;
   const tipo = asString(data.tipo);
   const partes = [
-    `Escolha ${quantidade} ${tipo === 'PERICIAS' ? 'pericia' : 'opcao'}${quantidade > 1 ? 's' : ''}`,
+    `Escolha ${quantidade} ${tipo === 'PERICIAS' ? 'perícia' : 'opção'}${quantidade > 1 ? 's' : ''}`,
   ];
 
   const periciasPermitidas = toArray(data.periciasPermitidas)
@@ -351,13 +351,13 @@ function formatMecanicas(
     const pePorNivelImpar = asNumber(recursos.pePorNivelImpar);
 
     if (pvBarrasTotal !== null) {
-      bullets.push(`PV dividido em ${pvBarrasTotal} nucleos/barras.`);
+      bullets.push(`PV dividido em ${pvBarrasTotal} núcleos/barras.`);
     }
     if (peBase !== null) {
       bullets.push(`Recebe +${peBase} PE.`);
     }
     if (pePorNivelImpar !== null) {
-      bullets.push(`Recebe +${pePorNivelImpar} PE a cada 2 niveis.`);
+      bullets.push(`Recebe +${pePorNivelImpar} PE a cada 2 níveis.`);
     }
 
     bullets.push(
@@ -370,7 +370,7 @@ function formatMecanicas(
 
   const pvPorNivel = asNumber(data.pvPorNivel);
   if (pvPorNivel !== null) {
-    bullets.push(`Recebe +${pvPorNivel} PV por nivel.`);
+    bullets.push(`Recebe +${pvPorNivel} PV por nível.`);
   }
 
   const pvExtra = asNumber(data.pvExtra);
@@ -397,12 +397,12 @@ function formatMecanicas(
 
   const bonusSeJaTreinado = asNumber(data.bonusSeJaTreinado);
   if (bonusSeJaTreinado !== null) {
-    bullets.push(`Se ja for treinado, recebe +${bonusSeJaTreinado}.`);
+    bullets.push(`Se já for treinado, recebe +${bonusSeJaTreinado}.`);
   }
 
   const periciasBonusEscolha = asNumber(data.periciasBonusEscolha);
   if (periciasBonusEscolha !== null) {
-    bullets.push(`Pericias escolhidas recebem +${periciasBonusEscolha}.`);
+    bullets.push(`Perícias escolhidas recebem +${periciasBonusEscolha}.`);
   }
 
   const escolha = formatChoice(data.escolha);
@@ -411,10 +411,10 @@ function formatMecanicas(
   const inventario = asJsonRecord(data.inventario);
   if (inventario) {
     if (inventario.somarIntelecto === true) {
-      bullets.push('Soma Intelecto ao limite de espacos do inventario.');
+      bullets.push('Soma Intelecto ao limite de espaços do inventário.');
     }
     if (inventario.reduzirItensLeves === true) {
-      bullets.push('Itens muito leves ocupam menos espaco.');
+      bullets.push('Itens muito leves ocupam menos espaço.');
     }
     bullets.push(
       ...formatGenericEntries(
@@ -437,7 +437,7 @@ function formatMecanicas(
   if (resistencias) {
     for (const [tipo, valor] of Object.entries(resistencias)) {
       bullets.push(
-        `Resistencia a ${labelFromCode(tipo, { lower: true })} ${formatInlineValue(valor)}.`,
+        `Resistência a ${labelFromCode(tipo, { lower: true })} ${formatInlineValue(valor)}.`,
       );
     }
   }
@@ -563,16 +563,16 @@ function markdownOrigem(origem: OrigemSuplemento): string {
 
 ${stripPrefix(origem.descricao)}
 
-${origem.requisitosTexto ? `## Requisitos\n\n${origem.requisitosTexto}\n\n` : ''}## Pericias
+${origem.requisitosTexto ? `## Requisitos\n\n${origem.requisitosTexto}\n\n` : ''}## Perícias
 
-${pericias || '- Nenhuma pericia especifica.'}
+${pericias || '- Nenhuma perícia específica.'}
 
 ## Habilidade de origem
 
 ### ${origem.habilidade.nome}
 
 ${stripPrefix(origem.habilidade.descricao)}
-${formatBulletSection('Mecanicas', formatMecanicas(origem.habilidade.mecanicasEspeciais))}`;
+${formatBulletSection('Mecânicas', formatMecanicas(origem.habilidade.mecanicasEspeciais))}`;
 }
 
 function markdownPoder(poder: PoderSuplemento): string {
@@ -581,7 +581,7 @@ function markdownPoder(poder: PoderSuplemento): string {
 ${stripPrefix(poder.descricao)}
 
 ${formatBulletSection('Requisitos', formatRequisitos(poder.requisitos))}
-${formatBulletSection('Mecanicas', formatMecanicas(poder.mecanicasEspeciais))}`;
+${formatBulletSection('Mecânicas', formatMecanicas(poder.mecanicasEspeciais))}`;
 }
 
 function markdownTrilha(trilha: TrilhaSuplemento): string {
@@ -596,10 +596,10 @@ function markdownTrilha(trilha: TrilhaSuplemento): string {
       : '';
   const habilidades = trilha.habilidades
     .map(
-      (habilidade) => `## Nivel ${habilidade.nivel} - ${habilidade.nome}
+      (habilidade) => `## Nível ${habilidade.nivel} - ${habilidade.nome}
 
 ${habilidade.caminho ? `**Caminho:** ${habilidade.caminho}\n\n` : ''}${stripPrefix(habilidade.descricao)}
-${formatBulletSection('Mecanicas', formatMecanicas(habilidade.mecanicasEspeciais))}`,
+${formatBulletSection('Mecânicas', formatMecanicas(habilidade.mecanicasEspeciais))}`,
     )
     .join('\n\n');
 
@@ -634,13 +634,13 @@ ${stripPrefix(equipamento.descricao)}
 ## Dados
 
 - Categoria: ${categoriaLabel(equipamento.categoria)}
-- Espacos: ${equipamento.espacos}
-- Proficiencia: ${labelFromCode(equipamento.proficienciaArma)}
+- Espaços: ${equipamento.espacos}
+- Proficiência: ${labelFromCode(equipamento.proficienciaArma)}
 - Tipo: ${labelFromCode(equipamento.tipoArma)}
 - Empunhaduras: ${equipamento.empunhaduras.map((item) => labelFromCode(item)).join(', ')}
 - Alcance: ${labelFromCode(equipamento.alcance)}
-- Critico: ${equipamento.criticoValor}/x${equipamento.criticoMultiplicador}
-${equipamento.tipoMunicaoCodigo ? `- Municao: ${labelFromCode(equipamento.tipoMunicaoCodigo)}` : ''}
+- Crítico: ${equipamento.criticoValor}/x${equipamento.criticoMultiplicador}
+${equipamento.tipoMunicaoCodigo ? `- Munição: ${labelFromCode(equipamento.tipoMunicaoCodigo)}` : ''}
 
 ## Dano
 
@@ -657,10 +657,10 @@ ${stripPrefix(equipamento.descricao)}
 ## Dados
 
 - Categoria: ${categoriaLabel(equipamento.categoria)}
-- Espacos: ${equipamento.espacos}
+- Espaços: ${equipamento.espacos}
 - Tipo: ${labelFromCode(equipamento.tipoAcessorio)}
-${equipamento.periciaBonificada ? `- Pericia bonificada: ${labelFromCode(equipamento.periciaBonificada)}` : ''}
-${equipamento.bonusPericia ? `- Bonus de pericia: +${equipamento.bonusPericia}` : ''}
+${equipamento.periciaBonificada ? `- Perícia bonificada: ${labelFromCode(equipamento.periciaBonificada)}` : ''}
+${equipamento.bonusPericia ? `- Bônus de perícia: +${equipamento.bonusPericia}` : ''}
 ${equipamento.tipoUso ? `- Uso: ${labelFromCode(equipamento.tipoUso)}` : ''}
 
 ${equipamento.efeito ? `## Efeito\n\n${equipamento.efeito}` : ''}`;
@@ -676,7 +676,7 @@ ${stripPrefix(equipamento.descricao)}
 ## Dados
 
 - Categoria: ${categoriaLabel(equipamento.categoria)}
-- Espacos: ${equipamento.espacos}
+- Espaços: ${equipamento.espacos}
 ${equipamento.tipoUso ? `- Uso: ${labelFromCode(equipamento.tipoUso)}` : ''}
 
 ## Efeito
@@ -686,9 +686,9 @@ ${equipamento.efeito}
 ## Artefato
 
 - Tipo base: ${labelFromCode(equipamento.artefato.tipoBase)}
-- Proficiencia requerida: ${equipamento.artefato.proficienciaRequerida ? 'sim' : 'nao'}
+- Proficiência requerida: ${equipamento.artefato.proficienciaRequerida ? 'sim' : 'não'}
 ${equipamento.artefato.custoUso ? `- Custo de uso: ${equipamento.artefato.custoUso}` : ''}
-${equipamento.artefato.manutencao ? `- Manutencao: ${equipamento.artefato.manutencao}` : ''}
+${equipamento.artefato.manutencao ? `- Manutenção: ${equipamento.artefato.manutencao}` : ''}
 ${equipamento.artefato.efeito ? `\n${equipamento.artefato.efeito}` : ''}`;
 }
 
@@ -700,10 +700,10 @@ ${stripPrefix(modificacao.descricao)}
 ## Dados
 
 - Tipo: ${modificacaoLabel(modificacao.tipo)}
-- Incremento de espacos: ${modificacao.incrementoEspacos}
+- Incremento de espaços: ${modificacao.incrementoEspacos}
 
-${formatBulletSection('Restricoes', formatRestricoes(modificacao.restricoes))}
-${formatBulletSection('Efeitos mecanicos', formatEfeitosMecanicos(modificacao.efeitosMecanicos))}`;
+${formatBulletSection('Restrições', formatRestricoes(modificacao.restricoes))}
+${formatBulletSection('Efeitos mecânicos', formatEfeitosMecanicos(modificacao.efeitosMecanicos))}`;
 }
 
 function artigosPorItem<T>(
@@ -726,7 +726,7 @@ function artigosPorItem<T>(
 export function buildSobrevivendoAoJujutsuLivro(): LivroSeed {
   const intro = artigo({
     codigo: 'apresentacao',
-    titulo: 'Apresentacao',
+    titulo: 'Apresentação',
     ordem: 1,
     tags: ['apresentacao'],
     destaque: true,
@@ -734,16 +734,16 @@ export function buildSobrevivendoAoJujutsuLivro(): LivroSeed {
 
 ${DESCRICAO_SUPLEMENTO}
 
-Este livro organiza em formato de leitura o conteudo oficial ja cadastrado no sistema: origens, poderes genericos, trilhas, equipamentos, artefatos amaldicoados e modificacoes.
+Este livro organiza em formato de leitura o conteúdo oficial já cadastrado no sistema: origens, poderes genéricos, trilhas, equipamentos, artefatos amaldiçoados e modificações.
 
-As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do suplemento; este compendio serve como referencia textual navegavel.`,
+As regras mecânicas continuam sendo aplicadas pelos cadastros estruturados do suplemento; este compêndio serve como referência textual navegável.`,
   });
 
   return {
     codigo: 'sobrevivendo-ao-jujutsu',
     titulo: SUPLEMENTO_NOME,
     descricao:
-      'Primeiro suplemento oficial, com origens, poderes, trilhas, equipamentos, artefatos e modificacoes.',
+      'Primeiro suplemento oficial, com origens, poderes, trilhas, equipamentos, artefatos e modificações.',
     icone: 'book',
     cor: '#10b981',
     ordem: 2,
@@ -751,16 +751,16 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
     categorias: [
       categoria({
         codigo: 'apresentacao',
-        nome: 'Apresentacao',
+        nome: 'Apresentação',
         descricao: 'Resumo do suplemento e como usar este livro.',
         icone: 'book',
         cor: '#10b981',
         ordem: 1,
         subcategorias: [
           subcategoria({
-            codigo: 'inicio',
-            nome: 'Inicio',
-            descricao: 'Apresentacao do suplemento.',
+            codigo: 'início',
+            nome: 'Início',
+            descricao: 'Apresentação do suplemento.',
             ordem: 1,
             artigos: [intro],
           }),
@@ -769,7 +769,7 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
       categoria({
         codigo: 'origens',
         nome: 'Origens',
-        descricao: 'Novos passados e ganchos de sobrevivencia.',
+        descricao: 'Novos passados e ganchos de sobrevivência.',
         icone: 'story',
         cor: '#10b981',
         ordem: 2,
@@ -791,14 +791,14 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
       categoria({
         codigo: 'poderes',
         nome: 'Poderes',
-        descricao: 'Poderes genericos e opcoes de progressao.',
+        descricao: 'Poderes genéricos e opções de progressão.',
         icone: 'sparkles',
         cor: '#f59e0b',
         ordem: 3,
         subcategorias: [
           subcategoria({
             codigo: 'poderes-genericos',
-            nome: 'Poderes Genericos',
+            nome: 'Poderes Genéricos',
             descricao: 'Poderes oficiais adicionados pelo suplemento.',
             ordem: 1,
             artigos: artigosPorItem(poderesSuplemento, (poder) => ({
@@ -851,8 +851,8 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
           }),
           subcategoria({
             codigo: 'acessorios',
-            nome: 'Acessorios',
-            descricao: 'Acessorios oficiais do suplemento.',
+            nome: 'Acessórios',
+            descricao: 'Acessórios oficiais do suplemento.',
             ordem: 2,
             artigos: artigosPorItem(acessoriosSuplemento, (equipamento) => ({
               titulo: equipamento.nome,
@@ -864,8 +864,8 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
       }),
       categoria({
         codigo: 'artefatos-amaldicoados',
-        nome: 'Artefatos Amaldicoados',
-        descricao: 'Artefatos e itens amaldicoados do suplemento.',
+        nome: 'Artefatos Amaldiçoados',
+        descricao: 'Artefatos e itens amaldiçoados do suplemento.',
         icone: 'sparkles',
         cor: '#8b5cf6',
         ordem: 6,
@@ -873,7 +873,7 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
           subcategoria({
             codigo: 'artefatos',
             nome: 'Artefatos',
-            descricao: 'Artefatos amaldicoados oficiais do suplemento.',
+            descricao: 'Artefatos amaldiçoados oficiais do suplemento.',
             ordem: 1,
             artigos: artigosPorItem(
               artefatosAmaldicoadosSuplemento,
@@ -888,7 +888,7 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
       }),
       categoria({
         codigo: 'modificacoes',
-        nome: 'Modificacoes',
+        nome: 'Modificações',
         descricao: 'Melhorias e ajustes de equipamentos.',
         icone: 'tools',
         cor: '#fb923c',
@@ -896,8 +896,8 @@ As regras mecanicas continuam sendo aplicadas pelos cadastros estruturados do su
         subcategorias: [
           subcategoria({
             codigo: 'modificacoes-do-suplemento',
-            nome: 'Modificacoes do Suplemento',
-            descricao: 'Modificacoes oficiais adicionadas pelo suplemento.',
+            nome: 'Modificações do Suplemento',
+            descricao: 'Modificações oficiais adicionadas pelo suplemento.',
             ordem: 1,
             artigos: artigosPorItem(modificacoesSuplemento, (modificacao) => ({
               titulo: modificacao.nome,

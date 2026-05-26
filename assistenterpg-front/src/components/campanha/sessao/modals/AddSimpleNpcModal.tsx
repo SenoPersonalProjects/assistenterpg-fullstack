@@ -108,7 +108,7 @@ export function AddSimpleNpcModal({
             onChange={(e) => onFichaTipoChange(e.target.value as TipoFichaNpcAmeaca)}
           >
             <option value="NPC">NPC</option>
-            <option value="AMEACA">Ameaca</option>
+            <option value="AMEACA">Ameaça</option>
           </Select>
           <Input type="number" label="PV max" value={pontosVidaMax} onChange={(e) => onPontosVidaMaxChange(e.target.value)} />
           <Input type="number" label="Defesa" value={defesa} onChange={(e) => onDefesaChange(e.target.value)} />

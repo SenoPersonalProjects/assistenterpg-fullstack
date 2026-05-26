@@ -27,7 +27,7 @@ export function ConfirmNpcRemovalModal({
       isOpen={Boolean(npc)}
       onClose={onClose}
       onConfirm={() => (npc ? onConfirm(npc.npcSessaoId) : undefined)}
-      title="Remover aliado ou ameaca"
+      title="Remover aliado ou ameaça"
       description={
         npc ? `Remover "${textoSeguro(npc.nome)}" da cena atual?` : 'Remover da cena?'
       }

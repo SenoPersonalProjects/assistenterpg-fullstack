@@ -62,7 +62,7 @@ function createInitialState(artigo: CompendioArtigoCompleto): FormState {
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return 'Nao foi possivel salvar o artigo.';
+  return 'Não foi possível salvar o artigo.';
 }
 
 export function CompendioArticleAdminActions({ artigo }: Props) {
@@ -96,12 +96,12 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
 
   const save = async () => {
     if (!form.titulo.trim() || !form.conteudo.trim()) {
-      showToast('Titulo e conteudo sao obrigatorios.', 'warning');
+      showToast('Título e conteúdo são obrigatórios.', 'warning');
       return;
     }
 
     if (contentTooLarge) {
-      showToast('O conteudo ultrapassa o limite seguro para o campo Text.', 'warning');
+      showToast('O conteúdo ultrapassa o limite seguro para o campo Text.', 'warning');
       return;
     }
 
@@ -146,7 +146,7 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
       <Modal
         isOpen={open}
         onClose={close}
-        title="Editar artigo do compendio"
+        title="Editar artigo do compêndio"
         size="full"
         footer={
           <>
@@ -177,11 +177,11 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
             />
 
             <Textarea
-              label="Conteudo Markdown"
+              label="Conteúdo Markdown"
               value={form.conteudo}
               onChange={(event) => updateField('conteudo', event.target.value)}
               rows={18}
-              error={contentTooLarge ? 'Conteudo acima do limite seguro.' : undefined}
+              error={contentTooLarge ? 'Conteúdo acima do limite seguro.' : undefined}
               helperText={`${conteudoBytes.toLocaleString('pt-BR')} bytes / ${SAFE_TEXT_BYTES.toLocaleString('pt-BR')} bytes`}
               className="font-mono leading-relaxed"
             />
@@ -216,10 +216,10 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
                   }
                   className="w-full rounded border border-app-border bg-app-surface px-3 py-2 text-sm text-app-fg outline-none transition-colors focus:border-app-primary focus:ring-1 focus:ring-app-primary"
                 >
-                  <option value="">Sem nivel</option>
+                  <option value="">Sem nível</option>
                   <option value="iniciante">iniciante</option>
                   <option value="intermediario">intermediario</option>
-                  <option value="avancado">avancado</option>
+                  <option value="avancado">avançado</option>
                 </select>
               </label>
 

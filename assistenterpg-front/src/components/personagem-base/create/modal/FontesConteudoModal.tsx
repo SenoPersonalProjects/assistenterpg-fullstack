@@ -144,7 +144,7 @@ export function FontesConteudoModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Fontes de conteudo da ficha"
+      title="Fontes de conteúdo da ficha"
       size="xl"
       footer={
         <>
@@ -163,7 +163,7 @@ export function FontesConteudoModal({
       <div className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm text-app-muted">
-            Escolha quais suplementos e homebrews ficam disponiveis para esta ficha.
+            Escolha quais suplementos e homebrews ficam disponíveis para esta ficha.
           </p>
           <div className="rounded-lg border border-app-border bg-app-card p-3">
             <div className="flex items-center justify-between gap-3">
@@ -256,7 +256,7 @@ export function FontesConteudoModal({
                 <p className="text-xs text-app-muted">
                   {possuiBusca
                     ? 'Nenhum suplemento corresponde a busca atual.'
-                    : 'Nenhum suplemento disponivel no momento.'}
+                    : 'Nenhum suplemento disponível no momento.'}
                 </p>
               ) : (
                 suplementosFiltrados.map((suplemento) => {
@@ -322,7 +322,7 @@ export function FontesConteudoModal({
                   <p className="text-xs text-app-muted">
                     {possuiBusca
                       ? 'Nenhum grupo corresponde a busca atual.'
-                      : 'Nenhum grupo disponivel no momento.'}
+                      : 'Nenhum grupo disponível no momento.'}
                   </p>
                 ) : (
                   gruposFiltrados.map((grupo) => {
@@ -377,9 +377,9 @@ export function FontesConteudoModal({
                     <Icon name="sparkles" className="h-3.5 w-3.5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-app-fg">Homebrews disponiveis</h3>
+                    <h3 className="text-sm font-semibold text-app-fg">Homebrews disponíveis</h3>
                     <p className="text-xs text-app-muted">
-                      Habilite itens individualmente. Equipamentos homebrew so aparecem no inventario depois disso.
+                      Habilite itens individualmente. Equipamentos homebrew só aparecem no inventário depois disso.
                     </p>
                   </div>
                 </div>
@@ -393,7 +393,7 @@ export function FontesConteudoModal({
                   <p className="text-xs text-app-muted">
                     {possuiBusca
                       ? 'Nenhuma homebrew corresponde a busca atual.'
-                      : 'Nenhuma homebrew disponivel no momento.'}
+                      : 'Nenhuma homebrew disponível no momento.'}
                   </p>
                 ) : (
                   homebrewsFiltrados.map((homebrew) => {
@@ -438,7 +438,7 @@ export function FontesConteudoModal({
         </div>
 
         <div className="rounded-lg border border-app-border bg-app-surface p-3 text-xs text-app-muted">
-          O sistema base continua ativo. Suplementos e homebrews apenas liberam conteudo para a ficha. No caso de equipamentos homebrew, eles so aparecem na categoria Homebrew do inventario depois que a fonte estiver habilitada aqui.
+          O sistema base continua ativo. Suplementos e homebrews apenas liberam conteúdo para a ficha. No caso de equipamentos homebrew, eles só aparecem na categoria Homebrew do inventário depois que a fonte estiver habilitada aqui.
         </div>
       </div>
     </Modal>

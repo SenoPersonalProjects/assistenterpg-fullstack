@@ -106,9 +106,9 @@ type SeedTecnicaNaoInata = {
 const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
   {
     codigo: 'NAOINATA_TECNICA_AMALDICOADA',
-    nome: 'Tecnica Amaldicoada',
+    nome: 'Técnica Amaldiçoada',
     descricao:
-      'Aplicacoes basicas de energia amaldicoada usadas por feiticeiros jujutsu.',
+      'Aplicacoes básicas de energia amaldiçoada usadas por feiticeiros jujutsu.',
     requisitos: {
       graus: [{ tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 1 }],
     },
@@ -117,14 +117,14 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_REVESTIMENTO_OFENSIVO',
         nome: 'Revestimento Ofensivo',
         descricao:
-          'Reveste corpo ou arma com energia amaldicoada para ampliar dano e permitir ferir maldicoes.',
+          'Reveste corpo ou arma com energia amaldiçoada para ampliar dano e permitir ferir maldições.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
-        alvo: 'Voce ou sua arma',
+        alvo: 'Você ou sua arma',
         duracao: 'Sustentado',
         custoEA: 2,
         efeito:
-          'Concede 1d6 de dano adicional OU +3 no teste de ataque. Acumulavel ate +4 acumulos conforme grau de aprimoramento, com +1 EA por acumulo. Sustentacao de revestimentos custa 1 EA/turno por revestimento ativo.',
+          'Concede 1d6 de dano adicional OU +3 no teste de ataque. Acumulável até +4 acúmulos conforme grau de aprimoramento, com +1 EA por acúmulo. Sustentação de revestimentos custa 1 EA/turno por revestimento ativo.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -150,17 +150,17 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
             execucao: TipoExecucao.AO_ATACAR,
             duracao: 'Instantanea',
             efeitoAdicional:
-              'O efeito escolhido e aplicado somente no ataque que ativou a variacao.',
+              'O efeito escolhido e aplicado somente no ataque que ativou a variação.',
             ordem: 10,
           },
           {
-            nome: 'Revestimento em Municao',
+            nome: 'Revestimento em Munição',
             descricao:
               'Reveste municao de arma de fogo/disparo para permitir ferir maldicoes.',
             substituiCustos: true,
             custoEA: 2,
             efeitoAdicional:
-              'Custo dobrado (2 EA por acumulo). Mantem a escolha entre dano ou teste.',
+              'Custo dobrado (2 EA por acúmulo). Mantem a escolha entre dano ou teste.',
             ordem: 20,
           },
         ],
@@ -169,14 +169,14 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_REVESTIMENTO_DEFENSIVO',
         nome: 'Revestimento Defensivo',
         descricao:
-          'Reveste o proprio corpo com energia amaldicoada para reforco defensivo.',
+          'Reveste o próprio corpo com energia amaldiçoada para reforco defensivo.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Sustentado',
         custoEA: 2,
         efeito:
-          'Concede +2 de Defesa ou RD. Acumulavel ate +4 acumulos conforme grau de aprimoramento, com +1 EA por acumulo.',
+          'Concede +2 de Defesa ou RD. Acumulavel até +4 acúmulos conforme grau de aprimoramento, com +1 EA por acúmulo.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -201,17 +201,17 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
       },
       {
         codigo: 'NAOINATA_VELOCIDADE_AMALDICOADA',
-        nome: 'Velocidade Amaldicoada',
+        nome: 'Velocidade Amaldiçoada',
         descricao:
-          'Canaliza energia amaldicoada para acelerar movimento e reacao do corpo.',
+          'Canaliza energia amaldiçoada para acelerar movimento e reacao do corpo.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Sustentada',
         custoEA: 1,
         custoPE: 1,
         efeito:
-          'Concede +3m de deslocamento por rodada e +1 reacao especial. Cada acumulo adicional concede +3m de deslocamento e +1 reacao especial. Acumulavel ate 5 vezes conforme grau de aprimoramento.',
+          'Concede +3m de deslocamento por rodada e +1 reacao especial. Cada acúmulo adicional concede +3m de deslocamento e +1 reacao especial. Acumulavel até 5 vezes conforme grau de aprimoramento.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -225,7 +225,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_FULGOR_NEGRO',
         nome: 'Fulgor Negro (Kokusen)',
         descricao:
-          'Fenomeno raro em que energia amaldicoada sincroniza com golpe fisico em um instante quase impossivel.',
+          'Fenômeno raro em que energia amaldiçoada sincroniza com golpe físico em um instante quase impossível.',
         execucao: TipoExecucao.AO_ATACAR,
         alcance: 'Corpo-a-corpo',
         alvo: '1 ser',
@@ -233,22 +233,22 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         custoEA: 1,
         custoPE: 2,
         efeito:
-          'Voce precisa usar a habilidade e gastar os pontos antes de saber se o ataque vai gerar critico natural. Se acertar um critico natural no ataque corpo a corpo, ativa o Fulgor Negro: adiciona +2 dados de dano que nao entram no critico, aumenta o multiplicador de critico em +1 passo e recebe Producao Acelerada 1 ate o fim da cena. Cada Kokusen adicional aumenta essa Producao Acelerada em +1, ate o limite 5 pela fonte Kokusen.',
+          'Você precisa usar a habilidade e gastar os pontos antes de saber se o ataque vai gerar crítico natural. Se acertar um crítico natural no ataque corpo a corpo, ativa o Fulgor Negro: adiciona +2 dados de dano que não entram no crítico, aumenta o multiplicador de crítico em +1 passo e recebe Produção Acelerada 1 até o fim da cena. Cada Kokusen adicional aumenta essa Produção Acelerada em +1, até o limite 5 pela fonte Kokusen.',
         ordem: 40,
       },
       {
         codigo: 'NAOINATA_VOTO_VINCULATIVO',
         nome: 'Voto Vinculativo',
         descricao:
-          'Contrato com energia amaldicoada que cria obrigacoes, trocas e consequencias entre as partes.',
+          'Contrato com energia amaldiçoada que cria obrigações, trocas e consequências entre as partes.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         alcance: 'Variavel',
         alvo: 'Seres',
-        duracao: 'Ate conclusao ou rescisao do voto',
+        duracao: 'Até conclusão ou rescisão do voto',
         custoEA: 0,
         custoPE: 0,
         efeito:
-          'Tecnica flexivel e negociada com o mestre. O custo pode incluir SAN e EA conforme complexidade. Violacoes causam dano direto ou consequencias narrativas.',
+          'Técnica flexivel e negociada com o mestre. O custo pode incluir SAN e EA conforme complexidade. Violacoes causam dano direto ou consequências narrativas.',
         ordem: 50,
         variacoes: [
           {
@@ -265,7 +265,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           {
             nome: 'Voto Complexo',
             descricao:
-              'Exemplos: troca de poder por sacrificio, restricao de habilidade, compulsao.',
+              'Exemplos: troca de poder por sacrifício, restricao de habilidade, compulsao.',
             requisitos: {
               dtVontade: '20-30',
               danoSanidade: '2d4',
@@ -276,7 +276,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           {
             nome: 'Voto Extremo',
             descricao:
-              'Exemplos: sacrificio de parte do corpo, imortalidade condicional, sobrevivencia extrema.',
+              'Exemplos: sacrifício de parte do corpo, imortalidade condicional, sobrevivencia extrema.',
             requisitos: {
               dtVontade: '30+',
               danoSanidade: '4d8',
@@ -299,16 +299,16 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
       },
       {
         codigo: 'NAOINATA_DISPARAR_EA',
-        nome: 'Disparar Energia Amaldicoada',
+        nome: 'Disparar Energia Amaldiçoada',
         descricao:
-          'Dispara energia amaldicoada em projeteis, lasers ou ondas destrutivas.',
+          'Dispara energia amaldiçoada em projéteis, lasers ou ondas destrutivas.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto (9m)',
         alvo: '1 ser ou objeto',
         duracao: 'Instantaneo',
         custoEA: 1,
         efeito:
-          'Causa 1d3 de dano de energia amaldicoada por acumulo (ate 5 acumulos conforme grau). Usa teste de ataque com Jujutsu contra Defesa.',
+          'Causa 1d3 de dano de energia amaldiçoada por acúmulo (até 5 acúmulos conforme grau). Usa teste de ataque com Jujutsu contra Defesa.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
         escalonamentoCustoEA: 1,
@@ -324,9 +324,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
   },
   {
     codigo: 'NAOINATA_TECNICA_BARREIRA',
-    nome: 'Tecnica de Barreira',
+    nome: 'Técnica de Barreira',
     descricao:
-      'Construcao de barreiras para ocultar, conter, impor regras e manipular area.',
+      'Construção de barreiras para ocultar, conter, impor regras e manipular área.',
     requisitos: {
       graus: [{ tipoGrauCodigo: 'TECNICA_BARREIRA', valorMinimo: 1 }],
     },
@@ -339,38 +339,38 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         execucao: TipoExecucao.ACAO_COMPLETA,
         alcance: 'Area adjacente (variavel)',
         alvo: 'Todos no alcance',
-        duracao: 'Sustentado (requer concentracao)',
+        duracao: 'Sustentado (requer concentração)',
         custoEA: 2,
         efeito:
-          'Define de 0 a 5 regras simples simultaneas conforme grau de aprimoramento (ex.: bloquear entrada, ocultar para nao-feiticeiros, revelar maldicoes).',
+          'Define de 0 a 5 regras simples simultâneas conforme grau de aprimoramento (ex.: bloquear entrada, ocultar para não-feiticeiros, revelar maldições).',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_BARREIRA',
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.REGRAS,
         escalonamentoEfeito: {
           incrementoRegras: 1,
-          label: 'Regras simultaneas da barreira',
+          label: 'Regras simultâneas da barreira',
         },
         ordem: 10,
         variacoes: [
           {
             nome: 'Cortina',
             descricao:
-              'Barreira vasta em forma de casca esferica que oculta atividades internas para nao-feiticeiros.',
+              'Barreira vasta em forma de casca esférica que oculta atividades internas para não-feiticeiros.',
             substituiCustos: true,
             custoEA: 2,
-            duracao: 'Sustentada sem concentracao',
+            duracao: 'Sustentada sem concentração',
             efeitoAdicional:
-              'Muda o ceu interno para noite e induz espiritos amaldicoados a se revelarem.',
+              'Muda o céu interno para noite e induz espíritos amaldiçoados a se revelarem.',
             ordem: 10,
           },
         ],
       },
       {
         codigo: 'NAOINATA_EXPANSAO_DOMINIO',
-        nome: 'Expansao de Dominio',
+        nome: 'Expansao de Domínio',
         descricao:
-          'Manifesta dominio inato dentro de barreira imbuida com tecnica inata.',
+          'Manifesta domínio inato dentro de barreira imbuida com técnica inata.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         area: AreaEfeito.ESFERA,
         alcance: 'Raio curto (9m)',
@@ -385,18 +385,18 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           exigeMudra: true,
         },
         efeito:
-          'Acerto garantido para tecnicas selecionadas dentro do dominio. Tipos comuns: letal, aperfeicoado e restritivo. Custos e refinamento variam ate 20 EA.',
+          'Acerto garantido para técnicas selecionadas dentro do domínio. Tipos comuns: letal, aperfeicoado e restritivo. Custos e refinamento variam até 20 EA.',
         ordem: 20,
       },
       {
         codigo: 'NAOINATA_EXPANSAO_DOMINIO_ABERTA',
-        nome: 'Expansao de Dominio Aberta',
+        nome: 'Expansao de Domínio Aberta',
         descricao:
-          'Dominio sem fechamento completo de barreira, com ponto focal para acerto garantido.',
+          'Domínio sem fechamento completo de barreira, com ponto focal para acerto garantido.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         area: AreaEfeito.OUTROS,
         alcance: 'Area ampliada a partir do totem',
-        alvo: 'Todos na area',
+        alvo: 'Todos na área',
         duracao: 'Sustentado',
         custoEA: 12,
         custoPE: 4,
@@ -408,7 +408,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           ],
         },
         efeito:
-          'Permite rota de fuga, mas amplia alcance e poder com acerto garantido se expandindo do centro ate a borda por turnos.',
+          'Permite rota de fuga, mas amplia alcance e poder com acerto garantido se expandindo do centro até a borda por turnos.',
         ordem: 30,
       },
       {
@@ -426,14 +426,14 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           graus: [{ tipoGrauCodigo: 'TECNICA_BARREIRA', valorMinimo: 3 }],
         },
         efeito:
-          'Sem tecnica inata imbuida. Permite alterar forma/tamanho em tempo real e aplicar modificadores de -2/+2 dados em pericias.',
+          'Sem técnica inata imbuída. Permite alterar forma/tamanho em tempo real e aplicar modificadores de -2/+2 dados em perícias.',
         ordem: 40,
       },
       {
         codigo: 'NAOINATA_BARREIRA_PURA',
         nome: 'Barreira Pura',
         descricao:
-          'Versao superior de barreira usada como estrutura permanente por especialistas.',
+          'Versão superior de barreira usada como estrutura permanente por especialistas.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         area: AreaEfeito.OUTROS,
         alcance: 'Area configuravel',
@@ -444,7 +444,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           graus: [{ tipoGrauCodigo: 'TECNICA_BARREIRA', valorMinimo: 5 }],
         },
         efeito:
-          'Barreira permanente sem tecnica inata imbuida, usada como fundacao para estruturas maiores.',
+          'Barreira permanente sem técnica inata imbuida, usada como fundação para estruturas maiores.',
         ordem: 50,
       },
       {
@@ -464,16 +464,16 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           exigeBarreiraPuraNoLocal: true,
         },
         efeito:
-          'Comporta grande volume de regras simultaneas, com alta complexidade.',
+          'Comporta grande volume de regras simultâneas, com alta complexidade.',
         ordem: 60,
       },
     ],
   },
   {
     codigo: 'NAOINATA_TECNICA_ANTI_BARREIRA',
-    nome: 'Tecnica Anti-Barreira',
+    nome: 'Técnica Anti-Barreira',
     descricao:
-      'Tecnicas para neutralizar acerto garantido de dominios e efeitos automaticos.',
+      'Técnicas para neutralizar acerto garantido de domínios e efeitos automaticos.',
     requisitos: {
       graus: [{ tipoGrauCodigo: 'TECNICA_ANTI_BARREIRA', valorMinimo: 1 }],
     },
@@ -482,69 +482,69 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_CESTA_OCA',
         nome: 'Cesta Oca',
         descricao:
-          'Barreira esferica defensiva que anula acerto garantido de dominios.',
+          'Barreira esférica defensiva que anula acerto garantido de domínios.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.ESFERA,
         alcance: 'Pessoal',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Sustentado',
         custoEA: 1,
         efeito:
-          'Neutraliza acerto garantido de dominios imbuido com tecnica amaldicoada. Exige duas maos livres e pode ser quebrada por ataques diretos de energia amaldicoada.',
+          'Neutraliza acerto garantido de domínios imbuido com técnica amaldiçoada. Exige duas mãos livres e pode ser quebrada por ataques diretos de energia amaldiçoada.',
         ordem: 10,
       },
       {
         codigo: 'NAOINATA_DOMINIO_SIMPLES',
-        nome: 'Dominio Simples',
+        nome: 'Domínio Simples',
         descricao:
-          'Pequeno dominio defensivo ao redor do usuario, focado em sobrevivencia.',
+          'Pequeno domínio defensivo ao redor do usuário, focado em sobrevivencia.',
         execucao: TipoExecucao.ACAO_PADRAO,
         area: AreaEfeito.ESFERA,
-        alcance: 'Ate curto',
+        alcance: 'Até curto',
         alvo: 'Zona pessoal',
         duracao: 'Sustentado',
         custoEA: 2,
         requisitos: {
-          narrativo: 'Requer ensino de alguem que possua Dominio Simples.',
+          narrativo: 'Requer ensino de alguém que possua Domínio Simples.',
         },
         efeito:
-          'Concede +5 Defesa contra ataques externos e anula acerto garantido de dominios enquanto sustentado.',
+          'Concede +5 Defesa contra ataques externos e anula acerto garantido de domínios enquanto sustentado.',
         ordem: 20,
         variacoes: [
           {
             nome: 'Foco Ofensivo',
             descricao:
-              'Converte o dominio simples para postura agressiva controlada.',
+              'Converte o domínio simples para postura agressiva controlada.',
             efeitoAdicional:
-              'Todos os seus ataques no Dominio Simples recebem +5.',
+              'Todos os seus ataques no Domínio Simples recebem +5.',
             ordem: 10,
           },
           {
             nome: 'Foco Defensivo',
             descricao:
-              'Prioriza mitigacao de tecnicas amaldicoadas contra o usuario.',
+              'Prioriza mitigacao de técnicas amaldiçoadas contra o usuário.',
             efeitoAdicional:
-              'Concede RD 5 contra dano Jujutsu enquanto estiver dentro do Dominio Simples.',
+              'Concede RD 5 contra dano Jujutsu enquanto estiver dentro do Domínio Simples.',
             ordem: 20,
           },
           {
             nome: 'Flexibilidade',
             descricao:
-              'Permite incluir regras reduzidas e imbuicao limitada de tecnica amaldicoada.',
+              'Permite incluir regras reduzidas e imbuição limitada de técnica amaldiçoada.',
             efeitoAdicional:
-              'Funciona como versao reduzida de Expansao de Dominio.',
+              'Funciona como versao reduzida de Expansao de Domínio.',
             ordem: 30,
           },
         ],
       },
       {
         codigo: 'NAOINATA_AMPLIFICACAO_DOMINIO',
-        nome: 'Amplificacao de Dominio',
+        nome: 'Amplificacao de Domínio',
         descricao:
-          'Reveste corpo com veu vazio de dominio para enfraquecer tecnicas ao contato.',
+          'Reveste corpo com veu vazio de domínio para enfraquecer técnicas ao contato.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Sustentado',
         custoEA: 1,
         requisitos: {
@@ -554,7 +554,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           ],
         },
         efeito:
-          'Anula ou enfraquece tecnicas amaldicoadas em contato. Enquanto ativa, usuario nao pode usar propria tecnica inata. Contra dano recebido, concede RD 6 base.',
+          'Anula ou enfraquece técnicas amaldiçoadas em contato. Enquanto ativa, usuário não pode usar própria técnica inata. Contra dano recebido, concede RD 6 base.',
         ordem: 30,
         variacoes: [
           {
@@ -576,7 +576,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               exigeAmplificacaoAtiva: true,
             },
             efeitoAdicional:
-              'Acumula +6 RD adicional por acumulo durante a reacao.',
+              'Acumula +6 RD adicional por acúmulo durante a reacao.',
             ordem: 10,
           },
         ],
@@ -585,9 +585,9 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
   },
   {
     codigo: 'NAOINATA_TECNICA_REVERSA',
-    nome: 'Tecnica Amaldicoada Reversa',
+    nome: 'Técnica Amaldiçoada Reversa',
     descricao:
-      'Processa energia amaldicoada negativa em energia positiva para cura e reversao.',
+      'Processa energia amaldiçoada negativa em energia positiva para cura e reversao.',
     requisitos: {
       graus: [
         { tipoGrauCodigo: 'TECNICA_AMALDICOADA', valorMinimo: 2 },
@@ -597,16 +597,16 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
     habilidades: [
       {
         codigo: 'NAOINATA_RCT_CURA_RAPIDA',
-        nome: 'Energia Amaldicoada Reversa (Cura Rapida)',
+        nome: 'Energia Amaldiçoada Reversa (Cura Rápida)',
         descricao:
-          'Canaliza energia reversa para curar o proprio corpo com ativacao imediata.',
+          'Canaliza energia reversa para curar o próprio corpo com ativação imediata.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Instantanea',
         custoEA: 2,
         efeito:
-          'Cura 3 + 1d6 PV. Cada +2 EA adiciona +1d6, ate 5d6, conforme grau em Tecnica Reversa.',
+          'Cura 3 + 1d6 PV. Cada +2 EA adiciona +1d6, até 5d6, conforme grau em Técnica Reversa.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_REVERSA',
         escalonamentoCustoEA: 2,
@@ -636,12 +636,12 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               tipo: 'PV',
             },
             efeitoAdicional:
-              'Cura 5 + 1d8 PV por rodada enquanto mantiver concentracao. Acumulavel ate o limite do grau; cada acumulo adicional custa +2 EA e adiciona +1d8 de cura.',
+        'Cura 5 + 1d8 PV por rodada enquanto mantiver concentração. Acumulável até o limite do grau; cada acúmulo adicional custa +2 EA e adiciona +1d8 de cura.',
             ordem: 10,
           },
           {
-            nome: 'Empatia - Cura Rapida',
-            descricao: 'Aplica a cura rapida em outro alvo por toque.',
+            nome: 'Empatia - Cura Rápida',
+            descricao: 'Aplica a cura rápida em outro alvo por toque.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_PADRAO,
             alcance: 'Toque',
@@ -660,13 +660,13 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               tipo: 'PV',
             },
             efeitoAdicional:
-              'Cura 3 + 1d6 no alvo; cada +2 EA adicionais concede +1d6 de cura, ate o limite do grau.',
+              'Cura 3 + 1d6 no alvo; cada +2 EA adicionais concede +1d6 de cura, até o limite do grau.',
             ordem: 20,
           },
           {
             nome: 'Empatia - Cura Sustentada',
             descricao:
-              'Mantem cura sustentada em alvo tocado ou com condicao definida pelo mestre.',
+              'Mantém cura sustentada em alvo tocado ou com condição definida pelo mestre.',
             substituiCustos: true,
             execucao: TipoExecucao.ACAO_PADRAO,
             alcance: 'Toque',
@@ -686,7 +686,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               tipo: 'PV',
             },
             efeitoAdicional:
-              'Cura 5 + 1d8 PV por rodada no alvo enquanto a sustentacao for mantida. Acumulavel ate o limite do grau; cada acumulo adicional custa +2 EA e adiciona +1d8 de cura.',
+              'Cura 5 + 1d8 PV por rodada no alvo enquanto a sustentacao for mantida. Acumulavel até o limite do grau; cada acúmulo adicional custa +2 EA e adiciona +1d8 de cura.',
             ordem: 30,
           },
         ],
@@ -695,14 +695,14 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_REVERSAO_FEITICO',
         nome: 'Reversao de Feitico',
         descricao:
-          'Inverte o efeito de uma tecnica amaldicoada para seu oposto funcional.',
+          'Inverte o efeito de uma técnica amaldiçoada para seu oposto funcional.',
         execucao: TipoExecucao.REACAO,
-        alcance: 'Igual a tecnica alvo',
-        alvo: 'Conforme tecnica original',
+        alcance: 'Igual a técnica alvo',
+        alvo: 'Conforme técnica original',
         duracao: 'Instantanea',
         custoEA: 0,
         efeito:
-          'Custa o dobro do EA da tecnica original. Exige teste oposto de Jujutsu (Reversa): se vencer, inverte o efeito.',
+          'Custa o dobro do EA da técnica original. Exige teste oposto de Jujutsu (Reversa): se vencer, inverte o efeito.',
         ordem: 20,
       },
       {
@@ -712,12 +712,12 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
           'Reveste corpo/arma com energia positiva para dano elevado contra maldicoes.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
-        alvo: 'Voce ou sua arma',
+        alvo: 'Você ou sua arma',
         duracao: 'Sustentado',
         custoEA: 3,
         custoPE: 1,
         efeito:
-          'Concede +2d8 de dano contra maldicoes. Acumulavel ate limite de grau (conforme mesa). Sustentacao segue regra de revestimentos.',
+        'Concede +2d8 de dano contra maldições. Acumulável até limite de grau (conforme mesa). Sustentação segue regra de revestimentos.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_REVERSA',
         escalonamentoCustoEA: 2,
@@ -739,7 +739,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
             custoEA: 3,
             custoPE: 1,
             efeitoAdicional:
-              'Concede +2d8 de dano de energia positiva no ataque disparador. Acumulavel ate o limite do grau; cada acumulo adicional custa +2 EA.',
+              'Concede +2d8 de dano de energia positiva no ataque disparador. Acumulavel até o limite do grau; cada acúmulo adicional custa +2 EA.',
             ordem: 10,
           },
         ],
@@ -748,15 +748,15 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_REVESTIMENTO_DEFENSIVO_POSITIVO',
         nome: 'Revestimento Defensivo Positivo',
         descricao:
-          'Camada de energia positiva que protege e punem maldicoes que atacam o usuario.',
+          'Camada de energia positiva que protege e punem maldições que atacam o usuário.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Pessoal',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Sustentado',
         custoEA: 3,
         custoPE: 1,
         efeito:
-          'Concede +2 Defesa ou RD contra maldicoes (acumulavel por grau). Espiritos que atacarem o usuario sofrem 1d8 de energia positiva por acumulo.',
+          'Concede +2 Defesa ou RD contra maldições (acumulavel por grau). Espiritos que atacarem o usuário sofrem 1d8 de energia positiva por acúmulo.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_REVERSA',
         escalonamentoCustoEA: 2,
@@ -784,7 +784,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_DISPARAR_EA_POSITIVA',
         nome: 'Disparar Energia Positiva',
         descricao:
-          'Projeta energia positiva para desestabilizar e exorcizar maldicoes.',
+          'Projeta energia positiva para desestabilizar e exorcizar maldições.',
         execucao: TipoExecucao.ACAO_PADRAO,
         alcance: 'Curto (9m)',
         alvo: '1 ser',
@@ -792,7 +792,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         custoEA: 5,
         custoPE: 1,
         efeito:
-          'Causa 10 + 2d8 de dano base. Cada +2 EA adicionais adiciona +2d8 de dano, ate o limite do grau. Requer teste de Pontaria com Jujutsu contra Defesa do alvo.',
+          'Causa 10 + 2d8 de dano base. Cada +2 EA adicionais adiciona +2d8 de dano, até o limite do grau. Requer teste de Pontaria com Jujutsu contra Defesa do alvo.',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_REVERSA',
         escalonamentoCustoEA: 2,
@@ -827,7 +827,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
               tipo: 'ENERGIA_POSITIVA',
             },
             efeitoAdicional:
-              'Mantem a formula de dano 10 + 2d8 por acumulo. Exige uma mao livre para manter o feixe e consome 2 PE por turno sustentado.',
+              'Mantem a formula de dano 10 + 2d8 por acúmulo. Exige uma mao livre para manter o feixe e consome 2 PE por turno sustentado.',
             ordem: 10,
           },
         ],
@@ -836,7 +836,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
   },
   {
     codigo: 'NAOINATA_TECNICA_SHIKIGAMI',
-    nome: 'Tecnica de Shikigami',
+    nome: 'Técnica de Shikigami',
     descricao:
       'Invocacao e controle de shikigamis com apoio de talismas, ritos ou ferramentas.',
     requisitos: {
@@ -847,21 +847,21 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
         codigo: 'NAOINATA_INVOCAR_SHIKIGAMI',
         nome: 'Invocar Shikigami',
         descricao:
-          'Manifesta um shikigami em espaco adjacente usando talisma associado.',
+          'Manifesta um shikigami em espaço adjacente usando talismã associado.',
         execucao: TipoExecucao.ACAO_COMPLETA,
         alcance: '1,5m (adjacente)',
-        alvo: 'Voce',
+        alvo: 'Você',
         duracao: 'Cena',
         custoEA: 1,
         efeito:
-          'Custo base 1 EA, +1 EA por habilidade do shikigami e +1 EA a cada 2 niveis do personagem (arredonda para baixo).',
+          'Custo base 1 EA, +1 EA por habilidade do shikigami e +1 EA a cada 2 níveis do personagem (arredonda para baixo).',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_SHIKIGAMI',
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
           descricaoPorAcumulo:
-            '+1 EA por habilidade do shikigami e +1 EA a cada 2 niveis do personagem',
+            '+1 EA por habilidade do shikigami e +1 EA a cada 2 níveis do personagem',
         },
         ordem: 10,
         variacoes: [
@@ -875,7 +875,7 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
             alcance: 'Ilimitado',
             alvo: '1 ou mais shikigamis',
             efeitoAdicional:
-              'Pode ocorrer forcadamente se o usuario ficar inconsciente ou perder controle de energia.',
+              'Pode ocorrer forcadamente se o usuário ficar inconsciente ou perder controle de energia.',
             ordem: 10,
           },
           {
@@ -897,39 +897,39 @@ const tecnicasNaoInatasSeed: SeedTecnicaNaoInata[] = [
   },
   {
     codigo: 'NAOINATA_TECNICA_CORPOS_AMALDICOADOS',
-    nome: 'Tecnica de Corpos Amaldicoados',
+    nome: 'Técnica de Corpos Amaldiçoados',
     descricao:
-      'Animacao de objetos inanimados por nucleo amaldicoado para gerar autocontrole.',
+      'Animacao de objetos inanimados por núcleo amaldiçoado para gerar autocontrole.',
     requisitos: {
       graus: [{ tipoGrauCodigo: 'TECNICA_CADAVERES', valorMinimo: 1 }],
     },
     habilidades: [
       {
         codigo: 'NAOINATA_CRIAR_CORPO_AMALDICOADO',
-        nome: 'Criar Corpo Amaldicoado',
+        nome: 'Criar Corpo Amaldiçoado',
         descricao:
-          'Ritual de etapas que implanta nucleo amaldicoado em objeto inanimado.',
+          'Ritual de etapas que implanta núcleo amaldiçoado em objeto inanimado.',
         execucao: TipoExecucao.RITUAL_ETAPAS,
         alcance: '1,5m (adjacente)',
         alvo: 'Objeto inanimado',
         duracao: 'Instantanea',
         custoEA: 1,
         efeito:
-          'O corpo amaldicoado adquire consciencia funcional para seguir diretrizes do criador. Custo escala por habilidades e nivel (1 EA por habilidade + 1 EA a cada 2 niveis).',
+          'O corpo amaldiçoado adquire consciência funcional para seguir diretrizes do criador. Custo escala por habilidades e nível (1 EA por habilidade + 1 EA a cada 2 níveis).',
         escalonaPorGrau: true,
         grauTipoGrauCodigo: 'TECNICA_CADAVERES',
         escalonamentoCustoEA: 1,
         escalonamentoTipo: TipoEscalonamentoHabilidade.OUTRO,
         escalonamentoEfeito: {
           descricaoPorAcumulo:
-            '+1 EA por habilidade do corpo amaldicoado e +1 EA a cada 2 niveis do personagem',
+            '+1 EA por habilidade do corpo amaldiçoado e +1 EA a cada 2 níveis do personagem',
         },
         ordem: 10,
         variacoes: [
           {
-            nome: 'Descarregar Corpo Amaldicoado',
+            nome: 'Descarregar Corpo Amaldiçoado',
             descricao:
-              'Desliga corpos amaldicoados em alcance curto, preservando memoria no nucleo.',
+              'Desliga corpos amaldiçoados em alcance curto, preservando memória no núcleo.',
             substituiCustos: true,
             custoEA: 0,
             execucao: TipoExecucao.ACAO_PADRAO,
@@ -1096,7 +1096,7 @@ async function seedHabilidadesDaTecnica(
 }
 
 export async function seedTecnicasNaoInatas(prisma: PrismaClient) {
-  console.log('Cadastrando tecnicas amaldicoadas nao-inatas basicas...');
+  console.log('Cadastrando técnicas amaldiçoadas não-inatas básicas...');
 
   for (const tecnicaSeed of tecnicasNaoInatasSeed) {
     const tecnica = await prisma.tecnicaAmaldicoada.upsert({
@@ -1124,13 +1124,16 @@ export async function seedTecnicasNaoInatas(prisma: PrismaClient) {
     });
 
     await seedHabilidadesDaTecnica(prisma, tecnica.id, tecnicaSeed.habilidades);
+    const totalHabilidades = tecnicaSeed.habilidades.length;
     console.log(
-      `  OK ${tecnica.nome} (${tecnicaSeed.habilidades.length} habilidades)`,
+      `  OK ${tecnica.nome} (${totalHabilidades} ${
+        totalHabilidades === 1 ? 'habilidade' : 'habilidades'
+      })`,
     );
   }
 
   console.log(
-    `OK ${tecnicasNaoInatasSeed.length} tecnicas nao-inatas basicas cadastradas.`,
+    `OK ${tecnicasNaoInatasSeed.length} técnicas não inatas básicas cadastradas.`,
   );
 }
 

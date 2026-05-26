@@ -19,7 +19,7 @@ describe('FiltrarTecnicasDto', () => {
     expect(dto.incluirClas).toBe(false);
   });
 
-  it('deve falhar quando booleano recebe valor invalido', () => {
+  it('deve falhar quando booleano recebe valor inválido', () => {
     const dto = plainToInstance(
       FiltrarTecnicasDto,
       {

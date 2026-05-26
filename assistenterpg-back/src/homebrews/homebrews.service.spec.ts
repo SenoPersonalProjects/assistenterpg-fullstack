@@ -46,7 +46,7 @@ describe('HomebrewsService', () => {
     expect(service).toBeDefined();
   });
 
-  it('permite que usuario comum liste homebrews publicadas no catalogo', async () => {
+  it('permite que usuário comum liste homebrews publicadas no catalogo', async () => {
     prisma.homebrew.findMany.mockResolvedValue([
       {
         id: 10,
@@ -81,7 +81,7 @@ describe('HomebrewsService', () => {
     expect(resultado.dados[0]?.id).toBe(10);
   });
 
-  it('garante que meus inclui homebrews publicadas do proprio usuario', async () => {
+  it('garante que meus inclui homebrews publicadas do próprio usuário', async () => {
     prisma.homebrew.findMany.mockResolvedValue([
       {
         id: 15,
@@ -115,7 +115,7 @@ describe('HomebrewsService', () => {
     expect(resultado.dados[0]?.id).toBe(15);
   });
 
-  it('bloqueia leitura de rascunho de outro usuario', async () => {
+  it('bloqueia leitura de rascunho de outro usuário', async () => {
     prisma.homebrew.findUnique.mockResolvedValue({
       id: 50,
       codigo: 'HB_RASCUNHO',
@@ -137,7 +137,7 @@ describe('HomebrewsService', () => {
     );
   });
 
-  it('bloqueia edicao de homebrew de outro usuario', async () => {
+  it('bloqueia edição de homebrew de outro usuário', async () => {
     prisma.homebrew.findUnique.mockResolvedValue({
       id: 50,
       tipo: TipoHomebrewConteudo.EQUIPAMENTO,
@@ -154,7 +154,7 @@ describe('HomebrewsService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('bloqueia exclusao de homebrew de outro usuario', async () => {
+  it('bloqueia exclusao de homebrew de outro usuário', async () => {
     prisma.homebrew.findUnique.mockResolvedValue({
       id: 50,
       codigo: 'HB_PRIVADA',

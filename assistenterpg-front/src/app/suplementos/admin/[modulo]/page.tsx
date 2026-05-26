@@ -164,9 +164,9 @@ export default function SuplementosAdminModuloPage() {
         <div className="max-w-3xl mx-auto">
           <Card>
             <div className="space-y-3">
-              <h1 className="text-xl font-semibold text-app-fg">Modulo nao encontrado</h1>
+              <h1 className="text-xl font-semibold text-app-fg">Módulo não encontrado</h1>
               <p className="text-sm text-app-muted">
-                O modulo solicitado nao existe na configuracao de CRUD admin.
+                O módulo solicitado não existe na configuração de CRUD admin.
               </p>
               <Button variant="secondary" onClick={() => router.push('/suplementos/admin')}>
                 Voltar para painel admin

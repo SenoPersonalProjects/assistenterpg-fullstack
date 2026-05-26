@@ -74,18 +74,18 @@ function montarMetadadosAcao(
   const primario = [
     criarMetaItem('Alcance', acao.alcance),
     criarMetaItem('Alvo', acao.alvo),
-    criarMetaItem('Duracao', acao.duracao),
+    criarMetaItem('Duração', acao.duracao),
   ].filter(Boolean) as MetaItem[];
 
   const resistencia = [
-    criarMetaItem('Resistencia', acao.resistencia),
+    criarMetaItem('Resistência', acao.resistencia),
     criarMetaItem('DT', acao.dtResistencia),
   ].filter(Boolean) as MetaItem[];
 
   const rolagem = [
     criarMetaItem('Teste', acao.teste),
     criarMetaItem('Dano', acao.dano),
-    criarMetaItem('Critico', acao.critico),
+    criarMetaItem('Crítico', acao.critico),
   ].filter(Boolean) as MetaItem[];
 
   return { primario, resistencia, rolagem };
@@ -157,7 +157,7 @@ export function NpcSessionCard({
   onRolarPericia,
   onRolarExpressao,
 }: NpcSessionCardProps) {
-  const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaca';
+  const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça';
   const linhasRecursos: LinhaRecursoNpc[] = [
     {
       key: 'pv',
@@ -254,13 +254,13 @@ export function NpcSessionCard({
     { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
     {
       id: 'PERICIAS',
-      label: 'Pericias',
+      label: 'Perícias',
       icon: 'skills',
       count: totalPericiasNpc,
     },
     {
       id: 'CONDICOES',
-      label: 'Condicoes',
+      label: 'Condições',
       icon: 'status',
       count: npc.condicoesAtivas.length,
     },
@@ -275,7 +275,7 @@ export function NpcSessionCard({
       icon: 'shield',
       count: npc.passivas.length,
     },
-    { id: 'ACOES', label: 'Acoes', icon: 'sword', count: npc.acoes.length },
+    { id: 'ACOES', label: 'Ações', icon: 'sword', count: npc.acoes.length },
   );
 
   const totalAcoes = npc.acoes.length;
@@ -293,7 +293,7 @@ export function NpcSessionCard({
     totalAcoesComCusto ? `Com custo ${totalAcoesComCusto}` : null,
     totalAcoesComDano ? `Com dano ${totalAcoesComDano}` : null,
     totalAcoesComResistencia
-      ? `Com resistencia ${totalAcoesComResistencia}`
+      ? `Com resistência ${totalAcoesComResistencia}`
       : null,
   ].filter(Boolean) as string[];
 
@@ -339,7 +339,7 @@ export function NpcSessionCard({
           size="sm"
           icon="shield"
           title="Sem passivas"
-          description="Este NPC nao possui passivas cadastradas."
+          description="Este NPC não possui passivas cadastradas."
         />
       ) : (
         <div className="session-npc-passivas">
@@ -375,13 +375,13 @@ export function NpcSessionCard({
     <div className="session-npc-section">
       <div className="session-npc-section__header">
         <div className="space-y-1">
-          <p className="session-npc-section__title">Acoes</p>
+          <p className="session-npc-section__title">Ações</p>
           <p className="session-npc-section__subtitle">
-            Acoes disponiveis deste NPC na cena.
+            Ações disponíveis deste NPC na cena.
           </p>
         </div>
         <Badge size="sm" color="gray">
-          {totalAcoes} acao{totalAcoes === 1 ? '' : 'es'}
+          {totalAcoes} ação{totalAcoes === 1 ? '' : 'es'}
         </Badge>
       </div>
 
@@ -400,8 +400,8 @@ export function NpcSessionCard({
           variant="session"
           size="sm"
           icon="sword"
-          title="Sem acoes"
-          description="Este NPC nao possui acoes disponiveis."
+          title="Sem ações"
+          description="Este NPC não possui ações disponíveis."
         />
       ) : (
         <div className="session-npc-acoes">
@@ -511,8 +511,8 @@ export function NpcSessionCard({
           variant="session"
           size="sm"
           icon="strength"
-          title="Atributos indisponiveis"
-          description="Os atributos deste NPC nao estao disponiveis."
+          title="Atributos indisponíveis"
+          description="Os atributos deste NPC não estao disponíveis."
         />
       );
     }
@@ -562,8 +562,8 @@ export function NpcSessionCard({
           variant="session"
           size="sm"
           icon="skills"
-          title="Sem pericias"
-          description="Este NPC nao possui pericias cadastradas."
+          title="Sem perícias"
+          description="Este NPC não possui perícias cadastradas."
         />
       );
     }
@@ -608,7 +608,7 @@ export function NpcSessionCard({
           <div className="space-y-1">
             <p className="session-npc-section__title">Pericias</p>
             <p className="session-npc-section__subtitle">
-              Principais e especiais disponiveis para este NPC.
+              Principais e especiais disponíveis para este NPC.
             </p>
           </div>
           <Badge size="sm" color="gray">
@@ -834,7 +834,7 @@ export function NpcSessionCard({
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge size="sm" color={condicoesColor}>
-          Condicoes {npc.condicoesAtivas.length}
+          Condições {npc.condicoesAtivas.length}
         </Badge>
         <Badge size="sm" color="gray">
           VD {npc.vd}
@@ -1147,7 +1147,7 @@ export function NpcSessionCard({
                   <div className="session-npc-ajustes__actions">
                     <p className="session-npc-ajustes__hint">
                       {possuiAlteracoes
-                        ? 'Alteracoes locais pendentes.'
+                        ? 'Alterações locais pendentes.'
                         : 'Nenhuma alteracao pendente.'}
                     </p>
                     <Button
@@ -1155,7 +1155,7 @@ export function NpcSessionCard({
                       onClick={onSalvar}
                       disabled={sessaoEncerrada || salvando}
                     >
-                      {salvando ? 'Salvando...' : 'Salvar alteracoes'}
+                      {salvando ? 'Salvando...' : 'Salvar alterações'}
                     </Button>
                   </div>
                 </div>

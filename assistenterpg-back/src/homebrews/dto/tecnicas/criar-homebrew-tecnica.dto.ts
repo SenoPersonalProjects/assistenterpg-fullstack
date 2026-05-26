@@ -30,7 +30,7 @@ export class HomebrewTecnicaDto {
   linkExterno?: string; // URL de documentação/wiki
 
   @IsOptional()
-  requisitos?: any; // JSON livre - Ex: { "nivel": 5, "atributo": "INT >= 3" }
+  requisitos?: any; // JSON livre - Ex: { "nível": 5, "atributo": "INT >= 3" }
 
   @IsNotEmpty()
   @IsArray()

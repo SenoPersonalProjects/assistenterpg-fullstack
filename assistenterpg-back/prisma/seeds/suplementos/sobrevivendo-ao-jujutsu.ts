@@ -55,7 +55,7 @@ const PERICIAS_EXCETO_LUTA_PONTARIA = [
 ];
 
 export const DESCRICAO_SUPLEMENTO =
-  'Conteudo adaptado do suplemento "Sobrevivendo ao Horror" para o sistema de Jujutsu.';
+  'Conteúdo adaptado do suplemento "Sobrevivendo ao Horror" para o sistema de Jujutsu.';
 
 function toCategoria(
   valor: '0' | 'I' | 'II' | 'III' | 'IV' | 'ESPECIAL',
@@ -231,7 +231,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
     nome: 'Amigo dos Animais',
     descricao:
       PREFIXO +
-      'Voce desenvolveu uma conexao forte com animais e aprendeu a confiar neles para sobreviver a maldicoes.',
+      'Você desenvolveu uma conexão forte com animais e aprendeu a confiar neles para sobreviver a maldições.',
     pericias: [
       { codigo: 'ADESTRAMENTO', tipo: 'FIXA' },
       { codigo: 'PERCEPCAO', tipo: 'FIXA' },
@@ -240,7 +240,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Companheiro Animal (Amigo dos Animais)',
       descricao:
         PREFIXO +
-        'Voce entende as intencoes de animais e pode usar Adestramento para mudar a atitude deles. Alem disso, possui um companheiro animal que concede +2 em uma pericia escolhida (aprovada pelo mestre). No nivel 7 ele concede o bonus de um aliado do tipo escolhido, e no nivel 14 concede a habilidade desse aliado. Se o companheiro morrer, voce perde 10 de Sanidade permanentemente e fica perturbado ate o fim da cena.',
+        'Você entende as intenções de animais e pode usar Adestramento para mudar a atitude deles. Além disso, possui um companheiro animal que concede +2 em uma perícia escolhida (aprovada pelo mestre). No nível 7 ele concede o bônus de um aliado do tipo escolhido, e no nível 14 concede a habilidade desse aliado. Se o companheiro morrer, você perde 10 de Sanidade permanentemente e fica perturbado até o fim da cena.',
       mecanicasEspeciais: {
         escolha: { tipo: 'PERICIAS', quantidade: 1 },
         periciasBonusEscolha: 2,
@@ -251,7 +251,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
     nome: 'Astronauta',
     descricao:
       PREFIXO +
-      'Explorador espacial acostumado a pressao e isolamento, que viu o sobrenatural fora da Terra.',
+      'Explorador espacial acostumado à pressão e isolamento, que viu o sobrenatural fora da Terra.',
     pericias: [
       { codigo: 'CIENCIAS', tipo: 'FIXA' },
       { codigo: 'FORTITUDE', tipo: 'FIXA' },
@@ -260,30 +260,30 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Acostumado ao Extremo (Astronauta)',
       descricao:
         PREFIXO +
-        'Quando sofre dano de fogo, frio ou mental, voce pode gastar 1 PE para reduzir o dano em 5. A cada novo uso na mesma cena, o custo aumenta em +1 PE.',
+        'Quando sofre dano de fogo, frio ou mental, você pode gastar 1 PE para reduzir o dano em 5. A cada novo uso na mesma cena, o custo aumenta em +1 PE.',
     },
   },
   {
-    nome: 'Chef das Maldicoes',
+    nome: 'Chef das Maldições',
     descricao:
       PREFIXO +
-      'Um cozinheiro que aprendeu a preparar ingredientes amaldicoados, transformando o tabu em arma.',
+      'Um cozinheiro que aprendeu a preparar ingredientes amaldiçoados, transformando o tabu em arma.',
     pericias: [
       { codigo: 'JUJUTSU', tipo: 'FIXA' },
       { codigo: 'PROFISSAO', tipo: 'FIXA' },
     ],
     habilidade: {
-      nome: 'Fome das Maldicoes (Chef das Maldicoes)',
+      nome: 'Fome das Maldições (Chef das Maldições)',
       descricao:
         PREFIXO +
-        'Voce pode usar partes de maldicoes como ingredientes culinarios. No inicio de cada missao, pode solicitar partes como itens de categoria I (0,5 espaco). Em combate, cada maldicao Pequena ou maior fornece 1 ingrediente. Com uma acao de interludio e 1 ingrediente, faz um prato especial: teste de Profissao (cozinheiro) DT 15. Sucesso concede RD 10 contra o tipo de dano associado a energia da maldicao; falha causa vulnerabilidade. Efeitos duram ate o fim da proxima cena. A cada refeicao, voce perde 1 ponto permanente de Sanidade. Se usar regra de nivel/exposicao, trate cada parte diferente como +3% de exposicao (ou ajuste equivalente).',
+        'Você pode usar partes de maldições como ingredientes culinários. No início de cada missão, pode solicitar partes como itens de categoria I (0,5 espaço). Em combate, cada maldição Pequena ou maior fornece 1 ingrediente. Com uma ação de interlúdio e 1 ingrediente, faz um prato especial: teste de Profissão (cozinheiro) DT 15. Sucesso concede RD 10 contra o tipo de dano associado a energia da maldição; falha causa vulnerabilidade. Efeitos duram até o fim da próxima cena. A cada refeição, você perde 1 ponto permanente de Sanidade. Se usar regra de nível/exposição, trate cada parte diferente como +3% de exposição (ou ajuste equivalente).',
     },
   },
   {
     nome: 'Colegial',
     descricao:
       PREFIXO +
-      'Um jovem estudante que descobriu as maldicoes e encontrou forca nos amigos.',
+      'Um jovem estudante que descobriu as maldições e encontrou força nos amigos.',
     pericias: [
       { codigo: 'ATUALIDADES', tipo: 'FIXA' },
       { codigo: 'TECNOLOGIA', tipo: 'FIXA' },
@@ -292,30 +292,30 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Poder da Amizade (Colegial)',
       descricao:
         PREFIXO +
-        'Escolha um personagem para ser seu melhor amigo. Se estiver em alcance medio e puderem trocar olhares, voce recebe +2 em testes de pericia. Se ele morrer, seu total de PE e reduzido em -1 para cada 5 niveis ate o fim da missao. Se perder o amigo, pode escolher outro no inicio da proxima missao.',
+        'Escolha um personagem para ser seu melhor amigo. Se estiver em alcance médio e puderem trocar olhares, você recebe +2 em testes de perícia. Se ele morrer, seu total de PE e reduzido em -1 para cada 5 níveis até o fim da missão. Se perder o amigo, pode escolher outro no início da próxima missão.',
     },
   },
   {
     nome: 'Cosplayer',
     descricao:
       PREFIXO +
-      'Fa de cosplay que transformou sua arte em protecao contra o sobrenatural.',
+      'Fa de cosplay que transformou sua arte em proteção contra o sobrenatural.',
     pericias: [
       { codigo: 'ARTES', tipo: 'FIXA' },
       { codigo: 'VONTADE', tipo: 'FIXA' },
     ],
     habilidade: {
-      nome: 'Nao e Fantasia, e Cosplay! (Cosplayer)',
+      nome: 'Não e Fantasia, e Cosplay! (Cosplayer)',
       descricao:
         PREFIXO +
-        'Voce pode fazer testes de disfarce usando Artes em vez de Enganacao. Alem disso, se estiver usando um cosplay relacionado ao teste, recebe +2.',
+        'Você pode fazer testes de disfarce usando Artes em vez de Enganação. Além disso, se estiver usando um cosplay relacionado ao teste, recebe +2.',
     },
   },
   {
     nome: 'Diplomata',
     descricao:
       PREFIXO +
-      'Um negociador que aprendeu que algumas entidades nao aceitam acordos.',
+      'Um negociador que aprendeu que algumas entidades não aceitam acordos.',
     pericias: [
       { codigo: 'ATUALIDADES', tipo: 'FIXA' },
       { codigo: 'DIPLOMACIA', tipo: 'FIXA' },
@@ -324,7 +324,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Conexoes (Diplomata)',
       descricao:
         PREFIXO +
-        'Recebe +2 em Diplomacia. Alem disso, se puder contatar um NPC capaz de auxiliar, pode gastar 10 minutos e 2 PE para substituir um teste de pericia relacionado ao conhecimento desse NPC por um teste de Diplomacia.',
+        'Recebe +2 em Diplomacia. Além disso, se puder contatar um NPC capaz de auxiliar, pode gastar 10 minutos e 2 PE para substituir um teste de perícia relacionado ao conhecimento desse NPC por um teste de Diplomacia.',
       mecanicasEspeciais: { periciasBonus: { DIPLOMACIA: 2 } },
     },
   },
@@ -332,7 +332,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
     nome: 'Explorador',
     descricao:
       PREFIXO +
-      'Aventureiro que aprendeu a suportar clima, fome e perigos para seguir pistas de maldicoes.',
+      'Aventureiro que aprendeu a suportar clima, fome e perigos para seguir pistas de maldições.',
     pericias: [
       { codigo: 'FORTITUDE', tipo: 'FIXA' },
       { codigo: 'SOBREVIVENCIA', tipo: 'FIXA' },
@@ -341,7 +341,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Manual do Sobrevivente (Explorador)',
       descricao:
         PREFIXO +
-        'Quando faz um teste para resistir a armadilhas, clima, doencas, fome, sede, fumaca, sono, sufocamento ou veneno (inclusive com origem sobrenatural), pode gastar 2 PE para receber +5. Em cenas de interludio, condicoes de sono precarias contam como normais.',
+        'Quando faz um teste para resistir a armadilhas, clima, doenças, fome, sede, fumaca, sono, sufocamento ou veneno (inclusive com origem sobrenatural), pode gastar 2 PE para receber +5. Em cenas de interlúdio, condições de sono precárias contam como normais.',
     },
   },
   {
@@ -354,10 +354,10 @@ export const origensSuplemento: OrigemSuplemento[] = [
       { codigo: 'FORTITUDE', tipo: 'FIXA' },
     ],
     habilidade: {
-      nome: 'Mutacao (Experimento)',
+      nome: 'Mutação (Experimento)',
       descricao:
         PREFIXO +
-        'Voce recebe resistencia a dano 2 e +2 em uma pericia a escolha baseada em Forca, Agilidade ou Vigor. Entretanto sofre -1d20 em Diplomacia.',
+        'Você recebe resistência a dano 2 e +2 em uma perícia a escolha baseada em Força, Agilidade ou Vigor. Entretanto sofre -1d20 em Diplomacia.',
       mecanicasEspeciais: {
         resistencias: { DANO: 2 },
         escolha: {
@@ -370,26 +370,26 @@ export const origensSuplemento: OrigemSuplemento[] = [
     },
   },
   {
-    nome: 'Fanatico por Maldicoes',
+    nome: 'Fanatico por Maldições',
     descricao:
       PREFIXO +
-      'Obcecado pelo sobrenatural, voce se tornou um cacador de maldicoes.',
+      'Obcecado pelo sobrenatural, você se tornou um caçador de maldições.',
     pericias: [
       { codigo: 'INVESTIGACAO', tipo: 'FIXA' },
       { codigo: 'JUJUTSU', tipo: 'FIXA' },
     ],
     habilidade: {
-      nome: 'Conhecimento Oculto (Fanatico por Maldicoes)',
+      nome: 'Conhecimento Oculto (Fanatico por Maldições)',
       descricao:
         PREFIXO +
-        'Voce pode usar Jujutsu para identificar maldicoes a partir de pistas. Se passar, descobre caracteristicas e recebe +2 em testes contra a maldicao ate o fim da missao.',
+        'Você pode usar Jujutsu para identificar maldições a partir de pistas. Se passar, descobre características e recebe +2 em testes contra a maldição até o fim da missão.',
     },
   },
   {
     nome: 'Fotografo',
     descricao:
       PREFIXO +
-      'Um artista visual que encontrou o sobrenatural atraves de suas lentes.',
+      'Um artista visual que encontrou o sobrenatural através de suas lentes.',
     pericias: [
       { codigo: 'ARTES', tipo: 'FIXA' },
       { codigo: 'PERCEPCAO', tipo: 'FIXA' },
@@ -398,23 +398,23 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Atraves da Lente (Fotografo)',
       descricao:
         PREFIXO +
-        'Quando faz um teste de Investigacao ou Percepcao para adquirir pistas olhando por uma camera, pode gastar 2 PE para receber +5. Um personagem que se move olhando atraves da lente anda a metade do deslocamento.',
+        'Quando faz um teste de Investigação ou Percepção para adquirir pistas olhando por uma câmera, pode gastar 2 PE para receber +5. Um personagem que se move olhando através da lente anda a metade do deslocamento.',
     },
   },
   {
-    nome: 'Inventor Amaldicoado',
+    nome: 'Inventor Amaldiçoado',
     descricao:
       PREFIXO +
-      'Inventor que aplica energia amaldicoada em dispositivos e prototipos.',
+      'Inventor que aplica energia amaldiçoada em dispositivos e prototipos.',
     pericias: [
       { codigo: 'PROFISSAO', tipo: 'FIXA' },
       { codigo: 'VONTADE', tipo: 'FIXA' },
     ],
     habilidade: {
-      nome: 'Invencao Amaldicoada (Inventor Amaldicoado)',
+      nome: 'Invencao Amaldiçoada (Inventor Amaldiçoado)',
       descricao:
         PREFIXO +
-        'Escolha uma tecnica amaldicoada nao inata de nivel 1. Voce possui um invento (categoria 0, 1 espaco) que permite executar o efeito basico dessa tecnica sem custo de PE. Para ativar, gasta uma acao padrao e testa Profissao (engenheiro) DT 15 +5 para cada ativacao na mesma missao. Se falhar, o item enguica. Uma acao de interludio para manutencao redefine a DT para 15. Voce pode trocar a tecnica do invento no inicio de cada missao.',
+        'Escolha uma técnica amaldiçoada não inata de nível 1. Você possui um invento (categoria 0, 1 espaço) que permite executar o efeito básico dessa técnica sem custo de PE. Para ativar, gasta uma ação padrão e testa Profissão (engenheiro) DT 15 +5 para cada ativação na mesma missão. Se falhar, o item enguiça. Uma ação de interlúdio para manutenção redefine a DT para 15. Você pode trocar a técnica do invento no início de cada missão.',
     },
   },
   {
@@ -430,7 +430,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'A Culpa e das Estrelas (Jovem Mistico)',
       descricao:
         PREFIXO +
-        'Escolha um numero da sorte entre 1 e 6. No inicio de cada cena, voce pode gastar 1 PE e rolar 1d6. Se cair no seu numero, recebe +2 em testes de pericia ate o fim da cena. Caso contrario, na proxima vez que usar esta habilidade, escolha mais um numero. Quando acertar, volta a 1 numero.',
+        'Escolha um numero da sorte entre 1 e 6. No início de cada cena, você pode gastar 1 PE e rolar 1d6. Se cair no seu numero, recebe +2 em testes de perícia até o fim da cena. Caso contrario, na próxima vez que usar esta habilidade, escolha mais um numero. Quando acertar, volta a 1 numero.',
     },
   },
   {
@@ -446,7 +446,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Luto Habitual (Legista do Turno da Noite)',
       descricao:
         PREFIXO +
-        'Voce sofre apenas metade do dano mental ao presenciar cenas ligadas a sua rotina (cadaveres, necropsias etc). Alem disso, ao fazer testes de Medicina para primeiros socorros ou necropsia, pode gastar 2 PE para receber +5.',
+        'Você sofre apenas metade do dano mental ao presenciar cenas ligadas a sua rotina (cadaveres, necropsias etc). Além disso, ao fazer testes de Medicina para primeiros socorros ou necropsia, pode gastar 2 PE para receber +5.',
     },
   },
   {
@@ -462,7 +462,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Mapa Celeste (Mateiro)',
       descricao:
         PREFIXO +
-        'Desde que possa ver o ceu, voce sempre sabe as direcoes dos pontos cardeais e consegue chegar sem se perder em lugares visitados. Quando faz um teste de Sobrevivencia, pode gastar 2 PE para rolar novamente e ficar com o melhor. Em cenas de interludio, sono precario conta como normal.',
+        'Desde que possa ver o céu, você sempre sabe as direções dos pontos cardeais e consegue chegar sem se perder em lugares visitados. Quando faz um teste de Sobrevivência, pode gastar 2 PE para rolar novamente e ficar com o melhor. Em cenas de interlúdio, sono precário conta como normal.',
     },
   },
   {
@@ -478,7 +478,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Folego de Nadador (Mergulhador)',
       descricao:
         PREFIXO +
-        'Voce recebe +5 PV e pode prender a respiracao por rodadas iguais ao dobro do seu Vigor. Ao passar em testes de Atletismo para natacao, avanca deslocamento normal.',
+        'Você recebe +5 PV e pode prender a respiração por rodadas iguais ao dobro do seu Vigor. Ao passar em testes de Atletismo para natação, avança deslocamento normal.',
       mecanicasEspeciais: { pvExtra: 5 },
     },
   },
@@ -491,17 +491,17 @@ export const origensSuplemento: OrigemSuplemento[] = [
       { codigo: 'REFLEXOS', tipo: 'FIXA' },
     ],
     habilidade: {
-      nome: 'Maos no Volante (Motorista)',
+      nome: 'Mãos no Volante (Motorista)',
       descricao:
         PREFIXO +
-        'Voce nao sofre penalidades de ataque por estar em um veiculo em movimento. Sempre que estiver pilotando e tiver que fazer um teste de Pilotagem ou resistencia, pode gastar 2 PE para receber +5 nesse teste.',
+        'Você não sofre penalidades de ataque por estar em um veículo em movimento. Sempre que estiver pilotando e tiver que fazer um teste de Pilotagem ou resistência, pode gastar 2 PE para receber +5 nesse teste.',
     },
   },
   {
     nome: 'Nerd Entusiasta',
     descricao:
       PREFIXO +
-      'Curioso e obstinado, domina temas tecnicos e culturais para enfrentar maldicoes.',
+      'Curioso e obstinado, domina temas tecnicos e culturais para enfrentar maldições.',
     pericias: [
       { codigo: 'CIENCIAS', tipo: 'FIXA' },
       { codigo: 'TECNOLOGIA', tipo: 'FIXA' },
@@ -510,16 +510,16 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'O Inteligentao (Nerd Entusiasta)',
       descricao:
         PREFIXO +
-        'O bonus da acao de interludio ler aumenta em +1 dado (de +1d6 para +2d6).',
+        'O bônus da ação de interlúdio ler aumenta em +1 dado (de +1d6 para +2d6).',
     },
   },
   {
     nome: 'Profetizado',
     descricao:
       PREFIXO +
-      'Voce pressentiu sua morte e aprendeu a usar isso como impulso.',
+      'Você pressentiu sua morte e aprendeu a usar isso como impulso.',
     requisitosTexto:
-      'Escolha uma pericia adicional relacionada a sua premonicao.',
+      'Escolha uma perícia adicional relacionada a sua premonicao.',
     pericias: [
       { codigo: 'VONTADE', tipo: 'FIXA' },
       { codigo: 'PROFISSAO', tipo: 'ESCOLHA', grupoEscolha: 1 },
@@ -528,7 +528,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Luta ou Fuga (Profetizado)',
       descricao:
         PREFIXO +
-        'Voce recebe +2 em Vontade. Quando uma referencia direta a sua premonicao aparece, voce recebe +2 PE temporarios ate o fim da cena.',
+        'Você recebe +2 em Vontade. Quando uma referência direta a sua premonicao aparece, você recebe +2 PE temporarios até o fim da cena.',
       mecanicasEspeciais: { periciasBonus: { VONTADE: 2 } },
     },
   },
@@ -536,7 +536,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
     nome: 'Psicologo',
     descricao:
       PREFIXO +
-      'Especialista em mente humana que lida com traumas causados por maldicoes.',
+      'Especialista em mente humana que lida com traumas causados por maldições.',
     pericias: [
       { codigo: 'INTUICAO', tipo: 'FIXA' },
       { codigo: 'PROFISSAO', tipo: 'FIXA' },
@@ -545,14 +545,14 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Terapia (Psicologo)',
       descricao:
         PREFIXO +
-        'Voce pode usar Profissao (psicologo) como Diplomacia. Alem disso, uma vez por rodada, quando voce ou um aliado em alcance curto falha em um teste de resistencia contra dano mental, pode gastar 2 PE para fazer um teste de Profissao (psicologo) e usar o resultado no lugar do teste falho.',
+        'Você pode usar Profissão (psicólogo) como Diplomacia. Além disso, uma vez por rodada, quando você ou um aliado em alcance curto falha em um teste de resistência contra dano mental, pode gastar 2 PE para fazer um teste de Profissão (psicólogo) e usar o resultado no lugar do teste falho.',
     },
   },
   {
     nome: 'Reporter Investigativo',
     descricao:
       PREFIXO +
-      'Jornalista que usa investigacao para descobrir a verdade por tras do sobrenatural.',
+      'Jornalista que usa investigação para descobrir a verdade por trás do sobrenatural.',
     pericias: [
       { codigo: 'ATUALIDADES', tipo: 'FIXA' },
       { codigo: 'INVESTIGACAO', tipo: 'FIXA' },
@@ -561,7 +561,7 @@ export const origensSuplemento: OrigemSuplemento[] = [
       nome: 'Encontrar a Verdade (Reporter Investigativo)',
       descricao:
         PREFIXO +
-        'Voce pode usar Investigacao no lugar de Diplomacia ao persuadir e mudar atitude. Ao fazer um teste de Investigacao, pode gastar 2 PE para receber +5.',
+        'Você pode usar Investigação no lugar de Diplomacia ao persuadir e mudar atitude. Ao fazer um teste de Investigação, pode gastar 2 PE para receber +5.',
     },
   },
 ];
@@ -571,7 +571,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Acrobatico',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Acrobacia ou, se ja for treinado, recebe +2. Terreno dificil nao reduz seu deslocamento nem impede investidas.',
+      'Você recebe treinamento em Acrobacia ou, se já for treinado, recebe +2. Terreno difícil não reduz seu deslocamento nem impede investidas.',
     requisitos: { atributos: { agilidade: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['ACROBACIA'],
@@ -582,7 +582,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'As do Volante',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Pilotagem ou, se ja for treinado, recebe +2. Uma vez por rodada, quando um veiculo pilotado por voce sofre dano, pode testar Pilotagem para evitar o dano.',
+      'Você recebe treinamento em Pilotagem ou, se já for treinado, recebe +2. Uma vez por rodada, quando um veículo pilotado por você sofre dano, pode testar Pilotagem para evitar o dano.',
     requisitos: { atributos: { agilidade: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['PILOTAGEM'],
@@ -593,7 +593,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Atletico',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Atletismo ou, se ja for treinado, recebe +2. Alem disso, recebe +3m de deslocamento.',
+      'Você recebe treinamento em Atletismo ou, se já for treinado, recebe +2. Além disso, recebe +3m de deslocamento.',
     requisitos: { atributos: { forca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['ATLETISMO'],
@@ -604,14 +604,14 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Atraente',
     descricao:
       PREFIXO +
-      'Voce recebe +5 em testes de Artes, Diplomacia, Enganacao e Intimidacao contra pessoas que possam se sentir atraidas por voce.',
+      'Você recebe +5 em testes de Artes, Diplomacia, Enganação e Intimidação contra pessoas que possam se sentir atraidas por você.',
     requisitos: { atributos: { presenca: 2 } },
   },
   {
     nome: 'Dedos Ageis',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Crime ou, se ja for treinado, recebe +2. Alem disso, pode arrombar com acao padrao, furtar com acao livre (1x/rodada) e sabotar com acao completa.',
+      'Você recebe treinamento em Crime ou, se ja for treinado, recebe +2. Além disso, pode arrombar com ação padrão, furtar com ação livre (1x/rodada) e sabotar com ação completa.',
     requisitos: { atributos: { agilidade: 2 } },
     mecanicasEspeciais: { periciasTreinadas: ['CRIME'], bonusSeJaTreinado: 2 },
   },
@@ -619,7 +619,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Detector de Mentiras',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Intuicao ou, se ja for treinado, recebe +2. Outros sofrem -10 em Enganacao para mentir para voce.',
+      'Você recebe treinamento em Intuição ou, se já for treinado, recebe +2. Outros sofrem -10 em Enganação para mentir para você.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['INTUICAO'],
@@ -630,7 +630,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Especialista em Emergencias',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Medicina ou, se ja for treinado, recebe +2. Pode aplicar cicatrizantes e medicamentos como acao de movimento e sacar um deles como acao livre 1x/rodada.',
+      'Você recebe treinamento em Medicina ou, se ja for treinado, recebe +2. Pode aplicar cicatrizantes e medicamentos como ação de movimento e sacar um deles como ação livre 1x/rodada.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['MEDICINA'],
@@ -644,10 +644,10 @@ export const poderesSuplemento: PoderSuplemento[] = [
       'Quando sofre dano mental de medo, pode converter esse dano em perda de PV.',
   },
   {
-    nome: 'Foco em Pericia',
+    nome: 'Foco em Perícia',
     descricao:
       PREFIXO +
-      'Escolha uma pericia (exceto Luta e Pontaria). Quando faz um teste dessa pericia, rola +1d20. Pre-requisito: treinado na pericia escolhida.',
+      'Escolha uma perícia (exceto Luta e Pontaria). Quando faz um teste dessa perícia, rola +1d20. Pré-requisito: treinado na perícia escolhida.',
     mecanicasEspeciais: {
       escolha: {
         tipo: 'PERICIAS',
@@ -660,7 +660,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Inventario Organizado',
     descricao:
       PREFIXO +
-      'Voce soma seu Intelecto no limite de espacos de inventario. Itens muito leves (0,5) passam a ocupar 0,25. Pre-requisito: Int 2.',
+      'Você soma seu Intelecto no limite de espaços de inventário. Itens muito leves (0,5) passam a ocupar 0,25. Pré-requisito: Int 2.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       inventario: { somarIntelecto: true, reduzirItensLeves: true },
@@ -670,7 +670,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Informado',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Atualidades ou, se ja for treinado, recebe +2. Pode usar Atualidades no lugar de outra pericia para obter informacoes, com aprovacao do mestre.',
+      'Você recebe treinamento em Atualidades ou, se já for treinado, recebe +2. Pode usar Atualidades no lugar de outra perícia para obter informações, com aprovação do mestre.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['ATUALIDADES'],
@@ -681,7 +681,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Interrogador',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Intimidacao ou, se ja for treinado, recebe +2. Pode coagir com acao padrao 1x/cena contra o mesmo alvo.',
+      'Você recebe treinamento em Intimidação ou, se ja for treinado, recebe +2. Pode coagir com ação padrão 1x/cena contra o mesmo alvo.',
     requisitos: { atributos: { forca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['INTIMIDACAO'],
@@ -692,7 +692,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Mentiroso Nato',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Enganacao ou, se ja for treinado, recebe +2. Penalidade por mentiras implausiveis diminui para -1d20.',
+      'Você recebe treinamento em Enganação ou, se já for treinado, recebe +2. Penalidade por mentiras implausiveis diminui para -1d20.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['ENGANACAO'],
@@ -703,7 +703,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Observador',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Investigacao ou, se ja for treinado, recebe +2. Alem disso, soma Intelecto em Intuicao. Pre-requisito: Int 2.',
+      'Você recebe treinamento em Investigação ou, se já for treinado, recebe +2. Além disso, soma Intelecto em Intuição. Pré-requisito: Int 2.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['INVESTIGACAO'],
@@ -714,7 +714,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Pai de Pet',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Adestramento ou, se ja for treinado, recebe +2. Possui um animal de estimacao que concede +2 em duas pericias (exceto Luta ou Pontaria) aprovadas pelo mestre. Pre-requisito: Pre 2.',
+      'Você recebe treinamento em Adestramento ou, se já for treinado, recebe +2. Possui um animal de estimação que concede +2 em duas perícias (exceto Luta ou Pontaria) aprovadas pelo mestre. Pré-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['ADESTRAMENTO'],
@@ -731,7 +731,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Palavras de Devocao',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Religiao ou, se ja for treinado, recebe +2. Uma vez por cena, pode gastar 3 PE e uma acao completa para conceder RD mental 5 a um numero de pessoas ate o dobro da Presenca.',
+      'Você recebe treinamento em Religião ou, se já for treinado, recebe +2. Uma vez por cena, pode gastar 3 PE e uma ação completa para conceder RD mental 5 a um número de pessoas até o dobro da Presença.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['RELIGIAO'],
@@ -742,7 +742,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Parceiro',
     descricao:
       PREFIXO +
-      'Voce possui um parceiro aliado de um tipo a sua escolha. Se perder, precisa gastar um periodo de descanso para obter outro. Pre-requisitos: treinado em Diplomacia, nivel 6.',
+      'Você possui um parceiro aliado de um tipo a sua escolha. Se perder, precisa gastar um periodo de descanso para obter outro. Pré-requisitos: treinado em Diplomacia, nível 6.',
     requisitos: {
       pericias: [{ codigo: 'DIPLOMACIA', grauMinimo: 1 }],
       nivelMinimo: 6,
@@ -752,7 +752,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Pensamento Tatico',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Tatica ou, se ja for treinado, recebe +2. Quando passa em teste de Tatica para analisar terreno, voce e aliados em alcance medio recebem acao de movimento extra na primeira rodada do proximo combate. Pre-requisito: Int 2.',
+      'Você recebe treinamento em Tatica ou, se já for treinado, recebe +2. Quando passa em teste de Tatica para analisar terreno, você e aliados em alcance médio recebem ação de movimento extra na primeira rodada do próximo combate. Pré-requisito: Int 2.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: { periciasTreinadas: ['TATICA'], bonusSeJaTreinado: 2 },
   },
@@ -760,7 +760,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Personalidade Esoterica',
     descricao:
       PREFIXO +
-      'Voce recebe +3 PE e treinamento em Jujutsu (ou +2 se ja treinado). Pre-requisito: Int 2.',
+      'Você recebe +3 PE e treinamento em Jujutsu (ou +2 se já treinado). Pré-requisito: Int 2.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       recursos: { peBase: 3 },
@@ -772,7 +772,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Persuasivo',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Diplomacia ou, se ja for treinado, recebe +2. Penalidade por pedidos custosos diminui em -5. Pre-requisito: Pre 2.',
+      'Você recebe treinamento em Diplomacia ou, se já for treinado, recebe +2. Penalidade por pedidos custosos diminui em -5. Pré-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['DIPLOMACIA'],
@@ -783,7 +783,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Pesquisador Cientifico',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Ciencias ou, se ja for treinado, recebe +2. Pode usar Ciencias no lugar de Jujutsu e Sobrevivencia para identificar maldicoes e animais. Pre-requisito: Int 2.',
+      'Você recebe treinamento em Ciências ou, se já for treinado, recebe +2. Pode usar Ciências no lugar de Jujutsu e Sobrevivência para identificar maldições e animais. Pré-requisito: Int 2.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['CIENCIAS'],
@@ -794,7 +794,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Proativo',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Iniciativa ou, se ja for treinado, recebe +2. Ao rolar 19 ou 20 em pelo menos um dado de Iniciativa, recebe uma acao padrao adicional no primeiro turno. Pre-requisito: Agi 2.',
+      'Você recebe treinamento em Iniciativa ou, se já for treinado, recebe +2. Ao rolar 19 ou 20 em pelo menos um dado de Iniciativa, recebe uma ação padrão adicional no primeiro turno. Pré-requisito: Agi 2.',
     requisitos: { atributos: { agilidade: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['INICIATIVA'],
@@ -805,13 +805,13 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Provisoes de Emergencia',
     descricao:
       PREFIXO +
-      'Uma vez por missao, voce pode recuperar equipamentos como se estivesse em uma nova fase de preparacao.',
+      'Uma vez por missão, você pode recuperar equipamentos como se estivesse em uma nova fase de preparação.',
   },
   {
     nome: 'Racionalidade Inflexivel',
     descricao:
       PREFIXO +
-      'Voce pode usar Intelecto no lugar de Presenca como atributo-chave de Vontade e para calcular seus PE. Pre-requisito: Int 3.',
+      'Você pode usar Intelecto no lugar de Presença como atributo-chave de Vontade e para calcular seus PE. Pré-requisito: Int 3.',
     requisitos: { atributos: { intelecto: 3 } },
     mecanicasEspeciais: {
       recursos: { atributoChaveEa: 'INT' },
@@ -822,7 +822,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Rato de Computador',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Tecnologia ou, se ja for treinado, recebe +2. Pode hackear e operar dispositivos como acao completa e, 1x por cena de investigacao, buscar pistas sem gastar rodada. Pre-requisito: Int 2.',
+      'Você recebe treinamento em Tecnologia ou, se já for treinado, recebe +2. Pode hackear e operar dispositivos como ação completa e, 1x por cena de investigação, buscar pistas sem gastar rodada. Pré-requisito: Int 2.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['TECNOLOGIA'],
@@ -830,10 +830,10 @@ export const poderesSuplemento: PoderSuplemento[] = [
     },
   },
   {
-    nome: 'Resposta Rapida',
+    nome: 'Resposta Rápida',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Reflexos ou, se ja for treinado, recebe +2. Ao falhar em Percepcao para evitar desprevenido, pode gastar 2 PE para rolar novamente com Reflexos. Pre-requisito: Agi 2.',
+      'Você recebe treinamento em Reflexos ou, se já for treinado, recebe +2. Ao falhar em Percepção para evitar desprevenido, pode gastar 2 PE para rolar novamente com Reflexos. Pré-requisito: Agi 2.',
     requisitos: { atributos: { agilidade: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['REFLEXOS'],
@@ -844,7 +844,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Talentoso',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Artes ou, se ja for treinado, recebe +2. Quando impressiona com Artes, o bonus em pericias aumenta em +1 para cada 5 pontos acima da DT. Pre-requisito: Pre 2.',
+      'Você recebe treinamento em Artes ou, se já for treinado, recebe +2. Quando impressiona com Artes, o bônus em perícias aumenta em +1 para cada 5 pontos acima da DT. Pré-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: { periciasTreinadas: ['ARTES'], bonusSeJaTreinado: 2 },
   },
@@ -852,7 +852,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Teimosia Obstinada',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Vontade ou, se ja for treinado, recebe +2. Ao fazer teste de Vontade contra efeitos mentais ou de atitude, pode gastar 2 PE para receber +5. Pre-requisito: Pre 2.',
+      'Você recebe treinamento em Vontade ou, se já for treinado, recebe +2. Ao fazer teste de Vontade contra efeitos mentais ou de atitude, pode gastar 2 PE para receber +5. Pré-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['VONTADE'],
@@ -863,7 +863,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Tenacidade',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Fortitude ou, se ja for treinado, recebe +2. Quando estiver morrendo, mas consciente, pode fazer teste de Fortitude para encerrar a condicao. Pre-requisito: Vig 2.',
+      'Você recebe treinamento em Fortitude ou, se já for treinado, recebe +2. Quando estiver morrendo, mas consciente, pode fazer teste de Fortitude para encerrar a condição. Pré-requisito: Vig 2.',
     requisitos: { atributos: { vigor: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['FORTITUDE'],
@@ -874,7 +874,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Sentidos Agucados',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Percepcao ou, se ja for treinado, recebe +2. Nao fica desprevenido contra inimigos que nao possa ver e pode rerrolar camuflagem. Pre-requisito: Pre 2.',
+      'Você recebe treinamento em Percepção ou, se já for treinado, recebe +2. Não fica desprevenido contra inimigos que não possa ver e pode rerrolar camuflagem. Pré-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['PERCEPCAO'],
@@ -885,7 +885,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Sobrevivencialista',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Sobrevivencia ou, se ja for treinado, recebe +2. Recebe +2 em testes contra clima e terreno dificil natural nao reduz seu deslocamento. Pre-requisito: Int 2.',
+      'Você recebe treinamento em Sobrevivência ou, se já for treinado, recebe +2. Recebe +2 em testes contra clima e terreno difícil natural não reduz seu deslocamento. Pré-requisito: Int 2.',
     requisitos: { atributos: { intelecto: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['SOBREVIVENCIA'],
@@ -896,7 +896,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Sorrateiro',
     descricao:
       PREFIXO +
-      'Voce recebe treinamento em Furtividade ou, se ja for treinado, recebe +2. Nao sofre penalidades por se mover normalmente enquanto furtivo e por seguir alguem em ambientes abertos. Pre-requisito: Agi 2.',
+      'Você recebe treinamento em Furtividade ou, se já for treinado, recebe +2. Não sofre penalidades por se mover normalmente enquanto furtivo e por seguir alguém em ambientes abertos. Pré-requisito: Agi 2.',
     requisitos: { atributos: { agilidade: 2 } },
     mecanicasEspeciais: {
       periciasTreinadas: ['FURTIVIDADE'],
@@ -907,7 +907,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Vitalidade Reforcada',
     descricao:
       PREFIXO +
-      'Voce recebe +1 PV por nivel e +2 em Fortitude. Pre-requisito: Vig 2.',
+      'Você recebe +1 PV por nível e +2 em Fortitude. Pré-requisito: Vig 2.',
     requisitos: { atributos: { vigor: 2 } },
     mecanicasEspeciais: { pvPorNivel: 1, periciasBonus: { FORTITUDE: 2 } },
   },
@@ -915,7 +915,7 @@ export const poderesSuplemento: PoderSuplemento[] = [
     nome: 'Vontade Inabalavel',
     descricao:
       PREFIXO +
-      'Voce recebe +1 PE a cada 2 niveis e +2 em Vontade. Pre-requisito: Pre 2.',
+      'Você recebe +1 PE a cada 2 níveis e +2 em Vontade. Pré-requisito: Pre 2.',
     requisitos: { atributos: { presenca: 2 } },
     mecanicasEspeciais: {
       recursos: { pePorNivelImpar: 1 },
@@ -937,65 +937,65 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
         nivel: 2,
         descricao:
           PREFIXO +
-          'Escolha Diplomacia ou Enganacao. Recebe treinamento (ou +2 se ja treinado). No inicio da missao, recebe documentos que garantem acesso e autoridade; contam como item operacional sem ocupar espaco.',
+          'Escolha Diplomacia ou Enganação. Recebe treinamento (ou +2 se já treinado). No início da missão, recebe documentos que garantem acesso e autoridade; contam como item operacional sem ocupar espaço.',
       },
       {
         nome: 'O Sorriso (Agente Secreto)',
         nivel: 8,
         descricao:
           PREFIXO +
-          'Recebe +2 em Diplomacia e Enganacao. Ao falhar em um teste dessas pericias, pode gastar 2 PE para repetir (uma vez por teste). 1x por cena, pode fazer Diplomacia para se acalmar.',
+          'Recebe +2 em Diplomacia e Enganação. Ao falhar em um teste dessas perícias, pode gastar 2 PE para repetir (uma vez por teste). 1x por cena, pode fazer Diplomacia para se acalmar.',
       },
       {
         nome: 'Metodo Investigativo (Agente Secreto)',
         nivel: 13,
         descricao:
           PREFIXO +
-          'Em cenas de investigacao, a urgencia aumenta em 1 rodada. Quando o mestre rolar eventos de investigacao, pode gastar 2 PE para transformar o resultado em "sem evento"; usos adicionais na mesma cena custam +2 PE.',
+          'Em cenas de investigação, a urgência aumenta em 1 rodada. Quando o mestre rolar eventos de investigação, pode gastar 2 PE para transformar o resultado em "sem evento"; usos adicionais na mesma cena custam +2 PE.',
       },
       {
         nome: 'Multifacetado (Agente Secreto)',
         nivel: 20,
         descricao:
           PREFIXO +
-          '1x por cena, pode gastar 5 de Sanidade para receber todas as habilidades de ate nivel 13 de uma trilha de Combatente ou Especialista a sua escolha (cumprindo requisitos). Duram ate o fim da cena e nao pode repetir a mesma trilha na mesma missao.',
+          '1x por cena, pode gastar 5 de Sanidade para receber todas as habilidades de até nível 13 de uma trilha de Combatente ou Especialista a sua escolha (cumprindo requisitos). Duram até o fim da cena e não pode repetir a mesma trilha na mesma missão.',
       },
     ],
   },
   {
     classe: 'Combatente',
-    nome: 'Cacador',
+    nome: 'Caçador',
     descricao:
       PREFIXO +
-      'Especialistas em rastrear e enfrentar maldicoes com metodo e informacao.',
+      'Especialistas em rastrear e enfrentar maldições com método e informação.',
     habilidades: [
       {
-        nome: 'Rastrear Maldicoes (Cacador)',
+        nome: 'Rastrear Maldições (Caçador)',
         nivel: 2,
         descricao:
           PREFIXO +
-          'Recebe treinamento em Sobrevivencia (ou +2). Pode usar Sobrevivencia no lugar de Jujutsu para identificar maldicoes e no lugar de Investigacao e Percepcao para rastros e pistas paranormais.',
+          'Recebe treinamento em Sobrevivência (ou +2). Pode usar Sobrevivência no lugar de Jujutsu para identificar maldições e no lugar de Investigação e Percepção para rastros e pistas paranormais.',
       },
       {
-        nome: 'Estudar Fraquezas (Cacador)',
+        nome: 'Estudar Fraquezas (Caçador)',
         nivel: 8,
         descricao:
           PREFIXO +
-          'Gaste uma acao de interludio estudando um alvo usando uma pista ligada a ele. Voce descobre uma informacao util e recebe +1 em testes de pericia contra o alvo por pista ate o fim da missao.',
+          'Gaste uma ação de interlúdio estudando um alvo usando uma pista ligada a ele. Você descobre uma informação útil e recebe +1 em testes de perícia contra o alvo por pista até o fim da missão.',
       },
       {
-        nome: 'Atacar das Sombras (Cacador)',
+        nome: 'Atacar das Sombras (Caçador)',
         nivel: 13,
         descricao:
           PREFIXO +
-          'Nao sofre penalidade em Furtividade por se mover no deslocamento normal. Se usar arma silenciosa, a penalidade por atacar na mesma rodada e reduzida. Em cenas de furtividade, sua visibilidade inicial e 1 ponto menor.',
+          'Não sofre penalidade em Furtividade por se mover no deslocamento normal. Se usar arma silenciosa, a penalidade por atacar na mesma rodada e reduzida. Em cenas de furtividade, sua visibilidade inicial e 1 ponto menor.',
       },
       {
-        nome: 'Estudar a Presa (Cacador)',
+        nome: 'Estudar a Presa (Caçador)',
         nivel: 20,
         descricao:
           PREFIXO +
-          'Ao usar Estudar Fraquezas em uma maldicao ou cultista, pode definir esse tipo como "presa". Contra sua presa, recebe +1 em testes de pericia, +1 na margem e multiplicador de critico e resistencia a dano 5. Apenas um tipo por vez.',
+          'Ao usar Estudar Fraquezas em uma maldição ou cultista, pode definir esse tipo como "presa". Contra sua presa, recebe +1 em testes de perícia, +1 na margem e multiplicador de crítico e resistência a dano 5. Apenas um tipo por vez.',
       },
     ],
   },
@@ -1011,28 +1011,28 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
         nivel: 2,
         descricao:
           PREFIXO +
-          'Ao fazer teste de pericia (exceto Luta e Pontaria), pode gastar 2 PE para trocar o atributo-base para Intelecto. Se possuir Conhecimento Aplicado, o custo reduz em 1 PE.',
+          'Ao fazer teste de perícia (exceto Luta e Pontaria), pode gastar 2 PE para trocar o atributo-base para Intelecto. Se possuir Conhecimento Aplicado, o custo reduz em 1 PE.',
       },
       {
         nome: 'Leitor Contumaz (Bibliotecario)',
         nivel: 8,
         descricao:
           PREFIXO +
-          'Cada dado de bonus da acao de interludio ler aumenta para 1d8 e pode ser aplicado em qualquer pericia. Ao usar esse bonus, pode gastar 2 PE para aumentar em +1 dado.',
+          'Cada dado de bônus da ação de interlúdio ler aumenta para 1d8 e pode ser aplicado em qualquer perícia. Ao usar esse bônus, pode gastar 2 PE para aumentar em +1 dado.',
       },
       {
         nome: 'Rato de Biblioteca (Bibliotecario)',
         nivel: 13,
         descricao:
           PREFIXO +
-          'Em ambientes com muitos livros, pode gastar alguns minutos (ou 1 rodada em investigacao) para receber os beneficios de ler ou revisar caso. 1x por cena.',
+          'Em ambientes com muitos livros, pode gastar alguns minutos (ou 1 rodada em investigação) para receber os benefícios de ler ou revisar caso. 1x por cena.',
       },
       {
-        nome: 'A Forca do Saber (Bibliotecario)',
+        nome: 'A Força do Saber (Bibliotecario)',
         nivel: 20,
         descricao:
           PREFIXO +
-          'Intelecto +1. Soma Intelecto ao total de PE. Escolha uma pericia: seu atributo-base passa a ser Intelecto.',
+          'Intelecto +1. Soma Intelecto ao total de PE. Escolha uma perícia: seu atributo-base passa a ser Intelecto.',
       },
     ],
   },
@@ -1055,21 +1055,21 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
         nivel: 8,
         descricao:
           PREFIXO +
-          'Recebe +1d20 em testes para fugir de inimigos. Em cenas de perseguicao, se for a presa, pode acumular ate 4 falhas antes de ser pego.',
+          'Recebe +1d20 em testes para fugir de inimigos. Em cenas de perseguição, se for a presa, pode acumular até 4 falhas antes de ser pego.',
       },
       {
-        nome: 'Determinacao Inquestionavel (Perseverante)',
+        nome: 'Determinação Inquestionavel (Perseverante)',
         nivel: 13,
         descricao:
           PREFIXO +
-          '1x por cena, pode gastar 5 PE e uma acao padrao para remover uma condicao de medo, mental ou paralisia (a criterio do mestre).',
+          '1x por cena, pode gastar 5 PE e uma ação padrão para remover uma condição de medo, mental ou paralisia (a critério do mestre).',
       },
       {
         nome: 'So Mais um Passo (Perseverante)',
         nivel: 20,
         descricao:
           PREFIXO +
-          '1x por rodada, quando sofrer dano que o levaria a 0 PV, pode gastar 5 PE para ficar com 1 PV. Nao funciona contra dano massivo.',
+          '1x por rodada, quando sofrer dano que o levaria a 0 PV, pode gastar 5 PE para ficar com 1 PV. Não funciona contra dano massivo.',
       },
     ],
   },
@@ -1078,35 +1078,35 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
     nome: 'Muambeiro',
     descricao:
       PREFIXO +
-      'Especialista em equipamentos, capaz de fabricar e improvisar o necessario.',
+      'Especialista em equipamentos, capaz de fabricar e improvisar o necessário.',
     habilidades: [
       {
         nome: 'Mascate (Muambeiro)',
         nivel: 2,
         descricao:
           PREFIXO +
-          'Recebe treinamento em uma Profissao (armeiro, engenheiro ou quimico) e +5 na capacidade de carga. Ao fabricar item improvisado, a DT e reduzida em 10.',
+          'Recebe treinamento em uma Profissão (armeiro, engenheiro ou químico) e +5 na capacidade de carga. Ao fabricar item improvisado, a DT é reduzida em 10.',
       },
       {
-        nome: 'Fabricacao Propria (Muambeiro)',
+        nome: 'Fabricação Própria (Muambeiro)',
         nivel: 8,
         descricao:
           PREFIXO +
-          'Leva metade do tempo para fabricar itens mundanos. Pode fabricar duas municoes/explosivos por acao de manutencao e precisa apenas uma acao para armas, protecoes e itens gerais.',
+          'Leva metade do tempo para fabricar itens mundanos. Pode fabricar duas munições/explosivos por ação de manutenção e precisa apenas uma ação para armas, proteções e itens gerais.',
       },
       {
         nome: 'Laboratorio de Campo (Muambeiro)',
         nivel: 13,
         descricao:
           PREFIXO +
-          'Recebe treinamento em uma Profissao (armeiro, engenheiro ou quimico) ou +5 se ja treinado. Pode fabricar e consertar itens amaldicoados em campo.',
+          'Recebe treinamento em uma Profissão (armeiro, engenheiro ou químico) ou +5 se já treinado. Pode fabricar e consertar itens amaldiçoados em campo.',
       },
       {
         nome: 'Achado Conveniente (Muambeiro)',
         nivel: 20,
         descricao:
           PREFIXO +
-          'Pode gastar uma acao completa e 5 PE para "produzir" um item de ate categoria III (exceto itens amaldicoados). O item funciona ate o fim da cena.',
+          'Pode gastar uma ação completa e 5 PE para "produzir" um item de até categoria III (exceto itens amaldiçoados). O item funciona até o fim da cena.',
       },
     ],
   },
@@ -1115,31 +1115,31 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
     nome: 'Exorcista',
     descricao:
       PREFIXO +
-      'Feiticeiro que usa fe e disciplina para enfrentar o amaldicoado.',
+      'Feiticeiro que usa fe e disciplina para enfrentar o amaldiçoado.',
     habilidades: [
       {
-        nome: 'Revelacao do Mal (Exorcista)',
+        nome: 'Revelação do Mal (Exorcista)',
         nivel: 2,
         descricao:
           PREFIXO +
-          'Recebe treinamento em Religiao (ou +2). Pode usar Religiao no lugar de Investigacao e Percepcao para rastros paranormais e no lugar de Jujutsu para identificar maldicoes.',
+          'Recebe treinamento em Religião (ou +2). Pode usar Religião no lugar de Investigação e Percepção para rastros paranormais e no lugar de Jujutsu para identificar maldições.',
       },
       {
         nome: 'Poder da Fe (Exorcista)',
         nivel: 8,
         descricao:
           PREFIXO +
-          'Torna-se veterano em Religiao (ou recebe +5). Ao falhar em um teste de resistencia, pode gastar 2 PE para repetir usando Religiao e aceitar o novo resultado.',
+          'Torna-se veterano em Religião (ou recebe +5). Ao falhar em um teste de resistência, pode gastar 2 PE para repetir usando Religião e aceitar o novo resultado.',
       },
       {
         nome: 'Parareligiosidade (Exorcista)',
         nivel: 13,
         descricao:
           PREFIXO +
-          'Ao usar uma tecnica amaldicoada, pode gastar +2 PE para adicionar um efeito equivalente a um catalisador amaldicoado.',
+          'Ao usar uma técnica amaldiçoada, pode gastar +2 PE para adicionar um efeito equivalente a um catalisador amaldiçoado.',
       },
       {
-        nome: 'Chagas da Resistencia (Exorcista)',
+        nome: 'Chagas da Resistência (Exorcista)',
         nivel: 20,
         descricao:
           PREFIXO +
@@ -1149,53 +1149,53 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
   },
   {
     classe: 'Sentinela',
-    nome: 'Parapsicologo',
+    nome: 'Parapsicólogo',
     descricao:
       PREFIXO +
-      'Estudioso da mente humana e dos efeitos do amaldicoado sobre ela.',
+      'Estudioso da mente humana e dos efeitos do amaldiçoado sobre ela.',
     requisitos: {
-      pericias: [{ codigo: 'PROFISSAO', treinada: true, detalhe: 'psicologo' }],
+      pericias: [{ codigo: 'PROFISSAO', treinada: true, detalhe: 'psicólogo' }],
     },
     habilidades: [
       {
-        nome: 'Terapia (Parapsicologo)',
+        nome: 'Terapia (Parapsicólogo)',
         nivel: 2,
         descricao:
           PREFIXO +
-          'Pode usar Profissao (psicologo) como Diplomacia. 1x por rodada, quando voce ou aliado falhar em resistencia a dano mental, pode gastar 2 PE e usar Profissao no lugar do teste falho. Se ja possuir esta habilidade, o custo reduz em 1 PE e recebe +2 em Profissao (psicologo).',
+          'Pode usar Profissão (psicólogo) como Diplomacia. 1x por rodada, quando você ou aliado falhar em resistência a dano mental, pode gastar 2 PE e usar Profissão no lugar do teste falho. Se já possuir esta habilidade, o custo reduz em 1 PE e recebe +2 em Profissão (psicólogo).',
       },
       {
-        nome: 'Palavras-chave (Parapsicologo)',
+        nome: 'Palavras-chave (Parapsicólogo)',
         nivel: 8,
         descricao:
           PREFIXO +
-          'Ao passar em um teste para acalmar, pode gastar PE ate seu limite. Para cada 1 PE gasto, o alvo recupera 1 ponto de Sanidade.',
+          'Ao passar em um teste para acalmar, pode gastar PE até seu limite. Para cada 1 PE gasto, o alvo recupera 1 ponto de Sanidade.',
       },
       {
-        nome: 'Reprogramacao Mental (Parapsicologo)',
+        nome: 'Reprogramação Mental (Parapsicólogo)',
         nivel: 13,
         descricao:
           PREFIXO +
-          'Pode gastar 5 PE e uma acao de interludio para conceder temporariamente a outra pessoa um poder geral, da classe ou o primeiro poder de uma trilha (cumprindo requisitos) ate o proximo interludio.',
+          'Pode gastar 5 PE e uma ação de interlúdio para conceder temporariamente a outra pessoa um poder geral, da classe ou o primeiro poder de uma trilha (cumprindo requisitos) até o próximo interlúdio.',
       },
       {
-        nome: 'A Sanidade Esta La Fora (Parapsicologo)',
+        nome: 'A Sanidade Está Lá Fora (Parapsicólogo)',
         nivel: 20,
         descricao:
           PREFIXO +
-          'Pode gastar uma acao de movimento e 5 PE para remover todas as condicoes de medo ou mentais de uma pessoa adjacente (inclusive voce).',
+          'Pode gastar uma ação de movimento e 5 PE para remover todas as condições de medo ou mentais de uma pessoa adjacente (inclusive você).',
       },
     ],
   },
   {
     classe: 'Combatente',
-    nome: 'Corpo Amaldicoado Independente',
+    nome: 'Corpo Amaldiçoado Independente',
     descricao:
       TRILHAS_SOBREVIVENDO_TEXTOS.corpoAmaldicoadoIndependente.descricao,
     requisitos: { semTecnicaInata: true },
     habilidades: [
       {
-        nome: 'Blefe Mortal (Corpo Amaldicoado Independente)',
+        nome: 'Blefe Mortal (Corpo Amaldiçoado Independente)',
         codigo: 'SUP_CORPO_AMALDICOADO_BLEFE_MORTAL',
         nivel: 2,
         descricao:
@@ -1204,7 +1204,7 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
         mecanicasEspeciais: { recursos: { pvBarrasTotal: 3 } },
       },
       {
-        nome: 'Nucleos Amaldicoados (Corpo Amaldicoado Independente)',
+        nome: 'Núcleos Amaldiçoados (Corpo Amaldiçoado Independente)',
         codigo: 'SUP_CORPO_AMALDICOADO_NUCLEOS',
         nivel: 2,
         descricao:
@@ -1213,7 +1213,7 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
         mecanicasEspeciais: { pvPorNivel: 2 },
       },
       {
-        nome: 'Adaptatividade (Corpo Amaldicoado Independente)',
+        nome: 'Adaptatividade (Corpo Amaldiçoado Independente)',
         codigo: 'SUP_CORPO_AMALDICOADO_ADAPTATIVIDADE',
         nivel: 8,
         descricao:
@@ -1221,7 +1221,7 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
             .adaptatividade,
       },
       {
-        nome: 'Despertar dos Nucleos (Corpo Amaldicoado Independente)',
+        nome: 'Despertar dos Núcleos (Corpo Amaldiçoado Independente)',
         codigo: 'SUP_CORPO_AMALDICOADO_DESPERTAR',
         nivel: 13,
         descricao:
@@ -1229,7 +1229,7 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
             .despertar,
       },
       {
-        nome: 'Ainda Bem que Eu Nao Sou Humano (Corpo Amaldicoado Independente)',
+        nome: 'Ainda Bem que Eu Não Sou Humano (Corpo Amaldiçoado Independente)',
         codigo: 'SUP_CORPO_AMALDICOADO_ESTABILIDADE',
         nivel: 20,
         descricao:
@@ -1241,23 +1241,23 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
   },
   {
     classe: 'Especialista',
-    nome: 'Receptaculo',
+    nome: 'Receptáculo',
     descricao: TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.descricao,
     requisitos: { semTecnicaInata: true },
     caminhos: [
       {
-        nome: 'Supressao',
+        nome: 'Supressão',
         descricao: TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.caminhos.supressao,
       },
       {
-        nome: 'Convergencia',
+        nome: 'Convergência',
         descricao:
           TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.caminhos.convergencia,
       },
     ],
     habilidades: [
       {
-        nome: 'Destino do Receptaculo',
+        nome: 'Destino do Receptáculo',
         codigo: 'SUP_RECEPTACULO_DESTINO',
         nivel: 2,
         descricao: TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.habilidades.destino,
@@ -1266,50 +1266,50 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
         },
       },
       {
-        nome: 'Poder Roubado (Receptaculo - Supressao)',
+        nome: 'Poder Roubado (Receptáculo - Supressão)',
         codigo: 'SUP_RECEPTACULO_SUPRESSAO_8',
         nivel: 8,
-        caminho: 'Supressao',
+        caminho: 'Supressão',
         descricao:
           TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.habilidades.supressao8,
       },
       {
-        nome: 'Concessao Desesperada (Receptaculo - Supressao)',
+        nome: 'Concessão Desesperada (Receptáculo - Supressão)',
         codigo: 'SUP_RECEPTACULO_SUPRESSAO_13',
         nivel: 13,
-        caminho: 'Supressao',
+        caminho: 'Supressão',
         descricao:
           TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.habilidades.supressao13,
       },
       {
-        nome: 'Dominio Interno (Receptaculo - Supressao)',
+        nome: 'Domínio Interno (Receptáculo - Supressão)',
         codigo: 'SUP_RECEPTACULO_SUPRESSAO_20',
         nivel: 20,
-        caminho: 'Supressao',
+        caminho: 'Supressão',
         descricao:
           TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.habilidades.supressao20,
       },
       {
-        nome: 'Poder Concedido (Receptaculo - Convergencia)',
+        nome: 'Poder Concedido (Receptáculo - Convergência)',
         codigo: 'SUP_RECEPTACULO_CONVERGENCIA_8',
         nivel: 8,
-        caminho: 'Convergencia',
+        caminho: 'Convergência',
         descricao:
           TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.habilidades.convergencia8,
       },
       {
-        nome: 'Concessao Assistida (Receptaculo - Convergencia)',
+        nome: 'Concessão Assistida (Receptáculo - Convergência)',
         codigo: 'SUP_RECEPTACULO_CONVERGENCIA_13',
         nivel: 13,
-        caminho: 'Convergencia',
+        caminho: 'Convergência',
         descricao:
           TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.habilidades.convergencia13,
       },
       {
-        nome: 'Uniao Interna (Receptaculo - Convergencia)',
+        nome: 'Uniao Interna (Receptáculo - Convergência)',
         codigo: 'SUP_RECEPTACULO_CONVERGENCIA_20',
         nivel: 20,
-        caminho: 'Convergencia',
+        caminho: 'Convergência',
         descricao:
           TRILHAS_SOBREVIVENDO_TEXTOS.receptaculo.habilidades.convergencia20,
         mecanicasEspeciais: { resistencias: { ENERGIA_AMALDICOADA: 5 } },
@@ -1318,18 +1318,18 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
   },
   {
     classe: 'Sentinela',
-    nome: 'Amaldicoado',
+    nome: 'Amaldiçoado',
     descricao: TRILHAS_SOBREVIVENDO_TEXTOS.amaldicoado.descricao,
     requisitos: { semTecnicaInata: true },
     habilidades: [
       {
-        nome: 'Presenca Amaldicoada',
+        nome: 'Presença Amaldiçoada',
         codigo: 'SUP_AMALDICOADO_PRESENCA',
         nivel: 2,
         descricao: TRILHAS_SOBREVIVENDO_TEXTOS.amaldicoado.habilidades.presenca,
       },
       {
-        nome: 'Ligacao Inata',
+        nome: 'Ligação Inata',
         codigo: 'SUP_AMALDICOADO_LIGACAO',
         nivel: 8,
         descricao: TRILHAS_SOBREVIVENDO_TEXTOS.amaldicoado.habilidades.ligacao,
@@ -1341,7 +1341,7 @@ export const trilhasSuplemento: TrilhaSuplemento[] = [
         descricao: TRILHAS_SOBREVIVENDO_TEXTOS.amaldicoado.habilidades.conexao,
       },
       {
-        nome: 'Vinculo Puro',
+        nome: 'Vínculo Puro',
         codigo: 'SUP_AMALDICOADO_VINCULO',
         nivel: 20,
         descricao: TRILHAS_SOBREVIVENDO_TEXTOS.amaldicoado.habilidades.vinculo,
@@ -1356,7 +1356,7 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     nome: 'Baioneta',
     descricao:
       PREFIXO +
-      'Lammina fixavel em fuzis. Pode ser acoplada a arma de fogo de duas maos com acao de movimento; ao acoplar, torna-se arma de duas maos agil (dano 1d6) e ataques a distancia sofrem -1d20.',
+      'Lammina fixavel em fuzis. Pode ser acoplada a arma de fogo de duas mãos com ação de movimento; ao acoplar, torna-se arma de duas mãos agil (dano 1d6) e ataques a distancia sofrem -1d20.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     proficienciaArma: ProficienciaArma.SIMPLES,
@@ -1374,14 +1374,14 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     criticoMultiplicador: 2,
     alcance: AlcanceArma.ADJACENTE,
     habilidadeEspecial:
-      'Pode ser acoplada em arma de fogo de duas maos; dano 1d6 e ataques a distancia sofrem -1d20',
+      'Pode ser acoplada em arma de fogo de duas mãos; dano 1d6 e ataques a distancia sofrem -1d20',
   },
   {
     codigo: 'BASTAO_POLICIAL_SUP',
     nome: 'Bastao Policial',
     descricao:
       PREFIXO +
-      'Bastao de uso policial, util para aparar golpes. Ao usar esquiva com o bastao, o bonus na Defesa aumenta em +1.',
+      'Bastao de uso policial, util para aparar golpes. Ao usar esquiva com o bastao, o bônus na Defesa aumenta em +1.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     proficienciaArma: ProficienciaArma.SIMPLES,
@@ -1405,7 +1405,7 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     nome: 'Espingarda de Cano Duplo',
     descricao:
       PREFIXO +
-      'Espingarda com dois canos. Pode disparar ambos no mesmo alvo: -1d20 no ataque e dano 6d6. Precisa de acao de movimento para recarregar apos os dois tiros.',
+      'Espingarda com dois canos. Pode disparar ambos no mesmo alvo: -1d20 no ataque e dano 6d6. Precisa de ação de movimento para recarregar após os dois tiros.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 2,
     proficienciaArma: ProficienciaArma.TATICA,
@@ -1419,14 +1419,14 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     alcance: AlcanceArma.CURTO,
     tipoMunicaoCodigo: 'CARTUCHOS',
     habilidadeEspecial:
-      'Pode disparar dois canos: -1d20 no ataque e dano 6d6; recarrega apos 2 tiros',
+      'Pode disparar dois canos: -1d20 no ataque e dano 6d6; recarrega após 2 tiros',
   },
   {
     codigo: 'ESTILINGUE_SUP',
     nome: 'Estilingue',
     descricao:
       PREFIXO +
-      'Arma simples que permite somar Forca ao dano. Pode lancar granadas em alcance longo. Bolinhas duram a missao e podem ser reutilizadas.',
+      'Arma simples que permite somar Força ao dano. Pode lancar granadas em alcance longo. Bolinhas duram a missão e podem ser reutilizadas.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     proficienciaArma: ProficienciaArma.SIMPLES,
@@ -1439,14 +1439,14 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     criticoMultiplicador: 2,
     alcance: AlcanceArma.CURTO,
     habilidadeEspecial:
-      'Soma Forca ao dano; pode lancar granadas em alcance longo',
+      'Soma Força ao dano; pode lancar granadas em alcance longo',
   },
   {
     codigo: 'FACA_TATICA_SUP',
-    nome: 'Faca Tatica',
+    nome: 'Faça Tatica',
     descricao:
       PREFIXO +
-      'Faca equilibrada para contra-ataques e bloqueios. Pode ser arremessada.',
+      'Faça equilibrada para contra-ataques e bloqueios. Pode ser arremessada.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     proficienciaArma: ProficienciaArma.SIMPLES,
@@ -1471,7 +1471,7 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     nome: 'Gancho de Carne',
     descricao:
       PREFIXO +
-      'Gancho metalico usado para pendurar carne. Pode ser amarrado a corda/corrente, aumentando alcance para 4,5m e espaco para 2.',
+      'Gancho metálico usado para pendurar carne. Pode ser amarrado a corda/corrente, aumentando alcance para 4,5m e espaço para 2.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     proficienciaArma: ProficienciaArma.SIMPLES,
@@ -1489,14 +1489,14 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     criticoMultiplicador: 2,
     alcance: AlcanceArma.ADJACENTE,
     habilidadeEspecial:
-      'Pode ser usado com corda/corrente: alcance 4,5m e espacos 2',
+      'Pode ser usado com corda/corrente: alcance 4,5m e espaços 2',
   },
   {
     codigo: 'PICARETA_SUP',
     nome: 'Picareta',
     descricao:
       PREFIXO +
-      'Ferramenta de mineracao usada como arma. Forte, lenta e perigosa.',
+      'Ferramenta de mineração usada como arma. Forte, lenta e perigosa.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 2,
     proficienciaArma: ProficienciaArma.SIMPLES,
@@ -1520,7 +1520,7 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     nome: 'Pistola Pesada',
     descricao:
       PREFIXO +
-      'Pistola de calibre superior. Sofre -1d20 em ataques; empunhar com duas maos remove a penalidade.',
+      'Pistola de calibre superior. Sofre -1d20 em ataques; empunhar com duas mãos remove a penalidade.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     proficienciaArma: ProficienciaArma.TATICA,
@@ -1534,14 +1534,14 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     alcance: AlcanceArma.CURTO,
     tipoMunicaoCodigo: 'BALAS_CURTAS',
     habilidadeEspecial:
-      'Sofre -1d20; empunhar com duas maos remove a penalidade',
+      'Sofre -1d20; empunhar com duas mãos remove a penalidade',
   },
   {
     codigo: 'PREGADOR_PNEUMATICO_SUP',
     nome: 'Pregador Pneumatico',
     descricao:
       PREFIXO +
-      'Ferramenta que dispara pregos sob pressao. Conta como arma de fogo para poderes que afetam esse tipo. Um rolo dura uma missao.',
+      'Ferramenta que dispara pregos sob pressão. Conta como arma de fogo para poderes que afetam esse tipo. Um rolo dura uma missão.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     proficienciaArma: ProficienciaArma.TATICA,
@@ -1553,14 +1553,14 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     criticoValor: 20,
     criticoMultiplicador: 2,
     alcance: AlcanceArma.CURTO,
-    habilidadeEspecial: 'Conta como arma de fogo; rolo de pregos dura a missao',
+    habilidadeEspecial: 'Conta como arma de fogo; rolo de pregos dura a missão',
   },
   {
     codigo: 'REVOLVER_COMPACTO_SUP',
-    nome: 'Revolver Compacto',
+    nome: 'Revólver Compacto',
     descricao:
       PREFIXO +
-      'Revolver de baixo calibre e facil de esconder. Treinados em Crime podem carregar sem ocupar espaco.',
+      'Revólver de baixo calibre e fácil de esconder. Treinados em Crime podem carregar sem ocupar espaço.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     proficienciaArma: ProficienciaArma.TATICA,
@@ -1574,14 +1574,14 @@ export const armasSuplemento: EquipamentoArmaSeed[] = [
     alcance: AlcanceArma.CURTO,
     tipoMunicaoCodigo: 'BALAS_CURTAS',
     habilidadeEspecial:
-      'Se for treinado em Crime, nao ocupa espaco ao carregar',
+      'Se for treinado em Crime, não ocupa espaço ao carregar',
   },
   {
     codigo: 'SHURIKEN_SUP',
     nome: 'Shuriken',
     descricao:
       PREFIXO +
-      'Projeteis metalicos em forma de estrela. Se for veterano em Pontaria, 1x por rodada pode gastar 1 PE para fazer um ataque adicional de shuriken.',
+      'Projéteis metálicos em forma de estrela. Se for veterano em Pontaria, 1x por rodada pode gastar 1 PE para fazer um ataque adicional de shuriken.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     proficienciaArma: ProficienciaArma.SIMPLES,
@@ -1603,31 +1603,31 @@ export const acessoriosSuplemento: EquipamentoAcessorioSeed[] = [
     codigo: 'AMULETO_SAGRADO_SUP',
     nome: 'Amuleto Sagrado',
     descricao:
-      PREFIXO + 'Utensilio especial que reforca a fe e protege o usuario.',
+      PREFIXO + 'Utensílio especial que reforca a fe e protege o usuário.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     tipoAcessorio: TipoAcessorio.UTENSILIO,
-    periciaBonificada: 'Religiao e Vontade',
+    periciaBonificada: 'Religião e Vontade',
     bonusPericia: 2,
-    efeito: 'Concede +2 em Religiao e Vontade',
+    efeito: 'Concede +2 em Religião e Vontade',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'CELULAR_SUP',
     nome: 'Celular',
     descricao:
-      PREFIXO + 'Utensilio comum para comunicacao e acesso a informacoes.',
+      PREFIXO + 'Utensílio comum para comunicação e acesso a informações.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     tipoAcessorio: TipoAcessorio.UTENSILIO,
     efeito:
-      'Com acesso a internet, concede +2 em testes para obter informacoes; ilumina 4,5m',
+      'Com acesso a internet, concede +2 em testes para obter informações; ilumina 4,5m',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'CHAVE_FENDA_UNIVERSAL_SUP',
     nome: 'Chave de Fenda Universal',
-    descricao: PREFIXO + 'Ferramenta versatil para criar ou reparar objetos.',
+    descricao: PREFIXO + 'Ferramenta versátil para criar ou reparar objetos.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     tipoAcessorio: TipoAcessorio.UTENSILIO,
@@ -1654,49 +1654,49 @@ export const acessoriosSuplemento: EquipamentoAcessorioSeed[] = [
     espacos: 1,
     tipoAcessorio: TipoAcessorio.UTENSILIO,
     efeito:
-      '+2 em Diplomacia, Enganacao e Intimidacao para se passar pela identidade',
+      '+2 em Diplomacia, Enganação e Intimidação para se passar pela identidade',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'MANUAL_OPERACIONAL_SUP',
     nome: 'Manual Operacional',
-    descricao: PREFIXO + 'Livro com licoes praticas sobre uma pericia.',
+    descricao: PREFIXO + 'Livro com lições práticas sobre uma perícia.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     tipoAcessorio: TipoAcessorio.UTENSILIO,
     efeito:
-      'Acao de interludio lendo permite usar uma pericia como treinada ate o proximo interludio',
+      'Ação de interlúdio lendo permite usar uma perícia como treinada até o próximo interlúdio',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'NOTEBOOK_SUP',
     nome: 'Notebook',
-    descricao: PREFIXO + 'Computador portatil para trabalho e entretenimento.',
+    descricao: PREFIXO + 'Computador portátil para trabalho e entretenimento.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 2,
     tipoAcessorio: TipoAcessorio.UTENSILIO,
     efeito:
-      '+2 em testes para obter informacoes com internet; ao relaxar, recupera +1 SAN',
+      '+2 em testes para obter informações com internet; ao relaxar, recupera +1 SAN',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'OCULOS_VISAO_NOTURNA_SUP',
-    nome: 'Oculos de Visao Noturna',
-    descricao: PREFIXO + 'Oculos com bateria que permitem enxergar no escuro.',
+    nome: 'Óculos de Visao Noturna',
+    descricao: PREFIXO + 'Óculos com bateria que permitem enxergar no escuro.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     tipoAcessorio: TipoAcessorio.VESTIMENTA,
-    efeito: 'Concede visao no escuro; -1d20 contra ofuscado e efeitos de luz',
+    efeito: 'Concede visão no escuro; -1d20 contra ofuscado e efeitos de luz',
     tipoUso: TipoUsoEquipamento.VESTIVEL,
   },
   {
     codigo: 'OCULOS_ESCUROS_SUP',
-    nome: 'Oculos Escuros',
-    descricao: PREFIXO + 'Oculos que protegem contra luz forte.',
+    nome: 'Óculos Escuros',
+    descricao: PREFIXO + 'Óculos que protegem contra luz forte.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     tipoAcessorio: TipoAcessorio.VESTIMENTA,
-    efeito: 'Nao pode ser ofuscado',
+    efeito: 'Não pode ser ofuscado',
     tipoUso: TipoUsoEquipamento.VESTIVEL,
   },
   {
@@ -1706,7 +1706,7 @@ export const acessoriosSuplemento: EquipamentoAcessorioSeed[] = [
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 2,
     tipoAcessorio: TipoAcessorio.UTENSILIO,
-    efeito: '+5 em testes de Forca para cavar; pode ser usada como bastao',
+    efeito: '+5 em testes de Força para cavar; pode ser usada como bastao',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
@@ -1728,18 +1728,18 @@ export const acessoriosSuplemento: EquipamentoAcessorioSeed[] = [
     espacos: 2,
     tipoAcessorio: TipoAcessorio.VESTIMENTA,
     efeito:
-      'Resistencia quimica 5 e +5 contra efeitos ambientais; 1h de oxigenio',
+      'Resistência química 5 e +5 contra efeitos ambientais; 1h de oxigênio',
     tipoUso: TipoUsoEquipamento.VESTIVEL,
   },
   {
     codigo: 'TRAJE_ESPACIAL_SUP',
     nome: 'Traje Espacial',
-    descricao: PREFIXO + 'Roupa completa para uso no vacuo espacial.',
+    descricao: PREFIXO + 'Roupa completa para uso no vácuo espacial.',
     categoria: CategoriaEquipamento.CATEGORIA_3,
     espacos: 5,
     tipoAcessorio: TipoAcessorio.VESTIMENTA,
     efeito:
-      'Resistencia quimica 20 e +10 contra efeitos ambientais; 8h de oxigenio',
+      'Resistência química 20 e +10 contra efeitos ambientais; 8h de oxigênio',
     tipoUso: TipoUsoEquipamento.VESTIVEL,
   },
 ];
@@ -1750,12 +1750,12 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     nome: 'Dinamite',
     descricao:
       PREFIXO +
-      'Explosivo com pavio. Pode ser aceso e arremessado na mesma acao.',
+      'Explosivo com pavio. Pode ser aceso e arremessado na mesma ação.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     tipoExplosivo: TipoExplosivo.GRANADA_FRAGMENTACAO,
     efeito:
-      'Raio 6m; 4d6 impacto + 4d6 fogo; Reflexos evita metade e condicao em chamas',
+      'Raio 6m; 4d6 impacto + 4d6 fogo; Reflexos evita metade e condição em chamas',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
@@ -1763,7 +1763,7 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     nome: 'Explosivo Plastico',
     descricao:
       PREFIXO +
-      'Massa adesiva com detonador remoto ou ignicao por fogo/eletricidade.',
+      'Massa adesiva com detonador remoto ou ignição por fogo/eletricidade.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     tipoExplosivo: TipoExplosivo.MINA_ANTIPESSOAL,
@@ -1781,13 +1781,13 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     espacos: 2,
     tipoExplosivo: TipoExplosivo.GRANADA_INCENDIARIA,
     efeito:
-      'Explosao em raio 6m: 12d6 fogo e condicao em chamas; area fica em chamas',
+      'Explosão em raio 6m: 12d6 fogo e condição em chamas; área fica em chamas',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'GRANADA_GAS_SONIFERO_SUP',
     nome: 'Granada de Gas Sonifero',
-    descricao: PREFIXO + 'Granada que libera gas sonifero em uma area ampla.',
+    descricao: PREFIXO + 'Granada que libera gás sonífero em uma área ampla.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     tipoExplosivo: TipoExplosivo.GRANADA_ATORDOAMENTO,
@@ -1804,7 +1804,7 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     espacos: 1,
     tipoExplosivo: TipoExplosivo.GRANADA_FUMACA,
     efeito:
-      'Raio 18m: desativa equipamentos ate o fim da cena; maldicoes sofrem 6d6 impacto e paralisia 1 rodada',
+      'Raio 18m: desativa equipamentos até o fim da cena; maldições sofrem 6d6 impacto e paralisia 1 rodada',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
 ];
@@ -1829,24 +1829,24 @@ const itensOperacionaisSuplemento: EquipamentoOperacionalSeed[] = [
       PREFIXO + 'Suplemento de alta energia para recuperar esforco mental.',
     categoria: CategoriaEquipamento.CATEGORIA_3,
     espacos: 1,
-    efeito: 'Consumir com acao padrao: recupera 1d4 PE',
+    efeito: 'Consumir com ação padrão: recupera 1d4 PE',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
     codigo: 'APLICADOR_MEDICAMENTOS_SUP',
     nome: 'Aplicador de Medicamentos',
     descricao:
-      PREFIXO + 'Adaptacao portatil para aplicar substancias rapidamente.',
+      PREFIXO + 'Adaptação portátil para aplicar substâncias rapidamente.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
-    efeito: 'Permite aplicar substancias com acao de movimento (ate 3 doses)',
+    efeito: 'Permite aplicar substâncias com ação de movimento (até 3 doses)',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'BRACADEIRA_REFORCADA_SUP',
     nome: 'Bracadeira Reforcada',
     descricao:
-      PREFIXO + 'Protecao para antebracos que ajuda a bloquear golpes.',
+      PREFIXO + 'Proteção para antebracos que ajuda a bloquear golpes.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     efeito: '+2 na RD recebida por usar bloqueio',
@@ -1854,23 +1854,23 @@ const itensOperacionaisSuplemento: EquipamentoOperacionalSeed[] = [
   },
   {
     codigo: 'CAO_ADESTRADO_SUP',
-    nome: 'Cao Adestrado',
-    descricao: PREFIXO + 'Cao treinado para ajudar em investigacao e combate.',
+    nome: 'Cão Adestrado',
+    descricao: PREFIXO + 'Cão treinado para ajudar em investigação e combate.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0,
     efeito:
-      'Aliado: +2 em Investigacao e Percepcao; pode gastar 1 PE para +2 Defesa por 1 rodada',
+      'Aliado: +2 em Investigação e Percepção; pode gastar 1 PE para +2 Defesa por 1 rodada',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'COLDRE_SAQUE_RAPIDO_SUP',
-    nome: 'Coldre Saque Rapido',
+    nome: 'Coldre Saque Rápido',
     descricao:
       PREFIXO + 'Coldre que permite sacar arma de fogo leve rapidamente.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,
     efeito:
-      '1x por rodada pode sacar/guardar arma de fogo leve como acao livre',
+      '1x por rodada pode sacar/guardar arma de fogo leve como ação livre',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
@@ -1887,17 +1887,17 @@ const itensOperacionaisSuplemento: EquipamentoOperacionalSeed[] = [
   {
     codigo: 'ESTREPES_SUP',
     nome: 'Estrepes',
-    descricao: PREFIXO + 'Saco de estrepes para dificultar movimentacao.',
+    descricao: PREFIXO + 'Saco de estrepes para dificultar movimentação.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 1,
     efeito:
-      'Area 1,5m: 1d4 perfurante e lento (Reflexos evita); em perseguicao reduz testes',
+      'Área 1,5m: 1d4 perfurante e lento (Reflexos evita); em perseguição reduz testes',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
   {
     codigo: 'FAIXA_PREGOS_SUP',
     nome: 'Faixa de Pregos',
-    descricao: PREFIXO + 'Trilha de pregos usada para parar veiculos.',
+    descricao: PREFIXO + 'Trilha de pregos usada para parar veículos.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 2,
     efeito:
@@ -1911,7 +1911,7 @@ const itensOperacionaisSuplemento: EquipamentoOperacionalSeed[] = [
       PREFIXO + 'Produz pequena chama para acender objetos e iluminar.',
     categoria: CategoriaEquipamento.CATEGORIA_0,
     espacos: 0.5,
-    efeito: 'Acao de movimento: chama e luz em raio 3m',
+    efeito: 'Ação de movimento: chama e luz em raio 3m',
     tipoUso: TipoUsoEquipamento.GERAL,
   },
 ];
@@ -1920,10 +1920,10 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
   {
     codigo: 'ANTIBIOTICO_SUP',
     nome: 'Antibiotico',
-    descricao: PREFIXO + 'Medicamento para combater infeccoes.',
+    descricao: PREFIXO + 'Medicamento para combater infecções.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
-    efeito: '+5 no proximo teste de Fortitude contra doenca ate o fim do dia',
+    efeito: '+5 no próximo teste de Fortitude contra doença até o fim do dia',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
@@ -1933,32 +1933,32 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
     efeito:
-      '+5 no proximo teste de Fortitude contra veneno ate o fim do dia; pode remover veneno especifico',
+      '+5 no próximo teste de Fortitude contra veneno até o fim do dia; pode remover veneno específico',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
     codigo: 'ANTIEMETICO_SUP',
     nome: 'Antiemetico',
-    descricao: PREFIXO + 'Reduz nauseas e efeitos similares.',
+    descricao: PREFIXO + 'Reduz náuseas e efeitos similares.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
     efeito:
-      'Remove condicao enjoado e concede +5 contra nauseas ate o fim da cena',
+      'Remove condição enjoado e concede +5 contra náuseas até o fim da cena',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
     codigo: 'ANTIHISTAMINICO_SUP',
     nome: 'Antihistaminico',
-    descricao: PREFIXO + 'Reduz reacoes alergicas.',
+    descricao: PREFIXO + 'Reduz reações alérgicas.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
-    efeito: '+5 no proximo teste contra alergia ate o fim do dia',
+    efeito: '+5 no próximo teste contra alergia até o fim do dia',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
     codigo: 'ANTI_INFLAMATORIO_SUP',
     nome: 'Anti-inflamatorio',
-    descricao: PREFIXO + 'Reduz dores e inflamacoes.',
+    descricao: PREFIXO + 'Reduz dores e inflamações.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
     efeito: 'Concede 1d8+2 PV temporarios',
@@ -1967,19 +1967,19 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
   {
     codigo: 'ANTITERMICO_SUP',
     nome: 'Antitermico',
-    descricao: PREFIXO + 'Reduz febre e dores de cabeca.',
+    descricao: PREFIXO + 'Reduz febre e dores de cabeça.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
-    efeito: 'Permite novo teste contra condicao mental (1x por cena)',
+    efeito: 'Permite novo teste contra condição mental (1x por cena)',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
     codigo: 'BRONCODILATADOR_SUP',
     nome: 'Broncodilatador',
-    descricao: PREFIXO + 'Auxilia na respiracao.',
+    descricao: PREFIXO + 'Auxilia na respiração.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
-    efeito: '+5 em testes contra asfixiado ou fatigado ate o fim do dia',
+    efeito: '+5 em testes contra asfixiado ou fatigado até o fim do dia',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
   },
   {
@@ -2000,81 +2000,81 @@ const itensAmaldicoadosSuplemento: EquipamentoAmaldicoadoSeed[] = [
     nome: 'Catalisador Ampliador',
     descricao:
       PREFIXO +
-      'Catalisador amaldicoado consumivel para tecnicas. Aumenta alcance ou dobra area.',
+      'Catalisador amaldiçoado consumivel para técnicas. Aumenta alcance ou dobra área.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0,
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
-    efeito: 'Aumenta alcance em 1 passo ou dobra area de efeito da tecnica',
+    efeito: 'Aumenta alcance em 1 passo ou dobra área de efeito da técnica',
   },
   {
     codigo: 'CATALISADOR_PERTURBADOR_SUP',
     nome: 'Catalisador Perturbador',
     descricao:
       PREFIXO +
-      'Catalisador consumivel que aumenta a DT para resistir a tecnicas.',
+      'Catalisador consumivel que aumenta a DT para resistir a técnicas.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0,
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
-    efeito: 'Aumenta a DT da tecnica em +2',
+    efeito: 'Aumenta a DT da técnica em +2',
   },
   {
     codigo: 'CATALISADOR_POTENCIALIZADOR_SUP',
     nome: 'Catalisador Potencializador',
     descricao:
-      PREFIXO + 'Catalisador consumivel que aumenta o dano de tecnicas.',
+      PREFIXO + 'Catalisador consumivel que aumenta o dano de técnicas.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0,
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
-    efeito: 'Aumenta o dano da tecnica em +1 dado do mesmo tipo',
+    efeito: 'Aumenta o dano da técnica em +1 dado do mesmo tipo',
   },
   {
     codigo: 'CATALISADOR_PROLONGADOR_SUP',
     nome: 'Catalisador Prolongador',
     descricao:
-      PREFIXO + 'Catalisador consumivel que prolonga efeitos de tecnicas.',
+      PREFIXO + 'Catalisador consumivel que prolonga efeitos de técnicas.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0,
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
-    efeito: 'Dobra duracao de tecnicas nao instantaneas e nao sustentadas',
+    efeito: 'Dobra duração de técnicas não instantaneas e não sustentadas',
   },
   {
     codigo: 'PE_DE_MORTO_SUP',
     nome: 'Pe de Morto',
-    descricao: PREFIXO + 'Botas amaldicoadas que silenciam passos.',
+    descricao: PREFIXO + 'Botas amaldiçoadas que silenciam passos.',
     categoria: CategoriaEquipamento.CATEGORIA_3,
     espacos: 1,
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.VESTIVEL,
     efeito:
-      '+5 em Furtividade; acoes de movimento chamativas aumentam visibilidade apenas +1',
+      '+5 em Furtividade; ações de movimento chamativas aumentam visibilidade apenas +1',
   },
   {
     codigo: 'PENDRIVE_SELADO_SUP',
     nome: 'Pendrive Selado',
     descricao:
       PREFIXO +
-      'Dispositivo protegido contra tecnicas amaldicoadas e efeitos eletricos.',
+      'Dispositivo protegido contra técnicas amaldiçoadas e efeitos elétricos.',
     categoria: CategoriaEquipamento.CATEGORIA_3,
     espacos: 0.5,
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.GERAL,
     efeito:
-      'Nao pode ser afetado por tecnicas; permite invadir sistemas sem contaminacao',
+      'Não pode ser afetado por técnicas; permite invadir sistemas sem contaminação',
   },
   {
     codigo: 'VALETE_SALVACAO_SUP',
-    nome: 'Valete da Salvacao',
-    descricao: PREFIXO + 'Carta amaldicoada que indica a melhor rota de fuga.',
+    nome: 'Valete da Salvação',
+    descricao: PREFIXO + 'Carta amaldiçoada que indica a melhor rota de fuga.',
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 0.5,
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
     efeito:
-      'Aponta rota de fuga em alcance medio; em perseguicao, garante sucesso em cortar caminho',
+      'Aponta rota de fuga em alcance médio; em perseguição, garante sucesso em cortar caminho',
   },
 ];
 
@@ -2082,36 +2082,36 @@ export const artefatosAmaldicoadosSuplemento: EquipamentoArtefatoAmaldicoadoSeed
   [
     {
       codigo: 'LIGACAO_DIRETA_INFERNAL_SUP',
-      nome: 'Ligacao Direta Infernal',
+      nome: 'Ligação Direta Infernal',
       descricao:
         PREFIXO +
-        'Fios amaldicoados que animam veiculos e fortalecem sua resistencia.',
+        'Fios amaldiçoados que animam veículos e fortalecem sua resistência.',
       categoria: CategoriaEquipamento.CATEGORIA_3,
       espacos: 1,
       tipoUso: TipoUsoEquipamento.GERAL,
       efeito:
-        'Veiculo recebe RD 20 e +5 em Pilotagem, mas falhas sao amplificadas',
+        'Veiculo recebe RD 20 e +5 em Pilotagem, mas falhas são amplificadas',
       artefato: {
         tipoBase: 'ARTEFATO_GERAL',
         proficienciaRequerida: false,
         efeito:
-          'Veiculo recebe RD 20 e +5 em Pilotagem, mas falhas sao amplificadas',
+          'Veiculo recebe RD 20 e +5 em Pilotagem, mas falhas são amplificadas',
       },
     },
     {
       codigo: 'MEDIDOR_CONDICAO_VERTEBRAL_SUP',
-      nome: 'Medidor de Condicao Vertebral',
+      nome: 'Medidor de Condição Vertebral',
       descricao:
         PREFIXO +
-        'Dispositivo grotesco que monitora a saude e efeitos amaldicoados.',
+        'Dispositivo grotesco que monitora a saude e efeitos amaldiçoados.',
       categoria: CategoriaEquipamento.CATEGORIA_3,
       espacos: 1,
       tipoUso: TipoUsoEquipamento.VESTIVEL,
-      efeito: '+2 em Fortitude; +5 em Medicina para auxiliar o usuario',
+      efeito: '+2 em Fortitude; +5 em Medicina para auxiliar o usuário',
       artefato: {
         tipoBase: 'ARTEFATO_GERAL',
         proficienciaRequerida: false,
-        efeito: '+2 em Fortitude; +5 em Medicina para auxiliar o usuario',
+        efeito: '+2 em Fortitude; +5 em Medicina para auxiliar o usuário',
       },
     },
   ];
@@ -2132,13 +2132,13 @@ export const modificacoesSuplemento: ModificacaoSuplemento[] = [
     nome: 'Bateria Potente',
     descricao:
       PREFIXO +
-      'Modificacao para objetos eletricos. Dobra duracao da bateria e alcance da luz. Em tasers, dobra usos, aumenta dano para 1d8 e DT em +5.',
+      'Modificação para objetos elétricos. Dobra duração da bateria e alcance da luz. Em tasers, dobra usos, aumenta dano para 1d8 e DT em +5.',
     tipo: TipoModificacao.ACESSORIO,
     incrementoEspacos: 0,
     restricoes: { tiposEquipamento: [TipoEquipamento.ACESSORIO] },
     efeitosMecanicos: {
       descricao:
-        'Dobra duracao da bateria e alcance de luz. Em tasers: dobra usos, dano 1d8 e DT +5.',
+        'Dobra duração da bateria e alcance de luz. Em tasers: dobra usos, dano 1d8 e DT +5.',
     },
   },
 ];
@@ -2245,7 +2245,7 @@ async function seedOrigens(prisma: PrismaClient, suplementoId: number) {
 }
 
 async function seedPoderes(prisma: PrismaClient, suplementoId: number) {
-  console.log('Cadastrando poderes genericos do suplemento...');
+  console.log('Cadastrando poderes genéricos do suplemento...');
 
   for (const poder of poderesSuplemento) {
     await prisma.habilidade.upsert({
@@ -2272,7 +2272,7 @@ async function seedPoderes(prisma: PrismaClient, suplementoId: number) {
     });
   }
 
-  console.log(`OK: ${poderesSuplemento.length} poderes genericos cadastrados.`);
+  console.log(`OK: ${poderesSuplemento.length} poderes genéricos cadastrados.`);
 }
 
 async function seedTrilhas(prisma: PrismaClient, suplementoId: number) {
@@ -2478,7 +2478,7 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
 
   for (const arma of armasSuplemento) {
     const codigo = `${arma.codigo}_AMALDICOADA_SIMPLES`;
-    const nome = resolverNome(`${arma.nome} Amaldicoada`);
+    const nome = resolverNome(`${arma.nome} Amaldiçoada`);
     const empunhadurasJson = arma.empunhaduras?.length
       ? JSON.stringify(arma.empunhaduras)
       : undefined;
@@ -2491,7 +2491,7 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
         nome,
         descricao:
           PREFIXO +
-          `Versao amaldicoada simples de ${arma.nome}. Acrescenta +1d6 de dano de energia amaldicoada e permite exorcizar espiritos amaldicoados.`,
+          `Versão amaldiçoada simples de ${arma.nome}. Acrescenta +1d6 de dano de energia amaldiçoada e permite exorcizar espíritos amaldiçoados.`,
         tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
         categoria,
         espacos: arma.espacos,
@@ -2516,7 +2516,7 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
         nome,
         descricao:
           PREFIXO +
-          `Versao amaldicoada simples de ${arma.nome}. Acrescenta +1d6 de dano de energia amaldicoada e permite exorcizar espiritos amaldicoados.`,
+          `Versão amaldiçoada simples de ${arma.nome}. Acrescenta +1d6 de dano de energia amaldiçoada e permite exorcizar espíritos amaldiçoados.`,
         tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
         categoria,
         espacos: arma.espacos,
@@ -2543,13 +2543,13 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
       update: {
         tipoBase: arma.codigo,
         proficienciaRequerida: false,
-        efeito: '+1d6 energia amaldicoada. Exorciza espiritos amaldicoados.',
+        efeito: '+1d6 energia amaldiçoada. Exorciza espíritos amaldiçoados.',
       },
       create: {
         equipamentoId: equipamento.id,
         tipoBase: arma.codigo,
         proficienciaRequerida: false,
-        efeito: '+1d6 energia amaldicoada. Exorciza espiritos amaldicoados.',
+        efeito: '+1d6 energia amaldiçoada. Exorciza espíritos amaldiçoados.',
       },
     });
 
@@ -2740,7 +2740,7 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
 }
 
 async function seedModificacoes(prisma: PrismaClient, suplementoId: number) {
-  console.log('Cadastrando modificacoes do suplemento...');
+  console.log('Cadastrando modificações do suplemento...');
 
   for (const mod of modificacoesSuplemento) {
     await prisma.modificacaoEquipamento.upsert({
@@ -2769,8 +2769,11 @@ async function seedModificacoes(prisma: PrismaClient, suplementoId: number) {
     });
   }
 
+  const totalModificacoes = modificacoesSuplemento.length;
   console.log(
-    `OK: ${modificacoesSuplemento.length} modificacoes do suplemento cadastradas.`,
+    `OK: ${totalModificacoes} ${
+      totalModificacoes === 1 ? 'modificação' : 'modificações'
+    } do suplemento ${totalModificacoes === 1 ? 'cadastrada' : 'cadastradas'}.`,
   );
 }
 
@@ -2785,5 +2788,5 @@ export async function seedSobrevivendoAoJujutsu(prisma: PrismaClient) {
   await seedEquipamentos(prisma, suplemento.id);
   await seedModificacoes(prisma, suplemento.id);
 
-  console.log('OK: seed do suplemento concluido.');
+  console.log('OK: seed do suplemento concluído.');
 }

@@ -28,7 +28,7 @@ export function CompendioSearch({ livroCodigo }: CompendioSearchProps) {
         type="text"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder={livroCodigo ? 'Buscar neste livro...' : 'Buscar no compendio...'}
+        placeholder={livroCodigo ? 'Buscar neste livro...' : 'Buscar no compêndio...'}
         className="w-full rounded-lg border border-app-border bg-app-surface px-4 py-2 pl-10 text-app-fg placeholder:text-app-muted focus:border-app-primary focus:outline-none"
         minLength={3}
       />

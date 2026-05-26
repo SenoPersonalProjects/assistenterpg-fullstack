@@ -309,7 +309,7 @@ export function aplicarEscolhasPericiasDeHabilidades(params: {
       throw new HabilidadeConfigInvalidaException(
         hab.habilidade.nome,
         'periciasCodigos',
-        'nao permite pericias repetidas na mesma escolha',
+        'não permite perícias repetidas na mesma escolha',
       );
     }
 
@@ -328,7 +328,7 @@ export function aplicarEscolhasPericiasDeHabilidades(params: {
         throw new HabilidadeConfigInvalidaException(
           hab.habilidade.nome,
           'periciasCodigos',
-          `pericia "${codigo}" nao existe no sistema`,
+          `perícia "${codigo}" não existe no sistema`,
         );
       }
 
@@ -339,7 +339,7 @@ export function aplicarEscolhasPericiasDeHabilidades(params: {
         throw new HabilidadeConfigInvalidaException(
           hab.habilidade.nome,
           'periciasCodigos',
-          `pericia "${codigo}" nao esta permitida`,
+          `perícia "${codigo}" não está permitida`,
           { permitido: escolhaMec.periciasPermitidas },
         );
       }
@@ -353,14 +353,14 @@ export function aplicarEscolhasPericiasDeHabilidades(params: {
           throw new HabilidadeConfigInvalidaException(
             hab.habilidade.nome,
             'periciasCodigos',
-            `pericia "${codigo}" nao possui atributo base valido`,
+            `perícia "${codigo}" não possui atributo base válido`,
           );
         }
         if (!escolhaMec.atributosBasePermitidos.includes(atributo)) {
           throw new HabilidadeConfigInvalidaException(
             hab.habilidade.nome,
             'periciasCodigos',
-            `pericia "${codigo}" nao possui atributo base permitido`,
+            `perícia "${codigo}" não possui atributo base permitido`,
             {
               atributoBase: atributo,
               permitido: escolhaMec.atributosBasePermitidos,
@@ -815,7 +815,7 @@ export function extrairAtributoChaveEaDeHabilidades(
 }
 
 /**
- * ✅ NOVO: Extrai overrides do atributo-base das pericias
+ * ✅ NOVO: Extrai overrides do atributo-base das perícias
  *
  * Espera mecanicasEspeciais.periciasAtributoBase = { VONTADE: "INT", ... }
  */

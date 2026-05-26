@@ -8,11 +8,11 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // AUTH
   CREDENCIAIS_INVALIDAS: "Email ou senha incorretos",
   AUTH_CREDENCIAIS_INVALIDAS: "Email ou senha incorretos",
-  TOKEN_INVALIDO: "Sua sessao expirou. Faca login novamente.",
+  TOKEN_INVALIDO: "Sua sessão expirou. Faça login novamente.",
   AUTH_TOKEN_INVALIDO_OU_EXPIRADO:
-    "Link invalido ou expirado. Solicite um novo link.",
+    "Link inválido ou expirado. Solicite um novo link.",
   AUTH_EMAIL_NAO_VERIFICADO:
-    "Email ainda nao verificado. Verifique sua caixa de entrada.",
+    "Email ainda não verificado. Verifique sua caixa de entrada.",
   USUARIO_TOKEN_NAO_ENCONTRADO:
     "Sua conta não foi encontrada. Faça login novamente.",
   USUARIO_NAO_AUTENTICADO:
@@ -174,10 +174,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Essa modificação não está aplicada no item",
 
   // ANOTACOES
-  ANOTACAO_NOT_FOUND: "Anotacao nao encontrada",
-  ANOTACAO_SEM_PERMISSAO: "Voce nao tem permissao para esta anotacao",
+  ANOTACAO_NOT_FOUND: "Anotação não encontrada",
+  ANOTACAO_SEM_PERMISSAO: "Você não tem permissão para esta anotação",
   ANOTACAO_CAMPANHA_SESSAO_INVALIDA:
-    "Campanha e sessao informadas nao correspondem",
+    "Campanha e sessão informadas não correspondem",
   // ALIASES LEGADOS (mantidos por compatibilidade)
   ITEM_INVENTARIO_NOT_FOUND: "Item do inventário não encontrado",
   ESPACOS_INSUFICIENTES: "Espaço insuficiente no inventário",
@@ -199,43 +199,43 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CAMPANHA_PERSONAGEM_EDICAO_NEGADA:
     "Você não tem permissão para editar esta ficha de campanha.",
   CAMPANHA_PERSONAGEM_DESASSOCIACAO_NEGADA:
-    "Voce nao tem permissao para remover este personagem da campanha.",
-  CAMPANHA_NUCLEO_INVALIDO: "Nucleo amaldicoado invalido.",
+    "Você não tem permissão para remover este personagem da campanha.",
+  CAMPANHA_NUCLEO_INVALIDO: "Núcleo amaldiçoado inválido.",
   CAMPANHA_NUCLEO_INDISPONIVEL:
-    "Este nucleo amaldicoado nao esta disponivel nesta campanha.",
+    "Este núcleo amaldiçoado não está disponível nesta campanha.",
   CAMPANHA_NUCLEO_SACRIFICIO_INVALIDO:
-    "Sacrificio invalido para este nucleo amaldicoado.",
+    "Sacrifício inválido para este núcleo amaldiçoado.",
   CAMPANHA_NUCLEO_PE_INSUFICIENTE:
-    "PE insuficiente para ativar este nucleo amaldicoado.",
+    "PE insuficiente para ativar este núcleo amaldiçoado.",
   PERSONAGEM_CAMPANHA_NOT_FOUND: "Personagem da campanha não encontrado",
   PERSONAGEM_SESSAO_NOT_FOUND: "Personagem da sessão não encontrado.",
   CAMPANHA_MODIFICADOR_NOT_FOUND:
     "Modificador da ficha de campanha não encontrado",
   CAMPANHA_MODIFICADOR_JA_DESFEITO: "Este modificador já foi desfeito",
   SESSAO_CAMPANHA_NOT_FOUND: "Sessão da campanha não encontrada.",
-  CENA_SESSAO_NOT_FOUND: "Cena da sessao nao encontrada.",
-  NPC_SESSAO_NOT_FOUND: "NPC/Ameaca da sessao nao encontrado.",
+  CENA_SESSAO_NOT_FOUND: "Cena da sessão não encontrada.",
+  NPC_SESSAO_NOT_FOUND: "NPC/Ameaça da sessão não encontrado.",
   SESSAO_TURNO_INDISPONIVEL:
     "Cena livre não possui contagem de rodada/turno.",
-  SESSAO_ENCERRADA: "Sessao encerrada. Nao e possivel executar esta acao.",
+  SESSAO_ENCERRADA: "Sessão encerrada. Não é possível executar esta ação.",
   SESSAO_ORDEM_INICIATIVA_INVALIDA:
-    "Ordem de iniciativa invalida para esta sessao.",
-  SESSAO_EVENTO_NOT_FOUND: "Evento da sessao nao encontrado.",
+    "Ordem de iniciativa inválida para esta sessão.",
+  SESSAO_EVENTO_NOT_FOUND: "Evento da sessão não encontrado.",
   SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO:
-    "Este evento da sessao nao pode ser desfeito.",
-  SESSAO_PERSONAGEM_NOT_FOUND: "Personagem da sessao nao encontrado.",
+    "Este evento da sessão não pode ser desfeito.",
+  SESSAO_PERSONAGEM_NOT_FOUND: "Personagem da sessão não encontrado.",
   SESSAO_HABILIDADE_NAO_DISPONIVEL:
-    "Habilidade nao esta disponivel para este personagem.",
+    "Habilidade não está disponível para este personagem.",
   SESSAO_VARIACAO_HABILIDADE_NOT_FOUND:
-    "Variacao da habilidade nao encontrada.",
+    "Variação da habilidade não encontrada.",
   SESSAO_HABILIDADE_SEM_ESCALONAMENTO:
-    "Essa habilidade nao permite acumulos.",
+    "Essa habilidade não permite acúmulos.",
   SESSAO_ACUMULO_EXCEDE_GRAU:
-    "Quantidade de acumulos excede o grau permitido.",
+    "Quantidade de acúmulos excede o grau permitido.",
   SESSAO_SUSTENTACAO_DUPLICADA:
-    "Essa habilidade ja esta sustentada.",
+    "Essa habilidade já está sustentada.",
   SESSAO_SUSTENTACAO_SEM_CUSTO:
-    "Habilidade sustentada sem custo nao pode ser encerrada.",
+    "Habilidade sustentada sem custo não pode ser encerrada.",
   SESSAO_RECURSO_INSUFICIENTE:
     "Recursos insuficientes para usar a habilidade.",
   SESSAO_LIMITE_PEEA_EXCEDIDO:
@@ -243,18 +243,18 @@ export const ERROR_MESSAGES: Record<string, string> = {
   NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",
   CONVITE_NOT_FOUND: "Convite não encontrado",
   CONVITE_INVALIDO: "Convite inválido ou já utilizado",
-  JOIN_INVALIDO: "Nao foi possivel entrar nesta sessao.",
+  JOIN_INVALIDO: "Não foi possível entrar nesta sessão.",
   CONVITE_NAO_PERTENCE_USUARIO: "Este convite não pertence ao usuário logado",
-  CONVITE_DUPLICADO_PENDENTE: "Ja existe convite pendente para este email nesta campanha",
-  CONVITE_CODIGO_INDISPONIVEL: "Nao foi possivel gerar um codigo de convite. Tente novamente",
-  AMIZADE_NOT_FOUND: "Amizade nao encontrada",
-  AMIZADE_SOLICITACAO_NOT_FOUND: "Solicitacao de amizade nao encontrada",
-  AMIZADE_SELF: "Voce nao pode adicionar a si mesmo",
-  AMIZADE_JA_EXISTE: "Este usuario ja esta na sua lista de amigos",
+  CONVITE_DUPLICADO_PENDENTE: "Já existe convite pendente para este email nesta campanha",
+  CONVITE_CODIGO_INDISPONIVEL: "Não foi possível gerar um código de convite. Tente novamente",
+  AMIZADE_NOT_FOUND: "Amizade não encontrada",
+  AMIZADE_SOLICITACAO_NOT_FOUND: "Solicitação de amizade não encontrada",
+  AMIZADE_SELF: "Você não pode adicionar a si mesmo",
+  AMIZADE_JA_EXISTE: "Este usuário já está na sua lista de amigos",
   AMIZADE_SOLICITACAO_DUPLICADA:
-    "Ja existe uma solicitacao de amizade pendente com este usuario",
+    "Já existe uma solicitação de amizade pendente com este usuário",
   AMIZADE_ACAO_NEGADA:
-    "Voce nao pode realizar esta acao nesta solicitacao de amizade",
+    "Você não pode realizar esta ação nesta solicitação de amizade",
   // MODIFICAÇÕES
   MODIFICACAO_NOT_FOUND: "Modificação não encontrada",
   MODIFICACAO_CODIGO_DUPLICADO: "Já existe uma modificação com este código",
@@ -327,7 +327,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   HABILIDADE_NOT_FOUND: "Habilidade não encontrada",
   HABILIDADE_NOME_DUPLICADO: "Já existe uma habilidade com este nome",
   HABILIDADE_EM_USO: "Habilidade em uso e não pode ser removida",
-  HABILIDADE_CONFIG_INVALID: "Configuracao de habilidade invalida.",
+  HABILIDADE_CONFIG_INVALID: "Configuração de habilidade inválida.",
   HABILIDADE_REQUIRES_CHOICE: "Esta habilidade exige uma escolha.",
   TIPO_GRAU_NOT_FOUND: "Tipo de grau não encontrado",
   TIPO_GRAU_CODIGO_DUPLICADO: "Já existe tipo de grau com este código",
@@ -360,20 +360,20 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "suplementoId é obrigatório quando a fonte for SUPLEMENTO.",
   REFERENCIA_IMPORTACAO_INVALIDA:
     "Não foi possível resolver uma referência do arquivo importado.",
-  JSON_IMPORT_INVALIDO: "Arquivo JSON de importacao invalido.",
+  JSON_IMPORT_INVALIDO: "Arquivo JSON de importação inválido.",
   JSON_IMPORT_CAMPO_OBRIGATORIO:
-    "O arquivo importado possui campo obrigatorio ausente.",
+    "O arquivo importado possui campo obrigatório ausente.",
   JSON_IMPORT_CAMPO_INVALIDO:
-    "O arquivo importado possui campo invalido.",
+    "O arquivo importado possui campo inválido.",
   JSON_IMPORT_ENUM_INVALIDO:
-    "O arquivo importado possui valor invalido para uma opcao.",
+    "O arquivo importado possui valor inválido para uma opção.",
   JSON_IMPORT_HABILIDADE_INVALIDA:
-    "O arquivo importado possui habilidade invalida.",
+    "O arquivo importado possui habilidade inválida.",
   JSON_IMPORT_HABILIDADE_OUTRA_TECNICA:
-    "O arquivo importado referencia habilidade de outra tecnica.",
+    "O arquivo importado referencia habilidade de outra técnica.",
   JSON_IMPORT_TECNICA_INVALIDA:
-    "O arquivo importado possui tecnica invalida.",
-  JSON_IMPORT_VAZIO: "O arquivo JSON de importacao esta vazio.",
+    "O arquivo importado possui técnica inválida.",
+  JSON_IMPORT_VAZIO: "O arquivo JSON de importação está vazio.",
   INTERNAL_ERROR: "Erro interno do servidor. Tente novamente.",
   NOT_FOUND: "Recurso não encontrado",
   NETWORK_ERROR: "Erro de conexão. Verifique sua internet.",

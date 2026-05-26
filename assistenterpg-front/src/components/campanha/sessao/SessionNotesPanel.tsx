@@ -81,7 +81,7 @@ export function SessionNotesPanel({
     const tituloFinal = titulo.trim();
     const conteudoFinal = conteudo.trim();
     if (!tituloFinal || !conteudoFinal) {
-      setErro('Preencha titulo e conteudo.');
+      setErro('Preencha titulo e conteúdo.');
       return;
     }
 
@@ -164,7 +164,7 @@ export function SessionNotesPanel({
       <div className="session-notes__header">
         <div className="flex items-center gap-2">
           <Icon name="scroll" className="h-4 w-4 text-app-muted" />
-          <p className="text-sm font-semibold text-app-fg">Anotacoes da sessao</p>
+          <p className="text-sm font-semibold text-app-fg">Anotações da sessão</p>
         </div>
         <Badge size="sm" color="gray">
           {notas.length} nota{notas.length === 1 ? '' : 's'}
@@ -176,8 +176,8 @@ export function SessionNotesPanel({
           <Input
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
-            placeholder="Buscar por titulo ou conteudo"
-            aria-label="Buscar anotacoes"
+            placeholder="Buscar por titulo ou conteúdo"
+            aria-label="Buscar anotações"
           />
           {busca ? (
             <Button size="xs" variant="ghost" onClick={() => setBusca('')}>
@@ -216,7 +216,7 @@ export function SessionNotesPanel({
             onChange={(event) => setTitulo(event.target.value)}
           />
           <Textarea
-            label="Conteudo"
+            label="Conteúdo"
             value={conteudo}
             onChange={(event) => setConteudo(event.target.value)}
             rows={6}
@@ -231,8 +231,8 @@ export function SessionNotesPanel({
           variant="session"
           size="sm"
           icon="scroll"
-          title="Sem anotacoes"
-          description="Crie notas pessoais desta sessao."
+          title="Sem anotações"
+          description="Crie notas pessoais desta sessão."
           className="text-left"
         />
       ) : notasFiltradas.length === 0 ? (
@@ -240,7 +240,7 @@ export function SessionNotesPanel({
           variant="session"
           size="sm"
           icon="scroll"
-          title="Nenhuma anotacao encontrada"
+          title="Nenhuma anotação encontrada"
           description="Tente buscar por outro termo ou limpe o filtro."
           className="text-left"
         />

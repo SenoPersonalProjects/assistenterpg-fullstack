@@ -46,7 +46,7 @@ class CampanhasErroTesteController {
   @Get(':id')
   buscar(@Param('id') id: string) {
     throw new BaseException(
-      'Campanha nao encontrada',
+      'Campanha não encontrada',
       HttpStatus.NOT_FOUND,
       'CAMPANHA_NOT_FOUND',
       { campanhaId: Number(id) },
@@ -75,7 +75,7 @@ class InventarioErroTesteController {
   @HttpCode(HttpStatus.UNPROCESSABLE_ENTITY)
   validarEspaco() {
     throw new BaseException(
-      'Espaco insuficiente no inventario',
+      'Espaço insuficiente no inventário',
       HttpStatus.UNPROCESSABLE_ENTITY,
       'INVENTARIO_ESPACOS_INSUFICIENTES',
       { espacosDisponiveis: 0, espacosNecessarios: 2 },
@@ -85,7 +85,7 @@ class InventarioErroTesteController {
 
   @Get('quebra')
   quebra() {
-    throw new Error('erro inesperado de inventario');
+    throw new Error('erro inesperado de inventário');
   }
 
   @Post('adicionar')
@@ -252,7 +252,7 @@ describe('ErrorContract (integration)', () => {
     expect(body.statusCode).toBe(HttpStatus.NOT_FOUND);
     expect(body.code).toBe('CAMPANHA_NOT_FOUND');
     expect(body.error).toBe('Not Found');
-    expect(body.message).toBe('Campanha nao encontrada');
+    expect(body.message).toBe('Campanha não encontrada');
     expect(body.field).toBe('campanhaId');
     expect(body.details).toEqual({ campanhaId: 404 });
     expect(body.path).toBe('/campanhas/404');
@@ -269,7 +269,7 @@ describe('ErrorContract (integration)', () => {
     expect(body.statusCode).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
     expect(body.code).toBe('INVENTARIO_ESPACOS_INSUFICIENTES');
     expect(body.error).toBe('Unprocessable Entity');
-    expect(body.message).toBe('Espaco insuficiente no inventario');
+    expect(body.message).toBe('Espaço insuficiente no inventário');
     expect(body.field).toBe('espacosDisponiveis');
     expect(body.details).toEqual({
       espacosDisponiveis: 0,

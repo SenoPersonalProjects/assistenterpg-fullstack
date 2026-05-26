@@ -11,7 +11,7 @@ export default function CompendioAdminPage() {
             <EmptyState
               variant="card"
               icon="spinner"
-              title="Carregando compendio"
+              title="Carregando compêndio"
               description="Preparando area administrativa."
             />
           </div>

@@ -171,7 +171,7 @@ export function parseDiceExpression(input: string): DiceParseResult {
   if (!match) {
     return {
       expression: null,
-      erro: 'Sintaxe invalida. Use XdY ou X#dY (ex.: 2d6+3, 2d6*2).',
+      erro: 'Sintaxe inválida. Use XdY ou X#dY (ex.: 2d6+3, 2d6*2).',
     };
   }
 
@@ -214,7 +214,7 @@ export function parseDiceExpression(input: string): DiceParseResult {
   if (operador === '/' && modificador === 0) {
     return {
       expression: null,
-      erro: 'Divisor nao pode ser zero.',
+      erro: 'Divisor não pode ser zero.',
     };
   }
 

@@ -146,7 +146,7 @@ export type EngineResult = {
   };
 
   // ✅ NOVO: Resistências
-  resistenciasFinais: Map<string, number>; // codigo → valor total
+  resistenciasFinais: Map<string, number>; // código → valor total
   resistenciasDetalhadas: {
     deEquipamentos: Map<string, number>;
     deHabilidades: Map<string, number>;

@@ -95,7 +95,7 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
       next.suplementoId = 'Selecione um suplemento.';
     }
@@ -168,7 +168,7 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
           error={errors.nome}
         />
         <Textarea
-          label="Descricao"
+          label="Descrição"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -179,7 +179,7 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
           onChange={(e) => setField('grandeCla', e.target.checked)}
         />
         <Input
-          label="Tecnicas hereditarias IDs (CSV)"
+          label="Técnicas hereditarias IDs (CSV)"
           value={form.tecnicasIdsCsv}
           onChange={(e) => setField('tecnicasIdsCsv', e.target.value)}
           placeholder="Ex: 1, 2, 3"
@@ -295,7 +295,7 @@ export function ClasAdminPanel() {
                   <tr key={item.id} className="border-b border-app-border/60">
                     <td className="py-3 pr-2 text-app-muted">#{item.id}</td>
                     <td className="py-3 pr-2 text-app-fg font-medium">{item.nome}</td>
-                    <td className="py-3 pr-2 text-app-fg">{item.grandeCla ? 'Sim' : 'Nao'}</td>
+                    <td className="py-3 pr-2 text-app-fg">{item.grandeCla ? 'Sim' : 'Não'}</td>
                     <td className="py-3 pr-2">
                       <Badge size="sm" color={fonteBadgeColor(item.fonte)}>
                         {formatFonte(item.fonte)}

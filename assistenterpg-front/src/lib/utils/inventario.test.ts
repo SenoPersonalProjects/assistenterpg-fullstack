@@ -8,7 +8,7 @@ function criarProtecao(
   return {
     id: 1,
     codigo: 'PROTECAO_LEVE',
-    nome: 'Protecao Leve',
+    nome: 'Proteção Leve',
     descricao: null,
     tipo: 'PROTECAO',
     categoria: '0',
@@ -64,7 +64,7 @@ const modificacoesProtecao = [
 ];
 
 describe('filtrarModificacoesCompativeis', () => {
-  it('libera modificacoes de protecao leve vestivel', () => {
+  it('libera modificacoes de proteção leve vestivel', () => {
     const resultado = filtrarModificacoesCompativeis(
       modificacoesProtecao,
       criarProtecao({
@@ -80,7 +80,7 @@ describe('filtrarModificacoesCompativeis', () => {
     ]);
   });
 
-  it('libera modificacoes de protecao pesada vestivel', () => {
+  it('libera modificacoes de proteção pesada vestivel', () => {
     const resultado = filtrarModificacoesCompativeis(
       modificacoesProtecao,
       criarProtecao({
@@ -97,7 +97,7 @@ describe('filtrarModificacoesCompativeis', () => {
     ]);
   });
 
-  it('nao libera modificacoes de protecao para escudo ou protecao sem tipoProtecao', () => {
+  it('não libera modificacoes de proteção para escudo ou proteção sem tipoProtecao', () => {
     const escudo = filtrarModificacoesCompativeis(
       modificacoesProtecao,
       criarProtecao({

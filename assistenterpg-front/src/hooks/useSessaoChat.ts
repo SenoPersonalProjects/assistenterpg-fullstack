@@ -32,7 +32,7 @@ export function useSessaoChat({
     const mensagemLimpa = mensagem.trim();
     if (!mensagemLimpa) return;
     if (mensagemLimpa.length > LIMITE_MENSAGEM_CHAT) {
-      setErro(`Mensagem deve ter no maximo ${LIMITE_MENSAGEM_CHAT} caracteres.`);
+      setErro(`Mensagem deve ter no máximo ${LIMITE_MENSAGEM_CHAT} caracteres.`);
       return;
     }
 

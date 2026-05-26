@@ -28,13 +28,13 @@ describe('auth-security.config', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('permite fallback dev-secret apenas fora de producao', () => {
+  it('permite fallback dev-secret apenas fora de produção', () => {
     const config = criarConfig({ NODE_ENV: 'development' });
 
     expect(resolveJwtSecret(config)).toBe('dev-secret');
   });
 
-  it('exige JWT_SECRET forte em producao', () => {
+  it('exige JWT_SECRET forte em produção', () => {
     const configSemSecret = criarConfig({ NODE_ENV: 'production' });
     const configFraco = criarConfig({
       NODE_ENV: 'production',
@@ -46,7 +46,7 @@ describe('auth-security.config', () => {
     });
 
     expect(() => resolveJwtSecret(configSemSecret)).toThrow(
-      'JWT_SECRET e obrigatorio em producao.',
+      'JWT_SECRET é obrigatório em produção.',
     );
     expect(() => resolveJwtSecret(configFraco)).toThrow(
       `${AUTH_JWT_SECRET_MIN_LENGTH} caracteres`,

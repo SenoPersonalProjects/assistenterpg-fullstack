@@ -64,7 +64,7 @@ describe('sessao-utils', () => {
     });
   });
 
-  it('retorna erro quando a ordem possui participante invalido', () => {
+  it('retorna erro quando a ordem possui participante inválido', () => {
     const ordemInvalida: SessaoCampanhaDetalhe['iniciativa']['ordem'] = [
       {
         ...ordemBase[0],
@@ -75,10 +75,10 @@ describe('sessao-utils', () => {
     const { payload, erro } = montarPayloadOrdemIniciativa(ordemInvalida, null);
 
     expect(payload).toBeNull();
-    expect(erro).toBe('Nao foi possivel reordenar iniciativa: participante invalido.');
+    expect(erro).toBe('Não foi possível reordenar iniciativa: participante inválido.');
   });
 
-  it('valida condicao com id invalido', () => {
+  it('valida condicao com id inválido', () => {
     const resultado = validarAplicacaoCondicao({
       condicaoId: '',
       duracaoModo: 'ATE_REMOVER',
@@ -87,12 +87,12 @@ describe('sessao-utils', () => {
       limiteFonte: '',
     });
 
-    expect(resultado.erro).toBe('Selecione uma condicao valida para aplicar.');
+    expect(resultado.erro).toBe('Selecione uma condição válida para aplicar.');
     expect(resultado.condicaoId).toBeNull();
     expect(resultado.duracaoValor).toBeNull();
   });
 
-  it('valida condicao com duracao numerica invalida', () => {
+  it('valida condição com duração numérica inválida', () => {
     const resultado = validarAplicacaoCondicao({
       condicaoId: '10',
       duracaoModo: 'RODADAS',
@@ -101,12 +101,12 @@ describe('sessao-utils', () => {
       limiteFonte: '',
     });
 
-    expect(resultado.erro).toBe('Informe uma duracao numerica maior que zero.');
+    expect(resultado.erro).toBe('Informe uma duração numérica maior que zero.');
     expect(resultado.condicaoId).toBe(10);
     expect(resultado.duracaoValor).toBeNull();
   });
 
-  it('valida condicao com duracao valida', () => {
+  it('valida condição com duração válida', () => {
     const resultado = validarAplicacaoCondicao({
       condicaoId: '8',
       duracaoModo: 'TURNOS_ALVO',
@@ -120,7 +120,7 @@ describe('sessao-utils', () => {
     expect(resultado.duracaoValor).toBe(3);
   });
 
-  it('ignora duracao numerica quando modo for ate remover', () => {
+  it('ignora duração numérica quando modo for até remover', () => {
     const resultado = validarAplicacaoCondicao({
       condicaoId: '7',
       duracaoModo: 'ATE_REMOVER',

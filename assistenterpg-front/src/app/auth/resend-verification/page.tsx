@@ -32,7 +32,7 @@ export default function ResendVerificationPage() {
 
   return (
     <AuthPageShell
-      title="Reenviar verificacao"
+      title="Reenviar verificação"
       subtitle="Solicite um novo link para confirmar seu email"
       footer={
         <p className="text-sm text-app-muted">
@@ -64,7 +64,7 @@ export default function ResendVerificationPage() {
         {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
 
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Enviando...' : 'Reenviar verificacao'}
+          {submitting ? 'Enviando...' : 'Reenviar verificação'}
         </Button>
       </form>
     </AuthPageShell>

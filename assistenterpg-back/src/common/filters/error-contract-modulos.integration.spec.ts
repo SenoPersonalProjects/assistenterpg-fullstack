@@ -300,7 +300,7 @@ describe('ErrorContractModules (integration)', () => {
       .send({
         codigo: 'ARTIGO_TESTE',
         titulo: 'Artigo Teste',
-        conteudo: 'Conteudo teste',
+        conteudo: 'Conteúdo teste',
         subcategoriaId: 'abc',
       })
       .expect(HttpStatus.BAD_REQUEST);
@@ -531,7 +531,7 @@ describe('ErrorContractModules (integration)', () => {
     });
   });
 
-  it('should return VALIDATION_ERROR for invalid pericias id param', async () => {
+  it('should return VALIDATION_ERROR for invalid perícias id param', async () => {
     const response = await request(app.getHttpServer())
       .get('/pericias/abc')
       .expect(HttpStatus.BAD_REQUEST);
@@ -627,7 +627,7 @@ describe('ErrorContractModules (integration)', () => {
     assertValidationErrorContract(asBody(response.body), {
       path: '/condicoes',
       method: 'POST',
-      messageIncludes: 'Descricao',
+      messageIncludes: 'Descrição',
     });
   });
 });

@@ -28,7 +28,7 @@ export function CaminhoFormFields({ dados, onChange }: Props) {
             onChange({ requisitos: e.target.value });
           }
         }}
-        placeholder='Ex: { "nivel": 7, "trilha": "Elementalista" }'
+        placeholder='Ex: { "nível": 7, "trilha": "Elementalista" }'
         rows={3}
       />
 
@@ -47,7 +47,7 @@ export function CaminhoFormFields({ dados, onChange }: Props) {
             onChange({ habilidades: e.target.value });
           }
         }}
-        placeholder='Ex: [{"nivel": 7, "nome": "Maestria Elemental", "descricao": "..."}]'
+        placeholder='Ex: [{"nível": 7, "nome": "Maestria Elemental", "descrição": "..."}]'
         rows={8}
         required
       />

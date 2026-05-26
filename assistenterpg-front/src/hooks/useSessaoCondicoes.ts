@@ -146,7 +146,7 @@ export function useSessaoCondicoes({
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Condicao aplicada.', 'success');
+        showToast('Condição aplicada.', 'success');
       } catch (error) {
         setErro(extrairMensagemErro(error));
       } finally {
@@ -190,7 +190,7 @@ export function useSessaoCondicoes({
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
-        showToast('Condicao removida.', 'success');
+        showToast('Condição removida.', 'success');
       } catch (error) {
         setErro(extrairMensagemErro(error));
       } finally {

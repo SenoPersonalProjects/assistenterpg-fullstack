@@ -15,7 +15,7 @@ import { HomebrewItemOperacionalDto } from './equipamentos/criar-homebrew-item-o
 import { HomebrewItemAmaldicoadoDto } from './equipamentos/criar-homebrew-item-amaldicoado.dto';
 import { HomebrewEquipamentoGenericoDto } from './equipamentos/criar-homebrew-generico.dto';
 
-// Tecnicas
+// Técnicas
 import { HomebrewTecnicaDto } from './tecnicas/criar-homebrew-tecnica.dto';
 
 // Outros
@@ -26,7 +26,7 @@ import { HomebrewClaDto } from './clas/criar-homebrew-cla.dto';
 import { HomebrewPoderDto } from './poderes/criar-homebrew-poder.dto';
 
 /**
- * DTO principal para criacao de Homebrew.
+ * DTO principal para criação de Homebrew.
  * O campo `tipo` define qual estrutura de `dados` sera validada.
  */
 export class CreateHomebrewDto extends CreateHomebrewBaseDto {

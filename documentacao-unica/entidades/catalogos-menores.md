@@ -1,4 +1,4 @@
-# Catalogos Menores (Pericias, Proficiencias, Tipos de Grau, Condicoes, Alinhamentos)
+# Catalogos Menores (Perícias, Proficiencias, Tipos de Grau, Condicoes, Alinhamentos)
 
 Atualizado em: 2026-03-08
 
@@ -6,7 +6,7 @@ Atualizado em: 2026-03-08
 
 Detalhamento do contrato real (controller + service + DTO + schema) para:
 
-- `pericias`
+- `perícias`
 - `proficiencias`
 - `tipos-grau`
 - `condicoes`
@@ -21,9 +21,9 @@ Fontes base:
 
 ## Matriz de Autorizacao
 
-- `pericias`
+- `perícias`
   - leitura: `Auth: JWT`
-  - escrita: nao exposta neste modulo
+  - escrita: não exposta neste módulo
 - `proficiencias`
   - leitura (`GET`): `Auth: JWT`
   - escrita (`POST/PATCH/DELETE`): `Auth: JWT+Admin`
@@ -35,14 +35,14 @@ Fontes base:
   - escrita (`POST/PATCH/DELETE`): `Auth: JWT+Admin`
 - `alinhamentos`
   - leitura: `Auth: JWT`
-  - escrita: nao exposta neste modulo
+  - escrita: não exposta neste módulo
 
 ## Endpoints e Formato de Requisicao
 
-## Pericias
+## Perícias
 
-- `GET /pericias`
-- `GET /pericias/:id`
+- `GET /perícias`
+- `GET /perícias/:id`
 
 Retorno tipico:
 
@@ -58,11 +58,11 @@ Retorno tipico:
 
 Body create:
 
-- `codigo` (string, max 50) obrigatorio
-- `nome` (string, min 2, max 100) obrigatorio
+- `codigo` (string, max 50) obrigatório
+- `nome` (string, min 2, max 100) obrigatório
 - `descricao` (string, max 5000) opcional/null
-- `tipo` (string, max 50) obrigatorio
-- `categoria` (string, max 50) obrigatorio
+- `tipo` (string, max 50) obrigatório
+- `categoria` (string, max 50) obrigatório
 - `subtipo` (string, max 50) opcional/null
 
 ## Tipos de Grau
@@ -75,8 +75,8 @@ Body create:
 
 Body create:
 
-- `codigo` (string, max 50) obrigatorio
-- `nome` (string, min 2, max 100) obrigatorio
+- `codigo` (string, max 50) obrigatório
+- `nome` (string, min 2, max 100) obrigatório
 - `descricao` (string, max 5000) opcional/null
 
 ## Condicoes
@@ -89,8 +89,8 @@ Body create:
 
 Body create:
 
-- `nome` (string, min 3, max 100) obrigatorio
-- `descricao` (string, min 10) obrigatorio
+- `nome` (string, min 3, max 100) obrigatório
+- `descricao` (string, min 10) obrigatório
 
 Retorno de listagem inclui:
 
@@ -109,41 +109,41 @@ Retorno tipico:
 ## Proficiencias
 
 - `findAll` ordena por `nome`
-- `findOne` valida existencia (`PROFICIENCIA_NOT_FOUND` em nao encontrado)
+- `findOne` válida existência (`PROFICIENCIA_NOT_FOUND` em não encontrado)
 - exclusao retorna `{ sucesso: true }`
 - unicidade de `codigo` e garantida pelo schema (`@unique`) e erro de banco mapeado
 
 ## Tipos de Grau
 
 - `findAll` ordena por `nome`
-- `findOne` valida existencia (`TIPO_GRAU_NOT_FOUND`)
+- `findOne` válida existência (`TIPO_GRAU_NOT_FOUND`)
 - exclusao retorna `{ sucesso: true }`
 - unicidade de `codigo` garantida pelo schema (`@unique`)
 
 ## Condicoes
 
-- nome duplicado e bloqueado (`CONDICAO_NOME_DUPLICADO`)
+- nome duplicado é bloqueado (`CONDICAO_NOME_DUPLICADO`)
 - `findAll` ordena por `nome` e retorna `_count.condicoesPersonagemSessao`
-- `DELETE` bloqueia quando existe vinculo em sessao (`CONDICAO_EM_USO`)
-- sucesso de `DELETE`: `{ "message": "Condicao removida com sucesso" }`
+- `DELETE` bloqueia quando existe vinculo em sessão (`CONDICAO_EM_USO`)
+- sucesso de `DELETE`: `{ "message": "Condição removida com sucesso" }`
 
-## Alinhamentos / Pericias
+## Alinhamentos / Perícias
 
-- leitura de catalogo, ordenacao por `nome` (alinhamentos) e por regra de dominio em pericias
+- leitura de catálogo, ordenacao por `nome` (alinhamentos) e por regra de domínio em perícias
 
 ## Contrato de erro validado em teste de integracao
 
-- pericias:
-  - `GET /pericias/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
+- perícias:
+  - `GET /perícias/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR`
 - proficiencias:
-  - `GET /proficiencias/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
-  - `POST /proficiencias` com `nome` invalido -> `400`, `code: VALIDATION_ERROR`, `field: nome`
+  - `GET /proficiencias/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /proficiencias` com `nome` inválido -> `400`, `code: VALIDATION_ERROR`, `field: nome`
 - tipos-grau:
-  - `GET /tipos-grau/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
-  - `POST /tipos-grau` com `nome` invalido -> `400`, `code: VALIDATION_ERROR`, `field: nome`
+  - `GET /tipos-grau/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /tipos-grau` com `nome` inválido -> `400`, `code: VALIDATION_ERROR`, `field: nome`
 - condicoes:
-  - `GET /condicoes/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
-  - `POST /condicoes` com `descricao` invalida -> `400`, `code: VALIDATION_ERROR` (`field` pode ficar ausente quando a mensagem customizada nao inclui o nome tecnico do campo)
+  - `GET /condicoes/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /condicoes` com `descricao` inválida -> `400`, `code: VALIDATION_ERROR` (`field` pode ficar ausente quando a mensagem customizada não inclui o nome técnico do campo)
 
 ## Consistencia com Schema
 
@@ -152,13 +152,13 @@ Restrições de schema relevantes:
 - `Proficiencia.codigo` -> `@unique`
 - `TipoGrau.codigo` -> `@unique`
 - `Condicao.nome` -> `@unique`
-- `Condicao.descricao` -> `String @db.Text` (obrigatorio)
+- `Condicao.descricao` -> `String @db.Text` (obrigatório)
 
 ## Integracao Frontend
 
 Leitura:
 
-- `assistenterpg-front/src/lib/api/catalogos.ts`
+- `assistenterpg-front/src/lib/api/catálogos.ts`
   - `apiGetPericias`
   - `apiGetProficiencias`
   - `apiGetTiposGrau`

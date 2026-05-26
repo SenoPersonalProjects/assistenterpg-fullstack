@@ -16,7 +16,7 @@ export function CompendioAdminManageButton() {
     <Link href="/compendio/admin">
       <Button type="button" variant="primary" size="sm" className="font-bold">
         <Icon name="settings" className="mr-2 h-4 w-4" />
-        Gerenciar compendio
+        Gerenciar compêndio
       </Button>
     </Link>
   );

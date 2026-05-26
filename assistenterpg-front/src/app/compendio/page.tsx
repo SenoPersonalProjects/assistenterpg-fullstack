@@ -55,7 +55,7 @@ export default async function CompendioPage() {
             variant="card"
             icon="warning"
             title="Compendio indisponivel no momento"
-            description="Nao foi possivel carregar livros e destaques agora. Tente novamente em instantes."
+            description="Não foi possível carregar livros e destaques agora. Tente novamente em instantes."
           />
         ) : (
           <>

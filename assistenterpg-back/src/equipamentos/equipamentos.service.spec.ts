@@ -32,7 +32,7 @@ describe('EquipamentosService', () => {
     ).mapResumo({
       id: 1,
       codigo: 'PROTECAO_LEVE',
-      nome: 'Protecao Leve',
+      nome: 'Proteção Leve',
       descricao: null,
       tipo: TipoEquipamento.PROTECAO,
       fonte: TipoFonte.SISTEMA_BASE,

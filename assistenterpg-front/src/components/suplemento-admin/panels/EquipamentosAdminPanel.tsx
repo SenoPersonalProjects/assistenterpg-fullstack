@@ -130,9 +130,9 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.codigo.trim()) next.codigo = 'Codigo e obrigatorio.';
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
-    if (!form.tipo) next.tipo = 'Tipo e obrigatorio.';
+    if (!form.codigo.trim()) next.codigo = 'Código é obrigatório.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
+    if (!form.tipo) next.tipo = 'Tipo é obrigatório.';
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
       next.suplementoId = 'Selecione um suplemento.';
     }
@@ -203,7 +203,7 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
-            label="Codigo *"
+            label="Código *"
             value={form.codigo}
             onChange={(e) => setField('codigo', e.target.value.toUpperCase())}
             error={errors.codigo}
@@ -231,7 +231,7 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
             value={form.categoria}
             onChange={(e) => setField('categoria', e.target.value as '' | CategoriaEquipamento)}
           >
-            <option value="">Nao definida</option>
+            <option value="">Não definida</option>
             {Object.values(CategoriaEquipamento).map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -246,13 +246,13 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
             onChange={(e) => setField('espacos', e.target.value)}
           />
           <Select
-            label="Complexidade da maldicao"
+            label="Complexidade da maldição"
             value={form.complexidadeMaldicao}
             onChange={(e) =>
               setField('complexidadeMaldicao', e.target.value as '' | ComplexidadeMaldicao)
             }
           >
-            <option value="">Nao definida</option>
+            <option value="">Não definida</option>
             {Object.values(ComplexidadeMaldicao).map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -262,7 +262,7 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
         </div>
 
         <Textarea
-          label="Descricao"
+          label="Descrição"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -370,7 +370,7 @@ export function EquipamentosAdminPanel() {
             value={draftFilters.busca}
             onChange={(e) => setDraftFilters((prev) => ({ ...prev, busca: e.target.value }))}
             icon="search"
-            placeholder="Nome ou codigo..."
+            placeholder="Nome ou código..."
           />
 
           <Select

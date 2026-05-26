@@ -11,7 +11,7 @@ function getAllArticles() {
 function findTrilha(nome: string) {
   const trilha = trilhasSuplemento.find((item) => item.nome === nome);
   if (!trilha) {
-    throw new Error(`Trilha nao encontrada no seed: ${nome}`);
+    throw new Error(`Trilha não encontrada no seed: ${nome}`);
   }
   return trilha;
 }
@@ -21,13 +21,13 @@ function findHabilidade(trilhaNome: string, codigo: string) {
     (item) => item.codigo === codigo,
   );
   if (!habilidade) {
-    throw new Error(`Habilidade nao encontrada no seed: ${codigo}`);
+    throw new Error(`Habilidade não encontrada no seed: ${codigo}`);
   }
   return habilidade;
 }
 
 describe('buildSobrevivendoAoJujutsuLivro', () => {
-  it('gera o livro publico do suplemento sem placeholders', () => {
+  it('gera o livro público do suplemento sem placeholders', () => {
     const livro = buildSobrevivendoAoJujutsuLivro();
     const artigos = getAllArticles();
     const conteudoCompleto = artigos
@@ -50,7 +50,7 @@ describe('buildSobrevivendoAoJujutsuLivro', () => {
     expect(conteudoCompleto).not.toContain('```json');
   });
 
-  it('inclui os textos integrais das tres trilhas novas no compendio', () => {
+  it('inclui os textos integrais das três trilhas novas no compêndio', () => {
     const artigos = getAllArticles();
     const corpo = artigos.find(
       (artigo) => artigo.codigo === 'corpo-amaldicoado-independente',
@@ -63,17 +63,17 @@ describe('buildSobrevivendoAoJujutsuLivro', () => {
     );
 
     expect(corpo?.conteudo).toContain('Blefe Mortal');
-    expect(corpo?.conteudo).toContain('Nucleo do Equilibrio');
-    expect(corpo?.conteudo).toContain('Ainda Bem que Eu Nao Sou Humano');
+    expect(corpo?.conteudo).toContain('Núcleo do Equilíbrio');
+    expect(corpo?.conteudo).toContain('Ainda Bem que Eu Não Sou Humano');
     expect(receptaculo?.conteudo).toContain('Livrando-se da entidade');
-    expect(receptaculo?.conteudo).toContain('Manifestacao Completa');
+    expect(receptaculo?.conteudo).toContain('Manifestação Completa');
     expect(receptaculo?.conteudo).toContain('Favor');
-    expect(amaldicoado?.conteudo).toContain('Maldicao Vinculada');
-    expect(amaldicoado?.conteudo).toContain('Enigma Amaldicoado');
-    expect(amaldicoado?.conteudo).toContain('Espirito Amaldicoado Manifesto');
+    expect(amaldicoado?.conteudo).toContain('Maldição Vinculada');
+    expect(amaldicoado?.conteudo).toContain('Enigma Amaldiçoado');
+    expect(amaldicoado?.conteudo).toContain('Espírito Amaldiçoado Manifesto');
   });
 
-  it('renderiza requisitos e mecanicas estruturadas como texto legivel', () => {
+  it('renderiza requisitos e mecânicas estruturadas como texto legível', () => {
     const artigos = getAllArticles();
     const parapsicologo = artigos.find(
       (artigo) => artigo.codigo === 'parapsicologo',
@@ -85,21 +85,21 @@ describe('buildSobrevivendoAoJujutsuLivro', () => {
     const baioneta = artigos.find((artigo) => artigo.codigo === 'baioneta');
 
     expect(parapsicologo?.conteudo).toContain(
-      'Requer Profissao treinada (psicologo).',
+      'Requer Profissão treinada (psicólogo).',
     );
     expect(corpo?.conteudo).toContain(
-      'Requer personagem sem tecnica amaldicoada.',
+      'Requer personagem sem técnica amaldiçoada.',
     );
-    expect(corpo?.conteudo).toContain('PV dividido em 3 nucleos/barras.');
-    expect(corpo?.conteudo).toContain('Recebe +2 PV por nivel.');
+    expect(corpo?.conteudo).toContain('PV dividido em 3 núcleos/barras.');
+    expect(corpo?.conteudo).toContain('Recebe +2 PV por nível.');
     expect(parceiro?.conteudo).toContain('Requer Diplomacia treinada.');
-    expect(parceiro?.conteudo).toContain('Requer nivel 6+.');
-    expect(baioneta?.conteudo).toContain('Proficiencia: Simples');
+    expect(parceiro?.conteudo).toContain('Requer nível 6+.');
+    expect(baioneta?.conteudo).toContain('Proficiência: Simples');
     expect(baioneta?.conteudo).toContain('Tipo: Corpo a corpo');
     expect(baioneta?.conteudo).toContain('1d4 Perfurante (Leve)');
   });
 
-  it('mantem os artigos gerados dentro do limite do campo Text', () => {
+  it('mantém os artigos gerados dentro do limite do campo Text', () => {
     for (const artigo of getAllArticles()) {
       expect(Buffer.byteLength(artigo.conteudo, 'utf8')).toBeLessThanOrEqual(
         MAX_ARTICLE_BYTES,
@@ -109,52 +109,52 @@ describe('buildSobrevivendoAoJujutsuLivro', () => {
 });
 
 describe('trilhas novas de Sobrevivendo ao Jujutsu', () => {
-  it('mantem classes e requisito sem tecnica inata', () => {
-    expect(findTrilha('Corpo Amaldicoado Independente')).toMatchObject({
+  it('mantém classes e requisito sem técnica inata', () => {
+    expect(findTrilha('Corpo Amaldiçoado Independente')).toMatchObject({
       classe: 'Combatente',
       requisitos: { semTecnicaInata: true },
     });
-    expect(findTrilha('Receptaculo')).toMatchObject({
+    expect(findTrilha('Receptáculo')).toMatchObject({
       classe: 'Especialista',
       requisitos: { semTecnicaInata: true },
     });
-    expect(findTrilha('Amaldicoado')).toMatchObject({
+    expect(findTrilha('Amaldiçoado')).toMatchObject({
       classe: 'Sentinela',
       requisitos: { semTecnicaInata: true },
     });
   });
 
-  it('mantem mecanicas estruturais do Corpo Amaldicoado Independente', () => {
+  it('mantém mecânicas estruturais do Corpo Amaldiçoado Independente', () => {
     expect(
       findHabilidade(
-        'Corpo Amaldicoado Independente',
+        'Corpo Amaldiçoado Independente',
         'SUP_CORPO_AMALDICOADO_BLEFE_MORTAL',
       ).mecanicasEspeciais,
     ).toEqual({ recursos: { pvBarrasTotal: 3 } });
     expect(
       findHabilidade(
-        'Corpo Amaldicoado Independente',
+        'Corpo Amaldiçoado Independente',
         'SUP_CORPO_AMALDICOADO_NUCLEOS',
       ).mecanicasEspeciais,
     ).toEqual({ pvPorNivel: 2 });
     expect(
       findHabilidade(
-        'Corpo Amaldicoado Independente',
+        'Corpo Amaldiçoado Independente',
         'SUP_CORPO_AMALDICOADO_ESTABILIDADE',
       ).mecanicasEspeciais,
     ).toEqual({ pvExtra: 30 });
   });
 
-  it('mantem caminhos e mecanicas estruturais do Receptaculo', () => {
+  it('mantém caminhos e mecânicas estruturais do Receptáculo', () => {
     expect(
-      findTrilha('Receptaculo').caminhos?.map((caminho) => caminho.nome),
-    ).toEqual(['Supressao', 'Convergencia']);
+      findTrilha('Receptáculo').caminhos?.map((caminho) => caminho.nome),
+    ).toEqual(['Supressão', 'Convergência']);
     expect(
-      findHabilidade('Receptaculo', 'SUP_RECEPTACULO_DESTINO')
+      findHabilidade('Receptáculo', 'SUP_RECEPTACULO_DESTINO')
         .mecanicasEspeciais,
     ).toEqual({ periciasBonus: { INTIMIDACAO: 5, DIPLOMACIA: -5 } });
     expect(
-      findHabilidade('Receptaculo', 'SUP_RECEPTACULO_CONVERGENCIA_20')
+      findHabilidade('Receptáculo', 'SUP_RECEPTACULO_CONVERGENCIA_20')
         .mecanicasEspeciais,
     ).toEqual({ resistencias: { ENERGIA_AMALDICOADA: 5 } });
   });

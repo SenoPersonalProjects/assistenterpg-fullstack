@@ -118,7 +118,7 @@ export function InventarioModalEquipamento({
                           name={expandido ? 'chevron-up' : 'chevron-down'}
                           className="w-4 h-4"
                         />
-                        <span>{expandido ? 'Ocultar descricao' : 'Ver descricao'}</span>
+                        <span>{expandido ? 'Ocultar descrição' : 'Ver descrição'}</span>
                       </button>
 
                       {expandido && (

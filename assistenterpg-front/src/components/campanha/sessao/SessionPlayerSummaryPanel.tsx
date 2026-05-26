@@ -128,7 +128,7 @@ export function SessionPlayerSummaryPanel({
   return (
     <SessionPanel
       title="Meu personagem"
-      subtitle="Resumo rapido da sua ficha na cena."
+      subtitle="Resumo rápido da sua ficha na cena."
       tone="control"
       right={
         !card && podeAdicionar ? (
@@ -144,7 +144,7 @@ export function SessionPlayerSummaryPanel({
           variant="session"
           size="sm"
           icon="character-gojo"
-          title="Personagem nao encontrado"
+          title="Personagem não encontrado"
           description="Adicione seu personagem para acompanhar a cena."
           actionLabel={podeAdicionar ? 'Adicionar meu personagem' : undefined}
           onAction={podeAdicionar ? onAbrirAdicionar : undefined}
@@ -227,8 +227,8 @@ export function SessionPlayerSummaryPanel({
           variant="session"
           size="sm"
           icon="info"
-          title="Dados indisponiveis"
-          description="Os dados completos do personagem nao estao disponiveis no momento."
+          title="Dados indisponíveis"
+          description="Os dados completos do personagem não estao disponíveis no momento."
         />
       )}
     </SessionPanel>

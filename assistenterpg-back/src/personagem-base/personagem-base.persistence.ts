@@ -468,7 +468,7 @@ export class PersonagemBasePersistence {
 
   /**
    * ✅ CORRIGIDO: Prepara resistências para criação no banco
-   * Converte Map<codigo, valor> → Array de objetos no formato correto para nested create
+   * Converte Map<código, valor> → Array de objetos no formato correto para nested create
    */
   private async prepararResistenciasParaCriacao(
     resistenciasFinais: Map<string, number>,
@@ -501,7 +501,7 @@ export class PersonagemBasePersistence {
 
     const codigosValidos = new Set(resistenciasTipo.map((r) => r.codigo));
 
-    // ✅ FORMATO CORRETO: { valor, resistenciaTipo: { connect: { codigo } } }
+    // ✅ FORMATO CORRETO: { valor, resistenciaTipo: { connect: { código } } }
     return resistenciasValidas
       .filter(([codigo]) => codigosValidos.has(codigo))
       .map(([codigo, valor]) => ({

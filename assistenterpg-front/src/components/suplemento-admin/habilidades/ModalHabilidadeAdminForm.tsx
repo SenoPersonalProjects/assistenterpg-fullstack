@@ -44,7 +44,7 @@ const TIPO_HABILIDADE_OPTIONS: Array<{ value: TipoHabilidadeCatalogo; label: str
   { value: 'MECANICA_ESPECIAL', label: 'Mecanica Especial' },
   { value: 'HABILIDADE_ORIGEM', label: 'Habilidade de Origem' },
   { value: 'HABILIDADE_TRILHA', label: 'Habilidade de Trilha' },
-  { value: 'ESCOLA_TECNICA', label: 'Escola Tecnica' },
+  { value: 'ESCOLA_TECNICA', label: 'Escola Técnica' },
 ];
 
 const FONTE_OPTIONS: Array<{ value: TipoFonte; label: string }> = [
@@ -71,7 +71,7 @@ function parseOptionalJson(input: string): { value?: unknown; error?: string } {
   try {
     return { value: JSON.parse(trimmed) as unknown };
   } catch {
-    return { error: 'JSON invalido em campo opcional.' };
+    return { error: 'JSON inválido em campo opcional.' };
   }
 }
 
@@ -130,8 +130,8 @@ export function ModalHabilidadeAdminForm({
   function validateForm(): boolean {
     const nextErrors: Record<string, string> = {};
 
-    if (!form.nome.trim()) nextErrors.nome = 'Nome e obrigatorio.';
-    if (!form.tipo) nextErrors.tipo = 'Tipo e obrigatorio.';
+    if (!form.nome.trim()) nextErrors.nome = 'Nome é obrigatório.';
+    if (!form.tipo) nextErrors.tipo = 'Tipo é obrigatório.';
 
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
       nextErrors.suplementoId = 'Selecione um suplemento quando a fonte for SUPLEMENTO.';
@@ -271,7 +271,7 @@ export function ModalHabilidadeAdminForm({
                 label="Suplemento"
                 value=""
                 disabled
-                helperText="Nao aplicavel para esta fonte."
+                helperText="Não aplicavel para esta fonte."
               />
             )}
 
@@ -285,7 +285,7 @@ export function ModalHabilidadeAdminForm({
 
           <div className="mt-4">
             <Textarea
-              label="Descricao"
+              label="Descrição"
               value={form.descricao}
               onChange={(e) => setField('descricao', e.target.value)}
               rows={4}
@@ -309,7 +309,7 @@ export function ModalHabilidadeAdminForm({
               onChange={(e) => setField('mecanicasJson', e.target.value)}
               error={errors.mecanicasJson}
               rows={4}
-              placeholder='Ex: { "critico": "+2d6" }'
+              placeholder='Ex: { "crítico": "+2d6" }'
             />
           </div>
         </Card>

@@ -25,7 +25,7 @@ describe('ModificacoesService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('restricoes de protecao', () => {
+  describe('restricoes de proteção', () => {
     const modificacaoVestivel = {
       codigo: 'MOD_REFORCADA',
       nome: 'Reforcada',
@@ -55,7 +55,7 @@ describe('ModificacoesService', () => {
       expect(resultado.erros).toEqual([]);
     });
 
-    it('rejeita escudos e aceita protecao vestivel inferida quando tipoProtecao nao vier preenchido', () => {
+    it('rejeita escudos e aceita proteção vestivel inferida quando tipoProtecao não vier preenchido', () => {
       const escudo = service.validarRestricoes(
         {
           id: 2,

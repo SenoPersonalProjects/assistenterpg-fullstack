@@ -185,7 +185,7 @@ export function useSessaoNpc({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
         onNpcAdicionado?.();
-        showToast('Aliado ou ameaca adicionado na cena.', 'success');
+        showToast('Aliado ou ameaça adicionado na cena.', 'success');
       } catch (error) {
         setErro(extrairMensagemErro(error));
       } finally {
@@ -462,7 +462,7 @@ export function useSessaoNpc({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
         onRemocaoConfirmada?.();
-        showToast('Aliado ou ameaca removido da cena.', 'warning');
+        showToast('Aliado ou ameaça removido da cena.', 'warning');
       } catch (error) {
         setErro(extrairMensagemErro(error));
       } finally {

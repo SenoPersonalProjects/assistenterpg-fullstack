@@ -54,7 +54,7 @@ function mensagemErroCarregarCampanha(error: unknown): string {
   const base = traduzirErro(code, extrairMensagemErro(error), status);
 
   if (status === 404) {
-    return formatarErroComContexto('Campanha nao encontrada.', error, {
+    return formatarErroComContexto('Campanha não encontrada.', error, {
       incluirEndpoint: true,
       incluirRequestId: true,
     });
@@ -62,7 +62,7 @@ function mensagemErroCarregarCampanha(error: unknown): string {
 
   if (status === 403) {
     return formatarErroComContexto(
-      'Voce nao tem permissao para acessar esta campanha.',
+      'Você não tem permissão para acessar esta campanha.',
       error,
       {
         incluirEndpoint: true,
@@ -72,7 +72,7 @@ function mensagemErroCarregarCampanha(error: unknown): string {
   }
 
   if (status === 400 || status === 422) {
-    return formatarErroComContexto(`Nao foi possivel carregar a campanha. ${base}`, error, {
+    return formatarErroComContexto(`Não foi possível carregar a campanha. ${base}`, error, {
       incluirEndpoint: true,
       incluirRequestId: true,
     });
@@ -95,14 +95,14 @@ function mensagemErroConvidarMembro(error: unknown): string {
   const base = traduzirErro(code, extrairMensagemErro(error), status);
 
   if (status === 409) {
-    return formatarErroComContexto('Nao foi possivel enviar o convite. Usuario ja e membro.', error, {
+    return formatarErroComContexto('Não foi possível enviar o convite. Usuário já e membro.', error, {
       incluirEndpoint: true,
       incluirRequestId: true,
     });
   }
 
   if (status === 400 || status === 422) {
-    return formatarErroComContexto(`Nao foi possivel enviar o convite. ${base}`, error, {
+    return formatarErroComContexto(`Não foi possível enviar o convite. ${base}`, error, {
       incluirEndpoint: true,
       incluirRequestId: true,
     });

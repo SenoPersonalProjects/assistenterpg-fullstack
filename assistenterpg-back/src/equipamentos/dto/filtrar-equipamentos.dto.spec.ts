@@ -15,7 +15,7 @@ describe('FiltrarEquipamentosDto', () => {
     expect(dto.apenasAmaldicoados).toBe(false);
   });
 
-  it('deve rejeitar valor booleano invalido', () => {
+  it('deve rejeitar valor booleano inválido', () => {
     const dto = plainToInstance(
       FiltrarEquipamentosDto,
       {

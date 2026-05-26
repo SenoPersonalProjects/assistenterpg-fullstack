@@ -87,8 +87,8 @@ function CaminhoAdminFormModal({ isOpen, onClose, trilhas, suplementos, caminho 
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.trilhaId.trim()) next.trilhaId = 'Trilha e obrigatoria.';
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
+    if (!form.trilhaId.trim()) next.trilhaId = 'Trilha é obrigatória.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     if (form.fonte === 'SUPLEMENTO' && !form.suplementoId.trim()) {
       next.suplementoId = 'Selecione um suplemento.';
     }
@@ -175,7 +175,7 @@ function CaminhoAdminFormModal({ isOpen, onClose, trilhas, suplementos, caminho 
         />
 
         <Textarea
-          label="Descricao"
+          label="Descrição"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}

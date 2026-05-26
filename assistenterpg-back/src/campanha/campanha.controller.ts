@@ -393,7 +393,7 @@ export class CampanhaController {
     );
   }
 
-  // ----- Itens de sessao da campanha -----
+  // ----- Itens de sessão da campanha -----
 
   @Get(':id/itens-sessao')
   async listarItensSessaoCampanha(
@@ -576,7 +576,7 @@ export class CampanhaController {
     const usuarioId = dto.usuarioId;
     if (!email && !apelido && !usuarioId) {
       throw new BadRequestException(
-        'Informe email, apelido ou usuario para o convite.',
+        'Informe email, apelido ou usuário para o convite.',
       );
     }
 

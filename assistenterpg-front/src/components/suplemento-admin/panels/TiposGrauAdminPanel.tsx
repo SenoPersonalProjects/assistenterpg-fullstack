@@ -67,8 +67,8 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!form.codigo.trim()) next.codigo = 'Codigo e obrigatorio.';
-    if (!form.nome.trim()) next.nome = 'Nome e obrigatorio.';
+    if (!form.codigo.trim()) next.codigo = 'Código é obrigatório.';
+    if (!form.nome.trim()) next.nome = 'Nome é obrigatório.';
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -130,7 +130,7 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
     >
       <div className="space-y-4">
         <Input
-          label="Codigo *"
+          label="Código *"
           value={form.codigo}
           onChange={(e) => setField('codigo', e.target.value)}
           error={errors.codigo}
@@ -142,7 +142,7 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
           error={errors.nome}
         />
         <Textarea
-          label="Descricao"
+          label="Descrição"
           rows={4}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -213,7 +213,7 @@ export function TiposGrauAdminPanel() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
-            placeholder="Nome ou codigo..."
+            placeholder="Nome ou código..."
           />
           <Button
             variant="primary"

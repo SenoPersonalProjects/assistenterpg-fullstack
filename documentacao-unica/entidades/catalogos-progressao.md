@@ -4,7 +4,7 @@ Atualizado em: 2026-03-08
 
 ## Escopo
 
-Este documento cobre os modulos de progressao de personagem:
+Este documento cobre os módulos de progressão de personagem:
 
 - `clas`
 - `classes`
@@ -27,12 +27,12 @@ Fontes auditadas:
 - schema:
   - `assistenterpg-back/prisma/schema.prisma`
 - integracao frontend:
-  - `assistenterpg-front/src/lib/api/catalogos.ts`
+  - `assistenterpg-front/src/lib/api/catálogos.ts`
   - `assistenterpg-front/src/lib/api/suplemento-conteudos.ts`
 
 ## Matriz de autorizacao (comportamento atual)
 
-- todos os controllers deste bloco usam `Auth: JWT` no nivel de classe.
+- todos os controllers deste bloco usam `Auth: JWT` no nível de classe.
 - rotas de leitura (`GET`) permanecem com `Auth: JWT`.
 - rotas de escrita (`POST/PATCH/DELETE`) usam `Auth: JWT+Admin` via `AdminGuard`.
 
@@ -66,7 +66,7 @@ Fontes auditadas:
 
 `CreateClasseDto`:
 
-- `nome: string` (obrigatorio, max 100)
+- `nome: string` (obrigatório, max 100)
 - `descricao?: string | null` (max 2000)
 - `fonte?: TipoFonte`
 - `suplementoId?: int >= 1`
@@ -126,12 +126,12 @@ Caminhos:
 - `bloqueiaTecnicaHeriditaria?: boolean`
 - `fonte?: TipoFonte`
 - `suplementoId?: int >= 1`
-- `pericias?: [{ periciaId, tipo: FIXA|ESCOLHA, grupoEscolha? }]`
+- `perícias?: [{ periciaId, tipo: FIXA|ESCOLHA, grupoEscolha? }]`
 - `habilidadesIds?: int[]`
 
 ## Habilidades (`/habilidades`)
 
-- `GET /habilidades/poderes-genericos`
+- `GET /habilidades/poderes-genéricos`
 - `GET /habilidades` (com filtros)
 - `GET /habilidades/:id`
 - `POST /habilidades`
@@ -158,44 +158,44 @@ Caminhos:
 
 ## Regras comuns
 
-- nome duplicado e bloqueado em todos os catalogos principais.
-- varios modulos validam consistencia de `fonte` x `suplementoId`:
+- nome duplicado é bloqueado em todos os catálogos principais.
+- vários módulos validam consistência de `fonte` x `suplementoId`:
   - se `suplementoId` for informado, suplemento precisa existir e `fonte` deve ser `SUPLEMENTO`.
   - se `fonte` for `SUPLEMENTO`, deve existir `suplementoId`.
 
 ## Cla
 
-- valida se tecnicas fornecidas existem e sao hereditarias antes de salvar.
-- `PATCH` pode substituir lista de tecnicas hereditarias (delete/recreate).
+- válida se técnicas fornecidas existem e são hereditárias antes de salvar.
+- `PATCH` pode substituir lista de técnicas hereditárias (delete/recreate).
 - `DELETE` bloqueia quando cla esta em uso por personagem base/campanha.
 
 ## Classes
 
 - retorno de `GET /classes` e mapeado para `ClasseCatalogoDto` com:
-  - pericias da classe
+  - perícias da classe
   - proficiencias
-  - habilidades iniciais de nivel 1
+  - habilidades iniciais de nível 1
 - `DELETE` bloqueia quando classe esta em uso.
 
 ## Trilhas/caminhos
 
-- criacao de trilha exige classe existente.
+- criação de trilha exige classe existente.
 - `PATCH` de trilha aceita mudar `classeId` e regravar habilidades.
 - `PATCH` de trilha/caminho aceita array vazio para limpar habilidades vinculadas.
 - `DELETE` de trilha/caminho bloqueia quando ha personagens vinculados.
 
 ## Origens
 
-- valida pericias e habilidades fornecidas antes de salvar.
-- origem retorna tambem `habilidadesIniciais` (derivado de `habilidadesOrigem`).
-- `PATCH` atualiza pericias/habilidades por rebuild (delete/recreate).
+- válida perícias e habilidades fornecidas antes de salvar.
+- origem retorna também `habilidadesIniciais` (derivado de `habilidadesOrigem`).
+- `PATCH` atualiza perícias/habilidades por rebuild (delete/recreate).
 - `DELETE` bloqueia quando origem esta em uso.
 
 ## Habilidades
 
-- valida `tipoGrauCodigo` em `efeitosGrau`.
+- válida `tipoGrauCodigo` em `efeitosGrau`.
 - listagem retorna envelope `{ dados, paginacao }`.
-- `GET /habilidades/poderes-genericos` reutiliza regra da engine de personagem para manter consistencia de calculo.
+- `GET /habilidades/poderes-genéricos` reutiliza regra da engine de personagem para manter consistencia de cálculo.
 - `DELETE` bloqueia quando habilidade esta vinculada a personagens/classes/trilhas/origens.
 
 ## Erros esperados (codigos)
@@ -233,19 +233,19 @@ Caminhos:
 
 - trilhas:
   - `GET /trilhas?classeId=abc` -> `400`, `code: VALIDATION_ERROR` (parse de query)
-  - `POST /trilhas` com `classeId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: classeId`
+  - `POST /trilhas` com `classeId` inválido -> `400`, `code: VALIDATION_ERROR`, `field: classeId`
 - classes:
-  - `GET /classes/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
-  - `POST /classes` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+  - `GET /classes/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /classes` com `suplementoId` inválido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
 - clas:
-  - `GET /clas/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
-  - `POST /clas` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+  - `GET /clas/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /clas` com `suplementoId` inválido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
 - origens:
-  - `GET /origens/:id` com `id` invalido -> `400`, `code: VALIDATION_ERROR`
-  - `POST /origens` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+  - `GET /origens/:id` com `id` inválido -> `400`, `code: VALIDATION_ERROR`
+  - `POST /origens` com `suplementoId` inválido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
 - habilidades:
   - `GET /habilidades?pagina=0` -> `400`, `code: VALIDATION_ERROR`, `field: pagina`
-  - `POST /habilidades` com `suplementoId` invalido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
+  - `POST /habilidades` com `suplementoId` inválido -> `400`, `code: VALIDATION_ERROR`, `field: suplementoId`
 
 ## Consistencia com schema
 
@@ -266,9 +266,9 @@ Restricoes relevantes em `schema.prisma`:
 
 ## Integracao frontend
 
-Leitura de catalogos (wizard/fichas):
+Leitura de catálogos (wizard/fichas):
 
-- `assistenterpg-front/src/lib/api/catalogos.ts`
+- `assistenterpg-front/src/lib/api/catálogos.ts`
 
 Escrita para painel admin de suplementos:
 

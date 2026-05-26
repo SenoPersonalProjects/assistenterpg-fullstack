@@ -74,11 +74,11 @@ describe('AuthService', () => {
     expect(service).toBeDefined();
   });
 
-  it('cria sessao por cookie no login sem retornar access token', async () => {
+  it('cria sessão por cookie no login sem retornar access token', async () => {
     const usuario = {
       id: 1,
-      email: 'usuario@example.com',
-      apelido: 'Usuario',
+      email: 'usuário@example.com',
+      apelido: 'Usuário',
       role: RoleUsuario.USUARIO,
       emailVerificadoEm: new Date(),
     };
@@ -112,7 +112,7 @@ describe('AuthService', () => {
 
   it('usa a mesma excecao publica para email inexistente e senha errada', async () => {
     usuarioService.buscarPorEmail.mockRejectedValueOnce(
-      new Error('usuario inexistente'),
+      new Error('usuário inexistente'),
     );
 
     await expect(
@@ -122,8 +122,8 @@ describe('AuthService', () => {
     const senhaHash = await bcrypt.hash('senha-correta', 4);
     usuarioService.buscarPorEmail.mockResolvedValueOnce({
       id: 1,
-      email: 'usuario@example.com',
-      apelido: 'Usuario',
+      email: 'usuário@example.com',
+      apelido: 'Usuário',
       senhaHash,
       role: RoleUsuario.USUARIO,
       emailVerificadoEm: new Date(),
@@ -132,11 +132,11 @@ describe('AuthService', () => {
     });
 
     await expect(
-      service.validarUsuario('usuario@example.com', 'senha-errada'),
+      service.validarUsuario('usuário@example.com', 'senha-errada'),
     ).rejects.toBeInstanceOf(CredenciaisInvalidasException);
   });
 
-  it('nao enumera email no fluxo de recuperacao de senha', async () => {
+  it('não enumera email no fluxo de recuperação de senha', async () => {
     usuarioService.buscarPorEmailOpcional.mockResolvedValueOnce(null);
 
     const respostaInexistente = await service.solicitarRecuperacaoSenha(
@@ -150,12 +150,12 @@ describe('AuthService', () => {
     });
     usuarioService.buscarPorEmailOpcional.mockResolvedValueOnce({
       id: 1,
-      email: 'usuario@example.com',
-      apelido: 'Usuario',
+      email: 'usuário@example.com',
+      apelido: 'Usuário',
     });
 
     const respostaExistente = await service.solicitarRecuperacaoSenha(
-      'usuario@example.com',
+      'usuário@example.com',
     );
 
     expect(respostaExistente).toEqual(respostaInexistente);
@@ -166,7 +166,7 @@ describe('AuthService', () => {
     );
   });
 
-  it('nao enumera email no reenvio de verificacao', async () => {
+  it('não enumera email no reenvio de verificação', async () => {
     usuarioService.buscarPorEmailOpcional.mockResolvedValueOnce(null);
 
     const respostaInexistente = await service.reenviarVerificacaoEmail(
@@ -176,7 +176,7 @@ describe('AuthService', () => {
     usuarioService.buscarPorEmailOpcional.mockResolvedValueOnce({
       id: 1,
       email: 'verificado@example.com',
-      apelido: 'Usuario',
+      apelido: 'Usuário',
       emailVerificadoEm: new Date(),
     });
 

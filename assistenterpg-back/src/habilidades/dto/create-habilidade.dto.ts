@@ -42,18 +42,18 @@ export class EfeitoGrauDto {
 export class CreateHabilidadeDto {
   @IsOptional()
   @IsString()
-  @MaxLength(60, { message: 'Codigo deve ter no maximo 60 caracteres' })
+  @MaxLength(60, { message: 'Código deve ter no máximo 60 caracteres' })
   codigo?: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(3, { message: 'Nome deve ter no minimo 3 caracteres' })
-  @MaxLength(100, { message: 'Nome deve ter no maximo 100 caracteres' })
+  @MinLength(3, { message: 'Nome deve ter no mínimo 3 caracteres' })
+  @MaxLength(100, { message: 'Nome deve ter no máximo 100 caracteres' })
   nome: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000, { message: 'Descricao deve ter no maximo 1000 caracteres' })
+  @MaxLength(1000, { message: 'Descrição deve ter no máximo 1000 caracteres' })
   descricao?: string;
 
   @IsEnum(TipoHabilidade, {

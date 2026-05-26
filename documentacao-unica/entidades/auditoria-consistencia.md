@@ -1,43 +1,43 @@
-# Auditoria de Consistencia (Docs x Regras x Schema)
+﻿# Auditoria de Consistencia (Docs x Regras x Schema)
 
 Atualizado em: 2026-03-08
 
-## Metodo de verificacao
+## Método de verificação
 
 A auditoria foi feita comparando:
 
 - controllers (rotas e autorizacao)
 - services (regras de negocio e erros esperados)
 - DTOs (formatos aceitos)
-- `schema.prisma` (constraints e relacoes)
-- documentacao em `documentacao-unica/README.md` e docs por entidade
+- `schema.prisma` (constraints e relações)
+- documentação em `documentacao-unica/README.md` e docs por entidade
 
 ## Resultado atual
 
-- cobertura de modulos do backend no README: ok (todos os controllers principais aparecem)
+- cobertura de módulos do backend no README: ok (todos os controllers principais aparecem)
 - cobertura por entidade em arquivos dedicados:
   - `auth-usuarios-campanhas`: ok
-  - `catalogos-progressao`: ok
+  - `catalogos-progressão`: ok
   - `tecnicas-amaldicoadas`: ok
-  - `catalogos-menores`: ok
+  - `catálogos-menores`: ok
   - `personagens-base`: ok
   - `inventario`: ok
   - `equipamentos-modificacoes`: ok
   - `compendio`: ok
   - `suplementos-homebrews`: ok
 - contratos de payload:
-  - campos obrigatorios/opcionais e formatos de query documentados por entidade
+  - campos obrigatórios/opcionais e formatos de query documentados por entidade
 - constraints de schema:
-  - unicidades, relacoes e bloqueios de exclusao em uso refletidos na documentacao
+  - unicidades, relações e bloqueios de exclusão em uso refletidos na documentação
 - erros:
   - envelope global atualizado com `traceId` e header `x-request-id`
-  - codigos de erro por dominio mapeados nos docs de entidade
+  - codigos de erro por domínio mapeados nos docs de entidade
 
-## Pontos de atencao (comportamento atual, nao quebra)
+## Pontos de atencao (comportamento atual, não quebra)
 
 - `proficiencias` e `tipos-grau`:
-  - service nao faz precheck explicito de "em uso" antes de deletar
-  - integridade fica delegada ao banco/Prisma (erro de FK quando aplicavel)
+  - service não faz precheck explícito de "em uso" antes de deletar
+  - integridade fica delegada ao banco/Prisma (erro de FK quando aplicável)
 
 ## Evidencias (arquivos chave)
 
@@ -63,4 +63,4 @@ A auditoria foi feita comparando:
 - autorizacao:
   - `assistenterpg-back/src/auth/jwt-auth.guard.ts`
   - `assistenterpg-back/src/auth/guards/admin.guard.ts`
-  - controllers dos modulos citados acima
+  - controllers dos módulos citados acima

@@ -49,7 +49,7 @@ export function TrilhaFormFields({ dados, onChange }: Props) {
             onChange({ habilidades: e.target.value });
           }
         }}
-        placeholder='Ex: [{"nivel": 3, "nome": "Foco Elemental", "descricao": "..."}]'
+        placeholder='Ex: [{"nível": 3, "nome": "Foco Elemental", "descrição": "..."}]'
         rows={8}
         required
       />

@@ -11,12 +11,12 @@ export default function LoginPage() {
       subtitle="Entre para continuar sua jornada"
       footer={
         <p className="text-sm text-app-muted">
-          Nao tem conta?{' '}
+          Não tem conta?{' '}
           <Link
             href="/auth/register"
             className="text-app-secondary hover:text-app-secondary-hover font-semibold transition-colors"
           >
-            Criar conta gratis
+            Criar conta grátis
           </Link>
         </p>
       }

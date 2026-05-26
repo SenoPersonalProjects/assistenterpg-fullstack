@@ -45,7 +45,7 @@ describe('itens personalizados de inventario', () => {
   ];
 
   it.each(casos)(
-    '$nome exige pericia escolhida para item personalizado',
+    '$nome exige perícia escolhida para item personalizado',
     async ({ criarServico }) => {
       const servico = criarServico();
       const db = criarDb();
@@ -65,7 +65,7 @@ describe('itens personalizados de inventario', () => {
   );
 
   it.each(casos)(
-    '$nome rejeita Luta e Pontaria como pericia de item personalizado',
+    '$nome rejeita Luta e Pontaria como perícia de item personalizado',
     async ({ criarServico }) => {
       const servico = criarServico();
       const db = criarDb();
@@ -99,7 +99,7 @@ describe('itens personalizados de inventario', () => {
   );
 
   it.each(casos)(
-    '$nome aceita pericia valida e normaliza codigo para maiusculas',
+    '$nome aceita perícia valida e normaliza código para maiusculas',
     async ({ criarServico }) => {
       const servico = criarServico();
       const db = criarDb();
@@ -144,7 +144,7 @@ describe('itens personalizados de inventario', () => {
   );
 
   it.each(casos)(
-    '$nome rejeita pericia inexistente em item personalizado',
+    '$nome rejeita perícia inexistente em item personalizado',
     async ({ criarServico }) => {
       const servico = criarServico();
       const db = criarDb(false);

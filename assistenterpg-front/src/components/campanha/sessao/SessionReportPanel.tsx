@@ -40,7 +40,7 @@ export function SessionReportPanel({
   erro,
 }: SessionReportPanelProps) {
   if (loading) {
-    return <Loading message="Carregando relatorio..." className="py-8 text-app-fg" />;
+    return <Loading message="Carregando relatório..." className="py-8 text-app-fg" />;
   }
 
   if (erro) {
@@ -53,7 +53,7 @@ export function SessionReportPanel({
         variant="card"
         icon="scroll"
         title="Relatorio indisponivel"
-        description="Nenhum dado de relatorio foi encontrado para esta sessao."
+        description="Nenhum dado de relatório foi encontrado para esta sessão."
       />
     );
   }
@@ -86,7 +86,7 @@ export function SessionReportPanel({
                     : 'bg-app-danger/10 text-app-danger'
                 }`}
               >
-                {personagem.statusFinal.terminouVivo ? 'Terminou vivo' : 'Nao terminou vivo'}
+                {personagem.statusFinal.terminouVivo ? 'Terminou vivo' : 'Não terminou vivo'}
               </div>
             </div>
 

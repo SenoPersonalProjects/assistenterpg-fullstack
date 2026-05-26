@@ -114,20 +114,20 @@ export async function validarENormalizarEstadoItemPersonalizado(
 
     if (!periciaCodigo) {
       throw new BadRequestException(
-        'Itens personalizados exigem a selecao de uma pericia beneficiada.',
+        'Itens personalizados exigem a selecao de uma perícia beneficiada.',
       );
     }
 
     if (CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO.has(periciaCodigo)) {
       throw new BadRequestException(
-        'Itens personalizados nao podem beneficiar Luta ou Pontaria.',
+        'Itens personalizados não podem beneficiar Luta ou Pontaria.',
       );
     }
 
     await validarPericiaExiste(
       db,
       periciaCodigo,
-      'A pericia escolhida para o item personalizado e invalida.',
+      'A perícia escolhida para o item personalizado e inválida.',
     );
 
     resultado.periciaCodigo = periciaCodigo;
@@ -148,7 +148,7 @@ export async function validarENormalizarEstadoItemPersonalizado(
   const funcoesAdicionaisPericias = extrairFuncoesAdicionaisDoEstado(estado);
   if (funcoesAdicionaisPericias.length === 0) {
     throw new BadRequestException(
-      'A modificacao Funcao Adicional exige ao menos uma pericia extra.',
+      'A modificação Função Adicional exige ao menos uma perícia extra.',
     );
   }
 
@@ -160,32 +160,32 @@ export async function validarENormalizarEstadoItemPersonalizado(
   for (const periciaCodigo of funcoesAdicionaisPericias) {
     if (CODIGOS_PERICIAS_PROIBIDAS_ITEM_PERSONALIZADO.has(periciaCodigo)) {
       throw new BadRequestException(
-        'Funcao Adicional nao pode beneficiar Luta ou Pontaria.',
+        'Funcao Adicional não pode beneficiar Luta ou Pontaria.',
       );
     }
 
     if (resultado.periciaCodigo && periciaCodigo === resultado.periciaCodigo) {
       throw new BadRequestException(
-        'Funcao Adicional nao pode repetir a pericia principal do item.',
+        'Funcao Adicional não pode repetir a perícia principal do item.',
       );
     }
 
     if (periciaBaseBonificada && periciaCodigo === periciaBaseBonificada) {
       throw new BadRequestException(
-        'Funcao Adicional nao pode escolher a mesma pericia base do acessorio.',
+        'Funcao Adicional não pode escolher a mesma perícia base do acessorio.',
       );
     }
 
     if (periciasUnicas.has(periciaCodigo)) {
       throw new BadRequestException(
-        'Funcao Adicional nao pode repetir a mesma pericia extra no mesmo item.',
+        'Funcao Adicional não pode repetir a mesma perícia extra no mesmo item.',
       );
     }
 
     await validarPericiaExiste(
       db,
       periciaCodigo,
-      'A pericia escolhida para Funcao Adicional e invalida.',
+      'A perícia escolhida para Funcao Adicional e inválida.',
     );
 
     periciasUnicas.add(periciaCodigo);

@@ -174,7 +174,7 @@ export const ICON_NAMES = [
   'success',
   'fail',
   
-  // Acoes
+  // Ações
   'eye',
   'eyeOff',
   'copy',

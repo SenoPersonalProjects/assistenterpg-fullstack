@@ -266,7 +266,7 @@ export function CompendioAdminManager() {
       );
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Nao foi possivel carregar o compendio.';
+        error instanceof Error ? error.message : 'Não foi possível carregar o compêndio.';
       showToast(message, 'error');
     } finally {
       setLoading(false);
@@ -354,7 +354,7 @@ export function CompendioAdminManager() {
 
   const selectItem = (next: Selection) => {
     if (isSameSelection(selection, next)) return;
-    if (dirty && !window.confirm('Existem alteracoes nao salvas. Descartar?')) {
+    if (dirty && !window.confirm('Existem alterações não salvas. Descartar?')) {
       return;
     }
     setPreview(false);
@@ -443,7 +443,7 @@ export function CompendioAdminManager() {
       await loadLivros();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Nao foi possivel reordenar.';
+        error instanceof Error ? error.message : 'Não foi possível reordenar.';
       showToast(message, 'error');
     } finally {
       setSaving(false);
@@ -457,7 +457,7 @@ export function CompendioAdminManager() {
     try {
       if (selection.type === 'book') {
         if (!livroForm.titulo.trim()) {
-          showToast('Titulo do livro e obrigatorio.', 'warning');
+          showToast('Título do livro é obrigatório.', 'warning');
           return;
         }
 
@@ -484,7 +484,7 @@ export function CompendioAdminManager() {
 
       if (selection.type === 'category') {
         if (!categoriaForm.nome.trim()) {
-          showToast('Nome do capitulo e obrigatorio.', 'warning');
+          showToast('Nome do capítulo é obrigatório.', 'warning');
           return;
         }
 
@@ -513,7 +513,7 @@ export function CompendioAdminManager() {
 
       if (selection.type === 'subcategory') {
         if (!subcategoriaForm.nome.trim()) {
-          showToast('Nome do topico e obrigatorio.', 'warning');
+          showToast('Nome do tópico é obrigatório.', 'warning');
           return;
         }
 
@@ -539,13 +539,13 @@ export function CompendioAdminManager() {
       }
 
       if (!artigoForm.titulo.trim() || !artigoForm.conteudo.trim()) {
-        showToast('Titulo e conteudo do artigo sao obrigatorios.', 'warning');
+        showToast('Título e conteúdo do artigo são obrigatórios.', 'warning');
         return;
       }
 
       const bytes = new TextEncoder().encode(artigoForm.conteudo).length;
       if (bytes > SAFE_TEXT_BYTES) {
-        showToast('Conteudo acima do limite seguro do campo Text.', 'warning');
+        showToast('Conteúdo acima do limite seguro do campo Text.', 'warning');
         return;
       }
 
@@ -555,7 +555,7 @@ export function CompendioAdminManager() {
           : findArticleParent(livros, selection.id)?.subcategoriaId;
 
       if (!subcategoriaId) {
-        showToast('Topico do artigo nao encontrado.', 'warning');
+        showToast('Topico do artigo não encontrado.', 'warning');
         return;
       }
 
@@ -585,7 +585,7 @@ export function CompendioAdminManager() {
       setSelection({ type: 'article', mode: 'edit', id: saved.id });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Nao foi possivel salvar.';
+        error instanceof Error ? error.message : 'Não foi possível salvar.';
       showToast(message, 'error');
     } finally {
       setSaving(false);
@@ -599,8 +599,8 @@ export function CompendioAdminManager() {
           <EmptyState
             variant="card"
             icon="spinner"
-            title="Carregando compendio"
-            description="Buscando livros e secoes para edicao."
+            title="Carregando compêndio"
+            description="Buscando livros e seções para edição."
           />
         </div>
       </main>
@@ -615,11 +615,11 @@ export function CompendioAdminManager() {
             variant="card"
             icon="lock"
             title="Acesso restrito"
-            description="A administracao do compendio esta disponivel apenas para administradores."
+            description="A administração do compêndio está disponível apenas para administradores."
           >
             <Link href="/compendio">
               <Button type="button" variant="secondary" className="mt-4">
-                Voltar ao compendio
+                Voltar ao compêndio
               </Button>
             </Link>
           </EmptyState>
@@ -641,7 +641,7 @@ export function CompendioAdminManager() {
                 Admin
               </p>
               <h1 className="text-3xl font-black tracking-tight text-app-fg">
-                Gerenciar compendio
+                Gerenciar compêndio
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-app-muted">
                 Edite livros, capitulos, topicos e artigos publicados no banco.
@@ -970,7 +970,7 @@ function EditorHeader({
           {selection.mode === 'create' ? 'Criar' : 'Editar'} {labels[selection.type]}
         </p>
         {dirty ? (
-          <p className="mt-1 text-xs text-app-warning">Alteracoes nao salvas.</p>
+            <p className="mt-1 text-xs text-app-warning">Alterações não salvas.</p>
         ) : null}
       </div>
       <div className="flex flex-wrap gap-2">
@@ -1020,8 +1020,8 @@ function BookEditor({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Input label="Titulo" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
-      <Input label="Codigo" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo titulo." />
-      <Textarea className="md:col-span-2" label="Descricao" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
+      <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo titulo." />
+      <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
       <Input label="Icone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
       <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
       <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
@@ -1056,8 +1056,8 @@ function CategoryEditor({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
-        <Input label="Codigo" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo nome." />
-        <Textarea className="md:col-span-2" label="Descricao" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
+        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo nome." />
+        <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
         <Input label="Icone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
         <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
         <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
@@ -1095,8 +1095,8 @@ function SubcategoryEditor({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
-        <Input label="Codigo" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo nome." />
-        <Textarea className="md:col-span-2" label="Descricao" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
+        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo nome." />
+        <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
         <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
         <div className="flex items-end">
           <Checkbox checked={form.ativo} onChange={(e) => patch('ativo', e.target.checked)} label="Ativo no leitor publico" />
@@ -1150,20 +1150,20 @@ function ArticleEditor({
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           <Input label="Titulo" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
-          <Input label="Codigo" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo titulo." />
+          <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo titulo." />
           <Textarea className="xl:col-span-2" label="Resumo" rows={3} value={form.resumo} onChange={(e) => patch('resumo', e.target.value)} />
-          <Textarea className="font-mono xl:col-span-2" label="Conteudo Markdown" rows={18} value={form.conteudo} onChange={(e) => patch('conteudo', e.target.value)} error={bytes > SAFE_TEXT_BYTES ? 'Conteudo acima do limite seguro.' : undefined} />
+          <Textarea className="font-mono xl:col-span-2" label="Conteúdo Markdown" rows={18} value={form.conteudo} onChange={(e) => patch('conteudo', e.target.value)} error={bytes > SAFE_TEXT_BYTES ? 'Conteúdo acima do limite seguro.' : undefined} />
           <Input label="Tags" value={form.tags} onChange={(e) => patch('tags', e.target.value)} helperText="Separe por virgulas." />
           <Input label="Palavras-chave" value={form.palavrasChave} onChange={(e) => patch('palavrasChave', e.target.value)} />
-          <Input label="Artigos relacionados" value={form.artigosRelacionados} onChange={(e) => patch('artigosRelacionados', e.target.value)} helperText="Codigos separados por virgula." />
+          <Input label="Artigos relacionados" value={form.artigosRelacionados} onChange={(e) => patch('artigosRelacionados', e.target.value)} helperText="Códigos separados por vírgula." />
           <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
           <label className="space-y-1">
             <span className="block text-sm font-semibold text-app-fg">Dificuldade</span>
             <select value={form.nivelDificuldade} onChange={(e) => patch('nivelDificuldade', e.target.value as ArtigoForm['nivelDificuldade'])} className="w-full rounded-xl border border-app-border bg-app-surface px-3 py-2.5 text-sm text-app-fg focus:border-app-primary focus:outline-none">
-              <option value="">Sem nivel</option>
+              <option value="">Sem nível</option>
               <option value="iniciante">iniciante</option>
               <option value="intermediario">intermediario</option>
-              <option value="avancado">avancado</option>
+              <option value="avancado">avançado</option>
             </select>
           </label>
           <div className="flex flex-wrap items-end gap-4">

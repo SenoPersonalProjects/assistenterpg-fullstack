@@ -90,7 +90,7 @@ export function OrigemFormFields({ dados, onChange }: Props) {
             onChange({ habilidades: e.target.value });
           }
         }}
-        placeholder='Ex: [{"nome": "Herança Mágica", "descricao": "..."}]'
+        placeholder='Ex: [{"nome": "Herança Mágica", "descrição": "..."}]'
         rows={5}
       />
 

@@ -51,7 +51,7 @@ describe('ChatAmigosService', () => {
     );
   });
 
-  it('bloqueia envio quando usuarios nao sao amigos aceitos', async () => {
+  it('bloqueia envio quando usuarios não sao amigos aceitos', async () => {
     prisma.amizade.findUnique.mockResolvedValue(null);
 
     await expect(service.enviarMensagem(1, 2, 'oi')).rejects.toBeInstanceOf(
@@ -105,7 +105,7 @@ describe('ChatAmigosService', () => {
     );
   });
 
-  it('lista conversas com contador de nao lidas', async () => {
+  it('lista conversas com contador de não lidas', async () => {
     prisma.amizade.findMany.mockResolvedValue([
       {
         usuarioAId: 1,

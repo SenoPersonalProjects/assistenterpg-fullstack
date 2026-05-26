@@ -24,7 +24,7 @@ export default function EditarHomebrewPage() {
 
   useEffect(() => {
     if (!homebrewIdValido) {
-      setErro('ID de homebrew invalido.');
+      setErro('ID de homebrew inválido.');
       setCarregando(false);
       return;
     }

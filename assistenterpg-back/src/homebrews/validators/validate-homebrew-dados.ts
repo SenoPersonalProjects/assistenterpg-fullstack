@@ -129,7 +129,7 @@ export async function validateHomebrewDados(
   if (errors.length > 0) {
     const messages = coletarMensagensErrosValidacao(errors);
     if (messages.length === 0) {
-      messages.push('Dados do homebrew invalidos');
+      messages.push('Dados do homebrew inválidos');
     }
 
     throw new HomebrewDadosInvalidosException(messages);

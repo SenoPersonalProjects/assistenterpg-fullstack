@@ -43,7 +43,7 @@ describe('amizades api', () => {
     expect(amigos).toEqual([{ id: 2, apelido: 'Maki', online: true }]);
   });
 
-  it('lista solicitacoes pendentes', async () => {
+  it('lista solicitações pendentes', async () => {
     mockedApiClient.get.mockResolvedValueOnce({
       data: {
         recebidas: [{ id: 1 }],
@@ -60,7 +60,7 @@ describe('amizades api', () => {
     });
   });
 
-  it('resolve usuario por identificador exato', async () => {
+  it('resolve usuário por identificador exato', async () => {
     mockedApiClient.get.mockResolvedValueOnce({
       data: { id: 8, apelido: 'Yuta' },
     });
@@ -73,7 +73,7 @@ describe('amizades api', () => {
     expect(usuario).toEqual({ id: 8, apelido: 'Yuta' });
   });
 
-  it('cria solicitacao', async () => {
+  it('cria solicitação', async () => {
     mockedApiClient.post.mockResolvedValueOnce(undefined);
 
     await apiCriarSolicitacaoAmizade('Maki');

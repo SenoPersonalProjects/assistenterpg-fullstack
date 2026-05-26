@@ -50,7 +50,7 @@ describe('InventarioService', () => {
     expect(service).toBeDefined();
   });
 
-  it('bloqueia atualizacao de item de personagem de outro usuario', async () => {
+  it('bloqueia atualizacao de item de personagem de outro usuário', async () => {
     prisma.inventarioItemBase.findUnique.mockResolvedValue({
       id: 5,
       personagemBaseId: 77,
@@ -70,7 +70,7 @@ describe('InventarioService', () => {
     expect(prisma.inventarioItemBase.update).not.toHaveBeenCalled();
   });
 
-  it('bloqueia remocao de item de personagem de outro usuario', async () => {
+  it('bloqueia remocao de item de personagem de outro usuário', async () => {
     prisma.inventarioItemBase.findUnique.mockResolvedValue({
       id: 5,
       personagemBaseId: 77,
@@ -88,7 +88,7 @@ describe('InventarioService', () => {
     expect(prisma.inventarioItemBase.delete).not.toHaveBeenCalled();
   });
 
-  it('bloqueia aplicar modificacao em item de personagem de outro usuario', async () => {
+  it('bloqueia aplicar modificação em item de personagem de outro usuário', async () => {
     prisma.inventarioItemBase.findUnique.mockResolvedValue({
       id: 5,
       personagemBaseId: 77,

@@ -231,7 +231,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
   function confirmarSobrescrita(titulo: string) {
     if (typeof window === 'undefined') return true;
     return window.confirm(
-      `${titulo}\n\nOs dados preenchidos automaticamente a partir da base atual serao substituidos pelos dados do novo item selecionado.`,
+      `${titulo}\n\nOs dados preenchidos automaticamente a partir da base atual serão substituídos pelos dados do novo item selecionado.`,
     );
   }
 
@@ -269,7 +269,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
     if (
       protecaoBaseId &&
       protecaoBaseId !== id &&
-      !confirmarSobrescrita('Trocar protecao base?')
+      !confirmarSobrescrita('Trocar proteção base?')
     ) {
       return;
     }
@@ -322,7 +322,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
   return (
     <div className="space-y-4">
       <Select
-        label="Tipo amaldicoado *"
+        label="Tipo amaldiçoado *"
         value={tipoAmaldicoado ?? ''}
         onChange={(e) => {
           const novoTipo = e.target.value as TipoAmaldicoado;
@@ -350,7 +350,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
         <div className="space-y-4 border-t border-app-border pt-3">
           <div className="flex items-center gap-2">
             <Icon name="sword" className="h-5 w-5 text-app-primary" />
-            <h4 className="text-sm font-semibold text-app-fg">Arma Amaldicoada</h4>
+            <h4 className="text-sm font-semibold text-app-fg">Arma Amaldiçoada</h4>
           </div>
 
           <Select
@@ -364,7 +364,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
             }}
             helperText={
               carregandoBases
-                ? 'Carregando armas disponiveis...'
+                ? 'Carregando armas disponíveis...'
                 : dados.armaAmaldicoada?.tipoBase
                   ? `Base atual: ${String(dados.armaAmaldicoada.tipoBase)}`
                   : 'Selecione uma arma existente para preencher os dados base automaticamente.'
@@ -380,7 +380,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
           </Select>
 
           <Checkbox
-            label="Profiencia requerida"
+            label="Proficiência requerida"
             checked={dados.armaAmaldicoada?.proficienciaRequerida ?? false}
             onChange={(e) =>
               updateSubDados('armaAmaldicoada', {
@@ -390,10 +390,10 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
           />
 
           <Textarea
-            label="Efeito amaldicoado *"
+            label="Efeito amaldiçoado *"
             value={String(dados.armaAmaldicoada?.efeito ?? '')}
             onChange={(e) => updateSubDados('armaAmaldicoada', { efeito: e.target.value })}
-            placeholder="Efeito especial da maldicao..."
+            placeholder="Efeito especial da maldição..."
             rows={3}
             maxLength={1000}
             required
@@ -413,11 +413,11 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
         <div className="space-y-4 border-t border-app-border pt-3">
           <div className="flex items-center gap-2">
             <Icon name="shield-defense" className="h-5 w-5 text-app-primary" />
-            <h4 className="text-sm font-semibold text-app-fg">Protecao Amaldicoada</h4>
+            <h4 className="text-sm font-semibold text-app-fg">Proteção Amaldiçoada</h4>
           </div>
 
           <Select
-            label="Protecao base *"
+            label="Proteção base *"
             value={protecaoBaseId ? String(protecaoBaseId) : ''}
             onChange={(e) => {
               const value = Number(e.target.value);
@@ -427,14 +427,14 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
             }}
             helperText={
               carregandoBases
-                ? 'Carregando protecoes disponiveis...'
+                ? 'Carregando proteções disponíveis...'
                 : dados.protecaoAmaldicoada?.tipoBase
                   ? `Base atual: ${String(dados.protecaoAmaldicoada.tipoBase)}`
-                  : 'Selecione uma protecao existente para preencher os dados base automaticamente.'
+                  : 'Selecione uma proteção existente para preencher os dados base automaticamente.'
             }
             required
           >
-            <option value="">Selecionar protecao...</option>
+            <option value="">Selecionar proteção...</option>
             {opcoesProtecao.map((equipamento) => (
               <option key={equipamento.id} value={equipamento.id}>
                 {formatarRotuloEquipamento(equipamento)}
@@ -443,7 +443,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
           </Select>
 
           <Checkbox
-            label="Profiencia requerida"
+            label="Proficiência requerida"
             checked={dados.protecaoAmaldicoada?.proficienciaRequerida ?? false}
             onChange={(e) =>
               updateSubDados('protecaoAmaldicoada', {
@@ -453,17 +453,17 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
           />
 
           <Textarea
-            label="Efeito amaldicoado *"
+            label="Efeito amaldiçoado *"
             value={String(dados.protecaoAmaldicoada?.efeito ?? '')}
             onChange={(e) => updateSubDados('protecaoAmaldicoada', { efeito: e.target.value })}
-            placeholder="Efeito especial da maldicao..."
+            placeholder="Efeito especial da maldição..."
             rows={3}
             maxLength={1000}
             required
           />
 
           <div className="border-t border-app-border pt-3">
-            <p className="mb-3 text-xs font-medium text-app-fg">Dados da protecao base</p>
+            <p className="mb-3 text-xs font-medium text-app-fg">Dados da proteção base</p>
             <ProtecaoFields
               dados={
                 (dados.protecaoAmaldicoada?.dadosProtecao as HomebrewFormDados | undefined) ?? {}
@@ -478,7 +478,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
         <div className="space-y-4 border-t border-app-border pt-3">
           <div className="flex items-center gap-2">
             <Icon name="sparkles" className="h-5 w-5 text-app-primary" />
-            <h4 className="text-sm font-semibold text-app-fg">Artefato Amaldicoado</h4>
+            <h4 className="text-sm font-semibold text-app-fg">Artefato Amaldiçoado</h4>
           </div>
 
           <Select
@@ -492,10 +492,10 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
             }}
             helperText={
               carregandoBases
-                ? 'Carregando utilitarios disponiveis...'
+                ? 'Carregando utilitários disponíveis...'
                 : dados.artefatoAmaldicoado?.tipoBase
                   ? `Base atual: ${String(dados.artefatoAmaldicoado.tipoBase)}`
-                  : 'Selecione um item compativel para usar como base do artefato.'
+                  : 'Selecione um item compatível para usar como base do artefato.'
             }
             required
           >
@@ -508,7 +508,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
           </Select>
 
           <Checkbox
-            label="Profiencia requerida"
+            label="Proficiência requerida"
             checked={dados.artefatoAmaldicoado?.proficienciaRequerida ?? false}
             onChange={(e) =>
               updateSubDados('artefatoAmaldicoado', {
@@ -531,16 +531,16 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
             label="Custo de uso *"
             value={String(dados.artefatoAmaldicoado?.custoUso ?? '')}
             onChange={(e) => updateSubDados('artefatoAmaldicoado', { custoUso: e.target.value })}
-            placeholder="Ex: 1 PE por uso, 5 EA por ativacao"
+            placeholder="Ex: 1 PE por uso, 5 EA por ativação"
             rows={2}
             required
           />
 
           <Textarea
-            label="Manutencao *"
+            label="Manutenção *"
             value={String(dados.artefatoAmaldicoado?.manutencao ?? '')}
             onChange={(e) => updateSubDados('artefatoAmaldicoado', { manutencao: e.target.value })}
-            placeholder="Ex: Requer recarga semanal, usa energia amaldicoada"
+            placeholder="Ex: Requer recarga semanal, usa energia amaldiçoada"
             rows={2}
             required
           />

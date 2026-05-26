@@ -468,7 +468,7 @@ export class PersonagemBaseMapper {
         const codigo = g.tipoGrau?.codigo;
 
         if (!codigo) {
-          console.warn('[MAPPER] Grau sem tipoGrau.codigo:', g);
+          console.warn('[MAPPER] Grau sem tipoGrau.código:', g);
           return null;
         }
 
@@ -1090,7 +1090,7 @@ export class PersonagemBaseMapper {
 
       return itensMapeados;
     } catch (error) {
-      console.error('[MAPPER] Erro ao mapear itens de inventario:', error);
+      console.error('[MAPPER] Erro ao mapear itens de inventário:', error);
       return [];
     }
   }
@@ -1153,12 +1153,12 @@ export class PersonagemBaseMapper {
 
       if (bonusMap.size > 0) {
         console.log(
-          '[MAPPER] Bonus de graus calculados:',
+          '[MAPPER] Bônus de graus calculados:',
           Object.fromEntries(bonusMap),
         );
       }
     } catch (err) {
-      console.error('[MAPPER] Erro ao calcular bonus de graus:', err);
+      console.error('[MAPPER] Erro ao calcular bônus de graus:', err);
     }
 
     return bonusMap;

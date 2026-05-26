@@ -88,7 +88,7 @@ export function montarPayloadOrdemIniciativa(
   if (payload.ordem.some((item) => item.id <= 0)) {
     return {
       payload: null,
-      erro: 'Nao foi possivel reordenar iniciativa: participante invalido.',
+      erro: 'Não foi possível reordenar iniciativa: participante inválido.',
     };
   }
 
@@ -116,7 +116,7 @@ export function validarAplicacaoCondicao(
       duracaoValor: null,
       acumulos: null,
       limiteFonte: null,
-      erro: 'Selecione uma condicao valida para aplicar.',
+      erro: 'Selecione uma condição válida para aplicar.',
     };
   }
 
@@ -131,7 +131,7 @@ export function validarAplicacaoCondicao(
       duracaoValor: null,
       acumulos: null,
       limiteFonte: null,
-      erro: 'Informe uma duracao numerica maior que zero.',
+        erro: 'Informe uma duração numérica maior que zero.',
     };
   }
 
@@ -142,7 +142,7 @@ export function validarAplicacaoCondicao(
       duracaoValor: duracaoValor ?? null,
       acumulos: null,
       limiteFonte: null,
-      erro: 'Informe uma quantidade de acumulos maior que zero.',
+      erro: 'Informe uma quantidade de acúmulos maior que zero.',
     };
   }
 
@@ -173,7 +173,7 @@ export const OPCOES_DURACAO_CONDICAO: Array<{
   value: DuracaoCondicaoSessaoModo;
   label: string;
 }> = [
-  { value: 'ATE_REMOVER', label: 'Ate remover manualmente' },
+  { value: 'ATE_REMOVER', label: 'Até remover manualmente' },
   { value: 'RODADAS', label: 'Por rodadas da cena' },
   { value: 'TURNOS_ALVO', label: 'Por turnos do alvo' },
 ];

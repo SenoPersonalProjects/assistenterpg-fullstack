@@ -24,7 +24,7 @@ import type {
 type Props = {
   item: ItemInventarioPayload; // ??? MUDOU
   equipamento: EquipamentoCatalogo;
-  modificacoes: ModificacaoCatalogo[]; // ??? ADICIONAR: Cat??logo completo
+  modificacoes: ModificacaoCatalogo[]; // Catálogo completo
   pericias?: PericiaCatalogo[];
   onEdit: () => void;
   onDuplicate: () => void;

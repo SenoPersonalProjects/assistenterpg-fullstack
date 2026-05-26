@@ -32,7 +32,7 @@ describe('AnotacoesService', () => {
     service = new AnotacoesService(prisma as unknown as PrismaService);
   });
 
-  it('lista apenas anotacoes do usuario autenticado', async () => {
+  it('lista apenas anotações do usuário autenticado', async () => {
     prisma.anotacao.count.mockResolvedValue(0);
     prisma.anotacao.findMany.mockResolvedValue([]);
     prisma.$transaction.mockResolvedValue([0, []]);
@@ -57,7 +57,7 @@ describe('AnotacoesService', () => {
     );
   });
 
-  it('bloqueia edicao de anotacao de outro usuario', async () => {
+  it('bloqueia edição de anotação de outro usuário', async () => {
     prisma.anotacao.findUnique.mockResolvedValue({
       id: 12,
       usuarioId: 99,
@@ -72,7 +72,7 @@ describe('AnotacoesService', () => {
     expect(prisma.anotacao.update).not.toHaveBeenCalled();
   });
 
-  it('bloqueia remocao de anotacao de outro usuario', async () => {
+  it('bloqueia remocao de anotação de outro usuário', async () => {
     prisma.anotacao.findUnique.mockResolvedValue({
       id: 12,
       usuarioId: 99,

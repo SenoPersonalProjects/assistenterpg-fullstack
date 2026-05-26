@@ -24,7 +24,7 @@ type Props = {
 export function EquipamentoFormFields({ dados, onChange }: Props) {
   const tipo = dados.tipo as TipoEquipamento | undefined;
 
-  // Handler para mudanças nos campos base (categoria, espacos, tipoUso)
+  // Handler para mudanças nos campos base (categoria, espaços, tipoUso)
   function handleBaseChange(baseDados: Partial<EquipamentoFormData>) {
     // Se mudou a categoria, limpa campos específicos
     if (baseDados.tipo && baseDados.tipo !== tipo) {
@@ -127,4 +127,3 @@ export function EquipamentoFormFields({ dados, onChange }: Props) {
     </div>
   );
 }
-

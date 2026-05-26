@@ -205,18 +205,18 @@ function mensagemErroOperacaoPersonagem(
 
   if (status === 404) {
     return acao === 'excluir'
-      ? 'Personagem nao encontrado para exclusao.'
-      : 'Personagem nao encontrado para atualizacao.';
+      ? 'Personagem não encontrado para exclusao.'
+      : 'Personagem não encontrado para atualizacao.';
   }
 
   if (status === 400 || status === 422) {
     return acao === 'excluir'
-      ? `Nao foi possivel excluir o personagem. ${base}`
-      : `Nao foi possivel atualizar o personagem. ${base}`;
+      ? `Não foi possível excluir o personagem. ${base}`
+      : `Não foi possível atualizar o personagem. ${base}`;
   }
 
   if (status === 403) {
-    return 'Voce nao tem permissao para executar esta acao.';
+    return 'Você não tem permissão para executar esta ação.';
   }
 
   return base;
@@ -501,7 +501,7 @@ export default function PersonagemBaseDetalhePage() {
     adicionarImpacto('Cla', personagem.claId, catalogos.clas);
     adicionarImpacto('Origem', personagem.origemId, catalogos.origens);
     adicionarImpacto(
-      'Tecnica inata',
+      'Técnica inata',
       personagem.tecnicaInataId,
       catalogos.tecnicasInatas,
     );
@@ -904,7 +904,7 @@ export default function PersonagemBaseDetalhePage() {
           }
         }}
         title="Remover fontes usadas pela ficha?"
-        description="Alguns conteudos atuais nao ficarao disponiveis com a nova selecao de fontes. Ao salvar a ficha, eles deverao ser removidos ou substituidos."
+        description="Alguns conteudos atuais não ficarao disponíveis com a nova selecao de fontes. Ao salvar a ficha, eles deverao ser removidos ou substituidos."
         confirmLabel="Aplicar mesmo assim"
         cancelLabel="Voltar"
         variant="danger"

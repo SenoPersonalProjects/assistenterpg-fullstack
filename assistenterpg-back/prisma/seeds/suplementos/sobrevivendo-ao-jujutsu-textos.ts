@@ -1,289 +1,289 @@
 export const TRILHA_CORPO_AMALDICOADO_INDEPENDENTE = {
-  descricao: `Voce nao e humano. Alguem (ou alguma coisa) com um conhecimento proibido te deu a capacidade de pensar, se mover e, finalmente, produzir energia amaldicoada. E recomendado que essa trilha seja definida desde o nivel 1, mesmo que normalmente a escolha de trilhas seja feita a partir do nivel 2.
+  descricao: `Você não é humano. Alguém (ou alguma coisa) com um conhecimento proibido te deu a capacidade de pensar, se mover e, finalmente, produzir energia amaldiçoada. É recomendado que essa trilha seja definida desde o nível 1, mesmo que normalmente a escolha de trilhas seja feita a partir do nível 2.
 
-Voce possui 3 nucleos internos que sustentam sua existencia e permitem alterar seu estilo de combate conforme a necessidade. Em combate, voce pode alternar entre diferentes nucleos, cada um representando uma configuracao distinta de energia amaldicoada dentro do seu corpo.
+Você possui 3 núcleos internos que sustentam sua existência e permitem alterar seu estilo de combate conforme a necessidade. Em combate, você pode alternar entre diferentes núcleos, cada um representando uma configuração distinta de energia amaldiçoada dentro do seu corpo.
 
-Via de regra para escolher essa trilha, o personagem precisa ser "Sem tecnica amaldicoada". Ou, converse com o mestre para que um dos nucleos tenha uma tecnica amaldicoada, mais do que isso as coisas podem ficar complicadas demais.
+Via de regra para escolher essa trilha, o personagem precisa ser "Sem técnica amaldiçoada". Ou, converse com o mestre para que um dos núcleos tenha uma técnica amaldiçoada, mais do que isso as coisas podem ficar complicadas demais.
 
-Voce nao pode ser restaurado com Energia Amaldicoada Positiva.`,
+Você não pode ser restaurado com Energia Amaldiçoada Positiva.`,
   habilidades: {
-    blefeMortal: `Sua vida e dividida em 3, 1/3 para cada nucleo. Sempre que perder toda a vida de um dos nucleos e cair morrendo, pode sacrificar o nucleo atual (ou gastar 3 PE para sacrificar outro nucleo) da condicao e se levantar sozinho. Ficando sem um dos nucleos (ou seja, perdendo os bonus dele tambem), e podendo repetir o processo ate finalmente ficar sem nucleos disponiveis.
+    blefeMortal: `Sua vida é dividida em 3, 1/3 para cada núcleo. Sempre que perder toda a vida de um dos núcleos e cair morrendo, pode sacrificar o núcleo atual (ou gastar 3 PE para sacrificar outro núcleo) da condição e se levantar sozinho. Ficando sem um dos núcleos (ou seja, perdendo os bônus dele também), e podendo repetir o processo até finalmente ficar sem núcleos disponíveis.
 
-Caso te tirem da condicao morrendo da forma padrao, voce nao perde o nucleo, e ele volta com 1 de vida. Um nucleo perdido se recupera apenas com 1 dia de descanso ou apos o fim da missao.`,
-    nucleos: `Seu corpo possui tres nucleos internos de energia amaldicoada. Como acao de movimento, pode alternar o nucleo ativo entre os seguintes:
+Caso te tirem da condição morrendo da forma padrão, você não perde o núcleo, e ele volta com 1 de vida. Um núcleo perdido se recupera apenas com 1 dia de descanso ou após o fim da missão.`,
+    nucleos: `Seu corpo possui três núcleos internos de energia amaldiçoada. Como ação de movimento, pode alternar o núcleo ativo entre os seguintes:
 
-**Nucleo do Equilibrio**
+**Núcleo do Equilíbrio**
 Recebe +2 na Defesa e +2 em testes de ataque.
 
-**Nucleo do Poder**
-Recebe +1 dado de dano em ataques corpo a corpo e +5 em testes de manobras de combate. Ignora 2 de RD com esse estilo. Esse nucleo e sustentado (1 EA por rodada).
+**Núcleo do Poder**
+Recebe +1 dado de dano em ataques corpo a corpo e +5 em testes de manobras de combate. Ignora 2 de RD com esse estilo. Esse núcleo é sustentado (1 EA por rodada).
 
-**Nucleo do Impulso**
+**Núcleo do Impulso**
 Recebe +3 m de deslocamento e +5 em Iniciativa.
 
-So um nucleo pode estar ativo por vez.
+Só um núcleo pode estar ativo por vez.
 
-Alem disso, recebe +2 PV por nivel, pois sua estrutura corporal e inumana.`,
-    adaptatividade: `Seus varios nucleos reagem alem da sua percepcao de combate, permitindo decisoes importantes em momentos criticos. Uma vez por rodada, quando for sofrer dano, pode gastar 2 PE para ativar imediatamente um nucleo diferente como reacao, recebendo tambem um dos efeitos abaixo, dependendo do nucleo escolhido:
+Além disso, recebe +2 PV por nível, pois sua estrutura corporal é inumana.`,
+    adaptatividade: `Seus vários núcleos reagem além da sua percepção de combate, permitindo decisões importantes em momentos críticos. Uma vez por rodada, quando for sofrer dano, pode gastar 2 PE para ativar imediatamente um núcleo diferente como reação, recebendo também um dos efeitos abaixo, dependendo do núcleo escolhido:
 
-**Nucleo do Equilibrio**
+**Núcleo do Equilíbrio**
 Recebe RD 5 para esse ataque.
 
-**Nucleo do Poder**
-Pode realizar imediatamente uma manobra "Empurrar" ou "Derrubar" contra o atacante como acao livre se ele estiver no alcance.
+**Núcleo do Poder**
+Pode realizar imediatamente uma manobra "Empurrar" ou "Derrubar" contra o atacante como ação livre se ele estiver no alcance.
 
-**Nucleo do Impulso**
-Recebe +2 na Defesa contra esse ataque e pode se deslocar ate metade do seu deslocamento.`,
-    despertar: `Seus nucleos despertam, alcancando um novo nivel de poder e consciencia. Ao ativar um nucleo, pode escolher gastar 2 PE para receber um dos seguintes bonus:
+**Núcleo do Impulso**
+Recebe +2 na Defesa contra esse ataque e pode se deslocar até metade do seu deslocamento.`,
+    despertar: `Seus núcleos despertam, alcançando um novo nível de poder e consciência. Ao ativar um núcleo, pode escolher gastar 2 PE para receber um dos seguintes bônus:
 
-**Nucleo do Equilibrio**
-Ate o inicio do seu proximo turno, recebe +5 na Defesa e e considerado Grande ao sofrer ou realizar manobras.
+**Núcleo do Equilíbrio**
+Até o início do seu próximo turno, recebe +5 na Defesa e é considerado Grande ao sofrer ou realizar manobras.
 
-**Nucleo do Poder**
-Seu proximo ataque corpo a corpo causa +2 dados de dano.
+**Núcleo do Poder**
+Seu próximo ataque corpo a corpo causa +2 dados de dano.
 
-**Nucleo do Impulso**
-Pode se deslocar ate o dobro do seu deslocamento como acao livre, inclusive saltando para passar sobre objetos.
+**Núcleo do Impulso**
+Pode se deslocar até o dobro do seu deslocamento como ação livre, inclusive saltando para passar sobre objetos.
 
-So um nucleo pode estar ativo por vez.`,
-    estabilidade: `Seu corpo atinge estabilidade perfeita entre os nucleos, voce tem uma boa relacao com eles, todos se protegem.
+Só um núcleo pode estar ativo por vez.`,
+    estabilidade: `Seu corpo atinge estabilidade perfeita entre os núcleos, você tem uma boa relação com eles, todos se protegem.
 
-Agora voce pode gastar 4 EA para manter dois nucleos ativos ao mesmo tempo, sustentando 1 PE por rodada. Se um dos nucleos ativos for o Nucleo do Poder, a sustentacao passa a ser 1 PE e 1 EA por rodada.
+Agora você pode gastar 4 EA para manter dois núcleos ativos ao mesmo tempo, sustentando 1 PE por rodada. Se um dos núcleos ativos for o Núcleo do Poder, a sustentação passa a ser 1 PE e 1 EA por rodada.
 
-Enquanto estiver com dois nucleos ativos, recebe +2 na Defesa, +2 em testes de ataque, +2 no dano corpo a corpo e RD 2.
+Enquanto estiver com dois núcleos ativos, recebe +2 na Defesa, +2 em testes de ataque, +2 no dano corpo a corpo e RD 2.
 
-Alem disso, recebe 30 PV.`,
+Além disso, recebe 30 PV.`,
   },
 };
 
 export const TRILHA_RECEPTACULO = {
-  descricao: `Talvez voce tenha participado de algum ritual, condenado no nascimento ou consumido algo que nao deveria, mas o que importa e que dentro de voce existe uma entidade poderosa, uma maldicao, deidade, feiticeiro ancestral ou algo desconhecido. As intencoes dela sao nebulosas, mas talvez voce tambem se beneficie disso, se a entidade cooperar com voce, ou ela pode decidir apenas domina-lo.
+  descricao: `Talvez você tenha participado de algum ritual, condenado no nascimento ou consumido algo que não deveria, mas o que importa é que dentro de você existe uma entidade poderosa, uma maldição, deidade, feiticeiro ancestral ou algo desconhecido. As intenções dela são nebulosas, mas talvez você também se beneficie disso, se a entidade cooperar com você, ou ela pode decidir apenas dominá-lo.
 
-Alem disso, e importante definir quem exatamente era essa entidade, se ela tinha uma tecnica amaldicoada, e qual seria.
+Além disso, é importante definir quem exatamente era essa entidade, se ela tinha uma técnica amaldiçoada, e qual seria.
 
-Para escolher essa trilha, o personagem precisa ser "Sem tecnica amaldicoada".
+Para escolher essa trilha, o personagem precisa ser "Sem técnica amaldiçoada".
 
 **Livrando-se da entidade**
-Relatos contam que e possivel se livrar da entidade que habita seu corpo, voce pode tentar com experimentacao, ou ir atras dos meios necessarios. Mas, e claro dizer que nao sera uma tarefa simples.
+Relatos contam que é possível se livrar da entidade que habita seu corpo, você pode tentar com experimentação, ou ir atrás dos meios necessários. Mas, é claro dizer que não será uma tarefa simples.
 
-Personagens que se "Livrarem da entidade" poderao escolher "recomecar" com outra trilha, e perder 1+1d4 niveis de personagem ao fazer isso.
+Personagens que se "Livrarem da entidade" poderão escolher "recomeçar" com outra trilha, e perder 1+1d4 níveis de personagem ao fazer isso.
 
 **Afinidade**
-Exclusivo para o caminho da Convergencia, o personagem comeca com zero, e sempre que interage diretamente com a entidade ou age de acordo com os interesses dela, existe a chance de ganhar uma carga de Afinidade, a criterio do mestre.
+Exclusivo para o caminho da Convergência, o personagem começa com zero, e sempre que interage diretamente com a entidade ou age de acordo com os interesses dela, existe a chance de ganhar uma carga de Afinidade, a critério do mestre.
 
-Um Favor representa um momento em que a entidade interfere diretamente na realidade para ajuda-lo. Gastar um Favor ativa o efeito descrito na habilidade correspondente.
+Um Favor representa um momento em que a entidade interfere diretamente na realidade para ajudá-lo. Gastar um Favor ativa o efeito descrito na habilidade correspondente.
 
 Cada carga de afinidade concede direito a 1 "favor" da entidade.`,
   caminhos: {
     supressao:
-      'Voce luta constantemente para manter a entidade sob controle, normalmente arrancando poder dela a forca.',
+      'Você luta constantemente para manter a entidade sob controle, normalmente arrancando poder dela à força.',
     convergencia:
-      'Voce e a entidade, por algum motivo, coexistem em harmonia, ou pelo menos em neutralidade. Ela nao quer (ou nao pode) tentar sobrescrever sua alma.',
+      'Você e a entidade, por algum motivo, coexistem em harmonia, ou pelo menos em neutralidade. Ela não quer (ou não pode) tentar sobrescrever sua alma.',
   },
   habilidades: {
-    destino: `Recebe +1 grau de aprimoramento em Tecnica Amaldicoada, e sua presenca fica naturalmente um pouco mais perturbadora, recebe +5 em Intimidacao e -5 em Diplomacia.
+    destino: `Recebe +1 grau de aprimoramento em Técnica Amaldiçoada, e sua presença fica naturalmente um pouco mais perturbadora, recebe +5 em Intimidação e -5 em Diplomacia.
 
-Alem disso, deve aceitar seu destino entre o caminho da Supressao ou o caminho da Convergencia (converse com seu mestre da mesa).`,
-    supressao8: `Uma vez por rodada, quando acerta um ataque ou conjura um feitico, pode gastar 2 PE para usurpar poder da entidade e conseguir um dos efeitos:
+Além disso, deve aceitar seu destino entre o caminho da Supressão ou o caminho da Convergência (converse com seu mestre da mesa).`,
+    supressao8: `Uma vez por rodada, quando acerta um ataque ou conjura um feitiço, pode gastar 2 PE para usurpar poder da entidade e conseguir um dos efeitos:
 
 - Realizar um ataque adicional
 - Aumentar o dano em +2 dados
 - Ignorar 6 de RD
 
-Apos usar essa habilidade, sofra 1d6 de dano na sanidade (sem reducao).
+Após usar essa habilidade, sofra 1d6 de dano na sanidade (sem redução).
 
-Caso se livre da entidade nesse ponto, a tecnica amaldicoada dela pode ficar gravada em voce. Role 1d20; se o valor for 19 ou 20, voce fica com a tecnica. (Leia Livrando-se da entidade.)`,
-    supressao13: `**Manifestacao Parcial**
-Pode permitir que a entidade se manifeste brevemente, ainda suprimindo ela. Uma vez por cena, por 6 PE pode entrar em Manifestacao Parcial por 3 rodadas.
+Caso se livre da entidade nesse ponto, a técnica amaldiçoada dela pode ficar gravada em você. Role 1d20; se o valor for 19 ou 20, você fica com a técnica. (Leia Livrando-se da entidade.)`,
+    supressao13: `**Manifestação Parcial**
+Pode permitir que a entidade se manifeste brevemente, ainda suprimindo ela. Uma vez por cena, por 6 PE pode entrar em Manifestação Parcial por 3 rodadas.
 
 Durante esse tempo, recebe:
 
-- +2 dados de dano de energia amaldicoada.
+- +2 dados de dano de energia amaldiçoada.
 - +3m de deslocamento.
 - +5 na defesa.
 - +2 de RD.
-- Pode usar ate uma habilidade da tecnica amaldicoada da entidade.
+- Pode usar até uma habilidade da técnica amaldiçoada da entidade.
 
-**Manifestacao Completa**
-Pode permitir que a entidade se manifeste totalmente, sendo incapaz de suprimir ela. Uma vez por cena, por 10 EA e 2 PE pode entrar em Manifestacao Completa por 3 rodadas.
+**Manifestação Completa**
+Pode permitir que a entidade se manifeste totalmente, sendo incapaz de suprimir ela. Uma vez por cena, por 10 EA e 2 PE pode entrar em Manifestação Completa por 3 rodadas.
 
 Durante esse tempo, recebe:
 
-- +4 dados de dano de energia amaldicoada.
+- +4 dados de dano de energia amaldiçoada.
 - +6m de deslocamento.
 - +8 na defesa.
 - +5 de RD.
-- Pode usar ate 3 das habilidades da Tecnica Amaldicoada Inata da Entidade.
+- Pode usar até 3 das habilidades da Técnica Amaldiçoada Inata da Entidade.
 
-Ao fim do efeito, role 1d6. Com resultado 3 ou menos, a entidade assume o controle total do seu corpo, que passa a ser controlado pelo mestre, ate cair Morrendo, ser nocauteado ou ate voce retomar o controle com um teste de Vontade DT 35 no inicio de cada rodada.
+Ao fim do efeito, role 1d6. Com resultado 3 ou menos, a entidade assume o controle total do seu corpo, que passa a ser controlado pelo mestre, até cair Morrendo, ser nocauteado ou até você retomar o controle com um teste de Vontade DT 35 no início de cada rodada.
 
-Quando retoma o controle, fica Fatigado e Alquebrado ate o fim da cena. Alem disso, perde 1d3 de Sanidade permanente. Vontade DT 25 + quantidade de rodadas usando a manifestacao + quantidade de rodadas que a entidade assumiu o controle ameniza para atual.
+Quando retoma o controle, fica Fatigado e Alquebrado até o fim da cena. Além disso, perde 1d3 de Sanidade permanente. Vontade DT 25 + quantidade de rodadas usando a manifestação + quantidade de rodadas que a entidade assumiu o controle ameniza para atual.
 
-Alem disso, caso se livre da entidade nesse ponto, a tecnica amaldicoada dela pode ficar gravada em voce. Role 1d20; se o valor for 8 ou maior, voce fica com a tecnica. (Leia Livrando-se da entidade.)`,
-    supressao20: `Quando usa Concessao desesperada, na manifestacao parcial nao fica mais fatigado, nem corre o risco de ser dominado pela entidade. Alem disso, a tecnica amaldicoada da entidade agora esta gravada na sua alma, permitindo usar sua propria versao dela, mesmo sem usar Concessao desesperada.
+Além disso, caso se livre da entidade nesse ponto, a técnica amaldiçoada dela pode ficar gravada em você. Role 1d20; se o valor for 8 ou maior, você fica com a técnica. (Leia Livrando-se da entidade.)`,
+    supressao20: `Quando usa Concessão desesperada, na manifestação parcial não fica mais fatigado, nem corre o risco de ser dominado pela entidade. Além disso, a técnica amaldiçoada da entidade agora está gravada na sua alma, permitindo usar sua própria versão dela, mesmo sem usar Concessão desesperada.
 
-Quando usa a manifestacao completa, nao fica mais Fatigado e Alquebrado e reduz o risco de perder o controle para 1 no d6 apenas.
+Quando usa a manifestação completa, não fica mais Fatigado e Alquebrado e reduz o risco de perder o controle para 1 no d6 apenas.
 
-Caso se livre da entidade nesse ponto, a tecnica amaldicoada dela ainda fica gravada em voce de forma garantida. (Leia Livrando-se da entidade.)`,
-    convergencia8: `Sempre que conjura um feitico ou usa uma tecnica, pode receber ajuda da entidade que te habita gastando 1 PE para receber um desses efeitos:
+Caso se livre da entidade nesse ponto, a técnica amaldiçoada dela ainda fica gravada em você de forma garantida. (Leia Livrando-se da entidade.)`,
+    convergencia8: `Sempre que conjura um feitiço ou usa uma técnica, pode receber ajuda da entidade que te habita gastando 1 PE para receber um desses efeitos:
 
 - +5 na DT da habilidade.
-- +1 dado no efeito da tecnica (dano, cura, etc).
-- +5 na defesa ate o proximo turno.
+- +1 dado no efeito da técnica (dano, cura, etc).
+- +5 na defesa até o próximo turno.
 
-**Favor:** A Entidade concede mais poder, permitindo voce escolher 2 efeitos ao inves de 1.
+**Favor:** A Entidade concede mais poder, permitindo você escolher 2 efeitos ao invés de 1.
 
-Caso se livre da entidade nesse ponto, a tecnica amaldicoada dela pode ficar gravada em voce. Role 1d20; se o valor for 19 ou 20, voce fica com a tecnica. (Leia Livrando-se da entidade.)`,
-    convergencia13: `**Manifestacao Parcial**
-A entidade pede para te apoiar, e voce manifesta parcialmente as capacidades dela. Uma vez por cena, por 6 PE pode entrar em Manifestacao Parcial por 3 rodadas.
+Caso se livre da entidade nesse ponto, a técnica amaldiçoada dela pode ficar gravada em você. Role 1d20; se o valor for 19 ou 20, você fica com a técnica. (Leia Livrando-se da entidade.)`,
+    convergencia13: `**Manifestação Parcial**
+A entidade pede para te apoiar, e você manifesta parcialmente as capacidades dela. Uma vez por cena, por 6 PE pode entrar em Manifestação Parcial por 3 rodadas.
 
-Durante esse tempo, voce recebe:
+Durante esse tempo, você recebe:
 
-- +1 em Presenca e Vigor.
-- +1 dado de dano de energia amaldicoada.
+- +1 em Presença e Vigor.
+- +1 dado de dano de energia amaldiçoada.
 - +2 de RD.
 - +2 na Defesa.
 - +3m de deslocamento.
 - +1 no limite de PE/EA.
-- Pode usar uma das habilidades da Tecnica Amaldicoada Inata da Entidade.
+- Pode usar uma das habilidades da Técnica Amaldiçoada Inata da Entidade.
 
-**Favor:** A entidade concede 1d6 de EA temporario ate o fim da manifestacao.
+**Favor:** A entidade concede 1d6 de EA temporário até o fim da manifestação.
 
 Ao fim do efeito, fica Alquebrado por 1d3 rodadas.
 
-**Manifestacao Completa**
-Voce permite a entidade assumir o controle quase completamente, para lidar com uma situacao. Uma vez por cena, por 8 EA e 4 PE pode entrar em Manifestacao Completa por 3 rodadas.
+**Manifestação Completa**
+Você permite a entidade assumir o controle quase completamente, para lidar com uma situação. Uma vez por cena, por 8 EA e 4 PE pode entrar em Manifestação Completa por 3 rodadas.
 
-Durante esse tempo, voce recebe:
+Durante esse tempo, você recebe:
 
 - +1 em todos os Atributos.
-- +2 dados de dano de energia amaldicoada.
+- +2 dados de dano de energia amaldiçoada.
 - +4 de RD.
 - +5 na Defesa.
 - +6 m de deslocamento.
 - +3 no limite de PE/EA.
-- Pode usar ate 3 das habilidades da Tecnica Amaldicoada Inata da Entidade.
+- Pode usar até 3 das habilidades da Técnica Amaldiçoada Inata da Entidade.
 
-**Favor:** A entidade concede 2d6 de EA temporario ate o fim da manifestacao.
+**Favor:** A entidade concede 2d6 de EA temporário até o fim da manifestação.
 
-Ao fim do efeito, fica Alquebrado e Fatigado ate o fim da cena.
+Ao fim do efeito, fica Alquebrado e Fatigado até o fim da cena.
 
-Alem disso, caso se livre da entidade nesse ponto, a tecnica amaldicoada dela pode ficar gravada em voce. Role 1d20; se o valor for 8 ou maior, voce fica com a tecnica. (Leia Livrando-se da entidade.)`,
-    convergencia20: `Quando usa Concessao assistida, na manifestacao parcial nao fica mais Alquebrado. Alem disso, a tecnica amaldicoada da entidade agora esta gravada na sua alma, permitindo usar sua propria versao dela, mesmo sem usar Concessao assistida. Quando usa a manifestacao completa, nao fica mais Fatigado e Alquebrado.
+Além disso, caso se livre da entidade nesse ponto, a técnica amaldiçoada dela pode ficar gravada em você. Role 1d20; se o valor for 8 ou maior, você fica com a técnica. (Leia Livrando-se da entidade.)`,
+    convergencia20: `Quando usa Concessão assistida, na manifestação parcial não fica mais Alquebrado. Além disso, a técnica amaldiçoada da entidade agora está gravada na sua alma, permitindo usar sua própria versão dela, mesmo sem usar Concessão assistida. Quando usa a manifestação completa, não fica mais Fatigado e Alquebrado.
 
-Tambem recebe 5 de RD para dano Amaldicoado passivamente.
+Também recebe 5 de RD para dano Amaldiçoado passivamente.
 
-**Favor:** A entidade permite que as informacoes da alma dela sejam sobrescritas pelas suas. Te dando 30 PV e EA temporario ate o fim da cena; apos isso, voce se livrou da entidade. Voce tambem pode pedir para a entidade sobrescrever seu corpo, voce perde o personagem, mas a entidade atende seu ultimo desejo (ou tenta).
+**Favor:** A entidade permite que as informações da alma dela sejam sobrescritas pelas suas. Te dando 30 PV e EA temporário até o fim da cena; após isso, você se livrou da entidade. Você também pode pedir para a entidade sobrescrever seu corpo, você perde o personagem, mas a entidade atende seu último desejo (ou tenta).
 
-Caso se livre da entidade nesse ponto, a tecnica amaldicoada dela ainda fica gravada em voce de forma garantida. (Leia Livrando-se da entidade.)`,
+Caso se livre da entidade nesse ponto, a técnica amaldiçoada dela ainda fica gravada em você de forma garantida. (Leia Livrando-se da entidade.)`,
   },
 };
 
 export const TRILHA_AMALDICOADO = {
-  descricao: `Maldicoes surgem dos sentimentos humanos, e voce entende isso muito bem.
+  descricao: `Maldições surgem dos sentimentos humanos, e você entende isso muito bem.
 
-Um amor profundo, um odio impossivel de esquecer, culpa esmagadora ou uma promessa que nunca deveria ter sido feita podem ter te amaldicoado com uma presenca sombria.
+Um amor profundo, um ódio impossível de esquecer, culpa esmagadora ou uma promessa que nunca deveria ter sido feita podem ter te amaldiçoado com uma presença sombria.
 
-Essa maldicao nao e um Shikigami, voce nao construiu ela, mas ela esta vinculada a voce, entao, por que nao usar isso?
+Essa maldição não é um Shikigami, você não construiu ela, mas ela está vinculada a você, então, por que não usar isso?
 
-**Maldicao Vinculada**
-Ao escolher essa trilha, o personagem possui uma Maldicao Vinculada. Ele precisa carregar um item amaldicoado categoria 0 espaco 1 que representa esse vinculo.
+**Maldição Vinculada**
+Ao escolher essa trilha, o personagem possui uma Maldição Vinculada. Ele precisa carregar um item amaldiçoado categoria 0, espaço 1 que representa esse vínculo.
 
-Essa maldicao acompanha o personagem, reage a emocoes fortes, pode se manifestar para ajuda e ate perder o controle em momentos criticos. E uma trilha bem narrativa; o mestre e o jogador devem definir a aparencia do espirito amaldicoado, personalidade, emocao que a originou, etc.
+Essa maldição acompanha o personagem, reage a emoções fortes, pode se manifestar para ajuda e até perder o controle em momentos críticos. É uma trilha bem narrativa; o mestre e o jogador devem definir a aparência do espírito amaldiçoado, personalidade, emoção que a originou, etc.
 
-A tecnica amaldicoada da maldicao e a mesma tecnica do personagem, representando que o vinculo entre ambos amplifica esse poder.
+A técnica amaldiçoada da maldição é a mesma técnica do personagem, representando que o vínculo entre ambos amplifica esse poder.
 
-Alem disso, a maldicao esta associada a alma de alguem morto.
+Além disso, a maldição está associada à alma de alguém morto.
 
 **Instabilidade**
-Sempre que a maldicao se manifesta totalmente, quando o personagem recebe dano extremo, fica numa situacao de estresse emocional, etc, existe um risco de perda de controle. O jogador precisa usar a narrativa e um teste de instabilidade, usando pericias como Diplomacia, Enganacao ou Intimidacao (ou o que ele convencer), para tentar acalmar a maldicao. Caso nao consiga, a maldicao vai se tornar imprevisivel, agindo de forma perigosa; o mestre assume o controle dela nesse ponto.
+Sempre que a maldição se manifesta totalmente, quando o personagem recebe dano extremo, fica numa situação de estresse emocional, etc, existe um risco de perda de controle. O jogador precisa usar a narrativa e um teste de instabilidade, usando perícias como Diplomacia, Enganação ou Intimidação (ou o que ele convencer), para tentar acalmar a maldição. Caso não consiga, a maldição vai se tornar imprevisível, agindo de forma perigosa; o mestre assume o controle dela nesse ponto.
 
-Para cada elo do Enigma Amaldicoado quebrado, o personagem recebe +2 em testes de Instabilidade ao tentar controlar a maldicao.
+Para cada elo do Enigma Amaldiçoado quebrado, o personagem recebe +2 em testes de Instabilidade ao tentar controlar a maldição.
 
-**Enigma Amaldicoado**
-Toda maldicao vinculada possui um Enigma Amaldicoado, que consiste na seguinte mecanica: o enigma possui de 3 a 5 elos que mantem a maldicao presa ao personagem, cada elo representando algo como uma memoria, promessa, emocao ou evento do passado.
+**Enigma Amaldiçoado**
+Toda maldição vinculada possui um Enigma Amaldiçoado, que consiste na seguinte mecânica: o enigma possui de 3 a 5 elos que mantêm a maldição presa ao personagem, cada elo representando algo como uma memória, promessa, emoção ou evento do passado.
 
-O mestre deve definir esses elos em segredo, e conforme o personagem descobre e resolve esses aspectos, os elos sao quebrados.
+O mestre deve definir esses elos em segredo, e conforme o personagem descobre e resolve esses aspectos, os elos são quebrados.
 
-Recomendamos que voce associe cada elo a uma recompensa, como:
+Recomendamos que você associe cada elo a uma recompensa, como:
 
-- Reduzir a DT para convencer a maldicao.
-- Aumentar a duracao da manifestacao.
-- Melhorar o dano da maldicao.
-- Comunicacao mais clara com a maldicao.
+- Reduzir a DT para convencer a maldição.
+- Aumentar a duração da manifestação.
+- Melhorar o dano da maldição.
+- Comunicação mais clara com a maldição.
 
-Ao fim de todos os elos, o personagem pode escolher libertar ela totalmente e talvez ate reconstrui-la como Shikigami a partir dos resquicios da energia amaldicoada, mas com a alma liberta. Nesse caso, nao e mais necessario fazer testes de instabilidade; o agora shikigami segue seus comandos naturalmente.`,
+Ao fim de todos os elos, o personagem pode escolher libertar ela totalmente e talvez até reconstruí-la como Shikigami a partir dos resquícios da energia amaldiçoada, mas com a alma liberta. Nesse caso, não é mais necessário fazer testes de instabilidade; o agora shikigami segue seus comandos naturalmente.`,
   habilidades: {
-    presenca: `A maldicao que te acompanha reage instintivamente a situacoes intensas.
+    presenca: `A maldição que te acompanha reage instintivamente a situações intensas.
 
-Sempre que voce sofrer dano significativo, sofrer dano mental, reduzir um inimigo a 0 PV ou entrar em uma situacao de perigo, o mestre pode pedir um teste de manifestacao da maldicao (1d6).
+Sempre que você sofrer dano significativo, sofrer dano mental, reduzir um inimigo a 0 PV ou entrar em uma situação de perigo, o mestre pode pedir um teste de manifestação da maldição (1d6).
 
 **Resultado**
 
-- **1-3: manifestacao abstrata.** Uma voz pode ser ouvida, talvez um sussurro irritado, um rosnado ou um calafrio.
-- **4-5: manifestacao leve.** Pode surgir apenas os bracos da maldicao de uma forma meio espectral por cima dos seus. Escolha um efeito, dependendo da situacao e da aprovacao do mestre: causar +1d6 amaldicoado, RD 5 para um ataque ou empurrar o inimigo 3 m.
-- **6: manifestacao violenta.** Um fragmento da maldicao se manifesta de forma mais fisica, atras de voce talvez, a sua frente. Escolha um efeito: +2 dados de dano no ataque ou RD 10 contra o dano recebido.
+- **1-3: manifestação abstrata.** Uma voz pode ser ouvida, talvez um sussurro irritado, um rosnado ou um calafrio.
+- **4-5: manifestação leve.** Pode surgir apenas os braços da maldição de uma forma meio espectral por cima dos seus. Escolha um efeito, dependendo da situação e da aprovação do mestre: causar +1d6 amaldiçoado, RD 5 para um ataque ou empurrar o inimigo 3 m.
+- **6: manifestação violenta.** Um fragmento da maldição se manifesta de forma mais física, atrás de você talvez, à sua frente. Escolha um efeito: +2 dados de dano no ataque ou RD 10 contra o dano recebido.
 
-O mestre pode negar o teste se a situacao nao envolver emocoes ou perigo real.`,
-    ligacao: `Voce e a maldicao ja estao ligados o suficiente para a energia amaldicoada de voces se interconectar. Voce pode permitir que o espirito amaldicoado interfira na sua tecnica.
+O mestre pode negar o teste se a situação não envolver emoções ou perigo real.`,
+    ligacao: `Você e a maldição já estão ligados o suficiente para a energia amaldiçoada de vocês se interconectar. Você pode permitir que o espírito amaldiçoado interfira na sua técnica.
 
-Pode utilizar a sua tecnica amaldicoada a partir da sua maldicao, ou com o apoio da presenca dela, podendo ganhar efeitos com a presenca dela em troca do risco dela se descontrolar. Sempre que utilizar essa ligacao inata, precisa fazer um teste de instabilidade.
+Pode utilizar a sua técnica amaldiçoada a partir da sua maldição, ou com o apoio da presença dela, podendo ganhar efeitos com a presença dela em troca do risco dela se descontrolar. Sempre que utilizar essa ligação inata, precisa fazer um teste de instabilidade.
 
-Sugestao de efeitos:
+Sugestão de efeitos:
 
-- +1 dado no efeito da tecnica.
-- +5 na DT da tecnica.
-- Aumenta um passo do alcance do efeito da tecnica.
-- Aplica alguma condicao benefica para o jogador.
-- Remove uma restricao simples da tecnica.`,
-    conexao: `Seu vinculo com a maldicao se fortaleceu o suficiente para permitir que ela se manifestasse fisicamente ao seu lado por curtos periodos.
+- +1 dado no efeito da técnica.
+- +5 na DT da técnica.
+- Aumenta um passo do alcance do efeito da técnica.
+- Aplica alguma condição benéfica para o jogador.
+- Remove uma restrição simples da técnica.`,
+    conexao: `Seu vínculo com a maldição se fortaleceu o suficiente para permitir que ela se manifestasse fisicamente ao seu lado por curtos períodos.
 
-Uma vez por cena, como acao padrao, voce pode gastar 4 PE e 2 EA para invocar a maldicao por 1 + 1d3 rodadas. A maldicao surge em um espaco livre adjacente a voce, e pode se mover em ate alcance curto.
+Uma vez por cena, como ação padrão, você pode gastar 4 PE e 2 EA para invocar a maldição por 1 + 1d3 rodadas. A maldição surge em um espaço livre adjacente a você, e pode se mover em até alcance curto.
 
-Enquanto a maldicao estiver manifestada:
+Enquanto a maldição estiver manifestada:
 
-- Voce recebe todos os bonus de Ligacao Inata.
-- Nao precisa realizar testes de Instabilidade ao usar Ligacao Inata.
+- Você recebe todos os bônus de Ligação Inata.
+- Não precisa realizar testes de Instabilidade ao usar Ligação Inata.
 
-**Acoes da Maldicao**
-Durante o seu turno, uma vez por rodada, voce pode comandar a maldicao para realizar uma acao e/ou se movimentar por ate 9m.
+**Ações da Maldição**
+Durante o seu turno, uma vez por rodada, você pode comandar a maldição para realizar uma ação e/ou se movimentar por até 9m.
 
-Escolha uma das opcoes:
+Escolha uma das opções:
 
-- **Ataque Amaldicoado:** A maldicao realiza uma agressao contra o alvo, causando 2d6 de dano amaldicoado.
-- **Protecao Instintiva:** A maldicao protege voce ou um aliado em alcance curto, concedendo RD 10 contra um ataque.
-- **Manobra Fantasmagorica:** A maldicao realiza uma manobra de combate contra o alvo, levando em consideracao o tamanho dela.
-- **Amplificacao Amaldicoada:** A maldicao amplifica sua tecnica amaldicoada, concedendo +1 dado adicional no efeito da tecnica.
+- **Ataque Amaldiçoado:** A maldição realiza uma agressão contra o alvo, causando 2d6 de dano amaldiçoado.
+- **Proteção Instintiva:** A maldição protege você ou um aliado em alcance curto, concedendo RD 10 contra um ataque.
+- **Manobra Fantasmagórica:** A maldição realiza uma manobra de combate contra o alvo, levando em consideração o tamanho dela.
+- **Amplificação Amaldiçoada:** A maldição amplifica sua técnica amaldiçoada, concedendo +1 dado adicional no efeito da técnica.
 
-Quando a manifestacao termina, faca um teste de Instabilidade.
+Quando a manifestação termina, faça um teste de Instabilidade.
 
-Falha significa que a maldicao continua manifestada fora de controle por 1+1d3 rodadas, sob controle do mestre, podendo atacar tudo e todos (inclusive aliados).`,
-    vinculo: `Seu vinculo com o espirito amaldicoado atinge o apice. Agora voce pode permitir que ele se manifeste como uma entidade completa.
+Falha significa que a maldição continua manifestada fora de controle por 1+1d3 rodadas, sob controle do mestre, podendo atacar tudo e todos (inclusive aliados).`,
+    vinculo: `Seu vínculo com o espírito amaldiçoado atinge o ápice. Agora você pode permitir que ele se manifeste como uma entidade completa.
 
-Alem disso, uma vez por cena pode, como acao padrao, gastar 6 EA e 1 PE para invocar a maldicao completamente por 3 rodadas.
+Além disso, uma vez por cena pode, como ação padrão, gastar 6 EA e 1 PE para invocar a maldição completamente por 3 rodadas.
 
-**Espirito Amaldicoado Manifesto**
-A maldicao passa a agir como um segundo personagem na iniciativa. Ela possui:
+**Espírito Amaldiçoado Manifesto**
+A maldição passa a agir como um segundo personagem na iniciativa. Ela possui:
 
-- sua propria iniciativa;
-- deslocamento proprio;
-- acesso a ficha completa da maldicao.
+- sua própria iniciativa;
+- deslocamento próprio;
+- acesso à ficha completa da maldição.
 
-O mestre e o jogador devem construir essa ficha juntos. Mas considera-se que, via de regra, essa maldicao e de nivel especial.
+O mestre e o jogador devem construir essa ficha juntos. Mas considera-se que, via de regra, essa maldição é de nível especial.
 
-Enquanto a maldicao estiver manifestada:
+Enquanto a maldição estiver manifestada:
 
-- voce recebe +2 dados no efeito de tecnicas amaldicoadas;
+- você recebe +2 dados no efeito de técnicas amaldiçoadas;
 - recebe +3 na Defesa;
 - recebe 2 de RD jujutsu;
-- nao precisa realizar testes de instabilidade ate o fim dos 3 turnos;
+- não precisa realizar testes de instabilidade até o fim dos 3 turnos;
 - recebe +4 no limite de PE/EA.
 
-Alem disso, a maldicao possui um reservatorio proprio de energia amaldicoada, que pode ser utilizado para realizar as tecnicas associadas a ela.
+Além disso, a maldição possui um reservatório próprio de energia amaldiçoada, que pode ser utilizado para realizar as técnicas associadas à ela.
 
-Quando a manifestacao termina, faca um teste de Instabilidade.
+Quando a manifestação termina, faça um teste de Instabilidade.
 
-Falha significa que a maldicao permanece na cena por 1 rodada adicional, agindo conforme sua natureza e sendo controlada pelo mestre.`,
+Falha significa que a maldição permanece na cena por 1 rodada adicional, agindo conforme sua natureza e sendo controlada pelo mestre.`,
   },
 };
 

@@ -30,13 +30,13 @@ export class TiposGrauService {
 
   async create(dto: CreateTipoGrauDto) {
     try {
-      // ✅ OPCIONAL: Validar código único (se houver campo codigo)
-      // if (dto.codigo) {
+      // ✅ OPCIONAL: Validar código único (se houver campo código)
+      // if (dto.código) {
       //   const existente = await this.prisma.tipoGrau.findFirst({
-      //     where: { codigo: dto.codigo },
+      //     where: { código: dto.código },
       //   });
       //   if (existente) {
-      //     throw new TipoGrauCodigoDuplicadoException(dto.codigo);
+      //     throw new TipoGrauCodigoDuplicadoException(dto.código);
       //   }
       // }
 
@@ -78,15 +78,15 @@ export class TiposGrauService {
       await this.findOne(id);
 
       // ✅ OPCIONAL: Validar código único ao atualizar (se mudou)
-      // if (dto.codigo) {
+      // if (dto.código) {
       //   const duplicado = await this.prisma.tipoGrau.findFirst({
       //     where: {
-      //       codigo: dto.codigo,
+      //       código: dto.código,
       //       NOT: { id },
       //     },
       //   });
       //   if (duplicado) {
-      //     throw new TipoGrauCodigoDuplicadoException(dto.codigo);
+      //     throw new TipoGrauCodigoDuplicadoException(dto.código);
       //   }
       // }
 
@@ -138,7 +138,7 @@ export class TiposGrauService {
   //     total,
   //     detalhes: {
   //       habilidades: usosHabilidades,
-  //       tecnicas: usosTecnicas,
+  //       técnicas: usosTecnicas,
   //     },
   //   };
   // }

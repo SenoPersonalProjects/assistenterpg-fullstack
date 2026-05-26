@@ -320,7 +320,7 @@ export async function apiBuscarLivroPorCodigo(
   try {
     return await fetchJson<CompendioLivro>(
       `/compendio/livros/${livroCodigo}`,
-      `Livro "${livroCodigo}" nao encontrado`,
+      `Livro "${livroCodigo}" não encontrado`,
       {
         cache: 'no-store',
       },
@@ -339,7 +339,7 @@ export async function apiBuscarCategoriaDoLivroPorCodigo(
   try {
     return await fetchJson<CompendioCategoria>(
       `/compendio/livros/${livroCodigo}/categorias/${categoriaCodigo}`,
-      `Categoria "${categoriaCodigo}" nao encontrada`,
+      `Categoria "${categoriaCodigo}" não encontrada`,
       {
         cache: 'default',
         next: { revalidate: 60 },
@@ -363,7 +363,7 @@ export async function apiBuscarSubcategoriaDoLivroPorCodigo(
   try {
     return await fetchJson<CompendioSubcategoriaComArtigo>(
       `/compendio/livros/${livroCodigo}/categorias/${categoriaCodigo}/subcategorias/${subcategoriaCodigo}`,
-      `Subcategoria "${subcategoriaCodigo}" nao encontrada`,
+      `Subcategoria "${subcategoriaCodigo}" não encontrada`,
       {
         cache: 'default',
         next: { revalidate: 60 },
@@ -388,7 +388,7 @@ export async function apiBuscarArtigoDoLivroPorCodigo(
   try {
     return await fetchJson<CompendioArtigoCompleto>(
       `/compendio/livros/${livroCodigo}/categorias/${categoriaCodigo}/subcategorias/${subcategoriaCodigo}/artigos/${artigoCodigo}`,
-      `Artigo "${artigoCodigo}" nao encontrado`,
+      `Artigo "${artigoCodigo}" não encontrado`,
       {
         cache: 'no-store',
       },
@@ -425,7 +425,7 @@ export async function apiBuscarCategoriaPorCodigo(
   try {
     return await fetchJson<CompendioCategoria>(
       `/compendio/categorias/codigo/${codigo}`,
-      `Categoria "${codigo}" nao encontrada`,
+      `Categoria "${codigo}" não encontrada`,
       {
         cache: 'default',
         next: { revalidate: 60 },
@@ -457,7 +457,7 @@ export async function apiBuscarSubcategoriaPorCodigo(
   try {
     return await fetchJson<CompendioSubcategoriaComArtigo>(
       `/compendio/subcategorias/codigo/${codigo}`,
-      `Subcategoria "${codigo}" nao encontrada`,
+      `Subcategoria "${codigo}" não encontrada`,
       {
         cache: 'default',
         next: { revalidate: 60 },
@@ -476,7 +476,7 @@ export async function apiBuscarArtigoPorCodigo(
   try {
     return await fetchJson<CompendioArtigoCompleto>(
       `/compendio/artigos/codigo/${codigo}`,
-      `Artigo "${codigo}" nao encontrado`,
+      `Artigo "${codigo}" não encontrado`,
       {
         cache: 'default',
         next: { revalidate: 600 },
@@ -526,7 +526,7 @@ export async function apiBuscarCompendio(
       { cache: 'no-store' },
     );
   } catch (error) {
-    logCompendioWarning('Falha na busca do compendio; usando lista vazia', error);
+    logCompendioWarning('Falha na busca do compêndio; usando lista vazia', error);
     return [];
   }
 }
@@ -545,7 +545,7 @@ export async function apiListarTodosArtigos(): Promise<CompendioArtigoCompleto[]
 export async function apiAdminListarLivros(): Promise<CompendioLivro[]> {
   return fetchJson<CompendioLivro[]>(
     '/compendio/admin/livros',
-    'Falha ao carregar livros do compendio',
+    'Falha ao carregar livros do compêndio',
     {
       method: 'GET',
       auth: true,
@@ -691,7 +691,7 @@ export async function apiAdminReordenarCompendio(
 ): Promise<{ sucesso: boolean }> {
   return fetchJson<{ sucesso: boolean }>(
     '/compendio/admin/reordenar',
-    'Falha ao reordenar compendio',
+    'Falha ao reordenar compêndio',
     {
       method: 'POST',
       auth: true,
@@ -705,7 +705,7 @@ export async function apiAdminReordenarCompendio(
 export async function apiAdminExportarSeedCompendio(): Promise<CompendioSeedExport> {
   return fetchJson<CompendioSeedExport>(
     '/compendio/admin/exportar-seed',
-    'Falha ao exportar seed do compendio',
+    'Falha ao exportar seed do compêndio',
     {
       method: 'GET',
       auth: true,

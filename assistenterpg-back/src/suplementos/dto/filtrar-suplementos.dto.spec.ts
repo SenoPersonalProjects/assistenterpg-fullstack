@@ -15,7 +15,7 @@ describe('FiltrarSuplementosDto', () => {
     expect(dto.apenasAtivos).toBe(false);
   });
 
-  it('deve rejeitar valor booleano invalido', () => {
+  it('deve rejeitar valor booleano inválido', () => {
     const dto = plainToInstance(
       FiltrarSuplementosDto,
       {

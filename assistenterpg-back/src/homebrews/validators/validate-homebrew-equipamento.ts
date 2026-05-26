@@ -19,7 +19,7 @@ function validarFerramentaAmaldicoada(dados: Record<string, unknown>): void {
 
   if (!temArma && !temProtecao && !temArtefato) {
     throw new ValidationException(
-      'Ferramenta amaldiçoada deve ter arma, protecao ou artefato configurado',
+      'Ferramenta amaldiçoada deve ter arma, proteção ou artefato configurado',
       'tipoAmaldicoado',
       {
         camposEsperados: [
@@ -34,7 +34,7 @@ function validarFerramentaAmaldicoada(dados: Record<string, unknown>): void {
 
   if (tipoAmaldicoado === TipoAmaldicoado.ITEM) {
     throw new ValidationException(
-      'Ferramenta amaldiçoada nao suporta tipo ITEM',
+      'Ferramenta amaldiçoada não suporta tipo ITEM',
       'tipoAmaldicoado',
       {
         tipoRecebido: tipoAmaldicoado,
@@ -115,7 +115,7 @@ export function validateHomebrewEquipamentoCustom(dados: unknown): void {
       !categoriasValidas.includes(categoria)
     ) {
       const categoriaTexto =
-        typeof categoria === 'string' ? categoria : '<invalida>';
+        typeof categoria === 'string' ? categoria : '<inválida>';
       throw new ValidationException(
         `Categoria invalida: "${categoriaTexto}"`,
         'categoria',

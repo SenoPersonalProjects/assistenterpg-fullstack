@@ -222,7 +222,7 @@ export function isModificacaoCompativel(
 export async function seedEquipamentosModificacoesAplicaveis(
   prisma: PrismaClient,
 ) {
-  console.log('Vinculando equipamentos -> modificacoes aplicaveis...');
+  console.log('Vinculando equipamentos -> modificações aplicáveis...');
 
   await prisma.equipamentoModificacaoAplicavel.deleteMany();
 
@@ -272,6 +272,6 @@ export async function seedEquipamentosModificacoesAplicaveis(
   }
 
   console.log(
-    `OK: Modificacoes aplicaveis vinculadas: ${data.length} vinculos.`,
+    `OK: Modificações aplicáveis vinculadas: ${data.length} vínculos.`,
   );
 }

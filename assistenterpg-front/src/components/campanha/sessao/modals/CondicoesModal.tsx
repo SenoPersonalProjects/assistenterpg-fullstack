@@ -89,7 +89,7 @@ export function CondicoesModal({
           >
             {modalCondicoes && chaveAcaoAplicar && acaoCondicaoPendente === chaveAcaoAplicar
               ? 'Aplicando...'
-              : 'Aplicar condicao'}
+              : 'Aplicar condição'}
           </Button>
         </>
       }
@@ -99,7 +99,7 @@ export function CondicoesModal({
           {erro ? <ErrorAlert message={erro} className="md:col-span-2" /> : null}
           <div className="space-y-3">
             <Input
-              label="Buscar condicao"
+              label="Buscar condição"
               value={busca}
               onChange={(event) => onBuscaChange(event.target.value)}
               placeholder="Ex.: Sangrando, Enredado..."
@@ -108,7 +108,7 @@ export function CondicoesModal({
             <div className="max-h-[340px] overflow-y-auto rounded border border-app-border bg-app-bg p-2 space-y-1.5">
               {condicoesFiltradas.length === 0 ? (
                 <p className="text-xs text-app-muted">
-                  Nenhuma condicao encontrada para essa busca.
+                  Nenhuma condição encontrada para essa busca.
                 </p>
               ) : (
                 condicoesFiltradas.map((condicao) => {
@@ -167,21 +167,21 @@ export function CondicoesModal({
                 </>
               ) : (
                 <p className="text-xs text-app-muted">
-                  Selecione uma condicao no catalogo ao lado.
+                  Selecione uma condição no catálogo ao lado.
                 </p>
               )}
             </div>
 
             <div className="rounded border border-app-border bg-app-bg p-3 space-y-2">
-              <p className="text-xs font-semibold text-app-fg">Aplicar condicao</p>
+              <p className="text-xs font-semibold text-app-fg">Aplicar condição</p>
               <Select
-                label="Modo de duracao"
+                label="Modo de duração"
                 value={formCondicao.duracaoModo}
                 onChange={(event) => onAtualizarCampo('duracaoModo', event.target.value)}
                 options={opcoesDuracao}
               />
               <Input
-                label="Duracao (numero)"
+                label="Duração (número)"
                 type="number"
                 min={1}
                 value={formCondicao.duracaoValor}
@@ -214,7 +214,7 @@ export function CondicoesModal({
                 label="Origem (opcional)"
                 value={formCondicao.origemDescricao}
                 onChange={(event) => onAtualizarCampo('origemDescricao', event.target.value)}
-                placeholder="Ex.: Tecnica inata, armadilha..."
+                placeholder="Ex.: Técnica inata, armadilha..."
               />
               <Input
                 label="Observacao (opcional)"
@@ -237,7 +237,7 @@ export function CondicoesModal({
               <div className="max-h-[220px] overflow-y-auto space-y-1.5">
                 {condicoesAtivas.length === 0 ? (
                   <p className="text-xs text-app-muted">
-                    Nenhuma condicao ativa no momento.
+                    Nenhuma condição ativa no momento.
                   </p>
                 ) : (
                   condicoesAtivas.map((condicao) => {

@@ -7,12 +7,12 @@
   1. Le credenciais e comandos do PRIVATE-OPS.md local.
   2. Cria dump do banco local.
   3. Corrige o dump com corrigir_sql.py.
-  4. Exige confirmacao digitada.
+  4. Exige confirmação digitada.
   5. Recria o banco remoto.
   6. Importa o dump corrigido.
 
-  O script nao versiona nem imprime senhas. Senhas sao passadas ao mysql por
-  arquivos temporarios --defaults-extra-file e removidas no finally.
+  O script não versiona nem imprime senhas. Senhas sao passadas ao mysql por
+  arquivos temporários --defaults-extra-file e removidas no finally.
 #>
 
 [CmdletBinding()]
@@ -76,7 +76,7 @@ function Get-CodeBlockAfterHeading {
   }
 
   if ($headingIndex -lt 0) {
-    throw "Secao nao encontrada no PRIVATE-OPS.md: $HeadingRegex"
+    throw "Seção não encontrada no PRIVATE-OPS.md: $HeadingRegex"
   }
 
   $start = -1
@@ -88,7 +88,7 @@ function Get-CodeBlockAfterHeading {
   }
 
   if ($start -lt 0) {
-    throw "Bloco de codigo nao encontrado depois da secao: $HeadingRegex"
+    throw "Bloco de codigo não encontrado depois da seção: $HeadingRegex"
   }
 
   $block = New-Object System.Collections.Generic.List[string]
@@ -288,7 +288,7 @@ function Resolve-Tool {
   $tool = Get-Command $Name -ErrorAction SilentlyContinue
 
   if (-not $tool) {
-    throw "Ferramenta obrigatoria nao encontrada no PATH: $Name"
+    throw "Ferramenta obrigatória não encontrada no PATH: $Name"
   }
 
   return $tool.Source
@@ -301,7 +301,7 @@ function Assert-FileExists {
   )
 
   if (-not (Test-Path -LiteralPath $Path)) {
-    throw "$Label nao encontrado: $Path"
+    throw "$Label não encontrado: $Path"
   }
 }
 
@@ -343,7 +343,7 @@ try {
 
   Write-Ok 'Arquivos e ferramentas encontrados'
 
-  Write-Step 'Lendo configuracao privada'
+  Write-Step 'Lendo configuração privada'
 
   $opsLines = Get-Content -LiteralPath $opsPath -Encoding UTF8
   $tidbCommand = Get-OneLineCommandBlock -Lines $opsLines -HeadingRegex '(?i)^##\s+Acesso ao TiDB'
@@ -367,11 +367,11 @@ try {
   }
 
   if (-not $remote.User -or -not $remote.Host -or -not $remote.Port -or -not $remote.Database) {
-    throw 'Nao foi possivel extrair usuario/host/porta/banco do comando TiDB.'
+    throw 'Não foi possível extrair usuário/host/porta/banco do comando TiDB.'
   }
 
   if ($remote.Database -ne $RemoteDatabase) {
-    throw "PRIVATE-OPS.md aponta para banco remoto '$($remote.Database)', mas -RemoteDatabase esta como '$RemoteDatabase'."
+    throw "PRIVATE-OPS.md aponta para banco remoto '$($remote.Database)', mas -RemoteDatabase está como '$RemoteDatabase'."
   }
 
   if (-not $remote.SslMode) {
@@ -379,7 +379,7 @@ try {
   }
 
   if (-not $remote.SslCa) {
-    throw 'Nao foi possivel extrair --ssl-ca do comando TiDB.'
+    throw 'Não foi possível extrair --ssl-ca do comando TiDB.'
   }
 
   Assert-FileExists -Path $remote.SslCa -Label 'Certificado SSL TiDB'
@@ -397,12 +397,12 @@ try {
   }
 
   if (-not $tidbPassword -or -not $localPassword) {
-    throw 'Senhas nao encontradas no PRIVATE-OPS.md.'
+    throw 'Senhas não encontradas no PRIVATE-OPS.md.'
   }
 
   Write-Ok "Config lida. Alvo remoto: $(Get-SafeTargetDescription -Remote $remote -Database $RemoteDatabase)"
 
-  Write-Step 'Criando arquivos temporarios de credenciais'
+  Write-Step 'Criando arquivos temporários de credenciais'
 
   $tempRoot = [System.IO.Path]::GetTempPath()
   $tempDir = Join-Path $tempRoot ("sync-tidb-" + [System.Guid]::NewGuid().ToString('N'))
@@ -429,7 +429,7 @@ try {
     -SslMode $remote.SslMode `
     -SslCa $remote.SslCa
 
-  Write-Ok 'Credenciais temporarias preparadas'
+  Write-Ok 'Credenciais temporárias preparadas'
 
   if (-not $SkipConnectionTest) {
     Write-Step 'Testando conexoes'
@@ -446,7 +446,7 @@ try {
 
     Write-Ok 'Conexoes validadas'
   } else {
-    Write-Warn 'Testes de conexao ignorados por -SkipConnectionTest'
+    Write-Warn 'Testes de conexão ignorados por -SkipConnectionTest'
   }
 
   if ($PreflightOnly) {
@@ -488,25 +488,25 @@ try {
   Assert-FileExists -Path $fixedDumpPath -Label 'Dump corrigido'
   Write-Ok "Dump corrigido criado: $fixedDumpPath"
 
-  Write-Step 'Confirmacao destrutiva'
+  Write-Step 'Confirmação destrutiva'
   $target = Get-SafeTargetDescription -Remote $remote -Database $RemoteDatabase
   $expectedConfirmation = "APAGAR $RemoteDatabase"
-  Write-Warn "Esta operacao vai apagar e recriar o banco remoto: $target"
-  Write-Warn "Arquivo que sera importado: $fixedDumpPath"
+  Write-Warn "Esta operação vai apagar e recriar o banco remoto: $target"
+  Write-Warn "Arquivo que será importado: $fixedDumpPath"
   if ([string]::IsNullOrWhiteSpace($ConfirmationText)) {
     $confirmation = Read-Host "Digite exatamente '$expectedConfirmation' para continuar"
   } else {
     $confirmation = $ConfirmationText
-    Write-Warn 'Confirmacao recebida por parametro.'
+    Write-Warn 'Confirmação recebida por parametro.'
   }
 
   if ($confirmation -cne $expectedConfirmation) {
-    throw 'Operacao cancelada: confirmacao nao confere.'
+    throw 'Operação cancelada: confirmação não confere.'
   }
 
   Write-Step 'Recriando banco remoto no TiDB'
   $remoteDatabaseIdentifier = Quote-MySqlIdentifier $RemoteDatabase
-  $resetSql = "DROP DATABASE IF EXISTS $remoteDatabaseIdentifier; CREATE DATABASE $remoteDatabaseIdentifier CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  $resetSql = "DROP DATABASE IF EXISTS $remoteDatabaseIdentifier; CREATE DATABASE $remoteDatabaseIdentifier CHARACTER SET utf8mb4 COLLATE utf8mb4_únicode_ci;"
 
   Invoke-NativeCommand `
     -FilePath $mysqlExe `
@@ -522,9 +522,9 @@ try {
     -InputFile $fixedDumpPath `
     -Label 'import dump TiDB' | Out-Null
 
-  Write-Ok 'Importacao concluida'
+  Write-Ok 'Importação concluida'
 
-  Write-Step 'Validando importacao'
+  Write-Step 'Validando importação'
   $remoteDatabaseSql = Escape-MySqlString $RemoteDatabase
 
   $tablesResult = Invoke-NativeCommand `
@@ -542,7 +542,7 @@ try {
   $tableCount = [int]$tableCountText
 
   if ($tableCount -le 0) {
-    throw 'Importacao validada com zero tabelas. Verifique o dump/import.'
+    throw 'Importação validada com zero tabelas. Verifique o dump/import.'
   }
 
   $prismaResult = Invoke-NativeCommand `
@@ -562,7 +562,7 @@ try {
   if ($hasPrismaMigrations) {
     Write-Ok 'Tabela _prisma_migrations encontrada'
   } else {
-    Write-Warn 'Tabela _prisma_migrations nao encontrada'
+    Write-Warn 'Tabela _prisma_migrations não encontrada'
   }
 
   Write-Step 'Resumo'
@@ -576,7 +576,7 @@ try {
     Write-Host 'Dumps serao removidos no cleanup. Use -KeepDump para preservar.'
   }
 
-  Write-Ok 'Sincronizacao concluida'
+  Write-Ok 'Sincronização concluida'
 } catch {
   Write-Fail $_.Exception.Message
   exit 1
@@ -588,7 +588,7 @@ try {
     if ($tempFull.StartsWith($tempRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
       Remove-Item -LiteralPath $tempFull -Recurse -Force -ErrorAction SilentlyContinue
     } else {
-      Write-Warn "Diretorio temporario fora de temp nao removido: $tempFull"
+      Write-Warn "Diretório temporário fora de temp não removido: $tempFull"
     }
   }
 

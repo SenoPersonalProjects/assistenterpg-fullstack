@@ -77,7 +77,7 @@ describe('CampanhaItensSessaoService', () => {
     ).toThrow(BadRequestException);
   });
 
-  it('oculta descricao, sessao e cena para jogador quando item nao foi revelado', () => {
+  it('oculta descrição, sessão e cena para jogador quando item não foi revelado', () => {
     const servico = criarServico();
 
     const item = {
@@ -111,7 +111,7 @@ describe('CampanhaItensSessaoService', () => {
     });
   });
 
-  it('mantem descricao, sessao e cena visiveis para o mestre', () => {
+  it('mantém descrição, sessão e cena visíveis para o mestre', () => {
     const servico = criarServico();
 
     const item = {
@@ -145,7 +145,7 @@ describe('CampanhaItensSessaoService', () => {
     });
   });
 
-  it('marca item proprio como transferivel quando nao ha pendencia', () => {
+  it('marca item próprio como transferivel quando não ha pendencia', () => {
     const servico = criarServico();
 
     const resultado = servico.mapearItem(
@@ -182,7 +182,7 @@ describe('CampanhaItensSessaoService', () => {
     });
   });
 
-  it('bloqueia nova transferencia quando item ja tem pendencia', () => {
+  it('bloqueia nova transferencia quando item já tem pendencia', () => {
     const servico = criarServico();
 
     const resultado = servico.mapearItem(

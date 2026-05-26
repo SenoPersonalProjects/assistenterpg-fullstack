@@ -123,7 +123,7 @@ export function SuplementoCard({
             onClick={onOpen}
           >
             <Icon name="book" className="w-4 h-4 mr-2" />
-            Ver conteudo
+            Ver conteúdo
           </Button>
         ) : null}
 

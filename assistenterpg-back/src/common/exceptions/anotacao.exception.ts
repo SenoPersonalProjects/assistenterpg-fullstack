@@ -6,7 +6,7 @@ import { BusinessException } from './business.exception';
 export class AnotacaoNaoEncontradaException extends BaseException {
   constructor(id?: number) {
     super(
-      'Anotacao nao encontrada',
+      'Anotação não encontrada',
       HttpStatus.NOT_FOUND,
       'ANOTACAO_NOT_FOUND',
       {
@@ -19,7 +19,7 @@ export class AnotacaoNaoEncontradaException extends BaseException {
 export class AnotacaoSemPermissaoException extends BusinessException {
   constructor(id?: number) {
     super(
-      'Voce nao tem permissao para acessar esta anotacao',
+      'Você não tem permissão para acessar esta anotação',
       'ANOTACAO_SEM_PERMISSAO',
       { id },
     );
@@ -29,7 +29,7 @@ export class AnotacaoSemPermissaoException extends BusinessException {
 export class AnotacaoCampanhaSessaoInvalidaException extends BusinessException {
   constructor(campanhaId?: number | null, sessaoId?: number | null) {
     super(
-      'Campanha e sessao informadas nao correspondem',
+      'Campanha e sessão informadas não correspondem',
       'ANOTACAO_CAMPANHA_SESSAO_INVALIDA',
       { campanhaId, sessaoId },
     );

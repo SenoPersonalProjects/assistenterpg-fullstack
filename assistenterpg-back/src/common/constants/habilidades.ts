@@ -1,2 +1,2 @@
 export const HABILIDADE_ESCOLA_TECNICA_CODIGO = 'ESCOLA_TECNICA';
-export const HABILIDADE_ESCOLA_TECNICA_NOME = 'Escola T\u00e9cnica';
+export const HABILIDADE_ESCOLA_TECNICA_NOME = 'Escola Técnica';

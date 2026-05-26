@@ -60,7 +60,7 @@ export class TecnicasAmaldicoadasImportExportService {
     if (typeof raw !== 'string' || raw.trim().length === 0) {
       throw new BadRequestException({
         code: 'JSON_IMPORT_CAMPO_OBRIGATORIO',
-        message: `${path}.${campo} e obrigatorio e deve ser string nao vazia.`,
+        message: `${path}.${campo} é obrigatório e deve ser string não vazia.`,
       });
     }
 
@@ -207,7 +207,7 @@ export class TecnicasAmaldicoadasImportExportService {
     if (typeof raw !== 'string' || raw.trim().length === 0) {
       throw new BadRequestException({
         code: 'JSON_IMPORT_CAMPO_OBRIGATORIO',
-        message: `${path}.${campo} e obrigatorio.`,
+        message: `${path}.${campo} é obrigatório.`,
       });
     }
 
@@ -528,8 +528,8 @@ export class TecnicasAmaldicoadasImportExportService {
       tecnicas: [
         {
           codigo: 'TEC_EXEMPLO',
-          nome: 'Tecnica Exemplo',
-          descricao: 'Descricao resumida da tecnica.',
+          nome: 'Técnica Exemplo',
+          descricao: 'Descrição resumida da técnica.',
           tipo: 'INATA',
           hereditaria: false,
           fonte: 'SISTEMA_BASE',
@@ -547,8 +547,8 @@ export class TecnicasAmaldicoadasImportExportService {
       tecnicas: [
         {
           codigo: 'TEC_EXEMPLO_COMPLETO',
-          nome: 'Tecnica Exemplo Completo',
-          descricao: 'Tecnica com habilidade e variacao.',
+          nome: 'Técnica Exemplo Completo',
+          descricao: 'Técnica com habilidade e variação.',
           tipo: 'NAO_INATA',
           hereditaria: false,
           clasHereditarios: [],
@@ -560,7 +560,7 @@ export class TecnicasAmaldicoadasImportExportService {
             {
               codigo: 'HAB_EXEMPLO_01',
               nome: 'Habilidade Exemplo',
-              descricao: 'Descricao da habilidade.',
+              descricao: 'Descrição da habilidade.',
               execucao: 'ACAO_PADRAO',
               alcance: 'CURTO (9m)',
               alvo: '1 ser',
@@ -576,16 +576,16 @@ export class TecnicasAmaldicoadasImportExportService {
                 dado: 'd6',
                 tipo: 'AMALDICOADO_JUJUTSU',
               },
-              efeito: 'Descricao do efeito principal.',
+              efeito: 'Descrição do efeito principal.',
               ordem: 0,
               variacoes: [
                 {
-                  nome: 'Variacao Superior',
+                  nome: 'Variação Superior',
                   descricao: 'Sobrescreve parte do custo.',
                   substituiCustos: false,
                   custoEA: 1,
                   custoPE: 1,
-                  efeitoAdicional: 'Texto adicional da variacao.',
+                  efeitoAdicional: 'Texto adicional da variação.',
                   ordem: 0,
                 },
               ],
@@ -599,13 +599,13 @@ export class TecnicasAmaldicoadasImportExportService {
       schema: TECNICAS_JSON_SCHEMA,
       schemaVersion: TECNICAS_JSON_SCHEMA_VERSION,
       descricao:
-        'Formato oficial para importar/exportar tecnicas amaldicoadas com habilidades e variacoes.',
+        'Formato oficial para importar/exportar técnicas amaldiçoadas com habilidades e variações.',
       regras: [
-        'A importacao usa modo UPSERT por codigo de tecnica e codigo de habilidade.',
-        'Variacoes usam id (quando informado) ou nome dentro da habilidade para atualizar.',
-        'CRUD manual continua disponivel no painel admin (tecnica -> habilidades -> variacoes).',
-        'substituirHabilidadesAusentes=true remove habilidades nao presentes no arquivo para cada tecnica importada.',
-        'substituirVariacoesAusentes=true remove variacoes nao presentes no arquivo para cada habilidade importada.',
+        'A importação usa modo UPSERT por código de técnica e código de habilidade.',
+        'Variações usam id (quando informado) ou nome dentro da habilidade para atualizar.',
+        'CRUD manual continua disponível no painel admin (técnica -> habilidades -> variações).',
+        'substituirHabilidadesAusentes=true remove habilidades não presentes no arquivo para cada técnica importada.',
+        'substituirVariacoesAusentes=true remove variações não presentes no arquivo para cada habilidade importada.',
       ],
       exemplos: {
         minimo: exemploMinimo,
@@ -696,7 +696,7 @@ export class TecnicasAmaldicoadasImportExportService {
       if (tecnicas.length === 0) {
         throw new BadRequestException({
           code: 'JSON_IMPORT_VAZIO',
-          message: 'Arquivo sem tecnicas para importar.',
+          message: 'Arquivo sem técnicas para importar.',
         });
       }
 
@@ -752,7 +752,7 @@ export class TecnicasAmaldicoadasImportExportService {
         if (!tecnicaId) {
           throw new BadRequestException({
             code: 'JSON_IMPORT_TECNICA_INVALIDA',
-            message: `Nao foi possivel resolver tecnica ${tecnicaImport.codigo}.`,
+            message: `Não foi possível resolver técnica ${tecnicaImport.codigo}.`,
           });
         }
 
@@ -769,7 +769,7 @@ export class TecnicasAmaldicoadasImportExportService {
             if (habilidadeExistente.tecnicaId !== tecnicaId) {
               throw new BadRequestException({
                 code: 'JSON_IMPORT_HABILIDADE_OUTRA_TECNICA',
-                message: `Habilidade ${habilidadeImport.codigo} ja pertence a outra tecnica.`,
+                message: `Habilidade ${habilidadeImport.codigo} já pertence a outra técnica.`,
               });
             }
 
@@ -849,7 +849,7 @@ export class TecnicasAmaldicoadasImportExportService {
           if (!habilidadeId) {
             throw new BadRequestException({
               code: 'JSON_IMPORT_HABILIDADE_INVALIDA',
-              message: `Nao foi possivel resolver habilidade ${habilidadeImport.codigo}.`,
+              message: `Não foi possível resolver habilidade ${habilidadeImport.codigo}.`,
             });
           }
 
@@ -872,7 +872,7 @@ export class TecnicasAmaldicoadasImportExportService {
               );
               if (!variacaoPorId) {
                 resumo.avisos.push(
-                  `Variacao id=${variacaoId} nao encontrada em ${habilidadeImport.codigo}; usando match por nome.`,
+                  `Variação id=${variacaoId} não encontrada em ${habilidadeImport.codigo}; usando match por nome.`,
                 );
                 variacaoId = undefined;
               }

@@ -63,7 +63,7 @@ async function listenWithPortFallback(
 
       if (isPortInUse) {
         logger.error(
-          `Nao foi possivel iniciar a API: porta ${currentPort} em uso.`,
+          `Não foi possível iniciar a API: porta ${currentPort} em uso.`,
         );
         logger.error(
           'Defina PORT para outra porta ou finalize o processo que ocupa essa porta.',
@@ -74,7 +74,7 @@ async function listenWithPortFallback(
     }
   }
 
-  throw new Error('Falha ao iniciar aplicacao: sem portas disponiveis.');
+  throw new Error('Falha ao iniciar aplicacao: sem portas disponíveis.');
 }
 
 async function bootstrap() {

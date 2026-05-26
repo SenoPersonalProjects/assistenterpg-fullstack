@@ -309,7 +309,7 @@ export class NpcsAmeacasService {
 
       if (!pericia) {
         throw new BadRequestException(
-          `Pericia especial invalida na posicao ${index + 1}. Use apenas codigos oficiais de pericia.`,
+          `Perícia especial inválida na posição ${index + 1}. Use apenas códigos oficiais de perícia.`,
         );
       }
 
@@ -659,7 +659,7 @@ export class NpcsAmeacasService {
       });
 
       return {
-        message: 'NPC/Ameaca removido com sucesso',
+        message: 'NPC/Ameaça removido com sucesso',
         id,
       };
     } catch (error: unknown) {
@@ -928,7 +928,7 @@ export class NpcsAmeacasService {
       }
 
       throw new BadRequestException(
-        'exportType inválido. Use "npc-ameaca" ou "npc-ameaca-group".',
+        'exportType inválido. Use "npc-ameaça" ou "npc-ameaça-group".',
       );
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
@@ -949,7 +949,7 @@ export class NpcsAmeacasService {
     });
     if (total !== npcAmeacaIds.length) {
       throw new BadRequestException(
-        'Um ou mais NPCs/ameacas informados nao pertencem ao usuario.',
+        'Um ou mais NPCs/ameaças informados não pertencem ao usuário.',
       );
     }
   }

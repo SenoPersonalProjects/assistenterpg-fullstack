@@ -11,17 +11,17 @@ import {
 export class CreateCondicaoDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(3, { message: 'Nome deve ter no minimo 3 caracteres' })
-  @MaxLength(100, { message: 'Nome deve ter no maximo 100 caracteres' })
+  @MinLength(3, { message: 'Nome deve ter no mínimo 3 caracteres' })
+  @MaxLength(100, { message: 'Nome deve ter no máximo 100 caracteres' })
   nome: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(10, { message: 'Descricao deve ter no minimo 10 caracteres' })
+  @MinLength(10, { message: 'Descrição deve ter no mínimo 10 caracteres' })
   descricao: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(50, { message: 'Icone deve ter no maximo 50 caracteres' })
+  @MaxLength(50, { message: 'Ícone deve ter no máximo 50 caracteres' })
   icone?: string;
 }

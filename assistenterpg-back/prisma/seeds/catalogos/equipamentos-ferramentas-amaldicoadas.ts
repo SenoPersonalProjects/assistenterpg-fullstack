@@ -102,9 +102,9 @@ interface EquipamentoComArtefatoData {
 const armasSimplesMaldadas: EquipamentoComArmaData[] = [
   {
     codigo: 'FACA_AMALDICOADA_SIMPLES',
-    nome: 'Faca Amaldiçoada',
+    nome: 'Faça Amaldiçoada',
     descricao:
-      'Uma faca afiada com maldição simples imbuída. Acrescenta +1 dado de dano em energia amaldiçoada e permite exorcizar espíritos amaldiçoados.',
+      'Uma faça afiada com maldição simples imbuída. Acrescenta +1 dado de dano em energia amaldiçoada e permite exorcizar espíritos amaldiçoados.',
     tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
     categoria: CategoriaEquipamento.CATEGORIA_4, // ✅ CORRETO (FACA: 0 → 4)
     espacos: 1,
@@ -1072,7 +1072,7 @@ const armasAmaldicoadasComplexas: EquipamentoComArmaData[] = [
   {
     codigo: 'LAMINA_INVERTIDA_PARAISO',
     nome: 'Lâmina Invertida do Paraíso',
-    descricao: 'Faca que interrompe feitiços e encantamentos Jujutsu instantaneamente.',
+    descricao: 'Faça que interrompe feitiços e encantamentos Jujutsu instantaneamente.',
     tipo: TipoEquipamento.FERRAMENTA_AMALDICOADA,
     categoria: CategoriaEquipamento.CATEGORIA_4,
     espacos: 1,

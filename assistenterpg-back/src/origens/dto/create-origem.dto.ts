@@ -16,7 +16,7 @@ import {
 import { Type } from 'class-transformer';
 import { TipoFonte } from '@prisma/client';
 
-// DTO para pericia da origem
+// DTO para perícia da origem
 export class OrigemPericiaDto {
   @IsInt()
   @IsNotEmpty()
@@ -29,19 +29,19 @@ export class OrigemPericiaDto {
 
   @IsOptional()
   @IsInt()
-  grupoEscolha?: number; // Para pericias do tipo ESCOLHA (ex: grupo 1, grupo 2)
+  grupoEscolha?: number; // Para perícias do tipo ESCOLHA (ex: grupo 1, grupo 2)
 }
 
 export class CreateOrigemDto {
   @IsString()
   @IsNotEmpty()
-  @MinLength(3, { message: 'Nome deve ter no minimo 3 caracteres' })
-  @MaxLength(100, { message: 'Nome deve ter no maximo 100 caracteres' })
+  @MinLength(3, { message: 'Nome deve ter no mínimo 3 caracteres' })
+  @MaxLength(100, { message: 'Nome deve ter no máximo 100 caracteres' })
   nome: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(2000, { message: 'Descricao deve ter no maximo 2000 caracteres' })
+  @MaxLength(2000, { message: 'Descrição deve ter no máximo 2000 caracteres' })
   descricao?: string;
 
   @IsOptional()
@@ -70,7 +70,7 @@ export class CreateOrigemDto {
   @Min(1)
   suplementoId?: number;
 
-  // Pericias da origem
+  // Perícias da origem
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

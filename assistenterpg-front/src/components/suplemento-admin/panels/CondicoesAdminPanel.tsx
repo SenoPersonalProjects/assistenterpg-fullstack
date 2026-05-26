@@ -72,13 +72,13 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
     const descricao = form.descricao.trim();
     const icone = form.icone.trim();
 
-    if (!nome) next.nome = 'Nome e obrigatorio.';
-    else if (nome.length < 3) next.nome = 'Nome deve ter no minimo 3 caracteres.';
+    if (!nome) next.nome = 'Nome é obrigatório.';
+    else if (nome.length < 3) next.nome = 'Nome deve ter no mínimo 3 caracteres.';
 
-    if (!descricao) next.descricao = 'Descricao e obrigatoria.';
-    else if (descricao.length < 10) next.descricao = 'Descricao deve ter no minimo 10 caracteres.';
+    if (!descricao) next.descricao = 'Descrição é obrigatória.';
+    else if (descricao.length < 10) next.descricao = 'Descrição deve ter no mínimo 10 caracteres.';
 
-    if (icone.length > 50) next.icone = 'Icone deve ter no maximo 50 caracteres.';
+    if (icone.length > 50) next.icone = 'Ícone deve ter no máximo 50 caracteres.';
 
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -98,10 +98,10 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
       if (isEditing && item?.id) {
         const payloadUpdate: UpdateCondicaoPayload = payload;
         await apiAdminUpdateCondicao(item.id, payloadUpdate);
-        showToast('Condicao atualizada com sucesso.', 'success');
+        showToast('Condição atualizada com sucesso.', 'success');
       } else {
         await apiAdminCreateCondicao(payload);
-        showToast('Condicao criada com sucesso.', 'success');
+        showToast('Condição criada com sucesso.', 'success');
       }
       onClose(true);
     } catch (error) {
@@ -115,7 +115,7 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={() => onClose(false)}
-      title={isEditing ? 'Editar condicao' : 'Nova condicao'}
+      title={isEditing ? 'Editar condição' : 'Nova condição'}
       size="lg"
       footer={
         <>
@@ -161,7 +161,7 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
           </div>
         </div>
         <Textarea
-          label="Descricao *"
+          label="Descrição *"
           rows={5}
           value={form.descricao}
           onChange={(e) => setField('descricao', e.target.value)}
@@ -210,12 +210,12 @@ export function CondicoesAdminPanel() {
   }, [carregarDados]);
 
   async function handleDelete(item: CondicaoCatalogo) {
-    if (!window.confirm(`Excluir condicao "${item.nome}"?`)) return;
+    if (!window.confirm(`Excluir condição "${item.nome}"?`)) return;
 
     try {
       setDeletingId(item.id);
       const resposta = await apiAdminDeleteCondicao(item.id);
-      showToast(resposta.message || 'Condicao removida com sucesso.', 'success');
+      showToast(resposta.message || 'Condição removida com sucesso.', 'success');
       await carregarDados();
     } catch (error) {
       showToast(extrairMensagemErro(error), 'error');
@@ -233,7 +233,7 @@ export function CondicoesAdminPanel() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
-            placeholder="Nome ou descricao..."
+            placeholder="Nome ou descrição..."
           />
           <Button
             variant="primary"
@@ -243,7 +243,7 @@ export function CondicoesAdminPanel() {
             }}
           >
             <Icon name="add" className="w-4 h-4 mr-1" />
-            Nova condicao
+            Nova condição
           </Button>
         </div>
       </Card>
@@ -252,13 +252,13 @@ export function CondicoesAdminPanel() {
 
       <Card>
         {loading ? (
-          <Loading message="Carregando condicoes..." className="py-8 text-app-fg" />
+          <Loading message="Carregando condições..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
           <EmptyState
             variant="card"
             icon="status"
-            title="Nenhuma condicao encontrada"
-            description="Ajuste a busca ou crie uma nova condicao."
+            title="Nenhuma condição encontrada"
+            description="Ajuste a busca ou crie uma nova condição."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -268,7 +268,7 @@ export function CondicoesAdminPanel() {
                   <th className="py-2 pr-2">ID</th>
                   <th className="py-2 pr-2">Icone</th>
                   <th className="py-2 pr-2">Nome</th>
-                  <th className="py-2 pr-2">Uso em sessoes</th>
+                  <th className="py-2 pr-2">Uso em sessões</th>
                   <th className="py-2 pr-2">Descricao</th>
                   <th className="py-2 text-right">Acoes</th>
                 </tr>

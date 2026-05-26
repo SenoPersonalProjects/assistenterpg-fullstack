@@ -1,16 +1,16 @@
-# NPC (Aliados ou Ameacas) - Ficha Simplificada
+﻿# NPC (Aliados ou Ameacas) - Ficha Simplificada
 
 Atualizado em: 2026-03-10
 
 ## Escopo
 
-Modulo para criacao e manutencao de fichas simplificadas de aliados ou ameacas.
+Módulo para criação e manutenção de fichas simplificadas de aliados ou ameaças.
 
 Objetivo:
 
 - acelerar preparacao de encontros;
 - manter ficha com campos essenciais de mesa;
-- permitir evolucao futura (ex.: calculo de VD, marketplace, uso por campanha/sessao).
+- permitir evolução futura (ex.: cálculo de VD, marketplace, uso por campanha/sessão).
 
 Arquivos principais:
 
@@ -37,7 +37,7 @@ Todas as rotas exigem JWT (`AuthGuard('jwt')`).
 
 Regra de acesso:
 
-- usuario autenticado so pode ver/editar/remover as proprias fichas (`donoId`).
+- usuário autenticado só pode ver/editar/remover as próprias fichas (`donoId`).
 
 ## Endpoints
 
@@ -66,8 +66,8 @@ Campos principais:
   - `vd` (placeholder)
 - atributos:
   - `agilidade`, `forca`, `intelecto`, `presenca`, `vigor`
-- pericias principais:
-  - bonus:
+- perícias principais:
+  - bônus:
     - `percepcao`, `iniciativa`, `fortitude`, `reflexos`, `vontade`, `luta`, `jujutsu`
   - dados (override opcional):
     - `percepcaoDados`, `iniciativaDados`, `fortitudeDados`, `reflexosDados`, `vontadeDados`, `lutaDados`, `jujutsuDados`
@@ -79,18 +79,18 @@ Campos principais:
 - listas:
   - `resistencias: string[]`
   - `vulnerabilidades: string[]`
-  - `periciasEspeciais: { codigo, dados?, bonus?, descricao? }[]`
-  - `passivas: { nome, descricao, gatilho?, alcance?, alvo?, duracao?, requisitos?, efeitoGuia? }[]`
-  - `acoes: { nome, tipoExecucao?, alcance?, alvo?, duracao?, resistencia?, dtResistencia?, custoPE?, custoEA?, teste?, dano?, critico?, efeito?, requisitos?, descricao? }[]`
+  - `periciasEspeciais: { codigo, dados?, bônus?, descricao? }[]`
+  - `passivas: { nome, descricao, gatilho?, alcance?, alvo?, duração?, requisitos?, efeitoGuia? }[]`
+  - `acoes: { nome, tipoExecucao?, alcance?, alvo?, duração?, resistencia?, dtResistencia?, custoPE?, custoEA?, teste?, dano?, crítico?, efeito?, requisitos?, descricao? }[]`
 - apoio narrativo:
   - `usoTatico`
 
 Observacao:
 
-- `vd` permanece sem formula automatica nesta etapa.
-- campos de `passivas` e `acoes` funcionam como guia de mesa para o mestre (sem automacao mecanica no sistema).
-- `periciasEspeciais` aceitam apenas codigos oficiais de pericia (tabela `Pericia`).
-- para dados de pericia, o sistema usa padrao por atributo quando nao houver override:
+- `vd` permanece sem fórmula automática nesta etapa.
+- campos de `passivas` e `acoes` funcionam como guia de mesa para o mestre (sem automação mecânica no sistema).
+- `periciasEspeciais` aceitam apenas códigos oficiais de perícia (tabela `Perícia`).
+- para dados de perícia, o sistema usa padrão por atributo quando não houver override:
   - atributo `> 0`: rola `atributo` dados e pega o melhor.
   - atributo `<= 0`: rola `2 + abs(atributo)` dados e pega o pior.
 
@@ -100,8 +100,8 @@ Model Prisma: `NpcAmeaca`.
 
 Pontos importantes:
 
-- relacao `Usuario 1:N NpcAmeaca` via `donoId`;
-- listas estruturadas sao salvas em colunas JSON;
+- relação `Usuario 1:N NpcAmeaca` via `donoId`;
+- listas estruturadas são salvas em colunas JSON;
 - indexes:
   - `NpcAmeaca_donoId_idx`
   - `NpcAmeaca_donoId_nome_idx`
@@ -114,9 +114,9 @@ Migration:
 ## Erros esperados
 
 - `NPC_AMEACA_NOT_FOUND` (`404`):
-  - id inexistente ou sem acesso (na pratica, nao encontrado para o dono autenticado).
+  - id inexistente ou sem acesso (na prática, não encontrado para o dono autenticado).
 - erros transversais:
-  - `VALIDATION_ERROR` (`400`) para DTO/params invalidos.
+  - `VALIDATION_ERROR` (`400`) para DTO/params inválidos.
   - erros de banco (`DB_*`) via `handlePrismaError`.
 
 ## Integracao frontend
@@ -136,11 +136,11 @@ Cliente:
 - `apiUpdateNpcAmeaca`
 - `apiDeleteNpcAmeaca`
 
-## Uso em sessoes/cenas de campanha
+## Uso em sessões/cenas de campanha
 
-Aliados/ameacas podem ser instanciados na cena atual de uma sessao de campanha.
+Aliados/ameaças podem ser instanciados na cena atual de uma sessão de campanha.
 
-Persistencia:
+Persistência:
 
 - `model NpcAmeacaSessao` em [`assistenterpg-back/prisma/schema.prisma`](../../assistenterpg-back/prisma/schema.prisma)
 - migration:
@@ -148,12 +148,12 @@ Persistencia:
 
 Regras:
 
-- apenas mestre pode adicionar/editar/remover aliados/ameacas na sessao;
-- cada instancia fica vinculada a uma `cenaId` (controle por cena);
-- a instancia guarda snapshot (nome/valores/passivas/acoes) para uso em mesa;
-- passivas e acoes continuam descritivas (guia), sem efeitos automatizados.
+- apenas mestre pode adicionar/editar/remover aliados/ameaças na sessão;
+- cada instância fica vinculada a uma `cenaId` (controle por cena);
+- a instância guarda snapshot (nome/valores/passivas/acoes) para uso em mesa;
+- passivas e ações continuam descritivas (guia), sem efeitos automatizados.
 
-Endpoints relacionados (modulo de sessao):
+Endpoints relacionados (módulo de sessão):
 
 - `POST /campanhas/:campanhaId/sessoes/:sessaoId/npcs`
 - `PATCH /campanhas/:campanhaId/sessoes/:sessaoId/npcs/:npcSessaoId`
@@ -161,29 +161,29 @@ Endpoints relacionados (modulo de sessao):
 
 ## UI/UX (frontend)
 
-Nome da secao na navegacao:
+Nome da secao na navegação:
 
 - `NPC`
 
 Terminologia de tipo de ficha na interface:
 
-- `NPC` (tecnico) exibido como `Aliado`
-- `AMEACA` (tecnico) exibido como `Ameaca`
+- `NPC` (técnico) exibido como `Aliado`
+- `AMEACA` (técnico) exibido como `Ameaca`
 
 Padroes de UI reaproveitados:
 
-- cabecalho padrao via `NpcAmeacaPageHeader`;
-- labels/opcoes centralizadas em `npcAmeacaUi.ts`;
+- cabecalho padrão via `NpcAmeacaPageHeader`;
+- labels/opções centralizadas em `npcAmeacaUi.ts`;
 - cards com estilo consistente via classes globais:
   - `npc-page-shell`
   - `npc-hero`
   - `npc-panel`
   - `npc-stat-tile`
-- modal para selecao rapida de modelos no formulario (`Akane` e `Taro`);
-- modal de pre-visualizacao na listagem (`NpcAmeacaPreviewModal`) com atalho para abrir ficha completa ou editar;
-- no contexto de campanha/sessao, referencias textuais em UI usam `aliados ou ameacas`.
+- modal para seleção rápida de modelos no formulário (`Akane` e `Taro`);
+- modal de pré-visualização na listagem (`NpcAmeacaPreviewModal`) com atalho para abrir ficha completa ou editar;
+- no contexto de campanha/sessão, referências textuais em UI usam `aliados ou ameaças`.
 
-## Exemplo de payload (criacao)
+## Exemplo de payload (criação)
 
 ```json
 {
@@ -219,8 +219,8 @@ Padroes de UI reaproveitados:
   "resistencias": ["mental leve"],
   "vulnerabilidades": ["dano fisico"],
   "periciasEspeciais": [
-    { "codigo": "DIPLOMACIA", "dados": 2, "bonus": 6 },
-    { "codigo": "INTUICAO", "dados": 2, "bonus": 4 }
+    { "codigo": "DIPLOMACIA", "dados": 2, "bônus": 6 },
+    { "codigo": "INTUICAO", "dados": 2, "bônus": 4 }
   ],
   "passivas": [
     { "nome": "Fragil", "descricao": "Recebe +2 dano fisico." }

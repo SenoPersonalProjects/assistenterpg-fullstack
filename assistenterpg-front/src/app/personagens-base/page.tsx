@@ -42,18 +42,18 @@ function mensagemErroListaPersonagens(error: unknown, contexto: 'carregar' | 'ex
 
   if (status === 404) {
     return contexto === 'carregar'
-      ? 'Nao foi possivel localizar os personagens deste usuario.'
-      : 'Este personagem nao foi encontrado para exclusao.';
+      ? 'Não foi possível localizar os personagens deste usuário.'
+      : 'Este personagem não foi encontrado para exclusao.';
   }
 
   if (status === 400 || status === 422) {
     return contexto === 'carregar'
-      ? `Nao foi possivel carregar os personagens. ${base}`
-      : `Nao foi possivel excluir o personagem. ${base}`;
+      ? `Não foi possível carregar os personagens. ${base}`
+      : `Não foi possível excluir o personagem. ${base}`;
   }
 
   if (status === 403) {
-    return 'Voce nao tem permissao para executar esta acao.';
+    return 'Você não tem permissão para executar esta ação.';
   }
 
   return base;
@@ -165,7 +165,7 @@ export default function PersonagensBasePage() {
       const detalhe = await apiGetPersonagemBase(personagem.id, false);
       setPreviewDetalhe(detalhe);
     } catch (error) {
-      setPreviewErro(`Nao foi possivel carregar a pre-visualizacao. ${extrairMensagemErro(error)}`);
+      setPreviewErro(`Não foi possível carregar a pré-visualização. ${extrairMensagemErro(error)}`);
     } finally {
       setPreviewLoading(false);
     }

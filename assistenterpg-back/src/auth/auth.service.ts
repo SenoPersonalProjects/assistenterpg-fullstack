@@ -13,9 +13,9 @@ import { AuthMailService } from './auth-mail.service';
 import { AuthSessionService } from './auth-session.service';
 
 const MENSAGEM_RECUPERACAO =
-  'Se o email existir, enviaremos as instrucoes de recuperacao.';
+  'Se o email existir, enviaremos as instruções de recuperação.';
 const MENSAGEM_REENVIO_VERIFICACAO =
-  'Se o email existir e ainda nao estiver verificado, enviaremos um novo link de verificacao.';
+  'Se o email existir e ainda não estiver verificado, enviaremos um novo link de verificação.';
 
 type UsuarioAutenticavel = {
   id: number;
@@ -143,7 +143,7 @@ export class AuthService {
       })
       .catch((error) => {
         this.logger.error(
-          `Falha ao enviar email de recuperacao para usuarioId=${usuario.id}`,
+          `Falha ao enviar email de recuperação para usuarioId=${usuario.id}`,
           error instanceof Error ? error.stack : undefined,
         );
       });
@@ -236,7 +236,7 @@ export class AuthService {
     if (options?.async) {
       void envio.catch((error) => {
         this.logger.error(
-          `Falha ao enviar email de verificacao para usuarioId=${usuarioId}`,
+          `Falha ao enviar email de verificação para usuarioId=${usuarioId}`,
           error instanceof Error ? error.stack : undefined,
         );
       });
@@ -247,7 +247,7 @@ export class AuthService {
       await envio;
     } catch (error) {
       this.logger.error(
-        `Falha ao enviar email de verificacao para usuarioId=${usuarioId}`,
+        `Falha ao enviar email de verificação para usuarioId=${usuarioId}`,
         error instanceof Error ? error.stack : undefined,
       );
     }

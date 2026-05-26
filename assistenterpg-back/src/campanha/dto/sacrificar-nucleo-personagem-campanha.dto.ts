@@ -9,7 +9,7 @@ export class SacrificarNucleoPersonagemCampanhaDto {
 
   @IsOptional()
   @IsIn(NUCLEOS_VALIDOS, {
-    message: 'nucleo deve ser EQUILIBRIO, PODER ou IMPULSO',
+    message: 'núcleo deve ser EQUILIBRIO, PODER ou IMPULSO',
   })
   nucleo?: (typeof NUCLEOS_VALIDOS)[number];
 }

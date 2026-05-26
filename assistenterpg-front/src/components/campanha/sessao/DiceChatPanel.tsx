@@ -299,7 +299,7 @@ export function DiceChatPanel({
 
           <div className="space-y-2">
             <p className="font-semibold text-app-fg">Labels (opcional)</p>
-            <p>Use nome:expressao para identificar rolagens (sem espacos no nome).</p>
+            <p>Use nome:expressão para identificar rolagens (sem espaços no nome).</p>
           </div>
 
           <div className="space-y-2">
@@ -308,7 +308,7 @@ export function DiceChatPanel({
               <span><strong>d20</strong> (atalho de 1d20)</span>
               <span><strong>2d6+3</strong> (soma total +3)</span>
               <span><strong>4#d8-1</strong> (cada dado -1; destaca o melhor)</span>
-              <span><strong>1d6 + 3</strong> (espacos sao aceitos)</span>
+              <span><strong>1d6 + 3</strong> (espaços são aceitos)</span>
               <span><strong>Ataque:d20+5 Defesa:d20+2</strong></span>
               <span><strong>d6 | d6 | d6</strong></span>
             </div>

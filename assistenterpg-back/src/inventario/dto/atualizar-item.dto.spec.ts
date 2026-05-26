@@ -4,7 +4,7 @@ import { validateSync } from 'class-validator';
 import { AtualizarItemDto } from './atualizar-item.dto';
 
 describe('AtualizarItemDto', () => {
-  it('deve converter entradas booleanas e inteiras validas', () => {
+  it('deve converter entradas booleanas e inteiras válidas', () => {
     const dto = plainToInstance(AtualizarItemDto, {
       quantidade: '3',
       equipado: '0',
@@ -17,7 +17,7 @@ describe('AtualizarItemDto', () => {
     expect(dto.equipado).toBe(false);
   });
 
-  it('deve ignorar campo ausente sem falhar validacao', () => {
+  it('deve ignorar campo ausente sem falhar validação', () => {
     const dto = plainToInstance(AtualizarItemDto, {});
 
     const errors = validateSync(dto);
@@ -27,7 +27,7 @@ describe('AtualizarItemDto', () => {
     expect(dto.equipado).toBeUndefined();
   });
 
-  it('deve rejeitar valor booleano invalido', () => {
+  it('deve rejeitar valor booleano inválido', () => {
     const dto = plainToInstance(AtualizarItemDto, {
       equipado: 'ligado',
     });

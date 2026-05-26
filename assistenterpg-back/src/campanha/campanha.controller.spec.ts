@@ -49,7 +49,7 @@ describe('CampanhaController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('deve encaminhar criacao de convite para o service', async () => {
+  it('deve encaminhar criação de convite para o service', async () => {
     campanhaServiceMock.criarConvite.mockResolvedValue({ id: 1 });
 
     const req = { user: { id: 33 } };
@@ -65,7 +65,7 @@ describe('CampanhaController', () => {
     );
   });
 
-  it('deve encaminhar criacao de convite por usuarioId para o service', async () => {
+  it('deve encaminhar criação de convite por usuarioId para o service', async () => {
     campanhaServiceMock.criarConvite.mockResolvedValue({ id: 1 });
 
     const req = { user: { id: 33 } };
@@ -141,7 +141,7 @@ describe('CampanhaController', () => {
     );
   });
 
-  it('deve encaminhar listagem de personagens-base disponiveis para o service', async () => {
+  it('deve encaminhar listagem de personagens-base disponíveis para o service', async () => {
     campanhaServiceMock.listarPersonagensBaseDisponiveisParaAssociacao.mockResolvedValue(
       [{ id: 1 }],
     );
@@ -174,7 +174,7 @@ describe('CampanhaController', () => {
       2,
       9,
       { user: { id: 10 } },
-      { campo: 'EA_MAX', valor: -20, nome: 'Maldicao', descricao: 'Teste' },
+      { campo: 'EA_MAX', valor: -20, nome: 'Maldição', descricao: 'Teste' },
     );
 
     expect(
@@ -182,12 +182,12 @@ describe('CampanhaController', () => {
     ).toHaveBeenCalledWith(2, 9, 10, {
       campo: 'EA_MAX',
       valor: -20,
-      nome: 'Maldicao',
+      nome: 'Maldição',
       descricao: 'Teste',
     });
   });
 
-  it('deve encaminhar listagem de modificadores com filtros de sessao e cena', async () => {
+  it('deve encaminhar listagem de modificadores com filtros de sessão e cena', async () => {
     campanhaServiceMock.listarModificadoresPersonagemCampanha.mockResolvedValue(
       [],
     );
@@ -209,7 +209,7 @@ describe('CampanhaController', () => {
     });
   });
 
-  it('deve falhar quando sessaoId for invalido', async () => {
+  it('deve falhar quando sessaoId for inválido', async () => {
     await expect(
       controller.listarModificadoresPersonagemCampanha(
         2,

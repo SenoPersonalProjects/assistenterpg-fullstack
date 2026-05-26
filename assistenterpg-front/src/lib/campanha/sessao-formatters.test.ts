@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatarNomeCondicaoComAcumulos } from './sessao-formatters';
 
 describe('formatarNomeCondicaoComAcumulos', () => {
-  it('exibe acumulo 1 para condicoes aceleradas', () => {
+  it('exibe acúmulo 1 para condicoes aceleradas', () => {
     expect(
       formatarNomeCondicaoComAcumulos({
         nome: 'Produção Acelerada',
@@ -18,7 +18,7 @@ describe('formatarNomeCondicaoComAcumulos', () => {
     ).toBe('Cura Acelerada 1');
   });
 
-  it('mantem acumulo 1 oculto para condicoes comuns', () => {
+  it('mantem acúmulo 1 oculto para condicoes comuns', () => {
     expect(
       formatarNomeCondicaoComAcumulos({
         nome: 'Fraco',
@@ -27,7 +27,7 @@ describe('formatarNomeCondicaoComAcumulos', () => {
     ).toBe('Fraco');
   });
 
-  it('exibe acumulos maiores que 1 para qualquer condicao', () => {
+  it('exibe acúmulos maiores que 1 para qualquer condição', () => {
     expect(
       formatarNomeCondicaoComAcumulos({
         nome: 'Fraco',

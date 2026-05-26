@@ -51,7 +51,7 @@ describe('validateHomebrewDados', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('falha quando EQUIPAMENTO nao envia dados.tipo', async () => {
+  it('falha quando EQUIPAMENTO não envia dados.tipo', async () => {
     const payloadSemTipo = {
       categoria: CategoriaEquipamento.CATEGORIA_1,
       espacos: 1,
@@ -62,7 +62,7 @@ describe('validateHomebrewDados', () => {
     ).rejects.toBeInstanceOf(CampoObrigatorioException);
   });
 
-  it('retorna erro detalhado para campo aninhado invalido', async () => {
+  it('retorna erro detalhado para campo aninhado inválido', async () => {
     const payloadComDanoInvalido = {
       tipo: TipoEquipamento.ARMA,
       categoria: CategoriaEquipamento.CATEGORIA_1,
@@ -89,7 +89,7 @@ describe('validateHomebrewDados', () => {
     ).rejects.toBeInstanceOf(HomebrewDadosInvalidosException);
   });
 
-  it('falha para subtipo de EQUIPAMENTO nao suportado', async () => {
+  it('falha para subtipo de EQUIPAMENTO não suportado', async () => {
     const payloadTipoInvalido = {
       tipo: 'TIPO_QUE_NAO_EXISTE',
       categoria: CategoriaEquipamento.CATEGORIA_1,

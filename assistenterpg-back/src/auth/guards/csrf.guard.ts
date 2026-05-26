@@ -55,7 +55,7 @@ export class CsrfGuard implements CanActivate {
       csrfHeader,
     );
     if (!valido) {
-      throw new ForbiddenException('CSRF token invalido');
+      throw new ForbiddenException('CSRF token inválido');
     }
 
     return true;
