@@ -1,6 +1,6 @@
 // prisma/seeds/catalogos/equipamentos-municoes.ts
 
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import { 
   TipoEquipamento, 
   TipoUsoEquipamento, 
@@ -22,7 +22,14 @@ interface EquipamentoMunicaoSeed {
   duracaoCenas: number;
   recuperavel: boolean;
   tipoUso: TipoUsoEquipamento;
+  efeitoConsumo?: Prisma.InputJsonValue;
 }
+
+const consumoManualMunicao: Prisma.InputJsonValue = {
+  automatizado: false,
+  motivo:
+    'Munição controla duração, cena ou disparos; resolva o gasto manualmente com o mestre.',
+};
 
 // ========================================
 // ✅ CATÁLOGO DE MUNIÇÕES - SEEDS
@@ -42,6 +49,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 2,
     recuperavel: false,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
   {
     codigo: 'BALAS_LONGAS',
@@ -53,6 +61,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 1,
     recuperavel: false,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
   {
     codigo: 'CARTUCHOS',
@@ -64,6 +73,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 1,
     recuperavel: false,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
 
   // ============================================================
@@ -79,6 +89,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 1,
     recuperavel: false,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
   {
     codigo: 'FOGUETE',
@@ -90,6 +101,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 1,
     recuperavel: false,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
 
   // ============================================================
@@ -105,6 +117,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 3,
     recuperavel: true,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
   {
     codigo: 'FLECHAS_BESTA',
@@ -116,6 +129,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 3,
     recuperavel: true,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
   {
     codigo: 'FLECHAS_BALESTRA',
@@ -127,6 +141,7 @@ export const equipamentosMunicoesSeed: EquipamentoMunicaoSeed[] = [
     duracaoCenas: 3,
     recuperavel: true,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManualMunicao,
   },
 ];
 

@@ -53,6 +53,23 @@ type SessionCharacterDetailsTabsProps = {
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
+  consumirComCalmaAtivo?: boolean;
+  alvosPersonagens?: Array<{
+    personagemSessaoId: number;
+    personagemCampanhaId: number;
+    nomePersonagem: string;
+  }>;
+  alvosNpcs?: Array<{
+    npcSessaoId: number;
+    nome: string;
+  }>;
+  onConsumirItem?: (payload: {
+    itemInventarioCampanhaId: number;
+    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    alvoId?: number;
+    observacao?: string;
+  }) => Promise<void>;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
@@ -110,6 +127,10 @@ export function SessionCharacterDetailsTabs({
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
+  consumirComCalmaAtivo,
+  alvosPersonagens,
+  alvosNpcs,
+  onConsumirItem,
   onRolarPericia,
   onRolarTesteHabilidade,
   onRolarDanoHabilidade,
@@ -467,6 +488,11 @@ export function SessionCharacterDetailsTabs({
           podeEditar={card.podeEditar}
           ativo={abaDetalheCard === 'INVENTARIO'}
           limitesCategoriaAtivo={limitesCategoriaAtivo}
+          sessaoEncerrada={sessaoEncerrada}
+          consumirComCalmaAtivo={consumirComCalmaAtivo}
+          alvosPersonagens={alvosPersonagens}
+          alvosNpcs={alvosNpcs}
+          onConsumirItem={onConsumirItem}
         />
       ) : null}
 

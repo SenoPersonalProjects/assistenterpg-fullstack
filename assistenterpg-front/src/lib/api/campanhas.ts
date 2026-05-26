@@ -533,6 +533,66 @@ export async function apiAtualizarEscaladaDadosSessaoCampanha(
   return data;
 }
 
+export async function apiAtualizarIniciativaAlternadaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: {
+    lados: Array<{
+      id?: number;
+      nome: string;
+      ordem?: number;
+      participantes: Array<{ participanteToken: string }>;
+    }>;
+    ladoAtualId?: number;
+  },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/iniciativa-alternada`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiMarcarParticipanteIniciativaAlternadaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: { participanteToken: string; jaAgiu: boolean },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/iniciativa-alternada/marcar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAvancarLadoIniciativaAlternadaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/iniciativa-alternada/avancar-lado`,
+  );
+  return data;
+}
+
+export async function apiConsumirItemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: {
+    itemInventarioCampanhaId: number;
+    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    alvoId?: number;
+    observacao?: string;
+  },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/consumiveis/usar`,
+    payload,
+  );
+  return data;
+}
+
 export async function apiAtualizarRecursosPersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,

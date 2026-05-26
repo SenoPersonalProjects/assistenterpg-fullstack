@@ -167,7 +167,9 @@ export type TipoCenaSessaoCampanha =
 export type RegraOpcionalSessaoChave =
   | 'INSPIRACAO'
   | 'ENCONTROS_SOCIAIS'
-  | 'ESCALADA_DADOS';
+  | 'ESCALADA_DADOS'
+  | 'INICIATIVA_ALTERNADA'
+  | 'CONSUMIR_COM_CALMA';
 
 export type EstadoInspiracaoSessao = {
   pontosPorPersonagem: Record<string, number>;
@@ -196,6 +198,31 @@ export type EstadoEscaladaDadosSessao = {
   bonusAtual: number;
 };
 
+export type ParticipanteIniciativaAlternadaSessao = {
+  id: number;
+  participanteToken: string;
+  tipoParticipante: 'PERSONAGEM' | 'NPC';
+  personagemSessaoId: number | null;
+  npcSessaoId: number | null;
+  nome: string;
+  jaAgiu: boolean;
+  ordem: number;
+};
+
+export type LadoIniciativaAlternadaSessao = {
+  id: number;
+  nome: string;
+  ordem: number;
+  ativo: boolean;
+  participantes: ParticipanteIniciativaAlternadaSessao[];
+};
+
+export type EstadoIniciativaAlternadaSessao = {
+  ativo: boolean;
+  ladoAtualId: number | null;
+  lados: LadoIniciativaAlternadaSessao[];
+};
+
 export type RegraOpcionalSessao<TEstado = unknown> = {
   chave: RegraOpcionalSessaoChave;
   ativo: boolean;
@@ -207,6 +234,8 @@ export type RegrasOpcionaisSessao = {
   INSPIRACAO: RegraOpcionalSessao<EstadoInspiracaoSessao>;
   ENCONTROS_SOCIAIS: RegraOpcionalSessao<EstadoEncontroSocialSessao>;
   ESCALADA_DADOS: RegraOpcionalSessao<EstadoEscaladaDadosSessao>;
+  INICIATIVA_ALTERNADA: RegraOpcionalSessao<EstadoIniciativaAlternadaSessao>;
+  CONSUMIR_COM_CALMA: RegraOpcionalSessao<Record<string, never>>;
 };
 
 export type AtributosSessaoCampanha = {
@@ -509,6 +538,7 @@ export type SessaoCampanhaDetalhe = {
     indiceAtual: number | null;
     ordem: ParticipanteIniciativaSessaoCampanha[];
   };
+  iniciativaAlternada?: EstadoIniciativaAlternadaSessao;
   permissoes: {
     ehMestre: boolean;
     podeEditarTodos: boolean;

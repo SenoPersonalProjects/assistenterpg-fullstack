@@ -8,7 +8,10 @@ import { Select } from '@/components/ui/Select';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
-import type { TipoCenaSessaoCampanha } from '@/lib/types';
+import type {
+  EstadoIniciativaAlternadaSessao,
+  TipoCenaSessaoCampanha,
+} from '@/lib/types';
 import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
 
 type SessionMasterControlsProps = {
@@ -31,6 +34,14 @@ type SessionMasterControlsProps = {
   onToggleLimitesCategoria: (ativo: boolean) => void;
   onControleTurno: (acao: AcaoControleTurno) => void;
   onSolicitarEncerrarSessao: () => void;
+  iniciativaAlternada?: EstadoIniciativaAlternadaSessao | null;
+  onMarcarIniciativaAlternada?: (
+    participanteToken: string,
+    jaAgiu: boolean,
+  ) => void;
+  onAtualizarIniciativaAlternada?: (
+    lados: EstadoIniciativaAlternadaSessao['lados'],
+  ) => void;
   optionalMechanicsPanel?: ReactNode;
 };
 
@@ -60,6 +71,9 @@ type SessionTableOperationsPanelProps = Pick<
   | 'erroEncerramento'
   | 'onControleTurno'
   | 'onSolicitarEncerrarSessao'
+  | 'iniciativaAlternada'
+  | 'onMarcarIniciativaAlternada'
+  | 'onAtualizarIniciativaAlternada'
   | 'optionalMechanicsPanel'
 >;
 
@@ -166,6 +180,165 @@ export function SessionSceneControlPanel({
   );
 }
 
+function InitiativeAlternadaPanel({
+  iniciativaAlternada,
+  sessaoEncerrada,
+  onMarcarIniciativaAlternada,
+  onAtualizarIniciativaAlternada,
+}: {
+  iniciativaAlternada: EstadoIniciativaAlternadaSessao;
+  sessaoEncerrada: boolean;
+  onMarcarIniciativaAlternada?: (
+    participanteToken: string,
+    jaAgiu: boolean,
+  ) => void;
+  onAtualizarIniciativaAlternada?: (
+    lados: EstadoIniciativaAlternadaSessao['lados'],
+  ) => void;
+}) {
+  const ladoAtual =
+    iniciativaAlternada.lados.find((lado) => lado.id === iniciativaAlternada.ladoAtualId) ??
+    iniciativaAlternada.lados[0] ??
+    null;
+
+  if (!ladoAtual) {
+    return (
+      <div className="rounded-2xl border border-app-border/50 bg-app-surface/60 p-3 text-xs font-medium text-app-muted">
+        A iniciativa alternada está ativa, mas ainda não há lados configurados.
+      </div>
+    );
+  }
+
+  const todosParticipantes = iniciativaAlternada.lados.flatMap((lado) =>
+    lado.participantes.map((participante) => ({
+      ...participante,
+      ladoId: lado.id,
+    })),
+  );
+
+  const moverParticipante = (participanteToken: string, novoLadoId: number) => {
+    if (!onAtualizarIniciativaAlternada) return;
+    const participanteAtual = todosParticipantes.find(
+      (participante) => participante.participanteToken === participanteToken,
+    );
+    if (!participanteAtual) return;
+    const ladosAtualizados = iniciativaAlternada.lados.map((lado) => {
+      const participantesSemAtual = lado.participantes.filter(
+        (participante) => participante.participanteToken !== participanteToken,
+      );
+      if (lado.id !== novoLadoId) {
+        return { ...lado, participantes: participantesSemAtual };
+      }
+      return {
+        ...lado,
+        participantes: [
+          ...participantesSemAtual,
+          {
+            id: participanteAtual.id,
+            participanteToken: participanteAtual.participanteToken,
+            tipoParticipante: participanteAtual.tipoParticipante,
+            personagemSessaoId: participanteAtual.personagemSessaoId,
+            npcSessaoId: participanteAtual.npcSessaoId,
+            nome: participanteAtual.nome,
+            jaAgiu: false,
+            ordem: lado.participantes.length,
+          },
+        ],
+      };
+    });
+    onAtualizarIniciativaAlternada(ladosAtualizados);
+  };
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-app-primary/30 bg-app-primary/10 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-app-primary">
+            Vez de {ladoAtual.nome}
+          </p>
+          <p className="text-[11px] font-medium text-app-muted">
+            Marque quem já agiu antes de avançar para o outro lado.
+          </p>
+        </div>
+        <span className="rounded-full bg-app-primary/15 px-2 py-1 text-[11px] font-black text-app-primary">
+          {ladoAtual.participantes.filter((participante) => participante.jaAgiu).length}/
+          {ladoAtual.participantes.length}
+        </span>
+      </div>
+      <div className="grid gap-2">
+        {ladoAtual.participantes.length === 0 ? (
+          <p className="text-xs font-medium text-app-muted">
+            Este lado ainda não tem participantes.
+          </p>
+        ) : null}
+        {ladoAtual.participantes.map((participante) => (
+          <label
+            key={participante.participanteToken}
+            className="flex items-center justify-between gap-3 rounded-xl border border-app-border/40 bg-app-card/80 px-3 py-2"
+          >
+            <span className="min-w-0 text-xs font-bold text-app-fg">
+              {participante.nome}
+            </span>
+            <Checkbox
+              checked={participante.jaAgiu}
+              disabled={sessaoEncerrada || !onMarcarIniciativaAlternada}
+              onChange={(event) =>
+                onMarcarIniciativaAlternada?.(
+                  participante.participanteToken,
+                  event.target.checked,
+                )
+              }
+            />
+          </label>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {iniciativaAlternada.lados.map((lado) => (
+          <span
+            key={lado.id}
+            className={`rounded-full px-2 py-1 text-[11px] font-black ${
+              lado.id === ladoAtual.id
+                ? 'bg-app-primary text-white'
+                : 'bg-app-surface text-app-muted'
+            }`}
+          >
+            {lado.nome}
+          </span>
+        ))}
+      </div>
+      <details className="rounded-xl border border-app-border/40 bg-app-card/70 p-3">
+        <summary className="cursor-pointer text-xs font-black text-app-fg">
+          Configurar lados
+        </summary>
+        <div className="mt-3 grid gap-2">
+          {todosParticipantes.map((participante) => (
+            <label
+              key={`config-${participante.participanteToken}`}
+              className="grid gap-2 rounded-lg border border-app-border/30 bg-app-surface/60 p-2 text-xs sm:grid-cols-[minmax(0,1fr)_150px] sm:items-center"
+            >
+              <span className="font-bold text-app-fg">{participante.nome}</span>
+              <select
+                value={participante.ladoId}
+                disabled={sessaoEncerrada || !onAtualizarIniciativaAlternada}
+                onChange={(event) =>
+                  moverParticipante(participante.participanteToken, Number(event.target.value))
+                }
+                className="rounded-lg border border-app-border bg-app-bg px-2 py-1 font-bold text-app-fg"
+              >
+                {iniciativaAlternada.lados.map((lado) => (
+                  <option key={lado.id} value={lado.id}>
+                    {lado.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      </details>
+    </div>
+  );
+}
+
 export function SessionTableOperationsPanel({
   sessaoEncerrada,
   controleTurnosAtivo,
@@ -175,8 +348,16 @@ export function SessionTableOperationsPanel({
   erroEncerramento,
   onControleTurno,
   onSolicitarEncerrarSessao,
+  iniciativaAlternada,
+  onMarcarIniciativaAlternada,
+  onAtualizarIniciativaAlternada,
   optionalMechanicsPanel,
 }: SessionTableOperationsPanelProps) {
+  const iniciativaAlternadaAtiva =
+    controleTurnosAtivo &&
+    Boolean(iniciativaAlternada?.ativo) &&
+    Boolean(iniciativaAlternada?.lados.length);
+
   return (
     <SessionPanel
       title="Operações de mesa"
@@ -197,44 +378,60 @@ export function SessionTableOperationsPanel({
               <div className="space-y-4">
                 <div className="session-turn-control__head">
                   <span className="text-xs font-bold text-app-fg">
-                    Controle de turnos ativo
+                    {iniciativaAlternadaAtiva
+                      ? 'Iniciativa alternada ativa'
+                      : 'Controle de turnos ativo'}
                   </span>
                   <div className="session-turn-control__actions">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onControleTurno('VOLTAR')}
-                      disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
-                      className="session-turn-control__button"
-                      title="Voltar turno"
-                    >
-                      <Icon name="rotate-ccw" className="h-4 w-4" />
-                      <span>Voltar</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onControleTurno('PULAR')}
-                      disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
-                      className="session-turn-control__button"
-                      title="Pular turno"
-                    >
-                      <Icon name="skip-forward" className="h-4 w-4" />
-                      <span>Pular</span>
-                    </Button>
+                    {!iniciativaAlternadaAtiva ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onControleTurno('VOLTAR')}
+                          disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                          className="session-turn-control__button"
+                          title="Voltar turno"
+                        >
+                          <Icon name="rotate-ccw" className="h-4 w-4" />
+                          <span>Voltar</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onControleTurno('PULAR')}
+                          disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                          className="session-turn-control__button"
+                          title="Pular turno"
+                        >
+                          <Icon name="skip-forward" className="h-4 w-4" />
+                          <span>Pular</span>
+                        </Button>
+                      </>
+                    ) : null}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => onControleTurno('AVANCAR')}
                       disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
                       className="session-turn-control__button"
-                      title="Avançar turno"
+                      title={iniciativaAlternadaAtiva ? 'Avançar lado' : 'Avançar turno'}
                     >
                       <Icon name="forward" className="h-4 w-4" />
-                      <span>Avançar</span>
+                      <span>{iniciativaAlternadaAtiva ? 'Avançar lado' : 'Avançar'}</span>
                     </Button>
                   </div>
                 </div>
+
+                {iniciativaAlternadaAtiva && iniciativaAlternada ? (
+                  <InitiativeAlternadaPanel
+                    iniciativaAlternada={iniciativaAlternada}
+                    sessaoEncerrada={sessaoEncerrada}
+                    onMarcarIniciativaAlternada={onMarcarIniciativaAlternada}
+                    onAtualizarIniciativaAlternada={onAtualizarIniciativaAlternada}
+                  />
+                ) : null}
+
                 <div className="flex items-start gap-2 text-xs font-medium text-app-muted">
                   <Icon name="info" className="mt-0.5 h-3 w-3 shrink-0" />
                   <span>
@@ -313,6 +510,9 @@ export function SessionMasterControls({
   onToggleLimitesCategoria,
   onControleTurno,
   onSolicitarEncerrarSessao,
+  iniciativaAlternada,
+  onMarcarIniciativaAlternada,
+  onAtualizarIniciativaAlternada,
   optionalMechanicsPanel,
 }: SessionMasterControlsProps) {
   if (!podeControlarSessao) {
@@ -344,6 +544,9 @@ export function SessionMasterControls({
         erroEncerramento={erroEncerramento}
         onControleTurno={onControleTurno}
         onSolicitarEncerrarSessao={onSolicitarEncerrarSessao}
+        iniciativaAlternada={iniciativaAlternada}
+        onMarcarIniciativaAlternada={onMarcarIniciativaAlternada}
+        onAtualizarIniciativaAlternada={onAtualizarIniciativaAlternada}
         optionalMechanicsPanel={optionalMechanicsPanel}
       />
     </div>

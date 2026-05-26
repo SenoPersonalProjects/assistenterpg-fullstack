@@ -357,6 +357,15 @@ function Get-SeedCommand {
         DestructiveRelations = $false
       }
     }
+    'equipamentos' {
+      return [pscustomobject]@{
+        Name = 'equipamentos'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:equipamentos')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
     'técnicas-inatas' {
       return [pscustomobject]@{
         Name = 'técnicas-inatas'
@@ -443,7 +452,7 @@ function Get-SeedCommand {
       }
     }
     default {
-      throw "Seed não permitido: $Seed. Permitidos: compendio, sobrevivendo, técnicas-inatas, tecnicas-nao-inatas, correcoes-texto, modificacoes-aplicaveis, full."
+      throw "Seed não permitido: $Seed. Permitidos: compendio, sobrevivendo, equipamentos, técnicas-inatas, tecnicas-nao-inatas, correcoes-texto, modificacoes-aplicaveis, full."
     }
   }
 }

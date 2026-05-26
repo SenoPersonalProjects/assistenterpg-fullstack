@@ -31,6 +31,8 @@ export interface ItemInventarioComDados {
     penalidadeCarga?: number | null;
     tipoAcessorio?: string | null; // ✅ NOVO (para detectar VESTIMENTA)
     efeito?: string | null; // ✅ NOVO (para detectar Mochila)
+    tipoUso?: string | null;
+    efeitoConsumo?: Prisma.JsonValue | null;
     protecaoAmaldicoada?: {
       bonusDefesa: number;
       penalidadeCarga: number;

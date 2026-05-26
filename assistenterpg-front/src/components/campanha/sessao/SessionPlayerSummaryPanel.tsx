@@ -58,6 +58,23 @@ type SessionPlayerSummaryPanelProps = {
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
+  consumirComCalmaAtivo?: boolean;
+  alvosPersonagens?: Array<{
+    personagemSessaoId: number;
+    personagemCampanhaId: number;
+    nomePersonagem: string;
+  }>;
+  alvosNpcs?: Array<{
+    npcSessaoId: number;
+    nome: string;
+  }>;
+  onConsumirItem?: (payload: {
+    itemInventarioCampanhaId: number;
+    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    alvoId?: number;
+    observacao?: string;
+  }) => Promise<void>;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -113,6 +130,10 @@ export function SessionPlayerSummaryPanel({
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
+  consumirComCalmaAtivo,
+  alvosPersonagens,
+  alvosNpcs,
+  onConsumirItem,
   renderPainelCondicoes,
   onAbrirFichaCompleta,
   onSolicitarRemover,
@@ -216,6 +237,10 @@ export function SessionPlayerSummaryPanel({
               renderPainelCondicoes={renderPainelCondicoes}
                 mostrarAcoesResumo={false}
                 limitesCategoriaAtivo={limitesCategoriaAtivo}
+                consumirComCalmaAtivo={consumirComCalmaAtivo}
+                alvosPersonagens={alvosPersonagens}
+                alvosNpcs={alvosNpcs}
+                onConsumirItem={onConsumirItem}
                 onRolarPericia={onRolarPericia}
                 onRolarTesteHabilidade={onRolarTesteHabilidade}
                 onRolarDanoHabilidade={onRolarDanoHabilidade}

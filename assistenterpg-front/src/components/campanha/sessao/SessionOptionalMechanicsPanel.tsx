@@ -26,6 +26,14 @@ const GASTOS_INSPIRACAO: GastoInspiracao[] = [
   { custo: 3, efeito: 'CRITICO', label: 'Sucesso crítico' },
 ];
 
+const REGRAS_TOGGLE: Array<[RegraOpcionalSessaoChave, string]> = [
+  ['INSPIRACAO', 'Pontos de Inspiração'],
+  ['ENCONTROS_SOCIAIS', 'Encontros Sociais Alternativos'],
+  ['ESCALADA_DADOS', 'Escalada de Dados'],
+  ['INICIATIVA_ALTERNADA', 'Iniciativa Alternada'],
+  ['CONSUMIR_COM_CALMA', 'Consumir com Calma'],
+];
+
 type SessionOptionalMechanicsPanelProps = {
   regras?: RegrasOpcionaisSessao;
   podeControlarSessao: boolean;
@@ -78,6 +86,8 @@ export function SessionOptionalMechanicsPanel({
   const regraInspiracao = regras?.INSPIRACAO;
   const regraSocial = regras?.ENCONTROS_SOCIAIS;
   const regraEscalada = regras?.ESCALADA_DADOS;
+  const regraIniciativaAlternada = regras?.INICIATIVA_ALTERNADA;
+  const regraConsumirComCalma = regras?.CONSUMIR_COM_CALMA;
   const [alvosSociais, setAlvosSociais] = useState<AlvoEncontroSocialSessao[]>(
     () => regraSocial?.estado.alvos ?? [],
   );
@@ -153,12 +163,8 @@ export function SessionOptionalMechanicsPanel({
         </div>
 
         <div className="mt-4 grid gap-3">
-          {[
-            ['INSPIRACAO', 'Pontos de Inspiração'],
-            ['ENCONTROS_SOCIAIS', 'Encontros Sociais Alternativos'],
-            ['ESCALADA_DADOS', 'Escalada de Dados'],
-          ].map(([chave, label]) => {
-            const regra = regras?.[chave as RegraOpcionalSessaoChave];
+          {REGRAS_TOGGLE.map(([chave, label]) => {
+            const regra = regras?.[chave];
             return (
               <label
                 key={chave}
@@ -168,10 +174,7 @@ export function SessionOptionalMechanicsPanel({
                 <Checkbox
                   checked={regra?.ativo === true}
                   onChange={(event) =>
-                    void onAtualizarRegra(
-                      chave as RegraOpcionalSessaoChave,
-                      event.target.checked,
-                    )
+                    void onAtualizarRegra(chave, event.target.checked)
                   }
                   disabled={
                     !podeControlarSessao ||
@@ -184,16 +187,16 @@ export function SessionOptionalMechanicsPanel({
           })}
         </div>
 
-        <div className="mt-3 grid gap-2 text-xs text-app-muted">
-          <div className="rounded-xl border border-dashed border-app-border/50 p-3">
-            <strong className="text-app-fg">Etapa futura:</strong> Iniciativa Alternada
-            exige fluxo próprio de lados, checklist e avanço de rodada.
-          </div>
-          <div className="rounded-xl border border-dashed border-app-border/50 p-3">
-            <strong className="text-app-fg">Etapa futura:</strong> Consumir com Calma
-            depende de consumo automatizado de itens.
-          </div>
-        </div>
+        {regraIniciativaAlternada?.ativo ? (
+          <p className="mt-3 rounded-xl border border-app-primary/30 bg-app-primary/10 p-3 text-xs font-medium text-app-primary">
+            A iniciativa alternada usa lados da cena no painel de turnos.
+          </p>
+        ) : null}
+        {regraConsumirComCalma?.ativo ? (
+          <p className="mt-3 rounded-xl border border-app-info/30 bg-app-info/10 p-3 text-xs font-medium text-app-info">
+            Consumíveis automatizados ficam disponíveis no inventário dos personagens.
+          </p>
+        ) : null}
       </div>
 
       {regraInspiracao?.ativo ? (

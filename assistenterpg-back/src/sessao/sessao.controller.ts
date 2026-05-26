@@ -33,10 +33,13 @@ import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
 import {
   AjustarInspiracaoSessaoDto,
+  AtualizarIniciativaAlternadaSessaoDto,
   AtualizarEncontroSocialSessaoDto,
   AtualizarEscaladaDadosSessaoDto,
   AtualizarRegraOpcionalSessaoDto,
+  ConsumirItemSessaoDto,
   GastarInspiracaoSessaoDto,
+  MarcarParticipanteIniciativaAlternadaDto,
 } from './dto/regras-opcionais-sessao.dto';
 
 @UseGuards(AuthGuard('jwt'))
@@ -710,6 +713,104 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       'ESCALADA_DADOS_ATUALIZADA',
+    );
+    return resultado;
+  }
+
+  @Get(':sessaoId/iniciativa-alternada')
+  async obterIniciativaAlternadaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.sessaoService.obterIniciativaAlternadaSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+    );
+  }
+
+  @Patch(':sessaoId/iniciativa-alternada')
+  async atualizarIniciativaAlternadaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarIniciativaAlternadaSessaoDto,
+  ) {
+    const resultado =
+      await this.sessaoService.atualizarIniciativaAlternadaSessao(
+        campanhaId,
+        sessaoId,
+        req.user.id,
+        dto,
+      );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'INICIATIVA_ALTERNADA_ATUALIZADA',
+    );
+    return resultado;
+  }
+
+  @Post(':sessaoId/iniciativa-alternada/marcar')
+  async marcarParticipanteIniciativaAlternadaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: MarcarParticipanteIniciativaAlternadaDto,
+  ) {
+    const resultado =
+      await this.sessaoService.marcarParticipanteIniciativaAlternadaSessao(
+        campanhaId,
+        sessaoId,
+        req.user.id,
+        dto,
+      );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'INICIATIVA_ALTERNADA_ATUALIZADA',
+    );
+    return resultado;
+  }
+
+  @Post(':sessaoId/iniciativa-alternada/avancar-lado')
+  async avancarLadoIniciativaAlternadaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    const resultado =
+      await this.sessaoService.avancarLadoIniciativaAlternadaSessao(
+        campanhaId,
+        sessaoId,
+        req.user.id,
+      );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'INICIATIVA_ALTERNADA_ATUALIZADA',
+    );
+    return resultado;
+  }
+
+  @Post(':sessaoId/consumiveis/usar')
+  async consumirItemSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: ConsumirItemSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.consumirItemSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'CONSUMIVEL_USADO',
     );
     return resultado;
   }

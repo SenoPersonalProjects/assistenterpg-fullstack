@@ -1,6 +1,6 @@
 // prisma/seeds/catalogos/equipamentos-utilitarios.ts
 
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import {
   TipoEquipamento,
   TipoAcessorio,
@@ -33,6 +33,7 @@ interface EquipamentoAcessorioSeed {
   efeito?: string;
   maxVestimentas?: number;
   tipoUso?: TipoUsoEquipamento;
+  efeitoConsumo?: Prisma.InputJsonValue;
 }
 
 interface EquipamentoExplosivoSeed {
@@ -45,6 +46,7 @@ interface EquipamentoExplosivoSeed {
   tipoExplosivo: TipoExplosivo;
   efeito: string;
   tipoUso?: TipoUsoEquipamento;
+  efeitoConsumo?: Prisma.InputJsonValue;
 }
 
 interface EquipamentoOperacionalSeed {
@@ -63,6 +65,7 @@ interface EquipamentoOperacionalSeed {
   empunhaduras?: EmpunhaduraArma[];
   alcance?: AlcanceArma;
   agil?: boolean;
+  efeitoConsumo?: Prisma.InputJsonValue;
 }
 
 interface EquipamentoAmaldicoadoSeed {
@@ -75,7 +78,32 @@ interface EquipamentoAmaldicoadoSeed {
   tipoAmaldicoado: TipoAmaldicoado;
   tipoUso: TipoUsoEquipamento;
   efeito: string;
+  efeitoConsumo?: Prisma.InputJsonValue;
 }
+
+const consumoManual = (motivo: string): Prisma.InputJsonValue => ({
+  automatizado: false,
+  motivo,
+});
+
+const consumoRecurso = (
+  recurso: 'PV' | 'EA' | 'PE' | 'SAN',
+  dados: string,
+  bonus = 0,
+  usosPorUnidade = 1,
+): Prisma.InputJsonValue => ({
+  automatizado: true,
+  efeitos: [
+    {
+      tipo: 'RECURSO',
+      recurso,
+      dados,
+      bonus,
+      usosPorUnidade,
+      permiteConsumirComCalma: true,
+    },
+  ],
+});
 
 // ========================================
 // ✅ CATÁLOGO DE ACESSÓRIOS - SEEDS
@@ -296,6 +324,9 @@ export const explosivosSeed: EquipamentoExplosivoSeed[] = [
     tipoExplosivo: TipoExplosivo.GRANADA_ATORDOAMENTO,
     efeito: 'Atordoar inimigos em raio de 6m',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManual(
+      'Granada com área, condição e teste de resistência. Resolva manualmente com o mestre.',
+    ),
   },
   {
     codigo: 'GRANADA_FRAGMENTACAO',
@@ -307,6 +338,9 @@ export const explosivosSeed: EquipamentoExplosivoSeed[] = [
     tipoExplosivo: TipoExplosivo.GRANADA_FRAGMENTACAO,
     efeito: 'Causa 8d6 dano de perfuração em raio de 6m',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManual(
+      'Granada com área, dano em vários alvos e teste de resistência. Resolva manualmente com o mestre.',
+    ),
   },
   {
     codigo: 'GRANADA_FUMACA',
@@ -318,6 +352,9 @@ export const explosivosSeed: EquipamentoExplosivoSeed[] = [
     tipoExplosivo: TipoExplosivo.GRANADA_FUMACA,
     efeito: 'Gera fumaça em raio de 6m (dura 2 rodadas)',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManual(
+      'Granada de área e condição ambiental. Resolva manualmente com o mestre.',
+    ),
   },
   {
     codigo: 'GRANADA_INCENDIARIA',
@@ -329,6 +366,9 @@ export const explosivosSeed: EquipamentoExplosivoSeed[] = [
     tipoExplosivo: TipoExplosivo.GRANADA_INCENDIARIA,
     efeito: 'Causa 6d6 dano de fogo em raio de 6m',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManual(
+      'Granada com área, dano em vários alvos e condição. Resolva manualmente com o mestre.',
+    ),
   },
 
   // Mina Antipessoal
@@ -410,6 +450,7 @@ export const itensOperacionaisSeed: EquipamentoOperacionalSeed[] = [
     espacos: 1,
     efeito: 'Cura 2d8+2 PV (2 usos)',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoRecurso('PV', '2d8', 2, 2),
   },
   {
     codigo: 'CORDA',
@@ -528,6 +569,9 @@ export const itensOperacionaisSeed: EquipamentoOperacionalSeed[] = [
     espacos: 1,
     efeito: 'Cega por 1d4 rodadas (2 usos)',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManual(
+      'Consumível aplica condição e exige teste de resistência. Resolva manualmente com o mestre.',
+    ),
   },
   {
     codigo: 'TASER',
@@ -651,6 +695,7 @@ export const itensAmaldicoadosSeed: EquipamentoAmaldicoadoSeed[] = [
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
     efeito: 'Recupera 2 + 1d4 EA ao consumir',
+    efeitoConsumo: consumoRecurso('EA', '1d4', 2),
   },
 ];
 

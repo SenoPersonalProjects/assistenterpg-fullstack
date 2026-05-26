@@ -2,6 +2,7 @@
 import {
   CategoriaEquipamento,
   ComplexidadeMaldicao,
+  Prisma,
   TipoEquipamento,
 } from '@prisma/client';
 
@@ -13,6 +14,8 @@ export class EquipamentoBaseDto {
   categoria: CategoriaEquipamento;
   espacos: number;
   complexidadeMaldicao: ComplexidadeMaldicao;
+  tipoUso?: string | null;
+  efeitoConsumo?: Prisma.JsonValue | null;
 }
 
 export class ModificacaoItemDto {

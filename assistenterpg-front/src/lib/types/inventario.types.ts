@@ -50,6 +50,7 @@ export type EquipamentoCatalogo = {
   tipoUso?: string | null;
   tipoAmaldicoado?: string | null;
   efeito?: string | null;
+  efeitoConsumo?: EfeitoConsumoEquipamento | null;
 
   armaAmaldicoada?: unknown;
   protecaoAmaldicoada?: unknown;
@@ -84,6 +85,7 @@ export type EquipamentoResumoDto = {
   tipoUso?: string | null;
   tipoAmaldicoado?: string | null;
   efeito?: string | null;
+  efeitoConsumo?: EfeitoConsumoEquipamento | null;
 
   armaAmaldicoada?: {
     id: number;
@@ -147,6 +149,7 @@ export type EquipamentoDetalhadoDto = {
 
   tipoExplosivo?: string | null;
   efeito?: string | null;
+  efeitoConsumo?: EfeitoConsumoEquipamento | null;
 
   tipoUso?: string | null;
   tipoAmaldicoado?: string | null;
@@ -176,6 +179,22 @@ export type EquipamentoDetalhadoDto = {
   } | null;
 
   modificacoesDisponiveis?: ModificacaoDisponivelDto[];
+};
+
+export type EfeitoConsumoRecurso = {
+  tipo: 'RECURSO';
+  recurso: 'PV' | 'EA' | 'PE' | 'SAN';
+  dados?: string;
+  bonus?: number;
+  fixo?: number;
+  usosPorUnidade?: number;
+  permiteConsumirComCalma?: boolean;
+};
+
+export type EfeitoConsumoEquipamento = {
+  automatizado: boolean;
+  motivo?: string;
+  efeitos?: EfeitoConsumoRecurso[];
 };
 
 /* ============================================================================ */

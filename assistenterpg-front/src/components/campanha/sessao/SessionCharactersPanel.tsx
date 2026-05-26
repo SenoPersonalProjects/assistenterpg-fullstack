@@ -87,6 +87,23 @@ type SessionCharactersPanelProps = {
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
   limitesCategoriaAtivo?: boolean;
+  consumirComCalmaAtivo?: boolean;
+  alvosPersonagens?: Array<{
+    personagemSessaoId: number;
+    personagemCampanhaId: number;
+    nomePersonagem: string;
+  }>;
+  alvosNpcs?: Array<{
+    npcSessaoId: number;
+    nome: string;
+  }>;
+  onConsumirItem?: (payload: {
+    itemInventarioCampanhaId: number;
+    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    alvoId?: number;
+    observacao?: string;
+  }) => Promise<void>;
   erro?: string | null;
 };
 
@@ -129,6 +146,10 @@ export function SessionCharactersPanel({
   onAbrirFichaCompleta,
   renderPainelCondicoes,
   limitesCategoriaAtivo,
+  consumirComCalmaAtivo,
+  alvosPersonagens,
+  alvosNpcs,
+  onConsumirItem,
   erro,
 }: SessionCharactersPanelProps) {
   return (
@@ -244,6 +265,10 @@ export function SessionCharactersPanel({
               }
               formatarCustos={formatarCustos}
               limitesCategoriaAtivo={limitesCategoriaAtivo}
+              consumirComCalmaAtivo={consumirComCalmaAtivo}
+              alvosPersonagens={alvosPersonagens}
+              alvosNpcs={alvosNpcs}
+              onConsumirItem={onConsumirItem}
               onRolarPericia={onRolarPericia}
               onRolarTesteHabilidade={onRolarTesteHabilidade}
               onRolarDanoHabilidade={onRolarDanoHabilidade}

@@ -30,8 +30,11 @@ import {
   apiAjustarInspiracaoSessaoCampanha,
   apiAtualizarEncontroSocialSessaoCampanha,
   apiAtualizarEscaladaDadosSessaoCampanha,
+  apiAtualizarIniciativaAlternadaSessaoCampanha,
   apiAtualizarRegraOpcionalSessaoCampanha,
+  apiConsumirItemSessaoCampanha,
   apiGastarInspiracaoSessaoCampanha,
+  apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
@@ -1380,6 +1383,85 @@ export default function SessaoCampanhaPage() {
     [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
   );
 
+  const handleMarcarIniciativaAlternada = useCallback(
+    async (participanteToken: string, jaAgiu: boolean) => {
+      setAtualizandoRegraOpcional(`INICIATIVA_ALTERNADA:${participanteToken}`);
+      setErroRegrasOpcionais(null);
+      try {
+        const atualizado =
+          await apiMarcarParticipanteIniciativaAlternadaSessaoCampanha(
+            campanhaId,
+            sessaoId,
+            { participanteToken, jaAgiu },
+          );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+      } catch (error) {
+        setErroRegrasOpcionais(extrairMensagemErro(error));
+      } finally {
+        setAtualizandoRegraOpcional(null);
+      }
+    },
+    [campanhaId, sessaoId, sincronizarEstadosDerivados],
+  );
+
+  const handleAtualizarIniciativaAlternada = useCallback(
+    async (lados: NonNullable<SessaoCampanhaDetalhe['iniciativaAlternada']>['lados']) => {
+      setAtualizandoRegraOpcional('INICIATIVA_ALTERNADA');
+      setErroRegrasOpcionais(null);
+      try {
+        const atualizado = await apiAtualizarIniciativaAlternadaSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          {
+            ladoAtualId: lados[0]?.id,
+            lados: lados.map((lado, ladoIndex) => ({
+              id: lado.id,
+              nome: lado.nome,
+              ordem: lado.ordem ?? ladoIndex,
+              participantes: lado.participantes.map((participante) => ({
+                participanteToken: participante.participanteToken,
+              })),
+            })),
+          },
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast('Iniciativa alternada atualizada.', 'success');
+      } catch (error) {
+        setErroRegrasOpcionais(extrairMensagemErro(error));
+      } finally {
+        setAtualizandoRegraOpcional(null);
+      }
+    },
+    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
+
+  const handleConsumirItemSessao = useCallback(
+    async (payload: {
+      itemInventarioCampanhaId: number;
+      modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+      alvoTipo?: 'PERSONAGEM' | 'NPC';
+      alvoId?: number;
+      observacao?: string;
+    }) => {
+      const atualizado = await apiConsumirItemSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        payload,
+      );
+      setDetalhe(atualizado);
+      sincronizarEstadosDerivados(atualizado);
+      showToast(
+        payload.modo === 'MANUAL'
+          ? 'Consumo registrado para resolução manual.'
+          : 'Consumível aplicado.',
+        'success',
+      );
+    },
+    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
+
   const handleRolarPericia = useCallback(
     async (payload: RolagemPericiaSessaoPayload) => {
       if (sessaoEncerrada) {
@@ -2354,6 +2436,17 @@ export default function SessaoCampanhaPage() {
       onRolarDanoHabilidade={handleRolarDanoHabilidade}
       renderPainelCondicoes={renderPainelCondicoes}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
+      consumirComCalmaAtivo={regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true}
+      alvosPersonagens={cards.map((card) => ({
+        personagemSessaoId: card.personagemSessaoId,
+        personagemCampanhaId: card.personagemCampanhaId,
+        nomePersonagem: card.nomePersonagem,
+      }))}
+      alvosNpcs={npcs.map((npc) => ({
+        npcSessaoId: npc.npcSessaoId,
+        nome: npc.nome,
+      }))}
+      onConsumirItem={handleConsumirItemSessao}
       erro={erroCards}
     />
   );
@@ -2459,6 +2552,13 @@ export default function SessaoCampanhaPage() {
       erroEncerramento={erroEncerramento}
       onControleTurno={(acao) => void handleControleTurno(acao)}
       onSolicitarEncerrarSessao={() => setConfirmarEncerrarSessaoAberto(true)}
+      iniciativaAlternada={detalhe.iniciativaAlternada}
+      onMarcarIniciativaAlternada={(participanteToken, jaAgiu) =>
+        void handleMarcarIniciativaAlternada(participanteToken, jaAgiu)
+      }
+      onAtualizarIniciativaAlternada={(lados) =>
+        void handleAtualizarIniciativaAlternada(lados)
+      }
       optionalMechanicsPanel={painelMecanicasOpcionais}
     />
   );
@@ -2697,6 +2797,19 @@ export default function SessaoCampanhaPage() {
                   }
                   formatarCustos={formatarCustos}
                   limitesCategoriaAtivo={limitesCategoriaAtivo}
+                  consumirComCalmaAtivo={
+                    regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true
+                  }
+                  alvosPersonagens={cards.map((card) => ({
+                    personagemSessaoId: card.personagemSessaoId,
+                    personagemCampanhaId: card.personagemCampanhaId,
+                    nomePersonagem: card.nomePersonagem,
+                  }))}
+                  alvosNpcs={npcs.map((npc) => ({
+                    npcSessaoId: npc.npcSessaoId,
+                    nome: npc.nome,
+                  }))}
+                  onConsumirItem={handleConsumirItemSessao}
                   renderPainelCondicoes={renderPainelCondicoes}
                   onAbrirFichaCompleta={() => {
                     if (!meuCard) return;

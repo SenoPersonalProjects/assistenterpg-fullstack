@@ -44,6 +44,8 @@ export class InventarioMapper {
         espacos: item.equipamento.espacos,
         complexidadeMaldicao: item.equipamento
           .complexidadeMaldicao as ComplexidadeMaldicao,
+        tipoUso: item.equipamento.tipoUso ?? null,
+        efeitoConsumo: item.equipamento.efeitoConsumo ?? null,
       },
 
       quantidade: item.quantidade,

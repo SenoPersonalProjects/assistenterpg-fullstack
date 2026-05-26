@@ -18,6 +18,8 @@ export const REGRAS_OPCIONAIS_SESSAO = [
   'INSPIRACAO',
   'ENCONTROS_SOCIAIS',
   'ESCALADA_DADOS',
+  'INICIATIVA_ALTERNADA',
+  'CONSUMIR_COM_CALMA',
 ] as const;
 
 export type RegraOpcionalSessaoChave = (typeof REGRAS_OPCIONAIS_SESSAO)[number];
@@ -114,4 +116,86 @@ export class AtualizarEscaladaDadosSessaoDto {
   @IsInt({ message: 'rodadaInicio deve ser inteiro' })
   @Min(1, { message: 'rodadaInicio deve ser positiva' })
   rodadaInicio?: number;
+}
+
+export class ParticipanteLadoIniciativaAlternadaDto {
+  @IsString({ message: 'participanteToken deve ser texto' })
+  @IsNotEmpty({ message: 'participanteToken e obrigatorio' })
+  @MaxLength(80, {
+    message: 'participanteToken deve ter no maximo 80 caracteres',
+  })
+  participanteToken: string;
+}
+
+export class LadoIniciativaAlternadaDto {
+  @IsOptional()
+  @IsInt({ message: 'id do lado deve ser inteiro' })
+  @Min(1, { message: 'id do lado deve ser positivo' })
+  id?: number;
+
+  @IsString({ message: 'nome do lado deve ser texto' })
+  @IsNotEmpty({ message: 'nome do lado e obrigatorio' })
+  @MaxLength(40, { message: 'nome do lado deve ter no maximo 40 caracteres' })
+  nome: string;
+
+  @IsOptional()
+  @IsInt({ message: 'ordem do lado deve ser inteiro' })
+  @Min(0, { message: 'ordem do lado deve ser positiva' })
+  ordem?: number;
+
+  @IsArray({ message: 'participantes deve ser uma lista' })
+  @ValidateNested({ each: true })
+  @Type(() => ParticipanteLadoIniciativaAlternadaDto)
+  participantes: ParticipanteLadoIniciativaAlternadaDto[];
+}
+
+export class AtualizarIniciativaAlternadaSessaoDto {
+  @IsArray({ message: 'lados deve ser uma lista' })
+  @ValidateNested({ each: true })
+  @Type(() => LadoIniciativaAlternadaDto)
+  lados: LadoIniciativaAlternadaDto[];
+
+  @IsOptional()
+  @IsInt({ message: 'ladoAtualId deve ser inteiro' })
+  @Min(1, { message: 'ladoAtualId deve ser positivo' })
+  ladoAtualId?: number;
+}
+
+export class MarcarParticipanteIniciativaAlternadaDto {
+  @IsString({ message: 'participanteToken deve ser texto' })
+  @IsNotEmpty({ message: 'participanteToken e obrigatorio' })
+  @MaxLength(80, {
+    message: 'participanteToken deve ter no maximo 80 caracteres',
+  })
+  participanteToken: string;
+
+  @IsBoolean({ message: 'jaAgiu deve ser booleano' })
+  jaAgiu: boolean;
+}
+
+export class ConsumirItemSessaoDto {
+  @IsInt({ message: 'itemInventarioCampanhaId deve ser inteiro' })
+  @Min(1, { message: 'itemInventarioCampanhaId deve ser positivo' })
+  itemInventarioCampanhaId: number;
+
+  @IsIn(['NORMAL', 'COM_CALMA', 'MANUAL'], {
+    message: 'modo deve ser NORMAL, COM_CALMA ou MANUAL',
+  })
+  modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+
+  @IsOptional()
+  @IsIn(['PERSONAGEM', 'NPC'], {
+    message: 'alvoTipo deve ser PERSONAGEM ou NPC',
+  })
+  alvoTipo?: 'PERSONAGEM' | 'NPC';
+
+  @IsOptional()
+  @IsInt({ message: 'alvoId deve ser inteiro' })
+  @Min(1, { message: 'alvoId deve ser positivo' })
+  alvoId?: number;
+
+  @IsOptional()
+  @IsString({ message: 'observacao deve ser texto' })
+  @MaxLength(240, { message: 'observacao deve ter no maximo 240 caracteres' })
+  observacao?: string;
 }

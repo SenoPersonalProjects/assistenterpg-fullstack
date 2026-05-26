@@ -861,6 +861,7 @@ model Sessao {
   itensSessao            ItemSessaoCampanha[]
   relatorio              SessaoRelatorio?
   regrasOpcionais        SessaoRegraOpcional[]
+  iniciativaAlternada    SessaoIniciativaAlternada?
 
   @@index([campanhaId, iniciadoEm])
 }
@@ -879,6 +880,60 @@ model SessaoRegraOpcional {
 
   @@unique([sessaoId, chave])
   @@index([sessaoId, ativo])
+}
+
+model SessaoIniciativaAlternada {
+  id           Int      @id @default(autoincrement())
+  sessaoId     Int      @unique
+  ladoAtualId  Int?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  sessao        Sessao                                      @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  lados         SessaoIniciativaAlternadaLado[]
+  participantes SessaoIniciativaAlternadaParticipante[]
+
+  @@index([sessaoId])
+  @@map("sessao_iniciativa_alternada")
+}
+
+model SessaoIniciativaAlternadaLado {
+  id                     Int      @id @default(autoincrement())
+  iniciativaAlternadaId  Int
+  nome                   String
+  ordem                  Int      @default(0)
+  criadoEm               DateTime @default(now())
+  atualizadoEm           DateTime @updatedAt
+
+  iniciativaAlternada SessaoIniciativaAlternada               @relation(fields: [iniciativaAlternadaId], references: [id], onDelete: Cascade)
+  participantes       SessaoIniciativaAlternadaParticipante[]
+
+  @@index([iniciativaAlternadaId])
+  @@map("sessao_iniciativa_alternada_lado")
+}
+
+model SessaoIniciativaAlternadaParticipante {
+  id                     Int      @id @default(autoincrement())
+  iniciativaAlternadaId  Int
+  ladoId                 Int
+  participanteToken      String
+  tipoParticipante       String
+  personagemSessaoId     Int?
+  npcSessaoId            Int?
+  nome                   String
+  jaAgiu                 Boolean  @default(false)
+  ordem                  Int      @default(0)
+  criadoEm               DateTime @default(now())
+  atualizadoEm           DateTime @updatedAt
+
+  iniciativaAlternada SessaoIniciativaAlternada     @relation(fields: [iniciativaAlternadaId], references: [id], onDelete: Cascade)
+  lado                SessaoIniciativaAlternadaLado @relation(fields: [ladoId], references: [id], onDelete: Cascade)
+
+  @@unique([iniciativaAlternadaId, participanteToken], map: "SIA_participante_token_unique")
+  @@index([ladoId])
+  @@index([personagemSessaoId])
+  @@index([npcSessaoId])
+  @@map("sessao_iniciativa_alternada_participante")
 }
 
 model Cena {
@@ -1735,6 +1790,7 @@ model EquipamentoCatalogo {
   tipoAmaldicoado TipoAmaldicoado?
 
   efeito String? @db.Text
+  efeitoConsumo Json?
 
   complexidadeMaldicao          ComplexidadeMaldicao @default(NENHUMA)
   efeitoMaldicao                String?              @db.Text

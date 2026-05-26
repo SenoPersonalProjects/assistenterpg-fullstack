@@ -173,6 +173,7 @@ export type EquipamentoAcessorioSeed = {
   efeito?: string;
   maxVestimentas?: number;
   tipoUso?: TipoUsoEquipamento;
+  efeitoConsumo?: Prisma.InputJsonValue;
 };
 
 export type EquipamentoExplosivoSeed = {
@@ -184,6 +185,7 @@ export type EquipamentoExplosivoSeed = {
   tipoExplosivo: TipoExplosivo;
   efeito: string;
   tipoUso?: TipoUsoEquipamento;
+  efeitoConsumo?: Prisma.InputJsonValue;
 };
 
 export type EquipamentoOperacionalSeed = {
@@ -196,6 +198,7 @@ export type EquipamentoOperacionalSeed = {
   bonusPericia?: number;
   efeito?: string;
   tipoUso?: TipoUsoEquipamento;
+  efeitoConsumo?: Prisma.InputJsonValue;
 };
 
 export type EquipamentoAmaldicoadoSeed = {
@@ -207,6 +210,7 @@ export type EquipamentoAmaldicoadoSeed = {
   tipoAmaldicoado?: TipoAmaldicoado;
   tipoUso?: TipoUsoEquipamento;
   efeito: string;
+  efeitoConsumo?: Prisma.InputJsonValue;
 };
 
 export type EquipamentoArtefatoAmaldicoadoSeed = {
@@ -217,6 +221,7 @@ export type EquipamentoArtefatoAmaldicoadoSeed = {
   espacos: number;
   tipoUso?: TipoUsoEquipamento;
   efeito: string;
+  efeitoConsumo?: Prisma.InputJsonValue;
   artefato: {
     tipoBase: string;
     proficienciaRequerida?: boolean;
@@ -225,6 +230,38 @@ export type EquipamentoArtefatoAmaldicoadoSeed = {
     manutencao?: string | null;
   };
 };
+
+const consumoManual = (motivo: string): Prisma.InputJsonValue => ({
+  automatizado: false,
+  motivo,
+});
+
+const consumoRecurso = (
+  recurso: 'PV' | 'EA' | 'PE' | 'SAN',
+  dados: string,
+  bonus = 0,
+  usosPorUnidade = 1,
+): Prisma.InputJsonValue => ({
+  automatizado: true,
+  efeitos: [
+    {
+      tipo: 'RECURSO',
+      recurso,
+      dados,
+      bonus,
+      usosPorUnidade,
+      permiteConsumirComCalma: true,
+    },
+  ],
+});
+
+const CONSUMO_MANUAL_AREA = consumoManual(
+  'Efeito de área, condição, teste de resistência ou decisão tática. Resolva manualmente com o mestre.',
+);
+
+const CONSUMO_MANUAL_NARRATIVO = consumoManual(
+  'Efeito narrativo ou tático sem automação segura nesta versão. Resolva manualmente com o mestre.',
+);
 
 export const origensSuplemento: OrigemSuplemento[] = [
   {
@@ -1757,6 +1794,7 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     efeito:
       'Raio 6m; 4d6 impacto + 4d6 fogo; Reflexos evita metade e condição em chamas',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_AREA,
   },
   {
     codigo: 'EXPLOSIVO_PLASTICO_SUP',
@@ -1770,6 +1808,7 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     efeito:
       'Raio 3m; 16d6 impacto; Reflexos DT Int reduz metade; dano dobrado contra objetos',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_AREA,
   },
   {
     codigo: 'GALAO_VERMELHO_SUP',
@@ -1794,6 +1833,7 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     efeito:
       'Raio 6m; alvos ficam inconscientes ou exaustos (Fortitude DT Agi reduz)',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_AREA,
   },
   {
     codigo: 'GRANADA_PEM_SUP',
@@ -1806,6 +1846,7 @@ const explosivosSuplemento: EquipamentoExplosivoSeed[] = [
     efeito:
       'Raio 18m: desativa equipamentos até o fim da cena; maldições sofrem 6d6 impacto e paralisia 1 rodada',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_AREA,
   },
 ];
 
@@ -1831,6 +1872,7 @@ const itensOperacionaisSuplemento: EquipamentoOperacionalSeed[] = [
     espacos: 1,
     efeito: 'Consumir com ação padrão: recupera 1d4 PE',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoRecurso('PE', '1d4'),
   },
   {
     codigo: 'APLICADOR_MEDICAMENTOS_SUP',
@@ -1925,6 +1967,7 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     espacos: 0.5,
     efeito: '+5 no próximo teste de Fortitude contra doença até o fim do dia',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'ANTIDOTO_SUP',
@@ -1935,6 +1978,7 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     efeito:
       '+5 no próximo teste de Fortitude contra veneno até o fim do dia; pode remover veneno específico',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'ANTIEMETICO_SUP',
@@ -1945,6 +1989,7 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     efeito:
       'Remove condição enjoado e concede +5 contra náuseas até o fim da cena',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'ANTIHISTAMINICO_SUP',
@@ -1954,6 +1999,7 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     espacos: 0.5,
     efeito: '+5 no próximo teste contra alergia até o fim do dia',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'ANTI_INFLAMATORIO_SUP',
@@ -1963,6 +2009,9 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     espacos: 0.5,
     efeito: 'Concede 1d8+2 PV temporarios',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: consumoManual(
+      'PV temporario ainda nao tem automacao segura. Resolva manualmente com o mestre.',
+    ),
   },
   {
     codigo: 'ANTITERMICO_SUP',
@@ -1972,6 +2021,7 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     espacos: 0.5,
     efeito: 'Permite novo teste contra condição mental (1x por cena)',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'BRONCODILATADOR_SUP',
@@ -1981,6 +2031,7 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     espacos: 0.5,
     efeito: '+5 em testes contra asfixiado ou fatigado até o fim do dia',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'COAGULANTE_SUP',
@@ -1991,6 +2042,7 @@ const medicamentosSuplemento: EquipamentoOperacionalSeed[] = [
     efeito:
       '+5 em testes para estabilizar sangrando e +5 em Medicina para remover morrendo',
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
 ];
 
@@ -2006,6 +2058,7 @@ const itensAmaldicoadosSuplemento: EquipamentoAmaldicoadoSeed[] = [
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
     efeito: 'Aumenta alcance em 1 passo ou dobra área de efeito da técnica',
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'CATALISADOR_PERTURBADOR_SUP',
@@ -2018,6 +2071,7 @@ const itensAmaldicoadosSuplemento: EquipamentoAmaldicoadoSeed[] = [
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
     efeito: 'Aumenta a DT da técnica em +2',
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'CATALISADOR_POTENCIALIZADOR_SUP',
@@ -2029,6 +2083,7 @@ const itensAmaldicoadosSuplemento: EquipamentoAmaldicoadoSeed[] = [
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
     efeito: 'Aumenta o dano da técnica em +1 dado do mesmo tipo',
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'CATALISADOR_PROLONGADOR_SUP',
@@ -2040,6 +2095,7 @@ const itensAmaldicoadosSuplemento: EquipamentoAmaldicoadoSeed[] = [
     tipoAmaldicoado: TipoAmaldicoado.ITEM,
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
     efeito: 'Dobra duração de técnicas não instantaneas e não sustentadas',
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
   {
     codigo: 'PE_DE_MORTO_SUP',
@@ -2075,6 +2131,7 @@ const itensAmaldicoadosSuplemento: EquipamentoAmaldicoadoSeed[] = [
     tipoUso: TipoUsoEquipamento.CONSUMIVEL,
     efeito:
       'Aponta rota de fuga em alcance médio; em perseguição, garante sucesso em cortar caminho',
+    efeitoConsumo: CONSUMO_MANUAL_NARRATIVO,
   },
 ];
 
@@ -2662,6 +2719,7 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
         tipoAmaldicoado: item.tipoAmaldicoado ?? TipoAmaldicoado.ITEM,
         tipoUso: item.tipoUso ?? TipoUsoEquipamento.GERAL,
         efeito: item.efeito,
+        efeitoConsumo: jsonOrNull(item.efeitoConsumo ?? null),
         fonte: TipoFonte.SUPLEMENTO,
         suplementoId,
       },
@@ -2675,6 +2733,7 @@ async function seedEquipamentos(prisma: PrismaClient, suplementoId: number) {
         tipoAmaldicoado: item.tipoAmaldicoado ?? TipoAmaldicoado.ITEM,
         tipoUso: item.tipoUso ?? TipoUsoEquipamento.GERAL,
         efeito: item.efeito,
+        efeitoConsumo: jsonOrNull(item.efeitoConsumo ?? null),
         fonte: TipoFonte.SUPLEMENTO,
         suplementoId,
       },
@@ -2775,6 +2834,13 @@ async function seedModificacoes(prisma: PrismaClient, suplementoId: number) {
       totalModificacoes === 1 ? 'modificação' : 'modificações'
     } do suplemento ${totalModificacoes === 1 ? 'cadastrada' : 'cadastradas'}.`,
   );
+}
+
+export async function seedEquipamentosSobrevivendoAoJujutsu(
+  prisma: PrismaClient,
+) {
+  const suplemento = await upsertSuplemento(prisma);
+  await seedEquipamentos(prisma, suplemento.id);
 }
 
 export async function seedSobrevivendoAoJujutsu(prisma: PrismaClient) {

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
+import { Select } from '@/components/ui/Select';
 import { InventarioModalEquipamento } from '@/components/personagem-base/create/modal/InventarioModalEquipamento';
 import { InventarioModalEditar } from '@/components/personagem-base/create/modal/InventarioModalEditar';
 import {
@@ -21,6 +22,8 @@ import {
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
+  EfeitoConsumoEquipamento,
+  EfeitoConsumoRecurso,
   EquipamentoCatalogo,
   InventarioCampanhaCompletoDto,
   ItemInventarioDto,
@@ -44,9 +47,78 @@ type SessionCharacterInventoryTabProps = {
   podeEditar: boolean;
   ativo?: boolean;
   limitesCategoriaAtivo?: boolean;
+  sessaoEncerrada?: boolean;
+  consumirComCalmaAtivo?: boolean;
+  alvosPersonagens?: Array<{
+    personagemSessaoId: number;
+    personagemCampanhaId: number;
+    nomePersonagem: string;
+  }>;
+  alvosNpcs?: Array<{
+    npcSessaoId: number;
+    nome: string;
+  }>;
+  onConsumirItem?: (payload: {
+    itemInventarioCampanhaId: number;
+    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    alvoId?: number;
+    observacao?: string;
+  }) => Promise<void>;
 };
 
 type EtapaAdicionar = 'SELECIONAR' | 'DETALHES';
+type ModoConsumo = 'NORMAL' | 'COM_CALMA';
+
+type ModalConsumoState = {
+  item: ItemInventarioDto;
+  modo: ModoConsumo;
+  alvoTipo: 'PERSONAGEM' | 'NPC';
+  alvoId: string;
+};
+
+const RECURSO_LABEL: Record<EfeitoConsumoRecurso['recurso'], string> = {
+  PV: 'PV',
+  EA: 'EA',
+  PE: 'PE',
+  SAN: 'Sanidade',
+};
+
+function calcularMaximoDados(dados?: string, bonus = 0, fixo?: number) {
+  if (typeof fixo === 'number') return fixo + bonus;
+  if (!dados) return bonus;
+  const match = /^(\d+)d(\d+)$/i.exec(dados.trim());
+  if (!match) return null;
+  return Number(match[1]) * Number(match[2]) + bonus;
+}
+
+function descreverEfeitoConsumo(efeito?: EfeitoConsumoEquipamento | null) {
+  if (!efeito) return 'Este consumível ainda não tem automação.';
+  if (!efeito.automatizado) {
+    return efeito.motivo || 'Este consumível ainda não tem automação.';
+  }
+  const descricoes =
+    efeito.efeitos?.map((item) => {
+      if (item.tipo !== 'RECURSO') return 'Efeito não automatizado';
+      const expressao = item.fixo
+        ? String(item.fixo)
+        : `${item.dados ?? '0'}${item.bonus ? `+${item.bonus}` : ''}`;
+      const maximo = calcularMaximoDados(item.dados, item.bonus ?? 0, item.fixo);
+      return `${RECURSO_LABEL[item.recurso]}: ${expressao}${
+        maximo !== null ? ` (máximo ${maximo})` : ''
+      }`;
+    }) ?? [];
+  return descricoes.length > 0 ? descricoes.join('; ') : 'Efeito automatizado.';
+}
+
+function efeitoPermiteConsumirComCalma(efeito?: EfeitoConsumoEquipamento | null) {
+  if (!efeito?.automatizado || !efeito.efeitos?.length) return false;
+  return efeito.efeitos.every((item) => {
+    if (item.tipo !== 'RECURSO') return false;
+    if (item.permiteConsumirComCalma === false) return false;
+    return calcularMaximoDados(item.dados, item.bonus ?? 0, item.fixo) !== null;
+  });
+}
 
 export function SessionCharacterInventoryTab({
   campanhaId,
@@ -54,6 +126,11 @@ export function SessionCharacterInventoryTab({
   podeEditar,
   ativo = false,
   limitesCategoriaAtivo = false,
+  sessaoEncerrada = false,
+  consumirComCalmaAtivo = false,
+  alvosPersonagens = [],
+  alvosNpcs = [],
+  onConsumirItem,
 }: SessionCharacterInventoryTabProps) {
   const [inventario, setInventario] = useState<InventarioCampanhaCompletoDto | null>(
     null,
@@ -91,6 +168,8 @@ export function SessionCharacterInventoryTab({
   const [pericias, setPericias] = useState<PericiaCatalogo[]>([]);
   const [carregandoCatalogos, setCarregandoCatalogos] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [modalConsumo, setModalConsumo] = useState<ModalConsumoState | null>(null);
+  const [consumindoItemId, setConsumindoItemId] = useState<number | null>(null);
 
   const carregarInventario = useCallback(async () => {
     setCarregando(true);
@@ -172,6 +251,63 @@ export function SessionCharacterInventoryTab({
     setModificacoesCompatAdicionar([]);
     setModalAdicionarAberto(true);
     void carregarCatalogos();
+  };
+
+  const abrirModalConsumo = (item: ItemInventarioDto) => {
+    const primeiroPersonagem = alvosPersonagens[0];
+    const primeiroNpc = alvosNpcs[0];
+    setModalConsumo({
+      item,
+      modo: 'NORMAL',
+      alvoTipo: primeiroPersonagem ? 'PERSONAGEM' : 'NPC',
+      alvoId: primeiroPersonagem
+        ? String(primeiroPersonagem.personagemSessaoId)
+        : primeiroNpc
+          ? String(primeiroNpc.npcSessaoId)
+          : '',
+    });
+  };
+
+  const consumirItem = async (payload: {
+    item: ItemInventarioDto;
+    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+    alvoTipo?: 'PERSONAGEM' | 'NPC';
+    alvoId?: number;
+    observacao?: string;
+  }) => {
+    if (!onConsumirItem) return;
+    setConsumindoItemId(payload.item.id);
+    setErro(null);
+    try {
+      await onConsumirItem({
+        itemInventarioCampanhaId: payload.item.id,
+        modo: payload.modo,
+        alvoTipo: payload.alvoTipo,
+        alvoId: payload.alvoId,
+        observacao: payload.observacao,
+      });
+      await carregarInventario();
+      setModalConsumo(null);
+    } catch (error) {
+      setErro(extrairMensagemErro(error));
+    } finally {
+      setConsumindoItemId(null);
+    }
+  };
+
+  const confirmarConsumo = async () => {
+    if (!modalConsumo) return;
+    const alvoId = Number(modalConsumo.alvoId);
+    if (!Number.isInteger(alvoId) || alvoId <= 0) {
+      setErro('Escolha um alvo para consumir este item.');
+      return;
+    }
+    await consumirItem({
+      item: modalConsumo.item,
+      modo: modalConsumo.modo,
+      alvoTipo: modalConsumo.alvoTipo,
+      alvoId,
+    });
   };
 
   const fecharModalAdicionar = () => {
@@ -535,7 +671,38 @@ export function SessionCharacterInventoryTab({
                   </div>
                 </div>
                 {podeEditar ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    {item.equipamento.tipoUso === 'CONSUMIVEL' &&
+                    consumirComCalmaAtivo &&
+                    onConsumirItem ? (
+                      item.equipamento.efeitoConsumo?.automatizado ? (
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          onClick={() => abrirModalConsumo(item)}
+                          disabled={sessaoEncerrada || consumindoItemId === item.id}
+                        >
+                          Consumir
+                        </Button>
+                      ) : (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() =>
+                            void consumirItem({
+                              item,
+                              modo: 'MANUAL',
+                              observacao:
+                                item.equipamento.efeitoConsumo?.motivo ||
+                                'Resolvido manualmente com o mestre.',
+                            })
+                          }
+                          disabled={sessaoEncerrada || consumindoItemId === item.id}
+                        >
+                          Resolver manualmente
+                        </Button>
+                      )
+                    ) : null}
                     <Button
                       size="xs"
                       variant="ghost"
@@ -554,6 +721,27 @@ export function SessionCharacterInventoryTab({
                   </div>
                 ) : null}
               </div>
+              {item.equipamento.tipoUso === 'CONSUMIVEL' && consumirComCalmaAtivo ? (
+                <div className="mt-2 rounded-xl border border-app-border/40 bg-app-card/60 px-3 py-2 text-xs">
+                  <p
+                    className={
+                      item.equipamento.efeitoConsumo?.automatizado
+                        ? 'font-medium text-app-muted'
+                        : 'font-bold text-app-warning'
+                    }
+                  >
+                    {item.equipamento.efeitoConsumo?.automatizado
+                      ? descreverEfeitoConsumo(item.equipamento.efeitoConsumo)
+                      : 'Este consumível ainda não tem automação. Resolva manualmente com o mestre.'}
+                  </p>
+                  {!item.equipamento.efeitoConsumo?.automatizado &&
+                  item.equipamento.efeitoConsumo?.motivo ? (
+                    <p className="mt-1 text-app-muted">
+                      {item.equipamento.efeitoConsumo.motivo}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ))}
 
@@ -753,6 +941,118 @@ export function SessionCharacterInventoryTab({
                 disabled={!podeSalvarEdicaoItem}
               >
                 {salvando ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        isOpen={Boolean(modalConsumo)}
+        onClose={() => setModalConsumo(null)}
+        title="Consumir item"
+        size="md"
+      >
+        {modalConsumo ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-app-border bg-app-surface p-3">
+              <p className="text-sm font-black text-app-fg">
+                {modalConsumo.item.nomeCustomizado || modalConsumo.item.equipamento.nome}
+              </p>
+              <p className="mt-1 text-xs font-medium text-app-muted">
+                {descreverEfeitoConsumo(modalConsumo.item.equipamento.efeitoConsumo)}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Select
+                label="Tipo de alvo"
+                value={modalConsumo.alvoTipo}
+                onChange={(event) =>
+                  setModalConsumo((estado) =>
+                    estado
+                      ? {
+                          ...estado,
+                          alvoTipo: event.target.value as 'PERSONAGEM' | 'NPC',
+                          alvoId: '',
+                        }
+                      : estado,
+                  )
+                }
+                options={[
+                  { value: 'PERSONAGEM', label: 'Personagem' },
+                  { value: 'NPC', label: 'NPC' },
+                ]}
+              />
+              <Select
+                label="Alvo"
+                value={modalConsumo.alvoId}
+                onChange={(event) =>
+                  setModalConsumo((estado) =>
+                    estado ? { ...estado, alvoId: event.target.value } : estado,
+                  )
+                }
+                options={[
+                  { value: '', label: 'Escolher alvo' },
+                  ...(modalConsumo.alvoTipo === 'PERSONAGEM'
+                    ? alvosPersonagens.map((alvo) => ({
+                        value: String(alvo.personagemSessaoId),
+                        label: alvo.nomePersonagem,
+                      }))
+                    : alvosNpcs.map((alvo) => ({
+                        value: String(alvo.npcSessaoId),
+                        label: alvo.nome,
+                      }))),
+                ]}
+              />
+            </div>
+
+            {efeitoPermiteConsumirComCalma(
+              modalConsumo.item.equipamento.efeitoConsumo,
+            ) ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="flex items-center gap-2 rounded-xl border border-app-border/40 bg-app-card/70 p-3 text-sm font-bold text-app-fg">
+                  <input
+                    type="radio"
+                    checked={modalConsumo.modo === 'NORMAL'}
+                    onChange={() =>
+                      setModalConsumo((estado) =>
+                        estado ? { ...estado, modo: 'NORMAL' } : estado,
+                      )
+                    }
+                  />
+                  Rolar efeito
+                </label>
+                <label className="flex items-center gap-2 rounded-xl border border-app-border/40 bg-app-card/70 p-3 text-sm font-bold text-app-fg">
+                  <input
+                    type="radio"
+                    checked={modalConsumo.modo === 'COM_CALMA'}
+                    onChange={() =>
+                      setModalConsumo((estado) =>
+                        estado ? { ...estado, modo: 'COM_CALMA' } : estado,
+                      )
+                    }
+                  />
+                  Consumir com calma
+                </label>
+              </div>
+            ) : null}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setModalConsumo(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => void confirmarConsumo()}
+                disabled={
+                  !modalConsumo.alvoId ||
+                  consumindoItemId === modalConsumo.item.id ||
+                  sessaoEncerrada
+                }
+              >
+                {consumindoItemId === modalConsumo.item.id
+                  ? 'Consumindo...'
+                  : 'Confirmar consumo'}
               </Button>
             </div>
           </div>
