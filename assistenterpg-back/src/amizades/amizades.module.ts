@@ -28,6 +28,6 @@ import { PresencaService } from './presenca.service';
     PresencaService,
     AuthSessionService,
   ],
-  exports: [AmizadesService, PresencaService],
+  exports: [AmizadesService, PresencaGateway, PresencaService],
 })
 export class AmizadesModule {}

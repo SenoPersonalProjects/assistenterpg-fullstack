@@ -24,7 +24,15 @@ type DiceChatPanelProps = {
   usuarioId?: number | null;
   erro?: string | null;
   animacaoModalAtiva: boolean;
+  podeUsarRolagemSecreta?: boolean;
+  rolagemSecreta?: boolean;
+  contextoRolagem?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
+  dtRolagem?: string;
+  bonusEscaladaDados?: number;
   onToggleAnimacaoModal: (ativo: boolean) => void;
+  onToggleRolagemSecreta?: (ativo: boolean) => void;
+  onContextoRolagemChange?: (contexto: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO') => void;
+  onDtRolagemChange?: (valor: string) => void;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
 };
@@ -37,7 +45,15 @@ export function DiceChatPanel({
   usuarioId,
   erro,
   animacaoModalAtiva,
+  podeUsarRolagemSecreta = false,
+  rolagemSecreta = false,
+  contextoRolagem = 'OUTRO',
+  dtRolagem = '',
+  bonusEscaladaDados = 0,
   onToggleAnimacaoModal,
+  onToggleRolagemSecreta,
+  onContextoRolagemChange,
+  onDtRolagemChange,
   onMensagemChange,
   onEnviarMensagem,
 }: DiceChatPanelProps) {
@@ -202,6 +218,47 @@ export function DiceChatPanel({
             Ajuda
           </Button>
         </div>
+      </div>
+      <div className="grid gap-2 rounded-xl border border-app-border/40 bg-app-card/70 p-3 text-xs text-app-muted sm:grid-cols-2">
+        <label className="space-y-1">
+          <span className="font-bold text-app-fg">Contexto</span>
+          <select
+            value={contextoRolagem}
+            onChange={(event) =>
+              onContextoRolagemChange?.(
+                event.target.value as 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO',
+              )
+            }
+            className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-bold text-app-fg"
+          >
+            <option value="OUTRO">Outro</option>
+            <option value="ATAQUE">Teste de ataque</option>
+            <option value="PERICIA">Perícia</option>
+            <option value="DANO">Dano ou cura</option>
+          </select>
+        </label>
+        <label className="space-y-1">
+          <span className="font-bold text-app-fg">DT opcional</span>
+          <input
+            value={dtRolagem}
+            onChange={(event) => onDtRolagemChange?.(event.target.value)}
+            inputMode="numeric"
+            className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-bold text-app-fg"
+            placeholder="Ex.: 20"
+          />
+        </label>
+        {podeUsarRolagemSecreta ? (
+          <Checkbox
+            checked={rolagemSecreta}
+            onChange={(event) => onToggleRolagemSecreta?.(event.target.checked)}
+            label="Rolagem secreta"
+          />
+        ) : null}
+        {contextoRolagem === 'ATAQUE' && bonusEscaladaDados > 0 ? (
+          <span className="rounded-lg bg-app-danger/10 px-3 py-2 font-black text-app-danger">
+            Escalada de Dados +{bonusEscaladaDados} aplicada
+          </span>
+        ) : null}
       </div>
       {sucessoEnvio ? (
         <p className="session-chat__hint session-chat__hint--success">

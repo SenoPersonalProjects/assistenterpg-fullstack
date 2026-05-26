@@ -14,6 +14,12 @@ type UseSessaoRolagemParams = {
   campanhaId: number;
   sessaoId: number;
   mensagem: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contextoRolagem?: {
+    tipo?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
+    dt?: number;
+  };
+  bonusEscaladaDados?: number;
   setMensagem: (valor: string) => void;
   setChat: (updater: (anterior: MensagemChatSessao[]) => MensagemChatSessao[]) => void;
   setErro: (mensagem: string | null) => void;
@@ -38,6 +44,9 @@ export function useSessaoRolagem({
   campanhaId,
   sessaoId,
   mensagem,
+  visibilidade = 'PUBLICA',
+  contextoRolagem,
+  bonusEscaladaDados = 0,
   setMensagem,
   setChat,
   setErro,
@@ -57,7 +66,17 @@ export function useSessaoRolagem({
       return;
     }
 
-    const payloads = resultado.expressions.map((expression) => rolarDados(expression));
+    const payloadsBase = resultado.expressions.map((expression) => rolarDados(expression));
+    const deveAplicarEscalada =
+      contextoRolagem?.tipo === 'ATAQUE' &&
+      typeof bonusEscaladaDados === 'number' &&
+      bonusEscaladaDados > 0;
+    const payloads = deveAplicarEscalada
+      ? payloadsBase.map((payload) => ({
+          ...payload,
+          modificador: payload.modificador + bonusEscaladaDados,
+        }))
+      : payloadsBase;
     const { mensagem: mensagemEnvio } =
       payloads.length > 1
         ? construirMensagemDiceMultipla(payloads)
@@ -84,6 +103,14 @@ export function useSessaoRolagem({
     try {
       const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
         mensagem: mensagemEnvio,
+        visibilidade,
+        dadosRolagem: {
+          payloads,
+        },
+        contextoRolagem: {
+          ...contextoRolagem,
+          expressao: mensagemLimpa,
+        },
       });
       setChat((anterior) => [...anterior, enviada]);
       setMensagem('');
@@ -101,7 +128,9 @@ export function useSessaoRolagem({
     }
   }, [
     animacaoModalAtiva,
+    bonusEscaladaDados,
     campanhaId,
+    contextoRolagem,
     mensagem,
     onAbrirModalAnimado,
     onAtualizarModalAnimado,
@@ -109,6 +138,7 @@ export function useSessaoRolagem({
     setChat,
     setErro,
     setMensagem,
+    visibilidade,
   ]);
 
   return { enviandoRolagem, handleEnviarRolagem };

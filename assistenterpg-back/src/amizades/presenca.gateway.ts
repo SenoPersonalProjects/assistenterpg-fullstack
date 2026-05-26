@@ -73,25 +73,28 @@ export class PresencaGateway
 
       const mudouStatus = this.presencaService.registrarConexao(
         payload.sub,
-        client.id,
+        this.presencaSocketId(client),
       );
 
-      await this.emitirSnapshotParaUsuario(payload.sub);
       if (mudouStatus) {
-        await this.emitirSnapshotsParaAmigos(payload.sub);
+        await this.emitirSnapshotsParaUsuarioEAmigos(payload.sub);
+      } else {
+        await this.emitirSnapshotParaUsuario(payload.sub);
       }
     } catch {
       this.logger.warn(
-        `Socket de presenca desconectado por token invalido: ${client.id}`,
+        `Socket de presença desconectado por token inválido: ${client.id}`,
       );
       client.disconnect(true);
     }
   }
 
   async handleDisconnect(client: SocketAutenticado): Promise<void> {
-    const remocao = this.presencaService.removerConexao(client.id);
+    const remocao = this.presencaService.removerConexao(
+      this.presencaSocketId(client),
+    );
     if (remocao.usuarioId && remocao.mudouStatus) {
-      await this.emitirSnapshotsParaAmigos(remocao.usuarioId);
+      await this.emitirSnapshotsParaUsuarioEAmigos(remocao.usuarioId);
     }
   }
 
@@ -118,11 +121,17 @@ export class PresencaGateway
       .emit('presenca:amigos', payload);
   }
 
-  private async emitirSnapshotsParaAmigos(usuarioId: number): Promise<void> {
+  async emitirSnapshotsParaUsuarioEAmigos(usuarioId: number): Promise<void> {
+    await this.emitirSnapshotParaUsuario(usuarioId);
+
     const amigoIds = await this.amizadesService.listarAmigoIds(usuarioId);
     await Promise.all(
       amigoIds.map((amigoId) => this.emitirSnapshotParaUsuario(amigoId)),
     );
+  }
+
+  private presencaSocketId(client: Socket): string {
+    return `presenca:${client.id}`;
   }
 
   private salaUsuario(usuarioId: number): string {

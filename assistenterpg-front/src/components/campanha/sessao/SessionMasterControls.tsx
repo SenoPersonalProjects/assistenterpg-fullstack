@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
@@ -30,6 +31,7 @@ type SessionMasterControlsProps = {
   onToggleLimitesCategoria: (ativo: boolean) => void;
   onControleTurno: (acao: AcaoControleTurno) => void;
   onSolicitarEncerrarSessao: () => void;
+  optionalMechanicsPanel?: ReactNode;
 };
 
 type SessionSceneControlPanelProps = Pick<
@@ -58,6 +60,7 @@ type SessionTableOperationsPanelProps = Pick<
   | 'erroEncerramento'
   | 'onControleTurno'
   | 'onSolicitarEncerrarSessao'
+  | 'optionalMechanicsPanel'
 >;
 
 function MasterOnlyPanel() {
@@ -172,6 +175,7 @@ export function SessionTableOperationsPanel({
   erroEncerramento,
   onControleTurno,
   onSolicitarEncerrarSessao,
+  optionalMechanicsPanel,
 }: SessionTableOperationsPanelProps) {
   return (
     <SessionPanel
@@ -256,6 +260,12 @@ export function SessionTableOperationsPanel({
           </div>
         </div>
 
+        {optionalMechanicsPanel ? (
+          <div className="space-y-3 border-t border-app-border/30 pt-4">
+            {optionalMechanicsPanel}
+          </div>
+        ) : null}
+
         <div className="space-y-3 border-t border-app-border/30 pt-4">
           <h4 className="text-[10px] font-black uppercase tracking-widest text-app-danger">
             Encerramento
@@ -303,6 +313,7 @@ export function SessionMasterControls({
   onToggleLimitesCategoria,
   onControleTurno,
   onSolicitarEncerrarSessao,
+  optionalMechanicsPanel,
 }: SessionMasterControlsProps) {
   if (!podeControlarSessao) {
     return <MasterOnlyPanel />;
@@ -333,6 +344,7 @@ export function SessionMasterControls({
         erroEncerramento={erroEncerramento}
         onControleTurno={onControleTurno}
         onSolicitarEncerrarSessao={onSolicitarEncerrarSessao}
+        optionalMechanicsPanel={optionalMechanicsPanel}
       />
     </div>
   );

@@ -860,8 +860,25 @@ model Sessao {
   anotacoes              Anotacao[]
   itensSessao            ItemSessaoCampanha[]
   relatorio              SessaoRelatorio?
+  regrasOpcionais        SessaoRegraOpcional[]
 
   @@index([campanhaId, iniciadoEm])
+}
+
+model SessaoRegraOpcional {
+  id          Int      @id @default(autoincrement())
+  sessaoId    Int
+  chave       String
+  ativo       Boolean  @default(false)
+  config      Json?
+  estado      Json?
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  sessao Sessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  @@unique([sessaoId, chave])
+  @@index([sessaoId, ativo])
 }
 
 model Cena {

@@ -19,6 +19,8 @@ import type {
   ItemSessaoCampanhaDto,
   ItensSessaoCampanhaResponse,
   MensagemChatSessao,
+  RegrasOpcionaisSessao,
+  RegraOpcionalSessaoChave,
   SessaoCampanhaDetalhe,
   SessaoCampanhaRelatorio,
   SessaoCampanhaResumo,
@@ -446,6 +448,91 @@ export async function apiGetRelatorioSessaoCampanha(
   return data;
 }
 
+export async function apiListarRegrasOpcionaisSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+): Promise<RegrasOpcionaisSessao> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/regras-opcionais`,
+  );
+  return data;
+}
+
+export async function apiAtualizarRegraOpcionalSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: {
+    chave: RegraOpcionalSessaoChave;
+    ativo: boolean;
+    config?: Record<string, unknown>;
+  },
+) {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/regras-opcionais`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAjustarInspiracaoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemCampanhaId: number,
+  payload: { delta: number },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/inspiracao/${personagemCampanhaId}/ajustar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiGastarInspiracaoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemCampanhaId: number,
+  payload: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO' },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/inspiracao/${personagemCampanhaId}/gastar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAtualizarEncontroSocialSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: {
+    alvos: Array<{
+      npcSessaoId?: number | null;
+      nome: string;
+      interesseAtual: number;
+      interesseAlvo: number;
+      pacienciaAtual: number;
+      motivacoes?: Array<{ texto: string; revelada?: boolean }>;
+    }>;
+  },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/social/encontros`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAtualizarEscaladaDadosSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: { ativaNesteCombate: boolean; rodadaInicio?: number },
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/escalada`,
+    payload,
+  );
+  return data;
+}
+
 export async function apiAtualizarRecursosPersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -721,7 +808,12 @@ export async function apiDesfazerEventoSessaoCampanha(
 export async function apiEnviarMensagemChatSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
-  payload: { mensagem: string },
+  payload: {
+    mensagem: string;
+    visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+    dadosRolagem?: Record<string, unknown>;
+    contextoRolagem?: Record<string, unknown>;
+  },
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/chat`,

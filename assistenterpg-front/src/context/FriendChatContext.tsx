@@ -13,6 +13,7 @@ import {
 } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { usePresence } from '@/context/PresenceContext';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -65,6 +66,7 @@ function upsertMensagem(
 
 export function FriendChatProvider({ children }: { children: ReactNode }) {
   const { usuario } = useAuth();
+  const { onlineFriendIds, synced: presenceSynced } = usePresence();
   const pathname = usePathname();
   const hidden = !usuario || isPublicPath(pathname);
   const [open, setOpen] = useState(false);
@@ -91,6 +93,17 @@ export function FriendChatProvider({ children }: { children: ReactNode }) {
     () => conversas.reduce((total, conversa) => total + conversa.naoLidas, 0),
     [conversas],
   );
+
+  useEffect(() => {
+    if (!presenceSynced) return;
+
+    setConversas((atuais) =>
+      atuais.map((conversa) => {
+        const online = onlineFriendIds.has(conversa.amigo.id);
+        return conversa.online === online ? conversa : { ...conversa, online };
+      }),
+    );
+  }, [onlineFriendIds, presenceSynced]);
 
   const carregarConversas = useCallback(async () => {
     if (!usuario) return;

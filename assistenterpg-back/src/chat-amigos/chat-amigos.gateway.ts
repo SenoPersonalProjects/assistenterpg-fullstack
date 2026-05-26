@@ -4,11 +4,14 @@ import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import { PresencaGateway } from 'src/amizades/presenca.gateway';
+import { PresencaService } from 'src/amizades/presenca.service';
 import {
   AUTH_ACCESS_COOKIE,
   isBearerFallbackEnabled,
@@ -43,7 +46,9 @@ type LeituraChatPayload = {
   namespace: '/chat-amigos',
   cors: createCorsOptions(),
 })
-export class ChatAmigosGateway implements OnGatewayConnection {
+export class ChatAmigosGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   private readonly logger = new Logger(ChatAmigosGateway.name);
 
   @WebSocketServer()
@@ -53,6 +58,8 @@ export class ChatAmigosGateway implements OnGatewayConnection {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly authSessionService: AuthSessionService,
+    private readonly presencaService: PresencaService,
+    private readonly presencaGateway: PresencaGateway,
   ) {}
 
   async handleConnection(client: SocketAutenticado): Promise<void> {
@@ -74,11 +81,32 @@ export class ChatAmigosGateway implements OnGatewayConnection {
       }
       this.definirUsuarioId(client, payload.sub);
       await client.join(this.salaUsuario(payload.sub));
+
+      const mudouStatus = this.presencaService.registrarConexao(
+        payload.sub,
+        this.presencaSocketId(client),
+      );
+      if (mudouStatus) {
+        await this.presencaGateway.emitirSnapshotsParaUsuarioEAmigos(
+          payload.sub,
+        );
+      }
     } catch {
       this.logger.warn(
-        `Socket de chat desconectado por token invalido: ${client.id}`,
+        `Socket de chat desconectado por token inválido: ${client.id}`,
       );
       client.disconnect(true);
+    }
+  }
+
+  async handleDisconnect(client: SocketAutenticado): Promise<void> {
+    const remocao = this.presencaService.removerConexao(
+      this.presencaSocketId(client),
+    );
+    if (remocao.usuarioId && remocao.mudouStatus) {
+      await this.presencaGateway.emitirSnapshotsParaUsuarioEAmigos(
+        remocao.usuarioId,
+      );
     }
   }
 
@@ -116,6 +144,10 @@ export class ChatAmigosGateway implements OnGatewayConnection {
 
   private salaUsuario(usuarioId: number): string {
     return `usuario:${usuarioId}`;
+  }
+
+  private presencaSocketId(client: Socket): string {
+    return `chat-amigos:${client.id}`;
   }
 
   private obterUsuarioId(client: Socket): number | undefined {

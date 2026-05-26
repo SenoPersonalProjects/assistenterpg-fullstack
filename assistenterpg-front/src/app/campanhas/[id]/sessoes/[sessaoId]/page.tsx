@@ -27,6 +27,11 @@ import {
   apiAtualizarValorIniciativaSessaoCampanha,
   apiListarChatSessaoCampanha,
   apiListarEventosSessaoCampanha,
+  apiAjustarInspiracaoSessaoCampanha,
+  apiAtualizarEncontroSocialSessaoCampanha,
+  apiAtualizarEscaladaDadosSessaoCampanha,
+  apiAtualizarRegraOpcionalSessaoCampanha,
+  apiGastarInspiracaoSessaoCampanha,
   extrairMensagemErro,
 } from '@/lib/api';
 import type {
@@ -42,6 +47,8 @@ import type {
   SessaoCampanhaDetalhe,
   SessaoCampanhaRelatorio,
   TipoCenaSessaoCampanha,
+  RegraOpcionalSessaoChave,
+  AlvoEncontroSocialSessao,
 } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -60,6 +67,7 @@ import {
   SessionTableOperationsPanel,
 } from '@/components/campanha/sessao/SessionMasterControls';
 import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
+import { SessionOptionalMechanicsPanel } from '@/components/campanha/sessao/SessionOptionalMechanicsPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
 import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
@@ -134,6 +142,7 @@ const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'INVESTIGACAO', label: 'Investigacao' },
   { value: 'FURTIVIDADE', label: 'Furtividade' },
   { value: 'COMBATE', label: 'Combate' },
+  { value: 'SOCIAL', label: 'Encontro social' },
   { value: 'PERSEGUICAO', label: 'Perseguicao' },
   { value: 'BASE', label: 'Base' },
   { value: 'OUTRA', label: 'Outra' },
@@ -289,6 +298,11 @@ export default function SessaoCampanhaPage() {
   const [erroRelatorio, setErroRelatorio] = useState<string | null>(null);
   const [mensagem, setMensagem] = useState('');
   const [mensagemRolagem, setMensagemRolagem] = useState('');
+  const [rolagemSecreta, setRolagemSecreta] = useState(false);
+  const [contextoRolagem, setContextoRolagem] = useState<
+    'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO'
+  >('OUTRO');
+  const [dtRolagem, setDtRolagem] = useState('');
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
   const [cenaNome, setCenaNome] = useState('');
   const [limitesCategoriaAtivo, setLimitesCategoriaAtivo] = useState(false);
@@ -379,6 +393,9 @@ export default function SessaoCampanhaPage() {
   const [erroCondicoes, setErroCondicoes] = useState<string | null>(null);
   const [erroEventos, setErroEventos] = useState<string | null>(null);
   const [erroCards, setErroCards] = useState<string | null>(null);
+  const [erroRegrasOpcionais, setErroRegrasOpcionais] = useState<string | null>(null);
+  const [atualizandoRegraOpcional, setAtualizandoRegraOpcional] =
+    useState<string | null>(null);
   const [animacaoRolagemChatAtiva, setAnimacaoRolagemChatAtiva] = useState(() => {
     if (typeof window === 'undefined') return false;
     const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY);
@@ -416,6 +433,26 @@ export default function SessaoCampanhaPage() {
   const chatRef = useRef<MensagemChatSessao[]>([]);
   const fimChatRef = useRef<HTMLDivElement | null>(null);
   const sincronizandoTempoRealRef = useRef(false);
+
+  const regrasOpcionais = detalhe?.regrasOpcionais;
+  const bonusEscaladaDados =
+    detalhe?.cenaAtual.tipo === 'COMBATE' &&
+    regrasOpcionais?.ESCALADA_DADOS?.ativo &&
+    regrasOpcionais.ESCALADA_DADOS.estado.ativaNesteCombate
+      ? regrasOpcionais.ESCALADA_DADOS.estado.bonusAtual
+      : 0;
+  const dtRolagemNumero = useMemo(() => {
+    if (!dtRolagem.trim()) return undefined;
+    const valor = Number(dtRolagem);
+    return Number.isFinite(valor) ? Math.trunc(valor) : undefined;
+  }, [dtRolagem]);
+  const contextoRolagemPayload = useMemo(
+    () => ({
+      tipo: contextoRolagem,
+      dt: dtRolagemNumero,
+    }),
+    [contextoRolagem, dtRolagemNumero],
+  );
 
   const obterAjustesRecursosCard = useCallback(
     (personagemCampanhaId: number): AjustesRecursos =>
@@ -1214,7 +1251,134 @@ export default function SessaoCampanhaPage() {
     animacaoModalAtiva: animacaoRolagemChatAtiva,
     onAbrirModalAnimado: abrirModalRolagemChat,
     onAtualizarModalAnimado: atualizarModalRolagemChat,
+    visibilidade:
+      rolagemSecreta && podeControlarSessao ? 'SECRETA_MESTRE' : 'PUBLICA',
+    contextoRolagem: contextoRolagemPayload,
+    bonusEscaladaDados,
   });
+
+  const handleAtualizarRegraOpcional = useCallback(
+    async (chave: RegraOpcionalSessaoChave, ativo: boolean) => {
+      setAtualizandoRegraOpcional(chave);
+      setErroRegrasOpcionais(null);
+      try {
+        await apiAtualizarRegraOpcionalSessaoCampanha(campanhaId, sessaoId, {
+          chave,
+          ativo,
+        });
+        const atualizado = await apiGetSessaoCampanha(campanhaId, sessaoId);
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast('Mecânica opcional atualizada.', 'success');
+      } catch (error) {
+        setErroRegrasOpcionais(extrairMensagemErro(error));
+      } finally {
+        setAtualizandoRegraOpcional(null);
+      }
+    },
+    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
+
+  const handleAjustarInspiracao = useCallback(
+    async (personagemCampanhaId: number, delta: number) => {
+      setAtualizandoRegraOpcional(`INSPIRACAO:${personagemCampanhaId}`);
+      setErroRegrasOpcionais(null);
+      try {
+        const atualizado = await apiAjustarInspiracaoSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          personagemCampanhaId,
+          { delta },
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+      } catch (error) {
+        setErroRegrasOpcionais(extrairMensagemErro(error));
+      } finally {
+        setAtualizandoRegraOpcional(null);
+      }
+    },
+    [campanhaId, sessaoId, sincronizarEstadosDerivados],
+  );
+
+  const handleGastarInspiracao = useCallback(
+    async (
+      personagemCampanhaId: number,
+      gasto: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO' },
+    ) => {
+      setAtualizandoRegraOpcional(`INSPIRACAO:${personagemCampanhaId}`);
+      setErroRegrasOpcionais(null);
+      try {
+        const atualizado = await apiGastarInspiracaoSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          personagemCampanhaId,
+          gasto,
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast('Ponto de inspiração gasto.', 'success');
+      } catch (error) {
+        setErroRegrasOpcionais(extrairMensagemErro(error));
+      } finally {
+        setAtualizandoRegraOpcional(null);
+      }
+    },
+    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
+
+  const handleAtualizarSocial = useCallback(
+    async (alvos: AlvoEncontroSocialSessao[]) => {
+      setAtualizandoRegraOpcional('ENCONTROS_SOCIAIS');
+      setErroRegrasOpcionais(null);
+      try {
+        const atualizado = await apiAtualizarEncontroSocialSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          {
+            alvos: alvos.map((alvo) => ({
+              npcSessaoId: alvo.npcSessaoId,
+              nome: alvo.nome,
+              interesseAtual: alvo.interesseAtual,
+              interesseAlvo: alvo.interesseAlvo,
+              pacienciaAtual: alvo.pacienciaAtual,
+              motivacoes: alvo.motivacoes,
+            })),
+          },
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast('Encontro social atualizado.', 'success');
+      } catch (error) {
+        setErroRegrasOpcionais(extrairMensagemErro(error));
+      } finally {
+        setAtualizandoRegraOpcional(null);
+      }
+    },
+    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
+
+  const handleAtualizarEscalada = useCallback(
+    async (ativaNesteCombate: boolean, rodadaInicio?: number) => {
+      setAtualizandoRegraOpcional('ESCALADA_DADOS');
+      setErroRegrasOpcionais(null);
+      try {
+        const atualizado = await apiAtualizarEscaladaDadosSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          { ativaNesteCombate, rodadaInicio },
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast('Escalada de Dados atualizada.', 'success');
+      } catch (error) {
+        setErroRegrasOpcionais(extrairMensagemErro(error));
+      } finally {
+        setAtualizandoRegraOpcional(null);
+      }
+    },
+    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
 
   const handleRolarPericia = useCallback(
     async (payload: RolagemPericiaSessaoPayload) => {
@@ -1857,11 +2021,23 @@ export default function SessaoCampanhaPage() {
   const cards = useMemo(() => detalhe?.cards ?? [], [detalhe?.cards]);
   const npcs = useMemo(() => detalhe?.npcs ?? [], [detalhe?.npcs]);
   const rolagens = useMemo(
-    () => chat.filter((mensagemChat) => ehMensagemDice(mensagemChat.mensagem)),
+    () =>
+      chat.filter(
+        (mensagemChat) =>
+          mensagemChat.ocultaParaUsuario ||
+          mensagemChat.visibilidade === 'SECRETA_MESTRE' ||
+          ehMensagemDice(mensagemChat.mensagem),
+      ),
     [chat],
   );
   const chatSemRolagens = useMemo(
-    () => chat.filter((mensagemChat) => !ehMensagemDice(mensagemChat.mensagem)),
+    () =>
+      chat.filter(
+        (mensagemChat) =>
+          !mensagemChat.ocultaParaUsuario &&
+          mensagemChat.visibilidade !== 'SECRETA_MESTRE' &&
+          !ehMensagemDice(mensagemChat.mensagem),
+      ),
     [chat],
   );
   const handleMensagemRolagemChange = useCallback(
@@ -2231,6 +2407,29 @@ export default function SessaoCampanhaPage() {
     );
   }
 
+  const painelMecanicasOpcionais = (
+    <div className="space-y-3">
+      {erroRegrasOpcionais ? <ErrorAlert message={erroRegrasOpcionais} /> : null}
+      <SessionOptionalMechanicsPanel
+        key={JSON.stringify(regrasOpcionais?.ENCONTROS_SOCIAIS?.estado.alvos ?? [])}
+        regras={regrasOpcionais}
+        podeControlarSessao={podeControlarSessao}
+        sessaoEncerrada={sessaoEncerrada}
+        cenaTipo={detalhe.cenaAtual.tipo}
+        rodadaAtual={detalhe.rodadaAtual}
+        cards={cards}
+        npcs={npcs}
+        meuPersonagemCampanhaId={meuCard?.personagemCampanhaId ?? null}
+        atualizandoChave={atualizandoRegraOpcional}
+        onAtualizarRegra={handleAtualizarRegraOpcional}
+        onAjustarInspiracao={handleAjustarInspiracao}
+        onGastarInspiracao={handleGastarInspiracao}
+        onAtualizarSocial={handleAtualizarSocial}
+        onAtualizarEscalada={handleAtualizarEscalada}
+      />
+    </div>
+  );
+
   const painelControleCena = (
     <SessionSceneControlPanel
       podeControlarSessao={podeControlarSessao}
@@ -2260,6 +2459,7 @@ export default function SessaoCampanhaPage() {
       erroEncerramento={erroEncerramento}
       onControleTurno={(acao) => void handleControleTurno(acao)}
       onSolicitarEncerrarSessao={() => setConfirmarEncerrarSessaoAberto(true)}
+      optionalMechanicsPanel={painelMecanicasOpcionais}
     />
   );
 
@@ -2567,11 +2767,14 @@ export default function SessaoCampanhaPage() {
                 {colunaDireitaRecolhida ? painelOperacoesMesa : null}
               </>
             ) : (
-              <SessionSceneRosterPanel
-                cards={cards}
-                npcs={npcs}
-                iniciativaOrdem={iniciativaOrdem}
-              />
+              <>
+                <SessionSceneRosterPanel
+                  cards={cards}
+                  npcs={npcs}
+                  iniciativaOrdem={iniciativaOrdem}
+                />
+                {painelMecanicasOpcionais}
+              </>
             )}
           </section>
 
@@ -2611,6 +2814,10 @@ export default function SessaoCampanhaPage() {
                 enviandoRolagem={enviandoRolagem}
                 mensagem={mensagem}
                 mensagemRolagem={mensagemRolagem}
+                rolagemSecreta={rolagemSecreta}
+                contextoRolagem={contextoRolagem}
+                dtRolagem={dtRolagem}
+                bonusEscaladaDados={bonusEscaladaDados}
                 usuarioId={usuario?.id ?? null}
                 animacaoModalAtiva={animacaoRolagemChatAtiva}
                 onToggleAnimacaoModal={handleToggleAnimacaoRolagemChat}
@@ -2619,6 +2826,9 @@ export default function SessaoCampanhaPage() {
                 onEnviarMensagem={() => void handleEnviarMensagem()}
                 onMensagemRolagemChange={handleMensagemRolagemChange}
                 onEnviarRolagem={() => void handleEnviarRolagem()}
+                onToggleRolagemSecreta={setRolagemSecreta}
+                onContextoRolagemChange={setContextoRolagem}
+                onDtRolagemChange={setDtRolagem}
                 onAbrirDetalhes={(evento) => {
                   setEventoDetalheModal(evento);
                   setMotivoDesfazerEventoModal('');

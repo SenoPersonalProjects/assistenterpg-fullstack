@@ -167,6 +167,9 @@ describe('SessaoService', () => {
       eventoSessao: {
         create: jest.fn().mockResolvedValue({ id: 301 }),
       },
+      sessaoRegraOpcional: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
       sessaoRelatorio: {
         upsert: jest.fn().mockResolvedValue({ id: 1 }),
       },
@@ -197,6 +200,11 @@ describe('SessaoService', () => {
           sessaoId: 21,
           tipoEvento: 'SESSAO_ENCERRADA',
         }),
+      }),
+    );
+    expect(tx.sessaoRegraOpcional.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sessaoId: 21, chave: 'INSPIRACAO' },
       }),
     );
     expect(resultado).toEqual(detalheEncerrada);

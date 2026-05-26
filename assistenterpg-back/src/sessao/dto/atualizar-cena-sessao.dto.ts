@@ -11,6 +11,7 @@ const TIPOS_CENA = [
   'INVESTIGACAO',
   'FURTIVIDADE',
   'COMBATE',
+  'SOCIAL',
   'PERSEGUICAO',
   'BASE',
   'OUTRA',

@@ -31,6 +31,13 @@ import { RemoverCondicaoSessaoDto } from './dto/remover-condicao-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
 import { AdicionarPersonagemSessaoDto } from './dto/adicionar-personagem-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
+import {
+  AjustarInspiracaoSessaoDto,
+  AtualizarEncontroSocialSessaoDto,
+  AtualizarEscaladaDadosSessaoDto,
+  AtualizarRegraOpcionalSessaoDto,
+  GastarInspiracaoSessaoDto,
+} from './dto/regras-opcionais-sessao.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas/:campanhaId/sessoes')
@@ -124,7 +131,7 @@ export class SessaoController {
       campanhaId,
       sessaoId,
       req.user.id,
-      dto.mensagem,
+      dto,
     );
 
     this.sessaoGateway.emitirSessaoAtualizada(
@@ -580,6 +587,130 @@ export class SessaoController {
       'SESSAO_EVENTO_DESFEITO',
     );
 
+    return resultado;
+  }
+
+  @Get(':sessaoId/regras-opcionais')
+  async listarRegrasOpcionaisSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.sessaoService.listarRegrasOpcionaisSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+    );
+  }
+
+  @Patch(':sessaoId/regras-opcionais')
+  async atualizarRegraOpcionalSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarRegraOpcionalSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarRegraOpcionalSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'REGRA_OPCIONAL_ATUALIZADA',
+    );
+    return resultado;
+  }
+
+  @Post(':sessaoId/inspiracao/:personagemCampanhaId/ajustar')
+  async ajustarInspiracaoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AjustarInspiracaoSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.ajustarInspiracaoSessao(
+      campanhaId,
+      sessaoId,
+      personagemCampanhaId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'INSPIRACAO_AJUSTADA',
+    );
+    return resultado;
+  }
+
+  @Post(':sessaoId/inspiracao/:personagemCampanhaId/gastar')
+  async gastarInspiracaoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: GastarInspiracaoSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.gastarInspiracaoSessao(
+      campanhaId,
+      sessaoId,
+      personagemCampanhaId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'INSPIRACAO_GASTA',
+    );
+    return resultado;
+  }
+
+  @Post(':sessaoId/social/encontros')
+  @Patch(':sessaoId/social/encontros')
+  async atualizarEncontroSocialSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarEncontroSocialSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarEncontroSocialSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'ENCONTRO_SOCIAL_ATUALIZADO',
+    );
+    return resultado;
+  }
+
+  @Post(':sessaoId/escalada')
+  @Patch(':sessaoId/escalada')
+  async atualizarEscaladaDadosSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarEscaladaDadosSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarEscaladaDadosSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'ESCALADA_DADOS_ATUALIZADA',
+    );
     return resultado;
   }
 }

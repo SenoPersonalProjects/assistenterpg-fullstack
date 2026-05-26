@@ -23,6 +23,12 @@ describe('SessaoController', () => {
     atualizarNpcSessao: jest.fn(),
     removerNpcSessao: jest.fn(),
     desfazerEventoSessao: jest.fn(),
+    listarRegrasOpcionaisSessao: jest.fn(),
+    atualizarRegraOpcionalSessao: jest.fn(),
+    ajustarInspiracaoSessao: jest.fn(),
+    gastarInspiracaoSessao: jest.fn(),
+    atualizarEncontroSocialSessao: jest.fn(),
+    atualizarEscaladaDadosSessao: jest.fn(),
   };
 
   const sessaoGatewayMock = {
@@ -130,7 +136,7 @@ describe('SessaoController', () => {
       7,
       12,
       3,
-      'ola',
+      { mensagem: 'ola' },
     );
     expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
       7,
@@ -244,6 +250,139 @@ describe('SessaoController', () => {
       7,
       12,
       'SESSAO_EVENTO_DESFEITO',
+    );
+  });
+
+  it('deve listar regras opcionais da sessao', async () => {
+    sessaoServiceMock.listarRegrasOpcionaisSessao.mockResolvedValue({});
+
+    await controller.listarRegrasOpcionaisSessao(7, 12, { user: { id: 3 } });
+
+    expect(sessaoServiceMock.listarRegrasOpcionaisSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+    );
+  });
+
+  it('deve emitir evento ao atualizar regra opcional', async () => {
+    const dto = { chave: 'INSPIRACAO' as const, ativo: true };
+    sessaoServiceMock.atualizarRegraOpcionalSessao.mockResolvedValue({});
+
+    await controller.atualizarRegraOpcionalSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      dto,
+    );
+
+    expect(sessaoServiceMock.atualizarRegraOpcionalSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      dto,
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'REGRA_OPCIONAL_ATUALIZADA',
+    );
+  });
+
+  it('deve emitir evento ao ajustar inspiracao', async () => {
+    const dto = { delta: 1 };
+    sessaoServiceMock.ajustarInspiracaoSessao.mockResolvedValue({});
+
+    await controller.ajustarInspiracaoSessao(
+      7,
+      12,
+      44,
+      { user: { id: 3 } },
+      dto,
+    );
+
+    expect(sessaoServiceMock.ajustarInspiracaoSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      44,
+      3,
+      dto,
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'INSPIRACAO_AJUSTADA',
+    );
+  });
+
+  it('deve emitir evento ao gastar inspiracao', async () => {
+    const dto = { custo: 1, efeito: 'BONUS_5' as const };
+    sessaoServiceMock.gastarInspiracaoSessao.mockResolvedValue({});
+
+    await controller.gastarInspiracaoSessao(
+      7,
+      12,
+      44,
+      { user: { id: 3 } },
+      dto,
+    );
+
+    expect(sessaoServiceMock.gastarInspiracaoSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      44,
+      3,
+      dto,
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'INSPIRACAO_GASTA',
+    );
+  });
+
+  it('deve emitir evento ao atualizar encontro social', async () => {
+    const dto = { alvos: [] };
+    sessaoServiceMock.atualizarEncontroSocialSessao.mockResolvedValue({});
+
+    await controller.atualizarEncontroSocialSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      dto,
+    );
+
+    expect(
+      sessaoServiceMock.atualizarEncontroSocialSessao,
+    ).toHaveBeenCalledWith(7, 12, 3, dto);
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'ENCONTRO_SOCIAL_ATUALIZADO',
+    );
+  });
+
+  it('deve emitir evento ao atualizar escalada de dados', async () => {
+    const dto = { ativaNesteCombate: true, rodadaInicio: 1 };
+    sessaoServiceMock.atualizarEscaladaDadosSessao.mockResolvedValue({});
+
+    await controller.atualizarEscaladaDadosSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      dto,
+    );
+
+    expect(sessaoServiceMock.atualizarEscaladaDadosSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      dto,
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'ESCALADA_DADOS_ATUALIZADA',
     );
   });
 });

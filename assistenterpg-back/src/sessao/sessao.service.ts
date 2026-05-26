@@ -35,6 +35,15 @@ import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import {
+  AjustarInspiracaoSessaoDto,
+  AtualizarEncontroSocialSessaoDto,
+  AtualizarEscaladaDadosSessaoDto,
+  AtualizarRegraOpcionalSessaoDto,
+  GastarInspiracaoSessaoDto,
+  REGRAS_OPCIONAIS_SESSAO,
+  RegraOpcionalSessaoChave,
+} from './dto/regras-opcionais-sessao.dto';
+import {
   atendeRequisitoBaseTecnicaNaoInata,
   atendeRequisitosGraus,
   montarMapaGraus,
@@ -75,11 +84,39 @@ type EventoChatMapeado = {
   id: number;
   criadoEm: Date;
   mensagem: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  ocultaParaUsuario?: boolean;
+  dadosRolagem?: Prisma.JsonValue | null;
+  contextoRolagem?: Prisma.JsonValue | null;
+  ajustesAplicados?: Prisma.JsonValue | null;
   autor: {
     usuarioId: number | null;
     apelido: string;
     personagemNome: string | null;
   };
+};
+
+type SessaoRegraOpcionalResumo = {
+  chave: string;
+  ativo: boolean;
+  config: Prisma.JsonValue | null;
+  estado: Prisma.JsonValue | null;
+};
+
+type EstadoInspiracaoSessao = {
+  pontosPorPersonagem: Record<string, number>;
+};
+
+type EstadoEscaladaDadosSessao = {
+  ativaNesteCombate: boolean;
+  rodadaInicio: number;
+  bonusAtual: number;
+};
+
+type ContextoRolagemSessao = {
+  tipo?: string;
+  dt?: number;
+  expressao?: string;
 };
 
 type EventoSessaoMapeado = {
@@ -543,6 +580,13 @@ export class SessaoService {
         },
       });
 
+      await tx.sessaoRegraOpcional.updateMany({
+        where: { sessaoId, chave: 'INSPIRACAO' },
+        data: {
+          estado: this.jsonParaPersistencia({ pontosPorPersonagem: {} }),
+        },
+      });
+
       await tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -853,6 +897,14 @@ export class SessaoService {
             },
           },
         },
+        regrasOpcionais: {
+          select: {
+            chave: true,
+            ativo: true,
+            config: true,
+            estado: true,
+          },
+        },
       },
     });
 
@@ -977,6 +1029,10 @@ export class SessaoService {
         personagemCampanhaIds,
         mapaPericiaPorBusca,
       );
+    const regrasOpcionais = this.normalizarRegrasOpcionaisSessao(
+      sessao.regrasOpcionais,
+      sessao.rodadaAtual,
+    );
 
     return {
       id: sessao.id,
@@ -1026,6 +1082,7 @@ export class SessaoService {
         ehMestre: acesso.ehMestre,
         podeEditarTodos: acesso.ehMestre,
       },
+      regrasOpcionais,
       participantes: this.mapearParticipantesCampanha(acesso.campanha),
       cards: personagensOrdenados.map((personagem) => {
         const podeEditar =
@@ -1416,7 +1473,11 @@ export class SessaoService {
     usuarioId: number,
     afterId?: number,
   ) {
-    await this.obterSessaoComAcesso(campanhaId, sessaoId, usuarioId);
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
 
     const eventos = await this.prisma.eventoSessao.findMany({
       where: {
@@ -1445,7 +1506,9 @@ export class SessaoService {
       take: 150,
     });
 
-    return eventos.map((evento) => this.mapearEventoChat(evento));
+    return eventos.map((evento) =>
+      this.mapearEventoChat(evento, acesso.ehMestre),
+    );
   }
 
   async buscarRelatorioSessao(
@@ -1878,11 +1941,24 @@ export class SessaoService {
     campanhaId: number,
     sessaoId: number,
     usuarioId: number,
-    mensagem: string,
+    dto: {
+      mensagem: string;
+      visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+      dadosRolagem?: Record<string, unknown>;
+      contextoRolagem?: Record<string, unknown>;
+    },
   ) {
-    await this.obterSessaoComAcesso(campanhaId, sessaoId, usuarioId);
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
 
-    const mensagemLimpa = mensagem.trim();
+    const mensagemLimpa = dto.mensagem.trim();
+    const visibilidade = dto.visibilidade ?? 'PUBLICA';
+    if (visibilidade === 'SECRETA_MESTRE' && !acesso.ehMestre) {
+      throw new CampanhaApenasMestreException('enviar rolagem secreta');
+    }
 
     const personagemDoUsuario = await this.prisma.personagemSessao.findFirst({
       where: {
@@ -1915,38 +1991,67 @@ export class SessaoService {
       throw new UsuarioNaoEncontradoException(usuarioId);
     }
 
-    const evento = await this.prisma.eventoSessao.create({
-      data: {
-        sessaoId,
-        tipoEvento: 'CHAT',
-        personagemAtorId: personagemDoUsuario?.id ?? null,
-        dados: {
-          mensagem: mensagemLimpa,
-          autorApelido: personagemDoUsuario
-            ? personagemDoUsuario.personagemCampanha.dono.apelido
-            : usuario.apelido,
+    const ajustesAplicados = await this.resolverAjustesRolagemSessao(
+      sessaoId,
+      dto.contextoRolagem,
+    );
+    const inspiracaoAutomatica =
+      personagemDoUsuario?.personagemCampanha.donoId === usuarioId
+        ? await this.resolverInspiracaoFalhaCritica(
+            sessaoId,
+            personagemDoUsuario.personagemCampanhaId,
+            dto.dadosRolagem,
+            dto.contextoRolagem,
+          )
+        : null;
+
+    const evento = await this.prisma.$transaction(async (tx) => {
+      if (inspiracaoAutomatica) {
+        await this.aplicarInspiracaoAutomaticaTx(
+          tx,
+          sessaoId,
+          inspiracaoAutomatica.personagemCampanhaId,
+        );
+      }
+
+      return tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          tipoEvento: 'CHAT',
+          personagemAtorId: personagemDoUsuario?.id ?? null,
+          dados: this.jsonParaPersistencia({
+            mensagem: mensagemLimpa,
+            autorApelido: personagemDoUsuario
+              ? personagemDoUsuario.personagemCampanha.dono.apelido
+              : usuario.apelido,
+            visibilidade,
+            dadosRolagem: dto.dadosRolagem ?? null,
+            contextoRolagem: dto.contextoRolagem ?? null,
+            ajustesAplicados,
+            inspiracaoAutomatica,
+          }),
         },
-      },
-      include: {
-        personagemAtor: {
-          include: {
-            personagemCampanha: {
-              select: {
-                nome: true,
-                donoId: true,
-                dono: {
-                  select: {
-                    apelido: true,
+        include: {
+          personagemAtor: {
+            include: {
+              personagemCampanha: {
+                select: {
+                  nome: true,
+                  donoId: true,
+                  dono: {
+                    select: {
+                      apelido: true,
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
+      });
     });
 
-    return this.mapearEventoChat(evento);
+    return this.mapearEventoChat(evento, true);
   }
 
   async listarEventosSessao(
@@ -2795,6 +2900,33 @@ export class SessaoService {
           limitesCategoriaInventarioAtivo: limitesCategoriaAtivo,
         },
       });
+
+      if (dto.tipo === 'COMBATE' && sessao.cenaAtualTipo !== 'COMBATE') {
+        const regraEscalada = await tx.sessaoRegraOpcional.findUnique({
+          where: {
+            sessaoId_chave: {
+              sessaoId,
+              chave: 'ESCALADA_DADOS',
+            },
+          },
+          select: {
+            id: true,
+            ativo: true,
+          },
+        });
+        if (regraEscalada?.ativo) {
+          await tx.sessaoRegraOpcional.update({
+            where: { id: regraEscalada.id },
+            data: {
+              estado: this.jsonParaPersistencia({
+                ativaNesteCombate: false,
+                rodadaInicio: rodadaNova,
+                bonusAtual: 0,
+              }),
+            },
+          });
+        }
+      }
 
       await tx.eventoSessao.create({
         data: {
@@ -4260,6 +4392,702 @@ export class SessaoService {
     usuarioId: number,
   ): Promise<void> {
     await this.obterSessaoComAcesso(campanhaId, sessaoId, usuarioId);
+  }
+
+  async listarRegrasOpcionaisSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+  ) {
+    await this.obterSessaoComAcesso(campanhaId, sessaoId, usuarioId);
+    const sessao = await this.prisma.sessao.findUnique({
+      where: { id: sessaoId },
+      select: {
+        rodadaAtual: true,
+        regrasOpcionais: {
+          select: {
+            chave: true,
+            ativo: true,
+            config: true,
+            estado: true,
+          },
+        },
+      },
+    });
+
+    return this.normalizarRegrasOpcionaisSessao(
+      sessao?.regrasOpcionais ?? [],
+      sessao?.rodadaAtual ?? 1,
+    );
+  }
+
+  async atualizarRegraOpcionalSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarRegraOpcionalSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'alterar mecanicas opcionais');
+    await this.assertSessaoPertenceCampanha(sessaoId, campanhaId);
+
+    const regra = await this.prisma.sessaoRegraOpcional.upsert({
+      where: {
+        sessaoId_chave: {
+          sessaoId,
+          chave: dto.chave,
+        },
+      },
+      update: {
+        ativo: dto.ativo,
+        config: this.jsonParaPersistencia(dto.config ?? {}),
+      },
+      create: {
+        sessaoId,
+        chave: dto.chave,
+        ativo: dto.ativo,
+        config: this.jsonParaPersistencia(dto.config ?? {}),
+        estado: this.jsonParaPersistencia(
+          this.estadoInicialRegra(dto.chave, 1),
+        ),
+      },
+    });
+
+    const cenaAtual = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
+    await this.prisma.eventoSessao.create({
+      data: {
+        sessaoId,
+        cenaId: cenaAtual.id,
+        tipoEvento: 'REGRA_OPCIONAL_ATUALIZADA',
+        dados: this.jsonParaPersistencia({
+          chave: dto.chave,
+          ativo: dto.ativo,
+          atualizadoPorId: usuarioId,
+        }),
+      },
+    });
+
+    return regra;
+  }
+
+  async ajustarInspiracaoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: AjustarInspiracaoSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'ajustar pontos de inspiracao');
+    await this.assertPersonagemCampanhaNaSessao(
+      sessaoId,
+      campanhaId,
+      personagemCampanhaId,
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      const regra = await this.obterOuCriarRegraOpcionalTx(
+        tx,
+        sessaoId,
+        'INSPIRACAO',
+      );
+      if (!regra.ativo) {
+        throw new BusinessException(
+          'Pontos de inspiracao nao estao ativos nesta sessao.',
+          'SESSAO_INSPIRACAO_INATIVA',
+        );
+      }
+      const estado = this.normalizarEstadoInspiracao(regra.estado);
+      const chave = String(personagemCampanhaId);
+      const atual = estado.pontosPorPersonagem[chave] ?? 0;
+      const proximo = this.clamp(atual + dto.delta, 0, 3);
+      estado.pontosPorPersonagem[chave] = proximo;
+
+      await tx.sessaoRegraOpcional.update({
+        where: { id: regra.id },
+        data: { estado: this.jsonParaPersistencia(estado) },
+      });
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'INSPIRACAO_AJUSTADA',
+          dados: this.jsonParaPersistencia({
+            personagemCampanhaId,
+            valorAnterior: atual,
+            valorNovo: proximo,
+            delta: dto.delta,
+            atualizadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async gastarInspiracaoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: GastarInspiracaoSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    const personagem = await this.assertPersonagemCampanhaNaSessao(
+      sessaoId,
+      campanhaId,
+      personagemCampanhaId,
+    );
+    if (!acesso.ehMestre && personagem.donoId !== usuarioId) {
+      throw new CampanhaPersonagemEdicaoNegadaException(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const regra = await this.obterOuCriarRegraOpcionalTx(
+        tx,
+        sessaoId,
+        'INSPIRACAO',
+      );
+      if (!regra.ativo) {
+        throw new BusinessException(
+          'Pontos de inspiracao nao estao ativos nesta sessao.',
+          'SESSAO_INSPIRACAO_INATIVA',
+        );
+      }
+      const estado = this.normalizarEstadoInspiracao(regra.estado);
+      const chave = String(personagemCampanhaId);
+      const atual = estado.pontosPorPersonagem[chave] ?? 0;
+      if (atual < dto.custo) {
+        throw new BusinessException(
+          'Pontos de inspiracao insuficientes.',
+          'SESSAO_INSPIRACAO_SALDO_INSUFICIENTE',
+        );
+      }
+      const proximo = atual - dto.custo;
+      estado.pontosPorPersonagem[chave] = proximo;
+
+      await tx.sessaoRegraOpcional.update({
+        where: { id: regra.id },
+        data: { estado: this.jsonParaPersistencia(estado) },
+      });
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'INSPIRACAO_GASTA',
+          dados: this.jsonParaPersistencia({
+            personagemCampanhaId,
+            personagemNome: personagem.nome,
+            custo: dto.custo,
+            efeito: dto.efeito,
+            valorAnterior: atual,
+            valorNovo: proximo,
+            atualizadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async atualizarEncontroSocialSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarEncontroSocialSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'alterar encontro social');
+    await this.assertSessaoPertenceCampanha(sessaoId, campanhaId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const regra = await this.obterOuCriarRegraOpcionalTx(
+        tx,
+        sessaoId,
+        'ENCONTROS_SOCIAIS',
+      );
+      if (!regra.ativo) {
+        throw new BusinessException(
+          'Encontros sociais alternativos nao estao ativos nesta sessao.',
+          'SESSAO_SOCIAL_INATIVO',
+        );
+      }
+      const alvos = dto.alvos.map((alvo, indice) => ({
+        id: `${alvo.npcSessaoId ?? 'custom'}:${indice}`,
+        npcSessaoId: alvo.npcSessaoId ?? null,
+        nome: alvo.nome.trim(),
+        interesseAtual: this.clamp(alvo.interesseAtual, 0, 4),
+        interesseAlvo: this.clamp(alvo.interesseAlvo, 1, 5),
+        pacienciaAtual: this.clamp(alvo.pacienciaAtual, 0, 5),
+        motivacoes: (alvo.motivacoes ?? []).map((motivacao) => ({
+          texto: motivacao.texto.trim(),
+          revelada: motivacao.revelada === true,
+        })),
+      }));
+
+      await tx.sessaoRegraOpcional.update({
+        where: { id: regra.id },
+        data: {
+          estado: this.jsonParaPersistencia({ alvos }),
+        },
+      });
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'ENCONTRO_SOCIAL_ATUALIZADO',
+          dados: this.jsonParaPersistencia({
+            totalAlvos: alvos.length,
+            atualizadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async atualizarEscaladaDadosSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarEscaladaDadosSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    this.assertMestre(acesso, 'alterar escalada de dados');
+    const sessao = await this.assertSessaoPertenceCampanha(
+      sessaoId,
+      campanhaId,
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      const regra = await this.obterOuCriarRegraOpcionalTx(
+        tx,
+        sessaoId,
+        'ESCALADA_DADOS',
+      );
+      if (!regra.ativo) {
+        throw new BusinessException(
+          'Escalada de dados nao esta ativa nesta sessao.',
+          'SESSAO_ESCALADA_INATIVA',
+        );
+      }
+      const rodadaInicio = dto.rodadaInicio ?? sessao.rodadaAtual;
+      const estado: EstadoEscaladaDadosSessao = {
+        ativaNesteCombate: dto.ativaNesteCombate,
+        rodadaInicio,
+        bonusAtual: dto.ativaNesteCombate
+          ? this.calcularBonusEscalada(sessao.rodadaAtual, rodadaInicio)
+          : 0,
+      };
+      await tx.sessaoRegraOpcional.update({
+        where: { id: regra.id },
+        data: {
+          estado: this.jsonParaPersistencia(estado),
+        },
+      });
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'ESCALADA_DADOS_ATUALIZADA',
+          dados: this.jsonParaPersistencia({
+            ...estado,
+            atualizadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  private normalizarRegrasOpcionaisSessao(
+    regras: SessaoRegraOpcionalResumo[],
+    rodadaAtual: number,
+  ) {
+    const mapa = new Map(regras.map((regra) => [regra.chave, regra] as const));
+    return Object.fromEntries(
+      REGRAS_OPCIONAIS_SESSAO.map((chave) => {
+        const regra = mapa.get(chave);
+        const estadoBase =
+          regra?.estado ?? this.estadoInicialRegra(chave, rodadaAtual);
+        const estado =
+          chave === 'ESCALADA_DADOS'
+            ? this.normalizarEstadoEscalada(estadoBase, rodadaAtual)
+            : chave === 'INSPIRACAO'
+              ? this.normalizarEstadoInspiracao(estadoBase)
+              : this.extrairRegistro(estadoBase);
+
+        return [
+          chave,
+          {
+            chave,
+            ativo: regra?.ativo ?? false,
+            config: regra?.config ?? {},
+            estado,
+          },
+        ];
+      }),
+    );
+  }
+
+  private async resolverAjustesRolagemSessao(
+    sessaoId: number,
+    contextoRaw?: Record<string, unknown>,
+  ): Promise<Prisma.JsonValue[]> {
+    const contexto = this.normalizarContextoRolagem(contextoRaw);
+    if (contexto.tipo !== 'ATAQUE') return [];
+
+    const sessao = await this.prisma.sessao.findUnique({
+      where: { id: sessaoId },
+      select: {
+        rodadaAtual: true,
+        cenaAtualTipo: true,
+        regrasOpcionais: {
+          where: { chave: 'ESCALADA_DADOS' },
+          select: {
+            ativo: true,
+            estado: true,
+          },
+          take: 1,
+        },
+      },
+    });
+    const regra = sessao?.regrasOpcionais[0];
+    if (!sessao || sessao.cenaAtualTipo !== 'COMBATE' || !regra?.ativo) {
+      return [];
+    }
+    const estado = this.normalizarEstadoEscalada(
+      regra.estado,
+      sessao.rodadaAtual,
+    );
+    if (!estado.ativaNesteCombate || estado.bonusAtual <= 0) return [];
+    return [
+      {
+        tipo: 'ESCALADA_DADOS',
+        valor: estado.bonusAtual,
+        descricao: `Escalada de Dados +${estado.bonusAtual}`,
+      },
+    ];
+  }
+
+  private async resolverInspiracaoFalhaCritica(
+    sessaoId: number,
+    personagemCampanhaId: number,
+    dadosRolagem?: Record<string, unknown>,
+    contextoRaw?: Record<string, unknown>,
+  ) {
+    const contexto = this.normalizarContextoRolagem(contextoRaw);
+    if (typeof contexto.dt !== 'number') return null;
+
+    const payload = this.extrairPayloadsRolagem(dadosRolagem)[0];
+    if (!payload) return null;
+    const rolagens = Array.isArray(payload.rolagens)
+      ? payload.rolagens.filter(
+          (valor): valor is number => typeof valor === 'number',
+        )
+      : [];
+    if (!rolagens.includes(1)) return null;
+    const total = this.calcularTotalPayloadRolagem(payload);
+    if (total >= contexto.dt) return null;
+
+    const regra = await this.prisma.sessaoRegraOpcional.findUnique({
+      where: {
+        sessaoId_chave: {
+          sessaoId,
+          chave: 'INSPIRACAO',
+        },
+      },
+      select: {
+        ativo: true,
+      },
+    });
+    if (!regra?.ativo) return null;
+
+    return {
+      personagemCampanhaId,
+      motivo: 'FALHA_CRITICA',
+      dt: contexto.dt,
+      total,
+    };
+  }
+
+  private async aplicarInspiracaoAutomaticaTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    personagemCampanhaId: number,
+  ) {
+    const regra = await this.obterOuCriarRegraOpcionalTx(
+      tx,
+      sessaoId,
+      'INSPIRACAO',
+    );
+    const estado = this.normalizarEstadoInspiracao(regra.estado);
+    const chave = String(personagemCampanhaId);
+    const atual = estado.pontosPorPersonagem[chave] ?? 0;
+    const proximo = this.clamp(atual + 1, 0, 3);
+    estado.pontosPorPersonagem[chave] = proximo;
+
+    await tx.sessaoRegraOpcional.update({
+      where: { id: regra.id },
+      data: { estado: this.jsonParaPersistencia(estado) },
+    });
+
+    if (proximo === atual) return;
+    const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId,
+        cenaId: cenaAtual.id,
+        tipoEvento: 'INSPIRACAO_AJUSTADA',
+        dados: this.jsonParaPersistencia({
+          personagemCampanhaId,
+          valorAnterior: atual,
+          valorNovo: proximo,
+          delta: 1,
+          motivo: 'FALHA_CRITICA',
+        }),
+      },
+    });
+  }
+
+  private normalizarContextoRolagem(
+    contexto?: Record<string, unknown>,
+  ): ContextoRolagemSessao {
+    const tipo =
+      typeof contexto?.tipo === 'string'
+        ? contexto.tipo.trim().toUpperCase()
+        : undefined;
+    const dtRaw = contexto?.dt;
+    const dt =
+      typeof dtRaw === 'number' && Number.isFinite(dtRaw)
+        ? Math.trunc(dtRaw)
+        : undefined;
+    const expressao =
+      typeof contexto?.expressao === 'string'
+        ? contexto.expressao.trim()
+        : undefined;
+
+    return { tipo, dt, expressao };
+  }
+
+  private extrairPayloadsRolagem(
+    dadosRolagem?: Record<string, unknown>,
+  ): Array<Record<string, unknown>> {
+    const payloads = dadosRolagem?.payloads;
+    if (Array.isArray(payloads)) {
+      return payloads.filter(
+        (payload): payload is Record<string, unknown> =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          !Array.isArray(payload),
+      );
+    }
+    const payload = dadosRolagem?.payload;
+    if (
+      typeof payload === 'object' &&
+      payload !== null &&
+      !Array.isArray(payload)
+    ) {
+      return [payload as Record<string, unknown>];
+    }
+    return [];
+  }
+
+  private calcularTotalPayloadRolagem(
+    payload: Record<string, unknown>,
+  ): number {
+    const rolagens = Array.isArray(payload.rolagens)
+      ? payload.rolagens.filter(
+          (valor): valor is number => typeof valor === 'number',
+        )
+      : [];
+    const totalBase = rolagens.reduce((total, valor) => total + valor, 0);
+    const modificador =
+      typeof payload.modificador === 'number' &&
+      Number.isFinite(payload.modificador)
+        ? Math.trunc(payload.modificador)
+        : 0;
+    const operador =
+      typeof payload.operador === 'string' ? payload.operador : '+';
+
+    switch (operador) {
+      case '-':
+        return totalBase - modificador;
+      case '*':
+        return totalBase * modificador;
+      case '/':
+        return modificador === 0
+          ? totalBase
+          : Math.trunc(totalBase / modificador);
+      default:
+        return totalBase + modificador;
+    }
+  }
+
+  private estadoInicialRegra(
+    chave: RegraOpcionalSessaoChave,
+    rodadaAtual: number,
+  ): Prisma.JsonValue {
+    if (chave === 'INSPIRACAO') {
+      return { pontosPorPersonagem: {} };
+    }
+    if (chave === 'ENCONTROS_SOCIAIS') {
+      return { alvos: [] };
+    }
+    return {
+      ativaNesteCombate: false,
+      rodadaInicio: rodadaAtual,
+      bonusAtual: 0,
+    };
+  }
+
+  private normalizarEstadoInspiracao(
+    estado: Prisma.JsonValue | null,
+  ): EstadoInspiracaoSessao {
+    const registro = this.extrairRegistro(estado);
+    const bruto = this.extrairRegistro(registro.pontosPorPersonagem ?? {});
+    const pontosPorPersonagem: Record<string, number> = {};
+    for (const [chave, valor] of Object.entries(bruto)) {
+      if (typeof valor !== 'number' || !Number.isFinite(valor)) continue;
+      pontosPorPersonagem[chave] = this.clamp(Math.trunc(valor), 0, 3);
+    }
+    return { pontosPorPersonagem };
+  }
+
+  private normalizarEstadoEscalada(
+    estado: Prisma.JsonValue | null,
+    rodadaAtual: number,
+  ): EstadoEscaladaDadosSessao {
+    const registro = this.extrairRegistro(estado);
+    const ativaNesteCombate = registro.ativaNesteCombate === true;
+    const rodadaInicio =
+      this.lerInteiroOpcionalRegistro(registro, 'rodadaInicio') ?? rodadaAtual;
+    return {
+      ativaNesteCombate,
+      rodadaInicio,
+      bonusAtual: ativaNesteCombate
+        ? this.calcularBonusEscalada(rodadaAtual, rodadaInicio)
+        : 0,
+    };
+  }
+
+  private calcularBonusEscalada(
+    rodadaAtual: number,
+    rodadaInicio: number,
+  ): number {
+    return this.clamp(Math.trunc(rodadaAtual) - Math.trunc(rodadaInicio), 0, 6);
+  }
+
+  private clamp(valor: number, minimo: number, maximo: number): number {
+    return Math.max(minimo, Math.min(maximo, Math.trunc(valor)));
+  }
+
+  private async assertSessaoPertenceCampanha(
+    sessaoId: number,
+    campanhaId: number,
+  ) {
+    const sessao = await this.prisma.sessao.findUnique({
+      where: { id: sessaoId },
+      select: {
+        id: true,
+        campanhaId: true,
+        rodadaAtual: true,
+        cenaAtualTipo: true,
+      },
+    });
+
+    if (!sessao || sessao.campanhaId !== campanhaId) {
+      throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+    }
+
+    return sessao;
+  }
+
+  private async assertPersonagemCampanhaNaSessao(
+    sessaoId: number,
+    campanhaId: number,
+    personagemCampanhaId: number,
+  ) {
+    const personagem = await this.prisma.personagemSessao.findFirst({
+      where: {
+        sessaoId,
+        personagemCampanhaId,
+        sessao: {
+          campanhaId,
+        },
+      },
+      select: {
+        id: true,
+        personagemCampanhaId: true,
+        personagemCampanha: {
+          select: {
+            nome: true,
+            donoId: true,
+          },
+        },
+      },
+    });
+
+    if (!personagem) {
+      throw new PersonagemCampanhaNaoEncontradoException(personagemCampanhaId);
+    }
+
+    return {
+      personagemSessaoId: personagem.id,
+      personagemCampanhaId: personagem.personagemCampanhaId,
+      nome: personagem.personagemCampanha.nome,
+      donoId: personagem.personagemCampanha.donoId,
+    };
+  }
+
+  private async obterOuCriarRegraOpcionalTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    chave: RegraOpcionalSessaoChave,
+  ) {
+    const sessao = await tx.sessao.findUnique({
+      where: { id: sessaoId },
+      select: { rodadaAtual: true },
+    });
+    const rodadaAtual = sessao?.rodadaAtual ?? 1;
+    return tx.sessaoRegraOpcional.upsert({
+      where: {
+        sessaoId_chave: {
+          sessaoId,
+          chave,
+        },
+      },
+      update: {},
+      create: {
+        sessaoId,
+        chave,
+        ativo: false,
+        config: this.jsonParaPersistencia({}),
+        estado: this.jsonParaPersistencia(
+          this.estadoInicialRegra(chave, rodadaAtual),
+        ),
+      },
+    });
   }
 
   private async obterAcessoCampanha(
@@ -7278,10 +8106,14 @@ export class SessaoService {
   }
 
   private jsonParaPersistencia(
-    valor: Prisma.JsonValue | null,
+    valor: unknown,
   ): Prisma.InputJsonValue | Prisma.JsonNullValueInput {
-    if (valor === null) return Prisma.JsonNull;
+    if (valor === null || typeof valor === 'undefined') return Prisma.JsonNull;
     return valor as Prisma.InputJsonValue;
+  }
+
+  private ehJsonValueOuNull(valor: unknown): valor is Prisma.JsonValue | null {
+    return valor === null || typeof valor !== 'undefined';
   }
 
   private async obterUltimoEventoReversivelDisponivel(
@@ -7884,6 +8716,7 @@ export class SessaoService {
       INVESTIGACAO: 'Investigacao',
       FURTIVIDADE: 'Furtividade',
       COMBATE: 'Combate',
+      SOCIAL: 'Encontro social',
       PERSEGUICAO: 'Perseguicao',
       BASE: 'Base',
       OUTRA: 'Outra',
@@ -7955,17 +8788,43 @@ export class SessaoService {
         };
       };
     }>,
+    podeVerSegredo = false,
   ): EventoChatMapeado {
     const dados = (evento.dados ?? {}) as Record<string, unknown>;
-    const mensagem = typeof dados.mensagem === 'string' ? dados.mensagem : '';
+    const visibilidade =
+      dados.visibilidade === 'SECRETA_MESTRE' ? 'SECRETA_MESTRE' : 'PUBLICA';
+    const ocultaParaUsuario =
+      visibilidade === 'SECRETA_MESTRE' && !podeVerSegredo;
+    const mensagem = ocultaParaUsuario
+      ? 'O mestre fez uma rolagem secreta.'
+      : typeof dados.mensagem === 'string'
+        ? dados.mensagem
+        : '';
     const apelidoFallback =
       typeof dados.autorApelido === 'string' ? dados.autorApelido : 'Sistema';
+    const dadosRolagem =
+      !ocultaParaUsuario && this.ehJsonValueOuNull(dados.dadosRolagem)
+        ? dados.dadosRolagem
+        : null;
+    const contextoRolagem =
+      !ocultaParaUsuario && this.ehJsonValueOuNull(dados.contextoRolagem)
+        ? dados.contextoRolagem
+        : null;
+    const ajustesAplicados =
+      !ocultaParaUsuario && this.ehJsonValueOuNull(dados.ajustesAplicados)
+        ? dados.ajustesAplicados
+        : null;
 
     if (!evento.personagemAtor) {
       return {
         id: evento.id,
         criadoEm: evento.criadoEm,
         mensagem,
+        visibilidade,
+        ocultaParaUsuario,
+        dadosRolagem,
+        contextoRolagem,
+        ajustesAplicados,
         autor: {
           usuarioId: null,
           apelido: apelidoFallback,
@@ -7978,6 +8837,11 @@ export class SessaoService {
       id: evento.id,
       criadoEm: evento.criadoEm,
       mensagem,
+      visibilidade,
+      ocultaParaUsuario,
+      dadosRolagem,
+      contextoRolagem,
+      ajustesAplicados,
       autor: {
         usuarioId: evento.personagemAtor.personagemCampanha.donoId,
         apelido: evento.personagemAtor.personagemCampanha.dono.apelido,

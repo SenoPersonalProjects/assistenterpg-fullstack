@@ -159,9 +159,55 @@ export type TipoCenaSessaoCampanha =
   | 'INVESTIGACAO'
   | 'FURTIVIDADE'
   | 'COMBATE'
+  | 'SOCIAL'
   | 'PERSEGUICAO'
   | 'BASE'
   | 'OUTRA';
+
+export type RegraOpcionalSessaoChave =
+  | 'INSPIRACAO'
+  | 'ENCONTROS_SOCIAIS'
+  | 'ESCALADA_DADOS';
+
+export type EstadoInspiracaoSessao = {
+  pontosPorPersonagem: Record<string, number>;
+};
+
+export type AlvoEncontroSocialSessao = {
+  id?: string;
+  npcSessaoId: number | null;
+  nome: string;
+  interesseAtual: number;
+  interesseAlvo: number;
+  pacienciaAtual: number;
+  motivacoes: Array<{
+    texto: string;
+    revelada: boolean;
+  }>;
+};
+
+export type EstadoEncontroSocialSessao = {
+  alvos: AlvoEncontroSocialSessao[];
+};
+
+export type EstadoEscaladaDadosSessao = {
+  ativaNesteCombate: boolean;
+  rodadaInicio: number;
+  bonusAtual: number;
+};
+
+export type RegraOpcionalSessao<TEstado = unknown> = {
+  chave: RegraOpcionalSessaoChave;
+  ativo: boolean;
+  config: unknown;
+  estado: TEstado;
+};
+
+export type RegrasOpcionaisSessao = {
+  INSPIRACAO: RegraOpcionalSessao<EstadoInspiracaoSessao>;
+  ENCONTROS_SOCIAIS: RegraOpcionalSessao<EstadoEncontroSocialSessao>;
+  ESCALADA_DADOS: RegraOpcionalSessao<EstadoEscaladaDadosSessao>;
+};
 
 export type AtributosSessaoCampanha = {
   agilidade: number;
@@ -467,6 +513,7 @@ export type SessaoCampanhaDetalhe = {
     ehMestre: boolean;
     podeEditarTodos: boolean;
   };
+  regrasOpcionais?: RegrasOpcionaisSessao;
   participantes: Array<{
     usuarioId: number;
     apelido: string;
@@ -643,6 +690,11 @@ export type MensagemChatSessao = {
   id: number;
   criadoEm: string;
   mensagem: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  ocultaParaUsuario?: boolean;
+  dadosRolagem?: unknown;
+  contextoRolagem?: unknown;
+  ajustesAplicados?: unknown;
   autor: {
     usuarioId: number | null;
     apelido: string;
