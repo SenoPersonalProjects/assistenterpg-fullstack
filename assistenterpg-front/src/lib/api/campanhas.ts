@@ -524,7 +524,7 @@ export async function apiAtualizarEncontroSocialSessaoCampanha(
 export async function apiAtualizarEscaladaDadosSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
-  payload: { ativaNesteCombate: boolean; rodadaInicio?: number },
+  payload: { ativaNesteCombate: boolean; rodadaInicio?: number; bonusAtual?: number },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.patch(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/escalada`,

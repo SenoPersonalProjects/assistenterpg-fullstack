@@ -71,6 +71,7 @@ import {
 } from '@/components/campanha/sessao/SessionMasterControls';
 import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
 import { SessionOptionalMechanicsPanel } from '@/components/campanha/sessao/SessionOptionalMechanicsPanel';
+import { SessionSocialTargetsPanel } from '@/components/campanha/sessao/SessionSocialTargetsPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
 import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
@@ -444,6 +445,17 @@ export default function SessaoCampanhaPage() {
     regrasOpcionais.ESCALADA_DADOS.estado.ativaNesteCombate
       ? regrasOpcionais.ESCALADA_DADOS.estado.bonusAtual
       : 0;
+  const inspiracaoAtiva = regrasOpcionais?.INSPIRACAO?.ativo === true;
+  const pontosInspiracaoPorPersonagem =
+    regrasOpcionais?.INSPIRACAO?.estado.pontosPorPersonagem ?? {};
+  const socialAtivo =
+    detalhe?.cenaAtual.tipo === 'SOCIAL' &&
+    regrasOpcionais?.ENCONTROS_SOCIAIS?.ativo === true;
+  const alvosSociais = useMemo(
+    () => regrasOpcionais?.ENCONTROS_SOCIAIS?.estado.alvos ?? [],
+    [regrasOpcionais?.ENCONTROS_SOCIAIS?.estado.alvos],
+  );
+  const escaladaRegraAtiva = regrasOpcionais?.ESCALADA_DADOS?.ativo === true;
   const dtRolagemNumero = useMemo(() => {
     if (!dtRolagem.trim()) return undefined;
     const valor = Number(dtRolagem);
@@ -1361,15 +1373,30 @@ export default function SessaoCampanhaPage() {
     [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
   );
 
+  const handleAtualizarAlvoSocial = useCallback(
+    (alvoAtualizado: AlvoEncontroSocialSessao, patch: Partial<AlvoEncontroSocialSessao>) => {
+      const alvosAtualizados = alvosSociais.map((alvo, index) => {
+        const mesmoAlvo = alvo.id
+          ? alvo.id === alvoAtualizado.id
+          : alvo.npcSessaoId === alvoAtualizado.npcSessaoId &&
+            alvo.nome === alvoAtualizado.nome &&
+            index === alvosSociais.indexOf(alvoAtualizado);
+        return mesmoAlvo ? { ...alvo, ...patch } : alvo;
+      });
+      void handleAtualizarSocial(alvosAtualizados);
+    },
+    [alvosSociais, handleAtualizarSocial],
+  );
+
   const handleAtualizarEscalada = useCallback(
-    async (ativaNesteCombate: boolean, rodadaInicio?: number) => {
+    async (ativaNesteCombate: boolean, rodadaInicio?: number, bonusAtual?: number) => {
       setAtualizandoRegraOpcional('ESCALADA_DADOS');
       setErroRegrasOpcionais(null);
       try {
         const atualizado = await apiAtualizarEscaladaDadosSessaoCampanha(
           campanhaId,
           sessaoId,
-          { ativaNesteCombate, rodadaInicio },
+          { ativaNesteCombate, rodadaInicio, bonusAtual },
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
@@ -1381,6 +1408,23 @@ export default function SessaoCampanhaPage() {
       }
     },
     [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
+
+  const handleAtualizarBonusEscalada = useCallback(
+    (bonusAtual: number) => {
+      void handleAtualizarEscalada(
+        true,
+        regrasOpcionais?.ESCALADA_DADOS?.estado.rodadaInicio ??
+          detalhe?.rodadaAtual ??
+          1,
+        bonusAtual,
+      );
+    },
+    [
+      detalhe?.rodadaAtual,
+      handleAtualizarEscalada,
+      regrasOpcionais?.ESCALADA_DADOS?.estado.rodadaInicio,
+    ],
   );
 
   const handleMarcarIniciativaAlternada = useCallback(
@@ -1452,6 +1496,15 @@ export default function SessaoCampanhaPage() {
       );
       setDetalhe(atualizado);
       sincronizarEstadosDerivados(atualizado);
+      const afterId = chatRef.current.length
+        ? chatRef.current[chatRef.current.length - 1].id
+        : undefined;
+      const mensagensNovas = await apiListarChatSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        afterId,
+      );
+      anexarMensagensNoChat(mensagensNovas);
       showToast(
         payload.modo === 'MANUAL'
           ? 'Consumo registrado para resolução manual.'
@@ -1459,7 +1512,7 @@ export default function SessaoCampanhaPage() {
         'success',
       );
     },
-    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+    [anexarMensagensNoChat, campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
   );
 
   const handleRolarPericia = useCallback(
@@ -2108,6 +2161,7 @@ export default function SessaoCampanhaPage() {
         (mensagemChat) =>
           mensagemChat.ocultaParaUsuario ||
           mensagemChat.visibilidade === 'SECRETA_MESTRE' ||
+          Boolean(mensagemChat.dadosRolagem) ||
           ehMensagemDice(mensagemChat.mensagem),
       ),
     [chat],
@@ -2118,6 +2172,7 @@ export default function SessaoCampanhaPage() {
         (mensagemChat) =>
           !mensagemChat.ocultaParaUsuario &&
           mensagemChat.visibilidade !== 'SECRETA_MESTRE' &&
+          !mensagemChat.dadosRolagem &&
           !ehMensagemDice(mensagemChat.mensagem),
       ),
     [chat],
@@ -2437,6 +2492,17 @@ export default function SessaoCampanhaPage() {
       renderPainelCondicoes={renderPainelCondicoes}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
       consumirComCalmaAtivo={regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true}
+      recursosCompactosObrigatorios={socialAtivo}
+      inspiracaoAtiva={inspiracaoAtiva}
+      pontosInspiracaoPorPersonagem={pontosInspiracaoPorPersonagem}
+      podeControlarInspiracao={podeControlarSessao}
+      atualizandoInspiracaoChave={atualizandoRegraOpcional}
+      onAjustarInspiracao={(personagemCampanhaId, delta) =>
+        void handleAjustarInspiracao(personagemCampanhaId, delta)
+      }
+      onGastarInspiracao={(personagemCampanhaId, gasto) =>
+        void handleGastarInspiracao(personagemCampanhaId, gasto)
+      }
       alvosPersonagens={cards.map((card) => ({
         personagemSessaoId: card.personagemSessaoId,
         personagemCampanhaId: card.personagemCampanhaId,
@@ -2504,21 +2570,11 @@ export default function SessaoCampanhaPage() {
     <div className="space-y-3">
       {erroRegrasOpcionais ? <ErrorAlert message={erroRegrasOpcionais} /> : null}
       <SessionOptionalMechanicsPanel
-        key={JSON.stringify(regrasOpcionais?.ENCONTROS_SOCIAIS?.estado.alvos ?? [])}
         regras={regrasOpcionais}
         podeControlarSessao={podeControlarSessao}
         sessaoEncerrada={sessaoEncerrada}
-        cenaTipo={detalhe.cenaAtual.tipo}
-        rodadaAtual={detalhe.rodadaAtual}
-        cards={cards}
-        npcs={npcs}
-        meuPersonagemCampanhaId={meuCard?.personagemCampanhaId ?? null}
         atualizandoChave={atualizandoRegraOpcional}
         onAtualizarRegra={handleAtualizarRegraOpcional}
-        onAjustarInspiracao={handleAjustarInspiracao}
-        onGastarInspiracao={handleGastarInspiracao}
-        onAtualizarSocial={handleAtualizarSocial}
-        onAtualizarEscalada={handleAtualizarEscalada}
       />
     </div>
   );
@@ -2553,12 +2609,6 @@ export default function SessaoCampanhaPage() {
       onControleTurno={(acao) => void handleControleTurno(acao)}
       onSolicitarEncerrarSessao={() => setConfirmarEncerrarSessaoAberto(true)}
       iniciativaAlternada={detalhe.iniciativaAlternada}
-      onMarcarIniciativaAlternada={(participanteToken, jaAgiu) =>
-        void handleMarcarIniciativaAlternada(participanteToken, jaAgiu)
-      }
-      onAtualizarIniciativaAlternada={(lados) =>
-        void handleAtualizarIniciativaAlternada(lados)
-      }
       optionalMechanicsPanel={painelMecanicasOpcionais}
     />
   );
@@ -2737,6 +2787,9 @@ export default function SessaoCampanhaPage() {
                     onRolarPericia={handleRolarPericia}
                     onRolarExpressao={handleRolarExpressao}
                     renderPainelCondicoes={renderPainelCondicoes}
+                    socialAtivo={socialAtivo}
+                    alvosSociais={alvosSociais}
+                    onAtualizarAlvoSocial={handleAtualizarAlvoSocial}
                   />
                 </>
               ) : (
@@ -2800,6 +2853,26 @@ export default function SessaoCampanhaPage() {
                   consumirComCalmaAtivo={
                     regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true
                   }
+                  recursosCompactosObrigatorios={socialAtivo}
+                  inspiracaoAtiva={inspiracaoAtiva}
+                  pontosInspiracao={
+                    meuCard
+                      ? pontosInspiracaoPorPersonagem[String(meuCard.personagemCampanhaId)] ?? 0
+                      : 0
+                  }
+                  podeControlarInspiracao={podeControlarSessao}
+                  atualizandoInspiracao={
+                    meuCard
+                      ? atualizandoRegraOpcional ===
+                        `INSPIRACAO:${meuCard.personagemCampanhaId}`
+                      : false
+                  }
+                  onAjustarInspiracao={(personagemCampanhaId, delta) =>
+                    void handleAjustarInspiracao(personagemCampanhaId, delta)
+                  }
+                  onGastarInspiracao={(personagemCampanhaId, gasto) =>
+                    void handleGastarInspiracao(personagemCampanhaId, gasto)
+                  }
                   alvosPersonagens={cards.map((card) => ({
                     personagemSessaoId: card.personagemSessaoId,
                     personagemCampanhaId: card.personagemCampanhaId,
@@ -2848,6 +2921,16 @@ export default function SessaoCampanhaPage() {
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
 
+            {socialAtivo ? (
+              <SessionSocialTargetsPanel
+                alvos={alvosSociais}
+                podeControlarSessao={podeControlarSessao}
+                sessaoEncerrada={sessaoEncerrada}
+                erro={erroRegrasOpcionais}
+                onAtualizarAlvo={handleAtualizarAlvoSocial}
+              />
+            ) : null}
+
             <SessionInitiativePanel
               sessaoEncerrada={sessaoEncerrada}
               controleTurnosAtivo={detalhe.controleTurnosAtivo}
@@ -2871,6 +2954,19 @@ export default function SessaoCampanhaPage() {
                 void handleMoverIniciativa(indice, direcao)
               }
               onEditarIniciativa={abrirEdicaoIniciativa}
+              cenaTipo={detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha}
+              rodadaAtual={detalhe.rodadaAtual}
+              iniciativaAlternada={detalhe.iniciativaAlternada}
+              escaladaAtiva={escaladaRegraAtiva}
+              bonusEscaladaDados={bonusEscaladaDados}
+              atualizandoEscalada={atualizandoRegraOpcional === 'ESCALADA_DADOS'}
+              onAtualizarEscaladaBonus={handleAtualizarBonusEscalada}
+              onMarcarIniciativaAlternada={(participanteToken, jaAgiu) =>
+                void handleMarcarIniciativaAlternada(participanteToken, jaAgiu)
+              }
+              onAtualizarIniciativaAlternada={(lados) =>
+                void handleAtualizarIniciativaAlternada(lados)
+              }
               labelParticipanteIniciativa={labelParticipanteIniciativa}
             />
 
@@ -2886,7 +2982,6 @@ export default function SessaoCampanhaPage() {
                   npcs={npcs}
                   iniciativaOrdem={iniciativaOrdem}
                 />
-                {painelMecanicasOpcionais}
               </>
             )}
           </section>

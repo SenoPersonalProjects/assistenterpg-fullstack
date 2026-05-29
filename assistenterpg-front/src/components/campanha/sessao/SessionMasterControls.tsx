@@ -35,13 +35,6 @@ type SessionMasterControlsProps = {
   onControleTurno: (acao: AcaoControleTurno) => void;
   onSolicitarEncerrarSessao: () => void;
   iniciativaAlternada?: EstadoIniciativaAlternadaSessao | null;
-  onMarcarIniciativaAlternada?: (
-    participanteToken: string,
-    jaAgiu: boolean,
-  ) => void;
-  onAtualizarIniciativaAlternada?: (
-    lados: EstadoIniciativaAlternadaSessao['lados'],
-  ) => void;
   optionalMechanicsPanel?: ReactNode;
 };
 
@@ -72,8 +65,6 @@ type SessionTableOperationsPanelProps = Pick<
   | 'onControleTurno'
   | 'onSolicitarEncerrarSessao'
   | 'iniciativaAlternada'
-  | 'onMarcarIniciativaAlternada'
-  | 'onAtualizarIniciativaAlternada'
   | 'optionalMechanicsPanel'
 >;
 
@@ -180,7 +171,7 @@ export function SessionSceneControlPanel({
   );
 }
 
-function InitiativeAlternadaPanel({
+export function InitiativeAlternadaPanel({
   iniciativaAlternada,
   sessaoEncerrada,
   onMarcarIniciativaAlternada,
@@ -349,8 +340,6 @@ export function SessionTableOperationsPanel({
   onControleTurno,
   onSolicitarEncerrarSessao,
   iniciativaAlternada,
-  onMarcarIniciativaAlternada,
-  onAtualizarIniciativaAlternada,
   optionalMechanicsPanel,
 }: SessionTableOperationsPanelProps) {
   const iniciativaAlternadaAtiva =
@@ -422,15 +411,6 @@ export function SessionTableOperationsPanel({
                     </Button>
                   </div>
                 </div>
-
-                {iniciativaAlternadaAtiva && iniciativaAlternada ? (
-                  <InitiativeAlternadaPanel
-                    iniciativaAlternada={iniciativaAlternada}
-                    sessaoEncerrada={sessaoEncerrada}
-                    onMarcarIniciativaAlternada={onMarcarIniciativaAlternada}
-                    onAtualizarIniciativaAlternada={onAtualizarIniciativaAlternada}
-                  />
-                ) : null}
 
                 <div className="flex items-start gap-2 text-xs font-medium text-app-muted">
                   <Icon name="info" className="mt-0.5 h-3 w-3 shrink-0" />
@@ -511,8 +491,6 @@ export function SessionMasterControls({
   onControleTurno,
   onSolicitarEncerrarSessao,
   iniciativaAlternada,
-  onMarcarIniciativaAlternada,
-  onAtualizarIniciativaAlternada,
   optionalMechanicsPanel,
 }: SessionMasterControlsProps) {
   if (!podeControlarSessao) {
@@ -545,8 +523,6 @@ export function SessionMasterControls({
         onControleTurno={onControleTurno}
         onSolicitarEncerrarSessao={onSolicitarEncerrarSessao}
         iniciativaAlternada={iniciativaAlternada}
-        onMarcarIniciativaAlternada={onMarcarIniciativaAlternada}
-        onAtualizarIniciativaAlternada={onAtualizarIniciativaAlternada}
         optionalMechanicsPanel={optionalMechanicsPanel}
       />
     </div>

@@ -116,6 +116,12 @@ export class AtualizarEscaladaDadosSessaoDto {
   @IsInt({ message: 'rodadaInicio deve ser inteiro' })
   @Min(1, { message: 'rodadaInicio deve ser positiva' })
   rodadaInicio?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'bonusAtual deve ser inteiro' })
+  @Min(0, { message: 'bonusAtual minimo e 0' })
+  @Max(6, { message: 'bonusAtual maximo e 6' })
+  bonusAtual?: number;
 }
 
 export class ParticipanteLadoIniciativaAlternadaDto {

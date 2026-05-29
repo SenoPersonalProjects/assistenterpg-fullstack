@@ -29,6 +29,9 @@ type SessionCharacterResourceCardProps = {
   iniciativaValor?: number | null;
   recursos: RecursosResumo;
   expandido?: boolean;
+  compactoObrigatorio?: boolean;
+  inspiracaoAtiva?: boolean;
+  pontosInspiracao?: number;
   onAlternarExpandido?: () => void;
   podeAjustar?: boolean;
   ajustePersonalizado?: Partial<Record<LinhaRecurso['key'], string>>;
@@ -71,6 +74,9 @@ export function SessionCharacterResourceCard({
   iniciativaValor,
   recursos,
   expandido = false,
+  compactoObrigatorio = false,
+  inspiracaoAtiva = false,
+  pontosInspiracao = 0,
   onAlternarExpandido,
   podeAjustar = false,
   ajustePersonalizado,
@@ -141,6 +147,7 @@ export function SessionCharacterResourceCard({
       tone: 'pe',
     },
   ];
+  const mostrarDetalhes = expandido && !compactoObrigatorio;
 
   return (
     <div className={`session-resource-card ${className}`}>
@@ -159,11 +166,18 @@ export function SessionCharacterResourceCard({
             <Button
               size="xs"
               variant="ghost"
-              onClick={onAlternarExpandido}
-              title={expandido ? 'Recolher detalhes' : 'Expandir detalhes'}
+              onClick={compactoObrigatorio ? undefined : onAlternarExpandido}
+              title={
+                compactoObrigatorio
+                  ? 'Recursos recolhidos nesta cena'
+                  : mostrarDetalhes
+                    ? 'Recolher recursos'
+                    : 'Expandir recursos'
+              }
+              disabled={compactoObrigatorio}
             >
               <Icon
-                name={expandido ? 'chevron-up' : 'chevron-down'}
+                name={mostrarDetalhes ? 'chevron-up' : 'chevron-down'}
                 className="h-3.5 w-3.5"
               />
             </Button>
@@ -171,6 +185,30 @@ export function SessionCharacterResourceCard({
         </div>
       </div>
 
+      {!mostrarDetalhes ? (
+        <div className="session-resource-compact">
+          {linhas.map((linha) => (
+            <span key={linha.key} className="session-resource-compact__item">
+              <span className="session-resource-compact__label">
+                {linha.key === 'pv' ? 'PV' : linha.label}
+              </span>
+              <span className="session-resource-compact__value">
+                {linha.atual}/{linha.maximo}
+              </span>
+            </span>
+          ))}
+          {inspiracaoAtiva ? (
+            <span className="session-resource-compact__item session-resource-compact__item--inspiration">
+              <span className="session-resource-compact__label">Inspiração</span>
+              <span className="session-resource-compact__value">
+                {Math.max(0, Math.min(3, pontosInspiracao))}/3
+              </span>
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {mostrarDetalhes ? (
       <div className="session-resource-list">
         {linhas.map((linha) => (
           <div
@@ -300,6 +338,7 @@ export function SessionCharacterResourceCard({
           </div>
         ))}
       </div>
+      ) : null}
 
       {temBarras ? (
         <Modal
@@ -329,7 +368,7 @@ export function SessionCharacterResourceCard({
                   (modoSacrificio === 'OUTRO' && !nucleoSacrificio)
                 }
               >
-                Confirmar sacrificio
+                Confirmar sacrifício
               </Button>
             </>
           }

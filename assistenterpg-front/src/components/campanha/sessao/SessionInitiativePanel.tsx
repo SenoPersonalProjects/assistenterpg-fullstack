@@ -1,14 +1,20 @@
 ﻿'use client';
 
 import type { DragEvent } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
-import type { ParticipanteIniciativaSessaoCampanha } from '@/lib/types';
+import type {
+  EstadoIniciativaAlternadaSessao,
+  ParticipanteIniciativaSessaoCampanha,
+  TipoCenaSessaoCampanha,
+} from '@/lib/types';
 
 type SessionInitiativePanelProps = {
   sessaoEncerrada: boolean;
@@ -29,6 +35,20 @@ type SessionInitiativePanelProps = {
   onDropIniciativa: (indiceDestino: number) => void;
   onMoverIniciativa: (indice: number, direcao: 'SUBIR' | 'DESCER') => void;
   onEditarIniciativa?: (participante: ParticipanteIniciativaSessaoCampanha) => void;
+  cenaTipo?: TipoCenaSessaoCampanha;
+  rodadaAtual?: number | null;
+  iniciativaAlternada?: EstadoIniciativaAlternadaSessao | null;
+  escaladaAtiva?: boolean;
+  bonusEscaladaDados?: number;
+  atualizandoEscalada?: boolean;
+  onAtualizarEscaladaBonus?: (bonusAtual: number) => void;
+  onMarcarIniciativaAlternada?: (
+    participanteToken: string,
+    jaAgiu: boolean,
+  ) => void;
+  onAtualizarIniciativaAlternada?: (
+    lados: EstadoIniciativaAlternadaSessao['lados'],
+  ) => void;
   labelParticipanteIniciativa: (
     participante: Pick<
       ParticipanteIniciativaSessaoCampanha,
@@ -53,8 +73,19 @@ export function SessionInitiativePanel({
   onDropIniciativa,
   onMoverIniciativa,
   onEditarIniciativa,
+  cenaTipo = 'LIVRE',
+  iniciativaAlternada,
+  escaladaAtiva = false,
+  bonusEscaladaDados = 0,
+  atualizandoEscalada = false,
+  onAtualizarEscaladaBonus,
+  onMarcarIniciativaAlternada,
+  onAtualizarIniciativaAlternada,
   labelParticipanteIniciativa,
 }: SessionInitiativePanelProps) {
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdResetExecutadoRef = useRef(false);
+  const [segurandoEscalada, setSegurandoEscalada] = useState(false);
   const indiceAtualValido =
     typeof iniciativaIndiceAtual === 'number' &&
     iniciativaIndiceAtual >= 0 &&
@@ -77,10 +108,76 @@ export function SessionInitiativePanel({
   const proximoResumo = proximoParticipante
     ? labelParticipanteIniciativa(proximoParticipante)
     : '—';
+  const iniciativaAlternadaAtiva =
+    cenaTipo === 'COMBATE' &&
+    controleTurnosAtivo &&
+    Boolean(iniciativaAlternada?.ativo) &&
+    Boolean(iniciativaAlternada?.lados.length);
+
+  const iniciarHoldEscalada = () => {
+    if (!podeControlarSessao || sessaoEncerrada || !onAtualizarEscaladaBonus) return;
+    holdResetExecutadoRef.current = false;
+    setSegurandoEscalada(true);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => {
+      holdResetExecutadoRef.current = true;
+      setSegurandoEscalada(false);
+      onAtualizarEscaladaBonus(0);
+    }, 3000);
+  };
+
+  const finalizarHoldEscalada = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setSegurandoEscalada(false);
+  };
+
+  const incrementarEscalada = () => {
+    if (!podeControlarSessao || sessaoEncerrada || !onAtualizarEscaladaBonus) return;
+    if (holdResetExecutadoRef.current) {
+      holdResetExecutadoRef.current = false;
+      return;
+    }
+    onAtualizarEscaladaBonus((bonusEscaladaDados + 1) % 7);
+  };
+
+  const controleEscalada =
+    cenaTipo === 'COMBATE' && escaladaAtiva ? (
+      <button
+        type="button"
+        className={`session-escalada-button${
+          segurandoEscalada ? ' session-escalada-button--holding' : ''
+        }`}
+        disabled={
+          !podeControlarSessao ||
+          sessaoEncerrada ||
+          atualizandoEscalada ||
+          !onAtualizarEscaladaBonus
+        }
+        title="Escalada de Dados: clique para aumentar, segure por 3s para zerar."
+        onMouseDown={iniciarHoldEscalada}
+        onMouseUp={finalizarHoldEscalada}
+        onMouseLeave={finalizarHoldEscalada}
+        onTouchStart={iniciarHoldEscalada}
+        onTouchEnd={finalizarHoldEscalada}
+        onClick={incrementarEscalada}
+      >
+        <Icon name="dice" className="h-4 w-4" />
+        <span>+{bonusEscaladaDados}</span>
+        <span className="session-escalada-button__progress" />
+      </button>
+    ) : null;
   const rightContent = (
     <div className="flex flex-wrap items-center gap-2">
+      {controleEscalada}
       <span className="session-panel-meta">
-        {controleTurnosAtivo ? 'Turnos ativos' : 'Turnos livres'}
+        {iniciativaAlternadaAtiva
+          ? 'Iniciativa alternada'
+          : controleTurnosAtivo
+            ? 'Turnos ativos'
+            : 'Turnos livres'}
       </span>
       {reordenandoIniciativa ? (
         <Badge color="yellow" size="sm" title="Reordenando iniciativa">
@@ -95,6 +192,58 @@ export function SessionInitiativePanel({
       ) : null}
     </div>
   );
+  const ladoAtual =
+    iniciativaAlternadaAtiva && iniciativaAlternada
+      ? iniciativaAlternada.lados.find(
+          (lado) => lado.id === iniciativaAlternada.ladoAtualId,
+        ) ??
+        iniciativaAlternada.lados[0] ??
+        null
+      : null;
+  const participantesAlternados =
+    iniciativaAlternada?.lados.flatMap((lado) =>
+      lado.participantes.map((participante) => ({
+        ...participante,
+        ladoId: lado.id,
+      })),
+    ) ?? [];
+
+  const moverParticipanteAlternado = (
+    participanteToken: string,
+    novoLadoId: number,
+  ) => {
+    if (!iniciativaAlternada || !onAtualizarIniciativaAlternada) return;
+    const participanteAtual = participantesAlternados.find(
+      (participante) => participante.participanteToken === participanteToken,
+    );
+    if (!participanteAtual) return;
+
+    const ladosAtualizados = iniciativaAlternada.lados.map((lado) => {
+      const participantesSemAtual = lado.participantes.filter(
+        (participante) => participante.participanteToken !== participanteToken,
+      );
+      if (lado.id !== novoLadoId) {
+        return { ...lado, participantes: participantesSemAtual };
+      }
+      return {
+        ...lado,
+        participantes: [
+          ...participantesSemAtual,
+          {
+            id: participanteAtual.id,
+            participanteToken: participanteAtual.participanteToken,
+            tipoParticipante: participanteAtual.tipoParticipante,
+            personagemSessaoId: participanteAtual.personagemSessaoId,
+            npcSessaoId: participanteAtual.npcSessaoId,
+            nome: participanteAtual.nome,
+            jaAgiu: false,
+            ordem: participantesSemAtual.length,
+          },
+        ],
+      };
+    });
+    onAtualizarIniciativaAlternada(ladosAtualizados);
+  };
 
   return (
     <SessionPanel
@@ -108,6 +257,101 @@ export function SessionInitiativePanel({
       right={rightContent}
     >
       {erro ? <ErrorAlert message={erro} /> : null}
+      {iniciativaAlternadaAtiva && iniciativaAlternada && ladoAtual ? (
+        <div className="session-box space-y-3">
+          <div className="session-alternating-head">
+            <div>
+              <p className="session-alternating-title">Vez de {ladoAtual.nome}</p>
+              <p className="session-alternating-hint">
+                Marque participantes que já agiram antes de avançar para o outro lado.
+              </p>
+            </div>
+            <Badge color="green" size="sm">
+              {ladoAtual.participantes.filter((participante) => participante.jaAgiu).length}/
+              {ladoAtual.participantes.length}
+            </Badge>
+          </div>
+
+          <div className="session-alternating-participants">
+            {ladoAtual.participantes.length === 0 ? (
+              <p className="text-xs font-medium text-app-muted">
+                Este lado ainda não tem participantes.
+              </p>
+            ) : null}
+            {ladoAtual.participantes.map((participante) => (
+              <label
+                key={participante.participanteToken}
+                className="session-alternating-participant"
+              >
+                <span className="min-w-0 truncate text-xs font-bold text-app-fg">
+                  {participante.nome}
+                </span>
+                <Checkbox
+                  checked={participante.jaAgiu}
+                  disabled={
+                    sessaoEncerrada ||
+                    !podeControlarSessao ||
+                    !onMarcarIniciativaAlternada
+                  }
+                  onChange={(event) =>
+                    onMarcarIniciativaAlternada?.(
+                      participante.participanteToken,
+                      event.target.checked,
+                    )
+                  }
+                />
+              </label>
+            ))}
+          </div>
+
+          <div className="session-alternating-sides">
+            {iniciativaAlternada.lados.map((lado) => (
+              <span
+                key={lado.id}
+                className={`session-alternating-side${
+                  lado.id === ladoAtual.id ? ' session-alternating-side--active' : ''
+                }`}
+              >
+                {lado.nome}
+              </span>
+            ))}
+          </div>
+
+          {podeControlarSessao ? (
+            <details className="session-alternating-config">
+              <summary>Configurar lados</summary>
+              <div className="mt-3 grid gap-2">
+                {participantesAlternados.map((participante) => (
+                  <label
+                    key={`config-${participante.participanteToken}`}
+                    className="session-alternating-config-row"
+                  >
+                    <span className="truncate font-bold text-app-fg">
+                      {participante.nome}
+                    </span>
+                    <select
+                      value={participante.ladoId}
+                      disabled={sessaoEncerrada || !onAtualizarIniciativaAlternada}
+                      onChange={(event) =>
+                        moverParticipanteAlternado(
+                          participante.participanteToken,
+                          Number(event.target.value),
+                        )
+                      }
+                    >
+                      {iniciativaAlternada.lados.map((lado) => (
+                        <option key={lado.id} value={lado.id}>
+                          {lado.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            </details>
+          ) : null}
+        </div>
+      ) : (
       <div className="session-box space-y-2">
         {controleTurnosAtivo ? (
           <div className="session-chip-row">
@@ -279,6 +523,7 @@ export function SessionInitiativePanel({
           </div>
         )}
       </div>
+      )}
     </SessionPanel>
   );
 }

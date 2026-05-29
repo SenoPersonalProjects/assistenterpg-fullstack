@@ -10,6 +10,7 @@ import type {
   CondicaoAtivaSessaoCampanha,
   NpcAmeacaResumo,
   NpcSessaoCampanha,
+  AlvoEncontroSocialSessao,
 } from '@/lib/types';
 import type {
   AjustesRecursosNpc,
@@ -66,6 +67,12 @@ type SessionNpcsPanelProps = {
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
+  socialAtivo?: boolean;
+  alvosSociais?: AlvoEncontroSocialSessao[];
+  onAtualizarAlvoSocial?: (
+    alvo: AlvoEncontroSocialSessao,
+    patch: Partial<AlvoEncontroSocialSessao>,
+  ) => void;
 };
 
 export function SessionNpcsPanel({
@@ -91,6 +98,9 @@ export function SessionNpcsPanel({
   renderPainelCondicoes,
   onRolarPericia,
   onRolarExpressao,
+  socialAtivo = false,
+  alvosSociais = [],
+  onAtualizarAlvoSocial,
 }: SessionNpcsPanelProps) {
   return (
     <SessionPanel
@@ -163,6 +173,11 @@ export function SessionNpcsPanel({
             renderPainelCondicoes={renderPainelCondicoes}
             onRolarPericia={onRolarPericia}
             onRolarExpressao={onRolarExpressao}
+            socialAtivo={socialAtivo}
+            alvoSocial={
+              alvosSociais.find((alvo) => alvo.npcSessaoId === npc.npcSessaoId) ?? null
+            }
+            onAtualizarAlvoSocial={onAtualizarAlvoSocial}
           />
         ))
       )}

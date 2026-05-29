@@ -5,7 +5,8 @@ export type AbaDetalheCard =
   | 'INVENTARIO'
   | 'TECNICAS'
   | 'SUSTENTACOES'
-  | 'CONDICOES';
+  | 'CONDICOES'
+  | 'INSPIRACAO';
 
 export type PreferenciasSessaoLobby = {
   abasDetalheCard: Record<number, AbaDetalheCard>;
@@ -22,6 +23,7 @@ const ABAS_VALIDAS = new Set<AbaDetalheCard>([
   'TECNICAS',
   'SUSTENTACOES',
   'CONDICOES',
+  'INSPIRACAO',
 ]);
 
 function ehInteiroPositivo(valor: unknown): valor is number {

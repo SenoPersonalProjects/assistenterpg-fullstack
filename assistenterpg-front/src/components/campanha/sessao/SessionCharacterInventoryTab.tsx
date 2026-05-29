@@ -44,6 +44,7 @@ import {
 type SessionCharacterInventoryTabProps = {
   campanhaId: number;
   personagemCampanhaId: number;
+  personagemSessaoId?: number;
   podeEditar: boolean;
   ativo?: boolean;
   limitesCategoriaAtivo?: boolean;
@@ -111,6 +112,25 @@ function descreverEfeitoConsumo(efeito?: EfeitoConsumoEquipamento | null) {
   return descricoes.length > 0 ? descricoes.join('; ') : 'Efeito automatizado.';
 }
 
+function listarPreviasConsumo(efeito?: EfeitoConsumoEquipamento | null) {
+  if (!efeito?.automatizado) return [];
+  return (
+    efeito.efeitos
+      ?.filter((item): item is EfeitoConsumoRecurso => item.tipo === 'RECURSO')
+      .map((item) => {
+        const expressao = item.fixo
+          ? String(item.fixo)
+          : `${item.dados ?? '0'}${item.bonus ? `+${item.bonus}` : ''}`;
+        const maximo = calcularMaximoDados(item.dados, item.bonus ?? 0, item.fixo);
+        return {
+          recurso: RECURSO_LABEL[item.recurso],
+          expressao,
+          maximo,
+        };
+      }) ?? []
+  );
+}
+
 function efeitoPermiteConsumirComCalma(efeito?: EfeitoConsumoEquipamento | null) {
   if (!efeito?.automatizado || !efeito.efeitos?.length) return false;
   return efeito.efeitos.every((item) => {
@@ -123,6 +143,7 @@ function efeitoPermiteConsumirComCalma(efeito?: EfeitoConsumoEquipamento | null)
 export function SessionCharacterInventoryTab({
   campanhaId,
   personagemCampanhaId,
+  personagemSessaoId,
   podeEditar,
   ativo = false,
   limitesCategoriaAtivo = false,
@@ -254,7 +275,14 @@ export function SessionCharacterInventoryTab({
   };
 
   const abrirModalConsumo = (item: ItemInventarioDto) => {
-    const primeiroPersonagem = alvosPersonagens[0];
+    const personagemDono =
+      alvosPersonagens.find(
+        (alvo) =>
+          alvo.personagemCampanhaId === personagemCampanhaId ||
+          (typeof personagemSessaoId === 'number' &&
+            alvo.personagemSessaoId === personagemSessaoId),
+      ) ?? null;
+    const primeiroPersonagem = personagemDono ?? alvosPersonagens[0];
     const primeiroNpc = alvosNpcs[0];
     setModalConsumo({
       item,
@@ -963,6 +991,26 @@ export function SessionCharacterInventoryTab({
                 {descreverEfeitoConsumo(modalConsumo.item.equipamento.efeitoConsumo)}
               </p>
             </div>
+
+            {listarPreviasConsumo(modalConsumo.item.equipamento.efeitoConsumo).length > 0 ? (
+              <div className="session-consumo-preview">
+                {listarPreviasConsumo(modalConsumo.item.equipamento.efeitoConsumo).map(
+                  (previa) => (
+                    <div
+                      key={`${previa.recurso}-${previa.expressao}`}
+                      className="session-consumo-preview__item"
+                    >
+                      <span>{previa.recurso}</span>
+                      <strong>
+                        {modalConsumo.modo === 'COM_CALMA' && previa.maximo !== null
+                          ? `Valor máximo ${previa.maximo}`
+                          : `Rolar ${previa.expressao}`}
+                      </strong>
+                    </div>
+                  ),
+                )}
+              </div>
+            ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <Select

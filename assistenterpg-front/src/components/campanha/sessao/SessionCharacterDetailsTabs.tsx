@@ -31,6 +31,16 @@ type SessionCharacterDetailsTabsProps = {
   totalCondicoesAtivasCard: number;
   totalTecnicasCard: number;
   totalSustentacoesAtivasCard: number;
+  inspiracaoAtiva?: boolean;
+  pontosInspiracao?: number;
+  podeControlarInspiracao?: boolean;
+  atualizandoInspiracao?: boolean;
+  onAjustarInspiracao?: (delta: number) => void;
+  onGastarInspiracao?: (gasto: {
+    custo: 1 | 2 | 3;
+    efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO';
+    label: string;
+  }) => void;
   mostrarSomenteSustentadasAtivas: boolean;
   onToggleMostrarSomenteSustentadas: (checked: boolean) => void;
   onAtualizarAbaDetalheCard: (aba: AbaDetalheCard) => void;
@@ -110,6 +120,12 @@ export function SessionCharacterDetailsTabs({
   totalCondicoesAtivasCard,
   totalTecnicasCard,
   totalSustentacoesAtivasCard,
+  inspiracaoAtiva = false,
+  pontosInspiracao = 0,
+  podeControlarInspiracao = false,
+  atualizandoInspiracao = false,
+  onAjustarInspiracao,
+  onGastarInspiracao,
   mostrarSomenteSustentadasAtivas,
   onToggleMostrarSomenteSustentadas,
   onAtualizarAbaDetalheCard,
@@ -236,7 +252,7 @@ export function SessionCharacterDetailsTabs({
     },
   ];
   if (card.podeEditar) {
-    tabs.push({ id: 'INVENTARIO', label: 'Inventario', icon: 'inventory' });
+    tabs.push({ id: 'INVENTARIO', label: 'Inventário', icon: 'inventory' });
   }
   tabs.push(
     {
@@ -247,17 +263,25 @@ export function SessionCharacterDetailsTabs({
     },
     {
       id: 'SUSTENTACOES',
-      label: 'Sustentacoes',
+      label: 'Sustentações',
       icon: 'energy',
       count: totalSustentacoesAtivasCard,
     },
     {
       id: 'CONDICOES',
-      label: 'Condicoes',
+      label: 'Condições',
       icon: 'status',
       count: totalCondicoesAtivasCard,
     },
   );
+  if (inspiracaoAtiva) {
+    tabs.push({
+      id: 'INSPIRACAO',
+      label: 'Inspiração',
+      icon: 'sparkles',
+      count: Math.max(0, Math.min(3, pontosInspiracao)),
+    });
+  }
 
   return (
     <div className="space-y-2">
@@ -485,6 +509,7 @@ export function SessionCharacterDetailsTabs({
         <SessionCharacterInventoryTab
           campanhaId={campanhaId}
           personagemCampanhaId={card.personagemCampanhaId}
+          personagemSessaoId={card.personagemSessaoId}
           podeEditar={card.podeEditar}
           ativo={abaDetalheCard === 'INVENTARIO'}
           limitesCategoriaAtivo={limitesCategoriaAtivo}
@@ -494,6 +519,72 @@ export function SessionCharacterDetailsTabs({
           alvosNpcs={alvosNpcs}
           onConsumirItem={onConsumirItem}
         />
+      ) : null}
+
+      {abaDetalheCard === 'INSPIRACAO' && inspiracaoAtiva ? (
+        <div className="session-inspiration-panel">
+          <div className="session-inspiration-panel__head">
+            <div>
+              <p className="session-inspiration-panel__title">Inspiração</p>
+              <p className="session-inspiration-panel__hint">
+                Pontos disponíveis até o fim da sessão.
+              </p>
+            </div>
+            <span className="session-inspiration-badge">
+              {Math.max(0, Math.min(3, pontosInspiracao))}/3
+            </span>
+          </div>
+          <div className="session-inspiration-panel__actions">
+            {[
+              { custo: 1 as const, efeito: 'BONUS_5' as const, label: '+5' },
+              { custo: 2 as const, efeito: 'MAXIMIZAR' as const, label: 'Maximizar' },
+              { custo: 3 as const, efeito: 'CRITICO' as const, label: 'Crítico' },
+            ].map((gasto) => (
+              <Button
+                key={gasto.efeito}
+                size="xs"
+                variant="secondary"
+                disabled={
+                  sessaoEncerrada ||
+                  atualizandoInspiracao ||
+                  pontosInspiracao < gasto.custo ||
+                  !onGastarInspiracao
+                }
+                onClick={() => onGastarInspiracao?.(gasto)}
+              >
+                {gasto.label} ({gasto.custo})
+              </Button>
+            ))}
+          </div>
+          {podeControlarInspiracao ? (
+            <div className="session-inspiration-panel__master">
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={sessaoEncerrada || atualizandoInspiracao || pontosInspiracao <= 0}
+                onClick={() => onAjustarInspiracao?.(-1)}
+              >
+                -1
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={sessaoEncerrada || atualizandoInspiracao || pontosInspiracao >= 3}
+                onClick={() => onAjustarInspiracao?.(1)}
+              >
+                +1
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={sessaoEncerrada || atualizandoInspiracao || pontosInspiracao <= 0}
+                onClick={() => onAjustarInspiracao?.(-pontosInspiracao)}
+              >
+                Zerar
+              </Button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       {abaDetalheCard === 'CONDICOES'

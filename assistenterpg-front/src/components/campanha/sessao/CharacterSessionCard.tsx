@@ -24,6 +24,12 @@ import type {
 
 export type CampoAjusteRecursoCard = 'pv' | 'pe' | 'ea' | 'san';
 
+type GastoInspiracaoCard = {
+  custo: 1 | 2 | 3;
+  efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO';
+  label: string;
+};
+
 type CharacterSessionCardProps = {
   campanhaId: number;
   card: SessaoCampanhaDetalhe['cards'][number];
@@ -105,6 +111,16 @@ type CharacterSessionCardProps = {
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
+  recursosCompactosObrigatorios?: boolean;
+  inspiracaoAtiva?: boolean;
+  pontosInspiracao?: number;
+  podeControlarInspiracao?: boolean;
+  atualizandoInspiracao?: boolean;
+  onAjustarInspiracao?: (personagemCampanhaId: number, delta: number) => void;
+  onGastarInspiracao?: (
+    personagemCampanhaId: number,
+    gasto: GastoInspiracaoCard,
+  ) => void;
 };
 
 export function CharacterSessionCard({
@@ -152,6 +168,13 @@ export function CharacterSessionCard({
   onRolarPericia,
   onRolarTesteHabilidade,
   onRolarDanoHabilidade,
+  recursosCompactosObrigatorios = false,
+  inspiracaoAtiva = false,
+  pontosInspiracao = 0,
+  podeControlarInspiracao = false,
+  atualizandoInspiracao = false,
+  onAjustarInspiracao,
+  onGastarInspiracao,
 }: CharacterSessionCardProps) {
   const recursos = card.recursos;
   const acaoHabilidadeCard =
@@ -203,6 +226,10 @@ export function CharacterSessionCard({
           : 'green';
   const condicoesColor = totalCondicoesAtivasCard > 0 ? 'yellow' : 'gray';
   const sustentacoesColor = totalSustentacoesAtivasCard > 0 ? 'blue' : 'gray';
+  const pontosInspiracaoNormalizados = Math.max(
+    0,
+    Math.min(3, pontosInspiracao),
+  );
 
   return (
     <Card className="session-panel space-y-3">
@@ -212,6 +239,9 @@ export function CharacterSessionCard({
           nomeJogador={card.nomeJogador}
           iniciativaValor={iniciativaValor ?? null}
           expandido={cardRecursosExpandido}
+          compactoObrigatorio={recursosCompactosObrigatorios}
+          inspiracaoAtiva={inspiracaoAtiva}
+          pontosInspiracao={pontosInspiracaoNormalizados}
           onAlternarExpandido={onAlternarExpandido}
           podeAjustar={card.podeEditar}
           ajustePersonalizado={ajustesRecursos}
@@ -317,6 +347,16 @@ export function CharacterSessionCard({
           totalCondicoesAtivasCard={totalCondicoesAtivasCard}
           totalTecnicasCard={totalTecnicasCard}
           totalSustentacoesAtivasCard={totalSustentacoesAtivasCard}
+          inspiracaoAtiva={inspiracaoAtiva}
+          pontosInspiracao={pontosInspiracaoNormalizados}
+          podeControlarInspiracao={podeControlarInspiracao}
+          atualizandoInspiracao={atualizandoInspiracao}
+          onAjustarInspiracao={(delta) =>
+            onAjustarInspiracao?.(card.personagemCampanhaId, delta)
+          }
+          onGastarInspiracao={(gasto) =>
+            onGastarInspiracao?.(card.personagemCampanhaId, gasto)
+          }
           mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}
           onToggleMostrarSomenteSustentadas={onToggleMostrarSomenteSustentadas}
           onAtualizarAbaDetalheCard={onAtualizarAbaDetalheCard}

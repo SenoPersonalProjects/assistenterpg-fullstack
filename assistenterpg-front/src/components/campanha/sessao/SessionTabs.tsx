@@ -45,7 +45,9 @@ export function SessionTabs({
           >
             {tab.icon ? <Icon name={tab.icon} className="h-3.5 w-3.5" /> : null}
             <span
-              className={variant === 'icon-only' ? 'sr-only' : undefined}
+              className={
+                variant === 'icon-only' ? 'sr-only' : 'session-tab__label'
+              }
             >
               {tab.label}
             </span>

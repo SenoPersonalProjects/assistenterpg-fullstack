@@ -10,7 +10,12 @@ import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Textarea } from '@/components/ui/Textarea';
 import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
-import type { CondicaoAtivaSessaoCampanha, NpcSessaoCampanha } from '@/lib/types';
+import { SessionSegmentedBar } from '@/components/campanha/sessao/SessionSegmentedBar';
+import type {
+  AlvoEncontroSocialSessao,
+  CondicaoAtivaSessaoCampanha,
+  NpcSessaoCampanha,
+} from '@/lib/types';
 import type {
   AjustesRecursosNpc,
   CampoAjusteRecursoNpc,
@@ -126,6 +131,12 @@ type NpcSessionCardProps = {
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
+  alvoSocial?: AlvoEncontroSocialSessao | null;
+  socialAtivo?: boolean;
+  onAtualizarAlvoSocial?: (
+    alvo: AlvoEncontroSocialSessao,
+    patch: Partial<AlvoEncontroSocialSessao>,
+  ) => void;
 };
 
 type AbaDetalheNpc =
@@ -156,6 +167,9 @@ export function NpcSessionCard({
   renderPainelCondicoes,
   onRolarPericia,
   onRolarExpressao,
+  alvoSocial = null,
+  socialAtivo = false,
+  onAtualizarAlvoSocial,
 }: NpcSessionCardProps) {
   const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça';
   const linhasRecursos: LinhaRecursoNpc[] = [
@@ -831,6 +845,38 @@ export function NpcSessionCard({
           ))}
         </div>
       </div>
+
+      {socialAtivo && alvoSocial ? (
+        <div className="session-social-target session-social-target--inline">
+          <div className="session-social-target__bars">
+            <SessionSegmentedBar
+              label="Interesse"
+              value={alvoSocial.interesseAtual}
+              target={alvoSocial.interesseAlvo}
+              tone="success"
+              canEdit={podeControlarSessao}
+              disabled={sessaoEncerrada}
+              onChange={(value) =>
+                onAtualizarAlvoSocial?.(alvoSocial, {
+                  interesseAtual: Math.max(0, Math.min(5, value)),
+                })
+              }
+            />
+            <SessionSegmentedBar
+              label="Paciência"
+              value={alvoSocial.pacienciaAtual}
+              tone="danger"
+              canEdit={podeControlarSessao}
+              disabled={sessaoEncerrada}
+              onChange={(value) =>
+                onAtualizarAlvoSocial?.(alvoSocial, {
+                  pacienciaAtual: Math.max(0, Math.min(5, value)),
+                })
+              }
+            />
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge size="sm" color={condicoesColor}>

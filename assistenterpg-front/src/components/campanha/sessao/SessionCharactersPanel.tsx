@@ -104,6 +104,16 @@ type SessionCharactersPanelProps = {
     alvoId?: number;
     observacao?: string;
   }) => Promise<void>;
+  recursosCompactosObrigatorios?: boolean;
+  inspiracaoAtiva?: boolean;
+  pontosInspiracaoPorPersonagem?: Record<string, number>;
+  podeControlarInspiracao?: boolean;
+  atualizandoInspiracaoChave?: string | null;
+  onAjustarInspiracao?: (personagemCampanhaId: number, delta: number) => void;
+  onGastarInspiracao?: (
+    personagemCampanhaId: number,
+    gasto: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO'; label: string },
+  ) => void;
   erro?: string | null;
 };
 
@@ -150,6 +160,13 @@ export function SessionCharactersPanel({
   alvosPersonagens,
   alvosNpcs,
   onConsumirItem,
+  recursosCompactosObrigatorios = false,
+  inspiracaoAtiva = false,
+  pontosInspiracaoPorPersonagem = {},
+  podeControlarInspiracao = false,
+  atualizandoInspiracaoChave = null,
+  onAjustarInspiracao,
+  onGastarInspiracao,
   erro,
 }: SessionCharactersPanelProps) {
   return (
@@ -198,6 +215,8 @@ export function SessionCharactersPanel({
             (card.tecnicaInata ? 1 : 0) + card.tecnicasNaoInatas.length;
           const totalCondicoesAtivasCard = card.condicoesAtivas.length;
           const totalSustentacoesAtivasCard = card.sustentacoesAtivas.length;
+          const pontosInspiracao =
+            pontosInspiracaoPorPersonagem[String(card.personagemCampanhaId)] ?? 0;
 
           return (
             <CharacterSessionCard
@@ -272,6 +291,16 @@ export function SessionCharactersPanel({
               onRolarPericia={onRolarPericia}
               onRolarTesteHabilidade={onRolarTesteHabilidade}
               onRolarDanoHabilidade={onRolarDanoHabilidade}
+              recursosCompactosObrigatorios={recursosCompactosObrigatorios}
+              inspiracaoAtiva={inspiracaoAtiva}
+              pontosInspiracao={pontosInspiracao}
+              podeControlarInspiracao={podeControlarInspiracao}
+              atualizandoInspiracao={
+                atualizandoInspiracaoChave ===
+                `INSPIRACAO:${card.personagemCampanhaId}`
+              }
+              onAjustarInspiracao={onAjustarInspiracao}
+              onGastarInspiracao={onGastarInspiracao}
             />
           );
         })

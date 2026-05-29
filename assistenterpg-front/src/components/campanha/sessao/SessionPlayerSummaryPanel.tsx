@@ -98,6 +98,16 @@ type SessionPlayerSummaryPanelProps = {
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
+  recursosCompactosObrigatorios?: boolean;
+  inspiracaoAtiva?: boolean;
+  pontosInspiracao?: number;
+  podeControlarInspiracao?: boolean;
+  atualizandoInspiracao?: boolean;
+  onAjustarInspiracao?: (personagemCampanhaId: number, delta: number) => void;
+  onGastarInspiracao?: (
+    personagemCampanhaId: number,
+    gasto: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO'; label: string },
+  ) => void;
 };
 
 export function SessionPlayerSummaryPanel({
@@ -145,6 +155,13 @@ export function SessionPlayerSummaryPanel({
   onRolarPericia,
   onRolarTesteHabilidade,
   onRolarDanoHabilidade,
+  recursosCompactosObrigatorios = false,
+  inspiracaoAtiva = false,
+  pontosInspiracao = 0,
+  podeControlarInspiracao = false,
+  atualizandoInspiracao = false,
+  onAjustarInspiracao,
+  onGastarInspiracao,
 }: SessionPlayerSummaryPanelProps) {
   return (
     <SessionPanel
@@ -178,6 +195,9 @@ export function SessionPlayerSummaryPanel({
             iniciativaValor={iniciativaValor}
             recursos={card.recursos}
             expandido={cardRecursosExpandido}
+            compactoObrigatorio={recursosCompactosObrigatorios}
+            inspiracaoAtiva={inspiracaoAtiva}
+            pontosInspiracao={pontosInspiracao}
             onAlternarExpandido={onAlternarExpandido}
             podeAjustar={card.podeEditar}
             ajustePersonalizado={ajustesRecursos}
@@ -220,6 +240,16 @@ export function SessionPlayerSummaryPanel({
               totalCondicoesAtivasCard={totalCondicoesAtivasCard}
               totalTecnicasCard={totalTecnicasCard}
               totalSustentacoesAtivasCard={totalSustentacoesAtivasCard}
+              inspiracaoAtiva={inspiracaoAtiva}
+              pontosInspiracao={pontosInspiracao}
+              podeControlarInspiracao={podeControlarInspiracao}
+              atualizandoInspiracao={atualizandoInspiracao}
+              onAjustarInspiracao={(delta) =>
+                onAjustarInspiracao?.(card.personagemCampanhaId, delta)
+              }
+              onGastarInspiracao={(gasto) =>
+                onGastarInspiracao?.(card.personagemCampanhaId, gasto)
+              }
               mostrarSomenteSustentadasAtivas={mostrarSomenteSustentadasAtivas}
               onToggleMostrarSomenteSustentadas={onToggleMostrarSomenteSustentadas}
               onAtualizarAbaDetalheCard={onAtualizarAbaDetalheCard}

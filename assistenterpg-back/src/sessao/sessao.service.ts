@@ -153,6 +153,16 @@ type EfeitoConsumoEquipamento = {
   efeitos?: EfeitoConsumoRecurso[];
 };
 
+type DicePayloadConsumo = {
+  quantidade: number;
+  faces: number;
+  modificador: number;
+  operador: '+' | '-';
+  aplicarModificadorPorDado: boolean;
+  rolagens: number[];
+  label?: string;
+};
+
 type ContextoRolagemSessao = {
   tipo?: string;
   dt?: number;
@@ -4740,12 +4750,14 @@ export class SessaoService {
         );
       }
       const rodadaInicio = dto.rodadaInicio ?? sessao.rodadaAtual;
+      const bonusAtual =
+        typeof dto.bonusAtual === 'number'
+          ? this.clamp(Math.trunc(dto.bonusAtual), 0, 6)
+          : this.calcularBonusEscalada(sessao.rodadaAtual, rodadaInicio);
       const estado: EstadoEscaladaDadosSessao = {
         ativaNesteCombate: dto.ativaNesteCombate,
         rodadaInicio,
-        bonusAtual: dto.ativaNesteCombate
-          ? this.calcularBonusEscalada(sessao.rodadaAtual, rodadaInicio)
-          : 0,
+        bonusAtual: dto.ativaNesteCombate ? bonusAtual : 0,
       };
       await tx.sessaoRegraOpcional.update({
         where: { id: regra.id },
@@ -5050,6 +5062,13 @@ export class SessaoService {
 
       const maximizar = dto.modo === 'COM_CALMA';
       const resultados: Array<Record<string, unknown>> = [];
+      const resultadosRolagem: Array<{
+        recurso: EfeitoConsumoRecurso['recurso'];
+        expressao: string;
+        rolagens: number[];
+        total: number;
+        alvoNome: string;
+      }> = [];
       for (const efeitoRecurso of efeito.efeitos) {
         if (efeitoRecurso.tipo !== 'RECURSO') continue;
         if (maximizar && efeitoRecurso.permiteConsumirComCalma === false) {
@@ -5076,9 +5095,23 @@ export class SessaoService {
           valorDepois: aplicacao.valorDepois,
           alvoNome: aplicacao.alvoNome,
         });
+        resultadosRolagem.push({
+          recurso: efeitoRecurso.recurso,
+          expressao: rolagem.expressao,
+          rolagens: rolagem.rolagens,
+          total: rolagem.total,
+          alvoNome: aplicacao.alvoNome,
+        });
       }
 
       await this.reduzirUsoConsumivelTx(tx, item);
+      const personagemAtor = await tx.personagemSessao.findFirst({
+        where: {
+          sessaoId,
+          personagemCampanhaId: item.personagemCampanha.id,
+        },
+        select: { id: true },
+      });
 
       await tx.eventoSessao.create({
         data: {
@@ -5100,6 +5133,37 @@ export class SessaoService {
           }),
         },
       });
+      const mensagemRolagem = this.construirMensagemRolagemConsumo({
+        equipamentoNome: item.equipamento.nome,
+        personagemNome: item.personagemCampanha.nome,
+        modo: dto.modo,
+        resultados: resultadosRolagem,
+      });
+      if (mensagemRolagem) {
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId,
+            cenaId: cenaAtual.id,
+            tipoEvento: 'CHAT',
+            personagemAtorId: personagemAtor?.id ?? null,
+            dados: this.jsonParaPersistencia({
+              mensagem: mensagemRolagem.mensagem,
+              autorApelido: 'Sistema',
+              visibilidade: 'PUBLICA',
+              dadosRolagem: mensagemRolagem.dadosRolagem,
+              contextoRolagem: {
+                tipo: 'DANO',
+                origem: 'CONSUMIVEL',
+                itemInventarioCampanhaId: item.id,
+                equipamentoId: item.equipamento.id,
+                equipamentoNome: item.equipamento.nome,
+                modo: dto.modo,
+              },
+              ajustesAplicados: [],
+            }),
+          },
+        });
+      }
 
       await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
     });
@@ -5375,11 +5439,16 @@ export class SessaoService {
     const ativaNesteCombate = registro.ativaNesteCombate === true;
     const rodadaInicio =
       this.lerInteiroOpcionalRegistro(registro, 'rodadaInicio') ?? rodadaAtual;
+    const bonusManual = this.lerInteiroOpcionalRegistro(registro, 'bonusAtual');
     return {
       ativaNesteCombate,
       rodadaInicio,
       bonusAtual: ativaNesteCombate
-        ? this.calcularBonusEscalada(rodadaAtual, rodadaInicio)
+        ? this.clamp(
+            bonusManual ?? this.calcularBonusEscalada(rodadaAtual, rodadaInicio),
+            0,
+            6,
+          )
         : 0,
     };
   }
@@ -5928,6 +5997,144 @@ export class SessaoService {
       rolagens,
       total,
     };
+  }
+
+  private construirMensagemRolagemConsumo(args: {
+    equipamentoNome: string;
+    personagemNome: string;
+    modo: 'NORMAL' | 'COM_CALMA' | 'MANUAL';
+    resultados: Array<{
+      recurso: EfeitoConsumoRecurso['recurso'];
+      expressao: string;
+      rolagens: number[];
+      total: number;
+      alvoNome: string;
+    }>;
+  }): {
+    mensagem: string;
+    dadosRolagem: Prisma.InputJsonValue | Prisma.JsonNullValueInput;
+  } | null {
+    const payloads = args.resultados
+      .map((resultado) => this.criarPayloadDiceConsumo(args.equipamentoNome, resultado))
+      .filter((payload): payload is DicePayloadConsumo => Boolean(payload));
+    const resumo = args.resultados
+      .map((resultado) => {
+        const recurso = this.labelRecursoConsumo(resultado.recurso);
+        return `${recurso} ${resultado.total} em ${resultado.alvoNome}`;
+      })
+      .join('; ');
+    const prefixo =
+      args.modo === 'COM_CALMA'
+        ? `${args.personagemNome} consumiu ${args.equipamentoNome} com calma`
+        : `${args.personagemNome} consumiu ${args.equipamentoNome}`;
+
+    if (payloads.length === 0) {
+      return {
+        mensagem: `${prefixo}: ${resumo}.`,
+        dadosRolagem: this.jsonParaPersistencia({
+          origem: 'CONSUMIVEL',
+          resultados: args.resultados,
+        }),
+      };
+    }
+
+    const expressao = payloads
+      .map((payload) =>
+        payload.label
+          ? `${payload.label}: ${this.formatarExpressaoDicePayload(payload)}`
+          : this.formatarExpressaoDicePayload(payload),
+      )
+      .join(', ');
+    const marcador =
+      payloads.length === 1
+        ? `[[dice:v3|${this.encodePayloadDiceConsumo(payloads[0])}]]`
+        : `[[dice:v3|${payloads
+            .map((payload) => this.encodePayloadDiceConsumo(payload))
+            .join('~')}]]`;
+    return {
+      mensagem: `${prefixo}: ${resumo}. ${expressao} ${marcador}`.trim(),
+      dadosRolagem: this.jsonParaPersistencia({
+        origem: 'CONSUMIVEL',
+        payloads,
+        resultados: args.resultados,
+      }),
+    };
+  }
+
+  private criarPayloadDiceConsumo(
+    equipamentoNome: string,
+    resultado: {
+      recurso: EfeitoConsumoRecurso['recurso'];
+      expressao: string;
+      rolagens: number[];
+    },
+  ): DicePayloadConsumo | null {
+    if (resultado.rolagens.length === 0) return null;
+    const match = resultado.expressao
+      .replace(/\s+/g, '')
+      .toLowerCase()
+      .match(/^(\d*)d(\d+)([+-]\d+)?(?:([+-]\d+))?$/);
+    if (!match) return null;
+    const quantidade = Number(match[1] || '1');
+    const faces = Number(match[2]);
+    const modificador =
+      Number(match[3] ?? 0) + Number(match[4] ?? 0);
+    if (
+      !Number.isInteger(quantidade) ||
+      !Number.isInteger(faces) ||
+      quantidade <= 0 ||
+      faces <= 0 ||
+      resultado.rolagens.length !== quantidade
+    ) {
+      return null;
+    }
+
+    return {
+      quantidade,
+      faces,
+      modificador,
+      operador: modificador < 0 ? '-' : '+',
+      aplicarModificadorPorDado: false,
+      rolagens: resultado.rolagens,
+      label: this.limitarLabelDice(
+        `${equipamentoNome} ${this.labelRecursoConsumo(resultado.recurso)}`,
+      ),
+    };
+  }
+
+  private encodePayloadDiceConsumo(payload: DicePayloadConsumo): string {
+    const operador = payload.modificador < 0 ? '-' : '+';
+    const modificador = Math.abs(payload.modificador);
+    const base = `${payload.quantidade.toString(36)}|${payload.faces.toString(36)}|${operador}|${modificador.toString(36)}|${
+      payload.aplicarModificadorPorDado ? 1 : 0
+    }|${payload.rolagens.map((valor) => valor.toString(36)).join('.')}`;
+    return payload.label
+      ? `${base}|${Buffer.from(payload.label, 'utf8').toString('base64')}`
+      : base;
+  }
+
+  private formatarExpressaoDicePayload(payload: DicePayloadConsumo): string {
+    const modificador =
+      payload.modificador === 0
+        ? ''
+        : payload.modificador > 0
+          ? `+${payload.modificador}`
+          : String(payload.modificador);
+    return `${payload.quantidade}d${payload.faces}${modificador}`;
+  }
+
+  private limitarLabelDice(label: string): string {
+    const limpo = label.trim();
+    return limpo.length > 24 ? limpo.slice(0, 24) : limpo;
+  }
+
+  private labelRecursoConsumo(recurso: EfeitoConsumoRecurso['recurso']): string {
+    switch (recurso) {
+      case 'SAN':
+        return 'Sanidade';
+      default:
+        return recurso;
+    }
   }
 
   private async aplicarEfeitoRecursoConsumoTx(
