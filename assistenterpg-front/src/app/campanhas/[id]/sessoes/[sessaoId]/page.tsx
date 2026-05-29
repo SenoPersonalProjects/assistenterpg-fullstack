@@ -2658,7 +2658,8 @@ export default function SessaoCampanhaPage() {
 
         <SessionOperationalBar
           ref={operationalBarRef}
-          cenaLabel={labelCena(detalhe.cenaAtual.tipo)}
+          cenaLabel={labelCena(detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha)}
+          cenaTipo={detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha}
           cenaNome={detalhe.cenaAtual.nome}
           rodadaAtual={detalhe.rodadaAtual}
           turnoAtualLabel={turnoAtualLabel}
@@ -2676,6 +2677,11 @@ export default function SessaoCampanhaPage() {
           onAvancarTurno={() => void handleControleTurno('AVANCAR')}
           onPularTurno={() => void handleControleTurno('PULAR')}
           onVoltarTurno={() => void handleControleTurno('VOLTAR')}
+          iniciativaAlternada={detalhe.iniciativaAlternada}
+          escaladaAtiva={escaladaRegraAtiva}
+          bonusEscaladaDados={bonusEscaladaDados}
+          atualizandoEscalada={atualizandoRegraOpcional === 'ESCALADA_DADOS'}
+          onAtualizarEscaladaBonus={handleAtualizarBonusEscalada}
         />
 
         {erroGlobal ? <ErrorAlert message={erroGlobal} /> : null}

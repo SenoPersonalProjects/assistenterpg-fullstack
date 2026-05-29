@@ -5445,7 +5445,8 @@ export class SessaoService {
       rodadaInicio,
       bonusAtual: ativaNesteCombate
         ? this.clamp(
-            bonusManual ?? this.calcularBonusEscalada(rodadaAtual, rodadaInicio),
+            bonusManual ??
+              this.calcularBonusEscalada(rodadaAtual, rodadaInicio),
             0,
             6,
           )
@@ -6015,7 +6016,9 @@ export class SessaoService {
     dadosRolagem: Prisma.InputJsonValue | Prisma.JsonNullValueInput;
   } | null {
     const payloads = args.resultados
-      .map((resultado) => this.criarPayloadDiceConsumo(args.equipamentoNome, resultado))
+      .map((resultado) =>
+        this.criarPayloadDiceConsumo(args.equipamentoNome, resultado),
+      )
       .filter((payload): payload is DicePayloadConsumo => Boolean(payload));
     const resumo = args.resultados
       .map((resultado) => {
@@ -6077,8 +6080,7 @@ export class SessaoService {
     if (!match) return null;
     const quantidade = Number(match[1] || '1');
     const faces = Number(match[2]);
-    const modificador =
-      Number(match[3] ?? 0) + Number(match[4] ?? 0);
+    const modificador = Number(match[3] ?? 0) + Number(match[4] ?? 0);
     if (
       !Number.isInteger(quantidade) ||
       !Number.isInteger(faces) ||
@@ -6128,7 +6130,9 @@ export class SessaoService {
     return limpo.length > 24 ? limpo.slice(0, 24) : limpo;
   }
 
-  private labelRecursoConsumo(recurso: EfeitoConsumoRecurso['recurso']): string {
+  private labelRecursoConsumo(
+    recurso: EfeitoConsumoRecurso['recurso'],
+  ): string {
     switch (recurso) {
       case 'SAN':
         return 'Sanidade';

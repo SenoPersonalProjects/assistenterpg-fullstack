@@ -1,17 +1,22 @@
 ﻿'use client';
 
-import { forwardRef, useState } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Modal } from '@/components/ui/Modal';
 import { Card } from '@/components/ui/Card';
+import type {
+  EstadoIniciativaAlternadaSessao,
+  TipoCenaSessaoCampanha
+} from '@/lib/types';
 
 type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
 type SessionOperationalBarProps = {
   cenaLabel: string;
+  cenaTipo?: TipoCenaSessaoCampanha;
   cenaNome?: string | null;
   rodadaAtual?: number | null;
   turnoAtualLabel?: string | null;
@@ -29,6 +34,11 @@ type SessionOperationalBarProps = {
   onAvancarTurno: () => void;
   onPularTurno: () => void;
   onVoltarTurno: () => void;
+  iniciativaAlternada?: EstadoIniciativaAlternadaSessao | null;
+  escaladaAtiva?: boolean;
+  bonusEscaladaDados?: number;
+  atualizandoEscalada?: boolean;
+  onAtualizarEscaladaBonus?: (bonus: number) => void;
   className?: string;
 };
 
@@ -38,6 +48,7 @@ export const SessionOperationalBar = forwardRef<
 >(function SessionOperationalBar(
   {
     cenaLabel,
+    cenaTipo = 'LIVRE',
     cenaNome,
     rodadaAtual,
     turnoAtualLabel,
@@ -55,11 +66,20 @@ export const SessionOperationalBar = forwardRef<
     onAvancarTurno,
     onPularTurno,
     onVoltarTurno,
+    iniciativaAlternada,
+    escaladaAtiva = false,
+    bonusEscaladaDados = 0,
+    atualizandoEscalada = false,
+    onAtualizarEscaladaBonus,
     className = '',
   },
   ref,
 ) {
   const [atalhosAbertos, setAtalhosAbertos] = useState(false);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdResetExecutadoRef = useRef(false);
+  const [segurandoEscalada, setSegurandoEscalada] = useState(false);
+
   const statusTempoReal =
     realtimeStatus ?? (realtimeAtivo ? 'online' : 'polling');
 
@@ -73,6 +93,81 @@ export const SessionOperationalBar = forwardRef<
   };
   const statusAtual = statusConfig[statusTempoReal];
 
+  const iniciativaAlternadaAtiva =
+    cenaTipo === 'COMBATE' &&
+    controleTurnosAtivo &&
+    Boolean(iniciativaAlternada?.ativo);
+
+  const ladoAtual = iniciativaAlternadaAtiva && iniciativaAlternada
+    ? iniciativaAlternada.lados.find(l => l.id === iniciativaAlternada.ladoAtualId) || iniciativaAlternada.lados[0]
+    : null;
+
+  const turnoPrincipalLabel = iniciativaAlternadaAtiva && ladoAtual
+    ? `Lado: ${ladoAtual.nome}`
+    : cenaTipo === 'SOCIAL'
+      ? 'Encontro Social'
+      : (turnoAtualLabel ?? 'Iniciando...');
+
+  const proximoPrincipalLabel = iniciativaAlternadaAtiva && iniciativaAlternada
+    ? `Próximo: ${iniciativaAlternada.lados.find(l => l.id !== iniciativaAlternada.ladoAtualId)?.nome || '—'}`
+    : proximoTurnoLabel ?? '—';
+
+  const iniciarHoldEscalada = () => {
+    if (!podeControlarSessao || sessaoEncerrada || !onAtualizarEscaladaBonus) return;
+    holdResetExecutadoRef.current = false;
+    setSegurandoEscalada(true);
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => {
+      holdResetExecutadoRef.current = true;
+      setSegurandoEscalada(false);
+      onAtualizarEscaladaBonus(0);
+    }, 3000);
+  };
+
+  const finalizarHoldEscalada = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setSegurandoEscalada(false);
+  };
+
+  const incrementarEscalada = () => {
+    if (!podeControlarSessao || sessaoEncerrada || !onAtualizarEscaladaBonus) return;
+    if (holdResetExecutadoRef.current) {
+      holdResetExecutadoRef.current = false;
+      return;
+    }
+    onAtualizarEscaladaBonus((bonusEscaladaDados + 1) % 7);
+  };
+
+  const controleEscalada =
+    cenaTipo === 'COMBATE' && escaladaAtiva ? (
+      <button
+        type="button"
+        className={`session-escalada-button session-escalada-button--compact${
+          segurandoEscalada ? ' session-escalada-button--holding' : ''
+        }`}
+        disabled={
+          !podeControlarSessao ||
+          sessaoEncerrada ||
+          atualizandoEscalada ||
+          !onAtualizarEscaladaBonus
+        }
+        title="Escalada de Dados: clique para aumentar, segure para zerar."
+        onMouseDown={iniciarHoldEscalada}
+        onMouseUp={finalizarHoldEscalada}
+        onMouseLeave={finalizarHoldEscalada}
+        onTouchStart={iniciarHoldEscalada}
+        onTouchEnd={finalizarHoldEscalada}
+        onClick={incrementarEscalada}
+      >
+        <Icon name="dice" className="h-4 w-4" />
+        <span className="font-black">+{bonusEscaladaDados}</span>
+        <span className="session-escalada-button__progress" />
+      </button>
+    ) : null;
+
   return (
     <section
       ref={ref}
@@ -85,15 +180,21 @@ export const SessionOperationalBar = forwardRef<
         <div className="flex flex-1 items-center gap-6">
           <div className="flex items-center gap-4">
             <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner ${combateAtivo ? 'animate-pulse text-app-orange bg-app-orange/10' : ''}`}>
-              <Icon name={combateAtivo ? 'swords' : 'shield'} className="h-6 w-6" />
+              <Icon name={combateAtivo ? 'swords' : cenaTipo === 'SOCIAL' ? 'user' : 'shield'} className="h-6 w-6" />
             </div>
 
             <div className="flex flex-col">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-app-primary">
-                {controleTurnosAtivo ? 'Turno Atual' : 'Modo Livre'}
+                {iniciativaAlternadaAtiva
+                  ? 'Iniciativa Alternada'
+                  : cenaTipo === 'SOCIAL'
+                    ? 'Fluxo Social'
+                    : controleTurnosAtivo
+                      ? 'Turno Atual'
+                      : 'Modo Livre'}
               </span>
               <span className="text-lg font-black tracking-tighter text-app-fg">
-                {controleTurnosAtivo ? (turnoAtualLabel ?? 'Iniciando...') : 'Exploração'}
+                {controleTurnosAtivo ? turnoPrincipalLabel : 'Exploração'}
               </span>
             </div>
           </div>
@@ -109,15 +210,17 @@ export const SessionOperationalBar = forwardRef<
               >
                 <Icon name="rotate-ccw" className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onPularTurno}
-                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
-                className="h-9 w-9 p-0 rounded-xl hover:bg-app-warning/10 hover:text-app-warning"
-              >
-                <Icon name="skip-forward" className="h-4 w-4" />
-              </Button>
+              {!iniciativaAlternadaAtiva && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onPularTurno}
+                  disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+                  className="h-9 w-9 p-0 rounded-xl hover:bg-app-warning/10 hover:text-app-warning"
+                >
+                  <Icon name="skip-forward" className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="primary"
                 size="sm"
@@ -128,6 +231,7 @@ export const SessionOperationalBar = forwardRef<
                 {acaoTurnoPendente === 'AVANCAR' ? '...' : 'Próximo'}
                 <Icon name="forward" className="ml-2 h-4 w-4" />
               </Button>
+              {controleEscalada}
             </div>
           )}
         </div>
@@ -148,8 +252,10 @@ export const SessionOperationalBar = forwardRef<
               </div>
 
               <div className="hidden flex-col md:flex">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-app-muted">Próximo</span>
-                <span className="text-xs font-bold text-app-fg/70">{proximoTurnoLabel ?? '—'}</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-app-muted">
+                  {iniciativaAlternadaAtiva ? 'Estado' : 'Próximo'}
+                </span>
+                <span className="text-xs font-bold text-app-fg/70">{proximoPrincipalLabel}</span>
               </div>
             </>
           )}

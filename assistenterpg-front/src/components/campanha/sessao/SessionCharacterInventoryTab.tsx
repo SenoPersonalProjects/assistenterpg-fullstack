@@ -576,7 +576,7 @@ export function SessionCharacterInventoryTab({
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-app-fg">Inventario</p>
+          <p className="text-xs font-semibold text-app-fg">Inventário</p>
           <p className="session-text-xxs text-app-muted">
             Itens vinculados a ficha da campanha.
           </p>

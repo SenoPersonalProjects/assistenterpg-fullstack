@@ -63,11 +63,13 @@ export function SessionInitiativePanel({
   iniciativaOrdem,
   iniciativaIndiceAtual,
   podeControlarSessao,
+  acaoTurnoPendente,
   reordenandoIniciativa,
   sucessoReordenacao,
   indiceIniciativaArrastado,
   indiceIniciativaHover,
   erro,
+  onAvancarTurno,
   onSetIndiceIniciativaArrastado,
   onSetIndiceIniciativaHover,
   onDropIniciativa,
@@ -356,20 +358,20 @@ export function SessionInitiativePanel({
         {controleTurnosAtivo ? (
           <div className="session-chip-row">
             <span className="session-chip">Turno atual: {turnoAtualResumo}</span>
-            <span className="session-chip">Proximo: {proximoResumo}</span>
+            <span className="session-chip">Próximo: {proximoResumo}</span>
             <span className="session-chip">
               Total na fila: {iniciativaOrdem.length}
             </span>
           </div>
         ) : (
           <p className="text-xs text-app-muted">
-            Controle de turnos desativado. Use a ordem como referencia rapida.
+            Controle de turnos desativado. Use a ordem como referência rápida.
           </p>
         )}
 
         {mostrarAjudaReordenacao ? (
           <details className="session-text-xxs text-app-muted">
-            <summary className="cursor-pointer">Como funciona a reordenacao</summary>
+            <summary className="cursor-pointer">Como funciona a reordenação</summary>
             <p className="mt-1">
               Ao mover na ordem, a INI fica 1 ponto acima ou abaixo do vizinho.
             </p>
@@ -520,6 +522,21 @@ export function SessionInitiativePanel({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {cenaTipo === 'SOCIAL' && podeControlarSessao && (
+          <div className="flex justify-end pt-2 border-t border-app-border/10">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onAvancarTurno}
+              disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+              className="font-black px-6 shadow-lg shadow-app-primary/20"
+            >
+              {acaoTurnoPendente === 'AVANCAR' ? '...' : 'Passar vez / Próxima etapa'}
+              <Icon name="forward" className="ml-2 h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>

@@ -186,25 +186,30 @@ export function SessionCharacterResourceCard({
       </div>
 
       {!mostrarDetalhes ? (
-        <div className="session-resource-compact">
-          {linhas.map((linha) => (
-            <span key={linha.key} className="session-resource-compact__item">
-              <span className="session-resource-compact__label">
-                {linha.key === 'pv' ? 'PV' : linha.label}
-              </span>
-              <span className="session-resource-compact__value">
-                {linha.atual}/{linha.maximo}
-              </span>
-            </span>
-          ))}
-          {inspiracaoAtiva ? (
-            <span className="session-resource-compact__item session-resource-compact__item--inspiration">
-              <span className="session-resource-compact__label">Inspiração</span>
-              <span className="session-resource-compact__value">
-                {Math.max(0, Math.min(3, pontosInspiracao))}/3
-              </span>
-            </span>
-          ) : null}
+        <div className="session-resource-compact session-resource-compact--interactive" onClick={onAlternarExpandido}>
+          <div className="session-resource-compact__grid">
+            {linhas.map((linha) => (
+              <div key={linha.key} className="session-resource-compact__item">
+                <span className={`session-resource-compact__label session-resource-compact__label--${linha.tone}`}>
+                  {linha.key === 'pv' ? 'PV' : linha.label}
+                </span>
+                <span className="session-resource-compact__value">
+                  {linha.atual}/{linha.maximo}
+                </span>
+              </div>
+            ))}
+            {inspiracaoAtiva ? (
+              <div className="session-resource-compact__item session-resource-compact__item--inspiration">
+                <span className="session-resource-compact__label session-resource-compact__label--inspiration">
+                  INS
+                </span>
+                <span className="session-resource-compact__value">
+                  {Math.max(0, Math.min(3, pontosInspiracao))}/3
+                </span>
+              </div>
+            ) : null}
+          </div>
+          <Icon name="chevron-down" className="h-3 w-3 text-app-muted opacity-50" />
         </div>
       ) : null}
 

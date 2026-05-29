@@ -295,7 +295,7 @@ export function SessionCharacterDetailsTabs({
       {abaDetalheCard === 'RESUMO' ? (
         <div className="space-y-2 rounded border border-app-border p-2">
           <p className="text-xs text-app-muted">
-            Resumo rapido do personagem na sessao.
+            Resumo rápido do personagem na sessão.
           </p>
           <div className="space-y-2">
             <div>
@@ -336,7 +336,7 @@ export function SessionCharacterDetailsTabs({
                 </span>
               </div>
               <p className="session-text-xxs text-app-muted">
-                Tecnica principal: {resumoTecnica}
+                Técnica principal: {resumoTecnica}
               </p>
             </div>
           </div>

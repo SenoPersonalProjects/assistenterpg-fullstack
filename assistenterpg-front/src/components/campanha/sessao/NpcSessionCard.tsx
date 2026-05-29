@@ -620,13 +620,13 @@ export function NpcSessionCard({
       <div className="session-npc-pericias">
         <div className="session-npc-section__header">
           <div className="space-y-1">
-            <p className="session-npc-section__title">Pericias</p>
+            <p className="session-npc-section__title">Perícias</p>
             <p className="session-npc-section__subtitle">
               Principais e especiais disponíveis para este NPC.
             </p>
           </div>
           <Badge size="sm" color="gray">
-            {periciasPrincipais.length + periciasEspeciais.length} pericia
+            {periciasPrincipais.length + periciasEspeciais.length} perícia
             {periciasPrincipais.length + periciasEspeciais.length === 1 ? '' : 's'}
           </Badge>
         </div>

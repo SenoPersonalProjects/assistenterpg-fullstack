@@ -5,6 +5,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
+GEMINI.md
+PROMPT.md
 
 # Dependencias
 node_modules/
