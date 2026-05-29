@@ -205,9 +205,13 @@ export function NpcSessionCard({
     typeof iniciativaValor === 'number' ? String(iniciativaValor) : '--';
   const condicoesColor = npc.condicoesAtivas.length > 0 ? 'yellow' : 'gray';
   const [expandido, setExpandido] = useState(false);
+  const [recursosRecolhidos, setRecursosRecolhidos] = useState(true);
   const [abaAtiva, setAbaAtiva] = useState<AbaDetalheNpc>('RESUMO');
 
+  const socialRealmenteAtivo = socialAtivo && Boolean(alvoSocial);
+  const mostrarRecursos = !recursosRecolhidos && !socialRealmenteAtivo;
   const abaAtivaEfetiva = podeAjustar ? abaAtiva : 'RESUMO';
+
   const mudouCampo = (
     valorDraft: string | undefined,
     base: string | number | null | undefined,
@@ -752,7 +756,7 @@ export function NpcSessionCard({
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => setExpandido((estado) => !estado)}
+              onClick={() => setExpandido((prev) => !prev)}
               title={expandido ? 'Recolher detalhes' : 'Expandir detalhes'}
             >
               <Icon
@@ -762,93 +766,148 @@ export function NpcSessionCard({
             </Button>
           </div>
         </div>
-        <div className="session-resource-list">
-          {linhasRecursos.map((linha) => (
-            <div
-              key={linha.key}
-              className={`session-resource-row${
-                campoRecursoPendente === linha.key ? ' session-resource-row--pending' : ''
-              }`}
-            >
-              <div className="session-resource-row__meta">
-                <span className="session-resource-row__label">{linha.label}</span>
-                <span className="session-resource-row__value">
-                  {linha.atual}/{linha.maximo}
-                </span>
-              </div>
-              <div className="session-resource-track">
-                <span
-                  className={`session-resource-fill session-resource-fill--${linha.tone}`}
-                  style={{ width: `${clampPercentual(linha.atual, linha.maximo)}%` }}
-                />
-              </div>
-              {podeAjustar ? (
-                <div className="session-resource-actions">
-                  <div className="session-resource-actions__quick">
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      onClick={() => onAplicarDeltaRecurso(linha.key, -5)}
-                      disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
-                    >
-                      -5
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      onClick={() => onAplicarDeltaRecurso(linha.key, -1)}
-                      disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
-                    >
-                      -1
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      onClick={() => onAplicarDeltaRecurso(linha.key, 1)}
-                      disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
-                    >
-                      +1
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      onClick={() => onAplicarDeltaRecurso(linha.key, 5)}
-                      disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
-                    >
-                      +5
-                    </Button>
-                  </div>
-                  <div className="session-resource-actions__custom">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={ajustesRecursos[linha.key] ?? '0'}
-                      onChange={(event) =>
-                        onAtualizarAjustePersonalizado(linha.key, event.target.value)
-                      }
-                      className="session-resource-actions__input"
-                      placeholder="+3 / -2"
-                      disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
-                    />
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => onAplicarAjustePersonalizado(linha.key)}
-                      disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
-                    >
-                      {campoRecursoPendente === linha.key ? 'Aplicando...' : 'Aplicar'}
-                    </Button>
-                  </div>
+
+        {expandido && (
+          <div className="flex items-center justify-between gap-2 border-t border-app-border/10 pt-2">
+            <p className="text-[10px] font-bold text-app-muted uppercase tracking-tight">
+              Recursos de Combate
+            </p>
+            {!socialRealmenteAtivo && (
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => setRecursosRecolhidos((prev) => !prev)}
+                className="h-6 px-2 text-[10px]"
+              >
+                {recursosRecolhidos ? 'Mostrar Barras' : 'Ocultar Barras'}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {!mostrarRecursos ? (
+          <div
+            className={`session-resource-compact${!socialRealmenteAtivo ? ' session-resource-compact--interactive' : ''}`}
+            onClick={() => !socialRealmenteAtivo && setRecursosRecolhidos(false)}
+          >
+            <div className="session-resource-compact__grid">
+              {linhasRecursos.map((linha) => (
+                <div key={linha.key} className="session-resource-compact__item">
+                  <span className={`session-resource-compact__label session-resource-compact__label--${linha.tone}`}>
+                    {linha.key === 'pv' ? 'PV' : linha.label}
+                  </span>
+                  <span className="session-resource-compact__value">
+                    {linha.atual}/{linha.maximo}
+                  </span>
                 </div>
-              ) : null}
+              ))}
             </div>
-          ))}
-        </div>
+            {!socialRealmenteAtivo && (
+              <Icon name="chevron-down" className="h-3 w-3 text-app-muted opacity-50" />
+            )}
+          </div>
+        ) : (
+          <div className="session-resource-list">
+            {linhasRecursos.map((linha) => (
+              <div
+                key={linha.key}
+                className={`session-resource-row${
+                  campoRecursoPendente === linha.key ? ' session-resource-row--pending' : ''
+                }`}
+              >
+                <div className="session-resource-row__meta">
+                  <span className="session-resource-row__label">{linha.label}</span>
+                  <span className="session-resource-row__value">
+                    {linha.atual}/{linha.maximo}
+                  </span>
+                </div>
+                <div className="session-resource-track">
+                  <span
+                    className={`session-resource-fill session-resource-fill--${linha.tone}`}
+                    style={{ width: `${clampPercentual(linha.atual, linha.maximo)}%` }}
+                  />
+                </div>
+                {podeAjustar ? (
+                  <div className="session-resource-actions">
+                    <div className="session-resource-actions__quick">
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        onClick={() => onAplicarDeltaRecurso(linha.key, -5)}
+                        disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
+                      >
+                        -5
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        onClick={() => onAplicarDeltaRecurso(linha.key, -1)}
+                        disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
+                      >
+                        -1
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        onClick={() => onAplicarDeltaRecurso(linha.key, 1)}
+                        disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
+                      >
+                        +1
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        onClick={() => onAplicarDeltaRecurso(linha.key, 5)}
+                        disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
+                      >
+                        +5
+                      </Button>
+                    </div>
+                    <div className="session-resource-actions__custom">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={ajustesRecursos[linha.key] ?? '0'}
+                        onChange={(event) =>
+                          onAtualizarAjustePersonalizado(linha.key, event.target.value)
+                        }
+                        className="session-resource-actions__input"
+                        placeholder="+3 / -2"
+                        disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
+                      />
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => onAplicarAjustePersonalizado(linha.key)}
+                        disabled={sessaoEncerrada || campoRecursoPendente === linha.key}
+                      >
+                        {campoRecursoPendente === linha.key ? 'Aplicando...' : 'Aplicar'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {socialAtivo && alvoSocial ? (
+      {socialRealmenteAtivo && alvoSocial && (
         <div className="session-social-target session-social-target--inline">
-          <div className="session-social-target__bars">
+          <div className="session-social-target__head">
+            <span className="text-[10px] font-black uppercase tracking-widest text-app-primary">
+              Status do Encontro Social
+            </span>
+            <div className="flex gap-2">
+              {alvoSocial.interesseAtual >= alvoSocial.interesseAlvo && (
+                <Badge color="green" size="sm">Sucesso</Badge>
+              )}
+              {alvoSocial.pacienciaAtual <= 0 && (
+                <Badge color="red" size="sm">Falha</Badge>
+              )}
+            </div>
+          </div>
+          <div className="session-social-target__bars mt-2">
             <SessionSegmentedBar
               label="Interesse"
               value={alvoSocial.interesseAtual}
@@ -876,7 +935,8 @@ export function NpcSessionCard({
             />
           </div>
         </div>
-      ) : null}
+      )}
+
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge size="sm" color={condicoesColor}>

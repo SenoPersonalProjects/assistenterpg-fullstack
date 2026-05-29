@@ -515,7 +515,7 @@ export async function apiAtualizarEncontroSocialSessaoCampanha(
   },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.patch(
-    `/campanhas/${campanhaId}/sessoes/${sessaoId}/social/encontros`,
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/mecanicas/social/encontros`,
     payload,
   );
   return data;
@@ -527,7 +527,7 @@ export async function apiAtualizarEscaladaDadosSessaoCampanha(
   payload: { ativaNesteCombate: boolean; rodadaInicio?: number; bonusAtual?: number },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.patch(
-    `/campanhas/${campanhaId}/sessoes/${sessaoId}/escalada`,
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/mecanicas/escalada`,
     payload,
   );
   return data;

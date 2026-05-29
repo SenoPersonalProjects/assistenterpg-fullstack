@@ -275,23 +275,25 @@ export function SessionCharacterInventoryTab({
   };
 
   const abrirModalConsumo = (item: ItemInventarioDto) => {
-    const personagemDono =
-      alvosPersonagens.find(
-        (alvo) =>
-          alvo.personagemCampanhaId === personagemCampanhaId ||
-          (typeof personagemSessaoId === 'number' &&
-            alvo.personagemSessaoId === personagemSessaoId),
-      ) ?? null;
-    const primeiroPersonagem = personagemDono ?? alvosPersonagens[0];
-    const primeiroNpc = alvosNpcs[0];
+    // Busca o dono do item na cena (pode ser pelo personagemCampanhaId ou personagemSessaoId)
+    const personagemDono = alvosPersonagens.find(
+      (alvo) =>
+        alvo.personagemCampanhaId === personagemCampanhaId ||
+        (typeof personagemSessaoId === 'number' &&
+          alvo.personagemSessaoId === personagemSessaoId),
+    );
+
+    const alvoInicial = personagemDono || alvosPersonagens[0] || null;
+    const npcInicial = alvosNpcs[0] || null;
+
     setModalConsumo({
       item,
       modo: 'NORMAL',
-      alvoTipo: primeiroPersonagem ? 'PERSONAGEM' : 'NPC',
-      alvoId: primeiroPersonagem
-        ? String(primeiroPersonagem.personagemSessaoId)
-        : primeiroNpc
-          ? String(primeiroNpc.npcSessaoId)
+      alvoTipo: alvoInicial ? 'PERSONAGEM' : 'NPC',
+      alvoId: alvoInicial
+        ? String(alvoInicial.personagemSessaoId)
+        : npcInicial
+          ? String(npcInicial.npcSessaoId)
           : '',
     });
   };

@@ -186,7 +186,10 @@ export function SessionCharacterResourceCard({
       </div>
 
       {!mostrarDetalhes ? (
-        <div className="session-resource-compact session-resource-compact--interactive" onClick={onAlternarExpandido}>
+        <div
+          className={`session-resource-compact${!compactoObrigatorio ? ' session-resource-compact--interactive' : ''}`}
+          onClick={compactoObrigatorio ? undefined : onAlternarExpandido}
+        >
           <div className="session-resource-compact__grid">
             {linhas.map((linha) => (
               <div key={linha.key} className="session-resource-compact__item">
@@ -209,7 +212,9 @@ export function SessionCharacterResourceCard({
               </div>
             ) : null}
           </div>
-          <Icon name="chevron-down" className="h-3 w-3 text-app-muted opacity-50" />
+          {!compactoObrigatorio && (
+            <Icon name="chevron-down" className="h-3 w-3 text-app-muted opacity-50" />
+          )}
         </div>
       ) : null}
 

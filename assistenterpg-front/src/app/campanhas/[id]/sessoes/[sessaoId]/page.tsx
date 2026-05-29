@@ -2927,7 +2927,7 @@ export default function SessaoCampanhaPage() {
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
 
-            {socialAtivo ? (
+            {socialAtivo && alvosSociais.length > 0 ? (
               <SessionSocialTargetsPanel
                 alvos={alvosSociais}
                 podeControlarSessao={podeControlarSessao}

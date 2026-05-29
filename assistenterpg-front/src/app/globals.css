@@ -1248,35 +1248,80 @@ body {
 }
 
 .session-resource-compact {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
-  gap: 0.45rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.85rem;
+  background: var(--session-surface);
+}
+
+.session-resource-compact--interactive {
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+  user-select: none;
+}
+
+.session-resource-compact--interactive:hover {
+  background: color-mix(in srgb, var(--primary) 8%, var(--session-surface));
+  border-color: rgba(var(--primary-rgb), 0.3);
+  transform: translateY(-1px);
+}
+
+.session-resource-compact--interactive:active {
+  transform: translateY(0);
+}
+
+.session-resource-compact__grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.65rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .session-resource-compact__item {
-  display: flex;
-  min-width: 0;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-  border: 1px solid var(--session-border);
-  border-radius: 0.75rem;
-  background: var(--session-surface);
-  padding: 0.45rem 0.55rem;
+  gap: 0.3rem;
+  min-width: fit-content;
 }
 
-.session-resource-compact__item--inspiration {
-  border-color: rgba(var(--primary-rgb), 0.35);
-  background: rgba(var(--primary-rgb), 0.1);
-  color: var(--primary);
-}
-
-.session-resource-compact__label,
-.session-resource-compact__value {
-  font-size: 0.68rem;
+.session-resource-compact__label {
+  font-size: 0.625rem;
   font-weight: 900;
-  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.75;
+  width: 1.85rem;
 }
+
+.session-resource-compact__label--pv { color: var(--app-pv); }
+.session-resource-compact__label--san { color: var(--app-san); }
+.session-resource-compact__label--ea { color: var(--app-ea); }
+.session-resource-compact__label--pe { color: var(--app-pe); }
+.session-resource-compact__label--inspiration { color: var(--app-warning); width: auto; }
+
+.session-resource-compact__value {
+  font-size: 0.725rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+@media (max-width: 24rem) {
+  .session-resource-compact__grid {
+    gap: 0.25rem 0.45rem;
+  }
+  .session-resource-compact__label {
+    width: auto;
+  }
+}
+
 
 .session-resource-compact__label {
   color: var(--fg-muted);

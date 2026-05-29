@@ -673,8 +673,8 @@ export class SessaoController {
     return resultado;
   }
 
-  @Post(':sessaoId/social/encontros')
-  @Patch(':sessaoId/social/encontros')
+  @Post(':sessaoId/mecanicas/social/encontros')
+  @Patch(':sessaoId/mecanicas/social/encontros')
   async atualizarEncontroSocialSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
@@ -695,8 +695,8 @@ export class SessaoController {
     return resultado;
   }
 
-  @Post(':sessaoId/escalada')
-  @Patch(':sessaoId/escalada')
+  @Post(':sessaoId/mecanicas/escalada')
+  @Patch(':sessaoId/mecanicas/escalada')
   async atualizarEscaladaDadosSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
