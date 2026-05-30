@@ -102,6 +102,8 @@ export function SessionNpcsPanel({
   onRolarExpressao,
   socialAtivo = false,
   alvosSociais = [],
+  onAdicionarAlvoSocial,
+  onRemoverAlvoSocial,
   onAtualizarAlvoSocial,
 }: SessionNpcsPanelProps) {
   return (

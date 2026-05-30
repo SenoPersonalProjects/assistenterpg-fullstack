@@ -171,6 +171,8 @@ export function NpcSessionCard({
   onRolarExpressao,
   alvoSocial = null,
   socialAtivo = false,
+  onAdicionarAlvoSocial,
+  onRemoverAlvoSocial,
   onAtualizarAlvoSocial,
 }: NpcSessionCardProps) {
   const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça';

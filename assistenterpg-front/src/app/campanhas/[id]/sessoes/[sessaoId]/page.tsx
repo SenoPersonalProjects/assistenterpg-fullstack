@@ -1396,7 +1396,7 @@ export default function SessaoCampanhaPage() {
         interesseAtual: 0,
         interesseAlvo: 3,
         pacienciaAtual: 5,
-        pacienciaMax: 5,
+        motivacoes: [],
       };
       void handleAtualizarSocial([...alvosSociais, novoAlvo]);
     },
