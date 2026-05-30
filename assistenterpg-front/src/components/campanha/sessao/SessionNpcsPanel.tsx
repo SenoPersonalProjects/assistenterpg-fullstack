@@ -69,6 +69,8 @@ type SessionNpcsPanelProps = {
   onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
   socialAtivo?: boolean;
   alvosSociais?: AlvoEncontroSocialSessao[];
+  onAdicionarAlvoSocial?: (npc: NpcSessaoCampanha) => void;
+  onRemoverAlvoSocial?: (npc: NpcSessaoCampanha) => void;
   onAtualizarAlvoSocial?: (
     alvo: AlvoEncontroSocialSessao,
     patch: Partial<AlvoEncontroSocialSessao>,
@@ -177,6 +179,8 @@ export function SessionNpcsPanel({
             alvoSocial={
               alvosSociais.find((alvo) => alvo.npcSessaoId === npc.npcSessaoId) ?? null
             }
+            onAdicionarAlvoSocial={() => onAdicionarAlvoSocial?.(npc)}
+            onRemoverAlvoSocial={() => onRemoverAlvoSocial?.(npc)}
             onAtualizarAlvoSocial={onAtualizarAlvoSocial}
           />
         ))

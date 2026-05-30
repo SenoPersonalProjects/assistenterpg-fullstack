@@ -194,7 +194,7 @@ export function SessionCharacterResourceCard({
             {linhas.map((linha) => (
               <div key={linha.key} className="session-resource-compact__item">
                 <span className={`session-resource-compact__label session-resource-compact__label--${linha.tone}`}>
-                  {linha.key === 'pv' ? 'PV' : linha.label}
+                  {linha.key === 'pv' ? 'PV' : linha.key === 'san' ? 'SAN' : linha.label}
                 </span>
                 <span className="session-resource-compact__value">
                   {linha.atual}/{linha.maximo}

@@ -202,23 +202,46 @@ export function SessionInitiativePanel({
         iniciativaAlternada.lados[0] ??
         null
       : null;
-  const participantesAlternados =
-    iniciativaAlternada?.lados.flatMap((lado) =>
-      lado.participantes.map((participante) => ({
-        ...participante,
-        ladoId: lado.id,
-      })),
-    ) ?? [];
+
+  const participantesAlternados = iniciativaOrdem.map((p) => {
+    const token =
+      p.tipoParticipante === 'NPC'
+        ? `NPC:${p.npcSessaoId}`
+        : `PERSONAGEM:${p.personagemSessaoId}`;
+
+    let ladoId: number | null = null;
+    if (iniciativaAlternada) {
+      for (const lado of iniciativaAlternada.lados) {
+        if (
+          lado.participantes.some((ap) => ap.participanteToken === token)
+        ) {
+          ladoId = lado.id;
+          break;
+        }
+      }
+    }
+
+    return {
+      token,
+      nome: p.nomePersonagem,
+      ladoId,
+      tipoParticipante: p.tipoParticipante,
+      personagemSessaoId: p.personagemSessaoId,
+      npcSessaoId: p.npcSessaoId,
+      id: p.tipoParticipante === 'NPC' ? p.npcSessaoId : p.personagemSessaoId,
+    };
+  });
 
   const moverParticipanteAlternado = (
     participanteToken: string,
     novoLadoId: number,
   ) => {
     if (!iniciativaAlternada || !onAtualizarIniciativaAlternada) return;
-    const participanteAtual = participantesAlternados.find(
-      (participante) => participante.participanteToken === participanteToken,
+
+    const pBase = participantesAlternados.find(
+      (p) => p.token === participanteToken,
     );
-    if (!participanteAtual) return;
+    if (!pBase) return;
 
     const ladosAtualizados = iniciativaAlternada.lados.map((lado) => {
       const participantesSemAtual = lado.participantes.filter(
@@ -232,12 +255,12 @@ export function SessionInitiativePanel({
         participantes: [
           ...participantesSemAtual,
           {
-            id: participanteAtual.id,
-            participanteToken: participanteAtual.participanteToken,
-            tipoParticipante: participanteAtual.tipoParticipante,
-            personagemSessaoId: participanteAtual.personagemSessaoId,
-            npcSessaoId: participanteAtual.npcSessaoId,
-            nome: participanteAtual.nome,
+            id: pBase.id ?? 0,
+            participanteToken: pBase.token,
+            tipoParticipante: pBase.tipoParticipante,
+            personagemSessaoId: pBase.personagemSessaoId,
+            npcSessaoId: pBase.npcSessaoId,
+            nome: pBase.nome,
             jaAgiu: false,
             ordem: participantesSemAtual.length,
           },
@@ -320,37 +343,65 @@ export function SessionInitiativePanel({
           </div>
 
           {podeControlarSessao ? (
-            <details className="session-alternating-config">
-              <summary>Configurar lados</summary>
-              <div className="mt-3 grid gap-2">
+            <div className="session-alternating-config pt-4 border-t border-app-border/10">
+              <div className="flex items-center gap-2 mb-3">
+                <Icon name="settings" className="h-3.5 w-3.5 text-app-muted" />
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-app-muted">
+                  Configurar Participantes por Lado
+                </h4>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
                 {participantesAlternados.map((participante) => (
-                  <label
-                    key={`config-${participante.participanteToken}`}
-                    className="session-alternating-config-row"
+                  <div
+                    key={`config-${participante.token}`}
+                    className="flex items-center justify-between gap-2 rounded-lg bg-app-surface/50 p-2 border border-app-border/5"
                   >
-                    <span className="truncate font-bold text-app-fg">
+                    <span className="truncate text-xs font-bold text-app-fg">
                       {participante.nome}
                     </span>
                     <select
-                      value={participante.ladoId}
+                      className="bg-app-bg text-[10px] font-bold py-1 px-2 rounded border border-app-border/20"
+                      value={participante.ladoId ?? ''}
                       disabled={sessaoEncerrada || !onAtualizarIniciativaAlternada}
                       onChange={(event) =>
                         moverParticipanteAlternado(
-                          participante.participanteToken,
+                          participante.token,
                           Number(event.target.value),
                         )
                       }
                     >
+                      <option value="" disabled>
+                        Lado...
+                      </option>
                       {iniciativaAlternada.lados.map((lado) => (
                         <option key={lado.id} value={lado.id}>
                           {lado.nome}
                         </option>
                       ))}
                     </select>
-                  </label>
+                  </div>
                 ))}
               </div>
-            </details>
+
+              <div className="flex justify-end pt-4 mt-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={onAvancarTurno}
+                  disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+                  className="font-black px-6 shadow-lg shadow-app-primary/20"
+                >
+                  {acaoTurnoPendente === 'AVANCAR'
+                    ? '...'
+                    : `Mudar para ${
+                        iniciativaAlternada.lados.find(
+                          (l) => l.id !== ladoAtual.id,
+                        )?.nome ?? 'próximo lado'
+                      }`}
+                  <Icon name="forward" className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           ) : null}
         </div>
       ) : (

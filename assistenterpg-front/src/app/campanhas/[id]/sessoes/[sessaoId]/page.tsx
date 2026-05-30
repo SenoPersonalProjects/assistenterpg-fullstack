@@ -1388,6 +1388,31 @@ export default function SessaoCampanhaPage() {
     [alvosSociais, handleAtualizarSocial],
   );
 
+  const handleAdicionarAlvoSocial = useCallback(
+    (npc: NpcSessaoCampanha) => {
+      const novoAlvo: AlvoEncontroSocialSessao = {
+        npcSessaoId: npc.npcSessaoId,
+        nome: npc.nome,
+        interesseAtual: 0,
+        interesseAlvo: 3,
+        pacienciaAtual: 5,
+        pacienciaMax: 5,
+      };
+      void handleAtualizarSocial([...alvosSociais, novoAlvo]);
+    },
+    [alvosSociais, handleAtualizarSocial],
+  );
+
+  const handleRemoverAlvoSocial = useCallback(
+    (npc: NpcSessaoCampanha) => {
+      const alvosAtualizados = alvosSociais.filter(
+        (alvo) => alvo.npcSessaoId !== npc.npcSessaoId,
+      );
+      void handleAtualizarSocial(alvosAtualizados);
+    },
+    [alvosSociais, handleAtualizarSocial],
+  );
+
   const handleAtualizarEscalada = useCallback(
     async (ativaNesteCombate: boolean, rodadaInicio?: number, bonusAtual?: number) => {
       setAtualizandoRegraOpcional('ESCALADA_DADOS');
@@ -2795,6 +2820,8 @@ export default function SessaoCampanhaPage() {
                     renderPainelCondicoes={renderPainelCondicoes}
                     socialAtivo={socialAtivo}
                     alvosSociais={alvosSociais}
+                    onAdicionarAlvoSocial={handleAdicionarAlvoSocial}
+                    onRemoverAlvoSocial={handleRemoverAlvoSocial}
                     onAtualizarAlvoSocial={handleAtualizarAlvoSocial}
                   />
                 </>

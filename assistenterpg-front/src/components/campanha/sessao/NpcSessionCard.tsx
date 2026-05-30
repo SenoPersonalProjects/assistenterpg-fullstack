@@ -133,6 +133,8 @@ type NpcSessionCardProps = {
   onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
   alvoSocial?: AlvoEncontroSocialSessao | null;
   socialAtivo?: boolean;
+  onAdicionarAlvoSocial?: () => void;
+  onRemoverAlvoSocial?: () => void;
   onAtualizarAlvoSocial?: (
     alvo: AlvoEncontroSocialSessao,
     patch: Partial<AlvoEncontroSocialSessao>,
@@ -209,7 +211,7 @@ export function NpcSessionCard({
   const [abaAtiva, setAbaAtiva] = useState<AbaDetalheNpc>('RESUMO');
 
   const socialRealmenteAtivo = socialAtivo && Boolean(alvoSocial);
-  const mostrarRecursos = !recursosRecolhidos && !socialRealmenteAtivo;
+  const mostrarRecursos = !recursosRecolhidos && !socialAtivo;
   const abaAtivaEfetiva = podeAjustar ? abaAtiva : 'RESUMO';
 
   const mudouCampo = (
@@ -752,6 +754,17 @@ export function NpcSessionCard({
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            {socialAtivo && podeControlarSessao && (
+              <Button
+                size="xs"
+                variant={alvoSocial ? 'secondary' : 'ghost'}
+                onClick={alvoSocial ? onRemoverAlvoSocial : onAdicionarAlvoSocial}
+                title={alvoSocial ? 'Remover alvo social' : 'Marcar como alvo social'}
+                className={alvoSocial ? 'text-app-primary' : 'text-app-muted'}
+              >
+                <Icon name="user" className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <span className="session-initiative-badge">INI {iniciativaTexto}</span>
             <Button
               size="xs"

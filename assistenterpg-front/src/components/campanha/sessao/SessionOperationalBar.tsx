@@ -104,9 +104,7 @@ export const SessionOperationalBar = forwardRef<
 
   const turnoPrincipalLabel = iniciativaAlternadaAtiva && ladoAtual
     ? `Lado: ${ladoAtual.nome}`
-    : cenaTipo === 'SOCIAL'
-      ? 'Encontro Social'
-      : (turnoAtualLabel ?? 'Iniciando...');
+    : (turnoAtualLabel ?? (cenaTipo === 'SOCIAL' ? 'Encontro Social' : 'Iniciando...'));
 
   const proximoPrincipalLabel = iniciativaAlternadaAtiva && iniciativaAlternada
     ? `Próximo: ${iniciativaAlternada.lados.find(l => l.id !== iniciativaAlternada.ladoAtualId)?.nome || '—'}`
