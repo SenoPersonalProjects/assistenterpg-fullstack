@@ -57,12 +57,19 @@ export function SessionSocialTargetsPanel({
                   label="Interesse"
                   value={alvo.interesseAtual}
                   target={alvo.interesseAlvo}
+                  targetLabel="Alvo"
                   tone="success"
                   canEdit={podeControlarSessao}
+                  canEditTarget={podeControlarSessao}
                   disabled={sessaoEncerrada}
                   onChange={(value) =>
                     onAtualizarAlvo?.(alvo, {
                       interesseAtual: Math.max(0, Math.min(5, value)),
+                    })
+                  }
+                  onTargetChange={(value) =>
+                    onAtualizarAlvo?.(alvo, {
+                      interesseAlvo: Math.max(1, Math.min(5, value)),
                     })
                   }
                 />

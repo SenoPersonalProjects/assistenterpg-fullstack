@@ -809,9 +809,9 @@ export function NpcSessionCard({
               {linhasRecursos.map((linha) => (
                 <div key={linha.key} className="session-resource-compact__item">
                   <span className={`session-resource-compact__label session-resource-compact__label--${linha.tone}`}>
-                    {linha.key === 'pv' ? 'PV' : linha.label}
+                    {linha.key === 'pv' ? 'PV' : linha.key === 'san' ? 'SAN' : linha.key.toUpperCase()}
                   </span>
-                  <span className="session-resource-compact__value">
+                  <span className={`session-resource-compact__value session-resource-compact__value--${linha.tone}`}>
                     {linha.atual}/{linha.maximo}
                   </span>
                 </div>
@@ -927,12 +927,19 @@ export function NpcSessionCard({
               label="Interesse"
               value={alvoSocial.interesseAtual}
               target={alvoSocial.interesseAlvo}
+              targetLabel="Alvo"
               tone="success"
               canEdit={podeControlarSessao}
+              canEditTarget={podeControlarSessao}
               disabled={sessaoEncerrada}
               onChange={(value) =>
                 onAtualizarAlvoSocial?.(alvoSocial, {
                   interesseAtual: Math.max(0, Math.min(5, value)),
+                })
+              }
+              onTargetChange={(value) =>
+                onAtualizarAlvoSocial?.(alvoSocial, {
+                  interesseAlvo: Math.max(1, Math.min(5, value)),
                 })
               }
             />

@@ -14,8 +14,12 @@ import {
   apiAceitarConvite,
   apiAtualizarOrdemIniciativaSessaoCampanha,
   apiAtualizarCenaSessaoCampanha,
+  apiAtualizarEncontroSocialSessaoCampanha,
+  apiAtualizarEscaladaDadosSessaoCampanha,
+  apiAtualizarIniciativaAlternadaSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
   apiAvancarTurnoSessaoCampanha,
+  apiAvancarLadoIniciativaAlternadaSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
   apiCriarSessaoCampanha,
   apiAplicarModificadorPersonagemCampanha,
@@ -33,6 +37,7 @@ import {
   apiListarSessoesCampanha,
   apiListarConvitesPendentes,
   apiListarAmigosConvidaveisCampanha,
+  apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
   apiRecusarConvite,
   apiEnviarMensagemChatSessaoCampanha,
@@ -329,6 +334,118 @@ describe('campanhas api cache and dedupe', () => {
     expect(sessao).toEqual({ id: 13 });
   });
 
+  it('updates social encounter mechanics through the session route', async () => {
+    mockedApiClient.patch.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const payload = {
+      alvos: [
+        {
+          npcSessaoId: 8,
+          nome: 'Geto',
+          interesseAtual: 2,
+          interesseAlvo: 4,
+          pacienciaAtual: 5,
+        },
+      ],
+    };
+    const sessao = await apiAtualizarEncontroSocialSessaoCampanha(
+      44,
+      13,
+      payload,
+    );
+
+    expect(mockedApiClient.patch).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/mecanicas/social/encontros',
+      payload,
+    );
+    expect(sessao).toEqual({ id: 13 });
+  });
+
+  it('updates data escalation mechanics through the final PATCH route', async () => {
+    mockedApiClient.patch.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const payload = {
+      ativaNesteCombate: true,
+      rodadaInicio: 3,
+      bonusAtual: 2,
+    };
+    const sessao = await apiAtualizarEscaladaDadosSessaoCampanha(
+      44,
+      13,
+      payload,
+    );
+
+    expect(mockedApiClient.patch).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/mecanicas/escalada',
+      payload,
+    );
+    expect(sessao).toEqual({ id: 13 });
+  });
+
+  it('updates alternating initiative sides through the session route', async () => {
+    mockedApiClient.patch.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const payload = {
+      ladoAtualId: 1,
+      lados: [
+        {
+          id: 1,
+          nome: 'Jogadores',
+          ordem: 0,
+          participantes: [{ participanteToken: 'PERSONAGEM:2' }],
+        },
+        {
+          id: 2,
+          nome: 'Oposição',
+          ordem: 1,
+          participantes: [{ participanteToken: 'NPC:8' }],
+        },
+      ],
+    };
+    const sessao = await apiAtualizarIniciativaAlternadaSessaoCampanha(
+      44,
+      13,
+      payload,
+    );
+
+    expect(mockedApiClient.patch).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/iniciativa-alternada',
+      payload,
+    );
+    expect(sessao).toEqual({ id: 13 });
+  });
+
+  it('marks and advances alternating initiative through persisted routes', async () => {
+    mockedApiClient.post
+      .mockResolvedValueOnce({ data: { id: 13, marcado: true } })
+      .mockResolvedValueOnce({ data: { id: 13, ladoAtualId: 2 } });
+
+    const marcado =
+      await apiMarcarParticipanteIniciativaAlternadaSessaoCampanha(44, 13, {
+        participanteToken: 'PERSONAGEM:2',
+        jaAgiu: true,
+      });
+    const avancado = await apiAvancarLadoIniciativaAlternadaSessaoCampanha(
+      44,
+      13,
+    );
+
+    expect(mockedApiClient.post).toHaveBeenNthCalledWith(
+      1,
+      '/campanhas/44/sessoes/13/iniciativa-alternada/marcar',
+      {
+        participanteToken: 'PERSONAGEM:2',
+        jaAgiu: true,
+      },
+    );
+    expect(mockedApiClient.post).toHaveBeenNthCalledWith(
+      2,
+      '/campanhas/44/sessoes/13/iniciativa-alternada/avancar-lado',
+    );
+    expect(marcado).toEqual({ id: 13, marcado: true });
+    expect(avancado).toEqual({ id: 13, ladoAtualId: 2 });
+  });
+
   it('updates session initiative order', async () => {
     mockedApiClient.patch.mockResolvedValueOnce({ data: { id: 13 } });
 
@@ -427,6 +544,26 @@ describe('campanhas api cache and dedupe', () => {
       { mensagem: 'teste' },
     );
     expect(mensagem).toEqual({ id: 91, mensagem: 'teste' });
+  });
+
+  it('sends secret master roll visibility through session chat', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 92, mensagem: 'Rolagem secreta do Mestre' },
+    });
+
+    const mensagem = await apiEnviarMensagemChatSessaoCampanha(44, 13, {
+      mensagem: '[[DICE:v4:test]]',
+      visibilidade: 'SECRETA_MESTRE',
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/chat',
+      {
+        mensagem: '[[DICE:v4:test]]',
+        visibilidade: 'SECRETA_MESTRE',
+      },
+    );
+    expect(mensagem).toEqual({ id: 92, mensagem: 'Rolagem secreta do Mestre' });
   });
 
   it('lists campaign character modifiers with session/cena filters', async () => {

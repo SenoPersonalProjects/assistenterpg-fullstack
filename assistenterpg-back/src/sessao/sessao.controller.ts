@@ -673,7 +673,6 @@ export class SessaoController {
     return resultado;
   }
 
-  @Post(':sessaoId/mecanicas/social/encontros')
   @Patch(':sessaoId/mecanicas/social/encontros')
   async atualizarEncontroSocialSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
@@ -681,10 +680,39 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AtualizarEncontroSocialSessaoDto,
   ) {
-    const resultado = await this.sessaoService.atualizarEncontroSocialSessao(
+    return this.executarAtualizacaoEncontroSocialSessao(
       campanhaId,
       sessaoId,
       req.user.id,
+      dto,
+    );
+  }
+
+  @Post(':sessaoId/mecanicas/social/encontros')
+  async criarEncontroSocialSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarEncontroSocialSessaoDto,
+  ) {
+    return this.executarAtualizacaoEncontroSocialSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+  }
+
+  private async executarAtualizacaoEncontroSocialSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarEncontroSocialSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarEncontroSocialSessao(
+      campanhaId,
+      sessaoId,
+      usuarioId,
       dto,
     );
     this.sessaoGateway.emitirSessaoAtualizada(
@@ -695,7 +723,6 @@ export class SessaoController {
     return resultado;
   }
 
-  @Post(':sessaoId/mecanicas/escalada')
   @Patch(':sessaoId/mecanicas/escalada')
   async atualizarEscaladaDadosSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
@@ -703,10 +730,39 @@ export class SessaoController {
     @Request() req: { user: { id: number } },
     @Body() dto: AtualizarEscaladaDadosSessaoDto,
   ) {
-    const resultado = await this.sessaoService.atualizarEscaladaDadosSessao(
+    return this.executarAtualizacaoEscaladaDadosSessao(
       campanhaId,
       sessaoId,
       req.user.id,
+      dto,
+    );
+  }
+
+  @Post(':sessaoId/mecanicas/escalada')
+  async criarEscaladaDadosSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarEscaladaDadosSessaoDto,
+  ) {
+    return this.executarAtualizacaoEscaladaDadosSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+  }
+
+  private async executarAtualizacaoEscaladaDadosSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: AtualizarEscaladaDadosSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.atualizarEscaladaDadosSessao(
+      campanhaId,
+      sessaoId,
+      usuarioId,
       dto,
     );
     this.sessaoGateway.emitirSessaoAtualizada(

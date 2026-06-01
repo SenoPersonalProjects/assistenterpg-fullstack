@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { RequestMethod } from '@nestjs/common';
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { SessaoController } from './sessao.controller';
 import { SessaoService } from './sessao.service';
 import { SessaoGateway } from './sessao.gateway';
@@ -53,6 +55,38 @@ describe('SessaoController', () => {
     }).compile();
 
     controller = module.get<SessaoController>(SessaoController);
+  });
+
+  const obterRota = (methodName: keyof SessaoController) => {
+    const handler = Reflect.get(SessaoController.prototype, methodName) as
+      | ((...args: unknown[]) => unknown)
+      | undefined;
+
+    return {
+      method: handler
+        ? Reflect.getMetadata(METHOD_METADATA, handler)
+        : undefined,
+      path: handler ? Reflect.getMetadata(PATH_METADATA, handler) : undefined,
+    };
+  };
+
+  it('deve registrar PATCH e POST separados para mecanicas de sessao', () => {
+    expect(obterRota('atualizarEncontroSocialSessao')).toEqual({
+      method: RequestMethod.PATCH,
+      path: ':sessaoId/mecanicas/social/encontros',
+    });
+    expect(obterRota('criarEncontroSocialSessao')).toEqual({
+      method: RequestMethod.POST,
+      path: ':sessaoId/mecanicas/social/encontros',
+    });
+    expect(obterRota('atualizarEscaladaDadosSessao')).toEqual({
+      method: RequestMethod.PATCH,
+      path: ':sessaoId/mecanicas/escalada',
+    });
+    expect(obterRota('criarEscaladaDadosSessao')).toEqual({
+      method: RequestMethod.POST,
+      path: ':sessaoId/mecanicas/escalada',
+    });
   });
 
   it('deve encaminhar criação de sessão para o service', async () => {

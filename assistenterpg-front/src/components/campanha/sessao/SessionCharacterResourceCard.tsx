@@ -196,7 +196,7 @@ export function SessionCharacterResourceCard({
                 <span className={`session-resource-compact__label session-resource-compact__label--${linha.tone}`}>
                   {linha.key === 'pv' ? 'PV' : linha.key === 'san' ? 'SAN' : linha.label}
                 </span>
-                <span className="session-resource-compact__value">
+                <span className={`session-resource-compact__value session-resource-compact__value--${linha.tone}`}>
                   {linha.atual}/{linha.maximo}
                 </span>
               </div>
@@ -206,7 +206,7 @@ export function SessionCharacterResourceCard({
                 <span className="session-resource-compact__label session-resource-compact__label--inspiration">
                   INS
                 </span>
-                <span className="session-resource-compact__value">
+                <span className="session-resource-compact__value session-resource-compact__value--inspiration">
                   {Math.max(0, Math.min(3, pontosInspiracao))}/3
                 </span>
               </div>

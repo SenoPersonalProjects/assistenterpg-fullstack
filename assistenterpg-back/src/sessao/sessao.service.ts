@@ -4691,7 +4691,7 @@ export class SessaoService {
         id: `${alvo.npcSessaoId ?? 'custom'}:${indice}`,
         npcSessaoId: alvo.npcSessaoId ?? null,
         nome: alvo.nome.trim(),
-        interesseAtual: this.clamp(alvo.interesseAtual, 0, 4),
+        interesseAtual: this.clamp(alvo.interesseAtual, 0, 5),
         interesseAlvo: this.clamp(alvo.interesseAlvo, 1, 5),
         pacienciaAtual: this.clamp(alvo.pacienciaAtual, 0, 5),
         motivacoes: (alvo.motivacoes ?? []).map((motivacao) => ({
@@ -5778,6 +5778,157 @@ export class SessaoService {
     });
   }
 
+  private async cobrarSustentacoesAtivasRodadaTx(
+    tx: Prisma.TransactionClient,
+    args: {
+      sessaoId: number;
+      cenaId: number;
+      rodadaNova: number;
+    },
+  ): Promise<void> {
+    const sustentacoesAtivas =
+      await tx.personagemSessaoHabilidadeSustentada.findMany({
+        where: {
+          sessaoId: args.sessaoId,
+          ativa: true,
+        },
+        orderBy: {
+          id: 'asc',
+        },
+        select: {
+          id: true,
+          sessaoId: true,
+          personagemSessaoId: true,
+          nomeHabilidade: true,
+          nomeVariacao: true,
+          custoSustentacaoEA: true,
+          custoSustentacaoPE: true,
+          acumulos: true,
+          ultimaCobrancaRodada: true,
+          habilidadeTecnicaId: true,
+          variacaoHabilidadeId: true,
+          personagemSessao: {
+            select: {
+              personagemCampanha: {
+                select: {
+                  id: true,
+                  eaAtual: true,
+                  peAtual: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    const eaAtualPorPersonagemCampanha = new Map<number, number>();
+    const peAtualPorPersonagemCampanha = new Map<number, number>();
+
+    for (const sustentacao of sustentacoesAtivas) {
+      if (sustentacao.ultimaCobrancaRodada >= args.rodadaNova) {
+        continue;
+      }
+
+      const personagemCampanhaId =
+        sustentacao.personagemSessao.personagemCampanha.id;
+      const eaAtual =
+        eaAtualPorPersonagemCampanha.get(personagemCampanhaId) ??
+        sustentacao.personagemSessao.personagemCampanha.eaAtual;
+      const peAtual =
+        peAtualPorPersonagemCampanha.get(personagemCampanhaId) ??
+        sustentacao.personagemSessao.personagemCampanha.peAtual;
+      const custoSustentacaoEA = this.normalizarCustoPositivo(
+        sustentacao.custoSustentacaoEA,
+        1,
+      );
+      const custoSustentacaoPE = this.normalizarCustoPositivo(
+        sustentacao.custoSustentacaoPE,
+        0,
+      );
+
+      if (eaAtual >= custoSustentacaoEA && peAtual >= custoSustentacaoPE) {
+        const novoEa = eaAtual - custoSustentacaoEA;
+        const novoPe = peAtual - custoSustentacaoPE;
+        eaAtualPorPersonagemCampanha.set(personagemCampanhaId, novoEa);
+        peAtualPorPersonagemCampanha.set(personagemCampanhaId, novoPe);
+
+        await tx.personagemCampanha.update({
+          where: { id: personagemCampanhaId },
+          data: {
+            eaAtual: novoEa,
+            peAtual: novoPe,
+          },
+        });
+
+        await tx.personagemSessaoHabilidadeSustentada.update({
+          where: {
+            id: sustentacao.id,
+          },
+          data: {
+            ultimaCobrancaRodada: args.rodadaNova,
+          },
+        });
+
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId: args.sessaoId,
+            cenaId: args.cenaId,
+            personagemAtorId: sustentacao.personagemSessaoId,
+            tipoEvento: 'HABILIDADE_SUSTENTADA_COBRADA',
+            dados: this.jsonParaPersistencia({
+              sustentacaoId: sustentacao.id,
+              habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+              variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+              habilidadeNome: sustentacao.nomeHabilidade,
+              variacaoNome: sustentacao.nomeVariacao,
+              acumulos: sustentacao.acumulos,
+              custoEA: custoSustentacaoEA,
+              custoPE: custoSustentacaoPE,
+              rodada: args.rodadaNova,
+            }),
+          },
+        });
+      } else {
+        const recursosInsuficientes: string[] = [];
+        if (eaAtual < custoSustentacaoEA) recursosInsuficientes.push('EA');
+        if (peAtual < custoSustentacaoPE) recursosInsuficientes.push('PE');
+        const motivoSistema = `${recursosInsuficientes.join(' e ')} insuficiente(s) para sustentar habilidade na rodada ${args.rodadaNova}.`;
+        await tx.personagemSessaoHabilidadeSustentada.update({
+          where: {
+            id: sustentacao.id,
+          },
+          data: {
+            ativa: false,
+            desativadaEm: new Date(),
+            desativadaPorUsuarioId: null,
+            motivoDesativacao: motivoSistema,
+          },
+        });
+
+        await tx.eventoSessao.create({
+          data: {
+            sessaoId: args.sessaoId,
+            cenaId: args.cenaId,
+            personagemAtorId: sustentacao.personagemSessaoId,
+            tipoEvento: 'HABILIDADE_SUSTENTADA_ENCERRADA',
+            dados: this.jsonParaPersistencia({
+              sustentacaoId: sustentacao.id,
+              habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+              variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+              habilidadeNome: sustentacao.nomeHabilidade,
+              variacaoNome: sustentacao.nomeVariacao,
+              acumulos: sustentacao.acumulos,
+              encerradaPorId: null,
+              motivo: null,
+              motivoSistema,
+              rodada: args.rodadaNova,
+            }),
+          },
+        });
+      }
+    }
+  }
+
   private async aplicarAjusteLadoIniciativaAlternadaTx(
     tx: Prisma.TransactionClient,
     args: {
@@ -5859,20 +6010,49 @@ export class SessaoService {
       },
     });
 
-    const participanteTurnoNovo = ladoNovo.participantes[0]
-      ? (participantes.find(
-          (participante) =>
-            participante.token === ladoNovo.participantes[0].participanteToken,
-        ) ?? null)
-      : null;
-    if (args.acao !== 'VOLTAR') {
-      await this.processarCondicoesNoAvancoTurnoTx(tx, {
+    if (rodadaNova > rodadaAnterior) {
+      await this.cobrarSustentacoesAtivasRodadaTx(tx, {
         sessaoId: args.sessao.id,
         cenaId: args.cenaId,
-        rodadaAnterior,
         rodadaNova,
-        participanteTurnoNovo,
       });
+    }
+
+    const participantesTurnoNovos = ladoNovo.participantes
+      .map((participanteLado) =>
+        participantes.find(
+          (participante) =>
+            participante.token === participanteLado.participanteToken,
+        ),
+      )
+      .filter((participante): participante is ParticipanteIniciativa =>
+        Boolean(participante),
+      );
+
+    if (args.acao !== 'VOLTAR') {
+      if (participantesTurnoNovos.length === 0) {
+        await this.processarCondicoesNoAvancoTurnoTx(tx, {
+          sessaoId: args.sessao.id,
+          cenaId: args.cenaId,
+          rodadaAnterior,
+          rodadaNova,
+          participanteTurnoNovo: null,
+        });
+      } else {
+        for (const [
+          indiceParticipante,
+          participanteTurnoNovo,
+        ] of participantesTurnoNovos.entries()) {
+          await this.processarCondicoesNoAvancoTurnoTx(tx, {
+            sessaoId: args.sessao.id,
+            cenaId: args.cenaId,
+            rodadaAnterior,
+            rodadaNova,
+            participanteTurnoNovo,
+            processarDuracoesPorRodada: indiceParticipante === 0,
+          });
+        }
+      }
     }
 
     await tx.eventoSessao.create({
@@ -7714,147 +7894,11 @@ export class SessaoService {
       });
 
       if (rodadaNova > sessao.rodadaAtual) {
-        const sustentacoesAtivas =
-          await tx.personagemSessaoHabilidadeSustentada.findMany({
-            where: {
-              sessaoId,
-              ativa: true,
-            },
-            orderBy: {
-              id: 'asc',
-            },
-            select: {
-              id: true,
-              sessaoId: true,
-              personagemSessaoId: true,
-              nomeHabilidade: true,
-              nomeVariacao: true,
-              custoSustentacaoEA: true,
-              custoSustentacaoPE: true,
-              acumulos: true,
-              ultimaCobrancaRodada: true,
-              habilidadeTecnicaId: true,
-              variacaoHabilidadeId: true,
-              personagemSessao: {
-                select: {
-                  personagemCampanha: {
-                    select: {
-                      id: true,
-                      eaAtual: true,
-                      peAtual: true,
-                    },
-                  },
-                },
-              },
-            },
-          });
-
-        const eaAtualPorPersonagemCampanha = new Map<number, number>();
-        const peAtualPorPersonagemCampanha = new Map<number, number>();
-
-        for (const sustentacao of sustentacoesAtivas) {
-          if (sustentacao.ultimaCobrancaRodada >= rodadaNova) {
-            continue;
-          }
-
-          const personagemCampanhaId =
-            sustentacao.personagemSessao.personagemCampanha.id;
-          const eaAtual =
-            eaAtualPorPersonagemCampanha.get(personagemCampanhaId) ??
-            sustentacao.personagemSessao.personagemCampanha.eaAtual;
-          const peAtual =
-            peAtualPorPersonagemCampanha.get(personagemCampanhaId) ??
-            sustentacao.personagemSessao.personagemCampanha.peAtual;
-          const custoSustentacaoEA = this.normalizarCustoPositivo(
-            sustentacao.custoSustentacaoEA,
-            1,
-          );
-          const custoSustentacaoPE = this.normalizarCustoPositivo(
-            sustentacao.custoSustentacaoPE,
-            0,
-          );
-
-          if (eaAtual >= custoSustentacaoEA && peAtual >= custoSustentacaoPE) {
-            const novoEa = eaAtual - custoSustentacaoEA;
-            const novoPe = peAtual - custoSustentacaoPE;
-            eaAtualPorPersonagemCampanha.set(personagemCampanhaId, novoEa);
-            peAtualPorPersonagemCampanha.set(personagemCampanhaId, novoPe);
-
-            await tx.personagemCampanha.update({
-              where: { id: personagemCampanhaId },
-              data: {
-                eaAtual: novoEa,
-                peAtual: novoPe,
-              },
-            });
-
-            await tx.personagemSessaoHabilidadeSustentada.update({
-              where: {
-                id: sustentacao.id,
-              },
-              data: {
-                ultimaCobrancaRodada: rodadaNova,
-              },
-            });
-
-            await tx.eventoSessao.create({
-              data: {
-                sessaoId,
-                cenaId: cenaAtual.id,
-                personagemAtorId: sustentacao.personagemSessaoId,
-                tipoEvento: 'HABILIDADE_SUSTENTADA_COBRADA',
-                dados: this.jsonParaPersistencia({
-                  sustentacaoId: sustentacao.id,
-                  habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
-                  variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
-                  habilidadeNome: sustentacao.nomeHabilidade,
-                  variacaoNome: sustentacao.nomeVariacao,
-                  acumulos: sustentacao.acumulos,
-                  custoEA: custoSustentacaoEA,
-                  custoPE: custoSustentacaoPE,
-                  rodada: rodadaNova,
-                }),
-              },
-            });
-          } else {
-            const recursosInsuficientes: string[] = [];
-            if (eaAtual < custoSustentacaoEA) recursosInsuficientes.push('EA');
-            if (peAtual < custoSustentacaoPE) recursosInsuficientes.push('PE');
-            const motivoSistema = `${recursosInsuficientes.join(' e ')} insuficiente(s) para sustentar habilidade na rodada ${rodadaNova}.`;
-            await tx.personagemSessaoHabilidadeSustentada.update({
-              where: {
-                id: sustentacao.id,
-              },
-              data: {
-                ativa: false,
-                desativadaEm: new Date(),
-                desativadaPorUsuarioId: null,
-                motivoDesativacao: motivoSistema,
-              },
-            });
-
-            await tx.eventoSessao.create({
-              data: {
-                sessaoId,
-                cenaId: cenaAtual.id,
-                personagemAtorId: sustentacao.personagemSessaoId,
-                tipoEvento: 'HABILIDADE_SUSTENTADA_ENCERRADA',
-                dados: this.jsonParaPersistencia({
-                  sustentacaoId: sustentacao.id,
-                  habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
-                  variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
-                  habilidadeNome: sustentacao.nomeHabilidade,
-                  variacaoNome: sustentacao.nomeVariacao,
-                  acumulos: sustentacao.acumulos,
-                  encerradaPorId: null,
-                  motivo: null,
-                  motivoSistema,
-                  rodada: rodadaNova,
-                }),
-              },
-            });
-          }
-        }
+        await this.cobrarSustentacoesAtivasRodadaTx(tx, {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          rodadaNova,
+        });
       }
 
       if (acao !== 'VOLTAR') {
@@ -8741,6 +8785,7 @@ export class SessaoService {
       rodadaAnterior: number;
       rodadaNova: number;
       participanteTurnoNovo: ParticipanteIniciativa | null;
+      processarDuracoesPorRodada?: boolean;
     },
   ): Promise<void> {
     const {
@@ -8750,7 +8795,8 @@ export class SessaoService {
       rodadaNova,
       participanteTurnoNovo,
     } = args;
-    if (!participanteTurnoNovo) return;
+    const processarDuracoesPorRodada =
+      args.processarDuracoesPorRodada !== false;
 
     await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
 
@@ -8766,7 +8812,7 @@ export class SessaoService {
       return;
     }
 
-    if (rodadaNova > rodadaAnterior) {
+    if (processarDuracoesPorRodada && rodadaNova > rodadaAnterior) {
       const condicoesPorRodada = await condicaoSessaoDelegate.findMany({
         where: {
           sessaoId,
@@ -8811,6 +8857,8 @@ export class SessaoService {
         }
       }
     }
+
+    if (!participanteTurnoNovo) return;
 
     if (participanteTurnoNovo.tipoParticipante === 'PERSONAGEM') {
       const personagemSessaoId = participanteTurnoNovo.personagemSessaoId;
@@ -10165,7 +10213,7 @@ export class SessaoService {
     const ocultaParaUsuario =
       visibilidade === 'SECRETA_MESTRE' && !podeVerSegredo;
     const mensagem = ocultaParaUsuario
-      ? 'O mestre fez uma rolagem secreta.'
+      ? 'Rolagem secreta do Mestre'
       : typeof dados.mensagem === 'string'
         ? dados.mensagem
         : '';

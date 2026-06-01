@@ -81,7 +81,7 @@ export class AlvoSocialSessaoDto {
 
   @IsInt({ message: 'interesseAtual deve ser inteiro' })
   @Min(0, { message: 'interesseAtual minimo e 0' })
-  @Max(4, { message: 'interesseAtual maximo e 4' })
+  @Max(5, { message: 'interesseAtual maximo e 5' })
   interesseAtual: number;
 
   @IsInt({ message: 'interesseAlvo deve ser inteiro' })

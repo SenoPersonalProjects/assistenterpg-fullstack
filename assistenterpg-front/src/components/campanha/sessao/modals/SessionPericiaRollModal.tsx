@@ -244,7 +244,7 @@ export function SessionPericiaRollModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Rolagem de perícia"
-      size="md"
+      size="lg"
       footer={null}
     >
       <div className="session-roll-modal">

@@ -219,6 +219,19 @@ export function DiceChatPanel({
           </Button>
         </div>
       </div>
+      {podeUsarRolagemSecreta ? (
+        <div className="session-chat__secret-mode">
+          <Checkbox
+            checked={rolagemSecreta}
+            onChange={(event) => onToggleRolagemSecreta?.(event.target.checked)}
+            label="Ocultar minhas rolagens"
+            disabled={sessaoEncerrada}
+          />
+          <span className="session-chat__secret-hint">
+            Jogadores veem apenas Rolagem secreta do Mestre.
+          </span>
+        </div>
+      ) : null}
       <div className="grid gap-2 rounded-xl border border-app-border/40 bg-app-card/70 p-3 text-xs text-app-muted sm:grid-cols-2">
         <label className="space-y-1">
           <span className="font-bold text-app-fg">Contexto</span>
@@ -247,13 +260,6 @@ export function DiceChatPanel({
             placeholder="Ex.: 20"
           />
         </label>
-        {podeUsarRolagemSecreta ? (
-          <Checkbox
-            checked={rolagemSecreta}
-            onChange={(event) => onToggleRolagemSecreta?.(event.target.checked)}
-            label="Rolagem secreta"
-          />
-        ) : null}
         {contextoRolagem === 'ATAQUE' && bonusEscaladaDados > 0 ? (
           <span className="rounded-lg bg-app-danger/10 px-3 py-2 font-black text-app-danger">
             Escalada de Dados +{bonusEscaladaDados} aplicada

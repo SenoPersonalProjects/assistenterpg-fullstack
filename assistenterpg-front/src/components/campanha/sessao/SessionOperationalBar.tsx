@@ -93,21 +93,39 @@ export const SessionOperationalBar = forwardRef<
   };
   const statusAtual = statusConfig[statusTempoReal];
 
+  const cenaComTurnos = cenaTipo !== 'LIVRE' && cenaTipo !== 'BASE';
+  const ladosIniciativaAlternada =
+    iniciativaAlternada?.lados.slice().sort((a, b) => a.ordem - b.ordem) ?? [];
   const iniciativaAlternadaAtiva =
-    cenaTipo === 'COMBATE' &&
+    cenaComTurnos &&
     controleTurnosAtivo &&
-    Boolean(iniciativaAlternada?.ativo);
+    Boolean(iniciativaAlternada?.ativo) &&
+    ladosIniciativaAlternada.length > 0;
 
-  const ladoAtual = iniciativaAlternadaAtiva && iniciativaAlternada
-    ? iniciativaAlternada.lados.find(l => l.id === iniciativaAlternada.ladoAtualId) || iniciativaAlternada.lados[0]
+  const ladoAtual = iniciativaAlternadaAtiva
+    ? ladosIniciativaAlternada.find((lado) => lado.id === iniciativaAlternada?.ladoAtualId) ??
+      ladosIniciativaAlternada[0] ??
+      null
     : null;
+  const indiceLadoAtual = ladoAtual
+    ? Math.max(
+        0,
+        ladosIniciativaAlternada.findIndex((lado) => lado.id === ladoAtual.id),
+      )
+    : -1;
+  const proximoLado =
+    iniciativaAlternadaAtiva && ladosIniciativaAlternada.length > 0
+      ? ladosIniciativaAlternada[
+          (indiceLadoAtual + 1) % ladosIniciativaAlternada.length
+        ]
+      : null;
 
   const turnoPrincipalLabel = iniciativaAlternadaAtiva && ladoAtual
     ? `Lado: ${ladoAtual.nome}`
     : (turnoAtualLabel ?? (cenaTipo === 'SOCIAL' ? 'Encontro Social' : 'Iniciando...'));
 
-  const proximoPrincipalLabel = iniciativaAlternadaAtiva && iniciativaAlternada
-    ? `Próximo: ${iniciativaAlternada.lados.find(l => l.id !== iniciativaAlternada.ladoAtualId)?.nome || '—'}`
+  const proximoPrincipalLabel = iniciativaAlternadaAtiva
+    ? `Próximo: ${proximoLado?.nome ?? '—'}`
     : proximoTurnoLabel ?? '—';
 
   const iniciarHoldEscalada = () => {

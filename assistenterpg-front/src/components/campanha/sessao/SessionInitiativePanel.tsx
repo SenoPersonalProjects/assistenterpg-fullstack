@@ -110,11 +110,14 @@ export function SessionInitiativePanel({
   const proximoResumo = proximoParticipante
     ? labelParticipanteIniciativa(proximoParticipante)
     : '—';
+  const cenaComTurnos = cenaTipo !== 'LIVRE' && cenaTipo !== 'BASE';
+  const ladosIniciativaAlternada =
+    iniciativaAlternada?.lados.slice().sort((a, b) => a.ordem - b.ordem) ?? [];
   const iniciativaAlternadaAtiva =
-    cenaTipo === 'COMBATE' &&
+    cenaComTurnos &&
     controleTurnosAtivo &&
     Boolean(iniciativaAlternada?.ativo) &&
-    Boolean(iniciativaAlternada?.lados.length);
+    ladosIniciativaAlternada.length > 0;
 
   const iniciarHoldEscalada = () => {
     if (!podeControlarSessao || sessaoEncerrada || !onAtualizarEscaladaBonus) return;
@@ -195,12 +198,24 @@ export function SessionInitiativePanel({
     </div>
   );
   const ladoAtual =
-    iniciativaAlternadaAtiva && iniciativaAlternada
-      ? iniciativaAlternada.lados.find(
-          (lado) => lado.id === iniciativaAlternada.ladoAtualId,
+    iniciativaAlternadaAtiva
+      ? ladosIniciativaAlternada.find(
+          (lado) => lado.id === iniciativaAlternada?.ladoAtualId,
         ) ??
-        iniciativaAlternada.lados[0] ??
+        ladosIniciativaAlternada[0] ??
         null
+      : null;
+  const indiceLadoAtual = ladoAtual
+    ? Math.max(
+        0,
+        ladosIniciativaAlternada.findIndex((lado) => lado.id === ladoAtual.id),
+      )
+    : -1;
+  const proximoLado =
+    iniciativaAlternadaAtiva && ladosIniciativaAlternada.length > 0
+      ? ladosIniciativaAlternada[
+          (indiceLadoAtual + 1) % ladosIniciativaAlternada.length
+        ]
       : null;
 
   const participantesAlternados = iniciativaOrdem.map((p) => {
@@ -211,7 +226,7 @@ export function SessionInitiativePanel({
 
     let ladoId: number | null = null;
     if (iniciativaAlternada) {
-      for (const lado of iniciativaAlternada.lados) {
+      for (const lado of ladosIniciativaAlternada) {
         if (
           lado.participantes.some((ap) => ap.participanteToken === token)
         ) {
@@ -243,7 +258,7 @@ export function SessionInitiativePanel({
     );
     if (!pBase) return;
 
-    const ladosAtualizados = iniciativaAlternada.lados.map((lado) => {
+    const ladosAtualizados = ladosIniciativaAlternada.map((lado) => {
       const participantesSemAtual = lado.participantes.filter(
         (participante) => participante.participanteToken !== participanteToken,
       );
@@ -330,7 +345,7 @@ export function SessionInitiativePanel({
           </div>
 
           <div className="session-alternating-sides">
-            {iniciativaAlternada.lados.map((lado) => (
+            {ladosIniciativaAlternada.map((lado) => (
               <span
                 key={lado.id}
                 className={`session-alternating-side${
@@ -373,7 +388,7 @@ export function SessionInitiativePanel({
                       <option value="" disabled>
                         Lado...
                       </option>
-                      {iniciativaAlternada.lados.map((lado) => (
+                      {ladosIniciativaAlternada.map((lado) => (
                         <option key={lado.id} value={lado.id}>
                           {lado.nome}
                         </option>
@@ -394,9 +409,7 @@ export function SessionInitiativePanel({
                   {acaoTurnoPendente === 'AVANCAR'
                     ? '...'
                     : `Mudar para ${
-                        iniciativaAlternada.lados.find(
-                          (l) => l.id !== ladoAtual.id,
-                        )?.nome ?? 'próximo lado'
+                        proximoLado?.nome ?? 'próximo lado'
                       }`}
                   <Icon name="forward" className="ml-2 h-4 w-4" />
                 </Button>

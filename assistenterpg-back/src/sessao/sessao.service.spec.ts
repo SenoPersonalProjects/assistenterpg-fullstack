@@ -765,6 +765,221 @@ describe('SessaoService', () => {
     );
   });
 
+  it('deve cobrar sustentacao e processar todo lado ao virar rodada na iniciativa alternada', async () => {
+    const acessoMestre = {
+      campanha: {
+        id: 7,
+        donoId: 10,
+        dono: { id: 10, apelido: 'Mestre' },
+        membros: [],
+      },
+      ehDono: true,
+      ehMestre: true,
+    };
+    const participantes = [
+      {
+        tipoParticipante: 'PERSONAGEM' as const,
+        token: 'PERSONAGEM:501',
+        personagemSessaoId: 501,
+        npcSessaoId: null,
+        personagemCampanhaId: 900,
+        donoId: 10,
+        nomeJogador: 'Mestre',
+        nomePersonagem: 'Heroi',
+        podeEditar: true,
+      },
+      {
+        tipoParticipante: 'NPC' as const,
+        token: 'NPC:601',
+        personagemSessaoId: null,
+        npcSessaoId: 601,
+        personagemCampanhaId: null,
+        donoId: null,
+        nomeJogador: null,
+        nomePersonagem: 'Ameaca',
+        podeEditar: true,
+      },
+    ];
+    type SessaoServiceInternals = {
+      obterAcessoCampanha: (
+        campanhaId: number,
+        usuarioId: number,
+      ) => Promise<typeof acessoMestre>;
+      obterCenaAtualSessaoTx: (
+        txArg: unknown,
+        sessaoId: number,
+      ) => Promise<{ id: number }>;
+      carregarParticipantesIniciativa: (
+        txArg: unknown,
+        sessaoId: number,
+        cenaAtualId: number,
+        ehMestre: boolean,
+        usuarioId: number,
+      ) => Promise<typeof participantes>;
+      obterOuCriarIniciativaAlternadaTx: (
+        txArg: unknown,
+        sessaoId: number,
+        participantesArg: typeof participantes,
+      ) => Promise<unknown>;
+      processarCondicoesNoAvancoTurnoTx: (
+        txArg: unknown,
+        args: {
+          sessaoId: number;
+          cenaId: number;
+          rodadaAnterior: number;
+          rodadaNova: number;
+          participanteTurnoNovo: (typeof participantes)[number] | null;
+          processarDuracoesPorRodada?: boolean;
+        },
+      ) => Promise<void>;
+    };
+    const internals = service as unknown as SessaoServiceInternals;
+
+    jest
+      .spyOn(internals, 'obterAcessoCampanha')
+      .mockResolvedValue(acessoMestre);
+    jest
+      .spyOn(internals, 'obterCenaAtualSessaoTx')
+      .mockResolvedValue({ id: 111 });
+    jest
+      .spyOn(internals, 'carregarParticipantesIniciativa')
+      .mockResolvedValue(participantes);
+    jest
+      .spyOn(internals, 'obterOuCriarIniciativaAlternadaTx')
+      .mockResolvedValue({
+        ativo: true,
+        ladoAtualId: 20,
+        lados: [],
+      });
+    const processarCondicoesSpy = jest
+      .spyOn(internals, 'processarCondicoesNoAvancoTurnoTx')
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 } as never);
+
+    const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          cenaAtualTipo: 'COMBATE',
+          indiceTurnoAtual: 0,
+          rodadaAtual: 3,
+        }),
+        update: jest.fn().mockResolvedValue({ id: 21 }),
+      },
+      sessaoRegraOpcional: {
+        findUnique: jest.fn().mockResolvedValue({ ativo: true }),
+      },
+      sessaoIniciativaAlternada: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 44,
+          sessaoId: 21,
+          ladoAtualId: 10,
+          lados: [
+            {
+              id: 20,
+              nome: 'Oposicao',
+              ordem: 0,
+              participantes: [
+                { participanteToken: 'PERSONAGEM:501', ordem: 0 },
+                { participanteToken: 'NPC:601', ordem: 1 },
+              ],
+            },
+            {
+              id: 10,
+              nome: 'Jogadores',
+              ordem: 1,
+              participantes: [],
+            },
+          ],
+        }),
+        update: jest.fn().mockResolvedValue({ id: 44 }),
+      },
+      sessaoIniciativaAlternadaParticipante: {
+        updateMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
+      personagemSessaoHabilidadeSustentada: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 1001,
+            sessaoId: 21,
+            personagemSessaoId: 501,
+            nomeHabilidade: 'Barreira',
+            nomeVariacao: null,
+            custoSustentacaoEA: 2,
+            custoSustentacaoPE: 1,
+            acumulos: 1,
+            ultimaCobrancaRodada: 3,
+            habilidadeTecnicaId: 700,
+            variacaoHabilidadeId: null,
+            personagemSessao: {
+              personagemCampanha: {
+                id: 900,
+                eaAtual: 5,
+                peAtual: 3,
+              },
+            },
+          },
+        ]),
+        update: jest.fn().mockResolvedValue({ id: 1001 }),
+      },
+      personagemCampanha: {
+        update: jest.fn().mockResolvedValue({ id: 900 }),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({ id: 3001 }),
+      },
+    };
+
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    await service.avancarTurnoSessao(7, 21, 10);
+
+    expect(tx.sessao.update).toHaveBeenCalledWith({
+      where: { id: 21 },
+      data: {
+        rodadaAtual: 4,
+      },
+    });
+    expect(tx.personagemCampanha.update).toHaveBeenCalledWith({
+      where: { id: 900 },
+      data: {
+        eaAtual: 3,
+        peAtual: 2,
+      },
+    });
+    expect(processarCondicoesSpy).toHaveBeenCalledTimes(2);
+    expect(processarCondicoesSpy).toHaveBeenNthCalledWith(
+      1,
+      tx,
+      expect.objectContaining({
+        rodadaAnterior: 3,
+        rodadaNova: 4,
+        participanteTurnoNovo: participantes[0],
+        processarDuracoesPorRodada: true,
+      }),
+    );
+    expect(processarCondicoesSpy).toHaveBeenNthCalledWith(
+      2,
+      tx,
+      expect.objectContaining({
+        rodadaAnterior: 3,
+        rodadaNova: 4,
+        participanteTurnoNovo: participantes[1],
+        processarDuracoesPorRodada: false,
+      }),
+    );
+    const tiposEvento = tx.eventoSessao.create.mock.calls.map(
+      ([call]) => call.data.tipoEvento,
+    );
+    expect(tiposEvento).toContain('HABILIDADE_SUSTENTADA_COBRADA');
+    expect(tiposEvento).toContain('INICIATIVA_ALTERNADA_AVANCADA');
+  });
+
   it('deve encerrar sustentacao automaticamente quando faltar PE na rodada', async () => {
     const acessoMestre = {
       campanha: {

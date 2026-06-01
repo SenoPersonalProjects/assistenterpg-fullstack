@@ -71,7 +71,6 @@ import {
 } from '@/components/campanha/sessao/SessionMasterControls';
 import { SessionSidebarPanel } from '@/components/campanha/sessao/SessionSidebarPanel';
 import { SessionOptionalMechanicsPanel } from '@/components/campanha/sessao/SessionOptionalMechanicsPanel';
-import { SessionSocialTargetsPanel } from '@/components/campanha/sessao/SessionSocialTargetsPanel';
 import { SessionNpcsPanel } from '@/components/campanha/sessao/SessionNpcsPanel';
 import { SessionPlayerSummaryPanel } from '@/components/campanha/sessao/SessionPlayerSummaryPanel';
 import { SessionSceneRosterPanel } from '@/components/campanha/sessao/SessionSceneRosterPanel';
@@ -173,6 +172,8 @@ type PericiaRollModalState = {
   enviado: boolean;
   erro: string | null;
 };
+
+type VisibilidadeRolagemSessao = 'PUBLICA' | 'SECRETA_MESTRE';
 
 function formatarDadosEventoParaExibicao(dados: unknown): string {
   if (dados === null || typeof dados === 'undefined') {
@@ -884,6 +885,8 @@ export default function SessaoCampanhaPage() {
 
   const podeControlarSessao = Boolean(detalhe?.permissoes.ehMestre);
   const sessaoEncerrada = detalhe?.status === 'ENCERRADA';
+  const visibilidadeRolagemAtual: VisibilidadeRolagemSessao =
+    rolagemSecreta && podeControlarSessao ? 'SECRETA_MESTRE' : 'PUBLICA';
 
   const {
     colunaEsquerdaRecolhida,
@@ -1266,8 +1269,7 @@ export default function SessaoCampanhaPage() {
     animacaoModalAtiva: animacaoRolagemChatAtiva,
     onAbrirModalAnimado: abrirModalRolagemChat,
     onAtualizarModalAnimado: atualizarModalRolagemChat,
-    visibilidade:
-      rolagemSecreta && podeControlarSessao ? 'SECRETA_MESTRE' : 'PUBLICA',
+    visibilidade: visibilidadeRolagemAtual,
     contextoRolagem: contextoRolagemPayload,
     bonusEscaladaDados,
   });
@@ -1483,7 +1485,10 @@ export default function SessaoCampanhaPage() {
           campanhaId,
           sessaoId,
           {
-            ladoAtualId: lados[0]?.id,
+            ladoAtualId:
+              detalhe?.iniciativaAlternada?.ladoAtualId ??
+              lados.find((lado) => lado.ativo)?.id ??
+              lados[0]?.id,
             lados: lados.map((lado, ladoIndex) => ({
               id: lado.id,
               nome: lado.nome,
@@ -1503,7 +1508,13 @@ export default function SessaoCampanhaPage() {
         setAtualizandoRegraOpcional(null);
       }
     },
-    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+    [
+      campanhaId,
+      detalhe?.iniciativaAlternada?.ladoAtualId,
+      sessaoId,
+      showToast,
+      sincronizarEstadosDerivados,
+    ],
   );
 
   const handleConsumirItemSessao = useCallback(
@@ -1587,6 +1598,7 @@ export default function SessaoCampanhaPage() {
         setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
         const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
           mensagem: mensagemEnvio,
+          visibilidade: visibilidadeRolagemAtual,
         });
         setChat((anterior) => [...anterior, enviada]);
         setPericiaRollModal((estado) => ({
@@ -1605,7 +1617,14 @@ export default function SessaoCampanhaPage() {
         }));
       }
     },
-    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+    [
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      setErroRolagens,
+      showToast,
+      visibilidadeRolagemAtual,
+    ],
   );
 
   const handleRolarExpressao = useCallback(
@@ -1657,6 +1676,7 @@ export default function SessaoCampanhaPage() {
         setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
         const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
           mensagem: mensagemEnvio,
+          visibilidade: visibilidadeRolagemAtual,
         });
         setChat((anterior) => [...anterior, enviada]);
         setPericiaRollModal((estado) => ({
@@ -1675,7 +1695,14 @@ export default function SessaoCampanhaPage() {
         }));
       }
     },
-    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+    [
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      setErroRolagens,
+      showToast,
+      visibilidadeRolagemAtual,
+    ],
   );
 
   const handleRolarTesteHabilidade = useCallback(
@@ -1729,6 +1756,7 @@ export default function SessaoCampanhaPage() {
         setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
         const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
           mensagem: mensagemEnvio,
+          visibilidade: visibilidadeRolagemAtual,
         });
         setChat((anterior) => [...anterior, enviada]);
         setPericiaRollModal((estado) => ({
@@ -1747,7 +1775,14 @@ export default function SessaoCampanhaPage() {
         }));
       }
     },
-    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+    [
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      setErroRolagens,
+      showToast,
+      visibilidadeRolagemAtual,
+    ],
   );
 
   const handleRolarDanoHabilidade = useCallback(
@@ -1909,6 +1944,7 @@ export default function SessaoCampanhaPage() {
         setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
         const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
           mensagem: mensagemEnvio,
+          visibilidade: visibilidadeRolagemAtual,
         });
         setChat((anterior) => [...anterior, enviada]);
         setPericiaRollModal((estado) => ({
@@ -1927,7 +1963,14 @@ export default function SessaoCampanhaPage() {
         }));
       }
     },
-    [campanhaId, sessaoEncerrada, sessaoId, setErroRolagens, showToast],
+    [
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      setErroRolagens,
+      showToast,
+      visibilidadeRolagemAtual,
+    ],
   );
 
   const { encerrandoSessao, handleEncerrarSessao } = useSessaoEncerramento({
@@ -2180,6 +2223,14 @@ export default function SessaoCampanhaPage() {
   );
   const cards = useMemo(() => detalhe?.cards ?? [], [detalhe?.cards]);
   const npcs = useMemo(() => detalhe?.npcs ?? [], [detalhe?.npcs]);
+  const npcsAlvosSociais = useMemo(() => {
+    const idsAlvos = new Set(
+      alvosSociais
+        .map((alvo) => alvo.npcSessaoId)
+        .filter((id): id is number => typeof id === 'number'),
+    );
+    return npcs.filter((npc) => idsAlvos.has(npc.npcSessaoId));
+  }, [alvosSociais, npcs]);
   const rolagens = useMemo(
     () =>
       chat.filter(
@@ -2798,7 +2849,7 @@ export default function SessaoCampanhaPage() {
                     salvandoNpcId={salvandoNpcId}
                     campoRecursoPendente={campoRecursoNpcPendente}
                     removendoNpcId={removendoNpcId}
-                    erro={erroNpcs}
+                    erro={erroNpcs ?? (socialAtivo ? erroRegrasOpcionais : null)}
                     onAbrirAdicionar={() => setModalAdicionarNpcAberto(true)}
                     onAbrirAdicionarNpcSimples={() =>
                       setModalAdicionarNpcSimplesAberto(true)
@@ -2954,13 +3005,41 @@ export default function SessaoCampanhaPage() {
           <section className="space-y-3">
             {podeControlarSessao ? renderCardsSessao() : null}
 
-            {socialAtivo && alvosSociais.length > 0 ? (
-              <SessionSocialTargetsPanel
-                alvos={alvosSociais}
-                podeControlarSessao={podeControlarSessao}
+            {!podeControlarSessao && socialAtivo && npcsAlvosSociais.length > 0 ? (
+              <SessionNpcsPanel
+                npcs={npcsAlvosSociais}
+                podeControlarSessao={false}
                 sessaoEncerrada={sessaoEncerrada}
+                npcsDisponiveis={[]}
+                iniciativaPorNpcSessao={iniciativaPorNpcSessao}
+                edicaoNpcs={edicaoNpcs}
+                ajustesRecursosNpc={ajustesRecursosNpc}
+                salvandoNpcId={salvandoNpcId}
+                campoRecursoPendente={campoRecursoNpcPendente}
+                removendoNpcId={removendoNpcId}
                 erro={erroRegrasOpcionais}
-                onAtualizarAlvo={handleAtualizarAlvoSocial}
+                onAbrirAdicionar={() => undefined}
+                onAbrirAdicionarNpcSimples={() => undefined}
+                onAtualizarCampo={atualizarCampoEdicaoNpc}
+                onAtualizarAjustePersonalizado={(npc, campo, valor) =>
+                  atualizarAjusteRecursoNpc(npc.npcSessaoId, campo, valor)
+                }
+                onAplicarDeltaRecurso={(npc, campo, delta) =>
+                  void handleAplicarDeltaRecursoNpc(npc, campo, delta)
+                }
+                onAplicarAjustePersonalizado={(npc, campo) =>
+                  void handleAplicarAjustePersonalizadoRecursoNpc(npc, campo)
+                }
+                onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
+                onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
+                onRolarPericia={handleRolarPericia}
+                onRolarExpressao={handleRolarExpressao}
+                renderPainelCondicoes={renderPainelCondicoes}
+                socialAtivo={socialAtivo}
+                alvosSociais={alvosSociais}
+                onAdicionarAlvoSocial={handleAdicionarAlvoSocial}
+                onRemoverAlvoSocial={handleRemoverAlvoSocial}
+                onAtualizarAlvoSocial={handleAtualizarAlvoSocial}
               />
             ) : null}
 

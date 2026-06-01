@@ -7,10 +7,14 @@ type SessionSegmentedBarProps = {
   value: number;
   max?: number;
   target?: number;
+  targetMin?: number;
+  targetLabel?: string;
   tone?: 'primary' | 'success' | 'danger';
   canEdit?: boolean;
+  canEditTarget?: boolean;
   disabled?: boolean;
   onChange?: (value: number) => void;
+  onTargetChange?: (value: number) => void;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -22,13 +26,17 @@ export function SessionSegmentedBar({
   value,
   max = 5,
   target,
+  targetMin = 1,
+  targetLabel = 'Alvo',
   tone = 'primary',
   canEdit = false,
+  canEditTarget = false,
   disabled = false,
   onChange,
+  onTargetChange,
 }: SessionSegmentedBarProps) {
   const valor = clamp(value, 0, max);
-  const alvo = typeof target === 'number' ? clamp(target, 0, max) : null;
+  const alvo = typeof target === 'number' ? clamp(target, targetMin, max) : null;
 
   return (
     <div className={`session-segmented-bar session-segmented-bar--${tone}`}>
@@ -75,6 +83,33 @@ export function SessionSegmentedBar({
           >
             +1
           </Button>
+        </div>
+      ) : null}
+      {alvo !== null ? (
+        <div className="session-segmented-bar__target">
+          <span>
+            {targetLabel}: {alvo}/{max}
+          </span>
+          {canEditTarget ? (
+            <div className="session-segmented-bar__target-actions">
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={disabled || alvo <= targetMin}
+                onClick={() => onTargetChange?.(alvo - 1)}
+              >
+                -1
+              </Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                disabled={disabled || alvo >= max}
+                onClick={() => onTargetChange?.(alvo + 1)}
+              >
+                +1
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
