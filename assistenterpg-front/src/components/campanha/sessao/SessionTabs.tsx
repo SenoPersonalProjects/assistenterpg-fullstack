@@ -26,7 +26,10 @@ export function SessionTabs({
   variant = 'default',
 }: SessionTabsProps) {
   return (
-    <div className={`session-tabs session-tabs--${variant} ${className}`}>
+    <div
+      className={`session-tabs session-tabs--${variant} ${className}`}
+      role="tablist"
+    >
       {tabs.map((tab) => {
         const ativo = tab.id === activeId;
         return (
@@ -37,6 +40,8 @@ export function SessionTabs({
             disabled={tab.disabled}
             title={tab.label}
             aria-label={tab.label}
+            aria-selected={ativo}
+            role="tab"
             className={
               ativo
                 ? 'session-tab session-tab--active'

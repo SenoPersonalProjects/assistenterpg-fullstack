@@ -133,6 +133,7 @@ type NpcSessionCardProps = {
   onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
   alvoSocial?: AlvoEncontroSocialSessao | null;
   socialAtivo?: boolean;
+  atualizandoAlvoSocial?: boolean;
   onAdicionarAlvoSocial?: () => void;
   onRemoverAlvoSocial?: () => void;
   onAtualizarAlvoSocial?: (
@@ -171,6 +172,7 @@ export function NpcSessionCard({
   onRolarExpressao,
   alvoSocial = null,
   socialAtivo = false,
+  atualizandoAlvoSocial = false,
   onAdicionarAlvoSocial,
   onRemoverAlvoSocial,
   onAtualizarAlvoSocial,
@@ -755,17 +757,40 @@ export function NpcSessionCard({
               </Badge>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
             {socialAtivo && podeControlarSessao && (
-              <Button
-                size="xs"
-                variant={alvoSocial ? 'secondary' : 'ghost'}
-                onClick={alvoSocial ? onRemoverAlvoSocial : onAdicionarAlvoSocial}
-                title={alvoSocial ? 'Remover alvo social' : 'Marcar como alvo social'}
-                className={alvoSocial ? 'text-app-primary' : 'text-app-muted'}
-              >
-                <Icon name="user" className="h-3.5 w-3.5" />
-              </Button>
+              alvoSocial ? (
+                <div className="session-social-target-toggle-group">
+                  <span className="session-social-target-toggle-badge">
+                    <Icon name="user" className="h-3.5 w-3.5" />
+                    Alvo social
+                  </span>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={onRemoverAlvoSocial}
+                    title="Remover alvo social"
+                    aria-label={`Remover ${npc.nome} do encontro social`}
+                    disabled={sessaoEncerrada || atualizandoAlvoSocial}
+                    className="session-social-target-remove"
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="xs"
+                  variant="secondary"
+                  onClick={onAdicionarAlvoSocial}
+                  title="Tornar alvo social"
+                  aria-label={`Tornar ${npc.nome} alvo social`}
+                  disabled={sessaoEncerrada || atualizandoAlvoSocial}
+                  className="session-social-target-toggle"
+                >
+                  <Icon name="user" className="h-3.5 w-3.5" />
+                  Tornar alvo social
+                </Button>
+              )
             )}
             <span className="session-initiative-badge">INI {iniciativaTexto}</span>
             <Button
@@ -931,7 +956,7 @@ export function NpcSessionCard({
               tone="success"
               canEdit={podeControlarSessao}
               canEditTarget={podeControlarSessao}
-              disabled={sessaoEncerrada}
+              disabled={sessaoEncerrada || atualizandoAlvoSocial}
               onChange={(value) =>
                 onAtualizarAlvoSocial?.(alvoSocial, {
                   interesseAtual: Math.max(0, Math.min(5, value)),
@@ -948,7 +973,7 @@ export function NpcSessionCard({
               value={alvoSocial.pacienciaAtual}
               tone="danger"
               canEdit={podeControlarSessao}
-              disabled={sessaoEncerrada}
+              disabled={sessaoEncerrada || atualizandoAlvoSocial}
               onChange={(value) =>
                 onAtualizarAlvoSocial?.(alvoSocial, {
                   pacienciaAtual: Math.max(0, Math.min(5, value)),
@@ -1004,6 +1029,7 @@ export function NpcSessionCard({
             }))}
             activeId={abaAtivaEfetiva}
             onChange={(tabId) => setAbaAtiva(tabId as AbaDetalheNpc)}
+            variant="compact"
           />
 
           {abaAtivaEfetiva === 'RESUMO' ? (

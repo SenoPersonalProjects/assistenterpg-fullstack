@@ -1377,12 +1377,20 @@ export default function SessaoCampanhaPage() {
 
   const handleAtualizarAlvoSocial = useCallback(
     (alvoAtualizado: AlvoEncontroSocialSessao, patch: Partial<AlvoEncontroSocialSessao>) => {
-      const alvosAtualizados = alvosSociais.map((alvo, index) => {
-        const mesmoAlvo = alvo.id
-          ? alvo.id === alvoAtualizado.id
-          : alvo.npcSessaoId === alvoAtualizado.npcSessaoId &&
-            alvo.nome === alvoAtualizado.nome &&
-            index === alvosSociais.indexOf(alvoAtualizado);
+      const alvosAtualizados = alvosSociais.map((alvo) => {
+        const mesmoNpc =
+          typeof alvoAtualizado.npcSessaoId === 'number' &&
+          alvo.npcSessaoId === alvoAtualizado.npcSessaoId;
+        const mesmoId =
+          Boolean(alvoAtualizado.id) &&
+          Boolean(alvo.id) &&
+          alvo.id === alvoAtualizado.id;
+        const mesmoAlvo =
+          mesmoNpc ||
+          mesmoId ||
+          (alvo.npcSessaoId === null &&
+            alvoAtualizado.npcSessaoId === null &&
+            alvo.nome === alvoAtualizado.nome);
         return mesmoAlvo ? { ...alvo, ...patch } : alvo;
       });
       void handleAtualizarSocial(alvosAtualizados);
@@ -1392,6 +1400,11 @@ export default function SessaoCampanhaPage() {
 
   const handleAdicionarAlvoSocial = useCallback(
     (npc: NpcSessaoCampanha) => {
+      const jaExiste = alvosSociais.some(
+        (alvo) => alvo.npcSessaoId === npc.npcSessaoId,
+      );
+      if (jaExiste) return;
+
       const novoAlvo: AlvoEncontroSocialSessao = {
         npcSessaoId: npc.npcSessaoId,
         nome: npc.nome,
@@ -2818,7 +2831,12 @@ export default function SessaoCampanhaPage() {
                         size="xs"
                         variant="ghost"
                         onClick={() => setEscudoAberto((aberto) => !aberto)}
-                        className={`h-7 w-7 p-0 rounded-lg transition-transform ${escudoAberto ? 'rotate-180' : ''}`}
+                        title={escudoAberto ? 'Recolher Escudo do Mestre' : 'Expandir Escudo do Mestre'}
+                        aria-label={escudoAberto ? 'Recolher Escudo do Mestre' : 'Expandir Escudo do Mestre'}
+                        aria-expanded={escudoAberto}
+                        className={`session-master-shield-toggle${
+                          escudoAberto ? ' session-master-shield-toggle--open' : ''
+                        }`}
                       >
                         <Icon name="chevron-down" className="h-4 w-4" />
                       </Button>
@@ -2871,6 +2889,9 @@ export default function SessaoCampanhaPage() {
                     renderPainelCondicoes={renderPainelCondicoes}
                     socialAtivo={socialAtivo}
                     alvosSociais={alvosSociais}
+                    atualizandoAlvoSocial={
+                      atualizandoRegraOpcional === 'ENCONTROS_SOCIAIS'
+                    }
                     onAdicionarAlvoSocial={handleAdicionarAlvoSocial}
                     onRemoverAlvoSocial={handleRemoverAlvoSocial}
                     onAtualizarAlvoSocial={handleAtualizarAlvoSocial}
@@ -3037,6 +3058,9 @@ export default function SessaoCampanhaPage() {
                 renderPainelCondicoes={renderPainelCondicoes}
                 socialAtivo={socialAtivo}
                 alvosSociais={alvosSociais}
+                atualizandoAlvoSocial={
+                  atualizandoRegraOpcional === 'ENCONTROS_SOCIAIS'
+                }
                 onAdicionarAlvoSocial={handleAdicionarAlvoSocial}
                 onRemoverAlvoSocial={handleRemoverAlvoSocial}
                 onAtualizarAlvoSocial={handleAtualizarAlvoSocial}
