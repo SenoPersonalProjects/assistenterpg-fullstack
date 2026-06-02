@@ -939,7 +939,7 @@ export function NpcSessionCard({
               Status do Encontro Social
             </span>
             <div className="flex gap-2">
-              {alvoSocial.interesseAtual >= alvoSocial.interesseAlvo && (
+              {alvoSocial.interesseAtual >= 5 && (
                 <Badge color="green" size="sm">Sucesso</Badge>
               )}
               {alvoSocial.pacienciaAtual <= 0 && (
@@ -951,20 +951,12 @@ export function NpcSessionCard({
             <SessionSegmentedBar
               label="Interesse"
               value={alvoSocial.interesseAtual}
-              target={alvoSocial.interesseAlvo}
-              targetLabel="Alvo"
               tone="success"
               canEdit={podeControlarSessao}
-              canEditTarget={podeControlarSessao}
               disabled={sessaoEncerrada || atualizandoAlvoSocial}
               onChange={(value) =>
                 onAtualizarAlvoSocial?.(alvoSocial, {
                   interesseAtual: Math.max(0, Math.min(5, value)),
-                })
-              }
-              onTargetChange={(value) =>
-                onAtualizarAlvoSocial?.(alvoSocial, {
-                  interesseAlvo: Math.max(1, Math.min(5, value)),
                 })
               }
             />

@@ -43,7 +43,7 @@ export function SessionSegmentedBar({
       <div className="session-segmented-bar__head">
         <span>{label}</span>
         <strong>
-          {valor}/{alvo ?? max}
+          {valor}/{max}
         </strong>
       </div>
       <div className="session-segmented-bar__track" aria-label={`${label} ${valor}`}>

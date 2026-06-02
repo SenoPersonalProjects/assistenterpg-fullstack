@@ -35,7 +35,7 @@ export function SessionSocialTargetsPanel({
       {erro ? <ErrorAlert message={erro} /> : null}
       <div className="session-social-targets">
         {alvos.map((alvo, index) => {
-          const sucesso = alvo.interesseAtual >= alvo.interesseAlvo;
+          const sucesso = alvo.interesseAtual >= 5;
           const falha = alvo.pacienciaAtual <= 0;
           return (
             <div key={alvo.id ?? `${alvo.nome}-${index}`} className="session-social-target">
@@ -56,20 +56,12 @@ export function SessionSocialTargetsPanel({
                 <SessionSegmentedBar
                   label="Interesse"
                   value={alvo.interesseAtual}
-                  target={alvo.interesseAlvo}
-                  targetLabel="Alvo"
                   tone="success"
                   canEdit={podeControlarSessao}
-                  canEditTarget={podeControlarSessao}
                   disabled={sessaoEncerrada}
                   onChange={(value) =>
                     onAtualizarAlvo?.(alvo, {
                       interesseAtual: Math.max(0, Math.min(5, value)),
-                    })
-                  }
-                  onTargetChange={(value) =>
-                    onAtualizarAlvo?.(alvo, {
-                      interesseAlvo: Math.max(1, Math.min(5, value)),
                     })
                   }
                 />

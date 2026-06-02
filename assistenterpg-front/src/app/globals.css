@@ -1762,12 +1762,18 @@ body {
 }
 
 .session-social-target__bars {
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
 }
 
 .session-segmented-bar {
   display: grid;
-  gap: 0.45rem;
+  width: 100%;
+  gap: 0.5rem;
+  border: 1px solid var(--session-border);
+  border-radius: 0.85rem;
+  background: var(--session-elevated);
+  padding: 0.7rem;
 }
 
 .session-segmented-bar__head,
@@ -1782,8 +1788,14 @@ body {
   text-transform: uppercase;
 }
 
+.session-segmented-bar__actions {
+  justify-content: flex-end;
+}
+
 .session-segmented-bar__head strong {
   color: var(--fg);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .session-segmented-bar__target,
@@ -1807,9 +1819,11 @@ body {
 .session-segmented-bar__actions button,
 .session-segmented-bar__target-actions button {
   min-width: 2.25rem;
+  min-height: 1.85rem;
   border-color: var(--session-border);
   background: var(--session-elevated);
   color: var(--fg);
+  font-weight: 950;
 }
 
 .session-segmented-bar__actions button:hover:not(:disabled),
@@ -1822,10 +1836,11 @@ body {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.25rem;
+  width: 100%;
 }
 
 .session-segmented-bar__segment {
-  min-height: 0.55rem;
+  min-height: 0.65rem;
   border-radius: 999px;
   border: 1px solid var(--session-border);
   background: var(--session-muted);
