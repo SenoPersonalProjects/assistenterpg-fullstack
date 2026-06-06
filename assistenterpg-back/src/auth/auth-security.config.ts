@@ -2,6 +2,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Request } from 'express';
 
 export const AUTH_PASSWORD_MIN_LENGTH = 8;
+export const AUTH_PASSWORD_MAX_BYTES = 72;
 export const AUTH_JWT_SECRET_MIN_LENGTH = 32;
 export const AUTH_ACCESS_COOKIE = 'assistenterpg_access';
 export const AUTH_REFRESH_COOKIE = 'assistenterpg_refresh';
@@ -10,44 +11,6 @@ export const AUTH_CSRF_HEADER = 'x-csrf-token';
 export const AUTH_ACCESS_TOKEN_TTL_SECONDS = 60 * 15;
 export const AUTH_REFRESH_TOKEN_TTL_REMEMBER_SECONDS = 60 * 60 * 24 * 7;
 export const AUTH_REFRESH_TOKEN_TTL_SESSION_SECONDS = 60 * 60 * 8;
-
-export const AUTH_THROTTLE_LIMITS = {
-  login: {
-    default: {
-      limit: 5,
-      ttl: 60_000,
-      blockDuration: 60_000,
-    },
-  },
-  register: {
-    default: {
-      limit: 3,
-      ttl: 300_000,
-      blockDuration: 300_000,
-    },
-  },
-  forgotPassword: {
-    default: {
-      limit: 3,
-      ttl: 300_000,
-      blockDuration: 300_000,
-    },
-  },
-  resetPassword: {
-    default: {
-      limit: 5,
-      ttl: 300_000,
-      blockDuration: 300_000,
-    },
-  },
-  resendVerificationEmail: {
-    default: {
-      limit: 3,
-      ttl: 300_000,
-      blockDuration: 300_000,
-    },
-  },
-} as const;
 
 export function resolveJwtSecret(
   configService: Pick<ConfigService, 'get'>,

@@ -92,9 +92,34 @@ describe('AmizadesService', () => {
     expect(usuario).toEqual({ id: 9, apelido: 'Maki' });
     expect(usuario).not.toHaveProperty('email');
     expect(prisma.usuario.findMany).toHaveBeenCalledWith({
-      where: { apelido: { equals: 'Maki' } },
+      where: expect.objectContaining({
+        apelido: { equals: 'Maki' },
+        emailVerificadoEm: { not: null },
+        status: 'ATIVA',
+      }),
       select: { id: true, apelido: true },
       take: 2,
+    });
+  });
+
+  it('filtra conta não verificada na busca por email', async () => {
+    prisma.usuario.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.resolverUsuario('maki@example.com'),
+    ).rejects.toBeInstanceOf(Error);
+
+    expect(prisma.usuario.findUnique).toHaveBeenCalledWith({
+      where: {
+        email: 'maki@example.com',
+        AND: [
+          expect.objectContaining({
+            emailVerificadoEm: { not: null },
+            status: 'ATIVA',
+          }),
+        ],
+      },
+      select: { id: true, apelido: true },
     });
   });
 

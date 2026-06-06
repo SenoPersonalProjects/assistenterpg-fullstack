@@ -5,6 +5,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
+import { extrairMensagemErro } from '@/lib/api/error-handler';
+import {
+  PASSWORD_POLICY,
+  PASSWORD_REQUIREMENTS_TEXT,
+  validateNewPassword,
+} from '@/lib/auth/password-policy';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 
 type Props = {
   isOpen: boolean;
@@ -21,6 +28,11 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
+  const {
+    captureRateLimit,
+    cooldownButtonLabel,
+    isCoolingDown,
+  } = useRateLimitCooldown();
 
   if (!isOpen) return null;
 
@@ -34,8 +46,9 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
       return;
     }
 
-    if (novaSenha.length < 6) {
-      setErro('A nova senha deve ter pelo menos 6 caracteres');
+    const passwordError = validateNewPassword(novaSenha);
+    if (passwordError) {
+      setErro(passwordError);
       return;
     }
 
@@ -53,8 +66,8 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
       setNovaSenha('');
       setConfirmarSenha('');
       onClose();
-    } catch {
-      // erros de request são exibidos globalmente (toast/banner) pela página
+    } catch (error) {
+      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
     } finally {
       setLoading(false);
     }
@@ -114,6 +127,8 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
               onChange={(e) => setNovaSenha(e.target.value)}
               placeholder="Digite a nova senha"
               disabled={loading}
+              minLength={PASSWORD_POLICY.minCharacters}
+              helperText={PASSWORD_REQUIREMENTS_TEXT}
               rightIcon={mostrarNovaSenha ? 'eyeOff' : 'eye'}
               rightIconLabel={mostrarNovaSenha ? 'Ocultar senha' : 'Mostrar senha'}
               onRightIconClick={() => setMostrarNovaSenha((v) => !v)}
@@ -126,6 +141,7 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
               onChange={(e) => setConfirmarSenha(e.target.value)}
               placeholder="Confirme a nova senha"
               disabled={loading}
+              minLength={PASSWORD_POLICY.minCharacters}
               rightIcon={mostrarConfirmacao ? 'eyeOff' : 'eye'}
               rightIconLabel={
                 mostrarConfirmacao ? 'Ocultar confirmação' : 'Mostrar confirmação'
@@ -152,10 +168,11 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
               <Button
                 type="submit"
                 variant="primary"
-                disabled={loading}
+                disabled={loading || isCoolingDown}
                 className="flex-1"
               >
-                {loading ? 'Alterando...' : 'Alterar Senha'}
+                {cooldownButtonLabel ??
+                  (loading ? 'Alterando...' : 'Alterar Senha')}
               </Button>
             </div>
           </form>

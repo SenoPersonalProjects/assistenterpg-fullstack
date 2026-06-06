@@ -1,7 +1,12 @@
 // src/usuario/dto/excluir-conta.dto.ts
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class ExcluirContaDto {
+  @IsOptional()
   @IsString()
-  senha: string;
+  senhaAtual?: string;
+
+  @IsOptional()
+  @IsString()
+  senha?: string;
 }

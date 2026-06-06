@@ -1,4 +1,8 @@
 // src/lib/api/error-handler.ts
+import {
+  extractRetryAfterSeconds,
+  formatRateLimitMessage,
+} from "./rate-limit";
 import type { ApiErrorBody } from "@/lib/types"; // ✅ ATUALIZADO
 
 /**
@@ -427,6 +431,10 @@ export function extrairMensagemErro(error: unknown): string {
     err.status || response?.status || body?.statusCode || 0,
   );
   const code = typeof err.code === "string" ? err.code : undefined;
+
+  if (status === 429) {
+    return formatRateLimitMessage(extractRetryAfterSeconds(error));
+  }
 
   if (body) {
     const apiBody = body as ApiErrorBody;

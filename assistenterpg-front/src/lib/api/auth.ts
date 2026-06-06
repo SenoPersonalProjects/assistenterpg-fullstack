@@ -14,12 +14,24 @@ export type ApiMensagemAuth = {
   mensagem: string;
 };
 
-export async function apiRegister(apelido: string, email: string, senha: string) {
-  const { data } = await apiClient.post('/auth/register', {
-    apelido,
-    email,
-    senha,
-  });
+function publicAuthConfig(): AuthAxiosConfig {
+  return {
+    _skipAuthRefresh: true,
+    _skipAuthRedirect: true,
+    _skipCsrf: true,
+  };
+}
+
+export async function apiRegister(
+  apelido: string,
+  email: string,
+  senha: string,
+): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>(
+    '/auth/register',
+    { apelido, email, senha },
+    publicAuthConfig(),
+  );
   return data;
 }
 
@@ -28,11 +40,11 @@ export async function apiLogin(
   senha: string,
   rememberMe = true,
 ): Promise<LoginResponse> {
-  const { data } = await apiClient.post<LoginResponse>('/auth/login', {
-    email,
-    senha,
-    rememberMe,
-  });
+  const { data } = await apiClient.post<LoginResponse>(
+    '/auth/login',
+    { email, senha, rememberMe },
+    publicAuthConfig(),
+  );
   return data;
 }
 
@@ -44,9 +56,8 @@ export async function apiLogout(): Promise<ApiMensagemAuth> {
 export async function apiForgotPassword(email: string): Promise<ApiMensagemAuth> {
   const { data } = await apiClient.post<ApiMensagemAuth>(
     '/auth/forgot-password',
-    {
-      email,
-    },
+    { email },
+    publicAuthConfig(),
   );
   return data;
 }
@@ -55,17 +66,20 @@ export async function apiResetPassword(
   token: string,
   novaSenha: string,
 ): Promise<ApiMensagemAuth> {
-  const { data } = await apiClient.post<ApiMensagemAuth>('/auth/reset-password', {
-    token,
-    novaSenha,
-  });
+  const { data } = await apiClient.post<ApiMensagemAuth>(
+    '/auth/reset-password',
+    { token, novaSenha },
+    publicAuthConfig(),
+  );
   return data;
 }
 
 export async function apiVerifyEmail(token: string): Promise<ApiMensagemAuth> {
-  const { data } = await apiClient.post<ApiMensagemAuth>('/auth/verify-email', {
-    token,
-  });
+  const { data } = await apiClient.post<ApiMensagemAuth>(
+    '/auth/verify-email',
+    { token },
+    publicAuthConfig(),
+  );
   return data;
 }
 
@@ -77,6 +91,30 @@ export async function apiResendVerificationEmail(
     {
       email,
     },
+    publicAuthConfig(),
+  );
+  return data;
+}
+
+export async function apiVerifyEmailChange(
+  token: string,
+): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>(
+    '/auth/verify-email-change',
+    { token },
+    publicAuthConfig(),
+  );
+  return data;
+}
+
+export async function apiReactivateAccount(
+  email: string,
+  senha: string,
+): Promise<ApiMensagemAuth> {
+  const { data } = await apiClient.post<ApiMensagemAuth>(
+    '/auth/reactivate-account',
+    { email, senha },
+    publicAuthConfig(),
   );
   return data;
 }

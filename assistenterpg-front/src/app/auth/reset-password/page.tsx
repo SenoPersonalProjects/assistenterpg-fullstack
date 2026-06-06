@@ -2,17 +2,25 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import { apiResetPassword } from '@/lib/api';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import {
+  PASSWORD_POLICY,
+  PASSWORD_REQUIREMENTS_TEXT,
+  validateNewPassword,
+} from '@/lib/auth/password-policy';
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-
+  const { requireLogin } = useAuth();
+  const { showToast } = useToast();
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams]);
 
   const [novaSenha, setNovaSenha] = useState('');
@@ -20,8 +28,12 @@ export default function ResetPasswordPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const {
+    captureRateLimit,
+    cooldownButtonLabel,
+    isCoolingDown,
+  } = useRateLimitCooldown();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,8 +43,9 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (novaSenha.length < 6) {
-      setErro('A nova senha deve ter pelo menos 6 caracteres.');
+    const passwordError = validateNewPassword(novaSenha);
+    if (passwordError) {
+      setErro(passwordError);
       return;
     }
 
@@ -42,17 +55,14 @@ export default function ResetPasswordPage() {
     }
 
     setErro(null);
-    setMensagem(null);
     setSubmitting(true);
 
     try {
       const resposta = await apiResetPassword(token, novaSenha);
-      setMensagem(resposta.mensagem);
-      setTimeout(() => {
-        router.push('/auth/login');
-      }, 1200);
+      showToast(resposta.mensagem, 'success');
+      requireLogin();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
     } finally {
       setSubmitting(false);
     }
@@ -80,11 +90,12 @@ export default function ResetPasswordPage() {
           type={mostrarSenha ? 'text' : 'password'}
           value={novaSenha}
           onChange={(e) => setNovaSenha(e.target.value)}
-          minLength={6}
+          minLength={PASSWORD_POLICY.minCharacters}
+          helperText={PASSWORD_REQUIREMENTS_TEXT}
           required
           rightIcon={mostrarSenha ? 'eyeOff' : 'eye'}
           rightIconLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-          onRightIconClick={() => setMostrarSenha((v) => !v)}
+          onRightIconClick={() => setMostrarSenha((value) => !value)}
         />
 
         <Input
@@ -92,25 +103,23 @@ export default function ResetPasswordPage() {
           type={mostrarConfirmacao ? 'text' : 'password'}
           value={confirmacao}
           onChange={(e) => setConfirmacao(e.target.value)}
-          minLength={6}
+          minLength={PASSWORD_POLICY.minCharacters}
           required
           rightIcon={mostrarConfirmacao ? 'eyeOff' : 'eye'}
           rightIconLabel={
             mostrarConfirmacao ? 'Ocultar confirmação' : 'Mostrar confirmação'
           }
-          onRightIconClick={() => setMostrarConfirmacao((v) => !v)}
+          onRightIconClick={() => setMostrarConfirmacao((value) => !value)}
         />
-
-        {mensagem ? (
-          <p className="text-sm text-app-success bg-app-surface border border-app-border rounded px-3 py-2">
-            {mensagem}
-          </p>
-        ) : null}
 
         {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
 
-        <Button type="submit" disabled={submitting || !token}>
-          {submitting ? 'Salvando...' : 'Salvar nova senha'}
+        <Button
+          type="submit"
+          disabled={submitting || !token || isCoolingDown}
+        >
+          {cooldownButtonLabel ??
+            (submitting ? 'Salvando...' : 'Salvar nova senha')}
         </Button>
       </form>
     </AuthPageShell>

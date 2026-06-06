@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { StatusContaUsuario } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import type { Response, Request } from 'express';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
@@ -53,6 +55,7 @@ export class AuthSessionService {
     const sessao = await this.prisma.sessaoAutenticacao.create({
       data: {
         usuarioId: usuario.id,
+        familiaId: randomUUID(),
         refreshTokenHash: hashSegredoSessao(refreshToken),
         csrfTokenHash: hashSegredoSessao(csrfToken),
         userAgent: request.get('user-agent') ?? null,
@@ -82,14 +85,21 @@ export class AuthSessionService {
     if (!sessao || sessao.expiraEm <= new Date()) {
       throw new UnauthorizedException('Sessão expirada');
     }
+    if (
+      sessao.usuario.status !== StatusContaUsuario.ATIVA ||
+      !sessao.usuario.emailVerificadoEm
+    ) {
+      await this.revogarTodasSessoesUsuario(sessao.usuarioId, 'CONTA_INATIVA');
+      throw new UnauthorizedException('Sessão expirada');
+    }
 
     if (sessao.revogadaEm) {
       if (this.ehDuplicataBenignaDeRefresh(sessao, request)) {
-        return this.emitirNovaSessaoAposRefresh(sessao, request, response);
+        throw new UnauthorizedException('Refresh já processado');
       }
 
-      await this.revogarTodasSessoesUsuario(
-        sessao.usuarioId,
+      await this.revogarFamiliaSessao(
+        sessao.familiaId,
         REVOGACAO_REUSO_REFRESH,
       );
       throw new UnauthorizedException('Sessão expirada');
@@ -113,22 +123,24 @@ export class AuthSessionService {
     );
 
     const novaSessao = await this.prisma.$transaction(async (tx) => {
-      if (!sessao.revogadaEm) {
-        const agora = new Date();
-        await tx.sessaoAutenticacao.update({
-          where: { id: sessao.id },
-          data: {
-            revogadaEm: agora,
-            revogacaoMotivo: REVOGACAO_ROTACAO,
-            rotacionadaEm: agora,
-            ultimoUsoEm: agora,
-          },
-        });
+      const agora = new Date();
+      const rotacao = await tx.sessaoAutenticacao.updateMany({
+        where: { id: sessao.id, revogadaEm: null },
+        data: {
+          revogadaEm: agora,
+          revogacaoMotivo: REVOGACAO_ROTACAO,
+          rotacionadaEm: agora,
+          ultimoUsoEm: agora,
+        },
+      });
+      if (rotacao.count === 0) {
+        throw new UnauthorizedException('Refresh já processado');
       }
 
       return tx.sessaoAutenticacao.create({
         data: {
           usuarioId: sessao.usuarioId,
+          familiaId: sessao.familiaId,
           refreshTokenHash: hashSegredoSessao(novoRefreshToken),
           csrfTokenHash: hashSegredoSessao(novoCsrfToken),
           userAgent: request.get('user-agent') ?? sessao.userAgent,
@@ -185,16 +197,15 @@ export class AuthSessionService {
   async revogarSessao(request: Request, response: Response): Promise<void> {
     const refreshToken = getCookieValue(request, AUTH_REFRESH_COOKIE);
     if (refreshToken) {
-      await this.prisma.sessaoAutenticacao.updateMany({
+      const sessao = await this.prisma.sessaoAutenticacao.findUnique({
         where: {
           refreshTokenHash: hashSegredoSessao(refreshToken),
-          revogadaEm: null,
         },
-        data: {
-          revogadaEm: new Date(),
-          revogacaoMotivo: REVOGACAO_LOGOUT,
-        },
+        select: { familiaId: true },
       });
+      if (sessao) {
+        await this.revogarFamiliaSessao(sessao.familiaId, REVOGACAO_LOGOUT);
+      }
     }
 
     this.limparCookies(response);
@@ -210,6 +221,10 @@ export class AuthSessionService {
         usuarioId,
         revogadaEm: null,
         expiraEm: { gt: new Date() },
+        usuario: {
+          status: StatusContaUsuario.ATIVA,
+          emailVerificadoEm: { not: null },
+        },
       },
       select: { id: true },
     });
@@ -233,13 +248,22 @@ export class AuthSessionService {
       },
       include: {
         usuario: {
-          select: { id: true, email: true },
+          select: {
+            id: true,
+            email: true,
+            status: true,
+            emailVerificadoEm: true,
+          },
         },
       },
     });
 
     if (!sessao) return false;
-    const sessaoAtiva = !sessao.revogadaEm && sessao.expiraEm > new Date();
+    const sessaoAtiva =
+      !sessao.revogadaEm &&
+      sessao.expiraEm > new Date() &&
+      sessao.usuario.status === StatusContaUsuario.ATIVA &&
+      Boolean(sessao.usuario.emailVerificadoEm);
     const duplicataRefresh =
       this.ehRotaRefresh(request) &&
       this.ehDuplicataBenignaDeRefresh(sessao, request);
@@ -279,7 +303,13 @@ export class AuthSessionService {
   private async obterSessaoValidaPorRefresh(refreshToken: string) {
     const sessao = await this.obterSessaoPorRefresh(refreshToken);
 
-    if (!sessao || sessao.revogadaEm || sessao.expiraEm <= new Date()) {
+    if (
+      !sessao ||
+      sessao.revogadaEm ||
+      sessao.expiraEm <= new Date() ||
+      sessao.usuario.status !== StatusContaUsuario.ATIVA ||
+      !sessao.usuario.emailVerificadoEm
+    ) {
       throw new UnauthorizedException('Sessão expirada');
     }
 
@@ -293,19 +323,37 @@ export class AuthSessionService {
       },
       include: {
         usuario: {
-          select: { id: true, email: true },
+          select: {
+            id: true,
+            email: true,
+            status: true,
+            emailVerificadoEm: true,
+          },
         },
       },
     });
   }
 
-  private async revogarTodasSessoesUsuario(
+  async revogarTodasSessoesUsuario(
     usuarioId: number,
     motivo: string,
   ): Promise<void> {
     await this.prisma.sessaoAutenticacao.updateMany({
       where: {
         usuarioId,
+        revogadaEm: null,
+      },
+      data: {
+        revogadaEm: new Date(),
+        revogacaoMotivo: motivo,
+      },
+    });
+  }
+
+  async revogarFamiliaSessao(familiaId: string, motivo: string): Promise<void> {
+    await this.prisma.sessaoAutenticacao.updateMany({
+      where: {
+        familiaId,
         revogadaEm: null,
       },
       data: {

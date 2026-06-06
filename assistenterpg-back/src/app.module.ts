@@ -28,10 +28,12 @@ import { NpcsAmeacasModule } from './npcs-ameacas/npcs-ameacas.module';
 import { AnotacoesModule } from './anotacoes/anotacoes.module';
 import { AmizadesModule } from './amizades/amizades.module';
 import { ChatAmigosModule } from './chat-amigos/chat-amigos.module';
+import { SecurityModule } from './common/security/security.module';
 
 @Module({
   imports: [
     PrismaModule,
+    SecurityModule,
     UsuarioModule,
     AuthModule,
     CampanhaModule,

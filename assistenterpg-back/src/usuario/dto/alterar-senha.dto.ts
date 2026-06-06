@@ -1,12 +1,12 @@
 // src/usuario/dto/alterar-senha.dto.ts
-import { IsString, MinLength } from 'class-validator';
-import { AUTH_PASSWORD_MIN_LENGTH } from 'src/auth/auth-security.config';
+import { IsString } from 'class-validator';
+import { IsAuthPassword } from 'src/auth/dto/auth-password.validator';
 
 export class AlterarSenhaDto {
   @IsString()
   senhaAtual: string;
 
   @IsString()
-  @MinLength(AUTH_PASSWORD_MIN_LENGTH)
+  @IsAuthPassword()
   novaSenha: string;
 }

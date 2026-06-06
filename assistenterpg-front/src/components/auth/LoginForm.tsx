@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useAuth } from '@/context/AuthContext';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 
 export function LoginForm() {
   const { login, loading } = useAuth();
@@ -16,6 +17,11 @@ export function LoginForm() {
   const [lembrar, setLembrar] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const {
+    captureRateLimit,
+    cooldownButtonLabel,
+    isCoolingDown,
+  } = useRateLimitCooldown();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,7 +31,7 @@ export function LoginForm() {
     try {
       await login(email, senha, lembrar);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
     } finally {
       setSubmitting(false);
     }
@@ -77,8 +83,15 @@ export function LoginForm() {
         </Link>
       </div>
 
-      <Button type="submit" disabled={submitting}>
-        {submitting ? 'Entrando...' : 'Entrar'}
+      <Link
+        href="/auth/reactivate-account"
+        className="text-center text-xs text-app-muted hover:text-app-fg transition-colors"
+      >
+        Reativar uma conta desativada
+      </Link>
+
+      <Button type="submit" disabled={submitting || isCoolingDown}>
+        {cooldownButtonLabel ?? (submitting ? 'Entrando...' : 'Entrar')}
       </Button>
     </form>
   );

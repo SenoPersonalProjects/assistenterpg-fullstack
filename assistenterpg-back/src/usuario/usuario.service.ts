@@ -1,13 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
 import { AtualizarPreferenciasDto } from './dto/atualizar-preferencias.dto';
-import { AlterarSenhaDto } from './dto/alterar-senha.dto';
 import {
   UsuarioNaoEncontradoException,
-  UsuarioEmailDuplicadoException,
-  UsuarioSenhaIncorretaException,
   UsuarioEmailNaoEncontradoException,
   UsuarioApelidoNaoEncontradoException,
 } from 'src/common/exceptions/usuario.exception';
@@ -26,39 +22,6 @@ export class UsuarioService {
     }
   }
 
-  async criarUsuario(apelido: string, email: string, senha: string) {
-    try {
-      const existente = await this.prisma.usuario.findUnique({
-        where: { email },
-      });
-
-      if (existente) {
-        throw new UsuarioEmailDuplicadoException(email);
-      }
-
-      const senhaHash = await bcrypt.hash(senha, 10);
-
-      return this.prisma.usuario.create({
-        data: {
-          apelido,
-          email,
-          senhaHash,
-        },
-        select: {
-          id: true,
-          apelido: true,
-          email: true,
-          role: true,
-          emailVerificadoEm: true,
-          criadoEm: true,
-        },
-      });
-    } catch (error: unknown) {
-      this.tratarErroPrisma(error);
-      throw error;
-    }
-  }
-
   async buscarPorEmail(email: string) {
     try {
       const usuario = await this.prisma.usuario.findUnique({
@@ -69,6 +32,7 @@ export class UsuarioService {
           email: true,
           senhaHash: true,
           role: true,
+          status: true,
           emailVerificadoEm: true,
           criadoEm: true,
           atualizadoEm: true,
@@ -96,6 +60,7 @@ export class UsuarioService {
           email: true,
           senhaHash: true,
           role: true,
+          status: true,
           emailVerificadoEm: true,
           criadoEm: true,
           atualizadoEm: true,
@@ -116,6 +81,7 @@ export class UsuarioService {
           apelido: true,
           email: true,
           role: true,
+          status: true,
           senhaHash: true,
           emailVerificadoEm: true,
           criadoEm: true,
@@ -143,6 +109,7 @@ export class UsuarioService {
           apelido: true,
           email: true,
           role: true,
+          status: true,
           emailVerificadoEm: true,
           criadoEm: true,
         },
@@ -218,70 +185,6 @@ export class UsuarioService {
     }
   }
 
-  async alterarSenha(usuarioId: number, dto: AlterarSenhaDto) {
-    try {
-      const usuario = await this.prisma.usuario.findUnique({
-        where: { id: usuarioId },
-      });
-
-      if (!usuario) {
-        throw new UsuarioNaoEncontradoException(usuarioId);
-      }
-
-      const senhaValida = await bcrypt.compare(
-        dto.senhaAtual,
-        usuario.senhaHash,
-      );
-
-      if (!senhaValida) {
-        throw new UsuarioSenhaIncorretaException('alteracao');
-      }
-
-      const novaSenhaHash = await bcrypt.hash(dto.novaSenha, 10);
-
-      await this.prisma.usuario.update({
-        where: { id: usuarioId },
-        data: { senhaHash: novaSenhaHash },
-      });
-
-      return { mensagem: 'Senha alterada com sucesso' };
-    } catch (error: unknown) {
-      this.tratarErroPrisma(error);
-      throw error;
-    }
-  }
-
-  async atualizarSenhaHash(usuarioId: number, senhaHash: string) {
-    try {
-      await this.prisma.usuario.update({
-        where: { id: usuarioId },
-        data: { senhaHash },
-      });
-    } catch (error: unknown) {
-      this.tratarErroPrisma(error);
-      throw error;
-    }
-  }
-
-  async marcarEmailComoVerificado(usuarioId: number) {
-    try {
-      return await this.prisma.usuario.update({
-        where: { id: usuarioId },
-        data: {
-          emailVerificadoEm: new Date(),
-        },
-        select: {
-          id: true,
-          email: true,
-          emailVerificadoEm: true,
-        },
-      });
-    } catch (error: unknown) {
-      this.tratarErroPrisma(error);
-      throw error;
-    }
-  }
-
   async exportarDados(usuarioId: number) {
     try {
       const [usuario, personagens, campanhas, preferencias] = await Promise.all(
@@ -333,33 +236,6 @@ export class UsuarioService {
         campanhas,
         preferencias,
       };
-    } catch (error: unknown) {
-      this.tratarErroPrisma(error);
-      throw error;
-    }
-  }
-
-  async excluirConta(usuarioId: number, senha: string) {
-    try {
-      const usuario = await this.prisma.usuario.findUnique({
-        where: { id: usuarioId },
-      });
-
-      if (!usuario) {
-        throw new UsuarioNaoEncontradoException(usuarioId);
-      }
-
-      const senhaValida = await bcrypt.compare(senha, usuario.senhaHash);
-
-      if (!senhaValida) {
-        throw new UsuarioSenhaIncorretaException('exclusao');
-      }
-
-      await this.prisma.usuario.delete({
-        where: { id: usuarioId },
-      });
-
-      return { mensagem: 'Conta excluida com sucesso' };
     } catch (error: unknown) {
       this.tratarErroPrisma(error);
       throw error;

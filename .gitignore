@@ -15,18 +15,15 @@ node_modules/
 
 # Variaveis de ambiente e segredos
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!*/.env.example
 assistenterpg-back/.env
-assistenterpg-back/.env.local
-assistenterpg-back/.env.development.local
-assistenterpg-back/.env.test.local
-assistenterpg-back/.env.production.local
+assistenterpg-back/.env.*
+!assistenterpg-back/.env.example
 assistenterpg-front/.env
-assistenterpg-front/.env.local
-assistenterpg-front/.env.development.local
-assistenterpg-front/.env.test.local
-assistenterpg-front/.env.production.local
+assistenterpg-front/.env.*
+!assistenterpg-front/.env.example
 documentacao-unica/PRIVATE-OPS.md
 *.pem
 *.key

@@ -19,13 +19,18 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Card } from '@/components/ui/Card';
 import { ModalAlterarSenha } from '@/components/configuracoes/ModalAlterarSenha';
+import { ModalAlterarEmail } from '@/components/configuracoes/ModalAlterarEmail';
+import { ModalDesativarConta } from '@/components/configuracoes/ModalDesativarConta';
 import { ModalExcluirConta } from '@/components/configuracoes/ModalExcluirConta';
+import { DangerZoneActions } from '@/components/configuracoes/DangerZoneActions';
 import { AppearanceSelector } from '@/components/configuracoes/AppearanceSelector';
 import { SettingsSidebar, type SettingsTabId } from '@/components/configuracoes/SettingsSidebar';
 import {
   apiObterPreferencias,
   apiAtualizarPreferencias,
   apiAlterarSenha,
+  apiSolicitarAlteracaoEmail,
+  apiDesativarConta,
   apiExportarDados,
   apiExcluirConta,
 } from '@/lib/api';
@@ -39,7 +44,7 @@ type ErroApiBasico = {
 };
 
 export default function ConfiguracoesPage() {
-  const { usuario, token, logout } = useAuth();
+  const { usuario, token, logout, requireLogin } = useAuth();
   const { showToast } = useToast();
   const { palette, mode, setPalette, setMode } = useTheme();
   const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
@@ -63,6 +68,8 @@ export default function ConfiguracoesPage() {
   });
 
   const [modalSenhaOpen, setModalSenhaOpen] = useState(false);
+  const [modalEmailOpen, setModalEmailOpen] = useState(false);
+  const [modalDesativarOpen, setModalDesativarOpen] = useState(false);
   const [modalExcluirOpen, setModalExcluirOpen] = useState(false);
   const notificacaoItems: Array<{
     key: keyof typeof notificacoes;
@@ -141,11 +148,27 @@ export default function ConfiguracoesPage() {
       setErroGlobal(null);
       await apiAlterarSenha(senhaAtual, novaSenha);
       showToast('Senha alterada com sucesso.', 'success');
+      requireLogin();
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
       setErroGlobal(mensagem);
       showToast(mensagem, 'error');
+      throw error;
+    }
+  };
+
+  const handleAlterarEmail = async (novoEmail: string, senhaAtual: string) => {
+    try {
+      setErroGlobal(null);
+      const response = await apiSolicitarAlteracaoEmail(novoEmail, senhaAtual);
+      showToast(response.mensagem, 'success');
+    } catch (error: unknown) {
+      const status = extrairStatusErro(error);
+      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
+      setErroGlobal(mensagem);
+      showToast(mensagem, 'error');
+      throw error;
     }
   };
 
@@ -174,14 +197,30 @@ export default function ConfiguracoesPage() {
   const handleExcluirConta = async (senha: string) => {
     try {
       setErroGlobal(null);
-      await apiExcluirConta(senha);
-      showToast('Conta excluída com sucesso.', 'success');
-      logout();
+      const response = await apiExcluirConta(senha);
+      showToast(response.mensagem, 'success');
+      requireLogin();
     } catch (error: unknown) {
       const status = extrairStatusErro(error);
       const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
       setErroGlobal(mensagem);
       showToast(mensagem, 'error');
+      throw error;
+    }
+  };
+
+  const handleDesativarConta = async (senhaAtual: string) => {
+    try {
+      setErroGlobal(null);
+      const response = await apiDesativarConta(senhaAtual);
+      showToast(response.mensagem, 'success');
+      requireLogin();
+    } catch (error: unknown) {
+      const status = extrairStatusErro(error);
+      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
+      setErroGlobal(mensagem);
+      showToast(mensagem, 'error');
+      throw error;
     }
   };
 
@@ -261,29 +300,11 @@ export default function ConfiguracoesPage() {
               <div className="sticky top-8 space-y-6">
                 <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-                <Card variant="flat" className="p-4 bg-app-danger/5 border border-app-danger/10">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-app-danger mb-3">Zona de perigo</h4>
-                  <div className="space-y-2">
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={handleLogout}
-                      className="w-full justify-start text-app-fg hover:bg-app-danger/10"
-                    >
-                      <Icon name="back" className="mr-2 h-3.5 w-3.5" />
-                      Sair da conta
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => setModalExcluirOpen(true)}
-                      className="w-full justify-start text-app-danger hover:bg-app-danger/10"
-                    >
-                      <Icon name="delete" className="mr-2 h-3.5 w-3.5" />
-                      Excluir conta
-                    </Button>
-                  </div>
-                </Card>
+                <DangerZoneActions
+                  onLogout={handleLogout}
+                  onDeactivate={() => setModalDesativarOpen(true)}
+                  onDelete={() => setModalExcluirOpen(true)}
+                />
               </div>
             </aside>
 
@@ -347,7 +368,8 @@ export default function ConfiguracoesPage() {
                         />
                         <div className="md:col-span-2">
                           <Alert variant="info">
-                            Para alterar seus dados de perfil, entre em contato com o suporte.
+                            Altere seu email na aba Segurança. Para mudar o apelido,
+                            entre em contato com o suporte.
                           </Alert>
                         </div>
                       </div>
@@ -444,6 +466,17 @@ export default function ConfiguracoesPage() {
                           </span>
                           <Icon name="next" className="h-4 w-4 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
                         </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => setModalEmailOpen(true)}
+                          className="w-full justify-between group"
+                        >
+                          <span className="flex items-center">
+                            <Icon name="mail" className="mr-3 h-4 w-4 text-app-primary" />
+                            Alterar email de acesso
+                          </span>
+                          <Icon name="next" className="h-4 w-4 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
+                        </Button>
                         <Alert>
                           Recomendamos trocar sua senha periodicamente para manter sua conta segura.
                         </Alert>
@@ -516,6 +549,13 @@ export default function ConfiguracoesPage() {
                 </motion.div>
               </AnimatePresence>
             </div>
+
+            <DangerZoneActions
+              className="lg:hidden"
+              onLogout={handleLogout}
+              onDeactivate={() => setModalDesativarOpen(true)}
+              onDelete={() => setModalExcluirOpen(true)}
+            />
           </div>
         </div>
       </main>
@@ -535,6 +575,18 @@ export default function ConfiguracoesPage() {
         isOpen={modalSenhaOpen}
         onClose={() => setModalSenhaOpen(false)}
         onConfirm={handleAlterarSenha}
+      />
+
+      <ModalAlterarEmail
+        isOpen={modalEmailOpen}
+        onClose={() => setModalEmailOpen(false)}
+        onConfirm={handleAlterarEmail}
+      />
+
+      <ModalDesativarConta
+        isOpen={modalDesativarOpen}
+        onClose={() => setModalDesativarOpen(false)}
+        onConfirm={handleDesativarConta}
       />
 
       <ModalExcluirConta

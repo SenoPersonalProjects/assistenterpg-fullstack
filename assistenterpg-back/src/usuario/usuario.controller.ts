@@ -4,22 +4,35 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   Delete,
   Request,
   Body,
   UseGuards,
   Header,
+  BadRequestException,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // ✅ NOVO
+import { AuthService } from '../auth/auth.service';
+import { AuthSessionService } from '../auth/auth-session.service';
+import { SecurityRateLimit } from 'src/common/security/security-rate-limit.decorator';
 import { UsuarioService } from './usuario.service';
 import { AtualizarPreferenciasDto } from './dto/atualizar-preferencias.dto';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
 import { ExcluirContaDto } from './dto/excluir-conta.dto';
+import { AlterarEmailDto } from './dto/alterar-email.dto';
+import { DesativarContaDto } from './dto/desativar-conta.dto';
 
 @Controller('usuarios')
 @UseGuards(JwtAuthGuard) // ✅ NOVO: Aplicar guard em todo o controller
 export class UsuarioController {
-  constructor(private readonly usuarioService: UsuarioService) {}
+  constructor(
+    private readonly usuarioService: UsuarioService,
+    private readonly authService: AuthService,
+    private readonly authSessionService: AuthSessionService,
+  ) {}
 
   @Get('me')
   async getMe(@Request() req: { user: { id: number } }) {
@@ -48,11 +61,39 @@ export class UsuarioController {
   }
 
   @Patch('me/senha')
+  @SecurityRateLimit('changePassword')
   async alterarSenha(
     @Request() req: { user: { id: number } },
     @Body() dto: AlterarSenhaDto,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.usuarioService.alterarSenha(req.user.id, dto);
+    const result = await this.authService.alterarSenha(req.user.id, dto);
+    this.authSessionService.limparCookies(response);
+    return result;
+  }
+
+  @Patch('me/email')
+  @SecurityRateLimit('changeEmail')
+  async alterarEmail(
+    @Request() req: { user: { id: number } },
+    @Body() dto: AlterarEmailDto,
+  ) {
+    return this.authService.solicitarAlteracaoEmail(req.user.id, dto);
+  }
+
+  @Post('me/desativar')
+  @SecurityRateLimit('deactivateAccount')
+  async desativarConta(
+    @Request() req: { user: { id: number } },
+    @Body() dto: DesativarContaDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.desativarConta(
+      req.user.id,
+      dto.senhaAtual,
+    );
+    this.authSessionService.limparCookies(response);
+    return result;
   }
 
   @Get('me/exportar')
@@ -66,10 +107,18 @@ export class UsuarioController {
   }
 
   @Delete('me')
+  @SecurityRateLimit('deleteAccount')
   async excluirConta(
     @Request() req: { user: { id: number } },
     @Body() body: ExcluirContaDto,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.usuarioService.excluirConta(req.user.id, body.senha);
+    const senhaAtual = body.senhaAtual ?? body.senha;
+    if (!senhaAtual) {
+      throw new BadRequestException('senhaAtual é obrigatória');
+    }
+    const result = await this.authService.excluirConta(req.user.id, senhaAtual);
+    this.authSessionService.limparCookies(response);
+    return result;
   }
 }

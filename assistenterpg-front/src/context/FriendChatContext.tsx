@@ -29,6 +29,7 @@ import {
   conectarSocketChatAmigos,
   type EventoChatLeitura,
 } from '@/lib/realtime/chat-amigos-socket';
+import { isPublicAuthPagePath } from '@/lib/auth/routes';
 
 type FriendChatContextType = {
   unreadCount: number;
@@ -39,13 +40,9 @@ const FriendChatContext = createContext<FriendChatContextType | undefined>(
   undefined,
 );
 
-const PUBLIC_PREFIXES = ['/auth'];
-
 function isPublicPath(pathname: string | null) {
   if (!pathname) return true;
-  return (
-    pathname === '/' || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
-  );
+  return isPublicAuthPagePath(pathname);
 }
 
 function ordenarMensagens(mensagens: ChatMensagem[]) {

@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -6,6 +6,7 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -22,9 +23,17 @@ import { SessaoService } from './sessao.service';
 
 type SocketAutenticado = Socket & {
   data: {
+    sessaoId?: number;
     usuarioId?: number;
   };
 };
+
+type IdentidadeSocket = {
+  sessaoId: number;
+  usuarioId: number;
+};
+
+const DEFAULT_WS_SESSION_RECHECK_SECONDS = 30;
 
 type EventoSessaoAtualizada = {
   campanhaId: number;
@@ -72,11 +81,20 @@ type EventoSessaoPresenca = {
   namespace: '/sessoes',
   cors: createCorsOptions(),
 })
-export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class SessaoGateway
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleDestroy
+{
   private readonly logger = new Logger(SessaoGateway.name);
+  private readonly clientesAutenticados = new Map<string, SocketAutenticado>();
   private readonly salasPorSocket = new Map<string, Set<string>>();
   private readonly usuariosPorSala = new Map<string, Map<number, number>>();
   private readonly metaPorSala = new Map<string, MetaSalaSessao>();
+  private revalidacaoPeriodicaEmAndamento = false;
+  private revalidacaoPeriodicaInterval?: NodeJS.Timeout;
 
   @WebSocketServer()
   server!: Server;
@@ -88,6 +106,20 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly authSessionService: AuthSessionService,
   ) {}
 
+  afterInit(): void {
+    this.revalidacaoPeriodicaInterval = setInterval(
+      () => void this.revalidarClientesConectados(),
+      this.obterIntervaloRevalidacaoMs(),
+    );
+    this.revalidacaoPeriodicaInterval.unref();
+  }
+
+  onModuleDestroy(): void {
+    if (this.revalidacaoPeriodicaInterval) {
+      clearInterval(this.revalidacaoPeriodicaInterval);
+    }
+  }
+
   async handleConnection(client: SocketAutenticado): Promise<void> {
     const token = this.extrairToken(client);
     if (!token) {
@@ -96,16 +128,13 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      const payload = this.jwtService.verify<{ sub: number; sid?: number }>(
+      const payload = this.jwtService.verify<{ sub?: unknown; sid?: unknown }>(
         token,
       );
-      if (typeof payload.sid === 'number') {
-        await this.authSessionService.validarSessaoAccess(
-          payload.sid,
-          payload.sub,
-        );
-      }
-      this.definirUsuarioId(client, payload.sub);
+      const identidade = this.extrairIdentidadePayload(payload);
+      await this.validarIdentidade(identidade);
+      this.definirIdentidade(client, identidade);
+      this.clientesAutenticados.set(client.id, client);
     } catch {
       this.logger.warn(`Socket desconectado por token invalido: ${client.id}`);
       client.disconnect(true);
@@ -113,6 +142,7 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: SocketAutenticado): void {
+    this.clientesAutenticados.delete(client.id);
     this.removerPresencaSocket(client);
   }
 
@@ -123,13 +153,11 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const campanhaId = Number(body?.campanhaId);
     const sessaoId = Number(body?.sessaoId);
-    const usuarioId = this.obterUsuarioId(client);
+    const identidade = await this.revalidarEvento(client);
+    if (!identidade) return { ok: false };
+    const usuarioId = identidade.usuarioId;
 
-    if (
-      !usuarioId ||
-      !Number.isInteger(campanhaId) ||
-      !Number.isInteger(sessaoId)
-    ) {
+    if (!Number.isInteger(campanhaId) || !Number.isInteger(sessaoId)) {
       client.emit('sessao:erro', {
         code: 'JOIN_INVALIDO',
       });
@@ -270,9 +298,108 @@ export class SessaoGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return typeof data.usuarioId === 'number' ? data.usuarioId : undefined;
   }
 
-  private definirUsuarioId(client: Socket, usuarioId: number): void {
-    const data = client.data as { usuarioId?: number };
-    data.usuarioId = usuarioId;
+  private obterIdentidade(client: Socket): IdentidadeSocket | null {
+    const data = client.data as {
+      sessaoId?: unknown;
+      usuarioId?: unknown;
+    };
+    if (
+      typeof data.sessaoId !== 'number' ||
+      !Number.isInteger(data.sessaoId) ||
+      typeof data.usuarioId !== 'number' ||
+      !Number.isInteger(data.usuarioId)
+    ) {
+      return null;
+    }
+
+    return { sessaoId: data.sessaoId, usuarioId: data.usuarioId };
+  }
+
+  private definirIdentidade(
+    client: Socket,
+    identidade: IdentidadeSocket,
+  ): void {
+    const data = client.data as {
+      sessaoId?: number;
+      usuarioId?: number;
+    };
+    data.sessaoId = identidade.sessaoId;
+    data.usuarioId = identidade.usuarioId;
+  }
+
+  private extrairIdentidadePayload(payload: {
+    sub?: unknown;
+    sid?: unknown;
+  }): IdentidadeSocket {
+    if (
+      typeof payload.sub !== 'number' ||
+      !Number.isInteger(payload.sub) ||
+      typeof payload.sid !== 'number' ||
+      !Number.isInteger(payload.sid)
+    ) {
+      throw new Error('JWT WebSocket sem identidade de sessão válida');
+    }
+
+    return { sessaoId: payload.sid, usuarioId: payload.sub };
+  }
+
+  private async validarIdentidade(identidade: IdentidadeSocket): Promise<void> {
+    // Contrato central: deve rejeitar sessão revogada e usuário inativo/não verificado.
+    await this.authSessionService.validarSessaoAccess(
+      identidade.sessaoId,
+      identidade.usuarioId,
+    );
+  }
+
+  private async revalidarEvento(
+    client: SocketAutenticado,
+  ): Promise<IdentidadeSocket | null> {
+    const identidade = this.obterIdentidade(client);
+    if (!identidade) {
+      this.desconectarSessaoInvalida(client);
+      return null;
+    }
+
+    try {
+      await this.validarIdentidade(identidade);
+      return identidade;
+    } catch {
+      this.desconectarSessaoInvalida(client);
+      return null;
+    }
+  }
+
+  private async revalidarClientesConectados(): Promise<void> {
+    if (this.revalidacaoPeriodicaEmAndamento) return;
+
+    this.revalidacaoPeriodicaEmAndamento = true;
+    try {
+      await Promise.all(
+        Array.from(this.clientesAutenticados.values(), (client) =>
+          this.revalidarEvento(client),
+        ),
+      );
+    } finally {
+      this.revalidacaoPeriodicaEmAndamento = false;
+    }
+  }
+
+  private desconectarSessaoInvalida(client: SocketAutenticado): void {
+    this.clientesAutenticados.delete(client.id);
+    this.logger.warn(`Socket desconectado por sessão inválida: ${client.id}`);
+    client.disconnect(true);
+  }
+
+  private obterIntervaloRevalidacaoMs(): number {
+    const segundosConfigurados = Number(
+      this.configService.get<string>('AUTH_WS_SESSION_RECHECK_SECONDS'),
+    );
+    const segundos =
+      Number.isFinite(segundosConfigurados) && segundosConfigurados > 0
+        ? segundosConfigurados
+        : DEFAULT_WS_SESSION_RECHECK_SECONDS;
+
+    return segundos * 1000;
   }
 
   private extrairToken(client: SocketAutenticado): string | null {

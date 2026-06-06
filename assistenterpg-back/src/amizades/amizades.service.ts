@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { StatusAmizade } from '@prisma/client';
+import { Prisma, StatusAmizade, StatusContaUsuario } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   UsuarioApelidoDuplicadoException,
@@ -47,6 +47,11 @@ const amizadeIncludeUsuarios = {
   solicitante: { select: usuarioResumoSelect },
   destinatario: { select: usuarioResumoSelect },
 } as const;
+
+const usuarioAtivoVerificadoWhere = {
+  emailVerificadoEm: { not: null },
+  status: StatusContaUsuario.ATIVA,
+} satisfies Prisma.UsuarioWhereInput;
 
 @Injectable()
 export class AmizadesService {
@@ -106,7 +111,10 @@ export class AmizadesService {
 
     if (valor.includes('@')) {
       const usuario = await this.prisma.usuario.findUnique({
-        where: { email: valor.toLowerCase() },
+        where: {
+          email: valor.toLowerCase(),
+          AND: [usuarioAtivoVerificadoWhere],
+        },
         select: usuarioResumoSelect,
       });
 
@@ -118,7 +126,10 @@ export class AmizadesService {
     }
 
     const usuarios = await this.prisma.usuario.findMany({
-      where: { apelido: { equals: valor } },
+      where: {
+        apelido: { equals: valor },
+        ...usuarioAtivoVerificadoWhere,
+      },
       select: usuarioResumoSelect,
       take: 2,
     });
@@ -138,7 +149,16 @@ export class AmizadesService {
     const amizades = await this.prisma.amizade.findMany({
       where: {
         status: StatusAmizade.ACEITA,
-        OR: [{ usuarioAId: usuarioId }, { usuarioBId: usuarioId }],
+        OR: [
+          {
+            usuarioAId: usuarioId,
+            usuarioB: usuarioAtivoVerificadoWhere,
+          },
+          {
+            usuarioBId: usuarioId,
+            usuarioA: usuarioAtivoVerificadoWhere,
+          },
+        ],
       },
       include: amizadeIncludeUsuarios,
       orderBy: { atualizadoEm: 'desc' },
@@ -155,7 +175,16 @@ export class AmizadesService {
     const amizades = await this.prisma.amizade.findMany({
       where: {
         status: StatusAmizade.ACEITA,
-        OR: [{ usuarioAId: usuarioId }, { usuarioBId: usuarioId }],
+        OR: [
+          {
+            usuarioAId: usuarioId,
+            usuarioB: usuarioAtivoVerificadoWhere,
+          },
+          {
+            usuarioBId: usuarioId,
+            usuarioA: usuarioAtivoVerificadoWhere,
+          },
+        ],
       },
       select: { usuarioAId: true, usuarioBId: true },
     });
@@ -174,6 +203,7 @@ export class AmizadesService {
       this.prisma.amizade.findMany({
         where: {
           destinatarioId: usuarioId,
+          solicitante: usuarioAtivoVerificadoWhere,
           status: StatusAmizade.PENDENTE,
         },
         include: amizadeIncludeUsuarios,
@@ -182,6 +212,7 @@ export class AmizadesService {
       this.prisma.amizade.findMany({
         where: {
           solicitanteId: usuarioId,
+          destinatario: usuarioAtivoVerificadoWhere,
           status: StatusAmizade.PENDENTE,
         },
         include: amizadeIncludeUsuarios,

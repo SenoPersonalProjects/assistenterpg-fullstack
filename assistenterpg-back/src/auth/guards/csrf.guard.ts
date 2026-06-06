@@ -20,6 +20,8 @@ const PUBLIC_AUTH_PATHS = new Set([
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/verify-email',
+  '/auth/verify-email-change',
+  '/auth/reactivate-account',
   '/auth/resend-verification-email',
 ]);
 const COOKIE_SESSION_AUTH_PATHS = new Set(['/auth/refresh', '/auth/logout']);

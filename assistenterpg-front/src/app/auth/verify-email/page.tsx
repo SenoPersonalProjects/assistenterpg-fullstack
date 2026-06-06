@@ -6,13 +6,16 @@ import { useSearchParams } from 'next/navigation';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { apiVerifyEmail } from '@/lib/api';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams]);
+  const { requireLogin } = useAuth();
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +33,8 @@ export default function VerifyEmailPage() {
       try {
         const resposta = await apiVerifyEmail(token);
         if (ativo) {
-          setMensagem(resposta.mensagem);
+          showToast(resposta.mensagem, 'success');
+          requireLogin();
         }
       } catch (error) {
         if (ativo) {
@@ -48,7 +52,7 @@ export default function VerifyEmailPage() {
     return () => {
       ativo = false;
     };
-  }, [token]);
+  }, [requireLogin, showToast, token]);
 
   return (
     <AuthPageShell
@@ -69,12 +73,6 @@ export default function VerifyEmailPage() {
       <div className="flex flex-col gap-3">
         {loading ? (
           <p className="text-sm text-app-muted">Validando token...</p>
-        ) : null}
-
-        {mensagem ? (
-          <p className="text-sm text-app-success bg-app-surface border border-app-border rounded px-3 py-2">
-            {mensagem}
-          </p>
         ) : null}
 
         {erro ? <p className="text-sm text-red-600">{erro}</p> : null}

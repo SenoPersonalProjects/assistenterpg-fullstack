@@ -28,6 +28,7 @@ import {
   clearLegacyAuthStorage,
   setAuthHintCookie,
 } from '@/lib/utils/auth';
+import { isVisitorOnlyPagePath } from '@/lib/auth/routes';
 
 const SESSION_ACTIVE_TOKEN = 'cookie-session';
 const PROACTIVE_REFRESH_INTERVAL_MS = 12 * 60 * 1000;
@@ -47,6 +48,7 @@ type AuthContextType = {
   login: (email: string, senha: string, rememberMe?: boolean) => Promise<void>;
   register: (apelido: string, email: string, senha: string) => Promise<void>;
   logout: () => void;
+  requireLogin: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -90,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         markAuthSessionFresh();
         setAuthHintCookie();
 
-        if (pathname === '/' || pathname.startsWith('/auth')) {
+        if (isVisitorOnlyPagePath(pathname)) {
           router.replace('/home');
         }
       } catch {
@@ -104,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           markAuthSessionFresh();
           setAuthHintCookie();
 
-          if (pathname === '/' || pathname.startsWith('/auth')) {
+          if (isVisitorOnlyPagePath(pathname)) {
             router.replace('/home');
           }
         } catch {
@@ -196,19 +198,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [router],
   );
 
-  const logout = useCallback(() => {
-    void apiLogout().finally(() => {
-      clearAuthClientState();
-      setToken(null);
-      setUsuario(null);
-      setLoading(false);
-      router.push('/auth/login');
-    });
+  const requireLogin = useCallback(() => {
+    clearAuthClientState();
+    setToken(null);
+    setUsuario(null);
+    setLoading(false);
+    router.replace('/auth/login');
   }, [router]);
+
+  const logout = useCallback(() => {
+    void apiLogout().finally(requireLogin);
+  }, [requireLogin]);
 
   return (
     <AuthContext.Provider
-      value={{ usuario, token, loading, login, register, logout }}
+      value={{ usuario, token, loading, login, register, logout, requireLogin }}
     >
       {children}
     </AuthContext.Provider>

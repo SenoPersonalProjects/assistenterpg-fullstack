@@ -25,10 +25,24 @@ type EnviarVerificacaoInput = {
   expiraEm: Date;
 };
 
+type EnviarAlteracaoEmailInput = EnviarVerificacaoInput;
+
 @Injectable()
 export class AuthMailService {
   private readonly logger = new Logger(AuthMailService.name);
   private transporter: Transporter<SMTPTransport.SentMessageInfo> | null = null;
+
+  constructor() {
+    const mode = this.obterModo();
+    if (
+      process.env.NODE_ENV === 'production' &&
+      (mode === 'console' || mode === 'ethereal')
+    ) {
+      throw new Error(
+        'AUTH_EMAIL_MODE=console|ethereal não é permitido em produção.',
+      );
+    }
+  }
 
   async enviarRecuperacaoSenha(input: EnviarRecuperacaoInput) {
     const assunto = 'AssistenteRPG - Recuperação de senha';
@@ -98,13 +112,44 @@ export class AuthMailService {
     });
   }
 
+  async enviarConfirmacaoAlteracaoEmail(input: EnviarAlteracaoEmailInput) {
+    const assunto = 'AssistenteRPG - Confirme seu novo email';
+    const expiraEm = this.formatarDataHora(input.expiraEm);
+    const texto = [
+      `Ola, ${input.apelido}!`,
+      '',
+      'Recebemos um pedido para alterar o email da sua conta.',
+      `Confirme o novo email pelo link enviado. Ele expira em: ${expiraEm}.`,
+      '',
+      'Se você não solicitou, ignore este email e altere sua senha.',
+    ].join('\n');
+    const html = this.renderTemplate({
+      preHeader: 'Confirme seu novo email',
+      titulo: 'Alteração de email',
+      saudacao: `Ola, ${input.apelido}.`,
+      descricao:
+        'Recebemos um pedido para alterar o email da sua conta. Confirme o novo endereço pelo botão abaixo.',
+      ctaLabel: 'Confirmar novo email',
+      ctaUrl: input.linkVerificacao,
+      destaque: `Este link expira em ${expiraEm}.`,
+      observacao:
+        'Se você não solicitou esta alteração, ignore este email e altere sua senha.',
+    });
+
+    await this.enviarEmail({
+      para: input.email,
+      assunto,
+      texto,
+      html,
+    });
+  }
+
   private async enviarEmail(input: EnviarEmailInput) {
     const modo = this.obterModo();
     if (modo === 'console') {
       this.logger.log(
         `[AUTH_EMAIL][console] para=${input.para} assunto="${input.assunto}"`,
       );
-      this.logger.log(`[AUTH_EMAIL][console][body]\n${input.texto}`);
       return;
     }
 
@@ -121,18 +166,13 @@ export class AuthMailService {
       return;
     }
 
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
       from: this.getRemetenteFormatado(),
       to: input.para,
       subject: input.assunto,
       text: input.texto,
       html: input.html,
     });
-
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      this.logger.log(`[AUTH_EMAIL][preview] ${previewUrl}`);
-    }
   }
 
   private obterModo(): EmailAuthMode {

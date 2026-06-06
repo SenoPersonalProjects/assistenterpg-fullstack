@@ -1,6 +1,11 @@
 // src/campanha/campanha.convites.service.ts
 import { Injectable } from '@nestjs/common';
-import { StatusAmizade, type MembroCampanha } from '@prisma/client';
+import {
+  Prisma,
+  StatusAmizade,
+  StatusContaUsuario,
+  type MembroCampanha,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AmizadeNaoEncontradaException } from 'src/common/exceptions/amizade.exception';
 import {
@@ -17,6 +22,7 @@ import {
 import {
   UsuarioApelidoDuplicadoException,
   UsuarioApelidoNaoEncontradoException,
+  UsuarioEmailNaoEncontradoException,
 } from 'src/common/exceptions/usuario.exception';
 import {
   gerarCodigoConvite,
@@ -27,6 +33,11 @@ import {
   MAX_TENTATIVAS_CODIGO_CONVITE,
   PapelCampanha,
 } from './engine/campanha.engine.types';
+
+const usuarioAtivoVerificadoWhere = {
+  emailVerificadoEm: { not: null },
+  status: StatusContaUsuario.ATIVA,
+} satisfies Prisma.UsuarioWhereInput;
 
 @Injectable()
 export class CampanhaConvitesService {
@@ -61,7 +72,10 @@ export class CampanhaConvitesService {
       }
 
       const usuario = await this.prisma.usuario.findUnique({
-        where: { id: dados.usuarioId },
+        where: {
+          id: dados.usuarioId,
+          AND: [usuarioAtivoVerificadoWhere],
+        },
         select: { email: true },
       });
 
@@ -97,6 +111,7 @@ export class CampanhaConvitesService {
         apelido: {
           equals: apelidoInformado,
         },
+        ...usuarioAtivoVerificadoWhere,
       },
       select: { id: true, email: true },
       take: 2,
@@ -124,8 +139,8 @@ export class CampanhaConvitesService {
     email: string,
     papel: PapelCampanha,
   ) {
-    const emailConvite = email.trim();
-    const emailConviteNormalizado = normalizarEmail(emailConvite);
+    const emailInformado = email.trim();
+    const emailConviteNormalizado = normalizarEmail(emailInformado);
 
     const campanha = await this.prisma.campanha.findUnique({
       where: { id: campanhaId },
@@ -173,6 +188,19 @@ export class CampanhaConvitesService {
       );
     }
 
+    const usuarioConvidado = await this.prisma.usuario.findUnique({
+      where: {
+        email: emailConviteNormalizado,
+        AND: [usuarioAtivoVerificadoWhere],
+      },
+      select: { email: true },
+    });
+
+    if (!usuarioConvidado) {
+      throw new UsuarioEmailNaoEncontradoException(emailInformado);
+    }
+
+    const emailConvite = usuarioConvidado.email;
     const convitesPendentes = await this.prisma.conviteCampanha.findMany({
       where: {
         campanhaId,
@@ -231,7 +259,10 @@ export class CampanhaConvitesService {
 
   async listarConvitesPendentesPorUsuario(usuarioId: number) {
     const usuario = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
+      where: {
+        id: usuarioId,
+        AND: [usuarioAtivoVerificadoWhere],
+      },
       select: { email: true },
     });
 
@@ -280,7 +311,10 @@ export class CampanhaConvitesService {
       }
 
       const usuario = await tx.usuario.findUnique({
-        where: { id: usuarioId },
+        where: {
+          id: usuarioId,
+          AND: [usuarioAtivoVerificadoWhere],
+        },
         select: {
           email: true,
         },
@@ -374,7 +408,10 @@ export class CampanhaConvitesService {
     }
 
     const usuario = await this.prisma.usuario.findUnique({
-      where: { id: usuarioId },
+      where: {
+        id: usuarioId,
+        AND: [usuarioAtivoVerificadoWhere],
+      },
     });
 
     if (!usuario) {

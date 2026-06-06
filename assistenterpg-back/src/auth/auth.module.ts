@@ -1,9 +1,8 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { UsuarioModule } from '../usuario/usuario.module';
 import { AuthController } from './auth.controller';
@@ -21,15 +20,9 @@ import { LocalStrategy } from './local.strategy';
 @Module({
   imports: [
     ConfigModule,
-    UsuarioModule,
+    forwardRef(() => UsuarioModule),
     PrismaModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 20,
-      },
-    ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -56,6 +49,12 @@ import { LocalStrategy } from './local.strategy';
     },
   ],
   controllers: [AuthController],
-  exports: [AuthService, AuthSessionService, RolesGuard, AdminGuard],
+  exports: [
+    AuthService,
+    AuthSessionService,
+    AuthMailService,
+    RolesGuard,
+    AdminGuard,
+  ],
 })
 export class AuthModule {}

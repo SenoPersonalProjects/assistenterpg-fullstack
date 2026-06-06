@@ -1,32 +1,26 @@
-// lib/api/usuarios.ts
 import { apiClient } from './axios-client';
 import type {
-  EstatisticasUsuario,
-  PreferenciasUsuario,
-  AtualizarPreferenciasPayload,
   AlterarSenhaResponse,
+  AtualizarPreferenciasPayload,
+  EstatisticasUsuario,
   ExcluirContaResponse,
-} from '@/lib/types'; // ✅ ATUALIZADO
+  PreferenciasUsuario,
+} from '@/lib/types';
 
-/**
- * ✅ Buscar estatísticas do usuário logado
- */
+export type MensagemContaResponse = {
+  mensagem: string;
+};
+
 export async function apiObterEstatisticas(): Promise<EstatisticasUsuario> {
   const { data } = await apiClient.get('/usuarios/me/estatisticas');
   return data;
 }
 
-/**
- * ✅ Buscar preferências do usuário logado
- */
 export async function apiObterPreferencias(): Promise<PreferenciasUsuario> {
   const { data } = await apiClient.get('/usuarios/me/preferencias');
   return data;
 }
 
-/**
- * ✅ Atualizar preferências do usuário logado
- */
 export async function apiAtualizarPreferencias(
   payload: AtualizarPreferenciasPayload,
 ): Promise<PreferenciasUsuario> {
@@ -34,9 +28,6 @@ export async function apiAtualizarPreferencias(
   return data;
 }
 
-/**
- * ✅ Alterar senha do usuário logado
- */
 export async function apiAlterarSenha(
   senhaAtual: string,
   novaSenha: string,
@@ -48,31 +39,46 @@ export async function apiAlterarSenha(
   return data;
 }
 
-/**
- * ✅ Exportar dados do usuário (download automático)
- */
+export async function apiSolicitarAlteracaoEmail(
+  novoEmail: string,
+  senhaAtual: string,
+): Promise<MensagemContaResponse> {
+  const { data } = await apiClient.patch('/usuarios/me/email', {
+    novoEmail,
+    senhaAtual,
+  });
+  return data;
+}
+
+export async function apiDesativarConta(
+  senhaAtual: string,
+): Promise<MensagemContaResponse> {
+  const { data } = await apiClient.post('/usuarios/me/desativar', {
+    senhaAtual,
+  });
+  return data;
+}
+
 export async function apiExportarDados(): Promise<void> {
   const { data } = await apiClient.get('/usuarios/me/exportar', {
     responseType: 'blob',
   });
 
-  // ✅ Criar download automático
   const url = window.URL.createObjectURL(new Blob([data]));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `dados-assistenterpg-${Date.now()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `dados-assistenterpg-${Date.now()}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
   window.URL.revokeObjectURL(url);
 }
 
-/**
- * ✅ Excluir conta do usuário
- */
-export async function apiExcluirConta(senha: string): Promise<ExcluirContaResponse> {
+export async function apiExcluirConta(
+  senhaAtual: string,
+): Promise<ExcluirContaResponse> {
   const { data } = await apiClient.delete('/usuarios/me', {
-    data: { senha },
+    data: { senhaAtual },
   });
   return data;
 }

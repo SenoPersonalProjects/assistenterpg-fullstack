@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import {
+  PASSWORD_POLICY,
+  PASSWORD_REQUIREMENTS_TEXT,
+  validateNewPassword,
+} from '@/lib/auth/password-policy';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 
 export function RegisterForm() {
   const { register, loading } = useAuth();
@@ -15,16 +21,27 @@ export function RegisterForm() {
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const {
+    captureRateLimit,
+    cooldownButtonLabel,
+    isCoolingDown,
+  } = useRateLimitCooldown();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const passwordError = validateNewPassword(senha);
+    if (passwordError) {
+      showToast(passwordError, 'error');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       await register(apelido, email, senha);
       showToast('Conta criada! Verifique seu email antes de fazer login.', 'success');
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = captureRateLimit(error) ?? extrairMensagemErro(error);
       showToast(mensagem, 'error');
     } finally {
       setSubmitting(false);
@@ -54,14 +71,15 @@ export function RegisterForm() {
         type={mostrarSenha ? 'text' : 'password'}
         value={senha}
         onChange={(e) => setSenha(e.target.value)}
-        minLength={6}
+        minLength={PASSWORD_POLICY.minCharacters}
+        helperText={PASSWORD_REQUIREMENTS_TEXT}
         required
         rightIcon={mostrarSenha ? 'eyeOff' : 'eye'}
         rightIconLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
         onRightIconClick={() => setMostrarSenha((valor) => !valor)}
       />
-      <Button type="submit" disabled={submitting}>
-        {submitting ? 'Criando...' : 'Criar conta'}
+      <Button type="submit" disabled={submitting || isCoolingDown}>
+        {cooldownButtonLabel ?? (submitting ? 'Criando...' : 'Criar conta')}
       </Button>
     </form>
   );

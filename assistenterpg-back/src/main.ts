@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import type { RequestHandler } from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -19,7 +20,17 @@ import {
 
 type ExpressLikeApp = {
   disable?: (setting: string) => void;
+  set?: (setting: string, value: unknown) => void;
 };
+
+const createCookieParser = cookieParser as unknown as () => RequestHandler;
+
+function resolveTrustProxyHops(): number {
+  const configuredValue = Number(process.env.TRUST_PROXY_HOPS ?? 0);
+  return Number.isInteger(configuredValue) && configuredValue >= 0
+    ? configuredValue
+    : 0;
+}
 
 function isPortInUseError(error: unknown): boolean {
   return (
@@ -85,8 +96,13 @@ async function bootstrap() {
   const corsOptions = createCorsOptions(corsOrigins);
 
   const httpInstance = app.getHttpAdapter().getInstance() as ExpressLikeApp;
-  httpInstance.disable?.('x-powered-by');
-  app.use(cookieParser());
+  if (typeof httpInstance.disable === 'function') {
+    httpInstance.disable('x-powered-by');
+  }
+  if (typeof httpInstance.set === 'function') {
+    httpInstance.set('trust proxy', resolveTrustProxyHops());
+  }
+  app.use(createCookieParser());
   app.enableCors(corsOptions);
   app.use(helmet(createHelmetOptions(enableSwagger)));
 

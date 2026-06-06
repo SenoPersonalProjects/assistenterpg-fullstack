@@ -1,17 +1,8 @@
 // src/auth/auth.controller.ts
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { SecurityRateLimit } from 'src/common/security/security-rate-limit.decorator';
 import { AuthService } from './auth.service';
-import { AUTH_THROTTLE_LIMITS } from './auth-security.config';
 import { AuthSessionService } from './auth-session.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -19,9 +10,10 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationEmailDto } from './dto/resend-verification-email.dto';
+import { ReactivateAccountDto } from './dto/reactivate-account.dto';
+import { VerifyEmailChangeDto } from './dto/verify-email-change.dto';
 
 @Controller('auth')
-@UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -29,13 +21,13 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  @Throttle(AUTH_THROTTLE_LIMITS.register)
+  @SecurityRateLimit('register')
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Post('login')
-  @Throttle(AUTH_THROTTLE_LIMITS.login)
+  @SecurityRateLimit('login')
   async login(
     @Body() dto: LoginDto,
     @Req() request: Request,
@@ -76,25 +68,56 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  @Throttle(AUTH_THROTTLE_LIMITS.forgotPassword)
+  @SecurityRateLimit('forgotPassword')
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.solicitarRecuperacaoSenha(dto.email);
   }
 
   @Post('reset-password')
-  @Throttle(AUTH_THROTTLE_LIMITS.resetPassword)
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.redefinirSenha(dto.token, dto.novaSenha);
+  @SecurityRateLimit('resetPassword')
+  async resetPassword(
+    @Body() dto: ResetPasswordDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.redefinirSenha(
+      dto.token,
+      dto.novaSenha,
+    );
+    this.authSessionService.limparCookies(response);
+    return result;
   }
 
   @Post('verify-email')
-  async verifyEmail(@Body() dto: VerifyEmailDto) {
-    return this.authService.verificarEmail(dto.token);
+  @SecurityRateLimit('verifyEmail')
+  async verifyEmail(
+    @Body() dto: VerifyEmailDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.verificarEmail(dto.token);
+    this.authSessionService.limparCookies(response);
+    return result;
   }
 
   @Post('resend-verification-email')
-  @Throttle(AUTH_THROTTLE_LIMITS.resendVerificationEmail)
+  @SecurityRateLimit('resendVerificationEmail')
   async resendVerificationEmail(@Body() dto: ResendVerificationEmailDto) {
     return this.authService.reenviarVerificacaoEmail(dto.email);
+  }
+
+  @Post('verify-email-change')
+  @SecurityRateLimit('verifyEmailChange')
+  async verifyEmailChange(
+    @Body() dto: VerifyEmailChangeDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const result = await this.authService.confirmarAlteracaoEmail(dto.token);
+    this.authSessionService.limparCookies(response);
+    return result;
+  }
+
+  @Post('reactivate-account')
+  @SecurityRateLimit('reactivateAccount')
+  async reactivateAccount(@Body() dto: ReactivateAccountDto) {
+    return this.authService.reativarConta(dto.email, dto.senha);
   }
 }

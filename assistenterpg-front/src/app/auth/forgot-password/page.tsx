@@ -7,12 +7,18 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiForgotPassword } from '@/lib/api';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const {
+    captureRateLimit,
+    cooldownButtonLabel,
+    isCoolingDown,
+  } = useRateLimitCooldown();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,7 +30,7 @@ export default function ForgotPasswordPage() {
       const resposta = await apiForgotPassword(email);
       setMensagem(resposta.mensagem);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
     } finally {
       setSubmitting(false);
     }
@@ -63,8 +69,8 @@ export default function ForgotPasswordPage() {
 
         {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
 
-        <Button type="submit" disabled={submitting}>
-          {submitting ? 'Enviando...' : 'Enviar link'}
+        <Button type="submit" disabled={submitting || isCoolingDown}>
+          {cooldownButtonLabel ?? (submitting ? 'Enviando...' : 'Enviar link')}
         </Button>
       </form>
     </AuthPageShell>

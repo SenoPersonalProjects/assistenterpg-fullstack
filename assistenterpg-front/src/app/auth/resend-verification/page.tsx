@@ -7,12 +7,18 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiResendVerificationEmail } from '@/lib/api';
 import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 
 export default function ResendVerificationPage() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const {
+    captureRateLimit,
+    cooldownButtonLabel,
+    isCoolingDown,
+  } = useRateLimitCooldown();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,7 +30,7 @@ export default function ResendVerificationPage() {
       const resposta = await apiResendVerificationEmail(email);
       setMensagem(resposta.mensagem);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
     } finally {
       setSubmitting(false);
     }
@@ -63,8 +69,9 @@ export default function ResendVerificationPage() {
 
         {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
 
-        <Button type="submit" disabled={submitting}>
-          {submitting ? 'Enviando...' : 'Reenviar verificação'}
+        <Button type="submit" disabled={submitting || isCoolingDown}>
+          {cooldownButtonLabel ??
+            (submitting ? 'Enviando...' : 'Reenviar verificação')}
         </Button>
       </form>
     </AuthPageShell>

@@ -1,6 +1,6 @@
 // src/auth/dto/register.dto.ts
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { AUTH_PASSWORD_MIN_LENGTH } from '../auth-security.config';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsAuthPassword } from './auth-password.validator';
 
 export class RegisterDto {
   @IsString()
@@ -12,6 +12,6 @@ export class RegisterDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(AUTH_PASSWORD_MIN_LENGTH)
+  @IsAuthPassword()
   senha: string;
 }

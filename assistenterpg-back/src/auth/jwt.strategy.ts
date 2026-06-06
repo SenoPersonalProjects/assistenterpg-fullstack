@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
+import { StatusContaUsuario } from '@prisma/client';
 import { UsuarioTokenNaoEncontradoException } from 'src/common/exceptions/auth.exception';
 import { UsuarioService } from '../usuario/usuario.service';
 import { AuthSessionService } from './auth-session.service';
@@ -36,19 +37,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: { sub: number; email: string; sid?: number }) {
     try {
-      if (typeof payload.sid === 'number') {
-        await this.authSessionService.validarSessaoAccess(
-          payload.sid,
-          payload.sub,
-        );
+      if (!Number.isInteger(payload.sid)) {
+        throw new Error('JWT sem sid');
       }
+      await this.authSessionService.validarSessaoAccess(
+        payload.sid as number,
+        payload.sub,
+      );
       const usuario = await this.usuarioService.buscarPorId(payload.sub);
+      if (
+        usuario.status !== StatusContaUsuario.ATIVA ||
+        !usuario.emailVerificadoEm
+      ) {
+        throw new Error('Conta inativa');
+      }
 
       return {
         id: usuario.id,
         email: usuario.email,
         apelido: usuario.apelido,
         role: usuario.role,
+        sid: payload.sid,
       };
     } catch {
       throw new UsuarioTokenNaoEncontradoException(payload.sub);

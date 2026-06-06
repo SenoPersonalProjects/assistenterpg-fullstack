@@ -9,6 +9,7 @@ type PrismaAuthTokenMock = {
     updateMany: jest.Mock;
     create: jest.Mock;
   };
+  $transaction: jest.Mock;
 };
 
 describe('AuthTokenService', () => {
@@ -22,12 +23,29 @@ describe('AuthTokenService', () => {
         updateMany: jest.fn(),
         create: jest.fn(),
       },
+      $transaction: jest.fn((callback) => callback(prisma)),
     };
 
     service = new AuthTokenService(prisma as unknown as PrismaService);
   });
 
-  it('rejeita token inexistente, expirado ou já usado', async () => {
+  it('persiste apenas o hash do token gerado', async () => {
+    prisma.authToken.create.mockResolvedValue({ id: 1 });
+
+    const resultado = await service.gerarToken(
+      10,
+      TipoTokenAuth.RECUPERACAO_SENHA,
+      30,
+    );
+
+    const data = prisma.authToken.create.mock.calls[0][0].data;
+    expect(resultado.token).toHaveLength(64);
+    expect(data.tokenHash).toHaveLength(64);
+    expect(data.tokenHash).not.toBe(resultado.token);
+    expect(data).not.toHaveProperty('token');
+  });
+
+  it('rejeita token inexistente, expirado ou ja usado', async () => {
     prisma.authToken.findFirst.mockResolvedValueOnce(null);
 
     await expect(
@@ -48,7 +66,7 @@ describe('AuthTokenService', () => {
     ).rejects.toBeInstanceOf(AuthTokenInvalidoOuExpiradoException);
   });
 
-  it('consome token valido apenas uma vez', async () => {
+  it('consome token valido uma unica vez dentro de transacao', async () => {
     prisma.authToken.findFirst.mockResolvedValueOnce({
       id: 1,
       usuarioId: 10,
@@ -62,6 +80,26 @@ describe('AuthTokenService', () => {
       id: 1,
       usuarioId: 10,
       expiraEm: expect.any(Date),
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.authToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 1, usadoEm: null },
+      data: { usadoEm: expect.any(Date) },
+    });
+  });
+
+  it('invalida tokens irmaos ainda ativos', async () => {
+    prisma.authToken.updateMany.mockResolvedValue({ count: 2 });
+
+    await service.invalidarTokensAtivos(10, TipoTokenAuth.VERIFICACAO_EMAIL);
+
+    expect(prisma.authToken.updateMany).toHaveBeenCalledWith({
+      where: {
+        usuarioId: 10,
+        tipo: TipoTokenAuth.VERIFICACAO_EMAIL,
+        usadoEm: null,
+      },
+      data: { usadoEm: expect.any(Date) },
     });
   });
 });

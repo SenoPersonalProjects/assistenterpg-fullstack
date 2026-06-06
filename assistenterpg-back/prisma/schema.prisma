@@ -272,6 +272,13 @@ enum RoleUsuario {
   ADMIN
 }
 
+enum StatusContaUsuario {
+  ATIVA
+  DESATIVADA
+  PENDENTE_EXCLUSAO
+  EXCLUIDA
+}
+
 enum TipoTokenAuth {
   RECUPERACAO_SENHA
   VERIFICACAO_EMAIL
@@ -337,11 +344,16 @@ enum TamanhoNpcAmeaca {
 // ========================================
 
 model Usuario {
-  id                Int       @id @default(autoincrement())
-  apelido           String
-  email             String    @unique
-  senhaHash         String
-  emailVerificadoEm DateTime?
+  id                   Int                @id @default(autoincrement())
+  apelido              String
+  email                String             @unique
+  senhaHash            String
+  emailVerificadoEm    DateTime?
+  status               StatusContaUsuario @default(ATIVA)
+  desativadoEm         DateTime?
+  exclusaoSolicitadaEm DateTime?
+  exclusaoAgendadaPara DateTime?
+  excluidoEm           DateTime?
 
   // ✅ NOVO: Role do usuário
   role RoleUsuario @default(USUARIO)
@@ -362,9 +374,10 @@ model Usuario {
   preferencias                             PreferenciaUsuario?
   tokensAuth                               AuthToken[]
   sessoesAutenticacao                      SessaoAutenticacao[]
-  conversasAmizadeComoUsuarioA             ConversaAmizade[]                     @relation("ConversaAmizadeUsuarioA")
-  conversasAmizadeComoUsuarioB             ConversaAmizade[]                     @relation("ConversaAmizadeUsuarioB")
-  mensagensAmizade                         MensagemAmizade[]                     @relation("MensagemAmizadeAutor")
+  alteracaoEmailPendente                   AlteracaoEmailPendente?
+  conversasAmizadeComoUsuarioA             ConversaAmizade[]                      @relation("ConversaAmizadeUsuarioA")
+  conversasAmizadeComoUsuarioB             ConversaAmizade[]                      @relation("ConversaAmizadeUsuarioB")
+  mensagensAmizade                         MensagemAmizade[]                      @relation("MensagemAmizadeAutor")
   leiturasConversasAmizade                 LeituraConversaAmizade[]
   anotacoes                                Anotacao[]
   itensSessaoCriados                       ItemSessaoCampanha[]                   @relation("ItemSessaoCriadoPor")
@@ -377,12 +390,14 @@ model Usuario {
   solicitacoesAmizadeRecebidas             Amizade[]                              @relation("AmizadeDestinatario")
 
   // ✅ NOVO: Relações com suplementos e homebrews
-  suplementosAtivos UsuarioSuplemento[]
-  homebrews         Homebrew[]
-  gruposHomebrew    HomebrewGrupo[]
-  gruposNpcAmeaca   NpcAmeacaGrupo[]
-  equipamentosHomebrew        EquipamentoCatalogo[] @relation("EquipamentosHomebrewDoUsuario")
-  tecnicasAmaldicoadasProprias TecnicaAmaldicoada[] @relation("TecnicasAmaldicoadasPropriasDoUsuario")
+  suplementosAtivos            UsuarioSuplemento[]
+  homebrews                    Homebrew[]
+  gruposHomebrew               HomebrewGrupo[]
+  gruposNpcAmeaca              NpcAmeacaGrupo[]
+  equipamentosHomebrew         EquipamentoCatalogo[] @relation("EquipamentosHomebrewDoUsuario")
+  tecnicasAmaldicoadasProprias TecnicaAmaldicoada[]  @relation("TecnicasAmaldicoadasPropriasDoUsuario")
+
+  @@index([status, exclusaoAgendadaPara])
 }
 
 model AuthToken {
@@ -401,9 +416,55 @@ model AuthToken {
   @@map("auth_tokens")
 }
 
+model RegistroPendenteUsuario {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  apelido       String
+  senhaHash     String
+  tokenHash     String   @unique
+  tokenExpiraEm DateTime
+  expiraEm      DateTime
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  @@index([tokenExpiraEm])
+  @@index([expiraEm])
+  @@map("registros_pendentes_usuario")
+}
+
+model AlteracaoEmailPendente {
+  id            Int      @id @default(autoincrement())
+  usuarioId     Int      @unique
+  novoEmail     String   @unique
+  tokenHash     String   @unique
+  tokenExpiraEm DateTime
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([tokenExpiraEm])
+  @@map("alteracoes_email_pendentes")
+}
+
+model LimiteRequisicaoSeguranca {
+  chaveHash      String    @id @db.VarChar(64)
+  contador       Int
+  janelaIniciaEm DateTime
+  bloqueadoAte   DateTime?
+  expiraEm       DateTime
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+
+  @@index([expiraEm])
+  @@index([bloqueadoAte])
+  @@map("limites_requisicao_seguranca")
+}
+
 model SessaoAutenticacao {
   id               Int       @id @default(autoincrement())
   usuarioId        Int
+  familiaId        String    @db.VarChar(64)
   refreshTokenHash String    @unique
   csrfTokenHash    String
   userAgent        String?   @db.Text
@@ -420,6 +481,7 @@ model SessaoAutenticacao {
 
   @@index([usuarioId, revogadaEm])
   @@index([usuarioId, expiraEm])
+  @@index([familiaId, revogadaEm])
   @@index([usuarioId, revogacaoMotivo, rotacionadaEm])
   @@index([expiraEm])
   @@map("sessoes_autenticacao")
@@ -461,12 +523,12 @@ model MensagemAmizade {
 }
 
 model LeituraConversaAmizade {
-  conversaId         Int
-  usuarioId          Int
-  lidaAteMensagemId  Int?
-  lidaEm             DateTime?
-  criadoEm           DateTime @default(now())
-  atualizadoEm       DateTime @updatedAt
+  conversaId        Int
+  usuarioId         Int
+  lidaAteMensagemId Int?
+  lidaEm            DateTime?
+  criadoEm          DateTime  @default(now())
+  atualizadoEm      DateTime  @updatedAt
 
   conversa ConversaAmizade @relation(fields: [conversaId], references: [id], onDelete: Cascade)
   usuario  Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -564,9 +626,9 @@ model PersonagemBase {
 
   estudouEscolaTecnica Boolean @default(false)
 
-  tecnicaInataId Int?
-  tecnicaInata   TecnicaAmaldicoada? @relation("TecnicaInataPersonagemBase", fields: [tecnicaInataId], references: [id])
-  tecnicaInataPropriaId Int? @unique
+  tecnicaInataId        Int?
+  tecnicaInata          TecnicaAmaldicoada? @relation("TecnicaInataPersonagemBase", fields: [tecnicaInataId], references: [id])
+  tecnicaInataPropriaId Int?                @unique
   tecnicaInataPropria   TecnicaAmaldicoada? @relation("TecnicaInataPropriaPersonagemBase", fields: [tecnicaInataPropriaId], references: [id])
 
   passivas                PersonagemBasePassiva[]
@@ -755,11 +817,11 @@ model PersonagemCampanha {
   espacosOcupados        Float   @default(0)
   sobrecarregado         Boolean @default(false)
 
-  tecnicaInataId Int?
-  tecnicaInata   TecnicaAmaldicoada? @relation("TecnicaInataPersonagemCampanha", fields: [tecnicaInataId], references: [id])
-  tecnicaInataPropriaId Int? @unique
-  tecnicaInataPropria   TecnicaAmaldicoada? @relation("TecnicaInataPropriaPersonagemCampanha", fields: [tecnicaInataPropriaId], references: [id])
-  tecnicaInataSincronizaBase Boolean @default(false)
+  tecnicaInataId             Int?
+  tecnicaInata               TecnicaAmaldicoada? @relation("TecnicaInataPersonagemCampanha", fields: [tecnicaInataId], references: [id])
+  tecnicaInataPropriaId      Int?                @unique
+  tecnicaInataPropria        TecnicaAmaldicoada? @relation("TecnicaInataPropriaPersonagemCampanha", fields: [tecnicaInataPropriaId], references: [id])
+  tecnicaInataSincronizaBase Boolean             @default(false)
 
   campanha       Campanha       @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   personagemBase PersonagemBase @relation(fields: [personagemBaseId], references: [id], onDelete: Cascade)
@@ -867,13 +929,13 @@ model Sessao {
 }
 
 model SessaoRegraOpcional {
-  id          Int      @id @default(autoincrement())
-  sessaoId    Int
-  chave       String
-  ativo       Boolean  @default(false)
-  config      Json?
-  estado      Json?
-  criadoEm    DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  sessaoId     Int
+  chave        String
+  ativo        Boolean  @default(false)
+  config       Json?
+  estado       Json?
+  criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
   sessao Sessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
@@ -889,7 +951,7 @@ model SessaoIniciativaAlternada {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  sessao        Sessao                                      @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  sessao        Sessao                                  @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
   lados         SessaoIniciativaAlternadaLado[]
   participantes SessaoIniciativaAlternadaParticipante[]
 
@@ -898,12 +960,12 @@ model SessaoIniciativaAlternada {
 }
 
 model SessaoIniciativaAlternadaLado {
-  id                     Int      @id @default(autoincrement())
-  iniciativaAlternadaId  Int
-  nome                   String
-  ordem                  Int      @default(0)
-  criadoEm               DateTime @default(now())
-  atualizadoEm           DateTime @updatedAt
+  id                    Int      @id @default(autoincrement())
+  iniciativaAlternadaId Int
+  nome                  String
+  ordem                 Int      @default(0)
+  criadoEm              DateTime @default(now())
+  atualizadoEm          DateTime @updatedAt
 
   iniciativaAlternada SessaoIniciativaAlternada               @relation(fields: [iniciativaAlternadaId], references: [id], onDelete: Cascade)
   participantes       SessaoIniciativaAlternadaParticipante[]
@@ -913,18 +975,18 @@ model SessaoIniciativaAlternadaLado {
 }
 
 model SessaoIniciativaAlternadaParticipante {
-  id                     Int      @id @default(autoincrement())
-  iniciativaAlternadaId  Int
-  ladoId                 Int
-  participanteToken      String
-  tipoParticipante       String
-  personagemSessaoId     Int?
-  npcSessaoId            Int?
-  nome                   String
-  jaAgiu                 Boolean  @default(false)
-  ordem                  Int      @default(0)
-  criadoEm               DateTime @default(now())
-  atualizadoEm           DateTime @updatedAt
+  id                    Int      @id @default(autoincrement())
+  iniciativaAlternadaId Int
+  ladoId                Int
+  participanteToken     String
+  tipoParticipante      String
+  personagemSessaoId    Int?
+  npcSessaoId           Int?
+  nome                  String
+  jaAgiu                Boolean  @default(false)
+  ordem                 Int      @default(0)
+  criadoEm              DateTime @default(now())
+  atualizadoEm          DateTime @updatedAt
 
   iniciativaAlternada SessaoIniciativaAlternada     @relation(fields: [iniciativaAlternadaId], references: [id], onDelete: Cascade)
   lado                SessaoIniciativaAlternadaLado @relation(fields: [ladoId], references: [id], onDelete: Cascade)
@@ -1630,7 +1692,7 @@ model CompendioLivro {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  suplemento Suplemento?           @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  suplemento Suplemento?          @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
   categorias CompendioCategoria[]
 
   @@index([ordem])
@@ -1748,13 +1810,13 @@ model EquipamentoCatalogo {
   espacos   Float                @default(1)
 
   // ✅ NOVO: Fonte e suplemento
-  fonte           TipoFonte   @default(SISTEMA_BASE)
-  suplementoId    Int?
-  suplemento      Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
-  usuarioId       Int?
-  usuario         Usuario?    @relation("EquipamentosHomebrewDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  fonte            TipoFonte   @default(SISTEMA_BASE)
+  suplementoId     Int?
+  suplemento       Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  usuarioId        Int?
+  usuario          Usuario?    @relation("EquipamentosHomebrewDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
   homebrewOrigemId Int?
-  homebrewOrigem  Homebrew?   @relation("EquipamentoCatalogoHomebrewOrigem", fields: [homebrewOrigemId], references: [id], onDelete: SetNull)
+  homebrewOrigem   Homebrew?   @relation("EquipamentoCatalogoHomebrewOrigem", fields: [homebrewOrigemId], references: [id], onDelete: SetNull)
 
   proficienciaArma ProficienciaArma?
   empunhaduras     Json?
@@ -1789,7 +1851,7 @@ model EquipamentoCatalogo {
   // ✅ NOVO: Tipo do amaldiçoado (ARMA, PROTECAO, ITEM, ARTEFATO)
   tipoAmaldicoado TipoAmaldicoado?
 
-  efeito String? @db.Text
+  efeito        String? @db.Text
   efeitoConsumo Json?
 
   complexidadeMaldicao          ComplexidadeMaldicao @default(NENHUMA)
@@ -2194,13 +2256,13 @@ model TecnicaAmaldicoada {
   requisitos Json? // Ex: { "nivel": 5, "atributo": "INT >= 3" }
 
   // ✅ NOVO: Fonte e suplemento
-  fonte         TipoFonte   @default(SISTEMA_BASE)
-  suplementoId  Int?
-  suplemento    Suplemento? @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
-  usuarioId     Int?
-  usuario       Usuario?    @relation("TecnicasAmaldicoadasPropriasDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
-  tecnicaBaseId Int?
-  tecnicaBase   TecnicaAmaldicoada? @relation("TecnicaAmaldicoadaBaseInstancias", fields: [tecnicaBaseId], references: [id], onDelete: SetNull)
+  fonte              TipoFonte            @default(SISTEMA_BASE)
+  suplementoId       Int?
+  suplemento         Suplemento?          @relation(fields: [suplementoId], references: [id], onDelete: SetNull)
+  usuarioId          Int?
+  usuario            Usuario?             @relation("TecnicasAmaldicoadasPropriasDoUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  tecnicaBaseId      Int?
+  tecnicaBase        TecnicaAmaldicoada?  @relation("TecnicaAmaldicoadaBaseInstancias", fields: [tecnicaBaseId], references: [id], onDelete: SetNull)
   instanciasProprias TecnicaAmaldicoada[] @relation("TecnicaAmaldicoadaBaseInstancias")
 
   // ✅ Habilidades da técnica
@@ -2249,13 +2311,13 @@ model TecnicaCla {
 // ========================================
 
 model HabilidadeTecnica {
-  id        Int                @id @default(autoincrement())
-  tecnicaId Int
-  tecnica   TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
-  habilidadeBaseId Int?
-  habilidadeBase   HabilidadeTecnica? @relation("HabilidadeTecnicaBaseInstancias", fields: [habilidadeBaseId], references: [id], onDelete: SetNull)
+  id                 Int                 @id @default(autoincrement())
+  tecnicaId          Int
+  tecnica            TecnicaAmaldicoada  @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
+  habilidadeBaseId   Int?
+  habilidadeBase     HabilidadeTecnica?  @relation("HabilidadeTecnicaBaseInstancias", fields: [habilidadeBaseId], references: [id], onDelete: SetNull)
   instanciasProprias HabilidadeTecnica[] @relation("HabilidadeTecnicaBaseInstancias")
-  habilitada Boolean @default(true)
+  habilitada         Boolean             @default(true)
 
   codigo    String @unique
   nome      String
@@ -2332,12 +2394,12 @@ model HabilidadeTecnica {
 // ========================================
 
 model VariacaoHabilidade {
-  id                  Int               @id @default(autoincrement())
+  id                  Int                  @id @default(autoincrement())
   habilidadeTecnicaId Int
-  habilidadeTecnica   HabilidadeTecnica @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
-  variacaoBaseId Int?
-  variacaoBase   VariacaoHabilidade? @relation("VariacaoHabilidadeBaseInstancias", fields: [variacaoBaseId], references: [id], onDelete: SetNull)
-  instanciasProprias VariacaoHabilidade[] @relation("VariacaoHabilidadeBaseInstancias")
+  habilidadeTecnica   HabilidadeTecnica    @relation(fields: [habilidadeTecnicaId], references: [id], onDelete: Cascade)
+  variacaoBaseId      Int?
+  variacaoBase        VariacaoHabilidade?  @relation("VariacaoHabilidadeBaseInstancias", fields: [variacaoBaseId], references: [id], onDelete: SetNull)
+  instanciasProprias  VariacaoHabilidade[] @relation("VariacaoHabilidadeBaseInstancias")
 
   nome      String // Ex: "Liberação Superior", "Liberação Máxima"
   descricao String @db.Text
@@ -2454,16 +2516,16 @@ model Suplemento {
   atualizadoEm DateTime @updatedAt
 
   // ✅ Relações: Conteúdo do suplemento
-  cla          Cla[]
-  classes      Classe[]
-  trilhas      Trilha[]
-  caminhos     Caminho[]
-  origens      Origem[]
-  equipamentos EquipamentoCatalogo[]
-  habilidades  Habilidade[]
-  tecnicas     TecnicaAmaldicoada[]
-  modificacoes      ModificacaoEquipamento[]
-  compendioLivros   CompendioLivro[]
+  cla             Cla[]
+  classes         Classe[]
+  trilhas         Trilha[]
+  caminhos        Caminho[]
+  origens         Origem[]
+  equipamentos    EquipamentoCatalogo[]
+  habilidades     Habilidade[]
+  tecnicas        TecnicaAmaldicoada[]
+  modificacoes    ModificacaoEquipamento[]
+  compendioLivros CompendioLivro[]
 
   // ✅ Usuários que ativaram este suplemento
   usuariosAtivos UsuarioSuplemento[]
@@ -2524,9 +2586,9 @@ model Homebrew {
   tags   Json? // ["Customizado", "Homebrew", "Experimental"]
   versao String @default("1.0.0")
 
-  criadoEm     DateTime            @default(now())
-  atualizadoEm DateTime            @updatedAt
-  grupos       HomebrewGrupoItem[]
+  criadoEm                   DateTime              @default(now())
+  atualizadoEm               DateTime              @updatedAt
+  grupos                     HomebrewGrupoItem[]
   equipamentosMaterializados EquipamentoCatalogo[] @relation("EquipamentoCatalogoHomebrewOrigem")
 
   @@unique([usuarioId, codigo])

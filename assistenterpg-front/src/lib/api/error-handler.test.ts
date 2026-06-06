@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { extrairContextoErro, formatarErroComContexto } from './error-handler';
+import {
+  extrairContextoErro,
+  extrairMensagemErro,
+  formatarErroComContexto,
+} from './error-handler';
 
 describe('error-handler context helpers', () => {
   it('extracts status, code, method, endpoint and requestId', () => {
@@ -73,6 +77,15 @@ describe('error-handler context helpers', () => {
   it('returns base message when no context is available', () => {
     const mensagem = formatarErroComContexto('Falha generica.', new Error('x'));
     expect(mensagem).toBe('Falha generica.');
+  });
+
+  it('formats 429 errors with Retry-After cooldown', () => {
+    const mensagem = extrairMensagemErro({
+      status: 429,
+      retryAfterSeconds: 75,
+    });
+
+    expect(mensagem).toBe('Muitas tentativas. Tente novamente em 2 min.');
   });
 });
 

@@ -23,6 +23,7 @@ import {
   UsuarioJaMembroCampanhaException,
 } from 'src/common/exceptions/campanha.exception';
 import { AmizadeNaoEncontradaException } from 'src/common/exceptions/amizade.exception';
+import { UsuarioEmailNaoEncontradoException } from 'src/common/exceptions/usuario.exception';
 
 type PrismaMock = {
   campanha: {
@@ -40,6 +41,7 @@ type PrismaMock = {
   };
   usuario: {
     findUnique: jest.Mock;
+    findMany: jest.Mock;
   };
   membroCampanha: {
     findUnique: jest.Mock;
@@ -108,6 +110,7 @@ describe('CampanhaService', () => {
       },
       usuario: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
       },
       membroCampanha: {
         findUnique: jest.fn(),
@@ -155,6 +158,15 @@ describe('CampanhaService', () => {
     };
 
     presenca = { estaOnline: jest.fn().mockReturnValue(false) };
+    prisma.usuario.findUnique.mockImplementation(
+      ({ where }: { where?: { email?: unknown } }) =>
+        Promise.resolve({
+          email:
+            typeof where?.email === 'string'
+              ? where.email
+              : 'usuario@teste.com',
+        }),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -256,8 +268,16 @@ describe('CampanhaService', () => {
       'JOGADOR',
     );
 
-    expect(prisma.usuario.findUnique).toHaveBeenCalledWith({
-      where: { id: 44 },
+    expect(prisma.usuario.findUnique).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: 44,
+        AND: [
+          expect.objectContaining({
+            emailVerificadoEm: { not: null },
+            status: 'ATIVA',
+          }),
+        ],
+      },
       select: { email: true },
     });
     expect(prisma.amizade.findUnique).toHaveBeenCalledWith({
@@ -288,6 +308,22 @@ describe('CampanhaService', () => {
     ).rejects.toBeInstanceOf(AmizadeNaoEncontradaException);
 
     expect(prisma.usuario.findUnique).not.toHaveBeenCalled();
+    expect(prisma.conviteCampanha.create).not.toHaveBeenCalled();
+  });
+
+  it('deve bloquear convite por email para conta não ativa ou não verificada', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 1,
+      donoId: 10,
+      dono: { id: 10, email: 'dono@teste.com' },
+      membros: [],
+    });
+    prisma.usuario.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      service.criarConvitePorEmail(1, 10, 'inativa@teste.com', 'JOGADOR'),
+    ).rejects.toBeInstanceOf(UsuarioEmailNaoEncontradoException);
+
     expect(prisma.conviteCampanha.create).not.toHaveBeenCalled();
   });
 
@@ -425,6 +461,28 @@ describe('CampanhaService', () => {
         convitePendente: true,
       },
     ]);
+    expect(prisma.amizade.findMany).toHaveBeenCalledWith({
+      where: {
+        status: StatusAmizade.ACEITA,
+        OR: [
+          {
+            usuarioAId: 10,
+            usuarioB: expect.objectContaining({
+              emailVerificadoEm: { not: null },
+              status: 'ATIVA',
+            }),
+          },
+          {
+            usuarioBId: 10,
+            usuarioA: expect.objectContaining({
+              emailVerificadoEm: { not: null },
+              status: 'ATIVA',
+            }),
+          },
+        ],
+      },
+      include: expect.any(Object),
+    });
   });
 
   it('deve aceitar convite em transacao e atualizar status', async () => {

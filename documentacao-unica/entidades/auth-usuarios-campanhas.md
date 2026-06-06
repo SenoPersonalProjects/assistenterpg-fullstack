@@ -38,6 +38,8 @@ Este documento detalha o contrato real dos módulos `auth`, `usuario` e `campanh
   - `POST /auth/reset-password`: pública
   - `POST /auth/verify-email`: pública
   - `POST /auth/resend-verification-email`: pública
+  - `POST /auth/verify-email-change`: pública
+  - `POST /auth/reactivate-account`: pública
 - `usuarios`
   - todas as rotas: `Auth: JWT` (`@UseGuards(JwtAuthGuard)` no controller)
 - `campanhas`
@@ -52,8 +54,7 @@ Este documento detalha o contrato real dos módulos `auth`, `usuario` e `campanh
     - `apelido: string` (obrigatório)
     - `email: email` (obrigatório)
     - `senha: string` (obrigatório, min 8)
-  - retorna usuário criado (sem `senhaHash`):
-    - `id`, `apelido`, `email`, `role`, `criadoEm`
+  - retorna mensagem genérica e cria somente um registro pendente
 
 - `POST /auth/login`
   - body `LoginDto`:
@@ -88,6 +89,11 @@ Este documento detalha o contrato real dos módulos `auth`, `usuario` e `campanh
   - retorno:
     - `mensagem: string` (sempre genérica)
 
+- `POST /auth/verify-email-change`
+  - body: `{ token }`
+- `POST /auth/reactivate-account`
+  - body: `{ email, senha }`
+
 ## Usuários (`/usuarios/me`)
 
 - `GET /usuarios/me`
@@ -101,11 +107,15 @@ Este documento detalha o contrato real dos módulos `auth`, `usuario` e `campanh
   - body `AlterarSenhaDto`:
     - `senhaAtual: string`
     - `novaSenha: string` (min 8)
+- `PATCH /usuarios/me/email`
+  - body: `{ novoEmail, senhaAtual }`
+- `POST /usuarios/me/desativar`
+  - body: `{ senhaAtual }`
 - `GET /usuarios/me/exportar`
   - JSON com header de download (`dados-assistenterpg.json`)
 - `DELETE /usuarios/me`
   - body `ExcluirContaDto`:
-    - `senha: string`
+    - `senhaAtual: string`
 
 ## Campanhas
 
@@ -225,8 +235,8 @@ Este documento detalha o contrato real dos módulos `auth`, `usuario` e `campanh
 
 ## Auth
 
-- registro válida unicidade de email e gera hash (`bcrypt`).
-- registro dispara envio de link de verificação de email.
+- registro cria pré-registro expirável; `Usuario` só é criado após verificar email.
+- pré-registro e tokens armazenam somente hashes e respostas públicas são genéricas.
 - login não vaza se email existe ou não:
   - qualquer falha de email/senha retorna `CREDENCIAIS_INVALIDAS`.
 - login exige email verificado:
@@ -234,6 +244,7 @@ Este documento detalha o contrato real dos módulos `auth`, `usuario` e `campanh
 - recuperação de senha:
   - usa token temporário de uso único (`AuthToken`, tipo `RECUPERACAO_SENHA`).
   - resposta de solicitação é sempre genérica para evitar enumeração de usuários.
+  - reset consome token, troca senha e revoga sessões/tokens na mesma transação.
 - verificação de email:
   - usa token temporário de uso único (`AuthToken`, tipo `VERIFICACAO_EMAIL`).
   - reenvio inválida tokens anteriores ativos antes de gerar novo link.
@@ -248,9 +259,13 @@ Este documento detalha o contrato real dos módulos `auth`, `usuario` e `campanh
 - preferências usam `upsert`:
   - se usuário não tiver preferências, o `GET` cria defaults automáticamente.
 - troca de senha:
-  - válida senha atual antes de atualizar.
+  - válida senha atual, atualiza e revoga todas as sessões.
+- alteração de email:
+  - exige senha atual e só efetiva após confirmar o novo endereço.
+- desativação:
+  - exige senha atual e pode ser revertida pelo próprio usuário com email/senha.
 - exclusão de conta:
-  - válida senha antes do `delete`.
+  - exige senha e anonimiza permanentemente sem apagar relações.
 - exportação inclui snapshot de:
   - dados do usuário
   - personagens base

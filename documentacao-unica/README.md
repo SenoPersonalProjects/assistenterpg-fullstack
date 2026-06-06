@@ -125,12 +125,17 @@ Scripts relevantes:
 - `AUTH_COOKIE_SAME_SITE` (`lax|strict|none`; em produção cross-site use `none`)
 - `AUTH_COOKIE_SECURE` (`true` obrigatório quando `AUTH_COOKIE_SAME_SITE=none`)
 - `AUTH_BEARER_FALLBACK_ENABLED` (`true` habilita fallback Bearer; em produção deve ficar desligado por padrão)
+- `TRUST_PROXY_HOPS` (`0` local; `1` no Render/reverse proxy confiável)
+- `AUTH_RATE_LIMIT_HASH_SECRET` (obrigatório em produção, mínimo 32 caracteres)
 - `AUTH_EMAIL_MODE` (`ethereal|smtp|console|resend`)
 - `AUTH_EMAIL_FROM` (remetente exibido nos emails)
 - `AUTH_EMAIL_FROM_NAME` (nome exibido no remetente)
 - `RESEND_API_KEY` (obrigatório quando `AUTH_EMAIL_MODE=resend`)
 - `AUTH_SMTP_HOST`, `AUTH_SMTP_PORT`, `AUTH_SMTP_SECURE`, `AUTH_SMTP_USER`, `AUTH_SMTP_PASS` (SMTP)
 - `AUTH_RESET_TOKEN_TTL_MINUTES`, `AUTH_VERIFY_TOKEN_TTL_MINUTES`
+- `AUTH_PENDING_REGISTRATION_TTL_HOURS`, `AUTH_EMAIL_CHANGE_TOKEN_TTL_MINUTES`
+- `AUTH_WS_SESSION_RECHECK_SECONDS`
+- `AUTH_SECURITY_CLEANUP_INTERVAL_MINUTES`, `AUTH_SECURITY_RETENTION_DAYS`
 - `PRISMA_PREBUILD_AUTO_GENERATE` (`false` desliga tentativa automática de `prisma generate` no prebuild)
 
 ### Frontend
@@ -269,7 +274,7 @@ Detalhamento:
     - `apelido: string`
     - `email: email`
     - `senha: string` (min 8)
-  - resposta: usuário criado (sem `senhaHash`)
+  - resposta: `{ mensagem }` genérica; o usuário só é criado após verificar o email
 
 - `POST /auth/login` - `Auth: Publica`
   - body: [`LoginDto`](../assistenterpg-back/src/auth/dto/login.dto.ts)
@@ -291,13 +296,21 @@ Detalhamento:
   - body: `ResendVerificationEmailDto` (`email`)
   - resposta: `{ mensagem }` (sempre genérica)
 
+- `POST /auth/verify-email-change` - `Auth: Publica`
+  - body: `{ token }`
+  - confirma o novo email e revoga todas as sessões
+
+- `POST /auth/reactivate-account` - `Auth: Publica`
+  - body: `{ email, senha }`
+  - reativa apenas contas com status `DESATIVADA`
+
 Detalhamento:
 
 - `POST /auth/register`
-  - cria usuário via `UsuárioService` com hash de senha (`bcrypt`)
-  - retorno inclui: `id`, `apelido`, `email`, `role`, `criadoEm`
-  - não retorna `senhaHash`
-  - erro esperado: `USUARIO_EMAIL_DUPLICADO` (422)
+  - cria `RegistroPendenteUsuario` com senha e token armazenados somente como hash
+  - não sobrescreve dados de um pré-registro ativo e responde genericamente
+  - `POST /auth/verify-email` promove o pré-registro para `Usuario` em transação
+  - usuários legados não verificados continuam compatíveis temporariamente
 - `POST /auth/login`
   - valida email/senha sem revelar se o email existe
   - exige email verificado (`AUTH_EMAIL_NAO_VERIFICADO` quando pendente)
@@ -312,18 +325,24 @@ Detalhamento:
   - exige sessão por cookie access ou refresh
 - `POST /auth/refresh`
   - renova a sessão via refresh cookie e CSRF
-  - rotaciona refresh token persistido como hash no banco
+  - rotaciona refresh token persistido como hash no banco e preserva a família da sessão
 - `POST /auth/logout`
-  - revoga a sessão atual e limpa cookies
+  - revoga toda a família da sessão atual e limpa cookies
 
 - tokens de auth por email:
   - recuperação de senha e verificação de email usam tokens de uso único (`auth_tokens` no banco)
   - codigos: `AUTH_TOKEN_INVALIDO_OU_EXPIRADO` para link inválido/usado/expirado
+  - reset, troca de senha, confirmação de email, desativação e exclusão revogam sessões antigas
+- rate limit de segurança:
+  - aplicado somente em endpoints sensíveis, por IP e por email/token/usuário conforme a ação
+  - buckets compartilhados ficam em `limites_requisicao_seguranca`, com identificadores protegidos por HMAC
+  - bloqueios retornam `429` e `Retry-After`
 - envio de email:
-  - `AUTH_EMAIL_MODE=ethereal` (padrão gratuito para testes, gera preview URL no log)
+  - `AUTH_EMAIL_MODE=ethereal` (apenas desenvolvimento/testes; não registra preview)
   - `AUTH_EMAIL_MODE=smtp` (envio real, depende do provedor SMTP configurado)
   - `AUTH_EMAIL_MODE=resend` (envio via HTTP usando `RESEND_API_KEY`)
-  - `AUTH_EMAIL_MODE=console` (não envia, apenas loga no console)
+  - `AUTH_EMAIL_MODE=console` (apenas desenvolvimento/testes; não registra corpo ou link)
+  - `console` e `ethereal` são proibidos em produção
   - sem domínio próprio:
     - use uma conta real (ex.: Gmail) em `AUTH_SMTP_USER`
     - use senha de app em `AUTH_SMTP_PASS`
@@ -346,6 +365,10 @@ Todas as rotas `Auth: JWT`:
   - body: [`AtualizarPreferênciasDto`](../assistenterpg-back/src/usuario/dto/atualizar-preferencias.dto.ts)
 - `PATCH /usuários/me/senha`
   - body: [`AlterarSenhaDto`](../assistenterpg-back/src/usuario/dto/alterar-senha.dto.ts)
+- `PATCH /usuários/me/email`
+  - body: `{ novoEmail, senhaAtual }`
+- `POST /usuários/me/desativar`
+  - body: `{ senhaAtual }`
 - `GET /usuários/me/exportar`
   - resposta: JSON para download
 - `DELETE /usuários/me`
@@ -375,6 +398,12 @@ Detalhamento:
     - `novaSenha` (string, min 8)
   - retorno de sucesso: `{ "mensagem": "Senha alterada com sucesso" }`
   - erro esperado: `USUARIO_SENHA_INCORRETA` (401)
+  - atualiza a senha e revoga todas as sessões/tokens antigos
+- `PATCH /usuários/me/email`
+  - valida senha atual e envia confirmação para o novo endereço
+  - o email só muda após `POST /auth/verify-email-change`
+- `POST /usuários/me/desativar`
+  - valida senha atual, marca a conta como `DESATIVADA` e revoga acessos
 - `GET /usuários/me/exportar`
   - headers de download: `Content-Disposition: attachment; filename=\"dados-assistenterpg.json\"`
   - retorna snapshot com:
@@ -384,8 +413,8 @@ Detalhamento:
     - preferências
 - `DELETE /usuários/me`
   - body: [`ExcluirContaDto`](../assistenterpg-back/src/usuario/dto/excluir-conta.dto.ts)
-  - valida senha antes de excluir
-  - retorno de sucesso: `{ "mensagem": "Conta excluida com sucesso" }`
+  - valida senha e anonimiza permanentemente email, apelido e credencial
+  - preserva relações/conteúdo existentes e marca a conta como `EXCLUIDA`
 
 Integração frontend:
 

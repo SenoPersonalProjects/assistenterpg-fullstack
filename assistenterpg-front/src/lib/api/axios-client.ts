@@ -12,22 +12,18 @@ import {
   setAuthHintCookie,
 } from '../utils/auth';
 import { corrigirMojibakeDeep } from '../utils/encoding';
+import {
+  isPublicAuthApiPath,
+  shouldAttemptAuthRecoveryForPath,
+  shouldRedirectUnauthorizedPath,
+} from '../auth/routes';
+import { extractRetryAfterSeconds } from './rate-limit';
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 const CSRF_HEADER = 'X-CSRF-Token';
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-const PUBLIC_AUTH_PATHS = new Set([
-  '/auth/login',
-  '/auth/register',
-  '/auth/forgot-password',
-  '/auth/reset-password',
-  '/auth/verify-email',
-  '/auth/resend-verification-email',
-]);
-const SESSION_AUTH_PATHS = new Set(['/auth/csrf', '/auth/refresh']);
-
 let isRedirectingToLogin = false;
 let csrfToken: string | null = null;
 let csrfPromise: Promise<string> | null = null;
@@ -92,6 +88,7 @@ export class ApiError extends Error {
   method?: string;
   endpoint?: string;
   requestId?: string;
+  retryAfterSeconds?: number;
 
   constructor(
     message: string,
@@ -101,6 +98,7 @@ export class ApiError extends Error {
       method?: string;
       endpoint?: string;
       requestId?: string;
+      retryAfterSeconds?: number;
     },
   ) {
     super(message);
@@ -111,6 +109,7 @@ export class ApiError extends Error {
     this.method = context?.method;
     this.endpoint = context?.endpoint;
     this.requestId = context?.requestId;
+    this.retryAfterSeconds = context?.retryAfterSeconds;
   }
 }
 
@@ -321,7 +320,7 @@ function shouldAttachCsrf(config: AuthRequestConfig): boolean {
   if (!UNSAFE_METHODS.has(method)) return false;
 
   const path = normalizarPath(config.url);
-  return !PUBLIC_AUTH_PATHS.has(path);
+  return !isPublicAuthApiPath(path);
 }
 
 function shouldAttemptRefresh(error: AxiosError<ApiErrorBody>): boolean {
@@ -331,7 +330,7 @@ function shouldAttemptRefresh(error: AxiosError<ApiErrorBody>): boolean {
   if (error.response?.status !== 401) return false;
 
   const path = normalizarPath(config.url);
-  return !SESSION_AUTH_PATHS.has(path) && path !== '/auth/login';
+  return shouldAttemptAuthRecoveryForPath(path);
 }
 
 function shouldAttemptCsrfRetry(error: AxiosError<ApiErrorBody>): boolean {
@@ -461,7 +460,12 @@ apiClient.interceptors.response.use(
         : undefined;
     const requestId = requestIdHeader ?? requestIdBody;
 
-    if (status === 401 && !config?._skipAuthRedirect) {
+    const path = normalizarPath(config?.url);
+    if (
+      status === 401 &&
+      !config?._skipAuthRedirect &&
+      shouldRedirectUnauthorizedPath(path)
+    ) {
       clearAuthClientState();
       redirectToLogin();
     }
@@ -474,6 +478,7 @@ apiClient.interceptors.response.use(
       method,
       endpoint,
       requestId,
+      retryAfterSeconds: extractRetryAfterSeconds(error) ?? undefined,
     });
   },
 );

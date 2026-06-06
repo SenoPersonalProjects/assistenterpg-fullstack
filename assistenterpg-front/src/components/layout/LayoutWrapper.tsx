@@ -5,12 +5,13 @@
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Loading } from '@/components/ui/Loading';
+import { isPublicAuthPagePath } from '@/lib/auth/routes';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { loading } = useAuth();
 
-  const isPublicRoute = pathname === '/' || pathname.startsWith('/auth');
+  const isPublicRoute = isPublicAuthPagePath(pathname);
 
   if (isPublicRoute) {
     return <>{children}</>;

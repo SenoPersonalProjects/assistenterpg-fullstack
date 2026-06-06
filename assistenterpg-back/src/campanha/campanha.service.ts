@@ -1,7 +1,7 @@
 // src/campanha/campanha.service.ts
 
 import { Injectable } from '@nestjs/common';
-import { StatusAmizade } from '@prisma/client';
+import { Prisma, StatusAmizade, StatusContaUsuario } from '@prisma/client';
 import { PaginatedResult } from 'src/common/dto/pagination-query.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -39,6 +39,11 @@ import {
   RevelarItemSessaoCampanhaDto,
   SolicitarTransferenciaItemSessaoCampanhaDto,
 } from './dto/itens-sessao-campanha.dto';
+
+const usuarioAtivoVerificadoWhere = {
+  emailVerificadoEm: { not: null },
+  status: StatusContaUsuario.ATIVA,
+} satisfies Prisma.UsuarioWhereInput;
 
 @Injectable()
 export class CampanhaService {
@@ -855,7 +860,16 @@ export class CampanhaService {
     const amizades = await this.prisma.amizade.findMany({
       where: {
         status: StatusAmizade.ACEITA,
-        OR: [{ usuarioAId: donoId }, { usuarioBId: donoId }],
+        OR: [
+          {
+            usuarioAId: donoId,
+            usuarioB: usuarioAtivoVerificadoWhere,
+          },
+          {
+            usuarioBId: donoId,
+            usuarioA: usuarioAtivoVerificadoWhere,
+          },
+        ],
       },
       include: {
         usuarioA: { select: { id: true, apelido: true, email: true } },

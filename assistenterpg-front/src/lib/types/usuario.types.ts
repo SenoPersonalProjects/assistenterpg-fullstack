@@ -46,4 +46,5 @@ export type DadosExportados = {
 
 export type ExcluirContaResponse = {
   mensagem: string;
+  exclusaoAgendadaPara?: string;
 };
