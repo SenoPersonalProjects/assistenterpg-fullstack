@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiAtualizarOrdemIniciativaSessaoCampanha, extrairMensagemErro } from '@/lib/api';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import { apiAtualizarOrdemIniciativaSessaoCampanha, criarErroUsuario } from '@/lib/api';
+import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import { montarPayloadOrdemIniciativa } from '@/lib/campanha/sessao-utils';
 
 type UseSessaoIniciativaParams = {
@@ -11,7 +11,7 @@ type UseSessaoIniciativaParams = {
   sessaoEncerrada: boolean;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
 };
 
 type UseSessaoIniciativaReturn = {
@@ -101,7 +101,7 @@ export function useSessaoIniciativa({
         sincronizarEstadosDerivados(atualizado);
         exibirSucessoReordenacao();
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setReordenandoIniciativa(false);
       }
@@ -165,7 +165,7 @@ export function useSessaoIniciativa({
         sincronizarEstadosDerivados(atualizado);
         exibirSucessoReordenacao();
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setReordenandoIniciativa(false);
         setIndiceIniciativaArrastado(null);

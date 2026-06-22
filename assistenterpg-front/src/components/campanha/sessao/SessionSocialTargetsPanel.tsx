@@ -4,13 +4,13 @@ import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import { SessionSegmentedBar } from '@/components/campanha/sessao/SessionSegmentedBar';
-import type { AlvoEncontroSocialSessao } from '@/lib/types';
+import type { AlvoEncontroSocialSessao, UserErrorState } from '@/lib/types';
 
 type SessionSocialTargetsPanelProps = {
   alvos: AlvoEncontroSocialSessao[];
   podeControlarSessao: boolean;
   sessaoEncerrada: boolean;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   onAtualizarAlvo?: (
     alvo: AlvoEncontroSocialSessao,
     patch: Partial<AlvoEncontroSocialSessao>,

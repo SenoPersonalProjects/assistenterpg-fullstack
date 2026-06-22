@@ -11,6 +11,7 @@ import type {
   NpcAmeacaResumo,
   NpcSessaoCampanha,
   AlvoEncontroSocialSessao,
+  UserErrorState,
 } from '@/lib/types';
 import type {
   AjustesRecursosNpc,
@@ -34,7 +35,7 @@ type SessionNpcsPanelProps = {
   salvandoNpcId: number | null;
   campoRecursoPendente: `${number}:${CampoAjusteRecursoNpc}` | null;
   removendoNpcId: number | null;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   onAbrirAdicionar: () => void;
   onAbrirAdicionarNpcSimples: () => void;
   onAtualizarCampo: (

@@ -7,20 +7,21 @@ import {
   apiDesfazerModificadorPersonagemCampanha,
   apiListarHistoricoPersonagemCampanha,
   apiListarModificadoresPersonagemCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
 import type {
   CampoModificadorPersonagemCampanha,
   HistoricoPersonagemCampanha,
   ModificadorPersonagemCampanha,
   PersonagemCampanhaResumo,
-} from '@/lib/types';
+ UserErrorState } from '@/lib/types';
 import { formatarDataHora } from '@/lib/utils/formatters';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/SessionCharacterInventoryTab';
 
@@ -128,7 +129,7 @@ export function CampaignCharacterEditorModal({
   const [loadingDados, setLoadingDados] = useState(false);
   const [savingRecursos, setSavingRecursos] = useState(false);
   const [savingModificador, setSavingModificador] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
 
   const personagemId = personagem?.id ?? null;
@@ -249,7 +250,7 @@ export function CampaignCharacterEditorModal({
       setModificadores(listaModificadores);
       setHistorico(listaHistorico);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setLoadingDados(false);
     }
@@ -318,7 +319,7 @@ export function CampaignCharacterEditorModal({
       setSucesso('Recursos atualizados na ficha da campanha.');
       await carregarDadosRelacionados();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSavingRecursos(false);
     }
@@ -365,7 +366,7 @@ export function CampaignCharacterEditorModal({
       setSucesso('Modificador aplicado com sucesso.');
       await carregarDadosRelacionados();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSavingModificador(false);
     }
@@ -387,7 +388,7 @@ export function CampaignCharacterEditorModal({
       setSucesso('Modificador desfeito com sucesso.');
       await carregarDadosRelacionados();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSavingModificador(false);
     }
@@ -521,11 +522,7 @@ export function CampaignCharacterEditorModal({
             </Button>
           </section>
 
-          {erro && (
-            <p className="rounded border border-app-danger/40 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
-              {erro}
-            </p>
-          )}
+          {erro ? <ErrorAlert message={erro} /> : null}
           {sucesso && (
             <p className="rounded border border-app-success/40 bg-app-success/10 px-3 py-2 text-sm text-app-success">
               {sucesso}

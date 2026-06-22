@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useToast } from '@/context/ToastContext';
 import {
   apiImportarPersonagemBase,
-  extrairMensagemErro,
-  traduzirErro,
+  criarErroUsuario,
+  extrairSuporteErro,
   type PersonagemBaseImportRequest,
 } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
@@ -13,11 +13,13 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
+import type { UserFacingError } from '@/lib/types';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   onImported: (personagemId: number) => void;
+  onOpenGuide?: () => void;
 };
 
 type ImportPreviewInfo = {
@@ -127,12 +129,7 @@ function buildImportErrorMessage(error: unknown): string {
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const bodyCode = (error as { body?: { code?: string } })?.body?.code;
-  const defaultMessage = traduzirErro(
-    bodyCode,
-    extrairMensagemErro(error),
-    Number.isFinite(status) ? status : undefined,
-  );
+  const defaultMessage = criarErroUsuario(error).message;
   const detailMessages = extractDetailsMessages(
     (error as { body?: { details?: unknown } })?.body?.details,
   );
@@ -155,14 +152,19 @@ function buildImportErrorMessage(error: unknown): string {
   return defaultMessage;
 }
 
-export function ImportarPersonagemJsonModal({ isOpen, onClose, onImported }: Props) {
+export function ImportarPersonagemJsonModal({
+  isOpen,
+  onClose,
+  onImported,
+  onOpenGuide,
+}: Props) {
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [payload, setPayload] = useState<PersonagemBaseImportRequest | null>(null);
   const [arquivoNome, setArquivoNome] = useState<string>('');
   const [nomeSobrescrito, setNomeSobrescrito] = useState<string>('');
   const [erroArquivo, setErroArquivo] = useState<string | null>(null);
-  const [erroImportacao, setErroImportacao] = useState<string | null>(null);
+  const [erroImportacao, setErroImportacao] = useState<UserFacingError | null>(null);
   const [importando, setImportando] = useState(false);
 
   useEffect(() => {
@@ -222,7 +224,9 @@ export function ImportarPersonagemJsonModal({ isOpen, onClose, onImported }: Pro
 
   async function handleImportar() {
     if (!payload) {
-      setErroImportacao('Selecione e valide um arquivo JSON antes de importar.');
+      setErroImportacao({
+        message: 'Selecione e valide um arquivo JSON antes de importar.',
+      });
       return;
     }
 
@@ -240,7 +244,7 @@ export function ImportarPersonagemJsonModal({ isOpen, onClose, onImported }: Pro
       onClose();
     } catch (error) {
       const message = buildImportErrorMessage(error);
-      setErroImportacao(message);
+      setErroImportacao({ message, ...extrairSuporteErro(error) });
     } finally {
       setImportando(false);
     }
@@ -254,6 +258,12 @@ export function ImportarPersonagemJsonModal({ isOpen, onClose, onImported }: Pro
       size="lg"
       footer={
         <>
+          {onOpenGuide ? (
+            <Button variant="secondary" onClick={onOpenGuide} disabled={importando}>
+              <Icon name="info" className="mr-2 h-4 w-4" />
+              Ajuda JSON
+            </Button>
+          ) : null}
           <Button variant="secondary" onClick={onClose} disabled={importando}>
             Cancelar
           </Button>
@@ -325,7 +335,7 @@ export function ImportarPersonagemJsonModal({ isOpen, onClose, onImported }: Pro
         />
 
         {erroArquivo && <ErrorAlert message={erroArquivo} />}
-        {erroImportacao && <ErrorAlert message={erroImportacao} />}
+        {erroImportacao && <ErrorAlert error={erroImportacao} />}
       </div>
     </Modal>
   );

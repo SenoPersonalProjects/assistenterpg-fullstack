@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/context/ToastContext';
-import { extrairMensagemErro, traduzirErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 
 type Props = {
   onSubmit: (data: { nome: string; descricao?: string }) => Promise<void>;
@@ -57,13 +57,12 @@ export function CampaignForm({ onSubmit }: Props) {
           return;
         }
 
-        const mensagem422 = traduzirErro(err.body?.code, extrairMensagemErro(error), 422);
+        const mensagem422 = criarErroUsuario(error).message;
         setNomeErro(mensagem422);
         return;
       }
 
-      const mensagemGlobal = traduzirErro(err.body?.code, extrairMensagemErro(error), status);
-      showToast(mensagemGlobal, 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setCreating(false);
     }

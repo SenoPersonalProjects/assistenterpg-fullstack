@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
-import type { MensagemChatSessao } from '@/lib/types';
+import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { parseDiceMessageGroup } from '@/lib/campanha/sessao-dice';
 import { formatarDataHora } from '@/lib/utils/formatters';
@@ -23,7 +23,7 @@ type ChatPanelProps = {
   enviandoMensagem: boolean;
   sessaoEncerrada: boolean;
   usuarioId?: number | null;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
   fimChatRef: RefObject<HTMLDivElement | null>;

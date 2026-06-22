@@ -89,6 +89,11 @@ export class NpcsAmeacasController {
     return this.npcsAmeacasService.exportarGrupo(req.user.id, id);
   }
 
+  @Get('importar-json/guia')
+  getGuiaImportacaoJson() {
+    return this.npcsAmeacasService.getGuiaImportacaoJson();
+  }
+
   @Get(':id/exportar')
   @Header('Content-Type', 'application/json')
   exportarNpcAmeaca(

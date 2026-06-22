@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import { apiReactivateAccount } from '@/lib/api';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
+import type { UserErrorState } from '@/lib/types';
 
 export default function ReactivateAccountPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +17,7 @@ export default function ReactivateAccountPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserErrorState | null>(null);
   const {
     captureRateLimit,
     cooldownButtonLabel,
@@ -33,9 +35,8 @@ export default function ReactivateAccountPage() {
       setMessage(response.mensagem);
       setSenha('');
     } catch (requestError) {
-      setError(
-        captureRateLimit(requestError) ?? extrairMensagemErro(requestError),
-      );
+      captureRateLimit(requestError);
+      setError(criarErroUsuario(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +79,7 @@ export default function ReactivateAccountPage() {
             {message}
           </p>
         ) : null}
-        {error ? <p className="text-sm text-app-danger">{error}</p> : null}
+        {error ? <ErrorAlert message={error} /> : null}
 
         <Button type="submit" disabled={submitting || isCoolingDown}>
           {cooldownButtonLabel ??

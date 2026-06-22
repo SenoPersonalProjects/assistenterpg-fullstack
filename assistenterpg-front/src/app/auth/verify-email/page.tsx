@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { apiVerifyEmail } from '@/lib/api';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroLocalUsuario, criarErroUsuario } from '@/lib/api/error-handler';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import type { UserErrorState } from '@/lib/types';
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
@@ -16,7 +18,7 @@ export default function VerifyEmailPage() {
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   useEffect(() => {
     let ativo = true;
@@ -24,7 +26,7 @@ export default function VerifyEmailPage() {
     async function verificar() {
       if (!token) {
         if (ativo) {
-          setErro('Token de verificação ausente.');
+          setErro(criarErroLocalUsuario('Token de verificação ausente.'));
           setLoading(false);
         }
         return;
@@ -38,7 +40,7 @@ export default function VerifyEmailPage() {
         }
       } catch (error) {
         if (ativo) {
-          setErro(extrairMensagemErro(error));
+          setErro(criarErroUsuario(error));
         }
       } finally {
         if (ativo) {
@@ -75,7 +77,7 @@ export default function VerifyEmailPage() {
           <p className="text-sm text-app-muted">Validando token...</p>
         ) : null}
 
-        {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
+        {erro ? <ErrorAlert message={erro} /> : null}
 
         <Link
           href="/auth/login"

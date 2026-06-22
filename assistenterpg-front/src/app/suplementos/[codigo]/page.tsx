@@ -22,13 +22,15 @@ import {
   apiAdminGetHabilidades,
   apiAdminGetEquipamentos,
 } from '@/lib/api/suplemento-conteudos';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import type { UserErrorState } from '@/lib/types';
 
 type AbaSuplemento =
   | 'RESUMO'
@@ -66,7 +68,7 @@ export default function SuplementoDetalhePage() {
   const [modificacoes, setModificacoes] = useState<ModificacaoCatalogo[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<AbaSuplemento>('RESUMO');
 
   const carregarConteudo = useCallback(async () => {
@@ -109,7 +111,7 @@ export default function SuplementoDetalhePage() {
       );
       setModificacoes(modificacoesData ?? []);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -210,11 +212,7 @@ export default function SuplementoDetalhePage() {
           ) : null}
         </Card>
 
-        {erro ? (
-          <Card className="border-app-danger/40 bg-app-danger/10 text-app-danger">
-            {erro}
-          </Card>
-        ) : null}
+        {erro ? <ErrorAlert message={erro} /> : null}
 
         <div className="flex flex-wrap gap-2">
           {(['RESUMO', 'ORIGENS', 'PODERES', 'TRILHAS', 'EQUIPAMENTOS', 'TECNICAS', 'MODIFICACOES'] as AbaSuplemento[]).map(

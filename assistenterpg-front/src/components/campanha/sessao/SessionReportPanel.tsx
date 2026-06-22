@@ -1,6 +1,6 @@
 'use client';
 
-import type { SessaoCampanhaRelatorio } from '@/lib/types';
+import type { SessaoCampanhaRelatorio, UserErrorState } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -9,7 +9,7 @@ import { Loading } from '@/components/ui/Loading';
 type SessionReportPanelProps = {
   relatorio: SessaoCampanhaRelatorio | null;
   loading?: boolean;
-  erro?: string | null;
+  erro?: UserErrorState | null;
 };
 
 function LinhaMetrica({

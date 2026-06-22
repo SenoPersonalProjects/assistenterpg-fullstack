@@ -55,7 +55,7 @@ export class TecnicasAmaldicoadasController {
   }
 
   @Get('importar-json/guia')
-  getGuiaImportacaoJson() {
+  async getGuiaImportacaoJson() {
     return this.service.getGuiaImportacaoJson();
   }
 

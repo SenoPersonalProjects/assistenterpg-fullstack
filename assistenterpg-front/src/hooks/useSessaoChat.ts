@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { apiEnviarMensagemChatSessaoCampanha, extrairMensagemErro } from '@/lib/api';
-import type { MensagemChatSessao } from '@/lib/types';
+import { apiEnviarMensagemChatSessaoCampanha, criarErroUsuario } from '@/lib/api';
+import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 
 const LIMITE_MENSAGEM_CHAT = 100;
 
@@ -10,7 +10,7 @@ type UseSessaoChatParams = {
   mensagem: string;
   setMensagem: (valor: string) => void;
   setChat: (updater: (anterior: MensagemChatSessao[]) => MensagemChatSessao[]) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
 };
 
 type UseSessaoChatReturn = {
@@ -45,7 +45,7 @@ export function useSessaoChat({
       setChat((anterior) => [...anterior, enviada]);
       setMensagem('');
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setEnviandoMensagem(false);
     }

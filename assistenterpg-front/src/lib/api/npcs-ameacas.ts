@@ -8,6 +8,7 @@ import type {
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
   UpdateNpcAmeacaPayload,
+  JsonImportGuide,
 } from '@/lib/types';
 
 export type ListarNpcsAmeacasQuery = {
@@ -190,5 +191,10 @@ export async function apiImportarNpcAmeacaJson(
   payload: ImportarNpcAmeacaJsonPayload,
 ): Promise<ImportacaoNpcAmeacaResultado> {
   const { data } = await apiClient.post('/npcs-ameacas/importar', payload);
+  return data;
+}
+
+export async function apiGetGuiaImportacaoNpcAmeacaJson(): Promise<JsonImportGuide> {
+  const { data } = await apiClient.get('/npcs-ameacas/importar-json/guia');
   return data;
 }

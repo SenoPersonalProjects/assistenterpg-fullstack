@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroLocalUsuario, criarErroUsuario } from '@/lib/api/error-handler';
+import type { UserErrorState } from '@/lib/types';
 
 type ModalConfirmacaoContaProps = {
   isOpen: boolean;
@@ -34,7 +36,7 @@ export function ModalConfirmacaoConta({
   const [confirmation, setConfirmation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<UserErrorState | null>(null);
   const {
     captureRateLimit,
     cooldownButtonLabel,
@@ -45,21 +47,21 @@ export function ModalConfirmacaoConta({
     if (loading) return;
     setSenhaAtual('');
     setConfirmation('');
-    setError('');
+    setError(null);
     onClose();
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError('');
+    setError(null);
 
     if (!senhaAtual) {
-      setError('Digite sua senha para confirmar.');
+      setError(criarErroLocalUsuario('Digite sua senha para confirmar.'));
       return;
     }
 
     if (confirmation !== confirmationWord) {
-      setError(`Digite "${confirmationWord}" para confirmar.`);
+      setError(criarErroLocalUsuario(`Digite "${confirmationWord}" para confirmar.`));
       return;
     }
 
@@ -70,9 +72,8 @@ export function ModalConfirmacaoConta({
       setConfirmation('');
       onClose();
     } catch (requestError) {
-      setError(
-        captureRateLimit(requestError) ?? extrairMensagemErro(requestError),
-      );
+      captureRateLimit(requestError);
+      setError(criarErroUsuario(requestError));
     } finally {
       setLoading(false);
     }
@@ -111,7 +112,7 @@ export function ModalConfirmacaoConta({
             required
           />
 
-          {error ? <p className="text-sm text-app-danger">{error}</p> : null}
+          {error ? <ErrorAlert message={error} /> : null}
 
           <div className="flex gap-3">
             <Button

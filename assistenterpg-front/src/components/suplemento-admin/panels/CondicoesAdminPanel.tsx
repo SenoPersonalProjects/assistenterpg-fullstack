@@ -17,11 +17,12 @@ import {
   apiAdminCreateCondicao,
   apiAdminUpdateCondicao,
   apiAdminDeleteCondicao,
-  extrairMensagemErro,
+  criarErroUsuario,
   type CondicaoCatalogo,
   type CreateCondicaoPayload,
   type UpdateCondicaoPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type CondicaoFormState = {
   nome: string;
@@ -105,7 +106,7 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -175,7 +176,7 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
 export function CondicoesAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<CondicaoCatalogo[]>([]);
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -197,7 +198,7 @@ export function CondicoesAdminPanel() {
       const data = await apiAdminGetCondicoes();
       setItems(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -218,7 +219,7 @@ export function CondicoesAdminPanel() {
       showToast(resposta.message || 'Condição removida com sucesso.', 'success');
       await carregarDados();
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setDeletingId(null);
     }

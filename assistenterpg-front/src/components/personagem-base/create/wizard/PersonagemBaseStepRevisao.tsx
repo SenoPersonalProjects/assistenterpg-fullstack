@@ -8,7 +8,7 @@ import {
   apiPreviewPersonagemBase,
   apiGetPassivasDisponiveis,
   apiGetPoderesGenericos,
-  extrairMensagemErro,
+  criarErroUsuario,
   traduzirErro,
 } from '@/lib/api';
 import type {
@@ -47,6 +47,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { InfoTile } from '@/components/ui/InfoTile';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
+import type { UserErrorState } from '@/lib/types';
 
 type Props = {
   preview: CreatePersonagemBasePayload & {
@@ -291,7 +292,7 @@ export function PersonagemBaseStepRevisao({
 
   const [previewCalculado, setPreviewCalculado] = useState<PersonagemBasePreview | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   const [passivasSelecionadas, setPassivasSelecionadas] = useState<PassivaAtributoCatalogo[]>([]);
   const [passivasElegiveisConflito, setPassivasElegiveisConflito] = useState<AtributoBaseCodigo[]>(
@@ -417,7 +418,7 @@ export function PersonagemBaseStepRevisao({
           const backendMessage = extractPrimaryMessage(err.body?.message);
           const codeMessage = traduzirErro(
             err.body?.code,
-            backendMessage ?? extrairMensagemErro(err),
+            backendMessage ?? criarErroUsuario(err).message,
           );
 
           setErrosInventarioPreview(inventario.mensagens);
@@ -437,7 +438,7 @@ export function PersonagemBaseStepRevisao({
 
           setErro(mensagemOrdenada || 'Erro ao gerar preview');
         } else {
-          setErro(extrairMensagemErro(err) || 'Erro ao gerar preview');
+          setErro(criarErroUsuario(err).message || 'Erro ao gerar preview');
         }
 
         setPreviewCalculado(null);

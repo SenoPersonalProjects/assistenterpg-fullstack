@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
-import type { EventoSessaoTimeline } from '@/lib/types';
+import type { EventoSessaoTimeline, UserErrorState } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
 
@@ -12,7 +12,7 @@ type TimelinePanelProps = {
   sessaoEncerrada: boolean;
   podeControlarSessao: boolean;
   desfazendoEventoId: number | null;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   onAbrirDetalhes: (evento: EventoSessaoTimeline) => void;
   onDesfazerEvento: (evento: EventoSessaoTimeline) => void;
 };

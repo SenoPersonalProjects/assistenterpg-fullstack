@@ -13,6 +13,7 @@ import {
   apiExportarGrupoHomebrew,
   apiExportarHomebrew,
   apiGetHomebrew,
+  apiGetGuiaImportacaoHomebrewJson,
   apiGetMeusHomebrews,
   apiImportarHomebrewJson,
   apiListarGruposHomebrew,
@@ -24,12 +25,13 @@ import {
   type HomebrewResumo,
   type ImportarHomebrewJsonPayload,
 } from '@/lib/api/homebrews';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { StatusPublicacao, TipoHomebrewConteudo } from '@/lib/types/homebrew-enums';
 import { HomebrewCard } from '@/components/homebrew/HomebrewCard';
 import { HomebrewPreviewModal } from '@/components/homebrew/HomebrewPreviewModal';
 import { getHomebrewTipoConfig } from '@/components/homebrew/homebrewUi';
 import { JsonImportModal } from '@/components/import-export/JsonImportModal';
+import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
 import { LibraryPageHeader } from '@/components/library/LibraryPageHeader';
 import { LibrarySectionHeader } from '@/components/library/LibrarySectionHeader';
 import { LibraryStatsBar } from '@/components/library/LibraryStatsBar';
@@ -44,6 +46,7 @@ import { Input } from '@/components/ui/Input';
 import { Loading } from '@/components/ui/Loading';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import type { UserErrorState } from '@/lib/types';
 
 const STATUS_LABEL: Record<StatusPublicacao, string> = {
   RASCUNHO: 'Rascunho',
@@ -90,7 +93,7 @@ export default function HomebrewsPage() {
   const [todosHomebrews, setTodosHomebrews] = useState<HomebrewResumo[]>([]);
   const [grupos, setGrupos] = useState<HomebrewGrupoResumo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [processando, setProcessando] = useState<number | null>(null);
   const [processandoGrupoId, setProcessandoGrupoId] = useState<number | null>(null);
   const [previewAberto, setPreviewAberto] = useState(false);
@@ -112,6 +115,7 @@ export default function HomebrewsPage() {
 
   const [modalGrupoAberto, setModalGrupoAberto] = useState(false);
   const [modalImportacaoAberto, setModalImportacaoAberto] = useState(false);
+  const [jsonGuideOpen, setJsonGuideOpen] = useState(false);
   const [grupoEditando, setGrupoEditando] = useState<HomebrewGrupoResumo | null>(null);
   const [grupoNome, setGrupoNome] = useState('');
   const [grupoDescricao, setGrupoDescricao] = useState('');
@@ -203,7 +207,7 @@ export default function HomebrewsPage() {
         setTotalPaginas(result.totalPages);
         setTotalHomebrews(result.total);
       } catch (error) {
-        const mensagem = extrairMensagemErro(error);
+        const mensagem = criarErroUsuario(error);
         setErro(mensagem);
         showToast(mensagem, 'error');
       } finally {
@@ -279,7 +283,8 @@ export default function HomebrewsPage() {
       );
       showToast(`Homebrew "${homebrew.nome}" publicado com sucesso!`, 'success');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setProcessando(null);
     }
@@ -301,7 +306,8 @@ export default function HomebrewsPage() {
       );
       showToast(`Homebrew "${homebrew.nome}" arquivado.`, 'info');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setProcessando(null);
     }
@@ -335,7 +341,8 @@ export default function HomebrewsPage() {
           }
           showToast('Homebrew excluído com sucesso!', 'success');
         } catch (error) {
-          showToast(extrairMensagemErro(error), 'error');
+          const userError = criarErroUsuario(error);
+          showToast(userError.message, 'error', { support: userError });
         }
       },
     });
@@ -370,7 +377,7 @@ export default function HomebrewsPage() {
       const detalhe = await apiGetHomebrew(homebrew.id);
       setPreviewDetalhe(detalhe);
     } catch (error) {
-      setPreviewErro(extrairMensagemErro(error));
+      setPreviewErro(criarErroUsuario(error).message);
     } finally {
       setPreviewLoading(false);
     }
@@ -383,7 +390,8 @@ export default function HomebrewsPage() {
       baixarJsonArquivo(payload, `homebrew-${homebrew.codigo}.json`);
       showToast(`JSON de "${homebrew.nome}" exportado.`, 'success');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setProcessando(null);
     }
@@ -396,7 +404,8 @@ export default function HomebrewsPage() {
       baixarJsonArquivo(payload, `grupo-homebrew-${grupo.id}.json`);
       showToast(`Grupo "${grupo.nome}" exportado.`, 'success');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setProcessandoGrupoId(null);
     }
@@ -421,7 +430,7 @@ export default function HomebrewsPage() {
         );
       }
     } catch (error) {
-      throw new Error(extrairMensagemErro(error));
+      throw error;
     }
   }
 
@@ -462,7 +471,8 @@ export default function HomebrewsPage() {
       setGrupoEditando(null);
       showToast('Grupo salvo com sucesso.', 'success');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setSalvandoGrupo(false);
     }
@@ -485,7 +495,8 @@ export default function HomebrewsPage() {
           }
           showToast('Grupo removido com sucesso.', 'success');
         } catch (error) {
-          showToast(extrairMensagemErro(error), 'error');
+          const userError = criarErroUsuario(error);
+          showToast(userError.message, 'error', { support: userError });
         } finally {
           setProcessandoGrupoId(null);
         }
@@ -520,6 +531,14 @@ export default function HomebrewsPage() {
                 >
                   <Icon name="upload" className="mr-2 h-4 w-4" />
                   Importar JSON
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setJsonGuideOpen(true)}
+                  className="library-ghost-button"
+                >
+                  <Icon name="info" className="mr-2 h-4 w-4" />
+                  Ajuda JSON
                 </Button>
                 <Button
                   onClick={() => router.push('/homebrews/novo')}
@@ -647,6 +666,14 @@ export default function HomebrewsPage() {
                   >
                     <Icon name="upload" className="mr-2 h-4 w-4" />
                     Importar JSON
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setJsonGuideOpen(true)}
+                    className="library-ghost-button"
+                  >
+                    <Icon name="info" className="mr-2 h-4 w-4" />
+                    Ajuda JSON
                   </Button>
                   <Button
                     variant="secondary"
@@ -859,6 +886,14 @@ export default function HomebrewsPage() {
           'homebrew-group': 'Grupo de homebrews',
         }}
         onImport={handleImportarJson}
+        onOpenGuide={() => setJsonGuideOpen(true)}
+      />
+
+      <JsonGuideModal
+        isOpen={jsonGuideOpen}
+        onClose={() => setJsonGuideOpen(false)}
+        title="Ajuda JSON de homebrews"
+        loadGuide={apiGetGuiaImportacaoHomebrewJson}
       />
 
       <Modal

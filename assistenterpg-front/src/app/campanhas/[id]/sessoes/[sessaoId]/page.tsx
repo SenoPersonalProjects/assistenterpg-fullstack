@@ -35,7 +35,7 @@ import {
   apiConsumirItemSessaoCampanha,
   apiGastarInspiracaoSessaoCampanha,
   apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
 import type {
   CondicaoAtivaSessaoCampanha,
@@ -52,6 +52,7 @@ import type {
   TipoCenaSessaoCampanha,
   RegraOpcionalSessaoChave,
   AlvoEncontroSocialSessao,
+  UserErrorState,
 } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
@@ -300,7 +301,7 @@ export default function SessaoCampanhaPage() {
   const [eventosSessao, setEventosSessao] = useState<EventoSessaoTimeline[]>([]);
   const [relatorioSessao, setRelatorioSessao] = useState<SessaoCampanhaRelatorio | null>(null);
   const [loadingRelatorio, setLoadingRelatorio] = useState(false);
-  const [erroRelatorio, setErroRelatorio] = useState<string | null>(null);
+  const [erroRelatorio, setErroRelatorio] = useState<UserErrorState | null>(null);
   const [mensagem, setMensagem] = useState('');
   const [mensagemRolagem, setMensagemRolagem] = useState('');
   const [rolagemSecreta, setRolagemSecreta] = useState(false);
@@ -387,18 +388,19 @@ export default function SessaoCampanhaPage() {
     useState<EventoSessaoTimeline | null>(null);
   const [motivoDesfazerEventoModal, setMotivoDesfazerEventoModal] = useState('');
   const [loading, setLoading] = useState(true);
-  const [erroGlobal, setErroGlobal] = useState<string | null>(null);
-  const [erroCena, setErroCena] = useState<string | null>(null);
-  const [erroTurnos, setErroTurnos] = useState<string | null>(null);
-  const [erroIniciativa, setErroIniciativa] = useState<string | null>(null);
-  const [erroEncerramento, setErroEncerramento] = useState<string | null>(null);
-  const [erroChat, setErroChat] = useState<string | null>(null);
-  const [erroRolagens, setErroRolagens] = useState<string | null>(null);
-  const [erroNpcs, setErroNpcs] = useState<string | null>(null);
-  const [erroCondicoes, setErroCondicoes] = useState<string | null>(null);
-  const [erroEventos, setErroEventos] = useState<string | null>(null);
-  const [erroCards, setErroCards] = useState<string | null>(null);
-  const [erroRegrasOpcionais, setErroRegrasOpcionais] = useState<string | null>(null);
+  const [erroGlobal, setErroGlobal] = useState<UserErrorState | null>(null);
+  const [erroCena, setErroCena] = useState<UserErrorState | null>(null);
+  const [erroTurnos, setErroTurnos] = useState<UserErrorState | null>(null);
+  const [erroIniciativa, setErroIniciativa] = useState<UserErrorState | null>(null);
+  const [erroEncerramento, setErroEncerramento] = useState<UserErrorState | null>(null);
+  const [erroChat, setErroChat] = useState<UserErrorState | null>(null);
+  const [erroRolagens, setErroRolagens] = useState<UserErrorState | null>(null);
+  const [erroNpcs, setErroNpcs] = useState<UserErrorState | null>(null);
+  const [erroCondicoes, setErroCondicoes] = useState<UserErrorState | null>(null);
+  const [erroEventos, setErroEventos] = useState<UserErrorState | null>(null);
+  const [erroCards, setErroCards] = useState<UserErrorState | null>(null);
+  const [erroRegrasOpcionais, setErroRegrasOpcionais] =
+    useState<UserErrorState | null>(null);
   const [atualizandoRegraOpcional, setAtualizandoRegraOpcional] =
     useState<string | null>(null);
   const [animacaoRolagemChatAtiva, setAnimacaoRolagemChatAtiva] = useState(() => {
@@ -629,7 +631,7 @@ export default function SessaoCampanhaPage() {
           : filtrados.filter((personagem) => personagem.donoId === usuario.id),
       );
     } catch (error) {
-      setErroCards(extrairMensagemErro(error));
+      setErroCards(criarErroUsuario(error));
     } finally {
       setCarregandoPersonagensDisponiveis(false);
     }
@@ -719,7 +721,7 @@ export default function SessaoCampanhaPage() {
       setChat(chatInicial);
       setEventosSessao(eventos);
     } catch (error) {
-      setErroGlobal(extrairMensagemErro(error));
+      setErroGlobal(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -761,7 +763,7 @@ export default function SessaoCampanhaPage() {
       setPersonagemIniciativaValor('');
       showToast('Personagem adicionado na cena.', 'success');
     } catch (error) {
-      setErroCards(extrairMensagemErro(error));
+      setErroCards(criarErroUsuario(error));
     } finally {
       setAdicionandoPersonagem(false);
     }
@@ -792,7 +794,7 @@ export default function SessaoCampanhaPage() {
         sincronizarEstadosDerivados(atualizado);
         showToast('Personagem removido da cena.', 'warning');
       } catch (error) {
-        setErroCards(extrairMensagemErro(error));
+        setErroCards(criarErroUsuario(error));
       } finally {
         setRemovendoPersonagemSessaoId(null);
       }
@@ -869,7 +871,7 @@ export default function SessaoCampanhaPage() {
       sincronizarEstadosDerivados(atualizado);
       setModalIniciativaAberto(null);
     } catch (error) {
-      setErroIniciativa(extrairMensagemErro(error));
+      setErroIniciativa(criarErroUsuario(error));
     } finally {
       setSalvandoIniciativa(false);
     }
@@ -930,7 +932,7 @@ export default function SessaoCampanhaPage() {
       })
       .catch((error) => {
         if (cancelado) return;
-        setErroRelatorio(extrairMensagemErro(error));
+        setErroRelatorio(criarErroUsuario(error));
       })
       .finally(() => {
         if (!cancelado) {
@@ -1288,7 +1290,7 @@ export default function SessaoCampanhaPage() {
         sincronizarEstadosDerivados(atualizado);
         showToast('Mecânica opcional atualizada.', 'success');
       } catch (error) {
-        setErroRegrasOpcionais(extrairMensagemErro(error));
+        setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
         setAtualizandoRegraOpcional(null);
       }
@@ -1310,7 +1312,7 @@ export default function SessaoCampanhaPage() {
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        setErroRegrasOpcionais(extrairMensagemErro(error));
+        setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
         setAtualizandoRegraOpcional(null);
       }
@@ -1336,7 +1338,7 @@ export default function SessaoCampanhaPage() {
         sincronizarEstadosDerivados(atualizado);
         showToast('Ponto de inspiração gasto.', 'success');
       } catch (error) {
-        setErroRegrasOpcionais(extrairMensagemErro(error));
+        setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
         setAtualizandoRegraOpcional(null);
       }
@@ -1367,7 +1369,7 @@ export default function SessaoCampanhaPage() {
         sincronizarEstadosDerivados(atualizado);
         showToast('Encontro social atualizado.', 'success');
       } catch (error) {
-        setErroRegrasOpcionais(extrairMensagemErro(error));
+        setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
         setAtualizandoRegraOpcional(null);
       }
@@ -1442,7 +1444,7 @@ export default function SessaoCampanhaPage() {
         sincronizarEstadosDerivados(atualizado);
         showToast('Escalada de Dados atualizada.', 'success');
       } catch (error) {
-        setErroRegrasOpcionais(extrairMensagemErro(error));
+        setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
         setAtualizandoRegraOpcional(null);
       }
@@ -1481,7 +1483,7 @@ export default function SessaoCampanhaPage() {
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        setErroRegrasOpcionais(extrairMensagemErro(error));
+        setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
         setAtualizandoRegraOpcional(null);
       }
@@ -1516,7 +1518,7 @@ export default function SessaoCampanhaPage() {
         sincronizarEstadosDerivados(atualizado);
         showToast('Iniciativa alternada atualizada.', 'success');
       } catch (error) {
-        setErroRegrasOpcionais(extrairMensagemErro(error));
+        setErroRegrasOpcionais(criarErroUsuario(error));
       } finally {
         setAtualizandoRegraOpcional(null);
       }
@@ -1620,13 +1622,13 @@ export default function SessaoCampanhaPage() {
           enviado: true,
         }));
       } catch (error) {
-        const mensagemErro = extrairMensagemErro(error);
-        setErroRolagens(mensagemErro);
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
         setPericiaRollModal((estado) => ({
           ...estado,
           enviando: false,
           enviado: false,
-          erro: mensagemErro,
+          erro: userError.message,
         }));
       }
     },
@@ -1698,13 +1700,13 @@ export default function SessaoCampanhaPage() {
           enviado: true,
         }));
       } catch (error) {
-        const mensagemErro = extrairMensagemErro(error);
-        setErroRolagens(mensagemErro);
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
         setPericiaRollModal((estado) => ({
           ...estado,
           enviando: false,
           enviado: false,
-          erro: mensagemErro,
+          erro: userError.message,
         }));
       }
     },
@@ -1778,13 +1780,13 @@ export default function SessaoCampanhaPage() {
           enviado: true,
         }));
       } catch (error) {
-        const mensagemErro = extrairMensagemErro(error);
-        setErroRolagens(mensagemErro);
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
         setPericiaRollModal((estado) => ({
           ...estado,
           enviando: false,
           enviado: false,
-          erro: mensagemErro,
+          erro: userError.message,
         }));
       }
     },
@@ -1966,13 +1968,13 @@ export default function SessaoCampanhaPage() {
           enviado: true,
         }));
       } catch (error) {
-        const mensagemErro = extrairMensagemErro(error);
-        setErroRolagens(mensagemErro);
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
         setPericiaRollModal((estado) => ({
           ...estado,
           enviando: false,
           enviado: false,
-          erro: mensagemErro,
+          erro: userError.message,
         }));
       }
     },
@@ -2125,9 +2127,7 @@ export default function SessaoCampanhaPage() {
         );
         handlePersonagemAtualizadoNoModal(atualizado);
       } catch (error) {
-        setErroCards(
-          extrairMensagemErro(error) || 'Não foi possível atualizar o núcleo.',
-        );
+        setErroCards(criarErroUsuario(error));
       }
     },
     [
@@ -2153,9 +2153,7 @@ export default function SessaoCampanhaPage() {
         );
         handlePersonagemAtualizadoNoModal(atualizado);
       } catch (error) {
-        setErroCards(
-          extrairMensagemErro(error) || 'Não foi possível sacrificar o núcleo.',
-        );
+        setErroCards(criarErroUsuario(error));
       }
     },
     [

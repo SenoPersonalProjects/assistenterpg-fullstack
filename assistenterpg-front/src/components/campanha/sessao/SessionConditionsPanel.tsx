@@ -6,6 +6,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import type {
   CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
+  UserErrorState,
 } from '@/lib/types';
 import {
   descreverDuracaoCondicao,
@@ -26,7 +27,7 @@ type SessionConditionsPanelProps = {
   onAbrirModal: () => void;
   onRemoverCondicao: (condicao: CondicaoAtivaSessaoCampanha) => void;
   modo?: 'inline' | 'accordion';
-  erro?: string | null;
+  erro?: UserErrorState | null;
 };
 
 export function SessionConditionsPanel({

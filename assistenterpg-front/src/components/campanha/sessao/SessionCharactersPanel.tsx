@@ -7,7 +7,11 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { CharacterSessionCard } from '@/components/campanha/sessao/CharacterSessionCard';
-import type { NucleoAmaldicoadoCodigo, SessaoCampanhaDetalhe } from '@/lib/types';
+import type {
+  NucleoAmaldicoadoCodigo,
+  SessaoCampanhaDetalhe,
+  UserErrorState,
+} from '@/lib/types';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import type {
   AjustesRecursos,
@@ -114,7 +118,7 @@ type SessionCharactersPanelProps = {
     personagemCampanhaId: number,
     gasto: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO'; label: string },
   ) => void;
-  erro?: string | null;
+  erro?: UserErrorState | null;
 };
 
 export function SessionCharactersPanel({

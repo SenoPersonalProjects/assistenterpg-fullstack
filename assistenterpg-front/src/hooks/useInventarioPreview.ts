@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
-import { apiPreviewItensInventario, extrairMensagemErro } from '@/lib/api';
+import { apiPreviewItensInventario, criarErroUsuario } from '@/lib/api';
 import type { ItemInventarioPayload } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type UseInventarioPreviewParams = {
   forca: number;
@@ -15,7 +16,7 @@ type UseInventarioPreviewParams = {
 type UseInventarioPreviewReturn = {
   sincronizarInventario: (itens: ItemInventarioPayload[]) => Promise<ItemInventarioPayload[]>;
   carregando: boolean;
-  erro: string | null;
+  erro: UserErrorState | null;
 };
 
 type PreviewPayload = {
@@ -98,7 +99,7 @@ export function useInventarioPreview({
   prestigioBase,
 }: UseInventarioPreviewParams): UseInventarioPreviewReturn {
   const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   const ultimoPayloadHashRef = useRef<string | null>(null);
   const ultimoResultadoRef = useRef<ItemInventarioPayload[] | null>(null);
@@ -165,7 +166,7 @@ export function useInventarioPreview({
           ultimoResultadoRef.current = itensAtualizados;
           return itensAtualizados;
         } catch (err) {
-          setErro(extrairMensagemErro(err));
+          setErro(criarErroUsuario(err));
           return itensSanitizados;
         } finally {
           if (

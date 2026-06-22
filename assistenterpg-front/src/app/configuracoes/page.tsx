@@ -34,14 +34,9 @@ import {
   apiExportarDados,
   apiExcluirConta,
 } from '@/lib/api';
-import { extrairMensagemErro, traduzirErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { STORAGE_ANIMACAO_ROLAGEM_KEY } from '@/lib/constants/rolagem';
-
-type ErroApiBasico = {
-  status?: number;
-  response?: { status?: number };
-  body?: { statusCode?: number; code?: string };
-};
+import type { UserErrorState } from '@/lib/types';
 
 export default function ConfiguracoesPage() {
   const { usuario, token, logout, requireLogin } = useAuth();
@@ -60,7 +55,7 @@ export default function ConfiguracoesPage() {
   const [idioma, setIdioma] = useState('pt-BR');
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(true);
-  const [erroGlobal, setErroGlobal] = useState<string | null>(null);
+  const [erroGlobal, setErroGlobal] = useState<UserErrorState | null>(null);
   const [animacaoRolagemAtiva, setAnimacaoRolagemAtiva] = useState(() => {
     if (typeof window === 'undefined') return true;
     const armazenado = window.localStorage.getItem(STORAGE_ANIMACAO_ROLAGEM_KEY);
@@ -82,16 +77,6 @@ export default function ConfiguracoesPage() {
     { key: 'atualizacoes', label: 'Novidades do sistema', icon: 'sparkles' },
   ];
 
-  const extrairStatusErro = (error: unknown): number => {
-    const err = error as ErroApiBasico;
-    return Number(err.status || err.response?.status || err.body?.statusCode || 0);
-  };
-
-  const extrairCodigoErro = (error: unknown): string | undefined => {
-    const err = error as ErroApiBasico;
-    return err.body?.code;
-  };
-
   const carregarPreferencias = useCallback(async () => {
     try {
       setCarregando(true);
@@ -105,10 +90,9 @@ export default function ConfiguracoesPage() {
       });
       setIdioma(prefs.idioma);
     } catch (error: unknown) {
-      const status = extrairStatusErro(error);
-      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
-      setErroGlobal(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErroGlobal(userError);
+      showToast(userError, 'error');
       console.error('Erro ao carregar preferências:', error);
     } finally {
       setCarregando(false);
@@ -134,10 +118,9 @@ export default function ConfiguracoesPage() {
       });
       showToast('Preferências salvas com sucesso.', 'success');
     } catch (error: unknown) {
-      const status = extrairStatusErro(error);
-      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
-      setErroGlobal(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErroGlobal(userError);
+      showToast(userError, 'error');
     } finally {
       setSalvando(false);
     }
@@ -150,10 +133,9 @@ export default function ConfiguracoesPage() {
       showToast('Senha alterada com sucesso.', 'success');
       requireLogin();
     } catch (error: unknown) {
-      const status = extrairStatusErro(error);
-      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
-      setErroGlobal(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErroGlobal(userError);
+      showToast(userError, 'error');
       throw error;
     }
   };
@@ -164,10 +146,9 @@ export default function ConfiguracoesPage() {
       const response = await apiSolicitarAlteracaoEmail(novoEmail, senhaAtual);
       showToast(response.mensagem, 'success');
     } catch (error: unknown) {
-      const status = extrairStatusErro(error);
-      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
-      setErroGlobal(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErroGlobal(userError);
+      showToast(userError, 'error');
       throw error;
     }
   };
@@ -178,10 +159,9 @@ export default function ConfiguracoesPage() {
       await apiExportarDados();
       showToast('Exportação iniciada com sucesso.', 'success');
     } catch (error: unknown) {
-      const status = extrairStatusErro(error);
-      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
-      setErroGlobal(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErroGlobal(userError);
+      showToast(userError, 'error');
     }
   };
 
@@ -201,10 +181,9 @@ export default function ConfiguracoesPage() {
       showToast(response.mensagem, 'success');
       requireLogin();
     } catch (error: unknown) {
-      const status = extrairStatusErro(error);
-      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
-      setErroGlobal(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErroGlobal(userError);
+      showToast(userError, 'error');
       throw error;
     }
   };
@@ -216,10 +195,9 @@ export default function ConfiguracoesPage() {
       showToast(response.mensagem, 'success');
       requireLogin();
     } catch (error: unknown) {
-      const status = extrairStatusErro(error);
-      const mensagem = traduzirErro(extrairCodigoErro(error), extrairMensagemErro(error), status);
-      setErroGlobal(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErroGlobal(userError);
+      showToast(userError, 'error');
       throw error;
     }
   };

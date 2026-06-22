@@ -6,7 +6,7 @@ import { Loading } from '@/components/ui/Loading';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import type { PersonagemCampanhaResumo } from '@/lib/types';
+import type { PersonagemCampanhaResumo, UserErrorState } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
 
 type AddPersonagemModalProps = {
@@ -21,7 +21,7 @@ type AddPersonagemModalProps = {
   iniciativaValor: string;
   onIniciativaValorChange: (value: string) => void;
   carregando: boolean;
-  erro?: string | null;
+  erro?: UserErrorState | null;
 };
 
 export function AddPersonagemModal({

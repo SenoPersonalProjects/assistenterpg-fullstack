@@ -19,6 +19,7 @@ import { TecnicasAmaldicoadasCrudService } from './tecnicas-amaldicoadas.crud.se
 import { TecnicasAmaldicoadasImportExportService } from './tecnicas-amaldicoadas.import-export.service';
 import { TecnicasAmaldicoadasHabilidadesService } from './tecnicas-amaldicoadas.habilidades.service';
 import { TecnicasAmaldicoadasVariacoesService } from './tecnicas-amaldicoadas.variacoes.service';
+import { JsonImportGuide } from 'src/common/json-import/json-import-guide.types';
 
 @Injectable()
 export class TecnicasAmaldicoadasService {
@@ -29,7 +30,7 @@ export class TecnicasAmaldicoadasService {
     private readonly variacoesService: TecnicasAmaldicoadasVariacoesService,
   ) {}
 
-  getGuiaImportacaoJson(): RegistroJson {
+  getGuiaImportacaoJson(): Promise<JsonImportGuide> {
     return this.importExportService.getGuiaImportacaoJson();
   }
 

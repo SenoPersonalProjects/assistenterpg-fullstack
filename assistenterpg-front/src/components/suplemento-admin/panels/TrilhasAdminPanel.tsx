@@ -21,7 +21,7 @@ import {
   apiAdminGetTrilhas,
   apiAdminCreateTrilha,
   apiAdminUpdateTrilha,
-  extrairMensagemErro,
+  criarErroUsuario,
   type ClasseCatalogo,
   type TrilhaCatalogo,
   type SuplementoCatalogo,
@@ -29,6 +29,7 @@ import {
   type CreateTrilhaPayload,
   type UpdateTrilhaPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type TrilhaFormState = {
   classeId: string;
@@ -117,7 +118,7 @@ function TrilhaAdminFormModal({ isOpen, onClose, classes, suplementos, trilha }:
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -194,7 +195,7 @@ function TrilhaAdminFormModal({ isOpen, onClose, classes, suplementos, trilha }:
 export function TrilhasAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<TrilhaCatalogo[]>([]);
   const [classes, setClasses] = useState<ClasseCatalogo[]>([]);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
@@ -238,7 +239,7 @@ export function TrilhasAdminPanel() {
       setClasses(classesData);
       setSuplementos(suplementosData);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {

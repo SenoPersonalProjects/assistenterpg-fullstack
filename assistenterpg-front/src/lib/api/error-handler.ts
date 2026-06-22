@@ -3,7 +3,11 @@ import {
   extractRetryAfterSeconds,
   formatRateLimitMessage,
 } from "./rate-limit";
-import type { ApiErrorBody } from "@/lib/types"; // ✅ ATUALIZADO
+import type {
+  ApiErrorBody,
+  ErrorSupportInfo,
+  UserFacingError,
+} from "@/lib/types"; // ✅ ATUALIZADO
 
 /**
  * ✅ Mapeamento de códigos de erro para mensagens amigáveis
@@ -475,6 +479,7 @@ export type ContextoErroApi = {
   method?: string;
   endpoint?: string;
   requestId?: string;
+  retryAfterSeconds?: number;
 };
 
 function valorHeaderComoString(
@@ -557,6 +562,8 @@ export function extrairContextoErro(error: unknown): ContextoErroApi {
   const requestIdFromBody =
     typeof err.requestId === "string"
       ? err.requestId
+      : typeof body?.traceId === "string"
+        ? body.traceId
       : typeof details?.requestId === "string"
         ? details.requestId
         : undefined;
@@ -567,7 +574,51 @@ export function extrairContextoErro(error: unknown): ContextoErroApi {
     method,
     endpoint,
     requestId: requestIdFromHeaders ?? requestIdFromBody,
+    retryAfterSeconds: extractRetryAfterSeconds(error) ?? undefined,
   };
+}
+
+export function extrairSuporteErro(error: unknown): ErrorSupportInfo {
+  const contexto = extrairContextoErro(error);
+
+  return {
+    code: contexto.code,
+    referenceId: contexto.requestId,
+    status: contexto.status,
+  };
+}
+
+export function criarErroUsuario(
+  error: unknown,
+  fallbackMessage?: string,
+): UserFacingError {
+  const contexto = extrairContextoErro(error);
+
+  return {
+    message: fallbackMessage ?? extrairMensagemErro(error),
+    code: contexto.code,
+    referenceId: contexto.requestId,
+    status: contexto.status,
+    retryAfterSeconds: contexto.retryAfterSeconds,
+  };
+}
+
+export function criarErroLocalUsuario(message: string): UserFacingError {
+  return { message };
+}
+
+export function formatarSuporteErro(
+  suporte?: ErrorSupportInfo | null,
+): string | null {
+  if (!suporte?.code && !suporte?.referenceId) {
+    return null;
+  }
+
+  const partes: string[] = [];
+  if (suporte.code) partes.push(`Código: ${suporte.code}`);
+  if (suporte.referenceId) partes.push(`Ref: ${suporte.referenceId}`);
+
+  return partes.join(" | ");
 }
 
 type FormatarErroComContextoOptions = {

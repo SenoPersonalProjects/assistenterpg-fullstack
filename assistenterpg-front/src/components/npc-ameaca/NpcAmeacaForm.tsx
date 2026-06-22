@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { apiGetPericias } from '@/lib/api/catalogos';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import type {
   CreateNpcAmeacaPayload,
   NpcAmeacaAcao,
@@ -13,7 +13,7 @@ import type {
   TamanhoNpcAmeaca,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
-} from '@/lib/types';
+ UserErrorState } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -671,7 +671,7 @@ export function NpcAmeacaForm({
   submitLabel = 'Salvar ficha',
 }: NpcAmeacaFormProps) {
   const [form, setForm] = useState<FormState>(() => criarEstadoInicial(initialValues));
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [modeloModalAberto, setModeloModalAberto] = useState(false);
   const [catalogoPericias, setCatalogoPericias] = useState<PericiaCatalogo[]>([]);
@@ -807,7 +807,7 @@ export function NpcAmeacaForm({
       setSalvando(true);
       await onSubmit(payload);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }

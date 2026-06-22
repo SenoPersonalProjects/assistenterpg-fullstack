@@ -16,11 +16,12 @@ import {
   apiAdminCreateProficiencia,
   apiAdminUpdateProficiencia,
   apiAdminDeleteProficiencia,
-  extrairMensagemErro,
+  criarErroUsuario,
   type ProficienciaCatalogo,
   type CreateProficienciaPayload,
   type UpdateProficienciaPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type ProficienciaFormState = {
   codigo: string;
@@ -114,7 +115,7 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -190,7 +191,7 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
 export function ProficienciasAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<ProficienciaCatalogo[]>([]);
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -215,7 +216,7 @@ export function ProficienciasAdminPanel() {
       const data = await apiAdminGetProficiencias();
       setItems(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -236,7 +237,7 @@ export function ProficienciasAdminPanel() {
       showToast('Proficiencia removida com sucesso.', 'success');
       await carregarDados();
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setDeletingId(null);
     }

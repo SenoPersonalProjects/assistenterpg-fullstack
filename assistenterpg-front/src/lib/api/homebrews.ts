@@ -2,7 +2,7 @@
 
 import { apiClient } from "./axios-client";
 import { normalizeListResult, type ListResult } from "./pagination";
-import type { EquipamentoCatalogo } from '@/lib/types';
+import type { EquipamentoCatalogo, JsonImportGuide } from '@/lib/types';
 
 // ============================================================================
 // ✅ IMPORTS DE ENUMS (sincronizados)
@@ -29,7 +29,7 @@ import {
   TipoTecnicaAmaldicoada,
   TipoExecucao,
   AreaEfeito,
-} from "@/lib/types/homebrew-enums";
+} from "../types/homebrew-enums";
 
 // ============================================================================
 // TIPOS BASE
@@ -436,6 +436,11 @@ export async function apiImportarHomebrewJson(
   payload: ImportarHomebrewJsonPayload,
 ): Promise<ImportacaoHomebrewResultado> {
   const { data } = await apiClient.post('/homebrews/importar', payload);
+  return data;
+}
+
+export async function apiGetGuiaImportacaoHomebrewJson(): Promise<JsonImportGuide> {
+  const { data } = await apiClient.get('/homebrews/importar-json/guia');
   return data;
 }
 

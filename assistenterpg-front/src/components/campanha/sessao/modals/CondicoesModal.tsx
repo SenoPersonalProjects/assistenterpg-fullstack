@@ -10,6 +10,7 @@ import type {
   CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
   DuracaoCondicaoSessaoModo,
+  UserErrorState,
 } from '@/lib/types';
 import {
   descreverDuracaoCondicao,
@@ -28,7 +29,7 @@ type CondicoesModalProps = {
   condicoesAtivas: CondicaoAtivaSessaoCampanha[];
   sessaoEncerrada: boolean;
   acaoCondicaoPendente: string | null;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   onClose: () => void;
   onSelecionarCondicao: (condicaoId: string) => void;
   onAtualizarCampo: (campo: keyof FormCondicaoSessao, valor: string) => void;

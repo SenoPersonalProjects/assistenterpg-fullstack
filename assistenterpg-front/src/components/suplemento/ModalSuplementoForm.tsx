@@ -8,7 +8,7 @@ import {
   apiUpdateSuplemento,
   SuplementoCatalogo,
 } from '@/lib/api/suplementos';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -148,7 +148,7 @@ export function ModalSuplementoForm({
 
       onClose(true);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       showToast(mensagem, 'error');
     } finally {
       setSalvando(false);

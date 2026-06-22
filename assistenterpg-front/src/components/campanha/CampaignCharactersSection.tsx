@@ -7,16 +7,17 @@ import {
   apiListarPersonagensBaseDisponiveisCampanha,
   apiListarPersonagensCampanha,
   apiVincularPersonagemCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
 import type {
   PersonagemBaseDisponivelCampanha,
   PersonagemCampanhaResumo,
-} from '@/lib/types';
+ UserErrorState } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
@@ -50,7 +51,7 @@ export function CampaignCharactersSection({
   const [sincronizarTecnicaInata, setSincronizarTecnicaInata] = useState(false);
   const [loading, setLoading] = useState(true);
   const [associando, setAssociando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
   const [personagemEdicao, setPersonagemEdicao] =
     useState<PersonagemCampanhaResumo | null>(null);
@@ -88,7 +89,7 @@ export function CampaignCharactersSection({
       onTotalPersonagensChangeRef.current?.(personagens.length);
       setPersonagensBase(personagensDisponiveis);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -185,7 +186,7 @@ export function CampaignCharactersSection({
       }
       await carregarDados();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setAssociando(false);
     }
@@ -216,7 +217,7 @@ export function CampaignCharactersSection({
       setSucesso('Personagem desassociado da campanha com sucesso.');
       await carregarDados();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setRemovendoPersonagemId(null);
     }
@@ -236,7 +237,7 @@ export function CampaignCharactersSection({
       );
       setSucesso(`"${personagem.nome}" foi atualizado a partir da ficha base.`);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setAtualizandoPersonagemId(null);
     }
@@ -300,11 +301,7 @@ export function CampaignCharactersSection({
             Você já possui um personagem associado nesta campanha.
           </p>
         )}
-        {erro && (
-          <p className="text-xs text-app-danger">
-            {erro}
-          </p>
-        )}
+        {erro ? <ErrorAlert message={erro} /> : null}
         {sucesso && (
           <p className="text-xs text-app-success">
             {sucesso}

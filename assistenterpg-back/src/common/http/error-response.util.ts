@@ -1,4 +1,4 @@
-import { HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Request } from 'express';
 import { BaseException } from '../exceptions/base.exception';
 
@@ -197,4 +197,30 @@ export function normalizeHttpExceptionPayload(
           )
         : undefined),
   };
+}
+
+export function buildHttpErrorResponse(
+  exception: HttpException,
+  request: Request,
+  traceId: string,
+): ErrorResponseBody {
+  const status = exception.getStatus();
+  const payload = normalizeHttpExceptionPayload(
+    status,
+    exception.getResponse(),
+    exception.message,
+    exception instanceof BaseException ? exception : undefined,
+  );
+
+  const response: ErrorResponseBody = {
+    ...createErrorBase(request, traceId, status),
+    ...payload,
+  };
+
+  if (process.env.NODE_ENV === 'development') {
+    response.stack = exception.stack;
+    response.errorType = exception.name;
+  }
+
+  return response;
 }

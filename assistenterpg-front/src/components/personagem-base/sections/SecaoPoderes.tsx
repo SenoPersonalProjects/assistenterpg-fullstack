@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
@@ -28,8 +29,9 @@ import {
   apiAtualizarVariacaoTecnicaInataPropria,
   apiCriarHabilidadeTecnicaInataPropria,
   apiCriarVariacaoTecnicaInataPropria,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type Habilidade = {
   id: number;
@@ -198,7 +200,7 @@ function HabilidadeTecnicaFormModal({
   onSubmit: () => Promise<void>;
 }) {
   const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   async function handleSubmit() {
     try {
@@ -207,7 +209,7 @@ function HabilidadeTecnicaFormModal({
       await onSubmit();
       onClose();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }
@@ -216,11 +218,7 @@ function HabilidadeTecnicaFormModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
       <div className="space-y-4">
-        {erro && (
-          <div className="rounded-lg border border-app-danger/30 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
-            {erro}
-          </div>
-        )}
+        {erro ? <ErrorAlert message={erro} /> : null}
         <div className="grid gap-3 md:grid-cols-2">
           <Input
             label="Código"
@@ -327,7 +325,7 @@ function VariacaoTecnicaFormModal({
   onSubmit: () => Promise<void>;
 }) {
   const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   async function handleSubmit() {
     try {
@@ -336,7 +334,7 @@ function VariacaoTecnicaFormModal({
       await onSubmit();
       onClose();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }
@@ -345,11 +343,7 @@ function VariacaoTecnicaFormModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
       <div className="space-y-4">
-        {erro && (
-          <div className="rounded-lg border border-app-danger/30 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
-            {erro}
-          </div>
-        )}
+        {erro ? <ErrorAlert message={erro} /> : null}
         <div className="grid gap-3 md:grid-cols-2">
           <Input
             label="Nome"

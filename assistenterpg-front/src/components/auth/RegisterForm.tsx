@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import {
   PASSWORD_POLICY,
   PASSWORD_REQUIREMENTS_TEXT,
@@ -41,8 +41,8 @@ export function RegisterForm() {
       await register(apelido, email, senha);
       showToast('Conta criada! Verifique seu email antes de fazer login.', 'success');
     } catch (error) {
-      const mensagem = captureRateLimit(error) ?? extrairMensagemErro(error);
-      showToast(mensagem, 'error');
+      captureRateLimit(error);
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSubmitting(false);
     }

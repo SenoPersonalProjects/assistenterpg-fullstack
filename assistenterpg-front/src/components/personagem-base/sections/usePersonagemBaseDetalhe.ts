@@ -11,9 +11,8 @@ import {
   apiGetPersonagemBase,
   apiGetTodosEquipamentos,
   apiGetTodasModificacoes,
-  extrairMensagemErro,
+  criarErroUsuario,
   formatarErroComContexto,
-  traduzirErro,
   type AlinhamentoCatalogo,
   type CaminhoCatalogo,
   type ClasseCatalogo,
@@ -107,8 +106,7 @@ function mensagemErroCarregarDetalhe(error: unknown): string {
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  const base = traduzirErro(code, extrairMensagemErro(error), status);
+  const base = criarErroUsuario(error).message;
 
   if (status === 404) {
     return formatarErroComContexto('Personagem não encontrado.', error, {

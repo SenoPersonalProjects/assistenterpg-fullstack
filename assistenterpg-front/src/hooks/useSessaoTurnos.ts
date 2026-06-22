@@ -3,9 +3,9 @@ import {
   apiAvancarTurnoSessaoCampanha,
   apiPularTurnoSessaoCampanha,
   apiVoltarTurnoSessaoCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
 
 const labelParticipanteIniciativa = (turno: SessaoCampanhaDetalhe['turnoAtual']) => {
@@ -25,7 +25,7 @@ type UseSessaoTurnosParams = {
   detalhe: SessaoCampanhaDetalhe | null;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   showToast: (mensagem: string, tipo?: 'success' | 'error' | 'warning' | 'info') => void;
 };
 
@@ -64,7 +64,7 @@ export function useSessaoTurnos({
         sincronizarEstadosDerivados(atualizado);
         showToast(`Turno atualizado: ${labelParticipanteIniciativa(atualizado.turnoAtual)}.`, 'success');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setAcaoTurnoPendente(null);
       }

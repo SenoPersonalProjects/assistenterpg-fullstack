@@ -6,6 +6,10 @@ export {
   traduzirErro,
   ERROR_MESSAGES,
   extrairContextoErro,
+  extrairSuporteErro,
+  criarErroUsuario,
+  criarErroLocalUsuario,
+  formatarSuporteErro,
   formatarErroComContexto,
 } from './error-handler';
 

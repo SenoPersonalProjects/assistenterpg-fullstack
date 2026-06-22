@@ -20,7 +20,7 @@ import {
   apiAdminUpdateHabilidade,
   apiAdminGetTecnicasAmaldicoadas,
   apiGetSuplementos,
-  extrairMensagemErro,
+  criarErroUsuario,
   type HabilidadeCatalogo,
   type ListResult,
   type ListHabilidadesFilters,
@@ -32,6 +32,7 @@ import {
   type CreateHabilidadePayload,
   type UpdateHabilidadePayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type DraftFilters = {
   busca: string;
@@ -241,7 +242,7 @@ function SelecionarTecnicaModal({
 export function HabilidadesAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [result, setResult] = useState<ListResult<HabilidadeCatalogo>>({
     items: [],
     total: 0,
@@ -280,7 +281,7 @@ export function HabilidadesAdminPanel() {
       const data = await apiGetSuplementos();
       setSuplementos(data);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     }
   }, [showToast]);
 
@@ -292,7 +293,7 @@ export function HabilidadesAdminPanel() {
       const data = await apiAdminGetHabilidades(toApiFilters(appliedFilters));
       setResult(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -311,7 +312,7 @@ export function HabilidadesAdminPanel() {
         });
         setTecnicasDisponiveis(data);
       } catch (error) {
-        showToast(extrairMensagemErro(error), 'error');
+        showToast(criarErroUsuario(error), 'error');
       } finally {
         setTecnicasLoading(false);
       }
@@ -364,7 +365,7 @@ export function HabilidadesAdminPanel() {
       showToast('Habilidade criada com sucesso.', 'success');
       await carregarHabilidades();
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
       throw error;
     }
   }
@@ -375,7 +376,7 @@ export function HabilidadesAdminPanel() {
       showToast('Habilidade atualizada com sucesso.', 'success');
       await carregarHabilidades();
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
       throw error;
     }
   }

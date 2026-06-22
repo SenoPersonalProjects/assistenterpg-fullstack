@@ -12,7 +12,7 @@ import {
   apiGetMinhasCampanhas,
   apiListarAnotacoes,
   apiListarSessoesCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
   type CampanhaResumo,
   type SessaoCampanhaResumo,
   type AnotacaoResumo,
@@ -32,6 +32,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { NotePaperCard } from '@/components/anotacoes/NotePaperCard';
+import type { UserErrorState } from '@/lib/types';
 
 const LIMITE_PAGINA = 20;
 
@@ -43,7 +44,7 @@ export default function AnotacoesPage() {
 
   const [notas, setNotas] = useState<AnotacaoResumo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalNotas, setTotalNotas] = useState(0);
@@ -111,7 +112,7 @@ export default function AnotacoesPage() {
       setTotalPaginas(resposta.totalPages);
       setTotalNotas(resposta.total);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -124,7 +125,7 @@ export default function AnotacoesPage() {
       const resposta = await apiGetMinhasCampanhas({ page: 1, limit: 100 });
       setCampanhas(resposta.items);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     }
   }, [showToast]);
 
@@ -140,7 +141,7 @@ export default function AnotacoesPage() {
         setSessoesForm(lista);
       }
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     }
   }, [showToast]);
 
@@ -228,7 +229,7 @@ export default function AnotacoesPage() {
       await carregarNotas(1);
       setPaginaAtual(1);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSalvando(false);
     }
@@ -259,7 +260,7 @@ export default function AnotacoesPage() {
           setNotaVisualizada((atual) => (atual?.id === nota.id ? null : atual));
           showToast('Anotação removida.', 'success');
         } catch (error) {
-          showToast(extrairMensagemErro(error), 'error');
+          showToast(criarErroUsuario(error), 'error');
         }
       },
     });

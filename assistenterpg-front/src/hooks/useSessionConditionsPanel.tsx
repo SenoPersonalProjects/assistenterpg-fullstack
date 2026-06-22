@@ -5,6 +5,7 @@ import type {
   CondicaoAtivaSessaoCampanha,
   CondicaoCatalogo,
   SessaoCampanhaDetalhe,
+  UserErrorState,
 } from '@/lib/types';
 
 type UseSessionConditionsPanelParams = {
@@ -21,7 +22,7 @@ type UseSessionConditionsPanelParams = {
   podeControlarSessao: boolean;
   sessaoEncerrada: boolean;
   acaoCondicaoPendente: string | null;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   onAbrirModal: (modal: AlvoCondicoesModal) => void;
   onRemoverCondicao: (
     alvoTipo: 'PERSONAGEM' | 'NPC',

@@ -3,15 +3,17 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroLocalUsuario, criarErroUsuario } from '@/lib/api/error-handler';
 import {
   PASSWORD_POLICY,
   PASSWORD_REQUIREMENTS_TEXT,
   validateNewPassword,
 } from '@/lib/auth/password-policy';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import type { UserErrorState } from '@/lib/types';
 
 type Props = {
   isOpen: boolean;
@@ -27,7 +29,7 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
   const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState('');
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const {
     captureRateLimit,
     cooldownButtonLabel,
@@ -38,22 +40,22 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErro('');
+    setErro(null);
 
     // Validações
     if (!senhaAtual || !novaSenha || !confirmarSenha) {
-      setErro('Preencha todos os campos');
+      setErro(criarErroLocalUsuario('Preencha todos os campos'));
       return;
     }
 
     const passwordError = validateNewPassword(novaSenha);
     if (passwordError) {
-      setErro(passwordError);
+      setErro(criarErroLocalUsuario(passwordError));
       return;
     }
 
     if (novaSenha !== confirmarSenha) {
-      setErro('As senhas não coincidem');
+      setErro(criarErroLocalUsuario('As senhas não coincidem'));
       return;
     }
 
@@ -67,7 +69,8 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
       setConfirmarSenha('');
       onClose();
     } catch (error) {
-      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
+      captureRateLimit(error);
+      setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -78,7 +81,7 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
     setSenhaAtual('');
     setNovaSenha('');
     setConfirmarSenha('');
-    setErro('');
+    setErro(null);
     onClose();
   };
 
@@ -149,11 +152,7 @@ export function ModalAlterarSenha({ isOpen, onClose, onConfirm }: Props) {
               onRightIconClick={() => setMostrarConfirmacao((v) => !v)}
             />
 
-            {erro && (
-              <div className="bg-red-500/10 border border-red-500 text-red-600 dark:text-red-400 rounded-lg p-3 text-sm">
-                {erro}
-              </div>
-            )}
+            {erro ? <ErrorAlert message={erro} /> : null}
 
             <div className="flex gap-3">
               <Button

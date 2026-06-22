@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  criarErroLocalUsuario,
+  criarErroUsuario,
   extrairContextoErro,
   extrairMensagemErro,
+  formatarSuporteErro,
   formatarErroComContexto,
 } from './error-handler';
 
@@ -33,7 +36,59 @@ describe('error-handler context helpers', () => {
       method: 'POST',
       endpoint: '/personagens-base',
       requestId: 'req-123',
+      retryAfterSeconds: undefined,
     });
+  });
+
+  it('uses body traceId as support reference when header is absent', () => {
+    const error = {
+      status: 500,
+      body: {
+        statusCode: 500,
+        code: 'INTERNAL_ERROR',
+        traceId: 'trace-body-123',
+        message: 'Erro interno',
+      },
+    };
+
+    const contexto = extrairContextoErro(error);
+    expect(contexto.requestId).toBe('trace-body-123');
+  });
+
+  it('builds user-facing error with code, reference and retry cooldown', () => {
+    const userError = criarErroUsuario({
+      status: 429,
+      retryAfterSeconds: 30,
+      body: {
+        statusCode: 429,
+        code: 'RATE_LIMIT_EXCEEDED',
+        traceId: 'trace-rate-1',
+        message: 'Muitas tentativas',
+      },
+    });
+
+    expect(userError).toMatchObject({
+      message: 'Muitas tentativas. Tente novamente em 30s.',
+      code: 'RATE_LIMIT_EXCEEDED',
+      referenceId: 'trace-rate-1',
+      status: 429,
+      retryAfterSeconds: 30,
+    });
+  });
+
+  it('builds local user-facing error without support metadata', () => {
+    expect(criarErroLocalUsuario('Campo obrigatorio.')).toEqual({
+      message: 'Campo obrigatorio.',
+    });
+  });
+
+  it('formats support line with code and reference', () => {
+    expect(
+      formatarSuporteErro({
+        code: 'VALIDATION_ERROR',
+        referenceId: 'trace-abc',
+      }),
+    ).toBe('Código: VALIDATION_ERROR | Ref: trace-abc');
   });
 
   it('formats message with default status/code context', () => {

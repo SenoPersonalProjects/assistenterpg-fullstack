@@ -2,9 +2,9 @@ import { useCallback, useState } from 'react';
 import {
   apiAtualizarRecursosPersonagemSessaoCampanha,
   apiGetSessaoCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import { clampEntre, parseInteiroComSinal } from '@/lib/campanha/sessao-utils';
 
 export type CampoAjusteRecurso = 'pv' | 'pe' | 'ea' | 'san';
@@ -23,7 +23,7 @@ type UseSessaoRecursosParams = {
   sessaoEncerrada: boolean;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   obterAjustesRecursosCard: (personagemCampanhaId: number) => AjustesRecursos;
 };
 
@@ -128,7 +128,7 @@ export function useSessaoRecursos({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setSalvandoCardId(null);
         setCampoRecursoPendente(null);

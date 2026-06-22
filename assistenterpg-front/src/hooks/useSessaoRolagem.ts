@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { apiEnviarMensagemChatSessaoCampanha, extrairMensagemErro } from '@/lib/api';
-import type { MensagemChatSessao } from '@/lib/types';
+import { apiEnviarMensagemChatSessaoCampanha, criarErroUsuario } from '@/lib/api';
+import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 import {
   construirMensagemDice,
   construirMensagemDiceMultipla,
@@ -22,7 +22,7 @@ type UseSessaoRolagemParams = {
   bonusEscaladaDados?: number;
   setMensagem: (valor: string) => void;
   setChat: (updater: (anterior: MensagemChatSessao[]) => MensagemChatSessao[]) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   animacaoModalAtiva?: boolean;
   onAbrirModalAnimado?: (
     payloads: DiceRollPayload[],
@@ -118,8 +118,9 @@ export function useSessaoRolagem({
         onAtualizarModalAnimado({ enviando: false, enviado: true, erro: null });
       }
     } catch (error) {
-      const mensagemErro = extrairMensagemErro(error);
-      setErro(mensagemErro);
+      const userError = criarErroUsuario(error);
+      const mensagemErro = userError.message;
+      setErro(userError);
       if (animacaoModalAtiva && onAtualizarModalAnimado) {
         onAtualizarModalAnimado({ enviando: false, enviado: false, erro: mensagemErro });
       }

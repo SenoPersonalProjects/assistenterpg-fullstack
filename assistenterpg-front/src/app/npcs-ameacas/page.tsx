@@ -13,6 +13,7 @@ import {
   apiExportarNpcAmeaca,
   apiGetMeusNpcsAmeacas,
   apiGetNpcAmeaca,
+  apiGetGuiaImportacaoNpcAmeacaJson,
   apiImportarNpcAmeacaJson,
   apiListarGruposNpcAmeaca,
   apiUpdateGrupoNpcAmeaca,
@@ -24,9 +25,10 @@ import type {
   NpcAmeacaResumo,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
-} from '@/lib/types';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+ UserErrorState } from '@/lib/types';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { JsonImportModal } from '@/components/import-export/JsonImportModal';
+import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
 import { LibraryPageHeader } from '@/components/library/LibraryPageHeader';
 import { LibrarySectionHeader } from '@/components/library/LibrarySectionHeader';
 import { LibraryStatsBar } from '@/components/library/LibraryStatsBar';
@@ -83,7 +85,7 @@ export default function NpcsAmeacasPage() {
   const [todosNpcs, setTodosNpcs] = useState<NpcAmeacaResumo[]>([]);
   const [grupos, setGrupos] = useState<NpcAmeacaGrupoResumo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [processandoGrupoId, setProcessandoGrupoId] = useState<number | null>(null);
   const [previewAberto, setPreviewAberto] = useState(false);
@@ -103,6 +105,7 @@ export default function NpcsAmeacasPage() {
 
   const [modalGrupoAberto, setModalGrupoAberto] = useState(false);
   const [modalImportacaoAberto, setModalImportacaoAberto] = useState(false);
+  const [jsonGuideOpen, setJsonGuideOpen] = useState(false);
   const [grupoEditando, setGrupoEditando] = useState<NpcAmeacaGrupoResumo | null>(null);
   const [grupoNome, setGrupoNome] = useState('');
   const [grupoDescricao, setGrupoDescricao] = useState('');
@@ -166,7 +169,7 @@ export default function NpcsAmeacasPage() {
       setTotalPages(resposta.totalPages);
       setTotalItens(resposta.total);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -238,7 +241,7 @@ export default function NpcsAmeacasPage() {
           }
           showToast('Ficha removida com sucesso.', 'success');
         } catch (error) {
-          const mensagem = extrairMensagemErro(error);
+          const mensagem = criarErroUsuario(error);
           setErro(mensagem);
           showToast(mensagem, 'error');
         } finally {
@@ -277,7 +280,7 @@ export default function NpcsAmeacasPage() {
       const detalhe = await apiGetNpcAmeaca(item.id);
       setPreviewDetalhe(detalhe);
     } catch (error) {
-      setPreviewErro(extrairMensagemErro(error));
+      setPreviewErro(criarErroUsuario(error).message);
     } finally {
       setPreviewLoading(false);
     }
@@ -306,7 +309,8 @@ export default function NpcsAmeacasPage() {
       baixarJsonArquivo(payload, `npc-ameaca-${item.id}.json`);
       showToast(`JSON de "${item.nome}" exportado.`, 'success');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setDeletingId(null);
     }
@@ -319,7 +323,8 @@ export default function NpcsAmeacasPage() {
       baixarJsonArquivo(payload, `grupo-npcs-${grupo.id}.json`);
       showToast(`Grupo "${grupo.nome}" exportado.`, 'success');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setProcessandoGrupoId(null);
     }
@@ -339,7 +344,7 @@ export default function NpcsAmeacasPage() {
         showToast(`Ficha "${resultado.item?.nome ?? 'importada'}" importada com sucesso.`, 'success');
       }
     } catch (error) {
-      throw new Error(extrairMensagemErro(error));
+      throw error;
     }
   }
 
@@ -380,7 +385,8 @@ export default function NpcsAmeacasPage() {
       setGrupoEditando(null);
       showToast('Grupo salvo com sucesso.', 'success');
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setSalvandoGrupo(false);
     }
@@ -403,7 +409,8 @@ export default function NpcsAmeacasPage() {
           }
           showToast('Grupo removido com sucesso.', 'success');
         } catch (error) {
-          showToast(extrairMensagemErro(error), 'error');
+          const userError = criarErroUsuario(error);
+          showToast(userError.message, 'error', { support: userError });
         } finally {
           setProcessandoGrupoId(null);
         }
@@ -438,6 +445,14 @@ export default function NpcsAmeacasPage() {
                 >
                   <Icon name="upload" className="mr-2 h-4 w-4" />
                   Importar JSON
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setJsonGuideOpen(true)}
+                  className="library-ghost-button"
+                >
+                  <Icon name="info" className="mr-2 h-4 w-4" />
+                  Ajuda JSON
                 </Button>
                 <Button
                   onClick={() => router.push('/npcs-ameacas/novo')}
@@ -554,6 +569,14 @@ export default function NpcsAmeacasPage() {
                   >
                     <Icon name="upload" className="mr-2 h-4 w-4" />
                     Importar JSON
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setJsonGuideOpen(true)}
+                    className="library-ghost-button"
+                  >
+                    <Icon name="info" className="mr-2 h-4 w-4" />
+                    Ajuda JSON
                   </Button>
                   <Button
                     variant="secondary"
@@ -764,6 +787,14 @@ export default function NpcsAmeacasPage() {
           'npc-ameaca-group': 'Grupo de NPCs/Ameaças',
         }}
         onImport={handleImportarJson}
+        onOpenGuide={() => setJsonGuideOpen(true)}
+      />
+
+      <JsonGuideModal
+        isOpen={jsonGuideOpen}
+        onClose={() => setJsonGuideOpen(false)}
+        title="Ajuda JSON de NPCs e ameaças"
+        loadGuide={apiGetGuiaImportacaoNpcAmeacaJson}
       />
 
       <Modal

@@ -20,13 +20,14 @@ import {
   apiAdminCreateOrigem,
   apiAdminUpdateOrigem,
   apiGetSuplementos,
-  extrairMensagemErro,
+  criarErroUsuario,
   type OrigemCatalogo,
   type SuplementoCatalogo,
   type TipoFonte,
   type CreateOrigemPayload,
   type UpdateOrigemPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type OrigemFormState = {
   nome: string;
@@ -122,7 +123,7 @@ function OrigemAdminFormModal({ isOpen, onClose, suplementos, origem }: ModalPro
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -206,7 +207,7 @@ function OrigemAdminFormModal({ isOpen, onClose, suplementos, origem }: ModalPro
 export function OrigensAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<OrigemCatalogo[]>([]);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [busca, setBusca] = useState('');
@@ -233,7 +234,7 @@ export function OrigensAdminPanel() {
       setItems(data);
       setSuplementos(suplementosData);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {

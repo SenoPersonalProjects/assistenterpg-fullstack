@@ -9,8 +9,7 @@ import {
   apiExportarPersonagemBase,
   apiGetSuplementos,
   apiUpdatePersonagemBase,
-  extrairMensagemErro,
-  traduzirErro,
+  criarErroUsuario,
   type UpdatePersonagemBasePayload,
   type SuplementoCatalogo,
 } from '@/lib/api';
@@ -38,7 +37,7 @@ import { PersonagemBaseWizard } from '@/components/personagem-base/create/wizard
 import { usePersonagemBaseDetalhe } from '@/components/personagem-base/sections/usePersonagemBaseDetalhe';
 import type { InitialValues } from '@/components/personagem-base/create/PersonagemBaseForm';
 import { PersonagemBaseStepInventario } from '@/components/personagem-base/create/wizard/PersonagemBaseStepInventario';
-import type { ItemInventarioDto, ItemInventarioPayload } from '@/lib/types';
+import type { ItemInventarioDto, ItemInventarioPayload , UserErrorState } from '@/lib/types';
 
 import { SecaoInfoBasicas } from '@/components/personagem-base/sections/SecaoInfoBasicas';
 import { SecaoOrigemClasse } from '@/components/personagem-base/sections/SecaoOrigemClasse';
@@ -176,8 +175,7 @@ function mensagemErroExportacao(error: unknown): string {
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  const base = traduzirErro(code, extrairMensagemErro(error), status);
+  const base = criarErroUsuario(error).message;
 
   if (status === 404) {
     return 'Personagem não encontrado para exportação.';
@@ -200,8 +198,7 @@ function mensagemErroOperacaoPersonagem(
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  const base = traduzirErro(code, extrairMensagemErro(error), status);
+  const base = criarErroUsuario(error).message;
 
   if (status === 404) {
     return acao === 'excluir'
@@ -258,7 +255,7 @@ export default function PersonagemBaseDetalhePage() {
   } = usePersonagemBaseDetalhe(id);
 
   const [modoEdicao, setModoEdicao] = useState(false);
-  const [erroLocal, setErroLocal] = useState<string | null>(null);
+  const [erroLocal, setErroLocal] = useState<UserErrorState | null>(null);
   const [exportando, setExportando] = useState(false);
   const [modalInventarioAberto, setModalInventarioAberto] = useState(false);
   const [itensInventarioEdicao, setItensInventarioEdicao] = useState<

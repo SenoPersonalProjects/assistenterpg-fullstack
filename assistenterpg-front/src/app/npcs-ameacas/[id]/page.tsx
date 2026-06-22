@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiGetNpcAmeaca } from '@/lib/api/npcs-ameacas';
-import type { NpcAmeacaDetalhe } from '@/lib/types';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import type { NpcAmeacaDetalhe , UserErrorState } from '@/lib/types';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { NpcAmeacaPageHeader } from '@/components/npc-ameaca/NpcAmeacaPageHeader';
 import {
   corBadgeFichaTipo,
@@ -32,7 +32,7 @@ export default function NpcAmeacaDetalhePage() {
 
   const [item, setItem] = useState<NpcAmeacaDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   useEffect(() => {
     if (!idValido) {
@@ -48,7 +48,7 @@ export default function NpcAmeacaDetalhePage() {
         const dados = await apiGetNpcAmeaca(id);
         setItem(dados);
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setLoading(false);
       }

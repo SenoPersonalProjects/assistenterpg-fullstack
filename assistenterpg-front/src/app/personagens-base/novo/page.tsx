@@ -12,8 +12,7 @@ import {
   apiGetTodosEquipamentos,
   apiGetTodasModificacoes,
   apiGetSuplementos,
-  extrairMensagemErro,
-  traduzirErro,
+  criarErroUsuario,
   ClasseCatalogo,
   ClaCatalogo,
   OrigemCatalogo,
@@ -60,8 +59,7 @@ function mensagemErroNovoPersonagem(error: unknown, contexto: 'catalogos' | 'cri
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  const base = traduzirErro(code, extrairMensagemErro(error), status);
+  const base = criarErroUsuario(error).message;
 
   if (status === 404) {
     return contexto === 'catalogos'

@@ -16,6 +16,7 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { TecnicaHabilidadesModal } from './TecnicaHabilidadesModal';
+import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
 import { FONTE_OPTIONS, fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
   apiAdminGetTecnicasAmaldicoadas,
@@ -25,7 +26,7 @@ import {
   apiAdminExportarTecnicasJson,
   apiAdminImportarTecnicasJson,
   apiGetSuplementos,
-  extrairMensagemErro,
+  criarErroUsuario,
   TipoTecnicaAmaldicoada,
   type TecnicaAmaldicoadaCatalogo,
   type ListTecnicasFilters,
@@ -33,9 +34,9 @@ import {
   type TipoFonte,
   type CreateTecnicaPayload,
   type UpdateTecnicaPayload,
-  type GuiaImportacaoTecnicasJsonResponse,
   type ImportarTecnicasJsonPayload,
   type ImportarTecnicasJsonResultado,
+  type UserFacingError,
 } from '@/lib/api';
 
 type DraftFilters = {
@@ -196,6 +197,14 @@ function parseImportPayload(raw: string): ImportarTecnicasJsonPayload {
   };
 }
 
+function isApiLikeError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    ('status' in error || 'body' in error || 'response' in error)
+  );
+}
+
 type ModalProps = {
   isOpen: boolean;
   onClose: (success?: boolean) => void;
@@ -289,7 +298,8 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
 
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setSaving(false);
     }
@@ -400,79 +410,6 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
   );
 }
 
-type GuiaJsonModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  guia: GuiaImportacaoTecnicasJsonResponse | null;
-  loading: boolean;
-  onReload: () => void;
-};
-
-function GuiaJsonModal({ isOpen, onClose, guia, loading, onReload }: GuiaJsonModalProps) {
-  const exemploMinimo = guia ? JSON.stringify(guia.exemplos.minimo, null, 2) : '';
-  const exemploCompleto = guia ? JSON.stringify(guia.exemplos.completo, null, 2) : '';
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Guia de formato JSON"
-      size="xl"
-      footer={
-        <>
-          <Button variant="secondary" onClick={onReload} disabled={loading}>
-            Atualizar guia
-          </Button>
-          <Button variant="primary" onClick={onClose}>
-            Fechar
-          </Button>
-        </>
-      }
-    >
-      {loading ? (
-        <Loading message="Carregando guia..." className="py-8 text-app-fg" />
-      ) : guia ? (
-        <div className="space-y-4">
-          <Card>
-            <div className="space-y-2 text-sm text-app-fg">
-              <div>
-                <span className="font-medium">Schema:</span> {guia.schema} v{guia.schemaVersion}
-              </div>
-              <p className="text-app-muted">{guia.descricao}</p>
-            </div>
-          </Card>
-
-          <Card>
-            <h3 className="text-sm font-semibold text-app-fg mb-2">Regras</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm text-app-muted">
-              {guia.regras.map((regra) => (
-                <li key={regra}>{regra}</li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card>
-            <h3 className="text-sm font-semibold text-app-fg mb-2">Exemplo mínimo</h3>
-            <Textarea value={exemploMinimo} rows={12} readOnly />
-          </Card>
-
-          <Card>
-            <h3 className="text-sm font-semibold text-app-fg mb-2">Exemplo completo</h3>
-            <Textarea value={exemploCompleto} rows={18} readOnly />
-          </Card>
-        </div>
-      ) : (
-        <EmptyState
-          variant="card"
-          icon="warning"
-          title="Guia indisponivel"
-          description="Não foi possível carregar o formato JSON."
-        />
-      )}
-    </Modal>
-  );
-}
-
 type ImportJsonModalProps = {
   isOpen: boolean;
   onClose: (success?: boolean) => void;
@@ -482,7 +419,7 @@ type ImportJsonModalProps = {
 function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
   const [jsonInput, setJsonInput] = useState('');
   const [fileName, setFileName] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserFacingError | null>(null);
   const [importing, setImporting] = useState(false);
 
   useEffect(() => {
@@ -505,7 +442,7 @@ function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
       setFileName(file.name);
       setError(null);
     } catch {
-      setError('Arquivo JSON inválido.');
+      setError({ message: 'Arquivo JSON inválido.' });
     }
   }
 
@@ -517,7 +454,14 @@ function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
       await onImport(payload);
       onClose(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao importar JSON.');
+      setError(
+        isApiLikeError(err)
+          ? criarErroUsuario(err, 'Falha ao importar JSON.')
+          : {
+              message:
+                err instanceof Error ? err.message : 'Falha ao importar JSON.',
+            },
+      );
     } finally {
       setImporting(false);
     }
@@ -563,7 +507,7 @@ function ImportJsonModal({ isOpen, onClose, onImport }: ImportJsonModalProps) {
           placeholder='Cole o JSON no formato { "técnicas": [...] }'
         />
 
-        {error ? <ErrorAlert message={error} /> : null}
+        {error ? <ErrorAlert error={error} /> : null}
       </div>
     </Modal>
   );
@@ -582,8 +526,6 @@ export function TecnicasAdminPanel() {
   const [habilidadesModalOpen, setHabilidadesModalOpen] = useState(false);
   const [habilidadesItem, setHabilidadesItem] = useState<TecnicaAmaldicoadaCatalogo | null>(null);
   const [guiaModalOpen, setGuiaModalOpen] = useState(false);
-  const [guiaJson, setGuiaJson] = useState<GuiaImportacaoTecnicasJsonResponse | null>(null);
-  const [guiaLoading, setGuiaLoading] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
   const suplementosById = useMemo(() => {
@@ -597,7 +539,8 @@ export function TecnicasAdminPanel() {
       const data = await apiGetSuplementos();
       setSuplementos(data);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
     }
   }, [showToast]);
 
@@ -608,25 +551,13 @@ export function TecnicasAdminPanel() {
       const data = await apiAdminGetTecnicasAmaldicoadas(toApiFilters(appliedFilters));
       setItems(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
-      setErro(mensagem);
-      showToast(mensagem, 'error');
+      const userError = criarErroUsuario(error);
+      setErro(userError.message);
+      showToast(userError.message, 'error', { support: userError });
     } finally {
       setLoading(false);
     }
   }, [appliedFilters, showToast]);
-
-  const carregarGuiaJson = useCallback(async () => {
-    try {
-      setGuiaLoading(true);
-      const data = await apiAdminGetGuiaImportacaoTecnicasJson();
-      setGuiaJson(data);
-    } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
-    } finally {
-      setGuiaLoading(false);
-    }
-  }, [showToast]);
 
   const exportarTecnicas = useCallback(
     async (filtros?: ListTecnicasFilters & { id?: number }, nomeBase?: string) => {
@@ -640,7 +571,8 @@ export function TecnicasAdminPanel() {
         baixarJsonComoArquivo(data, fileName);
         showToast(`JSON exportado com ${data.totalTecnicas} técnica(s).`, 'success');
       } catch (error) {
-        showToast(extrairMensagemErro(error), 'error');
+        const userError = criarErroUsuario(error);
+        showToast(userError.message, 'error', { support: userError });
       }
     },
     [showToast],
@@ -787,12 +719,7 @@ export function TecnicasAdminPanel() {
           </Button>
           <Button
             variant="secondary"
-            onClick={() => {
-              setGuiaModalOpen(true);
-              if (!guiaJson) {
-                carregarGuiaJson();
-              }
-            }}
+            onClick={() => setGuiaModalOpen(true)}
           >
             <Icon name="info" className="w-4 h-4 mr-1" />
             Guia JSON
@@ -931,12 +858,11 @@ export function TecnicasAdminPanel() {
         }}
       />
 
-      <GuiaJsonModal
+      <JsonGuideModal
         isOpen={guiaModalOpen}
         onClose={() => setGuiaModalOpen(false)}
-        guia={guiaJson}
-        loading={guiaLoading}
-        onReload={carregarGuiaJson}
+        title="Ajuda JSON de técnicas amaldiçoadas"
+        loadGuide={apiAdminGetGuiaImportacaoTecnicasJson}
       />
 
       <ImportJsonModal

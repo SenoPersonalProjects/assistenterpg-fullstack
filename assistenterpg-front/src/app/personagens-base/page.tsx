@@ -11,10 +11,10 @@ import {
   apiGetMeusPersonagensBase,
   apiGetPersonagemBase,
   apiDeletePersonagemBase,
+  apiGetGuiaImportacaoPersonagemBaseJson,
   PersonagemBaseDetalhe,
   PersonagemBaseResumo,
-  extrairMensagemErro,
-  traduzirErro,
+  criarErroUsuario,
 } from '@/lib/api';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SectionTitle } from '@/components/ui/SectionTitle';
@@ -28,6 +28,7 @@ import { Icon } from '@/components/ui/Icon';
 import { PersonagemBaseListItem } from '@/components/personagem-base/create/PersonagemBaseListItem';
 import { ImportarPersonagemJsonModal } from '@/components/personagem-base/create/ImportarPersonagemJsonModal';
 import { PersonagemBasePreviewModal } from '@/components/personagem-base/PersonagemBasePreviewModal';
+import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
 import { resolverListaPaginada } from '@/lib/utils/lista-paginada';
 
 function mensagemErroListaPersonagens(error: unknown, contexto: 'carregar' | 'excluir'): string {
@@ -37,8 +38,7 @@ function mensagemErroListaPersonagens(error: unknown, contexto: 'carregar' | 'ex
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  const base = traduzirErro(code, extrairMensagemErro(error), status);
+  const base = criarErroUsuario(error).message;
 
   if (status === 404) {
     return contexto === 'carregar'
@@ -69,6 +69,7 @@ export default function PersonagensBasePage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [jsonGuideOpen, setJsonGuideOpen] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalItens, setTotalItens] = useState(0);
@@ -165,7 +166,9 @@ export default function PersonagensBasePage() {
       const detalhe = await apiGetPersonagemBase(personagem.id, false);
       setPreviewDetalhe(detalhe);
     } catch (error) {
-      setPreviewErro(`Não foi possível carregar a pré-visualização. ${extrairMensagemErro(error)}`);
+      setPreviewErro(
+        `Não foi possível carregar a pré-visualização. ${criarErroUsuario(error).message}`,
+      );
     } finally {
       setPreviewLoading(false);
     }
@@ -209,6 +212,15 @@ export default function PersonagensBasePage() {
               >
                 <Icon name="upload" className="w-4 h-4 mr-2" />
                 Importar JSON
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setJsonGuideOpen(true)}
+                className="font-bold"
+              >
+                <Icon name="info" className="w-4 h-4 mr-2" />
+                Ajuda JSON
               </Button>
               <Button 
                 variant="primary"
@@ -359,6 +371,13 @@ export default function PersonagensBasePage() {
         isOpen={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onImported={(personagemId) => router.push(`/personagens-base/${personagemId}`)}
+        onOpenGuide={() => setJsonGuideOpen(true)}
+      />
+      <JsonGuideModal
+        isOpen={jsonGuideOpen}
+        onClose={() => setJsonGuideOpen(false)}
+        title="Ajuda JSON de personagens"
+        loadGuide={apiGetGuiaImportacaoPersonagemBaseJson}
       />
 
       <PersonagemBasePreviewModal

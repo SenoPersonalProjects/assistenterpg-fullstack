@@ -4,9 +4,13 @@ import {
   apiAdicionarNpcSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { NpcSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
+import type {
+  NpcSessaoCampanha,
+  SessaoCampanhaDetalhe,
+  UserErrorState,
+} from '@/lib/types';
 import type {
   AjustesRecursosNpc,
   CampoAjusteRecursoNpc,
@@ -27,7 +31,7 @@ type UseSessaoNpcParams = {
   obterAjustesRecursosNpc: (npcSessaoId: number) => AjustesRecursosNpc;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   showToast: (mensagem: string, tipo?: 'success' | 'error' | 'warning' | 'info') => void;
   onNpcAdicionado?: () => void;
   onRemocaoConfirmada?: () => void;
@@ -187,7 +191,7 @@ export function useSessaoNpc({
         onNpcAdicionado?.();
         showToast('Aliado ou ameaça adicionado na cena.', 'success');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setAdicionandoNpc(false);
       }
@@ -279,7 +283,7 @@ export function useSessaoNpc({
         onNpcAdicionado?.();
         showToast('NPC simples adicionado na cena.', 'success');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setAdicionandoNpc(false);
       }
@@ -372,7 +376,7 @@ export function useSessaoNpc({
         sincronizarEstadosDerivados(atualizado);
         showToast(`Ficha de ${textoSeguro(npc.nome)} atualizada.`, 'success');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setSalvandoNpcId(null);
       }
@@ -414,7 +418,7 @@ export function useSessaoNpc({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setSalvandoNpcId(null);
         setCampoRecursoPendente(null);
@@ -464,7 +468,7 @@ export function useSessaoNpc({
         onRemocaoConfirmada?.();
         showToast('Aliado ou ameaça removido da cena.', 'warning');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setRemovendoNpcId(null);
       }

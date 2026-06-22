@@ -5,9 +5,11 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { useAuth } from '@/context/AuthContext';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import type { UserErrorState } from '@/lib/types';
 
 export function LoginForm() {
   const { login, loading } = useAuth();
@@ -15,7 +17,7 @@ export function LoginForm() {
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [lembrar, setLembrar] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const {
     captureRateLimit,
@@ -31,7 +33,8 @@ export function LoginForm() {
     try {
       await login(email, senha, lembrar);
     } catch (error) {
-      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
+      captureRateLimit(error);
+      setErro(criarErroUsuario(error));
     } finally {
       setSubmitting(false);
     }
@@ -66,7 +69,7 @@ export function LoginForm() {
         />
         Lembrar de mim
       </label>
-      {erro && <p className="text-sm text-red-600">{erro}</p>}
+      {erro ? <ErrorAlert message={erro} /> : null}
 
       <div className="flex items-center justify-between text-sm">
         <Link

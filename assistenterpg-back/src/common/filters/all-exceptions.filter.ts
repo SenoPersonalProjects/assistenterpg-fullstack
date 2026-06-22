@@ -9,11 +9,10 @@ import {
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { handlePrismaError } from '../exceptions/database.exception';
-import { BaseException } from '../exceptions/base.exception';
 import {
+  buildHttpErrorResponse,
   createErrorBase,
   ErrorResponseBody,
-  normalizeHttpExceptionPayload,
 } from '../http/error-response.util';
 import { getOrCreateTraceId } from '../http/request-trace.util';
 
@@ -57,32 +56,6 @@ function parseDbError(error: unknown): DbErrorPayload {
   }
 
   return { message: 'Erro de banco de dados' };
-}
-
-function buildHttpErrorResponse(
-  exception: HttpException,
-  request: Request,
-  traceId: string,
-): ErrorResponseBody {
-  const status = exception.getStatus();
-  const payload = normalizeHttpExceptionPayload(
-    status,
-    exception.getResponse(),
-    exception.message,
-    exception instanceof BaseException ? exception : undefined,
-  );
-
-  const response: ErrorResponseBody = {
-    ...createErrorBase(request, traceId, status),
-    ...payload,
-  };
-
-  if (process.env.NODE_ENV === 'development') {
-    response.stack = exception.stack;
-    response.errorType = exception.name;
-  }
-
-  return response;
 }
 
 @Catch()

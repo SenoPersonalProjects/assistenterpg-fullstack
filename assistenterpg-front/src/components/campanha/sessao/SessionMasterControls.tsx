@@ -11,6 +11,7 @@ import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import type {
   EstadoIniciativaAlternadaSessao,
   TipoCenaSessaoCampanha,
+  UserErrorState,
 } from '@/lib/types';
 import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
 
@@ -25,9 +26,9 @@ type SessionMasterControlsProps = {
   atualizandoCena: boolean;
   acaoTurnoPendente: AcaoControleTurno | null;
   encerrandoSessao: boolean;
-  erroCena?: string | null;
-  erroTurnos?: string | null;
-  erroEncerramento?: string | null;
+  erroCena?: UserErrorState | null;
+  erroTurnos?: UserErrorState | null;
+  erroEncerramento?: UserErrorState | null;
   onCenaTipoChange: (tipo: TipoCenaSessaoCampanha) => void;
   onCenaNomeChange: (nome: string) => void;
   onAtualizarCena: () => void;

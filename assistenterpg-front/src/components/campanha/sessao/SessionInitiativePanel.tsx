@@ -14,6 +14,7 @@ import type {
   EstadoIniciativaAlternadaSessao,
   ParticipanteIniciativaSessaoCampanha,
   TipoCenaSessaoCampanha,
+  UserErrorState,
 } from '@/lib/types';
 
 type SessionInitiativePanelProps = {
@@ -27,7 +28,7 @@ type SessionInitiativePanelProps = {
   sucessoReordenacao?: boolean;
   indiceIniciativaArrastado: number | null;
   indiceIniciativaHover: number | null;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   onAvancarTurno?: () => void;
   onVoltarTurno?: () => void;
   onSetIndiceIniciativaArrastado: (indice: number | null) => void;

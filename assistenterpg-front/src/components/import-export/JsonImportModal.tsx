@@ -5,6 +5,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
+import { criarErroUsuario } from '@/lib/api/error-handler';
+import type { UserFacingError } from '@/lib/types';
 
 type ImportPreview = {
   exportType: string;
@@ -22,6 +24,7 @@ type Props = {
   acceptedExportTypes: string[];
   typeLabels: Record<string, string>;
   onImport: (payload: Record<string, unknown>) => Promise<void>;
+  onOpenGuide?: () => void;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -91,12 +94,13 @@ export function JsonImportModal({
   acceptedExportTypes,
   typeLabels,
   onImport,
+  onOpenGuide,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [arquivoNome, setArquivoNome] = useState('');
   const [payload, setPayload] = useState<Record<string, unknown> | null>(null);
   const [erroArquivo, setErroArquivo] = useState<string | null>(null);
-  const [erroImportacao, setErroImportacao] = useState<string | null>(null);
+  const [erroImportacao, setErroImportacao] = useState<UserFacingError | null>(null);
   const [importando, setImportando] = useState(false);
 
   useEffect(() => {
@@ -158,7 +162,9 @@ export function JsonImportModal({
 
   async function handleImportar() {
     if (!payload) {
-      setErroImportacao('Selecione e valide um arquivo JSON antes de importar.');
+      setErroImportacao({
+        message: 'Selecione e valide um arquivo JSON antes de importar.',
+      });
       return;
     }
 
@@ -169,9 +175,7 @@ export function JsonImportModal({
       await onImport(payload);
       onClose();
     } catch (error) {
-      setErroImportacao(
-        error instanceof Error ? error.message : 'Falha ao importar o JSON.',
-      );
+      setErroImportacao(criarErroUsuario(error, 'Falha ao importar o JSON.'));
     } finally {
       setImportando(false);
     }
@@ -185,6 +189,12 @@ export function JsonImportModal({
       size="lg"
       footer={
         <>
+          {onOpenGuide ? (
+            <Button variant="secondary" onClick={onOpenGuide} disabled={importando}>
+              <Icon name="info" className="mr-2 h-4 w-4" />
+              Ajuda JSON
+            </Button>
+          ) : null}
           <Button variant="ghost" onClick={onClose} disabled={importando}>
             Cancelar
           </Button>
@@ -264,7 +274,7 @@ export function JsonImportModal({
           </div>
         ) : null}
 
-        {erroImportacao ? <ErrorAlert message={erroImportacao} /> : null}
+        {erroImportacao ? <ErrorAlert error={erroImportacao} /> : null}
       </div>
     </Modal>
   );

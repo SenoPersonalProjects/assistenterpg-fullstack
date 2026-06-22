@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   apiCriarConvite,
   apiListarAmigosConvidaveisCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { AmigoConvidavelCampanha } from '@/lib/types';
+import type { AmigoConvidavelCampanha , UserErrorState } from '@/lib/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -31,7 +31,7 @@ export function InviteFriendsPanel({ campanhaId, onInvite }: Props) {
   const [amigos, setAmigos] = useState<AmigoConvidavelCampanha[]>([]);
   const [papel, setPapel] = useState<PapelCampanha>('JOGADOR');
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [usuarioEmAcao, setUsuarioEmAcao] = useState<number | null>(null);
 
   const carregar = useCallback(async () => {
@@ -41,7 +41,7 @@ export function InviteFriendsPanel({ campanhaId, onInvite }: Props) {
       const data = await apiListarAmigosConvidaveisCampanha(campanhaId);
       setAmigos(data);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export function InviteFriendsPanel({ campanhaId, onInvite }: Props) {
       onInvite?.();
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setUsuarioEmAcao(null);
     }

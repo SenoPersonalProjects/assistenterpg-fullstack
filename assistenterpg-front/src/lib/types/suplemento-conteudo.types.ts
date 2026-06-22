@@ -32,6 +32,7 @@ import type {
   TipoHabilidadeCatalogo,
 } from './catalogo.types';
 import type { EquipamentoDetalhadoDto, EquipamentoResumoDto } from './inventario.types';
+import type { JsonImportGuide } from './json-guide.types';
 
 export type ConteudoComFonte = {
   fonte?: TipoFonte;
@@ -270,11 +271,7 @@ export type ImportarTecnicasJsonResultado = {
   avisos: string[];
 };
 
-export type GuiaImportacaoTecnicasJsonResponse = {
-  schema: string;
-  schemaVersion: number;
-  descricao: string;
-  regras: string[];
+export type GuiaImportacaoTecnicasJsonResponse = JsonImportGuide & {
   exemplos: {
     minimo: ImportarTecnicasJsonPayload;
     completo: ImportarTecnicasJsonPayload;

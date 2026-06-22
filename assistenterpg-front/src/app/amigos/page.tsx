@@ -25,9 +25,9 @@ import {
   apiNotificarAmizadesAtualizadas,
   apiRecusarSolicitacaoAmizade,
   apiRemoverAmizade,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { AmigoResumo, SolicitacoesAmizade } from '@/lib/types';
+import type { AmigoResumo, SolicitacoesAmizade , UserErrorState } from '@/lib/types';
 
 const SOLICITACOES_INICIAIS: SolicitacoesAmizade = {
   recebidas: [],
@@ -45,7 +45,7 @@ export default function AmigosPage() {
     SOLICITACOES_INICIAIS,
   );
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [acaoId, setAcaoId] = useState<number | null>(null);
 
   const carregar = useCallback(async () => {
@@ -61,7 +61,7 @@ export default function AmigosPage() {
       setSolicitacoes(solicitacoesData);
       apiNotificarAmizadesAtualizadas(solicitacoesData.recebidas.length);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export default function AmigosPage() {
       showToast(mensagem, 'success');
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setAcaoId(null);
     }
@@ -111,7 +111,7 @@ export default function AmigosPage() {
       showToast('Solicitação enviada.', 'success');
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     }
   }
 

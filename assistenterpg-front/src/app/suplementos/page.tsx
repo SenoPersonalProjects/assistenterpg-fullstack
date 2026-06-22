@@ -12,7 +12,7 @@ import {
   apiDeleteSuplemento,
   SuplementoCatalogo,
 } from '@/lib/api/suplementos';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { SuplementoCard } from '@/components/suplemento/SuplementoCard';
 import { ModalSuplementoForm } from '@/components/suplemento/ModalSuplementoForm';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +26,7 @@ import { Card } from '@/components/ui/Card';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { useConfirm } from '@/hooks/useConfirm';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import type { UserErrorState } from '@/lib/types';
 
 type FiltroStatus = 'TODOS' | 'ATIVOS' | 'INATIVOS';
 
@@ -43,7 +44,7 @@ export default function SuplementosPage() {
 
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [processando, setProcessando] = useState<number | null>(null);
 
   // Modal admin
@@ -63,7 +64,7 @@ export default function SuplementosPage() {
       const data = await apiGetSuplementos();
       setSuplementos(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -91,7 +92,7 @@ export default function SuplementosPage() {
       );
       showToast(`Suplemento "${suplemento.nome}" ativado!`, 'success');
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       showToast(mensagem, 'error');
     } finally {
       setProcessando(null);
@@ -107,7 +108,7 @@ export default function SuplementosPage() {
       );
       showToast(`Suplemento "${suplemento.nome}" desativado.`, 'info');
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       showToast(mensagem, 'error');
     } finally {
       setProcessando(null);
@@ -137,7 +138,7 @@ export default function SuplementosPage() {
           setSuplementos((prev) => prev.filter((s) => s.id !== suplemento.id));
           showToast('Suplemento deletado com sucesso!', 'success');
         } catch (error) {
-          const mensagem = extrairMensagemErro(error);
+          const mensagem = criarErroUsuario(error);
           showToast(mensagem, 'error');
         } finally {
           setProcessando(null);

@@ -21,7 +21,7 @@ import {
   apiAdminCreateCaminho,
   apiAdminUpdateCaminho,
   apiGetSuplementos,
-  extrairMensagemErro,
+  criarErroUsuario,
   type CaminhoCatalogo,
   type TrilhaCatalogo,
   type SuplementoCatalogo,
@@ -29,6 +29,7 @@ import {
   type CreateCaminhoPayload,
   type UpdateCaminhoPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type CaminhoFormState = {
   trilhaId: string;
@@ -122,7 +123,7 @@ function CaminhoAdminFormModal({ isOpen, onClose, trilhas, suplementos, caminho 
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -199,7 +200,7 @@ function CaminhoAdminFormModal({ isOpen, onClose, trilhas, suplementos, caminho 
 export function CaminhosAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<CaminhoExtended[]>([]);
   const [trilhas, setTrilhas] = useState<TrilhaCatalogo[]>([]);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
@@ -232,7 +233,7 @@ export function CaminhosAdminPanel() {
       setTrilhas(trilhasData);
       setSuplementos(suplementosData);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     }
   }, [showToast]);
 
@@ -249,7 +250,7 @@ export function CaminhosAdminPanel() {
       const data = await apiAdminGetCaminhosDaTrilha(Number(trilhaFiltro));
       setItems(data as CaminhoExtended[]);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {

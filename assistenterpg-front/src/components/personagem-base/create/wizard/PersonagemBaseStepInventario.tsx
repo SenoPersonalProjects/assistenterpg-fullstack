@@ -13,8 +13,9 @@ import type {
 import {
   apiCreateEquipamentoHomebrewInline,
   apiPreviewItensInventario,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { useToast } from '@/context/ToastContext';
 import { getGrauXamaPorPrestigio } from '@/lib/utils/prestigio';
 import {
@@ -49,6 +50,7 @@ import { InventarioAlertaVestir } from '../InventarioAlertaVestir';
 import { HomebrewForm } from '@/components/suplemento/HomebrewForm';
 import { StatusPublicacao, TipoHomebrewConteudo } from '@/lib/types/homebrew-enums';
 import type { CreateHomebrewDto, EquipamentoHomebrewInlineResultado } from '@/lib/api/homebrews';
+import type { UserErrorState } from '@/lib/types';
 
 type Props = {
   forca: number;
@@ -85,7 +87,7 @@ export function PersonagemBaseStepInventario(props: Props) {
 
   // Estados básicos
   const [modalCriarEquipamentoAberto, setModalCriarEquipamentoAberto] = useState(false);
-  const [erroCriarEquipamento, setErroCriarEquipamento] = useState<string | null>(null);
+  const [erroCriarEquipamento, setErroCriarEquipamento] = useState<UserErrorState | null>(null);
   const equipamentos = useMemo(() => props.equipamentos, [props.equipamentos]);
   const modificacoes = props.modificacoes;
 
@@ -643,7 +645,7 @@ export function PersonagemBaseStepInventario(props: Props) {
         setStepAtual('equipamento');
         showToast('Equipamento homebrew criado, habilitado e selecionado.', 'success');
       } catch (error) {
-        setErroCriarEquipamento(extrairMensagemErro(error));
+        setErroCriarEquipamento(criarErroUsuario(error));
         throw error;
       }
     },
@@ -1329,11 +1331,9 @@ export function PersonagemBaseStepInventario(props: Props) {
           <p className="text-sm text-app-muted">
             Crie um equipamento homebrew reutilizável e já o deixe pronto para entrar neste inventário.
           </p>
-          {erroCriarEquipamento && (
-            <div className="rounded-lg border border-app-danger/30 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
-              {erroCriarEquipamento}
-            </div>
-          )}
+          {erroCriarEquipamento ? (
+            <ErrorAlert message={erroCriarEquipamento} />
+          ) : null}
           <HomebrewForm
             initialValues={{
               tipo: TipoHomebrewConteudo.EQUIPAMENTO,

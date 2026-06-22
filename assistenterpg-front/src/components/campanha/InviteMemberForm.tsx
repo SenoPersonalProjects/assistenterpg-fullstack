@@ -1,10 +1,12 @@
 ﻿'use client';
 
 import { useState } from 'react';
-import { extrairMensagemErro } from '@/lib/api';
+import { criarErroUsuario } from '@/lib/api';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import type { UserErrorState } from '@/lib/types';
 
 type Props = {
   onInvite: (data: { email?: string; apelido?: string; papel: 'MESTRE' | 'JOGADOR' | 'OBSERVADOR' }) => Promise<void>;
@@ -20,7 +22,7 @@ export function InviteMemberForm({ onInvite }: Props) {
   const [destino, setDestino] = useState('');
   const [papel, setPapel] = useState<'MESTRE' | 'JOGADOR' | 'OBSERVADOR'>('JOGADOR');
   const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -47,7 +49,7 @@ export function InviteMemberForm({ onInvite }: Props) {
       const mensagem =
         error instanceof Error && error.message
           ? error.message
-          : extrairMensagemErro(error);
+          : criarErroUsuario(error);
       setErro(mensagem);
     } finally {
       setLoading(false);
@@ -71,7 +73,7 @@ export function InviteMemberForm({ onInvite }: Props) {
         options={PAPEL_OPTIONS}
         helperText="Mestres podem gerenciar sessões, jogadores atuam nas cenas, observadores só assistem."
       />
-      {erro && <p className="text-sm text-app-danger">{erro}</p>}
+      {erro ? <ErrorAlert message={erro} /> : null}
       {sucesso && <p className="text-sm text-app-success">{sucesso}</p>}
       <Button type="submit" disabled={loading}>
         {loading ? 'Enviando...' : 'Enviar convite'}

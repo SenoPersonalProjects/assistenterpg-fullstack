@@ -9,7 +9,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Card } from '@/components/ui/Card';
 import type {
   EstadoIniciativaAlternadaSessao,
-  TipoCenaSessaoCampanha
+  TipoCenaSessaoCampanha,
+  UserErrorState,
 } from '@/lib/types';
 
 type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
@@ -29,7 +30,7 @@ type SessionOperationalBarProps = {
   podeControlarSessao: boolean;
   totalParticipantesOnline?: number;
   totalParticipantes?: number;
-  erro?: string | null;
+  erro?: UserErrorState | null;
   acaoTurnoPendente: AcaoControleTurno | null;
   onAvancarTurno: () => void;
   onPularTurno: () => void;

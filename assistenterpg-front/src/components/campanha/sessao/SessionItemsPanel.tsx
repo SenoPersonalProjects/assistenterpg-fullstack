@@ -14,7 +14,7 @@ import {
   apiRecusarTransferenciaItemSessaoCampanha,
   apiRevelarItemSessaoCampanha,
   apiSolicitarTransferenciaItemSessaoCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
   type CategoriaEquipamentoCodigo,
   type DestinoTransferenciaItemSessao,
   type ItemSessaoCampanhaDto,
@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/context/ToastContext';
+import type { UserErrorState } from '@/lib/types';
 
 type FiltroItensSessao = 'TODOS' | 'SEM_PORTADOR' | 'MEUS' | 'PERSONAGEM';
 type EdicaoAberta =
@@ -82,7 +83,7 @@ export function SessionItemsPanel({
   const [ehMestre, setEhMestre] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [filtro, setFiltro] = useState<FiltroItensSessao>('TODOS');
   const [personagemFiltroId, setPersonagemFiltroId] = useState('');
   const [criacaoAberta, setCriacaoAberta] = useState(false);
@@ -146,7 +147,7 @@ export function SessionItemsPanel({
         }
         await carregarRef.current();
       } catch (error) {
-        const mensagem = extrairMensagemErro(error);
+        const mensagem = criarErroUsuario(error);
         setErro(mensagem);
         showToast(mensagem, 'error');
       }
@@ -207,7 +208,7 @@ export function SessionItemsPanel({
         setTemplates([]);
       }
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setCarregando(false);
     }
@@ -338,7 +339,7 @@ export function SessionItemsPanel({
       setCriacaoAberta(false);
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }
@@ -378,7 +379,7 @@ export function SessionItemsPanel({
       setEdicao(null);
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvandoEdicao(false);
     }
@@ -394,7 +395,7 @@ export function SessionItemsPanel({
       });
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     }
   }
 
@@ -406,7 +407,7 @@ export function SessionItemsPanel({
       });
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     }
   }
 
@@ -419,7 +420,7 @@ export function SessionItemsPanel({
       });
       await carregar();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     }
   }
 
@@ -465,7 +466,7 @@ export function SessionItemsPanel({
       showToast('Solicitação de transferencia enviada.', 'success');
       await carregar();
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     }

@@ -14,6 +14,7 @@ import type {
   InfoGrausTreinamento,
   PericiaElegivelTreinamento,
   TecnicaAmaldicoadaCatalogo,
+  JsonImportGuide,
 } from '@/lib/types';
 
 type MeusPersonagensQuery = {
@@ -252,6 +253,11 @@ export async function apiImportarPersonagemBase(
     ...payload,
     nomeSobrescrito: payload.nomeSobrescrito?.trim() || undefined,
   });
+  return data;
+}
+
+export async function apiGetGuiaImportacaoPersonagemBaseJson(): Promise<JsonImportGuide> {
+  const { data } = await apiClient.get('/personagens-base/importar-json/guia');
   return data;
 }
 

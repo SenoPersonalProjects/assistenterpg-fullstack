@@ -19,13 +19,14 @@ import {
   apiAdminCreateClasse,
   apiAdminUpdateClasse,
   apiGetSuplementos,
-  extrairMensagemErro,
+  criarErroUsuario,
   type ClasseCatalogo,
   type SuplementoCatalogo,
   type TipoFonte,
   type CreateClassePayload,
   type UpdateClassePayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type ClasseFormState = {
   nome: string;
@@ -110,7 +111,7 @@ function ClasseAdminFormModal({ isOpen, onClose, suplementos, classe }: ModalPro
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -171,7 +172,7 @@ function ClasseAdminFormModal({ isOpen, onClose, suplementos, classe }: ModalPro
 export function ClassesAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<ClasseCatalogo[]>([]);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [busca, setBusca] = useState('');
@@ -201,7 +202,7 @@ export function ClassesAdminPanel() {
       setItems(classesData);
       setSuplementos(suplementosData);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {

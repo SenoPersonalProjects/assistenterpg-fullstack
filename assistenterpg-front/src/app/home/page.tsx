@@ -11,8 +11,8 @@ import {
   apiGetMeusPersonagensBase 
 } from '@/lib/api';
 import { apiGetMeusHomebrews } from '@/lib/api/homebrews';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
-import type { CampanhaResumo, PersonagemBaseResumo } from '@/lib/types';
+import { criarErroUsuario } from '@/lib/api/error-handler';
+import type { CampanhaResumo, PersonagemBaseResumo , UserErrorState } from '@/lib/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Icon, type IconName } from '@/components/ui/Icon';
@@ -34,7 +34,7 @@ export default function HomePage() {
   const [campanhasRecentes, setCampanhasRecentes] = useState<CampanhaResumo[]>([]);
   const [personagensRecentes, setPersonagensRecentes] = useState<PersonagemBaseResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const statsCards: Array<{
     label: string;
     value: number;
@@ -86,7 +86,7 @@ export default function HomePage() {
       setPersonagensRecentes(personagens.items);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {

@@ -21,6 +21,7 @@ import type {
   MensagemChatSessao,
   SessaoCampanhaRelatorio,
   SessaoCampanhaDetalhe,
+  UserErrorState,
 } from '@/lib/types';
 
 type SessionSidebarPanelProps = {
@@ -39,12 +40,12 @@ type SessionSidebarPanelProps = {
   sessaoEncerrada: boolean;
   relatorioSessao: SessaoCampanhaRelatorio | null;
   loadingRelatorio?: boolean;
-  erroRelatorio?: string | null;
+  erroRelatorio?: UserErrorState | null;
   podeControlarSessao: boolean;
   desfazendoEventoId: number | null;
-  erroEventos?: string | null;
-  erroChat?: string | null;
-  erroRolagens?: string | null;
+  erroEventos?: UserErrorState | null;
+  erroChat?: UserErrorState | null;
+  erroRolagens?: UserErrorState | null;
   enviandoMensagem: boolean;
   enviandoRolagem: boolean;
   mensagem: string;

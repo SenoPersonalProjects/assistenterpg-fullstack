@@ -22,7 +22,7 @@ import {
   apiAdminCreateVariacaoDaHabilidadeTecnica,
   apiAdminUpdateVariacaoDaHabilidadeTecnica,
   apiAdminDeleteVariacaoDaHabilidadeTecnica,
-  extrairMensagemErro,
+  criarErroUsuario,
   TipoExecucao,
   AreaEfeito,
   TipoDano,
@@ -37,6 +37,7 @@ import {
   type CreateVariacaoHabilidadeTecnicaPayload,
   type UpdateVariacaoHabilidadeTecnicaPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type Props = {
   isOpen: boolean;
@@ -779,7 +780,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
 
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -1398,7 +1399,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
 
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -1814,7 +1815,7 @@ type HabilidadeVariacoesModalProps = {
 function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: HabilidadeVariacoesModalProps) {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<VariacaoHabilidadeTecnicaCatalogo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<VariacaoHabilidadeTecnicaCatalogo | null>(null);
@@ -1830,7 +1831,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
       const data = await apiAdminGetVariacoesDaHabilidadeTecnica(habilidadeId);
       setItems(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -1852,7 +1853,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
       await carregarDados();
       await onChanged();
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     }
   }
 
@@ -1952,7 +1953,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
 export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<HabilidadeTecnicaCatalogo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<HabilidadeTecnicaCatalogo | null>(null);
@@ -1975,7 +1976,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
       const data = await apiAdminGetHabilidadesDaTecnica(tecnicaId);
       setItems(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -1996,7 +1997,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
       showToast('Habilidade removida com sucesso.', 'success');
       await carregarDados();
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     }
   }
 

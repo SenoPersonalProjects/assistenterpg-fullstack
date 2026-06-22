@@ -20,13 +20,14 @@ import {
   apiAdminCreateCla,
   apiAdminUpdateCla,
   apiGetSuplementos,
-  extrairMensagemErro,
+  criarErroUsuario,
   type ClaCatalogo,
   type SuplementoCatalogo,
   type TipoFonte,
   type CreateClaPayload,
   type UpdateClaPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type ClaComTecnicas = ClaCatalogo & {
   tecnicasHereditarias?: Array<{ id: number }>;
@@ -130,7 +131,7 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -202,7 +203,7 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
 export function ClasAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<ClaComTecnicas[]>([]);
   const [suplementos, setSuplementos] = useState<SuplementoCatalogo[]>([]);
   const [busca, setBusca] = useState('');
@@ -229,7 +230,7 @@ export function ClasAdminPanel() {
       setItems(data as ClaComTecnicas[]);
       setSuplementos(suplementosData);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {

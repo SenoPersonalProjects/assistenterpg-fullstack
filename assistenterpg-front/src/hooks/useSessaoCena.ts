@@ -1,6 +1,10 @@
 import { useCallback, useState } from 'react';
-import { apiAtualizarCenaSessaoCampanha, extrairMensagemErro } from '@/lib/api';
-import type { SessaoCampanhaDetalhe, TipoCenaSessaoCampanha } from '@/lib/types';
+import { apiAtualizarCenaSessaoCampanha, criarErroUsuario } from '@/lib/api';
+import type {
+  SessaoCampanhaDetalhe,
+  TipoCenaSessaoCampanha,
+  UserErrorState,
+} from '@/lib/types';
 
 type UseSessaoCenaParams = {
   campanhaId: number;
@@ -8,7 +12,7 @@ type UseSessaoCenaParams = {
   detalhe: SessaoCampanhaDetalhe | null;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   showToast: (mensagem: string, tipo?: 'success' | 'error' | 'warning' | 'info') => void;
 };
 
@@ -52,7 +56,7 @@ export function useSessaoCena({
         sincronizarEstadosDerivados(atualizado);
         showToast('Cena atualizada com sucesso.', 'success');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setAtualizandoCena(false);
       }

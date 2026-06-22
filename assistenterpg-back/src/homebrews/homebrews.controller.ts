@@ -112,6 +112,12 @@ export class HomebrewsController {
     return this.homebrewsService.exportarGrupo(id, req.user.id);
   }
 
+  @Get('importar-json/guia')
+  getGuiaImportacaoJson(@Request() req: AuthenticatedRequest) {
+    const { usuarioId, isAdmin } = this.getUserContext(req);
+    return this.homebrewsService.getGuiaImportacaoJson(usuarioId, isAdmin);
+  }
+
   @Get()
   listar(
     @Query() filtros: FiltrarHomebrewsDto,

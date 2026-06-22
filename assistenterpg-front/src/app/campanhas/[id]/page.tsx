@@ -7,9 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import {
   apiCriarConvite,
   apiGetCampanhaById,
-  extrairMensagemErro,
+  criarErroUsuario,
   formatarErroComContexto,
-  traduzirErro,
 } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -50,8 +49,7 @@ function mensagemErroCarregarCampanha(error: unknown): string {
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  const base = traduzirErro(code, extrairMensagemErro(error), status);
+  const base = criarErroUsuario(error).message;
 
   if (status === 404) {
     return formatarErroComContexto('Campanha não encontrada.', error, {
@@ -91,8 +89,7 @@ function mensagemErroConvidarMembro(error: unknown): string {
       (error as { body?: { statusCode?: number } })?.body?.statusCode ??
       0,
   );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  const base = traduzirErro(code, extrairMensagemErro(error), status);
+  const base = criarErroUsuario(error).message;
 
   if (status === 409) {
     return formatarErroComContexto('Não foi possível enviar o convite. Usuário já e membro.', error, {

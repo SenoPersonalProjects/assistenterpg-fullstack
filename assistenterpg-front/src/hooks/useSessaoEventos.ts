@@ -2,9 +2,13 @@ import { useCallback, useState } from 'react';
 import {
   apiDesfazerEventoSessaoCampanha,
   apiListarEventosSessaoCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { EventoSessaoTimeline, SessaoCampanhaDetalhe } from '@/lib/types';
+import type {
+  EventoSessaoTimeline,
+  SessaoCampanhaDetalhe,
+  UserErrorState,
+} from '@/lib/types';
 
 type UseSessaoEventosParams = {
   idsValidos: boolean;
@@ -14,7 +18,7 @@ type UseSessaoEventosParams = {
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
   setEventosSessao: (eventos: EventoSessaoTimeline[]) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   onEventoDesfeito?: () => void;
 };
 
@@ -58,7 +62,7 @@ export function useSessaoEventos({
         setEventosSessao(eventosAtualizados);
         onEventoDesfeito?.();
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setDesfazendoEventoId(null);
       }

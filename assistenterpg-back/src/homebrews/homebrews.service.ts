@@ -1,11 +1,29 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
+  AlcanceArma,
+  AreaEfeito,
+  CategoriaEquipamento,
+  ComplexidadeMaldicao,
+  EmpunhaduraArma,
   Prisma,
+  ProficienciaArma,
+  ProficienciaProtecao,
   StatusPublicacao,
+  SubtipoArmaDistancia,
   TipoAmaldicoado,
+  TipoAcessorio,
+  TipoArma,
+  TipoDano,
   TipoEquipamento,
+  TipoExecucao,
+  TipoExplosivo,
   TipoFonte,
   TipoHomebrewConteudo,
+  TipoModificacao,
+  TipoProtecao,
+  TipoReducaoDano,
+  TipoTecnicaAmaldicoada,
+  TipoUsoEquipamento,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHomebrewDto } from './dto/create-homebrew.dto';
@@ -35,6 +53,11 @@ import { validateHomebrewTrilhaCustom } from './validators/validate-homebrew-tri
 import { validateHomebrewCaminhoCustom } from './validators/validate-homebrew-caminho';
 import { validateHomebrewClaCustom } from './validators/validate-homebrew-cla';
 import { validateHomebrewPoderCustom } from './validators/validate-homebrew-poder';
+import {
+  buildEnumReference,
+  buildReference,
+  JsonImportGuide,
+} from 'src/common/json-import/json-import-guide.types';
 
 const homebrewDetalhadoInclude = {
   usuario: {
@@ -98,6 +121,594 @@ export class HomebrewsService {
   private readonly logger = new Logger(HomebrewsService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  async getGuiaImportacaoJson(
+    usuarioId: number,
+    isAdmin = false,
+  ): Promise<JsonImportGuide> {
+    const [
+      classes,
+      clas,
+      origens,
+      trilhas,
+      caminhos,
+      pericias,
+      proficiencias,
+      tiposGrau,
+      habilidades,
+      tecnicas,
+      equipamentos,
+      modificacoes,
+      suplementos,
+      homebrews,
+    ] = await Promise.all([
+      this.prisma.classe.findMany({
+        select: { id: true, nome: true, descricao: true, fonte: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.cla.findMany({
+        select: { id: true, nome: true, descricao: true, fonte: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.origem.findMany({
+        select: { id: true, nome: true, descricao: true, fonte: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.trilha.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          classeId: true,
+          fonte: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.caminho.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          trilhaId: true,
+          fonte: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.pericia.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          atributoBase: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.proficiencia.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          categoria: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.tipoGrau.findMany({
+        select: { id: true, codigo: true, nome: true, descricao: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.habilidade.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          origem: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.tecnicaAmaldicoada.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          fonte: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.equipamentoCatalogo.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          categoria: true,
+          fonte: true,
+          usuarioId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.modificacaoEquipamento.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          fonte: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.suplemento.findMany({
+        where: isAdmin ? {} : { status: StatusPublicacao.PUBLICADO },
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          status: true,
+          versao: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.homebrew.findMany({
+        where: isAdmin
+          ? {}
+          : { OR: [{ usuarioId }, { status: StatusPublicacao.PUBLICADO }] },
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          status: true,
+          usuarioId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+    ]);
+
+    const exemploMinimo = {
+      exportType: 'homebrew',
+      schemaVersion: 1,
+      item: {
+        nome: 'Homebrew exemplo',
+        tipo: TipoHomebrewConteudo.PODER_GENERICO,
+        status: StatusPublicacao.RASCUNHO,
+        dados: {
+          requisitos: ['Nivel 1'],
+          efeitos: ['Efeito descritivo'],
+          mecanicas: { bonus: 1 },
+        },
+      },
+    };
+
+    const exemploCompleto = {
+      exportType: 'homebrew-group',
+      schemaVersion: 1,
+      exportedAt: new Date(0).toISOString(),
+      group: {
+        nome: 'Pacote de homebrews',
+        descricao: 'Importa multiplos homebrews em um grupo.',
+      },
+      items: [
+        {
+          codigo: 'HB_ARMA_EXEMPLO',
+          nome: 'Arma homebrew',
+          descricao: 'Equipamento customizado.',
+          tipo: TipoHomebrewConteudo.EQUIPAMENTO,
+          status: StatusPublicacao.RASCUNHO,
+          versao: '1.0.0',
+          tags: ['json', 'exemplo'],
+          dados: {
+            tipo: TipoEquipamento.ARMA,
+            categoria: CategoriaEquipamento.CATEGORIA_1,
+            espacos: 1,
+            tipoUso: TipoUsoEquipamento.GERAL,
+            proficienciaArma: ProficienciaArma.SIMPLES,
+            empunhaduras: [EmpunhaduraArma.UMA_MAO],
+            tipoArma: TipoArma.CORPO_A_CORPO,
+            danos: [
+              {
+                tipoDano: TipoDano.IMPACTO,
+                rolagem: '1d6',
+                valorFlat: 0,
+              },
+            ],
+          },
+        },
+        {
+          codigo: 'HB_TEC_EXEMPLO',
+          nome: 'Tecnica homebrew',
+          tipo: TipoHomebrewConteudo.TECNICA_AMALDICOADA,
+          status: StatusPublicacao.RASCUNHO,
+          dados: {
+            tipo: TipoTecnicaAmaldicoada.NAO_INATA,
+            requisitos: { nivel: 3 },
+            habilidades: [
+              {
+                nome: 'Habilidade homebrew',
+                descricao: 'Descricao da habilidade.',
+                execucao: TipoExecucao.ACAO_PADRAO,
+                efeito: 'Efeito principal.',
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    return {
+      schema: 'assistenterpg.homebrews',
+      schemaVersion: 1,
+      descricao:
+        'Guia de importacao JSON para homebrews unitarios e grupos de homebrews.',
+      regras: [
+        'exportType deve ser homebrew ou homebrew-group.',
+        'schemaVersion deve ser 1.',
+        'item.dados/items[].dados varia conforme o tipo do homebrew.',
+        'Para EQUIPAMENTO, dados.tipo define o subtipo validado.',
+        'status ausente vira RASCUNHO; status informado deve usar enum StatusPublicacao.',
+      ],
+      exportTypes: ['homebrew', 'homebrew-group'],
+      campos: [
+        {
+          path: 'exportType',
+          type: 'homebrew | homebrew-group',
+          required: true,
+          description: 'Define item unico ou grupo.',
+        },
+        {
+          path: 'item.nome / items[].nome',
+          type: 'string',
+          required: true,
+          description: 'Nome do homebrew.',
+        },
+        {
+          path: 'item.tipo / items[].tipo',
+          type: 'TipoHomebrewConteudo',
+          required: true,
+          description: 'Tipo principal do conteudo homebrew.',
+          reference: 'tipoHomebrewConteudo',
+        },
+        {
+          path: 'item.status / items[].status',
+          type: 'StatusPublicacao',
+          required: false,
+          description: 'Status inicial; padrao RASCUNHO.',
+          reference: 'statusPublicacao',
+        },
+        {
+          path: 'item.dados / items[].dados',
+          type: 'object',
+          required: true,
+          description: 'Payload validado por subtipo.',
+        },
+        {
+          path: 'dados.tipo',
+          type: 'TipoEquipamento',
+          required: true,
+          description:
+            'Obrigatorio quando item.tipo/items[].tipo for EQUIPAMENTO.',
+          reference: 'tipoEquipamento',
+        },
+        {
+          path: 'dados.pericias[] / dados.periciaCodigo',
+          type: 'string | string[]',
+          required: false,
+          description: 'Codigos de pericias quando o subtipo aceitar pericias.',
+          reference: 'pericias',
+        },
+        {
+          path: 'dados.proficiencias[]',
+          type: 'string[]',
+          required: false,
+          description:
+            'Codigos de proficiencias quando o subtipo aceitar proficiencias.',
+          reference: 'proficiencias',
+        },
+        {
+          path: 'dados.classeId / dados.trilhaId / dados.caminhoId',
+          type: 'number',
+          required: false,
+          description:
+            'IDs de catalogos base referenciados por trilhas/caminhos.',
+        },
+        {
+          path: 'dados.habilidades[] / dados.tecnicas[]',
+          type: 'object[]',
+          required: false,
+          description:
+            'Estruturas livres ou referencias usadas pelos validadores do subtipo.',
+          reference: 'habilidades',
+        },
+      ],
+      exemplos: {
+        minimo: exemploMinimo,
+        completo: exemploCompleto,
+      },
+      referencias: [
+        buildEnumReference(
+          'tipoHomebrewConteudo',
+          'Tipos de homebrew',
+          Object.values(TipoHomebrewConteudo),
+        ),
+        buildEnumReference(
+          'statusPublicacao',
+          'Status de publicacao',
+          Object.values(StatusPublicacao),
+        ),
+        buildEnumReference(
+          'tipoEquipamento',
+          'Tipos de equipamento',
+          Object.values(TipoEquipamento),
+        ),
+        buildEnumReference(
+          'categoriaEquipamento',
+          'Categorias de equipamento',
+          Object.values(CategoriaEquipamento),
+        ),
+        buildEnumReference(
+          'tipoUsoEquipamento',
+          'Tipos de uso de equipamento',
+          Object.values(TipoUsoEquipamento),
+        ),
+        buildEnumReference(
+          'tipoAmaldicoado',
+          'Tipos de amaldicoado',
+          Object.values(TipoAmaldicoado),
+        ),
+        buildEnumReference(
+          'proficienciaArma',
+          'Proficiencias de arma',
+          Object.values(ProficienciaArma),
+        ),
+        buildEnumReference(
+          'empunhaduraArma',
+          'Empunhaduras',
+          Object.values(EmpunhaduraArma),
+        ),
+        buildEnumReference(
+          'tipoArma',
+          'Tipos de arma',
+          Object.values(TipoArma),
+        ),
+        buildEnumReference(
+          'subtipoArmaDistancia',
+          'Subtipos de arma a distancia',
+          Object.values(SubtipoArmaDistancia),
+        ),
+        buildEnumReference(
+          'alcanceArma',
+          'Alcances de arma',
+          Object.values(AlcanceArma),
+        ),
+        buildEnumReference(
+          'tipoDano',
+          'Tipos de dano',
+          Object.values(TipoDano),
+        ),
+        buildEnumReference(
+          'proficienciaProtecao',
+          'Proficiencias de protecao',
+          Object.values(ProficienciaProtecao),
+        ),
+        buildEnumReference(
+          'tipoProtecao',
+          'Tipos de protecao',
+          Object.values(TipoProtecao),
+        ),
+        buildEnumReference(
+          'tipoReducaoDano',
+          'Tipos de reducao de dano',
+          Object.values(TipoReducaoDano),
+        ),
+        buildEnumReference(
+          'tipoAcessorio',
+          'Tipos de acessorio',
+          Object.values(TipoAcessorio),
+        ),
+        buildEnumReference(
+          'tipoExplosivo',
+          'Tipos de explosivo',
+          Object.values(TipoExplosivo),
+        ),
+        buildEnumReference(
+          'complexidadeMaldicao',
+          'Complexidades de maldicao',
+          Object.values(ComplexidadeMaldicao),
+        ),
+        buildEnumReference(
+          'tipoModificacao',
+          'Tipos de modificacao',
+          Object.values(TipoModificacao),
+        ),
+        buildEnumReference(
+          'tipoTecnicaAmaldicoada',
+          'Tipos de tecnica',
+          Object.values(TipoTecnicaAmaldicoada),
+        ),
+        buildEnumReference(
+          'tipoExecucao',
+          'Tipos de execucao',
+          Object.values(TipoExecucao),
+        ),
+        buildEnumReference(
+          'areaEfeito',
+          'Areas de efeito',
+          Object.values(AreaEfeito),
+        ),
+        buildEnumReference(
+          'tipoFonte',
+          'Tipos de fonte',
+          Object.values(TipoFonte),
+        ),
+        buildReference(
+          'classes',
+          'Classes',
+          classes.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { fonte: item.fonte },
+          })),
+        ),
+        buildReference(
+          'clas',
+          'Clas',
+          clas.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { fonte: item.fonte },
+          })),
+        ),
+        buildReference(
+          'origens',
+          'Origens',
+          origens.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { fonte: item.fonte },
+          })),
+        ),
+        buildReference(
+          'trilhas',
+          'Trilhas',
+          trilhas.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { classeId: item.classeId, fonte: item.fonte },
+          })),
+        ),
+        buildReference(
+          'caminhos',
+          'Caminhos',
+          caminhos.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { trilhaId: item.trilhaId, fonte: item.fonte },
+          })),
+        ),
+        buildReference(
+          'pericias',
+          'Pericias',
+          pericias.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { atributoBase: item.atributoBase },
+          })),
+        ),
+        buildReference(
+          'proficiencias',
+          'Proficiencias',
+          proficiencias.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { tipo: item.tipo, categoria: item.categoria },
+          })),
+        ),
+        buildReference(
+          'tiposGrau',
+          'Tipos de grau',
+          tiposGrau.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+          })),
+        ),
+        buildReference(
+          'habilidades',
+          'Habilidades',
+          habilidades.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { tipo: item.tipo, origem: item.origem },
+          })),
+        ),
+        buildReference(
+          'tecnicas',
+          'Tecnicas',
+          tecnicas.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { tipo: item.tipo, fonte: item.fonte },
+          })),
+        ),
+        buildReference(
+          'equipamentos',
+          'Equipamentos',
+          equipamentos.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              categoria: item.categoria,
+              fonte: item.fonte,
+              usuarioId: item.usuarioId,
+            },
+          })),
+        ),
+        buildReference(
+          'modificacoes',
+          'Modificacoes',
+          modificacoes.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { tipo: item.tipo, fonte: item.fonte },
+          })),
+        ),
+        buildReference(
+          'suplementos',
+          'Suplementos',
+          suplementos.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { status: item.status, versao: item.versao },
+          })),
+        ),
+        buildReference(
+          'homebrews',
+          'Homebrews acessiveis',
+          homebrews.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              status: item.status,
+              usuarioId: item.usuarioId,
+            },
+          })),
+        ),
+      ],
+    };
+  }
 
   private tratarErroPrisma(error: unknown): void {
     if (

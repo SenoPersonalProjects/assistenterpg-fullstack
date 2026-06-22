@@ -1,14 +1,40 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TecnicasAmaldicoadasController } from './tecnicas-amaldicoadas.controller';
-import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { GUARDS_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { AdminGuard } from '../auth/guards/admin.guard';
+import { JsonImportGuide } from '../common/json-import/json-import-guide.types';
+import { TecnicasAmaldicoadasService } from './tecnicas-amaldicoadas.service';
 
 describe('TecnicasAmaldicoadasController', () => {
   let controller: TecnicasAmaldicoadasController;
+  let service: jest.Mocked<
+    Pick<TecnicasAmaldicoadasService, 'getGuiaImportacaoJson'>
+  >;
+
+  const guia = {
+    schema: 'tecnicas-amaldicoadas.import.v1',
+    schemaVersion: 1,
+    descricao: 'Guia de técnicas',
+    regras: [],
+    exportTypes: ['tecnicas'],
+    campos: [],
+    exemplos: { minimo: {}, completo: {} },
+    referencias: [],
+  } satisfies JsonImportGuide;
 
   beforeEach(async () => {
+    service = {
+      getGuiaImportacaoJson: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TecnicasAmaldicoadasController],
+      providers: [
+        {
+          provide: TecnicasAmaldicoadasService,
+          useValue: service,
+        },
+      ],
     })
       .useMocker(() => ({}))
       .compile();
@@ -20,6 +46,21 @@ describe('TecnicasAmaldicoadasController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('exposes the JSON import guide route before dynamic id routes', async () => {
+    service.getGuiaImportacaoJson.mockResolvedValue(guia);
+
+    await expect(controller.getGuiaImportacaoJson()).resolves.toBe(guia);
+
+    const routeHandler = Reflect.get(
+      controller,
+      'getGuiaImportacaoJson',
+    ) as unknown;
+    expect(Reflect.getMetadata(PATH_METADATA, routeHandler)).toBe(
+      'importar-json/guia',
+    );
+    expect(service.getGuiaImportacaoJson).toHaveBeenCalledWith();
   });
 
   it('should require JWT on controller level', () => {

@@ -20,7 +20,7 @@ import {
   apiAdminCreateEquipamento,
   apiAdminUpdateEquipamento,
   apiGetSuplementos,
-  extrairMensagemErro,
+  criarErroUsuario,
   TipoEquipamento,
   CategoriaEquipamento,
   ComplexidadeMaldicao,
@@ -32,6 +32,7 @@ import {
   type CreateEquipamentoPayload,
   type UpdateEquipamentoPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type DraftFilters = {
   busca: string;
@@ -170,7 +171,7 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -286,7 +287,7 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
 export function EquipamentosAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [result, setResult] = useState<ListResult<EquipamentoResumoDto>>({
     items: [],
     total: 0,
@@ -314,7 +315,7 @@ export function EquipamentosAdminPanel() {
       const data = await apiGetSuplementos();
       setSuplementos(data);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     }
   }, [showToast]);
 
@@ -325,7 +326,7 @@ export function EquipamentosAdminPanel() {
       const data = await apiAdminGetEquipamentos(toApiFilters(appliedFilters));
       setResult(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {

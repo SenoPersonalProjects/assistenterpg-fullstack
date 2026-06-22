@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { apiEncerrarSessaoCampanha, extrairMensagemErro } from '@/lib/api';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import { apiEncerrarSessaoCampanha, criarErroUsuario } from '@/lib/api';
+import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 
 type UseSessaoEncerramentoParams = {
   campanhaId: number;
@@ -8,7 +8,7 @@ type UseSessaoEncerramentoParams = {
   detalhe: SessaoCampanhaDetalhe | null;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   showToast: (mensagem: string, tipo?: 'success' | 'error' | 'warning' | 'info') => void;
   onEncerramentoConfirmado?: () => void;
 };
@@ -42,7 +42,7 @@ export function useSessaoEncerramento({
       onEncerramentoConfirmado?.();
       showToast('Sessão encerrada.', 'warning');
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setEncerrandoSessao(false);
     }

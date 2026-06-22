@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { apiVerifyEmailChange } from '@/lib/api';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroLocalUsuario, criarErroUsuario } from '@/lib/api/error-handler';
+import type { UserErrorState } from '@/lib/types';
 
 export default function VerifyEmailChangePage() {
   const searchParams = useSearchParams();
@@ -15,7 +17,7 @@ export default function VerifyEmailChangePage() {
   const { showToast } = useToast();
   const token = useMemo(() => searchParams.get('token') ?? '', [searchParams]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserErrorState | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -23,7 +25,7 @@ export default function VerifyEmailChangePage() {
     async function verifyEmailChange() {
       if (!token) {
         if (active) {
-          setError('Token de alteração de email ausente.');
+          setError(criarErroLocalUsuario('Token de alteração de email ausente.'));
           setLoading(false);
         }
         return;
@@ -36,7 +38,7 @@ export default function VerifyEmailChangePage() {
         requireLogin();
       } catch (requestError) {
         if (active) {
-          setError(extrairMensagemErro(requestError));
+          setError(criarErroUsuario(requestError));
         }
       } finally {
         if (active) {
@@ -68,7 +70,7 @@ export default function VerifyEmailChangePage() {
         {loading ? (
           <p className="text-sm text-app-muted">Validando token...</p>
         ) : null}
-        {error ? <p className="text-sm text-app-danger">{error}</p> : null}
+        {error ? <ErrorAlert message={error} /> : null}
       </div>
     </AuthPageShell>
   );

@@ -12,6 +12,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import {
   apiAdminAtualizarArtigo,
   type CompendioArtigoCompleto,
@@ -58,11 +59,6 @@ function createInitialState(artigo: CompendioArtigoCompleto): FormState {
     destaque: artigo.destaque,
     ativo: artigo.ativo,
   };
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return 'Não foi possível salvar o artigo.';
 }
 
 export function CompendioArticleAdminActions({ artigo }: Props) {
@@ -123,7 +119,7 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
       setOpen(false);
       router.refresh();
     } catch (error) {
-      showToast(getErrorMessage(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }

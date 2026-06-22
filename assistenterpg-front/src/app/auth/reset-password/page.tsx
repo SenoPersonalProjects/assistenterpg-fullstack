@@ -5,12 +5,14 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import { apiResetPassword } from '@/lib/api';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroLocalUsuario, criarErroUsuario } from '@/lib/api/error-handler';
+import type { UserErrorState } from '@/lib/types';
 import {
   PASSWORD_POLICY,
   PASSWORD_REQUIREMENTS_TEXT,
@@ -28,7 +30,7 @@ export default function ResetPasswordPage() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const {
     captureRateLimit,
     cooldownButtonLabel,
@@ -39,18 +41,18 @@ export default function ResetPasswordPage() {
     e.preventDefault();
 
     if (!token) {
-      setErro('Token de recuperação ausente.');
+      setErro(criarErroLocalUsuario('Token de recuperação ausente.'));
       return;
     }
 
     const passwordError = validateNewPassword(novaSenha);
     if (passwordError) {
-      setErro(passwordError);
+      setErro(criarErroLocalUsuario(passwordError));
       return;
     }
 
     if (novaSenha !== confirmacao) {
-      setErro('As senhas não coincidem.');
+      setErro(criarErroLocalUsuario('As senhas não coincidem.'));
       return;
     }
 
@@ -62,7 +64,8 @@ export default function ResetPasswordPage() {
       showToast(resposta.mensagem, 'success');
       requireLogin();
     } catch (error) {
-      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
+      captureRateLimit(error);
+      setErro(criarErroUsuario(error));
     } finally {
       setSubmitting(false);
     }
@@ -112,7 +115,7 @@ export default function ResetPasswordPage() {
           onRightIconClick={() => setMostrarConfirmacao((value) => !value)}
         />
 
-        {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
+        {erro ? <ErrorAlert message={erro} /> : null}
 
         <Button
           type="submit"

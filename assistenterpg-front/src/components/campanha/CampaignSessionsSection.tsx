@@ -6,15 +6,16 @@ import {
   apiEncerrarSessaoCampanha,
   apiCriarSessaoCampanha,
   apiListarSessoesCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { SessaoCampanhaResumo } from '@/lib/types';
+import type { SessaoCampanhaResumo , UserErrorState } from '@/lib/types';
 import { labelCena } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
 
@@ -38,7 +39,7 @@ export function CampaignSessionsSection({
   const router = useRouter();
   const [sessoes, setSessoes] = useState<SessaoCampanhaResumo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [criando, setCriando] = useState(false);
   const [encerrandoSessaoId, setEncerrandoSessaoId] = useState<number | null>(null);
   const [tituloNovaSessao, setTituloNovaSessao] = useState('');
@@ -56,7 +57,7 @@ export function CampaignSessionsSection({
       setSessoes(dados);
       onTotalSessoesChangeRef.current?.(dados.length);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -77,7 +78,7 @@ export function CampaignSessionsSection({
       await carregarSessoes();
       router.push(`/campanhas/${campanhaId}/sessoes/${detalhe.id}`);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setCriando(false);
     }
@@ -90,7 +91,7 @@ export function CampaignSessionsSection({
       await apiEncerrarSessaoCampanha(campanhaId, sessaoId);
       await carregarSessoes();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setEncerrandoSessaoId(null);
     }
@@ -144,11 +145,7 @@ export function CampaignSessionsSection({
         </Button>
       </div>
 
-      {erro && (
-        <p className="rounded border border-app-danger/40 bg-app-danger/10 px-3 py-2 text-sm text-app-danger">
-          {erro}
-        </p>
-      )}
+      {erro ? <ErrorAlert message={erro} /> : null}
 
       {loading ? (
         <p className="text-sm text-app-muted flex items-center gap-2">

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiGetHomebrew, HomebrewDetalhado, TipoHomebrewConteudo } from '@/lib/api/homebrews';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Card } from '@/components/ui/Card';
@@ -14,6 +14,7 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { InfoTile } from '@/components/ui/InfoTile';
+import type { UserErrorState } from '@/lib/types';
 
 type TecnicaHabilidadeDados = {
   nome?: string;
@@ -116,7 +117,7 @@ export default function HomebrewDetalhePage() {
 
   const [homebrew, setHomebrew] = useState<HomebrewDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   const carregarHomebrew = useCallback(async () => {
     if (!homebrewIdValido) {
@@ -131,7 +132,7 @@ export default function HomebrewDetalhePage() {
       const data = await apiGetHomebrew(homebrewId);
       setHomebrew(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
     } finally {
       setLoading(false);

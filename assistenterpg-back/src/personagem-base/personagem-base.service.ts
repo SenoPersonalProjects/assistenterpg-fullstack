@@ -9,6 +9,7 @@ import {
   AreaEfeito,
   TipoDano,
   TipoEscalonamentoHabilidade,
+  StatusPublicacao,
 } from '@prisma/client';
 
 // ✅ IMPORTAR InventarioService
@@ -63,6 +64,10 @@ import {
 import { PersonagemBasePersistence } from './personagem-base.persistence';
 import { PaginatedResult } from 'src/common/dto/pagination-query.dto';
 import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
+import {
+  buildReference,
+  JsonImportGuide,
+} from 'src/common/json-import/json-import-guide.types';
 
 type PrismaLike = PrismaService | Prisma.TransactionClient;
 type PoderGenericoComConfig = {
@@ -185,6 +190,675 @@ export class PersonagemBaseService {
     private readonly inventarioService: InventarioService,
     private readonly tecnicaInataPropriaService: TecnicaInataPropriaService,
   ) {}
+
+  async getGuiaImportacaoJson(usuarioId: number): Promise<JsonImportGuide> {
+    const [
+      classes,
+      clas,
+      origens,
+      trilhas,
+      caminhos,
+      alinhamentos,
+      pericias,
+      proficiencias,
+      tiposGrau,
+      tecnicas,
+      habilidades,
+      passivas,
+      equipamentos,
+      modificacoes,
+      suplementos,
+      homebrews,
+      homebrewGrupos,
+    ] = await Promise.all([
+      this.prisma.classe.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.cla.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          grandeCla: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.origem.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.trilha.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          classeId: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.caminho.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          trilhaId: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.alinhamento.findMany({
+        select: { id: true, nome: true, descricao: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.pericia.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          atributoBase: true,
+          somenteTreinada: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.proficiencia.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          categoria: true,
+          subtipo: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.tipoGrau.findMany({
+        select: { id: true, codigo: true, nome: true, descricao: true },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.tecnicaAmaldicoada.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          hereditaria: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.habilidade.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          origem: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.passivaAtributo.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          atributo: true,
+          nivel: true,
+        },
+        orderBy: [{ atributo: 'asc' }, { nivel: 'asc' }, { nome: 'asc' }],
+      }),
+      this.prisma.equipamentoCatalogo.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          categoria: true,
+          fonte: true,
+          suplementoId: true,
+          usuarioId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.modificacaoEquipamento.findMany({
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          fonte: true,
+          suplementoId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.suplemento.findMany({
+        where: { status: StatusPublicacao.PUBLICADO },
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          versao: true,
+          status: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.homebrew.findMany({
+        where: {
+          OR: [{ usuarioId }, { status: StatusPublicacao.PUBLICADO }],
+        },
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          tipo: true,
+          status: true,
+          usuarioId: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.homebrewGrupo.findMany({
+        where: { usuarioId },
+        select: { id: true, nome: true, descricao: true },
+        orderBy: { nome: 'asc' },
+      }),
+    ]);
+
+    const exemploMinimo = {
+      schema: 'assistenterpg.personagem-base',
+      schemaVersion: 1,
+      personagem: {
+        nome: 'Yuta Exemplo',
+        nivel: 1,
+        claId: clas[0]?.id ?? 1,
+        origemId: origens[0]?.id ?? 1,
+        classeId: classes[0]?.id ?? 1,
+        agilidade: 1,
+        forca: 1,
+        intelecto: 1,
+        presenca: 1,
+        vigor: 1,
+        estudouEscolaTecnica: false,
+        atributoChaveEa: 'PRE',
+        proficienciasCodigos: [],
+        grausAprimoramento: [],
+        periciasClasseEscolhidasCodigos: [],
+        periciasOrigemEscolhidasCodigos: [],
+        periciasLivresCodigos: [],
+      },
+    };
+
+    const exemploCompleto = {
+      schema: 'assistenterpg.personagem-base',
+      schemaVersion: 1,
+      exportadoEm: new Date(0).toISOString(),
+      nomeSobrescrito: 'Personagem importado',
+      personagem: {
+        ...exemploMinimo.personagem,
+        trilhaId: trilhas[0]?.id ?? null,
+        caminhoId: caminhos[0]?.id ?? null,
+        idade: 18,
+        prestigioBase: 0,
+        prestigioClaBase: 0,
+        alinhamentoId: alinhamentos[0]?.id ?? null,
+        background: 'Texto livre de historico do personagem.',
+        tecnicaInataId: tecnicas[0]?.id ?? null,
+        proficienciasCodigos: proficiencias[0]?.codigo
+          ? [proficiencias[0].codigo]
+          : [],
+        grausAprimoramento: tiposGrau[0]?.codigo
+          ? [{ tipoGrauCodigo: tiposGrau[0].codigo, valor: 1 }]
+          : [],
+        grausTreinamento: pericias[0]?.codigo
+          ? [
+              {
+                nivel: 3,
+                melhorias: [
+                  {
+                    periciaCodigo: pericias[0].codigo,
+                    grauAnterior: 0,
+                    grauNovo: 5,
+                  },
+                ],
+              },
+            ]
+          : [],
+        poderesGenericos: habilidades[0]
+          ? [{ habilidadeId: habilidades[0].id, config: {} }]
+          : [],
+        habilidadesConfig: habilidades[0]
+          ? [{ habilidadeId: habilidades[0].id, config: {} }]
+          : [],
+        passivasAtributoIds: passivas[0] ? [passivas[0].id] : [],
+        passivasAtributosAtivos: ['INT'],
+        passivasAtributosConfig: {},
+        periciasClasseEscolhidasCodigos: pericias[0]?.codigo
+          ? [pericias[0].codigo]
+          : [],
+        periciasOrigemEscolhidasCodigos: [],
+        periciasLivresCodigos: [],
+        periciasLivresExtras: 0,
+        itensInventario: equipamentos[0]
+          ? [
+              {
+                equipamentoId: equipamentos[0].id,
+                quantidade: 1,
+                equipado: false,
+                modificacoesIds: modificacoes[0] ? [modificacoes[0].id] : [],
+              },
+            ]
+          : [],
+        fontesConteudo: {
+          suplementoIds: suplementos[0] ? [suplementos[0].id] : [],
+          homebrewIds: homebrews[0] ? [homebrews[0].id] : [],
+          homebrewGrupoIds: homebrewGrupos[0] ? [homebrewGrupos[0].id] : [],
+        },
+      },
+      referencias: {
+        classe: classes[0]
+          ? { id: classes[0].id, nome: classes[0].nome }
+          : undefined,
+        cla: clas[0] ? { id: clas[0].id, nome: clas[0].nome } : undefined,
+        origem: origens[0]
+          ? { id: origens[0].id, nome: origens[0].nome }
+          : undefined,
+      },
+    };
+
+    return {
+      schema: 'assistenterpg.personagem-base',
+      schemaVersion: 1,
+      descricao:
+        'Guia de importacao JSON de personagens-base. Use IDs/codigos das referencias abaixo quando o campo pedir uma referencia de catalogo.',
+      regras: [
+        'O corpo enviado em POST /personagens-base/importar deve conter o objeto personagem.',
+        'IDs sao resolvidos diretamente; campos em referencias aceitam id, nome ou codigo quando o catalogo tem codigo.',
+        'Campos de pericia, proficiencia e tipo de grau usam codigo, nao texto livre.',
+        'fontesConteudo limita suplementos e homebrews habilitados no personagem importado.',
+      ],
+      exportTypes: ['personagem-base'],
+      campos: [
+        {
+          path: 'personagem.nome',
+          type: 'string',
+          required: true,
+          description: 'Nome do personagem.',
+        },
+        {
+          path: 'personagem.nivel',
+          type: 'number',
+          required: true,
+          description: 'Nivel inicial do personagem.',
+        },
+        {
+          path: 'personagem.claId',
+          type: 'number',
+          required: true,
+          description: 'ID do cla.',
+          reference: 'clas',
+        },
+        {
+          path: 'personagem.origemId',
+          type: 'number',
+          required: true,
+          description: 'ID da origem.',
+          reference: 'origens',
+        },
+        {
+          path: 'personagem.classeId',
+          type: 'number',
+          required: true,
+          description: 'ID da classe.',
+          reference: 'classes',
+        },
+        {
+          path: 'personagem.trilhaId',
+          type: 'number | null',
+          required: false,
+          description: 'ID da trilha escolhida.',
+          reference: 'trilhas',
+        },
+        {
+          path: 'personagem.caminhoId',
+          type: 'number | null',
+          required: false,
+          description: 'ID do caminho escolhido.',
+          reference: 'caminhos',
+        },
+        {
+          path: 'personagem.atributoChaveEa',
+          type: 'INT | PRE',
+          required: true,
+          description: 'Atributo chave de energia amaldicoada.',
+        },
+        {
+          path: 'personagem.proficienciasCodigos[]',
+          type: 'string[]',
+          required: true,
+          description: 'Codigos de proficiencias extras.',
+          reference: 'proficiencias',
+        },
+        {
+          path: 'personagem.grausAprimoramento[].tipoGrauCodigo',
+          type: 'string',
+          required: true,
+          description: 'Codigo do tipo de grau.',
+          reference: 'tiposGrau',
+        },
+        {
+          path: 'personagem.pericias*Codigos[]',
+          type: 'string[]',
+          required: true,
+          description:
+            'Campos de pericias escolhidas usam os codigos da tabela de pericias.',
+          reference: 'pericias',
+        },
+        {
+          path: 'personagem.poderesGenericos[].habilidadeId',
+          type: 'number',
+          required: false,
+          description: 'ID de habilidade usada como poder generico.',
+          reference: 'habilidades',
+        },
+        {
+          path: 'personagem.passivasAtributoIds[]',
+          type: 'number[]',
+          required: false,
+          description: 'IDs de passivas de atributo.',
+          reference: 'passivas',
+        },
+        {
+          path: 'personagem.itensInventario[].equipamentoId',
+          type: 'number',
+          required: false,
+          description: 'ID de equipamento do catalogo.',
+          reference: 'equipamentos',
+        },
+        {
+          path: 'personagem.itensInventario[].modificacoesIds[]',
+          type: 'number[]',
+          required: false,
+          description: 'IDs de modificacoes aplicadas ao equipamento.',
+          reference: 'modificacoes',
+        },
+        {
+          path: 'personagem.fontesConteudo.suplementoIds[]',
+          type: 'number[]',
+          required: false,
+          description: 'IDs de suplementos habilitados.',
+          reference: 'suplementos',
+        },
+        {
+          path: 'personagem.fontesConteudo.homebrewIds[]',
+          type: 'number[]',
+          required: false,
+          description: 'IDs de homebrews habilitados.',
+          reference: 'homebrews',
+        },
+        {
+          path: 'personagem.fontesConteudo.homebrewGrupoIds[]',
+          type: 'number[]',
+          required: false,
+          description: 'IDs de grupos de homebrew do usuario.',
+          reference: 'homebrewGrupos',
+        },
+      ],
+      exemplos: {
+        minimo: exemploMinimo,
+        completo: exemploCompleto,
+      },
+      referencias: [
+        buildReference(
+          'classes',
+          'Classes',
+          classes.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { fonte: item.fonte, suplementoId: item.suplementoId },
+          })),
+        ),
+        buildReference(
+          'clas',
+          'Clas',
+          clas.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              grandeCla: item.grandeCla,
+              fonte: item.fonte,
+              suplementoId: item.suplementoId,
+            },
+          })),
+        ),
+        buildReference(
+          'origens',
+          'Origens',
+          origens.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { fonte: item.fonte, suplementoId: item.suplementoId },
+          })),
+        ),
+        buildReference(
+          'trilhas',
+          'Trilhas',
+          trilhas.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              classeId: item.classeId,
+              fonte: item.fonte,
+              suplementoId: item.suplementoId,
+            },
+          })),
+        ),
+        buildReference(
+          'caminhos',
+          'Caminhos',
+          caminhos.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              trilhaId: item.trilhaId,
+              fonte: item.fonte,
+              suplementoId: item.suplementoId,
+            },
+          })),
+        ),
+        buildReference(
+          'alinhamentos',
+          'Alinhamentos',
+          alinhamentos.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+          })),
+        ),
+        buildReference(
+          'pericias',
+          'Pericias',
+          pericias.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              atributoBase: item.atributoBase,
+              somenteTreinada: item.somenteTreinada,
+            },
+          })),
+        ),
+        buildReference(
+          'proficiencias',
+          'Proficiencias',
+          proficiencias.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              categoria: item.categoria,
+              subtipo: item.subtipo,
+            },
+          })),
+        ),
+        buildReference(
+          'tiposGrau',
+          'Tipos de grau',
+          tiposGrau.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+          })),
+        ),
+        buildReference(
+          'tecnicas',
+          'Tecnicas',
+          tecnicas.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              hereditaria: item.hereditaria,
+              fonte: item.fonte,
+              suplementoId: item.suplementoId,
+            },
+          })),
+        ),
+        buildReference(
+          'habilidades',
+          'Habilidades e poderes genericos',
+          habilidades.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              origem: item.origem,
+              fonte: item.fonte,
+              suplementoId: item.suplementoId,
+            },
+          })),
+        ),
+        buildReference(
+          'passivas',
+          'Passivas de atributo',
+          passivas.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { atributo: item.atributo, nivel: item.nivel },
+          })),
+        ),
+        buildReference(
+          'equipamentos',
+          'Equipamentos',
+          equipamentos.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              categoria: item.categoria,
+              fonte: item.fonte,
+              suplementoId: item.suplementoId,
+              usuarioId: item.usuarioId,
+            },
+          })),
+        ),
+        buildReference(
+          'modificacoes',
+          'Modificacoes de equipamento',
+          modificacoes.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              fonte: item.fonte,
+              suplementoId: item.suplementoId,
+            },
+          })),
+        ),
+        buildReference(
+          'suplementos',
+          'Suplementos publicados',
+          suplementos.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { versao: item.versao, status: item.status },
+          })),
+        ),
+        buildReference(
+          'homebrews',
+          'Homebrews acessiveis',
+          homebrews.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: {
+              tipo: item.tipo,
+              status: item.status,
+              usuarioId: item.usuarioId,
+            },
+          })),
+        ),
+        buildReference(
+          'homebrewGrupos',
+          'Grupos de homebrew do usuario',
+          homebrewGrupos.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+          })),
+        ),
+      ],
+    };
+  }
 
   // ==================== HELPERS GERAIS ====================
   private limparUndefined<T extends Record<string, unknown>>(obj: T): T {

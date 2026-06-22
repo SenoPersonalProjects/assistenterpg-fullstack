@@ -2,9 +2,9 @@ import { useCallback, useState } from 'react';
 import {
   apiAplicarCondicaoSessaoCampanha,
   apiRemoverCondicaoSessaoCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import type { AlvoCondicoesModal, FormCondicaoSessao } from '@/components/campanha/sessao/types';
 import { validarAplicacaoCondicao } from '@/lib/campanha/sessao-utils';
 
@@ -15,7 +15,7 @@ type UseSessaoCondicoesParams = {
   podeControlarSessao: boolean;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   showToast: (mensagem: string, tipo?: 'success' | 'error' | 'warning' | 'info') => void;
 };
 
@@ -148,7 +148,7 @@ export function useSessaoCondicoes({
         sincronizarEstadosDerivados(atualizado);
         showToast('Condição aplicada.', 'success');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setAcaoCondicaoPendente(null);
       }
@@ -192,7 +192,7 @@ export function useSessaoCondicoes({
         sincronizarEstadosDerivados(atualizado);
         showToast('Condição removida.', 'success');
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setAcaoCondicaoPendente(null);
       }

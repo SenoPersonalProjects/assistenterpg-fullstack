@@ -16,11 +16,12 @@ import {
   apiAdminCreateTipoGrau,
   apiAdminUpdateTipoGrau,
   apiAdminDeleteTipoGrau,
-  extrairMensagemErro,
+  criarErroUsuario,
   type TipoGrauCatalogo,
   type CreateTipoGrauPayload,
   type UpdateTipoGrauPayload,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 
 type TipoGrauFormState = {
   codigo: string;
@@ -98,7 +99,7 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
       }
       onClose(true);
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setSaving(false);
     }
@@ -155,7 +156,7 @@ function TipoGrauFormModal({ isOpen, onClose, item }: ModalProps) {
 export function TiposGrauAdminPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [items, setItems] = useState<TipoGrauCatalogo[]>([]);
   const [busca, setBusca] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -177,7 +178,7 @@ export function TiposGrauAdminPanel() {
       const data = await apiAdminGetTiposGrau();
       setItems(data);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -198,7 +199,7 @@ export function TiposGrauAdminPanel() {
       showToast('Tipo de grau removido com sucesso.', 'success');
       await carregarDados();
     } catch (error) {
-      showToast(extrairMensagemErro(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setDeletingId(null);
     }

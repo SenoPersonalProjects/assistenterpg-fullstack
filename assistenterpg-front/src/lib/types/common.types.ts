@@ -14,5 +14,21 @@ export type ApiErrorBody = {
   message: string | string[];
   error: string;
   code?: string;
+  traceId?: string;
+  path?: string;
+  method?: string;
   details?: Record<string, unknown>;
 };
+
+export type ErrorSupportInfo = {
+  code?: string;
+  referenceId?: string;
+  status?: number;
+};
+
+export type UserFacingError = ErrorSupportInfo & {
+  message: string;
+  retryAfterSeconds?: number;
+};
+
+export type UserErrorState = string | UserFacingError;

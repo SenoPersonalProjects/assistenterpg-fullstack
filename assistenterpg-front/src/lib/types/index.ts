@@ -17,3 +17,4 @@ export * from './suplemento-conteudo.types';
 export * from './npc-ameaca.types';
 export * from './anotacao.types';
 export * from './amizade.types';
+export * from './json-guide.types';

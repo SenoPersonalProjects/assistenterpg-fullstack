@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { apiAdminExportarSeedCompendio } from '@/lib/utils/compendio';
 
 function timestampForFile(): string {
@@ -37,11 +38,6 @@ function downloadJson(filename: string, data: unknown): void {
   URL.revokeObjectURL(url);
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return 'Não foi possível exportar o seed.';
-}
-
 export function CompendioAdminExportButton() {
   const { usuario } = useAuth();
   const { showToast } = useToast();
@@ -59,7 +55,7 @@ export function CompendioAdminExportButton() {
       downloadJson(filename, seed);
       showToast('Seed do compêndio exportado.', 'success');
     } catch (error) {
-      showToast(getErrorMessage(error), 'error');
+      showToast(criarErroUsuario(error), 'error');
     } finally {
       setLoading(false);
     }

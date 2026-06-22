@@ -10,8 +10,7 @@ import {
   apiNotificarConvitesPendentesAtualizados,
   apiRecusarConvite,
   apiRecusarSolicitacaoAmizade,
-  extrairMensagemErro,
-  traduzirErro,
+  criarErroUsuario,
 } from '@/lib/api';
 import type { ConviteCampanha, SolicitacaoAmizadeResumo } from '@/lib/types';
 import { useToast } from '@/context/ToastContext';
@@ -46,14 +45,7 @@ function rotuloPapelConvite(papel: ConviteCampanha['papel']): string {
 }
 
 function mensagemErroNotificacao(error: unknown): string {
-  const status = Number(
-    (error as { status?: number })?.status ??
-      (error as { response?: { status?: number } })?.response?.status ??
-      (error as { body?: { statusCode?: number } })?.body?.statusCode ??
-      0,
-  );
-  const code = (error as { body?: { code?: string } })?.body?.code;
-  return traduzirErro(code, extrairMensagemErro(error), status);
+  return criarErroUsuario(error).message;
 }
 
 function formatarData(data: string): string {

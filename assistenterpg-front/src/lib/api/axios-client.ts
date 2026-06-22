@@ -455,9 +455,11 @@ apiClient.interceptors.response.use(
           ? requestIdHeaderRaw[0]
           : undefined;
     const requestIdBody =
-      body?.details && typeof body.details.requestId === 'string'
-        ? body.details.requestId
-        : undefined;
+      typeof body?.traceId === 'string'
+        ? body.traceId
+        : body?.details && typeof body.details.requestId === 'string'
+          ? body.details.requestId
+          : undefined;
     const requestId = requestIdHeader ?? requestIdBody;
 
     const path = normalizarPath(config?.url);

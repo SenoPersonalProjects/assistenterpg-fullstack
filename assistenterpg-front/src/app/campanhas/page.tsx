@@ -27,8 +27,9 @@ import { Icon, type IconName } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Loading } from '@/components/ui/Loading';
 import { SectionTitle } from '@/components/ui/SectionTitle';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { resolverListaPaginada } from '@/lib/utils/lista-paginada';
+import type { UserErrorState } from '@/lib/types';
 
 type CampanhaStat = {
   label: string;
@@ -45,7 +46,7 @@ export default function CampanhasPage() {
 
   const [campanhas, setCampanhas] = useState<CampanhaResumo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [pagina, setPagina] = useState(1);
   const [totalPaginas, setTotalPaginas] = useState(1);
   const [totalCampanhas, setTotalCampanhas] = useState(0);
@@ -126,7 +127,7 @@ export default function CampanhasPage() {
       setTotalPaginas(listaResolvida.totalPaginas);
       setErro(null);
     } catch (error) {
-      const mensagem = extrairMensagemErro(error);
+      const mensagem = criarErroUsuario(error);
       setErro(mensagem);
       showToast(mensagem, 'error');
     } finally {
@@ -163,7 +164,7 @@ export default function CampanhasPage() {
           await carregarDados(pagina);
           showToast('Campanha excluída.', 'success');
         } catch (error) {
-          const mensagem = extrairMensagemErro(error);
+          const mensagem = criarErroUsuario(error);
           setErro(mensagem);
           showToast(mensagem, 'error');
         }
@@ -194,7 +195,7 @@ export default function CampanhasPage() {
       const detalhe = await apiGetCampanhaById<CampanhaPreviewDetalhe>(campanha.id);
       setPreviewDetalhe(detalhe);
     } catch (error) {
-      setPreviewErro(extrairMensagemErro(error));
+      setPreviewErro(criarErroUsuario(error).message);
     } finally {
       setPreviewLoading(false);
     }

@@ -95,6 +95,11 @@ export class PersonagemBaseController {
     );
   }
 
+  @Get('importar-json/guia')
+  async getGuiaImportacaoJson(@Request() req: { user: { id: number } }) {
+    return this.personagemBaseService.getGuiaImportacaoJson(req.user.id);
+  }
+
   @Get(':id/exportar')
   @Header('Content-Type', 'application/json')
   @Header(

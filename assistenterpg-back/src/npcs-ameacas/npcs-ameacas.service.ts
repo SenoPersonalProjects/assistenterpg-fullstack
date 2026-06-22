@@ -1,8 +1,19 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AtributoBase, Prisma, TipoFichaNpcAmeaca } from '@prisma/client';
+import {
+  AtributoBase,
+  Prisma,
+  TamanhoNpcAmeaca,
+  TipoFichaNpcAmeaca,
+  TipoNpcAmeaca,
+} from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { handlePrismaError } from 'src/common/exceptions/database.exception';
 import { NpcAmeacaNaoEncontradaException } from 'src/common/exceptions/npc-ameaca.exception';
+import {
+  buildEnumReference,
+  buildReference,
+  JsonImportGuide,
+} from 'src/common/json-import/json-import-guide.types';
 import { CreateNpcAmeacaDto } from './dto/create-npc-ameaca.dto';
 import { ImportarNpcAmeacaJsonDto } from './dto/importar-npc-ameaca-json.dto';
 import { ListarNpcsAmeacasDto } from './dto/listar-npcs-ameacas.dto';
@@ -77,6 +88,201 @@ const PERICIA_PRINCIPAL_META: Record<
 @Injectable()
 export class NpcsAmeacasService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getGuiaImportacaoJson(): Promise<JsonImportGuide> {
+    const pericias = await this.prisma.pericia.findMany({
+      select: {
+        id: true,
+        codigo: true,
+        nome: true,
+        descricao: true,
+        atributoBase: true,
+      },
+      orderBy: { nome: 'asc' },
+    });
+
+    const exemploMinimo = {
+      exportType: 'npc-ameaca',
+      schemaVersion: 1,
+      item: {
+        nome: 'Ameaca exemplo',
+        fichaTipo: TipoFichaNpcAmeaca.AMEACA,
+        tipo: TipoNpcAmeaca.MALDICAO,
+        tamanho: TamanhoNpcAmeaca.MEDIO,
+        defesa: 15,
+        pontosVida: 30,
+      },
+    };
+
+    const exemploCompleto = {
+      exportType: 'npc-ameaca-group',
+      schemaVersion: 1,
+      exportedAt: new Date(0).toISOString(),
+      group: {
+        nome: 'Grupo de exemplo',
+        descricao: 'Descricao opcional do grupo.',
+      },
+      items: [
+        {
+          nome: 'Feiticeiro exemplo',
+          descricao: 'Descricao livre.',
+          fichaTipo: TipoFichaNpcAmeaca.NPC,
+          tipo: TipoNpcAmeaca.FEITICEIRO,
+          tamanho: TamanhoNpcAmeaca.MEDIO,
+          vd: 2,
+          agilidade: 2,
+          forca: 1,
+          intelecto: 3,
+          presenca: 1,
+          vigor: 2,
+          percepcao: 8,
+          iniciativa: 7,
+          fortitude: 6,
+          reflexos: 7,
+          vontade: 8,
+          luta: 6,
+          jujutsu: 9,
+          defesa: 17,
+          pontosVida: 42,
+          deslocamentoMetros: 9,
+          periciasEspeciais: pericias[0]
+            ? [{ codigo: pericias[0].codigo, dados: 2, bonus: 5 }]
+            : [],
+          resistencias: ['ENERGIA_AMALDICOADA 5'],
+          vulnerabilidades: [],
+          passivas: [
+            {
+              nome: 'Instinto de sobrevivencia',
+              descricao: 'Ganha bonus em testes defensivos.',
+            },
+          ],
+          acoes: [
+            {
+              nome: 'Golpe amaldiçoado',
+              tipoExecucao: 'ACAO_PADRAO',
+              alcance: 'Corpo a corpo',
+              alvo: '1 alvo',
+              dano: '2d6 impacto',
+              efeito: 'Dano fisico com energia amaldiçoada.',
+            },
+          ],
+          usoTatico: 'Use como inimigo de abertura.',
+        },
+      ],
+    };
+
+    return {
+      schema: 'assistenterpg.npcs-ameacas',
+      schemaVersion: 1,
+      descricao:
+        'Guia de importacao JSON para NPCs, ameacas e grupos de NPCs/ameacas.',
+      regras: [
+        'exportType deve ser npc-ameaca para item unico ou npc-ameaca-group para grupo.',
+        'schemaVersion deve ser 1.',
+        'tipo, fichaTipo e tamanho precisam usar os codigos de enum listados nas referencias.',
+        'periciasEspeciais[].codigo deve usar o codigo da tabela de pericias.',
+      ],
+      exportTypes: ['npc-ameaca', 'npc-ameaca-group'],
+      campos: [
+        {
+          path: 'exportType',
+          type: 'npc-ameaca | npc-ameaca-group',
+          required: true,
+          description: 'Define se o JSON contem um item unico ou um grupo.',
+        },
+        {
+          path: 'item.nome / items[].nome',
+          type: 'string',
+          required: true,
+          description: 'Nome do NPC ou ameaca.',
+        },
+        {
+          path: 'item.fichaTipo / items[].fichaTipo',
+          type: 'NPC | AMEACA',
+          required: false,
+          description: 'Tipo de ficha.',
+          reference: 'fichaTipo',
+        },
+        {
+          path: 'item.tipo / items[].tipo',
+          type: 'TipoNpcAmeaca',
+          required: true,
+          description: 'Categoria narrativa/mecanica da criatura.',
+          reference: 'tipoNpcAmeaca',
+        },
+        {
+          path: 'item.tamanho / items[].tamanho',
+          type: 'TamanhoNpcAmeaca',
+          required: false,
+          description: 'Tamanho da criatura.',
+          reference: 'tamanhoNpcAmeaca',
+        },
+        {
+          path: 'item.defesa / items[].defesa',
+          type: 'number',
+          required: true,
+          description: 'Defesa base.',
+        },
+        {
+          path: 'item.pontosVida / items[].pontosVida',
+          type: 'number',
+          required: true,
+          description: 'Pontos de vida maximos.',
+        },
+        {
+          path: 'item.periciasEspeciais[].codigo',
+          type: 'string',
+          required: false,
+          description: 'Codigo da pericia especial.',
+          reference: 'pericias',
+        },
+        {
+          path: 'item.passivas[] / items[].passivas[]',
+          type: 'object[]',
+          required: false,
+          description: 'Passivas narrativas/mecanicas exibidas na ficha.',
+        },
+        {
+          path: 'item.acoes[] / items[].acoes[]',
+          type: 'object[]',
+          required: false,
+          description: 'Acoes ofensivas, utilitarias ou taticas.',
+        },
+      ],
+      exemplos: {
+        minimo: exemploMinimo,
+        completo: exemploCompleto,
+      },
+      referencias: [
+        buildEnumReference(
+          'fichaTipo',
+          'Tipos de ficha',
+          Object.values(TipoFichaNpcAmeaca),
+        ),
+        buildEnumReference(
+          'tipoNpcAmeaca',
+          'Tipos de NPC/ameaca',
+          Object.values(TipoNpcAmeaca),
+        ),
+        buildEnumReference(
+          'tamanhoNpcAmeaca',
+          'Tamanhos',
+          Object.values(TamanhoNpcAmeaca),
+        ),
+        buildReference(
+          'pericias',
+          'Pericias disponiveis',
+          pericias.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { atributoBase: item.atributoBase },
+          })),
+        ),
+      ],
+    };
+  }
 
   private tratarErroPrisma(error: unknown): void {
     if (

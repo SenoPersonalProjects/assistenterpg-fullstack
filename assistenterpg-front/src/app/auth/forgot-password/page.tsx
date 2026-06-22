@@ -4,16 +4,18 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { apiForgotPassword } from '@/lib/api';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import type { UserErrorState } from '@/lib/types';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [mensagem, setMensagem] = useState<string | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const {
     captureRateLimit,
     cooldownButtonLabel,
@@ -30,7 +32,8 @@ export default function ForgotPasswordPage() {
       const resposta = await apiForgotPassword(email);
       setMensagem(resposta.mensagem);
     } catch (error) {
-      setErro(captureRateLimit(error) ?? extrairMensagemErro(error));
+      captureRateLimit(error);
+      setErro(criarErroUsuario(error));
     } finally {
       setSubmitting(false);
     }
@@ -67,7 +70,7 @@ export default function ForgotPasswordPage() {
           </p>
         ) : null}
 
-        {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
+        {erro ? <ErrorAlert message={erro} /> : null}
 
         <Button type="submit" disabled={submitting || isCoolingDown}>
           {cooldownButtonLabel ?? (submitting ? 'Enviando...' : 'Enviar link')}

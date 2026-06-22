@@ -2,10 +2,9 @@ import { useCallback, useState } from 'react';
 import {
   apiEncerrarSustentacaoHabilidadeSessaoCampanha,
   apiUsarHabilidadeSessaoCampanha,
-  extrairMensagemErro,
-  formatarErroComContexto,
+  criarErroUsuario,
 } from '@/lib/api';
-import type { SessaoCampanhaDetalhe } from '@/lib/types';
+import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import { calcularRestanteCooldown } from '@/lib/campanha/sessao-utils';
 
 type UseSessaoHabilidadesParams = {
@@ -14,7 +13,7 @@ type UseSessaoHabilidadesParams = {
   sessaoEncerrada: boolean;
   setDetalhe: (detalhe: SessaoCampanhaDetalhe) => void;
   sincronizarEstadosDerivados: (detalhe: SessaoCampanhaDetalhe) => void;
-  setErro: (mensagem: string | null) => void;
+  setErro: (mensagem: UserErrorState | null) => void;
   cooldownMs: number;
 };
 
@@ -107,14 +106,7 @@ export function useSessaoHabilidades({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        const mensagem = extrairMensagemErro(error);
-        setErro(
-          formatarErroComContexto(mensagem, error, {
-            incluirCode: true,
-            incluirStatus: true,
-            incluirRequestId: true,
-          }),
-        );
+        setErro(criarErroUsuario(error));
       } finally {
         setAcaoHabilidadePendente(null);
       }
@@ -148,14 +140,7 @@ export function useSessaoHabilidades({
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
       } catch (error) {
-        const mensagem = extrairMensagemErro(error);
-        setErro(
-          formatarErroComContexto(mensagem, error, {
-            incluirCode: true,
-            incluirStatus: true,
-            incluirRequestId: true,
-          }),
-        );
+        setErro(criarErroUsuario(error));
       } finally {
         setAcaoHabilidadePendente(null);
       }

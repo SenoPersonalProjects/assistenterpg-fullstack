@@ -194,7 +194,10 @@ export type CompendioSeedExport = {
 };
 
 type ApiErrorBody = {
+  statusCode?: number;
   message?: string | string[];
+  code?: string;
+  traceId?: string;
   [key: string]: unknown;
 };
 

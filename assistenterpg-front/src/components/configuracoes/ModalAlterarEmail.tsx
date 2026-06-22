@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
+import { criarErroUsuario } from '@/lib/api/error-handler';
+import type { UserErrorState } from '@/lib/types';
 
 type ModalAlterarEmailProps = {
   isOpen: boolean;
@@ -22,7 +24,7 @@ export function ModalAlterarEmail({
   const [senhaAtual, setSenhaAtual] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<UserErrorState | null>(null);
   const {
     captureRateLimit,
     cooldownButtonLabel,
@@ -33,13 +35,13 @@ export function ModalAlterarEmail({
     if (loading) return;
     setNovoEmail('');
     setSenhaAtual('');
-    setError('');
+    setError(null);
     onClose();
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError('');
+    setError(null);
 
     try {
       setLoading(true);
@@ -48,9 +50,8 @@ export function ModalAlterarEmail({
       setSenhaAtual('');
       onClose();
     } catch (requestError) {
-      setError(
-        captureRateLimit(requestError) ?? extrairMensagemErro(requestError),
-      );
+      captureRateLimit(requestError);
+      setError(criarErroUsuario(requestError));
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export function ModalAlterarEmail({
           onRightIconClick={() => setShowPassword((value) => !value)}
         />
 
-        {error ? <p className="text-sm text-app-danger">{error}</p> : null}
+        {error ? <ErrorAlert message={error} /> : null}
 
         <div className="flex gap-3">
           <Button

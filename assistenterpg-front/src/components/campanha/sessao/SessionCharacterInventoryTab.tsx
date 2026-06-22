@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { Select } from '@/components/ui/Select';
@@ -19,7 +20,7 @@ import {
   apiGetTodosEquipamentos,
   apiRemoverItemInventarioCampanha,
   apiRemoverModificacaoInventarioCampanha,
-  extrairMensagemErro,
+  criarErroUsuario,
 } from '@/lib/api';
 import type {
   EfeitoConsumoEquipamento,
@@ -29,7 +30,7 @@ import type {
   ItemInventarioDto,
   ModificacaoCatalogo,
   PericiaCatalogo,
-} from '@/lib/types';
+ UserErrorState } from '@/lib/types';
 import {
   calcularCategoriaFinal,
   CODIGO_MOD_FUNCAO_ADICIONAL,
@@ -157,7 +158,7 @@ export function SessionCharacterInventoryTab({
     null,
   );
   const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   const [modalAdicionarAberto, setModalAdicionarAberto] = useState(false);
   const [etapaAdicionar, setEtapaAdicionar] = useState<EtapaAdicionar>('SELECIONAR');
@@ -202,7 +203,7 @@ export function SessionCharacterInventoryTab({
       );
       setInventario(data);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setCarregando(false);
     }
@@ -225,7 +226,7 @@ export function SessionCharacterInventoryTab({
       setEquipamentos(lista);
       setPericias(catalogosBasicos.pericias);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setCarregandoCatalogos(false);
     }
@@ -319,7 +320,7 @@ export function SessionCharacterInventoryTab({
       await carregarInventario();
       setModalConsumo(null);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setConsumindoItemId(null);
     }
@@ -353,7 +354,7 @@ export function SessionCharacterInventoryTab({
       );
       setModificacoesCompatAdicionar(mods);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     }
   };
 
@@ -385,7 +386,7 @@ export function SessionCharacterInventoryTab({
       await carregarInventario();
       setModalAdicionarAberto(false);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }
@@ -406,7 +407,7 @@ export function SessionCharacterInventoryTab({
       const mods = await apiGetModificacoesCompativeis(item.equipamentoId);
       setModificacoesCompatEditando(mods);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     }
   };
 
@@ -466,7 +467,7 @@ export function SessionCharacterInventoryTab({
       await carregarInventario();
       setModalEditarItem(null);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }
@@ -486,7 +487,7 @@ export function SessionCharacterInventoryTab({
       );
       await carregarInventario();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }
@@ -590,11 +591,7 @@ export function SessionCharacterInventoryTab({
         ) : null}
       </div>
 
-      {erro ? (
-        <div className="rounded border border-app-danger/40 bg-app-danger/10 px-3 py-2 text-xs text-app-danger">
-          {erro}
-        </div>
-      ) : null}
+      {erro ? <ErrorAlert message={erro} /> : null}
 
       {resumoEspacos ? (
         <div className="flex flex-wrap items-center gap-2">

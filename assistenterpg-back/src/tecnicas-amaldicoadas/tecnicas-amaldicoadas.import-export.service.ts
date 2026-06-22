@@ -3,6 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   AreaEfeito,
   Prisma,
+  StatusPublicacao,
   TipoDano,
   TipoEscalonamentoHabilidade,
   TipoExecucao,
@@ -30,6 +31,11 @@ import { TecnicaNaoEncontradaException } from 'src/common/exceptions/tecnica-ama
 import { TecnicasAmaldicoadasCrudService } from './tecnicas-amaldicoadas.crud.service';
 import { TecnicasAmaldicoadasHabilidadesService } from './tecnicas-amaldicoadas.habilidades.service';
 import { TecnicasAmaldicoadasVariacoesService } from './tecnicas-amaldicoadas.variacoes.service';
+import {
+  buildEnumReference,
+  buildReference,
+  JsonImportGuide,
+} from 'src/common/json-import/json-import-guide.types';
 
 @Injectable()
 export class TecnicasAmaldicoadasImportExportService {
@@ -520,7 +526,36 @@ export class TecnicasAmaldicoadasImportExportService {
     };
   }
 
-  getGuiaImportacaoJson(): RegistroJson {
+  async getGuiaImportacaoJson(): Promise<JsonImportGuide> {
+    const [clas, suplementos, tiposGrau] = await Promise.all([
+      this.prisma.cla.findMany({
+        select: {
+          id: true,
+          nome: true,
+          descricao: true,
+          grandeCla: true,
+          fonte: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.suplemento.findMany({
+        where: { status: StatusPublicacao.PUBLICADO },
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+          descricao: true,
+          status: true,
+          versao: true,
+        },
+        orderBy: { nome: 'asc' },
+      }),
+      this.prisma.tipoGrau.findMany({
+        select: { id: true, codigo: true, nome: true, descricao: true },
+        orderBy: { nome: 'asc' },
+      }),
+    ]);
+
     const exemploMinimo = {
       schema: TECNICAS_JSON_SCHEMA,
       schemaVersion: TECNICAS_JSON_SCHEMA_VERSION,
@@ -607,10 +642,183 @@ export class TecnicasAmaldicoadasImportExportService {
         'substituirHabilidadesAusentes=true remove habilidades não presentes no arquivo para cada técnica importada.',
         'substituirVariacoesAusentes=true remove variações não presentes no arquivo para cada habilidade importada.',
       ],
+      exportTypes: ['tecnicas-amaldicoadas'],
+      campos: [
+        {
+          path: 'schema',
+          type: 'string',
+          required: true,
+          description: `Deve ser ${TECNICAS_JSON_SCHEMA}.`,
+        },
+        {
+          path: 'schemaVersion',
+          type: 'number',
+          required: true,
+          description: `Versao suportada: ${TECNICAS_JSON_SCHEMA_VERSION}.`,
+        },
+        {
+          path: 'modo',
+          type: 'UPSERT',
+          required: true,
+          description: 'Modo de importacao suportado.',
+        },
+        {
+          path: 'tecnicas[].codigo',
+          type: 'string',
+          required: true,
+          description:
+            'Codigo unico da tecnica; usado para criar ou atualizar.',
+        },
+        {
+          path: 'tecnicas[].tipo',
+          type: 'TipoTecnicaAmaldicoada',
+          required: true,
+          description: 'Tipo da tecnica.',
+          reference: 'tipoTecnicaAmaldicoada',
+        },
+        {
+          path: 'tecnicas[].fonte',
+          type: 'TipoFonte',
+          required: false,
+          description: 'Fonte do conteudo; padrao SISTEMA_BASE.',
+          reference: 'tipoFonte',
+        },
+        {
+          path: 'tecnicas[].suplementoId',
+          type: 'number | null',
+          required: false,
+          description: 'ID do suplemento publicado.',
+          reference: 'suplementos',
+        },
+        {
+          path: 'tecnicas[].clasHereditarios[]',
+          type: 'string[]',
+          required: false,
+          description:
+            'Nomes de clas que herdam esta tecnica. Use o nome exato da referencia.',
+          reference: 'clas',
+        },
+        {
+          path: 'tecnicas[].habilidades[].codigo',
+          type: 'string',
+          required: true,
+          description:
+            'Codigo unico da habilidade dentro do catalogo de tecnicas.',
+        },
+        {
+          path: 'tecnicas[].habilidades[].execucao',
+          type: 'TipoExecucao',
+          required: true,
+          description: 'Tipo de execucao da habilidade.',
+          reference: 'tipoExecucao',
+        },
+        {
+          path: 'tecnicas[].habilidades[].area',
+          type: 'AreaEfeito | null',
+          required: false,
+          description: 'Area de efeito quando aplicavel.',
+          reference: 'areaEfeito',
+        },
+        {
+          path: 'tecnicas[].habilidades[].danoFlatTipo',
+          type: 'TipoDano | null',
+          required: false,
+          description: 'Tipo de dano fixo quando aplicavel.',
+          reference: 'tipoDano',
+        },
+        {
+          path: 'tecnicas[].habilidades[].grauTipoGrauCodigo',
+          type: 'string | null',
+          required: false,
+          description:
+            'Codigo de tipo de grau usado por escalonamentos por grau.',
+          reference: 'tiposGrau',
+        },
+        {
+          path: 'tecnicas[].habilidades[].escalonamentoTipo',
+          type: 'TipoEscalonamentoHabilidade',
+          required: false,
+          description: 'Tipo de escalonamento; padrao OUTRO.',
+          reference: 'tipoEscalonamentoHabilidade',
+        },
+        {
+          path: 'tecnicas[].habilidades[].variacoes[].nome',
+          type: 'string',
+          required: true,
+          description:
+            'Nome da variacao; usado para atualizar quando id nao vier informado.',
+        },
+      ],
       exemplos: {
         minimo: exemploMinimo,
         completo: exemploCompleto,
       },
+      referencias: [
+        buildEnumReference(
+          'tipoTecnicaAmaldicoada',
+          'Tipos de tecnica',
+          Object.values(TipoTecnicaAmaldicoada),
+        ),
+        buildEnumReference(
+          'tipoFonte',
+          'Tipos de fonte',
+          Object.values(TipoFonte),
+        ),
+        buildEnumReference(
+          'tipoExecucao',
+          'Tipos de execucao',
+          Object.values(TipoExecucao),
+        ),
+        buildEnumReference(
+          'areaEfeito',
+          'Areas de efeito',
+          Object.values(AreaEfeito),
+        ),
+        buildEnumReference(
+          'tipoDano',
+          'Tipos de dano',
+          Object.values(TipoDano),
+        ),
+        buildEnumReference(
+          'tipoEscalonamentoHabilidade',
+          'Tipos de escalonamento',
+          Object.values(TipoEscalonamentoHabilidade),
+        ),
+        buildReference(
+          'clas',
+          'Clas',
+          clas.map((item) => ({
+            id: item.id,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { grandeCla: item.grandeCla, fonte: item.fonte },
+          })),
+          'Use o nome exato em tecnicas[].clasHereditarios[].',
+        ),
+        buildReference(
+          'suplementos',
+          'Suplementos publicados',
+          suplementos.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+            extra: { status: item.status, versao: item.versao },
+          })),
+          'Use o id em tecnicas[].suplementoId.',
+        ),
+        buildReference(
+          'tiposGrau',
+          'Tipos de grau',
+          tiposGrau.map((item) => ({
+            id: item.id,
+            codigo: item.codigo,
+            nome: item.nome,
+            descricao: item.descricao,
+          })),
+          'Use codigo em habilidades[].grauTipoGrauCodigo.',
+        ),
+      ],
       camposObrigatorios: {
         tecnica: ['codigo', 'nome', 'descricao', 'tipo'],
         habilidade: ['codigo', 'nome', 'descricao', 'execucao', 'efeito'],

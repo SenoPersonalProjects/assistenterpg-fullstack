@@ -6,7 +6,7 @@ import {
   apiCriarAnotacao,
   apiExcluirAnotacao,
   apiListarAnotacoes,
-  extrairMensagemErro,
+  criarErroUsuario,
   type AnotacaoResumo,
 } from '@/lib/api';
 import { formatarDataHora } from '@/lib/utils/formatters';
@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
+import type { UserErrorState } from '@/lib/types';
 
 type SessionNotesPanelProps = {
   campanhaId: number;
@@ -32,7 +33,7 @@ export function SessionNotesPanel({
 }: SessionNotesPanelProps) {
   const [notas, setNotas] = useState<AnotacaoResumo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [formAberto, setFormAberto] = useState(false);
@@ -53,7 +54,7 @@ export function SessionNotesPanel({
       setNotas(resposta.items);
       onCountChange?.(resposta.items.length);
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
@@ -118,7 +119,7 @@ export function SessionNotesPanel({
 
       limparFormulario();
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     } finally {
       setSalvando(false);
     }
@@ -143,7 +144,7 @@ export function SessionNotesPanel({
         return next;
       });
     } catch (error) {
-      setErro(extrairMensagemErro(error));
+      setErro(criarErroUsuario(error));
     }
   }
 

@@ -9,8 +9,8 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 import { apiGetNpcAmeaca, apiUpdateNpcAmeaca } from '@/lib/api/npcs-ameacas';
-import { extrairMensagemErro } from '@/lib/api/error-handler';
-import type { NpcAmeacaDetalhe, UpdateNpcAmeacaPayload } from '@/lib/types';
+import { criarErroUsuario } from '@/lib/api/error-handler';
+import type { NpcAmeacaDetalhe, UpdateNpcAmeacaPayload , UserErrorState } from '@/lib/types';
 
 export default function EditarNpcAmeacaPage() {
   const params = useParams<{ id?: string | string[] }>();
@@ -21,7 +21,7 @@ export default function EditarNpcAmeacaPage() {
 
   const [item, setItem] = useState<NpcAmeacaDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<UserErrorState | null>(null);
 
   useEffect(() => {
     if (!idValido) {
@@ -37,7 +37,7 @@ export default function EditarNpcAmeacaPage() {
         const dados = await apiGetNpcAmeaca(id);
         setItem(dados);
       } catch (error) {
-        setErro(extrairMensagemErro(error));
+        setErro(criarErroUsuario(error));
       } finally {
         setLoading(false);
       }
