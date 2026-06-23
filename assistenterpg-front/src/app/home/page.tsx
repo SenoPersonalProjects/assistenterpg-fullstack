@@ -328,10 +328,6 @@ export default function HomePage() {
                   <Icon name="domain" className="h-4 w-4" />
                   Central de Missões
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-app-secondary/30 bg-app-secondary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-app-secondary">
-                  <Icon name="energy" className="h-4 w-4" />
-                  Energia instável
-                </span>
               </div>
 
               <div className="max-w-3xl space-y-3">
@@ -339,7 +335,7 @@ export default function HomePage() {
                   E aí, <span className="text-gradient">{usuario.apelido}</span>.
                 </h1>
                 <p className="text-base font-medium leading-relaxed text-app-muted md:text-lg">
-                  A energia amaldiçoada está instável hoje. Continue sua missão,
+                  Está tendo um pico de energia amaldiçoada hoje. Continue sua missão,
                   prepare sua ficha ou consulte as regras antes da próxima sessão.
                 </p>
               </div>
