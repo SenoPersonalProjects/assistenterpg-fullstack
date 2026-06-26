@@ -17,13 +17,17 @@ node_modules/
 .env
 .env.*
 !.env.example
+!.env.local.example
 !*/.env.example
+!*/.env.local.example
 assistenterpg-back/.env
 assistenterpg-back/.env.*
 !assistenterpg-back/.env.example
+!assistenterpg-back/.env.local.example
 assistenterpg-front/.env
 assistenterpg-front/.env.*
 !assistenterpg-front/.env.example
+!assistenterpg-front/.env.local.example
 documentacao-unica/PRIVATE-OPS.md
 *.pem
 *.key

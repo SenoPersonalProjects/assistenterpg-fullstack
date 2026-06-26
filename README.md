@@ -35,7 +35,7 @@ cd ..\assistenterpg-back
 Copy-Item .env.example .env
 
 cd ..\assistenterpg-front
-Copy-Item .env.example .env
+Copy-Item .env.local.example .env.local
 ```
 
 Valores locais principais:
@@ -43,7 +43,9 @@ Valores locais principais:
 - backend `DATABASE_URL`: por padrão aponta para `mysql://assistenterpg:assistenterpg_dev@localhost:3306/assistenterpg`.
 - backend `JWT_SECRET`: troque por qualquer string local forte com 32+ caracteres.
 - backend `CORS_ORIGINS`: mantenha `http://localhost:3001` para o front local.
-- frontend `NEXT_PUBLIC_API_URL`: mantenha `http://localhost:3000` para a API local.
+- frontend `NEXT_PUBLIC_API_URL`: mantenha `http://localhost:3000` no `.env.local` para a API local.
+
+Se `assistenterpg-front/.env` estiver apontando para Render/producao, mantenha-o fora do Git e crie `assistenterpg-front/.env.local` a partir de `.env.local.example`. No Next.js, `.env.local` sobrepoe `.env` durante o desenvolvimento local.
 
 Não copie valores reais de produção para arquivos versionados.
 
@@ -136,6 +138,8 @@ Para produção cross-site, como Vercel + Render:
 - `AUTH_COOKIE_SECURE=true`
 - `CORS_ORIGINS` com a origem exata do front.
 - `FRONTEND_URL` com a URL pública do front.
+- Vercel deve configurar `NEXT_PUBLIC_API_URL` para a URL pública do Render.
+- Render deve configurar `NODE_ENV=production`, `TRUST_PROXY_HOPS=1` e `CORS_ORIGINS` explicitamente. Não use `*` com `credentials: true`.
 
 ## Atualizar TiDB sem recriar banco
 

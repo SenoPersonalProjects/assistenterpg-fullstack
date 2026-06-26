@@ -83,6 +83,26 @@ Comportamentos globais do frontend:
 
 ## 3. Execução local
 
+Fluxo recomendado:
+
+```powershell
+cd assistenterpg-back
+Copy-Item .env.example .env
+# ajuste DATABASE_URL e secrets locais
+npm run start:dev
+
+cd ..\assistenterpg-front
+Copy-Item .env.local.example .env.local
+npm run dev
+```
+
+- backend local: `http://localhost:3000`
+- frontend local: `http://localhost:3001`
+- front local deve usar `NEXT_PUBLIC_API_URL=http://localhost:3000`
+- back local deve aceitar `CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001`
+- se `assistenterpg-front/.env` apontar para Render/producao, `.env.local` deve sobrescrever esse valor no desenvolvimento local
+- em producao, Vercel deve apontar `NEXT_PUBLIC_API_URL` para Render e Render deve usar `CORS_ORIGINS` explicito, `TRUST_PROXY_HOPS=1` e nunca `*` com `credentials: true`
+
 ## 3.1 Backend
 
 Diretório: `assistenterpg-back/`
@@ -111,6 +131,8 @@ Scripts relevantes:
 ## 3.3 Variáveis de ambiente
 
 ### Backend
+
+O backend carrega `.env.local` e `.env` em desenvolvimento, com `.env.local` tendo precedencia. Em `NODE_ENV=production` e `NODE_ENV=test`, arquivos locais de env sao ignorados e as variaveis devem vir do ambiente do processo.
 
 - `PORT` (padrão: `3000`)
 - `PORT_AUTO_RETRY` (`true/false`)
@@ -141,6 +163,8 @@ Scripts relevantes:
 ### Frontend
 
 - `NEXT_PUBLIC_API_URL` (padrão: `http://localhost:3000`)
+
+Para desenvolvimento local com Next.js, prefira `assistenterpg-front/.env.local`, criado a partir de `.env.local.example`, para evitar chamadas acidentais ao backend de produção.
 
 ## 3.4 Notas de build
 
