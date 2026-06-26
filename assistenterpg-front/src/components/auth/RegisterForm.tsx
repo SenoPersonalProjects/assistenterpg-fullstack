@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { montarGoogleOAuthUrl } from '@/lib/api/auth';
 import { criarErroUsuario } from '@/lib/api/error-handler';
 import {
   PASSWORD_POLICY,
@@ -48,6 +49,10 @@ export function RegisterForm() {
     }
   }
 
+  function handleGoogleRegister() {
+    window.location.href = montarGoogleOAuthUrl('register');
+  }
+
   if (loading) return <p>Carregando...</p>;
 
   return (
@@ -80,6 +85,18 @@ export function RegisterForm() {
       />
       <Button type="submit" disabled={submitting || isCoolingDown}>
         {cooldownButtonLabel ?? (submitting ? 'Criando...' : 'Criar conta')}
+      </Button>
+
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-app-border" />
+        <span className="text-[11px] uppercase tracking-widest text-app-muted">
+          ou
+        </span>
+        <div className="h-px flex-1 bg-app-border" />
+      </div>
+
+      <Button type="button" variant="secondary" onClick={handleGoogleRegister}>
+        Cadastrar com Google
       </Button>
     </form>
   );

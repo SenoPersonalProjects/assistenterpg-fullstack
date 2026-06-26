@@ -2058,7 +2058,42 @@ Retorno esperado:
 { "message": "Suplemento ativado com sucesso" }
 ```
 
-## 10. Política desta pasta
+## 10. Google OAuth, Calendar e agendamento de sessões
+
+O backend suporta login/vinculação com Google OAuth e agendamento de sessões de campanha. A integração com Google Calendar é opcional: o agendamento local continua sendo criado mesmo se a sincronização com o Calendar falhar.
+
+Variáveis principais:
+
+- `GOOGLE_OAUTH_ENABLED`: habilita o fluxo Google.
+- `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` e `GOOGLE_OAUTH_CALLBACK_URL`: credenciais OAuth do Google Cloud.
+- `GOOGLE_OAUTH_SCOPES`: escopos de login, normalmente `openid email profile`.
+- `GOOGLE_CALENDAR_SCOPES`: escopo incremental do Calendar, normalmente `https://www.googleapis.com/auth/calendar.events`.
+- `GOOGLE_TOKEN_ENCRYPTION_KEY`: chave local/produção com pelo menos 32 caracteres para criptografar tokens Google.
+- `SESSION_SCHEDULER_ENABLED`, `SESSION_SCHEDULER_INTERVAL_MS`, `SESSION_SCHEDULER_BATCH_SIZE` e `SESSION_LAZY_ACTIVATION_ENABLED`: controle do job e fallback de abertura de sessões agendadas.
+
+Endpoints principais:
+
+- `GET /auth/google/start?mode=login|register`
+- `POST /auth/google/link/start`
+- `POST /auth/google/calendar/start`
+- `GET /auth/google/callback`
+- `GET /usuarios/me/integracoes/google`
+- `DELETE /usuarios/me/integracoes/google`
+- `GET /campanhas/:campanhaId/sessoes-agendadas`
+- `POST /campanhas/:campanhaId/sessoes-agendadas`
+- `PATCH /campanhas/:campanhaId/sessoes-agendadas/:id`
+- `POST /campanhas/:campanhaId/sessoes-agendadas/:id/cancelar`
+- `POST /campanhas/:campanhaId/sessoes-agendadas/:id/abrir`
+- `POST /campanhas/:campanhaId/sessoes-agendadas/:id/calendar/retry`
+
+Cuidados operacionais:
+
+- Produção deve configurar OAuth no provedor de ambiente; não versionar client secret, encryption key ou tokens.
+- A abertura automática usa job interno e fallback preguiçoso ao listar sessões/agendamentos, porque serviços hospedados podem reiniciar ou dormir.
+- Tokens Google são criptografados no banco e não devem aparecer em logs.
+- Contas inativas, pendentes de exclusão ou excluídas não podem autenticar via Google.
+
+## 11. Política desta pasta
 
 - Não criar documentação paralela em `assistenterpg-back/docs` ou `assistenterpg-front/backend_docs`.
 - Toda alteração de contrato/front/back deve atualizar este arquivo.

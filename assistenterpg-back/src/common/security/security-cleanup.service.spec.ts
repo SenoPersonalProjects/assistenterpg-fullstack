@@ -13,6 +13,7 @@ describe('SecurityCleanupService', () => {
       authToken: { deleteMany: deleteMany() },
       sessaoAutenticacao: { deleteMany: deleteMany() },
       limiteRequisicaoSeguranca: { deleteMany: deleteMany() },
+      oAuthState: { deleteMany: deleteMany() },
       usuario: {
         findMany: jest.fn().mockResolvedValue([{ id: 42 }]),
         updateMany: jest.fn().mockReturnValue(Promise.resolve({ count: 1 })),
@@ -60,6 +61,14 @@ describe('SecurityCleanupService', () => {
     expect(prisma.limiteRequisicaoSeguranca.deleteMany).toHaveBeenCalledWith({
       where: { expiraEm: { lte: expect.any(Date) } },
     });
+    expect(prisma.oAuthState.deleteMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { expiraEm: { lte: expect.any(Date) } },
+          { consumidoEm: { not: null, lte: expect.any(Date) } },
+        ],
+      },
+    });
     expect(prisma.usuario.updateMany).toHaveBeenCalledWith({
       where: {
         id: 42,
@@ -78,6 +87,7 @@ describe('SecurityCleanupService', () => {
       }),
     });
     expect(prisma.$transaction).toHaveBeenCalledWith([
+      expect.any(Promise),
       expect.any(Promise),
       expect.any(Promise),
       expect.any(Promise),

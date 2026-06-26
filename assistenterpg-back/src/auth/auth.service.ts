@@ -261,7 +261,7 @@ export class AuthService {
 
       await tx.usuario.update({
         where: { id: consumido.usuarioId },
-        data: { senhaHash: novaSenhaHash },
+        data: { senhaHash: novaSenhaHash, senhaGeradaPorOAuth: false },
       });
       await tx.authToken.updateMany({
         where: { usuarioId: consumido.usuarioId, usadoEm: null },
@@ -381,7 +381,7 @@ export class AuthService {
     await this.prisma.$transaction(async (tx) => {
       await tx.usuario.update({
         where: { id: usuarioId },
-        data: { senhaHash: novaSenhaHash },
+        data: { senhaHash: novaSenhaHash, senhaGeradaPorOAuth: false },
       });
       await tx.authToken.updateMany({
         where: { usuarioId, usadoEm: null },

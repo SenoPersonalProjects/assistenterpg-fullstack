@@ -97,6 +97,17 @@ export const SECURITY_RATE_LIMIT_POLICIES = {
       { dimension: 'usuario', limit: 5, windowMs: 15 * MINUTE_MS },
     ],
   },
+  googleOAuthStart: {
+    action: 'google-oauth-start',
+    dimensions: [{ dimension: 'ip', limit: 60, windowMs: HOUR_MS }],
+  },
+  googleOAuthUserAction: {
+    action: 'google-oauth-user-action',
+    dimensions: [
+      { dimension: 'ip', limit: 30, windowMs: HOUR_MS },
+      { dimension: 'usuario', limit: 5, windowMs: 15 * MINUTE_MS },
+    ],
+  },
 } as const satisfies Record<string, SecurityRateLimitPolicy>;
 
 export type SecurityRateLimitPolicyName =

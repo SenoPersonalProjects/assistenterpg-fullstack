@@ -1,5 +1,5 @@
 // src/lib/api/auth.ts
-import { apiClient, type AuthAxiosConfig } from './axios-client';
+import { API_BASE_URL, apiClient, type AuthAxiosConfig } from './axios-client';
 import type { LoginResponse } from '@/lib/types';
 
 export type UsuarioMe = {
@@ -12,6 +12,12 @@ export type UsuarioMe = {
 
 export type ApiMensagemAuth = {
   mensagem: string;
+};
+
+export type GoogleOAuthMode = 'login' | 'register';
+
+export type GoogleOAuthStartResponse = {
+  url: string;
 };
 
 function publicAuthConfig(): AuthAxiosConfig {
@@ -115,6 +121,26 @@ export async function apiReactivateAccount(
     '/auth/reactivate-account',
     { email, senha },
     publicAuthConfig(),
+  );
+  return data;
+}
+
+export function montarGoogleOAuthUrl(mode: GoogleOAuthMode): string {
+  const url = new URL('/auth/google/start', API_BASE_URL);
+  url.searchParams.set('mode', mode);
+  return url.toString();
+}
+
+export async function apiIniciarVinculoGoogle(): Promise<GoogleOAuthStartResponse> {
+  const { data } = await apiClient.post<GoogleOAuthStartResponse>(
+    '/auth/google/link/start',
+  );
+  return data;
+}
+
+export async function apiIniciarGoogleCalendar(): Promise<GoogleOAuthStartResponse> {
+  const { data } = await apiClient.post<GoogleOAuthStartResponse>(
+    '/auth/google/calendar/start',
   );
   return data;
 }

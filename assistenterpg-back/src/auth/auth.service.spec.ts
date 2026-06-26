@@ -403,7 +403,7 @@ describe('AuthService', () => {
     );
     expect(prisma.usuario.update).toHaveBeenCalledWith({
       where: { id: 8 },
-      data: { senhaHash: expect.any(String) },
+      data: { senhaHash: expect.any(String), senhaGeradaPorOAuth: false },
     });
     expect(prisma.authToken.updateMany).toHaveBeenCalledWith({
       where: { usuarioId: 8, usadoEm: null },

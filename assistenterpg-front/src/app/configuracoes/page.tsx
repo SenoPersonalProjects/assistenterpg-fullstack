@@ -23,6 +23,7 @@ import { ModalAlterarEmail } from '@/components/configuracoes/ModalAlterarEmail'
 import { ModalDesativarConta } from '@/components/configuracoes/ModalDesativarConta';
 import { ModalExcluirConta } from '@/components/configuracoes/ModalExcluirConta';
 import { DangerZoneActions } from '@/components/configuracoes/DangerZoneActions';
+import { GoogleAccountSection } from '@/components/configuracoes/GoogleAccountSection';
 import { AppearanceSelector } from '@/components/configuracoes/AppearanceSelector';
 import { SettingsSidebar, type SettingsTabId } from '@/components/configuracoes/SettingsSidebar';
 import {
@@ -432,7 +433,7 @@ export default function ConfiguracoesPage() {
                       icon="lock"
                       description="Gerencie o acesso à sua conta."
                     >
-                      <div className="max-w-md space-y-4">
+                      <div className="max-w-2xl space-y-4">
                         <Button
                           variant="secondary"
                           onClick={() => setModalSenhaOpen(true)}
@@ -458,6 +459,7 @@ export default function ConfiguracoesPage() {
                         <Alert>
                           Recomendamos trocar sua senha periodicamente para manter sua conta segura.
                         </Alert>
+                        <GoogleAccountSection />
                       </div>
                     </ConfigSection>
                   )}

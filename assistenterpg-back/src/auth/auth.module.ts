@@ -4,8 +4,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { GoogleModule } from 'src/google/google.module';
 import { UsuarioModule } from '../usuario/usuario.module';
 import { AuthController } from './auth.controller';
+import { GoogleAuthController } from './google-auth.controller';
 import { resolveJwtSecret } from './auth-security.config';
 import { AuthMailService } from './auth-mail.service';
 import { AuthSessionService } from './auth-session.service';
@@ -20,6 +22,7 @@ import { LocalStrategy } from './local.strategy';
 @Module({
   imports: [
     ConfigModule,
+    GoogleModule,
     forwardRef(() => UsuarioModule),
     PrismaModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -48,7 +51,7 @@ import { LocalStrategy } from './local.strategy';
       useClass: CsrfGuard,
     },
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, GoogleAuthController],
   exports: [
     AuthService,
     AuthSessionService,

@@ -399,6 +399,66 @@ export type SessaoCampanhaResumo = {
   totalEventos: number;
 };
 
+export type StatusSessaoAgendada =
+  | 'AGENDADA'
+  | 'PROCESSANDO_ABERTURA'
+  | 'ABERTA'
+  | 'CANCELADA'
+  | 'FALHA_ABERTURA';
+
+export type StatusSyncCalendar =
+  | 'NAO_SOLICITADO'
+  | 'PENDENTE'
+  | 'SINCRONIZADO'
+  | 'FALHOU'
+  | 'CANCELADO';
+
+export type SessaoAgendadaResumo = {
+  id: number;
+  campanhaId: number;
+  sessaoId: number | null;
+  titulo: string;
+  descricao: string | null;
+  inicioEm: string;
+  fimEm: string;
+  timezone: string;
+  status: StatusSessaoAgendada;
+  canceladaEm: string | null;
+  abertaEm: string | null;
+  falhaAbertura: string | null;
+  adicionarAoGoogleCalendar: boolean;
+  adicionarGoogleMeet: boolean;
+  googleCalendarHtmlLink: string | null;
+  googleMeetLink: string | null;
+  calendarSyncStatus: StatusSyncCalendar;
+  calendarSyncError: string | null;
+  calendarSyncAttempts: number;
+  lastCalendarSyncAt: string | null;
+  criador: {
+    id: number;
+    apelido: string;
+    email: string;
+  };
+  sessao: {
+    id: number;
+    status: string;
+  } | null;
+};
+
+export type CriarSessaoAgendadaPayload = {
+  titulo: string;
+  descricao?: string;
+  inicioEm: string;
+  fimEm?: string;
+  duracaoMinutos?: number;
+  timezone: string;
+  adicionarAoGoogleCalendar?: boolean;
+  adicionarGoogleMeet?: boolean;
+};
+
+export type AtualizarSessaoAgendadaPayload =
+  Partial<CriarSessaoAgendadaPayload>;
+
 export type TipoParticipanteIniciativaSessao = 'PERSONAGEM' | 'NPC';
 
 export type TurnoAtualSessaoCampanha = {

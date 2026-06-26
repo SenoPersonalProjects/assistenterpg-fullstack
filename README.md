@@ -141,6 +141,40 @@ Para produção cross-site, como Vercel + Render:
 - Vercel deve configurar `NEXT_PUBLIC_API_URL` para a URL pública do Render.
 - Render deve configurar `NODE_ENV=production`, `TRUST_PROXY_HOPS=1` e `CORS_ORIGINS` explicitamente. Não use `*` com `credentials: true`.
 
+## Google OAuth, Calendar e agendamento
+
+A integração Google é opcional e vem desabilitada por padrão.
+
+Para habilitar localmente:
+
+- Crie um OAuth Client Web no Google Cloud.
+- Configure o redirect autorizado como `http://localhost:3000/auth/google/callback`.
+- No `assistenterpg-back/.env`, defina:
+  - `GOOGLE_OAUTH_ENABLED=true`
+  - `GOOGLE_OAUTH_CLIENT_ID`
+  - `GOOGLE_OAUTH_CLIENT_SECRET`
+  - `GOOGLE_OAUTH_CALLBACK_URL=http://localhost:3000/auth/google/callback`
+  - `GOOGLE_TOKEN_ENCRYPTION_KEY` com segredo local forte de 32+ caracteres
+
+Para Google Calendar, o app usa o escopo mínimo `https://www.googleapis.com/auth/calendar.events`.
+O evento é criado no calendário da conta Google vinculada pelo mestre, e membros da campanha com email verificado entram como convidados.
+
+Em produção:
+
+- Use callback HTTPS público do backend.
+- Configure OAuth consent screen no Google Cloud.
+- Não registre tokens, authorization code ou refresh token.
+- Mantenha `GOOGLE_TOKEN_ENCRYPTION_KEY` fora do Git e estável entre deploys.
+
+O scheduler local de agendamentos usa:
+
+- `SESSION_SCHEDULER_ENABLED=true`
+- `SESSION_SCHEDULER_INTERVAL_MS=60000`
+- `SESSION_SCHEDULER_BATCH_SIZE=20`
+- `SESSION_LAZY_ACTIVATION_ENABLED=true`
+
+Como fallback, a API também processa agendamentos vencidos ao listar sessões/agendamentos da campanha.
+
 ## Atualizar TiDB sem recriar banco
 
 O fluxo padrão para atualizar dados/migrations no TiDB é não destrutivo:

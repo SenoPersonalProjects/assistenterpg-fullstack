@@ -24,6 +24,10 @@ export class SecurityCleanupService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
     const intervalMs =
       this.getPositiveNumber(
         'AUTH_SECURITY_CLEANUP_INTERVAL_MINUTES',
@@ -84,6 +88,14 @@ export class SecurityCleanupService implements OnModuleInit, OnModuleDestroy {
         }),
         this.prisma.limiteRequisicaoSeguranca.deleteMany({
           where: { expiraEm: { lte: agora } },
+        }),
+        this.prisma.oAuthState.deleteMany({
+          where: {
+            OR: [
+              { expiraEm: { lte: agora } },
+              { consumidoEm: { not: null, lte: retencaoAte } },
+            ],
+          },
         }),
         ...contasPendentesExclusao.map((conta) =>
           this.prisma.usuario.updateMany({

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { CampaignMembersSection } from '@/components/campanha/CampaignMembersSection';
 import { CampaignCharactersSection } from '@/components/campanha/CampaignCharactersSection';
+import { CampaignScheduledSessionsSection } from '@/components/campanha/CampaignScheduledSessionsSection';
 import { CampaignSessionsSection } from '@/components/campanha/CampaignSessionsSection';
 import { InviteMemberForm } from '@/components/campanha/InviteMemberForm';
 import { InviteFriendsPanel } from '@/components/campanha/InviteFriendsPanel';
@@ -309,6 +310,15 @@ export default function CampanhaDetalhePage() {
                   <Icon name="scroll" className="w-4 h-4" />
                 </div>
                 <h2 className="text-xl font-bold text-app-fg tracking-tight">Sessões da Campanha</h2>
+              </div>
+              <div className="mb-8">
+                <CampaignScheduledSessionsSection
+                  campanhaId={campanha.id}
+                  usuarioEhMestre={Boolean(usuarioEhMestre)}
+                  onSessaoAberta={() =>
+                    handleTotalSessoesChange(campanha._count.sessoes + 1)
+                  }
+                />
               </div>
               <CampaignSessionsSection
                 campanhaId={campanha.id}

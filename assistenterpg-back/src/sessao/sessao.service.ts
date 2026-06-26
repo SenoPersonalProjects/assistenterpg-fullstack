@@ -537,58 +537,75 @@ export class SessaoService {
     const titulo =
       dto.titulo?.trim() || `Sessao ${new Date().toLocaleDateString('pt-BR')}`;
 
-    const sessaoCriada = await this.prisma.$transaction(async (tx) => {
-      const sessao = await tx.sessao.create({
-        data: {
-          campanhaId,
-          titulo,
-        },
-      });
-
-      const cenaInicial = await tx.cena.create({
-        data: {
-          sessaoId: sessao.id,
-        },
-      });
-
-      const personagensCampanha = await tx.personagemCampanha.findMany({
-        where: {
-          campanhaId,
-        },
-        select: {
-          id: true,
-        },
-        orderBy: {
-          id: 'asc',
-        },
-      });
-
-      if (personagensCampanha.length > 0) {
-        await tx.personagemSessao.createMany({
-          data: personagensCampanha.map((personagem) => ({
-            sessaoId: sessao.id,
-            cenaId: cenaInicial.id,
-            personagemCampanhaId: personagem.id,
-          })),
-        });
-      }
-
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId: sessao.id,
-          cenaId: cenaInicial.id,
-          tipoEvento: 'SESSAO_INICIADA',
-          dados: {
-            titulo,
-            iniciadoPorId: usuarioId,
-          },
-        },
-      });
-
-      return sessao;
-    });
+    const sessaoCriada = await this.prisma.$transaction((tx) =>
+      this.criarSessaoOperacionalEmTransacao(
+        tx,
+        campanhaId,
+        usuarioId,
+        titulo,
+        new Date(),
+      ),
+    );
 
     return this.buscarDetalheSessao(campanhaId, sessaoCriada.id, usuarioId);
+  }
+
+  async criarSessaoOperacionalEmTransacao(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    usuarioId: number,
+    titulo: string,
+    iniciadoEm: Date,
+  ) {
+    const sessao = await tx.sessao.create({
+      data: {
+        campanhaId,
+        titulo,
+        iniciadoEm,
+      },
+    });
+
+    const cenaInicial = await tx.cena.create({
+      data: {
+        sessaoId: sessao.id,
+      },
+    });
+
+    const personagensCampanha = await tx.personagemCampanha.findMany({
+      where: {
+        campanhaId,
+      },
+      select: {
+        id: true,
+      },
+      orderBy: {
+        id: 'asc',
+      },
+    });
+
+    if (personagensCampanha.length > 0) {
+      await tx.personagemSessao.createMany({
+        data: personagensCampanha.map((personagem) => ({
+          sessaoId: sessao.id,
+          cenaId: cenaInicial.id,
+          personagemCampanhaId: personagem.id,
+        })),
+      });
+    }
+
+    await tx.eventoSessao.create({
+      data: {
+        sessaoId: sessao.id,
+        cenaId: cenaInicial.id,
+        tipoEvento: 'SESSAO_INICIADA',
+        dados: {
+          titulo,
+          iniciadoPorId: usuarioId,
+        },
+      },
+    });
+
+    return sessao;
   }
 
   async encerrarSessaoCampanha(

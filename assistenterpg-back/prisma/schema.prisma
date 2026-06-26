@@ -284,6 +284,33 @@ enum TipoTokenAuth {
   VERIFICACAO_EMAIL
 }
 
+enum ProvedorOAuth {
+  GOOGLE
+}
+
+enum ModoOAuthState {
+  LOGIN
+  REGISTER
+  LINK
+  CALENDAR
+}
+
+enum StatusSessaoAgendada {
+  AGENDADA
+  PROCESSANDO_ABERTURA
+  ABERTA
+  CANCELADA
+  FALHA_ABERTURA
+}
+
+enum StatusSyncCalendar {
+  NAO_SOLICITADO
+  PENDENTE
+  SINCRONIZADO
+  FALHOU
+  CANCELADO
+}
+
 enum CampoModificadorPersonagemCampanha {
   PV_MAX
   PE_MAX
@@ -348,6 +375,7 @@ model Usuario {
   apelido              String
   email                String             @unique
   senhaHash            String
+  senhaGeradaPorOAuth  Boolean            @default(false)
   emailVerificadoEm    DateTime?
   status               StatusContaUsuario @default(ATIVA)
   desativadoEm         DateTime?
@@ -375,6 +403,10 @@ model Usuario {
   tokensAuth                               AuthToken[]
   sessoesAutenticacao                      SessaoAutenticacao[]
   alteracaoEmailPendente                   AlteracaoEmailPendente?
+  oauthIdentidades                         UsuarioOAuthIdentidade[]
+  googleCredencial                         UsuarioGoogleCredencial?
+  oauthStates                              OAuthState[]
+  sessoesAgendadasCriadas                  SessaoAgendada[]                       @relation("SessaoAgendadaCriador")
   conversasAmizadeComoUsuarioA             ConversaAmizade[]                      @relation("ConversaAmizadeUsuarioA")
   conversasAmizadeComoUsuarioB             ConversaAmizade[]                      @relation("ConversaAmizadeUsuarioB")
   mensagensAmizade                         MensagemAmizade[]                      @relation("MensagemAmizadeAutor")
@@ -487,6 +519,69 @@ model SessaoAutenticacao {
   @@map("sessoes_autenticacao")
 }
 
+model UsuarioOAuthIdentidade {
+  id               Int           @id @default(autoincrement())
+  usuarioId        Int
+  provider         ProvedorOAuth
+  providerUserId   String        @db.VarChar(128)
+  email            String        @db.VarChar(255)
+  emailNormalizado String        @db.VarChar(255)
+  emailVerificado  Boolean       @default(false)
+  nome             String?       @db.VarChar(255)
+  avatarUrl        String?       @db.Text
+  scopes           Json?
+  ultimoLoginEm    DateTime?
+  criadoEm         DateTime      @default(now())
+  atualizadoEm     DateTime      @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([usuarioId])
+  @@index([provider, emailNormalizado])
+  @@map("usuarios_oauth_identidades")
+}
+
+model UsuarioGoogleCredencial {
+  id                        Int       @id @default(autoincrement())
+  usuarioId                 Int       @unique
+  refreshTokenCriptografado String?   @db.Text
+  accessTokenCriptografado  String?   @db.Text
+  accessTokenExpiraEm       DateTime?
+  scopes                    Json?
+  calendarAutorizadoEm      DateTime?
+  revogadoEm                DateTime?
+  ultimoRefreshEm           DateTime?
+  ultimoErro                String?   @db.Text
+  criadoEm                  DateTime  @default(now())
+  atualizadoEm              DateTime  @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([revogadoEm])
+  @@map("usuarios_google_credenciais")
+}
+
+model OAuthState {
+  id                        Int            @id @default(autoincrement())
+  stateHash                 String         @unique @db.VarChar(64)
+  modo                      ModoOAuthState
+  usuarioId                 Int?
+  sid                       Int?
+  redirectPath              String?        @db.VarChar(512)
+  scopes                    Json?
+  codeVerifierCriptografado String         @db.Text
+  expiraEm                  DateTime
+  consumidoEm               DateTime?
+  criadoEm                  DateTime       @default(now())
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, modo])
+  @@index([expiraEm])
+  @@map("oauth_states")
+}
+
 model ConversaAmizade {
   id           Int      @id @default(autoincrement())
   usuarioAId   Int
@@ -553,6 +648,7 @@ model Campanha {
   historicoPersonagens      PersonagemCampanhaHistorico[]
   modificadoresPersonagens  PersonagemCampanhaModificador[]
   sessoes                   Sessao[]
+  sessoesAgendadas          SessaoAgendada[]
   convites                  ConviteCampanha[]
   anotacoes                 Anotacao[]
   itensSessao               ItemSessaoCampanha[]
@@ -924,8 +1020,48 @@ model Sessao {
   relatorio              SessaoRelatorio?
   regrasOpcionais        SessaoRegraOpcional[]
   iniciativaAlternada    SessaoIniciativaAlternada?
+  agendamentoOrigem      SessaoAgendada?
 
   @@index([campanhaId, iniciadoEm])
+}
+
+model SessaoAgendada {
+  id                        Int                  @id @default(autoincrement())
+  campanhaId                Int
+  criadorId                 Int
+  sessaoId                  Int?                 @unique
+  titulo                    String               @db.VarChar(120)
+  descricao                 String?              @db.Text
+  inicioEm                  DateTime
+  fimEm                     DateTime
+  timezone                  String               @db.VarChar(80)
+  status                    StatusSessaoAgendada @default(AGENDADA)
+  canceladaEm               DateTime?
+  abertaEm                  DateTime?
+  falhaAbertura             String?              @db.Text
+  adicionarAoGoogleCalendar Boolean              @default(false)
+  adicionarGoogleMeet       Boolean              @default(false)
+  googleCalendarEventId     String?              @db.VarChar(255)
+  googleCalendarHtmlLink    String?              @db.Text
+  googleCalendarICalUID     String?              @db.VarChar(255)
+  googleMeetLink            String?              @db.Text
+  calendarSyncStatus        StatusSyncCalendar   @default(NAO_SOLICITADO)
+  calendarSyncError         String?              @db.Text
+  calendarSyncAttempts      Int                  @default(0)
+  nextCalendarSyncAt        DateTime?
+  lastCalendarSyncAt        DateTime?
+  criadoEm                  DateTime             @default(now())
+  atualizadoEm              DateTime             @updatedAt
+
+  campanha Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  criador  Usuario  @relation("SessaoAgendadaCriador", fields: [criadorId], references: [id], onDelete: Cascade)
+  sessao   Sessao?  @relation(fields: [sessaoId], references: [id], onDelete: SetNull)
+
+  @@index([status, inicioEm])
+  @@index([campanhaId, status, inicioEm])
+  @@index([criadorId, status])
+  @@index([nextCalendarSyncAt])
+  @@map("sessoes_agendadas")
 }
 
 model SessaoRegraOpcional {

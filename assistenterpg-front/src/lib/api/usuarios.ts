@@ -11,6 +11,21 @@ export type MensagemContaResponse = {
   mensagem: string;
 };
 
+export type GoogleIntegrationStatus = {
+  conectado: boolean;
+  email: string | null;
+  nome: string | null;
+  avatarUrl: string | null;
+  emailVerificado: boolean;
+  ultimoLoginEm: string | null;
+  atualizadoEm: string | null;
+  calendarAutorizado: boolean;
+  calendarAutorizadoEm: string | null;
+  ultimoErro: string | null;
+  scopes: string[];
+  googleOAuthEnabled: boolean;
+};
+
 export async function apiObterEstatisticas(): Promise<EstatisticasUsuario> {
   const { data } = await apiClient.get('/usuarios/me/estatisticas');
   return data;
@@ -25,6 +40,20 @@ export async function apiAtualizarPreferencias(
   payload: AtualizarPreferenciasPayload,
 ): Promise<PreferenciasUsuario> {
   const { data } = await apiClient.patch('/usuarios/me/preferencias', payload);
+  return data;
+}
+
+export async function apiObterIntegracaoGoogle(): Promise<GoogleIntegrationStatus> {
+  const { data } = await apiClient.get<GoogleIntegrationStatus>(
+    '/usuarios/me/integracoes/google',
+  );
+  return data;
+}
+
+export async function apiDesvincularGoogle(): Promise<MensagemContaResponse> {
+  const { data } = await apiClient.delete<MensagemContaResponse>(
+    '/usuarios/me/integracoes/google',
+  );
   return data;
 }
 

@@ -28,6 +28,9 @@ import type {
   TipoCenaSessaoCampanha,
   TransferenciaItemSessaoCampanhaDto,
   AmigoConvidavelCampanha,
+  AtualizarSessaoAgendadaPayload,
+  CriarSessaoAgendadaPayload,
+  SessaoAgendadaResumo,
 } from '@/lib/types';
 
 export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
@@ -434,6 +437,70 @@ export async function apiGetSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.get(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}`,
+  );
+  return data;
+}
+
+export async function apiListarSessoesAgendadasCampanha(
+  campanhaId: number,
+): Promise<SessaoAgendadaResumo[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/sessoes-agendadas`,
+  );
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiCriarSessaoAgendadaCampanha(
+  campanhaId: number,
+  payload: CriarSessaoAgendadaPayload,
+): Promise<SessaoAgendadaResumo> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes-agendadas`,
+    payload,
+  );
+  apiInvalidateCampanhaDetalheCache(campanhaId);
+  return data;
+}
+
+export async function apiAtualizarSessaoAgendadaCampanha(
+  campanhaId: number,
+  agendamentoId: number,
+  payload: AtualizarSessaoAgendadaPayload,
+): Promise<SessaoAgendadaResumo> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/sessoes-agendadas/${agendamentoId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCancelarSessaoAgendadaCampanha(
+  campanhaId: number,
+  agendamentoId: number,
+): Promise<SessaoAgendadaResumo> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes-agendadas/${agendamentoId}/cancelar`,
+  );
+  return data;
+}
+
+export async function apiAbrirSessaoAgendadaCampanha(
+  campanhaId: number,
+  agendamentoId: number,
+): Promise<SessaoAgendadaResumo> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes-agendadas/${agendamentoId}/abrir`,
+  );
+  apiInvalidateCampanhaDetalheCache(campanhaId);
+  return data;
+}
+
+export async function apiRetryCalendarSessaoAgendadaCampanha(
+  campanhaId: number,
+  agendamentoId: number,
+): Promise<SessaoAgendadaResumo> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes-agendadas/${agendamentoId}/calendar/retry`,
   );
   return data;
 }

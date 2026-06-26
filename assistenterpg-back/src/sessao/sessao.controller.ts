@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { SessaoService } from './sessao.service';
+import { SessaoActivationService } from './sessao-activation.service';
 import { CreateSessaoCampanhaDto } from './dto/create-sessao-campanha.dto';
 import { ListarChatSessaoDto } from './dto/listar-chat-sessao.dto';
 import { EnviarChatSessaoDto } from './dto/enviar-chat-sessao.dto';
@@ -48,6 +49,7 @@ export class SessaoController {
   constructor(
     private readonly sessaoService: SessaoService,
     private readonly sessaoGateway: SessaoGateway,
+    private readonly sessaoActivationService: SessaoActivationService,
   ) {}
 
   @Get()
@@ -55,6 +57,9 @@ export class SessaoController {
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Request() req: { user: { id: number } },
   ) {
+    await this.sessaoActivationService.processarVencidasComFallbackLazy(
+      campanhaId,
+    );
     return this.sessaoService.listarSessoesCampanha(campanhaId, req.user.id);
   }
 

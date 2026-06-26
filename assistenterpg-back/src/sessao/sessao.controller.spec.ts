@@ -4,6 +4,7 @@ import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { SessaoController } from './sessao.controller';
 import { SessaoService } from './sessao.service';
 import { SessaoGateway } from './sessao.gateway';
+import { SessaoActivationService } from './sessao-activation.service';
 
 describe('SessaoController', () => {
   let controller: SessaoController;
@@ -37,6 +38,10 @@ describe('SessaoController', () => {
     emitirSessaoAtualizada: jest.fn(),
   };
 
+  const sessaoActivationServiceMock = {
+    processarVencidasComFallbackLazy: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -50,6 +55,10 @@ describe('SessaoController', () => {
         {
           provide: SessaoGateway,
           useValue: sessaoGatewayMock,
+        },
+        {
+          provide: SessaoActivationService,
+          useValue: sessaoActivationServiceMock,
         },
       ],
     }).compile();

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { useAuth } from '@/context/AuthContext';
+import { montarGoogleOAuthUrl } from '@/lib/api/auth';
 import { criarErroUsuario } from '@/lib/api/error-handler';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import type { UserErrorState } from '@/lib/types';
@@ -38,6 +39,10 @@ export function LoginForm() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleGoogleLogin() {
+    window.location.href = montarGoogleOAuthUrl('login');
   }
 
   if (loading) return <p>Carregando...</p>;
@@ -95,6 +100,18 @@ export function LoginForm() {
 
       <Button type="submit" disabled={submitting || isCoolingDown}>
         {cooldownButtonLabel ?? (submitting ? 'Entrando...' : 'Entrar')}
+      </Button>
+
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-app-border" />
+        <span className="text-[11px] uppercase tracking-widest text-app-muted">
+          ou
+        </span>
+        <div className="h-px flex-1 bg-app-border" />
+      </div>
+
+      <Button type="button" variant="secondary" onClick={handleGoogleLogin}>
+        Entrar com Google
       </Button>
     </form>
   );

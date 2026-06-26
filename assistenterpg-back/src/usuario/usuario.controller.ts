@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard'; // ✅ NOVO
 import { AuthService } from '../auth/auth.service';
 import { AuthSessionService } from '../auth/auth-session.service';
 import { SecurityRateLimit } from 'src/common/security/security-rate-limit.decorator';
+import { GoogleOAuthService } from 'src/google/google-oauth.service';
 import { UsuarioService } from './usuario.service';
 import { AtualizarPreferenciasDto } from './dto/atualizar-preferencias.dto';
 import { AlterarSenhaDto } from './dto/alterar-senha.dto';
@@ -32,6 +33,7 @@ export class UsuarioController {
     private readonly usuarioService: UsuarioService,
     private readonly authService: AuthService,
     private readonly authSessionService: AuthSessionService,
+    private readonly googleOAuthService: GoogleOAuthService,
   ) {}
 
   @Get('me')
@@ -50,6 +52,17 @@ export class UsuarioController {
   @Get('me/preferencias')
   async obterPreferencias(@Request() req: { user: { id: number } }) {
     return this.usuarioService.obterPreferencias(req.user.id);
+  }
+
+  @Get('me/integracoes/google')
+  async obterIntegracaoGoogle(@Request() req: { user: { id: number } }) {
+    return this.googleOAuthService.obterStatus(req.user.id);
+  }
+
+  @Delete('me/integracoes/google')
+  @SecurityRateLimit('googleOAuthUserAction')
+  async desvincularGoogle(@Request() req: { user: { id: number } }) {
+    return this.googleOAuthService.desvincular(req.user.id);
   }
 
   @Patch('me/preferencias')
