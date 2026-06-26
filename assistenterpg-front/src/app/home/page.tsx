@@ -176,6 +176,13 @@ const RULE_GUIDES: HomeAction[] = [
     tone: 'secondary',
   },
   {
+    label: 'Atlas do Mundo',
+    href: '/mundo',
+    icon: 'map',
+    description: 'Explore escolas, barreiras, organizações e regiões ocultas do cenário.',
+    tone: 'cyan',
+  },
+  {
     label: 'NPCs e Ameaças',
     href: '/npcs-ameacas',
     icon: 'curse',

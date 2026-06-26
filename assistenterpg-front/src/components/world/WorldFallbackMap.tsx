@@ -1,0 +1,81 @@
+'use client';
+
+import { Icon } from '@/components/ui/Icon';
+import type { WorldAtlasCategory, WorldAtlasItem } from '@/lib/world';
+import { getAtlasItemCategory } from '@/lib/world';
+
+type WorldFallbackMapProps = {
+  items: WorldAtlasItem[];
+  selectedItemId: string | null;
+  reason?: string;
+  onSelectItem: (itemId: string) => void;
+};
+
+const CATEGORY_STYLES = {
+  ESCOLA: 'border-app-primary/40 bg-app-primary/10 text-app-primary',
+  BARREIRA: 'border-app-secondary/40 bg-app-secondary/10 text-app-secondary',
+  ORGANIZACAO: 'border-app-orange/40 bg-app-orange/10 text-app-orange',
+  REGIAO_OCULTA: 'border-app-danger/40 bg-app-danger/10 text-app-danger',
+} as const;
+
+const CATEGORY_LABELS: Record<WorldAtlasCategory, string> = {
+  ESCOLA: 'Escola',
+  BARREIRA: 'Barreira',
+  ORGANIZACAO: 'Organização',
+  REGIAO_OCULTA: 'Região oculta',
+};
+
+export function WorldFallbackMap({
+  items,
+  selectedItemId,
+  reason,
+  onSelectItem,
+}: WorldFallbackMapProps) {
+  return (
+    <div className="flex min-h-[32rem] flex-col justify-between rounded-3xl border border-app-border bg-app-bg/70 p-5">
+      <div className="space-y-2">
+        <div className="inline-flex items-center gap-2 rounded-full border border-app-warning/30 bg-app-warning/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-app-warning">
+          <Icon name="warning" className="h-4 w-4" />
+          Mapa tático
+        </div>
+        <h3 className="text-2xl font-black text-app-fg">
+          Visualização 3D indisponível
+        </h3>
+        <p className="max-w-2xl text-sm leading-relaxed text-app-muted">
+          {reason ||
+            'O navegador não disponibilizou WebGL. O atlas continua acessível em modo de dossiê.'}
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        {items.map((item) => {
+          const category = getAtlasItemCategory(item);
+          const selected = item.id === selectedItemId;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelectItem(item.id)}
+              className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
+                selected
+                  ? 'border-app-primary bg-app-primary/15 shadow-lg shadow-app-primary/10'
+                  : 'border-app-border bg-app-surface/60 hover:border-app-primary/40'
+              }`}
+            >
+              <span
+                className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${CATEGORY_STYLES[category]}`}
+              >
+                {CATEGORY_LABELS[category]}
+              </span>
+              <h4 className="mt-3 font-black text-app-fg">{item.nome}</h4>
+              <p className="mt-1 line-clamp-2 text-sm text-app-muted">
+                {item.resumo}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

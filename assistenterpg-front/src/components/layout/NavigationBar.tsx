@@ -31,6 +31,7 @@ const baseNavItems: NavItem[] = [
   { href: '/npcs-ameacas', label: 'NPC', icon: 'curse' },
   { href: '/homebrews', label: 'Homebrews', icon: 'sparkles' },
   { href: '/suplementos', label: 'Suplementos', icon: 'book' },
+  { href: '/mundo', label: 'Mundo', icon: 'map' },
   { href: '/compendio', label: 'Compêndio', icon: 'rules' },
   // FUTURO: { href: '/marketplace', label: 'Marketplace', icon: 'store' },
 ];
