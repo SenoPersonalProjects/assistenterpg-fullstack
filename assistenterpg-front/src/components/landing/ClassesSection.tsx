@@ -16,7 +16,7 @@ type LandingClass = {
   name: string;
   subtitle: string;
   description: string;
-  image: (typeof landingImages)[keyof typeof landingImages];
+  image: string;
   imagePosition: string;
   traits: string[];
 };
@@ -55,67 +55,98 @@ const classes: LandingClass[] = [
 ];
 
 export function ClassesSection() {
-  const [activeClass, setActiveClass] = useState(classes[0]);
-  const [prevClass, setPrevClass] = useState(classes[0]);
+  const [activeClassId, setActiveClassId] = useState(classes[0].id);
+  const [failedImageClassId, setFailedImageClassId] = useState<string | null>(
+    null,
+  );
   const container = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
+  const tabAnimationMountedRef = useRef(false);
+  const displayClass =
+    classes.find((item) => item.id === activeClassId) ?? classes[0];
+  const imageFailed = failedImageClassId === displayClass.id;
 
   // Entrance Animation
-  useGSAP(() => {
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: container.current,
-        start: 'top 80%',
-        end: 'bottom bottom',
-        toggleActions: 'play none none reverse',
-      }
-    });
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: container.current,
+          start: 'top 80%',
+          end: 'bottom bottom',
+          toggleActions: 'play none none reverse',
+        },
+      });
 
-    tl.fromTo(headerRef.current?.children || [],
-      { y: 30, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.8, stagger: 0.15, ease: 'power3.out' }
-    )
-    .fromTo(tabsRef.current?.children || [],
-      { scale: 0.8, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'back.out(1.5)' },
-      '-=0.4'
-    )
-    .fromTo([mediaRef.current, infoRef.current],
-      { y: 40, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.8, stagger: 0.2, ease: 'power3.out' },
-      '-=0.2'
-    );
-  }, { scope: container });
+      tl.fromTo(
+        headerRef.current?.children || [],
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, stagger: 0.15, ease: 'power3.out' },
+      )
+        .fromTo(
+          tabsRef.current?.children || [],
+          { scale: 0.8, opacity: 0 },
+          {
+            scale: 1,
+            opacity: 1,
+            duration: 0.5,
+            stagger: 0.1,
+            ease: 'back.out(1.5)',
+          },
+          '-=0.4',
+        )
+        .fromTo(
+          [mediaRef.current, infoRef.current],
+          { y: 40, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.8, stagger: 0.2, ease: 'power3.out' },
+          '-=0.2',
+        );
+    },
+    { scope: container },
+  );
 
   // Tab change animation
   useEffect(() => {
-    if (activeClass.id === prevClass.id) return;
+    const targets = [mediaRef.current, infoRef.current].filter(
+      (target): target is HTMLDivElement => Boolean(target),
+    );
 
-    const ctx = gsap.context(() => {
-      // Animate out
-      gsap.to([mediaRef.current, infoRef.current], {
-        opacity: 0,
-        x: (i) => i === 0 ? -20 : 20,
-        duration: 0.2,
-        ease: 'power2.in',
+    if (!tabAnimationMountedRef.current) {
+      tabAnimationMountedRef.current = true;
+      gsap.set(targets, { autoAlpha: 1, x: 0 });
+      return;
+    }
+
+    if (targets.length === 0) return;
+
+    gsap.killTweensOf(targets);
+    gsap.fromTo(
+      targets,
+      { autoAlpha: 0, x: (index) => (index === 0 ? 20 : -20) },
+      {
+        autoAlpha: 1,
+        x: 0,
+        duration: 0.35,
+        ease: 'power2.out',
         onComplete: () => {
-          setPrevClass(activeClass);
-          // Animate in
-          gsap.fromTo([mediaRef.current, infoRef.current],
-            { opacity: 0, x: (i) => i === 0 ? 20 : -20 },
-            { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out', clearProps: 'x' }
-          );
-        }
-      });
-    }, container);
+          gsap.set(targets, { autoAlpha: 1, x: 0 });
+        },
+      },
+    );
 
-    return () => ctx.revert();
-  }, [activeClass, prevClass]);
+    return () => {
+      gsap.killTweensOf(targets);
+      gsap.set(targets, { autoAlpha: 1, x: 0 });
+    };
+  }, [activeClassId]);
 
-  const displayClass = prevClass.id !== activeClass.id ? prevClass : activeClass;
+  function handleSelectClass(classId: string) {
+    if (classId === activeClassId) return;
+    setActiveClassId(classId);
+  }
 
   return (
     <section ref={container} id="classes" className="landing-section">
@@ -140,9 +171,9 @@ export function ClassesSection() {
             <div key={item.id}>
               <Button
                 size="sm"
-                variant={activeClass.id === item.id ? 'primary' : 'secondary'}
-                className={`landing-classes__tab transition-all duration-300 ${activeClass.id === item.id ? 'scale-105 shadow-xl shadow-app-primary/30' : 'hover:border-app-primary/50'}`}
-                onClick={() => setActiveClass(item)}
+                variant={activeClassId === item.id ? 'primary' : 'secondary'}
+                className={`landing-classes__tab transition-all duration-300 ${activeClassId === item.id ? 'scale-105 shadow-xl shadow-app-primary/30' : 'hover:border-app-primary/50'}`}
+                onClick={() => handleSelectClass(item.id)}
               >
                 {item.name}
               </Button>
@@ -152,14 +183,28 @@ export function ClassesSection() {
 
         <div className="landing-classes__content group">
           <div ref={mediaRef} className="landing-classes__media overflow-hidden">
-            <Image
-              src={displayClass.image}
-              alt={displayClass.name}
-              fill
-              sizes="(max-width: 1024px) 100vw, 44vw"
-              className="landing-classes__media-image group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
-              style={{ objectPosition: displayClass.imagePosition }}
-            />
+            {imageFailed ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[radial-gradient(circle_at_50%_20%,rgba(var(--primary-rgb),0.22),transparent_55%),linear-gradient(135deg,rgba(0,0,0,0.35),rgba(0,0,0,0.8))] p-8 text-center">
+                <span className="text-xs font-black uppercase tracking-[0.28em] text-app-primary">
+                  Imagem indisponível
+                </span>
+                <p className="mt-3 max-w-sm text-sm font-medium text-white/75">
+                  O dossiê visual desta classe não carregou, mas as informações
+                  seguem disponíveis.
+                </p>
+              </div>
+            ) : (
+              <Image
+                key={displayClass.id}
+                src={displayClass.image}
+                alt={displayClass.name}
+                fill
+                sizes="(max-width: 1024px) 100vw, 44vw"
+                className="landing-classes__media-image group-hover:scale-110 transition-transform duration-[1.5s] ease-out"
+                style={{ objectPosition: displayClass.imagePosition }}
+                onError={() => setFailedImageClassId(displayClass.id)}
+              />
+            )}
             <div className="landing-classes__media-overlay group-hover:opacity-60 transition-opacity duration-700" />
           </div>
 

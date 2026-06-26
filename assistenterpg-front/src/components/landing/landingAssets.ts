@@ -1,31 +1,17 @@
-import gojoArt from '../../../imagens/gojo art.jpg';
-import mahitoArt from '../../../imagens/mahito art.jpg';
-import chosoArt from '../../../imagens/choso art.jpg';
-import tojiCover from '../../../imagens/capa toji.png';
-import kenjakuCover from '../../../imagens/capa kenjaku.png';
-import chosoCover from '../../../imagens/capa choso.png';
-import logoJjkJapones from '../../../imagens/outras/logo jjk em japones.png';
-import simboloEscola from '../../../imagens/outras/simbolo da escola.png';
-import escolaTecnicaJujutsu from '../../../imagens/novos/escola tecnica jujutsu.png';
-import hollowPurpleGif from '../../../imagens/novos/hollow purple.gif';
-import maldicoesDesastres from '../../../imagens/novos/maldicoes desastres.png';
-import malevolentShrineGif from '../../../imagens/novos/malevolent shrine.gif';
-import trioGojoJovem from '../../../imagens/novos/trio do gojo jovem.png';
-
 export const landingImages = {
-  heroGif: hollowPurpleGif,
-  heroWatermark: simboloEscola,
-  aboutYouth: trioGojoJovem,
-  featuresSchool: escolaTecnicaJujutsu,
-  villains: maldicoesDesastres,
-  ctaGif: malevolentShrineGif,
-  classFeiticeiro: gojoArt,
-  classUsuario: mahitoArt,
-  classEspirito: maldicoesDesastres,
-  classCelestial: chosoArt,
-  classCombatente: tojiCover,
-  classSentinela: chosoCover,
-  classEspecialista: kenjakuCover,
-  logoJjkJapones,
-  simboloEscola,
+  heroGif: '/images/landing/effects/hollow-purple.gif',
+  heroWatermark: '/images/landing/branding/simbolo-escola.png',
+  aboutYouth: '/images/landing/backgrounds/trio-gojo-jovem.png',
+  featuresSchool: '/images/landing/backgrounds/escola-tecnica-jujutsu.png',
+  villains: '/images/landing/backgrounds/maldicoes-desastres.png',
+  ctaGif: '/images/landing/effects/malevolent-shrine.gif',
+  classFeiticeiro: '/images/landing/characters/gojo-art.jpg',
+  classUsuario: '/images/landing/characters/mahito-art.jpg',
+  classEspirito: '/images/landing/backgrounds/maldicoes-desastres.png',
+  classCelestial: '/images/landing/characters/choso-art.jpg',
+  classCombatente: '/images/landing/classes/combatente.png',
+  classSentinela: '/images/landing/classes/sentinela.png',
+  classEspecialista: '/images/landing/classes/especialista.png',
+  logoJjkJapones: '/images/landing/branding/logo-jjk-japones.png',
+  simboloEscola: '/images/landing/branding/simbolo-escola.png',
 } as const;
