@@ -1,4 +1,5 @@
 import {
+  IsIn,
   IsBoolean,
   IsISO8601,
   IsInt,
@@ -82,4 +83,19 @@ export class AtualizarSessaoAgendadaDto {
   @IsOptional()
   @IsBoolean({ message: 'adicionarGoogleMeet deve ser booleano' })
   adicionarGoogleMeet?: boolean;
+}
+
+export class ConflitosSessaoAgendadaQueryDto {
+  @IsISO8601({}, { message: 'inicioEm deve ser uma data ISO v\u00e1lida' })
+  inicioEm!: string;
+
+  @IsISO8601({}, { message: 'fimEm deve ser uma data ISO v\u00e1lida' })
+  fimEm!: string;
+
+  @IsOptional()
+  @IsString({ message: 'incluirGoogle deve ser texto' })
+  @IsIn(['true', 'false'], {
+    message: 'incluirGoogle deve ser true ou false',
+  })
+  incluirGoogle?: 'true' | 'false';
 }

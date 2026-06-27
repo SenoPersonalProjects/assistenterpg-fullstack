@@ -32,6 +32,7 @@ import {
   apiGetSessaoCampanha,
   apiInvalidateCampanhaDetalheCache,
   apiListarChatSessaoCampanha,
+  apiListarConflitosSessaoAgendadaCampanha,
   apiListarPersonagensBaseDisponiveisCampanha,
   apiListarPersonagensCampanha,
   apiListarSessoesCampanha,
@@ -242,6 +243,27 @@ describe('campanhas api cache and dedupe', () => {
 
     expect(mockedApiClient.get).toHaveBeenCalledWith('/campanhas/44/sessoes');
     expect(sessoes).toEqual([{ id: 1, titulo: 'Sessão 1' }]);
+  });
+
+  it('lists scheduled session conflicts with Google flag', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: {
+        assistenteRpg: [],
+        googleCalendar: [],
+        googleCalendarErro: null,
+      },
+    });
+
+    const conflitos = await apiListarConflitosSessaoAgendadaCampanha(44, {
+      inicioEm: '2030-01-01T20:00:00.000Z',
+      fimEm: '2030-01-01T22:00:00.000Z',
+      incluirGoogle: true,
+    });
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes-agendadas/conflitos?inicioEm=2030-01-01T20%3A00%3A00.000Z&fimEm=2030-01-01T22%3A00%3A00.000Z&incluirGoogle=true',
+    );
+    expect(conflitos.googleCalendarErro).toBeNull();
   });
 
   it('creates campaign session', async () => {

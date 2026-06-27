@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google, type calendar_v3 } from 'googleapis';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { GOOGLE_CALENDAR_EVENTS_SCOPE } from './google-oauth.service';
 import { GoogleTokenCryptoService } from './google-token-crypto.service';
 
 export type GoogleCalendarEventInput = {
@@ -21,6 +22,14 @@ export type GoogleCalendarEventResult = {
   htmlLink: string | null;
   iCalUID: string | null;
   meetLink: string | null;
+};
+
+export type GoogleCalendarConflict = {
+  id: string | null;
+  titulo: string;
+  inicioEm: string | null;
+  fimEm: string | null;
+  htmlLink: string | null;
 };
 
 @Injectable()
@@ -68,6 +77,47 @@ export class GoogleCalendarService {
     });
   }
 
+  async possuiAutorizacaoCalendar(usuarioId: number): Promise<boolean> {
+    const credencial = await this.prisma.usuarioGoogleCredencial.findUnique({
+      where: { usuarioId },
+      select: {
+        refreshTokenCriptografado: true,
+        calendarAutorizadoEm: true,
+        revogadoEm: true,
+        scopes: true,
+      },
+    });
+
+    return this.credencialPodeUsarCalendar(credencial);
+  }
+
+  async listarConflitos(
+    usuarioId: number,
+    inicioEm: Date,
+    fimEm: Date,
+  ): Promise<GoogleCalendarConflict[]> {
+    const calendar = await this.criarCalendarClient(usuarioId);
+    const response = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: inicioEm.toISOString(),
+      timeMax: fimEm.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      // Preview leve para o modal de agendamento; não é auditoria completa da agenda.
+      maxResults: 20,
+    });
+
+    return (response.data.items ?? [])
+      .filter((evento) => evento.status !== 'cancelled')
+      .map((evento) => ({
+        id: evento.id ?? null,
+        titulo: evento.summary ?? 'Evento sem t\u00edtulo',
+        inicioEm: evento.start?.dateTime ?? evento.start?.date ?? null,
+        fimEm: evento.end?.dateTime ?? evento.end?.date ?? null,
+        htmlLink: evento.htmlLink ?? null,
+      }));
+  }
+
   private async criarCalendarClient(
     usuarioId: number,
   ): Promise<calendar_v3.Calendar> {
@@ -77,14 +127,11 @@ export class GoogleCalendarService {
         refreshTokenCriptografado: true,
         calendarAutorizadoEm: true,
         revogadoEm: true,
+        scopes: true,
       },
     });
 
-    if (
-      !credencial?.refreshTokenCriptografado ||
-      !credencial.calendarAutorizadoEm ||
-      credencial.revogadoEm
-    ) {
+    if (!this.credencialPodeUsarCalendar(credencial)) {
       throw new BadRequestException({
         code: 'GOOGLE_CALENDAR_NOT_CONNECTED',
         message: 'Conecte o Google Calendar antes de sincronizar eventos.',
@@ -103,6 +150,32 @@ export class GoogleCalendarService {
     });
 
     return google.calendar({ version: 'v3', auth: client });
+  }
+
+  private credencialPodeUsarCalendar(
+    credencial: {
+      refreshTokenCriptografado: string | null;
+      calendarAutorizadoEm: Date | null;
+      revogadoEm: Date | null;
+      scopes: unknown;
+    } | null,
+  ): credencial is {
+    refreshTokenCriptografado: string;
+    calendarAutorizadoEm: Date;
+    revogadoEm: null;
+    scopes: unknown;
+  } {
+    const scopes = Array.isArray(credencial?.scopes)
+      ? credencial.scopes.filter(
+          (scope): scope is string => typeof scope === 'string',
+        )
+      : [];
+    return Boolean(
+      credencial?.refreshTokenCriptografado &&
+      credencial.calendarAutorizadoEm &&
+      !credencial.revogadoEm &&
+      scopes.includes(GOOGLE_CALENDAR_EVENTS_SCOPE),
+    );
   }
 
   private montarEvento(

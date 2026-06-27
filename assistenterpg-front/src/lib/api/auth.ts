@@ -138,9 +138,17 @@ export async function apiIniciarVinculoGoogle(): Promise<GoogleOAuthStartRespons
   return data;
 }
 
-export async function apiIniciarGoogleCalendar(): Promise<GoogleOAuthStartResponse> {
+function montarQueryRedirect(redirect?: string): string {
+  if (!redirect) return '';
+  const params = new URLSearchParams({ redirect });
+  return `?${params.toString()}`;
+}
+
+export async function apiIniciarGoogleCalendar(
+  redirect?: string,
+): Promise<GoogleOAuthStartResponse> {
   const { data } = await apiClient.post<GoogleOAuthStartResponse>(
-    '/auth/google/calendar/start',
+    `/auth/google/calendar/start${montarQueryRedirect(redirect)}`,
   );
   return data;
 }

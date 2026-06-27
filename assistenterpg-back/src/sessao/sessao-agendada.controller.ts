@@ -6,12 +6,14 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
   AtualizarSessaoAgendadaDto,
+  ConflitosSessaoAgendadaQueryDto,
   CriarSessaoAgendadaDto,
 } from './dto/sessao-agendada.dto';
 import { SessaoAgendadaService } from './sessao-agendada.service';
@@ -31,6 +33,15 @@ export class SessaoAgendadaController {
     @Request() req: AuthenticatedRequest,
   ) {
     return this.service.listar(campanhaId, req.user.id);
+  }
+
+  @Get('conflitos')
+  listarConflitos(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Request() req: AuthenticatedRequest,
+    @Query() query: ConflitosSessaoAgendadaQueryDto,
+  ) {
+    return this.service.listarConflitos(campanhaId, req.user.id, query);
   }
 
   @Post()

@@ -21,6 +21,9 @@ export type GoogleIntegrationStatus = {
   atualizadoEm: string | null;
   calendarAutorizado: boolean;
   calendarAutorizadoEm: string | null;
+  calendarScopes: string[];
+  calendarErro: string | null;
+  precisaReautorizarCalendar: boolean;
   ultimoErro: string | null;
   scopes: string[];
   googleOAuthEnabled: boolean;
@@ -53,6 +56,13 @@ export async function apiObterIntegracaoGoogle(): Promise<GoogleIntegrationStatu
 export async function apiDesvincularGoogle(): Promise<MensagemContaResponse> {
   const { data } = await apiClient.delete<MensagemContaResponse>(
     '/usuarios/me/integracoes/google',
+  );
+  return data;
+}
+
+export async function apiDesautorizarGoogleCalendar(): Promise<MensagemContaResponse> {
+  const { data } = await apiClient.delete<MensagemContaResponse>(
+    '/usuarios/me/integracoes/google/calendar',
   );
   return data;
 }

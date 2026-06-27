@@ -65,6 +65,12 @@ export class UsuarioController {
     return this.googleOAuthService.desvincular(req.user.id);
   }
 
+  @Delete('me/integracoes/google/calendar')
+  @SecurityRateLimit('googleOAuthUserAction')
+  async desautorizarGoogleCalendar(@Request() req: { user: { id: number } }) {
+    return this.googleOAuthService.desautorizarCalendar(req.user.id);
+  }
+
   @Patch('me/preferencias')
   async atualizarPreferencias(
     @Request() req: { user: { id: number } },

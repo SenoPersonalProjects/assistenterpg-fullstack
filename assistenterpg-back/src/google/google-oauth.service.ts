@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -23,6 +24,8 @@ const DEFAULT_GOOGLE_OAUTH_SCOPES = ['openid', 'email', 'profile'];
 const DEFAULT_GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
 ];
+export const GOOGLE_CALENDAR_EVENTS_SCOPE =
+  'https://www.googleapis.com/auth/calendar.events';
 const DEFAULT_STATE_TTL_MINUTES = 10;
 const OAUTH_ONLY_PASSWORD_BYTES = 48;
 
@@ -57,6 +60,8 @@ type TokenFields = {
 
 @Injectable()
 export class GoogleOAuthService {
+  private readonly logger = new Logger(GoogleOAuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -209,6 +214,7 @@ export class GoogleOAuthService {
       this.prisma.usuarioGoogleCredencial.findUnique({
         where: { usuarioId },
         select: {
+          refreshTokenCriptografado: true,
           calendarAutorizadoEm: true,
           revogadoEm: true,
           ultimoErro: true,
@@ -216,6 +222,23 @@ export class GoogleOAuthService {
         },
       }),
     ]);
+    const calendarScopes = this.jsonArrayToStrings(credencial?.scopes);
+    const possuiScopeCalendar = calendarScopes.includes(
+      GOOGLE_CALENDAR_EVENTS_SCOPE,
+    );
+    const possuiCredencialOffline = Boolean(
+      credencial?.refreshTokenCriptografado,
+    );
+    const calendarAutorizado = Boolean(
+      identidade &&
+      credencial?.calendarAutorizadoEm &&
+      !credencial.revogadoEm &&
+      possuiCredencialOffline &&
+      possuiScopeCalendar,
+    );
+    const precisaReautorizarCalendar = Boolean(
+      identidade && credencial?.calendarAutorizadoEm && !calendarAutorizado,
+    );
 
     return {
       conectado: Boolean(identidade),
@@ -225,13 +248,66 @@ export class GoogleOAuthService {
       emailVerificado: identidade?.emailVerificado ?? false,
       ultimoLoginEm: identidade?.ultimoLoginEm?.toISOString() ?? null,
       atualizadoEm: identidade?.atualizadoEm?.toISOString() ?? null,
-      calendarAutorizado:
-        Boolean(credencial?.calendarAutorizadoEm) && !credencial?.revogadoEm,
+      calendarAutorizado,
       calendarAutorizadoEm:
         credencial?.calendarAutorizadoEm?.toISOString() ?? null,
+      calendarScopes,
+      calendarErro: credencial?.ultimoErro ?? null,
+      precisaReautorizarCalendar,
       ultimoErro: credencial?.ultimoErro ?? null,
-      scopes: this.jsonArrayToStrings(credencial?.scopes),
+      scopes: calendarScopes,
       googleOAuthEnabled: this.googleEnabled(),
+    };
+  }
+
+  async desautorizarCalendar(usuarioId: number) {
+    const credencial = await this.prisma.usuarioGoogleCredencial.findUnique({
+      where: { usuarioId },
+      select: {
+        refreshTokenCriptografado: true,
+        accessTokenCriptografado: true,
+        scopes: true,
+      },
+    });
+    const scopes = this.jsonArrayToStrings(credencial?.scopes).filter(
+      (scope) => scope !== GOOGLE_CALENDAR_EVENTS_SCOPE,
+    );
+
+    let erroRevogacao: string | null = null;
+    const tokenCriptografado =
+      credencial?.refreshTokenCriptografado ??
+      credencial?.accessTokenCriptografado ??
+      null;
+
+    if (tokenCriptografado) {
+      try {
+        await this.revogarTokenGoogle(
+          this.tokenCrypto.decrypt(tokenCriptografado),
+        );
+      } catch (error) {
+        erroRevogacao = 'Falha ao revogar permiss\u00e3o no Google.';
+        this.logger.warn(
+          `Falha ao revogar permiss\u00e3o Calendar do usu\u00e1rio ${usuarioId}: ${this.resumirErroRevogacao(error)}`,
+        );
+      }
+    }
+
+    await this.prisma.usuarioGoogleCredencial.updateMany({
+      where: { usuarioId },
+      data: {
+        refreshTokenCriptografado: null,
+        accessTokenCriptografado: null,
+        accessTokenExpiraEm: null,
+        scopes,
+        calendarAutorizadoEm: null,
+        revogadoEm: new Date(),
+        ultimoErro: erroRevogacao,
+      },
+    });
+
+    return {
+      mensagem:
+        'Google Calendar desautorizado. Sua conta Google continua vinculada.',
     };
   }
 
@@ -669,6 +745,26 @@ export class GoogleOAuthService {
       .map((scope) => scope.trim())
       .filter(Boolean);
     return scopes.length > 0 ? scopes : fallback;
+  }
+
+  private async revogarTokenGoogle(token: string): Promise<void> {
+    const response = await fetch('https://oauth2.googleapis.com/revoke', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ token }),
+    });
+    if (!response.ok) {
+      throw new Error(`Google revoke retornou status ${response.status}`);
+    }
+  }
+
+  private resumirErroRevogacao(error: unknown): string {
+    if (!(error instanceof Error)) return 'erro';
+    const status = error.message.match(/status\s+\d{3}/i)?.[0];
+    if (status) return status;
+    return error.name || 'erro';
   }
 
   private normalizarScopes(

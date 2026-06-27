@@ -7,7 +7,12 @@ import { UsuarioController } from './usuario.controller';
 
 type UsuarioEndpoint = keyof Pick<
   UsuarioController,
-  'alterarSenha' | 'alterarEmail' | 'desativarConta' | 'excluirConta'
+  | 'alterarSenha'
+  | 'alterarEmail'
+  | 'desativarConta'
+  | 'excluirConta'
+  | 'desvincularGoogle'
+  | 'desautorizarGoogleCalendar'
 >;
 
 const RATE_LIMITED_ENDPOINTS: readonly [
@@ -18,6 +23,8 @@ const RATE_LIMITED_ENDPOINTS: readonly [
   ['alterarEmail', 'changeEmail'],
   ['desativarConta', 'deactivateAccount'],
   ['excluirConta', 'deleteAccount'],
+  ['desvincularGoogle', 'googleOAuthUserAction'],
+  ['desautorizarGoogleCalendar', 'googleOAuthUserAction'],
 ];
 
 describe('UsuarioController', () => {

@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import {
   apiAbrirSessaoAgendadaCampanha,
@@ -8,18 +15,34 @@ import {
   apiCancelarSessaoAgendadaCampanha,
   apiCriarSessaoAgendadaCampanha,
   apiIniciarGoogleCalendar,
+  apiListarConflitosSessaoAgendadaCampanha,
   apiListarSessoesAgendadasCampanha,
   apiObterIntegracaoGoogle,
   apiRetryCalendarSessaoAgendadaCampanha,
   criarErroUsuario,
 } from '@/lib/api';
 import type {
+  ConflitosSessaoAgendadaResponse,
   SessaoAgendadaResumo,
   StatusSessaoAgendada,
   StatusSyncCalendar,
   UserErrorState,
 } from '@/lib/types';
+import {
+  CUSTOM_DURATION_VALUE,
+  SESSION_DURATION_OPTIONS,
+  chaveRascunhoAgendamento,
+  criarConsultaConflitosAgendamento,
+  criarFormAgendamentoEdicao,
+  criarFormAgendamentoPadrao,
+  criarPayloadAgendamento,
+  duracaoCustomizadaValida,
+  restaurarRascunhoAgendamento,
+  serializarRascunhoAgendamento,
+  type ScheduleSessionFormState,
+} from '@/lib/campanhas/schedule-session.helpers';
 import { formatarDataHora } from '@/lib/utils/formatters';
+import { useToast } from '@/context/ToastContext';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -29,6 +52,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
 
 type Props = {
@@ -36,41 +60,6 @@ type Props = {
   usuarioEhMestre: boolean;
   onSessaoAberta?: () => void;
 };
-
-type FormState = {
-  titulo: string;
-  descricao: string;
-  inicioLocal: string;
-  duracaoMinutos: number;
-  timezone: string;
-  adicionarAoGoogleCalendar: boolean;
-  adicionarGoogleMeet: boolean;
-};
-
-const DEFAULT_DURATION_MINUTES = 180;
-
-function timezoneLocal(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Fortaleza';
-}
-
-function agoraLocalInput(): string {
-  const date = new Date(Date.now() + 60 * 60_000);
-  date.setMinutes(0, 0, 0);
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
-
-function criarFormPadrao(): FormState {
-  return {
-    titulo: '',
-    descricao: '',
-    inicioLocal: agoraLocalInput(),
-    duracaoMinutos: DEFAULT_DURATION_MINUTES,
-    timezone: timezoneLocal(),
-    adicionarAoGoogleCalendar: false,
-    adicionarGoogleMeet: false,
-  };
-}
 
 function corStatus(status: StatusSessaoAgendada): 'green' | 'yellow' | 'red' | 'gray' {
   if (status === 'ABERTA') return 'green';
@@ -86,10 +75,156 @@ function corCalendar(status: StatusSyncCalendar): 'green' | 'yellow' | 'red' | '
   return 'gray';
 }
 
-function toDateTimeLocal(iso: string): string {
-  const date = new Date(iso);
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+type SetScheduleForm = Dispatch<SetStateAction<ScheduleSessionFormState>>;
+
+function DurationSelect({
+  form,
+  setForm,
+}: {
+  form: ScheduleSessionFormState;
+  setForm: SetScheduleForm;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label
+        htmlFor="schedule-duration"
+        className="ml-1 text-sm font-semibold text-app-fg/90"
+      >
+        Duração estimada
+      </label>
+      <select
+        id="schedule-duration"
+        value={form.duracaoPreset}
+        onChange={(event) => {
+          const value = event.target.value;
+          setForm((atual) => ({
+            ...atual,
+            duracaoPreset: value,
+            duracaoMinutos:
+              value === CUSTOM_DURATION_VALUE
+                ? atual.duracaoMinutos
+                : Number(value),
+          }));
+        }}
+        className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-2.5 text-sm text-app-fg transition-all duration-200 hover:border-app-primary/30 focus-visible:border-app-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/40"
+      >
+        {SESSION_DURATION_OPTIONS.map((option) => (
+          <option key={option.value} value={String(option.value)}>
+            {option.label}
+          </option>
+        ))}
+        <option value={CUSTOM_DURATION_VALUE}>Personalizada</option>
+      </select>
+      {form.duracaoPreset === CUSTOM_DURATION_VALUE ? (
+        <Input
+          label="Duração personalizada em minutos"
+          type="number"
+          min={15}
+          max={24 * 60}
+          value={form.duracaoMinutos}
+          onChange={(event) =>
+            setForm((atual) => ({
+              ...atual,
+              duracaoMinutos: Number(event.target.value),
+            }))
+          }
+          error={
+            duracaoCustomizadaValida(form.duracaoMinutos)
+              ? undefined
+              : 'Use um valor entre 15 e 1440 minutos.'
+          }
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function CalendarConflictPreview({
+  conflitos,
+  loading,
+  erro,
+}: {
+  conflitos: ConflitosSessaoAgendadaResponse | null;
+  loading: boolean;
+  erro: string | null;
+}) {
+  const locais = conflitos?.assistenteRpg ?? [];
+  const google = conflitos?.googleCalendar ?? [];
+
+  return (
+    <aside className="rounded-xl border border-app-border bg-app-bg/50 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h4 className="text-sm font-semibold text-app-fg">Agenda do dia</h4>
+          <p className="text-xs text-app-muted">
+            Conflitos não bloqueiam, mas ajudam a evitar sobreposição.
+          </p>
+        </div>
+        {loading ? <Icon name="spinner" className="h-4 w-4 text-app-muted" /> : null}
+      </div>
+
+      {erro ? <Alert variant="warning">{erro}</Alert> : null}
+
+      {!loading && !erro && locais.length === 0 && google.length === 0 ? (
+        <p className="mt-4 rounded-lg border border-app-border/70 bg-app-surface/40 p-3 text-xs text-app-muted">
+          Nenhum agendamento encontrado nesse período.
+        </p>
+      ) : null}
+
+      {locais.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <Badge color="blue" size="sm">
+            AssistenteRPG
+          </Badge>
+          {locais.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-lg border border-app-warning/30 bg-app-warning/10 p-3"
+            >
+              <p className="text-sm font-semibold text-app-fg">{item.titulo}</p>
+              <p className="text-xs text-app-muted">
+                {formatarDataHora(item.inicioEm)} até {formatarDataHora(item.fimEm)}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {google.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <Badge color="green" size="sm">
+            Google Calendar
+          </Badge>
+          {google.map((item, index) => (
+            <div
+              key={item.id ?? `${item.titulo}-${index}`}
+              className="rounded-lg border border-app-border/70 bg-app-surface/40 p-3"
+            >
+              <p className="text-sm font-semibold text-app-fg">{item.titulo}</p>
+              <p className="text-xs text-app-muted">
+                {item.inicioEm ? formatarDataHora(item.inicioEm) : 'Início indefinido'}
+                {item.fimEm ? ` até ${formatarDataHora(item.fimEm)}` : ''}
+              </p>
+              {item.htmlLink ? (
+                <a
+                  href={item.htmlLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-flex text-xs font-semibold text-app-primary hover:underline"
+                >
+                  Abrir no Google
+                </a>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {conflitos?.googleCalendarErro ? (
+        <Alert variant="warning">{conflitos.googleCalendarErro}</Alert>
+      ) : null}
+    </aside>
+  );
 }
 
 export function CampaignScheduledSessionsSection({
@@ -98,19 +233,45 @@ export function CampaignScheduledSessionsSection({
   onSessaoAberta,
 }: Props) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [agendamentos, setAgendamentos] = useState<SessaoAgendadaResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [formAberto, setFormAberto] = useState(false);
-  const [form, setForm] = useState<FormState>(() => criarFormPadrao());
+  const [form, setForm] = useState<ScheduleSessionFormState>(() =>
+    criarFormAgendamentoPadrao(),
+  );
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [acaoId, setAcaoId] = useState<number | null>(null);
   const [calendarAutorizado, setCalendarAutorizado] = useState(false);
+  const [conflitos, setConflitos] =
+    useState<ConflitosSessaoAgendadaResponse | null>(null);
+  const [conflitosLoading, setConflitosLoading] = useState(false);
+  const [erroConflitos, setErroConflitos] = useState<string | null>(null);
 
   const agendadasAtivas = useMemo(
     () => agendamentos.filter((item) => item.status === 'AGENDADA'),
     [agendamentos],
+  );
+  const rascunhoKey = useMemo(
+    () => chaveRascunhoAgendamento(campanhaId),
+    [campanhaId],
+  );
+  const consultaConflitos = useMemo(
+    () => ({
+      inicioLocal: form.inicioLocal,
+      duracaoMinutos: form.duracaoMinutos,
+      timezone: form.timezone,
+      incluirGoogle: calendarAutorizado && form.adicionarAoGoogleCalendar,
+    }),
+    [
+      calendarAutorizado,
+      form.adicionarAoGoogleCalendar,
+      form.duracaoMinutos,
+      form.inicioLocal,
+      form.timezone,
+    ],
   );
 
   const carregar = useCallback(async () => {
@@ -134,60 +295,157 @@ export function CampaignScheduledSessionsSection({
     void carregar();
   }, [carregar]);
 
+  useEffect(() => {
+    if (
+      !formAberto ||
+      !consultaConflitos.inicioLocal ||
+      !duracaoCustomizadaValida(consultaConflitos.duracaoMinutos)
+    ) {
+      setConflitos(null);
+      setConflitosLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      let intervalo: ReturnType<typeof criarConsultaConflitosAgendamento>;
+      try {
+        intervalo = criarConsultaConflitosAgendamento(consultaConflitos);
+      } catch {
+        if (cancelled) return;
+        setConflitos(null);
+        setErroConflitos('Informe data, hora e dura\u00e7\u00e3o v\u00e1lidas.');
+        return;
+      }
+      setConflitosLoading(true);
+      setErroConflitos(null);
+      apiListarConflitosSessaoAgendadaCampanha(campanhaId, {
+        inicioEm: intervalo.inicioEm,
+        fimEm: intervalo.fimEm,
+        incluirGoogle: intervalo.incluirGoogle,
+      })
+        .then((data) => {
+          if (!cancelled) setConflitos(data);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setConflitos(null);
+          setErroConflitos('N\u00e3o foi poss\u00edvel carregar a agenda do dia.');
+        })
+        .finally(() => {
+          if (!cancelled) setConflitosLoading(false);
+        });
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [
+    campanhaId,
+    consultaConflitos,
+    formAberto,
+  ]);
+
+  useEffect(() => {
+    if (
+      !usuarioEhMestre ||
+      !calendarAutorizado ||
+      formAberto ||
+      typeof window === 'undefined'
+    ) {
+      return;
+    }
+    const rascunho = restaurarRascunhoAgendamento(
+      window.sessionStorage.getItem(rascunhoKey),
+    );
+    if (!rascunho) return;
+    window.sessionStorage.removeItem(rascunhoKey);
+    setEditandoId(null);
+    setForm(rascunho);
+    setConflitos(null);
+    setErroConflitos(null);
+    setFormAberto(true);
+  }, [calendarAutorizado, formAberto, rascunhoKey, usuarioEhMestre]);
+
   function resetForm() {
-    setForm(criarFormPadrao());
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(rascunhoKey);
+    }
+    setForm(criarFormAgendamentoPadrao());
     setEditandoId(null);
     setFormAberto(false);
+    setConflitos(null);
+    setErroConflitos(null);
+  }
+
+  function abrirModalCriacao() {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(rascunhoKey);
+    }
+    setEditandoId(null);
+    setForm(criarFormAgendamentoPadrao());
+    setConflitos(null);
+    setErroConflitos(null);
+    setFormAberto(true);
   }
 
   function editarAgendamento(agendamento: SessaoAgendadaResumo) {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem(rascunhoKey);
+    }
     setEditandoId(agendamento.id);
-    setForm({
-      titulo: agendamento.titulo,
-      descricao: agendamento.descricao ?? '',
-      inicioLocal: toDateTimeLocal(agendamento.inicioEm),
-      duracaoMinutos: Math.max(
-        15,
-        Math.round(
-          (new Date(agendamento.fimEm).getTime() -
-            new Date(agendamento.inicioEm).getTime()) /
-            60_000,
-        ),
-      ),
-      timezone: agendamento.timezone,
-      adicionarAoGoogleCalendar: agendamento.adicionarAoGoogleCalendar,
-      adicionarGoogleMeet: agendamento.adicionarGoogleMeet,
-    });
+    setForm(criarFormAgendamentoEdicao(agendamento));
+    setConflitos(null);
+    setErroConflitos(null);
     setFormAberto(true);
   }
 
   async function submitForm(event: React.FormEvent) {
     event.preventDefault();
+    if (!duracaoCustomizadaValida(form.duracaoMinutos)) {
+      setErro({
+        message: 'Informe uma dura\u00e7\u00e3o estimada entre 15 minutos e 24 horas.',
+      });
+      return;
+    }
+    if (form.adicionarAoGoogleCalendar && !calendarAutorizado) {
+      setErro({
+        message: 'Autorize o Google Calendar antes de enviar convites.',
+      });
+      return;
+    }
     setSubmitting(true);
     setErro(null);
     try {
-      const payload = {
-        titulo: form.titulo.trim(),
-        descricao: form.descricao.trim() || undefined,
-        inicioEm: new Date(form.inicioLocal).toISOString(),
-        duracaoMinutos: form.duracaoMinutos,
-        timezone: form.timezone,
-        adicionarAoGoogleCalendar: form.adicionarAoGoogleCalendar,
-        adicionarGoogleMeet:
-          form.adicionarAoGoogleCalendar && form.adicionarGoogleMeet,
-      };
+      const estavaEditando = Boolean(editandoId);
+      const payload = criarPayloadAgendamento(form);
+      let salvo: SessaoAgendadaResumo;
 
       if (editandoId) {
-        await apiAtualizarSessaoAgendadaCampanha(
+        salvo = await apiAtualizarSessaoAgendadaCampanha(
           campanhaId,
           editandoId,
           payload,
         );
       } else {
-        await apiCriarSessaoAgendadaCampanha(campanhaId, payload);
+        salvo = await apiCriarSessaoAgendadaCampanha(campanhaId, payload);
       }
       resetForm();
       await carregar();
+      showToast(
+        estavaEditando ? 'Sess\u00e3o reagendada.' : 'Sess\u00e3o agendada.',
+        'success',
+      );
+      if (
+        salvo.adicionarAoGoogleCalendar &&
+        salvo.calendarSyncStatus === 'FALHOU'
+      ) {
+        showToast(
+          'Agendamento local salvo, mas o Google Calendar n\u00e3o sincronizou.',
+          'warning',
+        );
+      }
     } catch (error) {
       setErro(criarErroUsuario(error));
     } finally {
@@ -244,7 +502,17 @@ export function CampaignScheduledSessionsSection({
   async function conectarCalendar() {
     setErro(null);
     try {
-      const response = await apiIniciarGoogleCalendar();
+      const redirect =
+        typeof window !== 'undefined'
+          ? `${window.location.pathname}${window.location.search}`
+          : `/campanhas/${campanhaId}`;
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(
+          rascunhoKey,
+          serializarRascunhoAgendamento(form),
+        );
+      }
+      const response = await apiIniciarGoogleCalendar(redirect);
       window.location.href = response.url;
     } catch (error) {
       setErro(criarErroUsuario(error));
@@ -266,138 +534,178 @@ export function CampaignScheduledSessionsSection({
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => setFormAberto((valor) => !valor)}
+            onClick={abrirModalCriacao}
           >
-            <Icon name="scroll" className="mr-2 h-4 w-4" />
-            {formAberto ? 'Fechar agenda' : 'Agendar sessão'}
+            <Icon name="calendar" className="mr-2 h-4 w-4" />
+            Agendar sessão
           </Button>
         ) : null}
       </div>
 
       {erro ? <ErrorAlert message={erro} /> : null}
 
-      {formAberto && usuarioEhMestre ? (
-        <Card className="space-y-4">
-          <form onSubmit={submitForm} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                label="Título"
-                value={form.titulo}
-                onChange={(event) =>
-                  setForm((atual) => ({ ...atual, titulo: event.target.value }))
-                }
-                required
-                maxLength={120}
-              />
-              <Input
-                label="Início"
-                type="datetime-local"
-                value={form.inicioLocal}
-                onChange={(event) =>
-                  setForm((atual) => ({
-                    ...atual,
-                    inicioLocal: event.target.value,
-                  }))
-                }
-                required
-              />
-              <Input
-                label="Duração (minutos)"
-                type="number"
-                min={15}
-                max={24 * 60}
-                value={form.duracaoMinutos}
-                onChange={(event) =>
-                  setForm((atual) => ({
-                    ...atual,
-                    duracaoMinutos: Number(event.target.value),
-                  }))
-                }
-                required
-              />
-              <Input
-                label="Fuso horário"
-                value={form.timezone}
-                onChange={(event) =>
-                  setForm((atual) => ({
-                    ...atual,
-                    timezone: event.target.value,
-                  }))
-                }
-                required
-              />
-              <div className="md:col-span-2">
-                <Textarea
-                  label="Descrição opcional"
-                  value={form.descricao}
+      <Modal
+        isOpen={formAberto && usuarioEhMestre}
+        onClose={resetForm}
+        title={editandoId ? 'Reagendar sessão' : 'Agendar sessão'}
+        size="xl"
+        footer={
+          <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="ghost" onClick={resetForm}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="schedule-session-form"
+              disabled={submitting}
+            >
+              {submitting
+                ? 'Salvando...'
+                : editandoId
+                  ? 'Salvar reagendamento'
+                  : 'Agendar sessão'}
+            </Button>
+          </div>
+        }
+      >
+        <form
+          id="schedule-session-form"
+          onSubmit={submitForm}
+          className="space-y-5"
+        >
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <Input
+                    label="Título *"
+                    value={form.titulo}
+                    onChange={(event) =>
+                      setForm((atual) => ({
+                        ...atual,
+                        titulo: event.target.value,
+                      }))
+                    }
+                    required
+                    maxLength={120}
+                  />
+                </div>
+                <Input
+                  label="Data e hora de início *"
+                  type="datetime-local"
+                  value={form.inicioLocal}
                   onChange={(event) =>
                     setForm((atual) => ({
                       ...atual,
-                      descricao: event.target.value,
+                      inicioLocal: event.target.value,
                     }))
                   }
-                  rows={3}
+                  required
                 />
+                <DurationSelect form={form} setForm={setForm} />
+              </div>
+
+              <div className="rounded-xl border border-app-border bg-app-bg/40 p-3 text-xs text-app-muted">
+                <div className="flex items-center gap-2 text-app-fg">
+                  <Icon name="clock" className="h-4 w-4 text-app-primary" />
+                  <span className="font-semibold">
+                    Fuso horário detectado: {form.timezone}
+                  </span>
+                </div>
+                {form.timezoneFallback ? (
+                  <p className="mt-1">
+                    Não foi possível detectar o fuso do navegador. Usando
+                    America/Fortaleza como fallback; confira o horario antes
+                    de enviar.
+                  </p>
+                ) : null}
+              </div>
+
+              <details className="rounded-xl border border-app-border bg-app-bg/40 p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-app-fg">
+                  Notas internas da sessão
+                </summary>
+                <div className="mt-3">
+                  <Textarea
+                    label="Notas opcionais"
+                    value={form.descricao}
+                    onChange={(event) =>
+                      setForm((atual) => ({
+                        ...atual,
+                        descricao: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                  />
+                </div>
+              </details>
+
+              <div className="space-y-4 rounded-xl border border-app-border bg-app-bg/40 p-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-app-fg">
+                    Convites e videoconferência
+                  </h4>
+                  <p className="text-xs text-app-muted">
+                    Envie o evento para os membros da campanha quando o Calendar
+                    estiver autorizado.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Checkbox
+                    className="rounded-lg border border-app-border/70 bg-app-surface/40 p-3"
+                    label="Adicionar ao Google Calendar"
+                    checked={form.adicionarAoGoogleCalendar}
+                    disabled={!calendarAutorizado}
+                    onChange={(event) =>
+                      setForm((atual) => ({
+                        ...atual,
+                        adicionarAoGoogleCalendar: event.target.checked,
+                        adicionarGoogleMeet: event.target.checked
+                          ? atual.adicionarGoogleMeet
+                          : false,
+                      }))
+                    }
+                  />
+                  <Checkbox
+                    className="rounded-lg border border-app-border/70 bg-app-surface/40 p-3"
+                    label="Adicionar Google Meet"
+                    checked={form.adicionarGoogleMeet}
+                    disabled={
+                      !calendarAutorizado || !form.adicionarAoGoogleCalendar
+                    }
+                    onChange={(event) =>
+                      setForm((atual) => ({
+                        ...atual,
+                        adicionarGoogleMeet: event.target.checked,
+                      }))
+                    }
+                  />
+                </div>
+                {!calendarAutorizado ? (
+                  <Alert variant="warning">
+                    Autorize o Google Calendar para enviar convites.
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      className="ml-2"
+                      onClick={conectarCalendar}
+                    >
+                      Autorizar agora
+                    </Button>
+                  </Alert>
+                ) : null}
               </div>
             </div>
 
-            <div className="space-y-3 rounded-xl border border-app-border bg-app-bg/40 p-3">
-              <Checkbox
-                label="Adicionar ao Google Calendar"
-                checked={form.adicionarAoGoogleCalendar}
-                onChange={(event) =>
-                  setForm((atual) => ({
-                    ...atual,
-                    adicionarAoGoogleCalendar: event.target.checked,
-                    adicionarGoogleMeet: event.target.checked
-                      ? atual.adicionarGoogleMeet
-                      : false,
-                  }))
-                }
-              />
-              <Checkbox
-                label="Adicionar Google Meet"
-                checked={form.adicionarGoogleMeet}
-                disabled={!form.adicionarAoGoogleCalendar}
-                onChange={(event) =>
-                  setForm((atual) => ({
-                    ...atual,
-                    adicionarGoogleMeet: event.target.checked,
-                  }))
-                }
-              />
-              {form.adicionarAoGoogleCalendar && !calendarAutorizado ? (
-                <Alert variant="warning">
-                  Sua conta ainda não autorizou o Google Calendar. O agendamento
-                  local será salvo, mas a sincronização pode falhar até autorizar.
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    className="ml-2"
-                    onClick={conectarCalendar}
-                  >
-                    Autorizar agora
-                  </Button>
-                </Alert>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={submitting}>
-                {submitting
-                  ? 'Salvando...'
-                  : editandoId
-                    ? 'Salvar reagendamento'
-                    : 'Agendar sessão'}
-              </Button>
-              <Button type="button" variant="ghost" onClick={resetForm}>
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        </Card>
-      ) : null}
+            <CalendarConflictPreview
+              conflitos={conflitos}
+              loading={conflitosLoading}
+              erro={erroConflitos}
+            />
+          </div>
+        </form>
+      </Modal>
 
       {loading ? (
         <p className="text-sm text-app-muted">

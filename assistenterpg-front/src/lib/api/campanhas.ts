@@ -29,6 +29,7 @@ import type {
   TransferenciaItemSessaoCampanhaDto,
   AmigoConvidavelCampanha,
   AtualizarSessaoAgendadaPayload,
+  ConflitosSessaoAgendadaResponse,
   CriarSessaoAgendadaPayload,
   SessaoAgendadaResumo,
 } from '@/lib/types';
@@ -448,6 +449,28 @@ export async function apiListarSessoesAgendadasCampanha(
     `/campanhas/${campanhaId}/sessoes-agendadas`,
   );
   return Array.isArray(data) ? data : [];
+}
+
+export async function apiListarConflitosSessaoAgendadaCampanha(
+  campanhaId: number,
+  query: {
+    inicioEm: string;
+    fimEm: string;
+    incluirGoogle?: boolean;
+  },
+): Promise<ConflitosSessaoAgendadaResponse> {
+  const params = new URLSearchParams({
+    inicioEm: query.inicioEm,
+    fimEm: query.fimEm,
+  });
+  if (query.incluirGoogle !== undefined) {
+    params.set('incluirGoogle', String(query.incluirGoogle));
+  }
+
+  const { data } = await apiClient.get<ConflitosSessaoAgendadaResponse>(
+    `/campanhas/${campanhaId}/sessoes-agendadas/conflitos?${params.toString()}`,
+  );
+  return data;
 }
 
 export async function apiCriarSessaoAgendadaCampanha(

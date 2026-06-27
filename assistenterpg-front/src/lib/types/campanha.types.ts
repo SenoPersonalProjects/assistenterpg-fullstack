@@ -459,6 +459,31 @@ export type CriarSessaoAgendadaPayload = {
 export type AtualizarSessaoAgendadaPayload =
   Partial<CriarSessaoAgendadaPayload>;
 
+export type ConflitoSessaoAgendadaLocal = {
+  id: number;
+  titulo: string;
+  inicioEm: string;
+  fimEm: string;
+  status: StatusSessaoAgendada;
+  calendarSyncStatus: StatusSyncCalendar;
+};
+
+export type ConflitoSessaoAgendadaGoogle = {
+  id: string | null;
+  titulo: string;
+  inicioEm: string | null;
+  fimEm: string | null;
+  htmlLink: string | null;
+};
+
+export type ConflitosSessaoAgendadaResponse = {
+  inicioEm: string;
+  fimEm: string;
+  assistenteRpg: ConflitoSessaoAgendadaLocal[];
+  googleCalendar: ConflitoSessaoAgendadaGoogle[];
+  googleCalendarErro: string | null;
+};
+
 export type TipoParticipanteIniciativaSessao = 'PERSONAGEM' | 'NPC';
 
 export type TurnoAtualSessaoCampanha = {

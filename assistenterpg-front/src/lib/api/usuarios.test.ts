@@ -11,7 +11,9 @@ vi.mock('./axios-client', () => ({
 
 import { apiClient } from './axios-client';
 import {
+  apiDesautorizarGoogleCalendar,
   apiDesativarConta,
+  apiDesvincularGoogle,
   apiExcluirConta,
   apiSolicitarAlteracaoEmail,
 } from './usuarios';
@@ -52,5 +54,17 @@ describe('usuarios security api contracts', () => {
     expect(mockedApiClient.delete).toHaveBeenCalledWith('/usuarios/me', {
       data: { senhaAtual: 'senha-atual' },
     });
+  });
+
+  it('separa desautorizar Calendar de desvincular Google', async () => {
+    await apiDesautorizarGoogleCalendar();
+    await apiDesvincularGoogle();
+
+    expect(mockedApiClient.delete).toHaveBeenCalledWith(
+      '/usuarios/me/integracoes/google/calendar',
+    );
+    expect(mockedApiClient.delete).toHaveBeenCalledWith(
+      '/usuarios/me/integracoes/google',
+    );
   });
 });

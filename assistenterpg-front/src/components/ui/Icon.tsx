@@ -65,6 +65,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Clock,
+  CalendarDays,
   Target,
   Loader2,
   
@@ -153,6 +154,7 @@ export const ICON_NAMES = [
   'chevron-right',
   'chevron-left',
   'clock',
+  'calendar',
   'next',
   
   // Dados/Stats
@@ -388,6 +390,8 @@ export function Icon({ name, className, title, ...rest }: Props) {
       return withTitle(ChevronLeft);
     case 'clock':
       return withTitle(Clock);
+    case 'calendar':
+      return withTitle(CalendarDays);
     case 'next':
       return withTitle(ChevronRight);
 

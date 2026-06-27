@@ -16,11 +16,12 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   AtualizarSessaoAgendadaDto,
+  ConflitosSessaoAgendadaQueryDto,
   CriarSessaoAgendadaDto,
 } from './dto/sessao-agendada.dto';
 import { SessaoActivationService } from './sessao-activation.service';
 
-const DEFAULT_DURATION_MINUTES = 180;
+const DEFAULT_DURATION_MINUTES = 120;
 
 type AcessoCampanha = {
   campanha: {
@@ -102,6 +103,10 @@ export class SessaoAgendadaService {
     this.assertMestre(acesso);
     const datas = this.resolverDatas(dto);
     this.validarFutura(datas.inicioEm);
+    await this.validarOpcoesCalendar(usuarioId, {
+      adicionarAoGoogleCalendar: Boolean(dto.adicionarAoGoogleCalendar),
+      adicionarGoogleMeet: Boolean(dto.adicionarGoogleMeet),
+    });
 
     const agendamento = await this.prisma.sessaoAgendada.create({
       data: {
@@ -138,6 +143,11 @@ export class SessaoAgendadaService {
     const atual = await this.obterAgendamento(campanhaId, agendamentoId);
     this.assertEditavel(atual.status);
 
+    const horarioAlterado =
+      dto.inicioEm !== undefined ||
+      dto.fimEm !== undefined ||
+      dto.duracaoMinutos !== undefined ||
+      dto.timezone !== undefined;
     const datas = this.resolverDatas({
       inicioEm: dto.inicioEm ?? atual.inicioEm.toISOString(),
       fimEm:
@@ -147,10 +157,18 @@ export class SessaoAgendadaService {
       duracaoMinutos: dto.duracaoMinutos,
       timezone: dto.timezone ?? atual.timezone,
     });
-    this.validarFutura(datas.inicioEm);
+    if (horarioAlterado) {
+      this.validarFutura(datas.inicioEm);
+    }
 
     const adicionarAoGoogleCalendar =
       dto.adicionarAoGoogleCalendar ?? atual.adicionarAoGoogleCalendar;
+    const adicionarGoogleMeet =
+      dto.adicionarGoogleMeet ?? atual.adicionarGoogleMeet;
+    await this.validarOpcoesCalendar(usuarioId, {
+      adicionarAoGoogleCalendar,
+      adicionarGoogleMeet,
+    });
 
     await this.prisma.sessaoAgendada.update({
       where: { id: agendamentoId },
@@ -164,8 +182,7 @@ export class SessaoAgendadaService {
         fimEm: datas.fimEm,
         timezone: dto.timezone ?? atual.timezone,
         adicionarAoGoogleCalendar,
-        adicionarGoogleMeet:
-          dto.adicionarGoogleMeet ?? atual.adicionarGoogleMeet,
+        adicionarGoogleMeet,
         calendarSyncStatus: adicionarAoGoogleCalendar
           ? StatusSyncCalendar.PENDENTE
           : StatusSyncCalendar.NAO_SOLICITADO,
@@ -178,6 +195,78 @@ export class SessaoAgendadaService {
     }
 
     return this.buscarPorIdParaUsuario(campanhaId, agendamentoId, usuarioId);
+  }
+
+  async listarConflitos(
+    campanhaId: number,
+    usuarioId: number,
+    query: ConflitosSessaoAgendadaQueryDto,
+  ) {
+    await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const intervalo = this.resolverIntervaloConflitos(query);
+
+    const locais = await this.prisma.sessaoAgendada.findMany({
+      where: {
+        campanhaId,
+        status: {
+          in: [
+            StatusSessaoAgendada.AGENDADA,
+            StatusSessaoAgendada.PROCESSANDO_ABERTURA,
+          ],
+        },
+        inicioEm: { lt: intervalo.fimEm },
+        fimEm: { gt: intervalo.inicioEm },
+      },
+      orderBy: [{ inicioEm: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        titulo: true,
+        inicioEm: true,
+        fimEm: true,
+        status: true,
+        calendarSyncStatus: true,
+      },
+    });
+
+    let googleCalendar: Array<{
+      id: string | null;
+      titulo: string;
+      inicioEm: string | null;
+      fimEm: string | null;
+      htmlLink: string | null;
+    }> = [];
+    let googleCalendarErro: string | null = null;
+
+    if (
+      query.incluirGoogle === 'true' &&
+      (await this.calendarService.possuiAutorizacaoCalendar(usuarioId))
+    ) {
+      try {
+        googleCalendar = await this.calendarService.listarConflitos(
+          usuarioId,
+          intervalo.inicioEm,
+          intervalo.fimEm,
+        );
+      } catch {
+        googleCalendarErro =
+          'N\u00e3o foi poss\u00edvel consultar o Google Calendar.';
+      }
+    }
+
+    return {
+      inicioEm: intervalo.inicioEm.toISOString(),
+      fimEm: intervalo.fimEm.toISOString(),
+      assistenteRpg: locais.map((item) => ({
+        id: item.id,
+        titulo: item.titulo,
+        inicioEm: item.inicioEm.toISOString(),
+        fimEm: item.fimEm.toISOString(),
+        status: item.status,
+        calendarSyncStatus: item.calendarSyncStatus,
+      })),
+      googleCalendar,
+      googleCalendarErro,
+    };
   }
 
   async cancelar(campanhaId: number, agendamentoId: number, usuarioId: number) {
@@ -401,6 +490,48 @@ export class SessaoAgendadaService {
     }
 
     return { inicioEm, fimEm };
+  }
+
+  private resolverIntervaloConflitos(query: ConflitosSessaoAgendadaQueryDto) {
+    const inicioEm = new Date(query.inicioEm);
+    const fimEm = new Date(query.fimEm);
+    if (
+      !Number.isFinite(inicioEm.getTime()) ||
+      !Number.isFinite(fimEm.getTime()) ||
+      fimEm <= inicioEm
+    ) {
+      throw new BadRequestException({
+        code: 'SESSAO_AGENDADA_INTERVALO_INVALIDO',
+        message: 'Intervalo de consulta inv\u00e1lido.',
+      });
+    }
+    return { inicioEm, fimEm };
+  }
+
+  private async validarOpcoesCalendar(
+    usuarioId: number,
+    opcoes: {
+      adicionarAoGoogleCalendar: boolean;
+      adicionarGoogleMeet: boolean;
+    },
+  ) {
+    if (opcoes.adicionarGoogleMeet && !opcoes.adicionarAoGoogleCalendar) {
+      throw new BadRequestException({
+        code: 'SESSAO_AGENDADA_MEET_REQUER_CALENDAR',
+        message:
+          'Google Meet exige sincroniza\u00e7\u00e3o com Google Calendar.',
+      });
+    }
+    if (!opcoes.adicionarAoGoogleCalendar) return;
+
+    const calendarAutorizado =
+      await this.calendarService.possuiAutorizacaoCalendar(usuarioId);
+    if (!calendarAutorizado) {
+      throw new BadRequestException({
+        code: 'GOOGLE_CALENDAR_NOT_CONNECTED',
+        message: 'Autorize o Google Calendar antes de enviar convites.',
+      });
+    }
   }
 
   private validarFutura(inicioEm: Date) {
