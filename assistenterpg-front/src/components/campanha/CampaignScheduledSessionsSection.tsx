@@ -36,6 +36,7 @@ import {
   criarFormAgendamentoEdicao,
   criarFormAgendamentoPadrao,
   criarPayloadAgendamento,
+  dateToDateTimeLocal,
   duracaoCustomizadaValida,
   restaurarRascunhoAgendamento,
   serializarRascunhoAgendamento,
@@ -48,6 +49,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
@@ -157,7 +159,7 @@ function CalendarConflictPreview({
         <div>
           <h4 className="text-sm font-semibold text-app-fg">Agenda do dia</h4>
           <p className="text-xs text-app-muted">
-            Conflitos não bloqueiam, mas ajudam a evitar sobreposição.
+            Abaixo só aparecem compromissos marcados no site do Assistente RPG, leve em consideração outros compromissos na sua agenda.
           </p>
         </div>
         {loading ? <Icon name="spinner" className="h-4 w-4 text-app-muted" /> : null}
@@ -254,6 +256,7 @@ export function CampaignScheduledSessionsSection({
     () => agendamentos.filter((item) => item.status === 'AGENDADA'),
     [agendamentos],
   );
+  const minInicioLocal = dateToDateTimeLocal(new Date());
   const rascunhoKey = useMemo(
     () => chaveRascunhoAgendamento(campanhaId),
     [campanhaId],
@@ -590,16 +593,16 @@ export function CampaignScheduledSessionsSection({
                     maxLength={120}
                   />
                 </div>
-                <Input
+                <DateTimePicker
                   label="Data e hora de início *"
-                  type="datetime-local"
                   value={form.inicioLocal}
-                  onChange={(event) =>
+                  onChange={(value) =>
                     setForm((atual) => ({
                       ...atual,
-                      inicioLocal: event.target.value,
+                      inicioLocal: value,
                     }))
                   }
+                  minDateTime={minInicioLocal}
                   required
                 />
                 <DurationSelect form={form} setForm={setForm} />
