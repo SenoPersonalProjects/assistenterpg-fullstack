@@ -23,6 +23,7 @@ type Props = {
   campanhaId: number;
   usuarioEhMestre: boolean;
   onTotalSessoesChange?: (total: number) => void;
+  onSessoesChange?: () => void;
 };
 
 function corStatusSessao(status: string): 'green' | 'yellow' | 'gray' {
@@ -35,6 +36,7 @@ export function CampaignSessionsSection({
   campanhaId,
   usuarioEhMestre,
   onTotalSessoesChange,
+  onSessoesChange,
 }: Props) {
   const router = useRouter();
   const [sessoes, setSessoes] = useState<SessaoCampanhaResumo[]>([]);
@@ -56,12 +58,13 @@ export function CampaignSessionsSection({
       const dados = await apiListarSessoesCampanha(campanhaId);
       setSessoes(dados);
       onTotalSessoesChangeRef.current?.(dados.length);
+      onSessoesChange?.();
     } catch (error) {
       setErro(criarErroUsuario(error));
     } finally {
       setLoading(false);
     }
-  }, [campanhaId]);
+  }, [campanhaId, onSessoesChange]);
 
   useEffect(() => {
     void carregarSessoes();

@@ -38,6 +38,7 @@ import {
   criarPayloadAgendamento,
   dateToDateTimeLocal,
   duracaoCustomizadaValida,
+  isScheduleSessionValidationError,
   restaurarRascunhoAgendamento,
   serializarRascunhoAgendamento,
   type ScheduleSessionFormState,
@@ -61,6 +62,7 @@ type Props = {
   campanhaId: number;
   usuarioEhMestre: boolean;
   onSessaoAberta?: () => void;
+  onAgendaChange?: () => void;
 };
 
 function corStatus(status: StatusSessaoAgendada): 'green' | 'yellow' | 'red' | 'gray' {
@@ -233,6 +235,7 @@ export function CampaignScheduledSessionsSection({
   campanhaId,
   usuarioEhMestre,
   onSessaoAberta,
+  onAgendaChange,
 }: Props) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -251,12 +254,12 @@ export function CampaignScheduledSessionsSection({
     useState<ConflitosSessaoAgendadaResponse | null>(null);
   const [conflitosLoading, setConflitosLoading] = useState(false);
   const [erroConflitos, setErroConflitos] = useState<string | null>(null);
+  const [minInicioLocal, setMinInicioLocal] = useState('');
 
   const agendadasAtivas = useMemo(
     () => agendamentos.filter((item) => item.status === 'AGENDADA'),
     [agendamentos],
   );
-  const minInicioLocal = dateToDateTimeLocal(new Date());
   const rascunhoKey = useMemo(
     () => chaveRascunhoAgendamento(campanhaId),
     [campanhaId],
@@ -297,6 +300,10 @@ export function CampaignScheduledSessionsSection({
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  useEffect(() => {
+    setMinInicioLocal(dateToDateTimeLocal(new Date()));
+  }, []);
 
   useEffect(() => {
     if (
@@ -418,11 +425,21 @@ export function CampaignScheduledSessionsSection({
       });
       return;
     }
+    let payload: ReturnType<typeof criarPayloadAgendamento>;
+    try {
+      payload = criarPayloadAgendamento(form);
+    } catch (error) {
+      setErro(
+        isScheduleSessionValidationError(error)
+          ? { message: error.message }
+          : criarErroUsuario(error),
+      );
+      return;
+    }
     setSubmitting(true);
     setErro(null);
     try {
       const estavaEditando = Boolean(editandoId);
-      const payload = criarPayloadAgendamento(form);
       let salvo: SessaoAgendadaResumo;
 
       if (editandoId) {
@@ -436,6 +453,7 @@ export function CampaignScheduledSessionsSection({
       }
       resetForm();
       await carregar();
+      onAgendaChange?.();
       showToast(
         estavaEditando ? 'Sess\u00e3o reagendada.' : 'Sess\u00e3o agendada.',
         'success',
@@ -462,6 +480,7 @@ export function CampaignScheduledSessionsSection({
     try {
       await apiCancelarSessaoAgendadaCampanha(campanhaId, agendamentoId);
       await carregar();
+      onAgendaChange?.();
     } catch (error) {
       setErro(criarErroUsuario(error));
     } finally {
@@ -479,6 +498,7 @@ export function CampaignScheduledSessionsSection({
       );
       await carregar();
       onSessaoAberta?.();
+      onAgendaChange?.();
       if (atualizado.sessaoId) {
         router.push(`/campanhas/${campanhaId}/sessoes/${atualizado.sessaoId}`);
       }
@@ -495,6 +515,7 @@ export function CampaignScheduledSessionsSection({
     try {
       await apiRetryCalendarSessaoAgendadaCampanha(campanhaId, agendamentoId);
       await carregar();
+      onAgendaChange?.();
     } catch (error) {
       setErro(criarErroUsuario(error));
     } finally {
@@ -602,7 +623,7 @@ export function CampaignScheduledSessionsSection({
                       inicioLocal: value,
                     }))
                   }
-                  minDateTime={minInicioLocal}
+                  minDateTime={minInicioLocal || undefined}
                   required
                 />
                 <DurationSelect form={form} setForm={setForm} />
@@ -646,14 +667,14 @@ export function CampaignScheduledSessionsSection({
               <div className="space-y-4 rounded-xl border border-app-border bg-app-bg/40 p-4">
                 <div>
                   <h4 className="text-sm font-semibold text-app-fg">
-                    Convites e videoconferência
+                    Google Calendar
                   </h4>
                   <p className="text-xs text-app-muted">
                     Envie o evento para os membros da campanha quando o Calendar
                     estiver autorizado.
                   </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3">
                   <Checkbox
                     className="rounded-lg border border-app-border/70 bg-app-surface/40 p-3"
                     label="Adicionar ao Google Calendar"
@@ -663,23 +684,7 @@ export function CampaignScheduledSessionsSection({
                       setForm((atual) => ({
                         ...atual,
                         adicionarAoGoogleCalendar: event.target.checked,
-                        adicionarGoogleMeet: event.target.checked
-                          ? atual.adicionarGoogleMeet
-                          : false,
-                      }))
-                    }
-                  />
-                  <Checkbox
-                    className="rounded-lg border border-app-border/70 bg-app-surface/40 p-3"
-                    label="Adicionar Google Meet"
-                    checked={form.adicionarGoogleMeet}
-                    disabled={
-                      !calendarAutorizado || !form.adicionarAoGoogleCalendar
-                    }
-                    onChange={(event) =>
-                      setForm((atual) => ({
-                        ...atual,
-                        adicionarGoogleMeet: event.target.checked,
+                        adicionarGoogleMeet: false,
                       }))
                     }
                   />

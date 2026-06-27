@@ -1,14 +1,17 @@
 'use client';
 
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
 } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { Portal } from '@/components/ui/Portal';
 import {
   dateToDateValue,
   formatarDateTimePickerValue,
@@ -37,6 +40,10 @@ type DateTimePickerProps = {
 };
 
 const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const MOBILE_PICKER_QUERY = '(max-width: 640px)';
+const DESKTOP_PICKER_WIDTH = 480;
+const DESKTOP_PICKER_HEIGHT = 520;
+const VIEWPORT_MARGIN = 16;
 
 export function DateTimePicker({
   label,
@@ -54,7 +61,11 @@ export function DateTimePicker({
   const helperId = useId();
   const errorId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState(false);
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
   const [pendingDate, setPendingDate] = useState('');
   const [pendingTime, setPendingTime] = useState('');
   const [visibleMonth, setVisibleMonth] = useState(() =>
@@ -81,11 +92,55 @@ export function DateTimePicker({
     !pendingTime ||
     isDateTimeBeforeMin(selectedDateTime, minDateTime);
 
+  const updatePanelPosition = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const mobile =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(MOBILE_PICKER_QUERY).matches;
+    setSheetMode(mobile);
+
+    if (mobile || !triggerRef.current) {
+      setPanelStyle({});
+      return;
+    }
+
+    const rect = triggerRef.current.getBoundingClientRect();
+    const width = Math.min(DESKTOP_PICKER_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2);
+    const left = Math.min(
+      Math.max(VIEWPORT_MARGIN, rect.left),
+      Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN),
+    );
+    const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_MARGIN;
+    const top =
+      spaceBelow >= DESKTOP_PICKER_HEIGHT
+        ? rect.bottom + 8
+        : Math.max(VIEWPORT_MARGIN, rect.top - DESKTOP_PICKER_HEIGHT - 8);
+
+    setPanelStyle({
+      left,
+      top,
+      width,
+      maxHeight: `calc(100vh - ${VIEWPORT_MARGIN * 2}px)`,
+    });
+  }, []);
+
   useEffect(() => {
     if (!open) return;
+    const initialFrame = window.requestAnimationFrame(() => {
+      updatePanelPosition();
+      const focusTarget =
+        panelRef.current?.querySelector<HTMLElement>(
+          '[data-picker-initial-focus="true"]',
+        ) ?? panelRef.current?.querySelector<HTMLElement>('button:not(:disabled)');
+      focusTarget?.focus({ preventScroll: true });
+    });
 
     function handlePointerDown(event: PointerEvent) {
-      if (rootRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) {
+        return;
+      }
       setOpen(false);
     }
 
@@ -96,13 +151,32 @@ export function DateTimePicker({
       setOpen(false);
     }
 
+    function handleLayoutChange() {
+      updatePanelPosition();
+    }
+
     window.addEventListener('pointerdown', handlePointerDown);
     window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('resize', handleLayoutChange);
+    window.addEventListener('scroll', handleLayoutChange, true);
     return () => {
+      window.cancelAnimationFrame(initialFrame);
       window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('resize', handleLayoutChange);
+      window.removeEventListener('scroll', handleLayoutChange, true);
     };
-  }, [open]);
+  }, [open, updatePanelPosition]);
+
+  useEffect(() => {
+    if (!open || !sheetMode || typeof document === 'undefined') return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, sheetMode]);
 
   function abrirPicker() {
     if (disabled) return;
@@ -110,6 +184,7 @@ export function DateTimePicker({
     setPendingDate(initial.dateValue);
     setPendingTime(initial.timeValue);
     setVisibleMonth(primeiroDiaMes(parseDateTimeLocalValue(initial.value)));
+    updatePanelPosition();
     setOpen(true);
   }
 
@@ -147,6 +222,134 @@ export function DateTimePicker({
     abrirPicker();
   }
 
+  const pickerContent = (
+    <>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          aria-label="Mês anterior"
+          onClick={() => navegarMes(-1)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-app-border bg-app-bg/50 text-app-muted transition-all hover:border-app-primary/40 hover:text-app-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50"
+        >
+          <Icon name="chevron-left" className="h-4 w-4" />
+        </button>
+        <p className="text-sm font-semibold capitalize text-app-fg">{monthLabel}</p>
+        <button
+          type="button"
+          aria-label="Próximo mês"
+          onClick={() => navegarMes(1)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-app-border bg-app-bg/50 text-app-muted transition-all hover:border-app-primary/40 hover:text-app-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50"
+        >
+          <Icon name="chevron-right" className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_9rem]">
+        <div>
+          <div className="grid grid-cols-7 gap-1 text-center text-[0.68rem] font-semibold uppercase tracking-wide text-app-muted">
+            {WEEK_DAYS.map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-7 gap-1">
+            {monthCells.map((cell) => {
+              if (!cell.dateValue) {
+                return <span key={cell.key} className="h-10" aria-hidden="true" />;
+              }
+              const selected = cell.dateValue === pendingDate;
+              const disabledDay = isDateBeforeMinDateTime(
+                cell.dateValue,
+                minDateTime,
+              );
+              return (
+                <button
+                  key={cell.key}
+                  type="button"
+                  disabled={disabledDay}
+                  aria-pressed={selected}
+                  data-picker-initial-focus={
+                    selected && !disabledDay ? 'true' : undefined
+                  }
+                  onClick={() => setPendingDate(cell.dateValue ?? '')}
+                  className={`h-10 rounded-xl border text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50 ${
+                    selected
+                      ? 'border-app-primary bg-app-primary text-white shadow-[0_0_16px_rgba(var(--primary-rgb),0.28)]'
+                      : 'border-transparent bg-app-bg/40 text-app-fg hover:border-app-primary/40 hover:bg-app-primary/10'
+                  } disabled:cursor-not-allowed disabled:bg-app-bg/20 disabled:text-app-muted/40 disabled:hover:border-transparent`}
+                >
+                  {cell.dayNumber}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-app-fg">
+            <Icon name="clock" className="h-4 w-4 text-app-primary" />
+            Horário
+          </div>
+          <div className="grid max-h-56 grid-cols-3 gap-1 overflow-y-auto pr-1 sm:block sm:space-y-1">
+            {timeSlots.map((slot) => {
+              const disabledSlot =
+                !pendingDate ||
+                isDateTimeBeforeMin(
+                  montarDateTimeLocalValue(pendingDate, slot),
+                  minDateTime,
+                );
+              const selected = slot === pendingTime;
+              return (
+                <button
+                  key={slot}
+                  type="button"
+                  disabled={disabledSlot}
+                  aria-pressed={selected}
+                  onClick={() => setPendingTime(slot)}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50 sm:py-1.5 ${
+                    selected
+                      ? 'border-app-primary bg-app-primary/90 text-white'
+                      : 'border-app-border/70 bg-app-bg/40 text-app-fg hover:border-app-primary/40 hover:bg-app-primary/10'
+                  } disabled:cursor-not-allowed disabled:bg-app-bg/20 disabled:text-app-muted/40 disabled:hover:border-app-border/70`}
+                >
+                  {slot}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col-reverse gap-2 border-t border-app-border pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={selecionarHoje}
+            className="rounded-xl border border-app-border bg-app-bg/50 px-3 py-2 text-xs font-semibold text-app-fg transition-all hover:border-app-primary/40 hover:bg-app-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50"
+          >
+            Hoje
+          </button>
+          {allowClear ? (
+            <button
+              type="button"
+              onClick={limpar}
+              className="rounded-xl border border-app-border bg-transparent px-3 py-2 text-xs font-semibold text-app-muted transition-all hover:border-app-danger/40 hover:text-app-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-danger/50"
+            >
+              Limpar
+            </button>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          disabled={confirmDisabled}
+          onClick={confirmar}
+          className="rounded-xl border border-white/10 bg-app-primary px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_14px_0_rgba(var(--primary-rgb),0.39)] transition-all hover:bg-app-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/60 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Confirmar
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div ref={rootRef} className={`relative flex flex-col gap-1.5 ${className}`}>
       {label ? (
@@ -159,6 +362,7 @@ export function DateTimePicker({
       ) : null}
 
       <button
+        ref={triggerRef}
         id={inputId}
         type="button"
         disabled={disabled}
@@ -186,132 +390,35 @@ export function DateTimePicker({
       </button>
 
       {open ? (
-        <div
-          role="dialog"
-          aria-label={label ?? 'Selecionar data e hora'}
-          className="absolute left-0 top-full z-[60] mt-2 w-full min-w-[19rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-app-primary/30 bg-app-surface p-4 shadow-2xl shadow-black/40 sm:w-[30rem]"
-        >
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              aria-label="Mês anterior"
-              onClick={() => navegarMes(-1)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-app-border bg-app-bg/50 text-app-muted transition-all hover:border-app-primary/40 hover:text-app-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50"
-            >
-              <Icon name="chevron-left" className="h-4 w-4" />
-            </button>
-            <p className="text-sm font-semibold capitalize text-app-fg">{monthLabel}</p>
-            <button
-              type="button"
-              aria-label="Próximo mês"
-              onClick={() => navegarMes(1)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-app-border bg-app-bg/50 text-app-muted transition-all hover:border-app-primary/40 hover:text-app-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50"
-            >
-              <Icon name="chevron-right" className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_9rem]">
-            <div>
-              <div className="grid grid-cols-7 gap-1 text-center text-[0.68rem] font-semibold uppercase tracking-wide text-app-muted">
-                {WEEK_DAYS.map((day) => (
-                  <span key={day}>{day}</span>
-                ))}
-              </div>
-              <div className="mt-2 grid grid-cols-7 gap-1">
-                {monthCells.map((cell) => {
-                  if (!cell.dateValue) {
-                    return <span key={cell.key} className="h-9" aria-hidden="true" />;
-                  }
-                  const selected = cell.dateValue === pendingDate;
-                  const disabledDay = isDateBeforeMinDateTime(
-                    cell.dateValue,
-                    minDateTime,
-                  );
-                  return (
-                    <button
-                      key={cell.key}
-                      type="button"
-                      disabled={disabledDay}
-                      aria-pressed={selected}
-                      onClick={() => setPendingDate(cell.dateValue ?? '')}
-                      className={`h-9 rounded-xl border text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50 ${
-                        selected
-                          ? 'border-app-primary bg-app-primary text-white shadow-[0_0_16px_rgba(var(--primary-rgb),0.28)]'
-                          : 'border-transparent bg-app-bg/40 text-app-fg hover:border-app-primary/40 hover:bg-app-primary/10'
-                      } disabled:cursor-not-allowed disabled:bg-app-bg/20 disabled:text-app-muted/40 disabled:hover:border-transparent`}
-                    >
-                      {cell.dayNumber}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="min-w-0">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-app-fg">
-                <Icon name="clock" className="h-4 w-4 text-app-primary" />
-                Horário
-              </div>
-              <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
-                {timeSlots.map((slot) => {
-                  const disabledSlot =
-                    !pendingDate ||
-                    isDateTimeBeforeMin(
-                      montarDateTimeLocalValue(pendingDate, slot),
-                      minDateTime,
-                    );
-                  const selected = slot === pendingTime;
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      disabled={disabledSlot}
-                      aria-pressed={selected}
-                      onClick={() => setPendingTime(slot)}
-                      className={`w-full rounded-lg border px-3 py-1.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50 ${
-                        selected
-                          ? 'border-app-primary bg-app-primary/90 text-white'
-                          : 'border-app-border/70 bg-app-bg/40 text-app-fg hover:border-app-primary/40 hover:bg-app-primary/10'
-                      } disabled:cursor-not-allowed disabled:bg-app-bg/20 disabled:text-app-muted/40 disabled:hover:border-app-border/70`}
-                    >
-                      {slot}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col-reverse gap-2 border-t border-app-border pt-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={selecionarHoje}
-                className="rounded-xl border border-app-border bg-app-bg/50 px-3 py-2 text-xs font-semibold text-app-fg transition-all hover:border-app-primary/40 hover:bg-app-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50"
+        <Portal>
+          {sheetMode ? (
+            <div className="fixed inset-0 z-[70] flex items-end bg-black/60 p-3 backdrop-blur-sm sm:hidden">
+              <div
+                className="absolute inset-0"
+                aria-hidden="true"
+                onPointerDown={() => setOpen(false)}
+              />
+              <div
+                ref={panelRef}
+                role="dialog"
+                aria-label={label ?? 'Selecionar data e hora'}
+                className="relative z-10 max-h-[88vh] w-full overflow-auto rounded-2xl border border-app-primary/30 bg-app-surface p-4 shadow-2xl shadow-black/50"
               >
-                Hoje
-              </button>
-              {allowClear ? (
-                <button
-                  type="button"
-                  onClick={limpar}
-                  className="rounded-xl border border-app-border bg-transparent px-3 py-2 text-xs font-semibold text-app-muted transition-all hover:border-app-danger/40 hover:text-app-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-danger/50"
-                >
-                  Limpar
-                </button>
-              ) : null}
+                {pickerContent}
+              </div>
             </div>
-            <button
-              type="button"
-              disabled={confirmDisabled}
-              onClick={confirmar}
-              className="rounded-xl border border-white/10 bg-app-primary px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_14px_0_rgba(var(--primary-rgb),0.39)] transition-all hover:bg-app-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/60 disabled:cursor-not-allowed disabled:opacity-50"
+          ) : (
+            <div
+              ref={panelRef}
+              role="dialog"
+              aria-label={label ?? 'Selecionar data e hora'}
+              style={panelStyle}
+              className="fixed z-[70] overflow-auto rounded-2xl border border-app-primary/30 bg-app-surface p-4 shadow-2xl shadow-black/40"
             >
-              Confirmar
-            </button>
-          </div>
-        </div>
+              {pickerContent}
+            </div>
+          )}
+        </Portal>
       ) : null}
 
       {error ? (

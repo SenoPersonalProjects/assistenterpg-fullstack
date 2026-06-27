@@ -2,9 +2,14 @@ import type {
   CriarSessaoAgendadaPayload,
   SessaoAgendadaResumo,
 } from '@/lib/types';
+import { parseDateTimeLocalValue } from '../datetime/date-time-picker.helpers';
 
 export const DEFAULT_SESSION_DURATION_MINUTES = 120;
 export const CUSTOM_DURATION_VALUE = 'custom';
+export const SCHEDULE_SESSION_INVALID_START_MESSAGE =
+  'Informe uma data e hora de início válidas.';
+export const SCHEDULE_SESSION_INVALID_DURATION_MESSAGE =
+  'Informe uma duração estimada válida.';
 
 export const SESSION_DURATION_OPTIONS = [
   { label: '1h', value: 60 },
@@ -42,6 +47,19 @@ export type ScheduleConflictQuery = {
 };
 
 const SCHEDULE_DRAFT_VERSION = 1;
+
+export class ScheduleSessionValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ScheduleSessionValidationError';
+  }
+}
+
+export function isScheduleSessionValidationError(
+  error: unknown,
+): error is ScheduleSessionValidationError {
+  return error instanceof ScheduleSessionValidationError;
+}
 
 export function detectarTimezone(
   resolver: () => string | undefined = () =>
@@ -126,7 +144,8 @@ export function calcularIntervaloAgendamento(form: ScheduleSessionFormState): {
   inicioEm: string;
   fimEm: string;
 } {
-  const inicio = new Date(form.inicioLocal);
+  const inicio = parseInicioLocalAgendamento(form.inicioLocal);
+  validarDuracaoAgendamento(form.duracaoMinutos);
   const fim = new Date(
     inicio.getTime() + form.duracaoMinutos * 60_000,
   );
@@ -139,7 +158,8 @@ export function calcularIntervaloAgendamento(form: ScheduleSessionFormState): {
 export function criarConsultaConflitosAgendamento(
   input: ScheduleConflictQueryInput,
 ): ScheduleConflictQuery {
-  const inicio = new Date(input.inicioLocal);
+  const inicio = parseInicioLocalAgendamento(input.inicioLocal);
+  validarDuracaoAgendamento(input.duracaoMinutos);
   const fim = new Date(inicio.getTime() + input.duracaoMinutos * 60_000);
   return {
     inicioEm: inicio.toISOString(),
@@ -160,8 +180,7 @@ export function criarPayloadAgendamento(
     duracaoMinutos: form.duracaoMinutos,
     timezone: form.timezone,
     adicionarAoGoogleCalendar: form.adicionarAoGoogleCalendar,
-    adicionarGoogleMeet:
-      form.adicionarAoGoogleCalendar && form.adicionarGoogleMeet,
+    adicionarGoogleMeet: false,
   };
 }
 
@@ -171,6 +190,33 @@ export function duracaoCustomizadaValida(duracaoMinutos: number): boolean {
     duracaoMinutos >= 15 &&
     duracaoMinutos <= 24 * 60
   );
+}
+
+export function parseInicioLocalAgendamento(inicioLocal: string): Date {
+  if (!inicioLocal.trim()) {
+    throw new ScheduleSessionValidationError(
+      SCHEDULE_SESSION_INVALID_START_MESSAGE,
+    );
+  }
+  const inicio = parseDateTimeLocalValue(inicioLocal);
+  if (!inicio || Number.isNaN(inicio.getTime())) {
+    throw new ScheduleSessionValidationError(
+      SCHEDULE_SESSION_INVALID_START_MESSAGE,
+    );
+  }
+  return inicio;
+}
+
+function validarDuracaoAgendamento(duracaoMinutos: number): void {
+  if (
+    !Number.isFinite(duracaoMinutos) ||
+    !Number.isInteger(duracaoMinutos) ||
+    duracaoMinutos <= 0
+  ) {
+    throw new ScheduleSessionValidationError(
+      SCHEDULE_SESSION_INVALID_DURATION_MESSAGE,
+    );
+  }
 }
 
 export function chaveRascunhoAgendamento(campanhaId: number): string {
