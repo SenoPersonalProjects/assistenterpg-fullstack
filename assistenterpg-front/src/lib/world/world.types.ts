@@ -1,8 +1,8 @@
-export type WorldLocationType = 'ESCOLA' | 'ORGANIZACAO' | 'REGIAO_OCULTA';
+export type WorldAtlasKind = 'LOCAL' | 'SUBLOCAL' | 'INSTITUICAO' | 'BARREIRA';
+
+export type WorldDetailLevel = 'MACRO' | 'MESO' | 'MICRO';
 
 export type WorldBarrierType = 'BARREIRA_PURA' | 'GRANDE_BARREIRA';
-
-export type WorldAtlasCategory = WorldLocationType | 'BARREIRA';
 
 export type WorldStatus = 'ATIVA' | 'RESTRITA' | 'OCULTA' | 'INSTAVEL';
 
@@ -12,8 +12,14 @@ export type WorldSecrecyLevel =
   | 'CONFIDENCIAL'
   | 'OCULTO';
 
+export type WorldInternalMap = {
+  src: string;
+  alt: string;
+};
+
 export type WorldBasePoint = {
   id: string;
+  kind: WorldAtlasKind;
   nome: string;
   lat: number;
   lng: number;
@@ -21,24 +27,29 @@ export type WorldBasePoint = {
   descricaoCurta: string;
   tags: string[];
   status: WorldStatus;
+  parentId?: string;
+  zoomMin?: WorldDetailLevel;
+  zoomMax?: WorldDetailLevel;
+  ficticio?: boolean;
+  mapaInterno?: WorldInternalMap;
+  subtipo?: string;
+  displayPriority?: number;
   nivelDeSigilo?: WorldSecrecyLevel;
   linkInterno?: string;
+  notaCartografica?: string;
+  corVisual?: 'cinza' | 'roxo' | 'coral' | 'ciano' | 'dourado';
 };
 
 export type WorldLocation = WorldBasePoint & {
-  kind: 'location';
-  tipo: WorldLocationType;
-  ficticio?: boolean;
-  notaCartografica?: string;
+  kind: 'LOCAL' | 'SUBLOCAL' | 'INSTITUICAO';
 };
 
 export type WorldBarrier = WorldBasePoint & {
-  kind: 'barrier';
-  tipo: 'BARREIRA';
+  kind: 'BARREIRA';
   barrierType: WorldBarrierType;
   raioKmAproximado?: number;
 };
 
 export type WorldAtlasItem = WorldLocation | WorldBarrier;
 
-export type WorldAtlasFilter = WorldAtlasCategory;
+export type WorldAtlasFilter = WorldAtlasKind;

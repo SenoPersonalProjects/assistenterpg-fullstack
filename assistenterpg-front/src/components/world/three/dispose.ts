@@ -64,6 +64,11 @@ export function disposeObjectTree(root: THREE.Object3D): void {
     if (object instanceof THREE.Mesh) {
       object.geometry.dispose();
       disposeMaterial(object.material, disposedTextures);
+      return;
+    }
+
+    if (object instanceof THREE.Sprite) {
+      disposeMaterial(object.material, disposedTextures);
     }
   });
 }

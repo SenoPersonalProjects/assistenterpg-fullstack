@@ -53,6 +53,7 @@ export function raycastAtlasItemId(params: {
 
   pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  camera.updateMatrixWorld(true);
   worldGroup.updateMatrixWorld(true);
   raycaster.setFromCamera(pointer, camera);
 
@@ -63,7 +64,12 @@ export function raycastAtlasItemId(params: {
     const itemId =
       typeof root?.userData.itemId === 'string' ? root.userData.itemId : null;
 
-    if (root && itemId && isVisibleInHierarchy(root) && visibleItemIds.has(itemId)) {
+    if (
+      root &&
+      itemId &&
+      isVisibleInHierarchy(root) &&
+      visibleItemIds.has(itemId)
+    ) {
       return itemId;
     }
   }

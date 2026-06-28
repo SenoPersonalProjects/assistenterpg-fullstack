@@ -27,7 +27,11 @@ import {
 import { raycastAtlasItemId } from '@/components/world/three/raycast';
 import { createWorldScene } from '@/components/world/three/scene';
 import { calcularTooltipAtlasPosition } from '@/components/world/three/tooltip';
-import type { WorldAtlasItem } from '@/lib/world';
+import {
+  type WorldAtlasItem,
+  type WorldDetailLevel,
+  getWorldDetailLevel,
+} from '@/lib/world';
 
 type WorldGlobeCanvasProps = {
   items: WorldAtlasItem[];
@@ -36,6 +40,7 @@ type WorldGlobeCanvasProps = {
   onSelectItem: (itemId: string) => void;
   onClearSelection: () => void;
   onHoverItem: (itemId: string | null) => void;
+  onDetailLevelChange?: (level: WorldDetailLevel) => void;
 };
 
 type TooltipState = {
@@ -47,6 +52,9 @@ type TooltipState = {
 const CLICK_DRAG_THRESHOLD = 8;
 const AUTO_ROTATE_SPEED = 0.0012;
 const AUTO_ROTATE_RESUME_DELAY_MS = 2500;
+const KEYBOARD_ROTATE_STEP = 0.08;
+const KEYBOARD_TILT_STEP = 0.06;
+const GLOBE_TILT_LIMIT = 0.75;
 
 function hasWebGlSupport(): boolean {
   const canvas = document.createElement('canvas');
@@ -74,6 +82,7 @@ export function WorldGlobeCanvas({
   onSelectItem,
   onClearSelection,
   onHoverItem,
+  onDetailLevelChange,
 }: WorldGlobeCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedItemIdRef = useRef<string | null>(selectedItemId);
@@ -82,11 +91,15 @@ export function WorldGlobeCanvas({
     onSelectItem,
     onClearSelection,
     onHoverItem,
+    onDetailLevelChange,
   });
   const visibleItemIdsRef = useRef(new Set(visibleItemIds));
   const markerRecordsRef = useRef<AtlasMarkerRecord[]>([]);
   const currentCameraDistanceRef = useRef(DEFAULT_CAMERA_DISTANCE);
   const targetCameraDistanceRef = useRef(DEFAULT_CAMERA_DISTANCE);
+  const detailLevelRef = useRef<WorldDetailLevel>(
+    getWorldDetailLevel(DEFAULT_CAMERA_DISTANCE),
+  );
   const autoRotateEnabledRef = useRef(true);
   const focusTargetRef = useRef<AtlasFocusRotation | null>(null);
   const focusActiveRef = useRef(false);
@@ -116,8 +129,13 @@ export function WorldGlobeCanvas({
   }, [selectedItemId]);
 
   useEffect(() => {
-    callbacksRef.current = { onSelectItem, onClearSelection, onHoverItem };
-  }, [onSelectItem, onClearSelection, onHoverItem]);
+    callbacksRef.current = {
+      onSelectItem,
+      onClearSelection,
+      onHoverItem,
+      onDetailLevelChange,
+    };
+  }, [onSelectItem, onClearSelection, onHoverItem, onDetailLevelChange]);
 
   const clearResumeAutoRotateTimer = useCallback(() => {
     if (resumeAutoRotateTimerRef.current !== null) {
@@ -258,6 +276,7 @@ export function WorldGlobeCanvas({
         handlePointerCancel,
       );
       renderer.domElement.removeEventListener('pointerleave', handlePointerLeave);
+      renderer.domElement.removeEventListener('keydown', handleCanvasKeyDown);
       window.removeEventListener('keydown', handleKeyDown);
       renderer.domElement.removeEventListener(
         'webglcontextlost',
@@ -426,6 +445,7 @@ export function WorldGlobeCanvas({
     }
 
     function handlePointerDown(event: PointerEvent) {
+      renderer.domElement.focus({ preventScroll: true });
       pauseAutoRotate();
       focusActiveRef.current = false;
       tiltResetActiveRef.current = false;
@@ -444,8 +464,8 @@ export function WorldGlobeCanvas({
         worldGroup.rotation.y += dx * 0.006;
         worldGroup.rotation.x = THREE.MathUtils.clamp(
           worldGroup.rotation.x + dy * 0.004,
-          -0.75,
-          0.75,
+          -GLOBE_TILT_LIMIT,
+          GLOBE_TILT_LIMIT,
         );
         dragDistanceRef.current += Math.abs(dx) + Math.abs(dy);
         lastPointerRef.current = { x: event.clientX, y: event.clientY };
@@ -510,6 +530,66 @@ export function WorldGlobeCanvas({
       }
     }
 
+    function handleCanvasKeyDown(event: KeyboardEvent) {
+      const shouldHandle =
+        event.key === 'ArrowLeft' ||
+        event.key === 'ArrowRight' ||
+        event.key === 'ArrowUp' ||
+        event.key === 'ArrowDown' ||
+        event.key === '+' ||
+        event.key === '=' ||
+        event.key === '-' ||
+        event.key === 'Escape';
+
+      if (!shouldHandle) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.key === 'Escape') {
+        if (selectedItemIdRef.current) {
+          clearSelectionAndResume();
+        }
+        return;
+      }
+
+      pauseAutoRotate();
+      focusActiveRef.current = false;
+      tiltResetActiveRef.current = false;
+
+      if (event.key === 'ArrowLeft') {
+        worldGroup.rotation.y -= KEYBOARD_ROTATE_STEP;
+      } else if (event.key === 'ArrowRight') {
+        worldGroup.rotation.y += KEYBOARD_ROTATE_STEP;
+      } else if (event.key === 'ArrowUp') {
+        worldGroup.rotation.x = THREE.MathUtils.clamp(
+          worldGroup.rotation.x - KEYBOARD_TILT_STEP,
+          -GLOBE_TILT_LIMIT,
+          GLOBE_TILT_LIMIT,
+        );
+      } else if (event.key === 'ArrowDown') {
+        worldGroup.rotation.x = THREE.MathUtils.clamp(
+          worldGroup.rotation.x + KEYBOARD_TILT_STEP,
+          -GLOBE_TILT_LIMIT,
+          GLOBE_TILT_LIMIT,
+        );
+      } else if (event.key === '+' || event.key === '=') {
+        targetCameraDistanceRef.current = zoomCameraDistance(
+          targetCameraDistanceRef.current,
+          'in',
+        );
+      } else if (event.key === '-') {
+        targetCameraDistanceRef.current = zoomCameraDistance(
+          targetCameraDistanceRef.current,
+          'out',
+        );
+      }
+
+      if (!selectedItemIdRef.current) {
+        scheduleAutoRotateResume();
+      }
+    }
+
     function handleContextLost(event: Event) {
       event.preventDefault();
       cleanupRenderer({ forceContextLoss: false });
@@ -528,6 +608,14 @@ export function WorldGlobeCanvas({
         ZOOM_LERP,
       );
       camera.position.z = currentCameraDistanceRef.current;
+      const nextDetailLevel = getWorldDetailLevel(
+        currentCameraDistanceRef.current,
+      );
+
+      if (nextDetailLevel !== detailLevelRef.current) {
+        detailLevelRef.current = nextDetailLevel;
+        callbacksRef.current.onDetailLevelChange?.(nextDetailLevel);
+      }
 
       const shouldApplyFocus =
         focusActiveRef.current &&
@@ -597,6 +685,12 @@ export function WorldGlobeCanvas({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setClearColor(0x000000, 0);
     renderer.domElement.style.cursor = 'grab';
+    renderer.domElement.tabIndex = 0;
+    renderer.domElement.setAttribute('role', 'application');
+    renderer.domElement.setAttribute(
+      'aria-label',
+      'Globo 3D interativo do Atlas do Mundo. Use setas para rotacionar, mais e menos para zoom, e Escape para limpar seleção.',
+    );
     containerElement.appendChild(renderer.domElement);
 
     for (const item of items) {
@@ -616,6 +710,7 @@ export function WorldGlobeCanvas({
     });
     renderer.domElement.addEventListener('pointercancel', handlePointerCancel);
     renderer.domElement.addEventListener('pointerleave', handlePointerLeave);
+    renderer.domElement.addEventListener('keydown', handleCanvasKeyDown);
     renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
     window.addEventListener('keydown', handleKeyDown);
 
@@ -692,6 +787,9 @@ export function WorldGlobeCanvas({
         <span>
           Clique em um ponto para focar o dossiê; clique no vazio para retomar o
           giro.
+        </span>
+        <span>
+          Com foco no globo: setas rotacionam, + aproxima, - afasta e Esc limpa.
         </span>
       </div>
 

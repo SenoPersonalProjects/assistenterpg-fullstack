@@ -3,8 +3,8 @@ import type { WorldBarrier } from './world.types';
 export const WORLD_BARRIERS: WorldBarrier[] = [
   {
     id: 'barreira-palacio-imperial',
-    kind: 'barrier',
-    tipo: 'BARREIRA',
+    kind: 'BARREIRA',
+    parentId: 'japao',
     barrierType: 'BARREIRA_PURA',
     nome: 'Barreira Pura do Palácio Imperial',
     lat: 35.6852,
@@ -15,12 +15,16 @@ export const WORLD_BARRIERS: WorldBarrier[] = [
     tags: ['barreira pura', 'tokyo', 'política'],
     status: 'ATIVA',
     nivelDeSigilo: 'CONFIDENCIAL',
+    subtipo: 'Barreira pura',
+    displayPriority: 30,
     raioKmAproximado: 6,
+    notaCartografica:
+      'A área exibida no globo é uma projeção aproximada do campo ritual.',
   },
   {
     id: 'barreira-tumbas-estrela',
-    kind: 'barrier',
-    tipo: 'BARREIRA',
+    kind: 'BARREIRA',
+    parentId: 'japao',
     barrierType: 'BARREIRA_PURA',
     nome: 'Barreira Pura das Tumbas da Estrela',
     lat: 35.6586,
@@ -31,12 +35,16 @@ export const WORLD_BARRIERS: WorldBarrier[] = [
     tags: ['barreira pura', 'ritual', 'arquivo selado'],
     status: 'RESTRITA',
     nivelDeSigilo: 'OCULTO',
+    subtipo: 'Barreira pura',
+    displayPriority: 31,
     raioKmAproximado: 4,
+    notaCartografica:
+      'A área exibida no globo é uma projeção aproximada do campo ritual.',
   },
   {
     id: 'barreira-mausoleu-yamakuni',
-    kind: 'barrier',
-    tipo: 'BARREIRA',
+    kind: 'BARREIRA',
+    parentId: 'japao',
     barrierType: 'BARREIRA_PURA',
     nome: 'Barreira Pura do Mausoléu Yamakuni',
     lat: 35.1802,
@@ -47,12 +55,16 @@ export const WORLD_BARRIERS: WorldBarrier[] = [
     tags: ['barreira pura', 'mausoléu', 'contenção'],
     status: 'ATIVA',
     nivelDeSigilo: 'CONFIDENCIAL',
+    subtipo: 'Barreira pura',
+    displayPriority: 32,
     raioKmAproximado: 3,
+    notaCartografica:
+      'A área exibida no globo é uma projeção aproximada do campo ritual.',
   },
   {
     id: 'barreira-hida',
-    kind: 'barrier',
-    tipo: 'BARREIRA',
+    kind: 'BARREIRA',
+    parentId: 'japao',
     barrierType: 'GRANDE_BARREIRA',
     nome: 'Grande Barreira da Montanha Sagrada de Hida',
     lat: 36.1428,
@@ -63,6 +75,10 @@ export const WORLD_BARRIERS: WorldBarrier[] = [
     tags: ['grande barreira', 'hida', 'montanha sagrada'],
     status: 'INSTAVEL',
     nivelDeSigilo: 'OCULTO',
+    subtipo: 'Grande barreira',
+    displayPriority: 33,
     raioKmAproximado: 18,
+    notaCartografica:
+      'O anel de Hida está ampliado para leitura tática; a projeção não é uma medição geodésica exata.',
   },
 ];

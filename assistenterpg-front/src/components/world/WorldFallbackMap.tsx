@@ -1,7 +1,7 @@
 'use client';
 
 import { Icon } from '@/components/ui/Icon';
-import type { WorldAtlasCategory, WorldAtlasItem } from '@/lib/world';
+import type { WorldAtlasItem, WorldAtlasKind } from '@/lib/world';
 import { getAtlasItemCategory } from '@/lib/world';
 
 type WorldFallbackMapProps = {
@@ -11,18 +11,18 @@ type WorldFallbackMapProps = {
   onSelectItem: (itemId: string) => void;
 };
 
-const CATEGORY_STYLES = {
-  ESCOLA: 'border-app-primary/40 bg-app-primary/10 text-app-primary',
-  BARREIRA: 'border-app-secondary/40 bg-app-secondary/10 text-app-secondary',
-  ORGANIZACAO: 'border-app-orange/40 bg-app-orange/10 text-app-orange',
-  REGIAO_OCULTA: 'border-app-danger/40 bg-app-danger/10 text-app-danger',
-} as const;
+const CATEGORY_STYLES: Record<WorldAtlasKind, string> = {
+  LOCAL: 'border-app-primary/40 bg-app-primary/10 text-app-primary',
+  SUBLOCAL: 'border-app-secondary/40 bg-app-secondary/10 text-app-secondary',
+  INSTITUICAO: 'border-app-orange/40 bg-app-orange/10 text-app-orange',
+  BARREIRA: 'border-app-info/40 bg-app-info/10 text-app-info',
+};
 
-const CATEGORY_LABELS: Record<WorldAtlasCategory, string> = {
-  ESCOLA: 'Escola',
+const CATEGORY_LABELS: Record<WorldAtlasKind, string> = {
+  LOCAL: 'Local',
+  SUBLOCAL: 'Sublocal',
+  INSTITUICAO: 'Instituição',
   BARREIRA: 'Barreira',
-  ORGANIZACAO: 'Organização',
-  REGIAO_OCULTA: 'Região oculta',
 };
 
 export function WorldFallbackMap({
@@ -36,7 +36,7 @@ export function WorldFallbackMap({
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 rounded-full border border-app-warning/30 bg-app-warning/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-app-warning">
           <Icon name="warning" className="h-4 w-4" />
-          Mapa tático
+          Mapa estático
         </div>
         <h3 className="text-2xl font-black text-app-fg">
           Visualização 3D indisponível

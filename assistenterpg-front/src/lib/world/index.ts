@@ -11,3 +11,7 @@ export const WORLD_ATLAS_ITEMS: WorldAtlasItem[] = [
   ...WORLD_LOCATIONS,
   ...WORLD_BARRIERS,
 ];
+
+export const WORLD_ATLAS_ITEM_BY_ID = new Map(
+  WORLD_ATLAS_ITEMS.map((item) => [item.id, item]),
+);

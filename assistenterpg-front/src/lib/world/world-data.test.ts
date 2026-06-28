@@ -3,8 +3,11 @@ import {
   WORLD_ATLAS_ITEMS,
   WORLD_BARRIERS,
   WORLD_LOCATIONS,
+  filterWorldAtlasItems,
   getAtlasItemCategory,
+  getWorldDetailLevel,
   latLngToVector3Data,
+  resolveWorldInternalMap,
 } from './index';
 
 describe('world atlas data', () => {
@@ -31,10 +34,10 @@ describe('world atlas data', () => {
     expect(length).toBeCloseTo(radius, 6);
   });
 
-  it('marks Kakyn as a hidden fictional region', () => {
+  it('marks Kakyn as a fictional supernatural local', () => {
     const kakyn = WORLD_LOCATIONS.find((item) => item.id === 'imperio-kakyn');
 
-    expect(kakyn?.tipo).toBe('REGIAO_OCULTA');
+    expect(kakyn?.kind).toBe('LOCAL');
     expect(kakyn?.ficticio).toBe(true);
     expect(kakyn?.notaCartografica).toContain('não representa geografia real');
   });
@@ -43,5 +46,68 @@ describe('world atlas data', () => {
     for (const barrier of WORLD_BARRIERS) {
       expect(getAtlasItemCategory(barrier)).toBe('BARREIRA');
     }
+  });
+
+  it('keeps parent references valid and sublocals attached to a parent', () => {
+    const ids = new Set(WORLD_ATLAS_ITEMS.map((item) => item.id));
+
+    for (const item of WORLD_ATLAS_ITEMS) {
+      if (item.parentId) {
+        expect(ids.has(item.parentId)).toBe(true);
+      }
+      if (item.kind === 'SUBLOCAL') {
+        expect(item.parentId).toBeTruthy();
+      }
+    }
+  });
+
+  it('connects the Citadel internal map and lets districts inherit it', () => {
+    const citadel = WORLD_LOCATIONS.find((item) => item.id === 'cidadela');
+
+    expect(citadel?.mapaInterno?.src).toBe('/images/world/cidadela-map.png');
+    expect(citadel?.mapaInterno?.alt).toContain('Mapa interno da Cidadela');
+
+    const citadelDistricts = WORLD_LOCATIONS.filter(
+      (item) => item.parentId === 'cidadela',
+    );
+
+    expect(citadelDistricts.length).toBeGreaterThan(0);
+
+    for (const district of citadelDistricts) {
+      expect(resolveWorldInternalMap(district, WORLD_ATLAS_ITEMS)?.src).toBe(
+        '/images/world/cidadela-map.png',
+      );
+    }
+  });
+
+  it('applies detail levels from camera distance', () => {
+    expect(getWorldDetailLevel(6)).toBe('MACRO');
+    expect(getWorldDetailLevel(4.6)).toBe('MESO');
+    expect(getWorldDetailLevel(3)).toBe('MICRO');
+  });
+
+  it('uses LOD and filters to control sublocal visibility', () => {
+    const allFilters = ['LOCAL', 'SUBLOCAL', 'INSTITUICAO', 'BARREIRA'] as const;
+
+    const macroItems = filterWorldAtlasItems(
+      WORLD_ATLAS_ITEMS,
+      [...allFilters],
+      'MACRO',
+    );
+    expect(macroItems.some((item) => item.kind === 'SUBLOCAL')).toBe(false);
+
+    const microItems = filterWorldAtlasItems(
+      WORLD_ATLAS_ITEMS,
+      [...allFilters],
+      'MICRO',
+    );
+    expect(microItems.some((item) => item.kind === 'SUBLOCAL')).toBe(true);
+
+    const microWithoutSublocals = filterWorldAtlasItems(
+      WORLD_ATLAS_ITEMS,
+      ['LOCAL', 'INSTITUICAO', 'BARREIRA'],
+      'MICRO',
+    );
+    expect(microWithoutSublocals.some((item) => item.kind === 'SUBLOCAL')).toBe(false);
   });
 });
