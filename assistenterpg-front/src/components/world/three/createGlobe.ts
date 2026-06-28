@@ -2,8 +2,14 @@ import * as THREE from 'three';
 import { WORLD_GLOBE_RADIUS } from '../../../lib/world';
 
 export const WORLD_GLOBE_TEXTURE_PATHS = {
-  base: '/images/world/earth-atlas-base.png',
-  borders: '/images/world/earth-atlas-borders.png',
+  base: [
+    '/images/world/earth-atlas-base-4k.webp',
+    '/images/world/earth-atlas-base.png',
+  ],
+  borders: [
+    '/images/world/earth-atlas-borders-4k.webp',
+    '/images/world/earth-atlas-borders.png',
+  ],
 } as const;
 
 export const WORLD_GLOBE_LAYER_RADII = {
@@ -27,6 +33,8 @@ export type WorldGlobeResources = {
 };
 
 type AtlasTextureLoader = Pick<THREE.TextureLoader, 'load'>;
+type AtlasTexturePath =
+  (typeof WORLD_GLOBE_TEXTURE_PATHS)[keyof typeof WORLD_GLOBE_TEXTURE_PATHS][number];
 
 export function areGlobeLayerRadiiOrdered(): boolean {
   return (
@@ -64,6 +72,24 @@ export function applyBorderTexture(
   mesh.material.opacity = 0.58;
   mesh.material.needsUpdate = true;
   mesh.visible = true;
+}
+
+function loadTextureWithFallback(
+  textureLoader: AtlasTextureLoader,
+  paths: readonly AtlasTexturePath[],
+  onLoad: (texture: THREE.Texture) => void,
+): void {
+  const [currentPath, ...fallbackPaths] = paths;
+  if (!currentPath) return;
+
+  textureLoader.load(
+    currentPath,
+    onLoad,
+    undefined,
+    () => {
+      loadTextureWithFallback(textureLoader, fallbackPaths, onLoad);
+    },
+  );
 }
 
 export function createWorldGlobe(
@@ -118,7 +144,8 @@ export function createWorldGlobe(
 
   group.add(baseGlobeMesh, borderOverlayMesh, wireframeMesh, atmosphereMesh);
 
-  textureLoader.load(
+  loadTextureWithFallback(
+    textureLoader,
     WORLD_GLOBE_TEXTURE_PATHS.base,
     (texture) => {
       if (disposed) {
@@ -127,13 +154,10 @@ export function createWorldGlobe(
       }
       applyBaseTexture(baseGlobeMesh.material, texture);
     },
-    undefined,
-    () => {
-      // Missing texture is an expected fallback path in local/dev.
-    },
   );
 
-  textureLoader.load(
+  loadTextureWithFallback(
+    textureLoader,
     WORLD_GLOBE_TEXTURE_PATHS.borders,
     (texture) => {
       if (disposed) {
@@ -141,10 +165,6 @@ export function createWorldGlobe(
         return;
       }
       applyBorderTexture(borderOverlayMesh, texture);
-    },
-    undefined,
-    () => {
-      // Border overlay is optional.
     },
   );
 

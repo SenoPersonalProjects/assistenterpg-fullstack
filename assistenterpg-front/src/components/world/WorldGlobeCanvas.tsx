@@ -29,13 +29,14 @@ import { createWorldScene } from '@/components/world/three/scene';
 import { calcularTooltipAtlasPosition } from '@/components/world/three/tooltip';
 import {
   type WorldAtlasItem,
+  type WorldAtlasMarkerDisplayState,
   type WorldDetailLevel,
   getWorldDetailLevel,
 } from '@/lib/world';
 
 type WorldGlobeCanvasProps = {
   items: WorldAtlasItem[];
-  visibleItemIds: string[];
+  markerStates: WorldAtlasMarkerDisplayState[];
   selectedItemId: string | null;
   onSelectItem: (itemId: string) => void;
   onClearSelection: () => void;
@@ -77,7 +78,7 @@ function releasePointerCaptureSafely(
 
 export function WorldGlobeCanvas({
   items,
-  visibleItemIds,
+  markerStates,
   selectedItemId,
   onSelectItem,
   onClearSelection,
@@ -93,7 +94,23 @@ export function WorldGlobeCanvas({
     onHoverItem,
     onDetailLevelChange,
   });
-  const visibleItemIdsRef = useRef(new Set(visibleItemIds));
+  const visibleItemIdsRef = useRef(
+    new Set(
+      markerStates
+        .filter((state) => state.visible)
+        .map((state) => state.itemId),
+    ),
+  );
+  const focusableItemIdsRef = useRef(
+    new Set(
+      markerStates
+        .filter((state) => state.filterEnabled)
+        .map((state) => state.itemId),
+    ),
+  );
+  const markerStateByIdRef = useRef(
+    new Map(markerStates.map((state) => [state.itemId, state])),
+  );
   const markerRecordsRef = useRef<AtlasMarkerRecord[]>([]);
   const currentCameraDistanceRef = useRef(DEFAULT_CAMERA_DISTANCE);
   const targetCameraDistanceRef = useRef(DEFAULT_CAMERA_DISTANCE);
@@ -110,9 +127,13 @@ export function WorldGlobeCanvas({
   const [tooltip, setTooltip] = useState<TooltipState>(null);
 
   const visibleItems = useMemo(() => {
-    const visibleSet = new Set(visibleItemIds);
+    const visibleSet = new Set(
+      markerStates
+        .filter((state) => state.visible)
+        .map((state) => state.itemId),
+    );
     return items.filter((item) => visibleSet.has(item.id));
-  }, [items, visibleItemIds]);
+  }, [items, markerStates]);
 
   useEffect(() => {
     const previousSelectedItemId = selectedItemIdRef.current;
@@ -174,11 +195,25 @@ export function WorldGlobeCanvas({
   }, [clearResumeAutoRotateTimer]);
 
   useEffect(() => {
-    const visibleSet = new Set(visibleItemIds);
+    const visibleSet = new Set(
+      markerStates
+        .filter((state) => state.visible)
+        .map((state) => state.itemId),
+    );
+    const focusableSet = new Set(
+      markerStates
+        .filter((state) => state.filterEnabled)
+        .map((state) => state.itemId),
+    );
+    const stateById = new Map(
+      markerStates.map((state) => [state.itemId, state]),
+    );
     let tooltipResetId: number | null = null;
 
     visibleItemIdsRef.current = visibleSet;
-    updateAtlasMarkerVisibility(markerRecordsRef.current, visibleSet);
+    focusableItemIdsRef.current = focusableSet;
+    markerStateByIdRef.current = stateById;
+    updateAtlasMarkerVisibility(markerRecordsRef.current, stateById);
 
     if (
       hoveredItemIdRef.current &&
@@ -191,7 +226,7 @@ export function WorldGlobeCanvas({
 
     if (
       selectedItemIdRef.current &&
-      !visibleSet.has(selectedItemIdRef.current)
+      !focusableSet.has(selectedItemIdRef.current)
     ) {
       selectedItemIdRef.current = null;
       focusTargetRef.current = null;
@@ -208,7 +243,7 @@ export function WorldGlobeCanvas({
         window.clearTimeout(tooltipResetId);
       }
     };
-  }, [clearResumeAutoRotateTimer, visibleItemIds]);
+  }, [clearResumeAutoRotateTimer, markerStates]);
 
   useEffect(() => {
     const currentContainer = containerRef.current;
@@ -328,7 +363,7 @@ export function WorldGlobeCanvas({
 
       const item = itemById.get(itemId);
 
-      if (!item || !visibleItemIdsRef.current.has(itemId)) {
+      if (!item || !focusableItemIdsRef.current.has(itemId)) {
         focusTargetRef.current = null;
         focusActiveRef.current = false;
         tiltResetActiveRef.current = false;
@@ -370,7 +405,7 @@ export function WorldGlobeCanvas({
 
       if (selectedId === focusedItemIdRef.current) return;
 
-      if (selectedId && visibleItemIdsRef.current.has(selectedId)) {
+      if (selectedId && focusableItemIdsRef.current.has(selectedId)) {
         pauseAutoRotate();
         setFocusTargetForItem(selectedId);
         return;
@@ -667,11 +702,20 @@ export function WorldGlobeCanvas({
 
         const active = record.itemId === selectedItemIdRef.current;
         const hovered = record.itemId === hoveredItemIdRef.current;
-        const targetScale = active ? 1.45 : hovered ? 1.24 : 1;
+        const markerState = markerStateByIdRef.current.get(record.itemId);
+        const detailScale = markerState?.scaleMultiplier ?? 1;
+        const targetScale = detailScale * (active ? 1.35 : hovered ? 1.16 : 1);
         const nextScale =
           record.group.scale.x + (targetScale - record.group.scale.x) * 0.18;
 
         record.group.scale.setScalar(nextScale);
+        for (const visualMaterial of record.visualMaterials) {
+          visualMaterial.material.opacity +=
+            (visualMaterial.baseOpacity *
+              (markerState?.opacityMultiplier ?? 1) -
+              visualMaterial.material.opacity) *
+            0.18;
+        }
         record.material.color.lerpColors(
           record.baseColor,
           highlightColor,
@@ -700,7 +744,7 @@ export function WorldGlobeCanvas({
     }
 
     markerRecordsRef.current = markerRecords;
-    updateAtlasMarkerVisibility(markerRecords, visibleItemIdsRef.current);
+    updateAtlasMarkerVisibility(markerRecords, markerStateByIdRef.current);
 
     renderer.domElement.addEventListener('pointerdown', handlePointerDown);
     renderer.domElement.addEventListener('pointermove', handlePointerMove);

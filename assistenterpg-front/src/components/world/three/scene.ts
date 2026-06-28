@@ -10,7 +10,7 @@ export type WorldSceneResources = {
 
 export function createWorldScene(): WorldSceneResources {
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 100);
   const worldGroup = new THREE.Group();
 
   camera.position.set(0, 0.25, 4.6);

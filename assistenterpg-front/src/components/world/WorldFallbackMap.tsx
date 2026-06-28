@@ -1,7 +1,7 @@
 'use client';
 
 import { Icon } from '@/components/ui/Icon';
-import type { WorldAtlasItem, WorldAtlasKind } from '@/lib/world';
+import type { WorldAtlasFilter, WorldAtlasItem } from '@/lib/world';
 import { getAtlasItemCategory } from '@/lib/world';
 
 type WorldFallbackMapProps = {
@@ -11,18 +11,18 @@ type WorldFallbackMapProps = {
   onSelectItem: (itemId: string) => void;
 };
 
-const CATEGORY_STYLES: Record<WorldAtlasKind, string> = {
-  LOCAL: 'border-app-primary/40 bg-app-primary/10 text-app-primary',
-  SUBLOCAL: 'border-app-secondary/40 bg-app-secondary/10 text-app-secondary',
-  INSTITUICAO: 'border-app-orange/40 bg-app-orange/10 text-app-orange',
-  BARREIRA: 'border-app-info/40 bg-app-info/10 text-app-info',
+const CATEGORY_STYLES: Record<WorldAtlasFilter, string> = {
+  LUGARES: 'border-app-primary/40 bg-app-primary/10 text-app-primary',
+  SETORES: 'border-app-secondary/40 bg-app-secondary/10 text-app-secondary',
+  INSTITUICOES: 'border-app-orange/40 bg-app-orange/10 text-app-orange',
+  BARREIRAS: 'border-app-info/40 bg-app-info/10 text-app-info',
 };
 
-const CATEGORY_LABELS: Record<WorldAtlasKind, string> = {
-  LOCAL: 'Local',
-  SUBLOCAL: 'Sublocal',
-  INSTITUICAO: 'Instituição',
-  BARREIRA: 'Barreira',
+const CATEGORY_LABELS: Record<WorldAtlasFilter, string> = {
+  LUGARES: 'Lugar',
+  SETORES: 'Setor',
+  INSTITUICOES: 'Instituição',
+  BARREIRAS: 'Barreira',
 };
 
 export function WorldFallbackMap({

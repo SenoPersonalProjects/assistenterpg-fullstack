@@ -23,19 +23,19 @@ const FILTER_STYLES: Record<
   WorldAtlasFilter,
   { active: string; icon: string }
 > = {
-  LOCAL: {
+  LUGARES: {
     active: 'border-app-primary bg-app-primary/15 text-app-primary',
     icon: 'bg-app-primary/10 text-app-primary border-app-primary/30',
   },
-  SUBLOCAL: {
+  SETORES: {
     active: 'border-app-info bg-app-info/15 text-app-info',
     icon: 'bg-app-info/10 text-app-info border-app-info/30',
   },
-  INSTITUICAO: {
+  INSTITUICOES: {
     active: 'border-app-secondary bg-app-secondary/15 text-app-secondary',
     icon: 'bg-app-secondary/10 text-app-secondary border-app-secondary/30',
   },
-  BARREIRA: {
+  BARREIRAS: {
     active: 'border-app-danger bg-app-danger/15 text-app-danger',
     icon: 'bg-app-danger/10 text-app-danger border-app-danger/30',
   },
@@ -57,7 +57,7 @@ export function WorldFilters({
             Camadas cartográficas
           </p>
           <p className="text-sm text-app-muted">
-            Sublocais respeitam o zoom, mesmo quando a camada está ativa.
+            Setores aparecem apenas no nível de detalhe do globo.
           </p>
         </div>
         <button

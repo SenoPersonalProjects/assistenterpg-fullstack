@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Atlas world texture PNGs from local cartographic sources.
+"""Generate Atlas world textures from local cartographic sources.
 
 Runtime dependencies are intentionally not added to the frontend app. This
 script expects Python with Pillow and Numpy available in the local workstation.
@@ -23,6 +23,8 @@ DEFAULT_OUTPUT_DIR = FRONTEND_ROOT / "public" / "images" / "world"
 DEFAULT_TEXTURE_WIDTH = 2048
 BASE_OUTPUT_NAME = "earth-atlas-base.png"
 BORDERS_OUTPUT_NAME = "earth-atlas-borders.png"
+BASE_WEBP_4K_OUTPUT_NAME = "earth-atlas-base-4k.webp"
+BORDERS_WEBP_4K_OUTPUT_NAME = "earth-atlas-borders-4k.webp"
 SUPPORTED_SVG_PATH_COMMANDS = set("MmLlHhVvZz")
 TOKEN_PATTERN = re.compile(
     r"[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?",
@@ -57,7 +59,25 @@ def parse_args() -> argparse.Namespace:
         choices=(2048, 4096),
         help="Texture width. Height is always half the width.",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "--format",
+        choices=("png", "webp"),
+        default="png",
+        help="Output format. PNG keeps the stable 2K fallback names; WebP uses 4K atlas names.",
+    )
+    parser.add_argument(
+        "--webp-quality",
+        type=int,
+        default=78,
+        choices=range(45, 96),
+        metavar="[45-95]",
+        help="WebP quality used when --format webp.",
+    )
+    args = parser.parse_args()
+    if args.format == "webp" and args.size != 4096:
+        parser.error("--format webp is reserved for the 4096px atlas texture set.")
+
+    return args
 
 
 def read_gray_earth_tif(zip_path: Path) -> tuple[str, Image.Image]:
@@ -77,10 +97,35 @@ def texture_size(width: int) -> tuple[int, int]:
     return (width, width // 2)
 
 
+def get_output_paths(output_dir: Path, output_format: str) -> tuple[Path, Path]:
+    if output_format == "webp":
+        return (
+            output_dir / BASE_WEBP_4K_OUTPUT_NAME,
+            output_dir / BORDERS_WEBP_4K_OUTPUT_NAME,
+        )
+
+    return output_dir / BASE_OUTPUT_NAME, output_dir / BORDERS_OUTPUT_NAME
+
+
+def save_texture(
+    image: Image.Image,
+    output_path: Path,
+    output_format: str,
+    webp_quality: int,
+) -> None:
+    if output_format == "webp":
+        image.save(output_path, format="WEBP", quality=webp_quality, method=6)
+        return
+
+    image.save(output_path, format="PNG", optimize=True, compress_level=9)
+
+
 def generate_base_texture(
     gray_earth_zip: Path,
     output_path: Path,
     target_size: tuple[int, int],
+    output_format: str = "png",
+    webp_quality: int = 78,
 ) -> tuple[str, Image.Image]:
     tif_name, source = read_gray_earth_tif(gray_earth_zip)
     resized = source.resize(target_size, Image.Resampling.LANCZOS)
@@ -112,7 +157,7 @@ def generate_base_texture(
 
     output = Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8), mode="RGB")
     output = output.quantize(colors=192, method=Image.Quantize.MEDIANCUT).convert("RGB")
-    output.save(output_path, format="PNG", optimize=True, compress_level=9)
+    save_texture(output, output_path, output_format, webp_quality)
     return tif_name, output
 
 
@@ -258,6 +303,8 @@ def generate_border_texture(
     blank_map_svg: Path,
     output_path: Path,
     target_size: tuple[int, int],
+    output_format: str = "png",
+    webp_quality: int = 78,
 ) -> Image.Image:
     scale = 2
     width = target_size[0] * scale
@@ -276,7 +323,7 @@ def generate_border_texture(
         raise SvgPathError(f"No SVG paths found in {blank_map_svg}")
 
     final = image.resize(target_size, Image.Resampling.LANCZOS)
-    final.save(output_path, format="PNG", optimize=True, compress_level=9)
+    save_texture(final, output_path, output_format, webp_quality)
     return final
 
 
@@ -293,11 +340,22 @@ def main() -> None:
         raise FileNotFoundError(blank_map_svg)
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    base_output = output_dir / BASE_OUTPUT_NAME
-    borders_output = output_dir / BORDERS_OUTPUT_NAME
+    base_output, borders_output = get_output_paths(output_dir, args.format)
 
-    tif_name, base = generate_base_texture(gray_earth_zip, base_output, target_size)
-    borders = generate_border_texture(blank_map_svg, borders_output, target_size)
+    tif_name, base = generate_base_texture(
+        gray_earth_zip,
+        base_output,
+        target_size,
+        args.format,
+        args.webp_quality,
+    )
+    borders = generate_border_texture(
+        blank_map_svg,
+        borders_output,
+        target_size,
+        args.format,
+        args.webp_quality,
+    )
 
     print(
         f"Generated {base_output} from {gray_earth_zip}!{tif_name} "

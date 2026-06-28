@@ -1,6 +1,8 @@
 import type {
+  WorldAtlasDisplayState,
   WorldAtlasFilter,
   WorldAtlasItem,
+  WorldAtlasMarkerDisplayState,
   WorldDetailLevel,
   WorldInternalMap,
 } from './world.types';
@@ -8,14 +10,23 @@ import type {
 export const WORLD_GLOBE_RADIUS = 1.65;
 
 export const WORLD_DETAIL_LEVEL_CAMERA_DISTANCE = {
-  MACRO_MIN: 5.15,
-  MICRO_MAX: 3.35,
+  MACRO_MIN: 5.25,
+  REGIONAL_MIN: 3.95,
+  LOCAL_MIN: 2.6,
 } as const;
 
 const DETAIL_LEVEL_RANK: Record<WorldDetailLevel, number> = {
   MACRO: 0,
-  MESO: 1,
-  MICRO: 2,
+  REGIONAL: 1,
+  LOCAL: 2,
+  DETALHE: 3,
+};
+
+const DETAIL_LEVEL_SCALE_MULTIPLIER: Record<WorldDetailLevel, number> = {
+  MACRO: 1,
+  REGIONAL: 1,
+  LOCAL: 0.82,
+  DETALHE: 0.62,
 };
 
 export function degreesToRadians(value: number): number {
@@ -38,27 +49,54 @@ export function latLngToVector3Data(
 }
 
 export function getAtlasItemCategory(item: WorldAtlasItem): WorldAtlasFilter {
-  return item.kind;
+  if (item.kind === 'INSTITUICAO') return 'INSTITUICOES';
+  if (item.kind === 'BARREIRA') return 'BARREIRAS';
+  return item.escala === 'SETOR' ? 'SETORES' : 'LUGARES';
 }
 
 export function getWorldDetailLevel(cameraDistance: number): WorldDetailLevel {
   if (cameraDistance > WORLD_DETAIL_LEVEL_CAMERA_DISTANCE.MACRO_MIN) {
     return 'MACRO';
   }
-  if (cameraDistance <= WORLD_DETAIL_LEVEL_CAMERA_DISTANCE.MICRO_MAX) {
-    return 'MICRO';
+  if (cameraDistance > WORLD_DETAIL_LEVEL_CAMERA_DISTANCE.REGIONAL_MIN) {
+    return 'REGIONAL';
   }
-  return 'MESO';
+  if (cameraDistance > WORLD_DETAIL_LEVEL_CAMERA_DISTANCE.LOCAL_MIN) {
+    return 'LOCAL';
+  }
+  return 'DETALHE';
+}
+
+function getDefaultDetailRange(item: WorldAtlasItem): {
+  min: WorldDetailLevel;
+  max: WorldDetailLevel;
+} {
+  if (item.kind === 'BARREIRA') {
+    return { min: 'MACRO', max: 'DETALHE' };
+  }
+
+  if (item.kind === 'INSTITUICAO') {
+    return { min: 'REGIONAL', max: 'DETALHE' };
+  }
+
+  if (item.escala === 'REGIAO') {
+    return { min: 'MACRO', max: 'DETALHE' };
+  }
+
+  if (item.escala === 'ZONA') {
+    return { min: 'REGIONAL', max: 'DETALHE' };
+  }
+
+  return { min: 'DETALHE', max: 'DETALHE' };
 }
 
 export function isWorldItemVisibleAtDetailLevel(
   item: WorldAtlasItem,
   detailLevel: WorldDetailLevel,
 ): boolean {
-  const defaultMin: WorldDetailLevel =
-    item.kind === 'SUBLOCAL' ? 'MICRO' : 'MACRO';
-  const min = item.zoomMin ?? defaultMin;
-  const max = item.zoomMax ?? 'MICRO';
+  const defaultRange = getDefaultDetailRange(item);
+  const min = item.zoomMin ?? defaultRange.min;
+  const max = item.zoomMax ?? defaultRange.max;
   const currentRank = DETAIL_LEVEL_RANK[detailLevel];
 
   return (
@@ -67,40 +105,114 @@ export function isWorldItemVisibleAtDetailLevel(
   );
 }
 
+function isFilterEnabled(
+  item: WorldAtlasItem,
+  activeFilters: Set<WorldAtlasFilter>,
+): boolean {
+  return activeFilters.has(getAtlasItemCategory(item));
+}
+
+function shouldSuppressAncestor(
+  item: WorldAtlasItem,
+  candidateItems: WorldAtlasItem[],
+): boolean {
+  if (item.kind !== 'LUGAR') return false;
+
+  return candidateItems.some(
+    (candidate) =>
+      candidate.parentId === item.id && candidate.kind !== 'BARREIRA',
+  );
+}
+
+export function getAtlasDisplayState(
+  items: WorldAtlasItem[],
+  activeFilters: WorldAtlasFilter[],
+  detailLevel: WorldDetailLevel,
+): WorldAtlasDisplayState {
+  const filters = new Set(activeFilters);
+  const filterEnabledItems = items.filter((item) =>
+    isFilterEnabled(item, filters),
+  );
+  const candidateItems = filterEnabledItems.filter((item) =>
+    isWorldItemVisibleAtDetailLevel(item, detailLevel),
+  );
+  const candidateIds = new Set(candidateItems.map((item) => item.id));
+  const markerStates: WorldAtlasMarkerDisplayState[] = items.map((item) => {
+    const filterEnabled = filterEnabledItems.includes(item);
+    const detailVisible = candidateIds.has(item.id);
+    const suppressed =
+      filterEnabled && detailVisible && shouldSuppressAncestor(item, candidateItems);
+    const visible = filterEnabled && detailVisible && !suppressed;
+
+    return {
+      itemId: item.id,
+      visible,
+      suppressed,
+      filterEnabled,
+      detailVisible,
+      scaleMultiplier: DETAIL_LEVEL_SCALE_MULTIPLIER[detailLevel],
+      opacityMultiplier: visible ? 1 : 0,
+    };
+  });
+  const markerStateById = new Map(
+    markerStates.map((state) => [state.itemId, state]),
+  );
+
+  return {
+    visibleItems: items
+      .filter((item) => markerStateById.get(item.id)?.visible)
+      .sort(sortWorldAtlasItems),
+    markerStates,
+    markerStateById,
+    filterEnabledItemIds: new Set(filterEnabledItems.map((item) => item.id)),
+  };
+}
+
 export function filterWorldAtlasItems(
   items: WorldAtlasItem[],
   activeFilters: WorldAtlasFilter[],
   detailLevel: WorldDetailLevel,
 ): WorldAtlasItem[] {
-  const active = new Set(activeFilters);
+  return getAtlasDisplayState(items, activeFilters, detailLevel).visibleItems;
+}
 
-  return items
-    .filter(
-      (item) =>
-        active.has(getAtlasItemCategory(item)) &&
-        isWorldItemVisibleAtDetailLevel(item, detailLevel),
-    )
-    .sort((a, b) => {
-      const priorityA = a.displayPriority ?? 100;
-      const priorityB = b.displayPriority ?? 100;
-      if (priorityA !== priorityB) return priorityA - priorityB;
-      return a.nome.localeCompare(b.nome, 'pt-BR');
-    });
+export function sortWorldAtlasItems(
+  a: WorldAtlasItem,
+  b: WorldAtlasItem,
+): number {
+  const priorityA = a.displayPriority ?? 100;
+  const priorityB = b.displayPriority ?? 100;
+  if (priorityA !== priorityB) return priorityA - priorityB;
+  return a.nome.localeCompare(b.nome, 'pt-BR');
+}
+
+export function buildWorldBreadcrumb(
+  item: WorldAtlasItem,
+  items: WorldAtlasItem[],
+): WorldAtlasItem[] {
+  const itemById = new Map(items.map((entry) => [entry.id, entry]));
+  const chain: WorldAtlasItem[] = [];
+  let current: WorldAtlasItem | undefined = item;
+
+  while (current) {
+    chain.unshift(current);
+    current = current.parentId ? itemById.get(current.parentId) : undefined;
+  }
+
+  return chain;
 }
 
 export function resolveWorldInternalMap(
   item: WorldAtlasItem,
   items: WorldAtlasItem[],
 ): WorldInternalMap | null {
-  const itemById = new Map(items.map((entry) => [entry.id, entry]));
-  let current: WorldAtlasItem | undefined = item;
+  const breadcrumb = buildWorldBreadcrumb(item, items);
 
-  while (current) {
-    if (current.mapaInterno) {
-      return current.mapaInterno;
+  for (let index = breadcrumb.length - 1; index >= 0; index -= 1) {
+    const entry = breadcrumb[index];
+    if (entry.mapaInterno) {
+      return entry.mapaInterno;
     }
-
-    current = current.parentId ? itemById.get(current.parentId) : undefined;
   }
 
   return null;

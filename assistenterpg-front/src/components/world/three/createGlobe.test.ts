@@ -18,7 +18,7 @@ describe('createWorldGlobe', () => {
     );
   });
 
-  it('loads base texture and keeps border overlay hidden when border texture fails', () => {
+  it('loads preferred base texture and keeps border overlay hidden when border texture fails', () => {
     const baseTexture = new THREE.Texture();
     const loader = {
       load: (
@@ -27,7 +27,7 @@ describe('createWorldGlobe', () => {
         _onProgress?: (event: ProgressEvent) => void,
         onError?: (error: unknown) => void,
       ) => {
-        if (url === WORLD_GLOBE_TEXTURE_PATHS.base) {
+        if (url === WORLD_GLOBE_TEXTURE_PATHS.base[0]) {
           onLoad?.(baseTexture);
         } else {
           onError?.(new Error('missing optional texture'));
@@ -41,6 +41,33 @@ describe('createWorldGlobe', () => {
     expect(globe.layers.baseGlobeMesh.material.map).toBe(baseTexture);
     expect(globe.layers.baseGlobeMesh.material.color.getHex()).toBe(0xffffff);
     expect(globe.layers.borderOverlayMesh.visible).toBe(false);
+  });
+
+  it('falls back to PNG texture when preferred WebP texture fails', () => {
+    const fallbackTexture = new THREE.Texture();
+    const attemptedUrls: string[] = [];
+    const loader = {
+      load: (
+        url: string,
+        onLoad?: (texture: THREE.Texture) => void,
+        _onProgress?: (event: ProgressEvent) => void,
+        onError?: (error: unknown) => void,
+      ) => {
+        attemptedUrls.push(url);
+        if (url === WORLD_GLOBE_TEXTURE_PATHS.base[1]) {
+          onLoad?.(fallbackTexture);
+        } else {
+          onError?.(new Error('missing texture'));
+        }
+        return new THREE.Texture();
+      },
+    };
+
+    const globe = createWorldGlobe(loader);
+
+    expect(attemptedUrls).toContain(WORLD_GLOBE_TEXTURE_PATHS.base[0]);
+    expect(attemptedUrls).toContain(WORLD_GLOBE_TEXTURE_PATHS.base[1]);
+    expect(globe.layers.baseGlobeMesh.material.map).toBe(fallbackTexture);
   });
 
   it('disposes late textures instead of applying them after cleanup', () => {

@@ -1,5 +1,5 @@
 export const DEFAULT_CAMERA_DISTANCE = 4.6;
-export const MIN_CAMERA_DISTANCE = 2.65;
+export const MIN_CAMERA_DISTANCE = 2.05;
 export const MAX_CAMERA_DISTANCE = 7.2;
 export const WHEEL_ZOOM_SPEED = 0.0028;
 export const BUTTON_ZOOM_STEP = 0.45;

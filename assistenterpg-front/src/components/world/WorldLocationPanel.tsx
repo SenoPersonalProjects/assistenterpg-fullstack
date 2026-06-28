@@ -8,14 +8,18 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import type {
+  WorldAtlasFilter,
   WorldAtlasItem,
-  WorldAtlasKind,
   WorldBarrier,
   WorldBarrierType,
   WorldSecrecyLevel,
   WorldStatus,
 } from '@/lib/world';
-import { getAtlasItemCategory, resolveWorldInternalMap } from '@/lib/world';
+import {
+  buildWorldBreadcrumb,
+  getAtlasItemCategory,
+  resolveWorldInternalMap,
+} from '@/lib/world';
 
 type WorldLocationPanelProps = {
   item: WorldAtlasItem | null;
@@ -24,21 +28,21 @@ type WorldLocationPanelProps = {
   onSelectItem: (itemId: string) => void;
 };
 
-const CATEGORY_LABELS: Record<WorldAtlasKind, string> = {
-  LOCAL: 'Local',
-  SUBLOCAL: 'Sublocal',
-  INSTITUICAO: 'Instituição',
-  BARREIRA: 'Barreira',
+const CATEGORY_LABELS: Record<WorldAtlasFilter, string> = {
+  LUGARES: 'Lugar',
+  SETORES: 'Setor',
+  INSTITUICOES: 'Instituição',
+  BARREIRAS: 'Barreira',
 };
 
 const CATEGORY_BADGE_COLORS: Record<
-  WorldAtlasKind,
+  WorldAtlasFilter,
   'blue' | 'purple' | 'orange' | 'cyan'
 > = {
-  LOCAL: 'blue',
-  SUBLOCAL: 'purple',
-  INSTITUICAO: 'orange',
-  BARREIRA: 'cyan',
+  LUGARES: 'blue',
+  SETORES: 'purple',
+  INSTITUICOES: 'orange',
+  BARREIRAS: 'cyan',
 };
 
 const STATUS_LABELS: Record<WorldStatus, string> = {
@@ -105,25 +109,6 @@ function sortRelatedItems(a: WorldAtlasItem, b: WorldAtlasItem) {
   );
 }
 
-function buildItemMap(items: WorldAtlasItem[]) {
-  return new Map(items.map((entry) => [entry.id, entry]));
-}
-
-function buildBreadcrumb(
-  item: WorldAtlasItem,
-  itemById: Map<string, WorldAtlasItem>,
-): WorldAtlasItem[] {
-  const chain: WorldAtlasItem[] = [];
-  let current: WorldAtlasItem | undefined = item;
-
-  while (current) {
-    chain.unshift(current);
-    current = current.parentId ? itemById.get(current.parentId) : undefined;
-  }
-
-  return chain;
-}
-
 function isBarrier(item: WorldAtlasItem): item is WorldBarrier {
   return item.kind === 'BARREIRA';
 }
@@ -143,13 +128,12 @@ export function WorldLocationPanel({
 }: WorldLocationPanelProps) {
   const focusItem = item;
   const [failedMapSrc, setFailedMapSrc] = useState<string | null>(null);
-  const itemById = buildItemMap(items);
   const relatedItems = focusItem
     ? items
         .filter((candidate) => candidate.parentId === focusItem.id)
         .sort(sortRelatedItems)
     : [];
-  const breadcrumb = focusItem ? buildBreadcrumb(focusItem, itemById) : [];
+  const breadcrumb = focusItem ? buildWorldBreadcrumb(focusItem, items) : [];
   const focusCategory = focusItem ? getAtlasItemCategory(focusItem) : null;
   const internalMap = focusItem
     ? resolveWorldInternalMap(focusItem, items)
@@ -218,6 +202,11 @@ export function WorldLocationPanel({
                 {focusItem.subtipo ? (
                   <Badge color="gray" variant="outline" size="sm">
                     {focusItem.subtipo}
+                  </Badge>
+                ) : null}
+                {focusItem.kind === 'LUGAR' ? (
+                  <Badge color="gray" variant="outline" size="sm">
+                    Escala: {focusItem.escala}
                   </Badge>
                 ) : null}
                 {focusItem.ficticio ? (
@@ -410,8 +399,8 @@ export function WorldLocationPanel({
               Selecione um local, instituição ou barreira.
             </h3>
             <p className="mt-2 text-sm text-app-muted">
-              Use o globo ou a lista acessível para abrir dossiês. Sublocais
-              aparecem conforme o zoom se aproxima da área.
+              Use o globo ou a lista acessível para abrir dossiês. Setores
+              aparecem no nível de detalhe do zoom.
             </p>
             <div className="mt-5 grid gap-2 text-left">
               {Object.entries(CATEGORY_LABELS).map(([kind, label]) => (

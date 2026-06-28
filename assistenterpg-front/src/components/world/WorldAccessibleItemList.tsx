@@ -1,8 +1,8 @@
 'use client';
 
 import { Icon } from '@/components/ui/Icon';
-import type { WorldAtlasItem, WorldAtlasKind } from '@/lib/world';
-import { WORLD_ATLAS_ITEM_BY_ID, getAtlasItemCategory } from '@/lib/world';
+import type { WorldAtlasItem } from '@/lib/world';
+import { WORLD_ATLAS_ITEM_BY_ID } from '@/lib/world';
 
 type WorldAccessibleItemListProps = {
   items: WorldAtlasItem[];
@@ -11,29 +11,40 @@ type WorldAccessibleItemListProps = {
 };
 
 const CATEGORY_GROUPS: Array<{
-  id: WorldAtlasKind;
+  id: string;
   label: string;
   dotClassName: string;
+  matches: (item: WorldAtlasItem) => boolean;
 }> = [
   {
-    id: 'LOCAL',
-    label: 'Locais',
+    id: 'REGIAO',
+    label: 'Regiões',
     dotClassName: 'bg-app-primary',
+    matches: (item) => item.kind === 'LUGAR' && item.escala === 'REGIAO',
   },
   {
-    id: 'SUBLOCAL',
-    label: 'Sublocais',
+    id: 'ZONA',
+    label: 'Zonas',
     dotClassName: 'bg-app-secondary',
+    matches: (item) => item.kind === 'LUGAR' && item.escala === 'ZONA',
+  },
+  {
+    id: 'SETOR',
+    label: 'Setores',
+    dotClassName: 'bg-app-info',
+    matches: (item) => item.kind === 'LUGAR' && item.escala === 'SETOR',
   },
   {
     id: 'INSTITUICAO',
     label: 'Instituições',
     dotClassName: 'bg-app-orange',
+    matches: (item) => item.kind === 'INSTITUICAO',
   },
   {
     id: 'BARREIRA',
     label: 'Barreiras',
-    dotClassName: 'bg-app-info',
+    dotClassName: 'bg-app-danger',
+    matches: (item) => item.kind === 'BARREIRA',
   },
 ];
 
@@ -58,7 +69,7 @@ export function WorldAccessibleItemList({
   const groupedItems = CATEGORY_GROUPS.map((group) => ({
     ...group,
     items: items
-      .filter((item) => getAtlasItemCategory(item) === group.id)
+      .filter((item) => group.matches(item))
       .sort(sortItems),
   })).filter((group) => group.items.length > 0);
 

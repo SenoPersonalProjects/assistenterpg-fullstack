@@ -15,31 +15,32 @@ import type {
 } from '@/lib/world';
 import {
   WORLD_ATLAS_ITEMS,
-  filterWorldAtlasItems,
+  WORLD_ATLAS_ITEM_BY_ID,
+  getAtlasDisplayState,
   getAtlasItemCategory,
 } from '@/lib/world';
 
 const FILTER_OPTIONS_BASE: Array<Omit<WorldFilterOption, 'count'>> = [
   {
-    id: 'LOCAL',
-    label: 'Locais',
-    description: 'Regiões e áreas geográficas principais.',
+    id: 'LUGARES',
+    label: 'Lugares',
+    description: 'Regiões e zonas do cenário.',
     icon: 'map',
   },
   {
-    id: 'SUBLOCAL',
-    label: 'Sublocais',
-    description: 'Distritos e recortes revelados no zoom próximo.',
+    id: 'SETORES',
+    label: 'Setores',
+    description: 'Distritos revelados no zoom de detalhe.',
     icon: 'layers',
   },
   {
-    id: 'INSTITUICAO',
+    id: 'INSTITUICOES',
     label: 'Instituições',
     description: 'Escolas, clãs e instalações operacionais.',
     icon: 'school',
   },
   {
-    id: 'BARREIRA',
+    id: 'BARREIRAS',
     label: 'Barreiras',
     description: 'Campos, halos e selos de contenção.',
     icon: 'domain',
@@ -57,7 +58,7 @@ function countItemsByFilter(items: WorldAtlasItem[], filter: WorldAtlasFilter) {
 export function WorldAtlasShell() {
   const [activeFilters, setActiveFilters] =
     useState<WorldAtlasFilter[]>(DEFAULT_FILTERS);
-  const [detailLevel, setDetailLevel] = useState<WorldDetailLevel>('MESO');
+  const [detailLevel, setDetailLevel] = useState<WorldDetailLevel>('REGIONAL');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
 
@@ -70,19 +71,19 @@ export function WorldAtlasShell() {
     [],
   );
 
-  const visibleItems = useMemo(
-    () => filterWorldAtlasItems(WORLD_ATLAS_ITEMS, activeFilters, detailLevel),
+  const displayState = useMemo(
+    () => getAtlasDisplayState(WORLD_ATLAS_ITEMS, activeFilters, detailLevel),
     [activeFilters, detailLevel],
   );
 
-  const visibleItemIds = useMemo(
-    () => visibleItems.map((item) => item.id),
-    [visibleItems],
-  );
+  const visibleItems = displayState.visibleItems;
 
   const selectedItem = useMemo(
-    () => visibleItems.find((item) => item.id === selectedItemId) ?? null,
-    [selectedItemId, visibleItems],
+    () =>
+      selectedItemId && displayState.filterEnabledItemIds.has(selectedItemId)
+        ? WORLD_ATLAS_ITEM_BY_ID.get(selectedItemId) ?? null
+        : null,
+    [displayState.filterEnabledItemIds, selectedItemId],
   );
 
   const hoveredItem = useMemo(
@@ -94,11 +95,12 @@ export function WorldAtlasShell() {
   );
 
   useEffect(() => {
-    const visibleSet = new Set(visibleItemIds);
     const shouldClearSelected =
-      selectedItemId !== null && !visibleSet.has(selectedItemId);
+      selectedItemId !== null &&
+      !displayState.filterEnabledItemIds.has(selectedItemId);
     const shouldClearHovered =
-      hoveredItemId !== null && !visibleSet.has(hoveredItemId);
+      hoveredItemId !== null &&
+      !displayState.markerStateById.get(hoveredItemId)?.visible;
 
     if (!shouldClearSelected && !shouldClearHovered) return;
 
@@ -112,7 +114,12 @@ export function WorldAtlasShell() {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [hoveredItemId, selectedItemId, visibleItemIds]);
+  }, [
+    displayState.filterEnabledItemIds,
+    displayState.markerStateById,
+    hoveredItemId,
+    selectedItemId,
+  ]);
 
   const handleToggleFilter = useCallback((filter: WorldAtlasFilter) => {
     setActiveFilters((current) =>
@@ -202,7 +209,7 @@ export function WorldAtlasShell() {
           <div className="space-y-4">
             <WorldGlobeCanvas
               items={WORLD_ATLAS_ITEMS}
-              visibleItemIds={visibleItemIds}
+              markerStates={displayState.markerStates}
               selectedItemId={selectedItem?.id ?? null}
               onSelectItem={handleSelectItem}
               onClearSelection={handleClearSelection}

@@ -1,9 +1,10 @@
-import type { WorldLocation } from './world.types';
+import type { WorldInstitution, WorldPlace } from './world.types';
 
-export const WORLD_LOCATIONS: WorldLocation[] = [
+export const WORLD_PLACES: WorldPlace[] = [
   {
     id: 'japao',
-    kind: 'LOCAL',
+    kind: 'LUGAR',
+    escala: 'REGIAO',
     nome: 'Japão',
     lat: 36.2048,
     lng: 138.2529,
@@ -18,7 +19,8 @@ export const WORLD_LOCATIONS: WorldLocation[] = [
   },
   {
     id: 'imperio-kakyn',
-    kind: 'LOCAL',
+    kind: 'LUGAR',
+    escala: 'REGIAO',
     nome: 'Império de Kakyn',
     lat: 13.1,
     lng: 73.8,
@@ -36,7 +38,8 @@ export const WORLD_LOCATIONS: WorldLocation[] = [
   },
   {
     id: 'cidadela',
-    kind: 'LOCAL',
+    kind: 'LUGAR',
+    escala: 'ZONA',
     nome: 'A Cidadela',
     lat: 35.735,
     lng: 139.214,
@@ -58,7 +61,8 @@ export const WORLD_LOCATIONS: WorldLocation[] = [
   },
   {
     id: 'cidadela-distrito-industrial',
-    kind: 'SUBLOCAL',
+    kind: 'LUGAR',
+    escala: 'SETOR',
     nome: 'Distrito Industrial',
     lat: 35.742,
     lng: 139.202,
@@ -69,14 +73,15 @@ export const WORLD_LOCATIONS: WorldLocation[] = [
     status: 'RESTRITA',
     nivelDeSigilo: 'CONFIDENCIAL',
     parentId: 'cidadela',
-    zoomMin: 'MICRO',
+    zoomMin: 'DETALHE',
     subtipo: 'Distrito',
     corVisual: 'cinza',
     displayPriority: 20,
   },
   {
     id: 'cidadela-distrito-comercial',
-    kind: 'SUBLOCAL',
+    kind: 'LUGAR',
+    escala: 'SETOR',
     nome: 'Distrito Comercial',
     lat: 35.734,
     lng: 139.218,
@@ -87,14 +92,15 @@ export const WORLD_LOCATIONS: WorldLocation[] = [
     status: 'RESTRITA',
     nivelDeSigilo: 'CONFIDENCIAL',
     parentId: 'cidadela',
-    zoomMin: 'MICRO',
+    zoomMin: 'DETALHE',
     subtipo: 'Distrito',
     corVisual: 'roxo',
     displayPriority: 21,
   },
   {
     id: 'cidadela-distrito-entretenimento',
-    kind: 'SUBLOCAL',
+    kind: 'LUGAR',
+    escala: 'SETOR',
     nome: 'Distrito do Entretenimento',
     lat: 35.727,
     lng: 139.229,
@@ -105,11 +111,14 @@ export const WORLD_LOCATIONS: WorldLocation[] = [
     status: 'RESTRITA',
     nivelDeSigilo: 'CONFIDENCIAL',
     parentId: 'cidadela',
-    zoomMin: 'MICRO',
+    zoomMin: 'DETALHE',
     subtipo: 'Distrito',
     corVisual: 'coral',
     displayPriority: 22,
   },
+];
+
+export const WORLD_INSTITUTIONS: WorldInstitution[] = [
   {
     id: 'escola-tecnica-tokyo',
     kind: 'INSTITUICAO',
@@ -161,3 +170,5 @@ export const WORLD_LOCATIONS: WorldLocation[] = [
       'Coordenada aproximada em região montanhosa nos arredores de Tokyo.',
   },
 ];
+
+export const WORLD_LOCATIONS = [...WORLD_PLACES, ...WORLD_INSTITUTIONS];

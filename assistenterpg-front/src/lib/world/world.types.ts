@@ -1,6 +1,14 @@
-export type WorldAtlasKind = 'LOCAL' | 'SUBLOCAL' | 'INSTITUICAO' | 'BARREIRA';
+export type WorldAtlasKind = 'LUGAR' | 'INSTITUICAO' | 'BARREIRA';
 
-export type WorldDetailLevel = 'MACRO' | 'MESO' | 'MICRO';
+export type WorldPlaceScale = 'REGIAO' | 'ZONA' | 'SETOR';
+
+export type WorldDetailLevel = 'MACRO' | 'REGIONAL' | 'LOCAL' | 'DETALHE';
+
+export type WorldAtlasFilter =
+  | 'LUGARES'
+  | 'SETORES'
+  | 'INSTITUICOES'
+  | 'BARREIRAS';
 
 export type WorldBarrierType = 'BARREIRA_PURA' | 'GRANDE_BARREIRA';
 
@@ -40,8 +48,13 @@ export type WorldBasePoint = {
   corVisual?: 'cinza' | 'roxo' | 'coral' | 'ciano' | 'dourado';
 };
 
-export type WorldLocation = WorldBasePoint & {
-  kind: 'LOCAL' | 'SUBLOCAL' | 'INSTITUICAO';
+export type WorldPlace = WorldBasePoint & {
+  kind: 'LUGAR';
+  escala: WorldPlaceScale;
+};
+
+export type WorldInstitution = WorldBasePoint & {
+  kind: 'INSTITUICAO';
 };
 
 export type WorldBarrier = WorldBasePoint & {
@@ -50,6 +63,21 @@ export type WorldBarrier = WorldBasePoint & {
   raioKmAproximado?: number;
 };
 
-export type WorldAtlasItem = WorldLocation | WorldBarrier;
+export type WorldAtlasItem = WorldPlace | WorldInstitution | WorldBarrier;
 
-export type WorldAtlasFilter = WorldAtlasKind;
+export type WorldAtlasMarkerDisplayState = {
+  itemId: string;
+  visible: boolean;
+  suppressed: boolean;
+  filterEnabled: boolean;
+  detailVisible: boolean;
+  scaleMultiplier: number;
+  opacityMultiplier: number;
+};
+
+export type WorldAtlasDisplayState = {
+  visibleItems: WorldAtlasItem[];
+  markerStates: WorldAtlasMarkerDisplayState[];
+  markerStateById: Map<string, WorldAtlasMarkerDisplayState>;
+  filterEnabledItemIds: Set<string>;
+};

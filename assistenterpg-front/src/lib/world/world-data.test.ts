@@ -3,12 +3,21 @@ import {
   WORLD_ATLAS_ITEMS,
   WORLD_BARRIERS,
   WORLD_LOCATIONS,
+  buildWorldBreadcrumb,
   filterWorldAtlasItems,
+  getAtlasDisplayState,
   getAtlasItemCategory,
   getWorldDetailLevel,
   latLngToVector3Data,
   resolveWorldInternalMap,
 } from './index';
+
+const ALL_FILTERS = [
+  'LUGARES',
+  'SETORES',
+  'INSTITUICOES',
+  'BARREIRAS',
+] as const;
 
 describe('world atlas data', () => {
   it('keeps atlas ids unique', () => {
@@ -34,43 +43,74 @@ describe('world atlas data', () => {
     expect(length).toBeCloseTo(radius, 6);
   });
 
-  it('marks Kakyn as a fictional supernatural local', () => {
+  it('models Japan, the Citadel and districts as a place hierarchy', () => {
+    const japan = WORLD_LOCATIONS.find((item) => item.id === 'japao');
+    const citadel = WORLD_LOCATIONS.find((item) => item.id === 'cidadela');
+    const commercialDistrict = WORLD_LOCATIONS.find(
+      (item) => item.id === 'cidadela-distrito-comercial',
+    );
+
+    expect(japan).toMatchObject({ kind: 'LUGAR', escala: 'REGIAO' });
+    expect(citadel).toMatchObject({
+      kind: 'LUGAR',
+      escala: 'ZONA',
+      parentId: 'japao',
+    });
+    expect(commercialDistrict).toMatchObject({
+      kind: 'LUGAR',
+      escala: 'SETOR',
+      parentId: 'cidadela',
+    });
+  });
+
+  it('marks Kakyn as a fictional supernatural region', () => {
     const kakyn = WORLD_LOCATIONS.find((item) => item.id === 'imperio-kakyn');
 
-    expect(kakyn?.kind).toBe('LOCAL');
-    expect(kakyn?.ficticio).toBe(true);
+    expect(kakyn).toMatchObject({
+      kind: 'LUGAR',
+      escala: 'REGIAO',
+      ficticio: true,
+    });
     expect(kakyn?.notaCartografica).toContain('não representa geografia real');
   });
 
   it('classifies barriers under the barrier filter category', () => {
     for (const barrier of WORLD_BARRIERS) {
-      expect(getAtlasItemCategory(barrier)).toBe('BARREIRA');
+      expect(getAtlasItemCategory(barrier)).toBe('BARREIRAS');
     }
   });
 
-  it('keeps parent references valid and sublocals attached to a parent', () => {
+  it('keeps parent references valid', () => {
     const ids = new Set(WORLD_ATLAS_ITEMS.map((item) => item.id));
 
     for (const item of WORLD_ATLAS_ITEMS) {
       if (item.parentId) {
         expect(ids.has(item.parentId)).toBe(true);
       }
-      if (item.kind === 'SUBLOCAL') {
-        expect(item.parentId).toBeTruthy();
-      }
     }
+  });
+
+  it('resolves breadcrumb for Citadel districts', () => {
+    const commercialDistrict = WORLD_ATLAS_ITEMS.find(
+      (item) => item.id === 'cidadela-distrito-comercial',
+    );
+
+    expect(commercialDistrict).toBeDefined();
+    expect(
+      buildWorldBreadcrumb(commercialDistrict!, WORLD_ATLAS_ITEMS).map(
+        (item) => item.id,
+      ),
+    ).toEqual(['japao', 'cidadela', 'cidadela-distrito-comercial']);
   });
 
   it('connects the Citadel internal map and lets districts inherit it', () => {
     const citadel = WORLD_LOCATIONS.find((item) => item.id === 'cidadela');
+    const citadelDistricts = WORLD_LOCATIONS.filter(
+      (item) => item.kind === 'LUGAR' && item.parentId === 'cidadela',
+    );
 
     expect(citadel?.mapaInterno?.src).toBe('/images/world/cidadela-map.png');
     expect(citadel?.mapaInterno?.alt).toContain('Mapa interno da Cidadela');
-
-    const citadelDistricts = WORLD_LOCATIONS.filter(
-      (item) => item.parentId === 'cidadela',
-    );
-
     expect(citadelDistricts.length).toBeGreaterThan(0);
 
     for (const district of citadelDistricts) {
@@ -82,32 +122,95 @@ describe('world atlas data', () => {
 
   it('applies detail levels from camera distance', () => {
     expect(getWorldDetailLevel(6)).toBe('MACRO');
-    expect(getWorldDetailLevel(4.6)).toBe('MESO');
-    expect(getWorldDetailLevel(3)).toBe('MICRO');
+    expect(getWorldDetailLevel(4.6)).toBe('REGIONAL');
+    expect(getWorldDetailLevel(3)).toBe('LOCAL');
+    expect(getWorldDetailLevel(2.2)).toBe('DETALHE');
   });
 
-  it('uses LOD and filters to control sublocal visibility', () => {
-    const allFilters = ['LOCAL', 'SUBLOCAL', 'INSTITUICAO', 'BARREIRA'] as const;
-
+  it('uses LOD to reveal regions, zones and sectors', () => {
     const macroItems = filterWorldAtlasItems(
       WORLD_ATLAS_ITEMS,
-      [...allFilters],
+      [...ALL_FILTERS],
       'MACRO',
     );
-    expect(macroItems.some((item) => item.kind === 'SUBLOCAL')).toBe(false);
+    expect(macroItems.some((item) => item.kind === 'LUGAR' && item.escala === 'REGIAO')).toBe(true);
+    expect(macroItems.some((item) => item.kind === 'LUGAR' && item.escala === 'SETOR')).toBe(false);
 
-    const microItems = filterWorldAtlasItems(
+    const regionalItems = filterWorldAtlasItems(
       WORLD_ATLAS_ITEMS,
-      [...allFilters],
-      'MICRO',
+      [...ALL_FILTERS],
+      'REGIONAL',
     );
-    expect(microItems.some((item) => item.kind === 'SUBLOCAL')).toBe(true);
+    expect(regionalItems.some((item) => item.id === 'cidadela')).toBe(true);
 
-    const microWithoutSublocals = filterWorldAtlasItems(
+    const detailItems = filterWorldAtlasItems(
       WORLD_ATLAS_ITEMS,
-      ['LOCAL', 'INSTITUICAO', 'BARREIRA'],
-      'MICRO',
+      [...ALL_FILTERS],
+      'DETALHE',
     );
-    expect(microWithoutSublocals.some((item) => item.kind === 'SUBLOCAL')).toBe(false);
+    expect(
+      detailItems.some((item) => item.id === 'cidadela-distrito-comercial'),
+    ).toBe(true);
+  });
+
+  it('lets filters override LOD visibility', () => {
+    const detailWithoutSectors = filterWorldAtlasItems(
+      WORLD_ATLAS_ITEMS,
+      ['LUGARES', 'INSTITUICOES', 'BARREIRAS'],
+      'DETALHE',
+    );
+
+    expect(
+      detailWithoutSectors.some((item) => item.kind === 'LUGAR' && item.escala === 'SETOR'),
+    ).toBe(false);
+  });
+
+  it('suppresses ancestors when child places are visible', () => {
+    const regionalState = getAtlasDisplayState(
+      WORLD_ATLAS_ITEMS,
+      [...ALL_FILTERS],
+      'REGIONAL',
+    );
+    const detailState = getAtlasDisplayState(
+      WORLD_ATLAS_ITEMS,
+      [...ALL_FILTERS],
+      'DETALHE',
+    );
+
+    expect(regionalState.markerStateById.get('japao')).toMatchObject({
+      visible: false,
+      suppressed: true,
+      filterEnabled: true,
+    });
+    expect(regionalState.markerStateById.get('cidadela')).toMatchObject({
+      visible: true,
+      suppressed: false,
+    });
+    expect(detailState.markerStateById.get('cidadela')).toMatchObject({
+      visible: false,
+      suppressed: true,
+      filterEnabled: true,
+    });
+    expect(
+      detailState.markerStateById.get('cidadela-distrito-comercial'),
+    ).toMatchObject({
+      visible: true,
+      suppressed: false,
+    });
+  });
+
+  it('keeps suppressed selected items eligible for the lore panel while filter is active', () => {
+    const detailState = getAtlasDisplayState(
+      WORLD_ATLAS_ITEMS,
+      [...ALL_FILTERS],
+      'DETALHE',
+    );
+
+    expect(detailState.markerStateById.get('cidadela')).toMatchObject({
+      visible: false,
+      suppressed: true,
+      filterEnabled: true,
+    });
+    expect(detailState.filterEnabledItemIds.has('cidadela')).toBe(true);
   });
 });

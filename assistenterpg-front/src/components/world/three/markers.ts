@@ -1,10 +1,9 @@
 import * as THREE from 'three';
-import type { WorldAtlasItem, WorldAtlasKind } from '@/lib/world';
-import {
-  WORLD_GLOBE_RADIUS,
-  getAtlasItemCategory,
-  latLngToVector3Data,
+import type {
+  WorldAtlasItem,
+  WorldAtlasMarkerDisplayState,
 } from '@/lib/world';
+import { WORLD_GLOBE_RADIUS, latLngToVector3Data } from '@/lib/world';
 
 type MarkerMaterial = THREE.SpriteMaterial | THREE.MeshBasicMaterial;
 
@@ -12,7 +11,13 @@ export type AtlasMarkerRecord = {
   itemId: string;
   group: THREE.Group;
   material: MarkerMaterial;
+  visualMaterials: Array<{
+    material: MarkerMaterial;
+    baseOpacity: number;
+  }>;
   baseColor: THREE.Color;
+  baseOpacity: number;
+  baseScale: number;
 };
 
 type MarkerVisualStyle = {
@@ -21,30 +26,40 @@ type MarkerVisualStyle = {
   opacity: number;
 };
 
-const CATEGORY_STYLES: Record<WorldAtlasKind, MarkerVisualStyle> = {
-  LOCAL: {
+const PLACE_SCALE_STYLES = {
+  REGIAO: {
     color: 0x7dd3fc,
-    scale: 0.18,
-    opacity: 0.9,
+    scale: 0.14,
+    opacity: 0.86,
   },
-  SUBLOCAL: {
+  ZONA: {
+    color: 0x67e8f9,
+    scale: 0.12,
+    opacity: 0.84,
+  },
+  SETOR: {
     color: 0xc4b5fd,
-    scale: 0.11,
+    scale: 0.075,
     opacity: 0.78,
   },
-  INSTITUICAO: {
-    color: 0xa78bfa,
-    scale: 0.145,
-    opacity: 0.88,
-  },
-  BARREIRA: {
-    color: 0x38bdf8,
-    scale: 0.16,
-    opacity: 0.22,
-  },
+} satisfies Record<string, MarkerVisualStyle>;
+
+const INSTITUTION_STYLE: MarkerVisualStyle = {
+  color: 0xa78bfa,
+  scale: 0.105,
+  opacity: 0.86,
 };
 
-const VISUAL_COLOR_BY_KEY: Record<NonNullable<WorldAtlasItem['corVisual']>, number> = {
+const BARRIER_STYLE: MarkerVisualStyle = {
+  color: 0x38bdf8,
+  scale: 0.12,
+  opacity: 0.2,
+};
+
+const VISUAL_COLOR_BY_KEY: Record<
+  NonNullable<WorldAtlasItem['corVisual']>,
+  number
+> = {
   cinza: 0x94a3b8,
   roxo: 0xa78bfa,
   coral: 0xfb7185,
@@ -61,8 +76,10 @@ function createVectorFromItem(
 }
 
 function getMarkerStyle(item: WorldAtlasItem): MarkerVisualStyle {
-  const category = getAtlasItemCategory(item);
-  const base = CATEGORY_STYLES[category];
+  if (item.kind === 'BARREIRA') return BARRIER_STYLE;
+  if (item.kind === 'INSTITUICAO') return INSTITUTION_STYLE;
+
+  const base = PLACE_SCALE_STYLES[item.escala];
   const color = item.corVisual ? VISUAL_COLOR_BY_KEY[item.corVisual] : base.color;
 
   return {
@@ -87,33 +104,34 @@ function drawMarkerTexture(
   context.strokeStyle = 'rgba(255, 255, 255, 0.82)';
   context.fillStyle = 'rgba(255, 255, 255, 0.94)';
   context.shadowColor = 'rgba(255, 255, 255, 0.75)';
-  context.shadowBlur = item.kind === 'SUBLOCAL' ? 10 : 16;
+  context.shadowBlur =
+    item.kind === 'LUGAR' && item.escala === 'SETOR' ? 8 : 13;
 
   if (item.kind === 'INSTITUICAO') {
     context.beginPath();
-    context.moveTo(0, -31);
-    context.lineTo(31, 0);
-    context.lineTo(0, 31);
-    context.lineTo(-31, 0);
+    context.moveTo(0, -29);
+    context.lineTo(29, 0);
+    context.lineTo(0, 29);
+    context.lineTo(-29, 0);
     context.closePath();
     context.fill();
     context.shadowBlur = 0;
     context.lineWidth = 5;
     context.stroke();
     context.beginPath();
-    context.arc(0, 0, 8, 0, Math.PI * 2);
+    context.arc(0, 0, 7, 0, Math.PI * 2);
     context.fillStyle = 'rgba(8, 5, 18, 0.82)';
     context.fill();
     context.restore();
     return;
   }
 
-  if (item.kind === 'SUBLOCAL') {
+  if (item.kind === 'LUGAR' && item.escala === 'SETOR') {
     context.beginPath();
-    context.moveTo(0, -18);
-    context.lineTo(18, 0);
-    context.lineTo(0, 18);
-    context.lineTo(-18, 0);
+    context.moveTo(0, -17);
+    context.lineTo(17, 0);
+    context.lineTo(0, 17);
+    context.lineTo(-17, 0);
     context.closePath();
     context.fill();
     context.shadowBlur = 0;
@@ -123,14 +141,15 @@ function drawMarkerTexture(
     return;
   }
 
+  const radius = item.kind === 'LUGAR' && item.escala === 'REGIAO' ? 22 : 19;
   context.beginPath();
-  context.arc(0, 0, 24, 0, Math.PI * 2);
+  context.arc(0, 0, radius, 0, Math.PI * 2);
   context.fill();
   context.shadowBlur = 0;
   context.lineWidth = 4;
   context.stroke();
   context.beginPath();
-  context.arc(0, 0, 8, 0, Math.PI * 2);
+  context.arc(0, 0, 7, 0, Math.PI * 2);
   context.fillStyle = 'rgba(8, 5, 18, 0.82)';
   context.fill();
   context.restore();
@@ -175,18 +194,14 @@ function createBarrierField(
   item: WorldAtlasItem,
   style: MarkerVisualStyle,
   interactiveObjects: THREE.Object3D[],
-): {
-  group: THREE.Group;
-  material: THREE.MeshBasicMaterial;
-  baseColor: THREE.Color;
-} {
+): AtlasMarkerRecord {
   const isGreatBarrier =
     item.kind === 'BARREIRA' && item.barrierType === 'GRANDE_BARREIRA';
   const group = new THREE.Group();
   const color = new THREE.Color(style.color);
-  const fieldRadius = isGreatBarrier ? 0.23 : 0.13;
-  const ringOuterRadius = isGreatBarrier ? 0.285 : 0.165;
-  const ringInnerRadius = isGreatBarrier ? 0.245 : 0.138;
+  const fieldRadius = isGreatBarrier ? 0.19 : 0.105;
+  const ringOuterRadius = isGreatBarrier ? 0.235 : 0.132;
+  const ringInnerRadius = isGreatBarrier ? 0.203 : 0.11;
 
   group.userData.itemId = item.id;
   orientGroupToGlobe(
@@ -197,14 +212,14 @@ function createBarrierField(
   const fillMaterial = new THREE.MeshBasicMaterial({
     color,
     transparent: true,
-    opacity: isGreatBarrier ? 0.13 : 0.1,
+    opacity: isGreatBarrier ? 0.12 : 0.08,
     depthWrite: false,
     side: THREE.DoubleSide,
   });
   const ringMaterial = new THREE.MeshBasicMaterial({
     color,
     transparent: true,
-    opacity: isGreatBarrier ? 0.22 : 0.18,
+    opacity: isGreatBarrier ? 0.22 : 0.14,
     depthWrite: false,
     side: THREE.DoubleSide,
   });
@@ -224,9 +239,22 @@ function createBarrierField(
   interactiveObjects.push(fill, ring);
 
   return {
+    itemId: item.id,
     group,
     material: ringMaterial,
+    visualMaterials: [
+      {
+        material: fillMaterial,
+        baseOpacity: fillMaterial.opacity,
+      },
+      {
+        material: ringMaterial,
+        baseOpacity: ringMaterial.opacity,
+      },
+    ],
     baseColor: color,
+    baseOpacity: ringMaterial.opacity,
+    baseScale: style.scale,
   };
 }
 
@@ -237,12 +265,7 @@ export function createAtlasMarker(
   const style = getMarkerStyle(item);
 
   if (item.kind === 'BARREIRA') {
-    const barrier = createBarrierField(item, style, interactiveObjects);
-
-    return {
-      itemId: item.id,
-      ...barrier,
-    };
+    return createBarrierField(item, style, interactiveObjects);
   }
 
   const group = new THREE.Group();
@@ -261,15 +284,32 @@ export function createAtlasMarker(
     itemId: item.id,
     group,
     material: sprite.material,
+    visualMaterials: [
+      {
+        material: sprite.material,
+        baseOpacity: style.opacity,
+      },
+    ],
     baseColor: color,
+    baseOpacity: style.opacity,
+    baseScale: style.scale,
   };
 }
 
 export function updateAtlasMarkerVisibility(
   records: AtlasMarkerRecord[],
-  visibleItemIds: Set<string>,
+  markerStateById: Map<string, WorldAtlasMarkerDisplayState>,
 ): void {
   for (const record of records) {
-    record.group.visible = visibleItemIds.has(record.itemId);
+    const markerState = markerStateById.get(record.itemId);
+    record.group.visible = Boolean(markerState?.visible);
+
+    if (markerState) {
+      record.group.scale.setScalar(markerState.scaleMultiplier);
+      for (const visualMaterial of record.visualMaterials) {
+        visualMaterial.material.opacity =
+          visualMaterial.baseOpacity * markerState.opacityMultiplier;
+      }
+    }
   }
 }
