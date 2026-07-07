@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation';
 import { AddFriendForm } from '@/components/amigos/AddFriendForm';
 import { FriendCard } from '@/components/amigos/FriendCard';
 import { FriendRequestCard } from '@/components/amigos/FriendRequestCard';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { Icon } from '@/components/ui/Icon';
+import { Input } from '@/components/ui/Input';
 import { Loading } from '@/components/ui/Loading';
-import { SectionTitle } from '@/components/ui/SectionTitle';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { useAuth } from '@/context/AuthContext';
 import { usePresence } from '@/context/PresenceContext';
 import { useToast } from '@/context/ToastContext';
@@ -27,7 +29,7 @@ import {
   apiRemoverAmizade,
   criarErroUsuario,
 } from '@/lib/api';
-import type { AmigoResumo, SolicitacoesAmizade , UserErrorState } from '@/lib/types';
+import type { AmigoResumo, SolicitacoesAmizade, UserErrorState } from '@/lib/types';
 
 const SOLICITACOES_INICIAIS: SolicitacoesAmizade = {
   recebidas: [],
@@ -47,6 +49,7 @@ export default function AmigosPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [acaoId, setAcaoId] = useState<number | null>(null);
+  const [busca, setBusca] = useState('');
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -85,6 +88,29 @@ export default function AmigosPage() {
       })),
     [amigos, onlineFriendIds, synced],
   );
+
+  const termoBusca = busca.trim().toLocaleLowerCase('pt-BR');
+
+  const amigosFiltrados = useMemo(() => {
+    if (!termoBusca) return amigosComPresenca;
+    return amigosComPresenca.filter((amigo) =>
+      amigo.apelido.toLocaleLowerCase('pt-BR').includes(termoBusca),
+    );
+  }, [amigosComPresenca, termoBusca]);
+
+  const recebidasFiltradas = useMemo(() => {
+    if (!termoBusca) return solicitacoes.recebidas;
+    return solicitacoes.recebidas.filter((solicitacao) =>
+      solicitacao.usuario.apelido.toLocaleLowerCase('pt-BR').includes(termoBusca),
+    );
+  }, [solicitacoes.recebidas, termoBusca]);
+
+  const enviadasFiltradas = useMemo(() => {
+    if (!termoBusca) return solicitacoes.enviadas;
+    return solicitacoes.enviadas.filter((solicitacao) =>
+      solicitacao.usuario.apelido.toLocaleLowerCase('pt-BR').includes(termoBusca),
+    );
+  }, [solicitacoes.enviadas, termoBusca]);
 
   async function executarAcao(
     id: number,
@@ -125,112 +151,126 @@ export default function AmigosPage() {
   const amigosOnline = amigosComPresenca.filter((amigo) => amigo.online).length;
   const solicitacoesRecebidas = solicitacoes.recebidas.length;
   const solicitacoesEnviadas = solicitacoes.enviadas.length;
+  const temBusca = termoBusca.length > 0;
+
+  const statsItems: StatsStripItem[] = [
+    {
+      id: 'friends',
+      label: 'Amigos',
+      value: totalAmigos,
+      icon: 'characters',
+      tone: 'primary',
+    },
+    {
+      id: 'online',
+      label: 'Online',
+      value: amigosOnline,
+      icon: 'wifi',
+      tone: 'success',
+    },
+    {
+      id: 'received',
+      label: 'Recebidas',
+      value: solicitacoesRecebidas,
+      icon: 'bell',
+    },
+    {
+      id: 'sent',
+      label: 'Enviadas',
+      value: solicitacoesEnviadas,
+      icon: 'mail',
+    },
+  ];
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-app-primary/20 bg-app-primary/10 text-app-primary shadow-sm">
-              <Icon name="characters" className="h-7 w-7" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-app-fg">
-                Amigos
-              </h1>
-              <p className="mt-1 max-w-2xl text-sm text-app-muted">
-                Adicione amigos, veja quem está online e convide pessoas para suas campanhas.
-              </p>
-            </div>
+    <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <PageHeader
+          eyebrow="Social"
+          icon="characters"
+          title="Amigos"
+          description="Gerencie sua lista de contatos, acompanhe presença online e responda convites de amizade."
+          actions={
+            <EntityActionsMenu
+              ariaLabel="Ações de amigos"
+              items={[
+                {
+                  id: 'refresh',
+                  label: 'Atualizar',
+                  icon: 'refresh',
+                  onSelect: () => void carregar(),
+                },
+              ]}
+            />
+          }
+        />
+
+        {erro ? <ErrorAlert message={erro} /> : null}
+
+        <StatsStrip items={statsItems} />
+
+        <PageToolbar>
+          <div className="min-w-0 flex-1">
+            <Input
+              label="Busca local"
+              placeholder="Buscar por apelido"
+              icon="search"
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+            />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/home')}
-            >
-              <Icon name="back" className="mr-2 h-4 w-4" />
-              Painel
+          {temBusca ? (
+            <Button size="sm" variant="ghost" onClick={() => setBusca('')}>
+              Limpar busca
             </Button>
-            <Button type="button" variant="secondary" size="sm" onClick={carregar}>
-              <Icon name="refresh" className="mr-2 h-4 w-4" />
-              Atualizar
-            </Button>
-          </div>
-        </header>
+          ) : null}
+        </PageToolbar>
 
-        {erro && <ErrorAlert message={erro} />}
-
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card variant="glass" className="!p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
-              Amigos
-            </p>
-            <p className="mt-2 text-3xl font-black text-app-fg">{totalAmigos}</p>
-          </Card>
-          <Card variant="glass" className="!p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
-              Online
-            </p>
-            <p className="mt-2 text-3xl font-black text-app-success">
-              {amigosOnline}
-            </p>
-          </Card>
-          <Card variant="glass" className="!p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
-              Recebidas
-            </p>
-            <p className="mt-2 text-3xl font-black text-app-info">
-              {solicitacoesRecebidas}
-            </p>
-          </Card>
-          <Card variant="glass" className="!p-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-app-muted">
-              Enviadas
-            </p>
-            <p className="mt-2 text-3xl font-black text-app-secondary">
-              {solicitacoesEnviadas}
-            </p>
-          </Card>
+        <section className="rounded-xl border border-white/5 bg-app-surface/45 p-4">
+          <SectionHeader
+            icon="add"
+            title="Adicionar amigo"
+            description="Envie um convite por email ou apelido exato."
+            className="mb-4"
+          />
+          <AddFriendForm onSubmit={enviarSolicitacao} />
         </section>
 
-        <Card variant="glass" className="!p-6">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <SectionTitle icon="add">Adicionar amigo</SectionTitle>
-            <Badge color="blue" size="sm">
-              Busca exata
-            </Badge>
-          </div>
-          <AddFriendForm onSubmit={enviarSolicitacao} />
-        </Card>
-
         <section className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <SectionTitle icon="characters">Amigos</SectionTitle>
-              <Badge color="gray" size="sm">
-                {totalAmigos}
-              </Badge>
-            </div>
-            {amigosOnline > 0 && (
-              <Badge color="green" size="sm">
-                {amigosOnline} online
-              </Badge>
-            )}
-          </div>
+          <SectionHeader
+            icon="characters"
+            title="Amigos"
+            count={temBusca ? `${amigosFiltrados.length}/${totalAmigos}` : totalAmigos}
+            description={
+              amigosOnline > 0
+                ? `${amigosOnline} ${amigosOnline === 1 ? 'amigo online' : 'amigos online'} agora.`
+                : 'Lista de contatos para convites e campanhas.'
+            }
+          />
 
-          {amigosComPresenca.length === 0 ? (
+          {amigosFiltrados.length === 0 ? (
             <EmptyState
               variant="card"
-              icon="characters"
-              title="Nenhum amigo adicionado"
-              description="Envie uma solicitação para começar a montar sua lista de amigos."
+              size="sm"
+              icon={temBusca ? 'search' : 'characters'}
+              title={temBusca ? 'Nenhum amigo encontrado' : 'Nenhum amigo adicionado'}
+              description={
+                temBusca
+                  ? 'Limpe a busca para voltar à lista completa.'
+                  : 'Envie uma solicitação para começar a montar sua lista de amigos.'
+              }
+              action={
+                temBusca ? (
+                  <Button size="sm" variant="secondary" onClick={() => setBusca('')}>
+                    Limpar busca
+                  </Button>
+                ) : null
+              }
             />
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {amigosComPresenca.map((amigo) => (
+            <div className="space-y-3">
+              {amigosFiltrados.map((amigo) => (
                 <FriendCard
                   key={amigo.id}
                   amigo={amigo}
@@ -248,26 +288,29 @@ export default function AmigosPage() {
           )}
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-2">
+        <section className="grid gap-5 lg:grid-cols-2">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <SectionTitle icon="bell">Solicitações recebidas</SectionTitle>
-              {solicitacoesRecebidas > 0 && (
-                <Badge color="cyan" size="sm">
-                  {solicitacoesRecebidas}
-                </Badge>
-              )}
-            </div>
+            <SectionHeader
+              icon="bell"
+              title="Solicitações recebidas"
+              count={temBusca ? `${recebidasFiltradas.length}/${solicitacoesRecebidas}` : solicitacoesRecebidas}
+              description="Convites aguardando sua resposta."
+            />
 
-            {solicitacoes.recebidas.length === 0 ? (
+            {recebidasFiltradas.length === 0 ? (
               <EmptyState
                 variant="plain"
                 size="sm"
-                description="Nenhuma solicitação recebida."
+                icon={temBusca ? 'search' : 'bell'}
+                description={
+                  temBusca
+                    ? 'Nenhuma solicitação recebida corresponde à busca.'
+                    : 'Nenhuma solicitação recebida.'
+                }
               />
             ) : (
               <div className="space-y-3">
-                {solicitacoes.recebidas.map((solicitacao) => (
+                {recebidasFiltradas.map((solicitacao) => (
                   <FriendRequestCard
                     key={solicitacao.id}
                     tipo="recebida"
@@ -294,24 +337,27 @@ export default function AmigosPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <SectionTitle icon="mail">Solicitações enviadas</SectionTitle>
-              {solicitacoesEnviadas > 0 && (
-                <Badge color="purple" size="sm">
-                  {solicitacoesEnviadas}
-                </Badge>
-              )}
-            </div>
+            <SectionHeader
+              icon="mail"
+              title="Solicitações enviadas"
+              count={temBusca ? `${enviadasFiltradas.length}/${solicitacoesEnviadas}` : solicitacoesEnviadas}
+              description="Convites enviados que ainda estão pendentes."
+            />
 
-            {solicitacoes.enviadas.length === 0 ? (
+            {enviadasFiltradas.length === 0 ? (
               <EmptyState
                 variant="plain"
                 size="sm"
-                description="Nenhuma solicitação enviada."
+                icon={temBusca ? 'search' : 'mail'}
+                description={
+                  temBusca
+                    ? 'Nenhuma solicitação enviada corresponde à busca.'
+                    : 'Nenhuma solicitação enviada.'
+                }
               />
             ) : (
               <div className="space-y-3">
-                {solicitacoes.enviadas.map((solicitacao) => (
+                {enviadasFiltradas.map((solicitacao) => (
                   <FriendRequestCard
                     key={solicitacao.id}
                     tipo="enviada"

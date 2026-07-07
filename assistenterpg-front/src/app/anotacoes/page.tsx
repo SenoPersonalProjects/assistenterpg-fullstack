@@ -2,6 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { NotePaperCard } from '@/components/anotacoes/NotePaperCard';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Icon } from '@/components/ui/Icon';
+import { Input } from '@/components/ui/Input';
+import { Loading } from '@/components/ui/Loading';
+import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Select } from '@/components/ui/Select';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
+import { Textarea } from '@/components/ui/Textarea';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -13,26 +30,12 @@ import {
   apiListarAnotacoes,
   apiListarSessoesCampanha,
   criarErroUsuario,
+  type AnotacaoResumo,
   type CampanhaResumo,
   type SessaoCampanhaResumo,
-  type AnotacaoResumo,
 } from '@/lib/api';
-import { formatarDataHora } from '@/lib/utils/formatters';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Textarea } from '@/components/ui/Textarea';
-import { Icon } from '@/components/ui/Icon';
-import { Loading } from '@/components/ui/Loading';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Modal } from '@/components/ui/Modal';
-import { SectionTitle } from '@/components/ui/SectionTitle';
-import { NotePaperCard } from '@/components/anotacoes/NotePaperCard';
 import type { UserErrorState } from '@/lib/types';
+import { formatarDataHora } from '@/lib/utils/formatters';
 
 const LIMITE_PAGINA = 20;
 
@@ -55,6 +58,7 @@ export default function AnotacoesPage() {
 
   const [filtroCampanhaId, setFiltroCampanhaId] = useState('');
   const [filtroSessaoId, setFiltroSessaoId] = useState('');
+  const [buscaLocal, setBuscaLocal] = useState('');
 
   const [formTitulo, setFormTitulo] = useState('');
   const [formConteudo, setFormConteudo] = useState('');
@@ -77,48 +81,112 @@ export default function AnotacoesPage() {
   const filtrosAtivos = useMemo(() => {
     const filtros: string[] = [];
     if (campanhaFiltroSelecionada) {
-      const camp = campanhas.find((c) => c.id === campanhaFiltroSelecionada);
-      filtros.push(camp ? `Campanha: ${camp.nome}` : `Campanha ${campanhaFiltroSelecionada}`);
+      const campanha = campanhas.find((item) => item.id === campanhaFiltroSelecionada);
+      filtros.push(campanha ? `Campanha: ${campanha.nome}` : `Campanha ${campanhaFiltroSelecionada}`);
     }
     if (sessaoFiltroSelecionada) {
-      const sessao = sessoesFiltro.find((s) => s.id === sessaoFiltroSelecionada);
+      const sessao = sessoesFiltro.find((item) => item.id === sessaoFiltroSelecionada);
       filtros.push(sessao ? `Sessão: ${sessao.titulo}` : `Sessão ${sessaoFiltroSelecionada}`);
     }
-    return filtros;
-  }, [campanhaFiltroSelecionada, sessaoFiltroSelecionada, campanhas, sessoesFiltro]);
-
-  const carregarNotas = useCallback(async (
-    pagina = paginaAtual,
-    overrides?: { campanhaId?: number | null; sessaoId?: number | null },
-  ) => {
-    try {
-      setLoading(true);
-      setErro(null);
-      const campanhaId =
-        overrides?.campanhaId !== undefined
-          ? overrides.campanhaId
-          : campanhaFiltroSelecionada;
-      const sessaoId =
-        overrides?.sessaoId !== undefined
-          ? overrides.sessaoId
-          : sessaoFiltroSelecionada;
-      const resposta = await apiListarAnotacoes({
-        campanhaId: campanhaId ?? undefined,
-        sessaoId: sessaoId ?? undefined,
-        pagina,
-        limite: LIMITE_PAGINA,
-      });
-      setNotas(resposta.items);
-      setTotalPaginas(resposta.totalPages);
-      setTotalNotas(resposta.total);
-    } catch (error) {
-      const mensagem = criarErroUsuario(error);
-      setErro(mensagem);
-      showToast(mensagem, 'error');
-    } finally {
-      setLoading(false);
+    if (buscaLocal.trim()) {
+      filtros.push(`Busca: ${buscaLocal.trim()}`);
     }
-  }, [campanhaFiltroSelecionada, paginaAtual, sessaoFiltroSelecionada, showToast]);
+    return filtros;
+  }, [buscaLocal, campanhaFiltroSelecionada, campanhas, sessaoFiltroSelecionada, sessoesFiltro]);
+
+  const notasFiltradas = useMemo(() => {
+    const termo = buscaLocal.trim().toLowerCase();
+    if (!termo) return notas;
+
+    return notas.filter((nota) => {
+      const campos = [
+        nota.titulo,
+        nota.conteudo,
+        nota.campanha?.nome,
+        nota.sessao?.titulo,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return campos.includes(termo);
+    });
+  }, [buscaLocal, notas]);
+
+  const notaSelecionada = useMemo(() => {
+    if (!notaVisualizada) return null;
+    const notaAtual = notas.find((nota) => nota.id === notaVisualizada.id) ?? notaVisualizada;
+    return notasFiltradas.some((nota) => nota.id === notaAtual.id) ? notaAtual : null;
+  }, [notaVisualizada, notas, notasFiltradas]);
+
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      {
+        id: 'total',
+        label: 'Total',
+        value: totalNotas,
+        icon: 'scroll',
+        tone: 'primary',
+      },
+      {
+        id: 'loaded',
+        label: 'Carregadas',
+        value: notas.length,
+        icon: 'list',
+        helper: 'nesta página',
+      },
+      {
+        id: 'campaigns',
+        label: 'Com campanha',
+        value: notas.filter((nota) => Boolean(nota.campanha)).length,
+        icon: 'campaign',
+        tone: 'success',
+      },
+      {
+        id: 'sessions',
+        label: 'Com sessão',
+        value: notas.filter((nota) => Boolean(nota.sessao)).length,
+        icon: 'calendar',
+      },
+    ],
+    [notas, totalNotas],
+  );
+
+  const carregarNotas = useCallback(
+    async (
+      pagina = paginaAtual,
+      overrides?: { campanhaId?: number | null; sessaoId?: number | null },
+    ) => {
+      try {
+        setLoading(true);
+        setErro(null);
+        const campanhaId =
+          overrides?.campanhaId !== undefined
+            ? overrides.campanhaId
+            : campanhaFiltroSelecionada;
+        const sessaoId =
+          overrides?.sessaoId !== undefined
+            ? overrides.sessaoId
+            : sessaoFiltroSelecionada;
+        const resposta = await apiListarAnotacoes({
+          campanhaId: campanhaId ?? undefined,
+          sessaoId: sessaoId ?? undefined,
+          pagina,
+          limite: LIMITE_PAGINA,
+        });
+        setNotas(resposta.items);
+        setTotalPaginas(resposta.totalPages);
+        setTotalNotas(resposta.total);
+      } catch (error) {
+        const mensagem = criarErroUsuario(error);
+        setErro(mensagem);
+        showToast(mensagem, 'error');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [campanhaFiltroSelecionada, paginaAtual, sessaoFiltroSelecionada, showToast],
+  );
 
   const carregarCampanhas = useCallback(async () => {
     try {
@@ -129,21 +197,21 @@ export default function AnotacoesPage() {
     }
   }, [showToast]);
 
-  const carregarSessoes = useCallback(async (
-    campanhaId: number,
-    tipo: 'filtro' | 'form',
-  ) => {
-    try {
-      const lista = await apiListarSessoesCampanha(campanhaId);
-      if (tipo === 'filtro') {
-        setSessoesFiltro(lista);
-      } else {
-        setSessoesForm(lista);
+  const carregarSessoes = useCallback(
+    async (campanhaId: number, tipo: 'filtro' | 'form') => {
+      try {
+        const lista = await apiListarSessoesCampanha(campanhaId);
+        if (tipo === 'filtro') {
+          setSessoesFiltro(lista);
+        } else {
+          setSessoesForm(lista);
+        }
+      } catch (error) {
+        showToast(criarErroUsuario(error), 'error');
       }
-    } catch (error) {
-      showToast(criarErroUsuario(error), 'error');
-    }
-  }, [showToast]);
+    },
+    [showToast],
+  );
 
   useEffect(() => {
     if (!authLoading && !usuario) {
@@ -199,7 +267,7 @@ export default function AnotacoesPage() {
     const conteudo = formConteudo.trim();
 
     if (!titulo || !conteudo) {
-      showToast('Preencha titulo e conteúdo.', 'warning');
+      showToast('Preencha título e conteúdo.', 'warning');
       return;
     }
 
@@ -247,8 +315,8 @@ export default function AnotacoesPage() {
 
   function handleExcluir(nota: AnotacaoResumo) {
     confirm({
-      title: `Excluir anotacao "${nota.titulo}"?`,
-      description: 'Esta ação e irreversivel.',
+      title: `Excluir anotação "${nota.titulo}"?`,
+      description: 'Esta ação é irreversível.',
       confirmLabel: 'Excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
@@ -268,14 +336,23 @@ export default function AnotacoesPage() {
 
   function handleBuscar() {
     setPaginaAtual(1);
+    setNotaVisualizada(null);
     void carregarNotas(1);
   }
 
   function handleLimparFiltros() {
     setFiltroCampanhaId('');
     setFiltroSessaoId('');
+    setBuscaLocal('');
     setPaginaAtual(1);
+    setNotaVisualizada(null);
     void carregarNotas(1, { campanhaId: null, sessaoId: null });
+  }
+
+  function handleMudarPagina(proximaPagina: number) {
+    setPaginaAtual(proximaPagina);
+    setNotaVisualizada(null);
+    void carregarNotas(proximaPagina);
   }
 
   if (carregamentoInicial) {
@@ -284,169 +361,274 @@ export default function AnotacoesPage() {
 
   if (!usuario) return null;
 
+  const temFiltrosAtivos = filtrosAtivos.length > 0;
+  const listaVazia = notasFiltradas.length === 0;
+  const descricaoLista = buscaLocal.trim()
+    ? 'Busca local aplicada nas anotações carregadas nesta página.'
+    : 'Selecione uma anotação para consultar o conteúdo sem perder a lista.';
+
   return (
     <>
-      <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
-        <div className="mx-auto max-w-6xl space-y-8">
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-orange/10 shadow-inner">
-                <Icon name="scroll" className="w-8 h-8 text-app-orange" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-black text-app-fg tracking-tight">Notas</h1>
-                <p className="text-app-muted font-medium mt-0.5">
-                  Não deixe de fazer anotações na sessão.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button onClick={abrirModalCriacao} className="font-black shadow-lg shadow-app-primary/20">
-                <Icon name="add" className="mr-2 h-4 w-4" />
-                Criar anotação
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/home')} className="font-bold">
-                <Icon name="back" className="mr-2 h-4 w-4" />
-                Painel
-              </Button>
-            </div>
-          </header>
+      <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <PageHeader
+            backHref="/home"
+            backLabel="Painel"
+            eyebrow="Mesa"
+            icon="scroll"
+            title="Anotações"
+            description="Registre pistas, decisões e lembretes de campanha para consultar rápido durante a sessão."
+            actions={
+              <>
+                <Button onClick={abrirModalCriacao}>
+                  <Icon name="add" className="mr-2 h-4 w-4" />
+                  Nova anotação
+                </Button>
+                <EntityActionsMenu
+                  ariaLabel="Ações de anotações"
+                  items={[
+                    {
+                      id: 'refresh',
+                      label: 'Atualizar',
+                      icon: 'refresh',
+                      onSelect: () => void carregarNotas(paginaAtual),
+                    },
+                  ]}
+                />
+              </>
+            }
+          />
 
           {erro ? <ErrorAlert message={erro} /> : null}
 
-          <Card variant="glass" className="!p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-app-primary/10 rounded-xl">
-                <Icon name="filter" className="h-5 w-5 text-app-primary" />
-              </div>
-              <h2 className="text-xl font-black text-app-fg">Criar nota</h2>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-end">
+          <StatsStrip items={statsItems} />
+
+          <PageToolbar>
+            <div className="grid min-w-0 flex-1 gap-3 md:grid-cols-[minmax(13rem,1fr)_minmax(11rem,0.7fr)_minmax(11rem,0.7fr)]">
+              <Input
+                label="Busca local"
+                placeholder="Título, conteúdo, campanha ou sessão"
+                icon="search"
+                value={buscaLocal}
+                onChange={(event) => setBuscaLocal(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') handleBuscar();
+                }}
+              />
+
               <Select
-                label="Qual a Campanha?"
+                label="Campanha"
                 value={filtroCampanhaId}
                 onChange={(event) => setFiltroCampanhaId(event.target.value)}
               >
-                <option value="">Todas as campanhas</option>
+                <option value="">Todas</option>
                 {campanhas.map((campanha) => (
                   <option key={campanha.id} value={campanha.id}>
                     {campanha.nome}
                   </option>
                 ))}
               </Select>
-              
+
               <Select
-                label="Qual a Sessão?"
+                label="Sessão"
                 value={filtroSessaoId}
                 onChange={(event) => setFiltroSessaoId(event.target.value)}
                 disabled={!campanhaFiltroSelecionada}
               >
-                <option value="">Todas as sessões</option>
+                <option value="">Todas</option>
                 {sessoesFiltro.map((sessao) => (
                   <option key={sessao.id} value={sessao.id}>
                     {sessao.titulo}
                   </option>
                 ))}
               </Select>
-
-              <div className="flex gap-2">
-                <Button size="md" onClick={handleBuscar} className="flex-1 font-bold">
-                  Filtrar
-                </Button>
-                {filtrosAtivos.length > 0 && (
-                  <Button size="md" variant="ghost" onClick={handleLimparFiltros} className="font-bold">
-                    Resetar
-                  </Button>
-                )}
-              </div>
             </div>
 
-            {filtrosAtivos.length > 0 && (
-              <div className="mt-6 flex flex-wrap gap-2 pt-4 border-t border-app-border/30">
+            <div className="flex shrink-0 flex-wrap items-end gap-2">
+              <Button size="sm" variant="secondary" onClick={handleBuscar}>
+                <Icon name="search" className="mr-2 h-4 w-4" />
+                Buscar
+              </Button>
+              {temFiltrosAtivos ? (
+                <Button size="sm" variant="ghost" onClick={handleLimparFiltros}>
+                  Limpar
+                </Button>
+              ) : null}
+            </div>
+
+            {temFiltrosAtivos ? (
+              <div className="flex basis-full flex-wrap gap-2 border-t border-white/5 pt-3">
                 {filtrosAtivos.map((filtro) => (
-                  <Badge key={filtro} size="sm" color="purple" variant="subtle" className="font-bold">
+                  <Badge key={filtro} size="xs" color="purple" variant="subtle">
                     {filtro}
                   </Badge>
                 ))}
               </div>
-            )}
-          </Card>
+            ) : null}
+          </PageToolbar>
 
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <SectionTitle icon="scroll">
-                Coleção de notas
-                <Badge color="gray" size="sm" variant="subtle" className="ml-3">
-                  {totalNotas}
-                </Badge>
-              </SectionTitle>
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)]">
+            <section className="min-w-0 space-y-4">
+              <SectionHeader
+                icon="list"
+                title="Notas"
+                count={buscaLocal.trim() ? `${notasFiltradas.length}/${notas.length}` : totalNotas}
+                description={descricaoLista}
+                action={
+                  loading ? (
+                    <span className="text-xs font-black uppercase tracking-[0.16em] text-app-muted">
+                      Atualizando...
+                    </span>
+                  ) : null
+                }
+              />
 
-              {loading && (
-                <div className="text-xs font-black text-app-muted animate-pulse uppercase tracking-widest">
-                  Carregando...
+              {listaVazia ? (
+                <EmptyState
+                  variant="card"
+                  size="sm"
+                  icon={temFiltrosAtivos ? 'search' : 'scroll'}
+                  title={temFiltrosAtivos ? 'Nenhuma anotação encontrada' : 'Nenhuma anotação criada'}
+                  description={
+                    temFiltrosAtivos
+                      ? 'Ajuste a busca ou limpe os filtros para voltar à lista carregada.'
+                      : 'Crie a primeira anotação para registrar pistas, decisões e ideias de sessão.'
+                  }
+                  action={
+                    temFiltrosAtivos ? (
+                      <Button size="sm" variant="secondary" onClick={handleLimparFiltros}>
+                        Limpar filtros
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={abrirModalCriacao}>
+                        Nova anotação
+                      </Button>
+                    )
+                  }
+                />
+              ) : (
+                <div className="space-y-3">
+                  {notasFiltradas.map((nota) => (
+                    <NotePaperCard
+                      key={nota.id}
+                      nota={nota}
+                      onOpen={setNotaVisualizada}
+                      onEdit={handleEditar}
+                      onDelete={handleExcluir}
+                    />
+                  ))}
                 </div>
               )}
-            </div>
 
-            {notas.length === 0 ? (
-              <EmptyState
-                variant="card"
-                lottie="MAGIC_SPARKLES"
-                title="A coleção está vazia"
-                description="Nenhuma nota encontrada. Por que não anota aquela teoria mirabolante que você teve na última sessão?"
-                actionLabel="Criar a primeira anotação"
-                onAction={abrirModalCriacao}
-              />
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {notas.map((nota) => (
-                  <NotePaperCard
-                    key={nota.id}
-                    nota={nota}
-                    onOpen={setNotaVisualizada}
-                    onEdit={handleEditar}
-                    onDelete={handleExcluir}
-                  />
-                ))}
-              </div>
-            )}
+              {totalPaginas > 1 ? (
+                <div className="flex items-center justify-center gap-4 rounded-xl border border-white/5 bg-app-surface/45 p-3">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={paginaAtual === 1}
+                    onClick={() => handleMudarPagina(Math.max(1, paginaAtual - 1))}
+                    className="h-9 w-9 !p-0"
+                  >
+                    <Icon name="chevron-left" className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs font-black uppercase tracking-[0.16em] text-app-muted">
+                    Página {paginaAtual} / {totalPaginas}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={paginaAtual === totalPaginas}
+                    onClick={() => handleMudarPagina(Math.min(totalPaginas, paginaAtual + 1))}
+                    className="h-9 w-9 !p-0"
+                  >
+                    <Icon name="chevron-right" className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : null}
+            </section>
 
-            {totalPaginas > 1 ? (
-              <Card variant="flat" className="flex items-center justify-center gap-6 py-4">
-                <Button
+            <aside className="min-w-0 xl:sticky xl:top-20 xl:self-start">
+              {notaSelecionada ? (
+                <article className="overflow-hidden rounded-xl border border-white/5 bg-app-surface/55 shadow-sm shadow-black/5">
+                  <div className="border-b border-white/5 p-4">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-app-primary">
+                          Leitura
+                        </p>
+                        <h2 className="mt-1 truncate text-xl font-black text-app-fg">
+                          {notaSelecionada.titulo}
+                        </h2>
+                      </div>
+                      <EntityActionsMenu
+                        ariaLabel={`Ações da anotação ${notaSelecionada.titulo}`}
+                        items={[
+                          {
+                            id: 'edit',
+                            label: 'Editar',
+                            icon: 'edit',
+                            onSelect: () => handleEditar(notaSelecionada),
+                          },
+                          {
+                            id: 'delete',
+                            label: 'Excluir',
+                            icon: 'delete',
+                            destructive: true,
+                            onSelect: () => handleExcluir(notaSelecionada),
+                          },
+                        ]}
+                      />
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      <Badge size="xs" color="gray" variant="subtle">
+                        Criada em {formatarDataHora(notaSelecionada.criadoEm)}
+                      </Badge>
+                      {notaSelecionada.atualizadoEm !== notaSelecionada.criadoEm ? (
+                        <Badge size="xs" color="blue" variant="subtle">
+                          Atualizada em {formatarDataHora(notaSelecionada.atualizadoEm)}
+                        </Badge>
+                      ) : null}
+                      {notaSelecionada.campanha ? (
+                        <Badge size="xs" color="gray" variant="subtle">
+                          Campanha: {notaSelecionada.campanha.nome}
+                        </Badge>
+                      ) : null}
+                      {notaSelecionada.sessao ? (
+                        <Badge size="xs" color="blue" variant="subtle">
+                          Sessão: {notaSelecionada.sessao.titulo}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="max-h-[34rem] overflow-y-auto p-4">
+                    <div className="whitespace-pre-line text-sm leading-relaxed text-app-fg">
+                      {notaSelecionada.conteudo}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 border-t border-white/5 p-4">
+                    <Button size="sm" variant="secondary" onClick={() => handleEditar(notaSelecionada)}>
+                      <Icon name="edit" className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setNotaVisualizada(null)}>
+                      Fechar leitura
+                    </Button>
+                  </div>
+                </article>
+              ) : (
+                <EmptyState
+                  variant="card"
                   size="sm"
-                  variant="secondary"
-                  disabled={paginaAtual === 1}
-                  onClick={() => {
-                    const next = Math.max(1, paginaAtual - 1);
-                    setPaginaAtual(next);
-                    void carregarNotas(next);
-                  }}
-                  className="rounded-full w-10 h-10 !p-0"
-                >
-                  <Icon name="chevron-left" className="h-5 w-5" />
-                </Button>
-                <span className="text-sm font-black text-app-fg uppercase tracking-widest">
-                  Plano {paginaAtual} / {totalPaginas}
-                </span>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={paginaAtual === totalPaginas}
-                  onClick={() => {
-                    const next = Math.min(totalPaginas, paginaAtual + 1);
-                    setPaginaAtual(next);
-                    void carregarNotas(next);
-                  }}
-                  className="rounded-full w-10 h-10 !p-0"
-                >
-                  <Icon name="chevron-right" className="h-5 w-5" />
-                </Button>
-              </Card>
-            ) : null}
-          </section>
+                  icon="eye"
+                  title="Selecione uma anotação"
+                  description="O conteúdo aparece aqui para consulta rápida enquanto a lista permanece visível."
+                />
+              )}
+            </aside>
+          </div>
         </div>
       </main>
 
@@ -469,7 +651,7 @@ export default function AnotacoesPage() {
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
             <Input
-              label="Titulo"
+              label="Título"
               value={formTitulo}
               onChange={(event) => setFormTitulo(event.target.value)}
             />
@@ -508,58 +690,6 @@ export default function AnotacoesPage() {
             rows={8}
           />
         </div>
-      </Modal>
-
-      <Modal
-        isOpen={Boolean(notaVisualizada)}
-        onClose={() => setNotaVisualizada(null)}
-        title={notaVisualizada?.titulo ?? 'Anotação'}
-        size="lg"
-        footer={
-          notaVisualizada ? (
-            <>
-              <Button variant="ghost" onClick={() => setNotaVisualizada(null)}>
-                Fechar
-              </Button>
-              <Button variant="secondary" onClick={() => handleEditar(notaVisualizada)}>
-                <Icon name="edit" className="mr-2 h-4 w-4" />
-                Editar
-              </Button>
-              <Button variant="destructive" onClick={() => handleExcluir(notaVisualizada)}>
-                <Icon name="delete" className="mr-2 h-4 w-4" />
-                Excluir
-              </Button>
-            </>
-          ) : null
-        }
-      >
-        {notaVisualizada ? (
-          <article className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge size="sm" color="gray">
-                Criada em {formatarDataHora(notaVisualizada.criadoEm)}
-              </Badge>
-              {notaVisualizada.atualizadoEm !== notaVisualizada.criadoEm ? (
-                <Badge size="sm" color="blue">
-                  Atualizada em {formatarDataHora(notaVisualizada.atualizadoEm)}
-                </Badge>
-              ) : null}
-              {notaVisualizada.campanha ? (
-                <Badge size="sm" color="gray">
-                  Campanha: {notaVisualizada.campanha.nome}
-                </Badge>
-              ) : null}
-              {notaVisualizada.sessao ? (
-                <Badge size="sm" color="blue">
-                  Sessão: {notaVisualizada.sessao.titulo}
-                </Badge>
-              ) : null}
-            </div>
-            <div className="rounded-xl border border-app-border bg-app-card p-4 text-sm leading-relaxed text-app-fg whitespace-pre-line">
-              {notaVisualizada.conteudo}
-            </div>
-          </article>
-        ) : null}
       </Modal>
 
       <ConfirmDialog

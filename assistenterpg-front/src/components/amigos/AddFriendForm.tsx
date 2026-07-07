@@ -33,17 +33,17 @@ export function AddFriendForm({ onSubmit }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
       <Input
-        label="Adicionar amigo"
-        placeholder="Email ou apelido exato"
+        label="Email ou apelido"
+        placeholder="Informe o identificador exato"
         icon="search"
         value={identificador}
         error={erro ?? undefined}
         helperText="A busca é exata para preservar a privacidade dos usuários."
         onChange={(event) => setIdentificador(event.target.value)}
       />
-      <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+      <Button type="submit" disabled={loading} className="w-full lg:w-auto">
         {loading ? 'Enviando...' : 'Enviar solicitação'}
       </Button>
     </form>

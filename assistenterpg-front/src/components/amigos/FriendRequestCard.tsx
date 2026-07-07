@@ -1,7 +1,8 @@
 'use client';
 
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { Icon } from '@/components/ui/Icon';
 import type { SolicitacaoAmizadeResumo } from '@/lib/types';
 
@@ -23,56 +24,66 @@ export function FriendRequestCard({
   onCancel,
 }: Props) {
   const data = new Date(solicitacao.criadoEm).toLocaleDateString('pt-BR');
+  const isRecebida = tipo === 'recebida';
 
   return (
-    <Card className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between bg-app-surface/60 border-app-border/50 shadow-sm hover:shadow transition-shadow duration-200">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-app-secondary/10 text-app-secondary">
-          <Icon name="user" className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="font-semibold text-app-fg">
-            {solicitacao.usuario.apelido}
-          </p>
-          <p className="text-xs text-app-muted">
-            {tipo === 'recebida' ? 'Solicitou amizade' : 'Solicitação enviada'} em {data}
+    <article className="flex min-w-0 flex-col gap-3 rounded-xl border border-white/5 bg-app-surface/55 p-4 shadow-sm shadow-black/5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-app-secondary/10 text-app-secondary">
+          <Icon name="user" className="h-4 w-4" />
+        </span>
+
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <p className="truncate text-sm font-black text-app-fg">
+              {solicitacao.usuario.apelido}
+            </p>
+            <Badge color="purple" size="xs" variant="subtle">
+              Pendente
+            </Badge>
+          </div>
+          <p className="mt-0.5 truncate text-xs font-medium text-app-muted">
+            {isRecebida ? 'Solicitou amizade' : 'Solicitação enviada'} em {data}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 sm:justify-end">
-        {tipo === 'recebida' ? (
-          <>
-            <Button
-              type="button"
-              size="sm"
-              disabled={loading}
-              onClick={() => onAccept?.(solicitacao.id)}
-            >
-              Aceitar
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={loading}
-              onClick={() => onReject?.(solicitacao.id)}
-            >
-              Recusar
-            </Button>
-          </>
-        ) : (
+      <div className="flex shrink-0 items-center justify-end gap-2">
+        {isRecebida ? (
           <Button
             type="button"
-            variant="ghost"
             size="sm"
             disabled={loading}
-            onClick={() => onCancel?.(solicitacao.id)}
+            onClick={() => onAccept?.(solicitacao.id)}
           >
-            Cancelar
+            Aceitar
           </Button>
-        )}
+        ) : null}
+
+        <EntityActionsMenu
+          ariaLabel={`Ações da solicitação de ${solicitacao.usuario.apelido}`}
+          items={[
+            {
+              id: 'reject',
+              label: loading ? 'Recusando...' : 'Recusar',
+              icon: 'close',
+              destructive: true,
+              disabled: loading,
+              hidden: !isRecebida,
+              onSelect: () => onReject?.(solicitacao.id),
+            },
+            {
+              id: 'cancel',
+              label: loading ? 'Cancelando...' : 'Cancelar solicitação',
+              icon: 'close',
+              destructive: true,
+              disabled: loading,
+              hidden: isRecebida,
+              onSelect: () => onCancel?.(solicitacao.id),
+            },
+          ]}
+        />
       </div>
-    </Card>
+    </article>
   );
 }

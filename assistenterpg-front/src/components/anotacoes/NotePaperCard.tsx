@@ -1,7 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { Icon } from '@/components/ui/Icon';
 import type { AnotacaoResumo } from '@/lib/api';
 import { formatarDataHora } from '@/lib/utils/formatters';
@@ -15,58 +16,64 @@ type NotePaperCardProps = {
 
 export function NotePaperCard({ nota, onOpen, onEdit, onDelete }: NotePaperCardProps) {
   return (
-    <article className="note-paper note-paper--clickable group relative overflow-hidden transition-all duration-500 hover:rotate-1">
-      {/* Decoração de grampo/clipe sutil */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-app-primary/20 rounded-b-lg group-hover:bg-app-primary/40 transition-colors" />
-      
-      <button
-        type="button"
-        className="note-paper__body block w-full p-6 text-left focus-visible:outline-none"
-        onClick={() => onOpen(nota)}
-      >
-        <div className="flex items-start gap-4 mb-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-app-orange/10 text-app-orange shadow-inner group-hover:scale-110 transition-transform">
-            <Icon name="scroll" className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-lg font-black text-app-fg tracking-tight group-hover:text-app-primary transition-colors">{nota.titulo}</h3>
-            <p className="text-[10px] font-bold text-app-muted uppercase tracking-widest">
-              {formatarDataHora(nota.criadoEm)}
-            </p>
-          </div>
-        </div>
+    <article className="rounded-xl border border-white/5 bg-app-surface/55 p-4 shadow-sm shadow-black/5 transition-colors hover:border-app-primary/20">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-primary/50"
+          onClick={() => onOpen(nota)}
+        >
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-app-orange/10 text-app-orange">
+              <Icon name="scroll" className="h-4 w-4" />
+            </span>
 
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {nota.campanha && (
-            <Badge size="xs" color="gray" variant="subtle" className="font-bold">
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-black text-app-fg">
+                {nota.titulo}
+              </span>
+              <span className="mt-0.5 block truncate text-[11px] font-medium text-app-muted">
+                {formatarDataHora(nota.atualizadoEm)}
+              </span>
+            </span>
+          </div>
+        </button>
+
+        <EntityActionsMenu
+          ariaLabel={`Ações da anotação ${nota.titulo}`}
+          items={[
+            { id: 'edit', label: 'Editar', icon: 'edit', onSelect: () => onEdit(nota) },
+            {
+              id: 'delete',
+              label: 'Excluir',
+              icon: 'delete',
+              destructive: true,
+              onSelect: () => onDelete(nota),
+            },
+          ]}
+        />
+      </div>
+
+      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-app-muted">
+        {nota.conteudo}
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap gap-1.5">
+          {nota.campanha ? (
+            <Badge size="xs" color="gray" variant="subtle" className="max-w-[11rem] truncate">
               {nota.campanha.nome}
             </Badge>
-          )}
-          {nota.sessao && (
-            <Badge size="xs" color="blue" variant="subtle" className="font-bold">
+          ) : null}
+          {nota.sessao ? (
+            <Badge size="xs" color="blue" variant="subtle" className="max-w-[11rem] truncate">
               {nota.sessao.titulo}
             </Badge>
-          )}
+          ) : null}
         </div>
 
-        <p className="note-paper__content text-sm leading-relaxed text-app-muted font-medium italic opacity-80 line-clamp-4">
-          {nota.conteudo}
-        </p>
-
-        <div className="mt-6 flex items-center gap-2 text-xs font-black text-app-primary uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 duration-300">
-          Abrir anotação
-          <Icon name="forward" className="h-4 w-4" />
-        </div>
-      </button>
-
-      <div className="note-paper__actions flex items-center justify-end gap-2 p-4 bg-black/5 backdrop-blur-sm border-t border-app-border/30 opacity-0 group-hover:opacity-100 transition-opacity translate-y-[10px] group-hover:translate-y-0 duration-300">
-        <Button size="xs" variant="secondary" onClick={() => onEdit(nota)} className="font-bold rounded-lg h-8">
-          <Icon name="edit" className="mr-1.5 h-3.5 w-3.5" />
-          Editar
-        </Button>
-        <Button size="xs" variant="destructive" onClick={() => onDelete(nota)} className="font-bold rounded-lg h-8">
-          <Icon name="delete" className="mr-1.5 h-3.5 w-3.5" />
-          Excluir
+        <Button size="xs" variant="secondary" onClick={() => onOpen(nota)} className="shrink-0">
+          Abrir
         </Button>
       </div>
     </article>
