@@ -32,20 +32,22 @@ import { HomebrewPreviewModal } from '@/components/homebrew/HomebrewPreviewModal
 import { getHomebrewTipoConfig } from '@/components/homebrew/homebrewUi';
 import { JsonImportModal } from '@/components/import-export/JsonImportModal';
 import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
-import { LibraryPageHeader } from '@/components/library/LibraryPageHeader';
-import { LibrarySectionHeader } from '@/components/library/LibrarySectionHeader';
-import { LibraryStatsBar } from '@/components/library/LibraryStatsBar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Loading } from '@/components/ui/Loading';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Select } from '@/components/ui/Select';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import type { UserErrorState } from '@/lib/types';
 
 const STATUS_LABEL: Record<StatusPublicacao, string> = {
@@ -155,6 +157,40 @@ export default function HomebrewsPage() {
       ),
     [homebrews],
   );
+
+  const statsItems: StatsStripItem[] = [
+    {
+      id: 'total',
+      label: 'Total',
+      value: totalHomebrews,
+      icon: 'sparkles',
+      tone: 'primary',
+    },
+    {
+      id: 'rascunhos',
+      label: 'Rascunhos',
+      value: resumoStatus.rascunhos,
+      icon: 'edit',
+      tone: 'warning',
+      helper: 'nesta página',
+    },
+    {
+      id: 'publicados',
+      label: 'Publicados',
+      value: resumoStatus.publicados,
+      icon: 'check',
+      tone: 'success',
+      helper: 'nesta página',
+    },
+    {
+      id: 'arquivados',
+      label: 'Arquivados',
+      value: resumoStatus.arquivados,
+      icon: 'archive',
+      tone: 'default',
+      helper: 'nesta página',
+    },
+  ];
 
   const homebrewsExibidos = useMemo(() => {
     if (filtroGrupoId === 'TODOS') return homebrews;
@@ -506,7 +542,7 @@ export default function HomebrewsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="library-page-shell min-h-screen p-6">
+      <div className="min-h-full bg-app-bg p-6">
         <Loading message="Carregando homebrews..." className="text-app-fg" />
       </div>
     );
@@ -516,56 +552,53 @@ export default function HomebrewsPage() {
 
   return (
     <>
-      <div className="library-page-shell min-h-screen p-6">
+      <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          <LibraryPageHeader
+          <PageHeader
+            eyebrow="Criação"
             icon="sparkles"
-            title="Meus Homebrews"
+            title="Homebrews"
             description="Conteúdo personalizado para campanhas, organizado em grupos com importação e exportação JSON."
             actions={
               <>
                 <Button
-                  variant="secondary"
-                  onClick={() => setModalImportacaoAberto(true)}
-                  className="library-ghost-button"
-                >
-                  <Icon name="upload" className="mr-2 h-4 w-4" />
-                  Importar JSON
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setJsonGuideOpen(true)}
-                  className="library-ghost-button"
-                >
-                  <Icon name="info" className="mr-2 h-4 w-4" />
-                  Ajuda JSON
-                </Button>
-                <Button
                   onClick={() => router.push('/homebrews/novo')}
-                  className="library-primary-button"
+                  className="w-full gap-2 bg-app-secondary shadow-app-secondary/20 hover:bg-app-secondary-hover sm:w-auto"
                 >
-                  <Icon name="add" className="mr-2 h-4 w-4" />
+                  <Icon name="add" className="h-4 w-4" />
                   Criar Homebrew
                 </Button>
+                <EntityActionsMenu
+                  ariaLabel="Ações de homebrews"
+                  items={[
+                    {
+                      id: 'import',
+                      label: 'Importar JSON',
+                      icon: 'upload',
+                      onSelect: () => setModalImportacaoAberto(true),
+                    },
+                    {
+                      id: 'guide',
+                      label: 'Ajuda JSON',
+                      icon: 'info',
+                      onSelect: () => setJsonGuideOpen(true),
+                    },
+                  ]}
+                />
               </>
             }
           />
 
           {erro ? <ErrorAlert message={erro} /> : null}
 
-          <LibraryStatsBar
-            items={[
-              { label: 'Total', value: totalHomebrews },
-              { label: 'Rascunhos', value: resumoStatus.rascunhos, tone: 'warning' },
-              { label: 'Publicados', value: resumoStatus.publicados, tone: 'success' },
-              { label: 'Arquivados', value: resumoStatus.arquivados, tone: 'muted' },
-            ]}
-            trailingText={`${homebrews.length} carregados nesta página`}
-          />
+          <StatsStrip items={statsItems} />
 
-          <div className="library-filters-panel">
-            <div className="flex flex-col gap-4 md:flex-row">
-              <div className="flex-1">
+          <PageToolbar>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-muted">
+                Busca
+              </p>
+              <div className="w-full sm:max-w-md">
                 <Input
                   icon="search"
                   placeholder="Buscar por nome..."
@@ -574,7 +607,9 @@ export default function HomebrewsPage() {
                   onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
                 />
               </div>
+            </div>
 
+            <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-3">
               <Select
                 value={filtroTipo}
                 onChange={(e) => {
@@ -626,69 +661,56 @@ export default function HomebrewsPage() {
                   </option>
                 ))}
               </Select>
+            </div>
 
-              <Button onClick={handleBuscar} className="library-primary-button">
-                <Icon name="search" className="mr-2 h-4 w-4" />
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+              <Button onClick={handleBuscar} className="gap-2">
+                <Icon name="search" className="h-4 w-4" />
                 Buscar
               </Button>
+              {filtrosAtivos.length > 0 ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleLimparFiltros}
+                  className="gap-2"
+                >
+                  <Icon name="close" className="h-4 w-4" />
+                  Limpar
+                </Button>
+              ) : null}
             </div>
 
             {filtrosAtivos.length > 0 ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-app-border/60 pt-3">
+              <div className="flex w-full flex-wrap items-center gap-2 border-t border-white/5 pt-3">
                 {filtrosAtivos.map((filtro) => (
-                  <span key={filtro} className="library-filter-chip">
+                  <span
+                    key={filtro}
+                    className="rounded-full border border-white/10 bg-app-muted-surface px-2.5 py-1 text-xs font-bold text-app-muted"
+                  >
                     {filtro}
                   </span>
                 ))}
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  onClick={handleLimparFiltros}
-                  className="!border-transparent !text-app-muted hover:!bg-app-muted-surface/70"
-                >
-                  <Icon name="close" className="mr-1 h-3 w-3" />
-                  Limpar filtros
-                </Button>
               </div>
             ) : null}
-          </div>
+          </PageToolbar>
 
           <section className="space-y-3">
-            <LibrarySectionHeader
+            <SectionHeader
+              icon="folder"
               title="Grupos"
               description="Pacotes privados para exportar e reaproveitar nas fichas."
-              actions={
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setModalImportacaoAberto(true)}
-                    className="library-ghost-button"
-                  >
-                    <Icon name="upload" className="mr-2 h-4 w-4" />
-                    Importar JSON
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setJsonGuideOpen(true)}
-                    className="library-ghost-button"
-                  >
-                    <Icon name="info" className="mr-2 h-4 w-4" />
-                    Ajuda JSON
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={abrirModalNovoGrupo}
-                    className="library-ghost-button"
-                  >
-                    <Icon name="add" className="mr-2 h-4 w-4" />
-                    Novo grupo
-                  </Button>
-                </>
+              count={grupos.length}
+              action={
+                <Button variant="secondary" size="sm" onClick={abrirModalNovoGrupo} className="gap-2">
+                  <Icon name="add" className="h-4 w-4" />
+                  Novo grupo
+                </Button>
               }
             />
 
             {grupos.length === 0 ? (
-              <div className="library-panel rounded-2xl border border-dashed border-app-border/60 px-4 py-10">
+              <div className="rounded-xl border border-dashed border-white/10 bg-app-surface/35 px-4 py-6">
                 <EmptyState
                   variant="plain"
                   icon="folder"
@@ -699,9 +721,12 @@ export default function HomebrewsPage() {
                 />
               </div>
             ) : (
-              <div className="library-group-rail no-scrollbar">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {grupos.map((grupo) => (
-                  <div key={grupo.id} className="library-group-card space-y-3">
+                  <div
+                    key={grupo.id}
+                    className="space-y-3 rounded-xl border border-white/5 bg-app-surface/45 p-4"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="truncate text-base font-semibold text-app-fg">{grupo.nome}</h3>
@@ -718,57 +743,59 @@ export default function HomebrewsPage() {
                       {grupo.homebrewIds.slice(0, 3).map((homebrewId) => {
                         const homebrew = todosHomebrews.find((item) => item.id === homebrewId);
                         return (
-                          <span key={homebrewId} className="library-mini-chip">
+                          <span
+                            key={homebrewId}
+                            className="max-w-full truncate rounded-full border border-white/10 bg-app-muted-surface px-2 py-0.5 text-[11px] font-bold text-app-muted"
+                          >
                             {homebrew?.nome ?? `#${homebrewId}`}
                           </span>
                         );
                       })}
                       {grupo.homebrewIds.length > 3 ? (
-                        <span className="library-mini-chip">
+                        <span className="rounded-full border border-white/10 bg-app-muted-surface px-2 py-0.5 text-[11px] font-bold text-app-muted">
                           +{grupo.homebrewIds.length - 3}
                         </span>
                       ) : null}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 border-t border-app-border/60 pt-3">
+                    <div className="flex items-center gap-2 border-t border-white/5 pt-3">
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         size="sm"
                         onClick={() => setFiltroGrupoId(grupo.id)}
-                        className="library-ghost-button"
+                        className="gap-2"
                       >
-                        <Icon name="filter" className="mr-1 h-4 w-4" />
+                        <Icon name="filter" className="h-4 w-4" />
                         Filtrar
                       </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => void handleExportarGrupo(grupo)}
-                        disabled={processandoGrupoId === grupo.id}
-                        className="library-ghost-button"
-                      >
-                        <Icon name="download" className="mr-1 h-4 w-4" />
-                        JSON
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => abrirModalEditarGrupo(grupo)}
-                        disabled={processandoGrupoId === grupo.id}
-                        className="library-ghost-button"
-                      >
-                        <Icon name="edit" className="mr-1 h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-auto text-app-danger hover:bg-app-danger/10"
-                        onClick={() => handleExcluirGrupo(grupo)}
-                        disabled={processandoGrupoId === grupo.id}
-                      >
-                        <Icon name="delete" className="h-4 w-4" />
-                      </Button>
+                      <EntityActionsMenu
+                        className="ml-auto"
+                        ariaLabel={`Ações do grupo ${grupo.nome}`}
+                        items={[
+                          {
+                            id: 'export',
+                            label: 'Exportar JSON',
+                            icon: 'download',
+                            disabled: processandoGrupoId === grupo.id,
+                            onSelect: () => void handleExportarGrupo(grupo),
+                          },
+                          {
+                            id: 'edit',
+                            label: 'Editar',
+                            icon: 'edit',
+                            disabled: processandoGrupoId === grupo.id,
+                            onSelect: () => abrirModalEditarGrupo(grupo),
+                          },
+                          {
+                            id: 'delete',
+                            label: 'Excluir',
+                            icon: 'delete',
+                            destructive: true,
+                            disabled: processandoGrupoId === grupo.id,
+                            onSelect: () => handleExcluirGrupo(grupo),
+                          },
+                        ]}
+                      />
                     </div>
                   </div>
                 ))}
@@ -777,19 +804,23 @@ export default function HomebrewsPage() {
           </section>
 
           <section className="space-y-3">
-            <LibrarySectionHeader
+            <SectionHeader
+              icon="sparkles"
               title="Homebrews"
-              meta={
-                <span className="text-xs text-app-muted/70">
-                  {filtroGrupoId === 'TODOS'
-                    ? `${homebrewsExibidos.length} de ${totalHomebrews}`
-                    : `${homebrewsExibidos.length} no grupo selecionado`}
-                </span>
+              description={
+                filtroGrupoId === 'TODOS'
+                  ? 'Conteúdos carregados para preview, edição e exportação.'
+                  : 'Conteúdos do grupo selecionado.'
+              }
+              count={
+                filtroGrupoId === 'TODOS'
+                  ? `${homebrewsExibidos.length} de ${totalHomebrews}`
+                  : `${homebrewsExibidos.length} no grupo`
               }
             />
 
             {homebrewsExibidos.length === 0 ? (
-              <div className="library-panel rounded-2xl border border-dashed border-app-border/60 px-4 py-14">
+              <div className="rounded-xl border border-dashed border-white/10 bg-app-surface/35 px-4 py-8">
                 <EmptyState
                   variant="plain"
                   icon="sparkles"
@@ -805,7 +836,7 @@ export default function HomebrewsPage() {
               </div>
             ) : (
               <>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {homebrewsExibidos.map((homebrew) => (
                     <HomebrewCard
                       key={homebrew.id}
@@ -823,13 +854,12 @@ export default function HomebrewsPage() {
                 </div>
 
                 {filtroGrupoId === 'TODOS' && totalPaginas > 1 ? (
-                  <div className="library-pagination pt-2">
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-white/5 bg-app-surface/35 px-3 py-2">
                     <Button
                       variant="secondary"
                       size="sm"
                       disabled={paginaAtual === 1}
                       onClick={() => setPaginaAtual((prev) => Math.max(1, prev - 1))}
-                      className="library-ghost-button"
                     >
                       <Icon name="chevron-left" className="h-4 w-4" />
                     </Button>
@@ -841,7 +871,6 @@ export default function HomebrewsPage() {
                       size="sm"
                       disabled={paginaAtual === totalPaginas}
                       onClick={() => setPaginaAtual((prev) => Math.min(totalPaginas, prev + 1))}
-                      className="library-ghost-button"
                     >
                       <Icon name="chevron-right" className="h-4 w-4" />
                     </Button>
@@ -851,7 +880,7 @@ export default function HomebrewsPage() {
             )}
           </section>
         </div>
-      </div>
+      </main>
 
       <ConfirmDialog
         isOpen={isOpen}

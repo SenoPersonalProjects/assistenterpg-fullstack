@@ -1,31 +1,32 @@
 // src/app/suplementos/page.tsx
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import {
-  apiGetSuplementos,
   apiAtivarSuplemento,
-  apiDesativarSuplemento,
   apiDeleteSuplemento,
-  SuplementoCatalogo,
+  apiDesativarSuplemento,
+  apiGetSuplementos,
+  type SuplementoCatalogo,
 } from '@/lib/api/suplementos';
 import { criarErroUsuario } from '@/lib/api/error-handler';
 import { SuplementoCard } from '@/components/suplemento/SuplementoCard';
 import { ModalSuplementoForm } from '@/components/suplemento/ModalSuplementoForm';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Loading } from '@/components/ui/Loading';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
-import { Card } from '@/components/ui/Card';
-import { SectionTitle } from '@/components/ui/SectionTitle';
+import { Loading } from '@/components/ui/Loading';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { useConfirm } from '@/hooks/useConfirm';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { UserErrorState } from '@/lib/types';
 
 type FiltroStatus = 'TODOS' | 'ATIVOS' | 'INATIVOS';
@@ -47,11 +48,9 @@ export default function SuplementosPage() {
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [processando, setProcessando] = useState<number | null>(null);
 
-  // Modal admin
   const [modalAberto, setModalAberto] = useState(false);
   const [suplementoEditando, setSuplementoEditando] = useState<SuplementoCatalogo | null>(null);
 
-  // Filtros
   const [filtroNome, setFiltroNome] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('TODOS');
 
@@ -88,7 +87,7 @@ export default function SuplementosPage() {
       setProcessando(suplemento.id);
       await apiAtivarSuplemento(suplemento.id);
       setSuplementos((prev) =>
-        prev.map((s) => (s.id === suplemento.id ? { ...s, ativo: true } : s))
+        prev.map((s) => (s.id === suplemento.id ? { ...s, ativo: true } : s)),
       );
       showToast(`Suplemento "${suplemento.nome}" ativado!`, 'success');
     } catch (error) {
@@ -104,7 +103,7 @@ export default function SuplementosPage() {
       setProcessando(suplemento.id);
       await apiDesativarSuplemento(suplemento.id);
       setSuplementos((prev) =>
-        prev.map((s) => (s.id === suplemento.id ? { ...s, ativo: false } : s))
+        prev.map((s) => (s.id === suplemento.id ? { ...s, ativo: false } : s)),
       );
       showToast(`Suplemento "${suplemento.nome}" desativado.`, 'info');
     } catch (error) {
@@ -126,9 +125,9 @@ export default function SuplementosPage() {
 
   function handleDelete(suplemento: SuplementoCatalogo) {
     confirm({
-      title: 'Deletar Suplemento',
-      description: `Tem certeza que deseja deletar "${suplemento.nome}"? Esta ação não pode ser desfeita.`,
-      confirmLabel: 'Deletar',
+      title: 'Excluir suplemento',
+      description: `Tem certeza que deseja excluir "${suplemento.nome}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
       onConfirm: async () => {
@@ -136,7 +135,7 @@ export default function SuplementosPage() {
           setProcessando(suplemento.id);
           await apiDeleteSuplemento(suplemento.id);
           setSuplementos((prev) => prev.filter((s) => s.id !== suplemento.id));
-          showToast('Suplemento deletado com sucesso!', 'success');
+          showToast('Suplemento excluído com sucesso!', 'success');
         } catch (error) {
           const mensagem = criarErroUsuario(error);
           showToast(mensagem, 'error');
@@ -160,24 +159,67 @@ export default function SuplementosPage() {
     }
   }
 
-  const suplementosFiltrados = suplementos.filter((s) => {
-    if (filtroNome && !s.nome.toLowerCase().includes(filtroNome.toLowerCase())) {
-      return false;
-    }
+  function handleLimparFiltros() {
+    setFiltroNome('');
+    setFiltroStatus('TODOS');
+  }
 
-    if (filtroStatus === 'ATIVOS' && !s.ativo) return false;
-    if (filtroStatus === 'INATIVOS' && s.ativo) return false;
+  const suplementosVisiveis = useMemo(
+    () => suplementos.filter((suplemento) => isAdmin || suplemento.status === 'PUBLICADO'),
+    [isAdmin, suplementos],
+  );
 
-    if (!isAdmin && s.status !== 'PUBLICADO') {
-      return false;
-    }
+  const suplementosFiltrados = useMemo(() => {
+    const termo = filtroNome.trim().toLowerCase();
 
-    return true;
-  });
+    return suplementosVisiveis.filter((suplemento) => {
+      if (termo && !suplemento.nome.toLowerCase().includes(termo)) {
+        return false;
+      }
+
+      if (filtroStatus === 'ATIVOS' && !suplemento.ativo) return false;
+      if (filtroStatus === 'INATIVOS' && suplemento.ativo) return false;
+
+      return true;
+    });
+  }, [filtroNome, filtroStatus, suplementosVisiveis]);
+
+  const filtrosAtivos = filtroNome.trim().length > 0 || filtroStatus !== 'TODOS';
+
+  const statsItems: StatsStripItem[] = [
+    {
+      id: 'total',
+      label: 'Total visível',
+      value: suplementosVisiveis.length,
+      icon: 'book',
+      tone: 'primary',
+    },
+    {
+      id: 'ativos',
+      label: 'Ativos',
+      value: suplementosVisiveis.filter((suplemento) => suplemento.ativo).length,
+      icon: 'check',
+      tone: 'success',
+    },
+    {
+      id: 'inativos',
+      label: 'Inativos',
+      value: suplementosVisiveis.filter((suplemento) => !suplemento.ativo).length,
+      icon: 'close',
+      tone: 'default',
+    },
+    {
+      id: 'publicados',
+      label: 'Publicados',
+      value: suplementosVisiveis.filter((suplemento) => suplemento.status === 'PUBLICADO').length,
+      icon: 'library',
+      tone: 'warning',
+    },
+  ];
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
+      <div className="min-h-full bg-app-bg p-6">
         <Loading message="Carregando suplementos..." className="text-app-fg" />
       </div>
     );
@@ -186,102 +228,107 @@ export default function SuplementosPage() {
   if (!usuario) return null;
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-primary/10 shadow-inner">
-              <Icon name="book" className="w-8 h-8 text-app-primary" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-black text-app-fg tracking-tight">
-                Suplementos
-              </h1>
-              <p className="text-app-muted font-medium mt-0.5 max-w-md">
-                {isAdmin
-                  ? 'Gerencie os suplementos do sistema.'
-                  : 'Ative ou desative suplementos para expandir seu jogo.'}
-              </p>
-            </div>
-          </div>
+    <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <PageHeader
+          eyebrow="Biblioteca oficial"
+          icon="book"
+          title="Suplementos"
+          description={
+            isAdmin
+              ? 'Gerencie suplementos oficiais, publicação e disponibilidade para o sistema.'
+              : 'Ative, desative e consulte suplementos oficiais para expandir seu jogo.'
+          }
+          actions={
+            isAdmin ? (
+              <Button onClick={handleNovo} className="w-full gap-2 sm:w-auto">
+                <Icon name="add" className="h-4 w-4" />
+                Novo suplemento
+              </Button>
+            ) : undefined
+          }
+        />
 
-          {/* Botão Admin */}
-          {isAdmin && (
-            <Button variant="primary" onClick={handleNovo} className="font-black shadow-lg shadow-app-primary/20">
-              <Icon name="add" className="w-5 h-5 mr-2" />
-              Novo suplemento
-            </Button>
-          )}
-        </header>
+        {erro ? <ErrorAlert message={erro} /> : null}
 
-        {/* Erro */}
-        {erro && <ErrorAlert message={erro} />}
+        <StatsStrip items={statsItems} />
 
-        {/* Filtros Premium */}
-        <Card variant="glass" className="!p-6">
-          <div className="flex flex-col md:flex-row items-end gap-4">
-            <div className="flex-1 w-full">
+        <PageToolbar>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-muted">
+              Busca
+            </p>
+            <div className="w-full sm:max-w-md">
               <Input
-                label="Nome do suplemento"
                 placeholder="Ex: Sobrevivendo ao Jujutsu..."
                 value={filtroNome}
                 onChange={(e) => setFiltroNome(e.target.value)}
                 icon="search"
               />
             </div>
-
-            <div className="flex bg-app-muted-surface p-1 rounded-xl border border-app-border/40">
-              {STATUS_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFiltroStatus(tab.id)}
-                  className={`
-                    px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all
-                    ${filtroStatus === tab.id 
-                      ? 'bg-app-surface text-app-primary shadow-sm' 
-                      : 'text-app-muted hover:text-app-fg'}
-                  `}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
           </div>
-        </Card>
 
-        {/* Lista de suplementos */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
-            <SectionTitle icon="book">
-              Suplementos disponíveis
-              <Badge color="blue" size="sm" variant="subtle" className="ml-3">
-                {suplementosFiltrados.length}
-              </Badge>
-            </SectionTitle>
+          <div className="flex w-full flex-wrap gap-1 rounded-xl border border-white/5 bg-app-muted-surface p-1 sm:w-auto">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFiltroStatus(tab.id)}
+                className={[
+                  'rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition-colors',
+                  filtroStatus === tab.id
+                    ? 'bg-app-surface text-app-primary shadow-sm'
+                    : 'text-app-muted hover:text-app-fg',
+                ].join(' ')}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+
+          {filtrosAtivos ? (
+            <Button variant="secondary" size="sm" onClick={handleLimparFiltros} className="gap-2">
+              <Icon name="close" className="h-4 w-4" />
+              Limpar
+            </Button>
+          ) : null}
+        </PageToolbar>
+
+        <section className="space-y-3">
+          <SectionHeader
+            icon="book"
+            title="Suplementos disponíveis"
+            description="Conteúdos oficiais disponíveis para consulta e ativação."
+            count={suplementosFiltrados.length}
+          />
 
           {suplementosFiltrados.length === 0 ? (
-            <EmptyState
-              variant="card"
-              icon="book"
-              title="Nenhum suplemento encontrado"
-              description="Nenhum suplemento encontrado. Tente mudar o nome ou o filtro de status."
-              actionLabel={isAdmin ? 'Criar suplemento' : undefined}
-              onAction={isAdmin ? handleNovo : undefined}
-            />
+            <div className="rounded-xl border border-dashed border-white/10 bg-app-surface/35 px-4 py-8">
+              <EmptyState
+                variant="plain"
+                icon="book"
+                title="Nenhum suplemento encontrado"
+                description={
+                  filtrosAtivos
+                    ? 'Tente limpar a busca ou mudar o filtro de status.'
+                    : 'Nenhum suplemento disponível no momento.'
+                }
+                actionLabel={filtrosAtivos ? 'Limpar filtros' : isAdmin ? 'Criar suplemento' : undefined}
+                onAction={filtrosAtivos ? handleLimparFiltros : isAdmin ? handleNovo : undefined}
+              />
+            </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {suplementosFiltrados.map((s) => (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {suplementosFiltrados.map((suplemento) => (
                 <SuplementoCard
-                  key={s.id}
-                  suplemento={s}
-                  onOpen={() => handleOpen(s)}
-                  onAtivar={() => handleAtivar(s)}
-                  onDesativar={() => handleDesativar(s)}
-                  onEdit={isAdmin ? () => handleEdit(s) : undefined}
-                  onDelete={isAdmin ? () => handleDelete(s) : undefined}
-                  processando={processando === s.id}
+                  key={suplemento.id}
+                  suplemento={suplemento}
+                  onOpen={() => handleOpen(suplemento)}
+                  onAtivar={() => handleAtivar(suplemento)}
+                  onDesativar={() => handleDesativar(suplemento)}
+                  onEdit={isAdmin ? () => handleEdit(suplemento) : undefined}
+                  onDelete={isAdmin ? () => handleDelete(suplemento) : undefined}
+                  processando={processando === suplemento.id}
                   isAdmin={isAdmin}
                 />
               ))}
@@ -289,46 +336,37 @@ export default function SuplementosPage() {
           )}
         </section>
 
-        {/* Card de ajuda */}
-        <Card variant="glass" className="!p-8">
-          <div className="flex items-start gap-6">
-            <div className="hidden sm:flex h-16 w-16 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
-              <Icon name="info" className="h-8 w-8" />
-            </div>
-            <div className="flex-1 space-y-4">
-              <h3 className="text-2xl font-black text-app-fg">
-                O que são Suplementos?
-              </h3>
-              <p className="text-app-muted font-medium leading-relaxed max-w-2xl">
-                Suplementos são conteúdos oficiais que adicionam novas opções ao sistema Maledicência RPG: clãs, classes, trilhas, equipamentos e mais.
-              </p>
-              <div className="grid sm:grid-cols-3 gap-6">
-                {[
-                  { title: 'Conteúdo', text: 'Novas opções para criação de personagens.' },
-                  { title: 'Controle', text: 'Ative e desative quando quiser.' },
-                  { title: 'Equilíbrio', text: 'Conteúdo revisado para funcionar com o sistema base.' },
-                ].map((item) => (
-                  <div key={item.title} className="space-y-1">
-                    <p className="text-sm font-black text-app-primary uppercase tracking-widest">{item.title}</p>
-                    <p className="text-xs text-app-muted font-medium">{item.text}</p>
-                  </div>
-                ))}
+        <details className="rounded-xl border border-white/5 bg-app-surface/35 p-4 text-sm text-app-muted">
+          <summary className="cursor-pointer text-sm font-black text-app-fg">
+            O que são suplementos?
+          </summary>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {[
+              { title: 'Conteúdo', text: 'Novas opções para criação de personagens.' },
+              { title: 'Controle', text: 'Ative e desative quando quiser.' },
+              { title: 'Equilíbrio', text: 'Conteúdo revisado para funcionar com o sistema base.' },
+            ].map((item) => (
+              <div key={item.title} className="rounded-lg border border-white/5 bg-app-bg/35 p-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-primary">
+                  {item.title}
+                </p>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-app-muted">
+                  {item.text}
+                </p>
               </div>
-            </div>
+            ))}
           </div>
-        </Card>
+        </details>
       </div>
 
-      {/* Modal Admin */}
-      {isAdmin && (
+      {isAdmin ? (
         <ModalSuplementoForm
           isOpen={modalAberto}
           onClose={handleModalClose}
           suplemento={suplementoEditando}
         />
-      )}
+      ) : null}
 
-      {/* Dialog de Confirmação */}
       <ConfirmDialog
         isOpen={isOpen}
         onClose={handleClose}

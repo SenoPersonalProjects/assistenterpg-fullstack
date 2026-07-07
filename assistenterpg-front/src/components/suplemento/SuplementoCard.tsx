@@ -1,9 +1,10 @@
 'use client';
 
 import { SuplementoCatalogo } from '@/lib/api/suplementos';
-import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { Icon } from '@/components/ui/Icon';
 
 type SuplementoCardProps = {
@@ -35,64 +36,67 @@ export function SuplementoCard({
 }: SuplementoCardProps) {
   const podeAtivar = suplemento.status === 'PUBLICADO' && !suplemento.ativo;
   const podeDesativar = suplemento.ativo;
+  const podeArquivarAdmin = isAdmin && suplemento.status === 'PUBLICADO';
 
   return (
-    <Card className="flex flex-col h-full hover:border-app-primary/50 transition-colors">
-      <div className="relative h-32 -m-4 mb-4 rounded-t overflow-hidden bg-gradient-to-br from-app-primary/10 to-app-secondary/10">
+    <Card
+      variant="flat"
+      className="flex h-full flex-col overflow-hidden border border-white/5 bg-app-surface/45 p-0 transition-colors hover:border-app-primary/30"
+    >
+      <div className="relative h-20 overflow-hidden border-b border-white/5 bg-app-muted-surface">
         {suplemento.banner ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={suplemento.banner}
             alt={suplemento.nome}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <Icon name="library" className="w-12 h-12 text-app-primary/40" />
+          <div className="flex h-full items-center justify-center">
+            <Icon name="library" className="h-8 w-8 text-app-primary/45" />
           </div>
         )}
 
-        {suplemento.ativo ? (
-          <div className="absolute top-2 right-2">
+        <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
+          <Badge color={STATUS_COLOR[suplemento.status]} size="sm">
+            {suplemento.status}
+          </Badge>
+          {suplemento.ativo ? (
             <Badge color="green" size="sm">
-              <Icon name="check" className="w-3 h-3 mr-1" />
+              <Icon name="check" className="mr-1 h-3 w-3" />
               Ativo
             </Badge>
-          </div>
-        ) : null}
-
-        {isAdmin ? (
-          <div className="absolute top-2 left-2">
-            <Badge color={STATUS_COLOR[suplemento.status]} size="sm">
-              {suplemento.status}
-            </Badge>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
-      <div className="flex-1 space-y-3">
-        <div>
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h3 className="text-lg font-semibold text-app-fg line-clamp-1">
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="line-clamp-2 text-base font-black leading-snug text-app-fg">
               {suplemento.nome}
             </h3>
-            <Badge color="gray" size="sm">
-              v{suplemento.versao}
-            </Badge>
+            <p className="mt-1 truncate font-mono text-[11px] text-app-muted">{suplemento.codigo}</p>
           </div>
-          <p className="text-xs text-app-muted font-mono">{suplemento.codigo}</p>
+          <Badge color="gray" size="sm">
+            v{suplemento.versao}
+          </Badge>
         </div>
 
         {suplemento.descricao ? (
-          <p className="text-sm text-app-muted line-clamp-2 leading-relaxed">
+          <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-app-muted">
             {suplemento.descricao}
           </p>
-        ) : null}
+        ) : (
+          <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-app-muted">
+            Sem descrição.
+          </p>
+        )}
 
         {suplemento.tags && suplemento.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1">
-            {suplemento.tags.slice(0, 3).map((tag, i) => (
-              <Badge key={i} color="blue" size="sm">
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {suplemento.tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} color="blue" size="sm">
                 {tag}
               </Badge>
             ))}
@@ -104,125 +108,112 @@ export function SuplementoCard({
           </div>
         ) : null}
 
-        {!isAdmin ? (
-          <div className="flex items-center justify-between text-xs text-app-muted pt-2 border-t border-app-border">
-            <span>{suplemento.autor ? `Por ${suplemento.autor}` : 'Oficial'}</span>
-            <Badge color={STATUS_COLOR[suplemento.status]} size="sm">
-              {suplemento.status}
-            </Badge>
+        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/5 pt-3 text-xs text-app-muted">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-muted/70">
+              Fonte
+            </p>
+            <p className="truncate font-semibold text-app-fg/85">
+              {suplemento.autor || 'Oficial'}
+            </p>
           </div>
-        ) : null}
-      </div>
+          <div className="min-w-0 text-right">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-muted/70">
+              Estado
+            </p>
+            <p className="truncate font-semibold text-app-fg/85">
+              {suplemento.ativo ? 'Ativo' : 'Inativo'}
+            </p>
+          </div>
+        </div>
 
-      <div className="mt-4 pt-4 border-t border-app-border space-y-2">
-        {onOpen ? (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full"
-            onClick={onOpen}
-          >
-            <Icon name="book" className="w-4 h-4 mr-2" />
-            Ver conteúdo
-          </Button>
-        ) : null}
-
-        {isAdmin ? (
-          <>
+        <div className="mt-auto flex items-center gap-2 border-t border-white/5 pt-3">
+          {onOpen ? (
             <Button
               variant="secondary"
               size="sm"
-              className="w-full"
-              onClick={onEdit}
+              className="flex-1 gap-2"
+              onClick={onOpen}
+            >
+              <Icon name="book" className="h-4 w-4" />
+              Ver conteúdo
+            </Button>
+          ) : null}
+
+          {isAdmin ? (
+            <EntityActionsMenu
+              ariaLabel={`Ações do suplemento ${suplemento.nome}`}
+              items={[
+                {
+                  id: 'edit',
+                  label: 'Editar',
+                  icon: 'edit',
+                  hidden: !onEdit,
+                  disabled: processando,
+                  onSelect: onEdit,
+                },
+                {
+                  id: 'archive',
+                  label: 'Arquivar',
+                  icon: 'archive',
+                  hidden: !podeArquivarAdmin,
+                  disabled: processando,
+                  onSelect: onDesativar,
+                },
+                {
+                  id: 'delete',
+                  label: 'Excluir',
+                  icon: 'delete',
+                  hidden: !onDelete,
+                  destructive: true,
+                  disabled: processando,
+                  onSelect: onDelete,
+                },
+              ]}
+            />
+          ) : null}
+
+          {!isAdmin && podeAtivar ? (
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={onAtivar}
               disabled={processando}
             >
-              <Icon name="edit" className="w-4 h-4 mr-2" />
-              Editar
+              {processando ? (
+                <Icon name="loading" className="h-4 w-4 animate-spin" />
+              ) : (
+                <Icon name="check" className="h-4 w-4" />
+              )}
+              Ativar
             </Button>
+          ) : null}
 
-            <div className="flex gap-2">
-              {suplemento.status === 'PUBLICADO' ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="flex-1"
-                  onClick={onDesativar}
-                  disabled={processando}
-                >
-                  <Icon name="archive" className="w-4 h-4 mr-2" />
-                  Arquivar
-                </Button>
-              ) : null}
+          {!isAdmin && podeDesativar ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1 gap-2"
+              onClick={onDesativar}
+              disabled={processando}
+            >
+              {processando ? (
+                <Icon name="loading" className="h-4 w-4 animate-spin" />
+              ) : (
+                <Icon name="close" className="h-4 w-4" />
+              )}
+              Desativar
+            </Button>
+          ) : null}
+        </div>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-app-danger hover:bg-app-danger/10"
-                onClick={onDelete}
-                disabled={processando}
-              >
-                {processando ? (
-                  <Icon name="loading" className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Icon name="delete" className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
-            {podeAtivar ? (
-              <Button
-                variant="primary"
-                size="sm"
-                className="w-full"
-                onClick={onAtivar}
-                disabled={processando}
-              >
-                {processando ? (
-                  <>
-                    <Icon name="loading" className="w-4 h-4 mr-2 animate-spin" />
-                    Ativando...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="check" className="w-4 h-4 mr-2" />
-                    Ativar Suplemento
-                  </>
-                )}
-              </Button>
-            ) : null}
-
-            {podeDesativar ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-full"
-                onClick={onDesativar}
-                disabled={processando}
-              >
-                {processando ? (
-                  <>
-                    <Icon name="loading" className="w-4 h-4 mr-2 animate-spin" />
-                    Desativando...
-                  </>
-                ) : (
-                  <>
-                    <Icon name="close" className="w-4 h-4 mr-2" />
-                    Desativar
-                  </>
-                )}
-              </Button>
-            ) : null}
-
-            {!podeAtivar && !podeDesativar ? (
-              <div className="text-center text-sm text-app-muted py-2">
-                {suplemento.status === 'RASCUNHO' && 'Em desenvolvimento'}
-                {suplemento.status === 'ARQUIVADO' && 'Arquivado'}
-              </div>
-            ) : null}
-          </>
-        )}
+        {!isAdmin && !podeAtivar && !podeDesativar ? (
+          <p className="mt-2 text-center text-xs font-semibold text-app-muted">
+            {suplemento.status === 'RASCUNHO' && 'Em desenvolvimento'}
+            {suplemento.status === 'ARQUIVADO' && 'Arquivado'}
+          </p>
+        ) : null}
       </div>
     </Card>
   );
