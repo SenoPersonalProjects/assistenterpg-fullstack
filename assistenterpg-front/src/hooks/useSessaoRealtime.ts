@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
 import { calcularIntervaloPolling } from '@/lib/campanha/sessao-utils';
 import {
+  type AckSessaoRealtime,
   conectarSocketSessao,
-  type EventoSessaoPresenca,
   type EventoSessaoAtualizada,
+  type EventoSessaoErro,
+  type EventoSessaoJoined,
+  type EventoSessaoPresenca,
 } from '@/lib/realtime/sessao-socket';
+import {
+  erroSessaoFatal,
+  normalizarOnlineUsuarioIds,
+  snapshotPertenceSessao,
+} from '@/lib/realtime/sessao-realtime-state';
+
+const ACK_TIMEOUT_MS = 5000;
 
 type UseSessaoRealtimeParams = {
   idsValidos: boolean;
@@ -50,44 +60,108 @@ export function useSessaoRealtime({
     if (!idsValidos || !usuarioId) return;
 
     const socket = conectarSocketSessao();
+    let falhaFatal = false;
+
+    const aplicarSnapshotPresenca = (
+      evento: EventoSessaoPresenca | null | undefined,
+    ): boolean => {
+      if (!snapshotPertenceSessao(evento, campanhaId, sessaoId)) return false;
+      setOnlineUsuarioIds(normalizarOnlineUsuarioIds(evento.onlineUsuarioIds));
+      return true;
+    };
+
+    const marcarSalaConectada = (
+      evento?: EventoSessaoPresenca | null,
+    ): void => {
+      setSocketConectado(true);
+      setRealtimeStatus('online');
+      aplicarSnapshotPresenca(evento);
+    };
+
+    const tratarAckSala = (resposta?: AckSessaoRealtime | null): void => {
+      if (!resposta?.ok) {
+        if (erroSessaoFatal(resposta)) {
+          falhaFatal = true;
+          setSocketConectado(false);
+          setRealtimeStatus('polling');
+          setOnlineUsuarioIds([]);
+          socket.disconnect();
+        }
+        return;
+      }
+
+      marcarSalaConectada(resposta.presenca);
+    };
+
+    const solicitarSnapshot = () => {
+      socket.timeout(ACK_TIMEOUT_MS).emit(
+        'sessao:sync',
+        { campanhaId, sessaoId },
+        (erro: Error | null, resposta?: AckSessaoRealtime) => {
+          if (erro) return;
+          tratarAckSala(resposta);
+        },
+      );
+    };
 
     const entrarNaSala = () => {
-      socket.emit('sessao:join', { campanhaId, sessaoId });
+      socket.timeout(ACK_TIMEOUT_MS).emit(
+        'sessao:join',
+        { campanhaId, sessaoId },
+        (erro: Error | null, resposta?: AckSessaoRealtime) => {
+          if (erro) {
+            solicitarSnapshot();
+            return;
+          }
+          tratarAckSala(resposta);
+          if (resposta?.ok && !resposta.presenca) {
+            solicitarSnapshot();
+          }
+        },
+      );
     };
 
     const handleConnect = () => {
-      setSocketConectado(true);
-      setRealtimeStatus('online');
-      setOnlineUsuarioIds((anterior) =>
-        anterior.includes(usuarioId) ? anterior : [...anterior, usuarioId],
-      );
+      falhaFatal = false;
+      setSocketConectado(false);
+      setRealtimeStatus('reconnecting');
       entrarNaSala();
     };
 
     const handleDisconnect = () => {
       setSocketConectado(false);
-      setRealtimeStatus('reconnecting');
-      setOnlineUsuarioIds([]);
+      setRealtimeStatus(falhaFatal ? 'polling' : 'reconnecting');
     };
 
     const handleConnectError = () => {
       setSocketConectado(false);
       setRealtimeStatus('reconnecting');
-      setOnlineUsuarioIds([]);
     };
 
-    const handleSessaoErro = () => {
+    const handleSessaoJoined = (evento: EventoSessaoJoined) => {
+      if (!evento || evento.campanhaId !== campanhaId || evento.sessaoId !== sessaoId) {
+        return;
+      }
+      marcarSalaConectada(evento.presenca);
+      if (!evento.presenca) solicitarSnapshot();
+    };
+
+    const handleSessaoErro = (evento: EventoSessaoErro) => {
+      if (erroSessaoFatal(evento)) {
+        falhaFatal = true;
+        setSocketConectado(false);
+        setRealtimeStatus('polling');
+        setOnlineUsuarioIds([]);
+        socket.disconnect();
+        return;
+      }
+
       setSocketConectado(false);
       setRealtimeStatus('reconnecting');
-      setOnlineUsuarioIds([]);
     };
 
     const handleSessaoPresenca = (evento: EventoSessaoPresenca) => {
-      if (!evento) return;
-      if (evento.campanhaId !== campanhaId || evento.sessaoId !== sessaoId) return;
-      setOnlineUsuarioIds(
-        Array.isArray(evento.onlineUsuarioIds) ? evento.onlineUsuarioIds : [],
-      );
+      aplicarSnapshotPresenca(evento);
     };
 
     const handleSessaoAtualizada = (evento: EventoSessaoAtualizada) => {
@@ -99,7 +173,7 @@ export function useSessaoRealtime({
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('connect_error', handleConnectError);
-    socket.on('sessao:joined', () => setSocketConectado(true));
+    socket.on('sessao:joined', handleSessaoJoined);
     socket.on('sessao:erro', handleSessaoErro);
     socket.on('sessao:presenca', handleSessaoPresenca);
     socket.on('sessao:atualizada', handleSessaoAtualizada);
@@ -112,7 +186,7 @@ export function useSessaoRealtime({
       socket.off('connect', handleConnect);
       socket.off('disconnect', handleDisconnect);
       socket.off('connect_error', handleConnectError);
-      socket.off('sessao:joined');
+      socket.off('sessao:joined', handleSessaoJoined);
       socket.off('sessao:erro', handleSessaoErro);
       socket.off('sessao:presenca', handleSessaoPresenca);
       socket.off('sessao:atualizada', handleSessaoAtualizada);

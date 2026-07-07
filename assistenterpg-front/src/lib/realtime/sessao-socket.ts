@@ -15,6 +15,16 @@ export type EventoSessaoAtualizadaTipo =
   | 'SESSAO_EVENTO_DESFEITO'
   | 'HABILIDADE_USADA'
   | 'HABILIDADE_SUSTENTADA_ENCERRADA'
+  | 'CONDICAO_APLICADA'
+  | 'CONDICAO_REMOVIDA'
+  | 'RECURSO_AJUSTADO'
+  | 'REGRA_OPCIONAL_ATUALIZADA'
+  | 'INSPIRACAO_AJUSTADA'
+  | 'INSPIRACAO_GASTA'
+  | 'ENCONTRO_SOCIAL_ATUALIZADO'
+  | 'ESCALADA_DADOS_ATUALIZADA'
+  | 'INICIATIVA_ALTERNADA_ATUALIZADA'
+  | 'CONSUMIVEL_USADO'
   | 'CONDICAO_RECUPERACAO_AUTOMATICA';
 
 export type EventoSessaoAtualizada = {
@@ -29,6 +39,28 @@ export type EventoSessaoPresenca = {
   sessaoId: number;
   onlineUsuarioIds: number[];
   em: string;
+};
+
+export type EventoSessaoJoined = {
+  campanhaId: number;
+  sessaoId: number;
+  presenca?: EventoSessaoPresenca | null;
+};
+
+export type EventoSessaoErroCode =
+  | 'ACESSO_NEGADO'
+  | 'JOIN_INVALIDO'
+  | 'AUTH_INVALIDA'
+  | 'SESSAO_INVALIDA';
+
+export type EventoSessaoErro = {
+  code?: EventoSessaoErroCode | string;
+};
+
+export type AckSessaoRealtime = {
+  ok: boolean;
+  code?: EventoSessaoErroCode | string;
+  presenca?: EventoSessaoPresenca | null;
 };
 
 export function conectarSocketSessao(): Socket {

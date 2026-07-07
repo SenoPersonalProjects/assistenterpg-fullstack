@@ -77,6 +77,12 @@ type EventoSessaoPresenca = {
   em: string;
 };
 
+type EventoSessaoJoined = {
+  campanhaId: number;
+  sessaoId: number;
+  presenca: EventoSessaoPresenca;
+};
+
 @WebSocketGateway({
   namespace: '/sessoes',
   cors: createCorsOptions(),
@@ -161,7 +167,7 @@ export class SessaoGateway
       client.emit('sessao:erro', {
         code: 'JOIN_INVALIDO',
       });
-      return { ok: false };
+      return { ok: false, code: 'JOIN_INVALIDO' };
     }
 
     try {
@@ -179,14 +185,61 @@ export class SessaoGateway
         usuarioId,
         client.id,
       );
-      client.emit('sessao:joined', { campanhaId, sessaoId });
+      const presenca = this.criarSnapshotPresencaPorChave(chaveSala);
+      if (!presenca) return { ok: false };
+
+      const joined: EventoSessaoJoined = { campanhaId, sessaoId, presenca };
+      client.emit('sessao:joined', joined);
       this.emitirPresencaPorChave(chaveSala);
-      return { ok: true };
+      return { ok: true, presenca };
     } catch {
       client.emit('sessao:erro', {
         code: 'ACESSO_NEGADO',
       });
-      return { ok: false };
+      return { ok: false, code: 'ACESSO_NEGADO' };
+    }
+  }
+
+  @SubscribeMessage('sessao:sync')
+  async handleSyncSala(
+    @ConnectedSocket() client: SocketAutenticado,
+    @MessageBody() body: { campanhaId?: number; sessaoId?: number },
+  ) {
+    const campanhaId = Number(body?.campanhaId);
+    const sessaoId = Number(body?.sessaoId);
+    const identidade = await this.revalidarEvento(client);
+    if (!identidade) return { ok: false };
+    const usuarioId = identidade.usuarioId;
+
+    if (!Number.isInteger(campanhaId) || !Number.isInteger(sessaoId)) {
+      client.emit('sessao:erro', {
+        code: 'JOIN_INVALIDO',
+      });
+      return { ok: false, code: 'JOIN_INVALIDO' };
+    }
+
+    try {
+      await this.sessaoService.validarAcessoSessao(
+        campanhaId,
+        sessaoId,
+        usuarioId,
+      );
+      const chaveSala = this.chaveSala(campanhaId, sessaoId);
+      await client.join(chaveSala);
+      this.registrarPresenca(
+        chaveSala,
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        client.id,
+      );
+      const presenca = this.emitirPresencaPorChave(chaveSala);
+      return { ok: true, presenca };
+    } catch {
+      client.emit('sessao:erro', {
+        code: 'ACESSO_NEGADO',
+      });
+      return { ok: false, code: 'ACESSO_NEGADO' };
     }
   }
 
@@ -272,25 +325,35 @@ export class SessaoGateway
     this.salasPorSocket.delete(socketId);
   }
 
-  private emitirPresencaPorChave(chaveSala: string): void {
-    if (!this.server) return;
-
+  private criarSnapshotPresencaPorChave(
+    chaveSala: string,
+  ): EventoSessaoPresenca | null {
     const meta = this.metaPorSala.get(chaveSala);
-    if (!meta) return;
+    if (!meta) return null;
 
     const usuariosSala = this.usuariosPorSala.get(chaveSala);
     const onlineUsuarioIds = usuariosSala
       ? Array.from(usuariosSala.keys()).sort((a, b) => a - b)
       : [];
 
-    const payload: EventoSessaoPresenca = {
+    return {
       campanhaId: meta.campanhaId,
       sessaoId: meta.sessaoId,
       onlineUsuarioIds,
       em: new Date().toISOString(),
     };
+  }
+
+  private emitirPresencaPorChave(
+    chaveSala: string,
+  ): EventoSessaoPresenca | null {
+    const payload = this.criarSnapshotPresencaPorChave(chaveSala);
+    if (!payload) return null;
+
+    if (!this.server) return payload;
 
     this.server.to(chaveSala).emit('sessao:presenca', payload);
+    return payload;
   }
 
   private obterUsuarioId(client: Socket): number | undefined {
@@ -386,6 +449,7 @@ export class SessaoGateway
 
   private desconectarSessaoInvalida(client: SocketAutenticado): void {
     this.clientesAutenticados.delete(client.id);
+    this.removerPresencaSocket(client);
     this.logger.warn(`Socket desconectado por sessão inválida: ${client.id}`);
     client.disconnect(true);
   }
