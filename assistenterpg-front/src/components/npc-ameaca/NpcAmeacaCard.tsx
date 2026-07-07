@@ -4,6 +4,7 @@ import type { NpcAmeacaResumo } from '@/lib/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { Icon } from '@/components/ui/Icon';
 import {
   corBadgeFichaTipo,
@@ -30,56 +31,87 @@ export function NpcAmeacaCard({
   deleting = false,
 }: NpcAmeacaCardProps) {
   return (
-    <Card className="library-item-card space-y-3 border transition-all duration-200 hover:-translate-y-0.5 hover:border-app-secondary/40">
-      <div className="flex items-start justify-between gap-2">
+    <Card
+      variant="flat"
+      className="flex h-full flex-col gap-3 border-white/5 bg-app-surface/45 !p-4 shadow-sm shadow-black/5 hover:border-app-primary/25 hover:bg-app-surface/70"
+    >
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-app-fg">{npcAmeaca.nome}</h3>
-          <p className="text-xs text-app-muted">
-            {labelTipoNpc(npcAmeaca.tipo)} | Tamanho {labelTamanhoNpc(npcAmeaca.tamanho)}
+          <h3 className="truncate text-base font-black text-app-fg">
+            {npcAmeaca.nome}
+          </h3>
+          <p className="mt-1 truncate text-xs font-semibold text-app-muted">
+            {labelTipoNpc(npcAmeaca.tipo)} / Tamanho {labelTamanhoNpc(npcAmeaca.tamanho)}
           </p>
         </div>
-        <Badge color={corBadgeFichaTipo(npcAmeaca.fichaTipo)} size="sm">
-          {labelFichaTipo(npcAmeaca.fichaTipo)}
-        </Badge>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <Badge color={corBadgeFichaTipo(npcAmeaca.fichaTipo)} size="sm" variant="subtle">
+            {labelFichaTipo(npcAmeaca.fichaTipo)}
+          </Badge>
+          <EntityActionsMenu
+            ariaLabel={`Ações da ficha ${npcAmeaca.nome}`}
+            items={[
+              {
+                id: 'edit',
+                label: 'Editar',
+                icon: 'edit',
+                onSelect: onEdit,
+                disabled: deleting,
+              },
+              {
+                id: 'export',
+                label: 'Exportar JSON',
+                icon: 'download',
+                onSelect: onExport,
+                hidden: !onExport,
+                disabled: deleting,
+              },
+              {
+                id: 'delete',
+                label: deleting ? 'Excluindo...' : 'Excluir',
+                icon: 'delete',
+                onSelect: onDelete,
+                destructive: true,
+                disabled: deleting,
+              },
+            ]}
+          />
+        </div>
       </div>
 
-      {npcAmeaca.descricao && (
-        <p className="line-clamp-2 text-sm text-app-muted">{npcAmeaca.descricao}</p>
+      {npcAmeaca.descricao ? (
+        <p className="line-clamp-2 text-sm leading-relaxed text-app-muted">
+          {npcAmeaca.descricao}
+        </p>
+      ) : (
+        <p className="text-sm leading-relaxed text-app-muted">Sem descrição informada.</p>
       )}
 
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className="rounded-xl border border-app-border/60 bg-app-muted-surface/70 px-2 py-1">
-          <span className="text-app-muted">VD</span>
-          <p className="font-semibold text-app-fg">{npcAmeaca.vd}</p>
-        </div>
-        <div className="rounded-xl border border-app-border/60 bg-app-muted-surface/70 px-2 py-1">
-          <span className="text-app-muted">Defesa</span>
-          <p className="font-semibold text-app-fg">{npcAmeaca.defesa}</p>
-        </div>
-        <div className="rounded-xl border border-app-border/60 bg-app-muted-surface/70 px-2 py-1">
-          <span className="text-app-muted">PV</span>
-          <p className="font-semibold text-app-fg">{npcAmeaca.pontosVida}</p>
-        </div>
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: 'VD', value: npcAmeaca.vd },
+          { label: 'Defesa', value: npcAmeaca.defesa },
+          { label: 'PV', value: npcAmeaca.pontosVida },
+        ].map((metric) => (
+          <div
+            key={metric.label}
+            className="rounded-xl border border-white/5 bg-app-bg/45 px-3 py-2"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-muted">
+              {metric.label}
+            </p>
+            <p className="mt-1 truncate text-xl font-black leading-none text-app-fg">
+              {metric.value}
+            </p>
+          </div>
+        ))}
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-app-border/60 pt-3">
-        {onExport ? (
-          <Button type="button" variant="secondary" size="sm" onClick={onExport} className="library-ghost-button">
-            <Icon name="download" className="w-4 h-4 mr-1" />
-            JSON
-          </Button>
-        ) : null}
-        <Button type="button" variant="secondary" size="sm" onClick={onView} className="library-ghost-button">
-          <Icon name="eye" className="w-4 h-4 mr-1" />
-          Ver
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={onEdit} className="library-ghost-button">
-          <Icon name="edit" className="w-4 h-4 mr-1" />
-          Editar
-        </Button>
-        <Button type="button" size="sm" onClick={onDelete} disabled={deleting} className="!border-app-danger/20 !bg-app-danger/10 !text-app-danger hover:!bg-app-danger/20">
-          <Icon name="delete" className="w-4 h-4 mr-1" />
-          {deleting ? 'Excluindo...' : 'Excluir'}
+      <div className="mt-auto pt-1">
+        <Button type="button" size="sm" onClick={onView} className="w-full gap-2">
+          <Icon name="eye" className="h-4 w-4" />
+          Ver ficha
         </Button>
       </div>
     </Card>

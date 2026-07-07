@@ -11,9 +11,9 @@ import {
   apiDeleteNpcAmeaca,
   apiExportarGrupoNpcAmeaca,
   apiExportarNpcAmeaca,
+  apiGetGuiaImportacaoNpcAmeacaJson,
   apiGetMeusNpcsAmeacas,
   apiGetNpcAmeaca,
-  apiGetGuiaImportacaoNpcAmeacaJson,
   apiImportarNpcAmeacaJson,
   apiListarGruposNpcAmeaca,
   apiUpdateGrupoNpcAmeaca,
@@ -25,13 +25,11 @@ import type {
   NpcAmeacaResumo,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
- UserErrorState } from '@/lib/types';
+  UserErrorState,
+} from '@/lib/types';
 import { criarErroUsuario } from '@/lib/api/error-handler';
 import { JsonImportModal } from '@/components/import-export/JsonImportModal';
 import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
-import { LibraryPageHeader } from '@/components/library/LibraryPageHeader';
-import { LibrarySectionHeader } from '@/components/library/LibrarySectionHeader';
-import { LibraryStatsBar } from '@/components/library/LibraryStatsBar';
 import { NpcAmeacaCard } from '@/components/npc-ameaca/NpcAmeacaCard';
 import { NpcAmeacaPreviewModal } from '@/components/npc-ameaca/NpcAmeacaPreviewModal';
 import { fichaTipoOptions, tipoNpcOptions } from '@/components/npc-ameaca/npcAmeacaUi';
@@ -39,12 +37,17 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Loading } from '@/components/ui/Loading';
 import { Modal } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Select } from '@/components/ui/Select';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 
 function baixarJsonArquivo(conteudo: unknown, arquivo: string) {
   const blob = new Blob([JSON.stringify(conteudo, null, 2)], {
@@ -152,6 +155,39 @@ export default function NpcsAmeacasPage() {
     return filtros;
   }, [filtroFicha, filtroGrupoId, filtroNome, filtroTipo, grupos]);
 
+  const statsItems: StatsStripItem[] = [
+    {
+      id: 'total',
+      label: 'Total',
+      value: totalItens,
+      icon: 'curse',
+      tone: 'primary',
+    },
+    {
+      id: 'grupos',
+      label: 'Grupos',
+      value: grupos.length,
+      icon: 'folder',
+      tone: 'default',
+    },
+    {
+      id: 'npcs',
+      label: 'NPCs',
+      value: resumoTipos.npcs,
+      icon: 'user',
+      tone: 'success',
+      helper: 'nesta página',
+    },
+    {
+      id: 'ameacas',
+      label: 'Ameaças',
+      value: resumoTipos.ameacas,
+      icon: 'curse',
+      tone: 'warning',
+      helper: 'nesta página',
+    },
+  ];
+
   const carregar = useCallback(async () => {
     try {
       setLoading(true);
@@ -214,7 +250,7 @@ export default function NpcsAmeacasPage() {
   function handleDelete(item: NpcAmeacaResumo) {
     confirm({
       title: `Excluir "${item.nome}"?`,
-      description: 'Esta ação e irreversivel.',
+      description: 'Esta ação é irreversível.',
       confirmLabel: 'Excluir',
       cancelLabel: 'Cancelar',
       variant: 'danger',
@@ -295,6 +331,7 @@ export default function NpcsAmeacasPage() {
 
   function handleLimparFiltros() {
     setFiltroNome('');
+    filtroNomeRef.current = '';
     setFiltroTipo('TODOS');
     setFiltroFicha('TODOS');
     setFiltroGrupoId('TODOS');
@@ -395,7 +432,7 @@ export default function NpcsAmeacasPage() {
   function handleExcluirGrupo(grupo: NpcAmeacaGrupoResumo) {
     confirm({
       title: `Excluir grupo "${grupo.nome}"?`,
-      description: 'As fichas continuam existindo; apenas o grupo sera removido.',
+      description: 'As fichas continuam existindo; apenas o grupo será removido.',
       confirmLabel: 'Excluir grupo',
       cancelLabel: 'Cancelar',
       variant: 'danger',
@@ -418,9 +455,9 @@ export default function NpcsAmeacasPage() {
     });
   }
 
-  if (authLoading || loading) {
+  if (authLoading || (loading && lista.length === 0 && totalItens === 0)) {
     return (
-      <div className="library-page-shell min-h-screen p-6">
+      <div className="min-h-full bg-app-bg p-6">
         <Loading message="Carregando fichas..." className="text-app-fg" />
       </div>
     );
@@ -428,62 +465,63 @@ export default function NpcsAmeacasPage() {
 
   if (!usuario) return null;
 
+  const mostrarSecaoGrupos = grupos.length > 0 || totalItens > 0;
+
   return (
     <>
-      <main className="library-page-shell min-h-screen p-6">
+      <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-6">
-          <LibraryPageHeader
+          <PageHeader
+            eyebrow="Biblioteca do mestre"
             icon="curse"
             title="NPCs e Ameaças"
-            description="Gerencie fichas, organize grupos privados e importe ou exporte em JSON."
+            description="Prepare fichas, grupos privados e exportações para usar antes ou durante a sessão."
             actions={
               <>
                 <Button
-                  variant="secondary"
-                  onClick={() => setModalImportacaoAberto(true)}
-                  className="library-ghost-button"
-                >
-                  <Icon name="upload" className="mr-2 h-4 w-4" />
-                  Importar JSON
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setJsonGuideOpen(true)}
-                  className="library-ghost-button"
-                >
-                  <Icon name="info" className="mr-2 h-4 w-4" />
-                  Ajuda JSON
-                </Button>
-                <Button
                   onClick={() => router.push('/npcs-ameacas/novo')}
-                  className="library-primary-button"
+                  className="w-full gap-2 sm:w-auto"
                 >
-                  <Icon name="add" className="mr-2 h-4 w-4" />
-                  Novo NPC
+                  <Icon name="add" className="h-4 w-4" />
+                  Criar NPC/Ameaça
                 </Button>
+                <EntityActionsMenu
+                  ariaLabel="Ações de NPCs e ameaças"
+                  items={[
+                    {
+                      id: 'import',
+                      label: 'Importar JSON',
+                      icon: 'upload',
+                      onSelect: () => setModalImportacaoAberto(true),
+                    },
+                    {
+                      id: 'guide',
+                      label: 'Ajuda JSON',
+                      icon: 'info',
+                      onSelect: () => setJsonGuideOpen(true),
+                    },
+                    {
+                      id: 'group',
+                      label: 'Criar grupo',
+                      icon: 'folder',
+                      onSelect: abrirModalNovoGrupo,
+                    },
+                  ]}
+                />
               </>
             }
           />
 
           {erro ? <ErrorAlert message={erro} /> : null}
 
-          <LibraryStatsBar
-            items={[
-              { label: 'Total', value: totalItens },
-              { label: 'Aliados na pagina', value: resumoTipos.npcs, tone: 'success' },
-              { label: 'Ameaças na página', value: resumoTipos.ameacas, tone: 'warning' },
-              { label: 'Grupos', value: grupos.length, tone: 'muted' },
-            ]}
-            trailingText={`${lista.length} fichas carregadas nesta pagina`}
-          />
+          <StatsStrip items={statsItems} />
 
-          <div className="library-filters-panel">
-            <div className="flex flex-col gap-4 md:flex-row">
+          <PageToolbar>
+            <div className="grid w-full gap-3 md:grid-cols-[minmax(12rem,1fr)_11rem_12rem_13rem_auto] md:items-end">
               <Input
                 value={filtroNome}
                 onChange={(e) => setFiltroNome(e.target.value)}
                 placeholder="Buscar por nome..."
-                className="flex-1"
                 icon="search"
                 onKeyDown={(e) => e.key === 'Enter' && handleAplicarFiltros()}
               />
@@ -491,7 +529,6 @@ export default function NpcsAmeacasPage() {
               <Select
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value as TipoNpcAmeaca | 'TODOS')}
-                className="md:w-48"
               >
                 <option value="TODOS">Todos os tipos</option>
                 {tipoNpcOptions.map((option) => (
@@ -504,7 +541,6 @@ export default function NpcsAmeacasPage() {
               <Select
                 value={filtroFicha}
                 onChange={(e) => setFiltroFicha(e.target.value as TipoFichaNpcAmeaca | 'TODOS')}
-                className="md:w-48"
               >
                 <option value="TODOS">Aliados ou ameaças</option>
                 {fichaTipoOptions.map((option) => (
@@ -520,7 +556,6 @@ export default function NpcsAmeacasPage() {
                   const value = e.target.value;
                   setFiltroGrupoId(value === 'TODOS' ? 'TODOS' : Number(value));
                 }}
-                className="md:w-56"
               >
                 <option value="TODOS">Todos os grupos</option>
                 {grupos.map((grupo) => (
@@ -530,187 +565,199 @@ export default function NpcsAmeacasPage() {
                 ))}
               </Select>
 
-              <Button onClick={handleAplicarFiltros} className="library-primary-button">
-                <Icon name="search" className="mr-2 h-4 w-4" />
+              <Button onClick={handleAplicarFiltros} className="gap-2">
+                <Icon name="search" className="h-4 w-4" />
                 Buscar
               </Button>
             </div>
 
             {filtrosAtivos.length > 0 ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-app-border/60 pt-3">
+              <div className="flex w-full flex-wrap items-center gap-2 border-t border-white/5 pt-3">
                 {filtrosAtivos.map((filtro) => (
-                  <span key={filtro} className="library-filter-chip">
+                  <span
+                    key={filtro}
+                    className="rounded-full border border-white/10 bg-app-muted-surface px-2.5 py-1 text-xs font-bold text-app-muted"
+                  >
                     {filtro}
                   </span>
                 ))}
                 <Button
-                  variant="ghost"
+                  variant="secondary"
                   size="xs"
                   onClick={handleLimparFiltros}
-                  className="!border-transparent !text-app-muted hover:!bg-app-muted-surface/70"
+                  className="gap-1"
                 >
-                  <Icon name="close" className="mr-1 h-3 w-3" />
+                  <Icon name="close" className="h-3 w-3" />
                   Limpar filtros
                 </Button>
               </div>
             ) : null}
-          </div>
+          </PageToolbar>
 
-          <section className="space-y-3">
-            <LibrarySectionHeader
-              title="Grupos"
-              description="Pacotes privados de fichas para exportar e reaproveitar."
-              actions={
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setModalImportacaoAberto(true)}
-                    className="library-ghost-button"
-                  >
-                    <Icon name="upload" className="mr-2 h-4 w-4" />
-                    Importar JSON
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setJsonGuideOpen(true)}
-                    className="library-ghost-button"
-                  >
-                    <Icon name="info" className="mr-2 h-4 w-4" />
-                    Ajuda JSON
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={abrirModalNovoGrupo}
-                    className="library-ghost-button"
-                  >
-                    <Icon name="add" className="mr-2 h-4 w-4" />
+          {mostrarSecaoGrupos ? (
+            <section className="space-y-4">
+              <SectionHeader
+                icon="folder"
+                title="Grupos"
+                count={grupos.length}
+                description="Pacotes privados de fichas para filtrar, exportar e reaproveitar."
+                action={
+                  <Button variant="secondary" size="sm" onClick={abrirModalNovoGrupo} className="gap-2">
+                    <Icon name="add" className="h-4 w-4" />
                     Novo grupo
                   </Button>
-                </>
-              }
-            />
+                }
+              />
 
-            {grupos.length === 0 ? (
-              <div className="library-panel rounded-2xl border border-dashed border-app-border/60 px-4 py-10">
+              {grupos.length === 0 ? (
                 <EmptyState
-                  variant="plain"
+                  variant="session"
+                  size="sm"
                   icon="folder"
                   title="Nenhum grupo criado"
-                  description="Crie grupos para organizar suas fichas em pacotes reutilizaveis."
-                  actionLabel="Criar grupo"
-                  onAction={abrirModalNovoGrupo}
+                  description="Crie grupos para preparar pacotes de fichas por missão, cena ou arco."
+                  action={
+                    <Button variant="secondary" size="sm" onClick={abrirModalNovoGrupo} className="gap-2">
+                      <Icon name="add" className="h-4 w-4" />
+                      Criar grupo
+                    </Button>
+                  }
                 />
-              </div>
-            ) : (
-              <div className="library-group-rail no-scrollbar">
-                {grupos.map((grupo) => (
-                  <div key={grupo.id} className="library-group-card space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-base font-semibold text-app-fg">{grupo.nome}</h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-app-muted">
-                          {grupo.descricao || 'Sem descrição.'}
-                        </p>
-                      </div>
-                      <span className="library-filter-chip !px-2.5 !py-1">{grupo.quantidadeItens}</span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5">
-                      {grupo.npcAmeacaIds.slice(0, 3).map((npcId) => {
-                        const npc = todosNpcs.find((item) => item.id === npcId);
-                        return (
-                          <span key={npcId} className="library-mini-chip">
-                            {npc?.nome ?? `#${npcId}`}
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {grupos.map((grupo) => {
+                    const processando = processandoGrupoId === grupo.id;
+                    return (
+                      <div
+                        key={grupo.id}
+                        className="flex min-w-0 flex-col gap-3 rounded-xl border border-white/5 bg-app-surface/45 p-4 shadow-sm shadow-black/5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="truncate text-base font-black text-app-fg">
+                              {grupo.nome}
+                            </h3>
+                            <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-app-muted">
+                              {grupo.descricao || 'Sem descrição.'}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full border border-white/10 bg-app-muted-surface px-2.5 py-1 text-xs font-black text-app-muted">
+                            {grupo.quantidadeItens}
                           </span>
-                        );
-                      })}
-                      {grupo.npcAmeacaIds.length > 3 ? (
-                        <span className="library-mini-chip">
-                          +{grupo.npcAmeacaIds.length - 3}
-                        </span>
-                      ) : null}
-                    </div>
+                        </div>
 
-                    <div className="flex flex-wrap items-center gap-2 border-t border-app-border/60 pt-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFiltroGrupoId(grupo.id)}
-                        className="library-ghost-button"
-                      >
-                        <Icon name="filter" className="mr-1 h-4 w-4" />
-                        Filtrar
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => void handleExportarGrupo(grupo)}
-                        disabled={processandoGrupoId === grupo.id}
-                        className="library-ghost-button"
-                      >
-                        <Icon name="download" className="mr-1 h-4 w-4" />
-                        JSON
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => abrirModalEditarGrupo(grupo)}
-                        disabled={processandoGrupoId === grupo.id}
-                        className="library-ghost-button"
-                      >
-                        <Icon name="edit" className="mr-1 h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-auto text-app-danger hover:bg-app-danger/10"
-                        onClick={() => handleExcluirGrupo(grupo)}
-                        disabled={processandoGrupoId === grupo.id}
-                      >
-                        <Icon name="delete" className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+                        <div className="flex flex-wrap gap-1.5">
+                          {grupo.npcAmeacaIds.slice(0, 3).map((npcId) => {
+                            const npc = todosNpcs.find((item) => item.id === npcId);
+                            return (
+                              <span
+                                key={npcId}
+                                className="max-w-full truncate rounded-lg border border-white/5 bg-app-bg/45 px-2 py-1 text-xs font-semibold text-app-muted"
+                              >
+                                {npc?.nome ?? `#${npcId}`}
+                              </span>
+                            );
+                          })}
+                          {grupo.npcAmeacaIds.length > 3 ? (
+                            <span className="rounded-lg border border-white/5 bg-app-bg/45 px-2 py-1 text-xs font-semibold text-app-muted">
+                              +{grupo.npcAmeacaIds.length - 3}
+                            </span>
+                          ) : null}
+                        </div>
 
-          <section className="space-y-3">
-            <LibrarySectionHeader
+                        <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setFiltroGrupoId(grupo.id);
+                              setPage(1);
+                            }}
+                            className="gap-2"
+                          >
+                            <Icon name="filter" className="h-4 w-4" />
+                            Filtrar
+                          </Button>
+                          <EntityActionsMenu
+                            ariaLabel={`Ações do grupo ${grupo.nome}`}
+                            items={[
+                              {
+                                id: 'export',
+                                label: 'Exportar JSON',
+                                icon: 'download',
+                                onSelect: () => void handleExportarGrupo(grupo),
+                                disabled: processando,
+                              },
+                              {
+                                id: 'edit',
+                                label: 'Editar',
+                                icon: 'edit',
+                                onSelect: () => abrirModalEditarGrupo(grupo),
+                                disabled: processando,
+                              },
+                              {
+                                id: 'delete',
+                                label: 'Excluir',
+                                icon: 'delete',
+                                onSelect: () => handleExcluirGrupo(grupo),
+                                destructive: true,
+                                disabled: processando,
+                              },
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          ) : null}
+
+          <section className="space-y-4">
+            <SectionHeader
+              icon="curse"
               title="Fichas"
-              meta={
-                <span className="text-xs text-app-muted/70">
-                  {filtroGrupoId === 'TODOS'
-                    ? `${listaExibida.length} de ${totalItens}`
-                    : `${listaExibida.length} no grupo selecionado`}
-                </span>
+              count={
+                filtroGrupoId === 'TODOS'
+                  ? `${listaExibida.length} de ${totalItens}`
+                  : `${listaExibida.length} no grupo`
               }
+              description="NPCs e ameaças prontos para consulta, edição ou sessão."
             />
 
             {listaExibida.length === 0 ? (
-              <div className="library-panel rounded-2xl border border-dashed border-app-border/60 px-4 py-14">
-                <EmptyState
-                  variant="plain"
-                  icon="curse"
-                  title="Nenhuma ficha encontrada"
-                  description={
-                    filtrosAtivos.length > 0
-                      ? 'Tente ajustar os filtros de busca.'
-                      : 'Crie sua primeira ficha de aliado ou ameaça.'
-                  }
-                  actionLabel={filtrosAtivos.length > 0 ? 'Limpar filtros' : 'Criar ficha'}
-                  onAction={
-                    filtrosAtivos.length > 0
-                      ? handleLimparFiltros
-                      : () => router.push('/npcs-ameacas/novo')
-                  }
-                />
-              </div>
+              <EmptyState
+                variant="session"
+                size="sm"
+                icon={filtrosAtivos.length > 0 ? 'search' : 'curse'}
+                title={
+                  filtrosAtivos.length > 0
+                    ? 'Nenhuma ficha encontrada'
+                    : 'Nenhuma ficha criada'
+                }
+                description={
+                  filtrosAtivos.length > 0
+                    ? 'Tente ajustar os filtros de busca.'
+                    : 'Crie sua primeira ficha de aliado ou ameaça para montar encontros com mais rapidez.'
+                }
+                action={
+                  filtrosAtivos.length > 0 ? (
+                    <Button variant="secondary" size="sm" onClick={handleLimparFiltros} className="gap-2">
+                      <Icon name="close" className="h-4 w-4" />
+                      Limpar filtros
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => router.push('/npcs-ameacas/novo')} className="gap-2">
+                      <Icon name="add" className="h-4 w-4" />
+                      Criar ficha
+                    </Button>
+                  )
+                }
+              />
             ) : (
               <>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {listaExibida.map((item) => (
                     <NpcAmeacaCard
                       key={item.id}
@@ -725,28 +772,28 @@ export default function NpcsAmeacasPage() {
                 </div>
 
                 {filtroGrupoId === 'TODOS' && totalPages > 1 ? (
-                  <div className="library-pagination pt-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={page === 1}
-                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                      className="library-ghost-button"
-                    >
-                      <Icon name="chevron-left" className="h-4 w-4" />
-                    </Button>
-                    <span className="px-4 text-sm text-app-muted">
-                      Pagina {page} de {totalPages}
-                    </span>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={page === totalPages}
-                      onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                      className="library-ghost-button"
-                    >
-                      <Icon name="chevron-right" className="h-4 w-4" />
-                    </Button>
+                  <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-app-surface/45 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm font-bold text-app-muted">
+                      Página {page} de {totalPages}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={page === 1}
+                        onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                      >
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={page === totalPages}
+                        onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
                   </div>
                 ) : null}
               </>
@@ -820,7 +867,7 @@ export default function NpcsAmeacasPage() {
             label="Nome do grupo"
             value={grupoNome}
             onChange={(e) => setGrupoNome(e.target.value)}
-            placeholder="Ex.: Inimigos da missao"
+            placeholder="Ex.: Inimigos da missão"
           />
           <Input
             label="Descrição"
