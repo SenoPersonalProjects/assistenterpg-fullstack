@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   Prisma,
   TamanhoNpcAmeaca,
@@ -234,6 +234,7 @@ type AcaoAjusteTurnoSessao = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
 type ProcessamentoEfeitosTurnoSessao = {
   eventoId: number;
+  campanhaId: number;
   sessaoId: number;
   cenaId: number;
   rodadaAnterior: number;
@@ -499,6 +500,8 @@ const LIMITE_PRODUCAO_KOKUSEN = 5;
 
 @Injectable()
 export class SessaoService {
+  private readonly logger = new Logger(SessaoService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async listarSessoesCampanha(campanhaId: number, usuarioId: number) {
@@ -6117,6 +6120,7 @@ export class SessaoService {
 
     return {
       eventoId: evento.id,
+      campanhaId: args.campanhaId,
       sessaoId: args.sessao.id,
       cenaId: args.cenaId,
       rodadaAnterior,
@@ -7979,6 +7983,7 @@ export class SessaoService {
 
       return {
         eventoId: evento.id,
+        campanhaId,
         sessaoId,
         cenaId: cenaAtual.id,
         rodadaAnterior: sessao.rodadaAtual,
@@ -8065,6 +8070,20 @@ export class SessaoService {
       );
     } catch (error) {
       await this.atualizarStatusEfeitosAutomaticosTurno(processamento, 'ERRO');
+      this.logger.error(
+        `Falha ao processar efeitos automáticos do turno: ${JSON.stringify({
+          eventoId: processamento.eventoId,
+          campanhaId: processamento.campanhaId,
+          sessaoId: processamento.sessaoId,
+          cenaId: processamento.cenaId,
+          acao: processamento.acao,
+          rodadaAnterior: processamento.rodadaAnterior,
+          rodadaNova: processamento.rodadaNova,
+          cobrarSustentacoes: processamento.cobrarSustentacoes,
+          processarCondicoes: processamento.processarCondicoes,
+        })}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }

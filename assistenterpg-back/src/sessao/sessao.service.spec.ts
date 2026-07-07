@@ -58,6 +58,45 @@ describe('SessaoService', () => {
     service = module.get<SessaoService>(SessaoService);
   });
 
+  it('loga contexto quando o pós-processamento de efeitos automáticos falha', async () => {
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    const falha = new Error('falha ao cobrar sustentacoes');
+    const loggerError = jest
+      .spyOn((service as any).logger, 'error')
+      .mockImplementation(() => undefined);
+    jest
+      .spyOn(service as any, 'cobrarSustentacoesAtivasRodadaTx')
+      .mockRejectedValue(falha);
+
+    await expect(
+      (service as any).processarEfeitosAutomaticosTurnoSessao({
+        eventoId: 123,
+        campanhaId: 7,
+        sessaoId: 21,
+        cenaId: 5,
+        rodadaAnterior: 2,
+        rodadaNova: 3,
+        acao: 'AVANCAR',
+        participantesTurnoNovos: [],
+        processarCondicoes: false,
+        cobrarSustentacoes: true,
+      }),
+    ).rejects.toThrow('falha ao cobrar sustentacoes');
+
+    const statusAtualizados = eventoEfeitos.update.mock.calls.map(
+      ([call]) => call.data.dados.efeitosAutomaticos.status,
+    );
+    expect(statusAtualizados).toEqual(['EM_PROCESSAMENTO', 'ERRO']);
+    expect(loggerError).toHaveBeenCalledWith(
+      expect.stringContaining('"eventoId":123'),
+      falha.stack,
+    );
+    expect(loggerError).toHaveBeenCalledWith(
+      expect.stringContaining('"campanhaId":7'),
+      falha.stack,
+    );
+  });
+
   it('deve bloquear avancar turno quando cena atual e LIVRE', async () => {
     prisma.campanha.findUnique.mockResolvedValue({
       id: 7,
