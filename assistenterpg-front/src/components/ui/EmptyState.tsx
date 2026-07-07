@@ -27,6 +27,7 @@ type EmptyStateProps = {
   title?: string;
   description: string;
   className?: string;
+  action?: ReactNode;
   actionLabel?: string;
   onAction?: () => void;
   variant?: 'plain' | 'card' | 'session';
@@ -40,6 +41,7 @@ export function EmptyState({
   title,
   description,
   className = '',
+  action,
   actionLabel,
   onAction,
   variant = 'plain',
@@ -104,12 +106,12 @@ export function EmptyState({
       {/* Conteúdo adicional */}
       {children && <div className="mb-6">{children}</div>}
 
-      {/* Botão de ação */}
-      {actionLabel && onAction && (
-        <Button size="md" variant="primary" onClick={onAction} className="font-black px-8">
-          {actionLabel}
-        </Button>
-      )}
+      {action ??
+        (actionLabel && onAction ? (
+          <Button size="md" variant="primary" onClick={onAction} className="font-black px-8">
+            {actionLabel}
+          </Button>
+        ) : null)}
     </div>
   );
 }

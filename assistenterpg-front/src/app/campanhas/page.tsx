@@ -17,26 +17,20 @@ import {
   CampaignPreviewModal,
   type CampanhaPreviewDetalhe,
 } from '@/components/campanha/CampaignPreviewModal';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { Icon, type IconName } from '@/components/ui/Icon';
+import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Loading } from '@/components/ui/Loading';
-import { SectionTitle } from '@/components/ui/SectionTitle';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { criarErroUsuario } from '@/lib/api/error-handler';
 import { resolverListaPaginada } from '@/lib/utils/lista-paginada';
 import type { UserErrorState } from '@/lib/types';
-
-type CampanhaStat = {
-  label: string;
-  value: number;
-  icon: IconName;
-  className: string;
-};
 
 export default function CampanhasPage() {
   const router = useRouter();
@@ -80,32 +74,42 @@ export default function CampanhasPage() {
     [campanhas],
   );
 
-  const estatisticasRapidas: CampanhaStat[] = [
+  const estatisticasRapidas: StatsStripItem[] = [
     {
+      id: 'total',
       label: 'Total',
       value: totalCampanhas,
       icon: 'campaign',
-      className: 'bg-app-primary/10 text-app-primary',
+      tone: 'primary',
+      helper: 'em todas as páginas',
     },
     {
+      id: 'ativas',
       label: 'Ativas',
       value: resumoStatus.ativas,
       icon: 'check',
-      className: 'bg-app-success/10 text-app-success',
+      tone: 'success',
+      helper: 'nesta página',
     },
     {
+      id: 'pausadas',
       label: 'Pausadas',
       value: resumoStatus.pausadas,
       icon: 'pause',
-      className: 'bg-app-warning/10 text-app-warning',
+      tone: 'warning',
+      helper: 'nesta página',
     },
     {
+      id: 'encerradas',
       label: 'Encerradas',
       value: resumoStatus.encerradas,
       icon: 'fail',
-      className: 'bg-app-danger/10 text-app-danger',
+      tone: 'danger',
+      helper: 'nesta página',
     },
   ];
+
+  const totalExibido = filtroAtivo ? campanhasFiltradas.length : totalCampanhas;
 
   const carregarDados = useCallback(async (paginaAtual: number) => {
     try {
@@ -209,135 +213,109 @@ export default function CampanhasPage() {
 
   return (
     <>
-      <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
-        <div className="mx-auto max-w-7xl space-y-8">
-          <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-primary/10 shadow-inner">
-                <Icon name="campaign" className="h-8 w-8 text-app-primary" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-black tracking-tight text-app-fg">Campanhas</h1>
-                <p className="mt-0.5 font-medium text-app-muted">
-                  Organize suas campanhas e acompanhe suas mesas.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button onClick={() => router.push('/campanhas/novo')} className="font-black">
-                <Icon name="add" className="mr-2 h-4 w-4" />
+      <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <PageHeader
+            backHref="/home"
+            backLabel="Painel"
+            eyebrow="Mesa"
+            icon="campaign"
+            title="Campanhas"
+            description="Organize suas mesas, acompanhe status e retome a preparação sem disputar espaço com a navegação."
+            actions={
+              <Button onClick={() => router.push('/campanhas/novo')} className="w-full gap-2 sm:w-auto">
+                <Icon name="add" className="h-4 w-4" />
                 Nova campanha
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/home')}
-                className="font-bold"
-              >
-                <Icon name="back" className="mr-2 h-4 w-4" />
-                Painel
-              </Button>
-            </div>
-          </header>
+            }
+          />
 
           {erro ? <ErrorAlert message={erro} /> : null}
 
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {estatisticasRapidas.map((stat) => (
-              <Card key={stat.label} variant="glass" className="!p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${stat.className}`}>
-                    <Icon name={stat.icon} className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="mb-1 text-[10px] font-bold uppercase leading-none tracking-widest text-app-muted">
-                      {stat.label}
-                    </p>
-                    <p className="text-xl font-black leading-none text-app-fg">{stat.value}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+          <StatsStrip items={estatisticasRapidas} />
 
-          <Card variant="glass" className="!p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-app-primary/10 p-2">
-                  <Icon name="filter" className="h-5 w-5 text-app-primary" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-app-fg">Filtrar campanhas</h2>
-                  <p className="text-sm font-medium text-app-muted">
-                    Busque campanhas carregadas nesta página.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex w-full flex-col gap-2 sm:flex-row lg:max-w-xl">
+          <PageToolbar>
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-muted">
+                Busca
+              </p>
+              <div className="w-full sm:max-w-xl">
                 <Input
                   icon="search"
                   placeholder="Nome da campanha..."
                   value={filtroNome}
                   onChange={(event) => setFiltroNome(event.target.value)}
                 />
-                {filtroAtivo ? (
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    onClick={() => setFiltroNome('')}
-                    className="font-bold sm:w-auto"
-                  >
-                    <Icon name="close" className="mr-2 h-4 w-4" />
-                    Limpar
-                  </Button>
-                ) : null}
               </div>
             </div>
-          </Card>
 
-          <section className="space-y-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <SectionTitle icon="campaign">
-                Campanhas
-                <Badge color="gray" size="sm" variant="subtle" className="ml-3">
-                  {filtroAtivo ? campanhasFiltradas.length : totalCampanhas}
-                </Badge>
-              </SectionTitle>
-
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              {filtroAtivo ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setFiltroNome('')}
+                  className="gap-2"
+                >
+                  <Icon name="close" className="h-4 w-4" />
+                  Limpar
+                </Button>
+              ) : null}
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
                 onClick={() => void carregarDados(pagina)}
                 disabled={loading}
-                className="font-bold"
+                className="gap-2"
               >
-                <Icon name="refresh" className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                {loading ? 'Atualizando...' : 'Atualizar'}
+                <Icon name="refresh" className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                {loading ? 'Atualizando' : 'Atualizar'}
               </Button>
             </div>
+          </PageToolbar>
+
+          <section className="space-y-4">
+            <SectionHeader
+              icon="campaign"
+              title="Campanhas"
+              count={totalExibido}
+              description={
+                filtroAtivo
+                  ? 'Resultado da busca nas campanhas carregadas nesta página.'
+                  : 'Lista de campanhas da sua conta.'
+              }
+            />
 
             {totalCampanhas === 0 ? (
               <EmptyState
-                variant="card"
-                lottie="EMPTY_BOX"
+                variant="session"
+                size="sm"
+                icon="campaign"
                 title="Nenhuma campanha criada"
-                description="Você ainda não criou nenhuma campanha. Crie uma campanha para organizar sua mesa."
-                actionLabel="Criar primeira campanha"
-                onAction={() => router.push('/campanhas/novo')}
+                description="Crie uma campanha para organizar mesa, participantes, fichas e sessões em um único lugar."
+                action={
+                  <Button onClick={() => router.push('/campanhas/novo')} size="sm" className="gap-2">
+                    <Icon name="add" className="h-4 w-4" />
+                    Criar primeira campanha
+                  </Button>
+                }
               />
             ) : campanhasFiltradas.length === 0 ? (
               <EmptyState
-                variant="card"
-                lottie="GHOST_SEARCH"
+                variant="session"
+                size="sm"
+                icon="search"
                 title="Nenhuma campanha encontrada"
-                description="Tente ajustar a busca. Nenhuma campanha carregada nesta página tem esse nome."
-                actionLabel="Limpar filtro"
-                onAction={() => setFiltroNome('')}
+                description="Nenhuma campanha carregada nesta página corresponde ao termo buscado."
+                action={
+                  <Button variant="secondary" onClick={() => setFiltroNome('')} size="sm" className="gap-2">
+                    <Icon name="close" className="h-4 w-4" />
+                    Limpar filtro
+                  </Button>
+                }
               />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {campanhasFiltradas.map((campanha) => (
                   <CampaignCard
                     key={campanha.id}
@@ -350,7 +328,7 @@ export default function CampanhasPage() {
             )}
 
             {totalPaginas > 1 ? (
-              <Card variant="flat" className="flex items-center justify-between px-6 py-4">
+              <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-app-surface/45 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-bold text-app-muted">
                   Página {pagina} de {totalPaginas}
                 </p>
@@ -372,7 +350,7 @@ export default function CampanhasPage() {
                     Próxima
                   </Button>
                 </div>
-              </Card>
+              </div>
             ) : null}
           </section>
         </div>

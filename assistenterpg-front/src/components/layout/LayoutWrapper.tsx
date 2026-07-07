@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Loading } from '@/components/ui/Loading';
 import { isPublicAuthPagePath } from '@/lib/auth/routes';
+import { AppShell } from './AppShell';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -25,5 +26,5 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <div className="pt-16">{children}</div>;
+  return <AppShell>{children}</AppShell>;
 }

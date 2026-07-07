@@ -8,7 +8,6 @@ import { ToastProvider } from '@/context/ToastContext';
 import { ToastContainer } from '@/components/ui/Toast';
 import { PresenceProvider } from '@/context/PresenceContext';
 import { FriendChatProvider } from '@/context/FriendChatContext';
-import { ConditionalNav } from '@/components/layout/ConditionalNav';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 
 export const metadata: Metadata = {
@@ -92,7 +91,6 @@ export default function RootLayout({
             <PresenceProvider>
               <FriendChatProvider>
                 <ToastProvider>
-                  <ConditionalNav />
                   <LayoutWrapper>{children}</LayoutWrapper>
                   <ToastContainer />
                 </ToastProvider>
