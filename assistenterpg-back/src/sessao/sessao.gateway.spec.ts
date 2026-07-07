@@ -71,15 +71,75 @@ describe('SessaoGateway', () => {
     jest.useRealTimers();
   });
 
+  it('emite erro fatal quando o token esta ausente no handshake', async () => {
+    const client = criarSocket();
+    client.handshake.headers.cookie = '';
+
+    await gateway.handleConnection(client);
+
+    expect(client.emitMock).toHaveBeenCalledWith(
+      'sessao:erro',
+      expect.objectContaining({
+        code: 'AUTH_AUSENTE',
+        fatal: true,
+      }),
+    );
+    expect(client.disconnectMock).toHaveBeenCalledWith(true);
+  });
+
+  it('emite erro fatal quando o token e invalido no handshake', async () => {
+    jwtService.verify.mockImplementation(() => {
+      throw new Error('token invalido');
+    });
+    const client = criarSocket();
+
+    await gateway.handleConnection(client);
+
+    expect(client.emitMock).toHaveBeenCalledWith(
+      'sessao:erro',
+      expect.objectContaining({
+        code: 'AUTH_INVALIDA',
+        fatal: true,
+      }),
+    );
+    expect(client.disconnectMock).toHaveBeenCalledWith(true);
+  });
+
   it('rejeita conexão quando o JWT não possui sid', async () => {
     jwtService.verify.mockReturnValue({ sub: 7 });
     const client = criarSocket();
 
     await gateway.handleConnection(client);
 
+    expect(client.emitMock).toHaveBeenCalledWith(
+      'sessao:erro',
+      expect.objectContaining({
+        code: 'AUTH_INVALIDA',
+        fatal: true,
+      }),
+    );
     expect(client.disconnectMock).toHaveBeenCalledWith(true);
     expect(authSessionService.validarSessaoAccess).not.toHaveBeenCalled();
     expect(client.data).toEqual({});
+  });
+
+  it('emite erro fatal quando a sessão do handshake foi revogada', async () => {
+    jwtService.verify.mockReturnValue({ sub: 7, sid: 11 });
+    authSessionService.validarSessaoAccess.mockRejectedValue(
+      new Error('revogada'),
+    );
+    const client = criarSocket();
+
+    await gateway.handleConnection(client);
+
+    expect(client.emitMock).toHaveBeenCalledWith(
+      'sessao:erro',
+      expect.objectContaining({
+        code: 'SESSAO_INVALIDA',
+        fatal: true,
+      }),
+    );
+    expect(client.disconnectMock).toHaveBeenCalledWith(true);
   });
 
   it('armazena sid e usuário após validar a sessão da conexão', async () => {
@@ -104,9 +164,20 @@ describe('SessaoGateway', () => {
       sessaoId: 2,
     });
 
-    expect(resultado).toEqual({ ok: false });
+    expect(resultado).toEqual({
+      ok: false,
+      code: 'SESSAO_INVALIDA',
+      fatal: true,
+    });
     expect(authSessionService.validarSessaoAccess).toHaveBeenCalledWith(11, 7);
     expect(sessaoService.validarAcessoSessao).not.toHaveBeenCalled();
+    expect(client.emitMock).toHaveBeenCalledWith(
+      'sessao:erro',
+      expect.objectContaining({
+        code: 'SESSAO_INVALIDA',
+        fatal: true,
+      }),
+    );
     expect(client.disconnectMock).toHaveBeenCalledWith(true);
   });
 
@@ -122,6 +193,13 @@ describe('SessaoGateway', () => {
     gateway.afterInit();
     await jest.advanceTimersByTimeAsync(1000);
 
+    expect(client.emitMock).toHaveBeenCalledWith(
+      'sessao:erro',
+      expect.objectContaining({
+        code: 'SESSAO_INVALIDA',
+        fatal: true,
+      }),
+    );
     expect(client.disconnectMock).toHaveBeenCalledWith(true);
   });
 
@@ -134,12 +212,20 @@ describe('SessaoGateway', () => {
       sessaoId: 2,
     });
 
-    expect(resultado).toEqual({ ok: false, code: 'ACESSO_NEGADO' });
+    expect(resultado).toEqual({
+      ok: false,
+      code: 'ACESSO_NEGADO',
+      fatal: true,
+    });
     expect(sessaoService.validarAcessoSessao).toHaveBeenCalledWith(1, 2, 7);
     expect(client.joinMock).not.toHaveBeenCalled();
-    expect(client.emitMock).toHaveBeenCalledWith('sessao:erro', {
-      code: 'ACESSO_NEGADO',
-    });
+    expect(client.emitMock).toHaveBeenCalledWith(
+      'sessao:erro',
+      expect.objectContaining({
+        code: 'ACESSO_NEGADO',
+        fatal: true,
+      }),
+    );
   });
 
   it('registra presença no join e emite snapshot da sala', async () => {
@@ -231,7 +317,11 @@ describe('SessaoGateway', () => {
     emitMock.mockClear();
     gateway.handleDisconnect(segundaAba);
 
-    expect(resultado).toEqual({ ok: false });
+    expect(resultado).toEqual({
+      ok: false,
+      code: 'SESSAO_INVALIDA',
+      fatal: true,
+    });
     expect(primeiraAba.disconnectMock).toHaveBeenCalledWith(true);
     expect(emitMock).not.toHaveBeenCalled();
   });

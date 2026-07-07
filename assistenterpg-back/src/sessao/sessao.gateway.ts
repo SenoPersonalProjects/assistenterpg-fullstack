@@ -83,6 +83,19 @@ type EventoSessaoJoined = {
   presenca: EventoSessaoPresenca;
 };
 
+type EventoSessaoErroCode =
+  | 'ACESSO_NEGADO'
+  | 'AUTH_AUSENTE'
+  | 'AUTH_INVALIDA'
+  | 'JOIN_INVALIDO'
+  | 'SESSAO_INVALIDA';
+
+type EventoSessaoErro = {
+  code: EventoSessaoErroCode;
+  fatal: true;
+  em: string;
+};
+
 @WebSocketGateway({
   namespace: '/sessoes',
   cors: createCorsOptions(),
@@ -129,6 +142,7 @@ export class SessaoGateway
   async handleConnection(client: SocketAutenticado): Promise<void> {
     const token = this.extrairToken(client);
     if (!token) {
+      this.emitirErroFatalSessao(client, 'AUTH_AUSENTE');
       client.disconnect(true);
       return;
     }
@@ -138,10 +152,20 @@ export class SessaoGateway
         token,
       );
       const identidade = this.extrairIdentidadePayload(payload);
-      await this.validarIdentidade(identidade);
+      try {
+        await this.validarIdentidade(identidade);
+      } catch {
+        this.emitirErroFatalSessao(client, 'SESSAO_INVALIDA');
+        this.logger.warn(
+          `Socket desconectado por sessão inválida: ${client.id}`,
+        );
+        client.disconnect(true);
+        return;
+      }
       this.definirIdentidade(client, identidade);
       this.clientesAutenticados.set(client.id, client);
     } catch {
+      this.emitirErroFatalSessao(client, 'AUTH_INVALIDA');
       this.logger.warn(`Socket desconectado por token invalido: ${client.id}`);
       client.disconnect(true);
     }
@@ -160,14 +184,12 @@ export class SessaoGateway
     const campanhaId = Number(body?.campanhaId);
     const sessaoId = Number(body?.sessaoId);
     const identidade = await this.revalidarEvento(client);
-    if (!identidade) return { ok: false };
+    if (!identidade) return { ok: false, code: 'SESSAO_INVALIDA', fatal: true };
     const usuarioId = identidade.usuarioId;
 
     if (!Number.isInteger(campanhaId) || !Number.isInteger(sessaoId)) {
-      client.emit('sessao:erro', {
-        code: 'JOIN_INVALIDO',
-      });
-      return { ok: false, code: 'JOIN_INVALIDO' };
+      const erro = this.emitirErroFatalSessao(client, 'JOIN_INVALIDO');
+      return { ok: false, code: erro.code, fatal: erro.fatal };
     }
 
     try {
@@ -193,10 +215,8 @@ export class SessaoGateway
       this.emitirPresencaPorChave(chaveSala);
       return { ok: true, presenca };
     } catch {
-      client.emit('sessao:erro', {
-        code: 'ACESSO_NEGADO',
-      });
-      return { ok: false, code: 'ACESSO_NEGADO' };
+      const erro = this.emitirErroFatalSessao(client, 'ACESSO_NEGADO');
+      return { ok: false, code: erro.code, fatal: erro.fatal };
     }
   }
 
@@ -208,14 +228,12 @@ export class SessaoGateway
     const campanhaId = Number(body?.campanhaId);
     const sessaoId = Number(body?.sessaoId);
     const identidade = await this.revalidarEvento(client);
-    if (!identidade) return { ok: false };
+    if (!identidade) return { ok: false, code: 'SESSAO_INVALIDA', fatal: true };
     const usuarioId = identidade.usuarioId;
 
     if (!Number.isInteger(campanhaId) || !Number.isInteger(sessaoId)) {
-      client.emit('sessao:erro', {
-        code: 'JOIN_INVALIDO',
-      });
-      return { ok: false, code: 'JOIN_INVALIDO' };
+      const erro = this.emitirErroFatalSessao(client, 'JOIN_INVALIDO');
+      return { ok: false, code: erro.code, fatal: erro.fatal };
     }
 
     try {
@@ -236,10 +254,8 @@ export class SessaoGateway
       const presenca = this.emitirPresencaPorChave(chaveSala);
       return { ok: true, presenca };
     } catch {
-      client.emit('sessao:erro', {
-        code: 'ACESSO_NEGADO',
-      });
-      return { ok: false, code: 'ACESSO_NEGADO' };
+      const erro = this.emitirErroFatalSessao(client, 'ACESSO_NEGADO');
+      return { ok: false, code: erro.code, fatal: erro.fatal };
     }
   }
 
@@ -356,6 +372,19 @@ export class SessaoGateway
     return payload;
   }
 
+  private emitirErroFatalSessao(
+    client: SocketAutenticado,
+    code: EventoSessaoErroCode,
+  ): EventoSessaoErro {
+    const erro: EventoSessaoErro = {
+      code,
+      fatal: true,
+      em: new Date().toISOString(),
+    };
+    client.emit('sessao:erro', erro);
+    return erro;
+  }
+
   private obterUsuarioId(client: Socket): number | undefined {
     const data = client.data as { usuarioId?: unknown };
     return typeof data.usuarioId === 'number' ? data.usuarioId : undefined;
@@ -450,6 +479,7 @@ export class SessaoGateway
   private desconectarSessaoInvalida(client: SocketAutenticado): void {
     this.clientesAutenticados.delete(client.id);
     this.removerPresencaSocket(client);
+    this.emitirErroFatalSessao(client, 'SESSAO_INVALIDA');
     this.logger.warn(`Socket desconectado por sessão inválida: ${client.id}`);
     client.disconnect(true);
   }

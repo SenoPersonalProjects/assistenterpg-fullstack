@@ -49,17 +49,21 @@ export type EventoSessaoJoined = {
 
 export type EventoSessaoErroCode =
   | 'ACESSO_NEGADO'
+  | 'AUTH_AUSENTE'
   | 'JOIN_INVALIDO'
   | 'AUTH_INVALIDA'
   | 'SESSAO_INVALIDA';
 
 export type EventoSessaoErro = {
   code?: EventoSessaoErroCode | string;
+  fatal?: boolean;
+  em?: string;
 };
 
 export type AckSessaoRealtime = {
   ok: boolean;
   code?: EventoSessaoErroCode | string;
+  fatal?: boolean;
   presenca?: EventoSessaoPresenca | null;
 };
 

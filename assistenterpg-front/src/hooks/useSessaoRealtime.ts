@@ -9,12 +9,17 @@ import {
   type EventoSessaoPresenca,
 } from '@/lib/realtime/sessao-socket';
 import {
+  aplicarSnapshotSessaoRealtime,
+  criarEstadoSessaoRealtimeInicial,
   erroSessaoFatal,
-  normalizarOnlineUsuarioIds,
+  marcarSessaoRealtimeOnline,
+  marcarSessaoRealtimePolling,
+  marcarSessaoRealtimeReconectando,
   snapshotPertenceSessao,
 } from '@/lib/realtime/sessao-realtime-state';
 
 const ACK_TIMEOUT_MS = 5000;
+const FALLBACK_POLLING_MS = 12000;
 
 type UseSessaoRealtimeParams = {
   idsValidos: boolean;
@@ -37,16 +42,16 @@ export function useSessaoRealtime({
   sessaoId,
   sincronizarTempoReal,
 }: UseSessaoRealtimeParams): UseSessaoRealtimeReturn {
-  const [socketConectado, setSocketConectado] = useState(false);
-  const [realtimeStatus, setRealtimeStatus] = useState<
-    'online' | 'reconnecting' | 'polling'
-  >('polling');
-  const [onlineUsuarioIds, setOnlineUsuarioIds] = useState<number[]>([]);
+  const [estadoRealtime, setEstadoRealtime] = useState(
+    criarEstadoSessaoRealtimeInicial,
+  );
 
   useEffect(() => {
     if (!idsValidos || !usuarioId) return;
 
-    const intervaloMs = calcularIntervaloPolling(socketConectado);
+    const intervaloMs = calcularIntervaloPolling(
+      estadoRealtime.socketConectado,
+    );
     const intervalo = window.setInterval(() => {
       void sincronizarTempoReal();
     }, intervaloMs);
@@ -54,37 +59,67 @@ export function useSessaoRealtime({
     return () => {
       window.clearInterval(intervalo);
     };
-  }, [idsValidos, socketConectado, sincronizarTempoReal, usuarioId]);
+  }, [
+    estadoRealtime.socketConectado,
+    idsValidos,
+    sincronizarTempoReal,
+    usuarioId,
+  ]);
 
   useEffect(() => {
     if (!idsValidos || !usuarioId) return;
 
     const socket = conectarSocketSessao();
     let falhaFatal = false;
+    let fallbackPollingTimer: number | null = null;
+    let fallbackPollingAtivo = false;
+
+    const limparFallbackPolling = (resetarFallbackAtivo = false) => {
+      if (fallbackPollingTimer !== null) {
+        window.clearTimeout(fallbackPollingTimer);
+        fallbackPollingTimer = null;
+      }
+      if (resetarFallbackAtivo) {
+        fallbackPollingAtivo = false;
+      }
+    };
+
+    const agendarFallbackPolling = () => {
+      limparFallbackPolling();
+      fallbackPollingTimer = window.setTimeout(() => {
+        fallbackPollingTimer = null;
+        fallbackPollingAtivo = true;
+        setEstadoRealtime((estadoAtual) =>
+          marcarSessaoRealtimePolling(estadoAtual),
+        );
+      }, FALLBACK_POLLING_MS);
+    };
 
     const aplicarSnapshotPresenca = (
       evento: EventoSessaoPresenca | null | undefined,
     ): boolean => {
       if (!snapshotPertenceSessao(evento, campanhaId, sessaoId)) return false;
-      setOnlineUsuarioIds(normalizarOnlineUsuarioIds(evento.onlineUsuarioIds));
+      setEstadoRealtime((estadoAtual) =>
+        aplicarSnapshotSessaoRealtime(estadoAtual, evento, campanhaId, sessaoId),
+      );
       return true;
     };
 
     const marcarSalaConectada = (
       evento?: EventoSessaoPresenca | null,
     ): void => {
-      setSocketConectado(true);
-      setRealtimeStatus('online');
-      aplicarSnapshotPresenca(evento);
+      limparFallbackPolling(true);
+      setEstadoRealtime((estadoAtual) =>
+        marcarSessaoRealtimeOnline(estadoAtual, evento, campanhaId, sessaoId),
+      );
     };
 
     const tratarAckSala = (resposta?: AckSessaoRealtime | null): void => {
       if (!resposta?.ok) {
         if (erroSessaoFatal(resposta)) {
           falhaFatal = true;
-          setSocketConectado(false);
-          setRealtimeStatus('polling');
-          setOnlineUsuarioIds([]);
+          limparFallbackPolling(true);
+          setEstadoRealtime(criarEstadoSessaoRealtimeInicial());
           socket.disconnect();
         }
         return;
@@ -123,19 +158,46 @@ export function useSessaoRealtime({
 
     const handleConnect = () => {
       falhaFatal = false;
-      setSocketConectado(false);
-      setRealtimeStatus('reconnecting');
+      fallbackPollingAtivo = false;
+      setEstadoRealtime((estadoAtual) =>
+        marcarSessaoRealtimeReconectando(estadoAtual),
+      );
+      agendarFallbackPolling();
       entrarNaSala();
     };
 
     const handleDisconnect = () => {
-      setSocketConectado(false);
-      setRealtimeStatus(falhaFatal ? 'polling' : 'reconnecting');
+      if (falhaFatal) {
+        limparFallbackPolling(true);
+        setEstadoRealtime(criarEstadoSessaoRealtimeInicial());
+        return;
+      }
+
+      if (fallbackPollingAtivo) {
+        setEstadoRealtime((estadoAtual) =>
+          marcarSessaoRealtimePolling(estadoAtual),
+        );
+        return;
+      }
+
+      setEstadoRealtime((estadoAtual) =>
+        marcarSessaoRealtimeReconectando(estadoAtual),
+      );
+      agendarFallbackPolling();
     };
 
     const handleConnectError = () => {
-      setSocketConectado(false);
-      setRealtimeStatus('reconnecting');
+      if (fallbackPollingAtivo) {
+        setEstadoRealtime((estadoAtual) =>
+          marcarSessaoRealtimePolling(estadoAtual),
+        );
+        return;
+      }
+
+      setEstadoRealtime((estadoAtual) =>
+        marcarSessaoRealtimeReconectando(estadoAtual),
+      );
+      agendarFallbackPolling();
     };
 
     const handleSessaoJoined = (evento: EventoSessaoJoined) => {
@@ -149,15 +211,16 @@ export function useSessaoRealtime({
     const handleSessaoErro = (evento: EventoSessaoErro) => {
       if (erroSessaoFatal(evento)) {
         falhaFatal = true;
-        setSocketConectado(false);
-        setRealtimeStatus('polling');
-        setOnlineUsuarioIds([]);
+        limparFallbackPolling(true);
+        setEstadoRealtime(criarEstadoSessaoRealtimeInicial());
         socket.disconnect();
         return;
       }
 
-      setSocketConectado(false);
-      setRealtimeStatus('reconnecting');
+      setEstadoRealtime((estadoAtual) =>
+        marcarSessaoRealtimeReconectando(estadoAtual),
+      );
+      agendarFallbackPolling();
     };
 
     const handleSessaoPresenca = (evento: EventoSessaoPresenca) => {
@@ -190,12 +253,11 @@ export function useSessaoRealtime({
       socket.off('sessao:erro', handleSessaoErro);
       socket.off('sessao:presenca', handleSessaoPresenca);
       socket.off('sessao:atualizada', handleSessaoAtualizada);
+      limparFallbackPolling(true);
       socket.disconnect();
-      setSocketConectado(false);
-      setRealtimeStatus('polling');
-      setOnlineUsuarioIds([]);
+      setEstadoRealtime(criarEstadoSessaoRealtimeInicial());
     };
   }, [campanhaId, idsValidos, sessaoId, sincronizarTempoReal, usuarioId]);
 
-  return { socketConectado, realtimeStatus, onlineUsuarioIds };
+  return estadoRealtime;
 }
