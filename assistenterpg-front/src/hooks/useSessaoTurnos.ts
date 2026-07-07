@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   apiAvancarTurnoSessaoCampanha,
   apiPularTurnoSessaoCampanha,
   apiVoltarTurnoSessaoCampanha,
-  criarErroUsuario,
 } from '@/lib/api';
+import { criarErroControleTurno } from '@/lib/campanha/sessao-turnos';
 import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import type { AcaoControleTurno } from '@/components/campanha/sessao/types';
 
@@ -46,11 +46,14 @@ export function useSessaoTurnos({
   const [acaoTurnoPendente, setAcaoTurnoPendente] = useState<AcaoControleTurno | null>(
     null,
   );
+  const acaoTurnoPendenteRef = useRef<AcaoControleTurno | null>(null);
 
   const handleControleTurno = useCallback(
     async (acao: AcaoControleTurno) => {
       if (!detalhe || !detalhe.controleTurnosAtivo) return;
+      if (acaoTurnoPendenteRef.current) return;
 
+      acaoTurnoPendenteRef.current = acao;
       setAcaoTurnoPendente(acao);
       setErro(null);
       try {
@@ -64,8 +67,9 @@ export function useSessaoTurnos({
         sincronizarEstadosDerivados(atualizado);
         showToast(`Turno atualizado: ${labelParticipanteIniciativa(atualizado.turnoAtual)}.`, 'success');
       } catch (error) {
-        setErro(criarErroUsuario(error));
+        setErro(criarErroControleTurno(error));
       } finally {
+        acaoTurnoPendenteRef.current = null;
         setAcaoTurnoPendente(null);
       }
     },

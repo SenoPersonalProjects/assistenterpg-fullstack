@@ -17,9 +17,33 @@ describe('SessaoService', () => {
     $transaction: jest.fn(),
   };
 
+  function configurarEventoEfeitosAutomaticos() {
+    (prisma as any).eventoSessao = {
+      findUnique: jest.fn().mockResolvedValue({
+        dados: {
+          efeitosAutomaticos: {
+            status: 'PENDENTE',
+          },
+        },
+      }),
+      update: jest.fn().mockResolvedValue({}),
+      create: jest.fn().mockResolvedValue({ id: 9001 }),
+      findMany: jest.fn().mockResolvedValue([]),
+    };
+
+    return (prisma as any).eventoSessao;
+  }
+
   beforeEach(async () => {
     jest.clearAllMocks();
     delete (prisma as any).inventarioItemCampanha;
+    delete (prisma as any).eventoSessao;
+    delete (prisma as any).personagemSessaoHabilidadeSustentada;
+    delete (prisma as any).personagemCampanha;
+    delete (prisma as any).condicaoPersonagemSessao;
+    delete (prisma as any).condicao;
+    delete (prisma as any).personagemSessao;
+    delete (prisma as any).npcAmeacaSessao;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -673,6 +697,9 @@ describe('SessaoService', () => {
     jest
       .spyOn(service, 'buscarDetalheSessao')
       .mockResolvedValue({ id: 21 } as never);
+    jest
+      .spyOn(service as any, 'processarCondicoesNoAvancoTurnoTx')
+      .mockResolvedValue(undefined);
 
     const tx = {
       sessao: {
@@ -720,6 +747,10 @@ describe('SessaoService', () => {
     prisma.$transaction.mockImplementation(
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
     );
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    (prisma as any).personagemSessaoHabilidadeSustentada =
+      tx.personagemSessaoHabilidadeSustentada;
+    (prisma as any).personagemCampanha = tx.personagemCampanha;
 
     await service.avancarTurnoSessao(7, 21, 10);
 
@@ -746,13 +777,14 @@ describe('SessaoService', () => {
       },
     );
 
-    const tiposEvento = tx.eventoSessao.create.mock.calls.map(
-      ([call]) => call.data.tipoEvento,
-    );
+    const tiposEvento = [
+      ...tx.eventoSessao.create.mock.calls,
+      ...eventoEfeitos.create.mock.calls,
+    ].map(([call]) => call.data.tipoEvento);
     expect(tiposEvento).toContain('HABILIDADE_SUSTENTADA_COBRADA');
     expect(tiposEvento).toContain('TURNO_AVANCADO');
 
-    const eventoCobranca = tx.eventoSessao.create.mock.calls.find(
+    const eventoCobranca = eventoEfeitos.create.mock.calls.find(
       ([call]) => call.data.tipoEvento === 'HABILIDADE_SUSTENTADA_COBRADA',
     )?.[0];
     expect(eventoCobranca).toBeDefined();
@@ -857,6 +889,9 @@ describe('SessaoService', () => {
     jest
       .spyOn(service, 'buscarDetalheSessao')
       .mockResolvedValue({ id: 21 } as never);
+    jest
+      .spyOn(service as any, 'processarCondicoesNoAvancoTurnoTx')
+      .mockResolvedValue(undefined);
 
     const tx = {
       sessao: {
@@ -936,6 +971,10 @@ describe('SessaoService', () => {
     prisma.$transaction.mockImplementation(
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
     );
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    (prisma as any).personagemSessaoHabilidadeSustentada =
+      tx.personagemSessaoHabilidadeSustentada;
+    (prisma as any).personagemCampanha = tx.personagemCampanha;
 
     await service.avancarTurnoSessao(7, 21, 10);
 
@@ -955,7 +994,7 @@ describe('SessaoService', () => {
     expect(processarCondicoesSpy).toHaveBeenCalledTimes(2);
     expect(processarCondicoesSpy).toHaveBeenNthCalledWith(
       1,
-      tx,
+      expect.anything(),
       expect.objectContaining({
         rodadaAnterior: 3,
         rodadaNova: 4,
@@ -965,7 +1004,7 @@ describe('SessaoService', () => {
     );
     expect(processarCondicoesSpy).toHaveBeenNthCalledWith(
       2,
-      tx,
+      expect.anything(),
       expect.objectContaining({
         rodadaAnterior: 3,
         rodadaNova: 4,
@@ -973,9 +1012,10 @@ describe('SessaoService', () => {
         processarDuracoesPorRodada: false,
       }),
     );
-    const tiposEvento = tx.eventoSessao.create.mock.calls.map(
-      ([call]) => call.data.tipoEvento,
-    );
+    const tiposEvento = [
+      ...tx.eventoSessao.create.mock.calls,
+      ...eventoEfeitos.create.mock.calls,
+    ].map(([call]) => call.data.tipoEvento);
     expect(tiposEvento).toContain('HABILIDADE_SUSTENTADA_COBRADA');
     expect(tiposEvento).toContain('INICIATIVA_ALTERNADA_AVANCADA');
   });
@@ -1024,6 +1064,9 @@ describe('SessaoService', () => {
     jest
       .spyOn(service, 'buscarDetalheSessao')
       .mockResolvedValue({ id: 21 } as never);
+    jest
+      .spyOn(service as any, 'processarCondicoesNoAvancoTurnoTx')
+      .mockResolvedValue(undefined);
 
     const tx = {
       sessao: {
@@ -1071,6 +1114,10 @@ describe('SessaoService', () => {
     prisma.$transaction.mockImplementation(
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
     );
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    (prisma as any).personagemSessaoHabilidadeSustentada =
+      tx.personagemSessaoHabilidadeSustentada;
+    (prisma as any).personagemCampanha = tx.personagemCampanha;
 
     await service.avancarTurnoSessao(7, 21, 10);
 
@@ -1086,13 +1133,14 @@ describe('SessaoService', () => {
       }),
     );
 
-    const tiposEvento = tx.eventoSessao.create.mock.calls.map(
-      ([call]) => call.data.tipoEvento,
-    );
+    const tiposEvento = [
+      ...tx.eventoSessao.create.mock.calls,
+      ...eventoEfeitos.create.mock.calls,
+    ].map(([call]) => call.data.tipoEvento);
     expect(tiposEvento).toContain('HABILIDADE_SUSTENTADA_ENCERRADA');
     expect(tiposEvento).toContain('TURNO_AVANCADO');
 
-    const eventoEncerrada = tx.eventoSessao.create.mock.calls.find(
+    const eventoEncerrada = eventoEfeitos.create.mock.calls.find(
       ([call]) => call.data.tipoEvento === 'HABILIDADE_SUSTENTADA_ENCERRADA',
     )?.[0];
     expect(eventoEncerrada).toBeDefined();
@@ -1148,6 +1196,9 @@ describe('SessaoService', () => {
     jest
       .spyOn(service, 'buscarDetalheSessao')
       .mockResolvedValue({ id: 21 } as never);
+    jest
+      .spyOn(service as any, 'processarCondicoesNoAvancoTurnoTx')
+      .mockResolvedValue(undefined);
 
     const tx = {
       sessao: {
@@ -1195,6 +1246,10 @@ describe('SessaoService', () => {
     prisma.$transaction.mockImplementation(
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
     );
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    (prisma as any).personagemSessaoHabilidadeSustentada =
+      tx.personagemSessaoHabilidadeSustentada;
+    (prisma as any).personagemCampanha = tx.personagemCampanha;
 
     await service.avancarTurnoSessao(7, 21, 10);
 
@@ -1210,7 +1265,7 @@ describe('SessaoService', () => {
       }),
     );
 
-    const eventoEncerrada = tx.eventoSessao.create.mock.calls.find(
+    const eventoEncerrada = eventoEfeitos.create.mock.calls.find(
       ([call]) => call.data.tipoEvento === 'HABILIDADE_SUSTENTADA_ENCERRADA',
     )?.[0];
     expect(eventoEncerrada).toBeDefined();
