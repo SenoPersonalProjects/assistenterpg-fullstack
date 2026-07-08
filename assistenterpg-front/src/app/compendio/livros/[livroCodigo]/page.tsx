@@ -15,18 +15,17 @@ export default async function CompendioLivroPage({ params }: Props) {
 
   if (!livro) {
     return (
-      <main className="min-h-screen bg-app-bg p-6">
+      <main className="min-h-screen bg-app-bg px-4 py-5 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <EmptyState
             variant="card"
             icon="book"
             title="Livro não encontrado"
-            description="O livro solicitado não existe ou não esta publicado."
-            actionLabel="Voltar ao compêndio"
+            description="O livro solicitado não existe ou não está publicado."
           >
             <Link
               href="/compendio"
-              className="mt-4 inline-flex items-center justify-center rounded-lg border border-app-border px-3 py-2 text-sm text-app-muted hover:text-app-fg"
+              className="mt-4 inline-flex items-center justify-center rounded-lg border border-app-border px-3 py-2 text-sm font-bold text-app-muted hover:text-app-fg"
             >
               <Icon name="back" className="mr-2 h-4 w-4" />
               Voltar ao compêndio

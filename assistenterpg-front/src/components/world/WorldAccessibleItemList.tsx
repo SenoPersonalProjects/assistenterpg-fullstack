@@ -1,6 +1,7 @@
 'use client';
 
-import { Icon } from '@/components/ui/Icon';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import type { WorldAtlasItem } from '@/lib/world';
 import { WORLD_ATLAS_ITEM_BY_ID } from '@/lib/world';
 
@@ -8,6 +9,7 @@ type WorldAccessibleItemListProps = {
   items: WorldAtlasItem[];
   selectedItemId: string | null;
   onSelectItem: (itemId: string) => void;
+  onClearFilters?: () => void;
 };
 
 const CATEGORY_GROUPS: Array<{
@@ -65,6 +67,7 @@ export function WorldAccessibleItemList({
   items,
   selectedItemId,
   onSelectItem,
+  onClearFilters,
 }: WorldAccessibleItemListProps) {
   const groupedItems = CATEGORY_GROUPS.map((group) => ({
     ...group,
@@ -74,28 +77,23 @@ export function WorldAccessibleItemList({
   })).filter((group) => group.items.length > 0);
 
   return (
-    <section className="rounded-3xl border border-app-border/60 bg-app-surface/45 p-4">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-app-muted">
-            Lista acessível
-          </p>
-          <h2 className="mt-1 text-lg font-black text-app-fg">
-            Camadas visíveis
-          </h2>
-        </div>
-        <Icon name="list" className="h-5 w-5 text-app-muted" />
-      </div>
+    <section className="space-y-4 rounded-xl border border-white/5 bg-app-surface/45 p-4">
+      <SectionHeader
+        icon="list"
+        title="Camadas visíveis"
+        count={items.length}
+        description="Lista acessível dos pontos renderizados pelo atlas."
+      />
 
       {groupedItems.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">
           {groupedItems.map((group) => (
             <div key={group.id} className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-app-muted">
+                <h3 className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-app-muted">
                   {group.label}
                 </h3>
-                <span className="rounded-full border border-app-border bg-app-bg/50 px-2 py-0.5 text-[10px] font-black text-app-muted">
+                <span className="rounded-full border border-white/10 bg-app-muted-surface px-2 py-0.5 text-[10px] font-black text-app-muted">
                   {group.items.length}
                 </span>
               </div>
@@ -111,24 +109,26 @@ export function WorldAccessibleItemList({
                       type="button"
                       aria-pressed={selected}
                       onClick={() => onSelectItem(item.id)}
-                      className={`group flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-all duration-200 ${
+                      className={[
+                        'flex w-full min-w-0 items-start gap-3 rounded-lg border p-3 text-left transition-colors',
                         selected
-                          ? 'border-app-primary bg-app-primary/15 shadow-lg shadow-app-primary/10'
-                          : 'border-app-border bg-app-card/50 hover:border-app-primary/40 hover:bg-app-surface'
-                      }`}
+                          ? 'border-app-primary/45 bg-app-primary/15'
+                          : 'border-white/5 bg-app-surface/45 hover:border-app-primary/25 hover:bg-app-muted-surface/70',
+                      ].join(' ')}
                     >
                       <span
                         className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${group.dotClassName}`}
                       />
-                      <span className="min-w-0">
+                      <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-black text-app-fg">
                           {item.nome}
                         </span>
-                        {parentLabel ? (
-                          <span className="mt-1 block text-xs font-bold text-app-muted">
-                            Em {parentLabel}
-                          </span>
-                        ) : null}
+                        <span className="mt-1 block truncate text-xs font-medium text-app-muted">
+                          {parentLabel ? `Em ${parentLabel}` : item.resumo}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.12em] text-app-primary">
+                        Ver
                       </span>
                     </button>
                   );
@@ -138,10 +138,24 @@ export function WorldAccessibleItemList({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-app-border bg-app-muted-surface/30 p-5 text-center text-sm text-app-muted">
-          Nenhuma camada ativa neste nível de zoom. Reative filtros ou aproxime
-          o globo para revelar sublocais.
-        </div>
+        <EmptyState
+          variant="card"
+          size="sm"
+          icon="search"
+          title="Nenhuma camada visível"
+          description="Ajuste a busca, reative filtros ou aproxime o globo para revelar sublocais."
+          action={
+            onClearFilters ? (
+              <button
+                type="button"
+                onClick={onClearFilters}
+                className="rounded-lg border border-white/10 bg-app-surface px-3 py-2 text-xs font-black text-app-fg transition-colors hover:border-app-primary/35"
+              >
+                Limpar filtros
+              </button>
+            ) : null
+          }
+        />
       )}
     </section>
   );

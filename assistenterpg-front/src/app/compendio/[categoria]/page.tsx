@@ -1,11 +1,8 @@
-// app/compendio/[categoria]/page.tsx
-// ✅ FINAL - Usa EmptyState genérico + 100% type-safe
-
-import { apiBuscarCategoriaPorCodigo } from '@/lib/utils/compendio';
+import { CompendioGrid } from '@/components/compendio/CompendioGrid';
 import { SubcategoriaCard } from '@/components/compendio/SubcategoriaCard';
 import { CompendioLayout } from '@/components/compendio/CompendioLayout';
-import { EmptyState } from '@/components/ui/EmptyState'; // ✅ Genérico
-import { CompendioGrid } from '@/components/compendio/CompendioGrid';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { apiBuscarCategoriaPorCodigo } from '@/lib/utils/compendio';
 import { stripCompendioDisplayNumber } from '@/lib/utils/compendio-display';
 
 type Props = {
@@ -18,10 +15,10 @@ export default async function CategoriaPage({ params }: Props) {
 
   if (!categoriaData) {
     return (
-      <CompendioLayout 
+      <CompendioLayout
         title="Categoria não encontrada"
         backHref="/compendio"
-        backLabel="Todas as Categorias"
+        backLabel="Compêndio"
         icon="error"
       >
         <EmptyState
@@ -48,11 +45,11 @@ export default async function CategoriaPage({ params }: Props) {
       title={categoriaNome}
       subtitle={categoriaData.descricao || undefined}
       backHref="/compendio"
-      backLabel="Todas as Categorias"
+      backLabel="Compêndio"
       icon="rules"
       breadcrumbs={[
         { label: 'Compêndio', href: '/compendio' },
-        { label: categoriaNome, href: `/compendio/${categoriaData.codigo}` }
+        { label: categoriaNome, href: `/compendio/${categoriaData.codigo}` },
       ]}
       stats={[
         { label: 'Subcategorias', value: totalSubcategorias },
@@ -65,15 +62,11 @@ export default async function CategoriaPage({ params }: Props) {
           icon="folder"
           title="Sem conteúdo ainda"
           description="Esta categoria está em desenvolvimento. Novos artigos serão adicionados em breve."
-        >
-          <div className="text-sm text-app-muted mt-4">
-            💡 Use a busca no topo para explorar outros tópicos do compêndio.
-          </div>
-        </EmptyState>
+        />
       ) : (
-        <CompendioGrid 
-          title={`Subcategorias (${totalSubcategorias})`}
-          description={`Explore tópicos sobre ${categoriaNome.toLowerCase()}`}
+        <CompendioGrid
+          title="Subcategorias"
+          description={`Explore tópicos sobre ${categoriaNome.toLowerCase()}.`}
         >
           {subcategorias.map((subcategoria) => (
             <SubcategoriaCard

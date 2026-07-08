@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import type { CompendioLivro } from '@/lib/utils/compendio';
 import {
@@ -24,43 +23,60 @@ export function BookCard({ livro }: BookCardProps) {
 
   return (
     <Link href={getCompendioBookHref(livro.codigo)} className="group block h-full">
-      <Card className="flex h-full flex-col gap-4 rounded-lg border-app-border bg-app-surface p-5 transition-[border-color,transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:border-app-primary group-hover:shadow-lg">
-        <div className="flex items-start gap-4">
-          <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-app-border bg-app-primary/10 text-app-primary"
+      <article className="flex h-full flex-col rounded-xl border border-white/5 bg-app-surface/55 p-4 shadow-sm shadow-black/5 transition-colors group-hover:border-app-primary/30">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-app-primary/10 text-app-primary"
             style={livro.cor ? { color: livro.cor } : undefined}
           >
-            <Icon name={toIconName(livro.icone)} className="h-6 w-6" />
-          </div>
+            <Icon name={toIconName(livro.icone)} className="h-5 w-5" />
+          </span>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-semibold text-app-fg">{livro.titulo}</h2>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 className="truncate text-base font-black text-app-fg">
+                {livro.titulo}
+              </h2>
+              <Badge color={livro.status === 'PUBLICADO' ? 'green' : 'gray'} size="xs" variant="subtle">
+                {livro.status.toLowerCase()}
+              </Badge>
+            </div>
             {livro.descricao ? (
-              <p className="mt-1 line-clamp-3 text-sm leading-6 text-app-muted">
+              <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-app-muted">
                 {livro.descricao}
               </p>
             ) : null}
           </div>
         </div>
 
-        <div className="mt-auto flex flex-wrap gap-2">
-          <Badge color="blue" size="sm">
-            {counts.categorias} capitulos
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          <Badge color="blue" size="xs" variant="subtle">
+            {counts.categorias} capítulos
           </Badge>
-          <Badge color="gray" size="sm">
-            {counts.artigos} secoes
+          <Badge color="gray" size="xs" variant="subtle">
+            {counts.artigos} seções
           </Badge>
           {livro.suplementoId ? (
-            <Badge color="green" size="sm">
+            <Badge color="green" size="xs" variant="subtle">
               Suplemento
             </Badge>
           ) : (
-            <Badge color="purple" size="sm">
+            <Badge color="purple" size="xs" variant="subtle">
               Base
             </Badge>
           )}
         </div>
-      </Card>
+
+        <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+          <span className="truncate text-xs font-bold text-app-muted">
+            {livro.codigo}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-black uppercase tracking-[0.12em] text-app-primary">
+            Abrir
+            <Icon name="forward" className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </article>
     </Link>
   );
 }

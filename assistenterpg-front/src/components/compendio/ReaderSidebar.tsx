@@ -105,7 +105,7 @@ export function ReaderSidebar({
           </span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-semibold">{livro.titulo}</span>
-            <span className="block text-xs text-app-muted">Compendio de regras</span>
+            <span className="block text-xs text-app-muted">Compêndio de regras</span>
           </span>
         </Link>
       </div>
@@ -257,14 +257,14 @@ export function ReaderSidebar({
             type="button"
             className="absolute inset-0 bg-black/50"
             onClick={() => setMobileOpen(false)}
-            aria-label="Fechar indice"
+            aria-label="Fechar índice"
           />
           <aside className="absolute inset-y-0 left-0 w-[min(20rem,86vw)] border-r border-app-border bg-app-surface shadow-xl">
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
               className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg text-app-muted hover:bg-app-bg hover:text-app-fg"
-              aria-label="Fechar indice"
+              aria-label="Fechar índice"
             >
               <Icon name="close" className="h-4 w-4" />
             </button>

@@ -21,23 +21,27 @@ type WorldFiltersProps = {
 
 const FILTER_STYLES: Record<
   WorldAtlasFilter,
-  { active: string; icon: string }
+  { active: string; inactive: string; icon: string }
 > = {
   LUGARES: {
-    active: 'border-app-primary bg-app-primary/15 text-app-primary',
-    icon: 'bg-app-primary/10 text-app-primary border-app-primary/30',
+    active: 'border-app-primary/45 bg-app-primary/15 text-app-primary',
+    inactive: 'border-white/10 text-app-muted hover:border-app-primary/35 hover:text-app-fg',
+    icon: 'text-app-primary',
   },
   SETORES: {
-    active: 'border-app-info bg-app-info/15 text-app-info',
-    icon: 'bg-app-info/10 text-app-info border-app-info/30',
+    active: 'border-app-info/45 bg-app-info/15 text-app-info',
+    inactive: 'border-white/10 text-app-muted hover:border-app-info/35 hover:text-app-fg',
+    icon: 'text-app-info',
   },
   INSTITUICOES: {
-    active: 'border-app-secondary bg-app-secondary/15 text-app-secondary',
-    icon: 'bg-app-secondary/10 text-app-secondary border-app-secondary/30',
+    active: 'border-app-secondary/45 bg-app-secondary/15 text-app-secondary',
+    inactive: 'border-white/10 text-app-muted hover:border-app-secondary/35 hover:text-app-fg',
+    icon: 'text-app-secondary',
   },
   BARREIRAS: {
-    active: 'border-app-danger bg-app-danger/15 text-app-danger',
-    icon: 'bg-app-danger/10 text-app-danger border-app-danger/30',
+    active: 'border-app-danger/45 bg-app-danger/15 text-app-danger',
+    inactive: 'border-white/10 text-app-muted hover:border-app-danger/35 hover:text-app-fg',
+    icon: 'text-app-danger',
   },
 };
 
@@ -50,28 +54,29 @@ export function WorldFilters({
   const allActive = activeFilters.length === options.length;
 
   return (
-    <div className="rounded-2xl border border-app-border/60 bg-app-surface/45 p-3 md:p-4">
-      <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-app-muted">
-            Camadas cartográficas
+    <div className="min-w-0 flex-1 space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-app-muted">
+            Camadas
           </p>
-          <p className="text-sm text-app-muted">
-            Setores aparecem apenas no nível de detalhe do globo.
+          <p className="truncate text-xs font-medium text-app-muted">
+            Setores aparecem no detalhe do globo.
           </p>
         </div>
+
         <button
           type="button"
           onClick={onResetFilters}
           disabled={allActive}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-app-border px-3 py-2 text-xs font-bold text-app-muted transition-all duration-200 hover:border-app-primary/40 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold text-app-muted transition-colors hover:bg-app-muted-surface hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-45"
         >
-          <Icon name="refresh" className="h-4 w-4" />
-          Restaurar camadas
+          <Icon name="refresh" className="h-3.5 w-3.5" />
+          Restaurar
         </button>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const active = activeFilters.includes(option.id);
           const styles = FILTER_STYLES[option.id];
@@ -81,28 +86,17 @@ export function WorldFilters({
               key={option.id}
               type="button"
               aria-pressed={active}
+              title={option.description}
               onClick={() => onToggleFilter(option.id)}
-              className={`group flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200 ${
-                active
-                  ? styles.active
-                  : 'border-app-border bg-app-card/60 text-app-muted hover:border-app-primary/40 hover:text-app-fg'
-              }`}
+              className={[
+                'inline-flex h-10 min-w-0 items-center gap-2 rounded-lg border px-3 text-left text-xs font-black transition-colors',
+                active ? styles.active : styles.inactive,
+              ].join(' ')}
             >
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${styles.icon}`}
-              >
-                <Icon name={option.icon} className="h-4 w-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2 text-sm font-black text-app-fg">
-                  {option.label}
-                  <span className="rounded-full bg-app-bg/70 px-2 py-0.5 text-[10px] text-app-muted">
-                    {option.count}
-                  </span>
-                </span>
-                <span className="mt-0.5 block truncate text-xs text-app-muted">
-                  {option.description}
-                </span>
+              <Icon name={option.icon} className={['h-4 w-4 shrink-0', styles.icon].join(' ')} />
+              <span className="max-w-[8rem] truncate">{option.label}</span>
+              <span className="rounded-full bg-app-bg/65 px-1.5 py-0.5 text-[10px] text-app-muted">
+                {option.count}
               </span>
             </button>
           );

@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Icon } from '@/components/ui/Icon';
+import { Button } from '@/components/ui/Button';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { Input } from '@/components/ui/Input';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { WorldAccessibleItemList } from '@/components/world/WorldAccessibleItemList';
 import { WorldFilters } from '@/components/world/WorldFilters';
 import type { WorldFilterOption } from '@/components/world/WorldFilters';
@@ -55,28 +59,84 @@ function countItemsByFilter(items: WorldAtlasItem[], filter: WorldAtlasFilter) {
   return items.filter((item) => getAtlasItemCategory(item) === filter).length;
 }
 
+function normalizeSearch(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function itemMatchesSearch(item: WorldAtlasItem, term: string) {
+  const searchableText = [
+    item.nome,
+    item.resumo,
+    item.descricaoCurta,
+    item.subtipo,
+    item.status,
+    item.kind,
+    ...item.tags,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return normalizeSearch(searchableText).includes(term);
+}
+
+function collectItemWithAncestors(item: WorldAtlasItem, ids: Set<string>) {
+  ids.add(item.id);
+
+  let parentId = item.parentId;
+  while (parentId) {
+    ids.add(parentId);
+    parentId = WORLD_ATLAS_ITEM_BY_ID.get(parentId)?.parentId;
+  }
+}
+
+function filterAtlasItemsBySearch(items: WorldAtlasItem[], query: string) {
+  const term = normalizeSearch(query);
+  if (!term) return items;
+
+  const ids = new Set<string>();
+  for (const item of items) {
+    if (itemMatchesSearch(item, term)) {
+      collectItemWithAncestors(item, ids);
+    }
+  }
+
+  return items.filter((item) => ids.has(item.id));
+}
+
 export function WorldAtlasShell() {
   const [activeFilters, setActiveFilters] =
     useState<WorldAtlasFilter[]>(DEFAULT_FILTERS);
   const [detailLevel, setDetailLevel] = useState<WorldDetailLevel>('REGIONAL');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const atlasItemsForSearch = useMemo(
+    () => filterAtlasItemsBySearch(WORLD_ATLAS_ITEMS, searchQuery),
+    [searchQuery],
+  );
 
   const filterOptions = useMemo<WorldFilterOption[]>(
     () =>
       FILTER_OPTIONS_BASE.map((option) => ({
         ...option,
-        count: countItemsByFilter(WORLD_ATLAS_ITEMS, option.id),
+        count: countItemsByFilter(atlasItemsForSearch, option.id),
       })),
-    [],
+    [atlasItemsForSearch],
   );
 
   const displayState = useMemo(
-    () => getAtlasDisplayState(WORLD_ATLAS_ITEMS, activeFilters, detailLevel),
-    [activeFilters, detailLevel],
+    () => getAtlasDisplayState(atlasItemsForSearch, activeFilters, detailLevel),
+    [activeFilters, atlasItemsForSearch, detailLevel],
   );
 
   const visibleItems = displayState.visibleItems;
+  const hasActiveSearch = searchQuery.trim().length > 0;
+  const hasNonDefaultFilters = activeFilters.length !== DEFAULT_FILTERS.length;
 
   const selectedItem = useMemo(
     () =>
@@ -92,6 +152,40 @@ export function WorldAtlasShell() {
         ? visibleItems.find((item) => item.id === hoveredItemId) ?? null
         : null,
     [hoveredItemId, visibleItems],
+  );
+
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      {
+        id: 'entries',
+        label: 'Entradas',
+        value: WORLD_ATLAS_ITEMS.length,
+        icon: 'map',
+        tone: 'primary',
+        helper: `${visibleItems.length} visíveis`,
+      },
+      {
+        id: 'places',
+        label: 'Lugares/setores',
+        value: WORLD_ATLAS_ITEMS.filter((item) => item.kind === 'LUGAR').length,
+        icon: 'layers',
+      },
+      {
+        id: 'institutions',
+        label: 'Instituições',
+        value: WORLD_ATLAS_ITEMS.filter((item) => item.kind === 'INSTITUICAO').length,
+        icon: 'school',
+        tone: 'success',
+      },
+      {
+        id: 'barriers',
+        label: 'Barreiras',
+        value: WORLD_ATLAS_ITEMS.filter((item) => item.kind === 'BARREIRA').length,
+        icon: 'domain',
+        tone: 'warning',
+      },
+    ],
+    [visibleItems.length],
   );
 
   useEffect(() => {
@@ -133,6 +227,13 @@ export function WorldAtlasShell() {
     setActiveFilters(DEFAULT_FILTERS);
   }, []);
 
+  const handleResetAtlas = useCallback(() => {
+    setActiveFilters(DEFAULT_FILTERS);
+    setSearchQuery('');
+    setSelectedItemId(null);
+    setHoveredItemId(null);
+  }, []);
+
   const handleSelectItem = useCallback((itemId: string) => {
     setSelectedItemId(itemId);
   }, []);
@@ -150,65 +251,63 @@ export function WorldAtlasShell() {
   }, []);
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-app-bg px-4 py-5 md:px-8 md:py-6">
-      <div className="mx-auto max-w-7xl space-y-5">
-        <header className="relative overflow-hidden rounded-2xl border border-app-border/60 bg-app-surface/70 p-5 shadow-xl shadow-black/10 backdrop-blur md:p-6">
-          <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-app-primary/20 blur-3xl" />
-          <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-app-primary/70 to-transparent" />
-
-          <div className="relative z-10 grid gap-5 lg:grid-cols-[1.45fr_0.7fr] lg:items-end">
-            <div className="space-y-3">
-              <span className="inline-flex items-center gap-2 rounded-full border border-app-primary/30 bg-app-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-app-primary">
-                <Icon name="map" className="h-4 w-4" />
-                Arquivo cartográfico
-              </span>
-
-              <div className="max-w-4xl space-y-2">
-                <h1 className="text-3xl font-black tracking-tight text-app-fg md:text-5xl">
-                  Atlas do <span className="text-gradient">Mundo</span>
-                </h1>
-                <p className="text-sm font-medium leading-relaxed text-app-muted md:text-base">
-                  Camadas de locais, instituições, barreiras e sublocais do
-                  cenário em um globo tático construído com Three.js direto.
-                </p>
-              </div>
-            </div>
-
-            <Card variant="outline" className="bg-app-bg/35 !p-4">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-app-muted">
-                Nível de detalhe
-              </p>
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-2xl font-black text-app-fg">{detailLevel}</p>
-                  <p className="text-xs font-bold text-app-muted">
-                    {visibleItems.length} pontos visíveis
-                  </p>
-                </div>
-                <div className="rounded-xl border border-app-border bg-app-surface/60 px-3 py-2 text-right">
-                  <p className="text-lg font-black text-app-fg">
-                    {activeFilters.length}
-                  </p>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-app-muted">
-                    camadas
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </header>
-
-        <WorldFilters
-          options={filterOptions}
-          activeFilters={activeFilters}
-          onToggleFilter={handleToggleFilter}
-          onResetFilters={handleResetFilters}
+    <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <PageHeader
+          eyebrow="Atlas"
+          icon="map"
+          title="Mundo"
+          description="Explore locais, instituições, barreiras e camadas de lore em um atlas tático do cenário."
+          actions={
+            <EntityActionsMenu
+              ariaLabel="Ações do atlas"
+              items={[
+                {
+                  id: 'reset',
+                  label: 'Restaurar atlas',
+                  icon: 'refresh',
+                  disabled: !hasActiveSearch && !hasNonDefaultFilters && !selectedItemId,
+                  onSelect: handleResetAtlas,
+                },
+              ]}
+            />
+          }
         />
+
+        <StatsStrip items={statsItems} />
+
+        <PageToolbar>
+          <div className="min-w-[14rem] flex-[0.8]">
+            <Input
+              label="Busca local"
+              placeholder="Nome, descrição, status ou tag"
+              icon="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              rightIcon={hasActiveSearch ? 'close' : undefined}
+              rightIconLabel="Limpar busca"
+              onRightIconClick={() => setSearchQuery('')}
+            />
+          </div>
+
+          <WorldFilters
+            options={filterOptions}
+            activeFilters={activeFilters}
+            onToggleFilter={handleToggleFilter}
+            onResetFilters={handleResetFilters}
+          />
+
+          {(hasActiveSearch || hasNonDefaultFilters) ? (
+            <Button size="sm" variant="ghost" onClick={handleResetAtlas}>
+              Limpar filtros
+            </Button>
+          ) : null}
+        </PageToolbar>
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.85fr)]">
           <div className="space-y-4">
             <WorldGlobeCanvas
-              items={WORLD_ATLAS_ITEMS}
+              items={atlasItemsForSearch}
               markerStates={displayState.markerStates}
               selectedItemId={selectedItem?.id ?? null}
               onSelectItem={handleSelectItem}
@@ -220,12 +319,13 @@ export function WorldAtlasShell() {
               items={visibleItems}
               selectedItemId={selectedItem?.id ?? null}
               onSelectItem={handleSelectItem}
+              onClearFilters={handleResetAtlas}
             />
           </div>
           <WorldLocationPanel
             item={selectedItem}
             hoveredItem={hoveredItem}
-            items={WORLD_ATLAS_ITEMS}
+            items={atlasItemsForSearch}
             onSelectItem={handleSelectItem}
           />
         </section>

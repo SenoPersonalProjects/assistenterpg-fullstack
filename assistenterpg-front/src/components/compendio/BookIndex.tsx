@@ -1,7 +1,10 @@
 import Link from 'next/link';
-import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import type { CompendioLivro } from '@/lib/utils/compendio';
 import {
   getCompendioArticleHref,
@@ -20,6 +23,27 @@ type BookIndexProps = {
 export function BookIndex({ livro }: BookIndexProps) {
   const counts = getCompendioBookCounts(livro);
   const firstHref = getFirstCompendioArticleHref(livro);
+  const statsItems: StatsStripItem[] = [
+    {
+      id: 'categorias',
+      label: 'Capítulos',
+      value: counts.categorias,
+      icon: 'book',
+    },
+    {
+      id: 'subcategorias',
+      label: 'Tópicos',
+      value: counts.subcategorias,
+      icon: 'folder',
+    },
+    {
+      id: 'artigos',
+      label: 'Seções',
+      value: counts.artigos,
+      icon: 'document',
+      tone: 'primary',
+    },
+  ];
 
   if (counts.artigos === 0) {
     return (
@@ -33,123 +57,121 @@ export function BookIndex({ livro }: BookIndexProps) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10">
-      <section className="space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-app-primary">Compendio de Regras</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-app-fg sm:text-4xl">
-              {livro.titulo}
-            </h1>
-            {livro.descricao ? (
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-app-muted">
-                {livro.descricao}
-              </p>
-            ) : null}
-          </div>
-
-          {firstHref ? (
-            <Link
-              href={firstHref}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-app-primary bg-app-primary px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-app-primary-hover"
-            >
-              Comecar leitura
-              <Icon name="chevron-right" className="ml-2 h-4 w-4" />
+    <div className="mx-auto max-w-5xl space-y-5">
+      <PageHeader
+        icon="book"
+        eyebrow="Compêndio de Regras"
+        title={livro.titulo}
+        description={livro.descricao || undefined}
+        backHref="/compendio"
+        backLabel="Compêndio"
+        actions={
+          firstHref ? (
+            <Link href={firstHref}>
+              <Button className="w-full sm:w-auto">
+                Começar leitura
+                <Icon name="chevron-right" className="ml-2 h-4 w-4" />
+              </Button>
             </Link>
-          ) : null}
-        </div>
+          ) : null
+        }
+      />
 
-        <div className="flex flex-wrap gap-2">
-          <Badge color="blue">{counts.categorias} capitulos</Badge>
-          <Badge color="cyan">{counts.subcategorias} topicos</Badge>
-          <Badge color="purple">{counts.artigos} secoes</Badge>
-        </div>
-      </section>
+      <StatsStrip items={statsItems} />
 
-      <section className="grid gap-4 md:grid-cols-2">
-        {livro.categorias.map((categoria) => (
-          <article
-            key={categoria.id}
-            className="rounded-lg border border-app-border bg-app-surface p-5 shadow-sm"
-          >
-            <div className="mb-4 flex items-start gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
-                <Icon name="book" className="h-4 w-4" />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-app-fg">
-                  {stripCompendioDisplayNumber(categoria.nome)}
-                </h2>
-                {categoria.descricao ? (
-                  <p className="mt-1 line-clamp-2 text-sm leading-6 text-app-muted">
-                    {categoria.descricao}
-                  </p>
-                ) : null}
+      <section className="space-y-3">
+        <SectionHeader
+          icon="rules"
+          title="Índice"
+          description="Capítulos, tópicos e seções publicadas neste livro."
+          count={counts.categorias}
+        />
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {livro.categorias.map((categoria) => (
+            <article
+              key={categoria.id}
+              className="rounded-xl border border-white/5 bg-app-surface/55 p-4"
+            >
+              <div className="mb-3 flex min-w-0 items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
+                  <Icon name="book" className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="truncate text-sm font-black text-app-fg">
+                    {stripCompendioDisplayNumber(categoria.nome)}
+                  </h2>
+                  {categoria.descricao ? (
+                    <p className="mt-1 line-clamp-2 text-sm font-medium leading-relaxed text-app-muted">
+                      {categoria.descricao}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              {categoria.subcategorias.map((subcategoria) => {
-                const collapsed = shouldCollapseSubcategoria(subcategoria);
+              <div className="space-y-3">
+                {categoria.subcategorias.map((subcategoria) => {
+                  const collapsed = shouldCollapseSubcategoria(subcategoria);
 
-                if (collapsed) {
-                  const artigo = subcategoria.artigos[0];
+                  if (collapsed) {
+                    const artigo = subcategoria.artigos[0];
+
+                    return (
+                      <Link
+                        key={subcategoria.id}
+                        href={getCompendioArticleHref(
+                          livro.codigo,
+                          categoria.codigo,
+                          subcategoria.codigo,
+                          artigo.codigo,
+                        )}
+                        className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm font-medium text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg"
+                      >
+                        <span className="truncate">
+                          {stripCompendioDisplayNumber(artigo.titulo)}
+                        </span>
+                        <Icon
+                          name="chevron-right"
+                          className="h-4 w-4 shrink-0 text-app-primary opacity-70 transition-transform group-hover:translate-x-0.5"
+                        />
+                      </Link>
+                    );
+                  }
 
                   return (
-                    <Link
-                      key={subcategoria.id}
-                      href={getCompendioArticleHref(
-                        livro.codigo,
-                        categoria.codigo,
-                        subcategoria.codigo,
-                        artigo.codigo,
-                      )}
-                      className="group flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg"
-                    >
-                      <span className="line-clamp-1">
-                        {stripCompendioDisplayNumber(artigo.titulo)}
-                      </span>
-                      <Icon
-                        name="chevron-right"
-                        className="h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                      />
-                    </Link>
-                  );
-                }
-
-                return (
-                  <div key={subcategoria.id} className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                      {stripCompendioDisplayNumber(subcategoria.nome)}
-                    </p>
-                    <div className="grid gap-1.5">
-                      {subcategoria.artigos.map((artigo) => (
-                        <Link
-                          key={artigo.id}
-                          href={getCompendioArticleHref(
-                            livro.codigo,
-                            categoria.codigo,
-                            subcategoria.codigo,
-                            artigo.codigo,
-                          )}
-                          className="group flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg"
-                        >
-                          <span className="line-clamp-1">
-                            {stripCompendioDisplayNumber(artigo.titulo)}
-                          </span>
-                          <Icon
-                            name="chevron-right"
-                            className="h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                          />
-                        </Link>
-                      ))}
+                    <div key={subcategoria.id} className="space-y-1.5">
+                      <p className="truncate text-[10px] font-black uppercase tracking-[0.14em] text-app-muted">
+                        {stripCompendioDisplayNumber(subcategoria.nome)}
+                      </p>
+                      <div className="grid gap-1">
+                        {subcategoria.artigos.map((artigo) => (
+                          <Link
+                            key={artigo.id}
+                            href={getCompendioArticleHref(
+                              livro.codigo,
+                              categoria.codigo,
+                              subcategoria.codigo,
+                              artigo.codigo,
+                            )}
+                            className="group flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm font-medium text-app-muted transition-colors hover:bg-app-bg hover:text-app-fg"
+                          >
+                            <span className="truncate">
+                              {stripCompendioDisplayNumber(artigo.titulo)}
+                            </span>
+                            <Icon
+                              name="chevron-right"
+                              className="h-4 w-4 shrink-0 text-app-primary opacity-70 transition-transform group-hover:translate-x-0.5"
+                            />
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </article>
-        ))}
+                  );
+                })}
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );

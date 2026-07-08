@@ -32,7 +32,7 @@ export function WorldFallbackMap({
   onSelectItem,
 }: WorldFallbackMapProps) {
   return (
-    <div className="flex min-h-[32rem] flex-col justify-between rounded-3xl border border-app-border bg-app-bg/70 p-5">
+    <div className="flex min-h-[32rem] flex-col justify-between rounded-xl border border-white/5 bg-app-bg/70 p-5">
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 rounded-full border border-app-warning/30 bg-app-warning/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-app-warning">
           <Icon name="warning" className="h-4 w-4" />
@@ -57,11 +57,12 @@ export function WorldFallbackMap({
               key={item.id}
               type="button"
               onClick={() => onSelectItem(item.id)}
-              className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
+              className={[
+                'rounded-lg border p-4 text-left transition-colors',
                 selected
-                  ? 'border-app-primary bg-app-primary/15 shadow-lg shadow-app-primary/10'
-                  : 'border-app-border bg-app-surface/60 hover:border-app-primary/40'
-              }`}
+                  ? 'border-app-primary/45 bg-app-primary/15'
+                  : 'border-white/5 bg-app-surface/60 hover:border-app-primary/35',
+              ].join(' ')}
             >
               <span
                 className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${CATEGORY_STYLES[category]}`}

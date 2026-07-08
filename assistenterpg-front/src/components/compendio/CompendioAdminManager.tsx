@@ -19,6 +19,10 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { Textarea } from '@/components/ui/Textarea';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -300,6 +304,34 @@ export function CompendioAdminManager() {
 
     return { categorias, subcategorias, artigos };
   }, [livros]);
+
+  const statsItems: StatsStripItem[] = [
+    {
+      id: 'livros',
+      label: 'Livros',
+      value: livros.length,
+      icon: 'book',
+    },
+    {
+      id: 'categorias',
+      label: 'Capítulos',
+      value: lookup.categorias.size,
+      icon: 'folder',
+    },
+    {
+      id: 'topicos',
+      label: 'Tópicos',
+      value: lookup.subcategorias.size,
+      icon: 'layers',
+    },
+    {
+      id: 'artigos',
+      label: 'Artigos',
+      value: lookup.artigos.size,
+      icon: 'document',
+      tone: 'primary',
+    },
+  ];
 
   const currentFormSnapshot = useMemo(() => {
     if (!selection) return '';
@@ -594,7 +626,7 @@ export function CompendioAdminManager() {
 
   if (authLoading || loading) {
     return (
-      <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+      <main className="min-h-[calc(100vh-4rem)] bg-app-bg px-4 py-5 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <EmptyState
             variant="card"
@@ -609,7 +641,7 @@ export function CompendioAdminManager() {
 
   if (!isAdmin) {
     return (
-      <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
+      <main className="min-h-[calc(100vh-4rem)] bg-app-bg px-4 py-5 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <EmptyState
             variant="card"
@@ -629,9 +661,68 @@ export function CompendioAdminManager() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-col gap-4 border-b border-app-border/40 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <main className="min-h-[calc(100vh-4rem)] bg-app-bg px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <PageHeader
+          icon="rules"
+          eyebrow="Admin"
+          title="Gerenciar compêndio"
+          description="Edite livros, capítulos, tópicos e artigos publicados no banco."
+          backHref="/compendio"
+          backLabel="Compêndio"
+          actions={
+            <>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => selectItem({ type: 'book', mode: 'create' })}
+              >
+                <Icon name="add" className="mr-2 h-4 w-4" />
+                Novo livro
+              </Button>
+              <CompendioAdminExportButton />
+            </>
+          }
+        />
+
+        <StatsStrip items={statsItems} />
+
+        <PageToolbar>
+          <div className="min-w-0 flex-1">
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Buscar livro, tópico ou artigo..."
+              icon="search"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(event.target.value as typeof statusFilter)
+            }
+            className="h-10 w-full rounded-xl border border-app-border bg-app-surface px-3 text-sm font-medium text-app-fg focus:border-app-primary focus:outline-none sm:w-48"
+          >
+            <option value="todos">Todos os status</option>
+            <option value="PUBLICADO">Publicados</option>
+            <option value="RASCUNHO">Rascunhos</option>
+            <option value="ARQUIVADO">Arquivados</option>
+          </select>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setQuery('');
+              setStatusFilter('todos');
+            }}
+            disabled={!query.trim() && statusFilter === 'todos'}
+            className="w-full sm:w-auto"
+          >
+            Limpar
+          </Button>
+        </PageToolbar>
+
+        <header className="hidden">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-app-primary/10 text-app-primary">
               <Icon name="rules" className="h-6 w-6" />
@@ -644,7 +735,7 @@ export function CompendioAdminManager() {
                 Gerenciar compêndio
               </h1>
               <p className="mt-1 max-w-2xl text-sm text-app-muted">
-                Edite livros, capitulos, topicos e artigos publicados no banco.
+                Edite livros, capítulos, tópicos e artigos publicados no banco.
               </p>
             </div>
           </div>
@@ -669,12 +760,19 @@ export function CompendioAdminManager() {
         </header>
 
         <section className="grid gap-5 lg:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)]">
-          <aside className="min-w-0 space-y-4 rounded-2xl border border-app-border bg-app-surface p-4">
-            <div className="grid gap-3">
+          <aside className="min-w-0 space-y-3 rounded-xl border border-white/5 bg-app-surface/45 p-4">
+            <SectionHeader
+              icon="book"
+              title="Estrutura"
+              description="Livros, capítulos, tópicos e artigos."
+              count={filteredLivros.length}
+            />
+
+            <div className="hidden">
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Buscar livro, topico ou artigo..."
+                placeholder="Buscar livro, tópico ou artigo..."
                 icon="search"
               />
               <select
@@ -691,11 +789,14 @@ export function CompendioAdminManager() {
               </select>
             </div>
 
-            <div className="max-h-[calc(100vh-17rem)] space-y-3 overflow-y-auto pr-1">
+            <div className="max-h-[calc(100vh-22rem)] space-y-3 overflow-y-auto pr-1">
               {filteredLivros.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-app-border p-4 text-sm text-app-muted">
-                  Nenhum item encontrado.
-                </p>
+                <EmptyState
+                  variant="card"
+                  icon="search"
+                  title="Nenhum item encontrado"
+                  description="A busca ou filtro atual não encontrou livros no compêndio."
+                />
               ) : (
                 filteredLivros.map((livro) => (
                   <BookTreeItem
@@ -709,13 +810,13 @@ export function CompendioAdminManager() {
             </div>
           </aside>
 
-          <section className="min-w-0 rounded-2xl border border-app-border bg-app-surface p-4 lg:p-6">
+          <section className="min-w-0 rounded-xl border border-white/5 bg-app-surface/55 p-4 lg:p-6">
             {!selection ? (
               <EmptyState
                 variant="card"
                 icon="edit"
                 title="Selecione um item"
-                description="Escolha um livro, capitulo, topico ou artigo para editar."
+                description="Escolha um livro, capítulo, tópico ou artigo para editar."
               />
             ) : (
               <div className="space-y-5">
@@ -835,7 +936,7 @@ function BookTreeItem({
           className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-semibold text-app-primary hover:bg-app-primary/10"
         >
           <Icon name="add" className="h-3.5 w-3.5" />
-          Adicionar capitulo
+          Adicionar capítulo
         </button>
 
         {livro.categorias.map((categoria) => (
@@ -868,7 +969,7 @@ function BookTreeItem({
               className="ml-2 flex items-center gap-2 rounded-md px-2 py-1 text-xs text-app-primary hover:bg-app-primary/10"
             >
               <Icon name="add" className="h-3 w-3" />
-              Novo topico
+              Novo tópico
             </button>
 
             {categoria.subcategorias.map((subcategoria) => (
@@ -958,8 +1059,8 @@ function EditorHeader({
 }) {
   const labels = {
     book: 'Livro',
-    category: 'Capitulo',
-    subcategory: 'Topico',
+    category: 'Capítulo',
+    subcategory: 'Tópico',
     article: 'Artigo',
   };
 
@@ -1019,10 +1120,10 @@ function BookEditor({
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Input label="Titulo" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
-      <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo titulo." />
+      <Input label="Título" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
+      <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo título." />
       <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
-      <Input label="Icone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
+      <Input label="Ícone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
       <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
       <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
       <Input label="Suplemento ID" type="number" value={form.suplementoId} onChange={(e) => patch('suplementoId', e.target.value)} helperText="Opcional." />
@@ -1056,19 +1157,19 @@ function CategoryEditor({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
-        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo nome." />
+        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo nome." />
         <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
-        <Input label="Icone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
+        <Input label="Ícone" value={form.icone} onChange={(e) => patch('icone', e.target.value)} />
         <Input label="Cor" value={form.cor} onChange={(e) => patch('cor', e.target.value)} />
         <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
         <div className="flex items-end">
-          <Checkbox checked={form.ativo} onChange={(e) => patch('ativo', e.target.checked)} label="Ativo no leitor publico" />
+          <Checkbox checked={form.ativo} onChange={(e) => patch('ativo', e.target.checked)} label="Ativo no leitor público" />
         </div>
       </div>
       {selection.mode === 'edit' ? (
         <Button type="button" variant="secondary" onClick={() => onAddSubcategory(selection.id)}>
           <Icon name="add" className="mr-2 h-4 w-4" />
-          Adicionar topico
+          Adicionar tópico
         </Button>
       ) : null}
     </div>
@@ -1095,11 +1196,11 @@ function SubcategoryEditor({
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Input label="Nome" value={form.nome} onChange={(e) => patch('nome', e.target.value)} />
-        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo nome." />
+        <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo nome." />
         <Textarea className="md:col-span-2" label="Descrição" rows={4} value={form.descricao} onChange={(e) => patch('descricao', e.target.value)} />
         <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />
         <div className="flex items-end">
-          <Checkbox checked={form.ativo} onChange={(e) => patch('ativo', e.target.checked)} label="Ativo no leitor publico" />
+          <Checkbox checked={form.ativo} onChange={(e) => patch('ativo', e.target.checked)} label="Ativo no leitor público" />
         </div>
       </div>
       {selection.mode === 'edit' ? (
@@ -1149,11 +1250,11 @@ function ArticleEditor({
         </section>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
-          <Input label="Titulo" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
-          <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, sera gerado pelo titulo." />
+          <Input label="Título" value={form.titulo} onChange={(e) => patch('titulo', e.target.value)} />
+          <Input label="Código" value={form.codigo} onChange={(e) => patch('codigo', e.target.value)} helperText="Opcional. Se ficar vazio, será gerado pelo título." />
           <Textarea className="xl:col-span-2" label="Resumo" rows={3} value={form.resumo} onChange={(e) => patch('resumo', e.target.value)} />
           <Textarea className="font-mono xl:col-span-2" label="Conteúdo Markdown" rows={18} value={form.conteudo} onChange={(e) => patch('conteudo', e.target.value)} error={bytes > SAFE_TEXT_BYTES ? 'Conteúdo acima do limite seguro.' : undefined} />
-          <Input label="Tags" value={form.tags} onChange={(e) => patch('tags', e.target.value)} helperText="Separe por virgulas." />
+          <Input label="Tags" value={form.tags} onChange={(e) => patch('tags', e.target.value)} helperText="Separe por vírgulas." />
           <Input label="Palavras-chave" value={form.palavrasChave} onChange={(e) => patch('palavrasChave', e.target.value)} />
           <Input label="Artigos relacionados" value={form.artigosRelacionados} onChange={(e) => patch('artigosRelacionados', e.target.value)} helperText="Códigos separados por vírgula." />
           <Input label="Ordem" type="number" value={form.ordem} onChange={(e) => patch('ordem', e.target.value)} />

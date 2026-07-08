@@ -1,5 +1,5 @@
-import type { AdminModuloSuplemento } from '@/lib/types';
 import type { IconName } from '@/components/ui/Icon';
+import type { AdminModuloSuplemento } from '@/lib/types';
 
 export type SuplementoAdminModuleConfig = {
   id: AdminModuloSuplemento;

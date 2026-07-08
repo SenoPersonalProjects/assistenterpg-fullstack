@@ -786,7 +786,7 @@ export function WorldGlobeCanvas({
   }
 
   return (
-    <div className="relative min-h-[32rem] overflow-hidden rounded-3xl border border-app-border bg-[radial-gradient(circle_at_50%_35%,rgba(var(--primary-rgb),0.16),transparent_42%),linear-gradient(180deg,rgba(11,8,20,0.9),rgba(6,4,12,0.96))]">
+    <div className="relative min-h-[32rem] overflow-hidden rounded-xl border border-white/5 bg-[radial-gradient(circle_at_50%_35%,rgba(var(--primary-rgb),0.14),transparent_42%),linear-gradient(180deg,rgba(11,8,20,0.9),rgba(6,4,12,0.96))]">
       <div
         ref={containerRef}
         className="h-[62vh] min-h-[32rem] max-h-[45rem] w-full touch-none"
@@ -797,7 +797,7 @@ export function WorldGlobeCanvas({
         Three.js direto
       </div>
 
-      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-2xl border border-app-border/70 bg-app-bg/75 p-2 shadow-lg shadow-black/20 backdrop-blur">
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-2 rounded-xl border border-white/10 bg-app-bg/75 p-2 shadow-sm shadow-black/20 backdrop-blur">
         <button
           type="button"
           aria-label="Aproximar o globo"
@@ -824,7 +824,7 @@ export function WorldGlobeCanvas({
         </button>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex flex-col gap-2 rounded-2xl border border-app-border/70 bg-app-bg/70 p-3 text-xs text-app-muted backdrop-blur md:left-auto md:max-w-sm">
+      <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex flex-col gap-2 rounded-xl border border-white/10 bg-app-bg/70 p-3 text-xs text-app-muted backdrop-blur md:left-auto md:max-w-sm">
         <span className="font-bold text-app-fg">
           Arraste para rotacionar. Use scroll ou os botões para aproximar.
         </span>

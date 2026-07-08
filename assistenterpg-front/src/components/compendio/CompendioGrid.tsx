@@ -1,11 +1,9 @@
-// components/compendio/CompendioGrid.tsx
-import { ReactNode } from 'react';
-import { SectionTitle } from '@/components/ui/SectionTitle';
+import type { ReactNode } from 'react';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
-// components/compendio/CompendioGrid.tsx (versão expandida)
 type CompendioGridProps = {
   title?: string;
-  description?: string; // ✅ opcional
+  description?: string;
   children: ReactNode;
   columns?: 2 | 3;
 };
@@ -14,23 +12,16 @@ export function CompendioGrid({
   title,
   description,
   children,
-  columns = 3
+  columns = 3,
 }: CompendioGridProps) {
   const gridClass = columns === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3';
 
   return (
-    <section>
-      {title && (
-        <div className="mb-4">
-          <SectionTitle>{title}</SectionTitle>
-          {description && (
-            <p className="text-sm text-app-muted mt-1">{description}</p>
-          )}
-        </div>
-      )}
-      <div className={`grid gap-4 ${gridClass} ${title ? 'mt-4' : ''}`}>
-        {children}
-      </div>
+    <section className="space-y-3">
+      {title ? (
+        <SectionHeader icon="document" title={title} description={description} />
+      ) : null}
+      <div className={`grid gap-3 ${gridClass}`}>{children}</div>
     </section>
   );
 }

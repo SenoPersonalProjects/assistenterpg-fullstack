@@ -1,13 +1,8 @@
-// components/compendio/CompendioLayout.tsx
-// ✅ SEM MUDANÇAS - Já estava perfeito!
-import { ReactNode } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Icon, type IconName } from '@/components/ui/Icon';
-import {
-  CompendioBreadcrumb,
-  type BreadcrumbItem,
-} from '@/components/compendio/CompendioBreadcrumb';
+import type { ReactNode } from 'react';
+import { CompendioBreadcrumb, type BreadcrumbItem } from '@/components/compendio/CompendioBreadcrumb';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
+import type { IconName } from '@/components/ui/Icon';
 
 type CompendioLayoutProps = {
   children: ReactNode;
@@ -30,58 +25,32 @@ export function CompendioLayout({
   icon,
   stats,
 }: CompendioLayoutProps) {
+  const statItems: StatsStripItem[] =
+    stats?.map((stat, index) => ({
+      id: `${stat.label}-${index}`,
+      label: stat.label,
+      value: stat.value,
+      icon: index === 0 ? 'folder' : 'document',
+    })) ?? [];
+
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Breadcrumb */}
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <CompendioBreadcrumb items={breadcrumbs} />
-        )}
+    <main className="min-h-screen bg-app-bg px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <PageHeader
+          icon={icon}
+          title={title}
+          description={subtitle}
+          backHref={backHref}
+          backLabel={backLabel}
+          breadcrumb={
+            breadcrumbs && breadcrumbs.length > 0 ? (
+              <CompendioBreadcrumb items={breadcrumbs} />
+            ) : undefined
+          }
+        />
 
-        {/* Header com ícone + voltar */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {icon && (
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name={icon} className="w-6 h-6 text-app-primary" />
-              </div>
-            )}
-            <div>
-              <h1 className="text-3xl font-bold text-app-fg">{title}</h1>
-              {subtitle && (
-                <p className="text-sm text-app-muted mt-0.5">{subtitle}</p>
-              )}
-            </div>
-          </div>
+        <StatsStrip items={statItems} />
 
-          {backHref && (
-            <Link href={backHref}>
-              <Button variant="ghost" size="sm">
-                <Icon name="back" className="w-4 h-4 mr-2" />
-                {backLabel}
-              </Button>
-            </Link>
-          )}
-        </header>
-
-        {/* Stats opcionais */}
-        {stats && stats.length > 0 && (
-          <div className="flex flex-wrap gap-4">
-            {stats.map((stat, idx) => (
-              <div
-                key={idx}
-                className="min-w-[120px] rounded-lg border border-app-border bg-app-surface px-4 py-2"
-              >
-                <p className="text-xs text-app-muted">{stat.label}</p>
-                <p className="text-2xl font-bold text-app-fg">
-                  {stat.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Conteúdo */}
         <div>{children}</div>
       </div>
     </main>

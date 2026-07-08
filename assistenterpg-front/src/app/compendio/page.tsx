@@ -1,78 +1,104 @@
-import { apiListarDestaques, apiListarLivros } from '@/lib/utils/compendio';
-import { ArtigoCard } from '@/components/compendio/ArtigoCard';
-import { CompendioAdminExportButton } from '@/components/compendio/CompendioAdminExportButton';
-import { CompendioAdminManageButton } from '@/components/compendio/CompendioAdminManageButton';
-import { BookCard } from '@/components/compendio/BookCard';
-import { CompendioSearch } from '@/components/compendio/CompendioSearch';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
+import { ArtigoCard } from '@/components/compendio/ArtigoCard';
+import { BookCard } from '@/components/compendio/BookCard';
+import { CompendioAdminActionsMenu } from '@/components/compendio/CompendioAdminActionsMenu';
+import { CompendioSearch } from '@/components/compendio/CompendioSearch';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
+import { apiListarDestaques, apiListarLivros } from '@/lib/utils/compendio';
 
 export default async function CompendioPage() {
   const [livros, destaques] = await Promise.all([
     apiListarLivros(),
     apiListarDestaques(),
   ]);
+  const categorias = livros.flatMap((livro) => livro.categorias ?? []);
+  const subcategorias = categorias.flatMap((categoria) => categoria.subcategorias ?? []);
+  const artigos = subcategorias.flatMap((subcategoria) => subcategoria.artigos ?? []);
   const semConteudo = livros.length === 0 && destaques.length === 0;
 
+  const statsItems: StatsStripItem[] = [
+    {
+      id: 'books',
+      label: 'Livros',
+      value: livros.length,
+      icon: 'book',
+      tone: 'primary',
+    },
+    {
+      id: 'categories',
+      label: 'Categorias',
+      value: categorias.length,
+      icon: 'rules',
+    },
+    {
+      id: 'articles',
+      label: 'Seções',
+      value: artigos.length,
+      icon: 'document',
+      tone: 'success',
+    },
+    {
+      id: 'featured',
+      label: 'Destaques',
+      value: destaques.length,
+      icon: 'star',
+    },
+  ];
+
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-app-bg p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-app-border/30">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
-              <Icon name="rules" className="h-8 w-8" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-4xl font-black tracking-tight text-app-fg">
-                Compêndio
-              </h1>
-              <p className="mt-1 text-base font-medium text-app-muted max-w-xl">
-                Consulte livros, regras, técnicas e suplementos do sistema.
-              </p>
-            </div>
-          </div>
+    <main className="min-h-full bg-app-bg px-4 py-5 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <PageHeader
+          backHref="/home"
+          backLabel="Painel"
+          eyebrow="Consulta"
+          icon="rules"
+          title="Compêndio"
+          description="Consulte livros, regras, técnicas e suplementos do sistema durante a preparação ou sessão."
+          actions={<CompendioAdminActionsMenu />}
+        />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <CompendioAdminManageButton />
-            <CompendioAdminExportButton />
-            <Link href="/home">
-              <Button variant="ghost" size="sm" className="font-bold">
-                <Icon name="back" className="mr-2 h-4 w-4" />
-                Painel
-              </Button>
-            </Link>
-          </div>
-        </header>
+        <StatsStrip items={statsItems} />
 
-        <section className="bg-app-surface/50 backdrop-blur-sm border border-app-border/40 rounded-2xl p-6 shadow-xl shadow-black/5">
-          <CompendioSearch />
-        </section>
+        <PageToolbar>
+          <div className="min-w-0 flex-1">
+            <CompendioSearch
+              placeholder="Buscar regras, técnicas, condições ou referências"
+              inputLabel="Busca rápida"
+            />
+          </div>
+        </PageToolbar>
 
         {semConteudo ? (
           <EmptyState
             variant="card"
             icon="warning"
-            title="Compendio indisponivel no momento"
+            title="Compêndio indisponível no momento"
             description="Não foi possível carregar livros e destaques agora. Tente novamente em instantes."
+            action={
+              <Link href="/compendio/busca">
+                <Button variant="secondary" size="sm">
+                  Abrir busca
+                </Button>
+              </Link>
+            }
           />
         ) : (
           <>
             <section className="space-y-4">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                    Livros
-                  </p>
-                  <h2 className="text-xl font-semibold text-app-fg">
-                    Livros oficiais
-                  </h2>
-                </div>
-                <span className="text-sm text-app-muted">{livros.length} livro(s)</span>
-              </div>
+              <SectionHeader
+                icon="book"
+                title="Livros oficiais"
+                count={livros.length}
+                description="Fontes disponíveis para navegação estruturada."
+              />
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {livros.map((livro) => (
                   <BookCard key={livro.id} livro={livro} />
                 ))}
@@ -81,16 +107,14 @@ export default async function CompendioPage() {
 
             {destaques.length > 0 ? (
               <section className="space-y-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
-                    Destaques
-                  </p>
-                  <h2 className="text-xl font-semibold text-app-fg">
-                    Secoes recomendadas
-                  </h2>
-                </div>
+                <SectionHeader
+                  icon="star"
+                  title="Seções recomendadas"
+                  count={destaques.length}
+                  description="Entradas úteis para consulta rápida."
+                />
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {destaques.map((artigo) => (
                     <ArtigoCard
                       key={artigo.id}

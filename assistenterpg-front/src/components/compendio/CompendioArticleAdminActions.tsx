@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { ArtigoContent } from '@/components/compendio/ArtigoContent';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -127,17 +127,24 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
 
   return (
     <>
-      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        <Icon name="edit" className="mr-2 h-4 w-4" />
-        Editar
-      </Button>
-
-      <Link href={`/compendio/admin?artigo=${artigo.id}`}>
-        <Button type="button" variant="ghost" size="sm">
-          <Icon name="settings" className="mr-2 h-4 w-4" />
-          Editor completo
-        </Button>
-      </Link>
+      <EntityActionsMenu
+        ariaLabel="Ações administrativas do artigo"
+        buttonTitle="Ações administrativas"
+        items={[
+          {
+            id: 'edit',
+            label: 'Editar',
+            icon: 'edit',
+            onSelect: () => setOpen(true),
+          },
+          {
+            id: 'full-editor',
+            label: 'Editor completo',
+            icon: 'settings',
+            href: `/compendio/admin?artigo=${artigo.id}`,
+          },
+        ]}
+      />
 
       <Modal
         isOpen={open}
@@ -159,7 +166,7 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-4">
             <Input
-              label="Titulo"
+              label="Título"
               value={form.titulo}
               onChange={(event) => updateField('titulo', event.target.value)}
               maxLength={300}
@@ -187,7 +194,7 @@ export function CompendioArticleAdminActions({ artigo }: Props) {
                 label="Tags"
                 value={form.tags}
                 onChange={(event) => updateField('tags', event.target.value)}
-                helperText="Separe por virgulas."
+                helperText="Separe por vírgulas."
               />
 
               <Input

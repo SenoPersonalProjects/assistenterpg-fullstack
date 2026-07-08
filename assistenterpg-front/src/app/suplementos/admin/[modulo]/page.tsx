@@ -1,20 +1,21 @@
 'use client';
 
-import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Card } from '@/components/ui/Card';
-import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Loading } from '@/components/ui/Loading';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { SUPLEMENTO_ADMIN_MODULES } from '@/lib/constants/suplemento-admin';
 
 function ModuloLoading() {
   return (
-    <Card>
-      <Loading message="Carregando modulo..." className="text-app-fg py-6" />
+    <Card className="border-white/5 bg-app-surface/55">
+      <Loading message="Carregando módulo..." className="py-6 text-app-fg" />
     </Card>
   );
 }
@@ -151,7 +152,7 @@ export default function SuplementosAdminModuloPage() {
   if (loading || !usuario) {
     return (
       <div className="min-h-screen bg-app-bg p-6">
-        <Loading message="Carregando modulo admin..." className="text-app-fg" />
+        <Loading message="Carregando módulo admin..." className="text-app-fg" />
       </div>
     );
   }
@@ -160,43 +161,42 @@ export default function SuplementosAdminModuloPage() {
 
   if (!modulo) {
     return (
-      <main className="min-h-screen bg-app-bg p-6">
-        <div className="max-w-3xl mx-auto">
-          <Card>
-            <div className="space-y-3">
-              <h1 className="text-xl font-semibold text-app-fg">Módulo não encontrado</h1>
-              <p className="text-sm text-app-muted">
-                O módulo solicitado não existe na configuração de CRUD admin.
-              </p>
+      <main className="min-h-screen bg-app-bg px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl">
+          <EmptyState
+            variant="card"
+            icon="search"
+            title="Módulo não encontrado"
+            description="O módulo solicitado não existe na configuração de CRUD admin."
+            action={
               <Button variant="secondary" onClick={() => router.push('/suplementos/admin')}>
-                Voltar para painel admin
+                Voltar para Admin Conteúdo
               </Button>
-            </div>
-          </Card>
+            }
+          />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name={modulo.icon} className="w-6 h-6 text-app-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-app-fg">{modulo.label}</h1>
-              <p className="text-sm text-app-muted">{modulo.description}</p>
-            </div>
-          </div>
-          <Link href="/suplementos/admin" className="w-full sm:w-auto">
-            <Button variant="secondary" className="w-full sm:w-auto">
-              Voltar
-            </Button>
-          </Link>
-        </header>
+    <main className="min-h-screen bg-app-bg px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <PageHeader
+          icon={modulo.icon}
+          eyebrow="Admin Conteúdo"
+          title={modulo.label}
+          description={modulo.description}
+          backHref="/suplementos/admin"
+          backLabel="Admin Conteúdo"
+          actions={
+            <Link href="/suplementos/admin">
+              <Button variant="secondary" className="w-full sm:w-auto">
+                Voltar
+              </Button>
+            </Link>
+          }
+        />
 
         {PainelModulo ? <PainelModulo /> : null}
       </div>
