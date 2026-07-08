@@ -33,6 +33,7 @@ describe('compendio api fallbacks', () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
     warnSpy.mockRestore();
   });
 
@@ -51,6 +52,24 @@ describe('compendio api fallbacks', () => {
     const livros = await apiListarLivros();
 
     expect(livros).toEqual([]);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns empty books when the public compendio fetch times out', async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
+      return new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          reject(init.signal?.reason ?? new Error('aborted'));
+        });
+      });
+    });
+
+    const livrosPromise = apiListarLivros();
+
+    await vi.advanceTimersByTimeAsync(5_100);
+
+    await expect(livrosPromise).resolves.toEqual([]);
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 

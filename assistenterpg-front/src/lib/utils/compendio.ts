@@ -239,7 +239,10 @@ async function parseApiError(
 
 type FetchJsonInit = RequestInit & {
   auth?: boolean;
+  timeoutMs?: number;
 };
+
+const COMPENDIO_PUBLIC_FETCH_TIMEOUT_MS = 5_000;
 
 async function fetchJson<T>(
   path: string,
@@ -247,11 +250,15 @@ async function fetchJson<T>(
   init?: FetchJsonInit,
 ): Promise<T> {
   async function buildRequestInit(): Promise<RequestInit | undefined> {
-    if (!init?.auth) return init;
+    if (!init) return undefined;
 
-    const initSemAuth = { ...init };
-    delete initSemAuth.auth;
-    const { headers, ...rest } = initSemAuth;
+    const requestInitSemCustom: FetchJsonInit = { ...init };
+    delete requestInitSemCustom.auth;
+    delete requestInitSemCustom.timeoutMs;
+
+    if (!init.auth) return requestInitSemCustom;
+
+    const { headers, ...rest } = requestInitSemCustom;
     const requestHeaders = new Headers(headers);
     const method = (rest.method ?? 'GET').toUpperCase();
 
@@ -270,10 +277,52 @@ async function fetchJson<T>(
 
   async function execute(): Promise<Response> {
     const requestInit = await buildRequestInit();
-    return fetch(`${API_BASE_URL}${path}`, {
-      ...requestInit,
-      credentials: 'include',
-    });
+    const timeoutMs = init?.timeoutMs;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let onExternalAbort: (() => void) | undefined;
+    let signal = requestInit?.signal;
+    let timedOut = false;
+
+    if (timeoutMs && timeoutMs > 0) {
+      const timeoutController = new AbortController();
+      const externalSignal = requestInit?.signal;
+
+      timeoutId = setTimeout(() => {
+        timedOut = true;
+        timeoutController.abort(
+          new Error(`Tempo limite de ${timeoutMs}ms ao chamar ${path}`),
+        );
+      }, timeoutMs);
+
+      if (externalSignal) {
+        if (externalSignal.aborted) {
+          timeoutController.abort(externalSignal.reason);
+        } else {
+          onExternalAbort = () => timeoutController.abort(externalSignal.reason);
+          externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+        }
+      }
+
+      signal = timeoutController.signal;
+    }
+
+    try {
+      return await fetch(`${API_BASE_URL}${path}`, {
+        ...requestInit,
+        signal,
+        credentials: 'include',
+      });
+    } catch (error) {
+      if (timedOut) {
+        throw new Error(`Tempo limite de ${timeoutMs}ms ao chamar ${path}`);
+      }
+      throw error;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (onExternalAbort && requestInit?.signal) {
+        requestInit.signal.removeEventListener('abort', onExternalAbort);
+      }
+    }
   }
 
   let res = await execute();
@@ -310,6 +359,7 @@ export async function apiListarLivros(): Promise<CompendioLivro[]> {
     return await fetchJson<CompendioLivro[]>('/compendio/livros', 'Falha ao carregar livros', {
       cache: 'default',
       next: { revalidate: 300 },
+      timeoutMs: COMPENDIO_PUBLIC_FETCH_TIMEOUT_MS,
     });
   } catch (error) {
     logCompendioWarning('Falha ao carregar livros; usando lista vazia', error);
@@ -414,6 +464,7 @@ export async function apiListarCategorias(): Promise<CompendioCategoria[]> {
       {
         cache: 'default',
         next: { revalidate: 300 },
+        timeoutMs: COMPENDIO_PUBLIC_FETCH_TIMEOUT_MS,
       },
     );
   } catch (error) {
@@ -503,6 +554,7 @@ export async function apiListarDestaques(
       {
         cache: 'default',
         next: { revalidate: 300 },
+        timeoutMs: COMPENDIO_PUBLIC_FETCH_TIMEOUT_MS,
       },
     );
   } catch (error) {
