@@ -1,10 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import {
+  apiAtivarSuplemento,
+  apiDeleteSuplemento,
+  apiDesativarSuplemento,
   apiGetCatalogosBasicos,
   apiGetSuplementoByCodigo,
   apiGetTodasModificacoes,
@@ -23,13 +26,20 @@ import {
   apiAdminGetEquipamentos,
 } from '@/lib/api/suplemento-conteudos';
 import { criarErroUsuario } from '@/lib/api/error-handler';
+import { useConfirm } from '@/hooks/useConfirm';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip } from '@/components/ui/StatsStrip';
+import { ModalSuplementoForm } from '@/components/suplemento/ModalSuplementoForm';
 import type { UserErrorState } from '@/lib/types';
 
 type AbaSuplemento =
@@ -41,6 +51,16 @@ type AbaSuplemento =
   | 'TECNICAS'
   | 'MODIFICACOES';
 
+const ABAS: AbaSuplemento[] = [
+  'RESUMO',
+  'ORIGENS',
+  'PODERES',
+  'TRILHAS',
+  'EQUIPAMENTOS',
+  'TECNICAS',
+  'MODIFICACOES',
+];
+
 const ABA_LABELS: Record<AbaSuplemento, string> = {
   RESUMO: 'Resumo',
   ORIGENS: 'Origens',
@@ -51,11 +71,59 @@ const ABA_LABELS: Record<AbaSuplemento, string> = {
   MODIFICACOES: 'Modificações',
 };
 
+function formatarData(valor?: string) {
+  if (!valor) return 'Não informado';
+  return new Date(valor).toLocaleDateString('pt-BR');
+}
+
+type ContentSectionProps = {
+  title: string;
+  description: string;
+  count?: number;
+  children: ReactNode;
+};
+
+function ContentSection({ title, description, count, children }: ContentSectionProps) {
+  return (
+    <section className="space-y-3">
+      <SectionHeader title={title} description={description} count={count} icon="book" />
+      <div className="rounded-xl border border-white/5 bg-app-surface/45 p-3 sm:p-4">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+type ContentRowProps = {
+  title: string;
+  description?: string | null;
+  badges?: ReactNode;
+  meta?: ReactNode;
+};
+
+function ContentRow({ title, description, badges, meta }: ContentRowProps) {
+  return (
+    <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-white/5 bg-app-bg/55 p-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 space-y-1">
+        <p className="truncate text-sm font-bold text-app-fg">{title}</p>
+        {description ? (
+          <p className="line-clamp-2 text-xs font-medium leading-relaxed text-app-muted">
+            {description}
+          </p>
+        ) : null}
+        {badges ? <div className="flex flex-wrap gap-1.5 pt-1">{badges}</div> : null}
+      </div>
+      {meta ? <div className="shrink-0 text-right text-xs text-app-muted">{meta}</div> : null}
+    </div>
+  );
+}
+
 export default function SuplementoDetalhePage() {
   const router = useRouter();
   const params = useParams<{ codigo: string }>();
   const { usuario, loading: authLoading } = useAuth();
   const { showToast } = useToast();
+  const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
 
   const codigo = typeof params?.codigo === 'string' ? params.codigo : '';
 
@@ -70,6 +138,8 @@ export default function SuplementoDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<AbaSuplemento>('RESUMO');
+  const [processando, setProcessando] = useState(false);
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
 
   const carregarConteudo = useCallback(async () => {
     if (!codigo) return;
@@ -130,17 +200,116 @@ export default function SuplementoDetalhePage() {
     }
   }, [authLoading, usuario, router, carregarConteudo]);
 
-  const resumoCards = useMemo(
+  const totalConteudos =
+    origens.length +
+    poderes.length +
+    trilhas.length +
+    equipamentos.length +
+    tecnicas.length +
+    modificacoes.length;
+
+  const statsItems = useMemo(
     () => [
-      { label: 'Origens', total: origens.length },
-      { label: 'Poderes', total: poderes.length },
-      { label: 'Trilhas', total: trilhas.length },
-      { label: 'Equipamentos', total: equipamentos.length },
-      { label: 'Técnicas', total: tecnicas.length },
-      { label: 'Modificações', total: modificacoes.length },
+      {
+        id: 'conteudos',
+        label: 'Conteúdos',
+        value: totalConteudos,
+        icon: 'book' as const,
+        helper: 'itens carregados',
+      },
+      {
+        id: 'origens',
+        label: 'Origens',
+        value: origens.length,
+        icon: 'story' as const,
+      },
+      {
+        id: 'trilhas',
+        label: 'Trilhas',
+        value: trilhas.length,
+        icon: 'school' as const,
+      },
+      {
+        id: 'tecnicas',
+        label: 'Técnicas',
+        value: tecnicas.length,
+        icon: 'technique' as const,
+        tone: 'primary' as const,
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        value: suplemento?.ativo ? 'Ativo' : suplemento?.status ?? 'Indefinido',
+        icon: 'check' as const,
+        tone: suplemento?.ativo ? ('success' as const) : ('default' as const),
+      },
     ],
-    [origens.length, poderes.length, trilhas.length, equipamentos.length, tecnicas.length, modificacoes.length],
+    [origens.length, suplemento?.ativo, suplemento?.status, tecnicas.length, totalConteudos, trilhas.length],
   );
+
+  async function handleAtivar() {
+    if (!suplemento) return;
+
+    try {
+      setProcessando(true);
+      await apiAtivarSuplemento(suplemento.id);
+      setSuplemento((prev) => (prev ? { ...prev, ativo: true } : prev));
+      showToast(`Suplemento "${suplemento.nome}" ativado!`, 'success');
+    } catch (error) {
+      const mensagem = criarErroUsuario(error);
+      showToast(mensagem, 'error');
+    } finally {
+      setProcessando(false);
+    }
+  }
+
+  async function handleDesativar() {
+    if (!suplemento) return;
+
+    try {
+      setProcessando(true);
+      await apiDesativarSuplemento(suplemento.id);
+      setSuplemento((prev) => (prev ? { ...prev, ativo: false } : prev));
+      showToast(`Suplemento "${suplemento.nome}" desativado.`, 'info');
+    } catch (error) {
+      const mensagem = criarErroUsuario(error);
+      showToast(mensagem, 'error');
+    } finally {
+      setProcessando(false);
+    }
+  }
+
+  function handleDelete() {
+    if (!suplemento) return;
+
+    confirm({
+      title: 'Excluir suplemento',
+      description: `Tem certeza que deseja excluir "${suplemento.nome}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setProcessando(true);
+          await apiDeleteSuplemento(suplemento.id);
+          showToast('Suplemento excluído com sucesso!', 'success');
+          router.push('/suplementos');
+        } catch (error) {
+          const mensagem = criarErroUsuario(error);
+          showToast(mensagem, 'error');
+        } finally {
+          setProcessando(false);
+        }
+      },
+    });
+  }
+
+  function handleModalClose(sucesso?: boolean) {
+    setModalEditarAberto(false);
+    if (sucesso) {
+      void carregarConteudo();
+    }
+  }
 
   if (authLoading || loading) {
     return (
@@ -152,7 +321,7 @@ export default function SuplementoDetalhePage() {
 
   if (!suplemento) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
         <EmptyState
           variant="card"
           icon="book"
@@ -161,91 +330,147 @@ export default function SuplementoDetalhePage() {
           actionLabel="Voltar"
           onAction={() => router.push('/suplementos')}
         />
-      </div>
+      </main>
     );
   }
 
+  const isAdmin = usuario?.role === 'ADMIN';
+  const podeAtivar = suplemento.status === 'PUBLICADO' && !suplemento.ativo;
+  const podeDesativar = Boolean(suplemento.ativo);
+
+  const headerActions = (
+    <>
+      {!isAdmin && podeAtivar ? (
+        <Button size="sm" onClick={handleAtivar} disabled={processando}>
+          <Icon name={processando ? 'loading' : 'check'} className="mr-2 h-4 w-4" />
+          Ativar suplemento
+        </Button>
+      ) : null}
+      {!isAdmin && podeDesativar ? (
+        <Button size="sm" variant="secondary" onClick={handleDesativar} disabled={processando}>
+          <Icon name={processando ? 'loading' : 'archive'} className="mr-2 h-4 w-4" />
+          Desativar
+        </Button>
+      ) : null}
+      {isAdmin ? (
+        <EntityActionsMenu
+          ariaLabel="Ações administrativas do suplemento"
+          items={[
+            {
+              id: 'edit',
+              label: 'Editar',
+              icon: 'edit',
+              onSelect: () => setModalEditarAberto(true),
+              disabled: processando,
+            },
+            {
+              id: 'delete',
+              label: processando ? 'Excluindo...' : 'Excluir',
+              icon: processando ? 'loading' : 'delete',
+              onSelect: handleDelete,
+              disabled: processando,
+              destructive: true,
+            },
+          ]}
+        />
+      ) : null}
+    </>
+  );
+
   return (
-    <main className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="book" className="w-6 h-6 text-app-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-app-muted">Suplemento oficial</p>
-              <h1 className="text-3xl font-bold text-app-fg">{suplemento.nome}</h1>
-            </div>
-          </div>
-          <Button variant="secondary" onClick={() => router.push('/suplementos')}>
-            <Icon name="back" className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
-        </header>
-
-        <Card className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge color={suplemento.status === 'PUBLICADO' ? 'green' : 'gray'} size="sm">
-              {suplemento.status}
-            </Badge>
-            <Badge color="gray" size="sm">
-              v{suplemento.versao}
-            </Badge>
-            {suplemento.ativo ? (
-              <Badge color="green" size="sm">
-                Ativo
-              </Badge>
-            ) : null}
-          </div>
-          {suplemento.descricao ? (
-            <p className="text-sm text-app-muted">{suplemento.descricao}</p>
-          ) : null}
-          {suplemento.tags && suplemento.tags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {suplemento.tags.map((tag) => (
-                <Badge key={tag} color="blue" size="sm">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
-        </Card>
-
-        {erro ? <ErrorAlert message={erro} /> : null}
+    <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-5">
+        <PageHeader
+          icon="book"
+          eyebrow="Suplemento oficial"
+          title={suplemento.nome}
+          description={suplemento.descricao ?? 'Biblioteca oficial de regras e conteúdo adicional.'}
+          backHref="/suplementos"
+          backLabel="Suplementos"
+          actions={headerActions}
+        />
 
         <div className="flex flex-wrap gap-2">
-          {(['RESUMO', 'ORIGENS', 'PODERES', 'TRILHAS', 'EQUIPAMENTOS', 'TECNICAS', 'MODIFICACOES'] as AbaSuplemento[]).map(
-            (aba) => (
-              <Button
-                key={aba}
-                size="sm"
-                variant={abaAtiva === aba ? 'primary' : 'secondary'}
-                onClick={() => setAbaAtiva(aba)}
-              >
-                {ABA_LABELS[aba]}
-              </Button>
-            ),
-          )}
+          <Badge color={suplemento.status === 'PUBLICADO' ? 'green' : 'gray'} size="sm">
+            {suplemento.status}
+          </Badge>
+          <Badge color="gray" size="sm">
+            Código {suplemento.codigo}
+          </Badge>
+          <Badge color="gray" size="sm">
+            v{suplemento.versao}
+          </Badge>
+          {suplemento.autor ? (
+            <Badge color="blue" size="sm">
+              {suplemento.autor}
+            </Badge>
+          ) : null}
         </div>
 
-        {abaAtiva === 'RESUMO' ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {resumoCards.map((card) => (
-              <Card key={card.label} className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-app-muted">{card.label}</p>
-                  <p className="text-lg font-semibold text-app-fg">{card.total}</p>
-                </div>
-                <Icon name="check" className="w-5 h-5 text-app-primary/60" />
-              </Card>
+        {suplemento.tags && suplemento.tags.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {suplemento.tags.map((tag) => (
+              <Badge key={tag} color="blue" size="sm">
+                {tag}
+              </Badge>
             ))}
           </div>
         ) : null}
 
+        <StatsStrip items={statsItems} />
+
+        {erro ? <ErrorAlert message={erro} /> : null}
+
+        <PageToolbar className="items-stretch sm:items-center">
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {ABAS.map((aba) => (
+              <Button
+                key={aba}
+                type="button"
+                size="sm"
+                variant={abaAtiva === aba ? 'primary' : 'secondary'}
+                onClick={() => setAbaAtiva(aba)}
+                aria-pressed={abaAtiva === aba}
+                className="px-3"
+              >
+                {ABA_LABELS[aba]}
+              </Button>
+            ))}
+          </div>
+        </PageToolbar>
+
+        {abaAtiva === 'RESUMO' ? (
+          <ContentSection
+            title="Resumo do suplemento"
+            description="Visão rápida do conteúdo carregado para consulta."
+            count={totalConteudos}
+          >
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { label: 'Poderes genéricos', value: poderes.length },
+                { label: 'Equipamentos', value: equipamentos.length },
+                { label: 'Modificações', value: modificacoes.length },
+                { label: 'Criado em', value: formatarData(suplemento.criadoEm) },
+                { label: 'Atualizado em', value: formatarData(suplemento.atualizadoEm) },
+                { label: 'Publicação', value: suplemento.status },
+              ].map((item) => (
+                <div key={item.label} className="rounded-lg border border-white/5 bg-app-bg/55 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-app-muted">
+                    {item.label}
+                  </p>
+                  <p className="mt-1 truncate text-sm font-bold text-app-fg">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </ContentSection>
+        ) : null}
+
         {abaAtiva === 'ORIGENS' ? (
-          <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Origens</h2>
+          <ContentSection
+            title="Origens"
+            description="Históricos e pontos de partida associados ao suplemento."
+            count={origens.length}
+          >
             {origens.length === 0 ? (
               <EmptyState
                 variant="session"
@@ -257,21 +482,19 @@ export default function SuplementoDetalhePage() {
             ) : (
               <div className="grid gap-2">
                 {origens.map((origem) => (
-                  <div key={origem.id} className="rounded-md border border-app-border p-3">
-                    <p className="text-sm font-semibold text-app-fg">{origem.nome}</p>
-                    {origem.descricao ? (
-                      <p className="text-xs text-app-muted">{origem.descricao}</p>
-                    ) : null}
-                  </div>
+                  <ContentRow key={origem.id} title={origem.nome} description={origem.descricao} />
                 ))}
               </div>
             )}
-          </Card>
+          </ContentSection>
         ) : null}
 
         {abaAtiva === 'PODERES' ? (
-          <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Poderes genéricos</h2>
+          <ContentSection
+            title="Poderes genéricos"
+            description="Habilidades disponíveis como conteúdo adicional."
+            count={poderes.length}
+          >
             {poderes.length === 0 ? (
               <EmptyState
                 variant="session"
@@ -283,21 +506,19 @@ export default function SuplementoDetalhePage() {
             ) : (
               <div className="grid gap-2">
                 {poderes.map((poder) => (
-                  <div key={poder.id} className="rounded-md border border-app-border p-3">
-                    <p className="text-sm font-semibold text-app-fg">{poder.nome}</p>
-                    {poder.descricao ? (
-                      <p className="text-xs text-app-muted">{poder.descricao}</p>
-                    ) : null}
-                  </div>
+                  <ContentRow key={poder.id} title={poder.nome} description={poder.descricao} />
                 ))}
               </div>
             )}
-          </Card>
+          </ContentSection>
         ) : null}
 
         {abaAtiva === 'TRILHAS' ? (
-          <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Trilhas</h2>
+          <ContentSection
+            title="Trilhas"
+            description="Progressões e caminhos de classe incluídos neste conteúdo."
+            count={trilhas.length}
+          >
             {trilhas.length === 0 ? (
               <EmptyState
                 variant="session"
@@ -309,21 +530,19 @@ export default function SuplementoDetalhePage() {
             ) : (
               <div className="grid gap-2">
                 {trilhas.map((trilha) => (
-                  <div key={trilha.id} className="rounded-md border border-app-border p-3">
-                    <p className="text-sm font-semibold text-app-fg">{trilha.nome}</p>
-                    {trilha.descricao ? (
-                      <p className="text-xs text-app-muted">{trilha.descricao}</p>
-                    ) : null}
-                  </div>
+                  <ContentRow key={trilha.id} title={trilha.nome} description={trilha.descricao} />
                 ))}
               </div>
             )}
-          </Card>
+          </ContentSection>
         ) : null}
 
         {abaAtiva === 'EQUIPAMENTOS' ? (
-          <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Equipamentos</h2>
+          <ContentSection
+            title="Equipamentos"
+            description="Itens e recursos prontos para uso em fichas e campanhas."
+            count={equipamentos.length}
+          >
             {equipamentos.length === 0 ? (
               <EmptyState
                 variant="session"
@@ -333,30 +552,36 @@ export default function SuplementoDetalhePage() {
                 description="Não há equipamentos associados a este suplemento."
               />
             ) : (
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 lg:grid-cols-2">
                 {equipamentos.map((equipamento) => (
-                  <div key={equipamento.id} className="rounded-md border border-app-border p-3">
-                    <p className="text-sm font-semibold text-app-fg">{equipamento.nome}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge color="gray" size="sm">
-                        {equipamento.tipo}
-                      </Badge>
-                      {equipamento.categoria ? (
-                        <Badge color="blue" size="sm">
-                          Cat. {equipamento.categoria}
+                  <ContentRow
+                    key={equipamento.id}
+                    title={equipamento.nome}
+                    badges={
+                      <>
+                        <Badge color="gray" size="sm">
+                          {equipamento.tipo}
                         </Badge>
-                      ) : null}
-                    </div>
-                  </div>
+                        {equipamento.categoria ? (
+                          <Badge color="blue" size="sm">
+                            Cat. {equipamento.categoria}
+                          </Badge>
+                        ) : null}
+                      </>
+                    }
+                  />
                 ))}
               </div>
             )}
-          </Card>
+          </ContentSection>
         ) : null}
 
         {abaAtiva === 'TECNICAS' ? (
-          <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Tecnicas</h2>
+          <ContentSection
+            title="Técnicas"
+            description="Técnicas amaldiçoadas e variações associadas ao suplemento."
+            count={tecnicas.length}
+          >
             {tecnicas.length === 0 ? (
               <EmptyState
                 variant="session"
@@ -368,21 +593,23 @@ export default function SuplementoDetalhePage() {
             ) : (
               <div className="grid gap-2">
                 {tecnicas.map((tecnica) => (
-                  <div key={tecnica.id} className="rounded-md border border-app-border p-3">
-                    <p className="text-sm font-semibold text-app-fg">{tecnica.nome}</p>
-                    {tecnica.descricao ? (
-                      <p className="text-xs text-app-muted">{tecnica.descricao}</p>
-                    ) : null}
-                  </div>
+                  <ContentRow
+                    key={tecnica.id}
+                    title={tecnica.nome}
+                    description={tecnica.descricao}
+                  />
                 ))}
               </div>
             )}
-          </Card>
+          </ContentSection>
         ) : null}
 
         {abaAtiva === 'MODIFICACOES' ? (
-          <Card className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg">Modificações</h2>
+          <ContentSection
+            title="Modificações"
+            description="Ajustes e extensões aplicáveis ao conteúdo do sistema."
+            count={modificacoes.length}
+          >
             {modificacoes.length === 0 ? (
               <EmptyState
                 variant="session"
@@ -394,18 +621,32 @@ export default function SuplementoDetalhePage() {
             ) : (
               <div className="grid gap-2">
                 {modificacoes.map((mod) => (
-                  <div key={mod.id} className="rounded-md border border-app-border p-3">
-                    <p className="text-sm font-semibold text-app-fg">{mod.nome}</p>
-                    {mod.descricao ? (
-                      <p className="text-xs text-app-muted">{mod.descricao}</p>
-                    ) : null}
-                  </div>
+                  <ContentRow key={mod.id} title={mod.nome} description={mod.descricao} />
                 ))}
               </div>
             )}
-          </Card>
+          </ContentSection>
         ) : null}
       </div>
+
+      <ModalSuplementoForm
+        isOpen={modalEditarAberto}
+        onClose={handleModalClose}
+        suplemento={suplemento}
+      />
+
+      {options ? (
+        <ConfirmDialog
+          isOpen={isOpen}
+          onClose={handleClose}
+          onConfirm={handleConfirm}
+          title={options.title}
+          description={options.description}
+          confirmLabel={options.confirmLabel}
+          cancelLabel={options.cancelLabel}
+          variant={options.variant}
+        />
+      ) : null}
     </main>
   );
 }

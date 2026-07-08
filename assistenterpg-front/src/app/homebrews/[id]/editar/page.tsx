@@ -4,9 +4,8 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loading } from '@/components/ui/Loading';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { Icon } from '@/components/ui/Icon';
-import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { HomebrewForm } from '@/components/suplemento/HomebrewForm';
 import { apiGetHomebrew, apiUpdateHomebrew } from '@/lib/api/homebrews';
 import type { CreateHomebrewDto, HomebrewDetalhado } from '@/lib/api/homebrews';
@@ -69,15 +68,16 @@ export default function EditarHomebrewPage() {
 
   if (erro || !homebrew) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <ErrorAlert message={erro ?? 'Homebrew não encontrado'} />
-          <Button variant="secondary" onClick={() => router.push('/homebrews')}>
-            <Icon name="back" className="w-4 h-4 mr-2" />
-            Voltar para homebrews
-          </Button>
-        </div>
-      </div>
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+        <EmptyState
+          variant="card"
+          icon="sparkles"
+          title="Homebrew não encontrado"
+          description={erro ?? 'Não foi possível carregar o conteúdo para edição.'}
+          actionLabel="Voltar para homebrews"
+          onAction={() => router.push('/homebrews')}
+        />
+      </main>
     );
   }
 
@@ -92,33 +92,22 @@ export default function EditarHomebrewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name="edit" className="w-6 h-6 text-app-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-app-fg">Editar Homebrew</h1>
-              <p className="text-sm text-app-muted mt-0.5">{homebrew.nome}</p>
-            </div>
-          </div>
+    <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <PageHeader
+          icon="edit"
+          title="Editar Homebrew"
+          description={homebrew.nome}
+          backHref={`/homebrews/${homebrewId}`}
+          backLabel="Detalhe"
+        />
 
-          <Button variant="ghost" onClick={() => router.push(`/homebrews/${homebrewId}`)}>
-            <Icon name="close" className="w-4 h-4 mr-2" />
-            Cancelar
-          </Button>
-        </header>
-
-        {/* Formulário */}
         <HomebrewForm
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           initialValues={initialValues}
         />
       </div>
-    </div>
+    </main>
   );
 }

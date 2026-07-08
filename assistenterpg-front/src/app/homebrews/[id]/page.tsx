@@ -1,19 +1,33 @@
 ﻿// src/app/homebrews/[id]/page.tsx
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { apiGetHomebrew, HomebrewDetalhado, TipoHomebrewConteudo } from '@/lib/api/homebrews';
+import { useToast } from '@/context/ToastContext';
+import {
+  apiArquivarHomebrew,
+  apiDeleteHomebrew,
+  apiExportarHomebrew,
+  apiGetHomebrew,
+  apiPublicarHomebrew,
+  HomebrewDetalhado,
+  TipoHomebrewConteudo,
+} from '@/lib/api/homebrews';
 import { criarErroUsuario } from '@/lib/api/error-handler';
+import { StatusPublicacao } from '@/lib/types/homebrew-enums';
+import { useConfirm } from '@/hooks/useConfirm';
 import { Loading } from '@/components/ui/Loading';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
-import { SectionCard } from '@/components/ui/SectionCard';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { InfoTile } from '@/components/ui/InfoTile';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip } from '@/components/ui/StatsStrip';
 import type { UserErrorState } from '@/lib/types';
 
 type TecnicaHabilidadeDados = {
@@ -107,10 +121,31 @@ const STATUS_COLOR: Record<string, 'green' | 'yellow' | 'gray'> = {
   ARQUIVADO: 'gray',
 };
 
+function formatarData(valor?: string) {
+  if (!valor) return 'Não informado';
+  return new Date(valor).toLocaleDateString('pt-BR');
+}
+
+function baixarJsonArquivo(conteudo: unknown, nomeArquivo: string) {
+  const blob = new Blob([JSON.stringify(conteudo, null, 2)], {
+    type: 'application/json;charset=utf-8',
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = nomeArquivo;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function HomebrewDetalhePage() {
   const params = useParams<{ id?: string | string[] }>();
   const router = useRouter();
   const { usuario, loading: authLoading } = useAuth();
+  const { showToast } = useToast();
+  const { isOpen, options, confirm, handleClose, handleConfirm } = useConfirm();
   const homebrewIdParam = Array.isArray(params.id) ? params.id[0] : params.id;
   const homebrewId = Number(homebrewIdParam);
   const homebrewIdValido = Number.isFinite(homebrewId);
@@ -118,6 +153,7 @@ export default function HomebrewDetalhePage() {
   const [homebrew, setHomebrew] = useState<HomebrewDetalhado | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<UserErrorState | null>(null);
+  const [processando, setProcessando] = useState(false);
 
   const carregarHomebrew = useCallback(async () => {
     if (!homebrewIdValido) {
@@ -150,6 +186,125 @@ export default function HomebrewDetalhePage() {
     }
   }, [authLoading, usuario, router, carregarHomebrew]);
 
+  const isOwner = homebrew?.usuarioId === usuario?.id;
+  const podeEditar = Boolean(isOwner && homebrew?.status !== StatusPublicacao.ARQUIVADO);
+  const podePublicar = Boolean(isOwner && homebrew?.status === StatusPublicacao.RASCUNHO);
+  const podeArquivar = Boolean(isOwner && homebrew?.status === StatusPublicacao.PUBLICADO);
+
+  const statsItems = useMemo(
+    () =>
+      homebrew
+        ? [
+            {
+              id: 'tipo',
+              label: 'Tipo',
+              value: TIPO_LABELS[homebrew.tipo],
+              icon: TIPO_ICONS[homebrew.tipo] as IconName,
+              tone: 'primary' as const,
+            },
+            {
+              id: 'status',
+              label: 'Status',
+              value: homebrew.status,
+              icon: homebrew.status === StatusPublicacao.PUBLICADO ? ('check' as const) : ('archive' as const),
+              tone:
+                homebrew.status === StatusPublicacao.PUBLICADO
+                  ? ('success' as const)
+                  : homebrew.status === StatusPublicacao.RASCUNHO
+                    ? ('warning' as const)
+                    : ('default' as const),
+            },
+            {
+              id: 'versao',
+              label: 'Versão',
+              value: homebrew.versao,
+              icon: 'book' as const,
+            },
+            {
+              id: 'autor',
+              label: 'Criado por',
+              value: homebrew.usuarioApelido ?? 'Desconhecido',
+              helper: formatarData(homebrew.criadoEm),
+              icon: 'user' as const,
+            },
+          ]
+        : [],
+    [homebrew],
+  );
+
+  async function handlePublicar() {
+    if (!homebrew) return;
+
+    try {
+      setProcessando(true);
+      await apiPublicarHomebrew(homebrew.id);
+      setHomebrew((prev) => (prev ? { ...prev, status: StatusPublicacao.PUBLICADO } : prev));
+      showToast(`Homebrew "${homebrew.nome}" publicado com sucesso!`, 'success');
+    } catch (error) {
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
+    } finally {
+      setProcessando(false);
+    }
+  }
+
+  async function handleArquivar() {
+    if (!homebrew) return;
+
+    try {
+      setProcessando(true);
+      await apiArquivarHomebrew(homebrew.id);
+      setHomebrew((prev) => (prev ? { ...prev, status: StatusPublicacao.ARQUIVADO } : prev));
+      showToast(`Homebrew "${homebrew.nome}" arquivado.`, 'info');
+    } catch (error) {
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
+    } finally {
+      setProcessando(false);
+    }
+  }
+
+  async function handleExportar() {
+    if (!homebrew) return;
+
+    try {
+      setProcessando(true);
+      const payload = await apiExportarHomebrew(homebrew.id);
+      baixarJsonArquivo(payload, `homebrew-${homebrew.codigo}.json`);
+      showToast(`JSON de "${homebrew.nome}" exportado.`, 'success');
+    } catch (error) {
+      const userError = criarErroUsuario(error);
+      showToast(userError.message, 'error', { support: userError });
+    } finally {
+      setProcessando(false);
+    }
+  }
+
+  function handleExcluir() {
+    if (!homebrew) return;
+
+    confirm({
+      title: `Excluir homebrew "${homebrew.nome}"?`,
+      description: 'Esta ação é irreversível.',
+      confirmLabel: 'Sim, excluir',
+      cancelLabel: 'Cancelar',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setProcessando(true);
+          await apiDeleteHomebrew(homebrew.id);
+          showToast('Homebrew excluído com sucesso!', 'success');
+          router.push('/homebrews');
+        } catch (error) {
+          const userError = criarErroUsuario(error);
+          showToast(userError.message, 'error', { support: userError });
+        } finally {
+          setProcessando(false);
+        }
+      },
+    });
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-app-bg p-6">
@@ -160,60 +315,97 @@ export default function HomebrewDetalhePage() {
 
   if (erro || !homebrew) {
     return (
-      <div className="min-h-screen bg-app-bg p-6">
-        <div className="max-w-4xl mx-auto space-y-4">
-          <ErrorAlert message={erro ?? 'Homebrew não encontrado'} />
-          <Button variant="secondary" onClick={() => router.push('/homebrews')}>
-            <Icon name="back" className="w-4 h-4 mr-2" />
-            Voltar para homebrews
-          </Button>
-        </div>
-      </div>
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+        <EmptyState
+          variant="card"
+          icon="sparkles"
+          title="Homebrew não encontrado"
+          description={
+            typeof erro === 'string'
+              ? erro
+              : erro?.message ?? 'Não foi possível carregar o conteúdo solicitado.'
+          }
+          actionLabel="Voltar para homebrews"
+          onAction={() => router.push('/homebrews')}
+        />
+      </main>
     );
   }
 
-  const isOwner = homebrew.usuarioId === usuario?.id;
+  const headerActions = (
+    <>
+      {podeEditar ? (
+        <Button size="sm" onClick={() => router.push(`/homebrews/${homebrewId}/editar`)}>
+          <Icon name="edit" className="mr-2 h-4 w-4" />
+          Editar
+        </Button>
+      ) : null}
+      {isOwner ? (
+        <EntityActionsMenu
+          ariaLabel="Ações do homebrew"
+          items={[
+            {
+              id: 'publish',
+              label: processando ? 'Publicando...' : 'Publicar',
+              icon: processando ? 'loading' : 'check',
+              onSelect: handlePublicar,
+              disabled: processando,
+              hidden: !podePublicar,
+            },
+            {
+              id: 'archive',
+              label: processando ? 'Arquivando...' : 'Arquivar',
+              icon: processando ? 'loading' : 'archive',
+              onSelect: handleArquivar,
+              disabled: processando,
+              hidden: !podeArquivar,
+            },
+            {
+              id: 'export',
+              label: processando ? 'Exportando...' : 'Exportar JSON',
+              icon: processando ? 'loading' : 'download',
+              onSelect: handleExportar,
+              disabled: processando,
+            },
+            {
+              id: 'delete',
+              label: processando ? 'Excluindo...' : 'Excluir',
+              icon: processando ? 'loading' : 'delete',
+              onSelect: handleExcluir,
+              disabled: processando,
+              destructive: true,
+            },
+          ]}
+        />
+      ) : null}
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-app-bg p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <header className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1">
-            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-app-primary/10">
-              <Icon name={TIPO_ICONS[homebrew.tipo] as IconName} className="w-7 h-7 text-app-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h1 className="text-3xl font-bold text-app-fg">{homebrew.nome}</h1>
-                <Badge color={STATUS_COLOR[homebrew.status]} size="sm">
-                  {homebrew.status}
-                </Badge>
-              </div>
-              <p className="text-sm text-app-muted">
-                {TIPO_LABELS[homebrew.tipo]} • v{homebrew.versao}
-              </p>
-              {homebrew.descricao && (
-                <p className="text-sm text-app-muted mt-2 leading-relaxed">{homebrew.descricao}</p>
-              )}
-            </div>
-          </div>
+    <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-5xl space-y-5">
+        <PageHeader
+          icon={TIPO_ICONS[homebrew.tipo] as IconName}
+          eyebrow={TIPO_LABELS[homebrew.tipo]}
+          title={homebrew.nome}
+          description={homebrew.descricao ?? 'Conteúdo homebrew customizado para campanhas.'}
+          backHref="/homebrews"
+          backLabel="Homebrews"
+          actions={headerActions}
+        />
 
-          <div className="flex gap-2 flex-shrink-0">
-            {isOwner && (
-              <Button size="sm" onClick={() => router.push(`/homebrews/${homebrewId}/editar`)}>
-                <Icon name="edit" className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
-            )}
-            <Button variant="secondary" size="sm" onClick={() => router.push('/homebrews')}>
-              <Icon name="back" className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-          </div>
-        </header>
+        <div className="flex flex-wrap gap-2">
+          <Badge color={STATUS_COLOR[homebrew.status]} size="sm">
+            {homebrew.status}
+          </Badge>
+          <Badge color="gray" size="sm">
+            Código {homebrew.codigo}
+          </Badge>
+          <Badge color="gray" size="sm">
+            Atualizado em {formatarData(homebrew.atualizadoEm)}
+          </Badge>
+        </div>
 
-        {/* Tags */}
         {homebrew.tags && homebrew.tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {homebrew.tags.map((tag, idx) => (
@@ -224,42 +416,40 @@ export default function HomebrewDetalhePage() {
           </div>
         )}
 
-        {/* Informações gerais */}
-        <Card>
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold text-app-fg mb-3">Informações gerais</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InfoTile label="Tipo" value={TIPO_LABELS[homebrew.tipo]} />
-              <InfoTile label="Versão" value={homebrew.versao} />
-              <InfoTile label="Criado por" value={homebrew.usuarioApelido ?? 'Desconhecido'} />
-              <InfoTile
-                label="Criado em"
-                value={new Date(homebrew.criadoEm).toLocaleDateString('pt-BR')}
-              />
-            </div>
-          </div>
-        </Card>
+        <StatsStrip items={statsItems} />
 
-        {/* Dados específicos */}
         <RenderDadosEspecificos tipo={homebrew.tipo} dados={homebrew.dados} />
 
-        {/* JSON Debug */}
-        <SectionCard
-          title="Dados brutos (Debug)"
-          right={<Icon name="code" className="w-5 h-5 text-app-muted" />}
-          contentClassName="space-y-2"
-        >
-          <details className="rounded border border-app-border bg-app-base p-3">
-            <summary className="cursor-pointer text-xs font-medium text-app-fg">
+        <section className="space-y-3">
+          <SectionHeader
+            title="Dados brutos"
+            description="Referência técnica para conferência do payload JSON."
+            icon="code"
+          />
+          <details className="rounded-xl border border-white/5 bg-app-surface/45 p-3">
+            <summary className="cursor-pointer text-xs font-bold text-app-fg">
               Ver JSON completo
             </summary>
             <pre className="mt-3 max-h-96 overflow-auto text-[10px] text-app-muted">
               {JSON.stringify(homebrew.dados, null, 2)}
             </pre>
           </details>
-        </SectionCard>
+        </section>
       </div>
-    </div>
+
+      {options ? (
+        <ConfirmDialog
+          isOpen={isOpen}
+          onClose={handleClose}
+          onConfirm={handleConfirm}
+          title={options.title}
+          description={options.description}
+          confirmLabel={options.confirmLabel}
+          cancelLabel={options.cancelLabel}
+          variant={options.variant}
+        />
+      ) : null}
+    </main>
   );
 }
 
@@ -276,17 +466,25 @@ function RenderDadosEspecificos({ tipo, dados }: RenderProps) {
   const dadosNormalizados = asHomebrewDados(dados);
   if (Object.keys(dadosNormalizados).length === 0) {
     return (
-      <Card>
-        <p className="text-sm text-app-muted italic">Nenhum dado específico cadastrado.</p>
-      </Card>
+      <EmptyState
+        variant="session"
+        size="sm"
+        icon="info"
+        title="Nenhum dado específico"
+        description="Este homebrew ainda não possui dados específicos cadastrados."
+      />
     );
   }
 
   return (
-    <Card>
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-app-fg">Dados específicos</h2>
-
+    <section className="space-y-3">
+      <SectionHeader
+        title="Dados específicos"
+        description="Informações estruturadas conforme o tipo deste homebrew."
+        icon="rules"
+      />
+      <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4">
+        <div className="space-y-4">
         {tipo === 'CLA' && <RenderCla dados={dadosNormalizados} />}
         {tipo === 'ORIGEM' && <RenderOrigem dados={dadosNormalizados} />}
         {tipo === 'TRILHA' && <RenderTrilha dados={dadosNormalizados} />}
@@ -294,8 +492,9 @@ function RenderDadosEspecificos({ tipo, dados }: RenderProps) {
         {tipo === 'EQUIPAMENTO' && <RenderEquipamento dados={dadosNormalizados} />}
         {tipo === 'PODER_GENERICO' && <RenderPoderGenerico dados={dadosNormalizados} />}
         {tipo === 'TECNICA_AMALDICOADA' && <RenderTecnicaAmaldicoada dados={dadosNormalizados} />}
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }
 
