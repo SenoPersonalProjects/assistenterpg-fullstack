@@ -60,6 +60,8 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { StatsStrip } from '@/components/ui/StatsStrip';
 import { CampaignCharacterEditorModal } from '@/components/campanha/CampaignCharacterEditorModal';
 import { MestreShieldGuide } from '@/components/campanha/MestreShieldGuide';
 import { SessionCharactersPanel } from '@/components/campanha/sessao/SessionCharactersPanel';
@@ -2699,49 +2701,56 @@ export default function SessaoCampanhaPage() {
       optionalMechanicsPanel={painelMecanicasOpcionais}
     />
   );
+  const sessionStats = [
+    {
+      id: 'participantes',
+      label: 'Participantes',
+      value: `${totalParticipantesOnline}/${participantes.length}`,
+      icon: 'user' as const,
+      helper: 'online',
+      tone: totalParticipantesOnline > 0 ? ('success' as const) : ('default' as const),
+    },
+    {
+      id: 'personagens',
+      label: 'Personagens',
+      value: cards.length,
+      icon: 'character-gojo' as const,
+    },
+    {
+      id: 'npcs',
+      label: 'NPCs e ameaças',
+      value: npcs.length,
+      icon: 'curse' as const,
+    },
+    {
+      id: 'cena',
+      label: 'Cena',
+      value: labelCena(detalhe.cenaAtual.tipo as TipoCenaSessaoCampanha),
+      icon: 'status' as const,
+      helper: detalhe.controleTurnosAtivo
+        ? `Rodada ${detalhe.rodadaAtual ?? 1}`
+        : 'Modo livre',
+      tone: detalhe.cenaAtual.tipo === 'COMBATE' ? ('danger' as const) : ('primary' as const),
+    },
+  ];
 
   return (
     <main ref={shellRef} className="session-page-shell min-h-screen bg-app-bg px-4 py-6 md:px-6 lg:px-8">
       <div className="mx-auto max-w-[1600px] space-y-6">
-        {/* Modern Header */}
-        <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="mb-2 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-app-primary/10 text-app-primary shadow-inner">
-                <Icon name="campaign" className="h-7 w-7" />
-              </div>
-              <div>
-                <h1 className="text-gradient text-3xl font-black tracking-tighter md:text-4xl">
-                  {tituloSessao}
-                </h1>
-                <div className="flex items-center gap-3 text-xs font-bold text-app-muted uppercase tracking-widest">
-                  <span className="flex items-center gap-1">
-                    <Icon name="clock" className="h-3 w-3" />
-                    Iniciada {formatarDataHora(detalhe.iniciadoEm)}
-                  </span>
-                  {sessaoEncerrada && (
-                    <span className="flex items-center gap-1 text-app-danger">
-                      <Icon name="close" className="h-3 w-3" />
-                      Encerrada
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="font-black group"
-              onClick={() => router.push(`/campanhas/${campanhaId}`)}
-            >
-              <Icon name="back" className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              Painel da Campanha
-            </Button>
-          </div>
-        </header>
+        <div className="space-y-4">
+          <PageHeader
+            icon="campaign"
+            title={tituloSessao}
+            eyebrow="Sessão ao vivo"
+            description={`Iniciada ${formatarDataHora(detalhe.iniciadoEm)}${
+              sessaoEncerrada ? ' · Encerrada' : ''
+            }`}
+            backHref={`/campanhas/${campanhaId}`}
+            backLabel="Painel da campanha"
+            className="border-b-0 pb-0"
+          />
+          <StatsStrip items={sessionStats} />
+        </div>
 
         <SessionOperationalBar
           ref={operationalBarRef}
@@ -2781,9 +2790,10 @@ export default function SessaoCampanhaPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               type="button"
-              className="fixed left-4 top-1/2 z-40 -translate-y-1/2 rounded-full bg-app-primary p-3 text-white shadow-2xl shadow-app-primary/40 transition-transform hover:scale-110 active:scale-95 lg:left-6"
+              className="fixed bottom-4 left-4 z-40 rounded-full bg-app-primary p-3 text-white shadow-xl shadow-app-primary/25 transition-transform hover:scale-105 active:scale-95 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 lg:left-6"
               onClick={() => setColunaEsquerdaRecolhida(false)}
               title="Mostrar painel esquerdo"
+              aria-label="Mostrar painel esquerdo"
             >
               <Icon name="chevron-right" className="h-5 w-5" />
             </motion.button>
@@ -2794,9 +2804,10 @@ export default function SessaoCampanhaPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               type="button"
-              className="fixed right-4 top-1/2 z-40 -translate-y-1/2 rounded-full bg-app-info p-3 text-white shadow-2xl shadow-app-info/40 transition-transform hover:scale-110 active:scale-95 lg:right-6"
+              className="fixed bottom-4 right-4 z-40 rounded-full bg-app-info p-3 text-white shadow-xl shadow-app-info/25 transition-transform hover:scale-105 active:scale-95 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 lg:right-6"
               onClick={() => setColunaDireitaRecolhida(false)}
-          title="Mostrar painel lateral"
+              title="Mostrar painel lateral"
+              aria-label="Mostrar painel lateral"
             >
               <Icon name="chevron-left" className="h-5 w-5" />
             </motion.button>

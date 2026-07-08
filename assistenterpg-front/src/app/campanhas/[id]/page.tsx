@@ -16,12 +16,10 @@ import {
   formatarErroComContexto,
 } from '@/lib/api';
 import {
-  CampaignHero,
   CampaignInviteModal,
   CampaignNextSessionBanner,
   CampaignOverviewTab,
   CampaignTabs,
-  SectionHeader,
   type CampanhaDetalheDto,
 } from '@/components/campanha/CampaignDetailHub';
 import {
@@ -32,11 +30,15 @@ import { CampaignMembersSection } from '@/components/campanha/CampaignMembersSec
 import { CampaignCharactersSection } from '@/components/campanha/CampaignCharactersSection';
 import { CampaignScheduledSessionsSection } from '@/components/campanha/CampaignScheduledSessionsSection';
 import { CampaignSessionsSection } from '@/components/campanha/CampaignSessionsSection';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatsStrip } from '@/components/ui/StatsStrip';
 
 function mensagemErroCarregarCampanha(error: unknown): string {
   const status = Number(
@@ -260,21 +262,82 @@ export default function CampanhaDetalhePage() {
       : campanha.status === 'PAUSADA'
         ? 'yellow'
         : 'red';
+  const statusTone =
+    campanha.status === 'ATIVA'
+      ? 'success'
+      : campanha.status === 'PAUSADA'
+        ? 'warning'
+        : 'danger';
+  const campaignStats = [
+    {
+      id: 'membros',
+      label: 'Membros',
+      value: campanha._count.membros,
+      icon: 'characters' as const,
+      tone: 'primary' as const,
+    },
+    {
+      id: 'personagens',
+      label: 'Personagens',
+      value: campanha._count.personagens,
+      icon: 'character-gojo' as const,
+    },
+    {
+      id: 'sessoes',
+      label: 'Sessões',
+      value: campanha._count.sessoes,
+      icon: 'scroll' as const,
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      value: campanha.status,
+      icon: 'status' as const,
+      tone: statusTone as 'success' | 'warning' | 'danger',
+      helper: `Criada em ${dataCriacao}`,
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-app-bg pb-12">
-      <CampaignHero
-        campanha={campanha}
-        corStatus={corStatus}
-        dataCriacao={dataCriacao}
-        usuarioEhMestre={Boolean(usuarioEhMestre)}
-        usuarioEhDono={Boolean(usuarioEhDono)}
-        onBack={() => router.push('/campanhas')}
-        onOpenInvite={() => setConviteAberto(true)}
-        onGoToSessions={() => setAbaAtiva('sessoes')}
-      />
+      <div className="border-b border-white/5 bg-app-surface/35">
+        <div className="mx-auto max-w-7xl space-y-4 px-4 py-5 sm:px-6">
+          <PageHeader
+            icon="campaign"
+            title={campanha.nome}
+            eyebrow="Campanha"
+            description={
+              campanha.descricao ??
+              `Mesa de ${campanha.dono.apelido}, criada em ${dataCriacao}.`
+            }
+            backHref="/campanhas"
+            backLabel="Campanhas"
+            className="border-b-0 pb-0"
+            actions={
+              <>
+                <Badge color={corStatus} size="sm" variant="outline">
+                  {campanha.status}
+                </Badge>
+                {usuarioEhMestre ? (
+                  <Button size="sm" onClick={() => setAbaAtiva('sessoes')}>
+                    <Icon name="calendar" className="mr-2 h-4 w-4" />
+                    Sessões
+                  </Button>
+                ) : null}
+                {usuarioEhDono ? (
+                  <Button size="sm" variant="secondary" onClick={() => setConviteAberto(true)}>
+                    <Icon name="add" className="mr-2 h-4 w-4" />
+                    Convidar
+                  </Button>
+                ) : null}
+              </>
+            }
+          />
+          <StatsStrip items={campaignStats} />
+        </div>
+      </div>
 
-      <div className="mx-auto max-w-7xl space-y-5 px-4 sm:px-6">
+      <div className="mx-auto max-w-7xl space-y-5 px-4 pt-5 sm:px-6">
         <CampaignNextSessionBanner
           campanhaId={campanha.id}
           refreshKey={resumoRefreshKey}

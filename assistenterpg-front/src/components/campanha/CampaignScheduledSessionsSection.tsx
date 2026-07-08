@@ -48,14 +48,15 @@ import { useToast } from '@/context/ToastContext';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Textarea } from '@/components/ui/Textarea';
 
 type Props = {
@@ -545,26 +546,20 @@ export function CampaignScheduledSessionsSection({
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-app-fg">
-            Sessões agendadas
-          </h3>
-          <p className="text-xs text-app-muted">
-            Prepare a próxima missão e, se quiser, envie convite pelo Google Calendar.
-          </p>
-        </div>
-        {usuarioEhMestre ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={abrirModalCriacao}
-          >
-            <Icon name="calendar" className="mr-2 h-4 w-4" />
-            Agendar sessão
-          </Button>
-        ) : null}
-      </div>
+      <SectionHeader
+        icon="calendar"
+        title="Sessões agendadas"
+        description="Prepare a próxima missão e, se quiser, envie convite pelo Google Calendar."
+        count={agendamentos.length}
+        action={
+          usuarioEhMestre ? (
+            <Button size="sm" variant="secondary" onClick={abrirModalCriacao}>
+              <Icon name="calendar" className="mr-2 h-4 w-4" />
+              Agendar sessão
+            </Button>
+          ) : null
+        }
+      />
 
       {erro ? <ErrorAlert message={erro} /> : null}
 
@@ -639,7 +634,7 @@ export function CampaignScheduledSessionsSection({
                 {form.timezoneFallback ? (
                   <p className="mt-1">
                     Não foi possível detectar o fuso do navegador. Usando
-                    America/Fortaleza como fallback; confira o horario antes
+                    America/Fortaleza como fallback; confira o horário antes
                     de enviar.
                   </p>
                 ) : null}
@@ -722,7 +717,7 @@ export function CampaignScheduledSessionsSection({
         </p>
       ) : agendamentos.length === 0 ? (
         <EmptyState
-          variant="card"
+          variant="session"
           icon="scroll"
           title="Nenhuma sessão agendada"
           description="Agende uma missão futura para manter a mesa alinhada."
@@ -731,7 +726,10 @@ export function CampaignScheduledSessionsSection({
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {agendamentos.map((agendamento) => (
-            <Card key={agendamento.id} className="space-y-3">
+            <article
+              key={agendamento.id}
+              className="space-y-3 rounded-xl border border-white/5 bg-app-surface/45 p-4"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h4 className="truncate text-base font-semibold text-app-fg">
@@ -784,46 +782,48 @@ export function CampaignScheduledSessionsSection({
               ) : null}
 
               {usuarioEhMestre ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {agendamento.status === 'AGENDADA' ? (
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => void abrir(agendamento)}
-                        disabled={acaoId === agendamento.id}
-                      >
-                        Abrir agora
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => editarAgendamento(agendamento)}
-                      >
-                        Reagendar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void cancelar(agendamento.id)}
-                        disabled={acaoId === agendamento.id}
-                      >
-                        Cancelar
-                      </Button>
-                    </>
-                  ) : null}
-                  {agendamento.calendarSyncStatus === 'FALHOU' ? (
                     <Button
                       size="sm"
-                      variant="secondary"
-                      onClick={() => void retryCalendar(agendamento.id)}
+                      onClick={() => void abrir(agendamento)}
                       disabled={acaoId === agendamento.id}
                     >
-                      Tentar Calendar novamente
+                      Abrir agora
                     </Button>
                   ) : null}
+                  <EntityActionsMenu
+                    ariaLabel={`Ações do agendamento ${agendamento.titulo}`}
+                    items={[
+                      {
+                        id: 'reagendar',
+                        label: 'Reagendar',
+                        icon: 'edit',
+                        hidden: agendamento.status !== 'AGENDADA',
+                        onSelect: () => editarAgendamento(agendamento),
+                      },
+                      {
+                        id: 'retry-calendar',
+                        label: 'Tentar Calendar novamente',
+                        icon: 'refresh',
+                        hidden: agendamento.calendarSyncStatus !== 'FALHOU',
+                        disabled: acaoId === agendamento.id,
+                        onSelect: () => void retryCalendar(agendamento.id),
+                      },
+                      {
+                        id: 'cancelar',
+                        label: 'Cancelar',
+                        icon: 'close',
+                        destructive: true,
+                        hidden: agendamento.status !== 'AGENDADA',
+                        disabled: acaoId === agendamento.id,
+                        onSelect: () => void cancelar(agendamento.id),
+                      },
+                    ]}
+                  />
                 </div>
               ) : null}
-            </Card>
+            </article>
           ))}
         </div>
       )}

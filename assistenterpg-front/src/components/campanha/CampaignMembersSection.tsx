@@ -1,6 +1,5 @@
 ﻿'use client';
 
-import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -18,7 +17,7 @@ type Props = {
 
 export function CampaignMembersSection({ membros, donoId }: Props) {
   return (
-    <Card className="space-y-3">
+    <section className="space-y-3 rounded-xl border border-white/5 bg-app-surface/45 p-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">
           Total: {membros.length} membro(s)
@@ -72,6 +71,6 @@ export function CampaignMembersSection({ membros, donoId }: Props) {
           })}
         </ul>
       )}
-    </Card>
+    </section>
   );
 }

@@ -224,6 +224,8 @@ export const SessionOperationalBar = forwardRef<
                 onClick={onVoltarTurno}
                 disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
                 className="h-9 w-9 p-0 rounded-xl hover:bg-app-danger/10 hover:text-app-danger"
+                title="Voltar turno"
+                aria-label="Voltar turno"
               >
                 <Icon name="rotate-ccw" className="h-4 w-4" />
               </Button>
@@ -234,6 +236,8 @@ export const SessionOperationalBar = forwardRef<
                   onClick={onPularTurno}
                   disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
                   className="h-9 w-9 p-0 rounded-xl hover:bg-app-warning/10 hover:text-app-warning"
+                  title="Pular turno"
+                  aria-label="Pular turno"
                 >
                   <Icon name="skip-forward" className="h-4 w-4" />
                 </Button>
@@ -298,6 +302,8 @@ export const SessionOperationalBar = forwardRef<
               size="xs"
               onClick={() => setAtalhosAbertos(true)}
               className="h-6 w-6 p-0 rounded-lg text-app-muted hover:text-app-primary"
+              title="Ver atalhos da sessão"
+              aria-label="Ver atalhos da sessão"
             >
               <Icon name="info" className="h-3.5 w-3.5" />
             </Button>

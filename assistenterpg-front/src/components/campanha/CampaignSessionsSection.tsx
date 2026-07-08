@@ -11,13 +11,15 @@ import {
 import type { SessaoCampanhaResumo , UserErrorState } from '@/lib/types';
 import { labelCena } from '@/lib/campanha/sessao-formatters';
 import { formatarDataHora } from '@/lib/utils/formatters';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 type Props = {
   campanhaId: number;
@@ -103,22 +105,15 @@ export function CampaignSessionsSection({
   return (
     <section className="space-y-4">
       {usuarioEhMestre && (
-        <div className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
-              <Icon name="scroll" className="h-5 w-5" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-app-fg">
-                Iniciar nova sessão
-              </h3>
-              <p className="text-sm text-app-muted">
-                Crie uma sessão para abrir o lobby da campanha com chat e cards dos
-                personagens.
-              </p>
-            </div>
+        <PageToolbar>
+          <div className="min-w-0 flex-1">
+            <SectionHeader
+              icon="scroll"
+              title="Iniciar nova sessão"
+              description="Abra o lobby da campanha com chat e cards dos personagens."
+            />
           </div>
-          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="flex w-full flex-col gap-3 md:w-auto md:min-w-[28rem] md:flex-row md:items-end">
             <div className="flex-1">
               <Input
                 label="Título da sessão (opcional)"
@@ -132,21 +127,25 @@ export function CampaignSessionsSection({
               {criando ? 'Iniciando...' : 'Iniciar sessão'}
             </Button>
           </div>
-        </div>
+        </PageToolbar>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-app-fg">Sessões da campanha</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void carregarSessoes()}
-          disabled={loading}
-        >
-          <Icon name="refresh" className="w-4 h-4 mr-1" />
-          Atualizar
-        </Button>
-      </div>
+      <SectionHeader
+        title="Sessões da campanha"
+        count={sessoes.length}
+        icon="play"
+        action={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void carregarSessoes()}
+            disabled={loading}
+          >
+            <Icon name="refresh" className="mr-1 h-4 w-4" />
+            Atualizar
+          </Button>
+        }
+      />
 
       {erro ? <ErrorAlert message={erro} /> : null}
 
@@ -157,16 +156,19 @@ export function CampaignSessionsSection({
         </p>
       ) : sessoes.length === 0 ? (
         <EmptyState
-          variant="card"
+          variant="session"
           icon="campaign"
           title="Nenhuma sessão iniciada"
-          description="Quando uma sessão for iniciada, o lobby aparecera aqui."
+          description="Quando uma sessão for iniciada, o lobby aparecerá aqui."
           size="sm"
         />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {sessoes.map((sessao) => (
-            <Card key={sessao.id} className="space-y-3">
+            <article
+              key={sessao.id}
+              className="space-y-3 rounded-xl border border-white/5 bg-app-surface/45 p-4"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h4 className="truncate text-base font-semibold text-app-fg">
@@ -215,19 +217,25 @@ export function CampaignSessionsSection({
                   Entrar no lobby
                 </Button>
                 {usuarioEhMestre && sessao.status !== 'ENCERRADA' ? (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => void handleEncerrarSessao(sessao.id)}
-                    disabled={encerrandoSessaoId === sessao.id}
-                  >
-                    {encerrandoSessaoId === sessao.id
-                      ? 'Encerrando...'
-                      : 'Encerrar sessão'}
-                  </Button>
+                  <EntityActionsMenu
+                    ariaLabel={`Ações da sessão ${sessao.titulo}`}
+                    items={[
+                      {
+                        id: 'encerrar',
+                        label:
+                          encerrandoSessaoId === sessao.id
+                            ? 'Encerrando...'
+                            : 'Encerrar sessão',
+                        icon: 'stop',
+                        destructive: true,
+                        disabled: encerrandoSessaoId === sessao.id,
+                        onSelect: () => void handleEncerrarSessao(sessao.id),
+                      },
+                    ]}
+                  />
                 ) : null}
               </div>
-            </Card>
+            </article>
           ))}
         </div>
       )}

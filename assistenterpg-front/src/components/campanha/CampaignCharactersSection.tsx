@@ -13,16 +13,18 @@ import type {
   PersonagemBaseDisponivelCampanha,
   PersonagemCampanhaResumo,
  UserErrorState } from '@/lib/types';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { CampaignCharacterEditorModal } from './CampaignCharacterEditorModal';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 type Props = {
   campanhaId: number;
@@ -245,24 +247,16 @@ export function CampaignCharactersSection({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-lg border border-app-border bg-app-surface p-4 space-y-3">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-app-primary/10 text-app-primary">
-            <Icon name="id" className="h-5 w-5" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-app-fg">
-              Associar personagem-base
-            </h3>
-            <p className="text-sm text-app-muted">
-              Jogadores e observadores podem ter apenas 1 personagem por campanha.
-              Mestres podem associar vários personagens. A ficha da campanha pode
-              receber modificadores sem alterar a ficha-base.
-            </p>
-          </div>
+      <PageToolbar>
+        <div className="min-w-0 flex-1">
+          <SectionHeader
+            icon="id"
+            title="Associar personagem-base"
+            description="Jogadores e observadores podem ter apenas 1 personagem por campanha; mestres podem associar vários."
+          />
         </div>
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <div className="md:w-[340px]">
+        <div className="flex w-full flex-col gap-3 md:w-auto md:min-w-[30rem] md:flex-row md:items-end">
+          <div className="flex-1">
             <Select
               label={
                 usuarioEhMestre
@@ -288,26 +282,28 @@ export function CampaignCharactersSection({
             {associando ? 'Associando...' : 'Associar personagem'}
           </Button>
         </div>
-        <Checkbox
-          checked={sincronizarTecnicaInata}
-          onChange={(event) => setSincronizarTecnicaInata(event.target.checked)}
-          label="Sincronizar técnica inata da campanha com futuras mudanças da ficha base"
-        />
-        <p className="text-xs text-app-muted">
-          Se desmarcado, a campanha recebe uma cópia congelada da técnica no momento da associação.
-        </p>
-        {limiteUsuarioAtingido && (
+        <div className="w-full space-y-2 border-t border-white/5 pt-3">
+          <Checkbox
+            checked={sincronizarTecnicaInata}
+            onChange={(event) => setSincronizarTecnicaInata(event.target.checked)}
+            label="Sincronizar técnica inata da campanha com futuras mudanças da ficha base"
+          />
           <p className="text-xs text-app-muted">
+            Se desmarcado, a campanha recebe uma cópia congelada da técnica no momento da associação.
+          </p>
+        </div>
+        {limiteUsuarioAtingido && (
+          <p className="w-full text-xs text-app-muted">
             Você já possui um personagem associado nesta campanha.
           </p>
         )}
         {erro ? <ErrorAlert message={erro} /> : null}
         {sucesso && (
-          <p className="text-xs text-app-success">
+          <p className="w-full text-xs text-app-success">
             {sucesso}
           </p>
         )}
-      </div>
+      </PageToolbar>
 
       {loading ? (
         <p className="text-sm text-app-muted flex items-center gap-2">
@@ -316,7 +312,7 @@ export function CampaignCharactersSection({
         </p>
       ) : personagensCampanha.length === 0 ? (
         <EmptyState
-          variant="card"
+          variant="session"
           icon="character-gojo"
           title="Nenhum personagem associado"
           description="Associe um personagem-base para começar a jogar nesta campanha."
@@ -327,7 +323,10 @@ export function CampaignCharactersSection({
           {personagensCampanha.map((personagem) => {
             const podeEditar = usuarioEhMestre || personagem.donoId === usuarioId;
             return (
-              <Card key={personagem.id} className="space-y-3">
+              <article
+                key={personagem.id}
+                className="space-y-3 rounded-xl border border-white/5 bg-app-surface/45 p-4"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h4 className="truncate text-base font-semibold text-app-fg">
@@ -381,35 +380,41 @@ export function CampaignCharactersSection({
                 {podeEditar && (
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="sm"
                       onClick={() => setPersonagemEdicao(personagem)}
                     >
                       Editar ficha da campanha
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => void handleAtualizarDaFichaBase(personagem)}
-                      disabled={atualizandoPersonagemId === personagem.id}
-                    >
-                      {atualizandoPersonagemId === personagem.id
-                        ? 'Atualizando...'
-                        : 'Atualizar da ficha base'}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleSolicitarDesassociar(personagem)}
-                      disabled={removendoPersonagemId === personagem.id}
-                    >
-                      {removendoPersonagemId === personagem.id
-                        ? 'Desassociando...'
-                        : 'Desassociar'}
-                    </Button>
+                    <EntityActionsMenu
+                      ariaLabel={`Ações de ${personagem.nome}`}
+                      items={[
+                        {
+                          id: 'atualizar-base',
+                          label:
+                            atualizandoPersonagemId === personagem.id
+                              ? 'Atualizando...'
+                              : 'Atualizar da ficha base',
+                          icon: 'refresh',
+                          disabled: atualizandoPersonagemId === personagem.id,
+                          onSelect: () => void handleAtualizarDaFichaBase(personagem),
+                        },
+                        {
+                          id: 'desassociar',
+                          label:
+                            removendoPersonagemId === personagem.id
+                              ? 'Desassociando...'
+                              : 'Desassociar',
+                          icon: 'unlink',
+                          destructive: true,
+                          disabled: removendoPersonagemId === personagem.id,
+                          onSelect: () => handleSolicitarDesassociar(personagem),
+                        },
+                      ]}
+                    />
                   </div>
                 )}
-              </Card>
+              </article>
             );
           })}
         </div>
@@ -479,11 +484,11 @@ export function CampaignCharactersSection({
               : 'Deseja desassociar este personagem da campanha?'}
           </p>
           <p className="text-xs text-app-muted">
-            Isso remove a ficha da campanha e libera o personagem-base para nova associacao.
+            Isso remove a ficha da campanha e libera o personagem-base para nova associação.
           </p>
           <p className="text-xs text-app-muted">
-            Se a ideia for apenas puxar mudancas da ficha base sem perder itens,
-            modificadores narrativos e estado da campanha, use a opcao
+            Se a ideia for apenas puxar mudanças da ficha base sem perder itens,
+            modificadores narrativos e estado da campanha, use a opção
             &quot;Atualizar da ficha base&quot;.
           </p>
           <div className="flex items-center justify-end gap-2">
