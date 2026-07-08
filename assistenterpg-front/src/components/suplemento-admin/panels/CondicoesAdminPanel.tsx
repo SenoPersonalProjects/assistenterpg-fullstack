@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +11,12 @@ import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import {
   apiAdminGetCondicoes,
   apiAdminCreateCondicao,
@@ -145,7 +150,7 @@ function CondicaoFormModal({ isOpen, onClose, item }: ModalProps) {
         />
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
           <Input
-            label="Icone (opcional)"
+            label="Ícone (opcional)"
             value={form.icone}
             onChange={(e) => setField('icone', e.target.value)}
             error={errors.icone}
@@ -191,6 +196,20 @@ export function CondicoesAdminPanel() {
     );
   }, [items, busca]);
 
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      { id: 'total', label: 'Total', value: items.length, icon: 'status' },
+      { id: 'visiveis', label: 'Visíveis', value: filtrados.length, icon: 'filter' },
+      {
+        id: 'em-uso',
+        label: 'Em uso',
+        value: items.filter((item) => (item._count?.condicoesPersonagemSessao ?? 0) > 0).length,
+        icon: 'link',
+      },
+    ],
+    [items, filtrados.length],
+  );
+
   const carregarDados = useCallback(async () => {
     try {
       setLoading(true);
@@ -226,32 +245,41 @@ export function CondicoesAdminPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between gap-3">
+    <AdminPanelScaffold
+      title="Condições"
+      description="Gerencie condições aplicadas em sessão e seus indicadores visuais."
+      icon="status"
+      count={filtrados.length}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingItem(null);
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Nova condição
+        </Button>
+      }
+      toolbar={
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end">
           <Input
             label="Buscar"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
             placeholder="Nome ou descrição..."
+            className="sm:max-w-md"
           />
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingItem(null);
-              setModalOpen(true);
-            }}
-          >
-            <Icon name="add" className="w-4 h-4 mr-1" />
-            Nova condição
-          </Button>
         </div>
-      </Card>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando condições..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
@@ -267,11 +295,11 @@ export function CondicoesAdminPanel() {
               <thead>
                 <tr className="border-b border-app-border text-left text-app-muted">
                   <th className="py-2 pr-2">ID</th>
-                  <th className="py-2 pr-2">Icone</th>
+                  <th className="py-2 pr-2">Ícone</th>
                   <th className="py-2 pr-2">Nome</th>
                   <th className="py-2 pr-2">Uso em sessões</th>
-                  <th className="py-2 pr-2">Descricao</th>
-                  <th className="py-2 text-right">Acoes</th>
+                  <th className="py-2 pr-2">Descrição</th>
+                  <th className="py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -296,7 +324,7 @@ export function CondicoesAdminPanel() {
                           {usos}
                         </Badge>
                       </td>
-                      <td className="py-3 pr-2 text-app-fg">{item.descricao}</td>
+                      <td className="max-w-sm truncate py-3 pr-2 text-app-fg">{item.descricao}</td>
                       <td className="py-3 text-right">
                         <div className="inline-flex items-center gap-2">
                           <Button
@@ -310,19 +338,18 @@ export function CondicoesAdminPanel() {
                             <Icon name="edit" className="w-4 h-4 mr-1" />
                             Editar
                           </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="text-app-danger"
-                            disabled={deletingId === item.id || bloqueada}
-                            onClick={() => handleDelete(item)}
-                          >
-                            <Icon
-                              name={deletingId === item.id ? 'loading' : 'delete'}
-                              className={`w-4 h-4 mr-1 ${deletingId === item.id ? 'animate-spin' : ''}`}
-                            />
-                            Excluir
-                          </Button>
+                          <EntityActionsMenu
+                            items={[
+                              {
+                                id: 'delete',
+                                label: deletingId === item.id ? 'Excluindo...' : 'Excluir',
+                                icon: deletingId === item.id ? 'loading' : 'delete',
+                                destructive: true,
+                                disabled: deletingId === item.id || bloqueada,
+                                onSelect: () => handleDelete(item),
+                              },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -332,7 +359,7 @@ export function CondicoesAdminPanel() {
             </table>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <CondicaoFormModal
         isOpen={modalOpen}
@@ -343,6 +370,6 @@ export function CondicoesAdminPanel() {
         }}
         item={editingItem}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

@@ -38,10 +38,10 @@ type FormState = {
 };
 
 const TIPO_HABILIDADE_OPTIONS: Array<{ value: TipoHabilidadeCatalogo; label: string }> = [
-  { value: 'PODER_GENERICO', label: 'Poder Generico' },
+  { value: 'PODER_GENERICO', label: 'Poder Genérico' },
   { value: 'RECURSO_CLASSE', label: 'Recurso de Classe' },
   { value: 'EFEITO_GRAU', label: 'Efeito de Grau' },
-  { value: 'MECANICA_ESPECIAL', label: 'Mecanica Especial' },
+  { value: 'MECANICA_ESPECIAL', label: 'Mecânica Especial' },
   { value: 'HABILIDADE_ORIGEM', label: 'Habilidade de Origem' },
   { value: 'HABILIDADE_TRILHA', label: 'Habilidade de Trilha' },
   { value: 'ESCOLA_TECNICA', label: 'Escola Técnica' },
@@ -271,7 +271,7 @@ export function ModalHabilidadeAdminForm({
                 label="Suplemento"
                 value=""
                 disabled
-                helperText="Não aplicavel para esta fonte."
+                helperText="Não aplicável para esta fonte."
               />
             )}
 
@@ -304,7 +304,7 @@ export function ModalHabilidadeAdminForm({
               placeholder='Ex: { "nivelMinimo": 3 }'
             />
             <Textarea
-              label="Mecanicas Especiais (JSON)"
+              label="Mecânicas Especiais (JSON)"
               value={form.mecanicasJson}
               onChange={(e) => setField('mecanicasJson', e.target.value)}
               error={errors.mecanicasJson}

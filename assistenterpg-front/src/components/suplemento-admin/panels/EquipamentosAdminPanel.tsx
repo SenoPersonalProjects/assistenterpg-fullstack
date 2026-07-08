@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -13,6 +12,11 @@ import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { FONTE_OPTIONS, fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
@@ -240,7 +244,7 @@ function EquipamentoAdminFormModal({ isOpen, onClose, equipamento, suplementos }
             ))}
           </Select>
           <Input
-            label="Espacos"
+            label="Espaços"
             type="number"
             min={0}
             value={form.espacos}
@@ -362,10 +366,34 @@ export function EquipamentosAdminPanel() {
     setAppliedFilters((prev) => ({ ...prev, pagina: page }));
   }
 
+  const statsItems: StatsStripItem[] = [
+    { id: 'total', label: 'Total filtrado', value: result.total, icon: 'item' },
+    { id: 'pagina', label: 'Nesta página', value: result.items.length, icon: 'list' },
+    { id: 'paginas', label: 'Páginas', value: result.totalPages, icon: 'book' },
+  ];
+
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+    <AdminPanelScaffold
+      title="Equipamentos"
+      description="Gerencie equipamentos do catálogo com filtros por tipo, fonte e suplemento."
+      icon="item"
+      count={result.items.length}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingItem(null);
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Novo equipamento
+        </Button>
+      }
+      toolbar={
+        <div className="w-full space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
           <Input
             label="Busca"
             value={draftFilters.busca}
@@ -426,7 +454,7 @@ export function EquipamentosAdminPanel() {
           )}
 
           <Select
-            label="Itens por pagina"
+            label="Itens por página"
             value={String(draftFilters.limite)}
             onChange={(e) => setDraftFilters((prev) => ({ ...prev, limite: Number(e.target.value) }))}
           >
@@ -436,31 +464,23 @@ export function EquipamentosAdminPanel() {
               </option>
             ))}
           </Select>
-        </div>
+          </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" onClick={aplicarFiltros}>
             Aplicar filtros
           </Button>
           <Button variant="secondary" onClick={limparFiltros}>
             Limpar
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingItem(null);
-              setModalOpen(true);
-            }}
-          >
-            <Icon name="add" className="w-4 h-4 mr-1" />
-            Novo equipamento
-          </Button>
         </div>
-      </Card>
+        </div>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando equipamentos..." className="py-8 text-app-fg" />
         ) : result.items.length === 0 ? (
@@ -477,12 +497,12 @@ export function EquipamentosAdminPanel() {
                 <thead>
                   <tr className="border-b border-app-border text-left text-app-muted">
                     <th className="py-2 pr-2">ID</th>
-                    <th className="py-2 pr-2">Codigo</th>
+                    <th className="py-2 pr-2">Código</th>
                     <th className="py-2 pr-2">Nome</th>
                     <th className="py-2 pr-2">Tipo</th>
                     <th className="py-2 pr-2">Fonte</th>
                     <th className="py-2 pr-2">Suplemento</th>
-                    <th className="py-2 text-right">Acoes</th>
+                    <th className="py-2 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -521,7 +541,7 @@ export function EquipamentosAdminPanel() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-app-muted">
-                Pagina {result.page} de {result.totalPages} - Total {result.total}
+                Página {result.page} de {result.totalPages} - Total {result.total}
               </div>
               <div className="flex w-full gap-2 sm:w-auto">
                 <Button
@@ -540,13 +560,13 @@ export function EquipamentosAdminPanel() {
                   onClick={() => mudarPagina(result.page + 1)}
                   className="flex-1 sm:flex-none"
                 >
-                  Proxima
+                  Próxima
                 </Button>
               </div>
             </div>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <EquipamentoAdminFormModal
         isOpen={modalOpen}
@@ -558,6 +578,6 @@ export function EquipamentosAdminPanel() {
         equipamento={editingItem}
         suplementos={suplementos}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

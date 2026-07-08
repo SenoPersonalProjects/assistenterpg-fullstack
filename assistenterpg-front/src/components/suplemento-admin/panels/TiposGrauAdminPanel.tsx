@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +10,12 @@ import { Icon } from '@/components/ui/Icon';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import {
   apiAdminGetTiposGrau,
   apiAdminCreateTipoGrau,
@@ -171,6 +176,20 @@ export function TiposGrauAdminPanel() {
     );
   }, [items, busca]);
 
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      { id: 'total', label: 'Total', value: items.length, icon: 'rank' },
+      { id: 'visiveis', label: 'Visíveis', value: filtrados.length, icon: 'filter' },
+      {
+        id: 'com-descricao',
+        label: 'Com descrição',
+        value: items.filter((item) => Boolean(item.descricao?.trim())).length,
+        icon: 'document',
+      },
+    ],
+    [items, filtrados.length],
+  );
+
   const carregarDados = useCallback(async () => {
     try {
       setLoading(true);
@@ -206,32 +225,41 @@ export function TiposGrauAdminPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between gap-3">
+    <AdminPanelScaffold
+      title="Tipos de Grau"
+      description="Gerencie os tipos usados para organizar progressão e efeitos de grau."
+      icon="rank"
+      count={filtrados.length}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingItem(null);
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Novo tipo de grau
+        </Button>
+      }
+      toolbar={
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end">
           <Input
             label="Buscar"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
             placeholder="Nome ou código..."
+            className="sm:max-w-md"
           />
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingItem(null);
-              setModalOpen(true);
-            }}
-          >
-            <Icon name="add" className="w-4 h-4 mr-1" />
-            Novo tipo de grau
-          </Button>
         </div>
-      </Card>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando tipos de grau..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
@@ -247,10 +275,10 @@ export function TiposGrauAdminPanel() {
               <thead>
                 <tr className="border-b border-app-border text-left text-app-muted">
                   <th className="py-2 pr-2">ID</th>
-                  <th className="py-2 pr-2">Codigo</th>
+                  <th className="py-2 pr-2">Código</th>
                   <th className="py-2 pr-2">Nome</th>
-                  <th className="py-2 pr-2">Descricao</th>
-                  <th className="py-2 text-right">Acoes</th>
+                  <th className="py-2 pr-2">Descrição</th>
+                  <th className="py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,7 +287,7 @@ export function TiposGrauAdminPanel() {
                     <td className="py-3 pr-2 text-app-muted">#{item.id}</td>
                     <td className="py-3 pr-2 text-app-muted font-mono">{item.codigo}</td>
                     <td className="py-3 pr-2 text-app-fg font-medium">{item.nome}</td>
-                    <td className="py-3 pr-2 text-app-fg">{item.descricao ?? '-'}</td>
+                    <td className="max-w-md truncate py-3 pr-2 text-app-fg">{item.descricao ?? '-'}</td>
                     <td className="py-3 text-right">
                       <div className="inline-flex items-center gap-2">
                         <Button
@@ -273,19 +301,18 @@ export function TiposGrauAdminPanel() {
                           <Icon name="edit" className="w-4 h-4 mr-1" />
                           Editar
                         </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="text-app-danger"
-                          disabled={deletingId === item.id}
-                          onClick={() => handleDelete(item)}
-                        >
-                          <Icon
-                            name={deletingId === item.id ? 'loading' : 'delete'}
-                            className={`w-4 h-4 mr-1 ${deletingId === item.id ? 'animate-spin' : ''}`}
-                          />
-                          Excluir
-                        </Button>
+                        <EntityActionsMenu
+                          items={[
+                            {
+                              id: 'delete',
+                              label: deletingId === item.id ? 'Excluindo...' : 'Excluir',
+                              icon: deletingId === item.id ? 'loading' : 'delete',
+                              destructive: true,
+                              disabled: deletingId === item.id,
+                              onSelect: () => handleDelete(item),
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -294,7 +321,7 @@ export function TiposGrauAdminPanel() {
             </table>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <TipoGrauFormModal
         isOpen={modalOpen}
@@ -305,6 +332,6 @@ export function TiposGrauAdminPanel() {
         }}
         item={editingItem}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

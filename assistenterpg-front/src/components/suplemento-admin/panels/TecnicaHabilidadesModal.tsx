@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 import { Modal } from '@/components/ui/Modal';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -13,6 +12,8 @@ import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { AdminPanelSurface } from '../common/AdminPanelScaffold';
 import {
   apiAdminGetHabilidadesDaTecnica,
   apiAdminCreateHabilidadeDaTecnica,
@@ -913,7 +914,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
           </Select>
           <Input label="Alvo" value={form.alvo} onChange={(e) => setField('alvo', e.target.value)} />
           <Select
-            label="Duracao"
+            label="Duração"
             value={form.duracaoPreset}
             onChange={(e) =>
               setField('duracaoPreset', e.target.value as DuracaoPresetValue)
@@ -960,7 +961,7 @@ function HabilidadeFormModal({ isOpen, tecnicaId, habilidade, onClose }: Habilid
             )}
             {form.duracaoPreset === 'PERSONALIZADA' ? (
               <Input
-                label="Duracao personalizada"
+                label="Duração personalizada"
                 value={form.duracaoCustom}
                 onChange={(e) => setField('duracaoCustom', e.target.value)}
                 placeholder="Ex: 3 turnos, 1 hora, até o fim da missao"
@@ -1487,7 +1488,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
           </Select>
           <Input label="Alvo" value={form.alvo} onChange={(e) => setField('alvo', e.target.value)} />
           <Select
-            label="Duracao"
+            label="Duração"
             value={form.duracaoPreset}
             onChange={(e) =>
               setField('duracaoPreset', e.target.value as DuracaoPresetValue)
@@ -1534,7 +1535,7 @@ function VariacaoFormModal({ isOpen, habilidadeId, variacao, onClose }: Variacao
             )}
             {form.duracaoPreset === 'PERSONALIZADA' ? (
               <Input
-                label="Duracao personalizada"
+                label="Duração personalizada"
                 value={form.duracaoCustom}
                 onChange={(e) => setField('duracaoCustom', e.target.value)}
                 placeholder="Ex: 3 turnos, 1 hora, até o fim da cena"
@@ -1871,7 +1872,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
             <div className="text-sm text-app-muted">Total: {items.length}</div>
             <Button variant="primary" size="sm" onClick={() => { setEditingItem(null); setModalOpen(true); }}>
               <Icon name="add" className="w-4 h-4 mr-1" />
-              Nova variacao
+              Nova variação
             </Button>
           </div>
 
@@ -1882,7 +1883,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
           ) : items.length === 0 ? (
             <EmptyState variant="card" icon="sparkles" title="Nenhuma variação cadastrada" description="Crie uma variação para esta habilidade." />
           ) : (
-            <Card>
+            <AdminPanelSurface>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -1891,7 +1892,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
                       <th className="py-2 pr-2">Nome</th>
                       <th className="py-2 pr-2">Ordem</th>
                       <th className="py-2 pr-2">Custos</th>
-                      <th className="py-2 text-right">Acoes</th>
+                      <th className="py-2 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1915,10 +1916,17 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
                               <Icon name="edit" className="w-4 h-4 mr-1" />
                               Editar
                             </Button>
-                            <Button variant="secondary" size="sm" className="text-app-danger" onClick={() => handleDelete(item)}>
-                              <Icon name="delete" className="w-4 h-4 mr-1" />
-                              Remover
-                            </Button>
+                            <EntityActionsMenu
+                              items={[
+                                {
+                                  id: 'remove',
+                                  label: 'Remover',
+                                  icon: 'delete',
+                                  destructive: true,
+                                  onSelect: () => handleDelete(item),
+                                },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -1926,7 +1934,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </AdminPanelSurface>
           )}
         </div>
       </Modal>
@@ -2026,18 +2034,18 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
           ) : habilidadesOrdenadas.length === 0 ? (
             <EmptyState variant="card" icon="technique" title="Nenhuma habilidade cadastrada" description="Crie uma habilidade para esta técnica." />
           ) : (
-            <Card>
+            <AdminPanelSurface>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-app-border text-left text-app-muted">
                       <th className="py-2 pr-2">ID</th>
-                      <th className="py-2 pr-2">Codigo</th>
+                      <th className="py-2 pr-2">Código</th>
                       <th className="py-2 pr-2">Nome</th>
                       <th className="py-2 pr-2">Ordem</th>
                       <th className="py-2 pr-2">Custos</th>
-                      <th className="py-2 pr-2">Variacoes</th>
-                      <th className="py-2 text-right">Acoes</th>
+                      <th className="py-2 pr-2">Variações</th>
+                      <th className="py-2 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2065,12 +2073,19 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
                             </Button>
                             <Button variant="secondary" size="sm" onClick={() => { setVariacoesHabilidade(item); setVariacoesModalOpen(true); }}>
                               <Icon name="sparkles" className="w-4 h-4 mr-1" />
-                              Variacoes
+                              Variações
                             </Button>
-                            <Button variant="secondary" size="sm" className="text-app-danger" onClick={() => handleDelete(item)}>
-                              <Icon name="delete" className="w-4 h-4 mr-1" />
-                              Remover
-                            </Button>
+                            <EntityActionsMenu
+                              items={[
+                                {
+                                  id: 'remove',
+                                  label: 'Remover',
+                                  icon: 'delete',
+                                  destructive: true,
+                                  onSelect: () => handleDelete(item),
+                                },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -2078,7 +2093,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </AdminPanelSurface>
           )}
         </div>
       </Modal>

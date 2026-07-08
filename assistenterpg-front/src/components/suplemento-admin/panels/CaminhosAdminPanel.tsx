@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
@@ -13,6 +12,11 @@ import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
@@ -227,6 +231,15 @@ export function CaminhosAdminPanel() {
     return items.filter((item) => item.nome.toLowerCase().includes(termo));
   }, [items, busca]);
 
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      { id: 'trilhas', label: 'Trilhas', value: trilhas.length, icon: 'layers' },
+      { id: 'carregados', label: 'Carregados', value: items.length, icon: 'map' },
+      { id: 'visiveis', label: 'Visíveis', value: filtrados.length, icon: 'filter' },
+    ],
+    [trilhas.length, items.length, filtrados.length],
+  );
+
   const carregarMeta = useCallback(async () => {
     try {
       const [trilhasData, suplementosData] = await Promise.all([apiAdminGetTrilhas(), apiGetSuplementos()]);
@@ -267,10 +280,30 @@ export function CaminhosAdminPanel() {
   }, [carregarCaminhos]);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Select label="Trilha (obrigatorio)" value={trilhaFiltro} onChange={(e) => setTrilhaFiltro(e.target.value)}>
+    <AdminPanelScaffold
+      title="Caminhos"
+      description="Gerencie caminhos disponíveis dentro de cada trilha."
+      icon="map"
+      count={trilhaFiltro ? filtrados.length : 0}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          disabled={!trilhaFiltro}
+          onClick={() => {
+            setEditingItem(
+              trilhaFiltro ? ({ trilhaId: Number(trilhaFiltro), id: 0, nome: '', descricao: '' } as CaminhoExtended) : null,
+            );
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Novo caminho
+        </Button>
+      }
+      toolbar={
+        <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3">
+          <Select label="Trilha (obrigatória)" value={trilhaFiltro} onChange={(e) => setTrilhaFiltro(e.target.value)}>
             <option value="">Selecione...</option>
             {trilhas.map((item) => (
               <option key={item.id} value={String(item.id)}>
@@ -289,39 +322,28 @@ export function CaminhosAdminPanel() {
 
           <div className="flex items-end gap-2">
             <Button variant="secondary" onClick={carregarCaminhos} disabled={!trilhaFiltro}>
+              <Icon name="refresh" className="w-4 h-4 mr-1" />
               Atualizar
-            </Button>
-            <Button
-              variant="primary"
-              disabled={!trilhaFiltro}
-              onClick={() => {
-                setEditingItem(
-                  trilhaFiltro ? ({ trilhaId: Number(trilhaFiltro), id: 0, nome: '', descricao: '' } as CaminhoExtended) : null,
-                );
-                setModalOpen(true);
-              }}
-            >
-              <Icon name="add" className="w-4 h-4 mr-1" />
-              Novo caminho
             </Button>
           </div>
         </div>
-      </Card>
+      }
+    >
 
       {!trilhaFiltro ? (
-        <Card>
+        <AdminPanelSurface>
           <EmptyState
             variant="card"
             icon="map"
             title="Selecione uma trilha"
             description="Escolha uma trilha para listar e gerenciar os caminhos."
           />
-        </Card>
+        </AdminPanelSurface>
       ) : (
         <>
           {erro && <ErrorAlert message={erro} />}
 
-          <Card>
+          <AdminPanelSurface>
             {loading ? (
               <Loading message="Carregando caminhos..." className="py-8 text-app-fg" />
             ) : filtrados.length === 0 ? (
@@ -341,7 +363,7 @@ export function CaminhosAdminPanel() {
                       <th className="py-2 pr-2">Trilha</th>
                       <th className="py-2 pr-2">Fonte</th>
                       <th className="py-2 pr-2">Suplemento</th>
-                      <th className="py-2 text-right">Acoes</th>
+                      <th className="py-2 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -379,7 +401,7 @@ export function CaminhosAdminPanel() {
                 </table>
               </div>
             )}
-          </Card>
+          </AdminPanelSurface>
         </>
       )}
 
@@ -394,6 +416,6 @@ export function CaminhosAdminPanel() {
         suplementos={suplementos}
         caminho={editingItem}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

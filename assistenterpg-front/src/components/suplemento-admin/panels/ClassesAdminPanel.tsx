@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +11,11 @@ import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
@@ -191,6 +195,20 @@ export function ClassesAdminPanel() {
     return items.filter((item) => item.nome.toLowerCase().includes(termo));
   }, [items, busca]);
 
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      { id: 'total', label: 'Total', value: items.length, icon: 'class' },
+      { id: 'visiveis', label: 'Visíveis', value: filtrados.length, icon: 'filter' },
+      {
+        id: 'suplementos',
+        label: 'De suplementos',
+        value: items.filter((item) => item.fonte === 'SUPLEMENTO').length,
+        icon: 'book',
+      },
+    ],
+    [items, filtrados.length],
+  );
+
   const carregarDados = useCallback(async () => {
     try {
       setLoading(true);
@@ -215,32 +233,41 @@ export function ClassesAdminPanel() {
   }, [carregarDados]);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between gap-3">
+    <AdminPanelScaffold
+      title="Classes"
+      description="Gerencie as classes disponíveis para criação e progressão de personagens."
+      icon="class"
+      count={filtrados.length}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingItem(null);
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Nova classe
+        </Button>
+      }
+      toolbar={
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end">
           <Input
             label="Buscar por nome"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
             placeholder="Digite o nome da classe..."
+            className="sm:max-w-md"
           />
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingItem(null);
-              setModalOpen(true);
-            }}
-          >
-            <Icon name="add" className="w-4 h-4 mr-1" />
-            Nova classe
-          </Button>
         </div>
-      </Card>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando classes..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
@@ -259,7 +286,7 @@ export function ClassesAdminPanel() {
                   <th className="py-2 pr-2">Nome</th>
                   <th className="py-2 pr-2">Fonte</th>
                   <th className="py-2 pr-2">Suplemento</th>
-                  <th className="py-2 text-right">Acoes</th>
+                  <th className="py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -294,7 +321,7 @@ export function ClassesAdminPanel() {
             </table>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <ClasseAdminFormModal
         isOpen={modalOpen}
@@ -306,6 +333,6 @@ export function ClassesAdminPanel() {
         suplementos={suplementos}
         classe={editingItem}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

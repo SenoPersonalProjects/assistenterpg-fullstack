@@ -12,6 +12,11 @@ import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import { ModalHabilidadeAdminForm } from './ModalHabilidadeAdminForm';
 import { TecnicaHabilidadesModal } from '../panels/TecnicaHabilidadesModal';
 import {
@@ -53,10 +58,10 @@ type AppliedFilters = DraftFilters & {
 
 const TIPO_OPTIONS: Array<{ value: DraftFilters['tipo']; label: string }> = [
   { value: 'TODOS', label: 'Todos os tipos' },
-  { value: 'PODER_GENERICO', label: 'Poder Generico' },
+  { value: 'PODER_GENERICO', label: 'Poder Genérico' },
   { value: 'RECURSO_CLASSE', label: 'Recurso de Classe' },
   { value: 'EFEITO_GRAU', label: 'Efeito de Grau' },
-  { value: 'MECANICA_ESPECIAL', label: 'Mecanica Especial' },
+  { value: 'MECANICA_ESPECIAL', label: 'Mecânica Especial' },
   { value: 'HABILIDADE_ORIGEM', label: 'Habilidade de Origem' },
   { value: 'HABILIDADE_TRILHA', label: 'Habilidade de Trilha' },
   { value: 'ESCOLA_TECNICA', label: 'Escola Técnica' },
@@ -186,7 +191,7 @@ function SelecionarTecnicaModal({
             value={cadastroTipo}
             onChange={(e) => onChangeCadastroTipo(e.target.value as CadastroHabilidadeTipo)}
           >
-            <option value="PODER_GENERICO">Poder Generico</option>
+            <option value="PODER_GENERICO">Poder Genérico</option>
             <option value="HABILIDADE_TECNICA_INATA">Habilidade de Técnica Inata</option>
             <option value="HABILIDADE_TECNICA_NAO_INATA">Habilidade de Técnica Não Inata</option>
           </Select>
@@ -204,7 +209,7 @@ function SelecionarTecnicaModal({
               variant="card"
               icon="technique"
               title="Nenhuma técnica encontrada"
-              description="Cadastre a técnica primeiro no modulo de técnicas."
+              description="Cadastre a técnica primeiro no módulo de técnicas."
             />
           ) : (
             <Select
@@ -223,14 +228,14 @@ function SelecionarTecnicaModal({
 
           {isHabilidadeTecnica && (
             <Input
-              label="Classificacao"
+              label="Classificação"
               value={
                 cadastroTipo === 'HABILIDADE_TECNICA_INATA'
                   ? 'Técnica Inata'
                   : 'Técnica Não Inata'
               }
               disabled
-              helperText="As habilidades serao cadastradas no CRUD da técnica selecionada."
+              helperText="As habilidades serão cadastradas no CRUD da técnica selecionada."
             />
           )}
         </div>
@@ -401,7 +406,7 @@ export function HabilidadesAdminPanel() {
 
     const tecnica = tecnicasDisponiveis.find((item) => item.id === Number(tecnicaSelecionadaId));
     if (!tecnica) {
-      showToast('Selecione uma técnica valida.', 'error');
+      showToast('Selecione uma técnica válida.', 'error');
       return;
     }
 
@@ -415,27 +420,28 @@ export function HabilidadesAdminPanel() {
     setModalOpen(true);
   }
 
-  return (
-    <div className="space-y-6">
-      <Card>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold text-app-fg">Gerenciar Habilidades</h2>
-            <p className="text-sm text-app-muted">
-              Cadastre poderes genéricos ou habilidades associadas a técnicas (inatas e não inatas).
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 justify-end">
-            <Button variant="primary" onClick={abrirFluxoNovaHabilidade}>
-              <Icon name="add" className="w-4 h-4 mr-2" />
-              Nova habilidade
-            </Button>
-          </div>
-        </div>
-      </Card>
+  const statsItems: StatsStripItem[] = [
+    { id: 'total', label: 'Total filtrado', value: result.total, icon: 'sparkles' },
+    { id: 'pagina', label: 'Nesta página', value: result.items.length, icon: 'list' },
+    { id: 'paginas', label: 'Páginas', value: result.totalPages, icon: 'book' },
+  ];
 
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+  return (
+    <AdminPanelScaffold
+      title="Habilidades"
+      description="Cadastre poderes genéricos ou habilidades associadas a técnicas."
+      icon="sparkles"
+      count={result.items.length}
+      stats={statsItems}
+      action={
+        <Button variant="primary" onClick={abrirFluxoNovaHabilidade}>
+          <Icon name="add" className="w-4 h-4 mr-2" />
+          Nova habilidade
+        </Button>
+      }
+      toolbar={
+        <div className="w-full space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
           <Input
             label="Busca"
             value={draftFilters.busca}
@@ -499,7 +505,7 @@ export function HabilidadesAdminPanel() {
           )}
 
           <Select
-            label="Itens por pagina"
+            label="Itens por página"
             value={draftFilters.limite.toString()}
             onChange={(e) =>
               setDraftFilters((prev) => ({ ...prev, limite: Number(e.target.value) }))
@@ -511,9 +517,9 @@ export function HabilidadesAdminPanel() {
               </option>
             ))}
           </Select>
-        </div>
+          </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" onClick={aplicarFiltros}>
             Aplicar filtros
           </Button>
@@ -521,11 +527,13 @@ export function HabilidadesAdminPanel() {
             Limpar
           </Button>
         </div>
-      </Card>
+        </div>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando habilidades..." className="text-app-fg py-8" />
         ) : result.items.length === 0 ? (
@@ -552,7 +560,7 @@ export function HabilidadesAdminPanel() {
                     <th className="py-2 pr-2">Tipo</th>
                     <th className="py-2 pr-2">Fonte</th>
                     <th className="py-2 pr-2">Suplemento</th>
-                    <th className="py-2 text-right">Acoes</th>
+                    <th className="py-2 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -590,7 +598,7 @@ export function HabilidadesAdminPanel() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-app-muted">
-                Pagina {result.page} de {result.totalPages}
+                Página {result.page} de {result.totalPages}
               </div>
               <div className="flex w-full gap-2 sm:w-auto">
                 <Button
@@ -609,13 +617,13 @@ export function HabilidadesAdminPanel() {
                   onClick={() => mudarPagina(result.page + 1)}
                   className="flex-1 sm:flex-none"
                 >
-                  Proxima
+                  Próxima
                 </Button>
               </div>
             </div>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <ModalHabilidadeAdminForm
         isOpen={modalOpen}
@@ -658,6 +666,6 @@ export function HabilidadesAdminPanel() {
           }
         }}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

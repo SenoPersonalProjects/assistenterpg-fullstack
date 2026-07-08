@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
@@ -13,6 +12,11 @@ import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
@@ -225,6 +229,15 @@ export function TrilhasAdminPanel() {
     });
   }, [items, busca, classeFiltro]);
 
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      { id: 'total', label: 'Total carregado', value: items.length, icon: 'layers' },
+      { id: 'visiveis', label: 'Visíveis', value: filtrados.length, icon: 'filter' },
+      { id: 'classes', label: 'Classes', value: classes.length, icon: 'class' },
+    ],
+    [items.length, filtrados.length, classes.length],
+  );
+
   const carregarDados = useCallback(async () => {
     try {
       setLoading(true);
@@ -252,9 +265,26 @@ export function TrilhasAdminPanel() {
   }, [carregarDados]);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <AdminPanelScaffold
+      title="Trilhas"
+      description="Gerencie trilhas por classe e suas fontes de conteúdo."
+      icon="layers"
+      count={filtrados.length}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingItem(null);
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Nova trilha
+        </Button>
+      }
+      toolbar={
+        <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-3">
           <Input
             label="Buscar por nome"
             value={busca}
@@ -276,25 +306,17 @@ export function TrilhasAdminPanel() {
           </Select>
           <div className="flex items-end gap-2">
             <Button variant="secondary" onClick={carregarDados}>
+              <Icon name="refresh" className="w-4 h-4 mr-1" />
               Atualizar
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                setEditingItem(null);
-                setModalOpen(true);
-              }}
-            >
-              <Icon name="add" className="w-4 h-4 mr-1" />
-              Nova trilha
             </Button>
           </div>
         </div>
-      </Card>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando trilhas..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
@@ -314,7 +336,7 @@ export function TrilhasAdminPanel() {
                   <th className="py-2 pr-2">Classe</th>
                   <th className="py-2 pr-2">Fonte</th>
                   <th className="py-2 pr-2">Suplemento</th>
-                  <th className="py-2 text-right">Acoes</th>
+                  <th className="py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -350,7 +372,7 @@ export function TrilhasAdminPanel() {
             </table>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <TrilhaAdminFormModal
         isOpen={modalOpen}
@@ -363,6 +385,6 @@ export function TrilhasAdminPanel() {
         suplementos={suplementos}
         trilha={editingItem}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

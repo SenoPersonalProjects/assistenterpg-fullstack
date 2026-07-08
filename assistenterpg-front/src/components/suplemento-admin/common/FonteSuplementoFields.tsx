@@ -51,7 +51,7 @@ export function FonteSuplementoFields({
           ))}
         </Select>
       ) : (
-        <Input label="Suplemento" value="" disabled helperText="Não aplicavel para esta fonte." />
+        <Input label="Suplemento" value="" disabled helperText="Não aplicável para esta fonte." />
       )}
     </>
   );

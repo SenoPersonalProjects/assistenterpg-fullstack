@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +10,12 @@ import { Icon } from '@/components/ui/Icon';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import {
   apiAdminGetProficiencias,
   apiAdminCreateProficiencia,
@@ -108,10 +113,10 @@ function ProficienciaFormModal({ isOpen, onClose, item }: ModalProps) {
           subtipo: subtipoNormalizado ? subtipoNormalizado : null,
         };
         await apiAdminUpdateProficiencia(item.id, payloadUpdate);
-        showToast('Proficiencia atualizada com sucesso.', 'success');
+        showToast('Proficiência atualizada com sucesso.', 'success');
       } else {
         await apiAdminCreateProficiencia(payloadBase);
-        showToast('Proficiencia criada com sucesso.', 'success');
+        showToast('Proficiência criada com sucesso.', 'success');
       }
       onClose(true);
     } catch (error) {
@@ -209,6 +214,20 @@ export function ProficienciasAdminPanel() {
     );
   }, [items, busca]);
 
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      { id: 'total', label: 'Total', value: items.length, icon: 'skills' },
+      { id: 'visiveis', label: 'Visíveis', value: filtrados.length, icon: 'filter' },
+      {
+        id: 'categorias',
+        label: 'Categorias',
+        value: new Set(items.map((item) => item.categoria).filter(Boolean)).size,
+        icon: 'tag',
+      },
+    ],
+    [items, filtrados.length],
+  );
+
   const carregarDados = useCallback(async () => {
     try {
       setLoading(true);
@@ -234,7 +253,7 @@ export function ProficienciasAdminPanel() {
     try {
       setDeletingId(item.id);
       await apiAdminDeleteProficiencia(item.id);
-      showToast('Proficiencia removida com sucesso.', 'success');
+      showToast('Proficiência removida com sucesso.', 'success');
       await carregarDados();
     } catch (error) {
       showToast(criarErroUsuario(error), 'error');
@@ -244,32 +263,41 @@ export function ProficienciasAdminPanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between gap-3">
+    <AdminPanelScaffold
+      title="Proficiências"
+      description="Gerencie proficiências, categorias e subtipos do catálogo."
+      icon="skills"
+      count={filtrados.length}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingItem(null);
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Nova proficiência
+        </Button>
+      }
+      toolbar={
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end">
           <Input
             label="Buscar"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
             placeholder="Nome, código, tipo..."
+            className="sm:max-w-md"
           />
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingItem(null);
-              setModalOpen(true);
-            }}
-          >
-            <Icon name="add" className="w-4 h-4 mr-1" />
-            Nova proficiência
-          </Button>
         </div>
-      </Card>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando proficiências..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
@@ -285,12 +313,12 @@ export function ProficienciasAdminPanel() {
               <thead>
                 <tr className="border-b border-app-border text-left text-app-muted">
                   <th className="py-2 pr-2">ID</th>
-                  <th className="py-2 pr-2">Codigo</th>
+                  <th className="py-2 pr-2">Código</th>
                   <th className="py-2 pr-2">Nome</th>
                   <th className="py-2 pr-2">Tipo</th>
                   <th className="py-2 pr-2">Categoria</th>
                   <th className="py-2 pr-2">Subtipo</th>
-                  <th className="py-2 text-right">Acoes</th>
+                  <th className="py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -315,19 +343,18 @@ export function ProficienciasAdminPanel() {
                           <Icon name="edit" className="w-4 h-4 mr-1" />
                           Editar
                         </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="text-app-danger"
-                          disabled={deletingId === item.id}
-                          onClick={() => handleDelete(item)}
-                        >
-                          <Icon
-                            name={deletingId === item.id ? 'loading' : 'delete'}
-                            className={`w-4 h-4 mr-1 ${deletingId === item.id ? 'animate-spin' : ''}`}
-                          />
-                          Excluir
-                        </Button>
+                        <EntityActionsMenu
+                          items={[
+                            {
+                              id: 'delete',
+                              label: deletingId === item.id ? 'Excluindo...' : 'Excluir',
+                              icon: deletingId === item.id ? 'loading' : 'delete',
+                              destructive: true,
+                              disabled: deletingId === item.id,
+                              onSelect: () => handleDelete(item),
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -336,7 +363,7 @@ export function ProficienciasAdminPanel() {
             </table>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <ProficienciaFormModal
         isOpen={modalOpen}
@@ -347,6 +374,6 @@ export function ProficienciasAdminPanel() {
         }}
         item={editingItem}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +12,11 @@ import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { fonteBadgeColor, formatFonte, toOptionalNumber } from '../common/fonte-utils';
 import {
@@ -141,7 +145,7 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={() => onClose(false)}
-      title={isEditing ? 'Editar cla' : 'Novo cla'}
+      title={isEditing ? 'Editar clã' : 'Novo clã'}
       size="lg"
       footer={
         <>
@@ -175,12 +179,12 @@ function ClaAdminFormModal({ isOpen, onClose, suplementos, cla }: ModalProps) {
           onChange={(e) => setField('descricao', e.target.value)}
         />
         <Checkbox
-          label="Grande cla"
+          label="Grande clã"
           checked={form.grandeCla}
           onChange={(e) => setField('grandeCla', e.target.checked)}
         />
         <Input
-          label="Técnicas hereditarias IDs (CSV)"
+          label="Técnicas hereditárias IDs (CSV)"
           value={form.tecnicasIdsCsv}
           onChange={(e) => setField('tecnicasIdsCsv', e.target.value)}
           placeholder="Ex: 1, 2, 3"
@@ -222,6 +226,20 @@ export function ClasAdminPanel() {
     return items.filter((item) => item.nome.toLowerCase().includes(termo));
   }, [items, busca]);
 
+  const statsItems: StatsStripItem[] = useMemo(
+    () => [
+      { id: 'total', label: 'Total', value: items.length, icon: 'clan' },
+      { id: 'visiveis', label: 'Visíveis', value: filtrados.length, icon: 'filter' },
+      {
+        id: 'grandes',
+        label: 'Grandes clãs',
+        value: items.filter((item) => item.grandeCla).length,
+        icon: 'shield',
+      },
+    ],
+    [items, filtrados.length],
+  );
+
   const carregarDados = useCallback(async () => {
     try {
       setLoading(true);
@@ -243,40 +261,49 @@ export function ClasAdminPanel() {
   }, [carregarDados]);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between gap-3">
+    <AdminPanelScaffold
+      title="Clãs"
+      description="Gerencie clãs, grandes clãs e vínculos de fonte."
+      icon="clan"
+      count={filtrados.length}
+      stats={statsItems}
+      action={
+        <Button
+          variant="primary"
+          onClick={() => {
+            setEditingItem(null);
+            setModalOpen(true);
+          }}
+        >
+          <Icon name="add" className="w-4 h-4 mr-1" />
+          Novo clã
+        </Button>
+      }
+      toolbar={
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end">
           <Input
             label="Buscar por nome"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             icon="search"
-            placeholder="Digite o nome do cla..."
+            placeholder="Digite o nome do clã..."
+            className="sm:max-w-md"
           />
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingItem(null);
-              setModalOpen(true);
-            }}
-          >
-            <Icon name="add" className="w-4 h-4 mr-1" />
-            Novo cla
-          </Button>
         </div>
-      </Card>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
-          <Loading message="Carregando clas..." className="py-8 text-app-fg" />
+          <Loading message="Carregando clãs..." className="py-8 text-app-fg" />
         ) : filtrados.length === 0 ? (
           <EmptyState
             variant="card"
             icon="clan"
-            title="Nenhum cla encontrado"
-            description="Ajuste a busca ou crie um novo cla."
+            title="Nenhum clã encontrado"
+            description="Ajuste a busca ou crie um novo clã."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -288,7 +315,7 @@ export function ClasAdminPanel() {
                   <th className="py-2 pr-2">Grande</th>
                   <th className="py-2 pr-2">Fonte</th>
                   <th className="py-2 pr-2">Suplemento</th>
-                  <th className="py-2 text-right">Acoes</th>
+                  <th className="py-2 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -324,7 +351,7 @@ export function ClasAdminPanel() {
             </table>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <ClaAdminFormModal
         isOpen={modalOpen}
@@ -336,6 +363,6 @@ export function ClasAdminPanel() {
         suplementos={suplementos}
         cla={editingItem}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }

@@ -14,6 +14,12 @@ import { Badge } from '@/components/ui/Badge';
 import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import {
+  AdminPanelScaffold,
+  AdminPanelSurface,
+  type StatsStripItem,
+} from '../common/AdminPanelScaffold';
 import { FonteSuplementoFields } from '../common/FonteSuplementoFields';
 import { TecnicaHabilidadesModal } from './TecnicaHabilidadesModal';
 import { JsonGuideModal } from '@/components/import-export/JsonGuideModal';
@@ -372,11 +378,11 @@ function TecnicaAdminFormModal({ isOpen, onClose, tecnica, suplementos }: ModalP
         />
 
         <Input
-          label="Clas hereditarios (nomes CSV)"
+          label="Clãs hereditários (nomes CSV)"
           value={form.clasHereditariosCsv}
           onChange={(e) => setField('clasHereditariosCsv', e.target.value)}
           placeholder="Ex: Gojo, Kamo, Zenin"
-          helperText="No update, deixe vazio para limpar os clas hereditarios."
+          helperText="No update, deixe vazio para limpar os clãs hereditários."
         />
 
         <Textarea
@@ -582,7 +588,7 @@ export function TecnicasAdminPanel() {
     async (payload: ImportarTecnicasJsonPayload): Promise<ImportarTecnicasJsonResultado> => {
       const result = await apiAdminImportarTecnicasJson(payload);
       showToast(
-        `Importacao concluida: ${result.tecnicas.criadas} criadas, ${result.tecnicas.atualizadas} atualizadas.`,
+        `Importação concluída: ${result.tecnicas.criadas} criadas, ${result.tecnicas.atualizadas} atualizadas.`,
         'success',
       );
       await carregarDados();
@@ -608,10 +614,68 @@ export function TecnicasAdminPanel() {
     setAppliedFilters(INITIAL_DRAFT_FILTERS);
   }
 
+  const statsItems: StatsStripItem[] = [
+    { id: 'total', label: 'Total visível', value: items.length, icon: 'technique' },
+    {
+      id: 'hereditarias',
+      label: 'Hereditárias',
+      value: items.filter((item) => item.hereditaria).length,
+      icon: 'clan',
+    },
+    {
+      id: 'suplementos',
+      label: 'De suplementos',
+      value: items.filter((item) => item.fonte === 'SUPLEMENTO').length,
+      icon: 'book',
+    },
+  ];
+
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+    <AdminPanelScaffold
+      title="Técnicas Amaldiçoadas"
+      description="Gerencie técnicas, filtros de fonte e importação/exportação JSON."
+      icon="technique"
+      count={items.length}
+      stats={statsItems}
+      action={
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            onClick={() => {
+              setEditingItem(null);
+              setModalOpen(true);
+            }}
+          >
+            <Icon name="add" className="w-4 h-4 mr-1" />
+            Nova técnica
+          </Button>
+          <EntityActionsMenu
+            items={[
+              {
+                id: 'export-filtered',
+                label: 'Exportar filtradas',
+                icon: 'download',
+                onSelect: () => exportarTecnicas(toApiFilters(appliedFilters), 'tecnicas-filtradas'),
+              },
+              {
+                id: 'import-json',
+                label: 'Importar JSON',
+                icon: 'upload',
+                onSelect: () => setImportModalOpen(true),
+              },
+              {
+                id: 'json-guide',
+                label: 'Guia JSON',
+                icon: 'info',
+                onSelect: () => setGuiaModalOpen(true),
+              },
+            ]}
+          />
+        </div>
+      }
+      toolbar={
+        <div className="w-full space-y-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6">
           <Input
             label="Nome"
             value={draftFilters.nome}
@@ -648,7 +712,7 @@ export function TecnicasAdminPanel() {
           </Select>
 
           <Select
-            label="Hereditaria"
+            label="Hereditária"
             value={draftFilters.hereditaria}
             onChange={(e) =>
               setDraftFilters((prev) => ({
@@ -658,7 +722,7 @@ export function TecnicasAdminPanel() {
             }
           >
             <option value="TODAS">Todas</option>
-            <option value="SIM">Somente hereditarias</option>
+            <option value="SIM">Somente hereditárias</option>
             <option value="NAO">Somente não hereditárias</option>
           </Select>
 
@@ -697,49 +761,23 @@ export function TecnicasAdminPanel() {
           ) : (
             <Input label="Suplemento" value="" disabled helperText="Somente quando fonte = SUPLEMENTO." />
           )}
-        </div>
+          </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" onClick={aplicarFiltros}>
             Aplicar filtros
           </Button>
           <Button variant="secondary" onClick={limparFiltros}>
             Limpar
           </Button>
-          <Button
-            variant="secondary"
-            onClick={() => exportarTecnicas(toApiFilters(appliedFilters), 'tecnicas-filtradas')}
-          >
-            <Icon name="download" className="w-4 h-4 mr-1" />
-            Exportar filtradas
-          </Button>
-          <Button variant="secondary" onClick={() => setImportModalOpen(true)}>
-            <Icon name="upload" className="w-4 h-4 mr-1" />
-            Importar JSON
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setGuiaModalOpen(true)}
-          >
-            <Icon name="info" className="w-4 h-4 mr-1" />
-            Guia JSON
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => {
-              setEditingItem(null);
-              setModalOpen(true);
-            }}
-          >
-            <Icon name="add" className="w-4 h-4 mr-1" />
-            Nova técnica
-          </Button>
         </div>
-      </Card>
+        </div>
+      }
+    >
 
       {erro && <ErrorAlert message={erro} />}
 
-      <Card>
+      <AdminPanelSurface>
         {loading ? (
           <Loading message="Carregando técnicas..." className="py-8 text-app-fg" />
         ) : items.length === 0 ? (
@@ -757,14 +795,14 @@ export function TecnicasAdminPanel() {
                 <thead>
                   <tr className="border-b border-app-border text-left text-app-muted">
                     <th className="py-2 pr-2">ID</th>
-                    <th className="py-2 pr-2">Codigo</th>
+                    <th className="py-2 pr-2">Código</th>
                     <th className="py-2 pr-2">Nome</th>
                     <th className="py-2 pr-2">Tipo</th>
-                    <th className="py-2 pr-2">Hereditaria</th>
+                    <th className="py-2 pr-2">Hereditária</th>
                     <th className="py-2 pr-2">Fonte</th>
                     <th className="py-2 pr-2">Suplemento</th>
-                    <th className="py-2 pr-2">Clas</th>
-                    <th className="py-2 text-right">Acoes</th>
+                    <th className="py-2 pr-2">Clãs</th>
+                    <th className="py-2 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -813,19 +851,20 @@ export function TecnicasAdminPanel() {
                             <Icon name="technique" className="w-4 h-4 mr-1" />
                             Habilidades
                           </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() =>
-                              exportarTecnicas(
-                                { id: item.id, incluirClas: true, incluirHabilidades: true },
-                                `${item.codigo.toLowerCase() || 'tecnica'}-export`,
-                              )
-                            }
-                          >
-                            <Icon name="download" className="w-4 h-4 mr-1" />
-                            Exportar
-                          </Button>
+                          <EntityActionsMenu
+                            items={[
+                              {
+                                id: 'export',
+                                label: 'Exportar',
+                                icon: 'download',
+                                onSelect: () =>
+                                  exportarTecnicas(
+                                    { id: item.id, incluirClas: true, incluirHabilidades: true },
+                                    `${item.codigo.toLowerCase() || 'tecnica'}-export`,
+                                  ),
+                              },
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -835,7 +874,7 @@ export function TecnicasAdminPanel() {
             </div>
           </div>
         )}
-      </Card>
+      </AdminPanelSurface>
 
       <TecnicaAdminFormModal
         isOpen={modalOpen}
@@ -875,6 +914,6 @@ export function TecnicasAdminPanel() {
         }}
         onImport={importarTecnicas}
       />
-    </div>
+    </AdminPanelScaffold>
   );
 }
