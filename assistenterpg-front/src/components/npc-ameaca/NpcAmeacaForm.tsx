@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiGetPericias } from '@/lib/api/catalogos';
 import { criarErroUsuario } from '@/lib/api/error-handler';
 import type {
@@ -13,13 +13,16 @@ import type {
   TamanhoNpcAmeaca,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
- UserErrorState } from '@/lib/types';
+  UserErrorState,
+} from '@/lib/types';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import {
@@ -424,6 +427,30 @@ function classeGridBase() {
   return 'grid gap-3 sm:grid-cols-2 lg:grid-cols-4';
 }
 
+type FormSectionProps = {
+  title?: string;
+  description?: ReactNode;
+  icon?: Parameters<typeof SectionHeader>[0]['icon'];
+  action?: ReactNode;
+  children: ReactNode;
+};
+
+function FormSection({ title, description, icon, action, children }: FormSectionProps) {
+  return (
+    <section className="space-y-4 rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
+      {title ? (
+        <SectionHeader
+          title={title}
+          description={description}
+          icon={icon}
+          action={action}
+        />
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
 function criarPresetAkane(): FormState {
   const base = criarEstadoInicial(null);
   return {
@@ -817,30 +844,32 @@ export function NpcAmeacaForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {erro && <ErrorAlert message={erro} />}
 
-      <Card className="npc-panel space-y-4">
-        <h2 className="text-lg font-semibold text-app-fg">Dados gerais</h2>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => setModeloModalAberto(true)}
-          >
-            <Icon name="sparkles" className="mr-1 h-4 w-4" />
-            Usar modelo
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setForm(criarEstadoInicial(null))}
-          >
-            Limpar ficha
-          </Button>
-        </div>
-        <p className="text-xs text-app-muted">
-          Modelos aceleram o preenchimento e servem apenas como ponto de partida.
-        </p>
+      <FormSection
+        title="Dados gerais"
+        icon="info"
+        description="Modelos aceleram o preenchimento e servem apenas como ponto de partida."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setModeloModalAberto(true)}
+            >
+              <Icon name="sparkles" className="mr-1 h-4 w-4" />
+              Usar modelo
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setForm(criarEstadoInicial(null))}
+            >
+              Limpar ficha
+            </Button>
+          </div>
+        }
+      >
         <div className={classeGridBase()}>
           <Input
             label="Nome"
@@ -889,7 +918,7 @@ export function NpcAmeacaForm({
           </Select>
           <Input
             type="number"
-            label="VD (placeholder)"
+            label="VD"
             value={form.vd}
             onChange={(e) => atualizarCampo('vd', e.target.value)}
           />
@@ -900,7 +929,7 @@ export function NpcAmeacaForm({
           onChange={(e) => atualizarCampo('descricao', e.target.value)}
           rows={4}
         />
-      </Card>
+      </FormSection>
 
       <Modal
         isOpen={modeloModalAberto}
@@ -943,8 +972,7 @@ export function NpcAmeacaForm({
         </div>
       </Modal>
 
-      <Card className="npc-panel space-y-4">
-        <h2 className="text-lg font-semibold text-app-fg">Atributos</h2>
+      <FormSection title="Atributos" icon="strength">
         <div className={classeGridBase()}>
           <Input
             type="number"
@@ -977,11 +1005,13 @@ export function NpcAmeacaForm({
             onChange={(e) => atualizarCampo('vigor', e.target.value)}
           />
         </div>
-      </Card>
+      </FormSection>
 
-      <Card className="npc-panel space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-app-fg">Perícias principais</h2>
+      <FormSection
+        title="Perícias principais"
+        icon="skills"
+        description="Dados padrão seguem o atributo base da perícia. Você pode sobrescrever manualmente."
+        action={
           <Button
             type="button"
             variant="secondary"
@@ -990,15 +1020,13 @@ export function NpcAmeacaForm({
           >
             Recalcular dados padrão
           </Button>
-        </div>
-        <p className="text-xs text-app-muted">
-          Dados padrão seguem o atributo base da perícia. Você pode sobrescrever manualmente.
-        </p>
+        }
+      >
         <div className="space-y-3">
           {periciasPrincipaisMeta.map((pericia) => (
             <div
               key={pericia.codigo}
-              className="rounded border border-app-border p-3 space-y-2"
+              className="space-y-2 rounded-lg border border-white/5 bg-app-bg/45 p-3"
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-app-fg">{pericia.label}</span>
@@ -1027,10 +1055,9 @@ export function NpcAmeacaForm({
             </div>
           ))}
         </div>
-      </Card>
+      </FormSection>
 
-      <Card className="npc-panel space-y-4">
-        <h2 className="text-lg font-semibold text-app-fg">Defesa e recursos</h2>
+      <FormSection title="Defesa e recursos" icon="shield">
         <div className={classeGridBase()}>
           <Input
             type="number"
@@ -1069,14 +1096,16 @@ export function NpcAmeacaForm({
             label="Vulnerabilidades (separadas por vírgula)"
             value={form.vulnerabilidades}
             onChange={(e) => atualizarCampo('vulnerabilidades', e.target.value)}
-                placeholder="Ex.: energia positiva, elétrico"
+            placeholder="Ex.: energia positiva, elétrico"
           />
         </div>
-      </Card>
+      </FormSection>
 
-      <Card className="npc-panel space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-app-fg">Perícias especiais</h2>
+      <FormSection
+        title="Perícias especiais"
+        icon="skills"
+        description="Escolha apenas perícias oficiais. Os dados podem usar o padrão do atributo base ou um valor customizado."
+        action={
           <Button
             type="button"
             variant="secondary"
@@ -1091,36 +1120,41 @@ export function NpcAmeacaForm({
             <Icon name="add" className="w-4 h-4 mr-1" />
             Adicionar
           </Button>
-        </div>
-        <p className="text-xs text-app-muted">
-          Escolha apenas perícias oficiais. Os dados podem usar o padrão do atributo base ou um valor customizado.
-        </p>
+        }
+      >
 
         {form.periciasEspeciais.length === 0 ? (
-          <p className="text-sm text-app-muted">Sem perícias especiais.</p>
+          <EmptyState
+            size="sm"
+            icon="skills"
+            title="Sem perícias especiais"
+            description="Adicione uma perícia quando a ficha precisar de um teste fora do conjunto principal."
+          />
         ) : (
           <div className="space-y-3">
             {form.periciasEspeciais.map((pericia, index) => (
               <div
                 key={`pericia-especial-${index}`}
-                className="rounded border border-app-border p-3 space-y-2"
+                className="space-y-2 rounded-lg border border-white/5 bg-app-bg/45 p-3"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-app-muted">Perícia #{index + 1}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    onClick={() =>
-                      atualizarCampo(
-                        'periciasEspeciais',
-                        form.periciasEspeciais.filter((_, i) => i !== index),
-                      )
-                    }
-                  >
-                    <Icon name="delete" className="w-4 h-4 mr-1" />
-                    Remover
-                  </Button>
+                  <EntityActionsMenu
+                    ariaLabel={`Ações da perícia ${index + 1}`}
+                    items={[
+                      {
+                        id: 'remover',
+                        label: 'Remover',
+                        icon: 'delete',
+                        destructive: true,
+                        onSelect: () =>
+                          atualizarCampo(
+                            'periciasEspeciais',
+                            form.periciasEspeciais.filter((_, i) => i !== index),
+                          ),
+                      },
+                    ]}
+                  />
                 </div>
                 <div className="grid gap-2 sm:grid-cols-4">
                   <Select
@@ -1172,11 +1206,13 @@ export function NpcAmeacaForm({
             ))}
           </div>
         )}
-      </Card>
+      </FormSection>
 
-      <Card className="npc-panel space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-app-fg">Passivas</h2>
+      <FormSection
+        title="Passivas"
+        icon="sparkles"
+        description="Passivas funcionam como guia narrativo/mecânico para o mestre e não são aplicadas automaticamente pelo sistema."
+        action={
           <Button
             type="button"
             variant="secondary"
@@ -1200,36 +1236,41 @@ export function NpcAmeacaForm({
             <Icon name="add" className="w-4 h-4 mr-1" />
             Adicionar
           </Button>
-        </div>
-        <p className="text-xs text-app-muted">
-          Passivas funcionam como guia narrativo/mecânico para o mestre e não são aplicadas automaticamente pelo sistema.
-        </p>
+        }
+      >
 
         {form.passivas.length === 0 ? (
-          <p className="text-sm text-app-muted">Sem passivas cadastradas.</p>
+          <EmptyState
+            size="sm"
+            icon="sparkles"
+            title="Sem passivas"
+            description="Adicione passivas quando a ficha tiver gatilhos, traços ou efeitos permanentes."
+          />
         ) : (
           <div className="space-y-3">
             {form.passivas.map((passiva, index) => (
               <div
                 key={`passiva-${index}`}
-                className="rounded border border-app-border p-3 space-y-2"
+                className="space-y-2 rounded-lg border border-white/5 bg-app-bg/45 p-3"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-app-muted">Passiva #{index + 1}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    onClick={() =>
-                      atualizarCampo(
-                        'passivas',
-                        form.passivas.filter((_, i) => i !== index),
-                      )
-                    }
-                  >
-                    <Icon name="delete" className="w-4 h-4 mr-1" />
-                    Remover
-                  </Button>
+                  <EntityActionsMenu
+                    ariaLabel={`Ações da passiva ${index + 1}`}
+                    items={[
+                      {
+                        id: 'remover',
+                        label: 'Remover',
+                        icon: 'delete',
+                        destructive: true,
+                        onSelect: () =>
+                          atualizarCampo(
+                            'passivas',
+                            form.passivas.filter((_, i) => i !== index),
+                          ),
+                      },
+                    ]}
+                  />
                 </div>
                 <Input
                   label="Nome"
@@ -1292,11 +1333,13 @@ export function NpcAmeacaForm({
             ))}
           </div>
         )}
-      </Card>
+      </FormSection>
 
-      <Card className="npc-panel space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-app-fg">Ações</h2>
+      <FormSection
+        title="Ações"
+        icon="sword"
+        description="Campos de ação seguem o padrão de habilidades, mas servem como referência de mesa sem automação de efeitos."
+        action={
           <Button
             type="button"
             variant="secondary"
@@ -1327,36 +1370,41 @@ export function NpcAmeacaForm({
             <Icon name="add" className="w-4 h-4 mr-1" />
             Adicionar
           </Button>
-        </div>
-        <p className="text-xs text-app-muted">
-          Campos de ação seguem o padrão de habilidades, mas servem como referência de mesa (sem automação de efeitos).
-        </p>
+        }
+      >
 
         {form.acoes.length === 0 ? (
-          <p className="text-sm text-app-muted">Sem ações cadastradas.</p>
+          <EmptyState
+            size="sm"
+            icon="sword"
+            title="Sem ações"
+            description="Adicione ataques, reações ou recursos quando a ficha precisar de opções de cena."
+          />
         ) : (
           <div className="space-y-3">
             {form.acoes.map((acao, index) => (
               <div
                 key={`acao-${index}`}
-                className="rounded border border-app-border p-3 space-y-2"
+                className="space-y-2 rounded-lg border border-white/5 bg-app-bg/45 p-3"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-app-muted">Ação #{index + 1}</span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    onClick={() =>
-                      atualizarCampo(
-                        'acoes',
-                        form.acoes.filter((_, i) => i !== index),
-                      )
-                    }
-                  >
-                    <Icon name="delete" className="w-4 h-4 mr-1" />
-                    Remover
-                  </Button>
+                  <EntityActionsMenu
+                    ariaLabel={`Ações do recurso ${index + 1}`}
+                    items={[
+                      {
+                        id: 'remover',
+                        label: 'Remover',
+                        icon: 'delete',
+                        destructive: true,
+                        onSelect: () =>
+                          atualizarCampo(
+                            'acoes',
+                            form.acoes.filter((_, i) => i !== index),
+                          ),
+                      },
+                    ]}
+                  />
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   <Input
@@ -1387,7 +1435,7 @@ export function NpcAmeacaForm({
                     label="Duração"
                     value={acao.duracao}
                     onChange={(e) => atualizarAcao(index, { duracao: e.target.value })}
-                    placeholder="Ex.: Instantaneo"
+                    placeholder="Ex.: Instantâneo"
                   />
                   <Input
                     label="Resistência"
@@ -1458,16 +1506,16 @@ export function NpcAmeacaForm({
             ))}
           </div>
         )}
-      </Card>
+      </FormSection>
 
-      <Card className="npc-panel">
+      <FormSection title="Uso tático e observações" icon="target">
         <Textarea
           label="Uso tático e observações"
           value={form.usoTatico}
           onChange={(e) => atualizarCampo('usoTatico', e.target.value)}
           rows={4}
         />
-      </Card>
+      </FormSection>
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={salvando}>

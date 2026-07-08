@@ -1,7 +1,7 @@
 // app/personagens-base/[id]/page.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 import {
@@ -27,17 +27,20 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
-import { TabbedSection } from '@/components/ui/TabbedSection';
-import type { Tab } from '@/components/ui/TabbedSection';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { PageToolbar } from '@/components/ui/PageToolbar';
+import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 
 import { PersonagemBaseWizard } from '@/components/personagem-base/create/wizard/PersonagemBaseWizard';
 import { usePersonagemBaseDetalhe } from '@/components/personagem-base/sections/usePersonagemBaseDetalhe';
 import type { InitialValues } from '@/components/personagem-base/create/PersonagemBaseForm';
 import { PersonagemBaseStepInventario } from '@/components/personagem-base/create/wizard/PersonagemBaseStepInventario';
-import type { ItemInventarioDto, ItemInventarioPayload , UserErrorState } from '@/lib/types';
+import type { ItemInventarioDto, ItemInventarioPayload, UserErrorState } from '@/lib/types';
 
 import { SecaoInfoBasicas } from '@/components/personagem-base/sections/SecaoInfoBasicas';
 import { SecaoOrigemClasse } from '@/components/personagem-base/sections/SecaoOrigemClasse';
@@ -202,8 +205,8 @@ function mensagemErroOperacaoPersonagem(
 
   if (status === 404) {
     return acao === 'excluir'
-      ? 'Personagem não encontrado para exclusao.'
-      : 'Personagem não encontrado para atualizacao.';
+      ? 'Personagem não encontrado para exclusão.'
+      : 'Personagem não encontrado para atualização.';
   }
 
   if (status === 400 || status === 422) {
@@ -218,6 +221,18 @@ function mensagemErroOperacaoPersonagem(
 
   return base;
 }
+
+function mensagemErroState(erro: UserErrorState | null | undefined): string {
+  if (!erro) return '';
+  return typeof erro === 'string' ? erro : erro.message;
+}
+
+type PersonagemDetalheTab = {
+  id: 'info' | 'origem' | 'poderes' | 'inventario';
+  titulo: string;
+  icone: IconName;
+  conteudo: ReactNode;
+};
 
 function normalizarItemInventarioParaPayload(
   item: ItemInventarioDto,
@@ -255,6 +270,7 @@ export default function PersonagemBaseDetalhePage() {
   } = usePersonagemBaseDetalhe(id);
 
   const [modoEdicao, setModoEdicao] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<PersonagemDetalheTab['id']>('info');
   const [erroLocal, setErroLocal] = useState<UserErrorState | null>(null);
   const [exportando, setExportando] = useState(false);
   const [modalInventarioAberto, setModalInventarioAberto] = useState(false);
@@ -380,6 +396,51 @@ export default function PersonagemBaseDetalhePage() {
     }),
     [fontesSelecionadas],
   );
+
+  const statsItems = useMemo<StatsStripItem[]>(() => {
+    if (!personagem) return [];
+
+    const derivados = personagem.atributosDerivados;
+
+    return [
+      {
+        id: 'nivel',
+        label: 'Nível',
+        value: personagem.nivel,
+        icon: 'chart',
+        tone: 'primary',
+      },
+      {
+        id: 'pv',
+        label: 'PV',
+        value: derivados?.pvMaximo ?? '-',
+        icon: 'heart',
+        tone: 'danger',
+      },
+      {
+        id: 'ea',
+        label: 'EA',
+        value: derivados?.eaMaximo ?? '-',
+        icon: 'sparkles',
+        tone: 'primary',
+      },
+      {
+        id: 'defesa',
+        label: 'Defesa',
+        value: derivados?.defesaTotal ?? derivados?.defesa ?? '-',
+        icon: 'shield',
+        tone: 'warning',
+      },
+      {
+        id: 'inventario',
+        label: 'Inventário',
+        value: `${personagem.espacosOcupados ?? 0}/${(personagem.espacosInventarioBase ?? 0) + (personagem.espacosInventarioExtra ?? 0)}`,
+        icon: 'briefcase',
+        helper: personagem.sobrecarregado ? 'sobrecarregado' : 'dentro do limite',
+        tone: personagem.sobrecarregado ? 'danger' : 'default',
+      },
+    ];
+  }, [personagem]);
 
   const initialValues: InitialValues | null = useMemo(() => {
     if (!personagem) return null;
@@ -516,7 +577,7 @@ export default function PersonagemBaseDetalhePage() {
         const modCatalogo = modificacoesPorId.get(modificacao.id);
         if (modCatalogo && !itemPertenceAsFontesSelecionadas(modCatalogo, selecao)) {
           impactos.push(
-            `Modificacao em ${item.nomeCustomizado || equipamento?.nome || 'item'}: ${
+            `Modificação em ${item.nomeCustomizado || equipamento?.nome || 'item'}: ${
               modCatalogo.nome
             }`,
           );
@@ -658,8 +719,18 @@ export default function PersonagemBaseDetalhePage() {
 
   if (!id) {
     return (
-      <main className="min-h-screen bg-app-bg p-6">
-        <ErrorAlert message="ID inválido na rota." />
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+        <EmptyState
+          variant="card"
+          icon="warning"
+          title="ID inválido"
+          description="Não foi possível identificar qual personagem deve ser aberto."
+          action={
+            <Button variant="primary" onClick={() => router.push('/personagens-base')}>
+              Voltar para personagens
+            </Button>
+          }
+        />
       </main>
     );
   }
@@ -674,13 +745,23 @@ export default function PersonagemBaseDetalhePage() {
 
   if (!personagem || !initialValues) {
     return (
-      <main className="min-h-screen bg-app-bg p-6">
-        <ErrorAlert message={erro ?? 'Personagem não encontrado.'} />
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+        <EmptyState
+          variant="card"
+          icon="character-gojo"
+          title="Personagem não encontrado"
+          description={mensagemErroState(erro) || 'A ficha não existe ou você não tem acesso a ela.'}
+          action={
+            <Button variant="primary" onClick={() => router.push('/personagens-base')}>
+              Voltar para personagens
+            </Button>
+          }
+        />
       </main>
     );
   }
 
-  const tabs: Tab[] = [
+  const tabs: PersonagemDetalheTab[] = [
     {
       id: 'info',
       titulo: 'Informações',
@@ -735,28 +816,87 @@ export default function PersonagemBaseDetalhePage() {
     },
   ];
 
+  const tabAtual = tabs.find((tab) => tab.id === abaAtiva) ?? tabs[0];
+  const descricaoHeader = [
+    `Nível ${personagem.nivel}`,
+    classeCatalogo?.nome,
+    personagem.trilha?.nome,
+    personagem.caminho?.nome,
+  ]
+    .filter(Boolean)
+    .join(' • ');
+
   return (
     <>
-      <main className="min-h-screen bg-app-bg p-6">
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          <header className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-app-primary/10">
-                <Icon name="character-gojo" className="w-6 h-6 text-app-primary" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-app-fg">{personagem.nome}</h1>
-                <p className="text-sm text-app-muted mt-0.5">
-                  Nível {personagem.nivel} • {classeCatalogo?.nome}{' '}
-                  {personagem.trilha?.nome ? `• ${personagem.trilha.nome}` : ''}
-                </p>
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => router.push('/personagens-base')}>
-              <Icon name="back" className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-          </header>
+          <PageHeader
+            icon="character-gojo"
+            title={personagem.nome}
+            description={descricaoHeader || 'Ficha base de personagem'}
+            backHref="/personagens-base"
+            backLabel="Personagens"
+            actions={
+              modoEdicao ? (
+                <Button variant="secondary" size="sm" onClick={() => setModoEdicao(false)}>
+                  Cancelar edição
+                </Button>
+              ) : (
+                <>
+                  <Button variant="secondary" size="sm" onClick={abrirModalInventario}>
+                    <Icon name="briefcase" className="w-4 h-4 mr-2" />
+                    Editar inventário
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={() => setModoEdicao(true)}>
+                    <Icon name="edit" className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                  <EntityActionsMenu
+                    ariaLabel="Ações do personagem"
+                    items={[
+                      {
+                        id: 'exportar',
+                        label: exportando ? 'Exportando...' : 'Exportar JSON',
+                        icon: 'download',
+                        onSelect: handleExportarClick,
+                        disabled: exportando,
+                      },
+                      {
+                        id: 'excluir',
+                        label: 'Excluir',
+                        icon: 'delete',
+                        onSelect: handleDeleteClick,
+                        destructive: true,
+                      },
+                    ]}
+                  />
+                </>
+              )
+            }
+          />
+
+          <div className="flex flex-wrap gap-2">
+            <Badge color="blue" size="sm">
+              {classeCatalogo?.nome ?? 'Classe não definida'}
+            </Badge>
+            {personagem.cla?.nome ? (
+              <Badge color="purple" size="sm">
+                {personagem.cla.nome}
+              </Badge>
+            ) : null}
+            {personagem.origem?.nome ? (
+              <Badge color="green" size="sm">
+                {personagem.origem.nome}
+              </Badge>
+            ) : null}
+            {personagem.tecnicaInata?.nome ? (
+              <Badge color="yellow" size="sm">
+                {personagem.tecnicaInata.nome}
+              </Badge>
+            ) : null}
+          </div>
+
+          <StatsStrip items={statsItems} />
 
           {(erro || erroLocal) && <ErrorAlert message={erro ?? erroLocal ?? ''} />}
 
@@ -783,14 +923,40 @@ export default function PersonagemBaseDetalhePage() {
                   </Button>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-app-muted">
-                Remover fontes pode limpar escolhas, itens ou modificacoes que vieram delas ao salvar.
+          <p className="mt-3 text-xs text-app-muted">
+            Remover fontes pode limpar escolhas, itens ou modificações que vieram delas ao salvar.
               </p>
             </section>
           ) : null}
 
           {!modoEdicao ? (
-            <TabbedSection tabs={tabs} defaultTabId="info" />
+            <section className="space-y-4">
+              <PageToolbar className="p-2">
+                <div className="flex w-full flex-wrap gap-2">
+                  {tabs.map((tab) => {
+                    const ativo = tab.id === abaAtiva;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setAbaAtiva(tab.id)}
+                        className={[
+                          'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition-colors',
+                          ativo
+                            ? 'bg-app-primary/15 text-app-primary'
+                            : 'text-app-muted hover:bg-app-muted-surface hover:text-app-fg',
+                        ].join(' ')}
+                      >
+                        <Icon name={tab.icone} className="h-4 w-4" />
+                        {tab.titulo}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PageToolbar>
+
+              <div className="min-w-0">{tabAtual.conteudo}</div>
+            </section>
           ) : (
             <PersonagemBaseWizard
               key={`edit-${personagem.id}-${editWizardKeyVersion}`}
@@ -813,47 +979,6 @@ export default function PersonagemBaseDetalhePage() {
               onEquipamentoHomebrewInlineCriado={handleEquipamentoHomebrewInlineCriado}
             />
           )}
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-end pt-8 border-t border-app-border">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/personagens-base')}>
-              <Icon name="back" className="w-4 h-4 mr-2" />
-              Voltar à lista
-            </Button>
-            {!modoEdicao ? (
-              <>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleExportarClick}
-                  disabled={exportando}
-                >
-                  <Icon name="download" className="w-4 h-4 mr-2" />
-                  {exportando ? 'Exportando...' : 'Exportar JSON'}
-                </Button>
-                <Button variant="secondary" size="sm" onClick={abrirModalInventario}>
-                  <Icon name="briefcase" className="w-4 h-4 mr-2" />
-                  Editar inventario
-                </Button>
-                <Button variant="primary" size="sm" onClick={() => setModoEdicao(true)}>
-                  <Icon name="edit" className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleDeleteClick}
-                  className="text-app-danger hover:bg-app-danger/10"
-                >
-                  <Icon name="delete" className="w-4 h-4 mr-2" />
-                  Excluir
-                </Button>
-              </>
-            ) : (
-              <Button variant="secondary" size="sm" onClick={() => setModoEdicao(false)}>
-                Cancelar edição
-              </Button>
-            )}
-          </div>
         </div>
       </main>
 
@@ -901,7 +1026,7 @@ export default function PersonagemBaseDetalhePage() {
           }
         }}
         title="Remover fontes usadas pela ficha?"
-        description="Alguns conteudos atuais não ficarao disponíveis com a nova selecao de fontes. Ao salvar a ficha, eles deverao ser removidos ou substituidos."
+        description="Alguns conteúdos atuais não ficarão disponíveis com a nova seleção de fontes. Ao salvar a ficha, eles deverão ser removidos ou substituídos."
         confirmLabel="Aplicar mesmo assim"
         cancelLabel="Voltar"
         variant="danger"
@@ -926,7 +1051,7 @@ export default function PersonagemBaseDetalhePage() {
       <Modal
         isOpen={modalInventarioAberto}
         onClose={() => setModalInventarioAberto(false)}
-        title="Editar inventario"
+        title="Editar inventário"
         size="xl"
         footer={
           <>
@@ -948,7 +1073,7 @@ export default function PersonagemBaseDetalhePage() {
                   Salvando...
                 </>
               ) : (
-                'Salvar inventario'
+                'Salvar inventário'
               )}
             </Button>
           </>

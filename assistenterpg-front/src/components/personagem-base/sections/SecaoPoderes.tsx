@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { SectionCard } from '@/components/ui/SectionCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
@@ -79,7 +79,7 @@ type VariacaoFormState = {
 
 const HABILITY_TYPES = {
   RECURSO_CLASSE: 'Recurso de Classe',
-  PODER_GENERICO: 'Poderes Genericos',
+  PODER_GENERICO: 'Poderes Genéricos',
   ORIGEM: 'Habilidades de Origem',
   TRILHA: 'Habilidades de Trilha',
   CAMINHO: 'Habilidades de Caminho',
@@ -113,7 +113,7 @@ function formatRequisitos(value: unknown): string[] {
       const tipo = String(g.tipoGrauCodigo ?? '').trim();
       const minimo = Number(g.valorMinimo);
       if (!tipo || Number.isNaN(minimo)) continue;
-      linhas.push(`Grau minimo: ${tipo} ${minimo}`);
+      linhas.push(`Grau mínimo: ${tipo} ${minimo}`);
     }
   }
 
@@ -747,10 +747,8 @@ export function SecaoPoderes({
 
   return (
     <div className="space-y-6">
-      <SectionCard
-        title="Técnica Inata"
-        right={<Icon name="technique" className="h-5 w-5 text-app-muted" />}
-      >
+      <section className="space-y-4 rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
+        <SectionHeader title="Técnica Inata" icon="technique" />
         {!tecnicaInata ? (
           <EmptyState
             variant="card"
@@ -759,8 +757,8 @@ export function SecaoPoderes({
             description="Este personagem não possui técnica inata selecionada."
           />
         ) : (
-          <div className="rounded-lg border border-app-border bg-app-bg">
-            <div className="border-b border-app-border px-4 py-3">
+          <div className="rounded-lg border border-white/5 bg-app-bg/45">
+            <div className="border-b border-white/5 px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h4 className="text-sm font-semibold text-app-fg">
@@ -777,7 +775,7 @@ export function SecaoPoderes({
                     color={tecnicaInata.hereditaria ? 'purple' : 'blue'}
                     size="sm"
                   >
-                    {tecnicaInata.hereditaria ? 'Hereditaria' : 'Não hereditaria'}
+                    {tecnicaInata.hereditaria ? 'Hereditária' : 'Não hereditária'}
                   </Badge>
                   <Badge color="gray" size="sm">
                     {(tecnicaInata.habilidades ?? []).length}{' '}
@@ -806,12 +804,10 @@ export function SecaoPoderes({
             />
           </div>
         )}
-      </SectionCard>
+      </section>
 
-      <SectionCard
-        title="Técnicas Não-Inatas"
-        right={<Icon name="book" className="h-5 w-5 text-app-muted" />}
-      >
+      <section className="space-y-4 rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
+        <SectionHeader title="Técnicas Não-Inatas" icon="book" />
         {tecnicasNaoInatasOrdenadas.length === 0 ? (
           <EmptyState
             variant="card"
@@ -826,9 +822,9 @@ export function SecaoPoderes({
               return (
                 <div
                   key={tecnica.id}
-                  className="rounded-lg border border-app-border bg-app-bg"
+                  className="rounded-lg border border-white/5 bg-app-bg/45"
                 >
-                  <div className="border-b border-app-border px-4 py-3">
+                  <div className="border-b border-white/5 px-4 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h4 className="text-sm font-semibold text-app-fg">
@@ -855,18 +851,16 @@ export function SecaoPoderes({
             })}
           </div>
         )}
-      </SectionCard>
+      </section>
 
-      <SectionCard
-        title="Habilidades & Técnicas do Personagem"
-        right={<Icon name="sparkles" className="h-5 w-5 text-app-muted" />}
-      >
+      <section className="space-y-4 rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
+        <SectionHeader title="Habilidades & Técnicas do Personagem" icon="sparkles" />
         {habilidades.length === 0 ? (
           <EmptyState
             variant="card"
             icon="sparkles"
             title="Sem habilidades"
-            description="Nenhuma habilidade ou técnica foi atribuida ao personagem."
+              description="Nenhuma habilidade ou técnica foi atribuída ao personagem."
           />
         ) : (
           <div className="space-y-6">
@@ -894,7 +888,7 @@ export function SecaoPoderes({
                     {habs.map((hab) => (
                       <div
                         key={hab.id}
-                        className="rounded-lg border border-app-border bg-app-bg p-4 transition-colors hover:border-app-primary/30"
+                        className="rounded-lg border border-white/5 bg-app-bg/45 p-3 transition-colors hover:border-app-primary/30"
                       >
                         <div className="mb-2 flex items-start justify-between gap-2">
                           <h5 className="text-sm font-semibold text-app-fg">
@@ -919,14 +913,14 @@ export function SecaoPoderes({
             })}
           </div>
         )}
-      </SectionCard>
+      </section>
 
       {personagem.poderesGenericos && personagem.poderesGenericos.length > 0 && (
         <div>
           <div className="mb-4 flex items-center gap-2">
             <Icon name="fire" className="h-5 w-5 text-app-warning" />
             <span className="text-lg font-semibold text-app-fg">
-              Poderes Genericos (Detalhes)
+              Poderes Genéricos (Detalhes)
             </span>
           </div>
           <PoderesGenericosSection

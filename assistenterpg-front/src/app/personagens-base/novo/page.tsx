@@ -41,6 +41,8 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Icon } from '@/components/ui/Icon';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { PersonagemBaseWizard } from '@/components/personagem-base/create/wizard/PersonagemBaseWizard';
 import { FontesConteudoModal } from '@/components/personagem-base/create/modal/FontesConteudoModal';
 import {
@@ -393,38 +395,31 @@ export default function NovoPersonagemBasePage() {
   if (!usuario) return null;
 
   return (
-    <main className="min-h-screen bg-app-bg px-4 py-8">
+    <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
       <div className="max-w-5xl mx-auto space-y-6">
-        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-app-fg">Novo personagem-base</h1>
-            <p className="text-sm text-app-muted">Siga os passos para montar o seu personagem-base completo.</p>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={() => router.push('/personagens-base')}
-          >
-            Voltar para a lista
-          </Button>
-        </header>
+        <PageHeader
+          icon="character-gojo"
+          title="Novo personagem"
+          description="Monte uma ficha base completa usando fontes oficiais e homebrews habilitados."
+          backHref="/personagens-base"
+          backLabel="Personagens"
+        />
 
         {erro && <ErrorAlert message={erro} />}
 
-        <section className="rounded-lg border border-app-border bg-app-surface p-4">
+        <section className="rounded-xl border border-white/5 bg-app-surface/45 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-app-fg">
-                Fontes habilitadas para esta criação
-              </p>
-              <p className="text-xs text-app-muted">
-                Sistema base (fixo) + {resumoFontes.suplementos} suplemento(s) +{' '}
-                {resumoFontes.gruposHomebrew} grupo(s) + {resumoFontes.homebrews}{' '}
-                homebrew(s)
-              </p>
-            </div>
+            <SectionHeader
+              title="Fontes habilitadas"
+              description={
+                <>
+                  Sistema base (fixo) + {resumoFontes.suplementos} suplemento(s) +{' '}
+                  {resumoFontes.gruposHomebrew} grupo(s) + {resumoFontes.homebrews}{' '}
+                  homebrew(s)
+                </>
+              }
+              icon="library"
+            />
 
             <div className="flex items-center gap-2">
               <Badge color="green" size="sm">
@@ -437,7 +432,7 @@ export default function NovoPersonagemBasePage() {
             </div>
           </div>
           <p className="mt-3 text-xs text-app-muted">
-            Alterar as fontes reinicia o wizard para manter as validacoes coerentes.
+            Alterar as fontes reinicia o wizard para manter as validações coerentes.
           </p>
         </section>
 

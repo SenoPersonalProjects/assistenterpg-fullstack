@@ -2,9 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { NpcAmeacaForm } from '@/components/npc-ameaca/NpcAmeacaForm';
-import { NpcAmeacaPageHeader } from '@/components/npc-ameaca/NpcAmeacaPageHeader';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { apiCreateNpcAmeaca } from '@/lib/api/npcs-ameacas';
 import type { CreateNpcAmeacaPayload } from '@/lib/types';
 
@@ -21,22 +19,18 @@ export default function NovoNpcAmeacaPage() {
   }
 
   return (
-    <div className="npc-page-shell min-h-screen p-6">
+    <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        <NpcAmeacaPageHeader
-          title="Novo NPC"
-          description="Crie uma ficha simplificada de aliado ou ameaça."
-          icon="add"
-          actions={
-            <Button variant="ghost" onClick={handleCancel}>
-              <Icon name="close" className="mr-2 h-4 w-4" />
-              Cancelar
-            </Button>
-          }
+        <PageHeader
+          icon="curse"
+          title="Criar NPC/Ameaça"
+          description="Crie uma ficha simplificada de aliado, coadjuvante ou ameaça para mesa."
+          backHref="/npcs-ameacas"
+          backLabel="NPCs e Ameaças"
         />
 
         <NpcAmeacaForm onSubmit={handleSubmit} onCancel={handleCancel} submitLabel="Criar ficha" />
       </div>
-    </div>
+    </main>
   );
 }

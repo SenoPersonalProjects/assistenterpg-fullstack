@@ -25,11 +25,11 @@ export function SecaoInfoBasicas({
   passivasSelecionadas,
 }: SecaoInfoBasicasProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       {/* COLUNA ESQUERDA (2/3) - Info Básicas + Atributos */}
-      <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-5 lg:col-span-2">
         {/* Info Gerais */}
-        <div className="p-6 rounded-lg border border-app-border bg-app-surface">
+        <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Icon name="info" className="w-5 h-5 text-app-primary" />
             <span className="font-semibold text-app-fg text-lg">Informações Gerais</span>
@@ -68,7 +68,7 @@ export function SecaoInfoBasicas({
         </div>
 
         {/* Clã, Origem, Classe, Técnica */}
-        <div className="p-6 rounded-lg border border-app-border bg-app-surface">
+        <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Icon name="clan" className="w-5 h-5 text-app-primary" />
             <span className="font-semibold text-app-fg text-lg">Clã, Origem & Classe</span>
@@ -116,7 +116,7 @@ export function SecaoInfoBasicas({
         </div>
 
         {/* Atributos */}
-        <div className="p-6 rounded-lg border border-app-border bg-app-surface">
+        <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Icon name="strength" className="w-5 h-5 text-app-primary" />
             <span className="font-semibold text-app-fg text-lg">Atributos Base</span>
@@ -142,7 +142,7 @@ export function SecaoInfoBasicas({
 
         {/* Background */}
         {personagem.background ? (
-          <div className="p-6 rounded-lg border border-app-border bg-app-surface">
+          <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-3">
               <Icon name="story" className="w-5 h-5 text-app-muted" />
               <span className="font-semibold text-app-fg">Background</span>
@@ -150,7 +150,7 @@ export function SecaoInfoBasicas({
             <p className="text-sm text-app-fg whitespace-pre-wrap leading-relaxed">{personagem.background}</p>
           </div>
         ) : (
-          <div className="p-8 text-center border-2 border-dashed border-app-border rounded-lg bg-app-surface/50">
+          <div className="rounded-xl border border-dashed border-white/10 bg-app-surface/35 p-6 text-center">
             <Icon name="story" className="w-12 h-12 mx-auto mb-3 text-app-muted" />
             <p className="text-sm text-app-muted">Nenhum background informado</p>
           </div>
@@ -159,7 +159,7 @@ export function SecaoInfoBasicas({
 
       {/* COLUNA DIREITA (1/3) - Perícias */}
       <div className="lg:col-span-1">
-        <div className="p-6 rounded-lg border border-app-border bg-app-surface">
+        <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Icon name="skills" className="w-5 h-5 text-app-primary" />
             <span className="font-semibold text-app-fg text-lg">Perícias</span>

@@ -18,14 +18,14 @@ export function SecaoOrigemClasse({
   habilidadesIniciaisClasse,
 }: SecaoOrigemClasseProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Habilidades Iniciais */}
       <HabilidadesIniciaisSection origem={habilidadesIniciaisOrigem} classe={habilidadesIniciaisClasse} />
 
       {/* Grid: Graus Aprimoramento + Proficiências */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Graus de Aprimoramento */}
-        <div className="p-6 rounded-lg border border-app-border bg-app-surface">
+        <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Icon name="chart-up" className="w-5 h-5 text-app-success" />
             <span className="font-semibold text-app-fg text-lg">Graus de Aprimoramento</span>
@@ -50,7 +50,7 @@ export function SecaoOrigemClasse({
                   return (
                     <div
                       key={g.tipoGrauCodigo}
-                      className="flex items-center justify-between p-4 rounded-lg bg-app-bg border border-app-border hover:border-app-primary/30 transition-colors"
+                    className="flex items-center justify-between rounded-lg border border-white/5 bg-app-bg/60 p-3 transition-colors hover:border-app-primary/30"
                     >
                       <div className="flex-1">
                         <div className="text-sm font-semibold text-app-fg">
@@ -74,7 +74,7 @@ export function SecaoOrigemClasse({
         </div>
 
         {/* Proficiências */}
-        <div className="p-6 rounded-lg border border-app-border bg-app-surface">
+        <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <Icon name="tag" className="w-5 h-5 text-app-purple" />
             <span className="font-semibold text-app-fg text-lg">Proficiências</span>
@@ -92,7 +92,7 @@ export function SecaoOrigemClasse({
               {personagem.proficiencias.map((p) => (
                 <div
                   key={p.codigo}
-                  className="px-3 py-1.5 rounded-full border border-app-border bg-app-bg text-xs text-app-fg hover:border-app-primary/50 transition-colors"
+                  className="rounded-full border border-white/10 bg-app-bg/60 px-3 py-1.5 text-xs text-app-fg transition-colors hover:border-app-primary/50"
                   title={[p.tipo, p.categoria, p.subtipo].filter(Boolean).join(' / ')}
                 >
                   {p.nome}

@@ -28,12 +28,11 @@ import {
   type ItemInventarioPayload,
 } from '@/lib/api';
 
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { SectionTitle } from '@/components/ui/SectionTitle';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 import { Icon } from '@/components/ui/Icon';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 
 import { usePersonagemBaseFormState } from '../usePersonagemBaseFormState';
 
@@ -658,7 +657,7 @@ export function PersonagemBaseWizard(props: Props) {
   }, [step]);
 
   return (
-    <Card>
+    <div className="rounded-xl border border-white/5 bg-app-surface/45 p-4 sm:p-5">
       <div className="space-y-6 overflow-hidden">
         <div className="space-y-3 mb-6">
           <div className="space-y-1.5">
@@ -734,7 +733,7 @@ export function PersonagemBaseWizard(props: Props) {
         >
           {step === 1 && (
             <>
-              <SectionTitle className="mt-0">Dados básicos</SectionTitle>
+              <SectionHeader title="Dados básicos" icon="info" />
               <PersonagemBaseStepDadosBasicos
                 nome={nome}
                 nivel={nivel}
@@ -758,7 +757,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 2 && (
             <>
-              <SectionTitle>Classe e origem</SectionTitle>
+              <SectionHeader title="Classe e origem" icon="class" />
               <PersonagemBaseStepClasseOrigem
                 classes={classes}
                 origens={origens}
@@ -779,7 +778,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 3 && (
             <>
-              <SectionTitle>Clã e técnica inata</SectionTitle>
+              <SectionHeader title="Clã e técnica inata" icon="clan" />
               <PersonagemBaseStepClaTecnica
                 clas={clas}
                 tecnicasInatas={tecnicasInatas}
@@ -801,7 +800,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 4 && (
             <>
-              <SectionTitle>Trilha e caminho</SectionTitle>
+              <SectionHeader title="Trilha e caminho" icon="map" />
               <PersonagemBaseStepTrilhaCaminho
                 trilhas={trilhas}
                 caminhos={caminhos}
@@ -816,7 +815,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 5 && (
             <>
-              <SectionTitle>Atributos e energia</SectionTitle>
+              <SectionHeader title="Atributos e energia" icon="strength" />
               <PersonagemBaseStepAtributosEnergia
                 nivel={nivel}
                 agilidade={agilidade}
@@ -862,7 +861,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 6 && (
             <>
-              <SectionTitle>Perícias</SectionTitle>
+              <SectionHeader title="Perícias" icon="skills" />
               <PersonagemBaseStepPericias
                 classes={classes}
                 origens={origens}
@@ -903,7 +902,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 7 && (
             <>
-              <SectionTitle>Graus de aprimoramento</SectionTitle>
+              <SectionHeader title="Graus de aprimoramento" icon="chart-up" />
               <PersonagemBaseStepGrausAprimoramento
                 tiposGrau={tiposGrau}
                 valores={graus}
@@ -939,7 +938,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 8 && (
             <>
-              <SectionTitle>Graus de treinamento</SectionTitle>
+              <SectionHeader title="Graus de treinamento" icon="training" />
               <PersonagemBaseStepGrausTreinamento
                 nome={nome}
                 nivel={nivel}
@@ -977,7 +976,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 9 && (
             <>
-              <SectionTitle>Inventário</SectionTitle>
+              <SectionHeader title="Inventário" icon="briefcase" />
               <PersonagemBaseStepInventario
                 forca={forca}
                 prestigioBase={prestigioBase}
@@ -994,7 +993,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 10 && (
             <>
-              <SectionTitle>Poderes genéricos</SectionTitle>
+              <SectionHeader title="Poderes genéricos" icon="sparkles" />
               <PersonagemBaseStepPoderes
                 nivel={nivel}
                 poderesGenericos={poderesGenericos}
@@ -1038,7 +1037,7 @@ export function PersonagemBaseWizard(props: Props) {
 
           {step === 11 && (
             <>
-              <SectionTitle>Revisão final</SectionTitle>
+              <SectionHeader title="Revisão final" icon="check" />
               <PersonagemBaseStepRevisao
                 preview={
                   (previewPayload ?? ({} as unknown as CreatePersonagemBasePayload))
@@ -1118,6 +1117,6 @@ export function PersonagemBaseWizard(props: Props) {
           )}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

@@ -3,14 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { NpcAmeacaForm } from '@/components/npc-ameaca/NpcAmeacaForm';
-import { NpcAmeacaPageHeader } from '@/components/npc-ameaca/NpcAmeacaPageHeader';
 import { Button } from '@/components/ui/Button';
-import { ErrorAlert } from '@/components/ui/ErrorAlert';
-import { Icon } from '@/components/ui/Icon';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Loading } from '@/components/ui/Loading';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { apiGetNpcAmeaca, apiUpdateNpcAmeaca } from '@/lib/api/npcs-ameacas';
 import { criarErroUsuario } from '@/lib/api/error-handler';
-import type { NpcAmeacaDetalhe, UpdateNpcAmeacaPayload , UserErrorState } from '@/lib/types';
+import type { NpcAmeacaDetalhe, UpdateNpcAmeacaPayload, UserErrorState } from '@/lib/types';
+
+function mensagemErroState(erro: UserErrorState | null | undefined): string {
+  if (!erro) return '';
+  return typeof erro === 'string' ? erro : erro.message;
+}
 
 export default function EditarNpcAmeacaPage() {
   const params = useParams<{ id?: string | string[] }>();
@@ -55,39 +59,39 @@ export default function EditarNpcAmeacaPage() {
 
   if (loading) {
     return (
-      <div className="npc-page-shell min-h-screen p-6">
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
         <Loading message="Carregando ficha..." className="text-app-fg" />
-      </div>
+      </main>
     );
   }
 
   if (erro || !item) {
     return (
-      <div className="npc-page-shell min-h-screen p-6">
-        <div className="mx-auto max-w-4xl space-y-4">
-          <ErrorAlert message={erro ?? 'Ficha não encontrada.'} />
-          <Button variant="secondary" onClick={() => router.push('/npcs-ameacas')}>
-            <Icon name="back" className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-        </div>
-      </div>
+      <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
+        <EmptyState
+          variant="card"
+          icon="curse"
+          title="Ficha não encontrada"
+          description={mensagemErroState(erro) || 'A ficha não existe ou você não tem acesso a ela.'}
+          action={
+            <Button variant="primary" onClick={() => router.push('/npcs-ameacas')}>
+              Voltar para NPCs e Ameaças
+            </Button>
+          }
+        />
+      </main>
     );
   }
 
   return (
-    <div className="npc-page-shell min-h-screen p-6">
+    <main className="min-h-screen bg-app-bg px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        <NpcAmeacaPageHeader
-          title="Editar NPC"
-          description={`Ajuste os dados de "${item.nome}" para a cena.`}
+        <PageHeader
           icon="edit"
-          actions={
-            <Button variant="ghost" onClick={handleCancel}>
-              <Icon name="close" className="mr-2 h-4 w-4" />
-              Cancelar
-            </Button>
-          }
+          title="Editar NPC/Ameaça"
+          description={`Ajuste os dados de "${item.nome}" para a cena.`}
+          backHref={`/npcs-ameacas/${item.id}`}
+          backLabel="Ficha"
         />
 
         <NpcAmeacaForm
@@ -97,6 +101,6 @@ export default function EditarNpcAmeacaPage() {
           submitLabel="Salvar alterações"
         />
       </div>
-    </div>
+    </main>
   );
 }
