@@ -7,7 +7,7 @@ type RouteLoadingSkeletonProps = {
 };
 
 export function RouteLoadingSkeleton({
-  message = 'Carregando pagina...',
+  message = 'Carregando página...',
   variant = 'grid',
   cards = 6,
 }: RouteLoadingSkeletonProps) {

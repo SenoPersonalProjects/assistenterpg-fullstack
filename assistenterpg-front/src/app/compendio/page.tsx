@@ -11,6 +11,9 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { apiListarDestaques, apiListarLivros } from '@/lib/utils/compendio';
 
+// Avoid static prerender depending on the compendium API during offline builds.
+export const dynamic = 'force-dynamic';
+
 export default async function CompendioPage() {
   const [livros, destaques] = await Promise.all([
     apiListarLivros(),

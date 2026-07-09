@@ -53,7 +53,7 @@ const QUICK_SHORTCUTS: QuickShortcut[] = [
     label: 'Campanhas',
     href: '/campanhas',
     icon: 'campaign',
-    helper: 'Mesas e sessoes',
+    helper: 'Mesas e sessões',
   },
   {
     label: 'Personagens',
@@ -62,7 +62,7 @@ const QUICK_SHORTCUTS: QuickShortcut[] = [
     helper: 'Fichas base',
   },
   {
-    label: 'NPCs e Ameacas',
+    label: 'NPCs e Ameaças',
     href: '/npcs-ameacas',
     icon: 'curse',
     helper: 'Elenco e perigos',
@@ -74,10 +74,10 @@ const QUICK_SHORTCUTS: QuickShortcut[] = [
     helper: 'Registros da mesa',
   },
   {
-    label: 'Compendio',
+    label: 'Compêndio',
     href: '/compendio',
     icon: 'rules',
-    helper: 'Regras rapidas',
+    helper: 'Regras rápidas',
   },
   {
     label: 'Mundo',
@@ -170,7 +170,7 @@ export default function HomePage() {
         <div className="text-center">
           <Icon name="spinner" className="mx-auto mb-4 h-10 w-10 text-app-primary" />
           <p className="text-sm font-semibold text-app-muted">
-            Carregando central de missoes...
+            Carregando central de missões...
           </p>
         </div>
       </div>
@@ -226,7 +226,7 @@ export default function HomePage() {
         <PageHeader
           eyebrow="Painel operacional"
           icon="domain"
-          title="Central de Missoes"
+          title="Central de Missões"
           description={`Retome campanhas, fichas e consultas essenciais sem perder tempo, ${usuario.apelido}.`}
           actions={
             <>
@@ -253,7 +253,7 @@ export default function HomePage() {
                 className="w-full gap-2 sm:w-auto"
               >
                 <Icon name="rules" className="h-4 w-4" />
-                Consultar compendio
+                Consultar compêndio
               </Button>
             </>
           }
@@ -268,7 +268,7 @@ export default function HomePage() {
             <SectionHeader
               icon="campaign"
               title="Continuar operacao"
-              description="A campanha mais pronta para voce retomar agora."
+              description="A campanha mais pronta para você retomar agora."
               action={
                 <Button variant="ghost" size="sm" onClick={() => router.push('/campanhas')}>
                   Ver campanhas
@@ -295,7 +295,7 @@ export default function HomePage() {
 
                     <p className="line-clamp-2 max-w-3xl text-sm leading-relaxed text-app-muted">
                       {campanhaPrincipal.descricao?.trim() ||
-                        'Sem descricao registrada. Abra a campanha para organizar sessoes, personagens e participantes.'}
+                        'Sem descrição registrada. Abra a campanha para organizar sessões, personagens e participantes.'}
                     </p>
 
                     <div className="flex flex-wrap gap-2 text-xs font-semibold text-app-muted">
@@ -313,7 +313,7 @@ export default function HomePage() {
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-app-bg/45 px-2.5 py-1">
                         <Icon name="scroll" className="h-3.5 w-3.5 text-app-muted" />
-                        {campanhaPrincipal._count.sessoes} sessoes
+                        {campanhaPrincipal._count.sessoes} sessões
                       </span>
                     </div>
                   </div>
@@ -333,7 +333,7 @@ export default function HomePage() {
                 size="sm"
                 icon="campaign"
                 title="Nenhuma campanha em andamento"
-                description="Crie uma campanha para reunir mesa, fichas, sessoes e registros em um unico dossie."
+                description="Crie uma campanha para reunir mesa, fichas, sessões e registros em um único dossiê."
                 action={
                   <Button
                     size="sm"
@@ -351,7 +351,7 @@ export default function HomePage() {
           <div className="space-y-4">
             <SectionHeader
               icon="grid"
-              title="Atalhos rapidos"
+              title="Atalhos rápidos"
               description="Rotas frequentes para preparar ou consultar a mesa."
             />
 
@@ -388,7 +388,7 @@ export default function HomePage() {
             icon="character-gojo"
             title="Personagens recentes"
             count={personagensRecentes.length}
-            description="Fichas acessadas recentemente para continuar a preparacao."
+            description="Fichas acessadas recentemente para continuar a preparação."
             action={
               <Button
                 variant="ghost"

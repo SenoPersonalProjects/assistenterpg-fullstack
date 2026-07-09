@@ -51,7 +51,7 @@ export function DangerZoneActions({
           className="w-full justify-start text-app-danger hover:bg-app-danger/10"
         >
           <Icon name="delete" className="mr-2 h-3.5 w-3.5" />
-          Agendar exclusao da conta
+          Agendar exclusão da conta
         </Button>
       </div>
     </Card>

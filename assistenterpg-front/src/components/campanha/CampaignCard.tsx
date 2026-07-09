@@ -69,11 +69,11 @@ export function CampaignCard({ campanha, onDelete, onView }: Props) {
             {formatarStatus(campanha.status)}
           </Badge>
           <EntityActionsMenu
-            ariaLabel={`Acoes da campanha ${campanha.nome}`}
+            ariaLabel={`Ações da campanha ${campanha.nome}`}
             items={[
               {
                 id: 'preview',
-                label: 'Previa',
+                label: 'Prévia',
                 icon: 'eye',
                 onSelect: handlePreview,
                 hidden: !onView,
@@ -97,7 +97,7 @@ export function CampaignCard({ campanha, onDelete, onView }: Props) {
         </p>
       ) : (
         <p className="text-sm leading-relaxed text-app-muted">
-          Sem descricao informada.
+          Sem descrição informada.
         </p>
       )}
 

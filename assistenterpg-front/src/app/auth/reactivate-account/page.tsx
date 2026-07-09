@@ -45,7 +45,7 @@ export default function ReactivateAccountPage() {
   return (
     <AuthPageShell
       title="Reativar conta"
-      subtitle="Recupere o acesso de uma conta desativada ou com exclusao agendada"
+      subtitle="Recupere o acesso de uma conta desativada ou com exclusão agendada"
       footer={
         <Link
           href="/auth/login"

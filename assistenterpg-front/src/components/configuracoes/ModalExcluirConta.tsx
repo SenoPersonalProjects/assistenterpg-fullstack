@@ -9,21 +9,21 @@ type ModalExcluirContaProps = {
 };
 
 const DELETION_CONSEQUENCES = [
-  'A conta fica inacessivel imediatamente e voce sera desconectado de todos os dispositivos.',
-  'Voce pode reativar a conta em ate 90 dias usando email e senha.',
-  'Depois de 90 dias, email, apelido e credenciais sao anonimizados permanentemente.',
-  'Conteudos e relacoes existentes sao preservados sem identificar a conta.',
+  'A conta fica inacessível imediatamente e você será desconectado de todos os dispositivos.',
+  'Você pode reativar a conta em até 90 dias usando email e senha.',
+  'Depois de 90 dias, email, apelido e credenciais são anonimizados permanentemente.',
+  'Conteúdos e relações existentes são preservados sem identificar a conta.',
 ];
 
 export function ModalExcluirConta(props: ModalExcluirContaProps) {
   return (
     <ModalConfirmacaoConta
       {...props}
-      title="Agendar exclusao da conta"
-      description="A exclusao permanente acontece apos 90 dias. Ate la, voce pode reativar a conta pelo login."
+      title="Agendar exclusão da conta"
+      description="A exclusão permanente acontece após 90 dias. Até lá, você pode reativar a conta pelo login."
       consequences={DELETION_CONSEQUENCES}
       confirmationWord="EXCLUIR"
-      confirmLabel="Agendar exclusao"
+      confirmLabel="Agendar exclusão"
       loadingLabel="Agendando..."
     />
   );
