@@ -85,6 +85,18 @@ type CharacterSessionCardProps = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
   ) => void;
+  onUsarHabilidadeClasse: (
+    personagemSessaoId: number,
+    payload: {
+      habilidadeId: number;
+      versaoNivel: number;
+      aprimoramentos?: Array<{
+        tecnicaId: number;
+        tipoGrauCodigo: string;
+        graus: number;
+      }>;
+    },
+  ) => void;
   onEncerrarSustentacao: (
     personagemSessaoId: number,
     sustentacaoId: number,
@@ -158,6 +170,7 @@ export function CharacterSessionCard({
   acumulosHabilidade,
   onAtualizarAcumulosHabilidade,
   onUsarHabilidade,
+  onUsarHabilidadeClasse,
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
@@ -367,6 +380,7 @@ export function CharacterSessionCard({
           acumulosHabilidade={acumulosHabilidade}
           onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
           onUsarHabilidade={onUsarHabilidade}
+          onUsarHabilidadeClasse={onUsarHabilidadeClasse}
           acaoHabilidadePendente={acaoHabilidadePendente}
           sessaoEncerrada={sessaoEncerrada}
           onAbrirEdicaoPersonagem={onAbrirEdicaoPersonagem}

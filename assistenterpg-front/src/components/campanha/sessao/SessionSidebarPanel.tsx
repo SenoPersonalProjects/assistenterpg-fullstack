@@ -54,6 +54,7 @@ type SessionSidebarPanelProps = {
   contextoRolagem?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
   dtRolagem?: string;
   bonusEscaladaDados?: number;
+  peritoPendenteChatLabel?: string | null;
   usuarioId?: number | null;
   animacaoModalAtiva: boolean;
   onToggleAnimacaoModal: (ativo: boolean) => void;
@@ -100,6 +101,7 @@ export function SessionSidebarPanel({
   contextoRolagem,
   dtRolagem,
   bonusEscaladaDados,
+  peritoPendenteChatLabel,
   usuarioId,
   animacaoModalAtiva,
   onToggleAnimacaoModal,
@@ -210,6 +212,7 @@ export function SessionSidebarPanel({
                   contextoRolagem={contextoRolagem}
                   dtRolagem={dtRolagem}
                   bonusEscaladaDados={bonusEscaladaDados}
+                  peritoPendenteChatLabel={peritoPendenteChatLabel}
                   onToggleAnimacaoModal={onToggleAnimacaoModal}
                   onToggleRolagemSecreta={onToggleRolagemSecreta}
                   onContextoRolagemChange={onContextoRolagemChange}

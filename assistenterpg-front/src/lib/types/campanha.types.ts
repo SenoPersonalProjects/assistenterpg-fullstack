@@ -588,6 +588,70 @@ export type TecnicaSessaoCampanha = {
   habilidades: HabilidadeTecnicaSessaoCampanha[];
 };
 
+export type VersaoHabilidadeClasseSessaoCampanha = {
+  nivel: number;
+  custoPE: number;
+  dadoFaces?: number;
+  bonus?: number;
+  graus?: number;
+};
+
+export type EfeitoPeritoPendenteSessaoCampanha = {
+  id: string;
+  eventoId: number;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  habilidadeId: number;
+  habilidadeNome: string;
+  dado: string;
+  faces: number;
+  criadoEm: string;
+};
+
+export type HabilidadeClasseSessaoCampanha = {
+  id: number;
+  nome: string;
+  codigo: string | null;
+  descricao: string | null;
+  tipo: 'PERITO' | 'ATAQUE_ESPECIAL' | 'APRIMORADO';
+  fonte: string;
+  versoes: VersaoHabilidadeClasseSessaoCampanha[];
+  versoesDisponiveis: VersaoHabilidadeClasseSessaoCampanha[];
+  efeitoPendente?: EfeitoPeritoPendenteSessaoCampanha | null;
+};
+
+export type OutraHabilidadeSessaoCampanha = {
+  id: number;
+  nome: string;
+  codigo: string | null;
+  descricao: string | null;
+  tipo: string;
+  fonte: string;
+};
+
+export type AprimoramentoTemporarioSessaoCampanha = {
+  id: string;
+  eventoId: number;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  tecnicaId: number;
+  tecnicaNome: string;
+  tipoGrauCodigo: string;
+  graus: number;
+  cenaId: number | null;
+  criadoEm: string;
+};
+
+export type OpcaoAprimoramentoTecnicaSessaoCampanha = {
+  tecnicaId: number;
+  tecnicaNome: string;
+  tipoGrauCodigo: string;
+  grauBase: number;
+  grauTemporario: number;
+  grauEfetivo: number;
+  limiteTemporarioRestante: number;
+};
+
 export type SustentacaoAtivaSessaoCampanha = {
   id: number;
   habilidadeTecnicaId: number;
@@ -663,6 +727,10 @@ export type SessaoCampanhaDetalhe = {
     } | null;
     tecnicaInata: TecnicaSessaoCampanha | null;
     tecnicasNaoInatas: TecnicaSessaoCampanha[];
+    habilidadesClasse: HabilidadeClasseSessaoCampanha[];
+    outrasHabilidades: OutraHabilidadeSessaoCampanha[];
+    aprimoramentosTemporarios: AprimoramentoTemporarioSessaoCampanha[];
+    opcoesAprimoramentoTecnicasNaoInatas: OpcaoAprimoramentoTecnicaSessaoCampanha[];
     sustentacoesAtivas: SustentacaoAtivaSessaoCampanha[];
     atributos: AtributosSessaoCampanha | null;
     pericias: PericiaSessaoCampanha[];

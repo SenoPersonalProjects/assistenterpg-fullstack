@@ -29,6 +29,7 @@ type DiceChatPanelProps = {
   contextoRolagem?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
   dtRolagem?: string;
   bonusEscaladaDados?: number;
+  peritoPendenteChatLabel?: string | null;
   onToggleAnimacaoModal: (ativo: boolean) => void;
   onToggleRolagemSecreta?: (ativo: boolean) => void;
   onContextoRolagemChange?: (contexto: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO') => void;
@@ -50,6 +51,7 @@ export function DiceChatPanel({
   contextoRolagem = 'OUTRO',
   dtRolagem = '',
   bonusEscaladaDados = 0,
+  peritoPendenteChatLabel = null,
   onToggleAnimacaoModal,
   onToggleRolagemSecreta,
   onContextoRolagemChange,
@@ -263,6 +265,11 @@ export function DiceChatPanel({
         {contextoRolagem === 'ATAQUE' && bonusEscaladaDados > 0 ? (
           <span className="rounded-lg bg-app-danger/10 px-3 py-2 font-black text-app-danger">
             Escalada de Dados +{bonusEscaladaDados} aplicada
+          </span>
+        ) : null}
+        {peritoPendenteChatLabel ? (
+          <span className="rounded-lg bg-app-warning/10 px-3 py-2 font-black text-app-warning">
+            {peritoPendenteChatLabel}
           </span>
         ) : null}
       </div>

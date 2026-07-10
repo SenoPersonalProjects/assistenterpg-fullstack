@@ -48,6 +48,16 @@ export type UsarHabilidadeSessaoCampanhaPayload = {
   acumulos?: number;
 };
 
+export type UsarHabilidadeClasseSessaoCampanhaPayload = {
+  habilidadeId: number;
+  versaoNivel: number;
+  aprimoramentos?: Array<{
+    tecnicaId: number;
+    tipoGrauCodigo: string;
+    graus: number;
+  }>;
+};
+
 type MinhasCampanhasQuery = {
   page?: number;
   limit?: number;
@@ -879,6 +889,19 @@ export async function apiUsarHabilidadeSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/habilidades/usar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiUsarHabilidadeClasseSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemSessaoId: number,
+  payload: UsarHabilidadeClasseSessaoCampanhaPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/habilidades-classe/usar`,
     payload,
   );
   return data;

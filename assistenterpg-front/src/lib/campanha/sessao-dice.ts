@@ -4,6 +4,8 @@ const DICE_MARKER_V3_PREFIX = '[[dice:v3|';
 const DICE_MARKER_V3_REGEX = /\[\[dice:v3\|([^\]]+)\]\]/;
 const DICE_MARKER_V4_PREFIX = '[[dice:v4|';
 const DICE_MARKER_V4_REGEX = /\[\[dice:v4\|([^\]]+)\]\]/;
+const DICE_MARKER_V5_PREFIX = '[[dice:v5|';
+const DICE_MARKER_V5_REGEX = /\[\[dice:v5\|([^\]]+)\]\]/;
 
 const LIMITE_MENSAGEM_CHAT_DICE = 800;
 const LIMITE_DADOS = 30;
@@ -27,6 +29,29 @@ export type DiceExpression = {
 
 export type DiceRollPayload = DiceExpression & {
   rolagens: number[];
+  bonusDados?: DiceBonusDado[];
+};
+
+export type DiceBonusDado = {
+  origem: string;
+  label: string;
+  quantidade: number;
+  faces: number;
+  rolagens: number[];
+  efeitoPendenteId?: string;
+};
+
+export type DicePeritoPendenteChat = {
+  id: string;
+  dado: string;
+  faces: number;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+};
+
+export type DicePeritoChatAplicado = {
+  payloads: DiceRollPayload[];
+  consumiu: boolean;
 };
 
 export type DiceMessage = {
@@ -44,6 +69,8 @@ export type DiceResultado = {
   keepMode: DiceKeepMode;
   total: number;
   totalBase: number;
+  bonusTotal: number;
+  bonusDados: DiceBonusDado[];
   rolagensBase: number[];
   rolagensFinais: number[];
   indiceEscolhido: number | null;
@@ -96,6 +123,20 @@ function decodeLabel(label: string): string | null {
     return null;
   }
   return null;
+}
+
+function encodeJsonPayload(valor: unknown): string {
+  return encodeLabel(JSON.stringify(valor));
+}
+
+function decodeJsonPayload<T>(valor: string): T | null {
+  const texto = decodeLabel(valor);
+  if (!texto) return null;
+  try {
+    return JSON.parse(texto) as T;
+  } catch {
+    return null;
+  }
 }
 
 function normalizarOperadorModificador(
@@ -299,6 +340,64 @@ export function rolarDados(expression: DiceExpression): DiceRollPayload {
   return { ...expression, rolagens };
 }
 
+export function rolarBonusDado(params: {
+  origem: string;
+  label: string;
+  quantidade?: number;
+  faces: number;
+  efeitoPendenteId?: string;
+}): DiceBonusDado {
+  const quantidade = Math.max(1, Math.trunc(params.quantidade ?? 1));
+  return {
+    origem: params.origem,
+    label: params.label,
+    quantidade,
+    faces: params.faces,
+    rolagens: Array.from({ length: quantidade }, () => rolarDado(params.faces)),
+    efeitoPendenteId: params.efeitoPendenteId,
+  };
+}
+
+export function aplicarPeritoPendenteChatLivre(
+  payloads: DiceRollPayload[],
+  peritoPendente?: DicePeritoPendenteChat | null,
+  rolarBonus: typeof rolarBonusDado = rolarBonusDado,
+): DicePeritoChatAplicado {
+  if (!peritoPendente) {
+    return { payloads, consumiu: false };
+  }
+
+  let consumiu = false;
+  const atualizados = payloads.map((payload) => {
+    if (consumiu || payload.faces !== 20) {
+      return payload;
+    }
+    consumiu = true;
+    return {
+      ...payload,
+      bonusDados: [
+        ...(payload.bonusDados ?? []),
+        rolarBonus({
+          origem: 'PERITO',
+          label: `Perito +${peritoPendente.dado}`,
+          faces: peritoPendente.faces,
+          efeitoPendenteId: peritoPendente.id,
+        }),
+      ],
+    };
+  });
+
+  return { payloads: atualizados, consumiu };
+}
+
+export function obterAvisoPeritoPendenteChat(
+  peritoPendente?: DicePeritoPendenteChat | null,
+): string | null {
+  return peritoPendente
+    ? 'Perito pendente: será gasto na próxima rolagem com d20.'
+    : null;
+}
+
 export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
   const keepMode = resolverKeepModeResultado(payload);
   const normalizado = normalizarOperadorModificador(
@@ -306,6 +405,13 @@ export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
     payload.modificador,
   );
   const rolagensBase = payload.rolagens;
+  const bonusDados = Array.isArray(payload.bonusDados) ? payload.bonusDados : [];
+  const bonusTotal = bonusDados.reduce(
+    (acc, bonus) =>
+      acc +
+      bonus.rolagens.reduce((totalBonus, valor) => totalBonus + valor, 0),
+    0,
+  );
   const rolagensFinais = payload.aplicarModificadorPorDado
     ? rolagensBase.map((valor) => {
         switch (normalizado.operador) {
@@ -327,7 +433,7 @@ export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
 
   const totalBase = rolagensBase.reduce((acc, valor) => acc + valor, 0);
   if (keepMode === 'SUM') {
-    const total = payload.aplicarModificadorPorDado
+    const totalSemBonus = payload.aplicarModificadorPorDado
       ? rolagensFinais.reduce((acc, valor) => acc + valor, 0)
       : (() => {
           switch (normalizado.operador) {
@@ -345,10 +451,13 @@ export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
               return totalBase + normalizado.modificador;
           }
         })();
+    const total = totalSemBonus + bonusTotal;
     return {
       keepMode,
       total,
       totalBase,
+      bonusTotal,
+      bonusDados,
       rolagensBase,
       rolagensFinais,
       indiceEscolhido: null,
@@ -367,7 +476,7 @@ export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
     }
   }
   const baseEscolhido = rolagensFinais[indiceEscolhido] ?? rolagensBase[indiceEscolhido] ?? 0;
-  const total = payload.aplicarModificadorPorDado
+  const totalSemBonus = payload.aplicarModificadorPorDado
     ? baseEscolhido
     : (() => {
         switch (normalizado.operador) {
@@ -385,15 +494,22 @@ export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
             return baseEscolhido + normalizado.modificador;
         }
       })();
+  const total = totalSemBonus + bonusTotal;
 
   return {
     keepMode,
     total,
     totalBase: rolagensBase[indiceEscolhido] ?? 0,
+    bonusTotal,
+    bonusDados,
     rolagensBase,
     rolagensFinais,
     indiceEscolhido,
   };
+}
+
+function payloadTemBonus(payload: DiceRollPayload): boolean {
+  return Array.isArray(payload.bonusDados) && payload.bonusDados.length > 0;
 }
 
 export function formatarExpressaoDice(expression: DiceExpression): string {
@@ -414,7 +530,12 @@ export function formatarExpressaoDice(expression: DiceExpression): string {
     }
   }
   const hash = expression.aplicarModificadorPorDado ? '#' : '';
-  return `${expression.quantidade}${hash}d${expression.faces}${modTexto}`;
+  const bonus = Array.isArray((expression as DiceRollPayload).bonusDados)
+    ? ((expression as DiceRollPayload).bonusDados ?? [])
+        .map((item) => `+${item.quantidade}d${item.faces}`)
+        .join('')
+    : '';
+  return `${expression.quantidade}${hash}d${expression.faces}${modTexto}${bonus}`;
 }
 
 export function construirMensagemDice(payload: DiceRollPayload): {
@@ -424,8 +545,9 @@ export function construirMensagemDice(payload: DiceRollPayload): {
   const expression = payload.label
     ? `${payload.label}: ${formatarExpressaoDice(payload)}`
     : formatarExpressaoDice(payload);
-  const marcador =
-    payload.keepMode && payload.keepMode !== 'SUM'
+  const marcador = payloadTemBonus(payload)
+    ? `${DICE_MARKER_V5_PREFIX}${encodePayloadV5([payload])}]]`
+    : payload.keepMode && payload.keepMode !== 'SUM'
       ? `${DICE_MARKER_V4_PREFIX}${encodePayloadV4(payload)}]]`
       : `${DICE_MARKER_V3_PREFIX}${encodePayloadV3(payload)}]]`;
   const mensagem = `${expression} ${marcador}`.trim();
@@ -457,6 +579,10 @@ function encodePayloadV4(payload: DiceRollPayload): string {
     payload.aplicarModificadorPorDado ? 1 : 0
   }|${encodeRolls(payload.rolagens)}|${keepMode}`;
   return payload.label ? `${base}|${encodeLabel(payload.label)}` : base;
+}
+
+function encodePayloadV5(payloads: DiceRollPayload[]): string {
+  return encodeJsonPayload(payloads);
 }
 
 function decodePayloadV2(serializado: string): DiceRollPayload | null {
@@ -568,6 +694,93 @@ function decodePayloadV4(serializado: string): DiceRollPayload | null {
   };
 }
 
+function normalizarBonusDados(valor: unknown): DiceBonusDado[] | undefined {
+  if (!Array.isArray(valor)) return undefined;
+  const bonus: DiceBonusDado[] = [];
+  for (const item of valor) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const registro = item as Record<string, unknown>;
+    const origem = typeof registro.origem === 'string' ? registro.origem : '';
+    const label = typeof registro.label === 'string' ? registro.label : '';
+    const quantidade =
+      typeof registro.quantidade === 'number'
+        ? Math.trunc(registro.quantidade)
+        : 0;
+    const faces =
+      typeof registro.faces === 'number' ? Math.trunc(registro.faces) : 0;
+    const rolagens = Array.isArray(registro.rolagens)
+      ? registro.rolagens.filter(
+          (valorRolagem): valorRolagem is number =>
+            typeof valorRolagem === 'number' &&
+            Number.isFinite(valorRolagem) &&
+            valorRolagem > 0,
+        )
+      : [];
+    if (!origem || !label || quantidade <= 0 || faces <= 0) continue;
+    if (rolagens.length !== quantidade) continue;
+    bonus.push({
+      origem,
+      label,
+      quantidade,
+      faces,
+      rolagens,
+      efeitoPendenteId:
+        typeof registro.efeitoPendenteId === 'string'
+          ? registro.efeitoPendenteId
+          : undefined,
+    });
+  }
+  return bonus.length > 0 ? bonus : undefined;
+}
+
+function decodePayloadV5(serializado: string): DiceRollPayload[] | null {
+  const payloads = decodeJsonPayload<unknown>(serializado);
+  if (!Array.isArray(payloads)) return null;
+  const resultado: DiceRollPayload[] = [];
+  for (const payloadRaw of payloads) {
+    if (!payloadRaw || typeof payloadRaw !== 'object' || Array.isArray(payloadRaw)) {
+      return null;
+    }
+    const payload = payloadRaw as Record<string, unknown>;
+    const quantidade =
+      typeof payload.quantidade === 'number' ? Math.trunc(payload.quantidade) : 0;
+    const faces = typeof payload.faces === 'number' ? Math.trunc(payload.faces) : 0;
+    const modificador =
+      typeof payload.modificador === 'number'
+        ? Math.trunc(payload.modificador)
+        : 0;
+    const operador = payload.operador as DiceOperador | undefined;
+    const keepMode = normalizarKeepMode(payload.keepMode as DiceKeepMode);
+    const aplicarModificadorPorDado = payload.aplicarModificadorPorDado === true;
+    const rolagens = Array.isArray(payload.rolagens)
+      ? payload.rolagens.filter(
+          (valor): valor is number =>
+            typeof valor === 'number' && Number.isFinite(valor) && valor > 0,
+        )
+      : [];
+    if (
+      quantidade <= 0 ||
+      faces <= 0 ||
+      !['+', '-', '*', '/', undefined].includes(operador) ||
+      rolagens.length !== quantidade
+    ) {
+      return null;
+    }
+    resultado.push({
+      quantidade,
+      faces,
+      modificador,
+      operador,
+      keepMode,
+      aplicarModificadorPorDado,
+      rolagens,
+      label: typeof payload.label === 'string' ? payload.label : undefined,
+      bonusDados: normalizarBonusDados(payload.bonusDados),
+    });
+  }
+  return resultado.length > 0 ? resultado : null;
+}
+
 export function construirMensagemDiceMultipla(payloads: DiceRollPayload[]): {
   mensagem: string;
   expression: string;
@@ -579,15 +792,22 @@ export function construirMensagemDiceMultipla(payloads: DiceRollPayload[]): {
         : formatarExpressaoDice(payload),
     )
     .join(', ');
+  const usaV5 = payloads.some((payload) => payloadTemBonus(payload));
   const usaV4 = payloads.some(
     (payload) => payload.keepMode && payload.keepMode !== 'SUM',
   );
-  const serializado = payloads
-    .map((payload) => (usaV4 ? encodePayloadV4(payload) : encodePayloadV3(payload)))
-    .join('~');
-  const marcador = usaV4
-    ? `${DICE_MARKER_V4_PREFIX}${serializado}]]`
-    : `${DICE_MARKER_V3_PREFIX}${serializado}]]`;
+  const serializado = usaV5
+    ? encodePayloadV5(payloads)
+    : payloads
+        .map((payload) =>
+          usaV4 ? encodePayloadV4(payload) : encodePayloadV3(payload),
+        )
+        .join('~');
+  const marcador = usaV5
+    ? `${DICE_MARKER_V5_PREFIX}${serializado}]]`
+    : usaV4
+      ? `${DICE_MARKER_V4_PREFIX}${serializado}]]`
+      : `${DICE_MARKER_V3_PREFIX}${serializado}]]`;
   const mensagem = `${expressao} ${marcador}`.trim();
   return { mensagem, expression: expressao };
 }
@@ -638,6 +858,14 @@ export function parseDiceMessage(texto: string): DiceMessage | null {
 }
 
 export function parseDiceMessageGroup(texto: string): DiceMessageGroup | null {
+  const matchV5 = texto.match(DICE_MARKER_V5_REGEX);
+  if (matchV5) {
+    const payloads = decodePayloadV5(matchV5[1]);
+    if (!payloads) return null;
+    const textoSemMarcador = texto.replace(DICE_MARKER_V5_REGEX, '').trim();
+    return { payloads, textoSemMarcador };
+  }
+
   const matchV4 = texto.match(DICE_MARKER_V4_REGEX);
   if (matchV4) {
     const partes = matchV4[1].split('~').filter(Boolean);
@@ -690,7 +918,8 @@ export function ehMensagemDice(texto: string): boolean {
     DICE_MARKER_REGEX.test(texto) ||
     DICE_MARKER_V2_REGEX.test(texto) ||
     DICE_MARKER_V3_REGEX.test(texto) ||
-    DICE_MARKER_V4_REGEX.test(texto)
+    DICE_MARKER_V4_REGEX.test(texto) ||
+    DICE_MARKER_V5_REGEX.test(texto)
   );
 }
 

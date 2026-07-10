@@ -55,6 +55,18 @@ type SessionPlayerSummaryPanelProps = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
   ) => void;
+  onUsarHabilidadeClasse: (
+    personagemSessaoId: number,
+    payload: {
+      habilidadeId: number;
+      versaoNivel: number;
+      aprimoramentos?: Array<{
+        tecnicaId: number;
+        tipoGrauCodigo: string;
+        graus: number;
+      }>;
+    },
+  ) => void;
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
@@ -137,6 +149,7 @@ export function SessionPlayerSummaryPanel({
   acumulosHabilidade,
   onAtualizarAcumulosHabilidade,
   onUsarHabilidade,
+  onUsarHabilidadeClasse,
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
@@ -260,6 +273,7 @@ export function SessionPlayerSummaryPanel({
               acumulosHabilidade={acumulosHabilidade}
               onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
               onUsarHabilidade={onUsarHabilidade}
+              onUsarHabilidadeClasse={onUsarHabilidadeClasse}
               acaoHabilidadePendente={acaoHabilidadePendente}
               sessaoEncerrada={sessaoEncerrada}
               onEncerrarSustentacao={onEncerrarSustentacao}

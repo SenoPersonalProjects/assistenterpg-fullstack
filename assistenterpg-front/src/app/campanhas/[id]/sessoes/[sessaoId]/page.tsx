@@ -137,8 +137,11 @@ import {
   construirMensagemDice,
   ehMensagemDice,
   formatarExpressaoDice,
+  obterAvisoPeritoPendenteChat,
   parseDiceExpression,
+  rolarBonusDado,
   rolarDados,
+  type DicePeritoPendenteChat,
   type DiceRollPayload,
   validarComprimentoMensagemDice,
 } from '@/lib/campanha/sessao-dice';
@@ -472,6 +475,28 @@ export default function SessaoCampanhaPage() {
       dt: dtRolagemNumero,
     }),
     [contextoRolagem, dtRolagemNumero],
+  );
+  const cardPeritoChat = useMemo(
+    () => detalhe?.cards.find((card) => card.donoId === usuario?.id) ?? null,
+    [detalhe?.cards, usuario?.id],
+  );
+  const peritoPendenteChat = useMemo<DicePeritoPendenteChat | null>(() => {
+    const efeitoPendente =
+      cardPeritoChat?.habilidadesClasse.find(
+        (habilidade) => habilidade.tipo === 'PERITO',
+      )?.efeitoPendente ?? null;
+    if (!cardPeritoChat || !efeitoPendente) return null;
+    return {
+      id: efeitoPendente.id,
+      dado: efeitoPendente.dado,
+      faces: efeitoPendente.faces,
+      personagemSessaoId: cardPeritoChat.personagemSessaoId,
+      personagemCampanhaId: cardPeritoChat.personagemCampanhaId,
+    };
+  }, [cardPeritoChat]);
+  const avisoPeritoPendenteChat = useMemo(
+    () => obterAvisoPeritoPendenteChat(peritoPendenteChat),
+    [peritoPendenteChat],
   );
 
   const obterAjustesRecursosCard = useCallback(
@@ -1032,8 +1057,12 @@ export default function SessaoCampanhaPage() {
     showToast,
   });
 
-  const { acaoHabilidadePendente, handleUsarHabilidade, handleEncerrarSustentacao } =
-    useSessaoHabilidades({
+  const {
+    acaoHabilidadePendente,
+    handleUsarHabilidade,
+    handleUsarHabilidadeClasse,
+    handleEncerrarSustentacao,
+  } = useSessaoHabilidades({
       campanhaId,
       sessaoId,
       sessaoEncerrada,
@@ -1262,6 +1291,9 @@ export default function SessaoCampanhaPage() {
     },
     [],
   );
+  const handleRolagemConsumiuPeritoChat = useCallback(() => {
+    void sincronizarTempoReal();
+  }, [sincronizarTempoReal]);
 
   const { enviandoRolagem, handleEnviarRolagem } = useSessaoRolagem({
     campanhaId,
@@ -1276,6 +1308,8 @@ export default function SessaoCampanhaPage() {
     visibilidade: visibilidadeRolagemAtual,
     contextoRolagem: contextoRolagemPayload,
     bonusEscaladaDados,
+    peritoPendenteChat,
+    onRolagemConsumiuPerito: handleRolagemConsumiuPeritoChat,
   });
 
   const handleAtualizarRegraOpcional = useCallback(
@@ -1576,7 +1610,7 @@ export default function SessaoCampanhaPage() {
       }
       const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
       const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
-      const dicePayload = rolarDados({
+      const dicePayloadBase = rolarDados({
         quantidade: payload.dados,
         faces: 20,
         modificador: payload.bonus,
@@ -1584,6 +1618,37 @@ export default function SessaoCampanhaPage() {
         label,
         keepMode: payload.keepMode,
       });
+      const peritoPendente =
+        payload.alvoTipo === 'PERSONAGEM' && payload.personagemCampanhaId
+          ? detalhe?.cards
+              .find(
+                (card) =>
+                  card.personagemCampanhaId === payload.personagemCampanhaId,
+              )
+              ?.habilidadesClasse?.find((habilidade) => habilidade.tipo === 'PERITO')
+              ?.efeitoPendente ?? null
+          : null;
+      const periciaCodigo = payload.periciaCodigo?.trim().toUpperCase();
+      const periciaElegivelPerito =
+        Boolean(peritoPendente) &&
+        Boolean(periciaCodigo) &&
+        periciaCodigo !== 'LUTA' &&
+        periciaCodigo !== 'PONTARIA';
+      const dicePayload =
+        peritoPendente && periciaElegivelPerito
+          ? {
+              ...dicePayloadBase,
+              bonusDados: [
+                ...(dicePayloadBase.bonusDados ?? []),
+                rolarBonusDado({
+                  origem: 'PERITO',
+                  label: `Perito +${peritoPendente.dado}`,
+                  faces: peritoPendente.faces,
+                  efeitoPendenteId: peritoPendente.id,
+                }),
+              ],
+            }
+          : dicePayloadBase;
       const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
       setPericiaRollModal({
         aberto: true,
@@ -1616,8 +1681,24 @@ export default function SessaoCampanhaPage() {
         const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
           mensagem: mensagemEnvio,
           visibilidade: visibilidadeRolagemAtual,
+          dadosRolagem: {
+            payloads: [dicePayload],
+          },
+          contextoRolagem: {
+            tipo: 'PERICIA',
+            personagemSessaoId: payload.personagemSessaoId,
+            personagemCampanhaId: payload.personagemCampanhaId,
+            periciaCodigo,
+            efeitoPendenteId:
+              peritoPendente && periciaElegivelPerito
+                ? peritoPendente.id
+                : undefined,
+          },
         });
         setChat((anterior) => [...anterior, enviada]);
+        if (peritoPendente && periciaElegivelPerito) {
+          void sincronizarTempoReal();
+        }
         setPericiaRollModal((estado) => ({
           ...estado,
           enviando: false,
@@ -1636,10 +1717,12 @@ export default function SessaoCampanhaPage() {
     },
     [
       campanhaId,
+      detalhe?.cards,
       sessaoEncerrada,
       sessaoId,
       setErroRolagens,
       showToast,
+      sincronizarTempoReal,
       visibilidadeRolagemAtual,
     ],
   );
@@ -2562,6 +2645,9 @@ export default function SessaoCampanhaPage() {
           acumulos,
         )
       }
+      onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
+        void handleUsarHabilidadeClasse(personagemSessaoId, payload)
+      }
       onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
         void handleEncerrarSustentacao(personagemSessaoId, sustentacaoId)
       }
@@ -2959,6 +3045,9 @@ export default function SessaoCampanhaPage() {
                       acumulos,
                     )
                   }
+                  onUsarHabilidadeClasse={(personagemSessaoId, payload) =>
+                    void handleUsarHabilidadeClasse(personagemSessaoId, payload)
+                  }
                   onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
                     void handleEncerrarSustentacao(personagemSessaoId, sustentacaoId)
                   }
@@ -3171,6 +3260,7 @@ export default function SessaoCampanhaPage() {
                 contextoRolagem={contextoRolagem}
                 dtRolagem={dtRolagem}
                 bonusEscaladaDados={bonusEscaladaDados}
+                peritoPendenteChatLabel={avisoPeritoPendenteChat}
                 usuarioId={usuario?.id ?? null}
                 animacaoModalAtiva={animacaoRolagemChatAtiva}
                 onToggleAnimacaoModal={handleToggleAnimacaoRolagemChat}

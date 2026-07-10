@@ -60,6 +60,18 @@ type SessionCharactersPanelProps = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
   ) => void;
+  onUsarHabilidadeClasse: (
+    personagemSessaoId: number,
+    payload: {
+      habilidadeId: number;
+      versaoNivel: number;
+      aprimoramentos?: Array<{
+        tecnicaId: number;
+        tipoGrauCodigo: string;
+        graus: number;
+      }>;
+    },
+  ) => void;
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   onAplicarDeltaRecursoCard: (
     card: SessaoCampanhaDetalhe['cards'][number],
@@ -148,6 +160,7 @@ export function SessionCharactersPanel({
   acumulosHabilidade,
   onAtualizarAcumulosHabilidade,
   onUsarHabilidade,
+  onUsarHabilidadeClasse,
   onEncerrarSustentacao,
   onAplicarDeltaRecursoCard,
   onAplicarAjustePersonalizadoRecursoCard,
@@ -283,6 +296,7 @@ export function SessionCharactersPanel({
               acumulosHabilidade={acumulosHabilidade}
               onAtualizarAcumulosHabilidade={onAtualizarAcumulosHabilidade}
               onUsarHabilidade={onUsarHabilidade}
+              onUsarHabilidadeClasse={onUsarHabilidadeClasse}
               onEncerrarSustentacao={(personagemSessaoId, sustentacaoId) =>
                 void onEncerrarSustentacao(personagemSessaoId, sustentacaoId)
               }

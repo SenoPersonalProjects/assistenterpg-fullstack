@@ -39,6 +39,8 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
   const rolagensBase = resultado.rolagensBase;
   const valoresExibidos = resultado.rolagensFinais;
   const totalBase = resultado.totalBase;
+  const bonusDados = resultado.bonusDados;
+  const bonusTotal = resultado.bonusTotal;
   const total = resultado.total;
   const keepMode = resultado.keepMode;
   const indiceEscolhido = resultado.indiceEscolhido;
@@ -107,6 +109,7 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
             ) : null}
             <span className="session-dice__meta">
               {usarSelecionado ? 'Dado escolhido' : 'Base'} {totalBase}
+              {bonusTotal > 0 ? ` + bonus ${bonusTotal}` : ''}
             </span>
             <span className="session-dice__total">{total}</span>
           </>
@@ -119,6 +122,7 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
             ) : null}
             <span className="session-dice__meta">
               {usarSelecionado ? 'Dado escolhido' : 'Dado puro'} {totalBase}
+              {bonusTotal > 0 ? ` + bonus ${bonusTotal}` : ''}
             </span>
           </>
         )}
@@ -165,6 +169,16 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
               </span>
             );
           })}
+          {bonusDados.map((bonus) => (
+            <span
+              key={`${bonus.origem}-${bonus.efeitoPendenteId ?? bonus.label}`}
+              className="session-dice__roll session-dice__roll--picked"
+            >
+              <span className="session-dice__roll-raw">
+                {bonus.label}: {bonus.rolagens.join(', ')}
+              </span>
+            </span>
+          ))}
         </div>
       ) : null}
     </div>

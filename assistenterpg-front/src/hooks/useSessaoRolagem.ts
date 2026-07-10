@@ -2,11 +2,13 @@ import { useCallback, useState } from 'react';
 import { apiEnviarMensagemChatSessaoCampanha, criarErroUsuario } from '@/lib/api';
 import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 import {
+  aplicarPeritoPendenteChatLivre,
   construirMensagemDice,
   construirMensagemDiceMultipla,
   parseDiceInput,
   rolarDados,
   validarComprimentoMensagemDice,
+  type DicePeritoPendenteChat,
   type DiceRollPayload,
 } from '@/lib/campanha/sessao-dice';
 
@@ -18,11 +20,18 @@ type UseSessaoRolagemParams = {
   contextoRolagem?: {
     tipo?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
     dt?: number;
+    personagemSessaoId?: number;
+    personagemCampanhaId?: number;
+    periciaCodigo?: string;
+    efeitoPendenteId?: string;
+    peritoDadoFaces?: number;
   };
   bonusEscaladaDados?: number;
+  peritoPendenteChat?: DicePeritoPendenteChat | null;
   setMensagem: (valor: string) => void;
   setChat: (updater: (anterior: MensagemChatSessao[]) => MensagemChatSessao[]) => void;
   setErro: (mensagem: UserErrorState | null) => void;
+  onRolagemConsumiuPerito?: () => void;
   animacaoModalAtiva?: boolean;
   onAbrirModalAnimado?: (
     payloads: DiceRollPayload[],
@@ -40,6 +49,15 @@ type UseSessaoRolagemReturn = {
   handleEnviarRolagem: () => Promise<void>;
 };
 
+function mensagemConfirmouConsumoPerito(mensagem: MensagemChatSessao): boolean {
+  const ajustes = mensagem.ajustesAplicados;
+  if (!Array.isArray(ajustes)) return false;
+  return ajustes.some((ajuste) => {
+    if (typeof ajuste !== 'object' || ajuste === null) return false;
+    return (ajuste as { tipo?: unknown }).tipo === 'PERITO';
+  });
+}
+
 export function useSessaoRolagem({
   campanhaId,
   sessaoId,
@@ -47,9 +65,11 @@ export function useSessaoRolagem({
   visibilidade = 'PUBLICA',
   contextoRolagem,
   bonusEscaladaDados = 0,
+  peritoPendenteChat = null,
   setMensagem,
   setChat,
   setErro,
+  onRolagemConsumiuPerito,
   animacaoModalAtiva = false,
   onAbrirModalAnimado,
   onAtualizarModalAnimado,
@@ -77,14 +97,21 @@ export function useSessaoRolagem({
           modificador: payload.modificador + bonusEscaladaDados,
         }))
       : payloadsBase;
+    const peritoChat = aplicarPeritoPendenteChatLivre(
+      payloads,
+      peritoPendenteChat,
+    );
+    const payloadsComBonus = peritoChat.payloads;
     const { mensagem: mensagemEnvio } =
-      payloads.length > 1
-        ? construirMensagemDiceMultipla(payloads)
-        : construirMensagemDice(payloads[0]);
-    const expressions = payloads.map((payload) => construirMensagemDice(payload).expression);
+      payloadsComBonus.length > 1
+        ? construirMensagemDiceMultipla(payloadsComBonus)
+        : construirMensagemDice(payloadsComBonus[0]);
+    const expressions = payloadsComBonus.map(
+      (payload) => construirMensagemDice(payload).expression,
+    );
 
     if (animacaoModalAtiva && onAbrirModalAnimado) {
-      onAbrirModalAnimado(payloads, expressions);
+      onAbrirModalAnimado(payloadsComBonus, expressions);
     }
     const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
     if (erroTamanho) {
@@ -105,15 +132,25 @@ export function useSessaoRolagem({
         mensagem: mensagemEnvio,
         visibilidade,
         dadosRolagem: {
-          payloads,
+          payloads: payloadsComBonus,
         },
         contextoRolagem: {
           ...contextoRolagem,
           expressao: mensagemLimpa,
+          ...(peritoChat.consumiu && peritoPendenteChat
+            ? {
+                efeitoPendenteId: peritoPendenteChat.id,
+                personagemSessaoId: peritoPendenteChat.personagemSessaoId,
+                personagemCampanhaId: peritoPendenteChat.personagemCampanhaId,
+              }
+            : {}),
         },
       });
       setChat((anterior) => [...anterior, enviada]);
       setMensagem('');
+      if (mensagemConfirmouConsumoPerito(enviada)) {
+        onRolagemConsumiuPerito?.();
+      }
       if (animacaoModalAtiva && onAtualizarModalAnimado) {
         onAtualizarModalAnimado({ enviando: false, enviado: true, erro: null });
       }
@@ -135,6 +172,8 @@ export function useSessaoRolagem({
     mensagem,
     onAbrirModalAnimado,
     onAtualizarModalAnimado,
+    onRolagemConsumiuPerito,
+    peritoPendenteChat,
     sessaoId,
     setChat,
     setErro,

@@ -23,6 +23,15 @@ import {
   type AtributoBaseCodigo,
 } from '@/lib/utils/pericias';
 
+type AprimoradoModalState = {
+  habilidadeId: number;
+  habilidadeNome: string;
+  versaoNivel: number;
+  grausTotal: number;
+  custoPE: number;
+  distribuicao: Record<string, string>;
+};
+
 type SessionCharacterDetailsTabsProps = {
   card: SessaoCampanhaDetalhe['cards'][number];
   campanhaId: number;
@@ -55,6 +64,18 @@ type SessionCharacterDetailsTabsProps = {
     habilidadeTecnicaId: number,
     variacaoHabilidadeId?: number,
     acumulos?: number,
+  ) => void;
+  onUsarHabilidadeClasse: (
+    personagemSessaoId: number,
+    payload: {
+      habilidadeId: number;
+      versaoNivel: number;
+      aprimoramentos?: Array<{
+        tecnicaId: number;
+        tipoGrauCodigo: string;
+        graus: number;
+      }>;
+    },
   ) => void;
   acaoHabilidadePendente: string | null;
   sessaoEncerrada: boolean;
@@ -112,6 +133,19 @@ function formatarBonus(valor: number): string {
   return valor > 0 ? `+${valor}` : String(valor);
 }
 
+function formatarVersaoHabilidadeClasse(
+  tipo: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['tipo'],
+  versao: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['versoesDisponiveis'][number],
+): string {
+  if (tipo === 'PERITO') {
+    return `${versao.custoPE} PE | +1d${versao.dadoFaces ?? 6}`;
+  }
+  if (tipo === 'ATAQUE_ESPECIAL') {
+    return `${versao.custoPE} PE | +${versao.bonus ?? 0}`;
+  }
+  return `${versao.custoPE} PE | +${versao.graus ?? 0} grau(s)`;
+}
+
 export function SessionCharacterDetailsTabs({
   card,
   campanhaId,
@@ -136,6 +170,7 @@ export function SessionCharacterDetailsTabs({
   acumulosHabilidade,
   onAtualizarAcumulosHabilidade,
   onUsarHabilidade,
+  onUsarHabilidadeClasse,
   acaoHabilidadePendente,
   sessaoEncerrada,
   onAbrirEdicaoPersonagem,
@@ -155,6 +190,8 @@ export function SessionCharacterDetailsTabs({
 }: SessionCharacterDetailsTabsProps) {
   const [mostrarSomentePericiasBonificadas, setMostrarSomentePericiasBonificadas] =
     useState(false);
+  const [aprimoradoModal, setAprimoradoModal] =
+    useState<AprimoradoModalState | null>(null);
   const recursos = card.recursos;
   if (!recursos) return null;
 
@@ -209,6 +246,22 @@ export function SessionCharacterDetailsTabs({
       montarChaveSustentacaoAtiva(habilidadeTecnicaId, variacaoHabilidadeId),
     ) ?? 0;
 
+  const habilidadesClasseCard = card.habilidadesClasse ?? [];
+  const outrasHabilidadesCard = card.outrasHabilidades ?? [];
+  const aprimoramentosTemporariosCard = card.aprimoramentosTemporarios ?? [];
+  const opcoesAprimoramentoTecnicasCard =
+    card.opcoesAprimoramentoTecnicasNaoInatas ?? [];
+  const totalHabilidadesClasse = habilidadesClasseCard.length;
+  const totalOutrasHabilidades = outrasHabilidadesCard.length;
+  const totalHabilidadesAba =
+    totalTecnicasCard + totalHabilidadesClasse + totalOutrasHabilidades;
+  const totalGrausAprimorado = aprimoradoModal
+    ? Object.values(aprimoradoModal.distribuicao).reduce((acc, valor) => {
+        const numero = Number(valor);
+        return acc + (Number.isFinite(numero) ? Math.max(0, Math.trunc(numero)) : 0);
+      }, 0)
+    : 0;
+
   const periciasOrdenadas = [...(card.pericias ?? [])].sort((a, b) =>
     a.nome.localeCompare(b.nome, 'pt-BR'),
   );
@@ -233,12 +286,85 @@ export function SessionCharacterDetailsTabs({
     onRolarPericia({
       alvoTipo: 'PERSONAGEM',
       alvoNome: card.nomePersonagem,
+      personagemSessaoId: card.personagemSessaoId,
+      personagemCampanhaId: card.personagemCampanhaId,
+      periciaCodigo: pericia.codigo,
       periciaNome: pericia.nome,
       atributoBase: pericia.atributoBase,
       dados,
       bonus: pericia.bonusTotal,
       keepMode,
     });
+  };
+
+  const usarHabilidadeClasseSimples = (
+    habilidadeId: number,
+    versaoNivel: number,
+  ) => {
+    onUsarHabilidadeClasse(card.personagemSessaoId, {
+      habilidadeId,
+      versaoNivel,
+    });
+  };
+
+  const abrirModalAprimorado = (
+    habilidade: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number],
+    versao: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['versoesDisponiveis'][number],
+  ) => {
+    setAprimoradoModal({
+      habilidadeId: habilidade.id,
+      habilidadeNome: habilidade.nome,
+      versaoNivel: versao.nivel,
+      grausTotal: versao.graus ?? 0,
+      custoPE: versao.custoPE,
+      distribuicao: {},
+    });
+  };
+
+  const atualizarDistribuicaoAprimorado = (chave: string, valor: string) => {
+    setAprimoradoModal((estado) =>
+      estado
+        ? {
+            ...estado,
+            distribuicao: {
+              ...estado.distribuicao,
+              [chave]: valor,
+            },
+          }
+        : estado,
+    );
+  };
+
+  const confirmarAprimorado = () => {
+    if (!aprimoradoModal) return;
+    const aprimoramentos = opcoesAprimoramentoTecnicasCard
+      .map((opcao) => {
+        const chave = `${opcao.tecnicaId}:${opcao.tipoGrauCodigo}`;
+        const valor = Number(aprimoradoModal.distribuicao[chave] ?? 0);
+        const graus = Number.isFinite(valor) ? Math.max(0, Math.trunc(valor)) : 0;
+        return graus > 0
+          ? {
+              tecnicaId: opcao.tecnicaId,
+              tipoGrauCodigo: opcao.tipoGrauCodigo,
+              graus,
+            }
+          : null;
+      })
+      .filter(
+        (
+          item,
+        ): item is {
+          tecnicaId: number;
+          tipoGrauCodigo: string;
+          graus: number;
+        } => item !== null,
+      );
+    onUsarHabilidadeClasse(card.personagemSessaoId, {
+      habilidadeId: aprimoradoModal.habilidadeId,
+      versaoNivel: aprimoradoModal.versaoNivel,
+      aprimoramentos,
+    });
+    setAprimoradoModal(null);
   };
 
   const tabs: SessionTabItem[] = [
@@ -257,9 +383,9 @@ export function SessionCharacterDetailsTabs({
   tabs.push(
     {
       id: 'TECNICAS',
-      label: 'Técnicas',
+      label: 'Habilidades',
       icon: 'technique',
-      count: totalTecnicasCard,
+      count: totalHabilidadesAba,
     },
     {
       id: 'SUSTENTACOES',
@@ -599,6 +725,102 @@ export function SessionCharacterDetailsTabs({
 
       {abaDetalheCard === 'TECNICAS' ? (
         <div className="space-y-2">
+          <details className="rounded border border-app-border p-2" open>
+            <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+              Classe ({totalHabilidadesClasse} habilidade(s))
+            </summary>
+            <div className="mt-2 space-y-2">
+              {habilidadesClasseCard.length > 0 ? (
+                habilidadesClasseCard.map((habilidade) => {
+                  const chaveAcaoClasse = `usar-classe:${card.personagemSessaoId}:${habilidade.id}`;
+                  const usando = acaoHabilidadePendente === chaveAcaoClasse;
+                  return (
+                    <div
+                      key={`classe-${habilidade.id}`}
+                      className="rounded border border-app-border bg-app-surface px-2 py-2 space-y-2"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold text-app-fg">
+                            {habilidade.nome}
+                          </p>
+                          <p className="session-text-xxs text-app-muted">
+                            {habilidade.fonte}
+                          </p>
+                        </div>
+                        {habilidade.efeitoPendente ? (
+                          <Badge size="sm" color="cyan">
+                            Próxima perícia: +{habilidade.efeitoPendente.dado}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      {habilidade.descricao ? (
+                        <p className="session-text-xxs text-app-muted">
+                          {habilidade.descricao}
+                        </p>
+                      ) : null}
+                      <div className="flex flex-wrap gap-2">
+                        {habilidade.versoesDisponiveis.map((versao) => {
+                          const semPE = recursos.peAtual < versao.custoPE;
+                          const disabled =
+                            sessaoEncerrada ||
+                            !card.podeEditar ||
+                            usando ||
+                            semPE ||
+                            Boolean(
+                              habilidade.tipo === 'PERITO' &&
+                                habilidade.efeitoPendente,
+                            );
+                          return (
+                            <Button
+                              key={`${habilidade.id}-${versao.nivel}`}
+                              size="xs"
+                              variant="secondary"
+                              disabled={disabled}
+                              onClick={() =>
+                                habilidade.tipo === 'APRIMORADO'
+                                  ? abrirModalAprimorado(habilidade, versao)
+                                  : usarHabilidadeClasseSimples(
+                                      habilidade.id,
+                                      versao.nivel,
+                                    )
+                              }
+                            >
+                              {usando
+                                ? 'Aplicando...'
+                                : formatarVersaoHabilidadeClasse(
+                                    habilidade.tipo,
+                                    versao,
+                                  )}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="session-text-xxs text-app-muted">
+                  Nenhuma habilidade de classe disponível.
+                </p>
+              )}
+              {aprimoramentosTemporariosCard.length > 0 ? (
+                <div className="rounded border border-app-border bg-app-elevated px-2 py-2">
+                  <p className="session-text-xxs font-semibold text-app-muted uppercase">
+                    Aprimoramentos ativos
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {aprimoramentosTemporariosCard.map((item) => (
+                      <Badge key={item.id} size="sm" color="purple">
+                        {item.tecnicaNome} +{item.graus}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </details>
+
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label className="inline-flex items-center gap-2 session-text-xxs text-app-muted">
               <input
@@ -709,6 +931,40 @@ export function SessionCharacterDetailsTabs({
               )}
             </div>
           </details>
+
+          <details className="rounded border border-app-border p-2">
+            <summary className="cursor-pointer text-xs font-semibold text-app-fg">
+              Outras ({totalOutrasHabilidades} habilidade(s))
+            </summary>
+            <div className="mt-2 space-y-2">
+              {outrasHabilidadesCard.length > 0 ? (
+                outrasHabilidadesCard.map((habilidade) => (
+                  <div
+                    key={`outra-${habilidade.id}`}
+                    className="rounded border border-app-border bg-app-surface px-2 py-2"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="text-xs font-semibold text-app-fg">
+                        {habilidade.nome}
+                      </p>
+                      <Badge size="sm" color="gray">
+                        {habilidade.fonte}
+                      </Badge>
+                    </div>
+                    {habilidade.descricao ? (
+                      <p className="mt-1 session-text-xxs text-app-muted">
+                        {habilidade.descricao}
+                      </p>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <p className="session-text-xxs text-app-muted">
+                  Nenhuma outra habilidade cadastrada.
+                </p>
+              )}
+            </div>
+          </details>
         </div>
       ) : null}
 
@@ -800,6 +1056,101 @@ export function SessionCharacterDetailsTabs({
               );
             })
           )}
+        </div>
+      ) : null}
+
+      {aprimoradoModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-lg rounded border border-app-border bg-app-surface p-4 shadow-xl"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-app-fg">
+                  {aprimoradoModal.habilidadeNome}
+                </p>
+                <p className="session-text-xxs text-app-muted">
+                  Distribua {aprimoradoModal.grausTotal} grau(s) temporário(s)
+                  até o fim da cena. Custo: {aprimoradoModal.custoPE} PE.
+                </p>
+              </div>
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => setAprimoradoModal(null)}
+              >
+                Fechar
+              </Button>
+            </div>
+
+            <div className="mt-3 max-h-[55vh] space-y-2 overflow-auto pr-1">
+              {opcoesAprimoramentoTecnicasCard.map((opcao) => {
+                const chave = `${opcao.tecnicaId}:${opcao.tipoGrauCodigo}`;
+                const valor = aprimoradoModal.distribuicao[chave] ?? '';
+                return (
+                  <label
+                    key={chave}
+                    className="flex items-center justify-between gap-3 rounded border border-app-border px-2 py-2"
+                  >
+                    <span>
+                      <span className="block text-xs font-semibold text-app-fg">
+                        {opcao.tecnicaNome}
+                      </span>
+                      <span className="session-text-xxs text-app-muted">
+                        Base {opcao.grauBase} | temp +{opcao.grauTemporario} |
+                        total {opcao.grauEfetivo}
+                      </span>
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={opcao.limiteTemporarioRestante}
+                      value={valor}
+                      disabled={opcao.limiteTemporarioRestante <= 0}
+                      onChange={(event) =>
+                        atualizarDistribuicaoAprimorado(chave, event.target.value)
+                      }
+                      className="w-20 rounded border border-app-border bg-app-bg px-2 py-1 text-sm text-app-fg"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <Badge
+                size="sm"
+                color={
+                  totalGrausAprimorado === aprimoradoModal.grausTotal
+                    ? 'green'
+                    : 'yellow'
+                }
+              >
+                {totalGrausAprimorado}/{aprimoradoModal.grausTotal} graus
+              </Badge>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setAprimoradoModal(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={
+                    totalGrausAprimorado !== aprimoradoModal.grausTotal ||
+                    sessaoEncerrada
+                  }
+                  onClick={confirmarAprimorado}
+                >
+                  Usar
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

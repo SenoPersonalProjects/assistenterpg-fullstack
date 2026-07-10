@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
 import {
   apiEncerrarSustentacaoHabilidadeSessaoCampanha,
+  apiUsarHabilidadeClasseSessaoCampanha,
   apiUsarHabilidadeSessaoCampanha,
   criarErroUsuario,
+  type UsarHabilidadeClasseSessaoCampanhaPayload,
 } from '@/lib/api';
 import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import { calcularRestanteCooldown } from '@/lib/campanha/sessao-utils';
@@ -25,6 +27,10 @@ type UseSessaoHabilidadesReturn = {
     variacaoHabilidadeId?: number,
     acumulos?: number,
   ) => Promise<void>;
+  handleUsarHabilidadeClasse: (
+    personagemSessaoId: number,
+    payload: UsarHabilidadeClasseSessaoCampanhaPayload,
+  ) => Promise<void>;
   handleEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => Promise<void>;
 };
 
@@ -41,6 +47,13 @@ function montarChaveEncerrarSustentacao(
   sustentacaoId: number,
 ): string {
   return `encerrar:${personagemSessaoId}:${sustentacaoId}`;
+}
+
+function montarChaveUsoHabilidadeClasse(
+  personagemSessaoId: number,
+  habilidadeId: number,
+): string {
+  return `usar-classe:${personagemSessaoId}:${habilidadeId}`;
 }
 
 export function useSessaoHabilidades({
@@ -64,7 +77,7 @@ export function useSessaoHabilidades({
       variacaoHabilidadeId?: number,
       acumulos?: number,
     ) => {
-      if (sessaoEncerrada) return;
+      if (sessaoEncerrada || acaoHabilidadePendente) return;
 
       const chave = montarChaveUsoHabilidade(
         personagemSessaoId,
@@ -112,6 +125,7 @@ export function useSessaoHabilidades({
       }
     },
     [
+      acaoHabilidadePendente,
       campanhaId,
       cooldownMs,
       sessaoEncerrada,
@@ -123,9 +137,48 @@ export function useSessaoHabilidades({
     ],
   );
 
+  const handleUsarHabilidadeClasse = useCallback(
+    async (
+      personagemSessaoId: number,
+      payload: UsarHabilidadeClasseSessaoCampanhaPayload,
+    ) => {
+      if (sessaoEncerrada || acaoHabilidadePendente) return;
+
+      const chave = montarChaveUsoHabilidadeClasse(
+        personagemSessaoId,
+        payload.habilidadeId,
+      );
+      setAcaoHabilidadePendente(chave);
+      setErro(null);
+      try {
+        const atualizado = await apiUsarHabilidadeClasseSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          personagemSessaoId,
+          payload,
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+      } catch (error) {
+        setErro(criarErroUsuario(error));
+      } finally {
+        setAcaoHabilidadePendente(null);
+      }
+    },
+    [
+      acaoHabilidadePendente,
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      setDetalhe,
+      setErro,
+      sincronizarEstadosDerivados,
+    ],
+  );
+
   const handleEncerrarSustentacao = useCallback(
     async (personagemSessaoId: number, sustentacaoId: number) => {
-      if (sessaoEncerrada) return;
+      if (sessaoEncerrada || acaoHabilidadePendente) return;
 
       const chave = montarChaveEncerrarSustentacao(personagemSessaoId, sustentacaoId);
       setAcaoHabilidadePendente(chave);
@@ -146,6 +199,7 @@ export function useSessaoHabilidades({
       }
     },
     [
+      acaoHabilidadePendente,
       campanhaId,
       sessaoEncerrada,
       sessaoId,
@@ -155,5 +209,10 @@ export function useSessaoHabilidades({
     ],
   );
 
-  return { acaoHabilidadePendente, handleUsarHabilidade, handleEncerrarSustentacao };
+  return {
+    acaoHabilidadePendente,
+    handleUsarHabilidade,
+    handleUsarHabilidadeClasse,
+    handleEncerrarSustentacao,
+  };
 }
