@@ -480,7 +480,7 @@ As classes definem o papel mecânico do personagem em combate e como ele cresce 
 
 Neste suplemento, o sistema original de classes foi substituído por três classes adaptadas à temática de Jujutsu: Combatente, Sentinela e Especialista.
 
-* Combatente: foca em confronto direto, ataques corpo a corpo e uso agressivo de PE/EA em Ataque Especial.  
+* Combatente: foca em confronto direto, ataques corpo a corpo e uso agressivo de PE em Ataque Especial.
 * Sentinela: foca em controle de campo, uso tático de Jujutsu, combate a média/longa distância e aprimoramento temporário de técnicas.  
 * Especialista: é mais flexível, podendo se especializar em perícias, suporte, técnicas específicas (como Shikigami, curas ou barreiras) e manipulação criativa de recursos.
 
@@ -570,7 +570,7 @@ As trilhas concedem habilidades nos níveis 2, 8, 13 e 18, sempre seguindo o pad
 
 Todas as classes seguem a mesma estrutura básica:
 
-* Recurso de classe (nível 1): uma mecânica exclusiva que define o “jeito” da classe de gastar PE/EA e se destacar em combate.  
+* Recurso de classe (nível 1): uma mecânica exclusiva que define o “jeito” da classe de gastar PE e se destacar em combate.
 * Tabela de progressão (níveis 1-20): indicando níveis em que recebe Ataque Especial/Aprimorado/Perito melhorado, poderes de classe, habilidades de trilha, aumento de atributo, grau de treinamento e grau de aprimoramento.
 
 Além disso, cada classe traz:
@@ -581,7 +581,7 @@ Além disso, cada classe traz:
 
 ### **4.1.1. Combatente**
 
-O Combatente é o especialista em confronto direto, focado em embates corpo a corpo ou a curta distância, usando seu recurso de classe para amplificar ataques por meio de PE/EA. É a classe ideal para personagens que querem ficar na linha de frente e resolver conflitos “na porrada”, usando técnicas Jujutsu para reforçar a trocação.
+O Combatente é o especialista em confronto direto, focado em embates corpo a corpo ou a curta distância, usando seu recurso de classe para amplificar ataques por meio de PE. É a classe ideal para personagens que querem ficar na linha de frente e resolver conflitos “na porrada”, usando técnicas Jujutsu para reforçar a trocação.
 
 #### ***Recurso de Classe: Ataque Especial***
 
@@ -598,23 +598,23 @@ rolagem de dano daquele ataque.
 
 | Nível | Habilidade |
 | :---- | :---- |
-| 1 | Ataque especial (2 PE/EA, \+5) |
+| 1 | Ataque especial (2 PE, \+5) |
 | 2 | Habilidade de trilha, Grau de Aprimoramento |
 | 3 | Poder genérico, Grau de treinamento |
 | 4 | Aumento de atributo |
-| 5 | Ataque especial (3 PE/EA, \+10), Profciiência |
+| 5 | Ataque especial (3 PE, \+10), Profciiência |
 | 6 | Poder genérico |
 | 7 | Grau de treinamento, Aumento de Atributo |
 | 8 | Habilidade de trilha, Grau de Aprimoramento |
 | 9 | Poder genérico |
 | 10 | Aumento de atributo |
-| 11 | Ataque especial (4 PE/EA, \+15), Grau de treinamento |
+| 11 | Ataque especial (4 PE, \+15), Grau de treinamento |
 | 12 | Poder genérico |
 | 13 | Habilidade de trilha, Aumento de Atributo |
 | 14 | Grau de Aprimoramento |
 | 15 | Poder genérico |
 | 16 | Aumento de atributo, Grau de treinamento |
-| 17 | Ataque especial (5 PE/EA, \+20) |
+| 17 | Ataque especial (5 PE, \+20) |
 | 18 | Poder genérico, Grau de Aprimoramento |
 | 19 | Aumento de atributo |
 | 20 | Habilidade de trilha |
@@ -646,11 +646,11 @@ O Sentinela é o combatente tático que atua de média a longa distância, contr
 
 #### ***Recurso de Classe: Aprimorado***
 
-O Sentinela pode gastar PE/EA para aumentar temporariamente o grau de aprimoramento de técnicas Jujutsu. No nível 1, pode gastar 2 PE para receber \+1
+O Sentinela pode gastar PE para aumentar temporariamente o grau de aprimoramento de técnicas Jujutsu. No nível 1, pode gastar 2 PE para receber \+1
 
 grau de aprimoramento em qualquer técnica não-inata até o fim da cena.
 
-Conforme o nível aumenta, pode-se gastar mais PE/EA para ganhar mais graus temporários, com o limite de no máximo 2 graus temporários na mesma técnica.
+Conforme o nível aumenta, pode-se gastar mais PE para ganhar mais graus temporários, com o limite de no máximo 2 graus temporários na mesma técnica.
 
 * Nível 1: gasta 2 PE para receber \+1 grau de aprimoramento temporário.  
 * Nível 5: gasta 3 PE para receber \+2 graus de aprimoramento temporário.  
@@ -665,19 +665,19 @@ Conforme o nível aumenta, pode-se gastar mais PE/EA para ganhar mais graus temp
 | 2 | Habilidade de trilha, Grau de Aprimoramento |
 | 3 | Poder genérico, Grau de treinamento |
 | 4 | Aumento de atributo |
-| 5 | Aprimorado (3 PE/EA, \+2 grau de aprimoramento temporário) |
+| 5 | Aprimorado (3 PE, \+2 grau de aprimoramento temporário) |
 | 6 | Poder genérico |
 | 7 | Grau de treinamento, Aumento de Atributo |
 | 8 | Habilidade de trilha, Grau de Aprimoramento |
 | 9 | Poder genérico |
 | 10 | Aumento de atributo |
-| 11 | Aprimorado (4 PE/EA, \+3 grau de aprimoramento temporário), Grau de treinamento |
+| 11 | Aprimorado (4 PE, \+3 grau de aprimoramento temporário), Grau de treinamento |
 | 12 | Poder genérico |
 | 13 | Habilidade de trilha, Aumento de Atributo |
 | 14 | Grau de Aprimoramento |
 | 15 | Poder genérico |
 | 16 | Aumento de atributo, Grau de treinamento |
-| 17 | Aprimorado (5 PE/EA, \+4 grau de aprimoramento temporário) |
+| 17 | Aprimorado (5 PE, \+4 grau de aprimoramento temporário) |
 | 18 | Poder genérico, Grau de Aprimoramento |
 | 19 | Aumento de atributo |
 | 20 | Habilidade de trilha |
@@ -710,14 +710,14 @@ Seu recurso de classe melhora testes de perícia, permitindo resultados extremos
 
 #### ***Recurso de Classe: Perito***
 
-No nível 1, o Especialista escolhe duas perícias nas quais já é treinado. Quando faz um teste com uma dessas perícias, pode gastar PE para somar um dado extra ao resultado.
+Quando o Especialista faz um teste com uma perícia na qual é treinado, exceto Luta e Pontaria, pode gastar PE para somar um dado extra ao resultado.
 
 * Nível 1: gasta 2 PE para somar \+1d6 ao teste.  
 * Nível 5: passa a poder gastar 3 PE para \+1d8.  
 * Nível 11: passa a poder gastar 4 PE para \+1d10.  
 * Nível 17: passa a poder gastar 5 PE para \+1d12.
 
-A cada melhoria de Perito, o dado usado pela habilidade aumenta, substituindo o anterior. O mestre pode permitir que o jogador troque as perícias foco em interlúdios importantes, se fizer sentido dada a situação.
+A cada melhoria de Perito, o personagem passa a poder escolher a nova versão da habilidade, mantendo acesso às versões anteriores.
 
 #### ***Tabela de Progressão do Especialista***
 
@@ -761,7 +761,7 @@ EA por nível: 4+Presença ou 4+Intelecto (dependendo da
 SAN inicial: 16\.
 
 * SAN por nível: 4\.  
-* Perícias treinadas: um número de perícias à escolha igual a 6+Intelecto.  
+* Perícias treinadas: um número de perícias à escolha igual a 7+Intelecto.
 * Proficiências: armas simples e proteções leves.
 
 ## **4.2. PODERES ESPECIAIS**
