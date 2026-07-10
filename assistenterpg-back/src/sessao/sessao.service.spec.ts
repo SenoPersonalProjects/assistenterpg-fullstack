@@ -612,6 +612,171 @@ describe('SessaoService', () => {
     expect(bonus.get('TECNICA_REVERSA')).toBeUndefined();
   });
 
+  it('deve listar apenas Aprimorado temporario da cena atual', () => {
+    const estado = {
+      pendentesRolagem: {},
+      aprimoramentosTemporarios: {
+        51: [
+          {
+            id: 'aprimorado:atual',
+            eventoId: 1,
+            personagemSessaoId: 41,
+            personagemCampanhaId: 51,
+            tecnicaId: 10,
+            tecnicaNome: 'Tecnica Reversa',
+            tipoGrauCodigo: 'TECNICA_REVERSA',
+            graus: 1,
+            cenaId: 8,
+            criadoEm: new Date().toISOString(),
+          },
+          {
+            id: 'aprimorado:antigo',
+            eventoId: 2,
+            personagemSessaoId: 41,
+            personagemCampanhaId: 51,
+            tecnicaId: 11,
+            tecnicaNome: 'Barreira',
+            tipoGrauCodigo: 'BARREIRA',
+            graus: 2,
+            cenaId: 7,
+            criadoEm: new Date().toISOString(),
+          },
+        ],
+      },
+    };
+
+    const ativos = (service as any).listarAprimoramentosTemporariosAtivos(
+      estado,
+      51,
+      8,
+    );
+
+    expect(ativos).toHaveLength(1);
+    expect(ativos[0]).toMatchObject({ id: 'aprimorado:atual', cenaId: 8 });
+  });
+
+  function criarTxLimpezaAprimorado(estado: Record<string, unknown> | null) {
+    return {
+      sessaoRegraOpcional: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(estado ? { id: 77, estado } : null),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+  }
+
+  it('deve limpar Aprimorados expirados preservando cena atual e Perito', async () => {
+    const pendentePerito = criarPendentePeritoTeste();
+    const estado = {
+      pendentesRolagem: {
+        '51:9': pendentePerito,
+      },
+      aprimoramentosTemporarios: {
+        51: [
+          {
+            id: 'aprimorado:atual',
+            eventoId: 1,
+            personagemSessaoId: 41,
+            personagemCampanhaId: 51,
+            tecnicaId: 10,
+            tecnicaNome: 'Tecnica Reversa',
+            tipoGrauCodigo: 'TECNICA_REVERSA',
+            graus: 1,
+            cenaId: 8,
+            criadoEm: new Date().toISOString(),
+          },
+          {
+            id: 'aprimorado:antigo',
+            eventoId: 2,
+            personagemSessaoId: 41,
+            personagemCampanhaId: 51,
+            tecnicaId: 11,
+            tecnicaNome: 'Barreira',
+            tipoGrauCodigo: 'BARREIRA',
+            graus: 2,
+            cenaId: 7,
+            criadoEm: new Date().toISOString(),
+          },
+        ],
+        52: [
+          {
+            id: 'aprimorado:outro-personagem',
+            eventoId: 3,
+            personagemSessaoId: 42,
+            personagemCampanhaId: 52,
+            tecnicaId: 12,
+            tecnicaNome: 'Dominio',
+            tipoGrauCodigo: 'DOMINIO',
+            graus: 1,
+            cenaId: 7,
+            criadoEm: new Date().toISOString(),
+          },
+        ],
+      },
+    };
+    const tx = criarTxLimpezaAprimorado(estado);
+
+    await (service as any).limparAprimoramentosTemporariosExpiradosTx(
+      tx,
+      21,
+      8,
+    );
+
+    expect(tx.sessaoRegraOpcional.update).toHaveBeenCalledTimes(1);
+    const estadoSalvo = tx.sessaoRegraOpcional.update.mock.calls[0][0].data
+      .estado as Record<string, unknown>;
+    expect(JSON.stringify(estadoSalvo)).toContain('aprimorado:atual');
+    expect(JSON.stringify(estadoSalvo)).not.toContain('aprimorado:antigo');
+    expect(JSON.stringify(estadoSalvo)).not.toContain(
+      'aprimorado:outro-personagem',
+    );
+    expect(JSON.stringify(estadoSalvo)).toContain(pendentePerito.id);
+  });
+
+  it('nao deve criar estado vazio ao limpar Aprimorado sem regra interna', async () => {
+    const tx = criarTxLimpezaAprimorado(null);
+
+    await (service as any).limparAprimoramentosTemporariosExpiradosTx(
+      tx,
+      21,
+      8,
+    );
+
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve ser idempotente quando so existem Aprimorados da cena atual', async () => {
+    const estado = {
+      pendentesRolagem: {},
+      aprimoramentosTemporarios: {
+        51: [
+          {
+            id: 'aprimorado:atual',
+            eventoId: 1,
+            personagemSessaoId: 41,
+            personagemCampanhaId: 51,
+            tecnicaId: 10,
+            tecnicaNome: 'Tecnica Reversa',
+            tipoGrauCodigo: 'TECNICA_REVERSA',
+            graus: 1,
+            cenaId: 8,
+            criadoEm: new Date().toISOString(),
+          },
+        ],
+      },
+    };
+    const tx = criarTxLimpezaAprimorado(estado);
+
+    await (service as any).limparAprimoramentosTemporariosExpiradosTx(
+      tx,
+      21,
+      8,
+    );
+
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
   it('deve recuperar EA por Produção Acelerada usando acúmulos', async () => {
     const tx = {
       condicao: {

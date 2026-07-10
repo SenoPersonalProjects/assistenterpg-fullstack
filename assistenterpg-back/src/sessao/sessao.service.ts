@@ -3347,6 +3347,12 @@ export class SessaoService {
         }
       }
 
+      await this.limparAprimoramentosTemporariosExpiradosTx(
+        tx,
+        sessaoId,
+        cena.id,
+      );
+
       await tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -6137,6 +6143,54 @@ export class SessaoService {
         config: this.jsonParaPersistencia({}),
         estado: this.jsonParaPersistencia(estado),
       },
+    });
+  }
+
+  private async limparAprimoramentosTemporariosExpiradosTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    cenaAtualId: number | null,
+  ) {
+    const regra = await tx.sessaoRegraOpcional.findUnique({
+      where: {
+        sessaoId_chave: {
+          sessaoId,
+          chave: CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+        },
+      },
+      select: {
+        id: true,
+        estado: true,
+      },
+    });
+
+    if (!regra) return;
+
+    const estado = this.normalizarEstadoHabilidadesClasseSessao(regra.estado);
+    const aprimoramentosAtivos: Record<
+      string,
+      AprimoramentoTemporarioSessaoResumo[]
+    > = {};
+    let alterou = false;
+
+    for (const [chave, lista] of Object.entries(
+      estado.aprimoramentosTemporarios,
+    )) {
+      const mantidos = lista.filter((item) => item.cenaId === cenaAtualId);
+      if (mantidos.length !== lista.length || mantidos.length === 0) {
+        alterou = true;
+      }
+      if (mantidos.length > 0) {
+        aprimoramentosAtivos[chave] = mantidos;
+      }
+    }
+
+    if (!alterou) return;
+
+    estado.aprimoramentosTemporarios = aprimoramentosAtivos;
+    await tx.sessaoRegraOpcional.update({
+      where: { id: regra.id },
+      data: { estado: this.jsonParaPersistencia(estado) },
     });
   }
 

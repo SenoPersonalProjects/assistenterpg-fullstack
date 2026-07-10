@@ -11,6 +11,7 @@ import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/Sessi
 import { Icon } from '@/components/ui/Icon';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
+import { formatarBuffsAprimoradoAtivos } from '@/lib/campanha/sessao-aprimoramentos';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import type {
   RolagemDanoHabilidadeSessaoPayload,
@@ -249,6 +250,9 @@ export function SessionCharacterDetailsTabs({
   const habilidadesClasseCard = card.habilidadesClasse ?? [];
   const outrasHabilidadesCard = card.outrasHabilidades ?? [];
   const aprimoramentosTemporariosCard = card.aprimoramentosTemporarios ?? [];
+  const buffsAprimoradoAtivos = formatarBuffsAprimoradoAtivos(
+    aprimoramentosTemporariosCard,
+  );
   const opcoesAprimoramentoTecnicasCard =
     card.opcoesAprimoramentoTecnicasNaoInatas ?? [];
   const totalHabilidadesClasse = habilidadesClasseCard.length;
@@ -804,16 +808,27 @@ export function SessionCharacterDetailsTabs({
                   Nenhuma habilidade de classe disponível.
                 </p>
               )}
-              {aprimoramentosTemporariosCard.length > 0 ? (
+              {buffsAprimoradoAtivos.length > 0 ? (
                 <div className="rounded border border-app-border bg-app-elevated px-2 py-2">
                   <p className="session-text-xxs font-semibold text-app-muted uppercase">
                     Aprimoramentos ativos
                   </p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {aprimoramentosTemporariosCard.map((item) => (
-                      <Badge key={item.id} size="sm" color="purple">
-                        {item.tecnicaNome} +{item.graus}
-                      </Badge>
+                  <div className="mt-2 space-y-1.5">
+                    {buffsAprimoradoAtivos.map((buff) => (
+                      <div
+                        key={buff.id}
+                        className="rounded border border-app-border/70 bg-app-surface px-2 py-1.5 session-text-xxs text-app-muted"
+                      >
+                        <span className="font-semibold text-app-fg">
+                          {buff.fonte}:
+                        </span>{' '}
+                        <span>{buff.tecnicaNome}</span>
+                        <span> · {buff.grauLabel}</span>{' '}
+                        <Badge size="sm" color="purple">
+                          {buff.bonusLabel}
+                        </Badge>{' '}
+                        <span>· {buff.duracao}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
