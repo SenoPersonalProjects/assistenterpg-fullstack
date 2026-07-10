@@ -13,9 +13,21 @@ const LIMITE_FACES = 1000;
 const LIMITE_MODIFICADOR = 10000;
 const LIMITE_EXPRESSOES = 8;
 const LIMITE_LABEL = 24;
+const DICE_TERMO_REGEX = /^(\d+)?(#?)d(\d+)/i;
 
 export type DiceOperador = '+' | '-' | '*' | '/';
 export type DiceKeepMode = 'SUM' | 'HIGHEST' | 'LOWEST';
+
+export type DiceTermExpression = {
+  quantidade: number;
+  faces: number;
+  aplicarModificadorPorDado: boolean;
+  keepMode?: DiceKeepMode;
+};
+
+export type DiceRollTerm = DiceTermExpression & {
+  rolagens: number[];
+};
 
 export type DiceExpression = {
   quantidade: number;
@@ -25,11 +37,13 @@ export type DiceExpression = {
   keepMode?: DiceKeepMode;
   aplicarModificadorPorDado: boolean;
   label?: string;
+  termos?: DiceTermExpression[];
 };
 
 export type DiceRollPayload = DiceExpression & {
   rolagens: number[];
   bonusDados?: DiceBonusDado[];
+  termos?: DiceRollTerm[];
 };
 
 export type DiceBonusDado = {
@@ -73,6 +87,18 @@ export type DiceResultado = {
   bonusDados: DiceBonusDado[];
   rolagensBase: number[];
   rolagensFinais: number[];
+  indiceEscolhido: number | null;
+  termos?: DiceTermResultado[];
+};
+
+export type DiceTermResultado = {
+  quantidade: number;
+  faces: number;
+  keepMode: DiceKeepMode;
+  aplicarModificadorPorDado: boolean;
+  rolagensBase: number[];
+  rolagensFinais: number[];
+  subtotal: number;
   indiceEscolhido: number | null;
 };
 
@@ -159,13 +185,113 @@ function normalizarEntradaDice(input: string): string {
   return input
     .trim()
     .replace(/\s*([:=])\s*/g, '$1')
-    .replace(/\s*([+\-*/])\s*(?=\d)/g, '$1');
+    .replace(/\s*([+\-*/])\s*(?=(?:\d+)?#?d|\d)/gi, '$1');
 }
 
 function resolverKeepModeResultado(payload: DiceRollPayload): DiceKeepMode {
   const keepMode = normalizarKeepMode(payload.keepMode);
   if (!payload.aplicarModificadorPorDado) return keepMode;
   return keepMode === 'LOWEST' ? 'LOWEST' : 'HIGHEST';
+}
+
+function resolverKeepModeTermo(term: DiceTermExpression): DiceKeepMode {
+  const keepMode = normalizarKeepMode(term.keepMode);
+  if (!term.aplicarModificadorPorDado) return keepMode;
+  return keepMode === 'LOWEST' ? 'LOWEST' : 'HIGHEST';
+}
+
+function obterTermosExpression(expression: DiceExpression): DiceTermExpression[] {
+  if (Array.isArray(expression.termos) && expression.termos.length > 0) {
+    return expression.termos;
+  }
+  return [
+    {
+      quantidade: expression.quantidade,
+      faces: expression.faces,
+      aplicarModificadorPorDado: expression.aplicarModificadorPorDado,
+      keepMode: expression.keepMode,
+    },
+  ];
+}
+
+function obterTermosPayload(payload: DiceRollPayload): DiceRollTerm[] {
+  if (Array.isArray(payload.termos) && payload.termos.length > 0) {
+    return payload.termos;
+  }
+  return [
+    {
+      quantidade: payload.quantidade,
+      faces: payload.faces,
+      aplicarModificadorPorDado: payload.aplicarModificadorPorDado,
+      keepMode: payload.keepMode,
+      rolagens: payload.rolagens,
+    },
+  ];
+}
+
+function payloadEhComposto(payload: DiceRollPayload): boolean {
+  return Array.isArray(payload.termos) && payload.termos.length > 1;
+}
+
+function expressionEhComposta(expression: DiceExpression): boolean {
+  return Array.isArray(expression.termos) && expression.termos.length > 1;
+}
+
+function aplicarOperadorTotal(
+  totalBase: number,
+  operador: DiceOperador,
+  modificador: number,
+): number {
+  switch (operador) {
+    case '-':
+      return totalBase - modificador;
+    case '*':
+      return totalBase * modificador;
+    case '/':
+      return modificador === 0 ? totalBase : Math.trunc(totalBase / modificador);
+    default:
+      return totalBase + modificador;
+  }
+}
+
+function calcularResultadoTermo(term: DiceRollTerm): DiceTermResultado {
+  const keepMode = resolverKeepModeTermo(term);
+  const rolagensBase = term.rolagens;
+  const rolagensFinais = rolagensBase;
+  if (keepMode === 'SUM') {
+    return {
+      quantidade: term.quantidade,
+      faces: term.faces,
+      keepMode,
+      aplicarModificadorPorDado: term.aplicarModificadorPorDado,
+      rolagensBase,
+      rolagensFinais,
+      subtotal: rolagensBase.reduce((acc, valor) => acc + valor, 0),
+      indiceEscolhido: null,
+    };
+  }
+
+  let indiceEscolhido = 0;
+  for (let i = 1; i < rolagensBase.length; i += 1) {
+    const atual = rolagensBase[i] ?? 0;
+    const escolhido = rolagensBase[indiceEscolhido] ?? 0;
+    if (keepMode === 'HIGHEST') {
+      if (atual > escolhido) indiceEscolhido = i;
+    } else if (atual < escolhido) {
+      indiceEscolhido = i;
+    }
+  }
+
+  return {
+    quantidade: term.quantidade,
+    faces: term.faces,
+    keepMode,
+    aplicarModificadorPorDado: term.aplicarModificadorPorDado,
+    rolagensBase,
+    rolagensFinais,
+    subtotal: rolagensBase[indiceEscolhido] ?? 0,
+    indiceEscolhido,
+  };
 }
 
 function gerarNumeroSeguro(maximo: number): number {
@@ -202,10 +328,131 @@ function decodeRolls(valor: string): number[] | null {
   return rolagens.map((valor) => Math.trunc(valor));
 }
 
+function expressaoPossuiGruposSomados(compactado: string): boolean {
+  return /d\d+\+(?:\d+)?#?d/i.test(compactado);
+}
+
+function parseDiceExpressionComposta(compactado: string): DiceParseResult {
+  const termos: DiceTermExpression[] = [];
+  let posicao = 0;
+  let operador: DiceOperador = '+';
+  let modificador = 0;
+
+  while (posicao < compactado.length) {
+    const trecho = compactado.slice(posicao);
+    const match = trecho.match(DICE_TERMO_REGEX);
+    if (!match) {
+      return {
+        expression: null,
+        erro:
+          'Sintaxe invalida. Use XdY, X#dY ou grupos somados (ex.: 4#d20+2d6).',
+      };
+    }
+
+    const quantidade = match[1] ? Number(match[1]) : 1;
+    const aplicarModificadorPorDado = match[2] === '#';
+    const faces = Number(match[3]);
+    if (!Number.isInteger(quantidade) || quantidade <= 0) {
+      return { expression: null, erro: 'Quantidade de dados deve ser positiva.' };
+    }
+    if (!Number.isInteger(faces) || faces <= 0) {
+      return { expression: null, erro: 'Numero de faces deve ser positivo.' };
+    }
+    if (faces > LIMITE_FACES) {
+      return {
+        expression: null,
+        erro: `Limite de ${LIMITE_FACES} faces por dado.`,
+      };
+    }
+
+    termos.push({
+      quantidade,
+      faces,
+      aplicarModificadorPorDado,
+      keepMode: aplicarModificadorPorDado ? 'HIGHEST' : 'SUM',
+    });
+    posicao += match[0].length;
+    if (posicao >= compactado.length) break;
+
+    const proximo = compactado[posicao] as DiceOperador | undefined;
+    if (proximo === '+' && DICE_TERMO_REGEX.test(compactado.slice(posicao + 1))) {
+      posicao += 1;
+      continue;
+    }
+
+    const modificadorRaw = compactado.slice(posicao);
+    const matchModificador = modificadorRaw.match(/^([+\-*/])(\d+)$/);
+    if (!matchModificador) {
+      return {
+        expression: null,
+        erro:
+          proximo === '-' && DICE_TERMO_REGEX.test(compactado.slice(posicao + 1))
+            ? 'Somente + e suportado entre grupos de dados nesta rolagem.'
+            : 'Sintaxe invalida. Use XdY, X#dY ou grupos somados (ex.: 4#d20+2d6).',
+      };
+    }
+    operador = matchModificador[1] as DiceOperador;
+    modificador = Number(matchModificador[2]);
+    posicao = compactado.length;
+  }
+
+  const totalDados = termos.reduce((acc, termo) => acc + termo.quantidade, 0);
+  if (totalDados > LIMITE_DADOS) {
+    return {
+      expression: null,
+      erro: `Limite de ${LIMITE_DADOS} dados por rolagem.`,
+    };
+  }
+  if (!Number.isInteger(modificador) || Math.abs(modificador) > LIMITE_MODIFICADOR) {
+    return {
+      expression: null,
+      erro: `Modificador deve estar entre -${LIMITE_MODIFICADOR} e ${LIMITE_MODIFICADOR}.`,
+    };
+  }
+  if ((operador === '*' || operador === '/') && modificador < 0) {
+    return {
+      expression: null,
+      erro: 'Modificador deve ser positivo para multiplicacao/divisao.',
+    };
+  }
+  if (operador === '/' && modificador === 0) {
+    return {
+      expression: null,
+      erro: 'Divisor nao pode ser zero.',
+    };
+  }
+
+  const primeiroTermo = termos[0];
+  if (!primeiroTermo || termos.length < 2) {
+    return {
+      expression: null,
+      erro:
+        'Sintaxe invalida. Use XdY, X#dY ou grupos somados (ex.: 4#d20+2d6).',
+    };
+  }
+
+  return {
+    expression: {
+      quantidade: primeiroTermo.quantidade,
+      faces: primeiroTermo.faces,
+      modificador,
+      operador,
+      aplicarModificadorPorDado: primeiroTermo.aplicarModificadorPorDado,
+      keepMode: primeiroTermo.keepMode,
+      termos,
+    },
+    erro: null,
+  };
+}
+
 export function parseDiceExpression(input: string): DiceParseResult {
   const compactado = input.trim().replace(/\s+/g, '');
   if (!compactado) {
     return { expression: null, erro: 'Informe uma rolagem para continuar.' };
+  }
+
+  if (expressaoPossuiGruposSomados(compactado)) {
+    return parseDiceExpressionComposta(compactado);
   }
 
   const match = compactado.match(/^(\d+)?(#?)d(\d+)([+\-*/]\d+)?$/i);
@@ -334,10 +581,18 @@ export function parseDiceInput(input: string): DiceParseGroupResult {
 }
 
 export function rolarDados(expression: DiceExpression): DiceRollPayload {
-  const rolagens = Array.from({ length: expression.quantidade }, () =>
-    rolarDado(expression.faces),
-  );
-  return { ...expression, rolagens };
+  const termosExpression = obterTermosExpression(expression);
+  const termos = termosExpression.map((termo) => ({
+    ...termo,
+    rolagens: Array.from({ length: termo.quantidade }, () => rolarDado(termo.faces)),
+  }));
+  const primeiroTermo = termos[0];
+  const rolagens = primeiroTermo?.rolagens ?? [];
+  return {
+    ...expression,
+    rolagens,
+    termos: expressionEhComposta(expression) ? termos : undefined,
+  };
 }
 
 export function rolarBonusDado(params: {
@@ -369,7 +624,8 @@ export function aplicarPeritoPendenteChatLivre(
 
   let consumiu = false;
   const atualizados = payloads.map((payload) => {
-    if (consumiu || payload.faces !== 20) {
+    const temD20 = obterTermosPayload(payload).some((termo) => termo.faces === 20);
+    if (consumiu || !temD20) {
       return payload;
     }
     consumiu = true;
@@ -412,6 +668,33 @@ export function calcularResultadoDice(payload: DiceRollPayload): DiceResultado {
       bonus.rolagens.reduce((totalBonus, valor) => totalBonus + valor, 0),
     0,
   );
+  if (payloadEhComposto(payload)) {
+    const termos = obterTermosPayload(payload).map((termo) =>
+      calcularResultadoTermo(termo),
+    );
+    const rolagensBaseCompostas = termos.flatMap((termo) => termo.rolagensBase);
+    const rolagensFinaisCompostas = termos.flatMap((termo) => termo.rolagensFinais);
+    const totalBaseComposto = termos.reduce(
+      (acc, termo) => acc + termo.subtotal,
+      0,
+    );
+    const totalSemBonus = aplicarOperadorTotal(
+      totalBaseComposto,
+      normalizado.operador,
+      normalizado.modificador,
+    );
+    return {
+      keepMode: 'SUM',
+      total: totalSemBonus + bonusTotal,
+      totalBase: totalBaseComposto,
+      bonusTotal,
+      bonusDados,
+      rolagensBase: rolagensBaseCompostas,
+      rolagensFinais: rolagensFinaisCompostas,
+      indiceEscolhido: null,
+      termos,
+    };
+  }
   const rolagensFinais = payload.aplicarModificadorPorDado
     ? rolagensBase.map((valor) => {
         switch (normalizado.operador) {
@@ -512,6 +795,11 @@ function payloadTemBonus(payload: DiceRollPayload): boolean {
   return Array.isArray(payload.bonusDados) && payload.bonusDados.length > 0;
 }
 
+function formatarTermoDice(term: DiceTermExpression): string {
+  const hash = term.aplicarModificadorPorDado ? '#' : '';
+  return `${term.quantidade}${hash}d${term.faces}`;
+}
+
 export function formatarExpressaoDice(expression: DiceExpression): string {
   const normalizado = normalizarOperadorModificador(
     expression.operador,
@@ -535,7 +823,10 @@ export function formatarExpressaoDice(expression: DiceExpression): string {
         .map((item) => `+${item.quantidade}d${item.faces}`)
         .join('')
     : '';
-  return `${expression.quantidade}${hash}d${expression.faces}${modTexto}${bonus}`;
+  const base = expressionEhComposta(expression)
+    ? obterTermosExpression(expression).map(formatarTermoDice).join('+')
+    : `${expression.quantidade}${hash}d${expression.faces}`;
+  return `${base}${modTexto}${bonus}`;
 }
 
 export function construirMensagemDice(payload: DiceRollPayload): {
@@ -545,7 +836,7 @@ export function construirMensagemDice(payload: DiceRollPayload): {
   const expression = payload.label
     ? `${payload.label}: ${formatarExpressaoDice(payload)}`
     : formatarExpressaoDice(payload);
-  const marcador = payloadTemBonus(payload)
+  const marcador = payloadTemBonus(payload) || payloadEhComposto(payload)
     ? `${DICE_MARKER_V5_PREFIX}${encodePayloadV5([payload])}]]`
     : payload.keepMode && payload.keepMode !== 'SUM'
       ? `${DICE_MARKER_V4_PREFIX}${encodePayloadV4(payload)}]]`
@@ -733,6 +1024,51 @@ function normalizarBonusDados(valor: unknown): DiceBonusDado[] | undefined {
   return bonus.length > 0 ? bonus : undefined;
 }
 
+function normalizarTermosRolagem(valor: unknown): DiceRollTerm[] | undefined {
+  if (!Array.isArray(valor)) return undefined;
+  const termos: DiceRollTerm[] = [];
+  let totalDados = 0;
+  for (const item of valor) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return undefined;
+    const registro = item as Record<string, unknown>;
+    const quantidade =
+      typeof registro.quantidade === 'number'
+        ? Math.trunc(registro.quantidade)
+        : 0;
+    const faces =
+      typeof registro.faces === 'number' ? Math.trunc(registro.faces) : 0;
+    const aplicarModificadorPorDado = registro.aplicarModificadorPorDado === true;
+    const keepMode = normalizarKeepMode(registro.keepMode as DiceKeepMode);
+    const rolagens = Array.isArray(registro.rolagens)
+      ? registro.rolagens.filter(
+          (valorRolagem): valorRolagem is number =>
+            typeof valorRolagem === 'number' &&
+            Number.isFinite(valorRolagem) &&
+            valorRolagem > 0,
+        )
+      : [];
+    totalDados += quantidade;
+    if (
+      quantidade <= 0 ||
+      faces <= 0 ||
+      faces > LIMITE_FACES ||
+      rolagens.length !== quantidade ||
+      rolagens.some((valorRolagem) => valorRolagem > faces)
+    ) {
+      return undefined;
+    }
+    termos.push({
+      quantidade,
+      faces,
+      aplicarModificadorPorDado,
+      keepMode,
+      rolagens,
+    });
+  }
+  if (termos.length <= 1 || totalDados > LIMITE_DADOS) return undefined;
+  return termos;
+}
+
 function decodePayloadV5(serializado: string): DiceRollPayload[] | null {
   const payloads = decodeJsonPayload<unknown>(serializado);
   if (!Array.isArray(payloads)) return null;
@@ -758,6 +1094,8 @@ function decodePayloadV5(serializado: string): DiceRollPayload[] | null {
             typeof valor === 'number' && Number.isFinite(valor) && valor > 0,
         )
       : [];
+    const termos = normalizarTermosRolagem(payload.termos);
+    if (payload.termos !== undefined && !termos) return null;
     if (
       quantidade <= 0 ||
       faces <= 0 ||
@@ -776,6 +1114,7 @@ function decodePayloadV5(serializado: string): DiceRollPayload[] | null {
       rolagens,
       label: typeof payload.label === 'string' ? payload.label : undefined,
       bonusDados: normalizarBonusDados(payload.bonusDados),
+      termos,
     });
   }
   return resultado.length > 0 ? resultado : null;
@@ -792,7 +1131,9 @@ export function construirMensagemDiceMultipla(payloads: DiceRollPayload[]): {
         : formatarExpressaoDice(payload),
     )
     .join(', ');
-  const usaV5 = payloads.some((payload) => payloadTemBonus(payload));
+  const usaV5 = payloads.some(
+    (payload) => payloadTemBonus(payload) || payloadEhComposto(payload),
+  );
   const usaV4 = payloads.some(
     (payload) => payload.keepMode && payload.keepMode !== 'SUM',
   );

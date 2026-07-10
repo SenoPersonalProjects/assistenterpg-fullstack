@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
+import { Icon } from '@/components/ui/Icon';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
 import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
@@ -65,6 +66,7 @@ export function DiceChatPanel({
   const [autoScrollAtivo, setAutoScrollAtivo] = useState(true);
   const [sucessoEnvio, setSucessoEnvio] = useState(false);
   const [ajudaAberta, setAjudaAberta] = useState(false);
+  const [configRolagemAberta, setConfigRolagemAberta] = useState(false);
   const fimListaRef = useRef<HTMLDivElement | null>(null);
 
   const podeEnviar =
@@ -208,7 +210,8 @@ export function DiceChatPanel({
       {erro ? <ErrorAlert message={erro} /> : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="session-chat__hint">
-          Sintaxe: XdY ou X#dY. Espaços em operadores são ignorados (ex.: d20 + 5).
+          Sintaxe: XdY, X#dY ou grupos somados como 4#d20+2d6.
+          Espaços em operadores são ignorados (ex.: d20 + 5).
         </p>
         <div className="flex items-center gap-3">
           <Checkbox
@@ -234,7 +237,7 @@ export function DiceChatPanel({
           </span>
         </div>
       ) : null}
-      <div className="grid gap-2 rounded-xl border border-app-border/40 bg-app-card/70 p-3 text-xs text-app-muted sm:grid-cols-2">
+      <div className="session-chat__roll-settings-legacy">
         <label className="space-y-1">
           <span className="font-bold text-app-fg">Contexto</span>
           <select
@@ -273,6 +276,16 @@ export function DiceChatPanel({
           </span>
         ) : null}
       </div>
+      {contextoRolagem === 'ATAQUE' && bonusEscaladaDados > 0 ? (
+        <span className="session-chat__roll-notice session-chat__roll-notice--danger">
+          Escalada de Dados +{bonusEscaladaDados} aplicada
+        </span>
+      ) : null}
+      {peritoPendenteChatLabel ? (
+        <span className="session-chat__roll-notice session-chat__roll-notice--warning">
+          {peritoPendenteChatLabel}
+        </span>
+      ) : null}
       {sucessoEnvio ? (
         <p className="session-chat__hint session-chat__hint--success">
           Rolagem enviada.
@@ -311,7 +324,56 @@ export function DiceChatPanel({
       ) : null}
 
       <div className="session-chat__input-row">
-        <label className="text-sm font-medium text-app-fg">Rolagem</label>
+        <div className="session-chat__input-head">
+          <label className="text-sm font-medium text-app-fg">Rolagem</label>
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            className="session-chat__settings-button"
+            aria-expanded={configRolagemAberta}
+            aria-controls="session-chat-roll-settings"
+            aria-label="Configurar rolagem"
+            title="Configurar rolagem"
+            onClick={() => setConfigRolagemAberta((aberta) => !aberta)}
+          >
+            <Icon name="settings" className="h-4 w-4" />
+          </Button>
+        </div>
+        {configRolagemAberta ? (
+          <div
+            id="session-chat-roll-settings"
+            className="session-chat__roll-settings"
+          >
+            <label className="session-chat__roll-setting">
+              <span>Contexto</span>
+              <select
+                value={contextoRolagem}
+                onChange={(event) =>
+                  onContextoRolagemChange?.(
+                    event.target.value as 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO',
+                  )
+                }
+                className="session-chat__roll-field"
+              >
+                <option value="OUTRO">Outro</option>
+                <option value="ATAQUE">Teste de ataque</option>
+                <option value="PERICIA">Perícia</option>
+                <option value="DANO">Dano ou cura</option>
+              </select>
+            </label>
+            <label className="session-chat__roll-setting">
+              <span>DT opcional</span>
+              <input
+                value={dtRolagem}
+                onChange={(event) => onDtRolagemChange?.(event.target.value)}
+                inputMode="numeric"
+                className="session-chat__roll-field"
+                placeholder="Ex.: 20"
+              />
+            </label>
+          </div>
+        ) : null}
         <textarea
           ref={textareaRef}
           value={mensagem}
@@ -319,7 +381,7 @@ export function DiceChatPanel({
           maxLength={LIMITE_MENSAGEM_ROLAGEM}
           disabled={sessaoEncerrada || enviandoMensagem}
           rows={1}
-          placeholder="Ex.: 2d6+3 ou 4#d8-1"
+          placeholder="Ex.: 2d6+3 ou 4#d20+2d6"
           className="session-chat__input"
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
@@ -352,14 +414,14 @@ export function DiceChatPanel({
             <p className="font-semibold text-app-fg">Sintaxe básica</p>
             <p>Use XdY para rolar X dados com Y faces.</p>
             <p>
-              Use # antes do d para aplicar o modificador em cada dado, mostrar
-              valores individuais e destacar o melhor resultado.
+              Use # antes do d para escolher o melhor resultado daquele grupo.
+              Grupos com + sao somados no mesmo total.
             </p>
           </div>
 
           <div className="space-y-2">
             <p className="font-semibold text-app-fg">Modificadores</p>
-            <p>Use +, -, * ou / no total; com #, o modificador vale para cada dado.</p>
+            <p>Use +, -, * ou / como modificador numerico final.</p>
           </div>
 
           <div className="space-y-2">
@@ -378,6 +440,9 @@ export function DiceChatPanel({
               <span><strong>d20</strong> (atalho de 1d20)</span>
               <span><strong>2d6+3</strong> (soma total +3)</span>
               <span><strong>4#d8-1</strong> (cada dado -1; destaca o melhor)</span>
+              <span><strong>4#d20+2d6</strong> (melhor d20 + soma dos d6)</span>
+              <span><strong>4d20+2d6</strong> (soma todos os dados)</span>
+              <span><strong>4#d20+2#d6</strong> (melhor d20 + melhor d6)</span>
               <span><strong>1d6 + 3</strong> (espaços são aceitos)</span>
               <span><strong>Ataque:d20+5 Defesa:d20+2</strong></span>
               <span><strong>d6 | d6 | d6</strong></span>

@@ -1872,6 +1872,70 @@ describe('SessaoService', () => {
     return { payloads: [payload] };
   }
 
+  function criarDadosRolagemCompostaChatLivreTeste(params?: {
+    incluirD20?: boolean;
+    incluirBonus?: boolean;
+    termoMalformado?: boolean;
+    incluirTerceiroGrupo?: boolean;
+    d20NoTerceiroGrupo?: boolean;
+  }) {
+    const termoD20 = {
+      quantidade: 4,
+      faces: 20,
+      aplicarModificadorPorDado: true,
+      keepMode: 'HIGHEST',
+      rolagens: [3, 19, 7, 12],
+    };
+    const termoD8 = {
+      quantidade: 3,
+      faces: 8,
+      aplicarModificadorPorDado: true,
+      keepMode: 'HIGHEST',
+      rolagens: [1, 8, 4],
+    };
+    const segundoTermo =
+      params?.d20NoTerceiroGrupo || params?.incluirD20 === false
+        ? termoD8
+        : termoD20;
+    const termos: unknown[] = [
+      {
+        quantidade: 2,
+        faces: 6,
+        aplicarModificadorPorDado: false,
+        keepMode: 'SUM',
+        rolagens: [2, 5],
+      },
+      segundoTermo,
+    ];
+    if (params?.incluirTerceiroGrupo) {
+      termos.push(params.d20NoTerceiroGrupo ? termoD20 : termoD8);
+    }
+    if (params?.termoMalformado) {
+      termos.push(null);
+    }
+    const payload: Record<string, unknown> = {
+      quantidade: 2,
+      faces: 6,
+      modificador: 0,
+      operador: '+',
+      aplicarModificadorPorDado: false,
+      rolagens: [2, 5],
+      termos,
+    };
+    if (params?.incluirBonus) {
+      payload.bonusDados = [
+        {
+          origem: 'PERITO',
+          efeitoPendenteId: 'perito:123',
+          quantidade: 1,
+          faces: 8,
+          rolagens: [5],
+        },
+      ];
+    }
+    return { payloads: [payload] };
+  }
+
   function criarTxPeritoTeste(grauTreinamento = 1) {
     const estado = {
       pendentesRolagem: {
@@ -1952,6 +2016,54 @@ describe('SessaoService', () => {
     expect(tx.sessaoRegraOpcional.update).toHaveBeenCalled();
   });
 
+  it('deve aplicar e consumir Perito no chat livre com d20 em rolagem composta', async () => {
+    const tx = criarTxPeritoTeste();
+
+    const ajustes = await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+      criarDadosRolagemCompostaChatLivreTeste({ incluirBonus: true }),
+    );
+
+    expect(ajustes).toEqual([
+      expect.objectContaining({
+        tipo: 'PERITO',
+        efeitoPendenteId: 'perito:123',
+      }),
+    ]);
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).toHaveBeenCalled();
+  });
+
+  it('deve detectar d20 no terceiro grupo composto para consumir Perito', async () => {
+    const tx = criarTxPeritoTeste();
+
+    const ajustes = await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+      criarDadosRolagemCompostaChatLivreTeste({
+        incluirBonus: true,
+        incluirTerceiroGrupo: true,
+        d20NoTerceiroGrupo: true,
+      }),
+    );
+
+    expect(ajustes).toEqual([
+      expect.objectContaining({
+        tipo: 'PERITO',
+        efeitoPendenteId: 'perito:123',
+      }),
+    ]);
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).toHaveBeenCalled();
+  });
+
   it('deve manter Perito pendente no chat livre quando a rolagem nao tem d20', async () => {
     const tx = criarTxPeritoTeste();
 
@@ -1962,6 +2074,43 @@ describe('SessaoService', () => {
       51,
       { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
       criarDadosRolagemChatLivreTeste({ faces: 6, rolagens: [4] }),
+    );
+
+    expect(ajustes).toEqual([]);
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve manter Perito pendente em tres grupos compostos sem d20', async () => {
+    const tx = criarTxPeritoTeste();
+
+    const ajustes = await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+      criarDadosRolagemCompostaChatLivreTeste({
+        incluirD20: false,
+        incluirTerceiroGrupo: true,
+      }),
+    );
+
+    expect(ajustes).toEqual([]);
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve manter Perito pendente em rolagem composta sem d20', async () => {
+    const tx = criarTxPeritoTeste();
+
+    const ajustes = await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+      criarDadosRolagemCompostaChatLivreTeste({ incluirD20: false }),
     );
 
     expect(ajustes).toEqual([]);
@@ -2012,6 +2161,46 @@ describe('SessaoService', () => {
     });
     expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
     expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar bonus Perito em rolagem composta malformada sem consumir', async () => {
+    const tx = criarTxPeritoTeste();
+
+    await expect(
+      (service as any).consumirBonusPeritoPendenteTx(
+        tx,
+        21,
+        41,
+        51,
+        { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+        criarDadosRolagemCompostaChatLivreTeste({
+          incluirBonus: true,
+          termoMalformado: true,
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_PERITO_PAYLOAD_INVALIDO',
+    });
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve calcular total de rolagem composta com melhores termos e modificador final', () => {
+    const dados = criarDadosRolagemCompostaChatLivreTeste();
+    const payload = dados.payloads[0];
+    payload.modificador = 3;
+
+    expect((service as any).calcularTotalPayloadRolagem(payload)).toBe(29);
+  });
+
+  it('deve calcular total de tres grupos compostos com modificador final', () => {
+    const dados = criarDadosRolagemCompostaChatLivreTeste({
+      incluirTerceiroGrupo: true,
+    });
+    const payload = dados.payloads[0];
+    payload.modificador = 3;
+
+    expect((service as any).calcularTotalPayloadRolagem(payload)).toBe(37);
   });
 
   it('deve rejeitar tentativa de exibir Perito sem pendente compativel', async () => {

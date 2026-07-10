@@ -6743,9 +6743,18 @@ export class SessaoService {
     payload: Record<string, unknown>,
     facesEsperadas: number,
   ): boolean {
-    const quantidade = this.lerInteiroRegistro(payload, 'quantidade') ?? 1;
-    const faces = this.lerInteiroRegistro(payload, 'faces');
-    const rolagensRaw = payload.rolagens;
+    return this.extrairTermosPayloadRolagem(payload).some((termo) =>
+      this.termoRolagemDadoValido(termo, facesEsperadas),
+    );
+  }
+
+  private termoRolagemDadoValido(
+    termo: Record<string, unknown>,
+    facesEsperadas: number,
+  ): boolean {
+    const quantidade = this.lerInteiroRegistro(termo, 'quantidade') ?? 1;
+    const faces = this.lerInteiroRegistro(termo, 'faces');
+    const rolagensRaw = termo.rolagens;
     const rolagens = Array.isArray(rolagensRaw) ? rolagensRaw : [];
 
     return (
@@ -6815,11 +6824,16 @@ export class SessaoService {
 
     const payload = this.extrairPayloadsRolagem(dadosRolagem)[0];
     if (!payload) return null;
-    const rolagens = Array.isArray(payload.rolagens)
-      ? payload.rolagens.filter(
-          (valor): valor is number => typeof valor === 'number',
-        )
-      : [];
+    const rolagens = this.extrairTermosPayloadRolagem(payload).flatMap(
+      (termo) => {
+        const rolagensRaw = termo.rolagens;
+        return Array.isArray(rolagensRaw)
+          ? rolagensRaw.filter(
+              (valor): valor is number => typeof valor === 'number',
+            )
+          : [];
+      },
+    );
     if (!rolagens.includes(1)) return null;
     const total = this.calcularTotalPayloadRolagem(payload);
     if (total >= contexto.dt) return null;
@@ -6953,19 +6967,59 @@ export class SessaoService {
     return [];
   }
 
-  private calcularTotalPayloadRolagem(
+  private extrairTermosPayloadRolagem(
     payload: Record<string, unknown>,
-  ): number {
-    const rolagensRaw: unknown = payload.rolagens;
+  ): Array<Record<string, unknown>> {
+    const termos = payload.termos;
+    if (Array.isArray(termos) && termos.length > 0) {
+      const registros: Array<Record<string, unknown>> = [];
+      for (const termo of termos) {
+        if (
+          typeof termo !== 'object' ||
+          termo === null ||
+          Array.isArray(termo)
+        ) {
+          return [];
+        }
+        registros.push(termo as Record<string, unknown>);
+      }
+      return registros;
+    }
+    return [payload];
+  }
+
+  private calcularSubtotalTermoRolagem(termo: Record<string, unknown>): number {
+    const rolagensRaw: unknown = termo.rolagens;
     const rolagens: number[] = Array.isArray(rolagensRaw)
       ? rolagensRaw.filter(
           (valor): valor is number => typeof valor === 'number',
         )
       : [];
-    const totalBase: number = rolagens.reduce(
-      (total, valor) => total + valor,
+    const aplicarModificadorPorDado = termo.aplicarModificadorPorDado === true;
+    if (!aplicarModificadorPorDado) {
+      return rolagens.reduce((total, valor) => total + valor, 0);
+    }
+    const keepMode = this.lerTextoRegistro(termo, 'keepMode');
+    const ordenadas = [...rolagens].sort((a, b) => a - b);
+    if (ordenadas.length === 0) return 0;
+    return keepMode === 'LOWEST'
+      ? ordenadas[0]
+      : ordenadas[ordenadas.length - 1];
+  }
+
+  private calcularTotalBasePayloadRolagem(
+    payload: Record<string, unknown>,
+  ): number {
+    return this.extrairTermosPayloadRolagem(payload).reduce(
+      (total, termo) => total + this.calcularSubtotalTermoRolagem(termo),
       0,
     );
+  }
+
+  private calcularTotalPayloadRolagem(
+    payload: Record<string, unknown>,
+  ): number {
+    const totalBase = this.calcularTotalBasePayloadRolagem(payload);
     const bonusDadosRaw: unknown = payload.bonusDados;
     const bonusDados: unknown[] = Array.isArray(bonusDadosRaw)
       ? bonusDadosRaw

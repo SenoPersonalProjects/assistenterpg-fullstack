@@ -3,6 +3,8 @@ import {
   aplicarPeritoPendenteChatLivre,
   calcularResultadoDice,
   construirMensagemDice,
+  construirMensagemDiceMultipla,
+  formatarExpressaoDice,
   obterAvisoPeritoPendenteChat,
   parseDiceInput,
   parseDiceExpression,
@@ -10,6 +12,23 @@ import {
   type DicePeritoPendenteChat,
   type DiceRollPayload,
 } from './sessao-dice';
+
+function criarPayloadComRolagens(
+  expressao: string,
+  rolagensPorTermo: number[][],
+): DiceRollPayload {
+  const expression = parseDiceExpression(expressao).expression;
+  expect(expression).not.toBeNull();
+  const termos = expression?.termos?.map((termo, index) => ({
+    ...termo,
+    rolagens: rolagensPorTermo[index] ?? [],
+  }));
+  return {
+    ...expression!,
+    rolagens: rolagensPorTermo[0] ?? [],
+    termos,
+  };
+}
 
 describe('sessão-dice parser', () => {
   it('aceita espacos em operadores matematicos', () => {
@@ -64,6 +83,69 @@ describe('sessão-dice parser', () => {
         modificador: 2,
       }),
     ]);
+  });
+
+  it('aceita grupos de dados somados na mesma expressao', () => {
+    expect(parseDiceExpression('4#d20+2d6').expression).toMatchObject({
+      quantidade: 4,
+      faces: 20,
+      modificador: 0,
+      termos: [
+        expect.objectContaining({
+          quantidade: 4,
+          faces: 20,
+          aplicarModificadorPorDado: true,
+        }),
+        expect.objectContaining({
+          quantidade: 2,
+          faces: 6,
+          aplicarModificadorPorDado: false,
+        }),
+      ],
+    });
+
+    expect(parseDiceExpression('4d20+2d6').expression?.termos).toEqual([
+      expect.objectContaining({ quantidade: 4, faces: 20, aplicarModificadorPorDado: false }),
+      expect.objectContaining({ quantidade: 2, faces: 6, aplicarModificadorPorDado: false }),
+    ]);
+
+    expect(parseDiceExpression('4#d20+2#d6').expression?.termos).toEqual([
+      expect.objectContaining({ quantidade: 4, faces: 20, aplicarModificadorPorDado: true }),
+      expect.objectContaining({ quantidade: 2, faces: 6, aplicarModificadorPorDado: true }),
+    ]);
+  });
+
+  it('aceita tres ou mais grupos de dados somados na mesma expressao', () => {
+    expect(parseDiceExpression('4#d20+2d6+3#d8').expression).toMatchObject({
+      modificador: 0,
+      termos: [
+        expect.objectContaining({ quantidade: 4, faces: 20, aplicarModificadorPorDado: true }),
+        expect.objectContaining({ quantidade: 2, faces: 6, aplicarModificadorPorDado: false }),
+        expect.objectContaining({ quantidade: 3, faces: 8, aplicarModificadorPorDado: true }),
+      ],
+    });
+
+    expect(parseDiceExpression('4d20+2d6+3d8').expression?.termos).toEqual([
+      expect.objectContaining({ quantidade: 4, faces: 20, aplicarModificadorPorDado: false }),
+      expect.objectContaining({ quantidade: 2, faces: 6, aplicarModificadorPorDado: false }),
+      expect.objectContaining({ quantidade: 3, faces: 8, aplicarModificadorPorDado: false }),
+    ]);
+
+    expect(parseDiceExpression('4#d20+2#d6+3#d8').expression?.termos).toEqual([
+      expect.objectContaining({ quantidade: 4, faces: 20, aplicarModificadorPorDado: true }),
+      expect.objectContaining({ quantidade: 2, faces: 6, aplicarModificadorPorDado: true }),
+      expect.objectContaining({ quantidade: 3, faces: 8, aplicarModificadorPorDado: true }),
+    ]);
+
+    expect(parseDiceExpression('4#d20+2d6+3#d8+5').expression).toMatchObject({
+      operador: '+',
+      modificador: 5,
+      termos: [
+        expect.objectContaining({ quantidade: 4, faces: 20 }),
+        expect.objectContaining({ quantidade: 2, faces: 6 }),
+        expect.objectContaining({ quantidade: 3, faces: 8 }),
+      ],
+    });
   });
 });
 
@@ -142,6 +224,157 @@ describe('calcularResultadoDice', () => {
     expect(resultado.total).toBe(21);
   });
 
+  it('soma melhor d20 com soma de d6 em expressao composta com # apenas no d20', () => {
+    const resultado = calcularResultadoDice({
+      quantidade: 4,
+      faces: 20,
+      operador: '+',
+      modificador: 0,
+      aplicarModificadorPorDado: true,
+      rolagens: [3, 19, 7, 12],
+      termos: [
+        {
+          quantidade: 4,
+          faces: 20,
+          aplicarModificadorPorDado: true,
+          keepMode: 'HIGHEST',
+          rolagens: [3, 19, 7, 12],
+        },
+        {
+          quantidade: 2,
+          faces: 6,
+          aplicarModificadorPorDado: false,
+          keepMode: 'SUM',
+          rolagens: [2, 5],
+        },
+      ],
+    });
+
+    expect(resultado.totalBase).toBe(26);
+    expect(resultado.total).toBe(26);
+    expect(resultado.termos?.map((termo) => termo.subtotal)).toEqual([19, 7]);
+  });
+
+  it('soma todos os grupos quando nao ha # na expressao composta', () => {
+    const resultado = calcularResultadoDice({
+      quantidade: 4,
+      faces: 20,
+      operador: '+',
+      modificador: 0,
+      aplicarModificadorPorDado: false,
+      rolagens: [3, 19, 7, 12],
+      termos: [
+        {
+          quantidade: 4,
+          faces: 20,
+          aplicarModificadorPorDado: false,
+          keepMode: 'SUM',
+          rolagens: [3, 19, 7, 12],
+        },
+        {
+          quantidade: 2,
+          faces: 6,
+          aplicarModificadorPorDado: false,
+          keepMode: 'SUM',
+          rolagens: [2, 5],
+        },
+      ],
+    });
+
+    expect(resultado.totalBase).toBe(48);
+    expect(resultado.total).toBe(48);
+  });
+
+  it('soma os melhores resultados de cada grupo com #', () => {
+    const resultado = calcularResultadoDice({
+      quantidade: 4,
+      faces: 20,
+      operador: '+',
+      modificador: 0,
+      aplicarModificadorPorDado: true,
+      rolagens: [3, 19, 7, 12],
+      termos: [
+        {
+          quantidade: 4,
+          faces: 20,
+          aplicarModificadorPorDado: true,
+          keepMode: 'HIGHEST',
+          rolagens: [3, 19, 7, 12],
+        },
+        {
+          quantidade: 2,
+          faces: 6,
+          aplicarModificadorPorDado: true,
+          keepMode: 'HIGHEST',
+          rolagens: [2, 5],
+        },
+      ],
+    });
+
+    expect(resultado.totalBase).toBe(24);
+    expect(resultado.total).toBe(24);
+    expect(resultado.termos?.map((termo) => termo.indiceEscolhido)).toEqual([1, 1]);
+  });
+
+  it('soma tres grupos usando # apenas nos grupos marcados', () => {
+    const payload = criarPayloadComRolagens('4#d20+2d6+3#d8', [
+      [3, 19, 7, 12],
+      [2, 5],
+      [1, 8, 4],
+    ]);
+    const resultado = calcularResultadoDice(payload);
+
+    expect(formatarExpressaoDice(payload)).toBe('4#d20+2d6+3#d8');
+    expect(resultado.totalBase).toBe(34);
+    expect(resultado.total).toBe(34);
+    expect(resultado.termos?.map((termo) => termo.subtotal)).toEqual([19, 7, 8]);
+  });
+
+  it('soma todos os dados em tres grupos sem #', () => {
+    const resultado = calcularResultadoDice(
+      criarPayloadComRolagens('4d20+2d6+3d8', [
+        [3, 19, 7, 12],
+        [2, 5],
+        [1, 8, 4],
+      ]),
+    );
+
+    expect(resultado.totalBase).toBe(61);
+    expect(resultado.total).toBe(61);
+    expect(resultado.termos?.map((termo) => termo.subtotal)).toEqual([41, 7, 13]);
+  });
+
+  it('soma os melhores resultados de tres grupos com #', () => {
+    const resultado = calcularResultadoDice(
+      criarPayloadComRolagens('4#d20+2#d6+3#d8', [
+        [3, 19, 7, 12],
+        [2, 5],
+        [1, 8, 4],
+      ]),
+    );
+
+    expect(resultado.totalBase).toBe(32);
+    expect(resultado.total).toBe(32);
+    expect(resultado.termos?.map((termo) => termo.indiceEscolhido)).toEqual([
+      1,
+      1,
+      1,
+    ]);
+  });
+
+  it('aplica modificador final uma vez em tres grupos compostos', () => {
+    const resultado = calcularResultadoDice(
+      criarPayloadComRolagens('4#d20+2d6+3#d8+5', [
+        [3, 19, 7, 12],
+        [2, 5],
+        [1, 8, 4],
+      ]),
+    );
+
+    expect(resultado.totalBase).toBe(34);
+    expect(resultado.total).toBe(39);
+  });
+
   it('serializa e le marcador v5 quando existe dado bonus', () => {
     const payload = {
       quantidade: 1,
@@ -198,6 +431,123 @@ describe('calcularResultadoDice', () => {
       modificador: payload.modificador,
       aplicarModificadorPorDado: payload.aplicarModificadorPorDado,
       rolagens: payload.rolagens,
+    });
+  });
+
+  it('usa marcador v5 para rolagem composta mesmo sem bonus', () => {
+    const payload: DiceRollPayload = {
+      quantidade: 4,
+      faces: 20,
+      operador: '+',
+      modificador: 0,
+      aplicarModificadorPorDado: true,
+      rolagens: [3, 19, 7, 12],
+      termos: [
+        {
+          quantidade: 4,
+          faces: 20,
+          aplicarModificadorPorDado: true,
+          keepMode: 'HIGHEST',
+          rolagens: [3, 19, 7, 12],
+        },
+        {
+          quantidade: 2,
+          faces: 6,
+          aplicarModificadorPorDado: false,
+          keepMode: 'SUM',
+          rolagens: [2, 5],
+        },
+      ],
+    };
+
+    const mensagem = construirMensagemDice(payload).mensagem;
+
+    expect(mensagem).toContain('[[dice:v5|');
+    expect(parseDiceMessageGroup(mensagem)?.payloads[0]).toMatchObject({
+      quantidade: 4,
+      faces: 20,
+      termos: [
+        expect.objectContaining({ quantidade: 4, faces: 20, rolagens: [3, 19, 7, 12] }),
+        expect.objectContaining({ quantidade: 2, faces: 6, rolagens: [2, 5] }),
+      ],
+    });
+  });
+
+  it('preserva tres ou mais termos no marcador v5', () => {
+    const payload = criarPayloadComRolagens('4#d20+2d6+3#d8+5', [
+      [3, 19, 7, 12],
+      [2, 5],
+      [1, 8, 4],
+    ]);
+
+    const mensagem = construirMensagemDice(payload).mensagem;
+    const decodificado = parseDiceMessageGroup(mensagem)?.payloads[0];
+
+    expect(mensagem).toContain('[[dice:v5|');
+    expect(decodificado?.termos).toEqual([
+      expect.objectContaining({
+        quantidade: 4,
+        faces: 20,
+        aplicarModificadorPorDado: true,
+        rolagens: [3, 19, 7, 12],
+      }),
+      expect.objectContaining({
+        quantidade: 2,
+        faces: 6,
+        aplicarModificadorPorDado: false,
+        rolagens: [2, 5],
+      }),
+      expect.objectContaining({
+        quantidade: 3,
+        faces: 8,
+        aplicarModificadorPorDado: true,
+        rolagens: [1, 8, 4],
+      }),
+    ]);
+    expect(formatarExpressaoDice(decodificado!)).toBe('4#d20+2d6+3#d8+5');
+  });
+
+  it('mantem mensagens antigas e mensagens v5 multiplas compativeis', () => {
+    const payloadSimples: DiceRollPayload = {
+      quantidade: 1,
+      faces: 6,
+      operador: '+',
+      modificador: 0,
+      aplicarModificadorPorDado: false,
+      rolagens: [4],
+    };
+    const payloadComposto: DiceRollPayload = {
+      quantidade: 1,
+      faces: 20,
+      operador: '+',
+      modificador: 0,
+      aplicarModificadorPorDado: false,
+      rolagens: [15],
+      termos: [
+        {
+          quantidade: 1,
+          faces: 20,
+          aplicarModificadorPorDado: false,
+          keepMode: 'SUM',
+          rolagens: [15],
+        },
+        {
+          quantidade: 1,
+          faces: 6,
+          aplicarModificadorPorDado: false,
+          keepMode: 'SUM',
+          rolagens: [4],
+        },
+      ],
+    };
+
+    const antiga = construirMensagemDice(payloadSimples).mensagem;
+    const multipla = construirMensagemDiceMultipla([payloadSimples, payloadComposto]).mensagem;
+
+    expect(parseDiceMessageGroup(antiga)?.payloads[0]).toMatchObject(payloadSimples);
+    expect(parseDiceMessageGroup(multipla)?.payloads).toHaveLength(2);
+    expect(parseDiceMessageGroup(multipla)?.payloads[1]).toMatchObject({
+      termos: expect.any(Array),
     });
   });
 });
@@ -272,6 +622,127 @@ describe('aplicarPeritoPendenteChatLivre', () => {
     expect(resultado.consumiu).toBe(true);
     expect(resultado.payloads[0]?.bonusDados).toHaveLength(1);
     expect(resultado.payloads[1]?.bonusDados).toBeUndefined();
+  });
+
+  it('anexa Perito quando uma rolagem composta contem d20', () => {
+    const resultado = aplicarPeritoPendenteChatLivre(
+      [
+        {
+          quantidade: 2,
+          faces: 6,
+          operador: '+',
+          modificador: 0,
+          aplicarModificadorPorDado: false,
+          rolagens: [2, 5],
+          termos: [
+            {
+              quantidade: 2,
+              faces: 6,
+              aplicarModificadorPorDado: false,
+              keepMode: 'SUM',
+              rolagens: [2, 5],
+            },
+            {
+              quantidade: 4,
+              faces: 20,
+              aplicarModificadorPorDado: true,
+              keepMode: 'HIGHEST',
+              rolagens: [3, 19, 7, 12],
+            },
+          ],
+        },
+      ],
+      perito,
+      rolarBonus,
+    );
+
+    expect(resultado.consumiu).toBe(true);
+    expect(resultado.payloads[0]?.bonusDados?.[0]).toMatchObject({
+      origem: 'PERITO',
+      efeitoPendenteId: 'perito:123',
+    });
+  });
+
+  it('anexa Perito quando o d20 esta no terceiro grupo composto', () => {
+    const resultado = aplicarPeritoPendenteChatLivre(
+      [
+        {
+          quantidade: 2,
+          faces: 6,
+          operador: '+',
+          modificador: 0,
+          aplicarModificadorPorDado: false,
+          rolagens: [2, 5],
+          termos: [
+            {
+              quantidade: 2,
+              faces: 6,
+              aplicarModificadorPorDado: false,
+              keepMode: 'SUM',
+              rolagens: [2, 5],
+            },
+            {
+              quantidade: 3,
+              faces: 8,
+              aplicarModificadorPorDado: true,
+              keepMode: 'HIGHEST',
+              rolagens: [1, 8, 4],
+            },
+            {
+              quantidade: 4,
+              faces: 20,
+              aplicarModificadorPorDado: true,
+              keepMode: 'HIGHEST',
+              rolagens: [3, 19, 7, 12],
+            },
+          ],
+        },
+      ],
+      perito,
+      rolarBonus,
+    );
+
+    expect(resultado.consumiu).toBe(true);
+    expect(resultado.payloads[0]?.bonusDados?.[0]).toMatchObject({
+      origem: 'PERITO',
+      efeitoPendenteId: 'perito:123',
+    });
+  });
+
+  it('nao anexa Perito em rolagem composta sem d20', () => {
+    const resultado = aplicarPeritoPendenteChatLivre(
+      [
+        {
+          quantidade: 2,
+          faces: 6,
+          operador: '+',
+          modificador: 0,
+          aplicarModificadorPorDado: false,
+          rolagens: [2, 5],
+          termos: [
+            {
+              quantidade: 2,
+              faces: 6,
+              aplicarModificadorPorDado: false,
+              keepMode: 'SUM',
+              rolagens: [2, 5],
+            },
+            {
+              quantidade: 2,
+              faces: 8,
+              aplicarModificadorPorDado: true,
+              keepMode: 'HIGHEST',
+              rolagens: [3, 7],
+            },
+          ],
+        },
+      ],
+      perito,
+      rolarBonus,
+    );
+
+    expect(resultado.consumiu).toBe(false);
+    expect(resultado.payloads[0]?.bonusDados).toBeUndefined();
   });
 
   it('descreve o indicador do Perito pendente no chat', () => {
