@@ -114,3 +114,10 @@ export function atendeRequisitoBaseTecnicaNaoInata(
 
   return (grausMap.get(tipoGrauCodigo) ?? 0) >= 1;
 }
+
+export function resolverTipoGrauBaseTecnicaNaoInata(
+  tecnicaCodigo: string | null | undefined,
+): string | null {
+  const codigoNormalizado = normalizarCodigo(tecnicaCodigo);
+  return REQUISITO_BASE_POR_TECNICA_NAO_INATA[codigoNormalizado] ?? null;
+}

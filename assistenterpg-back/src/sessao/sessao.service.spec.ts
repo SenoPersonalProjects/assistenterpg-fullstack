@@ -442,6 +442,176 @@ describe('SessaoService', () => {
     }
   });
 
+  it('deve considerar Aprimorado temporario para liberar tecnica nao inata', () => {
+    const personagem = {
+      id: 51,
+      tecnicaInata: null,
+      tecnicaInataPropria: null,
+      tecnicasAprendidas: [],
+      grausAprimoramento: [
+        { valor: 0, tipoGrau: { codigo: 'TECNICA_REVERSA' } },
+      ],
+      personagemBase: {
+        grausAprimoramento: [],
+        tecnicasAprendidas: [],
+      },
+    };
+    const tecnicaReversa = {
+      id: 10,
+      codigo: 'NAOINATA_TECNICA_REVERSA',
+      nome: 'Tecnica Reversa',
+      descricao: '',
+      tipo: 'NAO_INATA',
+      requisitos: null,
+      habilidades: [
+        {
+          id: 1001,
+          tecnicaId: 10,
+          codigo: 'CURA_REVERSA',
+          nome: 'Cura Reversa',
+          descricao: '',
+          requisitos: {
+            graus: [{ tipoGrauCodigo: 'TECNICA_REVERSA', valorMinimo: 1 }],
+          },
+          habilitada: true,
+          execucao: 'Acao padrao',
+          area: null,
+          alcance: 'Toque',
+          alvo: 'Criatura',
+          duracao: 'Instantanea',
+          testesExigidos: null,
+          criticoValor: null,
+          criticoMultiplicador: null,
+          dadosDano: null,
+          custoPE: 0,
+          custoEA: 2,
+          custoSustentacaoEA: null,
+          custoSustentacaoPE: null,
+          escalonaPorGrau: true,
+          grauTipoGrauCodigo: 'TECNICA_REVERSA',
+          acumulosMaximos: null,
+          escalonamentoCustoEA: 2,
+          escalonamentoCustoPE: 0,
+          escalonamentoTipo: 'CURA',
+          escalonamentoEfeito: null,
+          escalonamentoDano: null,
+          danoFlat: null,
+          danoFlatTipo: null,
+          efeito: '',
+          ordem: 1,
+          variacoes: [],
+        },
+      ],
+    };
+
+    const semAprimorado = (service as any).resolverTecnicasSessaoPersonagem(
+      personagem,
+      [tecnicaReversa],
+    );
+    const comAprimorado = (service as any).resolverTecnicasSessaoPersonagem(
+      personagem,
+      [tecnicaReversa],
+      new Map([['TECNICA_REVERSA', 1]]),
+    );
+
+    expect(semAprimorado.tecnicasNaoInatas).toHaveLength(0);
+    expect(comAprimorado.tecnicasNaoInatas).toHaveLength(1);
+    expect(comAprimorado.tecnicasNaoInatas[0].habilidades[0]).toMatchObject({
+      id: 1001,
+      acumulosMaximos: 1,
+    });
+  });
+
+  it('deve calcular custo e acumulos com grau efetivo do Aprimorado', () => {
+    const personagem = {
+      id: 51,
+      grausAprimoramento: [
+        { valor: 2, tipoGrau: { codigo: 'TECNICA_AMALDICOADA' } },
+      ],
+      personagemBase: { grausAprimoramento: [] },
+    };
+    const habilidade = {
+      id: 1002,
+      tecnicaId: 77,
+      codigo: 'REVESTIMENTO_OFENSIVO',
+      nome: 'Revestimento Ofensivo',
+      descricao: '',
+      requisitos: null,
+      execucao: 'Acao padrao',
+      area: null,
+      alcance: 'Pessoal',
+      alvo: 'Voce',
+      duracao: 'Instantanea',
+      custoPE: 0,
+      custoEA: 2,
+      custoSustentacaoEA: null,
+      custoSustentacaoPE: null,
+      escalonaPorGrau: true,
+      grauTipoGrauCodigo: 'TECNICA_AMALDICOADA',
+      acumulosMaximos: 3,
+      escalonamentoCustoEA: 1,
+      escalonamentoCustoPE: 0,
+      escalonamentoTipo: 'DANO',
+      escalonamentoEfeito: null,
+      escalonamentoDano: null,
+      danoFlat: null,
+      danoFlatTipo: null,
+      efeito: '',
+      ordem: 1,
+      variacoes: [],
+    };
+
+    const grausMapEfetivo = (service as any).montarMapaGrausPersonagemSessao(
+      personagem,
+      new Map([['TECNICA_AMALDICOADA', 1]]),
+    );
+    const custo = (service as any).resolverCustoUsoHabilidade(
+      habilidade,
+      grausMapEfetivo,
+      undefined,
+      3,
+    );
+
+    expect(grausMapEfetivo.get('TECNICA_AMALDICOADA')).toBe(3);
+    expect(custo.acumulosAplicados).toBe(3);
+    expect(custo.acumulosMaximos).toBe(3);
+    expect(custo.custoEA).toBe(4);
+  });
+
+  it('deve ignorar Aprimorado temporario de outra cena', () => {
+    const estado = {
+      pendentesRolagem: {},
+      aprimoramentosTemporarios: {
+        51: [
+          {
+            id: 'aprimorado:outra-cena',
+            eventoId: 1,
+            personagemSessaoId: 41,
+            personagemCampanhaId: 51,
+            tecnicaId: 10,
+            tecnicaNome: 'Tecnica Reversa',
+            tipoGrauCodigo: 'TECNICA_REVERSA',
+            graus: 1,
+            cenaId: 8,
+            criadoEm: new Date().toISOString(),
+          },
+        ],
+      },
+    };
+
+    const ativos = (service as any).listarAprimoramentosTemporariosAtivos(
+      estado,
+      51,
+      7,
+    );
+    const bonus = (service as any).montarBonusGrausAprimoramentoTemporario(
+      ativos,
+    );
+
+    expect(ativos).toHaveLength(0);
+    expect(bonus.get('TECNICA_REVERSA')).toBeUndefined();
+  });
+
   it('deve recuperar EA por Produção Acelerada usando acúmulos', async () => {
     const tx = {
       condicao: {
@@ -1432,5 +1602,425 @@ describe('SessaoService', () => {
     );
     expect(resultado.get(77)?.get('PERCEPCAO')).toBe(7);
     expect(resultado.get(77)?.get('MEDICINA')).toBe(3);
+  });
+
+  it('deve reconhecer payload de rolagem com bonus pendente do Perito', () => {
+    const pendente = {
+      id: 'perito:123',
+      eventoId: 123,
+      personagemSessaoId: 41,
+      personagemCampanhaId: 51,
+      habilidadeId: 9,
+      habilidadeNome: 'Perito',
+      dado: '1d8',
+      faces: 8,
+      criadoEm: new Date().toISOString(),
+    };
+
+    const contem = (service as any).payloadRolagemContemBonusPerito(
+      {
+        payloads: [
+          {
+            rolagens: [12],
+            bonusDados: [
+              {
+                origem: 'PERITO',
+                efeitoPendenteId: 'perito:123',
+                faces: 8,
+                rolagens: [5],
+              },
+            ],
+          },
+        ],
+      },
+      pendente,
+    );
+
+    expect(contem).toBe(true);
+  });
+
+  function criarPendentePeritoTeste() {
+    return {
+      id: 'perito:123',
+      eventoId: 123,
+      personagemSessaoId: 41,
+      personagemCampanhaId: 51,
+      habilidadeId: 9,
+      habilidadeNome: 'Perito',
+      dado: '1d8',
+      faces: 8,
+      criadoEm: new Date().toISOString(),
+    };
+  }
+
+  function criarDadosRolagemPeritoTeste() {
+    return {
+      payloads: [
+        {
+          quantidade: 1,
+          faces: 20,
+          modificador: 0,
+          aplicarModificadorPorDado: false,
+          rolagens: [12],
+          bonusDados: [
+            {
+              origem: 'PERITO',
+              efeitoPendenteId: 'perito:123',
+              quantidade: 1,
+              faces: 8,
+              rolagens: [5],
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  function criarDadosRolagemChatLivreTeste(params?: {
+    faces?: number;
+    rolagens?: number[];
+    incluirBonus?: boolean;
+    bonusFaces?: number;
+    bonusRolagens?: number[];
+    efeitoPendenteId?: string;
+  }) {
+    const faces = params?.faces ?? 20;
+    const rolagens = params?.rolagens ?? [12];
+    const payload: Record<string, unknown> = {
+      quantidade: rolagens.length,
+      faces,
+      modificador: 0,
+      aplicarModificadorPorDado: false,
+      rolagens,
+    };
+    if (params?.incluirBonus) {
+      payload.bonusDados = [
+        {
+          origem: 'PERITO',
+          efeitoPendenteId: params.efeitoPendenteId ?? 'perito:123',
+          quantidade: 1,
+          faces: params.bonusFaces ?? 8,
+          rolagens: params.bonusRolagens ?? [5],
+        },
+      ];
+    }
+    return { payloads: [payload] };
+  }
+
+  function criarTxPeritoTeste(grauTreinamento = 1) {
+    const estado = {
+      pendentesRolagem: {
+        '51:9': criarPendentePeritoTeste(),
+      },
+      aprimoramentosTemporarios: {},
+    };
+
+    return {
+      sessaoRegraOpcional: {
+        findUnique: jest.fn().mockResolvedValue({ id: 77, estado }),
+        update: jest.fn().mockResolvedValue({}),
+        create: jest.fn().mockResolvedValue({}),
+      },
+      personagemSessao: {
+        findFirst: jest.fn().mockResolvedValue({
+          personagemCampanha: {
+            personagemBase: {
+              pericias: grauTreinamento > 0 ? [{ grauTreinamento }] : [],
+            },
+          },
+        }),
+      },
+    };
+  }
+
+  it('deve aplicar e consumir Perito com pericia treinada valida', async () => {
+    const tx = criarTxPeritoTeste();
+
+    const ajustes = await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      {
+        tipo: 'PERICIA',
+        periciaCodigo: 'MEDICINA',
+        efeitoPendenteId: 'perito:123',
+      },
+      criarDadosRolagemPeritoTeste(),
+    );
+
+    expect(ajustes).toEqual([
+      expect.objectContaining({
+        tipo: 'PERITO',
+        efeitoPendenteId: 'perito:123',
+        faces: 8,
+      }),
+    ]);
+    expect(tx.sessaoRegraOpcional.update).toHaveBeenCalled();
+    expect(
+      JSON.stringify(
+        tx.sessaoRegraOpcional.update.mock.calls[0][0].data.estado,
+      ),
+    ).not.toContain('perito:123');
+  });
+
+  it('deve aplicar e consumir Perito no chat livre com d20 e bonus valido', async () => {
+    const tx = criarTxPeritoTeste();
+
+    const ajustes = await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+      criarDadosRolagemChatLivreTeste({ incluirBonus: true }),
+    );
+
+    expect(ajustes).toEqual([
+      expect.objectContaining({
+        tipo: 'PERITO',
+        efeitoPendenteId: 'perito:123',
+        faces: 8,
+      }),
+    ]);
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).toHaveBeenCalled();
+  });
+
+  it('deve manter Perito pendente no chat livre quando a rolagem nao tem d20', async () => {
+    const tx = criarTxPeritoTeste();
+
+    const ajustes = await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+      criarDadosRolagemChatLivreTeste({ faces: 6, rolagens: [4] }),
+    );
+
+    expect(ajustes).toEqual([]);
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar tentativa de bonus Perito sem d20 no chat livre', async () => {
+    const tx = criarTxPeritoTeste();
+
+    await expect(
+      (service as any).consumirBonusPeritoPendenteTx(
+        tx,
+        21,
+        41,
+        51,
+        { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+        criarDadosRolagemChatLivreTeste({
+          faces: 6,
+          rolagens: [4],
+          incluirBonus: true,
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_PERITO_PAYLOAD_INVALIDO',
+    });
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar bonus Perito malformado no chat livre sem consumir', async () => {
+    const tx = criarTxPeritoTeste();
+
+    await expect(
+      (service as any).consumirBonusPeritoPendenteTx(
+        tx,
+        21,
+        41,
+        51,
+        { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+        criarDadosRolagemChatLivreTeste({
+          incluirBonus: true,
+          bonusFaces: 6,
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_PERITO_PAYLOAD_INVALIDO',
+    });
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve rejeitar tentativa de exibir Perito sem pendente compativel', async () => {
+    const tx = criarTxPeritoTeste();
+
+    await expect(
+      (service as any).consumirBonusPeritoPendenteTx(
+        tx,
+        21,
+        41,
+        51,
+        { tipo: 'OUTRO', efeitoPendenteId: 'perito:999' },
+        criarDadosRolagemChatLivreTeste({
+          incluirBonus: true,
+          efeitoPendenteId: 'perito:999',
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_PERITO_PENDENTE_NAO_ENCONTRADO',
+    });
+    expect(tx.personagemSessao.findFirst).not.toHaveBeenCalled();
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve impedir consumo duplicado do mesmo Perito pendente', async () => {
+    const tx = criarTxPeritoTeste();
+
+    await (service as any).consumirBonusPeritoPendenteTx(
+      tx,
+      21,
+      41,
+      51,
+      { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+      criarDadosRolagemChatLivreTeste({ incluirBonus: true }),
+    );
+    const txSemPendente = criarTxPeritoTeste();
+    txSemPendente.sessaoRegraOpcional.findUnique.mockResolvedValue({
+      id: 77,
+      estado: {
+        pendentesRolagem: {},
+        aprimoramentosTemporarios: {},
+      },
+    });
+
+    await expect(
+      (service as any).consumirBonusPeritoPendenteTx(
+        txSemPendente,
+        21,
+        41,
+        51,
+        { tipo: 'OUTRO', efeitoPendenteId: 'perito:123' },
+        criarDadosRolagemChatLivreTeste({ incluirBonus: true }),
+      ),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_PERITO_PENDENTE_NAO_ENCONTRADO',
+    });
+  });
+
+  it.each(['LUTA', 'PONTARIA'])(
+    'deve bloquear Perito em %s sem consumir pendente',
+    async (periciaCodigo) => {
+      const tx = criarTxPeritoTeste();
+
+      await expect(
+        (service as any).consumirBonusPeritoPendenteTx(
+          tx,
+          21,
+          41,
+          51,
+          {
+            tipo: 'PERICIA',
+            periciaCodigo,
+            efeitoPendenteId: 'perito:123',
+          },
+          criarDadosRolagemPeritoTeste(),
+        ),
+      ).rejects.toMatchObject({
+        code: 'SESSAO_PERITO_PERICIA_INVALIDA',
+      });
+      expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('deve bloquear Perito em pericia nao treinada sem consumir pendente', async () => {
+    const tx = criarTxPeritoTeste(0);
+
+    await expect(
+      (service as any).consumirBonusPeritoPendenteTx(
+        tx,
+        21,
+        41,
+        51,
+        {
+          tipo: 'PERICIA',
+          periciaCodigo: 'MEDICINA',
+          efeitoPendenteId: 'perito:123',
+        },
+        criarDadosRolagemPeritoTeste(),
+      ),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_PERITO_PERICIA_NAO_TREINADA',
+    });
+    expect(tx.sessaoRegraOpcional.update).not.toHaveBeenCalled();
+  });
+
+  it('deve manter Ataque Especial como PE-only e custo-only', () => {
+    const versoes = (service as any).obterVersoesHabilidadeClasse(
+      'ATAQUE_ESPECIAL',
+    );
+
+    expect(
+      versoes.map((versao: { custoPE: number }) => versao.custoPE),
+    ).toEqual([2, 3, 4, 5]);
+    expect(versoes.map((versao: { bonus: number }) => versao.bonus)).toEqual([
+      5, 10, 15, 20,
+    ]);
+    expect(
+      versoes.every((versao: { dadoFaces?: number }) => !versao.dadoFaces),
+    ).toBe(true);
+    expect(versoes.every((versao: { graus?: number }) => !versao.graus)).toBe(
+      true,
+    );
+  });
+
+  it('deve bloquear Aprimorado acima do limite temporario por tecnica', () => {
+    const estado = {
+      pendentesRolagem: {},
+      aprimoramentosTemporarios: {
+        51: [
+          {
+            id: 'aprimorado:1',
+            eventoId: 1,
+            personagemSessaoId: 41,
+            personagemCampanhaId: 51,
+            tecnicaId: 10,
+            tecnicaNome: 'Tecnica Reversa',
+            tipoGrauCodigo: 'TECNICA_REVERSA',
+            graus: 1,
+            cenaId: 7,
+            criadoEm: new Date().toISOString(),
+          },
+        ],
+      },
+    };
+
+    expect(() =>
+      (service as any).validarAprimoramentoClasseSessao(
+        { id: 51, grausAprimoramento: [] },
+        {
+          habilidadeId: 3,
+          versaoNivel: 5,
+          aprimoramentos: [
+            {
+              tecnicaId: 10,
+              tipoGrauCodigo: 'TECNICA_REVERSA',
+              graus: 2,
+            },
+          ],
+        },
+        { nivel: 5, custoPE: 3, graus: 2 },
+        estado,
+        7,
+        [
+          {
+            id: 10,
+            codigo: 'NAOINATA_TECNICA_REVERSA',
+            nome: 'Tecnica Reversa',
+            descricao: '',
+            tipo: 'NAO_INATA',
+            requisitos: null,
+            habilidades: [],
+          },
+        ],
+      ),
+    ).toThrow(BusinessException);
   });
 });

@@ -26,6 +26,7 @@ import { DesfazerEventoSessaoDto } from './dto/desfazer-evento-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
 import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { EncerrarSustentacaoSessaoDto } from './dto/encerrar-sustentacao-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import { RemoverCondicaoSessaoDto } from './dto/remover-condicao-sessao.dto';
@@ -160,6 +161,31 @@ export class SessaoController {
     @Body() dto: UsarHabilidadeSessaoDto,
   ) {
     const resultado = await this.sessaoService.usarHabilidadeSessao(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'HABILIDADE_USADA',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/personagens/:personagemSessaoId/habilidades-classe/usar')
+  async usarHabilidadeClasseSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: UsarHabilidadeClasseSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.usarHabilidadeClasseSessao(
       campanhaId,
       sessaoId,
       personagemSessaoId,

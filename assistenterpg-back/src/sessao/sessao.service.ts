@@ -32,6 +32,7 @@ import { ListarEventosSessaoDto } from './dto/listar-eventos-sessao.dto';
 import { AtualizarOrdemIniciativaSessaoDto } from './dto/atualizar-ordem-iniciativa-sessao.dto';
 import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciativa-sessao.dto';
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
+import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import {
@@ -50,6 +51,7 @@ import {
   atendeRequisitoBaseTecnicaNaoInata,
   atendeRequisitosGraus,
   montarMapaGraus,
+  resolverTipoGrauBaseTecnicaNaoInata,
 } from 'src/personagem-base/regras-criacao/regras-tecnicas-nao-inatas';
 import { extrairPericiasAtributoBaseOverride } from 'src/personagem-base/regras-criacao/regras-poderes-efeitos';
 import { BusinessException } from 'src/common/exceptions/business.exception';
@@ -167,6 +169,104 @@ type ContextoRolagemSessao = {
   tipo?: string;
   dt?: number;
   expressao?: string;
+  personagemSessaoId?: number;
+  personagemCampanhaId?: number;
+  periciaCodigo?: string;
+  efeitoPendenteId?: string;
+};
+
+type HabilidadeClasseSessaoTipo = 'PERITO' | 'ATAQUE_ESPECIAL' | 'APRIMORADO';
+
+type VersaoHabilidadeClasseSessao = {
+  nivel: number;
+  custoPE: number;
+  dadoFaces?: number;
+  bonus?: number;
+  graus?: number;
+};
+
+type HabilidadeClasseSessaoResumo = {
+  id: number;
+  nome: string;
+  codigo: string | null;
+  descricao: string | null;
+  tipo: HabilidadeClasseSessaoTipo;
+  fonte: string;
+  versoes: VersaoHabilidadeClasseSessao[];
+  versoesDisponiveis: VersaoHabilidadeClasseSessao[];
+  efeitoPendente?: EstadoPeritoPendenteSessao | null;
+};
+
+type HabilidadeOutrasSessaoResumo = {
+  id: number;
+  nome: string;
+  codigo: string | null;
+  descricao: string | null;
+  tipo: string;
+  fonte: string;
+};
+
+type AprimoramentoTemporarioSessaoResumo = {
+  id: string;
+  eventoId: number;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  tecnicaId: number;
+  tecnicaNome: string;
+  tipoGrauCodigo: string;
+  graus: number;
+  cenaId: number | null;
+  criadoEm: string;
+};
+
+type OpcaoAprimoramentoTecnicaSessao = {
+  tecnicaId: number;
+  tecnicaNome: string;
+  tipoGrauCodigo: string;
+  grauBase: number;
+  grauTemporario: number;
+  grauEfetivo: number;
+  limiteTemporarioRestante: number;
+};
+
+type EstadoPeritoPendenteSessao = {
+  id: string;
+  eventoId: number;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  habilidadeId: number;
+  habilidadeNome: string;
+  dado: string;
+  faces: number;
+  criadoEm: string;
+};
+
+type EstadoHabilidadesClasseSessao = {
+  pendentesRolagem: Record<string, EstadoPeritoPendenteSessao>;
+  aprimoramentosTemporarios: Record<
+    string,
+    AprimoramentoTemporarioSessaoResumo[]
+  >;
+};
+
+type HabilidadeSessaoRaw = {
+  id: number;
+  nome: string;
+  codigo: string | null;
+  descricao: string | null;
+  tipo: string;
+  origem: string | null;
+  mecanicasEspeciais: Prisma.JsonValue | null;
+};
+
+type EntidadeCatalogoSessaoRaw = {
+  id: number;
+  nome: string;
+};
+
+type HabilidadeClasseVinculoSessaoRaw = {
+  nivelConcedido: number;
+  habilidade: HabilidadeSessaoRaw;
 };
 
 type EventoSessaoMapeado = {
@@ -456,13 +556,37 @@ type GrauSessaoRaw = {
 };
 
 type PersonagemCampanhaTecnicasSessaoRaw = {
-  tecnicaInata: TecnicaSessaoRaw | null;
+  id?: number;
+  nivel?: number;
+  tecnicaInata?: TecnicaSessaoRaw | null;
   tecnicaInataPropria?: TecnicaSessaoRaw | null;
-  tecnicasAprendidas: RelacaoTecnicaSessaoRaw[];
-  grausAprimoramento: GrauSessaoRaw[];
+  tecnicasAprendidas?: RelacaoTecnicaSessaoRaw[];
+  grausAprimoramento?: GrauSessaoRaw[];
+  classe?:
+    | (EntidadeCatalogoSessaoRaw & {
+        habilidadesClasse?: HabilidadeClasseVinculoSessaoRaw[];
+      })
+    | null;
+  origem?: EntidadeCatalogoSessaoRaw | null;
+  trilha?: EntidadeCatalogoSessaoRaw | null;
+  caminho?: EntidadeCatalogoSessaoRaw | null;
+  habilidadesCampanha?: Array<{ habilidade: HabilidadeSessaoRaw }>;
+  poderesGenericos?: Array<{ habilidade: HabilidadeSessaoRaw }>;
   personagemBase?: {
-    tecnicasAprendidas: RelacaoTecnicaSessaoRaw[];
-    grausAprimoramento: GrauSessaoRaw[];
+    id?: number;
+    nivel?: number;
+    classe?:
+      | (EntidadeCatalogoSessaoRaw & {
+          habilidadesClasse?: HabilidadeClasseVinculoSessaoRaw[];
+        })
+      | null;
+    origem?: EntidadeCatalogoSessaoRaw | null;
+    trilha?: EntidadeCatalogoSessaoRaw | null;
+    caminho?: EntidadeCatalogoSessaoRaw | null;
+    habilidadesBase?: Array<{ habilidade: HabilidadeSessaoRaw }>;
+    poderesGenericos?: Array<{ habilidade: HabilidadeSessaoRaw }>;
+    tecnicasAprendidas?: RelacaoTecnicaSessaoRaw[];
+    grausAprimoramento?: GrauSessaoRaw[];
   } | null;
 };
 
@@ -497,6 +621,29 @@ const CONDICAO_AUTOMACAO_CHAVES = {
 
 const FONTE_KOKUSEN = 'KOKUSEN';
 const LIMITE_PRODUCAO_KOKUSEN = 5;
+const CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO = 'HABILIDADES_CLASSE_SESSAO';
+const LIMITE_APRIMORAMENTO_TEMPORARIO_POR_TECNICA = 2;
+
+const VERSOES_PERITO: VersaoHabilidadeClasseSessao[] = [
+  { nivel: 1, custoPE: 2, dadoFaces: 6 },
+  { nivel: 5, custoPE: 3, dadoFaces: 8 },
+  { nivel: 11, custoPE: 4, dadoFaces: 10 },
+  { nivel: 17, custoPE: 5, dadoFaces: 12 },
+];
+
+const VERSOES_ATAQUE_ESPECIAL: VersaoHabilidadeClasseSessao[] = [
+  { nivel: 1, custoPE: 2, bonus: 5 },
+  { nivel: 5, custoPE: 3, bonus: 10 },
+  { nivel: 11, custoPE: 4, bonus: 15 },
+  { nivel: 17, custoPE: 5, bonus: 20 },
+];
+
+const VERSOES_APRIMORADO: VersaoHabilidadeClasseSessao[] = [
+  { nivel: 1, custoPE: 2, graus: 1 },
+  { nivel: 5, custoPE: 3, graus: 2 },
+  { nivel: 11, custoPE: 4, graus: 3 },
+  { nivel: 17, custoPE: 5, graus: 4 },
+];
 
 @Injectable()
 export class SessaoService {
@@ -716,6 +863,7 @@ export class SessaoService {
                 id: true,
                 personagemBaseId: true,
                 nome: true,
+                nivel: true,
                 donoId: true,
                 pvAtual: true,
                 pvMax: true,
@@ -731,6 +879,76 @@ export class SessaoService {
                 sanMax: true,
                 turnosMorrendo: true, // ← adicionar
                 turnosEnlouquecendo: true, // ← adicionar
+                classe: {
+                  select: {
+                    id: true,
+                    nome: true,
+                    habilidadesClasse: {
+                      select: {
+                        nivelConcedido: true,
+                        habilidade: {
+                          select: {
+                            id: true,
+                            nome: true,
+                            codigo: true,
+                            descricao: true,
+                            tipo: true,
+                            origem: true,
+                            mecanicasEspeciais: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                origem: {
+                  select: {
+                    id: true,
+                    nome: true,
+                  },
+                },
+                trilha: {
+                  select: {
+                    id: true,
+                    nome: true,
+                  },
+                },
+                caminho: {
+                  select: {
+                    id: true,
+                    nome: true,
+                  },
+                },
+                habilidadesCampanha: {
+                  select: {
+                    habilidade: {
+                      select: {
+                        id: true,
+                        nome: true,
+                        codigo: true,
+                        descricao: true,
+                        tipo: true,
+                        origem: true,
+                        mecanicasEspeciais: true,
+                      },
+                    },
+                  },
+                },
+                poderesGenericos: {
+                  select: {
+                    habilidade: {
+                      select: {
+                        id: true,
+                        nome: true,
+                        codigo: true,
+                        descricao: true,
+                        tipo: true,
+                        origem: true,
+                        mecanicasEspeciais: true,
+                      },
+                    },
+                  },
+                },
                 tecnicaInata: {
                   include: {
                     habilidades: {
@@ -782,6 +1000,48 @@ export class SessaoService {
                 },
                 personagemBase: {
                   select: {
+                    id: true,
+                    nivel: true,
+                    classe: {
+                      select: {
+                        id: true,
+                        nome: true,
+                        habilidadesClasse: {
+                          select: {
+                            nivelConcedido: true,
+                            habilidade: {
+                              select: {
+                                id: true,
+                                nome: true,
+                                codigo: true,
+                                descricao: true,
+                                tipo: true,
+                                origem: true,
+                                mecanicasEspeciais: true,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                    origem: {
+                      select: {
+                        id: true,
+                        nome: true,
+                      },
+                    },
+                    trilha: {
+                      select: {
+                        id: true,
+                        nome: true,
+                      },
+                    },
+                    caminho: {
+                      select: {
+                        id: true,
+                        nome: true,
+                      },
+                    },
                     agilidade: true,
                     forca: true,
                     intelecto: true,
@@ -804,6 +1064,12 @@ export class SessaoService {
                       select: {
                         habilidade: {
                           select: {
+                            id: true,
+                            nome: true,
+                            codigo: true,
+                            descricao: true,
+                            tipo: true,
+                            origem: true,
                             mecanicasEspeciais: true,
                           },
                         },
@@ -813,6 +1079,12 @@ export class SessaoService {
                       select: {
                         habilidade: {
                           select: {
+                            id: true,
+                            nome: true,
+                            codigo: true,
+                            descricao: true,
+                            tipo: true,
+                            origem: true,
                             mecanicasEspeciais: true,
                           },
                         },
@@ -1117,6 +1389,9 @@ export class SessaoService {
       sessao.regrasOpcionais,
       sessao.rodadaAtual,
     );
+    const estadoHabilidadesClasse = this.obterEstadoHabilidadesClasseEmResumo(
+      sessao.regrasOpcionais,
+    );
     const iniciativaAlternada =
       regrasOpcionais.INICIATIVA_ALTERNADA?.ativo && controleTurnosAtivo
         ? await this.prisma.$transaction((tx) =>
@@ -1183,9 +1458,20 @@ export class SessaoService {
         const podeEditar =
           acesso.ehMestre || personagem.personagemCampanha.donoId === usuarioId;
         const visibilidade = podeEditar ? 'completa' : 'resumida';
+        const aprimoramentosTemporarios =
+          this.listarAprimoramentosTemporariosAtivos(
+            estadoHabilidadesClasse,
+            personagem.personagemCampanha.id,
+            cenaAtualId,
+          );
+        const bonusGrausTemporarios =
+          this.montarBonusGrausAprimoramentoTemporario(
+            aprimoramentosTemporarios,
+          );
         const tecnicas = this.resolverTecnicasSessaoPersonagem(
           personagem.personagemCampanha,
           tecnicasNaoInatasCatalogo,
+          bonusGrausTemporarios,
         );
         const sustentacoesAtivas =
           sustentacoesPorPersonagemSessao.get(personagem.id) ?? [];
@@ -1292,6 +1578,19 @@ export class SessaoService {
           personagem.personagemCampanha.pvBarrasTotal,
           personagem.personagemCampanha.pvBarrasRestantes,
         );
+        const habilidadesClasse = this.mapearHabilidadesClasseSessao(
+          personagem.personagemCampanha,
+          estadoHabilidadesClasse,
+        );
+        const outrasHabilidades = this.mapearOutrasHabilidadesSessao(
+          personagem.personagemCampanha,
+        );
+        const opcoesAprimoramentoTecnicasNaoInatas =
+          this.montarOpcoesAprimoramentoTecnicasSessao(
+            personagem.personagemCampanha,
+            tecnicasNaoInatasCatalogo,
+            aprimoramentosTemporarios,
+          );
 
         return {
           personagemSessaoId: personagem.id,
@@ -1332,6 +1631,16 @@ export class SessaoService {
             visibilidade === 'completa' ? tecnicas.tecnicaInata : null,
           tecnicasNaoInatas:
             visibilidade === 'completa' ? tecnicas.tecnicasNaoInatas : [],
+          habilidadesClasse:
+            visibilidade === 'completa' ? habilidadesClasse : [],
+          outrasHabilidades:
+            visibilidade === 'completa' ? outrasHabilidades : [],
+          aprimoramentosTemporarios:
+            visibilidade === 'completa' ? aprimoramentosTemporarios : [],
+          opcoesAprimoramentoTecnicasNaoInatas:
+            visibilidade === 'completa'
+              ? opcoesAprimoramentoTecnicasNaoInatas
+              : [],
           sustentacoesAtivas:
             visibilidade === 'completa' ? sustentacoesAtivas : [],
           atributos: visibilidade === 'completa' ? atributosPersonagem : null,
@@ -2086,7 +2395,7 @@ export class SessaoService {
       throw new UsuarioNaoEncontradoException(usuarioId);
     }
 
-    const ajustesAplicados = await this.resolverAjustesRolagemSessao(
+    const ajustesBase = await this.resolverAjustesRolagemSessao(
       sessaoId,
       dto.contextoRolagem,
     );
@@ -2108,6 +2417,18 @@ export class SessaoService {
           inspiracaoAutomatica.personagemCampanhaId,
         );
       }
+      const ajustesPerito =
+        personagemDoUsuario?.personagemCampanha.donoId === usuarioId
+          ? await this.consumirBonusPeritoPendenteTx(
+              tx,
+              sessaoId,
+              personagemDoUsuario.id,
+              personagemDoUsuario.personagemCampanhaId,
+              dto.contextoRolagem,
+              dto.dadosRolagem,
+            )
+          : [];
+      const ajustesAplicados = [...ajustesBase, ...ajustesPerito];
 
       return tx.eventoSessao.create({
         data: {
@@ -3851,11 +4172,29 @@ export class SessaoService {
         );
       }
 
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const estadoHabilidadesClasse =
+        await this.obterEstadoHabilidadesClasseSessaoTx(tx, sessaoId);
+      const aprimoramentosTemporariosAtivos =
+        this.listarAprimoramentosTemporariosAtivos(
+          estadoHabilidadesClasse.estado,
+          personagemSessao.personagemCampanha.id,
+          cenaAtual.id,
+        );
+      const bonusGrausTemporarios =
+        this.montarBonusGrausAprimoramentoTemporario(
+          aprimoramentosTemporariosAtivos,
+        );
+      const grausMapEfetivo = this.montarMapaGrausPersonagemSessao(
+        personagemSessao.personagemCampanha,
+        bonusGrausTemporarios,
+      );
       const tecnicasNaoInatasCatalogo =
         await this.listarTecnicasNaoInatasCatalogo(tx);
       const tecnicasDisponiveis = this.resolverTecnicasSessaoPersonagem(
         personagemSessao.personagemCampanha,
         tecnicasNaoInatasCatalogo,
+        bonusGrausTemporarios,
       );
       const habilidade = this.buscarHabilidadeTecnicaDisponivel(
         tecnicasDisponiveis,
@@ -3877,9 +4216,7 @@ export class SessaoService {
 
       const custo = this.resolverCustoUsoHabilidade(
         habilidade,
-        this.montarMapaGrausPersonagemSessao(
-          personagemSessao.personagemCampanha,
-        ),
+        grausMapEfetivo,
         dto.variacaoHabilidadeId,
         dto.acumulos ?? 0,
       );
@@ -4011,7 +4348,6 @@ export class SessaoService {
         });
       }
 
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
       await tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -4051,6 +4387,395 @@ export class SessaoService {
           }),
         },
       });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async usarHabilidadeClasseSessao(
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    usuarioId: number,
+    dto: UsarHabilidadeClasseSessaoDto,
+  ) {
+    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const sessao = await tx.sessao.findUnique({
+        where: { id: sessaoId },
+        select: {
+          id: true,
+          campanhaId: true,
+          status: true,
+          cenaAtualTipo: true,
+          rodadaAtual: true,
+          indiceTurnoAtual: true,
+        },
+      });
+
+      if (!sessao || sessao.campanhaId !== campanhaId) {
+        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+      }
+
+      if (sessao.status === 'ENCERRADA') {
+        throw new BusinessException(
+          'Sessao encerrada nao permite uso de habilidades de classe',
+          'SESSAO_ENCERRADA',
+          { campanhaId, sessaoId },
+        );
+      }
+
+      const personagemSessao = await tx.personagemSessao.findFirst({
+        where: {
+          id: personagemSessaoId,
+          sessaoId,
+        },
+        include: {
+          personagemCampanha: {
+            select: {
+              id: true,
+              donoId: true,
+              nome: true,
+              nivel: true,
+              peAtual: true,
+              peMax: true,
+              eaAtual: true,
+              eaMax: true,
+              limitePeEaPorTurno: true,
+              classe: {
+                select: {
+                  id: true,
+                  nome: true,
+                  habilidadesClasse: {
+                    select: {
+                      nivelConcedido: true,
+                      habilidade: {
+                        select: {
+                          id: true,
+                          nome: true,
+                          codigo: true,
+                          descricao: true,
+                          tipo: true,
+                          origem: true,
+                          mecanicasEspeciais: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              habilidadesCampanha: {
+                select: {
+                  habilidade: {
+                    select: {
+                      id: true,
+                      nome: true,
+                      codigo: true,
+                      descricao: true,
+                      tipo: true,
+                      origem: true,
+                      mecanicasEspeciais: true,
+                    },
+                  },
+                },
+              },
+              personagemBase: {
+                select: {
+                  id: true,
+                  nivel: true,
+                  classe: {
+                    select: {
+                      id: true,
+                      nome: true,
+                      habilidadesClasse: {
+                        select: {
+                          nivelConcedido: true,
+                          habilidade: {
+                            select: {
+                              id: true,
+                              nome: true,
+                              codigo: true,
+                              descricao: true,
+                              tipo: true,
+                              origem: true,
+                              mecanicasEspeciais: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  habilidadesBase: {
+                    select: {
+                      habilidade: {
+                        select: {
+                          id: true,
+                          nome: true,
+                          codigo: true,
+                          descricao: true,
+                          tipo: true,
+                          origem: true,
+                          mecanicasEspeciais: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!personagemSessao) {
+        throw new BusinessException(
+          'Personagem nao encontrado nesta sessao',
+          'SESSAO_PERSONAGEM_NOT_FOUND',
+          { campanhaId, sessaoId, personagemSessaoId },
+        );
+      }
+
+      if (
+        !acesso.ehMestre &&
+        personagemSessao.personagemCampanha.donoId !== usuarioId
+      ) {
+        throw new CampanhaPersonagemEdicaoNegadaException(
+          campanhaId,
+          personagemSessao.personagemCampanha.id,
+          usuarioId,
+        );
+      }
+
+      const estadoRegistro = await this.obterEstadoHabilidadesClasseSessaoTx(
+        tx,
+        sessaoId,
+      );
+      const habilidadesClasse = this.mapearHabilidadesClasseSessao(
+        personagemSessao.personagemCampanha,
+        estadoRegistro.estado,
+      );
+      const habilidade = habilidadesClasse.find(
+        (item) => item.id === dto.habilidadeId,
+      );
+      if (!habilidade) {
+        throw new BusinessException(
+          'Recurso de classe nao disponivel para este personagem',
+          'SESSAO_RECURSO_CLASSE_NAO_DISPONIVEL',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+            habilidadeId: dto.habilidadeId,
+          },
+        );
+      }
+
+      const versao = habilidade.versoesDisponiveis.find(
+        (item) => item.nivel === dto.versaoNivel,
+      );
+      if (!versao) {
+        throw new BusinessException(
+          'Versao do recurso de classe indisponivel para o nivel do personagem',
+          'SESSAO_RECURSO_CLASSE_VERSAO_INDISPONIVEL',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+            habilidadeId: dto.habilidadeId,
+            versaoNivel: dto.versaoNivel,
+          },
+        );
+      }
+
+      if (personagemSessao.personagemCampanha.peAtual < versao.custoPE) {
+        throw new BusinessException(
+          'PE insuficiente para usar este recurso de classe',
+          'SESSAO_RECURSO_INSUFICIENTE',
+          {
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+            habilidadeId: dto.habilidadeId,
+            custoPE: versao.custoPE,
+            peAtual: personagemSessao.personagemCampanha.peAtual,
+          },
+        );
+      }
+
+      const turnoReferencia = this.montarReferenciaTurnoAtualSessao(sessao);
+      const limitePeEaPorTurno = Math.max(
+        0,
+        Math.trunc(personagemSessao.personagemCampanha.limitePeEaPorTurno ?? 0),
+      );
+      let gastoPeEaNoTurnoAntesUso = 0;
+      if (turnoReferencia) {
+        gastoPeEaNoTurnoAntesUso = await this.calcularGastoPeEaNoTurnoAtual(
+          tx,
+          sessaoId,
+          personagemSessaoId,
+          turnoReferencia,
+        );
+        if (
+          this.deveBloquearPorLimitePeEaTurno(
+            limitePeEaPorTurno,
+            gastoPeEaNoTurnoAntesUso,
+            versao.custoPE,
+            false,
+          )
+        ) {
+          throw new BusinessException(
+            'Limite de PE/EA por turno excedido para esta acao',
+            'SESSAO_LIMITE_PEEA_EXCEDIDO',
+            {
+              campanhaId,
+              sessaoId,
+              personagemSessaoId,
+              habilidadeId: dto.habilidadeId,
+              limitePeEaPorTurno,
+              gastoPeEaNoTurnoAtual: gastoPeEaNoTurnoAntesUso,
+              custoPE: versao.custoPE,
+              custoEA: 0,
+              custoTotal: versao.custoPE,
+              turnoReferencia,
+            },
+          );
+        }
+      }
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const efeitosDados: Record<string, unknown> = {};
+
+      if (habilidade.tipo === 'PERITO') {
+        const chavePendente = `${personagemSessao.personagemCampanha.id}:${habilidade.id}`;
+        if (estadoRegistro.estado.pendentesRolagem[chavePendente]) {
+          throw new BusinessException(
+            'Este personagem ja possui bonus de Perito pendente',
+            'SESSAO_PERITO_PENDENTE_EXISTENTE',
+            {
+              campanhaId,
+              sessaoId,
+              personagemSessaoId,
+              habilidadeId: habilidade.id,
+            },
+          );
+        }
+        efeitosDados.bonusPendente = {
+          tipo: 'PERICIA',
+          dado: `1d${versao.dadoFaces ?? 6}`,
+          faces: versao.dadoFaces ?? 6,
+          usoUnico: true,
+        };
+      } else if (habilidade.tipo === 'ATAQUE_ESPECIAL') {
+        efeitosDados.bonusDeclarado = {
+          bonus: versao.bonus ?? 0,
+          aplicacao: 'ATAQUE_OU_DANO',
+          automatizado: false,
+        };
+      } else if (habilidade.tipo === 'APRIMORADO') {
+        const aprimoramentos = this.validarAprimoramentoClasseSessao(
+          personagemSessao.personagemCampanha,
+          dto,
+          versao,
+          estadoRegistro.estado,
+          cenaAtual.id,
+          await this.listarTecnicasNaoInatasCatalogo(tx),
+        );
+        efeitosDados.aprimoramentos = aprimoramentos;
+      }
+
+      await tx.personagemCampanha.update({
+        where: { id: personagemSessao.personagemCampanha.id },
+        data: {
+          peAtual: personagemSessao.personagemCampanha.peAtual - versao.custoPE,
+        },
+      });
+
+      const evento = await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          personagemAtorId: personagemSessaoId,
+          tipoEvento: 'HABILIDADE_USADA',
+          dados: this.jsonParaPersistencia({
+            origem: 'RECURSO_CLASSE',
+            habilidadeClasseId: habilidade.id,
+            habilidadeNome: habilidade.nome,
+            tipoRecursoClasse: habilidade.tipo,
+            versaoNivel: versao.nivel,
+            custoEA: 0,
+            custoPE: versao.custoPE,
+            turnoReferencia,
+            limitePeEaPorTurno:
+              limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
+            gastoPeEaNoTurnoAntesUso: turnoReferencia
+              ? gastoPeEaNoTurnoAntesUso
+              : null,
+            gastoPeEaNoTurnoAposUso: turnoReferencia
+              ? gastoPeEaNoTurnoAntesUso + versao.custoPE
+              : null,
+            usadoPorId: usuarioId,
+            ...efeitosDados,
+          }),
+        },
+      });
+
+      if (habilidade.tipo === 'PERITO') {
+        const faces = versao.dadoFaces ?? 6;
+        const chavePendente = `${personagemSessao.personagemCampanha.id}:${habilidade.id}`;
+        estadoRegistro.estado.pendentesRolagem[chavePendente] = {
+          id: `perito:${evento.id}`,
+          eventoId: evento.id,
+          personagemSessaoId,
+          personagemCampanhaId: personagemSessao.personagemCampanha.id,
+          habilidadeId: habilidade.id,
+          habilidadeNome: habilidade.nome,
+          dado: `1d${faces}`,
+          faces,
+          criadoEm: new Date().toISOString(),
+        };
+        await this.salvarEstadoHabilidadesClasseSessaoTx(
+          tx,
+          sessaoId,
+          estadoRegistro.regraId,
+          estadoRegistro.estado,
+        );
+      }
+
+      if (habilidade.tipo === 'APRIMORADO') {
+        const listaAtual =
+          estadoRegistro.estado.aprimoramentosTemporarios[
+            String(personagemSessao.personagemCampanha.id)
+          ] ?? [];
+        const novos = (
+          efeitosDados.aprimoramentos as Array<{
+            tecnicaId: number;
+            tecnicaNome: string;
+            tipoGrauCodigo: string;
+            graus: number;
+          }>
+        ).map((item) => ({
+          id: `aprimorado:${evento.id}:${item.tecnicaId}:${item.tipoGrauCodigo}`,
+          eventoId: evento.id,
+          personagemSessaoId,
+          personagemCampanhaId: personagemSessao.personagemCampanha.id,
+          tecnicaId: item.tecnicaId,
+          tecnicaNome: item.tecnicaNome,
+          tipoGrauCodigo: item.tipoGrauCodigo,
+          graus: item.graus,
+          cenaId: cenaAtual.id,
+          criadoEm: new Date().toISOString(),
+        }));
+        estadoRegistro.estado.aprimoramentosTemporarios[
+          String(personagemSessao.personagemCampanha.id)
+        ] = [...listaAtual, ...novos];
+        await this.salvarEstadoHabilidadesClasseSessaoTx(
+          tx,
+          sessaoId,
+          estadoRegistro.regraId,
+          estadoRegistro.estado,
+        );
+      }
     });
 
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
@@ -5240,6 +5965,517 @@ export class SessaoService {
     );
   }
 
+  private normalizarEstadoHabilidadesClasseSessao(
+    estadoRaw: Prisma.JsonValue | null | undefined,
+  ): EstadoHabilidadesClasseSessao {
+    const estado = this.extrairRegistro(estadoRaw ?? null);
+    const pendentesRaw = this.extrairRegistro(
+      (estado.pendentesRolagem ?? null) as Prisma.JsonValue | null,
+    );
+    const aprimoramentosRaw = this.extrairRegistro(
+      (estado.aprimoramentosTemporarios ?? null) as Prisma.JsonValue | null,
+    );
+    const pendentesRolagem: Record<string, EstadoPeritoPendenteSessao> = {};
+    const aprimoramentosTemporarios: Record<
+      string,
+      AprimoramentoTemporarioSessaoResumo[]
+    > = {};
+
+    for (const [chave, valor] of Object.entries(pendentesRaw)) {
+      const bruto = this.extrairRegistro(valor as Prisma.JsonValue);
+      const id = this.lerTextoRegistro(bruto, 'id');
+      const eventoId = this.lerInteiroRegistro(bruto, 'eventoId');
+      const personagemSessaoId = this.lerInteiroRegistro(
+        bruto,
+        'personagemSessaoId',
+      );
+      const personagemCampanhaId = this.lerInteiroRegistro(
+        bruto,
+        'personagemCampanhaId',
+      );
+      const habilidadeId = this.lerInteiroRegistro(bruto, 'habilidadeId');
+      const habilidadeNome = this.lerTextoRegistro(bruto, 'habilidadeNome');
+      const dado = this.lerTextoRegistro(bruto, 'dado');
+      const faces = this.lerInteiroRegistro(bruto, 'faces');
+      const criadoEm = this.lerTextoRegistro(bruto, 'criadoEm');
+      if (
+        !id ||
+        eventoId === null ||
+        personagemSessaoId === null ||
+        personagemCampanhaId === null ||
+        habilidadeId === null ||
+        !habilidadeNome ||
+        !dado ||
+        faces === null ||
+        !criadoEm
+      ) {
+        continue;
+      }
+      pendentesRolagem[chave] = {
+        id,
+        eventoId,
+        personagemSessaoId,
+        personagemCampanhaId,
+        habilidadeId,
+        habilidadeNome,
+        dado,
+        faces,
+        criadoEm,
+      };
+    }
+
+    for (const [chave, listaRaw] of Object.entries(aprimoramentosRaw)) {
+      if (!Array.isArray(listaRaw)) continue;
+      const lista: AprimoramentoTemporarioSessaoResumo[] = [];
+      for (const itemRaw of listaRaw) {
+        const bruto = this.extrairRegistro(itemRaw as Prisma.JsonValue);
+        const id = this.lerTextoRegistro(bruto, 'id');
+        const eventoId = this.lerInteiroRegistro(bruto, 'eventoId');
+        const personagemSessaoId = this.lerInteiroRegistro(
+          bruto,
+          'personagemSessaoId',
+        );
+        const personagemCampanhaId = this.lerInteiroRegistro(
+          bruto,
+          'personagemCampanhaId',
+        );
+        const tecnicaId = this.lerInteiroRegistro(bruto, 'tecnicaId');
+        const tecnicaNome = this.lerTextoRegistro(bruto, 'tecnicaNome');
+        const tipoGrauCodigo = this.lerTextoRegistro(bruto, 'tipoGrauCodigo');
+        const graus = this.lerInteiroRegistro(bruto, 'graus');
+        const cenaId = this.lerInteiroOpcionalRegistro(bruto, 'cenaId');
+        const criadoEm = this.lerTextoRegistro(bruto, 'criadoEm');
+        if (
+          !id ||
+          eventoId === null ||
+          personagemSessaoId === null ||
+          personagemCampanhaId === null ||
+          tecnicaId === null ||
+          !tecnicaNome ||
+          !tipoGrauCodigo ||
+          graus === null ||
+          !criadoEm
+        ) {
+          continue;
+        }
+        lista.push({
+          id,
+          eventoId,
+          personagemSessaoId,
+          personagemCampanhaId,
+          tecnicaId,
+          tecnicaNome,
+          tipoGrauCodigo,
+          graus: Math.max(1, Math.trunc(graus)),
+          cenaId,
+          criadoEm,
+        });
+      }
+      aprimoramentosTemporarios[chave] = lista;
+    }
+
+    return {
+      pendentesRolagem,
+      aprimoramentosTemporarios,
+    };
+  }
+
+  private obterEstadoHabilidadesClasseEmResumo(
+    regras: SessaoRegraOpcionalResumo[],
+  ): EstadoHabilidadesClasseSessao {
+    const regra = regras.find(
+      (item) => item.chave === CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+    );
+    return this.normalizarEstadoHabilidadesClasseSessao(regra?.estado);
+  }
+
+  private async obterEstadoHabilidadesClasseSessaoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+  ): Promise<{
+    regraId: number | null;
+    estado: EstadoHabilidadesClasseSessao;
+  }> {
+    const regra = await tx.sessaoRegraOpcional.findUnique({
+      where: {
+        sessaoId_chave: {
+          sessaoId,
+          chave: CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+        },
+      },
+      select: {
+        id: true,
+        estado: true,
+      },
+    });
+
+    return {
+      regraId: regra?.id ?? null,
+      estado: this.normalizarEstadoHabilidadesClasseSessao(regra?.estado),
+    };
+  }
+
+  private async salvarEstadoHabilidadesClasseSessaoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    regraId: number | null,
+    estado: EstadoHabilidadesClasseSessao,
+  ) {
+    if (regraId) {
+      await tx.sessaoRegraOpcional.update({
+        where: { id: regraId },
+        data: { estado: this.jsonParaPersistencia(estado) },
+      });
+      return;
+    }
+
+    await tx.sessaoRegraOpcional.create({
+      data: {
+        sessaoId,
+        chave: CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+        ativo: false,
+        config: this.jsonParaPersistencia({}),
+        estado: this.jsonParaPersistencia(estado),
+      },
+    });
+  }
+
+  private listarAprimoramentosTemporariosAtivos(
+    estado: EstadoHabilidadesClasseSessao,
+    personagemCampanhaId: number,
+    cenaId: number | null,
+  ): AprimoramentoTemporarioSessaoResumo[] {
+    const lista =
+      estado.aprimoramentosTemporarios[String(personagemCampanhaId)] ?? [];
+    return lista.filter(
+      (item) => item.cenaId === null || item.cenaId === cenaId,
+    );
+  }
+
+  private montarBonusGrausAprimoramentoTemporario(
+    aprimoramentos: AprimoramentoTemporarioSessaoResumo[],
+  ): Map<string, number> {
+    const mapa = new Map<string, number>();
+    for (const item of aprimoramentos) {
+      mapa.set(
+        item.tipoGrauCodigo,
+        (mapa.get(item.tipoGrauCodigo) ?? 0) + item.graus,
+      );
+    }
+    return mapa;
+  }
+
+  private resolverTipoHabilidadeClasse(
+    habilidade: HabilidadeSessaoRaw,
+  ): HabilidadeClasseSessaoTipo | null {
+    const codigo = this.normalizarTextoComparacao(habilidade.codigo);
+    const nome = this.normalizarTextoComparacao(habilidade.nome);
+    const chave = codigo || nome;
+    if (chave.includes('PERITO')) return 'PERITO';
+    if (chave.includes('ATAQUE_ESPECIAL')) return 'ATAQUE_ESPECIAL';
+    if (nome.includes('ATAQUE ESPECIAL')) return 'ATAQUE_ESPECIAL';
+    if (chave.includes('APRIMORADO')) return 'APRIMORADO';
+    return null;
+  }
+
+  private obterVersoesHabilidadeClasse(
+    tipo: HabilidadeClasseSessaoTipo,
+  ): VersaoHabilidadeClasseSessao[] {
+    switch (tipo) {
+      case 'PERITO':
+        return VERSOES_PERITO;
+      case 'ATAQUE_ESPECIAL':
+        return VERSOES_ATAQUE_ESPECIAL;
+      case 'APRIMORADO':
+        return VERSOES_APRIMORADO;
+    }
+  }
+
+  private mapearHabilidadesClasseSessao(
+    personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+    estado: EstadoHabilidadesClasseSessao,
+  ): HabilidadeClasseSessaoResumo[] {
+    const nivel = Math.max(
+      1,
+      Math.trunc(
+        personagemCampanha.nivel ??
+          personagemCampanha.personagemBase?.nivel ??
+          1,
+      ),
+    );
+    const candidatos: Array<{
+      habilidade: HabilidadeSessaoRaw;
+      fonte: string;
+    }> = [];
+    const classe =
+      personagemCampanha.classe ?? personagemCampanha.personagemBase?.classe;
+    const nomeClasse = classe?.nome ?? 'Classe';
+
+    for (const vinculo of classe?.habilidadesClasse ?? []) {
+      if (vinculo.nivelConcedido > nivel) continue;
+      candidatos.push({
+        habilidade: vinculo.habilidade,
+        fonte: `Classe: ${nomeClasse}`,
+      });
+    }
+
+    for (const vinculo of [
+      ...(personagemCampanha.habilidadesCampanha ?? []),
+      ...(personagemCampanha.personagemBase?.habilidadesBase ?? []),
+    ]) {
+      if (vinculo.habilidade.tipo !== 'RECURSO_CLASSE') continue;
+      candidatos.push({
+        habilidade: vinculo.habilidade,
+        fonte: 'Classe',
+      });
+    }
+
+    const porId = new Map<number, HabilidadeClasseSessaoResumo>();
+    for (const candidato of candidatos) {
+      if (porId.has(candidato.habilidade.id)) continue;
+      const tipo = this.resolverTipoHabilidadeClasse(candidato.habilidade);
+      if (!tipo) continue;
+      const versoes = this.obterVersoesHabilidadeClasse(tipo);
+      const versoesDisponiveis = versoes.filter(
+        (versao) => nivel >= versao.nivel,
+      );
+      const efeitoPendente =
+        Object.values(estado.pendentesRolagem).find(
+          (pendente) =>
+            pendente.personagemCampanhaId === personagemCampanha.id &&
+            pendente.habilidadeId === candidato.habilidade.id,
+        ) ?? null;
+
+      porId.set(candidato.habilidade.id, {
+        id: candidato.habilidade.id,
+        nome: candidato.habilidade.nome,
+        codigo: candidato.habilidade.codigo,
+        descricao: candidato.habilidade.descricao,
+        tipo,
+        fonte: candidato.fonte,
+        versoes,
+        versoesDisponiveis,
+        efeitoPendente,
+      });
+    }
+
+    return Array.from(porId.values()).sort((a, b) =>
+      a.nome.localeCompare(b.nome, 'pt-BR'),
+    );
+  }
+
+  private mapearOutrasHabilidadesSessao(
+    personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+  ): HabilidadeOutrasSessaoResumo[] {
+    const candidatos: Array<{
+      habilidade: HabilidadeSessaoRaw;
+      fonte: string;
+    }> = [];
+
+    for (const vinculo of [
+      ...(personagemCampanha.personagemBase?.habilidadesBase ?? []),
+      ...(personagemCampanha.habilidadesCampanha ?? []),
+    ]) {
+      candidatos.push({
+        habilidade: vinculo.habilidade,
+        fonte: vinculo.habilidade.origem ?? 'Ficha',
+      });
+    }
+
+    for (const vinculo of [
+      ...(personagemCampanha.personagemBase?.poderesGenericos ?? []),
+      ...(personagemCampanha.poderesGenericos ?? []),
+    ]) {
+      candidatos.push({
+        habilidade: vinculo.habilidade,
+        fonte: vinculo.habilidade.origem ?? 'Poder',
+      });
+    }
+
+    const porId = new Map<number, HabilidadeOutrasSessaoResumo>();
+    for (const candidato of candidatos) {
+      if (candidato.habilidade.tipo === 'RECURSO_CLASSE') continue;
+      if (porId.has(candidato.habilidade.id)) continue;
+      porId.set(candidato.habilidade.id, {
+        id: candidato.habilidade.id,
+        nome: candidato.habilidade.nome,
+        codigo: candidato.habilidade.codigo,
+        descricao: candidato.habilidade.descricao,
+        tipo: candidato.habilidade.tipo,
+        fonte: candidato.fonte,
+      });
+    }
+
+    return Array.from(porId.values()).sort((a, b) =>
+      a.nome.localeCompare(b.nome, 'pt-BR'),
+    );
+  }
+
+  private montarOpcoesAprimoramentoTecnicasSessao(
+    personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+    tecnicasNaoInatasCatalogo: TecnicaSessaoRaw[],
+    aprimoramentosTemporarios: AprimoramentoTemporarioSessaoResumo[],
+  ): OpcaoAprimoramentoTecnicaSessao[] {
+    const grausBase = this.montarMapaGrausPersonagemSessao(personagemCampanha);
+    const temporariosPorTecnica = new Map<string, number>();
+    for (const item of aprimoramentosTemporarios) {
+      const chave = `${item.tecnicaId}:${item.tipoGrauCodigo}`;
+      temporariosPorTecnica.set(
+        chave,
+        (temporariosPorTecnica.get(chave) ?? 0) + item.graus,
+      );
+    }
+
+    return tecnicasNaoInatasCatalogo
+      .map((tecnica) => {
+        const tipoGrauCodigo = resolverTipoGrauBaseTecnicaNaoInata(
+          tecnica.codigo,
+        );
+        if (!tipoGrauCodigo) return null;
+        const chave = `${tecnica.id}:${tipoGrauCodigo}`;
+        const grauTemporario = temporariosPorTecnica.get(chave) ?? 0;
+        const grauBase = grausBase.get(tipoGrauCodigo) ?? 0;
+        return {
+          tecnicaId: tecnica.id,
+          tecnicaNome: tecnica.nome,
+          tipoGrauCodigo,
+          grauBase,
+          grauTemporario,
+          grauEfetivo: grauBase + grauTemporario,
+          limiteTemporarioRestante: Math.max(
+            0,
+            LIMITE_APRIMORAMENTO_TEMPORARIO_POR_TECNICA - grauTemporario,
+          ),
+        } satisfies OpcaoAprimoramentoTecnicaSessao;
+      })
+      .filter(
+        (opcao): opcao is OpcaoAprimoramentoTecnicaSessao => opcao !== null,
+      )
+      .sort((a, b) => a.tecnicaNome.localeCompare(b.tecnicaNome, 'pt-BR'));
+  }
+
+  private validarAprimoramentoClasseSessao(
+    personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+    dto: UsarHabilidadeClasseSessaoDto,
+    versao: VersaoHabilidadeClasseSessao,
+    estado: EstadoHabilidadesClasseSessao,
+    cenaId: number | null,
+    tecnicasNaoInatasCatalogo: TecnicaSessaoRaw[],
+  ): Array<{
+    tecnicaId: number;
+    tecnicaNome: string;
+    tipoGrauCodigo: string;
+    graus: number;
+  }> {
+    const grausDisponiveis = versao.graus ?? 0;
+    const aprimoramentos = dto.aprimoramentos ?? [];
+    if (grausDisponiveis <= 0 || aprimoramentos.length === 0) {
+      throw new BusinessException(
+        'Distribua os graus temporarios do Aprimorado',
+        'SESSAO_APRIMORADO_DISTRIBUICAO_OBRIGATORIA',
+        { habilidadeId: dto.habilidadeId, versaoNivel: dto.versaoNivel },
+      );
+    }
+
+    const porTecnica = new Map<number, TecnicaSessaoRaw>(
+      tecnicasNaoInatasCatalogo.map((tecnica) => [tecnica.id, tecnica]),
+    );
+    const agrupados = new Map<
+      string,
+      {
+        tecnicaId: number;
+        tecnicaNome: string;
+        tipoGrauCodigo: string;
+        graus: number;
+      }
+    >();
+
+    for (const item of aprimoramentos) {
+      const tecnica = porTecnica.get(item.tecnicaId);
+      if (!tecnica || tecnica.tipo !== 'NAO_INATA') {
+        throw new BusinessException(
+          'Aprimorado so pode afetar tecnicas nao inatas',
+          'SESSAO_APRIMORADO_TECNICA_INVALIDA',
+          { tecnicaId: item.tecnicaId },
+        );
+      }
+      const tipoGrauEsperado = resolverTipoGrauBaseTecnicaNaoInata(
+        tecnica.codigo,
+      );
+      const tipoGrauCodigo = item.tipoGrauCodigo.trim().toUpperCase();
+      if (!tipoGrauEsperado || tipoGrauEsperado !== tipoGrauCodigo) {
+        throw new BusinessException(
+          'Tipo de grau incompativel com a tecnica escolhida',
+          'SESSAO_APRIMORADO_GRAU_INVALIDO',
+          {
+            tecnicaId: item.tecnicaId,
+            tipoGrauCodigo,
+            tipoGrauEsperado,
+          },
+        );
+      }
+      const graus = Math.max(1, Math.trunc(item.graus));
+      const chave = `${item.tecnicaId}:${tipoGrauCodigo}`;
+      const atual = agrupados.get(chave);
+      agrupados.set(chave, {
+        tecnicaId: item.tecnicaId,
+        tecnicaNome: tecnica.nome,
+        tipoGrauCodigo,
+        graus: (atual?.graus ?? 0) + graus,
+      });
+    }
+
+    const total = Array.from(agrupados.values()).reduce(
+      (acc, item) => acc + item.graus,
+      0,
+    );
+    if (total !== grausDisponiveis) {
+      throw new BusinessException(
+        'A distribuicao do Aprimorado deve usar exatamente os graus da versao escolhida',
+        'SESSAO_APRIMORADO_TOTAL_INVALIDO',
+        {
+          esperado: grausDisponiveis,
+          recebido: total,
+        },
+      );
+    }
+
+    const ativos = this.listarAprimoramentosTemporariosAtivos(
+      estado,
+      personagemCampanha.id ?? 0,
+      cenaId,
+    );
+    const temporariosAtivos = new Map<string, number>();
+    for (const item of ativos) {
+      const chave = `${item.tecnicaId}:${item.tipoGrauCodigo}`;
+      temporariosAtivos.set(
+        chave,
+        (temporariosAtivos.get(chave) ?? 0) + item.graus,
+      );
+    }
+
+    for (const item of agrupados.values()) {
+      const chave = `${item.tecnicaId}:${item.tipoGrauCodigo}`;
+      const totalTemporario = (temporariosAtivos.get(chave) ?? 0) + item.graus;
+      if (totalTemporario > LIMITE_APRIMORAMENTO_TEMPORARIO_POR_TECNICA) {
+        throw new BusinessException(
+          'Aprimorado permite no maximo +2 graus temporarios na mesma tecnica',
+          'SESSAO_APRIMORADO_LIMITE_TECNICA',
+          {
+            tecnicaId: item.tecnicaId,
+            tipoGrauCodigo: item.tipoGrauCodigo,
+            totalTemporario,
+            limite: LIMITE_APRIMORAMENTO_TEMPORARIO_POR_TECNICA,
+          },
+        );
+      }
+    }
+
+    return Array.from(agrupados.values()).sort((a, b) =>
+      a.tecnicaNome.localeCompare(b.tecnicaNome, 'pt-BR'),
+    );
+  }
+
   private async resolverAjustesRolagemSessao(
     sessaoId: number,
     contextoRaw?: Record<string, unknown>,
@@ -5278,6 +6514,240 @@ export class SessaoService {
         descricao: `Escalada de Dados +${estado.bonusAtual}`,
       },
     ];
+  }
+
+  private async consumirBonusPeritoPendenteTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    personagemSessaoId: number,
+    personagemCampanhaId: number,
+    contextoRaw?: Record<string, unknown>,
+    dadosRolagem?: Record<string, unknown>,
+  ): Promise<Prisma.JsonValue[]> {
+    const contexto = this.normalizarContextoRolagem(contextoRaw);
+    if (!contexto.efeitoPendenteId) {
+      return [];
+    }
+
+    const estadoRegistro = await this.obterEstadoHabilidadesClasseSessaoTx(
+      tx,
+      sessaoId,
+    );
+    const entrada = Object.entries(estadoRegistro.estado.pendentesRolagem).find(
+      ([, pendente]) =>
+        pendente.id === contexto.efeitoPendenteId &&
+        pendente.personagemSessaoId === personagemSessaoId &&
+        pendente.personagemCampanhaId === personagemCampanhaId,
+    );
+    if (!entrada) {
+      throw new BusinessException(
+        'Bonus de Perito pendente nao encontrado',
+        'SESSAO_PERITO_PENDENTE_NAO_ENCONTRADO',
+        { personagemSessaoId, efeitoPendenteId: contexto.efeitoPendenteId },
+      );
+    }
+
+    const [, pendente] = entrada;
+    const periciaCodigo = contexto.periciaCodigo?.trim().toUpperCase();
+    if (!periciaCodigo) {
+      if (!this.payloadRolagemContemD20Valido(dadosRolagem)) {
+        if (this.payloadRolagemPossuiTentativaPerito(dadosRolagem)) {
+          throw new BusinessException(
+            'Rolagem nao contem um d20 valido para consumir Perito',
+            'SESSAO_PERITO_PAYLOAD_INVALIDO',
+            { personagemSessaoId, efeitoPendenteId: pendente.id },
+          );
+        }
+        return [];
+      }
+      if (!this.payloadRolagemContemBonusPerito(dadosRolagem, pendente)) {
+        throw new BusinessException(
+          'Rolagem nao contem o dado bonus do Perito',
+          'SESSAO_PERITO_PAYLOAD_INVALIDO',
+          { personagemSessaoId, efeitoPendenteId: pendente.id },
+        );
+      }
+      delete estadoRegistro.estado.pendentesRolagem[entrada[0]];
+      await this.salvarEstadoHabilidadesClasseSessaoTx(
+        tx,
+        sessaoId,
+        estadoRegistro.regraId,
+        estadoRegistro.estado,
+      );
+
+      return [
+        {
+          tipo: 'PERITO',
+          efeitoPendenteId: pendente.id,
+          habilidadeId: pendente.habilidadeId,
+          habilidadeNome: pendente.habilidadeNome,
+          dado: pendente.dado,
+          faces: pendente.faces,
+          descricao: `Perito +${pendente.dado}`,
+        },
+      ];
+    }
+
+    if (periciaCodigo === 'LUTA' || periciaCodigo === 'PONTARIA') {
+      throw new BusinessException(
+        'Perito nao pode ser usado em Luta ou Pontaria',
+        'SESSAO_PERITO_PERICIA_INVALIDA',
+        { personagemSessaoId, periciaCodigo },
+      );
+    }
+    const personagem = await tx.personagemSessao.findFirst({
+      where: {
+        id: personagemSessaoId,
+        sessaoId,
+      },
+      select: {
+        personagemCampanha: {
+          select: {
+            personagemBase: {
+              select: {
+                pericias: {
+                  where: {
+                    pericia: {
+                      codigo: periciaCodigo,
+                    },
+                  },
+                  select: {
+                    grauTreinamento: true,
+                  },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const grauTreinamento =
+      personagem?.personagemCampanha.personagemBase.pericias[0]
+        ?.grauTreinamento ?? 0;
+    if (grauTreinamento <= 0) {
+      throw new BusinessException(
+        'Perito exige uma pericia treinada',
+        'SESSAO_PERITO_PERICIA_NAO_TREINADA',
+        { personagemSessaoId, periciaCodigo },
+      );
+    }
+
+    if (!this.payloadRolagemContemBonusPerito(dadosRolagem, pendente)) {
+      throw new BusinessException(
+        'Rolagem nao contem o dado bonus do Perito',
+        'SESSAO_PERITO_PAYLOAD_INVALIDO',
+        { personagemSessaoId, efeitoPendenteId: pendente.id },
+      );
+    }
+
+    delete estadoRegistro.estado.pendentesRolagem[entrada[0]];
+    await this.salvarEstadoHabilidadesClasseSessaoTx(
+      tx,
+      sessaoId,
+      estadoRegistro.regraId,
+      estadoRegistro.estado,
+    );
+
+    return [
+      {
+        tipo: 'PERITO',
+        efeitoPendenteId: pendente.id,
+        habilidadeId: pendente.habilidadeId,
+        habilidadeNome: pendente.habilidadeNome,
+        dado: pendente.dado,
+        faces: pendente.faces,
+        descricao: `Perito +${pendente.dado}`,
+      },
+    ];
+  }
+
+  private payloadRolagemContemBonusPerito(
+    dadosRolagem: Record<string, unknown> | undefined,
+    pendente: EstadoPeritoPendenteSessao,
+  ): boolean {
+    const payloads = this.extrairPayloadsRolagem(dadosRolagem);
+    return payloads.some((payload) => {
+      const bonusDados = Array.isArray(payload.bonusDados)
+        ? payload.bonusDados
+        : [];
+      return bonusDados.some((bonus) =>
+        this.bonusRolagemPeritoValido(bonus as Prisma.JsonValue, pendente),
+      );
+    });
+  }
+
+  private payloadRolagemContemD20Valido(
+    dadosRolagem: Record<string, unknown> | undefined,
+  ): boolean {
+    return this.extrairPayloadsRolagem(dadosRolagem).some((payload) =>
+      this.payloadRolagemDadoValido(payload, 20),
+    );
+  }
+
+  private payloadRolagemDadoValido(
+    payload: Record<string, unknown>,
+    facesEsperadas: number,
+  ): boolean {
+    const quantidade = this.lerInteiroRegistro(payload, 'quantidade') ?? 1;
+    const faces = this.lerInteiroRegistro(payload, 'faces');
+    const rolagensRaw = payload.rolagens;
+    const rolagens = Array.isArray(rolagensRaw) ? rolagensRaw : [];
+
+    return (
+      quantidade > 0 &&
+      faces === facesEsperadas &&
+      rolagens.length === quantidade &&
+      rolagens.every(
+        (valor) =>
+          typeof valor === 'number' &&
+          Number.isInteger(valor) &&
+          valor >= 1 &&
+          valor <= facesEsperadas,
+      )
+    );
+  }
+
+  private bonusRolagemPeritoValido(
+    bonus: Prisma.JsonValue,
+    pendente: EstadoPeritoPendenteSessao,
+  ): boolean {
+    const registro = this.extrairRegistro(bonus);
+    const quantidade = this.lerInteiroRegistro(registro, 'quantidade') ?? 1;
+    const rolagensRaw = registro.rolagens;
+    const rolagens = Array.isArray(rolagensRaw) ? rolagensRaw : [];
+
+    return (
+      this.lerTextoRegistro(registro, 'origem') === 'PERITO' &&
+      this.lerTextoRegistro(registro, 'efeitoPendenteId') === pendente.id &&
+      this.lerInteiroRegistro(registro, 'faces') === pendente.faces &&
+      quantidade === 1 &&
+      rolagens.length === 1 &&
+      rolagens.every(
+        (valor) =>
+          typeof valor === 'number' &&
+          Number.isInteger(valor) &&
+          valor >= 1 &&
+          valor <= pendente.faces,
+      )
+    );
+  }
+
+  private payloadRolagemPossuiTentativaPerito(
+    dadosRolagem: Record<string, unknown> | undefined,
+  ): boolean {
+    return this.extrairPayloadsRolagem(dadosRolagem).some((payload) => {
+      const bonusDados = Array.isArray(payload.bonusDados)
+        ? payload.bonusDados
+        : [];
+      return bonusDados.some((bonus) => {
+        const registro = this.extrairRegistro(bonus as Prisma.JsonValue);
+        return (
+          this.lerTextoRegistro(registro, 'origem') === 'PERITO' ||
+          Boolean(this.lerTextoRegistro(registro, 'efeitoPendenteId'))
+        );
+      });
+    });
   }
 
   private async resolverInspiracaoFalhaCritica(
@@ -5376,8 +6846,34 @@ export class SessaoService {
       typeof contexto?.expressao === 'string'
         ? contexto.expressao.trim()
         : undefined;
+    const personagemSessaoId =
+      typeof contexto?.personagemSessaoId === 'number' &&
+      Number.isFinite(contexto.personagemSessaoId)
+        ? Math.trunc(contexto.personagemSessaoId)
+        : undefined;
+    const personagemCampanhaId =
+      typeof contexto?.personagemCampanhaId === 'number' &&
+      Number.isFinite(contexto.personagemCampanhaId)
+        ? Math.trunc(contexto.personagemCampanhaId)
+        : undefined;
+    const periciaCodigo =
+      typeof contexto?.periciaCodigo === 'string'
+        ? contexto.periciaCodigo.trim().toUpperCase()
+        : undefined;
+    const efeitoPendenteId =
+      typeof contexto?.efeitoPendenteId === 'string'
+        ? contexto.efeitoPendenteId.trim()
+        : undefined;
 
-    return { tipo, dt, expressao };
+    return {
+      tipo,
+      dt,
+      expressao,
+      personagemSessaoId,
+      personagemCampanhaId,
+      periciaCodigo,
+      efeitoPendenteId,
+    };
   }
 
   private extrairPayloadsRolagem(
@@ -5406,31 +6902,53 @@ export class SessaoService {
   private calcularTotalPayloadRolagem(
     payload: Record<string, unknown>,
   ): number {
-    const rolagens = Array.isArray(payload.rolagens)
-      ? payload.rolagens.filter(
+    const rolagensRaw: unknown = payload.rolagens;
+    const rolagens: number[] = Array.isArray(rolagensRaw)
+      ? rolagensRaw.filter(
           (valor): valor is number => typeof valor === 'number',
         )
       : [];
-    const totalBase = rolagens.reduce((total, valor) => total + valor, 0);
-    const modificador =
-      typeof payload.modificador === 'number' &&
-      Number.isFinite(payload.modificador)
-        ? Math.trunc(payload.modificador)
+    const totalBase: number = rolagens.reduce(
+      (total, valor) => total + valor,
+      0,
+    );
+    const bonusDadosRaw: unknown = payload.bonusDados;
+    const bonusDados: unknown[] = Array.isArray(bonusDadosRaw)
+      ? bonusDadosRaw
+      : [];
+    const bonusTotal: number = bonusDados.reduce<number>((acc, bonus) => {
+      const registro = this.extrairRegistro(bonus as Prisma.JsonValue);
+      const rolagensBonusRaw: unknown = registro.rolagens;
+      const rolagensBonus: number[] = Array.isArray(rolagensBonusRaw)
+        ? rolagensBonusRaw.filter(
+            (valor): valor is number => typeof valor === 'number',
+          )
+        : [];
+      const totalBonusItem = rolagensBonus.reduce(
+        (total, valor) => total + valor,
+        0,
+      );
+      return acc + totalBonusItem;
+    }, 0);
+    const modificadorRaw: unknown = payload.modificador;
+    const modificador: number =
+      typeof modificadorRaw === 'number' && Number.isFinite(modificadorRaw)
+        ? Math.trunc(modificadorRaw)
         : 0;
-    const operador =
-      typeof payload.operador === 'string' ? payload.operador : '+';
+    const operadorRaw: unknown = payload.operador;
+    const operador = typeof operadorRaw === 'string' ? operadorRaw : '+';
 
     switch (operador) {
       case '-':
-        return totalBase - modificador;
+        return totalBase - modificador + bonusTotal;
       case '*':
-        return totalBase * modificador;
+        return totalBase * modificador + bonusTotal;
       case '/':
         return modificador === 0
-          ? totalBase
-          : Math.trunc(totalBase / modificador);
+          ? totalBase + bonusTotal
+          : Math.trunc(totalBase / modificador) + bonusTotal;
       default:
-        return totalBase + modificador;
+        return totalBase + modificador + bonusTotal;
     }
   }
 
@@ -7094,11 +8612,15 @@ export class SessaoService {
   private resolverTecnicasSessaoPersonagem(
     personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
     tecnicasNaoInatasCatalogo: TecnicaSessaoRaw[] = [],
+    bonusGrausTemporarios: Map<string, number> = new Map(),
   ): {
     tecnicaInata: TecnicaSessaoResumo | null;
     tecnicasNaoInatas: TecnicaSessaoResumo[];
   } {
-    const grausMap = this.montarMapaGrausPersonagemSessao(personagemCampanha);
+    const grausMap = this.montarMapaGrausPersonagemSessao(
+      personagemCampanha,
+      bonusGrausTemporarios,
+    );
 
     const tecnicaInataOrigem =
       personagemCampanha.tecnicaInataPropria ?? personagemCampanha.tecnicaInata;
@@ -7385,17 +8907,25 @@ export class SessaoService {
 
   private montarMapaGrausPersonagemSessao(
     personagemCampanha: PersonagemCampanhaTecnicasSessaoRaw,
+    bonusGrausTemporarios: Map<string, number> = new Map(),
   ): Map<string, number> {
     const grausPreferenciais = personagemCampanha.grausAprimoramento?.length
       ? personagemCampanha.grausAprimoramento
       : (personagemCampanha.personagemBase?.grausAprimoramento ?? []);
 
-    return montarMapaGraus(
+    const mapa = montarMapaGraus(
       grausPreferenciais.map((grau) => ({
         tipoGrauCodigo: grau.tipoGrau.codigo,
         valor: grau.valor,
       })),
     );
+
+    for (const [tipoGrauCodigo, bonus] of bonusGrausTemporarios.entries()) {
+      if (!tipoGrauCodigo || bonus <= 0) continue;
+      mapa.set(tipoGrauCodigo, (mapa.get(tipoGrauCodigo) ?? 0) + bonus);
+    }
+
+    return mapa;
   }
 
   private montarReferenciaTurnoAtualSessao(sessao: {
