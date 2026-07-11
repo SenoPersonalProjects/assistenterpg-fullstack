@@ -317,6 +317,9 @@ export default function SessaoCampanhaPage() {
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
   const [cenaNome, setCenaNome] = useState('');
   const [limitesCategoriaAtivo, setLimitesCategoriaAtivo] = useState(false);
+  const [cenaFormDirty, setCenaFormDirty] = useState(false);
+  const cenaFormDirtyRef = useRef(false);
+  const cenaSnapshotCenaIdRef = useRef<number | null>(null);
   const [ajustesRecursosPorCard, setAjustesRecursosPorCard] = useState<
     Record<number, AjustesRecursos>
   >({});
@@ -336,6 +339,7 @@ export default function SessaoCampanhaPage() {
   const [npcEaAtual, setNpcEaAtual] = useState('');
   const [npcEaMax, setNpcEaMax] = useState('');
   const [npcIniciativaValor, setNpcIniciativaValor] = useState('');
+  const [npcOcultoJogadores, setNpcOcultoJogadores] = useState(false);
   const [modalAdicionarNpcAberto, setModalAdicionarNpcAberto] = useState(false);
   const [modalAdicionarNpcSimplesAberto, setModalAdicionarNpcSimplesAberto] =
     useState(false);
@@ -354,6 +358,7 @@ export default function SessaoCampanhaPage() {
     'OUTRO' | 'HUMANO' | 'FEITICEIRO' | 'MALDICAO' | 'ANIMAL' | 'HIBRIDO'
   >('OUTRO');
   const [npcSimplesTamanho, setNpcSimplesTamanho] = useState('MEDIO');
+  const [npcSimplesOcultoJogadores, setNpcSimplesOcultoJogadores] = useState(false);
   const [npcSimplesAtributos, setNpcSimplesAtributos] = useState({
     agilidade: '',
     forca: '',
@@ -603,11 +608,33 @@ export default function SessaoCampanhaPage() {
     sessaoId,
   });
 
+  const aplicarEstadoCena = useCallback((proximoDetalhe: SessaoCampanhaDetalhe) => {
+    setCenaTipo(proximoDetalhe.cenaAtual.tipo as TipoCenaSessaoCampanha);
+    setCenaNome(proximoDetalhe.cenaAtual.nome ?? '');
+    setLimitesCategoriaAtivo(Boolean(proximoDetalhe.cenaAtual.limitesCategoriaAtivo));
+    cenaSnapshotCenaIdRef.current = proximoDetalhe.cenaAtual.id;
+    cenaFormDirtyRef.current = false;
+    setCenaFormDirty(false);
+  }, []);
+
+  const marcarCenaFormDirty = useCallback(() => {
+    cenaFormDirtyRef.current = true;
+    setCenaFormDirty(true);
+  }, []);
+
+  const resetarFormularioCena = useCallback(() => {
+    if (!detalhe) return;
+    aplicarEstadoCena(detalhe);
+  }, [aplicarEstadoCena, detalhe]);
+
   const sincronizarEstadosDerivados = useCallback(
     (proximoDetalhe: SessaoCampanhaDetalhe) => {
-      setCenaTipo(proximoDetalhe.cenaAtual.tipo as TipoCenaSessaoCampanha);
-      setCenaNome(proximoDetalhe.cenaAtual.nome ?? '');
-      setLimitesCategoriaAtivo(Boolean(proximoDetalhe.cenaAtual.limitesCategoriaAtivo));
+      const cenaMudou =
+        cenaSnapshotCenaIdRef.current !== null &&
+        cenaSnapshotCenaIdRef.current !== proximoDetalhe.cenaAtual.id;
+      if (!cenaFormDirtyRef.current || cenaMudou) {
+        aplicarEstadoCena(proximoDetalhe);
+      }
 
       setAjustesRecursosPorCard((estadoAtual) => {
         const proximoEstado = { ...estadoAtual };
@@ -630,11 +657,9 @@ export default function SessaoCampanhaPage() {
       });
     },
     [
+      aplicarEstadoCena,
       setAjustesRecursosPorCard,
-      setCenaNome,
-      setCenaTipo,
       setEdicaoNpcs,
-      setLimitesCategoriaAtivo,
     ],
   );
 
@@ -999,12 +1024,29 @@ export default function SessaoCampanhaPage() {
 
   const handleCenaTipoChange = useCallback(
     (tipo: TipoCenaSessaoCampanha) => {
+      marcarCenaFormDirty();
       setCenaTipo(tipo);
       if (tipo === 'BASE') {
         setLimitesCategoriaAtivo(true);
       }
     },
-    [setCenaTipo, setLimitesCategoriaAtivo],
+    [marcarCenaFormDirty, setCenaTipo, setLimitesCategoriaAtivo],
+  );
+
+  const handleCenaNomeChange = useCallback(
+    (nome: string) => {
+      marcarCenaFormDirty();
+      setCenaNome(nome);
+    },
+    [marcarCenaFormDirty],
+  );
+
+  const handleToggleLimitesCategoria = useCallback(
+    (ativo: boolean) => {
+      marcarCenaFormDirty();
+      setLimitesCategoriaAtivo(ativo);
+    },
+    [marcarCenaFormDirty],
   );
 
   const { acaoTurnoPendente, handleControleTurno } = useSessaoTurnos({
@@ -1095,6 +1137,7 @@ export default function SessaoCampanhaPage() {
     setNpcSimplesFichaTipo('NPC');
     setNpcSimplesTipo('OUTRO');
     setNpcSimplesTamanho('MEDIO');
+    setNpcSimplesOcultoJogadores(false);
     setNpcSimplesAtributos({
       agilidade: '',
       forca: '',
@@ -1123,6 +1166,7 @@ export default function SessaoCampanhaPage() {
     handleSalvarNpc,
     handleAplicarDeltaRecursoNpc,
     handleAplicarAjustePersonalizadoRecursoNpc,
+    handleAlternarVisibilidadeNpc,
     handleRemoverNpc,
   } = useSessaoNpc({
     campanhaId,
@@ -1141,6 +1185,7 @@ export default function SessaoCampanhaPage() {
       setNpcEaAtual('');
       setNpcEaMax('');
       setNpcIniciativaValor('');
+      setNpcOcultoJogadores(false);
       setModalAdicionarNpcAberto(false);
       setModalAdicionarNpcSimplesAberto(false);
       resetarFormularioNpcSimples();
@@ -1172,12 +1217,14 @@ export default function SessaoCampanhaPage() {
       eaAtual: npcEaAtual,
       eaMax: npcEaMax,
       iniciativaValor,
+      ocultoJogadores: npcOcultoJogadores,
     });
   }, [
     handleAdicionarNpcNaCena,
     npcEaAtual,
     npcEaMax,
     npcIniciativaValor,
+    npcOcultoJogadores,
     npcSanAtual,
     npcSanMax,
     npcSelecionadoId,
@@ -1222,6 +1269,7 @@ export default function SessaoCampanhaPage() {
       sanMax: npcSimplesSanMax,
       eaAtual: npcSimplesEaAtual,
       eaMax: npcSimplesEaMax,
+      ocultoJogadores: npcSimplesOcultoJogadores,
       ...npcSimplesAtributos,
       ...npcSimplesPericias,
     });
@@ -1234,6 +1282,7 @@ export default function SessaoCampanhaPage() {
     npcSimplesFichaTipo,
     npcSimplesIniciativaValor,
     npcSimplesNome,
+    npcSimplesOcultoJogadores,
     npcSimplesPericias,
     npcSimplesPvMax,
     npcSimplesSanAtual,
@@ -2764,12 +2813,14 @@ export default function SessaoCampanhaPage() {
       atualizandoCena={atualizandoCena}
       erroCena={erroCena}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
+      cenaFormDirty={cenaFormDirty}
       onCenaTipoChange={handleCenaTipoChange}
-      onCenaNomeChange={setCenaNome}
+      onCenaNomeChange={handleCenaNomeChange}
       onAtualizarCena={() =>
         void handleAtualizarCena(cenaTipo, cenaNome, limitesCategoriaAtivo)
       }
-      onToggleLimitesCategoria={setLimitesCategoriaAtivo}
+      onToggleLimitesCategoria={handleToggleLimitesCategoria}
+      onResetCenaForm={resetarFormularioCena}
     />
   );
 
@@ -2979,6 +3030,9 @@ export default function SessaoCampanhaPage() {
                     }
                     onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
                     onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
+                    onAlternarVisibilidadeNpc={(npc) =>
+                      void handleAlternarVisibilidadeNpc(npc)
+                    }
                     onRolarPericia={handleRolarPericia}
                     onRolarExpressao={handleRolarExpressao}
                     renderPainelCondicoes={renderPainelCondicoes}
@@ -3303,10 +3357,12 @@ export default function SessaoCampanhaPage() {
           sanMax={npcSanMax}
           eaAtual={npcEaAtual}
           eaMax={npcEaMax}
+          ocultoJogadores={npcOcultoJogadores}
           onSanAtualChange={setNpcSanAtual}
           onSanMaxChange={setNpcSanMax}
           onEaAtualChange={setNpcEaAtual}
           onEaMaxChange={setNpcEaMax}
+          onOcultoJogadoresChange={setNpcOcultoJogadores}
         />
 
         <AddSimpleNpcModal
@@ -3337,6 +3393,8 @@ export default function SessaoCampanhaPage() {
           onTipoChange={setNpcSimplesTipo}
           tamanho={npcSimplesTamanho}
           onTamanhoChange={setNpcSimplesTamanho}
+          ocultoJogadores={npcSimplesOcultoJogadores}
+          onOcultoJogadoresChange={setNpcSimplesOcultoJogadores}
           atributos={npcSimplesAtributos}
           onAtributoChange={(campo, valor) =>
             setNpcSimplesAtributos((estadoAtual) => ({

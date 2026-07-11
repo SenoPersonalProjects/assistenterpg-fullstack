@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
@@ -25,10 +26,12 @@ type AddNpcModalProps = {
   sanMax: string;
   eaAtual: string;
   eaMax: string;
+  ocultoJogadores: boolean;
   onSanAtualChange: (value: string) => void;
   onSanMaxChange: (value: string) => void;
   onEaAtualChange: (value: string) => void;
   onEaMaxChange: (value: string) => void;
+  onOcultoJogadoresChange: (value: boolean) => void;
 };
 
 export function AddNpcModal({
@@ -48,10 +51,12 @@ export function AddNpcModal({
   sanMax,
   eaAtual,
   eaMax,
+  ocultoJogadores,
   onSanAtualChange,
   onSanMaxChange,
   onEaAtualChange,
   onEaMaxChange,
+  onOcultoJogadoresChange,
 }: AddNpcModalProps) {
   return (
     <Modal
@@ -119,6 +124,18 @@ export function AddNpcModal({
             onChange={(event) => onIniciativaValorChange(event.target.value)}
             placeholder="Ex.: 18"
           />
+        </div>
+
+        <div className="rounded border border-app-border bg-app-bg p-3">
+          <Checkbox
+            checked={ocultoJogadores}
+            onChange={(event) => onOcultoJogadoresChange(event.target.checked)}
+            label="Ocultar dos jogadores ao adicionar"
+            disabled={sessaoEncerrada || adicionando}
+          />
+          <p className="mt-1 text-[11px] text-app-muted">
+            Mestres continuam vendo o NPC na cena e podem revelar depois.
+          </p>
         </div>
 
         <details className="rounded border border-app-border bg-app-surface p-3">

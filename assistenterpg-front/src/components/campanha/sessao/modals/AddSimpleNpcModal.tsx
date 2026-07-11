@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
@@ -38,6 +39,8 @@ type AddSimpleNpcModalProps = {
   onAtributoChange: (campo: 'agilidade' | 'forca' | 'intelecto' | 'presenca' | 'vigor', value: string) => void;
   pericias: Record<'percepcao' | 'iniciativa' | 'fortitude' | 'reflexos' | 'vontade' | 'luta' | 'jujutsu', string>;
   onPericiaChange: (campo: 'percepcao' | 'iniciativa' | 'fortitude' | 'reflexos' | 'vontade' | 'luta' | 'jujutsu', value: string) => void;
+  ocultoJogadores: boolean;
+  onOcultoJogadoresChange: (value: boolean) => void;
 };
 
 const tamanhos = ['MINUSCULO', 'PEQUENO', 'MEDIO', 'GRANDE', 'ENORME', 'COLOSSAL'];
@@ -74,6 +77,8 @@ export function AddSimpleNpcModal({
   onAtributoChange,
   pericias,
   onPericiaChange,
+  ocultoJogadores,
+  onOcultoJogadoresChange,
 }: AddSimpleNpcModalProps) {
   const podeConfirmar =
     !adicionando &&
@@ -128,6 +133,18 @@ export function AddSimpleNpcModal({
               </option>
             ))}
           </Select>
+        </div>
+
+        <div className="rounded border border-app-border bg-app-bg p-3">
+          <Checkbox
+            checked={ocultoJogadores}
+            onChange={(event) => onOcultoJogadoresChange(event.target.checked)}
+            label="Ocultar dos jogadores ao adicionar"
+            disabled={sessaoEncerrada || adicionando}
+          />
+          <p className="mt-1 text-[11px] text-app-muted">
+            Mestres continuam vendo o NPC na cena e podem revelar depois.
+          </p>
         </div>
 
         <details className="rounded border border-app-border bg-app-surface p-3">

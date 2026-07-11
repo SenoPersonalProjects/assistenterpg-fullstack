@@ -288,6 +288,7 @@ export type NpcSessaoCampanha = {
   passivas: NpcAmeacaPassiva[];
   acoes: NpcAmeacaAcao[];
   condicoesAtivas: CondicaoAtivaSessaoCampanha[];
+  ocultoJogadores: boolean;
   podeEditar: boolean;
 };
 
@@ -331,6 +332,7 @@ export type AdicionarNpcSessaoCampanhaPayload = {
   machucado?: number | null;
   deslocamentoMetros?: number;
   notasCena?: string;
+  ocultoJogadores?: boolean;
 };
 
 export type AdicionarNpcSimplesSessaoCampanhaPayload = {
@@ -362,6 +364,7 @@ export type AdicionarNpcSimplesSessaoCampanhaPayload = {
   luta?: number | null;
   jujutsu?: number | null;
   notasCena?: string;
+  ocultoJogadores?: boolean;
 };
 
 export type AtualizarNpcSessaoCampanhaPayload = Partial<

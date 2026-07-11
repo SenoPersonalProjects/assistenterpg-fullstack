@@ -3,6 +3,7 @@ import {
   refreshAuthSession,
   resetCsrfToken,
 } from '../api/axios-client';
+import type { MestreShieldGuidePayload } from '@/lib/constants/mestre-shield-guides';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -563,6 +564,23 @@ export async function apiListarDestaques(
   }
 }
 
+export async function apiBuscarEscudoMestre(): Promise<MestreShieldGuidePayload | null> {
+  try {
+    return await fetchJson<MestreShieldGuidePayload>(
+      '/compendio/escudo-mestre',
+      'Falha ao carregar Escudo do Mestre',
+      {
+        cache: 'default',
+        next: { revalidate: 300 },
+        timeoutMs: COMPENDIO_PUBLIC_FETCH_TIMEOUT_MS,
+      },
+    );
+  } catch (error) {
+    logCompendioWarning('Falha ao carregar Escudo do Mestre; retornando nulo', error);
+    return null;
+  }
+}
+
 export async function apiBuscarCompendio(
   query: string,
   livroCodigo?: string,
@@ -781,6 +799,7 @@ export const compendioApi = {
   buscarSubcategoriaPorCodigo: apiBuscarSubcategoriaPorCodigo,
   buscarArtigoPorCodigo: apiBuscarArtigoPorCodigo,
   listarDestaques: apiListarDestaques,
+  buscarEscudoMestre: apiBuscarEscudoMestre,
   buscar: apiBuscarCompendio,
   listarTodosArtigos: apiListarTodosArtigos,
   adminListarLivros: apiAdminListarLivros,

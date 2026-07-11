@@ -23,6 +23,7 @@ type SessionMasterControlsProps = {
   cenaNome: string;
   opcoesCena: Array<{ value: TipoCenaSessaoCampanha; label: string }>;
   limitesCategoriaAtivo: boolean;
+  cenaFormDirty?: boolean;
   atualizandoCena: boolean;
   acaoTurnoPendente: AcaoControleTurno | null;
   encerrandoSessao: boolean;
@@ -33,6 +34,7 @@ type SessionMasterControlsProps = {
   onCenaNomeChange: (nome: string) => void;
   onAtualizarCena: () => void;
   onToggleLimitesCategoria: (ativo: boolean) => void;
+  onResetCenaForm?: () => void;
   onControleTurno: (acao: AcaoControleTurno) => void;
   onSolicitarEncerrarSessao: () => void;
   iniciativaAlternada?: EstadoIniciativaAlternadaSessao | null;
@@ -47,12 +49,14 @@ type SessionSceneControlPanelProps = Pick<
   | 'cenaNome'
   | 'opcoesCena'
   | 'limitesCategoriaAtivo'
+  | 'cenaFormDirty'
   | 'atualizandoCena'
   | 'erroCena'
   | 'onCenaTipoChange'
   | 'onCenaNomeChange'
   | 'onAtualizarCena'
   | 'onToggleLimitesCategoria'
+  | 'onResetCenaForm'
 >;
 
 type SessionTableOperationsPanelProps = Pick<
@@ -95,12 +99,14 @@ export function SessionSceneControlPanel({
   cenaNome,
   opcoesCena,
   limitesCategoriaAtivo,
+  cenaFormDirty = false,
   atualizandoCena,
   erroCena,
   onCenaTipoChange,
   onCenaNomeChange,
   onAtualizarCena,
   onToggleLimitesCategoria,
+  onResetCenaForm,
 }: SessionSceneControlPanelProps) {
   if (!podeControlarSessao) {
     return <MasterOnlyPanel />;
@@ -153,20 +159,32 @@ export function SessionSceneControlPanel({
           />
         </div>
 
-        <Button
-          variant="secondary"
-          className="w-full font-black shadow-lg shadow-app-secondary/10 group"
-          onClick={onAtualizarCena}
-          disabled={atualizandoCena || sessaoEncerrada}
-        >
-          <Icon
-            name="refresh"
-            className={`mr-2 h-4 w-4 transition-transform group-hover:rotate-180 ${
-              atualizandoCena ? 'animate-spin' : ''
-            }`}
-          />
-          {atualizandoCena ? 'Atualizando...' : 'Atualizar cena'}
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {cenaFormDirty && onResetCenaForm ? (
+            <Button
+              variant="ghost"
+              className="font-black"
+              onClick={onResetCenaForm}
+              disabled={atualizandoCena || sessaoEncerrada}
+            >
+              Cancelar alterações
+            </Button>
+          ) : null}
+          <Button
+            variant="secondary"
+            className="w-full font-black shadow-lg shadow-app-secondary/10 group"
+            onClick={onAtualizarCena}
+            disabled={atualizandoCena || sessaoEncerrada}
+          >
+            <Icon
+              name="refresh"
+              className={`mr-2 h-4 w-4 transition-transform group-hover:rotate-180 ${
+                atualizandoCena ? 'animate-spin' : ''
+              }`}
+            />
+            {atualizandoCena ? 'Atualizando...' : 'Atualizar cena'}
+          </Button>
+        </div>
       </div>
     </SessionPanel>
   );

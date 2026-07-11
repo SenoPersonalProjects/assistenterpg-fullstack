@@ -122,6 +122,7 @@ type NpcSessionCardProps = {
   onAplicarAjustePersonalizado: (campo: CampoAjusteRecursoNpc) => void;
   onSalvar: () => void;
   onSolicitarRemover: () => void;
+  onAlternarVisibilidade?: () => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -167,6 +168,7 @@ export function NpcSessionCard({
   onAplicarAjustePersonalizado,
   onSalvar,
   onSolicitarRemover,
+  onAlternarVisibilidade,
   renderPainelCondicoes,
   onRolarPericia,
   onRolarExpressao,
@@ -755,6 +757,11 @@ export function NpcSessionCard({
               <Badge size="sm" color="gray">
                 {labelTipoNpc(npc.tipo)}
               </Badge>
+              {podeControlarSessao && npc.ocultoJogadores ? (
+                <Badge size="sm" color="yellow">
+                  Oculto dos jogadores
+                </Badge>
+              ) : null}
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1.5">
@@ -792,6 +799,30 @@ export function NpcSessionCard({
                 </Button>
               )
             )}
+            {podeAjustar && onAlternarVisibilidade ? (
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={onAlternarVisibilidade}
+                title={
+                  npc.ocultoJogadores
+                    ? 'Revelar para jogadores'
+                    : 'Ocultar dos jogadores'
+                }
+                aria-label={
+                  npc.ocultoJogadores
+                    ? `Revelar ${npc.nome} para jogadores`
+                    : `Ocultar ${npc.nome} dos jogadores`
+                }
+                disabled={sessaoEncerrada || salvando}
+              >
+                <Icon
+                  name={npc.ocultoJogadores ? 'eye' : 'eyeOff'}
+                  className="h-3.5 w-3.5"
+                />
+                {npc.ocultoJogadores ? 'Revelar' : 'Ocultar'}
+              </Button>
+            ) : null}
             <span className="session-initiative-badge">INI {iniciativaTexto}</span>
             <Button
               size="xs"

@@ -59,6 +59,7 @@ type SessionNpcsPanelProps = {
   ) => void;
   onSalvarNpc: (npc: NpcSessaoCampanha) => void;
   onSolicitarRemoverNpc: (npc: NpcSessaoCampanha) => void;
+  onAlternarVisibilidadeNpc?: (npc: NpcSessaoCampanha) => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -99,6 +100,7 @@ export function SessionNpcsPanel({
   onAplicarAjustePersonalizado,
   onSalvarNpc,
   onSolicitarRemoverNpc,
+  onAlternarVisibilidadeNpc,
   renderPainelCondicoes,
   onRolarPericia,
   onRolarExpressao,
@@ -177,6 +179,7 @@ export function SessionNpcsPanel({
             }
             onSalvar={() => onSalvarNpc(npc)}
             onSolicitarRemover={() => onSolicitarRemoverNpc(npc)}
+            onAlternarVisibilidade={() => onAlternarVisibilidadeNpc?.(npc)}
             renderPainelCondicoes={renderPainelCondicoes}
             onRolarPericia={onRolarPericia}
             onRolarExpressao={onRolarExpressao}

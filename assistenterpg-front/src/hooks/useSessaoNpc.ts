@@ -52,6 +52,7 @@ type UseSessaoNpcReturn = {
       eaAtual?: string;
       eaMax?: string;
       iniciativaValor?: number | null;
+      ocultoJogadores?: boolean;
     },
   ) => Promise<void>;
   handleAdicionarNpcSimplesNaCena: (payload: {
@@ -81,7 +82,9 @@ type UseSessaoNpcReturn = {
     luta?: string;
     jujutsu?: string;
     notasCena?: string;
+    ocultoJogadores?: boolean;
   }) => Promise<void>;
+  handleAlternarVisibilidadeNpc: (npc: NpcSessaoCampanha) => Promise<void>;
   handleSalvarNpc: (npc: NpcSessaoCampanha) => Promise<void>;
   handleAplicarDeltaRecursoNpc: (
     npc: NpcSessaoCampanha,
@@ -160,6 +163,7 @@ export function useSessaoNpc({
         eaAtual?: string;
         eaMax?: string;
         iniciativaValor?: number | null;
+        ocultoJogadores?: boolean;
       },
     ) => {
       if (!Number.isInteger(npcAmeacaId) || npcAmeacaId <= 0) return;
@@ -180,6 +184,7 @@ export function useSessaoNpc({
           eaAtual: eaAtual ?? undefined,
           eaMax: eaMax ?? undefined,
           iniciativaValor,
+          ocultoJogadores: recursos?.ocultoJogadores === true,
         };
         const atualizado = await apiAdicionarNpcSessaoCampanha(
           campanhaId,
@@ -235,6 +240,7 @@ export function useSessaoNpc({
       luta?: string;
       jujutsu?: string;
       notasCena?: string;
+      ocultoJogadores?: boolean;
     }) => {
       setAdicionandoNpc(true);
       setErro(null);
@@ -276,6 +282,7 @@ export function useSessaoNpc({
             luta: parseOpcional(payload.luta),
             jujutsu: parseOpcional(payload.jujutsu),
             notasCena: payload.notasCena?.trim() || undefined,
+            ocultoJogadores: payload.ocultoJogadores === true,
           },
         );
         setDetalhe(atualizado);
@@ -484,6 +491,45 @@ export function useSessaoNpc({
     ],
   );
 
+  const handleAlternarVisibilidadeNpc = useCallback(
+    async (npc: NpcSessaoCampanha) => {
+      if (!npc.podeEditar || sessaoEncerrada) return;
+
+      setSalvandoNpcId(npc.npcSessaoId);
+      setErro(null);
+      try {
+        const atualizado = await apiAtualizarNpcSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          npc.npcSessaoId,
+          { ocultoJogadores: !npc.ocultoJogadores },
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast(
+          npc.ocultoJogadores
+            ? `${textoSeguro(npc.nome)} revelado para os jogadores.`
+            : `${textoSeguro(npc.nome)} oculto dos jogadores.`,
+          'success',
+        );
+      } catch (error) {
+        setErro(criarErroUsuario(error));
+      } finally {
+        setSalvandoNpcId(null);
+      }
+    },
+    [
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      setDetalhe,
+      setErro,
+      showToast,
+      sincronizarEstadosDerivados,
+      textoSeguro,
+    ],
+  );
+
   return {
     adicionandoNpc,
     salvandoNpcId,
@@ -494,6 +540,7 @@ export function useSessaoNpc({
     handleSalvarNpc,
     handleAplicarDeltaRecursoNpc,
     handleAplicarAjustePersonalizadoRecursoNpc,
+    handleAlternarVisibilidadeNpc,
     handleRemoverNpc,
   };
 }

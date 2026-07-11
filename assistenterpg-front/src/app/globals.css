@@ -1419,18 +1419,7 @@ body {
 
   .session-tabs--compact .session-tab:hover:not(.session-tab--active),
   .session-tabs--compact .session-tab:focus-visible:not(.session-tab--active) {
-    min-width: max-content;
-    padding-inline: 0.6rem;
     z-index: 2;
-  }
-
-  .session-tabs--compact .session-tab:hover:not(.session-tab--active) .session-tab__label,
-  .session-tabs--compact .session-tab:focus-visible:not(.session-tab--active) .session-tab__label {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
   }
 }
 
@@ -2527,6 +2516,29 @@ body {
 .session-notes__list {
   display: grid;
   gap: 0.65rem;
+}
+
+.session-notes__campaign {
+  border: 1px solid var(--session-border);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--session-surface) 82%, transparent);
+  padding: 0.75rem;
+}
+
+.session-notes__campaign-summary {
+  display: flex;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--fg);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.session-notes__campaign-summary::-webkit-details-marker {
+  display: none;
 }
 
 .session-notes__title {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { RefObject } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
@@ -23,6 +23,12 @@ import type {
   SessaoCampanhaDetalhe,
   UserErrorState,
 } from '@/lib/types';
+import {
+  apiCriarSolicitacaoAmizade,
+  apiListarAmigos,
+  apiListarSolicitacoesAmizade,
+  criarErroUsuario,
+} from '@/lib/api';
 
 type SessionSidebarPanelProps = {
   activeTab: SessionSidebarTabId;
@@ -133,6 +139,70 @@ export function SessionSidebarPanel({
 
   const [totalAnotacoes, setTotalAnotacoes] = useState(0);
   const [totalItens, setTotalItens] = useState(0);
+  const [amigoIds, setAmigoIds] = useState<Set<number>>(() => new Set());
+  const [solicitacoesEnviadasIds, setSolicitacoesEnviadasIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [solicitacoesRecebidasIds, setSolicitacoesRecebidasIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [carregandoAmizades, setCarregandoAmizades] = useState(false);
+  const [amizadeAcaoUsuarioId, setAmizadeAcaoUsuarioId] = useState<number | null>(
+    null,
+  );
+  const [erroAmizades, setErroAmizades] = useState<UserErrorState | null>(null);
+
+  const carregarRelacionamentosParticipantes = useCallback(async () => {
+    if (!usuarioId) return;
+
+    setCarregandoAmizades(true);
+    setErroAmizades(null);
+    try {
+      const [amigos, solicitacoes] = await Promise.all([
+        apiListarAmigos(),
+        apiListarSolicitacoesAmizade(),
+      ]);
+      setAmigoIds(new Set(amigos.map((amigo) => amigo.id)));
+      setSolicitacoesEnviadasIds(
+        new Set(solicitacoes.enviadas.map((solicitacao) => solicitacao.usuario.id)),
+      );
+      setSolicitacoesRecebidasIds(
+        new Set(solicitacoes.recebidas.map((solicitacao) => solicitacao.usuario.id)),
+      );
+    } catch (error) {
+      setErroAmizades(criarErroUsuario(error));
+    } finally {
+      setCarregandoAmizades(false);
+    }
+  }, [usuarioId]);
+
+  useEffect(() => {
+    if (tabAtiva !== 'participantes') return;
+    void carregarRelacionamentosParticipantes();
+  }, [carregarRelacionamentosParticipantes, tabAtiva]);
+
+  const handleEnviarSolicitacaoParticipante = useCallback(
+    async (participanteUsuarioId: number) => {
+      if (!usuarioId || participanteUsuarioId === usuarioId) return;
+
+      setAmizadeAcaoUsuarioId(participanteUsuarioId);
+      setErroAmizades(null);
+      try {
+        await apiCriarSolicitacaoAmizade(String(participanteUsuarioId));
+        setSolicitacoesEnviadasIds((estadoAtual) => {
+          const proximo = new Set(estadoAtual);
+          proximo.add(participanteUsuarioId);
+          return proximo;
+        });
+        await carregarRelacionamentosParticipantes();
+      } catch (error) {
+        setErroAmizades(criarErroUsuario(error));
+      } finally {
+        setAmizadeAcaoUsuarioId(null);
+      }
+    },
+    [carregarRelacionamentosParticipantes, usuarioId],
+  );
 
   return (
     <SessionPanel
@@ -169,7 +239,18 @@ export function SessionSidebarPanel({
               transition={{ duration: 0.2 }}
             >
               {tabAtiva === 'participantes' && (
-                <ParticipantsPanel participantes={participantes} onlineSet={onlineSet} />
+                <ParticipantsPanel
+                  participantes={participantes}
+                  onlineSet={onlineSet}
+                  usuarioAtualId={usuarioId ?? null}
+                  amigoIds={amigoIds}
+                  solicitacoesEnviadasIds={solicitacoesEnviadasIds}
+                  solicitacoesRecebidasIds={solicitacoesRecebidasIds}
+                  carregandoAmizades={carregandoAmizades}
+                  amizadeAcaoUsuarioId={amizadeAcaoUsuarioId}
+                  erroAmizades={erroAmizades}
+                  onEnviarSolicitacao={handleEnviarSolicitacaoParticipante}
+                />
               )}
 
               {tabAtiva === 'eventos' && mostrarEventos && (

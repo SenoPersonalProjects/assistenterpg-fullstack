@@ -10,6 +10,7 @@ import {
   type AnotacaoResumo,
 } from '@/lib/api';
 import { formatarDataHora } from '@/lib/utils/formatters';
+import { filtrarAnotacoesGeraisCampanha } from '@/lib/campanha/sessao-notes';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
@@ -32,6 +33,7 @@ export function SessionNotesPanel({
   onCountChange,
 }: SessionNotesPanelProps) {
   const [notas, setNotas] = useState<AnotacaoResumo[]>([]);
+  const [notasCampanha, setNotasCampanha] = useState<AnotacaoResumo[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<UserErrorState | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -45,14 +47,22 @@ export function SessionNotesPanel({
     try {
       setLoading(true);
       setErro(null);
-      const resposta = await apiListarAnotacoes({
-        campanhaId,
-        sessaoId,
-        pagina: 1,
-        limite: 50,
-      });
-      setNotas(resposta.items);
-      onCountChange?.(resposta.items.length);
+      const [respostaSessao, respostaCampanha] = await Promise.all([
+        apiListarAnotacoes({
+          campanhaId,
+          sessaoId,
+          pagina: 1,
+          limite: 50,
+        }),
+        apiListarAnotacoes({
+          campanhaId,
+          pagina: 1,
+          limite: 50,
+        }),
+      ]);
+      setNotas(respostaSessao.items);
+      setNotasCampanha(filtrarAnotacoesGeraisCampanha(respostaCampanha.items));
+      onCountChange?.(respostaSessao.items.length);
     } catch (error) {
       setErro(criarErroUsuario(error));
     } finally {
@@ -149,8 +159,9 @@ export function SessionNotesPanel({
   }
 
   const buscaNormalizada = busca.trim().toLowerCase();
-  const notasFiltradas = buscaNormalizada
-    ? notas.filter((nota) => {
+  const filtrarNotas = (lista: AnotacaoResumo[]) =>
+    buscaNormalizada
+      ? lista.filter((nota) => {
         const tituloNormalizado = nota.titulo.toLowerCase();
         const conteudoNormalizado = nota.conteudo.toLowerCase();
         return (
@@ -158,7 +169,38 @@ export function SessionNotesPanel({
           conteudoNormalizado.includes(buscaNormalizada)
         );
       })
-    : notas;
+      : lista;
+  const notasFiltradas = filtrarNotas(notas);
+  const notasCampanhaFiltradas = filtrarNotas(notasCampanha);
+
+  const renderNotaCard = (
+    nota: AnotacaoResumo,
+    options: { permitirEdicao: boolean },
+  ) => (
+    <div key={nota.id} className="session-notes__card">
+      <div className="session-notes__card-head">
+        <div>
+          <p className="session-notes__title">{nota.titulo}</p>
+          <p className="session-notes__meta">{formatarDataHora(nota.criadoEm)}</p>
+        </div>
+        {options.permitirEdicao ? (
+          <div className="session-notes__card-actions">
+            <Button size="xs" variant="ghost" onClick={() => handleEditar(nota)}>
+              Editar
+            </Button>
+            <Button size="xs" variant="destructive" onClick={() => handleExcluir(nota)}>
+              Excluir
+            </Button>
+          </div>
+        ) : (
+          <Badge size="sm" color="gray">
+            Campanha
+          </Badge>
+        )}
+      </div>
+      <p className="session-notes__content">{nota.conteudo}</p>
+    </div>
+  );
 
   return (
     <div className="session-notes">
@@ -247,27 +289,50 @@ export function SessionNotesPanel({
         />
       ) : (
         <div className="session-notes__list">
-          {notasFiltradas.map((nota) => (
-            <div key={nota.id} className="session-notes__card">
-              <div className="session-notes__card-head">
-                <div>
-                  <p className="session-notes__title">{nota.titulo}</p>
-                  <p className="session-notes__meta">{formatarDataHora(nota.criadoEm)}</p>
-                </div>
-                <div className="session-notes__card-actions">
-                  <Button size="xs" variant="ghost" onClick={() => handleEditar(nota)}>
-                    Editar
-                  </Button>
-                  <Button size="xs" variant="destructive" onClick={() => handleExcluir(nota)}>
-                    Excluir
-                  </Button>
-                </div>
-              </div>
-              <p className="session-notes__content">{nota.conteudo}</p>
-            </div>
-          ))}
+          {notasFiltradas.map((nota) => renderNotaCard(nota, { permitirEdicao: true }))}
         </div>
       )}
+
+      {!loading ? (
+        <details className="session-notes__campaign">
+          <summary className="session-notes__campaign-summary">
+            <span className="flex items-center gap-2">
+              <Icon name="book" className="h-3.5 w-3.5 text-app-muted" />
+              Anotações da campanha
+            </span>
+            <Badge size="sm" color="gray">
+              {notasCampanha.length}
+            </Badge>
+          </summary>
+          <div className="mt-2 space-y-2">
+            {notasCampanha.length === 0 ? (
+              <EmptyState
+                variant="session"
+                size="sm"
+                icon="scroll"
+                title="Sem anotações da campanha"
+                description="Nenhuma nota geral da campanha foi encontrada."
+                className="text-left"
+              />
+            ) : notasCampanhaFiltradas.length === 0 ? (
+              <EmptyState
+                variant="session"
+                size="sm"
+                icon="scroll"
+                title="Nenhuma anotação da campanha encontrada"
+                description="Tente buscar por outro termo ou limpe o filtro."
+                className="text-left"
+              />
+            ) : (
+              <div className="session-notes__list">
+                {notasCampanhaFiltradas.map((nota) =>
+                  renderNotaCard(nota, { permitirEdicao: false }),
+                )}
+              </div>
+            )}
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

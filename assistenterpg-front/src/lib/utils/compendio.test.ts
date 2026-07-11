@@ -8,6 +8,7 @@ import {
   apiAdminExportarSeedCompendio,
   apiAdminListarLivros,
   apiAdminReordenarCompendio,
+  apiBuscarEscudoMestre,
   apiBuscarArtigoDoLivroPorCodigo,
   apiBuscarArtigoPorCodigo,
   apiBuscarCategoriaPorCodigo,
@@ -84,6 +85,57 @@ describe('compendio api fallbacks', () => {
     const destaques = await apiListarDestaques();
 
     expect(destaques).toEqual([]);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads the dynamic master shield from the compendium endpoint', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          secoes: [
+            {
+              id: 'ferimentos-morte',
+              titulo: 'Ferimentos e Morte',
+              fonte: 'BASE',
+              referenciaCompendio: 'Livro Principal',
+              resumoMarkdown: 'Resumo oficial',
+              detalhadoMarkdown: 'Detalhe oficial',
+              origens: [],
+              avisos: [],
+            },
+          ],
+          avisos: [],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+
+    const escudo = await apiBuscarEscudoMestre();
+
+    expect(escudo?.secoes[0]).toEqual(
+      expect.objectContaining({
+        id: 'ferimentos-morte',
+        titulo: 'Ferimentos e Morte',
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3000/compendio/escudo-mestre',
+      expect.objectContaining({
+        cache: 'default',
+        credentials: 'include',
+      }),
+    );
+  });
+
+  it('returns null when the dynamic master shield fails to load', async () => {
+    fetchMock.mockRejectedValue(new Error('network down'));
+
+    const escudo = await apiBuscarEscudoMestre();
+
+    expect(escudo).toBeNull();
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 

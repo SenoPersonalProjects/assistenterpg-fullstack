@@ -1,12 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/Input';
 import { Icon } from '@/components/ui/Icon';
-import { MESTRE_SHIELD_GUIDES } from '@/lib/constants/mestre-shield-guides';
+import {
+  filtrarMestreShieldGuides,
+  type MestreShieldGuidePayload,
+} from '@/lib/constants/mestre-shield-guides';
+import { apiBuscarEscudoMestre } from '@/lib/utils/compendio';
 
 type SubtopicoGuia = {
   titulo: string;
@@ -114,17 +118,40 @@ const markdownComponents = {
 export function MestreShieldGuide() {
   const [busca, setBusca] = useState('');
   const [modo, setModo] = useState<'RESUMO' | 'DETALHADO'>('RESUMO');
+  const [escudo, setEscudo] = useState<MestreShieldGuidePayload | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarEscudo() {
+      setCarregando(true);
+      setErro(false);
+
+      const dados = await apiBuscarEscudoMestre();
+      if (!ativo) return;
+
+      setEscudo(dados);
+      setErro(!dados);
+      setCarregando(false);
+    }
+
+    carregarEscudo().catch(() => {
+      if (!ativo) return;
+      setEscudo(null);
+      setErro(true);
+      setCarregando(false);
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   const secoesFiltradas = useMemo(() => {
-    const termo = busca.trim().toLocaleLowerCase('pt-BR');
-    if (!termo) return MESTRE_SHIELD_GUIDES;
-    return MESTRE_SHIELD_GUIDES.filter(
-      (secao) =>
-        secao.titulo.toLocaleLowerCase('pt-BR').includes(termo) ||
-        secao.resumoMarkdown.toLocaleLowerCase('pt-BR').includes(termo) ||
-        secao.detalhadoMarkdown?.toLocaleLowerCase('pt-BR').includes(termo),
-    );
-  }, [busca]);
+    return filtrarMestreShieldGuides(escudo?.secoes ?? [], busca);
+  }, [busca, escudo?.secoes]);
 
   return (
     <div className="space-y-4">
@@ -158,8 +185,29 @@ export function MestreShieldGuide() {
         </div>
       </div>
 
+      {escudo?.avisos?.length ? (
+        <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-[11px] font-bold text-amber-100">
+          Algumas referências do compêndio não foram encontradas. O restante do
+          Escudo continua disponível.
+        </div>
+      ) : null}
+
       <div className="max-h-[500px] overflow-y-auto space-y-3 pr-2 scrollbar-none">
-        {secoesFiltradas.length === 0 ? (
+        {carregando ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center opacity-70">
+            <Icon name="book" className="mb-4 h-12 w-12 text-app-muted" />
+            <p className="text-xs font-bold text-app-muted">
+              Carregando referências do compêndio...
+            </p>
+          </div>
+        ) : erro ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center opacity-70">
+            <Icon name="warning" className="mb-4 h-12 w-12 text-app-muted" />
+            <p className="text-xs font-bold text-app-muted">
+              Não foi possível carregar o Escudo do Mestre agora.
+            </p>
+          </div>
+        ) : secoesFiltradas.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center opacity-50">
             <Icon name="search" className="mb-4 h-12 w-12 text-app-muted" />
             <p className="text-xs font-bold text-app-muted">
@@ -173,8 +221,18 @@ export function MestreShieldGuide() {
               className="group rounded-2xl border border-app-border/10 bg-app-surface/30 transition-all hover:border-app-primary/20"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5">
-                <span className="text-xs font-black text-app-fg uppercase tracking-tight group-open:text-app-primary transition-colors">
-                  {guia.titulo}
+                <span className="min-w-0">
+                  <span className="block text-xs font-black text-app-fg uppercase tracking-tight group-open:text-app-primary transition-colors">
+                    {guia.titulo}
+                  </span>
+                  {guia.referenciaCompendio ? (
+                    <span className="mt-1 block text-[10px] font-bold text-app-muted">
+                      {guia.fonte === 'SUPLEMENTO'
+                        ? 'Suplemento oficial'
+                        : 'Compêndio oficial'}{' '}
+                      · {guia.referenciaCompendio}
+                    </span>
+                  ) : null}
                 </span>
                 <Icon
                   name="chevron-down"
@@ -257,6 +315,26 @@ export function MestreShieldGuide() {
                         {guia.resumoMarkdown}
                       </ReactMarkdown>
                     )}
+
+                    {guia.origens.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap gap-2 border-t border-app-border/5 pt-3">
+                        {guia.origens.map((origem) => (
+                          <a
+                            key={`${guia.id}-${origem.href}`}
+                            href={origem.href}
+                            className="rounded-lg border border-app-border/10 bg-app-bg/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-app-muted transition-colors hover:border-app-primary/30 hover:text-app-primary"
+                          >
+                            {origem.artigoTitulo}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {guia.avisos.length > 0 ? (
+                      <div className="mt-3 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-[10px] font-bold text-amber-100">
+                        Referência parcial no compêndio.
+                      </div>
+                    ) : null}
                   </motion.div>
                 </AnimatePresence>
               </div>
