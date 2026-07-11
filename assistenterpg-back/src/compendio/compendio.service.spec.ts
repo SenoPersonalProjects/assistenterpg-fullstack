@@ -51,6 +51,127 @@ describe('CompendioService', () => {
     service = new CompendioService(prisma as never);
   });
 
+  function artigoEscudo(params: {
+    codigo: string;
+    titulo: string;
+    categoriaCodigo: string;
+    subcategoriaCodigo: string;
+    conteudo?: string;
+    resumo?: string | null;
+    livroCodigo?: string;
+    livroTitulo?: string;
+  }) {
+    return {
+      codigo: params.codigo,
+      titulo: params.titulo,
+      resumo: params.resumo ?? `Resumo de ${params.titulo}`,
+      conteudo: params.conteudo ?? `# ${params.titulo}\n\nConteúdo oficial.`,
+      subcategoria: {
+        codigo: params.subcategoriaCodigo,
+        nome: params.subcategoriaCodigo,
+        categoria: {
+          codigo: params.categoriaCodigo,
+          nome: params.categoriaCodigo,
+          livro: {
+            codigo: params.livroCodigo ?? 'livro-principal',
+            titulo: params.livroTitulo ?? 'Livro Principal',
+          },
+        },
+      },
+    };
+  }
+
+  function artigosEscudoBase() {
+    return [
+      artigoEscudo({
+        codigo: 'basico',
+        titulo: 'BÁSICO',
+        categoriaCodigo: 'introducao-ao-sistema-jujutsu-kaisen-rpg',
+        subcategoriaCodigo: 'basico',
+      }),
+      artigoEscudo({
+        codigo: 'testes-e-habilidades',
+        titulo: 'TESTES E HABILIDADES',
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'testes-e-habilidades',
+      }),
+      artigoEscudo({
+        codigo: 'cenas-rodadas-e-turnos-parte-1',
+        titulo: 'CENAS, RODADAS E TURNOS - Parte 1/2',
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'cenas-rodadas-e-turnos',
+        conteudo:
+          '# Cenas\n\n#### ***10.3.1.11. Ferimentos E Morte***\nQuando você sofre dano, seus PV são reduzidos.\n\n#### Outro trecho\nTexto posterior.',
+      }),
+      artigoEscudo({
+        codigo: 'cenas-rodadas-e-turnos-parte-2',
+        titulo: 'CENAS, RODADAS E TURNOS - Parte 2/2',
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'cenas-rodadas-e-turnos',
+      }),
+      artigoEscudo({
+        codigo: 'pericias',
+        titulo: 'PERÍCIAS',
+        categoriaCodigo:
+          'introducao-as-regras-basicas-na-criacao-do-personagem',
+        subcategoriaCodigo: 'pericias',
+      }),
+      artigoEscudo({
+        codigo: 'conteudo',
+        titulo: 'CONDIÇÕES',
+        categoriaCodigo: 'condicoes',
+        subcategoriaCodigo: 'conteudo',
+      }),
+      artigoEscudo({
+        codigo: 'mecanica-de-expansao-de-dominio',
+        titulo: 'MECÂNICA DE EXPANSÃO DE DOMÍNIO',
+        categoriaCodigo: 'tecnicas-amaldicoadas',
+        subcategoriaCodigo: 'mecanica-de-expansao-de-dominio',
+      }),
+      artigoEscudo({
+        codigo: 'armas',
+        titulo: 'ARMAS',
+        categoriaCodigo: 'equipamentos',
+        subcategoriaCodigo: 'armas',
+      }),
+    ];
+  }
+
+  function livroSobrevivendo() {
+    return {
+      codigo: 'sobrevivendo-ao-jujutsu',
+      titulo: 'Sobrevivendo ao Jujutsu',
+      descricao: 'Primeiro suplemento oficial.',
+      suplementoId: 10,
+      categorias: [
+        {
+          codigo: 'apresentacao',
+          nome: 'Apresentação',
+          descricao: 'Resumo do suplemento.',
+          subcategorias: [
+            {
+              codigo: 'inicio',
+              nome: 'Início',
+              artigos: [
+                {
+                  codigo: 'apresentacao',
+                  titulo: 'Apresentação',
+                  resumo: 'Resumo inicial.',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          codigo: 'origens',
+          nome: 'Origens',
+          descricao: 'Novas origens.',
+          subcategorias: [],
+        },
+      ],
+    };
+  }
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
@@ -138,6 +259,93 @@ describe('CompendioService', () => {
         }),
       }),
     );
+  });
+
+  it('builds the master shield from published compendium content', async () => {
+    prisma.compendioArtigo.findMany.mockResolvedValue(artigosEscudoBase());
+    prisma.compendioLivro.findMany.mockResolvedValue([livroSobrevivendo()]);
+
+    const result = await service.buscarEscudoMestre();
+
+    expect(result.secoes.map((secao) => secao.id)).toEqual([
+      'regras-principais',
+      'pericias',
+      'condicoes',
+      'dominios',
+      'ferimentos-morte',
+      'tipos-dano',
+      'tipos-acoes',
+      'suplementos-oficiais',
+      'sobrevivendo-ao-jujutsu',
+    ]);
+    expect(result.avisos).toEqual([]);
+    expect(result.secoes.find((secao) => secao.id === 'pericias')).toEqual(
+      expect.objectContaining({
+        fonte: 'BASE',
+        referenciaCompendio: 'Livro Principal',
+        origens: [
+          expect.objectContaining({
+            livroCodigo: 'livro-principal',
+            artigoCodigo: 'pericias',
+            href: expect.stringContaining('/compendio/livros/livro-principal/'),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('normalizes Ferimentos e Morte from the official article excerpt', async () => {
+    prisma.compendioArtigo.findMany.mockResolvedValue(artigosEscudoBase());
+    prisma.compendioLivro.findMany.mockResolvedValue([livroSobrevivendo()]);
+
+    const result = await service.buscarEscudoMestre();
+    const secao = result.secoes.find((item) => item.id === 'ferimentos-morte');
+
+    expect(secao?.titulo).toBe('Ferimentos e Morte');
+    expect(secao?.detalhadoMarkdown).toContain('Ferimentos e Morte');
+    expect(secao?.detalhadoMarkdown).not.toContain('Ferimentos E Morte');
+    expect(secao?.detalhadoMarkdown).toContain('Quando você sofre dano');
+    expect(secao?.detalhadoMarkdown).not.toContain('Outro trecho');
+  });
+
+  it('includes official supplements and Sobrevivendo ao Jujutsu when published', async () => {
+    prisma.compendioArtigo.findMany.mockResolvedValue(artigosEscudoBase());
+    prisma.compendioLivro.findMany.mockResolvedValue([livroSobrevivendo()]);
+
+    const result = await service.buscarEscudoMestre();
+    const suplementos = result.secoes.find(
+      (secao) => secao.id === 'suplementos-oficiais',
+    );
+    const sobrevivendo = result.secoes.find(
+      (secao) => secao.id === 'sobrevivendo-ao-jujutsu',
+    );
+
+    expect(suplementos?.resumoMarkdown).toContain('Sobrevivendo ao Jujutsu');
+    expect(sobrevivendo?.resumoMarkdown).toContain(
+      '/compendio/livros/sobrevivendo-ao-jujutsu',
+    );
+    expect(sobrevivendo?.detalhadoMarkdown).toContain('Origens');
+  });
+
+  it('returns controlled warnings when optional compendium references are missing', async () => {
+    prisma.compendioArtigo.findMany.mockResolvedValue([]);
+    prisma.compendioLivro.findMany.mockResolvedValue([]);
+
+    const result = await service.buscarEscudoMestre();
+
+    expect(result.secoes).toHaveLength(9);
+    expect(result.avisos.length).toBeGreaterThan(0);
+    expect(result.secoes.find((secao) => secao.id === 'pericias')).toEqual(
+      expect.objectContaining({
+        resumoMarkdown: expect.stringContaining('Nenhum conteúdo publicado'),
+      }),
+    );
+    expect(
+      result.secoes.find((secao) => secao.id === 'sobrevivendo-ao-jujutsu')
+        ?.avisos,
+    ).toEqual([
+      'Livro do suplemento "Sobrevivendo ao Jujutsu" não encontrado no compêndio publicado.',
+    ]);
   });
 
   it('exports current compendium seed from database rows', async () => {

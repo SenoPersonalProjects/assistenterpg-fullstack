@@ -27,6 +27,233 @@ import {
 
 const LIVRO_PRINCIPAL_CODIGO = 'livro-principal';
 const COMPENDIO_SEED_EXPORT_VERSION = 1;
+const ESCUDO_MESTRE_RESUMO_MAX_CHARS = 900;
+const ESCUDO_MESTRE_DETALHE_MAX_CHARS = 2_400;
+
+type EscudoMestreFonte = 'BASE' | 'SUPLEMENTO';
+
+type EscudoMestreReferenciaArtigo = {
+  livroCodigo: string;
+  categoriaCodigo: string;
+  subcategoriaCodigo: string;
+  artigoCodigo: string;
+  obrigatorio?: boolean;
+  extrairSecao?: string;
+};
+
+type EscudoMestreSecaoConfig = {
+  id: string;
+  titulo: string;
+  fonte: EscudoMestreFonte;
+  referenciaCompendio: string;
+  artigos: EscudoMestreReferenciaArtigo[];
+};
+
+type EscudoMestreOrigem = {
+  livroCodigo: string;
+  livroTitulo: string;
+  categoriaCodigo: string;
+  subcategoriaCodigo: string;
+  artigoCodigo: string;
+  artigoTitulo: string;
+  href: string;
+};
+
+type EscudoMestreSecao = {
+  id: string;
+  titulo: string;
+  fonte: EscudoMestreFonte;
+  referenciaCompendio: string;
+  resumoMarkdown: string;
+  detalhadoMarkdown: string;
+  origens: EscudoMestreOrigem[];
+  avisos: string[];
+};
+
+type EscudoMestreArtigo = {
+  codigo: string;
+  titulo: string;
+  resumo: string | null;
+  conteudo: string;
+  subcategoria: {
+    codigo: string;
+    nome: string;
+    categoria: {
+      codigo: string;
+      nome: string;
+      livro: {
+        codigo: string;
+        titulo: string;
+      };
+    };
+  };
+};
+
+type EscudoMestreLivro = {
+  codigo: string;
+  titulo: string;
+  descricao: string | null;
+  suplementoId: number | null;
+  categorias: Array<{
+    codigo: string;
+    nome: string;
+    descricao: string | null;
+    subcategorias: Array<{
+      codigo: string;
+      nome: string;
+      artigos: Array<{
+        codigo: string;
+        titulo: string;
+        resumo: string | null;
+      }>;
+    }>;
+  }>;
+};
+
+const ESCUDO_MESTRE_SECOES_ARTIGOS: EscudoMestreSecaoConfig[] = [
+  {
+    id: 'regras-principais',
+    titulo: 'Regras principais',
+    fonte: 'BASE',
+    referenciaCompendio: 'Livro Principal',
+    artigos: [
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'introducao-ao-sistema-jujutsu-kaisen-rpg',
+        subcategoriaCodigo: 'basico',
+        artigoCodigo: 'basico',
+        obrigatorio: true,
+      },
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'testes-e-habilidades',
+        artigoCodigo: 'testes-e-habilidades',
+        obrigatorio: true,
+      },
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'cenas-rodadas-e-turnos',
+        artigoCodigo: 'cenas-rodadas-e-turnos-parte-1',
+        obrigatorio: true,
+      },
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'cenas-rodadas-e-turnos',
+        artigoCodigo: 'cenas-rodadas-e-turnos-parte-2',
+        obrigatorio: true,
+      },
+    ],
+  },
+  {
+    id: 'pericias',
+    titulo: 'Perícias',
+    fonte: 'BASE',
+    referenciaCompendio: 'Livro Principal',
+    artigos: [
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo:
+          'introducao-as-regras-basicas-na-criacao-do-personagem',
+        subcategoriaCodigo: 'pericias',
+        artigoCodigo: 'pericias',
+        obrigatorio: true,
+      },
+    ],
+  },
+  {
+    id: 'condicoes',
+    titulo: 'Condições',
+    fonte: 'BASE',
+    referenciaCompendio: 'Livro Principal',
+    artigos: [
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'condicoes',
+        subcategoriaCodigo: 'conteudo',
+        artigoCodigo: 'conteudo',
+        obrigatorio: true,
+      },
+    ],
+  },
+  {
+    id: 'dominios',
+    titulo: 'Domínios',
+    fonte: 'BASE',
+    referenciaCompendio: 'Livro Principal',
+    artigos: [
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'tecnicas-amaldicoadas',
+        subcategoriaCodigo: 'mecanica-de-expansao-de-dominio',
+        artigoCodigo: 'mecanica-de-expansao-de-dominio',
+        obrigatorio: true,
+      },
+    ],
+  },
+  {
+    id: 'ferimentos-morte',
+    titulo: 'Ferimentos e Morte',
+    fonte: 'BASE',
+    referenciaCompendio: 'Livro Principal',
+    artigos: [
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'cenas-rodadas-e-turnos',
+        artigoCodigo: 'cenas-rodadas-e-turnos-parte-1',
+        obrigatorio: true,
+        extrairSecao: 'Ferimentos e Morte',
+      },
+    ],
+  },
+  {
+    id: 'tipos-dano',
+    titulo: 'Tipos de dano',
+    fonte: 'BASE',
+    referenciaCompendio: 'Livro Principal',
+    artigos: [
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'equipamentos',
+        subcategoriaCodigo: 'armas',
+        artigoCodigo: 'armas',
+        obrigatorio: true,
+      },
+    ],
+  },
+  {
+    id: 'tipos-acoes',
+    titulo: 'Tipos de ações',
+    fonte: 'BASE',
+    referenciaCompendio: 'Livro Principal',
+    artigos: [
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'testes-e-habilidades',
+        artigoCodigo: 'testes-e-habilidades',
+        obrigatorio: true,
+      },
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'cenas-rodadas-e-turnos',
+        artigoCodigo: 'cenas-rodadas-e-turnos-parte-1',
+        obrigatorio: true,
+      },
+      {
+        livroCodigo: LIVRO_PRINCIPAL_CODIGO,
+        categoriaCodigo: 'regras-gerais',
+        subcategoriaCodigo: 'cenas-rodadas-e-turnos',
+        artigoCodigo: 'cenas-rodadas-e-turnos-parte-2',
+        obrigatorio: true,
+      },
+    ],
+  },
+];
 
 @Injectable()
 export class CompendioService {
@@ -116,6 +343,282 @@ export class CompendioService {
     return livro.id;
   }
 
+  private chaveReferenciaEscudo(ref: EscudoMestreReferenciaArtigo): string {
+    return [
+      ref.livroCodigo,
+      ref.categoriaCodigo,
+      ref.subcategoriaCodigo,
+      ref.artigoCodigo,
+    ].join('/');
+  }
+
+  private hrefArtigoEscudo(origem: {
+    livroCodigo: string;
+    categoriaCodigo: string;
+    subcategoriaCodigo: string;
+    artigoCodigo: string;
+  }): string {
+    return `/compendio/livros/${origem.livroCodigo}/${origem.categoriaCodigo}/${origem.subcategoriaCodigo}/${origem.artigoCodigo}`;
+  }
+
+  private limitarTextoMarkdown(markdown: string, limite: number): string {
+    const normalizado = this.normalizarTituloFerimentosMorte(
+      markdown.replace(/\r\n?/g, '\n').trim(),
+    );
+
+    if (normalizado.length <= limite) {
+      return normalizado;
+    }
+
+    const recorte = normalizado.slice(0, limite);
+    const ultimaQuebra = recorte.lastIndexOf('\n\n');
+    const texto =
+      ultimaQuebra > Math.floor(limite * 0.55)
+        ? recorte.slice(0, ultimaQuebra)
+        : recorte;
+
+    return `${texto.trimEnd()}\n\n_Continua no artigo completo do compêndio._`;
+  }
+
+  private resumoArtigoEscudo(artigo: EscudoMestreArtigo): string {
+    const resumo = artigo.resumo?.trim();
+    if (resumo) {
+      return this.limitarTextoMarkdown(resumo, ESCUDO_MESTRE_RESUMO_MAX_CHARS);
+    }
+
+    return this.limitarTextoMarkdown(
+      artigo.conteudo,
+      ESCUDO_MESTRE_RESUMO_MAX_CHARS,
+    );
+  }
+
+  private normalizarLabelEscudo(texto: string): string {
+    return texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/^\s*\d+(?:\s+\d+)*\s+/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private normalizarTituloFerimentosMorte(markdown: string): string {
+    return markdown.replace(
+      /Ferimentos\s+(?:E|e|é)\s+Morte/g,
+      'Ferimentos e Morte',
+    );
+  }
+
+  private extrairSecaoMarkdown(
+    markdown: string,
+    titulo: string,
+  ): string | null {
+    const linhas = this.normalizarTituloFerimentosMorte(markdown).split('\n');
+    const alvo = this.normalizarLabelEscudo(titulo);
+    let inicio = -1;
+    let nivelInicio = 0;
+
+    for (let index = 0; index < linhas.length; index++) {
+      const linha = linhas[index].trim();
+      const heading = linha.match(/^(#{1,6})\s+(.+)$/);
+      if (!heading) continue;
+
+      const tituloHeading = heading[2].replace(/[*_~`]/g, '');
+      if (this.normalizarLabelEscudo(tituloHeading) === alvo) {
+        inicio = index;
+        nivelInicio = heading[1].length;
+        break;
+      }
+    }
+
+    if (inicio < 0) {
+      return null;
+    }
+
+    let fim = linhas.length;
+    for (let index = inicio + 1; index < linhas.length; index++) {
+      const heading = linhas[index].trim().match(/^(#{1,6})\s+(.+)$/);
+      if (heading && heading[1].length <= nivelInicio) {
+        fim = index;
+        break;
+      }
+    }
+
+    return linhas.slice(inicio, fim).join('\n').trim();
+  }
+
+  private montarOrigemEscudo(artigo: EscudoMestreArtigo): EscudoMestreOrigem {
+    const origem = {
+      livroCodigo: artigo.subcategoria.categoria.livro.codigo,
+      livroTitulo: artigo.subcategoria.categoria.livro.titulo,
+      categoriaCodigo: artigo.subcategoria.categoria.codigo,
+      subcategoriaCodigo: artigo.subcategoria.codigo,
+      artigoCodigo: artigo.codigo,
+      artigoTitulo: artigo.titulo,
+    };
+
+    return {
+      ...origem,
+      href: this.hrefArtigoEscudo(origem),
+    };
+  }
+
+  private montarSecaoArtigosEscudo(
+    config: EscudoMestreSecaoConfig,
+    artigosPorChave: Map<string, EscudoMestreArtigo>,
+  ): EscudoMestreSecao {
+    const avisos: string[] = [];
+    const blocosResumo: string[] = [];
+    const blocosDetalhe: string[] = [];
+    const origens: EscudoMestreOrigem[] = [];
+
+    for (const ref of config.artigos) {
+      const artigo = artigosPorChave.get(this.chaveReferenciaEscudo(ref));
+
+      if (!artigo) {
+        const aviso = `Referência do compêndio não encontrada: ${this.chaveReferenciaEscudo(ref)}`;
+        if (ref.obrigatorio) avisos.push(aviso);
+        continue;
+      }
+
+      const origem = this.montarOrigemEscudo(artigo);
+      const markdownFonte = ref.extrairSecao
+        ? this.extrairSecaoMarkdown(artigo.conteudo, ref.extrairSecao)
+        : artigo.conteudo;
+      const markdownDetalhe = markdownFonte ?? artigo.conteudo;
+
+      origens.push(origem);
+      blocosResumo.push(
+        `### ${artigo.titulo}\n\n${this.resumoArtigoEscudo(artigo)}`,
+      );
+      blocosDetalhe.push(
+        `## ${artigo.titulo}\n\n${this.limitarTextoMarkdown(
+          markdownDetalhe,
+          ESCUDO_MESTRE_DETALHE_MAX_CHARS,
+        )}\n\n[Ver no compêndio](${origem.href})`,
+      );
+
+      if (ref.extrairSecao && !markdownFonte) {
+        avisos.push(
+          `Trecho "${ref.extrairSecao}" não encontrado em ${this.chaveReferenciaEscudo(ref)}; usando o artigo completo resumido.`,
+        );
+      }
+    }
+
+    return {
+      id: config.id,
+      titulo: config.titulo,
+      fonte: config.fonte,
+      referenciaCompendio: config.referenciaCompendio,
+      resumoMarkdown:
+        blocosResumo.join('\n\n') ||
+        '_Nenhum conteúdo publicado encontrado para esta seção._',
+      detalhadoMarkdown:
+        blocosDetalhe.join('\n\n') ||
+        '_Nenhum conteúdo publicado encontrado para esta seção._',
+      origens,
+      avisos,
+    };
+  }
+
+  private primeiraOrigemLivroEscudo(
+    livro: EscudoMestreLivro,
+  ): EscudoMestreOrigem | null {
+    for (const categoria of livro.categorias) {
+      for (const subcategoria of categoria.subcategorias) {
+        const artigo = subcategoria.artigos[0];
+        if (!artigo) continue;
+
+        const origem = {
+          livroCodigo: livro.codigo,
+          livroTitulo: livro.titulo,
+          categoriaCodigo: categoria.codigo,
+          subcategoriaCodigo: subcategoria.codigo,
+          artigoCodigo: artigo.codigo,
+          artigoTitulo: artigo.titulo,
+        };
+
+        return {
+          ...origem,
+          href: this.hrefArtigoEscudo(origem),
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private montarSecaoSuplementosOficiaisEscudo(
+    livros: EscudoMestreLivro[],
+  ): EscudoMestreSecao {
+    const publicados = livros.filter((livro) => livro.suplementoId !== null);
+    const origens = publicados
+      .map((livro) => this.primeiraOrigemLivroEscudo(livro))
+      .filter((origem): origem is EscudoMestreOrigem => Boolean(origem));
+
+    const lista =
+      publicados
+        .map((livro) => {
+          const descricao = livro.descricao ? `: ${livro.descricao}` : '';
+          return `- [${livro.titulo}](/compendio/livros/${livro.codigo})${descricao}`;
+        })
+        .join('\n') || '- Nenhum suplemento oficial publicado encontrado.';
+
+    return {
+      id: 'suplementos-oficiais',
+      titulo: 'Suplementos oficiais',
+      fonte: 'SUPLEMENTO',
+      referenciaCompendio: 'Compêndio oficial',
+      resumoMarkdown: lista,
+      detalhadoMarkdown: `## Suplementos oficiais publicados\n\n${lista}`,
+      origens,
+      avisos: [],
+    };
+  }
+
+  private montarSecaoSobrevivendoEscudo(
+    livro: EscudoMestreLivro | undefined,
+  ): EscudoMestreSecao {
+    if (!livro) {
+      const aviso =
+        'Livro do suplemento "Sobrevivendo ao Jujutsu" não encontrado no compêndio publicado.';
+      return {
+        id: 'sobrevivendo-ao-jujutsu',
+        titulo: 'Sobrevivendo ao Jujutsu',
+        fonte: 'SUPLEMENTO',
+        referenciaCompendio: 'Sobrevivendo ao Jujutsu',
+        resumoMarkdown: `_${aviso}_`,
+        detalhadoMarkdown: `_${aviso}_`,
+        origens: [],
+        avisos: [aviso],
+      };
+    }
+
+    const categorias = livro.categorias
+      .map((categoria) => {
+        const descricao = categoria.descricao ? `: ${categoria.descricao}` : '';
+        return `- **${categoria.nome}**${descricao}`;
+      })
+      .join('\n');
+    const origem = this.primeiraOrigemLivroEscudo(livro);
+    const resumo =
+      livro.descricao ?? 'Suplemento oficial publicado no compêndio.';
+
+    return {
+      id: 'sobrevivendo-ao-jujutsu',
+      titulo: 'Sobrevivendo ao Jujutsu',
+      fonte: 'SUPLEMENTO',
+      referenciaCompendio: livro.titulo,
+      resumoMarkdown: `${resumo}\n\n[Ver suplemento no compêndio](/compendio/livros/${livro.codigo})`,
+      detalhadoMarkdown: `## ${livro.titulo}\n\n${resumo}\n\n### Conteúdos\n\n${
+        categorias || '- Nenhuma categoria publicada encontrada.'
+      }\n\n[Ver suplemento no compêndio](/compendio/livros/${livro.codigo})`,
+      origens: origem ? [origem] : [],
+      avisos: [],
+    };
+  }
+
   // ==================== LIVROS ====================
 
   async listarLivros() {
@@ -140,6 +643,77 @@ export class CompendioService {
     }
 
     return livro;
+  }
+
+  async buscarEscudoMestre(): Promise<{
+    secoes: EscudoMestreSecao[];
+    avisos: string[];
+  }> {
+    const referencias = ESCUDO_MESTRE_SECOES_ARTIGOS.flatMap(
+      (secao) => secao.artigos,
+    );
+
+    const [artigos, livrosSuplementos] = await Promise.all([
+      this.prisma.compendioArtigo.findMany({
+        where: {
+          ativo: true,
+          OR: referencias.map((ref) => ({
+            codigo: ref.artigoCodigo,
+            subcategoria: {
+              codigo: ref.subcategoriaCodigo,
+              ativo: true,
+              categoria: {
+                codigo: ref.categoriaCodigo,
+                ativo: true,
+                livro: {
+                  codigo: ref.livroCodigo,
+                  status: StatusPublicacao.PUBLICADO,
+                },
+              },
+            },
+          })),
+        },
+        include: this.artigoInclude(),
+      }),
+      this.prisma.compendioLivro.findMany({
+        where: {
+          status: StatusPublicacao.PUBLICADO,
+          suplementoId: { not: null },
+        },
+        orderBy: { ordem: 'asc' },
+        include: this.livroInclude(true),
+      }),
+    ]);
+
+    const artigosPorChave = new Map<string, EscudoMestreArtigo>();
+    for (const artigo of artigos as EscudoMestreArtigo[]) {
+      artigosPorChave.set(
+        this.chaveReferenciaEscudo({
+          livroCodigo: artigo.subcategoria.categoria.livro.codigo,
+          categoriaCodigo: artigo.subcategoria.categoria.codigo,
+          subcategoriaCodigo: artigo.subcategoria.codigo,
+          artigoCodigo: artigo.codigo,
+        }),
+        artigo,
+      );
+    }
+
+    const secoes = ESCUDO_MESTRE_SECOES_ARTIGOS.map((config) =>
+      this.montarSecaoArtigosEscudo(config, artigosPorChave),
+    );
+    const livros = livrosSuplementos as EscudoMestreLivro[];
+
+    secoes.push(this.montarSecaoSuplementosOficiaisEscudo(livros));
+    secoes.push(
+      this.montarSecaoSobrevivendoEscudo(
+        livros.find((livro) => livro.codigo === 'sobrevivendo-ao-jujutsu'),
+      ),
+    );
+
+    return {
+      secoes,
+      avisos: secoes.flatMap((secao) => secao.avisos),
+    };
   }
 
   async listarLivrosAdmin() {

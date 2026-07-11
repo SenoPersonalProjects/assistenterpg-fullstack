@@ -51,6 +51,7 @@ describe('CompendioController', () => {
 
   it('should keep read routes public', () => {
     const readMethods = [
+      'buscarEscudoMestre',
       'listarLivros',
       'buscarLivroPorCodigo',
       'buscarCategoriaDoLivroPorCodigo',

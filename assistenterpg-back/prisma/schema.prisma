@@ -1181,6 +1181,7 @@ model NpcAmeacaSessao {
   passivasGuia       Json?
   acoesGuia          Json?
   notasCena          String?            @db.Text
+  ocultoJogadores    Boolean            @default(false)
   criadoEm           DateTime           @default(now())
   atualizadoEm       DateTime           @updatedAt
 

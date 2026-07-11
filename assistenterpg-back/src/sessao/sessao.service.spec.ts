@@ -34,6 +34,32 @@ describe('SessaoService', () => {
     return (prisma as any).eventoSessao;
   }
 
+  function criarEventoTimeline(
+    id: number,
+    tipoEvento: string,
+    dados: Record<string, unknown>,
+  ) {
+    return {
+      id,
+      sessaoId: 21,
+      cenaId: 31,
+      criadoEm: new Date(`2026-07-10T12:00:0${id}.000Z`),
+      tipoEvento,
+      personagemAtorId: null,
+      personagemAlvoId: null,
+      dados,
+      personagemAtor: null,
+    };
+  }
+
+  function mockAcessoTimeline(ehMestre: boolean) {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: {
+        ehMestre,
+      },
+    });
+  }
+
   beforeEach(async () => {
     jest.clearAllMocks();
     delete (prisma as any).inventarioItemCampanha;
@@ -95,6 +121,136 @@ describe('SessaoService', () => {
       expect.stringContaining('"campanhaId":7'),
       falha.stack,
     );
+  });
+
+  it('mantem NPCs ocultos no detalhe do mestre', () => {
+    const npcs = [
+      { id: 1, nome: 'Visivel', ocultoJogadores: false },
+      { id: 2, nome: 'Oculto', ocultoJogadores: true },
+    ];
+
+    expect((service as any).filtrarNpcsVisiveisCenaAtual(npcs, true)).toEqual(
+      npcs,
+    );
+  });
+
+  it('remove NPCs ocultos do detalhe de jogadores', () => {
+    const npcs = [
+      { id: 1, nome: 'Visivel', ocultoJogadores: false },
+      { id: 2, nome: 'Oculto', ocultoJogadores: true },
+    ];
+
+    expect((service as any).filtrarNpcsVisiveisCenaAtual(npcs, false)).toEqual([
+      { id: 1, nome: 'Visivel', ocultoJogadores: false },
+    ]);
+  });
+
+  it('mantem eventos de NPC oculto na timeline do mestre', async () => {
+    mockAcessoTimeline(true);
+    jest
+      .spyOn(service as any, 'obterUltimoEventoReversivelDisponivel')
+      .mockResolvedValue(null);
+    (prisma as any).eventoSessao = {
+      findMany: jest.fn().mockResolvedValue([
+        criarEventoTimeline(1, 'NPC_ADICIONADO', {
+          npcSessaoId: 601,
+          nome: 'Ameaca oculta',
+        }),
+      ]),
+    };
+
+    const eventos = await service.listarEventosSessao(7, 21, 10, {
+      limit: 80,
+    } as never);
+
+    expect(eventos).toHaveLength(1);
+    expect(eventos[0].descricao).toContain('Ameaca oculta');
+  });
+
+  it('filtra eventos de NPC oculto na timeline de jogadores', async () => {
+    mockAcessoTimeline(false);
+    (prisma as any).npcAmeacaSessao = {
+      findMany: jest.fn().mockResolvedValue([{ id: 601 }]),
+    };
+    (prisma as any).eventoSessao = {
+      findMany: jest.fn().mockResolvedValue([
+        criarEventoTimeline(1, 'NPC_ADICIONADO', {
+          npcSessaoId: 601,
+          nome: 'Ameaca oculta',
+        }),
+        criarEventoTimeline(2, 'NPC_ADICIONADO', {
+          npcSessaoId: 602,
+          nome: 'Aliado visivel',
+        }),
+        criarEventoTimeline(3, 'CENA_ATUALIZADA', {
+          tipoNovo: 'COMBATE',
+        }),
+      ]),
+    };
+
+    const eventos = await service.listarEventosSessao(7, 21, 10, {
+      limit: 80,
+    } as never);
+
+    expect(eventos.map((evento) => evento.id)).toEqual([2, 3]);
+    expect(eventos[0].descricao).toContain('Aliado visivel');
+    expect(eventos[1].descricao).toContain('Cena atualizada');
+  });
+
+  it('filtra eventos de NPC oculto por campos equivalentes de alvo ou origem', async () => {
+    mockAcessoTimeline(false);
+    (prisma as any).npcAmeacaSessao = {
+      findMany: jest.fn().mockResolvedValue([{ id: 601 }, { id: 603 }]),
+    };
+    (prisma as any).eventoSessao = {
+      findMany: jest.fn().mockResolvedValue([
+        criarEventoTimeline(1, 'CONDICAO_APLICADA', {
+          alvoNpcSessaoId: 601,
+          condicaoNome: 'Morrendo',
+        }),
+        criarEventoTimeline(2, 'HABILIDADE_USADA', {
+          origemNpcSessaoId: 603,
+          habilidadeNome: 'Emboscada',
+        }),
+        criarEventoTimeline(3, 'CONDICAO_APLICADA', {
+          alvoNpcSessaoId: 602,
+          condicaoNome: 'Caido',
+        }),
+      ]),
+    };
+
+    const eventos = await service.listarEventosSessao(7, 21, 10, {
+      limit: 80,
+    } as never);
+
+    expect(eventos.map((evento) => evento.id)).toEqual([3]);
+  });
+
+  it('filtra evento com snapshot de NPC oculto mesmo sem registro atual', async () => {
+    mockAcessoTimeline(false);
+    (prisma as any).npcAmeacaSessao = {
+      findMany: jest.fn().mockResolvedValue([]),
+    };
+    (prisma as any).eventoSessao = {
+      findMany: jest.fn().mockResolvedValue([
+        criarEventoTimeline(1, 'NPC_REMOVIDO', {
+          npcSessaoId: 601,
+          nome: 'Ameaca removida',
+          snapshot: {
+            ocultoJogadores: true,
+          },
+        }),
+        criarEventoTimeline(2, 'CENA_ATUALIZADA', {
+          tipoNovo: 'LIVRE',
+        }),
+      ]),
+    };
+
+    const eventos = await service.listarEventosSessao(7, 21, 10, {
+      limit: 80,
+    } as never);
+
+    expect(eventos.map((evento) => evento.id)).toEqual([2]);
   });
 
   it('deve bloquear avancar turno quando cena atual e LIVRE', async () => {

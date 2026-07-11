@@ -305,6 +305,7 @@ type SnapshotNpcSessao = {
   passivasGuia: Prisma.JsonValue | null;
   acoesGuia: Prisma.JsonValue | null;
   notasCena: string | null;
+  ocultoJogadores: boolean;
   cenaId: number | null;
 };
 
@@ -623,6 +624,15 @@ const FONTE_KOKUSEN = 'KOKUSEN';
 const LIMITE_PRODUCAO_KOKUSEN = 5;
 const CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO = 'HABILIDADES_CLASSE_SESSAO';
 const LIMITE_APRIMORAMENTO_TEMPORARIO_POR_TECNICA = 2;
+const CAMPOS_REFERENCIA_NPC_SESSAO_EVENTO = new Set([
+  'npcSessaoId',
+  'alvoNpcSessaoId',
+  'origemNpcSessaoId',
+  'npcId',
+  'alvoNpcId',
+  'origemNpcId',
+  'npcSessaoIdRestaurado',
+]);
 
 const VERSOES_PERITO: VersaoHabilidadeClasseSessao[] = [
   { nivel: 1, custoPE: 2, dadoFaces: 6 },
@@ -1275,9 +1285,16 @@ export class SessaoService {
     const npcsCenaAtual = sessao.npcs.filter(
       (npc) => npc.cenaId === cenaAtualId,
     );
+    const npcsVisiveisCenaAtual = this.filtrarNpcsVisiveisCenaAtual(
+      npcsCenaAtual,
+      acesso.ehMestre,
+    );
+    const npcSessaoIdsVisiveis = new Set(
+      npcsVisiveisCenaAtual.map((npc) => npc.id),
+    );
     const participantesIniciativaPadrao = this.montarParticipantesIniciativa(
       personagensOrdenados,
-      npcsCenaAtual,
+      npcsVisiveisCenaAtual,
       acesso.ehMestre,
       usuarioId,
     );
@@ -1389,6 +1406,26 @@ export class SessaoService {
       sessao.regrasOpcionais,
       sessao.rodadaAtual,
     );
+    if (!acesso.ehMestre) {
+      const regraEncontroSocial = regrasOpcionais.ENCONTROS_SOCIAIS;
+      const estadoSocial = this.extrairRegistro(
+        regraEncontroSocial.estado as Prisma.JsonValue,
+      );
+      const alvosRaw = Array.isArray(estadoSocial.alvos)
+        ? estadoSocial.alvos
+        : [];
+      regraEncontroSocial.estado = {
+        ...estadoSocial,
+        alvos: alvosRaw.filter((alvoRaw) => {
+          const alvo = this.extrairRegistro(alvoRaw as Prisma.JsonValue);
+          const npcSessaoId = this.lerInteiroOpcionalRegistro(
+            alvo,
+            'npcSessaoId',
+          );
+          return npcSessaoId === null || npcSessaoIdsVisiveis.has(npcSessaoId);
+        }),
+      };
+    }
     const estadoHabilidadesClasse = this.obterEstadoHabilidadesClasseEmResumo(
       sessao.regrasOpcionais,
     );
@@ -1648,7 +1685,7 @@ export class SessaoService {
           condicoesAtivas,
         };
       }),
-      npcs: npcsCenaAtual.map((npc) => {
+      npcs: npcsVisiveisCenaAtual.map((npc) => {
         const atributosNpc = npc.npcAmeaca
           ? this.montarAtributosNpc(npc.npcAmeaca)
           : this.montarAtributosNpcSessao(npc);
@@ -1864,6 +1901,7 @@ export class SessaoService {
           acoes: this.mapearListaObjeto(npc.acoesGuia),
           condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
           podeEditar: acesso.ehMestre,
+          ocultoJogadores: npc.ocultoJogadores,
         };
       }),
       iniciadoEm: sessao.iniciadoEm,
@@ -2510,11 +2548,18 @@ export class SessaoService {
       take: limit,
     });
 
+    const eventosVisiveis = acesso.ehMestre
+      ? eventos
+      : this.filtrarEventosVisiveisParaJogador(
+          eventos,
+          await this.obterNpcSessaoIdsOcultos(sessaoId),
+        );
+
     const ultimoEventoReversivel = acesso.ehMestre
       ? await this.obterUltimoEventoReversivelDisponivel(this.prisma, sessaoId)
       : null;
 
-    return eventos.map((evento) =>
+    return eventosVisiveis.map((evento) =>
       this.mapearEventoSessao(
         evento,
         acesso.ehMestre && evento.id === ultimoEventoReversivel?.id,
@@ -3707,6 +3752,7 @@ export class SessaoService {
           passivasGuia: this.jsonParaPersistencia(npcBase.passivas),
           acoesGuia: this.jsonParaPersistencia(npcBase.acoes),
           notasCena,
+          ocultoJogadores: dto.ocultoJogadores === true,
         },
       });
 
@@ -3807,6 +3853,7 @@ export class SessaoService {
           passivasGuia: Prisma.JsonNull,
           acoesGuia: Prisma.JsonNull,
           notasCena: dto.notasCena?.trim() || null,
+          ocultoJogadores: dto.ocultoJogadores === true,
         },
       });
 
@@ -3930,6 +3977,9 @@ export class SessaoService {
       if (dto.jujutsu !== undefined) data.jujutsu = dto.jujutsu;
       if (dto.notasCena !== undefined) {
         data.notasCena = dto.notasCena.trim() || null;
+      }
+      if (dto.ocultoJogadores !== undefined) {
+        data.ocultoJogadores = dto.ocultoJogadores;
       }
 
       const npcSessaoAtualizado = await tx.npcAmeacaSessao.update({
@@ -11515,6 +11565,7 @@ export class SessaoService {
     const npcAmeacaId = this.lerInteiroOpcionalRegistro(bruto, 'npcAmeacaId');
     const cenaId = this.lerInteiroOpcionalRegistro(bruto, 'cenaId');
     const notasCena = this.lerTextoOpcionalRegistro(bruto, 'notasCena');
+    const ocultoJogadores = bruto.ocultoJogadores === true;
 
     return {
       npcAmeacaId,
@@ -11535,6 +11586,7 @@ export class SessaoService {
       passivasGuia: (bruto.passivasGuia ?? null) as Prisma.JsonValue | null,
       acoesGuia: (bruto.acoesGuia ?? null) as Prisma.JsonValue | null,
       notasCena,
+      ocultoJogadores,
       cenaId,
     };
   }
@@ -11673,6 +11725,7 @@ export class SessaoService {
     passivasGuia: Prisma.JsonValue | null;
     acoesGuia: Prisma.JsonValue | null;
     notasCena: string | null;
+    ocultoJogadores: boolean;
     cenaId: number | null;
   }): SnapshotNpcSessao {
     return {
@@ -11694,6 +11747,7 @@ export class SessaoService {
       passivasGuia: npc.passivasGuia,
       acoesGuia: npc.acoesGuia,
       notasCena: npc.notasCena,
+      ocultoJogadores: npc.ocultoJogadores,
       cenaId: npc.cenaId,
     };
   }
@@ -11718,7 +11772,16 @@ export class SessaoService {
       machucado: dados.machucado,
       deslocamentoMetros: dados.deslocamentoMetros,
       notasCena: dados.notasCena,
+      ocultoJogadores: dados.ocultoJogadores,
     } satisfies Prisma.NpcAmeacaSessaoUpdateInput;
+  }
+
+  private filtrarNpcsVisiveisCenaAtual<T extends { ocultoJogadores: boolean }>(
+    npcs: T[],
+    ehMestre: boolean,
+  ): T[] {
+    if (ehMestre) return npcs;
+    return npcs.filter((npc) => !npc.ocultoJogadores);
   }
 
   private normalizarTipoFichaNpcAmeaca(
@@ -11820,6 +11883,85 @@ export class SessaoService {
       dados: evento.dados ?? null,
       autor,
     };
+  }
+
+  private async obterNpcSessaoIdsOcultos(
+    sessaoId: number,
+  ): Promise<Set<number>> {
+    const npcsOcultos = await this.prisma.npcAmeacaSessao.findMany({
+      where: {
+        sessaoId,
+        ocultoJogadores: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return new Set(npcsOcultos.map((npc) => npc.id));
+  }
+
+  private filtrarEventosVisiveisParaJogador<
+    T extends { dados: Prisma.JsonValue | null },
+  >(eventos: T[], npcSessaoIdsOcultos: Set<number>): T[] {
+    return eventos.filter(
+      (evento) =>
+        !this.eventoSessaoReferenciaNpcOculto(
+          evento.dados,
+          npcSessaoIdsOcultos,
+        ),
+    );
+  }
+
+  private eventoSessaoReferenciaNpcOculto(
+    dados: Prisma.JsonValue | null,
+    npcSessaoIdsOcultos: Set<number>,
+  ): boolean {
+    if (dados === null) return false;
+    return this.valorEventoReferenciaNpcOculto(dados, npcSessaoIdsOcultos);
+  }
+
+  private valorEventoReferenciaNpcOculto(
+    valor: unknown,
+    npcSessaoIdsOcultos: Set<number>,
+  ): boolean {
+    if (Array.isArray(valor)) {
+      return valor.some((item) =>
+        this.valorEventoReferenciaNpcOculto(item, npcSessaoIdsOcultos),
+      );
+    }
+
+    if (!valor || typeof valor !== 'object') return false;
+
+    const registro = valor as Record<string, unknown>;
+    if (registro.ocultoJogadores === true) return true;
+
+    for (const [chave, item] of Object.entries(registro)) {
+      if (CAMPOS_REFERENCIA_NPC_SESSAO_EVENTO.has(chave)) {
+        const npcSessaoId = this.normalizarInteiroEvento(item);
+        if (npcSessaoId !== null && npcSessaoIdsOcultos.has(npcSessaoId)) {
+          return true;
+        }
+      }
+
+      if (this.valorEventoReferenciaNpcOculto(item, npcSessaoIdsOcultos)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private normalizarInteiroEvento(valor: unknown): number | null {
+    if (typeof valor === 'number' && Number.isInteger(valor)) {
+      return valor;
+    }
+
+    if (typeof valor !== 'string') return null;
+    const texto = valor.trim();
+    if (!/^\d+$/.test(texto)) return null;
+    const numero = Number(texto);
+    return Number.isInteger(numero) ? numero : null;
   }
 
   private descreverEventoSessao(

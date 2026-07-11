@@ -29,6 +29,11 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 export class CompendioController {
   constructor(private readonly compendioService: CompendioService) {}
 
+  @Get('escudo-mestre')
+  async buscarEscudoMestre() {
+    return this.compendioService.buscarEscudoMestre();
+  }
+
   // ==================== LIVROS ====================
 
   @Get('livros')

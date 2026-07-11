@@ -5,6 +5,7 @@ import {
   TamanhoNpcAmeaca,
 } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -201,4 +202,8 @@ export class AdicionarNpcSimplesSessaoDto {
   @IsString()
   @MaxLength(2000)
   notasCena?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  ocultoJogadores?: boolean;
 }
