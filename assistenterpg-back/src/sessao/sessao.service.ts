@@ -887,6 +887,15 @@ export class SessaoService {
                 eaMax: true,
                 sanAtual: true,
                 sanMax: true,
+                limitePeEaPorTurno: true,
+                prestigioGeral: true,
+                prestigioCla: true,
+                defesaBase: true,
+                defesaEquipamento: true,
+                defesaOutros: true,
+                esquiva: true,
+                bloqueio: true,
+                deslocamento: true,
                 turnosMorrendo: true, // ← adicionar
                 turnosEnlouquecendo: true, // ← adicionar
                 classe: {
@@ -1004,6 +1013,7 @@ export class SessaoService {
                     tipoGrau: {
                       select: {
                         codigo: true,
+                        nome: true,
                       },
                     },
                   },
@@ -1105,6 +1115,20 @@ export class SessaoService {
                         tipoGrau: {
                           select: {
                             codigo: true,
+                            nome: true,
+                          },
+                        },
+                      },
+                    },
+                    proficiencias: {
+                      include: {
+                        proficiencia: {
+                          select: {
+                            codigo: true,
+                            nome: true,
+                            tipo: true,
+                            categoria: true,
+                            subtipo: true,
                           },
                         },
                       },
@@ -1628,6 +1652,25 @@ export class SessaoService {
             tecnicasNaoInatasCatalogo,
             aprimoramentosTemporarios,
           );
+        const grausAprimoramentoFicha: Array<{
+          tipoGrau: { codigo: string; nome: string };
+          valor: number;
+        }> =
+          personagem.personagemCampanha.grausAprimoramento?.length > 0
+            ? personagem.personagemCampanha.grausAprimoramento
+            : (personagem.personagemCampanha.personagemBase
+                ?.grausAprimoramento ?? []);
+        const proficienciasFicha =
+          personagem.personagemCampanha.personagemBase?.proficiencias ?? [];
+        const defesaBase = Number(
+          personagem.personagemCampanha.defesaBase ?? 10,
+        );
+        const defesaEquipamento = Number(
+          personagem.personagemCampanha.defesaEquipamento ?? 0,
+        );
+        const defesaOutros = Number(
+          personagem.personagemCampanha.defesaOutros ?? 0,
+        );
 
         return {
           personagemSessaoId: personagem.id,
@@ -1641,6 +1684,59 @@ export class SessaoService {
           turnosMorrendo: personagem.personagemCampanha.turnosMorrendo,
           turnosEnlouquecendo:
             personagem.personagemCampanha.turnosEnlouquecendo,
+          ficha:
+            visibilidade === 'completa'
+              ? {
+                  nivel: personagem.personagemCampanha.nivel,
+                  classe: personagem.personagemCampanha.classe
+                    ? {
+                        id: personagem.personagemCampanha.classe.id,
+                        nome: personagem.personagemCampanha.classe.nome,
+                      }
+                    : null,
+                  origem: personagem.personagemCampanha.origem
+                    ? {
+                        id: personagem.personagemCampanha.origem.id,
+                        nome: personagem.personagemCampanha.origem.nome,
+                      }
+                    : null,
+                  trilha: personagem.personagemCampanha.trilha
+                    ? {
+                        id: personagem.personagemCampanha.trilha.id,
+                        nome: personagem.personagemCampanha.trilha.nome,
+                      }
+                    : null,
+                  caminho: personagem.personagemCampanha.caminho
+                    ? {
+                        id: personagem.personagemCampanha.caminho.id,
+                        nome: personagem.personagemCampanha.caminho.nome,
+                      }
+                    : null,
+                  defesaBase,
+                  defesaEquipamento,
+                  defesaOutros,
+                  defesaTotal: defesaBase + defesaEquipamento + defesaOutros,
+                  esquiva: personagem.personagemCampanha.esquiva,
+                  bloqueio: personagem.personagemCampanha.bloqueio,
+                  deslocamento: personagem.personagemCampanha.deslocamento,
+                  limitePeEaPorTurno:
+                    personagem.personagemCampanha.limitePeEaPorTurno,
+                  prestigioGeral: personagem.personagemCampanha.prestigioGeral,
+                  prestigioCla: personagem.personagemCampanha.prestigioCla,
+                  grausAprimoramento: grausAprimoramentoFicha.map((grau) => ({
+                    tipoGrauCodigo: grau.tipoGrau.codigo,
+                    tipoGrauNome: grau.tipoGrau.nome,
+                    valor: grau.valor,
+                  })),
+                  proficiencias: proficienciasFicha.map((vinculo) => ({
+                    codigo: vinculo.proficiencia.codigo,
+                    nome: vinculo.proficiencia.nome,
+                    tipo: vinculo.proficiencia.tipo,
+                    categoria: vinculo.proficiencia.categoria,
+                    subtipo: vinculo.proficiencia.subtipo,
+                  })),
+                }
+              : null,
           recursos:
             visibilidade === 'completa'
               ? {

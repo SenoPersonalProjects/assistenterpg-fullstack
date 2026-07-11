@@ -1,5 +1,6 @@
 export type AbaDetalheCard =
   | 'RESUMO'
+  | 'FICHA'
   | 'ATRIBUTOS'
   | 'PERICIAS'
   | 'INVENTARIO'
@@ -17,6 +18,7 @@ export type PreferenciasSessaoLobby = {
 const PREFS_STORAGE_PREFIX = 'assistenterpg:sessao:lobby:preferencias:v1';
 const ABAS_VALIDAS = new Set<AbaDetalheCard>([
   'RESUMO',
+  'FICHA',
   'ATRIBUTOS',
   'PERICIAS',
   'INVENTARIO',

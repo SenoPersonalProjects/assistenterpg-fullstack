@@ -713,6 +713,35 @@ export type SessaoCampanhaDetalhe = {
     visibilidade: 'completa' | 'resumida';
     turnosMorrendo?: number;
     turnosEnlouquecendo?: number;
+    ficha?: {
+      nivel: number;
+      classe: { id: number; nome: string } | null;
+      origem: { id: number; nome: string } | null;
+      trilha: { id: number; nome: string } | null;
+      caminho: { id: number; nome: string } | null;
+      defesaBase: number;
+      defesaEquipamento: number;
+      defesaOutros: number;
+      defesaTotal: number;
+      esquiva: number;
+      bloqueio: number;
+      deslocamento: number;
+      limitePeEaPorTurno: number;
+      prestigioGeral: number;
+      prestigioCla: number | null;
+      grausAprimoramento: Array<{
+        tipoGrauCodigo: string;
+        tipoGrauNome: string;
+        valor: number;
+      }>;
+      proficiencias: Array<{
+        codigo: string;
+        nome: string;
+        tipo: string;
+        categoria: string;
+        subtipo: string | null;
+      }>;
+    } | null;
     recursos: {
       pvAtual: number;
       pvMax: number;

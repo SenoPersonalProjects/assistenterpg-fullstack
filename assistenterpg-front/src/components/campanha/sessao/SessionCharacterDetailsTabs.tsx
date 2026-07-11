@@ -11,7 +11,10 @@ import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/Sessi
 import { Icon } from '@/components/ui/Icon';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
-import { formatarBuffsAprimoradoAtivos } from '@/lib/campanha/sessao-aprimoramentos';
+import {
+  formatarBuffsAprimoradoAtivos,
+  formatarTipoGrauAprimorado,
+} from '@/lib/campanha/sessao-aprimoramentos';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import type {
   RolagemDanoHabilidadeSessaoPayload,
@@ -134,6 +137,17 @@ function formatarBonus(valor: number): string {
   return valor > 0 ? `+${valor}` : String(valor);
 }
 
+function formatarNumeroSessao(valor?: number | null): string {
+  return typeof valor === 'number' && Number.isFinite(valor)
+    ? String(Math.trunc(valor))
+    : '--';
+}
+
+function formatarTextoFicha(valor?: string | null): string {
+  const texto = typeof valor === 'string' ? valor.trim() : '';
+  return texto || '--';
+}
+
 function formatarVersaoHabilidadeClasse(
   tipo: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['tipo'],
   versao: SessaoCampanhaDetalhe['cards'][number]['habilidadesClasse'][number]['versoesDisponiveis'][number],
@@ -195,6 +209,7 @@ export function SessionCharacterDetailsTabs({
     useState<AprimoradoModalState | null>(null);
   const recursos = card.recursos;
   if (!recursos) return null;
+  const ficha = card.ficha;
 
   const resumoTecnica = card.tecnicaInata?.nome
     ? textoSeguro(card.tecnicaInata.nome)
@@ -373,6 +388,7 @@ export function SessionCharacterDetailsTabs({
 
   const tabs: SessionTabItem[] = [
     { id: 'RESUMO', label: 'Resumo', icon: 'chart' },
+    { id: 'FICHA', label: 'Ficha', icon: 'id' },
     { id: 'ATRIBUTOS', label: 'Atributos', icon: 'strength' },
     {
       id: 'PERICIAS',
@@ -430,17 +446,20 @@ export function SessionCharacterDetailsTabs({
           <div className="space-y-2">
             <div>
               <p className="session-text-xxs font-semibold text-app-muted uppercase">
-                Estado atual
+                Defesa e cena
               </p>
               <div className="session-chip-row">
                 <span className="session-chip">
                   INI {typeof iniciativaValor === 'number' ? iniciativaValor : '--'}
                 </span>
                 <span className="session-chip">
-                  PV {recursos.pvAtual}/{recursos.pvMax}
+                  DEF {formatarNumeroSessao(ficha?.defesaTotal)}
                 </span>
                 <span className="session-chip">
-                  SAN {recursos.sanAtual}/{recursos.sanMax}
+                  Esquiva {formatarNumeroSessao(ficha?.esquiva)}
+                </span>
+                <span className="session-chip">
+                  Bloqueio {formatarNumeroSessao(ficha?.bloqueio)}
                 </span>
                 <span className="session-chip">
                   Condições {totalCondicoesAtivasCard}
@@ -452,14 +471,17 @@ export function SessionCharacterDetailsTabs({
             </div>
             <div>
               <p className="session-text-xxs font-semibold text-app-muted uppercase">
-                Capacidade
+                Mobilidade e limites
               </p>
               <div className="session-chip-row">
                 <span className="session-chip">
-                  PE {recursos.peAtual}/{recursos.peMax}
+                  Nível {formatarNumeroSessao(ficha?.nivel)}
                 </span>
                 <span className="session-chip">
-                  EA {recursos.eaAtual}/{recursos.eaMax}
+                  Desloc. {formatarNumeroSessao(ficha?.deslocamento)}m
+                </span>
+                <span className="session-chip">
+                  Limite PE/EA {formatarNumeroSessao(ficha?.limitePeEaPorTurno)}
                 </span>
                 <span className="session-chip">
                   Técnicas {totalTecnicasCard}
@@ -490,6 +512,135 @@ export function SessionCharacterDetailsTabs({
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {abaDetalheCard === 'FICHA' ? (
+        ficha ? (
+          <div className="space-y-3 rounded border border-app-border p-2">
+            <p className="text-xs text-app-muted">
+              Referências principais da ficha usadas durante a sessão.
+            </p>
+
+            <div className="space-y-1.5">
+              <p className="session-text-xxs font-semibold text-app-muted uppercase">
+                Identidade
+              </p>
+              <div className="session-chip-row">
+                <span className="session-chip">
+                  Classe {formatarTextoFicha(ficha.classe?.nome)}
+                </span>
+                {ficha.trilha ? (
+                  <span className="session-chip">
+                    Trilha {formatarTextoFicha(ficha.trilha.nome)}
+                  </span>
+                ) : null}
+                {ficha.caminho ? (
+                  <span className="session-chip">
+                    Caminho {formatarTextoFicha(ficha.caminho.nome)}
+                  </span>
+                ) : null}
+                <span className="session-chip">
+                  Origem {formatarTextoFicha(ficha.origem?.nome)}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="session-text-xxs font-semibold text-app-muted uppercase">
+                Defesa
+              </p>
+              <div className="session-chip-row">
+                <span className="session-chip">Total {ficha.defesaTotal}</span>
+                <span className="session-chip">Base {ficha.defesaBase}</span>
+                {ficha.defesaEquipamento !== 0 ? (
+                  <span className="session-chip">
+                    Equip. {formatarBonus(ficha.defesaEquipamento)}
+                  </span>
+                ) : null}
+                {ficha.defesaOutros !== 0 ? (
+                  <span className="session-chip">
+                    Outros {formatarBonus(ficha.defesaOutros)}
+                  </span>
+                ) : null}
+                <span className="session-chip">Esquiva {ficha.esquiva}</span>
+                <span className="session-chip">Bloqueio {ficha.bloqueio}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="session-text-xxs font-semibold text-app-muted uppercase">
+                Progressão
+              </p>
+              <div className="session-chip-row">
+                <span className="session-chip">Nível {ficha.nivel}</span>
+                <span className="session-chip">
+                  Deslocamento {ficha.deslocamento}m
+                </span>
+                <span className="session-chip">
+                  Limite PE/EA {ficha.limitePeEaPorTurno}
+                </span>
+                {ficha.prestigioGeral > 0 ? (
+                  <span className="session-chip">
+                    Prestígio geral {ficha.prestigioGeral}
+                  </span>
+                ) : null}
+                {ficha.prestigioCla !== null ? (
+                  <span className="session-chip">
+                    Prestígio no clã {ficha.prestigioCla}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="session-text-xxs font-semibold text-app-muted uppercase">
+                Graus de aprimoramento
+              </p>
+              {ficha.grausAprimoramento.length > 0 ? (
+                <div className="session-chip-row">
+                  {ficha.grausAprimoramento.map((grau) => (
+                    <span key={grau.tipoGrauCodigo} className="session-chip">
+                      {grau.tipoGrauNome ||
+                        formatarTipoGrauAprimorado(grau.tipoGrauCodigo)}{' '}
+                      {grau.valor}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="session-text-xxs text-app-muted">
+                  Nenhum grau de aprimoramento registrado.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="session-text-xxs font-semibold text-app-muted uppercase">
+                Proficiências
+              </p>
+              {ficha.proficiencias.length > 0 ? (
+                <div className="session-chip-row">
+                  {ficha.proficiencias.map((proficiencia) => (
+                    <span key={proficiencia.codigo} className="session-chip">
+                      {proficiencia.nome}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="session-text-xxs text-app-muted">
+                  Nenhuma proficiência registrada.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            variant="session"
+            size="sm"
+            icon="id"
+            title="Ficha indisponível"
+            description="As informações de ficha deste personagem não estão disponíveis."
+          />
+        )
       ) : null}
 
       {abaDetalheCard === 'ATRIBUTOS' ? (
