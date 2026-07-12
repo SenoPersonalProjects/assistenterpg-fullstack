@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
+  CampoModificadorPersonagemCampanha,
   Prisma,
   TamanhoNpcAmeaca,
   TipoFichaNpcAmeaca,
@@ -63,6 +64,11 @@ import {
   CODIGO_MOD_FUNCAO_ADICIONAL,
   equipamentoUsaPericiaPersonalizada,
 } from 'src/inventario/utils/item-personalizado';
+import {
+  calcularDeltasGrausNarrativos,
+  resolverGrausAprimoramentoEfetivosCampanha,
+  resolverPericiasEfetivasCampanha,
+} from 'src/campanha/engine/campanha-modificadores-efetivos';
 
 type AcessoCampanha = {
   campanha: {
@@ -553,7 +559,15 @@ type GrauSessaoRaw = {
   valor: number;
   tipoGrau: {
     codigo: string;
+    nome?: string;
   };
+};
+
+type ModificadorNarrativoSessaoRaw = {
+  campo: CampoModificadorPersonagemCampanha;
+  valor: number;
+  periciaCodigo?: string | null;
+  tipoGrauCodigo?: string | null;
 };
 
 type PersonagemCampanhaTecnicasSessaoRaw = {
@@ -563,6 +577,7 @@ type PersonagemCampanhaTecnicasSessaoRaw = {
   tecnicaInataPropria?: TecnicaSessaoRaw | null;
   tecnicasAprendidas?: RelacaoTecnicaSessaoRaw[];
   grausAprimoramento?: GrauSessaoRaw[];
+  modificadores?: ModificadorNarrativoSessaoRaw[];
   classe?:
     | (EntidadeCatalogoSessaoRaw & {
         habilidadesClasse?: HabilidadeClasseVinculoSessaoRaw[];
@@ -1016,6 +1031,17 @@ export class SessaoService {
                         nome: true,
                       },
                     },
+                  },
+                },
+                modificadores: {
+                  where: {
+                    ativo: true,
+                  },
+                  select: {
+                    campo: true,
+                    valor: true,
+                    periciaCodigo: true,
+                    tipoGrauCodigo: true,
                   },
                 },
                 personagemBase: {
@@ -1542,8 +1568,10 @@ export class SessaoService {
         const bonusEquipamento =
           bonusEquipamentoPorPersonagem.get(personagem.personagemCampanha.id) ??
           new Map<string, number>();
-        const periciasBase =
-          personagem.personagemCampanha.personagemBase?.pericias ?? [];
+        const periciasBase = resolverPericiasEfetivasCampanha(
+          personagem.personagemCampanha.personagemBase?.pericias ?? [],
+          personagem.personagemCampanha.modificadores ?? [],
+        );
         const habilidadesParaOverride = [
           ...(
             personagem.personagemCampanha.personagemBase?.habilidadesBase ?? []
@@ -1560,6 +1588,7 @@ export class SessaoService {
             codigo: string;
             nome: string;
             atributoBase: string;
+            grauTreinamento: number;
             bonusTreinamento: number;
             bonusEquipamento: number;
             bonusOutros: number;
@@ -1567,16 +1596,17 @@ export class SessaoService {
         >();
 
         for (const pericia of periciasBase) {
-          if (!pericia.pericia?.codigo) continue;
-          mapaPericias.set(pericia.pericia.codigo, {
-            codigo: pericia.pericia.codigo,
-            nome: pericia.pericia.nome,
+          if (!pericia.codigo) continue;
+          mapaPericias.set(pericia.codigo, {
+            codigo: pericia.codigo,
+            nome: pericia.nome,
             atributoBase:
-              periciasAtributoBaseOverride[pericia.pericia.codigo] ??
-              pericia.pericia.atributoBase,
-            bonusTreinamento: (pericia.grauTreinamento ?? 0) * 5,
+              periciasAtributoBaseOverride[pericia.codigo] ??
+              pericia.atributoBase,
+            grauTreinamento: pericia.grauTreinamento,
+            bonusTreinamento: pericia.bonusTreinamento,
             bonusEquipamento: 0,
-            bonusOutros: pericia.bonusExtra ?? 0,
+            bonusOutros: pericia.bonusOutros,
           });
         }
 
@@ -1594,6 +1624,7 @@ export class SessaoService {
             atributoBase:
               periciasAtributoBaseOverride[codigo] ??
               periciaCatalogo.atributoBase,
+            grauTreinamento: 0,
             bonusTreinamento: 0,
             bonusEquipamento: bonus,
             bonusOutros: 0,
@@ -1605,6 +1636,7 @@ export class SessaoService {
             codigo: pericia.codigo,
             nome: pericia.nome,
             atributoBase: pericia.atributoBase,
+            grauTreinamento: pericia.grauTreinamento,
             bonusTreinamento: pericia.bonusTreinamento,
             bonusEquipamento: pericia.bonusEquipamento,
             bonusOutros: pericia.bonusOutros,
@@ -1652,14 +1684,16 @@ export class SessaoService {
             tecnicasNaoInatasCatalogo,
             aprimoramentosTemporarios,
           );
-        const grausAprimoramentoFicha: Array<{
-          tipoGrau: { codigo: string; nome: string };
-          valor: number;
-        }> =
+        const grausAprimoramentoBase =
           personagem.personagemCampanha.grausAprimoramento?.length > 0
             ? personagem.personagemCampanha.grausAprimoramento
             : (personagem.personagemCampanha.personagemBase
                 ?.grausAprimoramento ?? []);
+        const grausAprimoramentoFicha =
+          resolverGrausAprimoramentoEfetivosCampanha(
+            grausAprimoramentoBase,
+            personagem.personagemCampanha.modificadores ?? [],
+          );
         const proficienciasFicha =
           personagem.personagemCampanha.personagemBase?.proficiencias ?? [];
         const defesaBase = Number(
@@ -1723,11 +1757,7 @@ export class SessaoService {
                     personagem.personagemCampanha.limitePeEaPorTurno,
                   prestigioGeral: personagem.personagemCampanha.prestigioGeral,
                   prestigioCla: personagem.personagemCampanha.prestigioCla,
-                  grausAprimoramento: grausAprimoramentoFicha.map((grau) => ({
-                    tipoGrauCodigo: grau.tipoGrau.codigo,
-                    tipoGrauNome: grau.tipoGrau.nome,
-                    valor: grau.valor,
-                  })),
+                  grausAprimoramento: grausAprimoramentoFicha,
                   proficiencias: proficienciasFicha.map((vinculo) => ({
                     codigo: vinculo.proficiencia.codigo,
                     nome: vinculo.proficiencia.nome,
@@ -6806,16 +6836,27 @@ export class SessaoService {
             personagemBase: {
               select: {
                 pericias: {
-                  where: {
-                    pericia: {
-                      codigo: periciaCodigo,
-                    },
-                  },
                   select: {
                     grauTreinamento: true,
+                    bonusExtra: true,
+                    pericia: {
+                      select: {
+                        codigo: true,
+                        nome: true,
+                        atributoBase: true,
+                      },
+                    },
                   },
-                  take: 1,
                 },
+              },
+            },
+            modificadores: {
+              where: { ativo: true },
+              select: {
+                campo: true,
+                valor: true,
+                periciaCodigo: true,
+                tipoGrauCodigo: true,
               },
             },
           },
@@ -6823,8 +6864,11 @@ export class SessaoService {
       },
     });
     const grauTreinamento =
-      personagem?.personagemCampanha.personagemBase.pericias[0]
-        ?.grauTreinamento ?? 0;
+      resolverPericiasEfetivasCampanha(
+        personagem?.personagemCampanha.personagemBase.pericias ?? [],
+        personagem?.personagemCampanha.modificadores ?? [],
+      ).find((pericia) => pericia.codigo === periciaCodigo)?.grauTreinamento ??
+      0;
     if (grauTreinamento <= 0) {
       throw new BusinessException(
         'Perito exige uma pericia treinada',
@@ -9173,6 +9217,15 @@ export class SessaoService {
         valor: grau.valor,
       })),
     );
+
+    for (const [tipoGrauCodigo, delta] of calcularDeltasGrausNarrativos(
+      personagemCampanha.modificadores ?? [],
+    ).entries()) {
+      mapa.set(
+        tipoGrauCodigo,
+        Math.max(0, (mapa.get(tipoGrauCodigo) ?? 0) + delta),
+      );
+    }
 
     for (const [tipoGrauCodigo, bonus] of bonusGrausTemporarios.entries()) {
       if (!tipoGrauCodigo || bonus <= 0) continue;

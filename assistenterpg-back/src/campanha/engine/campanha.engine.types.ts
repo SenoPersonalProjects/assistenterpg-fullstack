@@ -29,6 +29,11 @@ export type CampoPersonagemCampanhaNumerico =
 
 export type CampoRecursoAtual = 'pvAtual' | 'peAtual' | 'eaAtual' | 'sanAtual';
 
+export type CampoModificadorPersonagemCampanhaNumerico = Exclude<
+  CampoModificadorPersonagemCampanha,
+  'PERICIA_TREINAMENTO' | 'GRAU_APRIMORAMENTO'
+>;
+
 export type FiltrosListarModificadoresCampanha = {
   sessaoId?: number;
   cenaId?: number;
@@ -41,7 +46,7 @@ export type ConfigCampoModificador = {
 };
 
 export const CONFIG_MODIFICADOR_CAMPO: Record<
-  CampoModificadorPersonagemCampanha,
+  CampoModificadorPersonagemCampanhaNumerico,
   ConfigCampoModificador
 > = {
   PV_MAX: {
@@ -95,3 +100,9 @@ export const CONFIG_MODIFICADOR_CAMPO: Record<
     campoBanco: 'prestigioCla',
   },
 };
+
+export function isCampoModificadorNumerico(
+  campo: string,
+): campo is CampoModificadorPersonagemCampanhaNumerico {
+  return campo in CONFIG_MODIFICADOR_CAMPO;
+}

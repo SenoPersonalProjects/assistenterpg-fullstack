@@ -2110,7 +2110,20 @@ describe('SessaoService', () => {
         findFirst: jest.fn().mockResolvedValue({
           personagemCampanha: {
             personagemBase: {
-              pericias: grauTreinamento > 0 ? [{ grauTreinamento }] : [],
+              pericias:
+                grauTreinamento > 0
+                  ? [
+                      {
+                        grauTreinamento,
+                        bonusExtra: 0,
+                        pericia: {
+                          codigo: 'MEDICINA',
+                          nome: 'Medicina',
+                          atributoBase: 'INTELECTO',
+                        },
+                      },
+                    ]
+                  : [],
             },
           },
         }),

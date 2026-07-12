@@ -271,6 +271,15 @@ export class CampanhaModificadorJaDesfeitoException extends BusinessException {
   }
 }
 
+export class CampanhaModificadorInvalidoException extends BusinessException {
+  constructor(motivo: string, details?: Record<string, unknown>) {
+    super('Modificador narrativo invalido', 'CAMPANHA_MODIFICADOR_INVALIDO', {
+      motivo,
+      ...(details ?? {}),
+    });
+  }
+}
+
 export class SessaoCampanhaNaoEncontradaException extends BaseException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(

@@ -33,6 +33,18 @@ export class AplicarModificadorPersonagemCampanhaDto {
   descricao?: string;
 
   @IsOptional()
+  @IsString({ message: 'periciaCodigo deve ser texto' })
+  @MaxLength(80, { message: 'periciaCodigo deve ter no mÃ¡ximo 80 caracteres' })
+  periciaCodigo?: string;
+
+  @IsOptional()
+  @IsString({ message: 'tipoGrauCodigo deve ser texto' })
+  @MaxLength(80, {
+    message: 'tipoGrauCodigo deve ter no mÃ¡ximo 80 caracteres',
+  })
+  tipoGrauCodigo?: string;
+
+  @IsOptional()
   @IsInt({ message: 'sessaoId deve ser inteiro' })
   @Min(1, { message: 'sessaoId deve ser maior ou igual a 1' })
   sessaoId?: number;

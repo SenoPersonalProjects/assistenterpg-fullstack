@@ -59,9 +59,16 @@ type PrismaMock = {
     findMany: jest.Mock;
     findFirst: jest.Mock;
     findUnique: jest.Mock;
+    findUniqueOrThrow: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
     delete: jest.Mock;
+  };
+  pericia: {
+    findUnique: jest.Mock;
+  };
+  tipoGrau: {
+    findUnique: jest.Mock;
   };
   personagemSessao: {
     findFirst: jest.Mock;
@@ -128,9 +135,16 @@ describe('CampanhaService', () => {
         findMany: jest.fn(),
         findFirst: jest.fn(),
         findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+      },
+      pericia: {
+        findUnique: jest.fn(),
+      },
+      tipoGrau: {
+        findUnique: jest.fn(),
       },
       personagemSessao: {
         findFirst: jest.fn(),
@@ -210,6 +224,54 @@ describe('CampanhaService', () => {
     }).compile();
 
     service = module.get<CampanhaService>(CampanhaService);
+  });
+
+  const montarPersonagemCampanhaMinimo = () => ({
+    id: 5,
+    campanhaId: 7,
+    donoId: 3,
+    pvMax: 100,
+    pvAtual: 80,
+    peMax: 50,
+    peAtual: 40,
+    eaMax: 100,
+    eaAtual: 95,
+    sanMax: 30,
+    sanAtual: 25,
+    defesaBase: 10,
+    defesaEquipamento: 0,
+    defesaOutros: 0,
+    esquiva: 0,
+    bloqueio: 0,
+    deslocamento: 9,
+    limitePeEaPorTurno: 2,
+    prestigioGeral: 0,
+    prestigioCla: null,
+  });
+
+  const montarPersonagemCampanhaDetalhe = (
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    ...montarPersonagemCampanhaMinimo(),
+    personagemBaseId: 42,
+    nome: 'Yuta',
+    nivel: 5,
+    pvBarrasTotal: 1,
+    pvBarrasRestantes: 1,
+    nucleoAmaldicoadoAtivo: null,
+    nucleosDisponiveis: null,
+    turnosMorrendo: 3,
+    turnosEnlouquecendo: 3,
+    personagemBase: {
+      id: 42,
+      nome: 'Yuta',
+      pericias: [],
+      grausAprimoramento: [],
+    },
+    dono: { id: 3, apelido: 'Jogador' },
+    grausAprimoramento: [],
+    modificadores: [],
+    ...overrides,
   });
 
   it('deve criar convite após colisão de código com retry', async () => {
@@ -1328,6 +1390,253 @@ describe('CampanhaService', () => {
         }),
       }),
     );
+  });
+
+  it('deve aplicar modificador narrativo de treinamento em perícia sem alterar ficha base', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemCampanha.findUnique.mockResolvedValue(
+      montarPersonagemCampanhaMinimo(),
+    );
+    prisma.pericia.findUnique.mockResolvedValue({ codigo: 'OCULTISMO' });
+    prisma.personagemCampanha.findUniqueOrThrow.mockResolvedValueOnce({
+      personagemBase: {
+        pericias: [
+          {
+            grauTreinamento: 0,
+            bonusExtra: 0,
+            pericia: {
+              codigo: 'OCULTISMO',
+              nome: 'Ocultismo',
+              atributoBase: 'INTELECTO',
+            },
+          },
+        ],
+      },
+      modificadores: [],
+    });
+
+    const tx = {
+      personagemCampanhaModificador: {
+        create: jest.fn().mockResolvedValue({
+          id: 82,
+          campanhaId: 7,
+          personagemCampanhaId: 5,
+          campo: 'PERICIA_TREINAMENTO',
+          periciaCodigo: 'OCULTISMO',
+          tipoGrauCodigo: null,
+          valor: 1,
+          nome: 'Treino intensivo',
+          pericia: { codigo: 'OCULTISMO', nome: 'Ocultismo' },
+          tipoGrau: null,
+        }),
+      },
+      personagemCampanha: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue(
+          montarPersonagemCampanhaDetalhe({
+            personagemBase: {
+              id: 42,
+              nome: 'Yuta',
+              pericias: [
+                {
+                  grauTreinamento: 0,
+                  bonusExtra: 0,
+                  pericia: {
+                    codigo: 'OCULTISMO',
+                    nome: 'Ocultismo',
+                    atributoBase: 'INTELECTO',
+                  },
+                },
+              ],
+              grausAprimoramento: [],
+            },
+            modificadores: [
+              {
+                campo: 'PERICIA_TREINAMENTO',
+                valor: 1,
+                periciaCodigo: 'OCULTISMO',
+                tipoGrauCodigo: null,
+              },
+            ],
+          }),
+        ),
+      },
+      personagemCampanhaHistorico: {
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+
+    prisma.$transaction.mockImplementation(
+      async (
+        callback: (txArg: typeof tx) => Promise<{
+          modificador: { id: number };
+          personagem: unknown;
+        }>,
+      ) => callback(tx),
+    );
+
+    const resultado = await service.aplicarModificadorPersonagemCampanha(
+      7,
+      5,
+      3,
+      {
+        campo: 'PERICIA_TREINAMENTO',
+        periciaCodigo: 'OCULTISMO',
+        valor: 1,
+        nome: 'Treino intensivo',
+      },
+    );
+
+    expect(tx.personagemCampanhaModificador.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          campo: 'PERICIA_TREINAMENTO',
+          periciaCodigo: 'OCULTISMO',
+          tipoGrauCodigo: null,
+          valor: 1,
+        }),
+      }),
+    );
+    expect(resultado.personagem.pericias).toEqual([
+      expect.objectContaining({
+        codigo: 'OCULTISMO',
+        grauTreinamento: 1,
+        bonusTreinamento: 5,
+        bonusTotal: 5,
+      }),
+    ]);
+  });
+
+  it('deve aplicar modificador narrativo de grau de aprimoramento no retorno efetivo', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemCampanha.findUnique.mockResolvedValue(
+      montarPersonagemCampanhaMinimo(),
+    );
+    prisma.tipoGrau.findUnique.mockResolvedValue({
+      codigo: 'TECNICA_REVERSA',
+    });
+    prisma.personagemCampanha.findUniqueOrThrow.mockResolvedValueOnce({
+      grausAprimoramento: [
+        {
+          valor: 1,
+          tipoGrau: {
+            codigo: 'TECNICA_REVERSA',
+            nome: 'Técnica Reversa',
+          },
+        },
+      ],
+      personagemBase: { grausAprimoramento: [] },
+      modificadores: [],
+    });
+
+    const tx = {
+      personagemCampanhaModificador: {
+        create: jest.fn().mockResolvedValue({
+          id: 83,
+          campanhaId: 7,
+          personagemCampanhaId: 5,
+          campo: 'GRAU_APRIMORAMENTO',
+          periciaCodigo: null,
+          tipoGrauCodigo: 'TECNICA_REVERSA',
+          valor: 1,
+          nome: 'Treinamento reverso',
+          pericia: null,
+          tipoGrau: { codigo: 'TECNICA_REVERSA', nome: 'Técnica Reversa' },
+        }),
+      },
+      personagemCampanha: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue(
+          montarPersonagemCampanhaDetalhe({
+            grausAprimoramento: [
+              {
+                valor: 1,
+                tipoGrau: {
+                  codigo: 'TECNICA_REVERSA',
+                  nome: 'Técnica Reversa',
+                },
+              },
+            ],
+            modificadores: [
+              {
+                campo: 'GRAU_APRIMORAMENTO',
+                valor: 1,
+                periciaCodigo: null,
+                tipoGrauCodigo: 'TECNICA_REVERSA',
+              },
+            ],
+          }),
+        ),
+      },
+      personagemCampanhaHistorico: {
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+
+    prisma.$transaction.mockImplementation(
+      async (
+        callback: (txArg: typeof tx) => Promise<{
+          modificador: { id: number };
+          personagem: unknown;
+        }>,
+      ) => callback(tx),
+    );
+
+    const resultado = await service.aplicarModificadorPersonagemCampanha(
+      7,
+      5,
+      3,
+      {
+        campo: 'GRAU_APRIMORAMENTO',
+        tipoGrauCodigo: 'TECNICA_REVERSA',
+        valor: 1,
+        nome: 'Treinamento reverso',
+      },
+    );
+
+    expect(tx.personagemCampanhaModificador.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          campo: 'GRAU_APRIMORAMENTO',
+          periciaCodigo: null,
+          tipoGrauCodigo: 'TECNICA_REVERSA',
+          valor: 1,
+        }),
+      }),
+    );
+    expect(resultado.personagem.grausAprimoramento).toEqual([
+      expect.objectContaining({
+        tipoGrauCodigo: 'TECNICA_REVERSA',
+        valor: 2,
+      }),
+    ]);
+  });
+
+  it('deve rejeitar modificador numérico com alvo estruturado', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 1,
+      membros: [{ usuarioId: 3, papel: 'JOGADOR' }],
+    });
+    prisma.personagemCampanha.findUnique.mockResolvedValue(
+      montarPersonagemCampanhaMinimo(),
+    );
+
+    await expect(
+      service.aplicarModificadorPersonagemCampanha(7, 5, 3, {
+        campo: 'EA_MAX',
+        periciaCodigo: 'OCULTISMO',
+        valor: -5,
+        nome: 'Alvo inválido',
+      }),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_MODIFICADOR_INVALIDO' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('deve impedir criação de convite por usuário que não e dono', async () => {

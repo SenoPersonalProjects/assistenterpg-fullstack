@@ -12,6 +12,8 @@ export const CAMPOS_MODIFICADOR_PERSONAGEM_CAMPANHA = [
   'LIMITE_PE_EA_POR_TURNO',
   'PRESTIGIO_GERAL',
   'PRESTIGIO_CLA',
+  'PERICIA_TREINAMENTO',
+  'GRAU_APRIMORAMENTO',
 ] as const;
 
 export type CampoModificadorPersonagemCampanha =

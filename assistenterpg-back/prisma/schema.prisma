@@ -325,6 +325,8 @@ enum CampoModificadorPersonagemCampanha {
   LIMITE_PE_EA_POR_TURNO
   PRESTIGIO_GERAL
   PRESTIGIO_CLA
+  PERICIA_TREINAMENTO
+  GRAU_APRIMORAMENTO
 }
 
 enum StatusPublicacao {
@@ -972,6 +974,8 @@ model PersonagemCampanhaModificador {
   sessaoId             Int?
   cenaId               Int?
   campo                CampoModificadorPersonagemCampanha
+  periciaCodigo        String?
+  tipoGrauCodigo       String?
   valor                Int
   nome                 String
   descricao            String?                            @db.Text
@@ -986,11 +990,15 @@ model PersonagemCampanhaModificador {
   campanha           Campanha           @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   criadoPor          Usuario            @relation("ModificadorPersonagemCampanhaCriadoPor", fields: [criadoPorId], references: [id], onDelete: Cascade)
   desfeitoPor        Usuario?           @relation("ModificadorPersonagemCampanhaDesfeitoPor", fields: [desfeitoPorId], references: [id], onDelete: SetNull)
+  pericia            Pericia?           @relation(fields: [periciaCodigo], references: [codigo], onDelete: SetNull)
+  tipoGrau           TipoGrau?          @relation(fields: [tipoGrauCodigo], references: [codigo], onDelete: SetNull)
 
   @@index([personagemCampanhaId, ativo])
   @@index([campanhaId, criadoEm])
   @@index([sessaoId])
   @@index([cenaId])
+  @@index([periciaCodigo])
+  @@index([tipoGrauCodigo])
   @@index([campanhaId, personagemCampanhaId, sessaoId, ativo], map: "PCM_camp_pers_sess_ativo_idx")
   @@index([campanhaId, personagemCampanhaId, cenaId, ativo], map: "PCM_camp_pers_cena_ativo_idx")
 }
@@ -1582,6 +1590,7 @@ model TipoGrau {
 
   grausBase                  GrauPersonagemBase[]
   grausAprimoramentoCampanha GrauPersonagemCampanha[]
+  modificadoresPersonagemCampanha PersonagemCampanhaModificador[]
 
   efeitosHabilidades HabilidadeEfeitoGrau[]
 }
@@ -1745,6 +1754,7 @@ model Pericia {
   personagensBase PersonagemBasePericia[]
   origens         OrigemPericia[]
   classes         ClassePericia[]
+  modificadoresPersonagemCampanha PersonagemCampanhaModificador[]
 }
 
 model PersonagemBasePericia {

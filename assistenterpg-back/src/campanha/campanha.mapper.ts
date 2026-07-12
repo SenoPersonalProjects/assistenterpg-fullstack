@@ -5,6 +5,10 @@ import {
   calcularPvBarraMaximos,
   normalizarNucleosDisponiveis,
 } from 'src/common/utils/pv-barras';
+import {
+  resolverGrausAprimoramentoEfetivosCampanha,
+  resolverPericiasEfetivasCampanha,
+} from './engine/campanha-modificadores-efetivos';
 
 export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
   Prisma.validator<Prisma.PersonagemCampanhaSelect>()({
@@ -41,6 +45,41 @@ export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
       select: {
         id: true,
         nome: true,
+        pericias: {
+          select: {
+            grauTreinamento: true,
+            bonusExtra: true,
+            pericia: {
+              select: {
+                codigo: true,
+                nome: true,
+                atributoBase: true,
+              },
+            },
+          },
+        },
+        grausAprimoramento: {
+          select: {
+            valor: true,
+            tipoGrau: {
+              select: {
+                codigo: true,
+                nome: true,
+              },
+            },
+          },
+        },
+      },
+    },
+    grausAprimoramento: {
+      select: {
+        valor: true,
+        tipoGrau: {
+          select: {
+            codigo: true,
+            nome: true,
+          },
+        },
       },
     },
     dono: {
@@ -60,10 +99,24 @@ export const PERSONAGEM_CAMPANHA_DETALHE_SELECT =
         id: true,
         campo: true,
         valor: true,
+        periciaCodigo: true,
+        tipoGrauCodigo: true,
         nome: true,
         descricao: true,
         criadoEm: true,
         criadoPorId: true,
+        pericia: {
+          select: {
+            codigo: true,
+            nome: true,
+          },
+        },
+        tipoGrau: {
+          select: {
+            codigo: true,
+            nome: true,
+          },
+        },
       },
     },
   });
@@ -83,6 +136,20 @@ export class CampanhaMapper {
       personagem.pvBarrasTotal,
       personagem.pvBarrasRestantes,
     );
+    const grausCampanha = personagem.grausAprimoramento ?? [];
+    const grausBase = personagem.personagemBase.grausAprimoramento ?? [];
+    const periciasBase = personagem.personagemBase.pericias ?? [];
+    const modificadoresAtivos = personagem.modificadores ?? [];
+    const grausPreferenciais = grausCampanha.length ? grausCampanha : grausBase;
+    const periciasEfetivas = resolverPericiasEfetivasCampanha(
+      periciasBase,
+      modificadoresAtivos,
+    );
+    const grausAprimoramentoEfetivos =
+      resolverGrausAprimoramentoEfetivosCampanha(
+        grausPreferenciais,
+        modificadoresAtivos,
+      );
 
     return {
       id: personagem.id,
@@ -127,9 +194,14 @@ export class CampanhaMapper {
         turnosMorrendo: personagem.turnosMorrendo,
         turnosEnlouquecendo: personagem.turnosEnlouquecendo,
       },
-      personagemBase: personagem.personagemBase,
+      personagemBase: {
+        id: personagem.personagemBase.id,
+        nome: personagem.personagemBase.nome,
+      },
       dono: personagem.dono,
       modificadoresAtivos: personagem.modificadores,
+      pericias: periciasEfetivas,
+      grausAprimoramento: grausAprimoramentoEfetivos,
     };
   }
 }
