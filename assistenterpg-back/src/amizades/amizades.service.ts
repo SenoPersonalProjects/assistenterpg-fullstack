@@ -5,9 +5,11 @@ import {
   UsuarioApelidoDuplicadoException,
   UsuarioApelidoNaoEncontradoException,
   UsuarioEmailNaoEncontradoException,
+  UsuarioNaoEncontradoException,
 } from 'src/common/exceptions/usuario.exception';
 import {
   AmizadeAcaoNaoPermitidaException,
+  AmizadeDestinoSolicitacaoInvalidoException,
   AmizadeJaExisteException,
   AmizadeNaoEncontradaException,
   AmizadeSelfException,
@@ -20,6 +22,13 @@ type UsuarioResumo = {
   id: number;
   apelido: string;
 };
+
+type CriarSolicitacaoDestino =
+  | string
+  | {
+      identificador?: string | null;
+      usuarioId?: number | null;
+    };
 
 type AmizadeComUsuarios = {
   id: number;
@@ -145,6 +154,57 @@ export class AmizadesService {
     return usuarios[0];
   }
 
+  private async resolverUsuarioPorId(
+    usuarioId: number,
+  ): Promise<UsuarioResumo> {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: {
+        id: usuarioId,
+        AND: [usuarioAtivoVerificadoWhere],
+      },
+      select: usuarioResumoSelect,
+    });
+
+    if (!usuario) {
+      throw new UsuarioNaoEncontradoException(usuarioId);
+    }
+
+    return usuario;
+  }
+
+  private async resolverDestinoSolicitacao(
+    destino: CriarSolicitacaoDestino,
+  ): Promise<UsuarioResumo> {
+    if (typeof destino === 'string') {
+      return this.resolverUsuario(destino);
+    }
+
+    const identificador =
+      typeof destino.identificador === 'string'
+        ? this.normalizarIdentificador(destino.identificador)
+        : '';
+    const recebeuIdentificador = identificador.length > 0;
+    const recebeuUsuarioId =
+      destino.usuarioId !== undefined && destino.usuarioId !== null;
+    const usuarioIdValido =
+      typeof destino.usuarioId === 'number' &&
+      Number.isInteger(destino.usuarioId) &&
+      destino.usuarioId > 0;
+
+    if (
+      recebeuIdentificador === recebeuUsuarioId ||
+      (recebeuUsuarioId && !usuarioIdValido)
+    ) {
+      throw new AmizadeDestinoSolicitacaoInvalidoException();
+    }
+
+    if (recebeuUsuarioId) {
+      return this.resolverUsuarioPorId(destino.usuarioId as number);
+    }
+
+    return this.resolverUsuario(identificador);
+  }
+
   async listarAmigos(usuarioId: number) {
     const amizades = await this.prisma.amizade.findMany({
       where: {
@@ -230,8 +290,8 @@ export class AmizadesService {
     };
   }
 
-  async criarSolicitacao(usuarioId: number, identificador: string) {
-    const destinatario = await this.resolverUsuario(identificador);
+  async criarSolicitacao(usuarioId: number, destino: CriarSolicitacaoDestino) {
+    const destinatario = await this.resolverDestinoSolicitacao(destino);
 
     if (destinatario.id === usuarioId) {
       throw new AmizadeSelfException(usuarioId);

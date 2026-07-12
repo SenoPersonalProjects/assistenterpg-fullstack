@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
+import { resolverEstadoAmizadeParticipante } from '@/lib/campanha/amizade-participantes';
 import { labelPapelParticipante, textoSeguro } from '@/lib/campanha/sessao-formatters';
 import type { UserErrorState } from '@/lib/types';
 
@@ -56,16 +57,20 @@ export function ParticipantsPanel({
       {erroAmizades ? <ErrorAlert message={erroAmizades} /> : null}
       {participantes.map((participante) => {
         const online = onlineSet.has(participante.usuarioId);
-        const ehUsuarioAtual = usuarioAtualId === participante.usuarioId;
-        const ehAmigo = amigoIds.has(participante.usuarioId);
-        const solicitacaoEnviada = solicitacoesEnviadasIds.has(participante.usuarioId);
-        const solicitacaoRecebida = solicitacoesRecebidasIds.has(participante.usuarioId);
+        const estadoAmizade = resolverEstadoAmizadeParticipante({
+          participanteUsuarioId: participante.usuarioId,
+          usuarioAtualId,
+          amigoIds,
+          solicitacoesEnviadasIds,
+          solicitacoesRecebidasIds,
+        });
+        const ehUsuarioAtual = estadoAmizade === 'proprio';
+        const ehAmigo = estadoAmizade === 'amigo';
+        const solicitacaoEnviada = estadoAmizade === 'solicitacao-enviada';
+        const solicitacaoRecebida = estadoAmizade === 'solicitacao-recebida';
         const acaoPendente = amizadeAcaoUsuarioId === participante.usuarioId;
         const podeEnviarSolicitacao =
-          !ehUsuarioAtual &&
-          !ehAmigo &&
-          !solicitacaoEnviada &&
-          !solicitacaoRecebida &&
+          estadoAmizade === 'adicionavel' &&
           Boolean(onEnviarSolicitacao);
 
         return (

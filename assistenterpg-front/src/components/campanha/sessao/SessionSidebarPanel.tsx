@@ -24,7 +24,7 @@ import type {
   UserErrorState,
 } from '@/lib/types';
 import {
-  apiCriarSolicitacaoAmizade,
+  apiCriarSolicitacaoAmizadePorUsuarioId,
   apiListarAmigos,
   apiListarSolicitacoesAmizade,
   criarErroUsuario,
@@ -188,7 +188,7 @@ export function SessionSidebarPanel({
       setAmizadeAcaoUsuarioId(participanteUsuarioId);
       setErroAmizades(null);
       try {
-        await apiCriarSolicitacaoAmizade(String(participanteUsuarioId));
+        await apiCriarSolicitacaoAmizadePorUsuarioId(participanteUsuarioId);
         setSolicitacoesEnviadasIds((estadoAtual) => {
           const proximo = new Set(estadoAtual);
           proximo.add(participanteUsuarioId);

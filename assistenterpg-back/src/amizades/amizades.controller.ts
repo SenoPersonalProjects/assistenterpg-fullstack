@@ -40,10 +40,7 @@ export class AmizadesController {
     @Request() req: { user: { id: number } },
     @Body() dto: CriarSolicitacaoAmizadeDto,
   ) {
-    return this.amizadesService.criarSolicitacao(
-      req.user.id,
-      dto.identificador,
-    );
+    return this.amizadesService.criarSolicitacao(req.user.id, dto);
   }
 
   @Post('solicitacoes/:id/aceitar')

@@ -13,6 +13,7 @@ import {
   apiAceitarSolicitacaoAmizade,
   apiCancelarSolicitacaoAmizade,
   apiCriarSolicitacaoAmizade,
+  apiCriarSolicitacaoAmizadePorUsuarioId,
   apiListarAmigos,
   apiListarSolicitacoesAmizade,
   apiRemoverAmizade,
@@ -80,6 +81,16 @@ describe('amizades api', () => {
 
     expect(mockedApiClient.post).toHaveBeenCalledWith('/amizades/solicitacoes', {
       identificador: 'Maki',
+    });
+  });
+
+  it('cria solicitacao por usuarioId', async () => {
+    mockedApiClient.post.mockResolvedValueOnce(undefined);
+
+    await apiCriarSolicitacaoAmizadePorUsuarioId(330003);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith('/amizades/solicitacoes', {
+      usuarioId: 330003,
     });
   });
 

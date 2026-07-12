@@ -80,6 +80,13 @@ export async function apiCriarSolicitacaoAmizade(
   emitirAtualizacaoAmizades(null);
 }
 
+export async function apiCriarSolicitacaoAmizadePorUsuarioId(
+  usuarioId: number,
+): Promise<void> {
+  await apiClient.post('/amizades/solicitacoes', { usuarioId });
+  emitirAtualizacaoAmizades(null);
+}
+
 export async function apiAceitarSolicitacaoAmizade(id: number): Promise<void> {
   await apiClient.post(`/amizades/solicitacoes/${id}/aceitar`);
   emitirAtualizacaoAmizades(null);

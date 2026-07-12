@@ -4,12 +4,16 @@ import { PresencaService } from './presenca.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   AmizadeAcaoNaoPermitidaException,
+  AmizadeDestinoSolicitacaoInvalidoException,
   AmizadeJaExisteException,
   AmizadeNaoEncontradaException,
   AmizadeSelfException,
   AmizadeSolicitacaoDuplicadaException,
 } from 'src/common/exceptions/amizade.exception';
-import { UsuarioApelidoDuplicadoException } from 'src/common/exceptions/usuario.exception';
+import {
+  UsuarioApelidoDuplicadoException,
+  UsuarioNaoEncontradoException,
+} from 'src/common/exceptions/usuario.exception';
 
 type PrismaMock = {
   usuario: {
@@ -63,6 +67,65 @@ describe('AmizadesService', () => {
       },
       include: expect.any(Object),
     });
+  });
+
+  it('cria solicitacao de amizade por usuarioId', async () => {
+    prisma.usuario.findUnique.mockResolvedValue({ id: 9, apelido: 'Maki' });
+    prisma.amizade.findUnique.mockResolvedValue(null);
+    prisma.amizade.create.mockResolvedValue({ id: 1 });
+
+    const resultado = await service.criarSolicitacao(4, { usuarioId: 9 });
+
+    expect(resultado).toEqual({ id: 1 });
+    expect(prisma.usuario.findUnique).toHaveBeenCalledWith({
+      where: {
+        id: 9,
+        AND: [
+          expect.objectContaining({
+            emailVerificadoEm: { not: null },
+            status: 'ATIVA',
+          }),
+        ],
+      },
+      select: { id: true, apelido: true },
+    });
+    expect(prisma.amizade.create).toHaveBeenCalledWith({
+      data: {
+        usuarioAId: 4,
+        usuarioBId: 9,
+        solicitanteId: 4,
+        destinatarioId: 9,
+      },
+      include: expect.any(Object),
+    });
+  });
+
+  it('bloqueia usuarioId inexistente na solicitacao', async () => {
+    prisma.usuario.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.criarSolicitacao(4, { usuarioId: 99 }),
+    ).rejects.toBeInstanceOf(UsuarioNaoEncontradoException);
+  });
+
+  it('bloqueia solicitacao por usuarioId para si mesmo', async () => {
+    prisma.usuario.findUnique.mockResolvedValue({ id: 4, apelido: 'Yuji' });
+
+    await expect(
+      service.criarSolicitacao(4, { usuarioId: 4 }),
+    ).rejects.toBeInstanceOf(AmizadeSelfException);
+  });
+
+  it('bloqueia solicitacao sem destino', async () => {
+    await expect(service.criarSolicitacao(4, {})).rejects.toBeInstanceOf(
+      AmizadeDestinoSolicitacaoInvalidoException,
+    );
+  });
+
+  it('bloqueia solicitacao com destinos ambiguos', async () => {
+    await expect(
+      service.criarSolicitacao(4, { identificador: 'Maki', usuarioId: 9 }),
+    ).rejects.toBeInstanceOf(AmizadeDestinoSolicitacaoInvalidoException);
   });
 
   it('bloqueia solicitação para si mesmo', async () => {

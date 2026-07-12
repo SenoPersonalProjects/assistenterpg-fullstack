@@ -48,6 +48,15 @@ export class AmizadeSolicitacaoDuplicadaException extends BusinessException {
   }
 }
 
+export class AmizadeDestinoSolicitacaoInvalidoException extends BusinessException {
+  constructor() {
+    super(
+      'Informe email, apelido ou usuario para enviar a solicitacao de amizade',
+      'AMIZADE_DESTINO_INVALIDO',
+    );
+  }
+}
+
 export class AmizadeAcaoNaoPermitidaException extends BusinessException {
   constructor(acao: string, amizadeId?: number) {
     super(

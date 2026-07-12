@@ -11,10 +11,14 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import {
   apiCriarConvite,
+  apiCriarSolicitacaoAmizadePorUsuarioId,
   apiGetCampanhaById,
+  apiListarAmigos,
+  apiListarSolicitacoesAmizade,
   criarErroUsuario,
   formatarErroComContexto,
 } from '@/lib/api';
+import type { UserErrorState } from '@/lib/types';
 import {
   CampaignInviteModal,
   CampaignNextSessionBanner,
@@ -132,6 +136,18 @@ export default function CampanhaDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [conviteAberto, setConviteAberto] = useState(false);
+  const [amigoIds, setAmigoIds] = useState<Set<number>>(() => new Set());
+  const [solicitacoesEnviadasIds, setSolicitacoesEnviadasIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [solicitacoesRecebidasIds, setSolicitacoesRecebidasIds] = useState<Set<number>>(
+    () => new Set(),
+  );
+  const [carregandoAmizades, setCarregandoAmizades] = useState(false);
+  const [amizadeAcaoUsuarioId, setAmizadeAcaoUsuarioId] = useState<number | null>(
+    null,
+  );
+  const [erroAmizades, setErroAmizades] = useState<UserErrorState | null>(null);
   const [resumoRefreshKey, setResumoRefreshKey] = useState(0);
   const abaAtiva = normalizarCampaignTab(searchParams.get('tab'));
 
@@ -149,6 +165,30 @@ export default function CampanhaDetalhePage() {
       setLoading(false);
     }
   }, [id]);
+
+  const carregarRelacionamentosMembros = useCallback(async () => {
+    if (!usuario) return;
+
+    setCarregandoAmizades(true);
+    setErroAmizades(null);
+    try {
+      const [amigos, solicitacoes] = await Promise.all([
+        apiListarAmigos(),
+        apiListarSolicitacoesAmizade(),
+      ]);
+      setAmigoIds(new Set(amigos.map((amigo) => amigo.id)));
+      setSolicitacoesEnviadasIds(
+        new Set(solicitacoes.enviadas.map((solicitacao) => solicitacao.usuario.id)),
+      );
+      setSolicitacoesRecebidasIds(
+        new Set(solicitacoes.recebidas.map((solicitacao) => solicitacao.usuario.id)),
+      );
+    } catch (error) {
+      setErroAmizades(criarErroUsuario(error));
+    } finally {
+      setCarregandoAmizades(false);
+    }
+  }, [usuario]);
 
   const atualizarResumoAgenda = useCallback(() => {
     setResumoRefreshKey((atual) => atual + 1);
@@ -198,6 +238,11 @@ export default function CampanhaDetalhePage() {
     void carregarCampanha();
   }, [id, authLoading, usuario, router, carregarCampanha]);
 
+  useEffect(() => {
+    if (abaAtiva !== 'membros' || !usuario) return;
+    void carregarRelacionamentosMembros();
+  }, [abaAtiva, carregarRelacionamentosMembros, usuario]);
+
   async function handleInvite(data: {
     email?: string;
     apelido?: string;
@@ -218,6 +263,26 @@ export default function CampanhaDetalhePage() {
       await carregarCampanha();
     } catch (error) {
       throw new Error(mensagemErroConvidarMembro(error));
+    }
+  }
+
+  async function handleEnviarSolicitacaoMembro(membroUsuarioId: number) {
+    if (!usuario || membroUsuarioId === usuario.id) return;
+
+    setAmizadeAcaoUsuarioId(membroUsuarioId);
+    setErroAmizades(null);
+    try {
+      await apiCriarSolicitacaoAmizadePorUsuarioId(membroUsuarioId);
+      setSolicitacoesEnviadasIds((estadoAtual) => {
+        const proximo = new Set(estadoAtual);
+        proximo.add(membroUsuarioId);
+        return proximo;
+      });
+      await carregarRelacionamentosMembros();
+    } catch (error) {
+      setErroAmizades(criarErroUsuario(error));
+    } finally {
+      setAmizadeAcaoUsuarioId(null);
     }
   }
 
@@ -412,6 +477,14 @@ export default function CampanhaDetalhePage() {
             <CampaignMembersSection
               membros={campanha.membros}
               donoId={campanha.donoId}
+              usuarioAtualId={usuario?.id ?? null}
+              amigoIds={amigoIds}
+              solicitacoesEnviadasIds={solicitacoesEnviadasIds}
+              solicitacoesRecebidasIds={solicitacoesRecebidasIds}
+              carregandoAmizades={carregandoAmizades}
+              amizadeAcaoUsuarioId={amizadeAcaoUsuarioId}
+              erroAmizades={erroAmizades}
+              onEnviarSolicitacao={handleEnviarSolicitacaoMembro}
             />
           </section>
         ) : null}
