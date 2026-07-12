@@ -629,4 +629,48 @@ describe('campanhas api cache and dedupe', () => {
     );
     expect(resposta).toEqual({ modificador: { id: 2 }, personagem: { id: 13 } });
   });
+
+  it('applies skill training and grade narrative modifiers with structured target', async () => {
+    mockedApiClient.post
+      .mockResolvedValueOnce({
+        data: { modificador: { id: 3 }, personagem: { id: 13 } },
+      })
+      .mockResolvedValueOnce({
+        data: { modificador: { id: 4 }, personagem: { id: 13 } },
+      });
+
+    await apiAplicarModificadorPersonagemCampanha(44, 13, {
+      campo: 'PERICIA_TREINAMENTO',
+      periciaCodigo: 'OCULTISMO',
+      valor: 1,
+      nome: 'Treino narrativo',
+    });
+    await apiAplicarModificadorPersonagemCampanha(44, 13, {
+      campo: 'GRAU_APRIMORAMENTO',
+      tipoGrauCodigo: 'TECNICA_REVERSA',
+      valor: 1,
+      nome: 'Treinamento de grau',
+    });
+
+    expect(mockedApiClient.post).toHaveBeenNthCalledWith(
+      1,
+      '/campanhas/44/personagens/13/modificadores',
+      {
+        campo: 'PERICIA_TREINAMENTO',
+        periciaCodigo: 'OCULTISMO',
+        valor: 1,
+        nome: 'Treino narrativo',
+      },
+    );
+    expect(mockedApiClient.post).toHaveBeenNthCalledWith(
+      2,
+      '/campanhas/44/personagens/13/modificadores',
+      {
+        campo: 'GRAU_APRIMORAMENTO',
+        tipoGrauCodigo: 'TECNICA_REVERSA',
+        valor: 1,
+        nome: 'Treinamento de grau',
+      },
+    );
+  });
 });

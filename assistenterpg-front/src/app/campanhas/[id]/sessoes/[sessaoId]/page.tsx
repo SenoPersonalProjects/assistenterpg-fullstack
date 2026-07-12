@@ -427,7 +427,9 @@ export default function SessaoCampanhaPage() {
     useState<NpcSessaoCampanha | null>(null);
   const [escudoAberto, setEscudoAberto] = useState(true);
   const [personagemEmEdicao, setPersonagemEmEdicao] = useState<
-    Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null
+    | (Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> &
+        Partial<Pick<PersonagemCampanhaResumo, 'pericias' | 'grausAprimoramento'>>)
+    | null
   >(null);
   const [periciaRollModal, setPericiaRollModal] = useState<PericiaRollModalState>(
     {
@@ -2244,9 +2246,26 @@ export default function SessaoCampanhaPage() {
         },
       }));
 
+      setPersonagemEmEdicao((atual) =>
+        atual && atual.id === personagem.id
+          ? {
+              ...atual,
+              nome: personagem.nome,
+              recursos: personagem.recursos,
+              pericias: personagem.pericias,
+              grausAprimoramento: personagem.grausAprimoramento,
+            }
+          : atual,
+      );
+
       void sincronizarTempoReal();
     },
-    [setAjustesRecursosPorCard, setDetalhe, sincronizarTempoReal],
+    [
+      setAjustesRecursosPorCard,
+      setDetalhe,
+      setPersonagemEmEdicao,
+      sincronizarTempoReal,
+    ],
   );
 
   const handleSelecionarNucleo = useCallback(
@@ -2756,6 +2775,12 @@ export default function SessaoCampanhaPage() {
       id: card.personagemCampanhaId,
       nome: card.nomePersonagem,
       recursos: card.recursos,
+      pericias: card.pericias.map((pericia) => ({
+        ...pericia,
+        grauTreinamento:
+          pericia.grauTreinamento ?? Math.max(0, Math.trunc(pericia.bonusTreinamento / 5)),
+      })),
+      grausAprimoramento: card.ficha?.grausAprimoramento ?? [],
     });
   }
 

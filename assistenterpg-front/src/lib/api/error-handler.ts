@@ -220,6 +220,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CAMPANHA_MODIFICADOR_NOT_FOUND:
     "Modificador da ficha de campanha não encontrado",
   CAMPANHA_MODIFICADOR_JA_DESFEITO: "Este modificador já foi desfeito",
+  CAMPANHA_MODIFICADOR_INVALIDO: "Modificador narrativo inválido.",
   SESSAO_CAMPANHA_NOT_FOUND: "Sessão da campanha não encontrada.",
   CENA_SESSAO_NOT_FOUND: "Cena da sessão não encontrada.",
   NPC_SESSAO_NOT_FOUND: "NPC/Ameaça da sessão não encontrado.",

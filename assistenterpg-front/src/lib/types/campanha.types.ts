@@ -50,7 +50,9 @@ export type CampoModificadorPersonagemCampanha =
   | 'DESLOCAMENTO'
   | 'LIMITE_PE_EA_POR_TURNO'
   | 'PRESTIGIO_GERAL'
-  | 'PRESTIGIO_CLA';
+  | 'PRESTIGIO_CLA'
+  | 'PERICIA_TREINAMENTO'
+  | 'GRAU_APRIMORAMENTO';
 
 export type NucleoAmaldicoadoCodigo = 'EQUILIBRIO' | 'PODER' | 'IMPULSO';
 
@@ -61,6 +63,10 @@ export type ModificadorPersonagemCampanha = {
   sessaoId: number | null;
   cenaId: number | null;
   campo: CampoModificadorPersonagemCampanha;
+  periciaCodigo: string | null;
+  tipoGrauCodigo: string | null;
+  pericia?: { codigo: string; nome: string } | null;
+  tipoGrau?: { codigo: string; nome: string } | null;
   valor: number;
   nome: string;
   descricao: string | null;
@@ -135,11 +141,29 @@ export type PersonagemCampanhaResumo = {
   modificadoresAtivos: Array<{
     id: number;
     campo: CampoModificadorPersonagemCampanha;
+    periciaCodigo: string | null;
+    tipoGrauCodigo: string | null;
+    pericia?: { codigo: string; nome: string } | null;
+    tipoGrau?: { codigo: string; nome: string } | null;
     valor: number;
     nome: string;
     descricao: string | null;
     criadoEm: string;
     criadoPorId: number;
+  }>;
+  pericias: Array<{
+    codigo: string;
+    nome: string;
+    atributoBase: string;
+    grauTreinamento: number;
+    bonusTreinamento: number;
+    bonusOutros: number;
+    bonusTotal: number;
+  }>;
+  grausAprimoramento: Array<{
+    tipoGrauCodigo: string;
+    tipoGrauNome: string;
+    valor: number;
   }>;
 };
 
@@ -250,6 +274,7 @@ export type PericiaSessaoCampanha = {
   codigo: string;
   nome: string;
   atributoBase: string;
+  grauTreinamento?: number;
   bonusTreinamento: number;
   bonusEquipamento: number;
   bonusOutros: number;

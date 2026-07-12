@@ -5,6 +5,8 @@ import {
   apiAplicarModificadorPersonagemCampanha,
   apiAtualizarRecursosPersonagemCampanha,
   apiDesfazerModificadorPersonagemCampanha,
+  apiGetPericias,
+  apiGetTiposGrau,
   apiListarHistoricoPersonagemCampanha,
   apiListarModificadoresPersonagemCampanha,
   criarErroUsuario,
@@ -14,7 +16,15 @@ import type {
   HistoricoPersonagemCampanha,
   ModificadorPersonagemCampanha,
   PersonagemCampanhaResumo,
- UserErrorState } from '@/lib/types';
+  UserErrorState,
+} from '@/lib/types';
+import type { PericiaCatalogo, TipoGrauCatalogo } from '@/lib/types/catalogo.types';
+import {
+  calcularPreviewGrauNarrativo,
+  calcularPreviewTreinamentoNarrativo,
+  formatarValorModificadorNarrativo,
+  obterAlvoModificadorNarrativo,
+} from '@/lib/campanha/modificadores-narrativos';
 import { formatarDataHora } from '@/lib/utils/formatters';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
@@ -28,7 +38,10 @@ import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/Sessi
 type Props = {
   isOpen: boolean;
   campanhaId: number;
-  personagem: Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> | null;
+  personagem:
+    | (Pick<PersonagemCampanhaResumo, 'id' | 'nome' | 'recursos'> &
+        Partial<Pick<PersonagemCampanhaResumo, 'pericias' | 'grausAprimoramento'>>)
+    | null;
   onClose: () => void;
   onPersonagemAtualizado: (personagem: PersonagemCampanhaResumo) => void;
   contextoSessao?: {
@@ -38,10 +51,14 @@ type Props = {
 };
 
 type FiltroHistoricoContexto = 'TODOS' | 'SESSAO_ATUAL' | 'CENA_ATUAL';
+type TipoFormularioModificador = 'ATRIBUTOS' | 'PERICIAS' | 'GRAUS';
 const FILTRO_HISTORICO_TIPO_TODOS = '__TODOS__';
 
-const CAMPOS_MODIFICADOR_OPTIONS: Array<{
-  value: CampoModificadorPersonagemCampanha;
+const CAMPOS_MODIFICADOR_NUMERICO_OPTIONS: Array<{
+  value: Exclude<
+    CampoModificadorPersonagemCampanha,
+    'PERICIA_TREINAMENTO' | 'GRAU_APRIMORAMENTO'
+  >;
   label: string;
 }> = [
   { value: 'PV_MAX', label: 'PV Máximo' },
@@ -61,7 +78,11 @@ const CAMPOS_MODIFICADOR_OPTIONS: Array<{
 
 const LABEL_CAMPO_MODIFICADOR: Record<CampoModificadorPersonagemCampanha, string> =
   Object.fromEntries(
-    CAMPOS_MODIFICADOR_OPTIONS.map((item) => [item.value, item.label]),
+    [
+      ...CAMPOS_MODIFICADOR_NUMERICO_OPTIONS,
+      { value: 'PERICIA_TREINAMENTO', label: 'Treinamento de perícia' },
+      { value: 'GRAU_APRIMORAMENTO', label: 'Grau de aprimoramento' },
+    ].map((item) => [item.value, item.label]),
   ) as Record<CampoModificadorPersonagemCampanha, string>;
 
 function obterFiltroHistoricoPadrao(
@@ -111,8 +132,13 @@ export function CampaignCharacterEditorModal({
   const [eaAtual, setEaAtual] = useState('');
   const [sanAtual, setSanAtual] = useState('');
 
+  const [tipoFormularioModificador, setTipoFormularioModificador] =
+    useState<TipoFormularioModificador>('ATRIBUTOS');
   const [campoModificador, setCampoModificador] =
     useState<CampoModificadorPersonagemCampanha>('EA_MAX');
+  const [periciaModificadorCodigo, setPericiaModificadorCodigo] = useState('');
+  const [tipoGrauModificadorCodigo, setTipoGrauModificadorCodigo] =
+    useState('');
   const [valorModificador, setValorModificador] = useState('');
   const [nomeModificador, setNomeModificador] = useState('');
   const [descricaoModificador, setDescricaoModificador] = useState('');
@@ -121,6 +147,12 @@ export function CampaignCharacterEditorModal({
     ModificadorPersonagemCampanha[]
   >([]);
   const [historico, setHistorico] = useState<HistoricoPersonagemCampanha[]>([]);
+  const [periciasCatalogo, setPericiasCatalogo] = useState<PericiaCatalogo[]>(
+    [],
+  );
+  const [tiposGrauCatalogo, setTiposGrauCatalogo] = useState<TipoGrauCatalogo[]>(
+    [],
+  );
   const [filtroHistorico, setFiltroHistorico] =
     useState<FiltroHistoricoContexto>('TODOS');
   const [filtroTipoHistorico, setFiltroTipoHistorico] = useState<string>(
@@ -138,6 +170,54 @@ export function CampaignCharacterEditorModal({
     if (!personagem) return 'Editar ficha da campanha';
     return `Editar ficha: ${personagem.nome}`;
   }, [personagem]);
+  const periciasPersonagem = useMemo(
+    () => personagem?.pericias ?? [],
+    [personagem?.pericias],
+  );
+  const grausPersonagem = useMemo(
+    () => personagem?.grausAprimoramento ?? [],
+    [personagem?.grausAprimoramento],
+  );
+  const periciaSelecionada = useMemo(
+    () =>
+      periciasPersonagem.find(
+        (pericia) => pericia.codigo === periciaModificadorCodigo,
+      ) ?? null,
+    [periciaModificadorCodigo, periciasPersonagem],
+  );
+  const tipoGrauSelecionado = useMemo(
+    () =>
+      grausPersonagem.find(
+        (grau) => grau.tipoGrauCodigo === tipoGrauModificadorCodigo,
+      ) ?? null,
+    [grausPersonagem, tipoGrauModificadorCodigo],
+  );
+  const valorModificadorNumerico = Number(valorModificador);
+  const valorPreviewValido =
+    Number.isInteger(valorModificadorNumerico) && valorModificadorNumerico !== 0;
+  const previewPericia = useMemo(() => {
+    if (!periciaModificadorCodigo || !valorPreviewValido) return null;
+    const atual = periciaSelecionada?.grauTreinamento ?? 0;
+    return calcularPreviewTreinamentoNarrativo(
+      atual,
+      valorModificadorNumerico,
+    );
+  }, [
+    periciaModificadorCodigo,
+    periciaSelecionada?.grauTreinamento,
+    valorModificadorNumerico,
+    valorPreviewValido,
+  ]);
+  const previewGrau = useMemo(() => {
+    if (!tipoGrauModificadorCodigo || !valorPreviewValido) return null;
+    const atual = tipoGrauSelecionado?.valor ?? 0;
+    return calcularPreviewGrauNarrativo(atual, valorModificadorNumerico);
+  }, [
+    tipoGrauModificadorCodigo,
+    tipoGrauSelecionado?.valor,
+    valorModificadorNumerico,
+    valorPreviewValido,
+  ]);
   const filtrosModificador = useMemo(() => {
     if (!contextoSessao) return undefined;
     return {
@@ -198,6 +278,24 @@ export function CampaignCharacterEditorModal({
     ];
   }, [historico]);
 
+  const opcoesPericiasModificador = useMemo(
+    () =>
+      periciasCatalogo.map((pericia) => ({
+        value: pericia.codigo,
+        label: `${pericia.nome} (${pericia.atributoBase})`,
+      })),
+    [periciasCatalogo],
+  );
+
+  const opcoesTiposGrauModificador = useMemo(
+    () =>
+      tiposGrauCatalogo.map((tipoGrau) => ({
+        value: tipoGrau.codigo,
+        label: tipoGrau.nome,
+      })),
+    [tiposGrauCatalogo],
+  );
+
   const historicoFiltradoPorContexto = useMemo(() => {
     if (!contextoSessao || filtroHistorico === 'TODOS') {
       return historico;
@@ -255,6 +353,34 @@ export function CampaignCharacterEditorModal({
       setLoadingDados(false);
     }
   }, [campanhaId, filtrosModificador, personagemId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let ativo = true;
+    void (async () => {
+      try {
+        const [pericias, tiposGrau] = await Promise.all([
+          apiGetPericias(),
+          apiGetTiposGrau(),
+        ]);
+        if (!ativo) return;
+        setPericiasCatalogo(pericias);
+        setTiposGrauCatalogo(tiposGrau);
+        setPericiaModificadorCodigo((atual) => atual || pericias[0]?.codigo || '');
+        setTipoGrauModificadorCodigo(
+          (atual) => atual || tiposGrau[0]?.codigo || '',
+        );
+      } catch (error) {
+        if (!ativo) return;
+        setErro(criarErroUsuario(error));
+      }
+    })();
+
+    return () => {
+      ativo = false;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !personagem) return;
@@ -329,7 +455,7 @@ export function CampaignCharacterEditorModal({
     if (!personagemId) return;
     const valor = Number(valorModificador);
 
-    if (Number.isNaN(valor) || valor === 0) {
+    if (!Number.isInteger(valor) || valor === 0) {
       setErro('Informe um valor inteiro diferente de zero para o modificador.');
       return;
     }
@@ -337,6 +463,28 @@ export function CampaignCharacterEditorModal({
     if (!nomeModificador.trim()) {
       setErro('Informe um nome para identificar a origem do modificador.');
       return;
+    }
+
+    let campoEnvio: CampoModificadorPersonagemCampanha = campoModificador;
+    let periciaCodigo: string | undefined;
+    let tipoGrauCodigo: string | undefined;
+
+    if (tipoFormularioModificador === 'PERICIAS') {
+      if (!periciaModificadorCodigo) {
+        setErro('Selecione a perícia que receberá o ajuste narrativo.');
+        return;
+      }
+      campoEnvio = 'PERICIA_TREINAMENTO';
+      periciaCodigo = periciaModificadorCodigo;
+    }
+
+    if (tipoFormularioModificador === 'GRAUS') {
+      if (!tipoGrauModificadorCodigo) {
+        setErro('Selecione o grau de aprimoramento que receberá o ajuste.');
+        return;
+      }
+      campoEnvio = 'GRAU_APRIMORAMENTO';
+      tipoGrauCodigo = tipoGrauModificadorCodigo;
     }
 
     setErro(null);
@@ -347,7 +495,9 @@ export function CampaignCharacterEditorModal({
         campanhaId,
         personagemId,
         {
-          campo: campoModificador,
+          campo: campoEnvio,
+          periciaCodigo,
+          tipoGrauCodigo,
           valor,
           nome: nomeModificador.trim(),
           descricao: descricaoModificador.trim() || undefined,
@@ -481,22 +631,80 @@ export function CampaignCharacterEditorModal({
             <h3 className="text-sm font-semibold text-app-fg">
               Aplicar modificador narrativo
             </h3>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'ATRIBUTOS' as const, label: 'Atributos' },
+                { id: 'PERICIAS' as const, label: 'Perícias' },
+                { id: 'GRAUS' as const, label: 'Graus' },
+              ].map((opcao) => (
+                <Button
+                  key={opcao.id}
+                  type="button"
+                  size="sm"
+                  variant={
+                    tipoFormularioModificador === opcao.id
+                      ? 'primary'
+                      : 'secondary'
+                  }
+                  onClick={() => setTipoFormularioModificador(opcao.id)}
+                >
+                  {opcao.label}
+                </Button>
+              ))}
+            </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <Select
-                label="Campo"
-                value={campoModificador}
-                onChange={(e) =>
-                  setCampoModificador(
-                    e.target.value as CampoModificadorPersonagemCampanha,
-                  )
-                }
-                options={CAMPOS_MODIFICADOR_OPTIONS}
-              />
+              {tipoFormularioModificador === 'ATRIBUTOS' ? (
+                <Select
+                  label="Campo"
+                  value={campoModificador}
+                  onChange={(e) =>
+                    setCampoModificador(
+                      e.target.value as CampoModificadorPersonagemCampanha,
+                    )
+                  }
+                  options={CAMPOS_MODIFICADOR_NUMERICO_OPTIONS}
+                />
+              ) : null}
+              {tipoFormularioModificador === 'PERICIAS' ? (
+                <Select
+                  label="Perícia"
+                  value={periciaModificadorCodigo}
+                  onChange={(e) => setPericiaModificadorCodigo(e.target.value)}
+                  options={opcoesPericiasModificador}
+                  disabled={opcoesPericiasModificador.length === 0}
+                  helperText={
+                    previewPericia
+                      ? `Treinamento atual ${previewPericia.atual} -> ${previewPericia.proximo}`
+                      : 'O valor altera níveis de treinamento; cada nível vale +5.'
+                  }
+                />
+              ) : null}
+              {tipoFormularioModificador === 'GRAUS' ? (
+                <Select
+                  label="Grau de aprimoramento"
+                  value={tipoGrauModificadorCodigo}
+                  onChange={(e) => setTipoGrauModificadorCodigo(e.target.value)}
+                  options={opcoesTiposGrauModificador}
+                  disabled={opcoesTiposGrauModificador.length === 0}
+                  helperText={
+                    previewGrau
+                      ? `Grau atual ${previewGrau.atual} -> ${previewGrau.proximo}`
+                      : 'O valor altera graus efetivos da ficha de campanha.'
+                  }
+                />
+              ) : null}
               <Input
                 label="Valor (+/-)"
                 type="number"
                 value={valorModificador}
                 onChange={(e) => setValorModificador(e.target.value)}
+                helperText={
+                  tipoFormularioModificador === 'PERICIAS'
+                    ? '+1 concede um nível de treino; -1 remove um nível.'
+                    : tipoFormularioModificador === 'GRAUS'
+                      ? '+1 concede um grau; -1 remove um grau.'
+                      : undefined
+                }
               />
               <Input
                 label="Nome da fonte"
@@ -545,11 +753,13 @@ export function CampaignCharacterEditorModal({
               </p>
             ) : (
               <ul className="space-y-2">
-                {modificadores.map((modificador) => (
-                  <li
-                    key={modificador.id}
-                    className="rounded border border-app-border p-3"
-                  >
+                {modificadores.map((modificador) => {
+                  const alvo = obterAlvoModificadorNarrativo(modificador);
+                  return (
+                    <li
+                      key={modificador.id}
+                      className="rounded border border-app-border p-3"
+                    >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <p className="text-sm font-medium text-app-fg">
@@ -558,9 +768,16 @@ export function CampaignCharacterEditorModal({
                             ({LABEL_CAMPO_MODIFICADOR[modificador.campo]})
                           </span>
                         </p>
+                        {alvo ? (
+                          <p className="text-sm text-app-muted">
+                            Alvo: {alvo}
+                          </p>
+                        ) : null}
                         <p className="text-sm text-app-muted">
-                          Valor: {modificador.valor > 0 ? '+' : ''}
-                          {modificador.valor}
+                          Valor: {formatarValorModificadorNarrativo(
+                            modificador.campo,
+                            modificador.valor,
+                          )}
                         </p>
                         {modificador.descricao && (
                           <p className="text-sm text-app-muted">
@@ -604,8 +821,9 @@ export function CampaignCharacterEditorModal({
                         </span>
                       )}
                     </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
