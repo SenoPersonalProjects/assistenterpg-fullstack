@@ -69,6 +69,7 @@ type CharacterSessionCardProps = {
   ) => void;
   onAbrirEdicaoPersonagem: () => void;
   onAbrirFichaCompleta: () => void;
+  onInvocarVinculado?: (vinculadoId: number) => void;
   onSolicitarRemover: () => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
@@ -165,6 +166,7 @@ export function CharacterSessionCard({
   onSacrificarNucleo,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
+  onInvocarVinculado,
   onSolicitarRemover,
   renderPainelCondicoes,
   acumulosHabilidade,
@@ -385,6 +387,7 @@ export function CharacterSessionCard({
           sessaoEncerrada={sessaoEncerrada}
           onAbrirEdicaoPersonagem={onAbrirEdicaoPersonagem}
           onAbrirFichaCompleta={onAbrirFichaCompleta}
+          onInvocarVinculado={onInvocarVinculado}
           onEncerrarSustentacao={onEncerrarSustentacao}
           formatarCustos={formatarCustos}
           renderPainelCondicoes={renderPainelCondicoes}

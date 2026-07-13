@@ -3,6 +3,7 @@ import {
   apiAdicionarNpcSimplesSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
+  apiDesinvocarEntidadeVinculadaSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
   criarErroUsuario,
 } from '@/lib/api';
@@ -95,7 +96,10 @@ type UseSessaoNpcReturn = {
     npc: NpcSessaoCampanha,
     campo: CampoAjusteRecursoNpc,
   ) => Promise<void>;
-  handleRemoverNpc: (npcSessaoId: number) => Promise<void>;
+  handleRemoverNpc: (
+    npcSessaoId: number,
+    entidadeVinculada?: boolean,
+  ) => Promise<void>;
 };
 
 export function useSessaoNpc({
@@ -461,15 +465,17 @@ export function useSessaoNpc({
   );
 
   const handleRemoverNpc = useCallback(
-    async (npcSessaoId: number) => {
+    async (npcSessaoId: number, entidadeVinculada = false) => {
       setRemovendoNpcId(npcSessaoId);
       setErro(null);
       try {
-        const atualizado = await apiRemoverNpcSessaoCampanha(
-          campanhaId,
-          sessaoId,
-          npcSessaoId,
-        );
+        const atualizado = entidadeVinculada
+          ? await apiDesinvocarEntidadeVinculadaSessaoCampanha(
+              campanhaId,
+              sessaoId,
+              npcSessaoId,
+            )
+          : await apiRemoverNpcSessaoCampanha(campanhaId, sessaoId, npcSessaoId);
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
         onRemocaoConfirmada?.();

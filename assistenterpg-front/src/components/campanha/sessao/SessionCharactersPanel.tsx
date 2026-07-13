@@ -95,6 +95,7 @@ type SessionCharactersPanelProps = {
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
   onAbrirEdicaoPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onAbrirFichaCompleta: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
+  onInvocarVinculado?: (vinculadoId: number) => void;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -171,6 +172,7 @@ export function SessionCharactersPanel({
   onRolarDanoHabilidade,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
+  onInvocarVinculado,
   renderPainelCondicoes,
   limitesCategoriaAtivo,
   consumirComCalmaAtivo,
@@ -291,6 +293,7 @@ export function SessionCharactersPanel({
               }
               onAbrirEdicaoPersonagem={() => onAbrirEdicaoPersonagem(card)}
               onAbrirFichaCompleta={() => onAbrirFichaCompleta(card)}
+              onInvocarVinculado={onInvocarVinculado}
               onSolicitarRemover={() => onSolicitarRemoverPersonagem(card)}
               renderPainelCondicoes={renderPainelCondicoes}
               acumulosHabilidade={acumulosHabilidade}

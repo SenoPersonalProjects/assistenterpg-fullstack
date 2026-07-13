@@ -34,6 +34,7 @@ import {
   apiAtualizarRegraOpcionalSessaoCampanha,
   apiConsumirItemSessaoCampanha,
   apiGastarInspiracaoSessaoCampanha,
+  apiInvocarEntidadeVinculadaSessaoCampanha,
   apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
   criarErroUsuario,
 } from '@/lib/api';
@@ -1433,6 +1434,25 @@ export default function SessaoCampanhaPage() {
     [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
   );
 
+  const handleInvocarVinculado = useCallback(
+    async (vinculadoId: number) => {
+      setErroCards(null);
+      try {
+        const atualizado = await apiInvocarEntidadeVinculadaSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          vinculadoId,
+        );
+        setDetalhe(atualizado);
+        sincronizarEstadosDerivados(atualizado);
+        showToast('Vinculado inserido na cena.', 'success');
+      } catch (error) {
+        setErroCards(criarErroUsuario(error));
+      }
+    },
+    [campanhaId, sessaoId, showToast, sincronizarEstadosDerivados],
+  );
+
   const handleAtualizarSocial = useCallback(
     async (alvos: AlvoEncontroSocialSessao[]) => {
       setAtualizandoRegraOpcional('ENCONTROS_SOCIAIS');
@@ -2729,6 +2749,7 @@ export default function SessaoCampanhaPage() {
       onSacrificarNucleo={handleSacrificarNucleo}
       onAbrirEdicaoPersonagem={handleAbrirEdicaoPersonagem}
       onAbrirFichaCompleta={handleAbrirFichaCompleta}
+      onInvocarVinculado={(vinculadoId) => void handleInvocarVinculado(vinculadoId)}
       onRolarPericia={handleRolarPericia}
       onRolarTesteHabilidade={handleRolarTesteHabilidade}
       onRolarDanoHabilidade={handleRolarDanoHabilidade}
@@ -3476,7 +3497,12 @@ export default function SessaoCampanhaPage() {
         <ConfirmNpcRemovalModal
           npc={npcRemocaoConfirmacao}
           onClose={() => setNpcRemocaoConfirmacao(null)}
-          onConfirm={(npcSessaoId) => void handleRemoverNpc(npcSessaoId)}
+          onConfirm={(npcSessaoId) =>
+            void handleRemoverNpc(
+              npcSessaoId,
+              Boolean(npcRemocaoConfirmacao?.entidadeVinculadaId),
+            )
+          }
           removendoNpcId={removendoNpcId}
           sessaoEncerrada={sessaoEncerrada}
           textoSeguro={textoSeguro}

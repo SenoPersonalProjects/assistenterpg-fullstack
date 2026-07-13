@@ -26,6 +26,10 @@ import {
   resolverValorAtributoBase,
   type AtributoBaseCodigo,
 } from '@/lib/utils/pericias';
+import {
+  entidadeVinculadaAtivaNestaSessao,
+  podeInvocarEntidadeVinculada,
+} from '@/lib/campanha/entidades-vinculadas';
 
 type AprimoradoModalState = {
   habilidadeId: number;
@@ -85,6 +89,7 @@ type SessionCharacterDetailsTabsProps = {
   sessaoEncerrada: boolean;
   onAbrirEdicaoPersonagem?: () => void;
   onAbrirFichaCompleta?: () => void;
+  onInvocarVinculado?: (vinculadoId: number) => void;
   onEncerrarSustentacao: (personagemSessaoId: number, sustentacaoId: number) => void;
   formatarCustos: (custoEA: number, custoPE: number) => string;
   limitesCategoriaAtivo?: boolean;
@@ -161,6 +166,15 @@ function formatarVersaoHabilidadeClasse(
   return `${versao.custoPE} PE | +${versao.graus ?? 0} grau(s)`;
 }
 
+function formatarTipoVinculado(tipo: string): string {
+  const labels: Record<string, string> = {
+    SHIKIGAMI: 'Shikigami',
+    CORPO_AMALDICOADO: 'Corpo',
+    MALDICAO_CONTROLADA: 'Maldicao',
+  };
+  return labels[tipo] ?? tipo;
+}
+
 export function SessionCharacterDetailsTabs({
   card,
   campanhaId,
@@ -190,6 +204,7 @@ export function SessionCharacterDetailsTabs({
   sessaoEncerrada,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
+  onInvocarVinculado,
   onEncerrarSustentacao,
   formatarCustos,
   limitesCategoriaAtivo,
@@ -492,6 +507,53 @@ export function SessionCharacterDetailsTabs({
               </p>
             </div>
           </div>
+          {card.vinculados.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="session-text-xxs font-semibold text-app-muted uppercase">
+                Vinculados
+              </p>
+              <div className="space-y-1.5">
+                {card.vinculados.map((vinculado) => {
+                  const ativoNestaSessao =
+                    entidadeVinculadaAtivaNestaSessao(vinculado);
+                  const podeInvocar = podeInvocarEntidadeVinculada(
+                    vinculado,
+                    sessaoEncerrada,
+                  );
+                  return (
+                    <div
+                      key={vinculado.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded border border-app-border/70 px-2 py-1.5"
+                    >
+                      <div>
+                        <p className="text-xs font-semibold text-app-fg">
+                          {vinculado.nome}
+                        </p>
+                        <p className="session-text-xxs text-app-muted">
+                          {formatarTipoVinculado(vinculado.tipo)} -{' '}
+                          {ativoNestaSessao ? 'ATIVO' : vinculado.estado} - PV{' '}
+                          {vinculado.pontosVidaAtual}/{vinculado.pontosVidaMax}
+                        </p>
+                      </div>
+                      {card.podeEditar &&
+                      vinculado.estado !== 'ARQUIVADO' &&
+                      onInvocarVinculado ? (
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="ghost"
+                          disabled={!podeInvocar}
+                          onClick={() => onInvocarVinculado(vinculado.id)}
+                        >
+                          {ativoNestaSessao ? 'Ativo' : 'Invocar'}
+                        </Button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
           {mostrarAcoesResumo && card.podeEditar ? (
             <div className="flex items-center gap-2 flex-wrap">
               {onAbrirEdicaoPersonagem ? (

@@ -102,6 +102,18 @@ function extrairExpressaoDice(texto?: string | null): string | null {
   return match?.[0] ?? null;
 }
 
+function formatarVinculoNpc(npc: NpcSessaoCampanha): string | null {
+  if (!npc.vinculo) return null;
+  const dono = npc.vinculo.personagemDono?.nome;
+  const tipo =
+    npc.vinculo.tipo === 'SHIKIGAMI'
+      ? 'Shikigami'
+      : npc.vinculo.tipo === 'CORPO_AMALDICOADO'
+        ? 'Corpo'
+        : 'Maldicao controlada';
+  return dono ? `${tipo} de ${dono}` : tipo;
+}
+
 type NpcSessionCardProps = {
   npc: NpcSessaoCampanha;
   iniciativaValor: number | null;
@@ -180,6 +192,7 @@ export function NpcSessionCard({
   onAtualizarAlvoSocial,
 }: NpcSessionCardProps) {
   const nomeTipoFicha = npc.fichaTipo === 'NPC' ? 'Aliado' : 'Ameaça';
+  const vinculoLabel = formatarVinculoNpc(npc);
   const linhasRecursos: LinhaRecursoNpc[] = [
     {
       key: 'pv',
@@ -757,6 +770,11 @@ export function NpcSessionCard({
               <Badge size="sm" color="gray">
                 {labelTipoNpc(npc.tipo)}
               </Badge>
+              {vinculoLabel ? (
+                <Badge size="sm" color="purple">
+                  {vinculoLabel}
+                </Badge>
+              ) : null}
               {podeControlarSessao && npc.ocultoJogadores ? (
                 <Badge size="sm" color="yellow">
                   Oculto dos jogadores
