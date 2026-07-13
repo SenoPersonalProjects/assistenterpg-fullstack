@@ -33,6 +33,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/context/ToastContext';
 import type { UserErrorState } from '@/lib/types';
+import { podeMutarItensSessao } from '@/lib/campanha/sessao-utils';
 
 type FiltroItensSessao = 'TODOS' | 'SEM_PORTADOR' | 'MEUS' | 'PERSONAGEM';
 type EdicaoAberta =
@@ -44,6 +45,7 @@ type SessionItemsPanelProps = {
   campanhaId: number;
   sessaoId: number;
   cenaId: number | null;
+  sessaoEncerrada: boolean;
   personagens: SessaoCampanhaDetalhe['cards'];
   npcs: SessaoCampanhaDetalhe['npcs'];
   usuarioId?: number | null;
@@ -69,12 +71,14 @@ export function SessionItemsPanel({
   campanhaId,
   sessaoId,
   cenaId,
+  sessaoEncerrada,
   personagens,
   npcs,
   usuarioId,
   onCountChange,
 }: SessionItemsPanelProps) {
   const { showToast } = useToast();
+  const podeMutar = podeMutarItensSessao(sessaoEncerrada);
   const [itens, setItens] = useState<ItemSessaoCampanhaDto[]>([]);
   const [templates, setTemplates] = useState<TemplateItemSessaoCampanhaDto[]>([]);
   const [transferenciasPendentes, setTransferenciasPendentes] = useState<
@@ -130,6 +134,7 @@ export function SessionItemsPanel({
 
   const responderTransferencia = useCallback(
     async (transferenciaId: number, aceitar: boolean) => {
+      if (!podeMutar) return;
       try {
         setErro(null);
         if (aceitar) {
@@ -152,7 +157,7 @@ export function SessionItemsPanel({
         showToast(mensagem, 'error');
       }
     },
-    [campanhaId, showToast],
+    [campanhaId, podeMutar, showToast],
   );
 
   const carregar = useCallback(async () => {
@@ -167,6 +172,7 @@ export function SessionItemsPanel({
 
       for (const transferencia of resposta.transferenciasPendentes ?? []) {
         const deveNotificar =
+          podeMutar &&
           transferencia.permissoes?.podeResponder &&
           (resposta.permissoes.ehMestre
             ? transferencia.destinoTipo === 'NPC'
@@ -212,7 +218,7 @@ export function SessionItemsPanel({
     } finally {
       setCarregando(false);
     }
-  }, [campanhaId, onCountChange, responderTransferencia, showToast]);
+  }, [campanhaId, onCountChange, podeMutar, responderTransferencia, showToast]);
 
   useEffect(() => {
     carregarRef.current = carregar;
@@ -221,6 +227,14 @@ export function SessionItemsPanel({
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  useEffect(() => {
+    if (!podeMutar) {
+      setCriacaoAberta(false);
+      setEdicao(null);
+      setTransferenciaItem(null);
+    }
+  }, [podeMutar]);
 
   useEffect(() => {
     if (!ehMestre && personagensProprios.length === 1 && !personagemCriacaoId) {
@@ -279,16 +293,19 @@ export function SessionItemsPanel({
   }
 
   function abrirEdicaoItem(item: ItemSessaoCampanhaDto) {
+    if (!podeMutar) return;
     preencherEdicao(item);
     setEdicao({ tipo: 'ITEM', item });
   }
 
   function abrirEdicaoTemplate(template: TemplateItemSessaoCampanhaDto) {
+    if (!podeMutar) return;
     preencherEdicao(template);
     setEdicao({ tipo: 'TEMPLATE', template });
   }
 
   function abrirCriacao() {
+    if (!podeMutar) return;
     limparFormulario();
     setCriacaoAberta(true);
   }
@@ -299,6 +316,7 @@ export function SessionItemsPanel({
   }
 
   async function handleCriarItem() {
+    if (!podeMutar) return;
     const nomeFinal = nome.trim();
     if (!nomeFinal) {
       setErro('Informe o nome do item.');
@@ -346,6 +364,7 @@ export function SessionItemsPanel({
   }
 
   async function handleSalvarEdicao() {
+    if (!podeMutar) return;
     if (!edicao) return;
 
     const nomeFinal = nomeEdicao.trim();
@@ -386,6 +405,7 @@ export function SessionItemsPanel({
   }
 
   async function handleAtribuir(itemId: number, personagemCampanhaId: string) {
+    if (!podeMutar) return;
     setErro(null);
     try {
       await apiAtribuirItemSessaoCampanha(campanhaId, itemId, {
@@ -400,6 +420,7 @@ export function SessionItemsPanel({
   }
 
   async function handleRevelar(item: ItemSessaoCampanhaDto) {
+    if (!podeMutar) return;
     setErro(null);
     try {
       await apiRevelarItemSessaoCampanha(campanhaId, item.id, {
@@ -412,6 +433,7 @@ export function SessionItemsPanel({
   }
 
   async function handleInstanciarTemplate(templateId: number) {
+    if (!podeMutar) return;
     setErro(null);
     try {
       await apiInstanciarTemplateItemSessaoCampanha(campanhaId, templateId, {
@@ -425,6 +447,7 @@ export function SessionItemsPanel({
   }
 
   function abrirTransferencia(item: ItemSessaoCampanhaDto) {
+    if (!podeMutar) return;
     setTransferenciaItem(item);
     setDestinoTransferenciaTipo('PERSONAGEM');
     setDestinoPersonagemId('');
@@ -432,6 +455,7 @@ export function SessionItemsPanel({
   }
 
   async function handleSolicitarTransferencia() {
+    if (!podeMutar) return;
     if (!transferenciaItem) return;
     setErro(null);
     try {
@@ -492,9 +516,15 @@ export function SessionItemsPanel({
           <Badge size="sm" color="gray">
             {itens.length}
           </Badge>
-          <Button size="xs" onClick={abrirCriacao}>
-            Criar item
-          </Button>
+          {podeMutar ? (
+            <Button size="xs" onClick={abrirCriacao}>
+              Criar item
+            </Button>
+          ) : (
+            <Badge size="sm" color="gray">
+              Somente leitura
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -534,7 +564,7 @@ export function SessionItemsPanel({
                     {nomeDestinoTransferencia(transferencia)}
                   </p>
                 </div>
-                {transferencia.permissoes?.podeResponder ? (
+                {podeMutar && transferencia.permissoes?.podeResponder ? (
                   <div className="flex flex-wrap justify-end gap-1">
                     <Button
                       size="xs"
@@ -657,7 +687,10 @@ export function SessionItemsPanel({
                     : item.descricao || 'Sem descrição.'}
                   </p>
                 </div>
-                {ehMestre || item.permissoes?.podeEditar || item.permissoes?.podeTransferir ? (
+                {podeMutar &&
+                (ehMestre ||
+                  item.permissoes?.podeEditar ||
+                  item.permissoes?.podeTransferir) ? (
                   <div className="flex flex-wrap justify-end gap-1">
                     {(item.permissoes?.podeEditar ?? ehMestre) ? (
                       <Button
@@ -694,6 +727,7 @@ export function SessionItemsPanel({
                   <select
                     value={item.personagemCampanhaId ?? ''}
                     onChange={(event) => void handleAtribuir(item.id, event.target.value)}
+                    disabled={!podeMutar}
                     className="w-full rounded border border-app-border bg-app-bg px-2 py-2 text-xs text-app-fg"
                   >
                     <option value="">Sem portador</option>
@@ -739,22 +773,24 @@ export function SessionItemsPanel({
                     {template.descricao || 'Sem descrição.'}
                   </p>
                 </div>
-                <div className="flex flex-wrap justify-end gap-1">
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => abrirEdicaoTemplate(template)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => void handleInstanciarTemplate(template.id)}
-                  >
-                    Instanciar
-                  </Button>
-                </div>
+                {podeMutar ? (
+                  <div className="flex flex-wrap justify-end gap-1">
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => abrirEdicaoTemplate(template)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => void handleInstanciarTemplate(template.id)}
+                    >
+                      Instanciar
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}

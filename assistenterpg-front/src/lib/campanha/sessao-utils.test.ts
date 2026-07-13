@@ -5,6 +5,7 @@ import {
   calcularIntervaloPolling,
   calcularRestanteCooldown,
   montarPayloadOrdemIniciativa,
+  podeMutarItensSessao,
   validarAplicacaoCondicao,
 } from './sessao-utils';
 
@@ -37,6 +38,11 @@ describe('sessao-utils', () => {
   it('calcula intervalo de polling baseado no socket', () => {
     expect(calcularIntervaloPolling(true)).toBe(15000);
     expect(calcularIntervaloPolling(false)).toBe(3000);
+  });
+
+  it('mantem itens somente leitura quando a sessao esta encerrada', () => {
+    expect(podeMutarItensSessao(false)).toBe(true);
+    expect(podeMutarItensSessao(true)).toBe(false);
   });
 
   it('calcula restante de cooldown', () => {

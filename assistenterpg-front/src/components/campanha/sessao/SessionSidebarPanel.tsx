@@ -316,6 +316,7 @@ export function SessionSidebarPanel({
                   campanhaId={campanhaId}
                   sessaoId={sessaoId}
                   cenaId={cenaId}
+                  sessaoEncerrada={sessaoEncerrada}
                   personagens={personagens}
                   npcs={npcs}
                   usuarioId={usuarioId}

@@ -41,6 +41,10 @@ export function calcularIntervaloPolling(socketConectado: boolean): number {
   return socketConectado ? 15000 : 3000;
 }
 
+export function podeMutarItensSessao(sessaoEncerrada: boolean): boolean {
+  return !sessaoEncerrada;
+}
+
 export function calcularRestanteCooldown(
   agora: number,
   ultimoUso: number,
