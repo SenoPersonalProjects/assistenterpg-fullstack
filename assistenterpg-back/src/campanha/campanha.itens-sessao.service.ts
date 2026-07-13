@@ -12,6 +12,8 @@ import {
   TipoItemSessaoCampanha,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SessaoCampanhaNaoEncontradaException } from '../common/exceptions/campanha.exception';
+import { assertSessaoMutavel } from '../sessao/sessao-mutabilidade';
 import { CampanhaAccessService } from './campanha.access.service';
 import {
   AtribuirItemSessaoCampanhaDto,
@@ -38,7 +40,14 @@ type AcessoCampanha = Awaited<
 
 const transferenciaItemSessaoInclude = {
   item: {
-    select: { id: true, nome: true, peso: true, personagemCampanhaId: true },
+    select: {
+      id: true,
+      nome: true,
+      peso: true,
+      personagemCampanhaId: true,
+      sessaoId: true,
+      cenaId: true,
+    },
   },
   solicitante: { select: { id: true, apelido: true } },
   portadorAnterior: {
@@ -57,7 +66,9 @@ const transferenciaItemSessaoInclude = {
       personagemBase: { select: { nome: true } },
     },
   },
-  destinoNpcSessao: { select: { id: true, nomeExibicao: true } },
+  destinoNpcSessao: {
+    select: { id: true, nomeExibicao: true, sessaoId: true },
+  },
 } satisfies Prisma.TransferenciaItemSessaoCampanhaInclude;
 
 const itemSessaoInclude = {
@@ -208,7 +219,11 @@ export class CampanhaItensSessaoService {
     this.assertMestre(acesso, 'instanciar templates de itens de sessão');
     const template = await this.obterTemplate(campanhaId, templateId);
 
-    await this.validarReferenciasEscopoCampanha(campanhaId, dto);
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      dto,
+      'instanciar item na sessão',
+    );
     if (dto.personagemCampanhaId) {
       await this.validarCapacidadePortadorSessao(
         campanhaId,
@@ -246,7 +261,11 @@ export class CampanhaItensSessaoService {
     );
     const dados = this.normalizarDadosItem(dto);
     this.validarPermissoesCamposMestreEmCriacao(acesso, dto);
-    await this.validarReferenciasEscopoCampanha(campanhaId, dto);
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      dto,
+      'criar item na sessão',
+    );
 
     const personagemCampanhaId = acesso.ehMestre
       ? (dto.personagemCampanhaId ?? null)
@@ -291,6 +310,11 @@ export class CampanhaItensSessaoService {
       usuarioId,
     );
     const atual = await this.obterItem(campanhaId, itemId);
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      { sessaoId: atual.sessaoId, cenaId: atual.cenaId },
+      'editar item da sessão',
+    );
 
     if (!acesso.ehMestre && atual.criadoPorId !== usuarioId) {
       throw new ForbiddenException(
@@ -299,7 +323,11 @@ export class CampanhaItensSessaoService {
     }
 
     this.validarPermissoesCamposMestre(acesso, dto);
-    await this.validarReferenciasEscopoCampanha(campanhaId, dto);
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      dto,
+      'editar item da sessão',
+    );
 
     const dados = this.normalizarDadosItem({ ...atual, ...dto });
     const proximoPortador = acesso.ehMestre
@@ -350,6 +378,11 @@ export class CampanhaItensSessaoService {
     );
     this.assertMestre(acesso, 'atribuir itens de sessão');
     const item = await this.obterItem(campanhaId, itemId);
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      { sessaoId: item.sessaoId, cenaId: item.cenaId },
+      'atribuir item da sessão',
+    );
     await this.validarReferenciasEscopoCampanha(campanhaId, dto);
 
     if (dto.personagemCampanhaId) {
@@ -385,7 +418,12 @@ export class CampanhaItensSessaoService {
       usuarioId,
     );
     this.assertMestre(acesso, 'revelar ou ocultar itens de sessão');
-    await this.obterItem(campanhaId, itemId);
+    const item = await this.obterItem(campanhaId, itemId);
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      { sessaoId: item.sessaoId, cenaId: item.cenaId },
+      'revelar item da sessão',
+    );
 
     return this.prisma.itemSessaoCampanha.update({
       where: { id: itemId },
@@ -405,6 +443,11 @@ export class CampanhaItensSessaoService {
       usuarioId,
     );
     const item = await this.obterItemComPortador(campanhaId, itemId);
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      { sessaoId: item.sessaoId, cenaId: item.cenaId },
+      'transferir item da sessão',
+    );
 
     if (!item.personagemCampanhaId || !item.personagemCampanha) {
       throw new BadRequestException(
@@ -456,6 +499,7 @@ export class CampanhaItensSessaoService {
     await this.validarNpcSessaoEscopoCampanha(
       campanhaId,
       dto.destinoNpcSessaoId,
+      'transferir item para NPC da sessão',
     );
 
     return this.prisma.$transaction(async (tx) => {
@@ -517,6 +561,19 @@ export class CampanhaItensSessaoService {
     const transferencia = await this.obterTransferenciaPendente(
       campanhaId,
       transferenciaId,
+    );
+    await this.validarReferenciasEscopoCampanha(
+      campanhaId,
+      {
+        sessaoId: transferencia.item.sessaoId,
+        cenaId: transferencia.item.cenaId,
+      },
+      'responder transferência de item da sessão',
+    );
+    await this.assertSessaoIdMutavel(
+      campanhaId,
+      transferencia.destinoNpcSessao?.sessaoId,
+      'responder transferência para NPC da sessão',
     );
 
     this.validarPermissaoResponderTransferencia(
@@ -668,27 +725,39 @@ export class CampanhaItensSessaoService {
   private async validarReferenciasEscopoCampanha(
     campanhaId: number,
     dto: Partial<CriarItemSessaoCampanhaDto>,
+    acaoSessao?: string,
   ) {
     if (dto.sessaoId) {
       const sessao = await this.prisma.sessao.findFirst({
         where: { id: dto.sessaoId, campanhaId },
-        select: { id: true },
+        select: { id: true, status: true },
       });
-      if (!sessao)
+      if (!sessao) {
         throw new BadRequestException(
           'Sessão informada não pertence a campanha.',
         );
+      }
+      if (acaoSessao) {
+        assertSessaoMutavel(sessao, campanhaId, dto.sessaoId, acaoSessao);
+      }
     }
 
     if (dto.cenaId) {
       const cena = await this.prisma.cena.findFirst({
         where: { id: dto.cenaId, sessao: { campanhaId } },
-        select: { id: true },
+        select: {
+          id: true,
+          sessaoId: true,
+          sessao: { select: { status: true } },
+        },
       });
       if (!cena)
         throw new BadRequestException(
           'Cena informada não pertence a campanha.',
         );
+      if (acaoSessao) {
+        assertSessaoMutavel(cena.sessao, campanhaId, cena.sessaoId, acaoSessao);
+      }
     }
 
     if (dto.personagemCampanhaId) {
@@ -707,14 +776,39 @@ export class CampanhaItensSessaoService {
   private async validarNpcSessaoEscopoCampanha(
     campanhaId: number,
     npcSessaoId: number,
+    acaoSessao?: string,
   ) {
     const npc = await this.prisma.npcAmeacaSessao.findFirst({
       where: { id: npcSessaoId, sessao: { campanhaId } },
-      select: { id: true },
+      select: {
+        id: true,
+        sessaoId: true,
+        sessao: { select: { status: true } },
+      },
     });
     if (!npc) {
       throw new BadRequestException('NPC de destino não pertence a campanha.');
     }
+    if (acaoSessao) {
+      assertSessaoMutavel(npc.sessao, campanhaId, npc.sessaoId, acaoSessao);
+    }
+    return npc;
+  }
+
+  private async assertSessaoIdMutavel(
+    campanhaId: number,
+    sessaoId: number | null | undefined,
+    acao: string,
+  ): Promise<void> {
+    if (!sessaoId) return;
+    const sessao = await this.prisma.sessao.findFirst({
+      where: { id: sessaoId, campanhaId },
+      select: { id: true, status: true },
+    });
+    if (!sessao) {
+      throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+    }
+    assertSessaoMutavel(sessao, campanhaId, sessaoId, acao);
   }
 
   private async obterPersonagemProprioObrigatorio(

@@ -31,6 +31,15 @@ function criarServico() {
 }
 
 describe('CampanhaItensSessaoService', () => {
+  function criarServicoIntegrado(prisma: Record<string, unknown>) {
+    return new CampanhaItensSessaoService(
+      prisma as never,
+      {
+        garantirAcesso: jest.fn().mockResolvedValue({ ehMestre: true }),
+      } as never,
+    );
+  }
+
   it('forca documentos para categoria 0 e peso 0', () => {
     const servico = criarServico();
 
@@ -252,5 +261,85 @@ describe('CampanhaItensSessaoService', () => {
     expect(resultado.permissoes).toMatchObject({
       podeTransferir: false,
     });
+  });
+
+  it('bloqueia alteração de item associado a sessão encerrada', async () => {
+    const update = jest.fn();
+    const servico = criarServicoIntegrado({
+      itemSessaoCampanha: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 5,
+          campanhaId: 10,
+          sessaoId: 20,
+          cenaId: null,
+        }),
+        update,
+      },
+      sessao: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 20,
+          status: 'ENCERRADA',
+        }),
+      },
+    });
+
+    await expect(
+      servico.revelarItem(10, 42, 5, { descricaoRevelada: true }),
+    ).rejects.toMatchObject({ code: 'SESSAO_ENCERRADA' });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('mantém mutável item exclusivamente da campanha', async () => {
+    const atualizado = { id: 5, descricaoRevelada: true };
+    const update = jest.fn().mockResolvedValue(atualizado);
+    const sessaoFindFirst = jest.fn();
+    const servico = criarServicoIntegrado({
+      itemSessaoCampanha: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 5,
+          campanhaId: 10,
+          sessaoId: null,
+          cenaId: null,
+        }),
+        update,
+      },
+      sessao: { findFirst: sessaoFindFirst },
+    });
+
+    await expect(
+      servico.revelarItem(10, 42, 5, { descricaoRevelada: true }),
+    ).resolves.toEqual(atualizado);
+    expect(sessaoFindFirst).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalled();
+  });
+
+  it('bloqueia instanciar template em sessão encerrada', async () => {
+    const create = jest.fn();
+    const servico = criarServicoIntegrado({
+      templateItemSessaoCampanha: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 8,
+          campanhaId: 10,
+          nome: 'Relíquia',
+          descricao: null,
+          tipo: TipoItemSessaoCampanha.GERAL,
+          categoria: CategoriaEquipamento.CATEGORIA_0,
+          peso: 1,
+          descricaoRevelada: false,
+        }),
+      },
+      itemSessaoCampanha: { create },
+      sessao: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 20,
+          status: 'ENCERRADA',
+        }),
+      },
+    });
+
+    await expect(
+      servico.instanciarTemplate(10, 42, 8, { sessaoId: 20 }),
+    ).rejects.toMatchObject({ code: 'SESSAO_ENCERRADA' });
+    expect(create).not.toHaveBeenCalled();
   });
 });
