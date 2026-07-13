@@ -383,6 +383,12 @@ enum EstadoEntidadeVinculadaPersonagem {
   ARQUIVADO
 }
 
+enum ModoVinculadoTecnica {
+  CRIAVEL
+  PREDEFINIDOS
+  HIBRIDO
+}
+
 // ========================================
 // ✅ USUÁRIOS E CAMPANHAS
 // ========================================
@@ -1189,6 +1195,10 @@ model PersonagemCampanhaEntidadeVinculada {
   tecnicaOrigemId      Int?
   tipoGrauCodigo       String?
   npcAmeacaOrigemId    Int?
+  templateId           Int?
+  precisaRecalculo     Boolean                           @default(false)
+  calculoAutomatico    Json?
+  overrideMestre       Boolean                           @default(false)
   fichaTipo            TipoFichaNpcAmeaca                @default(NPC)
   tipoNpc              TipoNpcAmeaca                     @default(OUTRO)
   tamanho              TamanhoNpcAmeaca                  @default(MEDIO)
@@ -1226,12 +1236,13 @@ model PersonagemCampanhaEntidadeVinculada {
   criadoEm             DateTime                          @default(now()) @map("criado_em")
   atualizadoEm         DateTime                          @updatedAt @map("atualizado_em")
 
-  campanha           Campanha            @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
-  personagemCampanha PersonagemCampanha  @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
-  tecnicaOrigem      TecnicaAmaldicoada? @relation("EntidadeVinculadaTecnicaOrigem", fields: [tecnicaOrigemId], references: [id], onDelete: SetNull)
-  tipoGrau           TipoGrau?           @relation("EntidadeVinculadaTipoGrau", fields: [tipoGrauCodigo], references: [codigo], onDelete: SetNull)
-  npcAmeacaOrigem    NpcAmeaca?          @relation("EntidadeVinculadaNpcOrigem", fields: [npcAmeacaOrigemId], references: [id], onDelete: SetNull)
-  criadoPor          Usuario?            @relation("EntidadeVinculadaCriadaPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  campanha           Campanha                  @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  personagemCampanha PersonagemCampanha        @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  tecnicaOrigem      TecnicaAmaldicoada?       @relation("EntidadeVinculadaTecnicaOrigem", fields: [tecnicaOrigemId], references: [id], onDelete: SetNull)
+  tipoGrau           TipoGrau?                 @relation("EntidadeVinculadaTipoGrau", fields: [tipoGrauCodigo], references: [codigo], onDelete: SetNull)
+  npcAmeacaOrigem    NpcAmeaca?                @relation("EntidadeVinculadaNpcOrigem", fields: [npcAmeacaOrigemId], references: [id], onDelete: SetNull)
+  template           TecnicaVinculadoTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  criadoPor          Usuario?                  @relation("EntidadeVinculadaCriadaPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
   instanciasSessao   NpcAmeacaSessao[]
 
   @@index([campanhaId], map: "idx_ent_vinc_campanha")
@@ -1242,6 +1253,8 @@ model PersonagemCampanhaEntidadeVinculada {
   @@index([tecnicaOrigemId], map: "idx_ent_vinc_tecnica")
   @@index([tipoGrauCodigo], map: "idx_ent_vinc_tipo_grau")
   @@index([npcAmeacaOrigemId], map: "idx_ent_vinc_npc_origem")
+  @@index([templateId], map: "idx_ent_vinc_template")
+  @@index([personagemCampanhaId, precisaRecalculo], map: "idx_ent_vinc_recalculo")
   @@index([criadoPorId], map: "idx_ent_vinc_criado_por")
   @@map("personagem_campanha_entidades_vinculadas")
 }
@@ -2530,6 +2543,8 @@ model TecnicaAmaldicoada {
   personagensBaseAprendeu     PersonagemBaseTecnica[]
   personagensCampanhaAprendeu PersonagemCampanhaTecnica[]
   entidadesVinculadasOrigem   PersonagemCampanhaEntidadeVinculada[] @relation("EntidadeVinculadaTecnicaOrigem")
+  configuracoesVinculados     TecnicaVinculadoConfig[]
+  templatesVinculados         TecnicaVinculadoTemplate[]
 
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
@@ -2541,6 +2556,50 @@ model TecnicaAmaldicoada {
   @@index([usuarioId])
   @@index([tecnicaBaseId])
   @@map("tecnica_amaldicoada")
+}
+
+model TecnicaVinculadoConfig {
+  id            Int                             @id @default(autoincrement())
+  tecnicaId     Int
+  tipoVinculado TipoEntidadeVinculadaPersonagem
+  modo          ModoVinculadoTecnica            @default(CRIAVEL)
+  limitesJson   Json?
+  regrasJson    Json?
+  calculoJson   Json?
+  ativo         Boolean                         @default(true)
+  criadoEm      DateTime                        @default(now()) @map("criado_em")
+  atualizadoEm  DateTime                        @updatedAt @map("atualizado_em")
+
+  tecnica TecnicaAmaldicoada @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
+
+  @@unique([tecnicaId, tipoVinculado])
+  @@index([tipoVinculado, ativo], map: "idx_tec_vinc_config_tipo_ativo")
+  @@map("tecnica_vinculado_config")
+}
+
+model TecnicaVinculadoTemplate {
+  id                 Int                             @id @default(autoincrement())
+  tecnicaId          Int
+  tipoVinculado      TipoEntidadeVinculadaPersonagem
+  codigo             String                          @db.VarChar(100)
+  nome               String                          @db.VarChar(120)
+  descricao          String?                         @db.Text
+  conceito           String?                         @db.Text
+  aparencia          String?                         @db.Text
+  snapshotJson       Json?
+  requisitosJson     Json?
+  bloqueadoPorPadrao Boolean                         @default(true)
+  ordem              Int                             @default(0)
+  ativo              Boolean                         @default(true)
+  criadoEm           DateTime                        @default(now()) @map("criado_em")
+  atualizadoEm       DateTime                        @updatedAt @map("atualizado_em")
+
+  tecnica   TecnicaAmaldicoada                    @relation(fields: [tecnicaId], references: [id], onDelete: Cascade)
+  entidades PersonagemCampanhaEntidadeVinculada[]
+
+  @@unique([tecnicaId, codigo])
+  @@index([tecnicaId, tipoVinculado, ativo], map: "idx_tec_vinc_template_lista")
+  @@map("tecnica_vinculado_template")
 }
 
 // ========================================
