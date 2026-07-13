@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   apiAtualizarEntidadeVinculadaPersonagem,
   apiAtualizarEstadoEntidadeVinculadaPersonagem,
+  apiAssociarTemplateEntidadeVinculada,
   apiCriarEntidadeVinculadaPersonagem,
   apiDuplicarEntidadeVinculadaPersonagem,
+  apiGetMeusNpcsAmeacas,
+  apiListarCapacidadesEntidadesVinculadas,
   apiListarEntidadesVinculadasPersonagem,
+  apiListarTemplatesEntidadesVinculadas,
   apiRecalcularEntidadeVinculadaPersonagem,
   apiRemoverEntidadeVinculadaPersonagem,
   criarErroUsuario,
@@ -14,7 +18,11 @@ import {
 import type {
   EntidadeVinculadaPersonagem,
   EntidadeVinculadaPersonagemPayload,
+  CapacidadesEntidadesVinculadas,
   EstadoEntidadeVinculadaPersonagem,
+  NpcAmeacaResumo,
+  PapelCalculoEntidadeVinculada,
+  TemplateEntidadeVinculada,
   TipoEntidadeVinculadaPersonagem,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
@@ -25,7 +33,11 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
-import { validarPontosVidaEntidadeVinculada } from '@/lib/campanha/entidades-vinculadas';
+import {
+  formatarUsoCapacidadeEntidadeVinculada,
+  resolverFluxoCriacaoEntidadeVinculada,
+  validarPontosVidaEntidadeVinculada,
+} from '@/lib/campanha/entidades-vinculadas';
 
 type Props = {
   campanhaId: number;
@@ -41,6 +53,10 @@ type FormState = {
   conceito: string;
   aparencia: string;
   npcAmeacaOrigemId: string;
+  tecnicaOrigemId: string;
+  papel: PapelCalculoEntidadeVinculada;
+  pontaria: string;
+  overrideMestre: boolean;
   fichaTipo: TipoFichaNpcAmeaca;
   tipoNpc: TipoNpcAmeaca;
   tamanho: string;
@@ -111,6 +127,15 @@ const TAMANHO_OPTIONS = [
   { value: 'COLOSSAL', label: 'Colossal' },
 ];
 
+const PAPEL_OPTIONS: Array<{
+  value: PapelCalculoEntidadeVinculada;
+  label: string;
+}> = [
+  { value: 'AGIL', label: 'Agil' },
+  { value: 'FLEXIVEL', label: 'Flexivel' },
+  { value: 'TANQUE', label: 'Tanque' },
+];
+
 const CAMPOS_NUMERICOS: Array<{ label: string; key: keyof FormState }> = [
   { label: 'PV Max', key: 'pontosVidaMax' },
   { label: 'PV Atual', key: 'pontosVidaAtual' },
@@ -131,7 +156,15 @@ const CAMPOS_NUMERICOS: Array<{ label: string; key: keyof FormState }> = [
   { label: 'Vontade', key: 'vontade' },
   { label: 'Luta', key: 'luta' },
   { label: 'Jujutsu', key: 'jujutsu' },
+  { label: 'Pontaria', key: 'pontaria' },
 ];
+
+const CAMPOS_DERIVADOS = new Set<keyof FormState>([
+  'pontosVidaMax',
+  'pontosVidaAtual',
+  'defesa',
+  'rd',
+]);
 
 function criarFormInicial(): FormState {
   return {
@@ -142,6 +175,10 @@ function criarFormInicial(): FormState {
     conceito: '',
     aparencia: '',
     npcAmeacaOrigemId: '',
+    tecnicaOrigemId: '',
+    papel: 'FLEXIVEL',
+    pontaria: '0',
+    overrideMestre: false,
     fichaTipo: 'NPC',
     tipoNpc: 'OUTRO',
     tamanho: 'MEDIO',
@@ -180,6 +217,12 @@ function preencherForm(entidade: EntidadeVinculadaPersonagem): FormState {
     npcAmeacaOrigemId: entidade.npcAmeacaOrigemId
       ? String(entidade.npcAmeacaOrigemId)
       : '',
+    tecnicaOrigemId: entidade.tecnicaOrigemId
+      ? String(entidade.tecnicaOrigemId)
+      : '',
+    papel: entidade.calculoAutomatico?.papel ?? 'FLEXIVEL',
+    pontaria: String(entidade.pontaria ?? 0),
+    overrideMestre: entidade.overrideMestre,
     fichaTipo: entidade.fichaTipo,
     tipoNpc: entidade.tipoNpc,
     tamanho: entidade.tamanho,
@@ -226,6 +269,10 @@ function montarPayload(form: FormState): EntidadeVinculadaPersonagemPayload {
     conceito: form.conceito.trim() || null,
     aparencia: form.aparencia.trim() || null,
     npcAmeacaOrigemId: inteiroOpcional(form.npcAmeacaOrigemId),
+    tecnicaOrigemId: inteiroOpcional(form.tecnicaOrigemId),
+    papel: form.papel,
+    pontaria: Math.max(0, inteiro(form.pontaria, 0)),
+    overrideMestre: form.overrideMestre,
     fichaTipo: form.fichaTipo,
     tipoNpc: form.tipoNpc,
     tamanho: form.tamanho,
@@ -260,12 +307,20 @@ function rotuloEstado(estado: EstadoEntidadeVinculadaPersonagem): string {
   return ESTADOS.find((item) => item.value === estado)?.label ?? estado;
 }
 
+function totalValores(registro: Record<string, number> | undefined): number {
+  return Object.values(registro ?? {}).reduce((total, valor) => total + valor, 0);
+}
+
 export function CharacterLinkedEntitiesPanel({
   campanhaId,
   personagemCampanhaId,
   onAtualizado,
 }: Props) {
   const [entidades, setEntidades] = useState<EntidadeVinculadaPersonagem[]>([]);
+  const [capacidades, setCapacidades] =
+    useState<CapacidadesEntidadesVinculadas | null>(null);
+  const [templates, setTemplates] = useState<TemplateEntidadeVinculada[]>([]);
+  const [maldicoes, setMaldicoes] = useState<NpcAmeacaResumo[]>([]);
   const [form, setForm] = useState<FormState>(() => criarFormInicial());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -276,11 +331,26 @@ export function CharacterLinkedEntitiesPanel({
     setLoading(true);
     setErro(null);
     try {
-      const lista = await apiListarEntidadesVinculadasPersonagem(
-        campanhaId,
-        personagemCampanhaId,
-      );
+      const [lista, novasCapacidades, novosTemplates, catalogoMaldicoes] =
+        await Promise.all([
+          apiListarEntidadesVinculadasPersonagem(
+            campanhaId,
+            personagemCampanhaId,
+          ),
+          apiListarCapacidadesEntidadesVinculadas(
+            campanhaId,
+            personagemCampanhaId,
+          ),
+          apiListarTemplatesEntidadesVinculadas(
+            campanhaId,
+            personagemCampanhaId,
+          ),
+          apiGetMeusNpcsAmeacas({ tipo: 'MALDICAO', limit: 100 }),
+        ]);
       setEntidades(lista);
+      setCapacidades(novasCapacidades);
+      setTemplates(novosTemplates);
+      setMaldicoes(catalogoMaldicoes.items);
     } catch (error) {
       setErro(criarErroUsuario(error));
     } finally {
@@ -303,18 +373,97 @@ export function CharacterLinkedEntitiesPanel({
     [entidades],
   );
 
+  const capacidadesPorTipo = useMemo(
+    () =>
+      new Map(
+        (capacidades?.tipos ?? []).map((capacidade) => [
+          capacidade.tipo,
+          capacidade,
+        ]),
+      ),
+    [capacidades],
+  );
+
+  const capacidadeSelecionada = capacidadesPorTipo.get(form.tipo) ?? null;
+  const fluxoCriacaoSelecionado = resolverFluxoCriacaoEntidadeVinculada(
+    capacidadeSelecionada,
+  );
+  const configuracoesCriaveis =
+    capacidadeSelecionada?.configuracoes.filter(
+      (config) => config.permiteCriarNovos,
+    ) ?? [];
+  const configuracaoSelecionada =
+    configuracoesCriaveis.find(
+      (config) => String(config.tecnicaId) === form.tecnicaOrigemId,
+    ) ?? configuracoesCriaveis[0] ?? null;
+  const entidadeEmEdicao = form.id
+    ? entidades.find((entidade) => entidade.id === form.id) ?? null
+    : null;
+  const fichaAutomatica =
+    form.tipo !== 'MALDICAO_CONTROLADA' &&
+    !form.overrideMestre &&
+    (Boolean(configuracaoSelecionada) ||
+      Boolean(entidadeEmEdicao?.calculoAutomatico));
+
   const atualizarCampo = <K extends keyof FormState>(
     campo: K,
     valor: FormState[K],
   ) => setForm((atual) => ({ ...atual, [campo]: valor }));
 
+  const iniciarNovo = (tipo: TipoEntidadeVinculadaPersonagem = 'SHIKIGAMI') => {
+    const capacidade = capacidadesPorTipo.get(tipo);
+    const config = capacidade?.configuracoes.find(
+      (item) => item.permiteCriarNovos,
+    );
+    setForm({
+      ...criarFormInicial(),
+      tipo,
+      tecnicaOrigemId: config ? String(config.tecnicaId) : '',
+    });
+  };
+
+  const trocarTipo = (tipo: TipoEntidadeVinculadaPersonagem) => {
+    const capacidade = capacidadesPorTipo.get(tipo);
+    const config = capacidade?.configuracoes.find(
+      (item) => item.permiteCriarNovos,
+    );
+    setForm((atual) => ({
+      ...atual,
+      tipo,
+      tecnicaOrigemId: config ? String(config.tecnicaId) : '',
+      npcAmeacaOrigemId:
+        tipo === 'MALDICAO_CONTROLADA' ? atual.npcAmeacaOrigemId : '',
+      vagasOcupadas:
+        tipo === 'CORPO_AMALDICOADO' ? atual.vagasOcupadas : '1',
+    }));
+  };
+
   const salvar = async () => {
     if (!personagemCampanhaId || saving) return;
-    const payload = montarPayload(form);
+    const formResolvido = {
+      ...form,
+      tecnicaOrigemId:
+        form.tecnicaOrigemId ||
+        (configuracaoSelecionada
+          ? String(configuracaoSelecionada.tecnicaId)
+          : ''),
+    };
+    const payload = montarPayload(formResolvido);
     if (!payload.nome) {
       setErro({
         message: 'Informe o nome do vinculado.',
         code: 'ENTIDADE_NOME_OBRIGATORIO',
+      });
+      return;
+    }
+    if (!form.id && !payload.overrideMestre && !configuracaoSelecionada) {
+      setErro({
+        message:
+          fluxoCriacaoSelecionado.permiteTemplates &&
+          !fluxoCriacaoSelecionado.permiteCriacaoManual
+            ? 'Esta tecnica usa vinculados predefinidos. Associe um template disponivel.'
+            : 'O personagem nao possui tecnica compativel para esta criacao.',
+        code: 'ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA',
       });
       return;
     }
@@ -388,13 +537,102 @@ export function CharacterLinkedEntitiesPanel({
           type="button"
           size="xs"
           variant="ghost"
-          onClick={() => setForm(criarFormInicial())}
+          onClick={() => iniciarNovo()}
         >
           Novo
         </Button>
       </div>
 
       {erro ? <ErrorAlert message={erro} /> : null}
+
+      {capacidades ? (
+        <div className="grid gap-2 md:grid-cols-3">
+          {GRUPOS.map((grupo) => {
+            const capacidade = capacidadesPorTipo.get(grupo.tipo);
+            if (!capacidade) return null;
+            return (
+              <div
+                key={`capacidade-${grupo.tipo}`}
+                className="rounded border border-app-border bg-app-bg/30 p-3"
+              >
+                <p className="text-xs font-semibold text-app-fg">
+                  {grupo.titulo}
+                </p>
+                {capacidade.habilitado ? (
+                  <div className="mt-1 space-y-1 text-xs text-app-muted">
+                    <p>
+                      Cadastrados:{' '}
+                      {formatarUsoCapacidadeEntidadeVinculada(
+                        capacidade,
+                        'cadastro',
+                      )}
+                    </p>
+                    <p>
+                      Ativos:{' '}
+                      {formatarUsoCapacidadeEntidadeVinculada(
+                        capacidade,
+                        'ativo',
+                      )}
+                    </p>
+                    <p>
+                      {capacidade.configuracoes
+                        .map((config) => config.tecnicaNome)
+                        .join(', ')}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs text-app-muted">
+                    Bloqueado: tecnica compativel nao encontrada.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {templates.length > 0 ? (
+        <div className="rounded border border-app-border p-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-app-muted">
+            Vinculados predefinidos
+          </h4>
+          <ul className="mt-2 grid gap-2 md:grid-cols-2">
+            {templates.map((template) => (
+              <li
+                key={template.id}
+                className="flex items-center justify-between gap-3 rounded border border-app-border/70 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-app-fg">
+                    {template.nome}
+                  </p>
+                  <p className="text-xs text-app-muted">
+                    {template.tecnica.nome}
+                    {template.conceito ? ` - ${template.conceito}` : ''}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  disabled={saving || template.associado}
+                  onClick={() =>
+                    executarAcao(() =>
+                      apiAssociarTemplateEntidadeVinculada(
+                        campanhaId,
+                        personagemCampanhaId,
+                        template.id,
+                      ),
+                    )
+                  }
+                >
+                  {template.associado ? 'Associado' : 'Associar'}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-3">
         {GRUPOS.map((grupo) => {
@@ -430,6 +668,36 @@ export function CharacterLinkedEntitiesPanel({
                           {entidade.conceito ? (
                             <p className="mt-1 text-xs text-app-muted">
                               {entidade.conceito}
+                            </p>
+                          ) : null}
+                          {entidade.tecnicaOrigem ? (
+                            <p className="mt-1 text-xs text-app-muted">
+                              Origem: {entidade.tecnicaOrigem.nome}
+                              {entidade.template
+                                ? ` - ${entidade.template.nome}`
+                                : ''}
+                            </p>
+                          ) : null}
+                          {entidade.precisaRecalculo ? (
+                            <p className="mt-1 text-xs font-semibold text-app-warning">
+                              Recalculo pendente
+                            </p>
+                          ) : null}
+                          {entidade.calculoAutomatico ? (
+                            <p className="mt-1 text-xs text-app-muted">
+                              Pendencias{' '}
+                              {totalValores(
+                                entidade.calculoAutomatico.pendencias,
+                              )}{' '}
+                              - Excedentes{' '}
+                              {totalValores(
+                                entidade.calculoAutomatico.excedentes,
+                              )}
+                            </p>
+                          ) : null}
+                          {entidade.overrideMestre ? (
+                            <p className="mt-1 text-xs text-app-warning">
+                              Limites sobrescritos pelo mestre
                             </p>
                           ) : null}
                         </div>
@@ -536,8 +804,7 @@ export function CharacterLinkedEntitiesPanel({
             value={form.tipo}
             options={TIPOS}
             onChange={(event) =>
-              atualizarCampo(
-                'tipo',
+              trocarTipo(
                 event.target.value as TipoEntidadeVinculadaPersonagem,
               )
             }
@@ -547,15 +814,75 @@ export function CharacterLinkedEntitiesPanel({
             value={form.nome}
             onChange={(event) => atualizarCampo('nome', event.target.value)}
           />
-          <Input
-            label="Ameaca origem"
-            helperText="ID opcional para maldicao controlada."
-            value={form.npcAmeacaOrigemId}
-            onChange={(event) =>
-              atualizarCampo('npcAmeacaOrigemId', event.target.value)
-            }
-          />
+          {form.tipo === 'MALDICAO_CONTROLADA' ? (
+            <Select
+              label="Maldicao de origem"
+              value={form.npcAmeacaOrigemId}
+              onChange={(event) =>
+                atualizarCampo('npcAmeacaOrigemId', event.target.value)
+              }
+            >
+              <option value="">Selecione uma maldicao</option>
+              {maldicoes.map((maldicao) => (
+                <option key={maldicao.id} value={maldicao.id}>
+                  {maldicao.nome}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Select
+              label="Tecnica de origem"
+              value={
+                form.tecnicaOrigemId ||
+                (configuracaoSelecionada
+                  ? String(configuracaoSelecionada.tecnicaId)
+                  : '')
+              }
+              onChange={(event) =>
+                atualizarCampo('tecnicaOrigemId', event.target.value)
+              }
+            >
+              <option value="">Sem tecnica compativel</option>
+              {configuracoesCriaveis.map((config) => (
+                <option key={config.id} value={config.tecnicaId}>
+                  {config.tecnicaNome}
+                </option>
+              ))}
+            </Select>
+          )}
         </div>
+        {!form.id &&
+        fluxoCriacaoSelecionado.permiteTemplates &&
+        !fluxoCriacaoSelecionado.permiteCriacaoManual ? (
+          <p className="rounded border border-app-warning/40 bg-app-warning/10 px-3 py-2 text-xs text-app-warning">
+            Esta tecnica usa vinculados predefinidos. Escolha uma opcao na
+            lista acima para associar.
+          </p>
+        ) : null}
+        {configuracaoSelecionada?.previewCalculo ? (
+          <div className="grid gap-2 rounded border border-app-border bg-app-bg/30 p-3 text-xs text-app-muted sm:grid-cols-3">
+            <p>
+              Atributos:{' '}
+              {configuracaoSelecionada.previewCalculo.pools.atributosMax}{' '}
+              pontos, teto{' '}
+              {configuracaoSelecionada.previewCalculo.pools.tetoAtributo}
+            </p>
+            {form.tipo === 'SHIKIGAMI' ? (
+              <p>
+                Ataques:{' '}
+                {configuracaoSelecionada.previewCalculo.pools.ataquesMax}{' '}
+                pontos, teto{' '}
+                {configuracaoSelecionada.previewCalculo.pools.tetoAtaque}
+              </p>
+            ) : null}
+            <p>
+              Resistencias:{' '}
+              {configuracaoSelecionada.previewCalculo.pools.resistenciasMax}{' '}
+              pontos, teto{' '}
+              {configuracaoSelecionada.previewCalculo.pools.tetoResistencia}
+            </p>
+          </div>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           <Textarea
             label="Descricao"
@@ -574,6 +901,19 @@ export function CharacterLinkedEntitiesPanel({
           />
         </div>
         <div className="grid gap-3 md:grid-cols-4">
+          {form.tipo !== 'MALDICAO_CONTROLADA' ? (
+            <Select
+              label="Papel"
+              value={form.papel}
+              options={PAPEL_OPTIONS}
+              onChange={(event) =>
+                atualizarCampo(
+                  'papel',
+                  event.target.value as PapelCalculoEntidadeVinculada,
+                )
+              }
+            />
+          ) : null}
           <Select
             label="Ficha"
             value={form.fichaTipo}
@@ -608,10 +948,23 @@ export function CharacterLinkedEntitiesPanel({
               key={key}
               label={label}
               value={form[key] as string}
+              disabled={fichaAutomatica && CAMPOS_DERIVADOS.has(key)}
               onChange={(event) => atualizarCampo(key, event.target.value)}
             />
           ))}
         </div>
+        {capacidades?.permissoes.podeIgnorarLimites ? (
+          <label className="flex items-center gap-2 text-xs text-app-muted">
+            <input
+              type="checkbox"
+              checked={form.overrideMestre}
+              onChange={(event) =>
+                atualizarCampo('overrideMestre', event.target.checked)
+              }
+            />
+            Ignorar tecnica, limites e calculo automatico como mestre
+          </label>
+        ) : null}
         <div className="flex flex-wrap justify-end gap-2">
           {form.id ? (
             <Button
@@ -623,7 +976,15 @@ export function CharacterLinkedEntitiesPanel({
               Cancelar edicao
             </Button>
           ) : null}
-          <Button type="button" size="sm" disabled={saving} onClick={salvar}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={
+              saving ||
+              (!form.id && !form.overrideMestre && !configuracaoSelecionada)
+            }
+            onClick={salvar}
+          >
             {saving
               ? 'Salvando...'
               : form.id
