@@ -34,6 +34,7 @@ import { seedEquipamentosModificacoesAplicaveis } from './seeds/relacoes/equipam
 // =======================
 import { seedTecnicasInatas } from './seeds/tecnicas/tecnicas-inatas';
 import { seedTecnicasNaoInatas } from './seeds/tecnicas/tecnicas-nao-inatas';
+import { seedConfiguracoesVinculadosTecnicas } from './seeds/tecnicas/vinculados-tecnicas';
 
 // =======================
 // Habilidades
@@ -118,6 +119,7 @@ async function main() {
   console.log('🔥 [3/8] Cadastrando técnicas amaldiçoadas (inatas + não inatas)...');
   await seedTecnicasInatas(prisma);
   await seedTecnicasNaoInatas(prisma);
+  await seedConfiguracoesVinculadosTecnicas(prisma);
   console.log('✅ Técnicas amaldiçoadas concluídas!\n');
 
   // ============================================================

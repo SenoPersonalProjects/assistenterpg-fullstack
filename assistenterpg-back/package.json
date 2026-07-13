@@ -25,6 +25,7 @@
     "seed:modificacoes-aplicaveis": "ts-node prisma/seeds/relacoes/equipamentos-modificacoes-aplicaveis.ts",
     "seed:tecnicas:inatas": "ts-node prisma/seeds/tecnicas/seed-tecnicas-inatas.ts",
     "seed:tecnicas:nao-inatas": "ts-node prisma/seeds/tecnicas/seed-tecnicas-nao-inatas.ts",
+    "seed:tecnicas:vinculados": "ts-node prisma/seeds/tecnicas/seed-vinculados-tecnicas.ts",
     "seed:correcoes-texto": "ts-node prisma/seeds/correcoes-texto.ts",
     "seed:equipamentos": "ts-node prisma/seeds/catalogos/seed-equipamentos.ts",
     "seed:sobrevivendo": "ts-node prisma/seeds/suplementos/seed-sobrevivendo-ao-jujutsu.ts",

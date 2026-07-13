@@ -402,6 +402,15 @@ function Get-SeedCommand {
         DestructiveRelations = $false
       }
     }
+    'tecnicas-vinculados' {
+      return [pscustomobject]@{
+        Name = 'tecnicas-vinculados'
+        Tool = 'npm'
+        Arguments = @('run', 'seed:tecnicas:vinculados')
+        ValidatesCompendio = $false
+        DestructiveRelations = $false
+      }
+    }
     'correcoes-texto' {
       return [pscustomobject]@{
         Name = 'correcoes-texto'
@@ -452,7 +461,7 @@ function Get-SeedCommand {
       }
     }
     default {
-      throw "Seed não permitido: $Seed. Permitidos: compendio, sobrevivendo, equipamentos, técnicas-inatas, tecnicas-nao-inatas, correcoes-texto, modificacoes-aplicaveis, full."
+      throw "Seed não permitido: $Seed. Permitidos: compendio, sobrevivendo, equipamentos, técnicas-inatas, tecnicas-nao-inatas, tecnicas-vinculados, correcoes-texto, modificacoes-aplicaveis, full."
     }
   }
 }
