@@ -1200,6 +1200,7 @@ describe('CampanhaService', () => {
     });
 
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 5 }]),
       personagemCampanhaModificador: {
         create: jest.fn().mockResolvedValue({
           id: 80,
@@ -1211,6 +1212,10 @@ describe('CampanhaService', () => {
         }),
       },
       personagemCampanha: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          eaMax: 100,
+          eaAtual: 95,
+        }),
         update: jest.fn().mockResolvedValue({
           id: 5,
           campanhaId: 7,
@@ -1310,6 +1315,7 @@ describe('CampanhaService', () => {
     prisma.cena.findFirst.mockResolvedValue({ id: 44 });
 
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 5 }]),
       personagemCampanhaModificador: {
         create: jest.fn().mockResolvedValue({
           id: 81,
@@ -1323,6 +1329,10 @@ describe('CampanhaService', () => {
         }),
       },
       personagemCampanha: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          eaMax: 100,
+          eaAtual: 95,
+        }),
         update: jest.fn().mockResolvedValue({
           id: 5,
           campanhaId: 7,
@@ -1431,6 +1441,10 @@ describe('CampanhaService', () => {
     });
 
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 5 }]),
+      pericia: {
+        findUnique: jest.fn().mockResolvedValue({ codigo: 'OCULTISMO' }),
+      },
       personagemCampanhaModificador: {
         create: jest.fn().mockResolvedValue({
           id: 82,
@@ -1551,6 +1565,12 @@ describe('CampanhaService', () => {
     });
 
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 5 }]),
+      tipoGrau: {
+        findUnique: jest.fn().mockResolvedValue({
+          codigo: 'TECNICA_REVERSA',
+        }),
+      },
       personagemCampanhaModificador: {
         create: jest.fn().mockResolvedValue({
           id: 83,

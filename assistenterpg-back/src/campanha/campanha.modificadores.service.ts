@@ -27,6 +27,10 @@ import {
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
 } from './engine/campanha-modificadores-efetivos';
+import {
+  bloquearPersonagemCampanhaTx,
+  executarComRetryConcorrencia,
+} from './campanha-concorrencia';
 
 @Injectable()
 export class CampanhaModificadoresService {
@@ -127,108 +131,123 @@ export class CampanhaModificadoresService {
     usuarioId: number,
     dto: AplicarModificadorPersonagemCampanhaDto,
   ) {
-    const contextoPersonagem =
-      await this.accessService.obterPersonagemCampanhaComPermissao(
-        campanhaId,
-        personagemCampanhaId,
-        usuarioId,
-        true,
-      );
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
+    );
     const contextoSessaoCena =
       await this.contextoService.validarContextoSessaoCena(
         campanhaId,
         dto.sessaoId,
         dto.cenaId,
       );
-    const alvo = await this.validarAlvoModificador(
-      personagemCampanhaId,
-      dto,
-      contextoPersonagem.personagem as unknown as Record<string, unknown>,
-    );
-
-    const resultado = await this.prisma.$transaction(async (tx) => {
-      const modificador = await tx.personagemCampanhaModificador.create({
-        data: {
-          campanhaId,
-          personagemCampanhaId,
-          sessaoId: contextoSessaoCena.sessaoId,
-          cenaId: contextoSessaoCena.cenaId,
-          campo: dto.campo,
-          periciaCodigo: alvo.periciaCodigo,
-          tipoGrauCodigo: alvo.tipoGrauCodigo,
-          valor: dto.valor,
-          nome: dto.nome.trim(),
-          descricao: dto.descricao?.trim() || null,
-          criadoPorId: usuarioId,
-        },
-        include: {
-          pericia: {
-            select: {
-              codigo: true,
-              nome: true,
-            },
-          },
-          tipoGrau: {
-            select: {
-              codigo: true,
-              nome: true,
-            },
-          },
-        },
-      });
-
-      let personagem: PersonagemCampanhaDetalhePayload;
-      if (isCampoModificadorNumerico(dto.campo)) {
-        if (!alvo.dataAtualizacao) {
-          throw new CampanhaModificadorInvalidoException(
-            'Modificador numerico sem dados de atualizacao.',
-            { campo: dto.campo },
+    this.validarEstruturaAlvoModificador(dto);
+    const resultado = await executarComRetryConcorrencia(
+      'aplicar modificador narrativo',
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          await bloquearPersonagemCampanhaTx(
+            tx,
+            campanhaId,
+            personagemCampanhaId,
           );
-        }
-        personagem = await tx.personagemCampanha.update({
-          where: { id: personagemCampanhaId },
-          data: alvo.dataAtualizacao,
-          select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
-        });
-      } else {
-        personagem = await tx.personagemCampanha.findUniqueOrThrow({
-          where: { id: personagemCampanhaId },
-          select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
-        });
-      }
+          const personagemAtual = await tx.personagemCampanha.findUniqueOrThrow(
+            {
+              where: { id: personagemCampanhaId },
+              select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+            },
+          );
+          const alvo = await this.validarAlvoModificador(
+            personagemCampanhaId,
+            dto,
+            personagemAtual as unknown as Record<string, unknown>,
+            tx,
+          );
+          const modificador = await tx.personagemCampanhaModificador.create({
+            data: {
+              campanhaId,
+              personagemCampanhaId,
+              sessaoId: contextoSessaoCena.sessaoId,
+              cenaId: contextoSessaoCena.cenaId,
+              campo: dto.campo,
+              periciaCodigo: alvo.periciaCodigo,
+              tipoGrauCodigo: alvo.tipoGrauCodigo,
+              valor: dto.valor,
+              nome: dto.nome.trim(),
+              descricao: dto.descricao?.trim() || null,
+              criadoPorId: usuarioId,
+            },
+            include: {
+              pericia: {
+                select: {
+                  codigo: true,
+                  nome: true,
+                },
+              },
+              tipoGrau: {
+                select: {
+                  codigo: true,
+                  nome: true,
+                },
+              },
+            },
+          });
 
-      await tx.personagemCampanhaHistorico.create({
-        data: {
-          personagemCampanhaId,
-          campanhaId,
-          criadoPorId: usuarioId,
-          tipo: 'MODIFICADOR_APLICADO',
-          descricao: `Modificador aplicado em ${dto.campo}`,
-          dados: {
-            modificadorId: modificador.id,
-            campo: dto.campo,
-            valor: dto.valor,
-            nome: dto.nome,
-            periciaCodigo: alvo.periciaCodigo,
-            tipoGrauCodigo: alvo.tipoGrauCodigo,
-            sessaoId: contextoSessaoCena.sessaoId,
-            cenaId: contextoSessaoCena.cenaId,
-            valorAntes: alvo.valorAntes,
-            valorDepois: alvo.valorDepois,
-          },
-        },
-      });
+          let personagem: PersonagemCampanhaDetalhePayload;
+          if (isCampoModificadorNumerico(dto.campo)) {
+            if (!alvo.dataAtualizacao) {
+              throw new CampanhaModificadorInvalidoException(
+                'Modificador numerico sem dados de atualizacao.',
+                { campo: dto.campo },
+              );
+            }
+            personagem = await tx.personagemCampanha.update({
+              where: { id: personagemCampanhaId },
+              data: alvo.dataAtualizacao,
+              select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+            });
+          } else {
+            personagem = await tx.personagemCampanha.findUniqueOrThrow({
+              where: { id: personagemCampanhaId },
+              select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+            });
+          }
 
-      await tx.personagemCampanhaEntidadeVinculada.updateMany({
-        where: {
-          personagemCampanhaId,
-          calculoAutomatico: { not: Prisma.DbNull },
-        },
-        data: { precisaRecalculo: true },
-      });
+          await tx.personagemCampanhaHistorico.create({
+            data: {
+              personagemCampanhaId,
+              campanhaId,
+              criadoPorId: usuarioId,
+              tipo: 'MODIFICADOR_APLICADO',
+              descricao: `Modificador aplicado em ${dto.campo}`,
+              dados: {
+                modificadorId: modificador.id,
+                campo: dto.campo,
+                valor: dto.valor,
+                nome: dto.nome,
+                periciaCodigo: alvo.periciaCodigo,
+                tipoGrauCodigo: alvo.tipoGrauCodigo,
+                sessaoId: contextoSessaoCena.sessaoId,
+                cenaId: contextoSessaoCena.cenaId,
+                valorAntes: alvo.valorAntes,
+                valorDepois: alvo.valorDepois,
+              },
+            },
+          });
 
-      return { modificador, personagem };
-    });
+          await tx.personagemCampanhaEntidadeVinculada.updateMany({
+            where: {
+              personagemCampanhaId,
+              calculoAutomatico: { not: Prisma.DbNull },
+            },
+            data: { precisaRecalculo: true },
+          });
+
+          return { modificador, personagem };
+        }),
+    );
 
     return {
       modificador: resultado.modificador,
@@ -245,126 +264,146 @@ export class CampanhaModificadoresService {
     usuarioId: number,
     motivo?: string,
   ) {
-    const contexto =
-      await this.accessService.obterPersonagemCampanhaComPermissao(
-        campanhaId,
-        personagemCampanhaId,
-        usuarioId,
-        true,
-      );
-
-    const modificador =
-      await this.prisma.personagemCampanhaModificador.findFirst({
-        where: {
-          id: modificadorId,
-          campanhaId,
-          personagemCampanhaId,
-        },
-      });
-
-    if (!modificador) {
-      throw new CampanhaModificadorNaoEncontradoException(
-        modificadorId,
-        personagemCampanhaId,
-      );
-    }
-
-    if (!modificador.ativo) {
-      throw new CampanhaModificadorJaDesfeitoException(
-        modificadorId,
-        personagemCampanhaId,
-      );
-    }
-
-    const desfazer = await this.calcularDesfazerModificador(
-      contexto.personagem,
-      modificador,
+    await this.accessService.obterPersonagemCampanhaComPermissao(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      true,
     );
 
-    const resultado = await this.prisma.$transaction(async (tx) => {
-      const modificadorAtualizado =
-        await tx.personagemCampanhaModificador.update({
-          where: { id: modificadorId },
-          data: {
-            ativo: false,
-            desfeitoEm: new Date(),
-            desfeitoPorId: usuarioId,
-            motivoDesfazer: motivo?.trim() || null,
-          },
-          include: {
-            criadoPor: {
-              select: {
-                id: true,
-                apelido: true,
+    const resultado = await executarComRetryConcorrencia(
+      'desfazer modificador narrativo',
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          await bloquearPersonagemCampanhaTx(
+            tx,
+            campanhaId,
+            personagemCampanhaId,
+          );
+          const alteracao = await tx.personagemCampanhaModificador.updateMany({
+            where: {
+              id: modificadorId,
+              campanhaId,
+              personagemCampanhaId,
+              ativo: true,
+            },
+            data: {
+              ativo: false,
+              desfeitoEm: new Date(),
+              desfeitoPorId: usuarioId,
+              motivoDesfazer: motivo?.trim() || null,
+            },
+          });
+          if (alteracao.count === 0) {
+            const existente = await tx.personagemCampanhaModificador.findFirst({
+              where: { id: modificadorId, campanhaId, personagemCampanhaId },
+              select: { ativo: true },
+            });
+            if (!existente) {
+              throw new CampanhaModificadorNaoEncontradoException(
+                modificadorId,
+                personagemCampanhaId,
+              );
+            }
+            throw new CampanhaModificadorJaDesfeitoException(
+              modificadorId,
+              personagemCampanhaId,
+            );
+          }
+
+          const modificador =
+            await tx.personagemCampanhaModificador.findUniqueOrThrow({
+              where: { id: modificadorId },
+            });
+          const personagemAtual = await tx.personagemCampanha.findUniqueOrThrow(
+            {
+              where: { id: personagemCampanhaId },
+              select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+            },
+          );
+          const desfazer = await this.calcularDesfazerModificador(
+            personagemAtual as unknown as Record<string, unknown>,
+            modificador,
+            tx,
+          );
+          const modificadorAtualizado =
+            await tx.personagemCampanhaModificador.findUniqueOrThrow({
+              where: { id: modificadorId },
+              include: {
+                criadoPor: {
+                  select: {
+                    id: true,
+                    apelido: true,
+                  },
+                },
+                desfeitoPor: {
+                  select: {
+                    id: true,
+                    apelido: true,
+                  },
+                },
+                pericia: {
+                  select: {
+                    codigo: true,
+                    nome: true,
+                  },
+                },
+                tipoGrau: {
+                  select: {
+                    codigo: true,
+                    nome: true,
+                  },
+                },
+              },
+            });
+
+          let personagem: PersonagemCampanhaDetalhePayload;
+          if (desfazer.dataAtualizacao) {
+            personagem = await tx.personagemCampanha.update({
+              where: { id: personagemCampanhaId },
+              data: desfazer.dataAtualizacao,
+              select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+            });
+          } else {
+            personagem = await tx.personagemCampanha.findUniqueOrThrow({
+              where: { id: personagemCampanhaId },
+              select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
+            });
+          }
+
+          await tx.personagemCampanhaHistorico.create({
+            data: {
+              personagemCampanhaId,
+              campanhaId,
+              criadoPorId: usuarioId,
+              tipo: 'MODIFICADOR_DESFEITO',
+              descricao: `Modificador desfeito em ${modificador.campo}`,
+              dados: {
+                modificadorId: modificador.id,
+                campo: modificador.campo,
+                valor: modificador.valor,
+                periciaCodigo: modificador.periciaCodigo,
+                tipoGrauCodigo: modificador.tipoGrauCodigo,
+                sessaoId: modificador.sessaoId,
+                cenaId: modificador.cenaId,
+                valorAntes: desfazer.valorAntes,
+                valorDepois: desfazer.valorDepois,
+                motivo: motivo?.trim() || null,
               },
             },
-            desfeitoPor: {
-              select: {
-                id: true,
-                apelido: true,
-              },
+          });
+
+          await tx.personagemCampanhaEntidadeVinculada.updateMany({
+            where: {
+              personagemCampanhaId,
+              calculoAutomatico: { not: Prisma.DbNull },
             },
-            pericia: {
-              select: {
-                codigo: true,
-                nome: true,
-              },
-            },
-            tipoGrau: {
-              select: {
-                codigo: true,
-                nome: true,
-              },
-            },
-          },
-        });
+            data: { precisaRecalculo: true },
+          });
 
-      let personagem: PersonagemCampanhaDetalhePayload;
-      if (desfazer.dataAtualizacao) {
-        personagem = await tx.personagemCampanha.update({
-          where: { id: personagemCampanhaId },
-          data: desfazer.dataAtualizacao,
-          select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
-        });
-      } else {
-        personagem = await tx.personagemCampanha.findUniqueOrThrow({
-          where: { id: personagemCampanhaId },
-          select: PERSONAGEM_CAMPANHA_DETALHE_SELECT,
-        });
-      }
-
-      await tx.personagemCampanhaHistorico.create({
-        data: {
-          personagemCampanhaId,
-          campanhaId,
-          criadoPorId: usuarioId,
-          tipo: 'MODIFICADOR_DESFEITO',
-          descricao: `Modificador desfeito em ${modificador.campo}`,
-          dados: {
-            modificadorId: modificador.id,
-            campo: modificador.campo,
-            valor: modificador.valor,
-            periciaCodigo: modificador.periciaCodigo,
-            tipoGrauCodigo: modificador.tipoGrauCodigo,
-            sessaoId: modificador.sessaoId,
-            cenaId: modificador.cenaId,
-            valorAntes: desfazer.valorAntes,
-            valorDepois: desfazer.valorDepois,
-            motivo: motivo?.trim() || null,
-          },
-        },
-      });
-
-      await tx.personagemCampanhaEntidadeVinculada.updateMany({
-        where: {
-          personagemCampanhaId,
-          calculoAutomatico: { not: Prisma.DbNull },
-        },
-        data: { precisaRecalculo: true },
-      });
-
-      return { modificador: modificadorAtualizado, personagem };
-    });
+          return { modificador: modificadorAtualizado, personagem };
+        }),
+    );
 
     return {
       modificador: resultado.modificador,
@@ -378,6 +417,7 @@ export class CampanhaModificadoresService {
     personagemCampanhaId: number,
     dto: AplicarModificadorPersonagemCampanhaDto,
     personagemNumerico: Record<string, unknown>,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<{
     periciaCodigo: string | null;
     tipoGrauCodigo: string | null;
@@ -439,7 +479,7 @@ export class CampanhaModificadoresService {
         );
       }
 
-      const pericia = await this.prisma.pericia.findUnique({
+      const pericia = await db.pericia.findUnique({
         where: { codigo: periciaCodigo },
         select: { codigo: true },
       });
@@ -453,6 +493,7 @@ export class CampanhaModificadoresService {
       const valorAntes = await this.obterGrauTreinamentoEfetivo(
         personagemCampanhaId,
         periciaCodigo,
+        db,
       );
       return {
         periciaCodigo,
@@ -470,7 +511,7 @@ export class CampanhaModificadoresService {
         );
       }
 
-      const tipoGrau = await this.prisma.tipoGrau.findUnique({
+      const tipoGrau = await db.tipoGrau.findUnique({
         where: { codigo: tipoGrauCodigo },
         select: { codigo: true },
       });
@@ -484,6 +525,7 @@ export class CampanhaModificadoresService {
       const valorAntes = await this.obterGrauAprimoramentoEfetivo(
         personagemCampanhaId,
         tipoGrauCodigo,
+        db,
       );
       return {
         periciaCodigo: null,
@@ -499,6 +541,40 @@ export class CampanhaModificadoresService {
     );
   }
 
+  private validarEstruturaAlvoModificador(
+    dto: AplicarModificadorPersonagemCampanhaDto,
+  ): void {
+    const periciaCodigo = dto.periciaCodigo?.trim() || null;
+    const tipoGrauCodigo = dto.tipoGrauCodigo?.trim() || null;
+    if (isCampoModificadorNumerico(dto.campo)) {
+      if (periciaCodigo || tipoGrauCodigo) {
+        throw new CampanhaModificadorInvalidoException(
+          'Campos numericos nao aceitam alvo de pericia ou grau.',
+          { campo: dto.campo, periciaCodigo, tipoGrauCodigo },
+        );
+      }
+      return;
+    }
+    if (
+      dto.campo === 'PERICIA_TREINAMENTO' &&
+      (!periciaCodigo || tipoGrauCodigo)
+    ) {
+      throw new CampanhaModificadorInvalidoException(
+        'Modificador de pericia exige periciaCodigo e nao aceita tipoGrauCodigo.',
+        { campo: dto.campo, periciaCodigo, tipoGrauCodigo },
+      );
+    }
+    if (
+      dto.campo === 'GRAU_APRIMORAMENTO' &&
+      (!tipoGrauCodigo || periciaCodigo)
+    ) {
+      throw new CampanhaModificadorInvalidoException(
+        'Modificador de grau exige tipoGrauCodigo e nao aceita periciaCodigo.',
+        { campo: dto.campo, periciaCodigo, tipoGrauCodigo },
+      );
+    }
+  }
+
   private async calcularDesfazerModificador(
     personagem: Record<string, unknown>,
     modificador: {
@@ -509,6 +585,7 @@ export class CampanhaModificadoresService {
       tipoGrauCodigo: string | null;
       personagemCampanhaId: number;
     },
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<{
     valorAntes: number;
     valorDepois: number;
@@ -556,16 +633,17 @@ export class CampanhaModificadoresService {
           { modificadorId: modificador.id },
         );
       }
-      const valorAntes = await this.obterGrauTreinamentoEfetivo(
+      const valorDepois = await this.obterGrauTreinamentoEfetivo(
         modificador.personagemCampanhaId,
         codigo,
+        db,
       );
       return {
-        valorAntes,
-        valorDepois: calcularGrauTreinamentoEfetivo(
-          valorAntes,
-          -modificador.valor,
+        valorAntes: calcularGrauTreinamentoEfetivo(
+          valorDepois,
+          modificador.valor,
         ),
+        valorDepois,
       };
     }
 
@@ -577,16 +655,17 @@ export class CampanhaModificadoresService {
           { modificadorId: modificador.id },
         );
       }
-      const valorAntes = await this.obterGrauAprimoramentoEfetivo(
+      const valorDepois = await this.obterGrauAprimoramentoEfetivo(
         modificador.personagemCampanhaId,
         codigo,
+        db,
       );
       return {
-        valorAntes,
-        valorDepois: calcularGrauAprimoramentoEfetivo(
-          valorAntes,
-          -modificador.valor,
+        valorAntes: calcularGrauAprimoramentoEfetivo(
+          valorDepois,
+          modificador.valor,
         ),
+        valorDepois,
       };
     }
 
@@ -599,8 +678,9 @@ export class CampanhaModificadoresService {
   private async obterGrauTreinamentoEfetivo(
     personagemCampanhaId: number,
     periciaCodigo: string,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
-    const personagem = await this.prisma.personagemCampanha.findUniqueOrThrow({
+    const personagem = await db.personagemCampanha.findUniqueOrThrow({
       where: { id: personagemCampanhaId },
       select: {
         personagemBase: {
@@ -644,8 +724,9 @@ export class CampanhaModificadoresService {
   private async obterGrauAprimoramentoEfetivo(
     personagemCampanhaId: number,
     tipoGrauCodigo: string,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
-    const personagem = await this.prisma.personagemCampanha.findUniqueOrThrow({
+    const personagem = await db.personagemCampanha.findUniqueOrThrow({
       where: { id: personagemCampanhaId },
       select: {
         grausAprimoramento: {

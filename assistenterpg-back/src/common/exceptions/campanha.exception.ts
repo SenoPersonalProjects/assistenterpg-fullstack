@@ -280,6 +280,17 @@ export class CampanhaModificadorInvalidoException extends BusinessException {
   }
 }
 
+export class OperacaoConcorrenteException extends BaseException {
+  constructor(acao: string, tentativas: number) {
+    super(
+      'A operacao encontrou alteracoes concorrentes. Tente novamente.',
+      HttpStatus.CONFLICT,
+      'OPERACAO_CONCORRENTE_REPETIR',
+      { acao, tentativas },
+    );
+  }
+}
+
 export class SessaoCampanhaNaoEncontradaException extends BaseException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(
