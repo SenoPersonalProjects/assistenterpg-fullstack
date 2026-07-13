@@ -43,6 +43,10 @@ import {
   GastarInspiracaoSessaoDto,
   MarcarParticipanteIniciativaAlternadaDto,
 } from './dto/regras-opcionais-sessao.dto';
+import {
+  ConcederMaldicaoControladaSessaoDto,
+  InvocarEntidadeVinculadaSessaoDto,
+} from 'src/campanha/dto/entidade-vinculada-personagem.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas/:campanhaId/sessoes')
@@ -551,6 +555,54 @@ export class SessaoController {
     return resultado;
   }
 
+  @Post(':sessaoId/vinculados/:vinculadoId/invocar')
+  async invocarEntidadeVinculadaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('vinculadoId', ParseIntPipe) vinculadoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: InvocarEntidadeVinculadaSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.invocarEntidadeVinculadaSessao(
+      campanhaId,
+      sessaoId,
+      vinculadoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/maldicoes/conceder')
+  async concederMaldicaoControladaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: ConcederMaldicaoControladaSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.concederMaldicaoControladaSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+
+    return resultado;
+  }
+
   @Patch(':sessaoId/npcs/:npcSessaoId')
   async atualizarNpcSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
@@ -589,6 +641,30 @@ export class SessaoController {
       npcSessaoId,
       req.user.id,
     );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'NPC_ATUALIZADO',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/npcs/:npcSessaoId/desinvocar')
+  async desinvocarEntidadeVinculadaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('npcSessaoId', ParseIntPipe) npcSessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    const resultado =
+      await this.sessaoService.desinvocarEntidadeVinculadaSessao(
+        campanhaId,
+        sessaoId,
+        npcSessaoId,
+        req.user.id,
+      );
 
     this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,

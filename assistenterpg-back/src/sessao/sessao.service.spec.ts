@@ -6,6 +6,12 @@ import {
   SessaoTurnoIndisponivelEmCenaLivreException,
 } from 'src/common/exceptions/campanha.exception';
 import { BusinessException } from 'src/common/exceptions/business.exception';
+import {
+  EstadoEntidadeVinculadaPersonagem,
+  TipoEntidadeVinculadaPersonagem,
+  TipoFichaNpcAmeaca,
+  TipoNpcAmeaca,
+} from '@prisma/client';
 
 describe('SessaoService', () => {
   let service: SessaoService;
@@ -389,6 +395,17 @@ describe('SessaoService', () => {
       sessaoRegraOpcional: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
+      npcAmeacaSessao: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { entidadeVinculadaId: 500 },
+            { entidadeVinculadaId: 501 },
+          ]),
+      },
+      personagemCampanhaEntidadeVinculada: {
+        updateMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
       sessaoRelatorio: {
         upsert: jest.fn().mockResolvedValue({ id: 1 }),
       },
@@ -426,7 +443,347 @@ describe('SessaoService', () => {
         where: { sessaoId: 21, chave: 'INSPIRACAO' },
       }),
     );
+    expect(
+      tx.personagemCampanhaEntidadeVinculada.updateMany,
+    ).toHaveBeenCalledWith({
+      where: {
+        id: { in: [500, 501] },
+        estado: EstadoEntidadeVinculadaPersonagem.ATIVO,
+      },
+      data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+    });
     expect(resultado).toEqual(detalheEncerrada);
+  });
+
+  it('libera vinculados ativos ao encerrar sem alterar estados finais', async () => {
+    const tx = {
+      npcAmeacaSessao: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { entidadeVinculadaId: 500 },
+            { entidadeVinculadaId: 500 },
+            { entidadeVinculadaId: 501 },
+            { entidadeVinculadaId: null },
+          ]),
+      },
+      personagemCampanhaEntidadeVinculada: {
+        updateMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
+
+    await (service as any).liberarEntidadesVinculadasAtivasSessaoTx(tx, 21);
+
+    expect(
+      tx.personagemCampanhaEntidadeVinculada.updateMany,
+    ).toHaveBeenCalledWith({
+      where: {
+        id: { in: [500, 501] },
+        estado: EstadoEntidadeVinculadaPersonagem.ATIVO,
+      },
+      data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+    });
+  });
+
+  it('permite primeiro shikigami e bloqueia segundo ativo na sessao', async () => {
+    const tx = {
+      npcAmeacaSessao: {
+        findMany: jest
+          .fn()
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([
+            { entidadeVinculadaId: 501, entidadeVinculada: { id: 501 } },
+          ]),
+      },
+    };
+    const entidade = {
+      id: 500,
+      tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      personagemCampanhaId: 20,
+      vagasOcupadas: 1,
+      limites: null,
+      personagemCampanha: { nivel: 1 },
+    };
+
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(tx, 21, entidade),
+    ).resolves.toBeUndefined();
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(tx, 21, entidade),
+    ).rejects.toMatchObject({
+      code: 'ENTIDADE_SHIKIGAMI_LIMITE_ATIVO',
+    });
+  });
+
+  it('permite mais de um shikigami quando limite ativo foi configurado', async () => {
+    const tx = {
+      npcAmeacaSessao: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { entidadeVinculadaId: 501, entidadeVinculada: { id: 501 } },
+          ]),
+      },
+    };
+
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(tx, 21, {
+        id: 500,
+        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        personagemCampanhaId: 20,
+        vagasOcupadas: 1,
+        limites: { limiteAtivo: 2 },
+        personagemCampanha: { nivel: 1 },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('respeita vagas de corpo pesado pelo nivel do personagem', async () => {
+    const tx = {
+      npcAmeacaSessao: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
+    const corpoPesado = {
+      id: 500,
+      tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+      personagemCampanhaId: 20,
+      vagasOcupadas: 2,
+      limites: null,
+      personagemCampanha: { nivel: 1 },
+    };
+
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(
+        tx,
+        21,
+        corpoPesado,
+      ),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_CORPO_LIMITE_VAGAS' });
+
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(tx, 21, {
+        ...corpoPesado,
+        personagemCampanha: { nivel: 5 },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('nao aplica limite automatico a maldicao controlada', async () => {
+    const tx = {
+      npcAmeacaSessao: {
+        findMany: jest.fn(),
+      },
+    };
+
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(tx, 21, {
+        id: 500,
+        tipo: TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA,
+        personagemCampanhaId: 20,
+        vagasOcupadas: 1,
+        limites: null,
+        personagemCampanha: { nivel: 1 },
+      }),
+    ).resolves.toBeUndefined();
+    expect(tx.npcAmeacaSessao.findMany).not.toHaveBeenCalled();
+  });
+
+  it('desinvoca vinculado e retorna estado para disponivel', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: false },
+    });
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 } as never);
+    const npcSessao = {
+      id: 700,
+      sessaoId: 21,
+      cenaId: 31,
+      npcAmeacaId: null,
+      entidadeVinculadaId: 500,
+      personagemDonoId: 20,
+      tipoVinculo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      nomeExibicao: 'Cao Divino',
+      fichaTipo: TipoFichaNpcAmeaca.NPC,
+      tipo: TipoNpcAmeaca.OUTRO,
+      vd: 0,
+      iniciativaValor: null,
+      defesa: 12,
+      pontosVidaAtual: 10,
+      pontosVidaMax: 10,
+      sanAtual: null,
+      sanMax: null,
+      eaAtual: null,
+      eaMax: null,
+      machucado: null,
+      deslocamentoMetros: 6,
+      passivasGuia: null,
+      acoesGuia: null,
+      notasCena: null,
+      ocultoJogadores: false,
+      entidadeVinculada: {
+        personagemCampanha: { id: 20, donoId: 10 },
+      },
+    };
+    const tx = {
+      npcAmeacaSessao: {
+        findFirst: jest.fn().mockResolvedValue(npcSessao),
+        delete: jest.fn().mockResolvedValue({}),
+      },
+      personagemCampanhaEntidadeVinculada: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    await service.desinvocarEntidadeVinculadaSessao(7, 21, 700, 10);
+
+    expect(tx.npcAmeacaSessao.delete).toHaveBeenCalledWith({
+      where: { id: 700 },
+    });
+    expect(tx.personagemCampanhaEntidadeVinculada.update).toHaveBeenCalledWith({
+      where: { id: 500 },
+      data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+    });
+  });
+
+  it('bloqueia jogador tentando invocar vinculado de outro personagem', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: false },
+    });
+    const tx = {
+      personagemCampanhaEntidadeVinculada: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 500,
+          campanhaId: 7,
+          estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+          personagemCampanha: { id: 20, nome: 'Outro', donoId: 99, nivel: 1 },
+        }),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    await expect(
+      service.invocarEntidadeVinculadaSessao(7, 21, 500, 10, {}),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_ACESSO_NEGADO' });
+  });
+
+  it('permite mestre invocar vinculado e cria instancia de NPC da sessao', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: true },
+    });
+    jest
+      .spyOn(service as any, 'obterCenaAtualSessaoTx')
+      .mockResolvedValue({ id: 31 });
+    jest
+      .spyOn(service as any, 'validarLimiteEntidadeVinculadaAtivaTx')
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 } as never);
+    const entidade = {
+      id: 500,
+      campanhaId: 7,
+      personagemCampanhaId: 20,
+      tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+      nome: 'Cao Divino',
+      descricao: null,
+      conceito: 'lobo branco',
+      fichaTipo: TipoFichaNpcAmeaca.NPC,
+      tipoNpc: TipoNpcAmeaca.OUTRO,
+      tamanho: 'MEDIO',
+      vd: 0,
+      defesa: 12,
+      pontosVidaAtual: 10,
+      pontosVidaMax: 10,
+      cargasAtual: null,
+      cargasMax: null,
+      deslocamentoMetros: 6,
+      agilidade: 1,
+      forca: 1,
+      intelecto: 0,
+      presenca: 0,
+      vigor: 1,
+      percepcao: 0,
+      iniciativa: 0,
+      fortitude: 0,
+      reflexos: 0,
+      vontade: 0,
+      luta: 0,
+      jujutsu: 0,
+      passivas: null,
+      acoes: null,
+      personagemCampanha: { id: 20, nome: 'Dono', donoId: 99, nivel: 1 },
+    };
+    const npcSessao = {
+      id: 700,
+      npcAmeacaId: null,
+      nomeExibicao: 'Cao Divino',
+      fichaTipo: TipoFichaNpcAmeaca.NPC,
+      tipo: TipoNpcAmeaca.OUTRO,
+      vd: 0,
+      iniciativaValor: null,
+      defesa: 12,
+      pontosVidaAtual: 10,
+      pontosVidaMax: 10,
+      sanAtual: null,
+      sanMax: null,
+      eaAtual: null,
+      eaMax: null,
+      machucado: null,
+      deslocamentoMetros: 6,
+      passivasGuia: null,
+      acoesGuia: null,
+      notasCena: null,
+      ocultoJogadores: true,
+      cenaId: 31,
+    };
+    const tx = {
+      personagemCampanhaEntidadeVinculada: {
+        findFirst: jest.fn().mockResolvedValue(entidade),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      personagemSessao: {
+        findFirst: jest.fn().mockResolvedValue({ id: 300 }),
+      },
+      npcAmeacaSessao: {
+        create: jest.fn().mockResolvedValue(npcSessao),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    await service.invocarEntidadeVinculadaSessao(7, 21, 500, 10, {
+      ocultoJogadores: true,
+    });
+
+    expect(tx.npcAmeacaSessao.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          entidadeVinculadaId: 500,
+          personagemDonoId: 20,
+          personagemControladorSessaoId: 300,
+          ocultoJogadores: true,
+        }),
+      }),
+    );
+    expect(tx.personagemCampanhaEntidadeVinculada.update).toHaveBeenCalledWith({
+      where: { id: 500 },
+      data: { estado: EstadoEntidadeVinculadaPersonagem.ATIVO },
+    });
   });
 
   it('deve bloquear desfazer quando evento não for o ultimo reversivel', async () => {

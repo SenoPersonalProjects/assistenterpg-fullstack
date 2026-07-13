@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   CampoModificadorPersonagemCampanha,
+  EstadoEntidadeVinculadaPersonagem,
   Prisma,
   TamanhoNpcAmeaca,
+  TipoEntidadeVinculadaPersonagem,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
 } from '@prisma/client';
@@ -35,6 +37,10 @@ import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciat
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { AtualizarRecursosPersonagemSessaoDto } from './dto/atualizar-recursos-personagem-sessao.dto';
+import {
+  ConcederMaldicaoControladaSessaoDto,
+  InvocarEntidadeVinculadaSessaoDto,
+} from 'src/campanha/dto/entidade-vinculada-personagem.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import {
   AjustarInspiracaoSessaoDto,
@@ -843,6 +849,8 @@ export class SessaoService {
         },
       });
 
+      await this.liberarEntidadesVinculadasAtivasSessaoTx(tx, sessaoId);
+
       await tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -1044,6 +1052,46 @@ export class SessaoService {
                     tipoGrauCodigo: true,
                   },
                 },
+                entidadesVinculadas: {
+                  where: {
+                    estado: {
+                      not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO,
+                    },
+                  },
+                  orderBy: [{ tipo: 'asc' }, { nome: 'asc' }],
+                  select: {
+                    id: true,
+                    tipo: true,
+                    estado: true,
+                    nome: true,
+                    descricao: true,
+                    conceito: true,
+                    aparencia: true,
+                    defesa: true,
+                    pontosVidaAtual: true,
+                    pontosVidaMax: true,
+                    rd: true,
+                    deslocamentoMetros: true,
+                    vagasOcupadas: true,
+                    cargasAtual: true,
+                    cargasMax: true,
+                    tipoNpc: true,
+                    fichaTipo: true,
+                    tamanho: true,
+                    npcAmeacaOrigemId: true,
+                    instanciasSessao: {
+                      where: { sessaoId },
+                      select: {
+                        id: true,
+                        sessaoId: true,
+                        cenaId: true,
+                        pontosVidaAtual: true,
+                        ocultoJogadores: true,
+                      },
+                      orderBy: { id: 'desc' },
+                    },
+                  },
+                },
                 personagemBase: {
                   select: {
                     id: true,
@@ -1223,6 +1271,31 @@ export class SessaoService {
             id: 'asc',
           },
           include: {
+            entidadeVinculada: {
+              select: {
+                id: true,
+                tipo: true,
+                estado: true,
+                nome: true,
+                periciasEspeciais: true,
+                resistencias: true,
+                vulnerabilidades: true,
+                personagemCampanhaId: true,
+              },
+            },
+            personagemDono: {
+              select: {
+                id: true,
+                nome: true,
+                donoId: true,
+              },
+            },
+            personagemControladorSessao: {
+              select: {
+                id: true,
+                personagemCampanhaId: true,
+              },
+            },
             npcAmeaca: {
               select: {
                 tamanho: true,
@@ -1798,6 +1871,36 @@ export class SessaoService {
             visibilidade === 'completa' ? habilidadesClasse : [],
           outrasHabilidades:
             visibilidade === 'completa' ? outrasHabilidades : [],
+          vinculados:
+            visibilidade === 'completa'
+              ? (personagem.personagemCampanha.entidadesVinculadas ?? []).map(
+                  (entidade) => ({
+                    id: entidade.id,
+                    tipo: entidade.tipo,
+                    estado: entidade.estado,
+                    nome: entidade.nome,
+                    descricao: entidade.descricao,
+                    conceito: entidade.conceito,
+                    aparencia: entidade.aparencia,
+                    defesa: entidade.defesa,
+                    pontosVidaAtual: entidade.pontosVidaAtual,
+                    pontosVidaMax: entidade.pontosVidaMax,
+                    rd: entidade.rd,
+                    deslocamentoMetros: entidade.deslocamentoMetros,
+                    vagasOcupadas: entidade.vagasOcupadas,
+                    cargasAtual: entidade.cargasAtual,
+                    cargasMax: entidade.cargasMax,
+                    tipoNpc: entidade.tipoNpc,
+                    fichaTipo: entidade.fichaTipo,
+                    tamanho: entidade.tamanho,
+                    npcAmeacaOrigemId: entidade.npcAmeacaOrigemId,
+                    ativoNestaSessao:
+                      entidade.instanciasSessao &&
+                      entidade.instanciasSessao.length > 0,
+                    instanciasAtivas: entidade.instanciasSessao ?? [],
+                  }),
+                )
+              : [],
           aprimoramentosTemporarios:
             visibilidade === 'completa' ? aprimoramentosTemporarios : [],
           opcoesAprimoramentoTecnicasNaoInatas:
@@ -2003,6 +2106,27 @@ export class SessaoService {
         return {
           npcSessaoId: npc.id,
           npcAmeacaId: npc.npcAmeacaId,
+          entidadeVinculadaId: npc.entidadeVinculadaId,
+          personagemDonoId: npc.personagemDonoId,
+          personagemControladorSessaoId: npc.personagemControladorSessaoId,
+          tipoVinculo: npc.tipoVinculo,
+          vinculo: npc.entidadeVinculada
+            ? {
+                id: npc.entidadeVinculada.id,
+                tipo: npc.entidadeVinculada.tipo,
+                estado: npc.entidadeVinculada.estado,
+                nome: npc.entidadeVinculada.nome,
+                personagemCampanhaId:
+                  npc.entidadeVinculada.personagemCampanhaId,
+                personagemDono: npc.personagemDono
+                  ? {
+                      id: npc.personagemDono.id,
+                      nome: npc.personagemDono.nome,
+                      donoId: npc.personagemDono.donoId,
+                    }
+                  : null,
+              }
+            : null,
           nome: npc.nomeExibicao,
           fichaTipo: npc.fichaTipo,
           tipo: npc.tipo,
@@ -2022,7 +2146,9 @@ export class SessaoService {
           pericias: periciasNpc,
           periciasEspeciais: npc.npcAmeaca
             ? this.mapearListaObjeto(npc.npcAmeaca.periciasEspeciais)
-            : [],
+            : npc.entidadeVinculada
+              ? this.mapearListaObjeto(npc.entidadeVinculada.periciasEspeciais)
+              : [],
           passivas: this.mapearListaObjeto(npc.passivasGuia),
           acoes: this.mapearListaObjeto(npc.acoesGuia),
           condicoesAtivas: this.mapearCondicoesAtivasSessao(npc.condicoes),
@@ -4176,6 +4302,13 @@ export class SessaoService {
         },
       });
 
+      if (npcSessaoAtual.entidadeVinculadaId) {
+        await tx.personagemCampanhaEntidadeVinculada.update({
+          where: { id: npcSessaoAtual.entidadeVinculadaId },
+          data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+        });
+      }
+
       await tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -4183,10 +4316,349 @@ export class SessaoService {
           tipoEvento: 'NPC_REMOVIDO',
           dados: {
             npcSessaoId,
+            entidadeVinculadaId: npcSessaoAtual.entidadeVinculadaId ?? null,
+            personagemDonoId: npcSessaoAtual.personagemDonoId ?? null,
+            tipoVinculo: npcSessaoAtual.tipoVinculo ?? null,
             nome: npcSessaoAtual.nomeExibicao,
             snapshot: this.snapshotNpcSessao(npcSessaoAtual),
             removidoPorId: usuarioId,
           },
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async invocarEntidadeVinculadaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    vinculadoId: number,
+    usuarioId: number,
+    dto: InvocarEntidadeVinculadaSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      const entidade = await tx.personagemCampanhaEntidadeVinculada.findFirst({
+        where: {
+          id: vinculadoId,
+          campanhaId,
+          estado: {
+            not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO,
+          },
+        },
+        include: {
+          personagemCampanha: {
+            select: { id: true, nome: true, donoId: true, nivel: true },
+          },
+        },
+      });
+
+      if (!entidade) {
+        throw new BusinessException(
+          'Entidade vinculada nao encontrada',
+          'ENTIDADE_VINCULADA_NAO_ENCONTRADA',
+          { campanhaId, vinculadoId },
+        );
+      }
+      if (
+        !acesso.ehMestre &&
+        entidade.personagemCampanha.donoId !== usuarioId
+      ) {
+        throw new BusinessException(
+          'Voce nao pode invocar este vinculado',
+          'ENTIDADE_ACESSO_NEGADO',
+          { vinculadoId },
+        );
+      }
+      const estadosIndisponiveis: EstadoEntidadeVinculadaPersonagem[] = [
+        EstadoEntidadeVinculadaPersonagem.DESTRUIDO,
+        EstadoEntidadeVinculadaPersonagem.SELADO,
+        EstadoEntidadeVinculadaPersonagem.DESCARREGADO,
+      ];
+      if (estadosIndisponiveis.includes(entidade.estado) && !acesso.ehMestre) {
+        throw new BusinessException(
+          'Entidade vinculada indisponivel para invocacao',
+          'ENTIDADE_ESTADO_INDISPONIVEL',
+          { vinculadoId, estado: entidade.estado },
+        );
+      }
+
+      const personagemSessao = await tx.personagemSessao.findFirst({
+        where: {
+          sessaoId,
+          personagemCampanhaId: entidade.personagemCampanhaId,
+        },
+        select: { id: true },
+      });
+      if (!personagemSessao) {
+        throw new BusinessException(
+          'Personagem dono precisa estar na sessao para usar o vinculado',
+          'ENTIDADE_DONO_FORA_DA_SESSAO',
+          { personagemCampanhaId: entidade.personagemCampanhaId, sessaoId },
+        );
+      }
+
+      if (!(dto.ignorarLimite === true && acesso.ehMestre)) {
+        await this.validarLimiteEntidadeVinculadaAtivaTx(
+          tx,
+          sessaoId,
+          entidade,
+        );
+      }
+
+      const cenaAtual = dto.cenaId
+        ? await this.obterCenaSessaoOuFalharTx(tx, sessaoId, dto.cenaId)
+        : await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      const npcSessao = await tx.npcAmeacaSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          npcAmeacaId: null,
+          entidadeVinculadaId: entidade.id,
+          personagemDonoId: entidade.personagemCampanhaId,
+          personagemControladorSessaoId: personagemSessao.id,
+          tipoVinculo: entidade.tipo,
+          nomeExibicao: entidade.nome,
+          fichaTipo: entidade.fichaTipo,
+          tipo: entidade.tipoNpc,
+          tamanho: entidade.tamanho,
+          vd: entidade.vd,
+          iniciativaValor: null,
+          defesa: entidade.defesa,
+          pontosVidaAtual: this.clampNumero(
+            entidade.pontosVidaAtual,
+            0,
+            entidade.pontosVidaMax,
+          ),
+          pontosVidaMax: entidade.pontosVidaMax,
+          sanAtual: null,
+          sanMax: null,
+          eaAtual: entidade.cargasAtual,
+          eaMax: entidade.cargasMax,
+          machucado: null,
+          deslocamentoMetros: entidade.deslocamentoMetros,
+          agilidade: entidade.agilidade,
+          forca: entidade.forca,
+          intelecto: entidade.intelecto,
+          presenca: entidade.presenca,
+          vigor: entidade.vigor,
+          percepcao: entidade.percepcao,
+          iniciativa: entidade.iniciativa,
+          fortitude: entidade.fortitude,
+          reflexos: entidade.reflexos,
+          vontade: entidade.vontade,
+          luta: entidade.luta,
+          jujutsu: entidade.jujutsu,
+          passivasGuia: this.jsonParaPersistencia(entidade.passivas),
+          acoesGuia: this.jsonParaPersistencia(entidade.acoes),
+          notasCena: entidade.descricao ?? entidade.conceito ?? null,
+          ocultoJogadores: dto.ocultoJogadores === true,
+        },
+      });
+
+      await tx.personagemCampanhaEntidadeVinculada.update({
+        where: { id: entidade.id },
+        data: { estado: EstadoEntidadeVinculadaPersonagem.ATIVO },
+      });
+
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'NPC_ADICIONADO',
+          dados: this.jsonParaPersistencia({
+            origem: 'ENTIDADE_VINCULADA',
+            npcSessaoId: npcSessao.id,
+            entidadeVinculadaId: entidade.id,
+            personagemDonoId: entidade.personagemCampanhaId,
+            personagemControladorSessaoId: personagemSessao.id,
+            tipoVinculo: entidade.tipo,
+            nome: npcSessao.nomeExibicao,
+            snapshot: this.snapshotNpcSessao(npcSessao),
+            adicionadoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async desinvocarEntidadeVinculadaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    npcSessaoId: number,
+    usuarioId: number,
+  ) {
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
+        where: { id: npcSessaoId, sessaoId },
+        include: {
+          entidadeVinculada: {
+            include: {
+              personagemCampanha: { select: { id: true, donoId: true } },
+            },
+          },
+        },
+      });
+      if (!npcSessaoAtual) {
+        throw new NpcSessaoNaoEncontradoException(
+          npcSessaoId,
+          sessaoId,
+          campanhaId,
+        );
+      }
+      if (!npcSessaoAtual.entidadeVinculadaId) {
+        throw new BusinessException(
+          'NPC da sessao nao veio de entidade vinculada',
+          'ENTIDADE_NPC_SESSAO_NAO_VINCULADO',
+          { npcSessaoId },
+        );
+      }
+      const donoId =
+        npcSessaoAtual.entidadeVinculada?.personagemCampanha.donoId ?? null;
+      if (!acesso.ehMestre && donoId !== usuarioId) {
+        throw new BusinessException(
+          'Voce nao pode desinvocar este vinculado',
+          'ENTIDADE_ACESSO_NEGADO',
+          { npcSessaoId },
+        );
+      }
+
+      await tx.npcAmeacaSessao.delete({ where: { id: npcSessaoId } });
+      await tx.personagemCampanhaEntidadeVinculada.update({
+        where: { id: npcSessaoAtual.entidadeVinculadaId },
+        data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+      });
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: npcSessaoAtual.cenaId,
+          tipoEvento: 'NPC_REMOVIDO',
+          dados: this.jsonParaPersistencia({
+            origem: 'ENTIDADE_VINCULADA',
+            npcSessaoId,
+            entidadeVinculadaId: npcSessaoAtual.entidadeVinculadaId,
+            personagemDonoId: npcSessaoAtual.personagemDonoId,
+            tipoVinculo: npcSessaoAtual.tipoVinculo,
+            nome: npcSessaoAtual.nomeExibicao,
+            snapshot: this.snapshotNpcSessao(npcSessaoAtual),
+            removidoPorId: usuarioId,
+          }),
+        },
+      });
+    });
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async concederMaldicaoControladaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: ConcederMaldicaoControladaSessaoDto,
+  ) {
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    this.assertMestre(acesso, 'conceder maldicao controlada');
+
+    await this.prisma.$transaction(async (tx) => {
+      const personagem = await tx.personagemCampanha.findFirst({
+        where: { id: dto.personagemCampanhaId, campanhaId },
+        select: { id: true, donoId: true, nome: true },
+      });
+      if (!personagem) {
+        throw new PersonagemCampanhaNaoEncontradoException(
+          dto.personagemCampanhaId,
+        );
+      }
+      const origem = await this.obterOrigemMaldicaoControladaSessaoTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        dto,
+      );
+      const pvControlado = Math.max(
+        1,
+        origem.pontosVida - Math.ceil(origem.pontosVida / 3),
+      );
+      const entidade = await tx.personagemCampanhaEntidadeVinculada.create({
+        data: {
+          campanhaId,
+          personagemCampanhaId: personagem.id,
+          tipo: TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA,
+          estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+          nome: dto.nome?.trim() || origem.nome,
+          descricao: dto.descricao ?? origem.descricao ?? null,
+          conceito: origem.usoTatico,
+          npcAmeacaOrigemId: origem.npcAmeacaId,
+          fichaTipo: origem.fichaTipo,
+          tipoNpc: TipoNpcAmeaca.MALDICAO,
+          tamanho: origem.tamanho,
+          vd: origem.vd,
+          agilidade: origem.agilidade,
+          forca: origem.forca,
+          intelecto: origem.intelecto,
+          presenca: origem.presenca,
+          vigor: origem.vigor,
+          percepcao: origem.percepcao,
+          iniciativa: origem.iniciativa,
+          fortitude: origem.fortitude,
+          reflexos: origem.reflexos,
+          vontade: origem.vontade,
+          luta: origem.luta,
+          jujutsu: origem.jujutsu,
+          defesa: origem.defesa,
+          pontosVidaMax: pvControlado,
+          pontosVidaAtual: pvControlado,
+          deslocamentoMetros: origem.deslocamentoMetros,
+          periciasEspeciais: this.jsonParaPersistencia(
+            origem.periciasEspeciais,
+          ),
+          resistencias: this.jsonParaPersistencia(origem.resistencias),
+          vulnerabilidades: this.jsonParaPersistencia(origem.vulnerabilidades),
+          passivas: this.jsonParaPersistencia(origem.passivas),
+          acoes: this.jsonParaPersistencia(origem.acoes),
+          config: this.jsonParaPersistencia({
+            origem: origem.origem,
+            pvOriginal: origem.pontosVida,
+            pvControlado,
+            reducaoPv: Math.ceil(origem.pontosVida / 3),
+          }),
+          criadoPorId: usuarioId,
+        },
+      });
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'NPC_ATUALIZADO',
+          dados: this.jsonParaPersistencia({
+            origem: 'MALDICAO_CONTROLADA_CONCEDIDA',
+            entidadeVinculadaId: entidade.id,
+            personagemDonoId: personagem.id,
+            npcAmeacaId: origem.npcAmeacaId,
+            npcSessaoId: dto.npcSessaoId ?? null,
+            nome: entidade.nome,
+            concedidoPorId: usuarioId,
+          }),
         },
       });
     });
@@ -8581,6 +9053,261 @@ export class SessaoService {
         id: true,
       },
     });
+  }
+
+  private async obterCenaSessaoOuFalharTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    cenaId: number,
+  ) {
+    const cena = await tx.cena.findFirst({
+      where: { id: cenaId, sessaoId },
+      select: { id: true },
+    });
+    if (!cena) {
+      throw new BusinessException(
+        'Cena informada nao pertence a sessao',
+        'SESSAO_CENA_INVALIDA',
+        { sessaoId, cenaId },
+      );
+    }
+    return cena;
+  }
+
+  private async validarLimiteEntidadeVinculadaAtivaTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    entidade: {
+      id: number;
+      tipo: TipoEntidadeVinculadaPersonagem;
+      personagemCampanhaId: number;
+      vagasOcupadas: number;
+      limites: Prisma.JsonValue | null;
+      personagemCampanha: { nivel: number };
+    },
+  ) {
+    if (entidade.tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
+      return;
+    }
+    const ativos = await tx.npcAmeacaSessao.findMany({
+      where: {
+        sessaoId,
+        personagemDonoId: entidade.personagemCampanhaId,
+        tipoVinculo: entidade.tipo,
+        entidadeVinculadaId: { not: null },
+      },
+      include: {
+        entidadeVinculada: {
+          select: { id: true, vagasOcupadas: true },
+        },
+      },
+    });
+    if (ativos.some((ativo) => ativo.entidadeVinculadaId === entidade.id)) {
+      throw new BusinessException(
+        'Entidade vinculada ja esta ativa na sessao',
+        'ENTIDADE_JA_ATIVA',
+        { entidadeVinculadaId: entidade.id },
+      );
+    }
+
+    if (entidade.tipo === TipoEntidadeVinculadaPersonagem.SHIKIGAMI) {
+      const limite = this.lerNumeroConfig(entidade.limites, [
+        'ativoMaximo',
+        'limiteAtivo',
+        'limiteAtivos',
+      ]);
+      const limiteAtivo = limite ?? 1;
+      if (ativos.length >= limiteAtivo) {
+        throw new BusinessException(
+          'Limite de shikigamis ativos atingido',
+          'ENTIDADE_SHIKIGAMI_LIMITE_ATIVO',
+          {
+            personagemCampanhaId: entidade.personagemCampanhaId,
+            limiteAtivo,
+          },
+        );
+      }
+      return;
+    }
+
+    const limiteVagas = this.resolverLimiteVagasCorpos(
+      entidade.personagemCampanha.nivel,
+    );
+    const vagasAtuais = ativos.reduce(
+      (total, ativo) => total + (ativo.entidadeVinculada?.vagasOcupadas ?? 1),
+      0,
+    );
+    const vagasNovas = Math.max(1, entidade.vagasOcupadas ?? 1);
+    if (vagasAtuais + vagasNovas > limiteVagas) {
+      throw new BusinessException(
+        'Limite de corpos ativos atingido',
+        'ENTIDADE_CORPO_LIMITE_VAGAS',
+        {
+          personagemCampanhaId: entidade.personagemCampanhaId,
+          limiteVagas,
+          vagasAtuais,
+          vagasNovas,
+        },
+      );
+    }
+  }
+
+  private async liberarEntidadesVinculadasAtivasSessaoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+  ) {
+    const instancias = await tx.npcAmeacaSessao.findMany({
+      where: {
+        sessaoId,
+        entidadeVinculadaId: { not: null },
+      },
+      select: { entidadeVinculadaId: true },
+    });
+    const entidadeIds = Array.from(
+      new Set(
+        instancias
+          .map((instancia) => instancia.entidadeVinculadaId)
+          .filter((id): id is number => typeof id === 'number'),
+      ),
+    );
+    if (entidadeIds.length === 0) return;
+
+    await tx.personagemCampanhaEntidadeVinculada.updateMany({
+      where: {
+        id: { in: entidadeIds },
+        estado: EstadoEntidadeVinculadaPersonagem.ATIVO,
+      },
+      data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
+    });
+  }
+
+  private resolverLimiteVagasCorpos(nivel: number): number {
+    if (nivel >= 17) return 5;
+    if (nivel >= 13) return 4;
+    if (nivel >= 9) return 3;
+    if (nivel >= 5) return 2;
+    return 1;
+  }
+
+  private lerNumeroConfig(
+    json: Prisma.JsonValue | null,
+    chaves: string[],
+  ): number | null {
+    if (!json || typeof json !== 'object' || Array.isArray(json)) {
+      return null;
+    }
+    const objeto = json as Record<string, unknown>;
+    for (const chave of chaves) {
+      const valor = objeto[chave];
+      if (typeof valor === 'number' && Number.isFinite(valor)) {
+        return Math.max(0, Math.floor(valor));
+      }
+    }
+    return null;
+  }
+
+  private async obterOrigemMaldicaoControladaSessaoTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: ConcederMaldicaoControladaSessaoDto,
+  ) {
+    if (!dto.npcAmeacaId && !dto.npcSessaoId) {
+      throw new BusinessException(
+        'Informe uma maldicao do catalogo ou da sessao',
+        'ENTIDADE_MALDICAO_ORIGEM_OBRIGATORIA',
+      );
+    }
+    if (dto.npcAmeacaId && dto.npcSessaoId) {
+      throw new BusinessException(
+        'Informe apenas uma origem para a maldicao controlada',
+        'ENTIDADE_MALDICAO_ORIGEM_DUPLICADA',
+      );
+    }
+    if (dto.npcAmeacaId) {
+      const origem = await tx.npcAmeaca.findFirst({
+        where: { id: dto.npcAmeacaId, donoId: usuarioId },
+      });
+      if (!origem || origem.tipo !== TipoNpcAmeaca.MALDICAO) {
+        throw new BusinessException(
+          'A origem precisa ser uma maldicao do catalogo',
+          'ENTIDADE_MALDICAO_ORIGEM_INVALIDA',
+          { npcAmeacaId: dto.npcAmeacaId },
+        );
+      }
+      return {
+        origem: 'NPC_AMEACA',
+        npcAmeacaId: origem.id,
+        nome: origem.nome,
+        descricao: origem.descricao,
+        fichaTipo: origem.fichaTipo,
+        tamanho: origem.tamanho,
+        vd: origem.vd,
+        agilidade: origem.agilidade,
+        forca: origem.forca,
+        intelecto: origem.intelecto,
+        presenca: origem.presenca,
+        vigor: origem.vigor,
+        percepcao: origem.percepcao,
+        iniciativa: origem.iniciativa,
+        fortitude: origem.fortitude,
+        reflexos: origem.reflexos,
+        vontade: origem.vontade,
+        luta: origem.luta,
+        jujutsu: origem.jujutsu,
+        defesa: origem.defesa,
+        pontosVida: origem.pontosVida,
+        deslocamentoMetros: origem.deslocamentoMetros,
+        periciasEspeciais: origem.periciasEspeciais,
+        resistencias: origem.resistencias,
+        vulnerabilidades: origem.vulnerabilidades,
+        passivas: origem.passivas,
+        acoes: origem.acoes,
+        usoTatico: origem.usoTatico,
+      };
+    }
+
+    const origemSessao = await tx.npcAmeacaSessao.findFirst({
+      where: { id: dto.npcSessaoId, sessaoId, sessao: { campanhaId } },
+    });
+    if (!origemSessao || origemSessao.tipo !== TipoNpcAmeaca.MALDICAO) {
+      throw new BusinessException(
+        'A origem da sessao precisa ser uma maldicao',
+        'ENTIDADE_MALDICAO_ORIGEM_INVALIDA',
+        { npcSessaoId: dto.npcSessaoId },
+      );
+    }
+    return {
+      origem: 'NPC_SESSAO',
+      npcAmeacaId: origemSessao.npcAmeacaId,
+      nome: origemSessao.nomeExibicao,
+      descricao: origemSessao.notasCena,
+      fichaTipo: origemSessao.fichaTipo,
+      tamanho: origemSessao.tamanho ?? TamanhoNpcAmeaca.MEDIO,
+      vd: origemSessao.vd,
+      agilidade: origemSessao.agilidade ?? 0,
+      forca: origemSessao.forca ?? 0,
+      intelecto: origemSessao.intelecto ?? 0,
+      presenca: origemSessao.presenca ?? 0,
+      vigor: origemSessao.vigor ?? 0,
+      percepcao: origemSessao.percepcao ?? 0,
+      iniciativa: origemSessao.iniciativa ?? 0,
+      fortitude: origemSessao.fortitude ?? 0,
+      reflexos: origemSessao.reflexos ?? 0,
+      vontade: origemSessao.vontade ?? 0,
+      luta: origemSessao.luta ?? 0,
+      jujutsu: origemSessao.jujutsu ?? 0,
+      defesa: origemSessao.defesa,
+      pontosVida: origemSessao.pontosVidaMax,
+      deslocamentoMetros: origemSessao.deslocamentoMetros,
+      periciasEspeciais: null,
+      resistencias: null,
+      vulnerabilidades: null,
+      passivas: origemSessao.passivasGuia,
+      acoes: origemSessao.acoesGuia,
+      usoTatico: null,
+    };
   }
 
   private assertMestre(acesso: AcessoCampanha, acao: string): void {
