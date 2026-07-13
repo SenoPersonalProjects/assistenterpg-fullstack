@@ -1,5 +1,6 @@
 import {
   EstadoEntidadeVinculadaPersonagem,
+  ModoVinculadoTecnica,
   TamanhoNpcAmeaca,
   TipoEntidadeVinculadaPersonagem,
   TipoFichaNpcAmeaca,
@@ -25,6 +26,14 @@ type PrismaMock = {
   };
   npcAmeacaSessao: {
     findFirst: jest.Mock;
+    findMany: jest.Mock;
+  };
+  tecnicaVinculadoConfig: {
+    findMany: jest.Mock;
+  };
+  tecnicaVinculadoTemplate: {
+    findFirst: jest.Mock;
+    findMany: jest.Mock;
   };
 };
 
@@ -36,18 +45,112 @@ type AccessMock = {
 const acessoMestre = { ehMestre: true };
 const acessoDono = { ehMestre: false };
 
+function criarTecnica(codigo = 'NAOINATA_TECNICA_SHIKIGAMI', id = 101) {
+  return { id, codigo, nome: codigo, tecnicaBase: null };
+}
+
+function criarPersonagemAutomacao(
+  tecnica: ReturnType<typeof criarTecnica> | null = criarTecnica(),
+) {
+  return {
+    id: 20,
+    donoId: 2,
+    nivel: 5,
+    limitePeEaPorTurno: 3,
+    tecnicaInata: tecnica,
+    tecnicaInataPropria: null,
+    tecnicasAprendidas: [],
+    grausAprimoramento: [
+      {
+        valor: 1,
+        tipoGrau: { codigo: 'TECNICA_SHIKIGAMI', nome: 'Shikigami' },
+      },
+    ],
+    modificadores: [],
+    personagemBase: {
+      agilidade: 3,
+      forca: 2,
+      intelecto: 2,
+      presenca: 1,
+      vigor: 2,
+      tecnicaInata: null,
+      tecnicaInataPropria: null,
+      tecnicasAprendidas: [],
+      grausAprimoramento: [],
+      pericias: [
+        {
+          grauTreinamento: 1,
+          bonusExtra: 0,
+          pericia: {
+            codigo: 'JUJUTSU',
+            nome: 'Jujutsu',
+            atributoBase: 'INTELECTO',
+          },
+        },
+      ],
+    },
+  };
+}
+
+function criarConfigTecnica(
+  tecnica = criarTecnica(),
+  opcoes: {
+    tipo?: TipoEntidadeVinculadaPersonagem;
+    modo?: ModoVinculadoTecnica;
+    limiteCadastro?: number | null;
+    limiteAtivo?: number | null;
+    permiteCriarNovos?: boolean;
+    usaTemplates?: boolean;
+    tipoGrauCodigo?: string | null;
+    usaVagasPorNivel?: boolean;
+  } = {},
+) {
+  const limite = (valor: number | null) =>
+    valor === null ? { tipo: 'ILIMITADO' } : { tipo: 'QUANTIDADE', valor };
+  return {
+    id: tecnica.id + 1000,
+    tecnicaId: tecnica.id,
+    tipoVinculado: opcoes.tipo ?? TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+    modo: opcoes.modo ?? ModoVinculadoTecnica.CRIAVEL,
+    limitesJson: opcoes.usaVagasPorNivel
+      ? {
+          cadastro: { tipo: 'VAGAS_POR_NIVEL' },
+          ativo: { tipo: 'VAGAS_POR_NIVEL' },
+        }
+      : {
+          cadastro: limite(
+            opcoes.limiteCadastro === undefined ? 1 : opcoes.limiteCadastro,
+          ),
+          ativo: limite(
+            opcoes.limiteAtivo === undefined ? 1 : opcoes.limiteAtivo,
+          ),
+        },
+    regrasJson: {
+      permiteCriarNovos: opcoes.permiteCriarNovos ?? true,
+      usaTemplates: opcoes.usaTemplates ?? false,
+      tipoGrauCodigo:
+        opcoes.tipoGrauCodigo === undefined
+          ? 'TECNICA_SHIKIGAMI'
+          : opcoes.tipoGrauCodigo,
+    },
+    calculoJson: { regra: 'SHIKIGAMI_V1', versao: '1.0.0' },
+    tecnica: { codigo: tecnica.codigo, nome: tecnica.nome },
+  };
+}
+
 function criarPrismaMock(): PrismaMock {
+  const tecnica = criarTecnica();
   return {
     personagemCampanhaEntidadeVinculada: {
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
       findFirst: jest.fn(),
-      findMany: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn(),
     },
     personagemCampanha: {
       findFirst: jest.fn(),
-      findUnique: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue(criarPersonagemAutomacao()),
     },
     npcAmeaca: {
       findFirst: jest.fn(),
@@ -55,8 +158,29 @@ function criarPrismaMock(): PrismaMock {
     },
     npcAmeacaSessao: {
       findFirst: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    tecnicaVinculadoConfig: {
+      findMany: jest.fn().mockResolvedValue([criarConfigTecnica(tecnica)]),
+    },
+    tecnicaVinculadoTemplate: {
+      findFirst: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
     },
   };
+}
+
+function mockTecnica(
+  prisma: PrismaMock,
+  tecnica: ReturnType<typeof criarTecnica> | null,
+  config?: ReturnType<typeof criarConfigTecnica>,
+) {
+  prisma.personagemCampanha.findUnique.mockResolvedValue(
+    criarPersonagemAutomacao(tecnica),
+  );
+  prisma.tecnicaVinculadoConfig.findMany.mockResolvedValue(
+    config ? [config] : [],
+  );
 }
 
 function criarServico() {
@@ -123,6 +247,10 @@ function criarEntidadeMapeavel(data: Record<string, unknown> = {}) {
     tecnicaOrigemId: null,
     tipoGrauCodigo: null,
     npcAmeacaOrigemId: null,
+    templateId: null,
+    precisaRecalculo: false,
+    calculoAutomatico: null,
+    overrideMestre: false,
     fichaTipo: TipoFichaNpcAmeaca.NPC,
     tipoNpc: TipoNpcAmeaca.OUTRO,
     tamanho: TamanhoNpcAmeaca.MEDIO,
@@ -169,6 +297,7 @@ function criarEntidadeMapeavel(data: Record<string, unknown> = {}) {
     tecnicaOrigem: null,
     tipoGrau: null,
     npcAmeacaOrigem: null,
+    template: null,
     criadoPor: { id: 1, apelido: 'Mestre' },
     instanciasSessao: [],
     ...data,
@@ -189,13 +318,14 @@ describe('CampanhaVinculadosService', () => {
       acesso: acessoMestre,
       personagem: { id: 20, donoId: 2 },
     });
-    prisma.npcAmeaca.findUnique.mockResolvedValue(criarOrigemMaldicao());
+    prisma.npcAmeaca.findFirst.mockResolvedValue(criarOrigemMaldicao());
     mockCreateRetornandoDados(prisma);
 
     const resultado = await service.criar(10, 20, 1, {
       tipo: TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA,
       nome: 'Maldicao capturada',
       npcAmeacaOrigemId: 99,
+      overrideMestre: true,
     });
 
     const data =
@@ -218,12 +348,13 @@ describe('CampanhaVinculadosService', () => {
     expect(resultado.pontosVidaMax).toBe(40);
   });
 
-  it('bloqueia maldicao controlada criada por jogador', async () => {
-    const { service, access } = criarServico();
+  it('bloqueia maldicao controlada sem tecnica compativel', async () => {
+    const { service, prisma, access } = criarServico();
     access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
     });
+    mockTecnica(prisma, null);
 
     await expect(
       service.criar(10, 20, 2, {
@@ -231,7 +362,9 @@ describe('CampanhaVinculadosService', () => {
         nome: 'Maldicao',
         npcAmeacaOrigemId: 99,
       }),
-    ).rejects.toMatchObject({ code: 'ENTIDADE_APENAS_MESTRE' });
+    ).rejects.toMatchObject({
+      code: 'ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA',
+    });
   });
 
   it('bloqueia shikigami de personagem sem tecnica compativel', async () => {
@@ -240,15 +373,7 @@ describe('CampanhaVinculadosService', () => {
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
     });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: null,
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
-    });
+    mockTecnica(prisma, null);
 
     await expect(
       service.criar(10, 20, 2, {
@@ -263,43 +388,30 @@ describe('CampanhaVinculadosService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('permite shikigami para personagem com Dez Sombras', async () => {
+  it('bloqueia criacao manual de shikigami com Dez Sombras', async () => {
     const { service, prisma, access } = criarServico();
     access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
     });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: { codigo: 'DEZ_SOMBRAS' },
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
-    });
-    mockCreateRetornandoDados(prisma);
-
-    await service.criar(10, 20, 2, {
-      tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
-      nome: 'Cao Divino',
-      defesa: 14,
-      pontosVidaMax: 18,
-    });
-
-    expect(
-      prisma.personagemCampanhaEntidadeVinculada.create,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
-          nome: 'Cao Divino',
-          defesa: 14,
-          pontosVidaMax: 18,
-          pontosVidaAtual: 18,
-        }),
+    const tecnica = criarTecnica('DEZ_SOMBRAS', 102);
+    mockTecnica(
+      prisma,
+      tecnica,
+      criarConfigTecnica(tecnica, {
+        modo: ModoVinculadoTecnica.PREDEFINIDOS,
+        limiteCadastro: 10,
+        permiteCriarNovos: false,
+        usaTemplates: true,
       }),
     );
+
+    await expect(
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        nome: 'Cao Divino',
+      }),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_CRIACAO_MANUAL_BLOQUEADA' });
   });
 
   it('preserva conceito no snapshot manual', async () => {
@@ -307,15 +419,6 @@ describe('CampanhaVinculadosService', () => {
     access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
-    });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: { codigo: 'TECNICA_SHIKIGAMI' },
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
     });
     mockCreateRetornandoDados(prisma);
 
@@ -337,16 +440,6 @@ describe('CampanhaVinculadosService', () => {
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
     });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: { codigo: 'TECNICA_SHIKIGAMI' },
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
-    });
-
     await expect(
       service.criar(10, 20, 2, {
         tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
@@ -365,15 +458,6 @@ describe('CampanhaVinculadosService', () => {
     access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
-    });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: { codigo: 'TECNICA_SHIKIGAMI' },
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
     });
     prisma.personagemCampanhaEntidadeVinculada.findFirst.mockResolvedValue(
       criarEntidadeMapeavel({ pontosVidaMax: 20, pontosVidaAtual: 12 }),
@@ -395,16 +479,9 @@ describe('CampanhaVinculadosService', () => {
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
     });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: { codigo: 'TECNICA_SHIKIGAMI' },
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
-    });
-    prisma.personagemCampanhaEntidadeVinculada.count.mockResolvedValue(1);
+    prisma.personagemCampanhaEntidadeVinculada.findMany.mockResolvedValue([
+      { vagasOcupadas: 1 },
+    ]);
 
     await expect(
       service.criar(10, 20, 2, {
@@ -414,56 +491,86 @@ describe('CampanhaVinculadosService', () => {
     ).rejects.toMatchObject({ code: 'ENTIDADE_SHIKIGAMI_LIMITE_CADASTRO' });
   });
 
-  it('permite ate dez shikigamis cadastrados com Dez Sombras', async () => {
+  it('permite associar ate dez templates com Dez Sombras', async () => {
     const { service, prisma, access } = criarServico();
     access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
     });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: { codigo: 'DEZ_SOMBRAS' },
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
+    const tecnica = criarTecnica('DEZ_SOMBRAS', 102);
+    mockTecnica(
+      prisma,
+      tecnica,
+      criarConfigTecnica(tecnica, {
+        modo: ModoVinculadoTecnica.PREDEFINIDOS,
+        limiteCadastro: 10,
+        permiteCriarNovos: false,
+        usaTemplates: true,
+      }),
+    );
+    prisma.tecnicaVinculadoTemplate.findFirst.mockResolvedValue({
+      id: 301,
+      tecnicaId: tecnica.id,
+      tipoVinculado: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      nome: 'Mahoraga',
+      descricao: null,
+      conceito: null,
+      aparencia: null,
+      snapshotJson: {},
+      tecnica: { id: tecnica.id, codigo: tecnica.codigo, nome: tecnica.nome },
     });
-    prisma.personagemCampanhaEntidadeVinculada.count.mockResolvedValue(9);
+    prisma.personagemCampanhaEntidadeVinculada.findFirst.mockResolvedValue(
+      null,
+    );
+    prisma.personagemCampanhaEntidadeVinculada.findMany.mockResolvedValue(
+      Array.from({ length: 9 }, () => ({ vagasOcupadas: 1 })),
+    );
     mockCreateRetornandoDados(prisma);
 
-    await service.criar(10, 20, 2, {
-      tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
-      nome: 'Decimo',
-    });
+    await service.associarTemplate(10, 20, 2, 301, {});
 
     expect(
       prisma.personagemCampanhaEntidadeVinculada.create,
     ).toHaveBeenCalled();
   });
 
-  it('bloqueia decimo primeiro shikigami com Dez Sombras', async () => {
+  it('bloqueia decimo primeiro template com Dez Sombras', async () => {
     const { service, prisma, access } = criarServico();
     access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
       acesso: acessoDono,
       personagem: { id: 20, donoId: 2 },
     });
-    prisma.personagemCampanha.findUnique.mockResolvedValue({
-      tecnicaInata: { codigo: 'DEZ_SOMBRAS' },
-      tecnicaInataPropria: null,
-      personagemBase: {
-        tecnicaInata: null,
-        tecnicaInataPropria: null,
-      },
-      tecnicasAprendidas: [],
+    const tecnica = criarTecnica('DEZ_SOMBRAS', 102);
+    mockTecnica(
+      prisma,
+      tecnica,
+      criarConfigTecnica(tecnica, {
+        modo: ModoVinculadoTecnica.PREDEFINIDOS,
+        limiteCadastro: 10,
+        permiteCriarNovos: false,
+        usaTemplates: true,
+      }),
+    );
+    prisma.tecnicaVinculadoTemplate.findFirst.mockResolvedValue({
+      id: 302,
+      tecnicaId: tecnica.id,
+      tipoVinculado: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      nome: 'Nue',
+      descricao: null,
+      conceito: null,
+      aparencia: null,
+      snapshotJson: {},
+      tecnica: { id: tecnica.id, codigo: tecnica.codigo, nome: tecnica.nome },
     });
-    prisma.personagemCampanhaEntidadeVinculada.count.mockResolvedValue(10);
+    prisma.personagemCampanhaEntidadeVinculada.findFirst.mockResolvedValue(
+      null,
+    );
+    prisma.personagemCampanhaEntidadeVinculada.findMany.mockResolvedValue(
+      Array.from({ length: 10 }, () => ({ vagasOcupadas: 1 })),
+    );
 
     await expect(
-      service.criar(10, 20, 2, {
-        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
-        nome: 'Decimo primeiro',
-      }),
+      service.associarTemplate(10, 20, 2, 302, {}),
     ).rejects.toMatchObject({ code: 'ENTIDADE_SHIKIGAMI_LIMITE_CADASTRO' });
   });
 
@@ -485,6 +592,221 @@ describe('CampanhaVinculadosService', () => {
     expect(
       prisma.personagemCampanhaEntidadeVinculada.create,
     ).toHaveBeenCalled();
+  });
+
+  it('nega override de limites para jogador comum', async () => {
+    const { service, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+
+    await expect(
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        nome: 'Extra',
+        overrideMestre: true,
+      }),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_OVERRIDE_NEGADO' });
+  });
+
+  it('respeita vagas de cadastro de corpo pesado pelo nivel', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    const tecnica = criarTecnica('MANIPULACAO_FANTOCHES', 103);
+    const personagemNivel1 = criarPersonagemAutomacao(tecnica);
+    personagemNivel1.nivel = 1;
+    prisma.personagemCampanha.findUnique.mockResolvedValue(personagemNivel1);
+    prisma.tecnicaVinculadoConfig.findMany.mockResolvedValue([
+      criarConfigTecnica(tecnica, {
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        tipoGrauCodigo: 'TECNICA_CADAVERES',
+        usaVagasPorNivel: true,
+      }),
+    ]);
+
+    await expect(
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        nome: 'Corpo pesado',
+        vagasOcupadas: 2,
+      }),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_LIMITE_CADASTRO' });
+
+    const personagemNivel5 = criarPersonagemAutomacao(tecnica);
+    prisma.personagemCampanha.findUnique.mockResolvedValue(personagemNivel5);
+    mockCreateRetornandoDados(prisma);
+    await expect(
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        nome: 'Corpo pesado',
+        vagasOcupadas: 2,
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it('nao permite aumentar vagas por edicao acima da capacidade', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    const tecnica = criarTecnica('MANIPULACAO_FANTOCHES', 103);
+    const personagem = criarPersonagemAutomacao(tecnica);
+    personagem.nivel = 1;
+    prisma.personagemCampanha.findUnique.mockResolvedValue(personagem);
+    prisma.tecnicaVinculadoConfig.findMany.mockResolvedValue([
+      criarConfigTecnica(tecnica, {
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        tipoGrauCodigo: 'TECNICA_CADAVERES',
+        usaVagasPorNivel: true,
+      }),
+    ]);
+    prisma.personagemCampanhaEntidadeVinculada.findFirst.mockResolvedValue(
+      criarEntidadeMapeavel({
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        tecnicaOrigemId: tecnica.id,
+        vagasOcupadas: 1,
+      }),
+    );
+
+    await expect(
+      service.atualizar(10, 20, 2, 500, { vagasOcupadas: 2 }),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_LIMITE_CADASTRO' });
+  });
+
+  it('nao permite duplicar para contornar limite de cadastro', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    prisma.personagemCampanhaEntidadeVinculada.findFirst.mockResolvedValue(
+      criarEntidadeMapeavel({ tecnicaOrigemId: 101 }),
+    );
+    prisma.personagemCampanhaEntidadeVinculada.findMany.mockResolvedValue([
+      { vagasOcupadas: 1 },
+    ]);
+
+    await expect(service.duplicar(10, 20, 2, 500)).rejects.toMatchObject({
+      code: 'ENTIDADE_SHIKIGAMI_LIMITE_CADASTRO',
+    });
+  });
+
+  it('rejeita tecnica de origem que nao habilita o tipo escolhido', async () => {
+    const { service, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+
+    await expect(
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        nome: 'Origem invalida',
+        tecnicaOrigemId: 999,
+      }),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_TECNICA_ORIGEM_INVALIDA' });
+  });
+
+  it('lista capacidades de cadastro e atividade resolvidas pela tecnica', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+
+    const resultado = await service.listarCapacidades(10, 20, 2);
+
+    expect(resultado.tipos).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+          habilitado: true,
+          cadastro: expect.objectContaining({ usado: 0, maximo: 1 }),
+          ativo: expect.objectContaining({ usado: 0, maximo: 1 }),
+        }),
+      ]),
+    );
+    expect(prisma.npcAmeacaSessao.findMany).toHaveBeenCalled();
+  });
+
+  it('recalcula vinculado automatico preservando distribuicao', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    prisma.personagemCampanhaEntidadeVinculada.findFirst.mockResolvedValue(
+      criarEntidadeMapeavel({
+        tecnicaOrigemId: 101,
+        precisaRecalculo: true,
+        calculoAutomatico: {
+          derivados: { pontosVidaMax: 30 },
+          papel: 'FLEXIVEL',
+        },
+        agilidade: 2,
+        forca: 1,
+        intelecto: 1,
+        presenca: 1,
+        vigor: 1,
+      }),
+    );
+    prisma.personagemCampanhaEntidadeVinculada.update.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve(criarEntidadeMapeavel(data)),
+    );
+
+    const resultado = await service.recalcular(10, 20, 2, 500);
+
+    expect(resultado.precisaRecalculo).toBe(false);
+    expect(resultado.calculoAutomatico).toMatchObject({
+      versaoRegra: '1.0.0',
+      pools: { atributosDistribuidos: 6, atributosMax: 8 },
+      pendencias: { atributos: 2 },
+    });
+    expect(
+      prisma.personagemCampanhaEntidadeVinculada.update,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ precisaRecalculo: false }),
+      }),
+    );
+  });
+
+  it('permite jogador importar maldicao quando possui tecnica compativel', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    const tecnica = criarTecnica('MANIPULACAO_MALDICAO', 104);
+    mockTecnica(
+      prisma,
+      tecnica,
+      criarConfigTecnica(tecnica, {
+        tipo: TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA,
+        limiteCadastro: null,
+        limiteAtivo: null,
+        tipoGrauCodigo: null,
+      }),
+    );
+    prisma.npcAmeaca.findFirst.mockResolvedValue(criarOrigemMaldicao());
+    mockCreateRetornandoDados(prisma);
+
+    const resultado = await service.criar(10, 20, 2, {
+      tipo: TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA,
+      nome: 'Maldicao capturada',
+      npcAmeacaOrigemId: 99,
+    });
+
+    expect(resultado.pontosVidaMax).toBe(40);
+    expect(prisma.npcAmeaca.findFirst).toHaveBeenCalledWith({
+      where: { id: 99, donoId: 2 },
+    });
   });
 
   it('concede maldicao controlada apenas pelo mestre', async () => {

@@ -8,6 +8,7 @@ import {
 import { BusinessException } from 'src/common/exceptions/business.exception';
 import {
   EstadoEntidadeVinculadaPersonagem,
+  ModoVinculadoTecnica,
   TipoEntidadeVinculadaPersonagem,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
@@ -533,9 +534,51 @@ describe('SessaoService', () => {
         personagemCampanhaId: 20,
         vagasOcupadas: 1,
         limites: { limiteAtivo: 2 },
+        overrideMestre: true,
         personagemCampanha: { nivel: 1 },
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it('usa limite ativo declarado pela tecnica do shikigami', async () => {
+    const tx = {
+      tecnicaVinculadoConfig: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 80,
+          tecnicaId: 90,
+          tipoVinculado: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+          modo: ModoVinculadoTecnica.HIBRIDO,
+          limitesJson: {
+            cadastro: { tipo: 'QUANTIDADE', valor: 3 },
+            ativo: { tipo: 'QUANTIDADE', valor: 2 },
+          },
+          regrasJson: { permiteCriarNovos: true, usaTemplates: true },
+          calculoJson: { regra: 'SHIKIGAMI_V1', versao: '1.0.0' },
+          tecnica: { codigo: 'SHIKIGAMI_HIBRIDO', nome: 'Hibrido' },
+        }),
+      },
+      npcAmeacaSessao: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { entidadeVinculadaId: 501, entidadeVinculada: { id: 501 } },
+          ]),
+      },
+    };
+
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(tx, 21, {
+        id: 500,
+        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        personagemCampanhaId: 20,
+        tecnicaOrigemId: 90,
+        vagasOcupadas: 1,
+        limites: null,
+        overrideMestre: false,
+        personagemCampanha: { nivel: 5 },
+      }),
+    ).resolves.toBeUndefined();
+    expect(tx.tecnicaVinculadoConfig.findFirst).toHaveBeenCalled();
   });
 
   it('respeita vagas de corpo pesado pelo nivel do personagem', async () => {
