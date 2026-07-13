@@ -368,6 +368,21 @@ enum TamanhoNpcAmeaca {
   COLOSSAL
 }
 
+enum TipoEntidadeVinculadaPersonagem {
+  SHIKIGAMI
+  CORPO_AMALDICOADO
+  MALDICAO_CONTROLADA
+}
+
+enum EstadoEntidadeVinculadaPersonagem {
+  DISPONIVEL
+  ATIVO
+  DESTRUIDO
+  SELADO
+  DESCARREGADO
+  ARQUIVADO
+}
+
 // ========================================
 // ✅ USUÁRIOS E CAMPANHAS
 // ========================================
@@ -398,6 +413,7 @@ model Usuario {
   historicosPersonagemCampanha             PersonagemCampanhaHistorico[]
   modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaCriadoPor")
   modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaDesfeitoPor")
+  entidadesVinculadasCriadas               PersonagemCampanhaEntidadeVinculada[]  @relation("EntidadeVinculadaCriadaPor")
   sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoCriadaPor")
   sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoDesativadaPor")
   npcsAmeacas                              NpcAmeaca[]
@@ -644,7 +660,7 @@ model Campanha {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  dono                      Usuario                           @relation("CampanhasDoDono", fields: [donoId], references: [id], onDelete: Cascade)
+  dono                      Usuario                               @relation("CampanhasDoDono", fields: [donoId], references: [id], onDelete: Cascade)
   membros                   MembroCampanha[]
   personagens               PersonagemCampanha[]
   historicoPersonagens      PersonagemCampanhaHistorico[]
@@ -656,6 +672,7 @@ model Campanha {
   itensSessao               ItemSessaoCampanha[]
   templatesItensSessao      TemplateItemSessaoCampanha[]
   transferenciasItensSessao TransferenciaItemSessaoCampanha[]
+  entidadesVinculadas       PersonagemCampanhaEntidadeVinculada[]
 
   @@index([donoId])
   @@index([donoId, criadoEm])
@@ -852,9 +869,10 @@ model NpcAmeaca {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  dono             Usuario              @relation(fields: [donoId], references: [id], onDelete: Cascade)
-  instanciasSessao NpcAmeacaSessao[]
-  grupos           NpcAmeacaGrupoItem[]
+  dono                      Usuario                               @relation(fields: [donoId], references: [id], onDelete: Cascade)
+  instanciasSessao          NpcAmeacaSessao[]
+  entidadesVinculadasOrigem PersonagemCampanhaEntidadeVinculada[] @relation("EntidadeVinculadaNpcOrigem")
+  grupos                    NpcAmeacaGrupoItem[]
 
   @@index([donoId])
   @@index([donoId, nome])
@@ -932,15 +950,17 @@ model PersonagemCampanha {
 
   personagensSessao                PersonagemSessao[]
   habilidadesCampanha              HabilidadePersonagemCampanha[]
-  inventarioItens                  InventarioItemCampanha[]          @relation("InventarioCampanha")
+  inventarioItens                  InventarioItemCampanha[]              @relation("InventarioCampanha")
   itensSessao                      ItemSessaoCampanha[]
-  transferenciasItensSessaoOrigem  TransferenciaItemSessaoCampanha[] @relation("TransferenciaItemSessaoOrigem")
-  transferenciasItensSessaoDestino TransferenciaItemSessaoCampanha[] @relation("TransferenciaItemSessaoDestino")
+  transferenciasItensSessaoOrigem  TransferenciaItemSessaoCampanha[]     @relation("TransferenciaItemSessaoOrigem")
+  transferenciasItensSessaoDestino TransferenciaItemSessaoCampanha[]     @relation("TransferenciaItemSessaoDestino")
   grausAprimoramento               GrauPersonagemCampanha[]
   poderesGenericos                 PoderGenericoPersonagemCampanha[]
   tecnicasAprendidas               PersonagemCampanhaTecnica[]
   historico                        PersonagemCampanhaHistorico[]
   modificadores                    PersonagemCampanhaModificador[]
+  entidadesVinculadas              PersonagemCampanhaEntidadeVinculada[]
+  entidadesSessaoComoDono          NpcAmeacaSessao[]                     @relation("NpcSessaoDonoPersonagem")
 
   @@unique([campanhaId, personagemBaseId])
   @@index([campanhaId])
@@ -1154,55 +1174,138 @@ model Cena {
   itensSessao ItemSessaoCampanha[]
 }
 
-model NpcAmeacaSessao {
-  id                 Int                @id @default(autoincrement())
-  sessaoId           Int
-  cenaId             Int?
-  npcAmeacaId        Int?
-  nomeExibicao       String
-  fichaTipo          TipoFichaNpcAmeaca @default(AMEACA)
-  tipo               TipoNpcAmeaca
-  tamanho            TamanhoNpcAmeaca?  @default(MEDIO)
-  vd                 Int                @default(0)
-  iniciativaValor    Int?
-  defesa             Int                @default(10)
-  pontosVidaAtual    Int                @default(1)
-  pontosVidaMax      Int                @default(1)
-  sanAtual           Int?
-  sanMax             Int?
-  eaAtual            Int?
-  eaMax              Int?
-  machucado          Int?
-  agilidade          Int?
-  forca              Int?
-  intelecto          Int?
-  presenca           Int?
-  vigor              Int?
-  percepcao          Int?
-  iniciativa         Int?
-  fortitude          Int?
-  reflexos           Int?
-  vontade            Int?
-  luta               Int?
-  jujutsu            Int?
-  deslocamentoMetros Int                @default(6)
-  passivasGuia       Json?
-  acoesGuia          Json?
-  notasCena          String?            @db.Text
-  ocultoJogadores    Boolean            @default(false)
-  criadoEm           DateTime           @default(now())
-  atualizadoEm       DateTime           @updatedAt
+model PersonagemCampanhaEntidadeVinculada {
+  id                   Int                               @id @default(autoincrement())
+  campanhaId           Int
+  personagemCampanhaId Int
+  tipo                 TipoEntidadeVinculadaPersonagem
+  estado               EstadoEntidadeVinculadaPersonagem @default(DISPONIVEL)
+  nome                 String                            @db.VarChar(120)
+  descricao            String?                           @db.Text
+  conceito             String?                           @db.Text
+  aparencia            String?                           @db.Text
+  nivelReferencia      Int?
+  grauReferencia       Int?
+  tecnicaOrigemId      Int?
+  tipoGrauCodigo       String?
+  npcAmeacaOrigemId    Int?
+  fichaTipo            TipoFichaNpcAmeaca                @default(NPC)
+  tipoNpc              TipoNpcAmeaca                     @default(OUTRO)
+  tamanho              TamanhoNpcAmeaca                  @default(MEDIO)
+  vd                   Int                               @default(0)
+  agilidade            Int                               @default(0)
+  forca                Int                               @default(0)
+  intelecto            Int                               @default(0)
+  presenca             Int                               @default(0)
+  vigor                Int                               @default(0)
+  percepcao            Int                               @default(0)
+  iniciativa           Int                               @default(0)
+  fortitude            Int                               @default(0)
+  reflexos             Int                               @default(0)
+  vontade              Int                               @default(0)
+  luta                 Int                               @default(0)
+  jujutsu              Int                               @default(0)
+  defesa               Int                               @default(10)
+  pontosVidaMax        Int                               @default(1)
+  pontosVidaAtual      Int                               @default(1)
+  rd                   Int                               @default(0)
+  deslocamentoMetros   Int                               @default(6)
+  vagasOcupadas        Int                               @default(1)
+  cargasMax            Int?
+  cargasAtual          Int?
+  periciasEspeciais    Json?
+  resistencias         Json?
+  vulnerabilidades     Json?
+  passivas             Json?
+  acoes                Json?
+  habilidades          Json?
+  custos               Json?
+  limites              Json?
+  config               Json?
+  criadoPorId          Int?
+  criadoEm             DateTime                          @default(now()) @map("criado_em")
+  atualizadoEm         DateTime                          @updatedAt @map("atualizado_em")
 
-  sessao                           Sessao                            @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
-  cena                             Cena?                             @relation(fields: [cenaId], references: [id], onDelete: SetNull)
-  npcAmeaca                        NpcAmeaca?                        @relation(fields: [npcAmeacaId], references: [id], onDelete: SetNull)
+  campanha           Campanha            @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  personagemCampanha PersonagemCampanha  @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  tecnicaOrigem      TecnicaAmaldicoada? @relation("EntidadeVinculadaTecnicaOrigem", fields: [tecnicaOrigemId], references: [id], onDelete: SetNull)
+  tipoGrau           TipoGrau?           @relation("EntidadeVinculadaTipoGrau", fields: [tipoGrauCodigo], references: [codigo], onDelete: SetNull)
+  npcAmeacaOrigem    NpcAmeaca?          @relation("EntidadeVinculadaNpcOrigem", fields: [npcAmeacaOrigemId], references: [id], onDelete: SetNull)
+  criadoPor          Usuario?            @relation("EntidadeVinculadaCriadaPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  instanciasSessao   NpcAmeacaSessao[]
+
+  @@index([campanhaId], map: "idx_ent_vinc_campanha")
+  @@index([personagemCampanhaId], map: "idx_ent_vinc_personagem")
+  @@index([campanhaId, tipo], map: "idx_ent_vinc_campanha_tipo")
+  @@index([personagemCampanhaId, tipo], map: "idx_ent_vinc_personagem_tipo")
+  @@index([personagemCampanhaId, estado], map: "idx_ent_vinc_personagem_estado")
+  @@index([tecnicaOrigemId], map: "idx_ent_vinc_tecnica")
+  @@index([tipoGrauCodigo], map: "idx_ent_vinc_tipo_grau")
+  @@index([npcAmeacaOrigemId], map: "idx_ent_vinc_npc_origem")
+  @@index([criadoPorId], map: "idx_ent_vinc_criado_por")
+  @@map("personagem_campanha_entidades_vinculadas")
+}
+
+model NpcAmeacaSessao {
+  id                            Int                              @id @default(autoincrement())
+  sessaoId                      Int
+  cenaId                        Int?
+  npcAmeacaId                   Int?
+  entidadeVinculadaId           Int?
+  personagemDonoId              Int?
+  personagemControladorSessaoId Int?
+  tipoVinculo                   TipoEntidadeVinculadaPersonagem?
+  nomeExibicao                  String
+  fichaTipo                     TipoFichaNpcAmeaca               @default(AMEACA)
+  tipo                          TipoNpcAmeaca
+  tamanho                       TamanhoNpcAmeaca?                @default(MEDIO)
+  vd                            Int                              @default(0)
+  iniciativaValor               Int?
+  defesa                        Int                              @default(10)
+  pontosVidaAtual               Int                              @default(1)
+  pontosVidaMax                 Int                              @default(1)
+  sanAtual                      Int?
+  sanMax                        Int?
+  eaAtual                       Int?
+  eaMax                         Int?
+  machucado                     Int?
+  agilidade                     Int?
+  forca                         Int?
+  intelecto                     Int?
+  presenca                      Int?
+  vigor                         Int?
+  percepcao                     Int?
+  iniciativa                    Int?
+  fortitude                     Int?
+  reflexos                      Int?
+  vontade                       Int?
+  luta                          Int?
+  jujutsu                       Int?
+  deslocamentoMetros            Int                              @default(6)
+  passivasGuia                  Json?
+  acoesGuia                     Json?
+  notasCena                     String?                          @db.Text
+  ocultoJogadores               Boolean                          @default(false)
+  criadoEm                      DateTime                         @default(now())
+  atualizadoEm                  DateTime                         @updatedAt
+
+  sessao                           Sessao                               @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+  cena                             Cena?                                @relation(fields: [cenaId], references: [id], onDelete: SetNull)
+  npcAmeaca                        NpcAmeaca?                           @relation(fields: [npcAmeacaId], references: [id], onDelete: SetNull)
+  entidadeVinculada                PersonagemCampanhaEntidadeVinculada? @relation(fields: [entidadeVinculadaId], references: [id], onDelete: SetNull)
+  personagemDono                   PersonagemCampanha?                  @relation("NpcSessaoDonoPersonagem", fields: [personagemDonoId], references: [id], onDelete: SetNull)
+  personagemControladorSessao      PersonagemSessao?                    @relation("NpcSessaoControladorPersonagem", fields: [personagemControladorSessaoId], references: [id], onDelete: SetNull)
   condicoes                        CondicaoPersonagemSessao[]
   transferenciasItensSessaoDestino TransferenciaItemSessaoCampanha[]
 
   @@index([sessaoId])
   @@index([cenaId])
   @@index([npcAmeacaId])
+  @@index([entidadeVinculadaId])
+  @@index([personagemDonoId])
+  @@index([personagemControladorSessaoId])
   @@index([sessaoId, cenaId])
+  @@index([sessaoId, entidadeVinculadaId])
 }
 
 model PersonagemSessao {
@@ -1220,6 +1323,7 @@ model PersonagemSessao {
   habilidadesSustentadas PersonagemSessaoHabilidadeSustentada[]
   eventosComoAtor        EventoSessao[]                         @relation("EventosComoAtor")
   eventosComoAlvo        EventoSessao[]                         @relation("EventosComoAlvo")
+  npcsControlados        NpcAmeacaSessao[]                      @relation("NpcSessaoControladorPersonagem")
 }
 
 model PersonagemSessaoHabilidadeSustentada {
@@ -1588,9 +1692,10 @@ model TipoGrau {
   nome      String
   descricao String? @db.Text
 
-  grausBase                  GrauPersonagemBase[]
-  grausAprimoramentoCampanha GrauPersonagemCampanha[]
+  grausBase                       GrauPersonagemBase[]
+  grausAprimoramentoCampanha      GrauPersonagemCampanha[]
   modificadoresPersonagemCampanha PersonagemCampanhaModificador[]
+  entidadesVinculadas             PersonagemCampanhaEntidadeVinculada[] @relation("EntidadeVinculadaTipoGrau")
 
   efeitosHabilidades HabilidadeEfeitoGrau[]
 }
@@ -1751,9 +1856,9 @@ model Pericia {
   penalizaPorCarga Boolean @default(false)
   precisaKit       Boolean @default(false)
 
-  personagensBase PersonagemBasePericia[]
-  origens         OrigemPericia[]
-  classes         ClassePericia[]
+  personagensBase                 PersonagemBasePericia[]
+  origens                         OrigemPericia[]
+  classes                         ClassePericia[]
   modificadoresPersonagemCampanha PersonagemCampanhaModificador[]
 }
 
@@ -2424,6 +2529,7 @@ model TecnicaAmaldicoada {
   // ✅ Personagens que aprenderam técnicas não-inatas
   personagensBaseAprendeu     PersonagemBaseTecnica[]
   personagensCampanhaAprendeu PersonagemCampanhaTecnica[]
+  entidadesVinculadasOrigem   PersonagemCampanhaEntidadeVinculada[] @relation("EntidadeVinculadaTecnicaOrigem")
 
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
