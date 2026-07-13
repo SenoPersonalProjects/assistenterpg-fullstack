@@ -19,6 +19,7 @@ describe('SessaoController', () => {
     avancarTurnoSessao: jest.fn(),
     voltarTurnoSessao: jest.fn(),
     pularTurnoSessao: jest.fn(),
+    reprocessarEfeitosAutomaticosTurnoSessao: jest.fn(),
     atualizarOrdemIniciativaSessao: jest.fn(),
     encerrarSessaoCampanha: jest.fn(),
     atualizarCenaSessao: jest.fn(),
@@ -231,9 +232,15 @@ describe('SessaoController', () => {
   it('deve emitir evento ao voltar turno', async () => {
     sessaoServiceMock.voltarTurnoSessao.mockResolvedValue({ id: 12 });
 
-    await controller.voltarTurnoSessao(7, 12, { user: { id: 3 } });
+    const precondicao = { rodadaEsperada: 2, indiceTurnoEsperado: 1 };
+    await controller.voltarTurnoSessao(7, 12, { user: { id: 3 } }, precondicao);
 
-    expect(sessaoServiceMock.voltarTurnoSessao).toHaveBeenCalledWith(7, 12, 3);
+    expect(sessaoServiceMock.voltarTurnoSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      precondicao,
+    );
     expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
       7,
       12,
@@ -244,13 +251,38 @@ describe('SessaoController', () => {
   it('deve emitir evento ao pular turno', async () => {
     sessaoServiceMock.pularTurnoSessao.mockResolvedValue({ id: 12 });
 
-    await controller.pularTurnoSessao(7, 12, { user: { id: 3 } });
+    const precondicao = { rodadaEsperada: 2, indiceTurnoEsperado: 1 };
+    await controller.pularTurnoSessao(7, 12, { user: { id: 3 } }, precondicao);
 
-    expect(sessaoServiceMock.pularTurnoSessao).toHaveBeenCalledWith(7, 12, 3);
+    expect(sessaoServiceMock.pularTurnoSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      precondicao,
+    );
     expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
       7,
       12,
       'TURNO_PULADO',
+    );
+  });
+
+  it('reprocessa efeitos e emite realtime somente após sucesso', async () => {
+    sessaoServiceMock.reprocessarEfeitosAutomaticosTurnoSessao.mockResolvedValue(
+      { id: 12, efeitosTurnoPendentes: null },
+    );
+
+    await controller.reprocessarEfeitosAutomaticosTurnoSessao(7, 12, 91, {
+      user: { id: 3 },
+    });
+
+    expect(
+      sessaoServiceMock.reprocessarEfeitosAutomaticosTurnoSessao,
+    ).toHaveBeenCalledWith(7, 12, 91, 3);
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'EFEITOS_TURNO_REPROCESSADOS',
     );
   });
 

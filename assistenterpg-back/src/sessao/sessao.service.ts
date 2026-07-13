@@ -21,6 +21,9 @@ import {
   SessaoOrdemIniciativaInvalidaException,
   SessaoEventoNaoEncontradoException,
   SessaoCampanhaNaoEncontradaException,
+  SessaoEfeitosTurnoFalharamException,
+  SessaoEfeitosTurnoPendentesException,
+  SessaoTurnoDesatualizadoException,
   SessaoTurnoIndisponivelEmCenaLivreException,
   UsuarioNaoEncontradoException,
 } from 'src/common/exceptions/campanha.exception';
@@ -84,6 +87,11 @@ import {
   executarComRetryConcorrencia,
 } from 'src/campanha/campanha-concorrencia';
 import { assertSessaoMutavel } from './sessao-mutabilidade';
+import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
+import {
+  bloquearEventoSessaoTx,
+  bloquearSessaoTx,
+} from './sessao-concorrencia';
 
 type AcessoCampanha = {
   campanha: {
@@ -354,18 +362,57 @@ type OrdemIniciativaEvento = {
 
 type AcaoAjusteTurnoSessao = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
+type StatusPassoEfeitosTurno = 'PENDENTE' | 'ERRO' | 'CONCLUIDO';
+type TipoPassoEfeitosTurno =
+  | 'SUSTENTACOES_RODADA'
+  | 'CONDICOES_RODADA'
+  | 'CONDICOES_PARTICIPANTE';
+
+type PassoEfeitosTurnoSessao = {
+  chave: string;
+  tipo: TipoPassoEfeitosTurno;
+  status: StatusPassoEfeitosTurno;
+  tipoParticipante?: TipoParticipanteIniciativa;
+  personagemSessaoId?: number | null;
+  npcSessaoId?: number | null;
+};
+
+type ContextoEfeitosTurnoSessao = {
+  versao: 2;
+  status: StatusPassoEfeitosTurno;
+  acao: AcaoAjusteTurnoSessao;
+  cenaId: number;
+  rodadaAnterior: number;
+  rodadaNova: number;
+  passos: PassoEfeitosTurnoSessao[];
+  tentativas: number;
+  atualizadoEm: string;
+  ultimaFalhaEm?: string;
+};
+
 type ProcessamentoEfeitosTurnoSessao = {
   eventoId: number;
   campanhaId: number;
   sessaoId: number;
-  cenaId: number;
+  contexto: ContextoEfeitosTurnoSessao;
+};
+
+type EfeitosTurnoPendentesResumo = {
+  eventoId: number;
+  status: 'PENDENTE' | 'ERRO';
+  acao: AcaoAjusteTurnoSessao;
   rodadaAnterior: number;
   rodadaNova: number;
-  acao: AcaoAjusteTurnoSessao;
-  participantesTurnoNovos: ParticipanteIniciativa[];
-  processarCondicoes: boolean;
-  cobrarSustentacoes: boolean;
+  tentativas: number;
 };
+
+const TIPOS_EVENTO_AJUSTE_TURNO = [
+  'TURNO_AVANCADO',
+  'TURNO_RECUADO',
+  'TURNO_PULADO',
+  'INICIATIVA_ALTERNADA_AVANCADA',
+  'INICIATIVA_ALTERNADA_RECUADA',
+] as const;
 
 type VariacaoTecnicaSessaoResumo = {
   id: number;
@@ -841,6 +888,17 @@ export class SessaoService {
 
       if (sessao.status === 'ENCERRADA') {
         return;
+      }
+      const efeitosPendentes = await this.obterEfeitosTurnoPendentesTx(
+        tx,
+        sessaoId,
+      );
+      if (efeitosPendentes) {
+        throw new SessaoEfeitosTurnoPendentesException(
+          campanhaId,
+          sessaoId,
+          efeitosPendentes.eventoId,
+        );
       }
 
       await tx.sessao.update({
@@ -1579,6 +1637,10 @@ export class SessaoService {
               ),
             )
         : this.estadoIniciativaAlternadaInativo();
+    const efeitosTurnoPendentes = await this.obterEfeitosTurnoPendentesTx(
+      this.prisma,
+      sessaoId,
+    );
 
     return {
       id: sessao.id,
@@ -1630,6 +1692,7 @@ export class SessaoService {
       },
       regrasOpcionais,
       iniciativaAlternada,
+      efeitosTurnoPendentes,
       participantes: this.mapearParticipantesCampanha(acesso.campanha),
       cards: personagensOrdenados.map((personagem) => {
         const podeEditar =
@@ -3448,12 +3511,14 @@ export class SessaoService {
     campanhaId: number,
     sessaoId: number,
     usuarioId: number,
+    dto: ControleTurnoSessaoDto,
   ) {
     const processamento = await this.aplicarAjusteTurnoSessao(
       campanhaId,
       sessaoId,
       usuarioId,
       'AVANCAR',
+      dto,
     );
     await this.processarEfeitosAutomaticosTurnoSessao(processamento);
 
@@ -3464,12 +3529,14 @@ export class SessaoService {
     campanhaId: number,
     sessaoId: number,
     usuarioId: number,
+    dto: ControleTurnoSessaoDto,
   ) {
     const processamento = await this.aplicarAjusteTurnoSessao(
       campanhaId,
       sessaoId,
       usuarioId,
       'VOLTAR',
+      dto,
     );
     await this.processarEfeitosAutomaticosTurnoSessao(processamento);
 
@@ -3480,12 +3547,14 @@ export class SessaoService {
     campanhaId: number,
     sessaoId: number,
     usuarioId: number,
+    dto: ControleTurnoSessaoDto,
   ) {
     const processamento = await this.aplicarAjusteTurnoSessao(
       campanhaId,
       sessaoId,
       usuarioId,
       'PULAR',
+      dto,
     );
     await this.processarEfeitosAutomaticosTurnoSessao(processamento);
 
@@ -6690,14 +6759,53 @@ export class SessaoService {
     campanhaId: number,
     sessaoId: number,
     usuarioId: number,
+    dto: ControleTurnoSessaoDto,
   ) {
     const processamento = await this.aplicarAjusteTurnoSessao(
       campanhaId,
       sessaoId,
       usuarioId,
       'AVANCAR',
+      dto,
     );
     await this.processarEfeitosAutomaticosTurnoSessao(processamento);
+
+    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+  }
+
+  async reprocessarEfeitosAutomaticosTurnoSessao(
+    campanhaId: number,
+    sessaoId: number,
+    eventoId: number,
+    usuarioId: number,
+  ) {
+    const { acesso, sessao } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    assertSessaoMutavel(
+      sessao,
+      campanhaId,
+      sessaoId,
+      'reprocessar efeitos automáticos do turno',
+    );
+    this.assertMestre(acesso, 'reprocessar efeitos automáticos do turno');
+
+    const processamento = await this.obterProcessamentoEfeitosTurnoPorEvento(
+      campanhaId,
+      sessaoId,
+      eventoId,
+    );
+    const concluido =
+      await this.processarEfeitosAutomaticosTurnoSessao(processamento);
+    if (!concluido) {
+      throw new SessaoEfeitosTurnoFalharamException(
+        campanhaId,
+        sessaoId,
+        eventoId,
+      );
+    }
 
     return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
   }
@@ -8654,6 +8762,7 @@ export class SessaoService {
       usuarioId: number;
       acesso: AcessoCampanha;
       acao: AcaoAjusteTurnoSessao;
+      ladoAtualIdEsperado?: number;
     },
   ): Promise<ProcessamentoEfeitosTurnoSessao | null> {
     const participantes = await this.carregarParticipantesIniciativa(
@@ -8683,6 +8792,12 @@ export class SessaoService {
     });
     if (!iniciativa || iniciativa.lados.length === 0) {
       return null;
+    }
+    if (iniciativa.ladoAtualId !== args.ladoAtualIdEsperado) {
+      throw new SessaoTurnoDesatualizadoException(
+        args.campanhaId,
+        args.sessao.id,
+      );
     }
 
     const lados = iniciativa.lados.slice().sort((a, b) => a.ordem - b.ordem);
@@ -8734,6 +8849,16 @@ export class SessaoService {
         Boolean(participante),
       );
 
+    const contextoEfeitos = this.criarContextoEfeitosTurno({
+      acao: args.acao,
+      cenaId: args.cenaId,
+      rodadaAnterior,
+      rodadaNova,
+      participantesTurnoNovos:
+        args.acao === 'VOLTAR' ? [] : participantesTurnoNovos,
+      processarCondicoes: args.acao !== 'VOLTAR',
+      cobrarSustentacoes: rodadaNova > rodadaAnterior,
+    });
     const evento = await tx.eventoSessao.create({
       data: {
         sessaoId: args.sessao.id,
@@ -8750,9 +8875,7 @@ export class SessaoService {
           rodadaAnterior,
           rodadaNova,
           ajustadoPorId: args.usuarioId,
-          efeitosAutomaticos: {
-            status: 'PENDENTE',
-          },
+          efeitosAutomaticos: contextoEfeitos,
         }),
       },
       select: {
@@ -8764,13 +8887,7 @@ export class SessaoService {
       eventoId: evento.id,
       campanhaId: args.campanhaId,
       sessaoId: args.sessao.id,
-      cenaId: args.cenaId,
-      rodadaAnterior,
-      rodadaNova,
-      acao: args.acao,
-      participantesTurnoNovos,
-      processarCondicoes: args.acao !== 'VOLTAR',
-      cobrarSustentacoes: rodadaNova > rodadaAnterior,
+      contexto: contextoEfeitos,
     };
   }
 
@@ -9399,6 +9516,17 @@ export class SessaoService {
       usuarioId,
     );
     assertSessaoMutavel(contexto.sessao, campanhaId, sessaoId, acao);
+    const efeitosPendentes = await this.obterEfeitosTurnoPendentesTx(
+      this.prisma,
+      sessaoId,
+    );
+    if (efeitosPendentes) {
+      throw new SessaoEfeitosTurnoPendentesException(
+        campanhaId,
+        sessaoId,
+        efeitosPendentes.eventoId,
+      );
+    }
     return contexto;
   }
 
@@ -9420,6 +9548,17 @@ export class SessaoService {
       throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
     }
     assertSessaoMutavel(sessao, campanhaId, sessaoId, acao);
+    const efeitosPendentes = await this.obterEfeitosTurnoPendentesTx(
+      tx,
+      sessaoId,
+    );
+    if (efeitosPendentes) {
+      throw new SessaoEfeitosTurnoPendentesException(
+        campanhaId,
+        sessaoId,
+        efeitosPendentes.eventoId,
+      );
+    }
     return sessao;
   }
 
@@ -10826,6 +10965,7 @@ export class SessaoService {
     sessaoId: number,
     usuarioId: number,
     acao: AcaoAjusteTurnoSessao,
+    dto: ControleTurnoSessaoDto,
   ): Promise<ProcessamentoEfeitosTurnoSessao | null> {
     const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
@@ -10847,6 +10987,7 @@ export class SessaoService {
     );
 
     return this.prisma.$transaction(async (tx) => {
+      await bloquearSessaoTx(tx, campanhaId, sessaoId);
       const sessao = await tx.sessao.findUnique({
         where: { id: sessaoId },
       });
@@ -10864,6 +11005,21 @@ export class SessaoService {
             ? 'pular turno'
             : 'avançar turno',
       );
+
+      const efeitosPendentes = await this.obterEfeitosTurnoPendentesTx(
+        tx,
+        sessaoId,
+      );
+      if (efeitosPendentes) {
+        throw new SessaoEfeitosTurnoPendentesException(
+          campanhaId,
+          sessaoId,
+          efeitosPendentes.eventoId,
+        );
+      }
+      if (sessao.rodadaAtual !== dto.rodadaEsperada) {
+        throw new SessaoTurnoDesatualizadoException(campanhaId, sessaoId);
+      }
 
       if (sessao.cenaAtualTipo === 'LIVRE') {
         throw new SessaoTurnoIndisponivelEmCenaLivreException(
@@ -10897,6 +11053,7 @@ export class SessaoService {
           usuarioId,
           acesso,
           acao,
+          ladoAtualIdEsperado: dto.ladoAtualIdEsperado,
         });
       }
 
@@ -10924,6 +11081,9 @@ export class SessaoService {
         sessao.indiceTurnoAtual,
         participantes.length,
       );
+      if (dto.indiceTurnoEsperado !== indiceAnterior) {
+        throw new SessaoTurnoDesatualizadoException(campanhaId, sessaoId);
+      }
       let indiceNovo = indiceAnterior;
       let rodadaNova = sessao.rodadaAtual;
 
@@ -10955,6 +11115,21 @@ export class SessaoService {
             ? 'TURNO_RECUADO'
             : 'TURNO_PULADO';
 
+      const contextoEfeitos = this.criarContextoEfeitosTurno({
+        acao,
+        cenaId: cenaAtual.id,
+        rodadaAnterior: sessao.rodadaAtual,
+        rodadaNova,
+        participantesTurnoNovos:
+          acao === 'VOLTAR'
+            ? []
+            : [participantes[indiceNovo]].filter(
+                (participante): participante is ParticipanteIniciativa =>
+                  Boolean(participante),
+              ),
+        processarCondicoes: acao !== 'VOLTAR',
+        cobrarSustentacoes: rodadaNova > sessao.rodadaAtual,
+      });
       const evento = await tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -10971,9 +11146,7 @@ export class SessaoService {
               ? { tokenPulado: participantes[indiceAnterior]?.token ?? null }
               : {}),
             ajustadoPorId: usuarioId,
-            efeitosAutomaticos: {
-              status: 'PENDENTE',
-            },
+            efeitosAutomaticos: contextoEfeitos,
           }),
         },
         select: {
@@ -10985,157 +11158,561 @@ export class SessaoService {
         eventoId: evento.id,
         campanhaId,
         sessaoId,
-        cenaId: cenaAtual.id,
-        rodadaAnterior: sessao.rodadaAtual,
-        rodadaNova,
-        acao,
-        participantesTurnoNovos:
-          acao === 'VOLTAR'
-            ? []
-            : [participantes[indiceNovo]].filter(
-                (participante): participante is ParticipanteIniciativa =>
-                  Boolean(participante),
-              ),
-        processarCondicoes: acao !== 'VOLTAR',
-        cobrarSustentacoes: rodadaNova > sessao.rodadaAtual,
+        contexto: contextoEfeitos,
       };
     });
   }
 
   private async processarEfeitosAutomaticosTurnoSessao(
     processamento: ProcessamentoEfeitosTurnoSessao | null,
-  ): Promise<void> {
-    if (!processamento) return;
-    if (
-      await this.efeitosAutomaticosTurnoJaProcessados(processamento.eventoId)
-    ) {
-      return;
-    }
+  ): Promise<boolean> {
+    if (!processamento) return true;
 
-    const deveProcessar =
-      processamento.cobrarSustentacoes || processamento.processarCondicoes;
-    if (!deveProcessar) {
-      await this.atualizarStatusEfeitosAutomaticosTurno(
-        processamento,
-        'CONCLUIDO',
-      );
-      return;
-    }
-
-    await this.atualizarStatusEfeitosAutomaticosTurno(
-      processamento,
-      'EM_PROCESSAMENTO',
-    );
-
-    const db = this.prisma as unknown as Prisma.TransactionClient;
     try {
-      if (processamento.cobrarSustentacoes) {
-        await this.cobrarSustentacoesAtivasRodadaTx(db, {
-          sessaoId: processamento.sessaoId,
-          cenaId: processamento.cenaId,
-          rodadaNova: processamento.rodadaNova,
-        });
-      }
-
-      if (processamento.processarCondicoes) {
-        if (processamento.participantesTurnoNovos.length === 0) {
-          await this.processarCondicoesNoAvancoTurnoTx(db, {
-            sessaoId: processamento.sessaoId,
-            cenaId: processamento.cenaId,
-            rodadaAnterior: processamento.rodadaAnterior,
-            rodadaNova: processamento.rodadaNova,
-            participanteTurnoNovo: null,
-          });
-        } else {
-          for (const [
-            indiceParticipante,
-            participanteTurnoNovo,
-          ] of processamento.participantesTurnoNovos.entries()) {
-            await this.processarCondicoesNoAvancoTurnoTx(db, {
-              sessaoId: processamento.sessaoId,
-              cenaId: processamento.cenaId,
-              rodadaAnterior: processamento.rodadaAnterior,
-              rodadaNova: processamento.rodadaNova,
-              participanteTurnoNovo,
-              processarDuracoesPorRodada: indiceParticipante === 0,
-              sincronizarAutomaticasGlobais: indiceParticipante === 0,
-            });
-          }
-        }
-      }
-
-      await this.atualizarStatusEfeitosAutomaticosTurno(
-        processamento,
-        'CONCLUIDO',
+      const limitePassos = Math.max(
+        1,
+        processamento.contexto.passos.length + 1,
       );
+      for (let execucao = 0; execucao < limitePassos; execucao += 1) {
+        const resultado = await executarComRetryConcorrencia(
+          'processar efeitos automaticos do turno',
+          () =>
+            this.prisma.$transaction((tx) =>
+              this.processarProximoPassoEfeitosTurnoTx(tx, processamento),
+            ),
+        );
+        if (resultado === 'CONCLUIDO') return true;
+      }
+      throw new Error('Processamento de efeitos excedeu o limite de passos.');
     } catch (error) {
-      await this.atualizarStatusEfeitosAutomaticosTurno(processamento, 'ERRO');
+      await this.marcarFalhaEfeitosTurno(processamento).catch(
+        (erroMarcacao) => {
+          this.logger.error(
+            `Falha ao registrar erro dos efeitos automáticos do turno ${processamento.eventoId}.`,
+            erroMarcacao instanceof Error ? erroMarcacao.stack : undefined,
+          );
+        },
+      );
       this.logger.error(
         `Falha ao processar efeitos automáticos do turno: ${JSON.stringify({
           eventoId: processamento.eventoId,
           campanhaId: processamento.campanhaId,
           sessaoId: processamento.sessaoId,
-          cenaId: processamento.cenaId,
-          acao: processamento.acao,
-          rodadaAnterior: processamento.rodadaAnterior,
-          rodadaNova: processamento.rodadaNova,
-          cobrarSustentacoes: processamento.cobrarSustentacoes,
-          processarCondicoes: processamento.processarCondicoes,
+          acao: processamento.contexto.acao,
+          rodadaAnterior: processamento.contexto.rodadaAnterior,
+          rodadaNova: processamento.contexto.rodadaNova,
         })}`,
         error instanceof Error ? error.stack : undefined,
       );
-      throw error;
+      return false;
     }
   }
 
-  private async efeitosAutomaticosTurnoJaProcessados(
+  private criarContextoEfeitosTurno(args: {
+    acao: AcaoAjusteTurnoSessao;
+    cenaId: number;
+    rodadaAnterior: number;
+    rodadaNova: number;
+    participantesTurnoNovos: ParticipanteIniciativa[];
+    processarCondicoes: boolean;
+    cobrarSustentacoes: boolean;
+  }): ContextoEfeitosTurnoSessao {
+    const passos: PassoEfeitosTurnoSessao[] = [];
+    if (args.cobrarSustentacoes) {
+      passos.push({
+        chave: 'SUSTENTACOES_RODADA',
+        tipo: 'SUSTENTACOES_RODADA',
+        status: 'PENDENTE',
+      });
+    }
+    if (args.processarCondicoes) {
+      passos.push({
+        chave: 'CONDICOES_RODADA',
+        tipo: 'CONDICOES_RODADA',
+        status: 'PENDENTE',
+      });
+      for (const participante of args.participantesTurnoNovos) {
+        const id =
+          participante.tipoParticipante === 'PERSONAGEM'
+            ? participante.personagemSessaoId
+            : participante.npcSessaoId;
+        if (!id) continue;
+        passos.push({
+          chave: `CONDICOES_PARTICIPANTE:${participante.tipoParticipante}:${id}`,
+          tipo: 'CONDICOES_PARTICIPANTE',
+          status: 'PENDENTE',
+          tipoParticipante: participante.tipoParticipante,
+          personagemSessaoId: participante.personagemSessaoId,
+          npcSessaoId: participante.npcSessaoId,
+        });
+      }
+    }
+
+    return {
+      versao: 2,
+      status: passos.length > 0 ? 'PENDENTE' : 'CONCLUIDO',
+      acao: args.acao,
+      cenaId: args.cenaId,
+      rodadaAnterior: args.rodadaAnterior,
+      rodadaNova: args.rodadaNova,
+      passos,
+      tentativas: 0,
+      atualizadoEm: new Date().toISOString(),
+    };
+  }
+
+  private async processarProximoPassoEfeitosTurnoTx(
+    tx: Prisma.TransactionClient,
+    processamento: ProcessamentoEfeitosTurnoSessao,
+  ): Promise<'PASSO_CONCLUIDO' | 'CONCLUIDO'> {
+    await bloquearSessaoTx(
+      tx,
+      processamento.campanhaId,
+      processamento.sessaoId,
+    );
+    await bloquearEventoSessaoTx(
+      tx,
+      processamento.campanhaId,
+      processamento.sessaoId,
+      processamento.eventoId,
+    );
+    const evento = await tx.eventoSessao.findUnique({
+      where: { id: processamento.eventoId },
+      select: { dados: true },
+    });
+    const contexto = evento ? this.lerContextoEfeitosTurno(evento.dados) : null;
+    if (!evento || !contexto || contexto.status === 'CONCLUIDO') {
+      return 'CONCLUIDO';
+    }
+
+    const indicePasso = contexto.passos.findIndex(
+      (passo) => passo.status !== 'CONCLUIDO',
+    );
+    if (indicePasso < 0) {
+      await this.persistirContextoEfeitosTurnoTx(tx, processamento.eventoId, {
+        ...contexto,
+        status: 'CONCLUIDO',
+        atualizadoEm: new Date().toISOString(),
+      });
+      return 'CONCLUIDO';
+    }
+
+    const passo = contexto.passos[indicePasso];
+    await this.executarPassoEfeitosTurnoTx(
+      tx,
+      processamento.sessaoId,
+      contexto,
+      passo,
+    );
+    const passos = contexto.passos.map((item, indice) =>
+      indice === indicePasso ? { ...item, status: 'CONCLUIDO' as const } : item,
+    );
+    const concluido = passos.every((item) => item.status === 'CONCLUIDO');
+    await this.persistirContextoEfeitosTurnoTx(tx, processamento.eventoId, {
+      ...contexto,
+      status: concluido ? 'CONCLUIDO' : 'PENDENTE',
+      passos,
+      tentativas: contexto.tentativas + 1,
+      ultimaFalhaEm: undefined,
+      atualizadoEm: new Date().toISOString(),
+    });
+    return concluido ? 'CONCLUIDO' : 'PASSO_CONCLUIDO';
+  }
+
+  private async executarPassoEfeitosTurnoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    contexto: ContextoEfeitosTurnoSessao,
+    passo: PassoEfeitosTurnoSessao,
+  ): Promise<void> {
+    if (passo.tipo === 'SUSTENTACOES_RODADA') {
+      await this.cobrarSustentacoesAtivasRodadaTx(tx, {
+        sessaoId,
+        cenaId: contexto.cenaId,
+        rodadaNova: contexto.rodadaNova,
+      });
+      return;
+    }
+    if (passo.tipo === 'CONDICOES_RODADA') {
+      await this.processarCondicoesNoAvancoTurnoTx(tx, {
+        sessaoId,
+        cenaId: contexto.cenaId,
+        rodadaAnterior: contexto.rodadaAnterior,
+        rodadaNova: contexto.rodadaNova,
+        participanteTurnoNovo: null,
+      });
+      return;
+    }
+
+    const participante: ParticipanteIniciativa = {
+      tipoParticipante: passo.tipoParticipante ?? 'PERSONAGEM',
+      token: passo.chave,
+      personagemSessaoId: passo.personagemSessaoId ?? null,
+      npcSessaoId: passo.npcSessaoId ?? null,
+      personagemCampanhaId: null,
+      donoId: null,
+      nomeJogador: null,
+      nomePersonagem: '',
+      podeEditar: false,
+      iniciativaValor: null,
+    };
+    await this.processarCondicoesNoAvancoTurnoTx(tx, {
+      sessaoId,
+      cenaId: contexto.cenaId,
+      rodadaAnterior: contexto.rodadaAnterior,
+      rodadaNova: contexto.rodadaNova,
+      participanteTurnoNovo: participante,
+      processarDuracoesPorRodada: false,
+      sincronizarAutomaticasGlobais: false,
+    });
+  }
+
+  private async persistirContextoEfeitosTurnoTx(
+    tx: Prisma.TransactionClient,
     eventoId: number,
-  ): Promise<boolean> {
-    const evento = await this.prisma.eventoSessao.findUnique({
+    contexto: ContextoEfeitosTurnoSessao,
+  ): Promise<void> {
+    const evento = await tx.eventoSessao.findUnique({
       where: { id: eventoId },
       select: { dados: true },
     });
-    if (!evento) return true;
-
-    const dados = this.extrairRegistro(evento.dados);
-    const efeitosAutomaticos = this.lerRegistroOpcionalRegistro(
-      dados,
-      'efeitosAutomaticos',
-    );
-
-    return efeitosAutomaticos?.status === 'CONCLUIDO';
-  }
-
-  private async atualizarStatusEfeitosAutomaticosTurno(
-    processamento: ProcessamentoEfeitosTurnoSessao,
-    status: 'PENDENTE' | 'EM_PROCESSAMENTO' | 'CONCLUIDO' | 'ERRO',
-  ): Promise<void> {
-    const evento = await this.prisma.eventoSessao.findUnique({
-      where: { id: processamento.eventoId },
-      select: { dados: true },
-    });
     if (!evento) return;
-
     const dados = this.extrairRegistro(evento.dados);
-    const efeitosAutomaticos =
-      this.lerRegistroOpcionalRegistro(dados, 'efeitosAutomaticos') ?? {};
-
-    await this.prisma.eventoSessao.update({
-      where: { id: processamento.eventoId },
+    await tx.eventoSessao.update({
+      where: { id: eventoId },
       data: {
         dados: this.jsonParaPersistencia({
           ...dados,
-          efeitosAutomaticos: {
-            ...efeitosAutomaticos,
-            status,
-            eventoId: processamento.eventoId,
-            rodadaAnterior: processamento.rodadaAnterior,
-            rodadaNova: processamento.rodadaNova,
-            atualizadoEm: new Date().toISOString(),
-          },
+          efeitosAutomaticos: contexto,
         }),
       },
     });
+  }
+
+  private async marcarFalhaEfeitosTurno(
+    processamento: ProcessamentoEfeitosTurnoSessao,
+  ): Promise<void> {
+    await executarComRetryConcorrencia(
+      'registrar falha dos efeitos automaticos do turno',
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          await bloquearSessaoTx(
+            tx,
+            processamento.campanhaId,
+            processamento.sessaoId,
+          );
+          await bloquearEventoSessaoTx(
+            tx,
+            processamento.campanhaId,
+            processamento.sessaoId,
+            processamento.eventoId,
+          );
+          const evento = await tx.eventoSessao.findUnique({
+            where: { id: processamento.eventoId },
+            select: { dados: true },
+          });
+          const contexto = evento
+            ? this.lerContextoEfeitosTurno(evento.dados)
+            : null;
+          if (!contexto || contexto.status === 'CONCLUIDO') return;
+          const indicePasso = contexto.passos.findIndex(
+            (passo) => passo.status !== 'CONCLUIDO',
+          );
+          const passos = contexto.passos.map((passo, indice) =>
+            indice === indicePasso
+              ? { ...passo, status: 'ERRO' as const }
+              : passo,
+          );
+          const agora = new Date().toISOString();
+          await this.persistirContextoEfeitosTurnoTx(
+            tx,
+            processamento.eventoId,
+            {
+              ...contexto,
+              status: 'ERRO',
+              passos,
+              tentativas: contexto.tentativas + 1,
+              ultimaFalhaEm: agora,
+              atualizadoEm: agora,
+            },
+          );
+        }),
+    );
+  }
+
+  private lerContextoEfeitosTurno(
+    dadosJson: Prisma.JsonValue | null,
+  ): ContextoEfeitosTurnoSessao | null {
+    const dados = this.extrairRegistro(dadosJson);
+    const registro = this.lerRegistroOpcionalRegistro(
+      dados,
+      'efeitosAutomaticos',
+    );
+    if (!registro || registro.versao !== 2) return null;
+
+    const acao = registro.acao;
+    const cenaId = registro.cenaId;
+    const rodadaAnterior = registro.rodadaAnterior;
+    const rodadaNova = registro.rodadaNova;
+    if (
+      (acao !== 'AVANCAR' && acao !== 'VOLTAR' && acao !== 'PULAR') ||
+      typeof cenaId !== 'number' ||
+      !Number.isInteger(cenaId) ||
+      typeof rodadaAnterior !== 'number' ||
+      !Number.isInteger(rodadaAnterior) ||
+      typeof rodadaNova !== 'number' ||
+      !Number.isInteger(rodadaNova) ||
+      !Array.isArray(registro.passos)
+    ) {
+      return null;
+    }
+
+    const passos: PassoEfeitosTurnoSessao[] = [];
+    for (const bruto of registro.passos) {
+      if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) {
+        return null;
+      }
+      const passo = bruto as Record<string, unknown>;
+      if (
+        typeof passo.chave !== 'string' ||
+        (passo.tipo !== 'SUSTENTACOES_RODADA' &&
+          passo.tipo !== 'CONDICOES_RODADA' &&
+          passo.tipo !== 'CONDICOES_PARTICIPANTE')
+      ) {
+        return null;
+      }
+      const status = this.normalizarStatusPassoEfeitosTurno(passo.status);
+      if (!status) return null;
+      const tipoParticipante =
+        passo.tipoParticipante === 'PERSONAGEM' ||
+        passo.tipoParticipante === 'NPC'
+          ? passo.tipoParticipante
+          : undefined;
+      const personagemSessaoId =
+        typeof passo.personagemSessaoId === 'number' &&
+        Number.isInteger(passo.personagemSessaoId)
+          ? passo.personagemSessaoId
+          : null;
+      const npcSessaoId =
+        typeof passo.npcSessaoId === 'number' &&
+        Number.isInteger(passo.npcSessaoId)
+          ? passo.npcSessaoId
+          : null;
+      if (
+        passo.tipo === 'CONDICOES_PARTICIPANTE' &&
+        (!tipoParticipante ||
+          (tipoParticipante === 'PERSONAGEM' && !personagemSessaoId) ||
+          (tipoParticipante === 'NPC' && !npcSessaoId))
+      ) {
+        return null;
+      }
+      passos.push({
+        chave: passo.chave,
+        tipo: passo.tipo,
+        status,
+        tipoParticipante,
+        personagemSessaoId,
+        npcSessaoId,
+      });
+    }
+
+    const status = this.normalizarStatusPassoEfeitosTurno(registro.status);
+    if (!status) return null;
+    return {
+      versao: 2,
+      status,
+      acao,
+      cenaId,
+      rodadaAnterior,
+      rodadaNova,
+      passos,
+      tentativas:
+        typeof registro.tentativas === 'number' &&
+        Number.isInteger(registro.tentativas)
+          ? Math.max(0, registro.tentativas)
+          : 0,
+      atualizadoEm:
+        typeof registro.atualizadoEm === 'string'
+          ? registro.atualizadoEm
+          : new Date().toISOString(),
+      ultimaFalhaEm:
+        typeof registro.ultimaFalhaEm === 'string'
+          ? registro.ultimaFalhaEm
+          : undefined,
+    };
+  }
+
+  private normalizarStatusPassoEfeitosTurno(
+    valor: unknown,
+  ): StatusPassoEfeitosTurno | null {
+    if (valor === 'EM_PROCESSAMENTO') return 'PENDENTE';
+    if (valor === 'PENDENTE' || valor === 'ERRO' || valor === 'CONCLUIDO') {
+      return valor;
+    }
+    return null;
+  }
+
+  private reconstruirContextoEfeitosTurnoLegado(args: {
+    tipoEvento: string;
+    cenaId: number | null;
+    dados: Prisma.JsonValue | null;
+  }): ContextoEfeitosTurnoSessao | null {
+    const dados = this.extrairRegistro(args.dados);
+    const registro = this.lerRegistroOpcionalRegistro(
+      dados,
+      'efeitosAutomaticos',
+    );
+    const status = this.normalizarStatusPassoEfeitosTurno(registro?.status);
+    const rodadaAnterior = this.lerInteiroRegistro(dados, 'rodadaAnterior');
+    const rodadaNova = this.lerInteiroRegistro(dados, 'rodadaNova');
+    if (
+      !status ||
+      !args.cenaId ||
+      rodadaAnterior === null ||
+      rodadaNova === null
+    ) {
+      return null;
+    }
+    const acao: AcaoAjusteTurnoSessao = args.tipoEvento.includes('RECUAD')
+      ? 'VOLTAR'
+      : args.tipoEvento === 'TURNO_PULADO'
+        ? 'PULAR'
+        : 'AVANCAR';
+    const tokenNovo = this.lerTextoOpcionalRegistro(dados, 'tokenNovo');
+    const token = tokenNovo ? this.lerTokenParticipante(tokenNovo) : null;
+    if (
+      status !== 'CONCLUIDO' &&
+      acao !== 'VOLTAR' &&
+      args.tipoEvento.startsWith('INICIATIVA_ALTERNADA')
+    ) {
+      return null;
+    }
+    const participantesTurnoNovos: ParticipanteIniciativa[] = token
+      ? [
+          {
+            tipoParticipante: token.tipoParticipante,
+            token: tokenNovo ?? '',
+            personagemSessaoId:
+              token.tipoParticipante === 'PERSONAGEM' ? token.id : null,
+            npcSessaoId: token.tipoParticipante === 'NPC' ? token.id : null,
+            personagemCampanhaId: null,
+            donoId: null,
+            nomeJogador: null,
+            nomePersonagem: '',
+            podeEditar: false,
+            iniciativaValor: null,
+          },
+        ]
+      : [];
+    const contexto = this.criarContextoEfeitosTurno({
+      acao,
+      cenaId: args.cenaId,
+      rodadaAnterior,
+      rodadaNova,
+      participantesTurnoNovos,
+      processarCondicoes: acao !== 'VOLTAR',
+      cobrarSustentacoes: rodadaNova > rodadaAnterior,
+    });
+    if (status === 'CONCLUIDO') {
+      return {
+        ...contexto,
+        status: 'CONCLUIDO',
+        passos: contexto.passos.map((passo) => ({
+          ...passo,
+          status: 'CONCLUIDO',
+        })),
+      };
+    }
+    return { ...contexto, status };
+  }
+
+  private async obterProcessamentoEfeitosTurnoPorEvento(
+    campanhaId: number,
+    sessaoId: number,
+    eventoId: number,
+  ): Promise<ProcessamentoEfeitosTurnoSessao> {
+    const evento = await this.prisma.eventoSessao.findFirst({
+      where: {
+        id: eventoId,
+        sessaoId,
+        sessao: { campanhaId },
+        tipoEvento: { in: [...TIPOS_EVENTO_AJUSTE_TURNO] },
+      },
+      select: { id: true, cenaId: true, tipoEvento: true, dados: true },
+    });
+    if (!evento) {
+      throw new SessaoEventoNaoEncontradoException(eventoId, sessaoId);
+    }
+    const contexto =
+      this.lerContextoEfeitosTurno(evento.dados) ??
+      this.reconstruirContextoEfeitosTurnoLegado(evento);
+    if (!contexto) {
+      throw new SessaoEfeitosTurnoFalharamException(
+        campanhaId,
+        sessaoId,
+        eventoId,
+      );
+    }
+    return { eventoId, campanhaId, sessaoId, contexto };
+  }
+
+  private async obterEfeitosTurnoPendentesTx(
+    db: Prisma.TransactionClient | PrismaService,
+    sessaoId: number,
+  ): Promise<EfeitosTurnoPendentesResumo | null> {
+    const eventoDelegate = (
+      db as Prisma.TransactionClient & {
+        eventoSessao?: Prisma.TransactionClient['eventoSessao'];
+      }
+    ).eventoSessao;
+    if (!eventoDelegate?.findMany) return null;
+    const eventos = await eventoDelegate.findMany({
+      where: {
+        sessaoId,
+        tipoEvento: { in: [...TIPOS_EVENTO_AJUSTE_TURNO] },
+      },
+      orderBy: { id: 'desc' },
+      take: 100,
+      select: { id: true, cenaId: true, tipoEvento: true, dados: true },
+    });
+    for (const evento of eventos) {
+      const contexto =
+        this.lerContextoEfeitosTurno(evento.dados) ??
+        this.reconstruirContextoEfeitosTurnoLegado(evento);
+      if (!contexto) {
+        const dados = this.extrairRegistro(evento.dados);
+        const registro = this.lerRegistroOpcionalRegistro(
+          dados,
+          'efeitosAutomaticos',
+        );
+        const status = this.normalizarStatusPassoEfeitosTurno(registro?.status);
+        if (!status || status === 'CONCLUIDO') continue;
+        return {
+          eventoId: evento.id,
+          status: 'ERRO',
+          acao: evento.tipoEvento.includes('RECUAD')
+            ? 'VOLTAR'
+            : evento.tipoEvento === 'TURNO_PULADO'
+              ? 'PULAR'
+              : 'AVANCAR',
+          rodadaAnterior: this.lerInteiroRegistro(dados, 'rodadaAnterior') ?? 0,
+          rodadaNova: this.lerInteiroRegistro(dados, 'rodadaNova') ?? 0,
+          tentativas: registro
+            ? (this.lerInteiroRegistro(registro, 'tentativas') ?? 0)
+            : 0,
+        };
+      }
+      if (contexto.status === 'CONCLUIDO') continue;
+      return {
+        eventoId: evento.id,
+        status: contexto.status === 'ERRO' ? 'ERRO' : 'PENDENTE',
+        acao: contexto.acao,
+        rodadaAnterior: contexto.rodadaAnterior,
+        rodadaNova: contexto.rodadaNova,
+        tentativas: contexto.tentativas,
+      };
+    }
+    return null;
   }
 
   private mapearCondicoesAtivasSessao(
@@ -13295,16 +13872,20 @@ export class SessaoService {
         return 'Ultima troca de cena desfeita';
       case 'TURNO_AVANCADO': {
         const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
-        return `Turno avançado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
+        return `Turno avançado${rodada !== null ? ` (rodada ${rodada})` : ''}${this.sufixoStatusEfeitosTurno(dados)}`;
       }
       case 'TURNO_RECUADO': {
         const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
-        return `Turno recuado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
+        return `Turno recuado${rodada !== null ? ` (rodada ${rodada})` : ''}${this.sufixoStatusEfeitosTurno(dados)}`;
       }
       case 'TURNO_PULADO': {
         const rodada = this.lerInteiroRegistro(dados, 'rodadaNova');
-        return `Turno pulado${rodada !== null ? ` (rodada ${rodada})` : ''}`;
+        return `Turno pulado${rodada !== null ? ` (rodada ${rodada})` : ''}${this.sufixoStatusEfeitosTurno(dados)}`;
       }
+      case 'INICIATIVA_ALTERNADA_AVANCADA':
+        return `Lado da iniciativa avançado${this.sufixoStatusEfeitosTurno(dados)}`;
+      case 'INICIATIVA_ALTERNADA_RECUADA':
+        return `Lado da iniciativa recuado${this.sufixoStatusEfeitosTurno(dados)}`;
       case 'TURNO_DESFEITO':
         return 'Ultimo ajuste de turno desfeito';
       case 'ORDEM_INICIATIVA_ATUALIZADA':
@@ -13419,6 +14000,17 @@ export class SessaoService {
       default:
         return tipoEvento;
     }
+  }
+
+  private sufixoStatusEfeitosTurno(dados: Record<string, unknown>): string {
+    const efeitos = this.lerRegistroOpcionalRegistro(
+      dados,
+      'efeitosAutomaticos',
+    );
+    const status = this.normalizarStatusPassoEfeitosTurno(efeitos?.status);
+    if (status === 'ERRO') return ' - falha nos efeitos automáticos';
+    if (status === 'PENDENTE') return ' - efeitos automáticos pendentes';
+    return '';
   }
 
   private labelTipoCena(tipo: string): string {

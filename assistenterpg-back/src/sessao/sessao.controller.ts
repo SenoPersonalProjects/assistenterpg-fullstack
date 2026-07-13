@@ -28,6 +28,7 @@ import { AtualizarValorIniciativaSessaoDto } from './dto/atualizar-valor-iniciat
 import { UsarHabilidadeSessaoDto } from './dto/usar-habilidade-sessao.dto';
 import { UsarHabilidadeClasseSessaoDto } from './dto/usar-habilidade-classe-sessao.dto';
 import { EncerrarSustentacaoSessaoDto } from './dto/encerrar-sustentacao-sessao.dto';
+import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
 import { AplicarCondicaoSessaoDto } from './dto/aplicar-condicao-sessao.dto';
 import { RemoverCondicaoSessaoDto } from './dto/remover-condicao-sessao.dto';
 import { SessaoGateway } from './sessao.gateway';
@@ -315,11 +316,13 @@ export class SessaoController {
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
     @Request() req: { user: { id: number } },
+    @Body() dto: ControleTurnoSessaoDto,
   ) {
     const resultado = await this.sessaoService.avancarTurnoSessao(
       campanhaId,
       sessaoId,
       req.user.id,
+      dto,
     );
 
     this.sessaoGateway.emitirSessaoAtualizada(
@@ -336,11 +339,13 @@ export class SessaoController {
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
     @Request() req: { user: { id: number } },
+    @Body() dto: ControleTurnoSessaoDto,
   ) {
     const resultado = await this.sessaoService.voltarTurnoSessao(
       campanhaId,
       sessaoId,
       req.user.id,
+      dto,
     );
 
     this.sessaoGateway.emitirSessaoAtualizada(
@@ -357,11 +362,13 @@ export class SessaoController {
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
     @Request() req: { user: { id: number } },
+    @Body() dto: ControleTurnoSessaoDto,
   ) {
     const resultado = await this.sessaoService.pularTurnoSessao(
       campanhaId,
       sessaoId,
       req.user.id,
+      dto,
     );
 
     this.sessaoGateway.emitirSessaoAtualizada(
@@ -370,6 +377,28 @@ export class SessaoController {
       'TURNO_PULADO',
     );
 
+    return resultado;
+  }
+
+  @Post(':sessaoId/turno/efeitos/:eventoId/reprocessar')
+  async reprocessarEfeitosAutomaticosTurnoSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('eventoId', ParseIntPipe) eventoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    const resultado =
+      await this.sessaoService.reprocessarEfeitosAutomaticosTurnoSessao(
+        campanhaId,
+        sessaoId,
+        eventoId,
+        req.user.id,
+      );
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'EFEITOS_TURNO_REPROCESSADOS',
+    );
     return resultado;
   }
 
@@ -942,12 +971,14 @@ export class SessaoController {
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
     @Request() req: { user: { id: number } },
+    @Body() dto: ControleTurnoSessaoDto,
   ) {
     const resultado =
       await this.sessaoService.avancarLadoIniciativaAlternadaSessao(
         campanhaId,
         sessaoId,
         req.user.id,
+        dto,
       );
     this.sessaoGateway.emitirSessaoAtualizada(
       campanhaId,

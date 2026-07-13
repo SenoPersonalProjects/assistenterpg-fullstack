@@ -27,20 +27,89 @@ describe('SessaoService', () => {
   };
 
   function configurarEventoEfeitosAutomaticos() {
-    (prisma as any).eventoSessao = {
-      findUnique: jest.fn().mockResolvedValue({
-        dados: {
-          efeitosAutomaticos: {
+    let dados: Record<string, unknown> = {
+      efeitosAutomaticos: {
+        versao: 2,
+        status: 'PENDENTE',
+        acao: 'AVANCAR',
+        cenaId: 5,
+        rodadaAnterior: 2,
+        rodadaNova: 3,
+        passos: [
+          {
+            chave: 'SUSTENTACOES_RODADA',
+            tipo: 'SUSTENTACOES_RODADA',
             status: 'PENDENTE',
           },
-        },
+        ],
+        tentativas: 0,
+        atualizadoEm: '2026-07-13T12:00:00.000Z',
+      },
+    };
+    const lerEvento = jest.fn().mockImplementation(() =>
+      Promise.resolve({
+        id: 123,
+        cenaId: 5,
+        tipoEvento: 'TURNO_AVANCADO',
+        dados,
       }),
-      update: jest.fn().mockResolvedValue({}),
+    );
+    (prisma as any).eventoSessao = {
+      findUnique: lerEvento,
+      findFirst: lerEvento,
+      update: jest.fn().mockImplementation((args) => {
+        dados = args.data.dados;
+        return Promise.resolve({});
+      }),
       create: jest.fn().mockResolvedValue({ id: 9001 }),
       findMany: jest.fn().mockResolvedValue([]),
     };
+    (prisma as any).$queryRaw = jest.fn().mockResolvedValue([{ id: 21 }]);
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+        callback(prisma),
+    );
 
     return (prisma as any).eventoSessao;
+  }
+
+  function configurarTransacaoEfeitosAutomaticos<
+    T extends {
+      eventoSessao: {
+        create: jest.Mock;
+        findMany?: jest.Mock;
+        findUnique?: jest.Mock;
+        update?: jest.Mock;
+      };
+      $queryRaw?: jest.Mock;
+    },
+  >(tx: T) {
+    let dadosEventoTurno: Record<string, unknown> | null = null;
+    tx.$queryRaw = jest.fn().mockResolvedValue([{ id: 21 }]);
+    tx.eventoSessao.findMany = jest.fn().mockResolvedValue([]);
+    tx.eventoSessao.findUnique = jest
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(dadosEventoTurno ? { dados: dadosEventoTurno } : null),
+      );
+    tx.eventoSessao.update = jest.fn().mockImplementation((args) => {
+      dadosEventoTurno = args.data.dados;
+      return Promise.resolve({});
+    });
+    tx.eventoSessao.create.mockImplementation((args) => {
+      if (
+        typeof args.data.tipoEvento === 'string' &&
+        (args.data.tipoEvento.startsWith('TURNO_') ||
+          args.data.tipoEvento.startsWith('INICIATIVA_ALTERNADA_'))
+      ) {
+        dadosEventoTurno = args.data.dados;
+      }
+      return Promise.resolve({ id: 3001 });
+    });
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: T) => Promise<unknown>) => callback(tx),
+    );
+    return tx.eventoSessao;
   }
 
   function criarEventoTimeline(
@@ -93,6 +162,10 @@ describe('SessaoService', () => {
         rodadaAtual: 1,
       }),
     };
+    (prisma as any).eventoSessao = {
+      findMany: jest.fn().mockResolvedValue([]),
+    };
+    (prisma as any).$queryRaw = jest.fn().mockResolvedValue([{ id: 21 }]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -116,7 +189,11 @@ describe('SessaoService', () => {
       () =>
         service.atualizarRecursosPersonagemSessao(7, 21, 31, 10, {} as never),
       () => service.enviarMensagemChatSessao(7, 21, 10, { mensagem: '1d20' }),
-      () => service.avancarTurnoSessao(7, 21, 10),
+      () =>
+        service.avancarTurnoSessao(7, 21, 10, {
+          rodadaEsperada: 1,
+          indiceTurnoEsperado: 0,
+        }),
       () => service.atualizarCenaSessao(7, 21, 10, {} as never),
       () => service.adicionarNpcSimplesSessao(7, 21, 10, {} as never),
       () => service.invocarEntidadeVinculadaSessao(7, 21, 51, 10, {} as never),
@@ -205,6 +282,7 @@ describe('SessaoService', () => {
 
   it('sincronizador automático retorna sem escrever em sessão encerrada', async () => {
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 21 }]),
       sessao: {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
@@ -242,20 +320,30 @@ describe('SessaoService', () => {
         eventoId: 123,
         campanhaId: 7,
         sessaoId: 21,
-        cenaId: 5,
-        rodadaAnterior: 2,
-        rodadaNova: 3,
-        acao: 'AVANCAR',
-        participantesTurnoNovos: [],
-        processarCondicoes: false,
-        cobrarSustentacoes: true,
+        contexto: {
+          versao: 2,
+          status: 'PENDENTE',
+          acao: 'AVANCAR',
+          cenaId: 5,
+          rodadaAnterior: 2,
+          rodadaNova: 3,
+          passos: [
+            {
+              chave: 'SUSTENTACOES_RODADA',
+              tipo: 'SUSTENTACOES_RODADA',
+              status: 'PENDENTE',
+            },
+          ],
+          tentativas: 0,
+          atualizadoEm: '2026-07-13T12:00:00.000Z',
+        },
       }),
-    ).rejects.toThrow('falha ao cobrar sustentacoes');
+    ).resolves.toBe(false);
 
     const statusAtualizados = eventoEfeitos.update.mock.calls.map(
       ([call]) => call.data.dados.efeitosAutomaticos.status,
     );
-    expect(statusAtualizados).toEqual(['EM_PROCESSAMENTO', 'ERRO']);
+    expect(statusAtualizados).toEqual(['ERRO']);
     expect(loggerError).toHaveBeenCalledWith(
       expect.stringContaining('"eventoId":123'),
       falha.stack,
@@ -264,6 +352,300 @@ describe('SessaoService', () => {
       expect.stringContaining('"campanhaId":7'),
       falha.stack,
     );
+  });
+
+  it('processa cada checkpoint uma vez mesmo em retry do mesmo evento', async () => {
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    const cobrar = jest
+      .spyOn(service as any, 'cobrarSustentacoesAtivasRodadaTx')
+      .mockResolvedValue(undefined);
+    const processamento = {
+      eventoId: 123,
+      campanhaId: 7,
+      sessaoId: 21,
+      contexto: {
+        versao: 2,
+        status: 'PENDENTE',
+        acao: 'AVANCAR',
+        cenaId: 5,
+        rodadaAnterior: 2,
+        rodadaNova: 3,
+        passos: [
+          {
+            chave: 'SUSTENTACOES_RODADA',
+            tipo: 'SUSTENTACOES_RODADA',
+            status: 'PENDENTE',
+          },
+        ],
+        tentativas: 0,
+        atualizadoEm: '2026-07-13T12:00:00.000Z',
+      },
+    };
+
+    await expect(
+      (service as any).processarEfeitosAutomaticosTurnoSessao(processamento),
+    ).resolves.toBe(true);
+    await expect(
+      (service as any).processarEfeitosAutomaticosTurnoSessao(processamento),
+    ).resolves.toBe(true);
+
+    expect(cobrar).toHaveBeenCalledTimes(1);
+    expect(
+      eventoEfeitos.update.mock.calls.at(-1)?.[0].data.dados.efeitosAutomaticos
+        .status,
+    ).toBe('CONCLUIDO');
+  });
+
+  it('retoma somente checkpoint não concluído depois de falha', async () => {
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    await eventoEfeitos.update({
+      data: {
+        dados: {
+          efeitosAutomaticos: {
+            versao: 2,
+            status: 'PENDENTE',
+            acao: 'AVANCAR',
+            cenaId: 5,
+            rodadaAnterior: 2,
+            rodadaNova: 3,
+            passos: [
+              {
+                chave: 'SUSTENTACOES_RODADA',
+                tipo: 'SUSTENTACOES_RODADA',
+                status: 'CONCLUIDO',
+              },
+              {
+                chave: 'CONDICOES_RODADA',
+                tipo: 'CONDICOES_RODADA',
+                status: 'PENDENTE',
+              },
+            ],
+            tentativas: 1,
+            atualizadoEm: '2026-07-13T12:00:00.000Z',
+          },
+        },
+      },
+    });
+    const cobrar = jest.spyOn(
+      service as any,
+      'cobrarSustentacoesAtivasRodadaTx',
+    );
+    const processarCondicoes = jest
+      .spyOn(service as any, 'processarCondicoesNoAvancoTurnoTx')
+      .mockRejectedValueOnce(new Error('falha temporaria'))
+      .mockResolvedValue(undefined);
+    const processamento = {
+      eventoId: 123,
+      campanhaId: 7,
+      sessaoId: 21,
+      contexto: {
+        versao: 2,
+        status: 'PENDENTE',
+        acao: 'AVANCAR',
+        cenaId: 5,
+        rodadaAnterior: 2,
+        rodadaNova: 3,
+        passos: [],
+        tentativas: 0,
+        atualizadoEm: '2026-07-13T12:00:00.000Z',
+      },
+    };
+
+    await expect(
+      (service as any).processarEfeitosAutomaticosTurnoSessao(processamento),
+    ).resolves.toBe(false);
+    await expect(
+      (service as any).processarEfeitosAutomaticosTurnoSessao({
+        ...processamento,
+        contexto: {
+          ...processamento.contexto,
+          passos: [{ chave: 'retry', tipo: 'CONDICOES_RODADA' }],
+        },
+      }),
+    ).resolves.toBe(true);
+
+    expect(cobrar).not.toHaveBeenCalled();
+    expect(processarCondicoes).toHaveBeenCalledTimes(2);
+    expect(
+      eventoEfeitos.update.mock.calls.at(-1)?.[0].data.dados.efeitosAutomaticos
+        .status,
+    ).toBe('CONCLUIDO');
+  });
+
+  it('serializa duas execuções concorrentes do mesmo evento', async () => {
+    configurarEventoEfeitosAutomaticos();
+    let fila = Promise.resolve<unknown>(undefined);
+    prisma.$transaction.mockImplementation(
+      (callback: (tx: typeof prisma) => Promise<unknown>) => {
+        const execucao = fila.then(() => callback(prisma));
+        fila = execucao.catch(() => undefined);
+        return execucao;
+      },
+    );
+    const cobrar = jest
+      .spyOn(service as any, 'cobrarSustentacoesAtivasRodadaTx')
+      .mockResolvedValue(undefined);
+    const processamento = {
+      eventoId: 123,
+      campanhaId: 7,
+      sessaoId: 21,
+      contexto: {
+        versao: 2,
+        status: 'PENDENTE',
+        acao: 'AVANCAR',
+        cenaId: 5,
+        rodadaAnterior: 2,
+        rodadaNova: 3,
+        passos: [
+          {
+            chave: 'SUSTENTACOES_RODADA',
+            tipo: 'SUSTENTACOES_RODADA',
+            status: 'PENDENTE',
+          },
+        ],
+        tentativas: 0,
+        atualizadoEm: '2026-07-13T12:00:00.000Z',
+      },
+    };
+
+    await expect(
+      Promise.all([
+        (service as any).processarEfeitosAutomaticosTurnoSessao(processamento),
+        (service as any).processarEfeitosAutomaticosTurnoSessao(processamento),
+      ]),
+    ).resolves.toEqual([true, true]);
+    expect(cobrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('retoma contexto v2 legado marcado como EM_PROCESSAMENTO', async () => {
+    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
+    await eventoEfeitos.update({
+      data: {
+        dados: {
+          efeitosAutomaticos: {
+            versao: 2,
+            status: 'EM_PROCESSAMENTO',
+            acao: 'AVANCAR',
+            cenaId: 5,
+            rodadaAnterior: 2,
+            rodadaNova: 3,
+            passos: [
+              {
+                chave: 'SUSTENTACOES_RODADA',
+                tipo: 'SUSTENTACOES_RODADA',
+                status: 'EM_PROCESSAMENTO',
+              },
+            ],
+            tentativas: 1,
+            atualizadoEm: '2026-07-13T12:00:00.000Z',
+          },
+        },
+      },
+    });
+    const cobrar = jest
+      .spyOn(service as any, 'cobrarSustentacoesAtivasRodadaTx')
+      .mockResolvedValue(undefined);
+
+    const processamento = await (
+      service as any
+    ).obterProcessamentoEfeitosTurnoPorEvento(7, 21, 123);
+    await expect(
+      (service as any).processarEfeitosAutomaticosTurnoSessao(processamento),
+    ).resolves.toBe(true);
+    expect(cobrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('mantem evento legado incompleto visivel como erro seguro', async () => {
+    (prisma as any).eventoSessao.findMany.mockResolvedValue([
+      {
+        id: 124,
+        cenaId: 5,
+        tipoEvento: 'INICIATIVA_ALTERNADA_LADO_AVANCADO',
+        dados: {
+          rodadaAnterior: 2,
+          rodadaNova: 3,
+          efeitosAutomaticos: {
+            status: 'EM_PROCESSAMENTO',
+            tentativas: 2,
+          },
+        },
+      },
+    ]);
+
+    await expect(
+      (service as any).obterEfeitosTurnoPendentesTx(prisma, 21),
+    ).resolves.toEqual({
+      eventoId: 124,
+      status: 'ERRO',
+      acao: 'AVANCAR',
+      rodadaAnterior: 2,
+      rodadaNova: 3,
+      tentativas: 2,
+    });
+  });
+
+  it('bloqueia mutação enquanto efeitos do turno estão pendentes', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: true },
+      sessao: { status: 'EM_ANDAMENTO' },
+    });
+    (prisma as any).eventoSessao.findMany.mockResolvedValue([
+      {
+        id: 123,
+        cenaId: 5,
+        tipoEvento: 'TURNO_AVANCADO',
+        dados: {
+          efeitosAutomaticos: {
+            versao: 2,
+            status: 'PENDENTE',
+            acao: 'AVANCAR',
+            cenaId: 5,
+            rodadaAnterior: 2,
+            rodadaNova: 3,
+            passos: [],
+            tentativas: 0,
+            atualizadoEm: '2026-07-13T12:00:00.000Z',
+          },
+        },
+      },
+    ]);
+
+    await expect(
+      service.atualizarCenaSessao(7, 21, 10, {} as never),
+    ).rejects.toMatchObject({ code: 'SESSAO_EFEITOS_TURNO_PENDENTES' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejeita avanço com precondição de turno desatualizada', async () => {
+    jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({
+        acesso: { ehMestre: true },
+      });
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 21 }]),
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          status: 'EM_ANDAMENTO',
+          cenaAtualTipo: 'COMBATE',
+          rodadaAtual: 3,
+          indiceTurnoAtual: 0,
+        }),
+      },
+      eventoSessao: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    prisma.$transaction.mockImplementation(
+      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    await expect(
+      service.avancarTurnoSessao(7, 21, 10, {
+        rodadaEsperada: 2,
+        indiceTurnoEsperado: 0,
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_TURNO_DESATUALIZADO' });
   });
 
   it('mantem NPCs ocultos no detalhe do mestre', () => {
@@ -429,6 +811,7 @@ describe('SessaoService', () => {
     });
 
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 21 }]),
       sessao: {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
@@ -442,6 +825,7 @@ describe('SessaoService', () => {
         findMany: jest.fn(),
       },
       eventoSessao: {
+        findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn(),
       },
     };
@@ -450,9 +834,12 @@ describe('SessaoService', () => {
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
     );
 
-    await expect(service.avancarTurnoSessao(7, 21, 10)).rejects.toBeInstanceOf(
-      SessaoTurnoIndisponivelEmCenaLivreException,
-    );
+    await expect(
+      service.avancarTurnoSessao(7, 21, 10, {
+        rodadaEsperada: 1,
+        indiceTurnoEsperado: 0,
+      }),
+    ).rejects.toBeInstanceOf(SessaoTurnoIndisponivelEmCenaLivreException);
     expect(tx.personagemSessao.findMany).not.toHaveBeenCalled();
   });
 
@@ -464,6 +851,7 @@ describe('SessaoService', () => {
     });
 
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 21 }]),
       sessao: {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
@@ -477,6 +865,7 @@ describe('SessaoService', () => {
         findMany: jest.fn(),
       },
       eventoSessao: {
+        findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn(),
       },
     };
@@ -485,9 +874,12 @@ describe('SessaoService', () => {
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
     );
 
-    await expect(service.voltarTurnoSessao(7, 21, 10)).rejects.toBeInstanceOf(
-      SessaoTurnoIndisponivelEmCenaLivreException,
-    );
+    await expect(
+      service.voltarTurnoSessao(7, 21, 10, {
+        rodadaEsperada: 1,
+        indiceTurnoEsperado: 0,
+      }),
+    ).rejects.toBeInstanceOf(SessaoTurnoIndisponivelEmCenaLivreException);
     expect(tx.personagemSessao.findMany).not.toHaveBeenCalled();
   });
 
@@ -499,6 +891,7 @@ describe('SessaoService', () => {
     });
 
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 21 }]),
       sessao: {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
@@ -512,6 +905,7 @@ describe('SessaoService', () => {
         findMany: jest.fn(),
       },
       eventoSessao: {
+        findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn(),
       },
     };
@@ -520,9 +914,12 @@ describe('SessaoService', () => {
       async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
     );
 
-    await expect(service.pularTurnoSessao(7, 21, 10)).rejects.toBeInstanceOf(
-      SessaoTurnoIndisponivelEmCenaLivreException,
-    );
+    await expect(
+      service.pularTurnoSessao(7, 21, 10, {
+        rodadaEsperada: 1,
+        indiceTurnoEsperado: 0,
+      }),
+    ).rejects.toBeInstanceOf(SessaoTurnoIndisponivelEmCenaLivreException);
     expect(tx.personagemSessao.findMany).not.toHaveBeenCalled();
   });
 
@@ -552,6 +949,7 @@ describe('SessaoService', () => {
         }),
       },
       eventoSessao: {
+        findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn().mockResolvedValue({ id: 301 }),
       },
       sessaoRegraOpcional: {
@@ -2014,15 +2412,12 @@ describe('SessaoService', () => {
       },
     };
 
-    prisma.$transaction.mockImplementation(
-      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
-    );
-    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
-    (prisma as any).personagemSessaoHabilidadeSustentada =
-      tx.personagemSessaoHabilidadeSustentada;
-    (prisma as any).personagemCampanha = tx.personagemCampanha;
+    const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10);
+    await service.avancarTurnoSessao(7, 21, 10, {
+      rodadaEsperada: 3,
+      indiceTurnoEsperado: 0,
+    });
 
     expect(tx.sessao.update).toHaveBeenCalledWith({
       where: { id: 21 },
@@ -2238,15 +2633,12 @@ describe('SessaoService', () => {
       },
     };
 
-    prisma.$transaction.mockImplementation(
-      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
-    );
-    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
-    (prisma as any).personagemSessaoHabilidadeSustentada =
-      tx.personagemSessaoHabilidadeSustentada;
-    (prisma as any).personagemCampanha = tx.personagemCampanha;
+    const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10);
+    await service.avancarTurnoSessao(7, 21, 10, {
+      rodadaEsperada: 3,
+      ladoAtualIdEsperado: 10,
+    });
 
     expect(tx.sessao.update).toHaveBeenCalledWith({
       where: { id: 21 },
@@ -2261,15 +2653,14 @@ describe('SessaoService', () => {
         peAtual: 2,
       },
     });
-    expect(processarCondicoesSpy).toHaveBeenCalledTimes(2);
+    expect(processarCondicoesSpy).toHaveBeenCalledTimes(3);
     expect(processarCondicoesSpy).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({
         rodadaAnterior: 3,
         rodadaNova: 4,
-        participanteTurnoNovo: participantes[0],
-        processarDuracoesPorRodada: true,
+        participanteTurnoNovo: null,
       }),
     );
     expect(processarCondicoesSpy).toHaveBeenNthCalledWith(
@@ -2278,7 +2669,23 @@ describe('SessaoService', () => {
       expect.objectContaining({
         rodadaAnterior: 3,
         rodadaNova: 4,
-        participanteTurnoNovo: participantes[1],
+        participanteTurnoNovo: expect.objectContaining({
+          tipoParticipante: 'PERSONAGEM',
+          personagemSessaoId: 501,
+        }),
+        processarDuracoesPorRodada: false,
+      }),
+    );
+    expect(processarCondicoesSpy).toHaveBeenNthCalledWith(
+      3,
+      expect.anything(),
+      expect.objectContaining({
+        rodadaAnterior: 3,
+        rodadaNova: 4,
+        participanteTurnoNovo: expect.objectContaining({
+          tipoParticipante: 'NPC',
+          npcSessaoId: 601,
+        }),
         processarDuracoesPorRodada: false,
       }),
     );
@@ -2381,15 +2788,12 @@ describe('SessaoService', () => {
       },
     };
 
-    prisma.$transaction.mockImplementation(
-      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
-    );
-    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
-    (prisma as any).personagemSessaoHabilidadeSustentada =
-      tx.personagemSessaoHabilidadeSustentada;
-    (prisma as any).personagemCampanha = tx.personagemCampanha;
+    const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10);
+    await service.avancarTurnoSessao(7, 21, 10, {
+      rodadaEsperada: 5,
+      indiceTurnoEsperado: 0,
+    });
 
     expect(tx.personagemCampanha.update).not.toHaveBeenCalled();
     expect(tx.personagemSessaoHabilidadeSustentada.update).toHaveBeenCalledWith(
@@ -2513,15 +2917,12 @@ describe('SessaoService', () => {
       },
     };
 
-    prisma.$transaction.mockImplementation(
-      async (callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx),
-    );
-    const eventoEfeitos = configurarEventoEfeitosAutomaticos();
-    (prisma as any).personagemSessaoHabilidadeSustentada =
-      tx.personagemSessaoHabilidadeSustentada;
-    (prisma as any).personagemCampanha = tx.personagemCampanha;
+    const eventoEfeitos = configurarTransacaoEfeitosAutomaticos(tx);
 
-    await service.avancarTurnoSessao(7, 21, 10);
+    await service.avancarTurnoSessao(7, 21, 10, {
+      rodadaEsperada: 8,
+      indiceTurnoEsperado: 0,
+    });
 
     expect(tx.personagemCampanha.update).not.toHaveBeenCalled();
     expect(tx.personagemSessaoHabilidadeSustentada.update).toHaveBeenCalledWith(
