@@ -28,6 +28,7 @@ import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
+import { CampanhaVinculadosService } from './campanha.vinculados.service';
 import { PresencaService } from 'src/amizades/presenca.service';
 import { normalizarEmail } from './engine/campanha.engine';
 import {
@@ -39,6 +40,11 @@ import {
   RevelarItemSessaoCampanhaDto,
   SolicitarTransferenciaItemSessaoCampanhaDto,
 } from './dto/itens-sessao-campanha.dto';
+import {
+  AtualizarEntidadeVinculadaPersonagemDto,
+  AtualizarEstadoEntidadeVinculadaDto,
+  CriarEntidadeVinculadaPersonagemDto,
+} from './dto/entidade-vinculada-personagem.dto';
 
 const usuarioAtivoVerificadoWhere = {
   emailVerificadoEm: { not: null },
@@ -55,6 +61,7 @@ export class CampanhaService {
     private readonly convitesService: CampanhaConvitesService,
     private readonly inventarioService: CampanhaInventarioService,
     private readonly itensSessaoService: CampanhaItensSessaoService,
+    private readonly vinculadosService: CampanhaVinculadosService,
     private readonly presencaService: PresencaService,
   ) {}
 
@@ -609,6 +616,120 @@ export class CampanhaService {
       campanhaId,
       personagemCampanhaId,
       usuarioId,
+    );
+  }
+
+  async listarEntidadesVinculadasPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    return this.vinculadosService.listar(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+    );
+  }
+
+  async obterEntidadeVinculadaPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    vinculadoId: number,
+  ) {
+    return this.vinculadosService.obter(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      vinculadoId,
+    );
+  }
+
+  async criarEntidadeVinculadaPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    dto: CriarEntidadeVinculadaPersonagemDto,
+  ) {
+    return this.vinculadosService.criar(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      dto,
+    );
+  }
+
+  async atualizarEntidadeVinculadaPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    vinculadoId: number,
+    dto: AtualizarEntidadeVinculadaPersonagemDto,
+  ) {
+    return this.vinculadosService.atualizar(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      vinculadoId,
+      dto,
+    );
+  }
+
+  async recalcularEntidadeVinculadaPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    vinculadoId: number,
+  ) {
+    return this.vinculadosService.recalcular(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      vinculadoId,
+    );
+  }
+
+  async duplicarEntidadeVinculadaPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    vinculadoId: number,
+  ) {
+    return this.vinculadosService.duplicar(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      vinculadoId,
+    );
+  }
+
+  async atualizarEstadoEntidadeVinculadaPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    vinculadoId: number,
+    dto: AtualizarEstadoEntidadeVinculadaDto,
+  ) {
+    return this.vinculadosService.atualizarEstado(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      vinculadoId,
+      dto,
+    );
+  }
+
+  async removerEntidadeVinculadaPersonagem(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    vinculadoId: number,
+  ) {
+    return this.vinculadosService.remover(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      vinculadoId,
     );
   }
 

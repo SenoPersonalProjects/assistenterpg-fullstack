@@ -39,6 +39,11 @@ import {
   RevelarItemSessaoCampanhaDto,
   SolicitarTransferenciaItemSessaoCampanhaDto,
 } from './dto/itens-sessao-campanha.dto';
+import {
+  AtualizarEntidadeVinculadaPersonagemDto,
+  AtualizarEstadoEntidadeVinculadaDto,
+  CriarEntidadeVinculadaPersonagemDto,
+} from './dto/entidade-vinculada-personagem.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas')
@@ -162,6 +167,132 @@ export class CampanhaController {
       id,
       personagemCampanhaId,
       req.user.id,
+    );
+  }
+
+  @Get(':id/personagens/:personagemCampanhaId/vinculados')
+  async listarEntidadesVinculadasPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarEntidadesVinculadasPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
+  @Post(':id/personagens/:personagemCampanhaId/vinculados')
+  async criarEntidadeVinculadaPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarEntidadeVinculadaPersonagemDto,
+  ) {
+    return this.campanhaService.criarEntidadeVinculadaPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      dto,
+    );
+  }
+
+  @Get(':id/personagens/:personagemCampanhaId/vinculados/:vinculadoId')
+  async obterEntidadeVinculadaPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('vinculadoId', ParseIntPipe) vinculadoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.obterEntidadeVinculadaPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      vinculadoId,
+    );
+  }
+
+  @Patch(':id/personagens/:personagemCampanhaId/vinculados/:vinculadoId')
+  async atualizarEntidadeVinculadaPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('vinculadoId', ParseIntPipe) vinculadoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarEntidadeVinculadaPersonagemDto,
+  ) {
+    return this.campanhaService.atualizarEntidadeVinculadaPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      vinculadoId,
+      dto,
+    );
+  }
+
+  @Post(
+    ':id/personagens/:personagemCampanhaId/vinculados/:vinculadoId/recalcular',
+  )
+  async recalcularEntidadeVinculadaPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('vinculadoId', ParseIntPipe) vinculadoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.recalcularEntidadeVinculadaPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      vinculadoId,
+    );
+  }
+
+  @Post(
+    ':id/personagens/:personagemCampanhaId/vinculados/:vinculadoId/duplicar',
+  )
+  async duplicarEntidadeVinculadaPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('vinculadoId', ParseIntPipe) vinculadoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.duplicarEntidadeVinculadaPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      vinculadoId,
+    );
+  }
+
+  @Post(':id/personagens/:personagemCampanhaId/vinculados/:vinculadoId/estado')
+  async atualizarEstadoEntidadeVinculadaPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('vinculadoId', ParseIntPipe) vinculadoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarEstadoEntidadeVinculadaDto,
+  ) {
+    return this.campanhaService.atualizarEstadoEntidadeVinculadaPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      vinculadoId,
+      dto,
+    );
+  }
+
+  @Delete(':id/personagens/:personagemCampanhaId/vinculados/:vinculadoId')
+  async removerEntidadeVinculadaPersonagem(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('vinculadoId', ParseIntPipe) vinculadoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.removerEntidadeVinculadaPersonagem(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      vinculadoId,
     );
   }
 

@@ -11,6 +11,7 @@ import { CampanhaModificadoresService } from './campanha.modificadores.service';
 import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
+import { CampanhaVinculadosService } from './campanha.vinculados.service';
 import { PresencaService } from 'src/amizades/presenca.service';
 import { TecnicaInataPropriaService } from '../tecnicas-amaldicoadas/tecnica-inata-propria.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -200,6 +201,10 @@ describe('CampanhaService', () => {
         },
         {
           provide: CampanhaItensSessaoService,
+          useValue: {},
+        },
+        {
+          provide: CampanhaVinculadosService,
           useValue: {},
         },
         {
