@@ -188,6 +188,23 @@ describe('SessaoController', () => {
     );
   });
 
+  it('não emite realtime quando mutação é rejeitada pelo service', async () => {
+    sessaoServiceMock.enviarMensagemChatSessao.mockRejectedValue(
+      new Error('sessão encerrada'),
+    );
+
+    await expect(
+      controller.enviarMensagemChatSessao(
+        7,
+        12,
+        { user: { id: 3 } },
+        { mensagem: 'ola' },
+      ),
+    ).rejects.toThrow('sessão encerrada');
+
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).not.toHaveBeenCalled();
+  });
+
   it('deve emitir evento ao atualizar cena', async () => {
     sessaoServiceMock.atualizarCenaSessao.mockResolvedValue({ id: 12 });
 

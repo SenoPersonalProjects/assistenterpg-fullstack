@@ -79,6 +79,7 @@ import {
   normalizarConfigVinculado,
   resolverLimiteVagasCorpos,
 } from 'src/campanha/engine/entidades-vinculadas-capacidades';
+import { assertSessaoMutavel } from './sessao-mutabilidade';
 
 type AcessoCampanha = {
   campanha: {
@@ -877,8 +878,14 @@ export class SessaoService {
     sessaoId: number,
     usuarioId: number,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    await this.sincronizarCondicoesAutomaticasSessao(sessaoId);
+    const { acesso, sessao: sessaoAcesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    if (sessaoAcesso.status !== 'ENCERRADA') {
+      await this.sincronizarCondicoesAutomaticasSessao(sessaoId);
+    }
 
     const sessao = await this.prisma.sessao.findUnique({
       where: { id: sessaoId },
@@ -1558,13 +1565,15 @@ export class SessaoService {
     );
     const iniciativaAlternada =
       regrasOpcionais.INICIATIVA_ALTERNADA?.ativo && controleTurnosAtivo
-        ? await this.prisma.$transaction((tx) =>
-            this.obterOuCriarIniciativaAlternadaTx(
-              tx,
-              sessaoId,
-              participantesIniciativa,
-            ),
-          )
+        ? sessao.status === 'ENCERRADA'
+          ? await this.obterIniciativaAlternadaPersistida(sessaoId)
+          : await this.prisma.$transaction((tx) =>
+              this.obterOuCriarIniciativaAlternadaTx(
+                tx,
+                sessaoId,
+                participantesIniciativa,
+              ),
+            )
         : this.estadoIniciativaAlternadaInativo();
 
     return {
@@ -2500,9 +2509,20 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarRecursosPersonagemSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'atualizar recursos do personagem',
+    );
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'atualizar recursos do personagem',
+      );
       const personagemSessao = await tx.personagemSessao.findFirst({
         where: {
           id: personagemSessaoId,
@@ -2646,10 +2666,11 @@ export class SessaoService {
       contextoRolagem?: Record<string, unknown>;
     },
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
+      'enviar mensagem no chat',
     );
 
     const mensagemLimpa = dto.mensagem.trim();
@@ -2704,6 +2725,12 @@ export class SessaoService {
         : null;
 
     const evento = await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'enviar mensagem no chat',
+      );
       if (inspiracaoAutomatica) {
         await this.aplicarInspiracaoAutomaticaTx(
           tx,
@@ -2770,7 +2797,7 @@ export class SessaoService {
     usuarioId: number,
     query: ListarEventosSessaoDto,
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(
+    const { acesso, sessao } = await this.obterSessaoComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
@@ -2811,9 +2838,13 @@ export class SessaoService {
           await this.obterNpcSessaoIdsOcultos(sessaoId),
         );
 
-    const ultimoEventoReversivel = acesso.ehMestre
-      ? await this.obterUltimoEventoReversivelDisponivel(this.prisma, sessaoId)
-      : null;
+    const ultimoEventoReversivel =
+      acesso.ehMestre && sessao.status !== 'ENCERRADA'
+        ? await this.obterUltimoEventoReversivelDisponivel(
+            this.prisma,
+            sessaoId,
+          )
+        : null;
 
     return eventosVisiveis.map((evento) =>
       this.mapearEventoSessao(
@@ -2830,7 +2861,12 @@ export class SessaoService {
     usuarioId: number,
     motivo?: string,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'desfazer evento',
+    );
     this.assertMestre(acesso, 'desfazer evento da sessão');
 
     const motivoLimpo = motivo?.trim() || null;
@@ -2848,6 +2884,7 @@ export class SessaoService {
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'desfazer evento');
 
       const evento = await tx.eventoSessao.findFirst({
         where: {
@@ -2884,14 +2921,6 @@ export class SessaoService {
         await this.obterUltimoEventoReversivelDisponivel(tx, sessaoId);
 
       if (!ultimoEventoReversivel || ultimoEventoReversivel.id !== eventoId) {
-        throw new SessaoEventoDesfazerNaoPermitidoException(
-          eventoId,
-          sessaoId,
-          evento.tipoEvento,
-        );
-      }
-
-      if (sessao.status === 'ENCERRADA') {
         throw new SessaoEventoDesfazerNaoPermitidoException(
           eventoId,
           sessaoId,
@@ -3465,7 +3494,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarOrdemIniciativaSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'alterar ordem de iniciativa',
+    );
     this.assertMestre(acesso, 'atualizar ordem de iniciativa');
 
     await this.prisma.$transaction(async (tx) => {
@@ -3476,6 +3510,12 @@ export class SessaoService {
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        'alterar ordem de iniciativa',
+      );
 
       const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
       const participantesPadrao = await this.carregarParticipantesIniciativa(
@@ -3572,7 +3612,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarCenaSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'alterar cena',
+    );
     this.assertMestre(acesso, 'alterar cena');
 
     await this.prisma.$transaction(async (tx) => {
@@ -3583,6 +3628,7 @@ export class SessaoService {
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'alterar cena');
 
       const cenaAnterior = await this.obterCenaAtualSessaoTx(tx, sessaoId);
       const nomeNovaCena = dto.nome?.trim() || null;
@@ -3685,7 +3731,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AdicionarPersonagemSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'adicionar participante',
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3693,12 +3744,19 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        'adicionar participante',
+      );
 
       const personagemCampanha = await tx.personagemCampanha.findFirst({
         where: {
@@ -3769,7 +3827,12 @@ export class SessaoService {
     personagemSessaoId: number,
     usuarioId: number,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'remover participante',
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3777,12 +3840,14 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'remover participante');
 
       const personagemSessao = await tx.personagemSessao.findFirst({
         where: {
@@ -3838,7 +3903,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarValorIniciativaSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'alterar iniciativa do participante',
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -3846,12 +3916,19 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        'alterar iniciativa do participante',
+      );
 
       if (dto.tipoParticipante === 'NPC') {
         this.assertMestre(acesso, 'editar iniciativa do NPC');
@@ -3934,7 +4011,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AdicionarNpcSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'adicionar NPC ou ameaça',
+    );
     this.assertMestre(acesso, 'adicionar NPC/Ameaça na cena');
 
     await this.prisma.$transaction(async (tx) => {
@@ -3943,12 +4025,19 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        'adicionar NPC ou ameaça',
+      );
 
       const npcBase = await tx.npcAmeaca.findFirst({
         where: {
@@ -4037,7 +4126,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AdicionarNpcSimplesSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'adicionar NPC simples',
+    );
     this.assertMestre(acesso, 'adicionar NPC simples na cena');
 
     await this.prisma.$transaction(async (tx) => {
@@ -4046,12 +4140,19 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        'adicionar NPC simples',
+      );
 
       const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
       const pontosVidaMax = dto.pontosVidaMax;
@@ -4140,7 +4241,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarNpcSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'editar NPC ou ameaça',
+    );
     this.assertMestre(acesso, 'editar NPC/Ameaça da cena');
 
     await this.prisma.$transaction(async (tx) => {
@@ -4149,12 +4255,14 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'editar NPC ou ameaça');
 
       const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
         where: {
@@ -4269,7 +4377,12 @@ export class SessaoService {
     npcSessaoId: number,
     usuarioId: number,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'remover NPC ou ameaça',
+    );
     this.assertMestre(acesso, 'remover NPC/Ameaça da cena');
 
     await this.prisma.$transaction(async (tx) => {
@@ -4278,12 +4391,19 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        'remover NPC ou ameaça',
+      );
 
       const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
         where: {
@@ -4341,13 +4461,20 @@ export class SessaoService {
     usuarioId: number,
     dto: InvocarEntidadeVinculadaSessaoDto,
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
+      'invocar entidade vinculada',
     );
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'invocar entidade vinculada',
+      );
       const entidade = await tx.personagemCampanhaEntidadeVinculada.findFirst({
         where: {
           id: vinculadoId,
@@ -4500,13 +4627,20 @@ export class SessaoService {
     npcSessaoId: number,
     usuarioId: number,
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
+      'desinvocar entidade vinculada',
     );
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'desinvocar entidade vinculada',
+      );
       const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
         where: { id: npcSessaoId, sessaoId },
         include: {
@@ -4574,14 +4708,21 @@ export class SessaoService {
     usuarioId: number,
     dto: ConcederMaldicaoControladaSessaoDto,
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
+      'conceder maldição controlada',
     );
     this.assertMestre(acesso, 'conceder maldicao controlada');
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'conceder maldição controlada',
+      );
       const personagem = await tx.personagemCampanha.findFirst({
         where: { id: dto.personagemCampanhaId, campanhaId },
         select: { id: true, donoId: true, nome: true },
@@ -4678,7 +4819,12 @@ export class SessaoService {
     usuarioId: number,
     dto: UsarHabilidadeSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'usar habilidade',
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -4697,16 +4843,7 @@ export class SessaoService {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
 
-      if (sessao.status === 'ENCERRADA') {
-        throw new BusinessException(
-          'Sessão encerrada não permite uso de habilidades',
-          'SESSAO_ENCERRADA',
-          {
-            campanhaId,
-            sessaoId,
-          },
-        );
-      }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'usar habilidade');
 
       const personagemSessao = await tx.personagemSessao.findFirst({
         where: {
@@ -5058,7 +5195,12 @@ export class SessaoService {
     usuarioId: number,
     dto: UsarHabilidadeClasseSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'usar habilidade de classe',
+    );
 
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
@@ -5077,13 +5219,12 @@ export class SessaoService {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
 
-      if (sessao.status === 'ENCERRADA') {
-        throw new BusinessException(
-          'Sessao encerrada nao permite uso de habilidades de classe',
-          'SESSAO_ENCERRADA',
-          { campanhaId, sessaoId },
-        );
-      }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        'usar habilidade de classe',
+      );
 
       const personagemSessao = await tx.personagemSessao.findFirst({
         where: {
@@ -5446,7 +5587,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AplicarCondicaoSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'aplicar condição',
+    );
     this.assertMestre(acesso, 'aplicar condição');
 
     await this.prisma.$transaction(async (tx) => {
@@ -5455,6 +5601,7 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
           rodadaAtual: true,
           cenas: {
             select: { id: true },
@@ -5467,6 +5614,7 @@ export class SessaoService {
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'aplicar condição');
 
       const condicao = await tx.condicao.findUnique({
         where: { id: dto.condicaoId },
@@ -5637,7 +5785,12 @@ export class SessaoService {
     usuarioId: number,
     motivo?: string,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'remover condição',
+    );
     this.assertMestre(acesso, 'remover condição');
     const motivoLimpo = motivo?.trim() || null;
 
@@ -5647,12 +5800,14 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'remover condição');
 
       const condicaoSessao = await tx.condicaoPersonagemSessao.findFirst({
         where: {
@@ -5745,7 +5900,12 @@ export class SessaoService {
     usuarioId: number,
     motivo?: string,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'encerrar sustentação',
+    );
     const motivoLimpo = motivo?.trim() || null;
 
     await this.prisma.$transaction(async (tx) => {
@@ -5754,12 +5914,14 @@ export class SessaoService {
         select: {
           id: true,
           campanhaId: true,
+          status: true,
         },
       });
 
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'encerrar sustentação');
 
       const personagemSessao = await tx.personagemSessao.findFirst({
         where: {
@@ -5909,44 +6071,57 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarRegraOpcionalSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'alterar mecânicas opcionais',
+    );
     this.assertMestre(acesso, 'alterar mecanicas opcionais');
-    await this.assertSessaoPertenceCampanha(sessaoId, campanhaId);
 
-    const regra = await this.prisma.sessaoRegraOpcional.upsert({
-      where: {
-        sessaoId_chave: {
+    const regra = await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'alterar mecânicas opcionais',
+      );
+      const atualizada = await tx.sessaoRegraOpcional.upsert({
+        where: {
+          sessaoId_chave: {
+            sessaoId,
+            chave: dto.chave,
+          },
+        },
+        update: {
+          ativo: dto.ativo,
+          config: this.jsonParaPersistencia(dto.config ?? {}),
+        },
+        create: {
           sessaoId,
           chave: dto.chave,
-        },
-      },
-      update: {
-        ativo: dto.ativo,
-        config: this.jsonParaPersistencia(dto.config ?? {}),
-      },
-      create: {
-        sessaoId,
-        chave: dto.chave,
-        ativo: dto.ativo,
-        config: this.jsonParaPersistencia(dto.config ?? {}),
-        estado: this.jsonParaPersistencia(
-          this.estadoInicialRegra(dto.chave, 1),
-        ),
-      },
-    });
-
-    const cenaAtual = await this.obterCenaAtualSessaoTx(this.prisma, sessaoId);
-    await this.prisma.eventoSessao.create({
-      data: {
-        sessaoId,
-        cenaId: cenaAtual.id,
-        tipoEvento: 'REGRA_OPCIONAL_ATUALIZADA',
-        dados: this.jsonParaPersistencia({
-          chave: dto.chave,
           ativo: dto.ativo,
-          atualizadoPorId: usuarioId,
-        }),
-      },
+          config: this.jsonParaPersistencia(dto.config ?? {}),
+          estado: this.jsonParaPersistencia(
+            this.estadoInicialRegra(dto.chave, 1),
+          ),
+        },
+      });
+
+      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+      await tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          cenaId: cenaAtual.id,
+          tipoEvento: 'REGRA_OPCIONAL_ATUALIZADA',
+          dados: this.jsonParaPersistencia({
+            chave: dto.chave,
+            ativo: dto.ativo,
+            atualizadoPorId: usuarioId,
+          }),
+        },
+      });
+      return atualizada;
     });
 
     return regra;
@@ -5959,7 +6134,12 @@ export class SessaoService {
     usuarioId: number,
     dto: AjustarInspiracaoSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'ajustar inspiração',
+    );
     this.assertMestre(acesso, 'ajustar pontos de inspiracao');
     await this.assertPersonagemCampanhaNaSessao(
       sessaoId,
@@ -5968,6 +6148,12 @@ export class SessaoService {
     );
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'ajustar inspiração',
+      );
       const regra = await this.obterOuCriarRegraOpcionalTx(
         tx,
         sessaoId,
@@ -6017,10 +6203,11 @@ export class SessaoService {
     usuarioId: number,
     dto: GastarInspiracaoSessaoDto,
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
+      'gastar inspiração',
     );
     const personagem = await this.assertPersonagemCampanhaNaSessao(
       sessaoId,
@@ -6036,6 +6223,12 @@ export class SessaoService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'gastar inspiração',
+      );
       const regra = await this.obterOuCriarRegraOpcionalTx(
         tx,
         sessaoId,
@@ -6092,11 +6285,21 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarEncontroSocialSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'alterar encontro social',
+    );
     this.assertMestre(acesso, 'alterar encontro social');
-    await this.assertSessaoPertenceCampanha(sessaoId, campanhaId);
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'alterar encontro social',
+      );
       const regra = await this.obterOuCriarRegraOpcionalTx(
         tx,
         sessaoId,
@@ -6151,14 +6354,21 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarEscaladaDadosSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    this.assertMestre(acesso, 'alterar escalada de dados');
-    const sessao = await this.assertSessaoPertenceCampanha(
-      sessaoId,
+    const { acesso, sessao } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
+      sessaoId,
+      usuarioId,
+      'alterar escalada de dados',
     );
+    this.assertMestre(acesso, 'alterar escalada de dados');
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'alterar escalada de dados',
+      );
       const regra = await this.obterOuCriarRegraOpcionalTx(
         tx,
         sessaoId,
@@ -6209,14 +6419,10 @@ export class SessaoService {
     sessaoId: number,
     usuarioId: number,
   ) {
-    const { acesso } = await this.obterSessaoComAcesso(
+    const { acesso, sessao } = await this.obterSessaoComAcesso(
       campanhaId,
       sessaoId,
       usuarioId,
-    );
-    const sessao = await this.assertSessaoPertenceCampanha(
-      sessaoId,
-      campanhaId,
     );
     const regra = await this.prisma.sessaoRegraOpcional.findUnique({
       where: {
@@ -6232,6 +6438,10 @@ export class SessaoService {
 
     if (!regra?.ativo || ['LIVRE', 'BASE'].includes(sessao.cenaAtualTipo)) {
       return this.estadoIniciativaAlternadaInativo();
+    }
+
+    if (sessao.status === 'ENCERRADA') {
+      return this.obterIniciativaAlternadaPersistida(sessaoId);
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -6257,11 +6467,21 @@ export class SessaoService {
     usuarioId: number,
     dto: AtualizarIniciativaAlternadaSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'alterar iniciativa alternada',
+    );
     this.assertMestre(acesso, 'alterar iniciativa alternada');
-    await this.assertSessaoPertenceCampanha(sessaoId, campanhaId);
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'alterar iniciativa alternada',
+      );
       await this.assertRegraOpcionalAtivaTx(
         tx,
         sessaoId,
@@ -6306,11 +6526,21 @@ export class SessaoService {
     usuarioId: number,
     dto: MarcarParticipanteIniciativaAlternadaDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'marcar participante na iniciativa alternada',
+    );
     this.assertMestre(acesso, 'marcar participante na iniciativa alternada');
-    await this.assertSessaoPertenceCampanha(sessaoId, campanhaId);
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'marcar participante na iniciativa alternada',
+      );
       await this.assertRegraOpcionalAtivaTx(
         tx,
         sessaoId,
@@ -6389,10 +6619,20 @@ export class SessaoService {
     usuarioId: number,
     dto: ConsumirItemSessaoDto,
   ) {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
-    await this.assertSessaoPertenceCampanha(sessaoId, campanhaId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'consumir item',
+    );
 
     await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'consumir item',
+      );
       await this.assertRegraOpcionalAtivaTx(
         tx,
         sessaoId,
@@ -7920,6 +8160,26 @@ export class SessaoService {
     return this.mapearEstadoIniciativaAlternada(iniciativa);
   }
 
+  private async obterIniciativaAlternadaPersistida(
+    sessaoId: number,
+  ): Promise<EstadoIniciativaAlternadaSessao> {
+    const iniciativa = await this.prisma.sessaoIniciativaAlternada.findUnique({
+      where: { sessaoId },
+      include: {
+        lados: {
+          orderBy: { ordem: 'asc' },
+          include: {
+            participantes: {
+              orderBy: { ordem: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    return this.mapearEstadoIniciativaAlternada(iniciativa);
+  }
+
   private async sincronizarParticipantesIniciativaAlternadaTx(
     tx: Prisma.TransactionClient,
     iniciativaAlternadaId: number,
@@ -8881,6 +9141,7 @@ export class SessaoService {
       select: {
         id: true,
         campanhaId: true,
+        status: true,
         rodadaAtual: true,
         cenaAtualTipo: true,
       },
@@ -9021,6 +9282,9 @@ export class SessaoService {
       select: {
         id: true,
         campanhaId: true,
+        status: true,
+        cenaAtualTipo: true,
+        rodadaAtual: true,
       },
     });
 
@@ -9032,6 +9296,42 @@ export class SessaoService {
       acesso,
       sessao,
     };
+  }
+
+  private async obterSessaoMutavelComAcesso(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    acao: string,
+  ) {
+    const contexto = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    assertSessaoMutavel(contexto.sessao, campanhaId, sessaoId, acao);
+    return contexto;
+  }
+
+  private async assertSessaoMutavelTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+    acao: string,
+  ) {
+    const sessao = await tx.sessao.findUnique({
+      where: { id: sessaoId },
+      select: {
+        id: true,
+        campanhaId: true,
+        status: true,
+      },
+    });
+    if (!sessao || sessao.campanhaId !== campanhaId) {
+      throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+    }
+    assertSessaoMutavel(sessao, campanhaId, sessaoId, acao);
+    return sessao;
   }
 
   private async obterCenaAtualSessaoTx(
@@ -10434,7 +10734,16 @@ export class SessaoService {
     usuarioId: number,
     acao: AcaoAjusteTurnoSessao,
   ): Promise<ProcessamentoEfeitosTurnoSessao | null> {
-    const acesso = await this.obterAcessoCampanha(campanhaId, usuarioId);
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      acao === 'VOLTAR'
+        ? 'voltar turno'
+        : acao === 'PULAR'
+          ? 'pular turno'
+          : 'avançar turno',
+    );
     this.assertMestre(
       acesso,
       acao === 'VOLTAR'
@@ -10452,6 +10761,16 @@ export class SessaoService {
       if (!sessao || sessao.campanhaId !== campanhaId) {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
+      assertSessaoMutavel(
+        sessao,
+        campanhaId,
+        sessaoId,
+        acao === 'VOLTAR'
+          ? 'voltar turno'
+          : acao === 'PULAR'
+            ? 'pular turno'
+            : 'avançar turno',
+      );
 
       if (sessao.cenaAtualTipo === 'LIVRE') {
         throw new SessaoTurnoIndisponivelEmCenaLivreException(
@@ -11258,6 +11577,7 @@ export class SessaoService {
       where: { id: sessaoId },
       select: {
         id: true,
+        status: true,
         rodadaAtual: true,
         cenas: {
           select: { id: true },
@@ -11295,7 +11615,7 @@ export class SessaoService {
       },
     });
 
-    if (!sessao) return;
+    if (!sessao || sessao.status === 'ENCERRADA') return;
 
     const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
     const condicoesBloqueantes = [

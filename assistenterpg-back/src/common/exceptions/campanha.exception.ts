@@ -294,6 +294,20 @@ export class SessaoCampanhaNaoEncontradaException extends BaseException {
   }
 }
 
+export class SessaoEncerradaException extends BusinessException {
+  constructor(campanhaId?: number, sessaoId?: number, acao?: string) {
+    super(
+      'Sessão encerrada. Não é possível executar esta ação.',
+      'SESSAO_ENCERRADA',
+      {
+        campanhaId,
+        sessaoId,
+        acao,
+      },
+    );
+  }
+}
+
 export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(

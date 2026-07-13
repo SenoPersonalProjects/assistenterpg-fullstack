@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SessaoService } from './sessao.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
+  SessaoCampanhaNaoEncontradaException,
+  SessaoEncerradaException,
   SessaoEventoDesfazerNaoPermitidoException,
   SessaoTurnoIndisponivelEmCenaLivreException,
 } from 'src/common/exceptions/campanha.exception';
@@ -64,6 +66,9 @@ describe('SessaoService', () => {
       acesso: {
         ehMestre,
       },
+      sessao: {
+        status: 'EM_ANDAMENTO',
+      },
     });
   }
 
@@ -77,6 +82,17 @@ describe('SessaoService', () => {
     delete (prisma as any).condicao;
     delete (prisma as any).personagemSessao;
     delete (prisma as any).npcAmeacaSessao;
+    delete (prisma as any).sessaoRegraOpcional;
+    delete (prisma as any).sessaoIniciativaAlternada;
+    (prisma as any).sessao = {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 21,
+        campanhaId: 7,
+        status: 'EM_ANDAMENTO',
+        cenaAtualTipo: 'COMBATE',
+        rodadaAtual: 1,
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -89,6 +105,126 @@ describe('SessaoService', () => {
     }).compile();
 
     service = module.get<SessaoService>(SessaoService);
+  });
+
+  it('bloqueia grupos representativos de mutações antes de efeitos colaterais', async () => {
+    const erro = new SessaoEncerradaException(7, 21, 'mutação de teste');
+    const guarda = jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockRejectedValue(erro);
+    const mutacoes = [
+      () =>
+        service.atualizarRecursosPersonagemSessao(7, 21, 31, 10, {} as never),
+      () => service.enviarMensagemChatSessao(7, 21, 10, { mensagem: '1d20' }),
+      () => service.avancarTurnoSessao(7, 21, 10),
+      () => service.atualizarCenaSessao(7, 21, 10, {} as never),
+      () => service.adicionarNpcSimplesSessao(7, 21, 10, {} as never),
+      () => service.invocarEntidadeVinculadaSessao(7, 21, 51, 10, {} as never),
+      () => service.aplicarCondicaoSessao(7, 21, 10, {} as never),
+      () => service.usarHabilidadeSessao(7, 21, 31, 10, {} as never),
+      () => service.atualizarRegraOpcionalSessao(7, 21, 10, {} as never),
+      () => service.atualizarEncontroSocialSessao(7, 21, 10, {} as never),
+      () => service.consumirItemSessao(7, 21, 10, {} as never),
+    ];
+
+    for (const executar of mutacoes) {
+      await expect(executar()).rejects.toMatchObject({
+        code: 'SESSAO_ENCERRADA',
+      });
+    }
+
+    expect(guarda).toHaveBeenCalledTimes(mutacoes.length);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('não sincroniza condições automáticas ao ler detalhe encerrado', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: true },
+      sessao: { status: 'ENCERRADA' },
+    });
+    const sincronizar = jest.spyOn(
+      service as any,
+      'sincronizarCondicoesAutomaticasSessao',
+    );
+    (prisma as any).sessao = {
+      findUnique: jest.fn().mockResolvedValue(null),
+    };
+
+    await expect(service.buscarDetalheSessao(7, 21, 10)).rejects.toBeInstanceOf(
+      SessaoCampanhaNaoEncontradaException,
+    );
+    expect(sincronizar).not.toHaveBeenCalled();
+  });
+
+  it('valida campanha e sessão antes de sincronizar o detalhe', async () => {
+    prisma.campanha.findUnique.mockResolvedValue({
+      id: 7,
+      donoId: 10,
+      membros: [],
+    });
+    (prisma as any).sessao = {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 21,
+        campanhaId: 8,
+        status: 'EM_ANDAMENTO',
+        cenaAtualTipo: 'COMBATE',
+        rodadaAtual: 1,
+      }),
+    };
+    const sincronizar = jest.spyOn(
+      service as any,
+      'sincronizarCondicoesAutomaticasSessao',
+    );
+
+    await expect(service.buscarDetalheSessao(7, 21, 10)).rejects.toBeInstanceOf(
+      SessaoCampanhaNaoEncontradaException,
+    );
+    expect(sincronizar).not.toHaveBeenCalled();
+  });
+
+  it('lê iniciativa alternada persistida sem criar estado em sessão encerrada', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: true },
+      sessao: {
+        status: 'ENCERRADA',
+        cenaAtualTipo: 'COMBATE',
+      },
+    });
+    (prisma as any).sessaoRegraOpcional = {
+      findUnique: jest.fn().mockResolvedValue({ ativo: true }),
+    };
+    (prisma as any).sessaoIniciativaAlternada = {
+      findUnique: jest.fn().mockResolvedValue(null),
+    };
+
+    await expect(
+      service.obterIniciativaAlternadaSessao(7, 21, 10),
+    ).resolves.toEqual({ ativo: false, ladoAtualId: null, lados: [] });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('sincronizador automático retorna sem escrever em sessão encerrada', async () => {
+    const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          status: 'ENCERRADA',
+          rodadaAtual: 1,
+          cenas: [],
+          personagens: [],
+          npcs: [],
+        }),
+      },
+      condicao: { findMany: jest.fn() },
+      condicaoPersonagemSessao: { findMany: jest.fn() },
+      eventoSessao: { create: jest.fn() },
+    };
+
+    await (service as any).sincronizarCondicoesAutomaticasSessaoTx(tx, 21);
+
+    expect(tx.condicao.findMany).not.toHaveBeenCalled();
+    expect(tx.condicaoPersonagemSessao.findMany).not.toHaveBeenCalled();
+    expect(tx.eventoSessao.create).not.toHaveBeenCalled();
   });
 
   it('loga contexto quando o pós-processamento de efeitos automáticos falha', async () => {
@@ -172,6 +308,31 @@ describe('SessaoService', () => {
 
     expect(eventos).toHaveLength(1);
     expect(eventos[0].descricao).toContain('Ameaca oculta');
+  });
+
+  it('não oferece desfazer evento na timeline de sessão encerrada', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: true },
+      sessao: { status: 'ENCERRADA' },
+    });
+    const obterUltimo = jest.spyOn(
+      service as any,
+      'obterUltimoEventoReversivelDisponivel',
+    );
+    (prisma as any).eventoSessao = {
+      findMany: jest.fn().mockResolvedValue([
+        criarEventoTimeline(1, 'CENA_ATUALIZADA', {
+          tipoNovo: 'COMBATE',
+        }),
+      ]),
+    };
+
+    const eventos = await service.listarEventosSessao(7, 21, 10, {
+      limit: 80,
+    } as never);
+
+    expect(obterUltimo).not.toHaveBeenCalled();
+    expect(eventos[0].podeDesfazer).toBe(false);
   });
 
   it('filtra eventos de NPC oculto na timeline de jogadores', async () => {
@@ -635,6 +796,7 @@ describe('SessaoService', () => {
   it('desinvoca vinculado e retorna estado para disponivel', async () => {
     jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
       acesso: { ehMestre: false },
+      sessao: { status: 'EM_ANDAMENTO' },
     });
     jest
       .spyOn(service, 'buscarDetalheSessao')
@@ -670,6 +832,13 @@ describe('SessaoService', () => {
       },
     };
     const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          status: 'EM_ANDAMENTO',
+        }),
+      },
       npcAmeacaSessao: {
         findFirst: jest.fn().mockResolvedValue(npcSessao),
         delete: jest.fn().mockResolvedValue({}),
@@ -699,8 +868,16 @@ describe('SessaoService', () => {
   it('bloqueia jogador tentando invocar vinculado de outro personagem', async () => {
     jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
       acesso: { ehMestre: false },
+      sessao: { status: 'EM_ANDAMENTO' },
     });
     const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          status: 'EM_ANDAMENTO',
+        }),
+      },
       personagemCampanhaEntidadeVinculada: {
         findFirst: jest.fn().mockResolvedValue({
           id: 500,
@@ -722,6 +899,7 @@ describe('SessaoService', () => {
   it('permite mestre invocar vinculado e cria instancia de NPC da sessao', async () => {
     jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
       acesso: { ehMestre: true },
+      sessao: { status: 'EM_ANDAMENTO' },
     });
     jest
       .spyOn(service as any, 'obterCenaAtualSessaoTx')
@@ -791,6 +969,13 @@ describe('SessaoService', () => {
       cenaId: 31,
     };
     const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          status: 'EM_ANDAMENTO',
+        }),
+      },
       personagemCampanhaEntidadeVinculada: {
         findFirst: jest.fn().mockResolvedValue(entidade),
         update: jest.fn().mockResolvedValue({}),
