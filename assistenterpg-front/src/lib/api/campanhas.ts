@@ -29,8 +29,13 @@ import type {
   TransferenciaItemSessaoCampanhaDto,
   AmigoConvidavelCampanha,
   AtualizarSessaoAgendadaPayload,
+  ConcederMaldicaoControladaSessaoPayload,
   ConflitosSessaoAgendadaResponse,
   CriarSessaoAgendadaPayload,
+  EntidadeVinculadaPersonagem,
+  EntidadeVinculadaPersonagemPayload,
+  EstadoEntidadeVinculadaPersonagem,
+  InvocarEntidadeVinculadaSessaoPayload,
   SessaoAgendadaResumo,
 } from '@/lib/types';
 
@@ -326,6 +331,87 @@ export async function apiAtualizarNucleoPersonagemCampanha(
   const { data } = await apiClient.patch(
     `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/nucleo`,
     payload,
+  );
+  return data;
+}
+
+export async function apiListarEntidadesVinculadasPersonagem(
+  campanhaId: number,
+  personagemCampanhaId: number,
+): Promise<EntidadeVinculadaPersonagem[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados`,
+  );
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiCriarEntidadeVinculadaPersonagem(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  payload: EntidadeVinculadaPersonagemPayload,
+): Promise<EntidadeVinculadaPersonagem> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiAtualizarEntidadeVinculadaPersonagem(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  vinculadoId: number,
+  payload: Partial<EntidadeVinculadaPersonagemPayload>,
+): Promise<EntidadeVinculadaPersonagem> {
+  const { data } = await apiClient.patch(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/${vinculadoId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiDuplicarEntidadeVinculadaPersonagem(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  vinculadoId: number,
+): Promise<EntidadeVinculadaPersonagem> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/${vinculadoId}/duplicar`,
+  );
+  return data;
+}
+
+export async function apiRecalcularEntidadeVinculadaPersonagem(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  vinculadoId: number,
+): Promise<EntidadeVinculadaPersonagem> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/${vinculadoId}/recalcular`,
+  );
+  return data;
+}
+
+export async function apiAtualizarEstadoEntidadeVinculadaPersonagem(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  vinculadoId: number,
+  estado: EstadoEntidadeVinculadaPersonagem,
+): Promise<EntidadeVinculadaPersonagem> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/${vinculadoId}/estado`,
+    { estado },
+  );
+  return data;
+}
+
+export async function apiRemoverEntidadeVinculadaPersonagem(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  vinculadoId: number,
+): Promise<EntidadeVinculadaPersonagem> {
+  const { data } = await apiClient.delete(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/${vinculadoId}`,
   );
   return data;
 }
@@ -854,6 +940,42 @@ export async function apiRemoverNpcSessaoCampanha(
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.delete(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs/${npcSessaoId}`,
+  );
+  return data;
+}
+
+export async function apiInvocarEntidadeVinculadaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  vinculadoId: number,
+  payload: InvocarEntidadeVinculadaSessaoPayload = {},
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/vinculados/${vinculadoId}/invocar`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiDesinvocarEntidadeVinculadaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  npcSessaoId: number,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/npcs/${npcSessaoId}/desinvocar`,
+  );
+  return data;
+}
+
+export async function apiConcederMaldicaoControladaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: ConcederMaldicaoControladaSessaoPayload,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/maldicoes/conceder`,
+    payload,
   );
   return data;
 }

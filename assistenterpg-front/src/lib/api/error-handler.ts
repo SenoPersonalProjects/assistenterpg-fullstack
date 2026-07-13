@@ -155,6 +155,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   HABILIDADE_CODIGO_DUPLICADO:
     "Já existe uma habilidade de técnica com este código",
   VARIACAO_HABILIDADE_NOT_FOUND: "Variação de habilidade não encontrada",
+  ENTIDADE_PV_INVALIDO:
+    "PV atual não pode ser maior que o PV máximo do vinculado.",
 
   // EQUIPAMENTOS/INVENTÁRIO
   EQUIPAMENTO_NOT_FOUND: "Equipamento não encontrado",

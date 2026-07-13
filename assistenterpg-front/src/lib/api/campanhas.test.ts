@@ -18,15 +18,19 @@ import {
   apiAtualizarEscaladaDadosSessaoCampanha,
   apiAtualizarIniciativaAlternadaSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
+  apiAtualizarEstadoEntidadeVinculadaPersonagem,
   apiAvancarTurnoSessaoCampanha,
   apiAvancarLadoIniciativaAlternadaSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
+  apiConcederMaldicaoControladaSessaoCampanha,
   apiCriarSessaoCampanha,
+  apiCriarEntidadeVinculadaPersonagem,
   apiAplicarModificadorPersonagemCampanha,
   apiCriarConvite,
   apiListarModificadoresPersonagemCampanha,
   apiDesassociarPersonagemCampanha,
   apiDeleteCampanha,
+  apiDesinvocarEntidadeVinculadaSessaoCampanha,
   apiEncerrarSessaoCampanha,
   apiGetCampanhaById,
   apiGetSessaoCampanha,
@@ -37,8 +41,10 @@ import {
   apiListarPersonagensCampanha,
   apiListarSessoesCampanha,
   apiListarConvitesPendentes,
+  apiListarEntidadesVinculadasPersonagem,
   apiListarAmigosConvidaveisCampanha,
   apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
+  apiInvocarEntidadeVinculadaSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
   apiRecusarConvite,
   apiEnviarMensagemChatSessaoCampanha,
@@ -216,6 +222,60 @@ describe('campanhas api cache and dedupe', () => {
       personagemBaseId: 42,
     });
     expect(personagem).toEqual({ id: 9, personagemBaseId: 42 });
+  });
+
+  it('lists linked entities for campaign character', async () => {
+    mockedApiClient.get.mockResolvedValueOnce({
+      data: [{ id: 50, nome: 'Cao Divino' }],
+    });
+
+    const vinculados = await apiListarEntidadesVinculadasPersonagem(12, 9);
+
+    expect(mockedApiClient.get).toHaveBeenCalledWith(
+      '/campanhas/12/personagens/9/vinculados',
+    );
+    expect(vinculados).toEqual([{ id: 50, nome: 'Cao Divino' }]);
+  });
+
+  it('creates linked entity for campaign character', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 51, tipo: 'SHIKIGAMI', nome: 'Cao Divino' },
+    });
+
+    const vinculado = await apiCriarEntidadeVinculadaPersonagem(12, 9, {
+      tipo: 'SHIKIGAMI',
+      nome: 'Cao Divino',
+      pontosVidaMax: 18,
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/12/personagens/9/vinculados',
+      {
+        tipo: 'SHIKIGAMI',
+        nome: 'Cao Divino',
+        pontosVidaMax: 18,
+      },
+    );
+    expect(vinculado).toEqual({ id: 51, tipo: 'SHIKIGAMI', nome: 'Cao Divino' });
+  });
+
+  it('updates linked entity state', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 51, estado: 'SELADO' },
+    });
+
+    const vinculado = await apiAtualizarEstadoEntidadeVinculadaPersonagem(
+      12,
+      9,
+      51,
+      'SELADO',
+    );
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/12/personagens/9/vinculados/51/estado',
+      { estado: 'SELADO' },
+    );
+    expect(vinculado).toEqual({ id: 51, estado: 'SELADO' });
   });
 
   it('unlinks campaign character association', async () => {
@@ -537,6 +597,54 @@ describe('campanhas api cache and dedupe', () => {
       '/campanhas/44/sessoes/13/npcs/3',
     );
     expect(sessao).toEqual({ id: 13, npcs: [] });
+  });
+
+  it('invokes linked entity into session scene', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 13, npcs: [{ npcSessaoId: 8, entidadeVinculadaId: 51 }] },
+    });
+
+    const sessao = await apiInvocarEntidadeVinculadaSessaoCampanha(44, 13, 51, {
+      ocultoJogadores: true,
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/vinculados/51/invocar',
+      { ocultoJogadores: true },
+    );
+    expect(sessao).toEqual({
+      id: 13,
+      npcs: [{ npcSessaoId: 8, entidadeVinculadaId: 51 }],
+    });
+  });
+
+  it('desinvokes linked entity from session scene', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13, npcs: [] } });
+
+    const sessao = await apiDesinvocarEntidadeVinculadaSessaoCampanha(44, 13, 8);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/npcs/8/desinvocar',
+    );
+    expect(sessao).toEqual({ id: 13, npcs: [] });
+  });
+
+  it('grants controlled curse from session', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const sessao = await apiConcederMaldicaoControladaSessaoCampanha(44, 13, {
+      personagemCampanhaId: 9,
+      npcSessaoId: 8,
+    });
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/maldicoes/conceder',
+      {
+        personagemCampanhaId: 9,
+        npcSessaoId: 8,
+      },
+    );
+    expect(sessao).toEqual({ id: 13 });
   });
 
   it('lists session chat with afterId', async () => {

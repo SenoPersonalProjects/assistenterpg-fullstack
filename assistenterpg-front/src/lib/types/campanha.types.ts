@@ -289,9 +289,132 @@ export type NpcPericiaSessaoCampanha = {
   bonus?: number | null;
 };
 
+export type TipoEntidadeVinculadaPersonagem =
+  | 'SHIKIGAMI'
+  | 'CORPO_AMALDICOADO'
+  | 'MALDICAO_CONTROLADA';
+
+export type EstadoEntidadeVinculadaPersonagem =
+  | 'DISPONIVEL'
+  | 'ATIVO'
+  | 'DESTRUIDO'
+  | 'SELADO'
+  | 'DESCARREGADO'
+  | 'ARQUIVADO';
+
+export type EntidadeVinculadaPersonagem = {
+  id: number;
+  campanhaId: number;
+  personagemCampanhaId: number;
+  tipo: TipoEntidadeVinculadaPersonagem;
+  estado: EstadoEntidadeVinculadaPersonagem;
+  nome: string;
+  descricao: string | null;
+  conceito: string | null;
+  aparencia: string | null;
+  nivelReferencia: number | null;
+  grauReferencia: number | null;
+  tecnicaOrigemId: number | null;
+  tipoGrauCodigo: string | null;
+  npcAmeacaOrigemId: number | null;
+  fichaTipo: TipoFichaNpcAmeaca;
+  tipoNpc: TipoNpcAmeaca;
+  tamanho: string;
+  vd: number;
+  agilidade: number;
+  forca: number;
+  intelecto: number;
+  presenca: number;
+  vigor: number;
+  percepcao: number;
+  iniciativa: number;
+  fortitude: number;
+  reflexos: number;
+  vontade: number;
+  luta: number;
+  jujutsu: number;
+  defesa: number;
+  pontosVidaMax: number;
+  pontosVidaAtual: number;
+  rd: number;
+  deslocamentoMetros: number;
+  vagasOcupadas: number;
+  cargasMax: number | null;
+  cargasAtual: number | null;
+  periciasEspeciais: unknown;
+  resistencias: unknown;
+  vulnerabilidades: unknown;
+  passivas: unknown;
+  acoes: unknown;
+  habilidades: unknown;
+  custos: unknown;
+  limites: unknown;
+  config: unknown;
+  personagem?: {
+    id: number;
+    nome: string;
+    nivel: number;
+    donoId: number;
+    personagemBase?: { nome: string } | null;
+  };
+  tecnicaOrigem?: { id: number; codigo: string; nome: string } | null;
+  tipoGrau?: { codigo: string; nome: string } | null;
+  npcAmeacaOrigem?: {
+    id: number;
+    nome: string;
+    tipo: TipoNpcAmeaca;
+    fichaTipo: TipoFichaNpcAmeaca;
+  } | null;
+  instanciasAtivas?: Array<{
+    id: number;
+    sessaoId: number;
+    cenaId: number | null;
+    pontosVidaAtual: number;
+    ocultoJogadores: boolean;
+  }>;
+  ativoNestaSessao?: boolean;
+};
+
+export type EntidadeVinculadaPersonagemPayload = Partial<
+  Omit<
+    EntidadeVinculadaPersonagem,
+    | 'id'
+    | 'campanhaId'
+    | 'personagemCampanhaId'
+    | 'estado'
+    | 'personagem'
+    | 'tecnicaOrigem'
+    | 'tipoGrau'
+    | 'npcAmeacaOrigem'
+    | 'instanciasAtivas'
+    | 'ativoNestaSessao'
+  >
+> & {
+  tipo: TipoEntidadeVinculadaPersonagem;
+  nome: string;
+  estado?: EstadoEntidadeVinculadaPersonagem;
+  overrideMestre?: boolean;
+};
+
 export type NpcSessaoCampanha = {
   npcSessaoId: number;
   npcAmeacaId: number | null;
+  entidadeVinculadaId?: number | null;
+  personagemDonoId?: number | null;
+  personagemControladorSessaoId?: number | null;
+  tipoVinculo?: TipoEntidadeVinculadaPersonagem | null;
+  vinculo?: {
+    id: number;
+    tipo: TipoEntidadeVinculadaPersonagem;
+    estado: EstadoEntidadeVinculadaPersonagem;
+    nome: string;
+    personagemCampanhaId: number;
+    personagemDono: {
+      id: number;
+      nome: string;
+      donoId: number;
+    } | null;
+  } | null;
   nome: string;
   fichaTipo: TipoFichaNpcAmeaca;
   tipo: TipoNpcAmeaca;
@@ -396,6 +519,20 @@ export type AtualizarNpcSessaoCampanhaPayload = Partial<
   Omit<AdicionarNpcSessaoCampanhaPayload, 'npcAmeacaId'> &
     AdicionarNpcSimplesSessaoCampanhaPayload
 >;
+
+export type InvocarEntidadeVinculadaSessaoPayload = {
+  ocultoJogadores?: boolean;
+  cenaId?: number | null;
+  ignorarLimite?: boolean;
+};
+
+export type ConcederMaldicaoControladaSessaoPayload = {
+  personagemCampanhaId: number;
+  npcAmeacaId?: number;
+  npcSessaoId?: number;
+  nome?: string;
+  descricao?: string | null;
+};
 
 export type AplicarCondicaoSessaoCampanhaPayload = {
   condicaoId: number;
@@ -786,6 +923,32 @@ export type SessaoCampanhaDetalhe = {
     tecnicasNaoInatas: TecnicaSessaoCampanha[];
     habilidadesClasse: HabilidadeClasseSessaoCampanha[];
     outrasHabilidades: OutraHabilidadeSessaoCampanha[];
+    vinculados: Array<
+      Pick<
+        EntidadeVinculadaPersonagem,
+        | 'id'
+        | 'tipo'
+        | 'estado'
+        | 'nome'
+        | 'descricao'
+        | 'conceito'
+        | 'aparencia'
+        | 'defesa'
+        | 'pontosVidaAtual'
+        | 'pontosVidaMax'
+        | 'rd'
+        | 'deslocamentoMetros'
+        | 'vagasOcupadas'
+        | 'cargasAtual'
+        | 'cargasMax'
+        | 'tipoNpc'
+        | 'fichaTipo'
+        | 'tamanho'
+        | 'npcAmeacaOrigemId'
+        | 'instanciasAtivas'
+        | 'ativoNestaSessao'
+      >
+    >;
     aprimoramentosTemporarios: AprimoramentoTemporarioSessaoCampanha[];
     opcoesAprimoramentoTecnicasNaoInatas: OpcaoAprimoramentoTecnicaSessaoCampanha[];
     sustentacoesAtivas: SustentacaoAtivaSessaoCampanha[];
