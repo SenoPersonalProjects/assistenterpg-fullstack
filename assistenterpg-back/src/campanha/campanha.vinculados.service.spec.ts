@@ -9,6 +9,8 @@ import {
 import { CampanhaVinculadosService } from './campanha.vinculados.service';
 
 type PrismaMock = {
+  $queryRaw: jest.Mock;
+  $transaction: jest.Mock;
   personagemCampanhaEntidadeVinculada: {
     count: jest.Mock;
     create: jest.Mock;
@@ -140,7 +142,9 @@ function criarConfigTecnica(
 
 function criarPrismaMock(): PrismaMock {
   const tecnica = criarTecnica();
-  return {
+  const prisma = {
+    $queryRaw: jest.fn().mockResolvedValue([{ id: 20 }]),
+    $transaction: jest.fn(),
     personagemCampanhaEntidadeVinculada: {
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
@@ -168,6 +172,10 @@ function criarPrismaMock(): PrismaMock {
       findMany: jest.fn().mockResolvedValue([]),
     },
   };
+  prisma.$transaction.mockImplementation(
+    (callback: (tx: PrismaMock) => unknown) => callback(prisma),
+  );
+  return prisma;
 }
 
 function mockTecnica(
@@ -308,6 +316,20 @@ function mockCreateRetornandoDados(prisma: PrismaMock) {
   prisma.personagemCampanhaEntidadeVinculada.create.mockImplementation(
     ({ data }: { data: Record<string, unknown> }) =>
       Promise.resolve(criarEntidadeMapeavel(data)),
+  );
+}
+
+function serializarTransacoesNoMock(prisma: PrismaMock) {
+  let fila = Promise.resolve<unknown>(undefined);
+  prisma.$transaction.mockImplementation(
+    (callback: (tx: PrismaMock) => Promise<unknown>) => {
+      const resultado = fila.then(() => callback(prisma));
+      fila = resultado.then(
+        () => undefined,
+        () => undefined,
+      );
+      return resultado;
+    },
   );
 }
 
@@ -835,5 +857,194 @@ describe('CampanhaVinculadosService', () => {
       pontosVidaMax: 20,
       pontosVidaAtual: 20,
     });
+  });
+
+  it('serializa criacoes concorrentes e nao excede limite de shikigami', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    const cadastrados: Array<{ vagasOcupadas: number }> = [];
+    prisma.personagemCampanhaEntidadeVinculada.findMany.mockImplementation(() =>
+      Promise.resolve([...cadastrados]),
+    );
+    prisma.personagemCampanhaEntidadeVinculada.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) => {
+        cadastrados.push({ vagasOcupadas: Number(data.vagasOcupadas ?? 1) });
+        return Promise.resolve(
+          criarEntidadeMapeavel({
+            ...data,
+            id: 500 + cadastrados.length,
+          }),
+        );
+      },
+    );
+    serializarTransacoesNoMock(prisma);
+
+    const resultados = await Promise.allSettled([
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        nome: 'Primeiro',
+      }),
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        nome: 'Segundo',
+      }),
+    ]);
+
+    expect(
+      resultados.filter((item) => item.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(resultados.filter((item) => item.status === 'rejected')).toEqual([
+      expect.objectContaining({
+        reason: expect.objectContaining({
+          code: 'ENTIDADE_SHIKIGAMI_LIMITE_CADASTRO',
+        }),
+      }),
+    ]);
+    expect(
+      prisma.personagemCampanhaEntidadeVinculada.create,
+    ).toHaveBeenCalledTimes(1);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it('serializa associacao concorrente e impede template duplicado', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    const tecnica = criarTecnica('DEZ_SOMBRAS', 102);
+    mockTecnica(
+      prisma,
+      tecnica,
+      criarConfigTecnica(tecnica, {
+        modo: ModoVinculadoTecnica.PREDEFINIDOS,
+        limiteCadastro: 10,
+        permiteCriarNovos: false,
+        usaTemplates: true,
+      }),
+    );
+    prisma.tecnicaVinculadoTemplate.findFirst.mockResolvedValue({
+      id: 301,
+      tecnicaId: tecnica.id,
+      tipoVinculado: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      nome: 'Cao Divino',
+      descricao: null,
+      conceito: null,
+      aparencia: null,
+      snapshotJson: null,
+      tecnica,
+    });
+    let associadoId: number | null = null;
+    prisma.personagemCampanhaEntidadeVinculada.findFirst.mockImplementation(
+      () => Promise.resolve(associadoId ? { id: associadoId } : null),
+    );
+    prisma.personagemCampanhaEntidadeVinculada.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) => {
+        associadoId = 501;
+        return Promise.resolve(criarEntidadeMapeavel({ ...data, id: 501 }));
+      },
+    );
+    serializarTransacoesNoMock(prisma);
+
+    const resultados = await Promise.allSettled([
+      service.associarTemplate(10, 20, 2, 301, {}),
+      service.associarTemplate(10, 20, 2, 301, {}),
+    ]);
+
+    expect(
+      resultados.filter((item) => item.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(resultados.filter((item) => item.status === 'rejected')).toEqual([
+      expect.objectContaining({
+        reason: expect.objectContaining({
+          code: 'ENTIDADE_TEMPLATE_JA_ASSOCIADO',
+        }),
+      }),
+    ]);
+    expect(
+      prisma.personagemCampanhaEntidadeVinculada.create,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('serializa corpos pesados concorrentes e respeita vagas de cadastro', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    const tecnica = criarTecnica('NAOINATA_TECNICA_CORPOS_AMALDICOADOS', 103);
+    mockTecnica(
+      prisma,
+      tecnica,
+      criarConfigTecnica(tecnica, {
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        tipoGrauCodigo: 'TECNICA_CADAVERES',
+        usaVagasPorNivel: true,
+      }),
+    );
+    const cadastrados: Array<{ vagasOcupadas: number }> = [];
+    prisma.personagemCampanhaEntidadeVinculada.findMany.mockImplementation(() =>
+      Promise.resolve([...cadastrados]),
+    );
+    prisma.personagemCampanhaEntidadeVinculada.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) => {
+        cadastrados.push({ vagasOcupadas: Number(data.vagasOcupadas ?? 1) });
+        return Promise.resolve(criarEntidadeMapeavel(data));
+      },
+    );
+    serializarTransacoesNoMock(prisma);
+
+    const resultados = await Promise.allSettled([
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        nome: 'Pesado A',
+        vagasOcupadas: 2,
+      }),
+      service.criar(10, 20, 2, {
+        tipo: TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO,
+        nome: 'Pesado B',
+        vagasOcupadas: 2,
+      }),
+    ]);
+
+    expect(
+      resultados.filter((item) => item.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(resultados.filter((item) => item.status === 'rejected')).toEqual([
+      expect.objectContaining({
+        reason: expect.objectContaining({ code: 'ENTIDADE_LIMITE_CADASTRO' }),
+      }),
+    ]);
+  });
+
+  it('revalida capacidade ao reativar entidade arquivada', async () => {
+    const { service, prisma, access } = criarServico();
+    access.obterPersonagemCampanhaComPermissao.mockResolvedValue({
+      acesso: acessoDono,
+      personagem: { id: 20, donoId: 2 },
+    });
+    prisma.personagemCampanhaEntidadeVinculada.findFirst.mockResolvedValue(
+      criarEntidadeMapeavel({
+        estado: EstadoEntidadeVinculadaPersonagem.ARQUIVADO,
+        tecnicaOrigemId: 101,
+      }),
+    );
+    prisma.personagemCampanhaEntidadeVinculada.findMany.mockResolvedValue([
+      { vagasOcupadas: 1 },
+    ]);
+
+    await expect(
+      service.atualizarEstado(10, 20, 2, 500, {
+        estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+      }),
+    ).rejects.toMatchObject({
+      code: 'ENTIDADE_SHIKIGAMI_LIMITE_CADASTRO',
+    });
+    expect(
+      prisma.personagemCampanhaEntidadeVinculada.update,
+    ).not.toHaveBeenCalled();
   });
 });

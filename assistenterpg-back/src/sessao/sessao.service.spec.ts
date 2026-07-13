@@ -776,7 +776,7 @@ describe('SessaoService', () => {
   it('nao aplica limite automatico a maldicao controlada', async () => {
     const tx = {
       npcAmeacaSessao: {
-        findMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
       },
     };
 
@@ -790,7 +790,38 @@ describe('SessaoService', () => {
         personagemCampanha: { nivel: 1 },
       }),
     ).resolves.toBeUndefined();
-    expect(tx.npcAmeacaSessao.findMany).not.toHaveBeenCalled();
+    expect(tx.npcAmeacaSessao.findMany).toHaveBeenCalled();
+  });
+
+  it('nao permite duplicar a mesma entidade mesmo com override do mestre', async () => {
+    const tx = {
+      npcAmeacaSessao: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            entidadeVinculadaId: 500,
+            entidadeVinculada: { id: 500, vagasOcupadas: 1 },
+          },
+        ]),
+      },
+    };
+
+    await expect(
+      (service as any).validarLimiteEntidadeVinculadaAtivaTx(
+        tx,
+        21,
+        {
+          id: 500,
+          tipo: TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA,
+          personagemCampanhaId: 20,
+          tecnicaOrigemId: null,
+          vagasOcupadas: 1,
+          limites: null,
+          overrideMestre: true,
+          personagemCampanha: { nivel: 1 },
+        },
+        true,
+      ),
+    ).rejects.toMatchObject({ code: 'ENTIDADE_JA_ATIVA' });
   });
 
   it('desinvoca vinculado e retorna estado para disponivel', async () => {
@@ -832,6 +863,7 @@ describe('SessaoService', () => {
       },
     };
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 20 }]),
       sessao: {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
@@ -871,6 +903,7 @@ describe('SessaoService', () => {
       sessao: { status: 'EM_ANDAMENTO' },
     });
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 20 }]),
       sessao: {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
@@ -969,6 +1002,7 @@ describe('SessaoService', () => {
       cenaId: 31,
     };
     const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 20 }]),
       sessao: {
         findUnique: jest.fn().mockResolvedValue({
           id: 21,
@@ -1012,6 +1046,127 @@ describe('SessaoService', () => {
       where: { id: 500 },
       data: { estado: EstadoEntidadeVinculadaPersonagem.ATIVO },
     });
+  });
+
+  it('serializa invocacoes concorrentes da mesma entidade', async () => {
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso: { ehMestre: true },
+      sessao: { status: 'EM_ANDAMENTO' },
+    });
+    jest
+      .spyOn(service as any, 'obterCenaAtualSessaoTx')
+      .mockResolvedValue({ id: 31 });
+    jest
+      .spyOn(service, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 } as never);
+    const entidade = {
+      id: 500,
+      campanhaId: 7,
+      personagemCampanhaId: 20,
+      tecnicaOrigemId: null,
+      tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+      estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+      nome: 'Cao Divino',
+      descricao: null,
+      conceito: null,
+      fichaTipo: TipoFichaNpcAmeaca.NPC,
+      tipoNpc: TipoNpcAmeaca.OUTRO,
+      tamanho: 'MEDIO',
+      vd: 0,
+      defesa: 12,
+      pontosVidaAtual: 10,
+      pontosVidaMax: 10,
+      cargasAtual: null,
+      cargasMax: null,
+      deslocamentoMetros: 6,
+      agilidade: 1,
+      forca: 1,
+      intelecto: 0,
+      presenca: 0,
+      vigor: 1,
+      percepcao: 0,
+      iniciativa: 0,
+      fortitude: 0,
+      reflexos: 0,
+      vontade: 0,
+      luta: 0,
+      jujutsu: 0,
+      passivas: null,
+      acoes: null,
+      vagasOcupadas: 1,
+      limites: null,
+      overrideMestre: false,
+      personagemCampanha: { id: 20, nome: 'Dono', donoId: 99, nivel: 1 },
+    };
+    const ativos: Array<{
+      entidadeVinculadaId: number;
+      entidadeVinculada: { id: number; vagasOcupadas: number };
+    }> = [];
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 20 }]),
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 21,
+          campanhaId: 7,
+          status: 'EM_ANDAMENTO',
+        }),
+      },
+      personagemCampanhaEntidadeVinculada: {
+        findFirst: jest.fn().mockResolvedValue(entidade),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      personagemSessao: {
+        findFirst: jest.fn().mockResolvedValue({ id: 300 }),
+      },
+      tecnicaVinculadoConfig: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      npcAmeacaSessao: {
+        findMany: jest
+          .fn()
+          .mockImplementation(() => Promise.resolve([...ativos])),
+        create: jest
+          .fn()
+          .mockImplementation(({ data }: { data: Record<string, unknown> }) => {
+            ativos.push({
+              entidadeVinculadaId: 500,
+              entidadeVinculada: { id: 500, vagasOcupadas: 1 },
+            });
+            return Promise.resolve({ id: 700, ...data });
+          }),
+      },
+      eventoSessao: {
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+    };
+    let fila = Promise.resolve<unknown>(undefined);
+    prisma.$transaction.mockImplementation(
+      (callback: (txArg: typeof tx) => Promise<unknown>) => {
+        const resultado = fila.then(() => callback(tx));
+        fila = resultado.then(
+          () => undefined,
+          () => undefined,
+        );
+        return resultado;
+      },
+    );
+
+    const resultados = await Promise.allSettled([
+      service.invocarEntidadeVinculadaSessao(7, 21, 500, 10, {}),
+      service.invocarEntidadeVinculadaSessao(7, 21, 500, 10, {}),
+    ]);
+
+    expect(
+      resultados.filter((item) => item.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(resultados.filter((item) => item.status === 'rejected')).toEqual([
+      expect.objectContaining({
+        reason: expect.objectContaining({ code: 'ENTIDADE_JA_ATIVA' }),
+      }),
+    ]);
+    expect(tx.npcAmeacaSessao.create).toHaveBeenCalledTimes(1);
+    expect(tx.eventoSessao.create).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
   });
 
   it('deve bloquear desfazer quando evento não for o ultimo reversivel', async () => {

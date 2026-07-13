@@ -30,6 +30,10 @@ import {
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
 } from './engine/campanha-modificadores-efetivos';
+import {
+  bloquearPersonagemCampanhaTx,
+  executarComRetryConcorrencia,
+} from './campanha-concorrencia';
 
 const entidadeVinculadaInclude = {
   personagemCampanha: {
@@ -315,24 +319,6 @@ export class CampanhaVinculadosService {
         usuarioId,
         true,
       );
-    const contexto = await this.carregarContextoAutomacao(personagem.id);
-    const template = await this.prisma.tecnicaVinculadoTemplate.findFirst({
-      where: { id: templateId, ativo: true },
-      include: { tecnica: { select: { id: true, codigo: true, nome: true } } },
-    });
-    if (!template) {
-      throw new BusinessException(
-        'Template de vinculado nao encontrado',
-        'ENTIDADE_TEMPLATE_NAO_ENCONTRADO',
-        { templateId },
-      );
-    }
-    const config = contexto.configs.find(
-      (item) =>
-        item.tecnicaId === template.tecnicaId &&
-        item.tipoVinculado === template.tipoVinculado &&
-        item.usaTemplates,
-    );
     const overrideMestre = dto.overrideMestre === true;
     if (overrideMestre && !acesso.ehMestre) {
       throw new BusinessException(
@@ -340,74 +326,107 @@ export class CampanhaVinculadosService {
         'ENTIDADE_OVERRIDE_NEGADO',
       );
     }
-    if (!config && !overrideMestre) {
-      throw new BusinessException(
-        'Personagem nao possui a tecnica deste template',
-        'ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA',
-        { templateId, tecnicaCodigo: template.tecnica.codigo },
-      );
-    }
-    const existente =
-      await this.prisma.personagemCampanhaEntidadeVinculada.findFirst({
-        where: {
-          personagemCampanhaId,
-          templateId,
-          estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
-        },
-        select: { id: true },
-      });
-    if (existente) {
-      throw new BusinessException(
-        'Este template ja esta associado ao personagem',
-        'ENTIDADE_TEMPLATE_JA_ASSOCIADO',
-        { templateId, vinculadoId: existente.id },
-      );
-    }
-    if (config && !overrideMestre) {
-      await this.validarLimiteCadastroConfigurado(personagemCampanhaId, config);
-    }
+    return executarComRetryConcorrencia('associar template de vinculado', () =>
+      this.prisma.$transaction(async (tx) => {
+        await bloquearPersonagemCampanhaTx(tx, campanhaId, personagem.id);
+        const contexto = await this.carregarContextoAutomacao(
+          personagem.id,
+          tx,
+        );
+        const template = await tx.tecnicaVinculadoTemplate.findFirst({
+          where: { id: templateId, ativo: true },
+          include: {
+            tecnica: { select: { id: true, codigo: true, nome: true } },
+          },
+        });
+        if (!template) {
+          throw new BusinessException(
+            'Template de vinculado nao encontrado',
+            'ENTIDADE_TEMPLATE_NAO_ENCONTRADO',
+            { templateId },
+          );
+        }
+        const config = contexto.configs.find(
+          (item) =>
+            item.tecnicaId === template.tecnicaId &&
+            item.tipoVinculado === template.tipoVinculado &&
+            item.usaTemplates,
+        );
+        if (!config && !overrideMestre) {
+          throw new BusinessException(
+            'Personagem nao possui a tecnica deste template',
+            'ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA',
+            { templateId, tecnicaCodigo: template.tecnica.codigo },
+          );
+        }
+        const existente =
+          await tx.personagemCampanhaEntidadeVinculada.findFirst({
+            where: {
+              personagemCampanhaId,
+              templateId,
+              estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
+            },
+            select: { id: true },
+          });
+        if (existente) {
+          throw new BusinessException(
+            'Este template ja esta associado ao personagem',
+            'ENTIDADE_TEMPLATE_JA_ASSOCIADO',
+            { templateId, vinculadoId: existente.id },
+          );
+        }
+        if (config && !overrideMestre) {
+          await this.validarLimiteCadastroConfigurado(
+            personagemCampanhaId,
+            config,
+            1,
+            undefined,
+            tx,
+          );
+        }
 
-    const base: Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput =
-      {
-        campanhaId,
-        personagemCampanhaId,
-        tipo: template.tipoVinculado,
-        nome: template.nome,
-        descricao: template.descricao,
-        conceito: template.conceito,
-        aparencia: template.aparencia,
-        tecnicaOrigemId: template.tecnicaId,
-        templateId: template.id,
-        criadoPorId: usuarioId,
-        overrideMestre,
-        precisaRecalculo: true,
-      };
-    const comSnapshot = {
-      ...base,
-      ...this.normalizarSnapshotTemplate(template.snapshotJson),
-    };
-    const calculo = config
-      ? this.calcularAutomaticoDados(
-          comSnapshot,
-          contexto,
-          config,
-          'Template associado',
-        )
-      : null;
-    const entidade =
-      await this.prisma.personagemCampanhaEntidadeVinculada.create({
-        data: {
-          ...comSnapshot,
-          nivelReferencia: contexto.personagem.nivel,
-          grauReferencia: config
-            ? this.resolverGrauConfig(config, contexto)
-            : null,
-          tipoGrauCodigo: config?.tipoGrauCodigo ?? null,
-          calculoAutomatico: this.jsonInput(calculo),
-        },
-        include: entidadeVinculadaInclude,
-      });
-    return this.mapearEntidade(entidade, acesso);
+        const base: Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput =
+          {
+            campanhaId,
+            personagemCampanhaId,
+            tipo: template.tipoVinculado,
+            nome: template.nome,
+            descricao: template.descricao,
+            conceito: template.conceito,
+            aparencia: template.aparencia,
+            tecnicaOrigemId: template.tecnicaId,
+            templateId: template.id,
+            criadoPorId: usuarioId,
+            overrideMestre,
+            precisaRecalculo: true,
+          };
+        const comSnapshot = {
+          ...base,
+          ...this.normalizarSnapshotTemplate(template.snapshotJson),
+        };
+        const calculo = config
+          ? this.calcularAutomaticoDados(
+              comSnapshot,
+              contexto,
+              config,
+              'Template associado',
+            )
+          : null;
+        const entidade = await tx.personagemCampanhaEntidadeVinculada.create({
+          data: {
+            ...comSnapshot,
+            nivelReferencia: contexto.personagem.nivel,
+            grauReferencia: config
+              ? this.resolverGrauConfig(config, contexto)
+              : null,
+            tipoGrauCodigo: config?.tipoGrauCodigo ?? null,
+            calculoAutomatico: this.jsonInput(calculo),
+          },
+          include: entidadeVinculadaInclude,
+        });
+        return this.mapearEntidade(entidade, acesso);
+      }),
+    );
   }
 
   async criar(
@@ -423,30 +442,36 @@ export class CampanhaVinculadosService {
         usuarioId,
         true,
       );
-    const resolucao = await this.validarCriacaoPorTipo(
-      acesso,
-      personagem.id,
-      usuarioId,
-      dto,
-    );
-    let data = await this.montarDadosCriacao(
-      campanhaId,
-      personagemCampanhaId,
-      usuarioId,
-      dto,
-      acesso.ehMestre,
-    );
-    this.validarPontosVidaEntidade(data);
-    data = this.aplicarAutomacaoCriacao(data, dto, resolucao);
-    this.validarPontosVidaEntidade(data);
+    return executarComRetryConcorrencia('criar entidade vinculada', () =>
+      this.prisma.$transaction(async (tx) => {
+        await bloquearPersonagemCampanhaTx(tx, campanhaId, personagem.id);
+        const resolucao = await this.validarCriacaoPorTipo(
+          acesso,
+          personagem.id,
+          usuarioId,
+          dto,
+          {},
+          tx,
+        );
+        let data = await this.montarDadosCriacao(
+          campanhaId,
+          personagemCampanhaId,
+          usuarioId,
+          dto,
+          acesso.ehMestre,
+          tx,
+        );
+        this.validarPontosVidaEntidade(data);
+        data = this.aplicarAutomacaoCriacao(data, dto, resolucao);
+        this.validarPontosVidaEntidade(data);
 
-    const entidade =
-      await this.prisma.personagemCampanhaEntidadeVinculada.create({
-        data,
-        include: entidadeVinculadaInclude,
-      });
-
-    return this.mapearEntidade(entidade, acesso);
+        const entidade = await tx.personagemCampanhaEntidadeVinculada.create({
+          data,
+          include: entidadeVinculadaInclude,
+        });
+        return this.mapearEntidade(entidade, acesso);
+      }),
+    );
   }
 
   async atualizar(
@@ -463,55 +488,65 @@ export class CampanhaVinculadosService {
         usuarioId,
         true,
       );
-    const atual = await this.obterEntidadeOuFalhar(
-      campanhaId,
-      personagemCampanhaId,
-      vinculadoId,
+    return executarComRetryConcorrencia('atualizar entidade vinculada', () =>
+      this.prisma.$transaction(async (tx) => {
+        await bloquearPersonagemCampanhaTx(tx, campanhaId, personagem.id);
+        const atual = await this.obterEntidadeOuFalhar(
+          campanhaId,
+          personagemCampanhaId,
+          vinculadoId,
+          tx,
+        );
+        const tipo = dto.tipo ?? atual.tipo;
+        const resolucao = await this.validarCriacaoPorTipo(
+          acesso,
+          personagem.id,
+          usuarioId,
+          {
+            ...dto,
+            tipo,
+            nome: dto.nome ?? atual.nome,
+            npcAmeacaOrigemId: dto.npcAmeacaOrigemId ?? atual.npcAmeacaOrigemId,
+            tecnicaOrigemId: dto.tecnicaOrigemId ?? atual.tecnicaOrigemId,
+          },
+          {
+            validarModoCriacao: false,
+            validarLimiteCadastro: false,
+          },
+          tx,
+        );
+
+        const mudouConsumoCadastro =
+          tipo !== atual.tipo ||
+          (dto.vagasOcupadas !== undefined &&
+            dto.vagasOcupadas !== atual.vagasOcupadas) ||
+          (dto.tecnicaOrigemId !== undefined &&
+            dto.tecnicaOrigemId !== atual.tecnicaOrigemId);
+        if (
+          mudouConsumoCadastro &&
+          resolucao.config &&
+          !resolucao.overrideMestre
+        ) {
+          await this.validarLimiteCadastroConfigurado(
+            personagemCampanhaId,
+            resolucao.config,
+            dto.vagasOcupadas ?? atual.vagasOcupadas,
+            atual.id,
+            tx,
+          );
+        }
+
+        const data = await this.montarDadosAtualizacao(dto, atual, tx);
+        this.marcarRecalculoSeNecessario(data, dto, atual, resolucao);
+        this.validarPontosVidaEntidade(data, atual);
+        const entidade = await tx.personagemCampanhaEntidadeVinculada.update({
+          where: { id: vinculadoId },
+          data: data as Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedUpdateInput,
+          include: entidadeVinculadaInclude,
+        });
+        return this.mapearEntidade(entidade, acesso);
+      }),
     );
-    const tipo = dto.tipo ?? atual.tipo;
-    const resolucao = await this.validarCriacaoPorTipo(
-      acesso,
-      personagem.id,
-      usuarioId,
-      {
-        ...dto,
-        tipo,
-        nome: dto.nome ?? atual.nome,
-        npcAmeacaOrigemId: dto.npcAmeacaOrigemId ?? atual.npcAmeacaOrigemId,
-        tecnicaOrigemId: dto.tecnicaOrigemId ?? atual.tecnicaOrigemId,
-      },
-      {
-        validarModoCriacao: false,
-        validarLimiteCadastro: false,
-      },
-    );
-
-    const mudouConsumoCadastro =
-      tipo !== atual.tipo ||
-      (dto.vagasOcupadas !== undefined &&
-        dto.vagasOcupadas !== atual.vagasOcupadas) ||
-      (dto.tecnicaOrigemId !== undefined &&
-        dto.tecnicaOrigemId !== atual.tecnicaOrigemId);
-    if (mudouConsumoCadastro && resolucao.config && !resolucao.overrideMestre) {
-      await this.validarLimiteCadastroConfigurado(
-        personagemCampanhaId,
-        resolucao.config,
-        dto.vagasOcupadas ?? atual.vagasOcupadas,
-        atual.id,
-      );
-    }
-
-    const data = await this.montarDadosAtualizacao(dto, atual);
-    this.marcarRecalculoSeNecessario(data, dto, atual, resolucao);
-    this.validarPontosVidaEntidade(data, atual);
-    const entidade =
-      await this.prisma.personagemCampanhaEntidadeVinculada.update({
-        where: { id: vinculadoId },
-        data: data as Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedUpdateInput,
-        include: entidadeVinculadaInclude,
-      });
-
-    return this.mapearEntidade(entidade, acesso);
   }
 
   async duplicar(
@@ -527,45 +562,51 @@ export class CampanhaVinculadosService {
         usuarioId,
         true,
       );
-    const atual = await this.obterEntidadeOuFalhar(
-      campanhaId,
-      personagemCampanhaId,
-      vinculadoId,
+    return executarComRetryConcorrencia('duplicar entidade vinculada', () =>
+      this.prisma.$transaction(async (tx) => {
+        await bloquearPersonagemCampanhaTx(tx, campanhaId, personagem.id);
+        const atual = await this.obterEntidadeOuFalhar(
+          campanhaId,
+          personagemCampanhaId,
+          vinculadoId,
+          tx,
+        );
+        const overrideMestre = acesso.ehMestre && atual.overrideMestre;
+        const resolucao = await this.validarCriacaoPorTipo(
+          acesso,
+          personagem.id,
+          usuarioId,
+          {
+            tipo: atual.tipo,
+            overrideMestre,
+            npcAmeacaOrigemId: atual.npcAmeacaOrigemId,
+            tecnicaOrigemId: atual.tecnicaOrigemId,
+            vagasOcupadas: atual.vagasOcupadas,
+          },
+          {},
+          tx,
+        );
+
+        const dataDuplicada = {
+          ...this.snapshotEntidadeParaCreate(atual),
+          campanhaId: atual.campanhaId,
+          personagemCampanhaId: atual.personagemCampanhaId,
+          tipo: atual.tipo,
+          nome: `Copia de ${atual.nome}`.slice(0, 120),
+          estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+          templateId: null,
+          precisaRecalculo: atual.calculoAutomatico !== null,
+          overrideMestre: resolucao.overrideMestre,
+          criadoPorId: usuarioId,
+        } satisfies Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput;
+
+        const entidade = await tx.personagemCampanhaEntidadeVinculada.create({
+          data: dataDuplicada,
+          include: entidadeVinculadaInclude,
+        });
+        return this.mapearEntidade(entidade, acesso);
+      }),
     );
-    const overrideMestre = acesso.ehMestre && atual.overrideMestre;
-    const resolucao = await this.validarCriacaoPorTipo(
-      acesso,
-      personagem.id,
-      usuarioId,
-      {
-        tipo: atual.tipo,
-        overrideMestre,
-        npcAmeacaOrigemId: atual.npcAmeacaOrigemId,
-        tecnicaOrigemId: atual.tecnicaOrigemId,
-        vagasOcupadas: atual.vagasOcupadas,
-      },
-    );
-
-    const dataDuplicada = {
-      ...this.snapshotEntidadeParaCreate(atual),
-      campanhaId: atual.campanhaId,
-      personagemCampanhaId: atual.personagemCampanhaId,
-      tipo: atual.tipo,
-      nome: `Copia de ${atual.nome}`.slice(0, 120),
-      estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
-      templateId: null,
-      precisaRecalculo: atual.calculoAutomatico !== null,
-      overrideMestre: resolucao.overrideMestre,
-      criadoPorId: usuarioId,
-    } satisfies Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput;
-
-    const entidade =
-      await this.prisma.personagemCampanhaEntidadeVinculada.create({
-        data: dataDuplicada,
-        include: entidadeVinculadaInclude,
-      });
-
-    return this.mapearEntidade(entidade, acesso);
   }
 
   async atualizarEstado(
@@ -575,25 +616,49 @@ export class CampanhaVinculadosService {
     vinculadoId: number,
     dto: AtualizarEstadoEntidadeVinculadaDto,
   ) {
-    const { acesso } =
+    const { acesso, personagem } =
       await this.accessService.obterPersonagemCampanhaComPermissao(
         campanhaId,
         personagemCampanhaId,
         usuarioId,
         true,
       );
-    await this.obterEntidadeOuFalhar(
-      campanhaId,
-      personagemCampanhaId,
-      vinculadoId,
+    return executarComRetryConcorrencia('alterar estado de vinculado', () =>
+      this.prisma.$transaction(async (tx) => {
+        await bloquearPersonagemCampanhaTx(tx, campanhaId, personagem.id);
+        const atual = await this.obterEntidadeOuFalhar(
+          campanhaId,
+          personagemCampanhaId,
+          vinculadoId,
+          tx,
+        );
+        if (
+          atual.estado === EstadoEntidadeVinculadaPersonagem.ARQUIVADO &&
+          dto.estado !== EstadoEntidadeVinculadaPersonagem.ARQUIVADO
+        ) {
+          await this.validarCriacaoPorTipo(
+            acesso,
+            personagem.id,
+            usuarioId,
+            {
+              tipo: atual.tipo,
+              overrideMestre: atual.overrideMestre && acesso.ehMestre,
+              npcAmeacaOrigemId: atual.npcAmeacaOrigemId,
+              tecnicaOrigemId: atual.tecnicaOrigemId,
+              vagasOcupadas: atual.vagasOcupadas,
+            },
+            { validarModoCriacao: false },
+            tx,
+          );
+        }
+        const entidade = await tx.personagemCampanhaEntidadeVinculada.update({
+          where: { id: vinculadoId },
+          data: { estado: dto.estado },
+          include: entidadeVinculadaInclude,
+        });
+        return this.mapearEntidade(entidade, acesso);
+      }),
     );
-    const entidade =
-      await this.prisma.personagemCampanhaEntidadeVinculada.update({
-        where: { id: vinculadoId },
-        data: { estado: dto.estado },
-        include: entidadeVinculadaInclude,
-      });
-    return this.mapearEntidade(entidade, acesso);
   }
 
   async remover(
@@ -602,25 +667,30 @@ export class CampanhaVinculadosService {
     usuarioId: number,
     vinculadoId: number,
   ) {
-    const { acesso } =
+    const { acesso, personagem } =
       await this.accessService.obterPersonagemCampanhaComPermissao(
         campanhaId,
         personagemCampanhaId,
         usuarioId,
         true,
       );
-    await this.obterEntidadeOuFalhar(
-      campanhaId,
-      personagemCampanhaId,
-      vinculadoId,
+    return executarComRetryConcorrencia('arquivar entidade vinculada', () =>
+      this.prisma.$transaction(async (tx) => {
+        await bloquearPersonagemCampanhaTx(tx, campanhaId, personagem.id);
+        await this.obterEntidadeOuFalhar(
+          campanhaId,
+          personagemCampanhaId,
+          vinculadoId,
+          tx,
+        );
+        const entidade = await tx.personagemCampanhaEntidadeVinculada.update({
+          where: { id: vinculadoId },
+          data: { estado: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
+          include: entidadeVinculadaInclude,
+        });
+        return this.mapearEntidade(entidade, acesso);
+      }),
     );
-    const entidade =
-      await this.prisma.personagemCampanhaEntidadeVinculada.update({
-        where: { id: vinculadoId },
-        data: { estado: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
-        include: entidadeVinculadaInclude,
-      });
-    return this.mapearEntidade(entidade, acesso);
   }
 
   async recalcular(
@@ -841,12 +911,12 @@ export class CampanhaVinculadosService {
     campanhaId: number,
     personagemCampanhaId: number,
     vinculadoId: number,
+    db: Prisma.TransactionClient = this.prisma,
   ) {
-    const entidade =
-      await this.prisma.personagemCampanhaEntidadeVinculada.findFirst({
-        where: { id: vinculadoId, campanhaId, personagemCampanhaId },
-        include: entidadeVinculadaInclude,
-      });
+    const entidade = await db.personagemCampanhaEntidadeVinculada.findFirst({
+      where: { id: vinculadoId, campanhaId, personagemCampanhaId },
+      include: entidadeVinculadaInclude,
+    });
     if (!entidade) {
       throw new BusinessException(
         'Entidade vinculada nao encontrada',
@@ -863,6 +933,7 @@ export class CampanhaVinculadosService {
     usuarioId: number,
     dto: CriarEntidadeVinculadaPersonagemDto,
     ehMestre: boolean,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput> {
     if (dto.tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
       if (!dto.npcAmeacaOrigemId) {
@@ -871,7 +942,7 @@ export class CampanhaVinculadosService {
           'ENTIDADE_MALDICAO_ORIGEM_OBRIGATORIA',
         );
       }
-      const origem = await this.prisma.npcAmeaca.findFirst({
+      const origem = await db.npcAmeaca.findFirst({
         where: {
           id: dto.npcAmeacaOrigemId,
           ...(ehMestre ? {} : { donoId: usuarioId }),
@@ -915,6 +986,7 @@ export class CampanhaVinculadosService {
   private async montarDadosAtualizacao(
     dto: AtualizarEntidadeVinculadaPersonagemDto,
     atual: EntidadeVinculadaMapeavel,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<DadosEntidadeVinculada> {
     if (
       (dto.tipo ?? atual.tipo) ===
@@ -922,7 +994,7 @@ export class CampanhaVinculadosService {
       dto.npcAmeacaOrigemId &&
       dto.npcAmeacaOrigemId !== atual.npcAmeacaOrigemId
     ) {
-      const origem = await this.prisma.npcAmeaca.findUnique({
+      const origem = await db.npcAmeaca.findUnique({
         where: { id: dto.npcAmeacaOrigemId },
       });
       if (!origem || origem.tipo !== TipoNpcAmeaca.MALDICAO) {
@@ -1204,6 +1276,7 @@ export class CampanhaVinculadosService {
       | 'vagasOcupadas'
     > & { nome?: string },
     opcoes: OpcoesValidacaoCriacao = {},
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<ResolucaoCriacaoVinculado> {
     const overrideMestre = dto.overrideMestre === true;
     if (overrideMestre && !acesso.ehMestre) {
@@ -1216,7 +1289,10 @@ export class CampanhaVinculadosService {
       return { contexto: null, config: null, overrideMestre: true };
     }
 
-    const contexto = await this.carregarContextoAutomacao(personagemCampanhaId);
+    const contexto = await this.carregarContextoAutomacao(
+      personagemCampanhaId,
+      db,
+    );
     const configsTipo = contexto.configs.filter(
       (config) => config.tipoVinculado === dto.tipo,
     );
@@ -1255,6 +1331,8 @@ export class CampanhaVinculadosService {
         personagemCampanhaId,
         config,
         dto.vagasOcupadas ?? 1,
+        undefined,
+        db,
       );
     }
     return { contexto, config, overrideMestre: false };
@@ -1265,26 +1343,26 @@ export class CampanhaVinculadosService {
     config: ConfigVinculadoNormalizada,
     consumoNovo = 1,
     ignorarVinculadoId?: number,
+    db: Prisma.TransactionClient = this.prisma,
   ) {
     if (config.limiteCadastro === null) return;
-    const entidades =
-      await this.prisma.personagemCampanhaEntidadeVinculada.findMany({
-        where: {
-          personagemCampanhaId,
-          ...(ignorarVinculadoId ? { id: { not: ignorarVinculadoId } } : {}),
-          tipo: config.tipoVinculado,
-          estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
-          ...(config.tipoVinculado === TipoEntidadeVinculadaPersonagem.SHIKIGAMI
-            ? {
-                OR: [
-                  { tecnicaOrigemId: config.tecnicaId },
-                  { tecnicaOrigemId: null },
-                ],
-              }
-            : {}),
-        },
-        select: { vagasOcupadas: true },
-      });
+    const entidades = await db.personagemCampanhaEntidadeVinculada.findMany({
+      where: {
+        personagemCampanhaId,
+        ...(ignorarVinculadoId ? { id: { not: ignorarVinculadoId } } : {}),
+        tipo: config.tipoVinculado,
+        estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
+        ...(config.tipoVinculado === TipoEntidadeVinculadaPersonagem.SHIKIGAMI
+          ? {
+              OR: [
+                { tecnicaOrigemId: config.tecnicaId },
+                { tecnicaOrigemId: null },
+              ],
+            }
+          : {}),
+      },
+      select: { vagasOcupadas: true },
+    });
     const usado =
       config.unidadeCadastro === 'VAGAS'
         ? entidades.reduce(
@@ -1316,8 +1394,9 @@ export class CampanhaVinculadosService {
 
   private async carregarContextoAutomacao(
     personagemCampanhaId: number,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<ContextoAutomacaoVinculados> {
-    const personagem = await this.prisma.personagemCampanha.findUnique({
+    const personagem = await db.personagemCampanha.findUnique({
       where: { id: personagemCampanhaId },
       select: {
         id: true,
@@ -1470,7 +1549,7 @@ export class CampanhaVinculadosService {
     );
 
     const configsDb = tecnicas.size
-      ? await this.prisma.tecnicaVinculadoConfig.findMany({
+      ? await db.tecnicaVinculadoConfig.findMany({
           where: { tecnicaId: { in: [...tecnicas.keys()] }, ativo: true },
           include: { tecnica: { select: { codigo: true, nome: true } } },
         })
