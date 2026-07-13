@@ -1,4 +1,5 @@
 import type {
+  CapacidadeEntidadeVinculada,
   EntidadeVinculadaPersonagem,
   EstadoEntidadeVinculadaPersonagem,
 } from '@/lib/types';
@@ -48,4 +49,27 @@ export function podeInvocarEntidadeVinculada(
   if (sessaoEncerrada) return false;
   if (ESTADOS_FINAIS.includes(entidade.estado)) return false;
   return !entidadeVinculadaAtivaNestaSessao(entidade);
+}
+
+export function formatarUsoCapacidadeEntidadeVinculada(
+  capacidade: CapacidadeEntidadeVinculada,
+  chave: 'cadastro' | 'ativo',
+): string {
+  const valor = capacidade[chave];
+  const maximo = valor.maximo === null ? 'sem limite' : valor.maximo;
+  const unidade = valor.unidade === 'VAGAS' ? ' vagas' : '';
+  return `${valor.usado}/${maximo}${unidade}`;
+}
+
+export function resolverFluxoCriacaoEntidadeVinculada(
+  capacidade: CapacidadeEntidadeVinculada | null | undefined,
+) {
+  return {
+    habilitado: capacidade?.habilitado === true,
+    permiteCriacaoManual: capacidade?.permiteCriarNovos === true,
+    permiteTemplates: capacidade?.usaTemplates === true,
+    bloqueado:
+      !capacidade?.habilitado ||
+      (!capacidade.permiteCriarNovos && !capacidade.usaTemplates),
+  };
 }

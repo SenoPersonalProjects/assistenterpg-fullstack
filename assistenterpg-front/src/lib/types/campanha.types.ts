@@ -302,6 +302,101 @@ export type EstadoEntidadeVinculadaPersonagem =
   | 'DESCARREGADO'
   | 'ARQUIVADO';
 
+export type ModoVinculadoTecnica = 'CRIAVEL' | 'PREDEFINIDOS' | 'HIBRIDO';
+export type PapelCalculoEntidadeVinculada = 'AGIL' | 'FLEXIVEL' | 'TANQUE';
+
+export type ConfigVinculadoTecnica = {
+  id: number;
+  tecnicaId: number;
+  tecnicaCodigo: string;
+  tecnicaNome: string;
+  tipoVinculado: TipoEntidadeVinculadaPersonagem;
+  modo: ModoVinculadoTecnica;
+  limiteCadastro: number | null;
+  limiteAtivo: number | null;
+  unidadeCadastro: 'QUANTIDADE' | 'VAGAS';
+  unidadeAtivo: 'QUANTIDADE' | 'VAGAS';
+  permiteCriarNovos: boolean;
+  usaTemplates: boolean;
+  tipoGrauCodigo: string | null;
+  regraCalculo: string | null;
+  versaoRegra: string;
+  previewCalculo?: CalculoAutomaticoEntidadeVinculada | null;
+};
+
+export type CapacidadeEntidadeVinculada = {
+  tipo: TipoEntidadeVinculadaPersonagem;
+  habilitado: boolean;
+  modo: ModoVinculadoTecnica | null;
+  permiteCriarNovos: boolean;
+  usaTemplates: boolean;
+  cadastro: {
+    unidade: 'QUANTIDADE' | 'VAGAS';
+    usado: number;
+    maximo: number | null;
+    disponivel: number | null;
+    excedente: number;
+  };
+  ativo: {
+    unidade: 'QUANTIDADE' | 'VAGAS';
+    usado: number;
+    maximo: number | null;
+    disponivel: number | null;
+    excedente: number;
+  };
+  configuracoes: ConfigVinculadoTecnica[];
+};
+
+export type CapacidadesEntidadesVinculadas = {
+  personagemCampanhaId: number;
+  nivel: number;
+  permissoes: {
+    podeIgnorarLimites: boolean;
+    podeEditar: boolean;
+  };
+  tipos: CapacidadeEntidadeVinculada[];
+};
+
+export type TemplateEntidadeVinculada = {
+  id: number;
+  codigo: string;
+  nome: string;
+  descricao: string | null;
+  conceito: string | null;
+  aparencia: string | null;
+  tipoVinculado: TipoEntidadeVinculadaPersonagem;
+  bloqueadoPorPadrao: boolean;
+  ordem: number;
+  tecnica: { id: number; codigo: string; nome: string };
+  associado: boolean;
+  entidadeAssociadaId: number | null;
+};
+
+export type CalculoAutomaticoEntidadeVinculada = {
+  ativo: boolean;
+  regraCalculo?: string | null;
+  versaoRegra: string;
+  motivoRecalculo: string | null;
+  nivelReferencia: number;
+  grauReferencia: number;
+  papel: PapelCalculoEntidadeVinculada;
+  pools: {
+    atributosMax: number;
+    atributosDistribuidos: number;
+    ataquesMax: number;
+    ataquesDistribuidos: number;
+    resistenciasMax: number;
+    resistenciasDistribuidas: number;
+    tetoAtributo: number;
+    tetoAtaque: number | null;
+    tetoResistencia: number;
+  };
+  pendencias: Record<string, number>;
+  excedentes: Record<string, number>;
+  derivados: { pontosVidaMax: number; defesa: number; rd: number };
+  cargasSugeridas: number | null;
+};
+
 export type EntidadeVinculadaPersonagem = {
   id: number;
   campanhaId: number;
@@ -317,6 +412,10 @@ export type EntidadeVinculadaPersonagem = {
   tecnicaOrigemId: number | null;
   tipoGrauCodigo: string | null;
   npcAmeacaOrigemId: number | null;
+  templateId: number | null;
+  precisaRecalculo: boolean;
+  calculoAutomatico: CalculoAutomaticoEntidadeVinculada | null;
+  overrideMestre: boolean;
   fichaTipo: TipoFichaNpcAmeaca;
   tipoNpc: TipoNpcAmeaca;
   tamanho: string;
@@ -333,6 +432,7 @@ export type EntidadeVinculadaPersonagem = {
   vontade: number;
   luta: number;
   jujutsu: number;
+  pontaria: number;
   defesa: number;
   pontosVidaMax: number;
   pontosVidaAtual: number;
@@ -365,6 +465,17 @@ export type EntidadeVinculadaPersonagem = {
     tipo: TipoNpcAmeaca;
     fichaTipo: TipoFichaNpcAmeaca;
   } | null;
+  template?: {
+    id: number;
+    codigo: string;
+    nome: string;
+    tecnicaId: number;
+    bloqueadoPorPadrao: boolean;
+  } | null;
+  permissoes?: {
+    podeEditar: boolean;
+    podeIgnorarLimites: boolean;
+  };
   instanciasAtivas?: Array<{
     id: number;
     sessaoId: number;
@@ -386,6 +497,12 @@ export type EntidadeVinculadaPersonagemPayload = Partial<
     | 'tecnicaOrigem'
     | 'tipoGrau'
     | 'npcAmeacaOrigem'
+    | 'template'
+    | 'templateId'
+    | 'precisaRecalculo'
+    | 'calculoAutomatico'
+    | 'overrideMestre'
+    | 'permissoes'
     | 'instanciasAtivas'
     | 'ativoNestaSessao'
   >
@@ -394,6 +511,7 @@ export type EntidadeVinculadaPersonagemPayload = Partial<
   nome: string;
   estado?: EstadoEntidadeVinculadaPersonagem;
   overrideMestre?: boolean;
+  papel?: PapelCalculoEntidadeVinculada;
 };
 
 export type NpcSessaoCampanha = {

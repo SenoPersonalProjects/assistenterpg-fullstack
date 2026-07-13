@@ -157,6 +157,18 @@ export const ERROR_MESSAGES: Record<string, string> = {
   VARIACAO_HABILIDADE_NOT_FOUND: "Variação de habilidade não encontrada",
   ENTIDADE_PV_INVALIDO:
     "PV atual não pode ser maior que o PV máximo do vinculado.",
+  ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA:
+    'O personagem não possui uma técnica compatível com este vinculado.',
+  ENTIDADE_TECNICA_ORIGEM_INVALIDA:
+    'A técnica selecionada não habilita este tipo de vinculado.',
+  ENTIDADE_CRIACAO_MANUAL_BLOQUEADA:
+    'Esta técnica permite associar apenas vinculados predefinidos.',
+  ENTIDADE_DISTRIBUICAO_INVALIDA:
+    'A distribuição excede os pools ou tetos permitidos pela técnica.',
+  ENTIDADE_TEMPLATE_JA_ASSOCIADO:
+    'Este vinculado predefinido já está associado ao personagem.',
+  ENTIDADE_OVERRIDE_NEGADO:
+    'Apenas o mestre pode ignorar limites de vinculados.',
 
   // EQUIPAMENTOS/INVENTÁRIO
   EQUIPAMENTO_NOT_FOUND: "Equipamento não encontrado",

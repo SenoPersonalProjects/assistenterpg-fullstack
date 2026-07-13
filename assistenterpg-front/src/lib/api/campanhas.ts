@@ -34,6 +34,8 @@ import type {
   CriarSessaoAgendadaPayload,
   EntidadeVinculadaPersonagem,
   EntidadeVinculadaPersonagemPayload,
+  CapacidadesEntidadesVinculadas,
+  TemplateEntidadeVinculada,
   EstadoEntidadeVinculadaPersonagem,
   InvocarEntidadeVinculadaSessaoPayload,
   SessaoAgendadaResumo,
@@ -343,6 +345,39 @@ export async function apiListarEntidadesVinculadasPersonagem(
     `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados`,
   );
   return Array.isArray(data) ? data : [];
+}
+
+export async function apiListarCapacidadesEntidadesVinculadas(
+  campanhaId: number,
+  personagemCampanhaId: number,
+): Promise<CapacidadesEntidadesVinculadas> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/capacidades`,
+  );
+  return data;
+}
+
+export async function apiListarTemplatesEntidadesVinculadas(
+  campanhaId: number,
+  personagemCampanhaId: number,
+): Promise<TemplateEntidadeVinculada[]> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/templates`,
+  );
+  return Array.isArray(data) ? data : [];
+}
+
+export async function apiAssociarTemplateEntidadeVinculada(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  templateId: number,
+  payload: { overrideMestre?: boolean } = {},
+): Promise<EntidadeVinculadaPersonagem> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/vinculados/templates/${templateId}/associar`,
+    payload,
+  );
+  return data;
 }
 
 export async function apiCriarEntidadeVinculadaPersonagem(

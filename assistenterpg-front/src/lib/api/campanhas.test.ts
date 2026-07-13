@@ -19,6 +19,7 @@ import {
   apiAtualizarIniciativaAlternadaSessaoCampanha,
   apiAtualizarNpcSessaoCampanha,
   apiAtualizarEstadoEntidadeVinculadaPersonagem,
+  apiAssociarTemplateEntidadeVinculada,
   apiAvancarTurnoSessaoCampanha,
   apiAvancarLadoIniciativaAlternadaSessaoCampanha,
   apiAdicionarNpcSessaoCampanha,
@@ -42,6 +43,8 @@ import {
   apiListarSessoesCampanha,
   apiListarConvitesPendentes,
   apiListarEntidadesVinculadasPersonagem,
+  apiListarCapacidadesEntidadesVinculadas,
+  apiListarTemplatesEntidadesVinculadas,
   apiListarAmigosConvidaveisCampanha,
   apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
   apiInvocarEntidadeVinculadaSessaoCampanha,
@@ -235,6 +238,45 @@ describe('campanhas api cache and dedupe', () => {
       '/campanhas/12/personagens/9/vinculados',
     );
     expect(vinculados).toEqual([{ id: 50, nome: 'Cao Divino' }]);
+  });
+
+  it('lists linked entity capacities and templates', async () => {
+    mockedApiClient.get
+      .mockResolvedValueOnce({ data: { personagemCampanhaId: 9, tipos: [] } })
+      .mockResolvedValueOnce({ data: [{ id: 70, nome: 'Nue' }] });
+
+    const capacidades = await apiListarCapacidadesEntidadesVinculadas(12, 9);
+    const templates = await apiListarTemplatesEntidadesVinculadas(12, 9);
+
+    expect(mockedApiClient.get).toHaveBeenNthCalledWith(
+      1,
+      '/campanhas/12/personagens/9/vinculados/capacidades',
+    );
+    expect(mockedApiClient.get).toHaveBeenNthCalledWith(
+      2,
+      '/campanhas/12/personagens/9/vinculados/templates',
+    );
+    expect(capacidades).toEqual({ personagemCampanhaId: 9, tipos: [] });
+    expect(templates).toEqual([{ id: 70, nome: 'Nue' }]);
+  });
+
+  it('associates a predefined linked entity template', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 51, templateId: 70, nome: 'Nue' },
+    });
+
+    const vinculado = await apiAssociarTemplateEntidadeVinculada(
+      12,
+      9,
+      70,
+      { overrideMestre: false },
+    );
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/12/personagens/9/vinculados/templates/70/associar',
+      { overrideMestre: false },
+    );
+    expect(vinculado).toEqual({ id: 51, templateId: 70, nome: 'Nue' });
   });
 
   it('creates linked entity for campaign character', async () => {
