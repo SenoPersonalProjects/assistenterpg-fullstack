@@ -332,6 +332,39 @@ export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessExcepti
   }
 }
 
+export class SessaoEfeitosTurnoPendentesException extends BaseException {
+  constructor(campanhaId: number, sessaoId: number, eventoId: number) {
+    super(
+      'Existem efeitos automáticos de turno pendentes. Reprocesse-os antes de continuar.',
+      HttpStatus.CONFLICT,
+      'SESSAO_EFEITOS_TURNO_PENDENTES',
+      { campanhaId, sessaoId, eventoId },
+    );
+  }
+}
+
+export class SessaoEfeitosTurnoFalharamException extends BaseException {
+  constructor(campanhaId: number, sessaoId: number, eventoId: number) {
+    super(
+      'Não foi possível concluir os efeitos automáticos do turno.',
+      HttpStatus.CONFLICT,
+      'SESSAO_EFEITOS_TURNO_FALHARAM',
+      { campanhaId, sessaoId, eventoId },
+    );
+  }
+}
+
+export class SessaoTurnoDesatualizadoException extends BaseException {
+  constructor(campanhaId: number, sessaoId: number) {
+    super(
+      'O turno foi atualizado por outra operação. Sincronize a sessão e tente novamente.',
+      HttpStatus.CONFLICT,
+      'SESSAO_TURNO_DESATUALIZADO',
+      { campanhaId, sessaoId },
+    );
+  }
+}
+
 export class SessaoOrdemIniciativaInvalidaException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(
