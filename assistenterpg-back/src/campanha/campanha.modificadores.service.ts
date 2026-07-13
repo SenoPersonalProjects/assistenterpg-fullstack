@@ -219,6 +219,14 @@ export class CampanhaModificadoresService {
         },
       });
 
+      await tx.personagemCampanhaEntidadeVinculada.updateMany({
+        where: {
+          personagemCampanhaId,
+          calculoAutomatico: { not: Prisma.DbNull },
+        },
+        data: { precisaRecalculo: true },
+      });
+
       return { modificador, personagem };
     });
 
@@ -345,6 +353,14 @@ export class CampanhaModificadoresService {
             motivo: motivo?.trim() || null,
           },
         },
+      });
+
+      await tx.personagemCampanhaEntidadeVinculada.updateMany({
+        where: {
+          personagemCampanhaId,
+          calculoAutomatico: { not: Prisma.DbNull },
+        },
+        data: { precisaRecalculo: true },
       });
 
       return { modificador: modificadorAtualizado, personagem };

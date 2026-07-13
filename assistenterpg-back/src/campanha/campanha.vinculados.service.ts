@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   EstadoEntidadeVinculadaPersonagem,
+  ModoVinculadoTecnica,
   Prisma,
   TamanhoNpcAmeaca,
   TipoEntidadeVinculadaPersonagem,
@@ -13,9 +14,22 @@ import { CampanhaAccessService } from './campanha.access.service';
 import {
   AtualizarEntidadeVinculadaPersonagemDto,
   AtualizarEstadoEntidadeVinculadaDto,
+  AssociarTemplateEntidadeVinculadaDto,
   ConcederMaldicaoControladaSessaoDto,
   CriarEntidadeVinculadaPersonagemDto,
+  PapelCalculoEntidadeVinculada,
 } from './dto/entidade-vinculada-personagem.dto';
+import {
+  calcularFichaAutomaticaVinculado,
+  ConfigVinculadoNormalizada,
+  lerPontariaVinculado,
+  normalizarConfigVinculado,
+  PapelCalculoVinculado,
+} from './engine/entidades-vinculadas-capacidades';
+import {
+  resolverGrausAprimoramentoEfetivosCampanha,
+  resolverPericiasEfetivasCampanha,
+} from './engine/campanha-modificadores-efetivos';
 
 const entidadeVinculadaInclude = {
   personagemCampanha: {
@@ -31,6 +45,15 @@ const entidadeVinculadaInclude = {
   tipoGrau: { select: { codigo: true, nome: true } },
   npcAmeacaOrigem: {
     select: { id: true, nome: true, tipo: true, fichaTipo: true },
+  },
+  template: {
+    select: {
+      id: true,
+      codigo: true,
+      nome: true,
+      tecnicaId: true,
+      bloqueadoPorPadrao: true,
+    },
   },
   criadoPor: { select: { id: true, apelido: true } },
   instanciasSessao: {
@@ -59,6 +82,26 @@ type DadosEntidadeVinculada =
 
 type OpcoesValidacaoCriacao = {
   validarLimiteCadastro?: boolean;
+  validarModoCriacao?: boolean;
+};
+
+type ContextoAutomacaoVinculados = {
+  personagem: {
+    id: number;
+    donoId: number;
+    nivel: number;
+    limitePeEaPorTurno: number;
+    maiorAtributo: number;
+    testeJujutsu: number;
+  };
+  configs: ConfigVinculadoNormalizada[];
+  graus: Map<string, number>;
+};
+
+type ResolucaoCriacaoVinculado = {
+  contexto: ContextoAutomacaoVinculados | null;
+  config: ConfigVinculadoNormalizada | null;
+  overrideMestre: boolean;
 };
 
 type NpcAmeacaOrigemSnapshot = {
@@ -91,18 +134,6 @@ type NpcAmeacaOrigemSnapshot = {
   acoes: Prisma.JsonValue | null;
   usoTatico: string | null;
 };
-
-const CODIGOS_SHIKIGAMI = [
-  'TECNICA_SHIKIGAMI',
-  'NAOINATA_TECNICA_SHIKIGAMI',
-  'DEZ_SOMBRAS',
-];
-
-const CODIGOS_CORPOS = [
-  'TECNICA_CADAVERES',
-  'NAOINATA_TECNICA_CORPOS_AMALDICOADOS',
-  'MANIPULACAO_FANTOCHES',
-];
 
 @Injectable()
 export class CampanhaVinculadosService {
@@ -157,6 +188,228 @@ export class CampanhaVinculadosService {
     return this.mapearEntidade(entidade, acesso);
   }
 
+  async listarCapacidades(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    const { acesso, personagem } =
+      await this.accessService.obterPersonagemCampanhaComPermissao(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+        false,
+      );
+    this.validarPodeVerPersonagem(acesso, personagem.donoId, usuarioId);
+    const contexto = await this.carregarContextoAutomacao(personagemCampanhaId);
+    const entidades =
+      await this.prisma.personagemCampanhaEntidadeVinculada.findMany({
+        where: {
+          campanhaId,
+          personagemCampanhaId,
+          estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
+        },
+        select: {
+          tipo: true,
+          estado: true,
+          tecnicaOrigemId: true,
+          vagasOcupadas: true,
+        },
+      });
+    const instanciasAtivas = await this.prisma.npcAmeacaSessao.findMany({
+      where: {
+        personagemDonoId: personagemCampanhaId,
+        entidadeVinculadaId: { not: null },
+        sessao: { status: { not: 'ENCERRADA' } },
+      },
+      select: {
+        tipoVinculo: true,
+        entidadeVinculada: {
+          select: { tecnicaOrigemId: true, vagasOcupadas: true },
+        },
+      },
+    });
+
+    const tipos = Object.values(TipoEntidadeVinculadaPersonagem).map((tipo) =>
+      this.montarCapacidadeTipo(
+        tipo,
+        contexto,
+        contexto.configs.filter((config) => config.tipoVinculado === tipo),
+        entidades.filter((entidade) => entidade.tipo === tipo),
+        instanciasAtivas.filter((instancia) => instancia.tipoVinculo === tipo),
+      ),
+    );
+
+    return {
+      personagemCampanhaId,
+      nivel: contexto.personagem.nivel,
+      permissoes: {
+        podeIgnorarLimites: acesso.ehMestre,
+        podeEditar: acesso.ehMestre || personagem.donoId === usuarioId,
+      },
+      tipos,
+    };
+  }
+
+  async listarTemplates(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    const { acesso, personagem } =
+      await this.accessService.obterPersonagemCampanhaComPermissao(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+        false,
+      );
+    this.validarPodeVerPersonagem(acesso, personagem.donoId, usuarioId);
+    const contexto = await this.carregarContextoAutomacao(personagemCampanhaId);
+    const tecnicaIds = contexto.configs
+      .filter((config) => config.usaTemplates)
+      .map((config) => config.tecnicaId);
+    if (tecnicaIds.length === 0) return [];
+
+    const templates = await this.prisma.tecnicaVinculadoTemplate.findMany({
+      where: { tecnicaId: { in: tecnicaIds }, ativo: true },
+      include: {
+        tecnica: { select: { id: true, codigo: true, nome: true } },
+        entidades: {
+          where: {
+            personagemCampanhaId,
+            estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
+          },
+          select: { id: true, estado: true },
+        },
+      },
+      orderBy: [{ tecnicaId: 'asc' }, { ordem: 'asc' }, { nome: 'asc' }],
+    });
+
+    return templates.map((template) => ({
+      id: template.id,
+      codigo: template.codigo,
+      nome: template.nome,
+      descricao: template.descricao,
+      conceito: template.conceito,
+      aparencia: template.aparencia,
+      tipoVinculado: template.tipoVinculado,
+      bloqueadoPorPadrao: template.bloqueadoPorPadrao,
+      ordem: template.ordem,
+      tecnica: template.tecnica,
+      associado: template.entidades.length > 0,
+      entidadeAssociadaId: template.entidades[0]?.id ?? null,
+    }));
+  }
+
+  async associarTemplate(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    templateId: number,
+    dto: AssociarTemplateEntidadeVinculadaDto,
+  ) {
+    const { acesso, personagem } =
+      await this.accessService.obterPersonagemCampanhaComPermissao(
+        campanhaId,
+        personagemCampanhaId,
+        usuarioId,
+        true,
+      );
+    const contexto = await this.carregarContextoAutomacao(personagem.id);
+    const template = await this.prisma.tecnicaVinculadoTemplate.findFirst({
+      where: { id: templateId, ativo: true },
+      include: { tecnica: { select: { id: true, codigo: true, nome: true } } },
+    });
+    if (!template) {
+      throw new BusinessException(
+        'Template de vinculado nao encontrado',
+        'ENTIDADE_TEMPLATE_NAO_ENCONTRADO',
+        { templateId },
+      );
+    }
+    const config = contexto.configs.find(
+      (item) =>
+        item.tecnicaId === template.tecnicaId &&
+        item.tipoVinculado === template.tipoVinculado &&
+        item.usaTemplates,
+    );
+    const overrideMestre = dto.overrideMestre === true;
+    if (overrideMestre && !acesso.ehMestre) {
+      throw new BusinessException(
+        'Apenas o mestre pode ignorar limites de vinculados',
+        'ENTIDADE_OVERRIDE_NEGADO',
+      );
+    }
+    if (!config && !overrideMestre) {
+      throw new BusinessException(
+        'Personagem nao possui a tecnica deste template',
+        'ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA',
+        { templateId, tecnicaCodigo: template.tecnica.codigo },
+      );
+    }
+    const existente =
+      await this.prisma.personagemCampanhaEntidadeVinculada.findFirst({
+        where: {
+          personagemCampanhaId,
+          templateId,
+          estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
+        },
+        select: { id: true },
+      });
+    if (existente) {
+      throw new BusinessException(
+        'Este template ja esta associado ao personagem',
+        'ENTIDADE_TEMPLATE_JA_ASSOCIADO',
+        { templateId, vinculadoId: existente.id },
+      );
+    }
+    if (config && !overrideMestre) {
+      await this.validarLimiteCadastroConfigurado(personagemCampanhaId, config);
+    }
+
+    const base: Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput =
+      {
+        campanhaId,
+        personagemCampanhaId,
+        tipo: template.tipoVinculado,
+        nome: template.nome,
+        descricao: template.descricao,
+        conceito: template.conceito,
+        aparencia: template.aparencia,
+        tecnicaOrigemId: template.tecnicaId,
+        templateId: template.id,
+        criadoPorId: usuarioId,
+        overrideMestre,
+        precisaRecalculo: true,
+      };
+    const comSnapshot = {
+      ...base,
+      ...this.normalizarSnapshotTemplate(template.snapshotJson),
+    };
+    const calculo = config
+      ? this.calcularAutomaticoDados(
+          comSnapshot,
+          contexto,
+          config,
+          'Template associado',
+        )
+      : null;
+    const entidade =
+      await this.prisma.personagemCampanhaEntidadeVinculada.create({
+        data: {
+          ...comSnapshot,
+          nivelReferencia: contexto.personagem.nivel,
+          grauReferencia: config
+            ? this.resolverGrauConfig(config, contexto)
+            : null,
+          tipoGrauCodigo: config?.tipoGrauCodigo ?? null,
+          calculoAutomatico: this.jsonInput(calculo),
+        },
+        include: entidadeVinculadaInclude,
+      });
+    return this.mapearEntidade(entidade, acesso);
+  }
+
   async criar(
     campanhaId: number,
     personagemCampanhaId: number,
@@ -170,13 +423,21 @@ export class CampanhaVinculadosService {
         usuarioId,
         true,
       );
-    await this.validarCriacaoPorTipo(acesso, personagem.id, usuarioId, dto);
-    const data = await this.montarDadosCriacao(
+    const resolucao = await this.validarCriacaoPorTipo(
+      acesso,
+      personagem.id,
+      usuarioId,
+      dto,
+    );
+    let data = await this.montarDadosCriacao(
       campanhaId,
       personagemCampanhaId,
       usuarioId,
       dto,
+      acesso.ehMestre,
     );
+    this.validarPontosVidaEntidade(data);
+    data = this.aplicarAutomacaoCriacao(data, dto, resolucao);
     this.validarPontosVidaEntidade(data);
 
     const entidade =
@@ -208,7 +469,7 @@ export class CampanhaVinculadosService {
       vinculadoId,
     );
     const tipo = dto.tipo ?? atual.tipo;
-    await this.validarCriacaoPorTipo(
+    const resolucao = await this.validarCriacaoPorTipo(
       acesso,
       personagem.id,
       usuarioId,
@@ -217,15 +478,31 @@ export class CampanhaVinculadosService {
         tipo,
         nome: dto.nome ?? atual.nome,
         npcAmeacaOrigemId: dto.npcAmeacaOrigemId ?? atual.npcAmeacaOrigemId,
+        tecnicaOrigemId: dto.tecnicaOrigemId ?? atual.tecnicaOrigemId,
       },
       {
-        validarLimiteCadastro:
-          atual.tipo !== TipoEntidadeVinculadaPersonagem.SHIKIGAMI &&
-          tipo === TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
+        validarModoCriacao: false,
+        validarLimiteCadastro: false,
       },
     );
 
+    const mudouConsumoCadastro =
+      tipo !== atual.tipo ||
+      (dto.vagasOcupadas !== undefined &&
+        dto.vagasOcupadas !== atual.vagasOcupadas) ||
+      (dto.tecnicaOrigemId !== undefined &&
+        dto.tecnicaOrigemId !== atual.tecnicaOrigemId);
+    if (mudouConsumoCadastro && resolucao.config && !resolucao.overrideMestre) {
+      await this.validarLimiteCadastroConfigurado(
+        personagemCampanhaId,
+        resolucao.config,
+        dto.vagasOcupadas ?? atual.vagasOcupadas,
+        atual.id,
+      );
+    }
+
     const data = await this.montarDadosAtualizacao(dto, atual);
+    this.marcarRecalculoSeNecessario(data, dto, atual, resolucao);
     this.validarPontosVidaEntidade(data, atual);
     const entidade =
       await this.prisma.personagemCampanhaEntidadeVinculada.update({
@@ -243,7 +520,7 @@ export class CampanhaVinculadosService {
     usuarioId: number,
     vinculadoId: number,
   ) {
-    const { acesso } =
+    const { acesso, personagem } =
       await this.accessService.obterPersonagemCampanhaComPermissao(
         campanhaId,
         personagemCampanhaId,
@@ -255,6 +532,19 @@ export class CampanhaVinculadosService {
       personagemCampanhaId,
       vinculadoId,
     );
+    const overrideMestre = acesso.ehMestre && atual.overrideMestre;
+    const resolucao = await this.validarCriacaoPorTipo(
+      acesso,
+      personagem.id,
+      usuarioId,
+      {
+        tipo: atual.tipo,
+        overrideMestre,
+        npcAmeacaOrigemId: atual.npcAmeacaOrigemId,
+        tecnicaOrigemId: atual.tecnicaOrigemId,
+        vagasOcupadas: atual.vagasOcupadas,
+      },
+    );
 
     const dataDuplicada = {
       ...this.snapshotEntidadeParaCreate(atual),
@@ -263,6 +553,9 @@ export class CampanhaVinculadosService {
       tipo: atual.tipo,
       nome: `Copia de ${atual.nome}`.slice(0, 120),
       estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL,
+      templateId: null,
+      precisaRecalculo: atual.calculoAutomatico !== null,
+      overrideMestre: resolucao.overrideMestre,
       criadoPorId: usuarioId,
     } satisfies Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput;
 
@@ -348,10 +641,53 @@ export class CampanhaVinculadosService {
       personagemCampanhaId,
       vinculadoId,
     );
-    if (
-      atual.tipo !== TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA ||
-      !atual.npcAmeacaOrigemId
-    ) {
+    if (atual.tipo !== TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
+      const contexto =
+        await this.carregarContextoAutomacao(personagemCampanhaId);
+      const config = this.localizarConfigEntidade(atual, contexto.configs);
+      if (!config && !atual.overrideMestre) {
+        throw new BusinessException(
+          'A tecnica de origem nao possui configuracao de recalculo',
+          'ENTIDADE_CONFIGURACAO_NAO_ENCONTRADA',
+          { vinculadoId, tecnicaOrigemId: atual.tecnicaOrigemId },
+        );
+      }
+      if (!config) return this.mapearEntidade(atual, acesso);
+
+      const calculo = this.calcularAutomaticoAtual(atual, contexto, config);
+      const pvAnteriorCalculado = this.lerNumeroJson(atual.calculoAutomatico, [
+        'derivados',
+        'pontosVidaMax',
+      ]);
+      const primeiroCalculo = pvAnteriorCalculado === null;
+      const entidade =
+        await this.prisma.personagemCampanhaEntidadeVinculada.update({
+          where: { id: vinculadoId },
+          data: {
+            nivelReferencia: contexto.personagem.nivel,
+            grauReferencia: this.resolverGrauConfig(config, contexto),
+            tipoGrauCodigo: config.tipoGrauCodigo,
+            calculoAutomatico: this.jsonInput(calculo),
+            precisaRecalculo: false,
+            pontosVidaMax: calculo.derivados.pontosVidaMax,
+            pontosVidaAtual: primeiroCalculo
+              ? calculo.derivados.pontosVidaMax
+              : Math.min(
+                  atual.pontosVidaAtual,
+                  calculo.derivados.pontosVidaMax,
+                ),
+            defesa: calculo.derivados.defesa,
+            rd: calculo.derivados.rd,
+            cargasMax: atual.cargasMax ?? calculo.cargasSugeridas ?? undefined,
+            cargasAtual:
+              atual.cargasAtual ?? calculo.cargasSugeridas ?? undefined,
+          },
+          include: entidadeVinculadaInclude,
+        });
+      return this.mapearEntidade(entidade, acesso);
+    }
+
+    if (!atual.npcAmeacaOrigemId) {
       return this.mapearEntidade(atual, acesso);
     }
 
@@ -419,6 +755,7 @@ export class CampanhaVinculadosService {
           personagemCampanhaId: personagem.id,
           tipo: TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA,
           nome: String(data.nome ?? dto.nome ?? origem.nome).trim(),
+          overrideMestre: true,
           criadoPorId: usuarioId,
         },
         include: entidadeVinculadaInclude,
@@ -443,6 +780,10 @@ export class CampanhaVinculadosService {
       tecnicaOrigemId: entidade.tecnicaOrigemId,
       tipoGrauCodigo: entidade.tipoGrauCodigo,
       npcAmeacaOrigemId: entidade.npcAmeacaOrigemId,
+      templateId: entidade.templateId,
+      precisaRecalculo: entidade.precisaRecalculo,
+      calculoAutomatico: entidade.calculoAutomatico,
+      overrideMestre: entidade.overrideMestre,
       fichaTipo: entidade.fichaTipo,
       tipoNpc: entidade.tipoNpc,
       tamanho: entidade.tamanho,
@@ -483,6 +824,8 @@ export class CampanhaVinculadosService {
       tecnicaOrigem: entidade.tecnicaOrigem,
       tipoGrau: entidade.tipoGrau,
       npcAmeacaOrigem: entidade.npcAmeacaOrigem,
+      template: entidade.template,
+      pontaria: lerPontariaVinculado(entidade.periciasEspeciais),
       criadoPor: entidade.criadoPor,
       instanciasAtivas,
       permissoes: acesso
@@ -519,6 +862,7 @@ export class CampanhaVinculadosService {
     personagemCampanhaId: number,
     usuarioId: number,
     dto: CriarEntidadeVinculadaPersonagemDto,
+    ehMestre: boolean,
   ): Promise<Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput> {
     if (dto.tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
       if (!dto.npcAmeacaOrigemId) {
@@ -527,8 +871,11 @@ export class CampanhaVinculadosService {
           'ENTIDADE_MALDICAO_ORIGEM_OBRIGATORIA',
         );
       }
-      const origem = await this.prisma.npcAmeaca.findUnique({
-        where: { id: dto.npcAmeacaOrigemId },
+      const origem = await this.prisma.npcAmeaca.findFirst({
+        where: {
+          id: dto.npcAmeacaOrigemId,
+          ...(ehMestre ? {} : { donoId: usuarioId }),
+        },
       });
       if (!origem || origem.tipo !== TipoNpcAmeaca.MALDICAO) {
         throw new BusinessException(
@@ -610,6 +957,7 @@ export class CampanhaVinculadosService {
     assign('tecnicaOrigemId', dto.tecnicaOrigemId ?? undefined);
     assign('tipoGrauCodigo', dto.tipoGrauCodigo ?? undefined);
     assign('npcAmeacaOrigemId', dto.npcAmeacaOrigemId ?? undefined);
+    assign('overrideMestre', dto.overrideMestre ?? undefined);
     assign('fichaTipo', dto.fichaTipo ?? undefined);
     assign('tipoNpc', dto.tipoNpc ?? undefined);
     assign('tamanho', dto.tamanho ?? undefined);
@@ -634,7 +982,15 @@ export class CampanhaVinculadosService {
     assign('vagasOcupadas', dto.vagasOcupadas ?? undefined);
     assign('cargasMax', dto.cargasMax ?? undefined);
     assign('cargasAtual', dto.cargasAtual ?? dto.cargasMax ?? undefined);
-    assign('periciasEspeciais', this.jsonInput(dto.periciasEspeciais));
+    assign(
+      'periciasEspeciais',
+      this.jsonInput(
+        this.mesclarPontariaPericiasEspeciais(
+          dto.periciasEspeciais,
+          dto.pontaria,
+        ),
+      ),
+    );
     assign('resistencias', this.jsonInput(dto.resistencias));
     assign('vulnerabilidades', this.jsonInput(dto.vulnerabilidades));
     assign('passivas', this.jsonInput(dto.passivas));
@@ -710,6 +1066,10 @@ export class CampanhaVinculadosService {
       tecnicaOrigemId: entidade.tecnicaOrigemId,
       tipoGrauCodigo: entidade.tipoGrauCodigo,
       npcAmeacaOrigemId: entidade.npcAmeacaOrigemId,
+      templateId: entidade.templateId,
+      precisaRecalculo: entidade.precisaRecalculo,
+      calculoAutomatico: this.jsonInput(entidade.calculoAutomatico),
+      overrideMestre: entidade.overrideMestre,
       fichaTipo: entidade.fichaTipo,
       tipoNpc: entidade.tipoNpc,
       tamanho: entidade.tamanho,
@@ -837,109 +1197,734 @@ export class CampanhaVinculadosService {
     usuarioId: number,
     dto: Pick<
       CriarEntidadeVinculadaPersonagemDto,
-      'tipo' | 'overrideMestre' | 'npcAmeacaOrigemId' | 'limites' | 'config'
+      | 'tipo'
+      | 'overrideMestre'
+      | 'npcAmeacaOrigemId'
+      | 'tecnicaOrigemId'
+      | 'vagasOcupadas'
     > & { nome?: string },
     opcoes: OpcoesValidacaoCriacao = {},
-  ) {
-    if (dto.overrideMestre && acesso.ehMestre) return;
-    if (dto.tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
-      this.assertMestre(acesso, 'registrar maldicao controlada');
-      return;
+  ): Promise<ResolucaoCriacaoVinculado> {
+    const overrideMestre = dto.overrideMestre === true;
+    if (overrideMestre && !acesso.ehMestre) {
+      throw new BusinessException(
+        'Apenas o mestre pode ignorar limites de vinculados',
+        'ENTIDADE_OVERRIDE_NEGADO',
+      );
     }
-    const codigos =
-      dto.tipo === TipoEntidadeVinculadaPersonagem.SHIKIGAMI
-        ? CODIGOS_SHIKIGAMI
-        : CODIGOS_CORPOS;
-    const codigosPersonagem =
-      await this.listarCodigosTecnicasPersonagem(personagemCampanhaId);
-    const possuiTecnica = codigosPersonagem.some((codigo) =>
-      codigos.includes(codigo),
+    if (overrideMestre) {
+      return { contexto: null, config: null, overrideMestre: true };
+    }
+
+    const contexto = await this.carregarContextoAutomacao(personagemCampanhaId);
+    const configsTipo = contexto.configs.filter(
+      (config) => config.tipoVinculado === dto.tipo,
     );
-    if (!possuiTecnica && !acesso.ehMestre) {
+    const configInformada = dto.tecnicaOrigemId
+      ? configsTipo.find((config) => config.tecnicaId === dto.tecnicaOrigemId)
+      : null;
+    if (dto.tecnicaOrigemId && !configInformada) {
+      throw new BusinessException(
+        'A tecnica informada nao habilita este tipo de vinculado',
+        'ENTIDADE_TECNICA_ORIGEM_INVALIDA',
+        { tecnicaOrigemId: dto.tecnicaOrigemId, tipo: dto.tipo },
+      );
+    }
+    const config =
+      configInformada ??
+      configsTipo.find((item) => item.permiteCriarNovos) ??
+      configsTipo[0] ??
+      null;
+
+    if (!config) {
       throw new BusinessException(
         'Personagem nao possui tecnica compativel para este vinculado',
         'ENTIDADE_TECNICA_COMPATIVEL_OBRIGATORIA',
-        { personagemCampanhaId, codigos, usuarioId },
+        { personagemCampanhaId, tipo: dto.tipo, usuarioId },
       );
     }
-    if (
-      dto.tipo === TipoEntidadeVinculadaPersonagem.SHIKIGAMI &&
-      opcoes.validarLimiteCadastro !== false
-    ) {
-      await this.validarLimiteCadastroShikigami(
-        acesso,
+    if (opcoes.validarModoCriacao !== false && !config.permiteCriarNovos) {
+      throw new BusinessException(
+        'Esta tecnica permite apenas associar vinculados predefinidos',
+        'ENTIDADE_CRIACAO_MANUAL_BLOQUEADA',
+        { tecnicaCodigo: config.tecnicaCodigo, modo: config.modo },
+      );
+    }
+    if (opcoes.validarLimiteCadastro !== false) {
+      await this.validarLimiteCadastroConfigurado(
         personagemCampanhaId,
-        codigosPersonagem,
-        dto,
+        config,
+        dto.vagasOcupadas ?? 1,
+      );
+    }
+    return { contexto, config, overrideMestre: false };
+  }
+
+  private async validarLimiteCadastroConfigurado(
+    personagemCampanhaId: number,
+    config: ConfigVinculadoNormalizada,
+    consumoNovo = 1,
+    ignorarVinculadoId?: number,
+  ) {
+    if (config.limiteCadastro === null) return;
+    const entidades =
+      await this.prisma.personagemCampanhaEntidadeVinculada.findMany({
+        where: {
+          personagemCampanhaId,
+          ...(ignorarVinculadoId ? { id: { not: ignorarVinculadoId } } : {}),
+          tipo: config.tipoVinculado,
+          estado: { not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO },
+          ...(config.tipoVinculado === TipoEntidadeVinculadaPersonagem.SHIKIGAMI
+            ? {
+                OR: [
+                  { tecnicaOrigemId: config.tecnicaId },
+                  { tecnicaOrigemId: null },
+                ],
+              }
+            : {}),
+        },
+        select: { vagasOcupadas: true },
+      });
+    const usado =
+      config.unidadeCadastro === 'VAGAS'
+        ? entidades.reduce(
+            (total, entidade) => total + Math.max(1, entidade.vagasOcupadas),
+            0,
+          )
+        : entidades.length;
+    const consumo =
+      config.unidadeCadastro === 'VAGAS' ? Math.max(1, consumoNovo) : 1;
+    if (usado + consumo > config.limiteCadastro) {
+      throw new BusinessException(
+        config.tipoVinculado ===
+          TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO
+          ? 'Limite de vagas para corpos amaldicoados atingido'
+          : 'Limite de vinculados cadastrados atingido',
+        config.tipoVinculado === TipoEntidadeVinculadaPersonagem.SHIKIGAMI
+          ? 'ENTIDADE_SHIKIGAMI_LIMITE_CADASTRO'
+          : 'ENTIDADE_LIMITE_CADASTRO',
+        {
+          personagemCampanhaId,
+          tecnicaCodigo: config.tecnicaCodigo,
+          limiteCadastro: config.limiteCadastro,
+          usado,
+          unidade: config.unidadeCadastro,
+        },
       );
     }
   }
 
-  private async listarCodigosTecnicasPersonagem(personagemCampanhaId: number) {
+  private async carregarContextoAutomacao(
+    personagemCampanhaId: number,
+  ): Promise<ContextoAutomacaoVinculados> {
     const personagem = await this.prisma.personagemCampanha.findUnique({
       where: { id: personagemCampanhaId },
       select: {
-        tecnicaInata: { select: { codigo: true } },
-        tecnicaInataPropria: { select: { codigo: true } },
-        personagemBase: {
+        id: true,
+        donoId: true,
+        nivel: true,
+        limitePeEaPorTurno: true,
+        tecnicaInata: {
           select: {
-            tecnicaInata: { select: { codigo: true } },
-            tecnicaInataPropria: { select: { codigo: true } },
+            id: true,
+            codigo: true,
+            nome: true,
+            tecnicaBase: { select: { id: true, codigo: true, nome: true } },
+          },
+        },
+        tecnicaInataPropria: {
+          select: {
+            id: true,
+            codigo: true,
+            nome: true,
+            tecnicaBase: { select: { id: true, codigo: true, nome: true } },
           },
         },
         tecnicasAprendidas: {
-          select: { tecnica: { select: { codigo: true } } },
+          select: {
+            tecnica: {
+              select: {
+                id: true,
+                codigo: true,
+                nome: true,
+                tecnicaBase: {
+                  select: { id: true, codigo: true, nome: true },
+                },
+              },
+            },
+          },
+        },
+        grausAprimoramento: {
+          select: {
+            valor: true,
+            tipoGrau: { select: { codigo: true, nome: true } },
+          },
+        },
+        modificadores: {
+          where: { ativo: true },
+          select: {
+            campo: true,
+            valor: true,
+            periciaCodigo: true,
+            tipoGrauCodigo: true,
+          },
+        },
+        personagemBase: {
+          select: {
+            agilidade: true,
+            forca: true,
+            intelecto: true,
+            presenca: true,
+            vigor: true,
+            tecnicaInata: {
+              select: {
+                id: true,
+                codigo: true,
+                nome: true,
+                tecnicaBase: {
+                  select: { id: true, codigo: true, nome: true },
+                },
+              },
+            },
+            tecnicaInataPropria: {
+              select: {
+                id: true,
+                codigo: true,
+                nome: true,
+                tecnicaBase: {
+                  select: { id: true, codigo: true, nome: true },
+                },
+              },
+            },
+            tecnicasAprendidas: {
+              select: {
+                tecnica: {
+                  select: {
+                    id: true,
+                    codigo: true,
+                    nome: true,
+                    tecnicaBase: {
+                      select: { id: true, codigo: true, nome: true },
+                    },
+                  },
+                },
+              },
+            },
+            grausAprimoramento: {
+              select: {
+                valor: true,
+                tipoGrau: { select: { codigo: true, nome: true } },
+              },
+            },
+            pericias: {
+              select: {
+                grauTreinamento: true,
+                bonusExtra: true,
+                pericia: {
+                  select: { codigo: true, nome: true, atributoBase: true },
+                },
+              },
+            },
+          },
         },
       },
     });
-    if (!personagem) return [];
-    const encontrados = [
-      personagem.tecnicaInata?.codigo,
-      personagem.tecnicaInataPropria?.codigo,
-      personagem.personagemBase.tecnicaInata?.codigo,
-      personagem.personagemBase.tecnicaInataPropria?.codigo,
-      ...personagem.tecnicasAprendidas.map((item) => item.tecnica.codigo),
-    ].filter((codigo): codigo is string => Boolean(codigo));
-    return encontrados;
-  }
-
-  private async validarLimiteCadastroShikigami(
-    acesso: AcessoCampanha,
-    personagemCampanhaId: number,
-    codigosPersonagem: string[],
-    dto: Pick<CriarEntidadeVinculadaPersonagemDto, 'limites' | 'config'>,
-  ) {
-    const limiteConfigurado = acesso.ehMestre
-      ? (this.lerNumeroConfig(dto.limites, [
-          'cadastroMaximo',
-          'limiteCadastro',
-          'limiteCadastrados',
-        ]) ??
-        this.lerNumeroConfig(dto.config, [
-          'cadastroMaximo',
-          'limiteCadastro',
-          'limiteCadastrados',
-        ]))
-      : null;
-    const limiteCadastro =
-      limiteConfigurado ?? (codigosPersonagem.includes('DEZ_SOMBRAS') ? 10 : 1);
-    const cadastrados =
-      await this.prisma.personagemCampanhaEntidadeVinculada.count({
-        where: {
-          personagemCampanhaId,
-          tipo: TipoEntidadeVinculadaPersonagem.SHIKIGAMI,
-          estado: {
-            not: EstadoEntidadeVinculadaPersonagem.ARQUIVADO,
-          },
-        },
-      });
-    if (cadastrados >= limiteCadastro) {
+    if (!personagem) {
       throw new BusinessException(
-        'Limite de shikigamis cadastrados atingido',
-        'ENTIDADE_SHIKIGAMI_LIMITE_CADASTRO',
-        { personagemCampanhaId, limiteCadastro, cadastrados },
+        'Personagem da campanha nao encontrado',
+        'ENTIDADE_PERSONAGEM_NAO_ENCONTRADO',
+        { personagemCampanhaId },
       );
     }
+
+    type TecnicaResumo = {
+      id: number;
+      codigo: string;
+      nome: string;
+      tecnicaBase: { id: number; codigo: string; nome: string } | null;
+    };
+    const tecnicas = new Map<
+      number,
+      { id: number; codigo: string; nome: string }
+    >();
+    const adicionarTecnica = (tecnica: TecnicaResumo | null | undefined) => {
+      if (!tecnica) return;
+      tecnicas.set(tecnica.id, {
+        id: tecnica.id,
+        codigo: tecnica.codigo,
+        nome: tecnica.nome,
+      });
+      if (tecnica.tecnicaBase) {
+        tecnicas.set(tecnica.tecnicaBase.id, tecnica.tecnicaBase);
+      }
+    };
+    adicionarTecnica(personagem.tecnicaInata);
+    adicionarTecnica(personagem.tecnicaInataPropria);
+    adicionarTecnica(personagem.personagemBase.tecnicaInata);
+    adicionarTecnica(personagem.personagemBase.tecnicaInataPropria);
+    personagem.tecnicasAprendidas.forEach((item) =>
+      adicionarTecnica(item.tecnica),
+    );
+    personagem.personagemBase.tecnicasAprendidas.forEach((item) =>
+      adicionarTecnica(item.tecnica),
+    );
+
+    const configsDb = tecnicas.size
+      ? await this.prisma.tecnicaVinculadoConfig.findMany({
+          where: { tecnicaId: { in: [...tecnicas.keys()] }, ativo: true },
+          include: { tecnica: { select: { codigo: true, nome: true } } },
+        })
+      : [];
+    const configs = configsDb.map((config) =>
+      normalizarConfigVinculado(config, personagem.nivel),
+    );
+    const grausPreferenciais = personagem.grausAprimoramento.length
+      ? personagem.grausAprimoramento
+      : personagem.personagemBase.grausAprimoramento;
+    const grausEfetivos = resolverGrausAprimoramentoEfetivosCampanha(
+      grausPreferenciais,
+      personagem.modificadores,
+    );
+    const periciasEfetivas = resolverPericiasEfetivasCampanha(
+      personagem.personagemBase.pericias,
+      personagem.modificadores,
+    );
+    const atributos = [
+      personagem.personagemBase.agilidade,
+      personagem.personagemBase.forca,
+      personagem.personagemBase.intelecto,
+      personagem.personagemBase.presenca,
+      personagem.personagemBase.vigor,
+    ];
+
+    return {
+      personagem: {
+        id: personagem.id,
+        donoId: personagem.donoId,
+        nivel: personagem.nivel,
+        limitePeEaPorTurno: personagem.limitePeEaPorTurno,
+        maiorAtributo: Math.max(0, ...atributos),
+        testeJujutsu:
+          periciasEfetivas.find((pericia) => pericia.codigo === 'JUJUTSU')
+            ?.bonusTotal ?? 0,
+      },
+      configs,
+      graus: new Map(
+        grausEfetivos.map((grau) => [grau.tipoGrauCodigo, grau.valor]),
+      ),
+    };
+  }
+
+  private aplicarAutomacaoCriacao(
+    data: Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput,
+    dto: CriarEntidadeVinculadaPersonagemDto,
+    resolucao: ResolucaoCriacaoVinculado,
+  ): Prisma.PersonagemCampanhaEntidadeVinculadaUncheckedCreateInput {
+    if (resolucao.overrideMestre) {
+      return { ...data, overrideMestre: true };
+    }
+    if (!resolucao.config || !resolucao.contexto) return data;
+    if (dto.tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
+      return {
+        ...data,
+        tecnicaOrigemId: resolucao.config.tecnicaId,
+        overrideMestre: false,
+      };
+    }
+
+    const papel = dto.papel ?? PapelCalculoEntidadeVinculada.FLEXIVEL;
+    const calculo = this.calcularAutomaticoDados(
+      data,
+      resolucao.contexto,
+      resolucao.config,
+      'Criacao inicial',
+      papel,
+    );
+    this.validarDistribuicaoAutomatica(calculo, data);
+    return {
+      ...data,
+      tecnicaOrigemId: resolucao.config.tecnicaId,
+      tipoGrauCodigo: resolucao.config.tipoGrauCodigo,
+      nivelReferencia: resolucao.contexto.personagem.nivel,
+      grauReferencia: this.resolverGrauConfig(
+        resolucao.config,
+        resolucao.contexto,
+      ),
+      precisaRecalculo: false,
+      calculoAutomatico: this.jsonInput(calculo),
+      overrideMestre: false,
+      pontosVidaMax: calculo.derivados.pontosVidaMax,
+      pontosVidaAtual: calculo.derivados.pontosVidaMax,
+      defesa: calculo.derivados.defesa,
+      rd: calculo.derivados.rd,
+      cargasMax: data.cargasMax ?? calculo.cargasSugeridas ?? undefined,
+      cargasAtual: data.cargasAtual ?? calculo.cargasSugeridas ?? undefined,
+      config: this.jsonInput(this.mesclarRegistros(data.config, { papel })),
+    };
+  }
+
+  private marcarRecalculoSeNecessario(
+    data: DadosEntidadeVinculada,
+    dto: AtualizarEntidadeVinculadaPersonagemDto,
+    atual: EntidadeVinculadaMapeavel,
+    resolucao: ResolucaoCriacaoVinculado,
+  ) {
+    if (resolucao.overrideMestre) {
+      data.overrideMestre = true;
+      return;
+    }
+    if (!atual.calculoAutomatico) return;
+    const camposMecanicos: Array<
+      keyof AtualizarEntidadeVinculadaPersonagemDto
+    > = [
+      'agilidade',
+      'forca',
+      'intelecto',
+      'presenca',
+      'vigor',
+      'luta',
+      'pontaria',
+      'jujutsu',
+      'fortitude',
+      'reflexos',
+      'vontade',
+      'papel',
+      'vagasOcupadas',
+    ];
+    if (camposMecanicos.some((campo) => dto[campo] !== undefined)) {
+      data.precisaRecalculo = true;
+      if (dto.papel) {
+        data.config = this.jsonInput(
+          this.mesclarRegistros(atual.config, { papel: dto.papel }),
+        );
+      }
+    }
+  }
+
+  private calcularAutomaticoAtual(
+    atual: EntidadeVinculadaMapeavel,
+    contexto: ContextoAutomacaoVinculados,
+    config: ConfigVinculadoNormalizada,
+  ) {
+    return this.calcularAutomaticoDados(
+      atual,
+      contexto,
+      config,
+      'Dados do personagem alterados',
+      this.lerPapelEntidade(atual),
+    );
+  }
+
+  private calcularAutomaticoDados(
+    dados: Record<string, unknown>,
+    contexto: ContextoAutomacaoVinculados,
+    config: ConfigVinculadoNormalizada,
+    motivo: string,
+    papel: PapelCalculoVinculado = 'FLEXIVEL',
+  ) {
+    const calculo = calcularFichaAutomaticaVinculado({
+      tipo: config.tipoVinculado,
+      nivel: contexto.personagem.nivel,
+      grau: this.resolverGrauConfig(config, contexto),
+      maiorAtributoDono: contexto.personagem.maiorAtributo,
+      testeJujutsuDono: contexto.personagem.testeJujutsu,
+      limitePeEaPorTurno: contexto.personagem.limitePeEaPorTurno,
+      papel,
+      distribuicao: {
+        agilidade: this.numeroPersistencia(dados.agilidade, 0),
+        forca: this.numeroPersistencia(dados.forca, 0),
+        intelecto: this.numeroPersistencia(dados.intelecto, 0),
+        presenca: this.numeroPersistencia(dados.presenca, 0),
+        vigor: this.numeroPersistencia(dados.vigor, 0),
+        luta: this.numeroPersistencia(dados.luta, 0),
+        pontaria:
+          typeof dados.pontaria === 'number'
+            ? dados.pontaria
+            : lerPontariaVinculado(dados.periciasEspeciais),
+        jujutsu: this.numeroPersistencia(dados.jujutsu, 0),
+        fortitude: this.numeroPersistencia(dados.fortitude, 0),
+        reflexos: this.numeroPersistencia(dados.reflexos, 0),
+        vontade: this.numeroPersistencia(dados.vontade, 0),
+      },
+      motivoRecalculo: motivo,
+    });
+    return {
+      ...calculo,
+      regraCalculo: config.regraCalculo,
+      versaoRegra: config.versaoRegra,
+    };
+  }
+
+  private validarDistribuicaoAutomatica(
+    calculo: ReturnType<typeof calcularFichaAutomaticaVinculado>,
+    dados: Record<string, unknown>,
+  ) {
+    const excedentes = Object.values(calculo.excedentes).some(
+      (valor) => valor > 0,
+    );
+    const atributos = ['agilidade', 'forca', 'intelecto', 'presenca', 'vigor'];
+    const atributoAcimaTeto = atributos.some(
+      (campo) =>
+        this.numeroPersistencia(dados[campo], 0) > calculo.pools.tetoAtributo,
+    );
+    const ataqueAcimaTeto =
+      calculo.pools.tetoAtaque !== null &&
+      [
+        this.numeroPersistencia(dados.luta, 0),
+        typeof dados.pontaria === 'number'
+          ? dados.pontaria
+          : lerPontariaVinculado(dados.periciasEspeciais),
+        this.numeroPersistencia(dados.jujutsu, 0),
+      ].some((valor) => valor > (calculo.pools.tetoAtaque ?? 0));
+    const resistenciaAcimaTeto = ['fortitude', 'reflexos', 'vontade'].some(
+      (campo) =>
+        this.numeroPersistencia(dados[campo], 0) >
+        calculo.pools.tetoResistencia,
+    );
+    if (
+      excedentes ||
+      atributoAcimaTeto ||
+      ataqueAcimaTeto ||
+      resistenciaAcimaTeto
+    ) {
+      throw new BusinessException(
+        'Distribuicao excede os pools ou tetos permitidos pela tecnica',
+        'ENTIDADE_DISTRIBUICAO_INVALIDA',
+        { pools: calculo.pools, excedentes: calculo.excedentes },
+      );
+    }
+  }
+
+  private resolverGrauConfig(
+    config: ConfigVinculadoNormalizada,
+    contexto: ContextoAutomacaoVinculados,
+  ): number {
+    return config.tipoGrauCodigo
+      ? (contexto.graus.get(config.tipoGrauCodigo) ?? 0)
+      : 0;
+  }
+
+  private localizarConfigEntidade(
+    entidade: Pick<EntidadeVinculadaMapeavel, 'tecnicaOrigemId' | 'tipo'>,
+    configs: ConfigVinculadoNormalizada[],
+  ) {
+    return (
+      configs.find(
+        (config) =>
+          config.tecnicaId === entidade.tecnicaOrigemId &&
+          config.tipoVinculado === entidade.tipo,
+      ) ?? null
+    );
+  }
+
+  private montarCapacidadeTipo(
+    tipo: TipoEntidadeVinculadaPersonagem,
+    contexto: ContextoAutomacaoVinculados,
+    configs: ConfigVinculadoNormalizada[],
+    entidades: Array<{
+      tecnicaOrigemId: number | null;
+      vagasOcupadas: number;
+    }>,
+    instancias: Array<{
+      entidadeVinculada: {
+        tecnicaOrigemId: number | null;
+        vagasOcupadas: number;
+      } | null;
+    }>,
+  ) {
+    const usarVagas =
+      tipo === TipoEntidadeVinculadaPersonagem.CORPO_AMALDICOADO;
+    const cadastroUsado = usarVagas
+      ? entidades.reduce(
+          (total, item) => total + Math.max(1, item.vagasOcupadas),
+          0,
+        )
+      : entidades.length;
+    const ativoUsado = usarVagas
+      ? instancias.reduce(
+          (total, item) =>
+            total + Math.max(1, item.entidadeVinculada?.vagasOcupadas ?? 1),
+          0,
+        )
+      : instancias.length;
+    const limitesCadastro = configs.map((config) => config.limiteCadastro);
+    const limitesAtivo = configs.map((config) => config.limiteAtivo);
+    const combinar = (limites: Array<number | null>) => {
+      if (limites.length === 0) return 0;
+      if (limites.some((limite) => limite === null)) return null;
+      const numeros = limites as number[];
+      return tipo === TipoEntidadeVinculadaPersonagem.SHIKIGAMI
+        ? numeros.reduce((total, valor) => total + valor, 0)
+        : Math.max(...numeros);
+    };
+    const limiteCadastro = combinar(limitesCadastro);
+    const limiteAtivo = combinar(limitesAtivo);
+    const modos = new Set(configs.map((config) => config.modo));
+    const modo =
+      modos.size > 1 || modos.has(ModoVinculadoTecnica.HIBRIDO)
+        ? ModoVinculadoTecnica.HIBRIDO
+        : (configs[0]?.modo ?? null);
+
+    return {
+      tipo,
+      habilitado: configs.length > 0,
+      modo,
+      permiteCriarNovos: configs.some((config) => config.permiteCriarNovos),
+      usaTemplates: configs.some((config) => config.usaTemplates),
+      cadastro: {
+        unidade: usarVagas ? 'VAGAS' : 'QUANTIDADE',
+        usado: cadastroUsado,
+        maximo: limiteCadastro,
+        disponivel:
+          limiteCadastro === null
+            ? null
+            : Math.max(0, limiteCadastro - cadastroUsado),
+        excedente:
+          limiteCadastro === null
+            ? 0
+            : Math.max(0, cadastroUsado - limiteCadastro),
+      },
+      ativo: {
+        unidade: usarVagas ? 'VAGAS' : 'QUANTIDADE',
+        usado: ativoUsado,
+        maximo: limiteAtivo,
+        disponivel:
+          limiteAtivo === null ? null : Math.max(0, limiteAtivo - ativoUsado),
+        excedente:
+          limiteAtivo === null ? 0 : Math.max(0, ativoUsado - limiteAtivo),
+      },
+      configuracoes: configs.map((config) => ({
+        ...config,
+        previewCalculo:
+          tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA
+            ? null
+            : calcularFichaAutomaticaVinculado({
+                tipo,
+                nivel: contexto.personagem.nivel,
+                grau: this.resolverGrauConfig(config, contexto),
+                maiorAtributoDono: contexto.personagem.maiorAtributo,
+                testeJujutsuDono: contexto.personagem.testeJujutsu,
+                limitePeEaPorTurno: contexto.personagem.limitePeEaPorTurno,
+                papel: 'FLEXIVEL',
+                distribuicao: {
+                  agilidade: 0,
+                  forca: 0,
+                  intelecto: 0,
+                  presenca: 0,
+                  vigor: 0,
+                  luta: 0,
+                  pontaria: 0,
+                  jujutsu: 0,
+                  fortitude: 0,
+                  reflexos: 0,
+                  vontade: 0,
+                },
+              }),
+      })),
+    };
+  }
+
+  private normalizarSnapshotTemplate(
+    snapshotJson: Prisma.JsonValue | null,
+  ): DadosEntidadeVinculada {
+    if (
+      !snapshotJson ||
+      typeof snapshotJson !== 'object' ||
+      Array.isArray(snapshotJson)
+    ) {
+      return {};
+    }
+    const snapshot = snapshotJson as Record<string, unknown>;
+    const permitidos = [
+      'fichaTipo',
+      'tipoNpc',
+      'tamanho',
+      'vd',
+      'agilidade',
+      'forca',
+      'intelecto',
+      'presenca',
+      'vigor',
+      'percepcao',
+      'iniciativa',
+      'fortitude',
+      'reflexos',
+      'vontade',
+      'luta',
+      'jujutsu',
+      'defesa',
+      'pontosVidaMax',
+      'pontosVidaAtual',
+      'rd',
+      'deslocamentoMetros',
+      'vagasOcupadas',
+      'cargasMax',
+      'cargasAtual',
+      'periciasEspeciais',
+      'resistencias',
+      'vulnerabilidades',
+      'passivas',
+      'acoes',
+      'habilidades',
+      'custos',
+      'limites',
+      'config',
+    ];
+    return Object.fromEntries(
+      permitidos
+        .filter((campo) => snapshot[campo] !== undefined)
+        .map((campo) => [campo, snapshot[campo]]),
+    ) as DadosEntidadeVinculada;
+  }
+
+  private lerPapelEntidade(
+    entidade: Pick<EntidadeVinculadaMapeavel, 'config' | 'calculoAutomatico'>,
+  ): PapelCalculoVinculado {
+    const papel =
+      this.lerTextoJson(entidade.config, ['papel']) ??
+      this.lerTextoJson(entidade.calculoAutomatico, ['papel']);
+    return papel === 'AGIL' || papel === 'TANQUE' ? papel : 'FLEXIVEL';
+  }
+
+  private mesclarPontariaPericiasEspeciais(
+    periciasEspeciais: Record<string, unknown> | null | undefined,
+    pontaria: number | undefined,
+  ) {
+    if (pontaria === undefined) return periciasEspeciais;
+    return { ...(periciasEspeciais ?? {}), pontaria };
+  }
+
+  private mesclarRegistros(
+    atual: unknown,
+    novos: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const base =
+      atual && typeof atual === 'object' && !Array.isArray(atual)
+        ? (atual as Record<string, unknown>)
+        : {};
+    return { ...base, ...novos };
+  }
+
+  private lerNumeroJson(valor: unknown, caminho: string[]): number | null {
+    let atual: unknown = valor;
+    for (const chave of caminho) {
+      if (!atual || typeof atual !== 'object' || Array.isArray(atual)) {
+        return null;
+      }
+      atual = (atual as Record<string, unknown>)[chave];
+    }
+    return typeof atual === 'number' && Number.isFinite(atual) ? atual : null;
+  }
+
+  private lerTextoJson(valor: unknown, caminho: string[]): string | null {
+    let atual: unknown = valor;
+    for (const chave of caminho) {
+      if (!atual || typeof atual !== 'object' || Array.isArray(atual)) {
+        return null;
+      }
+      atual = (atual as Record<string, unknown>)[chave];
+    }
+    return typeof atual === 'string' ? atual : null;
   }
 
   private validarPontosVidaEntidade(

@@ -18,6 +18,12 @@ import {
   TipoNpcAmeaca,
 } from '@prisma/client';
 
+export enum PapelCalculoEntidadeVinculada {
+  AGIL = 'AGIL',
+  FLEXIVEL = 'FLEXIVEL',
+  TANQUE = 'TANQUE',
+}
+
 export class CriarEntidadeVinculadaPersonagemDto {
   @IsEnum(TipoEntidadeVinculadaPersonagem)
   tipo: TipoEntidadeVinculadaPersonagem;
@@ -88,62 +94,84 @@ export class CriarEntidadeVinculadaPersonagemDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   agilidade?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   forca?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   intelecto?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   presenca?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   vigor?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   percepcao?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   iniciativa?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   fortitude?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   reflexos?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   vontade?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   luta?: number;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(0)
   jujutsu?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  pontaria?: number;
+
+  @IsOptional()
+  @IsEnum(PapelCalculoEntidadeVinculada)
+  papel?: PapelCalculoEntidadeVinculada;
 
   @IsOptional()
   @Type(() => Number)
@@ -241,6 +269,12 @@ export class AtualizarEntidadeVinculadaPersonagemDto extends PartialType(
 export class AtualizarEstadoEntidadeVinculadaDto {
   @IsEnum(EstadoEntidadeVinculadaPersonagem)
   estado: EstadoEntidadeVinculadaPersonagem;
+}
+
+export class AssociarTemplateEntidadeVinculadaDto {
+  @IsOptional()
+  @IsBoolean()
+  overrideMestre?: boolean;
 }
 
 export class InvocarEntidadeVinculadaSessaoDto {

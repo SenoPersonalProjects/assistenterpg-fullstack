@@ -1245,6 +1245,9 @@ describe('CampanhaService', () => {
       personagemCampanhaHistorico: {
         create: jest.fn().mockResolvedValue({ id: 1 }),
       },
+      personagemCampanhaEntidadeVinculada: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
     };
 
     prisma.$transaction.mockImplementation(
@@ -1353,6 +1356,9 @@ describe('CampanhaService', () => {
       },
       personagemCampanhaHistorico: {
         create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+      personagemCampanhaEntidadeVinculada: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     };
 
@@ -1472,6 +1478,9 @@ describe('CampanhaService', () => {
       personagemCampanhaHistorico: {
         create: jest.fn().mockResolvedValue({ id: 1 }),
       },
+      personagemCampanhaEntidadeVinculada: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
     };
 
     prisma.$transaction.mockImplementation(
@@ -1581,6 +1590,9 @@ describe('CampanhaService', () => {
       },
       personagemCampanhaHistorico: {
         create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+      personagemCampanhaEntidadeVinculada: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
     };
 

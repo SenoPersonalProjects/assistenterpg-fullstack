@@ -42,6 +42,7 @@ import {
 import {
   AtualizarEntidadeVinculadaPersonagemDto,
   AtualizarEstadoEntidadeVinculadaDto,
+  AssociarTemplateEntidadeVinculadaDto,
   CriarEntidadeVinculadaPersonagemDto,
 } from './dto/entidade-vinculada-personagem.dto';
 
@@ -180,6 +181,51 @@ export class CampanhaController {
       id,
       personagemCampanhaId,
       req.user.id,
+    );
+  }
+
+  @Get(':id/personagens/:personagemCampanhaId/vinculados/capacidades')
+  async listarCapacidadesEntidadesVinculadas(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarCapacidadesEntidadesVinculadas(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
+  @Get(':id/personagens/:personagemCampanhaId/vinculados/templates')
+  async listarTemplatesEntidadesVinculadas(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.campanhaService.listarTemplatesEntidadesVinculadas(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
+  @Post(
+    ':id/personagens/:personagemCampanhaId/vinculados/templates/:templateId/associar',
+  )
+  async associarTemplateEntidadeVinculada(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('templateId', ParseIntPipe) templateId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AssociarTemplateEntidadeVinculadaDto,
+  ) {
+    return this.campanhaService.associarTemplateEntidadeVinculada(
+      id,
+      personagemCampanhaId,
+      req.user.id,
+      templateId,
+      dto,
     );
   }
 

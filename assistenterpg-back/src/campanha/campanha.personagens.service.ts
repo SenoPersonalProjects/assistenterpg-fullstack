@@ -698,6 +698,14 @@ export class CampanhaPersonagensService {
           },
         },
       });
+
+      await tx.personagemCampanhaEntidadeVinculada.updateMany({
+        where: {
+          personagemCampanhaId,
+          calculoAutomatico: { not: Prisma.DbNull },
+        },
+        data: { precisaRecalculo: true },
+      });
     });
 
     await this.inventarioService.recalcularEstadoInventarioCampanha(

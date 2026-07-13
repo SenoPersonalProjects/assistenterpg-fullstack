@@ -43,6 +43,7 @@ import {
 import {
   AtualizarEntidadeVinculadaPersonagemDto,
   AtualizarEstadoEntidadeVinculadaDto,
+  AssociarTemplateEntidadeVinculadaDto,
   CriarEntidadeVinculadaPersonagemDto,
 } from './dto/entidade-vinculada-personagem.dto';
 
@@ -628,6 +629,46 @@ export class CampanhaService {
       campanhaId,
       personagemCampanhaId,
       usuarioId,
+    );
+  }
+
+  async listarCapacidadesEntidadesVinculadas(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    return this.vinculadosService.listarCapacidades(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+    );
+  }
+
+  async listarTemplatesEntidadesVinculadas(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+  ) {
+    return this.vinculadosService.listarTemplates(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+    );
+  }
+
+  async associarTemplateEntidadeVinculada(
+    campanhaId: number,
+    personagemCampanhaId: number,
+    usuarioId: number,
+    templateId: number,
+    dto: AssociarTemplateEntidadeVinculadaDto,
+  ) {
+    return this.vinculadosService.associarTemplate(
+      campanhaId,
+      personagemCampanhaId,
+      usuarioId,
+      templateId,
+      dto,
     );
   }
 

@@ -75,6 +75,10 @@ import {
   resolverGrausAprimoramentoEfetivosCampanha,
   resolverPericiasEfetivasCampanha,
 } from 'src/campanha/engine/campanha-modificadores-efetivos';
+import {
+  normalizarConfigVinculado,
+  resolverLimiteVagasCorpos,
+} from 'src/campanha/engine/entidades-vinculadas-capacidades';
 
 type AcessoCampanha = {
   campanha: {
@@ -4642,6 +4646,7 @@ export class SessaoService {
             reducaoPv: Math.ceil(origem.pontosVida / 3),
           }),
           criadoPorId: usuarioId,
+          overrideMestre: true,
         },
       });
       const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
@@ -9081,14 +9086,29 @@ export class SessaoService {
       id: number;
       tipo: TipoEntidadeVinculadaPersonagem;
       personagemCampanhaId: number;
+      tecnicaOrigemId: number | null;
       vagasOcupadas: number;
       limites: Prisma.JsonValue | null;
+      overrideMestre: boolean;
       personagemCampanha: { nivel: number };
     },
   ) {
     if (entidade.tipo === TipoEntidadeVinculadaPersonagem.MALDICAO_CONTROLADA) {
       return;
     }
+    const configDb = entidade.tecnicaOrigemId
+      ? await tx.tecnicaVinculadoConfig.findFirst({
+          where: {
+            tecnicaId: entidade.tecnicaOrigemId,
+            tipoVinculado: entidade.tipo,
+            ativo: true,
+          },
+          include: { tecnica: { select: { codigo: true, nome: true } } },
+        })
+      : null;
+    const config = configDb
+      ? normalizarConfigVinculado(configDb, entidade.personagemCampanha.nivel)
+      : null;
     const ativos = await tx.npcAmeacaSessao.findMany({
       where: {
         sessaoId,
@@ -9111,13 +9131,15 @@ export class SessaoService {
     }
 
     if (entidade.tipo === TipoEntidadeVinculadaPersonagem.SHIKIGAMI) {
-      const limite = this.lerNumeroConfig(entidade.limites, [
-        'ativoMaximo',
-        'limiteAtivo',
-        'limiteAtivos',
-      ]);
-      const limiteAtivo = limite ?? 1;
-      if (ativos.length >= limiteAtivo) {
+      const limiteOverride = entidade.overrideMestre
+        ? this.lerNumeroConfig(entidade.limites, [
+            'ativoMaximo',
+            'limiteAtivo',
+            'limiteAtivos',
+          ])
+        : null;
+      const limiteAtivo = limiteOverride ?? (config ? config.limiteAtivo : 1);
+      if (limiteAtivo !== null && ativos.length >= limiteAtivo) {
         throw new BusinessException(
           'Limite de shikigamis ativos atingido',
           'ENTIDADE_SHIKIGAMI_LIMITE_ATIVO',
@@ -9130,9 +9152,19 @@ export class SessaoService {
       return;
     }
 
-    const limiteVagas = this.resolverLimiteVagasCorpos(
-      entidade.personagemCampanha.nivel,
-    );
+    const limiteOverride = entidade.overrideMestre
+      ? this.lerNumeroConfig(entidade.limites, [
+          'ativoMaximo',
+          'limiteAtivo',
+          'limiteAtivos',
+        ])
+      : null;
+    const limiteVagas =
+      limiteOverride ??
+      (config
+        ? config.limiteAtivo
+        : resolverLimiteVagasCorpos(entidade.personagemCampanha.nivel));
+    if (limiteVagas === null) return;
     const vagasAtuais = ativos.reduce(
       (total, ativo) => total + (ativo.entidadeVinculada?.vagasOcupadas ?? 1),
       0,
@@ -9179,14 +9211,6 @@ export class SessaoService {
       },
       data: { estado: EstadoEntidadeVinculadaPersonagem.DISPONIVEL },
     });
-  }
-
-  private resolverLimiteVagasCorpos(nivel: number): number {
-    if (nivel >= 17) return 5;
-    if (nivel >= 13) return 4;
-    if (nivel >= 9) return 3;
-    if (nivel >= 5) return 2;
-    return 1;
   }
 
   private lerNumeroConfig(
