@@ -49,6 +49,7 @@ import {
   apiMarcarParticipanteIniciativaAlternadaSessaoCampanha,
   apiInvocarEntidadeVinculadaSessaoCampanha,
   apiRemoverNpcSessaoCampanha,
+  apiReprocessarEfeitosTurnoSessaoCampanha,
   apiRecusarConvite,
   apiEnviarMensagemChatSessaoCampanha,
   apiPularTurnoSessaoCampanha,
@@ -427,33 +428,39 @@ describe('campanhas api cache and dedupe', () => {
 
   it('advances session turn', async () => {
     mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+    const precondicao = { rodadaEsperada: 3, indiceTurnoEsperado: 1 };
 
-    const sessao = await apiAvancarTurnoSessaoCampanha(44, 13);
+    const sessao = await apiAvancarTurnoSessaoCampanha(44, 13, precondicao);
 
     expect(mockedApiClient.post).toHaveBeenCalledWith(
       '/campanhas/44/sessoes/13/turno/avancar',
+      precondicao,
     );
     expect(sessao).toEqual({ id: 13 });
   });
 
   it('moves session turn back', async () => {
     mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+    const precondicao = { rodadaEsperada: 3, indiceTurnoEsperado: 1 };
 
-    const sessao = await apiVoltarTurnoSessaoCampanha(44, 13);
+    const sessao = await apiVoltarTurnoSessaoCampanha(44, 13, precondicao);
 
     expect(mockedApiClient.post).toHaveBeenCalledWith(
       '/campanhas/44/sessoes/13/turno/voltar',
+      precondicao,
     );
     expect(sessao).toEqual({ id: 13 });
   });
 
   it('skips current session turn', async () => {
     mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+    const precondicao = { rodadaEsperada: 3, indiceTurnoEsperado: 1 };
 
-    const sessao = await apiPularTurnoSessaoCampanha(44, 13);
+    const sessao = await apiPularTurnoSessaoCampanha(44, 13, precondicao);
 
     expect(mockedApiClient.post).toHaveBeenCalledWith(
       '/campanhas/44/sessoes/13/turno/pular',
+      precondicao,
     );
     expect(sessao).toEqual({ id: 13 });
   });
@@ -552,6 +559,7 @@ describe('campanhas api cache and dedupe', () => {
     const avancado = await apiAvancarLadoIniciativaAlternadaSessaoCampanha(
       44,
       13,
+      { rodadaEsperada: 2, ladoAtualIdEsperado: 1 },
     );
 
     expect(mockedApiClient.post).toHaveBeenNthCalledWith(
@@ -565,9 +573,25 @@ describe('campanhas api cache and dedupe', () => {
     expect(mockedApiClient.post).toHaveBeenNthCalledWith(
       2,
       '/campanhas/44/sessoes/13/iniciativa-alternada/avancar-lado',
+      { rodadaEsperada: 2, ladoAtualIdEsperado: 1 },
     );
     expect(marcado).toEqual({ id: 13, marcado: true });
     expect(avancado).toEqual({ id: 13, ladoAtualId: 2 });
+  });
+
+  it('reprocesses pending automatic turn effects', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 13 } });
+
+    const sessao = await apiReprocessarEfeitosTurnoSessaoCampanha(
+      44,
+      13,
+      901,
+    );
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/turno/efeitos/901/reprocessar',
+    );
+    expect(sessao).toEqual({ id: 13 });
   });
 
   it('updates session initiative order', async () => {

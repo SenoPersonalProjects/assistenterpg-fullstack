@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { criarErroControleTurno } from './sessao-turnos';
+import {
+  criarErroControleTurno,
+  montarPrecondicaoControleTurno,
+} from './sessao-turnos';
+
+describe('montarPrecondicaoControleTurno', () => {
+  it('usa rodada e indice atuais na iniciativa normal', () => {
+    expect(
+      montarPrecondicaoControleTurno({
+        rodadaAtual: 4,
+        iniciativa: { indiceAtual: 2 },
+        iniciativaAlternada: null,
+      }),
+    ).toEqual({ rodadaEsperada: 4, indiceTurnoEsperado: 2 });
+  });
+
+  it('usa rodada e lado atuais na iniciativa alternada', () => {
+    expect(
+      montarPrecondicaoControleTurno({
+        rodadaAtual: 6,
+        iniciativa: { indiceAtual: 0 },
+        iniciativaAlternada: { ativo: true, ladoAtualId: 9 },
+      }),
+    ).toEqual({ rodadaEsperada: 6, ladoAtualIdEsperado: 9 });
+  });
+});
 
 describe('criarErroControleTurno', () => {
   it('troca a mensagem de DB_P2028 preservando suporte tecnico', () => {

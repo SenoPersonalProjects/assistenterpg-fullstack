@@ -6,10 +6,12 @@ import { Icon } from '@/components/ui/Icon';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { Alert } from '@/components/ui/Alert';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
 import type {
   EstadoIniciativaAlternadaSessao,
+  SessaoCampanhaDetalhe,
   TipoCenaSessaoCampanha,
   UserErrorState,
 } from '@/lib/types';
@@ -26,6 +28,8 @@ type SessionMasterControlsProps = {
   cenaFormDirty?: boolean;
   atualizandoCena: boolean;
   acaoTurnoPendente: AcaoControleTurno | null;
+  efeitosTurnoPendentes?: SessaoCampanhaDetalhe['efeitosTurnoPendentes'];
+  reprocessandoEfeitosTurno?: boolean;
   encerrandoSessao: boolean;
   erroCena?: UserErrorState | null;
   erroTurnos?: UserErrorState | null;
@@ -36,6 +40,7 @@ type SessionMasterControlsProps = {
   onToggleLimitesCategoria: (ativo: boolean) => void;
   onResetCenaForm?: () => void;
   onControleTurno: (acao: AcaoControleTurno) => void;
+  onReprocessarEfeitosTurno?: () => void;
   onSolicitarEncerrarSessao: () => void;
   iniciativaAlternada?: EstadoIniciativaAlternadaSessao | null;
   optionalMechanicsPanel?: ReactNode;
@@ -64,10 +69,13 @@ type SessionTableOperationsPanelProps = Pick<
   | 'sessaoEncerrada'
   | 'controleTurnosAtivo'
   | 'acaoTurnoPendente'
+  | 'efeitosTurnoPendentes'
+  | 'reprocessandoEfeitosTurno'
   | 'encerrandoSessao'
   | 'erroTurnos'
   | 'erroEncerramento'
   | 'onControleTurno'
+  | 'onReprocessarEfeitosTurno'
   | 'onSolicitarEncerrarSessao'
   | 'iniciativaAlternada'
   | 'optionalMechanicsPanel'
@@ -353,10 +361,13 @@ export function SessionTableOperationsPanel({
   sessaoEncerrada,
   controleTurnosAtivo,
   acaoTurnoPendente,
+  efeitosTurnoPendentes,
+  reprocessandoEfeitosTurno = false,
   encerrandoSessao,
   erroTurnos,
   erroEncerramento,
   onControleTurno,
+  onReprocessarEfeitosTurno,
   onSolicitarEncerrarSessao,
   iniciativaAlternada,
   optionalMechanicsPanel,
@@ -375,6 +386,29 @@ export function SessionTableOperationsPanel({
       <div className="space-y-6">
         {erroTurnos && <ErrorAlert message={erroTurnos} />}
         {erroEncerramento && <ErrorAlert message={erroEncerramento} />}
+        {efeitosTurnoPendentes ? (
+          <Alert variant="warning">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-black text-app-fg">
+                  Efeitos automáticos pendentes
+                </p>
+                <p className="mt-1 text-xs text-app-muted">
+                  O turno avançou, mas os efeitos da rodada precisam ser concluídos antes de continuar.
+                </p>
+              </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReprocessarEfeitosTurno}
+              disabled={reprocessandoEfeitosTurno || !onReprocessarEfeitosTurno}
+            >
+              <Icon name="rotate-ccw" className="h-4 w-4" />
+              <span>{reprocessandoEfeitosTurno ? 'Reprocessando...' : 'Reprocessar efeitos'}</span>
+            </Button>
+            </div>
+          </Alert>
+        ) : null}
 
         <div className="space-y-3">
           <h4 className="text-[10px] font-black uppercase tracking-widest text-app-primary">
@@ -397,7 +431,7 @@ export function SessionTableOperationsPanel({
                           variant="ghost"
                           size="sm"
                           onClick={() => onControleTurno('VOLTAR')}
-                          disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                          disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada || Boolean(efeitosTurnoPendentes)}
                           className="session-turn-control__button"
                           title="Voltar turno"
                         >
@@ -408,7 +442,7 @@ export function SessionTableOperationsPanel({
                           variant="ghost"
                           size="sm"
                           onClick={() => onControleTurno('PULAR')}
-                          disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                          disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada || Boolean(efeitosTurnoPendentes)}
                           className="session-turn-control__button"
                           title="Pular turno"
                         >
@@ -421,7 +455,7 @@ export function SessionTableOperationsPanel({
                       variant="ghost"
                       size="sm"
                       onClick={() => onControleTurno('AVANCAR')}
-                      disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada}
+                      disabled={Boolean(acaoTurnoPendente) || sessaoEncerrada || Boolean(efeitosTurnoPendentes)}
                       className="session-turn-control__button"
                       title={iniciativaAlternadaAtiva ? 'Avançar lado' : 'Avançar turno'}
                     >
@@ -499,6 +533,8 @@ export function SessionMasterControls({
   limitesCategoriaAtivo,
   atualizandoCena,
   acaoTurnoPendente,
+  efeitosTurnoPendentes,
+  reprocessandoEfeitosTurno,
   encerrandoSessao,
   erroCena,
   erroTurnos,
@@ -508,6 +544,7 @@ export function SessionMasterControls({
   onAtualizarCena,
   onToggleLimitesCategoria,
   onControleTurno,
+  onReprocessarEfeitosTurno,
   onSolicitarEncerrarSessao,
   iniciativaAlternada,
   optionalMechanicsPanel,
@@ -536,10 +573,13 @@ export function SessionMasterControls({
         sessaoEncerrada={sessaoEncerrada}
         controleTurnosAtivo={controleTurnosAtivo}
         acaoTurnoPendente={acaoTurnoPendente}
+        efeitosTurnoPendentes={efeitosTurnoPendentes}
+        reprocessandoEfeitosTurno={reprocessandoEfeitosTurno}
         encerrandoSessao={encerrandoSessao}
         erroTurnos={erroTurnos}
         erroEncerramento={erroEncerramento}
         onControleTurno={onControleTurno}
+        onReprocessarEfeitosTurno={onReprocessarEfeitosTurno}
         onSolicitarEncerrarSessao={onSolicitarEncerrarSessao}
         iniciativaAlternada={iniciativaAlternada}
         optionalMechanicsPanel={optionalMechanicsPanel}

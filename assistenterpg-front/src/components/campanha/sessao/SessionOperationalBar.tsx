@@ -15,6 +15,9 @@ import type {
 
 type AcaoControleTurno = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
+const MENSAGEM_EFEITOS_TURNO_PENDENTES =
+  'Aguardando reprocessamento dos efeitos automáticos do turno.';
+
 type SessionOperationalBarProps = {
   cenaLabel: string;
   cenaTipo?: TipoCenaSessaoCampanha;
@@ -32,6 +35,7 @@ type SessionOperationalBarProps = {
   totalParticipantes?: number;
   erro?: UserErrorState | null;
   acaoTurnoPendente: AcaoControleTurno | null;
+  efeitosTurnoPendentes?: boolean;
   onAvancarTurno: () => void;
   onPularTurno: () => void;
   onVoltarTurno: () => void;
@@ -64,6 +68,7 @@ export const SessionOperationalBar = forwardRef<
     totalParticipantes,
     erro,
     acaoTurnoPendente,
+    efeitosTurnoPendentes = false,
     onAvancarTurno,
     onPularTurno,
     onVoltarTurno,
@@ -222,10 +227,10 @@ export const SessionOperationalBar = forwardRef<
                 variant="ghost"
                 size="sm"
                 onClick={onVoltarTurno}
-                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente) || efeitosTurnoPendentes}
                 className="h-9 w-9 p-0 rounded-xl hover:bg-app-danger/10 hover:text-app-danger"
-                title="Voltar turno"
-                aria-label="Voltar turno"
+                title={efeitosTurnoPendentes ? MENSAGEM_EFEITOS_TURNO_PENDENTES : 'Voltar turno'}
+                aria-label={efeitosTurnoPendentes ? MENSAGEM_EFEITOS_TURNO_PENDENTES : 'Voltar turno'}
               >
                 <Icon name="rotate-ccw" className="h-4 w-4" />
               </Button>
@@ -234,10 +239,10 @@ export const SessionOperationalBar = forwardRef<
                   variant="ghost"
                   size="sm"
                   onClick={onPularTurno}
-                  disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+                  disabled={sessaoEncerrada || Boolean(acaoTurnoPendente) || efeitosTurnoPendentes}
                   className="h-9 w-9 p-0 rounded-xl hover:bg-app-warning/10 hover:text-app-warning"
-                  title="Pular turno"
-                  aria-label="Pular turno"
+                  title={efeitosTurnoPendentes ? MENSAGEM_EFEITOS_TURNO_PENDENTES : 'Pular turno'}
+                  aria-label={efeitosTurnoPendentes ? MENSAGEM_EFEITOS_TURNO_PENDENTES : 'Pular turno'}
                 >
                   <Icon name="skip-forward" className="h-4 w-4" />
                 </Button>
@@ -246,8 +251,22 @@ export const SessionOperationalBar = forwardRef<
                 variant="primary"
                 size="sm"
                 onClick={onAvancarTurno}
-                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+                disabled={sessaoEncerrada || Boolean(acaoTurnoPendente) || efeitosTurnoPendentes}
                 className="px-4 font-black rounded-xl shadow-lg shadow-app-primary/20"
+                title={
+                  efeitosTurnoPendentes
+                    ? MENSAGEM_EFEITOS_TURNO_PENDENTES
+                    : iniciativaAlternadaAtiva
+                      ? 'Avançar lado'
+                      : 'Avançar turno'
+                }
+                aria-label={
+                  efeitosTurnoPendentes
+                    ? MENSAGEM_EFEITOS_TURNO_PENDENTES
+                    : iniciativaAlternadaAtiva
+                      ? 'Avançar lado'
+                      : 'Avançar turno'
+                }
               >
                 {acaoTurnoPendente === 'AVANCAR' ? '...' : 'Próximo'}
                 <Icon name="forward" className="ml-2 h-4 w-4" />

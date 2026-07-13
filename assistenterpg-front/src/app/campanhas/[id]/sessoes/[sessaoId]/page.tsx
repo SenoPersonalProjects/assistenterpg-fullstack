@@ -1052,7 +1052,12 @@ export default function SessaoCampanhaPage() {
     [marcarCenaFormDirty],
   );
 
-  const { acaoTurnoPendente, handleControleTurno } = useSessaoTurnos({
+  const {
+    acaoTurnoPendente,
+    reprocessandoEfeitosTurno,
+    handleControleTurno,
+    handleReprocessarEfeitosTurno,
+  } = useSessaoTurnos({
     campanhaId,
     sessaoId,
     detalhe,
@@ -2875,10 +2880,15 @@ export default function SessaoCampanhaPage() {
       sessaoEncerrada={sessaoEncerrada}
       controleTurnosAtivo={detalhe.controleTurnosAtivo}
       acaoTurnoPendente={acaoTurnoPendente}
+      efeitosTurnoPendentes={detalhe.efeitosTurnoPendentes}
+      reprocessandoEfeitosTurno={reprocessandoEfeitosTurno}
       encerrandoSessao={encerrandoSessao}
       erroTurnos={erroTurnos}
       erroEncerramento={erroEncerramento}
       onControleTurno={(acao) => void handleControleTurno(acao)}
+      onReprocessarEfeitosTurno={() =>
+        void handleReprocessarEfeitosTurno()
+      }
       onSolicitarEncerrarSessao={() => setConfirmarEncerrarSessaoAberto(true)}
       iniciativaAlternada={detalhe.iniciativaAlternada}
       optionalMechanicsPanel={painelMecanicasOpcionais}
@@ -2953,6 +2963,7 @@ export default function SessaoCampanhaPage() {
           totalParticipantes={participantes.length}
           erro={erroTurnos}
           acaoTurnoPendente={acaoTurnoPendente}
+          efeitosTurnoPendentes={Boolean(detalhe.efeitosTurnoPendentes)}
           onAvancarTurno={() => void handleControleTurno('AVANCAR')}
           onPularTurno={() => void handleControleTurno('PULAR')}
           onVoltarTurno={() => void handleControleTurno('VOLTAR')}
@@ -3272,6 +3283,7 @@ export default function SessaoCampanhaPage() {
               iniciativaIndiceAtual={iniciativaIndiceAtual}
               podeControlarSessao={podeControlarSessao}
               acaoTurnoPendente={acaoTurnoPendente}
+              efeitosTurnoPendentes={Boolean(detalhe.efeitosTurnoPendentes)}
               reordenandoIniciativa={reordenandoIniciativa}
               sucessoReordenacao={sucessoReordenacao}
               indiceIniciativaArrastado={indiceIniciativaArrastado}

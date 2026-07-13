@@ -17,6 +17,9 @@ import type {
   UserErrorState,
 } from '@/lib/types';
 
+const MENSAGEM_EFEITOS_TURNO_PENDENTES =
+  'Aguardando reprocessamento dos efeitos automáticos do turno.';
+
 type SessionInitiativePanelProps = {
   sessaoEncerrada: boolean;
   controleTurnosAtivo: boolean;
@@ -24,6 +27,7 @@ type SessionInitiativePanelProps = {
   iniciativaIndiceAtual: number | null;
   podeControlarSessao: boolean;
   acaoTurnoPendente?: AcaoControleTurno | null;
+  efeitosTurnoPendentes?: boolean;
   reordenandoIniciativa: boolean;
   sucessoReordenacao?: boolean;
   indiceIniciativaArrastado: number | null;
@@ -65,6 +69,7 @@ export function SessionInitiativePanel({
   iniciativaIndiceAtual,
   podeControlarSessao,
   acaoTurnoPendente,
+  efeitosTurnoPendentes = false,
   reordenandoIniciativa,
   sucessoReordenacao,
   indiceIniciativaArrastado,
@@ -404,8 +409,18 @@ export function SessionInitiativePanel({
                   variant="primary"
                   size="sm"
                   onClick={onAvancarTurno}
-                  disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+                  disabled={sessaoEncerrada || Boolean(acaoTurnoPendente) || efeitosTurnoPendentes}
                   className="font-black px-6 shadow-lg shadow-app-primary/20"
+                  title={
+                    efeitosTurnoPendentes
+                      ? MENSAGEM_EFEITOS_TURNO_PENDENTES
+                      : `Mudar para ${proximoLado?.nome ?? 'próximo lado'}`
+                  }
+                  aria-label={
+                    efeitosTurnoPendentes
+                      ? MENSAGEM_EFEITOS_TURNO_PENDENTES
+                      : `Mudar para ${proximoLado?.nome ?? 'próximo lado'}`
+                  }
                 >
                   {acaoTurnoPendente === 'AVANCAR'
                     ? '...'
@@ -596,8 +611,18 @@ export function SessionInitiativePanel({
               variant="primary"
               size="sm"
               onClick={onAvancarTurno}
-              disabled={sessaoEncerrada || Boolean(acaoTurnoPendente)}
+              disabled={sessaoEncerrada || Boolean(acaoTurnoPendente) || efeitosTurnoPendentes}
               className="font-black px-6 shadow-lg shadow-app-primary/20"
+              title={
+                efeitosTurnoPendentes
+                  ? MENSAGEM_EFEITOS_TURNO_PENDENTES
+                  : 'Passar vez / Próxima etapa'
+              }
+              aria-label={
+                efeitosTurnoPendentes
+                  ? MENSAGEM_EFEITOS_TURNO_PENDENTES
+                  : 'Passar vez / Próxima etapa'
+              }
             >
               {acaoTurnoPendente === 'AVANCAR' ? '...' : 'Passar vez / Próxima etapa'}
               <Icon name="forward" className="ml-2 h-4 w-4" />

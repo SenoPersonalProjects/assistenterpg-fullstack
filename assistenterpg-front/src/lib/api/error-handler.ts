@@ -241,6 +241,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SESSAO_TURNO_INDISPONIVEL:
     "Cena livre não possui contagem de rodada/turno.",
   SESSAO_ENCERRADA: "Sessão encerrada. Não é possível executar esta ação.",
+  SESSAO_EFEITOS_TURNO_PENDENTES:
+    "Existem efeitos automáticos de turno pendentes. Reprocesse-os antes de continuar.",
+  SESSAO_EFEITOS_TURNO_FALHARAM:
+    "Não foi possível concluir os efeitos automáticos do turno.",
+  SESSAO_TURNO_DESATUALIZADO:
+    "O turno foi alterado em outra tela. Sincronize a sessão e tente novamente.",
   SESSAO_ORDEM_INICIATIVA_INVALIDA:
     "Ordem de iniciativa inválida para esta sessão.",
   SESSAO_EVENTO_NOT_FOUND: "Evento da sessão não encontrado.",

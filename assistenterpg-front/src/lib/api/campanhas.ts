@@ -791,9 +791,11 @@ export async function apiMarcarParticipanteIniciativaAlternadaSessaoCampanha(
 export async function apiAvancarLadoIniciativaAlternadaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
+  payload: ControleTurnoSessaoCampanhaPayload,
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/iniciativa-alternada/avancar-lado`,
+    payload,
   );
   return data;
 }
@@ -853,9 +855,11 @@ export async function apiAtualizarCenaSessaoCampanha(
 export async function apiAvancarTurnoSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
+  payload: ControleTurnoSessaoCampanhaPayload,
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/turno/avancar`,
+    payload,
   );
   return data;
 }
@@ -863,9 +867,11 @@ export async function apiAvancarTurnoSessaoCampanha(
 export async function apiVoltarTurnoSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
+  payload: ControleTurnoSessaoCampanhaPayload,
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/turno/voltar`,
+    payload,
   );
   return data;
 }
@@ -873,9 +879,28 @@ export async function apiVoltarTurnoSessaoCampanha(
 export async function apiPularTurnoSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
+  payload: ControleTurnoSessaoCampanhaPayload,
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/turno/pular`,
+    payload,
+  );
+  return data;
+}
+
+export type ControleTurnoSessaoCampanhaPayload = {
+  rodadaEsperada: number;
+  indiceTurnoEsperado?: number;
+  ladoAtualIdEsperado?: number;
+};
+
+export async function apiReprocessarEfeitosTurnoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  eventoId: number,
+): Promise<SessaoCampanhaDetalhe> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/turno/efeitos/${eventoId}/reprocessar`,
   );
   return data;
 }

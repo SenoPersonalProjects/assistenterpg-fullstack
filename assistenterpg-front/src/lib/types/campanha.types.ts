@@ -971,6 +971,14 @@ export type SessaoCampanhaDetalhe = {
     ordem: ParticipanteIniciativaSessaoCampanha[];
   };
   iniciativaAlternada?: EstadoIniciativaAlternadaSessao;
+  efeitosTurnoPendentes?: {
+    eventoId: number;
+    status: 'PENDENTE' | 'ERRO';
+    acao: 'AVANCAR' | 'VOLTAR' | 'PULAR';
+    rodadaAnterior: number;
+    rodadaNova: number;
+    tentativas: number;
+  } | null;
   permissoes: {
     ehMestre: boolean;
     podeEditarTodos: boolean;
