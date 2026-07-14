@@ -112,13 +112,36 @@ export type DiceParseGroupResult = {
   erro: string | null;
 };
 
-export type DadosRolagemServidorSessao = {
+export type DadosRolagemFormulaServidorSessao = {
   versao: 1;
   origem: 'SERVIDOR';
+  tipo?: 'FORMULA';
   clientRequestId: string;
   expressaoOriginal: string;
   payloads: DiceRollPayload[];
 };
+
+export type DadosRolagemPericiaServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'PERICIA_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  periciaCodigo: string;
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: {
+    total: number;
+    dt: number | null;
+    sucesso: boolean | null;
+    falhaCritica: boolean;
+  };
+};
+
+export type DadosRolagemServidorSessao =
+  | DadosRolagemFormulaServidorSessao
+  | DadosRolagemPericiaServidorSessao;
 
 type NodeBufferLike = {
   from: (input: string, encoding: string) => { toString: (encoding: string) => string };
@@ -640,11 +663,25 @@ export function extrairDadosRolagemServidor(
     registro.versao !== 1 ||
     registro.origem !== 'SERVIDOR' ||
     typeof registro.clientRequestId !== 'string' ||
-    typeof registro.expressaoOriginal !== 'string' ||
     !Array.isArray(registro.payloads)
   ) {
     return null;
   }
+  if (registro.tipo === 'PERICIA_PERSONAGEM') {
+    if (
+      !Number.isInteger(registro.personagemSessaoId) ||
+      !Number.isInteger(registro.personagemCampanhaId) ||
+      typeof registro.periciaCodigo !== 'string' ||
+      typeof registro.formulaResolvida !== 'string' ||
+      !registro.resultado ||
+      typeof registro.resultado !== 'object' ||
+      Array.isArray(registro.resultado)
+    ) {
+      return null;
+    }
+    return registro as DadosRolagemPericiaServidorSessao;
+  }
+  if (typeof registro.expressaoOriginal !== 'string') return null;
   return registro as DadosRolagemServidorSessao;
 }
 

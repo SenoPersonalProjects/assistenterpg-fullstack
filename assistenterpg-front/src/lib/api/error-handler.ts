@@ -246,6 +246,10 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Rolagem grande demais para o chat. Reduza a quantidade de dados.",
   SESSAO_ROLAGEM_REQUER_FLUXO_MECANICO:
     "Esta rolagem possui um efeito mecânico pendente.",
+  SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO:
+    "Esta tentativa de rolagem já foi usada com outros dados. Tente novamente.",
+  SESSAO_PERICIA_NAO_ENCONTRADA:
+    "A perícia informada não foi encontrada para este personagem.",
   SESSAO_EFEITOS_TURNO_PENDENTES:
     "Existem efeitos automáticos de turno pendentes. Reprocesse-os antes de continuar.",
   SESSAO_EFEITOS_TURNO_FALHARAM:

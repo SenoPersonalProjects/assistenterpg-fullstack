@@ -22,6 +22,7 @@ import {
   apiAdicionarPersonagemSessaoCampanha,
   apiAtualizarNucleoPersonagemCampanha,
   apiEnviarMensagemChatSessaoCampanha,
+  apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiRemoverPersonagemSessaoCampanha,
   apiSacrificarNucleoPersonagemCampanha,
   apiAtualizarValorIniciativaSessaoCampanha,
@@ -136,7 +137,9 @@ import { STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY } from '@/lib/constants/rolagem';
 import {
   construirMensagemDiceMultipla,
   construirMensagemDice,
+  criarClientRequestIdRolagem,
   ehMensagemDice,
+  extrairDadosRolagemServidor,
   formatarExpressaoDice,
   obterAvisoPeritoPendenteChat,
   parseDiceExpression,
@@ -146,6 +149,10 @@ import {
   type DiceRollPayload,
   validarComprimentoMensagemDice,
 } from '@/lib/campanha/sessao-dice';
+import {
+  deveUsarRolagemPericiaAutoritativa,
+  montarIntencaoRolagemPericiaPersonagem,
+} from '@/lib/campanha/sessao-rolagem-pericia';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -455,6 +462,7 @@ export default function SessaoCampanhaPage() {
   const chatRef = useRef<MensagemChatSessao[]>([]);
   const fimChatRef = useRef<HTMLDivElement | null>(null);
   const sincronizandoTempoRealRef = useRef(false);
+  const rolagensPericiaEmAndamentoRef = useRef(new Set<string>());
 
   const regrasOpcionais = detalhe?.regrasOpcionais;
   const bonusEscaladaDados =
@@ -1699,6 +1707,113 @@ export default function SessaoCampanhaPage() {
         showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
+      if (deveUsarRolagemPericiaAutoritativa(payload)) {
+        let intencao: ReturnType<
+          typeof montarIntencaoRolagemPericiaPersonagem
+        >;
+        try {
+          intencao = montarIntencaoRolagemPericiaPersonagem(
+            payload,
+            visibilidadeRolagemAtual,
+            criarClientRequestIdRolagem(),
+          );
+        } catch (error) {
+          const userError = criarErroUsuario(error);
+          setErroRolagens(userError);
+          showToast(userError.message, 'warning');
+          return;
+        }
+        const chaveRolagem = `${intencao.personagemSessaoId}:${intencao.periciaCodigo}`;
+        if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+        rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
+
+        const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
+        const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
+        const expression = formatarExpressaoDice({
+          quantidade: payload.dados,
+          faces: 20,
+          modificador: payload.bonus,
+          aplicarModificadorPorDado: false,
+          label,
+          keepMode: payload.keepMode,
+        });
+        setPericiaRollModal({
+          aberto: true,
+          titulo: payload.periciaNome,
+          subtitulo: payload.atributoBase
+            ? `${payload.alvoNome} · ${payload.atributoBase}`
+            : payload.alvoNome,
+          alvoTipo: payload.alvoTipo,
+          alvoNome: payload.alvoNome,
+          habilidadeContext: null,
+          payload: null,
+          payloads: [],
+          expression,
+          expressions: [expression],
+          facesPendentes: [20],
+          origemServidor: true,
+          enviando: true,
+          enviado: false,
+          erro: null,
+        });
+        try {
+          const enviada =
+            await apiCriarRolagemPericiaPersonagemSessaoCampanha(
+              campanhaId,
+              sessaoId,
+              intencao,
+            );
+          const dadosServidor = extrairDadosRolagemServidor(
+            enviada.dadosRolagem,
+          );
+          if (
+            !dadosServidor ||
+            dadosServidor.tipo !== 'PERICIA_PERSONAGEM' ||
+            !dadosServidor.payloads[0]
+          ) {
+            throw new Error('Resposta autoritativa de perícia inválida.');
+          }
+          setChat((anterior) =>
+            anterior.some((mensagem) => mensagem.id === enviada.id)
+              ? anterior
+              : [...anterior, enviada],
+          );
+          const consumiuPerito = Array.isArray(enviada.ajustesAplicados)
+            ? enviada.ajustesAplicados.some(
+                (ajuste) =>
+                  ajuste &&
+                  typeof ajuste === 'object' &&
+                  !Array.isArray(ajuste) &&
+                  (ajuste as Record<string, unknown>).tipo === 'PERITO',
+              )
+            : false;
+          if (consumiuPerito) void sincronizarTempoReal();
+          setPericiaRollModal((estado) => ({
+            ...estado,
+            payload: dadosServidor.payloads[0] ?? null,
+            payloads: dadosServidor.payloads,
+            expression: dadosServidor.formulaResolvida,
+            expressions: [dadosServidor.formulaResolvida],
+            facesPendentes: undefined,
+            enviando: false,
+            enviado: true,
+            erro: null,
+          }));
+        } catch (error) {
+          const userError = criarErroUsuario(error);
+          setErroRolagens(userError);
+          setPericiaRollModal((estado) => ({
+            ...estado,
+            enviando: false,
+            enviado: false,
+            erro: userError.message,
+          }));
+        } finally {
+          rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
+        }
+        return;
+      }
+
       const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
       const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
       const dicePayloadBase = rolarDados({

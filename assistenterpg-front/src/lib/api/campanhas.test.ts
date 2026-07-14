@@ -52,6 +52,7 @@ import {
   apiReprocessarEfeitosTurnoSessaoCampanha,
   apiRecusarConvite,
   apiCriarRolagemFormulaSessaoCampanha,
+  apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
   apiPularTurnoSessaoCampanha,
   apiVoltarTurnoSessaoCampanha,
@@ -765,6 +766,26 @@ describe('campanhas api cache and dedupe', () => {
       payload,
     );
     expect(mensagem).toEqual({ id: 93, mensagem: '2d6 [[dice:v3|test]]' });
+  });
+
+  it('envia somente a intencao autoritativa da pericia do personagem', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 94, mensagem: 'Ocultismo [[dice:v4|test]]' },
+    });
+    const payload = {
+      tipo: 'PERICIA_PERSONAGEM' as const,
+      personagemSessaoId: 31,
+      periciaCodigo: 'OCULTISMO',
+      visibilidade: 'PUBLICA' as const,
+      clientRequestId: '7fe183a4-c5f4-4fd8-9da6-f9adabbbe0ca',
+    };
+
+    await apiCriarRolagemPericiaPersonagemSessaoCampanha(44, 13, payload);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
   });
 
   it('sends secret master roll visibility through session chat', async () => {

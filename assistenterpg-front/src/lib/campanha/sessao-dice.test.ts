@@ -812,4 +812,26 @@ describe('sessao-dice autoritativo', () => {
       extrairDadosRolagemServidor({ ...dados, origem: 'CLIENTE_LEGADO' }),
     ).toBeNull();
   });
+
+  it('aceita metadados autoritativos de pericia de personagem', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'PERICIA_PERSONAGEM',
+      clientRequestId: '7fe183a4-c5f4-4fd8-9da6-f9adabbbe0ca',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      periciaCodigo: 'OCULTISMO',
+      formulaResolvida: '2#d20+10',
+      payloads: [criarPayloadComRolagens('2#d20+10', [[5, 18]])],
+      resultado: {
+        total: 28,
+        dt: null,
+        sucesso: null,
+        falhaCritica: false,
+      },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+  });
 });
