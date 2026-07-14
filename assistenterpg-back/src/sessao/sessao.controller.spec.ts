@@ -227,9 +227,9 @@ describe('SessaoController', () => {
       12,
       { user: { id: 3 } },
       {
-        tipo: 'PERICIA_PERSONAGEM',
+        tipo: 'ATAQUE_PERSONAGEM',
         personagemSessaoId: 31,
-        periciaCodigo: 'OCULTISMO',
+        periciaCodigo: 'LUTA',
         clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
       },
     );

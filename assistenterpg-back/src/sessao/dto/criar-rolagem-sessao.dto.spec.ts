@@ -38,6 +38,20 @@ describe('CriarRolagemSessaoDto', () => {
     );
   });
 
+  it('aceita intencao de ataque de personagem sem resultado calculado', async () => {
+    const payload = {
+      tipo: 'ATAQUE_PERSONAGEM',
+      personagemSessaoId: 31,
+      periciaCodigo: 'LUTA',
+      contexto: { dt: 24 },
+      clientRequestId: '6ff62ec2-a60e-4de8-99cf-6018cf83a68d',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
   it.each(['dados', 'total', 'critico', 'bonus', 'dadosRolagem'])(
     'rejeita resultado calculado pelo cliente no campo %s',
     async (campo) => {
@@ -86,6 +100,29 @@ describe('CriarRolagemSessaoDto', () => {
           periciaCodigo: 'OCULTISMO',
           expressao: '1d20+5',
           clientRequestId: '7fe183a4-c5f4-4fd8-9da6-f9adabbbe0ca',
+        },
+        metadata,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it.each([
+    'dados',
+    'total',
+    'critico',
+    'bonus',
+    'bonusEscalada',
+    'efeitoPendenteId',
+    'dadosRolagem',
+  ])('rejeita campo calculado %s na intencao de ataque', async (campo) => {
+    await expect(
+      pipe.transform(
+        {
+          tipo: 'ATAQUE_PERSONAGEM',
+          personagemSessaoId: 31,
+          periciaCodigo: 'PONTARIA',
+          clientRequestId: '6ff62ec2-a60e-4de8-99cf-6018cf83a68d',
+          [campo]: 20,
         },
         metadata,
       ),

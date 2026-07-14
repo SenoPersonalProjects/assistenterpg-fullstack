@@ -365,6 +365,16 @@ export class SessaoPericiaNaoEncontradaException extends BusinessException {
   }
 }
 
+export class SessaoPericiaAtaqueInvalidaException extends BusinessException {
+  constructor(periciaCodigo: string, periciasPermitidas: string[]) {
+    super(
+      'Esta pericia nao pode ser usada como ataque de personagem.',
+      'SESSAO_PERICIA_ATAQUE_INVALIDA',
+      { periciaCodigo, periciasPermitidas },
+    );
+  }
+}
+
 export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(

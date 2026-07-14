@@ -44,7 +44,7 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
         (dto.contexto?.tipo === undefined || dto.contexto.tipo === 'OUTRO')
       );
     }
-    if (dto.tipo === 'PERICIA_PERSONAGEM') {
+    if (dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM') {
       return (
         dto.expressao === undefined &&
         Number.isInteger(dto.personagemSessaoId) &&
@@ -61,11 +61,11 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
 }
 
 export class CriarRolagemSessaoDto {
-  @IsIn(['FORMULA', 'PERICIA_PERSONAGEM'], {
-    message: 'tipo deve ser FORMULA ou PERICIA_PERSONAGEM',
+  @IsIn(['FORMULA', 'PERICIA_PERSONAGEM', 'ATAQUE_PERSONAGEM'], {
+    message: 'tipo deve ser FORMULA, PERICIA_PERSONAGEM ou ATAQUE_PERSONAGEM',
   })
   @Validate(RolagemSessaoPayloadCompativelConstraint)
-  tipo: 'FORMULA' | 'PERICIA_PERSONAGEM';
+  tipo: 'FORMULA' | 'PERICIA_PERSONAGEM' | 'ATAQUE_PERSONAGEM';
 
   @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'FORMULA')
   @IsString({ message: 'expressao deve ser texto' })
@@ -73,13 +73,19 @@ export class CriarRolagemSessaoDto {
   @MaxLength(800, { message: 'expressao deve ter no maximo 800 caracteres' })
   expressao?: string;
 
-  @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'PERICIA_PERSONAGEM')
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM',
+  )
   @Type(() => Number)
   @IsInt({ message: 'personagemSessaoId deve ser um numero inteiro' })
   @Min(1, { message: 'personagemSessaoId deve ser positivo' })
   personagemSessaoId?: number;
 
-  @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'PERICIA_PERSONAGEM')
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM',
+  )
   @IsString({ message: 'periciaCodigo deve ser texto' })
   @IsNotEmpty({ message: 'periciaCodigo e obrigatorio' })
   @MaxLength(80, { message: 'periciaCodigo deve ter no maximo 80 caracteres' })
@@ -111,3 +117,13 @@ export type CriarRolagemPericiaSessaoDto = CriarRolagemSessaoDto & {
   personagemSessaoId: number;
   periciaCodigo: string;
 };
+
+export type CriarRolagemAtaquePersonagemSessaoDto = CriarRolagemSessaoDto & {
+  tipo: 'ATAQUE_PERSONAGEM';
+  personagemSessaoId: number;
+  periciaCodigo: string;
+};
+
+export type CriarRolagemMecanicaPersonagemSessaoDto =
+  | CriarRolagemPericiaSessaoDto
+  | CriarRolagemAtaquePersonagemSessaoDto;

@@ -3,6 +3,7 @@ import { SessaoService } from './sessao.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   SessaoCampanhaNaoEncontradaException,
+  SessaoEfeitosTurnoPendentesException,
   SessaoEncerradaException,
   SessaoEventoDesfazerNaoPermitidoException,
   SessaoTurnoIndisponivelEmCenaLivreException,
@@ -315,6 +316,10 @@ describe('SessaoService', () => {
   function configurarRolagemPericiaAutoritativa(args?: {
     ehMestre?: boolean;
     donoId?: number;
+    periciaCodigo?: string;
+    periciaNome?: string;
+    atributoBase?: string;
+    bonusEscalada?: number;
     eventoExistente?: ReturnType<typeof criarEventoRolagemPericiaTeste> | null;
     persistirEventoCriado?: boolean;
     erroCriarEvento?: Error;
@@ -322,6 +327,9 @@ describe('SessaoService', () => {
   }) {
     const ehMestre = args?.ehMestre ?? false;
     const donoId = args?.donoId ?? 10;
+    const periciaCodigo = args?.periciaCodigo ?? 'ATLETISMO';
+    const periciaNome = args?.periciaNome ?? 'Atletismo';
+    const atributoBase = args?.atributoBase ?? 'FOR';
     let eventoAtual = args?.eventoExistente ?? null;
     const acesso = {
       ehMestre,
@@ -365,9 +373,9 @@ describe('SessaoService', () => {
               grauTreinamento: 1,
               bonusExtra: 2,
               pericia: {
-                codigo: 'ATLETISMO',
-                nome: 'Atletismo',
-                atributoBase: 'FOR',
+                codigo: periciaCodigo,
+                nome: periciaNome,
+                atributoBase,
               },
             },
           ],
@@ -375,7 +383,7 @@ describe('SessaoService', () => {
             {
               habilidade: {
                 mecanicasEspeciais: {
-                  periciasAtributoBase: { ATLETISMO: 'INT' },
+                  periciasAtributoBase: { [periciaCodigo]: 'INT' },
                 },
               },
             },
@@ -386,7 +394,7 @@ describe('SessaoService', () => {
           {
             campo: 'PERICIA_TREINAMENTO',
             valor: 1,
-            periciaCodigo: 'ATLETISMO',
+            periciaCodigo,
             tipoGrauCodigo: null,
           },
         ],
@@ -406,9 +414,9 @@ describe('SessaoService', () => {
     };
     (prisma as any).pericia = {
       findUnique: jest.fn().mockResolvedValue({
-        codigo: 'ATLETISMO',
-        nome: 'Atletismo',
-        atributoBase: 'FOR',
+        codigo: periciaCodigo,
+        nome: periciaNome,
+        atributoBase,
       }),
     };
     (prisma as any).inventarioItemCampanha = {
@@ -419,7 +427,7 @@ describe('SessaoService', () => {
           estado: {},
           equipamento: {
             codigo: 'KIT_ATLETISMO',
-            periciaBonificada: 'ATLETISMO',
+            periciaBonificada: periciaCodigo,
             bonusPericia: 2,
           },
           modificacoes: [],
@@ -453,11 +461,27 @@ describe('SessaoService', () => {
     const resolverInspiracao = jest
       .spyOn(service as any, 'resolverInspiracaoAutoritativaTx')
       .mockResolvedValue(null);
+    const resolverEscalada = jest
+      .spyOn(service as any, 'resolverEscaladaAtaqueAutoritativaTx')
+      .mockResolvedValue({
+        bonus: args?.bonusEscalada ?? 0,
+        ajustes:
+          (args?.bonusEscalada ?? 0) > 0
+            ? [
+                {
+                  tipo: 'ESCALADA_DADOS',
+                  valor: args?.bonusEscalada,
+                  descricao: `Escalada de Dados +${args?.bonusEscalada}`,
+                },
+              ]
+            : [],
+      });
 
     return {
       criarEvento,
       consumirPerito,
       resolverInspiracao,
+      resolverEscalada,
       validarMutabilidade,
     };
   }
@@ -547,6 +571,165 @@ describe('SessaoService', () => {
       'ATLETISMO',
       2,
     );
+  });
+
+  it('resolve ataque de personagem com Escalada sem consumir Perito', async () => {
+    const mocks = configurarRolagemPericiaAutoritativa({
+      periciaCodigo: 'LUTA',
+      periciaNome: 'Luta',
+      bonusEscalada: 3,
+    });
+
+    const resultado = await service.criarRolagemSessao(7, 21, 10, {
+      tipo: 'ATAQUE_PERSONAGEM',
+      personagemSessaoId: 31,
+      periciaCodigo: 'luta',
+      contexto: { dt: 30 },
+      clientRequestId: '16e0afb1-0d86-4f7d-b05a-930dd508c5aa',
+    });
+
+    expect(resultado).toMatchObject({
+      criadoAgora: true,
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'ATAQUE_PERSONAGEM',
+        periciaCodigo: 'LUTA',
+        bonusBase: 14,
+        bonusEscalada: 3,
+      },
+      contextoRolagem: {
+        tipo: 'ATAQUE',
+        periciaCodigo: 'LUTA',
+        dt: 30,
+      },
+      ajustesAplicados: [
+        expect.objectContaining({ tipo: 'ESCALADA_DADOS', valor: 3 }),
+      ],
+    });
+    const payload =
+      mocks.criarEvento.mock.calls[0][0].data.dados.dadosRolagem.payloads[0];
+    expect(payload.modificador).toBe(17);
+    expect(mocks.consumirPerito).not.toHaveBeenCalled();
+    expect(mocks.resolverInspiracao).toHaveBeenCalledWith(
+      prisma,
+      21,
+      41,
+      30,
+      expect.any(Object),
+      expect.any(Number),
+    );
+  });
+
+  it.each(['LUTA', 'PONTARIA', 'JUJUTSU'])(
+    'aceita %s como pericia de ataque de personagem',
+    async (periciaCodigo) => {
+      configurarRolagemPericiaAutoritativa({ periciaCodigo });
+
+      await expect(
+        service.criarRolagemSessao(7, 21, 10, {
+          tipo: 'ATAQUE_PERSONAGEM',
+          personagemSessaoId: 31,
+          periciaCodigo,
+          clientRequestId: '84f3fd4a-cac5-47d2-82b1-2f829a5bbf31',
+        }),
+      ).resolves.toMatchObject({ criadoAgora: true });
+    },
+  );
+
+  it('rejeita pericia incompatível com ataque de personagem', async () => {
+    const mocks = configurarRolagemPericiaAutoritativa();
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'ATAQUE_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        clientRequestId: 'b833f3c1-e0ed-45eb-b299-4ed6a1303dd8',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_PERICIA_ATAQUE_INVALIDA' });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
+    expect(mocks.consumirPerito).not.toHaveBeenCalled();
+  });
+
+  it('reutiliza ataque idempotente sem recalcular Escalada', async () => {
+    const mocks = configurarRolagemPericiaAutoritativa({
+      periciaCodigo: 'PONTARIA',
+      bonusEscalada: 2,
+      persistirEventoCriado: true,
+    });
+    const dto = {
+      tipo: 'ATAQUE_PERSONAGEM' as const,
+      personagemSessaoId: 31,
+      periciaCodigo: 'PONTARIA',
+      clientRequestId: 'c580c8ad-51ca-43ef-9229-376c68133222',
+    };
+
+    const primeiro = await service.criarRolagemSessao(7, 21, 10, dto);
+    const repetido = await service.criarRolagemSessao(7, 21, 10, dto);
+
+    expect(repetido.id).toBe(primeiro.id);
+    expect(repetido.criadoAgora).toBe(false);
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+    expect(mocks.resolverEscalada).toHaveBeenCalledTimes(1);
+    expect(mocks.consumirPerito).not.toHaveBeenCalled();
+  });
+
+  it('impede jogador de atacar com personagem alheio e permite ao mestre', async () => {
+    configurarRolagemPericiaAutoritativa({
+      donoId: 11,
+      periciaCodigo: 'LUTA',
+    });
+    const dto = {
+      tipo: 'ATAQUE_PERSONAGEM' as const,
+      personagemSessaoId: 31,
+      periciaCodigo: 'LUTA',
+      clientRequestId: '4a8f71d2-cd49-4f54-b300-43ec9c4d1699',
+    };
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, dto),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_PERSONAGEM_EDICAO_NEGADA' });
+
+    jest.restoreAllMocks();
+    configurarRolagemPericiaAutoritativa({
+      ehMestre: true,
+      donoId: 11,
+      periciaCodigo: 'LUTA',
+    });
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        ...dto,
+        clientRequestId: '7b08fae7-aee6-46ae-bf75-260665712ddd',
+      }),
+    ).resolves.toMatchObject({ criadoAgora: true });
+  });
+
+  it('bloqueia ataque secreto de jogador e efeitos de turno pendentes', async () => {
+    configurarRolagemPericiaAutoritativa({ periciaCodigo: 'PONTARIA' });
+    const dto = {
+      tipo: 'ATAQUE_PERSONAGEM' as const,
+      personagemSessaoId: 31,
+      periciaCodigo: 'PONTARIA',
+      clientRequestId: '05662f37-69a8-462b-b53d-72c1dff1d4c7',
+    };
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        ...dto,
+        visibilidade: 'SECRETA_MESTRE',
+      }),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_APENAS_MESTRE' });
+
+    jest.restoreAllMocks();
+    const mocks = configurarRolagemPericiaAutoritativa({
+      periciaCodigo: 'PONTARIA',
+    });
+    mocks.validarMutabilidade.mockRejectedValue(
+      new SessaoEfeitosTurnoPendentesException(7, 21, 900),
+    );
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, dto),
+    ).rejects.toMatchObject({ code: 'SESSAO_EFEITOS_TURNO_PENDENTES' });
   });
 
   it('impede jogador de rolar pericia de personagem alheio', async () => {
@@ -851,6 +1034,62 @@ describe('SessaoService', () => {
       ),
     ).resolves.toBeNull();
     expect(aplicar).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolve Escalada autoritativa apenas em combate com regra ativa', async () => {
+    const tx = {
+      sessao: {
+        findUnique: jest.fn().mockResolvedValue({
+          rodadaAtual: 5,
+          cenaAtualTipo: 'COMBATE',
+          regrasOpcionais: [
+            {
+              ativo: true,
+              estado: {
+                ativaNesteCombate: true,
+                rodadaInicio: 2,
+                bonusAtual: 3,
+              },
+            },
+          ],
+        }),
+      },
+    };
+
+    await expect(
+      (service as any).resolverEscaladaAtaqueAutoritativaTx(tx, 21),
+    ).resolves.toEqual({
+      bonus: 3,
+      ajustes: [
+        {
+          tipo: 'ESCALADA_DADOS',
+          valor: 3,
+          descricao: 'Escalada de Dados +3',
+        },
+      ],
+    });
+
+    tx.sessao.findUnique.mockResolvedValueOnce({
+      rodadaAtual: 5,
+      cenaAtualTipo: 'LIVRE',
+      regrasOpcionais: [
+        { ativo: true, estado: { ativaNesteCombate: true, bonusAtual: 3 } },
+      ],
+    });
+    await expect(
+      (service as any).resolverEscaladaAtaqueAutoritativaTx(tx, 21),
+    ).resolves.toEqual({ bonus: 0, ajustes: [] });
+
+    tx.sessao.findUnique.mockResolvedValueOnce({
+      rodadaAtual: 5,
+      cenaAtualTipo: 'COMBATE',
+      regrasOpcionais: [
+        { ativo: false, estado: { ativaNesteCombate: true, bonusAtual: 3 } },
+      ],
+    });
+    await expect(
+      (service as any).resolverEscaladaAtaqueAutoritativaTx(tx, 21),
+    ).resolves.toEqual({ bonus: 0, ajustes: [] });
   });
 
   it('usa keep lowest para atributo zero ou negativo', () => {

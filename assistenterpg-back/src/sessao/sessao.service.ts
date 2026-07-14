@@ -27,6 +27,7 @@ import {
   SessaoRolagemIdempotenciaConflitoException,
   SessaoRolagemMensagemMuitoGrandeException,
   SessaoRolagemRequerFluxoMecanicoException,
+  SessaoPericiaAtaqueInvalidaException,
   SessaoPericiaNaoEncontradaException,
   SessaoTurnoDesatualizadoException,
   SessaoTurnoIndisponivelEmCenaLivreException,
@@ -94,8 +95,8 @@ import {
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
 import {
+  CriarRolagemMecanicaPersonagemSessaoDto,
   CriarRolagemFormulaSessaoDto,
-  CriarRolagemPericiaSessaoDto,
   CriarRolagemSessaoDto,
 } from './dto/criar-rolagem-sessao.dto';
 import {
@@ -115,6 +116,11 @@ import {
   type DiceExpressionServidor,
   type DiceRollPayloadServidor,
 } from './sessao-dice-autoritativo';
+
+const PERICIAS_ATAQUE_PERSONAGEM = ['LUTA', 'PONTARIA', 'JUJUTSU'] as const;
+const PERICIAS_ATAQUE_PERSONAGEM_SET = new Set<string>(
+  PERICIAS_ATAQUE_PERSONAGEM,
+);
 
 type AcessoCampanha = {
   campanha: {
@@ -2891,12 +2897,12 @@ export class SessaoService {
     usuarioId: number,
     dto: CriarRolagemSessaoDto,
   ) {
-    if (dto.tipo === 'PERICIA_PERSONAGEM') {
-      return this.criarRolagemPericiaPersonagemSessao(
+    if (dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM') {
+      return this.criarRolagemMecanicaPersonagemSessao(
         campanhaId,
         sessaoId,
         usuarioId,
-        dto as CriarRolagemPericiaSessaoDto,
+        dto as CriarRolagemMecanicaPersonagemSessaoDto,
       );
     }
     return this.criarRolagemFormulaSessao(
@@ -3031,13 +3037,17 @@ export class SessaoService {
     };
   }
 
-  private async criarRolagemPericiaPersonagemSessao(
+  private async criarRolagemMecanicaPersonagemSessao(
     campanhaId: number,
     sessaoId: number,
     usuarioId: number,
-    dto: CriarRolagemPericiaSessaoDto,
+    dto: CriarRolagemMecanicaPersonagemSessaoDto,
   ) {
     const inicio = Date.now();
+    const ehAtaque = dto.tipo === 'ATAQUE_PERSONAGEM';
+    const descricaoAcao = ehAtaque
+      ? 'realizar rolagem de ataque'
+      : 'realizar rolagem de pericia';
     const { acesso } = await this.obterSessaoComAcesso(
       campanhaId,
       sessaoId,
@@ -3048,7 +3058,7 @@ export class SessaoService {
       throw new CampanhaApenasMestreException('enviar rolagem secreta');
     }
 
-    const intencao = this.montarIntencaoRolagemPericia(dto, visibilidade);
+    const intencao = this.montarIntencaoRolagemMecanica(dto, visibilidade);
     const eventoExistente = await this.buscarEventoRolagemIdempotente(
       this.prisma,
       sessaoId,
@@ -3072,7 +3082,7 @@ export class SessaoService {
       campanhaId,
       sessaoId,
       usuarioId,
-      'realizar rolagem de pericia',
+      descricaoAcao,
     );
     const personagemInicial = await this.prisma.personagemSessao.findFirst({
       where: {
@@ -3113,7 +3123,7 @@ export class SessaoService {
     };
     try {
       resultadoTransacao = await executarComRetryConcorrencia(
-        'realizar rolagem de pericia',
+        descricaoAcao,
         () =>
           this.prisma.$transaction(async (tx) => {
             await bloquearPersonagemCampanhaTx(
@@ -3125,7 +3135,7 @@ export class SessaoService {
               tx,
               campanhaId,
               sessaoId,
-              'realizar rolagem de pericia',
+              descricaoAcao,
             );
 
             const repetido = await this.buscarEventoRolagemIdempotente(
@@ -3151,6 +3161,15 @@ export class SessaoService {
               dto.personagemSessaoId,
               dto.periciaCodigo,
             );
+            if (
+              ehAtaque &&
+              !PERICIAS_ATAQUE_PERSONAGEM_SET.has(pericia.periciaCodigo)
+            ) {
+              throw new SessaoPericiaAtaqueInvalidaException(
+                pericia.periciaCodigo,
+                [...PERICIAS_ATAQUE_PERSONAGEM],
+              );
+            }
             if (!acesso.ehMestre && pericia.donoId !== usuarioId) {
               throw new CampanhaPersonagemEdicaoNegadaException(
                 campanhaId,
@@ -3159,26 +3178,34 @@ export class SessaoService {
               );
             }
 
+            const escalada = ehAtaque
+              ? await this.resolverEscaladaAtaqueAutoritativaTx(tx, sessaoId)
+              : { bonus: 0, ajustes: [] };
+            const bonusRolagem = pericia.bonusTotal + escalada.bonus;
             const expression: DiceExpressionServidor = {
               quantidade: pericia.quantidadeDados,
               faces: 20,
-              modificador: Math.abs(pericia.bonusTotal),
-              operador: pericia.bonusTotal < 0 ? '-' : '+',
+              modificador: Math.abs(bonusRolagem),
+              operador: bonusRolagem < 0 ? '-' : '+',
               aplicarModificadorPorDado: false,
               keepMode: pericia.keepMode,
-              label: `${pericia.personagemNome} · ${pericia.periciaNome}`
+              label: `${pericia.personagemNome} · ${
+                ehAtaque ? `Ataque ${pericia.periciaNome}` : pericia.periciaNome
+              }`
                 .trim()
                 .slice(0, LIMITES_DICE_SESSAO.label),
             };
             const payload = rolarDadosServidor(expression);
-            const perito = await this.consumirPeritoAutoritativoTx(
-              tx,
-              sessaoId,
-              dto.personagemSessaoId,
-              pericia.personagemCampanhaId,
-              pericia.periciaCodigo,
-              pericia.grauTreinamento,
-            );
+            const perito = ehAtaque
+              ? { bonusDado: null, ajustes: [] }
+              : await this.consumirPeritoAutoritativoTx(
+                  tx,
+                  sessaoId,
+                  dto.personagemSessaoId,
+                  pericia.personagemCampanhaId,
+                  pericia.periciaCodigo,
+                  pericia.grauTreinamento,
+                );
             if (perito.bonusDado) {
               payload.bonusDados = [perito.bonusDado];
             }
@@ -3214,11 +3241,17 @@ export class SessaoService {
                   dadosRolagem: {
                     versao: 1,
                     origem: 'SERVIDOR',
-                    tipo: 'PERICIA_PERSONAGEM',
+                    tipo: dto.tipo,
                     clientRequestId: dto.clientRequestId,
                     personagemSessaoId: dto.personagemSessaoId,
                     personagemCampanhaId: pericia.personagemCampanhaId,
                     periciaCodigo: pericia.periciaCodigo,
+                    ...(ehAtaque
+                      ? {
+                          bonusBase: pericia.bonusTotal,
+                          bonusEscalada: escalada.bonus,
+                        }
+                      : {}),
                     formulaResolvida: formatarExpressaoDiceServidor(payload),
                     payloads: [payload],
                     resultado: {
@@ -3232,13 +3265,13 @@ export class SessaoService {
                     },
                   },
                   contextoRolagem: {
-                    tipo: 'PERICIA',
+                    tipo: ehAtaque ? 'ATAQUE' : 'PERICIA',
                     personagemSessaoId: dto.personagemSessaoId,
                     personagemCampanhaId: pericia.personagemCampanhaId,
                     periciaCodigo: pericia.periciaCodigo,
                     dt: dto.contexto?.dt ?? null,
                   },
-                  ajustesAplicados: perito.ajustes,
+                  ajustesAplicados: [...escalada.ajustes, ...perito.ajustes],
                   inspiracaoAutomatica,
                 }),
               },
@@ -3281,7 +3314,9 @@ export class SessaoService {
     if (resultadoTransacao.criadoAgora && duracaoMs > 1000) {
       this.logger.warn(
         JSON.stringify({
-          evento: 'rolagem_pericia_sessao_lenta',
+          evento: ehAtaque
+            ? 'rolagem_ataque_personagem_sessao_lenta'
+            : 'rolagem_pericia_sessao_lenta',
           sessaoId,
           eventoId: resultadoTransacao.evento.id,
           duracaoMs,
@@ -8107,12 +8142,53 @@ export class SessaoService {
     ];
   }
 
-  private montarIntencaoRolagemPericia(
-    dto: CriarRolagemPericiaSessaoDto,
+  private async resolverEscaladaAtaqueAutoritativaTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+  ): Promise<{ bonus: number; ajustes: Prisma.JsonValue[] }> {
+    const sessao = await tx.sessao.findUnique({
+      where: { id: sessaoId },
+      select: {
+        rodadaAtual: true,
+        cenaAtualTipo: true,
+        regrasOpcionais: {
+          where: { chave: 'ESCALADA_DADOS' },
+          select: { ativo: true, estado: true },
+          take: 1,
+        },
+      },
+    });
+    const regra = sessao?.regrasOpcionais[0];
+    if (!sessao || sessao.cenaAtualTipo !== 'COMBATE' || !regra?.ativo) {
+      return { bonus: 0, ajustes: [] };
+    }
+
+    const estado = this.normalizarEstadoEscalada(
+      regra.estado,
+      sessao.rodadaAtual,
+    );
+    if (!estado.ativaNesteCombate || estado.bonusAtual <= 0) {
+      return { bonus: 0, ajustes: [] };
+    }
+
+    return {
+      bonus: estado.bonusAtual,
+      ajustes: [
+        {
+          tipo: 'ESCALADA_DADOS',
+          valor: estado.bonusAtual,
+          descricao: `Escalada de Dados +${estado.bonusAtual}`,
+        },
+      ],
+    };
+  }
+
+  private montarIntencaoRolagemMecanica(
+    dto: CriarRolagemMecanicaPersonagemSessaoDto,
     visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
   ): Record<string, unknown> {
     return {
-      tipo: 'PERICIA_PERSONAGEM',
+      tipo: dto.tipo,
       personagemSessaoId: dto.personagemSessaoId,
       periciaCodigo: dto.periciaCodigo.trim().toUpperCase(),
       visibilidade,
