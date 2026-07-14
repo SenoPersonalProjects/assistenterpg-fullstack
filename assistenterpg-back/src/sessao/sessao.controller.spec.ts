@@ -216,6 +216,34 @@ describe('SessaoController', () => {
     );
   });
 
+  it('emite realtime ao criar dano autoritativo de NPC', async () => {
+    const dto = {
+      tipo: 'DANO_NPC' as const,
+      origemDano: 'ACAO' as const,
+      npcSessaoId: 71,
+      acaoIndice: 0,
+      clientRequestId: '61a379d8-6eaf-4e96-bd9c-bd3c244cb28b',
+    };
+    sessaoServiceMock.criarRolagemSessao.mockResolvedValue({
+      id: 57,
+      criadoAgora: true,
+    });
+
+    await controller.criarRolagemSessao(7, 12, { user: { id: 3 } }, dto);
+
+    expect(sessaoServiceMock.criarRolagemSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      dto,
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'CHAT_NOVA',
+    );
+  });
+
   it('nao emite realtime ao repetir uma rolagem idempotente', async () => {
     sessaoServiceMock.criarRolagemSessao.mockResolvedValue({
       id: 56,

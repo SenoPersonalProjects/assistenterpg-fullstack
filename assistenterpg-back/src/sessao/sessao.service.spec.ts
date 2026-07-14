@@ -493,6 +493,7 @@ describe('SessaoService', () => {
     periciasEspeciais?: Prisma.JsonValue;
     entidadeVinculadaId?: number | null;
     npcAmeacaId?: number | null;
+    acoesGuia?: Prisma.JsonValue;
   }) {
     const acesso = {
       ehMestre: args?.ehMestre ?? true,
@@ -539,7 +540,7 @@ describe('SessaoService', () => {
       vontade: 4,
       luta: 10,
       jujutsu: 9,
-      acoesGuia: [
+      acoesGuia: args?.acoesGuia ?? [
         {
           nome: 'Garra',
           teste: '2d20+10',
@@ -679,6 +680,118 @@ describe('SessaoService', () => {
       modificador: 10,
     });
     expect(JSON.stringify(dados.dadosRolagem)).not.toContain('9d100');
+  });
+
+  it('rola dano persistido da acao sem alterar recursos ou aplicar ajustes', async () => {
+    const mocks = configurarRolagemNpcAutoritativa({
+      ocultoJogadores: true,
+      acoesGuia: [
+        {
+          nome: 'Garra',
+          teste: '2d20+10',
+          dano: '3+2d8 corte',
+        },
+      ],
+    });
+    const resolverEscalada = jest.spyOn(
+      service as any,
+      'resolverEscaladaAtaqueAutoritativaTx',
+    );
+    const consumirPerito = jest.spyOn(
+      service as any,
+      'consumirPeritoAutoritativoTx',
+    );
+    const resolverInspiracao = jest.spyOn(
+      service as any,
+      'resolverInspiracaoAutoritativaTx',
+    );
+
+    const resultado = await service.criarRolagemSessao(7, 21, 99, {
+      tipo: 'DANO_NPC',
+      origemDano: 'ACAO',
+      npcSessaoId: 71,
+      acaoIndice: 0,
+      visibilidade: 'PUBLICA',
+      clientRequestId: '61a379d8-6eaf-4e96-bd9c-bd3c244cb28b',
+    });
+
+    expect(resultado).toMatchObject({
+      visibilidade: 'SECRETA_MESTRE',
+      criadoAgora: true,
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'DANO_NPC',
+        npcSessaoId: 71,
+        npcAmeacaId: 81,
+        origemDano: 'ACAO',
+        acaoIndice: 0,
+        acaoNome: 'Garra',
+        formulaResolvida: expect.stringContaining('2d8+3'),
+        resultado: { total: expect.any(Number) },
+      },
+      contextoRolagem: {
+        tipo: 'DANO',
+        npcSessaoId: 71,
+        origemDano: 'ACAO',
+      },
+    });
+    const dados = mocks.criarEvento.mock.calls[0][0].data.dados;
+    expect(dados.dadosRolagem.payloads[0]).toMatchObject({
+      quantidade: 2,
+      faces: 8,
+      modificador: 3,
+    });
+    expect(dados.ajustesAplicados).toEqual([]);
+    expect(dados.inspiracaoAutomatica).toBeNull();
+    expect(resolverEscalada).not.toHaveBeenCalled();
+    expect(consumirPerito).not.toHaveBeenCalled();
+    expect(resolverInspiracao).not.toHaveBeenCalled();
+    expect((prisma as any).personagemCampanha).toBeUndefined();
+  });
+
+  it.each([
+    {
+      acoesGuia: [],
+      codigo: 'SESSAO_NPC_ACAO_NAO_ENCONTRADA',
+    },
+    {
+      acoesGuia: [{ nome: 'Rugido' }],
+      codigo: 'SESSAO_NPC_ACAO_SEM_DANO',
+    },
+    {
+      acoesGuia: [{ nome: 'Rugido', dano: 'dano narrativo' }],
+      codigo: 'SESSAO_NPC_ACAO_DANO_INVALIDO',
+    },
+  ])('rejeita fonte de dano de NPC invalida: $codigo', async (caso) => {
+    const mocks = configurarRolagemNpcAutoritativa({
+      acoesGuia: caso.acoesGuia,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        tipo: 'DANO_NPC',
+        origemDano: 'ACAO',
+        npcSessaoId: 71,
+        acaoIndice: 0,
+        clientRequestId: 'ac2f2a10-7c2a-40f3-9f79-20df2e4f0c7c',
+      }),
+    ).rejects.toMatchObject({ code: caso.codigo });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia jogador comum ao rolar dano de NPC', async () => {
+    configurarRolagemNpcAutoritativa({ ehMestre: false });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'DANO_NPC',
+        origemDano: 'ACAO',
+        npcSessaoId: 71,
+        acaoIndice: 0,
+        clientRequestId: '4949bfb3-1a44-4ef8-99ce-65a7c42504e8',
+      }),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_APENAS_MESTRE' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('bloqueia jogador comum inclusive para entidade vinculada', async () => {
@@ -827,6 +940,27 @@ describe('SessaoService', () => {
       npcSessaoId: 71,
       periciaCodigo: 'LUTA',
       clientRequestId: '9f286dd6-c716-4f3e-a746-3a1487745b7b',
+    };
+
+    const primeiro = await service.criarRolagemSessao(7, 21, 99, dto);
+    const repetido = await service.criarRolagemSessao(7, 21, 99, dto);
+
+    expect(repetido.id).toBe(primeiro.id);
+    expect(repetido.criadoAgora).toBe(false);
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('reutiliza dano de NPC sem rerrolar ou criar novo evento', async () => {
+    const mocks = configurarRolagemNpcAutoritativa({
+      persistirEventoCriado: true,
+      acoesGuia: [{ nome: 'Garra', dano: '2d8+3' }],
+    });
+    const dto = {
+      tipo: 'DANO_NPC' as const,
+      origemDano: 'ACAO' as const,
+      npcSessaoId: 71,
+      acaoIndice: 0,
+      clientRequestId: '40dd015a-09e2-40fb-a91f-eeac1aa94bc8',
     };
 
     const primeiro = await service.criarRolagemSessao(7, 21, 99, dto);

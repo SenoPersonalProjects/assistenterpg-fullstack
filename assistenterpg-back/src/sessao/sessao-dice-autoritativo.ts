@@ -316,6 +316,46 @@ export function parseDiceInputServidor(input: string): DiceParseGroupServidor {
     : { expressions: null, erro: 'Informe uma rolagem para continuar.' };
 }
 
+export function parseDiceFontePersistidaServidor(
+  input: string,
+): DiceExpressionServidor | null {
+  const texto = input.trim();
+  if (!texto) return null;
+
+  const termoDado = '(?:\\d+)?#?d\\d+';
+  const gruposDados = `${termoDado}(?:\\s*\\+\\s*${termoDado})*`;
+  const comFlatInicial = new RegExp(`(\\d+)\\s*\\+\\s*(${gruposDados})`, 'i');
+  const comDadoInicial = new RegExp(
+    `(${gruposDados}(?:\\s*[+\\-*/]\\s*\\d+)?)`,
+    'i',
+  );
+  const matchFlat = texto.match(comFlatInicial);
+  const match = matchFlat ?? texto.match(comDadoInicial);
+  if (!match?.[0]) return null;
+
+  const prefixo = texto.slice(0, match.index ?? 0);
+  const restante = texto.slice((match.index ?? 0) + match[0].length);
+  const possuiOutroDado = new RegExp(termoDado, 'i');
+  if (possuiOutroDado.test(prefixo) || possuiOutroDado.test(restante)) {
+    return null;
+  }
+
+  const expressaoNormalizada = matchFlat
+    ? `${matchFlat[2]?.replace(/\s+/g, '')}+${matchFlat[1]}`
+    : match[1]?.replace(/\s+/g, '');
+  if (!expressaoNormalizada) return null;
+
+  const resultado = parseDiceInputServidor(expressaoNormalizada);
+  if (
+    resultado.erro ||
+    !resultado.expressions ||
+    resultado.expressions.length !== 1
+  ) {
+    return null;
+  }
+  return resultado.expressions[0] ?? null;
+}
+
 function obterTermosExpression(
   expression: DiceExpressionServidor,
 ): DiceTermExpressionServidor[] {

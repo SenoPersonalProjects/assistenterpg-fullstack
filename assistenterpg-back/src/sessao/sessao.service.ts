@@ -27,7 +27,10 @@ import {
   SessaoRolagemIdempotenciaConflitoException,
   SessaoRolagemMensagemMuitoGrandeException,
   SessaoRolagemRequerFluxoMecanicoException,
+  SessaoNpcAcaoDanoInvalidoException,
+  SessaoNpcAcaoNaoEncontradaException,
   SessaoNpcAcaoRolagemInvalidaException,
+  SessaoNpcAcaoSemDanoException,
   SessaoNpcPericiaAtaqueInvalidaException,
   SessaoNpcPericiaNaoEncontradaException,
   SessaoPericiaAtaqueInvalidaException,
@@ -115,6 +118,7 @@ import {
   expressaoDiceContemD20,
   formatarExpressaoDiceServidor,
   LIMITES_DICE_SESSAO,
+  parseDiceFontePersistidaServidor,
   parseDiceInputServidor,
   rolarDadosServidor,
   type DiceBonusDadoServidor,
@@ -2953,7 +2957,11 @@ export class SessaoService {
         dto as CriarRolagemMecanicaPersonagemSessaoDto,
       );
     }
-    if (dto.tipo === 'PERICIA_NPC' || dto.tipo === 'ATAQUE_NPC') {
+    if (
+      dto.tipo === 'PERICIA_NPC' ||
+      dto.tipo === 'ATAQUE_NPC' ||
+      dto.tipo === 'DANO_NPC'
+    ) {
       return this.criarRolagemMecanicaNpcSessao(
         campanhaId,
         sessaoId,
@@ -3393,9 +3401,12 @@ export class SessaoService {
   ) {
     const inicio = Date.now();
     const ehAtaque = dto.tipo === 'ATAQUE_NPC';
-    const descricaoAcao = ehAtaque
-      ? 'realizar rolagem de ataque de NPC/Ameaca'
-      : 'realizar rolagem de pericia de NPC/Ameaca';
+    const ehDano = dto.tipo === 'DANO_NPC';
+    const descricaoAcao = ehDano
+      ? 'realizar rolagem de dano de NPC/Ameaca'
+      : ehAtaque
+        ? 'realizar rolagem de ataque de NPC/Ameaca'
+        : 'realizar rolagem de pericia de NPC/Ameaca';
     const { acesso } = await this.obterSessaoComAcesso(
       campanhaId,
       sessaoId,
@@ -3510,33 +3521,50 @@ export class SessaoService {
                     npcSessaoId: dto.npcSessaoId,
                     npcAmeacaId: rolagem.npcAmeacaId,
                     entidadeVinculadaId: rolagem.entidadeVinculadaId,
-                    periciaCodigo: rolagem.periciaCodigo,
-                    origemAtaque: rolagem.origemAtaque,
-                    acaoIndice: rolagem.acaoIndice,
-                    acaoNome: rolagem.acaoNome,
-                    bonusBase: rolagem.bonusBase,
+                    ...(ehDano
+                      ? {
+                          origemDano: rolagem.origemDano,
+                          acaoIndice: rolagem.acaoIndice,
+                          acaoNome: rolagem.acaoNome,
+                        }
+                      : {
+                          periciaCodigo: rolagem.periciaCodigo,
+                          origemAtaque: rolagem.origemAtaque,
+                          acaoIndice: rolagem.acaoIndice,
+                          acaoNome: rolagem.acaoNome,
+                          bonusBase: rolagem.bonusBase,
+                        }),
                     formulaResolvida: formatarExpressaoDiceServidor(payload),
                     payloads: [payload],
-                    resultado: {
-                      total: resultado.total,
-                      dt: dto.contexto?.dt ?? null,
-                      sucesso:
-                        dto.contexto?.dt === undefined
-                          ? null
-                          : resultado.total >= dto.contexto.dt,
-                      falhaCritica: false,
-                    },
+                    resultado: ehDano
+                      ? { total: resultado.total }
+                      : {
+                          total: resultado.total,
+                          dt: dto.contexto?.dt ?? null,
+                          sucesso:
+                            dto.contexto?.dt === undefined
+                              ? null
+                              : resultado.total >= dto.contexto.dt,
+                          falhaCritica: false,
+                        },
                   },
                   contextoRolagem: {
-                    tipo: ehAtaque ? 'ATAQUE' : 'PERICIA',
+                    tipo: ehDano ? 'DANO' : ehAtaque ? 'ATAQUE' : 'PERICIA',
                     alvoTipo: 'NPC',
                     npcSessaoId: dto.npcSessaoId,
                     npcAmeacaId: rolagem.npcAmeacaId,
                     entidadeVinculadaId: rolagem.entidadeVinculadaId,
-                    periciaCodigo: rolagem.periciaCodigo,
-                    origemAtaque: rolagem.origemAtaque,
-                    acaoIndice: rolagem.acaoIndice,
-                    dt: dto.contexto?.dt ?? null,
+                    ...(ehDano
+                      ? {
+                          origemDano: rolagem.origemDano,
+                          acaoIndice: rolagem.acaoIndice,
+                        }
+                      : {
+                          periciaCodigo: rolagem.periciaCodigo,
+                          origemAtaque: rolagem.origemAtaque,
+                          acaoIndice: rolagem.acaoIndice,
+                          dt: dto.contexto?.dt ?? null,
+                        }),
                     ocultoJogadores: rolagem.ocultoJogadores,
                   },
                   ajustesAplicados: [],
@@ -3582,9 +3610,11 @@ export class SessaoService {
     if (resultadoTransacao.criadoAgora && duracaoMs > 1000) {
       this.logger.warn(
         JSON.stringify({
-          evento: ehAtaque
-            ? 'rolagem_ataque_npc_sessao_lenta'
-            : 'rolagem_pericia_npc_sessao_lenta',
+          evento: ehDano
+            ? 'rolagem_dano_npc_sessao_lenta'
+            : ehAtaque
+              ? 'rolagem_ataque_npc_sessao_lenta'
+              : 'rolagem_pericia_npc_sessao_lenta',
           sessaoId,
           eventoId: resultadoTransacao.evento.id,
           duracaoMs,
@@ -8468,6 +8498,15 @@ export class SessaoService {
     dto: CriarRolagemMecanicaNpcSessaoDto,
     visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
   ): Record<string, unknown> {
+    if (dto.tipo === 'DANO_NPC') {
+      return {
+        tipo: dto.tipo,
+        origemDano: dto.origemDano,
+        npcSessaoId: dto.npcSessaoId,
+        acaoIndice: dto.acaoIndice,
+        visibilidade,
+      };
+    }
     if (dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'ACAO') {
       return {
         tipo: dto.tipo,
@@ -8565,6 +8604,7 @@ export class SessaoService {
     ocultoJogadores: boolean;
     periciaCodigo: string | null;
     origemAtaque: 'PERICIA' | 'ACAO' | null;
+    origemDano: 'ACAO' | null;
     acaoIndice: number | null;
     acaoNome: string | null;
     bonusBase: number | null;
@@ -8632,6 +8672,48 @@ export class SessaoService {
       );
     }
 
+    if (dto.tipo === 'DANO_NPC') {
+      const acao = this.mapearListaObjeto(npc.acoesGuia)[dto.acaoIndice];
+      const nome = typeof acao?.nome === 'string' ? acao.nome.trim() : '';
+      if (!acao || !nome) {
+        throw new SessaoNpcAcaoNaoEncontradaException(
+          dto.npcSessaoId,
+          dto.acaoIndice,
+        );
+      }
+      const dano = typeof acao.dano === 'string' ? acao.dano.trim() : '';
+      if (!dano) {
+        throw new SessaoNpcAcaoSemDanoException(
+          dto.npcSessaoId,
+          dto.acaoIndice,
+        );
+      }
+      const expressaoPersistida = parseDiceFontePersistidaServidor(dano);
+      if (!expressaoPersistida) {
+        throw new SessaoNpcAcaoDanoInvalidoException(
+          dto.npcSessaoId,
+          dto.acaoIndice,
+        );
+      }
+      return {
+        npcAmeacaId: npc.npcAmeacaId,
+        entidadeVinculadaId: npc.entidadeVinculadaId,
+        ocultoJogadores: npc.ocultoJogadores,
+        periciaCodigo: null,
+        origemAtaque: null,
+        origemDano: 'ACAO',
+        acaoIndice: dto.acaoIndice,
+        acaoNome: nome,
+        bonusBase: null,
+        expressao: {
+          ...expressaoPersistida,
+          label: `${npc.nomeExibicao} · ${nome} dano`
+            .trim()
+            .slice(0, LIMITES_DICE_SESSAO.label),
+        },
+      };
+    }
+
     if (dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'ACAO') {
       const acao = this.mapearListaObjeto(npc.acoesGuia)[dto.acaoIndice];
       const teste = typeof acao?.teste === 'string' ? acao.teste.trim() : '';
@@ -8661,6 +8743,7 @@ export class SessaoService {
         ocultoJogadores: npc.ocultoJogadores,
         periciaCodigo: null,
         origemAtaque: 'ACAO',
+        origemDano: null,
         acaoIndice: dto.acaoIndice,
         acaoNome: nome,
         bonusBase: null,
@@ -8763,6 +8846,7 @@ export class SessaoService {
       ocultoJogadores: npc.ocultoJogadores,
       periciaCodigo,
       origemAtaque: dto.tipo === 'ATAQUE_NPC' ? 'PERICIA' : null,
+      origemDano: null,
       acaoIndice: null,
       acaoNome: null,
       bonusBase,

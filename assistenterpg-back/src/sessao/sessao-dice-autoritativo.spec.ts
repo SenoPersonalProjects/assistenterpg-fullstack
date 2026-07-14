@@ -4,6 +4,8 @@ import {
   calcularResultadoDiceServidor,
   construirMensagemDiceServidor,
   expressaoDiceContemD20,
+  formatarExpressaoDiceServidor,
+  parseDiceFontePersistidaServidor,
   parseDiceInputServidor,
   rolarDadosServidor,
 } from './sessao-dice-autoritativo';
@@ -126,5 +128,27 @@ describe('sessao-dice-autoritativo', () => {
     ['d20-2d6', 'Sintaxe invalida'],
   ])('rejeita formula fora dos limites: %s', (formula, erro) => {
     expect(parseDiceInputServidor(formula).erro).toContain(erro);
+  });
+
+  it.each([
+    ['3d10', '3d10'],
+    ['3+2d8', '2d8+3'],
+    ['1d8+4 corte + amaldicoado', '1d8+4'],
+  ])('normaliza dano persistido %s', (fonte, esperado) => {
+    const expressao = parseDiceFontePersistidaServidor(fonte);
+
+    expect(expressao).not.toBeNull();
+    const payload = rolarDadosServidor(expressao!, () => 1);
+    expect(formatarExpressaoDiceServidor(payload)).toBe(esperado);
+  });
+
+  it.each([
+    '',
+    'sem dano',
+    '2d6 e depois 1d8',
+    '1d8 + 3 + 2d8 amaldicoado',
+    '31d6',
+  ])('rejeita dano persistido invalido: %s', (fonte) => {
+    expect(parseDiceFontePersistidaServidor(fonte)).toBeNull();
   });
 });
