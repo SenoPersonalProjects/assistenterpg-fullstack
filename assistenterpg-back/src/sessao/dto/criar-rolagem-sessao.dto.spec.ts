@@ -1,7 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
-import { CriarRolagemFormulaSessaoDto } from './criar-rolagem-sessao.dto';
+import { CriarRolagemSessaoDto } from './criar-rolagem-sessao.dto';
 
-describe('CriarRolagemFormulaSessaoDto', () => {
+describe('CriarRolagemSessaoDto', () => {
   const pipe = new ValidationPipe({
     transform: true,
     whitelist: true,
@@ -9,7 +9,7 @@ describe('CriarRolagemFormulaSessaoDto', () => {
   });
   const metadata = {
     type: 'body' as const,
-    metatype: CriarRolagemFormulaSessaoDto,
+    metatype: CriarRolagemSessaoDto,
   };
   const payloadValido = {
     tipo: 'FORMULA',
@@ -22,6 +22,20 @@ describe('CriarRolagemFormulaSessaoDto', () => {
     await expect(
       pipe.transform(payloadValido, metadata),
     ).resolves.toMatchObject(payloadValido);
+  });
+
+  it('aceita intencao de pericia de personagem sem resultado calculado', async () => {
+    const payload = {
+      tipo: 'PERICIA_PERSONAGEM',
+      personagemSessaoId: 31,
+      periciaCodigo: 'OCULTISMO',
+      contexto: { dt: 20 },
+      clientRequestId: '7fe183a4-c5f4-4fd8-9da6-f9adabbbe0ca',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
   });
 
   it.each(['dados', 'total', 'critico', 'bonus', 'dadosRolagem'])(
@@ -39,6 +53,39 @@ describe('CriarRolagemFormulaSessaoDto', () => {
         {
           ...payloadValido,
           contexto: { tipo: 'ATAQUE', dt: 20 },
+        },
+        metadata,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it.each(['dados', 'total', 'critico', 'bonus', 'efeitoPendenteId'])(
+    'rejeita campo mecanico %s na intencao de pericia',
+    async (campo) => {
+      await expect(
+        pipe.transform(
+          {
+            tipo: 'PERICIA_PERSONAGEM',
+            personagemSessaoId: 31,
+            periciaCodigo: 'OCULTISMO',
+            clientRequestId: '7fe183a4-c5f4-4fd8-9da6-f9adabbbe0ca',
+            [campo]: 20,
+          },
+          metadata,
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+    },
+  );
+
+  it('rejeita campos da formula na intencao de pericia', async () => {
+    await expect(
+      pipe.transform(
+        {
+          tipo: 'PERICIA_PERSONAGEM',
+          personagemSessaoId: 31,
+          periciaCodigo: 'OCULTISMO',
+          expressao: '1d20+5',
+          clientRequestId: '7fe183a4-c5f4-4fd8-9da6-f9adabbbe0ca',
         },
         metadata,
       ),

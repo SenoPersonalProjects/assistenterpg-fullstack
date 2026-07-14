@@ -344,6 +344,27 @@ export class SessaoRolagemRequerFluxoMecanicoException extends BusinessException
   }
 }
 
+export class SessaoRolagemIdempotenciaConflitoException extends BaseException {
+  constructor(sessaoId: number, clientRequestId: string) {
+    super(
+      'O identificador desta rolagem ja foi usado com outra intencao.',
+      HttpStatus.CONFLICT,
+      'SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO',
+      { sessaoId, clientRequestId },
+    );
+  }
+}
+
+export class SessaoPericiaNaoEncontradaException extends BusinessException {
+  constructor(periciaCodigo: string) {
+    super(
+      'Pericia nao encontrada para a rolagem.',
+      'SESSAO_PERICIA_NAO_ENCONTRADA',
+      { periciaCodigo },
+    );
+  }
+}
+
 export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(

@@ -1420,19 +1420,23 @@ model CondicaoPersonagemSessao {
 }
 
 model EventoSessao {
-  id               Int      @id @default(autoincrement())
-  sessaoId         Int
-  cenaId           Int?
-  criadoEm         DateTime @default(now())
-  tipoEvento       String
-  personagemAtorId Int?
-  personagemAlvoId Int?
-  dados            Json?
+  id                    Int      @id @default(autoincrement())
+  sessaoId              Int
+  cenaId                Int?
+  criadoEm              DateTime @default(now())
+  tipoEvento            String
+  personagemAtorId      Int?
+  personagemAlvoId      Int?
+  solicitanteUsuarioId  Int?
+  clientRequestId       String?  @db.VarChar(36)
+  dados                 Json?
 
   sessao         Sessao            @relation(fields: [sessaoId], references: [id])
   cena           Cena?             @relation(fields: [cenaId], references: [id])
   personagemAtor PersonagemSessao? @relation("EventosComoAtor", fields: [personagemAtorId], references: [id])
   personagemAlvo PersonagemSessao? @relation("EventosComoAlvo", fields: [personagemAlvoId], references: [id])
+
+  @@unique([sessaoId, solicitanteUsuarioId, clientRequestId], map: "EventoSessao_sessao_usuario_request_key")
 }
 
 model SessaoRelatorio {
