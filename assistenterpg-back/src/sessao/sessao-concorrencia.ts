@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import {
+  NpcSessaoNaoEncontradoException,
   SessaoCampanhaNaoEncontradaException,
   SessaoEventoNaoEncontradoException,
 } from 'src/common/exceptions/campanha.exception';
@@ -19,6 +20,31 @@ export async function bloquearSessaoTx(
 
   if (registros.length === 0) {
     throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
+  }
+}
+
+export async function bloquearNpcSessaoTx(
+  tx: Prisma.TransactionClient,
+  campanhaId: number,
+  sessaoId: number,
+  npcSessaoId: number,
+): Promise<void> {
+  const registros = await tx.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+    SELECT npc.id
+    FROM NpcAmeacaSessao npc
+    INNER JOIN Sessao sessao ON sessao.id = npc.sessaoId
+    WHERE npc.id = ${npcSessaoId}
+      AND npc.sessaoId = ${sessaoId}
+      AND sessao.campanhaId = ${campanhaId}
+    FOR UPDATE
+  `);
+
+  if (registros.length === 0) {
+    throw new NpcSessaoNaoEncontradoException(
+      npcSessaoId,
+      sessaoId,
+      campanhaId,
+    );
   }
 }
 

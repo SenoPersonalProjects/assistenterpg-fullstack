@@ -48,9 +48,45 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
       return (
         dto.expressao === undefined &&
         Number.isInteger(dto.personagemSessaoId) &&
+        dto.npcSessaoId === undefined &&
         typeof dto.periciaCodigo === 'string' &&
+        dto.origemAtaque === undefined &&
+        dto.acaoIndice === undefined &&
         dto.contexto?.tipo === undefined
       );
+    }
+    if (dto.tipo === 'PERICIA_NPC') {
+      return (
+        dto.expressao === undefined &&
+        dto.personagemSessaoId === undefined &&
+        Number.isInteger(dto.npcSessaoId) &&
+        typeof dto.periciaCodigo === 'string' &&
+        dto.origemAtaque === undefined &&
+        dto.acaoIndice === undefined &&
+        dto.contexto?.tipo === undefined
+      );
+    }
+    if (dto.tipo === 'ATAQUE_NPC') {
+      const baseCompativel =
+        dto.expressao === undefined &&
+        dto.personagemSessaoId === undefined &&
+        Number.isInteger(dto.npcSessaoId) &&
+        dto.contexto?.tipo === undefined;
+      if (dto.origemAtaque === 'PERICIA') {
+        return (
+          baseCompativel &&
+          typeof dto.periciaCodigo === 'string' &&
+          dto.acaoIndice === undefined
+        );
+      }
+      if (dto.origemAtaque === 'ACAO') {
+        return (
+          baseCompativel &&
+          dto.periciaCodigo === undefined &&
+          Number.isInteger(dto.acaoIndice) &&
+          Number(dto.acaoIndice) >= 0
+        );
+      }
     }
     return false;
   }
@@ -61,11 +97,26 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
 }
 
 export class CriarRolagemSessaoDto {
-  @IsIn(['FORMULA', 'PERICIA_PERSONAGEM', 'ATAQUE_PERSONAGEM'], {
-    message: 'tipo deve ser FORMULA, PERICIA_PERSONAGEM ou ATAQUE_PERSONAGEM',
-  })
+  @IsIn(
+    [
+      'FORMULA',
+      'PERICIA_PERSONAGEM',
+      'ATAQUE_PERSONAGEM',
+      'PERICIA_NPC',
+      'ATAQUE_NPC',
+    ],
+    {
+      message:
+        'tipo deve ser FORMULA, PERICIA_PERSONAGEM, ATAQUE_PERSONAGEM, PERICIA_NPC ou ATAQUE_NPC',
+    },
+  )
   @Validate(RolagemSessaoPayloadCompativelConstraint)
-  tipo: 'FORMULA' | 'PERICIA_PERSONAGEM' | 'ATAQUE_PERSONAGEM';
+  tipo:
+    | 'FORMULA'
+    | 'PERICIA_PERSONAGEM'
+    | 'ATAQUE_PERSONAGEM'
+    | 'PERICIA_NPC'
+    | 'ATAQUE_NPC';
 
   @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'FORMULA')
   @IsString({ message: 'expressao deve ser texto' })
@@ -84,12 +135,39 @@ export class CriarRolagemSessaoDto {
 
   @ValidateIf(
     (dto: CriarRolagemSessaoDto) =>
-      dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM',
+      dto.tipo === 'PERICIA_NPC' || dto.tipo === 'ATAQUE_NPC',
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'npcSessaoId deve ser um numero inteiro' })
+  @Min(1, { message: 'npcSessaoId deve ser positivo' })
+  npcSessaoId?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'PERICIA_PERSONAGEM' ||
+      dto.tipo === 'ATAQUE_PERSONAGEM' ||
+      dto.tipo === 'PERICIA_NPC' ||
+      (dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'PERICIA'),
   )
   @IsString({ message: 'periciaCodigo deve ser texto' })
   @IsNotEmpty({ message: 'periciaCodigo e obrigatorio' })
   @MaxLength(80, { message: 'periciaCodigo deve ter no maximo 80 caracteres' })
   periciaCodigo?: string;
+
+  @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'ATAQUE_NPC')
+  @IsIn(['PERICIA', 'ACAO'], {
+    message: 'origemAtaque deve ser PERICIA ou ACAO',
+  })
+  origemAtaque?: 'PERICIA' | 'ACAO';
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'ACAO',
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'acaoIndice deve ser um numero inteiro' })
+  @Min(0, { message: 'acaoIndice deve ser maior ou igual a zero' })
+  acaoIndice?: number;
 
   @IsOptional()
   @IsIn(['PUBLICA', 'SECRETA_MESTRE'], {
@@ -127,3 +205,28 @@ export type CriarRolagemAtaquePersonagemSessaoDto = CriarRolagemSessaoDto & {
 export type CriarRolagemMecanicaPersonagemSessaoDto =
   | CriarRolagemPericiaSessaoDto
   | CriarRolagemAtaquePersonagemSessaoDto;
+
+export type CriarRolagemPericiaNpcSessaoDto = CriarRolagemSessaoDto & {
+  tipo: 'PERICIA_NPC';
+  npcSessaoId: number;
+  periciaCodigo: string;
+};
+
+export type CriarRolagemAtaqueNpcPericiaSessaoDto = CriarRolagemSessaoDto & {
+  tipo: 'ATAQUE_NPC';
+  origemAtaque: 'PERICIA';
+  npcSessaoId: number;
+  periciaCodigo: string;
+};
+
+export type CriarRolagemAtaqueNpcAcaoSessaoDto = CriarRolagemSessaoDto & {
+  tipo: 'ATAQUE_NPC';
+  origemAtaque: 'ACAO';
+  npcSessaoId: number;
+  acaoIndice: number;
+};
+
+export type CriarRolagemMecanicaNpcSessaoDto =
+  | CriarRolagemPericiaNpcSessaoDto
+  | CriarRolagemAtaqueNpcPericiaSessaoDto
+  | CriarRolagemAtaqueNpcAcaoSessaoDto;

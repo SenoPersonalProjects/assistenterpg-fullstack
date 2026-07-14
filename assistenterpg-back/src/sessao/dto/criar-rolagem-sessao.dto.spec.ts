@@ -52,6 +52,75 @@ describe('CriarRolagemSessaoDto', () => {
     );
   });
 
+  it('aceita intencao de pericia de NPC sem resultado calculado', async () => {
+    const payload = {
+      tipo: 'PERICIA_NPC',
+      npcSessaoId: 71,
+      periciaCodigo: 'PERCEPCAO',
+      contexto: { dt: 18 },
+      clientRequestId: '299b5238-7f29-48a4-983e-d43ea06cf792',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
+  it.each([
+    {
+      tipo: 'ATAQUE_NPC',
+      origemAtaque: 'PERICIA',
+      npcSessaoId: 71,
+      periciaCodigo: 'LUTA',
+      clientRequestId: '9f286dd6-c716-4f3e-a746-3a1487745b7b',
+    },
+    {
+      tipo: 'ATAQUE_NPC',
+      origemAtaque: 'ACAO',
+      npcSessaoId: 71,
+      acaoIndice: 2,
+      clientRequestId: '869f390e-8b10-4de7-b7db-f3b97bcb2375',
+    },
+  ])('aceita intencao de ataque de NPC %#', async (payload) => {
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
+  it.each(['dados', 'total', 'critico', 'bonus', 'bonusEscalada', 'marcador'])(
+    'rejeita campo calculado %s na intencao de NPC',
+    async (campo) => {
+      await expect(
+        pipe.transform(
+          {
+            tipo: 'PERICIA_NPC',
+            npcSessaoId: 71,
+            periciaCodigo: 'PERCEPCAO',
+            clientRequestId: '299b5238-7f29-48a4-983e-d43ea06cf792',
+            [campo]: 20,
+          },
+          metadata,
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+    },
+  );
+
+  it('rejeita combinar origem de acao com pericia enviada pelo cliente', async () => {
+    await expect(
+      pipe.transform(
+        {
+          tipo: 'ATAQUE_NPC',
+          origemAtaque: 'ACAO',
+          npcSessaoId: 71,
+          acaoIndice: 0,
+          periciaCodigo: 'LUTA',
+          clientRequestId: '869f390e-8b10-4de7-b7db-f3b97bcb2375',
+        },
+        metadata,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
   it.each(['dados', 'total', 'critico', 'bonus', 'dadosRolagem'])(
     'rejeita resultado calculado pelo cliente no campo %s',
     async (campo) => {
