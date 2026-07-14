@@ -258,6 +258,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta perícia não pode ser usada como ataque de NPC/Ameaça.",
   SESSAO_NPC_ACAO_ROLAGEM_INVALIDA:
     "A ação selecionada não possui um teste válido para rolagem no servidor.",
+  SESSAO_NPC_ACAO_NAO_ENCONTRADA:
+    "A ação selecionada não foi encontrada neste NPC/Ameaça.",
+  SESSAO_NPC_ACAO_SEM_DANO:
+    "A ação selecionada não possui dano para rolagem no servidor.",
+  SESSAO_NPC_ACAO_DANO_INVALIDO:
+    "O dano persistido nesta ação não possui uma fórmula válida para rolagem no servidor.",
   SESSAO_EFEITOS_TURNO_PENDENTES:
     "Existem efeitos automáticos de turno pendentes. Reprocesse-os antes de continuar.",
   SESSAO_EFEITOS_TURNO_FALHARAM:

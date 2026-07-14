@@ -53,6 +53,7 @@ import {
   apiRecusarConvite,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
+  apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemFormulaSessaoCampanha,
   apiCriarRolagemPericiaNpcSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
@@ -853,6 +854,28 @@ describe('campanhas api cache and dedupe', () => {
     );
     expect(payload).not.toHaveProperty('expressao');
     expect(payload).not.toHaveProperty('dano');
+  });
+
+  it('envia somente a intencao autoritativa do dano da acao do NPC', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 98 } });
+    const payload = {
+      tipo: 'DANO_NPC' as const,
+      origemDano: 'ACAO' as const,
+      npcSessaoId: 71,
+      acaoIndice: 0,
+      visibilidade: 'SECRETA_MESTRE' as const,
+      clientRequestId: '33b2fd6b-466a-4f5e-93b8-530cfc1e028f',
+    };
+
+    await apiCriarRolagemDanoNpcSessaoCampanha(44, 13, payload);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(payload).not.toHaveProperty('expressao');
+    expect(payload).not.toHaveProperty('dano');
+    expect(payload).not.toHaveProperty('total');
   });
 
   it('sends secret master roll visibility through session chat', async () => {

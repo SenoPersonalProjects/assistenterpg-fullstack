@@ -1,5 +1,6 @@
 import type {
   RolagemAtaqueNpcAcaoSessaoPayload,
+  RolagemDanoNpcAcaoSessaoPayload,
   RolagemPericiaSessaoPayload,
 } from '@/components/campanha/sessao/types';
 import { periciaPermiteAtaqueSessao } from './sessao-rolagem-pericia';
@@ -81,6 +82,29 @@ export function montarIntencaoRolagemAtaqueNpcAcao(
   return {
     tipo: 'ATAQUE_NPC' as const,
     origemAtaque: 'ACAO' as const,
+    npcSessaoId: payload.npcSessaoId,
+    acaoIndice: payload.acaoIndice,
+    visibilidade,
+    clientRequestId,
+  };
+}
+
+export function montarIntencaoRolagemDanoNpcAcao(
+  payload: RolagemDanoNpcAcaoSessaoPayload,
+  visibilidade: VisibilidadeRolagem,
+  clientRequestId: string,
+) {
+  if (
+    !Number.isInteger(payload.npcSessaoId) ||
+    payload.npcSessaoId <= 0 ||
+    !Number.isInteger(payload.acaoIndice) ||
+    payload.acaoIndice < 0
+  ) {
+    throw new Error('NPC ou acao invalidos para a rolagem de dano.');
+  }
+  return {
+    tipo: 'DANO_NPC' as const,
+    origemDano: 'ACAO' as const,
     npcSessaoId: payload.npcSessaoId,
     acaoIndice: payload.acaoIndice,
     visibilidade,

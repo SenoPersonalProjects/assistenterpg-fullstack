@@ -72,6 +72,15 @@ export type RolagemAtaqueNpcAcaoSessaoPayload = {
   expressaoPreview: string;
 };
 
+export type RolagemDanoNpcAcaoSessaoPayload = {
+  alvoTipo: 'NPC';
+  alvoNome: string;
+  npcSessaoId: number;
+  acaoIndice: number;
+  acaoNome: string;
+  expressaoPreview: string;
+};
+
 export type DadoDanoTecnicaPayload = {
   quantidade: number;
   dado: string;

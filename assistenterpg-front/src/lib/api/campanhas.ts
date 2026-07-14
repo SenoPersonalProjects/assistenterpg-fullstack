@@ -1234,6 +1234,15 @@ export type CriarRolagemAtaqueNpcAcaoSessaoPayload = {
   clientRequestId: string;
 };
 
+export type CriarRolagemDanoNpcAcaoSessaoPayload = {
+  tipo: 'DANO_NPC';
+  origemDano: 'ACAO';
+  npcSessaoId: number;
+  acaoIndice: number;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  clientRequestId: string;
+};
+
 export async function apiCriarRolagemFormulaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1288,6 +1297,18 @@ export async function apiCriarRolagemAtaqueNpcSessaoCampanha(
   payload:
     | CriarRolagemAtaqueNpcPericiaSessaoPayload
     | CriarRolagemAtaqueNpcAcaoSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemDanoNpcSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemDanoNpcAcaoSessaoPayload,
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,

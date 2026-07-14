@@ -23,7 +23,7 @@ import type {
 } from '@/components/campanha/sessao/types';
 import type {
   RolagemAtaqueNpcAcaoSessaoPayload,
-  RolagemExpressaoSessaoPayload,
+  RolagemDanoNpcAcaoSessaoPayload,
   RolagemPericiaSessaoPayload,
 } from '@/components/campanha/sessao/types';
 import { periciaPermiteAtaqueSessao } from '@/lib/campanha/sessao-rolagem-pericia';
@@ -146,7 +146,7 @@ type NpcSessionCardProps = {
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarAtaqueAcao: (payload: RolagemAtaqueNpcAcaoSessaoPayload) => void;
-  onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
+  onRolarDanoAcao: (payload: RolagemDanoNpcAcaoSessaoPayload) => void;
   alvoSocial?: AlvoEncontroSocialSessao | null;
   socialAtivo?: boolean;
   atualizandoAlvoSocial?: boolean;
@@ -187,7 +187,7 @@ export function NpcSessionCard({
   renderPainelCondicoes,
   onRolarPericia,
   onRolarAtaqueAcao,
-  onRolarExpressao,
+  onRolarDanoAcao,
   alvoSocial = null,
   socialAtivo = false,
   atualizandoAlvoSocial = false,
@@ -523,12 +523,13 @@ export function NpcSessionCard({
                         size="xs"
                         variant="ghost"
                         onClick={() =>
-                          onRolarExpressao({
+                          onRolarDanoAcao({
                             alvoTipo: 'NPC',
                             alvoNome: npc.nome,
-                            titulo: `${acao.nome} · Dano`,
-                            subtitulo: npc.nome,
-                            expressao: expressaoDano,
+                            npcSessaoId: npc.npcSessaoId,
+                            acaoIndice: acaoIndex,
+                            acaoNome: acao.nome,
+                            expressaoPreview: expressaoDano,
                           })
                         }
                         disabled={sessaoEncerrada}

@@ -182,11 +182,30 @@ export type DadosRolagemNpcServidorSessao = {
   };
 };
 
+export type DadosRolagemDanoNpcServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'DANO_NPC';
+  clientRequestId: string;
+  npcSessaoId: number;
+  npcAmeacaId: number | null;
+  entidadeVinculadaId: number | null;
+  origemDano: 'ACAO';
+  acaoIndice: number;
+  acaoNome: string;
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: {
+    total: number;
+  };
+};
+
 export type DadosRolagemServidorSessao =
   | DadosRolagemFormulaServidorSessao
   | DadosRolagemPericiaServidorSessao
   | DadosRolagemAtaqueServidorSessao
-  | DadosRolagemNpcServidorSessao;
+  | DadosRolagemNpcServidorSessao
+  | DadosRolagemDanoNpcServidorSessao;
 
 type NodeBufferLike = {
   from: (input: string, encoding: string) => { toString: (encoding: string) => string };
@@ -755,6 +774,23 @@ export function extrairDadosRolagemServidor(
       return null;
     }
     return registro as DadosRolagemNpcServidorSessao;
+  }
+  if (registro.tipo === 'DANO_NPC') {
+    const resultado = registro.resultado as Record<string, unknown> | null;
+    if (
+      !Number.isInteger(registro.npcSessaoId) ||
+      registro.origemDano !== 'ACAO' ||
+      !Number.isInteger(registro.acaoIndice) ||
+      typeof registro.acaoNome !== 'string' ||
+      typeof registro.formulaResolvida !== 'string' ||
+      !resultado ||
+      typeof resultado !== 'object' ||
+      typeof resultado.total !== 'number' ||
+      !Number.isFinite(resultado.total)
+    ) {
+      return null;
+    }
+    return registro as DadosRolagemDanoNpcServidorSessao;
   }
   if (typeof registro.expressaoOriginal !== 'string') return null;
   return registro as DadosRolagemServidorSessao;

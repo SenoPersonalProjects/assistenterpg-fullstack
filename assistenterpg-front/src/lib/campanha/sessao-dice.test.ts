@@ -891,4 +891,30 @@ describe('sessao-dice autoritativo', () => {
       extrairDadosRolagemServidor({ ...dados, npcSessaoId: '71' }),
     ).toBeNull();
   });
+
+  it('aceita metadados autoritativos de dano de NPC por acao', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'DANO_NPC',
+      clientRequestId: '33b2fd6b-466a-4f5e-93b8-530cfc1e028f',
+      npcSessaoId: 71,
+      npcAmeacaId: 81,
+      entidadeVinculadaId: null,
+      origemDano: 'ACAO',
+      acaoIndice: 0,
+      acaoNome: 'Garra',
+      formulaResolvida: '2d8+3',
+      payloads: [criarPayloadComRolagens('2d8+3', [[5, 7]])],
+      resultado: { total: 15 },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, resultado: { total: '15' } }),
+    ).toBeNull();
+    expect(
+      extrairDadosRolagemServidor({ ...dados, origemDano: 'FORMULA' }),
+    ).toBeNull();
+  });
 });

@@ -20,7 +20,7 @@ import type {
 } from '@/components/campanha/sessao/types';
 import type {
   RolagemAtaqueNpcAcaoSessaoPayload,
-  RolagemExpressaoSessaoPayload,
+  RolagemDanoNpcAcaoSessaoPayload,
   RolagemPericiaSessaoPayload,
 } from '@/components/campanha/sessao/types';
 import { NpcSessionCard } from '@/components/campanha/sessao/NpcSessionCard';
@@ -70,7 +70,7 @@ type SessionNpcsPanelProps = {
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarAtaqueAcao: (payload: RolagemAtaqueNpcAcaoSessaoPayload) => void;
-  onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
+  onRolarDanoAcao: (payload: RolagemDanoNpcAcaoSessaoPayload) => void;
   socialAtivo?: boolean;
   alvosSociais?: AlvoEncontroSocialSessao[];
   atualizandoAlvoSocial?: boolean;
@@ -106,7 +106,7 @@ export function SessionNpcsPanel({
   renderPainelCondicoes,
   onRolarPericia,
   onRolarAtaqueAcao,
-  onRolarExpressao,
+  onRolarDanoAcao,
   socialAtivo = false,
   alvosSociais = [],
   atualizandoAlvoSocial = false,
@@ -186,7 +186,7 @@ export function SessionNpcsPanel({
             renderPainelCondicoes={renderPainelCondicoes}
             onRolarPericia={onRolarPericia}
             onRolarAtaqueAcao={onRolarAtaqueAcao}
-            onRolarExpressao={onRolarExpressao}
+            onRolarDanoAcao={onRolarDanoAcao}
             socialAtivo={socialAtivo}
             alvoSocial={
               alvosSociais.find((alvo) => alvo.npcSessaoId === npc.npcSessaoId) ?? null

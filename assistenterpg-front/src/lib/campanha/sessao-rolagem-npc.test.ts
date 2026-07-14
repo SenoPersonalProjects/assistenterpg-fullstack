@@ -4,6 +4,7 @@ import {
   deveUsarRolagemPericiaNpcAutoritativa,
   montarIntencaoRolagemAtaqueNpcAcao,
   montarIntencaoRolagemAtaqueNpcPericia,
+  montarIntencaoRolagemDanoNpcAcao,
   montarIntencaoRolagemPericiaNpc,
 } from './sessao-rolagem-npc';
 
@@ -87,6 +88,33 @@ describe('sessao-rolagem-npc', () => {
     });
     expect(intencao).not.toHaveProperty('expressaoPreview');
     expect(intencao).not.toHaveProperty('expressao');
+  });
+
+  it('monta dano por acao sem enviar formula de preview', () => {
+    const intencao = montarIntencaoRolagemDanoNpcAcao(
+      {
+        alvoTipo: 'NPC',
+        alvoNome: 'Maldicao',
+        npcSessaoId: 71,
+        acaoIndice: 0,
+        acaoNome: 'Garra',
+        expressaoPreview: '2d8+3',
+      },
+      'SECRETA_MESTRE',
+      '33b2fd6b-466a-4f5e-93b8-530cfc1e028f',
+    );
+
+    expect(intencao).toEqual({
+      tipo: 'DANO_NPC',
+      origemDano: 'ACAO',
+      npcSessaoId: 71,
+      acaoIndice: 0,
+      visibilidade: 'SECRETA_MESTRE',
+      clientRequestId: '33b2fd6b-466a-4f5e-93b8-530cfc1e028f',
+    });
+    expect(intencao).not.toHaveProperty('expressaoPreview');
+    expect(intencao).not.toHaveProperty('expressao');
+    expect(intencao).not.toHaveProperty('dano');
   });
 
   it('mantem personagem e ataque invalido fora do transporte de NPC', () => {

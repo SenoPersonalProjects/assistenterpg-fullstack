@@ -24,6 +24,7 @@ import {
   apiEnviarMensagemChatSessaoCampanha,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
+  apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemPericiaNpcSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiRemoverPersonagemSessaoCampanha,
@@ -98,8 +99,8 @@ import {
   type HabilidadeRollContext,
   type NpcEditavel,
   type RolagemAtaqueNpcAcaoSessaoPayload,
+  type RolagemDanoNpcAcaoSessaoPayload,
   type RolagemDanoHabilidadeSessaoPayload,
-  type RolagemExpressaoSessaoPayload,
   type RolagemPericiaSessaoPayload,
   type RolagemTesteHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
@@ -164,6 +165,7 @@ import {
   deveUsarRolagemPericiaNpcAutoritativa,
   montarIntencaoRolagemAtaqueNpcAcao,
   montarIntencaoRolagemAtaqueNpcPericia,
+  montarIntencaoRolagemDanoNpcAcao,
   montarIntencaoRolagemPericiaNpc,
 } from '@/lib/campanha/sessao-rolagem-npc';
 
@@ -2108,62 +2110,85 @@ export default function SessaoCampanhaPage() {
     ],
   );
 
-  const handleRolarExpressao = useCallback(
-    async (payload: RolagemExpressaoSessaoPayload) => {
+  const handleRolarDanoNpcAcao = useCallback(
+    async (payload: RolagemDanoNpcAcaoSessaoPayload) => {
       if (sessaoEncerrada) {
         showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
-      const resultado = parseDiceExpression(payload.expressao);
-      if (resultado.erro || !resultado.expression) {
-        showToast(
-          resultado.erro ?? 'Expressao de rolagem inválida.',
-          'warning',
-        );
+      const preview = parseDiceExpression(payload.expressaoPreview);
+      if (preview.erro || !preview.expression) {
+        showToast(preview.erro ?? 'Dano da ação inválido.', 'warning');
         return;
       }
-      const labelBase = `${payload.alvoNome} · ${payload.titulo}`.trim();
-      const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
-      const dicePayload = rolarDados({
-        ...resultado.expression,
-        label,
-      });
-      const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
+
+      let intencao: ReturnType<typeof montarIntencaoRolagemDanoNpcAcao>;
+      try {
+        intencao = montarIntencaoRolagemDanoNpcAcao(
+          payload,
+          visibilidadeRolagemAtual,
+          criarClientRequestIdRolagem(),
+        );
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        showToast(userError.message, 'warning');
+        return;
+      }
+
+      const chaveRolagem = `${intencao.tipo}:${intencao.npcSessaoId}:ACAO:${intencao.acaoIndice}`;
+      if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+      rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
       setPericiaRollModal({
         aberto: true,
-        titulo: payload.titulo,
-        subtitulo: payload.subtitulo ?? payload.alvoNome,
-        alvoTipo: payload.alvoTipo,
+        titulo: `${payload.acaoNome} · Dano`,
+        subtitulo: payload.alvoNome,
+        alvoTipo: 'NPC',
         alvoNome: payload.alvoNome,
         habilidadeContext: null,
-        payload: dicePayload,
-        expression,
-        enviando: false,
+        payload: null,
+        payloads: [],
+        expression: payload.expressaoPreview,
+        expressions: [payload.expressaoPreview],
+        facesPendentes: [preview.expression.faces],
+        origemServidor: true,
+        enviando: true,
         enviado: false,
         erro: null,
       });
-      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
-      if (erroTamanho) {
-        setErroRolagens(erroTamanho);
-        setPericiaRollModal((estado) => ({
-          ...estado,
-          enviando: false,
-          enviado: false,
-          erro: erroTamanho,
-        }));
-        return;
-      }
+
       try {
-        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
-        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
-          mensagem: mensagemEnvio,
-          visibilidade: visibilidadeRolagemAtual,
-        });
-        setChat((anterior) => [...anterior, enviada]);
+        const enviada = await apiCriarRolagemDanoNpcSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          intencao,
+        );
+        const dadosServidor = extrairDadosRolagemServidor(
+          enviada.dadosRolagem,
+        );
+        if (
+          !dadosServidor ||
+          dadosServidor.tipo !== 'DANO_NPC' ||
+          dadosServidor.origemDano !== 'ACAO' ||
+          !dadosServidor.payloads[0]
+        ) {
+          throw new Error('Resposta autoritativa do dano do NPC inválida.');
+        }
+        setChat((anterior) =>
+          anterior.some((mensagem) => mensagem.id === enviada.id)
+            ? anterior
+            : [...anterior, enviada],
+        );
         setPericiaRollModal((estado) => ({
           ...estado,
+          payload: dadosServidor.payloads[0] ?? null,
+          payloads: dadosServidor.payloads,
+          expression: dadosServidor.formulaResolvida,
+          expressions: [dadosServidor.formulaResolvida],
+          facesPendentes: undefined,
           enviando: false,
           enviado: true,
+          erro: null,
         }));
       } catch (error) {
         const userError = criarErroUsuario(error);
@@ -2174,6 +2199,8 @@ export default function SessaoCampanhaPage() {
           enviado: false,
           erro: userError.message,
         }));
+      } finally {
+        rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
       }
     },
     [
@@ -3397,7 +3424,7 @@ export default function SessaoCampanhaPage() {
                     }
                     onRolarPericia={handleRolarPericia}
                     onRolarAtaqueAcao={handleRolarAtaqueNpcAcao}
-                    onRolarExpressao={handleRolarExpressao}
+                    onRolarDanoAcao={handleRolarDanoNpcAcao}
                     renderPainelCondicoes={renderPainelCondicoes}
                     socialAtivo={socialAtivo}
                     alvosSociais={alvosSociais}
@@ -3570,7 +3597,7 @@ export default function SessaoCampanhaPage() {
                 onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
                 onRolarPericia={handleRolarPericia}
                 onRolarAtaqueAcao={handleRolarAtaqueNpcAcao}
-                onRolarExpressao={handleRolarExpressao}
+                onRolarDanoAcao={handleRolarDanoNpcAcao}
                 renderPainelCondicoes={renderPainelCondicoes}
                 socialAtivo={socialAtivo}
                 alvosSociais={alvosSociais}
