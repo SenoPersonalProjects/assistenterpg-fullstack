@@ -16,6 +16,7 @@ describe('SessaoController', () => {
     listarChatSessao: jest.fn(),
     listarEventosSessao: jest.fn(),
     enviarMensagemChatSessao: jest.fn(),
+    criarRolagemFormulaSessao: jest.fn(),
     avancarTurnoSessao: jest.fn(),
     voltarTurnoSessao: jest.fn(),
     pularTurnoSessao: jest.fn(),
@@ -187,6 +188,50 @@ describe('SessaoController', () => {
       12,
       'CHAT_NOVA',
     );
+  });
+
+  it('deve encaminhar rolagem autoritativa e emitir chat em realtime', async () => {
+    const dto = {
+      tipo: 'FORMULA' as const,
+      expressao: '2d6+3',
+      clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+    };
+    sessaoServiceMock.criarRolagemFormulaSessao.mockResolvedValue({ id: 56 });
+
+    await controller.criarRolagemFormulaSessao(7, 12, { user: { id: 3 } }, dto);
+
+    expect(sessaoServiceMock.criarRolagemFormulaSessao).toHaveBeenCalledWith(
+      7,
+      12,
+      3,
+      dto,
+    );
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'CHAT_NOVA',
+    );
+  });
+
+  it('nao emite realtime quando a rolagem autoritativa e rejeitada', async () => {
+    sessaoServiceMock.criarRolagemFormulaSessao.mockRejectedValue(
+      new Error('rolagem invalida'),
+    );
+
+    await expect(
+      controller.criarRolagemFormulaSessao(
+        7,
+        12,
+        { user: { id: 3 } },
+        {
+          tipo: 'FORMULA',
+          expressao: '31d6',
+          clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+        },
+      ),
+    ).rejects.toThrow('rolagem invalida');
+
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).not.toHaveBeenCalled();
   });
 
   it('não emite realtime quando mutação é rejeitada pelo service', async () => {

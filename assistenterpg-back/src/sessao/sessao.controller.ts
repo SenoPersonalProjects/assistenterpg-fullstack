@@ -17,6 +17,7 @@ import { SessaoActivationService } from './sessao-activation.service';
 import { CreateSessaoCampanhaDto } from './dto/create-sessao-campanha.dto';
 import { ListarChatSessaoDto } from './dto/listar-chat-sessao.dto';
 import { EnviarChatSessaoDto } from './dto/enviar-chat-sessao.dto';
+import { CriarRolagemFormulaSessaoDto } from './dto/criar-rolagem-sessao.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
@@ -142,6 +143,29 @@ export class SessaoController {
     @Body() dto: EnviarChatSessaoDto,
   ) {
     const resultado = await this.sessaoService.enviarMensagemChatSessao(
+      campanhaId,
+      sessaoId,
+      req.user.id,
+      dto,
+    );
+
+    this.sessaoGateway.emitirSessaoAtualizada(
+      campanhaId,
+      sessaoId,
+      'CHAT_NOVA',
+    );
+
+    return resultado;
+  }
+
+  @Post(':sessaoId/rolagens')
+  async criarRolagemFormulaSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarRolagemFormulaSessaoDto,
+  ) {
+    const resultado = await this.sessaoService.criarRolagemFormulaSessao(
       campanhaId,
       sessaoId,
       req.user.id,

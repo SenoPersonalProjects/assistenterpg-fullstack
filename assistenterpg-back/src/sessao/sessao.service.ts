@@ -23,6 +23,9 @@ import {
   SessaoCampanhaNaoEncontradaException,
   SessaoEfeitosTurnoFalharamException,
   SessaoEfeitosTurnoPendentesException,
+  SessaoRolagemInvalidaException,
+  SessaoRolagemMensagemMuitoGrandeException,
+  SessaoRolagemRequerFluxoMecanicoException,
   SessaoTurnoDesatualizadoException,
   SessaoTurnoIndisponivelEmCenaLivreException,
   UsuarioNaoEncontradoException,
@@ -88,10 +91,19 @@ import {
 } from 'src/campanha/campanha-concorrencia';
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
+import { CriarRolagemFormulaSessaoDto } from './dto/criar-rolagem-sessao.dto';
 import {
   bloquearEventoSessaoTx,
   bloquearSessaoTx,
 } from './sessao-concorrencia';
+import {
+  construirMensagemDiceServidor,
+  expressaoDiceContemD20,
+  LIMITES_DICE_SESSAO,
+  parseDiceInputServidor,
+  rolarDadosServidor,
+  type DiceExpressionServidor,
+} from './sessao-dice-autoritativo';
 
 type AcessoCampanha = {
   campanha: {
@@ -2777,6 +2789,10 @@ export class SessaoService {
       throw new UsuarioNaoEncontradoException(usuarioId);
     }
 
+    const dadosRolagemLegado = this.marcarRolagemClienteLegado(
+      dto.mensagem,
+      dto.dadosRolagem,
+    );
     const ajustesBase = await this.resolverAjustesRolagemSessao(
       sessaoId,
       dto.contextoRolagem,
@@ -2786,7 +2802,7 @@ export class SessaoService {
         ? await this.resolverInspiracaoFalhaCritica(
             sessaoId,
             personagemDoUsuario.personagemCampanhaId,
-            dto.dadosRolagem,
+            dadosRolagemLegado ?? undefined,
             dto.contextoRolagem,
           )
         : null;
@@ -2813,7 +2829,7 @@ export class SessaoService {
               personagemDoUsuario.id,
               personagemDoUsuario.personagemCampanhaId,
               dto.contextoRolagem,
-              dto.dadosRolagem,
+              dadosRolagemLegado ?? undefined,
             )
           : [];
       const ajustesAplicados = [...ajustesBase, ...ajustesPerito];
@@ -2829,7 +2845,7 @@ export class SessaoService {
               ? personagemDoUsuario.personagemCampanha.dono.apelido
               : usuario.apelido,
             visibilidade,
-            dadosRolagem: dto.dadosRolagem ?? null,
+            dadosRolagem: dadosRolagemLegado,
             contextoRolagem: dto.contextoRolagem ?? null,
             ajustesAplicados,
             inspiracaoAutomatica,
@@ -2855,6 +2871,127 @@ export class SessaoService {
       });
     });
 
+    return this.mapearEventoChat(evento, true);
+  }
+
+  async criarRolagemFormulaSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: CriarRolagemFormulaSessaoDto,
+  ) {
+    const inicio = Date.now();
+    const { acesso } = await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'realizar rolagem no chat',
+    );
+    const visibilidade = dto.visibilidade ?? 'PUBLICA';
+    if (visibilidade === 'SECRETA_MESTRE' && !acesso.ehMestre) {
+      throw new CampanhaApenasMestreException('enviar rolagem secreta');
+    }
+
+    const resultadoParse = parseDiceInputServidor(dto.expressao);
+    if (resultadoParse.erro || !resultadoParse.expressions) {
+      throw new SessaoRolagemInvalidaException(
+        resultadoParse.erro ?? 'Rolagem invalida.',
+      );
+    }
+
+    const personagensDoUsuario = await this.prisma.personagemSessao.findMany({
+      where: {
+        sessaoId,
+        personagemCampanha: { donoId: usuarioId },
+      },
+      orderBy: { id: 'asc' },
+      select: {
+        id: true,
+        personagemCampanhaId: true,
+      },
+    });
+    const personagemDoUsuario = personagensDoUsuario[0] ?? null;
+    const autorApelido =
+      acesso.campanha.donoId === usuarioId
+        ? acesso.campanha.dono.apelido
+        : acesso.campanha.membros.find(
+            (membro) => membro.usuarioId === usuarioId,
+          )?.usuario.apelido;
+    if (!autorApelido) {
+      throw new UsuarioNaoEncontradoException(usuarioId);
+    }
+
+    const evento = await this.prisma.$transaction(async (tx) => {
+      await this.assertSessaoMutavelTx(
+        tx,
+        campanhaId,
+        sessaoId,
+        'realizar rolagem no chat',
+      );
+      await this.assertRolagemFormulaSemPeritoPendenteTx(
+        tx,
+        sessaoId,
+        personagensDoUsuario,
+        resultadoParse.expressions!,
+      );
+
+      const payloads = resultadoParse.expressions!.map((expression) =>
+        rolarDadosServidor(expression),
+      );
+      const mensagem = construirMensagemDiceServidor(payloads).mensagem;
+      if (mensagem.length > LIMITES_DICE_SESSAO.mensagem) {
+        throw new SessaoRolagemMensagemMuitoGrandeException();
+      }
+
+      return tx.eventoSessao.create({
+        data: {
+          sessaoId,
+          tipoEvento: 'CHAT',
+          personagemAtorId: personagemDoUsuario?.id ?? null,
+          dados: this.jsonParaPersistencia({
+            mensagem,
+            autorApelido,
+            visibilidade,
+            dadosRolagem: {
+              versao: 1,
+              origem: 'SERVIDOR',
+              clientRequestId: dto.clientRequestId,
+              expressaoOriginal: dto.expressao.trim(),
+              payloads,
+            },
+            contextoRolagem: dto.contexto ?? { tipo: 'OUTRO' },
+            ajustesAplicados: [],
+            inspiracaoAutomatica: null,
+          }),
+        },
+        include: {
+          personagemAtor: {
+            include: {
+              personagemCampanha: {
+                select: {
+                  nome: true,
+                  donoId: true,
+                  dono: { select: { apelido: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    const duracaoMs = Date.now() - inicio;
+    if (duracaoMs > 1000) {
+      this.logger.warn(
+        JSON.stringify({
+          evento: 'rolagem_sessao_lenta',
+          sessaoId,
+          eventoId: evento.id,
+          duracaoMs,
+          quantidadeExpressoes: resultadoParse.expressions.length,
+        }),
+      );
+    }
     return this.mapearEventoChat(evento, true);
   }
 
@@ -8000,6 +8137,55 @@ export class SessaoService {
         }),
       },
     });
+  }
+
+  private marcarRolagemClienteLegado(
+    mensagem: string,
+    dadosRolagem?: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    const possuiMarcadorDice = /\[\[dice:v\d+\|/i.test(mensagem);
+    if (!dadosRolagem && !possuiMarcadorDice) return null;
+    return {
+      ...(dadosRolagem ?? {}),
+      origem: 'CLIENTE_LEGADO',
+    };
+  }
+
+  private async assertRolagemFormulaSemPeritoPendenteTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    personagens: Array<{ id: number; personagemCampanhaId: number }>,
+    expressions: DiceExpressionServidor[],
+  ): Promise<void> {
+    if (personagens.length === 0 || !expressaoDiceContemD20(expressions))
+      return;
+
+    const regra = await tx.sessaoRegraOpcional.findUnique({
+      where: {
+        sessaoId_chave: {
+          sessaoId,
+          chave: CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+        },
+      },
+      select: { estado: true },
+    });
+    const estado = this.normalizarEstadoHabilidadesClasseSessao(regra?.estado);
+    const chavesPersonagens = new Set(
+      personagens.map(
+        (personagem) => `${personagem.id}:${personagem.personagemCampanhaId}`,
+      ),
+    );
+    const possuiPendente = Object.values(estado.pendentesRolagem).some(
+      (pendente) =>
+        chavesPersonagens.has(
+          `${pendente.personagemSessaoId}:${pendente.personagemCampanhaId}`,
+        ),
+    );
+    if (!possuiPendente) return;
+
+    throw new SessaoRolagemRequerFluxoMecanicoException(
+      personagens.map((personagem) => personagem.id),
+    );
   }
 
   private normalizarContextoRolagem(

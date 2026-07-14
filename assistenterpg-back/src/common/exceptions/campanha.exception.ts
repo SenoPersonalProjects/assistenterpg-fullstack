@@ -319,6 +319,31 @@ export class SessaoEncerradaException extends BusinessException {
   }
 }
 
+export class SessaoRolagemInvalidaException extends BusinessException {
+  constructor(motivo: string) {
+    super(motivo, 'SESSAO_ROLAGEM_INVALIDA');
+  }
+}
+
+export class SessaoRolagemMensagemMuitoGrandeException extends BusinessException {
+  constructor() {
+    super(
+      'Rolagem grande demais para o chat. Reduza a quantidade de dados.',
+      'SESSAO_ROLAGEM_MENSAGEM_MUITO_GRANDE',
+    );
+  }
+}
+
+export class SessaoRolagemRequerFluxoMecanicoException extends BusinessException {
+  constructor(personagemSessaoIds: number[]) {
+    super(
+      'Esta rolagem possui Perito pendente e deve usar o fluxo mecanico.',
+      'SESSAO_ROLAGEM_REQUER_FLUXO_MECANICO',
+      { personagemSessaoIds },
+    );
+  }
+}
+
 export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(

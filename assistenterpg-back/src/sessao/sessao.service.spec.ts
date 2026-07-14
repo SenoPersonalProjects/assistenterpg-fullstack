@@ -190,6 +190,12 @@ describe('SessaoService', () => {
         service.atualizarRecursosPersonagemSessao(7, 21, 31, 10, {} as never),
       () => service.enviarMensagemChatSessao(7, 21, 10, { mensagem: '1d20' }),
       () =>
+        service.criarRolagemFormulaSessao(7, 21, 10, {
+          tipo: 'FORMULA',
+          expressao: '1d20',
+          clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+        }),
+      () =>
         service.avancarTurnoSessao(7, 21, 10, {
           rodadaEsperada: 1,
           indiceTurnoEsperado: 0,
@@ -212,6 +218,130 @@ describe('SessaoService', () => {
 
     expect(guarda).toHaveBeenCalledTimes(mutacoes.length);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  function configurarRolagemAutoritativa(args?: { peritoPendente?: boolean }) {
+    jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({
+        acesso: {
+          ehMestre: false,
+          campanha: {
+            donoId: 99,
+            dono: { apelido: 'Mestre' },
+            membros: [
+              {
+                usuarioId: 10,
+                papel: 'JOGADOR',
+                usuario: { apelido: 'Jogador' },
+              },
+            ],
+          },
+        },
+        sessao: { status: 'EM_ANDAMENTO' },
+      });
+    (prisma as any).personagemSessao = {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 31,
+          personagemCampanhaId: 41,
+        },
+      ]),
+    };
+    (prisma as any).sessaoRegraOpcional = {
+      findUnique: jest.fn().mockResolvedValue(
+        args?.peritoPendente
+          ? {
+              estado: {
+                pendentesRolagem: {
+                  perito: {
+                    id: 'perito-1',
+                    eventoId: 70,
+                    personagemSessaoId: 31,
+                    personagemCampanhaId: 41,
+                    habilidadeId: 80,
+                    habilidadeNome: 'Perito',
+                    dado: 'd8',
+                    faces: 8,
+                    criadoEm: '2026-07-13T12:00:00.000Z',
+                  },
+                },
+              },
+            }
+          : null,
+      ),
+    };
+    (prisma as any).eventoSessao.create = jest
+      .fn()
+      .mockImplementation((input) =>
+        Promise.resolve({
+          id: 55,
+          criadoEm: new Date('2026-07-13T12:00:00.000Z'),
+          dados: input.data.dados,
+          personagemAtor: {
+            personagemCampanha: {
+              nome: 'Yuji',
+              donoId: 10,
+              dono: { apelido: 'Jogador' },
+            },
+          },
+        }),
+      );
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+        callback(prisma),
+    );
+  }
+
+  it('gera e persiste rolagem autoritativa sem aceitar resultados do cliente', async () => {
+    configurarRolagemAutoritativa();
+
+    const resultado = await service.criarRolagemFormulaSessao(7, 21, 10, {
+      tipo: 'FORMULA',
+      expressao: 'ataque:2d6+3',
+      clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+    });
+
+    expect(resultado.mensagem).toContain('[[dice:v3|');
+    expect(resultado.dadosRolagem).toMatchObject({
+      versao: 1,
+      origem: 'SERVIDOR',
+      clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+      expressaoOriginal: 'ataque:2d6+3',
+    });
+    const payload = (resultado.dadosRolagem as any).payloads[0];
+    expect(payload.rolagens).toHaveLength(2);
+    expect(
+      payload.rolagens.every((valor: number) => valor >= 1 && valor <= 6),
+    ).toBe(true);
+    expect((prisma as any).eventoSessao.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejeita d20 autoritativo quando existe Perito pendente', async () => {
+    configurarRolagemAutoritativa({ peritoPendente: true });
+
+    await expect(
+      service.criarRolagemFormulaSessao(7, 21, 10, {
+        tipo: 'FORMULA',
+        expressao: '2d20',
+        clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+      }),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_ROLAGEM_REQUER_FLUXO_MECANICO',
+    });
+    expect((prisma as any).eventoSessao.create).not.toHaveBeenCalled();
+  });
+
+  it('marca payload de rolagem enviado pelo chat como cliente legado', () => {
+    expect(
+      (service as any).marcarRolagemClienteLegado('1d20 [[dice:v3|abc]]', {
+        origem: 'SERVIDOR',
+        payloads: [],
+      }),
+    ).toEqual({
+      origem: 'CLIENTE_LEGADO',
+      payloads: [],
+    });
   });
 
   it('não sincroniza condições automáticas ao ler detalhe encerrado', async () => {
