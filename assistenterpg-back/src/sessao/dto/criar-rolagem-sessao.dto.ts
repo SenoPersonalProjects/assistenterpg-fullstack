@@ -88,6 +88,19 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
         );
       }
     }
+    if (dto.tipo === 'DANO_NPC') {
+      return (
+        dto.expressao === undefined &&
+        dto.personagemSessaoId === undefined &&
+        Number.isInteger(dto.npcSessaoId) &&
+        dto.periciaCodigo === undefined &&
+        dto.origemAtaque === undefined &&
+        dto.origemDano === 'ACAO' &&
+        Number.isInteger(dto.acaoIndice) &&
+        Number(dto.acaoIndice) >= 0 &&
+        dto.contexto === undefined
+      );
+    }
     return false;
   }
 
@@ -104,10 +117,11 @@ export class CriarRolagemSessaoDto {
       'ATAQUE_PERSONAGEM',
       'PERICIA_NPC',
       'ATAQUE_NPC',
+      'DANO_NPC',
     ],
     {
       message:
-        'tipo deve ser FORMULA, PERICIA_PERSONAGEM, ATAQUE_PERSONAGEM, PERICIA_NPC ou ATAQUE_NPC',
+        'tipo deve ser FORMULA, PERICIA_PERSONAGEM, ATAQUE_PERSONAGEM, PERICIA_NPC, ATAQUE_NPC ou DANO_NPC',
     },
   )
   @Validate(RolagemSessaoPayloadCompativelConstraint)
@@ -116,7 +130,8 @@ export class CriarRolagemSessaoDto {
     | 'PERICIA_PERSONAGEM'
     | 'ATAQUE_PERSONAGEM'
     | 'PERICIA_NPC'
-    | 'ATAQUE_NPC';
+    | 'ATAQUE_NPC'
+    | 'DANO_NPC';
 
   @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'FORMULA')
   @IsString({ message: 'expressao deve ser texto' })
@@ -135,7 +150,9 @@ export class CriarRolagemSessaoDto {
 
   @ValidateIf(
     (dto: CriarRolagemSessaoDto) =>
-      dto.tipo === 'PERICIA_NPC' || dto.tipo === 'ATAQUE_NPC',
+      dto.tipo === 'PERICIA_NPC' ||
+      dto.tipo === 'ATAQUE_NPC' ||
+      dto.tipo === 'DANO_NPC',
   )
   @Type(() => Number)
   @IsInt({ message: 'npcSessaoId deve ser um numero inteiro' })
@@ -160,9 +177,16 @@ export class CriarRolagemSessaoDto {
   })
   origemAtaque?: 'PERICIA' | 'ACAO';
 
+  @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'DANO_NPC')
+  @IsIn(['ACAO'], {
+    message: 'origemDano deve ser ACAO',
+  })
+  origemDano?: 'ACAO';
+
   @ValidateIf(
     (dto: CriarRolagemSessaoDto) =>
-      dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'ACAO',
+      (dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'ACAO') ||
+      dto.tipo === 'DANO_NPC',
   )
   @Type(() => Number)
   @IsInt({ message: 'acaoIndice deve ser um numero inteiro' })
@@ -226,7 +250,15 @@ export type CriarRolagemAtaqueNpcAcaoSessaoDto = CriarRolagemSessaoDto & {
   acaoIndice: number;
 };
 
+export type CriarRolagemDanoNpcAcaoSessaoDto = CriarRolagemSessaoDto & {
+  tipo: 'DANO_NPC';
+  origemDano: 'ACAO';
+  npcSessaoId: number;
+  acaoIndice: number;
+};
+
 export type CriarRolagemMecanicaNpcSessaoDto =
   | CriarRolagemPericiaNpcSessaoDto
   | CriarRolagemAtaqueNpcPericiaSessaoDto
-  | CriarRolagemAtaqueNpcAcaoSessaoDto;
+  | CriarRolagemAtaqueNpcAcaoSessaoDto
+  | CriarRolagemDanoNpcAcaoSessaoDto;

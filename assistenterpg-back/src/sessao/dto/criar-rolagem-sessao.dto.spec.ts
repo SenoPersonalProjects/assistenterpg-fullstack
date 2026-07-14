@@ -87,6 +87,61 @@ describe('CriarRolagemSessaoDto', () => {
     );
   });
 
+  it('aceita intencao de dano de acao de NPC sem formula calculada', async () => {
+    const payload = {
+      tipo: 'DANO_NPC',
+      origemDano: 'ACAO',
+      npcSessaoId: 71,
+      acaoIndice: 2,
+      clientRequestId: '61a379d8-6eaf-4e96-bd9c-bd3c244cb28b',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
+  it.each([
+    'expressao',
+    'dados',
+    'total',
+    'critico',
+    'bonus',
+    'alvoId',
+    'rd',
+    'resultado',
+  ])('rejeita campo calculado %s na intencao de dano de NPC', async (campo) => {
+    await expect(
+      pipe.transform(
+        {
+          tipo: 'DANO_NPC',
+          origemDano: 'ACAO',
+          npcSessaoId: 71,
+          acaoIndice: 2,
+          clientRequestId: '61a379d8-6eaf-4e96-bd9c-bd3c244cb28b',
+          [campo]: campo === 'expressao' ? '2d8+3' : 20,
+        },
+        metadata,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('rejeita contexto mecanico na intencao de dano de NPC', async () => {
+    await expect(
+      pipe.transform(
+        {
+          tipo: 'DANO_NPC',
+          origemDano: 'ACAO',
+          npcSessaoId: 71,
+          acaoIndice: 2,
+          contexto: { dt: 18 },
+          clientRequestId: '61a379d8-6eaf-4e96-bd9c-bd3c244cb28b',
+        },
+        metadata,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
   it.each(['dados', 'total', 'critico', 'bonus', 'bonusEscalada', 'marcador'])(
     'rejeita campo calculado %s na intencao de NPC',
     async (campo) => {

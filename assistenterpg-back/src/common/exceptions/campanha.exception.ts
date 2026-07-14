@@ -405,6 +405,36 @@ export class SessaoNpcAcaoRolagemInvalidaException extends BusinessException {
   }
 }
 
+export class SessaoNpcAcaoNaoEncontradaException extends BusinessException {
+  constructor(npcSessaoId: number, acaoIndice: number) {
+    super(
+      'A acao selecionada nao foi encontrada neste NPC/Ameaca.',
+      'SESSAO_NPC_ACAO_NAO_ENCONTRADA',
+      { npcSessaoId, acaoIndice },
+    );
+  }
+}
+
+export class SessaoNpcAcaoSemDanoException extends BusinessException {
+  constructor(npcSessaoId: number, acaoIndice: number) {
+    super(
+      'A acao selecionada nao possui dano configurado.',
+      'SESSAO_NPC_ACAO_SEM_DANO',
+      { npcSessaoId, acaoIndice },
+    );
+  }
+}
+
+export class SessaoNpcAcaoDanoInvalidoException extends BusinessException {
+  constructor(npcSessaoId: number, acaoIndice: number) {
+    super(
+      'A acao selecionada nao possui formula de dano autoritativa valida.',
+      'SESSAO_NPC_ACAO_DANO_INVALIDO',
+      { npcSessaoId, acaoIndice },
+    );
+  }
+}
+
 export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(
