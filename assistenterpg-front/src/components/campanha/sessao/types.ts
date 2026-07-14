@@ -50,6 +50,7 @@ export type AlvoCondicoesModal = {
 
 export type RolagemPericiaSessaoPayload = {
   alvoTipo: 'PERSONAGEM' | 'NPC';
+  tipoRolagem?: 'PERICIA' | 'ATAQUE';
   alvoNome: string;
   personagemSessaoId?: number;
   personagemCampanhaId?: number;

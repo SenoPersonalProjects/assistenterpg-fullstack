@@ -22,6 +22,7 @@ import {
   apiAdicionarPersonagemSessaoCampanha,
   apiAtualizarNucleoPersonagemCampanha,
   apiEnviarMensagemChatSessaoCampanha,
+  apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiRemoverPersonagemSessaoCampanha,
   apiSacrificarNucleoPersonagemCampanha,
@@ -150,7 +151,9 @@ import {
   validarComprimentoMensagemDice,
 } from '@/lib/campanha/sessao-dice';
 import {
+  deveUsarRolagemAtaqueAutoritativa,
   deveUsarRolagemPericiaAutoritativa,
+  montarIntencaoRolagemAtaquePersonagem,
   montarIntencaoRolagemPericiaPersonagem,
 } from '@/lib/campanha/sessao-rolagem-pericia';
 
@@ -1707,23 +1710,34 @@ export default function SessaoCampanhaPage() {
         showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
-      if (deveUsarRolagemPericiaAutoritativa(payload)) {
-        let intencao: ReturnType<
-          typeof montarIntencaoRolagemPericiaPersonagem
-        >;
+      const usarAtaqueAutoritativo =
+        deveUsarRolagemAtaqueAutoritativa(payload);
+      if (
+        usarAtaqueAutoritativo ||
+        deveUsarRolagemPericiaAutoritativa(payload)
+      ) {
+        let intencao:
+          | ReturnType<typeof montarIntencaoRolagemPericiaPersonagem>
+          | ReturnType<typeof montarIntencaoRolagemAtaquePersonagem>;
         try {
-          intencao = montarIntencaoRolagemPericiaPersonagem(
-            payload,
-            visibilidadeRolagemAtual,
-            criarClientRequestIdRolagem(),
-          );
+          intencao = usarAtaqueAutoritativo
+            ? montarIntencaoRolagemAtaquePersonagem(
+                payload,
+                visibilidadeRolagemAtual,
+                criarClientRequestIdRolagem(),
+              )
+            : montarIntencaoRolagemPericiaPersonagem(
+                payload,
+                visibilidadeRolagemAtual,
+                criarClientRequestIdRolagem(),
+              );
         } catch (error) {
           const userError = criarErroUsuario(error);
           setErroRolagens(userError);
           showToast(userError.message, 'warning');
           return;
         }
-        const chaveRolagem = `${intencao.personagemSessaoId}:${intencao.periciaCodigo}`;
+        const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.periciaCodigo}`;
         if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
         rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
 
@@ -1739,7 +1753,9 @@ export default function SessaoCampanhaPage() {
         });
         setPericiaRollModal({
           aberto: true,
-          titulo: payload.periciaNome,
+          titulo: usarAtaqueAutoritativo
+            ? `Ataque · ${payload.periciaNome}`
+            : payload.periciaNome,
           subtitulo: payload.atributoBase
             ? `${payload.alvoNome} · ${payload.atributoBase}`
             : payload.alvoNome,
@@ -1758,20 +1774,30 @@ export default function SessaoCampanhaPage() {
         });
         try {
           const enviada =
-            await apiCriarRolagemPericiaPersonagemSessaoCampanha(
-              campanhaId,
-              sessaoId,
-              intencao,
-            );
+            intencao.tipo === 'ATAQUE_PERSONAGEM'
+              ? await apiCriarRolagemAtaquePersonagemSessaoCampanha(
+                  campanhaId,
+                  sessaoId,
+                  intencao,
+                )
+              : await apiCriarRolagemPericiaPersonagemSessaoCampanha(
+                  campanhaId,
+                  sessaoId,
+                  intencao,
+                );
           const dadosServidor = extrairDadosRolagemServidor(
             enviada.dadosRolagem,
           );
           if (
             !dadosServidor ||
-            dadosServidor.tipo !== 'PERICIA_PERSONAGEM' ||
+            dadosServidor.tipo !== intencao.tipo ||
             !dadosServidor.payloads[0]
           ) {
-            throw new Error('Resposta autoritativa de perícia inválida.');
+            throw new Error(
+              usarAtaqueAutoritativo
+                ? 'Resposta autoritativa de ataque inválida.'
+                : 'Resposta autoritativa de perícia inválida.',
+            );
           }
           setChat((anterior) =>
             anterior.some((mensagem) => mensagem.id === enviada.id)

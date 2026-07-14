@@ -139,9 +139,30 @@ export type DadosRolagemPericiaServidorSessao = {
   };
 };
 
+export type DadosRolagemAtaqueServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'ATAQUE_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  periciaCodigo: string;
+  bonusBase: number;
+  bonusEscalada: number;
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: {
+    total: number;
+    dt: number | null;
+    sucesso: boolean | null;
+    falhaCritica: boolean;
+  };
+};
+
 export type DadosRolagemServidorSessao =
   | DadosRolagemFormulaServidorSessao
-  | DadosRolagemPericiaServidorSessao;
+  | DadosRolagemPericiaServidorSessao
+  | DadosRolagemAtaqueServidorSessao;
 
 type NodeBufferLike = {
   from: (input: string, encoding: string) => { toString: (encoding: string) => string };
@@ -667,7 +688,10 @@ export function extrairDadosRolagemServidor(
   ) {
     return null;
   }
-  if (registro.tipo === 'PERICIA_PERSONAGEM') {
+  if (
+    registro.tipo === 'PERICIA_PERSONAGEM' ||
+    registro.tipo === 'ATAQUE_PERSONAGEM'
+  ) {
     if (
       !Number.isInteger(registro.personagemSessaoId) ||
       !Number.isInteger(registro.personagemCampanhaId) ||
@@ -679,7 +703,18 @@ export function extrairDadosRolagemServidor(
     ) {
       return null;
     }
-    return registro as DadosRolagemPericiaServidorSessao;
+    if (
+      registro.tipo === 'ATAQUE_PERSONAGEM' &&
+      (typeof registro.bonusBase !== 'number' ||
+        !Number.isFinite(registro.bonusBase) ||
+        typeof registro.bonusEscalada !== 'number' ||
+        !Number.isFinite(registro.bonusEscalada))
+    ) {
+      return null;
+    }
+    return registro as
+      | DadosRolagemPericiaServidorSessao
+      | DadosRolagemAtaqueServidorSessao;
   }
   if (typeof registro.expressaoOriginal !== 'string') return null;
   return registro as DadosRolagemServidorSessao;

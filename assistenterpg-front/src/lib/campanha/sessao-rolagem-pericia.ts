@@ -9,10 +9,48 @@ export type IntencaoRolagemPericiaPersonagem = {
   clientRequestId: string;
 };
 
+export type IntencaoRolagemAtaquePersonagem = {
+  tipo: 'ATAQUE_PERSONAGEM';
+  personagemSessaoId: number;
+  periciaCodigo: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contexto?: { dt?: number };
+  clientRequestId: string;
+};
+
+export const PERICIAS_ATAQUE_PERSONAGEM = [
+  'LUTA',
+  'PONTARIA',
+  'JUJUTSU',
+] as const;
+
+const PERICIAS_ATAQUE_PERSONAGEM_SET = new Set<string>(
+  PERICIAS_ATAQUE_PERSONAGEM,
+);
+
+export function periciaPermiteAtaquePersonagem(
+  periciaCodigo?: string | null,
+): boolean {
+  return PERICIAS_ATAQUE_PERSONAGEM_SET.has(
+    periciaCodigo?.trim().toUpperCase() ?? '',
+  );
+}
+
 export function deveUsarRolagemPericiaAutoritativa(
   payload: RolagemPericiaSessaoPayload,
 ): boolean {
-  return payload.alvoTipo === 'PERSONAGEM';
+  return (
+    payload.alvoTipo === 'PERSONAGEM' && payload.tipoRolagem !== 'ATAQUE'
+  );
+}
+
+export function deveUsarRolagemAtaqueAutoritativa(
+  payload: RolagemPericiaSessaoPayload,
+): boolean {
+  return (
+    payload.alvoTipo === 'PERSONAGEM' &&
+    payload.tipoRolagem === 'ATAQUE'
+  );
 }
 
 export function montarIntencaoRolagemPericiaPersonagem(
@@ -31,6 +69,27 @@ export function montarIntencaoRolagemPericiaPersonagem(
     tipo: 'PERICIA_PERSONAGEM',
     personagemSessaoId: Number(payload.personagemSessaoId),
     periciaCodigo: payload.periciaCodigo.trim().toUpperCase(),
+    visibilidade,
+    clientRequestId,
+  };
+}
+
+export function montarIntencaoRolagemAtaquePersonagem(
+  payload: RolagemPericiaSessaoPayload,
+  visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
+  clientRequestId: string,
+): IntencaoRolagemAtaquePersonagem {
+  if (
+    !Number.isInteger(payload.personagemSessaoId) ||
+    Number(payload.personagemSessaoId) <= 0 ||
+    !periciaPermiteAtaquePersonagem(payload.periciaCodigo)
+  ) {
+    throw new Error('Personagem ou pericia invalidos para o ataque.');
+  }
+  return {
+    tipo: 'ATAQUE_PERSONAGEM',
+    personagemSessaoId: Number(payload.personagemSessaoId),
+    periciaCodigo: payload.periciaCodigo!.trim().toUpperCase(),
     visibilidade,
     clientRequestId,
   };

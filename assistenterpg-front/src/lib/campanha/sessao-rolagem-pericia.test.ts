@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  deveUsarRolagemAtaqueAutoritativa,
   deveUsarRolagemPericiaAutoritativa,
+  montarIntencaoRolagemAtaquePersonagem,
   montarIntencaoRolagemPericiaPersonagem,
+  periciaPermiteAtaquePersonagem,
 } from './sessao-rolagem-pericia';
 
 const personagem = {
@@ -46,5 +49,64 @@ describe('sessao-rolagem-pericia', () => {
         personagemSessaoId: undefined,
       }),
     ).toBe(false);
+  });
+
+  it.each(['LUTA', 'PONTARIA', 'JUJUTSU'])(
+    'reconhece %s como pericia de ataque',
+    (periciaCodigo) => {
+      expect(periciaPermiteAtaquePersonagem(periciaCodigo)).toBe(true);
+    },
+  );
+
+  it('monta ataque autoritativo sem bonus ou resultado do cliente', () => {
+    const ataque = {
+      ...personagem,
+      tipoRolagem: 'ATAQUE' as const,
+      periciaCodigo: ' luta ',
+      periciaNome: 'Luta',
+    };
+
+    expect(deveUsarRolagemAtaqueAutoritativa(ataque)).toBe(true);
+    expect(deveUsarRolagemPericiaAutoritativa(ataque)).toBe(false);
+    expect(
+      montarIntencaoRolagemAtaquePersonagem(
+        ataque,
+        'PUBLICA',
+        '6ff62ec2-a60e-4de8-99cf-6018cf83a68d',
+      ),
+    ).toEqual({
+      tipo: 'ATAQUE_PERSONAGEM',
+      personagemSessaoId: 31,
+      periciaCodigo: 'LUTA',
+      visibilidade: 'PUBLICA',
+      clientRequestId: '6ff62ec2-a60e-4de8-99cf-6018cf83a68d',
+    });
+  });
+
+  it('mantem Luta generica como pericia e ataque de NPC no legado', () => {
+    const lutaGenerica = {
+      ...personagem,
+      periciaCodigo: 'LUTA',
+      periciaNome: 'Luta',
+    };
+    expect(deveUsarRolagemPericiaAutoritativa(lutaGenerica)).toBe(true);
+    expect(deveUsarRolagemAtaqueAutoritativa(lutaGenerica)).toBe(false);
+    expect(
+      deveUsarRolagemAtaqueAutoritativa({
+        ...lutaGenerica,
+        alvoTipo: 'NPC',
+        tipoRolagem: 'ATAQUE',
+      }),
+    ).toBe(false);
+  });
+
+  it('rejeita pericia incompatível ao montar ataque autoritativo', () => {
+    expect(() =>
+      montarIntencaoRolagemAtaquePersonagem(
+        { ...personagem, tipoRolagem: 'ATAQUE' },
+        'PUBLICA',
+        '6ff62ec2-a60e-4de8-99cf-6018cf83a68d',
+      ),
+    ).toThrow('Personagem ou pericia invalidos para o ataque.');
   });
 });

@@ -834,4 +834,31 @@ describe('sessao-dice autoritativo', () => {
 
     expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
   });
+
+  it('aceita metadados autoritativos de ataque de personagem', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'ATAQUE_PERSONAGEM',
+      clientRequestId: '6ff62ec2-a60e-4de8-99cf-6018cf83a68d',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      periciaCodigo: 'LUTA',
+      bonusBase: 10,
+      bonusEscalada: 3,
+      formulaResolvida: '2#d20+13',
+      payloads: [criarPayloadComRolagens('2#d20+13', [[5, 18]])],
+      resultado: {
+        total: 31,
+        dt: null,
+        sucesso: null,
+        falhaCritica: false,
+      },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, bonusEscalada: '3' }),
+    ).toBeNull();
+  });
 });

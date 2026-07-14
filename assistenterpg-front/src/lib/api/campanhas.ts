@@ -1196,6 +1196,15 @@ export type CriarRolagemPericiaPersonagemSessaoPayload = {
   clientRequestId: string;
 };
 
+export type CriarRolagemAtaquePersonagemSessaoPayload = {
+  tipo: 'ATAQUE_PERSONAGEM';
+  personagemSessaoId: number;
+  periciaCodigo: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contexto?: { dt?: number };
+  clientRequestId: string;
+};
+
 export async function apiCriarRolagemFormulaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1212,6 +1221,18 @@ export async function apiCriarRolagemPericiaPersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   payload: CriarRolagemPericiaPersonagemSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemAtaquePersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemAtaquePersonagemSessaoPayload,
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,

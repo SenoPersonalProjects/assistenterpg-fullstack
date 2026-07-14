@@ -30,6 +30,7 @@ import {
   entidadeVinculadaAtivaNestaSessao,
   podeInvocarEntidadeVinculada,
 } from '@/lib/campanha/entidades-vinculadas';
+import { periciaPermiteAtaquePersonagem } from '@/lib/campanha/sessao-rolagem-pericia';
 
 type AprimoradoModalState = {
   habilidadeId: number;
@@ -311,7 +312,10 @@ export function SessionCharacterDetailsTabs({
     { codigo: 'VIG', label: 'Vigor', valor: atributos?.vigor },
   ];
 
-  const handleRolarPericia = (pericia: (typeof periciasOrdenadas)[number]) => {
+  const handleRolarPericia = (
+    pericia: (typeof periciasOrdenadas)[number],
+    tipoRolagem: 'PERICIA' | 'ATAQUE' = 'PERICIA',
+  ) => {
     if (!card.atributos) return;
     const atributoCodigo = pericia.atributoBase as AtributoBaseCodigo;
     const valorAtributo =
@@ -319,6 +323,7 @@ export function SessionCharacterDetailsTabs({
     const { dados, keepMode } = calcularDadosPericiaPorAtributo(valorAtributo);
     onRolarPericia({
       alvoTipo: 'PERSONAGEM',
+      tipoRolagem,
       alvoNome: card.nomePersonagem,
       personagemSessaoId: card.personagemSessaoId,
       personagemCampanhaId: card.personagemCampanhaId,
@@ -801,15 +806,32 @@ export function SessionCharacterDetailsTabs({
                             {totalLabel}
                           </span>
                           {card.podeEditar ? (
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              className="session-pericia-card__roll"
-                              onClick={() => handleRolarPericia(pericia)}
-                              title={`Rolar ${pericia.nome}`}
-                            >
-                              <Icon name="dice" className="h-3.5 w-3.5" />
-                            </Button>
+                            <>
+                              <Button
+                                size="xs"
+                                variant="ghost"
+                                className="session-pericia-card__roll"
+                                onClick={() => handleRolarPericia(pericia)}
+                                title={`Rolar ${pericia.nome} como perícia`}
+                                aria-label={`Rolar ${pericia.nome} como perícia`}
+                              >
+                                <Icon name="dice" className="h-3.5 w-3.5" />
+                              </Button>
+                              {periciaPermiteAtaquePersonagem(pericia.codigo) ? (
+                                <Button
+                                  size="xs"
+                                  variant="ghost"
+                                  className="session-pericia-card__roll"
+                                  onClick={() =>
+                                    handleRolarPericia(pericia, 'ATAQUE')
+                                  }
+                                  title={`Rolar ataque com ${pericia.nome}`}
+                                  aria-label={`Rolar ataque com ${pericia.nome}`}
+                                >
+                                  <Icon name="sword" className="h-3.5 w-3.5" />
+                                </Button>
+                              ) : null}
+                            </>
                           ) : null}
                         </div>
                       </div>

@@ -250,6 +250,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta tentativa de rolagem já foi usada com outros dados. Tente novamente.",
   SESSAO_PERICIA_NAO_ENCONTRADA:
     "A perícia informada não foi encontrada para este personagem.",
+  SESSAO_PERICIA_ATAQUE_INVALIDA:
+    "Esta perícia não pode ser usada como ataque de personagem.",
   SESSAO_EFEITOS_TURNO_PENDENTES:
     "Existem efeitos automáticos de turno pendentes. Reprocesse-os antes de continuar.",
   SESSAO_EFEITOS_TURNO_FALHARAM:

@@ -51,6 +51,7 @@ import {
   apiRemoverNpcSessaoCampanha,
   apiReprocessarEfeitosTurnoSessaoCampanha,
   apiRecusarConvite,
+  apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemFormulaSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
@@ -786,6 +787,29 @@ describe('campanhas api cache and dedupe', () => {
       '/campanhas/44/sessoes/13/rolagens',
       payload,
     );
+  });
+
+  it('envia somente a intencao autoritativa do ataque do personagem', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 95, mensagem: 'Luta [[dice:v4|test]]' },
+    });
+    const payload = {
+      tipo: 'ATAQUE_PERSONAGEM' as const,
+      personagemSessaoId: 31,
+      periciaCodigo: 'LUTA',
+      visibilidade: 'PUBLICA' as const,
+      clientRequestId: '6ff62ec2-a60e-4de8-99cf-6018cf83a68d',
+    };
+
+    await apiCriarRolagemAtaquePersonagemSessaoCampanha(44, 13, payload);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(payload).not.toHaveProperty('bonus');
+    expect(payload).not.toHaveProperty('dadosRolagem');
+    expect(payload).not.toHaveProperty('total');
   });
 
   it('sends secret master roll visibility through session chat', async () => {
