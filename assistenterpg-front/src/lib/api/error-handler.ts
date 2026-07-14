@@ -252,6 +252,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "A perícia informada não foi encontrada para este personagem.",
   SESSAO_PERICIA_ATAQUE_INVALIDA:
     "Esta perícia não pode ser usada como ataque de personagem.",
+  SESSAO_NPC_PERICIA_NAO_ENCONTRADA:
+    "A perícia informada não foi encontrada para este NPC/Ameaça.",
+  SESSAO_NPC_PERICIA_ATAQUE_INVALIDA:
+    "Esta perícia não pode ser usada como ataque de NPC/Ameaça.",
+  SESSAO_NPC_ACAO_ROLAGEM_INVALIDA:
+    "A ação selecionada não possui um teste válido para rolagem no servidor.",
   SESSAO_EFEITOS_TURNO_PENDENTES:
     "Existem efeitos automáticos de turno pendentes. Reprocesse-os antes de continuar.",
   SESSAO_EFEITOS_TURNO_FALHARAM:

@@ -159,10 +159,34 @@ export type DadosRolagemAtaqueServidorSessao = {
   };
 };
 
+export type DadosRolagemNpcServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'PERICIA_NPC' | 'ATAQUE_NPC';
+  clientRequestId: string;
+  npcSessaoId: number;
+  npcAmeacaId: number | null;
+  entidadeVinculadaId: number | null;
+  periciaCodigo: string | null;
+  origemAtaque: 'PERICIA' | 'ACAO' | null;
+  acaoIndice: number | null;
+  acaoNome: string | null;
+  bonusBase: number | null;
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: {
+    total: number;
+    dt: number | null;
+    sucesso: boolean | null;
+    falhaCritica: false;
+  };
+};
+
 export type DadosRolagemServidorSessao =
   | DadosRolagemFormulaServidorSessao
   | DadosRolagemPericiaServidorSessao
-  | DadosRolagemAtaqueServidorSessao;
+  | DadosRolagemAtaqueServidorSessao
+  | DadosRolagemNpcServidorSessao;
 
 type NodeBufferLike = {
   from: (input: string, encoding: string) => { toString: (encoding: string) => string };
@@ -715,6 +739,22 @@ export function extrairDadosRolagemServidor(
     return registro as
       | DadosRolagemPericiaServidorSessao
       | DadosRolagemAtaqueServidorSessao;
+  }
+  if (registro.tipo === 'PERICIA_NPC' || registro.tipo === 'ATAQUE_NPC') {
+    if (
+      !Number.isInteger(registro.npcSessaoId) ||
+      typeof registro.formulaResolvida !== 'string' ||
+      !registro.resultado ||
+      typeof registro.resultado !== 'object' ||
+      Array.isArray(registro.resultado) ||
+      (registro.periciaCodigo !== null &&
+        typeof registro.periciaCodigo !== 'string') ||
+      (registro.acaoIndice !== null &&
+        !Number.isInteger(registro.acaoIndice))
+    ) {
+      return null;
+    }
+    return registro as DadosRolagemNpcServidorSessao;
   }
   if (typeof registro.expressaoOriginal !== 'string') return null;
   return registro as DadosRolagemServidorSessao;

@@ -28,13 +28,15 @@ const PERICIAS_ATAQUE_PERSONAGEM_SET = new Set<string>(
   PERICIAS_ATAQUE_PERSONAGEM,
 );
 
-export function periciaPermiteAtaquePersonagem(
+export function periciaPermiteAtaqueSessao(
   periciaCodigo?: string | null,
 ): boolean {
   return PERICIAS_ATAQUE_PERSONAGEM_SET.has(
     periciaCodigo?.trim().toUpperCase() ?? '',
   );
 }
+
+export const periciaPermiteAtaquePersonagem = periciaPermiteAtaqueSessao;
 
 export function deveUsarRolagemPericiaAutoritativa(
   payload: RolagemPericiaSessaoPayload,
@@ -82,7 +84,7 @@ export function montarIntencaoRolagemAtaquePersonagem(
   if (
     !Number.isInteger(payload.personagemSessaoId) ||
     Number(payload.personagemSessaoId) <= 0 ||
-    !periciaPermiteAtaquePersonagem(payload.periciaCodigo)
+    !periciaPermiteAtaqueSessao(payload.periciaCodigo)
   ) {
     throw new Error('Personagem ou pericia invalidos para o ataque.');
   }

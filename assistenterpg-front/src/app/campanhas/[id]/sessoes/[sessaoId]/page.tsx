@@ -23,6 +23,8 @@ import {
   apiAtualizarNucleoPersonagemCampanha,
   apiEnviarMensagemChatSessaoCampanha,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
+  apiCriarRolagemAtaqueNpcSessaoCampanha,
+  apiCriarRolagemPericiaNpcSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiRemoverPersonagemSessaoCampanha,
   apiSacrificarNucleoPersonagemCampanha,
@@ -95,6 +97,7 @@ import {
   type CampoAjusteRecursoNpc,
   type HabilidadeRollContext,
   type NpcEditavel,
+  type RolagemAtaqueNpcAcaoSessaoPayload,
   type RolagemDanoHabilidadeSessaoPayload,
   type RolagemExpressaoSessaoPayload,
   type RolagemPericiaSessaoPayload,
@@ -156,6 +159,13 @@ import {
   montarIntencaoRolagemAtaquePersonagem,
   montarIntencaoRolagemPericiaPersonagem,
 } from '@/lib/campanha/sessao-rolagem-pericia';
+import {
+  deveUsarRolagemAtaqueNpcAutoritativa,
+  deveUsarRolagemPericiaNpcAutoritativa,
+  montarIntencaoRolagemAtaqueNpcAcao,
+  montarIntencaoRolagemAtaqueNpcPericia,
+  montarIntencaoRolagemPericiaNpc,
+} from '@/lib/campanha/sessao-rolagem-npc';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -1712,32 +1722,56 @@ export default function SessaoCampanhaPage() {
       }
       const usarAtaqueAutoritativo =
         deveUsarRolagemAtaqueAutoritativa(payload);
+      const usarPericiaNpcAutoritativa =
+        deveUsarRolagemPericiaNpcAutoritativa(payload);
+      const usarAtaqueNpcAutoritativo =
+        deveUsarRolagemAtaqueNpcAutoritativa(payload);
       if (
         usarAtaqueAutoritativo ||
-        deveUsarRolagemPericiaAutoritativa(payload)
+        deveUsarRolagemPericiaAutoritativa(payload) ||
+        usarPericiaNpcAutoritativa ||
+        usarAtaqueNpcAutoritativo
       ) {
         let intencao:
           | ReturnType<typeof montarIntencaoRolagemPericiaPersonagem>
-          | ReturnType<typeof montarIntencaoRolagemAtaquePersonagem>;
+          | ReturnType<typeof montarIntencaoRolagemAtaquePersonagem>
+          | ReturnType<typeof montarIntencaoRolagemPericiaNpc>
+          | ReturnType<typeof montarIntencaoRolagemAtaqueNpcPericia>;
         try {
-          intencao = usarAtaqueAutoritativo
-            ? montarIntencaoRolagemAtaquePersonagem(
+          intencao = usarAtaqueNpcAutoritativo
+            ? montarIntencaoRolagemAtaqueNpcPericia(
                 payload,
                 visibilidadeRolagemAtual,
                 criarClientRequestIdRolagem(),
               )
-            : montarIntencaoRolagemPericiaPersonagem(
-                payload,
-                visibilidadeRolagemAtual,
-                criarClientRequestIdRolagem(),
-              );
+            : usarPericiaNpcAutoritativa
+              ? montarIntencaoRolagemPericiaNpc(
+                  payload,
+                  visibilidadeRolagemAtual,
+                  criarClientRequestIdRolagem(),
+                )
+              : usarAtaqueAutoritativo
+                ? montarIntencaoRolagemAtaquePersonagem(
+                    payload,
+                    visibilidadeRolagemAtual,
+                    criarClientRequestIdRolagem(),
+                  )
+                : montarIntencaoRolagemPericiaPersonagem(
+                    payload,
+                    visibilidadeRolagemAtual,
+                    criarClientRequestIdRolagem(),
+                  );
         } catch (error) {
           const userError = criarErroUsuario(error);
           setErroRolagens(userError);
           showToast(userError.message, 'warning');
           return;
         }
-        const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.periciaCodigo}`;
+        const alvoId =
+          'personagemSessaoId' in intencao
+            ? intencao.personagemSessaoId
+            : intencao.npcSessaoId;
+        const chaveRolagem = `${intencao.tipo}:${alvoId}:${intencao.periciaCodigo}`;
         if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
         rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
 
@@ -1753,7 +1787,7 @@ export default function SessaoCampanhaPage() {
         });
         setPericiaRollModal({
           aberto: true,
-          titulo: usarAtaqueAutoritativo
+          titulo: usarAtaqueAutoritativo || usarAtaqueNpcAutoritativo
             ? `Ataque · ${payload.periciaNome}`
             : payload.periciaNome,
           subtitulo: payload.atributoBase
@@ -1774,17 +1808,29 @@ export default function SessaoCampanhaPage() {
         });
         try {
           const enviada =
-            intencao.tipo === 'ATAQUE_PERSONAGEM'
-              ? await apiCriarRolagemAtaquePersonagemSessaoCampanha(
+            intencao.tipo === 'ATAQUE_NPC'
+              ? await apiCriarRolagemAtaqueNpcSessaoCampanha(
                   campanhaId,
                   sessaoId,
                   intencao,
                 )
-              : await apiCriarRolagemPericiaPersonagemSessaoCampanha(
-                  campanhaId,
-                  sessaoId,
-                  intencao,
-                );
+              : intencao.tipo === 'PERICIA_NPC'
+                ? await apiCriarRolagemPericiaNpcSessaoCampanha(
+                    campanhaId,
+                    sessaoId,
+                    intencao,
+                  )
+                : intencao.tipo === 'ATAQUE_PERSONAGEM'
+                  ? await apiCriarRolagemAtaquePersonagemSessaoCampanha(
+                      campanhaId,
+                      sessaoId,
+                      intencao,
+                    )
+                  : await apiCriarRolagemPericiaPersonagemSessaoCampanha(
+                      campanhaId,
+                      sessaoId,
+                      intencao,
+                    );
           const dadosServidor = extrairDadosRolagemServidor(
             enviada.dadosRolagem,
           );
@@ -1794,7 +1840,7 @@ export default function SessaoCampanhaPage() {
             !dadosServidor.payloads[0]
           ) {
             throw new Error(
-              usarAtaqueAutoritativo
+              usarAtaqueAutoritativo || usarAtaqueNpcAutoritativo
                 ? 'Resposta autoritativa de ataque inválida.'
                 : 'Resposta autoritativa de perícia inválida.',
             );
@@ -1955,6 +2001,109 @@ export default function SessaoCampanhaPage() {
       setErroRolagens,
       showToast,
       sincronizarTempoReal,
+      visibilidadeRolagemAtual,
+    ],
+  );
+
+  const handleRolarAtaqueNpcAcao = useCallback(
+    async (payload: RolagemAtaqueNpcAcaoSessaoPayload) => {
+      if (sessaoEncerrada) {
+        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        return;
+      }
+      const preview = parseDiceExpression(payload.expressaoPreview);
+      if (preview.erro || !preview.expression) {
+        showToast(preview.erro ?? 'Teste da ação inválido.', 'warning');
+        return;
+      }
+
+      let intencao: ReturnType<typeof montarIntencaoRolagemAtaqueNpcAcao>;
+      try {
+        intencao = montarIntencaoRolagemAtaqueNpcAcao(
+          payload,
+          visibilidadeRolagemAtual,
+          criarClientRequestIdRolagem(),
+        );
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        showToast(userError.message, 'warning');
+        return;
+      }
+
+      const chaveRolagem = `${intencao.tipo}:${intencao.npcSessaoId}:ACAO:${intencao.acaoIndice}`;
+      if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+      rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
+      setPericiaRollModal({
+        aberto: true,
+        titulo: `${payload.acaoNome} · Teste`,
+        subtitulo: payload.alvoNome,
+        alvoTipo: 'NPC',
+        alvoNome: payload.alvoNome,
+        habilidadeContext: null,
+        payload: null,
+        payloads: [],
+        expression: payload.expressaoPreview,
+        expressions: [payload.expressaoPreview],
+        facesPendentes: [preview.expression.faces],
+        origemServidor: true,
+        enviando: true,
+        enviado: false,
+        erro: null,
+      });
+
+      try {
+        const enviada = await apiCriarRolagemAtaqueNpcSessaoCampanha(
+          campanhaId,
+          sessaoId,
+          intencao,
+        );
+        const dadosServidor = extrairDadosRolagemServidor(
+          enviada.dadosRolagem,
+        );
+        if (
+          !dadosServidor ||
+          dadosServidor.tipo !== 'ATAQUE_NPC' ||
+          dadosServidor.origemAtaque !== 'ACAO' ||
+          !dadosServidor.payloads[0]
+        ) {
+          throw new Error('Resposta autoritativa da ação do NPC inválida.');
+        }
+        setChat((anterior) =>
+          anterior.some((mensagem) => mensagem.id === enviada.id)
+            ? anterior
+            : [...anterior, enviada],
+        );
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          payload: dadosServidor.payloads[0] ?? null,
+          payloads: dadosServidor.payloads,
+          expression: dadosServidor.formulaResolvida,
+          expressions: [dadosServidor.formulaResolvida],
+          facesPendentes: undefined,
+          enviando: false,
+          enviado: true,
+          erro: null,
+        }));
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: userError.message,
+        }));
+      } finally {
+        rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
+      }
+    },
+    [
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      setErroRolagens,
+      showToast,
       visibilidadeRolagemAtual,
     ],
   );
@@ -3247,6 +3396,7 @@ export default function SessaoCampanhaPage() {
                       void handleAlternarVisibilidadeNpc(npc)
                     }
                     onRolarPericia={handleRolarPericia}
+                    onRolarAtaqueAcao={handleRolarAtaqueNpcAcao}
                     onRolarExpressao={handleRolarExpressao}
                     renderPainelCondicoes={renderPainelCondicoes}
                     socialAtivo={socialAtivo}
@@ -3419,6 +3569,7 @@ export default function SessaoCampanhaPage() {
                 onSalvarNpc={(npc) => void handleSalvarNpc(npc)}
                 onSolicitarRemoverNpc={(npc) => setNpcRemocaoConfirmacao(npc)}
                 onRolarPericia={handleRolarPericia}
+                onRolarAtaqueAcao={handleRolarAtaqueNpcAcao}
                 onRolarExpressao={handleRolarExpressao}
                 renderPainelCondicoes={renderPainelCondicoes}
                 socialAtivo={socialAtivo}

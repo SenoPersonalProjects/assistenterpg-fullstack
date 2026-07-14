@@ -52,7 +52,9 @@ import {
   apiReprocessarEfeitosTurnoSessaoCampanha,
   apiRecusarConvite,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
+  apiCriarRolagemAtaqueNpcSessaoCampanha,
   apiCriarRolagemFormulaSessaoCampanha,
+  apiCriarRolagemPericiaNpcSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
   apiPularTurnoSessaoCampanha,
@@ -810,6 +812,47 @@ describe('campanhas api cache and dedupe', () => {
     expect(payload).not.toHaveProperty('bonus');
     expect(payload).not.toHaveProperty('dadosRolagem');
     expect(payload).not.toHaveProperty('total');
+  });
+
+  it('envia somente a intencao autoritativa da pericia do NPC', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 96 } });
+    const payload = {
+      tipo: 'PERICIA_NPC' as const,
+      npcSessaoId: 71,
+      periciaCodigo: 'PERCEPCAO',
+      visibilidade: 'PUBLICA' as const,
+      clientRequestId: '299b5238-7f29-48a4-983e-d43ea06cf792',
+    };
+
+    await apiCriarRolagemPericiaNpcSessaoCampanha(44, 13, payload);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(payload).not.toHaveProperty('bonus');
+    expect(payload).not.toHaveProperty('dados');
+  });
+
+  it('envia indice da acao do NPC sem formula ou dano', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 97 } });
+    const payload = {
+      tipo: 'ATAQUE_NPC' as const,
+      origemAtaque: 'ACAO' as const,
+      npcSessaoId: 71,
+      acaoIndice: 0,
+      visibilidade: 'SECRETA_MESTRE' as const,
+      clientRequestId: '869f390e-8b10-4de7-b7db-f3b97bcb2375',
+    };
+
+    await apiCriarRolagemAtaqueNpcSessaoCampanha(44, 13, payload);
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(payload).not.toHaveProperty('expressao');
+    expect(payload).not.toHaveProperty('dano');
   });
 
   it('sends secret master roll visibility through session chat', async () => {

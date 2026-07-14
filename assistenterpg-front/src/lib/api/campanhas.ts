@@ -1205,6 +1205,35 @@ export type CriarRolagemAtaquePersonagemSessaoPayload = {
   clientRequestId: string;
 };
 
+export type CriarRolagemPericiaNpcSessaoPayload = {
+  tipo: 'PERICIA_NPC';
+  npcSessaoId: number;
+  periciaCodigo: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contexto?: { dt?: number };
+  clientRequestId: string;
+};
+
+export type CriarRolagemAtaqueNpcPericiaSessaoPayload = {
+  tipo: 'ATAQUE_NPC';
+  origemAtaque: 'PERICIA';
+  npcSessaoId: number;
+  periciaCodigo: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contexto?: { dt?: number };
+  clientRequestId: string;
+};
+
+export type CriarRolagemAtaqueNpcAcaoSessaoPayload = {
+  tipo: 'ATAQUE_NPC';
+  origemAtaque: 'ACAO';
+  npcSessaoId: number;
+  acaoIndice: number;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contexto?: { dt?: number };
+  clientRequestId: string;
+};
+
 export async function apiCriarRolagemFormulaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1233,6 +1262,32 @@ export async function apiCriarRolagemAtaquePersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   payload: CriarRolagemAtaquePersonagemSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemPericiaNpcSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemPericiaNpcSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemAtaqueNpcSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload:
+    | CriarRolagemAtaqueNpcPericiaSessaoPayload
+    | CriarRolagemAtaqueNpcAcaoSessaoPayload,
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,

@@ -22,9 +22,11 @@ import type {
   NpcEditavel,
 } from '@/components/campanha/sessao/types';
 import type {
+  RolagemAtaqueNpcAcaoSessaoPayload,
   RolagemExpressaoSessaoPayload,
   RolagemPericiaSessaoPayload,
 } from '@/components/campanha/sessao/types';
+import { periciaPermiteAtaqueSessao } from '@/lib/campanha/sessao-rolagem-pericia';
 import { labelTipoNpc } from '@/lib/npc-ameaca/labels';
 import {
   calcularDadosPericiaPorAtributo,
@@ -143,6 +145,7 @@ type NpcSessionCardProps = {
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarAtaqueAcao: (payload: RolagemAtaqueNpcAcaoSessaoPayload) => void;
   onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
   alvoSocial?: AlvoEncontroSocialSessao | null;
   socialAtivo?: boolean;
@@ -183,6 +186,7 @@ export function NpcSessionCard({
   onAlternarVisibilidade,
   renderPainelCondicoes,
   onRolarPericia,
+  onRolarAtaqueAcao,
   onRolarExpressao,
   alvoSocial = null,
   socialAtivo = false,
@@ -498,12 +502,13 @@ export function NpcSessionCard({
                         size="xs"
                         variant="ghost"
                         onClick={() =>
-                          onRolarExpressao({
+                          onRolarAtaqueAcao({
                             alvoTipo: 'NPC',
                             alvoNome: npc.nome,
-                            titulo: `${acao.nome} · Teste`,
-                            subtitulo: npc.nome,
-                            expressao: expressaoTeste,
+                            npcSessaoId: npc.npcSessaoId,
+                            acaoIndice: acaoIndex,
+                            acaoNome: acao.nome,
+                            expressaoPreview: expressaoTeste,
                           })
                         }
                         disabled={sessaoEncerrada}
@@ -632,7 +637,28 @@ export function NpcSessionCard({
       const { dados, keepMode } = resolverDadosNpc(pericia);
       onRolarPericia({
         alvoTipo: 'NPC',
+        tipoRolagem: 'PERICIA',
         alvoNome: npc.nome,
+        npcSessaoId: npc.npcSessaoId,
+        periciaCodigo: pericia.codigo,
+        periciaNome: pericia.nome,
+        atributoBase: pericia.atributoBase,
+        dados,
+        bonus: pericia.bonus ?? 0,
+        keepMode,
+      });
+    };
+
+    const handleRolarAtaqueNpc = (
+      pericia: NpcSessaoCampanha['pericias'][number],
+    ) => {
+      const { dados, keepMode } = resolverDadosNpc(pericia);
+      onRolarPericia({
+        alvoTipo: 'NPC',
+        tipoRolagem: 'ATAQUE',
+        alvoNome: npc.nome,
+        npcSessaoId: npc.npcSessaoId,
+        periciaCodigo: pericia.codigo,
         periciaNome: pericia.nome,
         atributoBase: pericia.atributoBase,
         dados,
@@ -675,15 +701,28 @@ export function NpcSessionCard({
                       </span>
                     ) : null}
                     {podeControlarSessao ? (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        className="session-npc-pericia-card__roll-btn"
-                        onClick={() => handleRolarPericiaNpc(pericia)}
-                        title={`Rolar ${pericia.nome}`}
-                      >
-                        <Icon name="dice" className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="session-npc-pericia-card__actions">
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          className="session-npc-pericia-card__roll-btn"
+                          onClick={() => handleRolarPericiaNpc(pericia)}
+                          title={`Rolar ${pericia.nome}`}
+                        >
+                          <Icon name="dice" className="h-3.5 w-3.5" />
+                        </Button>
+                        {periciaPermiteAtaqueSessao(pericia.codigo) ? (
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            className="session-npc-pericia-card__roll-btn"
+                            onClick={() => handleRolarAtaqueNpc(pericia)}
+                            title={`Atacar com ${pericia.nome}`}
+                          >
+                            <Icon name="sword" className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                   <div className="session-npc-pericia-card__roll">
@@ -731,15 +770,28 @@ export function NpcSessionCard({
                         {formatarRolagem(pericia.dados, pericia.bonus)}
                       </span>
                       {podeControlarSessao ? (
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          className="session-npc-pericia-card__roll-btn"
-                          onClick={() => handleRolarPericiaNpc(pericia)}
-                          title={`Rolar ${pericia.nome}`}
-                        >
-                          <Icon name="dice" className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            className="session-npc-pericia-card__roll-btn"
+                            onClick={() => handleRolarPericiaNpc(pericia)}
+                            title={`Rolar ${pericia.nome}`}
+                          >
+                            <Icon name="dice" className="h-3.5 w-3.5" />
+                          </Button>
+                          {periciaPermiteAtaqueSessao(pericia.codigo) ? (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              className="session-npc-pericia-card__roll-btn"
+                              onClick={() => handleRolarAtaqueNpc(pericia)}
+                              title={`Atacar com ${pericia.nome}`}
+                            >
+                              <Icon name="sword" className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   </div>

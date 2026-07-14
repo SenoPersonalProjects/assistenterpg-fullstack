@@ -19,6 +19,7 @@ import type {
   NpcEditavel,
 } from '@/components/campanha/sessao/types';
 import type {
+  RolagemAtaqueNpcAcaoSessaoPayload,
   RolagemExpressaoSessaoPayload,
   RolagemPericiaSessaoPayload,
 } from '@/components/campanha/sessao/types';
@@ -68,6 +69,7 @@ type SessionNpcsPanelProps = {
     modo?: 'inline' | 'accordion',
   ) => ReactNode;
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
+  onRolarAtaqueAcao: (payload: RolagemAtaqueNpcAcaoSessaoPayload) => void;
   onRolarExpressao: (payload: RolagemExpressaoSessaoPayload) => void;
   socialAtivo?: boolean;
   alvosSociais?: AlvoEncontroSocialSessao[];
@@ -103,6 +105,7 @@ export function SessionNpcsPanel({
   onAlternarVisibilidadeNpc,
   renderPainelCondicoes,
   onRolarPericia,
+  onRolarAtaqueAcao,
   onRolarExpressao,
   socialAtivo = false,
   alvosSociais = [],
@@ -182,6 +185,7 @@ export function SessionNpcsPanel({
             onAlternarVisibilidade={() => onAlternarVisibilidadeNpc?.(npc)}
             renderPainelCondicoes={renderPainelCondicoes}
             onRolarPericia={onRolarPericia}
+            onRolarAtaqueAcao={onRolarAtaqueAcao}
             onRolarExpressao={onRolarExpressao}
             socialAtivo={socialAtivo}
             alvoSocial={

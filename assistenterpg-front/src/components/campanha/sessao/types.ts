@@ -54,12 +54,22 @@ export type RolagemPericiaSessaoPayload = {
   alvoNome: string;
   personagemSessaoId?: number;
   personagemCampanhaId?: number;
+  npcSessaoId?: number;
   periciaCodigo?: string;
   periciaNome: string;
   atributoBase?: string | null;
   dados: number;
   bonus: number;
   keepMode: 'SUM' | 'HIGHEST' | 'LOWEST';
+};
+
+export type RolagemAtaqueNpcAcaoSessaoPayload = {
+  alvoTipo: 'NPC';
+  alvoNome: string;
+  npcSessaoId: number;
+  acaoIndice: number;
+  acaoNome: string;
+  expressaoPreview: string;
 };
 
 export type DadoDanoTecnicaPayload = {
