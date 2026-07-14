@@ -1,5 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  criarClientRequestIdRolagem,
+  expressoesDiceContemD20,
+  extrairDadosRolagemServidor,
   aplicarPeritoPendenteChatLivre,
   calcularResultadoDice,
   construirMensagemDice,
@@ -12,6 +17,18 @@ import {
   type DicePeritoPendenteChat,
   type DiceRollPayload,
 } from './sessao-dice';
+
+type FixturesFormulaDice = {
+  validas: string[];
+  invalidas: string[];
+};
+
+const fixturesFormulaDice = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), '..', 'test-contracts', 'sessao-dice-formulas.json'),
+    'utf8',
+  ),
+) as FixturesFormulaDice;
 
 function criarPayloadComRolagens(
   expressao: string,
@@ -31,6 +48,19 @@ function criarPayloadComRolagens(
 }
 
 describe('sessão-dice parser', () => {
+  it.each(fixturesFormulaDice.validas)(
+    'aceita a fixture compartilhada de formula valida: %s',
+    (formula) => {
+      expect(parseDiceInput(formula).erro).toBeNull();
+    },
+  );
+
+  it.each(fixturesFormulaDice.invalidas)(
+    'rejeita a fixture compartilhada de formula invalida: %s',
+    (formula) => {
+      expect(parseDiceInput(formula).erro).not.toBeNull();
+    },
+  );
   it('aceita espacos em operadores matematicos', () => {
     expect(parseDiceExpression('1d6 + 3').expression).toMatchObject({
       quantidade: 1,
@@ -750,5 +780,36 @@ describe('aplicarPeritoPendenteChatLivre', () => {
       'Perito pendente: será gasto na próxima rolagem com d20.',
     );
     expect(obterAvisoPeritoPendenteChat(null)).toBeNull();
+  });
+});
+
+describe('sessao-dice autoritativo', () => {
+  it('detecta d20 em qualquer grupo da intencao', () => {
+    const comD20 = parseDiceInput('2d6+3#d8+4#d20').expressions ?? [];
+    const semD20 = parseDiceInput('2d6+3#d8').expressions ?? [];
+
+    expect(expressoesDiceContemD20(comD20)).toBe(true);
+    expect(expressoesDiceContemD20(semD20)).toBe(false);
+  });
+
+  it('gera clientRequestId UUID v4', () => {
+    expect(criarClientRequestIdRolagem()).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+  });
+
+  it('aceita apenas metadados de origem gravados pelo servidor', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+      expressaoOriginal: 'd20',
+      payloads: [criarPayloadComRolagens('d20', [[15]])],
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, origem: 'CLIENTE_LEGADO' }),
+    ).toBeNull();
   });
 });
