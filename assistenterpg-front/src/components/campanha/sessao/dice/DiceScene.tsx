@@ -573,7 +573,19 @@ export function DiceScene({
         const settleAt = duration * 0.72;
         const profile = getHighlightProfile(faces);
 
-        if (elapsed < settleAt) {
+        if (!hasResultRef.current) {
+          currentMesh.rotation.x += stateRef.current.spinVelocity?.x ?? 0.22;
+          currentMesh.rotation.y += stateRef.current.spinVelocity?.y ?? 0.18;
+          currentMesh.rotation.z += stateRef.current.spinVelocity?.z ?? 0.14;
+          bobTimeRef.current += 0.08;
+          currentMesh.position.y = Math.sin(bobTimeRef.current) * 0.12;
+          resetScale();
+          setMeshAccent(currentMesh, faces, null, 0);
+          if (accentLightRef) accentLightRef.intensity = 0;
+          if (plane) {
+            (plane.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+        } else if (elapsed < settleAt) {
           const progress = elapsed / settleAt;
           const easedProgress = Math.pow(progress, 1.18);
           const intensity = THREE.MathUtils.lerp(1.16, 0.22, easedProgress);
@@ -760,6 +772,13 @@ export function DiceScene({
     }
 
     hasResultRef.current = true;
+    if (rollingRef.current) {
+      const duration = reducedMotion
+        ? 0.01
+        : Math.max(0.16, rollDurationMs / 1000);
+      rollStartRef.current = performance.now() - duration * 0.72 * 1000;
+      stateRef.current.settleStartQuaternion = mesh.quaternion.clone();
+    }
 
     if (faces === 6) {
       mesh.material = makeD6Materials(faces, isRolling ? null : result);
@@ -780,7 +799,7 @@ export function DiceScene({
       mesh.quaternion.copy(stateRef.current.targetQuaternion);
       mesh.position.y = 0;
     }
-  }, [faces, isRolling, result]);
+  }, [faces, isRolling, reducedMotion, result, rollDurationMs]);
 
   useEffect(() => {
     if (!isRolling) return;

@@ -112,6 +112,14 @@ export type DiceParseGroupResult = {
   erro: string | null;
 };
 
+export type DadosRolagemServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  clientRequestId: string;
+  expressaoOriginal: string;
+  payloads: DiceRollPayload[];
+};
+
 type NodeBufferLike = {
   from: (input: string, encoding: string) => { toString: (encoding: string) => string };
 };
@@ -593,6 +601,55 @@ export function rolarDados(expression: DiceExpression): DiceRollPayload {
     rolagens,
     termos: expressionEhComposta(expression) ? termos : undefined,
   };
+}
+
+export function expressoesDiceContemD20(
+  expressions: DiceExpression[],
+): boolean {
+  return expressions.some((expression) =>
+    obterTermosExpression(expression).some((termo) => termo.faces === 20),
+  );
+}
+
+export function criarClientRequestIdRolagem(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  const bytes = new Uint8Array(16);
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x40;
+  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
+  const hexadecimal = Array.from(bytes, (value) =>
+    value.toString(16).padStart(2, '0'),
+  ).join('');
+  return `${hexadecimal.slice(0, 8)}-${hexadecimal.slice(8, 12)}-${hexadecimal.slice(12, 16)}-${hexadecimal.slice(16, 20)}-${hexadecimal.slice(20)}`;
+}
+
+export function extrairDadosRolagemServidor(
+  valor: unknown,
+): DadosRolagemServidorSessao | null {
+  if (!valor || typeof valor !== 'object' || Array.isArray(valor)) return null;
+  const registro = valor as Record<string, unknown>;
+  if (
+    registro.versao !== 1 ||
+    registro.origem !== 'SERVIDOR' ||
+    typeof registro.clientRequestId !== 'string' ||
+    typeof registro.expressaoOriginal !== 'string' ||
+    !Array.isArray(registro.payloads)
+  ) {
+    return null;
+  }
+  return registro as DadosRolagemServidorSessao;
+}
+
+export function rolagemFoiGeradaNoServidor(valor: unknown): boolean {
+  return extrairDadosRolagemServidor(valor) !== null;
 }
 
 export function rolarBonusDado(params: {

@@ -51,6 +51,7 @@ import {
   apiRemoverNpcSessaoCampanha,
   apiReprocessarEfeitosTurnoSessaoCampanha,
   apiRecusarConvite,
+  apiCriarRolagemFormulaSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
   apiPularTurnoSessaoCampanha,
   apiVoltarTurnoSessaoCampanha,
@@ -740,6 +741,30 @@ describe('campanhas api cache and dedupe', () => {
       { mensagem: 'teste' },
     );
     expect(mensagem).toEqual({ id: 91, mensagem: 'teste' });
+  });
+
+  it('sends only the authoritative roll intent', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({
+      data: { id: 93, mensagem: '2d6 [[dice:v3|test]]' },
+    });
+    const payload = {
+      tipo: 'FORMULA' as const,
+      expressao: '2d6',
+      contexto: { tipo: 'OUTRO' as const },
+      clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+    };
+
+    const mensagem = await apiCriarRolagemFormulaSessaoCampanha(
+      44,
+      13,
+      payload,
+    );
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(mensagem).toEqual({ id: 93, mensagem: '2d6 [[dice:v3|test]]' });
   });
 
   it('sends secret master roll visibility through session chat', async () => {

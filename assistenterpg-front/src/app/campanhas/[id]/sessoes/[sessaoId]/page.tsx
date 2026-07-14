@@ -175,6 +175,8 @@ type PericiaRollModalState = {
   payloads?: DiceRollPayload[];
   expression?: string;
   expressions?: string[];
+  facesPendentes?: number[];
+  origemServidor?: boolean;
   enviando: boolean;
   enviado: boolean;
   erro: string | null;
@@ -1319,7 +1321,11 @@ export default function SessaoCampanhaPage() {
   }, []);
 
   const abrirModalRolagemChat = useCallback(
-    (payloads: DiceRollPayload[], expressions: string[]) => {
+    (
+      payloads: DiceRollPayload[],
+      expressions: string[],
+      opcoes?: { facesPendentes?: number[]; origemServidor?: boolean },
+    ) => {
       const primeiroPayload = payloads[0] ?? null;
       setPericiaRollModal({
         aberto: true,
@@ -1332,6 +1338,8 @@ export default function SessaoCampanhaPage() {
         payloads,
         expression: expressions[0],
         expressions,
+        facesPendentes: opcoes?.facesPendentes,
+        origemServidor: opcoes?.origemServidor,
         enviando: false,
         enviado: false,
         erro: null,
@@ -1341,7 +1349,14 @@ export default function SessaoCampanhaPage() {
   );
 
   const atualizarModalRolagemChat = useCallback(
-    (patch: { enviando?: boolean; enviado?: boolean; erro?: string | null }) => {
+    (patch: {
+      enviando?: boolean;
+      enviado?: boolean;
+      erro?: string | null;
+      payloads?: DiceRollPayload[];
+      expressions?: string[];
+      origemServidor?: boolean;
+    }) => {
       setPericiaRollModal((estado) =>
         estado.aberto ? { ...estado, ...patch } : estado,
       );
@@ -3621,6 +3636,8 @@ export default function SessaoCampanhaPage() {
           payloads={periciaRollModal.payloads}
           expression={periciaRollModal.expression}
           expressions={periciaRollModal.expressions}
+          facesPendentes={periciaRollModal.facesPendentes}
+          origemServidor={periciaRollModal.origemServidor}
           enviando={periciaRollModal.enviando}
           enviado={periciaRollModal.enviado}
           erro={periciaRollModal.erro}

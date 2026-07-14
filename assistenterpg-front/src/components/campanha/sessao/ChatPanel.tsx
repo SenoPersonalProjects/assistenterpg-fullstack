@@ -10,7 +10,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
 import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
-import { parseDiceMessageGroup } from '@/lib/campanha/sessao-dice';
+import {
+  parseDiceMessageGroup,
+  rolagemFoiGeradaNoServidor,
+} from '@/lib/campanha/sessao-dice';
 import { formatarDataHora } from '@/lib/utils/formatters';
 
 const LIMIAR_AGRUPAMENTO_MS = 5 * 60 * 1000;
@@ -156,7 +159,11 @@ export function ChatPanel({
               {diceGroup ? (
                 <div className="session-chat__dice-list">
                   {diceGroup.payloads.map((payload, idx) => (
-                    <DiceMessageCard key={`${item.id}-dice-${idx}`} payload={payload} />
+                    <DiceMessageCard
+                      key={`${item.id}-dice-${idx}`}
+                      payload={payload}
+                      origemServidor={rolagemFoiGeradaNoServidor(item.dadosRolagem)}
+                    />
                   ))}
                 </div>
               ) : (

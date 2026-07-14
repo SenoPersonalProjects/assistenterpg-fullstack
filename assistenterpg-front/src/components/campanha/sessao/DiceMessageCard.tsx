@@ -17,9 +17,14 @@ import {
 type DiceMessageCardProps = {
   payload: DiceRollPayload;
   expression?: string;
+  origemServidor?: boolean;
 };
 
-export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
+export function DiceMessageCard({
+  payload,
+  expression,
+  origemServidor = false,
+}: DiceMessageCardProps) {
   const [mostrarDetalhes, setMostrarDetalhes] = useState(
     payload.aplicarModificadorPorDado ||
       Boolean(payload.termos?.some((termo) => termo.aplicarModificadorPorDado)),
@@ -116,6 +121,11 @@ export function DiceMessageCard({ payload, expression }: DiceMessageCardProps) {
     <div className="session-dice">
       <div className="session-dice__header">
         <span className="session-dice__badge">Rolagem</span>
+        {origemServidor ? (
+          <span className="session-dice__badge" title="Resultado gerado pelo servidor">
+            Servidor
+          </span>
+        ) : null}
         {label ? <span className="session-dice__label">{label}</span> : null}
         <span className="session-dice__expr">{expressaoExibida}</span>
         {temNaturalMax ? (

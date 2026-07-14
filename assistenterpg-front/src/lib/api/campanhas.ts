@@ -1179,6 +1179,26 @@ export async function apiEnviarMensagemChatSessaoCampanha(
   return data;
 }
 
+export type CriarRolagemFormulaSessaoPayload = {
+  tipo: 'FORMULA';
+  expressao: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contexto?: { tipo: 'OUTRO' };
+  clientRequestId: string;
+};
+
+export async function apiCriarRolagemFormulaSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemFormulaSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
 export async function apiListarItensSessaoCampanha(
   campanhaId: number,
 ): Promise<ItensSessaoCampanhaResponse> {
