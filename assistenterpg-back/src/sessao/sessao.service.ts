@@ -27,6 +27,9 @@ import {
   SessaoRolagemIdempotenciaConflitoException,
   SessaoRolagemMensagemMuitoGrandeException,
   SessaoRolagemRequerFluxoMecanicoException,
+  SessaoNpcAcaoRolagemInvalidaException,
+  SessaoNpcPericiaAtaqueInvalidaException,
+  SessaoNpcPericiaNaoEncontradaException,
   SessaoPericiaAtaqueInvalidaException,
   SessaoPericiaNaoEncontradaException,
   SessaoTurnoDesatualizadoException,
@@ -95,12 +98,14 @@ import {
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
 import {
+  CriarRolagemMecanicaNpcSessaoDto,
   CriarRolagemMecanicaPersonagemSessaoDto,
   CriarRolagemFormulaSessaoDto,
   CriarRolagemSessaoDto,
 } from './dto/criar-rolagem-sessao.dto';
 import {
   bloquearEventoSessaoTx,
+  bloquearNpcSessaoTx,
   bloquearRegraOpcionalSessaoTx,
   bloquearSessaoTx,
 } from './sessao-concorrencia';
@@ -117,10 +122,53 @@ import {
   type DiceRollPayloadServidor,
 } from './sessao-dice-autoritativo';
 
-const PERICIAS_ATAQUE_PERSONAGEM = ['LUTA', 'PONTARIA', 'JUJUTSU'] as const;
-const PERICIAS_ATAQUE_PERSONAGEM_SET = new Set<string>(
-  PERICIAS_ATAQUE_PERSONAGEM,
-);
+const PERICIAS_ATAQUE_SESSAO = ['LUTA', 'PONTARIA', 'JUJUTSU'] as const;
+const PERICIAS_ATAQUE_SESSAO_SET = new Set<string>(PERICIAS_ATAQUE_SESSAO);
+
+const PERICIAS_PRINCIPAIS_NPC = {
+  PERCEPCAO: {
+    nome: 'Percepcao',
+    atributoBase: 'PRE',
+    campoBonus: 'percepcao',
+    campoDados: 'percepcaoDados',
+  },
+  INICIATIVA: {
+    nome: 'Iniciativa',
+    atributoBase: 'AGI',
+    campoBonus: 'iniciativa',
+    campoDados: 'iniciativaDados',
+  },
+  FORTITUDE: {
+    nome: 'Fortitude',
+    atributoBase: 'VIG',
+    campoBonus: 'fortitude',
+    campoDados: 'fortitudeDados',
+  },
+  REFLEXOS: {
+    nome: 'Reflexos',
+    atributoBase: 'AGI',
+    campoBonus: 'reflexos',
+    campoDados: 'reflexosDados',
+  },
+  VONTADE: {
+    nome: 'Vontade',
+    atributoBase: 'PRE',
+    campoBonus: 'vontade',
+    campoDados: 'vontadeDados',
+  },
+  LUTA: {
+    nome: 'Luta',
+    atributoBase: 'FOR',
+    campoBonus: 'luta',
+    campoDados: 'lutaDados',
+  },
+  JUJUTSU: {
+    nome: 'Jujutsu',
+    atributoBase: 'INT',
+    campoBonus: 'jujutsu',
+    campoDados: 'jujutsuDados',
+  },
+} as const;
 
 type AcessoCampanha = {
   campanha: {
@@ -2905,6 +2953,14 @@ export class SessaoService {
         dto as CriarRolagemMecanicaPersonagemSessaoDto,
       );
     }
+    if (dto.tipo === 'PERICIA_NPC' || dto.tipo === 'ATAQUE_NPC') {
+      return this.criarRolagemMecanicaNpcSessao(
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        dto as CriarRolagemMecanicaNpcSessaoDto,
+      );
+    }
     return this.criarRolagemFormulaSessao(
       campanhaId,
       sessaoId,
@@ -3163,11 +3219,11 @@ export class SessaoService {
             );
             if (
               ehAtaque &&
-              !PERICIAS_ATAQUE_PERSONAGEM_SET.has(pericia.periciaCodigo)
+              !PERICIAS_ATAQUE_SESSAO_SET.has(pericia.periciaCodigo)
             ) {
               throw new SessaoPericiaAtaqueInvalidaException(
                 pericia.periciaCodigo,
-                [...PERICIAS_ATAQUE_PERSONAGEM],
+                [...PERICIAS_ATAQUE_SESSAO],
               );
             }
             if (!acesso.ehMestre && pericia.donoId !== usuarioId) {
@@ -3317,6 +3373,218 @@ export class SessaoService {
           evento: ehAtaque
             ? 'rolagem_ataque_personagem_sessao_lenta'
             : 'rolagem_pericia_sessao_lenta',
+          sessaoId,
+          eventoId: resultadoTransacao.evento.id,
+          duracaoMs,
+        }),
+      );
+    }
+    return {
+      ...this.mapearEventoChat(resultadoTransacao.evento, true),
+      criadoAgora: resultadoTransacao.criadoAgora,
+    };
+  }
+
+  private async criarRolagemMecanicaNpcSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: CriarRolagemMecanicaNpcSessaoDto,
+  ) {
+    const inicio = Date.now();
+    const ehAtaque = dto.tipo === 'ATAQUE_NPC';
+    const descricaoAcao = ehAtaque
+      ? 'realizar rolagem de ataque de NPC/Ameaca'
+      : 'realizar rolagem de pericia de NPC/Ameaca';
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    this.assertMestre(acesso, descricaoAcao);
+
+    const visibilidadeSolicitada = dto.visibilidade ?? 'PUBLICA';
+    const intencao = this.montarIntencaoRolagemNpc(dto, visibilidadeSolicitada);
+    const eventoExistente = await this.buscarEventoRolagemIdempotente(
+      this.prisma,
+      sessaoId,
+      usuarioId,
+      dto.clientRequestId,
+    );
+    if (eventoExistente) {
+      this.assertIntencaoRolagemIdempotente(
+        eventoExistente,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      return {
+        ...this.mapearEventoChat(eventoExistente, true),
+        criadoAgora: false,
+      };
+    }
+
+    await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      descricaoAcao,
+    );
+
+    let resultadoTransacao: {
+      evento: Awaited<
+        ReturnType<SessaoService['buscarEventoRolagemIdempotente']>
+      > extends infer T
+        ? NonNullable<T>
+        : never;
+      criadoAgora: boolean;
+    };
+    try {
+      resultadoTransacao = await executarComRetryConcorrencia(
+        descricaoAcao,
+        () =>
+          this.prisma.$transaction(async (tx) => {
+            await bloquearNpcSessaoTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              dto.npcSessaoId,
+            );
+            await this.assertSessaoMutavelTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              descricaoAcao,
+            );
+
+            const repetido = await this.buscarEventoRolagemIdempotente(
+              tx,
+              sessaoId,
+              usuarioId,
+              dto.clientRequestId,
+            );
+            if (repetido) {
+              this.assertIntencaoRolagemIdempotente(
+                repetido,
+                intencao,
+                sessaoId,
+                dto.clientRequestId,
+              );
+              return { evento: repetido, criadoAgora: false };
+            }
+
+            const rolagem = await this.resolverRolagemNpcAutoritativaTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              dto,
+            );
+            const payload = rolarDadosServidor(rolagem.expressao);
+            const resultado = calcularResultadoDiceServidor(payload);
+            const mensagem = construirMensagemDiceServidor([payload]).mensagem;
+            if (mensagem.length > LIMITES_DICE_SESSAO.mensagem) {
+              throw new SessaoRolagemMensagemMuitoGrandeException();
+            }
+
+            const visibilidade = rolagem.ocultoJogadores
+              ? 'SECRETA_MESTRE'
+              : visibilidadeSolicitada;
+            const evento = await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                tipoEvento: 'CHAT',
+                personagemAtorId: null,
+                solicitanteUsuarioId: usuarioId,
+                clientRequestId: dto.clientRequestId,
+                dados: this.jsonParaPersistencia({
+                  mensagem,
+                  autorUsuarioId: usuarioId,
+                  autorApelido: this.resolverApelidoAcesso(acesso, usuarioId),
+                  visibilidade,
+                  intencaoAutoritativa: intencao,
+                  dadosRolagem: {
+                    versao: 1,
+                    origem: 'SERVIDOR',
+                    tipo: dto.tipo,
+                    clientRequestId: dto.clientRequestId,
+                    npcSessaoId: dto.npcSessaoId,
+                    npcAmeacaId: rolagem.npcAmeacaId,
+                    entidadeVinculadaId: rolagem.entidadeVinculadaId,
+                    periciaCodigo: rolagem.periciaCodigo,
+                    origemAtaque: rolagem.origemAtaque,
+                    acaoIndice: rolagem.acaoIndice,
+                    acaoNome: rolagem.acaoNome,
+                    bonusBase: rolagem.bonusBase,
+                    formulaResolvida: formatarExpressaoDiceServidor(payload),
+                    payloads: [payload],
+                    resultado: {
+                      total: resultado.total,
+                      dt: dto.contexto?.dt ?? null,
+                      sucesso:
+                        dto.contexto?.dt === undefined
+                          ? null
+                          : resultado.total >= dto.contexto.dt,
+                      falhaCritica: false,
+                    },
+                  },
+                  contextoRolagem: {
+                    tipo: ehAtaque ? 'ATAQUE' : 'PERICIA',
+                    alvoTipo: 'NPC',
+                    npcSessaoId: dto.npcSessaoId,
+                    npcAmeacaId: rolagem.npcAmeacaId,
+                    entidadeVinculadaId: rolagem.entidadeVinculadaId,
+                    periciaCodigo: rolagem.periciaCodigo,
+                    origemAtaque: rolagem.origemAtaque,
+                    acaoIndice: rolagem.acaoIndice,
+                    dt: dto.contexto?.dt ?? null,
+                    ocultoJogadores: rolagem.ocultoJogadores,
+                  },
+                  ajustesAplicados: [],
+                  inspiracaoAutomatica: null,
+                }),
+              },
+              include: {
+                personagemAtor: {
+                  include: {
+                    personagemCampanha: {
+                      select: {
+                        nome: true,
+                        donoId: true,
+                        dono: { select: { apelido: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            return { evento, criadoAgora: true };
+          }),
+      );
+    } catch (error) {
+      if (!this.erroPrismaChaveUnica(error)) throw error;
+      const vencedor = await this.buscarEventoRolagemIdempotente(
+        this.prisma,
+        sessaoId,
+        usuarioId,
+        dto.clientRequestId,
+      );
+      if (!vencedor) throw error;
+      this.assertIntencaoRolagemIdempotente(
+        vencedor,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      resultadoTransacao = { evento: vencedor, criadoAgora: false };
+    }
+
+    const duracaoMs = Date.now() - inicio;
+    if (resultadoTransacao.criadoAgora && duracaoMs > 1000) {
+      this.logger.warn(
+        JSON.stringify({
+          evento: ehAtaque
+            ? 'rolagem_ataque_npc_sessao_lenta'
+            : 'rolagem_pericia_npc_sessao_lenta',
           sessaoId,
           eventoId: resultadoTransacao.evento.id,
           duracaoMs,
@@ -8196,6 +8464,30 @@ export class SessaoService {
     };
   }
 
+  private montarIntencaoRolagemNpc(
+    dto: CriarRolagemMecanicaNpcSessaoDto,
+    visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
+  ): Record<string, unknown> {
+    if (dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'ACAO') {
+      return {
+        tipo: dto.tipo,
+        origemAtaque: dto.origemAtaque,
+        npcSessaoId: dto.npcSessaoId,
+        acaoIndice: dto.acaoIndice,
+        visibilidade,
+        dt: dto.contexto?.dt ?? null,
+      };
+    }
+    return {
+      tipo: dto.tipo,
+      origemAtaque: dto.tipo === 'ATAQUE_NPC' ? dto.origemAtaque : null,
+      npcSessaoId: dto.npcSessaoId,
+      periciaCodigo: dto.periciaCodigo.trim().toUpperCase(),
+      visibilidade,
+      dt: dto.contexto?.dt ?? null,
+    };
+  }
+
   private resolverApelidoAcesso(
     acesso: AcessoCampanha,
     usuarioId: number,
@@ -8260,6 +8552,222 @@ export class SessaoService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     );
+  }
+
+  private async resolverRolagemNpcAutoritativaTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+    dto: CriarRolagemMecanicaNpcSessaoDto,
+  ): Promise<{
+    npcAmeacaId: number | null;
+    entidadeVinculadaId: number | null;
+    ocultoJogadores: boolean;
+    periciaCodigo: string | null;
+    origemAtaque: 'PERICIA' | 'ACAO' | null;
+    acaoIndice: number | null;
+    acaoNome: string | null;
+    bonusBase: number | null;
+    expressao: DiceExpressionServidor;
+  }> {
+    const npc = await tx.npcAmeacaSessao.findFirst({
+      where: {
+        id: dto.npcSessaoId,
+        sessaoId,
+        sessao: { campanhaId },
+      },
+      select: {
+        id: true,
+        nomeExibicao: true,
+        npcAmeacaId: true,
+        entidadeVinculadaId: true,
+        ocultoJogadores: true,
+        agilidade: true,
+        forca: true,
+        intelecto: true,
+        presenca: true,
+        vigor: true,
+        percepcao: true,
+        iniciativa: true,
+        fortitude: true,
+        reflexos: true,
+        vontade: true,
+        luta: true,
+        jujutsu: true,
+        acoesGuia: true,
+        npcAmeaca: {
+          select: {
+            agilidade: true,
+            forca: true,
+            intelecto: true,
+            presenca: true,
+            vigor: true,
+            percepcao: true,
+            iniciativa: true,
+            fortitude: true,
+            reflexos: true,
+            vontade: true,
+            luta: true,
+            jujutsu: true,
+            percepcaoDados: true,
+            iniciativaDados: true,
+            fortitudeDados: true,
+            reflexosDados: true,
+            vontadeDados: true,
+            lutaDados: true,
+            jujutsuDados: true,
+            periciasEspeciais: true,
+          },
+        },
+        entidadeVinculada: {
+          select: { periciasEspeciais: true },
+        },
+      },
+    });
+    if (!npc) {
+      throw new NpcSessaoNaoEncontradoException(
+        dto.npcSessaoId,
+        sessaoId,
+        campanhaId,
+      );
+    }
+
+    if (dto.tipo === 'ATAQUE_NPC' && dto.origemAtaque === 'ACAO') {
+      const acao = this.mapearListaObjeto(npc.acoesGuia)[dto.acaoIndice];
+      const teste = typeof acao?.teste === 'string' ? acao.teste.trim() : '';
+      const nome = typeof acao?.nome === 'string' ? acao.nome.trim() : '';
+      const parse = teste ? parseDiceInputServidor(teste) : null;
+      if (
+        !nome ||
+        !parse ||
+        parse.erro ||
+        !parse.expressions ||
+        parse.expressions.length !== 1
+      ) {
+        throw new SessaoNpcAcaoRolagemInvalidaException(
+          dto.npcSessaoId,
+          dto.acaoIndice,
+        );
+      }
+      const expressao = {
+        ...parse.expressions[0],
+        label: `${npc.nomeExibicao} · ${nome}`
+          .trim()
+          .slice(0, LIMITES_DICE_SESSAO.label),
+      };
+      return {
+        npcAmeacaId: npc.npcAmeacaId,
+        entidadeVinculadaId: npc.entidadeVinculadaId,
+        ocultoJogadores: npc.ocultoJogadores,
+        periciaCodigo: null,
+        origemAtaque: 'ACAO',
+        acaoIndice: dto.acaoIndice,
+        acaoNome: nome,
+        bonusBase: null,
+        expressao,
+      };
+    }
+
+    const periciaCodigo = dto.periciaCodigo.trim().toUpperCase();
+    if (
+      dto.tipo === 'ATAQUE_NPC' &&
+      !PERICIAS_ATAQUE_SESSAO_SET.has(periciaCodigo)
+    ) {
+      throw new SessaoNpcPericiaAtaqueInvalidaException(periciaCodigo, [
+        ...PERICIAS_ATAQUE_SESSAO,
+      ]);
+    }
+
+    const metaPrincipal =
+      PERICIAS_PRINCIPAIS_NPC[
+        periciaCodigo as keyof typeof PERICIAS_PRINCIPAIS_NPC
+      ];
+    const atributos = {
+      agilidade: npc.agilidade ?? npc.npcAmeaca?.agilidade ?? 0,
+      forca: npc.forca ?? npc.npcAmeaca?.forca ?? 0,
+      intelecto: npc.intelecto ?? npc.npcAmeaca?.intelecto ?? 0,
+      presenca: npc.presenca ?? npc.npcAmeaca?.presenca ?? 0,
+      vigor: npc.vigor ?? npc.npcAmeaca?.vigor ?? 0,
+    };
+
+    let periciaNome: string;
+    let atributoBase: 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG';
+    let bonusBase: number;
+    let quantidadeDados: number;
+    if (metaPrincipal) {
+      periciaNome = metaPrincipal.nome;
+      atributoBase = metaPrincipal.atributoBase;
+      bonusBase =
+        npc[metaPrincipal.campoBonus] ??
+        npc.npcAmeaca?.[metaPrincipal.campoBonus] ??
+        0;
+      const atributo = this.obterAtributoNpcPorBase(atributos, atributoBase);
+      quantidadeDados =
+        npc.npcAmeaca?.[metaPrincipal.campoDados] ??
+        this.calcularDadosPadraoPericia(atributo);
+    } else {
+      const especiais = npc.npcAmeaca
+        ? this.mapearListaObjeto(npc.npcAmeaca.periciasEspeciais)
+        : npc.entidadeVinculada
+          ? this.mapearListaObjeto(npc.entidadeVinculada.periciasEspeciais)
+          : [];
+      const especial = especiais.find(
+        (item) =>
+          typeof item.codigo === 'string' &&
+          item.codigo.trim().toUpperCase() === periciaCodigo,
+      );
+      const catalogo = await tx.pericia.findUnique({
+        where: { codigo: periciaCodigo },
+        select: { nome: true, atributoBase: true },
+      });
+      const registroVinculado = this.extrairRegistro(
+        npc.entidadeVinculada?.periciasEspeciais ?? null,
+      );
+      const bonusVinculado = registroVinculado[periciaCodigo.toLowerCase()];
+      if (!catalogo || (!especial && typeof bonusVinculado !== 'number')) {
+        throw new SessaoNpcPericiaNaoEncontradaException(periciaCodigo);
+      }
+      periciaNome =
+        typeof especial?.nome === 'string' ? especial.nome : catalogo.nome;
+      atributoBase = catalogo.atributoBase as typeof atributoBase;
+      const atributo = this.obterAtributoNpcPorBase(atributos, atributoBase);
+      bonusBase =
+        typeof especial?.bonus === 'number'
+          ? especial.bonus
+          : typeof bonusVinculado === 'number'
+            ? bonusVinculado
+            : 0;
+      quantidadeDados =
+        typeof especial?.dados === 'number' && especial.dados > 0
+          ? especial.dados
+          : this.calcularDadosPadraoPericia(atributo);
+    }
+
+    const valorAtributo = this.obterAtributoNpcPorBase(atributos, atributoBase);
+    const expressao: DiceExpressionServidor = {
+      quantidade: quantidadeDados,
+      faces: 20,
+      modificador: Math.abs(bonusBase),
+      operador: bonusBase < 0 ? '-' : '+',
+      aplicarModificadorPorDado: false,
+      keepMode: valorAtributo > 0 ? 'HIGHEST' : 'LOWEST',
+      label: `${npc.nomeExibicao} · ${
+        dto.tipo === 'ATAQUE_NPC' ? `Ataque ${periciaNome}` : periciaNome
+      }`
+        .trim()
+        .slice(0, LIMITES_DICE_SESSAO.label),
+    };
+    return {
+      npcAmeacaId: npc.npcAmeacaId,
+      entidadeVinculadaId: npc.entidadeVinculadaId,
+      ocultoJogadores: npc.ocultoJogadores,
+      periciaCodigo,
+      origemAtaque: dto.tipo === 'ATAQUE_NPC' ? 'PERICIA' : null,
+      acaoIndice: null,
+      acaoNome: null,
+      bonusBase,
+      expressao,
+    };
   }
 
   private async resolverPericiaAutoritativaTx(

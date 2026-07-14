@@ -375,6 +375,36 @@ export class SessaoPericiaAtaqueInvalidaException extends BusinessException {
   }
 }
 
+export class SessaoNpcPericiaNaoEncontradaException extends BusinessException {
+  constructor(periciaCodigo: string) {
+    super(
+      'Pericia nao encontrada para este NPC/Ameaca.',
+      'SESSAO_NPC_PERICIA_NAO_ENCONTRADA',
+      { periciaCodigo },
+    );
+  }
+}
+
+export class SessaoNpcPericiaAtaqueInvalidaException extends BusinessException {
+  constructor(periciaCodigo: string, periciasPermitidas: string[]) {
+    super(
+      'Esta pericia nao pode ser usada como ataque de NPC/Ameaca.',
+      'SESSAO_NPC_PERICIA_ATAQUE_INVALIDA',
+      { periciaCodigo, periciasPermitidas },
+    );
+  }
+}
+
+export class SessaoNpcAcaoRolagemInvalidaException extends BusinessException {
+  constructor(npcSessaoId: number, acaoIndice: number) {
+    super(
+      'A acao selecionada nao possui teste autoritativo valido.',
+      'SESSAO_NPC_ACAO_ROLAGEM_INVALIDA',
+      { npcSessaoId, acaoIndice },
+    );
+  }
+}
+
 export class SessaoTurnoIndisponivelEmCenaLivreException extends BusinessException {
   constructor(sessaoId?: number, campanhaId?: number) {
     super(

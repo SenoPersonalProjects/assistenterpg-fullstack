@@ -486,6 +486,357 @@ describe('SessaoService', () => {
     };
   }
 
+  function configurarRolagemNpcAutoritativa(args?: {
+    ehMestre?: boolean;
+    ocultoJogadores?: boolean;
+    persistirEventoCriado?: boolean;
+    periciasEspeciais?: Prisma.JsonValue;
+    entidadeVinculadaId?: number | null;
+    npcAmeacaId?: number | null;
+  }) {
+    const acesso = {
+      ehMestre: args?.ehMestre ?? true,
+      campanha: {
+        donoId: 99,
+        dono: { apelido: 'Mestre' },
+        membros: [
+          {
+            usuarioId: 10,
+            papel: 'JOGADOR',
+            usuario: { apelido: 'Jogador' },
+          },
+        ],
+      },
+    };
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso,
+      sessao: { status: 'EM_ANDAMENTO' },
+    });
+    const validarMutabilidade = jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({ acesso, sessao: { status: 'EM_ANDAMENTO' } });
+    jest
+      .spyOn(service as any, 'assertSessaoMutavelTx')
+      .mockResolvedValue(undefined);
+
+    let eventoAtual: ReturnType<typeof criarEventoRolagemPericiaTeste> | null =
+      null;
+    const npc = {
+      id: 71,
+      nomeExibicao: 'Maldição de teste',
+      npcAmeacaId: args?.npcAmeacaId === undefined ? 81 : args.npcAmeacaId,
+      entidadeVinculadaId: args?.entidadeVinculadaId ?? null,
+      ocultoJogadores: args?.ocultoJogadores ?? false,
+      agilidade: 2,
+      forca: 3,
+      intelecto: 1,
+      presenca: 2,
+      vigor: 2,
+      percepcao: 8,
+      iniciativa: 7,
+      fortitude: 6,
+      reflexos: 5,
+      vontade: 4,
+      luta: 10,
+      jujutsu: 9,
+      acoesGuia: [
+        {
+          nome: 'Garra',
+          teste: '2d20+10',
+          dano: '9d100+999',
+        },
+      ],
+      npcAmeaca: {
+        agilidade: 2,
+        forca: 3,
+        intelecto: 1,
+        presenca: 2,
+        vigor: 2,
+        percepcao: 8,
+        iniciativa: 7,
+        fortitude: 6,
+        reflexos: 5,
+        vontade: 4,
+        luta: 10,
+        jujutsu: 9,
+        percepcaoDados: 2,
+        iniciativaDados: 2,
+        fortitudeDados: 2,
+        reflexosDados: 2,
+        vontadeDados: 2,
+        lutaDados: 3,
+        jujutsuDados: 1,
+        periciasEspeciais: args?.periciasEspeciais ?? [],
+      },
+      entidadeVinculada:
+        args?.entidadeVinculadaId == null
+          ? null
+          : { periciasEspeciais: args.periciasEspeciais ?? [] },
+    };
+    (prisma as any).npcAmeacaSessao = {
+      findFirst: jest.fn().mockResolvedValue(npc),
+    };
+    (prisma as any).pericia = {
+      findUnique: jest
+        .fn()
+        .mockImplementation(({ where }) =>
+          Promise.resolve(
+            where.codigo === 'PONTARIA'
+              ? { nome: 'Pontaria', atributoBase: 'AGI' }
+              : null,
+          ),
+        ),
+    };
+    const criarEvento = jest.fn().mockImplementation((input) => {
+      const evento = {
+        id: 96,
+        criadoEm: new Date('2026-07-14T12:00:00.000Z'),
+        dados: input.data.dados,
+        personagemAtor: null,
+      };
+      if (args?.persistirEventoCriado) eventoAtual = evento as never;
+      return Promise.resolve(evento);
+    });
+    (prisma as any).eventoSessao = {
+      findFirst: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve(eventoAtual)),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: criarEvento,
+    };
+    (prisma as any).$queryRaw = jest.fn().mockResolvedValue([{ id: 71 }]);
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+        callback(prisma),
+    );
+
+    return { criarEvento, validarMutabilidade };
+  }
+
+  it('resolve no servidor a pericia principal do NPC', async () => {
+    const mocks = configurarRolagemNpcAutoritativa();
+
+    const resultado = await service.criarRolagemSessao(7, 21, 99, {
+      tipo: 'PERICIA_NPC',
+      npcSessaoId: 71,
+      periciaCodigo: 'percepcao',
+      clientRequestId: '299b5238-7f29-48a4-983e-d43ea06cf792',
+    });
+
+    expect(resultado).toMatchObject({
+      criadoAgora: true,
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'PERICIA_NPC',
+        npcSessaoId: 71,
+        npcAmeacaId: 81,
+        periciaCodigo: 'PERCEPCAO',
+        bonusBase: 8,
+      },
+      contextoRolagem: {
+        tipo: 'PERICIA',
+        alvoTipo: 'NPC',
+        npcSessaoId: 71,
+      },
+    });
+    const dados = mocks.criarEvento.mock.calls[0][0].data.dados;
+    expect(dados.dadosRolagem.payloads[0]).toMatchObject({
+      quantidade: 2,
+      faces: 20,
+      modificador: 8,
+    });
+    expect(dados.ajustesAplicados).toEqual([]);
+    expect(dados.inspiracaoAutomatica).toBeNull();
+  });
+
+  it('usa somente o teste persistido da acao e oculta a rolagem do NPC oculto', async () => {
+    const mocks = configurarRolagemNpcAutoritativa({ ocultoJogadores: true });
+
+    const resultado = await service.criarRolagemSessao(7, 21, 99, {
+      tipo: 'ATAQUE_NPC',
+      origemAtaque: 'ACAO',
+      npcSessaoId: 71,
+      acaoIndice: 0,
+      visibilidade: 'PUBLICA',
+      contexto: { dt: 25 },
+      clientRequestId: '869f390e-8b10-4de7-b7db-f3b97bcb2375',
+    });
+
+    expect(resultado).toMatchObject({
+      visibilidade: 'SECRETA_MESTRE',
+      dadosRolagem: {
+        tipo: 'ATAQUE_NPC',
+        origemAtaque: 'ACAO',
+        acaoIndice: 0,
+        acaoNome: 'Garra',
+        periciaCodigo: null,
+      },
+    });
+    const dados = mocks.criarEvento.mock.calls[0][0].data.dados;
+    expect(dados.dadosRolagem.payloads[0]).toMatchObject({
+      quantidade: 2,
+      faces: 20,
+      modificador: 10,
+    });
+    expect(JSON.stringify(dados.dadosRolagem)).not.toContain('9d100');
+  });
+
+  it('bloqueia jogador comum inclusive para entidade vinculada', async () => {
+    configurarRolagemNpcAutoritativa({
+      ehMestre: false,
+      entidadeVinculadaId: 101,
+      npcAmeacaId: null,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'PERICIA_NPC',
+        npcSessaoId: 71,
+        periciaCodigo: 'LUTA',
+        clientRequestId: '940f50a7-f7f0-4127-a884-03b28efccbc0',
+      }),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_APENAS_MESTRE' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('restringe ataque de NPC as pericias permitidas', async () => {
+    const mocks = configurarRolagemNpcAutoritativa();
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        tipo: 'ATAQUE_NPC',
+        origemAtaque: 'PERICIA',
+        npcSessaoId: 71,
+        periciaCodigo: 'PERCEPCAO',
+        clientRequestId: '05f26d37-4261-4a6f-8aab-108fc35f9568',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_NPC_PERICIA_ATAQUE_INVALIDA' });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
+  });
+
+  it('resolve pericia especial de entidade vinculada sem Escalada ou Perito', async () => {
+    const mocks = configurarRolagemNpcAutoritativa({
+      npcAmeacaId: null,
+      entidadeVinculadaId: 101,
+      periciasEspeciais: { pontaria: 12 },
+    });
+    const resolverEscalada = jest.spyOn(
+      service as any,
+      'resolverEscaladaAtaqueAutoritativaTx',
+    );
+    const consumirPerito = jest.spyOn(
+      service as any,
+      'consumirPeritoAutoritativoTx',
+    );
+    const resolverInspiracao = jest.spyOn(
+      service as any,
+      'resolverInspiracaoAutoritativaTx',
+    );
+
+    const resultado = await service.criarRolagemSessao(7, 21, 99, {
+      tipo: 'ATAQUE_NPC',
+      origemAtaque: 'PERICIA',
+      npcSessaoId: 71,
+      periciaCodigo: 'PONTARIA',
+      contexto: { dt: 18 },
+      clientRequestId: 'eaab85a8-581e-4c29-b62e-d9f0b7f5e51b',
+    });
+
+    expect(resultado).toMatchObject({
+      dadosRolagem: {
+        entidadeVinculadaId: 101,
+        periciaCodigo: 'PONTARIA',
+        bonusBase: 12,
+        resultado: { dt: 18, falhaCritica: false },
+      },
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+    expect(resolverEscalada).not.toHaveBeenCalled();
+    expect(consumirPerito).not.toHaveBeenCalled();
+    expect(resolverInspiracao).not.toHaveBeenCalled();
+  });
+
+  it('rejeita acao de NPC sem teste autoritativo valido', async () => {
+    const mocks = configurarRolagemNpcAutoritativa();
+    (prisma as any).npcAmeacaSessao.findFirst.mockResolvedValue({
+      ...(await (prisma as any).npcAmeacaSessao.findFirst()),
+      acoesGuia: [{ nome: 'Rugido', efeito: 'Assusta o alvo' }],
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        tipo: 'ATAQUE_NPC',
+        origemAtaque: 'ACAO',
+        npcSessaoId: 71,
+        acaoIndice: 0,
+        clientRequestId: '2031ecf4-9fc0-43b0-aec9-f23cbb96633e',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_NPC_ACAO_ROLAGEM_INVALIDA' });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia rolagem de NPC com efeitos de turno pendentes', async () => {
+    const mocks = configurarRolagemNpcAutoritativa();
+    mocks.validarMutabilidade.mockRejectedValue(
+      new SessaoEfeitosTurnoPendentesException(7, 21, 900),
+    );
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        tipo: 'PERICIA_NPC',
+        npcSessaoId: 71,
+        periciaCodigo: 'LUTA',
+        clientRequestId: '8ec85fe7-b030-48d8-8896-76e054f1e27b',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_EFEITOS_TURNO_PENDENTES' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejeita reutilizar UUID de NPC com outra intencao', async () => {
+    const mocks = configurarRolagemNpcAutoritativa({
+      persistirEventoCriado: true,
+    });
+    const clientRequestId = '50ba8b1f-b791-472a-8211-7a40c695e16d';
+    await service.criarRolagemSessao(7, 21, 99, {
+      tipo: 'PERICIA_NPC',
+      npcSessaoId: 71,
+      periciaCodigo: 'LUTA',
+      clientRequestId,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        tipo: 'PERICIA_NPC',
+        npcSessaoId: 71,
+        periciaCodigo: 'JUJUTSU',
+        clientRequestId,
+      }),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO',
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('reutiliza rolagem de NPC sem rerrolar ou criar novo evento', async () => {
+    const mocks = configurarRolagemNpcAutoritativa({
+      persistirEventoCriado: true,
+    });
+    const dto = {
+      tipo: 'ATAQUE_NPC' as const,
+      origemAtaque: 'PERICIA' as const,
+      npcSessaoId: 71,
+      periciaCodigo: 'LUTA',
+      clientRequestId: '9f286dd6-c716-4f3e-a746-3a1487745b7b',
+    };
+
+    const primeiro = await service.criarRolagemSessao(7, 21, 99, dto);
+    const repetido = await service.criarRolagemSessao(7, 21, 99, dto);
+
+    expect(repetido.id).toBe(primeiro.id);
+    expect(repetido.criadoAgora).toBe(false);
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
   it('gera e persiste rolagem autoritativa sem aceitar resultados do cliente', async () => {
     configurarRolagemAutoritativa();
 
