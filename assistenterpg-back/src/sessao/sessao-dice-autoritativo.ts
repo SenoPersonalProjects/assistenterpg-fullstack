@@ -23,6 +23,15 @@ export type DiceRollTermServidor = DiceTermExpressionServidor & {
   rolagens: number[];
 };
 
+export type DiceBonusDadoServidor = {
+  origem: string;
+  label: string;
+  quantidade: number;
+  faces: number;
+  rolagens: number[];
+  efeitoPendenteId?: string;
+};
+
 export type DiceExpressionServidor = {
   quantidade: number;
   faces: number;
@@ -36,6 +45,7 @@ export type DiceExpressionServidor = {
 
 export type DiceRollPayloadServidor = Omit<DiceExpressionServidor, 'termos'> & {
   rolagens: number[];
+  bonusDados?: DiceBonusDadoServidor[];
   termos?: DiceRollTermServidor[];
 };
 
@@ -46,6 +56,7 @@ export type DiceResultadoTermoServidor = {
 
 export type DiceResultadoServidor = {
   totalBase: number;
+  bonusTotal: number;
   total: number;
   termos: DiceResultadoTermoServidor[];
 };
@@ -401,8 +412,13 @@ export function calcularResultadoDiceServidor(
     (total, termo) => total + termo.subtotal,
     0,
   );
+  const bonusTotal = (payload.bonusDados ?? []).reduce(
+    (total, bonus) =>
+      total + bonus.rolagens.reduce((subtotal, valor) => subtotal + valor, 0),
+    0,
+  );
   const operador = payload.operador ?? '+';
-  const total =
+  const totalSemBonus =
     operador === '-'
       ? totalBase - payload.modificador
       : operador === '*'
@@ -410,7 +426,12 @@ export function calcularResultadoDiceServidor(
         : operador === '/'
           ? Math.trunc(totalBase / payload.modificador)
           : totalBase + payload.modificador;
-  return { totalBase, total, termos: resultadosTermos };
+  return {
+    totalBase,
+    bonusTotal,
+    total: totalSemBonus + bonusTotal,
+    termos: resultadosTermos,
+  };
 }
 
 function formatarTermoDice(termo: DiceTermExpressionServidor): string {
@@ -466,7 +487,11 @@ export function construirMensagemDiceServidor(
     const expressao = formatarExpressaoDiceServidor(payload);
     return payload.label ? `${payload.label}: ${expressao}` : expressao;
   });
-  const usaV5 = payloads.some((payload) => (payload.termos?.length ?? 0) > 1);
+  const usaV5 = payloads.some(
+    (payload) =>
+      (payload.termos?.length ?? 0) > 1 ||
+      (payload.bonusDados?.length ?? 0) > 0,
+  );
   const usaV4 = payloads.some(
     (payload) => payload.keepMode && payload.keepMode !== 'SUM',
   );

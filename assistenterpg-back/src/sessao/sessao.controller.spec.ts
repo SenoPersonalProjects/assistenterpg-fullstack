@@ -16,7 +16,7 @@ describe('SessaoController', () => {
     listarChatSessao: jest.fn(),
     listarEventosSessao: jest.fn(),
     enviarMensagemChatSessao: jest.fn(),
-    criarRolagemFormulaSessao: jest.fn(),
+    criarRolagemSessao: jest.fn(),
     avancarTurnoSessao: jest.fn(),
     voltarTurnoSessao: jest.fn(),
     pularTurnoSessao: jest.fn(),
@@ -196,11 +196,14 @@ describe('SessaoController', () => {
       expressao: '2d6+3',
       clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
     };
-    sessaoServiceMock.criarRolagemFormulaSessao.mockResolvedValue({ id: 56 });
+    sessaoServiceMock.criarRolagemSessao.mockResolvedValue({
+      id: 56,
+      criadoAgora: true,
+    });
 
-    await controller.criarRolagemFormulaSessao(7, 12, { user: { id: 3 } }, dto);
+    await controller.criarRolagemSessao(7, 12, { user: { id: 3 } }, dto);
 
-    expect(sessaoServiceMock.criarRolagemFormulaSessao).toHaveBeenCalledWith(
+    expect(sessaoServiceMock.criarRolagemSessao).toHaveBeenCalledWith(
       7,
       12,
       3,
@@ -213,13 +216,34 @@ describe('SessaoController', () => {
     );
   });
 
+  it('nao emite realtime ao repetir uma rolagem idempotente', async () => {
+    sessaoServiceMock.criarRolagemSessao.mockResolvedValue({
+      id: 56,
+      criadoAgora: false,
+    });
+
+    await controller.criarRolagemSessao(
+      7,
+      12,
+      { user: { id: 3 } },
+      {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'OCULTISMO',
+        clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d77',
+      },
+    );
+
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).not.toHaveBeenCalled();
+  });
+
   it('nao emite realtime quando a rolagem autoritativa e rejeitada', async () => {
-    sessaoServiceMock.criarRolagemFormulaSessao.mockRejectedValue(
+    sessaoServiceMock.criarRolagemSessao.mockRejectedValue(
       new Error('rolagem invalida'),
     );
 
     await expect(
-      controller.criarRolagemFormulaSessao(
+      controller.criarRolagemSessao(
         7,
         12,
         { user: { id: 3 } },

@@ -17,7 +17,7 @@ import { SessaoActivationService } from './sessao-activation.service';
 import { CreateSessaoCampanhaDto } from './dto/create-sessao-campanha.dto';
 import { ListarChatSessaoDto } from './dto/listar-chat-sessao.dto';
 import { EnviarChatSessaoDto } from './dto/enviar-chat-sessao.dto';
-import { CriarRolagemFormulaSessaoDto } from './dto/criar-rolagem-sessao.dto';
+import { CriarRolagemSessaoDto } from './dto/criar-rolagem-sessao.dto';
 import { AtualizarCenaSessaoDto } from './dto/atualizar-cena-sessao.dto';
 import { AdicionarNpcSessaoDto } from './dto/adicionar-npc-sessao.dto';
 import { AtualizarNpcSessaoDto } from './dto/atualizar-npc-sessao.dto';
@@ -159,26 +159,30 @@ export class SessaoController {
   }
 
   @Post(':sessaoId/rolagens')
-  async criarRolagemFormulaSessao(
+  async criarRolagemSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,
     @Param('sessaoId', ParseIntPipe) sessaoId: number,
     @Request() req: { user: { id: number } },
-    @Body() dto: CriarRolagemFormulaSessaoDto,
+    @Body() dto: CriarRolagemSessaoDto,
   ) {
-    const resultado = await this.sessaoService.criarRolagemFormulaSessao(
+    const resultado = await this.sessaoService.criarRolagemSessao(
       campanhaId,
       sessaoId,
       req.user.id,
       dto,
     );
 
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'CHAT_NOVA',
-    );
+    if (resultado.criadoAgora !== false) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'CHAT_NOVA',
+      );
+    }
 
-    return resultado;
+    const { criadoAgora, ...mensagem } = resultado;
+    void criadoAgora;
+    return mensagem;
   }
 
   @Post(':sessaoId/personagens/:personagemSessaoId/habilidades/usar')

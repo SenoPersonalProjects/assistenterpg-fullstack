@@ -46,3 +46,17 @@ export async function bloquearEventoSessaoTx(
     );
   }
 }
+
+export async function bloquearRegraOpcionalSessaoTx(
+  tx: Prisma.TransactionClient,
+  sessaoId: number,
+  chave: string,
+): Promise<void> {
+  await tx.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+    SELECT id
+    FROM SessaoRegraOpcional
+    WHERE sessaoId = ${sessaoId}
+      AND chave = ${chave}
+    FOR UPDATE
+  `);
+}

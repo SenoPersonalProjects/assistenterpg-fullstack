@@ -24,8 +24,10 @@ import {
   SessaoEfeitosTurnoFalharamException,
   SessaoEfeitosTurnoPendentesException,
   SessaoRolagemInvalidaException,
+  SessaoRolagemIdempotenciaConflitoException,
   SessaoRolagemMensagemMuitoGrandeException,
   SessaoRolagemRequerFluxoMecanicoException,
+  SessaoPericiaNaoEncontradaException,
   SessaoTurnoDesatualizadoException,
   SessaoTurnoIndisponivelEmCenaLivreException,
   UsuarioNaoEncontradoException,
@@ -91,18 +93,27 @@ import {
 } from 'src/campanha/campanha-concorrencia';
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
-import { CriarRolagemFormulaSessaoDto } from './dto/criar-rolagem-sessao.dto';
+import {
+  CriarRolagemFormulaSessaoDto,
+  CriarRolagemPericiaSessaoDto,
+  CriarRolagemSessaoDto,
+} from './dto/criar-rolagem-sessao.dto';
 import {
   bloquearEventoSessaoTx,
+  bloquearRegraOpcionalSessaoTx,
   bloquearSessaoTx,
 } from './sessao-concorrencia';
 import {
+  calcularResultadoDiceServidor,
   construirMensagemDiceServidor,
   expressaoDiceContemD20,
+  formatarExpressaoDiceServidor,
   LIMITES_DICE_SESSAO,
   parseDiceInputServidor,
   rolarDadosServidor,
+  type DiceBonusDadoServidor,
   type DiceExpressionServidor,
+  type DiceRollPayloadServidor,
 } from './sessao-dice-autoritativo';
 
 type AcessoCampanha = {
@@ -2814,13 +2825,6 @@ export class SessaoService {
         sessaoId,
         'enviar mensagem no chat',
       );
-      if (inspiracaoAutomatica) {
-        await this.aplicarInspiracaoAutomaticaTx(
-          tx,
-          sessaoId,
-          inspiracaoAutomatica.personagemCampanhaId,
-        );
-      }
       const ajustesPerito =
         personagemDoUsuario?.personagemCampanha.donoId === usuarioId
           ? await this.consumirBonusPeritoPendenteTx(
@@ -2832,6 +2836,13 @@ export class SessaoService {
               dadosRolagemLegado ?? undefined,
             )
           : [];
+      if (inspiracaoAutomatica) {
+        await this.aplicarInspiracaoAutomaticaTx(
+          tx,
+          sessaoId,
+          inspiracaoAutomatica.personagemCampanhaId,
+        );
+      }
       const ajustesAplicados = [...ajustesBase, ...ajustesPerito];
 
       return tx.eventoSessao.create({
@@ -2872,6 +2883,28 @@ export class SessaoService {
     });
 
     return this.mapearEventoChat(evento, true);
+  }
+
+  async criarRolagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: CriarRolagemSessaoDto,
+  ) {
+    if (dto.tipo === 'PERICIA_PERSONAGEM') {
+      return this.criarRolagemPericiaPersonagemSessao(
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        dto as CriarRolagemPericiaSessaoDto,
+      );
+    }
+    return this.criarRolagemFormulaSessao(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      dto as CriarRolagemFormulaSessaoDto,
+    );
   }
 
   async criarRolagemFormulaSessao(
@@ -2992,7 +3025,273 @@ export class SessaoService {
         }),
       );
     }
-    return this.mapearEventoChat(evento, true);
+    return {
+      ...this.mapearEventoChat(evento, true),
+      criadoAgora: true,
+    };
+  }
+
+  private async criarRolagemPericiaPersonagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: CriarRolagemPericiaSessaoDto,
+  ) {
+    const inicio = Date.now();
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    const visibilidade = dto.visibilidade ?? 'PUBLICA';
+    if (visibilidade === 'SECRETA_MESTRE' && !acesso.ehMestre) {
+      throw new CampanhaApenasMestreException('enviar rolagem secreta');
+    }
+
+    const intencao = this.montarIntencaoRolagemPericia(dto, visibilidade);
+    const eventoExistente = await this.buscarEventoRolagemIdempotente(
+      this.prisma,
+      sessaoId,
+      usuarioId,
+      dto.clientRequestId,
+    );
+    if (eventoExistente) {
+      this.assertIntencaoRolagemIdempotente(
+        eventoExistente,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      return {
+        ...this.mapearEventoChat(eventoExistente, true),
+        criadoAgora: false,
+      };
+    }
+
+    await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      'realizar rolagem de pericia',
+    );
+    const personagemInicial = await this.prisma.personagemSessao.findFirst({
+      where: {
+        id: dto.personagemSessaoId,
+        sessaoId,
+        personagemCampanha: { campanhaId },
+      },
+      select: {
+        personagemCampanhaId: true,
+        personagemCampanha: { select: { donoId: true } },
+      },
+    });
+    if (!personagemInicial) {
+      throw new PersonagemSessaoNaoEncontradoException(
+        dto.personagemSessaoId,
+        sessaoId,
+        campanhaId,
+      );
+    }
+    if (
+      !acesso.ehMestre &&
+      personagemInicial.personagemCampanha.donoId !== usuarioId
+    ) {
+      throw new CampanhaPersonagemEdicaoNegadaException(
+        campanhaId,
+        personagemInicial.personagemCampanhaId,
+        usuarioId,
+      );
+    }
+
+    let resultadoTransacao: {
+      evento: Awaited<
+        ReturnType<SessaoService['buscarEventoRolagemIdempotente']>
+      > extends infer T
+        ? NonNullable<T>
+        : never;
+      criadoAgora: boolean;
+    };
+    try {
+      resultadoTransacao = await executarComRetryConcorrencia(
+        'realizar rolagem de pericia',
+        () =>
+          this.prisma.$transaction(async (tx) => {
+            await bloquearPersonagemCampanhaTx(
+              tx,
+              campanhaId,
+              personagemInicial.personagemCampanhaId,
+            );
+            await this.assertSessaoMutavelTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              'realizar rolagem de pericia',
+            );
+
+            const repetido = await this.buscarEventoRolagemIdempotente(
+              tx,
+              sessaoId,
+              usuarioId,
+              dto.clientRequestId,
+            );
+            if (repetido) {
+              this.assertIntencaoRolagemIdempotente(
+                repetido,
+                intencao,
+                sessaoId,
+                dto.clientRequestId,
+              );
+              return { evento: repetido, criadoAgora: false };
+            }
+
+            const pericia = await this.resolverPericiaAutoritativaTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              dto.personagemSessaoId,
+              dto.periciaCodigo,
+            );
+            if (!acesso.ehMestre && pericia.donoId !== usuarioId) {
+              throw new CampanhaPersonagemEdicaoNegadaException(
+                campanhaId,
+                pericia.personagemCampanhaId,
+                usuarioId,
+              );
+            }
+
+            const expression: DiceExpressionServidor = {
+              quantidade: pericia.quantidadeDados,
+              faces: 20,
+              modificador: Math.abs(pericia.bonusTotal),
+              operador: pericia.bonusTotal < 0 ? '-' : '+',
+              aplicarModificadorPorDado: false,
+              keepMode: pericia.keepMode,
+              label: `${pericia.personagemNome} · ${pericia.periciaNome}`
+                .trim()
+                .slice(0, LIMITES_DICE_SESSAO.label),
+            };
+            const payload = rolarDadosServidor(expression);
+            const perito = await this.consumirPeritoAutoritativoTx(
+              tx,
+              sessaoId,
+              dto.personagemSessaoId,
+              pericia.personagemCampanhaId,
+              pericia.periciaCodigo,
+              pericia.grauTreinamento,
+            );
+            if (perito.bonusDado) {
+              payload.bonusDados = [perito.bonusDado];
+            }
+
+            const resultado = calcularResultadoDiceServidor(payload);
+            const inspiracaoAutomatica =
+              await this.resolverInspiracaoAutoritativaTx(
+                tx,
+                sessaoId,
+                pericia.personagemCampanhaId,
+                dto.contexto?.dt,
+                payload,
+                resultado.total,
+              );
+            const mensagem = construirMensagemDiceServidor([payload]).mensagem;
+            if (mensagem.length > LIMITES_DICE_SESSAO.mensagem) {
+              throw new SessaoRolagemMensagemMuitoGrandeException();
+            }
+
+            const evento = await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                tipoEvento: 'CHAT',
+                personagemAtorId: dto.personagemSessaoId,
+                solicitanteUsuarioId: usuarioId,
+                clientRequestId: dto.clientRequestId,
+                dados: this.jsonParaPersistencia({
+                  mensagem,
+                  autorUsuarioId: usuarioId,
+                  autorApelido: this.resolverApelidoAcesso(acesso, usuarioId),
+                  visibilidade,
+                  intencaoAutoritativa: intencao,
+                  dadosRolagem: {
+                    versao: 1,
+                    origem: 'SERVIDOR',
+                    tipo: 'PERICIA_PERSONAGEM',
+                    clientRequestId: dto.clientRequestId,
+                    personagemSessaoId: dto.personagemSessaoId,
+                    personagemCampanhaId: pericia.personagemCampanhaId,
+                    periciaCodigo: pericia.periciaCodigo,
+                    formulaResolvida: formatarExpressaoDiceServidor(payload),
+                    payloads: [payload],
+                    resultado: {
+                      total: resultado.total,
+                      dt: dto.contexto?.dt ?? null,
+                      sucesso:
+                        dto.contexto?.dt === undefined
+                          ? null
+                          : resultado.total >= dto.contexto.dt,
+                      falhaCritica: inspiracaoAutomatica !== null,
+                    },
+                  },
+                  contextoRolagem: {
+                    tipo: 'PERICIA',
+                    personagemSessaoId: dto.personagemSessaoId,
+                    personagemCampanhaId: pericia.personagemCampanhaId,
+                    periciaCodigo: pericia.periciaCodigo,
+                    dt: dto.contexto?.dt ?? null,
+                  },
+                  ajustesAplicados: perito.ajustes,
+                  inspiracaoAutomatica,
+                }),
+              },
+              include: {
+                personagemAtor: {
+                  include: {
+                    personagemCampanha: {
+                      select: {
+                        nome: true,
+                        donoId: true,
+                        dono: { select: { apelido: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            return { evento, criadoAgora: true };
+          }),
+      );
+    } catch (error) {
+      if (!this.erroPrismaChaveUnica(error)) throw error;
+      const vencedor = await this.buscarEventoRolagemIdempotente(
+        this.prisma,
+        sessaoId,
+        usuarioId,
+        dto.clientRequestId,
+      );
+      if (!vencedor) throw error;
+      this.assertIntencaoRolagemIdempotente(
+        vencedor,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      resultadoTransacao = { evento: vencedor, criadoAgora: false };
+    }
+
+    const duracaoMs = Date.now() - inicio;
+    if (resultadoTransacao.criadoAgora && duracaoMs > 1000) {
+      this.logger.warn(
+        JSON.stringify({
+          evento: 'rolagem_pericia_sessao_lenta',
+          sessaoId,
+          eventoId: resultadoTransacao.evento.id,
+          duracaoMs,
+        }),
+      );
+    }
+    return {
+      ...this.mapearEventoChat(resultadoTransacao.evento, true),
+      criadoAgora: resultadoTransacao.criadoAgora,
+    };
   }
 
   async listarEventosSessao(
@@ -5642,6 +5941,17 @@ export class SessaoService {
         );
       }
 
+      await bloquearPersonagemCampanhaTx(
+        tx,
+        campanhaId,
+        personagemSessao.personagemCampanha.id,
+      );
+      await bloquearRegraOpcionalSessaoTx(
+        tx,
+        sessaoId,
+        CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+      );
+
       const estadoRegistro = await this.obterEstadoHabilidadesClasseSessaoTx(
         tx,
         sessaoId,
@@ -7797,6 +8107,370 @@ export class SessaoService {
     ];
   }
 
+  private montarIntencaoRolagemPericia(
+    dto: CriarRolagemPericiaSessaoDto,
+    visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
+  ): Record<string, unknown> {
+    return {
+      tipo: 'PERICIA_PERSONAGEM',
+      personagemSessaoId: dto.personagemSessaoId,
+      periciaCodigo: dto.periciaCodigo.trim().toUpperCase(),
+      visibilidade,
+      dt: dto.contexto?.dt ?? null,
+    };
+  }
+
+  private resolverApelidoAcesso(
+    acesso: AcessoCampanha,
+    usuarioId: number,
+  ): string {
+    if (acesso.campanha.donoId === usuarioId) {
+      return acesso.campanha.dono.apelido;
+    }
+    const membro = acesso.campanha.membros.find(
+      (item) => item.usuarioId === usuarioId,
+    );
+    if (!membro) throw new UsuarioNaoEncontradoException(usuarioId);
+    return membro.usuario.apelido;
+  }
+
+  private async buscarEventoRolagemIdempotente(
+    cliente: Pick<Prisma.TransactionClient, 'eventoSessao'>,
+    sessaoId: number,
+    usuarioId: number,
+    clientRequestId: string,
+  ) {
+    return cliente.eventoSessao.findFirst({
+      where: {
+        sessaoId,
+        solicitanteUsuarioId: usuarioId,
+        clientRequestId,
+      },
+      include: {
+        personagemAtor: {
+          include: {
+            personagemCampanha: {
+              select: {
+                nome: true,
+                donoId: true,
+                dono: { select: { apelido: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  private assertIntencaoRolagemIdempotente(
+    evento: { dados: Prisma.JsonValue | null },
+    intencao: Record<string, unknown>,
+    sessaoId: number,
+    clientRequestId: string,
+  ): void {
+    const dados = this.extrairRegistro(evento.dados);
+    const persistida = this.extrairRegistro(
+      (dados.intencaoAutoritativa ?? null) as Prisma.JsonValue | null,
+    );
+    if (JSON.stringify(persistida) === JSON.stringify(intencao)) return;
+    throw new SessaoRolagemIdempotenciaConflitoException(
+      sessaoId,
+      clientRequestId,
+    );
+  }
+
+  private erroPrismaChaveUnica(error: unknown): boolean {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    );
+  }
+
+  private async resolverPericiaAutoritativaTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    periciaCodigoRaw: string,
+  ): Promise<{
+    personagemCampanhaId: number;
+    personagemNome: string;
+    donoId: number;
+    periciaCodigo: string;
+    periciaNome: string;
+    atributoBase: string;
+    grauTreinamento: number;
+    bonusTotal: number;
+    quantidadeDados: number;
+    keepMode: 'HIGHEST' | 'LOWEST';
+  }> {
+    const periciaCodigo = periciaCodigoRaw.trim().toUpperCase();
+    const [personagem, periciaCatalogo] = await Promise.all([
+      tx.personagemSessao.findFirst({
+        where: {
+          id: personagemSessaoId,
+          sessaoId,
+          personagemCampanha: { campanhaId },
+        },
+        select: {
+          personagemCampanhaId: true,
+          personagemCampanha: {
+            select: {
+              id: true,
+              nome: true,
+              donoId: true,
+              personagemBase: {
+                select: {
+                  agilidade: true,
+                  forca: true,
+                  intelecto: true,
+                  presenca: true,
+                  vigor: true,
+                  pericias: {
+                    select: {
+                      grauTreinamento: true,
+                      bonusExtra: true,
+                      pericia: {
+                        select: {
+                          codigo: true,
+                          nome: true,
+                          atributoBase: true,
+                        },
+                      },
+                    },
+                  },
+                  habilidadesBase: {
+                    select: {
+                      habilidade: { select: { mecanicasEspeciais: true } },
+                    },
+                  },
+                  poderesGenericos: {
+                    select: {
+                      habilidade: { select: { mecanicasEspeciais: true } },
+                    },
+                  },
+                },
+              },
+              modificadores: {
+                where: { ativo: true },
+                select: {
+                  campo: true,
+                  valor: true,
+                  periciaCodigo: true,
+                  tipoGrauCodigo: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      tx.pericia.findUnique({
+        where: { codigo: periciaCodigo },
+        select: { codigo: true, nome: true, atributoBase: true },
+      }),
+    ]);
+    if (!personagem) {
+      throw new PersonagemSessaoNaoEncontradoException(
+        personagemSessaoId,
+        sessaoId,
+        campanhaId,
+      );
+    }
+    if (!periciaCatalogo) {
+      throw new SessaoPericiaNaoEncontradaException(periciaCodigo);
+    }
+
+    const base = personagem.personagemCampanha.personagemBase;
+    const periciasEfetivas = resolverPericiasEfetivasCampanha(
+      base.pericias,
+      personagem.personagemCampanha.modificadores,
+    );
+    const periciaEfetiva = periciasEfetivas.find(
+      (item) => item.codigo === periciaCodigo,
+    );
+    const habilidadesParaOverride = [
+      ...base.habilidadesBase,
+      ...base.poderesGenericos,
+    ];
+    const atributoBase =
+      extrairPericiasAtributoBaseOverride(habilidadesParaOverride)[
+        periciaCodigo
+      ] ?? periciaCatalogo.atributoBase;
+    const mapaBusca = new Map<string, string>([
+      [this.normalizarBuscaPericia(periciaCatalogo.codigo), periciaCodigo],
+      [this.normalizarBuscaPericia(periciaCatalogo.nome), periciaCodigo],
+    ]);
+    const bonusEquipamento =
+      (
+        await this.calcularBonusEquipamentoPericias(
+          [personagem.personagemCampanhaId],
+          mapaBusca,
+          tx,
+        )
+      )
+        .get(personagem.personagemCampanhaId)
+        ?.get(periciaCodigo) ?? 0;
+    const valorAtributo = this.obterAtributoPersonagemPorBase(
+      base,
+      atributoBase,
+    );
+    const bonusTotal =
+      (periciaEfetiva?.bonusTreinamento ?? 0) +
+      (periciaEfetiva?.bonusOutros ?? 0) +
+      bonusEquipamento;
+
+    return {
+      personagemCampanhaId: personagem.personagemCampanhaId,
+      personagemNome: personagem.personagemCampanha.nome,
+      donoId: personagem.personagemCampanha.donoId,
+      periciaCodigo,
+      periciaNome: periciaCatalogo.nome,
+      atributoBase,
+      grauTreinamento: periciaEfetiva?.grauTreinamento ?? 0,
+      bonusTotal,
+      quantidadeDados: this.calcularDadosPadraoPericia(valorAtributo),
+      keepMode: valorAtributo > 0 ? 'HIGHEST' : 'LOWEST',
+    };
+  }
+
+  private obterAtributoPersonagemPorBase(
+    atributos: {
+      agilidade: number;
+      forca: number;
+      intelecto: number;
+      presenca: number;
+      vigor: number;
+    },
+    atributoBase: string,
+  ): number {
+    switch (atributoBase) {
+      case 'AGI':
+        return atributos.agilidade;
+      case 'FOR':
+        return atributos.forca;
+      case 'INT':
+        return atributos.intelecto;
+      case 'PRE':
+        return atributos.presenca;
+      case 'VIG':
+        return atributos.vigor;
+      default:
+        return 0;
+    }
+  }
+
+  private async consumirPeritoAutoritativoTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    personagemSessaoId: number,
+    personagemCampanhaId: number,
+    periciaCodigo: string,
+    grauTreinamento: number,
+  ): Promise<{
+    bonusDado: DiceBonusDadoServidor | null;
+    ajustes: Prisma.JsonValue[];
+  }> {
+    await bloquearRegraOpcionalSessaoTx(
+      tx,
+      sessaoId,
+      CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+    );
+    const estadoRegistro = await this.obterEstadoHabilidadesClasseSessaoTx(
+      tx,
+      sessaoId,
+    );
+    const entrada = Object.entries(estadoRegistro.estado.pendentesRolagem)
+      .filter(
+        ([, pendente]) =>
+          pendente.personagemSessaoId === personagemSessaoId &&
+          pendente.personagemCampanhaId === personagemCampanhaId,
+      )
+      .sort((a, b) => {
+        const porData = a[1].criadoEm.localeCompare(b[1].criadoEm);
+        return porData || a[1].eventoId - b[1].eventoId;
+      })[0];
+    if (
+      !entrada ||
+      grauTreinamento <= 0 ||
+      periciaCodigo === 'LUTA' ||
+      periciaCodigo === 'PONTARIA'
+    ) {
+      return { bonusDado: null, ajustes: [] };
+    }
+
+    const [chave, pendente] = entrada;
+    const payloadBonus = rolarDadosServidor({
+      quantidade: 1,
+      faces: pendente.faces,
+      modificador: 0,
+      operador: '+',
+      aplicarModificadorPorDado: false,
+      keepMode: 'SUM',
+    });
+    const bonusDado: DiceBonusDadoServidor = {
+      origem: 'PERITO',
+      label: `Perito +${pendente.dado}`,
+      quantidade: 1,
+      faces: pendente.faces,
+      rolagens: payloadBonus.rolagens,
+      efeitoPendenteId: pendente.id,
+    };
+    delete estadoRegistro.estado.pendentesRolagem[chave];
+    await this.salvarEstadoHabilidadesClasseSessaoTx(
+      tx,
+      sessaoId,
+      estadoRegistro.regraId,
+      estadoRegistro.estado,
+    );
+
+    return {
+      bonusDado,
+      ajustes: [
+        {
+          tipo: 'PERITO',
+          efeitoPendenteId: pendente.id,
+          habilidadeId: pendente.habilidadeId,
+          habilidadeNome: pendente.habilidadeNome,
+          dado: pendente.dado,
+          faces: pendente.faces,
+          descricao: `Perito +${pendente.dado}`,
+        },
+      ],
+    };
+  }
+
+  private async resolverInspiracaoAutoritativaTx(
+    tx: Prisma.TransactionClient,
+    sessaoId: number,
+    personagemCampanhaId: number,
+    dt: number | undefined,
+    payload: DiceRollPayloadServidor,
+    total: number,
+  ): Promise<Record<string, unknown> | null> {
+    if (dt === undefined || total >= dt || !payload.rolagens.includes(1)) {
+      return null;
+    }
+    await bloquearRegraOpcionalSessaoTx(tx, sessaoId, 'INSPIRACAO');
+    const regra = await tx.sessaoRegraOpcional.findUnique({
+      where: { sessaoId_chave: { sessaoId, chave: 'INSPIRACAO' } },
+      select: { ativo: true },
+    });
+    if (!regra?.ativo) return null;
+
+    await this.aplicarInspiracaoAutomaticaTx(
+      tx,
+      sessaoId,
+      personagemCampanhaId,
+      true,
+    );
+    return {
+      personagemCampanhaId,
+      motivo: 'FALHA_CRITICA',
+      dt,
+      total,
+    };
+  }
+
   private async consumirBonusPeritoPendenteTx(
     tx: Prisma.TransactionClient,
     sessaoId: number,
@@ -7809,6 +8483,12 @@ export class SessaoService {
     if (!contexto.efeitoPendenteId) {
       return [];
     }
+
+    await bloquearRegraOpcionalSessaoTx(
+      tx,
+      sessaoId,
+      CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+    );
 
     const estadoRegistro = await this.obterEstadoHabilidadesClasseSessaoTx(
       tx,
@@ -8104,7 +8784,11 @@ export class SessaoService {
     tx: Prisma.TransactionClient,
     sessaoId: number,
     personagemCampanhaId: number,
+    regraBloqueada = false,
   ) {
+    if (!regraBloqueada) {
+      await bloquearRegraOpcionalSessaoTx(tx, sessaoId, 'INSPIRACAO');
+    }
     const regra = await this.obterOuCriarRegraOpcionalTx(
       tx,
       sessaoId,
@@ -13329,11 +14013,13 @@ export class SessaoService {
   private async calcularBonusEquipamentoPericias(
     personagemCampanhaIds: number[],
     mapaPorBusca: Map<string, string>,
+    cliente: Pick<Prisma.TransactionClient, 'inventarioItemCampanha'> = this
+      .prisma,
   ): Promise<Map<number, Map<string, number>>> {
     const resultado = new Map<number, Map<string, number>>();
     if (personagemCampanhaIds.length === 0) return resultado;
 
-    const itensEquipados = await this.prisma.inventarioItemCampanha.findMany({
+    const itensEquipados = await cliente.inventarioItemCampanha.findMany({
       where: {
         personagemCampanhaId: { in: personagemCampanhaIds },
         equipado: true,
@@ -14291,6 +14977,11 @@ export class SessaoService {
         : '';
     const apelidoFallback =
       typeof dados.autorApelido === 'string' ? dados.autorApelido : 'Sistema';
+    const autorUsuarioId =
+      typeof dados.autorUsuarioId === 'number' &&
+      Number.isInteger(dados.autorUsuarioId)
+        ? dados.autorUsuarioId
+        : null;
     const dadosRolagem =
       !ocultaParaUsuario && this.ehJsonValueOuNull(dados.dadosRolagem)
         ? dados.dadosRolagem
@@ -14332,8 +15023,12 @@ export class SessaoService {
       contextoRolagem,
       ajustesAplicados,
       autor: {
-        usuarioId: evento.personagemAtor.personagemCampanha.donoId,
-        apelido: evento.personagemAtor.personagemCampanha.dono.apelido,
+        usuarioId:
+          autorUsuarioId ?? evento.personagemAtor.personagemCampanha.donoId,
+        apelido:
+          typeof dados.autorApelido === 'string'
+            ? dados.autorApelido
+            : evento.personagemAtor.personagemCampanha.dono.apelido,
         personagemNome: evento.personagemAtor.personagemCampanha.nome,
       },
     };

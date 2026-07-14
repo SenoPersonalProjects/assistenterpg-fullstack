@@ -57,6 +57,7 @@ describe('sessao-dice-autoritativo', () => {
     expect(expressaoDiceContemD20(resultado.expressions!)).toBe(true);
     expect(calcularResultadoDiceServidor(payload)).toEqual({
       totalBase: 35,
+      bonusTotal: 0,
       total: 40,
       termos: [
         { subtotal: 19, indiceEscolhido: 1 },
@@ -64,6 +65,30 @@ describe('sessao-dice-autoritativo', () => {
         { subtotal: 7, indiceEscolhido: 1 },
       ],
     });
+  });
+
+  it('soma dado bonus autoritativo e usa marcador v5', () => {
+    const expression = parseDiceInputServidor('2#d20+5').expressions![0];
+    const payload = rolarDadosServidor(expression, gerarSequencia([4, 17]));
+    payload.bonusDados = [
+      {
+        origem: 'PERITO',
+        label: 'Perito +1d8',
+        quantidade: 1,
+        faces: 8,
+        rolagens: [6],
+        efeitoPendenteId: 'perito:10',
+      },
+    ];
+
+    expect(calcularResultadoDiceServidor(payload)).toMatchObject({
+      totalBase: 17,
+      bonusTotal: 6,
+      total: 28,
+    });
+    expect(construirMensagemDiceServidor([payload]).mensagem).toContain(
+      '[[dice:v5|',
+    );
   });
 
   it('serializa simples em v3 e composto em v5', () => {

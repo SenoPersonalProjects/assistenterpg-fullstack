@@ -11,6 +11,7 @@ import { BusinessException } from 'src/common/exceptions/business.exception';
 import {
   EstadoEntidadeVinculadaPersonagem,
   ModoVinculadoTecnica,
+  Prisma,
   TipoEntidadeVinculadaPersonagem,
   TipoFichaNpcAmeaca,
   TipoNpcAmeaca,
@@ -293,6 +294,174 @@ describe('SessaoService', () => {
     );
   }
 
+  function criarEventoRolagemPericiaTeste(
+    dados: Record<string, unknown>,
+    donoId = 10,
+  ) {
+    return {
+      id: 56,
+      criadoEm: new Date('2026-07-14T12:00:00.000Z'),
+      dados,
+      personagemAtor: {
+        personagemCampanha: {
+          nome: 'Yuji',
+          donoId,
+          dono: { apelido: donoId === 10 ? 'Jogador' : 'Outro jogador' },
+        },
+      },
+    };
+  }
+
+  function configurarRolagemPericiaAutoritativa(args?: {
+    ehMestre?: boolean;
+    donoId?: number;
+    eventoExistente?: ReturnType<typeof criarEventoRolagemPericiaTeste> | null;
+    persistirEventoCriado?: boolean;
+    erroCriarEvento?: Error;
+    eventoVencedorAposErro?: ReturnType<typeof criarEventoRolagemPericiaTeste>;
+  }) {
+    const ehMestre = args?.ehMestre ?? false;
+    const donoId = args?.donoId ?? 10;
+    let eventoAtual = args?.eventoExistente ?? null;
+    const acesso = {
+      ehMestre,
+      campanha: {
+        donoId: 99,
+        dono: { apelido: 'Mestre' },
+        membros: [
+          {
+            usuarioId: 10,
+            papel: 'JOGADOR',
+            usuario: { apelido: 'Jogador' },
+          },
+        ],
+      },
+    };
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso,
+      sessao: { status: 'EM_ANDAMENTO' },
+    });
+    const validarMutabilidade = jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({ acesso, sessao: { status: 'EM_ANDAMENTO' } });
+    jest
+      .spyOn(service as any, 'assertSessaoMutavelTx')
+      .mockResolvedValue(undefined);
+
+    const personagemCompleto = {
+      personagemCampanhaId: 41,
+      personagemCampanha: {
+        id: 41,
+        nome: 'Yuji',
+        donoId,
+        personagemBase: {
+          agilidade: 1,
+          forca: 2,
+          intelecto: 3,
+          presenca: 1,
+          vigor: 2,
+          pericias: [
+            {
+              grauTreinamento: 1,
+              bonusExtra: 2,
+              pericia: {
+                codigo: 'ATLETISMO',
+                nome: 'Atletismo',
+                atributoBase: 'FOR',
+              },
+            },
+          ],
+          habilidadesBase: [
+            {
+              habilidade: {
+                mecanicasEspeciais: {
+                  periciasAtributoBase: { ATLETISMO: 'INT' },
+                },
+              },
+            },
+          ],
+          poderesGenericos: [],
+        },
+        modificadores: [
+          {
+            campo: 'PERICIA_TREINAMENTO',
+            valor: 1,
+            periciaCodigo: 'ATLETISMO',
+            tipoGrauCodigo: null,
+          },
+        ],
+      },
+    };
+    (prisma as any).personagemSessao = {
+      findFirst: jest
+        .fn()
+        .mockResolvedValueOnce({
+          personagemCampanhaId: 41,
+          personagemCampanha: { donoId },
+        })
+        .mockResolvedValue(personagemCompleto),
+    };
+    (prisma as any).personagemCampanha = {
+      findFirst: jest.fn().mockResolvedValue({ id: 41 }),
+    };
+    (prisma as any).pericia = {
+      findUnique: jest.fn().mockResolvedValue({
+        codigo: 'ATLETISMO',
+        nome: 'Atletismo',
+        atributoBase: 'FOR',
+      }),
+    };
+    (prisma as any).inventarioItemCampanha = {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          personagemCampanhaId: 41,
+          quantidade: 1,
+          estado: {},
+          equipamento: {
+            codigo: 'KIT_ATLETISMO',
+            periciaBonificada: 'ATLETISMO',
+            bonusPericia: 2,
+          },
+          modificacoes: [],
+        },
+      ]),
+    };
+    const criarEvento = jest.fn().mockImplementation((input) => {
+      if (args?.erroCriarEvento) {
+        eventoAtual = args.eventoVencedorAposErro ?? null;
+        return Promise.reject(args.erroCriarEvento);
+      }
+      const evento = criarEventoRolagemPericiaTeste(input.data.dados, donoId);
+      if (args?.persistirEventoCriado) eventoAtual = evento;
+      return Promise.resolve(evento);
+    });
+    (prisma as any).eventoSessao = {
+      findFirst: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve(eventoAtual)),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: criarEvento,
+    };
+    (prisma as any).$queryRaw = jest.fn().mockResolvedValue([{ id: 41 }]);
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+        callback(prisma),
+    );
+    const consumirPerito = jest
+      .spyOn(service as any, 'consumirPeritoAutoritativoTx')
+      .mockResolvedValue({ bonusDado: null, ajustes: [] });
+    const resolverInspiracao = jest
+      .spyOn(service as any, 'resolverInspiracaoAutoritativaTx')
+      .mockResolvedValue(null);
+
+    return {
+      criarEvento,
+      consumirPerito,
+      resolverInspiracao,
+      validarMutabilidade,
+    };
+  }
+
   it('gera e persiste rolagem autoritativa sem aceitar resultados do cliente', async () => {
     configurarRolagemAutoritativa();
 
@@ -330,6 +499,363 @@ describe('SessaoService', () => {
       code: 'SESSAO_ROLAGEM_REQUER_FLUXO_MECANICO',
     });
     expect((prisma as any).eventoSessao.create).not.toHaveBeenCalled();
+  });
+
+  it('resolve no servidor a pericia efetiva do personagem controlado', async () => {
+    const mocks = configurarRolagemPericiaAutoritativa();
+
+    const resultado = await service.criarRolagemSessao(7, 21, 10, {
+      tipo: 'PERICIA_PERSONAGEM',
+      personagemSessaoId: 31,
+      periciaCodigo: 'atletismo',
+      clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d78',
+    });
+
+    expect(resultado).toMatchObject({
+      criadoAgora: true,
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        personagemCampanhaId: 41,
+        periciaCodigo: 'ATLETISMO',
+      },
+    });
+    const dadosCriados = mocks.criarEvento.mock.calls[0][0].data.dados;
+    const payload = dadosCriados.dadosRolagem.payloads[0];
+    expect(payload).toMatchObject({
+      quantidade: 3,
+      faces: 20,
+      modificador: 14,
+      keepMode: 'HIGHEST',
+    });
+    expect(payload.rolagens).toHaveLength(3);
+    expect(dadosCriados).toMatchObject({
+      autorUsuarioId: 10,
+      contextoRolagem: {
+        tipo: 'PERICIA',
+        personagemSessaoId: 31,
+        personagemCampanhaId: 41,
+        periciaCodigo: 'ATLETISMO',
+      },
+    });
+    expect(mocks.consumirPerito).toHaveBeenCalledWith(
+      prisma,
+      21,
+      31,
+      41,
+      'ATLETISMO',
+      2,
+    );
+  });
+
+  it('impede jogador de rolar pericia de personagem alheio', async () => {
+    configurarRolagemPericiaAutoritativa({ donoId: 11 });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d79',
+      }),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_PERSONAGEM_EDICAO_NEGADA' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('permite ao mestre rolar pericia de qualquer personagem', async () => {
+    const mocks = configurarRolagemPericiaAutoritativa({
+      ehMestre: true,
+      donoId: 11,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d80',
+      }),
+    ).resolves.toMatchObject({ criadoAgora: true });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('bloqueia rolagem secreta de pericia para jogador', async () => {
+    configurarRolagemPericiaAutoritativa();
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        visibilidade: 'SECRETA_MESTRE',
+        clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d81',
+      }),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_APENAS_MESTRE' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('respeita a guarda de sessao mutavel antes da rolagem', async () => {
+    const mocks = configurarRolagemPericiaAutoritativa();
+    mocks.validarMutabilidade.mockRejectedValue(
+      new SessaoEncerradaException(7, 21, 'realizar rolagem de pericia'),
+    );
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d82',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_ENCERRADA' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('reutiliza o mesmo evento sem rerrolar ou consumir Perito', async () => {
+    const mocks = configurarRolagemPericiaAutoritativa({
+      persistirEventoCriado: true,
+    });
+    const dto = {
+      tipo: 'PERICIA_PERSONAGEM' as const,
+      personagemSessaoId: 31,
+      periciaCodigo: 'ATLETISMO',
+      clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d83',
+    };
+
+    const primeiro = await service.criarRolagemSessao(7, 21, 10, dto);
+    const repetido = await service.criarRolagemSessao(7, 21, 10, dto);
+
+    expect(primeiro.id).toBe(repetido.id);
+    expect(repetido.criadoAgora).toBe(false);
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+    expect(mocks.consumirPerito).toHaveBeenCalledTimes(1);
+    expect(mocks.resolverInspiracao).toHaveBeenCalledTimes(1);
+  });
+
+  it('converge para o evento vencedor quando o insert perde a corrida unica', async () => {
+    const clientRequestId = '9c871c5a-c103-4ab1-86d9-b7cdb20c5d85';
+    const intencaoAutoritativa = {
+      tipo: 'PERICIA_PERSONAGEM',
+      personagemSessaoId: 31,
+      periciaCodigo: 'ATLETISMO',
+      visibilidade: 'PUBLICA',
+      dt: null,
+    };
+    const vencedor = criarEventoRolagemPericiaTeste({
+      mensagem: 'resultado vencedor',
+      visibilidade: 'PUBLICA',
+      intencaoAutoritativa,
+      dadosRolagem: {
+        versao: 1,
+        origem: 'SERVIDOR',
+        tipo: 'PERICIA_PERSONAGEM',
+        clientRequestId,
+        personagemSessaoId: 31,
+        personagemCampanhaId: 41,
+        periciaCodigo: 'ATLETISMO',
+        formulaResolvida: '3d20+14#',
+        payloads: [],
+        resultado: {
+          total: 20,
+          dt: null,
+          sucesso: null,
+          falhaCritica: false,
+        },
+      },
+    });
+    const erroP2002 = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: {
+          target: ['sessaoId', 'solicitanteUsuarioId', 'clientRequestId'],
+        },
+      },
+    );
+    const mocks = configurarRolagemPericiaAutoritativa({
+      erroCriarEvento: erroP2002,
+      eventoVencedorAposErro: vencedor,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        clientRequestId,
+      }),
+    ).resolves.toMatchObject({
+      id: vencedor.id,
+      mensagem: 'resultado vencedor',
+      criadoAgora: false,
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('repete a transacao quando Prisma sinaliza conflito P2034', async () => {
+    configurarRolagemPericiaAutoritativa();
+    const executarTransacao = prisma.$transaction.getMockImplementation();
+    const erroP2034 = new Prisma.PrismaClientKnownRequestError(
+      'Conflito de escrita',
+      { code: 'P2034', clientVersion: 'test' },
+    );
+    prisma.$transaction
+      .mockRejectedValueOnce(erroP2034)
+      .mockImplementation(executarTransacao);
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        clientRequestId: '9c871c5a-c103-4ab1-86d9-b7cdb20c5d86',
+      }),
+    ).resolves.toMatchObject({ criadoAgora: true });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejeita reutilizar UUID com outra intencao de rolagem', async () => {
+    const clientRequestId = '9c871c5a-c103-4ab1-86d9-b7cdb20c5d84';
+    configurarRolagemPericiaAutoritativa({
+      eventoExistente: criarEventoRolagemPericiaTeste({
+        mensagem: 'resultado anterior',
+        visibilidade: 'PUBLICA',
+        intencaoAutoritativa: {
+          tipo: 'PERICIA_PERSONAGEM',
+          personagemSessaoId: 31,
+          periciaCodigo: 'ACROBACIA',
+          visibilidade: 'PUBLICA',
+          dt: null,
+        },
+      }),
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'PERICIA_PERSONAGEM',
+        personagemSessaoId: 31,
+        periciaCodigo: 'ATLETISMO',
+        clientRequestId,
+      }),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO',
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('consome o Perito mais antigo apenas em pericia compativel', async () => {
+    let estado = {
+      pendentesRolagem: {
+        recente: {
+          id: 'perito-recente',
+          eventoId: 72,
+          personagemSessaoId: 31,
+          personagemCampanhaId: 41,
+          habilidadeId: 80,
+          habilidadeNome: 'Perito',
+          dado: 'd8',
+          faces: 8,
+          criadoEm: '2026-07-14T12:00:00.000Z',
+        },
+        antigo: {
+          id: 'perito-antigo',
+          eventoId: 71,
+          personagemSessaoId: 31,
+          personagemCampanhaId: 41,
+          habilidadeId: 80,
+          habilidadeNome: 'Perito',
+          dado: 'd6',
+          faces: 6,
+          criadoEm: '2026-07-13T12:00:00.000Z',
+        },
+      },
+      aprimoramentosTemporarios: {},
+    };
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 1 }]),
+      sessaoRegraOpcional: {
+        findUnique: jest
+          .fn()
+          .mockImplementation(() => Promise.resolve({ id: 1, estado })),
+        update: jest.fn().mockImplementation((input) => {
+          estado = input.data.estado;
+          return Promise.resolve({});
+        }),
+        create: jest.fn(),
+      },
+    };
+
+    const resultado = await (service as any).consumirPeritoAutoritativoTx(
+      tx,
+      21,
+      31,
+      41,
+      'ATLETISMO',
+      1,
+    );
+
+    expect(resultado.bonusDado).toMatchObject({
+      origem: 'PERITO',
+      faces: 6,
+      efeitoPendenteId: 'perito-antigo',
+    });
+    expect(resultado.bonusDado.rolagens[0]).toBeGreaterThanOrEqual(1);
+    expect(resultado.bonusDado.rolagens[0]).toBeLessThanOrEqual(6);
+    expect(estado.pendentesRolagem).toEqual({
+      recente: expect.objectContaining({ id: 'perito-recente' }),
+    });
+  });
+
+  it('concede Inspiracao apenas com falha critica calculada no servidor', async () => {
+    const aplicar = jest
+      .spyOn(service as any, 'aplicarInspiracaoAutomaticaTx')
+      .mockResolvedValue(undefined);
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 1 }]),
+      sessaoRegraOpcional: {
+        findUnique: jest.fn().mockResolvedValue({ ativo: true }),
+      },
+    };
+    const payload = {
+      quantidade: 2,
+      faces: 20,
+      modificador: 5,
+      operador: '+',
+      aplicarModificadorPorDado: false,
+      keepMode: 'HIGHEST',
+      rolagens: [1, 1],
+    };
+
+    await expect(
+      (service as any).resolverInspiracaoAutoritativaTx(
+        tx,
+        21,
+        41,
+        20,
+        payload,
+        6,
+      ),
+    ).resolves.toMatchObject({ motivo: 'FALHA_CRITICA', dt: 20, total: 6 });
+    expect(aplicar).toHaveBeenCalledTimes(1);
+
+    await expect(
+      (service as any).resolverInspiracaoAutoritativaTx(
+        tx,
+        21,
+        41,
+        undefined,
+        payload,
+        6,
+      ),
+    ).resolves.toBeNull();
+    expect(aplicar).toHaveBeenCalledTimes(1);
+  });
+
+  it('usa keep lowest para atributo zero ou negativo', () => {
+    expect((service as any).calcularDadosPadraoPericia(0)).toBe(2);
+    expect((service as any).calcularDadosPadraoPericia(-2)).toBe(4);
   });
 
   it('marca payload de rolagem enviado pelo chat como cliente legado', () => {
@@ -3372,6 +3898,7 @@ describe('SessaoService', () => {
     };
 
     return {
+      $queryRaw: jest.fn().mockResolvedValue([{ id: 77 }]),
       sessaoRegraOpcional: {
         findUnique: jest.fn().mockResolvedValue({ id: 77, estado }),
         update: jest.fn().mockResolvedValue({}),
