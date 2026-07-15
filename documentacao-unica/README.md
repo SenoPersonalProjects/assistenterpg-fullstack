@@ -34,6 +34,7 @@ Para reduzir ambiguidade e facilitar manutenção, este README permanece como vi
 - erros de operação e debug (codigo -> ação): [`entidades/erros-operação-debug.md`](./entidades/erros-operação-debug.md)
 - checklist de cobertura de erros (back x front): [`entidades/checklist-cobertura-erros-front-back.md`](./entidades/checklist-cobertura-erros-front-back.md)
 - auditoria de consistência (docs x regras x schema): [`entidades/auditoria-consistência.md`](./entidades/auditoria-consistência.md)
+- smoke autenticado de rolagens autoritativas: [`GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md`](./GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md)
 
 ## 2. Arquitetura
 
