@@ -24,6 +24,7 @@ import {
   apiEnviarMensagemChatSessaoCampanha,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
+  apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemPericiaNpcSessaoCampanha,
@@ -171,7 +172,9 @@ import {
   montarIntencaoRolagemPericiaNpc,
 } from '@/lib/campanha/sessao-rolagem-npc';
 import {
+  deveUsarCriticoHabilidadeAutoritativo,
   deveUsarDanoHabilidadeAutoritativo,
+  montarIntencaoRolagemCriticoHabilidade,
   montarIntencaoRolagemDanoHabilidade,
   montarIntencaoRolagemTesteHabilidade,
   montarPreviewDanoHabilidade,
@@ -2345,20 +2348,43 @@ export default function SessaoCampanhaPage() {
 
       const acumulos = Math.max(1, Math.trunc(dano.acumulos ?? 1));
       const aplicarCritico = Boolean(payload.aplicarCritico);
+      const usarDanoAutoritativo = deveUsarDanoHabilidadeAutoritativo(payload);
+      const usarCriticoAutoritativo =
+        deveUsarCriticoHabilidadeAutoritativo(payload);
 
-      if (deveUsarDanoHabilidadeAutoritativo(payload)) {
-        const preview = montarPreviewDanoHabilidade(dano);
+      if (usarDanoAutoritativo || usarCriticoAutoritativo) {
+        const criticoMultiplicador = Number.isFinite(
+          payload.habilidade.criticoMultiplicador,
+        )
+          ? Math.max(
+              2,
+              Math.trunc(payload.habilidade.criticoMultiplicador as number),
+            )
+          : 2;
+        const preview = montarPreviewDanoHabilidade(
+          dano,
+          usarCriticoAutoritativo ? criticoMultiplicador : 1,
+        );
         if (preview.expressions.length === 0) {
           showToast('Não foi possível montar a prévia da rolagem de dano.', 'warning');
           return;
         }
-        let intencao: ReturnType<typeof montarIntencaoRolagemDanoHabilidade>;
+        let intencao:
+          | ReturnType<typeof montarIntencaoRolagemDanoHabilidade>
+          | ReturnType<typeof montarIntencaoRolagemCriticoHabilidade>;
         try {
-          intencao = montarIntencaoRolagemDanoHabilidade(
-            payload,
-            visibilidadeRolagemAtual,
-            criarClientRequestIdRolagem(),
-          );
+          const clientRequestId = criarClientRequestIdRolagem();
+          intencao = usarCriticoAutoritativo
+            ? montarIntencaoRolagemCriticoHabilidade(
+                payload,
+                visibilidadeRolagemAtual,
+                clientRequestId,
+              )
+            : montarIntencaoRolagemDanoHabilidade(
+                payload,
+                visibilidadeRolagemAtual,
+                clientRequestId,
+              );
         } catch (error) {
           const userError = criarErroUsuario(error);
           setErroRolagens(userError);
@@ -2373,7 +2399,7 @@ export default function SessaoCampanhaPage() {
           : payload.habilidade.habilidadeNome;
         setPericiaRollModal({
           aberto: true,
-          titulo: 'Dano/efeito',
+          titulo: usarCriticoAutoritativo ? 'Dano crítico' : 'Dano/efeito',
           subtitulo: `${payload.alvoNome} · ${habilidadeLabel}`,
           alvoTipo: payload.alvoTipo,
           alvoNome: payload.alvoNome,
@@ -2390,21 +2416,32 @@ export default function SessaoCampanhaPage() {
         });
         try {
           const enviada =
-            await apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha(
-              campanhaId,
-              sessaoId,
-              intencao,
-            );
+            intencao.tipo === 'CRITICO_PERSONAGEM'
+              ? await apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha(
+                  campanhaId,
+                  sessaoId,
+                  intencao,
+                )
+              : await apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha(
+                  campanhaId,
+                  sessaoId,
+                  intencao,
+                );
           const dadosServidor = extrairDadosRolagemServidor(
             enviada.dadosRolagem,
           );
           if (
             !dadosServidor ||
-            dadosServidor.tipo !== 'DANO_PERSONAGEM' ||
-            dadosServidor.origemDano !== 'HABILIDADE_TECNICA' ||
+            dadosServidor.tipo !== intencao.tipo ||
+            (dadosServidor.tipo === 'DANO_PERSONAGEM' &&
+              dadosServidor.origemDano !== 'HABILIDADE_TECNICA') ||
+            (dadosServidor.tipo === 'CRITICO_PERSONAGEM' &&
+              dadosServidor.origemCritico !== 'HABILIDADE_TECNICA') ||
             !dadosServidor.payloads[0]
           ) {
-            throw new Error('Resposta autoritativa do dano da habilidade inválida.');
+            throw new Error(
+              'Resposta autoritativa do dano da habilidade inválida.',
+            );
           }
           setChat((anterior) =>
             anterior.some((mensagem) => mensagem.id === enviada.id)
