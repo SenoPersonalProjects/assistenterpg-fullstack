@@ -973,4 +973,42 @@ describe('sessao-dice autoritativo', () => {
       extrairDadosRolagemServidor({ ...dados, acumulosAplicados: 1.5 }),
     ).toBeNull();
   });
+
+  it('aceita metadados autoritativos de critico estruturado', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'CRITICO_PERSONAGEM',
+      clientRequestId: '87e9188e-74fd-465c-91c4-c18ca855cad8',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      tecnicaId: 401,
+      tecnicaNome: 'Divergencia',
+      habilidadeTecnicaId: 501,
+      habilidadeNome: 'Punho Divergente',
+      origemCritico: 'HABILIDADE_TECNICA',
+      variacaoHabilidadeId: 601,
+      variacaoNome: 'Liberacao Superior',
+      acumulosAplicados: 3,
+      criticoMultiplicador: 3,
+      formulaBase: '5d10+5',
+      formulaCritica: '15d10+5',
+      formulasResolvidas: ['15d10+5'],
+      formulaResolvida: '15d10+5',
+      payloads: [
+        criarPayloadComRolagens('15d10+5', [
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5],
+        ]),
+      ],
+      resultado: { total: 75 },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, criticoMultiplicador: 1 }),
+    ).toBeNull();
+    expect(
+      extrairDadosRolagemServidor({ ...dados, origemCritico: 'ITEM' }),
+    ).toBeNull();
+  });
 });

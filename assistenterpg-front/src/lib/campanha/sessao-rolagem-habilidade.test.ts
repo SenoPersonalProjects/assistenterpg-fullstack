@@ -5,7 +5,9 @@ import type {
   RolagemTesteHabilidadeSessaoPayload,
 } from '@/components/campanha/sessao/types';
 import {
+  deveUsarCriticoHabilidadeAutoritativo,
   deveUsarDanoHabilidadeAutoritativo,
+  montarIntencaoRolagemCriticoHabilidade,
   montarIntencaoRolagemDanoHabilidade,
   montarIntencaoRolagemTesteHabilidade,
   montarPreviewDanoHabilidade,
@@ -17,6 +19,7 @@ const habilidade: HabilidadeRollContext = {
   variacaoHabilidadeId: 601,
   habilidadeNome: 'Punho Divergente',
   variacaoNome: 'Liberacao Superior',
+  criticoMultiplicador: 3,
   dano: {
     dadosDano: [{ quantidade: 3, dado: 'd10', tipo: 'ENERGIA' }],
     danoFlat: 5,
@@ -103,19 +106,75 @@ describe('rolagens autoritativas de habilidade', () => {
     expect(intencao).not.toHaveProperty('acumulos');
   });
 
-  it('mantem dano critico e fontes nao-personagem no fluxo legado', () => {
+  it('separa dano e critico estruturados dos alvos que permanecem legados', () => {
     expect(deveUsarDanoHabilidadeAutoritativo(dano)).toBe(true);
     expect(
       deveUsarDanoHabilidadeAutoritativo({ ...dano, aplicarCritico: true }),
     ).toBe(false);
     expect(
+      deveUsarCriticoHabilidadeAutoritativo({ ...dano, aplicarCritico: true }),
+    ).toBe(true);
+    expect(
       deveUsarDanoHabilidadeAutoritativo({ ...dano, alvoTipo: 'NPC' }),
     ).toBe(false);
+    expect(
+      deveUsarCriticoHabilidadeAutoritativo({
+        ...dano,
+        alvoTipo: 'NPC',
+        aplicarCritico: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('monta critico somente com ids, variacao e acumulos', () => {
+    const intencao = montarIntencaoRolagemCriticoHabilidade(
+      { ...dano, aplicarCritico: true },
+      'PUBLICA',
+      '87e9188e-74fd-465c-91c4-c18ca855cad8',
+    );
+
+    expect(intencao).toEqual({
+      tipo: 'CRITICO_PERSONAGEM',
+      origemCritico: 'HABILIDADE_TECNICA',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      variacaoHabilidadeId: 601,
+      acumulos: 3,
+      visibilidade: 'PUBLICA',
+      clientRequestId: '87e9188e-74fd-465c-91c4-c18ca855cad8',
+    });
+    expect(intencao).not.toHaveProperty('formula');
+    expect(intencao).not.toHaveProperty('dados');
+    expect(intencao).not.toHaveProperty('total');
+  });
+
+  it('omite acumulo unitario no critico', () => {
+    const intencao = montarIntencaoRolagemCriticoHabilidade(
+      {
+        ...dano,
+        aplicarCritico: true,
+        habilidade: {
+          ...habilidade,
+          dano: { ...habilidade.dano!, acumulos: 1 },
+        },
+      },
+      'PUBLICA',
+      'cc5ea349-0cba-4010-ac18-b83d3436f942',
+    );
+
+    expect(intencao).not.toHaveProperty('acumulos');
   });
 
   it('gera apenas preview visual do dano estruturado sem resultados', () => {
     expect(montarPreviewDanoHabilidade(habilidade.dano!)).toEqual({
       expressions: ['ENERGIA: 5d10+5'],
+      faces: [10],
+    });
+  });
+
+  it('gera preview critico sem sortear resultados e preserva flat', () => {
+    expect(montarPreviewDanoHabilidade(habilidade.dano!, 3)).toEqual({
+      expressions: ['ENERGIA (Critico x3): 15d10+5'],
       faces: [10],
     });
   });

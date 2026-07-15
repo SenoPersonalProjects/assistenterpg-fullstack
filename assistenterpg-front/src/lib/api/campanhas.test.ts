@@ -53,6 +53,7 @@ import {
   apiRecusarConvite,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
+  apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemFormulaSessaoCampanha,
@@ -932,6 +933,35 @@ describe('campanhas api cache and dedupe', () => {
     expect(payload).not.toHaveProperty('total');
     expect(payload).not.toHaveProperty('custo');
     expect(payload).not.toHaveProperty('efeito');
+  });
+
+  it('envia somente a intencao do critico estruturado de habilidade', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 101 } });
+    const payload = {
+      tipo: 'CRITICO_PERSONAGEM' as const,
+      origemCritico: 'HABILIDADE_TECNICA' as const,
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      variacaoHabilidadeId: 601,
+      acumulos: 3,
+      visibilidade: 'PUBLICA' as const,
+      clientRequestId: '87e9188e-74fd-465c-91c4-c18ca855cad8',
+    };
+
+    await apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha(
+      44,
+      13,
+      payload,
+    );
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(payload).not.toHaveProperty('formula');
+    expect(payload).not.toHaveProperty('dados');
+    expect(payload).not.toHaveProperty('total');
+    expect(payload).not.toHaveProperty('multiplicador');
   });
 
   it('sends secret master roll visibility through session chat', async () => {
