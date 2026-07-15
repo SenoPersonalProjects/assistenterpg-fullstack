@@ -2957,7 +2957,8 @@ export class SessaoService {
   ) {
     if (
       dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM' ||
-      dto.tipo === 'DANO_PERSONAGEM'
+      dto.tipo === 'DANO_PERSONAGEM' ||
+      dto.tipo === 'CRITICO_PERSONAGEM'
     ) {
       return this.criarRolagemHabilidadePersonagemSessao(
         campanhaId,
@@ -3417,10 +3418,13 @@ export class SessaoService {
     dto: CriarRolagemHabilidadePersonagemSessaoDto,
   ) {
     const inicio = Date.now();
-    const ehDano = dto.tipo === 'DANO_PERSONAGEM';
-    const descricaoAcao = ehDano
-      ? 'realizar rolagem de dano de habilidade'
-      : 'realizar teste de habilidade';
+    const ehCritico = dto.tipo === 'CRITICO_PERSONAGEM';
+    const ehDano = dto.tipo === 'DANO_PERSONAGEM' || ehCritico;
+    const descricaoAcao = ehCritico
+      ? 'realizar rolagem de critico de habilidade'
+      : ehDano
+        ? 'realizar rolagem de dano de habilidade'
+        : 'realizar teste de habilidade';
     const { acesso } = await this.obterSessaoComAcesso(
       campanhaId,
       sessaoId,
@@ -3570,12 +3574,28 @@ export class SessaoService {
                 fonte.habilidade,
                 dto.variacaoHabilidadeId,
                 dto.acumulos,
+                ehCritico,
               );
               payloads = dano.expressoes.map((expressao) =>
                 rolarDadosServidor(expressao),
               );
               dadosRolagemEspecificos = {
-                origemDano: 'HABILIDADE_TECNICA',
+                ...(ehCritico
+                  ? {
+                      origemCritico: 'HABILIDADE_TECNICA',
+                      criticoMultiplicador: dano.criticoMultiplicador,
+                      formulaBase: dano.expressoesBase
+                        .map((expressao) =>
+                          formatarExpressaoDiceServidor(expressao),
+                        )
+                        .join(' + '),
+                      formulaCritica: payloads
+                        .map((payload) =>
+                          formatarExpressaoDiceServidor(payload),
+                        )
+                        .join(' + '),
+                    }
+                  : { origemDano: 'HABILIDADE_TECNICA' }),
                 variacaoHabilidadeId: dano.variacaoHabilidadeId,
                 variacaoNome: dano.variacaoNome,
                 acumulosAplicados: dano.acumulosAplicados,
@@ -3584,8 +3604,10 @@ export class SessaoService {
                 ),
               };
               contextoRolagem = {
-                tipo: 'DANO',
-                origemDano: 'HABILIDADE_TECNICA',
+                tipo: ehCritico ? 'CRITICO' : 'DANO',
+                ...(ehCritico
+                  ? { origemCritico: 'HABILIDADE_TECNICA' }
+                  : { origemDano: 'HABILIDADE_TECNICA' }),
                 variacaoHabilidadeId: dano.variacaoHabilidadeId,
                 acumulosAplicados: dano.acumulosAplicados,
               };
@@ -3686,7 +3708,9 @@ export class SessaoService {
       this.logger.warn(
         JSON.stringify({
           evento: ehDano
-            ? 'rolagem_dano_habilidade_sessao_lenta'
+            ? ehCritico
+              ? 'rolagem_critico_habilidade_sessao_lenta'
+              : 'rolagem_dano_habilidade_sessao_lenta'
             : 'rolagem_teste_habilidade_sessao_lenta',
           sessaoId,
           eventoId: resultadoTransacao.evento.id,
@@ -8808,13 +8832,18 @@ export class SessaoService {
     return {
       tipo: dto.tipo,
       origemDano: dto.tipo === 'DANO_PERSONAGEM' ? dto.origemDano : null,
+      origemCritico:
+        dto.tipo === 'CRITICO_PERSONAGEM' ? dto.origemCritico : null,
       personagemSessaoId: dto.personagemSessaoId,
       habilidadeTecnicaId: dto.habilidadeTecnicaId,
       variacaoHabilidadeId:
-        dto.tipo === 'DANO_PERSONAGEM'
+        dto.tipo === 'DANO_PERSONAGEM' || dto.tipo === 'CRITICO_PERSONAGEM'
           ? (dto.variacaoHabilidadeId ?? null)
           : null,
-      acumulos: dto.tipo === 'DANO_PERSONAGEM' ? (dto.acumulos ?? null) : null,
+      acumulos:
+        dto.tipo === 'DANO_PERSONAGEM' || dto.tipo === 'CRITICO_PERSONAGEM'
+          ? (dto.acumulos ?? null)
+          : null,
       visibilidade,
     };
   }
@@ -9431,11 +9460,14 @@ export class SessaoService {
     habilidade: HabilidadeTecnicaSessaoResumo,
     variacaoHabilidadeId?: number,
     acumulosSolicitados?: number,
+    aplicarCritico = false,
   ): {
     variacaoHabilidadeId: number | null;
     variacaoNome: string | null;
     acumulosAplicados: number;
     expressoes: DiceExpressionServidor[];
+    expressoesBase: DiceExpressionServidor[];
+    criticoMultiplicador: number | null;
   } {
     const variacao =
       typeof variacaoHabilidadeId === 'number'
@@ -9478,17 +9510,42 @@ export class SessaoService {
       );
     }
 
-    const fonte = resolverFonteDanoHabilidadePersistida({
+    const fontePersistida = {
       dadosDano: variacao?.dadosDano ?? habilidade.dadosDano,
       danoFlat: variacao?.danoFlat ?? habilidade.danoFlat,
       danoFlatTipo: variacao?.danoFlatTipo ?? habilidade.danoFlatTipo,
       escalonamentoDano:
         variacao?.escalonamentoDano ?? habilidade.escalonamentoDano,
       acumulosAplicados: acumulosInformados,
-    });
+    };
+    const fonteBase = resolverFonteDanoHabilidadePersistida(fontePersistida);
+    if (fonteBase.erro || !fonteBase.expressoes) {
+      throw new SessaoRolagemInvalidaException(
+        fonteBase.erro ?? 'Dano estruturado invalido.',
+      );
+    }
+    const criticoMultiplicador = aplicarCritico
+      ? Number.isFinite(
+          variacao?.criticoMultiplicador ?? habilidade.criticoMultiplicador,
+        )
+        ? Math.max(
+            2,
+            Math.trunc(
+              (variacao?.criticoMultiplicador ??
+                habilidade.criticoMultiplicador) as number,
+            ),
+          )
+        : 2
+      : null;
+    const fonte = criticoMultiplicador
+      ? resolverFonteDanoHabilidadePersistida({
+          ...fontePersistida,
+          multiplicadorDados: criticoMultiplicador,
+        })
+      : fonteBase;
     if (fonte.erro || !fonte.expressoes) {
       throw new SessaoRolagemInvalidaException(
-        fonte.erro ?? 'Dano estruturado invalido.',
+        fonte.erro ?? 'Critico estruturado invalido.',
       );
     }
     return {
@@ -9496,6 +9553,8 @@ export class SessaoService {
       variacaoNome: variacao?.nome ?? null,
       acumulosAplicados: acumulosInformados,
       expressoes: fonte.expressoes,
+      expressoesBase: fonteBase.expressoes,
+      criticoMultiplicador,
     };
   }
 
