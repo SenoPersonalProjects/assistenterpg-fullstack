@@ -39,7 +39,14 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
       return (
         typeof dto.expressao === 'string' &&
         dto.personagemSessaoId === undefined &&
+        dto.habilidadeTecnicaId === undefined &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
+        dto.npcSessaoId === undefined &&
         dto.periciaCodigo === undefined &&
+        dto.origemAtaque === undefined &&
+        dto.origemDano === undefined &&
+        dto.acaoIndice === undefined &&
         dto.contexto?.dt === undefined &&
         (dto.contexto?.tipo === undefined || dto.contexto.tipo === 'OUTRO')
       );
@@ -48,20 +55,56 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
       return (
         dto.expressao === undefined &&
         Number.isInteger(dto.personagemSessaoId) &&
+        dto.habilidadeTecnicaId === undefined &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
         dto.npcSessaoId === undefined &&
         typeof dto.periciaCodigo === 'string' &&
         dto.origemAtaque === undefined &&
+        dto.origemDano === undefined &&
         dto.acaoIndice === undefined &&
         dto.contexto?.tipo === undefined
+      );
+    }
+    if (dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM') {
+      return (
+        dto.expressao === undefined &&
+        Number.isInteger(dto.personagemSessaoId) &&
+        Number.isInteger(dto.habilidadeTecnicaId) &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
+        dto.npcSessaoId === undefined &&
+        dto.periciaCodigo === undefined &&
+        dto.origemAtaque === undefined &&
+        dto.origemDano === undefined &&
+        dto.acaoIndice === undefined &&
+        dto.contexto === undefined
+      );
+    }
+    if (dto.tipo === 'DANO_PERSONAGEM') {
+      return (
+        dto.expressao === undefined &&
+        Number.isInteger(dto.personagemSessaoId) &&
+        Number.isInteger(dto.habilidadeTecnicaId) &&
+        dto.npcSessaoId === undefined &&
+        dto.periciaCodigo === undefined &&
+        dto.origemAtaque === undefined &&
+        dto.origemDano === 'HABILIDADE_TECNICA' &&
+        dto.acaoIndice === undefined &&
+        dto.contexto === undefined
       );
     }
     if (dto.tipo === 'PERICIA_NPC') {
       return (
         dto.expressao === undefined &&
         dto.personagemSessaoId === undefined &&
+        dto.habilidadeTecnicaId === undefined &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
         Number.isInteger(dto.npcSessaoId) &&
         typeof dto.periciaCodigo === 'string' &&
         dto.origemAtaque === undefined &&
+        dto.origemDano === undefined &&
         dto.acaoIndice === undefined &&
         dto.contexto?.tipo === undefined
       );
@@ -70,7 +113,11 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
       const baseCompativel =
         dto.expressao === undefined &&
         dto.personagemSessaoId === undefined &&
+        dto.habilidadeTecnicaId === undefined &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
         Number.isInteger(dto.npcSessaoId) &&
+        dto.origemDano === undefined &&
         dto.contexto?.tipo === undefined;
       if (dto.origemAtaque === 'PERICIA') {
         return (
@@ -92,6 +139,9 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
       return (
         dto.expressao === undefined &&
         dto.personagemSessaoId === undefined &&
+        dto.habilidadeTecnicaId === undefined &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
         Number.isInteger(dto.npcSessaoId) &&
         dto.periciaCodigo === undefined &&
         dto.origemAtaque === undefined &&
@@ -118,10 +168,12 @@ export class CriarRolagemSessaoDto {
       'PERICIA_NPC',
       'ATAQUE_NPC',
       'DANO_NPC',
+      'TESTE_HABILIDADE_PERSONAGEM',
+      'DANO_PERSONAGEM',
     ],
     {
       message:
-        'tipo deve ser FORMULA, PERICIA_PERSONAGEM, ATAQUE_PERSONAGEM, PERICIA_NPC, ATAQUE_NPC ou DANO_NPC',
+        'tipo deve ser FORMULA, PERICIA_PERSONAGEM, ATAQUE_PERSONAGEM, PERICIA_NPC, ATAQUE_NPC, DANO_NPC, TESTE_HABILIDADE_PERSONAGEM ou DANO_PERSONAGEM',
     },
   )
   @Validate(RolagemSessaoPayloadCompativelConstraint)
@@ -131,7 +183,9 @@ export class CriarRolagemSessaoDto {
     | 'ATAQUE_PERSONAGEM'
     | 'PERICIA_NPC'
     | 'ATAQUE_NPC'
-    | 'DANO_NPC';
+    | 'DANO_NPC'
+    | 'TESTE_HABILIDADE_PERSONAGEM'
+    | 'DANO_PERSONAGEM';
 
   @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'FORMULA')
   @IsString({ message: 'expressao deve ser texto' })
@@ -141,12 +195,44 @@ export class CriarRolagemSessaoDto {
 
   @ValidateIf(
     (dto: CriarRolagemSessaoDto) =>
-      dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM',
+      dto.tipo === 'PERICIA_PERSONAGEM' ||
+      dto.tipo === 'ATAQUE_PERSONAGEM' ||
+      dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM' ||
+      dto.tipo === 'DANO_PERSONAGEM',
   )
   @Type(() => Number)
   @IsInt({ message: 'personagemSessaoId deve ser um numero inteiro' })
   @Min(1, { message: 'personagemSessaoId deve ser positivo' })
   personagemSessaoId?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM' ||
+      dto.tipo === 'DANO_PERSONAGEM',
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'habilidadeTecnicaId deve ser um numero inteiro' })
+  @Min(1, { message: 'habilidadeTecnicaId deve ser positivo' })
+  habilidadeTecnicaId?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'DANO_PERSONAGEM' && dto.variacaoHabilidadeId !== undefined,
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'variacaoHabilidadeId deve ser um numero inteiro' })
+  @Min(1, { message: 'variacaoHabilidadeId deve ser positivo' })
+  variacaoHabilidadeId?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'DANO_PERSONAGEM' && dto.acumulos !== undefined,
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'acumulos deve ser um numero inteiro' })
+  @Min(0, { message: 'acumulos deve ser maior ou igual a zero' })
+  @Max(5, { message: 'acumulos deve ser menor ou igual a 5' })
+  acumulos?: number;
 
   @ValidateIf(
     (dto: CriarRolagemSessaoDto) =>
@@ -177,11 +263,14 @@ export class CriarRolagemSessaoDto {
   })
   origemAtaque?: 'PERICIA' | 'ACAO';
 
-  @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'DANO_NPC')
-  @IsIn(['ACAO'], {
-    message: 'origemDano deve ser ACAO',
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'DANO_NPC' || dto.tipo === 'DANO_PERSONAGEM',
+  )
+  @IsIn(['ACAO', 'HABILIDADE_TECNICA'], {
+    message: 'origemDano deve ser ACAO ou HABILIDADE_TECNICA',
   })
-  origemDano?: 'ACAO';
+  origemDano?: 'ACAO' | 'HABILIDADE_TECNICA';
 
   @ValidateIf(
     (dto: CriarRolagemSessaoDto) =>
@@ -262,3 +351,22 @@ export type CriarRolagemMecanicaNpcSessaoDto =
   | CriarRolagemAtaqueNpcPericiaSessaoDto
   | CriarRolagemAtaqueNpcAcaoSessaoDto
   | CriarRolagemDanoNpcAcaoSessaoDto;
+
+export type CriarRolagemTesteHabilidadePersonagemSessaoDto =
+  CriarRolagemSessaoDto & {
+    tipo: 'TESTE_HABILIDADE_PERSONAGEM';
+    personagemSessaoId: number;
+    habilidadeTecnicaId: number;
+  };
+
+export type CriarRolagemDanoHabilidadePersonagemSessaoDto =
+  CriarRolagemSessaoDto & {
+    tipo: 'DANO_PERSONAGEM';
+    origemDano: 'HABILIDADE_TECNICA';
+    personagemSessaoId: number;
+    habilidadeTecnicaId: number;
+  };
+
+export type CriarRolagemHabilidadePersonagemSessaoDto =
+  | CriarRolagemTesteHabilidadePersonagemSessaoDto
+  | CriarRolagemDanoHabilidadePersonagemSessaoDto;

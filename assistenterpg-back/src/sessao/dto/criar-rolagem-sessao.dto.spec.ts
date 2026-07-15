@@ -101,6 +101,78 @@ describe('CriarRolagemSessaoDto', () => {
     );
   });
 
+  it('aceita teste de habilidade de personagem somente por IDs', async () => {
+    const payload = {
+      tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      clientRequestId: '90221734-ce72-4a7f-bc99-21c2095614b0',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
+  it('aceita dano estruturado de habilidade com variacao e acumulos', async () => {
+    const payload = {
+      tipo: 'DANO_PERSONAGEM',
+      origemDano: 'HABILIDADE_TECNICA',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      variacaoHabilidadeId: 601,
+      acumulos: 3,
+      clientRequestId: '21fcb895-0318-40ee-83b7-b03ab03b9b40',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
+  it.each([
+    'expressao',
+    'dados',
+    'total',
+    'critico',
+    'custo',
+    'efeito',
+    'alvo',
+  ])(
+    'rejeita campo calculado %s em rolagem estruturada de habilidade',
+    async (campo) => {
+      await expect(
+        pipe.transform(
+          {
+            tipo: 'DANO_PERSONAGEM',
+            origemDano: 'HABILIDADE_TECNICA',
+            personagemSessaoId: 31,
+            habilidadeTecnicaId: 501,
+            clientRequestId: '21fcb895-0318-40ee-83b7-b03ab03b9b40',
+            [campo]: campo === 'expressao' ? '9d100+999' : 20,
+          },
+          metadata,
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+    },
+  );
+
+  it('rejeita variacao e acumulos em teste de habilidade', async () => {
+    await expect(
+      pipe.transform(
+        {
+          tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+          personagemSessaoId: 31,
+          habilidadeTecnicaId: 501,
+          variacaoHabilidadeId: 601,
+          acumulos: 2,
+          clientRequestId: '90221734-ce72-4a7f-bc99-21c2095614b0',
+        },
+        metadata,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
   it.each([
     'expressao',
     'dados',
