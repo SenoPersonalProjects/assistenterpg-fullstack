@@ -1262,6 +1262,17 @@ export type CriarRolagemDanoHabilidadePersonagemSessaoPayload = {
   clientRequestId: string;
 };
 
+export type CriarRolagemCriticoHabilidadePersonagemSessaoPayload = {
+  tipo: 'CRITICO_PERSONAGEM';
+  origemCritico: 'HABILIDADE_TECNICA';
+  personagemSessaoId: number;
+  habilidadeTecnicaId: number;
+  variacaoHabilidadeId?: number;
+  acumulos?: number;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  clientRequestId: string;
+};
+
 export async function apiCriarRolagemFormulaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1352,6 +1363,18 @@ export async function apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   payload: CriarRolagemDanoHabilidadePersonagemSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemCriticoHabilidadePersonagemSessaoPayload,
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,

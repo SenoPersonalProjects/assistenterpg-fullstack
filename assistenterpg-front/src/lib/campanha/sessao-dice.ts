@@ -239,6 +239,30 @@ export type DadosRolagemDanoHabilidadeServidorSessao = {
   resultado: { total: number };
 };
 
+export type DadosRolagemCriticoHabilidadeServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'CRITICO_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  tecnicaId: number;
+  tecnicaNome: string;
+  habilidadeTecnicaId: number;
+  habilidadeNome: string;
+  origemCritico: 'HABILIDADE_TECNICA';
+  variacaoHabilidadeId: number | null;
+  variacaoNome: string | null;
+  acumulosAplicados: number;
+  criticoMultiplicador: number;
+  formulaBase: string;
+  formulaCritica: string;
+  formulasResolvidas: string[];
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: { total: number };
+};
+
 export type DadosRolagemServidorSessao =
   | DadosRolagemFormulaServidorSessao
   | DadosRolagemPericiaServidorSessao
@@ -246,7 +270,8 @@ export type DadosRolagemServidorSessao =
   | DadosRolagemNpcServidorSessao
   | DadosRolagemDanoNpcServidorSessao
   | DadosRolagemTesteHabilidadeServidorSessao
-  | DadosRolagemDanoHabilidadeServidorSessao;
+  | DadosRolagemDanoHabilidadeServidorSessao
+  | DadosRolagemCriticoHabilidadeServidorSessao;
 
 type NodeBufferLike = {
   from: (input: string, encoding: string) => { toString: (encoding: string) => string };
@@ -835,7 +860,8 @@ export function extrairDadosRolagemServidor(
   }
   if (
     registro.tipo === 'TESTE_HABILIDADE_PERSONAGEM' ||
-    registro.tipo === 'DANO_PERSONAGEM'
+    registro.tipo === 'DANO_PERSONAGEM' ||
+    registro.tipo === 'CRITICO_PERSONAGEM'
   ) {
     const resultado = registro.resultado as Record<string, unknown> | null;
     if (
@@ -861,8 +887,21 @@ export function extrairDadosRolagemServidor(
       }
       return registro as DadosRolagemTesteHabilidadeServidorSessao;
     }
+    if (registro.tipo === 'CRITICO_PERSONAGEM') {
+      if (
+        registro.origemCritico !== 'HABILIDADE_TECNICA' ||
+        typeof registro.criticoMultiplicador !== 'number' ||
+        !Number.isInteger(registro.criticoMultiplicador) ||
+        registro.criticoMultiplicador < 2 ||
+        typeof registro.formulaBase !== 'string' ||
+        typeof registro.formulaCritica !== 'string'
+      ) {
+        return null;
+      }
+    } else if (registro.origemDano !== 'HABILIDADE_TECNICA') {
+      return null;
+    }
     if (
-      registro.origemDano !== 'HABILIDADE_TECNICA' ||
       (registro.variacaoHabilidadeId !== null &&
         !Number.isInteger(registro.variacaoHabilidadeId)) ||
       !Number.isInteger(registro.acumulosAplicados) ||
@@ -871,7 +910,9 @@ export function extrairDadosRolagemServidor(
     ) {
       return null;
     }
-    return registro as DadosRolagemDanoHabilidadeServidorSessao;
+    return registro as
+      | DadosRolagemDanoHabilidadeServidorSessao
+      | DadosRolagemCriticoHabilidadeServidorSessao;
   }
   if (typeof registro.expressaoOriginal !== 'string') return null;
   return registro as DadosRolagemServidorSessao;

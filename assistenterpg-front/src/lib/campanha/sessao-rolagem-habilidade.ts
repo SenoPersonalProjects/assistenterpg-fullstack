@@ -26,6 +26,17 @@ export type IntencaoRolagemDanoHabilidadePersonagem = {
   clientRequestId: string;
 };
 
+export type IntencaoRolagemCriticoHabilidadePersonagem = {
+  tipo: 'CRITICO_PERSONAGEM';
+  origemCritico: 'HABILIDADE_TECNICA';
+  personagemSessaoId: number;
+  habilidadeTecnicaId: number;
+  variacaoHabilidadeId?: number;
+  acumulos?: number;
+  visibilidade: VisibilidadeRolagem;
+  clientRequestId: string;
+};
+
 export type PreviewDanoHabilidade = {
   expressions: string[];
   faces: number[];
@@ -49,6 +60,12 @@ export function deveUsarDanoHabilidadeAutoritativo(
   payload: RolagemDanoHabilidadeSessaoPayload,
 ): boolean {
   return payload.alvoTipo === 'PERSONAGEM' && payload.aplicarCritico !== true;
+}
+
+export function deveUsarCriticoHabilidadeAutoritativo(
+  payload: RolagemDanoHabilidadeSessaoPayload,
+): boolean {
+  return payload.alvoTipo === 'PERSONAGEM' && payload.aplicarCritico === true;
 }
 
 export function montarIntencaoRolagemTesteHabilidade(
@@ -100,9 +117,41 @@ export function montarIntencaoRolagemDanoHabilidade(
   };
 }
 
+export function montarIntencaoRolagemCriticoHabilidade(
+  payload: RolagemDanoHabilidadeSessaoPayload,
+  visibilidade: VisibilidadeRolagem,
+  clientRequestId: string,
+): IntencaoRolagemCriticoHabilidadePersonagem {
+  const {
+    personagemSessaoId,
+    habilidadeTecnicaId,
+    variacaoHabilidadeId,
+    dano,
+  } = payload.habilidade;
+  validarFonteHabilidade(personagemSessaoId, habilidadeTecnicaId);
+  if (!deveUsarCriticoHabilidadeAutoritativo(payload)) {
+    throw new Error('Esta rolagem de critico deve permanecer no fluxo legado.');
+  }
+  const acumulos = Math.max(1, Math.trunc(dano?.acumulos ?? 1));
+  return {
+    tipo: 'CRITICO_PERSONAGEM',
+    origemCritico: 'HABILIDADE_TECNICA',
+    personagemSessaoId,
+    habilidadeTecnicaId,
+    ...(typeof variacaoHabilidadeId === 'number'
+      ? { variacaoHabilidadeId }
+      : {}),
+    ...(acumulos > 1 ? { acumulos } : {}),
+    visibilidade,
+    clientRequestId,
+  };
+}
+
 export function montarPreviewDanoHabilidade(
   dano: HabilidadeDanoConfigPayload,
+  multiplicadorDados = 1,
 ): PreviewDanoHabilidade {
+  const multiplicador = Math.max(1, Math.trunc(multiplicadorDados));
   const acumulos = Math.max(1, Math.trunc(dano.acumulos ?? 1));
   const grupos = new Map<
     string,
@@ -138,6 +187,11 @@ export function montarPreviewDanoHabilidade(
 
   const expressoes = Array.from(grupos.values()).map((grupo) => ({
     ...grupo,
+    quantidade: grupo.quantidade * multiplicador,
+    tipo:
+      multiplicador > 1
+        ? `${grupo.tipo} (Critico x${multiplicador})`
+        : grupo.tipo,
     modificador: 0,
   }));
   const danoFlat = Number.isFinite(dano.danoFlat)
@@ -149,7 +203,10 @@ export function montarPreviewDanoHabilidade(
     expressoes.push({
       quantidade: 1,
       faces: 1,
-      tipo: String(dano.danoFlatTipo ?? '').trim() || 'Dano',
+      tipo:
+        multiplicador > 1
+          ? `${String(dano.danoFlatTipo ?? '').trim() || 'Dano'} (Critico x${multiplicador})`
+          : String(dano.danoFlatTipo ?? '').trim() || 'Dano',
       modificador: danoFlat - 1,
     });
   }
