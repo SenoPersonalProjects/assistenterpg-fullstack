@@ -39,6 +39,46 @@ describe('sessao-habilidade-rolagem', () => {
     ]);
   });
 
+  it('multiplica somente dados no critico e preserva dano flat', () => {
+    const resultado = resolverFonteDanoHabilidadePersistida({
+      dadosDano: [{ quantidade: 2, dado: 'd8', tipo: 'IMPACTO' }],
+      danoFlat: 3,
+      danoFlatTipo: 'IMPACTO',
+      escalonamentoDano: { quantidade: 1, dado: 'd8', tipo: 'IMPACTO' },
+      acumulosAplicados: 2,
+      multiplicadorDados: 3,
+    });
+
+    expect(resultado.expressoes).toEqual([
+      expect.objectContaining({
+        quantidade: 9,
+        faces: 8,
+        modificador: 3,
+        label: 'IMPACTO (Critico x3)',
+      }),
+    ]);
+  });
+
+  it('mantem dano apenas flat inalterado no critico', () => {
+    const resultado = resolverFonteDanoHabilidadePersistida({
+      dadosDano: null,
+      danoFlat: 5,
+      danoFlatTipo: 'ALMA',
+      escalonamentoDano: null,
+      acumulosAplicados: 1,
+      multiplicadorDados: 4,
+    });
+
+    expect(resultado.expressoes).toEqual([
+      expect.objectContaining({
+        quantidade: 1,
+        faces: 1,
+        modificador: 4,
+        label: 'ALMA (Critico x4)',
+      }),
+    ]);
+  });
+
   it('aceita dano apenas flat sem inventar formula enviada pelo cliente', () => {
     const resultado = resolverFonteDanoHabilidadePersistida({
       dadosDano: null,

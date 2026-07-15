@@ -130,6 +130,47 @@ describe('CriarRolagemSessaoDto', () => {
     );
   });
 
+  it('aceita critico estruturado somente por fonte persistida', async () => {
+    const payload = {
+      tipo: 'CRITICO_PERSONAGEM',
+      origemCritico: 'HABILIDADE_TECNICA',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      variacaoHabilidadeId: 601,
+      acumulos: 3,
+      clientRequestId: '87e9188e-74fd-465c-91c4-c18ca855cad8',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
+  it.each([
+    'expressao',
+    'dados',
+    'total',
+    'resultado',
+    'multiplicador',
+    'alvo',
+    'custo',
+    'efeito',
+  ])('rejeita campo calculado %s no critico estruturado', async (campo) => {
+    await expect(
+      pipe.transform(
+        {
+          tipo: 'CRITICO_PERSONAGEM',
+          origemCritico: 'HABILIDADE_TECNICA',
+          personagemSessaoId: 31,
+          habilidadeTecnicaId: 501,
+          clientRequestId: '87e9188e-74fd-465c-91c4-c18ca855cad8',
+          [campo]: campo === 'expressao' ? '99d100+999' : 20,
+        },
+        metadata,
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
   it.each([
     'expressao',
     'dados',

@@ -491,6 +491,8 @@ describe('SessaoService', () => {
     donoId?: number;
     persistirEventoCriado?: boolean;
     habilidade?: Record<string, unknown>;
+    erroCriarEvento?: Error;
+    eventoVencedorAposErro?: ReturnType<typeof criarEventoRolagemPericiaTeste>;
   }) {
     const donoId = args?.donoId ?? 10;
     const acesso = {
@@ -532,6 +534,8 @@ describe('SessaoService', () => {
       tecnicaId: 401,
       nome: 'Punho Divergente',
       testesExigidos: ['Luta com Jujutsu'],
+      criticoValor: 19,
+      criticoMultiplicador: 2,
       dadosDano: [{ quantidade: 2, dado: 'd8', tipo: 'IMPACTO' }],
       danoFlat: 3,
       danoFlatTipo: 'IMPACTO',
@@ -546,6 +550,8 @@ describe('SessaoService', () => {
         {
           id: 601,
           nome: 'Liberação Superior',
+          criticoValor: 18,
+          criticoMultiplicador: 3,
           dadosDano: [{ quantidade: 3, dado: 'd10', tipo: 'ENERGIA' }],
           danoFlat: 5,
           danoFlatTipo: 'ENERGIA',
@@ -588,6 +594,10 @@ describe('SessaoService', () => {
     let eventoAtual: ReturnType<typeof criarEventoRolagemPericiaTeste> | null =
       null;
     const criarEvento = jest.fn().mockImplementation((input) => {
+      if (args?.erroCriarEvento) {
+        eventoAtual = args.eventoVencedorAposErro ?? null;
+        return Promise.reject(args.erroCriarEvento);
+      }
       const evento = criarEventoRolagemPericiaTeste(input.data.dados, donoId);
       if (args?.persistirEventoCriado) eventoAtual = evento;
       return Promise.resolve(evento);
@@ -1194,6 +1204,214 @@ describe('SessaoService', () => {
     expect(mocks.consumirPerito).not.toHaveBeenCalled();
     expect(mocks.resolverInspiracao).not.toHaveBeenCalled();
     expect(mocks.resolverEscalada).not.toHaveBeenCalled();
+  });
+
+  it('calcula critico de variacao multiplicando apenas os dados', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa();
+
+    const resultado = await service.criarRolagemSessao(7, 21, 10, {
+      tipo: 'CRITICO_PERSONAGEM',
+      origemCritico: 'HABILIDADE_TECNICA',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      variacaoHabilidadeId: 601,
+      acumulos: 3,
+      clientRequestId: '87e9188e-74fd-465c-91c4-c18ca855cad8',
+    });
+
+    expect(resultado).toMatchObject({
+      criadoAgora: true,
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'CRITICO_PERSONAGEM',
+        origemCritico: 'HABILIDADE_TECNICA',
+        habilidadeTecnicaId: 501,
+        variacaoHabilidadeId: 601,
+        acumulosAplicados: 3,
+        criticoMultiplicador: 3,
+        formulaBase: expect.stringContaining('5d10+5'),
+        formulaCritica: expect.stringContaining('15d10+5'),
+        resultado: { total: expect.any(Number) },
+      },
+      contextoRolagem: {
+        tipo: 'CRITICO',
+        origemCritico: 'HABILIDADE_TECNICA',
+        variacaoHabilidadeId: 601,
+        acumulosAplicados: 3,
+      },
+    });
+    const dados = mocks.criarEvento.mock.calls[0][0].data.dados;
+    expect(dados.dadosRolagem.payloads).toEqual([
+      expect.objectContaining({
+        quantidade: 15,
+        faces: 10,
+        modificador: 5,
+        label: 'ENERGIA (Critico x3)',
+      }),
+    ]);
+    expect(dados.ajustesAplicados).toEqual([]);
+    expect(dados.inspiracaoAutomatica).toBeNull();
+    expect(mocks.consumirPerito).not.toHaveBeenCalled();
+    expect(mocks.resolverInspiracao).not.toHaveBeenCalled();
+    expect(mocks.resolverEscalada).not.toHaveBeenCalled();
+  });
+
+  it('reutiliza critico sem rerrolar ou criar evento duplicado', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa({
+      persistirEventoCriado: true,
+    });
+    const dto = {
+      tipo: 'CRITICO_PERSONAGEM' as const,
+      origemCritico: 'HABILIDADE_TECNICA' as const,
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      acumulos: 2,
+      clientRequestId: 'bc6c2c72-b9ea-4cf7-aab5-12a039155a97',
+    };
+
+    const primeiro = await service.criarRolagemSessao(7, 21, 10, dto);
+    const repetido = await service.criarRolagemSessao(7, 21, 10, dto);
+
+    expect(repetido.id).toBe(primeiro.id);
+    expect(repetido.criadoAgora).toBe(false);
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+    expect(mocks.resolverFonte).toHaveBeenCalledTimes(1);
+  });
+
+  it('repete critico quando Prisma sinaliza conflito P2034', async () => {
+    configurarRolagemHabilidadeAutoritativa();
+    const executarTransacao = prisma.$transaction.getMockImplementation();
+    const erroP2034 = new Prisma.PrismaClientKnownRequestError(
+      'Conflito de escrita',
+      { code: 'P2034', clientVersion: 'test' },
+    );
+    prisma.$transaction
+      .mockRejectedValueOnce(erroP2034)
+      .mockImplementation(executarTransacao);
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'CRITICO_PERSONAGEM',
+        origemCritico: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId: 'f262552d-9392-45f2-9b7f-0a135d02e728',
+      }),
+    ).resolves.toMatchObject({ criadoAgora: true });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('converge para o critico vencedor quando o insert perde a corrida unica', async () => {
+    const clientRequestId = '770965b4-2c32-4ce4-a751-81c644776db4';
+    const vencedor = criarEventoRolagemPericiaTeste({
+      mensagem: 'resultado critico vencedor',
+      visibilidade: 'PUBLICA',
+      intencaoAutoritativa: {
+        tipo: 'CRITICO_PERSONAGEM',
+        origemDano: null,
+        origemCritico: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        variacaoHabilidadeId: null,
+        acumulos: null,
+        visibilidade: 'PUBLICA',
+      },
+      dadosRolagem: {
+        versao: 1,
+        origem: 'SERVIDOR',
+        tipo: 'CRITICO_PERSONAGEM',
+        origemCritico: 'HABILIDADE_TECNICA',
+        clientRequestId,
+        personagemSessaoId: 31,
+        personagemCampanhaId: 41,
+        habilidadeTecnicaId: 501,
+        variacaoHabilidadeId: null,
+        acumulosAplicados: null,
+        criticoMultiplicador: 2,
+        formulaBase: '2d8+3',
+        formulaCritica: '4d8+3',
+        formulaResolvida: '4d8+3',
+        formulasResolvidas: ['4d8+3'],
+        payloads: [],
+        resultado: { total: 19 },
+      },
+    });
+    const erroP2002 = new Prisma.PrismaClientKnownRequestError(
+      'Unique constraint failed',
+      {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: {
+          target: ['sessaoId', 'solicitanteUsuarioId', 'clientRequestId'],
+        },
+      },
+    );
+    const mocks = configurarRolagemHabilidadeAutoritativa({
+      erroCriarEvento: erroP2002,
+      eventoVencedorAposErro: vencedor,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'CRITICO_PERSONAGEM',
+        origemCritico: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId,
+      }),
+    ).resolves.toMatchObject({
+      id: vencedor.id,
+      mensagem: 'resultado critico vencedor',
+      criadoAgora: false,
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [new SessaoEncerradaException(7, 21, 'rolar critico'), 'SESSAO_ENCERRADA'],
+    [
+      new SessaoEfeitosTurnoPendentesException(7, 21, 900),
+      'SESSAO_EFEITOS_TURNO_PENDENTES',
+    ],
+  ])(
+    'bloqueia critico quando a sessao nao esta mutavel: %s',
+    async (erro, code) => {
+      const mocks = configurarRolagemHabilidadeAutoritativa();
+      mocks.validarMutabilidade.mockRejectedValueOnce(erro);
+
+      await expect(
+        service.criarRolagemSessao(7, 21, 10, {
+          tipo: 'CRITICO_PERSONAGEM',
+          origemCritico: 'HABILIDADE_TECNICA',
+          personagemSessaoId: 31,
+          habilidadeTecnicaId: 501,
+          clientRequestId: '2745da0d-54ee-472f-a695-7b33d4bcd633',
+        }),
+      ).rejects.toMatchObject({ code });
+      expect(mocks.criarEvento).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejeita critico quando a habilidade nao possui dano estruturado', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa({
+      habilidade: {
+        dadosDano: [],
+        danoFlat: null,
+        escalonamentoDano: null,
+      },
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'CRITICO_PERSONAGEM',
+        origemCritico: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId: 'f9e650c1-550b-472b-9780-2701c5819076',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_ROLAGEM_INVALIDA' });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
   });
 
   it('rola dano base sem exigir acumulo em habilidade nao escalonavel', async () => {

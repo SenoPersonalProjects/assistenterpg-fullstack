@@ -244,6 +244,29 @@ describe('SessaoController', () => {
     );
   });
 
+  it('emite realtime uma vez ao criar critico autoritativo', async () => {
+    const dto = {
+      tipo: 'CRITICO_PERSONAGEM' as const,
+      origemCritico: 'HABILIDADE_TECNICA' as const,
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      clientRequestId: '87e9188e-74fd-465c-91c4-c18ca855cad8',
+    };
+    sessaoServiceMock.criarRolagemSessao.mockResolvedValue({
+      id: 58,
+      criadoAgora: true,
+    });
+
+    await controller.criarRolagemSessao(7, 12, { user: { id: 3 } }, dto);
+
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledTimes(1);
+    expect(sessaoGatewayMock.emitirSessaoAtualizada).toHaveBeenCalledWith(
+      7,
+      12,
+      'CHAT_NOVA',
+    );
+  });
+
   it('nao emite realtime ao repetir uma rolagem idempotente', async () => {
     sessaoServiceMock.criarRolagemSessao.mockResolvedValue({
       id: 56,
