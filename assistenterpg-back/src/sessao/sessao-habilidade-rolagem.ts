@@ -9,6 +9,7 @@ export type FonteDanoHabilidadePersistida = {
   danoFlatTipo: string | null | undefined;
   escalonamentoDano: unknown;
   acumulosAplicados: number;
+  multiplicadorDados?: number;
 };
 
 export type ResultadoFonteDanoHabilidade = {
@@ -86,6 +87,7 @@ function normalizarDadoDano(entrada: unknown): DadoDanoNormalizado | null {
 function expressaoDanoFlat(
   danoFlat: number,
   tipo: string,
+  multiplicadorDados: number,
 ): DiceExpressionServidor {
   const modificador = danoFlat - 1;
   return {
@@ -94,13 +96,22 @@ function expressaoDanoFlat(
     modificador: Math.abs(modificador),
     operador: modificador < 0 ? '-' : '+',
     aplicarModificadorPorDado: false,
-    label: tipo.slice(0, LIMITES_DICE_SESSAO.label),
+    label: montarLabelDano(tipo, multiplicadorDados),
   };
+}
+
+function montarLabelDano(tipo: string, multiplicadorDados: number): string {
+  const label =
+    multiplicadorDados > 1 ? `${tipo} (Critico x${multiplicadorDados})` : tipo;
+  return label.slice(0, LIMITES_DICE_SESSAO.label);
 }
 
 export function resolverFonteDanoHabilidadePersistida(
   fonte: FonteDanoHabilidadePersistida,
 ): ResultadoFonteDanoHabilidade {
+  const multiplicadorDados = Number.isInteger(fonte.multiplicadorDados)
+    ? Math.max(1, Math.trunc(fonte.multiplicadorDados as number))
+    : 1;
   const entradasBase = Array.isArray(fonte.dadosDano) ? fonte.dadosDano : [];
   const dadosBase: DadoDanoNormalizado[] = [];
   for (const entrada of entradasBase) {
@@ -154,16 +165,24 @@ export function resolverFonteDanoHabilidadePersistida(
     ? Math.trunc(fonte.danoFlat as number)
     : 0;
   const tipoFlat = fonte.danoFlatTipo?.trim() || 'Dano';
-  const expressoes = [...agrupados.values()].map(
-    (dado): DiceExpressionServidor => ({
-      quantidade: dado.quantidade,
+  const expressoes: DiceExpressionServidor[] = [];
+  for (const dado of agrupados.values()) {
+    const quantidade = dado.quantidade * multiplicadorDados;
+    if (quantidade > LIMITES_DICE_SESSAO.dados) {
+      return {
+        expressoes: null,
+        erro: `O dano excede o limite de ${LIMITES_DICE_SESSAO.dados} dados por tipo.`,
+      };
+    }
+    expressoes.push({
+      quantidade,
       faces: dado.faces,
       modificador: 0,
       operador: '+',
       aplicarModificadorPorDado: false,
-      label: dado.tipo.slice(0, LIMITES_DICE_SESSAO.label),
-    }),
-  );
+      label: montarLabelDano(dado.tipo, multiplicadorDados),
+    });
+  }
 
   if (danoFlat !== 0 && expressoes.length > 0) {
     const primeira = expressoes[0];
@@ -173,7 +192,7 @@ export function resolverFonteDanoHabilidadePersistida(
       operador: danoFlat < 0 ? '-' : '+',
     };
   } else if (danoFlat > 0) {
-    expressoes.push(expressaoDanoFlat(danoFlat, tipoFlat));
+    expressoes.push(expressaoDanoFlat(danoFlat, tipoFlat, multiplicadorDados));
   }
 
   if (expressoes.length === 0) {
