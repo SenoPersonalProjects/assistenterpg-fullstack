@@ -102,6 +102,9 @@ export type HabilidadeDanoConfigPayload = {
 };
 
 export type HabilidadeRollContext = {
+  personagemSessaoId: number;
+  habilidadeTecnicaId: number;
+  variacaoHabilidadeId?: number | null;
   habilidadeNome: string;
   variacaoNome?: string | null;
   criticoValor?: number | null;

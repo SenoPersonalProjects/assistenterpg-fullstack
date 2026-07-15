@@ -24,9 +24,11 @@ import {
   apiEnviarMensagemChatSessaoCampanha,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
+  apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemPericiaNpcSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
+  apiCriarRolagemTesteHabilidadePersonagemSessaoCampanha,
   apiRemoverPersonagemSessaoCampanha,
   apiSacrificarNucleoPersonagemCampanha,
   apiAtualizarValorIniciativaSessaoCampanha,
@@ -168,6 +170,12 @@ import {
   montarIntencaoRolagemDanoNpcAcao,
   montarIntencaoRolagemPericiaNpc,
 } from '@/lib/campanha/sessao-rolagem-npc';
+import {
+  deveUsarDanoHabilidadeAutoritativo,
+  montarIntencaoRolagemDanoHabilidade,
+  montarIntencaoRolagemTesteHabilidade,
+  montarPreviewDanoHabilidade,
+} from '@/lib/campanha/sessao-rolagem-habilidade';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -2219,23 +2227,36 @@ export default function SessaoCampanhaPage() {
         showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
         return;
       }
-      const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
-      const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
-      const dicePayload = rolarDados({
-        quantidade: payload.dados,
-        faces: 20,
-        modificador: payload.bonus,
-        aplicarModificadorPorDado: false,
-        label,
-        keepMode: payload.keepMode,
-      });
+      let intencao: ReturnType<typeof montarIntencaoRolagemTesteHabilidade>;
+      try {
+        intencao = montarIntencaoRolagemTesteHabilidade(
+          payload,
+          visibilidadeRolagemAtual,
+          criarClientRequestIdRolagem(),
+        );
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        showToast(userError.message, 'warning');
+        return;
+      }
+      const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.habilidadeTecnicaId}`;
+      if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+      rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
+
       const habilidadeLabel = payload.habilidade.variacaoNome
         ? `${payload.habilidade.habilidadeNome} · ${payload.habilidade.variacaoNome}`
         : payload.habilidade.habilidadeNome;
       const subtitulo = payload.atributoBase
         ? `${payload.alvoNome} · ${habilidadeLabel} · ${payload.atributoBase}`
         : `${payload.alvoNome} · ${habilidadeLabel}`;
-      const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
+      const expression = formatarExpressaoDice({
+        quantidade: payload.dados,
+        faces: 20,
+        modificador: payload.bonus,
+        aplicarModificadorPorDado: false,
+        keepMode: payload.keepMode,
+      });
       setPericiaRollModal({
         aberto: true,
         titulo: payload.periciaNome,
@@ -2243,34 +2264,48 @@ export default function SessaoCampanhaPage() {
         alvoTipo: payload.alvoTipo,
         alvoNome: payload.alvoNome,
         habilidadeContext: payload.habilidade,
-        payload: dicePayload,
+        payload: null,
+        payloads: [],
         expression,
-        enviando: false,
+        expressions: [expression],
+        facesPendentes: [20],
+        origemServidor: true,
+        enviando: true,
         enviado: false,
         erro: null,
       });
-      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
-      if (erroTamanho) {
-        setErroRolagens(erroTamanho);
-        setPericiaRollModal((estado) => ({
-          ...estado,
-          enviando: false,
-          enviado: false,
-          erro: erroTamanho,
-        }));
-        return;
-      }
       try {
-        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
-        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
-          mensagem: mensagemEnvio,
-          visibilidade: visibilidadeRolagemAtual,
-        });
-        setChat((anterior) => [...anterior, enviada]);
+        const enviada =
+          await apiCriarRolagemTesteHabilidadePersonagemSessaoCampanha(
+            campanhaId,
+            sessaoId,
+            intencao,
+          );
+        const dadosServidor = extrairDadosRolagemServidor(
+          enviada.dadosRolagem,
+        );
+        if (
+          !dadosServidor ||
+          dadosServidor.tipo !== 'TESTE_HABILIDADE_PERSONAGEM' ||
+          !dadosServidor.payloads[0]
+        ) {
+          throw new Error('Resposta autoritativa do teste da habilidade inválida.');
+        }
+        setChat((anterior) =>
+          anterior.some((mensagem) => mensagem.id === enviada.id)
+            ? anterior
+            : [...anterior, enviada],
+        );
         setPericiaRollModal((estado) => ({
           ...estado,
+          payload: dadosServidor.payloads[0] ?? null,
+          payloads: dadosServidor.payloads,
+          expression: dadosServidor.formulaResolvida,
+          expressions: [dadosServidor.formulaResolvida],
+          facesPendentes: undefined,
           enviando: false,
           enviado: true,
+          erro: null,
         }));
       } catch (error) {
         const userError = criarErroUsuario(error);
@@ -2281,6 +2316,8 @@ export default function SessaoCampanhaPage() {
           enviado: false,
           erro: userError.message,
         }));
+      } finally {
+        rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
       }
     },
     [
@@ -2308,6 +2345,98 @@ export default function SessaoCampanhaPage() {
 
       const acumulos = Math.max(1, Math.trunc(dano.acumulos ?? 1));
       const aplicarCritico = Boolean(payload.aplicarCritico);
+
+      if (deveUsarDanoHabilidadeAutoritativo(payload)) {
+        const preview = montarPreviewDanoHabilidade(dano);
+        if (preview.expressions.length === 0) {
+          showToast('Não foi possível montar a prévia da rolagem de dano.', 'warning');
+          return;
+        }
+        let intencao: ReturnType<typeof montarIntencaoRolagemDanoHabilidade>;
+        try {
+          intencao = montarIntencaoRolagemDanoHabilidade(
+            payload,
+            visibilidadeRolagemAtual,
+            criarClientRequestIdRolagem(),
+          );
+        } catch (error) {
+          const userError = criarErroUsuario(error);
+          setErroRolagens(userError);
+          showToast(userError.message, 'warning');
+          return;
+        }
+        const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.habilidadeTecnicaId}:${intencao.variacaoHabilidadeId ?? 'base'}:${intencao.acumulos ?? 1}`;
+        if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+        rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
+        const habilidadeLabel = payload.habilidade.variacaoNome
+          ? `${payload.habilidade.habilidadeNome} · ${payload.habilidade.variacaoNome}`
+          : payload.habilidade.habilidadeNome;
+        setPericiaRollModal({
+          aberto: true,
+          titulo: 'Dano/efeito',
+          subtitulo: `${payload.alvoNome} · ${habilidadeLabel}`,
+          alvoTipo: payload.alvoTipo,
+          alvoNome: payload.alvoNome,
+          habilidadeContext: null,
+          payload: null,
+          payloads: [],
+          expression: preview.expressions[0],
+          expressions: preview.expressions,
+          facesPendentes: preview.faces,
+          origemServidor: true,
+          enviando: true,
+          enviado: false,
+          erro: null,
+        });
+        try {
+          const enviada =
+            await apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha(
+              campanhaId,
+              sessaoId,
+              intencao,
+            );
+          const dadosServidor = extrairDadosRolagemServidor(
+            enviada.dadosRolagem,
+          );
+          if (
+            !dadosServidor ||
+            dadosServidor.tipo !== 'DANO_PERSONAGEM' ||
+            dadosServidor.origemDano !== 'HABILIDADE_TECNICA' ||
+            !dadosServidor.payloads[0]
+          ) {
+            throw new Error('Resposta autoritativa do dano da habilidade inválida.');
+          }
+          setChat((anterior) =>
+            anterior.some((mensagem) => mensagem.id === enviada.id)
+              ? anterior
+              : [...anterior, enviada],
+          );
+          setPericiaRollModal((estado) => ({
+            ...estado,
+            payload: dadosServidor.payloads[0] ?? null,
+            payloads: dadosServidor.payloads,
+            expression: dadosServidor.formulasResolvidas[0],
+            expressions: dadosServidor.formulasResolvidas,
+            facesPendentes: undefined,
+            enviando: false,
+            enviado: true,
+            erro: null,
+          }));
+        } catch (error) {
+          const userError = criarErroUsuario(error);
+          setErroRolagens(userError);
+          setPericiaRollModal((estado) => ({
+            ...estado,
+            enviando: false,
+            enviado: false,
+            erro: userError.message,
+          }));
+        } finally {
+          rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
+        }
+        return;
+      }
+
       const criticoMultiplicador = Number.isFinite(payload.habilidade.criticoMultiplicador)
         ? Math.max(2, Math.trunc(payload.habilidade.criticoMultiplicador as number))
         : 2;

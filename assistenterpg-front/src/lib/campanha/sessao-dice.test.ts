@@ -917,4 +917,60 @@ describe('sessao-dice autoritativo', () => {
       extrairDadosRolagemServidor({ ...dados, origemDano: 'FORMULA' }),
     ).toBeNull();
   });
+
+  it('aceita metadados autoritativos de teste de habilidade', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+      clientRequestId: '524ad211-f941-48b1-a382-c331ed74c683',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      tecnicaId: 401,
+      tecnicaNome: 'Divergencia',
+      habilidadeTecnicaId: 501,
+      habilidadeNome: 'Punho Divergente',
+      periciasCodigos: ['LUTA', 'JUJUTSU'],
+      periciaNome: 'Luta com Jujutsu',
+      formulaResolvida: '2#d20+8',
+      payloads: [criarPayloadComRolagens('2#d20+8', [[5, 18]])],
+      resultado: { total: 26 },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, periciasCodigos: [1] }),
+    ).toBeNull();
+  });
+
+  it('aceita metadados autoritativos de dano estruturado de habilidade', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'DANO_PERSONAGEM',
+      clientRequestId: '06a375c1-fb84-4d98-99cc-ec00e0a5bef4',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      tecnicaId: 401,
+      tecnicaNome: 'Divergencia',
+      habilidadeTecnicaId: 501,
+      habilidadeNome: 'Punho Divergente',
+      origemDano: 'HABILIDADE_TECNICA',
+      variacaoHabilidadeId: 601,
+      variacaoNome: 'Liberacao Superior',
+      acumulosAplicados: 3,
+      formulasResolvidas: ['5d10+5'],
+      formulaResolvida: '5d10+5',
+      payloads: [criarPayloadComRolagens('5d10+5', [[3, 4, 5, 6, 7]])],
+      resultado: { total: 30 },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, origemDano: 'FORMULA' }),
+    ).toBeNull();
+    expect(
+      extrairDadosRolagemServidor({ ...dados, acumulosAplicados: 1.5 }),
+    ).toBeNull();
+  });
 });

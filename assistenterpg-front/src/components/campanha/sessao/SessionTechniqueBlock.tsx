@@ -317,6 +317,9 @@ export function SessionTechniqueBlock({
               ? Math.max(1, acumulosBase)
               : 1;
             const habilidadeContextBase: HabilidadeRollContext = {
+              personagemSessaoId: card.personagemSessaoId,
+              habilidadeTecnicaId: habilidade.id,
+              variacaoHabilidadeId: null,
               habilidadeNome: habilidade.nome,
               variacaoNome: null,
               criticoValor: habilidade.criticoValor,
@@ -570,6 +573,9 @@ export function SessionTechniqueBlock({
                           ? Math.max(1, acumulosVariacao)
                           : 1;
                         const habilidadeContextVariacao: HabilidadeRollContext = {
+                          personagemSessaoId: card.personagemSessaoId,
+                          habilidadeTecnicaId: habilidade.id,
+                          variacaoHabilidadeId: variacao.id,
                           habilidadeNome: habilidade.nome,
                           variacaoNome: variacao.nome,
                           criticoValor:

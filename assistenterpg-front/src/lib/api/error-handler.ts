@@ -21,11 +21,48 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Link inválido ou expirado. Solicite um novo link.",
   AUTH_EMAIL_NAO_VERIFICADO:
     "Email ainda não verificado. Verifique sua caixa de entrada.",
+  AUTH_RATE_LIMIT_EXCEEDED:
+    "Muitas tentativas. Aguarde um momento antes de tentar novamente.",
+  AUTH_AUSENTE: "Autenticação ausente. Entre novamente na sessão.",
+  AUTH_INVALIDA: "Autenticação inválida. Entre novamente na sessão.",
   USUARIO_TOKEN_NAO_ENCONTRADO:
     "Sua conta não foi encontrada. Faça login novamente.",
   USUARIO_NAO_AUTENTICADO:
     "Você precisa fazer login para acessar esta página",
   ACESSO_NEGADO: "Você não tem permissão para acessar este recurso",
+
+  // GOOGLE
+  GOOGLE_CALENDAR_NOT_CONNECTED:
+    "Conecte sua conta Google Calendar para continuar.",
+  GOOGLE_OAUTH_CONFIG_MISSING:
+    "A integração com Google não está disponível no momento.",
+  GOOGLE_OAUTH_CALLBACK_INVALID:
+    "O retorno da autenticação Google é inválido. Tente novamente.",
+  GOOGLE_ID_TOKEN_MISSING:
+    "O Google não retornou os dados de identidade necessários.",
+  GOOGLE_PROFILE_INVALID: "O perfil retornado pelo Google é inválido.",
+  GOOGLE_EMAIL_NOT_VERIFIED:
+    "O email da conta Google ainda não foi verificado.",
+  GOOGLE_OAUTH_STATE_USER_MISSING:
+    "A autenticação Google não está vinculada a um usuário válido.",
+  GOOGLE_UNLINK_USER_NOT_FOUND:
+    "Usuário não encontrado para desconectar a conta Google.",
+  GOOGLE_UNLINK_PASSWORD_REQUIRED:
+    "Defina uma senha local antes de desconectar sua conta Google.",
+  GOOGLE_OAUTH_STATE_INVALID:
+    "A solicitação de autenticação Google é inválida ou expirou.",
+  GOOGLE_OAUTH_STATE_REUSED:
+    "Esta solicitação de autenticação Google já foi utilizada.",
+  GOOGLE_LINK_ACCOUNT_INACTIVE:
+    "A conta local está inativa e não pode ser vinculada ao Google.",
+  GOOGLE_ACCOUNT_ALREADY_LINKED:
+    "Esta conta Google já está vinculada a outro usuário.",
+  GOOGLE_EMAIL_BELONGS_TO_ANOTHER_USER:
+    "O email da conta Google pertence a outro usuário.",
+  GOOGLE_ACCOUNT_INACTIVE:
+    "A conta vinculada ao Google está inativa.",
+  GOOGLE_OAUTH_DISABLED:
+    "A autenticação com Google está desabilitada no momento.",
 
   // USUÁRIO
   USUARIO_NOT_FOUND: "Usuário não encontrado",
@@ -169,6 +206,37 @@ export const ERROR_MESSAGES: Record<string, string> = {
     'Este vinculado predefinido já está associado ao personagem.',
   ENTIDADE_OVERRIDE_NEGADO:
     'Apenas o mestre pode ignorar limites de vinculados.',
+  ENTIDADE_ACESSO_NEGADO:
+    "Você não tem permissão para acessar esta entidade vinculada.",
+  ENTIDADE_APENAS_MESTRE:
+    "Apenas o mestre pode executar esta ação com a entidade vinculada.",
+  ENTIDADE_CONFIGURACAO_NAO_ENCONTRADA:
+    "A configuração de vinculados da técnica não foi encontrada.",
+  ENTIDADE_CORPO_LIMITE_VAGAS:
+    "O limite de vagas para Corpos Amaldiçoados foi atingido.",
+  ENTIDADE_DONO_FORA_DA_SESSAO:
+    "O personagem dono desta entidade não participa da sessão.",
+  ENTIDADE_ESTADO_INDISPONIVEL:
+    "A entidade vinculada não está disponível neste estado.",
+  ENTIDADE_JA_ATIVA: "Esta entidade vinculada já está ativa na sessão.",
+  ENTIDADE_MALDICAO_ORIGEM_DUPLICADA:
+    "Esta maldição já foi associada ao personagem.",
+  ENTIDADE_MALDICAO_ORIGEM_INVALIDA:
+    "A origem informada não é uma Maldição válida.",
+  ENTIDADE_MALDICAO_ORIGEM_OBRIGATORIA:
+    "Selecione uma Maldição de origem para continuar.",
+  ENTIDADE_NPC_ORIGEM_NAO_ENCONTRADA:
+    "O NPC/Ameaça de origem desta entidade não foi encontrado.",
+  ENTIDADE_NPC_SESSAO_NAO_VINCULADO:
+    "O NPC/Ameaça da sessão não está ligado a esta entidade.",
+  ENTIDADE_PERSONAGEM_NAO_ENCONTRADO:
+    "O personagem dono da entidade vinculada não foi encontrado.",
+  ENTIDADE_SHIKIGAMI_LIMITE_ATIVO:
+    "O limite de Shikigamis ativos foi atingido.",
+  ENTIDADE_TEMPLATE_NAO_ENCONTRADO:
+    "O template de entidade vinculada não foi encontrado.",
+  ENTIDADE_VINCULADA_NAO_ENCONTRADA:
+    "A entidade vinculada não foi encontrada.",
 
   // EQUIPAMENTOS/INVENTÁRIO
   EQUIPAMENTO_NOT_FOUND: "Equipamento não encontrado",
@@ -210,6 +278,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   CAMPANHA_NOT_FOUND: "Campanha não encontrada",
   CAMP_NOT_FOUND: "Campanha não encontrada",
   CAMPANHA_ACESSO_NEGADO: "Você não tem acesso a esta campanha",
+  CAMPANHA_ACCESS_DENIED: "Você não participa desta campanha.",
   CAMP_USER_ALREADY_MEMBER: "Usuário já é membro desta campanha",
   CAMPANHA_APENAS_DONO: "Apenas o dono da campanha pode executar esta ação",
   CAMPANHA_APENAS_MESTRE:
@@ -241,6 +310,24 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SESSAO_TURNO_INDISPONIVEL:
     "Cena livre não possui contagem de rodada/turno.",
   SESSAO_ENCERRADA: "Sessão encerrada. Não é possível executar esta ação.",
+  SESSAO_INVALIDA:
+    "A sessão informada é inválida. Atualize a página e tente novamente.",
+  SESSAO_AGENDADA_NOT_FOUND: "Sessão agendada não encontrada.",
+  SESSAO_AGENDADA_DATA_INVALIDA:
+    "A data informada para a sessão agendada é inválida.",
+  SESSAO_AGENDADA_DURACAO_INVALIDA:
+    "A duração informada para a sessão agendada é inválida.",
+  SESSAO_AGENDADA_INTERVALO_INVALIDO:
+    "O intervalo informado para a sessão agendada é inválido.",
+  SESSAO_AGENDADA_TIMEZONE_INVALIDO:
+    "O fuso horário informado para a sessão agendada é inválido.",
+  SESSAO_AGENDADA_INICIO_PASSADO:
+    "A sessão agendada não pode começar em uma data passada.",
+  SESSAO_AGENDADA_MEET_REQUER_CALENDAR:
+    "Conecte o Google Calendar para criar uma reunião do Meet.",
+  SESSAO_AGENDADA_CANCELADA: "Esta sessão agendada foi cancelada.",
+  SESSAO_AGENDADA_JA_ABERTA: "Esta sessão agendada já foi aberta.",
+  SESSAO_AGENDADA_NAO_ABERTA: "Esta sessão agendada ainda não foi aberta.",
   SESSAO_ROLAGEM_INVALIDA: "A fórmula de rolagem informada é inválida.",
   SESSAO_ROLAGEM_MENSAGEM_MUITO_GRANDE:
     "Rolagem grande demais para o chat. Reduza a quantidade de dados.",
@@ -248,6 +335,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta rolagem possui um efeito mecânico pendente.",
   SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO:
     "Esta tentativa de rolagem já foi usada com outros dados. Tente novamente.",
+  OPERACAO_CONCORRENTE_REPETIR:
+    "O estado foi alterado por outra operação. Atualize e tente novamente.",
   SESSAO_PERICIA_NAO_ENCONTRADA:
     "A perícia informada não foi encontrada para este personagem.",
   SESSAO_PERICIA_ATAQUE_INVALIDA:
@@ -276,6 +365,20 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SESSAO_EVENTO_DESFAZER_NAO_PERMITIDO:
     "Este evento da sessão não pode ser desfeito.",
   SESSAO_PERSONAGEM_NOT_FOUND: "Personagem da sessão não encontrado.",
+  SESSAO_CENA_ATUAL_NOT_FOUND: "A cena atual da sessão não foi encontrada.",
+  SESSAO_CENA_INVALIDA: "A cena informada não pertence a esta sessão.",
+  SESSAO_CONDICAO_NOT_FOUND: "Condição não encontrada.",
+  SESSAO_CONDICAO_ATIVA_NOT_FOUND: "Condição ativa não encontrada.",
+  SESSAO_CONDICAO_ALVO_NPC_NOT_FOUND:
+    "NPC/Ameaça da sessão não encontrado para aplicar a condição.",
+  SESSAO_CONDICAO_ALVO_PERSONAGEM_NOT_FOUND:
+    "Personagem da sessão não encontrado para aplicar a condição.",
+  SESSAO_CONDICAO_DURACAO_INVALIDA:
+    "A duração informada para a condição é inválida.",
+  SESSAO_CONDICAO_DURACAO_VALOR_REQUIRED:
+    "Informe o valor da duração desta condição.",
+  SESSAO_CONDICAO_SNAPSHOT_INVALIDO:
+    "Os dados persistidos desta condição são inválidos.",
   SESSAO_HABILIDADE_NAO_DISPONIVEL:
     "Habilidade não está disponível para este personagem.",
   SESSAO_VARIACAO_HABILIDADE_NOT_FOUND:
@@ -284,14 +387,64 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Essa habilidade não permite acúmulos.",
   SESSAO_ACUMULO_EXCEDE_GRAU:
     "Quantidade de acúmulos excede o grau permitido.",
-  SESSAO_SUSTENTACAO_DUPLICADA:
-    "Essa habilidade já está sustentada.",
+  SESSAO_APRIMORADO_DISTRIBUICAO_OBRIGATORIA:
+    "Distribua os graus temporários do Aprimorado antes de continuar.",
+  SESSAO_APRIMORADO_GRAU_INVALIDO:
+    "O grau temporário informado para Aprimorado é inválido.",
+  SESSAO_APRIMORADO_LIMITE_TECNICA:
+    "A distribuição de Aprimorado excede o limite da técnica.",
+  SESSAO_APRIMORADO_TECNICA_INVALIDA:
+    "A técnica informada não pode receber este Aprimorado.",
+  SESSAO_APRIMORADO_TOTAL_INVALIDO:
+    "O total distribuído para Aprimorado é inválido.",
   SESSAO_SUSTENTACAO_SEM_CUSTO:
     "Habilidade sustentada sem custo não pode ser encerrada.",
+  SESSAO_SUSTENTACAO_NOT_FOUND: "Sustentação ativa não encontrada.",
   SESSAO_RECURSO_INSUFICIENTE:
     "Recursos insuficientes para usar a habilidade.",
   SESSAO_LIMITE_PEEA_EXCEDIDO:
     "Limite de PE/EA por turno excedido.",
+  SESSAO_RECURSO_CLASSE_NAO_DISPONIVEL:
+    "Recurso de classe não disponível para este personagem.",
+  SESSAO_RECURSO_CLASSE_VERSAO_INDISPONIVEL:
+    "A versão selecionada deste recurso de classe não está disponível.",
+  SESSAO_RELATORIO_INDISPONIVEL:
+    "O relatório fica disponível somente após o encerramento da sessão.",
+  SESSAO_SOCIAL_INATIVO:
+    "Encontros sociais alternativos não estão ativos nesta sessão.",
+  SESSAO_ESCALADA_INATIVA:
+    "A Escalada de Dados não está ativa nesta sessão.",
+  SESSAO_INICIATIVA_ALTERNADA_LADOS_INVALIDOS:
+    "A iniciativa alternada precisa ter exatamente dois lados.",
+  SESSAO_INICIATIVA_ALTERNADA_NAO_CONFIGURADA:
+    "A iniciativa alternada ainda não foi configurada.",
+  SESSAO_INSPIRACAO_INATIVA:
+    "Pontos de Inspiração não estão ativos nesta sessão.",
+  SESSAO_INSPIRACAO_SALDO_INSUFICIENTE:
+    "Saldo de Inspiração insuficiente para esta ação.",
+  SESSAO_ITEM_INVENTARIO_NAO_ENCONTRADO:
+    "Item de inventário não encontrado nesta campanha.",
+  SESSAO_ITEM_NAO_CONSUMIVEL: "O item selecionado não é consumível.",
+  SESSAO_CONSUMIVEL_SEM_AUTOMACAO:
+    "Este consumível ainda não possui automação e deve ser resolvido manualmente.",
+  SESSAO_CONSUMO_ALVO_OBRIGATORIO:
+    "Selecione um alvo válido para consumir este item.",
+  SESSAO_CONSUMO_COM_CALMA_INDISPONIVEL:
+    "Este item não pode ser consumido com calma neste momento.",
+  SESSAO_CONSUMO_FORMULA_INVALIDA:
+    "A fórmula persistida para este consumível é inválida.",
+  SESSAO_CONSUMO_RECURSO_NPC_INDISPONIVEL:
+    "O recurso do NPC/Ameaça não pode receber este consumível.",
+  SESSAO_PERITO_PAYLOAD_INVALIDO:
+    "A rolagem não possui os dados necessários para aplicar Perito.",
+  SESSAO_PERITO_PENDENTE_EXISTENTE:
+    "Este personagem já possui um efeito de Perito pendente.",
+  SESSAO_PERITO_PENDENTE_NAO_ENCONTRADO:
+    "O efeito de Perito pendente não foi encontrado.",
+  SESSAO_PERITO_PERICIA_INVALIDA:
+    "Perito não pode ser aplicado nesta perícia.",
+  SESSAO_PERITO_PERICIA_NAO_TREINADA:
+    "Perito exige uma perícia treinada.",
   NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",
   CONVITE_NOT_FOUND: "Convite não encontrado",
   CONVITE_INVALIDO: "Convite inválido ou já utilizado",
@@ -307,6 +460,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Já existe uma solicitação de amizade pendente com este usuário",
   AMIZADE_ACAO_NEGADA:
     "Você não pode realizar esta ação nesta solicitação de amizade",
+  AMIZADE_DESTINO_INVALIDO:
+    "Informe um email, apelido ou usuário válido para enviar a solicitação.",
   // MODIFICAÇÕES
   MODIFICACAO_NOT_FOUND: "Modificação não encontrada",
   MODIFICACAO_CODIGO_DUPLICADO: "Já existe uma modificação com este código",
@@ -328,6 +483,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Suplemento possui conteúdo vinculado e não pode ser removido",
   SUPLEMENTO_NAO_PUBLICADO: "Apenas suplementos publicados podem ser ativados",
   SUPLEMENTO_JA_ATIVO: "Este suplemento já está ativo para o usuário",
+  COMPENDIO_LIVRO_NOT_FOUND: "Livro do compêndio não encontrado.",
+  COMPENDIO_LIVRO_DUPLICADO:
+    "Já existe um livro do compêndio com este identificador.",
   SUPLEMENTO_NAO_ATIVO: "Este suplemento não está ativo para o usuário",
   HOMEBREW_NOT_FOUND: "Homebrew não encontrado",
   HB_NOT_FOUND: "Homebrew não encontrado",

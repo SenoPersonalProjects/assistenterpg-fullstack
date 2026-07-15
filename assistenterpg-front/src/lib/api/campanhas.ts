@@ -1243,6 +1243,25 @@ export type CriarRolagemDanoNpcAcaoSessaoPayload = {
   clientRequestId: string;
 };
 
+export type CriarRolagemTesteHabilidadePersonagemSessaoPayload = {
+  tipo: 'TESTE_HABILIDADE_PERSONAGEM';
+  personagemSessaoId: number;
+  habilidadeTecnicaId: number;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  clientRequestId: string;
+};
+
+export type CriarRolagemDanoHabilidadePersonagemSessaoPayload = {
+  tipo: 'DANO_PERSONAGEM';
+  origemDano: 'HABILIDADE_TECNICA';
+  personagemSessaoId: number;
+  habilidadeTecnicaId: number;
+  variacaoHabilidadeId?: number;
+  acumulos?: number;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  clientRequestId: string;
+};
+
 export async function apiCriarRolagemFormulaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1309,6 +1328,30 @@ export async function apiCriarRolagemDanoNpcSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   payload: CriarRolagemDanoNpcAcaoSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemTesteHabilidadePersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemTesteHabilidadePersonagemSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemDanoHabilidadePersonagemSessaoPayload,
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,

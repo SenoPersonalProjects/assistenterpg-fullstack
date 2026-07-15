@@ -53,10 +53,12 @@ import {
   apiRecusarConvite,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
+  apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemFormulaSessaoCampanha,
   apiCriarRolagemPericiaNpcSessaoCampanha,
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
+  apiCriarRolagemTesteHabilidadePersonagemSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
   apiPularTurnoSessaoCampanha,
   apiVoltarTurnoSessaoCampanha,
@@ -876,6 +878,60 @@ describe('campanhas api cache and dedupe', () => {
     expect(payload).not.toHaveProperty('expressao');
     expect(payload).not.toHaveProperty('dano');
     expect(payload).not.toHaveProperty('total');
+  });
+
+  it('envia somente os ids do teste autoritativo de habilidade', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 99 } });
+    const payload = {
+      tipo: 'TESTE_HABILIDADE_PERSONAGEM' as const,
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      visibilidade: 'PUBLICA' as const,
+      clientRequestId: '524ad211-f941-48b1-a382-c331ed74c683',
+    };
+
+    await apiCriarRolagemTesteHabilidadePersonagemSessaoCampanha(
+      44,
+      13,
+      payload,
+    );
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(payload).not.toHaveProperty('formula');
+    expect(payload).not.toHaveProperty('bonus');
+    expect(payload).not.toHaveProperty('dados');
+  });
+
+  it('envia fonte persistida do dano de habilidade sem formula ou resultado', async () => {
+    mockedApiClient.post.mockResolvedValueOnce({ data: { id: 100 } });
+    const payload = {
+      tipo: 'DANO_PERSONAGEM' as const,
+      origemDano: 'HABILIDADE_TECNICA' as const,
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      variacaoHabilidadeId: 601,
+      acumulos: 3,
+      visibilidade: 'PUBLICA' as const,
+      clientRequestId: '06a375c1-fb84-4d98-99cc-ec00e0a5bef4',
+    };
+
+    await apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha(
+      44,
+      13,
+      payload,
+    );
+
+    expect(mockedApiClient.post).toHaveBeenCalledWith(
+      '/campanhas/44/sessoes/13/rolagens',
+      payload,
+    );
+    expect(payload).not.toHaveProperty('formula');
+    expect(payload).not.toHaveProperty('total');
+    expect(payload).not.toHaveProperty('custo');
+    expect(payload).not.toHaveProperty('efeito');
   });
 
   it('sends secret master roll visibility through session chat', async () => {

@@ -200,12 +200,53 @@ export type DadosRolagemDanoNpcServidorSessao = {
   };
 };
 
+export type DadosRolagemTesteHabilidadeServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'TESTE_HABILIDADE_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  tecnicaId: number;
+  tecnicaNome: string;
+  habilidadeTecnicaId: number;
+  habilidadeNome: string;
+  periciasCodigos: string[];
+  periciaNome: string;
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: { total: number };
+};
+
+export type DadosRolagemDanoHabilidadeServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'DANO_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  tecnicaId: number;
+  tecnicaNome: string;
+  habilidadeTecnicaId: number;
+  habilidadeNome: string;
+  origemDano: 'HABILIDADE_TECNICA';
+  variacaoHabilidadeId: number | null;
+  variacaoNome: string | null;
+  acumulosAplicados: number;
+  formulasResolvidas: string[];
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: { total: number };
+};
+
 export type DadosRolagemServidorSessao =
   | DadosRolagemFormulaServidorSessao
   | DadosRolagemPericiaServidorSessao
   | DadosRolagemAtaqueServidorSessao
   | DadosRolagemNpcServidorSessao
-  | DadosRolagemDanoNpcServidorSessao;
+  | DadosRolagemDanoNpcServidorSessao
+  | DadosRolagemTesteHabilidadeServidorSessao
+  | DadosRolagemDanoHabilidadeServidorSessao;
 
 type NodeBufferLike = {
   from: (input: string, encoding: string) => { toString: (encoding: string) => string };
@@ -791,6 +832,46 @@ export function extrairDadosRolagemServidor(
       return null;
     }
     return registro as DadosRolagemDanoNpcServidorSessao;
+  }
+  if (
+    registro.tipo === 'TESTE_HABILIDADE_PERSONAGEM' ||
+    registro.tipo === 'DANO_PERSONAGEM'
+  ) {
+    const resultado = registro.resultado as Record<string, unknown> | null;
+    if (
+      !Number.isInteger(registro.personagemSessaoId) ||
+      !Number.isInteger(registro.personagemCampanhaId) ||
+      !Number.isInteger(registro.tecnicaId) ||
+      !Number.isInteger(registro.habilidadeTecnicaId) ||
+      typeof registro.habilidadeNome !== 'string' ||
+      typeof registro.formulaResolvida !== 'string' ||
+      !resultado ||
+      typeof resultado.total !== 'number' ||
+      !Number.isFinite(resultado.total)
+    ) {
+      return null;
+    }
+    if (registro.tipo === 'TESTE_HABILIDADE_PERSONAGEM') {
+      if (
+        !Array.isArray(registro.periciasCodigos) ||
+        !registro.periciasCodigos.every((codigo) => typeof codigo === 'string') ||
+        typeof registro.periciaNome !== 'string'
+      ) {
+        return null;
+      }
+      return registro as DadosRolagemTesteHabilidadeServidorSessao;
+    }
+    if (
+      registro.origemDano !== 'HABILIDADE_TECNICA' ||
+      (registro.variacaoHabilidadeId !== null &&
+        !Number.isInteger(registro.variacaoHabilidadeId)) ||
+      !Number.isInteger(registro.acumulosAplicados) ||
+      !Array.isArray(registro.formulasResolvidas) ||
+      !registro.formulasResolvidas.every((formula) => typeof formula === 'string')
+    ) {
+      return null;
+    }
+    return registro as DadosRolagemDanoHabilidadeServidorSessao;
   }
   if (typeof registro.expressaoOriginal !== 'string') return null;
   return registro as DadosRolagemServidorSessao;
