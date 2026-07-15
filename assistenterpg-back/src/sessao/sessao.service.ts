@@ -131,6 +131,7 @@ import {
   normalizarChavePericiaHabilidade,
   resolverFonteDanoHabilidadePersistida,
 } from './sessao-habilidade-rolagem';
+import { jsonSemanticamenteIgual } from 'src/common/utils/json-semantico';
 
 const PERICIAS_ATAQUE_SESSAO = ['LUTA', 'PONTARIA', 'JUJUTSU'] as const;
 const PERICIAS_ATAQUE_SESSAO_SET = new Set<string>(PERICIAS_ATAQUE_SESSAO);
@@ -8933,7 +8934,7 @@ export class SessaoService {
     const persistida = this.extrairRegistro(
       (dados.intencaoAutoritativa ?? null) as Prisma.JsonValue | null,
     );
-    if (JSON.stringify(persistida) === JSON.stringify(intencao)) return;
+    if (jsonSemanticamenteIgual(persistida, intencao)) return;
     throw new SessaoRolagemIdempotenciaConflitoException(
       sessaoId,
       clientRequestId,

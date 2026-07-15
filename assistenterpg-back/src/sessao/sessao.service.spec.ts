@@ -1278,6 +1278,47 @@ describe('SessaoService', () => {
     expect(mocks.resolverFonte).toHaveBeenCalledTimes(1);
   });
 
+  it('reutiliza critico quando o banco reordena as chaves da intencao', async () => {
+    const clientRequestId = '70a7ee7a-5d23-4aaa-a421-9cb69cd95673';
+    const eventoPersistido = criarEventoRolagemPericiaTeste({
+      mensagem: 'resultado critico persistido',
+      visibilidade: 'PUBLICA',
+      intencaoAutoritativa: {
+        tipo: 'CRITICO_PERSONAGEM',
+        acumulos: null,
+        origemDano: null,
+        visibilidade: 'PUBLICA',
+        origemCritico: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        variacaoHabilidadeId: null,
+      },
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'CRITICO_PERSONAGEM',
+        clientRequestId,
+      },
+    });
+    const mocks = configurarRolagemHabilidadeAutoritativa();
+    (prisma as any).eventoSessao.findFirst.mockResolvedValue(eventoPersistido);
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'CRITICO_PERSONAGEM',
+        origemCritico: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId,
+      }),
+    ).resolves.toMatchObject({
+      id: eventoPersistido.id,
+      criadoAgora: false,
+    });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
+    expect(mocks.resolverFonte).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it('repete critico quando Prisma sinaliza conflito P2034', async () => {
     configurarRolagemHabilidadeAutoritativa();
     const executarTransacao = prisma.$transaction.getMockImplementation();
