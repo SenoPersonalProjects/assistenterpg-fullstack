@@ -1,28 +1,10 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
-const repoRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
-
-const backendExceptionsDir = path.join(
-  repoRoot,
-  "assistenterpg-back",
-  "src",
-  "common",
-  "exceptions",
-);
-const backendSrcDir = path.join(repoRoot, "assistenterpg-back", "src");
-const frontErrorHandlerFile = path.join(
-  repoRoot,
-  "assistenterpg-front",
-  "src",
-  "lib",
-  "api",
-  "error-handler.ts",
-);
+const currentFile = fileURLToPath(import.meta.url);
+const defaultRepoRoot = path.resolve(path.dirname(currentFile), "../..");
 
 const ignoredBackendCodes = new Set(["INT_I", "INT_II"]);
 const allowedFrontOnlyCodes = new Set([
@@ -52,25 +34,184 @@ function walkFiles(dir, predicate) {
   return result;
 }
 
-function readUtf8(filePath) {
-  return readFileSync(filePath, "utf8");
-}
-
-function addMatchesToSet(content, regex, set, normalize = (v) => v) {
-  let match;
-  while ((match = regex.exec(content)) !== null) {
-    const value = normalize(match[1]);
-    if (value) {
-      set.add(value);
-    }
-  }
+function isErrorCode(value) {
+  return /^[A-Z][A-Z0-9_]+$/.test(value);
 }
 
 function isPrismaCode(value) {
   return /^P\d{4}$/.test(value);
 }
 
-function main() {
+function addCode(codes, value) {
+  if (
+    isErrorCode(value) &&
+    !ignoredBackendCodes.has(value) &&
+    !isPrismaCode(value)
+  ) {
+    codes.add(value);
+  }
+}
+
+function stringLiteralValue(node) {
+  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+    ? node.text
+    : null;
+}
+
+function rightmostExpressionName(expression) {
+  if (ts.isIdentifier(expression)) {
+    return expression.text;
+  }
+  if (ts.isPropertyAccessExpression(expression)) {
+    return expression.name.text;
+  }
+  return null;
+}
+
+function propertyNameText(name) {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name)) {
+    return name.text;
+  }
+  return null;
+}
+
+function unwrapExpression(node) {
+  let current = node;
+  while (
+    current &&
+    (ts.isAsExpression(current) ||
+      ts.isSatisfiesExpression(current) ||
+      ts.isParenthesizedExpression(current))
+  ) {
+    current = current.expression;
+  }
+  return current;
+}
+
+export function collectBackendErrorCodesFromSource(
+  content,
+  fileName = "source.ts",
+  { exceptionCatalog = false } = {},
+) {
+  const codes = new Set();
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+
+  const collectLiteralDescendants = (node) => {
+    const value = stringLiteralValue(node);
+    if (value) {
+      addCode(codes, value);
+    }
+    ts.forEachChild(node, collectLiteralDescendants);
+  };
+
+  const visit = (node) => {
+    if (exceptionCatalog) {
+      const value = stringLiteralValue(node);
+      if (value) {
+        addCode(codes, value);
+      }
+    }
+
+    if (
+      ts.isPropertyAssignment(node) &&
+      propertyNameText(node.name) === "code"
+    ) {
+      const value = stringLiteralValue(node.initializer);
+      if (value) {
+        addCode(codes, value);
+      }
+    }
+
+    if (
+      ts.isNewExpression(node) &&
+      rightmostExpressionName(node.expression) === "BusinessException"
+    ) {
+      const value = node.arguments?.[1]
+        ? stringLiteralValue(node.arguments[1])
+        : null;
+      if (value) {
+        addCode(codes, value);
+      }
+    }
+
+    if (
+      ts.isTypeAliasDeclaration(node) &&
+      /(Erro|Error)Code$/.test(node.name.text)
+    ) {
+      collectLiteralDescendants(node.type);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return codes;
+}
+
+export function collectFrontendErrorCodesFromSource(
+  content,
+  fileName = "error-handler.ts",
+) {
+  const codes = new Set();
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+
+  const visit = (node) => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === "ERROR_MESSAGES" &&
+      node.initializer
+    ) {
+      const initializer = unwrapExpression(node.initializer);
+      if (initializer && ts.isObjectLiteralExpression(initializer)) {
+        for (const property of initializer.properties) {
+          if (!ts.isPropertyAssignment(property)) {
+            continue;
+          }
+          const code = propertyNameText(property.name);
+          if (code && isErrorCode(code)) {
+            codes.add(code);
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return codes;
+}
+
+export function buildCoverageReport(repoRoot = defaultRepoRoot) {
+  const backendExceptionsDir = path.join(
+    repoRoot,
+    "assistenterpg-back",
+    "src",
+    "common",
+    "exceptions",
+  );
+  const backendSrcDir = path.join(repoRoot, "assistenterpg-back", "src");
+  const frontErrorHandlerFile = path.join(
+    repoRoot,
+    "assistenterpg-front",
+    "src",
+    "lib",
+    "api",
+    "error-handler.ts",
+  );
+
   if (!statSync(backendExceptionsDir).isDirectory()) {
     throw new Error(`Diretorio nao encontrado: ${backendExceptionsDir}`);
   }
@@ -82,78 +223,90 @@ function main() {
   }
 
   const backendCodes = new Set();
-  const frontCodes = new Set();
-
-  const exceptionFiles = walkFiles(
-    backendExceptionsDir,
-    (file) => file.endsWith(".ts") && !file.endsWith(".spec.ts"),
+  const exceptionFiles = new Set(
+    walkFiles(
+      backendExceptionsDir,
+      (file) => file.endsWith(".ts") && !file.endsWith(".spec.ts"),
+    ),
   );
   const backendTsFiles = walkFiles(
     backendSrcDir,
     (file) => file.endsWith(".ts") && !file.endsWith(".spec.ts"),
   );
 
-  for (const file of exceptionFiles) {
-    const content = readUtf8(file);
-    addMatchesToSet(content, /'([A-Z][A-Z0-9_]+)'/g, backendCodes);
-  }
-
   for (const file of backendTsFiles) {
-    const content = readUtf8(file);
-    addMatchesToSet(content, /code\s*:\s*'([A-Z][A-Z0-9_]+)'/g, backendCodes);
-  }
-
-  for (const code of [...backendCodes]) {
-    if (ignoredBackendCodes.has(code) || isPrismaCode(code)) {
-      backendCodes.delete(code);
+    const collected = collectBackendErrorCodesFromSource(
+      readFileSync(file, "utf8"),
+      file,
+      { exceptionCatalog: exceptionFiles.has(file) },
+    );
+    for (const code of collected) {
+      backendCodes.add(code);
     }
   }
 
-  const frontContent = readUtf8(frontErrorHandlerFile);
-  addMatchesToSet(frontContent, /^\s*([A-Z][A-Z0-9_]+)\s*:/gm, frontCodes);
-
+  const frontCodes = collectFrontendErrorCodesFromSource(
+    readFileSync(frontErrorHandlerFile, "utf8"),
+    frontErrorHandlerFile,
+  );
   const backendList = [...backendCodes].sort();
   const frontList = [...frontCodes].sort();
-
   const missingInFront = backendList.filter((code) => !frontCodes.has(code));
   const extraInFront = frontList.filter((code) => !backendCodes.has(code));
   const unexpectedExtraInFront = extraInFront.filter(
     (code) => !allowedFrontOnlyCodes.has(code),
   );
 
-  console.log(`backend codes: ${backendList.length}`);
-  console.log(`frontend mapped codes: ${frontList.length}`);
-  console.log(`missing in frontend: ${missingInFront.length}`);
-  console.log(`extra in frontend: ${extraInFront.length}`);
+  return {
+    backendList,
+    frontList,
+    missingInFront,
+    extraInFront,
+    unexpectedExtraInFront,
+  };
+}
 
-  if (missingInFront.length > 0) {
+export function main(repoRoot = defaultRepoRoot) {
+  const report = buildCoverageReport(repoRoot);
+  console.log(`backend codes: ${report.backendList.length}`);
+  console.log(`frontend mapped codes: ${report.frontList.length}`);
+  console.log(`missing in frontend: ${report.missingInFront.length}`);
+  console.log(`extra in frontend: ${report.extraInFront.length}`);
+
+  if (report.missingInFront.length > 0) {
     console.error("\nCodigos faltando no frontend:");
-    for (const code of missingInFront) {
+    for (const code of report.missingInFront) {
       console.error(`- ${code}`);
     }
   }
 
-  if (unexpectedExtraInFront.length > 0) {
-    console.warn(
+  if (report.unexpectedExtraInFront.length > 0) {
+    console.error(
       "\nCodigos extras no frontend (nao permitidos por allowlist):",
     );
-    for (const code of unexpectedExtraInFront) {
-      console.warn(`- ${code}`);
+    for (const code of report.unexpectedExtraInFront) {
+      console.error(`- ${code}`);
     }
   }
 
-  if (missingInFront.length > 0) {
+  if (
+    report.missingInFront.length > 0 ||
+    report.unexpectedExtraInFront.length > 0
+  ) {
     process.exitCode = 1;
-    return;
+    return report;
   }
 
   console.log("\nCobertura de codigos de erro backend -> frontend: OK");
+  return report;
 }
 
-try {
-  main();
-} catch (error) {
-  console.error("Falha ao verificar cobertura de codigos de erro.");
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(currentFile)) {
+  try {
+    main();
+  } catch (error) {
+    console.error("Falha ao verificar cobertura de codigos de erro.");
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }
