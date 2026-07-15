@@ -486,6 +486,148 @@ describe('SessaoService', () => {
     };
   }
 
+  function configurarRolagemHabilidadeAutoritativa(args?: {
+    ehMestre?: boolean;
+    donoId?: number;
+    persistirEventoCriado?: boolean;
+    habilidade?: Record<string, unknown>;
+  }) {
+    const donoId = args?.donoId ?? 10;
+    const acesso = {
+      ehMestre: args?.ehMestre ?? false,
+      campanha: {
+        donoId: 99,
+        dono: { apelido: 'Mestre' },
+        membros: [
+          {
+            usuarioId: 10,
+            papel: 'JOGADOR',
+            usuario: { apelido: 'Jogador' },
+          },
+        ],
+      },
+    };
+    jest.spyOn(service as any, 'obterSessaoComAcesso').mockResolvedValue({
+      acesso,
+      sessao: { status: 'EM_ANDAMENTO' },
+    });
+    const validarMutabilidade = jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({ acesso, sessao: { status: 'EM_ANDAMENTO' } });
+    jest
+      .spyOn(service as any, 'assertSessaoMutavelTx')
+      .mockResolvedValue(undefined);
+
+    (prisma as any).personagemSessao = {
+      findFirst: jest.fn().mockResolvedValue({
+        personagemCampanhaId: 41,
+        personagemCampanha: { donoId },
+      }),
+    };
+    (prisma as any).personagemCampanha = {
+      findFirst: jest.fn().mockResolvedValue({ id: 41 }),
+    };
+    const habilidade = {
+      id: 501,
+      tecnicaId: 401,
+      nome: 'Punho Divergente',
+      testesExigidos: ['Luta com Jujutsu'],
+      dadosDano: [{ quantidade: 2, dado: 'd8', tipo: 'IMPACTO' }],
+      danoFlat: 3,
+      danoFlatTipo: 'IMPACTO',
+      escalonaPorGrau: true,
+      acumulosMaximos: 4,
+      escalonamentoDano: {
+        quantidade: 1,
+        dado: 'd8',
+        tipo: 'IMPACTO',
+      },
+      variacoes: [
+        {
+          id: 601,
+          nome: 'Liberação Superior',
+          dadosDano: [{ quantidade: 3, dado: 'd10', tipo: 'ENERGIA' }],
+          danoFlat: 5,
+          danoFlatTipo: 'ENERGIA',
+          escalonaPorGrau: true,
+          acumulosMaximos: 4,
+          escalonamentoDano: {
+            quantidade: 1,
+            dado: 'd10',
+            tipo: 'ENERGIA',
+          },
+        },
+      ],
+      ...(args?.habilidade ?? {}),
+    };
+    const resolverFonte = jest
+      .spyOn(service as any, 'resolverFonteHabilidadeAutoritativaTx')
+      .mockResolvedValue({
+        personagemCampanhaId: 41,
+        personagemNome: 'Yuji',
+        donoId,
+        tecnica: { id: 401, nome: 'Divergência' },
+        habilidade,
+        grausMap: new Map([['TECNICA_AMALDICOADA', 4]]),
+      });
+    const resolverTeste = jest
+      .spyOn(service as any, 'resolverTesteHabilidadeAutoritativoTx')
+      .mockResolvedValue({
+        periciasCodigos: ['LUTA', 'JUJUTSU'],
+        periciaNome: 'Luta com Jujutsu',
+        expressao: {
+          quantidade: 2,
+          faces: 20,
+          modificador: 8,
+          operador: '+',
+          aplicarModificadorPorDado: false,
+          keepMode: 'HIGHEST',
+          label: 'Yuji · Punho Divergente',
+        },
+      });
+    let eventoAtual: ReturnType<typeof criarEventoRolagemPericiaTeste> | null =
+      null;
+    const criarEvento = jest.fn().mockImplementation((input) => {
+      const evento = criarEventoRolagemPericiaTeste(input.data.dados, donoId);
+      if (args?.persistirEventoCriado) eventoAtual = evento;
+      return Promise.resolve(evento);
+    });
+    (prisma as any).eventoSessao = {
+      findFirst: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve(eventoAtual)),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: criarEvento,
+    };
+    (prisma as any).$queryRaw = jest.fn().mockResolvedValue([{ id: 41 }]);
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+        callback(prisma),
+    );
+    const consumirPerito = jest.spyOn(
+      service as any,
+      'consumirPeritoAutoritativoTx',
+    );
+    const resolverInspiracao = jest.spyOn(
+      service as any,
+      'resolverInspiracaoAutoritativaTx',
+    );
+    const resolverEscalada = jest.spyOn(
+      service as any,
+      'resolverEscaladaAtaqueAutoritativaTx',
+    );
+
+    return {
+      criarEvento,
+      resolverFonte,
+      resolverTeste,
+      consumirPerito,
+      resolverInspiracao,
+      resolverEscalada,
+      validarMutabilidade,
+    };
+  }
+
   function configurarRolagemNpcAutoritativa(args?: {
     ehMestre?: boolean;
     ocultoJogadores?: boolean;
@@ -969,6 +1111,249 @@ describe('SessaoService', () => {
     expect(repetido.id).toBe(primeiro.id);
     expect(repetido.criadoAgora).toBe(false);
     expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolve teste composto de habilidade no servidor sem ajustes mecanicos', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa();
+
+    const resultado = await service.criarRolagemSessao(7, 21, 10, {
+      tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      clientRequestId: '524ad211-f941-48b1-a382-c331ed74c683',
+    });
+
+    expect(resultado).toMatchObject({
+      criadoAgora: true,
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+        personagemSessaoId: 31,
+        personagemCampanhaId: 41,
+        tecnicaId: 401,
+        habilidadeTecnicaId: 501,
+        periciasCodigos: ['LUTA', 'JUJUTSU'],
+        formulaResolvida: expect.stringContaining('2d20+8'),
+        resultado: { total: expect.any(Number) },
+      },
+      contextoRolagem: {
+        tipo: 'PERICIA',
+        origem: 'HABILIDADE_TECNICA',
+      },
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+    expect(mocks.resolverTeste).toHaveBeenCalledTimes(1);
+    expect(mocks.consumirPerito).not.toHaveBeenCalled();
+    expect(mocks.resolverInspiracao).not.toHaveBeenCalled();
+    expect(mocks.resolverEscalada).not.toHaveBeenCalled();
+  });
+
+  it('calcula dano tipado de variacao e acumulos sem aplicar efeitos', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa();
+
+    const resultado = await service.criarRolagemSessao(7, 21, 10, {
+      tipo: 'DANO_PERSONAGEM',
+      origemDano: 'HABILIDADE_TECNICA',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      variacaoHabilidadeId: 601,
+      acumulos: 3,
+      clientRequestId: '06a375c1-fb84-4d98-99cc-ec00e0a5bef4',
+    });
+
+    expect(resultado).toMatchObject({
+      criadoAgora: true,
+      dadosRolagem: {
+        origem: 'SERVIDOR',
+        tipo: 'DANO_PERSONAGEM',
+        origemDano: 'HABILIDADE_TECNICA',
+        habilidadeTecnicaId: 501,
+        variacaoHabilidadeId: 601,
+        acumulosAplicados: 3,
+        formulaResolvida: expect.stringContaining('5d10+5'),
+        resultado: { total: expect.any(Number) },
+      },
+      contextoRolagem: {
+        tipo: 'DANO',
+        origemDano: 'HABILIDADE_TECNICA',
+        variacaoHabilidadeId: 601,
+        acumulosAplicados: 3,
+      },
+    });
+    const dados = mocks.criarEvento.mock.calls[0][0].data.dados;
+    expect(dados.dadosRolagem.payloads).toEqual([
+      expect.objectContaining({
+        quantidade: 5,
+        faces: 10,
+        modificador: 5,
+        label: 'ENERGIA',
+      }),
+    ]);
+    expect(dados.ajustesAplicados).toEqual([]);
+    expect(dados.inspiracaoAutomatica).toBeNull();
+    expect(mocks.consumirPerito).not.toHaveBeenCalled();
+    expect(mocks.resolverInspiracao).not.toHaveBeenCalled();
+    expect(mocks.resolverEscalada).not.toHaveBeenCalled();
+  });
+
+  it('rola dano base sem exigir acumulo em habilidade nao escalonavel', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa({
+      habilidade: {
+        escalonaPorGrau: false,
+        acumulosMaximos: 0,
+        escalonamentoDano: null,
+      },
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'DANO_PERSONAGEM',
+        origemDano: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId: '51942ba0-d29b-4661-936d-7f7ad1a09430',
+      }),
+    ).resolves.toMatchObject({
+      dadosRolagem: {
+        tipo: 'DANO_PERSONAGEM',
+        acumulosAplicados: 0,
+      },
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('reutiliza rolagem de habilidade sem rerrolar ou criar evento duplicado', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa({
+      persistirEventoCriado: true,
+    });
+    const dto = {
+      tipo: 'DANO_PERSONAGEM' as const,
+      origemDano: 'HABILIDADE_TECNICA' as const,
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      acumulos: 2,
+      clientRequestId: '1c638b86-cc73-4575-94bd-cb676f6804ca',
+    };
+
+    const primeiro = await service.criarRolagemSessao(7, 21, 10, dto);
+    const repetido = await service.criarRolagemSessao(7, 21, 10, dto);
+
+    expect(repetido.id).toBe(primeiro.id);
+    expect(repetido.criadoAgora).toBe(false);
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+    expect(mocks.resolverFonte).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejeita reutilizar UUID de habilidade com outra intencao', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa({
+      persistirEventoCriado: true,
+    });
+    const clientRequestId = '2af72b58-cbb0-4da5-a128-050a28e931f8';
+    await service.criarRolagemSessao(7, 21, 10, {
+      tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+      personagemSessaoId: 31,
+      habilidadeTecnicaId: 501,
+      clientRequestId,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'DANO_PERSONAGEM',
+        origemDano: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId,
+      }),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO',
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('bloqueia jogador tentando rolar habilidade de outro personagem', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa({ donoId: 11 });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId: '8df8d89b-8bfb-4ecf-b9ee-272460ea49cc',
+      }),
+    ).rejects.toMatchObject({ code: 'CAMPANHA_PERSONAGEM_EDICAO_NEGADA' });
+    expect(mocks.criarEvento).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('permite ao mestre rolar habilidade de qualquer personagem', async () => {
+    const mocks = configurarRolagemHabilidadeAutoritativa({
+      ehMestre: true,
+      donoId: 11,
+    });
+
+    await expect(
+      service.criarRolagemSessao(7, 21, 99, {
+        tipo: 'TESTE_HABILIDADE_PERSONAGEM',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        visibilidade: 'SECRETA_MESTRE',
+        clientRequestId: '671c447c-2b35-47c7-af6b-2a03698dadbf',
+      }),
+    ).resolves.toMatchObject({
+      criadoAgora: true,
+      visibilidade: 'SECRETA_MESTRE',
+    });
+    expect(mocks.criarEvento).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejeita variacao ausente, dano invalido e acumulos acima do limite', async () => {
+    const variacao = configurarRolagemHabilidadeAutoritativa();
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'DANO_PERSONAGEM',
+        origemDano: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        variacaoHabilidadeId: 999,
+        clientRequestId: 'ea653a4e-c317-44e9-8e40-7c808281a83a',
+      }),
+    ).rejects.toMatchObject({
+      code: 'SESSAO_VARIACAO_HABILIDADE_NOT_FOUND',
+    });
+    expect(variacao.criarEvento).not.toHaveBeenCalled();
+
+    jest.restoreAllMocks();
+    const semDano = configurarRolagemHabilidadeAutoritativa({
+      habilidade: {
+        dadosDano: [],
+        danoFlat: null,
+        escalonamentoDano: null,
+      },
+    });
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'DANO_PERSONAGEM',
+        origemDano: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        clientRequestId: '66a136ab-9864-4617-b92d-c63d4989ec31',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_ROLAGEM_INVALIDA' });
+    expect(semDano.criarEvento).not.toHaveBeenCalled();
+
+    jest.restoreAllMocks();
+    const acumulos = configurarRolagemHabilidadeAutoritativa();
+    await expect(
+      service.criarRolagemSessao(7, 21, 10, {
+        tipo: 'DANO_PERSONAGEM',
+        origemDano: 'HABILIDADE_TECNICA',
+        personagemSessaoId: 31,
+        habilidadeTecnicaId: 501,
+        acumulos: 5,
+        clientRequestId: 'ef5ead42-dafd-4af2-b05d-f0fe35fb5ffd',
+      }),
+    ).rejects.toMatchObject({ code: 'SESSAO_ACUMULO_EXCEDE_GRAU' });
+    expect(acumulos.criarEvento).not.toHaveBeenCalled();
   });
 
   it('gera e persiste rolagem autoritativa sem aceitar resultados do cliente', async () => {

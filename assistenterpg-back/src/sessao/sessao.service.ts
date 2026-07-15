@@ -101,6 +101,7 @@ import {
 import { assertSessaoMutavel } from './sessao-mutabilidade';
 import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
 import {
+  CriarRolagemHabilidadePersonagemSessaoDto,
   CriarRolagemMecanicaNpcSessaoDto,
   CriarRolagemMecanicaPersonagemSessaoDto,
   CriarRolagemFormulaSessaoDto,
@@ -125,6 +126,11 @@ import {
   type DiceExpressionServidor,
   type DiceRollPayloadServidor,
 } from './sessao-dice-autoritativo';
+import {
+  extrairPericiasTesteHabilidadePersistido,
+  normalizarChavePericiaHabilidade,
+  resolverFonteDanoHabilidadePersistida,
+} from './sessao-habilidade-rolagem';
 
 const PERICIAS_ATAQUE_SESSAO = ['LUTA', 'PONTARIA', 'JUJUTSU'] as const;
 const PERICIAS_ATAQUE_SESSAO_SET = new Set<string>(PERICIAS_ATAQUE_SESSAO);
@@ -2949,6 +2955,17 @@ export class SessaoService {
     usuarioId: number,
     dto: CriarRolagemSessaoDto,
   ) {
+    if (
+      dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM' ||
+      dto.tipo === 'DANO_PERSONAGEM'
+    ) {
+      return this.criarRolagemHabilidadePersonagemSessao(
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        dto as CriarRolagemHabilidadePersonagemSessaoDto,
+      );
+    }
     if (dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM') {
       return this.criarRolagemMecanicaPersonagemSessao(
         campanhaId,
@@ -3381,6 +3398,296 @@ export class SessaoService {
           evento: ehAtaque
             ? 'rolagem_ataque_personagem_sessao_lenta'
             : 'rolagem_pericia_sessao_lenta',
+          sessaoId,
+          eventoId: resultadoTransacao.evento.id,
+          duracaoMs,
+        }),
+      );
+    }
+    return {
+      ...this.mapearEventoChat(resultadoTransacao.evento, true),
+      criadoAgora: resultadoTransacao.criadoAgora,
+    };
+  }
+
+  private async criarRolagemHabilidadePersonagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: CriarRolagemHabilidadePersonagemSessaoDto,
+  ) {
+    const inicio = Date.now();
+    const ehDano = dto.tipo === 'DANO_PERSONAGEM';
+    const descricaoAcao = ehDano
+      ? 'realizar rolagem de dano de habilidade'
+      : 'realizar teste de habilidade';
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    const visibilidade = dto.visibilidade ?? 'PUBLICA';
+    if (visibilidade === 'SECRETA_MESTRE' && !acesso.ehMestre) {
+      throw new CampanhaApenasMestreException('enviar rolagem secreta');
+    }
+
+    const intencao = this.montarIntencaoRolagemHabilidade(dto, visibilidade);
+    const eventoExistente = await this.buscarEventoRolagemIdempotente(
+      this.prisma,
+      sessaoId,
+      usuarioId,
+      dto.clientRequestId,
+    );
+    if (eventoExistente) {
+      this.assertIntencaoRolagemIdempotente(
+        eventoExistente,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      return {
+        ...this.mapearEventoChat(eventoExistente, true),
+        criadoAgora: false,
+      };
+    }
+
+    await this.obterSessaoMutavelComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+      descricaoAcao,
+    );
+    const personagemInicial = await this.prisma.personagemSessao.findFirst({
+      where: {
+        id: dto.personagemSessaoId,
+        sessaoId,
+        personagemCampanha: { campanhaId },
+      },
+      select: {
+        personagemCampanhaId: true,
+        personagemCampanha: { select: { donoId: true } },
+      },
+    });
+    if (!personagemInicial) {
+      throw new PersonagemSessaoNaoEncontradoException(
+        dto.personagemSessaoId,
+        sessaoId,
+        campanhaId,
+      );
+    }
+    if (
+      !acesso.ehMestre &&
+      personagemInicial.personagemCampanha.donoId !== usuarioId
+    ) {
+      throw new CampanhaPersonagemEdicaoNegadaException(
+        campanhaId,
+        personagemInicial.personagemCampanhaId,
+        usuarioId,
+      );
+    }
+
+    let resultadoTransacao: {
+      evento: Awaited<
+        ReturnType<SessaoService['buscarEventoRolagemIdempotente']>
+      > extends infer T
+        ? NonNullable<T>
+        : never;
+      criadoAgora: boolean;
+    };
+    try {
+      resultadoTransacao = await executarComRetryConcorrencia(
+        descricaoAcao,
+        () =>
+          this.prisma.$transaction(async (tx) => {
+            await bloquearPersonagemCampanhaTx(
+              tx,
+              campanhaId,
+              personagemInicial.personagemCampanhaId,
+            );
+            await this.assertSessaoMutavelTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              descricaoAcao,
+            );
+
+            const repetido = await this.buscarEventoRolagemIdempotente(
+              tx,
+              sessaoId,
+              usuarioId,
+              dto.clientRequestId,
+            );
+            if (repetido) {
+              this.assertIntencaoRolagemIdempotente(
+                repetido,
+                intencao,
+                sessaoId,
+                dto.clientRequestId,
+              );
+              return { evento: repetido, criadoAgora: false };
+            }
+
+            const fonte = await this.resolverFonteHabilidadeAutoritativaTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              dto.personagemSessaoId,
+              dto.habilidadeTecnicaId,
+            );
+            if (!acesso.ehMestre && fonte.donoId !== usuarioId) {
+              throw new CampanhaPersonagemEdicaoNegadaException(
+                campanhaId,
+                fonte.personagemCampanhaId,
+                usuarioId,
+              );
+            }
+
+            let payloads: DiceRollPayloadServidor[];
+            let dadosRolagemEspecificos: Record<string, unknown>;
+            let contextoRolagem: Record<string, unknown>;
+
+            if (dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM') {
+              const teste = await this.resolverTesteHabilidadeAutoritativoTx(
+                tx,
+                campanhaId,
+                sessaoId,
+                dto.personagemSessaoId,
+                fonte.personagemNome,
+                fonte.habilidade,
+              );
+              payloads = [rolarDadosServidor(teste.expressao)];
+              dadosRolagemEspecificos = {
+                periciasCodigos: teste.periciasCodigos,
+                periciaNome: teste.periciaNome,
+              };
+              contextoRolagem = {
+                tipo: 'PERICIA',
+                origem: 'HABILIDADE_TECNICA',
+                periciasCodigos: teste.periciasCodigos,
+              };
+            } else {
+              const dano = this.resolverDanoHabilidadeAutoritativo(
+                fonte.habilidade,
+                dto.variacaoHabilidadeId,
+                dto.acumulos,
+              );
+              payloads = dano.expressoes.map((expressao) =>
+                rolarDadosServidor(expressao),
+              );
+              dadosRolagemEspecificos = {
+                origemDano: 'HABILIDADE_TECNICA',
+                variacaoHabilidadeId: dano.variacaoHabilidadeId,
+                variacaoNome: dano.variacaoNome,
+                acumulosAplicados: dano.acumulosAplicados,
+                formulasResolvidas: payloads.map((payload) =>
+                  formatarExpressaoDiceServidor(payload),
+                ),
+              };
+              contextoRolagem = {
+                tipo: 'DANO',
+                origemDano: 'HABILIDADE_TECNICA',
+                variacaoHabilidadeId: dano.variacaoHabilidadeId,
+                acumulosAplicados: dano.acumulosAplicados,
+              };
+            }
+
+            const resultados = payloads.map((payload) =>
+              calcularResultadoDiceServidor(payload),
+            );
+            const total = resultados.reduce(
+              (soma, resultado) => soma + resultado.total,
+              0,
+            );
+            const mensagem = construirMensagemDiceServidor(payloads).mensagem;
+            if (mensagem.length > LIMITES_DICE_SESSAO.mensagem) {
+              throw new SessaoRolagemMensagemMuitoGrandeException();
+            }
+            const formulasResolvidas = payloads.map((payload) =>
+              formatarExpressaoDiceServidor(payload),
+            );
+
+            const evento = await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                tipoEvento: 'CHAT',
+                personagemAtorId: dto.personagemSessaoId,
+                solicitanteUsuarioId: usuarioId,
+                clientRequestId: dto.clientRequestId,
+                dados: this.jsonParaPersistencia({
+                  mensagem,
+                  autorUsuarioId: usuarioId,
+                  autorApelido: this.resolverApelidoAcesso(acesso, usuarioId),
+                  visibilidade,
+                  intencaoAutoritativa: intencao,
+                  dadosRolagem: {
+                    versao: 1,
+                    origem: 'SERVIDOR',
+                    tipo: dto.tipo,
+                    clientRequestId: dto.clientRequestId,
+                    personagemSessaoId: dto.personagemSessaoId,
+                    personagemCampanhaId: fonte.personagemCampanhaId,
+                    tecnicaId: fonte.tecnica.id,
+                    tecnicaNome: fonte.tecnica.nome,
+                    habilidadeTecnicaId: fonte.habilidade.id,
+                    habilidadeNome: fonte.habilidade.nome,
+                    ...dadosRolagemEspecificos,
+                    formulaResolvida: formulasResolvidas.join(' + '),
+                    payloads,
+                    resultado: { total },
+                  },
+                  contextoRolagem: {
+                    ...contextoRolagem,
+                    personagemSessaoId: dto.personagemSessaoId,
+                    personagemCampanhaId: fonte.personagemCampanhaId,
+                    tecnicaId: fonte.tecnica.id,
+                    habilidadeTecnicaId: fonte.habilidade.id,
+                  },
+                  ajustesAplicados: [],
+                  inspiracaoAutomatica: null,
+                }),
+              },
+              include: {
+                personagemAtor: {
+                  include: {
+                    personagemCampanha: {
+                      select: {
+                        nome: true,
+                        donoId: true,
+                        dono: { select: { apelido: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            return { evento, criadoAgora: true };
+          }),
+      );
+    } catch (error) {
+      if (!this.erroPrismaChaveUnica(error)) throw error;
+      const vencedor = await this.buscarEventoRolagemIdempotente(
+        this.prisma,
+        sessaoId,
+        usuarioId,
+        dto.clientRequestId,
+      );
+      if (!vencedor) throw error;
+      this.assertIntencaoRolagemIdempotente(
+        vencedor,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      resultadoTransacao = { evento: vencedor, criadoAgora: false };
+    }
+
+    const duracaoMs = Date.now() - inicio;
+    if (resultadoTransacao.criadoAgora && duracaoMs > 1000) {
+      this.logger.warn(
+        JSON.stringify({
+          evento: ehDano
+            ? 'rolagem_dano_habilidade_sessao_lenta'
+            : 'rolagem_teste_habilidade_sessao_lenta',
           sessaoId,
           eventoId: resultadoTransacao.evento.id,
           duracaoMs,
@@ -8494,6 +8801,24 @@ export class SessaoService {
     };
   }
 
+  private montarIntencaoRolagemHabilidade(
+    dto: CriarRolagemHabilidadePersonagemSessaoDto,
+    visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
+  ): Record<string, unknown> {
+    return {
+      tipo: dto.tipo,
+      origemDano: dto.tipo === 'DANO_PERSONAGEM' ? dto.origemDano : null,
+      personagemSessaoId: dto.personagemSessaoId,
+      habilidadeTecnicaId: dto.habilidadeTecnicaId,
+      variacaoHabilidadeId:
+        dto.tipo === 'DANO_PERSONAGEM'
+          ? (dto.variacaoHabilidadeId ?? null)
+          : null,
+      acumulos: dto.tipo === 'DANO_PERSONAGEM' ? (dto.acumulos ?? null) : null,
+      visibilidade,
+    };
+  }
+
   private montarIntencaoRolagemNpc(
     dto: CriarRolagemMecanicaNpcSessaoDto,
     visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
@@ -8851,6 +9176,326 @@ export class SessaoService {
       acaoNome: null,
       bonusBase,
       expressao,
+    };
+  }
+
+  private async resolverFonteHabilidadeAutoritativaTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    habilidadeTecnicaId: number,
+  ): Promise<{
+    personagemCampanhaId: number;
+    personagemNome: string;
+    donoId: number;
+    tecnica: TecnicaSessaoResumo;
+    habilidade: HabilidadeTecnicaSessaoResumo;
+    grausMap: Map<string, number>;
+  }> {
+    const personagem = await tx.personagemSessao.findFirst({
+      where: {
+        id: personagemSessaoId,
+        sessaoId,
+        personagemCampanha: { campanhaId },
+      },
+      select: {
+        personagemCampanhaId: true,
+        personagemCampanha: {
+          select: {
+            id: true,
+            nome: true,
+            donoId: true,
+            tecnicaInata: {
+              include: {
+                habilidades: {
+                  include: { variacoes: { orderBy: { ordem: 'asc' } } },
+                  orderBy: { ordem: 'asc' },
+                },
+              },
+            },
+            tecnicaInataPropria: {
+              include: {
+                habilidades: {
+                  include: { variacoes: { orderBy: { ordem: 'asc' } } },
+                  orderBy: { ordem: 'asc' },
+                },
+              },
+            },
+            tecnicasAprendidas: {
+              include: {
+                tecnica: {
+                  include: {
+                    habilidades: {
+                      include: { variacoes: { orderBy: { ordem: 'asc' } } },
+                      orderBy: { ordem: 'asc' },
+                    },
+                  },
+                },
+              },
+            },
+            grausAprimoramento: {
+              include: { tipoGrau: { select: { codigo: true } } },
+            },
+            modificadores: {
+              where: { ativo: true },
+              select: {
+                campo: true,
+                valor: true,
+                periciaCodigo: true,
+                tipoGrauCodigo: true,
+              },
+            },
+            personagemBase: {
+              select: {
+                grausAprimoramento: {
+                  include: { tipoGrau: { select: { codigo: true } } },
+                },
+                tecnicasAprendidas: {
+                  include: {
+                    tecnica: {
+                      include: {
+                        habilidades: {
+                          include: {
+                            variacoes: { orderBy: { ordem: 'asc' } },
+                          },
+                          orderBy: { ordem: 'asc' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!personagem) {
+      throw new PersonagemSessaoNaoEncontradoException(
+        personagemSessaoId,
+        sessaoId,
+        campanhaId,
+      );
+    }
+
+    const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+    const estadoHabilidadesClasse =
+      await this.obterEstadoHabilidadesClasseSessaoTx(tx, sessaoId);
+    const aprimoramentosTemporarios =
+      this.listarAprimoramentosTemporariosAtivos(
+        estadoHabilidadesClasse.estado,
+        personagem.personagemCampanhaId,
+        cenaAtual.id,
+      );
+    const bonusGrausTemporarios = this.montarBonusGrausAprimoramentoTemporario(
+      aprimoramentosTemporarios,
+    );
+    const personagemCampanha =
+      personagem.personagemCampanha as PersonagemCampanhaTecnicasSessaoRaw;
+    const grausMap = this.montarMapaGrausPersonagemSessao(
+      personagemCampanha,
+      bonusGrausTemporarios,
+    );
+    const tecnicasDisponiveis = this.resolverTecnicasSessaoPersonagem(
+      personagemCampanha,
+      await this.listarTecnicasNaoInatasCatalogo(tx),
+      bonusGrausTemporarios,
+    );
+    const tecnicas = [
+      ...(tecnicasDisponiveis.tecnicaInata
+        ? [tecnicasDisponiveis.tecnicaInata]
+        : []),
+      ...tecnicasDisponiveis.tecnicasNaoInatas,
+    ];
+    for (const tecnica of tecnicas) {
+      const habilidade = tecnica.habilidades.find(
+        (item) => item.id === habilidadeTecnicaId,
+      );
+      if (habilidade) {
+        return {
+          personagemCampanhaId: personagem.personagemCampanhaId,
+          personagemNome: personagem.personagemCampanha.nome,
+          donoId: personagem.personagemCampanha.donoId,
+          tecnica,
+          habilidade,
+          grausMap,
+        };
+      }
+    }
+
+    throw new BusinessException(
+      'Habilidade nao disponivel para este personagem',
+      'SESSAO_HABILIDADE_NAO_DISPONIVEL',
+      {
+        campanhaId,
+        sessaoId,
+        personagemSessaoId,
+        habilidadeTecnicaId,
+      },
+    );
+  }
+
+  private async resolverTesteHabilidadeAutoritativoTx(
+    tx: Prisma.TransactionClient,
+    campanhaId: number,
+    sessaoId: number,
+    personagemSessaoId: number,
+    personagemNome: string,
+    habilidade: HabilidadeTecnicaSessaoResumo,
+  ): Promise<{
+    periciasCodigos: string[];
+    periciaNome: string;
+    expressao: DiceExpressionServidor;
+  }> {
+    const nomes = extrairPericiasTesteHabilidadePersistido(
+      habilidade.testesExigidos,
+    );
+    if (nomes.length === 0) {
+      throw new SessaoRolagemInvalidaException(
+        'A habilidade nao possui teste estruturado para rolagem no servidor.',
+      );
+    }
+    const catalogo = await tx.pericia.findMany({
+      select: { codigo: true, nome: true },
+    });
+    const mapa = new Map<string, string>();
+    for (const pericia of catalogo) {
+      mapa.set(
+        normalizarChavePericiaHabilidade(pericia.codigo),
+        pericia.codigo,
+      );
+      mapa.set(normalizarChavePericiaHabilidade(pericia.nome), pericia.codigo);
+    }
+    const codigos = nomes.map((nome) =>
+      mapa.get(normalizarChavePericiaHabilidade(nome)),
+    );
+    if (codigos.some((codigo) => !codigo)) {
+      throw new SessaoRolagemInvalidaException(
+        'O teste persistido da habilidade referencia uma pericia inexistente.',
+      );
+    }
+
+    const pericias: Array<{
+      periciaCodigo: string;
+      quantidadeDados: number;
+      bonusTotal: number;
+      keepMode: 'HIGHEST' | 'LOWEST';
+    }> = [];
+    for (const codigo of codigos) {
+      pericias.push(
+        await this.resolverPericiaAutoritativaTx(
+          tx,
+          campanhaId,
+          sessaoId,
+          personagemSessaoId,
+          codigo!,
+        ),
+      );
+    }
+    const quantidade = pericias.length;
+    const quantidadeDados = Math.max(
+      1,
+      Math.trunc(
+        pericias.reduce((soma, pericia) => soma + pericia.quantidadeDados, 0) /
+          quantidade,
+      ),
+    );
+    const bonus = Math.trunc(
+      pericias.reduce((soma, pericia) => soma + pericia.bonusTotal, 0) /
+        quantidade,
+    );
+    const keepMode = pericias.some((pericia) => pericia.keepMode === 'LOWEST')
+      ? 'LOWEST'
+      : 'HIGHEST';
+    const periciaNome =
+      nomes.length === 2 ? `${nomes[0]} com ${nomes[1]}` : nomes.join(' + ');
+    return {
+      periciasCodigos: pericias.map((pericia) => pericia.periciaCodigo),
+      periciaNome,
+      expressao: {
+        quantidade: quantidadeDados,
+        faces: 20,
+        modificador: Math.abs(bonus),
+        operador: bonus < 0 ? '-' : '+',
+        aplicarModificadorPorDado: false,
+        keepMode,
+        label: `${personagemNome} · ${habilidade.nome}`
+          .trim()
+          .slice(0, LIMITES_DICE_SESSAO.label),
+      },
+    };
+  }
+
+  private resolverDanoHabilidadeAutoritativo(
+    habilidade: HabilidadeTecnicaSessaoResumo,
+    variacaoHabilidadeId?: number,
+    acumulosSolicitados?: number,
+  ): {
+    variacaoHabilidadeId: number | null;
+    variacaoNome: string | null;
+    acumulosAplicados: number;
+    expressoes: DiceExpressionServidor[];
+  } {
+    const variacao =
+      typeof variacaoHabilidadeId === 'number'
+        ? habilidade.variacoes.find((item) => item.id === variacaoHabilidadeId)
+        : null;
+    if (typeof variacaoHabilidadeId === 'number' && !variacao) {
+      throw new BusinessException(
+        'Variacao da habilidade nao encontrada',
+        'SESSAO_VARIACAO_HABILIDADE_NOT_FOUND',
+        { habilidadeTecnicaId: habilidade.id, variacaoHabilidadeId },
+      );
+    }
+
+    const escalona = variacao?.escalonaPorGrau ?? habilidade.escalonaPorGrau;
+    const acumulosInformados =
+      typeof acumulosSolicitados === 'number'
+        ? Math.max(0, Math.trunc(acumulosSolicitados))
+        : escalona
+          ? 1
+          : 0;
+    if (acumulosInformados > 0 && !escalona) {
+      throw new BusinessException(
+        'Esta habilidade nao possui escalonamento por acumulos',
+        'SESSAO_HABILIDADE_SEM_ESCALONAMENTO',
+        { habilidadeTecnicaId: habilidade.id, variacaoHabilidadeId },
+      );
+    }
+    const acumulosMaximos =
+      variacao?.acumulosMaximos ?? habilidade.acumulosMaximos;
+    if (acumulosInformados > acumulosMaximos) {
+      throw new BusinessException(
+        'Quantidade de acumulos excede o grau permitido',
+        'SESSAO_ACUMULO_EXCEDE_GRAU',
+        {
+          habilidadeTecnicaId: habilidade.id,
+          variacaoHabilidadeId,
+          acumulosSolicitados: acumulosInformados,
+          acumulosMaximos,
+        },
+      );
+    }
+
+    const fonte = resolverFonteDanoHabilidadePersistida({
+      dadosDano: variacao?.dadosDano ?? habilidade.dadosDano,
+      danoFlat: variacao?.danoFlat ?? habilidade.danoFlat,
+      danoFlatTipo: variacao?.danoFlatTipo ?? habilidade.danoFlatTipo,
+      escalonamentoDano:
+        variacao?.escalonamentoDano ?? habilidade.escalonamentoDano,
+      acumulosAplicados: acumulosInformados,
+    });
+    if (fonte.erro || !fonte.expressoes) {
+      throw new SessaoRolagemInvalidaException(
+        fonte.erro ?? 'Dano estruturado invalido.',
+      );
+    }
+    return {
+      variacaoHabilidadeId: variacao?.id ?? null,
+      variacaoNome: variacao?.nome ?? null,
+      acumulosAplicados: acumulosInformados,
+      expressoes: fonte.expressoes,
     };
   }
 
