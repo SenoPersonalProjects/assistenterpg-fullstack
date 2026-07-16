@@ -1,6 +1,10 @@
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class UsarHabilidadeSessaoDto {
+  @IsOptional()
+  @IsUUID('4')
+  clientRequestId?: string;
+
   @IsInt()
   @Min(1)
   habilidadeTecnicaId: number;

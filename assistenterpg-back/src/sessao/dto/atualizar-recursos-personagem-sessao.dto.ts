@@ -20,4 +20,24 @@ export class AtualizarRecursosPersonagemSessaoDto {
   @IsInt()
   @Min(0)
   sanAtual?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  pvAtualEsperado?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  peAtualEsperado?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  eaAtualEsperado?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sanAtualEsperado?: number;
 }

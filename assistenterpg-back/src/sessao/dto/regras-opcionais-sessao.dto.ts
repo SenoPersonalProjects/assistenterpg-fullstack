@@ -7,6 +7,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -39,6 +40,10 @@ export class AtualizarRegraOpcionalSessaoDto {
 }
 
 export class AjustarInspiracaoSessaoDto {
+  @IsOptional()
+  @IsUUID('4')
+  clientRequestId?: string;
+
   @IsInt({ message: 'delta deve ser inteiro' })
   @Min(-3, { message: 'delta minimo e -3' })
   @Max(3, { message: 'delta maximo e 3' })
@@ -46,6 +51,10 @@ export class AjustarInspiracaoSessaoDto {
 }
 
 export class GastarInspiracaoSessaoDto {
+  @IsOptional()
+  @IsUUID('4')
+  clientRequestId?: string;
+
   @IsInt({ message: 'custo deve ser inteiro' })
   @Min(1, { message: 'custo minimo e 1' })
   @Max(3, { message: 'custo maximo e 3' })
@@ -180,6 +189,10 @@ export class MarcarParticipanteIniciativaAlternadaDto {
 }
 
 export class ConsumirItemSessaoDto {
+  @IsOptional()
+  @IsUUID('4')
+  clientRequestId?: string;
+
   @IsInt({ message: 'itemInventarioCampanhaId deve ser inteiro' })
   @Min(1, { message: 'itemInventarioCampanhaId deve ser positivo' })
   itemInventarioCampanhaId: number;

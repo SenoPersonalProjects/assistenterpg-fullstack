@@ -19,6 +19,21 @@ export class AtualizarNpcSessaoDto extends PartialType(
   OmitType(AdicionarNpcSessaoDto, ['npcAmeacaId'] as const),
 ) {
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  pontosVidaAtualEsperado?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sanAtualEsperado?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  eaAtualEsperado?: number;
+
+  @IsOptional()
   @IsEnum(TipoFichaNpcAmeaca)
   fichaTipo?: TipoFichaNpcAmeaca;
 

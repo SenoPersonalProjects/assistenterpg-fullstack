@@ -109,9 +109,12 @@ import {
 } from './dto/criar-rolagem-sessao.dto';
 import {
   bloquearEventoSessaoTx,
+  bloquearCondicaoSessaoTx,
+  bloquearItemInventarioCampanhaTx,
   bloquearNpcSessaoTx,
   bloquearRegraOpcionalSessaoTx,
   bloquearSessaoTx,
+  bloquearSustentacaoSessaoTx,
 } from './sessao-concorrencia';
 import {
   calcularResultadoDiceServidor,
@@ -2678,7 +2681,7 @@ export class SessaoService {
         sessaoId,
         'atualizar recursos do personagem',
       );
-      const personagemSessao = await tx.personagemSessao.findFirst({
+      let personagemSessao = await tx.personagemSessao.findFirst({
         where: {
           id: personagemSessaoId,
           sessaoId,
@@ -2726,6 +2729,41 @@ export class SessaoService {
         );
       }
 
+      await bloquearPersonagemCampanhaTx(
+        tx,
+        campanhaId,
+        personagemSessao.personagemCampanha.id,
+      );
+      personagemSessao = await tx.personagemSessao.findFirst({
+        where: { id: personagemSessaoId, sessaoId },
+        include: {
+          personagemCampanha: {
+            select: {
+              id: true,
+              campanhaId: true,
+              donoId: true,
+              nome: true,
+              pvAtual: true,
+              pvMax: true,
+              pvBarrasTotal: true,
+              pvBarrasRestantes: true,
+              peAtual: true,
+              peMax: true,
+              eaAtual: true,
+              eaMax: true,
+              sanAtual: true,
+              sanMax: true,
+            },
+          },
+        },
+      });
+      if (!personagemSessao) {
+        throw new PersonagemCampanhaNaoEncontradoException(
+          personagemSessaoId,
+          campanhaId,
+        );
+      }
+
       const infoPv = calcularPvBarraMaximos(
         personagemSessao.personagemCampanha.pvMax,
         personagemSessao.personagemCampanha.pvBarrasTotal,
@@ -2738,6 +2776,33 @@ export class SessaoService {
         eaAtual: personagemSessao.personagemCampanha.eaAtual,
         sanAtual: personagemSessao.personagemCampanha.sanAtual,
       };
+      const esperados = {
+        pvAtual: dto.pvAtualEsperado,
+        peAtual: dto.peAtualEsperado,
+        eaAtual: dto.eaAtualEsperado,
+        sanAtual: dto.sanAtualEsperado,
+      };
+      const solicitados = {
+        pvAtual: dto.pvAtual,
+        peAtual: dto.peAtual,
+        eaAtual: dto.eaAtual,
+        sanAtual: dto.sanAtual,
+      };
+      const campoObsoleto = (
+        Object.keys(antes) as Array<keyof typeof antes>
+      ).find(
+        (campo) =>
+          solicitados[campo] != null &&
+          esperados[campo] != null &&
+          esperados[campo] !== antes[campo],
+      );
+      if (campoObsoleto) {
+        throw new BusinessException(
+          'Os recursos do personagem foram alterados. Sincronize a sessao e tente novamente.',
+          'SESSAO_RECURSOS_DESATUALIZADOS',
+          { personagemSessaoId, campo: campoObsoleto },
+        );
+      }
 
       const depois = {
         pvAtual:
@@ -2833,7 +2898,6 @@ export class SessaoService {
     if (visibilidade === 'SECRETA_MESTRE' && !acesso.ehMestre) {
       throw new CampanhaApenasMestreException('enviar rolagem secreta');
     }
-
     const personagemDoUsuario = await this.prisma.personagemSessao.findFirst({
       where: {
         sessaoId,
@@ -2869,19 +2933,15 @@ export class SessaoService {
       dto.mensagem,
       dto.dadosRolagem,
     );
-    const ajustesBase = await this.resolverAjustesRolagemSessao(
-      sessaoId,
-      dto.contextoRolagem,
-    );
-    const inspiracaoAutomatica =
-      personagemDoUsuario?.personagemCampanha.donoId === usuarioId
-        ? await this.resolverInspiracaoFalhaCritica(
-            sessaoId,
-            personagemDoUsuario.personagemCampanhaId,
-            dadosRolagemLegado ?? undefined,
-            dto.contextoRolagem,
-          )
-        : null;
+    if (dadosRolagemLegado) {
+      this.logger.log(
+        JSON.stringify({
+          evento: 'rolagem_cliente_legado_registrada',
+          sessaoId,
+          usuarioId,
+        }),
+      );
+    }
 
     const evento = await this.prisma.$transaction(async (tx) => {
       await this.assertSessaoMutavelTx(
@@ -2890,26 +2950,6 @@ export class SessaoService {
         sessaoId,
         'enviar mensagem no chat',
       );
-      const ajustesPerito =
-        personagemDoUsuario?.personagemCampanha.donoId === usuarioId
-          ? await this.consumirBonusPeritoPendenteTx(
-              tx,
-              sessaoId,
-              personagemDoUsuario.id,
-              personagemDoUsuario.personagemCampanhaId,
-              dto.contextoRolagem,
-              dadosRolagemLegado ?? undefined,
-            )
-          : [];
-      if (inspiracaoAutomatica) {
-        await this.aplicarInspiracaoAutomaticaTx(
-          tx,
-          sessaoId,
-          inspiracaoAutomatica.personagemCampanhaId,
-        );
-      }
-      const ajustesAplicados = [...ajustesBase, ...ajustesPerito];
-
       return tx.eventoSessao.create({
         data: {
           sessaoId,
@@ -2923,8 +2963,8 @@ export class SessaoService {
             visibilidade,
             dadosRolagem: dadosRolagemLegado,
             contextoRolagem: dto.contextoRolagem ?? null,
-            ajustesAplicados,
-            inspiracaoAutomatica,
+            ajustesAplicados: [],
+            inspiracaoAutomatica: null,
           }),
         },
         include: {
@@ -3013,6 +3053,30 @@ export class SessaoService {
     if (visibilidade === 'SECRETA_MESTRE' && !acesso.ehMestre) {
       throw new CampanhaApenasMestreException('enviar rolagem secreta');
     }
+    const intencao = {
+      tipo: 'FORMULA',
+      expressao: dto.expressao.trim(),
+      visibilidade,
+      contexto: dto.contexto ?? { tipo: 'OUTRO' },
+    };
+    const existente = await this.buscarEventoRolagemIdempotente(
+      this.prisma,
+      sessaoId,
+      usuarioId,
+      dto.clientRequestId,
+    );
+    if (existente) {
+      this.assertIntencaoRolagemIdempotente(
+        existente,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      return {
+        ...this.mapearEventoChat(existente, true),
+        criadoAgora: false,
+      };
+    }
 
     const resultadoParse = parseDiceInputServidor(dto.expressao);
     if (resultadoParse.erro || !resultadoParse.expressions) {
@@ -3043,80 +3107,120 @@ export class SessaoService {
       throw new UsuarioNaoEncontradoException(usuarioId);
     }
 
-    const evento = await this.prisma.$transaction(async (tx) => {
-      await this.assertSessaoMutavelTx(
-        tx,
-        campanhaId,
-        sessaoId,
+    let resultadoTransacao: {
+      evento: NonNullable<
+        Awaited<ReturnType<SessaoService['buscarEventoRolagemIdempotente']>>
+      >;
+      criadoAgora: boolean;
+    };
+    try {
+      resultadoTransacao = await executarComRetryConcorrencia(
         'realizar rolagem no chat',
-      );
-      await this.assertRolagemFormulaSemPeritoPendenteTx(
-        tx,
-        sessaoId,
-        personagensDoUsuario,
-        resultadoParse.expressions!,
-      );
+        () =>
+          this.prisma.$transaction(async (tx) => {
+            await this.assertSessaoMutavelTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              'realizar rolagem no chat',
+            );
+            const repetido = await this.buscarEventoRolagemIdempotente(
+              tx,
+              sessaoId,
+              usuarioId,
+              dto.clientRequestId,
+            );
+            if (repetido) {
+              this.assertIntencaoRolagemIdempotente(
+                repetido,
+                intencao,
+                sessaoId,
+                dto.clientRequestId,
+              );
+              return { evento: repetido, criadoAgora: false };
+            }
 
-      const payloads = resultadoParse.expressions!.map((expression) =>
-        rolarDadosServidor(expression),
-      );
-      const mensagem = construirMensagemDiceServidor(payloads).mensagem;
-      if (mensagem.length > LIMITES_DICE_SESSAO.mensagem) {
-        throw new SessaoRolagemMensagemMuitoGrandeException();
-      }
-
-      return tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          tipoEvento: 'CHAT',
-          personagemAtorId: personagemDoUsuario?.id ?? null,
-          dados: this.jsonParaPersistencia({
-            mensagem,
-            autorApelido,
-            visibilidade,
-            dadosRolagem: {
-              versao: 1,
-              origem: 'SERVIDOR',
-              clientRequestId: dto.clientRequestId,
-              expressaoOriginal: dto.expressao.trim(),
-              payloads,
-            },
-            contextoRolagem: dto.contexto ?? { tipo: 'OUTRO' },
-            ajustesAplicados: [],
-            inspiracaoAutomatica: null,
-          }),
-        },
-        include: {
-          personagemAtor: {
-            include: {
-              personagemCampanha: {
-                select: {
-                  nome: true,
-                  donoId: true,
-                  dono: { select: { apelido: true } },
+            const payloads = resultadoParse.expressions!.map((expression) =>
+              rolarDadosServidor(expression),
+            );
+            const mensagem = construirMensagemDiceServidor(payloads).mensagem;
+            if (mensagem.length > LIMITES_DICE_SESSAO.mensagem) {
+              throw new SessaoRolagemMensagemMuitoGrandeException();
+            }
+            const evento = await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                tipoEvento: 'CHAT',
+                personagemAtorId: personagemDoUsuario?.id ?? null,
+                solicitanteUsuarioId: usuarioId,
+                clientRequestId: dto.clientRequestId,
+                dados: this.jsonParaPersistencia({
+                  mensagem,
+                  autorApelido,
+                  visibilidade,
+                  intencaoAutoritativa: intencao,
+                  dadosRolagem: {
+                    versao: 1,
+                    origem: 'SERVIDOR',
+                    clientRequestId: dto.clientRequestId,
+                    expressaoOriginal: dto.expressao.trim(),
+                    payloads,
+                  },
+                  contextoRolagem: dto.contexto ?? { tipo: 'OUTRO' },
+                  ajustesAplicados: [],
+                  inspiracaoAutomatica: null,
+                }),
+              },
+              include: {
+                personagemAtor: {
+                  include: {
+                    personagemCampanha: {
+                      select: {
+                        nome: true,
+                        donoId: true,
+                        dono: { select: { apelido: true } },
+                      },
+                    },
+                  },
                 },
               },
-            },
-          },
-        },
-      });
-    });
+            });
+            return { evento, criadoAgora: true };
+          }),
+      );
+    } catch (error) {
+      if (!this.erroPrismaChaveUnica(error)) throw error;
+      const vencedor = await this.buscarEventoRolagemIdempotente(
+        this.prisma,
+        sessaoId,
+        usuarioId,
+        dto.clientRequestId,
+      );
+      if (!vencedor) throw error;
+      this.assertIntencaoRolagemIdempotente(
+        vencedor,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      resultadoTransacao = { evento: vencedor, criadoAgora: false };
+    }
 
     const duracaoMs = Date.now() - inicio;
-    if (duracaoMs > 1000) {
+    if (resultadoTransacao.criadoAgora && duracaoMs > 1000) {
       this.logger.warn(
         JSON.stringify({
           evento: 'rolagem_sessao_lenta',
           sessaoId,
-          eventoId: evento.id,
+          eventoId: resultadoTransacao.evento.id,
           duracaoMs,
           quantidadeExpressoes: resultadoParse.expressions.length,
         }),
       );
     }
     return {
-      ...this.mapearEventoChat(evento, true),
-      criadoAgora: true,
+      ...this.mapearEventoChat(resultadoTransacao.evento, true),
+      criadoAgora: resultadoTransacao.criadoAgora,
     };
   }
 
@@ -5437,6 +5541,7 @@ export class SessaoService {
         throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
       }
       assertSessaoMutavel(sessao, campanhaId, sessaoId, 'editar NPC ou ameaça');
+      await bloquearNpcSessaoTx(tx, campanhaId, sessaoId, npcSessaoId);
 
       const npcSessaoAtual = await tx.npcAmeacaSessao.findFirst({
         where: {
@@ -5450,6 +5555,23 @@ export class SessaoService {
           npcSessaoId,
           sessaoId,
           campanhaId,
+        );
+      }
+      const recursoObsoleto =
+        (dto.pontosVidaAtual !== undefined &&
+          dto.pontosVidaAtualEsperado !== undefined &&
+          dto.pontosVidaAtualEsperado !== npcSessaoAtual.pontosVidaAtual) ||
+        (dto.sanAtual !== undefined &&
+          dto.sanAtualEsperado !== undefined &&
+          dto.sanAtualEsperado !== npcSessaoAtual.sanAtual) ||
+        (dto.eaAtual !== undefined &&
+          dto.eaAtualEsperado !== undefined &&
+          dto.eaAtualEsperado !== npcSessaoAtual.eaAtual);
+      if (recursoObsoleto) {
+        throw new BusinessException(
+          'Os recursos do NPC foram alterados. Sincronize a sessao e tente novamente.',
+          'SESSAO_RECURSOS_DESATUALIZADOS',
+          { npcSessaoId },
         );
       }
 
@@ -6084,70 +6206,63 @@ export class SessaoService {
       usuarioId,
       'usar habilidade',
     );
+    const intencao = {
+      tipo: 'USAR_HABILIDADE',
+      personagemSessaoId,
+      habilidadeTecnicaId: dto.habilidadeTecnicaId,
+      variacaoHabilidadeId: dto.variacaoHabilidadeId ?? null,
+      acumulos: dto.acumulos ?? null,
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      const sessao = await tx.sessao.findUnique({
-        where: { id: sessaoId },
-        select: {
-          id: true,
-          campanhaId: true,
-          status: true,
-          cenaAtualTipo: true,
-          rodadaAtual: true,
-          indiceTurnoAtual: true,
-        },
-      });
-
-      if (!sessao || sessao.campanhaId !== campanhaId) {
-        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
-      }
-
-      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'usar habilidade');
-
-      const personagemSessao = await tx.personagemSessao.findFirst({
-        where: {
-          id: personagemSessaoId,
-          sessaoId,
-        },
-        include: {
-          personagemCampanha: {
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'usar habilidade em sessao',
+        sessaoId,
+        usuarioId,
+        clientRequestId: dto.clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const sessao = await tx.sessao.findUnique({
+            where: { id: sessaoId },
             select: {
               id: true,
-              personagemBaseId: true,
-              donoId: true,
-              nome: true,
-              peAtual: true,
-              peMax: true,
-              eaAtual: true,
-              eaMax: true,
-              limitePeEaPorTurno: true,
-              tecnicaInata: {
-                include: {
-                  habilidades: {
-                    include: {
-                      variacoes: {
-                        orderBy: { ordem: 'asc' },
-                      },
-                    },
-                    orderBy: { ordem: 'asc' },
-                  },
-                },
-              },
-              tecnicaInataPropria: {
-                include: {
-                  habilidades: {
-                    include: {
-                      variacoes: {
-                        orderBy: { ordem: 'asc' },
-                      },
-                    },
-                    orderBy: { ordem: 'asc' },
-                  },
-                },
-              },
-              tecnicasAprendidas: {
-                include: {
-                  tecnica: {
+              campanhaId: true,
+              status: true,
+              cenaAtualTipo: true,
+              rodadaAtual: true,
+              indiceTurnoAtual: true,
+            },
+          });
+
+          if (!sessao || sessao.campanhaId !== campanhaId) {
+            throw new SessaoCampanhaNaoEncontradaException(
+              sessaoId,
+              campanhaId,
+            );
+          }
+
+          assertSessaoMutavel(sessao, campanhaId, sessaoId, 'usar habilidade');
+
+          const personagemSessao = await tx.personagemSessao.findFirst({
+            where: {
+              id: personagemSessaoId,
+              sessaoId,
+            },
+            include: {
+              personagemCampanha: {
+                select: {
+                  id: true,
+                  personagemBaseId: true,
+                  donoId: true,
+                  nome: true,
+                  peAtual: true,
+                  peMax: true,
+                  eaAtual: true,
+                  eaMax: true,
+                  limitePeEaPorTurno: true,
+                  tecnicaInata: {
                     include: {
                       habilidades: {
                         include: {
@@ -6159,25 +6274,15 @@ export class SessaoService {
                       },
                     },
                   },
-                },
-              },
-              grausAprimoramento: {
-                include: {
-                  tipoGrau: {
-                    select: {
-                      codigo: true,
-                    },
-                  },
-                },
-              },
-              personagemBase: {
-                select: {
-                  grausAprimoramento: {
+                  tecnicaInataPropria: {
                     include: {
-                      tipoGrau: {
-                        select: {
-                          codigo: true,
+                      habilidades: {
+                        include: {
+                          variacoes: {
+                            orderBy: { ordem: 'asc' },
+                          },
                         },
+                        orderBy: { ordem: 'asc' },
                       },
                     },
                   },
@@ -6197,254 +6302,315 @@ export class SessaoService {
                       },
                     },
                   },
+                  grausAprimoramento: {
+                    include: {
+                      tipoGrau: {
+                        select: {
+                          codigo: true,
+                        },
+                      },
+                    },
+                  },
+                  personagemBase: {
+                    select: {
+                      grausAprimoramento: {
+                        include: {
+                          tipoGrau: {
+                            select: {
+                              codigo: true,
+                            },
+                          },
+                        },
+                      },
+                      tecnicasAprendidas: {
+                        include: {
+                          tecnica: {
+                            include: {
+                              habilidades: {
+                                include: {
+                                  variacoes: {
+                                    orderBy: { ordem: 'asc' },
+                                  },
+                                },
+                                orderBy: { ordem: 'asc' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
-          },
-        },
-      });
-
-      if (!personagemSessao) {
-        throw new BusinessException(
-          'Personagem não encontrado nesta sessão',
-          'SESSAO_PERSONAGEM_NOT_FOUND',
-          {
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-          },
-        );
-      }
-
-      if (
-        !acesso.ehMestre &&
-        personagemSessao.personagemCampanha.donoId !== usuarioId
-      ) {
-        throw new CampanhaPersonagemEdicaoNegadaException(
-          campanhaId,
-          personagemSessao.personagemCampanha.id,
-          usuarioId,
-        );
-      }
-
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      const estadoHabilidadesClasse =
-        await this.obterEstadoHabilidadesClasseSessaoTx(tx, sessaoId);
-      const aprimoramentosTemporariosAtivos =
-        this.listarAprimoramentosTemporariosAtivos(
-          estadoHabilidadesClasse.estado,
-          personagemSessao.personagemCampanha.id,
-          cenaAtual.id,
-        );
-      const bonusGrausTemporarios =
-        this.montarBonusGrausAprimoramentoTemporario(
-          aprimoramentosTemporariosAtivos,
-        );
-      const grausMapEfetivo = this.montarMapaGrausPersonagemSessao(
-        personagemSessao.personagemCampanha,
-        bonusGrausTemporarios,
-      );
-      const tecnicasNaoInatasCatalogo =
-        await this.listarTecnicasNaoInatasCatalogo(tx);
-      const tecnicasDisponiveis = this.resolverTecnicasSessaoPersonagem(
-        personagemSessao.personagemCampanha,
-        tecnicasNaoInatasCatalogo,
-        bonusGrausTemporarios,
-      );
-      const habilidade = this.buscarHabilidadeTecnicaDisponivel(
-        tecnicasDisponiveis,
-        dto.habilidadeTecnicaId,
-      );
-
-      if (!habilidade) {
-        throw new BusinessException(
-          'Habilidade não disponível para este personagem',
-          'SESSAO_HABILIDADE_NAO_DISPONIVEL',
-          {
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            habilidadeTecnicaId: dto.habilidadeTecnicaId,
-          },
-        );
-      }
-
-      const custo = this.resolverCustoUsoHabilidade(
-        habilidade,
-        grausMapEfetivo,
-        dto.variacaoHabilidadeId,
-        dto.acumulos ?? 0,
-      );
-
-      if (custo.isSustentada) {
-        const sustentacaoExistente =
-          await tx.personagemSessaoHabilidadeSustentada.findFirst({
-            where: {
-              sessaoId,
-              personagemSessaoId,
-              habilidadeTecnicaId: habilidade.id,
-              variacaoHabilidadeId: custo.variacaoHabilidadeId ?? null,
-              ativa: true,
-            },
-            select: { id: true },
           });
 
-        if (sustentacaoExistente) {
-          await tx.personagemSessaoHabilidadeSustentada.update({
-            where: { id: sustentacaoExistente.id },
-            data: {
-              ativa: false,
-              desativadaEm: new Date(),
-              desativadaPorUsuarioId: usuarioId,
-              motivoDesativacao:
-                'Substituída por nova ativação com configuração atualizada.',
-            },
-          });
-        }
-      }
+          if (!personagemSessao) {
+            throw new BusinessException(
+              'Personagem não encontrado nesta sessão',
+              'SESSAO_PERSONAGEM_NOT_FOUND',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+              },
+            );
+          }
 
-      const recursosAtuais = personagemSessao.personagemCampanha;
-      if (
-        recursosAtuais.eaAtual < custo.custoEA ||
-        recursosAtuais.peAtual < custo.custoPE
-      ) {
-        throw new BusinessException(
-          'Recursos insuficientes para usar esta habilidade',
-          'SESSAO_RECURSO_INSUFICIENTE',
-          {
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            habilidadeTecnicaId: dto.habilidadeTecnicaId,
-            variacaoHabilidadeId: custo.variacaoHabilidadeId,
-            custoEA: custo.custoEA,
-            custoPE: custo.custoPE,
-            eaAtual: recursosAtuais.eaAtual,
-            peAtual: recursosAtuais.peAtual,
-          },
-        );
-      }
-
-      const turnoReferencia = this.montarReferenciaTurnoAtualSessao(sessao);
-      const limitePeEaPorTurno = Math.max(
-        0,
-        Math.trunc(recursosAtuais.limitePeEaPorTurno ?? 0),
-      );
-      const custoTotalUso = custo.custoEA + custo.custoPE;
-
-      let gastoPeEaNoTurnoAntesUso = 0;
-      if (turnoReferencia) {
-        gastoPeEaNoTurnoAntesUso = await this.calcularGastoPeEaNoTurnoAtual(
-          tx,
-          sessaoId,
-          personagemSessaoId,
-          turnoReferencia,
-        );
-
-        const bloqueadoPorLimiteTurno = this.deveBloquearPorLimitePeEaTurno(
-          limitePeEaPorTurno,
-          gastoPeEaNoTurnoAntesUso,
-          custoTotalUso,
-          custo.isUsoBaseSemEscalonamento,
-        );
-        if (bloqueadoPorLimiteTurno) {
-          throw new BusinessException(
-            'Limite de PE/EA por turno excedido para esta ação',
-            'SESSAO_LIMITE_PEEA_EXCEDIDO',
-            {
+          if (
+            !acesso.ehMestre &&
+            personagemSessao.personagemCampanha.donoId !== usuarioId
+          ) {
+            throw new CampanhaPersonagemEdicaoNegadaException(
               campanhaId,
+              personagemSessao.personagemCampanha.id,
+              usuarioId,
+            );
+          }
+
+          await bloquearPersonagemCampanhaTx(
+            tx,
+            campanhaId,
+            personagemSessao.personagemCampanha.id,
+          );
+          const recursosAtuais = await tx.personagemCampanha.findUniqueOrThrow({
+            where: { id: personagemSessao.personagemCampanha.id },
+            select: {
+              peAtual: true,
+              eaAtual: true,
+              limitePeEaPorTurno: true,
+            },
+          });
+
+          const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          const estadoHabilidadesClasse =
+            await this.obterEstadoHabilidadesClasseSessaoTx(tx, sessaoId);
+          const aprimoramentosTemporariosAtivos =
+            this.listarAprimoramentosTemporariosAtivos(
+              estadoHabilidadesClasse.estado,
+              personagemSessao.personagemCampanha.id,
+              cenaAtual.id,
+            );
+          const bonusGrausTemporarios =
+            this.montarBonusGrausAprimoramentoTemporario(
+              aprimoramentosTemporariosAtivos,
+            );
+          const grausMapEfetivo = this.montarMapaGrausPersonagemSessao(
+            personagemSessao.personagemCampanha,
+            bonusGrausTemporarios,
+          );
+          const tecnicasNaoInatasCatalogo =
+            await this.listarTecnicasNaoInatasCatalogo(tx);
+          const tecnicasDisponiveis = this.resolverTecnicasSessaoPersonagem(
+            personagemSessao.personagemCampanha,
+            tecnicasNaoInatasCatalogo,
+            bonusGrausTemporarios,
+          );
+          const habilidade = this.buscarHabilidadeTecnicaDisponivel(
+            tecnicasDisponiveis,
+            dto.habilidadeTecnicaId,
+          );
+
+          if (!habilidade) {
+            throw new BusinessException(
+              'Habilidade não disponível para este personagem',
+              'SESSAO_HABILIDADE_NAO_DISPONIVEL',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+                habilidadeTecnicaId: dto.habilidadeTecnicaId,
+              },
+            );
+          }
+
+          const custo = this.resolverCustoUsoHabilidade(
+            habilidade,
+            grausMapEfetivo,
+            dto.variacaoHabilidadeId,
+            dto.acumulos ?? 0,
+          );
+
+          if (custo.isSustentada) {
+            const sustentacaoExistente =
+              await tx.personagemSessaoHabilidadeSustentada.findFirst({
+                where: {
+                  sessaoId,
+                  personagemSessaoId,
+                  habilidadeTecnicaId: habilidade.id,
+                  variacaoHabilidadeId: custo.variacaoHabilidadeId ?? null,
+                  ativa: true,
+                },
+                select: { id: true },
+              });
+
+            if (sustentacaoExistente) {
+              await tx.personagemSessaoHabilidadeSustentada.update({
+                where: { id: sustentacaoExistente.id },
+                data: {
+                  ativa: false,
+                  desativadaEm: new Date(),
+                  desativadaPorUsuarioId: usuarioId,
+                  motivoDesativacao:
+                    'Substituída por nova ativação com configuração atualizada.',
+                },
+              });
+            }
+          }
+
+          if (
+            recursosAtuais.eaAtual < custo.custoEA ||
+            recursosAtuais.peAtual < custo.custoPE
+          ) {
+            throw new BusinessException(
+              'Recursos insuficientes para usar esta habilidade',
+              'SESSAO_RECURSO_INSUFICIENTE',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+                habilidadeTecnicaId: dto.habilidadeTecnicaId,
+                variacaoHabilidadeId: custo.variacaoHabilidadeId,
+                custoEA: custo.custoEA,
+                custoPE: custo.custoPE,
+                eaAtual: recursosAtuais.eaAtual,
+                peAtual: recursosAtuais.peAtual,
+              },
+            );
+          }
+
+          const turnoReferencia = this.montarReferenciaTurnoAtualSessao(sessao);
+          const limitePeEaPorTurno = Math.max(
+            0,
+            Math.trunc(recursosAtuais.limitePeEaPorTurno ?? 0),
+          );
+          const custoTotalUso = custo.custoEA + custo.custoPE;
+
+          let gastoPeEaNoTurnoAntesUso = 0;
+          if (turnoReferencia) {
+            gastoPeEaNoTurnoAntesUso = await this.calcularGastoPeEaNoTurnoAtual(
+              tx,
               sessaoId,
               personagemSessaoId,
-              habilidadeTecnicaId: dto.habilidadeTecnicaId,
-              variacaoHabilidadeId: custo.variacaoHabilidadeId,
-              limitePeEaPorTurno,
-              gastoPeEaNoTurnoAtual: gastoPeEaNoTurnoAntesUso,
-              custoEA: custo.custoEA,
-              custoPE: custo.custoPE,
-              custoTotal: custoTotalUso,
               turnoReferencia,
-              usoBaseSemEscalonamento: custo.isUsoBaseSemEscalonamento,
+            );
+
+            const bloqueadoPorLimiteTurno = this.deveBloquearPorLimitePeEaTurno(
+              limitePeEaPorTurno,
+              gastoPeEaNoTurnoAntesUso,
+              custoTotalUso,
+              custo.isUsoBaseSemEscalonamento,
+            );
+            if (bloqueadoPorLimiteTurno) {
+              throw new BusinessException(
+                'Limite de PE/EA por turno excedido para esta ação',
+                'SESSAO_LIMITE_PEEA_EXCEDIDO',
+                {
+                  campanhaId,
+                  sessaoId,
+                  personagemSessaoId,
+                  habilidadeTecnicaId: dto.habilidadeTecnicaId,
+                  variacaoHabilidadeId: custo.variacaoHabilidadeId,
+                  limitePeEaPorTurno,
+                  gastoPeEaNoTurnoAtual: gastoPeEaNoTurnoAntesUso,
+                  custoEA: custo.custoEA,
+                  custoPE: custo.custoPE,
+                  custoTotal: custoTotalUso,
+                  turnoReferencia,
+                  usoBaseSemEscalonamento: custo.isUsoBaseSemEscalonamento,
+                },
+              );
+            }
+          }
+          const gastoPeEaNoTurnoAposUso = turnoReferencia
+            ? gastoPeEaNoTurnoAntesUso + custoTotalUso
+            : null;
+
+          await tx.personagemCampanha.update({
+            where: { id: personagemSessao.personagemCampanha.id },
+            data: {
+              eaAtual: recursosAtuais.eaAtual - custo.custoEA,
+              peAtual: recursosAtuais.peAtual - custo.custoPE,
             },
-          );
-        }
-      }
-      const gastoPeEaNoTurnoAposUso = turnoReferencia
-        ? gastoPeEaNoTurnoAntesUso + custoTotalUso
-        : null;
+          });
 
-      await tx.personagemCampanha.update({
-        where: { id: personagemSessao.personagemCampanha.id },
-        data: {
-          eaAtual: recursosAtuais.eaAtual - custo.custoEA,
-          peAtual: recursosAtuais.peAtual - custo.custoPE,
-        },
-      });
+          if (
+            custo.isSustentada &&
+            ((custo.custoSustentacaoEA ?? 0) > 0 ||
+              (custo.custoSustentacaoPE ?? 0) > 0)
+          ) {
+            await tx.personagemSessaoHabilidadeSustentada.create({
+              data: {
+                sessaoId,
+                personagemSessaoId,
+                habilidadeTecnicaId: habilidade.id,
+                variacaoHabilidadeId: custo.variacaoHabilidadeId,
+                nomeHabilidade: habilidade.nome,
+                nomeVariacao: custo.nomeVariacao,
+                custoSustentacaoEA: custo.custoSustentacaoEA ?? 0,
+                custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
+                acumulos: Math.max(1, custo.acumulosAplicados || 1),
+                ativadaNaRodada: sessao.rodadaAtual,
+                ultimaCobrancaRodada: sessao.rodadaAtual,
+                criadaPorUsuarioId: usuarioId,
+              },
+            });
+          }
 
-      if (
-        custo.isSustentada &&
-        ((custo.custoSustentacaoEA ?? 0) > 0 ||
-          (custo.custoSustentacaoPE ?? 0) > 0)
-      ) {
-        await tx.personagemSessaoHabilidadeSustentada.create({
-          data: {
-            sessaoId,
-            personagemSessaoId,
-            habilidadeTecnicaId: habilidade.id,
-            variacaoHabilidadeId: custo.variacaoHabilidadeId,
-            nomeHabilidade: habilidade.nome,
-            nomeVariacao: custo.nomeVariacao,
-            custoSustentacaoEA: custo.custoSustentacaoEA ?? 0,
-            custoSustentacaoPE: custo.custoSustentacaoPE ?? 0,
-            acumulos: Math.max(1, custo.acumulosAplicados || 1),
-            ativadaNaRodada: sessao.rodadaAtual,
-            ultimaCobrancaRodada: sessao.rodadaAtual,
-            criadaPorUsuarioId: usuarioId,
-          },
-        });
-      }
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: cenaAtual.id,
+              personagemAtorId: personagemSessaoId,
+              tipoEvento: 'HABILIDADE_USADA',
+              solicitanteUsuarioId: dto.clientRequestId ? usuarioId : null,
+              clientRequestId: dto.clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    habilidadeTecnicaId: habilidade.id,
+                    habilidadeNome: habilidade.nome,
+                    variacaoHabilidadeId: custo.variacaoHabilidadeId,
+                    variacaoNome: custo.nomeVariacao,
+                    custoEA: custo.custoEA,
+                    custoPE: custo.custoPE,
+                    duracao: custo.duracao,
+                    sustentada: custo.isSustentada,
+                    custoSustentacaoEA: custo.custoSustentacaoEA,
+                    custoSustentacaoPE: custo.custoSustentacaoPE,
+                    acumulosSolicitados: custo.acumulosSolicitados,
+                    acumulosAplicados: custo.acumulosAplicados,
+                    acumulosMaximos: custo.acumulosMaximos,
+                    custoEscalonamentoEA: custo.custoEscalonamentoEA,
+                    custoEscalonamentoPE: custo.custoEscalonamentoPE,
+                    custoEscalonamentoTotalEA: custo.custoEscalonamentoTotalEA,
+                    custoEscalonamentoTotalPE: custo.custoEscalonamentoTotalPE,
+                    escalonamentoTipo: custo.escalonamentoTipo,
+                    escalonamentoEfeito: custo.escalonamentoEfeito,
+                    resumoEscalonamento: custo.resumoEscalonamento,
+                    usoBaseSemEscalonamento: custo.isUsoBaseSemEscalonamento,
+                    turnoReferencia,
+                    limitePeEaPorTurno:
+                      limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
+                    gastoPeEaNoTurnoAntesUso: turnoReferencia
+                      ? gastoPeEaNoTurnoAntesUso
+                      : null,
+                    gastoPeEaNoTurnoAposUso,
+                    usadoPorId: usuarioId,
+                  },
+                  intencao,
+                  dto.clientRequestId,
+                ),
+              ),
+            },
+          });
+        }),
+    );
 
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          personagemAtorId: personagemSessaoId,
-          tipoEvento: 'HABILIDADE_USADA',
-          dados: this.jsonParaPersistencia({
-            habilidadeTecnicaId: habilidade.id,
-            habilidadeNome: habilidade.nome,
-            variacaoHabilidadeId: custo.variacaoHabilidadeId,
-            variacaoNome: custo.nomeVariacao,
-            custoEA: custo.custoEA,
-            custoPE: custo.custoPE,
-            duracao: custo.duracao,
-            sustentada: custo.isSustentada,
-            custoSustentacaoEA: custo.custoSustentacaoEA,
-            custoSustentacaoPE: custo.custoSustentacaoPE,
-            acumulosSolicitados: custo.acumulosSolicitados,
-            acumulosAplicados: custo.acumulosAplicados,
-            acumulosMaximos: custo.acumulosMaximos,
-            custoEscalonamentoEA: custo.custoEscalonamentoEA,
-            custoEscalonamentoPE: custo.custoEscalonamentoPE,
-            custoEscalonamentoTotalEA: custo.custoEscalonamentoTotalEA,
-            custoEscalonamentoTotalPE: custo.custoEscalonamentoTotalPE,
-            escalonamentoTipo: custo.escalonamentoTipo,
-            escalonamentoEfeito: custo.escalonamentoEfeito,
-            resumoEscalonamento: custo.resumoEscalonamento,
-            usoBaseSemEscalonamento: custo.isUsoBaseSemEscalonamento,
-            turnoReferencia,
-            limitePeEaPorTurno:
-              limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
-            gastoPeEaNoTurnoAntesUso: turnoReferencia
-              ? gastoPeEaNoTurnoAntesUso
-              : null,
-            gastoPeEaNoTurnoAposUso,
-            usadoPorId: usuarioId,
-          }),
-        },
-      });
-    });
-
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   async usarHabilidadeClasseSessao(
@@ -6460,89 +6626,67 @@ export class SessaoService {
       usuarioId,
       'usar habilidade de classe',
     );
+    const intencao = {
+      tipo: 'USAR_HABILIDADE_CLASSE',
+      personagemSessaoId,
+      habilidadeId: dto.habilidadeId,
+      versaoNivel: dto.versaoNivel,
+      aprimoramentos: dto.aprimoramentos ?? [],
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      const sessao = await tx.sessao.findUnique({
-        where: { id: sessaoId },
-        select: {
-          id: true,
-          campanhaId: true,
-          status: true,
-          cenaAtualTipo: true,
-          rodadaAtual: true,
-          indiceTurnoAtual: true,
-        },
-      });
-
-      if (!sessao || sessao.campanhaId !== campanhaId) {
-        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
-      }
-
-      assertSessaoMutavel(
-        sessao,
-        campanhaId,
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'usar habilidade de classe em sessao',
         sessaoId,
-        'usar habilidade de classe',
-      );
-
-      const personagemSessao = await tx.personagemSessao.findFirst({
-        where: {
-          id: personagemSessaoId,
-          sessaoId,
-        },
-        include: {
-          personagemCampanha: {
+        usuarioId,
+        clientRequestId: dto.clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const sessao = await tx.sessao.findUnique({
+            where: { id: sessaoId },
             select: {
               id: true,
-              donoId: true,
-              nome: true,
-              nivel: true,
-              peAtual: true,
-              peMax: true,
-              eaAtual: true,
-              eaMax: true,
-              limitePeEaPorTurno: true,
-              classe: {
+              campanhaId: true,
+              status: true,
+              cenaAtualTipo: true,
+              rodadaAtual: true,
+              indiceTurnoAtual: true,
+            },
+          });
+
+          if (!sessao || sessao.campanhaId !== campanhaId) {
+            throw new SessaoCampanhaNaoEncontradaException(
+              sessaoId,
+              campanhaId,
+            );
+          }
+
+          assertSessaoMutavel(
+            sessao,
+            campanhaId,
+            sessaoId,
+            'usar habilidade de classe',
+          );
+
+          const personagemSessao = await tx.personagemSessao.findFirst({
+            where: {
+              id: personagemSessaoId,
+              sessaoId,
+            },
+            include: {
+              personagemCampanha: {
                 select: {
                   id: true,
+                  donoId: true,
                   nome: true,
-                  habilidadesClasse: {
-                    select: {
-                      nivelConcedido: true,
-                      habilidade: {
-                        select: {
-                          id: true,
-                          nome: true,
-                          codigo: true,
-                          descricao: true,
-                          tipo: true,
-                          origem: true,
-                          mecanicasEspeciais: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              habilidadesCampanha: {
-                select: {
-                  habilidade: {
-                    select: {
-                      id: true,
-                      nome: true,
-                      codigo: true,
-                      descricao: true,
-                      tipo: true,
-                      origem: true,
-                      mecanicasEspeciais: true,
-                    },
-                  },
-                },
-              },
-              personagemBase: {
-                select: {
-                  id: true,
                   nivel: true,
+                  peAtual: true,
+                  peMax: true,
+                  eaAtual: true,
+                  eaMax: true,
+                  limitePeEaPorTurno: true,
                   classe: {
                     select: {
                       id: true,
@@ -6565,7 +6709,7 @@ export class SessaoService {
                       },
                     },
                   },
-                  habilidadesBase: {
+                  habilidadesCampanha: {
                     select: {
                       habilidade: {
                         select: {
@@ -6580,275 +6724,333 @@ export class SessaoService {
                       },
                     },
                   },
+                  personagemBase: {
+                    select: {
+                      id: true,
+                      nivel: true,
+                      classe: {
+                        select: {
+                          id: true,
+                          nome: true,
+                          habilidadesClasse: {
+                            select: {
+                              nivelConcedido: true,
+                              habilidade: {
+                                select: {
+                                  id: true,
+                                  nome: true,
+                                  codigo: true,
+                                  descricao: true,
+                                  tipo: true,
+                                  origem: true,
+                                  mecanicasEspeciais: true,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                      habilidadesBase: {
+                        select: {
+                          habilidade: {
+                            select: {
+                              id: true,
+                              nome: true,
+                              codigo: true,
+                              descricao: true,
+                              tipo: true,
+                              origem: true,
+                              mecanicasEspeciais: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
-          },
-        },
-      });
+          });
 
-      if (!personagemSessao) {
-        throw new BusinessException(
-          'Personagem nao encontrado nesta sessao',
-          'SESSAO_PERSONAGEM_NOT_FOUND',
-          { campanhaId, sessaoId, personagemSessaoId },
-        );
-      }
+          if (!personagemSessao) {
+            throw new BusinessException(
+              'Personagem nao encontrado nesta sessao',
+              'SESSAO_PERSONAGEM_NOT_FOUND',
+              { campanhaId, sessaoId, personagemSessaoId },
+            );
+          }
 
-      if (
-        !acesso.ehMestre &&
-        personagemSessao.personagemCampanha.donoId !== usuarioId
-      ) {
-        throw new CampanhaPersonagemEdicaoNegadaException(
-          campanhaId,
-          personagemSessao.personagemCampanha.id,
-          usuarioId,
-        );
-      }
-
-      await bloquearPersonagemCampanhaTx(
-        tx,
-        campanhaId,
-        personagemSessao.personagemCampanha.id,
-      );
-      await bloquearRegraOpcionalSessaoTx(
-        tx,
-        sessaoId,
-        CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
-      );
-
-      const estadoRegistro = await this.obterEstadoHabilidadesClasseSessaoTx(
-        tx,
-        sessaoId,
-      );
-      const habilidadesClasse = this.mapearHabilidadesClasseSessao(
-        personagemSessao.personagemCampanha,
-        estadoRegistro.estado,
-      );
-      const habilidade = habilidadesClasse.find(
-        (item) => item.id === dto.habilidadeId,
-      );
-      if (!habilidade) {
-        throw new BusinessException(
-          'Recurso de classe nao disponivel para este personagem',
-          'SESSAO_RECURSO_CLASSE_NAO_DISPONIVEL',
-          {
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            habilidadeId: dto.habilidadeId,
-          },
-        );
-      }
-
-      const versao = habilidade.versoesDisponiveis.find(
-        (item) => item.nivel === dto.versaoNivel,
-      );
-      if (!versao) {
-        throw new BusinessException(
-          'Versao do recurso de classe indisponivel para o nivel do personagem',
-          'SESSAO_RECURSO_CLASSE_VERSAO_INDISPONIVEL',
-          {
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            habilidadeId: dto.habilidadeId,
-            versaoNivel: dto.versaoNivel,
-          },
-        );
-      }
-
-      if (personagemSessao.personagemCampanha.peAtual < versao.custoPE) {
-        throw new BusinessException(
-          'PE insuficiente para usar este recurso de classe',
-          'SESSAO_RECURSO_INSUFICIENTE',
-          {
-            campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            habilidadeId: dto.habilidadeId,
-            custoPE: versao.custoPE,
-            peAtual: personagemSessao.personagemCampanha.peAtual,
-          },
-        );
-      }
-
-      const turnoReferencia = this.montarReferenciaTurnoAtualSessao(sessao);
-      const limitePeEaPorTurno = Math.max(
-        0,
-        Math.trunc(personagemSessao.personagemCampanha.limitePeEaPorTurno ?? 0),
-      );
-      let gastoPeEaNoTurnoAntesUso = 0;
-      if (turnoReferencia) {
-        gastoPeEaNoTurnoAntesUso = await this.calcularGastoPeEaNoTurnoAtual(
-          tx,
-          sessaoId,
-          personagemSessaoId,
-          turnoReferencia,
-        );
-        if (
-          this.deveBloquearPorLimitePeEaTurno(
-            limitePeEaPorTurno,
-            gastoPeEaNoTurnoAntesUso,
-            versao.custoPE,
-            false,
-          )
-        ) {
-          throw new BusinessException(
-            'Limite de PE/EA por turno excedido para esta acao',
-            'SESSAO_LIMITE_PEEA_EXCEDIDO',
-            {
+          if (
+            !acesso.ehMestre &&
+            personagemSessao.personagemCampanha.donoId !== usuarioId
+          ) {
+            throw new CampanhaPersonagemEdicaoNegadaException(
               campanhaId,
+              personagemSessao.personagemCampanha.id,
+              usuarioId,
+            );
+          }
+
+          await bloquearPersonagemCampanhaTx(
+            tx,
+            campanhaId,
+            personagemSessao.personagemCampanha.id,
+          );
+          await bloquearRegraOpcionalSessaoTx(
+            tx,
+            sessaoId,
+            CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
+          );
+          const recursosAtuais = await tx.personagemCampanha.findUniqueOrThrow({
+            where: { id: personagemSessao.personagemCampanha.id },
+            select: {
+              peAtual: true,
+              limitePeEaPorTurno: true,
+            },
+          });
+
+          const estadoRegistro =
+            await this.obterEstadoHabilidadesClasseSessaoTx(tx, sessaoId);
+          const habilidadesClasse = this.mapearHabilidadesClasseSessao(
+            personagemSessao.personagemCampanha,
+            estadoRegistro.estado,
+          );
+          const habilidade = habilidadesClasse.find(
+            (item) => item.id === dto.habilidadeId,
+          );
+          if (!habilidade) {
+            throw new BusinessException(
+              'Recurso de classe nao disponivel para este personagem',
+              'SESSAO_RECURSO_CLASSE_NAO_DISPONIVEL',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+                habilidadeId: dto.habilidadeId,
+              },
+            );
+          }
+
+          const versao = habilidade.versoesDisponiveis.find(
+            (item) => item.nivel === dto.versaoNivel,
+          );
+          if (!versao) {
+            throw new BusinessException(
+              'Versao do recurso de classe indisponivel para o nivel do personagem',
+              'SESSAO_RECURSO_CLASSE_VERSAO_INDISPONIVEL',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+                habilidadeId: dto.habilidadeId,
+                versaoNivel: dto.versaoNivel,
+              },
+            );
+          }
+
+          if (recursosAtuais.peAtual < versao.custoPE) {
+            throw new BusinessException(
+              'PE insuficiente para usar este recurso de classe',
+              'SESSAO_RECURSO_INSUFICIENTE',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+                habilidadeId: dto.habilidadeId,
+                custoPE: versao.custoPE,
+                peAtual: recursosAtuais.peAtual,
+              },
+            );
+          }
+
+          const turnoReferencia = this.montarReferenciaTurnoAtualSessao(sessao);
+          const limitePeEaPorTurno = Math.max(
+            0,
+            Math.trunc(recursosAtuais.limitePeEaPorTurno ?? 0),
+          );
+          let gastoPeEaNoTurnoAntesUso = 0;
+          if (turnoReferencia) {
+            gastoPeEaNoTurnoAntesUso = await this.calcularGastoPeEaNoTurnoAtual(
+              tx,
               sessaoId,
               personagemSessaoId,
-              habilidadeId: dto.habilidadeId,
-              limitePeEaPorTurno,
-              gastoPeEaNoTurnoAtual: gastoPeEaNoTurnoAntesUso,
-              custoPE: versao.custoPE,
-              custoEA: 0,
-              custoTotal: versao.custoPE,
               turnoReferencia,
+            );
+            if (
+              this.deveBloquearPorLimitePeEaTurno(
+                limitePeEaPorTurno,
+                gastoPeEaNoTurnoAntesUso,
+                versao.custoPE,
+                false,
+              )
+            ) {
+              throw new BusinessException(
+                'Limite de PE/EA por turno excedido para esta acao',
+                'SESSAO_LIMITE_PEEA_EXCEDIDO',
+                {
+                  campanhaId,
+                  sessaoId,
+                  personagemSessaoId,
+                  habilidadeId: dto.habilidadeId,
+                  limitePeEaPorTurno,
+                  gastoPeEaNoTurnoAtual: gastoPeEaNoTurnoAntesUso,
+                  custoPE: versao.custoPE,
+                  custoEA: 0,
+                  custoTotal: versao.custoPE,
+                  turnoReferencia,
+                },
+              );
+            }
+          }
+
+          const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          const efeitosDados: Record<string, unknown> = {};
+
+          if (habilidade.tipo === 'PERITO') {
+            const chavePendente = `${personagemSessao.personagemCampanha.id}:${habilidade.id}`;
+            if (estadoRegistro.estado.pendentesRolagem[chavePendente]) {
+              throw new BusinessException(
+                'Este personagem ja possui bonus de Perito pendente',
+                'SESSAO_PERITO_PENDENTE_EXISTENTE',
+                {
+                  campanhaId,
+                  sessaoId,
+                  personagemSessaoId,
+                  habilidadeId: habilidade.id,
+                },
+              );
+            }
+            efeitosDados.bonusPendente = {
+              tipo: 'PERICIA',
+              dado: `1d${versao.dadoFaces ?? 6}`,
+              faces: versao.dadoFaces ?? 6,
+              usoUnico: true,
+            };
+          } else if (habilidade.tipo === 'ATAQUE_ESPECIAL') {
+            efeitosDados.bonusDeclarado = {
+              bonus: versao.bonus ?? 0,
+              aplicacao: 'ATAQUE_OU_DANO',
+              automatizado: false,
+            };
+          } else if (habilidade.tipo === 'APRIMORADO') {
+            const aprimoramentos = this.validarAprimoramentoClasseSessao(
+              personagemSessao.personagemCampanha,
+              dto,
+              versao,
+              estadoRegistro.estado,
+              cenaAtual.id,
+              await this.listarTecnicasNaoInatasCatalogo(tx),
+            );
+            efeitosDados.aprimoramentos = aprimoramentos;
+          }
+
+          await tx.personagemCampanha.update({
+            where: { id: personagemSessao.personagemCampanha.id },
+            data: {
+              peAtual: recursosAtuais.peAtual - versao.custoPE,
             },
-          );
-        }
-      }
+          });
 
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      const efeitosDados: Record<string, unknown> = {};
-
-      if (habilidade.tipo === 'PERITO') {
-        const chavePendente = `${personagemSessao.personagemCampanha.id}:${habilidade.id}`;
-        if (estadoRegistro.estado.pendentesRolagem[chavePendente]) {
-          throw new BusinessException(
-            'Este personagem ja possui bonus de Perito pendente',
-            'SESSAO_PERITO_PENDENTE_EXISTENTE',
-            {
-              campanhaId,
+          const evento = await tx.eventoSessao.create({
+            data: {
               sessaoId,
-              personagemSessaoId,
-              habilidadeId: habilidade.id,
+              cenaId: cenaAtual.id,
+              personagemAtorId: personagemSessaoId,
+              tipoEvento: 'HABILIDADE_USADA',
+              solicitanteUsuarioId: dto.clientRequestId ? usuarioId : null,
+              clientRequestId: dto.clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    origem: 'RECURSO_CLASSE',
+                    habilidadeClasseId: habilidade.id,
+                    habilidadeNome: habilidade.nome,
+                    tipoRecursoClasse: habilidade.tipo,
+                    versaoNivel: versao.nivel,
+                    custoEA: 0,
+                    custoPE: versao.custoPE,
+                    turnoReferencia,
+                    limitePeEaPorTurno:
+                      limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
+                    gastoPeEaNoTurnoAntesUso: turnoReferencia
+                      ? gastoPeEaNoTurnoAntesUso
+                      : null,
+                    gastoPeEaNoTurnoAposUso: turnoReferencia
+                      ? gastoPeEaNoTurnoAntesUso + versao.custoPE
+                      : null,
+                    usadoPorId: usuarioId,
+                    ...efeitosDados,
+                  },
+                  intencao,
+                  dto.clientRequestId,
+                ),
+              ),
             },
-          );
-        }
-        efeitosDados.bonusPendente = {
-          tipo: 'PERICIA',
-          dado: `1d${versao.dadoFaces ?? 6}`,
-          faces: versao.dadoFaces ?? 6,
-          usoUnico: true,
-        };
-      } else if (habilidade.tipo === 'ATAQUE_ESPECIAL') {
-        efeitosDados.bonusDeclarado = {
-          bonus: versao.bonus ?? 0,
-          aplicacao: 'ATAQUE_OU_DANO',
-          automatizado: false,
-        };
-      } else if (habilidade.tipo === 'APRIMORADO') {
-        const aprimoramentos = this.validarAprimoramentoClasseSessao(
-          personagemSessao.personagemCampanha,
-          dto,
-          versao,
-          estadoRegistro.estado,
-          cenaAtual.id,
-          await this.listarTecnicasNaoInatasCatalogo(tx),
-        );
-        efeitosDados.aprimoramentos = aprimoramentos;
-      }
+          });
 
-      await tx.personagemCampanha.update({
-        where: { id: personagemSessao.personagemCampanha.id },
-        data: {
-          peAtual: personagemSessao.personagemCampanha.peAtual - versao.custoPE,
-        },
-      });
+          if (habilidade.tipo === 'PERITO') {
+            const faces = versao.dadoFaces ?? 6;
+            const chavePendente = `${personagemSessao.personagemCampanha.id}:${habilidade.id}`;
+            estadoRegistro.estado.pendentesRolagem[chavePendente] = {
+              id: `perito:${evento.id}`,
+              eventoId: evento.id,
+              personagemSessaoId,
+              personagemCampanhaId: personagemSessao.personagemCampanha.id,
+              habilidadeId: habilidade.id,
+              habilidadeNome: habilidade.nome,
+              dado: `1d${faces}`,
+              faces,
+              criadoEm: new Date().toISOString(),
+            };
+            await this.salvarEstadoHabilidadesClasseSessaoTx(
+              tx,
+              sessaoId,
+              estadoRegistro.regraId,
+              estadoRegistro.estado,
+            );
+          }
 
-      const evento = await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          personagemAtorId: personagemSessaoId,
-          tipoEvento: 'HABILIDADE_USADA',
-          dados: this.jsonParaPersistencia({
-            origem: 'RECURSO_CLASSE',
-            habilidadeClasseId: habilidade.id,
-            habilidadeNome: habilidade.nome,
-            tipoRecursoClasse: habilidade.tipo,
-            versaoNivel: versao.nivel,
-            custoEA: 0,
-            custoPE: versao.custoPE,
-            turnoReferencia,
-            limitePeEaPorTurno:
-              limitePeEaPorTurno > 0 ? limitePeEaPorTurno : null,
-            gastoPeEaNoTurnoAntesUso: turnoReferencia
-              ? gastoPeEaNoTurnoAntesUso
-              : null,
-            gastoPeEaNoTurnoAposUso: turnoReferencia
-              ? gastoPeEaNoTurnoAntesUso + versao.custoPE
-              : null,
-            usadoPorId: usuarioId,
-            ...efeitosDados,
-          }),
-        },
-      });
+          if (habilidade.tipo === 'APRIMORADO') {
+            const listaAtual =
+              estadoRegistro.estado.aprimoramentosTemporarios[
+                String(personagemSessao.personagemCampanha.id)
+              ] ?? [];
+            const novos = (
+              efeitosDados.aprimoramentos as Array<{
+                tecnicaId: number;
+                tecnicaNome: string;
+                tipoGrauCodigo: string;
+                graus: number;
+              }>
+            ).map((item) => ({
+              id: `aprimorado:${evento.id}:${item.tecnicaId}:${item.tipoGrauCodigo}`,
+              eventoId: evento.id,
+              personagemSessaoId,
+              personagemCampanhaId: personagemSessao.personagemCampanha.id,
+              tecnicaId: item.tecnicaId,
+              tecnicaNome: item.tecnicaNome,
+              tipoGrauCodigo: item.tipoGrauCodigo,
+              graus: item.graus,
+              cenaId: cenaAtual.id,
+              criadoEm: new Date().toISOString(),
+            }));
+            estadoRegistro.estado.aprimoramentosTemporarios[
+              String(personagemSessao.personagemCampanha.id)
+            ] = [...listaAtual, ...novos];
+            await this.salvarEstadoHabilidadesClasseSessaoTx(
+              tx,
+              sessaoId,
+              estadoRegistro.regraId,
+              estadoRegistro.estado,
+            );
+          }
+        }),
+    );
 
-      if (habilidade.tipo === 'PERITO') {
-        const faces = versao.dadoFaces ?? 6;
-        const chavePendente = `${personagemSessao.personagemCampanha.id}:${habilidade.id}`;
-        estadoRegistro.estado.pendentesRolagem[chavePendente] = {
-          id: `perito:${evento.id}`,
-          eventoId: evento.id,
-          personagemSessaoId,
-          personagemCampanhaId: personagemSessao.personagemCampanha.id,
-          habilidadeId: habilidade.id,
-          habilidadeNome: habilidade.nome,
-          dado: `1d${faces}`,
-          faces,
-          criadoEm: new Date().toISOString(),
-        };
-        await this.salvarEstadoHabilidadesClasseSessaoTx(
-          tx,
-          sessaoId,
-          estadoRegistro.regraId,
-          estadoRegistro.estado,
-        );
-      }
-
-      if (habilidade.tipo === 'APRIMORADO') {
-        const listaAtual =
-          estadoRegistro.estado.aprimoramentosTemporarios[
-            String(personagemSessao.personagemCampanha.id)
-          ] ?? [];
-        const novos = (
-          efeitosDados.aprimoramentos as Array<{
-            tecnicaId: number;
-            tecnicaNome: string;
-            tipoGrauCodigo: string;
-            graus: number;
-          }>
-        ).map((item) => ({
-          id: `aprimorado:${evento.id}:${item.tecnicaId}:${item.tipoGrauCodigo}`,
-          eventoId: evento.id,
-          personagemSessaoId,
-          personagemCampanhaId: personagemSessao.personagemCampanha.id,
-          tecnicaId: item.tecnicaId,
-          tecnicaNome: item.tecnicaNome,
-          tipoGrauCodigo: item.tipoGrauCodigo,
-          graus: item.graus,
-          cenaId: cenaAtual.id,
-          criadoEm: new Date().toISOString(),
-        }));
-        estadoRegistro.estado.aprimoramentosTemporarios[
-          String(personagemSessao.personagemCampanha.id)
-        ] = [...listaAtual, ...novos];
-        await this.salvarEstadoHabilidadesClasseSessaoTx(
-          tx,
-          sessaoId,
-          estadoRegistro.regraId,
-          estadoRegistro.estado,
-        );
-      }
-    });
-
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   async aplicarCondicaoSessao(
@@ -6864,188 +7066,244 @@ export class SessaoService {
       'aplicar condição',
     );
     this.assertMestre(acesso, 'aplicar condição');
+    const intencao = {
+      tipo: 'APLICAR_CONDICAO',
+      condicaoId: dto.condicaoId,
+      alvoTipo: dto.alvoTipo,
+      personagemSessaoId: dto.personagemSessaoId ?? null,
+      npcSessaoId: dto.npcSessaoId ?? null,
+      duracaoModo: dto.duracaoModo ?? null,
+      duracaoValor: dto.duracaoValor ?? null,
+      origemDescricao: dto.origemDescricao?.trim() || null,
+      observacao: dto.observacao?.trim() || null,
+      acumulos: dto.acumulos ?? null,
+      fonteCodigo: dto.fonteCodigo?.trim() || null,
+      limiteFonte: dto.limiteFonte ?? null,
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      const sessao = await tx.sessao.findUnique({
-        where: { id: sessaoId },
-        select: {
-          id: true,
-          campanhaId: true,
-          status: true,
-          rodadaAtual: true,
-          cenas: {
-            select: { id: true },
-            orderBy: { id: 'desc' },
-            take: 1,
-          },
-        },
-      });
-
-      if (!sessao || sessao.campanhaId !== campanhaId) {
-        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
-      }
-      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'aplicar condição');
-
-      const condicao = await tx.condicao.findUnique({
-        where: { id: dto.condicaoId },
-        select: {
-          id: true,
-          nome: true,
-          descricao: true,
-        },
-      });
-
-      if (!condicao) {
-        throw new BusinessException(
-          'Condicao não encontrada',
-          'SESSAO_CONDICAO_NOT_FOUND',
-          {
-            campanhaId,
-            sessaoId,
-            condicaoId: dto.condicaoId,
-          },
-        );
-      }
-
-      const alvo = await this.resolverAlvoCondicaoSessaoTx(tx, sessaoId, dto);
-      const duracao = this.resolverDuracaoCondicao(
-        dto.duracaoModo,
-        dto.duracaoValor,
-      );
-      const cenaAtualId = sessao.cenas[0]?.id ?? alvo.cenaId;
-      const fonteCodigo = this.normalizarFonteCondicao(dto.fonteCodigo);
-      const limiteFonte =
-        fonteCodigo === FONTE_KOKUSEN
-          ? LIMITE_PRODUCAO_KOKUSEN
-          : this.normalizarInteiroPositivoOpcional(dto.limiteFonte);
-      const acumulos = this.normalizarAcumulosCondicao(
-        dto.acumulos,
-        limiteFonte,
-      );
-
-      if (!cenaAtualId) {
-        throw new BusinessException(
-          'Cena atual da sessão não encontrada para aplicar condição',
-          'SESSAO_CENA_ATUAL_NOT_FOUND',
-          {
-            campanhaId,
-            sessaoId,
-          },
-        );
-      }
-
-      const existente = await tx.condicaoPersonagemSessao.findFirst({
-        where: {
-          sessaoId,
-          condicaoId: condicao.id,
-          ativo: true,
-          personagemSessaoId: alvo.personagemSessaoId,
-          npcSessaoId: alvo.npcSessaoId,
-        },
-      });
-
-      const snapshotAnterior = existente
-        ? this.snapshotCondicaoSessao(existente)
-        : null;
-
-      const condicaoAtiva = existente
-        ? await tx.condicaoPersonagemSessao.update({
-            where: {
-              id: existente.id,
-            },
-            data: {
-              cenaId: alvo.cenaId ?? cenaAtualId,
-              turnoAplicacao: sessao.rodadaAtual,
-              duracaoTurnos: duracao.duracaoTurnos,
-              duracaoModo: duracao.duracaoModo,
-              duracaoValor: duracao.duracaoValor,
-              restanteDuracao: duracao.restanteDuracao,
-              ativo: true,
-              automatica: false,
-              chaveAutomacao: null,
-              contadorTurnos: 0,
-              acumulos,
-              fonteCodigo,
-              limiteFonte,
-              origemDescricao: dto.origemDescricao?.trim() || null,
-              observacao: dto.observacao?.trim() || null,
-              removidaEm: null,
-              motivoRemocao: null,
-            },
-          })
-        : await tx.condicaoPersonagemSessao.create({
-            data: {
-              sessaoId,
-              personagemSessaoId: alvo.personagemSessaoId,
-              npcSessaoId: alvo.npcSessaoId,
-              condicaoId: condicao.id,
-              cenaId: alvo.cenaId ?? cenaAtualId,
-              turnoAplicacao: sessao.rodadaAtual,
-              duracaoTurnos: duracao.duracaoTurnos,
-              duracaoModo: duracao.duracaoModo,
-              duracaoValor: duracao.duracaoValor,
-              restanteDuracao: duracao.restanteDuracao,
-              ativo: true,
-              automatica: false,
-              acumulos,
-              fonteCodigo,
-              limiteFonte,
-              origemDescricao: dto.origemDescricao?.trim() || null,
-              observacao: dto.observacao?.trim() || null,
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'aplicar condicao em sessao',
+        sessaoId,
+        usuarioId,
+        clientRequestId: dto.clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const sessao = await tx.sessao.findUnique({
+            where: { id: sessaoId },
+            select: {
+              id: true,
+              campanhaId: true,
+              status: true,
+              rodadaAtual: true,
+              cenas: {
+                select: { id: true },
+                orderBy: { id: 'desc' },
+                take: 1,
+              },
             },
           });
 
-      const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
-      if (condicao.id === mapaSistema.mortoId) {
-        await this.desativarCondicaoAtivaSessaoTx(tx, {
-          sessaoId,
-          personagemSessaoId: alvo.personagemSessaoId,
-          npcSessaoId: alvo.npcSessaoId,
-          condicaoId: mapaSistema.morrendoId,
-          motivoRemocao: 'Substituida por estado morto.',
-        });
-      }
-      if (condicao.id === mapaSistema.insanoId) {
-        await this.desativarCondicaoAtivaSessaoTx(tx, {
-          sessaoId,
-          personagemSessaoId: alvo.personagemSessaoId,
-          npcSessaoId: alvo.npcSessaoId,
-          condicaoId: mapaSistema.enlouquecendoId,
-          motivoRemocao: 'Substituida por estado insano.',
-        });
-      }
+          if (!sessao || sessao.campanhaId !== campanhaId) {
+            throw new SessaoCampanhaNaoEncontradaException(
+              sessaoId,
+              campanhaId,
+            );
+          }
+          assertSessaoMutavel(sessao, campanhaId, sessaoId, 'aplicar condição');
 
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: alvo.cenaId ?? cenaAtualId,
-          personagemAtorId: alvo.personagemSessaoId,
-          tipoEvento: 'CONDICAO_APLICADA',
-          dados: this.jsonParaPersistencia({
-            condicaoSessaoId: condicaoAtiva.id,
-            condicaoId: condicao.id,
-            condicaoNome: condicao.nome,
-            alvoTipo: dto.alvoTipo,
-            personagemSessaoId: alvo.personagemSessaoId,
-            npcSessaoId: alvo.npcSessaoId,
-            alvoNome: alvo.nome,
-            duracaoModo: duracao.duracaoModo,
-            duracaoValor: duracao.duracaoValor,
-            restanteDuracao: duracao.restanteDuracao,
-            acumulos,
-            fonteCodigo,
+          const condicao = await tx.condicao.findUnique({
+            where: { id: dto.condicaoId },
+            select: {
+              id: true,
+              nome: true,
+              descricao: true,
+            },
+          });
+
+          if (!condicao) {
+            throw new BusinessException(
+              'Condicao não encontrada',
+              'SESSAO_CONDICAO_NOT_FOUND',
+              {
+                campanhaId,
+                sessaoId,
+                condicaoId: dto.condicaoId,
+              },
+            );
+          }
+
+          const alvo = await this.resolverAlvoCondicaoSessaoTx(
+            tx,
+            sessaoId,
+            dto,
+          );
+          if (alvo.personagemCampanhaId) {
+            await bloquearPersonagemCampanhaTx(
+              tx,
+              campanhaId,
+              alvo.personagemCampanhaId,
+            );
+          } else if (alvo.npcSessaoId) {
+            await bloquearNpcSessaoTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              alvo.npcSessaoId,
+            );
+          }
+          const duracao = this.resolverDuracaoCondicao(
+            dto.duracaoModo,
+            dto.duracaoValor,
+          );
+          const cenaAtualId = sessao.cenas[0]?.id ?? alvo.cenaId;
+          const fonteCodigo = this.normalizarFonteCondicao(dto.fonteCodigo);
+          const limiteFonte =
+            fonteCodigo === FONTE_KOKUSEN
+              ? LIMITE_PRODUCAO_KOKUSEN
+              : this.normalizarInteiroPositivoOpcional(dto.limiteFonte);
+          const acumulos = this.normalizarAcumulosCondicao(
+            dto.acumulos,
             limiteFonte,
-            origemDescricao: dto.origemDescricao?.trim() || null,
-            observacao: dto.observacao?.trim() || null,
-            modoOperacao: existente ? 'ATUALIZADA' : 'CRIADA',
-            snapshotAnterior,
-            aplicadaPorId: usuarioId,
-          }),
-        },
-      });
-    });
+          );
 
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+          if (!cenaAtualId) {
+            throw new BusinessException(
+              'Cena atual da sessão não encontrada para aplicar condição',
+              'SESSAO_CENA_ATUAL_NOT_FOUND',
+              {
+                campanhaId,
+                sessaoId,
+              },
+            );
+          }
+
+          const existente = await tx.condicaoPersonagemSessao.findFirst({
+            where: {
+              sessaoId,
+              condicaoId: condicao.id,
+              ativo: true,
+              personagemSessaoId: alvo.personagemSessaoId,
+              npcSessaoId: alvo.npcSessaoId,
+            },
+          });
+
+          const snapshotAnterior = existente
+            ? this.snapshotCondicaoSessao(existente)
+            : null;
+
+          const condicaoAtiva = existente
+            ? await tx.condicaoPersonagemSessao.update({
+                where: {
+                  id: existente.id,
+                },
+                data: {
+                  cenaId: alvo.cenaId ?? cenaAtualId,
+                  turnoAplicacao: sessao.rodadaAtual,
+                  duracaoTurnos: duracao.duracaoTurnos,
+                  duracaoModo: duracao.duracaoModo,
+                  duracaoValor: duracao.duracaoValor,
+                  restanteDuracao: duracao.restanteDuracao,
+                  ativo: true,
+                  automatica: false,
+                  chaveAutomacao: null,
+                  contadorTurnos: 0,
+                  acumulos,
+                  fonteCodigo,
+                  limiteFonte,
+                  origemDescricao: dto.origemDescricao?.trim() || null,
+                  observacao: dto.observacao?.trim() || null,
+                  removidaEm: null,
+                  motivoRemocao: null,
+                },
+              })
+            : await tx.condicaoPersonagemSessao.create({
+                data: {
+                  sessaoId,
+                  personagemSessaoId: alvo.personagemSessaoId,
+                  npcSessaoId: alvo.npcSessaoId,
+                  condicaoId: condicao.id,
+                  cenaId: alvo.cenaId ?? cenaAtualId,
+                  turnoAplicacao: sessao.rodadaAtual,
+                  duracaoTurnos: duracao.duracaoTurnos,
+                  duracaoModo: duracao.duracaoModo,
+                  duracaoValor: duracao.duracaoValor,
+                  restanteDuracao: duracao.restanteDuracao,
+                  ativo: true,
+                  automatica: false,
+                  acumulos,
+                  fonteCodigo,
+                  limiteFonte,
+                  origemDescricao: dto.origemDescricao?.trim() || null,
+                  observacao: dto.observacao?.trim() || null,
+                },
+              });
+
+          const mapaSistema = await this.obterMapaCondicoesSistemaTx(tx);
+          if (condicao.id === mapaSistema.mortoId) {
+            await this.desativarCondicaoAtivaSessaoTx(tx, {
+              sessaoId,
+              personagemSessaoId: alvo.personagemSessaoId,
+              npcSessaoId: alvo.npcSessaoId,
+              condicaoId: mapaSistema.morrendoId,
+              motivoRemocao: 'Substituida por estado morto.',
+            });
+          }
+          if (condicao.id === mapaSistema.insanoId) {
+            await this.desativarCondicaoAtivaSessaoTx(tx, {
+              sessaoId,
+              personagemSessaoId: alvo.personagemSessaoId,
+              npcSessaoId: alvo.npcSessaoId,
+              condicaoId: mapaSistema.enlouquecendoId,
+              motivoRemocao: 'Substituida por estado insano.',
+            });
+          }
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: alvo.cenaId ?? cenaAtualId,
+              personagemAtorId: alvo.personagemSessaoId,
+              tipoEvento: 'CONDICAO_APLICADA',
+              solicitanteUsuarioId: dto.clientRequestId ? usuarioId : null,
+              clientRequestId: dto.clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    condicaoSessaoId: condicaoAtiva.id,
+                    condicaoId: condicao.id,
+                    condicaoNome: condicao.nome,
+                    alvoTipo: dto.alvoTipo,
+                    personagemSessaoId: alvo.personagemSessaoId,
+                    npcSessaoId: alvo.npcSessaoId,
+                    alvoNome: alvo.nome,
+                    duracaoModo: duracao.duracaoModo,
+                    duracaoValor: duracao.duracaoValor,
+                    restanteDuracao: duracao.restanteDuracao,
+                    acumulos,
+                    fonteCodigo,
+                    limiteFonte,
+                    origemDescricao: dto.origemDescricao?.trim() || null,
+                    observacao: dto.observacao?.trim() || null,
+                    modoOperacao: existente ? 'ATUALIZADA' : 'CRIADA',
+                    snapshotAnterior,
+                    aplicadaPorId: usuarioId,
+                  },
+                  intencao,
+                  dto.clientRequestId,
+                ),
+              ),
+            },
+          });
+        }),
+    );
+
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   async removerCondicaoSessao(
@@ -7054,6 +7312,7 @@ export class SessaoService {
     condicaoSessaoId: number,
     usuarioId: number,
     motivo?: string,
+    clientRequestId?: string,
   ) {
     const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
@@ -7063,103 +7322,133 @@ export class SessaoService {
     );
     this.assertMestre(acesso, 'remover condição');
     const motivoLimpo = motivo?.trim() || null;
+    const intencao = {
+      tipo: 'REMOVER_CONDICAO',
+      condicaoSessaoId,
+      motivo: motivoLimpo,
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      const sessao = await tx.sessao.findUnique({
-        where: { id: sessaoId },
-        select: {
-          id: true,
-          campanhaId: true,
-          status: true,
-        },
-      });
-
-      if (!sessao || sessao.campanhaId !== campanhaId) {
-        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
-      }
-      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'remover condição');
-
-      const condicaoSessao = await tx.condicaoPersonagemSessao.findFirst({
-        where: {
-          id: condicaoSessaoId,
-          sessaoId,
-          ativo: true,
-        },
-        include: {
-          condicao: {
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'remover condicao em sessao',
+        sessaoId,
+        usuarioId,
+        clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const sessao = await tx.sessao.findUnique({
+            where: { id: sessaoId },
             select: {
               id: true,
-              nome: true,
+              campanhaId: true,
+              status: true,
             },
-          },
-          personagemSessao: {
+          });
+
+          if (!sessao || sessao.campanhaId !== campanhaId) {
+            throw new SessaoCampanhaNaoEncontradaException(
+              sessaoId,
+              campanhaId,
+            );
+          }
+          assertSessaoMutavel(sessao, campanhaId, sessaoId, 'remover condição');
+          await bloquearCondicaoSessaoTx(tx, sessaoId, condicaoSessaoId);
+
+          const condicaoSessao = await tx.condicaoPersonagemSessao.findFirst({
+            where: {
+              id: condicaoSessaoId,
+              sessaoId,
+              ativo: true,
+            },
             include: {
-              personagemCampanha: {
+              condicao: {
                 select: {
+                  id: true,
                   nome: true,
                 },
               },
+              personagemSessao: {
+                include: {
+                  personagemCampanha: {
+                    select: {
+                      nome: true,
+                    },
+                  },
+                },
+              },
+              npcSessao: {
+                select: {
+                  nomeExibicao: true,
+                },
+              },
             },
-          },
-          npcSessao: {
-            select: {
-              nomeExibicao: true,
+          });
+
+          if (!condicaoSessao) {
+            throw new BusinessException(
+              'Condição ativa não encontrada nesta sessão',
+              'SESSAO_CONDICAO_ATIVA_NOT_FOUND',
+              {
+                campanhaId,
+                sessaoId,
+                condicaoSessaoId,
+              },
+            );
+          }
+
+          const snapshot = this.snapshotCondicaoSessao(condicaoSessao);
+          const alvoNome =
+            condicaoSessao.personagemSessao?.personagemCampanha.nome ??
+            condicaoSessao.npcSessao?.nomeExibicao ??
+            'Alvo';
+
+          await tx.condicaoPersonagemSessao.update({
+            where: {
+              id: condicaoSessao.id,
             },
-          },
-        },
-      });
+            data: {
+              ativo: false,
+              removidaEm: new Date(),
+              motivoRemocao: motivoLimpo,
+            },
+          });
 
-      if (!condicaoSessao) {
-        throw new BusinessException(
-          'Condição ativa não encontrada nesta sessão',
-          'SESSAO_CONDICAO_ATIVA_NOT_FOUND',
-          {
-            campanhaId,
-            sessaoId,
-            condicaoSessaoId,
-          },
-        );
-      }
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: condicaoSessao.cenaId,
+              personagemAtorId: condicaoSessao.personagemSessaoId,
+              tipoEvento: 'CONDICAO_REMOVIDA',
+              solicitanteUsuarioId: clientRequestId ? usuarioId : null,
+              clientRequestId: clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    condicaoSessaoId: condicaoSessao.id,
+                    condicaoId: condicaoSessao.condicao.id,
+                    condicaoNome: condicaoSessao.condicao.nome,
+                    personagemSessaoId: condicaoSessao.personagemSessaoId,
+                    npcSessaoId: condicaoSessao.npcSessaoId,
+                    alvoNome,
+                    motivo: motivoLimpo,
+                    snapshot,
+                    removidaPorId: usuarioId,
+                  },
+                  intencao,
+                  clientRequestId,
+                ),
+              ),
+            },
+          });
+        }),
+    );
 
-      const snapshot = this.snapshotCondicaoSessao(condicaoSessao);
-      const alvoNome =
-        condicaoSessao.personagemSessao?.personagemCampanha.nome ??
-        condicaoSessao.npcSessao?.nomeExibicao ??
-        'Alvo';
-
-      await tx.condicaoPersonagemSessao.update({
-        where: {
-          id: condicaoSessao.id,
-        },
-        data: {
-          ativo: false,
-          removidaEm: new Date(),
-          motivoRemocao: motivoLimpo,
-        },
-      });
-
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: condicaoSessao.cenaId,
-          personagemAtorId: condicaoSessao.personagemSessaoId,
-          tipoEvento: 'CONDICAO_REMOVIDA',
-          dados: this.jsonParaPersistencia({
-            condicaoSessaoId: condicaoSessao.id,
-            condicaoId: condicaoSessao.condicao.id,
-            condicaoNome: condicaoSessao.condicao.nome,
-            personagemSessaoId: condicaoSessao.personagemSessaoId,
-            npcSessaoId: condicaoSessao.npcSessaoId,
-            alvoNome,
-            motivo: motivoLimpo,
-            snapshot,
-            removidaPorId: usuarioId,
-          }),
-        },
-      });
-    });
-
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   async encerrarSustentacaoHabilidadeSessao(
@@ -7169,6 +7458,7 @@ export class SessaoService {
     sustentacaoId: number,
     usuarioId: number,
     motivo?: string,
+    clientRequestId?: string,
   ) {
     const { acesso } = await this.obterSessaoMutavelComAcesso(
       campanhaId,
@@ -7177,127 +7467,168 @@ export class SessaoService {
       'encerrar sustentação',
     );
     const motivoLimpo = motivo?.trim() || null;
+    const intencao = {
+      tipo: 'ENCERRAR_SUSTENTACAO',
+      personagemSessaoId,
+      sustentacaoId,
+      motivo: motivoLimpo,
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      const sessao = await tx.sessao.findUnique({
-        where: { id: sessaoId },
-        select: {
-          id: true,
-          campanhaId: true,
-          status: true,
-        },
-      });
-
-      if (!sessao || sessao.campanhaId !== campanhaId) {
-        throw new SessaoCampanhaNaoEncontradaException(sessaoId, campanhaId);
-      }
-      assertSessaoMutavel(sessao, campanhaId, sessaoId, 'encerrar sustentação');
-
-      const personagemSessao = await tx.personagemSessao.findFirst({
-        where: {
-          id: personagemSessaoId,
-          sessaoId,
-        },
-        select: {
-          id: true,
-          personagemCampanha: {
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'encerrar sustentacao em sessao',
+        sessaoId,
+        usuarioId,
+        clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const sessao = await tx.sessao.findUnique({
+            where: { id: sessaoId },
             select: {
               id: true,
-              donoId: true,
+              campanhaId: true,
+              status: true,
             },
-          },
-        },
-      });
+          });
 
-      if (!personagemSessao) {
-        throw new BusinessException(
-          'Personagem não encontrado nesta sessão',
-          'SESSAO_PERSONAGEM_NOT_FOUND',
-          {
+          if (!sessao || sessao.campanhaId !== campanhaId) {
+            throw new SessaoCampanhaNaoEncontradaException(
+              sessaoId,
+              campanhaId,
+            );
+          }
+          assertSessaoMutavel(
+            sessao,
             campanhaId,
             sessaoId,
-            personagemSessaoId,
-          },
-        );
-      }
+            'encerrar sustentação',
+          );
 
-      if (
-        !acesso.ehMestre &&
-        personagemSessao.personagemCampanha.donoId !== usuarioId
-      ) {
-        throw new CampanhaPersonagemEdicaoNegadaException(
-          campanhaId,
-          personagemSessao.personagemCampanha.id,
-          usuarioId,
-        );
-      }
+          const personagemSessao = await tx.personagemSessao.findFirst({
+            where: {
+              id: personagemSessaoId,
+              sessaoId,
+            },
+            select: {
+              id: true,
+              personagemCampanha: {
+                select: {
+                  id: true,
+                  donoId: true,
+                },
+              },
+            },
+          });
 
-      const sustentacao =
-        await tx.personagemSessaoHabilidadeSustentada.findFirst({
-          where: {
-            id: sustentacaoId,
-            sessaoId,
-            personagemSessaoId,
-            ativa: true,
-          },
-          select: {
-            id: true,
-            nomeHabilidade: true,
-            nomeVariacao: true,
-            habilidadeTecnicaId: true,
-            variacaoHabilidadeId: true,
-            acumulos: true,
-            sessaoId: true,
-            personagemSessaoId: true,
-          },
-        });
+          if (!personagemSessao) {
+            throw new BusinessException(
+              'Personagem não encontrado nesta sessão',
+              'SESSAO_PERSONAGEM_NOT_FOUND',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+              },
+            );
+          }
 
-      if (!sustentacao) {
-        throw new BusinessException(
-          'Sustentação ativa não encontrada',
-          'SESSAO_SUSTENTACAO_NOT_FOUND',
-          {
+          if (
+            !acesso.ehMestre &&
+            personagemSessao.personagemCampanha.donoId !== usuarioId
+          ) {
+            throw new CampanhaPersonagemEdicaoNegadaException(
+              campanhaId,
+              personagemSessao.personagemCampanha.id,
+              usuarioId,
+            );
+          }
+          await bloquearPersonagemCampanhaTx(
+            tx,
             campanhaId,
-            sessaoId,
-            personagemSessaoId,
-            sustentacaoId,
-          },
-        );
-      }
+            personagemSessao.personagemCampanha.id,
+          );
+          await bloquearSustentacaoSessaoTx(tx, sessaoId, sustentacaoId);
 
-      await tx.personagemSessaoHabilidadeSustentada.update({
-        where: { id: sustentacao.id },
-        data: {
-          ativa: false,
-          desativadaEm: new Date(),
-          desativadaPorUsuarioId: usuarioId,
-          motivoDesativacao: motivoLimpo,
-        },
-      });
+          const sustentacao =
+            await tx.personagemSessaoHabilidadeSustentada.findFirst({
+              where: {
+                id: sustentacaoId,
+                sessaoId,
+                personagemSessaoId,
+                ativa: true,
+              },
+              select: {
+                id: true,
+                nomeHabilidade: true,
+                nomeVariacao: true,
+                habilidadeTecnicaId: true,
+                variacaoHabilidadeId: true,
+                acumulos: true,
+                sessaoId: true,
+                personagemSessaoId: true,
+              },
+            });
 
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          personagemAtorId: personagemSessaoId,
-          tipoEvento: 'HABILIDADE_SUSTENTADA_ENCERRADA',
-          dados: this.jsonParaPersistencia({
-            sustentacaoId: sustentacao.id,
-            habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
-            habilidadeNome: sustentacao.nomeHabilidade,
-            variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
-            variacaoNome: sustentacao.nomeVariacao,
-            acumulos: sustentacao.acumulos,
-            encerradaPorId: usuarioId,
-            motivo: motivoLimpo,
-            motivoSistema: null,
-          }),
-        },
-      });
-    });
+          if (!sustentacao) {
+            throw new BusinessException(
+              'Sustentação ativa não encontrada',
+              'SESSAO_SUSTENTACAO_NOT_FOUND',
+              {
+                campanhaId,
+                sessaoId,
+                personagemSessaoId,
+                sustentacaoId,
+              },
+            );
+          }
 
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+          await tx.personagemSessaoHabilidadeSustentada.update({
+            where: { id: sustentacao.id },
+            data: {
+              ativa: false,
+              desativadaEm: new Date(),
+              desativadaPorUsuarioId: usuarioId,
+              motivoDesativacao: motivoLimpo,
+            },
+          });
+
+          const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: cenaAtual.id,
+              personagemAtorId: personagemSessaoId,
+              tipoEvento: 'HABILIDADE_SUSTENTADA_ENCERRADA',
+              solicitanteUsuarioId: clientRequestId ? usuarioId : null,
+              clientRequestId: clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    sustentacaoId: sustentacao.id,
+                    habilidadeTecnicaId: sustentacao.habilidadeTecnicaId,
+                    habilidadeNome: sustentacao.nomeHabilidade,
+                    variacaoHabilidadeId: sustentacao.variacaoHabilidadeId,
+                    variacaoNome: sustentacao.nomeVariacao,
+                    acumulos: sustentacao.acumulos,
+                    encerradaPorId: usuarioId,
+                    motivo: motivoLimpo,
+                    motivoSistema: null,
+                  },
+                  intencao,
+                  clientRequestId,
+                ),
+              ),
+            },
+          });
+        }),
+    );
+
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   async validarAcessoSessao(
@@ -7416,54 +7747,84 @@ export class SessaoService {
       campanhaId,
       personagemCampanhaId,
     );
+    const intencao = {
+      tipo: 'AJUSTAR_INSPIRACAO',
+      personagemCampanhaId,
+      delta: dto.delta,
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertSessaoMutavelTx(
-        tx,
-        campanhaId,
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'ajustar inspiracao em sessao',
         sessaoId,
-        'ajustar inspiração',
-      );
-      const regra = await this.obterOuCriarRegraOpcionalTx(
-        tx,
-        sessaoId,
-        'INSPIRACAO',
-      );
-      if (!regra.ativo) {
-        throw new BusinessException(
-          'Pontos de inspiracao nao estao ativos nesta sessao.',
-          'SESSAO_INSPIRACAO_INATIVA',
-        );
-      }
-      const estado = this.normalizarEstadoInspiracao(regra.estado);
-      const chave = String(personagemCampanhaId);
-      const atual = estado.pontosPorPersonagem[chave] ?? 0;
-      const proximo = this.clamp(atual + dto.delta, 0, 3);
-      estado.pontosPorPersonagem[chave] = proximo;
+        usuarioId,
+        clientRequestId: dto.clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          await this.assertSessaoMutavelTx(
+            tx,
+            campanhaId,
+            sessaoId,
+            'ajustar inspiração',
+          );
+          let regra = await this.obterOuCriarRegraOpcionalTx(
+            tx,
+            sessaoId,
+            'INSPIRACAO',
+          );
+          await bloquearRegraOpcionalSessaoTx(tx, sessaoId, 'INSPIRACAO');
+          regra = await tx.sessaoRegraOpcional.findUniqueOrThrow({
+            where: { id: regra.id },
+          });
+          if (!regra.ativo) {
+            throw new BusinessException(
+              'Pontos de inspiracao nao estao ativos nesta sessao.',
+              'SESSAO_INSPIRACAO_INATIVA',
+            );
+          }
+          const estado = this.normalizarEstadoInspiracao(regra.estado);
+          const chave = String(personagemCampanhaId);
+          const atual = estado.pontosPorPersonagem[chave] ?? 0;
+          const proximo = this.clamp(atual + dto.delta, 0, 3);
+          estado.pontosPorPersonagem[chave] = proximo;
 
-      await tx.sessaoRegraOpcional.update({
-        where: { id: regra.id },
-        data: { estado: this.jsonParaPersistencia(estado) },
-      });
+          await tx.sessaoRegraOpcional.update({
+            where: { id: regra.id },
+            data: { estado: this.jsonParaPersistencia(estado) },
+          });
 
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          tipoEvento: 'INSPIRACAO_AJUSTADA',
-          dados: this.jsonParaPersistencia({
-            personagemCampanhaId,
-            valorAnterior: atual,
-            valorNovo: proximo,
-            delta: dto.delta,
-            atualizadoPorId: usuarioId,
-          }),
-        },
-      });
-    });
+          const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: cenaAtual.id,
+              tipoEvento: 'INSPIRACAO_AJUSTADA',
+              solicitanteUsuarioId: dto.clientRequestId ? usuarioId : null,
+              clientRequestId: dto.clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    personagemCampanhaId,
+                    valorAnterior: atual,
+                    valorNovo: proximo,
+                    delta: dto.delta,
+                    atualizadoPorId: usuarioId,
+                  },
+                  intencao,
+                  dto.clientRequestId,
+                ),
+              ),
+            },
+          });
+        }),
+    );
 
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   async gastarInspiracaoSessao(
@@ -7491,62 +7852,93 @@ export class SessaoService {
         usuarioId,
       );
     }
+    const intencao = {
+      tipo: 'GASTAR_INSPIRACAO',
+      personagemCampanhaId,
+      custo: dto.custo,
+      efeito: dto.efeito,
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertSessaoMutavelTx(
-        tx,
-        campanhaId,
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'gastar inspiracao em sessao',
         sessaoId,
-        'gastar inspiração',
-      );
-      const regra = await this.obterOuCriarRegraOpcionalTx(
-        tx,
-        sessaoId,
-        'INSPIRACAO',
-      );
-      if (!regra.ativo) {
-        throw new BusinessException(
-          'Pontos de inspiracao nao estao ativos nesta sessao.',
-          'SESSAO_INSPIRACAO_INATIVA',
-        );
-      }
-      const estado = this.normalizarEstadoInspiracao(regra.estado);
-      const chave = String(personagemCampanhaId);
-      const atual = estado.pontosPorPersonagem[chave] ?? 0;
-      if (atual < dto.custo) {
-        throw new BusinessException(
-          'Pontos de inspiracao insuficientes.',
-          'SESSAO_INSPIRACAO_SALDO_INSUFICIENTE',
-        );
-      }
-      const proximo = atual - dto.custo;
-      estado.pontosPorPersonagem[chave] = proximo;
+        usuarioId,
+        clientRequestId: dto.clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          await this.assertSessaoMutavelTx(
+            tx,
+            campanhaId,
+            sessaoId,
+            'gastar inspiração',
+          );
+          let regra = await this.obterOuCriarRegraOpcionalTx(
+            tx,
+            sessaoId,
+            'INSPIRACAO',
+          );
+          await bloquearRegraOpcionalSessaoTx(tx, sessaoId, 'INSPIRACAO');
+          regra = await tx.sessaoRegraOpcional.findUniqueOrThrow({
+            where: { id: regra.id },
+          });
+          if (!regra.ativo) {
+            throw new BusinessException(
+              'Pontos de inspiracao nao estao ativos nesta sessao.',
+              'SESSAO_INSPIRACAO_INATIVA',
+            );
+          }
+          const estado = this.normalizarEstadoInspiracao(regra.estado);
+          const chave = String(personagemCampanhaId);
+          const atual = estado.pontosPorPersonagem[chave] ?? 0;
+          if (atual < dto.custo) {
+            throw new BusinessException(
+              'Pontos de inspiracao insuficientes.',
+              'SESSAO_INSPIRACAO_SALDO_INSUFICIENTE',
+            );
+          }
+          const proximo = atual - dto.custo;
+          estado.pontosPorPersonagem[chave] = proximo;
 
-      await tx.sessaoRegraOpcional.update({
-        where: { id: regra.id },
-        data: { estado: this.jsonParaPersistencia(estado) },
-      });
+          await tx.sessaoRegraOpcional.update({
+            where: { id: regra.id },
+            data: { estado: this.jsonParaPersistencia(estado) },
+          });
 
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          tipoEvento: 'INSPIRACAO_GASTA',
-          dados: this.jsonParaPersistencia({
-            personagemCampanhaId,
-            personagemNome: personagem.nome,
-            custo: dto.custo,
-            efeito: dto.efeito,
-            valorAnterior: atual,
-            valorNovo: proximo,
-            atualizadoPorId: usuarioId,
-          }),
-        },
-      });
-    });
+          const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: cenaAtual.id,
+              tipoEvento: 'INSPIRACAO_GASTA',
+              solicitanteUsuarioId: dto.clientRequestId ? usuarioId : null,
+              clientRequestId: dto.clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    personagemCampanhaId,
+                    personagemNome: personagem.nome,
+                    custo: dto.custo,
+                    efeito: dto.efeito,
+                    valorAnterior: atual,
+                    valorNovo: proximo,
+                    atualizadoPorId: usuarioId,
+                  },
+                  intencao,
+                  dto.clientRequestId,
+                ),
+              ),
+            },
+          });
+        }),
+    );
 
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   async atualizarEncontroSocialSessao(
@@ -7934,213 +8326,262 @@ export class SessaoService {
       usuarioId,
       'consumir item',
     );
+    const intencao = {
+      tipo: 'CONSUMIR_ITEM',
+      itemInventarioCampanhaId: dto.itemInventarioCampanhaId,
+      modo: dto.modo,
+      alvoTipo: dto.alvoTipo ?? null,
+      alvoId: dto.alvoId ?? null,
+      observacao: dto.observacao?.trim() || null,
+    };
 
-    await this.prisma.$transaction(async (tx) => {
-      await this.assertSessaoMutavelTx(
-        tx,
-        campanhaId,
+    const criadoAgora = await this.executarMutacaoIdempotenteSessao(
+      {
+        acao: 'consumir item em sessao',
         sessaoId,
-        'consumir item',
-      );
-      await this.assertRegraOpcionalAtivaTx(
-        tx,
-        sessaoId,
-        'CONSUMIR_COM_CALMA',
-        'Consumo de itens em sessao nao esta ativo nesta sessao.',
-        'SESSAO_CONSUMO_INATIVO',
-      );
-
-      const item = await tx.inventarioItemCampanha.findUnique({
-        where: { id: dto.itemInventarioCampanhaId },
-        include: {
-          equipamento: {
-            select: {
-              id: true,
-              codigo: true,
-              nome: true,
-              tipoUso: true,
-              efeitoConsumo: true,
-            },
-          },
-          personagemCampanha: {
-            select: {
-              id: true,
-              campanhaId: true,
-              donoId: true,
-              nome: true,
-            },
-          },
-        },
-      });
-      if (!item || item.personagemCampanha.campanhaId !== campanhaId) {
-        throw new BusinessException(
-          'Item de inventario nao encontrado nesta campanha.',
-          'SESSAO_ITEM_INVENTARIO_NAO_ENCONTRADO',
-        );
-      }
-      if (!acesso.ehMestre && item.personagemCampanha.donoId !== usuarioId) {
-        throw new CampanhaPersonagemEdicaoNegadaException(
-          campanhaId,
-          item.personagemCampanha.id,
-          usuarioId,
-        );
-      }
-      if (item.equipamento.tipoUso !== 'CONSUMIVEL') {
-        throw new BusinessException(
-          'Este item nao e um consumivel.',
-          'SESSAO_ITEM_NAO_CONSUMIVEL',
-        );
-      }
-
-      const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
-      const efeito = this.normalizarEfeitoConsumoEquipamento(
-        item.equipamento.efeitoConsumo,
-      );
-
-      if (dto.modo === 'MANUAL') {
-        await tx.eventoSessao.create({
-          data: {
+        usuarioId,
+        clientRequestId: dto.clientRequestId,
+        intencao,
+      },
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          await this.assertSessaoMutavelTx(
+            tx,
+            campanhaId,
             sessaoId,
-            cenaId: cenaAtual.id,
-            tipoEvento: 'CONSUMIVEL_RESOLVIDO_MANUALMENTE',
-            dados: this.jsonParaPersistencia({
-              itemInventarioCampanhaId: item.id,
-              equipamentoId: item.equipamento.id,
-              equipamentoCodigo: item.equipamento.codigo,
-              equipamentoNome: item.equipamento.nome,
-              personagemCampanhaId: item.personagemCampanha.id,
-              personagemNome: item.personagemCampanha.nome,
-              observacao: dto.observacao?.trim() || null,
-              atualizadoPorId: usuarioId,
-            }),
-          },
-        });
-        return;
-      }
-
-      if (!efeito.automatizado || !efeito.efeitos?.length) {
-        throw new BusinessException(
-          efeito.motivo ||
-            'Este consumivel ainda nao tem automacao. Resolva manualmente com o mestre.',
-          'SESSAO_CONSUMIVEL_SEM_AUTOMACAO',
-        );
-      }
-      if (!dto.alvoTipo || !dto.alvoId) {
-        throw new BusinessException(
-          'Escolha um alvo para consumir este item.',
-          'SESSAO_CONSUMO_ALVO_OBRIGATORIO',
-        );
-      }
-
-      const maximizar = dto.modo === 'COM_CALMA';
-      const resultados: Array<Record<string, unknown>> = [];
-      const resultadosRolagem: Array<{
-        recurso: EfeitoConsumoRecurso['recurso'];
-        expressao: string;
-        rolagens: number[];
-        total: number;
-        alvoNome: string;
-      }> = [];
-      for (const efeitoRecurso of efeito.efeitos) {
-        if (efeitoRecurso.tipo !== 'RECURSO') continue;
-        if (maximizar && efeitoRecurso.permiteConsumirComCalma === false) {
-          throw new BusinessException(
-            'Este efeito nao pode ser maximizado por Consumir com Calma.',
-            'SESSAO_CONSUMO_COM_CALMA_INDISPONIVEL',
+            'consumir item',
           );
-        }
-        const rolagem = this.resolverRolagemConsumo(efeitoRecurso, maximizar);
-        const aplicacao = await this.aplicarEfeitoRecursoConsumoTx(tx, {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          alvoTipo: dto.alvoTipo,
-          alvoId: dto.alvoId,
-          recurso: efeitoRecurso.recurso,
-          valor: rolagem.total,
-        });
-        resultados.push({
-          recurso: efeitoRecurso.recurso,
-          expressao: rolagem.expressao,
-          rolagens: rolagem.rolagens,
-          total: rolagem.total,
-          valorAntes: aplicacao.valorAntes,
-          valorDepois: aplicacao.valorDepois,
-          alvoNome: aplicacao.alvoNome,
-        });
-        resultadosRolagem.push({
-          recurso: efeitoRecurso.recurso,
-          expressao: rolagem.expressao,
-          rolagens: rolagem.rolagens,
-          total: rolagem.total,
-          alvoNome: aplicacao.alvoNome,
-        });
-      }
-
-      await this.reduzirUsoConsumivelTx(tx, item);
-      const personagemAtor = await tx.personagemSessao.findFirst({
-        where: {
-          sessaoId,
-          personagemCampanhaId: item.personagemCampanha.id,
-        },
-        select: { id: true },
-      });
-
-      await tx.eventoSessao.create({
-        data: {
-          sessaoId,
-          cenaId: cenaAtual.id,
-          tipoEvento: 'CONSUMIVEL_USADO',
-          dados: this.jsonParaPersistencia({
-            itemInventarioCampanhaId: item.id,
-            equipamentoId: item.equipamento.id,
-            equipamentoCodigo: item.equipamento.codigo,
-            equipamentoNome: item.equipamento.nome,
-            personagemCampanhaId: item.personagemCampanha.id,
-            personagemNome: item.personagemCampanha.nome,
-            alvoTipo: dto.alvoTipo,
-            alvoId: dto.alvoId,
-            modo: dto.modo,
-            resultados,
-            atualizadoPorId: usuarioId,
-          }),
-        },
-      });
-      const mensagemRolagem = this.construirMensagemRolagemConsumo({
-        equipamentoNome: item.equipamento.nome,
-        personagemNome: item.personagemCampanha.nome,
-        modo: dto.modo,
-        resultados: resultadosRolagem,
-      });
-      if (mensagemRolagem) {
-        await tx.eventoSessao.create({
-          data: {
+          await this.assertRegraOpcionalAtivaTx(
+            tx,
             sessaoId,
-            cenaId: cenaAtual.id,
-            tipoEvento: 'CHAT',
-            personagemAtorId: personagemAtor?.id ?? null,
-            dados: this.jsonParaPersistencia({
-              mensagem: mensagemRolagem.mensagem,
-              autorApelido: 'Sistema',
-              visibilidade: 'PUBLICA',
-              dadosRolagem: mensagemRolagem.dadosRolagem,
-              contextoRolagem: {
-                tipo: 'DANO',
-                origem: 'CONSUMIVEL',
-                itemInventarioCampanhaId: item.id,
-                equipamentoId: item.equipamento.id,
-                equipamentoNome: item.equipamento.nome,
-                modo: dto.modo,
+            'CONSUMIR_COM_CALMA',
+            'Consumo de itens em sessao nao esta ativo nesta sessao.',
+            'SESSAO_CONSUMO_INATIVO',
+          );
+          await bloquearItemInventarioCampanhaTx(
+            tx,
+            campanhaId,
+            dto.itemInventarioCampanhaId,
+          );
+
+          const item = await tx.inventarioItemCampanha.findUnique({
+            where: { id: dto.itemInventarioCampanhaId },
+            include: {
+              equipamento: {
+                select: {
+                  id: true,
+                  codigo: true,
+                  nome: true,
+                  tipoUso: true,
+                  efeitoConsumo: true,
+                },
               },
-              ajustesAplicados: [],
-            }),
-          },
-        });
-      }
+              personagemCampanha: {
+                select: {
+                  id: true,
+                  campanhaId: true,
+                  donoId: true,
+                  nome: true,
+                },
+              },
+            },
+          });
+          if (!item || item.personagemCampanha.campanhaId !== campanhaId) {
+            throw new BusinessException(
+              'Item de inventario nao encontrado nesta campanha.',
+              'SESSAO_ITEM_INVENTARIO_NAO_ENCONTRADO',
+            );
+          }
+          if (
+            !acesso.ehMestre &&
+            item.personagemCampanha.donoId !== usuarioId
+          ) {
+            throw new CampanhaPersonagemEdicaoNegadaException(
+              campanhaId,
+              item.personagemCampanha.id,
+              usuarioId,
+            );
+          }
+          if (item.equipamento.tipoUso !== 'CONSUMIVEL') {
+            throw new BusinessException(
+              'Este item nao e um consumivel.',
+              'SESSAO_ITEM_NAO_CONSUMIVEL',
+            );
+          }
 
-      await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
-    });
+          const cenaAtual = await this.obterCenaAtualSessaoTx(tx, sessaoId);
+          const efeito = this.normalizarEfeitoConsumoEquipamento(
+            item.equipamento.efeitoConsumo,
+          );
 
-    return this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId);
+          if (dto.modo === 'MANUAL') {
+            await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                cenaId: cenaAtual.id,
+                tipoEvento: 'CONSUMIVEL_RESOLVIDO_MANUALMENTE',
+                solicitanteUsuarioId: dto.clientRequestId ? usuarioId : null,
+                clientRequestId: dto.clientRequestId ?? null,
+                dados: this.jsonParaPersistencia(
+                  this.dadosComIntencaoIdempotente(
+                    {
+                      itemInventarioCampanhaId: item.id,
+                      equipamentoId: item.equipamento.id,
+                      equipamentoCodigo: item.equipamento.codigo,
+                      equipamentoNome: item.equipamento.nome,
+                      personagemCampanhaId: item.personagemCampanha.id,
+                      personagemNome: item.personagemCampanha.nome,
+                      observacao: dto.observacao?.trim() || null,
+                      atualizadoPorId: usuarioId,
+                    },
+                    intencao,
+                    dto.clientRequestId,
+                  ),
+                ),
+              },
+            });
+            return;
+          }
+
+          if (!efeito.automatizado || !efeito.efeitos?.length) {
+            throw new BusinessException(
+              efeito.motivo ||
+                'Este consumivel ainda nao tem automacao. Resolva manualmente com o mestre.',
+              'SESSAO_CONSUMIVEL_SEM_AUTOMACAO',
+            );
+          }
+          if (!dto.alvoTipo || !dto.alvoId) {
+            throw new BusinessException(
+              'Escolha um alvo para consumir este item.',
+              'SESSAO_CONSUMO_ALVO_OBRIGATORIO',
+            );
+          }
+
+          const maximizar = dto.modo === 'COM_CALMA';
+          const resultados: Array<Record<string, unknown>> = [];
+          const resultadosRolagem: Array<{
+            recurso: EfeitoConsumoRecurso['recurso'];
+            expressao: string;
+            rolagens: number[];
+            total: number;
+            alvoNome: string;
+          }> = [];
+          for (const efeitoRecurso of efeito.efeitos) {
+            if (efeitoRecurso.tipo !== 'RECURSO') continue;
+            if (maximizar && efeitoRecurso.permiteConsumirComCalma === false) {
+              throw new BusinessException(
+                'Este efeito nao pode ser maximizado por Consumir com Calma.',
+                'SESSAO_CONSUMO_COM_CALMA_INDISPONIVEL',
+              );
+            }
+            const rolagem = this.resolverRolagemConsumo(
+              efeitoRecurso,
+              maximizar,
+            );
+            const aplicacao = await this.aplicarEfeitoRecursoConsumoTx(tx, {
+              campanhaId,
+              sessaoId,
+              cenaId: cenaAtual.id,
+              alvoTipo: dto.alvoTipo,
+              alvoId: dto.alvoId,
+              recurso: efeitoRecurso.recurso,
+              valor: rolagem.total,
+            });
+            resultados.push({
+              recurso: efeitoRecurso.recurso,
+              expressao: rolagem.expressao,
+              rolagens: rolagem.rolagens,
+              total: rolagem.total,
+              valorAntes: aplicacao.valorAntes,
+              valorDepois: aplicacao.valorDepois,
+              alvoNome: aplicacao.alvoNome,
+            });
+            resultadosRolagem.push({
+              recurso: efeitoRecurso.recurso,
+              expressao: rolagem.expressao,
+              rolagens: rolagem.rolagens,
+              total: rolagem.total,
+              alvoNome: aplicacao.alvoNome,
+            });
+          }
+
+          await this.reduzirUsoConsumivelTx(tx, item);
+          const personagemAtor = await tx.personagemSessao.findFirst({
+            where: {
+              sessaoId,
+              personagemCampanhaId: item.personagemCampanha.id,
+            },
+            select: { id: true },
+          });
+
+          await tx.eventoSessao.create({
+            data: {
+              sessaoId,
+              cenaId: cenaAtual.id,
+              tipoEvento: 'CONSUMIVEL_USADO',
+              solicitanteUsuarioId: dto.clientRequestId ? usuarioId : null,
+              clientRequestId: dto.clientRequestId ?? null,
+              dados: this.jsonParaPersistencia(
+                this.dadosComIntencaoIdempotente(
+                  {
+                    itemInventarioCampanhaId: item.id,
+                    equipamentoId: item.equipamento.id,
+                    equipamentoCodigo: item.equipamento.codigo,
+                    equipamentoNome: item.equipamento.nome,
+                    personagemCampanhaId: item.personagemCampanha.id,
+                    personagemNome: item.personagemCampanha.nome,
+                    alvoTipo: dto.alvoTipo,
+                    alvoId: dto.alvoId,
+                    modo: dto.modo,
+                    resultados,
+                    atualizadoPorId: usuarioId,
+                  },
+                  intencao,
+                  dto.clientRequestId,
+                ),
+              ),
+            },
+          });
+          const mensagemRolagem = this.construirMensagemRolagemConsumo({
+            equipamentoNome: item.equipamento.nome,
+            personagemNome: item.personagemCampanha.nome,
+            modo: dto.modo,
+            resultados: resultadosRolagem,
+          });
+          if (mensagemRolagem) {
+            await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                cenaId: cenaAtual.id,
+                tipoEvento: 'CHAT',
+                personagemAtorId: personagemAtor?.id ?? null,
+                dados: this.jsonParaPersistencia({
+                  mensagem: mensagemRolagem.mensagem,
+                  autorApelido: 'Sistema',
+                  visibilidade: 'PUBLICA',
+                  dadosRolagem: mensagemRolagem.dadosRolagem,
+                  contextoRolagem: {
+                    tipo: 'DANO',
+                    origem: 'CONSUMIVEL',
+                    itemInventarioCampanhaId: item.id,
+                    equipamentoId: item.equipamento.id,
+                    equipamentoNome: item.equipamento.nome,
+                    modo: dto.modo,
+                  },
+                  ajustesAplicados: [],
+                }),
+              },
+            });
+          }
+
+          await this.sincronizarCondicoesAutomaticasSessaoTx(tx, sessaoId);
+        }),
+    );
+
+    return {
+      detalhe: await this.buscarDetalheSessao(campanhaId, sessaoId, usuarioId),
+      criadoAgora,
+    };
   }
 
   private normalizarRegrasOpcionaisSessao(
@@ -8932,7 +9373,9 @@ export class SessaoService {
   ): void {
     const dados = this.extrairRegistro(evento.dados);
     const persistida = this.extrairRegistro(
-      (dados.intencaoAutoritativa ?? null) as Prisma.JsonValue | null,
+      (dados.intencaoAutoritativa ??
+        dados.intencaoIdempotente ??
+        null) as Prisma.JsonValue | null,
     );
     if (jsonSemanticamenteIgual(persistida, intencao)) return;
     throw new SessaoRolagemIdempotenciaConflitoException(
@@ -8946,6 +9389,67 @@ export class SessaoService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     );
+  }
+
+  private async executarMutacaoIdempotenteSessao(
+    args: {
+      acao: string;
+      sessaoId: number;
+      usuarioId: number;
+      clientRequestId?: string;
+      intencao: Record<string, unknown>;
+    },
+    operacao: () => Promise<void>,
+  ): Promise<boolean> {
+    const clientRequestId = args.clientRequestId;
+    if (clientRequestId) {
+      const existente = await this.buscarEventoRolagemIdempotente(
+        this.prisma,
+        args.sessaoId,
+        args.usuarioId,
+        clientRequestId,
+      );
+      if (existente) {
+        this.assertIntencaoRolagemIdempotente(
+          existente,
+          args.intencao,
+          args.sessaoId,
+          clientRequestId,
+        );
+        return false;
+      }
+    }
+
+    try {
+      await executarComRetryConcorrencia(args.acao, operacao);
+      return true;
+    } catch (error) {
+      if (!clientRequestId || !this.erroPrismaChaveUnica(error)) throw error;
+      const vencedor = await this.buscarEventoRolagemIdempotente(
+        this.prisma,
+        args.sessaoId,
+        args.usuarioId,
+        clientRequestId,
+      );
+      if (!vencedor) throw error;
+      this.assertIntencaoRolagemIdempotente(
+        vencedor,
+        args.intencao,
+        args.sessaoId,
+        clientRequestId,
+      );
+      return false;
+    }
+  }
+
+  private dadosComIntencaoIdempotente(
+    dados: Record<string, unknown>,
+    intencao: Record<string, unknown>,
+    clientRequestId?: string,
+  ): Record<string, unknown> {
+    return clientRequestId
+      ? { ...dados, intencaoIdempotente: intencao }
+      : dados;
   }
 
   private async resolverRolagemNpcAutoritativaTx(
@@ -11184,6 +11688,7 @@ export class SessaoService {
   private resolverRolagemConsumo(
     efeito: EfeitoConsumoRecurso,
     maximizar: boolean,
+    gerarDado?: (faces: number) => number,
   ): {
     expressao: string;
     rolagens: number[];
@@ -11222,9 +11727,17 @@ export class SessaoService {
         'SESSAO_CONSUMO_FORMULA_INVALIDA',
       );
     }
-    const rolagens = Array.from({ length: quantidade }, () =>
-      maximizar ? faces : Math.floor(Math.random() * faces) + 1,
-    );
+    const rolagens = maximizar
+      ? Array.from({ length: quantidade }, () => faces)
+      : rolarDadosServidor(
+          {
+            quantidade,
+            faces,
+            modificador: 0,
+            aplicarModificadorPorDado: false,
+          },
+          gerarDado,
+        ).rolagens;
     const total = Math.max(
       0,
       rolagens.reduce((soma, valor) => soma + valor, 0) + bonusFormula + bonus,
@@ -11382,6 +11895,7 @@ export class SessaoService {
   private async aplicarEfeitoRecursoConsumoTx(
     tx: Prisma.TransactionClient,
     args: {
+      campanhaId: number;
       sessaoId: number;
       cenaId: number;
       alvoTipo: 'PERSONAGEM' | 'NPC';
@@ -11391,6 +11905,22 @@ export class SessaoService {
     },
   ): Promise<{ alvoNome: string; valorAntes: number; valorDepois: number }> {
     if (args.alvoTipo === 'PERSONAGEM') {
+      const referencia = await tx.personagemSessao.findFirst({
+        where: {
+          id: args.alvoId,
+          sessaoId: args.sessaoId,
+          cenaId: args.cenaId,
+        },
+        select: { personagemCampanhaId: true },
+      });
+      if (!referencia) {
+        throw new PersonagemSessaoNaoEncontradoException(args.alvoId);
+      }
+      await bloquearPersonagemCampanhaTx(
+        tx,
+        args.campanhaId,
+        referencia.personagemCampanhaId,
+      );
       const personagem = await tx.personagemSessao.findFirst({
         where: {
           id: args.alvoId,
@@ -11437,6 +11967,7 @@ export class SessaoService {
       };
     }
 
+    await bloquearNpcSessaoTx(tx, args.campanhaId, args.sessaoId, args.alvoId);
     const npc = await tx.npcAmeacaSessao.findFirst({
       where: {
         id: args.alvoId,
@@ -14136,6 +14667,7 @@ export class SessaoService {
     dto: AplicarCondicaoSessaoDto,
   ): Promise<{
     personagemSessaoId: number | null;
+    personagemCampanhaId: number | null;
     npcSessaoId: number | null;
     cenaId: number | null;
     nome: string;
@@ -14149,6 +14681,7 @@ export class SessaoService {
         select: {
           id: true,
           cenaId: true,
+          personagemCampanhaId: true,
           personagemCampanha: {
             select: {
               nome: true,
@@ -14170,6 +14703,7 @@ export class SessaoService {
 
       return {
         personagemSessaoId: personagem.id,
+        personagemCampanhaId: personagem.personagemCampanhaId,
         npcSessaoId: null,
         cenaId: personagem.cenaId,
         nome: personagem.personagemCampanha.nome,
@@ -14201,6 +14735,7 @@ export class SessaoService {
 
     return {
       personagemSessaoId: null,
+      personagemCampanhaId: null,
       npcSessaoId: npc.id,
       cenaId: npc.cenaId,
       nome: npc.nomeExibicao,

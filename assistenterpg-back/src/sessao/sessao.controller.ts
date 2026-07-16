@@ -201,13 +201,14 @@ export class SessaoController {
       dto,
     );
 
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'HABILIDADE_USADA',
-    );
-
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'HABILIDADE_USADA',
+      );
+    }
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/personagens/:personagemSessaoId/habilidades-classe/usar')
@@ -226,13 +227,14 @@ export class SessaoController {
       dto,
     );
 
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'HABILIDADE_USADA',
-    );
-
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'HABILIDADE_USADA',
+      );
+    }
+    return resultado.detalhe;
   }
 
   @Patch(':sessaoId/personagens/:personagemSessaoId/recursos')
@@ -275,13 +277,14 @@ export class SessaoController {
       dto,
     );
 
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'CONDICAO_APLICADA',
-    );
-
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'CONDICAO_APLICADA',
+      );
+    }
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/condicoes/:condicaoSessaoId/remover')
@@ -298,15 +301,17 @@ export class SessaoController {
       condicaoSessaoId,
       req.user.id,
       dto.motivo,
+      dto.clientRequestId,
     );
 
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'CONDICAO_REMOVIDA',
-    );
-
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'CONDICAO_REMOVIDA',
+      );
+    }
+    return resultado.detalhe;
   }
 
   @Post(
@@ -328,15 +333,17 @@ export class SessaoController {
         sustentacaoId,
         req.user.id,
         dto.motivo,
+        dto.clientRequestId,
       );
 
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'HABILIDADE_SUSTENTADA_ENCERRADA',
-    );
-
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'HABILIDADE_SUSTENTADA_ENCERRADA',
+      );
+    }
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/turno/avancar')
@@ -806,12 +813,14 @@ export class SessaoController {
       req.user.id,
       dto,
     );
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'INSPIRACAO_AJUSTADA',
-    );
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'INSPIRACAO_AJUSTADA',
+      );
+    }
+    return resultado.detalhe;
   }
 
   @Post(':sessaoId/inspiracao/:personagemCampanhaId/gastar')
@@ -829,12 +838,14 @@ export class SessaoController {
       req.user.id,
       dto,
     );
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'INSPIRACAO_GASTA',
-    );
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'INSPIRACAO_GASTA',
+      );
+    }
+    return resultado.detalhe;
   }
 
   @Patch(':sessaoId/mecanicas/social/encontros')
@@ -1029,11 +1040,13 @@ export class SessaoController {
       req.user.id,
       dto,
     );
-    this.sessaoGateway.emitirSessaoAtualizada(
-      campanhaId,
-      sessaoId,
-      'CONSUMIVEL_USADO',
-    );
-    return resultado;
+    if (resultado.criadoAgora) {
+      this.sessaoGateway.emitirSessaoAtualizada(
+        campanhaId,
+        sessaoId,
+        'CONSUMIVEL_USADO',
+      );
+    }
+    return resultado.detalhe;
   }
 }

@@ -48,6 +48,50 @@ export async function bloquearNpcSessaoTx(
   }
 }
 
+export async function bloquearItemInventarioCampanhaTx(
+  tx: Prisma.TransactionClient,
+  campanhaId: number,
+  itemInventarioCampanhaId: number,
+): Promise<void> {
+  await tx.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+    SELECT item.id
+    FROM InventarioItemCampanha item
+    INNER JOIN PersonagemCampanha personagem
+      ON personagem.id = item.personagemCampanhaId
+    WHERE item.id = ${itemInventarioCampanhaId}
+      AND personagem.campanhaId = ${campanhaId}
+    FOR UPDATE
+  `);
+}
+
+export async function bloquearCondicaoSessaoTx(
+  tx: Prisma.TransactionClient,
+  sessaoId: number,
+  condicaoSessaoId: number,
+): Promise<void> {
+  await tx.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+    SELECT id
+    FROM CondicaoPersonagemSessao
+    WHERE id = ${condicaoSessaoId}
+      AND sessaoId = ${sessaoId}
+    FOR UPDATE
+  `);
+}
+
+export async function bloquearSustentacaoSessaoTx(
+  tx: Prisma.TransactionClient,
+  sessaoId: number,
+  sustentacaoId: number,
+): Promise<void> {
+  await tx.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+    SELECT id
+    FROM PersonagemSessaoHabilidadeSustentada
+    WHERE id = ${sustentacaoId}
+      AND sessaoId = ${sessaoId}
+    FOR UPDATE
+  `);
+}
+
 export async function bloquearEventoSessaoTx(
   tx: Prisma.TransactionClient,
   campanhaId: number,

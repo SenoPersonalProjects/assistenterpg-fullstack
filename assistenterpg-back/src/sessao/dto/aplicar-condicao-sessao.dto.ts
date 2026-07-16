@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   ValidateIf,
@@ -14,6 +15,10 @@ const DURACAO_MODOS = ['ATE_REMOVER', 'RODADAS', 'TURNOS_ALVO'] as const;
 export type DuracaoCondicaoModo = (typeof DURACAO_MODOS)[number];
 
 export class AplicarCondicaoSessaoDto {
+  @IsOptional()
+  @IsUUID('4')
+  clientRequestId?: string;
+
   @IsInt()
   @Min(1)
   condicaoId!: number;

@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   Min,
   ValidateNested,
@@ -26,6 +27,10 @@ export class AprimoramentoTemporarioSessaoDto {
 }
 
 export class UsarHabilidadeClasseSessaoDto {
+  @IsOptional()
+  @IsUUID('4')
+  clientRequestId?: string;
+
   @Type(() => Number)
   @IsInt()
   @Min(1)

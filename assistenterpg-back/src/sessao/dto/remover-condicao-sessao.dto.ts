@@ -1,6 +1,10 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class RemoverCondicaoSessaoDto {
+  @IsOptional()
+  @IsUUID('4')
+  clientRequestId?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(2000)
