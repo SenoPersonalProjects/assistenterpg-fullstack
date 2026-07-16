@@ -635,7 +635,11 @@ export type AdicionarNpcSimplesSessaoCampanhaPayload = {
 
 export type AtualizarNpcSessaoCampanhaPayload = Partial<
   Omit<AdicionarNpcSessaoCampanhaPayload, 'npcAmeacaId'> &
-    AdicionarNpcSimplesSessaoCampanhaPayload
+    AdicionarNpcSimplesSessaoCampanhaPayload & {
+      pontosVidaAtualEsperado: number;
+      sanAtualEsperado: number;
+      eaAtualEsperado: number;
+    }
 >;
 
 export type InvocarEntidadeVinculadaSessaoPayload = {
@@ -653,6 +657,7 @@ export type ConcederMaldicaoControladaSessaoPayload = {
 };
 
 export type AplicarCondicaoSessaoCampanhaPayload = {
+  clientRequestId?: string;
   condicaoId: number;
   alvoTipo: 'PERSONAGEM' | 'NPC';
   personagemSessaoId?: number;

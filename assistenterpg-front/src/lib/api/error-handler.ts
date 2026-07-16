@@ -402,6 +402,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
   SESSAO_SUSTENTACAO_NOT_FOUND: "Sustentação ativa não encontrada.",
   SESSAO_RECURSO_INSUFICIENTE:
     "Recursos insuficientes para usar a habilidade.",
+  SESSAO_RECURSOS_DESATUALIZADOS:
+    "Os recursos mudaram em outra tela. Sincronize a sessão e tente novamente.",
   SESSAO_LIMITE_PEEA_EXCEDIDO:
     "Limite de PE/EA por turno excedido.",
   SESSAO_RECURSO_CLASSE_NAO_DISPONIVEL:

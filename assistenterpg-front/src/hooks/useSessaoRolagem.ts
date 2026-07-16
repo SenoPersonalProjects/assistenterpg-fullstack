@@ -1,22 +1,15 @@
 import { useCallback, useState } from 'react';
 import {
   apiCriarRolagemFormulaSessaoCampanha,
-  apiEnviarMensagemChatSessaoCampanha,
   criarErroUsuario,
 } from '@/lib/api';
 import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 import {
-  aplicarPeritoPendenteChatLivre,
   construirMensagemDice,
-  construirMensagemDiceMultipla,
   criarClientRequestIdRolagem,
-  expressoesDiceContemD20,
   extrairDadosRolagemServidor,
   formatarExpressaoDice,
   parseDiceInput,
-  rolarDados,
-  validarComprimentoMensagemDice,
-  type DicePeritoPendenteChat,
   type DiceRollPayload,
 } from '@/lib/campanha/sessao-dice';
 
@@ -25,21 +18,9 @@ type UseSessaoRolagemParams = {
   sessaoId: number;
   mensagem: string;
   visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
-  contextoRolagem?: {
-    tipo?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
-    dt?: number;
-    personagemSessaoId?: number;
-    personagemCampanhaId?: number;
-    periciaCodigo?: string;
-    efeitoPendenteId?: string;
-    peritoDadoFaces?: number;
-  };
-  bonusEscaladaDados?: number;
-  peritoPendenteChat?: DicePeritoPendenteChat | null;
   setMensagem: (valor: string) => void;
   setChat: (updater: (anterior: MensagemChatSessao[]) => MensagemChatSessao[]) => void;
   setErro: (mensagem: UserErrorState | null) => void;
-  onRolagemConsumiuPerito?: () => void;
   animacaoModalAtiva?: boolean;
   onAbrirModalAnimado?: (
     payloads: DiceRollPayload[],
@@ -64,27 +45,14 @@ type UseSessaoRolagemReturn = {
   handleEnviarRolagem: () => Promise<void>;
 };
 
-function mensagemConfirmouConsumoPerito(mensagem: MensagemChatSessao): boolean {
-  const ajustes = mensagem.ajustesAplicados;
-  if (!Array.isArray(ajustes)) return false;
-  return ajustes.some((ajuste) => {
-    if (typeof ajuste !== 'object' || ajuste === null) return false;
-    return (ajuste as { tipo?: unknown }).tipo === 'PERITO';
-  });
-}
-
 export function useSessaoRolagem({
   campanhaId,
   sessaoId,
   mensagem,
   visibilidade = 'PUBLICA',
-  contextoRolagem,
-  bonusEscaladaDados = 0,
-  peritoPendenteChat = null,
   setMensagem,
   setChat,
   setErro,
-  onRolagemConsumiuPerito,
   animacaoModalAtiva = false,
   onAbrirModalAnimado,
   onAtualizarModalAnimado,
@@ -102,11 +70,6 @@ export function useSessaoRolagem({
     }
 
     const expressionsParsed = resultado.expressions;
-    const contemD20 = expressoesDiceContemD20(expressionsParsed);
-    const usaFluxoMecanico =
-      (contextoRolagem?.tipo ?? 'OUTRO') !== 'OUTRO' ||
-      typeof contextoRolagem?.dt === 'number' ||
-      Boolean(peritoPendenteChat && contemD20);
     const expressionsPreview = expressionsParsed.map((expression) => {
       const formula = formatarExpressaoDice(expression);
       return expression.label ? `${expression.label}: ${formula}` : formula;
@@ -118,82 +81,7 @@ export function useSessaoRolagem({
     setEnviandoRolagem(true);
     setErro(null);
 
-    const enviarFluxoLegado = async (abrirModal: boolean) => {
-      const payloadsBase = expressionsParsed.map((expression) =>
-        rolarDados(expression),
-      );
-      const deveAplicarEscalada =
-        contextoRolagem?.tipo === 'ATAQUE' &&
-        typeof bonusEscaladaDados === 'number' &&
-        bonusEscaladaDados > 0;
-      const payloads = deveAplicarEscalada
-        ? payloadsBase.map((payload) => ({
-            ...payload,
-            modificador: payload.modificador + bonusEscaladaDados,
-          }))
-        : payloadsBase;
-      const peritoChat = aplicarPeritoPendenteChatLivre(
-        payloads,
-        peritoPendenteChat,
-      );
-      const payloadsComBonus = peritoChat.payloads;
-      const { mensagem: mensagemEnvio } =
-        payloadsComBonus.length > 1
-          ? construirMensagemDiceMultipla(payloadsComBonus)
-          : construirMensagemDice(payloadsComBonus[0]);
-      const expressions = payloadsComBonus.map(
-        (payload) => construirMensagemDice(payload).expression,
-      );
-      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
-      if (erroTamanho) throw new Error(erroTamanho);
-
-      if (animacaoModalAtiva && onAbrirModalAnimado && abrirModal) {
-        onAbrirModalAnimado(payloadsComBonus, expressions, {
-          origemServidor: false,
-        });
-      } else if (animacaoModalAtiva && onAtualizarModalAnimado) {
-        onAtualizarModalAnimado({
-          payloads: payloadsComBonus,
-          expressions,
-          origemServidor: false,
-          enviando: true,
-          enviado: false,
-          erro: null,
-        });
-      }
-
-      const enviada = await apiEnviarMensagemChatSessaoCampanha(
-        campanhaId,
-        sessaoId,
-        {
-          mensagem: mensagemEnvio,
-          visibilidade,
-          dadosRolagem: { payloads: payloadsComBonus },
-          contextoRolagem: {
-            ...contextoRolagem,
-            expressao: mensagemLimpa,
-            ...(peritoChat.consumiu && peritoPendenteChat
-              ? {
-                  efeitoPendenteId: peritoPendenteChat.id,
-                  personagemSessaoId: peritoPendenteChat.personagemSessaoId,
-                  personagemCampanhaId:
-                    peritoPendenteChat.personagemCampanhaId,
-                }
-              : {}),
-          },
-        },
-      );
-      if (mensagemConfirmouConsumoPerito(enviada)) {
-        onRolagemConsumiuPerito?.();
-      }
-      return enviada;
-    };
-
-    if (
-      animacaoModalAtiva &&
-      onAbrirModalAnimado &&
-      !usaFluxoMecanico
-    ) {
+    if (animacaoModalAtiva && onAbrirModalAnimado) {
       onAbrirModalAnimado([], expressionsPreview, {
         facesPendentes,
         origemServidor: true,
@@ -208,53 +96,30 @@ export function useSessaoRolagem({
     }
 
     try {
-      let enviada: MensagemChatSessao;
-      if (usaFluxoMecanico) {
-        enviada = await enviarFluxoLegado(true);
-      } else {
-        let respostaAutoritativa = true;
-        try {
-          enviada = await apiCriarRolagemFormulaSessaoCampanha(
-            campanhaId,
-            sessaoId,
-            {
-              tipo: 'FORMULA',
-              expressao: mensagemLimpa,
-              visibilidade,
-              contexto: { tipo: 'OUTRO' },
-              clientRequestId: criarClientRequestIdRolagem(),
-            },
-          );
-        } catch (error) {
-          const erroServidor = criarErroUsuario(error);
-          if (
-            erroServidor.code !==
-            'SESSAO_ROLAGEM_REQUER_FLUXO_MECANICO'
-          ) {
-            throw error;
-          }
-          respostaAutoritativa = false;
-          enviada = await enviarFluxoLegado(false);
-        }
-
-        if (respostaAutoritativa) {
-          const dadosServidor = extrairDadosRolagemServidor(
-            enviada.dadosRolagem,
-          );
-          if (!dadosServidor) {
-            throw new Error('Resposta autoritativa de rolagem invalida.');
-          }
-          const expressionsServidor = dadosServidor.payloads.map(
-            (payload) => construirMensagemDice(payload).expression,
-          );
-          if (animacaoModalAtiva && onAtualizarModalAnimado) {
-            onAtualizarModalAnimado({
-              payloads: dadosServidor.payloads,
-              expressions: expressionsServidor,
-              origemServidor: true,
-            });
-          }
-        }
+      const enviada = await apiCriarRolagemFormulaSessaoCampanha(
+        campanhaId,
+        sessaoId,
+        {
+          tipo: 'FORMULA',
+          expressao: mensagemLimpa,
+          visibilidade,
+          contexto: { tipo: 'OUTRO' },
+          clientRequestId: criarClientRequestIdRolagem(),
+        },
+      );
+      const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
+      if (!dadosServidor) {
+        throw new Error('Resposta autoritativa de rolagem invalida.');
+      }
+      const expressionsServidor = dadosServidor.payloads.map(
+        (payload) => construirMensagemDice(payload).expression,
+      );
+      if (animacaoModalAtiva && onAtualizarModalAnimado) {
+        onAtualizarModalAnimado({
+          payloads: dadosServidor.payloads,
+          expressions: expressionsServidor,
+          origemServidor: true,
+        });
       }
 
       setChat((anterior) => [...anterior, enviada]);
@@ -274,14 +139,10 @@ export function useSessaoRolagem({
     }
   }, [
     animacaoModalAtiva,
-    bonusEscaladaDados,
     campanhaId,
-    contextoRolagem,
     mensagem,
     onAbrirModalAnimado,
     onAtualizarModalAnimado,
-    onRolagemConsumiuPerito,
-    peritoPendenteChat,
     sessaoId,
     setChat,
     setErro,

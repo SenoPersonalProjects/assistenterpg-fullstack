@@ -21,7 +21,7 @@ import {
   apiListarPersonagensCampanha,
   apiAdicionarPersonagemSessaoCampanha,
   apiAtualizarNucleoPersonagemCampanha,
-  apiEnviarMensagemChatSessaoCampanha,
+  apiCriarRolagemFormulaSessaoCampanha,
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
   apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha,
@@ -143,19 +143,13 @@ import { useSessaoFiltroSustentadas } from '@/hooks/useSessaoFiltroSustentadas';
 import { useSessionConditionsPanel } from '@/hooks/useSessionConditionsPanel';
 import { STORAGE_ANIMACAO_ROLAGEM_CHAT_KEY } from '@/lib/constants/rolagem';
 import {
-  construirMensagemDiceMultipla,
   construirMensagemDice,
   criarClientRequestIdRolagem,
   ehMensagemDice,
   extrairDadosRolagemServidor,
   formatarExpressaoDice,
-  obterAvisoPeritoPendenteChat,
   parseDiceExpression,
-  rolarBonusDado,
-  rolarDados,
-  type DicePeritoPendenteChat,
   type DiceRollPayload,
-  validarComprimentoMensagemDice,
 } from '@/lib/campanha/sessao-dice';
 import {
   deveUsarRolagemAtaqueAutoritativa,
@@ -346,10 +340,6 @@ export default function SessaoCampanhaPage() {
   const [mensagem, setMensagem] = useState('');
   const [mensagemRolagem, setMensagemRolagem] = useState('');
   const [rolagemSecreta, setRolagemSecreta] = useState(false);
-  const [contextoRolagem, setContextoRolagem] = useState<
-    'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO'
-  >('OUTRO');
-  const [dtRolagem, setDtRolagem] = useState('');
   const [cenaTipo, setCenaTipo] = useState<TipoCenaSessaoCampanha>('LIVRE');
   const [cenaNome, setCenaNome] = useState('');
   const [limitesCategoriaAtivo, setLimitesCategoriaAtivo] = useState(false);
@@ -508,40 +498,6 @@ export default function SessaoCampanhaPage() {
     [regrasOpcionais?.ENCONTROS_SOCIAIS?.estado.alvos],
   );
   const escaladaRegraAtiva = regrasOpcionais?.ESCALADA_DADOS?.ativo === true;
-  const dtRolagemNumero = useMemo(() => {
-    if (!dtRolagem.trim()) return undefined;
-    const valor = Number(dtRolagem);
-    return Number.isFinite(valor) ? Math.trunc(valor) : undefined;
-  }, [dtRolagem]);
-  const contextoRolagemPayload = useMemo(
-    () => ({
-      tipo: contextoRolagem,
-      dt: dtRolagemNumero,
-    }),
-    [contextoRolagem, dtRolagemNumero],
-  );
-  const cardPeritoChat = useMemo(
-    () => detalhe?.cards.find((card) => card.donoId === usuario?.id) ?? null,
-    [detalhe?.cards, usuario?.id],
-  );
-  const peritoPendenteChat = useMemo<DicePeritoPendenteChat | null>(() => {
-    const efeitoPendente =
-      cardPeritoChat?.habilidadesClasse.find(
-        (habilidade) => habilidade.tipo === 'PERITO',
-      )?.efeitoPendente ?? null;
-    if (!cardPeritoChat || !efeitoPendente) return null;
-    return {
-      id: efeitoPendente.id,
-      dado: efeitoPendente.dado,
-      faces: efeitoPendente.faces,
-      personagemSessaoId: cardPeritoChat.personagemSessaoId,
-      personagemCampanhaId: cardPeritoChat.personagemCampanhaId,
-    };
-  }, [cardPeritoChat]);
-  const avisoPeritoPendenteChat = useMemo(
-    () => obterAvisoPeritoPendenteChat(peritoPendenteChat),
-    [peritoPendenteChat],
-  );
 
   const obterAjustesRecursosCard = useCallback(
     (personagemCampanhaId: number): AjustesRecursos =>
@@ -1397,10 +1353,6 @@ export default function SessaoCampanhaPage() {
     },
     [],
   );
-  const handleRolagemConsumiuPeritoChat = useCallback(() => {
-    void sincronizarTempoReal();
-  }, [sincronizarTempoReal]);
-
   const { enviandoRolagem, handleEnviarRolagem } = useSessaoRolagem({
     campanhaId,
     sessaoId,
@@ -1412,10 +1364,6 @@ export default function SessaoCampanhaPage() {
     onAbrirModalAnimado: abrirModalRolagemChat,
     onAtualizarModalAnimado: atualizarModalRolagemChat,
     visibilidade: visibilidadeRolagemAtual,
-    contextoRolagem: contextoRolagemPayload,
-    bonusEscaladaDados,
-    peritoPendenteChat,
-    onRolagemConsumiuPerito: handleRolagemConsumiuPeritoChat,
   });
 
   const handleAtualizarRegraOpcional = useCallback(
@@ -1449,7 +1397,7 @@ export default function SessaoCampanhaPage() {
           campanhaId,
           sessaoId,
           personagemCampanhaId,
-          { delta },
+          { delta, clientRequestId: criarClientRequestIdRolagem() },
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
@@ -1474,7 +1422,7 @@ export default function SessaoCampanhaPage() {
           campanhaId,
           sessaoId,
           personagemCampanhaId,
-          gasto,
+          { ...gasto, clientRequestId: criarClientRequestIdRolagem() },
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
@@ -1704,7 +1652,7 @@ export default function SessaoCampanhaPage() {
       const atualizado = await apiConsumirItemSessaoCampanha(
         campanhaId,
         sessaoId,
-        payload,
+        { ...payload, clientRequestId: criarClientRequestIdRolagem() },
       );
       setDetalhe(atualizado);
       sincronizarEstadosDerivados(atualizado);
@@ -1901,7 +1849,7 @@ export default function SessaoCampanhaPage() {
 
       const labelBase = `${payload.alvoNome} · ${payload.periciaNome}`.trim();
       const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
-      const dicePayloadBase = rolarDados({
+      const expression = formatarExpressaoDice({
         quantidade: payload.dados,
         faces: 20,
         modificador: payload.bonus,
@@ -1909,38 +1857,9 @@ export default function SessaoCampanhaPage() {
         label,
         keepMode: payload.keepMode,
       });
-      const peritoPendente =
-        payload.alvoTipo === 'PERSONAGEM' && payload.personagemCampanhaId
-          ? detalhe?.cards
-              .find(
-                (card) =>
-                  card.personagemCampanhaId === payload.personagemCampanhaId,
-              )
-              ?.habilidadesClasse?.find((habilidade) => habilidade.tipo === 'PERITO')
-              ?.efeitoPendente ?? null
-          : null;
-      const periciaCodigo = payload.periciaCodigo?.trim().toUpperCase();
-      const periciaElegivelPerito =
-        Boolean(peritoPendente) &&
-        Boolean(periciaCodigo) &&
-        periciaCodigo !== 'LUTA' &&
-        periciaCodigo !== 'PONTARIA';
-      const dicePayload =
-        peritoPendente && periciaElegivelPerito
-          ? {
-              ...dicePayloadBase,
-              bonusDados: [
-                ...(dicePayloadBase.bonusDados ?? []),
-                rolarBonusDado({
-                  origem: 'PERITO',
-                  label: `Perito +${peritoPendente.dado}`,
-                  faces: peritoPendente.faces,
-                  efeitoPendenteId: peritoPendente.id,
-                }),
-              ],
-            }
-          : dicePayloadBase;
-      const { mensagem: mensagemEnvio, expression } = construirMensagemDice(dicePayload);
+      const chaveRolagem = `FORMULA:${payload.alvoTipo}:${payload.personagemSessaoId ?? payload.npcSessaoId ?? payload.alvoNome}:${expression}`;
+      if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+      rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
       setPericiaRollModal({
         aberto: true,
         titulo: payload.periciaNome,
@@ -1950,50 +1869,46 @@ export default function SessaoCampanhaPage() {
         alvoTipo: payload.alvoTipo,
         alvoNome: payload.alvoNome,
         habilidadeContext: null,
-        payload: dicePayload,
+        payload: null,
+        payloads: [],
         expression,
-        enviando: false,
+        expressions: [expression],
+        facesPendentes: [20],
+        origemServidor: true,
+        enviando: true,
         enviado: false,
         erro: null,
       });
-      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
-      if (erroTamanho) {
-        setErroRolagens(erroTamanho);
-        setPericiaRollModal((estado) => ({
-          ...estado,
-          enviando: false,
-          enviado: false,
-          erro: erroTamanho,
-        }));
-        return;
-      }
       try {
-        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
-        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
-          mensagem: mensagemEnvio,
+        const enviada = await apiCriarRolagemFormulaSessaoCampanha(campanhaId, sessaoId, {
+          tipo: 'FORMULA',
+          expressao: expression,
           visibilidade: visibilidadeRolagemAtual,
-          dadosRolagem: {
-            payloads: [dicePayload],
-          },
-          contextoRolagem: {
-            tipo: 'PERICIA',
-            personagemSessaoId: payload.personagemSessaoId,
-            personagemCampanhaId: payload.personagemCampanhaId,
-            periciaCodigo,
-            efeitoPendenteId:
-              peritoPendente && periciaElegivelPerito
-                ? peritoPendente.id
-                : undefined,
-          },
+          contexto: { tipo: 'OUTRO' },
+          clientRequestId: criarClientRequestIdRolagem(),
         });
-        setChat((anterior) => [...anterior, enviada]);
-        if (peritoPendente && periciaElegivelPerito) {
-          void sincronizarTempoReal();
+        const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
+        if (!dadosServidor || !dadosServidor.payloads[0]) {
+          throw new Error('Resposta autoritativa de rolagem inválida.');
         }
+        const expressionsServidor = dadosServidor.payloads.map(
+          (item) => construirMensagemDice(item).expression,
+        );
+        setChat((anterior) =>
+          anterior.some((mensagem) => mensagem.id === enviada.id)
+            ? anterior
+            : [...anterior, enviada],
+        );
         setPericiaRollModal((estado) => ({
           ...estado,
+          payload: dadosServidor.payloads[0] ?? null,
+          payloads: dadosServidor.payloads,
+          expression: expressionsServidor[0] ?? expression,
+          expressions: expressionsServidor,
+          facesPendentes: undefined,
           enviando: false,
           enviado: true,
+          erro: null,
         }));
       } catch (error) {
         const userError = criarErroUsuario(error);
@@ -2004,11 +1919,12 @@ export default function SessaoCampanhaPage() {
           enviado: false,
           erro: userError.message,
         }));
+      } finally {
+        rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
       }
     },
     [
       campanhaId,
-      detalhe?.cards,
       sessaoEncerrada,
       sessaoId,
       setErroRolagens,
@@ -2527,33 +2443,30 @@ export default function SessaoCampanhaPage() {
             : item.quantidade,
       }));
 
-      const payloads: DiceRollPayload[] = [];
-      for (const item of listaDados) {
+      const componentes = listaDados.map((item) => {
         const tipoBase =
           item.tipo?.trim() || String(dano.danoFlatTipo ?? '').trim() || 'Dano';
         const labelBase = aplicarCritico
           ? `${tipoBase} (Critico x${criticoMultiplicador})`
           : tipoBase;
         const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
-        payloads.push(
-          rolarDados({
-            quantidade: item.quantidade,
-            faces: item.faces,
-            modificador: 0,
-            aplicarModificadorPorDado: false,
-            label,
-          }),
-        );
-      }
+        return {
+          quantidade: item.quantidade,
+          faces: item.faces,
+          modificador: 0,
+          aplicarModificadorPorDado: false,
+          label,
+        };
+      });
 
       const danoFlat =
         Number.isFinite(dano.danoFlat) && dano.danoFlat !== null
           ? Math.trunc(dano.danoFlat as number)
           : 0;
       if (danoFlat !== 0) {
-        if (payloads.length > 0) {
-          const primeiro = payloads[0];
-          payloads[0] = {
+        if (componentes.length > 0) {
+          const primeiro = componentes[0];
+          componentes[0] = {
             ...primeiro,
             modificador: (primeiro.modificador ?? 0) + danoFlat,
           };
@@ -2563,30 +2476,31 @@ export default function SessaoCampanhaPage() {
             ? `${tipoBase} (Critico x${criticoMultiplicador})`
             : tipoBase;
           const label = labelBase.length > 24 ? labelBase.slice(0, 24) : labelBase;
-          payloads.push(
-            rolarDados({
-              quantidade: 1,
-              faces: 1,
-              modificador: danoFlat - 1,
-              aplicarModificadorPorDado: false,
-              label,
-            }),
-          );
+          componentes.push({
+            quantidade: 1,
+            faces: 1,
+            modificador: danoFlat - 1,
+            aplicarModificadorPorDado: false,
+            label,
+          });
         }
       }
 
-      if (payloads.length === 0) {
+      if (componentes.length === 0) {
         showToast('Não foi possível montar a rolagem de dano.', 'warning');
         return;
       }
 
-      const { mensagem: mensagemEnvio } = construirMensagemDiceMultipla(payloads);
       const habilidadeLabel = payload.habilidade.variacaoNome
         ? `${payload.habilidade.habilidadeNome} · ${payload.habilidade.variacaoNome}`
         : payload.habilidade.habilidadeNome;
-      const expressions = payloads.map((item) =>
+      const expressions = componentes.map((item) =>
         item.label ? `${item.label}: ${formatarExpressaoDice(item)}` : formatarExpressaoDice(item),
       );
+      const expressaoEnvio = expressions.join('; ');
+      const chaveRolagem = `FORMULA:DANO:${payload.alvoTipo}:${payload.alvoNome}:${expressaoEnvio}`;
+      if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+      rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
       setPericiaRollModal({
         aberto: true,
         titulo: 'Dano/efeito',
@@ -2594,37 +2508,47 @@ export default function SessaoCampanhaPage() {
         alvoTipo: payload.alvoTipo,
         alvoNome: payload.alvoNome,
         habilidadeContext: null,
-        payload: payloads[0] ?? null,
-        payloads,
+        payload: null,
+        payloads: [],
         expression: expressions[0],
         expressions,
-        enviando: false,
+        facesPendentes: componentes.map((item) => item.faces),
+        origemServidor: true,
+        enviando: true,
         enviado: false,
         erro: null,
       });
-      const erroTamanho = validarComprimentoMensagemDice(mensagemEnvio);
-      if (erroTamanho) {
-        setErroRolagens(erroTamanho);
-        setPericiaRollModal((estado) => ({
-          ...estado,
-          enviando: false,
-          enviado: false,
-          erro: erroTamanho,
-        }));
-        return;
-      }
 
       try {
-        setPericiaRollModal((estado) => ({ ...estado, enviando: true }));
-        const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
-          mensagem: mensagemEnvio,
+        const enviada = await apiCriarRolagemFormulaSessaoCampanha(campanhaId, sessaoId, {
+          tipo: 'FORMULA',
+          expressao: expressaoEnvio,
           visibilidade: visibilidadeRolagemAtual,
+          contexto: { tipo: 'OUTRO' },
+          clientRequestId: criarClientRequestIdRolagem(),
         });
-        setChat((anterior) => [...anterior, enviada]);
+        const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
+        if (!dadosServidor || dadosServidor.payloads.length === 0) {
+          throw new Error('Resposta autoritativa de rolagem inválida.');
+        }
+        const expressionsServidor = dadosServidor.payloads.map(
+          (item) => construirMensagemDice(item).expression,
+        );
+        setChat((anterior) =>
+          anterior.some((mensagem) => mensagem.id === enviada.id)
+            ? anterior
+            : [...anterior, enviada],
+        );
         setPericiaRollModal((estado) => ({
           ...estado,
+          payload: dadosServidor.payloads[0] ?? null,
+          payloads: dadosServidor.payloads,
+          expression: expressionsServidor[0] ?? expressions[0],
+          expressions: expressionsServidor,
+          facesPendentes: undefined,
           enviando: false,
           enviado: true,
+          erro: null,
         }));
       } catch (error) {
         const userError = criarErroUsuario(error);
@@ -2635,6 +2559,8 @@ export default function SessaoCampanhaPage() {
           enviado: false,
           erro: userError.message,
         }));
+      } finally {
+        rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
       }
     },
     [
@@ -3869,10 +3795,6 @@ export default function SessaoCampanhaPage() {
                 mensagem={mensagem}
                 mensagemRolagem={mensagemRolagem}
                 rolagemSecreta={rolagemSecreta}
-                contextoRolagem={contextoRolagem}
-                dtRolagem={dtRolagem}
-                bonusEscaladaDados={bonusEscaladaDados}
-                peritoPendenteChatLabel={avisoPeritoPendenteChat}
                 usuarioId={usuario?.id ?? null}
                 animacaoModalAtiva={animacaoRolagemChatAtiva}
                 onToggleAnimacaoModal={handleToggleAnimacaoRolagemChat}
@@ -3882,8 +3804,6 @@ export default function SessaoCampanhaPage() {
                 onMensagemRolagemChange={handleMensagemRolagemChange}
                 onEnviarRolagem={() => void handleEnviarRolagem()}
                 onToggleRolagemSecreta={setRolagemSecreta}
-                onContextoRolagemChange={setContextoRolagem}
-                onDtRolagemChange={setDtRolagem}
                 onAbrirDetalhes={(evento) => {
                   setEventoDetalheModal(evento);
                   setMotivoDesfazerEventoModal('');

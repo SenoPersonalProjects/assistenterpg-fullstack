@@ -66,6 +66,10 @@ export function useSessaoRecursos({
           peAtual: number;
           eaAtual: number;
           sanAtual: number;
+          pvAtualEsperado: number;
+          peAtualEsperado: number;
+          eaAtualEsperado: number;
+          sanAtualEsperado: number;
         }
       | null => {
       if (!card.recursos) return null;
@@ -75,6 +79,10 @@ export function useSessaoRecursos({
         peAtual: card.recursos.peAtual,
         eaAtual: card.recursos.eaAtual,
         sanAtual: card.recursos.sanAtual,
+        pvAtualEsperado: card.recursos.pvAtual,
+        peAtualEsperado: card.recursos.peAtual,
+        eaAtualEsperado: card.recursos.eaAtual,
+        sanAtualEsperado: card.recursos.sanAtual,
       };
       const pvMaxAtual = card.recursos.pvBarraMaxAtual ?? card.recursos.pvMax;
 

@@ -8,6 +8,7 @@ import {
 } from '@/lib/api';
 import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import { calcularRestanteCooldown } from '@/lib/campanha/sessao-utils';
+import { criarClientRequestIdRolagem } from '@/lib/campanha/sessao-dice';
 
 type UseSessaoHabilidadesParams = {
   campanhaId: number;
@@ -104,6 +105,7 @@ export function useSessaoHabilidades({
           sessaoId,
           personagemSessaoId,
           {
+            clientRequestId: criarClientRequestIdRolagem(),
             habilidadeTecnicaId,
             variacaoHabilidadeId,
             acumulos: (() => {
@@ -155,7 +157,7 @@ export function useSessaoHabilidades({
           campanhaId,
           sessaoId,
           personagemSessaoId,
-          payload,
+          { ...payload, clientRequestId: criarClientRequestIdRolagem() },
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);
@@ -189,6 +191,7 @@ export function useSessaoHabilidades({
           sessaoId,
           personagemSessaoId,
           sustentacaoId,
+          { clientRequestId: criarClientRequestIdRolagem() },
         );
         setDetalhe(atualizado);
         sincronizarEstadosDerivados(atualizado);

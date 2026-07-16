@@ -6,7 +6,6 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
-import { Icon } from '@/components/ui/Icon';
 import { DiceMessageCard } from '@/components/campanha/sessao/DiceMessageCard';
 import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
@@ -30,14 +29,8 @@ type DiceChatPanelProps = {
   animacaoModalAtiva: boolean;
   podeUsarRolagemSecreta?: boolean;
   rolagemSecreta?: boolean;
-  contextoRolagem?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
-  dtRolagem?: string;
-  bonusEscaladaDados?: number;
-  peritoPendenteChatLabel?: string | null;
   onToggleAnimacaoModal: (ativo: boolean) => void;
   onToggleRolagemSecreta?: (ativo: boolean) => void;
-  onContextoRolagemChange?: (contexto: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO') => void;
-  onDtRolagemChange?: (valor: string) => void;
   onMensagemChange: (mensagem: string) => void;
   onEnviarMensagem: () => void;
 };
@@ -52,14 +45,8 @@ export function DiceChatPanel({
   animacaoModalAtiva,
   podeUsarRolagemSecreta = false,
   rolagemSecreta = false,
-  contextoRolagem = 'OUTRO',
-  dtRolagem = '',
-  bonusEscaladaDados = 0,
-  peritoPendenteChatLabel = null,
   onToggleAnimacaoModal,
   onToggleRolagemSecreta,
-  onContextoRolagemChange,
-  onDtRolagemChange,
   onMensagemChange,
   onEnviarMensagem,
 }: DiceChatPanelProps) {
@@ -69,7 +56,6 @@ export function DiceChatPanel({
   const [autoScrollAtivo, setAutoScrollAtivo] = useState(true);
   const [sucessoEnvio, setSucessoEnvio] = useState(false);
   const [ajudaAberta, setAjudaAberta] = useState(false);
-  const [configRolagemAberta, setConfigRolagemAberta] = useState(false);
   const fimListaRef = useRef<HTMLDivElement | null>(null);
 
   const podeEnviar =
@@ -244,55 +230,6 @@ export function DiceChatPanel({
           </span>
         </div>
       ) : null}
-      <div className="session-chat__roll-settings-legacy">
-        <label className="space-y-1">
-          <span className="font-bold text-app-fg">Contexto</span>
-          <select
-            value={contextoRolagem}
-            onChange={(event) =>
-              onContextoRolagemChange?.(
-                event.target.value as 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO',
-              )
-            }
-            className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-bold text-app-fg"
-          >
-            <option value="OUTRO">Outro</option>
-            <option value="ATAQUE">Teste de ataque</option>
-            <option value="PERICIA">Perícia</option>
-            <option value="DANO">Dano ou cura</option>
-          </select>
-        </label>
-        <label className="space-y-1">
-          <span className="font-bold text-app-fg">DT opcional</span>
-          <input
-            value={dtRolagem}
-            onChange={(event) => onDtRolagemChange?.(event.target.value)}
-            inputMode="numeric"
-            className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-sm font-bold text-app-fg"
-            placeholder="Ex.: 20"
-          />
-        </label>
-        {contextoRolagem === 'ATAQUE' && bonusEscaladaDados > 0 ? (
-          <span className="rounded-lg bg-app-danger/10 px-3 py-2 font-black text-app-danger">
-            Escalada de Dados +{bonusEscaladaDados} aplicada
-          </span>
-        ) : null}
-        {peritoPendenteChatLabel ? (
-          <span className="rounded-lg bg-app-warning/10 px-3 py-2 font-black text-app-warning">
-            {peritoPendenteChatLabel}
-          </span>
-        ) : null}
-      </div>
-      {contextoRolagem === 'ATAQUE' && bonusEscaladaDados > 0 ? (
-        <span className="session-chat__roll-notice session-chat__roll-notice--danger">
-          Escalada de Dados +{bonusEscaladaDados} aplicada
-        </span>
-      ) : null}
-      {peritoPendenteChatLabel ? (
-        <span className="session-chat__roll-notice session-chat__roll-notice--warning">
-          {peritoPendenteChatLabel}
-        </span>
-      ) : null}
       {sucessoEnvio ? (
         <p className="session-chat__hint session-chat__hint--success">
           Rolagem enviada.
@@ -331,56 +268,7 @@ export function DiceChatPanel({
       ) : null}
 
       <div className="session-chat__input-row">
-        <div className="session-chat__input-head">
-          <label className="text-sm font-medium text-app-fg">Rolagem</label>
-          <Button
-            type="button"
-            size="xs"
-            variant="ghost"
-            className="session-chat__settings-button"
-            aria-expanded={configRolagemAberta}
-            aria-controls="session-chat-roll-settings"
-            aria-label="Configurar rolagem"
-            title="Configurar rolagem"
-            onClick={() => setConfigRolagemAberta((aberta) => !aberta)}
-          >
-            <Icon name="settings" className="h-4 w-4" />
-          </Button>
-        </div>
-        {configRolagemAberta ? (
-          <div
-            id="session-chat-roll-settings"
-            className="session-chat__roll-settings"
-          >
-            <label className="session-chat__roll-setting">
-              <span>Contexto</span>
-              <select
-                value={contextoRolagem}
-                onChange={(event) =>
-                  onContextoRolagemChange?.(
-                    event.target.value as 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO',
-                  )
-                }
-                className="session-chat__roll-field"
-              >
-                <option value="OUTRO">Outro</option>
-                <option value="ATAQUE">Teste de ataque</option>
-                <option value="PERICIA">Perícia</option>
-                <option value="DANO">Dano ou cura</option>
-              </select>
-            </label>
-            <label className="session-chat__roll-setting">
-              <span>DT opcional</span>
-              <input
-                value={dtRolagem}
-                onChange={(event) => onDtRolagemChange?.(event.target.value)}
-                inputMode="numeric"
-                className="session-chat__roll-field"
-                placeholder="Ex.: 20"
-              />
-            </label>
-          </div>
-        ) : null}
+        <label className="text-sm font-medium text-app-fg">Rolagem</label>
         <textarea
           ref={textareaRef}
           value={mensagem}

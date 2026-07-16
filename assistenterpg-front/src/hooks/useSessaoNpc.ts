@@ -138,18 +138,21 @@ export function useSessaoNpc({
             0,
             npc.pontosVidaMax,
           ),
+          pontosVidaAtualEsperado: npc.pontosVidaAtual,
         };
       }
       if (campo === 'san') {
         if (npc.sanAtual === null || npc.sanMax === null) return null;
         return {
           sanAtual: clampEntre(npc.sanAtual + deltaInteiro, 0, npc.sanMax),
+          sanAtualEsperado: npc.sanAtual,
         };
       }
       if (campo === 'ea') {
         if (npc.eaAtual === null || npc.eaMax === null) return null;
         return {
           eaAtual: clampEntre(npc.eaAtual + deltaInteiro, 0, npc.eaMax),
+          eaAtualEsperado: npc.eaAtual,
         };
       }
       return null;

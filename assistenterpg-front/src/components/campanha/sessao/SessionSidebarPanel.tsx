@@ -57,10 +57,6 @@ type SessionSidebarPanelProps = {
   mensagem: string;
   mensagemRolagem: string;
   rolagemSecreta?: boolean;
-  contextoRolagem?: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO';
-  dtRolagem?: string;
-  bonusEscaladaDados?: number;
-  peritoPendenteChatLabel?: string | null;
   usuarioId?: number | null;
   animacaoModalAtiva: boolean;
   onToggleAnimacaoModal: (ativo: boolean) => void;
@@ -69,8 +65,6 @@ type SessionSidebarPanelProps = {
   onEnviarMensagem: () => void;
   onMensagemRolagemChange: (mensagem: string) => void;
   onToggleRolagemSecreta?: (ativo: boolean) => void;
-  onContextoRolagemChange?: (contexto: 'ATAQUE' | 'PERICIA' | 'DANO' | 'OUTRO') => void;
-  onDtRolagemChange?: (valor: string) => void;
   onEnviarRolagem: () => void;
   onAbrirDetalhes: (evento: EventoSessaoTimeline) => void;
   onDesfazerEvento: (evento: EventoSessaoTimeline) => void;
@@ -104,10 +98,6 @@ export function SessionSidebarPanel({
   mensagem,
   mensagemRolagem,
   rolagemSecreta,
-  contextoRolagem,
-  dtRolagem,
-  bonusEscaladaDados,
-  peritoPendenteChatLabel,
   usuarioId,
   animacaoModalAtiva,
   onToggleAnimacaoModal,
@@ -116,8 +106,6 @@ export function SessionSidebarPanel({
   onEnviarMensagem,
   onMensagemRolagemChange,
   onToggleRolagemSecreta,
-  onContextoRolagemChange,
-  onDtRolagemChange,
   onEnviarRolagem,
   onAbrirDetalhes,
   onDesfazerEvento,
@@ -290,14 +278,8 @@ export function SessionSidebarPanel({
                   animacaoModalAtiva={animacaoModalAtiva}
                   podeUsarRolagemSecreta={podeControlarSessao}
                   rolagemSecreta={rolagemSecreta}
-                  contextoRolagem={contextoRolagem}
-                  dtRolagem={dtRolagem}
-                  bonusEscaladaDados={bonusEscaladaDados}
-                  peritoPendenteChatLabel={peritoPendenteChatLabel}
                   onToggleAnimacaoModal={onToggleAnimacaoModal}
                   onToggleRolagemSecreta={onToggleRolagemSecreta}
-                  onContextoRolagemChange={onContextoRolagemChange}
-                  onDtRolagemChange={onDtRolagemChange}
                   onMensagemChange={onMensagemRolagemChange}
                   onEnviarMensagem={onEnviarRolagem}
                 />

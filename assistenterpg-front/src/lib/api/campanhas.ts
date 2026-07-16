@@ -50,12 +50,14 @@ export type AtualizarOrdemIniciativaSessaoCampanhaPayload = {
 };
 
 export type UsarHabilidadeSessaoCampanhaPayload = {
+  clientRequestId?: string;
   habilidadeTecnicaId: number;
   variacaoHabilidadeId?: number;
   acumulos?: number;
 };
 
 export type UsarHabilidadeClasseSessaoCampanhaPayload = {
+  clientRequestId?: string;
   habilidadeId: number;
   versaoNivel: number;
   aprimoramentos?: Array<{
@@ -701,7 +703,7 @@ export async function apiAjustarInspiracaoSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   personagemCampanhaId: number,
-  payload: { delta: number },
+  payload: { delta: number; clientRequestId?: string },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/inspiracao/${personagemCampanhaId}/ajustar`,
@@ -714,7 +716,11 @@ export async function apiGastarInspiracaoSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   personagemCampanhaId: number,
-  payload: { custo: 1 | 2 | 3; efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO' },
+  payload: {
+    custo: 1 | 2 | 3;
+    efeito: 'BONUS_5' | 'MAXIMIZAR' | 'CRITICO';
+    clientRequestId?: string;
+  },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/inspiracao/${personagemCampanhaId}/gastar`,
@@ -809,6 +815,7 @@ export async function apiConsumirItemSessaoCampanha(
     alvoTipo?: 'PERSONAGEM' | 'NPC';
     alvoId?: number;
     observacao?: string;
+    clientRequestId?: string;
   },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
@@ -827,6 +834,10 @@ export async function apiAtualizarRecursosPersonagemSessaoCampanha(
     peAtual: number;
     eaAtual: number;
     sanAtual: number;
+    pvAtualEsperado: number;
+    peAtualEsperado: number;
+    eaAtualEsperado: number;
+    sanAtualEsperado: number;
   }>,
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.patch(
@@ -1056,7 +1067,7 @@ export async function apiRemoverCondicaoSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   condicaoSessaoId: number,
-  payload?: { motivo?: string },
+  payload?: { motivo?: string; clientRequestId?: string },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/condicoes/${condicaoSessaoId}/remover`,
@@ -1096,7 +1107,7 @@ export async function apiEncerrarSustentacaoHabilidadeSessaoCampanha(
   sessaoId: number,
   personagemSessaoId: number,
   sustentacaoId: number,
-  payload?: { motivo?: string },
+  payload?: { motivo?: string; clientRequestId?: string },
 ): Promise<SessaoCampanhaDetalhe> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/sustentacoes/${sustentacaoId}/encerrar`,

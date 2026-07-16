@@ -7,6 +7,7 @@ import {
 import type { SessaoCampanhaDetalhe, UserErrorState } from '@/lib/types';
 import type { AlvoCondicoesModal, FormCondicaoSessao } from '@/components/campanha/sessao/types';
 import { validarAplicacaoCondicao } from '@/lib/campanha/sessao-utils';
+import { criarClientRequestIdRolagem } from '@/lib/campanha/sessao-dice';
 
 type UseSessaoCondicoesParams = {
   campanhaId: number;
@@ -131,6 +132,7 @@ export function useSessaoCondicoes({
           campanhaId,
           sessaoId,
           {
+            clientRequestId: criarClientRequestIdRolagem(),
             condicaoId: validacao.condicaoId,
             alvoTipo,
             personagemSessaoId: alvoTipo === 'PERSONAGEM' ? alvoId : undefined,
@@ -185,6 +187,7 @@ export function useSessaoCondicoes({
           sessaoId,
           condicaoSessaoId,
           {
+            clientRequestId: criarClientRequestIdRolagem(),
             motivo: form.motivoRemocao.trim() || undefined,
           },
         );
