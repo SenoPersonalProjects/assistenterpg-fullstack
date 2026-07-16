@@ -862,6 +862,65 @@ describe('sessao-dice autoritativo', () => {
     ).toBeNull();
   });
 
+  it('aceita metadados autoritativos de ataque de arma equipada', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'ATAQUE_ITEM_PERSONAGEM',
+      clientRequestId: 'de34db7f-d3dc-4e26-a184-3947cb4dcf61',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      itemInventarioCampanhaId: 51,
+      equipamentoId: 61,
+      equipamentoNome: 'Espada',
+      periciaCodigo: 'LUTA',
+      atributoEscolhido: 'FOR',
+      dadosLogicos: 2,
+      bonusBase: 10,
+      bonusEscalada: 0,
+      formulasResolvidas: ['2#d20+10'],
+      formulaResolvida: '2#d20+10',
+      payloads: [criarPayloadComRolagens('2#d20+10', [[5, 18]])],
+      resultado: {
+        total: 28,
+        dt: null,
+        sucesso: null,
+        falhaCritica: false,
+      },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, itemInventarioCampanhaId: '51' }),
+    ).toBeNull();
+  });
+
+  it('aceita dano e critico de arma somente com resultado servido', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'CRITICO_ITEM_PERSONAGEM',
+      clientRequestId: 'e96e260f-5c9d-421c-b950-5d932dc97868',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      itemInventarioCampanhaId: 51,
+      equipamentoId: 61,
+      equipamentoNome: 'Espada',
+      empunhadura: 'UMA_MAO',
+      formulaBase: '1d8+3',
+      criticoMultiplicador: 2,
+      formulasResolvidas: ['2d8+3'],
+      formulaResolvida: '2d8+3',
+      payloads: [criarPayloadComRolagens('2d8+3', [[5, 7]])],
+      resultado: { total: 15 },
+    };
+
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(
+      extrairDadosRolagemServidor({ ...dados, criticoMultiplicador: 1 }),
+    ).toBeNull();
+  });
+
   it('aceita metadados autoritativos de ataque de NPC por acao', () => {
     const dados = {
       versao: 1,
