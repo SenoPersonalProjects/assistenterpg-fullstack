@@ -146,6 +146,42 @@ describe('CriarRolagemSessaoDto', () => {
     );
   });
 
+  it('aceita somente a intencao manual de ataque de arma equipada', async () => {
+    const payload = {
+      tipo: 'ATAQUE_ITEM_PERSONAGEM',
+      personagemSessaoId: 31,
+      itemInventarioCampanhaId: 51,
+      atributoEscolhido: 'AGI',
+      ajusteFlatManual: 5,
+      ajusteDadosManual: -1,
+      contexto: { dt: 24 },
+      clientRequestId: '15b60175-0c5b-47c5-8cae-5cf7b7ef15b7',
+    };
+
+    await expect(pipe.transform(payload, metadata)).resolves.toMatchObject(
+      payload,
+    );
+  });
+
+  it.each(['expressao', 'dados', 'faces', 'total', 'resultado', 'critico'])(
+    'rejeita campo calculado %s em macro de arma',
+    async (campo) => {
+      await expect(
+        pipe.transform(
+          {
+            tipo: 'DANO_ITEM_PERSONAGEM',
+            personagemSessaoId: 31,
+            itemInventarioCampanhaId: 51,
+            empunhadura: 'UMA_MAO',
+            clientRequestId: '9c4e871f-5b0d-48cc-9d59-5b952cb6e707',
+            [campo]: campo === 'expressao' ? '1d8+3' : 20,
+          },
+          metadata,
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+    },
+  );
+
   it.each([
     'expressao',
     'dados',
