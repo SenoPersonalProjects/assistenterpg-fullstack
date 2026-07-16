@@ -437,16 +437,8 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "A fórmula persistida para este consumível é inválida.",
   SESSAO_CONSUMO_RECURSO_NPC_INDISPONIVEL:
     "O recurso do NPC/Ameaça não pode receber este consumível.",
-  SESSAO_PERITO_PAYLOAD_INVALIDO:
-    "A rolagem não possui os dados necessários para aplicar Perito.",
   SESSAO_PERITO_PENDENTE_EXISTENTE:
     "Este personagem já possui um efeito de Perito pendente.",
-  SESSAO_PERITO_PENDENTE_NAO_ENCONTRADO:
-    "O efeito de Perito pendente não foi encontrado.",
-  SESSAO_PERITO_PERICIA_INVALIDA:
-    "Perito não pode ser aplicado nesta perícia.",
-  SESSAO_PERITO_PERICIA_NAO_TREINADA:
-    "Perito exige uma perícia treinada.",
   NPC_AMEACA_NOT_FOUND: "Aliado/Ameaça não encontrado",
   CONVITE_NOT_FOUND: "Convite não encontrado",
   CONVITE_INVALIDO: "Convite inválido ou já utilizado",
