@@ -13,6 +13,8 @@ import type {
   UserErrorState,
 } from '@/lib/types';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
+import type { PreferenciaMacroArmaSessao } from '@/lib/campanha/sessao-preferencias';
+import type { SolicitacaoMacroArma } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import type {
   AjustesRecursos,
   CampoAjusteRecurso,
@@ -26,6 +28,7 @@ import type {
 
 type SessionCharactersPanelProps = {
   campanhaId: number;
+  sessaoId: number;
   cards: SessaoCampanhaDetalhe['cards'];
   iniciativaPorPersonagemSessao: Map<number, number>;
   cardsRecursosExpandidos: Record<number, boolean>;
@@ -93,6 +96,15 @@ type SessionCharactersPanelProps = {
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
+  preferenciasMacrosArmas: Record<string, PreferenciaMacroArmaSessao>;
+  onAtualizarPreferenciasMacrosArmas: (
+    atualizacao:
+      | Record<string, PreferenciaMacroArmaSessao>
+      | ((
+          estado: Record<string, PreferenciaMacroArmaSessao>,
+        ) => Record<string, PreferenciaMacroArmaSessao>),
+  ) => void;
+  onRolarMacroArma: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
   onAbrirEdicaoPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onAbrirFichaCompleta: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onInvocarVinculado?: (vinculadoId: number) => void;
@@ -136,6 +148,7 @@ type SessionCharactersPanelProps = {
 
 export function SessionCharactersPanel({
   campanhaId,
+  sessaoId,
   cards,
   iniciativaPorPersonagemSessao,
   cardsRecursosExpandidos,
@@ -170,6 +183,9 @@ export function SessionCharactersPanel({
   onRolarPericia,
   onRolarTesteHabilidade,
   onRolarDanoHabilidade,
+  preferenciasMacrosArmas,
+  onAtualizarPreferenciasMacrosArmas,
+  onRolarMacroArma,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
   onInvocarVinculado,
@@ -241,6 +257,7 @@ export function SessionCharactersPanel({
             <CharacterSessionCard
               key={card.personagemSessaoId}
               campanhaId={campanhaId}
+              sessaoId={sessaoId}
               card={card}
               iniciativaValor={iniciativaValor ?? null}
               cardRecursosExpandido={cardRecursosExpandido}
@@ -312,6 +329,9 @@ export function SessionCharactersPanel({
               onRolarPericia={onRolarPericia}
               onRolarTesteHabilidade={onRolarTesteHabilidade}
               onRolarDanoHabilidade={onRolarDanoHabilidade}
+              preferenciasMacrosArmas={preferenciasMacrosArmas}
+              onAtualizarPreferenciasMacrosArmas={onAtualizarPreferenciasMacrosArmas}
+              onRolarMacroArma={onRolarMacroArma}
               recursosCompactosObrigatorios={recursosCompactosObrigatorios}
               inspiracaoAtiva={inspiracaoAtiva}
               pontosInspiracao={pontosInspiracao}

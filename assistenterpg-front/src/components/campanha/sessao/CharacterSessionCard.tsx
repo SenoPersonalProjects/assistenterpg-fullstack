@@ -17,6 +17,10 @@ import {
 } from '@/lib/campanha/sessao-status';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
 import type {
+  PreferenciaMacroArmaSessao,
+} from '@/lib/campanha/sessao-preferencias';
+import type { SolicitacaoMacroArma } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
+import type {
   RolagemDanoHabilidadeSessaoPayload,
   RolagemPericiaSessaoPayload,
   RolagemTesteHabilidadeSessaoPayload,
@@ -32,6 +36,7 @@ type GastoInspiracaoCard = {
 
 type CharacterSessionCardProps = {
   campanhaId: number;
+  sessaoId: number;
   card: SessaoCampanhaDetalhe['cards'][number];
   iniciativaValor: number | null;
   cardRecursosExpandido: boolean;
@@ -124,6 +129,15 @@ type CharacterSessionCardProps = {
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
+  preferenciasMacrosArmas: Record<string, PreferenciaMacroArmaSessao>;
+  onAtualizarPreferenciasMacrosArmas: (
+    atualizacao:
+      | Record<string, PreferenciaMacroArmaSessao>
+      | ((
+          estado: Record<string, PreferenciaMacroArmaSessao>,
+        ) => Record<string, PreferenciaMacroArmaSessao>),
+  ) => void;
+  onRolarMacroArma: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
   recursosCompactosObrigatorios?: boolean;
   inspiracaoAtiva?: boolean;
   pontosInspiracao?: number;
@@ -138,6 +152,7 @@ type CharacterSessionCardProps = {
 
 export function CharacterSessionCard({
   campanhaId,
+  sessaoId,
   card,
   iniciativaValor,
   cardRecursosExpandido,
@@ -183,6 +198,9 @@ export function CharacterSessionCard({
   onRolarPericia,
   onRolarTesteHabilidade,
   onRolarDanoHabilidade,
+  preferenciasMacrosArmas,
+  onAtualizarPreferenciasMacrosArmas,
+  onRolarMacroArma,
   recursosCompactosObrigatorios = false,
   inspiracaoAtiva = false,
   pontosInspiracao = 0,
@@ -357,6 +375,7 @@ export function CharacterSessionCard({
         <SessionCharacterDetailsTabs
           card={card}
           campanhaId={campanhaId}
+          sessaoId={sessaoId}
           iniciativaValor={iniciativaValor ?? null}
           abaDetalheCard={abaDetalheCard}
           totalCondicoesAtivasCard={totalCondicoesAtivasCard}
@@ -399,6 +418,9 @@ export function CharacterSessionCard({
           onRolarPericia={onRolarPericia}
           onRolarTesteHabilidade={onRolarTesteHabilidade}
           onRolarDanoHabilidade={onRolarDanoHabilidade}
+          preferenciasMacrosArmas={preferenciasMacrosArmas}
+          onAtualizarPreferenciasMacrosArmas={onAtualizarPreferenciasMacrosArmas}
+          onRolarMacroArma={onRolarMacroArma}
         />
       ) : null}
 

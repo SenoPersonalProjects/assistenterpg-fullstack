@@ -159,6 +159,51 @@ export type DadosRolagemAtaqueServidorSessao = {
   };
 };
 
+export type DadosRolagemAtaqueItemServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'ATAQUE_ITEM_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  itemInventarioCampanhaId: number;
+  equipamentoId: number;
+  equipamentoNome: string;
+  periciaCodigo: string;
+  atributoEscolhido: 'FOR' | 'AGI';
+  dadosLogicos: number;
+  bonusBase: number;
+  bonusEscalada: number;
+  formulasResolvidas: string[];
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: {
+    total: number;
+    dt: number | null;
+    sucesso: boolean | null;
+    falhaCritica: boolean;
+  };
+};
+
+export type DadosRolagemDanoItemServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'DANO_ITEM_PERSONAGEM' | 'CRITICO_ITEM_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  itemInventarioCampanhaId: number;
+  equipamentoId: number;
+  equipamentoNome: string;
+  empunhadura: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS';
+  formulaBase: string;
+  criticoMultiplicador: number | null;
+  formulasResolvidas: string[];
+  formulaResolvida: string;
+  payloads: DiceRollPayload[];
+  resultado: { total: number };
+};
+
 export type DadosRolagemNpcServidorSessao = {
   versao: 1;
   origem: 'SERVIDOR';
@@ -267,6 +312,8 @@ export type DadosRolagemServidorSessao =
   | DadosRolagemFormulaServidorSessao
   | DadosRolagemPericiaServidorSessao
   | DadosRolagemAtaqueServidorSessao
+  | DadosRolagemAtaqueItemServidorSessao
+  | DadosRolagemDanoItemServidorSessao
   | DadosRolagemNpcServidorSessao
   | DadosRolagemDanoNpcServidorSessao
   | DadosRolagemTesteHabilidadeServidorSessao
@@ -824,6 +871,60 @@ export function extrairDadosRolagemServidor(
     return registro as
       | DadosRolagemPericiaServidorSessao
       | DadosRolagemAtaqueServidorSessao;
+  }
+  if (registro.tipo === 'ATAQUE_ITEM_PERSONAGEM') {
+    const resultado = registro.resultado as Record<string, unknown> | null;
+    if (
+      !Number.isInteger(registro.personagemSessaoId) ||
+      !Number.isInteger(registro.personagemCampanhaId) ||
+      !Number.isInteger(registro.itemInventarioCampanhaId) ||
+      !Number.isInteger(registro.equipamentoId) ||
+      typeof registro.equipamentoNome !== 'string' ||
+      typeof registro.periciaCodigo !== 'string' ||
+      (registro.atributoEscolhido !== 'FOR' && registro.atributoEscolhido !== 'AGI') ||
+      typeof registro.dadosLogicos !== 'number' ||
+      !Number.isFinite(registro.dadosLogicos) ||
+      typeof registro.bonusBase !== 'number' ||
+      !Number.isFinite(registro.bonusBase) ||
+      typeof registro.bonusEscalada !== 'number' ||
+      !Number.isFinite(registro.bonusEscalada) ||
+      typeof registro.formulaResolvida !== 'string' ||
+      !Array.isArray(registro.formulasResolvidas) ||
+      !registro.formulasResolvidas.every((formula) => typeof formula === 'string') ||
+      !resultado ||
+      typeof resultado.total !== 'number' ||
+      !Number.isFinite(resultado.total)
+    ) {
+      return null;
+    }
+    return registro as DadosRolagemAtaqueItemServidorSessao;
+  }
+  if (
+    registro.tipo === 'DANO_ITEM_PERSONAGEM' ||
+    registro.tipo === 'CRITICO_ITEM_PERSONAGEM'
+  ) {
+    const resultado = registro.resultado as Record<string, unknown> | null;
+    if (
+      !Number.isInteger(registro.personagemSessaoId) ||
+      !Number.isInteger(registro.personagemCampanhaId) ||
+      !Number.isInteger(registro.itemInventarioCampanhaId) ||
+      !Number.isInteger(registro.equipamentoId) ||
+      typeof registro.equipamentoNome !== 'string' ||
+      !['LEVE', 'UMA_MAO', 'DUAS_MAOS'].includes(String(registro.empunhadura)) ||
+      typeof registro.formulaBase !== 'string' ||
+      typeof registro.formulaResolvida !== 'string' ||
+      !Array.isArray(registro.formulasResolvidas) ||
+      !registro.formulasResolvidas.every((formula) => typeof formula === 'string') ||
+      !resultado ||
+      typeof resultado.total !== 'number' ||
+      !Number.isFinite(resultado.total) ||
+      (registro.tipo === 'CRITICO_ITEM_PERSONAGEM' &&
+        (!Number.isInteger(registro.criticoMultiplicador) ||
+          Number(registro.criticoMultiplicador) < 2))
+    ) {
+      return null;
+    }
+    return registro as DadosRolagemDanoItemServidorSessao;
   }
   if (registro.tipo === 'PERICIA_NPC' || registro.tipo === 'ATAQUE_NPC') {
     if (

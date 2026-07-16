@@ -8,6 +8,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SessionTabs, type SessionTabItem } from '@/components/campanha/sessao/SessionTabs';
 import { SessionTechniqueBlock } from '@/components/campanha/sessao/SessionTechniqueBlock';
 import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/SessionCharacterInventoryTab';
+import {
+  SessionCharacterMacrosTab,
+  type SolicitacaoMacroArma,
+} from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import { Icon } from '@/components/ui/Icon';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
 import { textoSeguro } from '@/lib/campanha/sessao-formatters';
@@ -15,7 +19,10 @@ import {
   formatarBuffsAprimoradoAtivos,
   formatarTipoGrauAprimorado,
 } from '@/lib/campanha/sessao-aprimoramentos';
-import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
+import type {
+  AbaDetalheCard,
+  PreferenciaMacroArmaSessao,
+} from '@/lib/campanha/sessao-preferencias';
 import type {
   RolagemDanoHabilidadeSessaoPayload,
   RolagemPericiaSessaoPayload,
@@ -44,6 +51,7 @@ type AprimoradoModalState = {
 type SessionCharacterDetailsTabsProps = {
   card: SessaoCampanhaDetalhe['cards'][number];
   campanhaId: number;
+  sessaoId: number;
   iniciativaValor: number | null;
   abaDetalheCard: AbaDetalheCard;
   totalCondicoesAtivasCard: number;
@@ -114,6 +122,15 @@ type SessionCharacterDetailsTabsProps = {
   onRolarPericia: (payload: RolagemPericiaSessaoPayload) => void;
   onRolarTesteHabilidade: (payload: RolagemTesteHabilidadeSessaoPayload) => void;
   onRolarDanoHabilidade: (payload: RolagemDanoHabilidadeSessaoPayload) => void;
+  preferenciasMacrosArmas: Record<string, PreferenciaMacroArmaSessao>;
+  onAtualizarPreferenciasMacrosArmas: (
+    atualizacao:
+      | Record<string, PreferenciaMacroArmaSessao>
+      | ((
+          estado: Record<string, PreferenciaMacroArmaSessao>,
+        ) => Record<string, PreferenciaMacroArmaSessao>),
+  ) => void;
+  onRolarMacroArma: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -179,6 +196,7 @@ function formatarTipoVinculado(tipo: string): string {
 export function SessionCharacterDetailsTabs({
   card,
   campanhaId,
+  sessaoId,
   iniciativaValor,
   abaDetalheCard,
   totalCondicoesAtivasCard,
@@ -216,6 +234,9 @@ export function SessionCharacterDetailsTabs({
   onRolarPericia,
   onRolarTesteHabilidade,
   onRolarDanoHabilidade,
+  preferenciasMacrosArmas,
+  onAtualizarPreferenciasMacrosArmas,
+  onRolarMacroArma,
   renderPainelCondicoes,
   mostrarAcoesResumo = true,
 }: SessionCharacterDetailsTabsProps) {
@@ -419,6 +440,7 @@ export function SessionCharacterDetailsTabs({
   ];
   if (card.podeEditar) {
     tabs.push({ id: 'INVENTARIO', label: 'Inventário', icon: 'inventory' });
+    tabs.push({ id: 'MACROS', label: 'Macros', icon: 'dice' });
   }
   tabs.push(
     {
@@ -883,6 +905,19 @@ export function SessionCharacterDetailsTabs({
           alvosPersonagens={alvosPersonagens}
           alvosNpcs={alvosNpcs}
           onConsumirItem={onConsumirItem}
+        />
+      ) : null}
+
+      {abaDetalheCard === 'MACROS' && card.podeEditar ? (
+        <SessionCharacterMacrosTab
+          campanhaId={campanhaId}
+          sessaoId={sessaoId}
+          personagemSessaoId={card.personagemSessaoId}
+          ativo={abaDetalheCard === 'MACROS'}
+          sessaoEncerrada={sessaoEncerrada}
+          preferencias={preferenciasMacrosArmas}
+          onAtualizarPreferencias={onAtualizarPreferenciasMacrosArmas}
+          onRolarMacro={onRolarMacroArma}
         />
       ) : null}
 

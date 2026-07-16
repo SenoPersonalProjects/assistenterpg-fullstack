@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/hooks/useConfirm';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
+import type { SolicitacaoMacroArma } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import {
   apiAdminGetCondicoes,
   apiGetRelatorioSessaoCampanha,
@@ -25,6 +26,8 @@ import {
   apiCriarRolagemAtaquePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueNpcSessaoCampanha,
   apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha,
+  apiCriarRolagemAtaqueItemPersonagemSessaoCampanha,
+  apiCriarRolagemDanoItemPersonagemSessaoCampanha,
   apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemPericiaNpcSessaoCampanha,
@@ -173,6 +176,7 @@ import {
   montarIntencaoRolagemTesteHabilidade,
   montarPreviewDanoHabilidade,
 } from '@/lib/campanha/sessao-rolagem-habilidade';
+import { montarIntencaoRolagemMacroArma } from '@/lib/campanha/sessao-rolagem-item';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -596,6 +600,8 @@ export default function SessaoCampanhaPage() {
     setTecnicasInatasAbertas,
     tecnicasNaoInatasAbertas,
     setTecnicasNaoInatasAbertas,
+    macrosArmas,
+    setMacrosArmas,
   } = useSessaoPreferencias({
     idsValidos,
     usuarioId: usuario?.id,
@@ -2654,6 +2660,113 @@ export default function SessaoCampanhaPage() {
     [confirm, handleRemoverCondicao],
   );
 
+  const handleRolarMacroArma = useCallback(
+    async (solicitacao: SolicitacaoMacroArma) => {
+      if (sessaoEncerrada) {
+        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        return;
+      }
+      let intencao: ReturnType<typeof montarIntencaoRolagemMacroArma>;
+      try {
+        intencao = montarIntencaoRolagemMacroArma(
+          solicitacao,
+          visibilidadeRolagemAtual,
+          criarClientRequestIdRolagem(),
+        );
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        showToast(userError.message, 'warning');
+        return;
+      }
+      const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.itemInventarioCampanhaId}`;
+      if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+      rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
+      const titulo =
+        solicitacao.acao === 'ATAQUE'
+          ? `Ataque · ${solicitacao.nomeArma}`
+          : solicitacao.acao === 'CRITICO'
+            ? `Crítico · ${solicitacao.nomeArma}`
+            : `Dano · ${solicitacao.nomeArma}`;
+      setPericiaRollModal({
+        aberto: true,
+        titulo,
+        subtitulo: `${solicitacao.periciaNome} · ${solicitacao.nomeArma}`,
+        alvoTipo: 'PERSONAGEM',
+        alvoNome: solicitacao.nomeArma,
+        habilidadeContext: null,
+        payload: null,
+        payloads: [],
+        expression: solicitacao.expressionsPreview[0] ?? 'Rolagem de arma',
+        expressions:
+          solicitacao.expressionsPreview.length > 0
+            ? solicitacao.expressionsPreview
+            : ['Rolagem de arma'],
+        facesPendentes: solicitacao.facesPreview,
+        origemServidor: true,
+        enviando: true,
+        enviado: false,
+        erro: null,
+      });
+      try {
+        const enviada =
+          intencao.tipo === 'ATAQUE_ITEM_PERSONAGEM'
+            ? await apiCriarRolagemAtaqueItemPersonagemSessaoCampanha(
+                campanhaId,
+                sessaoId,
+                intencao,
+              )
+            : await apiCriarRolagemDanoItemPersonagemSessaoCampanha(
+                campanhaId,
+                sessaoId,
+                intencao,
+              );
+        const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
+        if (
+          !dadosServidor ||
+          dadosServidor.tipo !== intencao.tipo ||
+          !dadosServidor.payloads[0]
+        ) {
+          throw new Error('Resposta autoritativa da macro inválida.');
+        }
+        setChat((anterior) =>
+          anterior.some((mensagem) => mensagem.id === enviada.id)
+            ? anterior
+            : [...anterior, enviada],
+        );
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          payload: dadosServidor.payloads[0] ?? null,
+          payloads: dadosServidor.payloads,
+          expression: dadosServidor.formulasResolvidas[0] ?? dadosServidor.formulaResolvida,
+          expressions: dadosServidor.formulasResolvidas,
+          facesPendentes: undefined,
+          enviando: false,
+          enviado: true,
+          erro: null,
+        }));
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          enviando: false,
+          enviado: false,
+          erro: userError.message,
+        }));
+      } finally {
+        rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
+      }
+    },
+    [
+      campanhaId,
+      sessaoEncerrada,
+      sessaoId,
+      showToast,
+      visibilidadeRolagemAtual,
+    ],
+  );
+
   const handlePersonagemAtualizadoNoModal = useCallback(
     (personagem: PersonagemCampanhaResumo) => {
       setDetalhe((anterior) => {
@@ -3130,6 +3243,7 @@ export default function SessaoCampanhaPage() {
   const renderCardsSessao = () => (
     <SessionCharactersPanel
       campanhaId={campanhaId}
+      sessaoId={sessaoId}
       cards={cards}
       iniciativaPorPersonagemSessao={iniciativaPorPersonagemSessao}
       cardsRecursosExpandidos={cardsRecursosExpandidos}
@@ -3182,6 +3296,9 @@ export default function SessaoCampanhaPage() {
       onRolarPericia={handleRolarPericia}
       onRolarTesteHabilidade={handleRolarTesteHabilidade}
       onRolarDanoHabilidade={handleRolarDanoHabilidade}
+      preferenciasMacrosArmas={macrosArmas}
+      onAtualizarPreferenciasMacrosArmas={setMacrosArmas}
+      onRolarMacroArma={handleRolarMacroArma}
       renderPainelCondicoes={renderPainelCondicoes}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
       consumirComCalmaAtivo={regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true}
@@ -3531,6 +3648,7 @@ export default function SessaoCampanhaPage() {
               ) : (
                 <SessionPlayerSummaryPanel
                   campanhaId={campanhaId}
+                  sessaoId={sessaoId}
                   card={meuCard}
                   iniciativaValor={iniciativaMeuCard}
                   cardRecursosExpandido={cardRecursosExpandidoMeuCard}
@@ -3652,6 +3770,9 @@ export default function SessaoCampanhaPage() {
                     onRolarPericia={handleRolarPericia}
                     onRolarTesteHabilidade={handleRolarTesteHabilidade}
                     onRolarDanoHabilidade={handleRolarDanoHabilidade}
+                    preferenciasMacrosArmas={macrosArmas}
+                    onAtualizarPreferenciasMacrosArmas={setMacrosArmas}
+                    onRolarMacroArma={handleRolarMacroArma}
                   />
               )}
             </section>

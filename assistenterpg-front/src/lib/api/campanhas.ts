@@ -1311,6 +1311,64 @@ export type CriarRolagemCriticoHabilidadePersonagemSessaoPayload = {
   clientRequestId: string;
 };
 
+export type AjusteAutomaticoMacroArmaSessao = {
+  condicao: string;
+  dados: number;
+  motivo: string;
+};
+
+export type MacroArmaSessao = {
+  itemInventarioCampanhaId: number;
+  nome: string;
+  tipoArma: 'CORPO_A_CORPO' | 'A_DISTANCIA';
+  pericia: { codigo: 'LUTA' | 'PONTARIA'; nome: string };
+  agil: boolean;
+  atributoPadrao: 'FOR' | 'AGI';
+  atributosPermitidos: Array<'FOR' | 'AGI'>;
+  empunhaduras: Array<'LEVE' | 'UMA_MAO' | 'DUAS_MAOS'>;
+  danos: Array<{
+    empunhadura: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS' | null;
+    tipoDano: string;
+    rolagem: string;
+    valorFlat: number;
+  }>;
+  critico: { valor: number | null; multiplicador: number | null };
+  preview: {
+    dadosLogicos: number;
+    quantidadeDados: number;
+    keepMode: 'HIGHEST' | 'LOWEST';
+    bonus: number;
+    ajustesAutomaticos: AjusteAutomaticoMacroArmaSessao[];
+  };
+};
+
+export type MacrosPersonagemSessaoResponse = {
+  personagemSessaoId: number;
+  armas: MacroArmaSessao[];
+};
+
+export type CriarRolagemAtaqueItemPersonagemSessaoPayload = {
+  tipo: 'ATAQUE_ITEM_PERSONAGEM';
+  personagemSessaoId: number;
+  itemInventarioCampanhaId: number;
+  atributoEscolhido?: 'FOR' | 'AGI';
+  ajusteFlatManual?: number;
+  ajusteDadosManual?: number;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  contexto?: { dt?: number };
+  clientRequestId: string;
+};
+
+export type CriarRolagemDanoItemPersonagemSessaoPayload = {
+  tipo: 'DANO_ITEM_PERSONAGEM' | 'CRITICO_ITEM_PERSONAGEM';
+  personagemSessaoId: number;
+  itemInventarioCampanhaId: number;
+  empunhadura?: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS';
+  ajusteFlatManual?: number;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  clientRequestId: string;
+};
+
 export async function apiCriarRolagemFormulaSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1413,6 +1471,41 @@ export async function apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
   payload: CriarRolagemCriticoHabilidadePersonagemSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiListarMacrosPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  personagemSessaoId: number,
+): Promise<MacrosPersonagemSessaoResponse> {
+  const { data } = await apiClient.get(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/personagens/${personagemSessaoId}/macros`,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemAtaqueItemPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemAtaqueItemPersonagemSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(
+    `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
+    payload,
+  );
+  return data;
+}
+
+export async function apiCriarRolagemDanoItemPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemDanoItemPersonagemSessaoPayload,
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,

@@ -27,6 +27,7 @@ export function useSessaoPreferencias({
         abasDetalheCard: {},
         tecnicasInatasAbertas: {},
         tecnicasNaoInatasAbertas: {},
+        macrosArmas: {},
       };
     }
 
@@ -90,6 +91,23 @@ export function useSessaoPreferencias({
     [preferenciasAtual.tecnicasNaoInatasAbertas, salvarPreferencias],
   );
 
+  const setMacrosArmas = useCallback(
+    (
+      atualizacao:
+        | PreferenciasSessaoLobby['macrosArmas']
+        | ((
+            estado: PreferenciasSessaoLobby['macrosArmas'],
+          ) => PreferenciasSessaoLobby['macrosArmas']),
+    ) => {
+      const valor =
+        typeof atualizacao === 'function'
+          ? atualizacao(preferenciasAtual.macrosArmas)
+          : atualizacao;
+      salvarPreferencias({ macrosArmas: valor });
+    },
+    [preferenciasAtual.macrosArmas, salvarPreferencias],
+  );
+
   return {
     abasDetalheCard: preferenciasAtual.abasDetalheCard,
     setAbasDetalheCard,
@@ -97,5 +115,7 @@ export function useSessaoPreferencias({
     setTecnicasInatasAbertas,
     tecnicasNaoInatasAbertas: preferenciasAtual.tecnicasNaoInatasAbertas,
     setTecnicasNaoInatasAbertas,
+    macrosArmas: preferenciasAtual.macrosArmas,
+    setMacrosArmas,
   };
 }
