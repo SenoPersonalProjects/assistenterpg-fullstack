@@ -185,6 +185,21 @@ export class SessaoController {
     return mensagem;
   }
 
+  @Get(':sessaoId/personagens/:personagemSessaoId/macros')
+  async listarMacrosPersonagemSessao(
+    @Param('campanhaId', ParseIntPipe) campanhaId: number,
+    @Param('sessaoId', ParseIntPipe) sessaoId: number,
+    @Param('personagemSessaoId', ParseIntPipe) personagemSessaoId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.sessaoService.listarMacrosPersonagemSessao(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+      req.user.id,
+    );
+  }
+
   @Post(':sessaoId/personagens/:personagemSessaoId/habilidades/usar')
   async usarHabilidadeSessao(
     @Param('campanhaId', ParseIntPipe) campanhaId: number,

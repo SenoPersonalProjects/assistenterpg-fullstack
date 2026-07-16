@@ -35,6 +35,20 @@ export class ContextoRolagemSessaoDto {
 class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInterface {
   validate(_tipo: unknown, args: ValidationArguments): boolean {
     const dto = args.object as CriarRolagemSessaoDto;
+    const tipoItem =
+      dto.tipo === 'ATAQUE_ITEM_PERSONAGEM' ||
+      dto.tipo === 'DANO_ITEM_PERSONAGEM' ||
+      dto.tipo === 'CRITICO_ITEM_PERSONAGEM';
+    if (
+      !tipoItem &&
+      (dto.itemInventarioCampanhaId !== undefined ||
+        dto.atributoEscolhido !== undefined ||
+        dto.ajusteFlatManual !== undefined ||
+        dto.ajusteDadosManual !== undefined ||
+        dto.empunhadura !== undefined)
+    ) {
+      return false;
+    }
     if (dto.tipo === 'FORMULA') {
       return (
         typeof dto.expressao === 'string' &&
@@ -109,6 +123,46 @@ class RolagemSessaoPayloadCompativelConstraint implements ValidatorConstraintInt
         dto.origemDano === undefined &&
         dto.origemCritico === 'HABILIDADE_TECNICA' &&
         dto.acaoIndice === undefined &&
+        dto.contexto === undefined
+      );
+    }
+    if (dto.tipo === 'ATAQUE_ITEM_PERSONAGEM') {
+      return (
+        dto.expressao === undefined &&
+        Number.isInteger(dto.personagemSessaoId) &&
+        Number.isInteger(dto.itemInventarioCampanhaId) &&
+        dto.habilidadeTecnicaId === undefined &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
+        dto.npcSessaoId === undefined &&
+        dto.periciaCodigo === undefined &&
+        dto.origemAtaque === undefined &&
+        dto.origemDano === undefined &&
+        dto.origemCritico === undefined &&
+        dto.acaoIndice === undefined &&
+        dto.empunhadura === undefined &&
+        dto.contexto?.tipo === undefined
+      );
+    }
+    if (
+      dto.tipo === 'DANO_ITEM_PERSONAGEM' ||
+      dto.tipo === 'CRITICO_ITEM_PERSONAGEM'
+    ) {
+      return (
+        dto.expressao === undefined &&
+        Number.isInteger(dto.personagemSessaoId) &&
+        Number.isInteger(dto.itemInventarioCampanhaId) &&
+        dto.habilidadeTecnicaId === undefined &&
+        dto.variacaoHabilidadeId === undefined &&
+        dto.acumulos === undefined &&
+        dto.npcSessaoId === undefined &&
+        dto.periciaCodigo === undefined &&
+        dto.origemAtaque === undefined &&
+        dto.origemDano === undefined &&
+        dto.origemCritico === undefined &&
+        dto.acaoIndice === undefined &&
+        dto.atributoEscolhido === undefined &&
+        dto.ajusteDadosManual === undefined &&
         dto.contexto === undefined
       );
     }
@@ -192,10 +246,12 @@ export class CriarRolagemSessaoDto {
       'TESTE_HABILIDADE_PERSONAGEM',
       'DANO_PERSONAGEM',
       'CRITICO_PERSONAGEM',
+      'ATAQUE_ITEM_PERSONAGEM',
+      'DANO_ITEM_PERSONAGEM',
+      'CRITICO_ITEM_PERSONAGEM',
     ],
     {
-      message:
-        'tipo deve ser FORMULA, PERICIA_PERSONAGEM, ATAQUE_PERSONAGEM, PERICIA_NPC, ATAQUE_NPC, DANO_NPC, TESTE_HABILIDADE_PERSONAGEM, DANO_PERSONAGEM ou CRITICO_PERSONAGEM',
+      message: 'tipo de rolagem invalido',
     },
   )
   @Validate(RolagemSessaoPayloadCompativelConstraint)
@@ -208,7 +264,10 @@ export class CriarRolagemSessaoDto {
     | 'DANO_NPC'
     | 'TESTE_HABILIDADE_PERSONAGEM'
     | 'DANO_PERSONAGEM'
-    | 'CRITICO_PERSONAGEM';
+    | 'CRITICO_PERSONAGEM'
+    | 'ATAQUE_ITEM_PERSONAGEM'
+    | 'DANO_ITEM_PERSONAGEM'
+    | 'CRITICO_ITEM_PERSONAGEM';
 
   @ValidateIf((dto: CriarRolagemSessaoDto) => dto.tipo === 'FORMULA')
   @IsString({ message: 'expressao deve ser texto' })
@@ -222,12 +281,71 @@ export class CriarRolagemSessaoDto {
       dto.tipo === 'ATAQUE_PERSONAGEM' ||
       dto.tipo === 'TESTE_HABILIDADE_PERSONAGEM' ||
       dto.tipo === 'DANO_PERSONAGEM' ||
-      dto.tipo === 'CRITICO_PERSONAGEM',
+      dto.tipo === 'CRITICO_PERSONAGEM' ||
+      dto.tipo === 'ATAQUE_ITEM_PERSONAGEM' ||
+      dto.tipo === 'DANO_ITEM_PERSONAGEM' ||
+      dto.tipo === 'CRITICO_ITEM_PERSONAGEM',
   )
   @Type(() => Number)
   @IsInt({ message: 'personagemSessaoId deve ser um numero inteiro' })
   @Min(1, { message: 'personagemSessaoId deve ser positivo' })
   personagemSessaoId?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'ATAQUE_ITEM_PERSONAGEM' ||
+      dto.tipo === 'DANO_ITEM_PERSONAGEM' ||
+      dto.tipo === 'CRITICO_ITEM_PERSONAGEM',
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'itemInventarioCampanhaId deve ser um numero inteiro' })
+  @Min(1, { message: 'itemInventarioCampanhaId deve ser positivo' })
+  itemInventarioCampanhaId?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'ATAQUE_ITEM_PERSONAGEM' &&
+      dto.atributoEscolhido !== undefined,
+  )
+  @IsIn(['FOR', 'AGI'], {
+    message: 'atributoEscolhido deve ser FOR ou AGI',
+  })
+  atributoEscolhido?: 'FOR' | 'AGI';
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      (dto.tipo === 'ATAQUE_ITEM_PERSONAGEM' ||
+        dto.tipo === 'DANO_ITEM_PERSONAGEM' ||
+        dto.tipo === 'CRITICO_ITEM_PERSONAGEM') &&
+      dto.ajusteFlatManual !== undefined,
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'ajusteFlatManual deve ser um numero inteiro' })
+  @Min(-100, { message: 'ajusteFlatManual deve ser maior ou igual a -100' })
+  @Max(100, { message: 'ajusteFlatManual deve ser menor ou igual a 100' })
+  ajusteFlatManual?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      dto.tipo === 'ATAQUE_ITEM_PERSONAGEM' &&
+      dto.ajusteDadosManual !== undefined,
+  )
+  @Type(() => Number)
+  @IsInt({ message: 'ajusteDadosManual deve ser um numero inteiro' })
+  @Min(-10, { message: 'ajusteDadosManual deve ser maior ou igual a -10' })
+  @Max(10, { message: 'ajusteDadosManual deve ser menor ou igual a 10' })
+  ajusteDadosManual?: number;
+
+  @ValidateIf(
+    (dto: CriarRolagemSessaoDto) =>
+      (dto.tipo === 'DANO_ITEM_PERSONAGEM' ||
+        dto.tipo === 'CRITICO_ITEM_PERSONAGEM') &&
+      dto.empunhadura !== undefined,
+  )
+  @IsIn(['LEVE', 'UMA_MAO', 'DUAS_MAOS'], {
+    message: 'empunhadura deve ser LEVE, UMA_MAO ou DUAS_MAOS',
+  })
+  empunhadura?: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS';
 
   @ValidateIf(
     (dto: CriarRolagemSessaoDto) =>
@@ -412,3 +530,25 @@ export type CriarRolagemHabilidadePersonagemSessaoDto =
   | CriarRolagemTesteHabilidadePersonagemSessaoDto
   | CriarRolagemDanoHabilidadePersonagemSessaoDto
   | CriarRolagemCriticoHabilidadePersonagemSessaoDto;
+
+export type CriarRolagemAtaqueItemPersonagemSessaoDto =
+  CriarRolagemSessaoDto & {
+    tipo: 'ATAQUE_ITEM_PERSONAGEM';
+    personagemSessaoId: number;
+    itemInventarioCampanhaId: number;
+  };
+
+export type CriarRolagemDanoItemPersonagemSessaoDto = CriarRolagemSessaoDto & {
+  tipo: 'DANO_ITEM_PERSONAGEM';
+  personagemSessaoId: number;
+  itemInventarioCampanhaId: number;
+};
+
+export type CriarRolagemItemPersonagemSessaoDto =
+  | CriarRolagemAtaqueItemPersonagemSessaoDto
+  | CriarRolagemDanoItemPersonagemSessaoDto
+  | (CriarRolagemSessaoDto & {
+      tipo: 'CRITICO_ITEM_PERSONAGEM';
+      personagemSessaoId: number;
+      itemInventarioCampanhaId: number;
+    });
