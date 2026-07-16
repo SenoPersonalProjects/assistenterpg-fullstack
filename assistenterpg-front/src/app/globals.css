@@ -2715,19 +2715,40 @@ body {
 .session-roll-modal__dice-card,
 .session-roll-modal__empty {
   display: grid;
-  min-height: clamp(17rem, 42vh, 24rem);
+  min-height: clamp(10rem, 23vh, 13rem);
   place-items: center;
   border: 1px solid var(--session-border);
   border-radius: 1rem;
   background: var(--session-elevated);
-  padding: 1.25rem;
+  padding: 0.75rem;
+  overflow: hidden;
 }
 
 .session-roll-modal__viewer {
+  display: grid;
+  gap: 0.75rem;
   border: 1px solid var(--session-border);
   border-radius: 1rem;
   background: var(--session-surface);
   padding: 0.85rem;
+}
+
+.session-roll-modal__stage,
+.session-roll-modal__result {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+@media (min-width: 760px) {
+  .session-roll-modal__stage--result {
+    grid-template-columns: minmax(15rem, 0.8fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+
+  .session-roll-modal__stage--result .session-roll-modal__dice-card {
+    min-height: clamp(10rem, 22vh, 12.5rem);
+  }
 }
 
 .session-roll-modal__dice-label {
@@ -2743,17 +2764,31 @@ body {
 }
 
 .session-roll-modal .session-dice {
+  gap: 0.55rem;
   border-color: var(--session-border);
   background: var(--session-elevated);
+  padding: 0.7rem;
 }
 
 .session-roll-modal .session-dice__summary {
-  min-height: 5.25rem;
+  min-height: 4.25rem;
+  padding: 0.55rem 0.65rem;
 }
 
 .session-roll-modal .session-dice__total {
-  font-size: clamp(2.25rem, 8vw, 4rem);
+  font-size: clamp(2rem, 5vw, 3.25rem);
   line-height: 1;
+}
+
+.session-roll-modal .session-dice__rolls {
+  grid-template-columns: repeat(auto-fit, minmax(3.25rem, 1fr));
+  gap: 0.35rem;
+}
+
+.session-roll-modal .session-dice__roll {
+  min-height: 2.75rem;
+  border-radius: 0.65rem;
+  padding: 0.35rem;
 }
 
 .session-roll-modal__dice-card--crit {
@@ -2778,6 +2813,13 @@ body {
   color: var(--fg);
   padding: 0.45rem;
   text-align: center;
+}
+
+@media (max-width: 759px) {
+  .session-roll-modal__dice-card,
+  .session-roll-modal__empty {
+    min-height: clamp(9rem, 21vh, 11.5rem);
+  }
 }
 
 .session-turn-control {

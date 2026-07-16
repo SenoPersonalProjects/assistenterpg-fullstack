@@ -262,7 +262,7 @@ export function SessionPericiaRollModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Rolagem de perícia"
-      size="lg"
+      size="xl"
       footer={null}
     >
       <div className="session-roll-modal">
@@ -325,44 +325,6 @@ export function SessionPericiaRollModal({
               </Button>
             </div>
           ) : null}
-          <div
-            className={`session-roll-modal__dice-card${
-              destaqueNatural === 'crit'
-                ? ' session-roll-modal__dice-card--crit'
-                : destaqueNatural === 'fumble'
-                  ? ' session-roll-modal__dice-card--fumble'
-                  : ''
-            }`}
-          >
-            <DiceScene
-              faces={facesExibidas}
-              isRolling={
-                aguardandoResultado ||
-                (Boolean(payloadAtual) && animarEsteIndice && !mostrandoResultado)
-              }
-              result={payloadAtual ? valorDado : null}
-              highlight={destaqueNatural}
-              onRollComplete={handleRollComplete}
-              reducedMotion={!animacaoAtiva}
-              rollDurationMs={duracaoAnimacao}
-            />
-            {!mostrandoResultado && (payloadAtual || aguardandoResultado) ? (
-              <div className="session-roll-modal__dice-overlay">
-                <span className="session-roll-modal__dice-label">{tituloExibido}</span>
-                {expressionAtual ? (
-                  <span className="session-roll-modal__dice-expr">{expressionAtual}</span>
-                ) : null}
-                <span className="session-roll-modal__dice-status">
-                  {aguardandoResultado
-                    ? 'Aguardando resultado do servidor...'
-                    : animarEsteIndice
-                      ? 'Rolando teste...'
-                      : 'Preparando resultado...'}
-                </span>
-              </div>
-            ) : null}
-          </div>
-
           {!payloadAtual && !aguardandoResultado ? (
             <div className="session-roll-modal__empty">
               <Icon name="dice" className="h-5 w-5" />
@@ -375,73 +337,129 @@ export function SessionPericiaRollModal({
                 </p>
               </div>
             </div>
-          ) : mostrandoResultado ? (
-            <div className="space-y-3">
-              <DiceMessageCard
-                payload={payloadAtual}
-                expression={expressionAtual}
-                origemServidor={origemServidor}
-              />
-              {habilidadeContext ? (
-                <div className="session-roll-modal__crit">
-                  <div className="session-roll-modal__crit-header">
-                    <div>
-                      <p className="session-roll-modal__crit-title">
-                        Crítico da habilidade
-                      </p>
-                      <p className="session-roll-modal__crit-subtitle">
-                        Multiplicador x{criticoMultiplicador} (dados apenas)
-                      </p>
-                    </div>
-                    {aplicarCritico ? (
-                      <span className="session-roll-modal__crit-badge">
-                        Crítico ativo
+          ) : (
+            <div
+              className={`session-roll-modal__stage${
+                mostrandoResultado && payloadAtual
+                  ? ' session-roll-modal__stage--result'
+                  : ''
+              }`}
+            >
+              <div
+                className={`session-roll-modal__dice-card${
+                  destaqueNatural === 'crit'
+                    ? ' session-roll-modal__dice-card--crit'
+                    : destaqueNatural === 'fumble'
+                      ? ' session-roll-modal__dice-card--fumble'
+                      : ''
+                }`}
+              >
+                <DiceScene
+                  faces={facesExibidas}
+                  isRolling={
+                    aguardandoResultado ||
+                    (Boolean(payloadAtual) &&
+                      animarEsteIndice &&
+                      !mostrandoResultado)
+                  }
+                  result={payloadAtual ? valorDado : null}
+                  highlight={destaqueNatural}
+                  onRollComplete={handleRollComplete}
+                  reducedMotion={!animacaoAtiva}
+                  rollDurationMs={duracaoAnimacao}
+                />
+                {!mostrandoResultado && (payloadAtual || aguardandoResultado) ? (
+                  <div className="session-roll-modal__dice-overlay">
+                    <span className="session-roll-modal__dice-label">
+                      {tituloExibido}
+                    </span>
+                    {expressionAtual ? (
+                      <span className="session-roll-modal__dice-expr">
+                        {expressionAtual}
                       </span>
                     ) : null}
+                    <span className="session-roll-modal__dice-status">
+                      {aguardandoResultado
+                        ? 'Aguardando resultado do servidor...'
+                        : animarEsteIndice
+                          ? 'Rolando teste...'
+                          : 'Preparando resultado...'}
+                    </span>
                   </div>
-                  <div className="session-roll-modal__crit-controls">
-                    <label className="session-roll-modal__crit-label">
-                      Crita em
-                      <input
-                        type="number"
-                        min={1}
-                        max={30}
-                        value={criticoValor}
-                        onChange={(event) => {
-                          const valor = Number(event.target.value);
-                          if (!Number.isFinite(valor)) {
-                            setCriticoValor(20);
-                            return;
+                ) : null}
+              </div>
+
+              {mostrandoResultado && payloadAtual ? (
+                <div className="session-roll-modal__result">
+                  <DiceMessageCard
+                    payload={payloadAtual}
+                    expression={expressionAtual}
+                    origemServidor={origemServidor}
+                  />
+                  {habilidadeContext ? (
+                    <div className="session-roll-modal__crit">
+                      <div className="session-roll-modal__crit-header">
+                        <div>
+                          <p className="session-roll-modal__crit-title">
+                            Crítico da habilidade
+                          </p>
+                          <p className="session-roll-modal__crit-subtitle">
+                            Multiplicador x{criticoMultiplicador} (dados apenas)
+                          </p>
+                        </div>
+                        {aplicarCritico ? (
+                          <span className="session-roll-modal__crit-badge">
+                            Crítico ativo
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="session-roll-modal__crit-controls">
+                        <label className="session-roll-modal__crit-label">
+                          Crita em
+                          <input
+                            type="number"
+                            min={1}
+                            max={30}
+                            value={criticoValor}
+                            onChange={(event) => {
+                              const valor = Number(event.target.value);
+                              if (!Number.isFinite(valor)) {
+                                setCriticoValor(20);
+                                return;
+                              }
+                              setCriticoValor(Math.max(1, Math.trunc(valor)));
+                            }}
+                            className="session-roll-modal__crit-input"
+                          />
+                        </label>
+                        <Checkbox
+                          checked={aplicarCritico}
+                          onChange={(event) =>
+                            setAplicarCritico(event.target.checked)
                           }
-                          setCriticoValor(Math.max(1, Math.trunc(valor)));
-                        }}
-                        className="session-roll-modal__crit-input"
-                      />
-                    </label>
-                    <Checkbox
-                      checked={aplicarCritico}
-                      onChange={(event) => setAplicarCritico(event.target.checked)}
-                      label="Aplicar crítico"
-                      className="session-roll-modal__crit-toggle"
-                    />
-                  </div>
-                  {podeRolarDano ? (
-                    <div className="session-roll-modal__crit-actions">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={handleRolarDano}
-                        disabled={enviando}
-                      >
-                        <Icon name="sparkles" className="h-4 w-4" />
-                        Rolar dano/efeito
-                      </Button>
+                          label="Aplicar crítico"
+                          className="session-roll-modal__crit-toggle"
+                        />
+                      </div>
+                      {podeRolarDano ? (
+                        <div className="session-roll-modal__crit-actions">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={handleRolarDano}
+                            disabled={enviando}
+                          >
+                            <Icon name="sparkles" className="h-4 w-4" />
+                            Rolar dano/efeito
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
               ) : null}
             </div>
-          ) : null}
+          )}
         </div>
 
         <div className="session-roll-modal__status">
