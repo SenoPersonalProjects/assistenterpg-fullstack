@@ -26,7 +26,6 @@ import {
   SessaoRolagemInvalidaException,
   SessaoRolagemIdempotenciaConflitoException,
   SessaoRolagemMensagemMuitoGrandeException,
-  SessaoRolagemRequerFluxoMecanicoException,
   SessaoNpcAcaoDanoInvalidoException,
   SessaoNpcAcaoNaoEncontradaException,
   SessaoNpcAcaoRolagemInvalidaException,
@@ -119,7 +118,6 @@ import {
 import {
   calcularResultadoDiceServidor,
   construirMensagemDiceServidor,
-  expressaoDiceContemD20,
   formatarExpressaoDiceServidor,
   LIMITES_DICE_SESSAO,
   parseDiceFontePersistidaServidor,
@@ -10710,43 +10708,6 @@ export class SessaoService {
       ...(dadosRolagem ?? {}),
       origem: 'CLIENTE_LEGADO',
     };
-  }
-
-  private async assertRolagemFormulaSemPeritoPendenteTx(
-    tx: Prisma.TransactionClient,
-    sessaoId: number,
-    personagens: Array<{ id: number; personagemCampanhaId: number }>,
-    expressions: DiceExpressionServidor[],
-  ): Promise<void> {
-    if (personagens.length === 0 || !expressaoDiceContemD20(expressions))
-      return;
-
-    const regra = await tx.sessaoRegraOpcional.findUnique({
-      where: {
-        sessaoId_chave: {
-          sessaoId,
-          chave: CHAVE_ESTADO_HABILIDADES_CLASSE_SESSAO,
-        },
-      },
-      select: { estado: true },
-    });
-    const estado = this.normalizarEstadoHabilidadesClasseSessao(regra?.estado);
-    const chavesPersonagens = new Set(
-      personagens.map(
-        (personagem) => `${personagem.id}:${personagem.personagemCampanhaId}`,
-      ),
-    );
-    const possuiPendente = Object.values(estado.pendentesRolagem).some(
-      (pendente) =>
-        chavesPersonagens.has(
-          `${pendente.personagemSessaoId}:${pendente.personagemCampanhaId}`,
-        ),
-    );
-    if (!possuiPendente) return;
-
-    throw new SessaoRolagemRequerFluxoMecanicoException(
-      personagens.map((personagem) => personagem.id),
-    );
   }
 
   private normalizarContextoRolagem(
