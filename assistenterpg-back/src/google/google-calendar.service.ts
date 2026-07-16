@@ -4,6 +4,11 @@ import { google, type calendar_v3 } from 'googleapis';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GOOGLE_CALENDAR_EVENTS_SCOPE } from './google-oauth.service';
 import { GoogleTokenCryptoService } from './google-token-crypto.service';
+import {
+  erroGoogleExigeReautorizacao,
+  GoogleCalendarReauthRequiredError,
+  GOOGLE_CALENDAR_REAUTH_REQUIRED_MESSAGE,
+} from './google-calendar-error';
 
 export type GoogleCalendarEventInput = {
   usuarioId: number;
@@ -43,37 +48,43 @@ export class GoogleCalendarService {
   async criarEvento(
     input: GoogleCalendarEventInput,
   ): Promise<GoogleCalendarEventResult> {
-    const calendar = await this.criarCalendarClient(input.usuarioId);
-    const response = await calendar.events.insert({
-      calendarId: 'primary',
-      sendUpdates: 'all',
-      conferenceDataVersion: input.adicionarGoogleMeet ? 1 : 0,
-      requestBody: this.montarEvento(input),
+    return this.executarComTratamentoAutorizacao(input.usuarioId, async () => {
+      const calendar = await this.criarCalendarClient(input.usuarioId);
+      const response = await calendar.events.insert({
+        calendarId: 'primary',
+        sendUpdates: 'all',
+        conferenceDataVersion: input.adicionarGoogleMeet ? 1 : 0,
+        requestBody: this.montarEvento(input),
+      });
+      return this.mapearEvento(response.data);
     });
-    return this.mapearEvento(response.data);
   }
 
   async atualizarEvento(
     eventId: string,
     input: GoogleCalendarEventInput,
   ): Promise<GoogleCalendarEventResult> {
-    const calendar = await this.criarCalendarClient(input.usuarioId);
-    const response = await calendar.events.update({
-      calendarId: 'primary',
-      eventId,
-      sendUpdates: 'all',
-      conferenceDataVersion: input.adicionarGoogleMeet ? 1 : 0,
-      requestBody: this.montarEvento(input),
+    return this.executarComTratamentoAutorizacao(input.usuarioId, async () => {
+      const calendar = await this.criarCalendarClient(input.usuarioId);
+      const response = await calendar.events.update({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'all',
+        conferenceDataVersion: input.adicionarGoogleMeet ? 1 : 0,
+        requestBody: this.montarEvento(input),
+      });
+      return this.mapearEvento(response.data);
     });
-    return this.mapearEvento(response.data);
   }
 
   async cancelarEvento(usuarioId: number, eventId: string): Promise<void> {
-    const calendar = await this.criarCalendarClient(usuarioId);
-    await calendar.events.delete({
-      calendarId: 'primary',
-      eventId,
-      sendUpdates: 'all',
+    await this.executarComTratamentoAutorizacao(usuarioId, async () => {
+      const calendar = await this.criarCalendarClient(usuarioId);
+      await calendar.events.delete({
+        calendarId: 'primary',
+        eventId,
+        sendUpdates: 'all',
+      });
     });
   }
 
@@ -96,26 +107,51 @@ export class GoogleCalendarService {
     inicioEm: Date,
     fimEm: Date,
   ): Promise<GoogleCalendarConflict[]> {
-    const calendar = await this.criarCalendarClient(usuarioId);
-    const response = await calendar.events.list({
-      calendarId: 'primary',
-      timeMin: inicioEm.toISOString(),
-      timeMax: fimEm.toISOString(),
-      singleEvents: true,
-      orderBy: 'startTime',
-      // Preview leve para o modal de agendamento; não é auditoria completa da agenda.
-      maxResults: 20,
-    });
+    return this.executarComTratamentoAutorizacao(usuarioId, async () => {
+      const calendar = await this.criarCalendarClient(usuarioId);
+      const response = await calendar.events.list({
+        calendarId: 'primary',
+        timeMin: inicioEm.toISOString(),
+        timeMax: fimEm.toISOString(),
+        singleEvents: true,
+        orderBy: 'startTime',
+        // Preview leve para o modal de agendamento; não é auditoria completa da agenda.
+        maxResults: 20,
+      });
 
-    return (response.data.items ?? [])
-      .filter((evento) => evento.status !== 'cancelled')
-      .map((evento) => ({
-        id: evento.id ?? null,
-        titulo: evento.summary ?? 'Evento sem t\u00edtulo',
-        inicioEm: evento.start?.dateTime ?? evento.start?.date ?? null,
-        fimEm: evento.end?.dateTime ?? evento.end?.date ?? null,
-        htmlLink: evento.htmlLink ?? null,
-      }));
+      return (response.data.items ?? [])
+        .filter((evento) => evento.status !== 'cancelled')
+        .map((evento) => ({
+          id: evento.id ?? null,
+          titulo: evento.summary ?? 'Evento sem t\u00edtulo',
+          inicioEm: evento.start?.dateTime ?? evento.start?.date ?? null,
+          fimEm: evento.end?.dateTime ?? evento.end?.date ?? null,
+          htmlLink: evento.htmlLink ?? null,
+        }));
+    });
+  }
+
+  private async executarComTratamentoAutorizacao<T>(
+    usuarioId: number,
+    operacao: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await operacao();
+    } catch (error) {
+      if (!erroGoogleExigeReautorizacao(error)) throw error;
+
+      await this.prisma.usuarioGoogleCredencial.updateMany({
+        where: { usuarioId },
+        data: {
+          refreshTokenCriptografado: null,
+          accessTokenCriptografado: null,
+          accessTokenExpiraEm: null,
+          revogadoEm: new Date(),
+          ultimoErro: GOOGLE_CALENDAR_REAUTH_REQUIRED_MESSAGE,
+        },
+      });
+      throw new GoogleCalendarReauthRequiredError();
+    }
   }
 
   private async criarCalendarClient(
