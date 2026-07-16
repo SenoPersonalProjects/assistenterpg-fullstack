@@ -503,7 +503,10 @@ describe('SessaoController', () => {
 
   it('deve emitir evento ao ajustar inspiracao', async () => {
     const dto = { delta: 1 };
-    sessaoServiceMock.ajustarInspiracaoSessao.mockResolvedValue({});
+    sessaoServiceMock.ajustarInspiracaoSessao.mockResolvedValue({
+      detalhe: {},
+      criadoAgora: true,
+    });
 
     await controller.ajustarInspiracaoSessao(
       7,
@@ -529,7 +532,10 @@ describe('SessaoController', () => {
 
   it('deve emitir evento ao gastar inspiracao', async () => {
     const dto = { custo: 1, efeito: 'BONUS_5' as const };
-    sessaoServiceMock.gastarInspiracaoSessao.mockResolvedValue({});
+    sessaoServiceMock.gastarInspiracaoSessao.mockResolvedValue({
+      detalhe: {},
+      criadoAgora: true,
+    });
 
     await controller.gastarInspiracaoSessao(
       7,

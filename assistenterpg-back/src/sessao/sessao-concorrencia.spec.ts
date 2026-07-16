@@ -1,8 +1,11 @@
 import { Prisma } from '@prisma/client';
 import {
+  bloquearCondicaoSessaoTx,
   bloquearEventoSessaoTx,
+  bloquearItemInventarioCampanhaTx,
   bloquearNpcSessaoTx,
   bloquearSessaoTx,
+  bloquearSustentacaoSessaoTx,
 } from './sessao-concorrencia';
 
 describe('sessao-concorrencia', () => {
@@ -70,4 +73,43 @@ describe('sessao-concorrencia', () => {
       ),
     ).rejects.toMatchObject({ code: 'NPC_SESSAO_NOT_FOUND' });
   });
+
+  it.each([
+    [
+      'item de inventario',
+      bloquearItemInventarioCampanhaTx,
+      [7, 45],
+      'FROM InventarioItemCampanha',
+      [45, 7],
+    ],
+    [
+      'condicao ativa',
+      bloquearCondicaoSessaoTx,
+      [21, 81],
+      'FROM CondicaoPersonagemSessao',
+      [81, 21],
+    ],
+    [
+      'sustentacao ativa',
+      bloquearSustentacaoSessaoTx,
+      [21, 91],
+      'FROM PersonagemSessaoHabilidadeSustentada',
+      [91, 21],
+    ],
+  ])(
+    'bloqueia %s com SELECT FOR UPDATE',
+    async (_nome, bloquear, args, tabela, valores) => {
+      const queryRaw = jest.fn().mockResolvedValue([{ id: valores[0] }]);
+
+      await (bloquear as (...params: never[]) => Promise<void>)(
+        { $queryRaw: queryRaw } as never,
+        ...(args as never[]),
+      );
+
+      const consulta = queryRaw.mock.calls[0][0] as Prisma.Sql;
+      expect(consulta.sql).toContain(tabela);
+      expect(consulta.sql).toContain('FOR UPDATE');
+      expect(consulta.values).toEqual(valores);
+    },
+  );
 });
