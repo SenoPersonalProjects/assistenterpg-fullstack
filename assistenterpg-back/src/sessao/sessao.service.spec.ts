@@ -223,6 +223,9 @@ describe('SessaoService', () => {
   });
 
   it('reutiliza mutacao idempotente sem executar efeitos novamente', async () => {
+    const loggerWarn = jest
+      .spyOn((service as any).logger, 'warn')
+      .mockImplementation();
     const intencao = {
       tipo: 'CONSUMIR_ITEM',
       itemInventarioCampanhaId: 45,
@@ -243,6 +246,8 @@ describe('SessaoService', () => {
       (service as any).executarMutacaoIdempotenteSessao(
         {
           acao: 'consumir item em sessao',
+          fluxo: 'CONSUMIR_ITEM',
+          campanhaId: 7,
           sessaoId: 21,
           usuarioId: 10,
           clientRequestId: 'c344ab8f-ebdb-481c-8fca-a1f88d83c183',
@@ -252,6 +257,43 @@ describe('SessaoService', () => {
       ),
     ).resolves.toBe(false);
     expect(operacao).not.toHaveBeenCalled();
+    expect(loggerWarn).not.toHaveBeenCalled();
+  });
+
+  it('aceita mutacao sem UUID e registra warning sem expor a intencao', async () => {
+    const loggerWarn = jest
+      .spyOn((service as any).logger, 'warn')
+      .mockImplementation();
+    const operacao = jest.fn().mockResolvedValue(undefined);
+
+    await expect(
+      (service as any).executarMutacaoIdempotenteSessao(
+        {
+          acao: 'consumir item em sessao',
+          fluxo: 'CONSUMIR_ITEM',
+          campanhaId: 7,
+          sessaoId: 21,
+          usuarioId: 10,
+          intencao: {
+            tipo: 'CONSUMIR_ITEM',
+            observacao: 'SEGREDO_NAO_DEVE_SER_LOGADO',
+          },
+        },
+        operacao,
+      ),
+    ).resolves.toBe(true);
+
+    expect(operacao).toHaveBeenCalledTimes(1);
+    expect(loggerWarn).toHaveBeenCalledTimes(1);
+    const warning = loggerWarn.mock.calls[0][0] as string;
+    expect(JSON.parse(warning)).toEqual({
+      evento: 'mutacao_sessao_sem_client_request_id',
+      fluxo: 'CONSUMIR_ITEM',
+      campanhaId: 7,
+      sessaoId: 21,
+      usuarioId: 10,
+    });
+    expect(warning).not.toContain('SEGREDO_NAO_DEVE_SER_LOGADO');
   });
 
   it('rejeita UUID reutilizado em mutacao com intencao diferente', async () => {
@@ -269,6 +311,8 @@ describe('SessaoService', () => {
       (service as any).executarMutacaoIdempotenteSessao(
         {
           acao: 'aplicar condicao em sessao',
+          fluxo: 'APLICAR_CONDICAO',
+          campanhaId: 7,
           sessaoId: 21,
           usuarioId: 10,
           clientRequestId: '1dc52494-83e6-450a-b2b4-ae6534fabf57',
@@ -321,14 +365,22 @@ describe('SessaoService', () => {
         payloads: [{ faces: 20, rolagens: [20], modificador: 999 }],
       },
       contextoRolagem: {
-        tipo: 'PERICIA',
+        tipo: 'ATAQUE',
         dt: 1000,
         efeitoPendenteId: 'perito-forjado',
+        critico: true,
+        bonusEscalada: 999,
       },
     });
 
     expect(resultado.dadosRolagem).toMatchObject({ origem: 'CLIENTE_LEGADO' });
     expect(criarEvento.mock.calls[0][0].data.dados).toMatchObject({
+      contextoRolagem: {
+        tipo: 'ATAQUE',
+        efeitoPendenteId: 'perito-forjado',
+        critico: true,
+        bonusEscalada: 999,
+      },
       ajustesAplicados: [],
       inspiracaoAutomatica: null,
     });
@@ -415,6 +467,62 @@ describe('SessaoService', () => {
     expect((prisma as any).personagemCampanha.update).not.toHaveBeenCalled();
   });
 
+  it('aceita ajuste manual de personagem sem CAS e registra os campos ausentes', async () => {
+    jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({
+        acesso: { ehMestre: true },
+        sessao: { status: 'EM_ANDAMENTO' },
+      });
+    jest
+      .spyOn(service as any, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 });
+    const loggerWarn = jest
+      .spyOn((service as any).logger, 'warn')
+      .mockImplementation();
+    prisma.$transaction.mockResolvedValue(undefined);
+
+    await expect(
+      service.atualizarRecursosPersonagemSessao(7, 21, 31, 10, {
+        pvAtual: 9,
+        peAtual: 7,
+      }),
+    ).resolves.toEqual({ id: 21 });
+
+    expect(loggerWarn).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(loggerWarn.mock.calls[0][0] as string)).toEqual({
+      evento: 'ajuste_recursos_sessao_sem_precondicao',
+      fluxo: 'AJUSTAR_RECURSOS_PERSONAGEM',
+      campanhaId: 7,
+      sessaoId: 21,
+      usuarioId: 10,
+      camposSemPrecondicao: ['pvAtual', 'peAtual'],
+    });
+  });
+
+  it('nao registra warning quando o ajuste manual de personagem inclui CAS', async () => {
+    jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({
+        acesso: { ehMestre: true },
+        sessao: { status: 'EM_ANDAMENTO' },
+      });
+    jest
+      .spyOn(service as any, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 });
+    const loggerWarn = jest
+      .spyOn((service as any).logger, 'warn')
+      .mockImplementation();
+    prisma.$transaction.mockResolvedValue(undefined);
+
+    await service.atualizarRecursosPersonagemSessao(7, 21, 31, 10, {
+      pvAtual: 9,
+      pvAtualEsperado: 10,
+    });
+
+    expect(loggerWarn).not.toHaveBeenCalled();
+  });
+
   it('recusa ajuste manual de NPC baseado em snapshot obsoleto', async () => {
     jest
       .spyOn(service as any, 'obterSessaoMutavelComAcesso')
@@ -449,6 +557,46 @@ describe('SessaoService', () => {
       }),
     ).rejects.toMatchObject({ code: 'SESSAO_RECURSOS_DESATUALIZADOS' });
     expect((prisma as any).npcAmeacaSessao.update).not.toHaveBeenCalled();
+  });
+
+  it('aceita ajuste manual de NPC sem CAS e ignora edicao sem recurso', async () => {
+    jest
+      .spyOn(service as any, 'obterSessaoMutavelComAcesso')
+      .mockResolvedValue({
+        acesso: { ehMestre: true },
+        sessao: { status: 'EM_ANDAMENTO' },
+      });
+    jest
+      .spyOn(service as any, 'buscarDetalheSessao')
+      .mockResolvedValue({ id: 21 });
+    const loggerWarn = jest
+      .spyOn((service as any).logger, 'warn')
+      .mockImplementation();
+    prisma.$transaction.mockResolvedValue(undefined);
+
+    await expect(
+      service.atualizarNpcSessao(7, 21, 71, 99, {
+        pontosVidaAtual: 7,
+        sanAtual: 4,
+        nomeExibicao: 'NPC editado',
+      }),
+    ).resolves.toEqual({ id: 21 });
+
+    expect(loggerWarn).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(loggerWarn.mock.calls[0][0] as string)).toEqual({
+      evento: 'ajuste_recursos_sessao_sem_precondicao',
+      fluxo: 'AJUSTAR_RECURSOS_NPC',
+      campanhaId: 7,
+      sessaoId: 21,
+      usuarioId: 99,
+      camposSemPrecondicao: ['pontosVidaAtual', 'sanAtual'],
+    });
+
+    loggerWarn.mockClear();
+    await service.atualizarNpcSessao(7, 21, 71, 99, {
+      nomeExibicao: 'Apenas nome',
+    });
+    expect(loggerWarn).not.toHaveBeenCalled();
   });
 
   function configurarRolagemAutoritativa(args?: {

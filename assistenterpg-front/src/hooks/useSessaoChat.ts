@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { apiEnviarMensagemChatSessaoCampanha, criarErroUsuario } from '@/lib/api';
+import { apiEnviarMensagemTextoSessaoCampanha, criarErroUsuario } from '@/lib/api';
 import type { MensagemChatSessao, UserErrorState } from '@/lib/types';
 
 const LIMITE_MENSAGEM_CHAT = 100;
@@ -39,7 +39,7 @@ export function useSessaoChat({
     setEnviandoMensagem(true);
     setErro(null);
     try {
-      const enviada = await apiEnviarMensagemChatSessaoCampanha(campanhaId, sessaoId, {
+      const enviada = await apiEnviarMensagemTextoSessaoCampanha(campanhaId, sessaoId, {
         mensagem: mensagemLimpa,
       });
       setChat((anterior) => [...anterior, enviada]);

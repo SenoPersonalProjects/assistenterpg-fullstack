@@ -441,6 +441,18 @@ type OrdemIniciativaEvento = {
 
 type AcaoAjusteTurnoSessao = 'AVANCAR' | 'VOLTAR' | 'PULAR';
 
+type FluxoCompatibilidadeSessao =
+  | 'USAR_HABILIDADE'
+  | 'USAR_HABILIDADE_CLASSE'
+  | 'APLICAR_CONDICAO'
+  | 'REMOVER_CONDICAO'
+  | 'ENCERRAR_SUSTENTACAO'
+  | 'AJUSTAR_INSPIRACAO'
+  | 'GASTAR_INSPIRACAO'
+  | 'CONSUMIR_ITEM'
+  | 'AJUSTAR_RECURSOS_PERSONAGEM'
+  | 'AJUSTAR_RECURSOS_NPC';
+
 type StatusPassoEfeitosTurno = 'PENDENTE' | 'ERRO' | 'CONCLUIDO';
 type TipoPassoEfeitosTurno =
   | 'SUSTENTACOES_RODADA'
@@ -2661,6 +2673,31 @@ export class SessaoService {
       usuarioId,
       'atualizar recursos do personagem',
     );
+
+    const camposSemPrecondicao = [
+      dto.pvAtual !== undefined && dto.pvAtualEsperado === undefined
+        ? 'pvAtual'
+        : null,
+      dto.peAtual !== undefined && dto.peAtualEsperado === undefined
+        ? 'peAtual'
+        : null,
+      dto.eaAtual !== undefined && dto.eaAtualEsperado === undefined
+        ? 'eaAtual'
+        : null,
+      dto.sanAtual !== undefined && dto.sanAtualEsperado === undefined
+        ? 'sanAtual'
+        : null,
+    ].filter((campo): campo is string => campo !== null);
+    if (camposSemPrecondicao.length > 0) {
+      this.registrarWarningCompatibilidadeSessao({
+        evento: 'ajuste_recursos_sessao_sem_precondicao',
+        fluxo: 'AJUSTAR_RECURSOS_PERSONAGEM',
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        camposSemPrecondicao,
+      });
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await this.assertSessaoMutavelTx(
@@ -5515,6 +5552,29 @@ export class SessaoService {
     );
     this.assertMestre(acesso, 'editar NPC/Ameaça da cena');
 
+    const camposSemPrecondicao = [
+      dto.pontosVidaAtual !== undefined &&
+      dto.pontosVidaAtualEsperado === undefined
+        ? 'pontosVidaAtual'
+        : null,
+      dto.sanAtual !== undefined && dto.sanAtualEsperado === undefined
+        ? 'sanAtual'
+        : null,
+      dto.eaAtual !== undefined && dto.eaAtualEsperado === undefined
+        ? 'eaAtual'
+        : null,
+    ].filter((campo): campo is string => campo !== null);
+    if (camposSemPrecondicao.length > 0) {
+      this.registrarWarningCompatibilidadeSessao({
+        evento: 'ajuste_recursos_sessao_sem_precondicao',
+        fluxo: 'AJUSTAR_RECURSOS_NPC',
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        camposSemPrecondicao,
+      });
+    }
+
     await this.prisma.$transaction(async (tx) => {
       const sessao = await tx.sessao.findUnique({
         where: { id: sessaoId },
@@ -6205,6 +6265,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'usar habilidade em sessao',
+        fluxo: 'USAR_HABILIDADE',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId: dto.clientRequestId,
@@ -6625,6 +6687,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'usar habilidade de classe em sessao',
+        fluxo: 'USAR_HABILIDADE_CLASSE',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId: dto.clientRequestId,
@@ -7072,6 +7136,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'aplicar condicao em sessao',
+        fluxo: 'APLICAR_CONDICAO',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId: dto.clientRequestId,
@@ -7319,6 +7385,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'remover condicao em sessao',
+        fluxo: 'REMOVER_CONDICAO',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId,
@@ -7465,6 +7533,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'encerrar sustentacao em sessao',
+        fluxo: 'ENCERRAR_SUSTENTACAO',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId,
@@ -7744,6 +7814,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'ajustar inspiracao em sessao',
+        fluxo: 'AJUSTAR_INSPIRACAO',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId: dto.clientRequestId,
@@ -7850,6 +7922,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'gastar inspiracao em sessao',
+        fluxo: 'GASTAR_INSPIRACAO',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId: dto.clientRequestId,
@@ -8326,6 +8400,8 @@ export class SessaoService {
     const criadoAgora = await this.executarMutacaoIdempotenteSessao(
       {
         acao: 'consumir item em sessao',
+        fluxo: 'CONSUMIR_ITEM',
+        campanhaId,
         sessaoId,
         usuarioId,
         clientRequestId: dto.clientRequestId,
@@ -9342,6 +9418,8 @@ export class SessaoService {
   private async executarMutacaoIdempotenteSessao(
     args: {
       acao: string;
+      fluxo: FluxoCompatibilidadeSessao;
+      campanhaId: number;
       sessaoId: number;
       usuarioId: number;
       clientRequestId?: string;
@@ -9350,6 +9428,15 @@ export class SessaoService {
     operacao: () => Promise<void>,
   ): Promise<boolean> {
     const clientRequestId = args.clientRequestId;
+    if (!clientRequestId) {
+      this.registrarWarningCompatibilidadeSessao({
+        evento: 'mutacao_sessao_sem_client_request_id',
+        fluxo: args.fluxo,
+        campanhaId: args.campanhaId,
+        sessaoId: args.sessaoId,
+        usuarioId: args.usuarioId,
+      });
+    }
     if (clientRequestId) {
       const existente = await this.buscarEventoRolagemIdempotente(
         this.prisma,
@@ -9388,6 +9475,30 @@ export class SessaoService {
       );
       return false;
     }
+  }
+
+  private registrarWarningCompatibilidadeSessao(args: {
+    evento:
+      | 'mutacao_sessao_sem_client_request_id'
+      | 'ajuste_recursos_sessao_sem_precondicao';
+    fluxo: FluxoCompatibilidadeSessao;
+    campanhaId: number;
+    sessaoId: number;
+    usuarioId: number;
+    camposSemPrecondicao?: string[];
+  }): void {
+    this.logger.warn(
+      JSON.stringify({
+        evento: args.evento,
+        fluxo: args.fluxo,
+        campanhaId: args.campanhaId,
+        sessaoId: args.sessaoId,
+        usuarioId: args.usuarioId,
+        ...(args.camposSemPrecondicao
+          ? { camposSemPrecondicao: args.camposSemPrecondicao }
+          : {}),
+      }),
+    );
   }
 
   private dadosComIntencaoIdempotente(

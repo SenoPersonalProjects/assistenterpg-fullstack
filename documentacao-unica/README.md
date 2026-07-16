@@ -35,6 +35,7 @@ Para reduzir ambiguidade e facilitar manutenção, este README permanece como vi
 - checklist de cobertura de erros (back x front): [`entidades/checklist-cobertura-erros-front-back.md`](./entidades/checklist-cobertura-erros-front-back.md)
 - auditoria de consistência (docs x regras x schema): [`entidades/auditoria-consistência.md`](./entidades/auditoria-consistência.md)
 - smoke autenticado de rolagens autoritativas: [`GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md`](./GUIA-SMOKE-ROLAGENS-AUTORITATIVAS.md)
+- política de compatibilidade de sessão: [`POLITICA-COMPATIBILIDADE-SESSAO.md`](./POLITICA-COMPATIBILIDADE-SESSAO.md)
 
 ## 2. Arquitetura
 

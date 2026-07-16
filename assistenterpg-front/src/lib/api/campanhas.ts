@@ -1173,21 +1173,48 @@ export async function apiDesfazerEventoSessaoCampanha(
   return data;
 }
 
-export async function apiEnviarMensagemChatSessaoCampanha(
-  campanhaId: number,
-  sessaoId: number,
-  payload: {
-    mensagem: string;
-    visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+type EnviarMensagemTextoSessaoPayload = {
+  mensagem: string;
+  visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+};
+
+type EnviarMensagemChatSessaoLegadoPayload =
+  EnviarMensagemTextoSessaoPayload & {
     dadosRolagem?: Record<string, unknown>;
     contextoRolagem?: Record<string, unknown>;
-  },
+  };
+
+async function postarMensagemChatSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: EnviarMensagemChatSessaoLegadoPayload,
 ): Promise<MensagemChatSessao> {
   const { data } = await apiClient.post(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/chat`,
     payload,
   );
   return data;
+}
+
+export async function apiEnviarMensagemTextoSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: EnviarMensagemTextoSessaoPayload,
+): Promise<MensagemChatSessao> {
+  return postarMensagemChatSessaoCampanha(campanhaId, sessaoId, payload);
+}
+
+/**
+ * @deprecated Uso restrito a compatibilidade e historico legado.
+ * Fluxos oficiais devem usar apiEnviarMensagemTextoSessaoCampanha ou /rolagens.
+ * Nao usar para novas rolagens ou qualquer efeito mecanico.
+ */
+export async function apiEnviarMensagemChatSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: EnviarMensagemChatSessaoLegadoPayload,
+): Promise<MensagemChatSessao> {
+  return postarMensagemChatSessaoCampanha(campanhaId, sessaoId, payload);
 }
 
 export type CriarRolagemFormulaSessaoPayload = {

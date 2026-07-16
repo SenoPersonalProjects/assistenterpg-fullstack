@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 vi.mock('./axios-client', () => ({
   apiClient: {
@@ -61,6 +61,7 @@ import {
   apiCriarRolagemPericiaPersonagemSessaoCampanha,
   apiCriarRolagemTesteHabilidadePersonagemSessaoCampanha,
   apiEnviarMensagemChatSessaoCampanha,
+  apiEnviarMensagemTextoSessaoCampanha,
   apiPularTurnoSessaoCampanha,
   apiVoltarTurnoSessaoCampanha,
   apiVincularPersonagemCampanha,
@@ -735,20 +736,29 @@ describe('campanhas api cache and dedupe', () => {
     expect(mensagens).toEqual([{ id: 90, mensagem: 'oi' }]);
   });
 
-  it('sends session chat message', async () => {
+  it('envia mensagem textual da sessao sem contrato mecanico', async () => {
     mockedApiClient.post.mockResolvedValueOnce({
       data: { id: 91, mensagem: 'teste' },
     });
 
-    const mensagem = await apiEnviarMensagemChatSessaoCampanha(44, 13, {
+    const mensagem = await apiEnviarMensagemTextoSessaoCampanha(44, 13, {
       mensagem: 'teste',
+      visibilidade: 'PUBLICA',
     });
 
     expect(mockedApiClient.post).toHaveBeenCalledWith(
       '/campanhas/44/sessoes/13/chat',
-      { mensagem: 'teste' },
+      { mensagem: 'teste', visibilidade: 'PUBLICA' },
     );
     expect(mensagem).toEqual({ id: 91, mensagem: 'teste' });
+
+    type PayloadTexto = Parameters<
+      typeof apiEnviarMensagemTextoSessaoCampanha
+    >[2];
+    expectTypeOf<PayloadTexto>().toEqualTypeOf<{
+      mensagem: string;
+      visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+    }>();
   });
 
   it('sends only the authoritative roll intent', async () => {
@@ -964,7 +974,7 @@ describe('campanhas api cache and dedupe', () => {
     expect(payload).not.toHaveProperty('multiplicador');
   });
 
-  it('sends secret master roll visibility through session chat', async () => {
+  it('preserva payload mecanico apenas no helper legado de chat', async () => {
     mockedApiClient.post.mockResolvedValueOnce({
       data: { id: 92, mensagem: 'Rolagem secreta do Mestre' },
     });
@@ -972,6 +982,8 @@ describe('campanhas api cache and dedupe', () => {
     const mensagem = await apiEnviarMensagemChatSessaoCampanha(44, 13, {
       mensagem: '[[DICE:v4:test]]',
       visibilidade: 'SECRETA_MESTRE',
+      dadosRolagem: { origem: 'CLIENTE_LEGADO' },
+      contextoRolagem: { tipo: 'PERICIA' },
     });
 
     expect(mockedApiClient.post).toHaveBeenCalledWith(
@@ -979,6 +991,8 @@ describe('campanhas api cache and dedupe', () => {
       {
         mensagem: '[[DICE:v4:test]]',
         visibilidade: 'SECRETA_MESTRE',
+        dadosRolagem: { origem: 'CLIENTE_LEGADO' },
+        contextoRolagem: { tipo: 'PERICIA' },
       },
     );
     expect(mensagem).toEqual({ id: 92, mensagem: 'Rolagem secreta do Mestre' });
