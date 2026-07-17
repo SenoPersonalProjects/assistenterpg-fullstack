@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   CampoModificadorPersonagemCampanha,
   EstadoEntidadeVinculadaPersonagem,
+  MacroPersonalizadaTipo,
   Prisma,
   TamanhoNpcAmeaca,
   TipoEntidadeVinculadaPersonagem,
@@ -95,6 +96,7 @@ import {
 } from 'src/campanha/engine/entidades-vinculadas-capacidades';
 import {
   bloquearPersonagemCampanhaTx,
+  bloquearMacroPersonagemCampanhaTx,
   executarComRetryConcorrencia,
 } from 'src/campanha/campanha-concorrencia';
 import { assertSessaoMutavel } from './sessao-mutabilidade';
@@ -102,6 +104,7 @@ import { ControleTurnoSessaoDto } from './dto/controle-turno-sessao.dto';
 import {
   CriarRolagemHabilidadePersonagemSessaoDto,
   CriarRolagemItemPersonagemSessaoDto,
+  CriarRolagemMacroPersonagemSessaoDto,
   CriarRolagemMecanicaNpcSessaoDto,
   CriarRolagemMecanicaPersonagemSessaoDto,
   CriarRolagemFormulaSessaoDto,
@@ -110,12 +113,31 @@ import {
 import {
   normalizarEmpunhadurasMacroArma,
   resolverAjustesAutomaticosMacroArma,
+  resolverAjustesAutomaticosAtaque,
   resolverAtributoPadraoMacroArma,
   resolverPericiaMacroArma,
   type AtributoMacroArma,
   type EmpunhaduraMacroArma,
   type TipoArmaMacro,
 } from './sessao-item-macro';
+import {
+  contarDadosExpressaoMacro,
+  MACRO_PERSONAGEM_DADOS_ATAQUE_MAX,
+  MACRO_PERSONAGEM_FLAT_ATAQUE_MAX,
+  MACRO_PERSONAGEM_MODIFICADOR_DANO_MAX,
+  MacroPersonalizadaConfigError,
+  normalizarConfigMacroPersonalizada,
+  normalizarFormulaDanoMacro,
+  type AtributoMacroPersonagem,
+  type MacroAtaqueConfigV1,
+  type MacroDanoConfigV1,
+  type MacroFormulaLivreConfigV1,
+} from 'src/campanha/personagem-campanha-macro';
+import {
+  MacroPersonagemConfigInvalidaException,
+  MacroPersonagemNaoEncontradaException,
+  MacroPersonagemVisibilidadeNegadaException,
+} from 'src/common/exceptions/macro-personagem.exception';
 import {
   bloquearEventoSessaoTx,
   bloquearCondicaoSessaoTx,
@@ -2362,6 +2384,10 @@ export class SessaoService {
       select: {
         personagemCampanhaId: true,
         personagemCampanha: { select: { donoId: true } },
+        condicoes: {
+          where: { ativo: true },
+          select: { condicao: { select: { nome: true } } },
+        },
       },
     });
     if (!personagem) {
@@ -2437,7 +2463,89 @@ export class SessaoService {
       ),
     );
 
-    return { personagemSessaoId, armas };
+    const personalizadas = await this.prisma.$transaction(async (tx) => {
+      const macros = await tx.personagemCampanhaMacro.findMany({
+        where: {
+          campanhaId,
+          personagemCampanhaId: personagem.personagemCampanhaId,
+          ativo: true,
+        },
+        orderBy: [{ ordem: 'asc' }, { id: 'asc' }],
+      });
+      return Promise.all(
+        macros.map(async (macro) => {
+          const config = this.normalizarConfigMacroPersistida(
+            macro.tipo,
+            macro.config,
+          );
+          if (macro.tipo !== 'ATAQUE_PERICIA') {
+            return {
+              id: macro.id,
+              nome: macro.nome,
+              descricao: macro.descricao,
+              tipo: macro.tipo,
+              visibilidadePadrao: macro.visibilidadePadrao,
+              configVersao: macro.configVersao,
+              config,
+              ordem: macro.ordem,
+              revisao: macro.revisao,
+              preview: null,
+            };
+          }
+          const ataque = config as MacroAtaqueConfigV1;
+          const pericia = await this.resolverPericiaAutoritativaTx(
+            tx,
+            campanhaId,
+            sessaoId,
+            personagemSessaoId,
+            ataque.periciaCodigo,
+            ataque.atributoBase,
+          );
+          const ajustesAutomaticos = resolverAjustesAutomaticosAtaque({
+            condicoes: personagem.condicoes.map((item) => item.condicao),
+            periciaCodigo: ataque.periciaCodigo,
+            atributoBase: pericia.atributoBase as AtributoMacroPersonagem,
+            categoriaAtaque: ataque.categoriaAtaque,
+          });
+          const ajusteAutomatico = ajustesAutomaticos.reduce(
+            (total, ajuste) => total + ajuste.dados,
+            0,
+          );
+          const dadosLogicos =
+            pericia.valorAtributo + ataque.ajusteDadosPadrao + ajusteAutomatico;
+          return {
+            id: macro.id,
+            nome: macro.nome,
+            descricao: macro.descricao,
+            tipo: macro.tipo,
+            visibilidadePadrao: macro.visibilidadePadrao,
+            configVersao: macro.configVersao,
+            config,
+            ordem: macro.ordem,
+            revisao: macro.revisao,
+            preview: {
+              pericia: {
+                codigo: pericia.periciaCodigo,
+                nome: pericia.periciaNome,
+              },
+              atributoBase: pericia.atributoBase,
+              dadosLogicos,
+              quantidadeDados: this.calcularDadosPadraoPericia(dadosLogicos),
+              keepMode: dadosLogicos > 0 ? 'HIGHEST' : 'LOWEST',
+              bonus: pericia.bonusTotal + ataque.ajusteFlatPadrao,
+              ajustesAutomaticos,
+            },
+          };
+        }),
+      );
+    });
+
+    return {
+      personagemSessaoId,
+      personagemCampanhaId: personagem.personagemCampanhaId,
+      armas,
+      personalizadas,
+    };
   }
 
   async listarChatSessao(
@@ -3151,6 +3259,19 @@ export class SessaoService {
         sessaoId,
         usuarioId,
         dto as CriarRolagemItemPersonagemSessaoDto,
+      );
+    }
+    if (
+      dto.tipo === 'ATAQUE_MACRO_PERSONAGEM' ||
+      dto.tipo === 'DANO_MACRO_PERSONAGEM' ||
+      dto.tipo === 'CRITICO_MACRO_PERSONAGEM' ||
+      dto.tipo === 'FORMULA_MACRO_PERSONAGEM'
+    ) {
+      return this.criarRolagemMacroPersonagemSessao(
+        campanhaId,
+        sessaoId,
+        usuarioId,
+        dto as CriarRolagemMacroPersonagemSessaoDto,
       );
     }
     if (dto.tipo === 'PERICIA_PERSONAGEM' || dto.tipo === 'ATAQUE_PERSONAGEM') {
@@ -4020,6 +4141,516 @@ export class SessaoService {
       this.logger.warn(
         JSON.stringify({
           evento: 'rolagem_item_personagem_sessao_lenta',
+          sessaoId,
+          eventoId: resultadoTransacao.evento.id,
+          duracaoMs,
+        }),
+      );
+    }
+    return {
+      ...this.mapearEventoChat(resultadoTransacao.evento, true),
+      criadoAgora: resultadoTransacao.criadoAgora,
+    };
+  }
+
+  private async criarRolagemMacroPersonagemSessao(
+    campanhaId: number,
+    sessaoId: number,
+    usuarioId: number,
+    dto: CriarRolagemMacroPersonagemSessaoDto,
+  ) {
+    const inicio = Date.now();
+    const descricaoAcao =
+      dto.tipo === 'ATAQUE_MACRO_PERSONAGEM'
+        ? 'realizar ataque de macro personalizada'
+        : dto.tipo === 'DANO_MACRO_PERSONAGEM'
+          ? 'realizar dano de macro personalizada'
+          : dto.tipo === 'CRITICO_MACRO_PERSONAGEM'
+            ? 'realizar critico de macro personalizada'
+            : 'realizar formula de macro personalizada';
+    const { acesso } = await this.obterSessaoComAcesso(
+      campanhaId,
+      sessaoId,
+      usuarioId,
+    );
+    const intencao = this.montarIntencaoRolagemMacro(dto);
+    const existente = await this.buscarEventoRolagemIdempotente(
+      this.prisma,
+      sessaoId,
+      usuarioId,
+      dto.clientRequestId,
+    );
+    if (existente) {
+      this.assertIntencaoRolagemIdempotente(
+        existente,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      return {
+        ...this.mapearEventoChat(existente, true),
+        criadoAgora: false,
+      };
+    }
+
+    const personagemInicial = await this.prisma.personagemSessao.findFirst({
+      where: {
+        id: dto.personagemSessaoId,
+        sessaoId,
+        personagemCampanha: { campanhaId },
+      },
+      select: {
+        personagemCampanhaId: true,
+        personagemCampanha: { select: { donoId: true } },
+      },
+    });
+    if (!personagemInicial) {
+      throw new PersonagemSessaoNaoEncontradoException(
+        dto.personagemSessaoId,
+        sessaoId,
+        campanhaId,
+      );
+    }
+    if (
+      !acesso.ehMestre &&
+      personagemInicial.personagemCampanha.donoId !== usuarioId
+    ) {
+      throw new CampanhaPersonagemEdicaoNegadaException(
+        campanhaId,
+        personagemInicial.personagemCampanhaId,
+        usuarioId,
+      );
+    }
+
+    let resultadoTransacao: {
+      evento: NonNullable<
+        Awaited<ReturnType<SessaoService['buscarEventoRolagemIdempotente']>>
+      >;
+      criadoAgora: boolean;
+    };
+    try {
+      resultadoTransacao = await executarComRetryConcorrencia(
+        descricaoAcao,
+        () =>
+          this.prisma.$transaction(async (tx) => {
+            await bloquearPersonagemCampanhaTx(
+              tx,
+              campanhaId,
+              personagemInicial.personagemCampanhaId,
+            );
+            await bloquearMacroPersonagemCampanhaTx(
+              tx,
+              campanhaId,
+              personagemInicial.personagemCampanhaId,
+              dto.macroId,
+            );
+            await this.assertSessaoMutavelTx(
+              tx,
+              campanhaId,
+              sessaoId,
+              descricaoAcao,
+            );
+            const repetido = await this.buscarEventoRolagemIdempotente(
+              tx,
+              sessaoId,
+              usuarioId,
+              dto.clientRequestId,
+            );
+            if (repetido) {
+              this.assertIntencaoRolagemIdempotente(
+                repetido,
+                intencao,
+                sessaoId,
+                dto.clientRequestId,
+              );
+              return { evento: repetido, criadoAgora: false };
+            }
+
+            const [macro, personagem] = await Promise.all([
+              tx.personagemCampanhaMacro.findFirst({
+                where: {
+                  id: dto.macroId,
+                  campanhaId,
+                  personagemCampanhaId: personagemInicial.personagemCampanhaId,
+                  ativo: true,
+                },
+              }),
+              tx.personagemSessao.findFirst({
+                where: {
+                  id: dto.personagemSessaoId,
+                  sessaoId,
+                  personagemCampanha: { campanhaId },
+                },
+                select: {
+                  personagemCampanhaId: true,
+                  personagemCampanha: {
+                    select: { nome: true, donoId: true },
+                  },
+                  condicoes: {
+                    where: { ativo: true },
+                    select: { condicao: { select: { nome: true } } },
+                  },
+                },
+              }),
+            ]);
+            if (!macro) {
+              throw new MacroPersonagemNaoEncontradaException(dto.macroId);
+            }
+            if (!personagem) {
+              throw new PersonagemSessaoNaoEncontradoException(
+                dto.personagemSessaoId,
+                sessaoId,
+                campanhaId,
+              );
+            }
+            const tiposCompativeis: Record<
+              CriarRolagemMacroPersonagemSessaoDto['tipo'],
+              MacroPersonalizadaTipo
+            > = {
+              ATAQUE_MACRO_PERSONAGEM: 'ATAQUE_PERICIA',
+              DANO_MACRO_PERSONAGEM: 'DANO_FORMULA',
+              CRITICO_MACRO_PERSONAGEM: 'DANO_FORMULA',
+              FORMULA_MACRO_PERSONAGEM: 'FORMULA_LIVRE',
+            };
+            if (macro.tipo !== tiposCompativeis[dto.tipo]) {
+              throw new MacroPersonagemConfigInvalidaException(
+                'O tipo da macro nao e compativel com a rolagem solicitada.',
+              );
+            }
+            const config = this.normalizarConfigMacroPersistida(
+              macro.tipo,
+              macro.config,
+            );
+            const visibilidade = dto.visibilidade ?? macro.visibilidadePadrao;
+            if (visibilidade === 'SECRETA_MESTRE' && !acesso.ehMestre) {
+              throw new MacroPersonagemVisibilidadeNegadaException();
+            }
+
+            let payloads: DiceRollPayloadServidor[];
+            let formulaBase: string | null = null;
+            let formulaResolvida: string | null = null;
+            let ajustesAutomaticos: Array<{
+              condicao: string;
+              dados: number;
+              motivo: string;
+            }> = [];
+            let ajustesAplicados: Array<Record<string, unknown>> = [];
+            let inspiracaoAutomatica: Record<string, unknown> | null = null;
+            let dtAplicada: number | null = null;
+
+            if (dto.tipo === 'ATAQUE_MACRO_PERSONAGEM') {
+              const ataque = config as MacroAtaqueConfigV1;
+              const ajusteFlat =
+                ataque.ajusteFlatPadrao + (dto.ajusteFlatSessao ?? 0);
+              const ajusteDados =
+                ataque.ajusteDadosPadrao + (dto.ajusteDadosSessao ?? 0);
+              if (
+                Math.abs(ajusteFlat) > MACRO_PERSONAGEM_FLAT_ATAQUE_MAX ||
+                Math.abs(ajusteDados) > MACRO_PERSONAGEM_DADOS_ATAQUE_MAX
+              ) {
+                throw new SessaoRolagemInvalidaException(
+                  'Os ajustes combinados da macro excedem o limite permitido.',
+                );
+              }
+              const pericia = await this.resolverPericiaAutoritativaTx(
+                tx,
+                campanhaId,
+                sessaoId,
+                dto.personagemSessaoId,
+                ataque.periciaCodigo,
+                ataque.atributoBase,
+              );
+              ajustesAutomaticos = resolverAjustesAutomaticosAtaque({
+                condicoes: personagem.condicoes.map((item) => item.condicao),
+                periciaCodigo: pericia.periciaCodigo,
+                atributoBase: pericia.atributoBase as AtributoMacroPersonagem,
+                categoriaAtaque: ataque.categoriaAtaque,
+              });
+              const ajusteAutomaticoDados = ajustesAutomaticos.reduce(
+                (total, ajuste) => total + ajuste.dados,
+                0,
+              );
+              const dadosLogicos =
+                pericia.valorAtributo + ajusteDados + ajusteAutomaticoDados;
+              const quantidadeDados =
+                this.calcularDadosPadraoPericia(dadosLogicos);
+              if (quantidadeDados > LIMITES_DICE_SESSAO.dados) {
+                throw new SessaoRolagemInvalidaException(
+                  `A macro excede o limite de ${LIMITES_DICE_SESSAO.dados} dados.`,
+                );
+              }
+              const escalada = await this.resolverEscaladaAtaqueAutoritativaTx(
+                tx,
+                sessaoId,
+              );
+              const bonus = pericia.bonusTotal + escalada.bonus + ajusteFlat;
+              const payload = rolarDadosServidor({
+                quantidade: quantidadeDados,
+                faces: 20,
+                modificador: Math.abs(bonus),
+                operador: bonus < 0 ? '-' : '+',
+                aplicarModificadorPorDado: false,
+                keepMode: dadosLogicos > 0 ? 'HIGHEST' : 'LOWEST',
+                label:
+                  `${personagem.personagemCampanha.nome} · ${macro.nome}`.slice(
+                    0,
+                    LIMITES_DICE_SESSAO.label,
+                  ),
+              });
+              dtAplicada = dto.contexto?.dt ?? ataque.dtPadrao ?? null;
+              const resultado = calcularResultadoDiceServidor(payload);
+              inspiracaoAutomatica =
+                await this.resolverInspiracaoAutoritativaTx(
+                  tx,
+                  sessaoId,
+                  personagem.personagemCampanhaId,
+                  dtAplicada ?? undefined,
+                  payload,
+                  resultado.total,
+                );
+              payloads = [payload];
+              ajustesAplicados = [
+                ...ajustesAutomaticos.map((ajuste) => ({
+                  tipo: 'CONDICAO_AUTOMATICA',
+                  condicao: ajuste.condicao,
+                  valor: ajuste.dados,
+                  descricao: ajuste.motivo,
+                })),
+                ...escalada.ajustes.map((ajuste) =>
+                  this.extrairRegistro(ajuste),
+                ),
+                ...(ataque.ajusteFlatPadrao
+                  ? [
+                      {
+                        tipo: 'AJUSTE_FLAT_PADRAO',
+                        valor: ataque.ajusteFlatPadrao,
+                      },
+                    ]
+                  : []),
+                ...(ataque.ajusteDadosPadrao
+                  ? [
+                      {
+                        tipo: 'AJUSTE_DADOS_PADRAO',
+                        valor: ataque.ajusteDadosPadrao,
+                      },
+                    ]
+                  : []),
+                ...(dto.ajusteFlatSessao
+                  ? [
+                      {
+                        tipo: 'AJUSTE_FLAT_SESSAO',
+                        valor: dto.ajusteFlatSessao,
+                      },
+                    ]
+                  : []),
+                ...(dto.ajusteDadosSessao
+                  ? [
+                      {
+                        tipo: 'AJUSTE_DADOS_SESSAO',
+                        valor: dto.ajusteDadosSessao,
+                      },
+                    ]
+                  : []),
+              ];
+            } else if (
+              dto.tipo === 'DANO_MACRO_PERSONAGEM' ||
+              dto.tipo === 'CRITICO_MACRO_PERSONAGEM'
+            ) {
+              const dano = config as MacroDanoConfigV1;
+              if (
+                dto.tipo === 'CRITICO_MACRO_PERSONAGEM' &&
+                dano.criticoMultiplicador === undefined
+              ) {
+                throw new SessaoRolagemInvalidaException(
+                  'A macro nao possui multiplicador de critico.',
+                );
+              }
+              const normalizada = normalizarFormulaDanoMacro(dano.formulaBase);
+              const ajusteFlat =
+                dano.ajusteFlatPadrao + (dto.ajusteFlatSessao ?? 0);
+              const modificadorBase =
+                normalizada.expressao.operador === '-'
+                  ? -normalizada.expressao.modificador
+                  : normalizada.expressao.modificador;
+              if (
+                Math.abs(modificadorBase + ajusteFlat) >
+                MACRO_PERSONAGEM_MODIFICADOR_DANO_MAX
+              ) {
+                throw new SessaoRolagemInvalidaException(
+                  'O modificador efetivo de dano excede o limite permitido.',
+                );
+              }
+              formulaBase = normalizada.formula;
+              let expressao = this.somarModificadorMacroArma(
+                {
+                  ...normalizada.expressao,
+                  label:
+                    `${macro.nome}${dano.tipoDano ? ` · ${dano.tipoDano}` : ''}`.slice(
+                      0,
+                      LIMITES_DICE_SESSAO.label,
+                    ),
+                },
+                ajusteFlat,
+              );
+              if (dto.tipo === 'CRITICO_MACRO_PERSONAGEM') {
+                expressao = this.multiplicarDadosMacroArma(
+                  expressao,
+                  dano.criticoMultiplicador!,
+                );
+              }
+              payloads = [rolarDadosServidor(expressao)];
+              formulaResolvida = formatarExpressaoDiceServidor(expressao);
+              ajustesAplicados = [
+                ...(dano.ajusteFlatPadrao
+                  ? [
+                      {
+                        tipo: 'AJUSTE_FLAT_PADRAO',
+                        valor: dano.ajusteFlatPadrao,
+                      },
+                    ]
+                  : []),
+                ...(dto.ajusteFlatSessao
+                  ? [
+                      {
+                        tipo: 'AJUSTE_FLAT_SESSAO',
+                        valor: dto.ajusteFlatSessao,
+                      },
+                    ]
+                  : []),
+              ];
+            } else {
+              const livre = config as MacroFormulaLivreConfigV1;
+              const parse = parseDiceInputServidor(livre.formula);
+              if (parse.erro || !parse.expressions) {
+                throw new SessaoRolagemInvalidaException(
+                  parse.erro ?? 'Formula da macro invalida.',
+                );
+              }
+              formulaBase = livre.formula;
+              payloads = parse.expressions.map((expressao) =>
+                rolarDadosServidor({
+                  ...expressao,
+                  label: (expressao.label ?? macro.nome).slice(
+                    0,
+                    LIMITES_DICE_SESSAO.label,
+                  ),
+                }),
+              );
+              formulaResolvida = payloads
+                .map((payload) => formatarExpressaoDiceServidor(payload))
+                .join(' + ');
+            }
+
+            const resultados = payloads.map((payload) =>
+              calcularResultadoDiceServidor(payload),
+            );
+            const total = resultados.reduce(
+              (soma, resultado) => soma + resultado.total,
+              0,
+            );
+            const formulasResolvidas = payloads.map((payload) =>
+              formatarExpressaoDiceServidor(payload),
+            );
+            formulaResolvida ??= formulasResolvidas.join(' + ');
+            const mensagem = construirMensagemDiceServidor(payloads).mensagem;
+            if (mensagem.length > LIMITES_DICE_SESSAO.mensagem) {
+              throw new SessaoRolagemMensagemMuitoGrandeException();
+            }
+            const evento = await tx.eventoSessao.create({
+              data: {
+                sessaoId,
+                tipoEvento: 'CHAT',
+                personagemAtorId: dto.personagemSessaoId,
+                solicitanteUsuarioId: usuarioId,
+                clientRequestId: dto.clientRequestId,
+                dados: this.jsonParaPersistencia({
+                  mensagem,
+                  autorUsuarioId: usuarioId,
+                  autorApelido: this.resolverApelidoAcesso(acesso, usuarioId),
+                  visibilidade,
+                  intencaoAutoritativa: intencao,
+                  dadosRolagem: {
+                    versao: 1,
+                    origem: 'SERVIDOR',
+                    tipo: dto.tipo,
+                    clientRequestId: dto.clientRequestId,
+                    personagemSessaoId: dto.personagemSessaoId,
+                    personagemCampanhaId: personagem.personagemCampanhaId,
+                    macroId: macro.id,
+                    macroRevisao: macro.revisao,
+                    macroNome: macro.nome,
+                    macroTipo: macro.tipo,
+                    configVersao: macro.configVersao,
+                    configSnapshot: config,
+                    ajusteFlatSessao: dto.ajusteFlatSessao ?? 0,
+                    ajusteDadosSessao:
+                      dto.tipo === 'ATAQUE_MACRO_PERSONAGEM'
+                        ? (dto.ajusteDadosSessao ?? 0)
+                        : null,
+                    ajustesAplicados,
+                    condicoesAutomaticas: ajustesAutomaticos,
+                    formulaBase,
+                    formulaResolvida,
+                    formulasResolvidas,
+                    payloads,
+                    resultado: {
+                      total,
+                      dt: dtAplicada,
+                      sucesso: dtAplicada === null ? null : total >= dtAplicada,
+                      falhaCritica: inspiracaoAutomatica !== null,
+                    },
+                  },
+                  contextoRolagem: {
+                    tipo: dto.tipo,
+                    personagemSessaoId: dto.personagemSessaoId,
+                    personagemCampanhaId: personagem.personagemCampanhaId,
+                    macroId: macro.id,
+                    dt: dtAplicada,
+                  },
+                  ajustesAplicados,
+                  inspiracaoAutomatica,
+                }),
+              },
+              include: {
+                personagemAtor: {
+                  include: {
+                    personagemCampanha: {
+                      select: {
+                        nome: true,
+                        donoId: true,
+                        dono: { select: { apelido: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+            return { evento, criadoAgora: true };
+          }),
+      );
+    } catch (error) {
+      if (!this.erroPrismaChaveUnica(error)) throw error;
+      const vencedor = await this.buscarEventoRolagemIdempotente(
+        this.prisma,
+        sessaoId,
+        usuarioId,
+        dto.clientRequestId,
+      );
+      if (!vencedor) throw error;
+      this.assertIntencaoRolagemIdempotente(
+        vencedor,
+        intencao,
+        sessaoId,
+        dto.clientRequestId,
+      );
+      resultadoTransacao = { evento: vencedor, criadoAgora: false };
+    }
+
+    const duracaoMs = Date.now() - inicio;
+    if (resultadoTransacao.criadoAgora && duracaoMs > 1000) {
+      this.logger.warn(
+        JSON.stringify({
+          evento: 'rolagem_macro_personagem_sessao_lenta',
           sessaoId,
           eventoId: resultadoTransacao.evento.id,
           duracaoMs,
@@ -9834,6 +10465,29 @@ export class SessaoService {
     };
   }
 
+  private montarIntencaoRolagemMacro(
+    dto: CriarRolagemMacroPersonagemSessaoDto,
+  ): Record<string, unknown> {
+    return {
+      tipo: dto.tipo,
+      personagemSessaoId: dto.personagemSessaoId,
+      macroId: dto.macroId,
+      ajusteFlatSessao:
+        dto.tipo === 'FORMULA_MACRO_PERSONAGEM'
+          ? null
+          : (dto.ajusteFlatSessao ?? 0),
+      ajusteDadosSessao:
+        dto.tipo === 'ATAQUE_MACRO_PERSONAGEM'
+          ? (dto.ajusteDadosSessao ?? 0)
+          : null,
+      visibilidade: dto.visibilidade ?? null,
+      dt:
+        dto.tipo === 'ATAQUE_MACRO_PERSONAGEM'
+          ? (dto.contexto?.dt ?? null)
+          : null,
+    };
+  }
+
   private montarIntencaoRolagemNpc(
     dto: CriarRolagemMecanicaNpcSessaoDto,
     visibilidade: 'PUBLICA' | 'SECRETA_MESTRE',
@@ -10854,6 +11508,20 @@ export class SessaoService {
     };
   }
 
+  private normalizarConfigMacroPersistida(
+    tipo: MacroPersonalizadaTipo,
+    config: Prisma.JsonValue,
+  ) {
+    try {
+      return normalizarConfigMacroPersonalizada(tipo, config);
+    } catch (error) {
+      if (error instanceof MacroPersonalizadaConfigError) {
+        throw new MacroPersonagemConfigInvalidaException(error.message);
+      }
+      throw error;
+    }
+  }
+
   private somarModificadorMacroArma(
     expressao: DiceExpressionServidor,
     ajuste: number,
@@ -10880,15 +11548,15 @@ export class SessaoService {
     expressao: DiceExpressionServidor,
     multiplicador: number,
   ): DiceExpressionServidor {
-    const quantidade = expressao.quantidade * multiplicador;
-    if (quantidade > LIMITES_DICE_SESSAO.dados) {
+    const totalDados = contarDadosExpressaoMacro(expressao) * multiplicador;
+    if (totalDados > LIMITES_DICE_SESSAO.dados) {
       throw new SessaoRolagemInvalidaException(
         `O critico excede o limite de ${LIMITES_DICE_SESSAO.dados} dados.`,
       );
     }
     return {
       ...expressao,
-      quantidade,
+      quantidade: expressao.quantidade * multiplicador,
       label: `${expressao.label ?? 'Dano'} (Critico x${multiplicador})`.slice(
         0,
         LIMITES_DICE_SESSAO.label,
@@ -10910,7 +11578,7 @@ export class SessaoService {
     sessaoId: number,
     personagemSessaoId: number,
     periciaCodigoRaw: string,
-    atributoBaseForcado?: AtributoMacroArma,
+    atributoBaseForcado?: AtributoMacroPersonagem,
   ): Promise<{
     personagemCampanhaId: number;
     personagemNome: string;

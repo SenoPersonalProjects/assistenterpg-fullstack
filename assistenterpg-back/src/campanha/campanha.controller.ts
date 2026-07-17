@@ -45,11 +45,19 @@ import {
   AssociarTemplateEntidadeVinculadaDto,
   CriarEntidadeVinculadaPersonagemDto,
 } from './dto/entidade-vinculada-personagem.dto';
+import {
+  AtualizarMacroPersonagemCampanhaDto,
+  CriarMacroPersonagemCampanhaDto,
+} from './dto/macro-personagem-campanha.dto';
+import { CampanhaMacrosService } from './campanha.macros.service';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas')
 export class CampanhaController {
-  constructor(private readonly campanhaService: CampanhaService) {}
+  constructor(
+    private readonly campanhaService: CampanhaService,
+    private readonly macrosService: CampanhaMacrosService,
+  ) {}
 
   @Post()
   async criar(
@@ -468,6 +476,57 @@ export class CampanhaController {
     return this.campanhaService.listarHistoricoPersonagemCampanha(
       id,
       personagemCampanhaId,
+      req.user.id,
+    );
+  }
+
+  @Get(':id/personagens/:personagemCampanhaId/macros')
+  async listarMacrosPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.macrosService.listar(id, personagemCampanhaId, req.user.id);
+  }
+
+  @Post(':id/personagens/:personagemCampanhaId/macros')
+  async criarMacroPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: CriarMacroPersonagemCampanhaDto,
+  ) {
+    return this.macrosService.criar(id, personagemCampanhaId, req.user.id, dto);
+  }
+
+  @Patch(':id/personagens/:personagemCampanhaId/macros/:macroId')
+  async atualizarMacroPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('macroId', ParseIntPipe) macroId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AtualizarMacroPersonagemCampanhaDto,
+  ) {
+    return this.macrosService.atualizar(
+      id,
+      personagemCampanhaId,
+      macroId,
+      req.user.id,
+      dto,
+    );
+  }
+
+  @Delete(':id/personagens/:personagemCampanhaId/macros/:macroId')
+  async removerMacroPersonagemCampanha(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('personagemCampanhaId', ParseIntPipe) personagemCampanhaId: number,
+    @Param('macroId', ParseIntPipe) macroId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.macrosService.remover(
+      id,
+      personagemCampanhaId,
+      macroId,
       req.user.id,
     );
   }

@@ -20,6 +20,9 @@ export type AjusteAutomaticoMacroArma = {
   motivo: string;
 };
 
+export type CategoriaAtaqueMacro = TipoArmaMacro | 'OUTRO';
+export type AtributoAtaqueMacro = AtributoMacroArma | 'INT' | 'PRE' | 'VIG';
+
 const EMPUNHADURAS_MACRO_ARMA_SET = new Set<string>(EMPUNHADURAS_MACRO_ARMA);
 
 function normalizarTexto(texto: string): string {
@@ -75,8 +78,22 @@ export function resolverAjustesAutomaticosMacroArma(
   tipoArma: TipoArmaMacro,
   atributoBase: AtributoMacroArma,
 ): AjusteAutomaticoMacroArma[] {
+  return resolverAjustesAutomaticosAtaque({
+    condicoes,
+    periciaCodigo: resolverPericiaMacroArma(tipoArma) ?? '',
+    atributoBase,
+    categoriaAtaque: tipoArma,
+  });
+}
+
+export function resolverAjustesAutomaticosAtaque(args: {
+  condicoes: CondicaoMacroAtiva[];
+  periciaCodigo: string;
+  atributoBase: AtributoAtaqueMacro;
+  categoriaAtaque: CategoriaAtaqueMacro;
+}): AjusteAutomaticoMacroArma[] {
   const nomes = new Set(
-    condicoes.map((condicao) => normalizarTexto(condicao.nome)),
+    args.condicoes.map((condicao) => normalizarTexto(condicao.nome)),
   );
   const ajustes: AjusteAutomaticoMacroArma[] = [];
 
@@ -100,21 +117,28 @@ export function resolverAjustesAutomaticosMacroArma(
       motivo: 'Penalidade em testes de ataque.',
     });
   }
-  if (tipoArma === 'CORPO_A_CORPO' && nomes.has('CAIDO')) {
+  if (args.categoriaAtaque === 'CORPO_A_CORPO' && nomes.has('CAIDO')) {
     ajustes.push({
       condicao: 'Caído',
       dados: -2,
       motivo: 'Penalidade em ataques corpo a corpo.',
     });
   }
-  if (nomes.has('CEGO') && (atributoBase === 'FOR' || atributoBase === 'AGI')) {
+  if (
+    nomes.has('CEGO') &&
+    (args.atributoBase === 'FOR' || args.atributoBase === 'AGI')
+  ) {
     ajustes.push({
       condicao: 'Cego',
       dados: -2,
       motivo: 'Penalidade em testes dependentes de atributo físico.',
     });
   }
-  if (atributoBase === 'FOR' || atributoBase === 'AGI') {
+  if (
+    args.atributoBase === 'FOR' ||
+    args.atributoBase === 'AGI' ||
+    args.atributoBase === 'VIG'
+  ) {
     if (nomes.has('FRACO')) {
       ajustes.push({
         condicao: 'Fraco',

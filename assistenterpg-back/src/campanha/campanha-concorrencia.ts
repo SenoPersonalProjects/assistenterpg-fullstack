@@ -3,6 +3,7 @@ import {
   OperacaoConcorrenteException,
   PersonagemCampanhaNaoEncontradoException,
 } from 'src/common/exceptions/campanha.exception';
+import { MacroPersonagemNaoEncontradaException } from 'src/common/exceptions/macro-personagem.exception';
 
 const MAX_TENTATIVAS_CONCORRENCIA = 3;
 const ESPERA_BASE_RETRY_MS = 20;
@@ -22,6 +23,27 @@ export async function bloquearPersonagemCampanhaTx(
 
   if (registros.length === 0) {
     throw new PersonagemCampanhaNaoEncontradoException(personagemCampanhaId);
+  }
+}
+
+export async function bloquearMacroPersonagemCampanhaTx(
+  tx: Prisma.TransactionClient,
+  campanhaId: number,
+  personagemCampanhaId: number,
+  macroId: number,
+): Promise<void> {
+  const registros = await tx.$queryRaw<Array<{ id: number }>>(Prisma.sql`
+    SELECT id
+    FROM PersonagemCampanhaMacro
+    WHERE id = ${macroId}
+      AND campanhaId = ${campanhaId}
+      AND personagemCampanhaId = ${personagemCampanhaId}
+      AND ativo = TRUE
+    FOR UPDATE
+  `);
+
+  if (registros.length === 0) {
+    throw new MacroPersonagemNaoEncontradaException(macroId);
   }
 }
 

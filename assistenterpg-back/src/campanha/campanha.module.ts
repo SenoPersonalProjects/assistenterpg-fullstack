@@ -15,6 +15,7 @@ import { CampanhaConvitesService } from './campanha.convites.service';
 import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
 import { CampanhaVinculadosService } from './campanha.vinculados.service';
+import { CampanhaMacrosService } from './campanha.macros.service';
 import { AmizadesModule } from 'src/amizades/amizades.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { AmizadesModule } from 'src/amizades/amizades.module';
     CampanhaInventarioService,
     CampanhaItensSessaoService,
     CampanhaVinculadosService,
+    CampanhaMacrosService,
   ],
   controllers: [CampanhaController],
 })
