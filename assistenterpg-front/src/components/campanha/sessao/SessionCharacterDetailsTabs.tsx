@@ -11,6 +11,7 @@ import { SessionCharacterInventoryTab } from '@/components/campanha/sessao/Sessi
 import {
   SessionCharacterMacrosTab,
   type SolicitacaoMacroArma,
+  type SolicitacaoMacroPersonalizada,
 } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import { Icon } from '@/components/ui/Icon';
 import type { CondicaoAtivaSessaoCampanha, SessaoCampanhaDetalhe } from '@/lib/types';
@@ -22,6 +23,7 @@ import {
 import type {
   AbaDetalheCard,
   PreferenciaMacroArmaSessao,
+  PreferenciaMacroPersonalizadaSessao,
 } from '@/lib/campanha/sessao-preferencias';
 import type {
   RolagemDanoHabilidadeSessaoPayload,
@@ -131,6 +133,11 @@ type SessionCharacterDetailsTabsProps = {
         ) => Record<string, PreferenciaMacroArmaSessao>),
   ) => void;
   onRolarMacroArma: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
+  preferenciasMacrosPersonalizadas: Record<string, PreferenciaMacroPersonalizadaSessao>;
+  onAtualizarPreferenciasMacrosPersonalizadas: (
+    atualizacao: Record<string, PreferenciaMacroPersonalizadaSessao> | ((estado: Record<string, PreferenciaMacroPersonalizadaSessao>) => Record<string, PreferenciaMacroPersonalizadaSessao>),
+  ) => void;
+  onRolarMacroPersonalizada: (solicitacao: SolicitacaoMacroPersonalizada) => Promise<void>;
   renderPainelCondicoes: (
     alvoTipo: 'PERSONAGEM' | 'NPC',
     alvoId: number,
@@ -237,6 +244,9 @@ export function SessionCharacterDetailsTabs({
   preferenciasMacrosArmas,
   onAtualizarPreferenciasMacrosArmas,
   onRolarMacroArma,
+  preferenciasMacrosPersonalizadas,
+  onAtualizarPreferenciasMacrosPersonalizadas,
+  onRolarMacroPersonalizada,
   renderPainelCondicoes,
   mostrarAcoesResumo = true,
 }: SessionCharacterDetailsTabsProps) {
@@ -918,6 +928,9 @@ export function SessionCharacterDetailsTabs({
           preferencias={preferenciasMacrosArmas}
           onAtualizarPreferencias={onAtualizarPreferenciasMacrosArmas}
           onRolarMacro={onRolarMacroArma}
+          preferenciasPersonalizadas={preferenciasMacrosPersonalizadas}
+          onAtualizarPreferenciasPersonalizadas={onAtualizarPreferenciasMacrosPersonalizadas}
+          onRolarMacroPersonalizada={onRolarMacroPersonalizada}
         />
       ) : null}
 

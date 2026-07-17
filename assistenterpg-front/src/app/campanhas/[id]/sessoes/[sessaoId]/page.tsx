@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import {
   useCallback,
@@ -13,7 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useConfirm } from '@/hooks/useConfirm';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
-import type { SolicitacaoMacroArma } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
+import type { SolicitacaoMacroArma, SolicitacaoMacroPersonalizada } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import {
   apiAdminGetCondicoes,
   apiGetRelatorioSessaoCampanha,
@@ -28,6 +28,7 @@ import {
   apiCriarRolagemCriticoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemAtaqueItemPersonagemSessaoCampanha,
   apiCriarRolagemDanoItemPersonagemSessaoCampanha,
+  apiCriarRolagemMacroPersonagemSessaoCampanha,
   apiCriarRolagemDanoHabilidadePersonagemSessaoCampanha,
   apiCriarRolagemDanoNpcSessaoCampanha,
   apiCriarRolagemPericiaNpcSessaoCampanha,
@@ -177,6 +178,7 @@ import {
   montarPreviewDanoHabilidade,
 } from '@/lib/campanha/sessao-rolagem-habilidade';
 import { montarIntencaoRolagemMacroArma } from '@/lib/campanha/sessao-rolagem-item';
+import { montarIntencaoRolagemMacroPersonalizada } from '@/lib/campanha/sessao-rolagem-macro';
 
 const OPCOES_CENA: Array<{ value: TipoCenaSessaoCampanha; label: string }> = [
   { value: 'LIVRE', label: 'Cena livre' },
@@ -602,6 +604,8 @@ export default function SessaoCampanhaPage() {
     setTecnicasNaoInatasAbertas,
     macrosArmas,
     setMacrosArmas,
+    macrosPersonalizadas,
+    setMacrosPersonalizadas,
   } = useSessaoPreferencias({
     idsValidos,
     usuarioId: usuario?.id,
@@ -2767,6 +2771,74 @@ export default function SessaoCampanhaPage() {
     ],
   );
 
+  const handleRolarMacroPersonalizada = useCallback(
+    async (solicitacao: SolicitacaoMacroPersonalizada) => {
+      if (sessaoEncerrada) {
+        showToast('Sessão encerrada. Rolagens bloqueadas.', 'warning');
+        return;
+      }
+      let intencao: ReturnType<typeof montarIntencaoRolagemMacroPersonalizada>;
+      try {
+        intencao = montarIntencaoRolagemMacroPersonalizada(
+          solicitacao,
+          solicitacao.visibilidadePadrao,
+          criarClientRequestIdRolagem(),
+        );
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        showToast(userError.message, 'warning');
+        return;
+      }
+      const chaveRolagem = `${intencao.tipo}:${intencao.personagemSessaoId}:${intencao.macroId}`;
+      if (rolagensPericiaEmAndamentoRef.current.has(chaveRolagem)) return;
+      rolagensPericiaEmAndamentoRef.current.add(chaveRolagem);
+      setPericiaRollModal({
+        aberto: true,
+        titulo: `${solicitacao.acao === 'CRITICO' ? 'Crítico' : solicitacao.acao === 'DANO' ? 'Dano' : solicitacao.acao === 'ATAQUE' ? 'Ataque' : 'Fórmula'} · ${solicitacao.nomeMacro}`,
+        subtitulo: solicitacao.subtitulo,
+        alvoTipo: 'PERSONAGEM',
+        alvoNome: solicitacao.nomeMacro,
+        habilidadeContext: null,
+        payload: null,
+        payloads: [],
+        expression: solicitacao.expressionsPreview[0] ?? 'Rolagem de macro',
+        expressions: solicitacao.expressionsPreview,
+        facesPendentes: solicitacao.facesPreview,
+        origemServidor: true,
+        enviando: true,
+        enviado: false,
+        erro: null,
+      });
+      try {
+        const enviada = await apiCriarRolagemMacroPersonagemSessaoCampanha(campanhaId, sessaoId, intencao);
+        const dadosServidor = extrairDadosRolagemServidor(enviada.dadosRolagem);
+        if (!dadosServidor || dadosServidor.tipo !== intencao.tipo || !dadosServidor.payloads[0]) {
+          throw new Error('Resposta autoritativa da macro personalizada inválida.');
+        }
+        setChat((anterior) => anterior.some((mensagem) => mensagem.id === enviada.id) ? anterior : [...anterior, enviada]);
+        setPericiaRollModal((estado) => ({
+          ...estado,
+          payload: dadosServidor.payloads[0] ?? null,
+          payloads: dadosServidor.payloads,
+          expression: dadosServidor.formulasResolvidas[0] ?? dadosServidor.formulaResolvida,
+          expressions: dadosServidor.formulasResolvidas,
+          facesPendentes: undefined,
+          enviando: false,
+          enviado: true,
+          erro: null,
+        }));
+      } catch (error) {
+        const userError = criarErroUsuario(error);
+        setErroRolagens(userError);
+        setPericiaRollModal((estado) => ({ ...estado, enviando: false, enviado: false, erro: userError.message }));
+      } finally {
+        rolagensPericiaEmAndamentoRef.current.delete(chaveRolagem);
+      }
+    },
+    [campanhaId, sessaoEncerrada, sessaoId, showToast],
+  );
+
   const handlePersonagemAtualizadoNoModal = useCallback(
     (personagem: PersonagemCampanhaResumo) => {
       setDetalhe((anterior) => {
@@ -3299,6 +3371,9 @@ export default function SessaoCampanhaPage() {
       preferenciasMacrosArmas={macrosArmas}
       onAtualizarPreferenciasMacrosArmas={setMacrosArmas}
       onRolarMacroArma={handleRolarMacroArma}
+      preferenciasMacrosPersonalizadas={macrosPersonalizadas}
+      onAtualizarPreferenciasMacrosPersonalizadas={setMacrosPersonalizadas}
+      onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
       renderPainelCondicoes={renderPainelCondicoes}
       limitesCategoriaAtivo={limitesCategoriaAtivo}
       consumirComCalmaAtivo={regrasOpcionais?.CONSUMIR_COM_CALMA?.ativo === true}
@@ -3773,6 +3848,9 @@ export default function SessaoCampanhaPage() {
                     preferenciasMacrosArmas={macrosArmas}
                     onAtualizarPreferenciasMacrosArmas={setMacrosArmas}
                     onRolarMacroArma={handleRolarMacroArma}
+                    preferenciasMacrosPersonalizadas={macrosPersonalizadas}
+                    onAtualizarPreferenciasMacrosPersonalizadas={setMacrosPersonalizadas}
+                    onRolarMacroPersonalizada={handleRolarMacroPersonalizada}
                   />
               )}
             </section>
@@ -4187,4 +4265,3 @@ export default function SessaoCampanhaPage() {
     </main>
   );
 }
-

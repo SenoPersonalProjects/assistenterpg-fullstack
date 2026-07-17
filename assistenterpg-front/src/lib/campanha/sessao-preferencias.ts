@@ -15,6 +15,7 @@ export type PreferenciasSessaoLobby = {
   tecnicasInatasAbertas: Record<number, boolean>;
   tecnicasNaoInatasAbertas: Record<number, boolean>;
   macrosArmas: Record<string, PreferenciaMacroArmaSessao>;
+  macrosPersonalizadas: Record<string, PreferenciaMacroPersonalizadaSessao>;
 };
 
 export type PreferenciaMacroArmaSessao = {
@@ -22,6 +23,11 @@ export type PreferenciaMacroArmaSessao = {
   ajusteDadosManual: number;
   atributoEscolhido?: 'FOR' | 'AGI';
   empunhadura?: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS';
+};
+
+export type PreferenciaMacroPersonalizadaSessao = {
+  ajusteFlatSessao: number;
+  ajusteDadosSessao: number;
 };
 
 const PREFS_STORAGE_PREFIX = 'assistenterpg:sessao:lobby:preferencias:v1';
@@ -134,11 +140,38 @@ function normalizarPreferenciasMacrosArmas(
   return resultado;
 }
 
+function normalizarPreferenciasMacrosPersonalizadas(
+  raw: unknown,
+): Record<string, PreferenciaMacroPersonalizadaSessao> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const resultado: Record<string, PreferenciaMacroPersonalizadaSessao> = {};
+  for (const [chave, valor] of Object.entries(raw as Record<string, unknown>)) {
+    if (!/^\d+:\d+$/.test(chave) || !valor || typeof valor !== 'object' || Array.isArray(valor)) continue;
+    const item = valor as Record<string, unknown>;
+    const normalizarNumero = (entrada: unknown, limite: number) => {
+      const numero = Number(entrada);
+      return Number.isInteger(numero) ? Math.max(-limite, Math.min(limite, numero)) : 0;
+    };
+    resultado[chave] = {
+      ajusteFlatSessao: normalizarNumero(item.ajusteFlatSessao, 100),
+      ajusteDadosSessao: normalizarNumero(item.ajusteDadosSessao, 10),
+    };
+  }
+  return resultado;
+}
+
 export function montarChavePreferenciaMacroArma(
   personagemSessaoId: number,
   itemInventarioCampanhaId: number,
 ): string {
   return `${personagemSessaoId}:${itemInventarioCampanhaId}`;
+}
+
+export function montarChavePreferenciaMacroPersonalizada(
+  personagemSessaoId: number,
+  macroId: number,
+): string {
+  return `${personagemSessaoId}:${macroId}`;
 }
 
 export function carregarPreferenciasSessao(
@@ -152,6 +185,7 @@ export function carregarPreferenciasSessao(
       tecnicasInatasAbertas: {},
       tecnicasNaoInatasAbertas: {},
       macrosArmas: {},
+      macrosPersonalizadas: {},
     };
   }
   if (!ehInteiroPositivo(usuarioId)) {
@@ -160,6 +194,7 @@ export function carregarPreferenciasSessao(
       tecnicasInatasAbertas: {},
       tecnicasNaoInatasAbertas: {},
       macrosArmas: {},
+      macrosPersonalizadas: {},
     };
   }
   if (!ehInteiroPositivo(campanhaId)) {
@@ -168,6 +203,7 @@ export function carregarPreferenciasSessao(
       tecnicasInatasAbertas: {},
       tecnicasNaoInatasAbertas: {},
       macrosArmas: {},
+      macrosPersonalizadas: {},
     };
   }
   if (!ehInteiroPositivo(sessaoId)) {
@@ -176,6 +212,7 @@ export function carregarPreferenciasSessao(
       tecnicasInatasAbertas: {},
       tecnicasNaoInatasAbertas: {},
       macrosArmas: {},
+      macrosPersonalizadas: {},
     };
   }
 
@@ -189,6 +226,7 @@ export function carregarPreferenciasSessao(
         tecnicasInatasAbertas: {},
         tecnicasNaoInatasAbertas: {},
         macrosArmas: {},
+        macrosPersonalizadas: {},
       };
     }
     const parsed = JSON.parse(raw) as Partial<PreferenciasSessaoLobby>;
@@ -199,6 +237,7 @@ export function carregarPreferenciasSessao(
         parsed.tecnicasNaoInatasAbertas,
       ),
       macrosArmas: normalizarPreferenciasMacrosArmas(parsed.macrosArmas),
+      macrosPersonalizadas: normalizarPreferenciasMacrosPersonalizadas(parsed.macrosPersonalizadas),
     };
   } catch {
     return {
@@ -206,6 +245,7 @@ export function carregarPreferenciasSessao(
       tecnicasInatasAbertas: {},
       tecnicasNaoInatasAbertas: {},
       macrosArmas: {},
+      macrosPersonalizadas: {},
     };
   }
 }
@@ -231,13 +271,15 @@ export function salvarPreferenciasSessao(
         preferencias.tecnicasNaoInatasAbertas,
       ),
       macrosArmas: normalizarPreferenciasMacrosArmas(preferencias.macrosArmas),
+      macrosPersonalizadas: normalizarPreferenciasMacrosPersonalizadas(preferencias.macrosPersonalizadas),
     };
 
     const vazio =
       Object.keys(normalizado.abasDetalheCard).length === 0 &&
       Object.keys(normalizado.tecnicasInatasAbertas).length === 0 &&
       Object.keys(normalizado.tecnicasNaoInatasAbertas).length === 0 &&
-      Object.keys(normalizado.macrosArmas).length === 0;
+      Object.keys(normalizado.macrosArmas).length === 0 &&
+      Object.keys(normalizado.macrosPersonalizadas).length === 0;
 
     if (vazio) {
       window.localStorage.removeItem(criarStorageKey(usuarioId, campanhaId, sessaoId));

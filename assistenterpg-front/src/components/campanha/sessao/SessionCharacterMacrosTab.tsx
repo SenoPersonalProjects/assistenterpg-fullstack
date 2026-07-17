@@ -9,12 +9,20 @@ import {
   apiListarMacrosPersonagemSessaoCampanha,
   criarErroUsuario,
   type MacroArmaSessao,
+  type MacroPersonalizadaSessao,
 } from '@/lib/api';
 import {
   montarChavePreferenciaMacroArma,
   type PreferenciaMacroArmaSessao,
+  type PreferenciaMacroPersonalizadaSessao,
 } from '@/lib/campanha/sessao-preferencias';
 import type { TipoAcaoMacroArma } from '@/lib/campanha/sessao-rolagem-item';
+import {
+  SessionCharacterCustomMacrosSection,
+  type SolicitacaoMacroPersonalizada,
+} from './SessionCharacterCustomMacrosSection';
+
+export type { SolicitacaoMacroPersonalizada } from './SessionCharacterCustomMacrosSection';
 
 export type SolicitacaoMacroArma = {
   acao: TipoAcaoMacroArma;
@@ -39,6 +47,7 @@ type SessionCharacterMacrosTabProps = {
   ativo: boolean;
   sessaoEncerrada: boolean;
   preferencias: Record<string, PreferenciaMacroArmaSessao>;
+  preferenciasPersonalizadas: Record<string, PreferenciaMacroPersonalizadaSessao>;
   onAtualizarPreferencias: (
     atualizacao:
       | Record<string, PreferenciaMacroArmaSessao>
@@ -47,6 +56,10 @@ type SessionCharacterMacrosTabProps = {
         ) => Record<string, PreferenciaMacroArmaSessao>),
   ) => void;
   onRolarMacro: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
+  onAtualizarPreferenciasPersonalizadas: (
+    atualizacao: Record<string, PreferenciaMacroPersonalizadaSessao> | ((estado: Record<string, PreferenciaMacroPersonalizadaSessao>) => Record<string, PreferenciaMacroPersonalizadaSessao>),
+  ) => void;
+  onRolarMacroPersonalizada: (solicitacao: SolicitacaoMacroPersonalizada) => Promise<void>;
 };
 
 function formatarBonus(valor: number): string {
@@ -101,10 +114,15 @@ export function SessionCharacterMacrosTab({
   ativo,
   sessaoEncerrada,
   preferencias,
+  preferenciasPersonalizadas,
   onAtualizarPreferencias,
+  onAtualizarPreferenciasPersonalizadas,
   onRolarMacro,
+  onRolarMacroPersonalizada,
 }: SessionCharacterMacrosTabProps) {
   const [armas, setArmas] = useState<MacroArmaSessao[] | null>(null);
+  const [personalizadas, setPersonalizadas] = useState<MacroPersonalizadaSessao[]>([]);
+  const [personagemCampanhaId, setPersonagemCampanhaId] = useState<number | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [acaoPendente, setAcaoPendente] = useState<string | null>(null);
@@ -120,7 +138,11 @@ export function SessionCharacterMacrosTab({
       personagemSessaoId,
     )
       .then((resposta) => {
-        if (ativoNaTela) setArmas(resposta.armas);
+        if (ativoNaTela) {
+          setArmas(resposta.armas);
+          setPersonalizadas(resposta.personalizadas);
+          setPersonagemCampanhaId(resposta.personagemCampanhaId);
+        }
       })
       .catch((error) => {
         if (ativoNaTela) setErro(criarErroUsuario(error).message);
@@ -132,6 +154,17 @@ export function SessionCharacterMacrosTab({
       ativoNaTela = false;
     };
   }, [ativo, campanhaId, personagemSessaoId, sessaoId]);
+
+  const recarregarMacros = async () => {
+    const resposta = await apiListarMacrosPersonagemSessaoCampanha(
+      campanhaId,
+      sessaoId,
+      personagemSessaoId,
+    );
+    setArmas(resposta.armas);
+    setPersonalizadas(resposta.personalizadas);
+    setPersonagemCampanhaId(resposta.personagemCampanhaId);
+  };
 
   const preferenciasPorArma = useMemo(
     () =>
@@ -208,24 +241,36 @@ export function SessionCharacterMacrosTab({
     return <p className="session-text-xxs text-app-muted">Carregando macros...</p>;
   }
   if (erro) return <ErrorAlert message={erro} />;
-  if (!armas?.length) {
-    return (
-      <EmptyState
-        variant="session"
-        size="sm"
-        icon="dice"
-        title="Nenhuma arma equipada"
-        description="Equipe uma arma normal no inventário para criar uma macro de ataque, dano e crítico."
-      />
-    );
-  }
-
   return (
     <div className="space-y-2">
       <p className="session-text-xxs text-app-muted">
         A prévia é informativa. Dados, condições e resultado são recalculados pelo servidor ao rolar.
       </p>
-      {armas.map((macro) => {
+      {personagemCampanhaId ? (
+        <SessionCharacterCustomMacrosSection
+          campanhaId={campanhaId}
+          personagemSessaoId={personagemSessaoId}
+          personagemCampanhaId={personagemCampanhaId}
+          macros={personalizadas}
+          sessaoEncerrada={sessaoEncerrada}
+          preferencias={preferenciasPersonalizadas}
+          onAtualizarPreferencias={onAtualizarPreferenciasPersonalizadas}
+          onRecarregar={recarregarMacros}
+          onRolar={onRolarMacroPersonalizada}
+          onErro={setErro}
+        />
+      ) : null}
+      <h3 className="pt-2 text-xs font-semibold text-app-fg">Armas equipadas</h3>
+      {!armas?.length ? (
+        <EmptyState
+          variant="session"
+          size="sm"
+          icon="dice"
+          title="Nenhuma arma equipada"
+          description="Equipe uma arma normal no inventário para criar uma macro de ataque, dano e crítico."
+        />
+      ) : null}
+      {(armas ?? []).map((macro) => {
         const preferencia = preferenciasPorArma.get(macro.itemInventarioCampanhaId);
         if (!preferencia) return null;
         const dadosLogicos = macro.preview.dadosLogicos + preferencia.ajusteDadosManual;

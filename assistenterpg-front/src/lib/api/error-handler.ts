@@ -335,6 +335,12 @@ export const ERROR_MESSAGES: Record<string, string> = {
     "Esta rolagem possui um efeito mecânico pendente.",
   SESSAO_ROLAGEM_IDEMPOTENCIA_CONFLITO:
     "Esta tentativa de rolagem já foi usada com outros dados. Tente novamente.",
+  MACRO_PERSONAGEM_CONFIG_INVALIDA: "A configuração da macro personalizada é inválida.",
+  MACRO_PERSONAGEM_LIMITE_EXCEDIDO: "O personagem atingiu o limite de macros personalizadas.",
+  MACRO_PERSONAGEM_NAO_ENCONTRADA: "Macro personalizada não encontrada.",
+  MACRO_PERSONAGEM_PERICIA_INVALIDA: "A perícia configurada na macro não existe.",
+  MACRO_PERSONAGEM_REVISAO_CONFLITO: "A macro foi alterada em outro lugar. Atualize e tente novamente.",
+  MACRO_PERSONAGEM_VISIBILIDADE_NEGADA: "Apenas o mestre pode usar macros secretas.",
   OPERACAO_CONCORRENTE_REPETIR:
     "O estado foi alterado por outra operação. Atualize e tente novamente.",
   SESSAO_PERICIA_NAO_ENCONTRADA:

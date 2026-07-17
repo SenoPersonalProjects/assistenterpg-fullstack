@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import type { ReactNode } from 'react';
 import { SessionPanel } from '@/components/campanha/sessao/SessionPanel';
@@ -13,8 +13,8 @@ import type {
   UserErrorState,
 } from '@/lib/types';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
-import type { PreferenciaMacroArmaSessao } from '@/lib/campanha/sessao-preferencias';
-import type { SolicitacaoMacroArma } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
+import type { PreferenciaMacroArmaSessao, PreferenciaMacroPersonalizadaSessao } from '@/lib/campanha/sessao-preferencias';
+import type { SolicitacaoMacroArma, SolicitacaoMacroPersonalizada } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import type {
   AjustesRecursos,
   CampoAjusteRecurso,
@@ -105,6 +105,11 @@ type SessionCharactersPanelProps = {
         ) => Record<string, PreferenciaMacroArmaSessao>),
   ) => void;
   onRolarMacroArma: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
+  preferenciasMacrosPersonalizadas: Record<string, PreferenciaMacroPersonalizadaSessao>;
+  onAtualizarPreferenciasMacrosPersonalizadas: (
+    atualizacao: Record<string, PreferenciaMacroPersonalizadaSessao> | ((estado: Record<string, PreferenciaMacroPersonalizadaSessao>) => Record<string, PreferenciaMacroPersonalizadaSessao>),
+  ) => void;
+  onRolarMacroPersonalizada: (solicitacao: SolicitacaoMacroPersonalizada) => Promise<void>;
   onAbrirEdicaoPersonagem: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onAbrirFichaCompleta: (card: SessaoCampanhaDetalhe['cards'][number]) => void;
   onInvocarVinculado?: (vinculadoId: number) => void;
@@ -186,6 +191,9 @@ export function SessionCharactersPanel({
   preferenciasMacrosArmas,
   onAtualizarPreferenciasMacrosArmas,
   onRolarMacroArma,
+  preferenciasMacrosPersonalizadas,
+  onAtualizarPreferenciasMacrosPersonalizadas,
+  onRolarMacroPersonalizada,
   onAbrirEdicaoPersonagem,
   onAbrirFichaCompleta,
   onInvocarVinculado,
@@ -332,6 +340,9 @@ export function SessionCharactersPanel({
               preferenciasMacrosArmas={preferenciasMacrosArmas}
               onAtualizarPreferenciasMacrosArmas={onAtualizarPreferenciasMacrosArmas}
               onRolarMacroArma={onRolarMacroArma}
+              preferenciasMacrosPersonalizadas={preferenciasMacrosPersonalizadas}
+              onAtualizarPreferenciasMacrosPersonalizadas={onAtualizarPreferenciasMacrosPersonalizadas}
+              onRolarMacroPersonalizada={onRolarMacroPersonalizada}
               recursosCompactosObrigatorios={recursosCompactosObrigatorios}
               inspiracaoAtiva={inspiracaoAtiva}
               pontosInspiracao={pontosInspiracao}
@@ -349,4 +360,3 @@ export function SessionCharactersPanel({
     </SessionPanel>
   );
 }
-

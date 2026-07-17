@@ -13,8 +13,8 @@ import type {
   SessaoCampanhaDetalhe,
 } from '@/lib/types';
 import type { AbaDetalheCard } from '@/lib/campanha/sessao-preferencias';
-import type { PreferenciaMacroArmaSessao } from '@/lib/campanha/sessao-preferencias';
-import type { SolicitacaoMacroArma } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
+import type { PreferenciaMacroArmaSessao, PreferenciaMacroPersonalizadaSessao } from '@/lib/campanha/sessao-preferencias';
+import type { SolicitacaoMacroArma, SolicitacaoMacroPersonalizada } from '@/components/campanha/sessao/SessionCharacterMacrosTab';
 import type {
   AjustesRecursos,
   CampoAjusteRecurso,
@@ -122,6 +122,11 @@ type SessionPlayerSummaryPanelProps = {
         ) => Record<string, PreferenciaMacroArmaSessao>),
   ) => void;
   onRolarMacroArma: (solicitacao: SolicitacaoMacroArma) => Promise<void>;
+  preferenciasMacrosPersonalizadas: Record<string, PreferenciaMacroPersonalizadaSessao>;
+  onAtualizarPreferenciasMacrosPersonalizadas: (
+    atualizacao: Record<string, PreferenciaMacroPersonalizadaSessao> | ((estado: Record<string, PreferenciaMacroPersonalizadaSessao>) => Record<string, PreferenciaMacroPersonalizadaSessao>),
+  ) => void;
+  onRolarMacroPersonalizada: (solicitacao: SolicitacaoMacroPersonalizada) => Promise<void>;
   recursosCompactosObrigatorios?: boolean;
   inspiracaoAtiva?: boolean;
   pontosInspiracao?: number;
@@ -184,6 +189,9 @@ export function SessionPlayerSummaryPanel({
   preferenciasMacrosArmas,
   onAtualizarPreferenciasMacrosArmas,
   onRolarMacroArma,
+  preferenciasMacrosPersonalizadas,
+  onAtualizarPreferenciasMacrosPersonalizadas,
+  onRolarMacroPersonalizada,
   recursosCompactosObrigatorios = false,
   inspiracaoAtiva = false,
   pontosInspiracao = 0,
@@ -308,6 +316,9 @@ export function SessionPlayerSummaryPanel({
                 preferenciasMacrosArmas={preferenciasMacrosArmas}
                 onAtualizarPreferenciasMacrosArmas={onAtualizarPreferenciasMacrosArmas}
                 onRolarMacroArma={onRolarMacroArma}
+                preferenciasMacrosPersonalizadas={preferenciasMacrosPersonalizadas}
+                onAtualizarPreferenciasMacrosPersonalizadas={onAtualizarPreferenciasMacrosPersonalizadas}
+                onRolarMacroPersonalizada={onRolarMacroPersonalizada}
               />
           ) : null}
         </div>

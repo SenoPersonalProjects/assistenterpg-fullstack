@@ -204,6 +204,25 @@ export type DadosRolagemDanoItemServidorSessao = {
   resultado: { total: number };
 };
 
+export type DadosRolagemMacroPersonagemServidorSessao = {
+  versao: 1;
+  origem: 'SERVIDOR';
+  tipo: 'ATAQUE_MACRO_PERSONAGEM' | 'DANO_MACRO_PERSONAGEM' | 'CRITICO_MACRO_PERSONAGEM' | 'FORMULA_MACRO_PERSONAGEM';
+  clientRequestId: string;
+  personagemSessaoId: number;
+  personagemCampanhaId: number;
+  macroId: number;
+  macroRevisao: number;
+  macroNome: string;
+  macroTipo: 'ATAQUE_PERICIA' | 'DANO_FORMULA' | 'FORMULA_LIVRE';
+  configVersao: number;
+  formulaBase: string | null;
+  formulaResolvida: string;
+  formulasResolvidas: string[];
+  payloads: DiceRollPayload[];
+  resultado: { total: number; dt: number | null; sucesso: boolean | null; falhaCritica: boolean };
+};
+
 export type DadosRolagemNpcServidorSessao = {
   versao: 1;
   origem: 'SERVIDOR';
@@ -314,6 +333,7 @@ export type DadosRolagemServidorSessao =
   | DadosRolagemAtaqueServidorSessao
   | DadosRolagemAtaqueItemServidorSessao
   | DadosRolagemDanoItemServidorSessao
+  | DadosRolagemMacroPersonagemServidorSessao
   | DadosRolagemNpcServidorSessao
   | DadosRolagemDanoNpcServidorSessao
   | DadosRolagemTesteHabilidadeServidorSessao
@@ -925,6 +945,32 @@ export function extrairDadosRolagemServidor(
       return null;
     }
     return registro as DadosRolagemDanoItemServidorSessao;
+  }
+  if (
+    registro.tipo === 'ATAQUE_MACRO_PERSONAGEM' ||
+    registro.tipo === 'DANO_MACRO_PERSONAGEM' ||
+    registro.tipo === 'CRITICO_MACRO_PERSONAGEM' ||
+    registro.tipo === 'FORMULA_MACRO_PERSONAGEM'
+  ) {
+    const resultado = registro.resultado as Record<string, unknown> | null;
+    if (
+      !Number.isInteger(registro.personagemSessaoId) ||
+      !Number.isInteger(registro.personagemCampanhaId) ||
+      !Number.isInteger(registro.macroId) ||
+      !Number.isInteger(registro.macroRevisao) ||
+      typeof registro.macroNome !== 'string' ||
+      !['ATAQUE_PERICIA', 'DANO_FORMULA', 'FORMULA_LIVRE'].includes(String(registro.macroTipo)) ||
+      !Number.isInteger(registro.configVersao) ||
+      typeof registro.formulaResolvida !== 'string' ||
+      !Array.isArray(registro.formulasResolvidas) ||
+      !registro.formulasResolvidas.every((formula) => typeof formula === 'string') ||
+      !resultado ||
+      typeof resultado.total !== 'number' ||
+      !Number.isFinite(resultado.total)
+    ) {
+      return null;
+    }
+    return registro as DadosRolagemMacroPersonagemServidorSessao;
   }
   if (registro.tipo === 'PERICIA_NPC' || registro.tipo === 'ATAQUE_NPC') {
     if (

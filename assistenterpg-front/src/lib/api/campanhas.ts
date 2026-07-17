@@ -1344,7 +1344,63 @@ export type MacroArmaSessao = {
 
 export type MacrosPersonagemSessaoResponse = {
   personagemSessaoId: number;
+  personagemCampanhaId: number;
   armas: MacroArmaSessao[];
+  personalizadas: MacroPersonalizadaSessao[];
+};
+
+export type MacroPersonalizadaTipo = 'ATAQUE_PERICIA' | 'DANO_FORMULA' | 'FORMULA_LIVRE';
+export type VisibilidadeRolagemSessao = 'PUBLICA' | 'SECRETA_MESTRE';
+export type AtributoMacroPersonalizada = 'AGI' | 'FOR' | 'INT' | 'PRE' | 'VIG';
+export type MacroAtaqueConfigV1 = {
+  periciaCodigo: string;
+  atributoBase?: AtributoMacroPersonalizada;
+  categoriaAtaque: 'CORPO_A_CORPO' | 'A_DISTANCIA' | 'OUTRO';
+  ajusteFlatPadrao: number;
+  ajusteDadosPadrao: number;
+  dtPadrao?: number;
+};
+export type MacroDanoConfigV1 = {
+  formulaBase: string;
+  tipoDano?: string;
+  ajusteFlatPadrao: number;
+  criticoMultiplicador?: number;
+};
+export type MacroFormulaLivreConfigV1 = { formula: string };
+export type MacroPersonalizadaConfigV1 = MacroAtaqueConfigV1 | MacroDanoConfigV1 | MacroFormulaLivreConfigV1;
+export type MacroPersonalizadaSessao = {
+  id: number;
+  nome: string;
+  descricao: string | null;
+  tipo: MacroPersonalizadaTipo;
+  visibilidadePadrao: VisibilidadeRolagemSessao;
+  configVersao: number;
+  config: MacroPersonalizadaConfigV1;
+  ordem: number;
+  revisao: number;
+  preview: null | {
+    pericia: { codigo: string; nome: string };
+    atributoBase: AtributoMacroPersonalizada;
+    dadosLogicos: number;
+    quantidadeDados: number;
+    keepMode: 'HIGHEST' | 'LOWEST';
+    bonus: number;
+    ajustesAutomaticos: AjusteAutomaticoMacroArmaSessao[];
+  };
+};
+export type SalvarMacroPersonagemCampanhaPayload = {
+  tipo: MacroPersonalizadaTipo;
+  nome: string;
+  descricao?: string;
+  visibilidadePadrao?: VisibilidadeRolagemSessao;
+  config: MacroPersonalizadaConfigV1;
+};
+export type MacroPersonagemCampanhaDto = MacroPersonalizadaSessao & {
+  campanhaId: number;
+  personagemCampanhaId: number;
+  ativo: boolean;
+  criadoEm: string;
+  atualizadoEm: string;
 };
 
 export type CriarRolagemAtaqueItemPersonagemSessaoPayload = {
@@ -1366,6 +1422,17 @@ export type CriarRolagemDanoItemPersonagemSessaoPayload = {
   empunhadura?: 'LEVE' | 'UMA_MAO' | 'DUAS_MAOS';
   ajusteFlatManual?: number;
   visibilidade?: 'PUBLICA' | 'SECRETA_MESTRE';
+  clientRequestId: string;
+};
+
+export type CriarRolagemMacroPersonagemSessaoPayload = {
+  tipo: 'ATAQUE_MACRO_PERSONAGEM' | 'DANO_MACRO_PERSONAGEM' | 'CRITICO_MACRO_PERSONAGEM' | 'FORMULA_MACRO_PERSONAGEM';
+  personagemSessaoId: number;
+  macroId: number;
+  ajusteFlatSessao?: number;
+  ajusteDadosSessao?: number;
+  visibilidade?: VisibilidadeRolagemSessao;
+  contexto?: { dt?: number };
   clientRequestId: string;
 };
 
@@ -1490,6 +1557,34 @@ export async function apiListarMacrosPersonagemSessaoCampanha(
   return data;
 }
 
+export async function apiCriarMacroPersonagemCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  payload: SalvarMacroPersonagemCampanhaPayload,
+): Promise<MacroPersonagemCampanhaDto> {
+  const { data } = await apiClient.post(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros`, payload);
+  return data;
+}
+
+export async function apiAtualizarMacroPersonagemCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  macroId: number,
+  payload: SalvarMacroPersonagemCampanhaPayload & { revisaoEsperada: number },
+): Promise<MacroPersonagemCampanhaDto> {
+  const { data } = await apiClient.patch(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros/${macroId}`, payload);
+  return data;
+}
+
+export async function apiRemoverMacroPersonagemCampanha(
+  campanhaId: number,
+  personagemCampanhaId: number,
+  macroId: number,
+): Promise<{ id: number; ativo: false }> {
+  const { data } = await apiClient.delete(`/campanhas/${campanhaId}/personagens/${personagemCampanhaId}/macros/${macroId}`);
+  return data;
+}
+
 export async function apiCriarRolagemAtaqueItemPersonagemSessaoCampanha(
   campanhaId: number,
   sessaoId: number,
@@ -1511,6 +1606,15 @@ export async function apiCriarRolagemDanoItemPersonagemSessaoCampanha(
     `/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`,
     payload,
   );
+  return data;
+}
+
+export async function apiCriarRolagemMacroPersonagemSessaoCampanha(
+  campanhaId: number,
+  sessaoId: number,
+  payload: CriarRolagemMacroPersonagemSessaoPayload,
+): Promise<MensagemChatSessao> {
+  const { data } = await apiClient.post(`/campanhas/${campanhaId}/sessoes/${sessaoId}/rolagens`, payload);
   return data;
 }
 
