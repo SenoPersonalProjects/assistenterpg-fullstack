@@ -1070,4 +1070,27 @@ describe('sessao-dice autoritativo', () => {
       extrairDadosRolagemServidor({ ...dados, origemCritico: 'ITEM' }),
     ).toBeNull();
   });
+
+  it('aceita metadados autoritativos de macro personalizada', () => {
+    const dados = {
+      versao: 1,
+      origem: 'SERVIDOR',
+      tipo: 'DANO_MACRO_PERSONAGEM',
+      clientRequestId: 'fa4dc24d-ad18-4ebf-b90c-e1b45f44459f',
+      personagemSessaoId: 31,
+      personagemCampanhaId: 41,
+      macroId: 77,
+      macroRevisao: 3,
+      macroNome: 'Golpe especial',
+      macroTipo: 'DANO_FORMULA',
+      configVersao: 1,
+      formulaBase: '2d8+4',
+      formulaResolvida: '2d8+4',
+      formulasResolvidas: ['2d8+4'],
+      payloads: [criarPayloadComRolagens('2d8+4', [[3, 4]])],
+      resultado: { total: 11, dt: null, sucesso: null, falhaCritica: false },
+    } as const;
+    expect(extrairDadosRolagemServidor(dados)).toEqual(dados);
+    expect(extrairDadosRolagemServidor({ ...dados, macroId: '77' })).toBeNull();
+  });
 });
