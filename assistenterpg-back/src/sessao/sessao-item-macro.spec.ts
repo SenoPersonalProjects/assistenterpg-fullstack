@@ -1,6 +1,7 @@
 import {
   normalizarEmpunhadurasMacroArma,
   resolverAjustesAutomaticosMacroArma,
+  resolverAjustesAutomaticosAtaque,
   resolverPericiaMacroArma,
 } from './sessao-item-macro';
 
@@ -43,5 +44,23 @@ describe('macros de arma da sessao', () => {
         'AGI',
       ),
     ).toEqual([]);
+  });
+
+  it('generaliza condicoes para ataques personalizados sem duplicar cadeias', () => {
+    expect(
+      resolverAjustesAutomaticosAtaque({
+        condicoes: [
+          { nome: 'Fatigado' },
+          { nome: 'Fraco' },
+          { nome: 'Ofuscado' },
+        ],
+        periciaCodigo: 'JUJUTSU',
+        atributoBase: 'VIG',
+        categoriaAtaque: 'OUTRO',
+      }),
+    ).toEqual([
+      expect.objectContaining({ condicao: 'Ofuscado', dados: -1 }),
+      expect.objectContaining({ condicao: 'Fraco', dados: -1 }),
+    ]);
   });
 });

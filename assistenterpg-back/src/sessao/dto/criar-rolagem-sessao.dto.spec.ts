@@ -401,4 +401,53 @@ describe('CriarRolagemSessaoDto', () => {
       ),
     ).rejects.toMatchObject({ status: 400 });
   });
+
+  it.each([
+    [
+      'ATAQUE_MACRO_PERSONAGEM',
+      { ajusteFlatSessao: 5, ajusteDadosSessao: -1, contexto: { dt: 20 } },
+    ],
+    ['DANO_MACRO_PERSONAGEM', { ajusteFlatSessao: -7 }],
+    ['CRITICO_MACRO_PERSONAGEM', { ajusteFlatSessao: 2 }],
+    ['FORMULA_MACRO_PERSONAGEM', {}],
+  ])('aceita somente a intencao autoritativa %s', async (tipo, extras) => {
+    await expect(
+      pipe.transform(
+        {
+          tipo,
+          personagemSessaoId: 31,
+          macroId: 9,
+          ...extras,
+          clientRequestId: '9e31cace-9200-450a-b228-d0e5b7084c1f',
+        },
+        metadata,
+      ),
+    ).resolves.toMatchObject({ tipo, personagemSessaoId: 31, macroId: 9 });
+  });
+
+  it.each([
+    'formula',
+    'periciaCodigo',
+    'atributoBase',
+    'total',
+    'faces',
+    'resultado',
+    'condicoesAutomaticas',
+  ])(
+    'rejeita campo autoritativo %s enviado pelo cliente na macro',
+    async (campo) => {
+      await expect(
+        pipe.transform(
+          {
+            tipo: 'ATAQUE_MACRO_PERSONAGEM',
+            personagemSessaoId: 31,
+            macroId: 9,
+            clientRequestId: '9e31cace-9200-450a-b228-d0e5b7084c1f',
+            [campo]: campo === 'faces' ? [20] : 'malicioso',
+          },
+          metadata,
+        ),
+      ).rejects.toMatchObject({ status: 400 });
+    },
+  );
 });
