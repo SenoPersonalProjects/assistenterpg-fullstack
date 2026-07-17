@@ -45,6 +45,17 @@ enum AtributoBaseEA {
   PRE
 }
 
+enum MacroPersonalizadaTipo {
+  ATAQUE_PERICIA
+  DANO_FORMULA
+  FORMULA_LIVRE
+}
+
+enum VisibilidadeRolagemMacro {
+  PUBLICA
+  SECRETA_MESTRE
+}
+
 enum AtributoPassiva {
   AGILIDADE
   FORCA
@@ -419,6 +430,9 @@ model Usuario {
   historicosPersonagemCampanha             PersonagemCampanhaHistorico[]
   modificadoresPersonagemCampanhaCriados   PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaCriadoPor")
   modificadoresPersonagemCampanhaDesfeitos PersonagemCampanhaModificador[]        @relation("ModificadorPersonagemCampanhaDesfeitoPor")
+  macrosPersonagemCampanhaCriadas          PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaCriadaPor")
+  macrosPersonagemCampanhaAtualizadas      PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaAtualizadaPor")
+  macrosPersonagemCampanhaRemovidas        PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaRemovidaPor")
   entidadesVinculadasCriadas               PersonagemCampanhaEntidadeVinculada[]  @relation("EntidadeVinculadaCriadaPor")
   sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoCriadaPor")
   sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoDesativadaPor")
@@ -671,6 +685,7 @@ model Campanha {
   personagens               PersonagemCampanha[]
   historicoPersonagens      PersonagemCampanhaHistorico[]
   modificadoresPersonagens  PersonagemCampanhaModificador[]
+  macrosPersonagens         PersonagemCampanhaMacro[]
   sessoes                   Sessao[]
   sessoesAgendadas          SessaoAgendada[]
   convites                  ConviteCampanha[]
@@ -965,6 +980,7 @@ model PersonagemCampanha {
   tecnicasAprendidas               PersonagemCampanhaTecnica[]
   historico                        PersonagemCampanhaHistorico[]
   modificadores                    PersonagemCampanhaModificador[]
+  macros                           PersonagemCampanhaMacro[]
   entidadesVinculadas              PersonagemCampanhaEntidadeVinculada[]
   entidadesSessaoComoDono          NpcAmeacaSessao[]                     @relation("NpcSessaoDonoPersonagem")
 
@@ -973,6 +989,38 @@ model PersonagemCampanha {
   @@index([campanhaId, donoId])
   @@index([personagemBaseId])
   @@index([donoId])
+}
+
+model PersonagemCampanhaMacro {
+  id                   Int                      @id @default(autoincrement())
+  campanhaId           Int
+  personagemCampanhaId Int
+  criadoPorId          Int?
+  atualizadoPorId      Int?
+  removidoPorId        Int?
+  nome                 String                   @db.VarChar(80)
+  descricao            String?                  @db.VarChar(500)
+  tipo                 MacroPersonalizadaTipo
+  visibilidadePadrao   VisibilidadeRolagemMacro @default(PUBLICA)
+  configVersao         Int                      @default(1)
+  config               Json
+  ordem                Int                      @default(0)
+  ativo                Boolean                  @default(true)
+  revisao              Int                      @default(1)
+  criadoEm             DateTime                 @default(now())
+  atualizadoEm         DateTime                 @updatedAt
+  removidoEm           DateTime?
+
+  campanha           Campanha           @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  personagemCampanha PersonagemCampanha @relation(fields: [personagemCampanhaId], references: [id], onDelete: Cascade)
+  criadoPor          Usuario?           @relation("MacroPersonagemCampanhaCriadaPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  atualizadoPor      Usuario?           @relation("MacroPersonagemCampanhaAtualizadaPor", fields: [atualizadoPorId], references: [id], onDelete: SetNull)
+  removidoPor        Usuario?           @relation("MacroPersonagemCampanhaRemovidaPor", fields: [removidoPorId], references: [id], onDelete: SetNull)
+
+  @@index([campanhaId, personagemCampanhaId, ativo, ordem, id])
+  @@index([criadoPorId])
+  @@index([atualizadoPorId])
+  @@index([removidoPorId])
 }
 
 model PersonagemCampanhaHistorico {
@@ -1420,16 +1468,16 @@ model CondicaoPersonagemSessao {
 }
 
 model EventoSessao {
-  id                    Int      @id @default(autoincrement())
-  sessaoId              Int
-  cenaId                Int?
-  criadoEm              DateTime @default(now())
-  tipoEvento            String
-  personagemAtorId      Int?
-  personagemAlvoId      Int?
-  solicitanteUsuarioId  Int?
-  clientRequestId       String?  @db.VarChar(36)
-  dados                 Json?
+  id                   Int      @id @default(autoincrement())
+  sessaoId             Int
+  cenaId               Int?
+  criadoEm             DateTime @default(now())
+  tipoEvento           String
+  personagemAtorId     Int?
+  personagemAlvoId     Int?
+  solicitanteUsuarioId Int?
+  clientRequestId      String?  @db.VarChar(36)
+  dados                Json?
 
   sessao         Sessao            @relation(fields: [sessaoId], references: [id])
   cena           Cena?             @relation(fields: [cenaId], references: [id])
