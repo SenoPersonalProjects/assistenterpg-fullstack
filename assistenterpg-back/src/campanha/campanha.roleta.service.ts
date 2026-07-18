@@ -30,6 +30,7 @@ import type {
 import {
   CAMPANHA_ROLETA_CONFIG_VERSAO,
   criarPresetsPadraoRoleta,
+  filtrarCatalogoRoletaPorFontes,
   montarPoolRoleta,
   normalizarConfigRoleta,
   sortearItemRoleta,
@@ -284,20 +285,7 @@ export class CampanhaRoletaService {
     catalogo: CampanhaRoletaCatalogoItem[],
     config: CampanhaRoletaConfigV1,
   ): CampanhaRoletaCatalogoItem[] {
-    const suplementos = new Set(config.fontes.suplementoIds);
-    const homebrews = new Set(config.fontes.homebrewIds);
-    const inclusoes = new Set(config.inclusoesCatalogo);
-    return catalogo.filter(
-      (item) =>
-        inclusoes.has(item.chave) ||
-        (item.fonte === 'SISTEMA_BASE' && config.fontes.sistemaBase) ||
-        (item.fonte === 'SUPLEMENTO' &&
-          item.fonteId !== undefined &&
-          suplementos.has(item.fonteId)) ||
-        (item.fonte === 'HOMEBREW' &&
-          item.fonteId !== undefined &&
-          homebrews.has(item.fonteId)),
-    );
+    return filtrarCatalogoRoletaPorFontes(catalogo, config);
   }
 
   private async resolverPool(params: {
