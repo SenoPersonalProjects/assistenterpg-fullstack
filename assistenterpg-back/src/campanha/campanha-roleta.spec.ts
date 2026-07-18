@@ -1,6 +1,7 @@
 import {
   agruparListaManual,
   criarPresetsPadraoRoleta,
+  filtrarCatalogoRoletaPorFontes,
   montarPoolRoleta,
   normalizarConfigRoleta,
   sortearItemRoleta,
@@ -112,6 +113,43 @@ describe('campanha-roleta', () => {
     expect(pool.itens.find((item) => item.chave === 'TECNICA:3')).toEqual(
       expect.objectContaining({ pesoUnitario: 1, incluidoManualmente: true }),
     );
+  });
+
+  it('nao deixa inclusao individual contornar uma fonte desabilitada', () => {
+    const itemSuplemento: CampanhaRoletaCatalogoItem = {
+      chave: 'CLA:SUPLEMENTO',
+      nome: 'Clã de suplemento',
+      categoria: 'CLA',
+      fonte: 'SUPLEMENTO',
+      fonteId: 99,
+    };
+    const config = {
+      ...configBase,
+      fontes: { sistemaBase: false, suplementoIds: [], homebrewIds: [] },
+      inclusoesCatalogo: [itemSuplemento.chave],
+    };
+
+    expect(filtrarCatalogoRoletaPorFontes([itemSuplemento], config)).toEqual(
+      [],
+    );
+  });
+
+  it('mantem itens de fontes habilitadas para a selecao do modo', () => {
+    const itemSuplemento: CampanhaRoletaCatalogoItem = {
+      chave: 'TECNICA:SUPLEMENTO',
+      nome: 'Técnica de suplemento',
+      categoria: 'TECNICA',
+      fonte: 'SUPLEMENTO',
+      fonteId: 7,
+    };
+    const config = {
+      ...configBase,
+      fontes: { sistemaBase: false, suplementoIds: [7], homebrewIds: [] },
+    };
+
+    expect(filtrarCatalogoRoletaPorFontes([itemSuplemento], config)).toEqual([
+      itemSuplemento,
+    ]);
   });
 
   it('exclui o primeiro resultado no segundo giro e permite repeti-lo no terceiro', () => {
