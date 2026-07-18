@@ -32,9 +32,10 @@ function criarGerador(seed: number) {
 function selecionarItensVisuais(
   itens: CampanhaRoletaPoolItem[],
   giro?: CampanhaRoletaGiro['giro'] | null,
+  resultadoEstatico?: CampanhaRoletaPoolItem | null,
 ): CampanhaRoletaPoolItem[] {
   if (itens.length === 0) return [];
-  const vencedor = giro?.resultado;
+  const vencedor = giro?.resultado ?? resultadoEstatico;
   const candidatos = vencedor
     ? itens.filter((item) => item.chave !== vencedor.chave)
     : [...itens];
@@ -55,10 +56,12 @@ function selecionarItensVisuais(
 export function VerticalCampaignRoulette({
   itens,
   giro,
+  resultadoEstatico,
   onAnimationComplete,
 }: {
   itens: CampanhaRoletaPoolItem[];
   giro?: CampanhaRoletaGiro['giro'] | null;
+  resultadoEstatico?: CampanhaRoletaPoolItem | null;
   onAnimationComplete?: (resultado: CampanhaRoletaPoolItem) => void;
 }) {
   const controls = useAnimationControls();
@@ -68,11 +71,14 @@ export function VerticalCampaignRoulette({
   const [girando, setGirando] = useState(false);
   const [vencedor, setVencedor] = useState<string | null>(null);
   const itensVisuais = useMemo(
-    () => selecionarItensVisuais(itens, giro),
-    [giro, itens],
+    () => selecionarItensVisuais(itens, giro, resultadoEstatico),
+    [giro, itens, resultadoEstatico],
   );
   const quantidade = itensVisuais.length;
-  const resultadoDestacado = vencedor !== null && !girando;
+  const vencedorExibido = !girando
+    ? resultadoEstatico?.chave ?? vencedor
+    : null;
+  const resultadoDestacado = vencedorExibido !== null;
   const passo = quantidade > 0 ? 360 / quantidade : 360;
   const raio = Math.max(
     130,
@@ -167,7 +173,7 @@ export function VerticalCampaignRoulette({
             }}
           >
             {itensVisuais.map((item, indice) => {
-              const selecionado = vencedor === item.chave;
+              const selecionado = vencedorExibido === item.chave;
               return (
                 <div
                   key={item.chave}
@@ -229,10 +235,9 @@ export function VerticalCampaignRoulette({
         </div>
       </div>
       <p className="sr-only" aria-live="polite">
-        {vencedor && giro ? `Resultado: ${giro.resultado.nome}` : ''}
-      </p>
-      <p className="text-xs text-app-muted">
-        {girando ? 'Resultado autoritativo em animação…' : 'Resultado definido pelo servidor.'}
+        {vencedorExibido && (giro?.resultado ?? resultadoEstatico)
+          ? `Resultado: ${(giro?.resultado ?? resultadoEstatico)?.nome}`
+          : ''}
       </p>
     </div>
   );

@@ -8,7 +8,6 @@ import {
   apiHistoricoRoletaCampanha,
   apiIniciarSorteioRoletaCampanha,
   apiObterRoletaCampanha,
-  apiPreviewRoletaCampanha,
   apiSalvarPermissaoRoletaCampanha,
   apiSalvarPresetRoletaCampanha,
   apiTerceiroGiroRoletaCampanha,
@@ -16,13 +15,21 @@ import {
   type CampanhaRoletaEstado,
   type CampanhaRoletaGiro,
   type CampanhaRoletaHistorico,
-  type CampanhaRoletaPoolItem,
+  type CampanhaRoletaHistoricoItem,
   type CampanhaRoletaSlot,
+  type CampanhaRoletaSorteio,
 } from '@/lib/api/campanha-roleta';
 import { useCampanhaRoletaRealtime } from '@/hooks/useCampanhaRoletaRealtime';
 import type { EventoCampanhaRoletaGiro } from '@/lib/realtime/campanha-socket';
+import {
+  historicoCompativelComPresetRoleta,
+  montarResumoConfigRoleta,
+} from '@/lib/campanhas/campaign-roulette.helpers';
 import { CampaignRouletteConfigModal } from './CampaignRouletteConfigModal';
-import { CampaignRouletteHistoryCard } from './CampaignRouletteHistoryCard';
+import {
+  CampaignRouletteHistoryCard,
+  CampaignRouletteHistoryModal,
+} from './CampaignRouletteHistoryCard';
 import { VerticalCampaignRoulette } from './VerticalCampaignRoulette';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -32,45 +39,39 @@ import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 
 const PRESETS: Array<{ slot: CampanhaRoletaSlot; label: string; descricao: string }> = [
-  { slot: 'CLA', label: 'Clã', descricao: 'Predefinição de sorteio de clã pela regra do sistema.' },
-  { slot: 'TECNICA', label: 'Técnica', descricao: 'Predefinição de sorteio de técnica pela regra do sistema.' },
-  { slot: 'CUSTOMIZADO', label: 'Customizado', descricao: 'Predefinição livre e customizada.' },
+  { slot: 'CLA', label: 'Clã', descricao: 'Sorteie um clã com chance adicional opcional.' },
+  { slot: 'TECNICA', label: 'Técnica', descricao: 'Gere duas opções e escolha uma delas.' },
+  { slot: 'CUSTOMIZADO', label: 'Personalizado', descricao: 'Use uma lista livre ou adapte as regras.' },
 ];
 
-function itensVisuaisSemSorteio(
-  estado: CampanhaRoletaEstado,
-  slot: CampanhaRoletaSlot,
-): CampanhaRoletaPoolItem[] {
-  const preset = estado.presets.find((item) => item.slot === slot);
-  if (!preset) return [];
-  const suplementos = new Set(preset.config.fontes.suplementoIds);
-  const homebrews = new Set(preset.config.fontes.homebrewIds);
-  return estado.catalogo.itens
-    .filter((item) => {
-      if (preset.modo === 'CLA') return item.categoria === 'CLA';
-      if (preset.modo === 'TECNICA') return item.categoria === 'TECNICA';
-      return preset.config.inclusoesCatalogo.includes(item.chave);
-    })
-    .filter(
-      (item) =>
-        !preset.config.exclusoes.includes(item.chave) &&
-        (preset.config.inclusoesCatalogo.includes(item.chave) ||
-          (item.fonte === 'SISTEMA_BASE' && preset.config.fontes.sistemaBase) ||
-          (item.fonte === 'SUPLEMENTO' && item.fonteId && suplementos.has(item.fonteId)) ||
-          (item.fonte === 'HOMEBREW' && item.fonteId && homebrews.has(item.fonteId))),
-    )
-    .map((item) => ({
-      ...item,
-      ocorrencias: 1,
-      pesoUnitario: 1,
-      pesoTotal: 1,
-      incluidoManualmente: preset.config.inclusoesCatalogo.includes(item.chave),
-    }));
-}
+const ROTULOS_MODO = {
+  CLA: 'Clã pela regra',
+  TECNICA: 'Técnica pela regra',
+  SIMPLES: 'Roleta simples',
+} as const;
+
+const ROTULOS_STATUS = {
+  AGUARDANDO_GIRO_1: 'Pronto para girar',
+  AGUARDANDO_GIRO_2: 'Aguardando segunda opção',
+  AGUARDANDO_ESCOLHA: 'Escolha uma das opções',
+  FINALIZADO: 'Sorteio concluído',
+  CANCELADO: 'Sorteio cancelado',
+} as const;
+
+type VisualizacaoRoleta = {
+  sorteio: CampanhaRoletaSorteio;
+  giro: CampanhaRoletaGiro['giro'] | null;
+};
+
+type ResultadoAnunciado = { animacaoId: string; nome: string };
 
 function extrairGiro(evento: EventoCampanhaRoletaGiro): CampanhaRoletaGiro | null {
   const dados = evento.dados as Partial<CampanhaRoletaGiro> | null;
   return dados?.giro && dados.sorteio ? (dados as CampanhaRoletaGiro) : null;
+}
+
+function sorteioAindaAtivo(sorteio: CampanhaRoletaSorteio): boolean {
+  return !['FINALIZADO', 'CANCELADO'].includes(sorteio.status);
 }
 
 export function CampaignRouletteTab({
@@ -82,35 +83,90 @@ export function CampaignRouletteTab({
 }) {
   const [estado, setEstado] = useState<CampanhaRoletaEstado | null>(null);
   const [historico, setHistorico] = useState<CampanhaRoletaHistorico | null>(null);
-  const [historicoAbertoId, setHistoricoAbertoId] = useState<number | null>(null);
+  const [ultimosFinalizados, setUltimosFinalizados] = useState<
+    Partial<Record<CampanhaRoletaSlot, CampanhaRoletaHistoricoItem>>
+  >({});
+  const [historicoSelecionado, setHistoricoSelecionado] =
+    useState<CampanhaRoletaHistoricoItem | null>(null);
+  const [visualizacoes, setVisualizacoes] = useState<
+    Partial<Record<CampanhaRoletaSlot, VisualizacaoRoleta>>
+  >({});
+  const [resultadosAnunciados, setResultadosAnunciados] = useState<
+    Partial<Record<CampanhaRoletaSlot, ResultadoAnunciado>>
+  >({});
   const [slot, setSlot] = useState<CampanhaRoletaSlot>('CLA');
   const [configurando, setConfigurando] = useState(false);
   const [alvoUsuarioId, setAlvoUsuarioId] = useState('');
   const [claSelecionado, setClaSelecionado] = useState('');
   const [claDuplicado, setClaDuplicado] = useState('');
-  const [giro, setGiro] = useState<CampanhaRoletaGiro['giro'] | null>(null);
-  const [resultadoAnunciado, setResultadoAnunciado] = useState('');
   const [loading, setLoading] = useState(true);
   const [pendente, setPendente] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  const absorverHistorico = useCallback((proximo: CampanhaRoletaHistorico) => {
+    setUltimosFinalizados((atuais) => {
+      const resultado = { ...atuais };
+      for (const item of proximo.itens) {
+        if (item.status !== 'FINALIZADO') continue;
+        const existente = resultado[item.slot];
+        if (!existente || new Date(item.finalizadoEm ?? item.atualizadoEm) > new Date(existente.finalizadoEm ?? existente.atualizadoEm)) {
+          resultado[item.slot] = item;
+        }
+      }
+      return resultado;
+    });
+  }, []);
+
   const carregarEstado = useCallback(async () => {
     const proximo = await apiObterRoletaCampanha(campanhaId);
     setEstado(proximo);
+    setVisualizacoes((atuais) => {
+      const resultado = { ...atuais };
+      for (const [slotAtual, visualizacao] of Object.entries(atuais) as Array<
+        [CampanhaRoletaSlot, VisualizacaoRoleta]
+      >) {
+        if (
+          sorteioAindaAtivo(visualizacao.sorteio) &&
+          !proximo.sorteiosAtivos.some((item) => item.id === visualizacao.sorteio.id)
+        ) {
+          delete resultado[slotAtual];
+        }
+      }
+      return resultado;
+    });
   }, [campanhaId]);
+
   const carregarHistorico = useCallback(
     async (pagina = 1) => {
-      setHistorico(await apiHistoricoRoletaCampanha(campanhaId, pagina));
+      const proximo = await apiHistoricoRoletaCampanha(campanhaId, pagina);
+      setHistorico(proximo);
+      absorverHistorico(proximo);
     },
-    [campanhaId],
+    [absorverHistorico, campanhaId],
   );
+
   const sincronizar = useCallback(async () => {
     await Promise.all([carregarEstado(), carregarHistorico(historico?.pagina ?? 1)]);
   }, [carregarEstado, carregarHistorico, historico?.pagina]);
-  const receberGiro = useCallback((evento: EventoCampanhaRoletaGiro) => {
-    const recebido = extrairGiro(evento);
-    if (recebido) setGiro(recebido.giro);
+
+  const registrarGiro = useCallback((recebido: CampanhaRoletaGiro) => {
+    setVisualizacoes((atuais) => ({
+      ...atuais,
+      [recebido.sorteio.slot]: {
+        sorteio: recebido.sorteio,
+        giro: recebido.giro,
+      },
+    }));
   }, []);
+
+  const receberGiro = useCallback(
+    (evento: EventoCampanhaRoletaGiro) => {
+      const recebido = extrairGiro(evento);
+      if (recebido) registrarGiro(recebido);
+    },
+    [registrarGiro],
+  );
+
   const realtimeStatus = useCampanhaRoletaRealtime({
     campanhaId,
     usuarioId,
@@ -130,10 +186,11 @@ export function CampaignRouletteTab({
         if (!cancelado) {
           setEstado(estadoInicial);
           setHistorico(historicoInicial);
+          absorverHistorico(historicoInicial);
         }
       } catch (error) {
         if (!cancelado) {
-          setErro(error instanceof Error ? error.message : 'Falha ao carregar a roleta.');
+          setErro(error instanceof Error ? error.message : 'Não foi possível carregar a roleta.');
         }
       } finally {
         if (!cancelado) setLoading(false);
@@ -143,18 +200,45 @@ export function CampaignRouletteTab({
     return () => {
       cancelado = true;
     };
-  }, [campanhaId]);
+  }, [absorverHistorico, campanhaId]);
 
   const preset = estado?.presets.find((item) => item.slot === slot) ?? null;
-  const sorteio = estado?.sorteiosAtivos.find((item) => item.slot === slot) ?? null;
-  const itensRoleta = useMemo(() => {
-    if (sorteio) return sorteio.poolSnapshot.itens;
-    return estado ? itensVisuaisSemSorteio(estado, slot) : [];
-  }, [estado, slot, sorteio]);
+  const sorteioAtivo = estado?.sorteiosAtivos.find((item) => item.slot === slot) ?? null;
+  const visualizacaoLocal = visualizacoes[slot] ?? null;
+  const historicoCompativel = historicoCompativelComPresetRoleta(
+    ultimosFinalizados[slot],
+    preset,
+  );
+  const resumoConfigurado = useMemo(
+    () =>
+      estado && preset
+        ? montarResumoConfigRoleta({
+            modo: preset.modo,
+            config: preset.config,
+            catalogo: estado.catalogo,
+          })
+        : null,
+    [estado, preset],
+  );
+  const sorteioExibido = sorteioAtivo ?? visualizacaoLocal?.sorteio ?? historicoCompativel;
+  const giroAtual =
+    visualizacaoLocal && visualizacaoLocal.sorteio.id === sorteioExibido?.id
+      ? visualizacaoLocal.giro
+      : null;
+  const itensRoleta =
+    sorteioExibido?.poolSnapshot.itens ?? resumoConfigurado?.pool.itens ?? [];
+  const resultadoEstatico = giroAtual ? null : sorteioExibido?.resultadoFinal ?? null;
+  const anuncio = resultadosAnunciados[slot];
+  const girando = Boolean(giroAtual && anuncio?.animacaoId !== giroAtual.animacaoId);
+  const resultadoVisivel = giroAtual
+    ? anuncio?.animacaoId === giroAtual.animacaoId
+      ? anuncio.nome
+      : null
+    : sorteioExibido?.resultadoFinal?.nome ?? null;
   const participantesAlvo =
     estado?.catalogo.participantes.filter((item) => item.papel !== 'OBSERVADOR') ?? [];
   const clas = estado?.catalogo.itens.filter((item) => item.categoria === 'CLA') ?? [];
-  const ehAlvo = sorteio?.alvo?.id === usuarioId;
+  const ehAlvo = sorteioAtivo?.alvo?.id === usuarioId;
   const podeGirar = Boolean(estado?.capacidades.podeGirar || ehAlvo);
   const podeDecidir = Boolean(estado?.capacidades.ehMestre || ehAlvo);
 
@@ -182,9 +266,15 @@ export function CampaignRouletteTab({
     );
   }
 
-  const iniciar = () =>
+  const limparVisualizacaoAtual = () => {
+    setVisualizacoes((atuais) => ({ ...atuais, [slot]: undefined }));
+    setResultadosAnunciados((atuais) => ({ ...atuais, [slot]: undefined }));
+  };
+
+  const iniciarEGirar = () =>
     executar(async () => {
-      const resposta = await apiIniciarSorteioRoletaCampanha(campanhaId, {
+      limparVisualizacaoAtual();
+      const inicio = await apiIniciarSorteioRoletaCampanha(campanhaId, {
         slot,
         alvoUsuarioId: alvoUsuarioId ? Number(alvoUsuarioId) : undefined,
         claSelecionadoChave: claSelecionado || undefined,
@@ -192,52 +282,58 @@ export function CampaignRouletteTab({
         presetRevisaoEsperada: preset.revisao,
         clientRequestId: criarClientRequestIdRoleta(),
       });
-      setGiro(null);
-      setResultadoAnunciado('');
       setEstado((atual) =>
         atual
           ? {
               ...atual,
               sorteiosAtivos: [
                 ...atual.sorteiosAtivos.filter((item) => item.slot !== slot),
-                resposta.sorteio,
+                inicio.sorteio,
               ],
             }
           : atual,
       );
-      await carregarHistorico();
+      try {
+        const resposta = await apiGirarRoletaCampanha(
+          campanhaId,
+          inicio.sorteio.id,
+          inicio.sorteio.revisao,
+        );
+        registrarGiro(resposta);
+      } finally {
+        await Promise.all([carregarEstado(), carregarHistorico()]);
+      }
     });
 
   const girar = () =>
-    sorteio &&
+    sorteioAtivo &&
     executar(async () => {
       const resposta = await apiGirarRoletaCampanha(
         campanhaId,
-        sorteio.id,
-        sorteio.revisao,
+        sorteioAtivo.id,
+        sorteioAtivo.revisao,
       );
-      setGiro(resposta.giro);
+      registrarGiro(resposta);
       await carregarEstado();
     });
 
   const terceiroGiro = () =>
-    sorteio &&
+    sorteioAtivo &&
     executar(async () => {
       const resposta = await apiTerceiroGiroRoletaCampanha(
         campanhaId,
-        sorteio.id,
-        sorteio.revisao,
+        sorteioAtivo.id,
+        sorteioAtivo.revisao,
       );
-      setGiro(resposta.giro);
-      await carregarEstado();
-      await carregarHistorico();
+      registrarGiro(resposta);
+      await Promise.all([carregarEstado(), carregarHistorico()]);
     });
 
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Icon name="dice" className="h-6 w-6 text-app-primary" />
             <h2 className="text-xl font-bold text-app-fg">Roleta da campanha</h2>
             <Badge color={realtimeStatus === 'online' ? 'green' : 'yellow'}>
@@ -245,38 +341,30 @@ export function CampaignRouletteTab({
             </Badge>
           </div>
           <p className="mt-1 text-sm text-app-muted">
-            O servidor define os resultados; esta tela apenas reproduz a animação compartilhada.
+            Sorteie clãs, técnicas ou listas personalizadas com toda a campanha.
           </p>
         </div>
         {estado.capacidades.podeConfigurar ? (
           <Button size="sm" variant="secondary" onClick={() => setConfigurando(true)}>
             <Icon name="settings" className="mr-2 h-4 w-4" />
-            Configurar preset
+            Configurar
           </Button>
         ) : null}
       </div>
 
       {erro ? (
-        <div className="rounded-xl border border-app-danger/40 bg-app-danger/10 p-3 text-sm text-app-danger">
-          {erro}
-        </div>
+        <div className="rounded-xl border border-app-danger/40 bg-app-danger/10 p-3 text-sm text-app-danger">{erro}</div>
       ) : null}
 
       <div className="grid gap-2 sm:grid-cols-3">
         {PRESETS.map((item) => {
           const ativo = slot === item.slot;
-          const execucao = estado.sorteiosAtivos.find(
-            (sorteioAtual) => sorteioAtual.slot === item.slot,
-          );
+          const execucao = estado.sorteiosAtivos.find((atual) => atual.slot === item.slot);
           return (
             <button
               key={item.slot}
               type="button"
-              onClick={() => {
-                setSlot(item.slot);
-                setGiro(null);
-                setResultadoAnunciado('');
-              }}
+              onClick={() => setSlot(item.slot)}
               aria-pressed={ativo}
               className={`rounded-2xl border p-3 text-left transition-colors ${
                 ativo
@@ -297,40 +385,47 @@ export function CampaignRouletteTab({
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,.85fr)]">
         <Card variant="glass" className="space-y-5 overflow-hidden">
           <VerticalCampaignRoulette
+            key={slot}
             itens={itensRoleta}
-            giro={giro}
-            onAnimationComplete={(resultado) => setResultadoAnunciado(resultado.nome)}
+            giro={giroAtual}
+            resultadoEstatico={resultadoEstatico}
+            onAnimationComplete={(resultado) =>
+              giroAtual &&
+              setResultadosAnunciados((atuais) => ({
+                ...atuais,
+                [slot]: { animacaoId: giroAtual.animacaoId, nome: resultado.nome },
+              }))
+            }
           />
-          <div className="text-center" aria-live="polite">
-            {resultadoAnunciado ? (
-              <p className="text-lg font-extrabold text-amber-300">
-                Resultado: {resultadoAnunciado}
-              </p>
-            ) : sorteio?.resultados.length ? (
-              <p className="text-sm text-app-muted">
-                Último resultado: {sorteio.resultados.at(-1)?.nome}
-              </p>
+
+          <div className="min-h-12 text-center" aria-live="polite">
+            {girando ? (
+              <p className="text-sm font-semibold text-app-primary">Girando…</p>
+            ) : resultadoVisivel ? (
+              <div className="rounded-2xl border border-app-primary/35 bg-app-primary/10 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-app-muted">Saiu</p>
+                <p className="text-xl font-extrabold text-app-primary">{resultadoVisivel}</p>
+              </div>
             ) : null}
           </div>
-          {sorteio ? (
+
+          {sorteioAtivo ? (
             <div className="space-y-3 rounded-2xl border border-app-border bg-app-bg/40 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-bold text-app-fg">
-                    Sorteio #{sorteio.id} · {sorteio.status.replaceAll('_', ' ')}
-                  </p>
+                  <p className="text-sm font-bold text-app-fg">{ROTULOS_STATUS[sorteioAtivo.status]}</p>
                   <p className="text-xs text-app-muted">
-                    {sorteio.alvo ? `Alvo: ${sorteio.alvo.apelido}` : 'Sem alvo · mestres decidem'}
+                    {sorteioAtivo.alvo ? `Para ${sorteioAtivo.alvo.apelido}` : 'Sem jogador-alvo'}
                   </p>
                 </div>
                 <Badge color="gray">
-                  {sorteio.poolSnapshot.quantidadeResultados} itens · peso {sorteio.poolSnapshot.pesoTotal}
+                  {sorteioAtivo.poolSnapshot.quantidadeResultados} possibilidades · peso {sorteioAtivo.poolSnapshot.pesoTotal}
                 </Badge>
               </div>
 
-              {sorteio.status === 'AGUARDANDO_ESCOLHA' ? (
+              {sorteioAtivo.status === 'AGUARDANDO_ESCOLHA' ? (
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {sorteio.resultados.slice(0, 2).map((resultado, indice) => (
+                  {sorteioAtivo.resultados.slice(0, 2).map((resultado, indice) => (
                     <Button
                       key={`${resultado.chave}-${indice}`}
                       variant="secondary"
@@ -338,12 +433,16 @@ export function CampaignRouletteTab({
                       aria-label={`Escolher ${resultado.nome}`}
                       onClick={() =>
                         void executar(async () => {
-                          await apiEscolherRoletaCampanha(
+                          const resposta = await apiEscolherRoletaCampanha(
                             campanhaId,
-                            sorteio.id,
-                            sorteio.revisao,
+                            sorteioAtivo.id,
+                            sorteioAtivo.revisao,
                             indice as 0 | 1,
                           );
+                          setVisualizacoes((atuais) => ({
+                            ...atuais,
+                            [slot]: { sorteio: resposta.sorteio, giro: null },
+                          }));
                           await sincronizar();
                         })
                       }
@@ -355,19 +454,17 @@ export function CampaignRouletteTab({
               ) : null}
 
               <div className="flex flex-wrap justify-center gap-2">
-                {['AGUARDANDO_GIRO_1', 'AGUARDANDO_GIRO_2'].includes(sorteio.status) ? (
+                {['AGUARDANDO_GIRO_1', 'AGUARDANDO_GIRO_2'].includes(sorteioAtivo.status) ? (
                   <Button onClick={() => void girar()} disabled={!podeGirar || pendente}>
                     <Icon name={pendente ? 'spinner' : 'sparkles'} className="mr-2 h-4 w-4" />
-                    {sorteio.status === 'AGUARDANDO_GIRO_2' ? 'Girar segunda opção' : 'Girar'}
+                    {sorteioAtivo.status === 'AGUARDANDO_GIRO_2'
+                      ? 'Girar segunda opção'
+                      : 'Tentar girar novamente'}
                   </Button>
                 ) : null}
-                {sorteio.status === 'AGUARDANDO_ESCOLHA' ? (
-                  <Button
-                    variant="secondary"
-                    onClick={() => void terceiroGiro()}
-                    disabled={!podeDecidir || pendente}
-                  >
-                    Abdicar e aceitar terceiro giro
+                {sorteioAtivo.status === 'AGUARDANDO_ESCOLHA' ? (
+                  <Button variant="secondary" onClick={() => void terceiroGiro()} disabled={!podeDecidir || pendente}>
+                    Descartar opções e aceitar terceiro giro
                   </Button>
                 ) : null}
                 {estado.capacidades.podeCancelar ? (
@@ -375,13 +472,14 @@ export function CampaignRouletteTab({
                     variant="destructive"
                     disabled={pendente}
                     onClick={() => {
-                      if (!window.confirm('Cancelar este sorteio? O evento ficará no histórico.')) return;
+                      if (!window.confirm('Cancelar este sorteio? A ação ficará no histórico.')) return;
                       void executar(async () => {
                         await apiCancelarSorteioRoletaCampanha(
                           campanhaId,
-                          sorteio.id,
-                          sorteio.revisao,
+                          sorteioAtivo.id,
+                          sorteioAtivo.revisao,
                         );
+                        limparVisualizacaoAtual();
                         await sincronizar();
                       });
                     }}
@@ -393,7 +491,10 @@ export function CampaignRouletteTab({
             </div>
           ) : estado.capacidades.podeIniciar ? (
             <div className="space-y-3 rounded-2xl border border-app-border bg-app-bg/40 p-4">
-              <h3 className="font-bold text-app-fg">Preparar sorteio</h3>
+              <div>
+                <h3 className="font-bold text-app-fg">Preparar sorteio</h3>
+                <p className="text-xs text-app-muted">Escolha as opções abaixo e gire em um único clique.</p>
+              </div>
               <label className="block text-sm font-semibold text-app-fg">
                 Jogador-alvo opcional
                 <select
@@ -403,24 +504,20 @@ export function CampaignRouletteTab({
                 >
                   <option value="">Sem alvo</option>
                   {participantesAlvo.map((participante) => (
-                    <option key={participante.id} value={participante.id}>
-                      {participante.apelido} · {participante.papel}
-                    </option>
+                    <option key={participante.id} value={participante.id}>{participante.apelido} · {participante.papel}</option>
                   ))}
                 </select>
               </label>
               {preset.modo === 'CLA' ? (
                 <label className="block text-sm font-semibold text-app-fg">
-                  Clã com uma ocorrência adicional
+                  Clã com uma chance adicional
                   <select
                     value={claDuplicado}
                     onChange={(event) => setClaDuplicado(event.target.value)}
                     className="mt-1 w-full rounded-xl border border-app-border bg-app-surface px-3 py-2"
                   >
                     <option value="">Nenhum</option>
-                    {clas.map((cla) => (
-                      <option key={cla.chave} value={cla.chave}>{cla.nome}</option>
-                    ))}
+                    {clas.map((cla) => <option key={cla.chave} value={cla.chave}>{cla.nome}</option>)}
                   </select>
                 </label>
               ) : null}
@@ -432,17 +529,22 @@ export function CampaignRouletteTab({
                     onChange={(event) => setClaSelecionado(event.target.value)}
                     className="mt-1 w-full rounded-xl border border-app-border bg-app-surface px-3 py-2"
                   >
-                    <option value="">Usar último clã sorteado para o alvo</option>
-                    {clas.map((cla) => (
-                      <option key={cla.chave} value={cla.chave}>{cla.nome}</option>
-                    ))}
+                    <option value="">Usar o último clã sorteado para o alvo</option>
+                    {clas.map((cla) => <option key={cla.chave} value={cla.chave}>{cla.nome}</option>)}
                   </select>
                 </label>
               ) : null}
-              <Button onClick={() => void iniciar()} disabled={pendente} className="w-full">
-                <Icon name={pendente ? 'spinner' : 'play'} className="mr-2 h-4 w-4" />
-                Iniciar sorteio
+              <Button
+                onClick={() => void iniciarEGirar()}
+                disabled={pendente || (resumoConfigurado?.erros.length ?? 0) > 0}
+                className="w-full"
+              >
+                <Icon name={pendente ? 'spinner' : 'sparkles'} className="mr-2 h-4 w-4" />
+                Girar roleta
               </Button>
+              {resumoConfigurado?.erros.length ? (
+                <p className="text-center text-xs text-app-warning">Revise a configuração antes de girar.</p>
+              ) : null}
             </div>
           ) : (
             <EmptyState
@@ -456,23 +558,21 @@ export function CampaignRouletteTab({
 
         <div className="space-y-5">
           <Card variant="glass" className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-bold text-app-fg">Configuração atual</h3>
-              <Badge color="purple">Revisão {preset.revisao}</Badge>
-            </div>
+            <h3 className="font-bold text-app-fg">Configuração atual</h3>
+            <p className="text-sm font-semibold text-app-fg">{ROTULOS_MODO[preset.modo]}</p>
             <p className="text-sm text-app-muted">
-              {preset.modo} · {preset.config.fontes.sistemaBase ? 'sistema base' : 'sem sistema base'} ·{' '}
+              {resumoConfigurado?.pool.quantidadeResultados ?? 0} possibilidades configuradas ·{' '}
+              {preset.config.fontes.sistemaBase ? 'sistema base' : 'sem sistema base'} ·{' '}
               {preset.config.fontes.suplementoIds.length} suplemento(s) ·{' '}
               {preset.config.fontes.homebrewIds.length} homebrew(s)
             </p>
             <div className="flex flex-wrap gap-2">
-              {itensRoleta
+              {(sorteioExibido?.poolSnapshot.itens ?? resumoConfigurado?.pool.itens ?? [])
                 .filter((item) => item.ocorrencias > 1 || item.pesoUnitario > 1)
                 .slice(0, 20)
                 .map((item) => (
                   <Badge key={item.chave} color="yellow">
-                    {item.nome} {item.ocorrencias > 1 ? `×${item.ocorrencias}` : ''}
-                    {item.pesoUnitario > 1 ? ` · peso ${item.pesoUnitario}×` : ''}
+                    {item.nome}{item.ocorrencias > 1 ? ` ×${item.ocorrencias}` : ''}{item.pesoUnitario > 1 ? ` · peso ${item.pesoUnitario}×` : ''}
                   </Badge>
                 ))}
             </div>
@@ -480,46 +580,23 @@ export function CampaignRouletteTab({
 
           <Card variant="glass" className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="font-bold text-app-fg">Histórico público</h3>
+              <h3 className="font-bold text-app-fg">Histórico</h3>
               <Badge color="gray">{historico?.total ?? 0}</Badge>
             </div>
             {historico?.itens.length ? (
               <div className="max-h-[34rem] space-y-2 overflow-auto pr-1">
                 {historico.itens.map((item) => (
-                  <CampaignRouletteHistoryCard
-                    key={item.id}
-                    item={item}
-                    aberto={historicoAbertoId === item.id}
-                    onAlternar={() =>
-                      setHistoricoAbertoId((atual) => (atual === item.id ? null : item.id))
-                    }
-                  />
+                  <CampaignRouletteHistoryCard key={item.id} item={item} onOpen={() => setHistoricoSelecionado(item)} />
                 ))}
               </div>
             ) : (
               <EmptyState variant="plain" description="Nenhum sorteio registrado ainda." size="sm" />
             )}
             {historico && historico.totalPaginas > 1 ? (
-              <div className="flex justify-between gap-2">
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  disabled={historico.pagina <= 1}
-                  onClick={() => void carregarHistorico(historico.pagina - 1)}
-                >
-                  Anterior
-                </Button>
-                <span className="text-xs text-app-muted">
-                  {historico.pagina}/{historico.totalPaginas}
-                </span>
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  disabled={historico.pagina >= historico.totalPaginas}
-                  onClick={() => void carregarHistorico(historico.pagina + 1)}
-                >
-                  Próxima
-                </Button>
+              <div className="flex items-center justify-between gap-2">
+                <Button size="xs" variant="ghost" disabled={historico.pagina <= 1} onClick={() => void carregarHistorico(historico.pagina - 1)}>Anterior</Button>
+                <span className="text-xs text-app-muted">Página {historico.pagina} de {historico.totalPaginas}</span>
+                <Button size="xs" variant="ghost" disabled={historico.pagina >= historico.totalPaginas} onClick={() => void carregarHistorico(historico.pagina + 1)}>Próxima</Button>
               </div>
             ) : null}
           </Card>
@@ -529,7 +606,6 @@ export function CampaignRouletteTab({
       {configurando ? (
         <CampaignRouletteConfigModal
           key={`${preset.id}:${preset.revisao}`}
-          campanhaId={campanhaId}
           preset={preset}
           estado={estado}
           onClose={() => setConfigurando(false)}
@@ -539,21 +615,19 @@ export function CampaignRouletteTab({
               config,
               revisaoEsperada: preset.revisao,
             });
+            limparVisualizacaoAtual();
             await carregarEstado();
             setConfigurando(false);
           }}
-          onPreview={(modo, config) =>
-            apiPreviewRoletaCampanha(campanhaId, { slot, modo, config })
-          }
           onPermission={async (participanteId, permissao) => {
-            await apiSalvarPermissaoRoletaCampanha(
-              campanhaId,
-              participanteId,
-              permissao,
-            );
+            await apiSalvarPermissaoRoletaCampanha(campanhaId, participanteId, permissao);
             await carregarEstado();
           }}
         />
+      ) : null}
+
+      {historicoSelecionado ? (
+        <CampaignRouletteHistoryModal item={historicoSelecionado} onClose={() => setHistoricoSelecionado(null)} />
       ) : null}
     </section>
   );
