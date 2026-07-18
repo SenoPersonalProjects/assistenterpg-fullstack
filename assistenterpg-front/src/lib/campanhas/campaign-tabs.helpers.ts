@@ -3,6 +3,7 @@ export const CAMPAIGN_TAB_IDS = [
   'sessoes',
   'personagens',
   'membros',
+  'roleta',
 ] as const;
 
 export type CampaignTab = (typeof CAMPAIGN_TAB_IDS)[number];

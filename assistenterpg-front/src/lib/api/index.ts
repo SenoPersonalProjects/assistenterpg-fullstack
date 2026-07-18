@@ -18,6 +18,7 @@ export * from '@/lib/types';
 export * from './auth';
 export * from './usuarios';
 export * from './campanhas';
+export * from './campanha-roleta';
 export * from './personagens-base';
 export * from './catalogos';
 export * from './suplementos';

@@ -341,6 +341,13 @@ export const ERROR_MESSAGES: Record<string, string> = {
   MACRO_PERSONAGEM_PERICIA_INVALIDA: "A perícia configurada na macro não existe.",
   MACRO_PERSONAGEM_REVISAO_CONFLITO: "A macro foi alterada em outro lugar. Atualize e tente novamente.",
   MACRO_PERSONAGEM_VISIBILIDADE_NEGADA: "Apenas o mestre pode usar macros secretas.",
+  CAMPAIGN_ROULETTE_FORBIDDEN: "Você não tem permissão para realizar esta ação na roleta.",
+  CAMPAIGN_ROULETTE_INVALID_CONFIG: "A configuração da roleta é inválida.",
+  CAMPAIGN_ROULETTE_INVALID_DRAW: "Esta ação não é válida no estado atual do sorteio.",
+  CAMPAIGN_ROULETTE_DRAW_NOT_FOUND: "Sorteio da roleta não encontrado.",
+  CAMPAIGN_ROULETTE_CONFLICT: "A roleta mudou em outro dispositivo. Atualize e tente novamente.",
+  CAMPAIGN_ROULETTE_IDEMPOTENCY_CONFLICT: "Esta solicitação já foi usada com outra intenção.",
+  CAMPAIGN_ROULETTE_INVALID_PERMISSION: "A permissão da roleta é inválida.",
   OPERACAO_CONCORRENTE_REPETIR:
     "O estado foi alterado por outra operação. Atualize e tente novamente.",
   SESSAO_PERICIA_NAO_ENCONTRADA:
