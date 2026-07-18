@@ -46,6 +46,7 @@ import {
   AssociarTemplateEntidadeVinculadaDto,
   CriarEntidadeVinculadaPersonagemDto,
 } from './dto/entidade-vinculada-personagem.dto';
+import { criarPresetsPadraoRoleta } from './campanha-roleta';
 
 const usuarioAtivoVerificadoWhere = {
   emailVerificadoEm: { not: null },
@@ -76,6 +77,9 @@ export class CampanhaService {
         descricao: dto.descricao ?? '',
         status: 'ATIVA',
         donoId,
+        roletaPresets: {
+          create: criarPresetsPadraoRoleta(donoId),
+        },
       },
       include: {
         dono: {

@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Request,
   UseGuards,
   Delete,
@@ -50,6 +51,18 @@ import {
   CriarMacroPersonagemCampanhaDto,
 } from './dto/macro-personagem-campanha.dto';
 import { CampanhaMacrosService } from './campanha.macros.service';
+import { CampanhaRoletaService } from './campanha.roleta.service';
+import { CampanhaGateway } from './campanha.gateway';
+import type { CampanhaRoletaSlot } from '@prisma/client';
+import {
+  AcaoSorteioCampanhaRoletaDto,
+  EscolherSorteioCampanhaRoletaDto,
+  HistoricoCampanhaRoletaQueryDto,
+  IniciarSorteioCampanhaRoletaDto,
+  PreviewCampanhaRoletaDto,
+  SalvarPermissaoCampanhaRoletaDto,
+  SalvarPresetCampanhaRoletaDto,
+} from './dto/campanha-roleta.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('campanhas')
@@ -57,7 +70,16 @@ export class CampanhaController {
   constructor(
     private readonly campanhaService: CampanhaService,
     private readonly macrosService: CampanhaMacrosService,
+    private readonly roletaService: CampanhaRoletaService,
+    private readonly campanhaGateway: CampanhaGateway,
   ) {}
+
+  private slotRoleta(valor: string): CampanhaRoletaSlot {
+    if (!['CLA', 'TECNICA', 'CUSTOMIZADO'].includes(valor)) {
+      throw new BadRequestException('Slot de roleta invalido.');
+    }
+    return valor as CampanhaRoletaSlot;
+  }
 
   @Post()
   async criar(
@@ -77,6 +99,170 @@ export class CampanhaController {
       paginacao.page,
       paginacao.limit,
     );
+  }
+
+  @Get(':id/roleta')
+  async obterRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    return this.roletaService.obterEstado(id, req.user.id);
+  }
+
+  @Post(':id/roleta/preview')
+  async previewRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: PreviewCampanhaRoletaDto,
+  ) {
+    return this.roletaService.preview(id, req.user.id, dto);
+  }
+
+  @Put(':id/roleta/presets/:slot')
+  async salvarPresetRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('slot') slot: string,
+    @Request() req: { user: { id: number } },
+    @Body() dto: SalvarPresetCampanhaRoletaDto,
+  ) {
+    const resultado = await this.roletaService.salvarPreset(
+      id,
+      this.slotRoleta(slot),
+      req.user.id,
+      dto,
+    );
+    this.campanhaGateway.emitirRoletaAtualizada(id, 'PRESET_ATUALIZADO');
+    return resultado;
+  }
+
+  @Put(':id/roleta/permissoes/:usuarioId')
+  async salvarPermissaoRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('usuarioId', ParseIntPipe) usuarioId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: SalvarPermissaoCampanhaRoletaDto,
+  ) {
+    const resultado = await this.roletaService.salvarPermissao(
+      id,
+      usuarioId,
+      req.user.id,
+      dto,
+    );
+    this.campanhaGateway.emitirRoletaAtualizada(id, 'PERMISSAO_ATUALIZADA');
+    return resultado;
+  }
+
+  @Delete(':id/roleta/permissoes/:usuarioId')
+  async removerPermissaoRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('usuarioId', ParseIntPipe) usuarioId: number,
+    @Request() req: { user: { id: number } },
+  ) {
+    const resultado = await this.roletaService.removerPermissao(
+      id,
+      usuarioId,
+      req.user.id,
+    );
+    this.campanhaGateway.emitirRoletaAtualizada(id, 'PERMISSAO_REMOVIDA');
+    return resultado;
+  }
+
+  @Post(':id/roleta/sorteios')
+  async iniciarSorteioRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: IniciarSorteioCampanhaRoletaDto,
+  ) {
+    const resultado = await this.roletaService.iniciarSorteio(
+      id,
+      req.user.id,
+      dto,
+    );
+    if (resultado.emitir) {
+      this.campanhaGateway.emitirRoletaAtualizada(id, 'SORTEIO_INICIADO');
+    }
+    return resultado.dados;
+  }
+
+  @Post(':id/roleta/sorteios/:sorteioId/girar')
+  async girarRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('sorteioId', ParseIntPipe) sorteioId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AcaoSorteioCampanhaRoletaDto,
+  ) {
+    const resultado = await this.roletaService.girar(
+      id,
+      sorteioId,
+      req.user.id,
+      dto,
+    );
+    if (resultado.emitir) this.campanhaGateway.emitirGiro(id, resultado.dados);
+    return resultado.dados;
+  }
+
+  @Post(':id/roleta/sorteios/:sorteioId/escolher')
+  async escolherRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('sorteioId', ParseIntPipe) sorteioId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: EscolherSorteioCampanhaRoletaDto,
+  ) {
+    const resultado = await this.roletaService.escolher(
+      id,
+      sorteioId,
+      req.user.id,
+      dto,
+    );
+    if (resultado.emitir) {
+      this.campanhaGateway.emitirRoletaAtualizada(id, 'OPCAO_ESCOLHIDA');
+    }
+    return resultado.dados;
+  }
+
+  @Post(':id/roleta/sorteios/:sorteioId/terceiro-giro')
+  async terceiroGiroRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('sorteioId', ParseIntPipe) sorteioId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AcaoSorteioCampanhaRoletaDto,
+  ) {
+    const resultado = await this.roletaService.terceiroGiro(
+      id,
+      sorteioId,
+      req.user.id,
+      dto,
+    );
+    if (resultado.emitir) this.campanhaGateway.emitirGiro(id, resultado.dados);
+    return resultado.dados;
+  }
+
+  @Post(':id/roleta/sorteios/:sorteioId/cancelar')
+  async cancelarSorteioRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('sorteioId', ParseIntPipe) sorteioId: number,
+    @Request() req: { user: { id: number } },
+    @Body() dto: AcaoSorteioCampanhaRoletaDto,
+  ) {
+    const resultado = await this.roletaService.cancelar(
+      id,
+      sorteioId,
+      req.user.id,
+      dto,
+    );
+    if (resultado.emitir) {
+      this.campanhaGateway.emitirRoletaAtualizada(id, 'SORTEIO_CANCELADO');
+    }
+    return resultado.dados;
+  }
+
+  @Get(':id/roleta/historico')
+  async historicoRoleta(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: { user: { id: number } },
+    @Query() query: HistoricoCampanhaRoletaQueryDto,
+  ) {
+    return this.roletaService.listarHistorico(id, req.user.id, query);
   }
 
   @Get(':id')

@@ -1,5 +1,9 @@
 // src/campanha/campanha.module.ts
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { resolveJwtSecret } from 'src/auth/auth-security.config';
+import { AuthSessionService } from 'src/auth/auth-session.service';
 import { CampanhaService } from './campanha.service';
 import { CampanhaController } from './campanha.controller';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -16,6 +20,8 @@ import { CampanhaInventarioService } from './campanha.inventario.service';
 import { CampanhaItensSessaoService } from './campanha.itens-sessao.service';
 import { CampanhaVinculadosService } from './campanha.vinculados.service';
 import { CampanhaMacrosService } from './campanha.macros.service';
+import { CampanhaRoletaService } from './campanha.roleta.service';
+import { CampanhaGateway } from './campanha.gateway';
 import { AmizadesModule } from 'src/amizades/amizades.module';
 
 @Module({
@@ -24,6 +30,14 @@ import { AmizadesModule } from 'src/amizades/amizades.module';
     InventarioModule,
     TecnicasAmaldicoadasModule,
     AmizadesModule,
+    ConfigModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: resolveJwtSecret(configService),
+      }),
+      inject: [ConfigService],
+    }),
   ],
   providers: [
     CampanhaService,
@@ -38,6 +52,9 @@ import { AmizadesModule } from 'src/amizades/amizades.module';
     CampanhaItensSessaoService,
     CampanhaVinculadosService,
     CampanhaMacrosService,
+    CampanhaRoletaService,
+    CampanhaGateway,
+    AuthSessionService,
   ],
   controllers: [CampanhaController],
 })
