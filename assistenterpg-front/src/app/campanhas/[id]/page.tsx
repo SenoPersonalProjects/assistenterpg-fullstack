@@ -2,6 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   useParams,
   usePathname,
@@ -43,6 +44,22 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip } from '@/components/ui/StatsStrip';
+
+const CampaignRouletteTab = dynamic(
+  () =>
+    import('@/components/campanha/CampaignRouletteTab').then(
+      (modulo) => modulo.CampaignRouletteTab,
+    ),
+  {
+    loading: () => (
+      <Loading
+        message="Carregando roleta..."
+        variant="dice"
+        className="min-h-72"
+      />
+    ),
+  },
+);
 
 function mensagemErroCarregarCampanha(error: unknown): string {
   const status = Number(
@@ -487,6 +504,13 @@ export default function CampanhaDetalhePage() {
               onEnviarSolicitacao={handleEnviarSolicitacaoMembro}
             />
           </section>
+        ) : null}
+
+        {abaAtiva === 'roleta' ? (
+          <CampaignRouletteTab
+            campanhaId={campanha.id}
+            usuarioId={usuario?.id ?? 0}
+          />
         ) : null}
       </div>
 

@@ -39,12 +39,13 @@ export type CampanhaDetalheDto = {
 const CAMPAIGN_TABS: Array<{
   id: CampaignTab;
   label: string;
-  icon: 'info' | 'scroll' | 'character-gojo' | 'characters';
+  icon: 'info' | 'scroll' | 'character-gojo' | 'characters' | 'dice';
 }> = [
   { id: 'visao-geral', label: 'Visão geral', icon: 'info' },
   { id: 'sessoes', label: 'Sessões', icon: 'scroll' },
   { id: 'personagens', label: 'Personagens', icon: 'character-gojo' },
   { id: 'membros', label: 'Membros', icon: 'characters' },
+  { id: 'roleta', label: 'Roleta', icon: 'dice' },
 ];
 
 export function CampaignHero({
