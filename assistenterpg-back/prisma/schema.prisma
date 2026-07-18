@@ -56,6 +56,34 @@ enum VisibilidadeRolagemMacro {
   SECRETA_MESTRE
 }
 
+enum CampanhaRoletaSlot {
+  CLA
+  TECNICA
+  CUSTOMIZADO
+}
+
+enum CampanhaRoletaModo {
+  CLA
+  TECNICA
+  SIMPLES
+}
+
+enum CampanhaRoletaSorteioStatus {
+  AGUARDANDO_GIRO_1
+  AGUARDANDO_GIRO_2
+  AGUARDANDO_ESCOLHA
+  FINALIZADO
+  CANCELADO
+}
+
+enum CampanhaRoletaEventoTipo {
+  SORTEIO_INICIADO
+  GIRO_REALIZADO
+  OPCAO_ESCOLHIDA
+  TERCEIRO_GIRO_REALIZADO
+  SORTEIO_CANCELADO
+}
+
 enum AtributoPassiva {
   AGILIDADE
   FORCA
@@ -433,6 +461,14 @@ model Usuario {
   macrosPersonagemCampanhaCriadas          PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaCriadaPor")
   macrosPersonagemCampanhaAtualizadas      PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaAtualizadaPor")
   macrosPersonagemCampanhaRemovidas        PersonagemCampanhaMacro[]              @relation("MacroPersonagemCampanhaRemovidaPor")
+  roletaPresetsCriados                     CampanhaRoletaPreset[]                  @relation("CampanhaRoletaPresetCriadoPor")
+  roletaPresetsAtualizados                 CampanhaRoletaPreset[]                  @relation("CampanhaRoletaPresetAtualizadoPor")
+  roletaPermissoesConcedidas               CampanhaRoletaPermissao[]               @relation("CampanhaRoletaPermissaoConcedidaPor")
+  roletaSorteiosComoAlvo                   CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioAlvo")
+  roletaSorteiosIniciados                  CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioIniciadoPor")
+  roletaSorteiosFinalizados                CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioFinalizadoPor")
+  roletaSorteiosCancelados                 CampanhaRoletaSorteio[]                 @relation("CampanhaRoletaSorteioCanceladoPor")
+  roletaEventos                            CampanhaRoletaEvento[]                  @relation("CampanhaRoletaEventoAtor")
   entidadesVinculadasCriadas               PersonagemCampanhaEntidadeVinculada[]  @relation("EntidadeVinculadaCriadaPor")
   sustentacoesSessaoCriadas                PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoCriadaPor")
   sustentacoesSessaoDesativadas            PersonagemSessaoHabilidadeSustentada[] @relation("SustentacaoSessaoDesativadaPor")
@@ -694,6 +730,9 @@ model Campanha {
   templatesItensSessao      TemplateItemSessaoCampanha[]
   transferenciasItensSessao TransferenciaItemSessaoCampanha[]
   entidadesVinculadas       PersonagemCampanhaEntidadeVinculada[]
+  roletaPresets             CampanhaRoletaPreset[]
+  roletaSorteios            CampanhaRoletaSorteio[]
+  roletaEventos             CampanhaRoletaEvento[]
 
   @@index([donoId])
   @@index([donoId, criadoEm])
@@ -732,10 +771,109 @@ model MembroCampanha {
 
   campanha Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
   usuario  Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  roletaPermissao CampanhaRoletaPermissao?
 
   @@unique([campanhaId, usuarioId])
   @@index([usuarioId])
   @@index([usuarioId, campanhaId])
+}
+
+model CampanhaRoletaPreset {
+  id              Int                  @id @default(autoincrement())
+  campanhaId      Int
+  slot            CampanhaRoletaSlot
+  modo            CampanhaRoletaModo
+  configVersao    Int                  @default(1)
+  config          Json
+  revisao         Int                  @default(1)
+  criadoPorId     Int?
+  atualizadoPorId Int?
+  criadoEm        DateTime             @default(now())
+  atualizadoEm    DateTime             @updatedAt
+
+  campanha      Campanha @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  criadoPor     Usuario? @relation("CampanhaRoletaPresetCriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  atualizadoPor Usuario? @relation("CampanhaRoletaPresetAtualizadoPor", fields: [atualizadoPorId], references: [id], onDelete: SetNull)
+  sorteios      CampanhaRoletaSorteio[]
+
+  @@unique([campanhaId, slot])
+  @@index([criadoPorId])
+  @@index([atualizadoPorId])
+}
+
+model CampanhaRoletaPermissao {
+  id              Int      @id @default(autoincrement())
+  campanhaId      Int
+  usuarioId       Int
+  podeConfigurar  Boolean  @default(false)
+  podeGirar       Boolean  @default(false)
+  concedidoPorId  Int?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  membro       MembroCampanha @relation(fields: [campanhaId, usuarioId], references: [campanhaId, usuarioId], onDelete: Cascade)
+  concedidoPor Usuario? @relation("CampanhaRoletaPermissaoConcedidaPor", fields: [concedidoPorId], references: [id], onDelete: SetNull)
+
+  @@unique([campanhaId, usuarioId])
+  @@index([usuarioId])
+  @@index([concedidoPorId])
+}
+
+model CampanhaRoletaSorteio {
+  id                 Int                           @id @default(autoincrement())
+  campanhaId         Int
+  presetId           Int
+  slot               CampanhaRoletaSlot
+  modo               CampanhaRoletaModo
+  alvoUsuarioId      Int?
+  status             CampanhaRoletaSorteioStatus  @default(AGUARDANDO_GIRO_1)
+  chaveAtiva         String?                       @unique @db.VarChar(80)
+  configSnapshot     Json
+  poolSnapshot       Json
+  resultados         Json
+  resultadoFinal     Json?
+  revisao            Int                           @default(1)
+  iniciadoPorId      Int?
+  finalizadoPorId    Int?
+  canceladoPorId     Int?
+  criadoEm           DateTime                      @default(now())
+  atualizadoEm       DateTime                      @updatedAt
+  finalizadoEm       DateTime?
+  canceladoEm        DateTime?
+
+  campanha     Campanha              @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  preset       CampanhaRoletaPreset  @relation(fields: [presetId], references: [id], onDelete: Restrict)
+  alvo         Usuario?              @relation("CampanhaRoletaSorteioAlvo", fields: [alvoUsuarioId], references: [id], onDelete: SetNull)
+  iniciadoPor  Usuario?              @relation("CampanhaRoletaSorteioIniciadoPor", fields: [iniciadoPorId], references: [id], onDelete: SetNull)
+  finalizadoPor Usuario?              @relation("CampanhaRoletaSorteioFinalizadoPor", fields: [finalizadoPorId], references: [id], onDelete: SetNull)
+  canceladoPor Usuario?              @relation("CampanhaRoletaSorteioCanceladoPor", fields: [canceladoPorId], references: [id], onDelete: SetNull)
+  eventos      CampanhaRoletaEvento[]
+
+  @@index([campanhaId, slot, status, criadoEm])
+  @@index([campanhaId, alvoUsuarioId, criadoEm])
+  @@index([presetId])
+  @@index([iniciadoPorId])
+}
+
+model CampanhaRoletaEvento {
+  id              Int                        @id @default(autoincrement())
+  campanhaId      Int
+  sorteioId       Int
+  atorUsuarioId   Int?
+  tipo            CampanhaRoletaEventoTipo
+  clientRequestId String                     @db.VarChar(36)
+  intencaoHash    String                     @db.VarChar(64)
+  dados           Json
+  resposta        Json
+  criadoEm        DateTime                   @default(now())
+
+  campanha Campanha               @relation(fields: [campanhaId], references: [id], onDelete: Cascade)
+  sorteio  CampanhaRoletaSorteio @relation(fields: [sorteioId], references: [id], onDelete: Cascade)
+  ator     Usuario?               @relation("CampanhaRoletaEventoAtor", fields: [atorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@unique([campanhaId, atorUsuarioId, clientRequestId])
+  @@index([campanhaId, criadoEm])
+  @@index([sorteioId, criadoEm])
 }
 
 // ========================================
