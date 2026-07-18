@@ -11,6 +11,8 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   AdminPanelScaffold,
   AdminPanelSurface,
@@ -167,6 +169,7 @@ export function TiposGrauAdminPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TipoGrauCatalogo | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const confirmacao = useConfirm();
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -209,19 +212,25 @@ export function TiposGrauAdminPanel() {
     carregarDados();
   }, [carregarDados]);
 
-  async function handleDelete(item: TipoGrauCatalogo) {
-    if (!window.confirm(`Excluir tipo de grau "${item.nome}"?`)) return;
-
-    try {
-      setDeletingId(item.id);
-      await apiAdminDeleteTipoGrau(item.id);
-      showToast('Tipo de grau removido com sucesso.', 'success');
-      await carregarDados();
-    } catch (error) {
-      showToast(criarErroUsuario(error), 'error');
-    } finally {
-      setDeletingId(null);
-    }
+  function handleDelete(item: TipoGrauCatalogo) {
+    confirmacao.confirm({
+      title: 'Excluir tipo de grau?',
+      description: `“${item.nome}” será removido do catálogo.`,
+      confirmLabel: 'Excluir tipo',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setDeletingId(item.id);
+          await apiAdminDeleteTipoGrau(item.id);
+          showToast('Tipo de grau removido com sucesso.', 'success');
+          await carregarDados();
+        } catch (error) {
+          showToast(criarErroUsuario(error), 'error');
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   }
 
   return (
@@ -331,6 +340,17 @@ export function TiposGrauAdminPanel() {
           if (success) carregarDados();
         }}
         item={editingItem}
+      />
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar exclusão'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+        confirmLoading={deletingId !== null}
       />
     </AdminPanelScaffold>
   );

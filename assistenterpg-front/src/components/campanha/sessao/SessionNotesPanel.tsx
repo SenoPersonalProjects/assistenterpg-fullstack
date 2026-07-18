@@ -19,6 +19,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 import type { UserErrorState } from '@/lib/types';
 
 type SessionNotesPanelProps = {
@@ -42,6 +44,7 @@ export function SessionNotesPanel({
   const [busca, setBusca] = useState('');
   const [titulo, setTitulo] = useState('');
   const [conteudo, setConteudo] = useState('');
+  const confirmacao = useConfirm();
 
   const carregarNotas = useCallback(async () => {
     try {
@@ -142,20 +145,25 @@ export function SessionNotesPanel({
     setFormAberto(true);
   }
 
-  async function handleExcluir(nota: AnotacaoResumo) {
-    const confirmar = window.confirm(`Excluir anotacao "${nota.titulo}"?`);
-    if (!confirmar) return;
-
-    try {
-      await apiExcluirAnotacao(nota.id);
-      setNotas((prev) => {
-        const next = prev.filter((item) => item.id !== nota.id);
-        onCountChange?.(next.length);
-        return next;
-      });
-    } catch (error) {
-      setErro(criarErroUsuario(error));
-    }
+  function handleExcluir(nota: AnotacaoResumo) {
+    confirmacao.confirm({
+      title: 'Excluir anotação?',
+      description: `A anotação “${nota.titulo}” será removida permanentemente.`,
+      confirmLabel: 'Excluir anotação',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await apiExcluirAnotacao(nota.id);
+          setNotas((prev) => {
+            const next = prev.filter((item) => item.id !== nota.id);
+            onCountChange?.(next.length);
+            return next;
+          });
+        } catch (error) {
+          setErro(criarErroUsuario(error));
+        }
+      },
+    });
   }
 
   const buscaNormalizada = busca.trim().toLowerCase();
@@ -333,6 +341,17 @@ export function SessionNotesPanel({
           </div>
         </details>
       ) : null}
+
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar exclusão'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+      />
     </div>
   );
 }

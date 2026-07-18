@@ -24,8 +24,10 @@ import { PageToolbar } from '@/components/ui/PageToolbar';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatsStrip, type StatsStripItem } from '@/components/ui/StatsStrip';
 import { Textarea } from '@/components/ui/Textarea';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   apiAdminAtualizarArtigo,
   apiAdminAtualizarCategoria,
@@ -242,6 +244,7 @@ export function CompendioAdminManager() {
     useState<'todos' | CompendioStatusPublicacao>('todos');
   const [selection, setSelection] = useState<Selection | null>(null);
   const [preview, setPreview] = useState(false);
+  const confirmacao = useConfirm();
 
   const [livroForm, setLivroForm] = useState<LivroForm>(() => createLivroForm());
   const [categoriaForm, setCategoriaForm] = useState<CategoriaForm>(() =>
@@ -386,7 +389,18 @@ export function CompendioAdminManager() {
 
   const selectItem = (next: Selection) => {
     if (isSameSelection(selection, next)) return;
-    if (dirty && !window.confirm('Existem alterações não salvas. Descartar?')) {
+    if (dirty) {
+      confirmacao.confirm({
+        title: 'Descartar alterações?',
+        description:
+          'Existem alterações não salvas neste item. Ao continuar, elas serão perdidas.',
+        confirmLabel: 'Descartar e continuar',
+        variant: 'warning',
+        onConfirm: () => {
+          setPreview(false);
+          setSelection(next);
+        },
+      });
       return;
     }
     setPreview(false);
@@ -876,6 +890,16 @@ export function CompendioAdminManager() {
           </section>
         </section>
       </div>
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar ação'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+      />
     </main>
   );
 }

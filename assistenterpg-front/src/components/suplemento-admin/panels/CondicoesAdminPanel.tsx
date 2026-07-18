@@ -12,6 +12,8 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   AdminPanelScaffold,
   AdminPanelSurface,
@@ -187,6 +189,7 @@ export function CondicoesAdminPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CondicaoCatalogo | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const confirmacao = useConfirm();
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -229,19 +232,25 @@ export function CondicoesAdminPanel() {
     carregarDados();
   }, [carregarDados]);
 
-  async function handleDelete(item: CondicaoCatalogo) {
-    if (!window.confirm(`Excluir condição "${item.nome}"?`)) return;
-
-    try {
-      setDeletingId(item.id);
-      const resposta = await apiAdminDeleteCondicao(item.id);
-      showToast(resposta.message || 'Condição removida com sucesso.', 'success');
-      await carregarDados();
-    } catch (error) {
-      showToast(criarErroUsuario(error), 'error');
-    } finally {
-      setDeletingId(null);
-    }
+  function handleDelete(item: CondicaoCatalogo) {
+    confirmacao.confirm({
+      title: 'Excluir condição?',
+      description: `“${item.nome}” será removida do catálogo.`,
+      confirmLabel: 'Excluir condição',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setDeletingId(item.id);
+          const resposta = await apiAdminDeleteCondicao(item.id);
+          showToast(resposta.message || 'Condição removida com sucesso.', 'success');
+          await carregarDados();
+        } catch (error) {
+          showToast(criarErroUsuario(error), 'error');
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   }
 
   return (
@@ -369,6 +378,17 @@ export function CondicoesAdminPanel() {
           if (success) carregarDados();
         }}
         item={editingItem}
+      />
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar exclusão'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+        confirmLoading={deletingId !== null}
       />
     </AdminPanelScaffold>
   );

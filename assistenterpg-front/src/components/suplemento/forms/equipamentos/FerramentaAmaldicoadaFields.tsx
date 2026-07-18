@@ -6,6 +6,8 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Icon } from '@/components/ui/Icon';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   apiGetEquipamentoDetalhado,
   apiGetMeusEquipamentosHomebrew,
@@ -102,6 +104,7 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
   const [armaBaseId, setArmaBaseId] = useState<number | null>(null);
   const [protecaoBaseId, setProtecaoBaseId] = useState<number | null>(null);
   const [artefatoBaseId, setArtefatoBaseId] = useState<number | null>(null);
+  const confirmacao = useConfirm();
 
   useEffect(() => {
     let ativo = true;
@@ -228,18 +231,27 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
     return detalhe;
   }
 
-  function confirmarSobrescrita(titulo: string) {
-    if (typeof window === 'undefined') return true;
-    return window.confirm(
-      `${titulo}\n\nOs dados preenchidos automaticamente a partir da base atual serão substituídos pelos dados do novo item selecionado.`,
-    );
+  function solicitarSobrescrita(titulo: string, onConfirm: () => Promise<void>) {
+    confirmacao.confirm({
+      title: titulo,
+      description:
+        'Os dados preenchidos automaticamente pela base atual serão substituídos pelos dados do novo item.',
+      confirmLabel: 'Trocar item base',
+      variant: 'warning',
+      onConfirm,
+    });
   }
 
   async function selecionarBaseArma(id: number) {
-    if (armaBaseId && armaBaseId !== id && !confirmarSobrescrita('Trocar arma base?')) {
+    if (armaBaseId && armaBaseId !== id) {
+      solicitarSobrescrita('Trocar arma base?', () => aplicarBaseArma(id));
       return;
     }
 
+    await aplicarBaseArma(id);
+  }
+
+  async function aplicarBaseArma(id: number) {
     const detalhe = await obterDetalhe(id);
     const atual = (dados.armaAmaldicoada as SubDadosFerramenta | null) ?? {};
 
@@ -266,14 +278,15 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
   }
 
   async function selecionarBaseProtecao(id: number) {
-    if (
-      protecaoBaseId &&
-      protecaoBaseId !== id &&
-      !confirmarSobrescrita('Trocar proteção base?')
-    ) {
+    if (protecaoBaseId && protecaoBaseId !== id) {
+      solicitarSobrescrita('Trocar proteção base?', () => aplicarBaseProtecao(id));
       return;
     }
 
+    await aplicarBaseProtecao(id);
+  }
+
+  async function aplicarBaseProtecao(id: number) {
     const detalhe = await obterDetalhe(id);
     const atual = (dados.protecaoAmaldicoada as SubDadosFerramenta | null) ?? {};
 
@@ -294,14 +307,15 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
   }
 
   async function selecionarBaseArtefato(id: number) {
-    if (
-      artefatoBaseId &&
-      artefatoBaseId !== id &&
-      !confirmarSobrescrita('Trocar artefato base?')
-    ) {
+    if (artefatoBaseId && artefatoBaseId !== id) {
+      solicitarSobrescrita('Trocar artefato base?', () => aplicarBaseArtefato(id));
       return;
     }
 
+    await aplicarBaseArtefato(id);
+  }
+
+  async function aplicarBaseArtefato(id: number) {
     const detalhe = await obterDetalhe(id);
     const atual = (dados.artefatoAmaldicoado as SubDadosFerramenta | null) ?? {};
 
@@ -546,6 +560,16 @@ export function FerramentaAmaldicoadaFields({ dados, onChange }: Props) {
           />
         </div>
       )}
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Trocar item base?'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+      />
     </div>
   );
 }

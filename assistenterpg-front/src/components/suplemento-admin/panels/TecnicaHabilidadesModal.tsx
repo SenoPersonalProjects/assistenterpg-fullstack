@@ -13,6 +13,8 @@ import { Loading } from '@/components/ui/Loading';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 import { AdminPanelSurface } from '../common/AdminPanelScaffold';
 import {
   apiAdminGetHabilidadesDaTecnica,
@@ -1820,6 +1822,7 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
   const [items, setItems] = useState<VariacaoHabilidadeTecnicaCatalogo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<VariacaoHabilidadeTecnicaCatalogo | null>(null);
+  const confirmacao = useConfirm();
 
   const habilidadeId = habilidade?.id;
 
@@ -1845,17 +1848,23 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
     carregarDados();
   }, [isOpen, habilidadeId, carregarDados]);
 
-  async function handleDelete(item: VariacaoHabilidadeTecnicaCatalogo) {
-    if (!window.confirm(`Remover variação "${item.nome}"?`)) return;
-
-    try {
-      await apiAdminDeleteVariacaoDaHabilidadeTecnica(item.id);
-      showToast('Variação removida com sucesso.', 'success');
-      await carregarDados();
-      await onChanged();
-    } catch (error) {
-      showToast(criarErroUsuario(error), 'error');
-    }
+  function handleDelete(item: VariacaoHabilidadeTecnicaCatalogo) {
+    confirmacao.confirm({
+      title: 'Remover variação?',
+      description: `“${item.nome}” será removida desta habilidade.`,
+      confirmLabel: 'Remover variação',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await apiAdminDeleteVariacaoDaHabilidadeTecnica(item.id);
+          showToast('Variação removida com sucesso.', 'success');
+          await carregarDados();
+          await onChanged();
+        } catch (error) {
+          showToast(criarErroUsuario(error), 'error');
+        }
+      },
+    });
   }
 
   return (
@@ -1954,6 +1963,16 @@ function HabilidadeVariacoesModal({ isOpen, habilidade, onClose, onChanged }: Ha
           }}
         />
       ) : null}
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar remoção'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+      />
     </>
   );
 }
@@ -1967,6 +1986,7 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
   const [editingItem, setEditingItem] = useState<HabilidadeTecnicaCatalogo | null>(null);
   const [variacoesModalOpen, setVariacoesModalOpen] = useState(false);
   const [variacoesHabilidade, setVariacoesHabilidade] = useState<HabilidadeTecnicaCatalogo | null>(null);
+  const confirmacao = useConfirm();
 
   const tecnicaId = tecnica?.id;
 
@@ -1997,16 +2017,22 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
     carregarDados();
   }, [isOpen, tecnicaId, carregarDados]);
 
-  async function handleDelete(item: HabilidadeTecnicaCatalogo) {
-    if (!window.confirm(`Remover habilidade "${item.nome}"?`)) return;
-
-    try {
-      await apiAdminDeleteHabilidadeDaTecnica(item.id);
-      showToast('Habilidade removida com sucesso.', 'success');
-      await carregarDados();
-    } catch (error) {
-      showToast(criarErroUsuario(error), 'error');
-    }
+  function handleDelete(item: HabilidadeTecnicaCatalogo) {
+    confirmacao.confirm({
+      title: 'Remover habilidade?',
+      description: `“${item.nome}” será removida desta técnica.`,
+      confirmLabel: 'Remover habilidade',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await apiAdminDeleteHabilidadeDaTecnica(item.id);
+          showToast('Habilidade removida com sucesso.', 'success');
+          await carregarDados();
+        } catch (error) {
+          showToast(criarErroUsuario(error), 'error');
+        }
+      },
+    });
   }
 
   return (
@@ -2123,6 +2149,16 @@ export function TecnicaHabilidadesModal({ isOpen, tecnica, onClose }: Props) {
           if (success) onClose(true);
         }}
         onChanged={carregarDados}
+      />
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar remoção'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
       />
     </>
   );

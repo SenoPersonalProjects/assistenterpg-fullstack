@@ -11,6 +11,8 @@ import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Loading } from '@/components/ui/Loading';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EntityActionsMenu } from '@/components/ui/EntityActionsMenu';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 import {
   AdminPanelScaffold,
   AdminPanelSurface,
@@ -202,6 +204,7 @@ export function ProficienciasAdminPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ProficienciaCatalogo | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const confirmacao = useConfirm();
 
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -247,19 +250,25 @@ export function ProficienciasAdminPanel() {
     carregarDados();
   }, [carregarDados]);
 
-  async function handleDelete(item: ProficienciaCatalogo) {
-    if (!window.confirm(`Excluir proficiência "${item.nome}"?`)) return;
-
-    try {
-      setDeletingId(item.id);
-      await apiAdminDeleteProficiencia(item.id);
-      showToast('Proficiência removida com sucesso.', 'success');
-      await carregarDados();
-    } catch (error) {
-      showToast(criarErroUsuario(error), 'error');
-    } finally {
-      setDeletingId(null);
-    }
+  function handleDelete(item: ProficienciaCatalogo) {
+    confirmacao.confirm({
+      title: 'Excluir proficiência?',
+      description: `“${item.nome}” será removida do catálogo.`,
+      confirmLabel: 'Excluir proficiência',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          setDeletingId(item.id);
+          await apiAdminDeleteProficiencia(item.id);
+          showToast('Proficiência removida com sucesso.', 'success');
+          await carregarDados();
+        } catch (error) {
+          showToast(criarErroUsuario(error), 'error');
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   }
 
   return (
@@ -373,6 +382,17 @@ export function ProficienciasAdminPanel() {
           if (success) carregarDados();
         }}
         item={editingItem}
+      />
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar exclusão'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+        confirmLoading={deletingId !== null}
       />
     </AdminPanelScaffold>
   );

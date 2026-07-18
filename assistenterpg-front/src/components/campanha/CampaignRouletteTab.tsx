@@ -20,6 +20,7 @@ import {
   type CampanhaRoletaSorteio,
 } from '@/lib/api/campanha-roleta';
 import { useCampanhaRoletaRealtime } from '@/hooks/useCampanhaRoletaRealtime';
+import { useConfirm } from '@/hooks/useConfirm';
 import type { EventoCampanhaRoletaGiro } from '@/lib/realtime/campanha-socket';
 import {
   historicoCompativelComPresetRoleta,
@@ -37,6 +38,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const PRESETS: Array<{ slot: CampanhaRoletaSlot; label: string; descricao: string }> = [
   { slot: 'CLA', label: 'Clã', descricao: 'Sorteie um clã com chance adicional opcional.' },
@@ -102,6 +104,7 @@ export function CampaignRouletteTab({
   const [loading, setLoading] = useState(true);
   const [pendente, setPendente] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const confirmacao = useConfirm();
 
   const absorverHistorico = useCallback((proximo: CampanhaRoletaHistorico) => {
     setUltimosFinalizados((atuais) => {
@@ -471,18 +474,25 @@ export function CampaignRouletteTab({
                   <Button
                     variant="destructive"
                     disabled={pendente}
-                    onClick={() => {
-                      if (!window.confirm('Cancelar este sorteio? A ação ficará no histórico.')) return;
-                      void executar(async () => {
-                        await apiCancelarSorteioRoletaCampanha(
-                          campanhaId,
-                          sorteioAtivo.id,
-                          sorteioAtivo.revisao,
-                        );
-                        limparVisualizacaoAtual();
-                        await sincronizar();
-                      });
-                    }}
+                    onClick={() =>
+                      confirmacao.confirm({
+                        title: 'Cancelar sorteio?',
+                        description:
+                          'O sorteio será encerrado e o cancelamento continuará visível no histórico da campanha.',
+                        confirmLabel: 'Cancelar sorteio',
+                        variant: 'danger',
+                        onConfirm: () =>
+                          executar(async () => {
+                            await apiCancelarSorteioRoletaCampanha(
+                              campanhaId,
+                              sorteioAtivo.id,
+                              sorteioAtivo.revisao,
+                            );
+                            limparVisualizacaoAtual();
+                            await sincronizar();
+                          }),
+                      })
+                    }
                   >
                     Cancelar
                   </Button>
@@ -629,6 +639,18 @@ export function CampaignRouletteTab({
       {historicoSelecionado ? (
         <CampaignRouletteHistoryModal item={historicoSelecionado} onClose={() => setHistoricoSelecionado(null)} />
       ) : null}
+
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar ação'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+        confirmLoading={pendente}
+      />
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { validarCategoriaNaoExcedeEspecial } from '@/lib/utils/inventario';
 import type { EquipamentoCatalogo, ModificacaoCatalogo } from '@/lib/api';
 
@@ -27,6 +28,7 @@ export function InventarioModalModificacoes({
 }: Props) {
   const [modExpandida, setModExpandida] = useState<number | null>(null);
   const [limiteRender, setLimiteRender] = useState(LIMITE_RENDER_INICIAL);
+  const [erroSelecao, setErroSelecao] = useState<string | null>(null);
 
   const modificacoesSelecionadasIds = useMemo(
     () => new Set(modificacoesSelecionadas.map((mod) => mod.id)),
@@ -71,11 +73,12 @@ export function InventarioModalModificacoes({
       ]);
 
       if (!validacao.valido) {
-        alert(validacao.erro);
+        setErroSelecao(validacao.erro || 'Esta modificação não pode ser selecionada.');
         return;
       }
     }
 
+    setErroSelecao(null);
     onToggleModificacao(mod, checked);
   };
 
@@ -106,6 +109,8 @@ export function InventarioModalModificacoes({
           {modificacoesSelecionadas.length} selecionada(s)
         </Badge>
       </div>
+
+      {erroSelecao ? <ErrorAlert message={erroSelecao} /> : null}
 
       <div className="space-y-3">
         <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2">

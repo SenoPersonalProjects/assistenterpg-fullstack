@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorAlert } from '@/components/ui/ErrorAlert';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Icon } from '@/components/ui/Icon';
 import { Select } from '@/components/ui/Select';
+import { useConfirm } from '@/hooks/useConfirm';
 import { InventarioModalEquipamento } from '@/components/personagem-base/create/modal/InventarioModalEquipamento';
 import { InventarioModalEditar } from '@/components/personagem-base/create/modal/InventarioModalEditar';
 import {
@@ -192,6 +194,7 @@ export function SessionCharacterInventoryTab({
   const [salvando, setSalvando] = useState(false);
   const [modalConsumo, setModalConsumo] = useState<ModalConsumoState | null>(null);
   const [consumindoItemId, setConsumindoItemId] = useState<number | null>(null);
+  const confirmacao = useConfirm();
 
   const carregarInventario = useCallback(async () => {
     setCarregando(true);
@@ -473,24 +476,29 @@ export function SessionCharacterInventoryTab({
     }
   };
 
-  const removerItem = async (item: ItemInventarioDto) => {
-    if (!window.confirm(`Remover ${item.equipamento.nome} do inventário?`)) {
-      return;
-    }
-    setSalvando(true);
-    setErro(null);
-    try {
-      await apiRemoverItemInventarioCampanha(
-        campanhaId,
-        personagemCampanhaId,
-        item.id,
-      );
-      await carregarInventario();
-    } catch (error) {
-      setErro(criarErroUsuario(error));
-    } finally {
-      setSalvando(false);
-    }
+  const removerItem = (item: ItemInventarioDto) => {
+    confirmacao.confirm({
+      title: 'Remover item do inventário?',
+      description: `“${item.equipamento.nome}” será removido deste inventário.`,
+      confirmLabel: 'Remover item',
+      variant: 'danger',
+      onConfirm: async () => {
+        setSalvando(true);
+        setErro(null);
+        try {
+          await apiRemoverItemInventarioCampanha(
+            campanhaId,
+            personagemCampanhaId,
+            item.id,
+          );
+          await carregarInventario();
+        } catch (error) {
+          setErro(criarErroUsuario(error));
+        } finally {
+          setSalvando(false);
+        }
+      },
+    });
   };
 
   const equipamentosPorId = useMemo(() => {
@@ -740,7 +748,7 @@ export function SessionCharacterInventoryTab({
                     <Button
                       size="xs"
                       variant="ghost"
-                      onClick={() => void removerItem(item)}
+                      onClick={() => removerItem(item)}
                       disabled={salvando}
                     >
                       Remover
@@ -1105,6 +1113,18 @@ export function SessionCharacterInventoryTab({
           </div>
         ) : null}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmacao.isOpen}
+        onClose={confirmacao.handleClose}
+        onConfirm={() => void confirmacao.handleConfirm()}
+        title={confirmacao.options?.title ?? 'Confirmar remoção'}
+        description={confirmacao.options?.description ?? ''}
+        confirmLabel={confirmacao.options?.confirmLabel}
+        cancelLabel={confirmacao.options?.cancelLabel}
+        variant={confirmacao.options?.variant}
+        confirmLoading={salvando}
+      />
     </div>
   );
 }
