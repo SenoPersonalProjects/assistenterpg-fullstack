@@ -8,6 +8,7 @@ describe('campaign tabs helpers', () => {
   it('mantem aba valida', () => {
     expect(normalizarCampaignTab('sessoes')).toBe('sessoes');
     expect(normalizarCampaignTab('personagens')).toBe('personagens');
+    expect(normalizarCampaignTab('roleta')).toBe('roleta');
   });
 
   it('usa visao geral para valor ausente ou invalido', () => {
