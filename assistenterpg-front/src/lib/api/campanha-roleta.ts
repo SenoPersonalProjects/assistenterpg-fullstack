@@ -24,6 +24,14 @@ export type CampanhaRoletaConfig = {
   }>;
 };
 
+export type CampanhaRoletaConfigSnapshot = {
+  slot: CampanhaRoletaSlot;
+  modo: CampanhaRoletaModo;
+  configVersao: number;
+  presetRevisao: number;
+  config: CampanhaRoletaConfig;
+};
+
 export type CampanhaRoletaCatalogoItem = {
   chave: string;
   nome: string;
@@ -83,6 +91,19 @@ export type CampanhaRoletaSorteio = {
   canceladoEm: string | null;
 };
 
+export type CampanhaRoletaHistoricoEvento = {
+  id: number;
+  tipo: string;
+  dados: unknown;
+  resposta: unknown;
+  criadoEm: string;
+  ator: { id: number; apelido: string } | null;
+};
+
+export type CampanhaRoletaHistoricoItem = CampanhaRoletaSorteio & {
+  eventos: CampanhaRoletaHistoricoEvento[];
+};
+
 export type CampanhaRoletaEstado = {
   campanhaId: number;
   capacidades: {
@@ -127,18 +148,7 @@ export type CampanhaRoletaGiro = {
 };
 
 export type CampanhaRoletaHistorico = {
-  itens: Array<
-    CampanhaRoletaSorteio & {
-      eventos: Array<{
-        id: number;
-        tipo: string;
-        dados: unknown;
-        resposta: unknown;
-        criadoEm: string;
-        ator: { id: number; apelido: string } | null;
-      }>;
-    }
-  >;
+  itens: CampanhaRoletaHistoricoItem[];
   pagina: number;
   limite: number;
   total: number;

@@ -22,6 +22,7 @@ import {
 import { useCampanhaRoletaRealtime } from '@/hooks/useCampanhaRoletaRealtime';
 import type { EventoCampanhaRoletaGiro } from '@/lib/realtime/campanha-socket';
 import { CampaignRouletteConfigModal } from './CampaignRouletteConfigModal';
+import { CampaignRouletteHistoryCard } from './CampaignRouletteHistoryCard';
 import { VerticalCampaignRoulette } from './VerticalCampaignRoulette';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -31,9 +32,9 @@ import { Icon } from '@/components/ui/Icon';
 import { Loading } from '@/components/ui/Loading';
 
 const PRESETS: Array<{ slot: CampanhaRoletaSlot; label: string; descricao: string }> = [
-  { slot: 'CLA', label: 'Clã', descricao: 'Todos iguais, com uma duplicação opcional.' },
-  { slot: 'TECNICA', label: 'Técnica', descricao: 'Duas opções distintas ou terceiro giro definitivo.' },
-  { slot: 'CUSTOMIZADO', label: 'Customizado', descricao: 'Preset livre e persistente da campanha.' },
+  { slot: 'CLA', label: 'Clã', descricao: 'Predefinição de sorteio de clã pela regra do sistema.' },
+  { slot: 'TECNICA', label: 'Técnica', descricao: 'Predefinição de sorteio de técnica pela regra do sistema.' },
+  { slot: 'CUSTOMIZADO', label: 'Customizado', descricao: 'Predefinição livre e customizada.' },
 ];
 
 function itensVisuaisSemSorteio(
@@ -81,6 +82,7 @@ export function CampaignRouletteTab({
 }) {
   const [estado, setEstado] = useState<CampanhaRoletaEstado | null>(null);
   const [historico, setHistorico] = useState<CampanhaRoletaHistorico | null>(null);
+  const [historicoAbertoId, setHistoricoAbertoId] = useState<number | null>(null);
   const [slot, setSlot] = useState<CampanhaRoletaSlot>('CLA');
   const [configurando, setConfigurando] = useState(false);
   const [alvoUsuarioId, setAlvoUsuarioId] = useState('');
@@ -484,40 +486,14 @@ export function CampaignRouletteTab({
             {historico?.itens.length ? (
               <div className="max-h-[34rem] space-y-2 overflow-auto pr-1">
                 {historico.itens.map((item) => (
-                  <details key={item.id} className="rounded-xl border border-app-border p-3">
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-bold text-app-fg">
-                            {item.slot} · {item.resultadoFinal?.nome ?? item.status}
-                          </p>
-                          <p className="text-xs text-app-muted">
-                            {new Date(item.criadoEm).toLocaleString('pt-BR')}
-                            {item.alvo ? ` · ${item.alvo.apelido}` : ''}
-                          </p>
-                        </div>
-                        <Badge color={item.status === 'CANCELADO' ? 'red' : 'green'}>
-                          {item.status}
-                        </Badge>
-                      </div>
-                    </summary>
-                    <div className="mt-3 space-y-2 border-t border-app-border pt-3 text-xs text-app-muted">
-                      <p>
-                        Pool congelado: {item.poolSnapshot.quantidadeResultados} itens, peso{' '}
-                        {item.poolSnapshot.pesoTotal}.
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {item.poolSnapshot.itens
-                          .filter((poolItem) => poolItem.ocorrencias > 1 || poolItem.pesoUnitario > 1)
-                          .map((poolItem) => (
-                            <Badge key={poolItem.chave} color="yellow">
-                              {poolItem.nome} ×{poolItem.ocorrencias} · peso {poolItem.pesoTotal}
-                            </Badge>
-                          ))}
-                      </div>
-                      <p>{item.eventos.length} evento(s) imutável(is) registrado(s).</p>
-                    </div>
-                  </details>
+                  <CampaignRouletteHistoryCard
+                    key={item.id}
+                    item={item}
+                    aberto={historicoAbertoId === item.id}
+                    onAlternar={() =>
+                      setHistoricoAbertoId((atual) => (atual === item.id ? null : item.id))
+                    }
+                  />
                 ))}
               </div>
             ) : (
